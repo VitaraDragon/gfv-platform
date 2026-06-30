@@ -2288,8 +2288,15 @@
                 if (lavoroId) {
                     // Vendemmia collegata a lavoro: operai vengono dal lavoro (non modificabili)
                     operaiData = [];
+                } else if (
+                    document.getElementById('operai-tabella-section')?.style.display !== 'none'
+                ) {
+                    operaiData = getOperaiFromTabella();
+                    if (operaiData.length === 0) {
+                        alert('Inserisci almeno un operaio nella tabella');
+                        return;
+                    }
                 } else if (hasManodopera) {
-                    // Modulo manodopera attivo: usa dropdown
                     const operaiSelect = document.getElementById('operai');
                     operaiData = Array.from(operaiSelect.selectedOptions).map(opt => opt.value).filter(Boolean);
                     if (operaiData.length === 0) {
@@ -2297,9 +2304,7 @@
                         return;
                     }
                 } else {
-                    // Modulo manodopera non attivo: usa tabella editabile
                     operaiData = getOperaiFromTabella();
-                    // Valida che ci sia almeno un operaio
                     if (operaiData.length === 0) {
                         alert('Inserisci almeno un operaio nella tabella');
                         return;

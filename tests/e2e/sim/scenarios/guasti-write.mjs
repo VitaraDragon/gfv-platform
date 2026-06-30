@@ -55,7 +55,7 @@ async function selectGenericoSegnalazione(page) {
 /**
  * @param {import('playwright-core').Page} page
  */
-async function createGuastoAsOperaio(page) {
+export async function createGuastoAsOperaio(page) {
   await loginAsOperaioFromDevPage(page);
   await gotoSegnalazioneGuasti(page);
 

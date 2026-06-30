@@ -1,8 +1,8 @@
 # GFV Farm Simulator — Guida sviluppo per agenti
 
-**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (18 scenari read ✅) + **v5 roadmap** §11.3 (**33 scenari: 18 read + 15 write ✅**, M3 chiusa)  
-**Data:** 2026-06-29  
-**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa**; **v2.2 conto terzi chiusa**; **v3 cascata** ✅ (§11.1); **v4 Playwright chiusa** — 18 read (§11.2); **v5 Fase 1 chiusa** ✅ — write scen. 20–34 + CI **33/33** (18 read + 15 write; verificato 2026-06-30, ~1 min CI); regime max + routine §13.4  
+**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (18 scenari read ✅) + **v5 roadmap** §11.3 (**43 scenari: 23 read + 20 write ✅**, M2 template + M3/P2 write)  
+**Data:** 2026-06-30  
+**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa**; **v2.2 conto terzi chiusa**; **v3 cascata** ✅ (§11.1); **v4 Playwright chiusa** — 18 read (§11.2); **v5 Fase 1 chiusa** ✅ — write scen. 20–34; **M2 template chiusa** ✅ (scen. 35–39 read); **P2 write chiusi** ✅ (scen. 40–44); CI **43/43** spec; regime max + routine §13.4  
 **Codename:** `gfv-farm-simulator`
 
 ---
@@ -678,7 +678,7 @@ tests/e2e/sim/
     clienti-write.mjs
     preventivi-pianifica-write.mjs
     tariffe-write.mjs
-  *.spec.js                     # 33 spec (18 read + 15 write)
+  *.spec.js                     # 43 spec (23 read + 20 write)
 scripts/sim-e2e-run.mjs         # SCENARIOS: 27 voci (stesso ordine)
 ```
 
@@ -829,7 +829,7 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 
 #### 11.2.1 Stato v4 e prossimi passi (2026-06-29)
 
-**Completato:** scenari Playwright **1–34** — suite locale **33/33 OK** (`npm run sim:e2e`: 18 read + 15 write; ~2 min) + **CI** (`sim:e2e:ci` → `sim:e2e:pw`, **33 spec** — 18 read + 15 write; verificato 2026-06-30, job `sim:e2e` ~56s).
+**Completato:** scenari Playwright **1–44** — suite locale **43/43 OK** (`npm run sim:e2e`: 23 read + 20 write; ~3–4 min) + **CI** (`sim:e2e:ci` → `sim:e2e:pw`, **43 spec**).
 
 **v5 Fase 1 chiusa ✅** (M3 inclusa): 15 flussi write su path business critici (scen. 20–34, numerazione doc 31–34 = ultimi 4 write M3).
 
@@ -866,7 +866,7 @@ node scripts/cascade-v3-live-smoke.js
 npm run sim:audit                    # manifest snello: sim:cleanup --keep 1
 npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavori.test.js tests/cascade-attrezzi-cv.test.js
 npm run test:run -- tests/simulator/viticola-manodopera.test.js   # emulator attivo
-npm run sim:e2e                      # 33/33 attesi (~2 min)
+npm run sim:e2e                      # 43/43 attesi (~3–4 min)
 ```
 
 **Nota audit:** `sim:audit` su manifest con molte entry legacy o tenant `regime-max` può fallire anche con E2E verde — usare `sim:cleanup --keep 1` + nuovo `sim:run` prima dell’audit.
@@ -889,8 +889,8 @@ npm run sim:e2e                      # 33/33 attesi (~2 min)
 | Asse | Descrizione | Stato (2026-06-28) |
 | ---- | ----------- | ------------------- |
 | **A — Seed** | Ogni pagina testata ha dati nel template giusto | Buono su `viticola-conto-terzi-manodopera`; **guasti (3) + ore coda validazione (2)** ✅ v5 Fase 1; gap: vendemmia, frutteto… |
-| **B — E2E read** | Pagina si apre + contenuto coerente col seed (controllo visivo automatizzato) | **~32 / ~66** pagine standalone (~**48%**) — 18 scenari read |
-| **C — E2E write** | Compila form → salva → verifica effetto (lista o Firestore) | **15** scenari — attività ✅ 20 … terreni clienti CT ✅ 34; **M3 chiusa** |
+| **B — E2E read** | Pagina si apre + contenuto coerente col seed (controllo visivo automatizzato) | **~45 / ~45** pagine template `viticola-conto-terzi-manodopera` ✅ (23 scenari read, ~21 app intera esclusa) |
+| **C — E2E write** | Compila form → salva → verifica effetto (lista o Firestore) | **20** scenari — scen. 20–44; **M3 + P2 ✅** |
 
 **Inventario pagine:** ~**66** file `*-standalone.html` (esclusa `simulator-dev-standalone.html`). Molti **form** non sono pagine standalone (modali nelle liste) — copertura form = scenari write per modulo.
 
@@ -905,9 +905,9 @@ npm run sim:e2e                      # 33/33 attesi (~2 min)
 | Dashboard | ✅ | ✅ scen. 1 | ❌ | 1 |
 | Terreni | ✅ | ✅ scen. 3 | ✅ scen. 32 (nuovo terreno azienda) | 1 |
 | Attività (lista + form modale) | ✅ | ✅ scen. 4 | ✅ scen. 20 (nuova attività) | **1** |
-| Mappa aziendale | ✅ parziale | ❌ | ❌ | 2 |
-| Statistiche core | ✅ parziale | ❌ | ❌ | 2 |
-| Segnatura ore | ❌ | ❌ | ❌ | 2 |
+| Mappa aziendale | ✅ parziale | ✅ scen. 35 (`core-analytics-read`) | ❌ | 2 |
+| Statistiche core | ✅ parziale | ✅ scen. 35 | ❌ | 2 |
+| Segnatura ore | ✅ | ✅ scen. 39 | ✅ scen. 40 | 2 |
 
 ##### 11.3.2 Magazzino
 
@@ -926,8 +926,8 @@ npm run sim:e2e                      # 33/33 attesi (~2 min)
 | Scadenze | ✅ | ✅ scen. 2 | ❌ | 2 |
 | Trattori / Attrezzi / Flotta | ✅ | ✅ scen. 10 | ❌ | 2 |
 | Guasti (lista) | ✅ 3 record | ✅ scen. 14 (tabella + badge) | ✅ scen. 33 (segnalazione generica operaio) | **1** |
-| Segnalazione guasti (operaio) | ✅ | ❌ | ✅ scen. 33 | **1** |
-| Admin gestione macchine / guasti | parziale | ❌ | ❌ | 2 |
+| Segnalazione guasti (operaio) | ✅ | ✅ scen. 39 (form) | ✅ scen. 33 | **1** |
+| Admin gestione macchine / guasti | parziale | ✅ scen. 36 | ✅ scen. 42 / 41 (risolvi) | 2 |
 
 ##### 11.3.4 Vigneto
 
@@ -936,9 +936,9 @@ npm run sim:e2e                      # 33/33 attesi (~2 min)
 | Dashboard vigneto | ✅ | ✅ scen. 16 | ❌ | 1 |
 | Vigneti anagrafica | ✅ | ✅ scen. 12 | ❌ | 2 |
 | Potatura / Trattamenti / Concimazioni | ✅ | ✅ scen. 6 | ❌ | 2 |
-| Statistiche vigneto | parziale | ❌ | ❌ | 2 |
-| Vendemmia | ❌ | ❌ | ❌ | 2 |
-| Pianifica impianto / Calcolo materiali | ❌ / indiretto | ❌ | ❌ | 3 |
+| Statistiche vigneto | parziale | ✅ scen. 38 (`vigneto-extended-read`) | ❌ | 2 |
+| Vendemmia | ❌ (empty OK) | ✅ scen. 38 (empty-state) | ✅ scen. 43 | 2 |
+| Pianifica impianto / Calcolo materiali | ❌ / indiretto | ✅ scen. 38 | ❌ | 3 |
 
 ##### 11.3.5 Conto terzi
 
@@ -947,7 +947,7 @@ npm run sim:e2e                      # 33/33 attesi (~2 min)
 | Home conto terzi | ✅ | ✅ scen. 17 | ❌ | 1 |
 | Clienti / Tariffe / Preventivi / Terreni clienti | ✅ | ✅ scen. 7 | ✅ scen. 27 (cliente), ✅ 34 (terreno cliente) | 2 |
 | Mappa clienti | ✅ select | ✅ scen. 17 (no tile Google) | ❌ | 2 |
-| Nuovo preventivo | ✅ base | ❌ | ✅ scen. 24 (bozza) | **1** |
+| Nuovo preventivo | ✅ base | ✅ scen. 37 (`conto-terzi-forms-read`) | ✅ scen. 24 (bozza) | **1** |
 | Accetta preventivo | ✅ stati misti | ❌ | ✅ scen. 26 (manager, marker 9.99 ha) | **1** |
 | Pianifica preventivo | ✅ base | ❌ | ✅ scen. 28 (lavoro da marker) | **1** |
 
@@ -961,8 +961,8 @@ npm run sim:e2e                      # 33/33 attesi (~2 min)
 | Operai / Squadre / Statistiche | ✅ | ✅ scen. 18 | ❌ | 2 |
 | Lavori capo desktop | ✅ | ✅ scen. 19 | ❌ | 2 |
 | Field workspace mobile | ✅ | ✅ scen. 8 | ✅ scen. 22 (registra ore) | **1** |
-| Compensi operai | ❌ | ❌ | ❌ | 2 |
-| Statistiche lavoratore (mobile) | parziale | ❌ | ❌ | 2 |
+| Compensi operai | ❌ | ✅ scen. 39 | ✅ scen. 44 (calcolo) | 2 |
+| Statistiche lavoratore (mobile) | parziale | ✅ scen. 39 | ❌ | 2 |
 
 ##### 11.3.7 Frutteto *(modulo non seedato — ~7 pagine standalone)*
 
@@ -978,24 +978,27 @@ npm run sim:e2e                      # 33/33 attesi (~2 min)
 | Meteo dashboard | ❌ escluso | mock/skip | 3 |
 | Login / registrazione / reset password | N/A emulator | test auth separati | 3 |
 | Impostazioni, abbonamento, gestisci utenti, amministrazione | ❌ | ❌ | 3 |
-| **Tony** (widget, form injection) | ❌ escluso sim | track **Tony test client** | parallelo |
+| **Tony** (widget, form injection) | ❌ escluso orchestrator | track **Tony test client** + E2E post-v5 | parallelo |
+
+**Guida sviluppo Tony + sim (checklist agenti, matrice scenari, M-T0…M-T6):** [`TONY_E2E_GUIDA_SVILUPPO.md`](TONY_E2E_GUIDA_SVILUPPO.md) — **iniziare solo dopo M2+M3 v5 chiusi**.
 
 ##### 11.3.9 Milestone misurabili
 
 | Milestone | Criterio |
 | --------- | -------- |
 | **M1** | ✅ v4 — **18/18** E2E read + link rapidi pagina dev |
-| **M2** | E2E read su **tutte le pagine** del template `viticola-conto-terzi-manodopera` (~40 URL) |
-| **M3** | **10–15 flussi E2E write** su path business critici — **15/15 ✅** (scen. 20–34); prossimo: **M2** read P1 / v5 Fase 2 |
+| **M2** | E2E read su **tutte le pagine** del template `viticola-conto-terzi-manodopera` (~45 URL) — **✅ chiusa 2026-06-30** (+5 scenari read 35–39) |
+| **M3** | **10–15 flussi E2E write** su path business critici — **15/15 ✅** (scen. 20–34); prossimo: **M4** frutteto / v5 Fase 2 profonda |
 | **M4** | Template **frutteto** + parity read/write |
 | **M5** | Matrice **ruolo × modulo** (manager / capo / operaio) + CI notturna suite piena (v4b) |
+| **M-T*** | **Tony E2E + sim** — tempi, typo, concetto, forbidden; v. [`TONY_E2E_GUIDA_SVILUPPO.md`](TONY_E2E_GUIDA_SVILUPPO.md) §10 |
 
 ##### 11.3.10 Fasi di implementazione (ordine consigliato)
 
 **Fase 1 — Chiudere template attuale (P1)** — ~4–8 incrementi
 
 - Seed: ~~**guasti**, **ore in coda validazione**~~ ✅ (2026-06-28)
-- E2E read: mappa aziendale, statistiche core/vigneto, admin macchine/guasti, apertura nuovo preventivo
+- E2E read: ~~mappa aziendale, statistiche core/vigneto, admin macchine/guasti, apertura nuovo preventivo~~ ✅ scen. 35–39 (M2)
 - E2E write: ~~attività~~ ✅ scen. 20 … ~~tariffa~~ ✅ scen. 29; ~~validazione ore~~ ✅ scen. 31; ~~terreni~~ ✅ scen. 32; ~~guasto~~ ✅ scen. 33; ~~terreno cliente CT~~ ✅ scen. 34 — **M3 chiusa**; prossimo: **batch read P1** (M2)
 
 **Fase 2 — Conto terzi + manodopera profondi**
@@ -1198,7 +1201,7 @@ Workflow: `.github/workflows/simulator-ci.yml`
 
 - **Quando:** push/PR su path `simulator/**`, `tests/simulator/**`, `tests/e2e/sim/**`, `scripts/sim-e2e-run.mjs`, `scripts/sim-ci-e2e-inner.sh`, `playwright.config.js`, `firebase.json`, lockfile; oppure **Run workflow** manuale.
 - **Job `simulator-emulator`:** `npm run sim:test:ci` (Java **21**, Node **22** + `emulators:exec` + `sim:test` + `sim:test:vitest`). Timeout 15 min.
-- **Job `simulator-e2e` (v4 #9 ✅, v5 Fase 1 ✅):** `npm run sim:e2e:install` + `npm run sim:e2e:ci` — `emulators:exec` avvia http-server su `:8000`, seed `viticola-conto-terzi-manodopera`, `sim:e2e:pw` (**33 spec** — 18 read + 15 write, headless Chromium). Timeout 25 min. I due job girano in parallelo.
+- **Job `simulator-e2e` (v4 #9 ✅, v5 Fase 1 ✅, M2 + P2 ✅):** `npm run sim:e2e:install` + `npm run sim:e2e:ci` — `emulators:exec` avvia http-server su `:8000`, seed `viticola-conto-terzi-manodopera`, `sim:e2e:pw` (**43 spec** — 23 read + 20 write, headless Chromium). Timeout 25 min. I due job girano in parallelo.
 - **Locale (stesso comando CI Node):** `npm run sim:test:ci` — richiede Java su PATH.
 - **Locale (stesso comando CI E2E, bash + Java):** `npm run sim:e2e:install && npm run sim:e2e:ci`.
 
@@ -1207,7 +1210,7 @@ Workflow: `.github/workflows/simulator-ci.yml`
 | Browser | `sim:e2e:install` | Chromium Playwright + deps OS (`--with-deps`) |
 | Orchestrazione | `sim:e2e:ci` | `simulator/ci-e2e-run.js` → `scripts/sim-ci-e2e-inner.sh` |
 | Seed minimal | `sim:run -- --template=viticola-conto-terzi-manodopera` | template completo manodopera + CT |
-| Assert browser | `sim:e2e:pw` | Node 22; **33 spec** headless (18 read + 15 write) |
+| Assert browser | `sim:e2e:pw` | Node 22; **43 spec** headless (23 read + 20 write) |
 
 Su Node 24 locale preferire `npm run sim:e2e` (runner Node + Chrome di sistema); in CI usare `sim:e2e:pw`.
 
@@ -1485,7 +1488,7 @@ npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose
 
 **Verifica UI:** §13.2 — pagina dev + moduli conto terzi + manodopera mobile.
 
-**Verifica E2E (v4 + v5 Fase 1 / M3):** `npm run sim:e2e` — suite **33/33 OK** (18 read + 15 write, ~2 min) con tenant `viticola-conto-terzi-manodopera` — verificato 2026-06-29; v. §11.2–§11.3.
+**Verifica E2E (v4 + v5 + M2 + P2):** `npm run sim:e2e` — suite **43/43 OK** (23 read + 20 write, ~3–4 min) con tenant `viticola-conto-terzi-manodopera`; v. §11.2–§11.3.
 
 **Non in scope v2.2 (aggiornato):** preventivo accettato → creazione lavoro conto terzi automatica. ~~Link rapidi Conto Terzi in pagina dev~~ → **implementato 2026-06-28** (gruppi modulo condizionati al template).
 

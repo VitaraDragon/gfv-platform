@@ -23,8 +23,12 @@ import {
   gotoTrattamentiList,
   gotoTrattoriList,
   gotoAttrezziList,
+  gotoCalcoloMateriali,
+  gotoCompensiOperai,
   gotoContoTerziHome,
   gotoFlottaList,
+  gotoGestioneGuastiAdmin,
+  gotoGestioneMacchine,
   gotoGestioneOperai,
   gotoGestioneSquadre,
   gotoGuastiList,
@@ -32,12 +36,21 @@ import {
   gotoMacchineDashboard,
   gotoMagazzinoHome,
   gotoManodoperaHome,
+  gotoMappaAziendale,
   gotoMappaClienti,
+  gotoNuovoPreventivo,
+  gotoPianificaImpianto,
+  gotoSegnalazioneGuasti,
+  gotoSegnaturaOre,
+  gotoStatisticheCore,
+  gotoStatisticheLavoratore,
   gotoStatisticheManodopera,
   gotoTracciabilitaConsumi,
   gotoValidazioneOre,
+  gotoVendemmia,
   gotoVignetiList,
   gotoVignetoDashboard,
+  gotoVignetoStatistiche,
   loginAsCapoForLavoriDesktop,
   loginAsCapoFromDevPage,
   loginAsManagerContoTerzi,
@@ -111,6 +124,32 @@ import {
   runPotaturaListAssertions,
   runTrattamentiListAssertions,
 } from '../tests/e2e/sim/scenarios/vigneto.mjs';
+import {
+  runMappaAziendaleAssertions,
+  runStatisticheCoreAssertions,
+} from '../tests/e2e/sim/scenarios/core-analytics-read.mjs';
+import {
+  runGestioneGuastiAdminAssertions,
+  runGestioneMacchineAssertions,
+} from '../tests/e2e/sim/scenarios/macchine-admin-read.mjs';
+import { runNuovoPreventivoReadAssertions } from '../tests/e2e/sim/scenarios/conto-terzi-forms-read.mjs';
+import {
+  runCalcoloMaterialiReadAssertions,
+  runPianificaImpiantoReadAssertions,
+  runVendemmiaReadAssertions,
+  runVignetoStatisticheAssertions,
+} from '../tests/e2e/sim/scenarios/vigneto-extended-read.mjs';
+import {
+  runCompensiOperaiReadAssertions,
+  runSegnalazioneGuastiReadAssertions,
+  runSegnaturaOreReadAssertions,
+  runStatisticheLavoratoreReadAssertions,
+} from '../tests/e2e/sim/scenarios/manodopera-extended-read.mjs';
+import { runSegnaturaOreWriteAssertions } from '../tests/e2e/sim/scenarios/segnatura-ore-write.mjs';
+import { runGuastiResolveWriteAssertions } from '../tests/e2e/sim/scenarios/guasti-resolve-write.mjs';
+import { runGestioneMacchineWriteAssertions } from '../tests/e2e/sim/scenarios/gestione-macchine-write.mjs';
+import { runVendemmiaWriteAssertions } from '../tests/e2e/sim/scenarios/vendemmia-write.mjs';
+import { runCompensiWriteAssertions } from '../tests/e2e/sim/scenarios/compensi-write.mjs';
 
 const baseURL = process.env.GFV_E2E_BASE_URL || 'http://127.0.0.1:8000';
 
@@ -323,6 +362,63 @@ const SCENARIOS = [
     },
   },
   {
+    name: 'core-analytics-read',
+    run: async (page) => {
+      await loginAsManagerFromDevPage(page);
+      await gotoMappaAziendale(page);
+      await runMappaAziendaleAssertions(page, expect);
+      await gotoStatisticheCore(page);
+      await runStatisticheCoreAssertions(page, expect);
+    },
+  },
+  {
+    name: 'macchine-admin-read',
+    run: async (page) => {
+      await loginAsManagerFromDevPage(page);
+      await gotoGestioneMacchine(page);
+      await runGestioneMacchineAssertions(page, expect);
+      await gotoGestioneGuastiAdmin(page);
+      await runGestioneGuastiAdminAssertions(page, expect);
+    },
+  },
+  {
+    name: 'conto-terzi-forms-read',
+    run: async (page) => {
+      await loginAsManagerContoTerzi(page);
+      await gotoNuovoPreventivo(page);
+      await runNuovoPreventivoReadAssertions(page, expect);
+    },
+  },
+  {
+    name: 'vigneto-extended-read',
+    run: async (page) => {
+      await loginAsManagerFromDevPage(page);
+      await gotoVignetoStatistiche(page);
+      await runVignetoStatisticheAssertions(page, expect);
+      await gotoVendemmia(page);
+      await runVendemmiaReadAssertions(page, expect);
+      await gotoCalcoloMateriali(page);
+      await runCalcoloMaterialiReadAssertions(page, expect);
+      await gotoPianificaImpianto(page);
+      await runPianificaImpiantoReadAssertions(page, expect);
+    },
+  },
+  {
+    name: 'manodopera-extended-read',
+    run: async (page) => {
+      await loginAsManagerManodopera(page);
+      await gotoCompensiOperai(page);
+      await runCompensiOperaiReadAssertions(page, expect);
+      await gotoSegnaturaOre(page);
+      await runSegnaturaOreReadAssertions(page, expect);
+      await loginAsOperaioFromDevPage(page, { waitForWorkspace: false });
+      await gotoSegnalazioneGuasti(page);
+      await runSegnalazioneGuastiReadAssertions(page, expect);
+      await gotoStatisticheLavoratore(page);
+      await runStatisticheLavoratoreReadAssertions(page, expect);
+    },
+  },
+  {
     name: 'attivita-write',
     run: async (page) => {
       await loginAsManagerFromDevPage(page);
@@ -434,6 +530,36 @@ const SCENARIOS = [
       await loginAsManagerContoTerzi(page);
       await gotoTerreniClientiList(page);
       await runTerreniClientiWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'segnatura-ore-write',
+    run: async (page) => {
+      await runSegnaturaOreWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'guasti-resolve-write',
+    run: async (page) => {
+      await runGuastiResolveWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'gestione-macchine-write',
+    run: async (page) => {
+      await runGestioneMacchineWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'vendemmia-write',
+    run: async (page) => {
+      await runVendemmiaWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'compensi-write',
+    run: async (page) => {
+      await runCompensiWriteAssertions(page, expect);
     },
   },
 ];

@@ -1,6 +1,54 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-30 — sim **v5 Fase 1 chiusa** ✅; suite **33/33** locale + CI (run 28424016472).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-30 — sim **M2 + P2 write** ✅; suite **43/43** spec (23 read + 20 write).
+
+## GFV Farm Simulator — P2 write template viticola (2026-06-30)
+
+**Obiettivo:** chiudere gap write P2 su `viticola-conto-terzi-manodopera`.
+
+**+5 scenari write (40–44):**
+
+| # | Spec | Flusso |
+|---|------|--------|
+| 40 | `segnatura-ore-write` | Capo desktop → nuova ora marker → coda validazione manager |
+| 41 | `guasti-resolve-write` | Manager risolve guasto marker (admin gestione guasti) |
+| 42 | `gestione-macchine-write` | Manager → nuovo trattore marker |
+| 43 | `vendemmia-write` | Manager → vendemmia qli 88.8 + operai tabella |
+| 44 | `compensi-write` | Validazione ore + calcolo compensi mese (righe ≥ 1) |
+
+**Fix app:** `vendemmia-standalone.html` — submit operai usa tabella editabile quando visibile (allineato a `openCreateModal` con manodopera).
+
+**Verifica:** `npm run sim:e2e` → **43/43 OK** attesi (~3–4 min).
+
+## Tony + Simulatore — guida E2E sviluppo (2026-06-30)
+
+**Obiettivo:** documento operativo per il track **post v5 app** — test automatici Tony (tempi, typo, errori concetto, azioni non consentite) su tenant seed emulator, senza beta tester esterni.
+
+**File:** `docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md` — architettura 3 livelli (Vitest / E2E mock / LLM live), struttura repo target, matrice scenari JSON, milestone **M-T0…M-T6**, catalogo backlog, anti-pattern, handoff agenti.
+
+**Link:** `simulator/README.md`, `GFV_FARM_SIMULATOR.md` §11.3.8/§11.3.9, `docs-sviluppo/tony/README.md`.
+
+**Stato:** 📋 pianificato — implementazione codice (`tests/e2e/tony/`, `sim:tony:e2e`) dopo chiusura v5 app.
+
+## GFV Farm Simulator — M2 chiusa: read residue template viticola-conto-terzi-manodopera (2026-06-30)
+
+**Obiettivo:** milestone **M2** — E2E read su tutte le pagine navigabili del template `viticola-conto-terzi-manodopera` (~45 URL).
+
+**+5 scenari read (35–39):**
+
+| # | Spec | Pagine coperte |
+|---|------|----------------|
+| 35 | `core-analytics-read` | mappa aziendale, statistiche core |
+| 36 | `macchine-admin-read` | gestione macchine, gestione guasti (admin) |
+| 37 | `conto-terzi-forms-read` | nuovo preventivo (form aperto) |
+| 38 | `vigneto-extended-read` | statistiche vigneto, vendemmia (empty OK), calcolo materiali, pianifica impianto |
+| 39 | `manodopera-extended-read` | compensi operai, segnatura ore; operaio: segnalazione guasti, statistiche lavoratore |
+
+**Escluso di proposito:** `accetta-preventivo-standalone` (link token cliente, non navigazione manager).
+
+**File:** 5 coppie scenario/spec + helper `sim-login.js` + `scripts/sim-e2e-run.mjs`.
+
+**Verifica:** `npm run sim:e2e` → **43/43 OK** attesi (~3–4 min).
 
 ## GFV Farm Simulator — v5 Fase 1 chiusa (2026-06-30)
 

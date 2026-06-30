@@ -66,6 +66,27 @@ export const STATISTICHE_MANODOPERA_PATH =
   '/core/admin/statistiche-manodopera-standalone.html?emulator=1';
 export const LAVORI_CAPOSQUADRA_PATH =
   '/core/admin/lavori-caposquadra-standalone.html?emulator=1';
+export const MAPPA_AZIENDALE_PATH = '/core/mappa-aziendale-standalone.html?emulator=1';
+export const STATISTICHE_CORE_PATH = '/core/statistiche-standalone.html?emulator=1';
+export const VIGNETO_STATISTICHE_PATH =
+  '/modules/vigneto/views/vigneto-statistiche-standalone.html?emulator=1';
+export const GESTIONE_MACCHINE_PATH =
+  '/core/admin/gestione-macchine-standalone.html?emulator=1';
+export const GESTIONE_GUASTI_ADMIN_PATH =
+  '/core/admin/gestione-guasti-standalone.html?emulator=1';
+export const NUOVO_PREVENTIVO_PATH =
+  '/modules/conto-terzi/views/nuovo-preventivo-standalone.html?emulator=1';
+export const COMPENSI_OPERAI_PATH =
+  '/core/admin/compensi-operai-standalone.html?emulator=1';
+export const SEGNATURA_ORE_PATH = '/core/segnatura-ore-standalone.html?emulator=1';
+export const STATISTICHE_LAVORATORE_PATH =
+  '/core/mobile/statistiche-lavoratore-standalone.html?emulator=1';
+export const VENDEMMIA_PATH =
+  '/modules/vigneto/views/vendemmia-standalone.html?emulator=1';
+export const CALCOLO_MATERIALI_PATH =
+  '/modules/vigneto/views/calcolo-materiali-standalone.html?emulator=1';
+export const PIANIFICA_IMPIANTO_PATH =
+  '/modules/vigneto/views/pianifica-impianto-standalone.html?emulator=1';
 
 const SEED_VERSION = 2;
 
@@ -905,4 +926,205 @@ export async function loginAsCapoForLavoriDesktop(page, options = {}) {
     waitForWorkspace: false,
   });
   await gotoLavoriCaposquadra(page);
+}
+
+export async function waitForMappaAziendaleLoaded(page) {
+  await page.waitForURL(/mappa-aziendale-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Mappa aziendale' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const root = document.getElementById('mappa-page-root');
+    if (!root) return false;
+    if (root.querySelector('.loading') && !document.getElementById('mappa-aziendale-container')) {
+      return false;
+    }
+    return !!document.getElementById('mappa-aziendale-container');
+  }, { timeout: 90_000 });
+}
+
+export async function gotoMappaAziendale(page) {
+  await page.goto(MAPPA_AZIENDALE_PATH);
+  await waitForMappaAziendaleLoaded(page);
+}
+
+export async function waitForStatisticheCoreLoaded(page) {
+  await page.waitForURL(/statistiche-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Statistiche e Dashboard' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const el = document.getElementById('metric-terreni');
+    const t = el && (el.textContent || '').trim();
+    return t && t !== '-' && parseInt(t, 10) >= 4;
+  }, { timeout: 90_000 });
+}
+
+export async function gotoStatisticheCore(page) {
+  await page.goto(STATISTICHE_CORE_PATH);
+  await waitForStatisticheCoreLoaded(page);
+}
+
+export async function waitForVignetoStatisticheLoaded(page) {
+  await page.waitForURL(/vigneto-statistiche-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'STATISTICHE VIGNETO' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const sel = document.getElementById('filtro-vigneto');
+    return sel && sel.querySelectorAll('option:not([value=""])').length >= 1;
+  }, { timeout: 90_000 });
+}
+
+export async function gotoVignetoStatistiche(page) {
+  await page.goto(VIGNETO_STATISTICHE_PATH);
+  await waitForVignetoStatisticheLoaded(page);
+}
+
+export async function waitForGestioneMacchineLoaded(page) {
+  await page.waitForURL(/gestione-macchine-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Gestione Macchine' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const container = document.getElementById('macchine-container');
+    if (!container) return false;
+    if (container.querySelector('.loading')) return false;
+    return container.querySelectorAll('.macchine-table tbody tr').length >= 8;
+  }, { timeout: 90_000 });
+}
+
+export async function gotoGestioneMacchine(page) {
+  await page.goto(GESTIONE_MACCHINE_PATH);
+  await waitForGestioneMacchineLoaded(page);
+}
+
+export async function waitForGestioneGuastiAdminLoaded(page) {
+  await page.waitForURL(/gestione-guasti-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Gestione Guasti' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const totali = document.getElementById('stat-totali');
+    const n = totali ? parseInt(totali.textContent, 10) : 0;
+    if (!Number.isFinite(n) || n < 3) return false;
+    const list = document.getElementById('guasti-list');
+    if (!list || /Caricamento guasti/i.test(list.textContent || '')) return false;
+    return list.querySelectorAll('.guasto-item').length >= 3;
+  }, { timeout: 90_000 });
+}
+
+export async function gotoGestioneGuastiAdmin(page) {
+  await page.goto(GESTIONE_GUASTI_ADMIN_PATH);
+  await waitForGestioneGuastiAdminLoaded(page);
+}
+
+export async function waitForNuovoPreventivoLoaded(page) {
+  await page.waitForURL(/nuovo-preventivo-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Nuovo Preventivo' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const cliente = document.getElementById('cliente-id');
+    const categoria = document.getElementById('lavoro-categoria-principale');
+    return (
+      cliente &&
+      cliente.querySelectorAll('option:not([value=""])').length >= 2 &&
+      categoria &&
+      categoria.querySelectorAll('option:not([value=""])').length >= 1
+    );
+  }, { timeout: 90_000 });
+}
+
+export async function gotoNuovoPreventivo(page) {
+  await page.goto(NUOVO_PREVENTIVO_PATH);
+  await waitForNuovoPreventivoLoaded(page);
+}
+
+export async function waitForCompensiOperaiLoaded(page) {
+  await page.waitForURL(/compensi-operai-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Compensi Operai' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const tbody = document.getElementById('compensi-body');
+    if (!tbody) return false;
+    return !tbody.querySelector('.loading');
+  }, { timeout: 90_000 });
+}
+
+export async function gotoCompensiOperai(page) {
+  await page.goto(COMPENSI_OPERAI_PATH);
+  await waitForCompensiOperaiLoaded(page);
+}
+
+export async function waitForSegnaturaOreLoaded(page) {
+  await page.waitForURL(/segnatura-ore-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Segna Ore Lavorate' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const lavori = document.getElementById('lavori-container');
+    const ore = document.getElementById('ore-container');
+    if (!lavori || !ore) return false;
+    if (lavori.querySelector('.loading') || ore.querySelector('.loading')) return false;
+    return (
+      lavori.querySelectorAll('.lavoro-card').length >= 1 ||
+      lavori.querySelector('.empty-state') !== null
+    );
+  }, { timeout: 90_000 });
+}
+
+export async function gotoSegnaturaOre(page) {
+  await page.goto(SEGNATURA_ORE_PATH);
+  await waitForSegnaturaOreLoaded(page);
+}
+
+export async function waitForStatisticheLavoratoreLoaded(page) {
+  await page.waitForURL(/statistiche-lavoratore-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Le tue statistiche' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    if (document.getElementById('loading-el')) return false;
+    const ore = document.getElementById('m-ore');
+    return ore && (ore.textContent || '').trim() !== '—';
+  }, { timeout: 90_000 });
+}
+
+export async function gotoStatisticheLavoratore(page) {
+  await page.goto(STATISTICHE_LAVORATORE_PATH);
+  await waitForStatisticheLavoratoreLoaded(page);
+}
+
+export async function waitForVendemmiaLoaded(page) {
+  await page.waitForURL(/vendemmia-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Gestione Vendemmia' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const loading = document.getElementById('loading');
+    if (loading && loading.offsetParent !== null) return false;
+    const table = document.getElementById('vendemmie-table');
+    const empty = document.getElementById('empty-state');
+    return (
+      (table && table.style.display !== 'none') ||
+      (empty && empty.style.display !== 'none')
+    );
+  }, { timeout: 90_000 });
+}
+
+export async function gotoVendemmia(page) {
+  await page.goto(VENDEMMIA_PATH);
+  await waitForVendemmiaLoaded(page);
+}
+
+export async function waitForCalcoloMaterialiLoaded(page) {
+  await page.waitForURL(/calcolo-materiali-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Calcolo Materiali Impianto' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const table = document.getElementById('table-pianificazioni');
+    if (!table) return false;
+    const cell = table.querySelector('tbody td');
+    return cell && !/Caricamento pianificazioni/i.test(cell.textContent || '');
+  }, { timeout: 90_000 });
+}
+
+export async function gotoCalcoloMateriali(page) {
+  await page.goto(CALCOLO_MATERIALI_PATH);
+  await waitForCalcoloMaterialiLoaded(page);
+}
+
+export async function waitForPianificaImpiantoLoaded(page) {
+  await page.waitForURL(/pianifica-impianto-standalone\.html/, { timeout: 60_000 });
+  await page.locator('#headerTitolo').filter({ hasText: 'Pianificazione' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const sel = document.getElementById('terrenoSelect');
+    return sel && sel.querySelectorAll('option:not([value=""])').length >= 1;
+  }, { timeout: 90_000 });
+}
+
+export async function gotoPianificaImpianto(page) {
+  await page.goto(PIANIFICA_IMPIANTO_PATH);
+  await waitForPianificaImpiantoLoaded(page);
 }
