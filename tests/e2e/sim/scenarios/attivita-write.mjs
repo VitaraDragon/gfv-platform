@@ -10,6 +10,17 @@ export const E2E_ATTIVITA_WRITE_NOTE = 'GFV_SIM_E2E_WRITE_ATTIVITA';
 const PREFERRED_TIPO_LAVORO = 'Erpicatura';
 
 /**
+ * Riga attività E2E (orari fissi 15:00–17:00 nel test write).
+ * @param {import('playwright-core').Page} page
+ */
+function e2eAttivitaWriteRow(page) {
+  return page
+    .locator('#attivita-container .attivita-row')
+    .filter({ has: page.locator('.col-orari').filter({ hasText: '15:00' }) })
+    .filter({ has: page.locator('.col-orari').filter({ hasText: '17:00' }) });
+}
+
+/**
  * Applica filtro note e attende che il render tabella sia coerente (non solo empty-state).
  * @param {import('playwright-core').Page} page
  * @param {string} note
@@ -22,6 +33,8 @@ async function filterAttivitaByNote(page, note, opts = {}) {
   await input.fill(note);
   await page.waitForFunction(
     ({ marker, mustHaveRows }) => {
+      const inputEl = document.getElementById('filter-ricerca');
+      if ((inputEl?.value || '') !== marker) return false;
       const container = document.getElementById('attivita-container');
       if (!container || container.style.display === 'none') return false;
       if (/Caricamento/i.test(container.textContent || '')) return false;
@@ -34,13 +47,6 @@ async function filterAttivitaByNote(page, note, opts = {}) {
     { marker: note, mustHaveRows: requireRows },
     { timeout }
   );
-}
-
-/**
- * @param {import('playwright-core').Page} page
- */
-async function countVisibleAttivitaRows(page) {
-  return page.locator('#attivita-container .attivita-row').count();
 }
 
 /**
@@ -219,7 +225,7 @@ export async function runAttivitaWriteAssertions(page, expect) {
   await expect(page.locator('h1').filter({ hasText: 'Diario Attività' })).toBeVisible();
 
   await filterAttivitaByNote(page, E2E_ATTIVITA_WRITE_NOTE);
-  let rowCount = await countVisibleAttivitaRows(page);
+  let rowCount = await e2eAttivitaWriteRow(page).count();
 
   let expectedTipo = PREFERRED_TIPO_LAVORO;
   let expectedTerreno = '';
@@ -247,17 +253,17 @@ export async function runAttivitaWriteAssertions(page, expect) {
     );
 
     await filterAttivitaByNote(page, E2E_ATTIVITA_WRITE_NOTE, { requireRows: true, timeout: 60_000 });
-    rowCount = await countVisibleAttivitaRows(page);
+    rowCount = await e2eAttivitaWriteRow(page).count();
   } else {
-    const firstRow = page.locator('#attivita-container .attivita-row').first();
+    const firstRow = e2eAttivitaWriteRow(page).first();
     expectedTipo = ((await firstRow.locator('.col-tipo-lavoro').textContent()) || '').trim();
     expectedTerreno = ((await firstRow.locator('.col-terreno').textContent()) || '').trim();
   }
 
   expect(rowCount).toBeGreaterThanOrEqual(1);
 
-  const row = page.locator('#attivita-container .attivita-row').first();
-  await expect(row.locator('.col-tipo-lavoro')).toContainText(expectedTipo);
+  const row = e2eAttivitaWriteRow(page).first();
+  await expect(row.locator('.col-tipo-lavoro')).toContainText(expectedTipo, { timeout: 15_000 });
 
   if (expectedTerreno) {
     await expect(row.locator('.col-terreno')).toContainText(expectedTerreno);

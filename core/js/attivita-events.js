@@ -100,7 +100,9 @@ export function applyFilters(
                 }
             }
             
-            if (ricerca && att.note && !att.note.toLowerCase().includes(ricerca)) return false;
+            if (ricerca) {
+                if (!att.note || !att.note.toLowerCase().includes(ricerca)) return false;
+            }
             // Filtro origine: azienda = senza clienteId, contoTerzi = con clienteId
             if (origine === 'azienda' && (att.clienteId != null && att.clienteId !== '')) return false;
             if (origine === 'contoTerzi' && (!att.clienteId || att.clienteId === '')) return false;
@@ -154,7 +156,9 @@ export function applyFilters(
                 }
             }
             
-            if (ricerca && att.note && !att.note.toLowerCase().includes(ricerca)) return false;
+            if (ricerca) {
+                if (!att.note || !att.note.toLowerCase().includes(ricerca)) return false;
+            }
             // Filtro origine: azienda = senza clienteId, contoTerzi = con clienteId
             if (origine === 'azienda' && (att.clienteId != null && att.clienteId !== '')) return false;
             if (origine === 'contoTerzi' && (!att.clienteId || att.clienteId === '')) return false;

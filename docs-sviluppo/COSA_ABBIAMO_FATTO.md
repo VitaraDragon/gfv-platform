@@ -14,6 +14,8 @@
 
 **Fix run 28387012119:** `attivita-write` flaky — filtro note attendeva empty-state con 0 righe; `preventivi-write` — dopo cliente usa `onClienteChange` + `__preventivoAwaitTerreniClienteReady` (90s) prima di `#terreno-id`.
 
+**Fix flake attivita-write (run 28401850118):** filtro «Cerca nelle note» lasciava passare attività senza `note`; test usava `.first()` su lista non filtrata → riga seed «Controllo fitosanitario». Fix app in `applyFilters` + selettore riga E2E per orari 15:00–17:00.
+
 **File:** `core/js/attivita-events.js`, `core/attivita-standalone.html`, `tests/e2e/sim/scenarios/attivita-write.mjs`, `tests/e2e/sim/scenarios/preventivi-write.mjs`.
 
 ## GFV Farm Simulator — v5 Fase 1 M3 chiusa: ultimi 4 write E2E (2026-06-29)
