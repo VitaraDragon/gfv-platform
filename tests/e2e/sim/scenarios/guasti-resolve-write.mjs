@@ -28,7 +28,7 @@ function guastoItemWithMarker(page) {
 async function ensureMarkerGuastoExists(page) {
   await loginAsManagerManodopera(page);
   await gotoGuastiList(page);
-  await page.locator('#filter-stato').selectOption('');
+  await page.locator('#filter-stato').selectOption('tutti');
   const inList = page.locator('#table-container .guasti-table tbody tr').filter({
     hasText: E2E_GUASTO_WRITE_DETTAGLI,
   });
