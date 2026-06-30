@@ -1052,10 +1052,14 @@ export async function waitForSegnaturaOreLoaded(page) {
     const ore = document.getElementById('ore-container');
     if (!lavori || !ore) return false;
     if (lavori.querySelector('.loading') || ore.querySelector('.loading')) return false;
-    return (
+    const lavoriReady =
       lavori.querySelectorAll('.lavoro-card').length >= 1 ||
-      lavori.querySelector('.empty-state') !== null
-    );
+      lavori.querySelector('.empty-state') !== null ||
+      lavori.querySelector('.lavori-list') !== null;
+    const oreReady =
+      ore.querySelector('.ore-table') !== null ||
+      ore.querySelector('.empty-state') !== null;
+    return lavoriReady && oreReady;
   }, { timeout: 90_000 });
 }
 

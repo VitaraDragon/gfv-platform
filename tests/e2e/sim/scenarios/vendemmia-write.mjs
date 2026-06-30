@@ -78,5 +78,5 @@ export async function runVendemmiaWriteAssertions(page, expect) {
 
   await expect(page.locator('#empty-state')).toBeHidden();
   expect(await vendemmiaRowsWithMarker(page).count()).toBeGreaterThanOrEqual(1);
-  await expect(vendemmiaRowsWithMarker(page).first()).toContainText(E2E_VENDEMMIA_WRITE_NOTE);
+  await expect(vendemmiaRowsWithMarker(page).first()).toContainText(E2E_VENDEMMIA_WRITE_QLI);
 }

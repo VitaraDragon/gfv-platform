@@ -10,7 +10,6 @@ import {
 import {
   gotoGestioneGuastiAdmin,
   gotoGuastiList,
-  loginAsManagerFromDevPage,
   loginAsManagerManodopera,
 } from '../helpers/sim-login.js';
 
@@ -29,7 +28,7 @@ function guastoItemWithMarker(page) {
 async function ensureMarkerGuastoExists(page) {
   await loginAsManagerManodopera(page);
   await gotoGuastiList(page);
-  await page.locator('#filter-stato').selectOption('tutti');
+  await page.locator('#filter-stato').selectOption('');
   const inList = page.locator('#table-container .guasti-table tbody tr').filter({
     hasText: E2E_GUASTO_WRITE_DETTAGLI,
   });
@@ -67,9 +66,9 @@ export async function runGuastiResolveWriteAssertions(page, expect) {
 
   await ensureMarkerGuastoExists(page);
 
-  await loginAsManagerFromDevPage(page);
+  await loginAsManagerManodopera(page);
   await gotoGestioneGuastiAdmin(page);
-  await page.locator('#filter-stato').selectOption('tutti');
+  await page.locator('#filter-stato').selectOption('');
 
   await expect(guastoItemWithMarker(page).first()).toBeVisible({ timeout: 60_000 });
   await resolveMarkerGuasto(page);

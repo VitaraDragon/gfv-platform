@@ -16,6 +16,7 @@ export async function runGestioneMacchineAssertions(page, expect) {
   expect(await rows.count()).toBeGreaterThanOrEqual(8);
   expect(await rows.count()).toBeLessThanOrEqual(12);
 
+  const countText = await page.locator('#macchine-count').textContent();
   const countMatch = (countText || '').match(/(\d+)/);
   expect(countMatch).not.toBeNull();
   expect(parseInt(countMatch[1], 10)).toBeGreaterThanOrEqual(8);

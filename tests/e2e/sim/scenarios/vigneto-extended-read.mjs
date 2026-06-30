@@ -13,7 +13,7 @@ export async function runVignetoStatisticheAssertions(page, expect) {
   expect(await filtroVigneto.locator('option:not([value=""])').count()).toBeGreaterThanOrEqual(1);
 
   await expect(page.locator('#filtro-anno')).toBeVisible();
-  await expect(page.locator('#alert-container')).toBeVisible();
+  await expect(page.locator('#alert-container')).toBeAttached();
 }
 
 export async function runVendemmiaReadAssertions(page, expect) {

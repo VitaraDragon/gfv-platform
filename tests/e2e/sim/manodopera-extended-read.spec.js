@@ -4,6 +4,7 @@ import {
   gotoSegnalazioneGuasti,
   gotoSegnaturaOre,
   gotoStatisticheLavoratore,
+  loginAsCapoFromDevPage,
   loginAsManagerManodopera,
   loginAsOperaioFromDevPage,
 } from './helpers/sim-login.js';
@@ -15,12 +16,13 @@ import {
 } from './scenarios/manodopera-extended-read.mjs';
 
 test.describe('GFV Farm Simulator — manodopera extended read', () => {
-  test('manager → compensi + segnatura ore; operaio → segnalazione + statistiche', async ({
+  test('manager → compensi; capo → segnatura ore; operaio → segnalazione + statistiche', async ({
     page,
   }) => {
     await loginAsManagerManodopera(page);
     await gotoCompensiOperai(page);
     await runCompensiOperaiReadAssertions(page, expect);
+    await loginAsCapoFromDevPage(page, { waitForWorkspace: false });
     await gotoSegnaturaOre(page);
     await runSegnaturaOreReadAssertions(page, expect);
 
