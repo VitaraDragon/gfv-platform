@@ -1061,36 +1061,99 @@ npm run sim:e2e                      # 43/43 attesi (~3–4 min)
 | Read smoke (pagina + seed minimo) | **~40/45** | Molti scenari multi-pagina (hub, conto-terzi, extended) |
 | Read profondo (KPI, filtri, stati, admin) | **⚠️ parziale** | Dashboard solo widget scadenze; admin piattaforma non visitato |
 | Write form/modali business | **20/35+** | M3 + P2 su path critici; vigneto anagrafica/trattamenti/potatura senza write |
-| Seed gap | vendemmia dati, compensi seed | vendemmia write OK su empty/qli; read full richiede seed |
+| Seed gap | lavori «a catena» (vendemmia/raccolta incompleti) | Sim popola **record finiti** da attività diario (§11.3.12) — diverge dagli stub UI |
 | Fuori scope Fase 2a | frutteto (~7 pag), report (3), meteo, auth live, Tony | M4 frutteto; M-T* Tony |
+
+**Principio obbligatorio Fase 2:** il sim e gli E2E devono seguire **l’ordine app** — *trigger (lavoro/attività) → record auto incompleto → completamento utente → effetti collaterali* (es. scarico magazzino). V. **§11.3.12**.
 
 **Prossimo batch consigliato — scenari 45–54 (+10 spec → target 53/53):**
 
-###### Read (45–49) — profondità + admin smoke
+###### Read (45–49) — profondità + catene auto
 
 | # | Spec (target) | Pagina / focus | Priorità | Perché ora |
 | - | ------------- | -------------- | -------- | ---------- |
-| 45 | `gestisci-utenti-read` | `gestisci-utenti-standalone.html` | P2 | Unica area admin piattaforma mai aperta in E2E; personas seed |
-| 46 | `impostazioni-read` | `impostazioni-standalone.html` | P2 | Smoke impostazioni tenant — regressione layout/auth |
-| 47 | `macchine-dashboard-read` | KPI `#card-trattori-value` ecc. | P2 | Hub scen. 14 linka; assert numerici dedicati (come extended macchine) |
-| 48 | `terreni-catalogo-read` | Colonne coltura / podere / ettari | P2 | Scen. 3 copre affitti; estende assert catalogo terreni azienda |
-| 49 | `vendemmia-read-seed` | Tabella vendemmia con righe seed | P2 | **Bloccato finché seed vendemmia non popola righe** — empty-state già scen. 38 |
+| 45 | `gestisci-utenti-read` | `gestisci-utenti-standalone.html` | P2 | Admin piattaforma mai aperta in E2E; personas seed |
+| 46 | `impostazioni-read` | `impostazioni-standalone.html` | P2 | Smoke impostazioni tenant |
+| 47 | `macchine-dashboard-read` | KPI `#card-trattori-value` ecc. | P2 | Assert numerici dedicati |
+| 48 | `terreni-catalogo-read` | Colonne coltura / podere / ettari | P2 | Scen. 3 = solo affitti |
+| 49 | `vendemmia-auto-read` | Riga **⚠ Incompleta** da lavoro vendemmia seed | **P1** | Badge + link lavoro — **non** empty-state (scen. 38) |
 
-###### Write (50–54) — moduli vigneto + CT + parco
+###### Write (50–54) — catene reali + form manuali dove serve
 
-| # | Spec (target) | Flusso | Priorità | Dipendenze |
-| - | ------------- | ------ | -------- | ---------- |
-| 50 | `vigneti-write` | Nuovo vigneto — marker nome in anagrafica | **P1** | Seed terreni/vigneti esistente |
-| 51 | `preventivi-invia-write` | **Invia** bozza marker 9.99 ha → badge Inviato | **P1** | Dopo `a-preventivi-write` (marker bozza) |
-| 52 | `potatura-write` | Nuova potatura — marker note/data | P2 | Vigneto seed; modale senza mappa obbligatoria |
-| 53 | `trattamenti-write` | Nuovo trattamento fitosanitario — marker | P2 | Prodotti magazzino seed; form più complesso |
-| 54 | `attrezzi-write` | Nuovo attrezzo da `attrezzi-list` | P2 | Complementa scen. 42 (trattore admin) |
+| # | Spec (target) | Flusso app reale | Priorità | Dipendenze |
+| - | ------------- | ---------------- | -------- | ---------- |
+| 50 | `vigneti-write` | **Manuale** — Nuovo vigneto anagrafica (OK standalone) | P1 | Terreni seed |
+| 51 | `preventivi-invia-write` | **CT** — Invia bozza marker 9.99 ha | P1 | `a-preventivi-write` |
+| 52 | `vendemmia-completa-write` | **Catena** — lavoro Vendemmia → stub auto → completa qli/ettari/destinazione → badge Completa | **P1** | Seed sim: lavoro vendemmia (§11.3.12) |
+| 53 | `trattamento-completa-write` | **Catena** — lavoro/attività Trattamento → stub (prodotto/dosaggio vuoti) → completa → scarico magazzino | **P1** | Prodotti seed; assert tracciabilità |
+| 54 | `attrezzi-write` | **Manuale** — nuovo attrezzo da lista (complementa scen. 42 admin) | P2 | Parco macchine |
 
-**Ordine implementazione suggerito:** (1) seed vendemmia minimo se si fa scen. 49 → (2) write 50–51 (valore business CT + vigneto) → (3) read 45–48 in parallelo → (4) write 52–54.
+**Rimossi dal batch (errore precedente):** `potatura-write` / `trattamenti-write` come «Nuovo record da zero» — in app la potatura/trattamento nasce quasi sempre da **lavoro/attività**; il test giusto è **completa** (+ opzionale read stub), non bypassare la catena.
 
-**Esclusi dal batch 1 (Fase 2b / M4):** template frutteto; report dashboard; meteo; login/registrazione live; Tony E2E (`TONY_E2E_GUIDA_SVILUPPO.md`).
+**Ordine implementazione:** (1) **allineamento seed sim** lavoro vendemmia + lavoro trattamento incompleti (§11.3.12) → (2) write **52–53** (catene) → (3) read **49** → (4) write **50–51** → (5) read **45–48** + write **54**.
 
-**Definition of Done batch:** `npm run sim:e2e` + CI **53/53**; idempotenza marker; nessun flaky; aggiornare §11.3.11 e `COSA_ABBIAMO_FATTO.md`.
+**Esclusi dal batch 1 (Fase 2b / M4):** template frutteto (raccolta frutta — stessa catena vendemmia); report; meteo; Tony E2E.
+
+**Definition of Done batch:** `npm run sim:e2e` + CI **53/53**; catene idempotenti; nessun flaky; §11.3.12 rispettato.
+
+##### 11.3.12 Catene auto-compilazione — app, simulatore, E2E (2026-07-01)
+
+**Regola:** *Il simulatore deve produrre dati raggiungibili con gli stessi trigger dell’app* (lavoro/attività/preventivo/validazione ore), non solo documenti Firestore «finishing touch» scollegati dalla UI.
+
+###### Catena tipo A — lavoro/attività → scheda coltura **incompleta** → completamento utente
+
+Trigger in app: `gestione-lavori-events.js` (salva lavoro), `attivita-events.js` (salva attività).
+
+| Modulo | Trigger (tipo lavoro) | Service `create*FromLavoro/Attivita` | Precompilato | Da completare in UI |
+| ------ | --------------------- | ------------------------------------ | ------------ | ------------------- |
+| **Vigneto — vendemmia** | Vendemmia Manuale/Meccanica + terreno vite | `vendemmia-service.js` | data, varietà, operai/macchine/ore da lavoro | **qli, ettari, destinazione** (+ qualità opz.) |
+| **Vigneto — potatura** | categoria Potatura + vite | `potatura-vigneto-service.js` | data, operai/ore da lavoro | **tipo, ceppi, parcella**, costi |
+| **Vigneto — tratt./concim.** | categoria Trattamenti + vite | `trattamenti-vigneto-service.js` | data, tipo trattamento, operatore, superficie | **prodotto, dosaggio**, righe prodotto |
+| **Frutteto — raccolta** | tipo «raccolta» + coltura frutteto | `raccolta-frutta-service.js` | data, specie/varietà | **kg, ettari** |
+| **Frutteto — potatura/tratt.** | come vigneto | `potatura/trattamenti-frutteto-service.js` | analogo | analogo |
+
+UI: badge **⚠ Incompleta** (vendemmia) o righe «da completare» in liste potatura/trattamenti/concimazioni.
+
+###### Catena tipo B — completamento → effetto collaterale
+
+| Azione utente | Effetto automatico | Service |
+| ------------- | ------------------ | ------- |
+| Salva trattamento vigneto/frutteto con prodotti | Scarico magazzino + tracciabilità | `trattamento-scarico-magazzino-service.js` → `syncScarichiMagazzinoTrattamento` |
+| Valida ore (manager) | Aggiorna ore macchina/attrezzo | `validazione-ore-standalone.html` |
+| Pianifica preventivo CT | Crea lavoro `da_pianificare` | `preventivi-standalone.html` → Firestore lavori |
+| Accetta preventivo | Cambio stato | — |
+
+###### Catena tipo C — form manuali puri (OK test «Nuovo …»)
+
+| Modulo | E2E attuale | Note |
+| ------ | ----------- | ---- |
+| Attività diario (Erpicatura ecc.) | `attivita-write` ✅ | Non innesca catena A (tipo non vigneto-special) |
+| Movimenti entrata/uscita | `movimenti-write`, `movimenti-uscita-write` ✅ | Manuale; diverso da scarico auto trattamento |
+| Preventivo bozza | `a-preventivi-write` ✅ | Manuale form |
+| Prodotto, cliente, terreno, guasto… | vari write ✅ | Manuale |
+
+###### Simulatore oggi vs app (gap da colmare)
+
+| Dato | App (UI) | Sim Node oggi | Allineamento richiesto |
+| ---- | -------- | ------------- | ---------------------- |
+| Potature/trattamenti vigneto in lista | Spesso stub da lavoro **poi** completati | `05-simulate-vigneto.js` scrive record **completi** da attività diario (bypass hook) | **Fase 2:** aggiungere almeno 1 lavoro vendemmia + 1 lavoro trattamento **stub** via stesso shape dei service, oppure chiamare hook da fase seed dedicata |
+| Scarichi magazzino | Da trattamento completato in UI | `04-simulate-magazzino.js` da attività diario (parallelo, coerente economicamente) | OK per read tracciabilità; E2E write catena B deve usare **UI trattamento** |
+| Vendemmia / raccolta frutta | Stub da lavoro | **Assente** | Seed lavori vendemmia (viticola) — prerequisito scen. 49/52 |
+| Compensi operai | Calcolo da ore validate | Ore validate in seed manodopera ✅ | `z-compensi-write` ✅ (Aggiorna mese) |
+
+###### Audit E2E esistenti — errori simili a vendemmia
+
+| Spec | Cosa testa | Allineamento app | Azione |
+| ---- | ---------- | ---------------- | ------ |
+| `vendemmia-write` (43) | **Nuova Vendemmia** manuale, qli 88.8 | ⚠️ Solo percorso secondario; **non** catena lavoro→completa | Tenere come smoke form manuale; aggiungere **`vendemmia-completa-write`** (52) |
+| `vigneto.spec.js` (6) | Read potature/trattamenti **completi** seed | OK read stato **post-completamento** sim | Non confondere con stub incompleto |
+| `movimenti.spec.js` (5) | Uscite con tracciabilità attività | OK dati seed fase 4 | Manca E2E **scarico da completamento trattamento** (catena B) |
+| `gestione-lavori-write` (23) | Lavoro Erpicatura | OK; **non** innesca catena A | Aggiungere variante lavoro **Vendemmia** per seed catena |
+| `attivita-write` (20) | Erpicatura | OK manuale | Variante attività Trattamento potrebbe testare catena A da diario |
+| `preventivi-pianifica-write` (28) | Pianifica → lavoro creato | ✅ catena CT | OK |
+| Batch pianificato ~~potatura/trattamenti-write~~ | Creazione ex novo | ❌ bypass catena | **Sostituiti** da completa-write (§11.3.11) |
+
+**Anti-pattern Fase 2:** seed diretto di vendemmie/raccolte «complete» senza lavoro; E2E «Nuovo trattamento» quando il flusso utente abituale è «completa riga da lavoro»; sim che scrive solo Firestore senza passare dagli hook documentati in §11.3.12.
 
 #### 11.1.2 Definition of Done v3 (2026-06-27)
 

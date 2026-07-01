@@ -2,6 +2,25 @@
 
 **Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-01 — sim **43/43 CI stabile**; gap analysis Fase 2 **§11.3.11** (batch 45–54).
 
+## GFV Farm Simulator — catene auto-compilazione + audit E2E (2026-07-01)
+
+**Obiettivo:** allineare sim + E2E al comportamento **reale** dell’app (lavoro/attività → record auto **incompleto** → completamento utente → effetti collaterali).
+
+**Catene principali (app):**
+
+| Modulo | Trigger | Da completare in UI |
+|--------|---------|---------------------|
+| Vendemmia | Lavoro/attività vendemmia + vite | qli, ettari, destinazione |
+| Tratt./concim. vigneto | Lavoro/attività trattamento | prodotto, dosaggio → scarico magazzino |
+| Potatura vigneto | Lavoro/attività potatura | tipo, ceppi, parcella |
+| Raccolta frutta | Lavoro/attività raccolta + frutteto | kg, ettari (M4) |
+
+**Gap sim:** `05-simulate-vigneto` scrive potature/trattamenti **completi** da attività diario (bypass hook); **nessun** lavoro vendemmia seed. Vendemmia/raccolta stub assenti.
+
+**Audit E2E:** `vendemmia-write` (43) testa solo «Nuova Vendemmia» manuale — **non** la catena lavoro→completa. Batch 45–54 corretto: `vendemmia-auto-read`, `vendemmia-completa-write`, `trattamento-completa-write` (non potatura/trattamenti ex novo).
+
+**Dettaglio:** `GFV_FARM_SIMULATOR.md` **§11.3.12**.
+
 ## GFV Farm Simulator — gap analysis Fase 2 + batch 45–54 (2026-07-01)
 
 **Obiettivo:** pianificare estensione read/write oltre 43 spec — template `viticola-conto-terzi-manodopera` coperto su flussi critici, non su tutta l’app.
@@ -10,18 +29,19 @@
 
 | Asse | Coperto | Gap |
 |------|---------|-----|
-| Read smoke ~45 URL | ~40/45 via 23 scenari multi-pagina | Admin piattaforma, profondità KPI, vendemmia con dati |
-| Write form business | 20 scenari (M3 + P2) | Vigneto anagrafica/potatura/trattamenti; invio preventivo; attrezzi lista |
+| Read smoke ~45 URL | ~40/45 via 23 scenari multi-pagina | Admin piattaforma, KPI, vendemmia **incompleta** da lavoro |
+| Write form business | 20 scenari (M3 + P2) | Catene completa-vendemmia/trattamento; invio preventivo |
+| Sim vs app | Attività→record completi (Node) | Stub incompleti da lavori vendemmia/trattamento |
 | Fuori template | — | Frutteto M4; report/meteo P3; Tony M-T* |
 
 **Prossimo batch (+10 spec → 53):**
 
 | Tipo | # | Spec target |
 |------|---|-------------|
-| Read | 45–49 | `gestisci-utenti-read`, `impostazioni-read`, `macchine-dashboard-read`, `terreni-catalogo-read`, `vendemmia-read-seed` *(dopo seed)* |
-| Write | 50–54 | `vigneti-write`, `preventivi-invia-write`, `potatura-write`, `trattamenti-write`, `attrezzi-write` |
+| Read | 45–49 | admin smoke + **`vendemmia-auto-read`** (incompleta da lavoro seed) |
+| Write | 50–54 | `vigneti-write`, `preventivi-invia-write`, **`vendemmia-completa-write`**, **`trattamento-completa-write`**, `attrezzi-write` |
 
-**Dettaglio:** `GFV_FARM_SIMULATOR.md` §11.3.11.
+**Dettaglio:** `GFV_FARM_SIMULATOR.md` §11.3.11–§11.3.12.
 
 ## GFV Farm Simulator — CI 43/43 stabile: fix preventivi + field-workspace (2026-07-01)
 

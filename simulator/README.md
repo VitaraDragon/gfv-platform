@@ -200,9 +200,10 @@ Assert su DOM visibile — dati seed già validati da v3/v2.2/v2.1 manodopera.
 
 | Stato oggi (2026-07-01) | Target v5 Fase 2 |
 | ----------------------- | ---------------- |
-| **43/43** spec E2E — **CI stabile** | **+10 spec** batch 45–54 (§11.3.11) |
-| Read smoke ~40/45 URL template | Read profonde + admin smoke |
-| Write 20 flussi critici ✅ | +5 write vigneto/CT/parco |
+| **43/43** spec E2E — **CI stabile** | **+10 spec** batch 45–54 — **catene auto** §11.3.12 |
+| Read smoke ~40/45 URL | Vendemmia **incompleta** da lavoro; admin smoke |
+| Write 20 flussi critici ✅ | **Completa** vendemmia/trattamento (non ex novo); invio preventivo |
+| Sim vs app | Allineare seed: lavori stub vendemmia/trattamento | 
 | Tony E2E gate v5 ✅ | Kick-off §7.2–7.3 `TONY_E2E_GUIDA_SVILUPPO.md` |
 | Frutteto / report | M4 template frutteto (dopo batch 45–54) |
 
