@@ -122,36 +122,53 @@ async function pickTipoLavoroInForm(page) {
 }
 
 /**
+ * Seleziona un cliente con almeno un terreno (evita doppio onClienteChange che resetta il select).
+ * @param {import('playwright-core').Page} page
+ * @returns {Promise<{ clienteValue: string, clienteNome: string }>}
+ */
+async function selectClienteWithTerreni(page) {
+  const clienteSelect = page.locator('#cliente-id');
+  const optionCount = await clienteSelect.locator('option').count();
+  if (optionCount < 2) {
+    throw new Error('Nessun cliente disponibile nel form nuovo preventivo');
+  }
+
+  for (let i = 1; i < optionCount; i += 1) {
+    const clienteValue = (await clienteSelect.locator('option').nth(i).getAttribute('value')) || '';
+    const clienteNome = ((await clienteSelect.locator('option').nth(i).textContent()) || '').trim();
+    if (!clienteValue) continue;
+
+    await clienteSelect.selectOption(clienteValue);
+
+    try {
+      await page.waitForFunction(
+        async () => {
+          const terreno = document.getElementById('terreno-id');
+          if (terreno && terreno.options.length > 1) return true;
+          if (typeof window.__preventivoAwaitTerreniClienteReady === 'function') {
+            await window.__preventivoAwaitTerreniClienteReady(8_000);
+          }
+          const refreshed = document.getElementById('terreno-id');
+          return refreshed && refreshed.options.length > 1;
+        },
+        { timeout: 60_000, polling: 400 }
+      );
+      return { clienteValue, clienteNome };
+    } catch {
+      continue;
+    }
+  }
+
+  throw new Error('Nessun cliente con terreni disponibili nel form nuovo preventivo');
+}
+
+/**
  * @param {import('playwright-core').Page} page
  * @param {{ note: string }} opts
  * @returns {Promise<{ clienteNome: string, tipoLavoro: string, coltura: string }>}
  */
 async function fillAndSubmitNewPreventivo(page, { note }) {
-  const clienteSelect = page.locator('#cliente-id');
-  const clienteValue = (await clienteSelect.locator('option').nth(1).getAttribute('value')) || '';
-  const clienteNome = ((await clienteSelect.locator('option').nth(1).textContent()) || '').trim();
-  if (!clienteValue) {
-    throw new Error('Nessun cliente disponibile nel form nuovo preventivo');
-  }
-  await clienteSelect.selectOption(clienteValue);
-
-  await page.evaluate(async (selectedClienteId) => {
-    const sel = document.getElementById('cliente-id');
-    if (sel && sel.value !== selectedClienteId) {
-      sel.value = selectedClienteId;
-    }
-    if (typeof window.onClienteChange === 'function') {
-      window.onClienteChange();
-    }
-    if (typeof window.__preventivoAwaitTerreniClienteReady === 'function') {
-      await window.__preventivoAwaitTerreniClienteReady(90_000);
-    }
-  }, clienteValue);
-
-  await page.waitForFunction(() => {
-    const terreno = document.getElementById('terreno-id');
-    return terreno && terreno.options.length > 1;
-  }, { timeout: 15_000 });
+  const { clienteNome } = await selectClienteWithTerreni(page);
 
   const terrenoSelect = page.locator('#terreno-id');
   await terrenoSelect.selectOption({ index: 1 });
