@@ -5,6 +5,7 @@
  */
 
 import {
+  gotoFieldWorkspace,
   gotoValidazioneOre,
   loginAsManagerManodopera,
   loginAsOperaioFromDevPage,
@@ -14,6 +15,23 @@ export const E2E_ORE_MOBILE_WRITE_NOTE = 'GFV_SIM_E2E_WRITE_ORE';
 
 const ORA_START = '14:00';
 const ORA_END = '16:00';
+
+/**
+ * Attende propagazione Firestore → tabella validazione (evita race post-save operaio).
+ * @param {import('playwright-core').Page} page
+ * @param {string} note
+ * @param {number} [timeout]
+ */
+async function waitForMarkerInValidazioneQueue(page, note, timeout = 60_000) {
+  await page.waitForFunction(
+    (markerNote) => {
+      const rows = document.querySelectorAll('#ore-container .ore-table tbody tr');
+      return Array.from(rows).some((tr) => (tr.textContent || '').includes(markerNote));
+    },
+    note,
+    { timeout }
+  );
+}
 
 /**
  * @param {import('playwright-core').Page} page
@@ -93,9 +111,21 @@ export async function runFieldWorkspaceOreWriteAssertions(page, expect) {
   await loginAsManagerManodopera(page);
   await gotoValidazioneOre(page);
 
-  let markerRows = validazioneRowWithMarker(page);
-  if ((await markerRows.count()) === 0) {
-    await loginAsOperaioFromDevPage(page);
+  const markerPending = await page
+    .waitForFunction(
+      (note) => {
+        const rows = document.querySelectorAll('#ore-container .ore-table tbody tr');
+        return Array.from(rows).some((tr) => (tr.textContent || '').includes(note));
+      },
+      E2E_ORE_MOBILE_WRITE_NOTE,
+      { timeout: 8_000 }
+    )
+    .then(() => true)
+    .catch(() => false);
+
+  if (!markerPending) {
+    await loginAsOperaioFromDevPage(page, { waitForWorkspace: false });
+    await gotoFieldWorkspace(page);
 
     await expect(page).toHaveURL(/field-workspace-standalone\.html/);
     await expect(page.locator('#field-swiper')).toBeVisible();
@@ -109,9 +139,10 @@ export async function runFieldWorkspaceOreWriteAssertions(page, expect) {
 
     await loginAsManagerManodopera(page);
     await gotoValidazioneOre(page);
-    markerRows = validazioneRowWithMarker(page);
+    await waitForMarkerInValidazioneQueue(page, E2E_ORE_MOBILE_WRITE_NOTE);
   }
 
+  const markerRows = validazioneRowWithMarker(page);
   expect(await markerRows.count()).toBeGreaterThanOrEqual(1);
 
   const row = markerRows.first();
