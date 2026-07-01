@@ -1087,8 +1087,8 @@ npm run sim:e2e                      # 43/43 attesi (~3–4 min)
 | - | ------------- | ---------------- | -------- | ---------- |
 | 50 | `vigneti-write` | **Manuale** — Nuovo vigneto anagrafica (OK standalone) | P1 | Terreni seed |
 | 51 | `preventivi-invia-write` | **CT** — Invia bozza marker 9.99 ha | P1 | `a-preventivi-write` |
-| 52 | `vendemmia-completa-write` | **Catena** — lavoro Vendemmia → stub auto → completa qli/ettari/destinazione → badge Completa | **P1** | Seed sim: lavoro vendemmia (§11.3.12) |
-| 53 | `trattamento-completa-write` | **Catena** — lavoro/attività Trattamento → stub (prodotto/dosaggio vuoti) → completa → scarico magazzino | **P1** | Prodotti seed; assert tracciabilità |
+| 52 | `vendemmia-completa-write` | **Catena** — lavoro Vendemmia → stub auto → completa qli/ettari/destinazione → badge Completa | **P1 ✅** | Seed sim: lavoro vendemmia (§11.3.12) |
+| 53 | `trattamento-completa-write` | **Catena** — lavoro/attività Trattamento → stub (prodotto/dosaggio vuoti) → completa → scarico magazzino | **P1 ✅** | Prodotti seed; assert +1 uscita movimenti |
 | 54 | `attrezzi-write` | **Manuale** — nuovo attrezzo da lista (complementa scen. 42 admin) | P2 | Parco macchine |
 
 **Rimossi dal batch (errore precedente):** `potatura-write` / `trattamenti-write` come «Nuovo record da zero» — in app la potatura/trattamento nasce quasi sempre da **lavoro/attività**; il test giusto è **completa** (+ opzionale read stub), non bypassare la catena.
@@ -1139,8 +1139,8 @@ UI: badge **⚠ Incompleta** (vendemmia) o righe «da completare» in liste pota
 
 | Dato | App (UI) | Sim Node oggi | Allineamento richiesto |
 | ---- | -------- | ------------- | ---------------------- |
-| Potature/trattamenti vigneto in lista | Spesso stub da lavoro **poi** completati | ~~`05-simulate-vigneto.js` scrive record **completi**~~ **Stub catena A ✅ (2026-07-01)** + lavoro vendemmia fase 07 | E2E **completa-write** batch 52–53 |
-| Scarichi magazzino | Da trattamento completato in UI | `04-simulate-magazzino.js` da attività diario (parallelo, coerente economicamente) | OK per read tracciabilità; E2E write catena B → **trattamento-completa-write** (52–53) |
+| Potature/trattamenti vigneto in lista | Spesso stub da lavoro **poi** completati | Stub catena A ✅ + lavoro vendemmia fase 07 | E2E **completa-write 52–53 ✅** |
+| Scarichi magazzino | Da trattamento completato in UI | Dual path: fase 4 diario + **E2E catena B scen. 53** | Assert +1 uscita post-completamento trattamento |
 | Vendemmia / raccolta frutta | Stub da lavoro | **Vendemmia stub ✅** (attività + lavoro manodopera); raccolta frutta M4 | E2E **49/52** |
 | Compensi operai | Calcolo da ore validate | Ore validate in seed manodopera ✅ | `z-compensi-write` ✅ (Aggiorna mese) |
 

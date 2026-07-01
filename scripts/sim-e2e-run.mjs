@@ -149,6 +149,8 @@ import { runSegnaturaOreWriteAssertions } from '../tests/e2e/sim/scenarios/segna
 import { runGuastiResolveWriteAssertions } from '../tests/e2e/sim/scenarios/guasti-resolve-write.mjs';
 import { runGestioneMacchineWriteAssertions } from '../tests/e2e/sim/scenarios/gestione-macchine-write.mjs';
 import { runVendemmiaWriteAssertions } from '../tests/e2e/sim/scenarios/vendemmia-write.mjs';
+import { runVendemmiaCompletaWriteAssertions } from '../tests/e2e/sim/scenarios/vendemmia-completa-write.mjs';
+import { runTrattamentoCompletaWriteAssertions } from '../tests/e2e/sim/scenarios/trattamento-completa-write.mjs';
 import { runCompensiWriteAssertions } from '../tests/e2e/sim/scenarios/compensi-write.mjs';
 
 const baseURL = process.env.GFV_E2E_BASE_URL || 'http://127.0.0.1:8000';
@@ -554,6 +556,18 @@ const SCENARIOS = [
     name: 'vendemmia-write',
     run: async (page) => {
       await runVendemmiaWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'vendemmia-completa-write',
+    run: async (page) => {
+      await runVendemmiaCompletaWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'trattamento-completa-write',
+    run: async (page) => {
+      await runTrattamentoCompletaWriteAssertions(page, expect);
     },
   },
   {

@@ -1,6 +1,21 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-01 — sim **catena A stub** (fase 5/7); E2E vigneto allineati; batch 45–54 **§11.3.11**.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-01 — E2E catena **52–53** (completa vendemmia/trattamento); suite **45** scenari.
+
+## GFV Farm Simulator — E2E catena completa vigneto 52–53 (2026-07-01)
+
+**Obiettivo:** test browser sul flusso app **stub → completamento UI → effetto collaterale** (§11.3.12 scen. 52–53).
+
+**Implementato:**
+
+| Spec | Flusso | Assert |
+|------|--------|--------|
+| `vendemmia-completa-write` | Manager manodopera → vendemmia stub con `lavoroId` → Modifica → qli/ettari/destinazione | Badge **Completa**, marker qli `77.7`, link lavoro |
+| `trattamento-completa-write` | Trattamenti vigneto → stub da lavoro `Trattamento squadra` → prodotto+dosaggio + scarico magazzino | Prodotto in lista; +1 uscita movimenti |
+
+**File:** `tests/e2e/sim/scenarios/{vendemmia,trattamento}-completa-write.mjs`, spec omonime, `scripts/sim-e2e-run.mjs` (45 scenari).
+
+**Verifica:** scenari isolati OK; in suite completa **52–53 OK** (run locale post-implementazione).
 
 ## GFV Farm Simulator — allineamento seed catena A (stub incompleti) (2026-07-01)
 
