@@ -1,6 +1,22 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-01 — E2E catena **52–53** (completa vendemmia/trattamento); suite **45** scenari.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-01 — E2E batch **49–51** + catena **52–53**; suite **48** scenari.
+
+## GFV Farm Simulator — E2E batch 49–51 (2026-07-01)
+
+**Obiettivo:** read vendemmia stub da lavoro + write vigneto anagrafica + invio preventivo bozza (§11.3.12 scen. 49–51).
+
+**Implementato:**
+
+| Spec | Flusso | Assert |
+|------|--------|--------|
+| `vendemmia-auto-read` | Manager manodopera → lista vendemmia | Riga con `.link-lavoro` + badge Incompleta **o** Completa (idempotente post-52) |
+| `vigneti-write` | Nuovo vigneto marker (`GFV E2E Sim Noir`, annata 2019, 0.55 ha) | Riga in `#vigneti-tbody` |
+| `preventivi-invia-write` | Bozza marker **8.88 ha** → Invia | Badge **Inviato** (distinto da accetta 9.99) |
+
+**File:** scenari `.mjs` + spec omonime; `scripts/sim-e2e-run.mjs` (48 scenari); helper `clearPreventiviFilters` usa `resetFilters()` (evita toast che blocca click).
+
+**Verifica locale:** i tre scenari isolati OK (2026-07-01).
 
 ## GFV Farm Simulator — E2E catena completa vigneto 52–53 (2026-07-01)
 

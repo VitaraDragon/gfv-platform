@@ -16,14 +16,24 @@ const PREFERRED_COLTURA = 'Vite da Vino';
 /**
  * @param {import('playwright-core').Page} page
  */
-async function clearPreventiviFilters(page) {
-  const btn = page.getByRole('button', { name: /Pulisci Filtri/i });
-  if (await btn.isVisible()) {
-    await btn.click();
+export async function clearPreventiviFilters(page) {
+  const hasReset = await page.evaluate(() => typeof window.resetFilters === 'function');
+  if (hasReset) {
+    await page.evaluate(() => window.resetFilters());
     await page.waitForFunction(() => {
       const container = document.getElementById('preventivi-container');
       return container && !container.querySelector('.loading');
-    }, { timeout: 15_000 });
+    }, undefined, { timeout: 15_000 });
+    return;
+  }
+
+  const btn = page.getByRole('button', { name: /Pulisci Filtri/i });
+  if (await btn.isVisible()) {
+    await btn.click({ force: true });
+    await page.waitForFunction(() => {
+      const container = document.getElementById('preventivi-container');
+      return container && !container.querySelector('.loading');
+    }, undefined, { timeout: 15_000 });
   }
 }
 
@@ -40,7 +50,7 @@ function preventiviRowsWithMarker(page) {
 /**
  * @param {import('playwright-core').Page} page
  */
-async function openNuovoPreventivoPage(page) {
+export async function openNuovoPreventivoPage(page) {
   await page.getByRole('link', { name: /Nuovo Preventivo/i }).click();
   await page.waitForURL(/nuovo-preventivo-standalone\.html/, { timeout: 60_000 });
   await page.locator('h1').filter({ hasText: 'Nuovo Preventivo' }).waitFor({ timeout: 60_000 });
@@ -164,10 +174,10 @@ async function selectClienteWithTerreni(page) {
 
 /**
  * @param {import('playwright-core').Page} page
- * @param {{ note: string }} opts
+ * @param {{ note: string, superficie?: string }} opts
  * @returns {Promise<{ clienteNome: string, tipoLavoro: string, coltura: string }>}
  */
-async function fillAndSubmitNewPreventivo(page, { note }) {
+export async function fillAndSubmitNewPreventivo(page, { note, superficie = E2E_PREVENTIVO_WRITE_SUPERFICIE }) {
   const { clienteNome } = await selectClienteWithTerreni(page);
 
   const terrenoSelect = page.locator('#terreno-id');
@@ -182,7 +192,7 @@ async function fillAndSubmitNewPreventivo(page, { note }) {
   const colturaNome = ((await page.locator('#coltura').inputValue()) || '').trim();
   const tipoLavoro = await pickTipoLavoroInForm(page);
 
-  await page.locator('#superficie').fill(E2E_PREVENTIVO_WRITE_SUPERFICIE);
+  await page.locator('#superficie').fill(superficie);
 
   const dataPrevista = await page.evaluate(() => {
     const d = new Date();

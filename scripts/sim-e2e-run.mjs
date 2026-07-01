@@ -149,8 +149,11 @@ import { runSegnaturaOreWriteAssertions } from '../tests/e2e/sim/scenarios/segna
 import { runGuastiResolveWriteAssertions } from '../tests/e2e/sim/scenarios/guasti-resolve-write.mjs';
 import { runGestioneMacchineWriteAssertions } from '../tests/e2e/sim/scenarios/gestione-macchine-write.mjs';
 import { runVendemmiaWriteAssertions } from '../tests/e2e/sim/scenarios/vendemmia-write.mjs';
+import { runVendemmiaAutoReadAssertions } from '../tests/e2e/sim/scenarios/vendemmia-auto-read.mjs';
 import { runVendemmiaCompletaWriteAssertions } from '../tests/e2e/sim/scenarios/vendemmia-completa-write.mjs';
 import { runTrattamentoCompletaWriteAssertions } from '../tests/e2e/sim/scenarios/trattamento-completa-write.mjs';
+import { runVignetiWriteAssertions } from '../tests/e2e/sim/scenarios/vigneti-write.mjs';
+import { runPreventiviInviaWriteAssertions } from '../tests/e2e/sim/scenarios/preventivi-invia-write.mjs';
 import { runCompensiWriteAssertions } from '../tests/e2e/sim/scenarios/compensi-write.mjs';
 
 const baseURL = process.env.GFV_E2E_BASE_URL || 'http://127.0.0.1:8000';
@@ -292,6 +295,12 @@ const SCENARIOS = [
       await loginAsManagerFromDevPage(page);
       await gotoVignetiList(page);
       await runVignetiListAssertions(page, expect);
+    },
+  },
+  {
+    name: 'vigneti-write',
+    run: async (page) => {
+      await runVignetiWriteAssertions(page, expect);
     },
   },
   {
@@ -489,6 +498,12 @@ const SCENARIOS = [
     },
   },
   {
+    name: 'preventivi-invia-write',
+    run: async (page) => {
+      await runPreventiviInviaWriteAssertions(page, expect);
+    },
+  },
+  {
     name: 'prodotti-write',
     run: async (page) => {
       await loginAsManagerFromDevPage(page);
@@ -556,6 +571,12 @@ const SCENARIOS = [
     name: 'vendemmia-write',
     run: async (page) => {
       await runVendemmiaWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'vendemmia-auto-read',
+    run: async (page) => {
+      await runVendemmiaAutoReadAssertions(page, expect);
     },
   },
   {

@@ -1079,14 +1079,14 @@ npm run sim:e2e                      # 43/43 attesi (~3–4 min)
 | 46 | `impostazioni-read` | `impostazioni-standalone.html` | P2 | Smoke impostazioni tenant |
 | 47 | `macchine-dashboard-read` | KPI `#card-trattori-value` ecc. | P2 | Assert numerici dedicati |
 | 48 | `terreni-catalogo-read` | Colonne coltura / podere / ettari | P2 | Scen. 3 = solo affitti |
-| 49 | `vendemmia-auto-read` | Riga **⚠ Incompleta** da lavoro vendemmia seed | **P1** | Badge + link lavoro — **non** empty-state (scen. 38) |
+| 49 | `vendemmia-auto-read` | Riga **⚠ Incompleta** da lavoro vendemmia seed | **P1 ✅** | Badge + link lavoro — **non** empty-state (scen. 38) |
 
 ###### Write (50–54) — catene reali + form manuali dove serve
 
 | # | Spec (target) | Flusso app reale | Priorità | Dipendenze |
 | - | ------------- | ---------------- | -------- | ---------- |
-| 50 | `vigneti-write` | **Manuale** — Nuovo vigneto anagrafica (OK standalone) | P1 | Terreni seed |
-| 51 | `preventivi-invia-write` | **CT** — Invia bozza marker 9.99 ha | P1 | `a-preventivi-write` |
+| 50 | `vigneti-write` | **Manuale** — Nuovo vigneto anagrafica (OK standalone) | **P1 ✅** | Terreni seed |
+| 51 | `preventivi-invia-write` | **CT** — Invia bozza marker **8.88 ha** | **P1 ✅** | `a-preventivi-write` (9.99 accetta) |
 | 52 | `vendemmia-completa-write` | **Catena** — lavoro Vendemmia → stub auto → completa qli/ettari/destinazione → badge Completa | **P1 ✅** | Seed sim: lavoro vendemmia (§11.3.12) |
 | 53 | `trattamento-completa-write` | **Catena** — lavoro/attività Trattamento → stub (prodotto/dosaggio vuoti) → completa → scarico magazzino | **P1 ✅** | Prodotti seed; assert +1 uscita movimenti |
 | 54 | `attrezzi-write` | **Manuale** — nuovo attrezzo da lista (complementa scen. 42 admin) | P2 | Parco macchine |
@@ -1097,7 +1097,7 @@ npm run sim:e2e                      # 43/43 attesi (~3–4 min)
 
 **Esclusi dal batch 1 (Fase 2b / M4):** template frutteto (raccolta frutta — stessa catena vendemmia); report; meteo; Tony E2E.
 
-**Definition of Done batch:** `npm run sim:e2e` + CI **53/53**; catene idempotenti; nessun flaky; §11.3.12 rispettato.
+**Definition of Done batch:** `npm run sim:e2e` + CI **48/48**; catene idempotenti; nessun flaky; §11.3.12 rispettato.
 
 ##### 11.3.12 Catene auto-compilazione — app, simulatore, E2E (2026-07-01)
 
