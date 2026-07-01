@@ -200,11 +200,13 @@ Assert su DOM visibile — dati seed già validati da v3/v2.2/v2.1 manodopera.
 
 | Stato oggi (2026-07-01) | Target v5 Fase 2 |
 | ----------------------- | ---------------- |
-| **43/43** spec E2E (23 read + 20 write) — **CI stabile** | Read P1 residue + gap seed vendemmia/frutteto |
-| Template `viticola-conto-terzi-manodopera` completo M2+M3+P2 | Template **frutteto** (M4) |
-| Tony E2E | Gate v5 app ✅ — v. `TONY_E2E_GUIDA_SVILUPPO.md` |
+| **43/43** spec E2E — **CI stabile** | **+10 spec** batch 45–54 (§11.3.11) |
+| Read smoke ~40/45 URL template | Read profonde + admin smoke |
+| Write 20 flussi critici ✅ | +5 write vigneto/CT/parco |
+| Tony E2E gate v5 ✅ | Kick-off §7.2–7.3 `TONY_E2E_GUIDA_SVILUPPO.md` |
+| Frutteto / report | M4 template frutteto (dopo batch 45–54) |
 
-**Milestone:** M1 ✅ → M2 ✅ → M3 ✅ → P2 ✅ → **CI 43/43 stabile** ✅ → Fase 2 read P1 → M4 frutteto → M5 ruoli + CI notturna → M-T* Tony.
+**Milestone:** M1 ✅ → M2 ✅ → M3 ✅ → P2 ✅ → **CI 43/43** ✅ → **Fase 2 batch 45–54** → M4 frutteto → M5 → M-T* Tony.
 
 **Dettaglio modulo per modulo, fasi e anti-pattern:** [`GFV_FARM_SIMULATOR.md` §11.3](../docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md).
 

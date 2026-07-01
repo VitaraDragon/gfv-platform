@@ -859,7 +859,7 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 
 **M2 + P2 chiusi ✅** (scen. 35–39 read, 40–44 write).
 
-**Prossimo — v5 Fase 2 (§11.3):** batch read P1 pagine mancanti; gap seed: vendemmia, frutteto; track **Tony E2E** (gate v5 app ✅ — v. `TONY_E2E_GUIDA_SVILUPPO.md` §7).
+**Prossimo — v5 Fase 2 (§11.3):** batch scen. **45–54** (5 read + 5 write) — v. **§11.3.11**; gap seed vendemmia; track **Tony E2E** (gate v5 app ✅ — v. `TONY_E2E_GUIDA_SVILUPPO.md` §7).
 
 **Parallelo (v4b / fuori sim):**
 
@@ -915,8 +915,8 @@ npm run sim:e2e                      # 43/43 attesi (~3–4 min)
 | Asse | Descrizione | Stato (2026-06-28) |
 | ---- | ----------- | ------------------- |
 | **A — Seed** | Ogni pagina testata ha dati nel template giusto | Buono su `viticola-conto-terzi-manodopera`; **guasti (3) + ore coda validazione (2)** ✅ v5 Fase 1; gap: vendemmia, frutteto… |
-| **B — E2E read** | Pagina si apre + contenuto coerente col seed (controllo visivo automatizzato) | **~45 / ~45** pagine template `viticola-conto-terzi-manodopera` ✅ (23 scenari read, ~21 app intera esclusa) |
-| **C — E2E write** | Compila form → salva → verifica effetto (lista o Firestore) | **20** scenari — scen. 20–44; **M3 + P2 ✅** |
+| **B — E2E read** | Pagina si apre + contenuto coerente col seed (controllo visivo automatizzato) | **~40/45 URL** template con assert minimo ✅ (23 scenari multi-pagina); **profondità read** ⚠️ Fase 2 (admin piattaforma, KPI hub, vendemmia dati) |
+| **C — E2E write** | Compila form → salva → verifica effetto (lista o Firestore) | **20** scenari — scen. 20–44; **M3 + P2 ✅**; **~15+ form** ancora senza write — Fase 2 |
 
 **Inventario pagine:** ~**66** file `*-standalone.html` (esclusa `simulator-dev-standalone.html`). Molti **form** non sono pagine standalone (modali nelle liste) — copertura form = scenari write per modulo.
 
@@ -1014,7 +1014,7 @@ npm run sim:e2e                      # 43/43 attesi (~3–4 min)
 | --------- | -------- |
 | **M1** | ✅ v4 — **18/18** E2E read + link rapidi pagina dev |
 | **M2** | E2E read su **tutte le pagine** del template `viticola-conto-terzi-manodopera` (~45 URL) — **✅ chiusa 2026-06-30** (+5 scenari read 35–39) |
-| **M3** | **10–15 flussi E2E write** su path business critici — **15/15 ✅** (scen. 20–34); prossimo: **M4** frutteto / v5 Fase 2 profonda |
+| **M3** | **10–15 flussi E2E write** su path business critici — **15/15 ✅** (scen. 20–34); **P2 ✅** (40–44); prossimo: **Fase 2 batch 45–54** §11.3.11 |
 | **M4** | Template **frutteto** + parity read/write |
 | **M5** | Matrice **ruolo × modulo** (manager / capo / operaio) + CI notturna suite piena (v4b) |
 | **M-T*** | **Tony E2E + sim** — tempi, typo, concetto, forbidden; v. [`TONY_E2E_GUIDA_SVILUPPO.md`](TONY_E2E_GUIDA_SVILUPPO.md) §10 |
@@ -1048,6 +1048,49 @@ npm run sim:e2e                      # 43/43 attesi (~3–4 min)
 **Anti-pattern v5:** duplicare validazione business nei test E2E; assert su Maps/Stripe/Tony cloud nel job sim; patch `core/` senza bug dimostrato.
 
 **Cosa garantisce verde v5 (onesto):** alta confidenza su **codice + flussi coperti** in emulator — non zero bug in produzione (regole Firestore live, latenza, API esterne).
+
+##### 11.3.11 Gap analysis v5 Fase 2 — batch prossimo (2026-07-01)
+
+**Contesto:** **43/43** spec chiudono M2 + M3 + P2 sul template `viticola-conto-terzi-manodopera` con CI stabile. Restano estensioni **read profonde**, **write su moduli secondari** e moduli **fuori template** (frutteto, report).
+
+**Inventario onesto (template viticola-conto-terzi-manodopera):**
+
+| Categoria | Stato | Note |
+| --------- | ----- | ---- |
+| URL navigabili manager/capo/operaio | ~**45** | Esclusi token cliente (`accetta-preventivo`), frutteto, report, meteo |
+| Read smoke (pagina + seed minimo) | **~40/45** | Molti scenari multi-pagina (hub, conto-terzi, extended) |
+| Read profondo (KPI, filtri, stati, admin) | **⚠️ parziale** | Dashboard solo widget scadenze; admin piattaforma non visitato |
+| Write form/modali business | **20/35+** | M3 + P2 su path critici; vigneto anagrafica/trattamenti/potatura senza write |
+| Seed gap | vendemmia dati, compensi seed | vendemmia write OK su empty/qli; read full richiede seed |
+| Fuori scope Fase 2a | frutteto (~7 pag), report (3), meteo, auth live, Tony | M4 frutteto; M-T* Tony |
+
+**Prossimo batch consigliato — scenari 45–54 (+10 spec → target 53/53):**
+
+###### Read (45–49) — profondità + admin smoke
+
+| # | Spec (target) | Pagina / focus | Priorità | Perché ora |
+| - | ------------- | -------------- | -------- | ---------- |
+| 45 | `gestisci-utenti-read` | `gestisci-utenti-standalone.html` | P2 | Unica area admin piattaforma mai aperta in E2E; personas seed |
+| 46 | `impostazioni-read` | `impostazioni-standalone.html` | P2 | Smoke impostazioni tenant — regressione layout/auth |
+| 47 | `macchine-dashboard-read` | KPI `#card-trattori-value` ecc. | P2 | Hub scen. 14 linka; assert numerici dedicati (come extended macchine) |
+| 48 | `terreni-catalogo-read` | Colonne coltura / podere / ettari | P2 | Scen. 3 copre affitti; estende assert catalogo terreni azienda |
+| 49 | `vendemmia-read-seed` | Tabella vendemmia con righe seed | P2 | **Bloccato finché seed vendemmia non popola righe** — empty-state già scen. 38 |
+
+###### Write (50–54) — moduli vigneto + CT + parco
+
+| # | Spec (target) | Flusso | Priorità | Dipendenze |
+| - | ------------- | ------ | -------- | ---------- |
+| 50 | `vigneti-write` | Nuovo vigneto — marker nome in anagrafica | **P1** | Seed terreni/vigneti esistente |
+| 51 | `preventivi-invia-write` | **Invia** bozza marker 9.99 ha → badge Inviato | **P1** | Dopo `a-preventivi-write` (marker bozza) |
+| 52 | `potatura-write` | Nuova potatura — marker note/data | P2 | Vigneto seed; modale senza mappa obbligatoria |
+| 53 | `trattamenti-write` | Nuovo trattamento fitosanitario — marker | P2 | Prodotti magazzino seed; form più complesso |
+| 54 | `attrezzi-write` | Nuovo attrezzo da `attrezzi-list` | P2 | Complementa scen. 42 (trattore admin) |
+
+**Ordine implementazione suggerito:** (1) seed vendemmia minimo se si fa scen. 49 → (2) write 50–51 (valore business CT + vigneto) → (3) read 45–48 in parallelo → (4) write 52–54.
+
+**Esclusi dal batch 1 (Fase 2b / M4):** template frutteto; report dashboard; meteo; login/registrazione live; Tony E2E (`TONY_E2E_GUIDA_SVILUPPO.md`).
+
+**Definition of Done batch:** `npm run sim:e2e` + CI **53/53**; idempotenza marker; nessun flaky; aggiornare §11.3.11 e `COSA_ABBIAMO_FATTO.md`.
 
 #### 11.1.2 Definition of Done v3 (2026-06-27)
 

@@ -1,6 +1,27 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-01 — sim **M2 + P2 write** ✅; suite **43/43** spec (23 read + 20 write); **CI stabile** (zero flaky, ~1,2 min E2E).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-01 — sim **43/43 CI stabile**; gap analysis Fase 2 **§11.3.11** (batch 45–54).
+
+## GFV Farm Simulator — gap analysis Fase 2 + batch 45–54 (2026-07-01)
+
+**Obiettivo:** pianificare estensione read/write oltre 43 spec — template `viticola-conto-terzi-manodopera` coperto su flussi critici, non su tutta l’app.
+
+**Stato copertura (onesto):**
+
+| Asse | Coperto | Gap |
+|------|---------|-----|
+| Read smoke ~45 URL | ~40/45 via 23 scenari multi-pagina | Admin piattaforma, profondità KPI, vendemmia con dati |
+| Write form business | 20 scenari (M3 + P2) | Vigneto anagrafica/potatura/trattamenti; invio preventivo; attrezzi lista |
+| Fuori template | — | Frutteto M4; report/meteo P3; Tony M-T* |
+
+**Prossimo batch (+10 spec → 53):**
+
+| Tipo | # | Spec target |
+|------|---|-------------|
+| Read | 45–49 | `gestisci-utenti-read`, `impostazioni-read`, `macchine-dashboard-read`, `terreni-catalogo-read`, `vendemmia-read-seed` *(dopo seed)* |
+| Write | 50–54 | `vigneti-write`, `preventivi-invia-write`, `potatura-write`, `trattamenti-write`, `attrezzi-write` |
+
+**Dettaglio:** `GFV_FARM_SIMULATOR.md` §11.3.11.
 
 ## GFV Farm Simulator — CI 43/43 stabile: fix preventivi + field-workspace (2026-07-01)
 
