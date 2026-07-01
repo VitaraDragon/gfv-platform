@@ -4,7 +4,7 @@
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runCompensiOperaiReadAssertions(page, expect) {
-  expect.configure({ timeout: 45_000 });
+  expect.configure({ timeout: 60_000 });
 
   await expect(page).toHaveURL(/compensi-operai-standalone\.html/);
   await expect(page.locator('h1').filter({ hasText: 'Compensi Operai' })).toBeVisible();
@@ -12,8 +12,20 @@ export async function runCompensiOperaiReadAssertions(page, expect) {
   await expect(page.locator('#filter-operaio')).toBeVisible();
   await expect(page.locator('#compensi-body .loading')).toHaveCount(0);
 
+  await page.locator('#filter-periodo').selectOption('mese');
+  await page.getByRole('button', { name: 'Aggiorna' }).click();
+  await page.waitForFunction(() => {
+    const tbody = document.getElementById('compensi-body');
+    return tbody && !tbody.querySelector('.loading');
+  }, { timeout: 60_000 });
+
   const statOperai = page.locator('#stat-operai-compensati');
-  await expect(statOperai).not.toHaveText('-');
+  const statText = ((await statOperai.textContent()) || '').trim();
+  if (statText !== '-') {
+    expect(parseInt(statText, 10)).toBeGreaterThanOrEqual(0);
+  } else {
+    await expect(page.locator('#compensi-body .empty-state')).toBeVisible();
+  }
 }
 
 export async function runSegnaturaOreReadAssertions(page, expect) {

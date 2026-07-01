@@ -25,6 +25,20 @@ function guastiRowsWithMarker(page) {
 /**
  * @param {import('playwright-core').Page} page
  */
+async function hasOpenMarkerGuasto(page) {
+  const rows = guastiRowsWithMarker(page);
+  const count = await rows.count();
+  for (let i = 0; i < count; i += 1) {
+    if ((await rows.nth(i).locator('.badge-in-attesa').count()) > 0) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * @param {import('playwright-core').Page} page
+ */
 async function markerAlreadyInGuastiList(page) {
   return (await guastiRowsWithMarker(page).count()) > 0;
 }
@@ -84,7 +98,7 @@ export async function runGuastiWriteAssertions(page, expect) {
   await gotoGuastiList(page);
   await page.locator('#filter-stato').selectOption('tutti');
 
-  if (!(await markerAlreadyInGuastiList(page))) {
+  if (!(await markerAlreadyInGuastiList(page)) || !(await hasOpenMarkerGuasto(page))) {
     await createGuastoAsOperaio(page);
     await loginAsManagerManodopera(page);
     await gotoGuastiList(page);
