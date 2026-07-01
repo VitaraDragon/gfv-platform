@@ -180,8 +180,16 @@ async function selectClienteWithTerreni(page) {
 export async function fillAndSubmitNewPreventivo(page, { note, superficie = E2E_PREVENTIVO_WRITE_SUPERFICIE }) {
   const { clienteNome } = await selectClienteWithTerreni(page);
 
-  const terrenoSelect = page.locator('#terreno-id');
-  await terrenoSelect.selectOption({ index: 1 });
+  await page.waitForFunction(() => {
+    const terreno = document.getElementById('terreno-id');
+    return terreno && terreno.querySelectorAll('option:not([value=""])').length >= 1;
+  }, undefined, { timeout: 60_000 });
+
+  const terrenoValue = await page.locator('#terreno-id option:not([value=""])').first().getAttribute('value');
+  if (!terrenoValue) {
+    throw new Error('Nessun terreno disponibile nel form nuovo preventivo');
+  }
+  await page.locator('#terreno-id').selectOption(terrenoValue);
 
   await page.waitForFunction(() => {
     const coltura = document.getElementById('coltura');

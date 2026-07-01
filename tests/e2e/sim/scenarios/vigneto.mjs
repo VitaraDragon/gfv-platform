@@ -47,9 +47,9 @@ export async function runTrattamentiListAssertions(page, expect) {
 
   const rows = table.locator('tbody tr');
   const rowCount = await rows.count();
-  // Pagina fitosanitari: Trattamento + Controllo fitosanitario (seed 8); concimazioni su altra vista
+  // Pagina fitosanitari: seed 8 + stub catena A da lavoro (+ margine suite write)
   expect(rowCount).toBeGreaterThanOrEqual(6);
-  expect(rowCount).toBeLessThanOrEqual(10);
+  expect(rowCount).toBeLessThanOrEqual(12);
 
   await expect(table.getByRole('link', { name: /Vedi Attività/i }).first()).toBeVisible();
 
