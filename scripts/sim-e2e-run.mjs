@@ -152,9 +152,15 @@ import { runVendemmiaWriteAssertions } from '../tests/e2e/sim/scenarios/vendemmi
 import { runVendemmiaAutoReadAssertions } from '../tests/e2e/sim/scenarios/vendemmia-auto-read.mjs';
 import { runVendemmiaCompletaWriteAssertions } from '../tests/e2e/sim/scenarios/vendemmia-completa-write.mjs';
 import { runTrattamentoCompletaWriteAssertions } from '../tests/e2e/sim/scenarios/trattamento-completa-write.mjs';
+import { runPotaturaCompletaWriteAssertions } from '../tests/e2e/sim/scenarios/potatura-completa-write.mjs';
 import { runVignetiWriteAssertions } from '../tests/e2e/sim/scenarios/vigneti-write.mjs';
 import { runPreventiviInviaWriteAssertions } from '../tests/e2e/sim/scenarios/preventivi-invia-write.mjs';
 import { runCompensiWriteAssertions } from '../tests/e2e/sim/scenarios/compensi-write.mjs';
+import { runGestisciUtentiReadAssertions } from '../tests/e2e/sim/scenarios/gestisci-utenti-read.mjs';
+import { runImpostazioniReadAssertions } from '../tests/e2e/sim/scenarios/impostazioni-read.mjs';
+import { runMacchineDashboardReadAssertions } from '../tests/e2e/sim/scenarios/macchine-dashboard-read.mjs';
+import { runTerreniCatalogoReadAssertions } from '../tests/e2e/sim/scenarios/terreni-catalogo-read.mjs';
+import { runAttrezziWriteAssertions } from '../tests/e2e/sim/scenarios/attrezzi-write.mjs';
 
 const baseURL = process.env.GFV_E2E_BASE_URL || 'http://127.0.0.1:8000';
 
@@ -589,6 +595,42 @@ const SCENARIOS = [
     name: 'trattamento-completa-write',
     run: async (page) => {
       await runTrattamentoCompletaWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'potatura-completa-write',
+    run: async (page) => {
+      await runPotaturaCompletaWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'gestisci-utenti-read',
+    run: async (page) => {
+      await runGestisciUtentiReadAssertions(page, expect);
+    },
+  },
+  {
+    name: 'impostazioni-read',
+    run: async (page) => {
+      await runImpostazioniReadAssertions(page, expect);
+    },
+  },
+  {
+    name: 'macchine-dashboard-read',
+    run: async (page) => {
+      await runMacchineDashboardReadAssertions(page, expect);
+    },
+  },
+  {
+    name: 'terreni-catalogo-read',
+    run: async (page) => {
+      await runTerreniCatalogoReadAssertions(page, expect);
+    },
+  },
+  {
+    name: 'attrezzi-write',
+    run: async (page) => {
+      await runAttrezziWriteAssertions(page, expect);
     },
   },
   {

@@ -1,6 +1,25 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-01 — CI **48/48**; doc allineamento sim vs app (§11.3.12).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-01 — batch residuo E2E **54/54** target; doc §11.3.11–12.
+
+## GFV Farm Simulator — E2E batch residuo 45–48 + 54 + potatura-completa (2026-07-01)
+
+**Obiettivo:** chiudere gap Fase 2 §11.3.11 — catena A potatura in UI + read admin + write attrezzi.
+
+**Implementato:**
+
+| Spec | Flusso | Assert |
+|------|--------|--------|
+| `potatura-completa-write` | Stub potatura da attività/lavoro → Modifica → tipo/ceppi/superficie | Marker ceppi `8888`, link attività/lavoro, tipo visibile |
+| `gestisci-utenti-read` | Manager manodopera → Gestisci Utenti | ≥4 utenti, ruoli admin/capo/operaio |
+| `impostazioni-read` | Impostazioni → account | Nome/cognome/email compilati |
+| `macchine-dashboard-read` | Dashboard parco macchine | KPI numerici trattori/attrezzi/flotta |
+| `terreni-catalogo-read` | Lista terreni anagrafica | Coltura/podere/ha (≠ affitti scen. 3) |
+| `attrezzi-write` | Nuova attrezzatura marker | Riga `GFV SIM E2E WRITE ATTREZZO` |
+
+**File:** scenari `.mjs` + spec; `scripts/sim-e2e-run.mjs` (54 scenari); helper `gotoGestisciUtenti` / `gotoImpostazioni`.
+
+**Verifica:** `npm run sim:e2e` / CI post-push.
 
 ## GFV Farm Simulator — allineamento sim vs app e CI 48/48 (2026-07-01)
 
@@ -11,14 +30,14 @@
 | Livello | Stato |
 |---------|--------|
 | Seed catena A (Firestore) | ✅ stub da lavoro/attività via `vigneto-stub-from-trigger.js` |
-| E2E percorso UI | ✅ 49, 51–53; ❌ potatura-completa, frutteto |
+| E2E percorso UI | ✅ 45–54 + potatura-completa; ❌ frutteto |
 | Sim = click utente | ❌ Admin SDK (shape service allineata) |
 
 **CI verde:** [28531826939](https://github.com/VitaraDragon/gfv-platform/actions/runs/28531826939) — **48 passed, 0 flaky** (`c917aef` stabilizza `preventivi-invia-write`).
 
 **Doc:** `GFV_FARM_SIMULATOR.md` §11.3.11–§11.3.12 (inventario aggiornato, tabella gap residui, tre livelli).
 
-**Prossimo batch doc:** read 45–48, write 54, `potatura-completa-write`, opz. seed magazzino solo catena B.
+**Prossimo batch doc:** opz. seed magazzino solo catena B; Tony E2E (M4).
 
 ## GFV Farm Simulator — fix CI batch 49–51 (2026-07-01)
 

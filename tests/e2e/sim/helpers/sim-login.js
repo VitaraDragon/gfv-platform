@@ -36,8 +36,9 @@ export const PRODOTTI_LIST_PATH =
   '/modules/magazzino/views/prodotti-standalone.html?emulator=1';
 export const VIGNETI_LIST_PATH =
   '/modules/vigneto/views/vigneti-standalone.html?emulator=1';
-export const GESTIONE_LAVORI_PATH =
-  '/core/admin/gestione-lavori-standalone.html?emulator=1';
+export const GESTISCI_UTENTI_PATH =
+  '/core/admin/gestisci-utenti-standalone.html?emulator=1';
+export const IMPOSTAZIONI_PATH = '/core/admin/impostazioni-standalone.html?emulator=1';
 export const VALIDAZIONE_ORE_PATH =
   '/core/admin/validazione-ore-standalone.html?emulator=1';
 export const MACCHINE_DASHBOARD_PATH =
@@ -1143,4 +1144,43 @@ export async function waitForPianificaImpiantoLoaded(page) {
 export async function gotoPianificaImpianto(page) {
   await page.goto(PIANIFICA_IMPIANTO_PATH);
   await waitForPianificaImpiantoLoaded(page);
+}
+
+export async function waitForGestisciUtentiLoaded(page) {
+  await page.waitForURL(/gestisci-utenti-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Gestisci Utenti' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const container = document.getElementById('users-container');
+    if (!container) return false;
+    if (/solo con il modulo Manodopera/i.test(container.textContent || '')) return false;
+    return container.querySelectorAll('.users-table tbody tr').length >= 4;
+  }, { timeout: 90_000 });
+}
+
+export async function gotoGestisciUtenti(page) {
+  await page.goto(GESTISCI_UTENTI_PATH);
+  await waitForGestisciUtentiLoaded(page);
+}
+
+export async function waitForImpostazioniLoaded(page) {
+  await page.waitForURL(/impostazioni-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Impostazioni' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const nome = document.getElementById('account-nome');
+    const cognome = document.getElementById('account-cognome');
+    const email = document.getElementById('account-email');
+    return (
+      nome &&
+      cognome &&
+      email &&
+      (nome.value || '').trim().length >= 2 &&
+      (cognome.value || '').trim().length >= 2 &&
+      (email.value || '').includes('@')
+    );
+  }, { timeout: 90_000 });
+}
+
+export async function gotoImpostazioni(page) {
+  await page.goto(IMPOSTAZIONI_PATH);
+  await waitForImpostazioniLoaded(page);
 }
