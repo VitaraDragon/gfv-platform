@@ -27,6 +27,10 @@ export async function runVendemmiaReadAssertions(page, expect) {
   const emptyVisible = await page.locator('#empty-state').isVisible();
   expect(tableVisible || emptyVisible).toBe(true);
 
+  if (tableVisible) {
+    await expect(page.locator('.badge-incompleta').first()).toBeVisible();
+  }
+
   await expect(page.locator('#filter-vigneto')).toBeVisible();
 }
 

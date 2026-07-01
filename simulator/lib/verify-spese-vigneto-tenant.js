@@ -39,11 +39,12 @@ export async function verifySpeseVignetoTenant(db, tenantId, options = {}) {
   const tenant = tenantSnap.data();
   const parcoMacchine = tenantHasModule(tenant, 'parcoMacchine');
 
-  const [vigneti, attivita, lavori, macchineRaw] = await Promise.all([
+  const [vigneti, attivita, lavori, macchineRaw, movimentiRaw] = await Promise.all([
     listCollection(db, tenantId, 'vigneti'),
     listCollection(db, tenantId, 'attivita'),
     listCollection(db, tenantId, 'lavori'),
-    listCollection(db, tenantId, 'macchine')
+    listCollection(db, tenantId, 'macchine'),
+    listCollection(db, tenantId, 'movimentiMagazzino')
   ]);
 
   const macchine = new Map(macchineRaw.map((m) => [m.id, m]));
@@ -146,7 +147,12 @@ export async function verifySpeseVignetoTenant(db, tenantId, options = {}) {
   });
 
   if (speseProdottiTenant <= 0 && trattamentiAll.length > 0) {
-    errors.push('trattamenti presenti ma speseProdottiAnno = 0');
+    const movUsciteAttivita = movimentiRaw.filter(
+      (m) => m.tipo === 'uscita' && m.attivitaId
+    ).length;
+    if (movUsciteAttivita === 0) {
+      errors.push('trattamenti presenti ma speseProdottiAnno = 0 e nessun movimento uscita attività');
+    }
   }
 
   if (speseManodoperaTenant <= 0 && attivitaVigneto.length > 0) {

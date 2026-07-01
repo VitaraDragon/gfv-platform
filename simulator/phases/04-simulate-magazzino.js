@@ -1,5 +1,7 @@
 /**
  * Fase 4 — Scarichi magazzino collegati ad attività trattamento/concimazione.
+ * Dual path §11.3.12: scarichi qui servono read/tracciabilità diario; catena B (scarico da
+ * trattamento completato in UI) non è simulata finché mancano E2E trattamento-completa-write.
  * @module simulator/phases/04-simulate-magazzino
  */
 

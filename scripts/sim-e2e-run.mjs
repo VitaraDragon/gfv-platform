@@ -409,9 +409,9 @@ const SCENARIOS = [
       await loginAsManagerManodopera(page);
       await gotoCompensiOperai(page);
       await runCompensiOperaiReadAssertions(page, expect);
+      await loginAsOperaioFromDevPage(page, { waitForWorkspace: false });
       await gotoSegnaturaOre(page);
       await runSegnaturaOreReadAssertions(page, expect);
-      await loginAsOperaioFromDevPage(page, { waitForWorkspace: false });
       await gotoSegnalazioneGuasti(page);
       await runSegnalazioneGuastiReadAssertions(page, expect);
       await gotoStatisticheLavoratore(page);

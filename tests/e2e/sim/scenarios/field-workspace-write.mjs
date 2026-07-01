@@ -22,11 +22,20 @@ const ORA_END = '16:00';
  * @param {string} note
  * @param {number} [timeout]
  */
+/**
+ * Attende propagazione Firestore → tabella validazione (evita race post-save operaio).
+ * @param {import('playwright-core').Page} page
+ * @param {string} note
+ * @param {number} [timeout]
+ */
 async function waitForMarkerInValidazioneQueue(page, note, timeout = 60_000) {
   await page.waitForFunction(
     (markerNote) => {
       const rows = document.querySelectorAll('#ore-container .ore-table tbody tr');
-      return Array.from(rows).some((tr) => (tr.textContent || '').includes(markerNote));
+      return Array.from(rows).some((tr) => {
+        const t = (tr.textContent || '').replace(/\s+/g, ' ').trim();
+        return t.includes(markerNote) && !t.includes(`${markerNote}_`);
+      });
     },
     note,
     { timeout }
@@ -37,9 +46,10 @@ async function waitForMarkerInValidazioneQueue(page, note, timeout = 60_000) {
  * @param {import('playwright-core').Page} page
  */
 function validazioneRowWithMarker(page) {
-  return page
-    .locator('#ore-container .ore-table tbody tr')
-    .filter({ hasText: E2E_ORE_MOBILE_WRITE_NOTE });
+  return page.locator('#ore-container .ore-table tbody tr').filter({
+    hasText: E2E_ORE_MOBILE_WRITE_NOTE,
+    hasNotText: `${E2E_ORE_MOBILE_WRITE_NOTE}_`,
+  });
 }
 
 /**
@@ -115,7 +125,10 @@ export async function runFieldWorkspaceOreWriteAssertions(page, expect) {
     .waitForFunction(
       (note) => {
         const rows = document.querySelectorAll('#ore-container .ore-table tbody tr');
-        return Array.from(rows).some((tr) => (tr.textContent || '').includes(note));
+        return Array.from(rows).some((tr) => {
+          const t = (tr.textContent || '').replace(/\s+/g, ' ').trim();
+          return t.includes(note) && !t.includes(`${note}_`);
+        });
       },
       E2E_ORE_MOBILE_WRITE_NOTE,
       { timeout: 8_000 }

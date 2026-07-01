@@ -1,6 +1,25 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-01 — sim **43/43 CI stabile**; gap analysis Fase 2 **§11.3.11** (batch 45–54).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-01 — sim **catena A stub** (fase 5/7); E2E vigneto allineati; batch 45–54 **§11.3.11**.
+
+## GFV Farm Simulator — allineamento seed catena A (stub incompleti) (2026-07-01)
+
+**Obiettivo:** sim produce dati raggiungibili con gli stessi trigger dell’app (§11.3.12) — lavoro/attività → record auto **incompleto**, non documenti Firestore «finishing touch».
+
+**Implementato:**
+
+| Area | Prima | Dopo |
+|------|-------|------|
+| `05-simulate-vigneto.js` | Potature/trattamenti **completi** da attività + link scarichi | Stub shape service app (`prodotto/dosaggio/tipo` vuoti); nessun `magazzinoMovimentoIds` |
+| `03-simulate-attivita.js` | Solo rotazione 5 tipi | 1 giorno Erpicatura → **Vendemmia Manuale** (stub da attività) |
+| `07-populate-manodopera.js` | Solo lavori generici | + lavoro **Vendemmia Manuale** + `seedCateneVignetoFromLavori` (stub vendemmia + trattamento da lavoro) |
+| `lib/vigneto-stub-from-trigger.js` | — | Helper Admin SDK allineati a `create*FromLavoro/Attivita` |
+| `04-simulate-magazzino.js` | Scarichi da attività | Invariato — dual path documentato (read tracciabilità; catena B → E2E batch 52–53) |
+| Audit / integration / E2E | Conteggi record completi | Conteggi stub + `extraCatenaCountsManodopera`; assert trattamenti/vendemmia read aggiornati |
+
+**Verifica locale:** `sim:run` viticola-conto-terzi-manodopera exit 0; `sim:audit` OK tenant appena generato; `sim:test` v1+v2 OK; E2E vigneto + vendemmia-read OK (41–43/43 — timeout flaky su scenari non vigneto in run locale).
+
+**Dettaglio:** `GFV_FARM_SIMULATOR.md` § Fase 4/5 + §11.3.12.
 
 ## GFV Farm Simulator — catene auto-compilazione + audit E2E (2026-07-01)
 
@@ -15,7 +34,7 @@
 | Potatura vigneto | Lavoro/attività potatura | tipo, ceppi, parcella |
 | Raccolta frutta | Lavoro/attività raccolta + frutteto | kg, ettari (M4) |
 
-**Gap sim:** `05-simulate-vigneto` scrive potature/trattamenti **completi** da attività diario (bypass hook); **nessun** lavoro vendemmia seed. Vendemmia/raccolta stub assenti.
+**Gap sim:** ~~`05-simulate-vigneto` scrive potature/trattamenti completi~~ **Risolto 2026-07-01** — stub catena A; lavoro vendemmia seed su template manodopera + attività vendemmia su diario.
 
 **Audit E2E:** `vendemmia-write` (43) testa solo «Nuova Vendemmia» manuale — **non** la catena lavoro→completa. Batch 45–54 corretto: `vendemmia-auto-read`, `vendemmia-completa-write`, `trattamento-completa-write` (non potatura/trattamenti ex novo).
 
@@ -31,7 +50,7 @@
 |------|---------|-----|
 | Read smoke ~45 URL | ~40/45 via 23 scenari multi-pagina | Admin piattaforma, KPI, vendemmia **incompleta** da lavoro |
 | Write form business | 20 scenari (M3 + P2) | Catene completa-vendemmia/trattamento; invio preventivo |
-| Sim vs app | Attività→record completi (Node) | Stub incompleti da lavori vendemmia/trattamento |
+| Sim vs app | ~~Attività→record completi (Node)~~ Stub incompleti ✅ (2026-07-01) | Catene **completa** in UI (batch 52–53) |
 | Fuori template | — | Frutteto M4; report/meteo P3; Tony M-T* |
 
 **Prossimo batch (+10 spec → 53):**

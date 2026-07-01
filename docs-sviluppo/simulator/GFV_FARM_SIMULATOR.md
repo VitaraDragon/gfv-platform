@@ -441,13 +441,16 @@ Campi minimi (`core/models/Attivita.js`):
 - Collegamento `attivitaId`, data allineata all’attività
 - Aggiornamento `giacenza` su `prodotti` (campo canonico app, non `quantitaDisponibile`)
 - Obiettivo demo: almeno un prodotto **sotto scorta minima** dopo i run
+- **Dual path §11.3.12 (2026-07-01):** scarichi restano sul **diario** (read tracciabilità E2E movimenti). La catena B (`syncScarichiMagazzinoTrattamento` al completamento trattamento in UI) **non** è simulata in Node — target batch E2E 52–53.
 
 ### Fase 5 — Vigneto operativo (`05-simulate-vigneto.js`)
 
-- Da attività Diario con tipo **Potatura** → documento in `vigneti/{id}/potature` (`attivitaId`, costi ore)
-- Da **Trattamento**, **Concimazione**, **Controllo fitosanitario** → `vigneti/{id}/trattamenti` con `tipoTrattamento`, prodotti da movimento magazzino collegato (`magazzinoMovimentoIds`)
-- Seed catalogo lavori/colture in populate (`seed-app-catalog.js`) — identico a `initializeCategoriePredefinite` / `initializeTipiLavoroPredefiniti` / `initializeColturePredefinite` dell’app
-- Conteggi attesi: **4 potature + 12 trattamenti** (su 20 attività, rotazione 5 tipi)
+- **Catena A (2026-07-01):** da attività Diario → stub in subcollection vigneto con **stessa shape** dei service app (`createPotaturaFromAttivita`, `createTrattamentoFromAttivita`, `createVendemmiaFromAttivita`) via `lib/vigneto-stub-from-trigger.js`
+- **Potatura:** `tipo: ''`, `ceppiPotati: null` — UI prefill da `getDatiPrecompilazionePotatura`
+- **Trattamento/concim./fitosanitario:** `prodotto: ''`, `dosaggio: ''`, **senza** `magazzinoMovimentoIds` né `coperturaTerreno: 'completa'`
+- **Vendemmia:** 1 attività **Vendemmia Manuale** (giorno Erpicatura sostituito in fase 03) → `quantitaQli/quantitaEttari/destinazione: null`
+- **Template manodopera:** fase 07 aggiunge lavoro vendemmia + stub da lavori (`seedCateneVignetoFromLavori`) — +1 vendemmia e +1 trattamento con `lavoroId` (conteggi audit: `extraCatenaCountsManodopera`)
+- Conteggi attesi base diario: **4 potature + 12 trattamenti + 1 vendemmia** (su 20 attività)
 
 ### Report (`lib/report.js`)
 
@@ -1136,9 +1139,9 @@ UI: badge **⚠ Incompleta** (vendemmia) o righe «da completare» in liste pota
 
 | Dato | App (UI) | Sim Node oggi | Allineamento richiesto |
 | ---- | -------- | ------------- | ---------------------- |
-| Potature/trattamenti vigneto in lista | Spesso stub da lavoro **poi** completati | `05-simulate-vigneto.js` scrive record **completi** da attività diario (bypass hook) | **Fase 2:** aggiungere almeno 1 lavoro vendemmia + 1 lavoro trattamento **stub** via stesso shape dei service, oppure chiamare hook da fase seed dedicata |
-| Scarichi magazzino | Da trattamento completato in UI | `04-simulate-magazzino.js` da attività diario (parallelo, coerente economicamente) | OK per read tracciabilità; E2E write catena B deve usare **UI trattamento** |
-| Vendemmia / raccolta frutta | Stub da lavoro | **Assente** | Seed lavori vendemmia (viticola) — prerequisito scen. 49/52 |
+| Potature/trattamenti vigneto in lista | Spesso stub da lavoro **poi** completati | ~~`05-simulate-vigneto.js` scrive record **completi**~~ **Stub catena A ✅ (2026-07-01)** + lavoro vendemmia fase 07 | E2E **completa-write** batch 52–53 |
+| Scarichi magazzino | Da trattamento completato in UI | `04-simulate-magazzino.js` da attività diario (parallelo, coerente economicamente) | OK per read tracciabilità; E2E write catena B → **trattamento-completa-write** (52–53) |
+| Vendemmia / raccolta frutta | Stub da lavoro | **Vendemmia stub ✅** (attività + lavoro manodopera); raccolta frutta M4 | E2E **49/52** |
 | Compensi operai | Calcolo da ore validate | Ore validate in seed manodopera ✅ | `z-compensi-write` ✅ (Aggiorna mese) |
 
 ###### Audit E2E esistenti — errori simili a vendemmia

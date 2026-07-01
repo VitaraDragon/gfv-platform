@@ -187,6 +187,7 @@ export async function inspectTenantSeed(db, tenantId) {
   const guasti = await listCollection(db, tenantId, 'guasti');
   const potatureVigneto = await countVignetoSubcollections(db, tenantId, 'potature');
   const trattamentiVigneto = await countVignetoSubcollections(db, tenantId, 'trattamenti');
+  const vendemmieVigneto = await countVignetoSubcollections(db, tenantId, 'vendemmie');
 
   if (poderi.length < 1) errors.push('manca almeno un podere');
   if (colture.length < MIN_COLTURE) {
@@ -267,6 +268,7 @@ export async function inspectTenantSeed(db, tenantId) {
       }).length,
       potatureVigneto,
       trattamentiVigneto,
+      vendemmieVigneto,
       prodottiSottoScorta: prodotti.filter((p) => {
         const min = p.scortaMinima ?? 0;
         const g = p.giacenza ?? 0;

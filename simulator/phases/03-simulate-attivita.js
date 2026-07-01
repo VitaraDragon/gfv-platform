@@ -38,6 +38,16 @@ export async function runSimulateAttivita(assets) {
 
   const attivitaIds = [];
 
+  /** Sostituisce un giorno Erpicatura (nessun record vigneto) con vendemmia stub — catena A. */
+  let vendemmiaDayIndex = -1;
+  for (let j = dates.length - 1; j >= 0; j--) {
+    if (tipiLavoro[j % tipiLavoro.length] === 'Erpicatura') {
+      vendemmiaDayIndex = j;
+      break;
+    }
+  }
+  if (vendemmiaDayIndex < 0) vendemmiaDayIndex = dates.length - 1;
+
   for (let i = 0; i < dates.length; i++) {
     const terreno = terreni[i % terreni.length];
     const trattore = trattori[i % Math.max(trattori.length, 1)] || null;
@@ -47,17 +57,22 @@ export async function runSimulateAttivita(assets) {
     const pauseMinuti = attCfg.pauseMinuti ?? 30;
     const oreNette = calcolaOreNette(orarioInizio, orarioFine, pauseMinuti);
 
+    // Giorno Erpicatura → Vendemmia Manuale (stub catena A, non altera conteggi vigneto)
+    const tipoLavoro = i === vendemmiaDayIndex
+      ? 'Vendemmia Manuale'
+      : tipiLavoro[i % tipiLavoro.length];
+
     const payload = {
       data: dates[i],
       terrenoId: terreno.id,
       terrenoNome: terreno.nome,
-      tipoLavoro: tipiLavoro[i % tipiLavoro.length],
+      tipoLavoro,
       coltura: attCfg.coltura || 'Vite',
       orarioInizio,
       orarioFine,
       pauseMinuti,
       oreNette,
-      note: `Attività simulata — ${tipiLavoro[i % tipiLavoro.length]}`,
+      note: `Attività simulata — ${tipoLavoro}`,
       macchinaId: trattore?.id || null,
       attrezzoId: attrezzo?.id || null,
       oreMacchina: trattore ? oreNette : null

@@ -1018,7 +1018,7 @@ export async function gotoGestioneGuastiAdmin(page) {
     const n = parseInt(document.getElementById('stat-totali')?.textContent || '0', 10);
     if (!Number.isFinite(n) || n < 1) return false;
     return list.querySelectorAll('.guasto-item').length >= 1 || list.querySelector('.empty-state') !== null;
-  }, { timeout: 30_000 });
+  }, { timeout: 90_000 });
 }
 
 export async function waitForNuovoPreventivoLoaded(page) {

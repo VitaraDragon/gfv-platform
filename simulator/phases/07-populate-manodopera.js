@@ -8,6 +8,7 @@ import { getEmulatorDb } from '../lib/emulator-context.js';
 import { addTenantDocument } from '../lib/firestore-write.js';
 import { runAsPersona } from '../lib/run-as-persona.js';
 import { getSimProfile, requireSimTenantId, requireSimUserId } from '../lib/sim-context.js';
+import { seedCateneVignetoFromLavori } from '../lib/vigneto-stub-from-trigger.js';
 
 const TIPI_LAVORO = ['Potatura', 'Trattamento', 'Erpicatura', 'Concimazione'];
 
@@ -42,7 +43,7 @@ function distributeOperaiRoundRobin(operai, squadreCount) {
 }
 
 /**
- * @param {{ terreni?: Array, trattori?: Array, attrezzi?: Array }} [assets]
+ * @param {{ terreni?: Array, trattori?: Array, attrezzi?: Array, vigneti?: Array }} [assets]
  */
 export async function runPopulateManodopera(assets = {}) {
   const tenantId = requireSimTenantId();
@@ -74,6 +75,7 @@ export async function runPopulateManodopera(assets = {}) {
   const terreni = assets.terreni || [];
   const trattori = assets.trattori || [];
   const attrezzi = assets.attrezzi || [];
+  const vigneti = assets.vigneti || [];
   if (!terreni.length) {
     throw new Error('Fase 07: nessun terreno — eseguire populate asset');
   }
@@ -168,15 +170,58 @@ export async function runPopulateManodopera(assets = {}) {
       });
     }
 
-    return { squadre, lavoriSquadra, lavoriAutonomi };
+    // Lavoro catena A — vendemmia su terreno con vigneto (stub incompleto in fase post)
+    const lavoriCatena = [];
+    if (vigneti.length && squadre.length) {
+      const vigneto = vigneti[0];
+      const terrenoVite = terreni.find((t) => t.id === vigneto.terrenoId) || terreni[0];
+      const squadra = squadre[0];
+      const trattore = trattori[0] || null;
+      const vendemmiaData = {
+        nome: 'Vendemmia Manuale catena sim',
+        terrenoId: terrenoVite.id,
+        caposquadraId: squadra.caposquadraId,
+        tipoLavoro: 'Vendemmia Manuale',
+        dataInizio,
+        durataPrevista: 4,
+        stato: 'assegnato',
+        note: 'Lavoro vendemmia seed catena A (§11.3.12)',
+        creatoDa: managerId,
+        macchinaId: trattore?.id || null,
+        superficieTotaleLavorata: 0,
+        percentualeCompletamento: 0,
+        giorniEffettivi: 0
+      };
+      assertLavoroPayload(vendemmiaData);
+      const vendemmiaLavoroId = await addTenantDocument(db, tenantId, 'lavori', vendemmiaData);
+      lavoriCatena.push({
+        id: vendemmiaLavoroId,
+        ...vendemmiaData,
+        squadra
+      });
+    }
+
+    return { squadre, lavoriSquadra, lavoriAutonomi, lavoriCatena };
   });
+
+  const vignetoByTerreno = new Map(vigneti.map((v) => [v.terrenoId, v]));
+  const tuttiLavori = [
+    ...result.lavoriSquadra,
+    ...result.lavoriAutonomi,
+    ...(result.lavoriCatena || [])
+  ];
+  const catene = await seedCateneVignetoFromLavori(db, tenantId, tuttiLavori, vignetoByTerreno);
 
   return {
     ...result,
+    cateneVigneto: catene,
     counts: {
       squadre: result.squadre.length,
-      lavoriSquadra: result.lavoriSquadra.length,
-      lavoriAutonomi: result.lavoriAutonomi.length
+      lavoriSquadra: result.lavoriSquadra.length + (result.lavoriCatena || []).length,
+      lavoriAutonomi: result.lavoriAutonomi.length,
+      lavoriCatena: (result.lavoriCatena || []).length,
+      vendemmieStubLavoro: catene.vendemmiaIds.length,
+      trattamentiStubLavoro: catene.trattamentoIds.length
     }
   };
 }

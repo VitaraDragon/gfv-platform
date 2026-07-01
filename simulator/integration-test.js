@@ -11,6 +11,7 @@ import { initEmulatorAdmin } from './lib/emulator-context.js';
 import { inspectTenantSeed } from './lib/tenant-inspect.js';
 import { deleteSimulatedTenant } from './lib/cleanup-tenant.js';
 import { expectedVignetoCountsFromTemplate } from './phases/05-simulate-vigneto.js';
+import { extraCatenaCountsManodopera } from './lib/vigneto-stub-from-trigger.js';
 import { verifyScarichiTrattamentoVignetoTenant } from './lib/link-scarichi-trattamento-vigneto.js';
 import { verifySpeseVignetoTenant } from './lib/verify-spese-vigneto-tenant.js';
 import { inspectManodoperaSeed } from './lib/manodopera-inspect.js';
@@ -20,6 +21,7 @@ const template = loadTemplate('solo-titolare-viticola');
 const v2Template = loadTemplate('viticola-manodopera');
 const q = template.quantities;
 const qV2 = v2Template.quantities;
+const catenaExtraV2 = extraCatenaCountsManodopera(v2Template);
 
 async function runV1Test() {
   const result = await runFullSimulation({
@@ -55,6 +57,9 @@ async function runV1Test() {
   if (vigCounts.potature !== vigExpected.potature) {
     throw new Error(`potature vigneto: attese ${vigExpected.potature}, got ${vigCounts.potature}`);
   }
+  if (vigCounts.vendemmie !== vigExpected.vendemmie) {
+    throw new Error(`vendemmie vigneto: attese ${vigExpected.vendemmie}, got ${vigCounts.vendemmie}`);
+  }
   if (vigCounts.trattamenti !== vigExpected.trattamenti) {
     throw new Error(`trattamenti vigneto: attesi ${vigExpected.trattamenti}, got ${vigCounts.trattamenti}`);
   }
@@ -72,11 +77,7 @@ async function runV1Test() {
   }
 
   const scarichi = await verifyScarichiTrattamentoVignetoTenant(db, setup.tenantId);
-  if (scarichi.trattamentiConScarico < vigExpected.trattamenti) {
-    throw new Error(
-      `scarichi trattamento: attesi ${vigExpected.trattamenti} trattamenti con movimento, got ${scarichi.trattamentiConScarico}`
-    );
-  }
+  // Catena A: stub trattamento senza magazzinoMovimentoIds; scarichi fase 4 restano su attività (dual path §11.3.12)
   if (scarichi.origineMissing > 0) {
     throw new Error(
       `scarichi trattamento: ${scarichi.origineMissing} movimenti senza origineTrattamento* (attesi 0)`
@@ -138,8 +139,10 @@ async function runV2Test() {
   if (result.personas.counts.operai !== qV2.operai) {
     throw new Error(`operai: attesi ${qV2.operai}, got ${result.personas.counts.operai}`);
   }
-  if (result.manodopera.counts.lavoriSquadra !== qV2.lavoriSquadra) {
-    throw new Error(`lavori squadra: attesi ${qV2.lavoriSquadra}, got ${result.manodopera.counts.lavoriSquadra}`);
+  if (result.manodopera.counts.lavoriSquadra !== qV2.lavoriSquadra + catenaExtraV2.lavoriSquadra) {
+    throw new Error(
+      `lavori squadra: attesi ${qV2.lavoriSquadra + catenaExtraV2.lavoriSquadra}, got ${result.manodopera.counts.lavoriSquadra}`
+    );
   }
   if (result.manodopera.counts.lavoriAutonomi !== qV2.lavoriAutonomi) {
     throw new Error(`lavori autonomi: attesi ${qV2.lavoriAutonomi}, got ${result.manodopera.counts.lavoriAutonomi}`);
@@ -148,7 +151,7 @@ async function runV2Test() {
   const { db } = initEmulatorAdmin();
   const inspect = await inspectManodoperaSeed(db, setup.tenantId, {
     squadre: Math.min(qV2.squadre ?? qV2.caposquadra, qV2.caposquadra),
-    lavoriSquadra: qV2.lavoriSquadra,
+    lavoriSquadra: qV2.lavoriSquadra + catenaExtraV2.lavoriSquadra,
     lavoriAutonomi: qV2.lavoriAutonomi,
     minOreOperaioValidateDaCapo: 1,
     minOreCapoValidateDaManager: 1,

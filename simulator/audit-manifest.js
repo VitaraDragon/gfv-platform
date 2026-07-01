@@ -16,6 +16,7 @@ import { inspectTenantSeed } from './lib/tenant-inspect.js';
 import { inspectManodoperaSeed } from './lib/manodopera-inspect.js';
 import { inspectContoTerziSeed } from './lib/conto-terzi-inspect.js';
 import { expectedVignetoCountsFromTemplate } from './phases/05-simulate-vigneto.js';
+import { extraCatenaCountsManodopera } from './lib/vigneto-stub-from-trigger.js';
 import { isEmulatorAvailable } from './lib/emulator-available.js';
 import { isContoTerziTemplate, loadTemplate } from './lib/load-template.js';
 
@@ -40,6 +41,7 @@ function expectedMovimentiFromTemplate(template) {
 function buildExpected(template) {
   const q = template.quantities;
   const vignetoExpected = expectedVignetoCountsFromTemplate(template);
+  const catenaExtra = extraCatenaCountsManodopera(template);
   const mo = template.manodopera || {};
   const hasManodopera = template.moduli?.includes('manodopera');
   const hasContoTerzi = isContoTerziTemplate(template);
@@ -58,12 +60,13 @@ function buildExpected(template) {
     attivita: q.attivitaGiorniLavorativi,
     movimentiMagazzino: expectedMovimentiFromTemplate(template),
     potatureVigneto: vignetoExpected.potature,
-    trattamentiVigneto: vignetoExpected.trattamenti,
+    trattamentiVigneto: vignetoExpected.trattamenti + catenaExtra.trattamenti,
+    vendemmieVigneto: vignetoExpected.vendemmie + catenaExtra.vendemmie,
     guasti: q.guasti ?? 0,
     manodopera: hasManodopera
       ? {
           squadre: q.squadre ?? q.caposquadra ?? 1,
-          lavoriSquadra: q.lavoriSquadra ?? 2,
+          lavoriSquadra: (q.lavoriSquadra ?? 2) + catenaExtra.lavoriSquadra,
           lavoriAutonomi: q.lavoriAutonomi ?? 1,
           personasMin: 1 + (q.caposquadra ?? 1) + (q.operai ?? 3),
           minOreOperaioValidateDaCapo: 1,
@@ -245,6 +248,9 @@ function classifyEntry(entry, inspect, checks) {
     }
     if (c.trattamentiVigneto !== EXPECTED.trattamentiVigneto) {
       issues.push(`trattamenti vigneto ${c.trattamentiVigneto}/${EXPECTED.trattamentiVigneto}`);
+    }
+    if (EXPECTED.vendemmieVigneto != null && c.vendemmieVigneto !== EXPECTED.vendemmieVigneto) {
+      issues.push(`vendemmie vigneto ${c.vendemmieVigneto}/${EXPECTED.vendemmieVigneto}`);
     }
     if (EXPECTED.guasti > 0 && (c.guasti ?? 0) !== EXPECTED.guasti) {
       issues.push(`guasti ${c.guasti ?? 0}/${EXPECTED.guasti}`);
