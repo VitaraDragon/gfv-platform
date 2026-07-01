@@ -7,8 +7,9 @@ Guida completa: [`docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md`](../docs-svilup
 **v2 manodopera:** spec §14 — multi-account, `runAsPersona`, template `viticola-manodopera` ✅  
 **v2.2 conto terzi:** template `viticola-conto-terzi` / `viticola-conto-terzi-manodopera` ✅ — guida §15 in `GFV_FARM_SIMULATOR.md`  
 **v3 cascata:** semafori affitti/macchine + Vitest + smoke Node ✅ — guida §11.1  
-**v4 Playwright:** scenari 1–19 ✅ — guida §11.2 (18/18 E2E read)  
-**v5 roadmap:** copertura app completa (seed + read + write) — guida §11.3
+**v4 Playwright:** scenari 1–19 ✅ — guida §11.2 (18 read)  
+**v5 roadmap:** **43/43 spec** (23 read + 20 write), M2 + M3 + P2 ✅, **CI stabile** (2026-07-01) — guida §11.3  
+**Tony E2E (post-v5):** [`docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md`](../docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md)
 
 ## Prerequisiti
 
@@ -167,7 +168,7 @@ Assert su DOM visibile — dati seed già validati da v3/v2.2/v2.1 manodopera.
 
 **Node:** su Node 24 la CLI `playwright test` può restare bloccata; usare `npm run sim:e2e`. In CI (Node 22): `sim:e2e:install` + `sim:e2e:pw`.
 
-**Esito attuale (2026-06-28):** `npm run sim:e2e` → **18/18** scenari OK (emulator + `npm start` + tenant `viticola-conto-terzi-manodopera` consigliato).
+**Esito attuale (2026-07-01):** `npm run sim:e2e` / CI `sim:e2e:ci` → **43/43** spec OK (23 read + 20 write; CI ~1,2 min, zero flaky). Template: `viticola-conto-terzi-manodopera`. Spec con prefisso ordine: `a-preventivi-write`, `z-compensi-write`.
 
 | # | Scenario | Spec | URL target |
 | - | -------- | ---- | ---------- |
@@ -197,19 +198,29 @@ Assert su DOM visibile — dati seed già validati da v3/v2.2/v2.1 manodopera.
 
 **Obiettivo:** estendere sim + E2E fino a coprire (per gradi) pagine, form e moduli dell’app reale — **stesso codice**, dati seed, test read poi write.
 
-| Stato oggi | Target v5 |
-| ---------- | --------- |
-| ~**48%** pagine standalone con E2E read (18 scenari) | Read su template completo + write su flussi critici |
-| Seed forte su `viticola-conto-terzi-manodopera` | **guasti (3) + ore coda (2)** ✅; gap: vendemmia, template frutteto |
-| E2E write ~0 | Attività, movimento, ore, lavoro, preventivo… |
+| Stato oggi (2026-07-01) | Target v5 Fase 2 |
+| ----------------------- | ---------------- |
+| **43/43** spec E2E (23 read + 20 write) — **CI stabile** | Read P1 residue + gap seed vendemmia/frutteto |
+| Template `viticola-conto-terzi-manodopera` completo M2+M3+P2 | Template **frutteto** (M4) |
+| Tony E2E | Gate v5 app ✅ — v. `TONY_E2E_GUIDA_SVILUPPO.md` |
 
-**Milestone:** M1 ✅ (18/18) → M2 read 100% template → M3 write critici → M4 frutteto → M5 ruoli + CI notturna.
+**Milestone:** M1 ✅ → M2 ✅ → M3 ✅ → P2 ✅ → **CI 43/43 stabile** ✅ → Fase 2 read P1 → M4 frutteto → M5 ruoli + CI notturna → M-T* Tony.
 
 **Dettaglio modulo per modulo, fasi e anti-pattern:** [`GFV_FARM_SIMULATOR.md` §11.3](../docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md).
 
 **Prossimo incremento consigliato:** E2E read P1 mancanti → primo E2E write (nuova attività).
 
 **CI E2E (v4 #9 ✅):** `npm run sim:e2e:install && npm run sim:e2e:ci` — replica locale del job GitHub Actions (richiede bash + Java).
+
+## Tony E2E (post v5 app) — guida sviluppo
+
+Dopo **M2 + M3 v5** (read/write app completi), il track successivo integra **Tony** con seed sim + Playwright: tempi risposta, typo recovery, errori concetto, azioni non consentite.
+
+**Guida operativa (checklist milestone M-T0…M-T6, matrice scenari, CI a strati):**
+
+[`docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md`](../docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md)
+
+**Stato:** 📋 pianificato — comandi `sim:tony:e2e*` da implementare (§12 guida).
 
 ## Manifest e audit
 
@@ -291,7 +302,7 @@ Workflow **GFV Farm Simulator CI** (`.github/workflows/simulator-ci.yml`):
 
 - **Trigger:** push su `main` e pull request che toccano `simulator/`, `tests/simulator/`, `tests/e2e/sim/**`, `scripts/sim-e2e-run.mjs`, `scripts/sim-ci-e2e-inner.sh`, `playwright.config.js`, `firebase.json`, dipendenze root; anche **Run workflow** manuale.
 - **Job `simulator-emulator`:** Ubuntu, Node 22, Java 21 → `npm run sim:test:ci` (`emulators:exec` + `sim:test` + `sim:test:vitest`). Timeout 15 min.
-- **Job `simulator-e2e`:** stesso ambiente → `npm run sim:e2e:install` + `npm run sim:e2e:ci` (seed `viticola-conto-terzi-manodopera` + 8 scenari Playwright headless). Timeout 25 min. Job in parallelo con il precedente.
+- **Job `simulator-e2e`:** stesso ambiente → `npm run sim:e2e:install` + `npm run sim:e2e:ci` (seed `viticola-conto-terzi-manodopera` + **43 spec** Playwright headless, ~1–2 min E2E). Timeout 25 min. Job in parallelo con il precedente.
 - **Locale Node (CI):** `npm run sim:test:ci` — richiede Java su PATH.
 - **Locale E2E (CI):** `npm run sim:e2e:install && npm run sim:e2e:ci` — richiede bash + Java (Git Bash/WSL su Windows).
 

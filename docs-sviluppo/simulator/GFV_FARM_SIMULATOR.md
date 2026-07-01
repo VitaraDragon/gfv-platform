@@ -1,8 +1,8 @@
 # GFV Farm Simulator — Guida sviluppo per agenti
 
 **Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (18 scenari read ✅) + **v5 roadmap** §11.3 (**43 scenari: 23 read + 20 write ✅**, M2 template + M3/P2 write)  
-**Data:** 2026-06-30  
-**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa**; **v2.2 conto terzi chiusa**; **v3 cascata** ✅ (§11.1); **v4 Playwright chiusa** — 18 read (§11.2); **v5 Fase 1 chiusa** ✅ — write scen. 20–34; **M2 template chiusa** ✅ (scen. 35–39 read); **P2 write chiusi** ✅ (scen. 40–44); CI **43/43** spec; regime max + routine §13.4  
+**Data:** 2026-07-01  
+**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa**; **v2.2 conto terzi chiusa**; **v3 cascata** ✅ (§11.1); **v4 Playwright chiusa** — 18 read (§11.2); **v5 Fase 1 chiusa** ✅ — write scen. 20–34; **M2 template chiusa** ✅ (scen. 35–39 read); **P2 write chiusi** ✅ (scen. 40–44); **CI 43/43 stabile** ✅ (zero flaky, ~1,2 min E2E); regime max + routine §13.4  
 **Codename:** `gfv-farm-simulator`
 
 ---
@@ -659,7 +659,7 @@ npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavo
 
 Un scenario per file, niente `if (pagina === …)` sparsi. **No** Tony/meteo/Stripe nell’orchestrator sim.
 
-**Struttura `tests/e2e/sim/` (2026-06-28):**
+**Struttura `tests/e2e/sim/` (2026-07-01):**
 
 ```
 tests/e2e/sim/
@@ -672,15 +672,21 @@ tests/e2e/sim/
     movimenti-uscita-write.mjs
     field-workspace-write.mjs
     gestione-lavori-write.mjs
-    preventivi-write.mjs
+    preventivi-write.mjs          # scenario condiviso (import da a-preventivi-write.spec)
     prodotti-write.mjs
     preventivi-accetta-write.mjs
     clienti-write.mjs
     preventivi-pianifica-write.mjs
     tariffe-write.mjs
-  *.spec.js                     # 43 spec (23 read + 20 write)
-scripts/sim-e2e-run.mjs         # SCENARIOS: 27 voci (stesso ordine)
+    … segnatura-ore-write, guasti-resolve-write, gestione-macchine-write,
+      vendemmia-write, validazione-ore-write, terreni-write, guasti-write, terreni-clienti-write
+  a-preventivi-write.spec.js      # prefisso a- → marker preventivo prima di accetta/pianifica
+  z-compensi-write.spec.js        # prefisso z- → ultimo (evita nested validazione ore in suite)
+  *.spec.js                     # 43 spec totali (23 read + 20 write)
+scripts/sim-e2e-run.mjs         # SCENARIOS: ordine runner locale
 ```
+
+**Ordine Playwright (`sim:e2e:pw`):** alfabetico su `*.spec.js`. Prefissi **`a-`** / **`z-`** usati solo dove l’ordine influisce su idempotenza o timeout suite (preventivi, compensi).
 
 **Node / browser:** in locale **`npm run sim:e2e`** usa **Chrome installato** (`playwright-core` + `channel: chrome`). Su **Node 24** la CLI `playwright test` può restare bloccata — usare il runner. In **CI (Node 22)** preferire `npm run sim:e2e:pw` dopo `npm run sim:e2e:install` (Chromium bundled).
 
@@ -796,16 +802,32 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 | 30 | Write — movimento magazzino (uscita) | `movimenti-uscita-write.spec.js` | ✅ |
 | 22 | Write — ore mobile (field workspace → validazione) | `field-workspace-write.spec.js` | ✅ |
 | 23 | Write — nuovo lavoro manodopera (gestione lavori) | `gestione-lavori-write.spec.js` | ✅ |
-| 24 | Write — nuovo preventivo conto terzi | `preventivi-write.spec.js` | ✅ |
+| 24 | Write — nuovo preventivo conto terzi | `a-preventivi-write.spec.js` | ✅ |
 | 25 | Write — nuovo prodotto magazzino | `prodotti-write.spec.js` | ✅ |
 | 26 | Write — accetta preventivo (manager) | `preventivi-accetta-write.spec.js` | ✅ |
 | 27 | Write — nuovo cliente conto terzi | `clienti-write.spec.js` | ✅ |
 | 28 | Write — pianifica preventivo (crea lavoro) | `preventivi-pianifica-write.spec.js` | ✅ |
 | 29 | Write — nuova tariffa conto terzi | `tariffe-write.spec.js` | ✅ |
+| 31 | Write — validazione ore manager | `validazione-ore-write.spec.js` | ✅ |
+| 32 | Write — nuovo terreno azienda | `terreni-write.spec.js` | ✅ |
+| 33 | Write — segnalazione guasto operaio | `guasti-write.spec.js` | ✅ |
+| 34 | Write — nuovo terreno cliente CT | `terreni-clienti-write.spec.js` | ✅ |
+| 35 | Read — mappa + statistiche core | `core-analytics-read.spec.js` | ✅ |
+| 36 | Read — admin macchine + guasti | `macchine-admin-read.spec.js` | ✅ |
+| 37 | Read — form nuovo preventivo | `conto-terzi-forms-read.spec.js` | ✅ |
+| 38 | Read — vigneto extended + vendemmia empty | `vigneto-extended-read.spec.js` | ✅ |
+| 39 | Read — manodopera extended | `manodopera-extended-read.spec.js` | ✅ |
+| 40 | Write — segnatura ore capo desktop | `segnatura-ore-write.spec.js` | ✅ |
+| 41 | Write — risolvi guasto (lista officina) | `guasti-resolve-write.spec.js` | ✅ |
+| 42 | Write — nuova macchina admin | `gestione-macchine-write.spec.js` | ✅ |
+| 43 | Write — vendemmia qli | `vendemmia-write.spec.js` | ✅ |
+| 44 | Write — compensi operai mese | `z-compensi-write.spec.js` | ✅ |
+
+**Assert scenario 22 (field workspace write):** template manodopera. Operaio → `field-workspace-standalone.html` → lavoro assegnato → slide **Segna ore** → 14:00–16:00, note marker `GFV_SIM_E2E_WRITE_ORE`. Manager → `validazione-ore-standalone.html` → **`waitForMarkerInValidazioneQueue`** (propagazione Firestore) → riga in coda con pulsante **✅ Valida** (idempotente). Pattern condiviso con scen. 31.
 
 **Assert scenario 23 (gestione lavori write):** template `viticola-conto-terzi-manodopera`. Login manager manodopera → `gestione-lavori-standalone.html` → modale **Crea Nuovo Lavoro** → cascade categoria/tipo (preferenza Erpicatura), terreno seed, caposquadra, durata 3 giorni, nome marker `GFV SIM E2E WRITE LAVORO`. Assert: toast o riga in `#lavori-container .lavori-table` con badge `.badge-assegnato` e «3 giorni» (idempotente). **Fix app collegato:** `creatoDa` con fallback `id || uid || currentAuthUid` in wrapper `handleSalvaLavoro` (prima Firestore rifiutava `undefined`).
 
-**Assert scenario 24 (preventivi write):** template `viticola-conto-terzi*`. Login `loginAsManagerContoTerzi` → `preventivi-standalone.html` → link **Nuovo Preventivo** → form con cliente + terreno seed (precompila coltura/tipo campo), cascade tipo lavoro Erpicatura, superficie marker **9.99 ha**, note `GFV_SIM_E2E_WRITE_PREVENTIVO`. Assert: toast «Preventivo creato con successo!», redirect elenco, riga con superficie 9.99 ha, badge Bozza, totale € (idempotente via superficie distintiva in tabella).
+**Assert scenario 24 (preventivi write):** template `viticola-conto-terzi*`. Spec **`a-preventivi-write.spec.js`** (esegue per primo in suite). Login `loginAsManagerContoTerzi` → `preventivi-standalone.html` → **Nuovo Preventivo** → `selectClienteWithTerreni` (un solo `onClienteChange`, no reset `#terreno-id`) → cascade Erpicatura, superficie marker **9.99 ha**, note `GFV_SIM_E2E_WRITE_PREVENTIVO`. Assert: toast, redirect, riga 9.99 ha, badge Bozza (idempotente). Scen. 26–28 riusano marker senza ricreare preventivo.
 
 **Assert scenario 25 (prodotti write):** template seed completo. Login manager → `prodotti-standalone.html` → modale **Nuovo Prodotto** → codice/nome marker `GFV_SIM_E2E_WRITE_PRODOTTO` / `GFV SIM E2E WRITE PRODOTTO`, categoria **ricambi** (no dosaggio obbligatorio), um pezzi, scorta min 5. Assert: toast «Prodotto creato.», riga filtrata con giacenza 0 e badge Attivo (idempotente via codice in `#filter-search`).
 
@@ -827,13 +849,17 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 
 **Assert scenario 34 (terreni-clienti write):** login conto terzi → `terreni-clienti-standalone.html` → cliente seed → **Nuovo terreno** → nome `GFV SIM E2E WRITE TERRENO CT`, superficie **8.88** ha, note `GFV_SIM_E2E_WRITE_TERRENO_CT`. Assert: `.terreno-card` con marker. Read scen. 7: cap terreni clienti ≤6.
 
-#### 11.2.1 Stato v4 e prossimi passi (2026-06-29)
+#### 11.2.1 Stato v4/v5 e prossimi passi (2026-07-01)
 
-**Completato:** scenari Playwright **1–44** — suite locale **43/43 OK** (`npm run sim:e2e`: 23 read + 20 write; ~3–4 min) + **CI** (`sim:e2e:ci` → `sim:e2e:pw`, **43 spec**).
+**Completato:** scenari Playwright **1–44** — suite **43/43 OK** locale (`npm run sim:e2e`: ~3–4 min) + **CI** (`sim:e2e:ci` → `sim:e2e:pw`, **43 spec**, ~1,2 min headless).
 
-**v5 Fase 1 chiusa ✅** (M3 inclusa): 15 flussi write su path business critici (scen. 20–34, numerazione doc 31–34 = ultimi 4 write M3).
+**CI stabile (2026-07-01):** run [28498513934](https://github.com/VitaraDragon/gfv-platform/actions/runs/28498513934) — **43 passed, 0 flaky**. Fix: ordine `a-preventivi-write` / `z-compensi-write`; race terreni preventivi; `waitForMarkerInValidazioneQueue` su field-workspace-write.
 
-**Prossimo — v5 Fase 2 (§11.3):** batch read P1 pagine mancanti; gap seed: vendemmia, frutteto.
+**v5 Fase 1 chiusa ✅** (M3 inclusa): 15 flussi write su path business critici (scen. 20–34).
+
+**M2 + P2 chiusi ✅** (scen. 35–39 read, 40–44 write).
+
+**Prossimo — v5 Fase 2 (§11.3):** batch read P1 pagine mancanti; gap seed: vendemmia, frutteto; track **Tony E2E** (gate v5 app ✅ — v. `TONY_E2E_GUIDA_SVILUPPO.md` §7).
 
 **Parallelo (v4b / fuori sim):**
 
@@ -978,9 +1004,9 @@ npm run sim:e2e                      # 43/43 attesi (~3–4 min)
 | Meteo dashboard | ❌ escluso | mock/skip | 3 |
 | Login / registrazione / reset password | N/A emulator | test auth separati | 3 |
 | Impostazioni, abbonamento, gestisci utenti, amministrazione | ❌ | ❌ | 3 |
-| **Tony** (widget, form injection) | ❌ escluso orchestrator | track **Tony test client** + E2E post-v5 | parallelo |
+| **Tony** (widget, form injection) | ❌ escluso orchestrator | track **Tony test client** + E2E post-v5 — **gate v5 app ✅ 2026-07-01** | parallelo |
 
-**Guida sviluppo Tony + sim (checklist agenti, matrice scenari, M-T0…M-T6):** [`TONY_E2E_GUIDA_SVILUPPO.md`](TONY_E2E_GUIDA_SVILUPPO.md) — **iniziare solo dopo M2+M3 v5 chiusi**.
+**Guida sviluppo Tony + sim (checklist agenti, matrice scenari, M-T0…M-T6):** [`TONY_E2E_GUIDA_SVILUPPO.md`](TONY_E2E_GUIDA_SVILUPPO.md) — gate §7.1 soddisfatto; kick-off dopo §7.2–7.3.
 
 ##### 11.3.9 Milestone misurabili
 
@@ -1488,7 +1514,7 @@ npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose
 
 **Verifica UI:** §13.2 — pagina dev + moduli conto terzi + manodopera mobile.
 
-**Verifica E2E (v4 + v5 + M2 + P2):** `npm run sim:e2e` — suite **43/43 OK** (23 read + 20 write, ~3–4 min) con tenant `viticola-conto-terzi-manodopera`; v. §11.2–§11.3.
+**Verifica E2E (v4 + v5 + M2 + P2):** `npm run sim:e2e` / `npm run sim:e2e:ci` — suite **43/43 OK** (23 read + 20 write; CI ~1,2 min) con tenant `viticola-conto-terzi-manodopera`; v. §11.2–§11.3.
 
 **Non in scope v2.2 (aggiornato):** preventivo accettato → creazione lavoro conto terzi automatica. ~~Link rapidi Conto Terzi in pagina dev~~ → **implementato 2026-06-28** (gruppi modulo condizionati al template).
 

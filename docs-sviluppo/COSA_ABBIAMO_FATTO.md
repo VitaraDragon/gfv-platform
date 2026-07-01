@@ -1,6 +1,30 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-06-30 — sim **M2 + P2 write** ✅; suite **43/43** spec (23 read + 20 write).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-01 — sim **M2 + P2 write** ✅; suite **43/43** spec (23 read + 20 write); **CI stabile** (zero flaky, ~1,2 min E2E).
+
+## GFV Farm Simulator — CI 43/43 stabile: fix preventivi + field-workspace (2026-07-01)
+
+**Obiettivo:** chiudere instabilità CI residua dopo M2 + P2 write — suite **43 passed, 0 flaky**.
+
+**Fix E2E (ordine esecuzione + race Firestore):**
+
+| Problema | Fix | Spec |
+|----------|-----|------|
+| Cluster preventivi timeout 180s in CI | Niente doppio `onClienteChange`; `selectClienteWithTerreni`; spec **`a-preventivi-write`** esegue per primo (marker 9.99 ha prima di accetta/pianifica) | `a-preventivi-write`, `preventivi-accetta-write`, `preventivi-pianifica-write` |
+| `compensi-write` nested validazione ore | Rinominato **`z-compensi-write`** (ultimo in suite); rimosso nested `runValidazioneOreWriteAssertions` | `z-compensi-write` |
+| Guasti admin / resolve / write | Init listener guasti prima di `loadMacchine()`; resolve su lista officina; ordine spec guasti | `guasti-*`, `macchine-admin-read` |
+| `field-workspace-write` flaky (marker 0 in coda) | `waitForMarkerInValidazioneQueue` 60s dopo save operaio; `gotoFieldWorkspace` esplicito (pattern `validazione-ore-write`) | `field-workspace-write` |
+
+**Fix app:** `core/admin/gestione-guasti-standalone.html` — `setupGuastiRealtime()` prima del `Promise.all` su macchine/utenti/lavori.
+
+**Verifica CI:**
+
+| Run | Commit | Esito E2E |
+|-----|--------|-----------|
+| [28497446718](https://github.com/VitaraDragon/gfv-platform/actions/runs/28497446718) | `90fe8f8` | 43 passed — preventivi OK (~8s cluster) |
+| [28498513934](https://github.com/VitaraDragon/gfv-platform/actions/runs/28498513934) | `b2665e2` | **43 passed, 0 flaky** (~1,2 min) |
+
+**Prossimo:** v5 Fase 2 (§11.3) — batch read P1; gap seed vendemmia/frutteto; track **Tony E2E** (`TONY_E2E_GUIDA_SVILUPPO.md` — gate v5 app ✅).
 
 ## GFV Farm Simulator — P2 write template viticola (2026-06-30)
 
@@ -14,7 +38,7 @@
 | 41 | `guasti-resolve-write` | Manager risolve guasto marker (admin gestione guasti) |
 | 42 | `gestione-macchine-write` | Manager → nuovo trattore marker |
 | 43 | `vendemmia-write` | Manager → vendemmia qli 88.8 + operai tabella |
-| 44 | `compensi-write` | Validazione ore + calcolo compensi mese (righe ≥ 1) |
+| 44 | `z-compensi-write` | Validazione ore + calcolo compensi mese (righe ≥ 1) — **ultimo in suite** |
 
 **Fix app:** `vendemmia-standalone.html` — submit operai usa tabella editabile quando visibile (allineato a `openCreateModal` con manodopera).
 
@@ -28,7 +52,7 @@
 
 **Link:** `simulator/README.md`, `GFV_FARM_SIMULATOR.md` §11.3.8/§11.3.9, `docs-sviluppo/tony/README.md`.
 
-**Stato:** 📋 pianificato — implementazione codice (`tests/e2e/tony/`, `sim:tony:e2e`) dopo chiusura v5 app.
+**Stato:** 📋 Pianificato — **gate v5 app soddisfatto (2026-07-01)** — implementazione codice (`tests/e2e/tony/`, `sim:tony:e2e`) può iniziare dopo gate §7.2–7.3.
 
 ## GFV Farm Simulator — M2 chiusa: read residue template viticola-conto-terzi-manodopera (2026-06-30)
 
@@ -89,7 +113,7 @@
 
 **File:** 4 coppie scenario/spec + `scripts/sim-e2e-run.mjs` (33 scenari); aggiornati `sim-login.js`, `segnalazione-guasti-standalone.html`.
 
-**Verifica:** `npm run sim:e2e` → **33/33 OK** (~2 min, 2 run consecutivi idempotenti; `field-workspace-write` flaky noto — OK al retry).
+**Verifica:** `npm run sim:e2e` → **33/33 OK** (~2 min, 2 run consecutivi idempotenti). *(Nota 2026-07-01: flaky `field-workspace-write` risolto — v. voce CI 43/43 stabile.)*
 
 ## GFV Farm Simulator — v5 Fase 1 E2E write uscita magazzino (2026-06-28)
 

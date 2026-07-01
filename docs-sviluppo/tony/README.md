@@ -1,7 +1,7 @@
 # Tony – Documentazione consolidata
 
 **Cartella**: `docs-sviluppo/tony/`  
-**Ultimo aggiornamento**: 2026-06-19
+**Ultimo aggiornamento**: 2026-07-01
 
 Tony è l'assistente IA centrale di GFV Platform. Questa cartella contiene la documentazione consolidata per riferimento rapido e sviluppo.
 
@@ -19,6 +19,12 @@ Tony è l'assistente IA centrale di GFV Platform. Questa cartella contiene la do
 | **HANDOFF_TTS_CHIRP3.md** | **Handoff voce Tony** (2026-06-19): Chirp 3 HD Charon, `speakingRate` 1.05, latenza pipeline, canary TTS. |
 | **PIANO_AUDIO_PIPELINE_BARGEIN.md** | 📋 Piano Fase 1: `clearTonyAudioPipeline` + generation token (prerequisito chunking TTS); specifica per agenti. |
 | **README.md** | Questo file – panoramica e link. |
+
+**Simulatore + Tony E2E (post v5 app):**
+
+| File | Contenuto |
+|------|-----------|
+| **`../simulator/TONY_E2E_GUIDA_SVILUPPO.md`** | Guida integrazione Tony ↔ sim: prerequisiti (**gate v5 app ✅ 2026-07-01**), 3 livelli test, matrice scenari, milestone M-T0…M-T6, CI |
 
 **Fuori cartella Tony (marketing/commerciale):**
 
