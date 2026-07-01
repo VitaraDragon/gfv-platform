@@ -680,11 +680,9 @@
                         }
                     }
 
-                    await loadMacchine();
-                    await loadUsers();
-                    await loadLavori();
-                    await setupGuastiRealtime();
                     setupFilters();
+                    setupGuastiRealtime();
+                    await Promise.all([loadMacchine(), loadUsers(), loadLavori()]);
                 } catch (error) {
                     console.error('Errore:', error);
                     showAlert('Errore caricamento dati', 'error');
