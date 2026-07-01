@@ -12,10 +12,13 @@ import { inspectManodoperaSeed } from '../../simulator/lib/manodopera-inspect.js
 import { deleteSimulatedTenant } from '../../simulator/lib/cleanup-tenant.js';
 import { resetSimContext } from '../../simulator/lib/sim-context.js';
 import { loadTemplate } from '../../simulator/lib/load-template.js';
+import { extraCatenaCountsManodopera } from '../../simulator/lib/vigneto-stub-from-trigger.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const template = loadTemplate('viticola-manodopera');
 const q = template.quantities;
+const catenaExtra = extraCatenaCountsManodopera(template);
+const expectedLavoriSquadra = q.lavoriSquadra + catenaExtra.lavoriSquadra;
 
 describe('GFV Farm Simulator — viticola-manodopera v2 (emulator)', () => {
   let emulatorUp = false;
@@ -52,7 +55,7 @@ describe('GFV Farm Simulator — viticola-manodopera v2 (emulator)', () => {
     expect(personas.counts.caposquadra).toBe(q.caposquadra);
     expect(personas.counts.operai).toBe(q.operai);
     expect(manodopera.counts.squadre).toBe(Math.min(q.squadre ?? q.caposquadra, q.caposquadra));
-    expect(manodopera.counts.lavoriSquadra).toBe(q.lavoriSquadra);
+    expect(manodopera.counts.lavoriSquadra).toBe(expectedLavoriSquadra);
     expect(manodopera.counts.lavoriAutonomi).toBe(q.lavoriAutonomi);
     expect(manodoperaOre.counts.oreValidate).toBeGreaterThanOrEqual(4);
     expect(manodoperaOre.counts.comunicazioniInviate).toBeGreaterThanOrEqual(q.lavoriSquadra);
@@ -61,7 +64,7 @@ describe('GFV Farm Simulator — viticola-manodopera v2 (emulator)', () => {
     const { db } = initEmulatorAdmin();
     const inspect = await inspectManodoperaSeed(db, setup.tenantId, {
       squadre: Math.min(q.squadre ?? q.caposquadra, q.caposquadra),
-      lavoriSquadra: q.lavoriSquadra,
+      lavoriSquadra: expectedLavoriSquadra,
       lavoriAutonomi: q.lavoriAutonomi,
       minOreOperaioValidateDaCapo: 1,
       minOreCapoValidateDaManager: 1,
