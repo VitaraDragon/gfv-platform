@@ -1,6 +1,35 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-01 — E2E batch **49–51** + catena **52–53**; suite **48** scenari.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-01 — CI **48/48**; doc allineamento sim vs app (§11.3.12).
+
+## GFV Farm Simulator — allineamento sim vs app e CI 48/48 (2026-07-01)
+
+**Domanda:** il simulatore è uguale al flusso reale dell’app?
+
+**Risposta sintetica:** **parzialmente** — su **vendemmia + trattamento vigneto** seed ed E2E seguono *trigger → stub incompleto → completamento UI → effetto collaterale*; **non** su tutto l’ERP (potatura E2E, frutteto, magazzino dual path, sim Node ≠ browser).
+
+| Livello | Stato |
+|---------|--------|
+| Seed catena A (Firestore) | ✅ stub da lavoro/attività via `vigneto-stub-from-trigger.js` |
+| E2E percorso UI | ✅ 49, 51–53; ❌ potatura-completa, frutteto |
+| Sim = click utente | ❌ Admin SDK (shape service allineata) |
+
+**CI verde:** [28531826939](https://github.com/VitaraDragon/gfv-platform/actions/runs/28531826939) — **48 passed, 0 flaky** (`c917aef` stabilizza `preventivi-invia-write`).
+
+**Doc:** `GFV_FARM_SIMULATOR.md` §11.3.11–§11.3.12 (inventario aggiornato, tabella gap residui, tre livelli).
+
+**Prossimo batch doc:** read 45–48, write 54, `potatura-completa-write`, opz. seed magazzino solo catena B.
+
+## GFV Farm Simulator — fix CI batch 49–51 (2026-07-01)
+
+**Obiettivo:** portare suite a 48/48 stabile dopo batch catena A.
+
+| Commit | Fix |
+|--------|-----|
+| `708c2f9` | `preventivi-write`: terreno per `value` (non index); `vigneto.mjs`: limite trattamenti ≤12 (stub catena A) |
+| `c917aef` | `preventivi-invia-write`: `waitForInviaMarkerInTable` post-create (elimina flaky CI) |
+
+**Verifica:** run [28531362435](https://github.com/VitaraDragon/gfv-platform/actions/runs/28531362435) 46+flaky → [28531826939](https://github.com/VitaraDragon/gfv-platform/actions/runs/28531826939) **48/48**.
 
 ## GFV Farm Simulator — E2E batch 49–51 (2026-07-01)
 
@@ -16,7 +45,7 @@
 
 **File:** scenari `.mjs` + spec omonime; `scripts/sim-e2e-run.mjs` (48 scenari); helper `clearPreventiviFilters` usa `resetFilters()` (evita toast che blocca click).
 
-**Verifica locale:** i tre scenari isolati OK (2026-07-01).
+**Verifica:** CI **48/48** ([28531826939](https://github.com/VitaraDragon/gfv-platform/actions/runs/28531826939)).
 
 ## GFV Farm Simulator — E2E catena completa vigneto 52–53 (2026-07-01)
 
@@ -29,9 +58,9 @@
 | `vendemmia-completa-write` | Manager manodopera → vendemmia stub con `lavoroId` → Modifica → qli/ettari/destinazione | Badge **Completa**, marker qli `77.7`, link lavoro |
 | `trattamento-completa-write` | Trattamenti vigneto → stub da lavoro `Trattamento squadra` → prodotto+dosaggio + scarico magazzino | Prodotto in lista; +1 uscita movimenti |
 
-**File:** `tests/e2e/sim/scenarios/{vendemmia,trattamento}-completa-write.mjs`, spec omonime, `scripts/sim-e2e-run.mjs` (45 scenari).
+**File:** `tests/e2e/sim/scenarios/{vendemmia,trattamento}-completa-write.mjs`, spec omonime, `scripts/sim-e2e-run.mjs`.
 
-**Verifica:** scenari isolati OK; in suite completa **52–53 OK** (run locale post-implementazione).
+**Verifica:** CI **48/48** inclusi 52–53 ([28531826939](https://github.com/VitaraDragon/gfv-platform/actions/runs/28531826939)).
 
 ## GFV Farm Simulator — allineamento seed catena A (stub incompleti) (2026-07-01)
 
