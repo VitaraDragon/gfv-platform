@@ -39,6 +39,8 @@ export const VIGNETI_LIST_PATH =
 export const GESTISCI_UTENTI_PATH =
   '/core/admin/gestisci-utenti-standalone.html?emulator=1';
 export const IMPOSTAZIONI_PATH = '/core/admin/impostazioni-standalone.html?emulator=1';
+export const GESTIONE_LAVORI_PATH =
+  '/core/admin/gestione-lavori-standalone.html?emulator=1';
 export const VALIDAZIONE_ORE_PATH =
   '/core/admin/validazione-ore-standalone.html?emulator=1';
 export const MACCHINE_DASHBOARD_PATH =

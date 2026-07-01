@@ -30,16 +30,17 @@ function completedMarkerRows(page) {
 }
 
 /**
- * Stub incompleto: ceppi non ancora salvati (colonna 4 = '-').
+ * Stub da completare: collegato a attività/lavoro, senza marker E2E in colonna ceppi.
+ * La lista può mostrare ceppi/tipo prefill (getDatiPrecompilazionePotatura) anche se Firestore è incompleto.
  * @param {import('playwright-core').Page} page
  */
-async function findIncompletePotaturaStubRow(page) {
+async function findPotaturaStubRowToComplete(page) {
   const rows = potaturaStubFromTriggerRows(page);
   const count = await rows.count();
   for (let i = 0; i < count; i++) {
     const row = rows.nth(i);
     const ceppi = ((await row.locator('td').nth(3).textContent()) || '').trim();
-    if (ceppi === '-' || ceppi === '') {
+    if (!ceppi.includes(E2E_POTATURA_COMPLETA_CEPPI)) {
       return row;
     }
   }
@@ -50,8 +51,8 @@ async function findIncompletePotaturaStubRow(page) {
  * @param {import('playwright-core').Page} page
  */
 async function completeFirstPotaturaStub(page) {
-  const row = await findIncompletePotaturaStubRow(page);
-  if (!row) throw new Error('Nessuno stub potatura incompleto in lista');
+  const row = await findPotaturaStubRowToComplete(page);
+  if (!row) throw new Error('Nessuno stub potatura da completare in lista');
 
   await row.locator('button').filter({ hasText: /Modifica/i }).click();
 
@@ -64,9 +65,7 @@ async function completeFirstPotaturaStub(page) {
   }
 
   const tipoSelect = page.locator('#potatura-tipo');
-  if (!(await tipoSelect.inputValue())) {
-    await tipoSelect.selectOption('verde');
-  }
+  await tipoSelect.selectOption('verde');
 
   await page.locator('#potatura-ceppi').fill(E2E_POTATURA_COMPLETA_CEPPI);
 
@@ -84,6 +83,7 @@ async function completeFirstPotaturaStub(page) {
 
   await page.locator('#form-potatura button[type="submit"]').click();
 
+  await page.locator('#modal-potatura.active').waitFor({ state: 'hidden', timeout: 90_000 });
   await page.waitForFunction(
     (ceppi) => {
       const rows = document.querySelectorAll('#table-wrap tbody tr');
