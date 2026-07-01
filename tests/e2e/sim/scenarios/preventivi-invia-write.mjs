@@ -30,12 +30,41 @@ function inviaMarkerRow(page) {
 /**
  * @param {import('playwright-core').Page} page
  */
+async function waitForInviaMarkerInTable(page) {
+  await page.waitForFunction(
+    ({ superficie, tipo }) =>
+      Array.from(document.querySelectorAll('#preventivi-container .preventivi-table tbody tr')).some(
+        (tr) => {
+          const text = tr.textContent || '';
+          return text.includes(superficie) && text.includes(tipo);
+        }
+      ),
+    { superficie: E2E_PREVENTIVO_INVIA_SUPERFICIE, tipo: PREFERRED_TIPO_LAVORO },
+    { timeout: 60_000 }
+  );
+}
+
+/**
+ * @param {import('playwright-core').Page} page
+ */
 async function createInviaMarkerPreventivo(page) {
+  const totalBefore = await page.evaluate(
+    () => document.querySelectorAll('#preventivi-container .preventivi-table tbody tr').length
+  );
+
   await openNuovoPreventivoPage(page);
   await fillAndSubmitNewPreventivo(page, {
     note: E2E_PREVENTIVO_INVIA_NOTE,
     superficie: E2E_PREVENTIVO_INVIA_SUPERFICIE,
   });
+
+  await page.waitForFunction(
+    (before) =>
+      document.querySelectorAll('#preventivi-container .preventivi-table tbody tr').length > before,
+    totalBefore,
+    { timeout: 60_000 }
+  );
+  await waitForInviaMarkerInTable(page);
 }
 
 /**
@@ -53,6 +82,7 @@ export async function runPreventiviInviaWriteAssertions(page, expect) {
   if ((await row.count()) === 0) {
     await createInviaMarkerPreventivo(page);
     await clearPreventiviFilters(page);
+    await waitForInviaMarkerInTable(page);
     row = inviaMarkerRow(page);
   }
 
