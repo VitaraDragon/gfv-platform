@@ -336,13 +336,23 @@
         }
 
         function showAlert(msg, type) {
-                if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(msg, type || 'info'); return; }
-                console.warn('[showAlert] gfvShowAlert non disponibile:', msg);
+            if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(msg, type || 'info'); return; }
+            console.warn('[showAlert] gfvShowAlert non disponibile:', msg);
+        }
+
+        function findNearestVertexFrutteto(point, boundaryCoords, maxDistance) {
+            let nearestVertex = null;
+            let minDistance = maxDistance;
+            boundaryCoords.forEach(vertex => {
+                const distance = google.maps.geometry.spherical.computeDistanceBetween(point, vertex);
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    nearestVertex = vertex;
+                }
             });
-            
             return nearestVertex;
         }
-        
+
         // Trova il punto più vicino sul confine del terreno (su un segmento di linea)
         function findNearestPointOnBoundaryFrutteto(point, boundaryCoords, maxDistance) {
             let nearestPoint = null;

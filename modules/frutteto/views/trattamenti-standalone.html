@@ -334,8 +334,22 @@
         }
 
         function showAlert(msg, type) {
-                if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(msg, type || 'info'); return; }
-                console.warn('[showAlert] gfvShowAlert non disponibile:', msg);
+            if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(msg, type || 'info'); return; }
+            console.warn('[showAlert] gfvShowAlert non disponibile:', msg);
+        }
+
+        /**
+         * @param {{ filterLavoroId?: string|null }} [options] - Ripresa: solo trattamento collegato al lavoro sospeso
+         */
+        async function populateTrattamentiPrecedentiSelect(fruttetoId, currentTrattamentoId, options = {}) {
+            const sel = document.getElementById('trattamento-precedente-id');
+            if (!sel || !fruttetoId) return;
+            const filterLavoroId = options.filterLavoroId || null;
+            const hintEl = document.querySelector('#trattamento-precedente-wrap small');
+            if (hintEl) {
+                hintEl.textContent = filterLavoroId
+                    ? 'Solo il trattamento collegato al lavoro sospeso. Scegli quello elencato: i prodotti si possono compilare automaticamente dal trattamento padre.'
+                    : 'Collega al documento lasciato aperto; utile per tracciabilità e magazzino.';
             }
             sel.innerHTML = '';
             const opt0 = document.createElement('option');
