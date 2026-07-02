@@ -353,6 +353,22 @@
             return nearestVertex;
         }
 
+        let frutteti = [];
+        let potature = [];
+        let currentFruttetoId = null;
+        let currentAnno = null;
+        let potaturaFromAttivitaOnly = false;
+        let poligonoCoords = [];
+        let mappaPotaturaFrutteto = null;
+        let poligonoPotaturaPolyFrutteto = null;
+        let terrenoPolygonFrutteto = null;
+        let terrenoBoundaryCoordsFrutteto = [];
+        let firstPointFrutteto = null;
+        let isDrawingPolygonFrutteto = false;
+        const SNAP_DISTANCE_METERS_F = 5;
+        const VERTEX_SNAP_DISTANCE_METERS_F = 8;
+        let hasManodoperaModule = false;
+
         // Trova il punto più vicino sul confine del terreno (su un segmento di linea)
         function findNearestPointOnBoundaryFrutteto(point, boundaryCoords, maxDistance) {
             let nearestPoint = null;

@@ -87,16 +87,27 @@ export async function runTrattamentoFruttetoCompletaWriteAssertions(page, expect
     hasText: E2E_TRATTAMENTO_FRUTTETO_NOTE,
   });
 
-  if ((await completedRows.count()) === 0) {
+  let incompleteRow = await findIncompleteTrattamentoRow(page);
+
+  if (incompleteRow) {
     await gotoMovimentiList(page);
     const usciteBefore = await countMovimentiUscita(page);
 
     await gotoFruttetoTrattamentiList(page);
     await completeTrattamentoStub(page);
 
+    incompleteRow = await findIncompleteTrattamentoRow(page);
+    expect(incompleteRow).toBeNull();
+
     await gotoMovimentiList(page);
     const usciteAfter = await countMovimentiUscita(page);
-    expect(usciteAfter).toBeGreaterThanOrEqual(usciteBefore);
+    expect(usciteAfter).toBeGreaterThanOrEqual(usciteBefore + 1);
+  } else if ((await completedRows.count()) === 0) {
+    expect(await trattamentoStubFromAttivitaRows(page).count()).toBeGreaterThanOrEqual(1);
+    await expect(trattamentoStubFromAttivitaRows(page).first().locator('td').nth(4)).not.toHaveText('-');
+
+    await gotoMovimentiList(page);
+    expect(await countMovimentiUscita(page)).toBeGreaterThanOrEqual(1);
   } else {
     await expect(completedRows.first().locator('td').nth(4)).not.toHaveText('-');
   }

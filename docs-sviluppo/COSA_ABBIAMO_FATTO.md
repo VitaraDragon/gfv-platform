@@ -16,7 +16,7 @@
 
 **Follow-up (2026-07-02):** query potature/trattamenti/raccolte frutteto sempre con filtro anno lato client (no composite Firestore); fallback `TIPO_LAVORO_CATEGORIA_CODICE` per liste trattamenti/concimazioni sim.
 
-**Fix pagine standalone (2026-07-02):** run CI [28588003420](https://github.com/VitaraDragon/gfv-platform/actions/runs/28588003420) — ancora 59/62 (timeout potatura/trattamenti). Causa: errori di sintassi JS in `potatura-standalone.html` (`showAlert` corrotto, mancava `findNearestVertexFrutteto`), `trattamenti-standalone.html` (header `populateTrattamentiPrecedentiSelect` troncato), `concimazioni-standalone.html` (`pushTonyListContext` fuso in `showAlert`). I moduli non si caricavano → tabella mai renderizzata.
+**Fix pagine standalone (2026-07-02):** run CI [28588003420](https://github.com/VitaraDragon/gfv-platform/actions/runs/28588003420) — ancora 59/62 (timeout potatura/trattamenti). Causa: errori di sintassi JS in `potatura-standalone.html` (`showAlert` corrotto, mancava `findNearestVertexFrutteto`), `trattamenti-standalone.html` (header `populateTrattamentiPrecedentiSelect` troncato), `concimazioni-standalone.html` (`pushTonyListContext` fuso in `showAlert`). Run [28599729716](https://github.com/VitaraDragon/gfv-platform/actions/runs/28599729716) — potatura/trattamenti read ancora timeout: mancavano le variabili di stato (`frutteti`, `potature`, …) nel module script; trattamento write falliva perché catena B completa già gli stub (test allineato al pattern vigneto idempotente).
 
 ## GFV Farm Simulator — M4 Frutteto (2026-07-02)
 
