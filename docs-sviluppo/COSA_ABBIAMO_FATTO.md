@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-02 — **Fix CI E2E dual-seed** + M4 frutteto.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-02 — **CI 62/62** dual-seed; fix read frutteto catena B.
+
+## GFV Farm Simulator — CI 62/62 + fix read frutteto trattamenti (2026-07-02)
+
+**Problema:** run CI [28600916269](https://github.com/VitaraDragon/gfv-platform/actions/runs/28600916269) — **61/62** (`frutteto.spec.js`): `prodottiStub.length` atteso ≥ 1, ricevuto **0**.
+
+**Causa (stesso pattern vigneto `0f5fbf3`):** fase 4 (`04-simulate-magazzino.js`) completa trattamenti frutteto in seed (catena B) → in lista non restano celle prodotto `-`. `frutteto.mjs` richiedeva ancora stub; `vigneto.mjs` accettava già mix stub/completi.
+
+**Fix:** `tests/e2e/sim/scenarios/frutteto.mjs` — assert trattamenti allineati a `vigneto.mjs`: link attività + almeno un prodotto **completo** **oppure** stub `-` (idempotente post `trattamento-frutteto-completa-write`).
+
+**CI verde:** [28601797733](https://github.com/VitaraDragon/gfv-platform/actions/runs/28601797733) — **62 passed, 0 flaky** (~1,9 min). Commit: `43fe9de`.
 
 ## GFV Farm Simulator — Fix CI E2E dual-seed (2026-07-02)
 
@@ -33,6 +43,8 @@
 | E2E read | `frutteto`, `frutteti`, `frutteto-hub` (+ raccolta smoke in `frutteto.spec`) |
 | E2E write | `raccolta-completa-write`, `potatura-frutteto-completa-write`, `trattamento-frutteto-completa-write` |
 | CI | Dual seed viticola + frutteto in `sim-ci-e2e-inner.sh`; verify per template |
+
+**Verifica CI:** [28601797733](https://github.com/VitaraDragon/gfv-platform/actions/runs/28601797733) — **62/62** (56 viticola + 6 frutteto M4).
 
 **Verifica locale:** `npm run sim:run -- --template=frutteto-solo-titolare` + `GFV_SIM_E2E_TEMPLATE=frutteto-solo-titolare npm run sim:verify:e2e-seed` ✅.
 
