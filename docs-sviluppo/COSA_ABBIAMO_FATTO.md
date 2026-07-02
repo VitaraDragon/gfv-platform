@@ -10,8 +10,8 @@
 
 | File | Assert aggiunti |
 |------|------------------|
-| `magazzino-hub.mjs` | Hub KPI movimenti ≥8 (30 gg); tracciabilità vista dettaglio — prodotto, contesto Trattamento, note scarico |
-| `vigneto.mjs` | Potatura stub (tipo/ceppi `-`); trattamenti mix stub/prodotto compilato; concimazioni stub o pulsante Completa |
+| `magazzino-hub.mjs` | Hub KPI movimenti ≥8 (30 gg); tracciabilità vista dettaglio `.flat-wrap` — prodotto, contesto Trattamento, note scarico |
+| `vigneto.mjs` | Potatura catena A (link attività, Modifica, ceppi prefill); trattamenti mix stub/prodotto; concimazioni stub o Completa |
 | `conto-terzi-hub.mjs` | KPI hub CT (lavori, preventivi aperti, terreni clienti) |
 | `conto-terzi.mjs` | Superficie ha numerica; filtri stato Bozza / Inviato |
 | `manodopera-admin.mjs` | Gestione lavori: badge stato, caposquadra, durata giorni; validazione ore: operaio, lavoro, ore, Valida |

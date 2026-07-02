@@ -29,11 +29,17 @@ export async function runPotaturaListAssertions(page, expect) {
   const tipi = await table.locator('tbody td:nth-child(3)').allTextContents();
   expect(tipi.some((t) => /Invernale|Verde|Rinnovo|Spollonatura/i.test(t))).toBe(true);
 
-  // Stub catena A: tipo o ceppi ancora da completare
+  // Catena A: da attività/lavoro — link + Modifica (prefill UI mostra tipo/ceppi, non «-»)
+  const attivitaLinks = table.getByRole('link', { name: /Vedi Attività/i });
+  expect(await attivitaLinks.count()).toBeGreaterThanOrEqual(3);
+  await expect(table.locator('button[data-edit]').first()).toBeVisible();
+
   const ceppi = await table.locator('tbody td:nth-child(4)').allTextContents();
-  const hasStubPotatura = tipi.some((t) => t.trim() === '-') || ceppi.some((c) => c.trim() === '-');
-  expect(hasStubPotatura).toBe(true);
-  expect(await table.getByRole('link', { name: /Vedi Attività/i }).count()).toBeGreaterThanOrEqual(1);
+  const ceppiNumeric = ceppi.filter((c) => {
+    const n = parseInt(String(c).replace(/\./g, ''), 10);
+    return Number.isFinite(n) && n > 0;
+  });
+  expect(ceppiNumeric.length).toBeGreaterThanOrEqual(1);
 }
 
 export async function runTrattamentiListAssertions(page, expect) {

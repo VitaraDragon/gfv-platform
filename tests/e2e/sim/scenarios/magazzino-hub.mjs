@@ -36,16 +36,16 @@ export async function runTracciabilitaConsumiAssertions(page, expect) {
   const countText = await page.locator('#righe-count').textContent();
   expect(parseInt(countText, 10)).toBeGreaterThanOrEqual(8);
 
-  // Vista dettagliata: una riga per movimento — origine trattamento auto (catena B)
+  // Vista dettagliata: attendere .flat-wrap (non la tabella prodotto annidata della vista raggruppata)
   await page.locator('#filter-vista').selectOption('dettaglio');
   await page.waitForFunction(() => {
-    const c = document.getElementById('tabella-container');
-    return c && !c.querySelector('.loading') && !c.querySelector('.empty-state');
+    const rows = document.querySelectorAll(
+      '#tabella-container .flat-wrap .movimenti-table tbody tr'
+    );
+    return rows.length >= 8;
   }, { timeout: 60_000 });
 
-  const table = container.locator('.movimenti-table').first();
-  await expect(table).toBeVisible();
-  const rows = table.locator('tbody tr');
+  const rows = container.locator('.flat-wrap .movimenti-table tbody tr');
   expect(await rows.count()).toBeGreaterThanOrEqual(8);
 
   const prodotti = await rows.locator('td:nth-child(2)').allTextContents();
