@@ -105,6 +105,10 @@ export const RACCOLTA_FRUTTA_PATH =
 
 const SEED_VERSION = 2;
 
+/** Tenant predefinito E2E viticola (CI dual-seed: evita pick del frutteto più recente). */
+export const DEFAULT_VITICOLA_E2E_TEMPLATE = 'viticola-conto-terzi-manodopera';
+export const DEFAULT_FRUTTETO_E2E_TEMPLATE = 'frutteto-solo-titolare';
+
 /**
  * Sceglie entry manifest per login E2E (ordinamento createdAt desc).
  * @param {import('@playwright/test').Page} page
@@ -453,7 +457,13 @@ export async function waitForDashboardDeadlinesLoaded(page) {
  *   templateIncludes — es. `conto-terzi` per scenario #7; manodopera in #8
  */
 export async function loginAsManagerFromDevPage(page, options = {}) {
-  const { preferSeedComplete = true, templateIncludes } = options;
+  const pickOptions = {
+    preferSeedComplete: true,
+    ...options,
+  };
+  if (!pickOptions.preferTemplateId && !pickOptions.templateIncludes) {
+    pickOptions.preferTemplateId = DEFAULT_VITICOLA_E2E_TEMPLATE;
+  }
 
   await page.goto(SIM_DEV_PATH);
 
@@ -469,7 +479,7 @@ export async function loginAsManagerFromDevPage(page, options = {}) {
     throw new Error('Nessuna azienda in manifest — esegui npm run sim:run (con emulator attivo).');
   }
 
-  const entry = await pickManifestEntry(page, { templateIncludes, preferSeedComplete });
+  const entry = await pickManifestEntry(page, pickOptions);
   const card = page.locator('.card').filter({ hasText: entry.tenantId });
   if ((await card.count()) === 0) {
     throw new Error(`Card non trovata per tenant ${entry.tenantId}`);
@@ -485,7 +495,7 @@ export async function loginAsManagerContoTerzi(page, options = {}) {
   return loginAsManagerFromDevPage(page, {
     ...options,
     templateIncludes: 'conto-terzi',
-    preferTemplateId: 'viticola-conto-terzi-manodopera',
+    preferTemplateId: DEFAULT_VITICOLA_E2E_TEMPLATE,
   });
 }
 
@@ -494,7 +504,7 @@ export async function loginAsManagerManodopera(page, options = {}) {
   return loginAsManagerFromDevPage(page, {
     ...options,
     templateIncludes: 'manodopera',
-    preferTemplateId: 'viticola-conto-terzi-manodopera',
+    preferTemplateId: DEFAULT_VITICOLA_E2E_TEMPLATE,
   });
 }
 
@@ -1203,7 +1213,7 @@ export async function gotoImpostazioni(page) {
 export async function loginAsManagerFrutteto(page, options = {}) {
   return loginAsManagerFromDevPage(page, {
     ...options,
-    preferTemplateId: 'frutteto-solo-titolare',
+    preferTemplateId: DEFAULT_FRUTTETO_E2E_TEMPLATE,
   });
 }
 

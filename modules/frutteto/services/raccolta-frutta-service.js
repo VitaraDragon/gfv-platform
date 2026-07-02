@@ -38,6 +38,17 @@ function getRaccoltePath(fruttetoId) {
  * @param {number} options.anno - Filtra per anno (opzionale)
  * @returns {Promise<Array<RaccoltaFrutta>>} Array di raccolte
  */
+function getYearFromFirestoreDate(raw) {
+  if (!raw) return null;
+  const d = raw instanceof Date ? raw : (raw.toDate ? raw.toDate() : new Date(raw));
+  return Number.isNaN(d.getTime()) ? null : d.getFullYear();
+}
+
+function filterDocumentsByAnno(documents, anno) {
+  if (!anno) return documents;
+  return documents.filter((doc) => getYearFromFirestoreDate(doc.data) === anno);
+}
+
 export async function getRaccolte(fruttetoId, options = {}) {
   try {
     const tenantId = getCurrentTenantId();
@@ -66,12 +77,22 @@ export async function getRaccolte(fruttetoId, options = {}) {
       whereFilters.push(['data', '<', dateToTimestamp(fineAnno)]);
     }
     
-    const documents = await getCollectionData(collectionPath, {
-      tenantId,
-      orderBy,
-      orderDirection,
-      where: whereFilters.length > 0 ? whereFilters : undefined
-    });
+    let documents;
+    try {
+      documents = await getCollectionData(collectionPath, {
+        tenantId,
+        orderBy,
+        orderDirection,
+        where: whereFilters.length > 0 ? whereFilters : undefined,
+      });
+    } catch (error) {
+      if (anno) {
+        documents = await getCollectionData(collectionPath, { tenantId, orderBy, orderDirection });
+        documents = filterDocumentsByAnno(documents, anno);
+      } else {
+        throw error;
+      }
+    }
     
     const raccolte = documents.map(doc => RaccoltaFrutta.fromData(doc));
     

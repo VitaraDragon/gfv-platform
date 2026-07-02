@@ -23,6 +23,17 @@ function getPotaturePath(fruttetoId) {
   return `frutteti/${fruttetoId}/${SUB_COLLECTION_NAME}`;
 }
 
+function getYearFromFirestoreDate(raw) {
+  if (!raw) return null;
+  const d = raw instanceof Date ? raw : (raw.toDate ? raw.toDate() : new Date(raw));
+  return Number.isNaN(d.getTime()) ? null : d.getFullYear();
+}
+
+function filterDocumentsByAnno(documents, anno) {
+  if (!anno) return documents;
+  return documents.filter((doc) => getYearFromFirestoreDate(doc.data) === anno);
+}
+
 export async function getPotature(fruttetoId, options = {}) {
   try {
     const tenantId = getCurrentTenantId();
@@ -40,13 +51,23 @@ export async function getPotature(fruttetoId, options = {}) {
       whereFilters.push(['data', '<', dateToTimestamp(fineAnno)]);
     }
 
-    const documents = await getCollectionData(collectionPath, {
-      tenantId,
-      orderBy,
-      orderDirection,
-      where: whereFilters.length > 0 ? whereFilters : undefined
-    });
-    return documents.map(doc => PotaturaFrutteto.fromData(doc));
+    let documents;
+    try {
+      documents = await getCollectionData(collectionPath, {
+        tenantId,
+        orderBy,
+        orderDirection,
+        where: whereFilters.length > 0 ? whereFilters : undefined,
+      });
+    } catch (error) {
+      if (anno) {
+        documents = await getCollectionData(collectionPath, { tenantId, orderBy, orderDirection });
+        documents = filterDocumentsByAnno(documents, anno);
+      } else {
+        throw error;
+      }
+    }
+    return documents.map((doc) => PotaturaFrutteto.fromData(doc));
   } catch (error) {
     console.error('[POTATURA-FRUTTETO] Errore recupero potature:', error);
     if (error.message.includes('tenant') || error.message.includes('obbligatorio')) throw new Error(`Errore recupero potature: ${error.message}`);

@@ -47,8 +47,16 @@ export class RaccoltaFrutta extends Base {
     this.data = data.data || null;
     this.specie = data.specie || '';
     this.varieta = data.varieta || '';
-    this.quantitaKg = data.quantitaKg !== undefined ? parseFloat(data.quantitaKg) : null;
-    this.quantitaEttari = data.quantitaEttari !== undefined ? parseFloat(data.quantitaEttari) : null;
+    this.quantitaKg =
+      data.quantitaKg != null && data.quantitaKg !== ''
+        ? parseFloat(data.quantitaKg)
+        : null;
+    if (Number.isNaN(this.quantitaKg)) this.quantitaKg = null;
+    this.quantitaEttari =
+      data.quantitaEttari != null && data.quantitaEttari !== ''
+        ? parseFloat(data.quantitaEttari)
+        : null;
+    if (Number.isNaN(this.quantitaEttari)) this.quantitaEttari = null;
     this.resaKgHa = data.resaKgHa !== undefined ? parseFloat(data.resaKgHa) : null;
     
     // Qualità frutta (opzionale)

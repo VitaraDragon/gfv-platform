@@ -37,7 +37,11 @@ export class PotaturaFrutteto extends Base {
     this.data = data.data || null;
     this.tipo = data.tipo || '';
     this.parcella = data.parcella || null;
-    this.piantePotate = data.piantePotate !== undefined ? parseInt(data.piantePotate) : null;
+    this.piantePotate =
+      data.piantePotate != null && data.piantePotate !== ''
+        ? parseInt(data.piantePotate, 10)
+        : null;
+    if (Number.isNaN(this.piantePotate)) this.piantePotate = null;
 
     this.operai = Array.isArray(data.operai) ? data.operai : [];
     this.oreImpiegate = data.oreImpiegate !== undefined ? parseFloat(data.oreImpiegate) : null;

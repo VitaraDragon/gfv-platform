@@ -1,6 +1,18 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-02 — **M4 frutteto** template seed + 6 spec E2E (62 totali target CI).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-02 — **Fix CI E2E dual-seed** + M4 frutteto.
+
+## GFV Farm Simulator — Fix CI E2E dual-seed (2026-07-02)
+
+**Problema:** run CI [28580754171](https://github.com/VitaraDragon/gfv-platform/actions/runs/28580754171) — 49/62 pass, ~31 min (13 timeout). Dual seed viticola+frutteto: login generico prendeva il tenant frutteto più recente; test viticola fallivano (es. attività senza coltura Vite).
+
+**Fix:**
+
+| Area | Dettaglio |
+|------|-----------|
+| `sim-login.js` | `loginAsManagerFromDevPage` inoltra tutte le opzioni a `pickManifestEntry`; default `viticola-conto-terzi-manodopera`; `loginAsManagerFrutteto` usa `frutteto-solo-titolare` |
+| `RaccoltaFrutta.js` | `quantitaKg`/`quantitaEttari` null non diventano NaN (`parseFloat(null)`) |
+| `potatura-frutteto-service.js` / `raccolta-frutta-service.js` | Fallback query anno: fetch + filtro lato client se composite index fallisce in emulator |
 
 ## GFV Farm Simulator — M4 Frutteto (2026-07-02)
 

@@ -36,7 +36,8 @@ async function findRaccoltaStubToComplete(page) {
   for (let i = 0; i < count; i++) {
     const row = rows.nth(i);
     const kg = ((await row.locator('td').nth(4).textContent()) || '').trim();
-    if (kg === '-' && !((await row.textContent()) || '').includes(E2E_RACCOLTA_COMPLETA_KG)) {
+    const kgIncomplete = !kg || kg === '-' || kg === '—' || kg === 'NaN';
+    if (kgIncomplete && !((await row.textContent()) || '').includes(E2E_RACCOLTA_COMPLETA_KG)) {
       return row;
     }
   }

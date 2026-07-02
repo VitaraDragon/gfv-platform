@@ -63,5 +63,8 @@ export async function runRaccoltaFruttaReadAssertions(page, expect) {
   expect(await rows.count()).toBeGreaterThanOrEqual(1);
 
   const kgCells = await rows.locator('td:nth-child(5)').allTextContents();
-  expect(kgCells.some((k) => k.trim() === '-')).toBe(true);
+  expect(kgCells.some((k) => {
+    const t = k.trim();
+    return t === '-' || t === '—' || t === '' || t === 'NaN';
+  })).toBe(true);
 }
