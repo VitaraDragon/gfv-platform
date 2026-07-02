@@ -90,6 +90,18 @@ export const CALCOLO_MATERIALI_PATH =
   '/modules/vigneto/views/calcolo-materiali-standalone.html?emulator=1';
 export const PIANIFICA_IMPIANTO_PATH =
   '/modules/vigneto/views/pianifica-impianto-standalone.html?emulator=1';
+export const FRUTTETO_DASHBOARD_PATH =
+  '/modules/frutteto/views/frutteto-dashboard-standalone.html?emulator=1';
+export const FRUTTETI_LIST_PATH =
+  '/modules/frutteto/views/frutteti-standalone.html?emulator=1';
+export const FRUTTETO_POTATURA_LIST_PATH =
+  '/modules/frutteto/views/potatura-standalone.html?emulator=1';
+export const FRUTTETO_TRATTAMENTI_LIST_PATH =
+  '/modules/frutteto/views/trattamenti-standalone.html?emulator=1';
+export const FRUTTETO_CONCIMATIONS_LIST_PATH =
+  '/modules/frutteto/views/concimazioni-standalone.html?emulator=1';
+export const RACCOLTA_FRUTTA_PATH =
+  '/modules/frutteto/views/raccolta-frutta-standalone.html?emulator=1';
 
 const SEED_VERSION = 2;
 
@@ -1185,4 +1197,119 @@ export async function waitForImpostazioniLoaded(page) {
 export async function gotoImpostazioni(page) {
   await page.goto(IMPOSTAZIONI_PATH);
   await waitForImpostazioniLoaded(page);
+}
+
+/** Login manager su tenant template frutteto-solo-titolare (M4). */
+export async function loginAsManagerFrutteto(page, options = {}) {
+  return loginAsManagerFromDevPage(page, {
+    ...options,
+    preferTemplateId: 'frutteto-solo-titolare',
+  });
+}
+
+async function waitForFruttetoTableLoaded(page, { h1Text, minRows, tbodySelector }) {
+  await page.locator('h1').filter({ hasText: h1Text }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(
+    ({ min, tbodySel }) => {
+      const wrap = document.getElementById('table-wrap');
+      if (!wrap || wrap.style.display === 'none') return false;
+      const loading = document.getElementById('loading');
+      if (loading && loading.style.display !== 'none' && /Caricamento/i.test(loading.textContent || '')) {
+        return false;
+      }
+      return document.querySelectorAll(tbodySel).length >= min;
+    },
+    { min: minRows, tbodySel: tbodySelector },
+    { timeout: 60_000 }
+  );
+  await page.locator(tbodySelector).first().waitFor({ timeout: 60_000 });
+}
+
+export async function waitForFruttetoPotaturaListLoaded(page) {
+  await page.waitForURL(/frutteto\/views\/potatura-standalone\.html/, { timeout: 60_000 });
+  await waitForFruttetoTableLoaded(page, {
+    h1Text: 'Potatura Frutteto',
+    minRows: 3,
+    tbodySelector: '#table-wrap tbody tr',
+  });
+}
+
+export async function gotoFruttetoPotaturaList(page) {
+  await page.goto(FRUTTETO_POTATURA_LIST_PATH);
+  await waitForFruttetoPotaturaListLoaded(page);
+}
+
+export async function waitForFruttetoTrattamentiListLoaded(page) {
+  await page.waitForURL(/frutteto\/views\/trattamenti-standalone\.html/, { timeout: 60_000 });
+  await waitForFruttetoTableLoaded(page, {
+    h1Text: 'Trattamenti Frutteto',
+    minRows: 6,
+    tbodySelector: '#tbody-trattamenti tr',
+  });
+}
+
+export async function gotoFruttetoTrattamentiList(page) {
+  await page.goto(FRUTTETO_TRATTAMENTI_LIST_PATH);
+  await waitForFruttetoTrattamentiListLoaded(page);
+}
+
+export async function waitForFruttetoConcimazioniListLoaded(page) {
+  await page.waitForURL(/frutteto\/views\/concimazioni-standalone\.html/, { timeout: 60_000 });
+  await waitForFruttetoTableLoaded(page, {
+    h1Text: 'Concimazioni Frutteto',
+    minRows: 3,
+    tbodySelector: '#table-wrap tbody tr',
+  });
+}
+
+export async function gotoFruttetoConcimazioniList(page) {
+  await page.goto(FRUTTETO_CONCIMATIONS_LIST_PATH);
+  await waitForFruttetoConcimazioniListLoaded(page);
+}
+
+export async function waitForFruttetiListLoaded(page) {
+  await page.waitForURL(/frutteti-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Anagrafica Frutteti' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const table = document.getElementById('frutteti-table');
+    const tbody = document.getElementById('frutteti-table-body');
+    return table && table.style.display !== 'none' && tbody && tbody.querySelectorAll('tr').length >= 4;
+  }, { timeout: 60_000 });
+}
+
+export async function gotoFruttetiList(page) {
+  await page.goto(FRUTTETI_LIST_PATH);
+  await waitForFruttetiListLoaded(page);
+}
+
+export async function waitForFruttetoDashboardLoaded(page) {
+  await page.waitForURL(/frutteto-dashboard-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'FRUTTETO' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const el = document.getElementById('stat-numero-frutteti');
+    const t = el && (el.textContent || '').trim();
+    return t && t !== '-';
+  }, { timeout: 90_000 });
+}
+
+export async function gotoFruttetoDashboard(page) {
+  await page.goto(FRUTTETO_DASHBOARD_PATH);
+  await waitForFruttetoDashboardLoaded(page);
+}
+
+export async function waitForRaccoltaFruttaListLoaded(page) {
+  await page.waitForURL(/raccolta-frutta-standalone\.html/, { timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: 'Raccolta Frutta' }).waitFor({ timeout: 60_000 });
+  await page.waitForFunction(() => {
+    const container = document.getElementById('table-container-raccolte');
+    const loading = document.getElementById('loading-raccolte');
+    if (loading && loading.style.display !== 'none') return false;
+    return container && container.style.display !== 'none'
+      && document.querySelectorAll('#raccolte-table-body tr').length >= 1;
+  }, { timeout: 60_000 });
+}
+
+export async function gotoRaccoltaFrutta(page) {
+  await page.goto(RACCOLTA_FRUTTA_PATH);
+  await waitForRaccoltaFruttaListLoaded(page);
 }

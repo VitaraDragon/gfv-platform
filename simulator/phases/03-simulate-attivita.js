@@ -6,6 +6,9 @@
 import { generaGiorniLavorativi } from '../generators/date-calendario.js';
 import { getEmulatorDb } from '../lib/emulator-context.js';
 import { addTenantDocument } from '../lib/firestore-write.js';
+import { isFruttetoTemplate } from '../lib/load-template.js';
+import { raccoltaDayIndexFromTemplate } from './05-simulate-frutteto.js';
+import { vendemmiaDayIndexFromTemplate } from './05-simulate-vigneto.js';
 import { requireSimTenantId, getSimProfile } from '../lib/sim-context.js';
 
 function orarioToMinuti(orario) {
@@ -37,16 +40,12 @@ export async function runSimulateAttivita(assets) {
   }
 
   const attivitaIds = [];
+  const useFrutteto = isFruttetoTemplate(template);
 
-  /** Sostituisce un giorno Erpicatura (nessun record vigneto) con vendemmia stub — catena A. */
-  let vendemmiaDayIndex = -1;
-  for (let j = dates.length - 1; j >= 0; j--) {
-    if (tipiLavoro[j % tipiLavoro.length] === 'Erpicatura') {
-      vendemmiaDayIndex = j;
-      break;
-    }
-  }
-  if (vendemmiaDayIndex < 0) vendemmiaDayIndex = dates.length - 1;
+  /** Sostituisce un giorno Erpicatura con raccolta/vendemmia stub — catena A. */
+  const harvestDayIndex = useFrutteto
+    ? raccoltaDayIndexFromTemplate(template)
+    : vendemmiaDayIndexFromTemplate(template);
 
   for (let i = 0; i < dates.length; i++) {
     const terreno = terreni[i % terreni.length];
@@ -57,9 +56,9 @@ export async function runSimulateAttivita(assets) {
     const pauseMinuti = attCfg.pauseMinuti ?? 30;
     const oreNette = calcolaOreNette(orarioInizio, orarioFine, pauseMinuti);
 
-    // Giorno Erpicatura → Vendemmia Manuale (stub catena A, non altera conteggi vigneto)
-    const tipoLavoro = i === vendemmiaDayIndex
-      ? 'Vendemmia Manuale'
+    // Giorno Erpicatura → Raccolta (frutteto) o Vendemmia Manuale (vigneto)
+    const tipoLavoro = i === harvestDayIndex
+      ? (useFrutteto ? 'Raccolta' : 'Vendemmia Manuale')
       : tipiLavoro[i % tipiLavoro.length];
 
     const payload = {

@@ -1,0 +1,24 @@
+{
+  "templateId": "frutteto-solo-titolare",
+  "descrizione": "Titolare unico, azienda frutticola, moduli core + frutteto + parco macchine + magazzino",
+  "piano": "base",
+  "moduli": ["frutteto", "parcoMacchine", "magazzino"],
+  "quantities": {
+    "terreni": 4,
+    "trattori": 1,
+    "attrezzi": 3,
+    "flotta": 4,
+    "frutteti": 4,
+    "prodotti": 5,
+    "attivitaGiorniLavorativi": 20,
+    "potatureFrutteto": 4,
+    "trattamentiFrutteto": 12
+  },
+  "attivita": {
+    "orarioInizio": "08:00",
+    "orarioFine": "12:30",
+    "pauseMinuti": 30,
+    "tipiLavoro": ["Potatura", "Trattamento", "Erpicatura", "Concimazione", "Controllo fitosanitario"],
+    "coltura": "Melo"
+  }
+}

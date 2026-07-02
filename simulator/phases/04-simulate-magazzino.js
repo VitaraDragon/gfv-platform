@@ -10,7 +10,9 @@ import { getEmulatorDb } from '../lib/emulator-context.js';
 import { addTenantDocument, normalizeForAdmin } from '../lib/firestore-write.js';
 import { prezzoUnitarioPerScarico } from '../lib/link-scarichi-trattamento-vigneto.js';
 import { syncSpeseVignetoTenant } from '../lib/sim-economia-vigneto.js';
-import { requireSimTenantId, requireSimUserId } from '../lib/sim-context.js';
+import { isFruttetoTemplate } from '../lib/load-template.js';
+import { requireSimTenantId, requireSimUserId, getSimProfile } from '../lib/sim-context.js';
+import { expectedFruttetoCountsFromTemplate } from './05-simulate-frutteto.js';
 import { expectedVignetoCountsFromTemplate } from './05-simulate-vigneto.js';
 import { extraCatenaCountsManodopera } from '../lib/vigneto-stub-from-trigger.js';
 
@@ -49,9 +51,99 @@ function trattamentoGiaCompletato(trattamento) {
  * @param {object} template
  */
 export function expectedMovimentiFromTemplate(template) {
+  if (isFruttetoTemplate(template)) {
+    return expectedFruttetoCountsFromTemplate(template).trattamenti;
+  }
   const vig = expectedVignetoCountsFromTemplate(template);
   const extra = extraCatenaCountsManodopera(template);
   return vig.trattamenti + extra.trattamenti;
+}
+
+async function processTrattamentiColtura(db, tenantId, userId, {
+  colturaCollection,
+  colturaId,
+  modulo,
+  noteLabel,
+  prodotti,
+  attivitaById,
+  lavoriById,
+  giacenzaById,
+  scaricoIndexStart
+}) {
+  const movimentiIds = [];
+  let trattamentiCompletati = 0;
+  let scaricoIndex = scaricoIndexStart;
+
+  const trtSnap = await db
+    .collection(`tenants/${tenantId}/${colturaCollection}/${colturaId}/trattamenti`)
+    .get();
+
+  for (const tDoc of trtSnap.docs) {
+    const trattamento = { id: tDoc.id, ...tDoc.data() };
+    if (trattamentoGiaCompletato(trattamento)) continue;
+
+    const tipoLavoro = tipoLavoroFromTrattamento(trattamento, attivitaById, lavoriById);
+    const pool = poolProdotti(prodotti, tipoLavoro);
+    const prodotto =
+      pool[scaricoIndex % Math.max(pool.length, 1)] || prodotti[scaricoIndex % prodotti.length];
+    scaricoIndex += 1;
+
+    const quantita = QTY_SCARICO;
+    const prezzoU = prezzoUnitarioPerScarico(prodotto, { quantita, costo: null });
+    const costo =
+      prezzoU != null ? parseFloat((prezzoU * quantita).toFixed(2)) : parseFloat((quantita * 12).toFixed(2));
+
+    const rigaProdotto = {
+      prodottoId: prodotto.id,
+      prodotto: prodotto.nome || prodotto.name || 'Prodotto sim',
+      dosaggio: DOSAGGIO,
+      unitaDosaggio: 'l/ha',
+      quantita,
+      costo
+    };
+
+    const note = `Scarico da trattamento ${noteLabel} (${String(trattamento.id).slice(0, 8)}…)`;
+    const dataMov = trattamento.data || Timestamp.fromDate(new Date());
+
+    const movimentoId = await addTenantDocument(db, tenantId, 'movimentiMagazzino', normalizeForAdmin({
+      prodottoId: prodotto.id,
+      data: dataMov,
+      tipo: 'uscita',
+      quantita,
+      prezzoUnitario: prezzoU,
+      lavoroId: trattamento.lavoroId || null,
+      attivitaId: trattamento.attivitaId || null,
+      note,
+      userId,
+      origineTrattamentoModulo: modulo,
+      origineTrattamentoColturaId: colturaId,
+      origineTrattamentoId: trattamento.id
+    }));
+    movimentiIds.push(movimentoId);
+
+    const prev = giacenzaById.get(prodotto.id) ?? 0;
+    const next = parseFloat((prev - quantita).toFixed(2));
+    giacenzaById.set(prodotto.id, next);
+    await prodotto.ref.update({ giacenza: next, updatedAt: new Date() });
+
+    await tDoc.ref.set(
+      normalizeForAdmin({
+        prodotti: [rigaProdotto],
+        prodotto: rigaProdotto.prodotto,
+        dosaggio: String(DOSAGGIO),
+        costoProdotto: costo,
+        costoTotale: costo + (Number(trattamento.costoManodopera) || 0) + (Number(trattamento.costoMacchina) || 0),
+        magazzinoMovimentoIds: [movimentoId],
+        coperturaTerreno: trattamento.coperturaTerreno || 'completa',
+        updatedAt: new Date()
+      }),
+      { merge: true }
+    );
+
+    trattamentiCompletati += 1;
+  }
+
+  return { movimentiIds, trattamentiCompletati, scaricoIndex };
 }
 
 /**
@@ -68,10 +160,13 @@ export async function runSimulateMagazzino(_options = {}) {
     return { movimentiIds: [], counts: { movimenti: 0, trattamenti: 0 }, sottoScorta: 0 };
   }
 
-  const [attSnap, lavoriSnap, vignetiSnap] = await Promise.all([
+  const profile = getSimProfile();
+  const useFrutteto = isFruttetoTemplate(profile?.template);
+
+  const [attSnap, lavoriSnap, coltureSnap] = await Promise.all([
     db.collection(`tenants/${tenantId}/attivita`).get(),
     db.collection(`tenants/${tenantId}/lavori`).get(),
-    db.collection(`tenants/${tenantId}/vigneti`).get()
+    db.collection(`tenants/${tenantId}/${useFrutteto ? 'frutteti' : 'vigneti'}`).get()
   ]);
 
   const attivitaById = new Map(attSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]));
@@ -85,74 +180,21 @@ export async function runSimulateMagazzino(_options = {}) {
   let trattamentiCompletati = 0;
   let scaricoIndex = 0;
 
-  for (const vDoc of vignetiSnap.docs) {
-    const vignetoId = vDoc.id;
-    const trtSnap = await db.collection(`tenants/${tenantId}/vigneti/${vignetoId}/trattamenti`).get();
-
-    for (const tDoc of trtSnap.docs) {
-      const trattamento = { id: tDoc.id, ...tDoc.data() };
-      if (trattamentoGiaCompletato(trattamento)) continue;
-
-      const tipoLavoro = tipoLavoroFromTrattamento(trattamento, attivitaById, lavoriById);
-      const pool = poolProdotti(prodotti, tipoLavoro);
-      const prodotto =
-        pool[scaricoIndex % Math.max(pool.length, 1)] || prodotti[scaricoIndex % prodotti.length];
-      scaricoIndex += 1;
-
-      const quantita = QTY_SCARICO;
-      const prezzoU = prezzoUnitarioPerScarico(prodotto, { quantita, costo: null });
-      const costo =
-        prezzoU != null ? parseFloat((prezzoU * quantita).toFixed(2)) : parseFloat((quantita * 12).toFixed(2));
-
-      const rigaProdotto = {
-        prodottoId: prodotto.id,
-        prodotto: prodotto.nome || prodotto.name || 'Prodotto sim',
-        dosaggio: DOSAGGIO,
-        unitaDosaggio: 'l/ha',
-        quantita,
-        costo
-      };
-
-      const note = `Scarico da trattamento vigneto (${String(trattamento.id).slice(0, 8)}…)`;
-      const dataMov = trattamento.data || Timestamp.fromDate(new Date());
-
-      const movimentoId = await addTenantDocument(db, tenantId, 'movimentiMagazzino', normalizeForAdmin({
-        prodottoId: prodotto.id,
-        data: dataMov,
-        tipo: 'uscita',
-        quantita,
-        prezzoUnitario: prezzoU,
-        lavoroId: trattamento.lavoroId || null,
-        attivitaId: trattamento.attivitaId || null,
-        note,
-        userId,
-        origineTrattamentoModulo: 'vigneto',
-        origineTrattamentoColturaId: vignetoId,
-        origineTrattamentoId: trattamento.id
-      }));
-      movimentiIds.push(movimentoId);
-
-      const prev = giacenzaById.get(prodotto.id) ?? 0;
-      const next = parseFloat((prev - quantita).toFixed(2));
-      giacenzaById.set(prodotto.id, next);
-      await prodotto.ref.update({ giacenza: next, updatedAt: new Date() });
-
-      await tDoc.ref.set(
-        normalizeForAdmin({
-          prodotti: [rigaProdotto],
-          prodotto: rigaProdotto.prodotto,
-          dosaggio: String(DOSAGGIO),
-          costoProdotto: costo,
-          costoTotale: costo + (Number(trattamento.costoManodopera) || 0) + (Number(trattamento.costoMacchina) || 0),
-          magazzinoMovimentoIds: [movimentoId],
-          coperturaTerreno: trattamento.coperturaTerreno || 'completa',
-          updatedAt: new Date()
-        }),
-        { merge: true }
-      );
-
-      trattamentiCompletati += 1;
-    }
+  for (const cDoc of coltureSnap.docs) {
+    const result = await processTrattamentiColtura(db, tenantId, userId, {
+      colturaCollection: useFrutteto ? 'frutteti' : 'vigneti',
+      colturaId: cDoc.id,
+      modulo: useFrutteto ? 'frutteto' : 'vigneto',
+      noteLabel: useFrutteto ? 'frutteto' : 'vigneto',
+      prodotti,
+      attivitaById,
+      lavoriById,
+      giacenzaById,
+      scaricoIndexStart: scaricoIndex
+    });
+    movimentiIds.push(...result.movimentiIds);
+    trattamentiCompletati += result.trattamentiCompletati;
+    scaricoIndex = result.scaricoIndex;
   }
 
   let sottoScorta = 0;
@@ -162,7 +204,7 @@ export async function runSimulateMagazzino(_options = {}) {
     if (min > 0 && g < min) sottoScorta += 1;
   }
 
-  if (trattamentiCompletati > 0) {
+  if (trattamentiCompletati > 0 && !useFrutteto) {
     await syncSpeseVignetoTenant(db, tenantId, { anno: new Date().getFullYear() });
   }
 

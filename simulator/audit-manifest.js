@@ -16,10 +16,11 @@ import { inspectTenantSeed } from './lib/tenant-inspect.js';
 import { inspectManodoperaSeed } from './lib/manodopera-inspect.js';
 import { inspectContoTerziSeed } from './lib/conto-terzi-inspect.js';
 import { expectedVignetoCountsFromTemplate } from './phases/05-simulate-vigneto.js';
+import { expectedFruttetoCountsFromTemplate } from './phases/05-simulate-frutteto.js';
 import { expectedMovimentiFromTemplate } from './phases/04-simulate-magazzino.js';
 import { extraCatenaCountsManodopera } from './lib/vigneto-stub-from-trigger.js';
 import { isEmulatorAvailable } from './lib/emulator-available.js';
-import { isContoTerziTemplate, loadTemplate } from './lib/load-template.js';
+import { isContoTerziTemplate, isFruttetoTemplate, loadTemplate } from './lib/load-template.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const v1Template = loadTemplate('solo-titolare-viticola');
@@ -27,7 +28,9 @@ const v2Template = loadTemplate('viticola-manodopera');
 
 function buildExpected(template) {
   const q = template.quantities;
-  const vignetoExpected = expectedVignetoCountsFromTemplate(template);
+  const hasFrutteto = isFruttetoTemplate(template);
+  const vignetoExpected = hasFrutteto ? null : expectedVignetoCountsFromTemplate(template);
+  const fruttetoExpected = hasFrutteto ? expectedFruttetoCountsFromTemplate(template) : null;
   const catenaExtra = extraCatenaCountsManodopera(template);
   const mo = template.manodopera || {};
   const hasManodopera = template.moduli?.includes('manodopera');
@@ -42,13 +45,17 @@ function buildExpected(template) {
     flottaTagliandoSuperatoMin: 1,
     macchineConScadenzeMin: 3,
     inManutenzioneMin: 1,
-    vigneti: q.vigneti,
+    vigneti: hasFrutteto ? 0 : q.vigneti,
+    frutteti: hasFrutteto ? (q.frutteti ?? q.terreni) : 0,
     prodotti: q.prodotti,
     attivita: q.attivitaGiorniLavorativi,
     movimentiMagazzino: expectedMovimentiFromTemplate(template),
-    potatureVigneto: vignetoExpected.potature,
-    trattamentiVigneto: vignetoExpected.trattamenti + catenaExtra.trattamenti,
-    vendemmieVigneto: vignetoExpected.vendemmie + catenaExtra.vendemmie,
+    potatureVigneto: hasFrutteto ? 0 : vignetoExpected.potature,
+    trattamentiVigneto: hasFrutteto ? 0 : vignetoExpected.trattamenti + catenaExtra.trattamenti,
+    vendemmieVigneto: hasFrutteto ? 0 : vignetoExpected.vendemmie + catenaExtra.vendemmie,
+    potatureFrutteto: hasFrutteto ? fruttetoExpected.potature : 0,
+    trattamentiFrutteto: hasFrutteto ? fruttetoExpected.trattamenti : 0,
+    raccolteFrutteto: hasFrutteto ? fruttetoExpected.raccolte : 0,
     guasti: q.guasti ?? 0,
     manodopera: hasManodopera
       ? {
@@ -212,6 +219,9 @@ function classifyEntry(entry, inspect, checks) {
     }
     if (c.prodotti !== EXPECTED.prodotti) issues.push(`prodotti ${c.prodotti}/${EXPECTED.prodotti}`);
     if (c.vigneti !== EXPECTED.vigneti) issues.push(`vigneti ${c.vigneti}/${EXPECTED.vigneti}`);
+    if (EXPECTED.frutteti != null && c.frutteti !== EXPECTED.frutteti) {
+      issues.push(`frutteti ${c.frutteti}/${EXPECTED.frutteti}`);
+    }
     if (c.macchine !== EXPECTED.macchine) issues.push(`macchine ${c.macchine}/${EXPECTED.macchine}`);
     if ((c.flotta ?? 0) < EXPECTED.flotta) {
       issues.push(`flotta ${c.flotta ?? 0}/${EXPECTED.flotta}`);
@@ -238,6 +248,15 @@ function classifyEntry(entry, inspect, checks) {
     }
     if (EXPECTED.vendemmieVigneto != null && c.vendemmieVigneto !== EXPECTED.vendemmieVigneto) {
       issues.push(`vendemmie vigneto ${c.vendemmieVigneto}/${EXPECTED.vendemmieVigneto}`);
+    }
+    if (EXPECTED.potatureFrutteto != null && c.potatureFrutteto !== EXPECTED.potatureFrutteto) {
+      issues.push(`potature frutteto ${c.potatureFrutteto}/${EXPECTED.potatureFrutteto}`);
+    }
+    if (EXPECTED.trattamentiFrutteto != null && c.trattamentiFrutteto !== EXPECTED.trattamentiFrutteto) {
+      issues.push(`trattamenti frutteto ${c.trattamentiFrutteto}/${EXPECTED.trattamentiFrutteto}`);
+    }
+    if (EXPECTED.raccolteFrutteto != null && c.raccolteFrutteto !== EXPECTED.raccolteFrutteto) {
+      issues.push(`raccolte frutteto ${c.raccolteFrutteto}/${EXPECTED.raccolteFrutteto}`);
     }
     if (EXPECTED.guasti > 0 && (c.guasti ?? 0) !== EXPECTED.guasti) {
       issues.push(`guasti ${c.guasti ?? 0}/${EXPECTED.guasti}`);

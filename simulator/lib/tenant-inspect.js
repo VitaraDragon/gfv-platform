@@ -167,6 +167,22 @@ async function countVignetoSubcollections(db, tenantId, subName) {
   return total;
 }
 
+async function countFruttetoSubcollections(db, tenantId, subName) {
+  const frutteti = await listCollection(db, tenantId, 'frutteti');
+  let total = 0;
+  for (const f of frutteti) {
+    const snap = await db.collection(`tenants/${tenantId}/frutteti/${f.id}/${subName}`).get();
+    total += snap.size;
+  }
+  return total;
+}
+
+const COLTURE_FRUTTETO = new Set(['melo', 'pesco', 'pero', 'ciliegio', 'albicocco', 'susino', 'kiwi']);
+
+function isColturaFrutteto(coltura) {
+  return COLTURE_FRUTTETO.has(String(coltura || '').toLowerCase());
+}
+
 /**
  * @param {import('firebase-admin/firestore').Firestore} db
  * @param {string} tenantId
@@ -174,6 +190,10 @@ async function countVignetoSubcollections(db, tenantId, subName) {
  */
 export async function inspectTenantSeed(db, tenantId) {
   const errors = [];
+  const tenantSnap = await db.doc(`tenants/${tenantId}`).get();
+  const tenantModules = tenantSnap.exists ? (tenantSnap.data()?.moduli || []) : [];
+  const expectFrutteto = tenantModules.includes('frutteto') && !tenantModules.includes('vigneto');
+
   const terreni = await listCollection(db, tenantId, 'terreni');
   const poderi = await listCollection(db, tenantId, 'poderi');
   const colture = await listCollection(db, tenantId, 'colture');
@@ -182,12 +202,16 @@ export async function inspectTenantSeed(db, tenantId) {
   const attivita = await listCollection(db, tenantId, 'attivita');
   const macchine = await listCollection(db, tenantId, 'macchine');
   const vigneti = await listCollection(db, tenantId, 'vigneti');
+  const frutteti = await listCollection(db, tenantId, 'frutteti');
   const prodotti = await listCollection(db, tenantId, 'prodotti');
   const movimenti = await listCollection(db, tenantId, 'movimentiMagazzino');
   const guasti = await listCollection(db, tenantId, 'guasti');
   const potatureVigneto = await countVignetoSubcollections(db, tenantId, 'potature');
   const trattamentiVigneto = await countVignetoSubcollections(db, tenantId, 'trattamenti');
   const vendemmieVigneto = await countVignetoSubcollections(db, tenantId, 'vendemmie');
+  const potatureFrutteto = await countFruttetoSubcollections(db, tenantId, 'potature');
+  const trattamentiFrutteto = await countFruttetoSubcollections(db, tenantId, 'trattamenti');
+  const raccolteFrutteto = await countFruttetoSubcollections(db, tenantId, 'raccolte');
 
   if (poderi.length < 1) errors.push('manca almeno un podere');
   if (colture.length < MIN_COLTURE) {
@@ -229,7 +253,11 @@ export async function inspectTenantSeed(db, tenantId) {
   errors.push(...semMacchine.errors);
 
   for (const t of terreni) {
-    if (t.coltura !== EXPECTED_COLTURA) {
+    if (expectFrutteto) {
+      if (!isColturaFrutteto(t.coltura)) {
+        errors.push(`terreno "${t.nome}": coltura "${t.coltura}" non frutteto`);
+      }
+    } else if (t.coltura !== EXPECTED_COLTURA) {
       errors.push(`terreno "${t.nome}": coltura "${t.coltura}" != "${EXPECTED_COLTURA}"`);
     }
     if (!t.podere) errors.push(`terreno "${t.nome}": podere mancante`);
@@ -259,6 +287,7 @@ export async function inspectTenantSeed(db, tenantId) {
       macchineConScadenze: macchineConScadenze.length,
       inManutenzione: macchine.filter((m) => m.stato === 'in_manutenzione').length,
       vigneti: vigneti.length,
+      frutteti: frutteti.length,
       prodotti: prodotti.length,
       movimentiMagazzino: movimenti.length,
       guasti: guasti.length,
@@ -269,6 +298,9 @@ export async function inspectTenantSeed(db, tenantId) {
       potatureVigneto,
       trattamentiVigneto,
       vendemmieVigneto,
+      potatureFrutteto,
+      trattamentiFrutteto,
+      raccolteFrutteto,
       prodottiSottoScorta: prodotti.filter((p) => {
         const min = p.scortaMinima ?? 0;
         const g = p.giacenza ?? 0;

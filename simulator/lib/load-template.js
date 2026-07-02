@@ -98,3 +98,8 @@ export function isContoTerziTemplate(template) {
   const moduli = template?.moduli || template?.modules || [];
   return moduli.includes('contoTerzi');
 }
+
+export function isFruttetoTemplate(template) {
+  const moduli = template?.moduli || template?.modules || [];
+  return moduli.includes('frutteto') && !moduli.includes('vigneto');
+}

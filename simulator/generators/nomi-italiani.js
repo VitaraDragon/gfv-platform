@@ -180,6 +180,61 @@ export function generaVigneti(terreni, seed = 0) {
   }));
 }
 
+const SPECIE_FRUTTETO = ['Melo', 'Pesco', 'Pero', 'Ciliegio'];
+const VARIETA_FRUTTETO = {
+  Melo: ['Gala', 'Fuji', 'Golden Delicious', 'Granny Smith'],
+  Pesco: ['Redhaven', 'Springcrest', 'Suncrest'],
+  Pero: ['Abate Fetel', 'Conference', 'Williams'],
+  Ciliegio: ['Ferrovia', 'Bigarreau']
+};
+
+export function generaTerreniFrutteto(count, seed = 0, options = {}) {
+  const podere = options.podereNome || 'Podere principale';
+  const morfologie = ['collina', 'pianura', 'collina', 'montagna'];
+  return Array.from({ length: count }, (_, i) => {
+    const specie = SPECIE_FRUTTETO[i % SPECIE_FRUTTETO.length];
+    const lat = 45.4 + i * 0.01;
+    const lng = 11.8 + i * 0.01;
+    const delta = 0.0015;
+    return {
+      nome: pick(TERRENI, seed + i + 50),
+      superficie: 1.5 + (i % 4) * 0.8,
+      coltura: specie,
+      podere,
+      tipoCampo: morfologie[i % morfologie.length],
+      tipoPossesso: 'proprieta',
+      coordinate: { lat, lng },
+      polygonCoords: [
+        { lat: lat - delta, lng: lng - delta },
+        { lat: lat - delta, lng: lng + delta },
+        { lat: lat + delta, lng: lng + delta },
+        { lat: lat + delta, lng: lng - delta }
+      ]
+    };
+  });
+}
+
+export function generaFrutteti(terreni, seed = 0) {
+  return terreni.map((t, i) => {
+    const specie = t.coltura || SPECIE_FRUTTETO[i % SPECIE_FRUTTETO.length];
+    const varietaList = VARIETA_FRUTTETO[specie] || ['Gala'];
+    return {
+      terrenoId: t.id,
+      terrenoNome: t.nome,
+      specie,
+      varieta: pick(varietaList, seed + i),
+      annataImpianto: 2012 + (i % 6),
+      densita: 800 + (i % 3) * 200,
+      formaAllevamento: 'Spindle',
+      tipoImpianto: 'tradizionale',
+      distanzaFile: 3.5,
+      distanzaUnita: 1.2,
+      superficieEttari: t.superficie || 2,
+      statoImpianto: 'attivo'
+    };
+  });
+}
+
 export function generaProdotti(count, seed = 0) {
   return Array.from({ length: count }, (_, i) => {
     const base = pick(PRODOTTI, seed + i);

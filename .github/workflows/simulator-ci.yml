@@ -96,7 +96,7 @@ jobs:
       - name: Install Playwright Chromium
         run: npm run sim:e2e:install
 
-      - name: Run Playwright E2E (seed + verify operativo + 55 spec)
+      - name: Run Playwright E2E (seed + verify operativo + 62 spec)
         run: npm run sim:e2e:ci
         env:
           CI: true

@@ -22,4 +22,6 @@ curl -sf http://127.0.0.1:8000/ >/dev/null || {
 
 npm run sim:run -- --template="${TEMPLATE}"
 npm run sim:verify:e2e-seed
+npm run sim:run -- --template=frutteto-solo-titolare
+GFV_SIM_E2E_TEMPLATE=frutteto-solo-titolare npm run sim:verify:e2e-seed
 npm run sim:e2e:pw

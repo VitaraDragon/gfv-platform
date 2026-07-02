@@ -162,6 +162,26 @@ import { runImpostazioniReadAssertions } from '../tests/e2e/sim/scenarios/impost
 import { runMacchineDashboardReadAssertions } from '../tests/e2e/sim/scenarios/macchine-dashboard-read.mjs';
 import { runTerreniCatalogoReadAssertions } from '../tests/e2e/sim/scenarios/terreni-catalogo-read.mjs';
 import { runAttrezziWriteAssertions } from '../tests/e2e/sim/scenarios/attrezzi-write.mjs';
+import {
+  runFruttetoConcimazioniListAssertions,
+  runFruttetoPotaturaListAssertions,
+  runFruttetoTrattamentiListAssertions,
+  runRaccoltaFruttaReadAssertions,
+} from '../tests/e2e/sim/scenarios/frutteto.mjs';
+import { runFruttetoDashboardAssertions } from '../tests/e2e/sim/scenarios/frutteto-hub.mjs';
+import { runFruttetiListAssertions } from '../tests/e2e/sim/scenarios/frutteti.mjs';
+import { runRaccoltaCompletaWriteAssertions } from '../tests/e2e/sim/scenarios/raccolta-completa-write.mjs';
+import { runPotaturaFruttetoCompletaWriteAssertions } from '../tests/e2e/sim/scenarios/potatura-frutteto-completa-write.mjs';
+import { runTrattamentoFruttetoCompletaWriteAssertions } from '../tests/e2e/sim/scenarios/trattamento-frutteto-completa-write.mjs';
+import {
+  gotoFruttetoConcimazioniList,
+  gotoFruttetoDashboard,
+  gotoFruttetoPotaturaList,
+  gotoFruttetoTrattamentiList,
+  gotoFruttetiList,
+  gotoRaccoltaFrutta,
+  loginAsManagerFrutteto,
+} from '../tests/e2e/sim/helpers/sim-login.js';
 
 const baseURL = process.env.GFV_E2E_BASE_URL || 'http://127.0.0.1:8000';
 
@@ -644,6 +664,54 @@ const SCENARIOS = [
     name: 'compensi-write',
     run: async (page) => {
       await runCompensiWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'frutteto',
+    run: async (page) => {
+      await loginAsManagerFrutteto(page);
+      await gotoFruttetoPotaturaList(page);
+      await runFruttetoPotaturaListAssertions(page, expect);
+      await gotoFruttetoTrattamentiList(page);
+      await runFruttetoTrattamentiListAssertions(page, expect);
+      await gotoFruttetoConcimazioniList(page);
+      await runFruttetoConcimazioniListAssertions(page, expect);
+      await gotoRaccoltaFrutta(page);
+      await runRaccoltaFruttaReadAssertions(page, expect);
+    },
+  },
+  {
+    name: 'frutteti',
+    run: async (page) => {
+      await loginAsManagerFrutteto(page);
+      await gotoFruttetiList(page);
+      await runFruttetiListAssertions(page, expect);
+    },
+  },
+  {
+    name: 'frutteto-hub',
+    run: async (page) => {
+      await loginAsManagerFrutteto(page);
+      await gotoFruttetoDashboard(page);
+      await runFruttetoDashboardAssertions(page, expect);
+    },
+  },
+  {
+    name: 'raccolta-completa-write',
+    run: async (page) => {
+      await runRaccoltaCompletaWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'potatura-frutteto-completa-write',
+    run: async (page) => {
+      await runPotaturaFruttetoCompletaWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'trattamento-frutteto-completa-write',
+    run: async (page) => {
+      await runTrattamentoFruttetoCompletaWriteAssertions(page, expect);
     },
   },
 ];

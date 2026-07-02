@@ -136,6 +136,10 @@
         || (Array.isArray(entry.personas) && entry.personas.length > 1);
     }
 
+    function templateHasFrutteto(entry) {
+      return String(entry.templateId || '').includes('frutteto');
+    }
+
     /** Link rapidi allineati ai moduli seed (hub E2E + navigazione reale). */
     function buildQuickLinkGroups(entry) {
       const groups = [
@@ -166,7 +170,22 @@
             ['Guasti', '../../modules/macchine/views/guasti-list-standalone.html'],
           ],
         },
-        {
+      ];
+
+      if (templateHasFrutteto(entry)) {
+        groups.push({
+          label: 'Frutteto',
+          links: [
+            ['Dashboard frutteto', '../../modules/frutteto/views/frutteto-dashboard-standalone.html'],
+            ['Frutteti', '../../modules/frutteto/views/frutteti-standalone.html'],
+            ['Potatura', '../../modules/frutteto/views/potatura-standalone.html'],
+            ['Trattamenti', '../../modules/frutteto/views/trattamenti-standalone.html'],
+            ['Concimazioni', '../../modules/frutteto/views/concimazioni-standalone.html'],
+            ['Raccolta', '../../modules/frutteto/views/raccolta-frutta-standalone.html'],
+          ],
+        });
+      } else {
+        groups.push({
           label: 'Vigneto',
           links: [
             ['Dashboard vigneto', '../../modules/vigneto/views/vigneto-dashboard-standalone.html'],
@@ -175,8 +194,8 @@
             ['Trattamenti', '../../modules/vigneto/views/trattamenti-standalone.html'],
             ['Concimazioni', '../../modules/vigneto/views/concimazioni-standalone.html'],
           ],
-        },
-      ];
+        });
+      }
 
       if (templateHasContoTerzi(entry)) {
         groups.push({

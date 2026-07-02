@@ -11,9 +11,10 @@ import { inspectManodoperaSeed } from './lib/manodopera-inspect.js';
 import { inspectContoTerziSeed } from './lib/conto-terzi-inspect.js';
 import { verifyScarichiTrattamentoVignetoTenant } from './lib/link-scarichi-trattamento-vigneto.js';
 import { verifySpeseVignetoTenant } from './lib/verify-spese-vigneto-tenant.js';
-import { loadTemplate } from './lib/load-template.js';
+import { loadTemplate, isFruttetoTemplate } from './lib/load-template.js';
 import { expectedMovimentiFromTemplate } from './phases/04-simulate-magazzino.js';
 import { expectedVignetoCountsFromTemplate } from './phases/05-simulate-vigneto.js';
+import { expectedFruttetoCountsFromTemplate } from './phases/05-simulate-frutteto.js';
 import { extraCatenaCountsManodopera } from './lib/vigneto-stub-from-trigger.js';
 
 const templateId = process.env.GFV_SIM_E2E_TEMPLATE || 'viticola-conto-terzi-manodopera';
@@ -28,10 +29,14 @@ async function main() {
 
   const template = loadTemplate(templateId);
   const q = template.quantities;
+  const hasFrutteto = isFruttetoTemplate(template);
   const catenaExtra = extraCatenaCountsManodopera(template);
-  const vigExpected = expectedVignetoCountsFromTemplate(template);
+  const vigExpected = hasFrutteto ? null : expectedVignetoCountsFromTemplate(template);
+  const fruttetoExpected = hasFrutteto ? expectedFruttetoCountsFromTemplate(template) : null;
   const movExpected = expectedMovimentiFromTemplate(template);
-  const expectedTrattamenti = vigExpected.trattamenti + catenaExtra.trattamenti;
+  const expectedTrattamenti = hasFrutteto
+    ? fruttetoExpected.trattamenti
+    : vigExpected.trattamenti + catenaExtra.trattamenti;
   const expectedLavoriSquadra = q.lavoriSquadra + catenaExtra.lavoriSquadra;
 
   const { db } = initEmulatorAdmin();
@@ -53,7 +58,17 @@ async function main() {
   if (inspect.counts.attivita !== q.attivitaGiorniLavorativi) {
     errors.push(`attività: attese ${q.attivitaGiorniLavorativi}, got ${inspect.counts.attivita}`);
   }
-  if (inspect.counts.trattamentiVigneto !== expectedTrattamenti) {
+  if (hasFrutteto) {
+    if (inspect.counts.trattamentiFrutteto !== expectedTrattamenti) {
+      errors.push(`trattamenti frutteto: attesi ${expectedTrattamenti}, got ${inspect.counts.trattamentiFrutteto}`);
+    }
+    if (inspect.counts.potatureFrutteto !== fruttetoExpected.potature) {
+      errors.push(`potature frutteto: attese ${fruttetoExpected.potature}, got ${inspect.counts.potatureFrutteto}`);
+    }
+    if (inspect.counts.raccolteFrutteto !== fruttetoExpected.raccolte) {
+      errors.push(`raccolte frutteto: attese ${fruttetoExpected.raccolte}, got ${inspect.counts.raccolteFrutteto}`);
+    }
+  } else if (inspect.counts.trattamentiVigneto !== expectedTrattamenti) {
     errors.push(`trattamenti: attesi ${expectedTrattamenti}, got ${inspect.counts.trattamentiVigneto}`);
   }
   if (inspect.counts.movimentiMagazzino !== movExpected) {
@@ -61,15 +76,17 @@ async function main() {
   }
 
   const scarichi = await verifyScarichiTrattamentoVignetoTenant(db, tenantId);
-  if (scarichi.trattamentiConScarico !== expectedTrattamenti || scarichi.origineMissing > 0) {
-    errors.push(
-      `scarichi catena B: trattamenti=${scarichi.trattamentiConScarico}/${expectedTrattamenti}, origineMissing=${scarichi.origineMissing}`
-    );
-  }
+  if (!hasFrutteto) {
+    if (scarichi.trattamentiConScarico !== expectedTrattamenti || scarichi.origineMissing > 0) {
+      errors.push(
+        `scarichi catena B: trattamenti=${scarichi.trattamentiConScarico}/${expectedTrattamenti}, origineMissing=${scarichi.origineMissing}`
+      );
+    }
 
-  const spese = await verifySpeseVignetoTenant(db, tenantId);
-  if (!spese.ok || spese.totals.costoTotaleAnno <= 0) {
-    errors.push(`spese vigneto: ${spese.errors.join('; ') || 'costoTotaleAnno <= 0'}`);
+    const spese = await verifySpeseVignetoTenant(db, tenantId);
+    if (!spese.ok || spese.totals.costoTotaleAnno <= 0) {
+      errors.push(`spese vigneto: ${spese.errors.join('; ') || 'costoTotaleAnno <= 0'}`);
+    }
   }
 
   if (template.moduli?.includes('manodopera')) {
@@ -111,7 +128,7 @@ async function main() {
   console.log('[sim:verify:e2e-seed] OK');
   console.log(`  tenant: ${tenantId} (${entry.aziendaNome})`);
   console.log(
-    `  attività ${inspect.counts.attivita}, trattamenti ${inspect.counts.trattamentiVigneto}, movimenti ${inspect.counts.movimentiMagazzino}, scarichi ${scarichi.movimentiCollegati}`
+    `  attività ${inspect.counts.attivita}, trattamenti ${hasFrutteto ? inspect.counts.trattamentiFrutteto : inspect.counts.trattamentiVigneto}, movimenti ${inspect.counts.movimentiMagazzino}${hasFrutteto ? '' : `, scarichi ${scarichi.movimentiCollegati}`}`
   );
 }
 

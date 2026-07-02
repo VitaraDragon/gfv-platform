@@ -198,20 +198,18 @@ Assert su DOM visibile — dati seed già validati da v3/v2.2/v2.1 manodopera.
 
 **Obiettivo:** estendere sim + E2E fino a coprire (per gradi) pagine, form e moduli dell’app reale — **stesso codice**, dati seed, test read poi write.
 
-| Stato oggi (2026-07-01) | Target v5 Fase 2 |
-| ----------------------- | ---------------- |
-| **43/43** spec E2E — **CI stabile** | **+10 spec** batch 45–54 — **catene auto** §11.3.12 |
-| Read smoke ~40/45 URL | Vendemmia **incompleta** da lavoro; admin smoke |
-| Write 20 flussi critici ✅ | **Completa** vendemmia/trattamento (non ex novo); invio preventivo |
-| Sim vs app | Allineare seed: lavori stub vendemmia/trattamento | 
+| Stato oggi (2026-07-02) | Target residuo |
+| ----------------------- | -------------- |
+| **62/62** spec E2E target CI (56 viticola + 6 frutteto M4) | Report + statistiche **fuori scope** (redesign UI) |
+| **M4 frutteto** ✅ template `frutteto-solo-titolare` + 6 spec E2E | Template frutteto+manodopera/CT (se richiesto) |
+| Read smoke ~45/45 URL ✅ | Report + statistiche **fuori scope** (redesign UI) |
+| Read profondi batch A–C ✅ | §11.3.13 — hub magazzino, vigneto, CT, manodopera |
+| Write catene A/B + concimazione diario ✅ | Tracciabilità: solo catena auto (no write E2E) |
 | Tony E2E gate v5 ✅ | Kick-off §7.2–7.3 `TONY_E2E_GUIDA_SVILUPPO.md` |
-| Frutteto / report | M4 template frutteto (dopo batch 45–54) |
 
-**Milestone:** M1 ✅ → M2 ✅ → M3 ✅ → P2 ✅ → **CI 43/43** ✅ → **Fase 2 batch 45–54** → M4 frutteto → M5 → M-T* Tony.
+**Milestone:** M1 ✅ → M2 ✅ → M3 ✅ → P2 ✅ → batch 45–54 ✅ → **read profondi §11.3.13** ✅ → **CI 56/56** ✅ → **M4 frutteto** ✅ → M5 → M-T* Tony.
 
-**Dettaglio modulo per modulo, fasi e anti-pattern:** [`GFV_FARM_SIMULATOR.md` §11.3](../docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md).
-
-**Prossimo incremento consigliato:** E2E read P1 mancanti → primo E2E write (nuova attività).
+**Prossimo incremento consigliato:** template **frutteto-conto-terzi-manodopera** (se richiesto) o track Tony E2E.
 
 **CI E2E (v4 #9 ✅):** `npm run sim:e2e:install && npm run sim:e2e:ci` — replica locale del job GitHub Actions (richiede bash + Java).
 

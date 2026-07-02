@@ -1,8 +1,8 @@
 # GFV Farm Simulator — Guida sviluppo per agenti
 
-**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (18 scenari read ✅) + **v5 roadmap** §11.3 (**54 scenari: 28 read + 26 write ✅**, catena A §11.3.12)  
-**Data:** 2026-07-01  
-**Stato:** v1.6.1 chiusa; **v2.1 manodopera chiusa**; **v2.2 conto terzi chiusa**; **v3 cascata** ✅ (§11.1); **v4 Playwright chiusa** — 18 read (§11.2); **v5 Fase 1 chiusa** ✅ — write scen. 20–34; **M2 template chiusa** ✅ (scen. 35–39 read); **P2 write chiusi** ✅ (scen. 40–44); **batch catena A 49–53 chiuso** ✅; **batch residuo 45–48 + 54 + potatura-completa chiuso** ✅; **CI target 54/54** (post-push); regime max + routine §13.4  
+**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (18 scenari read ✅) + **v5 roadmap** §11.3 (**62 spec E2E target**, catena A §11.3.12 + read profondi §11.3.13 + **M4 frutteto** ✅)  
+**Data:** 2026-07-02  
+**Stato:** … **CI verificata 56/56** ([28577841143](https://github.com/VitaraDragon/gfv-platform/actions/runs/28577841143)); **M4 frutteto** ✅ (`frutteto-solo-titolare`, +6 spec E2E, dual seed CI)  
 **Codename:** `gfv-farm-simulator`
 
 ---
@@ -855,15 +855,17 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 
 #### 11.2.1 Stato v4/v5 e prossimi passi (2026-07-01)
 
-**Completato:** scenari Playwright **1–54** (batch §11.3.11) — suite **54/54** target locale + **CI** (`sim:e2e:ci` → `sim:e2e:pw`).
+**Completato:** scenari Playwright **56 spec** (55 runner `sim:e2e` + `flusso-operativo-azienda`) — suite target locale + **CI** (`sim:e2e:ci` → `sim:e2e:pw`).
 
-**CI stabile (2026-07-01):** run [28531826939](https://github.com/VitaraDragon/gfv-platform/actions/runs/28531826939) — **48 passed, 0 flaky**. Commit catena A: `25e104a` (batch 49–51), `708c2f9` (fix terreno/vigneto assert), `c917aef` (stabilizza `preventivi-invia-write` post-create).
+**CI stabile (2026-07-02):** run [28577841143](https://github.com/VitaraDragon/gfv-platform/actions/runs/28577841143) — **56 passed, 0 flaky** (~1.8 min). Commit recenti: `331c69f`/`044d6ce` (concimazione diario), `cb3490e`/`0f5fbf3` (read profondi batch A–C + fix tracciabilità/potatura).
 
 **v5 Fase 1 chiusa ✅** (M3 inclusa): 15 flussi write su path business critici (scen. 20–34).
 
 **M2 + P2 chiusi ✅** (scen. 35–39 read, 40–44 write).
 
-**Prossimo — v5 Fase 2 (§11.3):** batch scen. **45–54 + potatura-completa chiuso** ✅ — opz. allineamento seed magazzino solo catena B; track **Tony E2E** (gate v5 app ✅ — v. `TONY_E2E_GUIDA_SVILUPPO.md` §7).
+**Read profondi batch A–C chiuso ✅** (§11.3.13) — hub magazzino/tracciabilità, liste vigneto, CT, manodopera.
+
+**Prossimo — template viticola:** opz. allineamento seed magazzino solo catena B; **M4 frutteto**; track **Tony E2E** (gate v5 app ✅ — v. `TONY_E2E_GUIDA_SVILUPPO.md` §7).
 
 **Parallelo (v4b / fuori sim):**
 
@@ -916,11 +918,11 @@ npm run sim:e2e                      # 48/48 attesi (~3–4 min locale; CI ~1,4 
 
 **Tre assi da coprire:**
 
-| Asse | Descrizione | Stato (2026-06-28) |
+| Asse | Descrizione | Stato (2026-07-02) |
 | ---- | ----------- | ------------------- |
-| **A — Seed** | Ogni pagina testata ha dati nel template giusto | Buono su `viticola-conto-terzi-manodopera`; **guasti (3) + ore coda validazione (2)** ✅ v5 Fase 1; gap: vendemmia, frutteto… |
-| **B — E2E read** | Pagina si apre + contenuto coerente col seed (controllo visivo automatizzato) | **~40/45 URL** template con assert minimo ✅ (23 scenari multi-pagina); **profondità read** ⚠️ Fase 2 (admin piattaforma, KPI hub, vendemmia dati) |
-| **C — E2E write** | Compila form → salva → verifica effetto (lista o Firestore) | **20** scenari — scen. 20–44; **M3 + P2 ✅**; **~15+ form** ancora senza write — Fase 2 |
+| **A — Seed** | Ogni pagina testata ha dati nel template giusto | Buono su `viticola-conto-terzi-manodopera`; catena A vigneto + catena B magazzino ✅; gap: **frutteto** (M4) |
+| **B — E2E read** | Pagina si apre + contenuto coerente col seed (controllo visivo automatizzato) | **~45/45 URL** smoke ✅; **read profondi operativi** ✅ batch A–C (§11.3.13); fuori scope: report + statistiche (redesign) |
+| **C — E2E write** | Compila form → salva → verifica effetto (lista o Firestore) | **27+** scenari write (M3 + P2 + catene 49–53 + concimazione diario); tracciabilità **no write** (auto da catena) |
 
 **Inventario pagine:** ~**66** file `*-standalone.html` (esclusa `simulator-dev-standalone.html`). Molti **form** non sono pagine standalone (modali nelle liste) — copertura form = scenari write per modulo.
 
@@ -1055,19 +1057,19 @@ npm run sim:e2e                      # 48/48 attesi (~3–4 min locale; CI ~1,4 
 
 ##### 11.3.11 Gap analysis v5 Fase 2 — stato batch catena A (2026-07-01)
 
-**Contesto:** **54/54** spec chiudono M2 + M3 + P2 + **batch catena A (49–53)** + **batch residuo (45–48, 54, potatura-completa)** sul template `viticola-conto-terzi-manodopera`. CI precedente **48/48** ([28531826939](https://github.com/VitaraDragon/gfv-platform/actions/runs/28531826939)); verificare run post-push.
+**Contesto:** **56/56** spec (55 `sim:e2e` + `flusso-operativo-azienda`) chiudono M2 + M3 + P2 + batch catena A/residuo + **`concimazione-diario-completa-write`** + **read profondi §11.3.13** sul template `viticola-conto-terzi-manodopera`. CI verificata [28577841143](https://github.com/VitaraDragon/gfv-platform/actions/runs/28577841143).
 
 **Inventario onesto (template viticola-conto-terzi-manodopera):**
 
 | Categoria | Stato | Note |
 | --------- | ----- | ---- |
 | URL navigabili manager/capo/operaio | ~**45** | Esclusi token cliente (`accetta-preventivo`), frutteto, report, meteo |
-| Read smoke (pagina + seed minimo) | **~41/45** | + `vendemmia-auto-read` (49); mancano admin read 45–46 |
-| Read profondo (KPI, filtri, stati, admin) | **⚠️ parziale** | Dashboard solo widget scadenze; admin piattaforma non visitato (45–47) |
-| Write form/modali business | **23/35+** | + vigneti (50), preventivi invia (51), catene vendemmia/trattamento (52–53) |
-| Seed catena A vigneto | **✅ allineato** | Stub incompleti da attività/lavoro (§11.3.12); **non** record finiti |
-| Gap sim vs app residui | frutteto M4 | V. §11.3.12 «Sim vs app — tre livelli» |
-| Fuori scope Fase 2a | frutteto (~7 pag), report (3), meteo, auth live, Tony | M4 frutteto; M-T* Tony |
+| Read smoke (pagina + seed minimo) | **~45/45** ✅ | Inclusi admin read 45–48, `vendemmia-auto-read` (49) |
+| Read profondo (hub, filtri, catene) | **✅ batch A–C** | §11.3.13 — magazzino/tracciabilità, vigneto, CT, manodopera; **non** report/statistiche (redesign) |
+| Write form/modali business | **27+/35+** | Catene vendemmia/trattamento/concimazione diario + batch 45–54 |
+| Seed catena A vigneto | **✅ allineato** | Stub incompleti da attività/lavoro (§11.3.12); tracciabilità da catena B (no write E2E) |
+| Gap sim vs app residui | **M5** report (fuori scope redesign) | M4 frutteto ✅ |
+| Fuori scope (2026-07-02) | frutteto M4, report (3), statistiche (redesign), meteo, auth live, Stripe, token cliente, Tony sim | M-T* Tony parallelo |
 
 **Principio obbligatorio Fase 2:** il sim e gli E2E devono seguire **l’ordine app** — *trigger (lavoro/attività) → record auto incompleto → completamento utente → effetti collaterali* (es. scarico magazzino). V. **§11.3.12**.
 
@@ -1103,6 +1105,25 @@ npm run sim:e2e                      # 48/48 attesi (~3–4 min locale; CI ~1,4 
 **Definition of Done batch 49–53:** `npm run sim:e2e` + CI **48/48** ✅ ([28531826939](https://github.com/VitaraDragon/gfv-platform/actions/runs/28531826939)); catene idempotenti; §11.3.12 su vendemmia/trattamento vigneto.
 
 **Definition of Done batch residuo (45–48, 54, potatura):** target **54/54** spec; potatura completa da attività/lavoro in E2E ✅.
+
+##### 11.3.13 Read profondi batch A–C — chiuso ✅ (2026-07-02)
+
+**Obiettivo:** assert read oltre lo smoke su hub e liste operative — **senza** report, pagine statistiche (in redesign), write tracciabilità, token cliente, Stripe.
+
+**Implementazione:** estensione scenari `.mjs` esistenti (nessuna nuova spec Playwright).
+
+| Batch | Modulo | File | Assert chiave |
+| ----- | ------ | ---- | ------------- |
+| A | Magazzino | `magazzino-hub.mjs` | Hub `#stat-movimenti` ≥8; tracciabilità vista **dettaglio** su `#tabella-container .flat-wrap` (prodotto, contesto Trattamento, note scarico) |
+| B | Vigneto | `vigneto.mjs` | Potatura catena A (link attività, Modifica, ceppi prefill UI); trattamenti mix stub/prodotto; concimazioni stub o **Completa** |
+| C | CT + manodopera | `conto-terzi-hub.mjs`, `conto-terzi.mjs`, `manodopera-admin.mjs`, `manodopera-team.mjs` | KPI hub CT; filtri preventivi Bozza/Inviato; lavori badge/caposquadra; coda validazione ore; badge ore hub |
+
+**Lezioni CI (run [28577441640](https://github.com/VitaraDragon/gfv-platform/actions/runs/28577441640) → fix `0f5fbf3` → [28577841143](https://github.com/VitaraDragon/gfv-platform/actions/runs/28577841143)):**
+
+1. Tracciabilità: dopo `filter-vista=dettaglio` usare **`.flat-wrap .movimenti-table`**, non `.movimenti-table.first()` (tabella prodotto annidata vista raggruppata).
+2. Potatura stub: in lista la UI **precompila** tipo/ceppi (`getDatiPrecompilazionePotatura`) — assert su link attività + Modifica, non celle `-`.
+
+**Prossimo modulo intero:** M5 report (fuori scope). **Parallelo:** Tony E2E (M-T*), template `frutteto-conto-terzi-manodopera` opzionale.
 
 ##### 11.3.12 Catene auto-compilazione — app, simulatore, E2E (2026-07-01)
 
@@ -1647,7 +1668,7 @@ npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose
 
 **Verifica UI:** §13.2 — pagina dev + moduli conto terzi + manodopera mobile.
 
-**Verifica E2E (v4 + v5 + M2 + P2 + catena A + batch residuo):** `npm run sim:e2e` / `npm run sim:e2e:ci` — suite **54/54** target con tenant `viticola-conto-terzi-manodopera`; v. §11.2–§11.3.12.
+**Verifica E2E (v4 + v5 + M2 + P2 + catena A + batch residuo + read profondi):** `npm run sim:e2e` / `npm run sim:e2e:ci` — suite **56/56** target con tenant `viticola-conto-terzi-manodopera`; v. §11.2–§11.3.13. CI: [28577841143](https://github.com/VitaraDragon/gfv-platform/actions/runs/28577841143).
 
 **Non in scope v2.2 (aggiornato):** preventivo accettato → creazione lavoro conto terzi automatica. ~~Link rapidi Conto Terzi in pagina dev~~ → **implementato 2026-06-28** (gruppi modulo condizionati al template).
 

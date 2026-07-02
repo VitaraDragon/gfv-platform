@@ -19,7 +19,8 @@ export function formatSuccessReport(result) {
     `  terreni: ${result.counts.terreni}`,
     `  trattori: ${result.counts.trattori}`,
     `  attrezzi: ${result.counts.attrezzi}`,
-    `  vigneti: ${result.counts.vigneti}`,
+    `  vigneti: ${result.counts.vigneti ?? 0}`,
+    `  frutteti: ${result.counts.frutteti ?? 0}`,
     `  prodotti: ${result.counts.prodotti}`,
     `  attività: ${result.counts.attivita}${result.dateRange ? ` (${result.dateRange.from} → ${result.dateRange.to})` : ''}`
   ];
@@ -31,6 +32,15 @@ export function formatSuccessReport(result) {
   }
   if (result.counts.trattamentiVigneto != null) {
     lines.push(`  trattamenti vigneto: ${result.counts.trattamentiVigneto}`);
+  }
+  if (result.counts.potatureFrutteto != null) {
+    lines.push(`  potature frutteto: ${result.counts.potatureFrutteto}`);
+  }
+  if (result.counts.trattamentiFrutteto != null) {
+    lines.push(`  trattamenti frutteto: ${result.counts.trattamentiFrutteto}`);
+  }
+  if (result.counts.raccolteFrutteto != null) {
+    lines.push(`  raccolte frutteto: ${result.counts.raccolteFrutteto}`);
   }
   if (result.counts.prodottiSottoScorta != null) {
     lines.push(`  prodotti sotto scorta: ${result.counts.prodottiSottoScorta}`);

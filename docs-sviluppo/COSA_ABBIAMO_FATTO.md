@@ -1,6 +1,26 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-02 — E2E read profondi sim (batch A–C).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-02 — **M4 frutteto** template seed + 6 spec E2E (62 totali target CI).
+
+## GFV Farm Simulator — M4 Frutteto (2026-07-02)
+
+**Obiettivo:** parity sim↔app per modulo frutteto (catena A §11.3.12 + read/write E2E).
+
+**Implementato:**
+
+| Area | Dettaglio |
+|------|-----------|
+| Template | `frutteto-solo-titolare.json` — moduli frutteto + parco + magazzino |
+| Seed | `05-simulate-frutteto.js`, `frutteto-stub-from-trigger.js`, terreni/frutteti generator |
+| Catena A | Attività diario → stub potature/trattamenti/raccolte incompleti |
+| Catena B | Scarichi magazzino su trattamenti frutteto (`origineTrattamentoModulo: frutteto`) |
+| E2E read | `frutteto`, `frutteti`, `frutteto-hub` (+ raccolta smoke in `frutteto.spec`) |
+| E2E write | `raccolta-completa-write`, `potatura-frutteto-completa-write`, `trattamento-frutteto-completa-write` |
+| CI | Dual seed viticola + frutteto in `sim-ci-e2e-inner.sh`; verify per template |
+
+**Verifica locale:** `npm run sim:run -- --template=frutteto-solo-titolare` + `GFV_SIM_E2E_TEMPLATE=frutteto-solo-titolare npm run sim:verify:e2e-seed` ✅.
+
+**Fuori scope M4:** `frutteto-statistiche` (redesign), template manodopera/CT frutteto (fase successiva se richiesta).
 
 ## GFV Farm Simulator — E2E read profondi batch A–C (2026-07-02)
 
@@ -16,6 +36,12 @@
 | `conto-terzi.mjs` | Superficie ha numerica; filtri stato Bozza / Inviato |
 | `manodopera-admin.mjs` | Gestione lavori: badge stato, caposquadra, durata giorni; validazione ore: operaio, lavoro, ore, Valida |
 | `manodopera-team.mjs` | Hub manodopera: badge ore da validare ≥2 |
+
+**Commit:** `cb3490e` (batch read profondi) · fix CI `0f5fbf3` (tracciabilità `.flat-wrap`; potatura prefill UI, non celle `-`).
+
+**CI:** run [28577441640](https://github.com/VitaraDragon/gfv-platform/actions/runs/28577441640) — 54/56 (2 fail magazzino-hub + vigneto) → fix → [28577841143](https://github.com/VitaraDragon/gfv-platform/actions/runs/28577841143) — **56 passed** ✅.
+
+**Perimetro sim↔app (deciso 2026-07-02):** fuori scope — report, statistiche (redesign), token cliente preventivi, Stripe; tracciabilità solo catena auto + read (no write dedicato). Prossimo modulo intero: **frutteto M4**.
 
 ## GFV Farm Simulator — E2E `concimazione-diario-completa-write` (2026-07-02)
 

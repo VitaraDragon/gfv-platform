@@ -10,12 +10,13 @@ import { runSeedGuasti } from './phases/02b-seed-guasti.js';
 import { runSimulateAttivita } from './phases/03-simulate-attivita.js';
 import { runSimulateMagazzino } from './phases/04-simulate-magazzino.js';
 import { runSimulateVigneto } from './phases/05-simulate-vigneto.js';
+import { runSimulateFrutteto } from './phases/05-simulate-frutteto.js';
 import { runSetupPersonas } from './phases/06-setup-personas.js';
 import { runPopulateManodopera } from './phases/07-populate-manodopera.js';
 import { runSimulateManodoperaOre } from './phases/08-simulate-manodopera-ore.js';
 import { runPopulateContoTerzi } from './phases/09-populate-conto-terzi.js';
 import { formatErrorReport, formatSuccessReport, printReport } from './lib/report.js';
-import { isContoTerziTemplate, isManodoperaTemplate, parseQuantityOverrides } from './lib/load-template.js';
+import { isContoTerziTemplate, isFruttetoTemplate, isManodoperaTemplate, parseQuantityOverrides } from './lib/load-template.js';
 import { resetSimContext } from './lib/sim-context.js';
 
 const args = process.argv.slice(2);
@@ -37,6 +38,7 @@ async function main() {
     const setup = await runSetupTenant({ templateId, templateOverrides });
     const withManodopera = isManodoperaTemplate(setup.template);
     const withContoTerzi = isContoTerziTemplate(setup.template);
+    const withFrutteto = isFruttetoTemplate(setup.template);
     if (verbose) console.log(`[sim] Tenant creato: ${setup.tenantId}`);
 
     if (setupOnly) {
@@ -62,13 +64,27 @@ async function main() {
     const simulation = await runSimulateAttivita(assets);
     if (verbose) console.log(`[sim] Attività create: ${simulation.counts.attivita}`);
 
-    phase = '05-simulate-vigneto';
-    const vigneto = await runSimulateVigneto({
-      attivitaIds: simulation.attivitaIds,
-      vigneti: assets.vigneti
-    });
-    if (verbose) {
-      console.log(`[sim] Vigneto: ${vigneto.counts.potature} potature, ${vigneto.counts.trattamenti} trattamenti`);
+    let colturaSim = null;
+    if (withFrutteto) {
+      phase = '05-simulate-frutteto';
+      colturaSim = await runSimulateFrutteto({
+        attivitaIds: simulation.attivitaIds,
+        frutteti: assets.frutteti
+      });
+      if (verbose) {
+        console.log(
+          `[sim] Frutteto: ${colturaSim.counts.potature} potature, ${colturaSim.counts.trattamenti} trattamenti, ${colturaSim.counts.raccolte} raccolte`
+        );
+      }
+    } else {
+      phase = '05-simulate-vigneto';
+      colturaSim = await runSimulateVigneto({
+        attivitaIds: simulation.attivitaIds,
+        vigneti: assets.vigneti
+      });
+      if (verbose) {
+        console.log(`[sim] Vigneto: ${colturaSim.counts.potature} potature, ${colturaSim.counts.trattamenti} trattamenti`);
+      }
     }
 
     let personas = null;
@@ -110,10 +126,17 @@ async function main() {
       guastiAperti: guastiSeed.counts.guastiAperti,
       attivita: simulation.counts.attivita,
       movimentiMagazzino: magazzino.counts.movimenti,
-      prodottiSottoScorta: magazzino.sottoScorta,
-      potatureVigneto: vigneto.counts.potature,
-      trattamentiVigneto: vigneto.counts.trattamenti
+      prodottiSottoScorta: magazzino.sottoScorta
     };
+
+    if (withFrutteto) {
+      counts.potatureFrutteto = colturaSim.counts.potature;
+      counts.trattamentiFrutteto = colturaSim.counts.trattamenti;
+      counts.raccolteFrutteto = colturaSim.counts.raccolte;
+    } else {
+      counts.potatureVigneto = colturaSim.counts.potature;
+      counts.trattamentiVigneto = colturaSim.counts.trattamenti;
+    }
 
     if (personas) {
       counts.personas = personas.counts.totalPersonas;

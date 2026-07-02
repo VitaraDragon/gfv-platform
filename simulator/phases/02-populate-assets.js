@@ -6,11 +6,14 @@
 import {
   generaAttrezzi,
   generaFlotta,
+  generaFrutteti,
   generaProdotti,
   generaTerreni,
+  generaTerreniFrutteto,
   generaTrattori,
   generaVigneti
 } from '../generators/nomi-italiani.js';
+import { isFruttetoTemplate } from '../lib/load-template.js';
 import { getEmulatorDb } from '../lib/emulator-context.js';
 import { addTenantDocument } from '../lib/firestore-write.js';
 import { seedTenantReferenceData } from '../lib/seed-reference-data.js';
@@ -65,8 +68,11 @@ export async function runPopulateAssets() {
     podereNome: profile?.aziendaNome || 'Podere principale'
   });
 
+  const useFrutteto = isFruttetoTemplate(template);
   const terreniData = applyAffittiProfilesToTerreni(
-    generaTerreni(q.terreni || 4, seed, { podereNome })
+    useFrutteto
+      ? generaTerreniFrutteto(q.terreni || 4, seed, { podereNome })
+      : generaTerreni(q.terreni || 4, seed, { podereNome })
   );
   const terreni = [];
   for (const t of terreniData) {
@@ -118,22 +124,40 @@ export async function runPopulateAssets() {
     flotta.push({ id, nome: m.nome, tipoMacchina: m.tipoMacchina });
   }
 
-  const vignetiData = generaVigneti(terreni, seed);
   const vigneti = [];
-  for (const v of vignetiData.slice(0, q.vigneti || terreni.length)) {
-    const id = await addTenantDocument(db, tenantId, 'vigneti', {
-      ...v,
-      speseManodoperaAnno: 0,
-      speseTrattamentiAnno: 0,
-      spesePotaturaAnno: 0,
-      speseRaccoltaAnno: 0,
-      speseMacchineAnno: 0,
-      speseAltroAnno: 0,
-      speseVendemmiaAnno: 0,
-      speseCantinaAnno: 0,
-      speseProdottiAnno: 0
-    });
-    vigneti.push({ id, varieta: v.varieta, terrenoId: v.terrenoId });
+  const frutteti = [];
+  if (useFrutteto) {
+    const fruttetiData = generaFrutteti(terreni, seed);
+    for (const f of fruttetiData.slice(0, q.frutteti || terreni.length)) {
+      const id = await addTenantDocument(db, tenantId, 'frutteti', {
+        ...f,
+        speseManodoperaAnno: 0,
+        speseTrattamentiAnno: 0,
+        spesePotaturaAnno: 0,
+        speseRaccoltaAnno: 0,
+        speseMacchineAnno: 0,
+        speseAltroAnno: 0,
+        speseProdottiAnno: 0
+      });
+      frutteti.push({ id, specie: f.specie, varieta: f.varieta, terrenoId: f.terrenoId });
+    }
+  } else {
+    const vignetiData = generaVigneti(terreni, seed);
+    for (const v of vignetiData.slice(0, q.vigneti || terreni.length)) {
+      const id = await addTenantDocument(db, tenantId, 'vigneti', {
+        ...v,
+        speseManodoperaAnno: 0,
+        speseTrattamentiAnno: 0,
+        spesePotaturaAnno: 0,
+        speseRaccoltaAnno: 0,
+        speseMacchineAnno: 0,
+        speseAltroAnno: 0,
+        speseVendemmiaAnno: 0,
+        speseCantinaAnno: 0,
+        speseProdottiAnno: 0
+      });
+      vigneti.push({ id, varieta: v.varieta, terrenoId: v.terrenoId });
+    }
   }
 
   const prodottiData = generaProdotti(q.prodotti || 5, seed);
@@ -155,6 +179,7 @@ export async function runPopulateAssets() {
     attrezzi,
     flotta,
     vigneti,
+    frutteti,
     prodotti,
     counts: {
       terreni: terreni.length,
@@ -162,6 +187,7 @@ export async function runPopulateAssets() {
       attrezzi: attrezzi.length,
       flotta: flotta.length,
       vigneti: vigneti.length,
+      frutteti: frutteti.length,
       prodotti: prodotti.length
     }
   };
