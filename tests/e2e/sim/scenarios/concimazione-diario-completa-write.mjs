@@ -297,6 +297,21 @@ async function completeConcimazioneStubFromAttivita(page) {
 
   await page.locator('#modal-trattamento.active').waitFor({ state: 'visible', timeout: 30_000 });
 
+  const superficieInput = page.locator('#trattamento-superficie');
+  let superficieVal = await superficieInput.inputValue();
+  if (!superficieVal || parseFloat(superficieVal) <= 0) {
+    const anagrafeCb = page.locator('#trattamento-usa-superficie-anagrafe');
+    if (await anagrafeCb.isVisible()) {
+      await anagrafeCb.check({ force: true });
+      await page.waitForTimeout(400);
+      superficieVal = await superficieInput.inputValue();
+    }
+    if (!superficieVal || parseFloat(superficieVal) <= 0) {
+      await superficieInput.fill('1.00');
+      await superficieInput.dispatchEvent('input');
+    }
+  }
+
   await page.waitForFunction(
     () => {
       const sel = document.querySelector('#tbody-prodotti-trattamento .prodotto-select');
@@ -316,6 +331,14 @@ async function completeConcimazioneStubFromAttivita(page) {
     .locator('#tbody-prodotti-trattamento .prodotto-dosaggio')
     .first()
     .fill(E2E_CONCIMAZIONE_DIARIO_DOSAGGIO);
+  await page.locator('#tbody-prodotti-trattamento .prodotto-dosaggio').first().dispatchEvent('blur');
+
+  await page.waitForFunction(() => {
+    const span = document.querySelector('#tbody-prodotti-trattamento .prodotto-quantita');
+    const t = (span?.textContent || '').trim();
+    return t !== '-' && !Number.isNaN(parseFloat(t)) && parseFloat(t) > 0;
+  }, { timeout: 15_000 });
+
   await page.locator('#trattamento-note').fill(E2E_CONCIMAZIONE_DIARIO_NOTE);
 
   await page.waitForFunction(() => {

@@ -75,7 +75,8 @@ export async function runConcimazioniListAssertions(page, expect) {
 
   const rows = tableWrap.locator('table tbody tr');
   expect(await rows.count()).toBeGreaterThanOrEqual(3);
-  expect(await rows.count()).toBeLessThanOrEqual(6);
+  // Seed 4 concimazioni + fino a 1 riga E2E concimazione-diario-completa-write
+  expect(await rows.count()).toBeLessThanOrEqual(7);
 
   await expect(
     tableWrap.locator('table').getByRole('link', { name: /Vedi Attività/i }).first()

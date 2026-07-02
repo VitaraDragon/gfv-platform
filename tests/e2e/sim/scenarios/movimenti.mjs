@@ -22,9 +22,9 @@ export async function runMovimentiAssertions(page, expect) {
 
   const rows = table.locator('tbody tr');
   const rowCount = await rows.count();
-  // Seed sim: 12 uscite; + fino a 2 movimenti write E2E (entrata/uscita idempotenti)
+  // Seed sim: 12 uscite; + fino a 3 movimenti write E2E (entrata/uscita/concimazione diario)
   expect(rowCount).toBeGreaterThanOrEqual(10);
-  expect(rowCount).toBeLessThanOrEqual(18);
+  expect(rowCount).toBeLessThanOrEqual(19);
 
   const countLabel = page.locator('#movimenti-count');
   await expect(countLabel).not.toHaveText(/^0 movimenti$/);
