@@ -153,6 +153,7 @@ import { runVendemmiaAutoReadAssertions } from '../tests/e2e/sim/scenarios/vende
 import { runVendemmiaCompletaWriteAssertions } from '../tests/e2e/sim/scenarios/vendemmia-completa-write.mjs';
 import { runTrattamentoCompletaWriteAssertions } from '../tests/e2e/sim/scenarios/trattamento-completa-write.mjs';
 import { runPotaturaCompletaWriteAssertions } from '../tests/e2e/sim/scenarios/potatura-completa-write.mjs';
+import { runConcimazioneDiarioCompletaWriteAssertions } from '../tests/e2e/sim/scenarios/concimazione-diario-completa-write.mjs';
 import { runVignetiWriteAssertions } from '../tests/e2e/sim/scenarios/vigneti-write.mjs';
 import { runPreventiviInviaWriteAssertions } from '../tests/e2e/sim/scenarios/preventivi-invia-write.mjs';
 import { runCompensiWriteAssertions } from '../tests/e2e/sim/scenarios/compensi-write.mjs';
@@ -601,6 +602,12 @@ const SCENARIOS = [
     name: 'potatura-completa-write',
     run: async (page) => {
       await runPotaturaCompletaWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'concimazione-diario-completa-write',
+    run: async (page) => {
+      await runConcimazioneDiarioCompletaWriteAssertions(page, expect);
     },
   },
   {

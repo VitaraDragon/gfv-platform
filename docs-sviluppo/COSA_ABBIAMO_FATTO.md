@@ -1,6 +1,20 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-02 — CI flusso operativo ampliato (55 spec + verify seed).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-02 — E2E concimazione diario → magazzino.
+
+## GFV Farm Simulator — E2E `concimazione-diario-completa-write` (2026-07-02)
+
+**Obiettivo:** scenario completo catena diario → concimazioni UI → scarico magazzino (complemento a `trattamento-completa-write` che usa il path lavoro).
+
+**Implementato:**
+
+| File | Cosa fa |
+|------|---------|
+| `tests/e2e/sim/scenarios/concimazione-diario-completa-write.mjs` | Manager: attività Concimazione nel diario (marker `GFV_SIM_E2E_CONCIMAZIONE_DIARIO`) → stub in `concimazioni-standalone` → completa + checkbox scarico → assert uscita movimenti |
+| `tests/e2e/sim/concimazione-diario-completa-write.spec.js` | Spec Playwright (CI `sim:e2e:pw`) |
+| `scripts/sim-e2e-run.mjs` | Registrazione scenario nel runner Node locale |
+
+**Idempotenza:** marker note fisso; se la riga concimazioni E2E è già completata, verifica stato senza duplicare attività.
 
 ## GFV Farm Simulator — CI flusso operativo azienda (2026-07-02)
 
