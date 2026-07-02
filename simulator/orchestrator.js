@@ -62,12 +62,6 @@ async function main() {
     const simulation = await runSimulateAttivita(assets);
     if (verbose) console.log(`[sim] Attività create: ${simulation.counts.attivita}`);
 
-    phase = '04-simulate-magazzino';
-    const magazzino = await runSimulateMagazzino({ attivitaIds: simulation.attivitaIds });
-    if (verbose) {
-      console.log(`[sim] Movimenti magazzino: ${magazzino.counts.movimenti}, sotto scorta: ${magazzino.sottoScorta}`);
-    }
-
     phase = '05-simulate-vigneto';
     const vigneto = await runSimulateVigneto({
       attivitaIds: simulation.attivitaIds,
@@ -100,6 +94,14 @@ async function main() {
       phase = '08-simulate-manodopera-ore';
       manodoperaOre = await runSimulateManodoperaOre(manodopera);
       if (verbose) console.log('[sim] Ore manodopera:', manodoperaOre.counts);
+    }
+
+    phase = '04-simulate-magazzino';
+    const magazzino = await runSimulateMagazzino();
+    if (verbose) {
+      console.log(
+        `[sim] Movimenti magazzino (catena B): ${magazzino.counts.movimenti}, trattamenti: ${magazzino.counts.trattamenti}, sotto scorta: ${magazzino.sottoScorta}`
+      );
     }
 
     const counts = {

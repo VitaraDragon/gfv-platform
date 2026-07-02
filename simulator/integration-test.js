@@ -11,6 +11,7 @@ import { initEmulatorAdmin } from './lib/emulator-context.js';
 import { inspectTenantSeed } from './lib/tenant-inspect.js';
 import { deleteSimulatedTenant } from './lib/cleanup-tenant.js';
 import { expectedVignetoCountsFromTemplate } from './phases/05-simulate-vigneto.js';
+import { expectedMovimentiFromTemplate } from './phases/04-simulate-magazzino.js';
 import { extraCatenaCountsManodopera } from './lib/vigneto-stub-from-trigger.js';
 import { verifyScarichiTrattamentoVignetoTenant } from './lib/link-scarichi-trattamento-vigneto.js';
 import { verifySpeseVignetoTenant } from './lib/verify-spese-vigneto-tenant.js';
@@ -36,6 +37,7 @@ async function runV1Test() {
   const { counts: magCounts, sottoScorta } = result.magazzino;
   const { counts: vigCounts } = result.vigneto;
   const vigExpected = expectedVignetoCountsFromTemplate(template);
+  const movExpected = expectedMovimentiFromTemplate(template);
 
   if (assetCounts.terreni !== q.terreni) throw new Error(`terreni: attesi ${q.terreni}, got ${assetCounts.terreni}`);
   if (assetCounts.trattori !== q.trattori) throw new Error(`trattori: attesi ${q.trattori}, got ${assetCounts.trattori}`);
@@ -48,8 +50,8 @@ async function runV1Test() {
   if (simCounts.attivita !== q.attivitaGiorniLavorativi) {
     throw new Error(`attività: attese ${q.attivitaGiorniLavorativi}, got ${simCounts.attivita}`);
   }
-  if (magCounts.movimenti < 8) {
-    throw new Error(`movimenti magazzino: attesi almeno 8, got ${magCounts.movimenti}`);
+  if (magCounts.movimenti !== movExpected) {
+    throw new Error(`movimenti magazzino: attesi ${movExpected}, got ${magCounts.movimenti}`);
   }
   if (sottoScorta < 1) {
     throw new Error('prodotti sotto scorta: atteso almeno 1 dopo scarichi simulati');
@@ -77,10 +79,14 @@ async function runV1Test() {
   }
 
   const scarichi = await verifyScarichiTrattamentoVignetoTenant(db, setup.tenantId);
-  // Catena A: stub trattamento senza magazzinoMovimentoIds; scarichi fase 4 restano su attività (dual path §11.3.12)
-  if (scarichi.origineMissing > 0) {
+  if (scarichi.trattamentiConScarico !== vigCounts.trattamenti) {
     throw new Error(
-      `scarichi trattamento: ${scarichi.origineMissing} movimenti senza origineTrattamento* (attesi 0)`
+      `scarichi trattamento: attesi ${vigCounts.trattamenti} trattamenti con scarico, got ${scarichi.trattamentiConScarico}`
+    );
+  }
+  if (scarichi.origineMissing > 0 || scarichi.origineOk !== scarichi.movimentiCollegati) {
+    throw new Error(
+      `scarichi trattamento: ${scarichi.origineMissing} movimenti senza origineTrattamento* (attesi 0, ok ${scarichi.origineOk}/${scarichi.movimentiCollegati})`
     );
   }
 

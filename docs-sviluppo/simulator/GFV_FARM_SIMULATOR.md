@@ -209,7 +209,7 @@ simulator/
     01-setup-tenant.js               # tenant, utente, moduli, piano
     02-populate-assets.js            # ref data + terreni, macchine, vigneti, prodotti
     03-simulate-attivita.js          # 4 settimane diario attività
-    04-simulate-magazzino.js         # scarichi magazzino su trattamenti/concimazioni
+    04-simulate-magazzino.js         # scarichi catena B da trattamenti vigneto (post fase 5/7)
     05-simulate-vigneto.js           # potature + trattamenti vigneto da attività diario
     06-setup-personas.js             # v2: Auth + users multi-ruolo (no inviti)
     07-populate-manodopera.js        # v2: squadre + lavori (manager)
@@ -437,11 +437,12 @@ Campi minimi (`core/models/Attivita.js`):
 
 ### Fase 4 — Magazzino (`04-simulate-magazzino.js`)
 
-- Scarichi **uscita** in `movimentiMagazzino` per attività **Trattamento**, **Concimazione**, **Controllo fitosanitario**
-- Collegamento `attivitaId`, data allineata all’attività
-- Aggiornamento `giacenza` su `prodotti` (campo canonico app, non `quantitaDisponibile`)
-- Obiettivo demo: almeno un prodotto **sotto scorta minima** dopo i run
-- **Dual path §11.3.12 (2026-07-01):** scarichi restano sul **diario** (read tracciabilità E2E movimenti). La catena B (`syncScarichiMagazzinoTrattamento` al completamento trattamento in UI) **non** è simulata in Node — target batch E2E 52–53.
+- **Catena B (2026-07-01):** eseguita **dopo** fase 5 vigneto (e fase 7 manodopera se template manodopera)
+- Per ogni stub trattamento vigneto senza `magazzinoMovimentoIds`: completa righe `prodotti`, crea **uscita** in `movimentiMagazzino` con `origineTrattamento*` (equivalente Admin SDK di `syncScarichiMagazzinoTrattamento`)
+- Collegamento `attivitaId` / `lavoroId` dal trattamento; note `Scarico da trattamento vigneto (…)`
+- Aggiornamento `giacenza` su `prodotti`; `syncSpeseVignetoTenant` se almeno uno scarico creato
+- Conteggio atteso: **1 movimento per trattamento vigneto** (`expectedMovimentiFromTemplate` = trattamenti diario + extra manodopera)
+- E2E `trattamento-completa-write` (53) resta test UI della stessa catena; seed Node non usa più scarichi diretti da attività diario
 
 ### Fase 5 — Vigneto operativo (`05-simulate-vigneto.js`)
 
@@ -1065,7 +1066,7 @@ npm run sim:e2e                      # 48/48 attesi (~3–4 min locale; CI ~1,4 
 | Read profondo (KPI, filtri, stati, admin) | **⚠️ parziale** | Dashboard solo widget scadenze; admin piattaforma non visitato (45–47) |
 | Write form/modali business | **23/35+** | + vigneti (50), preventivi invia (51), catene vendemmia/trattamento (52–53) |
 | Seed catena A vigneto | **✅ allineato** | Stub incompleti da attività/lavoro (§11.3.12); **non** record finiti |
-| Gap sim vs app residui | magazzino dual path, frutteto M4 | V. §11.3.12 «Sim vs app — tre livelli» |
+| Gap sim vs app residui | frutteto M4 | V. §11.3.12 «Sim vs app — tre livelli» |
 | Fuori scope Fase 2a | frutteto (~7 pag), report (3), meteo, auth live, Tony | M4 frutteto; M-T* Tony |
 
 **Principio obbligatorio Fase 2:** il sim e gli E2E devono seguire **l’ordine app** — *trigger (lavoro/attività) → record auto incompleto → completamento utente → effetti collaterali* (es. scarico magazzino). V. **§11.3.12**.
@@ -1143,7 +1144,7 @@ UI: badge **⚠ Incompleta** (vendemmia) o righe «da completare» in liste pota
 
 | Livello | Domanda | Stato oggi |
 | ------- | ------- | ---------- |
-| **1 — Seed Firestore** | I dati seed sono raggiungibili con gli stessi trigger dell’app (lavoro/attività → stub incompleto)? | **✅ vigneto catena A** (vendemmia, trattamento, potatura stub); **⚠️** magazzino ancora anche da diario (fase 4) |
+| **1 — Seed Firestore** | I dati seed sono raggiungibili con gli stessi trigger dell’app (lavoro/attività → stub incompleto)? | **✅ vigneto catena A** (vendemmia, trattamento, potatura stub); **✅ magazzino catena B** (scarichi da trattamento completato in fase 4 post-vigneto) |
 | **2 — Percorso UI (E2E)** | L’utente completa stub in browser come in produzione? | **✅** vendemmia/trattamento/potatura (49, 52–53, potatura-completa); CT invia (51); **❌** frutteto |
 | **3 — Esecuzione Node** | Il sim passa dalla UI? | **❌** Admin SDK + helper allineati ai service — stessa shape documenti, **non** stessi eventi DOM |
 
@@ -1154,9 +1155,9 @@ UI: badge **⚠ Incompleta** (vendemmia) o righe «da completare» in liste pota
 | Dato | App (UI) | Sim Node oggi | E2E | Prossimo passo |
 | ---- | -------- | ------------- | --- | -------------- |
 | Vendemmia vigneto | Stub da lavoro → completa qli/destinazione | Stub catena A ✅ (attività + lavoro manodopera) | **49, 52–53 ✅** | — |
-| Trattamento vigneto | Stub → prodotto/dosaggio → scarico magazzino | Stub catena A ✅ | **53 ✅** (catena B in UI) | Seed: rimuovere dual path fase 4 (opz.) |
+| Trattamento vigneto | Stub → prodotto/dosaggio → scarico magazzino | Stub catena A ✅ + completamento + scarico fase 4 ✅ | **53 ✅** | — |
 | Potatura vigneto | Stub da lavoro → completa tipo/ceppi | Stub catena A ✅ | **potatura-completa-write ✅** | — |
-| Scarichi magazzino | Da trattamento **completato in UI** | **Dual path:** fase 4 diario (read movimenti) + catena B solo via E2E 53 | movimenti read ✅; catena B assert ✅ in 53 | Allineare seed Node a catena B |
+| Scarichi magazzino | Da trattamento **completato** | **Catena B** fase 4 (post vigneto/manodopera) ✅ | movimenti read ✅; catena B assert ✅ in 53 | — |
 | Raccolta frutta | Stub da lavoro | **M4** — non in template | — | Template frutteto |
 | Preventivo CT | Bozza → invia → accetta → pianifica | Seed + form CT ✅ | **a-preventivi, invia, accetta, pianifica ✅** | — |
 | Vendemmia manuale (form) | Percorso secondario «Nuova vendemmia» | — | `vendemmia-write` (43) smoke | Tenere come complemento, non catena principale |
@@ -1172,7 +1173,7 @@ UI: badge **⚠ Incompleta** (vendemmia) o righe «da completare» in liste pota
 | `vendemmia-completa-write` (52) | Completa stub da lavoro | ✅ catena A write | — |
 | `trattamento-completa-write` (53) | Completa stub + scarico magazzino | ✅ catena A+B | — |
 | `vigneto.spec.js` (6) | Read potature/trattamenti seed | OK lista stub/completi; limite righe ≤12 (catena A) | — |
-| `movimenti.spec.js` (5) | Uscite con tracciabilità attività | OK seed fase 4 (dual path) | Documentato; catena B coperta da 53 |
+| `movimenti.spec.js` (5) | Uscite con tracciabilità attività | ✅ seed catena B (origine trattamento + attivitaId) | — |
 | `gestione-lavori-write` (23) | Lavoro Erpicatura | OK; non innesca catena A | Seed vendemmia in fase 07 ✅ |
 | `attivita-write` (20) | Erpicatura | OK manuale | Opz.: variante Trattamento da diario |
 | `preventivi-invia-write` (51) | Bozza → Invia | ✅ catena CT | Stabilizzato post-create (`c917aef`) |

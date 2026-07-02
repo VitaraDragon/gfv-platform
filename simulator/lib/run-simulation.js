@@ -39,7 +39,6 @@ export async function runFullSimulation(options = {}) {
   const assets = await runPopulateAssets();
   const guastiSeed = await runSeedGuasti(assets);
   const simulation = await runSimulateAttivita(assets);
-  const magazzino = await runSimulateMagazzino({ attivitaIds: simulation.attivitaIds });
   const vigneto = await runSimulateVigneto({
     attivitaIds: simulation.attivitaIds,
     vigneti: assets.vigneti
@@ -59,6 +58,8 @@ export async function runFullSimulation(options = {}) {
     manodopera = await runPopulateManodopera(assets);
     manodoperaOre = await runSimulateManodoperaOre(manodopera);
   }
+
+  const magazzino = await runSimulateMagazzino();
 
   return {
     setup,

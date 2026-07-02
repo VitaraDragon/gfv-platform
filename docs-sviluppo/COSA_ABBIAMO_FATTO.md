@@ -1,6 +1,24 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-01 — batch residuo E2E **54/54** target; doc §11.3.11–12.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-01 — magazzino seed catena B; E2E **54/54**.
+
+## GFV Farm Simulator — magazzino seed catena B (2026-07-01)
+
+**Obiettivo:** eliminare dual path fase 4 (scarichi diretti da attività diario); allineare seed Node a `syncScarichiMagazzinoTrattamento`.
+
+**Implementato:**
+
+| Area | Prima | Dopo |
+|------|-------|------|
+| `04-simulate-magazzino.js` | Uscite su attività Trattamento/Concimazione/Controllo | Completa stub trattamento vigneto + movimento con `origineTrattamento*` |
+| Ordine orchestrator | Fase 4 → 5 (vigneto) | Fase 5 (+ 7 manodopera) → **4** magazzino |
+| `expectedMovimentiFromTemplate` | Conteggio tipi attività | = trattamenti vigneto (12 v1, +extra manodopera v2) |
+| `integration-test.js` | origineMissing su set vuoto | Assert trattamentiConScarico = trattamenti vigneto |
+| E2E `movimenti.mjs` | Note «Scarico simulato» | Note «Scarico da trattamento vigneto» |
+
+**File:** `simulator/phases/04-simulate-magazzino.js`, `run-simulation.js`, `orchestrator.js`, `audit-manifest.js`, `backfill-existing.js`, `tests/e2e/sim/scenarios/movimenti.mjs`, `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md`.
+
+**Verifica:** `npm run sim:test` + `npm run sim:e2e`.
 
 ## GFV Farm Simulator — E2E batch residuo 45–48 + 54 + potatura-completa (2026-07-01)
 
@@ -25,7 +43,7 @@
 
 **Domanda:** il simulatore è uguale al flusso reale dell’app?
 
-**Risposta sintetica:** **parzialmente** — su **vendemmia + trattamento vigneto** seed ed E2E seguono *trigger → stub incompleto → completamento UI → effetto collaterale*; **non** su tutto l’ERP (potatura E2E, frutteto, magazzino dual path, sim Node ≠ browser).
+**Risposta sintetica:** **parzialmente** — su **vendemmia + trattamento vigneto + magazzino** seed ed E2E seguono *trigger → stub incompleto → completamento → effetto collaterale*; **non** su tutto l’ERP (frutteto, sim Node ≠ browser).
 
 | Livello | Stato |
 |---------|--------|
@@ -93,7 +111,7 @@
 | `03-simulate-attivita.js` | Solo rotazione 5 tipi | 1 giorno Erpicatura → **Vendemmia Manuale** (stub da attività) |
 | `07-populate-manodopera.js` | Solo lavori generici | + lavoro **Vendemmia Manuale** + `seedCateneVignetoFromLavori` (stub vendemmia + trattamento da lavoro) |
 | `lib/vigneto-stub-from-trigger.js` | — | Helper Admin SDK allineati a `create*FromLavoro/Attivita` |
-| `04-simulate-magazzino.js` | Scarichi da attività | Invariato — dual path documentato (read tracciabilità; catena B → E2E batch 52–53) |
+| `04-simulate-magazzino.js` | Scarichi catena B da trattamenti vigneto | Completamento stub + `origineTrattamento*` (post fase 5/7) |
 | Audit / integration / E2E | Conteggi record completi | Conteggi stub + `extraCatenaCountsManodopera`; assert trattamenti/vendemmia read aggiornati |
 
 **Verifica locale:** `sim:run` viticola-conto-terzi-manodopera exit 0; `sim:audit` OK tenant appena generato; `sim:test` v1+v2 OK; E2E vigneto + vendemmia-read OK (41–43/43 — timeout flaky su scenari non vigneto in run locale).

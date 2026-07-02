@@ -16,6 +16,7 @@ import { inspectTenantSeed } from './lib/tenant-inspect.js';
 import { inspectManodoperaSeed } from './lib/manodopera-inspect.js';
 import { inspectContoTerziSeed } from './lib/conto-terzi-inspect.js';
 import { expectedVignetoCountsFromTemplate } from './phases/05-simulate-vigneto.js';
+import { expectedMovimentiFromTemplate } from './phases/04-simulate-magazzino.js';
 import { extraCatenaCountsManodopera } from './lib/vigneto-stub-from-trigger.js';
 import { isEmulatorAvailable } from './lib/emulator-available.js';
 import { isContoTerziTemplate, loadTemplate } from './lib/load-template.js';
@@ -23,20 +24,6 @@ import { isContoTerziTemplate, loadTemplate } from './lib/load-template.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const v1Template = loadTemplate('solo-titolare-viticola');
 const v2Template = loadTemplate('viticola-manodopera');
-
-const TIPI_CON_SCARICO_MAGAZZINO = new Set(['Trattamento', 'Controllo fitosanitario', 'Concimazione']);
-
-/** Stesso criterio di `phases/04-simulate-magazzino.js` (scarichi per attività diario). */
-function expectedMovimentiFromTemplate(template) {
-  const tipi = template?.attivita?.tipiLavoro || [];
-  const n = template?.quantities?.attivitaGiorniLavorativi || 20;
-  let count = 0;
-  for (let i = 0; i < n; i++) {
-    const t = tipi[i % Math.max(tipi.length, 1)];
-    if (TIPI_CON_SCARICO_MAGAZZINO.has(t)) count += 1;
-  }
-  return count;
-}
 
 function buildExpected(template) {
   const q = template.quantities;

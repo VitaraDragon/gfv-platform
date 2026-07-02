@@ -96,14 +96,6 @@ async function backfillTenant(db, entry) {
 
   const movSnap = await db.collection(`tenants/${tenantId}/movimentiMagazzino`).limit(1).get();
   let magazzino = { counts: { movimenti: 0 }, sottoScorta: 0 };
-  if (movSnap.empty) {
-    magazzino = await runSimulateMagazzino();
-    console.log(`  movimenti creati: ${magazzino.counts.movimenti}, sotto scorta: ${magazzino.sottoScorta}`);
-  } else {
-    const all = await db.collection(`tenants/${tenantId}/movimentiMagazzino`).get();
-    console.log(`  movimenti già presenti: ${all.size} (skip creazione)`);
-    magazzino.counts.movimenti = all.size;
-  }
 
   const inspectBefore = await inspectTenantSeed(db, tenantId);
   if (inspectBefore.counts.potatureVigneto === 0 && inspectBefore.counts.trattamentiVigneto === 0) {
@@ -115,6 +107,22 @@ async function backfillTenant(db, entry) {
     console.log(
       `  vigneto già presente: ${inspectBefore.counts.potatureVigneto} potature, ${inspectBefore.counts.trattamentiVigneto} trattamenti (skip)`
     );
+  }
+
+  if (movSnap.empty) {
+    magazzino = await runSimulateMagazzino();
+    console.log(
+      `  movimenti catena B: ${magazzino.counts.movimenti}, trattamenti completati: ${magazzino.counts.trattamenti}, sotto scorta: ${magazzino.sottoScorta}`
+    );
+  } else {
+    const all = await db.collection(`tenants/${tenantId}/movimentiMagazzino`).get();
+    console.log(`  movimenti già presenti: ${all.size} (skip creazione)`);
+    magazzino.counts.movimenti = all.size;
+    const patched = await runSimulateMagazzino();
+    if (patched.counts.movimenti) {
+      console.log(`  scarichi catena B aggiunti: +${patched.counts.movimenti} movimenti`);
+      magazzino.counts.movimenti += patched.counts.movimenti;
+    }
   }
 
   const linkScarichi = await linkScarichiMagazzinoTrattamentoVignetoTenant(db, tenantId);

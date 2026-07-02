@@ -1,7 +1,6 @@
 /**
  * Assert DOM lista movimenti magazzino — condiviso tra spec Playwright e runner Node.
- * Seed template solo-titolare-viticola: 12 uscite collegate ad attività trattamento/concimazione;
- * assert su DOM visibile (tracciabilità colonna Attività).
+ * Seed catena B: uscite da trattamenti vigneto completati (origineTrattamento* + attivitaId).
  * @param {import('playwright-core').Page} page
  * @param {typeof import('@playwright/test').expect} expect
  */
@@ -48,7 +47,7 @@ export async function runMovimentiAssertions(page, expect) {
   expect(matchedTipi.length).toBeGreaterThanOrEqual(2);
 
   const noteCells = await table.locator('tbody td:nth-child(10)').allTextContents();
-  expect(noteCells.some((n) => /Scarico/i.test(n))).toBe(true);
+  expect(noteCells.some((n) => /Scarico da trattamento/i.test(n))).toBe(true);
 
   const prodotti = await table.locator('tbody td:nth-child(2)').allTextContents();
   expect(prodotti.filter((p) => p.trim().length > 0 && p.trim() !== '-').length).toBeGreaterThanOrEqual(10);
