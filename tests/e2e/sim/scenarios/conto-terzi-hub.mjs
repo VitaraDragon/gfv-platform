@@ -14,6 +14,20 @@ export async function runContoTerziHomeAssertions(page, expect) {
   // Seed: 3 clienti totali, ultimo in stato sospeso → 2 attivi in hub/mappa
   expect(parseInt(await statClienti.textContent(), 10)).toBeGreaterThanOrEqual(2);
 
+  await page.waitForFunction(() => {
+    const ids = ['stat-lavori', 'stat-lavori-completati', 'stat-preventivi', 'stat-terreni'];
+    return ids.every((id) => {
+      const el = document.getElementById(id);
+      if (!el) return false;
+      const t = (el.textContent || '').trim();
+      return t !== '-' && t !== '…' && !Number.isNaN(parseInt(t, 10));
+    });
+  }, { timeout: 60_000 });
+
+  expect(parseInt(await page.locator('#stat-lavori').textContent(), 10)).toBeGreaterThanOrEqual(0);
+  expect(parseInt(await page.locator('#stat-preventivi').textContent(), 10)).toBeGreaterThanOrEqual(1);
+  expect(parseInt(await page.locator('#stat-terreni').textContent(), 10)).toBeGreaterThanOrEqual(1);
+
   await expect(page.getByRole('link', { name: /Anagrafica Clienti/i })).toBeVisible();
   await expect(page.getByRole('link', { name: /Preventivi/i }).first()).toBeVisible();
 }

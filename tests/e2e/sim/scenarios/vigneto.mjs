@@ -28,6 +28,12 @@ export async function runPotaturaListAssertions(page, expect) {
 
   const tipi = await table.locator('tbody td:nth-child(3)').allTextContents();
   expect(tipi.some((t) => /Invernale|Verde|Rinnovo|Spollonatura/i.test(t))).toBe(true);
+
+  // Stub catena A: tipo o ceppi ancora da completare
+  const ceppi = await table.locator('tbody td:nth-child(4)').allTextContents();
+  const hasStubPotatura = tipi.some((t) => t.trim() === '-') || ceppi.some((c) => c.trim() === '-');
+  expect(hasStubPotatura).toBe(true);
+  expect(await table.getByRole('link', { name: /Vedi Attività/i }).count()).toBeGreaterThanOrEqual(1);
 }
 
 export async function runTrattamentiListAssertions(page, expect) {
@@ -62,6 +68,17 @@ export async function runTrattamentiListAssertions(page, expect) {
     /Trattamento|Controllo fitosanitario|Attività simulata/i.test(t)
   );
   expect(hasTrattamentoSeed).toBe(true);
+
+  const prodottiFilled = prodotti.filter((p) => {
+    const t = p.trim();
+    return t && t !== '-' && t !== '—';
+  });
+  const prodottiStub = prodotti.filter((p) => {
+    const t = p.trim();
+    return !t || t === '-' || t === '—';
+  });
+  expect(prodottiStub.length).toBeGreaterThanOrEqual(1);
+  expect(prodottiFilled.length + prodottiStub.length).toBeGreaterThanOrEqual(6);
 }
 
 export async function runConcimazioniListAssertions(page, expect) {
@@ -81,6 +98,15 @@ export async function runConcimazioniListAssertions(page, expect) {
   await expect(
     tableWrap.locator('table').getByRole('link', { name: /Vedi Attività/i }).first()
   ).toBeVisible();
+
+  const prodottoCells = await tableWrap.locator('table tbody td:nth-child(5)').allTextContents();
+  const hasStubConcimazione = prodottoCells.some((p) => {
+    const t = p.trim();
+    return !t || t === '-' || t === '—';
+  });
+  const completaButtons = tableWrap.locator('[data-completa-row]');
+  const stubActions = (await completaButtons.count()) + (hasStubConcimazione ? 1 : 0);
+  expect(stubActions).toBeGreaterThanOrEqual(1);
 }
 
 /** Potatura + trattamenti fitosanitari + concimazioni (12 trattamenti seed totali). */

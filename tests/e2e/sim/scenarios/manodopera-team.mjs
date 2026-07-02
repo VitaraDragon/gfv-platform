@@ -12,6 +12,25 @@ export async function runManodoperaHomeAssertions(page, expect) {
   await expect(page.getByRole('link', { name: /Gestione Lavori/i }).first()).toBeVisible();
   await expect(page.getByRole('link', { name: /Validazione Ore/i })).toBeVisible();
   await expect(page.getByRole('link', { name: /Gestione Operai/i })).toBeVisible();
+
+  await page.waitForFunction(() => {
+    const el = document.getElementById('stat-ore-validare');
+    if (!el) return false;
+    const t = (el.textContent || '').trim();
+    return t !== '-' && t !== '…' && parseInt(t, 10) >= 2;
+  }, { timeout: 60_000 });
+
+  const badgeOre = page.locator('#badge-ore-validare');
+  await expect(badgeOre).toHaveClass(/visible/);
+  expect(parseInt(await badgeOre.textContent(), 10)).toBeGreaterThanOrEqual(2);
+
+  const statDaPianificare = page.locator('#stat-da-pianificare');
+  if (await statDaPianificare.isVisible()) {
+    const daPian = parseInt(await statDaPianificare.textContent(), 10);
+    if (!Number.isNaN(daPian) && daPian > 0) {
+      await expect(page.locator('#badge-da-pianificare')).toHaveClass(/visible/);
+    }
+  }
 }
 
 export async function runGestioneOperaiAssertions(page, expect) {

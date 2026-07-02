@@ -15,9 +15,11 @@ export async function runMagazzinoHomeAssertions(page, expect) {
 
   const movimentiStat = page.locator('#stat-movimenti');
   await expect(movimentiStat).not.toHaveText('-');
-  expect(parseInt(await movimentiStat.textContent(), 10)).toBeGreaterThanOrEqual(1);
+  // Hub: movimenti ultimi 30 gg — seed catena B genera uscite recenti
+  expect(parseInt(await movimentiStat.textContent(), 10)).toBeGreaterThanOrEqual(8);
 
   await expect(page.getByRole('link', { name: /Anagrafica Prodotti/i }).first()).toBeVisible();
+  await expect(page.getByRole('link', { name: /Movimenti/i }).first()).toBeVisible();
   await expect(page.getByRole('link', { name: /Tracciabilità consumi/i }).first()).toBeVisible();
 }
 
@@ -34,5 +36,25 @@ export async function runTracciabilitaConsumiAssertions(page, expect) {
   const countText = await page.locator('#righe-count').textContent();
   expect(parseInt(countText, 10)).toBeGreaterThanOrEqual(8);
 
-  expect(await container.locator('.movimenti-table tbody tr').count()).toBeGreaterThanOrEqual(1);
+  // Vista dettagliata: una riga per movimento — origine trattamento auto (catena B)
+  await page.locator('#filter-vista').selectOption('dettaglio');
+  await page.waitForFunction(() => {
+    const c = document.getElementById('tabella-container');
+    return c && !c.querySelector('.loading') && !c.querySelector('.empty-state');
+  }, { timeout: 60_000 });
+
+  const table = container.locator('.movimenti-table').first();
+  await expect(table).toBeVisible();
+  const rows = table.locator('tbody tr');
+  expect(await rows.count()).toBeGreaterThanOrEqual(8);
+
+  const prodotti = await rows.locator('td:nth-child(2)').allTextContents();
+  expect(prodotti.filter((p) => p.trim() && p.trim() !== '—' && p.trim() !== '-').length).toBeGreaterThanOrEqual(8);
+
+  const contesti = await rows.locator('td:nth-child(5)').allTextContents();
+  const trattamentoRows = contesti.filter((c) => /Trattamento/i.test(c));
+  expect(trattamentoRows.length).toBeGreaterThanOrEqual(6);
+
+  const note = await rows.locator('td:nth-child(6)').allTextContents();
+  expect(note.some((n) => /Scarico da trattamento/i.test(n))).toBe(true);
 }

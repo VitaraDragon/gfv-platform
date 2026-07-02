@@ -114,6 +114,27 @@ export async function runPreventiviListAssertions(page, expect) {
 
   const totali = await table.locator('tbody td:nth-child(6)').allTextContents();
   expect(totali.filter((t) => /€/.test(t)).length).toBeGreaterThanOrEqual(5);
+
+  const superfici = await table.locator('tbody td:nth-child(5)').allTextContents();
+  expect(superfici.filter((s) => /\d+[.,]\d{2}\s*ha/i.test(s)).length).toBeGreaterThanOrEqual(5);
+
+  await page.locator('#filter-stato').selectOption('bozza');
+  await page.waitForFunction(() => {
+    const rows = document.querySelectorAll('#preventivi-container .preventivi-table tbody tr');
+    if (!rows.length) return false;
+    return Array.from(rows).every((tr) => /Bozza/i.test(tr.textContent || ''));
+  }, { timeout: 30_000 });
+  expect(await table.locator('tbody tr').count()).toBeGreaterThanOrEqual(1);
+
+  await page.locator('#filter-stato').selectOption('inviato');
+  await page.waitForFunction(() => {
+    const rows = document.querySelectorAll('#preventivi-container .preventivi-table tbody tr');
+    if (!rows.length) return false;
+    return Array.from(rows).every((tr) => /Inviato/i.test(tr.textContent || ''));
+  }, { timeout: 30_000 });
+  expect(await table.locator('tbody tr').count()).toBeGreaterThanOrEqual(1);
+
+  await page.locator('#filter-stato').selectOption('');
 }
 
 export async function runTerreniClientiAssertions(page, expect) {

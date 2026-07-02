@@ -1,6 +1,21 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-02 — E2E concimazione diario → magazzino.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-02 — E2E read profondi sim (batch A–C).
+
+## GFV Farm Simulator — E2E read profondi batch A–C (2026-07-02)
+
+**Obiettivo:** assert read più profondi su hub/liste operative (esclusi report e pagine statistiche in redesign).
+
+**Estensioni scenari esistenti (nessuna nuova spec):**
+
+| File | Assert aggiunti |
+|------|------------------|
+| `magazzino-hub.mjs` | Hub KPI movimenti ≥8 (30 gg); tracciabilità vista dettaglio — prodotto, contesto Trattamento, note scarico |
+| `vigneto.mjs` | Potatura stub (tipo/ceppi `-`); trattamenti mix stub/prodotto compilato; concimazioni stub o pulsante Completa |
+| `conto-terzi-hub.mjs` | KPI hub CT (lavori, preventivi aperti, terreni clienti) |
+| `conto-terzi.mjs` | Superficie ha numerica; filtri stato Bozza / Inviato |
+| `manodopera-admin.mjs` | Gestione lavori: badge stato, caposquadra, durata giorni; validazione ore: operaio, lavoro, ore, Valida |
+| `manodopera-team.mjs` | Hub manodopera: badge ore da validare ≥2 |
 
 ## GFV Farm Simulator — E2E `concimazione-diario-completa-write` (2026-07-02)
 

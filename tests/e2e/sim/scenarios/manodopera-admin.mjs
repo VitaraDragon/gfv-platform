@@ -17,6 +17,17 @@ export async function runGestioneLavoriAssertions(page, expect) {
 
   const countText = await page.locator('#lavori-count').textContent();
   expect(parseInt(countText, 10)).toBeGreaterThanOrEqual(3);
+
+  await expect(
+    table.locator('.badge-assegnato, .badge-in_corso, .badge-completato').first()
+  ).toBeVisible();
+  expect(await table.locator('.caposquadra-name').count()).toBeGreaterThanOrEqual(1);
+
+  const tbodyText = await table.locator('tbody').innerText();
+  expect(/👥/.test(tbodyText)).toBe(true);
+
+  const durataCells = await table.locator('tbody td').allTextContents();
+  expect(durataCells.some((t) => /\d+\s+giorni/i.test(t))).toBe(true);
 }
 
 export async function runValidazioneOreAssertions(page, expect) {
@@ -36,6 +47,14 @@ export async function runValidazioneOreAssertions(page, expect) {
 
   const rows = container.locator('.ore-table tbody tr');
   expect(await rows.count()).toBeGreaterThanOrEqual(2);
+
+  const firstRow = rows.first();
+  await expect(firstRow.locator('td').nth(2)).not.toHaveText('');
+  await expect(firstRow.locator('td').nth(3)).not.toHaveText('');
+  await expect(firstRow.getByRole('button', { name: /Valida/i })).toBeVisible();
+  const oreText = ((await firstRow.locator('td').nth(5).textContent()) || '').trim();
+  expect(oreText).not.toBe('0h');
+  expect(oreText.length).toBeGreaterThan(0);
 
   await expect(page.locator('#stat-validate')).toBeVisible();
 }
