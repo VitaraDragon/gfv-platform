@@ -1,6 +1,21 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-01 — magazzino seed catena B; E2E **54/54**.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-02 — CI flusso operativo ampliato (55 spec + verify seed).
+
+## GFV Farm Simulator — CI flusso operativo azienda (2026-07-02)
+
+**Obiettivo:** verificare in GitHub Actions che il seed e i percorsi operativi dell’azienda completa (`viticola-conto-terzi-manodopera`) siano coerenti end-to-end.
+
+**Implementato:**
+
+| Componente | Cosa fa |
+|------------|---------|
+| `tests/simulator/viticola-conto-terzi-manodopera.test.js` | Vitest job `sim:test`: run full simulation + inspect vigneto/magazzino B/manodopera/conto terzi |
+| `simulator/verify-e2e-seed.js` | Dopo `sim:run` in CI E2E: verifica ultima entry manifest (catene, scarichi, spese) |
+| `flusso-operativo-azienda.spec.js` | E2E sequenziale: diario → catene vigneto → manodopera campo → preventivi CT |
+| `simulator-ci.yml` | Step aggiornati; timeout E2E 40 min |
+
+**Verifica:** push → Actions `sim:test` + `sim:e2e` (target **55/55** spec + verify seed).
 
 ## GFV Farm Simulator — magazzino seed catena B (2026-07-01)
 

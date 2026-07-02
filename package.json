@@ -42,6 +42,7 @@
     "sim:verify-spese": "node simulator/verify-spese.js",
     "sim:test": "node simulator/integration-test.js",
     "sim:test:vitest": "vitest run tests/simulator/ --no-file-parallelism",
+    "sim:verify:e2e-seed": "node simulator/verify-e2e-seed.js",
     "sim:test:ci": "node simulator/ci-run.js",
     "sim:e2e": "node scripts/sim-e2e-run.mjs",
     "sim:e2e:pw": "playwright test",

@@ -9,6 +9,7 @@ on:
       - 'tests/e2e/sim/**'
       - 'scripts/sim-e2e-run.mjs'
       - 'scripts/sim-ci-e2e-inner.sh'
+      - 'simulator/verify-e2e-seed.js'
       - 'playwright.config.js'
       - 'core/config/trattamenti-lavoro-defaults.js'
       - 'firebase.json'
@@ -23,6 +24,7 @@ on:
       - 'tests/e2e/sim/**'
       - 'scripts/sim-e2e-run.mjs'
       - 'scripts/sim-ci-e2e-inner.sh'
+      - 'simulator/verify-e2e-seed.js'
       - 'playwright.config.js'
       - 'core/config/trattamenti-lavoro-defaults.js'
       - 'firebase.json'
@@ -64,13 +66,13 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run simulator integration tests
+      - name: Run simulator integration tests (v1, v2, stack completo)
         run: npm run sim:test:ci
 
   simulator-e2e:
-    name: sim:e2e (Playwright browser)
+    name: sim:e2e (Playwright + verify seed operativo)
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 40
 
     steps:
       - name: Checkout
@@ -94,7 +96,7 @@ jobs:
       - name: Install Playwright Chromium
         run: npm run sim:e2e:install
 
-      - name: Run Playwright E2E (emulator + seed + 8 scenari)
+      - name: Run Playwright E2E (seed + verify operativo + 55 spec)
         run: npm run sim:e2e:ci
         env:
           CI: true
