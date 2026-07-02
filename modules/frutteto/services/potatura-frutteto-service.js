@@ -29,9 +29,44 @@ function getYearFromFirestoreDate(raw) {
   return Number.isNaN(d.getTime()) ? null : d.getFullYear();
 }
 
+function toFirestoreDate(raw) {
+  if (!raw) return null;
+  const d = raw instanceof Date ? raw : (raw.toDate ? raw.toDate() : new Date(raw));
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 function filterDocumentsByAnno(documents, anno) {
   if (!anno) return documents;
   return documents.filter((doc) => getYearFromFirestoreDate(doc.data) === anno);
+}
+
+function sortDocumentsByData(documents, orderDirection = 'desc') {
+  const sign = orderDirection === 'asc' ? 1 : -1;
+  return [...documents].sort((a, b) => {
+    const da = toFirestoreDate(a.data)?.getTime() ?? 0;
+    const db = toFirestoreDate(b.data)?.getTime() ?? 0;
+    return sign * (da - db);
+  });
+}
+
+async function fetchSubcollectionDocuments(collectionPath, tenantId, { orderBy, orderDirection, where } = {}) {
+  try {
+    return await getCollectionData(collectionPath, {
+      tenantId,
+      orderBy,
+      orderDirection,
+      where: where?.length ? where : undefined,
+    });
+  } catch (error) {
+    try {
+      return await getCollectionData(collectionPath, {
+        tenantId,
+        where: where?.length ? where : undefined,
+      });
+    } catch (innerError) {
+      return await getCollectionData(collectionPath, { tenantId });
+    }
+  }
 }
 
 export async function getPotature(fruttetoId, options = {}) {
@@ -42,32 +77,19 @@ export async function getPotature(fruttetoId, options = {}) {
 
     const { orderBy = 'data', orderDirection = 'desc', tipo = null, anno = null } = options;
     const collectionPath = getPotaturePath(fruttetoId);
-    const whereFilters = [];
-    if (tipo) whereFilters.push(['tipo', '==', tipo]);
-    if (anno) {
-      const inizioAnno = new Date(anno, 0, 1);
-      const fineAnno = new Date(anno + 1, 0, 1);
-      whereFilters.push(['data', '>=', dateToTimestamp(inizioAnno)]);
-      whereFilters.push(['data', '<', dateToTimestamp(fineAnno)]);
-    }
+    const whereFilters = tipo ? [['tipo', '==', tipo]] : [];
 
-    let documents;
-    try {
-      documents = await getCollectionData(collectionPath, {
-        tenantId,
-        orderBy,
-        orderDirection,
-        where: whereFilters.length > 0 ? whereFilters : undefined,
-      });
-    } catch (error) {
-      if (anno) {
-        documents = await getCollectionData(collectionPath, { tenantId, orderBy, orderDirection });
-        documents = filterDocumentsByAnno(documents, anno);
-      } else {
-        throw error;
-      }
-    }
-    return documents.map((doc) => PotaturaFrutteto.fromData(doc));
+    let documents = await fetchSubcollectionDocuments(collectionPath, tenantId, {
+      orderBy,
+      orderDirection,
+      where: whereFilters,
+    });
+    if (anno) documents = filterDocumentsByAnno(documents, anno);
+    documents = sortDocumentsByData(documents, orderDirection);
+
+    return documents.map((doc) =>
+      PotaturaFrutteto.fromData({ ...doc, fruttetoId: doc.fruttetoId || fruttetoId })
+    );
   } catch (error) {
     console.error('[POTATURA-FRUTTETO] Errore recupero potature:', error);
     if (error.message.includes('tenant') || error.message.includes('obbligatorio')) throw new Error(`Errore recupero potature: ${error.message}`);

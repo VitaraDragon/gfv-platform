@@ -49,6 +49,29 @@ function filterDocumentsByAnno(documents, anno) {
   return documents.filter((doc) => getYearFromFirestoreDate(doc.data) === anno);
 }
 
+function toFirestoreDate(raw) {
+  if (!raw) return null;
+  const d = raw instanceof Date ? raw : (raw.toDate ? raw.toDate() : new Date(raw));
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function sortDocumentsByData(documents, orderDirection = 'desc') {
+  const sign = orderDirection === 'asc' ? 1 : -1;
+  return [...documents].sort((a, b) => {
+    const da = toFirestoreDate(a.data)?.getTime() ?? 0;
+    const db = toFirestoreDate(b.data)?.getTime() ?? 0;
+    return sign * (da - db);
+  });
+}
+
+async function fetchSubcollectionDocuments(collectionPath, tenantId, { orderBy, orderDirection } = {}) {
+  try {
+    return await getCollectionData(collectionPath, { tenantId, orderBy, orderDirection });
+  } catch (error) {
+    return await getCollectionData(collectionPath, { tenantId });
+  }
+}
+
 export async function getRaccolte(fruttetoId, options = {}) {
   try {
     const tenantId = getCurrentTenantId();
@@ -67,36 +90,14 @@ export async function getRaccolte(fruttetoId, options = {}) {
     } = options;
     
     const collectionPath = getRaccoltePath(fruttetoId);
+
+    let documents = await fetchSubcollectionDocuments(collectionPath, tenantId, { orderBy, orderDirection });
+    if (anno) documents = filterDocumentsByAnno(documents, anno);
+    documents = sortDocumentsByData(documents, orderDirection);
     
-    const whereFilters = [];
-    
-    if (anno) {
-      const inizioAnno = new Date(anno, 0, 1);
-      const fineAnno = new Date(anno + 1, 0, 1);
-      whereFilters.push(['data', '>=', dateToTimestamp(inizioAnno)]);
-      whereFilters.push(['data', '<', dateToTimestamp(fineAnno)]);
-    }
-    
-    let documents;
-    try {
-      documents = await getCollectionData(collectionPath, {
-        tenantId,
-        orderBy,
-        orderDirection,
-        where: whereFilters.length > 0 ? whereFilters : undefined,
-      });
-    } catch (error) {
-      if (anno) {
-        documents = await getCollectionData(collectionPath, { tenantId, orderBy, orderDirection });
-        documents = filterDocumentsByAnno(documents, anno);
-      } else {
-        throw error;
-      }
-    }
-    
-    const raccolte = documents.map(doc => RaccoltaFrutta.fromData(doc));
-    
-    return raccolte;
+    return documents.map((doc) =>
+      RaccoltaFrutta.fromData({ ...doc, fruttetoId: doc.fruttetoId || fruttetoId })
+    );
   } catch (error) {
     console.error('[RACCOLTA-FRUTTA-SERVICE] Errore recupero raccolte:', error);
     if (error.message.includes('tenant') || error.message.includes('obbligatorio')) {

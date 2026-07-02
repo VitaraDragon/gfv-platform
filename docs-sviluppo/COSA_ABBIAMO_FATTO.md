@@ -14,6 +14,8 @@
 | `RaccoltaFrutta.js` | `quantitaKg`/`quantitaEttari` null non diventano NaN (`parseFloat(null)`) |
 | `potatura-frutteto-service.js` / `raccolta-frutta-service.js` | Fallback query anno: fetch + filtro lato client se composite index fallisce in emulator |
 
+**Follow-up (2026-07-02):** query potature/trattamenti/raccolte frutteto sempre con filtro anno lato client (no composite Firestore); fallback `TIPO_LAVORO_CATEGORIA_CODICE` per liste trattamenti/concimazioni sim.
+
 ## GFV Farm Simulator — M4 Frutteto (2026-07-02)
 
 **Obiettivo:** parity sim↔app per modulo frutteto (catena A §11.3.12 + read/write E2E).

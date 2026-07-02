@@ -18,11 +18,58 @@ import { getCurrentTenantId } from '../../../core/services/tenant-service.js';
 import { TrattamentoFrutteto } from '../models/TrattamentoFrutteto.js';
 import { getFrutteto, updateFrutteto } from './frutteti-service.js';
 import { inferTipoTrattamentoColturaFromTipoLavoroNome } from '../../../core/config/trattamenti-lavoro-defaults.js';
+import { TIPO_LAVORO_CATEGORIA_CODICE } from '../../../core/config/app-catalog-seed-data.js';
 
 const SUB_COLLECTION_NAME = 'trattamenti';
 
 function getTrattamentiPath(fruttetoId) {
   return `frutteti/${fruttetoId}/${SUB_COLLECTION_NAME}`;
+}
+
+function getYearFromFirestoreDate(raw) {
+  if (!raw) return null;
+  const d = raw instanceof Date ? raw : (raw.toDate ? raw.toDate() : new Date(raw));
+  return Number.isNaN(d.getTime()) ? null : d.getFullYear();
+}
+
+function toFirestoreDate(raw) {
+  if (!raw) return null;
+  const d = raw instanceof Date ? raw : (raw.toDate ? raw.toDate() : new Date(raw));
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function filterDocumentsByAnno(documents, anno) {
+  if (!anno) return documents;
+  return documents.filter((doc) => getYearFromFirestoreDate(doc.data) === anno);
+}
+
+function sortDocumentsByData(documents, orderDirection = 'desc') {
+  const sign = orderDirection === 'asc' ? 1 : -1;
+  return [...documents].sort((a, b) => {
+    const da = toFirestoreDate(a.data)?.getTime() ?? 0;
+    const db = toFirestoreDate(b.data)?.getTime() ?? 0;
+    return sign * (da - db);
+  });
+}
+
+async function fetchSubcollectionDocuments(collectionPath, tenantId, { orderBy, orderDirection, where } = {}) {
+  try {
+    return await getCollectionData(collectionPath, {
+      tenantId,
+      orderBy,
+      orderDirection,
+      where: where?.length ? where : undefined,
+    });
+  } catch (error) {
+    try {
+      return await getCollectionData(collectionPath, {
+        tenantId,
+        where: where?.length ? where : undefined,
+      });
+    } catch (innerError) {
+      return await getCollectionData(collectionPath, { tenantId });
+    }
+  }
 }
 
 export async function getTrattamenti(fruttetoId, options = {}) {
@@ -33,22 +80,19 @@ export async function getTrattamenti(fruttetoId, options = {}) {
 
     const { orderBy = 'data', orderDirection = 'desc', tipoTrattamento = null, anno = null } = options;
     const collectionPath = getTrattamentiPath(fruttetoId);
-    const whereFilters = [];
-    if (tipoTrattamento) whereFilters.push(['tipoTrattamento', '==', tipoTrattamento]);
-    if (anno) {
-      const inizioAnno = new Date(anno, 0, 1);
-      const fineAnno = new Date(anno + 1, 0, 1);
-      whereFilters.push(['data', '>=', dateToTimestamp(inizioAnno)]);
-      whereFilters.push(['data', '<', dateToTimestamp(fineAnno)]);
-    }
+    const whereFilters = tipoTrattamento ? [['tipoTrattamento', '==', tipoTrattamento]] : [];
 
-    const documents = await getCollectionData(collectionPath, {
-      tenantId,
+    let documents = await fetchSubcollectionDocuments(collectionPath, tenantId, {
       orderBy,
       orderDirection,
-      where: whereFilters.length > 0 ? whereFilters : undefined
+      where: whereFilters,
     });
-    return documents.map(doc => TrattamentoFrutteto.fromData(doc));
+    if (anno) documents = filterDocumentsByAnno(documents, anno);
+    documents = sortDocumentsByData(documents, orderDirection);
+
+    return documents.map((doc) =>
+      TrattamentoFrutteto.fromData({ ...doc, fruttetoId: doc.fruttetoId || fruttetoId })
+    );
   } catch (error) {
     console.error('[TRATTAMENTI-FRUTTETO] Errore recupero trattamenti:', error);
     if (error.message.includes('tenant') || error.message.includes('obbligatorio')) throw new Error(`Errore recupero trattamenti: ${error.message}`);
@@ -214,6 +258,19 @@ async function ricalcolaSpeseTrattamentiFrutteto(fruttetoId) {
 
 const CODICI_CATEGORIA_MODULO_TRATTAMENTI_COLTURA = ['trattamenti', 'concimazione'];
 
+function simCodiceCategoriaTrattamentiColtura(tipoLavoroNome) {
+  if (!tipoLavoroNome) return null;
+  const direct = TIPO_LAVORO_CATEGORIA_CODICE[tipoLavoroNome];
+  if (direct && CODICI_CATEGORIA_MODULO_TRATTAMENTI_COLTURA.includes(direct)) return direct;
+  const lower = String(tipoLavoroNome).toLowerCase().trim();
+  for (const [nome, cod] of Object.entries(TIPO_LAVORO_CATEGORIA_CODICE)) {
+    if (nome.toLowerCase() === lower && CODICI_CATEGORIA_MODULO_TRATTAMENTI_COLTURA.includes(cod)) {
+      return cod;
+    }
+  }
+  return null;
+}
+
 async function getCodiceCategoriaModuloTrattamentiColtura(tipoLavoroNome, cache = null) {
   try {
     if (!tipoLavoroNome) return null;
@@ -222,8 +279,9 @@ async function getCodiceCategoriaModuloTrattamentiColtura(tipoLavoroNome, cache 
     const { getCategoria } = await import('../../../core/services/categorie-service.js');
     const tipo = await getTipoLavoroByNome(tipoLavoroNome);
     if (!tipo || !tipo.categoriaId) {
-      if (cache) cache.set(tipoLavoroNome, null);
-      return null;
+      const simCod = simCodiceCategoriaTrattamentiColtura(tipoLavoroNome);
+      if (cache) cache.set(tipoLavoroNome, simCod);
+      return simCod;
     }
     let cat = await getCategoria(tipo.categoriaId);
     if (!cat) {
@@ -238,11 +296,15 @@ async function getCodiceCategoriaModuloTrattamentiColtura(tipoLavoroNome, cache 
       }
     }
     const cod = (cat.codice || '').toLowerCase();
-    const out = CODICI_CATEGORIA_MODULO_TRATTAMENTI_COLTURA.includes(cod) ? cod : null;
+    const out = CODICI_CATEGORIA_MODULO_TRATTAMENTI_COLTURA.includes(cod)
+      ? cod
+      : simCodiceCategoriaTrattamentiColtura(tipoLavoroNome);
     if (cache) cache.set(tipoLavoroNome, out);
     return out;
   } catch (e) {
-    return null;
+    const simCod = simCodiceCategoriaTrattamentiColtura(tipoLavoroNome);
+    if (cache) cache.set(tipoLavoroNome, simCod);
+    return simCod;
   }
 }
 
@@ -311,7 +373,9 @@ export async function getLavoriAttivitaTrattamentiPerFrutteto(fruttetoId, anno, 
     const terrenoLabel = terreno ? (terreno.nome || frutteto.terrenoId) : frutteto.terrenoId;
 
     const attivitaRaw = attivitaRawAll.filter(att => {
-      const dataStr = typeof att.data === 'string' ? att.data : (att.data?.toDate ? att.data.toDate().toISOString().slice(0, 10) : '');
+      const dataStr = typeof att.data === 'string'
+        ? att.data
+        : (att.data?.toDate ? att.data.toDate().toISOString().slice(0, 10) : '');
       return dataStr >= dataDaStr && dataStr <= dataAStr;
     });
 
