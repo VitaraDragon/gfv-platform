@@ -132,9 +132,9 @@ async function pickTipoLavoroInForm(page) {
 }
 
 /**
- * Seleziona un cliente con almeno un terreno (evita race: terreni del cliente precedente).
+ * Seleziona un cliente con almeno un terreno e pre-seleziona il primo terreno (atomico).
  * @param {import('playwright-core').Page} page
- * @returns {Promise<{ clienteValue: string, clienteNome: string }>}
+ * @returns {Promise<{ clienteValue: string, clienteNome: string, terrenoValue: string }>}
  */
 async function selectClienteWithTerreni(page) {
   const clienteSelect = page.locator('#cliente-id');
@@ -151,23 +151,30 @@ async function selectClienteWithTerreni(page) {
     await clienteSelect.selectOption(clienteValue);
 
     try {
-      await page.waitForFunction(
-        async ({ expectedClienteId }) => {
-          const cliente = document.getElementById('cliente-id');
-          if (!cliente || cliente.value !== expectedClienteId) return false;
+      const terrenoValue = await page
+        .waitForFunction(
+          async ({ expectedClienteId }) => {
+            const cliente = document.getElementById('cliente-id');
+            if (!cliente || cliente.value !== expectedClienteId) return null;
 
-          if (typeof window.__preventivoAwaitTerreniClienteReady === 'function') {
-            await window.__preventivoAwaitTerreniClienteReady(20_000);
-          }
+            if (typeof window.__preventivoAwaitTerreniClienteReady === 'function') {
+              await window.__preventivoAwaitTerreniClienteReady(20_000);
+            }
 
-          const terreno = document.getElementById('terreno-id');
-          if (!terreno) return false;
-          return terreno.querySelectorAll('option:not([value=""])').length >= 1;
-        },
-        { expectedClienteId: clienteValue },
-        { timeout: 60_000, polling: 300 }
-      );
-      return { clienteValue, clienteNome };
+            const terreno = document.getElementById('terreno-id');
+            if (!terreno) return null;
+            const opt = terreno.querySelector('option:not([value=""])');
+            return opt ? opt.value : null;
+          },
+          { expectedClienteId: clienteValue },
+          { timeout: 60_000, polling: 300 }
+        )
+        .then((h) => h.jsonValue());
+
+      if (!terrenoValue) continue;
+
+      await page.locator('#terreno-id').selectOption(terrenoValue);
+      return { clienteValue, clienteNome, terrenoValue };
     } catch {
       continue;
     }
@@ -182,24 +189,7 @@ async function selectClienteWithTerreni(page) {
  * @returns {Promise<{ clienteNome: string, tipoLavoro: string, coltura: string }>}
  */
 export async function fillAndSubmitNewPreventivo(page, { note, superficie = E2E_PREVENTIVO_WRITE_SUPERFICIE }) {
-  const { clienteValue, clienteNome } = await selectClienteWithTerreni(page);
-
-  const terrenoValue = await page.waitForFunction(
-    ({ expectedClienteId }) => {
-      const cliente = document.getElementById('cliente-id');
-      const terreno = document.getElementById('terreno-id');
-      if (!cliente || cliente.value !== expectedClienteId || !terreno) return null;
-      const opt = terreno.querySelector('option:not([value=""])');
-      return opt ? opt.value : null;
-    },
-    { expectedClienteId: clienteValue },
-    { timeout: 15_000 }
-  ).then((h) => h.jsonValue());
-
-  if (!terrenoValue) {
-    throw new Error('Nessun terreno disponibile nel form nuovo preventivo');
-  }
-  await page.locator('#terreno-id').selectOption(terrenoValue);
+  const { clienteNome } = await selectClienteWithTerreni(page);
 
   await page.waitForFunction(() => {
     const coltura = document.getElementById('coltura');

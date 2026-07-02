@@ -68,9 +68,9 @@ describe('GFV Farm Simulator — viticola-conto-terzi-manodopera (emulator)', ()
     );
 
     expect(simulation.counts.attivita).toBe(q.attivitaGiorniLavorativi);
-    expect(vigneto.counts.trattamenti).toBe(expectedTrattamenti);
+    expect(vigneto.counts.trattamenti).toBe(vigExpected.trattamenti);
     expect(vigneto.counts.potature).toBe(vigExpected.potature);
-    expect(vigneto.counts.vendemmie).toBe(vigExpected.vendemmie + catenaExtra.vendemmie);
+    expect(vigneto.counts.vendemmie).toBe(vigExpected.vendemmie);
     expect(magazzino.counts.movimenti).toBe(movExpected);
     expect(magazzino.sottoScorta).toBeGreaterThanOrEqual(1);
 
@@ -90,6 +90,7 @@ describe('GFV Farm Simulator — viticola-conto-terzi-manodopera (emulator)', ()
     expect(inspectTenant.counts.terreni).toBe(assets.counts.terreni + qCt.terreniClienti);
     expect(inspectTenant.counts.movimentiMagazzino).toBe(movExpected);
     expect(inspectTenant.counts.trattamentiVigneto).toBe(expectedTrattamenti);
+    expect(inspectTenant.counts.vendemmieVigneto).toBe(vigExpected.vendemmie + catenaExtra.vendemmie);
 
     const scarichi = await verifyScarichiTrattamentoVignetoTenant(db, setup.tenantId);
     expect(scarichi.trattamentiConScarico).toBe(expectedTrattamenti);
