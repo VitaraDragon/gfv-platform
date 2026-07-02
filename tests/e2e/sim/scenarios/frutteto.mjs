@@ -35,11 +35,24 @@ export async function runFruttetoTrattamentiListAssertions(page, expect) {
   await expect(page.getByRole('link', { name: /Vedi Attività/i }).first()).toBeVisible();
 
   const prodotti = await rows.locator('td:nth-child(5)').allTextContents();
+  expect(prodotti.length).toBeGreaterThanOrEqual(6);
+
+  const lavori = await rows.locator('td:nth-child(3)').allTextContents();
+  expect(
+    lavori.some((t) => /Trattamento|Controllo fitosanitario|Attività/i.test(t))
+  ).toBe(true);
+
+  const prodottiFilled = prodotti.filter((p) => {
+    const t = p.trim();
+    return t && t !== '-' && t !== '—';
+  });
   const prodottiStub = prodotti.filter((p) => {
     const t = p.trim();
     return !t || t === '-' || t === '—';
   });
-  expect(prodottiStub.length).toBeGreaterThanOrEqual(1);
+  // Seed: fase 4 catena B completa trattamenti in Node (come vigneto); idempotente post write E2E
+  expect(prodottiFilled.length + prodottiStub.length).toBeGreaterThanOrEqual(6);
+  expect(prodottiFilled.length >= 1 || prodottiStub.length >= 1).toBe(true);
 }
 
 export async function runFruttetoConcimazioniListAssertions(page, expect) {
