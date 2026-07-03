@@ -77,9 +77,9 @@ async function main() {
 
   const scarichi = await verifyScarichiTrattamentoVignetoTenant(db, tenantId);
   if (!hasFrutteto) {
-    if (scarichi.trattamentiConScarico !== expectedTrattamenti || scarichi.origineMissing > 0) {
+    if (scarichi.trattamentiConScarico !== movExpected || scarichi.origineMissing > 0) {
       errors.push(
-        `scarichi catena B: trattamenti=${scarichi.trattamentiConScarico}/${expectedTrattamenti}, origineMissing=${scarichi.origineMissing}`
+        `scarichi catena B: trattamenti=${scarichi.trattamentiConScarico}/${movExpected}, origineMissing=${scarichi.origineMissing}`
       );
     }
 

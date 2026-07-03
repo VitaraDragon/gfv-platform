@@ -79,9 +79,9 @@ async function runV1Test() {
   }
 
   const scarichi = await verifyScarichiTrattamentoVignetoTenant(db, setup.tenantId);
-  if (scarichi.trattamentiConScarico !== vigCounts.trattamenti) {
+  if (scarichi.trattamentiConScarico !== movExpected) {
     throw new Error(
-      `scarichi trattamento: attesi ${vigCounts.trattamenti} trattamenti con scarico, got ${scarichi.trattamentiConScarico}`
+      `scarichi trattamento: attesi ${movExpected} trattamenti con scarico, got ${scarichi.trattamentiConScarico}`
     );
   }
   if (scarichi.origineMissing > 0 || scarichi.origineOk !== scarichi.movimentiCollegati) {

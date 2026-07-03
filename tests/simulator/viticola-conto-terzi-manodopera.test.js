@@ -93,7 +93,7 @@ describe('GFV Farm Simulator — viticola-conto-terzi-manodopera (emulator)', ()
     expect(inspectTenant.counts.vendemmieVigneto).toBe(vigExpected.vendemmie + catenaExtra.vendemmie);
 
     const scarichi = await verifyScarichiTrattamentoVignetoTenant(db, setup.tenantId);
-    expect(scarichi.trattamentiConScarico).toBe(expectedTrattamenti);
+    expect(scarichi.trattamentiConScarico).toBe(movExpected);
     expect(scarichi.origineMissing).toBe(0);
     expect(scarichi.origineOk).toBe(scarichi.movimentiCollegati);
 
