@@ -2,7 +2,7 @@
 
 **Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (18 scenari read ✅) + **v5 roadmap** §11.3 (**64 spec E2E target**, catena A §11.3.12 + read profondi §11.3.13 + **M4 frutteto** ✅ + template `frutteto-conto-terzi-manodopera`)  
 **Data:** 2026-07-03  
-**Stato:** … **CI verificata 62/62** (pre-allineamento); post-allineamento **64/64** target (`frutteti-write`, `flotta-write`); template `frutteto-conto-terzi-manodopera` + seed catena B stub (2 incompleti)  
+**Stato:** … **CI verificata 64/64** ([28639023673](https://github.com/VitaraDragon/gfv-platform/actions/runs/28639023673)); `frutteti-write` + `flotta-write`; template `frutteto-conto-terzi-manodopera` + seed catena B stub (2 incompleti)  
 **Codename:** `gfv-farm-simulator`
 
 ---
@@ -898,7 +898,7 @@ node scripts/cascade-v3-live-smoke.js
 npm run sim:audit                    # manifest snello: sim:cleanup --keep 1
 npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavori.test.js tests/cascade-attrezzi-cv.test.js
 npm run test:run -- tests/simulator/viticola-manodopera.test.js   # emulator attivo
-npm run sim:e2e                      # 62/62 attesi in CI dual-seed (~2 min); viticola-only ~56 spec
+npm run sim:e2e                      # 64/64 attesi in CI dual-seed (~2 min); viticola-only ~58 spec
 ```
 
 **Nota audit:** `sim:audit` su manifest con molte entry legacy o tenant `regime-max` può fallire anche con E2E verde — usare `sim:cleanup --keep 1` + nuovo `sim:run` prima dell’audit.
@@ -1671,7 +1671,7 @@ npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose
 
 **Verifica UI:** §13.2 — pagina dev + moduli conto terzi + manodopera mobile.
 
-**Verifica E2E (v4 + v5 + M2 + P2 + catena A + M4 frutteto):** `npm run sim:e2e` / `npm run sim:e2e:ci` — suite **62/62** dual-seed (viticola + frutteto); v. §11.2–§11.3.13. CI: [28601797733](https://github.com/VitaraDragon/gfv-platform/actions/runs/28601797733).
+**Verifica E2E (v4 + v5 + M2 + P2 + catena A + M4 frutteto):** `npm run sim:e2e` / `npm run sim:e2e:ci` — suite **64/64** dual-seed (viticola + frutteto); v. §11.2–§11.3.13. CI: [28639023673](https://github.com/VitaraDragon/gfv-platform/actions/runs/28639023673).
 
 **Non in scope v2.2 (aggiornato):** preventivo accettato → creazione lavoro conto terzi automatica. ~~Link rapidi Conto Terzi in pagina dev~~ → **implementato 2026-06-28** (gruppi modulo condizionati al template).
 

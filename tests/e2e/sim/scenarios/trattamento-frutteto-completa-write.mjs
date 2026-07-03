@@ -18,7 +18,18 @@ function trattamentoStubFromAttivitaRows(page) {
   });
 }
 
+function trattamentoRowsWithNote(page) {
+  return trattamentoStubFromAttivitaRows(page).filter({
+    hasText: E2E_TRATTAMENTO_FRUTTETO_NOTE,
+  });
+}
+
 async function countMovimentiUscita(page) {
+  await page.waitForFunction(() => {
+    const container = document.getElementById('movimenti-container');
+    if (!container || /Caricamento movimenti/i.test(container.textContent || '')) return false;
+    return container.querySelectorAll('.movimenti-table tbody tr').length >= 1;
+  }, undefined, { timeout: 60_000 });
   return page.locator('#movimenti-container .movimenti-table tbody tr .badge-uscita').count();
 }
 
@@ -28,9 +39,25 @@ async function findIncompleteTrattamentoRow(page) {
   for (let i = 0; i < count; i++) {
     const row = rows.nth(i);
     const prodotto = ((await row.locator('td').nth(4).textContent()) || '').trim();
-    if (prodotto === '-' || prodotto === '') return row;
+    if (prodotto === '-' || prodotto === '' || prodotto === '—') return row;
   }
   return null;
+}
+
+async function waitForTrattamentoMarkerCompleted(page) {
+  await page.waitForFunction(
+    (note) => {
+      const rows = document.querySelectorAll('#tbody-trattamenti tr');
+      return Array.from(rows).some((tr) => {
+        if (!(tr.textContent || '').includes(note)) return false;
+        const cells = tr.querySelectorAll('td');
+        const prodotto = (cells[4]?.textContent || '').trim();
+        return prodotto !== '-' && prodotto !== '' && prodotto !== '—';
+      });
+    },
+    E2E_TRATTAMENTO_FRUTTETO_NOTE,
+    { timeout: 90_000 }
+  );
 }
 
 async function completeTrattamentoStub(page) {
@@ -59,6 +86,7 @@ async function completeTrattamentoStub(page) {
   const productSelect = page.locator('#tbody-prodotti-trattamento .prodotto-select').first();
   const productOption = productSelect.locator('option[value]:not([value=""])').first();
   const productValue = await productOption.getAttribute('value');
+  const productLabel = ((await productOption.textContent()) || '').trim();
   await productSelect.selectOption(productValue || { index: 1 });
   await page
     .locator('#tbody-prodotti-trattamento .prodotto-dosaggio')
@@ -75,6 +103,9 @@ async function completeTrattamentoStub(page) {
   page.once('dialog', (dialog) => dialog.accept());
   await page.locator('#form-trattamento button[type="submit"]').click();
   await page.locator('#modal-trattamento.active').waitFor({ state: 'hidden', timeout: 90_000 });
+  await waitForTrattamentoMarkerCompleted(page);
+
+  return { productLabel };
 }
 
 export async function runTrattamentoFruttetoCompletaWriteAssertions(page, expect) {
@@ -83,10 +114,7 @@ export async function runTrattamentoFruttetoCompletaWriteAssertions(page, expect
   await loginAsManagerFrutteto(page);
   await gotoFruttetoTrattamentiList(page);
 
-  const completedRows = trattamentoStubFromAttivitaRows(page).filter({
-    hasText: E2E_TRATTAMENTO_FRUTTETO_NOTE,
-  });
-
+  const markerRows = trattamentoRowsWithNote(page);
   let incompleteRow = await findIncompleteTrattamentoRow(page);
 
   if (incompleteRow) {
@@ -94,21 +122,31 @@ export async function runTrattamentoFruttetoCompletaWriteAssertions(page, expect
     const usciteBefore = await countMovimentiUscita(page);
 
     await gotoFruttetoTrattamentiList(page);
-    await completeTrattamentoStub(page);
+    const { productLabel } = await completeTrattamentoStub(page);
 
-    incompleteRow = await findIncompleteTrattamentoRow(page);
-    expect(incompleteRow).toBeNull();
+    expect(await markerRows.count()).toBeGreaterThanOrEqual(1);
+    const prodottoCell = markerRows.first().locator('td').nth(4);
+    await expect(prodottoCell).not.toHaveText('-');
+    if (productLabel) {
+      await expect(prodottoCell).toContainText(productLabel.slice(0, 12));
+    }
 
     await gotoMovimentiList(page);
     const usciteAfter = await countMovimentiUscita(page);
     expect(usciteAfter).toBeGreaterThanOrEqual(usciteBefore + 1);
-  } else if ((await completedRows.count()) === 0) {
-    expect(await trattamentoStubFromAttivitaRows(page).count()).toBeGreaterThanOrEqual(1);
-    await expect(trattamentoStubFromAttivitaRows(page).first().locator('td').nth(4)).not.toHaveText('-');
-
+  } else if ((await markerRows.count()) >= 1) {
+    await expect(markerRows.first().locator('td').nth(4)).not.toHaveText('-');
     await gotoMovimentiList(page);
-    expect(await countMovimentiUscita(page)).toBeGreaterThanOrEqual(1);
+    expect(await countMovimentiUscita(page)).toBeGreaterThanOrEqual(10);
   } else {
-    await expect(completedRows.first().locator('td').nth(4)).not.toHaveText('-');
+    expect(await trattamentoStubFromAttivitaRows(page).count()).toBeGreaterThanOrEqual(1);
+    const prodotti = await trattamentoStubFromAttivitaRows(page).locator('td:nth-child(5)').allTextContents();
+    const filled = prodotti.filter((p) => {
+      const t = p.trim();
+      return t && t !== '-' && t !== '—';
+    });
+    expect(filled.length).toBeGreaterThanOrEqual(1);
+    await gotoMovimentiList(page);
+    expect(await countMovimentiUscita(page)).toBeGreaterThanOrEqual(10);
   }
 }

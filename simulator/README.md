@@ -200,7 +200,7 @@ Assert su DOM visibile — dati seed già validati da v3/v2.2/v2.1 manodopera.
 
 | Stato oggi (2026-07-02) | Target residuo |
 | ----------------------- | -------------- |
-| **62/62** spec E2E target CI (56 viticola + 6 frutteto M4) | Report + statistiche **fuori scope** (redesign UI) |
+| **64/64** spec E2E target CI (58 viticola + 6 frutteto M4) | Report + statistiche **fuori scope** (redesign UI) |
 | **M4 frutteto** ✅ template `frutteto-solo-titolare` + 6 spec E2E | Template frutteto+manodopera/CT (se richiesto) |
 | Read smoke ~45/45 URL ✅ | Report + statistiche **fuori scope** (redesign UI) |
 | Read profondi batch A–C ✅ | §11.3.13 — hub magazzino, vigneto, CT, manodopera |

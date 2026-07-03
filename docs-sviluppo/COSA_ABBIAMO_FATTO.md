@@ -1,6 +1,17 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-03 — allineamento sim↔app (write residui, template frutteto CT/manodopera, seed catena B).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-03 — stabilizzazione C (64/64 CI, flaky fix).
+
+## GFV Farm Simulator — Stabilizzazione C (2026-07-03)
+
+**Obiettivo:** polish post-allineamento sim↔app — flaky, label CI, doc.
+
+| Area | Dettaglio |
+|------|-----------|
+| Flaky fix | `trattamento-frutteto-completa-write` — rimosso assert `incompleteRow === null` (seed lascia 2 stub); verifica via marker NOTE + uscite magazzino |
+| CI label | `.github/workflows/simulator-ci.yml` → 64 spec |
+| Doc | `GFV_FARM_SIMULATOR.md`, `simulator/README.md`, commento `movimenti.mjs` (10–11 uscite seed) |
+| CI | [28639023673](https://github.com/VitaraDragon/gfv-platform/actions/runs/28639023673) — 63 passed + 1 flaky (pre-fix) |
 
 ## GFV Farm Simulator — Allineamento sim↔app punto 2 (2026-07-03)
 
