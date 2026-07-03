@@ -38,34 +38,38 @@ async function countFilledAttivitaStubRows(page) {
   return filled;
 }
 
-async function countMovimentiUscita(page) {
+
+async function countScarichiTrattamentoFrutteto(page) {
   await page.waitForFunction(() => {
     const container = document.getElementById('movimenti-container');
     if (!container || /Caricamento movimenti/i.test(container.textContent || '')) return false;
     return container.querySelectorAll('.movimenti-table tbody tr').length >= 1;
   }, undefined, { timeout: 60_000 });
-  return page.locator('#movimenti-container .movimenti-table tbody tr .badge-uscita').count();
+  return page
+    .locator('#movimenti-container .movimenti-table tbody tr')
+    .filter({ hasText: /Scarico da trattamento frutteto/i })
+    .count();
 }
 
 /**
- * Attende almeno `minimum` uscite, ricaricando la pagina movimenti se Firestore non ha ancora propagato lo scarico.
+ * Attende almeno `minimum` righe «Scarico da trattamento frutteto» in movimenti.
  * @param {import('playwright-core').Page} page
  * @param {typeof import('@playwright/test').expect} expect
  * @param {number} minimum
  */
-async function waitForMovimentiUscitaAtLeast(page, expect, minimum) {
+async function waitForScarichiFruttetoAtLeast(page, expect, minimum) {
   await gotoMovimentiList(page);
   await expect.poll(
     async () => {
-      const count = await countMovimentiUscita(page);
+      const count = await countScarichiTrattamentoFrutteto(page);
       if (count >= minimum) return count;
       await page.reload();
-      return countMovimentiUscita(page);
+      return countScarichiTrattamentoFrutteto(page);
     },
     {
       timeout: 90_000,
       intervals: [500, 1000, 2000, 3000],
-      message: `Attesa almeno ${minimum} uscite in movimenti`,
+      message: `Attesa almeno ${minimum} scarichi trattamento frutteto in movimenti`,
     }
   ).toBeGreaterThanOrEqual(minimum);
 }
@@ -116,11 +120,16 @@ async function completeTrattamentoStub(page, filledBefore) {
 
   await page.locator('#trattamento-note').fill(E2E_TRATTAMENTO_FRUTTETO_NOTE);
 
-  const scaricoGroup = page.locator('#trattamento-scarico-magazzino-group');
+  await page.waitForFunction(
+    () => {
+      const g = document.getElementById('trattamento-scarico-magazzino-group');
+      return g && g.style.display !== 'none';
+    },
+    undefined,
+    { timeout: 60_000 }
+  );
   const scaricoCb = page.locator('#trattamento-registra-scarico-magazzino');
-  if (await scaricoGroup.isVisible()) {
-    await scaricoCb.check();
-  }
+  await scaricoCb.check();
 
   page.once('dialog', (dialog) => dialog.accept());
   await page.locator('#form-trattamento button[type="submit"]').click();
@@ -161,7 +170,7 @@ export async function runTrattamentoFruttetoCompletaWriteAssertions(page, expect
 
   if (incompleteRow) {
     await gotoMovimentiList(page);
-    const usciteBefore = await countMovimentiUscita(page);
+    const scarichiBefore = await countScarichiTrattamentoFrutteto(page);
 
     await gotoFruttetoTrattamentiList(page);
     await waitForTrattamentiTableReady(page);
@@ -179,9 +188,11 @@ export async function runTrattamentoFruttetoCompletaWriteAssertions(page, expect
       await expect(rowWithProduct.first()).toBeVisible({ timeout: 60_000 });
     }
 
-    await waitForMovimentiUscitaAtLeast(page, expect, usciteBefore + 1);
+    await waitForScarichiFruttetoAtLeast(page, expect, scarichiBefore + 1);
   } else {
     expect(filledBefore).toBeGreaterThanOrEqual(1);
     await expect(trattamentoStubFromAttivitaRows(page).first().locator('td').nth(4)).not.toHaveText('-');
+    await gotoMovimentiList(page);
+    expect(await countScarichiTrattamentoFrutteto(page)).toBeGreaterThanOrEqual(1);
   }
 }

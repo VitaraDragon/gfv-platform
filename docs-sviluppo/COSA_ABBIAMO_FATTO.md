@@ -8,8 +8,8 @@
 
 | Area | Dettaglio |
 |------|-----------|
-| E2E | `trattamento-frutteto-completa-write.mjs` — assert `usciteBefore + 1` (rimosso `Math.max(..., 10)`); `expect.poll` + reload su movimenti; idempotente allineato a vigneto scen. 53 |
-| App | Checkbox scarico: visibilità su `#trattamento-scarico-magazzino-group` (come vigneto) |
+| E2E | `trattamento-frutteto-completa-write.mjs` — assert su righe «Scarico da trattamento frutteto»; wait gruppo scarico visibile; poll/reload |
+| App | Frutteto trattamenti: checkbox scarico magazzino **checked by default** se modulo magazzino attivo |
 
 ## GFV Farm Simulator — CI 67/67 verde + Fase 1 write P2 chiusa (2026-07-03)
 
