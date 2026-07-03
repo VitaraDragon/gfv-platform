@@ -6,7 +6,7 @@
  */
 
 import { Base } from '../../../core/models/Base.js';
-import { dateToTimestamp } from '../../../core/services/firebase-service.js';
+import { dateToTimestamp, timestampToDate } from '../../../core/services/firebase-service.js';
 import { isTipoFlotta } from '../lib/macchine-tipo-utils.js';
 
 export class Macchina extends Base {
@@ -61,13 +61,7 @@ export class Macchina extends Base {
     this.numeroTelaio = data.numeroTelaio || null;
     
     // Gestione dataAcquisto
-    if (data.dataAcquisto) {
-      this.dataAcquisto = data.dataAcquisto instanceof Date 
-        ? data.dataAcquisto 
-        : new Date(data.dataAcquisto);
-    } else {
-      this.dataAcquisto = null;
-    }
+    this.dataAcquisto = data.dataAcquisto ? timestampToDate(data.dataAcquisto) : null;
     
     this.oreIniziali = data.oreIniziali !== undefined ? parseFloat(data.oreIniziali) : 0;
     this.oreAttuali = data.oreAttuali !== undefined ? parseFloat(data.oreAttuali) : this.oreIniziali;
@@ -81,13 +75,9 @@ export class Macchina extends Base {
     this.note = data.note || '';
     
     // Gestione prossimaManutenzione
-    if (data.prossimaManutenzione) {
-      this.prossimaManutenzione = data.prossimaManutenzione instanceof Date 
-        ? data.prossimaManutenzione 
-        : new Date(data.prossimaManutenzione);
-    } else {
-      this.prossimaManutenzione = null;
-    }
+    this.prossimaManutenzione = data.prossimaManutenzione
+      ? timestampToDate(data.prossimaManutenzione)
+      : null;
     
     this.oreProssimaManutenzione = data.oreProssimaManutenzione !== undefined 
       ? parseFloat(data.oreProssimaManutenzione) 
@@ -103,21 +93,13 @@ export class Macchina extends Base {
       ? parseFloat(data.kmProssimaManutenzione)
       : null;
     
-    if (data.prossimaRevisione) {
-      this.prossimaRevisione = data.prossimaRevisione instanceof Date
-        ? data.prossimaRevisione
-        : new Date(data.prossimaRevisione);
-    } else {
-      this.prossimaRevisione = null;
-    }
+    this.prossimaRevisione = data.prossimaRevisione
+      ? timestampToDate(data.prossimaRevisione)
+      : null;
 
-    if (data.prossimaAssicurazione) {
-      this.prossimaAssicurazione = data.prossimaAssicurazione instanceof Date
-        ? data.prossimaAssicurazione
-        : new Date(data.prossimaAssicurazione);
-    } else {
-      this.prossimaAssicurazione = null;
-    }
+    this.prossimaAssicurazione = data.prossimaAssicurazione
+      ? timestampToDate(data.prossimaAssicurazione)
+      : null;
     
     // Costo orario macchina (opzionale, per calcolo costi nei compensi)
     this.costoOra = data.costoOra !== undefined ? parseFloat(data.costoOra) : null;

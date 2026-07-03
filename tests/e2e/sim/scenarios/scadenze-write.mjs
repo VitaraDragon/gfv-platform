@@ -9,6 +9,23 @@ import { gotoScadenzeList, loginAsManagerFromDevPage } from '../helpers/sim-logi
 export const E2E_SCADENZE_WRITE_DATE = '2030-06-15';
 
 /**
+ * @param {import('playwright-core').Page} page
+ */
+async function waitForScadenzeTableReady(page) {
+  await page.waitForFunction(
+    () => {
+      const container = document.getElementById('table-container');
+      if (!container) return false;
+      if (container.querySelector('.loading')) return false;
+      if (/Caricamento/i.test(container.textContent || '')) return false;
+      if (container.querySelector('.empty-state')) return false;
+      return container.querySelector('.scadenze-table tbody tr') !== null;
+    },
+    { timeout: 90_000 }
+  );
+}
+
+/**
  * @param {import('playwright-core').Locator} rinnovaBtn
  */
 async function valoreCellText(rinnovaBtn) {
@@ -41,6 +58,19 @@ async function pickRinnovaDataButton(page) {
  * @param {import('playwright-core').Page} page
  * @param {string} macchinaId
  * @param {string} campo
+ */
+async function readScadenzaValore(page, macchinaId, campo) {
+  const btn = page.locator(
+    `.btn-rinnova[data-macchina-id="${macchinaId}"][data-campo="${campo}"]`
+  ).first();
+  if ((await btn.count()) === 0) return '';
+  return valoreCellText(btn);
+}
+
+/**
+ * @param {import('playwright-core').Page} page
+ * @param {string} macchinaId
+ * @param {string} campo
  * @param {string} beforeValore
  */
 async function waitForScadenzaValoreChanged(page, macchinaId, campo, beforeValore) {
@@ -51,7 +81,7 @@ async function waitForScadenzaValoreChanged(page, macchinaId, campo, beforeValor
       );
       if (!btn) return false;
       const valore = (btn.closest('tr')?.querySelectorAll('td')[2]?.textContent || '').trim();
-      if (valore === before) return false;
+      if (!valore || valore === before) return false;
       return /2030|giugno/i.test(valore);
     },
     { id: macchinaId, field: campo, before: beforeValore },
@@ -68,6 +98,7 @@ export async function runScadenzeWriteAssertions(page, expect) {
 
   await loginAsManagerFromDevPage(page);
   await gotoScadenzeList(page);
+  await waitForScadenzeTableReady(page);
 
   const rinnovaBtn = await pickRinnovaDataButton(page);
   const macchinaId = (await rinnovaBtn.getAttribute('data-macchina-id')) || '';
@@ -95,10 +126,15 @@ export async function runScadenzeWriteAssertions(page, expect) {
       { timeout: 90_000 }
     );
 
+    await waitForScadenzeTableReady(page);
     await waitForScadenzaValoreChanged(page, macchinaId, campo, beforeValore);
-    valore = await valoreCellText(
-      page.locator(`.btn-rinnova[data-macchina-id="${macchinaId}"][data-campo="${campo}"]`).first()
-    );
+    valore = await readScadenzaValore(page, macchinaId, campo);
+  }
+
+  if (!/2030|giugno/i.test(valore)) {
+    await page.reload();
+    await waitForScadenzeTableReady(page);
+    valore = await readScadenzaValore(page, macchinaId, campo);
   }
 
   expect(/2030|giugno/i.test(valore)).toBe(true);

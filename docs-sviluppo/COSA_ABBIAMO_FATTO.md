@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-03 — Fase 1 write manodopera + scadenze (67 spec).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-03 — fix scadenze-write CI (67 spec).
+
+## GFV Farm Simulator — fix scadenze-write CI (2026-07-03)
+
+**Obiettivo:** far passare `scadenze-write` in CI ([28644343723](https://github.com/VitaraDragon/gfv-platform/actions/runs/28644343723) — timeout assert valore tabella).
+
+| Area | Dettaglio |
+|------|-----------|
+| App | `patchMacchinaScadenzaFields` — update parziale scadenze senza validazione anagrafica completa; form rinnova: `loadData()` prima di chiudere modal |
+| Model | `Macchina` — date scadenze via `timestampToDate` (Timestamp Firestore) |
+| E2E | `scadenze-write.mjs` — attende tabella post-save (`waitForScadenzeTableReady`); reload fallback se assert DOM fallisce |
 
 ## GFV Farm Simulator — Fase 1 write P2 manodopera + scadenze (2026-07-03)
 

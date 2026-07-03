@@ -10,12 +10,56 @@ import {
   getDocumentData, 
   updateDocument,
   deleteDocument,
-  getCollectionData 
+  getCollectionData,
+  dateToTimestamp
 } from '../../../core/services/firebase-service.js';
 import { getCurrentTenantId } from '../../../core/services/tenant-service.js';
 import { Macchina } from '../models/Macchina.js';
 
 const COLLECTION_NAME = 'macchine';
+
+const SCADENZA_PATCH_FIELDS = new Set([
+  'prossimaManutenzione',
+  'prossimaRevisione',
+  'prossimaAssicurazione',
+  'oreProssimaManutenzione',
+  'kmProssimaManutenzione',
+]);
+
+/**
+ * Aggiorna solo campi scadenza/manutenzione (senza validazione anagrafica completa).
+ * Usato dalla lista scadenze per evitare blocchi su macchine legacy nel seed.
+ * @param {string} macchinaId
+ * @param {Object} updates
+ * @returns {Promise<void>}
+ */
+export async function patchMacchinaScadenzaFields(macchinaId, updates) {
+  const tenantId = getCurrentTenantId();
+  if (!tenantId) {
+    throw new Error('Nessun tenant corrente disponibile');
+  }
+  if (!macchinaId) {
+    throw new Error('ID macchina obbligatorio');
+  }
+
+  const patch = {};
+  for (const [key, value] of Object.entries(updates || {})) {
+    if (!SCADENZA_PATCH_FIELDS.has(key)) {
+      throw new Error(`Campo scadenza non consentito: ${key}`);
+    }
+    if (value instanceof Date) {
+      patch[key] = dateToTimestamp(value);
+    } else {
+      patch[key] = value;
+    }
+  }
+
+  if (Object.keys(patch).length === 0) {
+    throw new Error('Nessun campo scadenza da aggiornare');
+  }
+
+  await updateDocument(COLLECTION_NAME, macchinaId, patch, tenantId);
+}
 
 /**
  * Ottieni tutte le macchine del tenant corrente
@@ -427,6 +471,7 @@ export default {
   getMacchina,
   createMacchina,
   updateMacchina,
+  patchMacchinaScadenzaFields,
   deleteMacchina,
   getNumeroLavoriMacchina,
   aggiornaOreMacchina,

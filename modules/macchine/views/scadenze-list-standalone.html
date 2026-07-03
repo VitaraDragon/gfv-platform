@@ -132,7 +132,7 @@
             const { getDb, getDoc, doc } = firebaseService;
             const { afterFirebaseInit, resolveAuthUser, loginPageUrl } = await import('../../../core/js/simulator-standalone-page.js');
             const { getCurrentTenantId, setCurrentTenantId, initializeTenantService } = await import('../../../core/services/tenant-service.js');
-            const { getAllMacchine, updateMacchina } = await import('../../parco-macchine/services/macchine-service.js');
+            const { getAllMacchine, patchMacchinaScadenzaFields } = await import('../../parco-macchine/services/macchine-service.js');
             firebaseService.initializeFirebase(firebaseConfig);
             const auth = await afterFirebaseInit(firebaseService);
             (function loadGfvStandaloneShell() {
@@ -446,19 +446,19 @@
                         if (tipo === 'ore') {
                             const ore = parseFloat(document.getElementById('rinnova-ore').value);
                             if (isNaN(ore) || ore < 0) { showAlert('Inserisci ore valide', 'error'); return; }
-                            await updateMacchina(macchinaId, { oreProssimaManutenzione: ore });
+                            await patchMacchinaScadenzaFields(macchinaId, { oreProssimaManutenzione: ore });
                         } else if (tipo === 'km') {
                             const km = parseFloat(document.getElementById('rinnova-km').value);
                             if (isNaN(km) || km < 0) { showAlert('Inserisci km validi', 'error'); return; }
-                            await updateMacchina(macchinaId, { kmProssimaManutenzione: km });
+                            await patchMacchinaScadenzaFields(macchinaId, { kmProssimaManutenzione: km });
                         } else {
                             const dataStr = document.getElementById('rinnova-data').value;
                             if (!dataStr) { showAlert('Inserisci una data', 'error'); return; }
-                            await updateMacchina(macchinaId, { [campo]: new Date(dataStr + 'T12:00:00') });
+                            await patchMacchinaScadenzaFields(macchinaId, { [campo]: new Date(dataStr + 'T12:00:00') });
                         }
+                        await loadData();
                         showAlert('Scadenza aggiornata', 'success');
                         closeModal();
-                        await loadData();
                     } catch (err) { showAlert(err.message || 'Errore aggiornamento', 'error'); }
                 };
                 await loadData();
