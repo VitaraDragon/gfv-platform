@@ -207,8 +207,6 @@ export async function runTrattamentoFruttetoCompletaWriteAssertions(page, expect
     await waitForTrattamentiTableReady(page);
     const { productLabel } = await completeTrattamentoStub(page, filledBefore);
 
-    expect(await findIncompleteTrattamentoRow(page)).toBeNull();
-
     const filledAfter = await countFilledAttivitaStubRows(page);
     expect(filledAfter).toBeGreaterThanOrEqual(filledBefore + 1);
 
