@@ -47,18 +47,6 @@ async function countMovimentiUscita(page) {
   return page.locator('#movimenti-container .movimenti-table tbody tr .badge-uscita').count();
 }
 
-async function waitForMovimentiUscitaAtLeast(page, min) {
-  await page.waitForFunction(
-    (minimum) => {
-      const container = document.getElementById('movimenti-container');
-      if (!container || /Caricamento movimenti/i.test(container.textContent || '')) return false;
-      return container.querySelectorAll('.movimenti-table tbody tr .badge-uscita').length >= minimum;
-    },
-    min,
-    { timeout: 90_000 }
-  );
-}
-
 async function findIncompleteTrattamentoRow(page) {
   const rows = trattamentoStubFromAttivitaRows(page);
   const count = await rows.count();
@@ -162,9 +150,20 @@ export async function runTrattamentoFruttetoCompletaWriteAssertions(page, expect
     }
 
     await gotoMovimentiList(page);
-    await waitForMovimentiUscitaAtLeast(page, usciteBefore + 1);
+    await page.waitForFunction(
+      (minimum) => {
+        const container = document.getElementById('movimenti-container');
+        if (!container || /Caricamento movimenti/i.test(container.textContent || '')) return false;
+        return container.querySelectorAll('.movimenti-table tbody tr .badge-uscita').length >= minimum;
+      },
+      usciteBefore + 1,
+      { timeout: 90_000 }
+    ).catch(async () => {
+      await page.reload();
+      await countMovimentiUscita(page);
+    });
     const usciteAfter = await countMovimentiUscita(page);
-    expect(usciteAfter).toBeGreaterThanOrEqual(usciteBefore + 1);
+    expect(usciteAfter).toBeGreaterThanOrEqual(Math.max(usciteBefore + 1, 10));
   } else {
     expect(filledBefore).toBeGreaterThanOrEqual(1);
     await gotoMovimentiList(page);

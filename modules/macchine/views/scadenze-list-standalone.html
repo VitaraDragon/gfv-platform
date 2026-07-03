@@ -454,7 +454,7 @@
                         } else {
                             const dataStr = document.getElementById('rinnova-data').value;
                             if (!dataStr) { showAlert('Inserisci una data', 'error'); return; }
-                            await updateMacchina(macchinaId, { [campo]: new Date(dataStr) });
+                            await updateMacchina(macchinaId, { [campo]: new Date(dataStr + 'T12:00:00') });
                         }
                         showAlert('Scadenza aggiornata', 'success');
                         closeModal();

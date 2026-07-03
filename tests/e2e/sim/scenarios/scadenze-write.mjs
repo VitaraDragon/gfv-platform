@@ -1,6 +1,6 @@
 /**
  * E2E write — aggiorna scadenza (rinnova) da lista scadenze parco.
- * Idempotente: data 2030-06-15; verifica riga via data-macchina-id + data-campo.
+ * Idempotente: data 2030-06-15; verifica cambio valore sulla riga target.
  * @module tests/e2e/sim/scenarios/scadenze-write
  */
 
@@ -16,22 +16,6 @@ async function valoreCellText(rinnovaBtn) {
     const tr = btn.closest('tr');
     return (tr?.querySelectorAll('td')[2]?.textContent || '').trim();
   });
-}
-
-/**
- * @param {import('playwright-core').Page} page
- */
-async function findRenewedMarkerRow(page) {
-  const buttons = page.locator('.scadenze-table tbody tr .btn-rinnova[data-tipo="data"]');
-  const count = await buttons.count();
-  for (let i = 0; i < count; i += 1) {
-    const btn = buttons.nth(i);
-    const valore = await valoreCellText(btn);
-    if (!/2030/.test(valore)) continue;
-    const isBlack = await btn.evaluate((el) => !!el.closest('tr')?.querySelector('.status-dot.dot-black'));
-    if (!isBlack) return btn;
-  }
-  return null;
 }
 
 /**
@@ -57,53 +41,22 @@ async function pickRinnovaDataButton(page) {
  * @param {import('playwright-core').Page} page
  * @param {string} macchinaId
  * @param {string} campo
+ * @param {string} beforeValore
  */
-async function waitForScadenzaRowUpdated(page, macchinaId, campo) {
+async function waitForScadenzaValoreChanged(page, macchinaId, campo, beforeValore) {
   await page.waitForFunction(
-    ({ id, field }) => {
+    ({ id, field, before }) => {
       const btn = document.querySelector(
         `.btn-rinnova[data-macchina-id="${id}"][data-campo="${field}"]`
       );
       if (!btn) return false;
-      const tr = btn.closest('tr');
-      if (!tr) return false;
-      const valore = (tr.querySelectorAll('td')[2]?.textContent || '').trim();
-      if (!/2030|giugno/i.test(valore)) return false;
-      return !!tr.querySelector('.status-dot.dot-green, .status-dot.dot-yellow');
+      const valore = (btn.closest('tr')?.querySelectorAll('td')[2]?.textContent || '').trim();
+      if (valore === before) return false;
+      return /2030|giugno/i.test(valore);
     },
-    { id: macchinaId, field: campo },
+    { id: macchinaId, field: campo, before: beforeValore },
     { timeout: 90_000 }
   );
-}
-
-/**
- * @param {import('playwright-core').Page} page
- */
-async function renewFirstScadutaDataRow(page) {
-  const rinnovaBtn = await pickRinnovaDataButton(page);
-
-  const macchinaId = (await rinnovaBtn.getAttribute('data-macchina-id')) || '';
-  const campo = (await rinnovaBtn.getAttribute('data-campo')) || 'prossimaManutenzione';
-  if (!macchinaId) {
-    throw new Error('Pulsante rinnova senza data-macchina-id');
-  }
-
-  await rinnovaBtn.click();
-
-  await page.locator('#modal-rinnova.active').waitFor({ state: 'visible', timeout: 30_000 });
-  await page.locator('#group-data').waitFor({ state: 'visible', timeout: 15_000 });
-  await page.locator('#rinnova-data').fill(E2E_SCADENZE_WRITE_DATE);
-  await page.locator('#form-rinnova button[type="submit"]').click();
-
-  await page.waitForFunction(
-    () => {
-      const modal = document.getElementById('modal-rinnova');
-      return modal && !modal.classList.contains('active');
-    },
-    { timeout: 90_000 }
-  );
-
-  await waitForScadenzaRowUpdated(page, macchinaId, campo);
 }
 
 /**
@@ -116,15 +69,42 @@ export async function runScadenzeWriteAssertions(page, expect) {
   await loginAsManagerFromDevPage(page);
   await gotoScadenzeList(page);
 
-  let markerBtn = await findRenewedMarkerRow(page);
-  if (!markerBtn) {
-    await renewFirstScadutaDataRow(page);
-    markerBtn = await findRenewedMarkerRow(page);
+  const rinnovaBtn = await pickRinnovaDataButton(page);
+  const macchinaId = (await rinnovaBtn.getAttribute('data-macchina-id')) || '';
+  const campo = (await rinnovaBtn.getAttribute('data-campo')) || 'prossimaManutenzione';
+  if (!macchinaId) {
+    throw new Error('Pulsante rinnova senza data-macchina-id');
   }
 
-  expect(markerBtn).not.toBeNull();
-  const valore = await valoreCellText(markerBtn);
+  let valore = await valoreCellText(rinnovaBtn);
+
+  if (!/2030/.test(valore)) {
+    const beforeValore = valore;
+    await rinnovaBtn.click();
+
+    await page.locator('#modal-rinnova.active').waitFor({ state: 'visible', timeout: 30_000 });
+    await page.locator('#group-data').waitFor({ state: 'visible', timeout: 15_000 });
+    await page.locator('#rinnova-data').fill(E2E_SCADENZE_WRITE_DATE);
+    await page.locator('#form-rinnova button[type="submit"]').click();
+
+    await page.waitForFunction(
+      () => {
+        const modal = document.getElementById('modal-rinnova');
+        return modal && !modal.classList.contains('active');
+      },
+      { timeout: 90_000 }
+    );
+
+    await waitForScadenzaValoreChanged(page, macchinaId, campo, beforeValore);
+    valore = await valoreCellText(
+      page.locator(`.btn-rinnova[data-macchina-id="${macchinaId}"][data-campo="${campo}"]`).first()
+    );
+  }
+
   expect(/2030|giugno/i.test(valore)).toBe(true);
-  const isBlack = await markerBtn.evaluate((el) => !!el.closest('tr')?.querySelector('.status-dot.dot-black'));
+  const isBlack = await page
+    .locator(`.btn-rinnova[data-macchina-id="${macchinaId}"][data-campo="${campo}"]`)
+    .first()
+    .evaluate((el) => !!el.closest('tr')?.querySelector('.status-dot.dot-black'));
   expect(isBlack).toBe(false);
 }
