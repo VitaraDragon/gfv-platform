@@ -8,7 +8,7 @@ Guida completa: [`docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md`](../docs-svilup
 **v2.2 conto terzi:** template `viticola-conto-terzi` / `viticola-conto-terzi-manodopera` ✅ — guida §15 in `GFV_FARM_SIMULATOR.md`  
 **v3 cascata:** semafori affitti/macchine + Vitest + smoke Node ✅ — guida §11.1  
 **v4 Playwright:** scenari 1–19 ✅ — guida §11.2 (18 read)  
-**v5 roadmap:** **67/67 spec** E2E ✅, M2 + M3 + P2 + **write P2 (65–67)** ✅, **CI verificata** (2026-07-03) — guida §11.3  
+**v5 roadmap:** **70 spec** E2E (target post Fase 2 write), M2 + M3 + P2 + **write P2 + Fase 2 write** ✅ — guida §11.3  
 **Tony E2E (post-v5):** [`docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md`](../docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md)
 
 ## Prerequisiti

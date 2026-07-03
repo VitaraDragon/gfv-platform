@@ -1,8 +1,8 @@
 # GFV Farm Simulator — Guida sviluppo per agenti
 
-**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (18 scenari read ✅) + **v5 roadmap** §11.3 (**67 spec E2E ✅**, catena A §11.3.12 + read profondi §11.3.13 + **M4 frutteto** ✅ + **Fase 1 write P2** ✅)  
+**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (18 scenari read ✅) + **v5 roadmap** §11.3 (**70 spec E2E ✅**, catena A §11.3.12 + read profondi §11.3.13 + **M4 frutteto** ✅ + **Fase 2 write** ✅)  
 **Data:** 2026-07-03  
-**Stato:** **CI verificata 67/67** ([28645514543](https://github.com/VitaraDragon/gfv-platform/actions/runs/28645514543) — 66 passed + 1 flaky frutteto); write P2 `operai-write` / `squadre-write` / `scadenze-write` ✅; template `frutteto-conto-terzi-manodopera` + seed catena B stub (2 incompleti)  
+**Stato:** **CI 67/67 verificata** [28671850155](https://github.com/VitaraDragon/gfv-platform/actions/runs/28671850155); **Fase 2 write** `trattori-write` / `concimazione-frutteto-completa-write` / `lavori-caposquadra-write` → target **70 spec**  
 **Codename:** `gfv-farm-simulator`
 
 ---
@@ -876,7 +876,7 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 
 **Read profondi batch A–C chiuso ✅** (§11.3.13) — hub magazzino/tracciabilità, liste vigneto, CT, manodopera.
 
-**Prossimo — template viticola:** stabilizzare flaky frutteto write; opz. Fase 2 write residui (`trattori-write`, `concimazione-frutteto`, `lavori-caposquadra`); track **Tony E2E** (gate v5 app ✅ — v. `TONY_E2E_GUIDA_SVILUPPO.md` §7).
+**Prossimo — template viticola:** track **Tony E2E** (gate v5 app ✅ — v. `TONY_E2E_GUIDA_SVILUPPO.md` §7); M5 report (fuori scope redesign).
 
 **Parallelo (v4b / fuori sim):**
 

@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-03 — stabilizzazione flaky `trattamento-frutteto-completa-write`.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-03 — Fase 2 write residui (70 spec E2E).
+
+## GFV Farm Simulator — Fase 2 write residui chiusa (2026-07-03)
+
+**Obiettivo:** completare gli ultimi gap write documentati in §11.3 (`trattori-write`, `concimazione-frutteto-completa-write`, `lavori-caposquadra-write`).
+
+| Area | Dettaglio |
+|------|-----------|
+| Write E2E | `trattori-write` — nuovo trattore da lista manager; `concimazione-frutteto-completa-write` — diario → stub concimazioni frutteto → scarico magazzino; `lavori-caposquadra-write` — capo sospende lavoro marker |
+| Suite | **70 spec** Playwright (dual seed viticola + frutteto M4) |
+| Pattern | Idempotenti con marker distintivi; concimazione frutteto allineata a diario vigneto + `ensureSuperficieTrattamento` |
 
 ## GFV Farm Simulator — stabilizzazione flaky trattamento frutteto (2026-07-03)
 
