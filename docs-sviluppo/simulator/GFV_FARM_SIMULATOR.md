@@ -866,7 +866,7 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 
 **Completato:** scenari Playwright **67 spec** (dual seed viticola + frutteto M4 + write P2 manodopera/scadenze) — suite locale + **CI** (`sim:e2e:ci` → `sim:e2e:pw` + verify seed operativo).
 
-**CI stabile (2026-07-03):** run [28645514543](https://github.com/VitaraDragon/gfv-platform/actions/runs/28645514543) — **66 passed + 1 flaky** (~3,6 min). Blocker `scadenze-write` risolto in `ec97af9` (`patchMacchinaScadenzaFields`, ordine `loadData`→close modal). Flaky residuo: `trattamento-frutteto-completa-write` (retry OK). Run precedente fallito: [28644343723](https://github.com/VitaraDragon/gfv-platform/actions/runs/28644343723).
+**CI stabile (2026-07-03):** run [28645514543](https://github.com/VitaraDragon/gfv-platform/actions/runs/28645514543) — **66 passed + 1 flaky** (~3,6 min). Blocker `scadenze-write` risolto in `ec97af9`. Flaky `trattamento-frutteto-completa-write`: fix assert uscite + poll/reload movimenti (2026-07-03). Run precedente fallito: [28644343723](https://github.com/VitaraDragon/gfv-platform/actions/runs/28644343723).
 
 **v5 Fase 1 chiusa ✅** (M3 inclusa): 15 flussi write su path business critici (scen. 20–34).
 

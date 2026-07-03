@@ -1,6 +1,15 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-03 — **CI 67/67 verde** ([28645514543](https://github.com/VitaraDragon/gfv-platform/actions/runs/28645514543)); Fase 1 write P2 chiusa.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-03 — stabilizzazione flaky `trattamento-frutteto-completa-write`.
+
+## GFV Farm Simulator — stabilizzazione flaky trattamento frutteto (2026-07-03)
+
+**Obiettivo:** CI **67 passed, 0 flaky** (prima: 66 passed + 1 flaky al retry).
+
+| Area | Dettaglio |
+|------|-----------|
+| E2E | `trattamento-frutteto-completa-write.mjs` — assert `usciteBefore + 1` (rimosso `Math.max(..., 10)`); `expect.poll` + reload su movimenti; idempotente allineato a vigneto scen. 53 |
+| App | Checkbox scarico: visibilità su `#trattamento-scarico-magazzino-group` (come vigneto) |
 
 ## GFV Farm Simulator — CI 67/67 verde + Fase 1 write P2 chiusa (2026-07-03)
 

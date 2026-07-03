@@ -31,7 +31,7 @@ async function countFilledAttivitaStubRows(page) {
   const rows = trattamentoStubFromAttivitaRows(page);
   const count = await rows.count();
   let filled = 0;
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < count; i += 1) {
     const prodotto = ((await rows.nth(i).locator('td').nth(4).textContent()) || '').trim();
     if (prodotto && prodotto !== '-' && prodotto !== '' && prodotto !== '—') filled += 1;
   }
@@ -47,10 +47,33 @@ async function countMovimentiUscita(page) {
   return page.locator('#movimenti-container .movimenti-table tbody tr .badge-uscita').count();
 }
 
+/**
+ * Attende almeno `minimum` uscite, ricaricando la pagina movimenti se Firestore non ha ancora propagato lo scarico.
+ * @param {import('playwright-core').Page} page
+ * @param {typeof import('@playwright/test').expect} expect
+ * @param {number} minimum
+ */
+async function waitForMovimentiUscitaAtLeast(page, expect, minimum) {
+  await gotoMovimentiList(page);
+  await expect.poll(
+    async () => {
+      const count = await countMovimentiUscita(page);
+      if (count >= minimum) return count;
+      await page.reload();
+      return countMovimentiUscita(page);
+    },
+    {
+      timeout: 90_000,
+      intervals: [500, 1000, 2000, 3000],
+      message: `Attesa almeno ${minimum} uscite in movimenti`,
+    }
+  ).toBeGreaterThanOrEqual(minimum);
+}
+
 async function findIncompleteTrattamentoRow(page) {
   const rows = trattamentoStubFromAttivitaRows(page);
   const count = await rows.count();
-  for (let i = 0; i < count; i++) {
+  for (let i = 0; i < count; i += 1) {
     const row = rows.nth(i);
     const prodotto = ((await row.locator('td').nth(4).textContent()) || '').trim();
     if (prodotto === '-' || prodotto === '' || prodotto === '—') return row;
@@ -93,9 +116,10 @@ async function completeTrattamentoStub(page, filledBefore) {
 
   await page.locator('#trattamento-note').fill(E2E_TRATTAMENTO_FRUTTETO_NOTE);
 
+  const scaricoGroup = page.locator('#trattamento-scarico-magazzino-group');
   const scaricoCb = page.locator('#trattamento-registra-scarico-magazzino');
-  if (await scaricoCb.isVisible()) {
-    await scaricoCb.check({ force: true });
+  if (await scaricoGroup.isVisible()) {
+    await scaricoCb.check();
   }
 
   page.once('dialog', (dialog) => dialog.accept());
@@ -121,6 +145,10 @@ async function completeTrattamentoStub(page, filledBefore) {
   return { productLabel };
 }
 
+/**
+ * @param {import('playwright-core').Page} page
+ * @param {typeof import('@playwright/test').expect} expect
+ */
 export async function runTrattamentoFruttetoCompletaWriteAssertions(page, expect) {
   expect.configure({ timeout: 90_000 });
 
@@ -139,6 +167,8 @@ export async function runTrattamentoFruttetoCompletaWriteAssertions(page, expect
     await waitForTrattamentiTableReady(page);
     const { productLabel } = await completeTrattamentoStub(page, filledBefore);
 
+    expect(await findIncompleteTrattamentoRow(page)).toBeNull();
+
     const filledAfter = await countFilledAttivitaStubRows(page);
     expect(filledAfter).toBeGreaterThanOrEqual(filledBefore + 1);
 
@@ -149,24 +179,9 @@ export async function runTrattamentoFruttetoCompletaWriteAssertions(page, expect
       await expect(rowWithProduct.first()).toBeVisible({ timeout: 60_000 });
     }
 
-    await gotoMovimentiList(page);
-    await page.waitForFunction(
-      (minimum) => {
-        const container = document.getElementById('movimenti-container');
-        if (!container || /Caricamento movimenti/i.test(container.textContent || '')) return false;
-        return container.querySelectorAll('.movimenti-table tbody tr .badge-uscita').length >= minimum;
-      },
-      usciteBefore + 1,
-      { timeout: 90_000 }
-    ).catch(async () => {
-      await page.reload();
-      await countMovimentiUscita(page);
-    });
-    const usciteAfter = await countMovimentiUscita(page);
-    expect(usciteAfter).toBeGreaterThanOrEqual(Math.max(usciteBefore + 1, 10));
+    await waitForMovimentiUscitaAtLeast(page, expect, usciteBefore + 1);
   } else {
     expect(filledBefore).toBeGreaterThanOrEqual(1);
-    await gotoMovimentiList(page);
-    expect(await countMovimentiUscita(page)).toBeGreaterThanOrEqual(10);
+    await expect(trattamentoStubFromAttivitaRows(page).first().locator('td').nth(4)).not.toHaveText('-');
   }
 }
