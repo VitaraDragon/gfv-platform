@@ -1083,7 +1083,7 @@
                     caposquadraId,
                     operai: operaiSelezionati,
                     note: note || '',
-                    creatoDa: currentUserData.id,
+                    creatoDa: currentUserData.id || currentUserData.uid || auth.currentUser?.uid,
                     creatoIl: serverTimestamp(),
                     aggiornatoIl: serverTimestamp()
                 };

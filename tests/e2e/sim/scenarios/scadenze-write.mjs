@@ -21,11 +21,15 @@ async function rowAlreadyRenewed(page) {
  * @param {import('playwright-core').Page} page
  */
 async function renewFirstScadutaDataRow(page) {
-  const scadutaRow = page.locator('.scadenze-table tbody tr.row-scaduto').first();
-  await scadutaRow.waitFor({ state: 'visible', timeout: 60_000 });
+  let rinnovaBtn = page.locator('.scadenze-table tbody tr.row-scaduto .btn-rinnova[data-tipo="data"]').first();
+  if ((await rinnovaBtn.count()) === 0) {
+    rinnovaBtn = page.locator('.scadenze-table tbody tr .btn-rinnova[data-tipo="data"]').first();
+  }
+  await rinnovaBtn.waitFor({ state: 'visible', timeout: 60_000 });
 
+  const scadutaRow = page.locator('.scadenze-table tbody tr').filter({ has: rinnovaBtn }).first();
   const mezzoName = ((await scadutaRow.locator('td').first().textContent()) || '').trim();
-  await scadutaRow.locator('.btn-rinnova').click();
+  await rinnovaBtn.click();
 
   await page.locator('#modal-rinnova.active').waitFor({ state: 'visible', timeout: 30_000 });
   await page.locator('#group-data').waitFor({ state: 'visible', timeout: 15_000 });

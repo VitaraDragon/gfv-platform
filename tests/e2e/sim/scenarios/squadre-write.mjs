@@ -21,6 +21,8 @@ function squadraRowsWithMarker(page) {
  * @param {import('playwright-core').Page} page
  */
 async function createSquadraMarker(page) {
+  page.once('dialog', (dialog) => dialog.accept());
+
   await page.locator('#btn-crea-squadra').click();
   await page.locator('#squadra-modal.active').waitFor({ state: 'visible', timeout: 30_000 });
 
