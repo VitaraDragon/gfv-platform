@@ -1,8 +1,8 @@
 # GFV Farm Simulator — Guida sviluppo per agenti
 
-**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (18 scenari read ✅) + **v5 roadmap** §11.3 (**62 spec E2E target**, catena A §11.3.12 + read profondi §11.3.13 + **M4 frutteto** ✅)  
-**Data:** 2026-07-02  
-**Stato:** … **CI verificata 62/62** ([28601797733](https://github.com/VitaraDragon/gfv-platform/actions/runs/28601797733)); **M4 frutteto** ✅ (`frutteto-solo-titolare`, +6 spec E2E, dual seed CI)  
+**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (18 scenari read ✅) + **v5 roadmap** §11.3 (**64 spec E2E target**, catena A §11.3.12 + read profondi §11.3.13 + **M4 frutteto** ✅ + template `frutteto-conto-terzi-manodopera`)  
+**Data:** 2026-07-03  
+**Stato:** … **CI verificata 62/62** (pre-allineamento); post-allineamento **64/64** target (`frutteti-write`, `flotta-write`); template `frutteto-conto-terzi-manodopera` + seed catena B stub (2 incompleti)  
 **Codename:** `gfv-farm-simulator`
 
 ---
@@ -1098,7 +1098,7 @@ npm run sim:e2e                      # 62/62 attesi in CI dual-seed (~2 min); vi
 
 **Rimossi dal batch (errore precedente):** `potatura-write` / `trattamenti-write` come «Nuovo record da zero» — in app la potatura/trattamento nasce quasi sempre da **lavoro/attività**; il test giusto è **completa** (+ opzionale read stub), non bypassare la catena.
 
-**Ordine implementazione (aggiornato):** batch **45–48 + 54 + potatura-completa** ✅ → opz. seed magazzino solo catena B.
+**Ordine implementazione (aggiornato):** batch **45–48 + 54 + potatura-completa** ✅ → seed magazzino stub catena B ✅ (2026-07-03).
 
 **Esclusi dal batch 1 (Fase 2b / M4):** template frutteto (raccolta frutta — stessa catena vendemmia); report; meteo; Tony E2E.
 
@@ -1125,7 +1125,7 @@ npm run sim:e2e                      # 62/62 attesi in CI dual-seed (~2 min); vi
 2. Potatura stub: in lista la UI **precompila** tipo/ceppi (`getDatiPrecompilazionePotatura`) — assert su link attività + Modifica, non celle `-`.
 3. Trattamenti read (vigneto **e** frutteto): fase 4 catena B completa prodotti in seed — assert **mix** prodotto compilato **oppure** stub `-` (`vigneto.mjs`, `frutteto.mjs`), non solo stub.
 
-**Prossimo modulo intero:** M5 report (fuori scope). **Parallelo:** Tony E2E (M-T*), template `frutteto-conto-terzi-manodopera` opzionale.
+**Prossimo modulo intero:** M5 report (fuori scope). **Parallelo:** Tony E2E (M-T*). **Template frutteto full stack:** ✅ `frutteto-conto-terzi-manodopera` (2026-07-03). **Seed catena B:** ✅ `magazzino.lasciaStubTrattamentiIncompleti: 2` (stub per write E2E).
 
 ##### 11.3.12 Catene auto-compilazione — app, simulatore, E2E (2026-07-01)
 

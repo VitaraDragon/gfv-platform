@@ -72,7 +72,7 @@ export function generaPoderiClienti(clienti, count, seed = 0) {
  * @param {number} count
  * @param {number} seed
  */
-export function generaTerreniClienti(poderi, count, seed = 0) {
+export function generaTerreniClienti(poderi, count, seed = 0, coltura = 'Vite da Vino') {
   if (!poderi.length) return [];
   return Array.from({ length: count }, (_, i) => {
     const podere = poderi[i % poderi.length];
@@ -83,7 +83,7 @@ export function generaTerreniClienti(poderi, count, seed = 0) {
       clienteId: podere.clienteId,
       nome: pick(TERRENI_NOMI, seed + i),
       superficie: 1.2 + (i % 5) * 0.6,
-      coltura: 'Vite da Vino',
+      coltura,
       podere: podere.nome,
       tipoCampo: pick(MORFOLOGIE, seed + i),
       tipoPossesso: 'affitto',
@@ -102,12 +102,12 @@ export function generaTerreniClienti(poderi, count, seed = 0) {
  * @param {number} count
  * @param {number} seed
  */
-export function generaTariffe(count, seed = 0) {
+export function generaTariffe(count, seed = 0, coltura = 'Vite da Vino') {
   const out = [];
   for (let i = 0; i < count; i += 1) {
     const tipoLavoro = pick(TIPI_LAVORO_TARIFFA, seed + i);
     const tipoCampo = pick(MORFOLOGIE, seed + i + 2);
-    const colturaSpecifica = i % 3 !== 0 ? 'Vite da Vino' : '';
+    const colturaSpecifica = i % 3 !== 0 ? coltura : '';
     out.push({
       tipoLavoro,
       coltura: colturaSpecifica,
@@ -115,7 +115,7 @@ export function generaTariffe(count, seed = 0) {
       tipoCampo,
       tariffaBase: 120 + (i % 4) * 45,
       coefficiente: tipoCampo === 'montagna' ? 1.25 : tipoCampo === 'collina' ? 1.1 : 1,
-      note: colturaSpecifica ? 'Tariffa specifica vite' : 'Tariffa generica categoria',
+      note: colturaSpecifica ? `Tariffa specifica ${coltura}` : 'Tariffa generica categoria',
       attiva: i !== count - 1
     });
   }

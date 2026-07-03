@@ -155,6 +155,8 @@ import { runTrattamentoCompletaWriteAssertions } from '../tests/e2e/sim/scenario
 import { runPotaturaCompletaWriteAssertions } from '../tests/e2e/sim/scenarios/potatura-completa-write.mjs';
 import { runConcimazioneDiarioCompletaWriteAssertions } from '../tests/e2e/sim/scenarios/concimazione-diario-completa-write.mjs';
 import { runVignetiWriteAssertions } from '../tests/e2e/sim/scenarios/vigneti-write.mjs';
+import { runFruttetiWriteAssertions } from '../tests/e2e/sim/scenarios/frutteti-write.mjs';
+import { runFlottaWriteAssertions } from '../tests/e2e/sim/scenarios/flotta-write.mjs';
 import { runPreventiviInviaWriteAssertions } from '../tests/e2e/sim/scenarios/preventivi-invia-write.mjs';
 import { runCompensiWriteAssertions } from '../tests/e2e/sim/scenarios/compensi-write.mjs';
 import { runGestisciUtentiReadAssertions } from '../tests/e2e/sim/scenarios/gestisci-utenti-read.mjs';
@@ -328,6 +330,12 @@ const SCENARIOS = [
     name: 'vigneti-write',
     run: async (page) => {
       await runVignetiWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'flotta-write',
+    run: async (page) => {
+      await runFlottaWriteAssertions(page, expect);
     },
   },
   {
@@ -686,6 +694,12 @@ const SCENARIOS = [
       await loginAsManagerFrutteto(page);
       await gotoFruttetiList(page);
       await runFruttetiListAssertions(page, expect);
+    },
+  },
+  {
+    name: 'frutteti-write',
+    run: async (page) => {
+      await runFruttetiWriteAssertions(page, expect);
     },
   },
   {

@@ -1,0 +1,36 @@
+{
+  "templateId": "frutteto-manodopera",
+  "descrizione": "Azienda frutticola con manodopera: manager + caposquadra + operai, flusso lavori/ore/validazioni",
+  "extends": "frutteto-solo-titolare",
+  "moduli": ["frutteto", "parcoMacchine", "magazzino", "manodopera"],
+  "quantities": {
+    "manager": 1,
+    "caposquadra": 1,
+    "operai": 3,
+    "squadre": 1,
+    "lavoriSquadra": 2,
+    "lavoriAutonomi": 1,
+    "giorniOreSimulate": 10,
+    "guasti": 3
+  },
+  "personas": {
+    "provision": "pre_created",
+    "skipInviteFlow": true,
+    "roles": ["amministratore", "caposquadra", "operaio"],
+    "emailPattern": "sim+{slug}_{role}{index}@gfv.local"
+  },
+  "distribution": {
+    "operaiPerSquadra": "round_robin",
+    "squadreDefaultEqualsCaposquadra": true
+  },
+  "manodopera": {
+    "orarioInizio": "07:30",
+    "orarioFine": "12:00",
+    "pauseMinuti": 30,
+    "comunicazioniSquadra": true,
+    "confermeOperai": true,
+    "assenzaMalattia": true,
+    "standbyAssenzaMalattia": true,
+    "oreDaValidarePending": 2
+  }
+}

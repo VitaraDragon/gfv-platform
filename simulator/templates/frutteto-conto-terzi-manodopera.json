@@ -1,0 +1,18 @@
+{
+  "templateId": "frutteto-conto-terzi-manodopera",
+  "descrizione": "Frutteto + manodopera v2 + Conto Terzi (clienti, tariffe, preventivi coltura Melo)",
+  "extends": "frutteto-manodopera",
+  "moduli": ["frutteto", "parcoMacchine", "magazzino", "manodopera", "contoTerzi"],
+  "quantities": {
+    "clienti": 3,
+    "poderiClienti": 3,
+    "terreniClienti": 6,
+    "tariffe": 10,
+    "preventivi": 6
+  },
+  "contoTerzi": {
+    "ivaPercentuale": 22,
+    "giorniScadenzaPreventivo": 30,
+    "coltura": "Melo"
+  }
+}

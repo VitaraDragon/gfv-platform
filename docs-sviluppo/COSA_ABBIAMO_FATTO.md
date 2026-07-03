@@ -1,6 +1,20 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-02 — **CI 62/62** dual-seed; fix read frutteto catena B.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-03 — allineamento sim↔app (write residui, template frutteto CT/manodopera, seed catena B).
+
+## GFV Farm Simulator — Allineamento sim↔app punto 2 (2026-07-03)
+
+**Obiettivo:** chiudere gap opzionali documentati in §11.3.11 — write residui, template frutteto full stack, seed magazzino catena B con stub per E2E write.
+
+**Implementato:**
+
+| Area | Dettaglio |
+|------|-----------|
+| Write E2E | `frutteti-write` (anagrafica Melo, idempotente) + `flotta-write` (nuovo mezzo flotta) — **64 spec** target CI dual-seed |
+| Template | `frutteto-manodopera`, `frutteto-conto-terzi`, `frutteto-conto-terzi-manodopera` — CT seed coltura **Melo** |
+| Fase 07 | `seedCateneFruttetoFromLavori` — lavoro Raccolta + stub trattamento da manodopera (catena A frutteto) |
+| Seed catena B | `magazzino.lasciaStubTrattamentiIncompleti: 2` su template base — fase 4 completa trattamenti tranne 2 stub per write E2E |
+| Vitest | `tests/simulator/frutteto-conto-terzi-manodopera.test.js` |
 
 ## GFV Farm Simulator — CI 62/62 + fix read frutteto trattamenti (2026-07-02)
 

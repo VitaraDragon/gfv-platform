@@ -11,7 +11,8 @@ import {
   TIPI_POTATURA,
   TIPI_TRATTAMENTO,
   dateStringToTimestamp,
-  parseAttivitaData
+  parseAttivitaData,
+  parseLavoroData
 } from './vigneto-stub-from-trigger.js';
 
 function isTipoRaccolta(tipoLavoro) {
@@ -111,6 +112,121 @@ export async function createRaccoltaStubFromAttivita(db, tenantId, att, frutteto
   });
 
   return addTenantNestedDocument(db, tenantId, ['frutteti', frutteto.id, 'raccolte'], payload);
+}
+
+/**
+ * @param {import('firebase-admin/firestore').Firestore} db
+ * @param {string} tenantId
+ * @param {object} lavoro
+ * @param {object} frutteto
+ * @param {object} [options]
+ * @param {string[]} [options.operaiIds]
+ */
+export async function createRaccoltaStubFromLavoro(db, tenantId, lavoro, frutteto, options = {}) {
+  if (!isTipoRaccolta(lavoro.tipoLavoro)) return null;
+
+  const operai = options.operaiIds || [];
+  const macchine = [];
+  if (lavoro.macchinaId) macchine.push(lavoro.macchinaId);
+  if (lavoro.attrezzoId) macchine.push(lavoro.attrezzoId);
+
+  let oreImpiegate = null;
+  if (lavoro.durataPrevista) oreImpiegate = lavoro.durataPrevista * 8;
+
+  const payload = normalizeForAdmin({
+    fruttetoId: frutteto.id,
+    lavoroId: lavoro.id,
+    data: Timestamp.fromDate(parseLavoroData(lavoro)),
+    specie: frutteto.specie || '',
+    varieta: frutteto.varieta || '',
+    quantitaKg: null,
+    quantitaEttari: null,
+    operai,
+    macchine,
+    oreImpiegate,
+    note: `Raccolta creata automaticamente dal lavoro: ${lavoro.nome || lavoro.id}`
+  });
+
+  return addTenantNestedDocument(db, tenantId, ['frutteti', frutteto.id, 'raccolte'], payload);
+}
+
+/**
+ * @param {import('firebase-admin/firestore').Firestore} db
+ * @param {string} tenantId
+ * @param {object} lavoro
+ * @param {object} frutteto
+ * @param {object} [options]
+ * @param {number|null} [options.superficieTrattata]
+ */
+export async function createTrattamentoStubFromLavoro(db, tenantId, lavoro, frutteto, options = {}) {
+  const tipo = lavoro.tipoLavoro || '';
+  if (!TIPI_TRATTAMENTO.has(tipo)) return null;
+
+  const operatore = lavoro.caposquadraId || lavoro.operaioId || null;
+  const payload = normalizeForAdmin({
+    fruttetoId: frutteto.id,
+    lavoroId: lavoro.id,
+    data: Timestamp.fromDate(parseLavoroData(lavoro)),
+    prodotto: '',
+    dosaggio: '',
+    tipoTrattamento: inferTipoTrattamentoColturaFromTipoLavoroNome(tipo),
+    operatore,
+    superficieTrattata: options.superficieTrattata ?? null,
+    costoProdotto: 0,
+    note: `Trattamento creato da lavoro: ${lavoro.nome || lavoro.id}`
+  });
+
+  return addTenantNestedDocument(db, tenantId, ['frutteti', frutteto.id, 'trattamenti'], payload);
+}
+
+/**
+ * Crea stub raccolta/trattamento da lavori manodopera (fase 07).
+ * @param {import('firebase-admin/firestore').Firestore} db
+ * @param {string} tenantId
+ * @param {Array<object>} lavori
+ * @param {Map<string, object>} fruttetoByTerreno
+ */
+export async function seedCateneFruttetoFromLavori(db, tenantId, lavori, fruttetoByTerreno) {
+  const raccoltaIds = [];
+  const trattamentoIds = [];
+
+  for (const lavoro of lavori) {
+    const frutteto = fruttetoByTerreno.get(lavoro.terrenoId);
+    if (!frutteto) continue;
+
+    let operaiIds = [];
+    if (lavoro.caposquadraId && lavoro.squadra?.operai?.length) {
+      operaiIds = lavoro.squadra.operai.map((o) => o.id);
+    } else if (lavoro.operaioId) {
+      operaiIds = [lavoro.operaioId];
+    }
+
+    if (isTipoRaccolta(lavoro.tipoLavoro)) {
+      const id = await createRaccoltaStubFromLavoro(db, tenantId, lavoro, frutteto, { operaiIds });
+      if (id) raccoltaIds.push({ fruttetoId: frutteto.id, id, lavoroId: lavoro.id });
+    }
+
+    if (TIPI_TRATTAMENTO.has(lavoro.tipoLavoro)) {
+      const terrenoSnap = await db.doc(`tenants/${tenantId}/terreni/${lavoro.terrenoId}`).get();
+      const superficie = terrenoSnap.exists && terrenoSnap.data()?.superficie
+        ? parseFloat(terrenoSnap.data().superficie)
+        : null;
+      const id = await createTrattamentoStubFromLavoro(db, tenantId, lavoro, frutteto, {
+        superficieTrattata: superficie
+      });
+      if (id) trattamentoIds.push({ fruttetoId: frutteto.id, id, lavoroId: lavoro.id });
+    }
+  }
+
+  return { raccoltaIds, trattamentoIds };
+}
+
+/** Extra attesi su template manodopera frutteto (lavoro raccolta + stub trattamento da lavoro fase 07). */
+export function extraCatenaCountsManodoperaFrutteto(template) {
+  if (!template?.moduli?.includes('manodopera')) {
+    return { lavoriSquadra: 0, trattamenti: 0, raccolte: 0 };
+  }
+  return { lavoriSquadra: 1, trattamenti: 1, raccolte: 1 };
 }
 
 export {

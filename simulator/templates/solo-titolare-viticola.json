@@ -20,5 +20,8 @@
     "pauseMinuti": 30,
     "tipiLavoro": ["Potatura", "Trattamento", "Erpicatura", "Concimazione", "Controllo fitosanitario"],
     "coltura": "Vite"
+  },
+  "magazzino": {
+    "lasciaStubTrattamentiIncompleti": 2
   }
 }

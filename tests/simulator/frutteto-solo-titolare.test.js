@@ -12,6 +12,7 @@ import { initEmulatorAdmin } from '../../simulator/lib/emulator-context.js';
 import { inspectTenantSeed } from '../../simulator/lib/tenant-inspect.js';
 import { deleteSimulatedTenant } from '../../simulator/lib/cleanup-tenant.js';
 import { resetSimContext } from '../../simulator/lib/sim-context.js';
+import { expectedMovimentiFromTemplate } from '../../simulator/phases/04-simulate-magazzino.js';
 import { expectedFruttetoCountsFromTemplate } from '../../simulator/phases/05-simulate-frutteto.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -20,6 +21,7 @@ const template = JSON.parse(
 );
 const q = template.quantities;
 const expected = expectedFruttetoCountsFromTemplate(template);
+const movExpected = expectedMovimentiFromTemplate(template);
 
 describe('GFV Farm Simulator — frutteto-solo-titolare (emulator)', () => {
   let emulatorUp = false;
@@ -53,7 +55,7 @@ describe('GFV Farm Simulator — frutteto-solo-titolare (emulator)', () => {
     expect(assets.counts.frutteti).toBe(q.frutteti);
     expect(assets.counts.vigneti).toBe(0);
     expect(simulation.counts.attivita).toBe(q.attivitaGiorniLavorativi);
-    expect(magazzino.counts.movimenti).toBe(expected.trattamenti);
+    expect(magazzino.counts.movimenti).toBe(movExpected);
     expect(frutteto.counts.potature).toBe(expected.potature);
     expect(frutteto.counts.trattamenti).toBe(expected.trattamenti);
     expect(frutteto.counts.raccolte).toBe(expected.raccolte);
@@ -65,6 +67,6 @@ describe('GFV Farm Simulator — frutteto-solo-titolare (emulator)', () => {
     expect(inspect.counts.potatureFrutteto).toBe(expected.potature);
     expect(inspect.counts.trattamentiFrutteto).toBe(expected.trattamenti);
     expect(inspect.counts.raccolteFrutteto).toBe(expected.raccolte);
-    expect(inspect.counts.movimentiMagazzino).toBe(expected.trattamenti);
+    expect(inspect.counts.movimentiMagazzino).toBe(movExpected);
   }, 60000);
 });

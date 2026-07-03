@@ -15,9 +15,15 @@ import { requireSimTenantId, requireSimUserId, getSimProfile } from '../lib/sim-
 import { expectedFruttetoCountsFromTemplate } from './05-simulate-frutteto.js';
 import { expectedVignetoCountsFromTemplate } from './05-simulate-vigneto.js';
 import { extraCatenaCountsManodopera } from '../lib/vigneto-stub-from-trigger.js';
+import { extraCatenaCountsManodoperaFrutteto } from '../lib/frutteto-stub-from-trigger.js';
 
 const QTY_SCARICO = 3.5;
 const DOSAGGIO = 2.5;
+
+/** Stub trattamento lasciati incompleti per E2E write (template.magazzino.lasciaStubTrattamentiIncompleti). */
+export function stubIncompletiLasciati(template) {
+  return Math.max(0, Number(template?.magazzino?.lasciaStubTrattamentiIncompleti) || 0);
+}
 
 function poolProdotti(prodotti, tipoLavoro) {
   if (tipoLavoro === 'Concimazione' || tipoLavoro === 'fertilizzante') {
@@ -51,12 +57,32 @@ function trattamentoGiaCompletato(trattamento) {
  * @param {object} template
  */
 export function expectedMovimentiFromTemplate(template) {
+  const skip = stubIncompletiLasciati(template);
   if (isFruttetoTemplate(template)) {
-    return expectedFruttetoCountsFromTemplate(template).trattamenti;
+    const fr = expectedFruttetoCountsFromTemplate(template);
+    const extra = extraCatenaCountsManodoperaFrutteto(template);
+    return fr.trattamenti + extra.trattamenti - skip;
   }
   const vig = expectedVignetoCountsFromTemplate(template);
   const extra = extraCatenaCountsManodopera(template);
-  return vig.trattamenti + extra.trattamenti;
+  return vig.trattamenti + extra.trattamenti - skip;
+}
+
+async function collectIncompleteTrattamentoKeys(db, tenantId, colturaCollection, coltureSnap) {
+  const items = [];
+  for (const cDoc of coltureSnap.docs) {
+    const trtSnap = await db
+      .collection(`tenants/${tenantId}/${colturaCollection}/${cDoc.id}/trattamenti`)
+      .get();
+    for (const tDoc of trtSnap.docs) {
+      const trattamento = { id: tDoc.id, ...tDoc.data() };
+      if (!trattamentoGiaCompletato(trattamento)) {
+        items.push({ key: `${cDoc.id}:${tDoc.id}`, colturaId: cDoc.id, trattamentoId: tDoc.id });
+      }
+    }
+  }
+  items.sort((a, b) => a.key.localeCompare(b.key));
+  return items;
 }
 
 async function processTrattamentiColtura(db, tenantId, userId, {
@@ -68,7 +94,8 @@ async function processTrattamentiColtura(db, tenantId, userId, {
   attivitaById,
   lavoriById,
   giacenzaById,
-  scaricoIndexStart
+  scaricoIndexStart,
+  skipKeys = new Set()
 }) {
   const movimentiIds = [];
   let trattamentiCompletati = 0;
@@ -81,6 +108,7 @@ async function processTrattamentiColtura(db, tenantId, userId, {
   for (const tDoc of trtSnap.docs) {
     const trattamento = { id: tDoc.id, ...tDoc.data() };
     if (trattamentoGiaCompletato(trattamento)) continue;
+    if (skipKeys.has(`${colturaId}:${trattamento.id}`)) continue;
 
     const tipoLavoro = tipoLavoroFromTrattamento(trattamento, attivitaById, lavoriById);
     const pool = poolProdotti(prodotti, tipoLavoro);
@@ -176,6 +204,14 @@ export async function runSimulateMagazzino(_options = {}) {
     prodotti.map((p) => [p.id, typeof p.giacenza === 'number' ? p.giacenza : 0])
   );
 
+  const colturaCollection = useFrutteto ? 'frutteti' : 'vigneti';
+  const stubLeft = stubIncompletiLasciati(profile?.template);
+  let skipKeys = new Set();
+  if (stubLeft > 0) {
+    const incomplete = await collectIncompleteTrattamentoKeys(db, tenantId, colturaCollection, coltureSnap);
+    skipKeys = new Set(incomplete.slice(-stubLeft).map((x) => x.key));
+  }
+
   const movimentiIds = [];
   let trattamentiCompletati = 0;
   let scaricoIndex = 0;
@@ -190,7 +226,8 @@ export async function runSimulateMagazzino(_options = {}) {
       attivitaById,
       lavoriById,
       giacenzaById,
-      scaricoIndexStart: scaricoIndex
+      scaricoIndexStart: scaricoIndex,
+      skipKeys
     });
     movimentiIds.push(...result.movimentiIds);
     trattamentiCompletati += result.trattamentiCompletati;

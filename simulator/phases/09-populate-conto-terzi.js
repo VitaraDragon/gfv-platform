@@ -21,6 +21,7 @@ import {
 import { getEmulatorDb } from '../lib/emulator-context.js';
 import { addTenantDocument } from '../lib/firestore-write.js';
 import { requireSimTenantId, requireSimUserId, getSimProfile } from '../lib/sim-context.js';
+import { isFruttetoTemplate } from '../lib/load-template.js';
 
 function assertValid(validation, label) {
   if (!validation.valid) {
@@ -40,6 +41,7 @@ export async function runPopulateContoTerzi() {
   const ctCfg = template?.contoTerzi || {};
   const seed = profile?.seed ?? Date.now();
   const db = getEmulatorDb();
+  const colturaCt = ctCfg.coltura || (isFruttetoTemplate(template) ? 'Melo' : 'Vite da Vino');
 
   const clientiData = generaClienti(q.clienti || 3, seed);
   const clienti = [];
@@ -63,7 +65,7 @@ export async function runPopulateContoTerzi() {
     poderi.push({ id, ...raw });
   }
 
-  const terreniData = generaTerreniClienti(poderi, q.terreniClienti || 6, seed + 23);
+  const terreniData = generaTerreniClienti(poderi, q.terreniClienti || 6, seed + 23, colturaCt);
   const terreniClienti = [];
   for (const raw of terreniData) {
     const id = await addTenantDocument(db, tenantId, 'terreni', {
@@ -73,7 +75,7 @@ export async function runPopulateContoTerzi() {
     terreniClienti.push({ id, ...raw });
   }
 
-  const tariffeData = generaTariffe(q.tariffe || 8, seed + 37);
+  const tariffeData = generaTariffe(q.tariffe || 8, seed + 37, colturaCt);
   const tariffe = [];
   for (const raw of tariffeData) {
     assertValid(validateTariffa(raw), 'Tariffa');

@@ -1,0 +1,18 @@
+{
+  "templateId": "frutteto-conto-terzi",
+  "descrizione": "Frutteto + Conto Terzi (clienti, tariffe, preventivi coltura Melo)",
+  "extends": "frutteto-solo-titolare",
+  "moduli": ["frutteto", "parcoMacchine", "magazzino", "contoTerzi"],
+  "quantities": {
+    "clienti": 3,
+    "poderiClienti": 3,
+    "terreniClienti": 6,
+    "tariffe": 10,
+    "preventivi": 6
+  },
+  "contoTerzi": {
+    "ivaPercentuale": 22,
+    "giorniScadenzaPreventivo": 30,
+    "coltura": "Melo"
+  }
+}

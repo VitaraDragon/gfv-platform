@@ -255,7 +255,8 @@ export {
   TIPI_TRATTAMENTO,
   isTipoVendemmia,
   dateStringToTimestamp,
-  parseAttivitaData
+  parseAttivitaData,
+  parseLavoroData
 };
 
 /** Extra attesi su template manodopera (lavoro vendemmia + stub trattamento da lavoro fase 07). */
