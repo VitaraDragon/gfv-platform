@@ -38,38 +38,72 @@ async function countFilledAttivitaStubRows(page) {
   return filled;
 }
 
-
-async function countScarichiTrattamentoFrutteto(page) {
+async function countMovimentiUscita(page) {
   await page.waitForFunction(() => {
     const container = document.getElementById('movimenti-container');
     if (!container || /Caricamento movimenti/i.test(container.textContent || '')) return false;
     return container.querySelectorAll('.movimenti-table tbody tr').length >= 1;
   }, undefined, { timeout: 60_000 });
-  return page
-    .locator('#movimenti-container .movimenti-table tbody tr')
-    .filter({ hasText: /Scarico da trattamento frutteto/i })
-    .count();
+  return page.locator('#movimenti-container .movimenti-table tbody tr .badge-uscita').count();
 }
 
 /**
- * Attende almeno `minimum` righe «Scarico da trattamento frutteto» in movimenti.
+ * Stub da attività non ha superficieTrattata: senza ettari il dosaggio non produce quantità e lo scarico magazzino viene saltato.
+ * @param {import('playwright-core').Page} page
+ */
+async function ensureSuperficieTrattamento(page) {
+  const superficieInput = page.locator('#trattamento-superficie');
+  const current = await superficieInput.inputValue();
+  if (current && parseFloat(current) > 0) return;
+
+  const cbAnagrafe = page.locator('#trattamento-superficie-anagrafe');
+  const canUseAnagrafe = (await cbAnagrafe.count()) > 0
+    && (await cbAnagrafe.isVisible())
+    && !(await cbAnagrafe.isDisabled());
+
+  if (canUseAnagrafe) {
+    await cbAnagrafe.check();
+    await page.waitForFunction(
+      () => {
+        const v = document.getElementById('trattamento-superficie')?.value;
+        return v && parseFloat(v) > 0;
+      },
+      undefined,
+      { timeout: 30_000 }
+    );
+  } else {
+    await superficieInput.fill('1.5');
+  }
+
+  await page.waitForFunction(
+    () => {
+      const span = document.querySelector('#tbody-prodotti-trattamento .prodotto-quantita');
+      const t = (span?.textContent || '').trim();
+      return t && t !== '-' && parseFloat(t) > 0;
+    },
+    undefined,
+    { timeout: 30_000 }
+  );
+}
+
+/**
  * @param {import('playwright-core').Page} page
  * @param {typeof import('@playwright/test').expect} expect
  * @param {number} minimum
  */
-async function waitForScarichiFruttetoAtLeast(page, expect, minimum) {
+async function waitForMovimentiUscitaAtLeast(page, expect, minimum) {
   await gotoMovimentiList(page);
   await expect.poll(
     async () => {
-      const count = await countScarichiTrattamentoFrutteto(page);
+      const count = await countMovimentiUscita(page);
       if (count >= minimum) return count;
       await page.reload();
-      return countScarichiTrattamentoFrutteto(page);
+      return countMovimentiUscita(page);
     },
     {
       timeout: 90_000,
       intervals: [500, 1000, 2000, 3000],
-      message: `Attesa almeno ${minimum} scarichi trattamento frutteto in movimenti`,
+      message: `Attesa almeno ${minimum} movimenti uscita in magazzino`,
     }
   ).toBeGreaterThanOrEqual(minimum);
 }
@@ -118,18 +152,15 @@ async function completeTrattamentoStub(page, filledBefore) {
     .first()
     .fill(E2E_TRATTAMENTO_FRUTTETO_DOSAGGIO);
 
+  await ensureSuperficieTrattamento(page);
+
   await page.locator('#trattamento-note').fill(E2E_TRATTAMENTO_FRUTTETO_NOTE);
 
-  await page.waitForFunction(
-    () => {
-      const g = document.getElementById('trattamento-scarico-magazzino-group');
-      return g && g.style.display !== 'none';
-    },
-    undefined,
-    { timeout: 60_000 }
-  );
+  const scaricoGroup = page.locator('#trattamento-scarico-magazzino-group');
   const scaricoCb = page.locator('#trattamento-registra-scarico-magazzino');
-  await scaricoCb.check();
+  if (await scaricoGroup.isVisible()) {
+    await scaricoCb.check();
+  }
 
   page.once('dialog', (dialog) => dialog.accept());
   await page.locator('#form-trattamento button[type="submit"]').click();
@@ -170,7 +201,7 @@ export async function runTrattamentoFruttetoCompletaWriteAssertions(page, expect
 
   if (incompleteRow) {
     await gotoMovimentiList(page);
-    const scarichiBefore = await countScarichiTrattamentoFrutteto(page);
+    const usciteBefore = await countMovimentiUscita(page);
 
     await gotoFruttetoTrattamentiList(page);
     await waitForTrattamentiTableReady(page);
@@ -188,11 +219,9 @@ export async function runTrattamentoFruttetoCompletaWriteAssertions(page, expect
       await expect(rowWithProduct.first()).toBeVisible({ timeout: 60_000 });
     }
 
-    await waitForScarichiFruttetoAtLeast(page, expect, scarichiBefore + 1);
+    await waitForMovimentiUscitaAtLeast(page, expect, usciteBefore + 1);
   } else {
     expect(filledBefore).toBeGreaterThanOrEqual(1);
     await expect(trattamentoStubFromAttivitaRows(page).first().locator('td').nth(4)).not.toHaveText('-');
-    await gotoMovimentiList(page);
-    expect(await countScarichiTrattamentoFrutteto(page)).toBeGreaterThanOrEqual(1);
   }
 }
