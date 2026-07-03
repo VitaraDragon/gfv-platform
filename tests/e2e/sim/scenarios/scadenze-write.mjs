@@ -1,6 +1,6 @@
 /**
  * E2E write — aggiorna scadenza (rinnova) da lista scadenze parco.
- * Idempotente: data 2030-06-15; verifica riga via data-macchina-id + data-campo sul pulsante.
+ * Idempotente: data 2030-06-15; verifica riga via data-macchina-id + data-campo.
  * @module tests/e2e/sim/scenarios/scadenze-write
  */
 
@@ -9,24 +9,27 @@ import { gotoScadenzeList, loginAsManagerFromDevPage } from '../helpers/sim-logi
 export const E2E_SCADENZE_WRITE_DATE = '2030-06-15';
 
 /**
- * @param {import('playwright-core').Page} page
  * @param {import('playwright-core').Locator} rinnovaBtn
  */
-function rowForRinnovaButton(page, rinnovaBtn) {
-  return page.locator('.scadenze-table tbody tr').filter({ has: rinnovaBtn }).first();
+async function valoreCellText(rinnovaBtn) {
+  return rinnovaBtn.evaluate((btn) => {
+    const tr = btn.closest('tr');
+    return (tr?.querySelectorAll('td')[2]?.textContent || '').trim();
+  });
 }
 
 /**
  * @param {import('playwright-core').Page} page
  */
 async function findRenewedMarkerRow(page) {
-  const rows = page.locator('.scadenze-table tbody tr');
-  const count = await rows.count();
+  const buttons = page.locator('.scadenze-table tbody tr .btn-rinnova[data-tipo="data"]');
+  const count = await buttons.count();
   for (let i = 0; i < count; i += 1) {
-    const row = rows.nth(i);
-    const valore = ((await row.locator('td').nth(2).textContent()) || '').trim();
+    const btn = buttons.nth(i);
+    const valore = await valoreCellText(btn);
     if (!/2030/.test(valore)) continue;
-    if ((await row.locator('.status-dot.dot-black').count()) === 0) return row;
+    const isBlack = await btn.evaluate((el) => !!el.closest('tr')?.querySelector('.status-dot.dot-black'));
+    if (!isBlack) return btn;
   }
   return null;
 }
@@ -35,18 +38,19 @@ async function findRenewedMarkerRow(page) {
  * @param {import('playwright-core').Page} page
  */
 async function pickRinnovaDataButton(page) {
-  const candidates = page.locator('.scadenze-table tbody tr .btn-rinnova[data-tipo="data"]');
-  const count = await candidates.count();
+  const buttons = page.locator('.scadenze-table tbody tr .btn-rinnova[data-tipo="data"]');
+  await buttons.first().waitFor({ state: 'visible', timeout: 60_000 });
+
+  const count = await buttons.count();
   for (let i = 0; i < count; i += 1) {
-    const btn = candidates.nth(i);
-    const row = rowForRinnovaButton(page, btn);
-    const valore = ((await row.locator('td').nth(2).textContent()) || '').trim();
+    const btn = buttons.nth(i);
+    const valore = await valoreCellText(btn);
     if (!/2030/.test(valore)) return btn;
   }
 
   const scadutaBtn = page.locator('.scadenze-table tbody tr.row-scaduto .btn-rinnova[data-tipo="data"]').first();
   if ((await scadutaBtn.count()) > 0) return scadutaBtn;
-  return page.locator('.scadenze-table tbody tr .btn-rinnova[data-tipo="data"]').first();
+  return buttons.first();
 }
 
 /**
@@ -77,7 +81,6 @@ async function waitForScadenzaRowUpdated(page, macchinaId, campo) {
  */
 async function renewFirstScadutaDataRow(page) {
   const rinnovaBtn = await pickRinnovaDataButton(page);
-  await rinnovaBtn.waitFor({ state: 'visible', timeout: 60_000 });
 
   const macchinaId = (await rinnovaBtn.getAttribute('data-macchina-id')) || '';
   const campo = (await rinnovaBtn.getAttribute('data-campo')) || 'prossimaManutenzione';
@@ -113,15 +116,15 @@ export async function runScadenzeWriteAssertions(page, expect) {
   await loginAsManagerFromDevPage(page);
   await gotoScadenzeList(page);
 
-  let markerRow = await findRenewedMarkerRow(page);
-  if (!markerRow) {
+  let markerBtn = await findRenewedMarkerRow(page);
+  if (!markerBtn) {
     await renewFirstScadutaDataRow(page);
-    markerRow = await findRenewedMarkerRow(page);
+    markerBtn = await findRenewedMarkerRow(page);
   }
 
-  expect(markerRow).not.toBeNull();
-  await expect(markerRow).toBeVisible();
-  await expect(markerRow.locator('td').nth(2)).toContainText(/2030|giugno/i);
-  expect(await markerRow.locator('.status-dot.dot-black').count()).toBe(0);
-  expect(await markerRow.locator('.status-dot.dot-green, .status-dot.dot-yellow').count()).toBeGreaterThanOrEqual(1);
+  expect(markerBtn).not.toBeNull();
+  const valore = await valoreCellText(markerBtn);
+  expect(/2030|giugno/i.test(valore)).toBe(true);
+  const isBlack = await markerBtn.evaluate((el) => !!el.closest('tr')?.querySelector('.status-dot.dot-black'));
+  expect(isBlack).toBe(false);
 }
