@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-03 — fix scadenze-write CI (67 spec).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-03 — **CI 67/67 verde** ([28645514543](https://github.com/VitaraDragon/gfv-platform/actions/runs/28645514543)); Fase 1 write P2 chiusa.
+
+## GFV Farm Simulator — CI 67/67 verde + Fase 1 write P2 chiusa (2026-07-03)
+
+**Obiettivo:** chiudere Fase 1 write (operai, squadre, scadenze) con CI stabile.
+
+| Area | Dettaglio |
+|------|-----------|
+| CI | [28645514543](https://github.com/VitaraDragon/gfv-platform/actions/runs/28645514543) — **66 passed + 1 flaky** (`trattamento-frutteto-completa-write`, passa al retry); commit `ec97af9` |
+| Write E2E | `operai-write` (scheda competenze), `squadre-write` (nuova squadra), `scadenze-write` (rinnova data) — **67 spec** |
+| App scadenze | `patchMacchinaScadenzaFields`; form rinnova: `loadData()` prima di chiudere modal; `Macchina` date via `timestampToDate` |
 
 ## GFV Farm Simulator — fix scadenze-write CI (2026-07-03)
 
@@ -11,6 +21,7 @@
 | App | `patchMacchinaScadenzaFields` — update parziale scadenze senza validazione anagrafica completa; form rinnova: `loadData()` prima di chiudere modal |
 | Model | `Macchina` — date scadenze via `timestampToDate` (Timestamp Firestore) |
 | E2E | `scadenze-write.mjs` — attende tabella post-save (`waitForScadenzeTableReady`); reload fallback se assert DOM fallisce |
+| Esito | ✅ verde in [28645514543](https://github.com/VitaraDragon/gfv-platform/actions/runs/28645514543) (~985 ms) |
 
 ## GFV Farm Simulator — Fase 1 write P2 manodopera + scadenze (2026-07-03)
 

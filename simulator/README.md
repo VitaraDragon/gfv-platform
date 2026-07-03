@@ -8,7 +8,7 @@ Guida completa: [`docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md`](../docs-svilup
 **v2.2 conto terzi:** template `viticola-conto-terzi` / `viticola-conto-terzi-manodopera` ✅ — guida §15 in `GFV_FARM_SIMULATOR.md`  
 **v3 cascata:** semafori affitti/macchine + Vitest + smoke Node ✅ — guida §11.1  
 **v4 Playwright:** scenari 1–19 ✅ — guida §11.2 (18 read)  
-**v5 roadmap:** **43/43 spec** (23 read + 20 write), M2 + M3 + P2 ✅, **CI stabile** (2026-07-01) — guida §11.3  
+**v5 roadmap:** **67/67 spec** E2E ✅, M2 + M3 + P2 + **write P2 (65–67)** ✅, **CI verificata** (2026-07-03) — guida §11.3  
 **Tony E2E (post-v5):** [`docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md`](../docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md)
 
 ## Prerequisiti
@@ -168,7 +168,7 @@ Assert su DOM visibile — dati seed già validati da v3/v2.2/v2.1 manodopera.
 
 **Node:** su Node 24 la CLI `playwright test` può restare bloccata; usare `npm run sim:e2e`. In CI (Node 22): `sim:e2e:install` + `sim:e2e:pw`.
 
-**Esito attuale (2026-07-01):** `npm run sim:e2e` / CI `sim:e2e:ci` → **43/43** spec OK (23 read + 20 write; CI ~1,2 min, zero flaky). Template: `viticola-conto-terzi-manodopera`. Spec con prefisso ordine: `a-preventivi-write`, `z-compensi-write`.
+**Esito attuale (2026-07-03):** `npm run sim:e2e` / CI `sim:e2e:ci` → **67/67** spec (66 passed + 1 flaky `trattamento-frutteto-completa-write` al retry; CI ~3,6 min). CI: [28645514543](https://github.com/VitaraDragon/gfv-platform/actions/runs/28645514543). Dual seed: viticola + frutteto M4.
 
 | # | Scenario | Spec | URL target |
 | - | -------- | ---- | ---------- |
@@ -198,18 +198,19 @@ Assert su DOM visibile — dati seed già validati da v3/v2.2/v2.1 manodopera.
 
 **Obiettivo:** estendere sim + E2E fino a coprire (per gradi) pagine, form e moduli dell’app reale — **stesso codice**, dati seed, test read poi write.
 
-| Stato oggi (2026-07-02) | Target residuo |
+| Stato oggi (2026-07-03) | Target residuo |
 | ----------------------- | -------------- |
-| **67/67** spec E2E target CI (58 viticola + 6 frutteto M4 + 3 write P2) | Report + statistiche **fuori scope** (redesign UI) |
+| **67/67** spec E2E ✅ CI ([28645514543](https://github.com/VitaraDragon/gfv-platform/actions/runs/28645514543)) | Report + statistiche **fuori scope** (redesign UI) |
+| **Fase 1 write P2** ✅ scen. 65–67 (scadenze, operai, squadre) | Fase 2 write residui (~6 form) |
 | **M4 frutteto** ✅ template `frutteto-solo-titolare` + 6 spec E2E | Template frutteto+manodopera/CT (se richiesto) |
 | Read smoke ~45/45 URL ✅ | Report + statistiche **fuori scope** (redesign UI) |
 | Read profondi batch A–C ✅ | §11.3.13 — hub magazzino, vigneto, CT, manodopera |
 | Write catene A/B + concimazione diario ✅ | Tracciabilità: solo catena auto (no write E2E) |
 | Tony E2E gate v5 ✅ | Kick-off §7.2–7.3 `TONY_E2E_GUIDA_SVILUPPO.md` |
 
-**Milestone:** M1 ✅ → M2 ✅ → M3 ✅ → P2 ✅ → batch 45–54 ✅ → **read profondi §11.3.13** ✅ → **CI 56/56** ✅ → **M4 frutteto** ✅ → M5 → M-T* Tony.
+**Milestone:** M1 ✅ → M2 ✅ → M3 ✅ → P2 ✅ → batch 45–54 ✅ → **read profondi §11.3.13** ✅ → **CI 67/67** ✅ → **M4 frutteto** ✅ → **Fase 1 write P2** ✅ → M5 → M-T* Tony.
 
-**Prossimo incremento consigliato:** template **frutteto-conto-terzi-manodopera** (se richiesto) o track Tony E2E.
+**Prossimo incremento consigliato:** stabilizzare flaky frutteto write; Fase 2 write residui; oppure track **Tony E2E**.
 
 **CI E2E (v4 #9 ✅):** `npm run sim:e2e:install && npm run sim:e2e:ci` — replica locale del job GitHub Actions (richiede bash + Java).
 
