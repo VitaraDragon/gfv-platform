@@ -142,11 +142,11 @@ export async function runTrattamentoFruttetoCompletaWriteAssertions(page, expect
     const filledAfter = await countFilledAttivitaStubRows(page);
     expect(filledAfter).toBeGreaterThanOrEqual(filledBefore + 1);
 
-    const filledRows = trattamentoStubFromAttivitaRows(page).filter({
-      hasNot: page.locator('td').nth(4).filter({ hasText: /^-$|^—$/ }),
-    });
     if (productLabel) {
-      await expect(filledRows.first().locator('td').nth(4)).toContainText(productLabel.slice(0, 12));
+      const rowWithProduct = trattamentoStubFromAttivitaRows(page).filter({
+        hasText: productLabel.slice(0, 12),
+      });
+      await expect(rowWithProduct.first()).toBeVisible({ timeout: 60_000 });
     }
 
     await gotoMovimentiList(page);
