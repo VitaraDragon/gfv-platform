@@ -18,10 +18,24 @@ function trattamentoStubFromAttivitaRows(page) {
   });
 }
 
-function trattamentoRowsWithNote(page) {
-  return trattamentoStubFromAttivitaRows(page).filter({
-    hasText: E2E_TRATTAMENTO_FRUTTETO_NOTE,
-  });
+async function waitForTrattamentiTableReady(page) {
+  await page.waitForFunction(() => {
+    const loading = document.getElementById('loading');
+    const wrap = document.getElementById('table-wrap');
+    if (loading && loading.style.display !== 'none') return false;
+    return wrap && wrap.style.display !== 'none' && document.querySelectorAll('#tbody-trattamenti tr').length >= 1;
+  }, undefined, { timeout: 90_000 });
+}
+
+async function countFilledAttivitaStubRows(page) {
+  const rows = trattamentoStubFromAttivitaRows(page);
+  const count = await rows.count();
+  let filled = 0;
+  for (let i = 0; i < count; i++) {
+    const prodotto = ((await rows.nth(i).locator('td').nth(4).textContent()) || '').trim();
+    if (prodotto && prodotto !== '-' && prodotto !== '' && prodotto !== '—') filled += 1;
+  }
+  return filled;
 }
 
 async function countMovimentiUscita(page) {
@@ -44,23 +58,7 @@ async function findIncompleteTrattamentoRow(page) {
   return null;
 }
 
-async function waitForTrattamentoMarkerCompleted(page) {
-  await page.waitForFunction(
-    (note) => {
-      const rows = document.querySelectorAll('#tbody-trattamenti tr');
-      return Array.from(rows).some((tr) => {
-        if (!(tr.textContent || '').includes(note)) return false;
-        const cells = tr.querySelectorAll('td');
-        const prodotto = (cells[4]?.textContent || '').trim();
-        return prodotto !== '-' && prodotto !== '' && prodotto !== '—';
-      });
-    },
-    E2E_TRATTAMENTO_FRUTTETO_NOTE,
-    { timeout: 90_000 }
-  );
-}
-
-async function completeTrattamentoStub(page) {
+async function completeTrattamentoStub(page, filledBefore) {
   const row = await findIncompleteTrattamentoRow(page);
   if (!row) throw new Error('Nessuno stub trattamento frutteto incompleto');
 
@@ -103,7 +101,22 @@ async function completeTrattamentoStub(page) {
   page.once('dialog', (dialog) => dialog.accept());
   await page.locator('#form-trattamento button[type="submit"]').click();
   await page.locator('#modal-trattamento.active').waitFor({ state: 'hidden', timeout: 90_000 });
-  await waitForTrattamentoMarkerCompleted(page);
+  await waitForTrattamentiTableReady(page);
+
+  await page.waitForFunction(
+    (minFilled) => {
+      const rows = document.querySelectorAll('#tbody-trattamenti tr');
+      let filled = 0;
+      for (const tr of rows) {
+        if (!/Vedi Attività/i.test(tr.textContent || '')) continue;
+        const prodotto = (tr.querySelectorAll('td')[4]?.textContent || '').trim();
+        if (prodotto && prodotto !== '-' && prodotto !== '—') filled += 1;
+      }
+      return filled >= minFilled;
+    },
+    filledBefore + 1,
+    { timeout: 90_000 }
+  );
 
   return { productLabel };
 }
@@ -113,39 +126,34 @@ export async function runTrattamentoFruttetoCompletaWriteAssertions(page, expect
 
   await loginAsManagerFrutteto(page);
   await gotoFruttetoTrattamentiList(page);
+  await waitForTrattamentiTableReady(page);
 
-  const markerRows = trattamentoRowsWithNote(page);
-  let incompleteRow = await findIncompleteTrattamentoRow(page);
+  const filledBefore = await countFilledAttivitaStubRows(page);
+  const incompleteRow = await findIncompleteTrattamentoRow(page);
 
   if (incompleteRow) {
     await gotoMovimentiList(page);
     const usciteBefore = await countMovimentiUscita(page);
 
     await gotoFruttetoTrattamentiList(page);
-    const { productLabel } = await completeTrattamentoStub(page);
+    await waitForTrattamentiTableReady(page);
+    const { productLabel } = await completeTrattamentoStub(page, filledBefore);
 
-    expect(await markerRows.count()).toBeGreaterThanOrEqual(1);
-    const prodottoCell = markerRows.first().locator('td').nth(4);
-    await expect(prodottoCell).not.toHaveText('-');
+    const filledAfter = await countFilledAttivitaStubRows(page);
+    expect(filledAfter).toBeGreaterThanOrEqual(filledBefore + 1);
+
+    const filledRows = trattamentoStubFromAttivitaRows(page).filter({
+      hasNot: page.locator('td').nth(4).filter({ hasText: /^-$|^—$/ }),
+    });
     if (productLabel) {
-      await expect(prodottoCell).toContainText(productLabel.slice(0, 12));
+      await expect(filledRows.first().locator('td').nth(4)).toContainText(productLabel.slice(0, 12));
     }
 
     await gotoMovimentiList(page);
     const usciteAfter = await countMovimentiUscita(page);
     expect(usciteAfter).toBeGreaterThanOrEqual(usciteBefore + 1);
-  } else if ((await markerRows.count()) >= 1) {
-    await expect(markerRows.first().locator('td').nth(4)).not.toHaveText('-');
-    await gotoMovimentiList(page);
-    expect(await countMovimentiUscita(page)).toBeGreaterThanOrEqual(10);
   } else {
-    expect(await trattamentoStubFromAttivitaRows(page).count()).toBeGreaterThanOrEqual(1);
-    const prodotti = await trattamentoStubFromAttivitaRows(page).locator('td:nth-child(5)').allTextContents();
-    const filled = prodotti.filter((p) => {
-      const t = p.trim();
-      return t && t !== '-' && t !== '—';
-    });
-    expect(filled.length).toBeGreaterThanOrEqual(1);
+    expect(filledBefore).toBeGreaterThanOrEqual(1);
     await gotoMovimentiList(page);
     expect(await countMovimentiUscita(page)).toBeGreaterThanOrEqual(10);
   }
