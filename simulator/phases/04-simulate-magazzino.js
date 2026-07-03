@@ -241,6 +241,18 @@ export async function runSimulateMagazzino(_options = {}) {
     if (min > 0 && g < min) sottoScorta += 1;
   }
 
+  // Con stub trattamento incompleti i round-robin possono non portare nessun prodotto sotto soglia.
+  if (sottoScorta === 0 && movimentiIds.length > 0 && stubLeft > 0) {
+    const target = prodotti.find((p) => (p.scortaMinima ?? 0) > 0);
+    if (target) {
+      const min = target.scortaMinima;
+      const next = Math.max(0, min - 1);
+      await target.ref.update({ giacenza: next, updatedAt: new Date() });
+      giacenzaById.set(target.id, next);
+      sottoScorta = 1;
+    }
+  }
+
   if (trattamentiCompletati > 0 && !useFrutteto) {
     await syncSpeseVignetoTenant(db, tenantId, { anno: new Date().getFullYear() });
   }

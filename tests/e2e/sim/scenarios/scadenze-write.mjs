@@ -1,6 +1,6 @@
 /**
- * E2E write — aggiorna scadenza scaduta (rinnova) da lista scadenze parco.
- * Idempotente: data fissa 2030-06-15 sul primo mezzo scaduto (tipo data).
+ * E2E write — aggiorna scadenza (rinnova) da lista scadenze parco.
+ * Idempotente: data fissa 2030-06-15 su prima scadenza tipo data (data-mezzo sul pulsante).
  * @module tests/e2e/sim/scenarios/scadenze-write
  */
 
@@ -20,15 +20,24 @@ async function rowAlreadyRenewed(page) {
 /**
  * @param {import('playwright-core').Page} page
  */
+async function pickRinnovaDataButton(page) {
+  const scadutaBtn = page.locator('.scadenze-table tbody tr.row-scaduto .btn-rinnova[data-tipo="data"]');
+  if ((await scadutaBtn.count()) > 0) return scadutaBtn.first();
+  return page.locator('.scadenze-table tbody tr .btn-rinnova[data-tipo="data"]').first();
+}
+
+/**
+ * @param {import('playwright-core').Page} page
+ */
 async function renewFirstScadutaDataRow(page) {
-  let rinnovaBtn = page.locator('.scadenze-table tbody tr.row-scaduto .btn-rinnova[data-tipo="data"]').first();
-  if ((await rinnovaBtn.count()) === 0) {
-    rinnovaBtn = page.locator('.scadenze-table tbody tr .btn-rinnova[data-tipo="data"]').first();
-  }
+  const rinnovaBtn = await pickRinnovaDataButton(page);
   await rinnovaBtn.waitFor({ state: 'visible', timeout: 60_000 });
 
-  const scadutaRow = page.locator('.scadenze-table tbody tr').filter({ has: rinnovaBtn }).first();
-  const mezzoName = ((await scadutaRow.locator('td').first().textContent()) || '').trim();
+  const mezzoName = (await rinnovaBtn.getAttribute('data-mezzo')) || '';
+  if (!mezzoName) {
+    throw new Error('Pulsante rinnova senza data-mezzo — impossibile verificare aggiornamento');
+  }
+
   await rinnovaBtn.click();
 
   await page.locator('#modal-rinnova.active').waitFor({ state: 'visible', timeout: 30_000 });
@@ -45,17 +54,17 @@ async function renewFirstScadutaDataRow(page) {
   );
 
   await page.waitForFunction(
-    (mezzo) => {
+    ({ mezzo, year }) => {
       const rows = document.querySelectorAll('.scadenze-table tbody tr');
       for (const tr of rows) {
         const text = tr.textContent || '';
-        if (!text.includes(mezzo) || !text.includes('2030')) continue;
+        if (!text.includes(mezzo) || !text.includes(String(year))) continue;
         if (tr.querySelector('.status-dot.dot-green, .status-dot.dot-yellow')) return true;
         if (/Ok|Entro/i.test(text)) return true;
       }
       return false;
     },
-    mezzoName,
+    { mezzo: mezzoName, year: '2030' },
     { timeout: 90_000 }
   );
 }
@@ -74,10 +83,7 @@ export async function runScadenzeWriteAssertions(page, expect) {
     await renewFirstScadutaDataRow(page);
   }
 
-  const renewedRow = page
-    .locator('.scadenze-table tbody tr')
-    .filter({ hasText: /2030/i })
-    .first();
+  const renewedRow = page.locator('.scadenze-table tbody tr').filter({ hasText: /2030/i }).first();
   await expect(renewedRow).toBeVisible();
   expect(await renewedRow.locator('.status-dot.dot-black').count()).toBe(0);
   expect(await renewedRow.locator('.status-dot.dot-green, .status-dot.dot-yellow').count()).toBeGreaterThanOrEqual(
