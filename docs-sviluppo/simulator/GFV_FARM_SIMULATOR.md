@@ -1,6 +1,6 @@
 # GFV Farm Simulator — Guida sviluppo per agenti
 
-**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (18 scenari read ✅) + **v5 roadmap** §11.3 (**64 spec E2E target**, catena A §11.3.12 + read profondi §11.3.13 + **M4 frutteto** ✅ + template `frutteto-conto-terzi-manodopera`)  
+**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (18 scenari read ✅) + **v5 roadmap** §11.3 (**67 spec E2E target**, catena A §11.3.12 + read profondi §11.3.13 + **M4 frutteto** ✅ + template `frutteto-conto-terzi-manodopera`)  
 **Data:** 2026-07-03  
 **Stato:** … **CI verificata 64/64** ([28639023673](https://github.com/VitaraDragon/gfv-platform/actions/runs/28639023673)); `frutteti-write` + `flotta-write`; template `frutteto-conto-terzi-manodopera` + seed catena B stub (2 incompleti)  
 **Codename:** `gfv-farm-simulator`
@@ -826,6 +826,9 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 | 42 | Write — nuova macchina admin | `gestione-macchine-write.spec.js` | ✅ |
 | 43 | Write — vendemmia qli | `vendemmia-write.spec.js` | ✅ |
 | 44 | Write — compensi operai mese | `z-compensi-write.spec.js` | ✅ |
+| 65 | Write — aggiorna scadenza parco | `scadenze-write.spec.js` | ✅ |
+| 66 | Write — note contratto operaio | `operai-write.spec.js` | ✅ |
+| 67 | Write — nuova squadra | `squadre-write.spec.js` | ✅ |
 
 **Assert scenario 22 (field workspace write):** template manodopera. Operaio → `field-workspace-standalone.html` → lavoro assegnato → slide **Segna ore** → 14:00–16:00, note marker `GFV_SIM_E2E_WRITE_ORE`. Manager → `validazione-ore-standalone.html` → **`waitForMarkerInValidazioneQueue`** (propagazione Firestore) → riga in coda con pulsante **✅ Valida** (idempotente). Pattern condiviso con scen. 31.
 
@@ -955,8 +958,8 @@ npm run sim:e2e                      # 64/64 attesi in CI dual-seed (~2 min); vi
 | Pagina | Seed | E2E read | E2E write | P |
 | ------ | ---- | -------- | --------- | - |
 | Dashboard macchine | ✅ | ✅ scen. 14 | ❌ | 1 |
-| Scadenze | ✅ | ✅ scen. 2 | ❌ | 2 |
-| Trattori / Attrezzi / Flotta | ✅ | ✅ scen. 10 | ❌ | 2 |
+| Scadenze | ✅ | ✅ scen. 2 | ✅ scen. 65 (rinnova scaduta) | **1** |
+| Trattori / Attrezzi / Flotta | ✅ | ✅ scen. 10 | ✅ scen. 54 attrezzi, ✅ flotta-write | 2 |
 | Guasti (lista) | ✅ 3 record | ✅ scen. 14 (tabella + badge) | ✅ scen. 33 (segnalazione generica operaio) | **1** |
 | Segnalazione guasti (operaio) | ✅ | ✅ scen. 39 (form) | ✅ scen. 33 | **1** |
 | Admin gestione macchine / guasti | parziale | ✅ scen. 36 | ✅ scen. 42 / 41 (risolvi) | 2 |
@@ -990,7 +993,7 @@ npm run sim:e2e                      # 64/64 attesi in CI dual-seed (~2 min); vi
 | Home manodopera | ✅ | ✅ scen. 18 | ❌ | 1 |
 | Gestione lavori | ✅ | ✅ scen. 13 | ✅ scen. 23 | **1** |
 | Validazione ore | ✅ coda 2 ore manager | ✅ scen. 13 (stat + righe) | ✅ scen. 31 (valida marker ore) | **1** |
-| Operai / Squadre / Statistiche | ✅ | ✅ scen. 18 | ❌ | 2 |
+| Operai / Squadre / Statistiche | ✅ | ✅ scen. 18 | ✅ scen. 66 operai, ✅ 67 squadre | 2 |
 | Lavori capo desktop | ✅ | ✅ scen. 19 | ❌ | 2 |
 | Field workspace mobile | ✅ | ✅ scen. 8 | ✅ scen. 22 (registra ore) | **1** |
 | Compensi operai | ❌ | ✅ scen. 39 | ✅ scen. 44 (calcolo) | 2 |

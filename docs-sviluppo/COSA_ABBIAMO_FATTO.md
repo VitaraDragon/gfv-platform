@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-03 — stabilizzazione C (64/64 CI, flaky fix).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-03 — Fase 1 write manodopera + scadenze (67 spec).
+
+## GFV Farm Simulator — Fase 1 write P2 manodopera + scadenze (2026-07-03)
+
+**Obiettivo:** chiudere gap write operai, squadre, scadenze prima del track Tony E2E.
+
+| Area | Dettaglio |
+|------|-----------|
+| Write E2E | `operai-write` (note contratto), `squadre-write` (nuova squadra), `scadenze-write` (rinnova scaduta) — **67 spec** target CI |
+| Pattern | Idempotente con marker (`GFV SIM E2E …`); login manodopera per operai/squadre; manager viticola per scadenze |
+| Runner | `scripts/sim-e2e-run.mjs` + spec Playwright dedicate |
 
 ## GFV Farm Simulator — Stabilizzazione C (2026-07-03)
 

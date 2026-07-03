@@ -108,6 +108,8 @@ import {
   runManodoperaHomeAssertions,
   runStatisticheManodoperaAssertions,
 } from '../tests/e2e/sim/scenarios/manodopera-team.mjs';
+import { runOperaiWriteAssertions } from '../tests/e2e/sim/scenarios/operai-write.mjs';
+import { runSquadreWriteAssertions } from '../tests/e2e/sim/scenarios/squadre-write.mjs';
 import { runVignetoDashboardAssertions } from '../tests/e2e/sim/scenarios/vigneto-hub.mjs';
 import {
   runAttrezziListAssertions,
@@ -117,6 +119,7 @@ import {
 import { runProdottiListAssertions } from '../tests/e2e/sim/scenarios/prodotti.mjs';
 import { runDashboardDeadlinesAssertions } from '../tests/e2e/sim/scenarios/dashboard-deadlines.mjs';
 import { runScadenzeListAssertions } from '../tests/e2e/sim/scenarios/scadenze-list.mjs';
+import { runScadenzeWriteAssertions } from '../tests/e2e/sim/scenarios/scadenze-write.mjs';
 import { runTerreniAffittiAssertions } from '../tests/e2e/sim/scenarios/terreni-affitti.mjs';
 import { runVignetiListAssertions } from '../tests/e2e/sim/scenarios/vigneti.mjs';
 import {
@@ -237,6 +240,12 @@ const SCENARIOS = [
       await loginAsManagerFromDevPage(page);
       await gotoScadenzeList(page);
       await runScadenzeListAssertions(page, expect);
+    },
+  },
+  {
+    name: 'scadenze-write',
+    run: async (page) => {
+      await runScadenzeWriteAssertions(page, expect);
     },
   },
   {
@@ -672,6 +681,18 @@ const SCENARIOS = [
     name: 'compensi-write',
     run: async (page) => {
       await runCompensiWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'operai-write',
+    run: async (page) => {
+      await runOperaiWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'squadre-write',
+    run: async (page) => {
+      await runSquadreWriteAssertions(page, expect);
     },
   },
   {
