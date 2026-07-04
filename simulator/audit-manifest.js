@@ -20,7 +20,9 @@ import { expectedFruttetoCountsFromTemplate } from './phases/05-simulate-fruttet
 import { expectedMovimentiFromTemplate } from './phases/04-simulate-magazzino.js';
 import { extraCatenaCountsManodopera } from './lib/vigneto-stub-from-trigger.js';
 import { isEmulatorAvailable } from './lib/emulator-available.js';
-import { isContoTerziTemplate, isFruttetoTemplate, loadTemplate } from './lib/load-template.js';
+import { isContoTerziTemplate, isFruttetoTemplate, isMistoColtureTemplate, loadTemplate } from './lib/load-template.js';
+import { expectedMixedColtureCountsFromTemplate } from './lib/mixed-colture-utils.js';
+import { extraCatenaCountsManodoperaFrutteto } from './lib/frutteto-stub-from-trigger.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const v1Template = loadTemplate('solo-titolare-viticola');
@@ -28,10 +30,17 @@ const v2Template = loadTemplate('viticola-manodopera');
 
 function buildExpected(template) {
   const q = template.quantities;
-  const hasFrutteto = isFruttetoTemplate(template);
-  const vignetoExpected = hasFrutteto ? null : expectedVignetoCountsFromTemplate(template);
-  const fruttetoExpected = hasFrutteto ? expectedFruttetoCountsFromTemplate(template) : null;
+  const fruttetoOnly = isFruttetoTemplate(template);
+  const misto = isMistoColtureTemplate(template);
+  const mixedExpected = misto ? expectedMixedColtureCountsFromTemplate(template) : null;
+  const vignetoExpected = misto
+    ? mixedExpected.vigneto
+    : (fruttetoOnly ? null : expectedVignetoCountsFromTemplate(template));
+  const fruttetoExpected = misto
+    ? mixedExpected.frutteto
+    : (fruttetoOnly ? expectedFruttetoCountsFromTemplate(template) : null);
   const catenaExtra = extraCatenaCountsManodopera(template);
+  const catenaExtraF = extraCatenaCountsManodoperaFrutteto(template);
   const mo = template.manodopera || {};
   const hasManodopera = template.moduli?.includes('manodopera');
   const hasContoTerzi = isContoTerziTemplate(template);
@@ -45,22 +54,23 @@ function buildExpected(template) {
     flottaTagliandoSuperatoMin: 1,
     macchineConScadenzeMin: 3,
     inManutenzioneMin: 1,
-    vigneti: hasFrutteto ? 0 : q.vigneti,
-    frutteti: hasFrutteto ? (q.frutteti ?? q.terreni) : 0,
+    vigneti: misto || !fruttetoOnly ? (q.vigneti ?? q.terreniVigneto ?? Math.ceil((q.terreni || 6) / 2)) : 0,
+    frutteti: misto || fruttetoOnly ? (q.frutteti ?? q.terreniFrutteto ?? q.terreni) : 0,
     prodotti: q.prodotti,
     attivita: q.attivitaGiorniLavorativi,
     movimentiMagazzino: expectedMovimentiFromTemplate(template),
-    potatureVigneto: hasFrutteto ? 0 : vignetoExpected.potature,
-    trattamentiVigneto: hasFrutteto ? 0 : vignetoExpected.trattamenti + catenaExtra.trattamenti,
-    vendemmieVigneto: hasFrutteto ? 0 : vignetoExpected.vendemmie + catenaExtra.vendemmie,
-    potatureFrutteto: hasFrutteto ? fruttetoExpected.potature : 0,
-    trattamentiFrutteto: hasFrutteto ? fruttetoExpected.trattamenti : 0,
-    raccolteFrutteto: hasFrutteto ? fruttetoExpected.raccolte : 0,
+    potatureVigneto: vignetoExpected?.potature ?? 0,
+    trattamentiVigneto: (vignetoExpected?.trattamenti ?? 0) + catenaExtra.trattamenti,
+    vendemmieVigneto: (vignetoExpected?.vendemmie ?? 0) + catenaExtra.vendemmie,
+    potatureFrutteto: fruttetoExpected?.potature ?? 0,
+    trattamentiFrutteto: (fruttetoExpected?.trattamenti ?? 0) + (misto || fruttetoOnly ? catenaExtraF.trattamenti : 0),
+    raccolteFrutteto: (fruttetoExpected?.raccolte ?? 0) + (misto || fruttetoOnly ? catenaExtraF.raccolte : 0),
     guasti: q.guasti ?? 0,
     manodopera: hasManodopera
       ? {
           squadre: q.squadre ?? q.caposquadra ?? 1,
-          lavoriSquadra: (q.lavoriSquadra ?? 2) + catenaExtra.lavoriSquadra,
+          lavoriSquadra: (q.lavoriSquadra ?? 2) + catenaExtra.lavoriSquadra
+            + (misto || fruttetoOnly ? catenaExtraF.lavoriSquadra : 0),
           lavoriAutonomi: q.lavoriAutonomi ?? 1,
           personasMin: 1 + (q.caposquadra ?? 1) + (q.operai ?? 3),
           minOreOperaioValidateDaCapo: 1,
@@ -107,7 +117,9 @@ function isManodoperaManifestEntry(entry) {
   if (
     entry.templateId === 'viticola-manodopera' ||
     entry.templateId === 'regime-max-manodopera' ||
-    entry.templateId === 'viticola-conto-terzi-manodopera'
+    entry.templateId === 'viticola-conto-terzi-manodopera' ||
+    entry.templateId === 'mista-viticola-frutteto-conto-terzi-manodopera' ||
+    entry.templateId === 'frutteto-conto-terzi-manodopera'
   ) {
     return true;
   }

@@ -8,7 +8,7 @@ import { getEmulatorDb } from '../lib/emulator-context.js';
 import { addTenantDocument } from '../lib/firestore-write.js';
 import { runAsPersona } from '../lib/run-as-persona.js';
 import { getSimProfile, requireSimTenantId, requireSimUserId } from '../lib/sim-context.js';
-import { isFruttetoTemplate } from '../lib/load-template.js';
+import { hasFruttetoModule, hasVignetoModule, isFruttetoTemplate } from '../lib/load-template.js';
 import { seedCateneFruttetoFromLavori } from '../lib/frutteto-stub-from-trigger.js';
 import { seedCateneVignetoFromLavori } from '../lib/vigneto-stub-from-trigger.js';
 
@@ -42,6 +42,17 @@ function distributeOperaiRoundRobin(operai, squadreCount) {
     buckets[i % squadreCount].push(op);
   });
   return buckets;
+}
+
+function terrenoForLavoroSquadra(ctx, index) {
+  if (!ctx.misto) return ctx.terreni[index % ctx.terreni.length];
+  const pool = index % 2 === 0 ? ctx.vineTerreni : ctx.fruitTerreni;
+  return pool[Math.floor(index / 2) % pool.length] || ctx.terreni[index % ctx.terreni.length];
+}
+
+function terrenoForLavoroAutonomo(ctx, index) {
+  if (!ctx.misto) return ctx.terreni[(index + 1) % ctx.terreni.length];
+  return ctx.fruitTerreni[index % ctx.fruitTerreni.length] || ctx.terreni[index % ctx.terreni.length];
 }
 
 /**
@@ -79,7 +90,17 @@ export async function runPopulateManodopera(assets = {}) {
   const attrezzi = assets.attrezzi || [];
   const vigneti = assets.vigneti || [];
   const frutteti = assets.frutteti || [];
-  const useFrutteto = isFruttetoTemplate(template);
+  const fruttetoOnly = isFruttetoTemplate(template);
+  const vignetoEnabled = hasVignetoModule(template);
+  const fruttetoEnabled = hasFruttetoModule(template);
+  const misto = vignetoEnabled && fruttetoEnabled;
+  const vineTerreni = misto
+    ? terreni.filter((t) => vigneti.some((v) => v.terrenoId === t.id))
+    : terreni;
+  const fruitTerreni = misto
+    ? terreni.filter((t) => frutteti.some((f) => f.terrenoId === t.id))
+    : terreni;
+  const terrenoCtx = { misto, vineTerreni, fruitTerreni, terreni };
   if (!terreni.length) {
     throw new Error('Fase 07: nessun terreno — eseguire populate asset');
   }
@@ -113,10 +134,12 @@ export async function runPopulateManodopera(assets = {}) {
     const lavoriSquadra = [];
     for (let i = 0; i < nLavoriSquadra; i++) {
       const squadra = squadre[i % squadre.length];
-      const terreno = terreni[i % terreni.length];
+      const terreno = terrenoForLavoroSquadra(terrenoCtx, i);
       const trattore = trattori[i % Math.max(trattori.length, 1)];
       const attrezzo = attrezzi[i % Math.max(attrezzi.length, 1)];
-      const tipoLavoro = TIPI_LAVORO[i % TIPI_LAVORO.length];
+      const tipoLavoro = misto && i === 0
+        ? 'Trattamento'
+        : TIPI_LAVORO[i % TIPI_LAVORO.length];
 
       const lavoroData = {
         nome: `${tipoLavoro} squadra ${i + 1}`,
@@ -147,7 +170,7 @@ export async function runPopulateManodopera(assets = {}) {
     const lavoriAutonomi = [];
     for (let i = 0; i < nLavoriAutonomi; i++) {
       const operaio = personasFull.operai[i % personasFull.operai.length];
-      const terreno = terreni[(i + 1) % terreni.length];
+      const terreno = terrenoForLavoroAutonomo(terrenoCtx, i);
       const tipoLavoro = TIPI_LAVORO[(i + 2) % TIPI_LAVORO.length];
 
       const lavoroData = {
@@ -174,9 +197,9 @@ export async function runPopulateManodopera(assets = {}) {
       });
     }
 
-    // Lavoro catena A — vendemmia (vite) o raccolta (frutteto) su terreno coltura
+    // Lavori catena A — vendemmia (vite) e/o raccolta (frutteto) su terreno coltura
     const lavoriCatena = [];
-    if (useFrutteto && frutteti.length && squadre.length) {
+    if (fruttetoEnabled && frutteti.length && squadre.length) {
       const frutteto = frutteti[0];
       const terrenoFrutteto = terreni.find((t) => t.id === frutteto.terrenoId) || terreni[0];
       const squadra = squadre[0];
@@ -203,7 +226,8 @@ export async function runPopulateManodopera(assets = {}) {
         ...raccoltaData,
         squadra
       });
-    } else if (vigneti.length && squadre.length) {
+    }
+    if (vignetoEnabled && vigneti.length && squadre.length) {
       const vigneto = vigneti[0];
       const terrenoVite = terreni.find((t) => t.id === vigneto.terrenoId) || terreni[0];
       const squadra = squadre[0];
@@ -241,36 +265,42 @@ export async function runPopulateManodopera(assets = {}) {
     ...(result.lavoriCatena || [])
   ];
 
-  if (useFrutteto) {
+  let cateneVigneto = null;
+  let cateneFrutteto = null;
+  if (vignetoEnabled && vigneti.length) {
+    const vignetoByTerreno = new Map(vigneti.map((v) => [v.terrenoId, v]));
+    cateneVigneto = await seedCateneVignetoFromLavori(db, tenantId, tuttiLavori, vignetoByTerreno);
+  }
+  if (fruttetoEnabled && frutteti.length) {
     const fruttetoByTerreno = new Map(frutteti.map((f) => [f.terrenoId, f]));
-    const catene = await seedCateneFruttetoFromLavori(db, tenantId, tuttiLavori, fruttetoByTerreno);
-    return {
-      ...result,
-      cateneFrutteto: catene,
-      counts: {
-        squadre: result.squadre.length,
-        lavoriSquadra: result.lavoriSquadra.length + (result.lavoriCatena || []).length,
-        lavoriAutonomi: result.lavoriAutonomi.length,
-        lavoriCatena: (result.lavoriCatena || []).length,
-        raccolteStubLavoro: catene.raccoltaIds.length,
-        trattamentiStubLavoro: catene.trattamentoIds.length
-      }
-    };
+    cateneFrutteto = await seedCateneFruttetoFromLavori(db, tenantId, tuttiLavori, fruttetoByTerreno);
   }
 
-  const vignetoByTerreno = new Map(vigneti.map((v) => [v.terrenoId, v]));
-  const catene = await seedCateneVignetoFromLavori(db, tenantId, tuttiLavori, vignetoByTerreno);
+  const counts = {
+    squadre: result.squadre.length,
+    lavoriSquadra: result.lavoriSquadra.length + (result.lavoriCatena || []).length,
+    lavoriAutonomi: result.lavoriAutonomi.length,
+    lavoriCatena: (result.lavoriCatena || []).length
+  };
+
+  if (cateneFrutteto) {
+    counts.raccolteStubLavoro = cateneFrutteto.raccoltaIds.length;
+    counts.trattamentiStubLavoroFrutteto = cateneFrutteto.trattamentoIds.length;
+  }
+  if (cateneVigneto) {
+    counts.vendemmieStubLavoro = cateneVigneto.vendemmiaIds.length;
+    counts.trattamentiStubLavoroVigneto = cateneVigneto.trattamentoIds.length;
+  }
+  if (fruttetoOnly && cateneFrutteto) {
+    counts.trattamentiStubLavoro = cateneFrutteto.trattamentoIds.length;
+  } else if (!fruttetoEnabled && cateneVigneto) {
+    counts.trattamentiStubLavoro = cateneVigneto.trattamentoIds.length;
+  }
 
   return {
     ...result,
-    cateneVigneto: catene,
-    counts: {
-      squadre: result.squadre.length,
-      lavoriSquadra: result.lavoriSquadra.length + (result.lavoriCatena || []).length,
-      lavoriAutonomi: result.lavoriAutonomi.length,
-      lavoriCatena: (result.lavoriCatena || []).length,
-      vendemmieStubLavoro: catene.vendemmiaIds.length,
-      trattamentiStubLavoro: catene.trattamentoIds.length
-    }
+    cateneVigneto,
+    cateneFrutteto,
+    counts
   };
 }

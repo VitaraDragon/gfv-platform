@@ -99,7 +99,22 @@ export function isContoTerziTemplate(template) {
   return moduli.includes('contoTerzi');
 }
 
-export function isFruttetoTemplate(template) {
+export function hasVignetoModule(template) {
   const moduli = template?.moduli || template?.modules || [];
-  return moduli.includes('frutteto') && !moduli.includes('vigneto');
+  return moduli.includes('vigneto');
+}
+
+export function hasFruttetoModule(template) {
+  const moduli = template?.moduli || template?.modules || [];
+  return moduli.includes('frutteto');
+}
+
+/** Solo frutteto (senza vigneto) — compatibilità template esistenti. */
+export function isFruttetoTemplate(template) {
+  return hasFruttetoModule(template) && !hasVignetoModule(template);
+}
+
+/** Vigneto e frutteto entrambi attivi sullo stesso tenant. */
+export function isMistoColtureTemplate(template) {
+  return hasVignetoModule(template) && hasFruttetoModule(template);
 }

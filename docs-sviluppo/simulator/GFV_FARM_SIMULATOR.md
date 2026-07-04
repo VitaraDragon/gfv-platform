@@ -1,6 +1,6 @@
 # GFV Farm Simulator — Guida sviluppo per agenti
 
-**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (18 scenari read ✅) + **v5 roadmap** §11.3 (**70 spec E2E ✅**, catena A §11.3.12 + read profondi §11.3.13 + **M4 frutteto** ✅ + **Fase 2 write** ✅)  
+**Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (18 scenari read ✅) + **v5 roadmap** §11.3 (**71 spec E2E ✅**, triple-seed + template mista + catena A §11.3.12 + read profondi §11.3.13 + **M4 frutteto** ✅ + **Fase 2 write** ✅)  
 **Data:** 2026-07-03  
 **Stato:** **CI 67/67 verificata** [28671850155](https://github.com/VitaraDragon/gfv-platform/actions/runs/28671850155); **Fase 2 write** `trattori-write` / `concimazione-frutteto-completa-write` / `lavori-caposquadra-write` → target **70 spec**  
 **Codename:** `gfv-farm-simulator`
@@ -181,6 +181,9 @@ simulator/
     viticola-manodopera.json         # template v2 (spec §14)
     viticola-conto-terzi.json        # v2 + modulo Conto Terzi
     viticola-conto-terzi-manodopera.json
+    frutteto-solo-titolare.json
+    frutteto-conto-terzi-manodopera.json
+    mista-viticola-frutteto-conto-terzi-manodopera.json  # vigneto + frutteto + CT + manodopera
   generators/
     nomi-italiani.js                 # persone, aziende, terreni, macchine
     date-calendario.js               # 4 settimane lavorative (no weekend opz.)
@@ -1395,7 +1398,7 @@ Workflow: `.github/workflows/simulator-ci.yml`
 
 - **Quando:** push/PR su path `simulator/**`, `tests/simulator/**`, `tests/e2e/sim/**`, `scripts/sim-e2e-run.mjs`, `scripts/sim-ci-e2e-inner.sh`, `playwright.config.js`, `firebase.json`, lockfile; oppure **Run workflow** manuale.
 - **Job `simulator-emulator`:** `npm run sim:test:ci` (Java **21**, Node **22** + `emulators:exec` + `sim:test` + `sim:test:vitest`). Timeout 15 min.
-- **Job `simulator-e2e` (v4 #9 ✅, v5 Fase 1 ✅, M2 + P2 ✅, write P2 65–67 ✅):** `npm run sim:e2e:install` + `npm run sim:e2e:ci` — `emulators:exec` avvia http-server su `:8000`, dual seed viticola + frutteto, `sim:e2e:pw` (**67 spec**, headless Chromium). Timeout 25 min. I due job girano in parallelo.
+- **Job `simulator-e2e` (v4 #9 ✅, v5 Fase 1 ✅, M2 + P2 ✅, write P2 65–67 ✅, template mista ✅):** `npm run sim:e2e:install` + `npm run sim:e2e:ci` — `emulators:exec` avvia http-server su `:8000`, **triple-seed** (viticola + frutteto M4 + mista CT/manodopera), verify ×3, `sim:e2e:pw` (**71 spec**, headless Chromium). Timeout 40 min. I due job girano in parallelo.
 - **Locale (stesso comando CI Node):** `npm run sim:test:ci` — richiede Java su PATH.
 - **Locale (stesso comando CI E2E, bash + Java):** `npm run sim:e2e:install && npm run sim:e2e:ci`.
 

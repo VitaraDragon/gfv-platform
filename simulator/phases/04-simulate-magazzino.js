@@ -10,7 +10,8 @@ import { getEmulatorDb } from '../lib/emulator-context.js';
 import { addTenantDocument, normalizeForAdmin } from '../lib/firestore-write.js';
 import { prezzoUnitarioPerScarico } from '../lib/link-scarichi-trattamento-vigneto.js';
 import { syncSpeseVignetoTenant } from '../lib/sim-economia-vigneto.js';
-import { isFruttetoTemplate } from '../lib/load-template.js';
+import { isFruttetoTemplate, isMistoColtureTemplate } from '../lib/load-template.js';
+import { expectedMixedColtureCountsFromTemplate } from '../lib/mixed-colture-utils.js';
 import { requireSimTenantId, requireSimUserId, getSimProfile } from '../lib/sim-context.js';
 import { expectedFruttetoCountsFromTemplate } from './05-simulate-frutteto.js';
 import { expectedVignetoCountsFromTemplate } from './05-simulate-vigneto.js';
@@ -58,6 +59,13 @@ function trattamentoGiaCompletato(trattamento) {
  */
 export function expectedMovimentiFromTemplate(template) {
   const skip = stubIncompletiLasciati(template);
+  if (isMistoColtureTemplate(template)) {
+    const mixed = expectedMixedColtureCountsFromTemplate(template);
+    const extraV = extraCatenaCountsManodopera(template);
+    const extraF = extraCatenaCountsManodoperaFrutteto(template);
+    return mixed.vigneto.trattamenti + mixed.frutteto.trattamenti
+      + extraV.trattamenti + extraF.trattamenti - skip;
+  }
   if (isFruttetoTemplate(template)) {
     const fr = expectedFruttetoCountsFromTemplate(template);
     const extra = extraCatenaCountsManodoperaFrutteto(template);
@@ -189,12 +197,19 @@ export async function runSimulateMagazzino(_options = {}) {
   }
 
   const profile = getSimProfile();
-  const useFrutteto = isFruttetoTemplate(profile?.template);
+  const template = profile?.template;
+  const fruttetoOnly = isFruttetoTemplate(template);
+  const misto = isMistoColtureTemplate(template);
 
-  const [attSnap, lavoriSnap, coltureSnap] = await Promise.all([
+  const [attSnap, lavoriSnap, vignetiSnap, fruttetiSnap] = await Promise.all([
     db.collection(`tenants/${tenantId}/attivita`).get(),
     db.collection(`tenants/${tenantId}/lavori`).get(),
-    db.collection(`tenants/${tenantId}/${useFrutteto ? 'frutteti' : 'vigneti'}`).get()
+    misto || !fruttetoOnly
+      ? db.collection(`tenants/${tenantId}/vigneti`).get()
+      : Promise.resolve({ docs: [] }),
+    misto || fruttetoOnly
+      ? db.collection(`tenants/${tenantId}/frutteti`).get()
+      : Promise.resolve({ docs: [] })
   ]);
 
   const attivitaById = new Map(attSnap.docs.map((d) => [d.id, { id: d.id, ...d.data() }]));
@@ -204,24 +219,54 @@ export async function runSimulateMagazzino(_options = {}) {
     prodotti.map((p) => [p.id, typeof p.giacenza === 'number' ? p.giacenza : 0])
   );
 
-  const colturaCollection = useFrutteto ? 'frutteti' : 'vigneti';
-  const stubLeft = stubIncompletiLasciati(profile?.template);
+  const stubLeft = stubIncompletiLasciati(template);
   let skipKeys = new Set();
   if (stubLeft > 0) {
-    const incomplete = await collectIncompleteTrattamentoKeys(db, tenantId, colturaCollection, coltureSnap);
+    const incomplete = [];
+    if (misto || !fruttetoOnly) {
+      incomplete.push(
+        ...(await collectIncompleteTrattamentoKeys(db, tenantId, 'vigneti', vignetiSnap))
+      );
+    }
+    if (misto || fruttetoOnly) {
+      incomplete.push(
+        ...(await collectIncompleteTrattamentoKeys(db, tenantId, 'frutteti', fruttetiSnap))
+      );
+    }
+    incomplete.sort((a, b) => a.key.localeCompare(b.key));
     skipKeys = new Set(incomplete.slice(-stubLeft).map((x) => x.key));
   }
 
   const movimentiIds = [];
   let trattamentiCompletati = 0;
   let scaricoIndex = 0;
+  let vignetoCompletati = 0;
 
-  for (const cDoc of coltureSnap.docs) {
+  const coltureJobs = [];
+  if (misto || !fruttetoOnly) {
+    for (const cDoc of vignetiSnap.docs) {
+      coltureJobs.push({
+        colturaCollection: 'vigneti',
+        colturaId: cDoc.id,
+        modulo: 'vigneto',
+        noteLabel: 'vigneto'
+      });
+    }
+  }
+  if (misto || fruttetoOnly) {
+    for (const cDoc of fruttetiSnap.docs) {
+      coltureJobs.push({
+        colturaCollection: 'frutteti',
+        colturaId: cDoc.id,
+        modulo: 'frutteto',
+        noteLabel: 'frutteto'
+      });
+    }
+  }
+
+  for (const job of coltureJobs) {
     const result = await processTrattamentiColtura(db, tenantId, userId, {
-      colturaCollection: useFrutteto ? 'frutteti' : 'vigneti',
-      colturaId: cDoc.id,
-      modulo: useFrutteto ? 'frutteto' : 'vigneto',
-      noteLabel: useFrutteto ? 'frutteto' : 'vigneto',
+      ...job,
       prodotti,
       attivitaById,
       lavoriById,
@@ -231,6 +276,7 @@ export async function runSimulateMagazzino(_options = {}) {
     });
     movimentiIds.push(...result.movimentiIds);
     trattamentiCompletati += result.trattamentiCompletati;
+    if (job.modulo === 'vigneto') vignetoCompletati += result.trattamentiCompletati;
     scaricoIndex = result.scaricoIndex;
   }
 
@@ -253,7 +299,7 @@ export async function runSimulateMagazzino(_options = {}) {
     }
   }
 
-  if (trattamentiCompletati > 0 && !useFrutteto) {
+  if (vignetoCompletati > 0) {
     await syncSpeseVignetoTenant(db, tenantId, { anno: new Date().getFullYear() });
   }
 

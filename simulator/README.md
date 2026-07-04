@@ -8,7 +8,7 @@ Guida completa: [`docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md`](../docs-svilup
 **v2.2 conto terzi:** template `viticola-conto-terzi` / `viticola-conto-terzi-manodopera` ✅ — guida §15 in `GFV_FARM_SIMULATOR.md`  
 **v3 cascata:** semafori affitti/macchine + Vitest + smoke Node ✅ — guida §11.1  
 **v4 Playwright:** scenari 1–19 ✅ — guida §11.2 (18 read)  
-**v5 roadmap:** **70 spec** E2E (target post Fase 2 write), M2 + M3 + P2 + **write P2 + Fase 2 write** ✅ — guida §11.3  
+**v5 roadmap:** **71 spec** E2E (triple-seed viticola + frutteto + mista), M2 + M3 + P2 + **write P2 + Fase 2 write** ✅ — guida §11.3  
 **Tony E2E (post-v5):** [`docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md`](../docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md)
 
 ## Prerequisiti
@@ -39,6 +39,9 @@ npm run sim:run -- --template=viticola-conto-terzi --verbose
 
 # Stack completo: conto terzi + manodopera + diario/magazzino/vigneto
 npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose
+
+# Azienda mista: vigneto + frutteto + conto terzi + manodopera
+npm run sim:run -- --template=mista-viticola-frutteto-conto-terzi-manodopera --verbose
 
 # Run batch — N aziende in sequenza (default 10)
 npm run sim:run:batch
@@ -168,7 +171,7 @@ Assert su DOM visibile — dati seed già validati da v3/v2.2/v2.1 manodopera.
 
 **Node:** su Node 24 la CLI `playwright test` può restare bloccata; usare `npm run sim:e2e`. In CI (Node 22): `sim:e2e:install` + `sim:e2e:pw`.
 
-**Esito attuale (2026-07-03):** `npm run sim:e2e` / CI `sim:e2e:ci` → **67/67** spec (66 passed + 1 flaky `trattamento-frutteto-completa-write` al retry; CI ~3,6 min). CI: [28645514543](https://github.com/VitaraDragon/gfv-platform/actions/runs/28645514543). Dual seed: viticola + frutteto M4.
+**Esito attuale (2026-07-04):** CI `sim:e2e:ci` → **triple-seed** (`viticola-conto-terzi-manodopera` + `frutteto-solo-titolare` + `mista-viticola-frutteto-conto-terzi-manodopera`) + verify ×3 + **71 spec** Playwright.
 
 | # | Scenario | Spec | URL target |
 | - | -------- | ---- | ---------- |
@@ -202,7 +205,7 @@ Assert su DOM visibile — dati seed già validati da v3/v2.2/v2.1 manodopera.
 | ----------------------- | -------------- |
 | **67/67** spec E2E ✅ CI ([28645514543](https://github.com/VitaraDragon/gfv-platform/actions/runs/28645514543)) | Report + statistiche **fuori scope** (redesign UI) |
 | **Fase 1 write P2** ✅ scen. 65–67 (scadenze, operai, squadre) | Fase 2 write residui (~6 form) |
-| **M4 frutteto** ✅ template `frutteto-solo-titolare` + 6 spec E2E | Template frutteto+manodopera/CT (se richiesto) |
+| **M4 frutteto** ✅ template `frutteto-solo-titolare` + 6 spec E2E | Template **mista** viticola+frutteto+CT+manodopera ✅ (`mista-viticola-frutteto-conto-terzi-manodopera`) |
 | Read smoke ~45/45 URL ✅ | Report + statistiche **fuori scope** (redesign UI) |
 | Read profondi batch A–C ✅ | §11.3.13 — hub magazzino, vigneto, CT, manodopera |
 | Write catene A/B + concimazione diario ✅ | Tracciabilità: solo catena auto (no write E2E) |

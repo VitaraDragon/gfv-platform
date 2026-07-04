@@ -7,8 +7,7 @@ import { generaGiorniLavorativi } from '../generators/date-calendario.js';
 import { getEmulatorDb } from '../lib/emulator-context.js';
 import { addTenantDocument } from '../lib/firestore-write.js';
 import { isFruttetoTemplate } from '../lib/load-template.js';
-import { raccoltaDayIndexFromTemplate } from './05-simulate-frutteto.js';
-import { vendemmiaDayIndexFromTemplate } from './05-simulate-vigneto.js';
+import { harvestDayIndexForTemplate, isColturaFrutteto } from '../lib/mixed-colture-utils.js';
 import { requireSimTenantId, getSimProfile } from '../lib/sim-context.js';
 
 function orarioToMinuti(orario) {
@@ -40,15 +39,14 @@ export async function runSimulateAttivita(assets) {
   }
 
   const attivitaIds = [];
-  const useFrutteto = isFruttetoTemplate(template);
+  const fruttetoOnly = isFruttetoTemplate(template);
 
   /** Sostituisce un giorno Erpicatura con raccolta/vendemmia stub — catena A. */
-  const harvestDayIndex = useFrutteto
-    ? raccoltaDayIndexFromTemplate(template)
-    : vendemmiaDayIndexFromTemplate(template);
+  const harvestDayIndex = harvestDayIndexForTemplate(template);
 
   for (let i = 0; i < dates.length; i++) {
     const terreno = terreni[i % terreni.length];
+    const isFruitTerreno = isColturaFrutteto(terreno.coltura);
     const trattore = trattori[i % Math.max(trattori.length, 1)] || null;
     const attrezzo = attrezzi[i % Math.max(attrezzi.length, 1)] || null;
     const orarioInizio = attCfg.orarioInizio || '08:00';
@@ -56,17 +54,19 @@ export async function runSimulateAttivita(assets) {
     const pauseMinuti = attCfg.pauseMinuti ?? 30;
     const oreNette = calcolaOreNette(orarioInizio, orarioFine, pauseMinuti);
 
-    // Giorno Erpicatura → Raccolta (frutteto) o Vendemmia Manuale (vigneto)
     const tipoLavoro = i === harvestDayIndex
-      ? (useFrutteto ? 'Raccolta' : 'Vendemmia Manuale')
+      ? (isFruitTerreno || fruttetoOnly ? 'Raccolta' : 'Vendemmia Manuale')
       : tipiLavoro[i % tipiLavoro.length];
+
+    const colturaDefault = fruttetoOnly ? (attCfg.coltura || 'Melo') : (attCfg.coltura || 'Vite da Vino');
+    const coltura = isFruitTerreno ? (terreno.coltura || 'Melo') : colturaDefault;
 
     const payload = {
       data: dates[i],
       terrenoId: terreno.id,
       terrenoNome: terreno.nome,
       tipoLavoro,
-      coltura: attCfg.coltura || 'Vite',
+      coltura,
       orarioInizio,
       orarioFine,
       pauseMinuti,

@@ -1,0 +1,31 @@
+{
+  "templateId": "mista-viticola-frutteto-conto-terzi-manodopera",
+  "descrizione": "Azienda mista viticola + frutteto con manodopera e conto terzi (terreni propri + clienti CT)",
+  "extends": "viticola-conto-terzi-manodopera",
+  "moduli": ["vigneto", "frutteto", "parcoMacchine", "magazzino", "manodopera", "contoTerzi"],
+  "quantities": {
+    "terreni": 6,
+    "terreniVigneto": 3,
+    "terreniFrutteto": 3,
+    "vigneti": 3,
+    "frutteti": 3,
+    "trattori": 2,
+    "attrezzi": 4,
+    "clienti": 3,
+    "poderiClienti": 3,
+    "terreniClienti": 6,
+    "tariffe": 10,
+    "preventivi": 6
+  },
+  "attivita": {
+    "tipiLavoro": ["Potatura", "Trattamento", "Erpicatura", "Concimazione", "Controllo fitosanitario"]
+  },
+  "contoTerzi": {
+    "ivaPercentuale": 22,
+    "giorniScadenzaPreventivo": 30,
+    "coltura": "Vite da Vino"
+  },
+  "magazzino": {
+    "lasciaStubTrattamentiIncompleti": 1
+  }
+}

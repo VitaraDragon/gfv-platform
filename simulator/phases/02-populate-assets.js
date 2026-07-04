@@ -13,7 +13,8 @@ import {
   generaTrattori,
   generaVigneti
 } from '../generators/nomi-italiani.js';
-import { isFruttetoTemplate } from '../lib/load-template.js';
+import { hasFruttetoModule, hasVignetoModule, isFruttetoTemplate } from '../lib/load-template.js';
+import { isColturaFrutteto } from '../lib/mixed-colture-utils.js';
 import { getEmulatorDb } from '../lib/emulator-context.js';
 import { addTenantDocument } from '../lib/firestore-write.js';
 import { seedTenantReferenceData } from '../lib/seed-reference-data.js';
@@ -68,12 +69,28 @@ export async function runPopulateAssets() {
     podereNome: profile?.aziendaNome || 'Podere principale'
   });
 
-  const useFrutteto = isFruttetoTemplate(template);
-  const terreniData = applyAffittiProfilesToTerreni(
-    useFrutteto
-      ? generaTerreniFrutteto(q.terreni || 4, seed, { podereNome })
-      : generaTerreni(q.terreni || 4, seed, { podereNome })
-  );
+  const fruttetoOnly = isFruttetoTemplate(template);
+  const vignetoEnabled = hasVignetoModule(template);
+  const fruttetoEnabled = hasFruttetoModule(template);
+  const misto = vignetoEnabled && fruttetoEnabled;
+
+  let terreniData;
+  if (misto) {
+    const total = q.terreni || 6;
+    const nVine = q.terreniVigneto ?? Math.ceil(total / 2);
+    const nFruit = q.terreniFrutteto ?? Math.max(0, total - nVine);
+    const terreniVite = generaTerreni(nVine, seed, { podereNome });
+    const terreniFruit = generaTerreniFrutteto(nFruit, seed + 100, { podereNome });
+    terreniData = applyAffittiProfilesToTerreni([...terreniVite, ...terreniFruit]);
+  } else if (fruttetoOnly) {
+    terreniData = applyAffittiProfilesToTerreni(
+      generaTerreniFrutteto(q.terreni || 4, seed, { podereNome })
+    );
+  } else {
+    terreniData = applyAffittiProfilesToTerreni(
+      generaTerreni(q.terreni || 4, seed, { podereNome })
+    );
+  }
   const terreni = [];
   for (const t of terreniData) {
     const id = await addTenantDocument(db, tenantId, 'terreni', {
@@ -126,9 +143,13 @@ export async function runPopulateAssets() {
 
   const vigneti = [];
   const frutteti = [];
-  if (useFrutteto) {
-    const fruttetiData = generaFrutteti(terreni, seed);
-    for (const f of fruttetiData.slice(0, q.frutteti || terreni.length)) {
+  const terreniVite = misto ? terreni.filter((t) => !isColturaFrutteto(t.coltura)) : terreni;
+  const terreniFruit = misto ? terreni.filter((t) => isColturaFrutteto(t.coltura)) : terreni;
+
+  if (fruttetoEnabled) {
+    const sourceTerreni = misto ? terreniFruit : terreni;
+    const fruttetiData = generaFrutteti(sourceTerreni, seed);
+    for (const f of fruttetiData.slice(0, q.frutteti || sourceTerreni.length)) {
       const id = await addTenantDocument(db, tenantId, 'frutteti', {
         ...f,
         speseManodoperaAnno: 0,
@@ -141,9 +162,12 @@ export async function runPopulateAssets() {
       });
       frutteti.push({ id, specie: f.specie, varieta: f.varieta, terrenoId: f.terrenoId });
     }
-  } else {
-    const vignetiData = generaVigneti(terreni, seed);
-    for (const v of vignetiData.slice(0, q.vigneti || terreni.length)) {
+  }
+
+  if (vignetoEnabled) {
+    const sourceTerreni = misto ? terreniVite : terreni;
+    const vignetiData = generaVigneti(sourceTerreni, seed);
+    for (const v of vignetiData.slice(0, q.vigneti || sourceTerreni.length)) {
       const id = await addTenantDocument(db, tenantId, 'vigneti', {
         ...v,
         speseManodoperaAnno: 0,

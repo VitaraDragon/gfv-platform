@@ -10,6 +10,8 @@ import {
   SIM_ALIASES_TIPI_LAVORO,
 } from '../../core/config/app-catalog-seed-data.js';
 import { validateAffittiSemaforoSeed } from './seed-terreni-affitti.js';
+import { isColturaFrutteto } from './mixed-colture-utils.js';
+import { hasFruttetoModule, hasVignetoModule } from './load-template.js';
 
 const EXPECTED_COLTURA = 'Vite da Vino';
 const MIN_SOTTOCATEGORIE = SOTTOCATEGORIE_PREDEFINITE.length;
@@ -177,12 +179,6 @@ async function countFruttetoSubcollections(db, tenantId, subName) {
   return total;
 }
 
-const COLTURE_FRUTTETO = new Set(['melo', 'pesco', 'pero', 'ciliegio', 'albicocco', 'susino', 'kiwi']);
-
-function isColturaFrutteto(coltura) {
-  return COLTURE_FRUTTETO.has(String(coltura || '').toLowerCase());
-}
-
 /**
  * @param {import('firebase-admin/firestore').Firestore} db
  * @param {string} tenantId
@@ -192,7 +188,10 @@ export async function inspectTenantSeed(db, tenantId) {
   const errors = [];
   const tenantSnap = await db.doc(`tenants/${tenantId}`).get();
   const tenantModules = tenantSnap.exists ? (tenantSnap.data()?.moduli || []) : [];
-  const expectFrutteto = tenantModules.includes('frutteto') && !tenantModules.includes('vigneto');
+  const expectMisto = hasVignetoModule({ moduli: tenantModules })
+    && hasFruttetoModule({ moduli: tenantModules });
+  const expectFruttetoOnly = hasFruttetoModule({ moduli: tenantModules })
+    && !hasVignetoModule({ moduli: tenantModules });
 
   const terreni = await listCollection(db, tenantId, 'terreni');
   const poderi = await listCollection(db, tenantId, 'poderi');
@@ -253,7 +252,12 @@ export async function inspectTenantSeed(db, tenantId) {
   errors.push(...semMacchine.errors);
 
   for (const t of terreni) {
-    if (expectFrutteto) {
+    if (t.clienteId) continue;
+    if (expectMisto) {
+      if (!isColturaFrutteto(t.coltura) && t.coltura !== EXPECTED_COLTURA) {
+        errors.push(`terreno "${t.nome}": coltura "${t.coltura}" non valida per tenant misto`);
+      }
+    } else if (expectFruttetoOnly) {
       if (!isColturaFrutteto(t.coltura)) {
         errors.push(`terreno "${t.nome}": coltura "${t.coltura}" non frutteto`);
       }

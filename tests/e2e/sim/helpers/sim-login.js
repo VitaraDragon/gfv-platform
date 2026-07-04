@@ -105,9 +105,10 @@ export const RACCOLTA_FRUTTA_PATH =
 
 const SEED_VERSION = 2;
 
-/** Tenant predefinito E2E viticola (CI dual-seed: evita pick del frutteto più recente). */
+/** Tenant predefinito E2E viticola (CI triple-seed: evita pick del frutteto/misto più recente). */
 export const DEFAULT_VITICOLA_E2E_TEMPLATE = 'viticola-conto-terzi-manodopera';
 export const DEFAULT_FRUTTETO_E2E_TEMPLATE = 'frutteto-solo-titolare';
+export const DEFAULT_MISTA_E2E_TEMPLATE = 'mista-viticola-frutteto-conto-terzi-manodopera';
 
 /**
  * Sceglie entry manifest per login E2E (ordinamento createdAt desc).
@@ -1214,6 +1215,14 @@ export async function loginAsManagerFrutteto(page, options = {}) {
   return loginAsManagerFromDevPage(page, {
     ...options,
     preferTemplateId: DEFAULT_FRUTTETO_E2E_TEMPLATE,
+  });
+}
+
+/** Login manager su tenant misto viticola + frutteto + CT + manodopera (CI triple-seed). */
+export async function loginAsManagerMisto(page, options = {}) {
+  return loginAsManagerFromDevPage(page, {
+    ...options,
+    preferTemplateId: DEFAULT_MISTA_E2E_TEMPLATE,
   });
 }
 

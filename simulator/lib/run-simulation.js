@@ -14,7 +14,7 @@ import { runSetupPersonas } from '../phases/06-setup-personas.js';
 import { runPopulateManodopera } from '../phases/07-populate-manodopera.js';
 import { runSimulateManodoperaOre } from '../phases/08-simulate-manodopera-ore.js';
 import { runPopulateContoTerzi } from '../phases/09-populate-conto-terzi.js';
-import { isContoTerziTemplate, isFruttetoTemplate, isManodoperaTemplate } from './load-template.js';
+import { isContoTerziTemplate, isManodoperaTemplate, hasFruttetoModule, hasVignetoModule } from './load-template.js';
 
 /**
  * @param {{
@@ -40,16 +40,25 @@ export async function runFullSimulation(options = {}) {
   const assets = await runPopulateAssets();
   const guastiSeed = await runSeedGuasti(assets);
   const simulation = await runSimulateAttivita(assets);
-  const useFrutteto = isFruttetoTemplate(setup.template);
-  const colturaSim = useFrutteto
-    ? await runSimulateFrutteto({
-      attivitaIds: simulation.attivitaIds,
-      frutteti: assets.frutteti
-    })
-    : await runSimulateVigneto({
+  const withVigneto = hasVignetoModule(setup.template);
+  const withFrutteto = hasFruttetoModule(setup.template);
+
+  let vigneto = null;
+  let frutteto = null;
+  if (withVigneto) {
+    vigneto = await runSimulateVigneto({
       attivitaIds: simulation.attivitaIds,
       vigneti: assets.vigneti
     });
+  }
+  if (withFrutteto) {
+    frutteto = await runSimulateFrutteto({
+      attivitaIds: simulation.attivitaIds,
+      frutteti: assets.frutteti
+    });
+  }
+
+  const colturaSim = frutteto || vigneto;
 
   let personas = null;
   let manodopera = null;
@@ -74,8 +83,8 @@ export async function runFullSimulation(options = {}) {
     guastiSeed,
     simulation,
     magazzino,
-    vigneto: useFrutteto ? null : colturaSim,
-    frutteto: useFrutteto ? colturaSim : null,
+    vigneto,
+    frutteto,
     colturaSim,
     contoTerzi,
     personas,

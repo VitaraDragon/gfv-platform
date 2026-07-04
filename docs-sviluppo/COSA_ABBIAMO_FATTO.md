@@ -1,6 +1,19 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-03 — Fase 2 write residui (70 spec E2E).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-04 — template azienda mista viticola+frutteto.
+
+## GFV Farm Simulator — template mista viticola + frutteto + CT + manodopera (2026-07-04)
+
+**Obiettivo:** seed unico per azienda che lavora **sia vigneto che frutteto** con squadre e conto terzi.
+
+| Area | Dettaglio |
+|------|-----------|
+| Template | `mista-viticola-frutteto-conto-terzi-manodopera` — 3 terreni vite + 3 frutteto, vigneti/frutteti, CT, manodopera |
+| Orchestrator | Fasi 05 vigneto **e** 05 frutteto; magazzino catena B su entrambe le collezioni |
+| Helper | `hasVignetoModule`, `hasFruttetoModule`, `isMistoColtureTemplate`, `mixed-colture-utils.js` |
+| Test | `tests/simulator/mista-viticola-frutteto-conto-terzi-manodopera.test.js` (Vitest emulator) |
+| Uso | `npm run sim:run -- --template=mista-viticola-frutteto-conto-terzi-manodopera` |
+| CI E2E | Triple-seed in `sim-ci-e2e-inner.sh` + verify + spec read `mista-azienda-read.spec.js` (**71 spec** totali) |
 
 ## GFV Farm Simulator — Fase 2 write residui chiusa (2026-07-03)
 
