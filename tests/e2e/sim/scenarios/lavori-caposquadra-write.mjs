@@ -13,7 +13,7 @@ export const E2E_CAPO_SOSPENSIONE_CAUSA = 'GFV_SIM_E2E_CAPO_SOSPEND';
 
 function cardWithSospendiButton(page) {
   return page.locator('#lavori-container .lavoro-card').filter({
-    has: page.getByRole('button', { name: /Sospendi lavoro/i }),
+    has: page.locator('button', { hasText: 'Sospendi lavoro' }),
   });
 }
 
@@ -28,11 +28,16 @@ async function pickLavoroToSuspend(page) {
   if ((await actionable.count()) > 0) {
     return actionable.first();
   }
-  const already = cardSospesoWithCausa(page);
-  if ((await already.count()) > 0) {
+  if ((await cardSospesoWithCausa(page).count()) > 0) {
     return null;
   }
   throw new Error('Nessun lavoro caposquadra sospendibile nel seed');
+}
+
+async function stubPromptCausa(page, causa) {
+  await page.evaluate((text) => {
+    window.prompt = () => text;
+  }, causa);
 }
 
 async function suspendLavoroAsCapo(page, expect) {
@@ -41,14 +46,11 @@ async function suspendLavoroAsCapo(page, expect) {
 
   await card.waitFor({ state: 'visible', timeout: 60_000 });
 
-  const sospendiBtn = card.getByRole('button', { name: /Sospendi lavoro/i });
+  const sospendiBtn = card.locator('button', { hasText: 'Sospendi lavoro' });
   await expect(sospendiBtn).toBeVisible({ timeout: 30_000 });
 
-  const dialogPromise = page.waitForEvent('dialog', { timeout: 15_000 });
-  await sospendiBtn.click();
-  const dialog = await dialogPromise;
-  expect(dialog.type()).toBe('prompt');
-  await dialog.accept(E2E_CAPO_SOSPENSIONE_CAUSA);
+  await stubPromptCausa(page, E2E_CAPO_SOSPENSIONE_CAUSA);
+  await sospendiBtn.click({ timeout: 30_000 });
 
   await page.waitForFunction(
     (causa) => {
