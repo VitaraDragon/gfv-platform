@@ -25,11 +25,11 @@ export async function runMistaAziendaReadAssertions(page, expect) {
 
   await loginAsManagerMisto(page);
 
-  await gotoVignetiList(page);
+  await gotoVignetiList(page, { minRows: 3 });
   await expect(page.locator('h1').filter({ hasText: 'Anagrafica Vigneti' })).toBeVisible();
   expect(await page.locator('#vigneti-tbody tr').count()).toBeGreaterThanOrEqual(MIN_VIGNETI);
 
-  await gotoFruttetiList(page);
+  await gotoFruttetiList(page, { minRows: 3 });
   await expect(page.locator('h1').filter({ hasText: 'Anagrafica Frutteti' })).toBeVisible();
   expect(await page.locator('#frutteti-table-body tr').count()).toBeGreaterThanOrEqual(MIN_FRUTTETI);
 

@@ -1,152 +1,39 @@
 /**
  * E2E write — caposquadra sospende lavoro assegnato (desktop lavori-caposquadra).
+ * Usa un lavoro squadra già presente nel seed (no creazione via modale manager).
  * @module tests/e2e/sim/scenarios/lavori-caposquadra-write
  */
 
 import {
-  gotoGestioneLavori,
   gotoLavoriCaposquadra,
   loginAsCapoForLavoriDesktop,
-  loginAsManagerManodopera,
 } from '../helpers/sim-login.js';
 
-export const E2E_CAPO_SOSPEND_LAVORO = 'GFV SIM E2E CAPO SOSPEND';
 export const E2E_CAPO_SOSPENSIONE_CAUSA = 'GFV_SIM_E2E_CAPO_SOSPEND';
 
-const PREFERRED_TIPO_LAVORO = 'Erpicatura';
-const WRITE_DURATA = '2';
+/** Nomi lavori seed squadra su viticola-conto-terzi-manodopera (fase 07). */
+const SEED_LAVORO_NAMES = [/Potatura squadra/i, /Trattamento squadra/i, /Erpicatura squadra/i];
 
-function lavoriRowsWithMarker(page) {
-  return page.locator('#lavori-container .lavori-table tbody tr').filter({
-    hasText: E2E_CAPO_SOSPEND_LAVORO,
-  });
-}
-
-function capoLavoroCardWithMarker(page) {
+function capoLavoroCardCandidates(page) {
   return page.locator('#lavori-container .lavoro-card').filter({
-    hasText: E2E_CAPO_SOSPEND_LAVORO,
+    hasText: /assegnato/i,
   });
 }
 
-async function clearLavoriFilters(page) {
-  const btn = page.getByRole('button', { name: /Pulisci Filtri/i });
-  if (await btn.isVisible()) {
-    await btn.click();
-    await page.waitForFunction(() => {
-      const container = document.getElementById('lavori-container');
-      return container && !container.querySelector('.loading');
-    }, { timeout: 15_000 });
+async function pickSeedLavoroCard(page) {
+  for (const pattern of SEED_LAVORO_NAMES) {
+    const card = capoLavoroCardCandidates(page).filter({ hasText: pattern });
+    if ((await card.count()) > 0) {
+      return card.first();
+    }
   }
-}
-
-async function openNewLavoroModal(page) {
-  await page.locator('#crea-lavoro-button').click();
-  await page.locator('#lavoro-modal.active').waitFor({ timeout: 30_000 });
-  await page.waitForFunction(() => {
-    const terreno = document.getElementById('lavoro-terreno');
-    const categoria = document.getElementById('lavoro-categoria-principale');
-    const capo = document.getElementById('lavoro-caposquadra');
-    return (
-      terreno &&
-      terreno.options.length > 1 &&
-      categoria &&
-      categoria.options.length > 1 &&
-      capo &&
-      capo.options.length > 1
-    );
-  }, { timeout: 45_000 });
-}
-
-async function pickTipoLavoroInModal(page) {
-  const categoriaSelect = page.locator('#lavoro-categoria-principale');
-  const categoriaCount = await categoriaSelect.locator('option').count();
-
-  for (let i = 1; i < categoriaCount; i += 1) {
-    const value = await categoriaSelect.locator('option').nth(i).getAttribute('value');
-    if (!value) continue;
-    await categoriaSelect.selectOption(value);
-
-    const subGroup = page.locator('#lavoro-sottocategoria-group');
-    if (await subGroup.isVisible()) {
-      const subSelect = page.locator('#lavoro-sottocategoria');
-      const subCount = await subSelect.locator('option').count();
-      if (subCount > 1) {
-        const subValue = await subSelect.locator('option').nth(1).getAttribute('value');
-        if (subValue) await subSelect.selectOption(subValue);
-      }
-    }
-
-    const tipoSelect = page.locator('#lavoro-tipo-lavoro');
-    try {
-      await page.waitForFunction(() => {
-        const group = document.getElementById('tipo-lavoro-group');
-        const sel = document.getElementById('lavoro-tipo-lavoro');
-        return group && group.style.display !== 'none' && sel && sel.options.length > 1 && sel.options[1].value !== '';
-      }, { timeout: 8_000 });
-    } catch {
-      continue;
-    }
-
-    const preferred = tipoSelect.locator('option', { hasText: PREFERRED_TIPO_LAVORO });
-    if ((await preferred.count()) > 0) {
-      await tipoSelect.selectOption((await preferred.first().getAttribute('value')) || { index: 1 });
-    } else {
-      await tipoSelect.selectOption({ index: 1 });
-    }
-
-    const selected = await tipoSelect.inputValue();
-    if (selected) return;
-  }
-
-  throw new Error('Impossibile selezionare tipo lavoro per capo sospensione E2E');
-}
-
-async function ensureLavoroMarkerForCapo(page) {
-  await loginAsManagerManodopera(page);
-  await gotoGestioneLavori(page);
-  await page.waitForFunction(() => {
-    const container = document.getElementById('lavori-container');
-    return container && container.querySelectorAll('.lavori-table tbody tr').length >= 2;
-  }, { timeout: 45_000 });
-  await clearLavoriFilters(page);
-
-  if ((await lavoriRowsWithMarker(page).count()) > 0) return;
-
-  await openNewLavoroModal(page);
-  await page.locator('#lavoro-nome').fill(E2E_CAPO_SOSPEND_LAVORO);
-  await page.locator('#lavoro-terreno').selectOption({ index: 1 });
-  await pickTipoLavoroInModal(page);
-  await page.locator('#lavoro-caposquadra').selectOption({ index: 1 });
-
-  const today = await page.evaluate(() => {
-    const d = new Date();
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  });
-  await page.locator('#lavoro-data-inizio').fill(today);
-  await page.locator('#lavoro-durata').fill(WRITE_DURATA);
-  await page.locator('#lavoro-stato').selectOption('assegnato');
-  await page.locator('#lavoro-note').fill(E2E_CAPO_SOSPENSIONE_CAUSA);
-
-  await page.evaluate(() => {
-    const form = document.getElementById('lavoro-form');
-    if (form) form.setAttribute('novalidate', 'novalidate');
-    const tipoGroup = document.getElementById('tipo-lavoro-group');
-    if (tipoGroup) tipoGroup.style.display = 'block';
-  });
-
-  await page.locator('#lavoro-form button[type="submit"]').click();
-  await page.waitForFunction(
-    (marker) =>
-      Array.from(document.querySelectorAll('#lavori-container .lavori-table tbody tr')).some((tr) =>
-        (tr.textContent || '').includes(marker)
-      ),
-    E2E_CAPO_SOSPEND_LAVORO,
-    { timeout: 90_000 }
-  );
+  const fallback = capoLavoroCardCandidates(page).first();
+  await fallback.waitFor({ state: 'visible', timeout: 60_000 });
+  return fallback;
 }
 
 async function suspendLavoroAsCapo(page, expect) {
-  const card = capoLavoroCardWithMarker(page);
+  const card = await pickSeedLavoroCard(page);
   await card.waitFor({ state: 'visible', timeout: 60_000 });
 
   const cardText = await card.textContent();
@@ -163,15 +50,15 @@ async function suspendLavoroAsCapo(page, expect) {
   await sospendiBtn.click();
 
   await page.waitForFunction(
-    (marker) => {
+    (causa) => {
       const cards = document.querySelectorAll('#lavori-container .lavoro-card');
       return Array.from(cards).some(
         (c) =>
-          (c.textContent || '').includes(marker) &&
-          /Lavoro sospeso|sospeso/i.test(c.textContent || '')
+          /Lavoro sospeso|sospeso/i.test(c.textContent || '') &&
+          (c.textContent || '').includes(causa)
       );
     },
-    E2E_CAPO_SOSPEND_LAVORO,
+    E2E_CAPO_SOSPENSIONE_CAUSA,
     { timeout: 60_000 }
   );
 }
@@ -183,7 +70,6 @@ async function suspendLavoroAsCapo(page, expect) {
 export async function runLavoriCaposquadraWriteAssertions(page, expect) {
   expect.configure({ timeout: 90_000 });
 
-  await ensureLavoroMarkerForCapo(page);
   await loginAsCapoForLavoriDesktop(page);
   await gotoLavoriCaposquadra(page);
 
@@ -192,10 +78,11 @@ export async function runLavoriCaposquadraWriteAssertions(page, expect) {
     return container && !container.querySelector('.loading');
   }, { timeout: 45_000 });
 
-  expect(await capoLavoroCardWithMarker(page).count()).toBeGreaterThanOrEqual(1);
+  expect(await capoLavoroCardCandidates(page).count()).toBeGreaterThanOrEqual(1);
   await suspendLavoroAsCapo(page, expect);
 
-  const card = capoLavoroCardWithMarker(page).first();
-  await expect(card).toContainText(/sospeso/i);
-  await expect(card).toContainText(E2E_CAPO_SOSPENSIONE_CAUSA);
+  const suspended = page.locator('#lavori-container .lavoro-card').filter({
+    hasText: E2E_CAPO_SOSPENSIONE_CAUSA,
+  });
+  await expect(suspended.first()).toContainText(/sospeso/i);
 }

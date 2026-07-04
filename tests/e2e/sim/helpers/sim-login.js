@@ -591,26 +591,30 @@ export async function gotoProdottiList(page) {
   await waitForProdottiListLoaded(page);
 }
 
-export async function waitForVignetiListLoaded(page) {
+export async function waitForVignetiListLoaded(page, { minRows = 4 } = {}) {
   await page.waitForURL(/vigneti-standalone\.html/, { timeout: 60_000 });
   await page.locator('h1').filter({ hasText: 'Anagrafica Vigneti' }).waitFor({ timeout: 60_000 });
 
-  await page.waitForFunction(() => {
-    const loading = document.getElementById('loading');
-    if (loading && loading.style.display !== 'none' && /Caricamento vigneti/i.test(loading.textContent || '')) {
-      return false;
-    }
-    const table = document.getElementById('vigneti-table');
-    if (!table || table.style.display === 'none') return false;
-    return document.querySelectorAll('#vigneti-tbody tr').length >= 4;
-  }, { timeout: 60_000 });
+  await page.waitForFunction(
+    (min) => {
+      const loading = document.getElementById('loading');
+      if (loading && loading.style.display !== 'none' && /Caricamento vigneti/i.test(loading.textContent || '')) {
+        return false;
+      }
+      const table = document.getElementById('vigneti-table');
+      if (!table || table.style.display === 'none') return false;
+      return document.querySelectorAll('#vigneti-tbody tr').length >= min;
+    },
+    minRows,
+    { timeout: 60_000 }
+  );
 
   await page.locator('#vigneti-tbody tr').first().waitFor({ timeout: 60_000 });
 }
 
-export async function gotoVignetiList(page) {
+export async function gotoVignetiList(page, options = {}) {
   await page.goto(VIGNETI_LIST_PATH);
-  await waitForVignetiListLoaded(page);
+  await waitForVignetiListLoaded(page, options);
 }
 
 export async function waitForGestioneLavoriLoaded(page) {
@@ -1286,19 +1290,23 @@ export async function gotoFruttetoConcimazioniList(page) {
   await waitForFruttetoConcimazioniListLoaded(page);
 }
 
-export async function waitForFruttetiListLoaded(page) {
+export async function waitForFruttetiListLoaded(page, { minRows = 4 } = {}) {
   await page.waitForURL(/frutteti-standalone\.html/, { timeout: 60_000 });
   await page.locator('h1').filter({ hasText: 'Anagrafica Frutteti' }).waitFor({ timeout: 60_000 });
-  await page.waitForFunction(() => {
-    const table = document.getElementById('frutteti-table');
-    const tbody = document.getElementById('frutteti-table-body');
-    return table && table.style.display !== 'none' && tbody && tbody.querySelectorAll('tr').length >= 4;
-  }, { timeout: 60_000 });
+  await page.waitForFunction(
+    (min) => {
+      const table = document.getElementById('frutteti-table');
+      const tbody = document.getElementById('frutteti-table-body');
+      return table && table.style.display !== 'none' && tbody && tbody.querySelectorAll('tr').length >= min;
+    },
+    minRows,
+    { timeout: 60_000 }
+  );
 }
 
-export async function gotoFruttetiList(page) {
+export async function gotoFruttetiList(page, options = {}) {
   await page.goto(FRUTTETI_LIST_PATH);
-  await waitForFruttetiListLoaded(page);
+  await waitForFruttetiListLoaded(page, options);
 }
 
 export async function waitForFruttetoDashboardLoaded(page) {
