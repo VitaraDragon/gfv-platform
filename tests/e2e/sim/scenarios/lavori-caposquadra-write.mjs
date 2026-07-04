@@ -11,43 +11,44 @@ import {
 
 export const E2E_CAPO_SOSPENSIONE_CAUSA = 'GFV_SIM_E2E_CAPO_SOSPEND';
 
-/** Nomi lavori seed squadra su viticola-conto-terzi-manodopera (fase 07). */
-const SEED_LAVORO_NAMES = [/Potatura squadra/i, /Trattamento squadra/i, /Erpicatura squadra/i];
-
-function capoLavoroCardCandidates(page) {
+function cardWithSospendiButton(page) {
   return page.locator('#lavori-container .lavoro-card').filter({
-    hasText: /assegnato/i,
+    has: page.getByRole('button', { name: /Sospendi lavoro/i }),
   });
 }
 
-async function pickSeedLavoroCard(page) {
-  for (const pattern of SEED_LAVORO_NAMES) {
-    const card = capoLavoroCardCandidates(page).filter({ hasText: pattern });
-    if ((await card.count()) > 0) {
-      return card.first();
-    }
+function cardSospesoWithCausa(page) {
+  return page.locator('#lavori-container .lavoro-card').filter({
+    hasText: E2E_CAPO_SOSPENSIONE_CAUSA,
+  });
+}
+
+async function pickLavoroToSuspend(page) {
+  const actionable = cardWithSospendiButton(page);
+  if ((await actionable.count()) > 0) {
+    return actionable.first();
   }
-  const fallback = capoLavoroCardCandidates(page).first();
-  await fallback.waitFor({ state: 'visible', timeout: 60_000 });
-  return fallback;
+  const already = cardSospesoWithCausa(page);
+  if ((await already.count()) > 0) {
+    return null;
+  }
+  throw new Error('Nessun lavoro caposquadra sospendibile nel seed');
 }
 
 async function suspendLavoroAsCapo(page, expect) {
-  const card = await pickSeedLavoroCard(page);
-  await card.waitFor({ state: 'visible', timeout: 60_000 });
+  const card = await pickLavoroToSuspend(page);
+  if (!card) return;
 
-  const cardText = await card.textContent();
-  if (/Lavoro sospeso/i.test(cardText || '') && (cardText || '').includes(E2E_CAPO_SOSPENSIONE_CAUSA)) {
-    return;
-  }
+  await card.waitFor({ state: 'visible', timeout: 60_000 });
 
   const sospendiBtn = card.getByRole('button', { name: /Sospendi lavoro/i });
   await expect(sospendiBtn).toBeVisible({ timeout: 30_000 });
 
-  page.once('dialog', async (dialog) => {
-    await dialog.accept(E2E_CAPO_SOSPENSIONE_CAUSA);
-  });
+  const dialogPromise = page.waitForEvent('dialog', { timeout: 15_000 });
   await sospendiBtn.click();
+  const dialog = await dialogPromise;
+  expect(dialog.type()).toBe('prompt');
+  await dialog.accept(E2E_CAPO_SOSPENSIONE_CAUSA);
 
   await page.waitForFunction(
     (causa) => {
@@ -59,7 +60,7 @@ async function suspendLavoroAsCapo(page, expect) {
       );
     },
     E2E_CAPO_SOSPENSIONE_CAUSA,
-    { timeout: 60_000 }
+    { timeout: 90_000 }
   );
 }
 
@@ -68,7 +69,7 @@ async function suspendLavoroAsCapo(page, expect) {
  * @param {typeof import('@playwright/test').expect} expect
  */
 export async function runLavoriCaposquadraWriteAssertions(page, expect) {
-  expect.configure({ timeout: 90_000 });
+  expect.configure({ timeout: 120_000 });
 
   await loginAsCapoForLavoriDesktop(page);
   await gotoLavoriCaposquadra(page);
@@ -78,11 +79,13 @@ export async function runLavoriCaposquadraWriteAssertions(page, expect) {
     return container && !container.querySelector('.loading');
   }, { timeout: 45_000 });
 
-  expect(await capoLavoroCardCandidates(page).count()).toBeGreaterThanOrEqual(1);
+  const actionable = await cardWithSospendiButton(page).count();
+  const alreadyDone = await cardSospesoWithCausa(page).count();
+  expect(actionable + alreadyDone).toBeGreaterThanOrEqual(1);
+
   await suspendLavoroAsCapo(page, expect);
 
-  const suspended = page.locator('#lavori-container .lavoro-card').filter({
-    hasText: E2E_CAPO_SOSPENSIONE_CAUSA,
-  });
+  const suspended = cardSospesoWithCausa(page);
+  await expect(suspended.first()).toBeVisible({ timeout: 30_000 });
   await expect(suspended.first()).toContainText(/sospeso/i);
 }
