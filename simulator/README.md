@@ -169,7 +169,7 @@ npm run sim:e2e:install      # CI / sim:e2e:pw — scarica Chromium Playwright
 
 Assert su DOM visibile — dati seed già validati da v3/v2.2/v2.1 manodopera.
 
-**Node:** su Node 24 la CLI `playwright test` può restare bloccata; usare `npm run sim:e2e`. In CI (Node 22): `sim:e2e:install` + `sim:e2e:pw`.
+**Node:** su Node 24 la CLI `playwright test` / `sim:e2e:install` (Chromium bundled) **non** è supportata in locale — hang o eseguibile assente. Usare **`npm run sim:e2e`** (`playwright-core` + Chrome di sistema). Sottoinsiemi: **`npm run sim:e2e:write-p2`** (operai + squadre + scadenze) oppure `node scripts/sim-e2e-run.mjs --only=…` / env **`GFV_E2E_ONLY`**. In CI (Node 22): `sim:e2e:install` + `sim:e2e:pw`.
 
 **Esito attuale (2026-07-04):** CI `sim:e2e:ci` → **triple-seed** (`viticola-conto-terzi-manodopera` + `frutteto-solo-titolare` + `mista-viticola-frutteto-conto-terzi-manodopera`) + verify ×3 + **71 spec** Playwright.
 
@@ -201,21 +201,23 @@ Assert su DOM visibile — dati seed già validati da v3/v2.2/v2.1 manodopera.
 
 **Obiettivo:** estendere sim + E2E fino a coprire (per gradi) pagine, form e moduli dell’app reale — **stesso codice**, dati seed, test read poi write.
 
-| Stato oggi (2026-07-03) | Target residuo |
+| Stato oggi (2026-07-04) | Target residuo |
 | ----------------------- | -------------- |
-| **67/67** spec E2E ✅ CI ([28645514543](https://github.com/VitaraDragon/gfv-platform/actions/runs/28645514543)) | Report + statistiche **fuori scope** (redesign UI) |
-| **Fase 1 write P2** ✅ scen. 65–67 (scadenze, operai, squadre) | Fase 2 write residui (~6 form) |
-| **M4 frutteto** ✅ template `frutteto-solo-titolare` + 6 spec E2E | Template **mista** viticola+frutteto+CT+manodopera ✅ (`mista-viticola-frutteto-conto-terzi-manodopera`) |
-| Read smoke ~45/45 URL ✅ | Report + statistiche **fuori scope** (redesign UI) |
-| Read profondi batch A–C ✅ | §11.3.13 — hub magazzino, vigneto, CT, manodopera |
+| **71/71** spec E2E ✅ CI ([28694674029](https://github.com/VitaraDragon/gfv-platform/actions/runs/28694674029)) — triple-seed | Report + statistiche **fuori scope** (redesign UI) |
+| **Fase 1 write P2** ✅ scen. 65–67 | — |
+| **Fase 2 write** ✅ trattori / concimazione frutteto / caposquadra sospensione | — |
+| **M4 frutteto** ✅ `frutteto-solo-titolare` + 6 spec E2E | — |
+| **Template mista** ✅ `mista-viticola-frutteto-conto-terzi-manodopera` + `mista-azienda-read` | Write E2E su tenant misto (opzionale) |
+| Read smoke ~45/45 URL ✅ | Report + statistiche **fuori scope** |
+| Read profondi batch A–C ✅ | §11.3.13 |
 | Write catene A/B + concimazione diario ✅ | Tracciabilità: solo catena auto (no write E2E) |
 | Tony E2E gate v5 ✅ | Kick-off §7.2–7.3 `TONY_E2E_GUIDA_SVILUPPO.md` |
 
-**Milestone:** M1 ✅ → M2 ✅ → M3 ✅ → P2 ✅ → batch 45–54 ✅ → **read profondi §11.3.13** ✅ → **CI 67/67** ✅ → **M4 frutteto** ✅ → **Fase 1 write P2** ✅ → M5 → M-T* Tony.
+**Milestone:** M1 ✅ → M2 ✅ → M3 ✅ → P2 ✅ → batch 45–54 ✅ → **read profondi §11.3.13** ✅ → **M4 frutteto** ✅ → **Fase 1 + Fase 2 write** ✅ → **template mista + CI 71/71** ✅ → M5 → M-T* Tony.
 
-**Prossimo incremento consigliato:** stabilizzare flaky frutteto write; Fase 2 write residui; oppure track **Tony E2E**.
+**Prossimo incremento consigliato:** track **Tony E2E**; v4b CI notturna; opz. write su tenant misto.
 
-**CI E2E (v4 #9 ✅):** `npm run sim:e2e:install && npm run sim:e2e:ci` — replica locale del job GitHub Actions (richiede bash + Java).
+**CI E2E (v4 #9 ✅):** `npm run sim:e2e:install && npm run sim:e2e:ci` — replica del job GitHub Actions (bash + Java + **Node 22**). In locale su Node 24: `sim:emulators` + `npm start` + seed + `npm run sim:e2e` (o `sim:e2e:write-p2`).
 
 ## Tony E2E (post v5 app) — guida sviluppo
 

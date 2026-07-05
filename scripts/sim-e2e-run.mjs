@@ -3,6 +3,7 @@
  * GFV Farm Simulator v4 — runner E2E browser (playwright-core + expect @playwright/test).
  * Prerequisiti: sim:emulators + npm start + tenant in manifest (sim:run).
  * Locale: Chrome di sistema (channel). CI: Chromium bundled (`npm run sim:e2e:install`).
+ * Sottoinsiemi: `--only=scen1,scen2` o env `GFV_E2E_ONLY` (es. `npm run sim:e2e:write-p2`).
  */
 import { readFile } from 'node:fs/promises';
 import { chromium } from 'playwright-core';
@@ -751,8 +752,45 @@ const SCENARIOS = [
   },
 ];
 
+/** @param {typeof SCENARIOS} scenarios */
+function resolveScenariosToRun(scenarios) {
+  const fromArg = process.argv.find((a) => a.startsWith('--only='));
+  const raw = (
+    (fromArg ? fromArg.slice('--only='.length) : '') ||
+    process.env.GFV_E2E_ONLY ||
+    ''
+  ).trim();
+  if (!raw) return scenarios;
+
+  const wanted = raw
+    .split(/[,;\s]+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  if (wanted.length === 0) return scenarios;
+
+  const known = new Set(scenarios.map((s) => s.name));
+  const missing = wanted.filter((name) => !known.has(name));
+  if (missing.length) {
+    throw new Error(
+      `GFV_E2E_ONLY / --only: scenari sconosciuti: ${missing.join(', ')}. ` +
+        `Usa uno dei nomi in scripts/sim-e2e-run.mjs (SCENARIOS).`
+    );
+  }
+
+  const order = new Map(wanted.map((name, i) => [name, i]));
+  return scenarios
+    .filter((s) => order.has(s.name))
+    .sort((a, b) => order.get(a.name) - order.get(b.name));
+}
+
 async function main() {
-  console.log('[sim:e2e] prerequisiti…');
+  const scenarios = resolveScenariosToRun(SCENARIOS);
+  const filterLabel =
+    scenarios.length === SCENARIOS.length
+      ? `${scenarios.length} scenari`
+      : `${scenarios.length} scenari (filtro: ${scenarios.map((s) => s.name).join(', ')})`;
+
+  console.log(`[sim:e2e] prerequisiti… (${filterLabel})`);
   await checkHttp(`${baseURL}/`, 'http-server (npm start)');
   await checkHttp('http://127.0.0.1:8080/', 'Firestore emulator (sim:emulators)');
   await checkManifest();
@@ -764,7 +802,7 @@ async function main() {
   let passed = 0;
   const failures = [];
 
-  for (const scenario of SCENARIOS) {
+  for (const scenario of scenarios) {
     process.stdout.write(`[sim:e2e] ${scenario.name} … `);
     try {
       await scenario.run(page);
@@ -786,7 +824,7 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(`\n[sim:e2e] ${passed}/${SCENARIOS.length} scenari OK`);
+  console.log(`\n[sim:e2e] ${passed}/${scenarios.length} scenari OK`);
 }
 
 main().catch((err) => {

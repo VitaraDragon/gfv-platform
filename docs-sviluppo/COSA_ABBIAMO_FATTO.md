@@ -1,6 +1,29 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-04 — template azienda mista viticola+frutteto.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-05 — E2E locale Node 24 + filtro scenari write P2.
+
+## GFV Farm Simulator — E2E locale Node 24 + filtro scenari (2026-07-05)
+
+**Obiettivo:** chiarire percorso E2E su **Node 24** (no CLI Playwright / no Chromium bundled) e permettere sottoinsiemi senza suite 71 spec.
+
+| Area | Dettaglio |
+|------|-----------|
+| Node 24 | **`npm run sim:e2e`** — `playwright-core` + **Chrome di sistema**; evitare `sim:e2e:pw` e `sim:e2e:install` (hang / Chromium assente) |
+| CI | **Node 22** — invariato: `sim:e2e:install` + `sim:e2e:pw` (71 spec) |
+| Filtro | `scripts/sim-e2e-run.mjs` — `--only=scen1,scen2` o env **`GFV_E2E_ONLY`** |
+| Script | **`npm run sim:e2e:write-p2`** — `operai-write`, `squadre-write`, `scadenze-write` (scen. 65–67) |
+| Verifica | Locale **3/3 OK** (~15 s) con `sim:e2e:write-p2` |
+
+## GFV Farm Simulator — CI 71/71 triple-seed verde (2026-07-04)
+
+**Obiettivo:** chiudere stabilizzazione E2E post-template mista e Fase 2 write residui.
+
+| Area | Dettaglio |
+|------|-----------|
+| CI | [28694674029](https://github.com/VitaraDragon/gfv-platform/actions/runs/28694674029) — **71 passed**, 0 flaky (~3m42s job E2E) |
+| Triple-seed | `viticola-conto-terzi-manodopera` + `frutteto-solo-titolare` + `mista-viticola-frutteto-conto-terzi-manodopera` + verify ×3 |
+| Fix E2E | `mista-azienda-read` — `minRows=3` vigneti/frutteti; `lavori-caposquadra-write` — stub `window.prompt` (deadlock sync prompt vs click Playwright) |
+| Suite | **71 spec** Playwright (`sim-ci-e2e-inner.sh`, label workflow §13.5) |
 
 ## GFV Farm Simulator — template mista viticola + frutteto + CT + manodopera (2026-07-04)
 
@@ -13,7 +36,7 @@
 | Helper | `hasVignetoModule`, `hasFruttetoModule`, `isMistoColtureTemplate`, `mixed-colture-utils.js` |
 | Test | `tests/simulator/mista-viticola-frutteto-conto-terzi-manodopera.test.js` (Vitest emulator) |
 | Uso | `npm run sim:run -- --template=mista-viticola-frutteto-conto-terzi-manodopera` |
-| CI E2E | Triple-seed in `sim-ci-e2e-inner.sh` + verify + spec read `mista-azienda-read.spec.js` (**71 spec** totali) |
+| CI E2E | Triple-seed in `sim-ci-e2e-inner.sh` + verify + spec read `mista-azienda-read.spec.js` — v. voce **CI 71/71** sopra |
 
 ## GFV Farm Simulator — Fase 2 write residui chiusa (2026-07-03)
 
@@ -22,7 +45,7 @@
 | Area | Dettaglio |
 |------|-----------|
 | Write E2E | `trattori-write` — nuovo trattore da lista manager; `concimazione-frutteto-completa-write` — diario → stub concimazioni frutteto → scarico magazzino; `lavori-caposquadra-write` — capo sospende lavoro marker |
-| Suite | **70 spec** Playwright (dual seed viticola + frutteto M4) |
+| Suite | **70 spec** Playwright (dual seed); **+1** read mista → **71 spec** in CI triple-seed (2026-07-04) |
 | Pattern | Idempotenti con marker distintivi; concimazione frutteto allineata a diario vigneto + `ensureSuperficieTrattamento` |
 
 ## GFV Farm Simulator — stabilizzazione flaky trattamento frutteto (2026-07-03)

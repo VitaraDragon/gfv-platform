@@ -1,8 +1,8 @@
 # GFV Farm Simulator — Guida sviluppo per agenti
 
 **Versione:** 1.6.1 + **v2.1 manodopera** §14 + **v3 cascata** ✅ + **v4 Playwright** §11.2 (18 scenari read ✅) + **v5 roadmap** §11.3 (**71 spec E2E ✅**, triple-seed + template mista + catena A §11.3.12 + read profondi §11.3.13 + **M4 frutteto** ✅ + **Fase 2 write** ✅)  
-**Data:** 2026-07-03  
-**Stato:** **CI 67/67 verificata** [28671850155](https://github.com/VitaraDragon/gfv-platform/actions/runs/28671850155); **Fase 2 write** `trattori-write` / `concimazione-frutteto-completa-write` / `lavori-caposquadra-write` → target **70 spec**  
+**Data:** 2026-07-04  
+**Stato:** **CI 71/71 verificata** [28694674029](https://github.com/VitaraDragon/gfv-platform/actions/runs/28694674029) — triple-seed (viticola + frutteto M4 + **mista** CT/manodopera); Fase 2 write ✅ (`trattori-write`, `concimazione-frutteto-completa-write`, `lavori-caposquadra-write`) + read `mista-azienda-read`  
 **Codename:** `gfv-farm-simulator`
 
 ---
@@ -278,10 +278,13 @@ Script npm (root `package.json`):
 "sim:test:vitest": "vitest run tests/simulator/solo-titolare-viticola.test.js",
 "sim:test:ci": "node simulator/ci-run.js",
 "sim:e2e": "node scripts/sim-e2e-run.mjs",
+"sim:e2e:write-p2": "node scripts/sim-e2e-run.mjs --only=operai-write,squadre-write,scadenze-write",
 "sim:e2e:pw": "playwright test",
 "sim:e2e:ui": "playwright test --ui",
 "sim:e2e:install": "playwright install chromium"
 ```
+
+**Filtro scenari (locale):** `--only=nome1,nome2` o env `GFV_E2E_ONLY` — nomi come in `SCENARIOS` dentro `scripts/sim-e2e-run.mjs`. Esempio write P2 manodopera/scadenze: `npm run sim:e2e:write-p2`.
 
 ---
 
@@ -695,7 +698,7 @@ scripts/sim-e2e-run.mjs         # SCENARIOS: ordine runner locale
 
 **Ordine Playwright (`sim:e2e:pw`):** alfabetico su `*.spec.js`. Prefissi **`a-`** / **`z-`** usati solo dove l’ordine influisce su idempotenza o timeout suite (preventivi, compensi).
 
-**Node / browser:** in locale **`npm run sim:e2e`** usa **Chrome installato** (`playwright-core` + `channel: chrome`). Su **Node 24** la CLI `playwright test` può restare bloccata — usare il runner. In **CI (Node 22)** preferire `npm run sim:e2e:pw` dopo `npm run sim:e2e:install` (Chromium bundled).
+**Node / browser:** in locale **`npm run sim:e2e`** usa **Chrome installato** (`playwright-core` + `channel: chrome`). Su **Node 24** (dev Windows tipico): **non** usare `playwright test` né `sim:e2e:install` — la CLI può restare bloccata e Chromium bundled non si installa/usare; restare sul runner Node. Sottoinsiemi: **`npm run sim:e2e:write-p2`** o `--only=…` / `GFV_E2E_ONLY`. In **CI (Node 22)** preferire `npm run sim:e2e:pw` dopo `npm run sim:e2e:install` (Chromium bundled).
 
 **Assert scenario 1 (dashboard):** dati seed (4 affitti, bucket km/ore) verificati da v3 (`sim:inspect`, `cascade-v3-live-smoke`, Vitest). In E2E: ≥2 righe **Affitto** con testo semaforo (Scaduto/giorni/mesi), ≥3 voci **In arrivo** con tipi km/ore/manutenzione, footer scadenze mezzi. Il widget amministrazione mostra max **8 righe** (`MAX_RIGHE` in `dashboard-deadlines.js`) — non assert rigido `count === 4` affitti nel DOM.
 
@@ -721,7 +724,8 @@ npm start               # terminale 2 — http://127.0.0.1:8000
 npm run sim:run -- --template=viticola-conto-terzi-manodopera   # suite E2E 8/8 (consigliato)
 npm run sim:run -- --template=viticola-conto-terzi   # suite 7/8 (scenario 8 fallisce senza personas)
 npm run sim:run -- --template=solo-titolare-viticola # solo scenari 1–6
-npm run sim:e2e           # terminale 4 (runner Node — Chrome di sistema)
+npm run sim:e2e           # terminale 4 (runner Node — Chrome di sistema; 71 scenari)
+npm run sim:e2e:write-p2  # solo operai-write + squadre-write + scadenze-write
 npm run sim:e2e:pw        # alternativa CI: CLI Playwright (Node 22 + sim:e2e:install)
 ```
 
@@ -731,10 +735,13 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 
 | Comando | Scopo |
 | ------- | ----- |
-| `npm run sim:e2e` | Runner E2E headless (`scripts/sim-e2e-run.mjs`; Chrome locale, prerequisiti automatici) |
-| `npm run sim:e2e:pw` | Suite `@playwright/test` nativa (`playwright test`; CI Node 22) |
-| `npm run sim:e2e:install` | Scarica Chromium Playwright (CI / `sim:e2e:pw`) |
-| `npm run sim:e2e:ui` | Modalità UI debug Playwright |
+| `npm run sim:e2e` | Runner E2E headless — tutti gli scenari (`scripts/sim-e2e-run.mjs`; Chrome locale) |
+| `npm run sim:e2e:write-p2` | Sottoinsieme scen. 65–67: operai, squadre, scadenze (write P2) |
+| `npm run sim:e2e:pw` | Suite `@playwright/test` nativa (`playwright test`; **CI Node 22**, non Node 24 locale) |
+| `npm run sim:e2e:install` | Scarica Chromium Playwright (**CI** / Node 22; su Node 24 locale evitare) |
+| `npm run sim:e2e:ui` | Modalità UI debug Playwright (Node 22) |
+
+**Filtro generico:** `node scripts/sim-e2e-run.mjs --only=scadenze-write,operai-write` oppure env `GFV_E2E_ONLY` (stessi nomi della colonna `name` in `SCENARIOS`).
 
 **Criterio v4 — scenari 1–8 ✅ (2026-06-28):**
 
@@ -865,21 +872,25 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 
 **Assert scenario 67 (squadre write):** login manager manodopera → `gestione-squadre-standalone.html` → **Crea Nuova Squadra** → nome `GFV SIM E2E SQUADRA`. **Fix app:** `creatoDa` con fallback `id || uid || auth.currentUser?.uid`.
 
-#### 11.2.1 Stato v4/v5 e prossimi passi (2026-07-03)
+#### 11.2.1 Stato v4/v5 e prossimi passi (2026-07-04)
 
-**Completato:** scenari Playwright **67 spec** (dual seed viticola + frutteto M4 + write P2 manodopera/scadenze) — suite locale + **CI** (`sim:e2e:ci` → `sim:e2e:pw` + verify seed operativo).
+**Completato:** scenari Playwright **71 spec** — **triple-seed** CI (`viticola-conto-terzi-manodopera` + `frutteto-solo-titolare` + `mista-viticola-frutteto-conto-terzi-manodopera`), verify ×3, suite locale + **CI** (`sim:e2e:ci` → `sim:e2e:pw`).
 
-**CI stabile (2026-07-03):** run [28645514543](https://github.com/VitaraDragon/gfv-platform/actions/runs/28645514543) — **66 passed + 1 flaky** (~3,6 min). Blocker `scadenze-write` risolto in `ec97af9`. Flaky `trattamento-frutteto-completa-write`: fix assert uscite + poll/reload movimenti (2026-07-03). Run precedente fallito: [28644343723](https://github.com/VitaraDragon/gfv-platform/actions/runs/28644343723).
+**CI stabile (2026-07-04):** run [28694674029](https://github.com/VitaraDragon/gfv-platform/actions/runs/28694674029) — **71 passed**, 0 flaky (~3m42s job E2E). Stabilizzazione post-mista: `mista-azienda-read` (`minRows=3`); `lavori-caposquadra-write` — stub `window.prompt` in E2E (l’app usa prompt sincrono in `sospendiLavoroDaCaposquadra`, deadlock con click Playwright).
 
 **v5 Fase 1 chiusa ✅** (M3 inclusa): 15 flussi write su path business critici (scen. 20–34).
 
 **Fase 1 write P2 chiusa ✅** (2026-07-03): scen. **65–67** — scadenze rinnova, operai scheda, squadra nuova.
 
-**M2 + P2 chiusi ✅** (scen. 35–39 read, 40–44 write).
+**Fase 2 write chiusa ✅** (2026-07-03–04): `trattori-write`, `concimazione-frutteto-completa-write`, `lavori-caposquadra-write`.
+
+**Template mista ✅** (2026-07-04): `mista-viticola-frutteto-conto-terzi-manodopera` + read E2E `mista-azienda-read` (+1 spec → 71 totali).
+
+**M2 + P2 + M4 frutteto chiusi ✅** (scen. 35–39 read, 40–44 write, frutteto M4).
 
 **Read profondi batch A–C chiuso ✅** (§11.3.13) — hub magazzino/tracciabilità, liste vigneto, CT, manodopera.
 
-**Prossimo — template viticola:** track **Tony E2E** (gate v5 app ✅ — v. `TONY_E2E_GUIDA_SVILUPPO.md` §7); M5 report (fuori scope redesign).
+**Prossimo:** track **Tony E2E** (gate v5 app ✅ — v. `TONY_E2E_GUIDA_SVILUPPO.md` §7); M5 report (fuori scope redesign); v4b CI notturna.
 
 **Parallelo (v4b / fuori sim):**
 
@@ -902,7 +913,8 @@ Password emulator (pagina dev): **`SimGFV2026!`**. Preferire entry manifest **Se
 | Capo lavori desktop | ✅ 19 | |
 | Guasti in lista | ✅ 14 read + ✅ 33 write | seed 3 guasti + segnalazione generica operaio |
 | Banner assenza malattia / contenuto comunicazioni | ⚠️ smoke | conteggi in `sim:audit` + `viticola-manodopera.test.js` |
-| Copertura totale pagine / form write | ⚠️ v5 Fase 2 | **18 write** ✅ (scen. 20–34 + 65–67); v. §11.3 |
+| Copertura totale pagine / form write | ✅ v5 Fase 2 | **18 write** ✅ (scen. 20–34 + 65–67) + batch catena A + Fase 2 write; v. §11.3 |
+| Azienda mista viticola + frutteto | ✅ read | `mista-azienda-read` su tenant triple-seed |
 
 **Catena pre-E2E consigliata (tenant manodopera):**
 
@@ -912,7 +924,8 @@ node scripts/cascade-v3-live-smoke.js
 npm run sim:audit                    # manifest snello: sim:cleanup --keep 1
 npm run test:run -- tests/dashboard-deadlines.test.js tests/cascade-colture-lavori.test.js tests/cascade-attrezzi-cv.test.js
 npm run test:run -- tests/simulator/viticola-manodopera.test.js   # emulator attivo
-npm run sim:e2e                      # 64/64 attesi in CI dual-seed (~2 min); viticola-only ~58 spec
+npm run sim:e2e                      # 71 scenari (~4 min); viticola-only ~58
+npm run sim:e2e:write-p2             # solo operai + squadre + scadenze (~15 s)
 ```
 
 **Nota audit:** `sim:audit` su manifest con molte entry legacy o tenant `regime-max` può fallire anche con E2E verde — usare `sim:cleanup --keep 1` + nuovo `sim:run` prima dell’audit.
@@ -1005,16 +1018,18 @@ npm run sim:e2e                      # 64/64 attesi in CI dual-seed (~2 min); vi
 | Gestione lavori | ✅ | ✅ scen. 13 | ✅ scen. 23 | **1** |
 | Validazione ore | ✅ coda 2 ore manager | ✅ scen. 13 (stat + righe) | ✅ scen. 31 (valida marker ore) | **1** |
 | Operai / Squadre / Statistiche | ✅ | ✅ scen. 18 | ✅ scen. 66 operai, ✅ 67 squadre | 2 |
-| Lavori capo desktop | ✅ | ✅ scen. 19 | ❌ | 2 |
+| Lavori capo desktop | ✅ | ✅ scen. 19 | ✅ `lavori-caposquadra-write` | 2 |
 | Field workspace mobile | ✅ | ✅ scen. 8 | ✅ scen. 22 (registra ore) | **1** |
 | Compensi operai | ❌ | ✅ scen. 39 | ✅ scen. 44 (calcolo) | 2 |
 | Statistiche lavoratore (mobile) | parziale | ✅ scen. 39 | ❌ | 2 |
 
-##### 11.3.7 Frutteto *(modulo non seedato — ~7 pagine standalone)*
+##### 11.3.7 Frutteto *(M4 ✅ — template `frutteto-solo-titolare` + template mista §186)*
 
 | Pagina | Seed | E2E | P |
 | ------ | ---- | --- | - |
-| Dashboard, frutteti, potatura, trattamenti, concimazioni, raccolta, statistiche | ❌ | ❌ | **2** (nuovo template `frutteto-*`) |
+| Dashboard, frutteti, potatura, trattamenti, concimazioni, raccolta | ✅ `frutteto-solo-titolare` / mista | ✅ read + write catene (M4) | **2** ✅ |
+| Statistiche frutteto | parziale | ❌ | 3 (redesign) |
+| Azienda mista vite+frutto | ✅ `mista-viticola-frutteto-conto-terzi-manodopera` | ✅ `mista-azienda-read` | **2** ✅ |
 
 ##### 11.3.8 Report, meteo, auth, admin piattaforma, Tony
 
@@ -1034,8 +1049,8 @@ npm run sim:e2e                      # 64/64 attesi in CI dual-seed (~2 min); vi
 | --------- | -------- |
 | **M1** | ✅ v4 — **18/18** E2E read + link rapidi pagina dev |
 | **M2** | E2E read su **tutte le pagine** del template `viticola-conto-terzi-manodopera` (~45 URL) — **✅ chiusa 2026-06-30** (+5 scenari read 35–39) |
-| **M3** | **10–15 flussi E2E write** su path business critici — **15/15 ✅** (scen. 20–34); **P2 ✅** (40–44); prossimo: **Fase 2 batch 45–54** §11.3.11 |
-| **M4** | Template **frutteto** + parity read/write |
+| **M3** | **10–15 flussi E2E write** su path business critici — **15/15 ✅** (scen. 20–34); **P2 ✅** (40–44); batch 45–54 + Fase 2 write **✅** |
+| **M4** | Template **frutteto** + parity read/write — **✅ chiusa 2026-07-03**; template **mista** vite+frutto **✅ 2026-07-04** |
 | **M5** | Matrice **ruolo × modulo** (manager / capo / operaio) + CI notturna suite piena (v4b) |
 | **M-T*** | **Tony E2E + sim** — tempi, typo, concetto, forbidden; v. [`TONY_E2E_GUIDA_SVILUPPO.md`](TONY_E2E_GUIDA_SVILUPPO.md) §10 |
 
@@ -1051,9 +1066,7 @@ npm run sim:e2e                      # 64/64 attesi in CI dual-seed (~2 min); vi
 
 - Accetta preventivo end-to-end; compensi operai; gestione guasti con dati seedati
 
-**Fase 3 — Template frutteto**
-
-- `simulator/templates/frutteto-*.json` + ~7 pagine + E2E analoghi vigneto
+**Fase 3 — Template frutteto** — **✅ chiusa** (M4 `frutteto-solo-titolare` + template mista `mista-viticola-frutteto-conto-terzi-manodopera`)
 
 **Fase 4 — Report, meteo, auth, billing**
 
@@ -1069,9 +1082,9 @@ npm run sim:e2e                      # 64/64 attesi in CI dual-seed (~2 min); vi
 
 **Cosa garantisce verde v5 (onesto):** alta confidenza su **codice + flussi coperti** in emulator — non zero bug in produzione (regole Firestore live, latenza, API esterne).
 
-##### 11.3.11 Gap analysis v5 Fase 2 — stato batch catena A (2026-07-03)
+##### 11.3.11 Gap analysis v5 Fase 2 — stato batch catena A (2026-07-04)
 
-**Contesto:** **67/67** spec E2E in CI dual-seed (viticola `viticola-conto-terzi-manodopera` + frutteto M4 `frutteto-solo-titolare`). Viticola: M2 + M3 + P2 + batch catena A/residuo + read profondi §11.3.13 + **write P2** (65–67). CI verificata [28645514543](https://github.com/VitaraDragon/gfv-platform/actions/runs/28645514543).
+**Contesto:** **71/71** spec E2E in CI **triple-seed** (`viticola-conto-terzi-manodopera` + `frutteto-solo-titolare` + `mista-viticola-frutteto-conto-terzi-manodopera`). Viticola/frutteto: M2 + M3 + P2 + batch catena A + read profondi §11.3.13 + write P2 (65–67) + **Fase 2 write** + read mista. CI verificata [28694674029](https://github.com/VitaraDragon/gfv-platform/actions/runs/28694674029).
 
 **Inventario onesto (template viticola-conto-terzi-manodopera):**
 
@@ -1406,10 +1419,11 @@ Workflow: `.github/workflows/simulator-ci.yml`
 | ----------- | ------- | ---- |
 | Browser | `sim:e2e:install` | Chromium Playwright + deps OS (`--with-deps`) |
 | Orchestrazione | `sim:e2e:ci` | `simulator/ci-e2e-run.js` → `scripts/sim-ci-e2e-inner.sh` |
-| Seed minimal | `sim:run -- --template=viticola-conto-terzi-manodopera` | template completo manodopera + CT |
-| Assert browser | `sim:e2e:pw` | Node 22; **67 spec** headless (dual seed) |
+| Seed triple | `sim:run` ×3 (viticola + frutteto + mista) | v. `scripts/sim-ci-e2e-inner.sh` |
+| Verify seed | `sim:verify:e2e-seed` ×3 | una volta per template |
+| Assert browser | `sim:e2e:pw` | Node 22; **71 spec** headless (triple-seed) |
 
-Su Node 24 locale preferire `npm run sim:e2e` (runner Node + Chrome di sistema); in CI usare `sim:e2e:pw`.
+Su **Node 24** locale: **`npm run sim:e2e`** o **`sim:e2e:write-p2`** (runner + Chrome di sistema). In CI (Node 22): `sim:e2e:pw` dopo `sim:e2e:install`.
 
 **Roadmap oltre v4:** v4b — CI notturna batch + `sim:cleanup` selettivo (§11 roadmap).
 
@@ -1685,7 +1699,7 @@ npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose
 
 **Verifica UI:** §13.2 — pagina dev + moduli conto terzi + manodopera mobile.
 
-**Verifica E2E (v4 + v5 + M2 + P2 + catena A + M4 frutteto + write P2):** `npm run sim:e2e` / `npm run sim:e2e:ci` — suite **67/67** dual-seed (viticola + frutteto); v. §11.2–§11.3.13. CI: [28645514543](https://github.com/VitaraDragon/gfv-platform/actions/runs/28645514543).
+**Verifica E2E (v4 + v5 + M2 + P2 + catena A + M4 frutteto + template mista):** `npm run sim:e2e` / `npm run sim:e2e:ci` — suite **71/71** triple-seed; v. §11.2–§11.3.13. CI: [28694674029](https://github.com/VitaraDragon/gfv-platform/actions/runs/28694674029).
 
 **Non in scope v2.2 (aggiornato):** preventivo accettato → creazione lavoro conto terzi automatica. ~~Link rapidi Conto Terzi in pagina dev~~ → **implementato 2026-06-28** (gruppi modulo condizionati al template).
 
