@@ -12,10 +12,10 @@ import { getEttariEffettivi } from './calcolo-compenso-vm-service.js';
 import { buildStagioneWithNetArea, sanitizeZoneEscluse } from './zone-escluse-service.js';
 
 const TERRENI_COLLECTION = 'terreni';
-import { summarizePianoStagione } from './piano-stagione-kpi.js';
+import { summarizePianoStagione, buildPianoStagioneTonyContext } from './piano-stagione-kpi.js';
 import { filterRigheVigneto, buildVignetoDetectionContext } from './piano-stagione-utils.js';
 
-export { summarizePianoStagione };
+export { summarizePianoStagione, buildPianoStagioneTonyContext };
 
 /**
  * @param {number|string} [anno]
@@ -60,6 +60,7 @@ export async function getPianoStagioneRows(anno = getAnnoStagioneCorrente(), opt
       zoneEscluseCount: Array.isArray(stato.zoneEscluse) ? stato.zoneEscluse.length : 0,
       zoneVendemmiateCount: Array.isArray(stato.zoneVendemmiate) ? stato.zoneVendemmiate.length : 0,
       lavoroId: stato.lavoroId || null,
+      preventivoId: stato.preventivoId || null,
       dataVendemmia: stato.dataVendemmia || null,
       ettariEsclusi: stato.ettariEsclusi != null ? Number(stato.ettariEsclusi) : 0,
       polygonCoords: t.polygonCoords || raw.polygonCoords || null,

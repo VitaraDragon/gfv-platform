@@ -17,11 +17,31 @@ vi.mock('../../core/services/tenant-service.js', () => ({
   getCurrentTenantId: () => mockGetCurrentTenantId()
 }));
 
-vi.mock('../../conto-terzi/services/clienti-service.js', () => ({
+vi.mock('../../modules/conto-terzi/services/clienti-service.js', () => ({
   getAllClienti: vi.fn()
 }));
 
-import { updateStagioneTerreno } from '../../modules/vendemmia-meccanica/services/piano-stagione-service.js';
+vi.mock('../../modules/vendemmia-meccanica/services/calcolo-compenso-vm-service.js', () => ({
+  getEttariEffettivi: vi.fn(() => ({ ettari: 5, warning: null }))
+}));
+
+vi.mock('../../modules/vendemmia-meccanica/services/zone-escluse-service.js', () => ({
+  buildStagioneWithNetArea: vi.fn((merged) => merged),
+  sanitizeZoneEscluse: vi.fn((z) => z)
+}));
+
+vi.mock('../../modules/vendemmia-meccanica/services/piano-stagione-utils.js', async (importOriginal) => {
+  const actual = await importOriginal();
+  return {
+    ...actual,
+    filterRigheVigneto: vi.fn((rows) => rows),
+    buildVignetoDetectionContext: vi.fn()
+  };
+});
+
+import { getAllTerreni } from '../../core/services/terreni-service.js';
+import { getAllClienti } from '../../modules/conto-terzi/services/clienti-service.js';
+import { updateStagioneTerreno, getPianoStagioneRows } from '../../modules/vendemmia-meccanica/services/piano-stagione-service.js';
 
 describe('updateStagioneTerreno', () => {
   beforeEach(() => {
@@ -56,5 +76,39 @@ describe('updateStagioneTerreno', () => {
     expect(payload.vendemmiaMeccanica['2026'].ettariVendemmiati).toBe(4.2);
     expect(payload.vendemmiaMeccanica['2025'].inPiano).toBe(true);
     expect(saved.zoneEscluse).toHaveLength(1);
+  });
+});
+
+describe('getPianoStagioneRows', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    getAllClienti.mockResolvedValue([
+      { id: 'c1', ragioneSociale: 'Rossi' }
+    ]);
+    getAllTerreni.mockResolvedValue([
+      {
+        id: 't1',
+        nome: 'Vigneto A',
+        clienteId: 'c1',
+        superficie: 3,
+        colturaCategoria: 'vite',
+        vendemmiaMeccanica: {
+          '2026': {
+            inPiano: true,
+            vendemmiato: true,
+            lavoroId: 'lav-1',
+            preventivoId: 'prev-1'
+          }
+        }
+      }
+    ]);
+  });
+
+  test('espone lavoroId e preventivoId sulla riga', async () => {
+    const rows = await getPianoStagioneRows(2026, { soloVigneti: false });
+    expect(rows).toHaveLength(1);
+    expect(rows[0].lavoroId).toBe('lav-1');
+    expect(rows[0].preventivoId).toBe('prev-1');
+    expect(rows[0].clienteNome).toBe('Rossi');
   });
 });

@@ -233,11 +233,73 @@ export function groupClientiVignetoPiano(rows, ctx = {}) {
     .sort((a, b) => (a.clienteNome || '').localeCompare(b.clienteNome || '', 'it'));
 }
 
+/**
+ * Deep-link Gestione Lavori CT (apre dettaglio se lavoroId presente).
+ * @param {string|null|undefined} lavoroId
+ * @returns {string}
+ */
+export function buildGestioneLavoriUrl(lavoroId) {
+  const q = new URLSearchParams({ contoTerzi: 'true' });
+  if (lavoroId) q.set('lavoroId', String(lavoroId));
+  return '../../../core/admin/gestione-lavori-standalone.html?' + q.toString();
+}
+
+/**
+ * Link lista preventivi CT con evidenza opzionale preventivo / filtro cliente.
+ * @param {string|null|undefined} preventivoId
+ * @param {string|null|undefined} [clienteId]
+ * @returns {string}
+ */
+export function buildPreventiviCtUrl(preventivoId, clienteId) {
+  const q = new URLSearchParams();
+  if (preventivoId) q.set('preventivoId', String(preventivoId));
+  if (clienteId) q.set('clienteId', String(clienteId));
+  const qs = q.toString();
+  return '../../conto-terzi/views/preventivi-standalone.html' + (qs ? '?' + qs : '');
+}
+
+/**
+ * Calcolatore VM con cliente e terreno preselezionati.
+ * @param {string|null|undefined} clienteId
+ * @param {string|null|undefined} [terrenoId]
+ * @returns {string}
+ */
+export function buildCalcolatoreVmUrl(clienteId, terrenoId) {
+  const q = new URLSearchParams();
+  if (clienteId) q.set('clienteId', String(clienteId));
+  if (terrenoId) q.set('terrenoId', String(terrenoId));
+  const qs = q.toString();
+  return 'calcolatore-standalone.html' + (qs ? '?' + qs : '');
+}
+
+/**
+ * Vigneto con metriche vendemmia (lavoro, zone o ha netti) già registrate.
+ * @param {Object} row — riga getPianoStagioneRows
+ * @returns {boolean}
+ */
+export function rowHasVendemmiaDati(row) {
+  if (!row || typeof row !== 'object') return false;
+  const s = row.stato || {};
+  if (row.lavoroId) return true;
+  if ((row.zoneVendemmiateCount || 0) > 0) return true;
+  if ((row.zoneEscluseCount || 0) > 0) return true;
+  if (Number(s.ettariEsclusi) > 0) return true;
+  if (s.ettariVendemmiatiManuali != null && Number.isFinite(Number(s.ettariVendemmiatiManuali))) return true;
+  const sup = Number(row.superficie) || 0;
+  const netti = Number(s.ettariVendemmiati);
+  if (Number.isFinite(netti) && netti > 0 && sup > 0 && Math.abs(netti - sup) > 0.001) return true;
+  return false;
+}
+
 export default {
   buildVignetoDetectionContext,
   resolveViteCategoryIds,
   isTerrenoFruttetoCliente,
   isTerrenoVignetoCliente,
   filterRigheVigneto,
-  groupClientiVignetoPiano
+  groupClientiVignetoPiano,
+  buildGestioneLavoriUrl,
+  buildPreventiviCtUrl,
+  buildCalcolatoreVmUrl,
+  rowHasVendemmiaDati
 };

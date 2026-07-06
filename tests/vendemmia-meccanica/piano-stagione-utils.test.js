@@ -3,7 +3,11 @@ import {
   isTerrenoVignetoCliente,
   isTerrenoFruttetoCliente,
   filterRigheVigneto,
-  groupClientiVignetoPiano
+  groupClientiVignetoPiano,
+  buildGestioneLavoriUrl,
+  buildPreventiviCtUrl,
+  buildCalcolatoreVmUrl,
+  rowHasVendemmiaDati
 } from '../../modules/vendemmia-meccanica/services/piano-stagione-utils.js';
 
 describe('piano-stagione-utils', () => {
@@ -55,5 +59,32 @@ describe('piano-stagione-utils', () => {
     expect(groups[0].clienteId).toBe('c1');
     expect(groups[0].terreniVigneto).toBe(2);
     expect(groups[0].terreniInPiano).toBe(1);
+  });
+
+  it('buildGestioneLavoriUrl include contoTerzi e lavoroId', () => {
+    expect(buildGestioneLavoriUrl('lav-1')).toContain('contoTerzi=true');
+    expect(buildGestioneLavoriUrl('lav-1')).toContain('lavoroId=lav-1');
+    expect(buildGestioneLavoriUrl(null)).not.toContain('lavoroId=');
+  });
+
+  it('buildPreventiviCtUrl passa preventivoId e clienteId', () => {
+    const url = buildPreventiviCtUrl('prev-1', 'cli-1');
+    expect(url).toContain('preventivoId=prev-1');
+    expect(url).toContain('clienteId=cli-1');
+  });
+
+  it('buildCalcolatoreVmUrl passa clienteId e terrenoId', () => {
+    const url = buildCalcolatoreVmUrl('cli-1', 'terr-1');
+    expect(url).toContain('clienteId=cli-1');
+    expect(url).toContain('terrenoId=terr-1');
+  });
+
+  it('rowHasVendemmiaDati riconosce lavoro, zone e ha netti', () => {
+    expect(rowHasVendemmiaDati({ lavoroId: 'l1' })).toBe(true);
+    expect(rowHasVendemmiaDati({ zoneVendemmiateCount: 2 })).toBe(true);
+    expect(rowHasVendemmiaDati({ zoneEscluseCount: 1 })).toBe(true);
+    expect(rowHasVendemmiaDati({ superficie: 5, stato: { ettariVendemmiati: 4.2 } })).toBe(true);
+    expect(rowHasVendemmiaDati({ superficie: 5, stato: { ettariVendemmiati: 5 } })).toBe(false);
+    expect(rowHasVendemmiaDati({ superficie: 5, vendemmiato: true })).toBe(false);
   });
 });

@@ -86,9 +86,10 @@ import { getAllClienti } from '../../conto-terzi/services/clienti-service.js';
 import { getAllTerreni } from '../../../core/services/terreni-service.js';
 import { getTariffeVmConfig } from '../services/tariffe-vm-service.js';
 import { calcolaCompensoVendemmia } from '../services/calcolo-compenso-vm-service.js';
-import { saveCalcoloVm } from '../services/calcoli-vm-service.js';
+import { saveCalcoloVm, linkCalcoloVmToPreventivo, resolvePreventivoIdFromTerreni } from '../services/calcoli-vm-service.js';
 import { generaPdfCalcoloVm } from '../services/calcolo-vm-pdf-service.js';
 import { DESTINAZIONI_TRASPORTO_PRESET, getAnnoStagioneCorrente } from '../config/vm-constants.js';
+import { buildPreventiviCtUrl } from '../services/piano-stagione-utils.js';
 
 let tariffeConfig = {};
 let terreniCliente = [];
@@ -98,7 +99,7 @@ let tenantAziendaNome = '';
 
 function fmtEuro(n) { return '€ ' + (Number(n) || 0).toFixed(2); }
 
-async function loadTerreni(clienteId) {
+async function loadTerreni(clienteId, preselectIds = []) {
     const box = document.getElementById('terreni-list');
     if (!clienteId) {
         box.innerHTML = '<p style="color:#888;">Seleziona un cliente</p>';
@@ -110,14 +111,30 @@ async function loadTerreni(clienteId) {
         return;
     }
     const anno = getAnnoStagioneCorrente();
+    const preselect = Array.isArray(preselectIds) ? preselectIds.filter(Boolean) : [];
     box.innerHTML = terreniCliente.map(t => {
         const raw = t._originalData || t;
         const vm = (raw.vendemmiaMeccanica || t.vendemmiaMeccanica || {})[String(anno)] || {};
-        const pre = vm.vendemmiato ? 'checked' : '';
+        const pre = preselect.length
+            ? (preselect.includes(t.id) ? 'checked' : '')
+            : (vm.vendemmiato ? 'checked' : '');
         const ha = vm.ettariVendemmiati != null ? vm.ettariVendemmiati : (t.superficie || 0);
         return '<label class="terreno-row"><input type="checkbox" name="terreno" value="' + t.id + '" ' + pre + '> ' +
             (t.nome || '') + ' — ' + Number(ha).toFixed(2) + ' ha eff.</label>';
     }).join('');
+}
+
+function readUrlPreselect() {
+    const p = new URLSearchParams(window.location.search);
+    const clienteId = p.get('clienteId');
+    const terrenoId = p.get('terrenoId');
+    const terrenoIds = terrenoId
+        ? [String(terrenoId).trim()]
+        : String(p.get('terrenoIds') || '').split(',').map((s) => s.trim()).filter(Boolean);
+    return {
+        clienteId: clienteId && String(clienteId).trim() ? String(clienteId).trim() : null,
+        terrenoIds
+    };
 }
 
 function renderResult(res) {
@@ -176,6 +193,12 @@ try {
 
     sel.addEventListener('change', () => loadTerreni(sel.value));
 
+    const urlPre = readUrlPreselect();
+    if (urlPre.clienteId && clientiMap[urlPre.clienteId]) {
+        sel.value = urlPre.clienteId;
+        await loadTerreni(urlPre.clienteId, urlPre.terrenoIds);
+    }
+
     document.getElementById('btn-calcola').addEventListener('click', () => {
         const clienteId = sel.value;
         const ids = [...document.querySelectorAll('input[name=terreno]:checked')].map(el => el.value);
@@ -200,10 +223,22 @@ try {
     document.getElementById('btn-salva').addEventListener('click', async () => {
         if (!lastBreakdown) return;
         try {
-            const id = await saveCalcoloVm(lastBreakdown, {
-                dataVendemmia: document.getElementById('input-data').value
+            const clienteId = document.getElementById('sel-cliente').value;
+            const ids = [...document.querySelectorAll('input[name=terreno]:checked')].map(el => el.value);
+            const selectedTerreni = terreniCliente.filter(t => ids.includes(t.id));
+            const preventivoId = resolvePreventivoIdFromTerreni(selectedTerreni, lastBreakdown.anno || getAnnoStagioneCorrente());
+            const calcoloId = await saveCalcoloVm(lastBreakdown, {
+                dataVendemmia: document.getElementById('input-data').value,
+                preventivoId
             });
-            showVmAlert('alert-container', 'Calcolo salvato (ID: ' + id + ')', 'success');
+            if (preventivoId) {
+                await linkCalcoloVmToPreventivo(calcoloId, preventivoId);
+            }
+            let msg = 'Calcolo salvato (ID: ' + calcoloId + ')';
+            if (preventivoId) {
+                msg += ' — collegato al <a href="' + buildPreventiviCtUrl(preventivoId, clienteId) + '">preventivo CT</a>';
+            }
+            showVmAlert('alert-container', msg, 'success');
         } catch (e) {
             showVmAlert('alert-container', e.message, 'error');
         }

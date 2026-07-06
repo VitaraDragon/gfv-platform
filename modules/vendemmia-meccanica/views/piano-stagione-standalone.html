@@ -10,15 +10,18 @@
         .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
         .header { background: linear-gradient(135deg, #6A1B9A, #4A148C); color: #fff; padding: 28px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; align-items: center; }
         .content { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
-        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
-        .stat { background: #F3E5F5; border: 1px solid #CE93D8; border-radius: 8px; padding: 12px; text-align: center; }
-        .stat strong { display: block; font-size: 22px; color: #6A1B9A; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .stat-card { background: #F3E5F5; border: 1px solid #CE93D8; border-radius: 8px; padding: 12px; text-align: center; }
+        .stat-value { display: block; font-size: 22px; font-weight: 700; color: #6A1B9A; }
+        .stat-label { font-size: 12px; color: #666; margin-top: 4px; }
         .filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; align-items: end; }
-        .filters label { font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px; }
-        .filters select, .filters input { padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+        .filter-group label { font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px; }
+        .filter-group select, .filter-group input { padding: 8px; border: 1px solid #ccc; border-radius: 6px; min-width: 0; width: 100%; box-sizing: border-box; }
+        .table-responsive .piano-table { min-width: 880px; }
         table { width: 100%; border-collapse: collapse; font-size: 14px; }
-        th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+        th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; vertical-align: middle; }
         th { background: #F3E5F5; color: #4A148C; }
+        .piano-table input[type="checkbox"] { width: 18px; height: 18px; cursor: pointer; }
         .btn { padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; font-size: 13px; }
         .btn-secondary { background: #6c757d; color: #fff; }
         .btn-primary { background: #6A1B9A; color: #fff; }
@@ -30,7 +33,7 @@
         .modal.active { display: flex; }
         .modal-box { background: #fff; border-radius: 10px; padding: 20px; width: min(920px, 96vw); max-height: 94vh; overflow-y: auto; }
         .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
-        @media (max-width: 720px) { .modal-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 768px) { .modal-grid { grid-template-columns: 1fr; } }
         .map-wrap { border: 1px solid #ddd; border-radius: 8px; overflow: hidden; height: 360px; margin: 12px 0; position: relative; }
         .map-wrap.drawing-mode,
         .map-wrap.drawing-mode .vm-zone-map-inner,
@@ -45,16 +48,34 @@
         .btn-draw-active { background: #dc3545 !important; }
         .map-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
         .map-legend { font-size: 12px; color: #666; margin-bottom: 8px; }
-        .map-legend span { display: inline-block; margin-right: 12px; }
-        .legend-boundary::before { content: ''; display: inline-block; width: 10px; height: 10px; background: #43A047; margin-right: 4px; border-radius: 2px; }
-        .legend-excluded::before { content: ''; display: inline-block; width: 10px; height: 10px; background: #E53935; margin-right: 4px; border-radius: 2px; }
+        .map-legend span { display: inline-block; margin-right: 12px; margin-bottom: 4px; }
+        .legend-boundary::before { content: ''; display: inline-block; width: 10px; height: 10px; background: rgba(67, 160, 71, 0.15); border: 2px solid #2E7D32; margin-right: 4px; border-radius: 2px; vertical-align: middle; }
+        .legend-harvested::before { content: ''; display: inline-block; width: 10px; height: 10px; background: #43A047; margin-right: 4px; border-radius: 2px; vertical-align: middle; }
+        .legend-excluded::before { content: ''; display: inline-block; width: 10px; height: 10px; background: #E53935; margin-right: 4px; border-radius: 2px; vertical-align: middle; }
         .alert { padding: 12px; border-radius: 8px; margin-bottom: 12px; }
         .alert-error { background: #f8d7da; color: #721c24; }
         .alert-success { background: #d4edda; color: #155724; }
         .alert-info { background: #E3F2FD; color: #0D47A1; border: 1px solid #90CAF9; }
+        .alert-warning { background: #fff3cd; color: #856404; border: 1px solid #ffc107; }
         .piano-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: center; }
         .piano-toolbar .hint { flex: 1 1 220px; font-size: 13px; color: #666; }
         .cliente-focus { font-size: 15px; color: #EDE7F6; margin-top: 6px; }
+        .piano-actions { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+        @media (max-width: 768px) {
+            .piano-toolbar .btn { flex: 1 1 auto; min-width: 0; }
+            .piano-toolbar .hint { flex: 1 1 100%; }
+            .filter-group { flex: 1 1 100%; }
+            .filters .btn-primary { width: 100%; }
+            .map-wrap { height: 280px; }
+            .map-toolbar .btn { flex: 1 1 calc(50% - 4px); min-height: 44px; }
+            .modal-box .btn { min-height: 44px; }
+        }
+        @media (max-width: 480px) {
+            .piano-toolbar .btn { width: 100%; }
+            .piano-actions { flex-direction: column; align-items: stretch; }
+            .piano-actions .btn-sm { width: 100%; text-align: center; min-height: 44px; }
+            .map-toolbar .btn { flex: 1 1 100%; }
+        }
     </style>
 </head>
 <body>
@@ -65,30 +86,30 @@
             <p>Terreni vigneto clienti — avanzamento vendemmia <span id="anno-label"></span></p>
             <p class="cliente-focus" id="cliente-focus" style="display:none;"></p>
         </div>
-        <div>
+        <div class="header-actions">
             <a href="vm-home-standalone.html" class="btn btn-secondary">← Hub VM</a>
         </div>
     </div>
     <div class="content">
         <div id="alert-container"></div>
         <div id="piano-empty-banner" class="alert alert-info" style="display:none;"></div>
-        <div class="stats" id="kpi-grid"></div>
+        <div class="stats-grid" id="kpi-grid"></div>
         <div class="piano-toolbar">
             <button type="button" class="btn btn-primary" id="btn-add-all-piano">➕ Aggiungi tutti i vigneti al piano</button>
             <button type="button" class="btn btn-secondary" id="btn-remove-all-piano">Rimuovi tutti dal piano</button>
             <span class="hint">Spunta la colonna <strong>In piano</strong> su ogni vigneto da servire in stagione, oppure usa il pulsante sopra.</span>
         </div>
         <div class="filters">
-            <div>
-                <label>Anno</label>
+            <div class="filter-group">
+                <label for="filter-anno">Anno</label>
                 <input type="number" id="filter-anno" min="2020" max="2100">
             </div>
-            <div>
-                <label>Cliente</label>
+            <div class="filter-group">
+                <label for="filter-cliente">Cliente</label>
                 <select id="filter-cliente"><option value="">Tutti i clienti</option></select>
             </div>
-            <div>
-                <label>Stato</label>
+            <div class="filter-group">
+                <label for="filter-stato">Stato</label>
                 <select id="filter-stato">
                     <option value="">Tutti i vigneti</option>
                     <option value="inPiano">In piano</option>
@@ -100,7 +121,7 @@
             <button class="btn btn-primary" type="button" id="btn-refresh">Aggiorna</button>
         </div>
         <div class="table-responsive">
-            <table>
+            <table class="piano-table">
                 <thead>
                     <tr>
                         <th>Cliente</th>
@@ -120,12 +141,13 @@
 </div>
 
 <div class="modal" id="modal-zone">
-    <div class="modal-box">
+    <div class="modal-box modal-content">
         <h3>Zone escluse — <span id="modal-terreno-nome"></span></h3>
         <p style="font-size:13px;color:#666;margin:8px 0;">Superficie totale terreno: <strong id="modal-ha-totali">0</strong> ha</p>
 
         <div class="map-legend">
             <span class="legend-boundary">Confini terreno (CT)</span>
+            <span class="legend-harvested">Zone vendemmiate (da lavoro)</span>
             <span class="legend-excluded">Zone non vendemmiate</span>
         </div>
         <p id="modal-auto-hint" class="alert alert-info" style="display:none;font-size:13px;padding:10px;margin:8px 0;">
@@ -174,13 +196,14 @@
 </script>
 <script type="module">
 import { initVmPageAuth, showVmAlert, publishTonyTableData } from '../js/vm-page-auth.js';
-import { getPianoStagioneRows, summarizePianoStagione, updateStagioneTerreno, setFlagStagioneTerreno, setBulkFlagStagioneTerreni } from '../services/piano-stagione-service.js';
+import { getPianoStagioneRows, summarizePianoStagione, buildPianoStagioneTonyContext, updateStagioneTerreno, setFlagStagioneTerreno, setBulkFlagStagioneTerreni } from '../services/piano-stagione-service.js';
 import { syncPreventiviAccettatiToPiano } from '../services/preventivo-piano-sync-service.js';
 import { syncLavoriCompletatiToPiano, cleanupOrphanedPianoStagioneLavori } from '../services/lavoro-piano-sync-service.js';
 import { getAllClienti } from '../../conto-terzi/services/clienti-service.js';
 import { computeEttariVendemmiati } from '../services/zone-escluse-service.js';
 import { createVmZoneMappa } from '../js/vm-zone-mappa.js';
 import { getAnnoStagioneCorrente } from '../config/vm-constants.js';
+import { buildGestioneLavoriUrl, buildPreventiviCtUrl, buildCalcolatoreVmUrl, rowHasVendemmiaDati } from '../services/piano-stagione-utils.js';
 
 let allRows = [];
 let modalTerrenoId = null;
@@ -317,7 +340,7 @@ function renderKpi(rows) {
         ['Completamento', k.percentualeCompletata + '%'],
         ['Ha in piano', k.ettariInPiano],
         ['Ha vendemmiati', k.ettariVendemmiati]
-    ].map(([l, v]) => '<div class="stat"><strong>' + v + '</strong>' + l + '</div>').join('');
+    ].map(([l, v]) => '<div class="stat-card"><div class="stat-value">' + v + '</div><div class="stat-label">' + l + '</div></div>').join('');
 }
 
 function applyFilters() {
@@ -350,6 +373,22 @@ function updateEmptyBanner(rows) {
     banner.textContent = '';
 }
 
+function renderRowActions(r) {
+    const parts = [
+        '<button type="button" class="btn btn-sm btn-primary" data-zone="' + r.terrenoId + '">Zone / Ha</button>'
+    ];
+    if (r.lavoroId) {
+        parts.push('<a class="btn btn-sm btn-secondary" href="' + escapeHtml(buildGestioneLavoriUrl(r.lavoroId)) + '" title="Apri lavoro in Gestione Lavori">Lavoro</a>');
+    }
+    if (r.preventivoId) {
+        parts.push('<a class="btn btn-sm btn-secondary" href="' + escapeHtml(buildPreventiviCtUrl(r.preventivoId, r.clienteId)) + '" title="Apri preventivo CT">Preventivo</a>');
+    }
+    if (r.vendemmiato) {
+        parts.push('<a class="btn btn-sm btn-secondary" href="' + escapeHtml(buildCalcolatoreVmUrl(r.clienteId, r.terrenoId)) + '" title="Apri calcolatore compenso">Calcolo</a>');
+    }
+    return '<div class="piano-actions">' + parts.join('') + '</div>';
+}
+
 function renderTable(rows) {
     const tbody = document.getElementById('tbody-piano');
     updateEmptyBanner(allRows);
@@ -368,22 +407,26 @@ function renderTable(rows) {
                 '<td>' + (r.zoneEscluseCount || r.ettariEsclusi
                     ? (r.ettariEsclusi ? r.ettariEsclusi.toFixed(2) : '—') + (r.zoneEscluseCount ? ' (' + r.zoneEscluseCount + ' zone)' : '')
                     : '0') + '</td>' +
-                '<td><button type="button" class="btn btn-sm btn-primary" data-zone="' + r.terrenoId + '">Zone / Ha</button></td>' +
+                '<td>' + renderRowActions(r) + '</td>' +
                 '</tr>';
         }).join('');
     }
 
-    const summary = rows.length
-        ? rows.length + ' terreni — ' + rows.filter(r => r.inPiano).length + ' in piano, ' + rows.filter(r => r.vendemmiato).length + ' vendemmiati'
-        : 'Nessun terreno cliente';
     const items = rows.map(r => ({
+        terrenoId: r.terrenoId,
+        clienteId: r.clienteId || null,
         cliente: r.clienteNome,
         terreno: r.terrenoNome,
         inPiano: r.inPiano,
         vendemmiato: r.vendemmiato,
-        ettariEffettivi: r.ettariEffettivi
+        ettariEffettivi: r.ettariEffettivi,
+        lavoroId: r.lavoroId || null,
+        preventivoId: r.preventivoId || null
     }));
-    publishTonyTableData('piano-stagione-vm', summary, items);
+    const tonyCtx = buildPianoStagioneTonyContext(rows);
+    publishTonyTableData('piano-stagione-vm', tonyCtx.summary, items, {
+        pianoAggregates: tonyCtx.pianoAggregates
+    });
 }
 
 async function loadData() {
@@ -483,6 +526,25 @@ try {
     document.getElementById('tbody-piano').addEventListener('change', async (e) => {
         const t = e.target;
         if (t.dataset.flag && t.dataset.id) {
+            const row = allRows.find(r => r.terrenoId === t.dataset.id);
+            if (t.dataset.flag === 'vendemmiato' && t.checked && row && !rowHasVendemmiaDati(row)) {
+                const nome = row.terrenoNome || 'questo vigneto';
+                const proceed = confirm(
+                    '«' + nome + '» non ha zone vendemmiate né ha netti registrati.\n\n'
+                    + 'Segnare vendemmiato senza dati può falsare il calcolo compenso.\n'
+                    + 'Consigliato: usa «Zone / Ha» oppure completa un lavoro approvato.\n\n'
+                    + 'Segnare vendemmiato comunque?'
+                );
+                if (!proceed) {
+                    t.checked = false;
+                    return;
+                }
+                showVmAlert(
+                    'alert-container',
+                    'Vendemmiato senza zone/ha netti su «' + nome + '» — apri «Zone / Ha» per registrare i dati prima del calcolo.',
+                    'warning'
+                );
+            }
             try {
                 await setFlagStagioneTerreno(t.dataset.id, getAnno(), t.dataset.flag, t.checked);
                 await loadData();

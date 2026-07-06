@@ -28,4 +28,33 @@ export function summarizePianoStagione(rows) {
   };
 }
 
-export default { summarizePianoStagione };
+/**
+ * Summary + aggregati per Tony (currentTableData.pianoAggregates).
+ * Residui = solo vigneti con inPiano && !vendemmiato (fuori piano esclusi).
+ * @param {Array<Object>} rows
+ * @returns {{ summary: string, pianoAggregates: Object }}
+ */
+export function buildPianoStagioneTonyContext(rows) {
+  const kpi = summarizePianoStagione(rows);
+  const list = Array.isArray(rows) ? rows : [];
+
+  if (!list.length) {
+    return {
+      summary: 'Nessun vigneto in elenco.',
+      pianoAggregates: { ...kpi }
+    };
+  }
+
+  const summary = list.length + ' vigneti in elenco — '
+    + kpi.inPiano + ' in piano, ' + kpi.vendemmiati + ' vendemmiati, '
+    + kpi.terreniResidui + ' residui da vendemmiare in piano (' + kpi.ettariResidui + ' ha effettivi). '
+    + 'Ha in piano: ' + kpi.ettariInPiano + '; già vendemmiati: ' + kpi.ettariVendemmiati + ' ha. '
+    + 'Completamento: ' + kpi.percentualeCompletata + '%.';
+
+  return {
+    summary,
+    pianoAggregates: { ...kpi }
+  };
+}
+
+export default { summarizePianoStagione, buildPianoStagioneTonyContext };

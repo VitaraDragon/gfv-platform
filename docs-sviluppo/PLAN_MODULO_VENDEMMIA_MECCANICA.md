@@ -578,13 +578,15 @@ Legenda: ⬜ Da fare · 🔄 In corso · ✅ Completato · ⏸️ In attesa deci
 | 3.7 | `tariffe-vm-standalone.html` — griglia + trasporto | ✅ | |
 | 3.8 | `bilancio-vm-standalone.html` — KPI, spese, export | ✅ | Export CSV opzionale post-MVP |
 | 3.9 | Entry card su hub CT + dashboard principale | ✅ | KPI hub VM; stat CT; tile dashboard manodopera |
-| 3.10 | Responsive / standalone CSS allineato linea guida | ⬜ | |
+| 3.10 | Responsive / standalone CSS allineato linea guida | ✅ | piano-stagione: stats-grid, filter-group, table-responsive, breakpoint 768/480 |
+
+> **Piano Stagione VM (3.2–3.3, 3.10): chiuso 2026-07-06** — flusso operativo, shortcut, Tony, polish UI verificati dall’utente. Opzionale post-chiusura: modal zone inline su terreni-clienti (link al piano sufficiente v1).
 
 ### Fase 4 — Integrazioni
 
 | # | Task | Stato | Note |
 |---|---|---|---|
-| 4.1 | Collegamento calcolo ↔ preventivo CT | 🔄 | `inPiano` da preventivo ✅; link bidirezionale calcolo↔preventivo ⬜ (O15) |
+| 4.1 | Collegamento calcolo ↔ preventivo CT | 🔄 | Link bidirezionale base ✅ (2026-07-06); regole commerciali O15 (obbligo preventivo prima del calcolo) ⬜ |
 | 4.2 | Tipo lavoro «Vendemmia meccanica» + sync lavoro ↔ piano | ✅ | Sync approvazione, zone auto, parziale 10%, revert elimina |
 | 4.2b | Caposquadra: tracciamento zone + multi-zona stesso giorno | ✅ | `lavori-caposquadra-standalone.html` |
 | 4.3 | Export KPI verso modulo Report | ⬜ | O18 |
@@ -594,9 +596,9 @@ Legenda: ⬜ Da fare · 🔄 In corso · ✅ Completato · ⏸️ In attesa deci
 
 | # | Task | Stato | Note |
 |---|---|---|---|
-| 5.1 | `pageType` + `currentTableData` su liste VM | ⬜ | §10 |
+| 5.1 | `pageType` + `currentTableData` su liste VM | 🔄 | `piano-stagione-vm`, `calcoli-vendemmia-meccanica` ✅; tariffe/bilancio ⬜ |
 | 5.2 | Voci `tony-form-mapping.js` (tariffe, calcolo se applicabile) | ⬜ | |
-| 5.3 | Comandi navigazione / FILTER_TABLE in `functions/index.js` | ⬜ | |
+| 5.3 | Comandi navigazione / FILTER_TABLE in `functions/index.js` | 🔄 | `piano-stagione-vm` ✅ (2026-07-06); resto VM ⬜ |
 | 5.4 | Aggiornare guide Tony tecniche (solo file consentiti post-MVP) | ⬜ | tony-agent-onboarding |
 
 ### Fase 6 — Migrazione e chiusura
@@ -606,7 +608,7 @@ Legenda: ⬜ Da fare · 🔄 In corso · ✅ Completato · ⏸️ In attesa deci
 | 6.1 | Script migrazione `vendemmia-meccanizzata` → tenant | ⬜ | O19 |
 | 6.2 | Test E2E flusso: piano → zone → calcolo → PDF → bilancio | ⬜ | |
 | 6.3 | Documentazione utente / GUIDA modulo VM | ⬜ | Solo su richiesta o fase GTM |
-| 6.4 | Aggiornare `COSA_ABBIAMO_FATTO.md` + piano a rilascio integrazioni | 🔄 | Voci 2026-07-05/06 lavoro↔piano |
+| 6.4 | Aggiornare `COSA_ABBIAMO_FATTO.md` + piano a rilascio integrazioni | ✅ | Piano Stagione VM chiuso — voci 2026-07-06 |
 | 6.5 | Decisioni O* chiuse spostate in §2; piano aggiornato | ✅ | Sessione 1 |
 
 ---
@@ -618,11 +620,11 @@ Legenda: ⬜ Da fare · 🔄 In corso · ✅ Completato · ⏸️ In attesa deci
 | Fase 0 — Decisioni | 6 | 8 | 75% |
 | Fase 1 — Dati CT | 7 | 7 | 100% |
 | Fase 2 — Servizi | 9 | 9 | 100% |
-| Fase 3 — UI | 9 | 10 | 90% |
+| Fase 3 — UI | 10 | 10 | 100% |
 | Fase 4 — Integrazioni | 2 | 5 | 40% |
 | Fase 5 — Tony | 0 | 4 | 0% |
-| Fase 6 — Migrazione | 0 | 5 | 0% |
-| **Totale** | **33** | **48** | **69%** |
+| Fase 6 — Migrazione | 2 | 5 | 40% |
+| **Totale** | **35** | **48** | **73%** |
 
 ---
 
@@ -630,6 +632,7 @@ Legenda: ⬜ Da fare · 🔄 In corso · ✅ Completato · ⏸️ In attesa deci
 
 | Data | Autore | Modifica |
 |---|---|---|
+| 2026-07-06 | Sessione agente | Piano Stagione VM chiuso (3.10 polish, legenda, avviso vendemmiato); Fase 3 al 100%; Tony VM parziale (5.1/5.3); doc COSA_ABBIAMO + STATO_ATTUALE |
 | 2026-07-06 | Sessione agente | Piano §7.1 flusso zone auto da lavoro; §9 integrazioni; checklist Fase 4; Tony FAB publish tenant |
 | 2026-07-05 | Sessione agente | Preventivo accettato→inPiano; hub clienti in piano; multi-zona caposquadra; fix detection vigneti |
 | 2026-07-03 | Sessione 3 agente | Card entry: KPI hub VM, stat CT, tile moduli dashboard; PDF; mappa zone escluse |

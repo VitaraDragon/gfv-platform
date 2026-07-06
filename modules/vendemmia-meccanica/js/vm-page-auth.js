@@ -115,8 +115,11 @@ export function showVmAlert(containerId, message, type) {
   el.innerHTML = '<div class="alert ' + cls + '">' + message + '</div>';
 }
 
-export function publishTonyTableData(pageType, summary, items) {
-  window.currentTableData = { pageType, summary, items: items || [] };
+export function publishTonyTableData(pageType, summary, items, extra = {}) {
+  window.currentTableData = Object.assign(
+    { pageType, summary, items: items || [] },
+    extra && typeof extra === 'object' ? extra : {}
+  );
   try {
     if (window.Tony && window.Tony.setContext) {
       const page = (window.Tony.context && window.Tony.context.page) || {};

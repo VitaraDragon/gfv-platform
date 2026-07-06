@@ -71,6 +71,36 @@ export async function saveCalcoloVm(breakdown, extra = {}) {
   return createDocument(CALCOLI_VM_COLLECTION, payload, tenantId);
 }
 
+/**
+ * Aggiorna preventivo CT con riferimento al calcolo VM salvato.
+ * @param {string} calcoloId
+ * @param {string|null|undefined} preventivoId
+ */
+export async function linkCalcoloVmToPreventivo(calcoloId, preventivoId) {
+  const tenantId = getCurrentTenantId();
+  if (!tenantId || !calcoloId || !preventivoId) return null;
+  await updateDocument('preventivi', preventivoId, { calcoloVmId: calcoloId }, tenantId);
+  return calcoloId;
+}
+
+/**
+ * Ricava preventivoId univoco dai terreni selezionati (stato piano stagione anno).
+ * @param {Array<Object>} terreni
+ * @param {number|string} anno
+ * @returns {string|null}
+ */
+export function resolvePreventivoIdFromTerreni(terreni, anno) {
+  const annoKey = String(anno);
+  const ids = new Set();
+  (Array.isArray(terreni) ? terreni : []).forEach((t) => {
+    const raw = t._originalData || t;
+    const vm = (raw.vendemmiaMeccanica || t.vendemmiaMeccanica || {})[annoKey] || {};
+    if (vm.preventivoId) ids.add(String(vm.preventivoId));
+  });
+  if (ids.size === 1) return [...ids][0];
+  return null;
+}
+
 export async function deleteCalcoloVm(calcoloId) {
   const tenantId = getCurrentTenantId();
   if (!tenantId) throw new Error('Nessun tenant corrente disponibile');
@@ -88,5 +118,7 @@ export default {
   getCalcoloVm,
   saveCalcoloVm,
   deleteCalcoloVm,
-  updateCalcoloVm
+  updateCalcoloVm,
+  linkCalcoloVmToPreventivo,
+  resolvePreventivoIdFromTerreni
 };

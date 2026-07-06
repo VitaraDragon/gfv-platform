@@ -1,6 +1,47 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-06 — Tony E2E M-T4 (16/16) + Vendemmia Meccanica MVP + Tony FAB standalone.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-06 — **Piano Stagione VM chiuso** (operativo + polish 3.10 + Tony); doc allineata.
+
+## Vendemmia Meccanica — Piano Stagione VM: sezione chiusa (2026-07-06)
+
+**Stato:** ✅ operativamente completa — nessun debito aperto su questa pagina. Prossimi passi VM: altre verticali (calcolatore, tariffe, bilancio), Tony su liste residue, integrazioni O15/O18.
+
+| Area | Stato |
+| ---- | ----- |
+| Core (lista, KPI, filtri, inPiano/vendemmiato, zone, sync preventivo/lavoro) | ✅ |
+| Shortcut tabella → lavoro / preventivo / calcolatore | ✅ |
+| Calcolo ↔ preventivo (base O15) | ✅ |
+| Tony FILTER_TABLE + `pianoAggregates` (residui solo in piano) | ✅ |
+| Polish 3.10 responsive + legenda mappa + avviso vendemmiato manuale | ✅ |
+
+## Vendemmia Meccanica — Piano stagione polish UI (2026-07-06)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| 3.10 responsive | `stats-grid`/`stat-card`, `filter-group`, `header-actions`, `table-responsive` + `.piano-table`, media 768/480 |
+| Legenda mappa | Voce **Zone vendemmiate (da lavoro)** verde; confini con bordo |
+| Avviso vendemmiato | Confirm + banner warning se spunta vendemmiato senza zone/ha netti (`rowHasVendemmiaDati`) |
+| Test | `rowHasVendemmiaDati` in `piano-stagione-utils.test.js` |
+
+## Vendemmia Meccanica — Tony piano stagione: residui solo «in piano» (2026-07-06)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| Problema | Tony contava ha su vigneti **fuori piano** per domande «quanti ha mancano da vendemmiare» |
+| Fix client | `buildPianoStagioneTonyContext` + `currentTableData.pianoAggregates` (ettariResidui = inPiano && !vendemmiato); summary esplicito |
+| Fix CF | Istruzioni obbligatorie: usa `pianoAggregates.ettariResidui`, vietato contare inPiano === false |
+| Test | `buildPianoStagioneTonyContext esclude fuori piano` |
+
+## Vendemmia Meccanica — Piano stagione navigazione + Tony + O15 (2026-07-06)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| P1 shortcut tabella | Colonna Azioni: **Lavoro** (`gestione-lavori?contoTerzi=true&lavoroId=`), **Preventivo** (CT con highlight), **Calcolo** (calcolatore con `clienteId`+`terrenoId`); `preventivoId` su `getPianoStagioneRows`; `currentTableData` con lavoroId/preventivoId |
+| Calcolatore | Query params `clienteId`, `terrenoId` / `terrenoIds` per preselezione terreni |
+| Preventivi CT | Deep-link `?preventivoId=` + scroll/highlight riga |
+| P2 O15 | Salvataggio calcolo: `preventivoId` da piano stagione terreno; `preventivo.calcoloVmId`; link bidirezionale calcolatore/calcoli salvati ↔ preventivo |
+| P3 Tony | `FILTER_TABLE` **piano-stagione-vm** (stato, cliente, anno, reset) in `main.js` + istruzioni CF; `APRI_PAGINA` con `clienteId` in query |
+| Test | `piano-stagione-utils.test.js` (URL helper), `piano-stagione-service.test.js` (mapping preventivoId) |
 
 ## Tony + Simulatore — M-T4 E2E preventivo (2026-07-06) — 16/16
 

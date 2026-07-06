@@ -187,6 +187,11 @@
             background: #f8f9fa;
         }
 
+        .preventivi-table tr.row-highlight {
+            background: #fff8e1;
+            outline: 2px solid #ffc107;
+        }
+
         .badge {
             display: inline-block;
             padding: 4px 8px;
@@ -557,12 +562,34 @@
                     });
                 });
                 filterPreventivi();
+                applyPreventiviUrlParams();
                 tryTonyPendingPreventiviAction();
             } catch (error) {
                 console.error('Errore caricamento preventivi:', error);
                 showAlert('Errore caricamento preventivi: ' + error.message, 'error');
                 container.innerHTML = '<div class="empty-state">Errore caricamento preventivi</div>';
             }
+        }
+
+        function applyPreventiviUrlParams() {
+            const params = new URLSearchParams(window.location.search);
+            const preventivoId = params.get('preventivoId');
+            const clienteId = params.get('clienteId');
+            if (clienteId) {
+                const sel = document.getElementById('filter-cliente');
+                if (sel) {
+                    sel.value = clienteId;
+                    filterPreventivi();
+                }
+            }
+            if (!preventivoId) return;
+            requestAnimationFrame(function () {
+                const row = document.querySelector('tr[data-preventivo-id="' + preventivoId + '"]');
+                if (row) {
+                    row.classList.add('row-highlight');
+                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            });
         }
 
         function tryTonyPendingPreventiviAction() {
@@ -881,7 +908,7 @@
                       ) || '-')
                     : '-';
                 
-                html += '<tr>';
+                html += '<tr data-preventivo-id="' + escapeHtml(preventivo.id) + '">';
                 html += `<td><strong>${escapeHtml(preventivo.numero || '')}</strong></td>`;
                 html += `<td>${escapeHtml(clienteNome)}</td>`;
                 html += `<td>${escapeHtml(preventivo.tipoLavoro || '')}</td>`;
@@ -902,8 +929,14 @@
                     html += `<button type="button" class="btn btn-warning" onclick="rifiutaPreventivo('${preventivo.id}')">❌ Rifiuta</button>`;
                 } else if (preventivo.stato === 'accettato_email' || preventivo.stato === 'accettato_manager') {
                     html += `<button type="button" class="btn btn-primary" onclick="pianificaPreventivo('${preventivo.id}')">📋 Pianifica</button>`;
+                    if (preventivo.calcoloVmId) {
+                        html += `<a class="btn btn-secondary" href="../../vendemmia-meccanica/views/calcoli-salvati-standalone.html" title="Calcolo VM collegato">🧮 Calcolo VM</a>`;
+                    }
                 } else if (preventivo.stato === 'pianificato') {
                     html += `<span style="color: #28a745; font-size: 13px;">Lavoro creato</span>`;
+                    if (preventivo.calcoloVmId) {
+                        html += `<a class="btn btn-secondary" href="../../vendemmia-meccanica/views/calcoli-salvati-standalone.html" title="Calcolo VM collegato">🧮 Calcolo VM</a>`;
+                    }
                 }
                 
                 html += `<button type="button" class="btn btn-danger" onclick="deletePreventivoConfirm('${preventivo.id}')" title="Elimina">🗑️</button>`;

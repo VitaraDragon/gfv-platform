@@ -9,7 +9,7 @@ import {
   calcolaCompensoVendemmia
 } from '../../modules/vendemmia-meccanica/services/calcolo-compenso-vm-service.js';
 import { computeEttariVendemmiati, buildStagioneWithNetArea } from '../../modules/vendemmia-meccanica/services/zone-escluse-service.js';
-import { summarizePianoStagione } from '../../modules/vendemmia-meccanica/services/piano-stagione-kpi.js';
+import { summarizePianoStagione, buildPianoStagioneTonyContext } from '../../modules/vendemmia-meccanica/services/piano-stagione-kpi.js';
 
 const terrenoBase = {
   id: 't1',
@@ -104,5 +104,16 @@ describe('Vendemmia Meccanica — piano stagione KPI', () => {
     expect(kpi.ettariInPiano).toBe(3);
     expect(kpi.ettariResidui).toBe(2);
     expect(kpi.terreniResidui).toBe(1);
+  });
+
+  test('buildPianoStagioneTonyContext esclude fuori piano dai residui nel summary', () => {
+    const ctx = buildPianoStagioneTonyContext([
+      { inPiano: true, vendemmiato: false, ettariEffettivi: 2, terrenoNome: 'A' },
+      { inPiano: false, vendemmiato: false, ettariEffettivi: 0.95, terrenoNome: 'B' }
+    ]);
+    expect(ctx.pianoAggregates.ettariResidui).toBe(2);
+    expect(ctx.pianoAggregates.terreniResidui).toBe(1);
+    expect(ctx.summary).toContain('2 ha effettivi');
+    expect(ctx.summary).not.toContain('0.95');
   });
 });
