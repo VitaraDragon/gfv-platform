@@ -56,8 +56,93 @@
         var plan = getPlanId();
         if (plan === 'free') return hasTonyModule();
         if (plan === 'base') return true;
+        if (plan === null && (window.__gfvTenantData || window.__gfvModuliAttivi)) return true;
         return false;
     }
+
+    function publishTenantForTony(tenantData, modulesOpt) {
+        if (!tenantData || typeof tenantData !== 'object') return;
+        var modules = modulesOpt;
+        if (!Array.isArray(modules)) {
+            modules = Array.isArray(tenantData.modules) ? tenantData.modules.slice() : [];
+        }
+        var rawPlan = tenantData.plan || tenantData.piano || 'base';
+        var planId = normalizePlan(rawPlan) || 'base';
+        window.__gfvTenantData = Object.assign({}, tenantData, { plan: planId, piano: planId });
+        window.__gfvModuliAttivi = modules;
+        window.__gfvSubscriptionPlanId = planId;
+        try {
+            window.dispatchEvent(new CustomEvent('gfv-subscription-plan', { detail: { planId: planId } }));
+        } catch (ePub) { /* ignore */ }
+        try {
+            window.dispatchEvent(new CustomEvent('gfv-tenant-tony-ready'));
+        } catch (eReady) { /* ignore */ }
+        if (typeof window.gfvTryLoadTonyWidgetWhenReady === 'function') {
+            window.gfvTryLoadTonyWidgetWhenReady();
+        }
+    }
+
+    function ensureStandaloneShell() {
+        if (window.__gfvStandaloneShellRequested) return;
+        if (document.querySelector('script[src*="gfv-standalone-shell"]')) {
+            window.__gfvStandaloneShellRequested = true;
+            return;
+        }
+        window.__gfvStandaloneShellRequested = true;
+        var base = resolveCoreBase();
+        var sep = (base && !base.endsWith('/')) ? '/' : '';
+        var s = document.createElement('script');
+        s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
+        document.body.appendChild(s);
+    }
+
+    window.gfvPublishTenantForTony = publishTenantForTony;
+    window.gfvEnsureStandaloneShell = ensureStandaloneShell;
+
+    function importCoreModule(relativePath) {
+        var base = resolveCoreBase();
+        var sep = (base && !base.endsWith('/')) ? '/' : '';
+        return import((base ? base + sep : '') + relativePath);
+    }
+
+    /** Pagine legacy (es. preventivi CT) che non chiamano tenant-service: recupera tenant da auth. */
+    function bootstrapTenantContextForTony() {
+        if (window.__gfvTonyTenantBootstrapStarted) return;
+        window.__gfvTonyTenantBootstrapStarted = true;
+
+        var attempts = 0;
+        var maxAttempts = 150;
+        var timer = setInterval(function () {
+            attempts += 1;
+            importCoreModule('services/firebase-service.js')
+                .then(function (fb) {
+                    if (!fb.getAuthInstance || !fb.getDocumentData) return null;
+                    var auth = fb.getAuthInstance();
+                    if (!auth || !auth.currentUser) return null;
+                    return importCoreModule('services/tenant-service.js').then(function (ts) {
+                        var tid = ts.getCurrentTenantId();
+                        if (tid) return ts.getCurrentTenant();
+                        return fb.getDocumentData('users', auth.currentUser.uid).then(function (userData) {
+                            if (!userData || !userData.tenantId) return null;
+                            ts.setCurrentTenantId(userData.tenantId);
+                            return ts.getCurrentTenant();
+                        });
+                    });
+                })
+                .then(function (tenant) {
+                    if (tenant) clearInterval(timer);
+                })
+                .catch(function () { /* retry */ });
+
+            if (window.__gfvSubscriptionPlanId && window.__gfvModuliAttivi) {
+                clearInterval(timer);
+                return;
+            }
+            if (attempts >= maxAttempts) clearInterval(timer);
+        }, 250);
+    }
+
+    bootstrapTenantContextForTony();
 
     function loadTonyWidgetScript() {
         if (window.__gfvTonyWidgetRequested) {
@@ -100,6 +185,16 @@
     }
 
     window.addEventListener('gfv-subscription-plan', onPlanMaybeChanged);
+
+    window.addEventListener('gfv-tenant-tony-ready', function () {
+        window.gfvTryLoadTonyWidgetWhenReady();
+    });
+
+    window.addEventListener('gfv-firebase-ready', function () {
+        importCoreModule('js/gfv-tony-tenant-bootstrap.js')
+            .then(function (m) { m.bootstrapTonyTenantFromAuth(); })
+            .catch(function () { /* init hook già eseguito da firebase-service */ });
+    });
 
     window.addEventListener('pageshow', function (ev) {
         if (ev && ev.persisted) window.gfvTryLoadTonyWidgetWhenReady();

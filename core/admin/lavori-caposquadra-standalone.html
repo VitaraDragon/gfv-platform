@@ -723,6 +723,10 @@
                             <button type="button" class="btn btn-secondary" onclick="closeCurrentSegment()">🔒 Chiudi segmento</button>
                             <button type="button" class="btn btn-secondary" onclick="clearSegment()">🗑️ Cancella</button>
                         </div>
+                        <p id="vm-multizona-hint" style="display:none; font-size: 13px; color: #4a148c; background: #f3e5f5; padding: 8px 10px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #6a1b9a;">
+                            <strong>Vendemmia meccanica:</strong> puoi tracciare <strong>più zone vendemmiate lo stesso giorno</strong> (es. due appezzamenti separati da un&apos;area non vendemmiabile). Chiudi ogni poligono prima di salvare, poi usa «Salva e aggiungi altra zona».
+                        </p>
+                        <p id="vm-zone-oggi-count" style="display:none; font-size: 12px; color: #555; margin: 4px 0 8px;"></p>
                         <p id="ripresa-storico-hint" style="display:none; font-size: 13px; color: #bf360c; background: #fff3e0; padding: 8px 10px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #e65100;">
                             <strong>Legenda:</strong> linee <span style="color:#e65100">arancioni</span> = percorso già tracciato sul lavoro sospeso (prima della ripresa). Linee <span style="color:#28a745">verdi</span> = segmenti già salvati su questo incarico di ripresa.
                         </p>
@@ -742,8 +746,10 @@
                     <textarea id="zona-note" placeholder="Note aggiuntive sulla zona lavorata (opzionale)"></textarea>
                 </div>
 
-                <div class="form-actions" style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="button" id="btn-save-zona" class="btn btn-primary" style="flex: 1;" onclick="handleSalvaZonaClick(event)">Salva Zona</button>
+                <div class="form-actions" style="display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px;">
+                    <button type="button" id="btn-save-zona" class="btn btn-primary" style="flex: 1; min-width: 140px;" onclick="handleSalvaZonaClick(event)">Salva Zona</button>
+                    <button type="button" id="btn-save-zona-another" class="btn btn-primary" style="flex: 1; min-width: 180px; display: none;" onclick="handleSalvaZonaAnotherClick(event)">➕ Salva e aggiungi altra zona</button>
+                    <button type="button" id="btn-save-zona-close" class="btn btn-secondary" style="flex: 1; min-width: 140px; display: none;" onclick="handleSalvaZonaCloseClick(event)">Salva e chiudi</button>
                     <button type="button" class="btn btn-secondary" onclick="closeZonaModal()">Annulla</button>
                 </div>
             </form>
@@ -807,6 +813,14 @@
         import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, orderBy, serverTimestamp, Timestamp } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
         import { fetchLavoriDocumentsForFieldUser, sliceOperaioLavoriWindow } from '../services/manodopera-lavori-scope.js';
+        import {
+            isLavoroVendemmiaMeccanica,
+            countZoneLavorateSameDay,
+            toDateKeyString,
+            getSogliaMinimaSegnaCompletato,
+            isCompletamentoParzialeTracciato,
+            getEtichettaSegnaCompletato
+        } from '../../modules/vendemmia-meccanica/services/lavoro-vm-utils.js';
 
         initializeFirebase(firebaseConfig);
         const app = getAppInstance();
@@ -822,6 +836,9 @@
         let terreniMap = new Map();
         let currentLavoroId = null;
         let currentTerreno = null;
+        let hasVendemmiaMeccanicaModule = false;
+        let currentLavoroVmMode = false;
+        let zonaSaveCloseAfter = false;
 
         // Variabili Google Maps
         let map = null;
@@ -838,11 +855,6 @@
         const SNAP_DISTANCE_METERS = 5; // Distanza massima per snap al confine (5 metri) - ridotto per maggiore precisione
         const VERTEX_SNAP_DISTANCE_METERS = 8; // Distanza massima per snap ai vertici (8 metri) - ridotto per maggiore precisione
         const PROXIMITY_TOLERANCE_METERS = 5; // Tolleranza per estendere fino al confine nel calcolo (5 metri)
-
-        /** % minima tracciata (su questo incarico) per mostrare «Segna come completato» — standard */
-        const SOGLIA_SEGNA_COMPLETATO_PERCENT = 90;
-        /** Eccezione lavori di ripresa: il resto era sul lavoro sospeso, qui basta poco tracciato */
-        const SOGLIA_SEGNA_COMPLETATO_PERCENT_RIPRESA = 2;
 
         const urlSearchParams = new URLSearchParams(typeof window !== 'undefined' ? (window.location.search || '') : '');
         const focusLavoroId = urlSearchParams.get('focusLavoroId');
@@ -865,6 +877,72 @@
                 if (data !== undefined) console.log('[GFV-MAP-TRACE]', msg, data);
                 else console.log('[GFV-MAP-TRACE]', msg);
             } catch (e) { /* ignore */ }
+        }
+
+        function getCurrentLavoroRecord() {
+            return lavoriList.find((l) => l.id === currentLavoroId) || null;
+        }
+
+        function isCurrentLavoroVm() {
+            return currentLavoroVmMode && hasVendemmiaMeccanicaModule;
+        }
+
+        async function refreshVmZoneDayCount() {
+            const el = document.getElementById('vm-zone-oggi-count');
+            if (!el || !isCurrentLavoroVm() || !currentLavoroId) {
+                if (el) el.style.display = 'none';
+                return;
+            }
+            const dateInput = document.getElementById('zona-data');
+            const dateKey = dateInput && dateInput.value ? dateInput.value : null;
+            if (!dateKey) {
+                el.style.display = 'none';
+                return;
+            }
+            const zones = await loadZoneLavorate(currentLavoroId);
+            const normalized = zones.map((z) => ({
+                dataKeyString: z.data ? toDateKeyString(z.data) : null
+            }));
+            const n = countZoneLavorateSameDay(normalized, dateKey);
+            el.style.display = 'block';
+            el.textContent = 'Zone salvate in data ' + dateKey + ': ' + n + '. Puoi aggiungerne altre senza cambiare data.';
+        }
+
+        function updateVmZoneModalUi() {
+            const lavoro = getCurrentLavoroRecord();
+            currentLavoroVmMode = hasVendemmiaMeccanicaModule && isLavoroVendemmiaMeccanica(lavoro, {
+                hasVmModule: hasVendemmiaMeccanicaModule
+            });
+
+            const hint = document.getElementById('vm-multizona-hint');
+            const btnDefault = document.getElementById('btn-save-zona');
+            const btnAnother = document.getElementById('btn-save-zona-another');
+            const btnClose = document.getElementById('btn-save-zona-close');
+            const btnDraw = document.getElementById('btn-draw');
+            const modalTitle = document.getElementById('modal-title');
+
+            if (hint) hint.style.display = isCurrentLavoroVm() ? 'block' : 'none';
+            if (btnDefault) btnDefault.style.display = isCurrentLavoroVm() ? 'none' : 'inline-block';
+            if (btnAnother) btnAnother.style.display = isCurrentLavoroVm() ? 'inline-block' : 'none';
+            if (btnClose) btnClose.style.display = isCurrentLavoroVm() ? 'inline-block' : 'none';
+            if (btnDraw && isCurrentLavoroVm()) {
+                btnDraw.textContent = '✏️ Traccia zona vendemmiata';
+            } else if (btnDraw) {
+                btnDraw.textContent = '✏️ Traccia Segmento';
+            }
+            if (modalTitle && lavoro && isCurrentLavoroVm()) {
+                modalTitle.textContent = 'Traccia zona vendemmiata — ' + (lavoro.nome || '');
+            }
+        }
+
+        async function prepareAnotherVmZoneSameDay() {
+            clearSegment();
+            const noteEl = document.getElementById('zona-note');
+            if (noteEl) noteEl.value = '';
+            const lavoro = getCurrentLavoroRecord();
+            await loadAndDisplaySavedSegments(currentLavoroId, lavoro && lavoro.ripresaDaLavoroId ? lavoro.ripresaDaLavoroId : null);
+            await updateUncoveredArea();
+            await refreshVmZoneDayCount();
         }
 
         function tonyNorm(s) {
@@ -1024,6 +1102,7 @@
                                 const tenantData = tenantDoc.data();
                                 const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
                                 hasManodoperaModule = modules.includes('manodopera');
+                                hasVendemmiaMeccanicaModule = modules.includes('vendemmiaMeccanica');
                                 
                                 // Inizializza context Tony: moduli + ruoli (profilo campo / guard APRI_PAGINA)
                                 var nomeTonyLav = (`${currentUserData.nome || ''} ${currentUserData.cognome || ''}`.trim() || (user && user.email) || '');
@@ -1266,9 +1345,15 @@
                 const superficieLavorata = lavoro.superficieLavorata || lavoro.superficieTotaleLavorata || 0;
                 const superficieTotale = lavoro.superficieTotale || 0;
                 const percentuale = superficieTotale > 0 ? Math.min((superficieLavorata / superficieTotale * 100), 100).toFixed(1) : 0;
-                const sogliaSegnaCompletato = lavoro.ripresaDaLavoroId
-                    ? SOGLIA_SEGNA_COMPLETATO_PERCENT_RIPRESA
-                    : SOGLIA_SEGNA_COMPLETATO_PERCENT;
+                const sogliaSegnaCompletato = getSogliaMinimaSegnaCompletato(lavoro, {
+                    hasVmModule: hasVendemmiaMeccanicaModule
+                });
+                const etichettaSegnaCompletato = getEtichettaSegnaCompletato(percentuale, lavoro, {
+                    hasVmModule: hasVendemmiaMeccanicaModule
+                });
+                const parzialeVm = isCompletamentoParzialeTracciato(percentuale, lavoro, {
+                    hasVmModule: hasVendemmiaMeccanicaModule
+                });
 
                 html += `
                     <div class="lavoro-card">
@@ -1368,9 +1453,10 @@
                             ` : ''}
                             
                             ${parseFloat(percentuale) >= sogliaSegnaCompletato && lavoro.stato !== 'completato_da_approvare' && lavoro.stato !== 'completato' && lavoro.stato !== 'annullato' && lavoro.stato !== 'sospeso' && lavoro.stato !== 'in_standby' ? `
-                                <button class="btn btn-info" onclick="segnaCompletato('${lavoro.id}', ${parseFloat(percentuale).toFixed(1)})" style="background: #ffc107; color: #000;">
-                                    ✅ Segna come Completato
+                                <button class="btn btn-info" onclick="segnaCompletato('${lavoro.id}', ${parseFloat(percentuale).toFixed(1)})" style="background: ${parzialeVm ? '#ff9800' : '#ffc107'}; color: #000;">
+                                    ✅ ${escapeHtml(etichettaSegnaCompletato)}
                                 </button>
+                                ${parzialeVm ? '<p style="font-size:12px;color:#666;margin:8px 0 0;">Vendemmia meccanica: puoi chiudere al manager anche sotto il 90% se non riesci a finire tutto il campo.</p>' : ''}
                             ` : ''}
                             
                             <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
@@ -1526,7 +1612,15 @@
             }
 
             // Carica e visualizza segmenti (e, se ripresa, anche lo storico dal lavoro sospeso)
+            updateVmZoneModalUi();
             await loadAndDisplaySavedSegments(lavoroId, lavoro.ripresaDaLavoroId || null);
+            await refreshVmZoneDayCount();
+
+            const dataInput = document.getElementById('zona-data');
+            if (dataInput && !dataInput.dataset.vmDayListener) {
+                dataInput.dataset.vmDayListener = '1';
+                dataInput.addEventListener('change', () => { refreshVmZoneDayCount(); });
+            }
             
             document.getElementById('zona-modal').classList.add('active');
             if (isEmbedMobile) {
@@ -2177,13 +2271,38 @@
             showAlert('Segmento chiuso. Ora puoi salvare.', 'success');
         };
         
-        // Disegna una polyline salvata (segmenti da subcollection zoneLavorate)
+        // Disegna una polyline/poligono salvato (subcollection zoneLavorate)
         function displaySavedSegmentPolyline(segmento, options = {}) {
-            const { color, strokeWeight, zIndex, idPrefix } = options;
+            const { color, strokeWeight, zIndex, idPrefix, asPolygonFill } = options;
             if (!segmento.coordinate || segmento.coordinate.length < 2) return;
             const coords = segmento.coordinate.map(c =>
                 new google.maps.LatLng(c.lat, c.lng)
             );
+            const sid = (idPrefix || '') + segmento.id;
+            const usePolygon = asPolygonFill && segmento.isChiuso !== false && coords.length >= 3;
+
+            if (usePolygon) {
+                const savedPolygon = new google.maps.Polygon({
+                    paths: coords,
+                    fillColor: color || '#28a745',
+                    fillOpacity: 0.35,
+                    strokeColor: color || '#28a745',
+                    strokeWeight: strokeWeight != null ? strokeWeight : 3,
+                    strokeOpacity: 0.9,
+                    clickable: false,
+                    editable: false,
+                    zIndex: zIndex != null ? zIndex : 100
+                });
+                savedPolygon.setMap(map);
+                savedSegments.push({
+                    id: sid,
+                    polyline: null,
+                    polygon: savedPolygon,
+                    data: segmento
+                });
+                return;
+            }
+
             const savedPolyline = new google.maps.Polyline({
                 path: coords,
                 strokeColor: color || '#28a745',
@@ -2194,10 +2313,10 @@
                 zIndex: zIndex != null ? zIndex : 100
             });
             savedPolyline.setMap(map);
-            const sid = (idPrefix || '') + segmento.id;
             savedSegments.push({
                 id: sid,
                 polyline: savedPolyline,
+                polygon: null,
                 data: segmento
             });
         }
@@ -2215,8 +2334,13 @@
                     if (segment.polyline) {
                         segment.polyline.setMap(null);
                     }
+                    if (segment.polygon) {
+                        segment.polygon.setMap(null);
+                    }
                 });
                 savedSegments = [];
+
+                const vmPolygons = isCurrentLavoroVm();
 
                 // Prima lo storico dal lavoro sospeso (sotto i segmenti del nuovo incarico)
                 segmentiPreRipresa.forEach((segmento) => {
@@ -2235,7 +2359,8 @@
                         color: colors[colorIndex],
                         strokeWeight: 3,
                         zIndex: 100,
-                        idPrefix: ''
+                        idPrefix: '',
+                        asPolygonFill: vmPolygons
                     });
                 });
             } catch (error) {
@@ -2452,6 +2577,15 @@
                     ultimoPunto
                 );
                 const isChiuso = distanzaPrimoUltimo < 5; // Se primo e ultimo punto sono entro 5 metri, è chiuso
+
+                if (isCurrentLavoroVm() && !isChiuso) {
+                    showAlert('Chiudi il poligono (clic sul primo punto o «Chiudi segmento») prima di salvare la zona vendemmiata.', 'error');
+                    return;
+                }
+                if (isCurrentLavoroVm() && coordsForCalculation.length < 3) {
+                    showAlert('Servono almeno 3 punti per la zona vendemmiata.', 'error');
+                    return;
+                }
                 
                 // Per segmenti aperti senza larghezza, calcoliamo l'area del poligono approssimato
                 // Non blocchiamo più se non c'è larghezza - è opzionale
@@ -2570,11 +2704,25 @@
                 // Aggiorna progressi lavoro
                 await aggiornaProgressiLavoro(currentLavoroId);
                 
-                showAlert('Segmento lavorato salvato con successo!', 'success');
-                gfvMapTraceLog('handleSalvaZona success');
-                closeZonaModal();
-                await loadLavori(); // Ricarica lavori per aggiornare progressi
+                await loadLavori();
+
+                const stayOpen = isCurrentLavoroVm() && !zonaSaveCloseAfter;
+                zonaSaveCloseAfter = false;
+
+                if (stayOpen) {
+                    showAlert('Zona vendemmiata salvata. Puoi tracciare un\'altra zona sulla stessa data.', 'success');
+                    gfvMapTraceLog('handleSalvaZona success — altra zona VM');
+                    await prepareAnotherVmZoneSameDay();
+                } else {
+                    showAlert(
+                        isCurrentLavoroVm() ? 'Zona vendemmiata salvata.' : 'Segmento lavorato salvato con successo!',
+                        'success'
+                    );
+                    gfvMapTraceLog('handleSalvaZona success');
+                    closeZonaModal();
+                }
             } catch (error) {
+                zonaSaveCloseAfter = false;
                 gfvMapTraceLog('handleSalvaZona error', String(error && error.message ? error.message : error));
                 console.error('Errore salvataggio segmento:', error);
                 showAlert(`Errore: ${error.message}`, 'error');
@@ -2583,6 +2731,19 @@
 
         window.handleSalvaZonaClick = function(event) {
             gfvMapTraceLog('click salva zona');
+            zonaSaveCloseAfter = !isCurrentLavoroVm();
+            window.handleSalvaZona(event || { preventDefault: function() {} });
+        };
+
+        window.handleSalvaZonaAnotherClick = function(event) {
+            gfvMapTraceLog('click salva e aggiungi altra zona VM');
+            zonaSaveCloseAfter = false;
+            window.handleSalvaZona(event || { preventDefault: function() {} });
+        };
+
+        window.handleSalvaZonaCloseClick = function(event) {
+            gfvMapTraceLog('click salva e chiudi VM');
+            zonaSaveCloseAfter = true;
             window.handleSalvaZona(event || { preventDefault: function() {} });
         };
 
@@ -3047,13 +3208,19 @@
             }
 
             const percNum = typeof percentuale === 'number' ? percentuale : parseFloat(String(percentuale).replace(',', '.'));
-            const sogliaMinPerc = lavoro.ripresaDaLavoroId
-                ? SOGLIA_SEGNA_COMPLETATO_PERCENT_RIPRESA
-                : SOGLIA_SEGNA_COMPLETATO_PERCENT;
+            const sogliaMinPerc = getSogliaMinimaSegnaCompletato(lavoro, {
+                hasVmModule: hasVendemmiaMeccanicaModule
+            });
+            const parziale = isCompletamentoParzialeTracciato(percNum, lavoro, {
+                hasVmModule: hasVendemmiaMeccanicaModule
+            });
             if (Number.isNaN(percNum) || percNum < sogliaMinPerc) {
+                const vmHint = isLavoroVendemmiaMeccanica(lavoro, { hasVmModule: hasVendemmiaMeccanicaModule })
+                    ? ' Per la vendemmia meccanica puoi inviare una chiusura parziale dal 10% in su (con ore e zone tracciate).'
+                    : '';
                 showAlert(
                     `Per inviare il completamento al manager serve almeno il ${sogliaMinPerc}% di superficie tracciata su questo incarico (rispetto al terreno)` +
-                    (lavoro.ripresaDaLavoroId ? ' — soglia ridotta per i lavori di ripresa.' : '.'),
+                    (lavoro.ripresaDaLavoroId ? ' — soglia ridotta per i lavori di ripresa.' : `.${vmHint}`),
                     'error'
                 );
                 return;
@@ -3079,9 +3246,13 @@
             
             // Conferma
             const conferma = confirm(
-                `Sei sicuro di voler segnare questo lavoro come completato?\n\n` +
-                `Superficie tracciata: ${percentuale}%\n\n` +
-                `Il lavoro sarà inviato al Manager per l'approvazione finale.`
+                parziale
+                    ? `Inviare una CHIUSURA PARZIALE al manager?\n\n` +
+                      `Superficie tracciata: ${percentuale}%\n\n` +
+                      `Il manager potrà approvare il lavoro fatto e, se serve, creare una ripresa per il resto del campo.`
+                    : `Sei sicuro di voler segnare questo lavoro come completato?\n\n` +
+                      `Superficie tracciata: ${percentuale}%\n\n` +
+                      `Il lavoro sarà inviato al Manager per l'approvazione finale.`
             );
             
             if (!conferma) return;
@@ -3090,13 +3261,17 @@
                 const lavoroRef = doc(db, 'tenants', currentTenantId, 'lavori', lavoroId);
 
                 // Aggiorna stato a "completato_da_approvare"
-                await updateDoc(lavoroRef, {
+                const patch = {
                     stato: 'completato_da_approvare',
-                    percentualeCompletamentoTracciata: parseFloat(percentuale), // Salva percentuale reale tracciata
+                    percentualeCompletamentoTracciata: parseFloat(percentuale),
                     completatoDa: currentUserData.id,
                     completatoIl: serverTimestamp(),
                     aggiornatoIl: serverTimestamp()
-                });
+                };
+                if (parziale) {
+                    patch.completamentoParziale = true;
+                }
+                await updateDoc(lavoroRef, patch);
 
                 showAlert('Lavoro segnato come completato! In attesa di approvazione del Manager.', 'success');
                 await loadLavori(); // Ricarica lavori

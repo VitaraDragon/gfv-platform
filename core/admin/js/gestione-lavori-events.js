@@ -7,7 +7,11 @@
 // ============================================
 // IMPORTS
 // ============================================
-import { showAlert } from './gestione-lavori-utils.js';
+import {
+    showAlert,
+    applyLavoroFormContoTerziDaPianificareLock,
+    resetLavoroFormContoTerziLock
+} from './gestione-lavori-utils.js';
 
 // ============================================
 // FUNZIONI SETUP HANDLERS
@@ -418,6 +422,7 @@ export async function openCreaModal(
     populateOperatoreMacchinaDropdownCallback,
     setupMacchineHandlersCallback
 ) {
+    resetLavoroFormContoTerziLock();
     updateState({ currentLavoroId: null });
     const modalTitle = document.getElementById('modal-title');
     const lavoroForm = document.getElementById('lavoro-form');
@@ -503,6 +508,7 @@ export async function openCreaModal(
 export function closeLavoroModal(state, updateState) {
     const lavoroModal = document.getElementById('lavoro-modal');
     if (lavoroModal) lavoroModal.classList.remove('active');
+    resetLavoroFormContoTerziLock();
     updateState({ currentLavoroId: null });
 }
 
@@ -701,7 +707,7 @@ export async function openModificaModal(
         if (populateOperaiDropdownCallback) populateOperaiDropdownCallback(lavoro.operaioId || null);
     }
     
-    if (populateTerrenoDropdownCallback) populateTerrenoDropdownCallback(lavoro.terrenoId);
+    if (populateTerrenoDropdownCallback) await populateTerrenoDropdownCallback(lavoro.terrenoId, lavoro.clienteId || null);
     
     // Popola categoria e tipo lavoro (se struttura gerarchica disponibile)
     if (lavoro.tipoLavoro) {
@@ -753,6 +759,8 @@ export async function openModificaModal(
     
     // Aggiorna visibilità dropdown
     if (setupTipoAssegnazioneHandlersCallback) setupTipoAssegnazioneHandlersCallback();
+
+    applyLavoroFormContoTerziDaPianificareLock(lavoro);
     
     const lavoroModal = document.getElementById('lavoro-modal');
     if (lavoroModal) lavoroModal.classList.add('active');
@@ -848,6 +856,24 @@ export async function openEliminaModal(
                 console.warn('[GESTIONE-LAVORI] Errore eliminazione vendemmia/potatura/trattamento collegati:', error);
                 // Non blocchiamo l'operazione principale
             }
+
+            // Vendemmia meccanica CT: ripristina piano stagione (vendemmiato + zone)
+            try {
+                const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
+                const hasVmModule = await hasModuleAccess('vendemmiaMeccanica');
+                if (hasVmModule) {
+                    const { clearLavoroFromPianoStagione } = await import('../../../modules/vendemmia-meccanica/services/lavoro-piano-sync-service.js');
+                    const revertResult = await clearLavoroFromPianoStagione(
+                        { ...lavoro, id: lavoroId },
+                        { hasVmModule: true, tenantId: currentTenantId }
+                    );
+                    if (revertResult.cleared) {
+                        console.log('[GESTIONE-LAVORI] ✓ Piano stagione VM ripristinato per terreno', revertResult.terrenoId);
+                    }
+                }
+            } catch (error) {
+                console.warn('[GESTIONE-LAVORI] Errore ripristino piano stagione VM:', error);
+            }
             
             await deleteDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId));
             showAlert('Lavoro eliminato con successo!', 'success');
@@ -900,11 +926,23 @@ export async function approvaLavoro(
         showAlert('Lavoro non trovato', 'error');
         return;
     }
-    
+
+    const percTracciataPreview = Number(
+        lavoro.percentualeCompletamentoTracciata ??
+        lavoro.percentualeCompletamento ??
+        0
+    );
+    const isParzialePreview = lavoro.completamentoParziale === true ||
+        (Number.isFinite(percTracciataPreview) && percTracciataPreview > 0 && percTracciataPreview < 100);
+    const msgParzialePreview = isParzialePreview
+        ? `\n\n⚠️ Completamento PARZIALE (${percTracciataPreview}% tracciato).\n` +
+          `Verrà approvato solo quanto fatto; per il resto del campo potrai creare una ripresa.`
+        : '';
+
     const conferma = confirm(
         `Sei sicuro di voler approvare questo lavoro?\n\n` +
-        `Lavoro: ${lavoro.nome}\n` +
-        `Il lavoro sarà marcato come completato al 100%.`
+        `Lavoro: ${lavoro.nome}${msgParzialePreview}\n\n` +
+        `Il lavoro sarà marcato come completato${isParzialePreview ? ' (parziale)' : ' al 100%'}.`
     );
     
     if (!conferma) return;
@@ -915,17 +953,38 @@ export async function approvaLavoro(
         const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', lavoro.terrenoId));
         const terreno = terrenoDoc.exists() ? terrenoDoc.data() : null;
         const superficieTotale = terreno?.superficie || 0;
-        
-        // Aggiorna stato a "completato" e forza percentuale a 100%
-        const lavoroCompletatoData = {
-            stato: 'completato',
-            superficieTotaleLavorata: superficieTotale, // Forza a superficie totale
-            superficieRimanente: 0,
-            percentualeCompletamento: 100,
-            approvatoDa: currentUserData.id,
-            approvatoIl: serverTimestamp(),
-            aggiornatoIl: serverTimestamp()
-        };
+
+        const percTracciata = percTracciataPreview;
+        const isParziale = isParzialePreview;
+
+        let superficieLavorata = Number(lavoro.superficieTotaleLavorata);
+        if (!Number.isFinite(superficieLavorata) || superficieLavorata <= 0) {
+            superficieLavorata = superficieTotale > 0 && percTracciata > 0
+                ? (superficieTotale * percTracciata / 100)
+                : superficieTotale;
+        }
+
+        const lavoroCompletatoData = isParziale
+            ? {
+                stato: 'completato',
+                superficieTotaleLavorata: superficieLavorata,
+                superficieRimanente: Math.max(0, superficieTotale - superficieLavorata),
+                percentualeCompletamento: Math.round(percTracciata * 10) / 10,
+                completamentoParziale: true,
+                approvatoDa: currentUserData.id,
+                approvatoIl: serverTimestamp(),
+                aggiornatoIl: serverTimestamp()
+            }
+            : {
+                stato: 'completato',
+                superficieTotaleLavorata: superficieTotale,
+                superficieRimanente: 0,
+                percentualeCompletamento: 100,
+                completamentoParziale: false,
+                approvatoDa: currentUserData.id,
+                approvatoIl: serverTimestamp(),
+                aggiornatoIl: serverTimestamp()
+            };
         await updateDoc(lavoroRef, lavoroCompletatoData);
         
         // Genera voce diario automatica se lavoro conto terzi completato
@@ -960,7 +1019,25 @@ export async function approvaLavoro(
             }
         } catch (error) {
             console.warn('[GESTIONE-LAVORI] Errore aggiornamento vigneti:', error);
-            // Non blocchiamo l'operazione principale
+        }
+
+        // Piano stagione VM: vendemmiato + zone tracciate dal lavoro
+        try {
+            const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
+            const hasVmModule = await hasModuleAccess('vendemmiaMeccanica');
+            if (hasVmModule) {
+                const { syncLavoroCompletatoToPianoStagione } = await import('../../../modules/vendemmia-meccanica/services/lavoro-piano-sync-service.js');
+                const lavoroAggiornato = { ...lavoro, ...lavoroCompletatoData, id: lavoroId };
+                const syncResult = await syncLavoroCompletatoToPianoStagione(lavoroAggiornato, {
+                    hasVmModule: true,
+                    tenantId: currentTenantId
+                });
+                if (syncResult.synced) {
+                    console.log('[GESTIONE-LAVORI] Piano stagione VM aggiornato:', syncResult);
+                }
+            }
+        } catch (error) {
+            console.warn('[GESTIONE-LAVORI] Sync piano stagione VM (non critico):', error);
         }
         
         showAlert('Lavoro approvato con successo!', 'success');
@@ -1562,10 +1639,18 @@ export async function handleSalvaLavoro(
     event.preventDefault();
     
     const nome = document.getElementById('lavoro-nome').value.trim();
-    const terrenoId = document.getElementById('lavoro-terreno').value;
+    let terrenoId = document.getElementById('lavoro-terreno').value;
+    if (!terrenoId && state.currentLavoroId && state.lavoriList) {
+        const lavoroOrig = state.lavoriList.find((l) => l.id === state.currentLavoroId);
+        if (lavoroOrig?.terrenoId) terrenoId = lavoroOrig.terrenoId;
+    }
     const categoriaPrincipaleId = document.getElementById('lavoro-categoria-principale').value;
     const sottocategoriaId = document.getElementById('lavoro-sottocategoria').value;
-    const tipoLavoro = document.getElementById('lavoro-tipo-lavoro').value.trim();
+    let tipoLavoro = document.getElementById('lavoro-tipo-lavoro').value.trim();
+    if (!tipoLavoro && state.currentLavoroId && state.lavoriList) {
+        const lavoroOrig = state.lavoriList.find((l) => l.id === state.currentLavoroId);
+        if (lavoroOrig?.tipoLavoro) tipoLavoro = lavoroOrig.tipoLavoro;
+    }
     const dataInizio = document.getElementById('lavoro-data-inizio').value;
     
     // Usa sottocategoria se selezionata, altrimenti categoria principale
@@ -1831,6 +1916,23 @@ export async function handleSalvaLavoro(
             lavoroData.aggiornatoIl = serverTimestamp();
             
             await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', state.currentLavoroId), lavoroData);
+
+            if (lavoroData.stato === 'completato' && !lavoroEraCompletato) {
+                try {
+                    const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
+                    const hasVmModule = await hasModuleAccess('vendemmiaMeccanica');
+                    if (hasVmModule) {
+                        const { syncLavoroCompletatoToPianoStagione } = await import('../../../modules/vendemmia-meccanica/services/lavoro-piano-sync-service.js');
+                        await syncLavoroCompletatoToPianoStagione(
+                            { ...lavoroOriginale, ...lavoroData, id: state.currentLavoroId },
+                            { hasVmModule: true, tenantId: currentTenantId }
+                        );
+                    }
+                } catch (syncErr) {
+                    console.warn('[GESTIONE-LAVORI] Sync piano stagione VM:', syncErr);
+                }
+            }
+
             showAlert('Lavoro modificato con successo!', 'success');
         } else {
             // Crea nuovo lavoro

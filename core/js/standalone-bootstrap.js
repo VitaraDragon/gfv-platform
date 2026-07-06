@@ -133,14 +133,18 @@
         if (tenantData) {
           const { resolveEffectiveModules } = await import('../utils/module-access-resolver.js');
           moduli = resolveEffectiveModules(tenantData);
-          window.__gfvTenantData = tenantData;
-          window.__gfvModuliAttivi = moduli;
-          window.tenantConfig = { modules: moduli, moduli_attivi: moduli };
-          window.tenant = window.tenant || { modules: moduli, moduli_attivi: moduli };
-          const rawPlan = tenantData.plan || tenantData.piano || 'base';
-          const p = String(rawPlan).trim().toLowerCase();
-          window.__gfvSubscriptionPlanId =
-            p === 'free' || p === 'freemium' ? 'free' : p === 'base' ? 'base' : ['starter', 'professional', 'enterprise'].includes(p) ? 'base' : 'base';
+          if (typeof window.gfvPublishTenantForTony === 'function') {
+            window.gfvPublishTenantForTony(tenantData, moduli);
+          } else {
+            window.__gfvTenantData = tenantData;
+            window.__gfvModuliAttivi = moduli;
+            window.tenantConfig = { modules: moduli, moduli_attivi: moduli };
+            window.tenant = window.tenant || { modules: moduli, moduli_attivi: moduli };
+            const rawPlan = tenantData.plan || tenantData.piano || 'base';
+            const p = String(rawPlan).trim().toLowerCase();
+            window.__gfvSubscriptionPlanId =
+              p === 'free' || p === 'freemium' ? 'free' : p === 'base' ? 'base' : ['starter', 'professional', 'enterprise'].includes(p) ? 'base' : 'base';
+          }
         }
 
         // 7) Shell standalone: toast alert + Tony (solo se piano ≠ Free o modulo Tony attivo)

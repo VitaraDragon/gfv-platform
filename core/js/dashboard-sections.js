@@ -452,6 +452,7 @@ window.GFVDashboardSections.createDashboardModuleSidebar = function createDashbo
         if (mods.includes('manodopera')) appendCard(S.createManodoperaCard());
         appendCard(S.createTerreniCard());
         if (mods.includes('contoTerzi')) appendCard(S.createContoTerziCard());
+        if (mods.includes('vendemmiaMeccanica')) appendCard(S.createVendemmiaMeccanicaCard());
         if (mods.includes('vigneto')) appendCard(S.createVignetoCard());
         if (mods.includes('frutteto')) appendCard(S.createFruttetoCard());
         if (mods.includes('magazzino')) appendCard(S.createMagazzinoCard(sotto));
@@ -465,6 +466,7 @@ window.GFVDashboardSections.createDashboardModuleSidebar = function createDashbo
         appendCard(S.createAbbonamentoCard());
         if (mods.includes('manodopera')) appendCard(S.createManodoperaCard());
         if (mods.includes('contoTerzi')) appendCard(S.createContoTerziCard());
+        if (mods.includes('vendemmiaMeccanica')) appendCard(S.createVendemmiaMeccanicaCard());
         if (mods.includes('vigneto')) appendCard(S.createVignetoCard());
         if (mods.includes('frutteto')) appendCard(S.createFruttetoCard());
         if (mods.includes('magazzino')) appendCard(S.createMagazzinoCard(sotto));
@@ -654,6 +656,40 @@ window.GFVDashboardSections.createDashboardPanoramaHubSection = function createD
     return section;
 };
 
+/**
+ * Riga tile moduli attivi (entry card visibili sotto la panoramica dashboard).
+ * @param {string[]} availableModules
+ * @returns {HTMLElement|null}
+ */
+window.GFVDashboardSections.createDashboardModuleEntryTilesRow = function createDashboardModuleEntryTilesRow(availableModules) {
+    const S = window.GFVDashboardSections;
+    const mods = Array.isArray(availableModules) ? availableModules : [];
+    const row = document.createElement('div');
+    row.className = 'dashboard-section dashboard-module-entry-row';
+    row.setAttribute('data-tour-section', 'moduli-attivi');
+    row.innerHTML = '<h2><span class="section-icon" aria-hidden="true">🧩</span> Moduli attivi</h2><div class="dashboard-module-entry-grid"></div>';
+    const grid = row.querySelector('.dashboard-module-entry-grid');
+
+    function appendTile(el) {
+        if (!el) return;
+        el.classList.remove('dashboard-section--in-menu');
+        const shell = document.createElement('div');
+        shell.className = 'dashboard-module-tile-shell';
+        shell.appendChild(el);
+        grid.appendChild(shell);
+    }
+
+    if (mods.includes('contoTerzi')) appendTile(S.createContoTerziCard());
+    if (mods.includes('vendemmiaMeccanica')) appendTile(S.createVendemmiaMeccanicaCard());
+    if (mods.includes('vigneto')) appendTile(S.createVignetoCard());
+    if (mods.includes('frutteto')) appendTile(S.createFruttetoCard());
+    if (mods.includes('magazzino')) appendTile(S.createMagazzinoCard(0));
+    if (mods.includes('parcoMacchine')) appendTile(S.createMacchineCard());
+    if (mods.includes('report')) appendTile(S.createReportCard());
+
+    return grid.children.length ? row : null;
+};
+
 window.GFVDashboardSections.createContoTerziCard = function createContoTerziCard() {
     const section = document.createElement('div');
     section.className = 'dashboard-section dashboard-section--module-tile';
@@ -663,6 +699,24 @@ window.GFVDashboardSections.createContoTerziCard = function createContoTerziCard
             <span class="dashboard-module-tile__body">
                 <span class="dashboard-module-tile__title">Conto Terzi</span>
                 <span class="dashboard-module-tile__desc">Lavori per conto terzi e contratti. Tariffe, preventivi e consuntivi.</span>
+            </span>
+        </a>
+    `;
+    return section;
+};
+
+/**
+ * Card Vendemmia Meccanica — servizio CT (richiede contoTerzi)
+ */
+window.GFVDashboardSections.createVendemmiaMeccanicaCard = function createVendemmiaMeccanicaCard() {
+    const section = document.createElement('div');
+    section.className = 'dashboard-section dashboard-section--module-tile';
+    section.innerHTML = `
+        <a href="../modules/vendemmia-meccanica/views/vm-home-standalone.html" class="dashboard-module-tile" data-module="vendemmiaMeccanica" style="--module-accent:#6A1B9A;">
+            <span class="dashboard-module-tile__icon" aria-hidden="true">🍇</span>
+            <span class="dashboard-module-tile__body">
+                <span class="dashboard-module-tile__title">Vendemmia Meccanica</span>
+                <span class="dashboard-module-tile__desc">Piano stagione, calcolo compenso e bilancio del servizio meccanizzato CT.</span>
             </span>
         </a>
     `;

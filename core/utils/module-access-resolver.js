@@ -3,6 +3,8 @@
  * @module core/utils/module-access-resolver
  */
 
+import { getModuleConfig } from '../config/subscription-plans.js';
+
 export const MODULE_TRIAL_DAYS = 30;
 
 const TRIAL_STATUS_ACTIVE = 'active';
@@ -136,6 +138,22 @@ export function canStartModuleTrial(tenant, moduleId, options = {}, now = new Da
       canStart: false,
       reason: 'Puoi avere un solo modulo in prova alla volta. Attendi la scadenza o attiva l\'abbonamento.'
     };
+  }
+
+  const modConfig = getModuleConfig(moduleId);
+  if (modConfig && Array.isArray(modConfig.requiresModules) && modConfig.requiresModules.length) {
+    const effective = resolveEffectiveModules(tenant, now);
+    const covered = getModulesCoveredByActiveBundles(tenant, bundleCatalog);
+    const missing = modConfig.requiresModules.filter(
+      (id) => !effective.includes(id) && !covered.has(id)
+    );
+    if (missing.length) {
+      const labels = missing.map((id) => {
+        const dep = getModuleConfig(id);
+        return dep ? dep.name : id;
+      }).join(', ');
+      return { canStart: false, reason: `Attiva prima: ${labels}.` };
+    }
   }
 
   return { canStart: true, reason: '' };

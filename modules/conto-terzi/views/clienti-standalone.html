@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anagrafica Clienti - Conto Terzi - GFV Platform</title>
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <script src="../../../core/js/gfv-standalone-head-bootstrap.js"></script>
     <style>
         * {
             margin: 0;
@@ -574,6 +575,10 @@
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
                         currentTenantId = userData.tenantId;
+                        try {
+                            const { setCurrentTenantId } = await import('../../../core/services/tenant-service.js');
+                            if (currentTenantId) setCurrentTenantId(currentTenantId);
+                        } catch (_) { /* Tony publish opzionale */ }
 
                         // Verifica permessi (solo Manager o Amministratore)
                         const ruoli = userData.ruoli || [];

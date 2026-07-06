@@ -17,6 +17,7 @@ const CATALOG = [
   { id: "manodopera", type: "module", name: "GFV Modulo Manodopera", description: "Gestione squadre, operai e lavori", monthly: 6 },
   { id: "parcoMacchine", type: "module", name: "GFV Modulo Parco Macchine", description: "Macchine, manutenzioni e scadenze", monthly: 3 },
   { id: "contoTerzi", type: "module", name: "GFV Modulo Conto Terzi", description: "Clienti e lavori conto terzi", monthly: 6 },
+  { id: "vendemmiaMeccanica", type: "module", name: "GFV Modulo Vendemmia Meccanica", description: "Vendemmia meccanizzata CT: piano stagione, calcolo, PDF", monthly: 2 },
   { id: "vigneto", type: "module", name: "GFV Modulo Vigneto", description: "Gestione vigneti e vendemmia", monthly: 3 },
   { id: "frutteto", type: "module", name: "GFV Modulo Frutteto", description: "Gestione frutteti e raccolta", monthly: 3 },
   { id: "magazzino", type: "module", name: "GFV Modulo Magazzino", description: "Prodotti, giacenze e movimenti", monthly: 3 },

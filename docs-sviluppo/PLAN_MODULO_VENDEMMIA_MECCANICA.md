@@ -1,8 +1,8 @@
 # Piano implementazione: Modulo Vendemmia Meccanica
 
 **Data creazione**: 2026-07-03  
-**Ultimo aggiornamento**: 2026-07-03  
-**Stato**: 📋 Pianificato — non ancora implementato  
+**Ultimo aggiornamento**: 2026-07-03 (sessione 1 — Fase 0 + inizio Fase 1)  
+**Stato**: 🔄 In corso — Fase 0 completata, Fase 1 parziale  
 **Priorità**: Alta (refactoring/evoluzione da `vecchia app/`)  
 **Dipendenza obbligatoria**: Modulo **Conto Terzi** (`contoTerzi`)  
 **Dipendenze opzionali**: Report (`report`), Preventivi/Lavori CT (già in CT), Parco Macchine, Vigneto (solo collegamenti espliciti)
@@ -71,6 +71,18 @@ Gestione **commerciale e operativa** del servizio di **vendemmia meccanizzata a 
 | D9 | **Output ricavi** | Calcoli → Bilancio VM (modulo) → aggregazione Modulo Report (se attivo) |
 | D10 | **Integrazione preventivi/lavori CT** | Collegamento bidirezionale opzionale ma previsto in design |
 | D11 | **Riferimento implementativo** | Logica e UX da `vecchia app/calcolatore.html`, `anagrafica_clienti.html`, `bilancio.html` |
+| D12 | **moduleId e prezzo** | `vendemmiaMeccanica`, €2/mese (Stripe `price_1Tp9lM3nOKBd0FguH9PfiGCs`) |
+| D13 | **Nome UI** | “Vendemmia Meccanica” |
+| D14 | **Modello tariffa con sesto** | morf×palo + coefficiente sesto (non griglia 3D) |
+| D15 | **Formato sestoImpianto** | `{ distanzaFile, distanzaCeppo }` allineato al vigneto |
+| D16 | **Valori tipo palo** | `ferro`, `legno`, `cemento`, `personalizzata` — `vm-constants.js` |
+| D17 | **Destinazioni trasporto** | Preset cantine configurabili per tenant |
+| D18 | **Stato stagione** | `vendemmiaMeccanica: { [anno]: {...} }` sul documento terreno |
+| D19 | **Collection calcoli** | `tenants/{tenantId}/calcoli-vendemmia-meccanica` |
+| D20 | **Collection spese** | `tenants/{tenantId}/spese-vendemmia-meccanica` |
+| D21 | **Path terreni clienti** | `tenants/{tenantId}/terreni/{terrenoId}` + `clienteId` (verificato) |
+| D22 | **Zone escluse v1** | Poligoni mappa + override manuale ettari |
+| D23 | **UI palo/sesto CT** | Sezione visibile solo con licenza VM attiva |
 
 ---
 
@@ -80,37 +92,37 @@ Gestione **commerciale e operativa** del servizio di **vendemmia meccanizzata a 
 
 ### 3.1 Commerciale e licenze
 
-| ID | Domanda | Opzioni | Stato |
-|---|---|---|---|
-| O1 | `moduleId` e prezzo mensile | es. `vendemmiaMeccanica` €3–6/mese; bundle `conto-terzi-operativo` + VM | ⬜ Da definire |
-| O2 | Trial / incluso in piano Enterprise | Sì/No | ⬜ Da definire |
-| O3 | Nome prodotto in UI | “Vendemmia Meccanica”, “Vendemmia Meccanizzata CT”, … | ⬜ Da definire |
+| ID | Domanda | Stato |
+|---|---|---|
+| O1 | `moduleId` e prezzo mensile | ✅ → D12 |
+| O2 | Trial / incluso in piano Enterprise | ⬜ Da definire |
+| O3 | Nome prodotto in UI | ✅ → D13 |
 
 ### 3.2 Tariffe e sesto
 
-| ID | Domanda | Opzioni | Stato |
-|---|---|---|---|
-| O4 | Modello tariffa con sesto | **A)** griglia 3D morf×palo×sesto **B)** morf×palo + coefficiente sesto (consigliato) **C)** mix | ⬜ Da decidere |
-| O5 | Formato `sestoImpianto` | Distanza fila + ceppo (numeri) vs preset (“standard”, “stretto”, …) vs allineamento a vigneto (`distanzaFile`/`distanzaUnita`) | ⬜ Da decidere |
-| O6 | Valori tipo palo | ferro / legno / cemento / personalizzata (vecchia app) — allineare a `modules/vigneto` o lista VM dedicata? | ⬜ Da verificare |
-| O7 | Destinazioni trasporto | Lista fissa cantine (sociale, intesa, colli, …) vs configurabile per tenant | ⬜ Da decidere |
+| ID | Domanda | Stato |
+|---|---|---|
+| O4 | Modello tariffa con sesto | ✅ → D14 |
+| O5 | Formato `sestoImpianto` | ✅ → D15 |
+| O6 | Valori tipo palo | ✅ → D16 |
+| O7 | Destinazioni trasporto | ✅ → D17 |
 
 ### 3.3 Dati e persistenza
 
-| ID | Domanda | Opzioni | Stato |
-|---|---|---|---|
-| O8 | Dove salvare stato stagione VM | Campo `vendemmiaMeccanica` sul documento terreno (`tenants/.../terreni`) vs sub-doc `.../vendemmia-meccanica-stagione/{anno}` | ⬜ Da decidere |
-| O9 | Collection calcoli | `tenants/{t}/calcoli-vendemmia-meccanica` vs sotto `clienti/{id}/calcoli` | ⬜ Da decidere |
-| O10 | Collection spese bilancio VM | Dedicata VM vs riuso spese core/CT | ⬜ Da decidere |
-| O11 | Terreni clienti: collection effettiva | Verificare path Firestore usato da `loadTerreniViaService` con `clienteId` (core terreni) | ⬜ Da verificare in codice |
+| ID | Domanda | Stato |
+|---|---|---|
+| O8 | Dove salvare stato stagione VM | ✅ → D18 |
+| O9 | Collection calcoli | ✅ → D19 |
+| O10 | Collection spese bilancio VM | ✅ → D20 |
+| O11 | Terreni clienti: collection effettiva | ✅ → D21 |
 
 ### 3.4 UX e mappe
 
-| ID | Domanda | Opzioni | Stato |
-|---|---|---|---|
-| O12 | Calcolo area zone escluse | Sottrazione poligoni (Google Maps Geometry) vs ettari manuali vs entrambi | ⬜ Da decidere |
-| O13 | Poligono appezzamento principale | Obbligatorio per zone escluse o opzionale (solo disegno esclusioni)? | ⬜ Da decidere |
-| O14 | Sezione palo/sesto in terreni CT | Sempre visibile se modulo VM attivo vs solo se coltura vite/viticola | ⬜ Da decidere |
+| ID | Domanda | Stato |
+|---|---|---|
+| O12 | Calcolo area zone escluse | ✅ → D22 |
+| O13 | Poligono appezzamento principale | ⬜ Opzionale v1 |
+| O14 | Sezione palo/sesto in terreni CT | ✅ → D23 |
 
 ### 3.5 Integrazioni
 
@@ -200,16 +212,25 @@ vendemmiaMeccanica: {
   "2026": {
     inPiano: true,
     vendemmiato: true,
-    ettariVendemmiati: 1.85,      // superficie netta fatturabile
-    ettariTotaliSnapshot: 2.10,   // opzionale, per audit
-    zoneEscluse: [                 // poligoni NON vendemmiati
+    lavoroId: "abc123",              // lavoro VM che ha chiuso la vendemmia
+    ettariVendemmiati: 1.85,         // netti fatturabili (alias ettariVendemmiatiManuali in scrittura)
+    ettariEsclusi: 0.25,
+    ettariTotaliSnapshot: 2.10,      // opzionale, per audit
+    zoneVendemmiate: [               // poligoni vendemmiati (da lavoro, sola lettura in mappa piano)
+      { coordinates: [{ lat, lng }, ...], superficieHa, data }
+    ],
+    zoneEscluse: [                   // poligoni NON vendemmiati (auto da lavoro o manuali)
       { coordinates: [{ lat, lng }, ...] }
     ],
-    dataVendemmia: "2026-09-18",  // opzionale, per terreno
+    zoneEscluseAutoDaLavoro: true,   // zone rosse calcolate al sync lavoro
+    zoneEscluseModificateManualmente: false,
+    dataVendemmia: "2026-09-18",
     note: ""
   }
 }
 ```
+
+**Eliminazione lavoro:** se `lavoroId` coincide, `revertVendemmiaLavoroInPiano` azzera `vendemmiato`, zone, `lavoroId`, `dataVendemmia`, flag zone — mantiene `inPiano`.
 
 ### 5.2 Tariffe tenant
 
@@ -315,13 +336,28 @@ totaleFinale = totaleVendemmia + totaleTrasporto + scontoMaggiorazione
 
 ## 7. Zone non vendemmiate
 
-### 7.1 Comportamento atteso
+### 7.1 Comportamento atteso (implementato 2026-07-06)
 
-1. Utente include terreno nel **piano stagione** (`inPiano[anno] = true`)
-2. Al mark **vendemmiato** (o azione dedicata “Gestisci zone escluse”) → modal mappa
-3. Disegno poligoni aree **non** vendemmiate (sottrazione dalla superficie fatturabile)
-4. Calcolo `ettariVendemmiati[anno]` (automatico da geometry o manuale — O12)
-5. **Calcolatore** e **PDF** usano sempre ettari effettivi
+**Flusso operativo (preferito — da lavoro campo):**
+
+1. Terreno in **piano stagione** (`inPiano[anno] = true`) — anche automatico da preventivo accettato
+2. Lavoro VM completato in campo (zone vendemmiate tracciate dal caposquadra)
+3. Manager **approva** in Gestione Lavori → sync automatico:
+   - `vendemmiato: true`, `zoneVendemmiate` (verdi, da `zoneLavorate`)
+   - `zoneEscluse` (rosse) = **terreno − union(zone vendemmiate)** via `computeZoneEscluseAutomatiche`
+   - `ettariEsclusi` = totale − vendemmiati
+4. Manager può aprire modal «Zone escluse» per **correggere** poligoni/ha; al salvataggio → `zoneEscluseModificateManualmente: true` (non sovrascritte da sync successivi)
+5. **Calcolatore** e **PDF** usano ettari effettivi netti
+
+**Flusso manuale (fallback):**
+
+1. Mark **vendemmiato** o azione «Gestisci zone escluse» → modal mappa
+2. Disegno manuale poligoni aree non vendemmiate
+3. Calcolo `ettariVendemmiati` da geometry o input manuale
+
+**Eliminazione lavoro:** `clearLavoroFromPianoStagione` ripristina stato pre-vendemmia (zone verdi/rosse, flag vendemmiato); `inPiano` resta. Refresh piano esegue `cleanupOrphanedPianoStagioneLavori` se il lavoro era già stato eliminato.
+
+**Chiusura parziale VM:** caposquadra può inviare al manager da **10%** tracciato; approvazione mantiene % reale (non forza 100%).
 
 ### 7.2 Dove vive l’UI
 
@@ -386,23 +422,35 @@ Su `terreni-clienti-standalone.html` (se modulo VM attivo):
 
 ### 9.2 Preventivi CT
 
-Flusso target:
+Flusso implementato (2026-07-05 / 2026-07-06):
 
 ```
-Preventivo (tipo lavoro "Vendemmia meccanica")
-  → accettazione / lavoro
-  → piano stagione + vendemmia effettiva
-  → calcolo VM (importo finale)
-  → opzionale: chiudi preventivo / genera documento con importo calcolato
+Preventivo (tipo "Vendemmia meccanica")
+  → accettazione (manager o email)
+  → inPiano automatico su vigneto/i (`preventivo-piano-sync-service`, `vm-preventivo-piano-sync.js`)
+  → Pianifica → lavoro da_pianificare
+  → campo (zone vendemmiate, anche parziale ≥10%)
+  → approvazione manager → vendemmiato + zone escluse auto
+  → calcolo VM (importo finale) — collegamento calcolo↔preventivo ancora da O15
 ```
 
 Campi collegamento: `calcolo.preventivoId`, `preventivo.calcoloVmId` (da confermare O15).
 
 ### 9.3 Lavori / Attività CT
 
-- Tipo lavoro dedicato **“Vendemmia meccanica”** (categoria RACCOLTA — verificare allineamento con vigneto lavori)
-- `calcolo.lavoroId` per tracciabilità
-- Completamento lavoro → shortcut “Apri calcolatore precompilato”
+Flusso implementato (2026-07-06):
+
+| Step | Implementazione |
+|---|---|
+| Tipo lavoro «Vendemmia meccanica» | `lavoro-vm-utils.js` — keyword + CT con preventivo |
+| Tracciamento campo | `lavori-caposquadra-standalone.html` — subcollection `zoneLavorate`, multi-zona stesso giorno |
+| Chiusura parziale | Soglia 10% VM; `completamentoParziale` in Firestore rules |
+| Approvazione → piano | `syncLavoroCompletatoToPianoStagione` in `approvaLavoro` / `handleSalvaLavoro` |
+| Zone escluse auto | `computeZoneEscluseAutomatiche` + flag manuali |
+| Elimina lavoro | `clearLavoroFromPianoStagione` in `openEliminaModal` |
+| Backfill piano | `syncLavoriCompletatiToPiano` + `cleanupOrphanedPianoStagioneLavori` all’apertura piano |
+
+Da fare (O16 residuo): shortcut «Apri calcolatore precompilato» da lavoro completato; `calcolo.lavoroId` end-to-end.
 
 ### 9.4 Modulo Report
 
@@ -482,60 +530,63 @@ Legenda: ⬜ Da fare · 🔄 In corso · ✅ Completato · ⏸️ In attesa deci
 
 | # | Task | Stato | Note / rimando |
 |---|---|---|---|
-| 0.1 | Chiudere O1–O3 (licenza, prezzo, nome UI) | ⬜ | §3.1 |
-| 0.2 | Chiudere O4–O7 (tariffe, sesto, palo, trasporto) | ⬜ | §3.2 |
-| 0.3 | Chiudere O8–O11 (persistenza Firestore) | ⬜ | §3.3 |
-| 0.4 | Chiudere O12–O14 (mappe, UX terreni) | ⬜ | §3.4 |
+| 0.1 | Chiudere O1–O3 (licenza, prezzo, nome UI) | ✅ | O1/O3 → D12/D13; O2 aperto |
+| 0.2 | Chiudere O4–O7 (tariffe, sesto, palo, trasporto) | ✅ | D14–D17 |
+| 0.3 | Chiudere O8–O11 (persistenza Firestore) | ✅ | D18–D21 (O11 verificato: `tenants/{t}/terreni` + `clienteId`) |
+| 0.4 | Chiudere O12–O14 (mappe, UX terreni) | 🔄 | O12/O14 ✅; O13 aperto |
 | 0.5 | Chiudere O15–O18 (preventivi, lavori, report) | ⬜ | §3.5 |
 | 0.6 | Approvazione formale di questo piano | ⬜ | |
-| 0.7 | Aggiungere `vendemmiaMeccanica` in `subscription-plans.js` | ⬜ | Dipende da O1 |
-| 0.8 | Gate modulo (dashboard, tony-module-gate, routes) | ⬜ | |
+| 0.7 | Aggiungere `vendemmiaMeccanica` in `subscription-plans.js` | ✅ | €2/mese, Stripe test configurato |
+| 0.8 | Gate modulo (dashboard, tony-module-gate, routes) | ✅ | tile dashboard, quick bar, engine.js, hub CT |
 
 ### Fase 1 — Estensione dati Conto Terzi
 
 | # | Task | Stato | Note |
 |---|---|---|---|
-| 1.1 | Verificare path/modello terreni cliente in Firestore | ⬜ | O11 |
-| 1.2 | Aggiungere `tipoPalo` su terreno cliente (model + form CT) | ⬜ | Visibilità O14 |
-| 1.3 | Aggiungere `sestoImpianto` su terreno cliente | ⬜ | Formato O5 |
-| 1.4 | Aggiungere struttura `vendemmiaMeccanica/{anno}` su terreno | ⬜ | Path O8 |
-| 1.5 | Validazione: blocco calcolo se palo/sesto/morfologia mancanti | ⬜ | |
-| 1.6 | Badge/link VM su `terreni-clienti-standalone.html` | ⬜ | Solo se licenza VM |
-| 1.7 | Regole Firestore tenant per nuovi campi/collection | ⬜ | |
+| 1.1 | Verificare path/modello terreni cliente in Firestore | ✅ | `core/services/terreni-service.js` → `tenants/{t}/terreni`, filtro `clienteId` |
+| 1.2 | Aggiungere `tipoPalo` su terreno cliente (model + form CT) | ✅ | `Terreno.js` + form `terreni-clienti-standalone.html` |
+| 1.3 | Aggiungere `sestoImpianto` su terreno cliente | ✅ | `{ distanzaFile, distanzaCeppo }` |
+| 1.4 | Aggiungere struttura `vendemmiaMeccanica/{anno}` su terreno | ✅ | Scrittura via piano-stagione (inPiano, vendemmiato, ha netti) |
+| 1.5 | Validazione: blocco calcolo se palo/sesto/morfologia mancanti | ✅ | `validateTerrenoForCalcolo` in calcolo-compenso-vm-service |
+| 1.6 | Badge/link VM su `terreni-clienti-standalone.html` | ✅ | Badge anno corrente + link hub VM |
+| 1.7 | Regole Firestore tenant per nuovi campi/collection | ✅ | `calcoli-vendemmia-meccanica`, `spese-vendemmia-meccanica`; campi terreno su regola `terreni` esistente |
 
 ### Fase 2 — Servizi core VM
 
 | # | Task | Stato | Note |
 |---|---|---|---|
-| 2.1 | `tariffe-vm-service.js` — CRUD tariffe vendemmia + trasporto | ⬜ | |
-| 2.2 | `zone-escluse-service.js` — poligoni, calcolo ettari netti | ⬜ | O12, O13 |
-| 2.3 | `piano-stagione-service.js` — inPiano, vendemmiato, lettura terreni CT | ⬜ | |
-| 2.4 | `calcolo-compenso-vm-service.js` — formula §6.1 | ⬜ | Port da calcolatore.html |
-| 2.5 | `calcoli-vm-service.js` — CRUD calcoli salvati | ⬜ | |
-| 2.6 | `bilancio-vm-service.js` — ricavi + spese | ⬜ | O10 |
-| 2.7 | Test unitari servizi calcolo e ettari netti | ⬜ | |
+| 2.1 | `tariffe-vm-service.js` — CRUD tariffe vendemmia + trasporto | ✅ | `impostazioni/tariffe-vendemmia-meccanica` |
+| 2.2 | `zone-escluse-service.js` — poligoni, calcolo ettari netti, zone auto da lavoro | ✅ | `computeZoneEscluseAutomatiche`; dip. `polygon-clipping` |
+| 2.3 | `piano-stagione-service.js` — inPiano, vendemmiato, revert da lavoro | ✅ | `revertVendemmiaLavoroInPiano` |
+| 2.8 | `lavoro-piano-sync-service.js` — sync/revert lavoro ↔ piano | ✅ | Completamento, zone auto, cleanup orfani |
+| 2.9 | `lavoro-vm-utils.js` — riconoscimento VM, soglie parziale | ✅ | 10% min invio manager; link piano↔lavoro |
+| 2.4 | `calcolo-compenso-vm-service.js` — formula §6.1 | ✅ | |
+| 2.5 | `calcoli-vm-service.js` — CRUD calcoli salvati | ✅ | |
+| 2.6 | `bilancio-vm-service.js` — ricavi + spese | ✅ | |
+| 2.7 | Test unitari servizi calcolo e ettari netti | ✅ | `tests/vendemmia-meccanica/` (calcolo, zone, lavoro-vm, piano-sync) |
 
 ### Fase 3 — UI modulo VM
 
 | # | Task | Stato | Note |
 |---|---|---|---|
-| 3.1 | `vm-home-standalone.html` — hub + link CT | ⬜ | §8.1 |
-| 3.2 | `piano-stagione-standalone.html` — lista, stati, % avanzamento | ⬜ | currentTableData |
-| 3.3 | Modal mappa zone escluse (da vecchia app) | ⬜ | §7 |
-| 3.4 | `calcolatore-standalone.html` — lookup + risultati + salva | ⬜ | |
-| 3.5 | Generazione PDF calcolo | ⬜ | |
-| 3.6 | `calcoli-salvati-standalone.html` — storico, filtri, delete | ⬜ | |
-| 3.7 | `tariffe-vm-standalone.html` — griglia + trasporto | ⬜ | |
-| 3.8 | `bilancio-vm-standalone.html` — KPI, spese, export | ⬜ | |
-| 3.9 | Entry card su hub CT + dashboard principale | ⬜ | |
+| 3.1 | `vm-home-standalone.html` — hub + link CT | ✅ | MVP hub; verticali VM placeholder Fase 3 |
+| 3.2 | `piano-stagione-standalone.html` — lista, stati, % avanzamento | ✅ | currentTableData + modal ha netti v1 |
+| 3.3 | Modal mappa zone escluse + zone vendemmiate da lavoro | ✅ | `vm-zone-mappa.js`; verdi read-only, rosse editabili |
+| 3.4 | `calcolatore-standalone.html` — lookup + risultati + salva | ✅ | |
+| 3.5 | Generazione PDF calcolo | ✅ | `calcolo-vm-pdf-service.js`; calcolatore + calcoli salvati |
+| 3.6 | `calcoli-salvati-standalone.html` — storico, filtri, delete | ✅ | |
+| 3.7 | `tariffe-vm-standalone.html` — griglia + trasporto | ✅ | |
+| 3.8 | `bilancio-vm-standalone.html` — KPI, spese, export | ✅ | Export CSV opzionale post-MVP |
+| 3.9 | Entry card su hub CT + dashboard principale | ✅ | KPI hub VM; stat CT; tile dashboard manodopera |
 | 3.10 | Responsive / standalone CSS allineato linea guida | ⬜ | |
 
 ### Fase 4 — Integrazioni
 
 | # | Task | Stato | Note |
 |---|---|---|---|
-| 4.1 | Collegamento calcolo ↔ preventivo CT | ⬜ | O15 |
-| 4.2 | Tipo lavoro “Vendemmia meccanica” + link calcolo ↔ lavoro | ⬜ | O16 |
+| 4.1 | Collegamento calcolo ↔ preventivo CT | 🔄 | `inPiano` da preventivo ✅; link bidirezionale calcolo↔preventivo ⬜ (O15) |
+| 4.2 | Tipo lavoro «Vendemmia meccanica» + sync lavoro ↔ piano | ✅ | Sync approvazione, zone auto, parziale 10%, revert elimina |
+| 4.2b | Caposquadra: tracciamento zone + multi-zona stesso giorno | ✅ | `lavori-caposquadra-standalone.html` |
 | 4.3 | Export KPI verso modulo Report | ⬜ | O18 |
 | 4.4 | (Opzionale) Link terreno cliente ↔ vigneto | ⏸️ | O17 — post v1? |
 
@@ -555,8 +606,8 @@ Legenda: ⬜ Da fare · 🔄 In corso · ✅ Completato · ⏸️ In attesa deci
 | 6.1 | Script migrazione `vendemmia-meccanizzata` → tenant | ⬜ | O19 |
 | 6.2 | Test E2E flusso: piano → zone → calcolo → PDF → bilancio | ⬜ | |
 | 6.3 | Documentazione utente / GUIDA modulo VM | ⬜ | Solo su richiesta o fase GTM |
-| 6.4 | Aggiornare `COSA_ABBIAMO_FATTO.md` + `STATO_ATTUALE.md` a rilascio | ⬜ | Regola agenti |
-| 6.5 | Decisioni O* chiuse spostate in §2; piano aggiornato | ⬜ | |
+| 6.4 | Aggiornare `COSA_ABBIAMO_FATTO.md` + piano a rilascio integrazioni | 🔄 | Voci 2026-07-05/06 lavoro↔piano |
+| 6.5 | Decisioni O* chiuse spostate in §2; piano aggiornato | ✅ | Sessione 1 |
 
 ---
 
@@ -564,14 +615,14 @@ Legenda: ⬜ Da fare · 🔄 In corso · ✅ Completato · ⏸️ In attesa deci
 
 | Fase | Completati | Totale | % |
 |---|---|---|---|
-| Fase 0 — Decisioni | 0 | 8 | 0% |
-| Fase 1 — Dati CT | 0 | 7 | 0% |
-| Fase 2 — Servizi | 0 | 7 | 0% |
-| Fase 3 — UI | 0 | 10 | 0% |
-| Fase 4 — Integrazioni | 0 | 4 | 0% |
+| Fase 0 — Decisioni | 6 | 8 | 75% |
+| Fase 1 — Dati CT | 7 | 7 | 100% |
+| Fase 2 — Servizi | 9 | 9 | 100% |
+| Fase 3 — UI | 9 | 10 | 90% |
+| Fase 4 — Integrazioni | 2 | 5 | 40% |
 | Fase 5 — Tony | 0 | 4 | 0% |
 | Fase 6 — Migrazione | 0 | 5 | 0% |
-| **Totale** | **0** | **45** | **0%** |
+| **Totale** | **33** | **48** | **69%** |
 
 ---
 
@@ -579,4 +630,9 @@ Legenda: ⬜ Da fare · 🔄 In corso · ✅ Completato · ⏸️ In attesa deci
 
 | Data | Autore | Modifica |
 |---|---|---|
+| 2026-07-06 | Sessione agente | Piano §7.1 flusso zone auto da lavoro; §9 integrazioni; checklist Fase 4; Tony FAB publish tenant |
+| 2026-07-05 | Sessione agente | Preventivo accettato→inPiano; hub clienti in piano; multi-zona caposquadra; fix detection vigneti |
+| 2026-07-03 | Sessione 3 agente | Card entry: KPI hub VM, stat CT, tile moduli dashboard; PDF; mappa zone escluse |
+| 2026-07-03 | Sessione 2 agente | Fase 2 servizi core + test; Fase 3 UI (piano, calcolatore, tariffe, calcoli, bilancio); hub VM aggiornato |
+| 2026-07-03 | Sessione 1 agente | Fase 0: licenza, gate dashboard/Tony, hub VM, decisioni O1–O12/O14; Fase 1: modello Terreno, form/badge CT, Firestore rules |
 | 2026-07-03 | Piano iniziale | Creazione da analisi `vecchia app/` e decisioni di design hub/CT/zone escluse/tariffe |

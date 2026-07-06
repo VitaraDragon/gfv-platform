@@ -136,6 +136,16 @@ export const AVAILABLE_MODULES = [
     category: 'business'
   },
   {
+    id: 'vendemmiaMeccanica',
+    name: 'Vendemmia Meccanica',
+    icon: '🍇',
+    description: 'Vendemmia meccanizzata CT: piano stagione, calcolo compenso, PDF e bilancio servizio',
+    price: 2,
+    available: true,
+    category: 'business',
+    requiresModules: ['contoTerzi']
+  },
+  {
     id: 'vigneto',
     name: 'Vigneto',
     icon: '🍇',
@@ -488,6 +498,16 @@ export function canActivateModule(planId, moduleId, currentModules = []) {
   
   // Piano Base: tutti i moduli disponibili (pay-per-use)
   if (planId === 'base') {
+    if (module.requiresModules && module.requiresModules.length) {
+      const missing = module.requiresModules.filter((id) => !currentModules.includes(id));
+      if (missing.length) {
+        const labels = missing.map((id) => {
+          const dep = getModuleConfig(id);
+          return dep ? dep.name : id;
+        }).join(', ');
+        return { canActivate: false, reason: `Richiede: ${labels}` };
+      }
+    }
     return { canActivate: true, reason: '' };
   }
   
@@ -568,6 +588,7 @@ export const STRIPE_PRICE_IDS = {
     tony: 'price_1Tkf0O3nOKBd0FguXdsS260m',
     report: 'price_1Tkf0O3nOKBd0FgutP7Cv0kt',
     meteo: 'price_1Tkf0P3nOKBd0Fgu3CsFEIfx',
+    vendemmiaMeccanica: 'price_1Tp9lM3nOKBd0FguH9PfiGCs',
     'vigneto-operativo': 'price_1Tkf0P3nOKBd0FguXw5iE6Qf',
     'operativo-vigneto': 'price_1Tkf0Q3nOKBd0FguAqHLXltB',
     'frutteto-operativo': 'price_1Tkf0R3nOKBd0FguaTNuwJa6',

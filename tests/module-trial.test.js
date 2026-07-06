@@ -36,6 +36,19 @@ describe('module-trial', () => {
     expect(result.canStart).toBe(false);
   });
 
+  it('canStartModuleTrial allows vendemmiaMeccanica when contoTerzi active', () => {
+    const tenant = { plan: 'base', modules: ['contoTerzi'], moduleTrials: {} };
+    const result = canStartModuleTrial(tenant, 'vendemmiaMeccanica');
+    expect(result.canStart).toBe(true);
+  });
+
+  it('canStartModuleTrial blocks vendemmiaMeccanica without contoTerzi', () => {
+    const tenant = { plan: 'base', modules: [], moduleTrials: {} };
+    const result = canStartModuleTrial(tenant, 'vendemmiaMeccanica');
+    expect(result.canStart).toBe(false);
+    expect(result.reason).toMatch(/Conto Terzi/i);
+  });
+
   it('canStartModuleTrial blocks repeat trial for same module', () => {
     const tenant = {
       modules: [],

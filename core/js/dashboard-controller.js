@@ -35,7 +35,9 @@ export async function renderDashboard(userData, availableModules = [], callbacks
         createDashboardModuleSidebar,
         createDashboardPanoramaHubSection,
         createDashboardMeteoSection,
+        createDashboardModuleEntryTilesRow,
         createContoTerziCard,
+        createVendemmiaMeccanicaCard,
         createVignetoCard,
         createFruttetoCard,
         createMagazzinoCard,
@@ -157,6 +159,11 @@ export async function renderDashboard(userData, availableModules = [], callbacks
 
         layout.appendChild(main);
         container.appendChild(layout);
+
+        const entryTiles = createDashboardModuleEntryTilesRow
+            ? createDashboardModuleEntryTilesRow(availableModules)
+            : null;
+        if (entryTiles) container.appendChild(entryTiles);
     }
 
     // Ruoli avanzati: solo se ci sono moduli avanzati attivi
@@ -180,6 +187,11 @@ export async function renderDashboard(userData, availableModules = [], callbacks
                 const hasContoTerzi = availableModules && availableModules.includes('contoTerzi');
                 if (hasContoTerzi) {
                     container.appendChild(createContoTerziCard());
+                }
+
+                const hasVendemmiaMeccanica = availableModules && availableModules.includes('vendemmiaMeccanica');
+                if (hasVendemmiaMeccanica) {
+                    container.appendChild(createVendemmiaMeccanicaCard());
                 }
                 
                 // Card Vigneto (solo se modulo attivo) anche per Manager senza Manodopera

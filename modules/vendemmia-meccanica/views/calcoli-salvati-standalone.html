@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calcoli salvati - Vendemmia Meccanica</title>
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #F3E5F5, #6A1B9A); min-height: 100vh; margin: 0; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #6A1B9A, #4A148C); color: #fff; padding: 28px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; flex-wrap: wrap; }
+        .content { background: #fff; border-radius: 12px; padding: 24px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background: #F3E5F5; color: #4A148C; }
+        .btn { padding: 6px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .btn-danger { background: #dc3545; color: #fff; }
+        .btn-pdf { background: #6A1B9A; color: #fff; margin-right: 6px; }
+        .btn-secondary { background: #6c757d; color: #fff; text-decoration: none; display: inline-block; padding: 10px 16px; }
+        .filters { margin-bottom: 16px; display: flex; gap: 12px; align-items: end; flex-wrap: wrap; }
+        .alert { padding: 12px; border-radius: 8px; margin-bottom: 12px; }
+        .alert-error { background: #fdecea; color: #c62828; }
+        .alert-success { background: #e8f5e9; color: #2e7d32; }
+        .alert-warning { background: #fff8e1; color: #f57f17; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div><h1>📁 Calcoli salvati</h1><p>Storico compensi vendemmia meccanica</p></div>
+        <a href="vm-home-standalone.html" class="btn btn-secondary">← Hub VM</a>
+    </div>
+    <div class="content">
+        <div id="alert-container"></div>
+        <div class="filters">
+            <div><label>Anno</label><input type="number" id="filter-anno" min="2020" max="2100"></div>
+            <button type="button" class="btn btn-secondary" id="btn-filter" style="border:none;cursor:pointer;">Filtra</button>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead><tr><th>Data</th><th>Cliente</th><th>Anno</th><th>Terreni</th><th>Totale</th><th></th></tr></thead>
+                <tbody id="tbody-calcoli"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<script>window.currentTableData = { pageType: 'calcoli-vendemmia-meccanica', summary: 'Caricamento...', items: [] };</script>
+<script>const sc=document.createElement('script');sc.src='../../../core/config/firebase-config.js';document.head.appendChild(sc);</script>
+<script type="module">
+import { initVmPageAuth, publishTonyTableData, showVmAlert } from '../js/vm-page-auth.js';
+import { getAllCalcoliVm, deleteCalcoloVm } from '../services/calcoli-vm-service.js';
+import { generaPdfCalcoloVm } from '../services/calcolo-vm-pdf-service.js';
+import { getAnnoStagioneCorrente } from '../config/vm-constants.js';
+
+let calcoliCache = [];
+let tenantAziendaNome = '';
+
+function fmtEuro(n) { return '€ ' + (Number(n) || 0).toFixed(2); }
+
+function calcoloToBreakdown(c) {
+    const quintali = Number(c.quintali) || 0;
+    const totaleTrasporto = Number(c.totaleTrasporto) || 0;
+    return {
+        clienteId: c.clienteId,
+        clienteNome: c.clienteNome,
+        anno: c.anno,
+        destinazioneTrasporto: c.destinazioneTrasporto,
+        quintali,
+        scontoMaggiorazione: c.scontoMaggiorazione || 0,
+        terreni: c.terreni || [],
+        totaleVendemmia: c.totaleVendemmia,
+        totaleTrasporto,
+        totaleFinale: c.totaleFinale,
+        tariffaTrasportoQli: quintali > 0 ? totaleTrasporto / quintali : 0
+    };
+}
+
+async function loadCalcoli() {
+    const anno = Number(document.getElementById('filter-anno').value) || null;
+    calcoliCache = await getAllCalcoliVm(anno ? { anno } : {});
+    const list = calcoliCache;
+    const tbody = document.getElementById('tbody-calcoli');
+    if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#888;">Nessun calcolo</td></tr>';
+    } else {
+        tbody.innerHTML = list.map(c => '<tr>' +
+            '<td>' + (c.dataVendemmia || '—') + '</td>' +
+            '<td>' + (c.clienteNome || c.clienteId) + '</td>' +
+            '<td>' + (c.anno || '—') + '</td>' +
+            '<td>' + (Array.isArray(c.terreni) ? c.terreni.length : 0) + '</td>' +
+            '<td>' + fmtEuro(c.totaleFinale) + '</td>' +
+            '<td style="white-space:nowrap">' +
+            '<button type="button" class="btn btn-pdf" data-pdf="' + c.id + '">PDF</button>' +
+            '<button type="button" class="btn btn-danger" data-del="' + c.id + '">Elimina</button>' +
+            '</td>' +
+            '</tr>').join('');
+    }
+    publishTonyTableData('calcoli-vendemmia-meccanica', list.length + ' calcoli salvati', list.map(c => ({
+        cliente: c.clienteNome,
+        data: c.dataVendemmia,
+        totale: c.totaleFinale
+    })));
+}
+
+try {
+    const authCtx = await initVmPageAuth();
+    tenantAziendaNome = authCtx.tenantNome || '';
+    document.getElementById('filter-anno').value = String(getAnnoStagioneCorrente());
+    document.getElementById('btn-filter').addEventListener('click', loadCalcoli);
+    document.getElementById('tbody-calcoli').addEventListener('click', async (e) => {
+        const pdfId = e.target.dataset?.pdf;
+        if (pdfId) {
+            const c = calcoliCache.find(x => x.id === pdfId);
+            if (!c) return;
+            try {
+                generaPdfCalcoloVm(calcoloToBreakdown(c), {
+                    dataVendemmia: c.dataVendemmia,
+                    note: c.note || '',
+                    aziendaNome: tenantAziendaNome
+                });
+            } catch (err) {
+                showVmAlert('alert-container', err.message, 'error');
+            }
+            return;
+        }
+        const id = e.target.dataset?.del;
+        if (!id) return;
+        if (!confirm('Eliminare questo calcolo?')) return;
+        await deleteCalcoloVm(id);
+        await loadCalcoli();
+    });
+    await loadCalcoli();
+} catch (e) {
+    document.getElementById('tbody-calcoli').innerHTML = '<tr><td colspan="6">' + e.message + '</td></tr>';
+}
+</script>
+</body>
+</html>

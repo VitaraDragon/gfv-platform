@@ -6,6 +6,7 @@
 const MODULE_LABELS = {
   magazzino: 'Prodotti e Magazzino',
   contoTerzi: 'Conto Terzi',
+  vendemmiaMeccanica: 'Vendemmia Meccanica',
   parcoMacchine: 'Parco Macchine',
   manodopera: 'Manodopera',
   vigneto: 'Vigneto',
@@ -23,6 +24,9 @@ const TARGET_REQUIRES_MODULE = {
   'mappa clienti': 'contoTerzi',
   'nuovo preventivo': 'contoTerzi',
   'accetta preventivo': 'contoTerzi',
+  'vendemmia meccanica': 'vendemmiaMeccanica',
+  vendemmiameccanica: 'vendemmiaMeccanica',
+  'vendemmia meccanizzata': 'vendemmiaMeccanica',
   magazzino: 'magazzino',
   scorte: 'magazzino',
   prodotti: 'magazzino',

@@ -36,7 +36,9 @@ export async function getAllTerreni(options = {}) {
     const { 
       orderBy = 'nome', 
       orderDirection = 'asc',
-      clienteId = null
+      clienteId = null,
+      /** Se true, non esclude i terreni con clienteId (CT / piano stagione VM). */
+      includeTerreniClienti = false
     } = options;
     
     // Dobbiamo sempre filtrare lato client:
@@ -63,14 +65,13 @@ export async function getAllTerreni(options = {}) {
     });
     
     // Filtra terreni:
-    // - Se clienteId è null: mostra solo terreni aziendali (escludi terreni clienti)
-    // - Se clienteId è specificato: mostra solo terreni di quel cliente
-    if (clienteId === null) {
-      // Escludi terreni clienti (solo terreni aziendali)
-      terreni = terreni.filter(t => !t.clienteId || t.clienteId === '');
-    } else if (clienteId !== null) {
-      // Filtra per cliente specifico
+    // - clienteId valorizzato → solo quel cliente
+    // - includeTerreniClienti → tutti (terreni azienda + clienti)
+    // - default → solo terreni aziendali (senza clienteId)
+    if (clienteId) {
       terreni = terreni.filter(t => t.clienteId === clienteId);
+    } else if (!includeTerreniClienti) {
+      terreni = terreni.filter(t => !t.clienteId || t.clienteId === '');
     }
     
     // Ordina lato client se necessario (sempre quando filtriamo lato client)

@@ -211,7 +211,7 @@
       onAuthStateChanged,
       getDocumentData
     } from '../../../core/services/firebase-service.js';
-    import { initializeTenantService, setCurrentTenantId } from '../../../core/services/tenant-service.js';
+    import { initializeTenantService, setCurrentTenantId, getCurrentTenant } from '../../../core/services/tenant-service.js';
     import { hasReportModuleAccess } from '../services/report-service.js';
     import { canAccessStrategicReports } from '../js/report-access.js';
     import { getAgrarianYearBounds, getSolarYearBounds, formatRangeIt } from '../js/report-time-range.js';
@@ -389,6 +389,7 @@
       tenantId = userData.tenantId;
       if (tenantId) {
         setCurrentTenantId(tenantId);
+        await getCurrentTenant();
       }
       if (!(await hasReportModuleAccess())) {
         showGate('Modulo Report non attivo.');
@@ -401,6 +402,18 @@
       mainContent.classList.remove('hidden');
       await refreshReport();
     });
+  </script>
+  <!-- GFV standalone shell: alert toast + Tony gated -->
+  <script>
+  (function() {
+    var path = (window.location.pathname || '').replace(/\\/g, '/');
+    var isGH = path.indexOf('/gfv-platform/') >= 0;
+    var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
+    var sep = (base && !base.endsWith('/')) ? '/' : '';
+    var s = document.createElement('script');
+    s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
+    document.body.appendChild(s);
+  })();
   </script>
 </body>
 </html>

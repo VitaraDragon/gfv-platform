@@ -1,6 +1,6 @@
 # Stato attuale Tony – Verificato sul codice
 
-**Data**: 2026-06-27 (… **cascata attività/lavori preserve padri + allineamento catalogo app↔sim** — 2026-06-27; … **freemium E2E + FAB Base post-Stripe** — 2026-06-22d; …)  
+**Data**: 2026-07-06 (… **FAB Tony pagine standalone** — publish tenant centralizzato + VM/report; … **freemium E2E + FAB Base post-Stripe** — 2026-06-22d; …)  
 **Fonte**: codice + `TONY_DECISIONI_E_REQUISITI.md` (… **hub navigazione manodopera manager** — 2026-06-13; **manodopera validazione ore capo→manager + field workspace slide Valida ore** — 2026-05-19)  
 **Sicurezza (link pubblici, Firestore, callable)**: `docs-sviluppo/SICUREZZA_FLUSSI.md`
 
@@ -140,7 +140,7 @@
 
 | Piano | Tony | Stato |
 |-------|------|-------|
-| Free | Completamente assente (desiderato) | ✅ **`gfv-tony-loader.js`** + **`gfv-standalone-shell.js`** (~54 pagine); script Tony non caricato su Free; CF `tonyAsk`/`getTonyAudio` rifiutano Free |
+| Free | Completamente assente (desiderato) | ✅ Loader + bootstrap auth→tenant (2026-07-06); script Tony non caricato su Free; CF `tonyAsk`/`getTonyAudio` rifiutano Free |
 | Base (senza modulo tony) | Tony Guida – solo spiegazioni | ✅ FAB + chat verificati post-Stripe (2026-06-22d); `SYSTEM_INSTRUCTION_BASE` |
 | Modulo Tony attivo | Tony Operativo – tutte le funzioni | ✅ SYSTEM_INSTRUCTION_ADVANCED |
 

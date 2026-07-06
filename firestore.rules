@@ -248,6 +248,18 @@ service cloud.firestore {
       allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
+    // Vendemmia Meccanica — calcoli salvati
+    match /tenants/{tenantId}/calcoli-vendemmia-meccanica/{calcoloId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Vendemmia Meccanica — spese bilancio servizio
+    match /tenants/{tenantId}/spese-vendemmia-meccanica/{spesaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
     // Collection: poderi (aziendali, non clienti)
     match /tenants/{tenantId}/poderi/{podereId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
@@ -338,6 +350,7 @@ service cloud.firestore {
            'note',
            'completatoDa',
            'completatoIl',
+           'completamentoParziale',
            'aggiornatoIl'
          ]) &&
          // Verifica che lo stato sia valido (solo transizioni permesse)
@@ -366,6 +379,7 @@ service cloud.firestore {
            'note',
            'completatoDa',
            'completatoIl',
+           'completamentoParziale',
            'aggiornatoIl'
          ]) &&
          // Verifica che lo stato sia valido (solo transizioni permesse per operai)

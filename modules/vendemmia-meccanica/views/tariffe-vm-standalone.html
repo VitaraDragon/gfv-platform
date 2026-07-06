@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tariffe VM - Vendemmia Meccanica</title>
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #F3E5F5, #6A1B9A); min-height: 100vh; margin: 0; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #6A1B9A, #4A148C); color: #fff; padding: 28px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+        .content { background: #fff; border-radius: 12px; padding: 24px; }
+        h2 { color: #6A1B9A; margin: 20px 0 12px; font-size: 18px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { padding: 8px; border: 1px solid #eee; }
+        th { background: #F3E5F5; }
+        input[type=number] { width: 90px; padding: 6px; }
+        .btn { padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; }
+        .btn-primary { background: #6A1B9A; color: #fff; }
+        .btn-secondary { background: #6c757d; color: #fff; text-decoration: none; display: inline-block; }
+        .alert-success { background: #d4edda; padding: 10px; border-radius: 6px; margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div><h1>💰 Tariffe Vendemmia Meccanica</h1><p>Griglia morfologia × palo e trasporto €/qli</p></div>
+        <a href="vm-home-standalone.html" class="btn btn-secondary">← Hub VM</a>
+    </div>
+    <div class="content">
+        <div id="alert-container"></div>
+        <h2>Tariffe vendemmia (€/ettaro)</h2>
+        <div class="table-responsive"><table id="grid-vendemmia"></table></div>
+        <h2>Coefficienti sesto</h2>
+        <div id="coeff-sesto"></div>
+        <h2>Tariffe trasporto (€/quintale)</h2>
+        <div id="grid-trasporto"></div>
+        <button type="button" class="btn btn-primary" id="btn-save" style="margin-top:20px;">Salva tariffe</button>
+    </div>
+</div>
+<script>const sc=document.createElement('script');sc.src='../../../core/config/firebase-config.js';document.head.appendChild(sc);</script>
+<script type="module">
+import { initVmPageAuth, showVmAlert } from '../js/vm-page-auth.js';
+import { getTariffeVmConfig, saveTariffeVmConfig } from '../services/tariffe-vm-service.js';
+import { MORFOLOGIE_VM, TIPI_PALO_VM, DESTINAZIONI_TRASPORTO_PRESET, tariffaVmKey } from '../config/vm-constants.js';
+
+let config = {};
+
+function renderGrid() {
+    let html = '<thead><tr><th>Morfologia \\ Palo</th>';
+    TIPI_PALO_VM.forEach(p => { html += '<th>' + p + '</th>'; });
+    html += '</tr></thead><tbody>';
+    MORFOLOGIE_VM.forEach(m => {
+        html += '<tr><th>' + m + '</th>';
+        TIPI_PALO_VM.forEach(p => {
+            const k = tariffaVmKey(m, p);
+            const v = config.tariffeVendemmia[k] || 0;
+            html += '<td><input type="number" min="0" step="0.01" data-tariffa="' + k + '" value="' + v + '"></td>';
+        });
+        html += '</tr>';
+    });
+    html += '</tbody>';
+    document.getElementById('grid-vendemmia').innerHTML = html;
+
+    document.getElementById('coeff-sesto').innerHTML = Object.keys(config.coefficientiSesto || {}).map(k =>
+        '<label style="display:inline-block;margin-right:16px;">' + k + ' <input type="number" step="0.01" min="0" data-coeff="' + k + '" value="' + (config.coefficientiSesto[k] || 1) + '" style="width:70px;margin-left:4px;"></label>'
+    ).join('');
+
+    document.getElementById('grid-trasporto').innerHTML = DESTINAZIONI_TRASPORTO_PRESET.map(d =>
+        '<label style="display:block;margin:8px 0;">' + d.label + ' <input type="number" min="0" step="0.001" data-trasporto="' + d.id + '" value="' + (config.tariffeTrasporto[d.id] || 0) + '" style="width:100px;margin-left:8px;"></label>'
+    ).join('');
+}
+
+try {
+    await initVmPageAuth();
+    config = await getTariffeVmConfig();
+    renderGrid();
+    document.getElementById('btn-save').addEventListener('click', async () => {
+        document.querySelectorAll('[data-tariffa]').forEach(el => {
+            config.tariffeVendemmia[el.dataset.tariffa] = Number(el.value) || 0;
+        });
+        document.querySelectorAll('[data-coeff]').forEach(el => {
+            config.coefficientiSesto[el.dataset.coeff] = Number(el.value) || 1;
+        });
+        document.querySelectorAll('[data-trasporto]').forEach(el => {
+            config.tariffeTrasporto[el.dataset.trasporto] = Number(el.value) || 0;
+        });
+        await saveTariffeVmConfig(config);
+        showVmAlert('alert-container', 'Tariffe salvate', 'success');
+    });
+} catch (e) {
+    showVmAlert('alert-container', e.message, 'error');
+}
+</script>
+</body>
+</html>

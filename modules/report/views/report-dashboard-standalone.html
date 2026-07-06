@@ -314,5 +314,17 @@
       reportMain.classList.remove('hidden');
     });
   </script>
+  <!-- GFV standalone shell: alert toast + Tony gated -->
+  <script>
+  (function() {
+    var path = (window.location.pathname || '').replace(/\\/g, '/');
+    var isGH = path.indexOf('/gfv-platform/') >= 0;
+    var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
+    var sep = (base && !base.endsWith('/')) ? '/' : '';
+    var s = document.createElement('script');
+    s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
+    document.body.appendChild(s);
+  })();
+  </script>
 </body>
 </html>

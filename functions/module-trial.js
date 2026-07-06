@@ -15,6 +15,7 @@ const AVAILABLE_MODULE_IDS = [
   "manodopera",
   "parcoMacchine",
   "contoTerzi",
+  "vendemmiaMeccanica",
   "vigneto",
   "frutteto",
   "magazzino",
@@ -22,6 +23,28 @@ const AVAILABLE_MODULE_IDS = [
   "report",
   "meteo",
 ];
+
+/** Prerequisiti modulo — allineato a requiresModules in subscription-plans.js */
+const MODULE_REQUIRES = {
+  vendemmiaMeccanica: ["contoTerzi"],
+};
+
+function getMissingRequiredModules(tenant, moduleId, now = new Date()) {
+  const required = MODULE_REQUIRES[moduleId];
+  if (!required || !required.length) return [];
+  const effective = resolveEffectiveModules(tenant, now);
+  const covered = getModulesCoveredByActiveBundles(tenant);
+  return required.filter((id) => !effective.includes(id) && !covered.has(id));
+}
+
+function formatMissingModulesReason(missingIds) {
+  const labels = {
+    contoTerzi: "Conto Terzi",
+    manodopera: "Manodopera",
+    vendemmiaMeccanica: "Vendemmia Meccanica",
+  };
+  return missingIds.map((id) => labels[id] || id).join(", ");
+}
 
 function toDate(value) {
   if (!value) return null;
@@ -74,6 +97,14 @@ function canStartModuleTrial(tenant, moduleId, now = new Date()) {
   }
   if (!AVAILABLE_MODULE_IDS.includes(moduleId)) {
     return { canStart: false, reason: "Modulo non disponibile per la prova." };
+  }
+
+  const missingRequired = getMissingRequiredModules(tenant, moduleId, now);
+  if (missingRequired.length) {
+    return {
+      canStart: false,
+      reason: `Attiva prima: ${formatMissingModulesReason(missingRequired)}.`,
+    };
   }
 
   const paid = getPaidModuleIds(tenant);

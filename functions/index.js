@@ -4264,6 +4264,16 @@ exports.aggiornaStatoPreventivoPubblico = onCall(
         stato: "accettato_email",
         dataAccettazione: admin.firestore.FieldValue.serverTimestamp(),
       });
+      try {
+        const { syncPreventivoAccettatoToPianoAdmin } = require("./vm-preventivo-piano-sync");
+        await syncPreventivoAccettatoToPianoAdmin(db, found.tenantId, {
+          ...d,
+          id: found.preventivoId,
+          stato: "accettato_email",
+        });
+      } catch (syncErr) {
+        console.warn("[VM] sync piano da preventivo email:", syncErr.message);
+      }
       await invalidateTonyContextCache(db, found.tenantId);
       return { ok: true, stato: "accettato_email" };
     }

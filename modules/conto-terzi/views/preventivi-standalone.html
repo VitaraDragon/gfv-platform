@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Preventivi - Conto Terzi - GFV Platform</title>
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <script src="../../../core/js/gfv-standalone-head-bootstrap.js"></script>
     <style>
         * {
             margin: 0;
@@ -382,6 +383,7 @@
         import { initializeFirebase, getAuthInstance, getDb, getHttpsCallable } from '../../../core/services/firebase-service.js';
         import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, Timestamp } from '../../../core/services/firebase-service.js';
+        import { syncPreventivoAccettatoToPiano } from '../../vendemmia-meccanica/services/preventivo-piano-sync-service.js';
 
         // Funzione per attendere il caricamento della configurazione Firebase
         function waitForConfig() {
@@ -436,6 +438,10 @@
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
                         currentTenantId = userData.tenantId;
+                        try {
+                            const { setCurrentTenantId } = await import('../../../core/services/tenant-service.js');
+                            if (currentTenantId) setCurrentTenantId(currentTenantId);
+                        } catch (_) { /* Tony publish opzionale */ }
 
                         // Verifica permessi (solo Manager o Amministratore)
                         const ruoli = userData.ruoli || [];
@@ -1160,12 +1166,31 @@
                 }
 
                 const preventivoRef = doc(db, 'tenants', currentTenantId, 'preventivi', preventivoId);
+                const prevSnap = await getDoc(preventivoRef);
+                const prevData = prevSnap.exists() ? prevSnap.data() : {};
                 await updateDoc(preventivoRef, {
                     stato: 'accettato_manager',
                     dataAccettazione: serverTimestamp()
                 });
+
+                try {
+                    const syncResult = await syncPreventivoAccettatoToPiano({
+                        ...prevData,
+                        id: preventivoId,
+                        stato: 'accettato_manager'
+                    });
+                    if (syncResult.synced && syncResult.added > 0) {
+                        showAlert('Preventivo accettato — ' + syncResult.added + ' vigneto/i aggiunto/i al piano stagione ' + syncResult.anno, 'success');
+                    } else if (syncResult.reason === 'no-terreno') {
+                        showAlert('Preventivo accettato. Seleziona un terreno nel preventivo per comparire nel piano stagione VM.', 'success');
+                    } else {
+                        showAlert('Preventivo accettato con successo', 'success');
+                    }
+                } catch (syncErr) {
+                    console.warn('[VM] sync piano:', syncErr);
+                    showAlert('Preventivo accettato con successo', 'success');
+                }
                 
-                showAlert('Preventivo accettato con successo', 'success');
                 await loadPreventivi();
             } catch (error) {
                 console.error('Errore accettazione preventivo:', error);
@@ -1274,11 +1299,36 @@
                     return;
                 }
 
+                // Risolvi terreno dal preventivo (esplicito o vigneti cliente per VM)
+                let terrenoIdLavoro = preventivo.terrenoId || null;
+                if (!terrenoIdLavoro && preventivo.clienteId) {
+                    try {
+                        const { resolveTerrenoIdsForPreventivo } = await import('../../vendemmia-meccanica/services/preventivo-piano-sync-service.js');
+                        const ids = await resolveTerrenoIdsForPreventivo(preventivo);
+                        if (ids.length) terrenoIdLavoro = ids[0];
+                    } catch (e) {
+                        console.warn('[Preventivi] resolve terreno VM:', e.message);
+                    }
+                    if (!terrenoIdLavoro) {
+                        const terreniSnap = await getDocs(query(
+                            collection(db, 'tenants', currentTenantId, 'terreni'),
+                            where('clienteId', '==', preventivo.clienteId)
+                        ));
+                        const colturaNorm = String(preventivo.coltura || '').toLowerCase();
+                        const match = terreniSnap.docs.find((d) => {
+                            const t = d.data() || {};
+                            const c = String(t.coltura || t.colturaSottocategoria || '').toLowerCase();
+                            return colturaNorm && c.includes(colturaNorm);
+                        });
+                        terrenoIdLavoro = match ? match.id : (terreniSnap.docs[0]?.id || null);
+                    }
+                }
+
                 // Carica terreno se specificato
                 let terrenoNome = 'Terreno Cliente';
-                if (preventivo.terrenoId) {
+                if (terrenoIdLavoro) {
                     try {
-                        const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', preventivo.terrenoId));
+                        const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', terrenoIdLavoro));
                         if (terrenoDoc.exists()) {
                             terrenoNome = terrenoDoc.data().nome || terrenoNome;
                         }
@@ -1302,7 +1352,7 @@
                 // Crea lavoro con stato "da_pianificare"
                 const lavoroData = {
                     nome: nomeLavoro,
-                    terrenoId: preventivo.terrenoId || null,
+                    terrenoId: terrenoIdLavoro,
                     tipoLavoro: preventivo.tipoLavoro,
                     clienteId: preventivo.clienteId,
                     preventivoId: preventivo.id,
