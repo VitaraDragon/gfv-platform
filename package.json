@@ -49,7 +49,10 @@
     "sim:e2e:pw": "playwright test",
     "sim:e2e:ui": "playwright test --ui",
     "sim:e2e:install": "playwright install --with-deps chromium",
-    "sim:e2e:ci": "node simulator/ci-e2e-run.js"
+    "sim:e2e:ci": "node simulator/ci-e2e-run.js",
+    "sim:tony:e2e": "node scripts/sim-tony-e2e-run.mjs",
+    "sim:tony:e2e:ci": "node simulator/ci-tony-e2e-run.js",
+    "sim:tony:vitest": "node scripts/sim-tony-vitest-run.mjs"
   },
   "keywords": [
     "agriculture",

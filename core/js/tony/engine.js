@@ -544,6 +544,8 @@ export function matchSegnaOraTimeRangeFromBlob(blob) {
     // Typo vocali/STT: «daklle 6 aslle 18», «dalle 6 al 18»
     m = blob.match(new RegExp('\\bd[a-z]{0,4}l+e\\s+(\\d{1,2})' + min + '\\s+a[sxz]{0,2}l+e\\s+(\\d{1,2})' + min, 'i'));
     if (m) return m;
+    m = blob.match(new RegExp('dalle\\s+(\\d{1,2})' + min + '\\s+al\\s+(\\d{1,2})' + min, 'i'));
+    if (m) return m;
     m = blob.match(new RegExp('(?:^|\\s)(\\d{1,2})' + min + '\\s+a[sxz]{0,2}l+e\\s+(\\d{1,2})' + min + '\\b', 'i'));
     if (m) return m;
     m = blob.match(new RegExp('(?:^|\\s)(\\d{1,2})' + min + '\\s+alle\\s+(\\d{1,2})' + min + '\\b', 'i'));

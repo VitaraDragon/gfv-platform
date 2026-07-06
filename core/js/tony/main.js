@@ -60,6 +60,82 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
     var _isProcessingTonyCommand = false;
     var _isSendingMessage = false; // Anti-flood: blocca invii concorrenti
 
+    /** Flag E2E Tony (`?tonyE2e=1` o localStorage `gfv_tony_e2e=1`) — hook metriche generici. */
+    function tonyE2eModeEnabled() {
+        try {
+            if (typeof URLSearchParams !== 'undefined') {
+                var sp = new URLSearchParams(window.location.search || '');
+                if (sp.get('tonyE2e') === '1') return true;
+            }
+            return localStorage.getItem('gfv_tony_e2e') === '1';
+        } catch (e) { return false; }
+    }
+    var _tonyE2eMode = tonyE2eModeEnabled();
+    var _tonyE2eTurnStartMs = 0;
+    var _tonyE2eCfCalled = false;
+    function tonyE2eRecordCommand(data) {
+        if (!_tonyE2eMode || !data || !data.type) return;
+        try {
+            window.__tonyLastCommands = window.__tonyLastCommands || [];
+            var entry = String(data.type).toUpperCase();
+            if (data.id) entry += ':' + data.id;
+            else if (data.field) entry += ':' + data.field;
+            else if (data.target) entry += ':' + data.target;
+            window.__tonyLastCommands.push(entry);
+        } catch (eRec) { /* ignore */ }
+    }
+    function tonyE2eTurnStart() {
+        if (!_tonyE2eMode) return;
+        _tonyE2eTurnStartMs = Date.now();
+        _tonyE2eCfCalled = false;
+        try { window.__tonyLastCommands = []; } catch (eTs) { /* ignore */ }
+    }
+    function tonyE2eCfActuallyCalled() {
+        if (!_tonyE2eCfCalled) return false;
+        try {
+            return !(window.__GFV_TONY_E2E_MOCK_CF);
+        } catch (e) { return true; }
+    }
+    function tonyResponseCommandAlreadyHandledByService(rawData) {
+        if (!rawData || typeof rawData !== 'object' || !rawData.command) return false;
+        try {
+            if (window.__GFV_TONY_E2E_MOCK_CF) return false;
+        } catch (eMock) { /* ignore */ }
+        return true;
+    }
+    function tonyE2eTurnEnd(extra) {
+        if (!_tonyE2eMode || !_tonyE2eTurnStartMs) return;
+        try {
+            window.__tonyLastPerf = Object.assign({
+                latencyMs: Date.now() - _tonyE2eTurnStartMs,
+                usedGemini: tonyE2eCfActuallyCalled(),
+                cfCalled: tonyE2eCfActuallyCalled(),
+                at: new Date().toISOString()
+            }, extra || {});
+        } catch (eTe) { /* ignore */ }
+        _tonyE2eTurnStartMs = 0;
+    }
+    function tonyE2eScheduleTurnEnd() {
+        if (!_tonyE2eMode || !_tonyE2eTurnStartMs) return;
+        if (window.__tonyE2eTurnEndTimer) clearTimeout(window.__tonyE2eTurnEndTimer);
+        window.__tonyE2eTurnEndTimer = setTimeout(function() {
+            if (typeof window.__tonyE2eIsBusy === 'function' && window.__tonyE2eIsBusy()) {
+                tonyE2eScheduleTurnEnd();
+                return;
+            }
+            tonyE2eTurnEnd();
+        }, 500);
+    }
+    if (_tonyE2eMode) {
+        window.__tonyE2eMode = true;
+        window.__tonyLastCommands = window.__tonyLastCommands || [];
+        window.__tonyLastPerf = window.__tonyLastPerf || null;
+        window.__tonyE2eIsBusy = function() {
+            var typing = document.querySelector('#tony-messages .tony-msg.typing');
+            return !!_isSendingMessage || !!typing;
+        };
+    }
+
     // Timer proattivo form: delay post-inject (stabilizzazione) poi check; timer inattività parte dopo il check
     var POST_INJECT_CHECK_DELAY_MS = 2800;
     var POST_INJECT_CHECK_DELAY_LAVORO_MS = 450;
@@ -2769,6 +2845,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
      */
     function processTonyCommand(data) {
         data = normalizeTonyCommand(data);
+        tonyE2eRecordCommand(data);
         // console.log('[DEBUG CURSOR] processTonyCommand: Chiamata ricevuta');
         // console.log('[DEBUG CURSOR] processTonyCommand: Dati comando:', JSON.stringify(data, null, 2));
         console.log('[Tony] Esecuzione comando:', data && data.type, data && (data.field || data.id || ''));
@@ -5086,6 +5163,13 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
     var _initialPlanGate = resolvePlanForWidgetGate();
     var uiApi = injectWidget(scriptBase);
     var appendMessage = uiApi.appendMessage, removeTyping = uiApi.removeTyping, showMessageInChat = uiApi.showMessageInChat;
+    if (_tonyE2eMode) {
+        var appendMessageBase = appendMessage;
+        appendMessage = function(text, type) {
+            appendMessageBase(text, type);
+            if (type === 'tony' && _tonyE2eTurnStartMs) tonyE2eScheduleTurnEnd();
+        };
+    }
     window.__tonyFreemiumBlocked = _initialPlanGate === 'free';
     if (_initialPlanGate === 'free') {
         var _fabHideInit = document.getElementById('tony-fab');
@@ -6191,7 +6275,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 appendMessage('Tony non è ancora pronto. Attendi qualche secondo e riprova.', 'error');
                 return;
             }
-            if (window.__tonyFreemiumBlocked) {
+            if (window.__tonyFreemiumBlocked || window.__GFV_TONY_E2E_FORCE_FREEMIUM) {
                 releaseVoiceTurnFromIntercept();
                 appendMessage('Tony non è disponibile sul piano Free. Passa al piano Base dalla pagina Abbonamento.', 'error');
                 return;
@@ -6218,6 +6302,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             if (!opts.proactive && !opts._suppressUserBubble) {
                 tonySetLastUserMessage(text);
             }
+            if (!opts.proactive && !opts._displayOnly) tonyE2eTurnStart();
             if (checkFarewellIntent(text)) opts.isClosingSession = true;
             if (window.speechSynthesis) window.speechSynthesis.cancel();
             if (!opts.proactive && !opts._suppressUserBubble) {
@@ -7239,7 +7324,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                         commandToExecute.modulo || 
                                         '';
                             // Il service (ask/CF) ha già chiamato triggerAction → onAction: non ripetere (evita doppio messaggio guard profilo campo)
-                            var apriPaginaAlreadyHandledByService = (typeof rawData === 'object' && rawData !== null && rawData.command);
+                            var apriPaginaAlreadyHandledByService = tonyResponseCommandAlreadyHandledByService(rawData);
                             // Evita doppia esecuzione: se siamo già su terreni e target è terreni, il service ha già gestito (guard -> FILTER_TABLE)
                             var _isOnTerreni = (typeof window !== 'undefined' && (
                                 (window.location.pathname || '').indexOf('terreni') >= 0 ||
@@ -7279,7 +7364,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             
                             // Evita doppio enqueue: tony-service chiama triggerAction prima di restituire { text, command },
                             // quindi onAction callback ha già accodato. Non enqueueare di nuovo.
-                            var responseFromService = (typeof rawData === 'object' && rawData && rawData.command);
+                            var responseFromService = tonyResponseCommandAlreadyHandledByService(rawData);
                             var skipEnqueueForSumColumn = (commandToExecute.type === 'SUM_COLUMN');
                             if (responseFromService) {
                                 // Comando già gestito da triggerAction -> onAction-callback
@@ -7733,6 +7818,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             }
 
             function tonyFinalizeSendToCf() {
+            if (_tonyE2eMode && !window.__GFV_TONY_E2E_MOCK_CF) _tonyE2eCfCalled = true;
             scheduleVoiceTurnGuard();
             if (opts.fromVoice) {
                 console.log('[Tony] Voice: dispatch verso CF…');

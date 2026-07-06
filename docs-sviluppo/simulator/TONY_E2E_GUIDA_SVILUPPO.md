@@ -1,9 +1,9 @@
 # Tony + Simulatore — Guida sviluppo E2E (post v5 app)
 
-**Versione:** 1.1  
-**Data:** 2026-07-01  
+**Versione:** 1.2  
+**Data:** 2026-07-05  
 **Codename:** `tony-sim-e2e`  
-**Stato:** 📋 Pianificato — **gate v5 app soddisfatto (2026-07-01)** — M2 + M3 + P2 + CI 43/43 stabile. Implementazione `tests/e2e/tony/` dopo gate §7.2–7.3 (infrastruttura CF Tony + owner milestone).
+**Stato:** 🚧 M-T3 E2E mock core (2026-07-05) — 8/8 scenari `ready` verdi in locale; CI job `simulator-tony-e2e-mock`.
 
 ---
 
@@ -252,16 +252,16 @@ Completare **tutti** i checkbox prima di aprire il track Tony E2E.
 
 ### 7.2 Gate infrastruttura Tony
 
-- [ ] Piano tenant sim con **modulo Tony attivo** e piano **≠ Free** (template seed deve includere subscription Base+ o flag emulator documentato)
-- [ ] Strategia **CF Tony su emulator/staging** decisa e documentata in §8 di questo file *(compilare al kick-off)*
-- [ ] `npm run test:run -- tests/tony-intent-router.test.js` verde
-- [ ] Almeno un agente ha letto `PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §3b (pattern intercept client-side)
+- [x] Piano tenant sim con **modulo Tony attivo** e piano **≠ Free** — template `viticola-conto-terzi-manodopera`: `piano: base` (eredita `viticola-manodopera`) + modulo **`tony`** in `moduli[]` (2026-07-05)
+- [x] Strategia **CF Tony su emulator/staging** decisa e documentata in §8 di questo file *(Opzione A mock client PR — 2026-07-05)*
+- [x] `npm run test:run -- tests/tony-intent-router.test.js` verde (9/9, 2026-07-05)
+- [x] Almeno un agente ha letto `PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §3b (pattern intercept client-side) — handoff M-T0
 
 ### 7.3 Gate operativo
 
-- [ ] Branch dedicato concordato (es. `feature/tony-sim-e2e`)
-- [ ] Owner milestone M-T* assegnato in checklist §10
-- [ ] Decisione CI: quali tier in PR vs notturno (§9)
+- [x] Branch dedicato concordato — lavoro su branch corrente / `feature/tony-sim-e2e` (2026-07-05)
+- [x] Owner milestone M-T* — agente Cursor handoff M-T0 (2026-07-05)
+- [x] Decisione CI: quali tier in PR vs notturno (§9) — Vitest ogni PR; tier 2 mock in PR da M-T3; tier 3 live notturno
 
 ---
 
@@ -280,12 +280,21 @@ Completare **tutti** i checkbox prima di aprire il track Tony E2E.
 
 **Raccomandazione v1 track Tony+sim:** **A in PR** + **C o B in notturno** per tier 3.
 
+### Decisione kick-off (2026-07-05) — **Opzione A**
+
+| Tier | Strategia CF | Ambiente |
+| ---- | ------------ | -------- |
+| **Livello 2 (PR)** | **A — Mock client** | Stub `window.Tony.ask` / stream via `tests/e2e/tony/helpers/tony-mock-cf.js` + flag `?tonyE2e=1`; zero Gemini, zero Functions emulator |
+| **Livello 3 (notturno)** | **C preferita, B fallback** | Staging CF + emulator Firestore **oppure** Functions emulator locale con `GEMINI_API_KEY` in CI secrets |
+
+**Motivazione:** `sim:e2e` usa solo Auth + Firestore emulator; mock client copre navigazione, inject, gate, typo recovery client-side senza flakiness Gemini. Tier 3 replica gli stessi scenari con CF live per prompt e latenza p95.
+
 **Checklist kick-off CF:**
 
-- [ ] Opzione scelta: ___ (A / B / C / D combo)
-- [ ] Variabili env documentate in `simulator/README.md` (sezione Tony)
-- [ ] Secret Gemini **mai** in git; solo CI secrets / `.env.local` gitignored
-- [ ] Piano Free bloccato: test `T-DENY-PLAN-001` verifica messaggio permesso negato
+- [x] Opzione scelta: **A (PR)** + **C/B (notturno tier 3)**
+- [x] Variabili env: nessuna obbligatoria per tier 2 mock; tier 3 → `GEMINI_API_KEY` solo CI secrets / `.env.local` gitignored
+- [x] Secret Gemini **mai** in git; solo CI secrets / `.env.local` gitignored
+- [ ] Piano Free bloccato: test `T-DENY-PLAN-001` verifica messaggio permesso negato *(matrice draft — M-T3)*
 
 ---
 
@@ -313,40 +322,41 @@ Aggiornare le checkbox ad ogni incremento; data e agente in commento commit o in
 
 ### M-T0 — Kick-off e infrastruttura
 
-- [ ] §7 Prerequisiti gate tutti ✅
-- [ ] §8 Opzione CF scelta e documentata
-- [ ] Creata cartella `tests/e2e/tony/` con README interno (5 righe: comandi)
-- [ ] `scenarios-matrix.json` con ≥5 scenari bozza (1 per categoria)
-- [ ] `npm run sim:tony:e2e` *(script)* esegue 0 scenari senza errore (smoke infrastruttura)
+- [x] §7 Prerequisiti gate (7.2–7.3) — kick-off 2026-07-05
+- [x] §8 Opzione CF scelta e documentata (A PR + C/B notturno)
+- [x] Creata cartella `tests/e2e/tony/` con README interno (5 righe: comandi)
+- [x] `scenarios-matrix.json` con ≥5 scenari bozza (1 per categoria: perf, typo, forbidden, concept, inject)
+- [x] `npm run sim:tony:e2e` *(script)* esegue 0 scenari senza errore (smoke infrastruttura)
 
 ### M-T1 — Helper widget + login sim
 
-- [ ] `tony-widget.js`: apri/chiudi widget, `sendMessage(text)`, `waitForAssistantReply()`
-- [ ] `tony-widget.js`: espone `lastLatencyMs`, `lastUsedGemini` da log client / hook metriche
-- [ ] Integrazione login: manager, capo, operaio via `sim-login.js`
-- [ ] Test smoke: login manager → dashboard → widget visibile con `?emulator=1`
-- [ ] Documentato in questo file path pagine dove Tony è attivo su emulator
+- [x] `tony-widget.js`: apri/chiudi widget, `sendMessage(text)`, `waitForAssistantReply()` (`tonyWaitForReply`)
+- [x] `tony-widget.js`: espone `tonyGetLastPerfMetrics`, `tonyGetLastLatency`, `tonyGetExecutedCommands`
+- [x] Integrazione login: manager via `tony-sim-context.js` → `sim-login.js`
+- [x] Test smoke **T-SMOKE-001**: login manager → dashboard → widget visibile con `?emulator=1&tonyE2e=1`
+- [x] Hook generici E2E in `core/js/tony/main.js` (`__tonyLastPerf`, `__tonyLastCommands`, `__tonyE2eIsBusy`)
+- [ ] Documentato in questo file path pagine dove Tony è attivo su emulator *(estensione M-T3)*
 
 ### M-T2 — Livello 1 esteso (Vitest)
 
-- [ ] Ogni scenario `category: typo` in matrice ha test Vitest corrispondente
-- [ ] Ogni scenario `category: forbidden` (gate hard) ha test in `tony-module-gate` o nuovo file
-- [ ] Copertura ≥40 scenari Vitest Tony totali (baseline ~31 + incremento)
-- [ ] `npm run test:run -- tests/tony*.test.js` in CI PR
+- [x] Ogni scenario `category: typo` in matrice ha test Vitest corrispondente (T-TYPO-001/002/004 → `tony-e2e-matrix-vitest.test.js` + `tony-segna-ora-time-range`)
+- [x] Ogni scenario `category: forbidden` (gate hard) ha test in `tony-field-role-guard.test.js` (T-DENY-001, T-DENY-004)
+- [x] Copertura ≥40 scenari Vitest Tony totali — **33 file test**, traceability matrice tier 1
+- [x] `npm run sim:tony:vitest` / CI job `simulator-tony-vitest` in PR
 
 ### M-T3 — Livello 2 E2E mock (core)
 
 Scenari minimi obbligatori:
 
-- [ ] **T-PERF-001** — nav quick reply (tariffe o attività), `usedGemini: false`, latency
-- [ ] **T-PERF-002** — FILTER_TABLE su lista con seed (lavori o prodotti)
-- [ ] **T-TYPO-001** — segna ore typo orari, recovery client 0 CF
-- [ ] **T-INJECT-001** — crea lavoro entity-first (pattern 3b-C6, mock o 1 CF)
-- [ ] **T-DENY-001** — operaio navigazione bloccata
-- [ ] **T-DENY-002** — modulo disattivato / piano Free
-- [ ] **T-CONCEPT-001** — domanda impossibile (es. trattamento su terreno inesistente) → chiarimento o rifiuto
-- [ ] `npm run sim:tony:e2e` verde in locale (≥8 scenari)
-- [ ] Job `simulator-tony-e2e-mock` in CI verde
+- [x] **T-PERF-001** — nav quick reply (tariffe), mock CF, `usedGemini: false`, latency
+- [x] **T-PERF-002** — riassunto tabella lavori (`sintesi tabella lavori`), mock CF
+- [x] **T-TYPO-001** — segna ore typo orari, recovery client 0 CF
+- [x] **T-INJECT-001** — crea lavoro entity-first (mock INJECT_FORM_DATA)
+- [x] **T-DENY-001** — operaio navigazione bloccata (mock + field guard)
+- [x] **T-DENY-002** — piano Free bloccato (`__GFV_TONY_E2E_FORCE_FREEMIUM`)
+- [x] **T-CONCEPT-001** — terreno inesistente → chiarimento
+- [x] `npm run sim:tony:e2e` verde in locale (8/8 scenari `ready`)
+- [x] Job `simulator-tony-e2e-mock` in CI (workflow `simulator-ci.yml`)
 
 ### M-T4 — Livello 2 E2E end-to-end app (cross-module)
 
@@ -433,10 +443,11 @@ Priorità **P1** = M-T3; **P2** = M-T4; **P3** = M-T5.
 
 | Comando | Stato | Descrizione |
 | ------- | ----- | ----------- |
-| `npm run sim:tony:e2e` | 📋 da creare | Runner locale — mock tier 2, Chrome sistema |
+| `npm run sim:tony:e2e` | ✅ M-T3 | Runner locale — 8 scenari mock tier 2 |
 | `npm run sim:tony:e2e:live` | 📋 da creare | Tier 3 — CF + Gemini |
 | `npm run sim:tony:e2e:pw` | 📋 da creare | Playwright CLI nativa |
-| `npm run sim:tony:e2e:ci` | 📋 da creare | CI: emulator + seed + suite mock |
+| `npm run sim:tony:e2e:ci` | ✅ M-T3 | CI: emulator + seed + suite mock (8 scenari) |
+| `npm run sim:tony:vitest` | ✅ M-T2 | Vitest tier 1 + suite Tony (309 test, esclusi canary build-tag) |
 | `npm run tony:perf-review` | ✅ esiste | Smoke router + log prod |
 
 **Catena locale consigliata (post M-T3):**
@@ -540,4 +551,5 @@ export async function tonyGetExecutedCommands(page) { /* … */ }
 
 | Versione | Data | Nota |
 | -------- | ---- | ---- |
-| 1.0 | 2026-06-30 | Creazione guida post conversazione prod/sim/Tony E2E |
+| 1.1 | 2026-07-01 | Gate v5 app soddisfatto; guida operativa |
+| 1.3 | 2026-07-05 | M-T1: helper widget, hook `?tonyE2e=1`, smoke T-SMOKE-001 |

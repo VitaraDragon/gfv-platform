@@ -7,6 +7,14 @@ on:
       - 'simulator/**'
       - 'tests/simulator/**'
       - 'tests/e2e/sim/**'
+      - 'tests/e2e/tony/**'
+      - 'tests/tony/**'
+      - 'tests/tony*.test.js'
+      - 'core/js/tony/**'
+      - 'core/js/gfv-tony-loader.js'
+      - 'scripts/sim-tony-e2e-run.mjs'
+      - 'scripts/sim-ci-tony-e2e-inner.sh'
+      - 'simulator/ci-tony-e2e-run.js'
       - 'modules/frutteto/**'
       - 'scripts/sim-e2e-run.mjs'
       - 'scripts/sim-ci-e2e-inner.sh'
@@ -23,6 +31,14 @@ on:
       - 'simulator/**'
       - 'tests/simulator/**'
       - 'tests/e2e/sim/**'
+      - 'tests/e2e/tony/**'
+      - 'tests/tony/**'
+      - 'tests/tony*.test.js'
+      - 'core/js/tony/**'
+      - 'core/js/gfv-tony-loader.js'
+      - 'scripts/sim-tony-e2e-run.mjs'
+      - 'scripts/sim-ci-tony-e2e-inner.sh'
+      - 'simulator/ci-tony-e2e-run.js'
       - 'modules/frutteto/**'
       - 'scripts/sim-e2e-run.mjs'
       - 'scripts/sim-ci-e2e-inner.sh'
@@ -100,5 +116,58 @@ jobs:
 
       - name: Run Playwright E2E (triple-seed + verify operativo + 71 spec)
         run: npm run sim:e2e:ci
+        env:
+          CI: true
+
+  simulator-tony-vitest:
+    name: sim:tony:vitest (Tony tier 1 matrix)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run Tony Vitest (matrix typo/forbidden + suite)
+        run: npm run sim:tony:vitest
+
+  simulator-tony-e2e-mock:
+    name: sim:tony:e2e (Tony tier 2 mock)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Setup Java (Firestore Emulator)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npm run sim:e2e:install
+
+      - name: Run Tony E2E mock (8 scenari core)
+        run: npm run sim:tony:e2e:ci
         env:
           CI: true

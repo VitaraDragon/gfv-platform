@@ -1,6 +1,97 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-05 — E2E locale Node 24 + filtro scenari write P2.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-06 — Tony E2E M-T4 completo (16/16 scenari).
+
+## Tony + Simulatore — M-T4 E2E preventivo (2026-07-06) — 16/16
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| Scenario nuovo | **T-FLOW-014** (3b-C14 preventivo: inject cliente+coltura → disamb. terreno Tony → save locale 0 CF → bozza in elenco) |
+| Helper | `tony-preventivo-flow-discover.js`, `tony-preventivo-save.js`; assert `assertPreventivoInLista` in `tony-post-save.js` |
+| Runner | `flow-preventivo-014.mjs` |
+| Comando | `npm run sim:tony:e2e` → **16/16 OK** (8 M-T3 + 8 M-T4) |
+| Prossimo | M-T5 live + perf |
+
+## Tony + Simulatore — M-T4 E2E magazzino (2026-07-06) — 15/15
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| Scenari nuovi | **T-FLOW-015** (3b-C15 save prodotto inject), **T-FLOW-017** (3b-C17 uscita), **T-FLOW-018** (3b-C18 creazione prodotto), **T-FLOW-019** (3b-C19 cross-page entrata) |
+| Helper | `tony-magazzino-save.js`, `tony-magazzino-cross-page.js`; assert `assertProdottoInLista` / `assertMovimentoUscitaInLista` in `tony-post-save.js` |
+| Runner | `flow-prodotto-015.mjs`, `flow-prodotto-018.mjs`, `flow-movimento-017.mjs`, `flow-movimento-019.mjs` |
+| Comando | `npm run sim:tony:e2e` → **15/15 OK** (8 M-T3 + 7 M-T4) |
+| Prossimo | Preventivo multi-turno; M-T5 live + perf |
+
+## Tony + Simulatore — M-T4 E2E cross-module (2026-07-06) — 11/11
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| Scenari nuovi | **T-FLOW-013** (3b-C13 cross-page lavoro: terreni ambigui + operaio ambiguo → save → lista) |
+| Helper | `tony-lavoro-flow-discover.js`, `tony-lavoro-cross-page.js`, `tony-lavoro-save.js` (`ensureLavoroFormComplete`); runner `flow-lavoro-013.mjs` |
+| Fix E2E | Discovery tipo esatto da `tipiLavoroList`; patch form pre-save (tipo/macchine); assert lista senza note in tabella; T-DENY-001 ruoli operaio + wait messaggio guard |
+| Comando | `npm run sim:tony:e2e` → **11/11 OK** (8 M-T3 + 3 M-T4: T-FLOW-013, T-FLOW-021, T-FLOW-016) |
+| Prossimo | M-T4 resto: C15/C17/C18/C19, preventivo multi-turno |
+
+## Tony + Simulatore — M-T4 E2E cross-module (2026-07-05)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| Scenari nuovi | **T-FLOW-021** (3b-C21 segna ore → validazione manager), **T-FLOW-016** (3b-C16 movimento entrata → lista) |
+| Helper | `tony-multi-turn.js`, `tony-post-save.js`; runner dedicati `flow-segna-ore-021.mjs`, `flow-movimento-016.mjs` |
+| Assert post-save | Marker `GFV_SIM_TONY_E2E_ORE` / `GFV_SIM_TONY_E2E_MOVIMENTO`; coda validazione ore + tabella movimenti |
+| Comando | `npm run sim:tony:e2e` → **10/10 OK** (8 M-T3 + 2 M-T4) |
+| Prossimo | M-T4 resto: 3b-C13, C15/C17/C18/C19, preventivo multi-turno |
+
+## Tony + Simulatore — M-T3 E2E mock core (2026-07-05)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| Scenari | 8/8 `ready` in `tests/e2e/tony/fixtures/scenarios-matrix.json` (T-SMOKE-001 + 7 core M-T3) |
+| Mock CF | `tests/e2e/tony/helpers/tony-mock-cf.js` + `tony-mock-responses.mjs` — wrap `Tony.ask`/`askStream` |
+| Runner | `run-matrix-scenario.mjs` generico da matrice; pagina fresh per scenario |
+| Bootstrap Tony | `captureTonyTenantSnapshot` post-login + `restoreTonyTenantSnapshot` su module/mobile pages |
+| Fix prodotto | `gfv-tony-loader.js` path `/core/mobile/`; hook E2E mock/freemium in `main.js` |
+| Comando | `npm run sim:tony:e2e` → **8/8 OK** (emulator + `npm start` + seed template) |
+| CI | Job `simulator-tony-e2e-mock` in `.github/workflows/simulator-ci.yml` |
+| Prossimo | **M-T4** E2E cross-module (3b-C*) |
+
+## Tony + Simulatore — M-T2 Vitest matrice typo/forbidden (2026-07-05)
+
+**Obiettivo:** Livello 1 — ogni scenario typo/forbidden in `scenarios-matrix.json` coperto da Vitest + CI.
+
+| Area | Dettaglio |
+|------|-----------|
+| Matrice | T-TYPO-001/002/004, T-DENY-001/004 (tier 1) |
+| Test nuovi | `tests/tony/tony-e2e-matrix-vitest.test.js`, `tests/tony-field-role-guard.test.js` |
+| Fix parser | `engine.js` — «dalle 6 **al** 18» (T-TYPO-002) |
+| Comando | **`npm run sim:tony:vitest`** → **33 file / 309 test** (canary build-tag esclusi) |
+| CI | Job `simulator-tony-vitest` in `simulator-ci.yml` |
+| Prossimo | **M-T3** E2E mock core (≥8 scenari) |
+
+## Tony + Simulatore — M-T1 helper widget + smoke (2026-07-05)
+
+**Obiettivo:** helper Playwright Tony + smoke login/dashboard/widget (**T-SMOKE-001**).
+
+| Area | Dettaglio |
+|------|-----------|
+| Helper | `tests/e2e/tony/helpers/tony-widget.js` — send/wait/metriche; `tony-sim-context.js` — login + assert tenant |
+| Hook client | `core/js/tony/main.js` — `?tonyE2e=1`: `__tonyLastPerf`, `__tonyLastCommands`, `__tonyE2eIsBusy` |
+| Smoke | **T-SMOKE-001** (`status: ready`) — manager, dashboard, FAB, Tony Avanzato attivo |
+| Comando | `npm run sim:tony:e2e` → **1/1** atteso (re-seed se tenant senza modulo `tony`) |
+| Prossimo | **M-T2** Vitest esteso su matrice typo/forbidden |
+
+## Tony + Simulatore — M-T0 infrastruttura E2E (2026-07-05)
+
+**Obiettivo:** kick-off track `tony-sim-e2e` — cartella test, runner smoke, matrice scenari, seed con Tony Avanzato.
+
+| Area | Dettaglio |
+|------|-----------|
+| Struttura | `tests/e2e/tony/` — helpers stub, `fixtures/scenarios-matrix.json` (5 bozza), `perf/latency-budgets.json` |
+| Runner | `scripts/sim-tony-e2e-run.mjs` → **`npm run sim:tony:e2e`** (0 scenari `ready`, smoke infra OK) |
+| CI stub | `simulator/ci-tony-e2e-run.js`, `scripts/sim-ci-tony-e2e-inner.sh` → **`npm run sim:tony:e2e:ci`** |
+| CF strategy | **Opzione A** mock client in PR; tier 3 live notturno (§8 `TONY_E2E_GUIDA_SVILUPPO.md`) |
+| Seed | Template `viticola-conto-terzi-manodopera`: `piano: base` + modulo **`tony`** in `moduli[]` |
+| Prossimo | **M-T1** helper widget + login smoke |
 
 ## GFV Farm Simulator — E2E locale Node 24 + filtro scenari (2026-07-05)
 
@@ -418,7 +509,7 @@
 
 **Link:** `simulator/README.md`, `GFV_FARM_SIMULATOR.md` §11.3.8/§11.3.9, `docs-sviluppo/tony/README.md`.
 
-**Stato:** 📋 Pianificato — **gate v5 app soddisfatto (2026-07-01)** — implementazione codice (`tests/e2e/tony/`, `sim:tony:e2e`) può iniziare dopo gate §7.2–7.3.
+**Stato:** 📋 Pianificato — **gate v5 app soddisfatto (2026-07-01)** — **M-T0 kick-off (2026-07-05)**: infrastruttura `tests/e2e/tony/`, `sim:tony:e2e`, matrice 5 bozza; scenari E2E da M-T3.
 
 ## GFV Farm Simulator — M2 chiusa: read residue template viticola-conto-terzi-manodopera (2026-06-30)
 

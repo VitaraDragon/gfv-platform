@@ -1,0 +1,321 @@
+{
+  "schemaVersion": 1,
+  "description": "Matrice scenari Tony E2E — M-T4 cross-module (16 ready)",
+  "scenarios": [
+    {
+      "id": "T-SMOKE-001",
+      "status": "ready",
+      "tier": 2,
+      "category": "infra",
+      "description": "Login manager → dashboard → widget Tony visibile (Tony Avanzato attivo)",
+      "persona": "manager",
+      "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": [],
+      "mockCf": false,
+      "expect": {
+        "widgetVisible": true,
+        "tonyAdvancedActive": true
+      }
+    },
+    {
+      "id": "T-PERF-001",
+      "status": "ready",
+      "tier": 2,
+      "category": "perf",
+      "description": "Nav quick reply — portami alle tariffe",
+      "persona": "manager",
+      "templateIncludes": "conto-terzi",
+      "startUrl": "/modules/conto-terzi/views/tariffe-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerContoTerzi",
+      "messages": ["portami alle tariffe"],
+      "mockCf": true,
+      "expect": {
+        "latencyMsMax": 800,
+        "usedGemini": false,
+        "responseMustMatch": ["tariff"],
+        "navigation": { "urlIncludes": "tariffe-standalone" }
+      }
+    },
+    {
+      "id": "T-PERF-002",
+      "status": "ready",
+      "tier": 2,
+      "category": "filter_table",
+      "description": "RIASSUNTO su lista lavori con seed",
+      "persona": "manager",
+      "startUrl": "/core/admin/gestione-lavori-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerManodopera",
+      "messages": ["sintesi tabella lavori"],
+      "mockCf": true,
+      "expect": {
+        "latencyMsMax": 1200,
+        "usedGemini": false,
+        "responseMustMatch": ["lavor"],
+        "commands": ["RIASSUNTO"]
+      }
+    },
+    {
+      "id": "T-TYPO-001",
+      "status": "ready",
+      "tier": 1,
+      "category": "typo",
+      "description": "Orari workspace — typo STT-like (client recovery 0 CF)",
+      "persona": "operaio",
+      "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsOperaioFromDevPage",
+      "messages": ["daklle 6 aslle 18"],
+      "mockCf": false,
+      "expect": {
+        "clientRecovery": true,
+        "injectedFields": ["ora-inizio", "ora-fine"],
+        "cfCallsMax": 0,
+        "latencyMsMax": 2500
+      }
+    },
+    {
+      "id": "T-TYPO-002",
+      "status": "draft",
+      "tier": 1,
+      "category": "typo",
+      "description": "Orari workspace — «dalle 6 al 18» (variante «al»)",
+      "persona": "operaio",
+      "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsOperaioFromDevPage",
+      "messages": ["dalle 6 al 18"],
+      "mockCf": false,
+      "expect": {
+        "clientRecovery": true,
+        "injectedFields": ["ora-inizio", "ora-fine"],
+        "cfCallsMax": 0
+      }
+    },
+    {
+      "id": "T-TYPO-004",
+      "status": "draft",
+      "tier": 1,
+      "category": "typo",
+      "description": "Conferma «ok salva» dopo intervista ore — save locale 0 CF",
+      "persona": "operaio",
+      "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsOperaioFromDevPage",
+      "messages": ["ok salva"],
+      "mockCf": false,
+      "expect": {
+        "clientRecovery": true,
+        "cfCallsMax": 0
+      }
+    },
+    {
+      "id": "T-DENY-001",
+      "status": "ready",
+      "tier": 1,
+      "category": "forbidden",
+      "description": "Operaio — APRI_PAGINA gestione utenti bloccato",
+      "persona": "operaio",
+      "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsOperaioFromDevPage",
+      "messages": ["apri gestione utenti"],
+      "mockCf": true,
+      "expect": {
+        "navigation": { "mustNotChange": true },
+        "responseMustMatch": ["non posso"]
+      }
+    },
+    {
+      "id": "T-DENY-002",
+      "status": "ready",
+      "tier": 2,
+      "category": "forbidden",
+      "description": "Manager piano Free — navigazione Tony bloccata",
+      "persona": "manager",
+      "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["portami alle tariffe"],
+      "mockCf": false,
+      "expect": {
+        "usedGemini": false,
+        "responseMustMatch": ["piano free", "abbonament"],
+        "responseMustNotMatch": ["sessione scaduta"],
+        "navigation": { "mustNotChange": true }
+      }
+    },
+    {
+      "id": "T-DENY-004",
+      "status": "draft",
+      "tier": 1,
+      "category": "forbidden",
+      "description": "Operaio — validazione ore bloccata (solo caposquadra)",
+      "persona": "operaio",
+      "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsOperaioFromDevPage",
+      "messages": ["apri validazione ore"],
+      "mockCf": false,
+      "expect": {
+        "navigation": { "mustNotChange": true },
+        "commandsMustNot": ["APRI_PAGINA:validazione-ore"]
+      }
+    },
+    {
+      "id": "T-CONCEPT-001",
+      "status": "ready",
+      "tier": 2,
+      "category": "concept",
+      "description": "Trattamento su terreno inesistente — chiarimento o rifiuto",
+      "persona": "manager",
+      "startUrl": "/modules/vigneto/views/trattamenti-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["registra trattamento sul terreno XYZ999"],
+      "mockCf": true,
+      "expect": {
+        "responseMustMatch": ["terren", "non trov"],
+        "commandsMustNot": ["INJECT_FORM_DATA"]
+      }
+    },
+    {
+      "id": "T-INJECT-001",
+      "status": "ready",
+      "tier": 2,
+      "category": "inject",
+      "description": "Crea lavoro entity-first (pattern 3b-C6)",
+      "persona": "manager",
+      "startUrl": "/core/admin/gestione-lavori-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerManodopera",
+      "messages": ["crea lavoro potatura vigneto nord domani"],
+      "mockCf": true,
+      "expect": {
+        "injectedFields": ["terreno", "tipo-lavoro"]
+      }
+    },
+    {
+      "id": "T-FLOW-014",
+      "status": "ready",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Preventivo multi-step — disamb. terreno + save locale + lista (3b-C14)",
+      "persona": "manager",
+      "templateIncludes": "conto-terzi",
+      "startUrl": "/modules/conto-terzi/views/nuovo-preventivo-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerContoTerzi",
+      "messages": [],
+      "mockCf": false,
+      "expect": {
+        "cfCallsMax": 0,
+        "usedGemini": false
+      }
+    },
+    {
+      "id": "T-FLOW-013",
+      "status": "ready",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Cross-page lavoro — terreni ambigui + operaio + save (3b-C13)",
+      "persona": "manager",
+      "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerManodopera",
+      "messages": [],
+      "mockCf": false,
+      "expect": {
+        "cfCallsMax": 0,
+        "usedGemini": false
+      }
+    },
+    {
+      "id": "T-FLOW-021",
+      "status": "ready",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Segna ore workspace — intervista + save locale + validazione manager (3b-C21)",
+      "persona": "operaio",
+      "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsOperaioFromDevPage",
+      "messages": ["segniamo le ore", "8", "17", "0", "ok"],
+      "mockCf": false,
+      "expect": {
+        "clientRecovery": true,
+        "cfCallsMax": 0,
+        "injectedFields": ["ora-inizio", "ora-fine"]
+      }
+    },
+    {
+      "id": "T-FLOW-015",
+      "status": "ready",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Save prodotto magazzino dopo inject completo (3b-C15)",
+      "persona": "manager",
+      "startUrl": "/modules/magazzino/views/prodotti-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": [],
+      "mockCf": false,
+      "expect": {
+        "cfCallsMax": 0,
+        "usedGemini": false
+      }
+    },
+    {
+      "id": "T-FLOW-017",
+      "status": "ready",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Movimento uscita client-side + save + lista (3b-C17)",
+      "persona": "manager",
+      "startUrl": "/modules/magazzino/views/movimenti-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["registra uscita rame 5 litri", "salva"],
+      "mockCf": false,
+      "expect": {
+        "cfCallsMax": 0,
+        "usedGemini": false
+      }
+    },
+    {
+      "id": "T-FLOW-018",
+      "status": "ready",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Creazione prodotto client-side + save + lista (3b-C18)",
+      "persona": "manager",
+      "startUrl": "/modules/magazzino/views/prodotti-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": [],
+      "mockCf": false,
+      "expect": {
+        "cfCallsMax": 0,
+        "usedGemini": false
+      }
+    },
+    {
+      "id": "T-FLOW-019",
+      "status": "ready",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Cross-page movimento entrata dashboard → save + lista (3b-C19)",
+      "persona": "manager",
+      "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["crea entrata rame 10 unità"],
+      "mockCf": false,
+      "expect": {
+        "cfCallsMax": 0,
+        "usedGemini": false
+      }
+    },
+    {
+      "id": "T-FLOW-016",
+      "status": "ready",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Movimento entrata client-side + save + riga lista (3b-C16)",
+      "persona": "manager",
+      "startUrl": "/modules/magazzino/views/movimenti-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["crea entrata rame 10 unità", "salva"],
+      "mockCf": false,
+      "expect": {
+        "cfCallsMax": 0,
+        "usedGemini": false
+      }
+    }
+  ]
+}

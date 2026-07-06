@@ -174,12 +174,15 @@ Documenti creati per riprendere il lavoro **senza perdere contesto** (prompt, ba
 
 | Documento | Quando usarlo |
 |-----------|----------------|
+| **`docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md`** | Track **Tony E2E su seed sim** (M-T0…M-T6): matrice scenari, mock CF PR, milestone |
 | **`HANDOFF_CONTINUITA_PERFORMANCE_NAV.md`** | Performance Tony, nav quick reply, metriche client, `tony:perf-review`, fix meteo test |
 | **`HANDOFF_TTS_CHIRP3.md`** | Cambio voce Wavenet → Chirp 3 HD (o Neural2), `getTonyAudio`, cache `voice.js` |
 | `PIANO_AUDIO_PIPELINE_BARGEIN.md` | Barge-in, generation token, chunking TTS Fase 2 |
 | `PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` | Piano formale Fase 0–4, obiettivi −40% / p50 |
 
 Indice: `docs-sviluppo/tony/README.md`.
+
+**Tony + sim E2E (2026-07-06, M-T3 ✅, M-T4 completo ✅):** 16 scenari mock tier 2 verdi (`npm run sim:tony:e2e`): 8 core M-T3 + **T-FLOW-013/014/015/016/017/018/019/021** (canary 3b-C13…C21 lavori, preventivo, magazzino). Vitest tier 1: `npm run sim:tony:vitest`. Prossimo: M-T5 live.
 
 ---
 

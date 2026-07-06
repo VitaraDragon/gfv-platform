@@ -250,7 +250,7 @@
     (function() {
       var path = (window.location.pathname || '').replace(/\\/g, '/');
       var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
+      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/core/mobile/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : '')));
       var sep = (base && !base.endsWith('/')) ? '/' : '';
       var s = document.createElement('script');
       s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';

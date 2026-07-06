@@ -45,8 +45,15 @@ describe('matchSegnaOraTimeRangeFromBlob', () => {
     expect(matchSegnaOraTimeRangeFromBlob('segniamo le ore')).toBeNull();
   });
 
-  it('typo vocali daklle 6 aslle 18', () => {
+  it('typo vocali daklle 6 aslle 18 (T-TYPO-001)', () => {
     expect(toTimes(matchSegnaOraTimeRangeFromBlob('daklle 6 aslle 18'))).toEqual({
+      start: '06:00',
+      end: '18:00',
+    });
+  });
+
+  it('variante dalle 6 al 18 (T-TYPO-002)', () => {
+    expect(toTimes(matchSegnaOraTimeRangeFromBlob('dalle 6 al 18'))).toEqual({
       start: '06:00',
       end: '18:00',
     });

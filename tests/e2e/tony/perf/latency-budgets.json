@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "description": "Soglie latenza Tony E2E — usate da M-T3+ (tier 2 mock / tier 3 live)",
+  "defaults": {
+    "quickReplyMsMax": 800,
+    "filterTableMsMax": 1200,
+    "firstChunkMsMax": 3000,
+    "totalReplyMsMax": 45000
+  },
+  "byCategory": {
+    "perf": { "latencyMsMax": 800 },
+    "typo": { "latencyMsMax": 500, "cfCallsMax": 0 },
+    "forbidden": { "latencyMsMax": 2000 },
+    "concept": { "latencyMsMax": 5000 },
+    "inject": { "latencyMsMax": 8000 },
+    "nav": { "latencyMsMax": 800 },
+    "filter_table": { "latencyMsMax": 1200 },
+    "multi_turn": { "latencyMsMax": 15000 }
+  }
+}
