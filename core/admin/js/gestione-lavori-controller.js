@@ -1195,19 +1195,31 @@ export function populateOperaioFilter(operaiList) {
  * @param {Array} terreniList - Array terreni
  * @param {string} selectedId - ID terreno selezionato (opzionale)
  */
-export function populateTerrenoDropdown(terreniList, selectedId = null) {
+export function populateTerrenoDropdown(terreniList, selectedId = null, options = {}) {
     const select = document.getElementById('lavoro-terreno');
     if (!select) return;
     select.innerHTML = '<option value="">Seleziona terreno...</option>';
+
+    let list = Array.isArray(terreniList) ? [...terreniList] : [];
+    if (options.clienteId) {
+        list = list.filter((t) => t.clienteId === options.clienteId);
+    }
+    if (selectedId && options.extraTerreno && !list.some((t) => t.id === selectedId)) {
+        list.unshift(options.extraTerreno);
+    }
     
-    if (terreniList.length === 0) {
+    if (list.length === 0) {
         select.innerHTML = '<option value="">Nessun terreno disponibile</option>';
-        select.disabled = true;
+        if (!options.preserveDisabled) {
+            select.disabled = true;
+        }
         return;
     }
     
-    select.disabled = false;
-    terreniList.forEach(terreno => {
+    if (!options.preserveDisabled) {
+        select.disabled = false;
+    }
+    list.forEach(terreno => {
         const option = document.createElement('option');
         option.value = terreno.id;
         // Formatta superficie con 2 decimali e virgola (formato italiano)

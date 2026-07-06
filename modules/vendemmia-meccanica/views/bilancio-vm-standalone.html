@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bilancio servizio - Vendemmia Meccanica</title>
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #F3E5F5, #6A1B9A); min-height: 100vh; margin: 0; }
+        .container { max-width: 1000px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #6A1B9A, #4A148C); color: #fff; padding: 28px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; flex-wrap: wrap; }
+        .content { background: #fff; border-radius: 12px; padding: 24px; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+        .stat { background: #F3E5F5; border-radius: 8px; padding: 16px; text-align: center; }
+        .stat strong { display: block; font-size: 24px; color: #6A1B9A; }
+        .btn { padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; }
+        .btn-primary { background: #6A1B9A; color: #fff; }
+        .btn-secondary { background: #6c757d; color: #fff; text-decoration: none; display: inline-block; padding: 10px 16px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; margin-top: 12px; }
+        th, td { padding: 8px; border-bottom: 1px solid #eee; }
+        .form-inline { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; align-items: end; }
+        .form-inline input { padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div><h1>📊 Bilancio servizio</h1><p>Ricavi da calcoli − spese operative</p></div>
+        <a href="vm-home-standalone.html" class="btn btn-secondary">← Hub VM</a>
+    </div>
+    <div class="content">
+        <label>Anno <input type="number" id="filter-anno" min="2020" max="2100" style="margin-left:8px;padding:6px;"></label>
+        <button type="button" class="btn btn-primary" id="btn-refresh" style="margin-left:12px;">Aggiorna</button>
+        <div class="stats" id="kpi"></div>
+        <h2 style="color:#6A1B9A;">Spese</h2>
+        <table><thead><tr><th>Data</th><th>Descrizione</th><th>Importo</th><th></th></tr></thead><tbody id="tbody-spese"></tbody></table>
+        <div class="form-inline">
+            <input type="date" id="spesa-data">
+            <input type="text" id="spesa-desc" placeholder="Descrizione">
+            <input type="number" id="spesa-importo" step="0.01" placeholder="Importo €">
+            <button type="button" class="btn btn-primary" id="btn-add-spesa">Aggiungi spesa</button>
+        </div>
+    </div>
+</div>
+<script>const sc=document.createElement('script');sc.src='../../../core/config/firebase-config.js';document.head.appendChild(sc);</script>
+<script type="module">
+import { initVmPageAuth } from '../js/vm-page-auth.js';
+import { getBilancioVmAnno, addSpesaVm, deleteSpesaVm } from '../services/bilancio-vm-service.js';
+import { getAnnoStagioneCorrente } from '../config/vm-constants.js';
+
+function fmt(n) { return '€ ' + (Number(n) || 0).toFixed(2); }
+
+async function refresh() {
+    const anno = Number(document.getElementById('filter-anno').value) || getAnnoStagioneCorrente();
+    const b = await getBilancioVmAnno(anno);
+    document.getElementById('kpi').innerHTML = [
+        ['Ricavi', fmt(b.ricavi)],
+        ['Spese', fmt(b.spese)],
+        ['Margine', fmt(b.margine)],
+        ['Calcoli', b.numCalcoli]
+    ].map(([l, v]) => '<div class="stat"><strong>' + v + '</strong>' + l + '</div>').join('');
+
+    const tbody = document.getElementById('tbody-spese');
+    if (!b.dettaglioSpese.length) {
+        tbody.innerHTML = '<tr><td colspan="4" style="color:#888;">Nessuna spesa</td></tr>';
+    } else {
+        tbody.innerHTML = b.dettaglioSpese.map(s => '<tr><td>' + (s.data || '') + '</td><td>' + (s.descrizione || '') + '</td><td>' + fmt(s.importo) + '</td><td><button type="button" class="btn btn-primary" data-del="' + s.id + '" style="background:#dc3545;">Elimina</button></td></tr>').join('');
+    }
+}
+
+try {
+    await initVmPageAuth();
+    document.getElementById('filter-anno').value = String(getAnnoStagioneCorrente());
+    document.getElementById('spesa-data').value = new Date().toISOString().slice(0, 10);
+    document.getElementById('btn-refresh').addEventListener('click', refresh);
+    document.getElementById('btn-add-spesa').addEventListener('click', async () => {
+        const anno = Number(document.getElementById('filter-anno').value) || getAnnoStagioneCorrente();
+        await addSpesaVm({
+            data: document.getElementById('spesa-data').value,
+            descrizione: document.getElementById('spesa-desc').value.trim(),
+            importo: Number(document.getElementById('spesa-importo').value),
+            anno
+        });
+        document.getElementById('spesa-desc').value = '';
+        document.getElementById('spesa-importo').value = '';
+        await refresh();
+    });
+    document.getElementById('tbody-spese').addEventListener('click', async (e) => {
+        if (!e.target.dataset.del) return;
+        if (!confirm('Eliminare spesa?')) return;
+        await deleteSpesaVm(e.target.dataset.del);
+        await refresh();
+    });
+    await refresh();
+} catch (e) {
+    document.getElementById('kpi').innerHTML = '<div class="stat">' + e.message + '</div>';
+}
+</script>
+</body>
+</html>

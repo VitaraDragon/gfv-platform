@@ -23,6 +23,81 @@ const STORAGE_KEY_TENANT_PREFERRED = 'gfv_preferred_tenant_id';
 let _tenantReadyResolve = null;
 const _tenantReadyPromise = new Promise((resolve) => { _tenantReadyResolve = resolve; });
 
+let prefetchInFlight = null;
+let lastPublishedTenantId = null;
+
+/**
+ * Pubblica piano/moduli tenant per gfv-tony-loader (FAB Tony su pagine standalone).
+ * @param {Object} tenant
+ * @param {string[]|null} [modulesOpt]
+ */
+export async function publishTenantDataForTony(tenant, modulesOpt = null) {
+  if (!tenant || typeof window === 'undefined') return;
+
+  let modules = modulesOpt;
+  if (!Array.isArray(modules)) {
+    try {
+      const { resolveEffectiveModules } = await import('../utils/module-access-resolver.js');
+      modules = resolveEffectiveModules(tenant);
+    } catch (_) {
+      modules = Array.isArray(tenant.modules) ? tenant.modules.slice() : [];
+    }
+  }
+
+  if (typeof window.gfvPublishTenantForTony === 'function') {
+    window.gfvPublishTenantForTony(tenant, modules);
+    return;
+  }
+
+  const rawPlan = tenant.plan || tenant.piano || 'base';
+  const p = String(rawPlan).trim().toLowerCase();
+  const planId = (p === 'free' || p === 'freemium') ? 'free' : 'base';
+  window.__gfvTenantData = Object.assign({}, tenant, { plan: planId, piano: planId });
+  window.__gfvModuliAttivi = modules;
+  window.__gfvSubscriptionPlanId = planId;
+  try {
+    window.dispatchEvent(new CustomEvent('gfv-subscription-plan', { detail: { planId } }));
+  } catch (_) { /* ignore */ }
+  if (typeof window.gfvTryLoadTonyWidgetWhenReady === 'function') {
+    window.gfvTryLoadTonyWidgetWhenReady();
+  }
+  try {
+    window.dispatchEvent(new CustomEvent('gfv-tenant-tony-ready'));
+  } catch (_) { /* ignore */ }
+}
+
+/**
+ * Carica tenant da Firestore e pubblica contesto Tony.
+ * @param {string} tenantId
+ */
+export async function prefetchTenantForTony(tenantId) {
+  if (!tenantId) return null;
+  if (lastPublishedTenantId === tenantId && tenantCache) {
+    await publishTenantDataForTony(tenantCache);
+    return tenantCache;
+  }
+  if (prefetchInFlight) return prefetchInFlight;
+
+  prefetchInFlight = (async () => {
+    try {
+      const tenant = await getDocumentData('tenants', tenantId);
+      if (tenant) {
+        tenantCache = tenant;
+        lastPublishedTenantId = tenantId;
+        await publishTenantDataForTony(tenant);
+      }
+      return tenant;
+    } catch (error) {
+      console.warn('[tenant-service] prefetchTenantForTony:', error.message || error);
+      return null;
+    } finally {
+      prefetchInFlight = null;
+    }
+  })();
+
+  return prefetchInFlight;
+}
+
 /**
  * Inizializza il servizio tenant
  * Ascolta cambiamenti autenticazione per aggiornare tenant corrente
@@ -80,6 +155,11 @@ export function initializeTenantService() {
           
           // Pulisci cache quando cambia utente
           tenantCache = null;
+          lastPublishedTenantId = null;
+
+          if (currentTenantId) {
+            prefetchTenantForTony(currentTenantId).catch(() => {});
+          }
         }
       } catch (error) {
         console.error('Errore caricamento tenant utente:', error);
@@ -227,8 +307,12 @@ export function getCurrentTenantId() {
  * @param {string} tenantId - ID del tenant
  */
 export function setCurrentTenantId(tenantId) {
+  const prev = currentTenantId;
   currentTenantId = tenantId;
-  tenantCache = null; // Pulisci cache
+  if (prev !== tenantId) {
+    tenantCache = null;
+    lastPublishedTenantId = null;
+  }
   
   // Salva in sessionStorage
   if (typeof sessionStorage !== 'undefined') {
@@ -239,6 +323,10 @@ export function setCurrentTenantId(tenantId) {
     } else {
       sessionStorage.removeItem(STORAGE_KEY_TENANT);
     }
+  }
+
+  if (tenantId) {
+    prefetchTenantForTony(tenantId).catch(() => {});
   }
 }
 
@@ -261,19 +349,11 @@ export async function getCurrentTenant() {
   
   // Usa cache se disponibile
   if (tenantCache) {
+    await publishTenantDataForTony(tenantCache);
     return tenantCache;
   }
   
-  try {
-    const tenant = await getDocumentData('tenants', currentTenantId);
-    if (tenant) {
-      tenantCache = tenant;
-    }
-    return tenant;
-  } catch (error) {
-    console.error('Errore caricamento tenant:', error);
-    return null;
-  }
+  return prefetchTenantForTony(currentTenantId);
 }
 
 /**
@@ -645,6 +725,7 @@ export function clearUserTenantsCache() {
  */
 export function clearCurrentTenantCache() {
   tenantCache = null;
+  lastPublishedTenantId = null;
 }
 
 // Export default
@@ -654,6 +735,8 @@ export default {
   setCurrentTenantId,
   getCurrentUser,
   getCurrentTenant,
+  prefetchTenantForTony,
+  publishTenantDataForTony,
   getTenantCollection,
   createTenant,
   updateTenant,

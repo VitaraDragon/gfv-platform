@@ -739,6 +739,25 @@ body.dashboard-quick-bar-modal-open {
     border: 0;
 }
 
+.dashboard-module-entry-row {
+    grid-column: 1 / -1;
+    margin-top: 4px;
+}
+
+.dashboard-module-entry-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+}
+
+.dashboard-module-entry-grid .dashboard-section {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
+}
+
 .dashboard-module-tile {
     position: relative;
     display: flex;

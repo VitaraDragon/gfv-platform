@@ -1,0 +1,174 @@
+#!/usr/bin/env node
+"use strict";
+
+/**
+ * Genera functions/config/tony-*.json da catalogo moduli/bundle (allineato a subscription-plans.js).
+ * Uso (da functions/): node scripts/generate-tony-configs.js
+ */
+
+const fs = require("fs");
+const path = require("path");
+
+const MODULE_MONTHLY_PRICES = {
+  manodopera: 6,
+  parcoMacchine: 3,
+  contoTerzi: 6,
+  vendemmiaMeccanica: 2,
+  vigneto: 3,
+  frutteto: 3,
+  magazzino: 3,
+  tony: 5,
+  report: 5,
+  meteo: 1,
+};
+
+const BUNDLE_LABELS = {
+  "vigneto-operativo": "Viticoltore Operativo",
+  "operativo-vigneto": "Viticoltore Campo",
+  "frutteto-operativo": "Frutteto Operativo",
+  "frutticoltore-campo": "Frutticoltore Campo",
+  "conto-terzi-operativo": "Servizi Conto Terzi",
+  "business-completo": "Business Conto Terzi",
+  "operativo-completo": "Operativo Completo",
+  "coltura-meteo": "Colture e Meteo",
+  "gfv-completo": "GFV Completo",
+};
+
+const RECOMMENDATIONS = {
+  skipModuleIds: ["tony"],
+  modules: [
+    {
+      id: "vigneto",
+      label: "Vigneto",
+      available: true,
+      triggers: [
+        { type: "categoryShare", category: "Vite", minCount: 3, minShare: 0.4, weight: 85 },
+      ],
+      complements: {
+        magazzino: "per scarichi da trattamenti e concimazioni in vigna",
+      },
+    },
+    {
+      id: "frutteto",
+      label: "Frutteto",
+      available: true,
+      triggers: [
+        { type: "categoryShare", category: "Frutteto", minCount: 2, minShare: 0.35, weight: 82 },
+        { type: "categoryShare", category: "Frutta", minCount: 2, minShare: 0.35, weight: 82 },
+      ],
+      complements: {
+        magazzino: "per tracciare prodotti e scarichi da trattamenti",
+      },
+    },
+    {
+      id: "contoTerzi",
+      label: "Conto Terzi",
+      available: true,
+      triggers: [
+        { type: "clientiMin", min: 1, weight: 80 },
+        { type: "terreniClientiMin", min: 1, weight: 78 },
+        { type: "preventiviMin", min: 1, weight: 76 },
+      ],
+      complements: {
+        manodopera: "per ore squadra sui lavori dei clienti",
+        report: "per sintesi costi e margini sui servizi",
+        vendemmiaMeccanica: "per vendemmia meccanizzata e calcolo compenso CT",
+      },
+    },
+    {
+      id: "vendemmiaMeccanica",
+      label: "Vendemmia Meccanica",
+      available: true,
+      triggers: [{ type: "terreniClientiMin", min: 3, weight: 74 }],
+      complements: {},
+    },
+    {
+      id: "manodopera",
+      label: "Manodopera",
+      available: true,
+      triggers: [
+        { type: "terreniMin", min: 5, weight: 70 },
+        { type: "lavoriClientiMin", min: 5, weight: 72 },
+      ],
+      complements: {
+        parcoMacchine: "per collegare macchine e lavori in campo",
+      },
+    },
+    {
+      id: "parcoMacchine",
+      label: "Parco Macchine",
+      available: true,
+      triggers: [
+        { type: "macchineMin", min: 1, weight: 78 },
+        { type: "meccanicoHint", weight: 74 },
+        { type: "guastiMin", min: 1, weight: 76 },
+      ],
+      complements: {
+        report: "per costi macchina e manutenzioni nei report",
+      },
+    },
+    {
+      id: "magazzino",
+      label: "Prodotti e Magazzino",
+      available: true,
+      triggers: [
+        { type: "trattamentiHint", weight: 75 },
+        { type: "prodottiMin", min: 1, weight: 70 },
+      ],
+      complements: {},
+    },
+    {
+      id: "report",
+      label: "Report/Bilancio",
+      available: true,
+      triggers: [{ type: "lavoriClientiMin", min: 10, weight: 65 }],
+      complements: {},
+    },
+    {
+      id: "meteo",
+      label: "Meteo",
+      available: true,
+      triggers: [{ type: "terreniMin", min: 4, weight: 60 }],
+      complements: {},
+    },
+    {
+      id: "tony",
+      label: "Tony Avanzato",
+      available: true,
+      triggers: [],
+      complements: {},
+    },
+  ],
+};
+
+function main() {
+  const bundlesCatalogPath = path.join(__dirname, "..", "config", "bundles-catalog.json");
+  const bundlesRaw = JSON.parse(fs.readFileSync(bundlesCatalogPath, "utf8"));
+
+  const bundlesCatalog = {
+    moduleMonthlyPrices: { ...MODULE_MONTHLY_PRICES },
+    bundles: Object.entries(bundlesRaw).map(([id, entry]) => ({
+      id,
+      label: BUNDLE_LABELS[id] || entry.name || id,
+      modules: entry.modules,
+      monthlyPrice: entry.price,
+    })),
+  };
+
+  const targets = [
+    path.join(__dirname, "..", "config", "tony-bundles-catalog.json"),
+    path.join(__dirname, "..", "..", "core", "config", "tony-bundles-catalog.json"),
+    path.join(__dirname, "..", "config", "tony-module-recommendations.json"),
+    path.join(__dirname, "..", "..", "core", "config", "tony-module-recommendations.json"),
+  ];
+
+  fs.writeFileSync(targets[0], `${JSON.stringify(bundlesCatalog, null, 2)}\n`, "utf8");
+  fs.writeFileSync(targets[1], `${JSON.stringify(bundlesCatalog, null, 2)}\n`, "utf8");
+  fs.writeFileSync(targets[2], `${JSON.stringify(RECOMMENDATIONS, null, 2)}\n`, "utf8");
+  fs.writeFileSync(targets[3], `${JSON.stringify(RECOMMENDATIONS, null, 2)}\n`, "utf8");
+
+  console.log("Generated:");
+  targets.forEach((p) => console.log(`  ${p}`));
+}
+
+main();

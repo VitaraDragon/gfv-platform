@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Terreni Clienti - Conto Terzi - GFV Platform</title>
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <script src="../../../core/js/gfv-standalone-head-bootstrap.js"></script>
     <style>
         * {
             margin: 0;
@@ -427,6 +428,35 @@
             margin-top: 30px;
         }
 
+        .vm-terreno-section {
+            margin-top: 20px;
+            padding: 16px;
+            border: 1px solid #CE93D8;
+            border-radius: 8px;
+            background: #F3E5F5;
+        }
+
+        .vm-terreno-section h4 {
+            color: #6A1B9A;
+            margin-bottom: 12px;
+            font-size: 15px;
+        }
+
+        .vm-badge {
+            display: inline-block;
+            font-size: 11px;
+            padding: 3px 8px;
+            border-radius: 999px;
+            margin-right: 6px;
+            margin-top: 6px;
+            font-weight: 600;
+        }
+
+        .vm-badge--piano { background: #E1BEE7; color: #4A148C; }
+        .vm-badge--done { background: #C8E6C9; color: #2E7D32; }
+        .vm-badge--zone { background: #FFF3E0; color: #E65100; }
+        .vm-badge--warn { background: #FFECB3; color: #F57F17; }
+
         @media (max-width: 768px) {
             .terreni-grid {
                 grid-template-columns: 1fr;
@@ -547,6 +577,35 @@
                         <option value="montagna">🏔️ Montagna</option>
                     </select>
                     <small>Seleziona la morfologia del terreno per la selezione automatica delle tariffe</small>
+                </div>
+
+                <div class="vm-terreno-section" id="vm-terreno-section" style="display: none;">
+                    <h4>🍇 Vendemmia Meccanica</h4>
+                    <div class="form-group">
+                        <label for="terreno-tipo-palo">Tipo palo</label>
+                        <select id="terreno-tipo-palo" style="width: 100%;">
+                            <option value="">-- Seleziona tipo palo --</option>
+                            <option value="ferro">Ferro</option>
+                            <option value="legno">Legno</option>
+                            <option value="cemento">Cemento</option>
+                            <option value="personalizzata">Personalizzata</option>
+                        </select>
+                        <small>Obbligatorio per il calcolo compenso vendemmia meccanica</small>
+                    </div>
+                    <div class="form-group">
+                        <label>Sesto impianto (m)</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <div>
+                                <label for="terreno-sesto-file" style="font-size: 12px;">Distanza tra file</label>
+                                <input type="number" id="terreno-sesto-file" step="0.1" min="0" placeholder="es. 2.5">
+                            </div>
+                            <div>
+                                <label for="terreno-sesto-ceppo" style="font-size: 12px;">Distanza tra ceppi</label>
+                                <input type="number" id="terreno-sesto-ceppo" step="0.1" min="0" placeholder="es. 1.0">
+                            </div>
+                        </div>
+                        <small>Allineato al vigneto: distanza fila e distanza ceppo per coefficiente tariffa</small>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -745,6 +804,7 @@
         import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
         import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, setDoc, query, where, orderBy, serverTimestamp } from '../../../core/services/firebase-service.js';
+        import { buildVignetoDetectionContext, isTerrenoVignetoCliente } from '../../vendemmia-meccanica/services/piano-stagione-utils.js';
 
         // Classe Terreno inline (per evitare import ES6)
         class Terreno {
@@ -760,7 +820,69 @@
                 this.note = data.note || '';
                 this.clienteId = data.clienteId || null;
                 this.polygonCoords = data.polygonCoords || null;
+                this.tipoCampo = data.tipoCampo || null;
+                this.tipoPalo = data.tipoPalo || null;
+                this.sestoImpianto = data.sestoImpianto || null;
+                this.vendemmiaMeccanica = data.vendemmiaMeccanica || null;
             }
+        }
+
+        const VM_ANNO_CORRENTE = String(new Date().getFullYear());
+        let vignetoDetectionCtx = null;
+
+        async function ensureVignetoDetectionCtx() {
+            if (!vignetoDetectionCtx) {
+                vignetoDetectionCtx = await buildVignetoDetectionContext();
+            }
+            return vignetoDetectionCtx;
+        }
+
+        function isTerrenoVignetoUi(terrenoRaw) {
+            if (!terrenoRaw) return false;
+            return isTerrenoVignetoCliente(terrenoRaw, vignetoDetectionCtx || {});
+        }
+
+        function isSelectedColturaVigneto() {
+            const catId = document.getElementById('terreno-coltura-categoria')?.value || '';
+            if (!catId) return false;
+            const ctx = vignetoDetectionCtx || {};
+            if (ctx.viteCategoryIds && ctx.viteCategoryIds.has(String(catId))) return true;
+            const nome = ctx.categoriaNomiById && ctx.categoriaNomiById.get(String(catId));
+            return !!(nome && (nome.includes('vite') || nome.includes('vigneto')));
+        }
+
+        function updateVmTerrenoSectionVisibility() {
+            const section = document.getElementById('vm-terreno-section');
+            if (!section) return;
+            const show = hasVendemmiaMeccanicaModule && isSelectedColturaVigneto();
+            section.style.display = show ? 'block' : 'none';
+        }
+
+        function buildVmTerrenoBadges(terrenoRaw) {
+            if (!hasVendemmiaMeccanicaModule || !terrenoRaw || !isTerrenoVignetoUi(terrenoRaw)) return '';
+            const vm = terrenoRaw.vendemmiaMeccanica || {};
+            const stato = vm[VM_ANNO_CORRENTE] || {};
+            let html = '<div style="margin-top:8px;">';
+            if (stato.inPiano) {
+                html += '<span class="vm-badge vm-badge--piano">📅 In piano ' + VM_ANNO_CORRENTE + '</span>';
+            }
+            if (stato.vendemmiato) {
+                html += '<span class="vm-badge vm-badge--done">✅ Vendemmiato ' + VM_ANNO_CORRENTE + '</span>';
+            }
+            if (Array.isArray(stato.zoneEscluse) && stato.zoneEscluse.length > 0) {
+                html += '<span class="vm-badge vm-badge--zone">⛔ Zone escluse</span>';
+            }
+            if (!terrenoRaw.tipoPalo) {
+                html += '<span class="vm-badge vm-badge--warn">⚠ Dati VM incompleti</span>';
+            } else {
+                const sesto = terrenoRaw.sestoImpianto;
+                const sestoOk = sesto && (Number(sesto.distanzaFile) > 0 || Number(sesto.distanzaCeppo) > 0);
+                if (!sestoOk) {
+                    html += '<span class="vm-badge vm-badge--warn">⚠ Dati VM incompleti</span>';
+                }
+            }
+            html += '</div>';
+            return html;
         }
 
         // Funzione per attendere il caricamento della configurazione Firebase
@@ -817,6 +939,7 @@
         
         let colture = [];
         let poderi = [];
+        let hasVendemmiaMeccanicaModule = false;
 
         // Verifica autenticazione
         onAuthStateChanged(auth, async (user) => {
@@ -849,6 +972,18 @@
                                 window.location.href = '../../../core/dashboard-standalone.html';
                             }, 2000);
                             return;
+                        }
+
+                        try {
+                            const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                            const modules = tenantDoc.exists() ? (tenantDoc.data().modules || []) : [];
+                            hasVendemmiaMeccanicaModule = modules.includes('vendemmiaMeccanica');
+                            if (hasVendemmiaMeccanicaModule) {
+                                await ensureVignetoDetectionCtx();
+                            }
+                            updateVmTerrenoSectionVisibility();
+                        } catch (modErr) {
+                            console.warn('Verifica modulo VM:', modErr);
                         }
 
                         // Carica clienti
@@ -922,6 +1057,9 @@
 
         // Carica terreni usando servizio centralizzato
         async function loadTerreni() {
+            if (hasVendemmiaMeccanicaModule) {
+                await ensureVignetoDetectionCtx();
+            }
             const container = document.getElementById('terreni-container');
             container.innerHTML = '<div class="loading">Caricamento terreni...</div>';
 
@@ -1082,6 +1220,10 @@
                 if (terrenoObj.note) {
                     html += `<div class="info"><strong>Note:</strong> ${escapeHtml(terrenoObj.note)}</div>`;
                 }
+                html += buildVmTerrenoBadges(terreno);
+                if (hasVendemmiaMeccanicaModule && isTerrenoVignetoUi(terreno)) {
+                    html += `<div class="info" style="margin-top:6px;"><a href="../../vendemmia-meccanica/views/piano-stagione-standalone.html?clienteId=${encodeURIComponent(terrenoObj.clienteId || currentClienteId || '')}" onclick="event.stopPropagation();">📅 Piano stagione VM</a></div>`;
+                }
                 html += `<div class="actions" onclick="event.stopPropagation()">
                     <button class="btn btn-sm btn-primary" onclick="window.editTerreno('${escapeHtml(terrenoObj.id)}')">✏️ Modifica</button>
                     <button class="btn btn-sm btn-danger" onclick="window.deleteTerrenoConfirm('${escapeHtml(terrenoObj.id)}')">🗑️ Elimina</button>
@@ -1106,6 +1248,10 @@
             form.reset();
             document.getElementById('terreno-id').value = '';
             document.getElementById('terreno-cliente-id').value = currentClienteId;
+            updateVmTerrenoSectionVisibility();
+            document.getElementById('terreno-tipo-palo').value = '';
+            document.getElementById('terreno-sesto-file').value = '';
+            document.getElementById('terreno-sesto-ceppo').value = '';
             
             // Reset mappa
             clearPolygon();
@@ -1148,6 +1294,13 @@
                         document.getElementById('terreno-tipo-campo').value = terrenoObj.tipoCampo;
                     } else {
                         document.getElementById('terreno-tipo-campo').value = '';
+                    }
+
+                    if (hasVendemmiaMeccanicaModule) {
+                        document.getElementById('terreno-tipo-palo').value = terreno.tipoPalo || '';
+                        const sesto = terreno.sestoImpianto || {};
+                        document.getElementById('terreno-sesto-file').value = sesto.distanzaFile != null ? sesto.distanzaFile : '';
+                        document.getElementById('terreno-sesto-ceppo').value = sesto.distanzaCeppo != null ? sesto.distanzaCeppo : '';
                     }
                     
                     document.getElementById('terreno-podere').value = terrenoObj.podere || '';
@@ -1476,6 +1629,24 @@
                 clienteId: clienteId,
                 updatedAt: serverTimestamp()
             };
+
+            if (hasVendemmiaMeccanicaModule && isSelectedColturaVigneto()) {
+                const tipoPalo = document.getElementById('terreno-tipo-palo').value || null;
+                const distFile = document.getElementById('terreno-sesto-file').value;
+                const distCeppo = document.getElementById('terreno-sesto-ceppo').value;
+                terrenoData.tipoPalo = tipoPalo;
+                if (distFile || distCeppo) {
+                    terrenoData.sestoImpianto = {
+                        distanzaFile: distFile ? parseFloat(distFile) : null,
+                        distanzaCeppo: distCeppo ? parseFloat(distCeppo) : null
+                    };
+                } else {
+                    terrenoData.sestoImpianto = null;
+                }
+            } else if (hasVendemmiaMeccanicaModule) {
+                terrenoData.tipoPalo = null;
+                terrenoData.sestoImpianto = null;
+            }
             
             // Salva coordinate poligono se presente
             if (currentPolygonCoords && currentPolygonCoords.length >= 3) {
@@ -1699,6 +1870,7 @@
             if (!categoriaId) {
                 sottocategoriaGroup.style.display = 'none';
                 sottocategoriaSelect.value = '';
+                updateVmTerrenoSectionVisibility();
                 return;
             }
             
@@ -1724,6 +1896,7 @@
                 option.disabled = true;
                 sottocategoriaSelect.appendChild(option);
             }
+            updateVmTerrenoSectionVisibility();
         };
 
         // Apri modal aggiungi coltura

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calcolatore - Vendemmia Meccanica</title>
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #F3E5F5, #6A1B9A); min-height: 100vh; margin: 0; }
+        .container { max-width: 1100px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #6A1B9A, #4A148C); color: #fff; padding: 28px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+        .content { background: #fff; border-radius: 12px; padding: 24px; }
+        .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        @media (max-width: 768px) { .grid2 { grid-template-columns: 1fr; } }
+        label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 4px; }
+        select, input, textarea { width: 100%; padding: 8px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
+        .form-group { margin-bottom: 14px; }
+        .terreni-list { max-height: 260px; overflow-y: auto; border: 1px solid #eee; border-radius: 8px; padding: 8px; }
+        .terreno-row { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid #f0f0f0; font-size: 13px; }
+        .result-box { background: #F3E5F5; border: 1px solid #CE93D8; border-radius: 8px; padding: 16px; margin-top: 16px; }
+        .result-box h3 { color: #6A1B9A; margin: 0 0 10px; }
+        .btn { padding: 10px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; }
+        .btn-primary { background: #6A1B9A; color: #fff; }
+        .btn-danger { background: #c62828; color: #fff; }
+        .btn-secondary { background: #6c757d; color: #fff; text-decoration: none; display: inline-block; }
+        .alert { padding: 10px; border-radius: 6px; margin-bottom: 12px; font-size: 14px; }
+        .alert-error { background: #f8d7da; color: #721c24; }
+        .alert-warning { background: #fff3cd; color: #856404; }
+        .alert-success { background: #d4edda; color: #155724; }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div><h1>🧮 Calcolatore compenso</h1><p>Vendemmia meccanizzata CT</p></div>
+        <a href="vm-home-standalone.html" class="btn btn-secondary">← Hub VM</a>
+    </div>
+    <div class="content">
+        <div id="alert-container"></div>
+        <div class="grid2">
+            <div>
+                <div class="form-group">
+                    <label>Cliente *</label>
+                    <select id="sel-cliente"><option value="">— Seleziona —</option></select>
+                </div>
+                <div class="form-group">
+                    <label>Data vendemmia</label>
+                    <input type="date" id="input-data">
+                </div>
+                <div class="form-group">
+                    <label>Quintali *</label>
+                    <input type="number" id="input-quintali" min="0" step="0.01" value="0">
+                </div>
+                <div class="form-group">
+                    <label>Destinazione trasporto *</label>
+                    <select id="sel-destinazione"></select>
+                </div>
+                <div class="form-group">
+                    <label>Sconto / maggiorazione (€)</label>
+                    <input type="number" id="input-sconto" step="0.01" value="0">
+                    <small style="color:#666;">Negativo = sconto</small>
+                </div>
+            </div>
+            <div>
+                <label>Terreni *</label>
+                <div class="terreni-list" id="terreni-list"><p style="color:#888;">Seleziona un cliente</p></div>
+            </div>
+        </div>
+        <div style="margin-top:16px;display:flex;gap:10px;flex-wrap:wrap;">
+            <button type="button" class="btn btn-primary" id="btn-calcola">Calcola</button>
+            <button type="button" class="btn btn-danger" id="btn-pdf" disabled>📄 Esporta PDF</button>
+            <button type="button" class="btn btn-primary" id="btn-salva" disabled>Salva calcolo</button>
+        </div>
+        <div class="result-box" id="result-box" style="display:none;"></div>
+    </div>
+</div>
+<script>
+    const sc = document.createElement('script');
+    sc.src = '../../../core/config/firebase-config.js';
+    document.head.appendChild(sc);
+</script>
+<script type="module">
+import { initVmPageAuth, showVmAlert } from '../js/vm-page-auth.js';
+import { getAllClienti } from '../../conto-terzi/services/clienti-service.js';
+import { getAllTerreni } from '../../../core/services/terreni-service.js';
+import { getTariffeVmConfig } from '../services/tariffe-vm-service.js';
+import { calcolaCompensoVendemmia } from '../services/calcolo-compenso-vm-service.js';
+import { saveCalcoloVm } from '../services/calcoli-vm-service.js';
+import { generaPdfCalcoloVm } from '../services/calcolo-vm-pdf-service.js';
+import { DESTINAZIONI_TRASPORTO_PRESET, getAnnoStagioneCorrente } from '../config/vm-constants.js';
+
+let tariffeConfig = {};
+let terreniCliente = [];
+let lastBreakdown = null;
+let clientiMap = {};
+let tenantAziendaNome = '';
+
+function fmtEuro(n) { return '€ ' + (Number(n) || 0).toFixed(2); }
+
+async function loadTerreni(clienteId) {
+    const box = document.getElementById('terreni-list');
+    if (!clienteId) {
+        box.innerHTML = '<p style="color:#888;">Seleziona un cliente</p>';
+        return;
+    }
+    terreniCliente = await getAllTerreni({ clienteId, orderBy: 'nome' });
+    if (!terreniCliente.length) {
+        box.innerHTML = '<p style="color:#888;">Nessun terreno per questo cliente</p>';
+        return;
+    }
+    const anno = getAnnoStagioneCorrente();
+    box.innerHTML = terreniCliente.map(t => {
+        const raw = t._originalData || t;
+        const vm = (raw.vendemmiaMeccanica || t.vendemmiaMeccanica || {})[String(anno)] || {};
+        const pre = vm.vendemmiato ? 'checked' : '';
+        const ha = vm.ettariVendemmiati != null ? vm.ettariVendemmiati : (t.superficie || 0);
+        return '<label class="terreno-row"><input type="checkbox" name="terreno" value="' + t.id + '" ' + pre + '> ' +
+            (t.nome || '') + ' — ' + Number(ha).toFixed(2) + ' ha eff.</label>';
+    }).join('');
+}
+
+function renderResult(res) {
+    const box = document.getElementById('result-box');
+    if (!res.valid) {
+        box.style.display = 'block';
+        box.innerHTML = '<h3>Errori</h3><ul>' + res.errors.map(e => '<li>' + e + '</li>').join('') + '</ul>';
+        document.getElementById('btn-salva').disabled = true;
+        document.getElementById('btn-pdf').disabled = true;
+        lastBreakdown = null;
+        return;
+    }
+    const b = res.breakdown;
+    lastBreakdown = b;
+    let html = '<h3>Risultato</h3>';
+    if (res.warnings.length) {
+        html += '<div class="alert alert-warning"><ul>' + res.warnings.map(w => '<li>' + w + '</li>').join('') + '</ul></div>';
+    }
+    html += '<table style="width:100%;font-size:14px;margin:8px 0;"><tbody>';
+    b.terreni.forEach(r => {
+        html += '<tr><td>' + r.nome + '</td><td>' + r.ettariEffettivi.toFixed(2) + ' ha × ' + fmtEuro(r.tariffaPerEttaro) + '</td><td style="text-align:right">' + fmtEuro(r.importoVendemmia) + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    html += '<p><strong>Vendemmia:</strong> ' + fmtEuro(b.totaleVendemmia) + '</p>';
+    html += '<p><strong>Trasporto:</strong> ' + fmtEuro(b.totaleTrasporto) + ' (' + b.quintali + ' qli × ' + fmtEuro(b.tariffaTrasportoQli) + ')</p>';
+    html += '<p><strong>Totale finale:</strong> ' + fmtEuro(b.totaleFinale) + '</p>';
+    box.innerHTML = html;
+    box.style.display = 'block';
+    document.getElementById('btn-salva').disabled = false;
+    document.getElementById('btn-pdf').disabled = false;
+}
+
+try {
+    const authCtx = await initVmPageAuth();
+    tenantAziendaNome = authCtx.tenantNome || '';
+    tariffeConfig = await getTariffeVmConfig();
+    document.getElementById('input-data').value = new Date().toISOString().slice(0, 10);
+
+    const destSel = document.getElementById('sel-destinazione');
+    DESTINAZIONI_TRASPORTO_PRESET.forEach(d => {
+        const o = document.createElement('option');
+        o.value = d.id;
+        o.textContent = d.label;
+        destSel.appendChild(o);
+    });
+
+    const clienti = await getAllClienti({ orderBy: 'ragioneSociale' });
+    const sel = document.getElementById('sel-cliente');
+    clienti.forEach(c => {
+        clientiMap[c.id] = c;
+        const o = document.createElement('option');
+        o.value = c.id;
+        o.textContent = c.ragioneSociale || c.nome || c.id;
+        sel.appendChild(o);
+    });
+
+    sel.addEventListener('change', () => loadTerreni(sel.value));
+
+    document.getElementById('btn-calcola').addEventListener('click', () => {
+        const clienteId = sel.value;
+        const ids = [...document.querySelectorAll('input[name=terreno]:checked')].map(el => el.value);
+        const selected = terreniCliente.filter(t => ids.includes(t.id)).map(t => {
+            const raw = t._originalData || {};
+            return { ...raw, ...t, id: t.id, nome: t.nome };
+        });
+        const cliente = clientiMap[clienteId];
+        const res = calcolaCompensoVendemmia({
+            clienteId,
+            clienteNome: cliente ? (cliente.ragioneSociale || '') : '',
+            terreni: selected,
+            quintali: Number(document.getElementById('input-quintali').value),
+            destinazioneTrasporto: destSel.value,
+            scontoMaggiorazione: Number(document.getElementById('input-sconto').value) || 0,
+            anno: getAnnoStagioneCorrente(),
+            tariffeConfig
+        });
+        renderResult(res);
+    });
+
+    document.getElementById('btn-salva').addEventListener('click', async () => {
+        if (!lastBreakdown) return;
+        try {
+            const id = await saveCalcoloVm(lastBreakdown, {
+                dataVendemmia: document.getElementById('input-data').value
+            });
+            showVmAlert('alert-container', 'Calcolo salvato (ID: ' + id + ')', 'success');
+        } catch (e) {
+            showVmAlert('alert-container', e.message, 'error');
+        }
+    });
+
+    document.getElementById('btn-pdf').addEventListener('click', () => {
+        if (!lastBreakdown) {
+            showVmAlert('alert-container', 'Calcola prima il compenso.', 'error');
+            return;
+        }
+        try {
+            generaPdfCalcoloVm(lastBreakdown, {
+                dataVendemmia: document.getElementById('input-data').value,
+                aziendaNome: tenantAziendaNome
+            });
+            showVmAlert('alert-container', 'PDF esportato', 'success');
+        } catch (e) {
+            showVmAlert('alert-container', e.message, 'error');
+        }
+    });
+} catch (e) {
+    showVmAlert('alert-container', e.message, 'error');
+}
+</script>
+</body>
+</html>

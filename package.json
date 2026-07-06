@@ -67,6 +67,7 @@
     "vitest": "^1.0.0"
   },
   "dependencies": {
-    "firebase-admin": "^13.6.0"
+    "firebase-admin": "^13.6.0",
+    "polygon-clipping": "^0.15.7"
   }
 }

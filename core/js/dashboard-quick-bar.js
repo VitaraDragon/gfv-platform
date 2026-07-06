@@ -24,6 +24,7 @@ export const QUICK_BAR_SECTION_ORDER = [
     { id: 'core', label: 'Core e strumenti', dashboardRouteId: null },
     { id: 'manodopera', label: 'Manodopera', dashboardRouteId: 'manodoperaHome' },
     { id: 'contoTerzi', label: 'Conto Terzi', dashboardRouteId: 'contoTerziHome' },
+    { id: 'vendemmiaMeccanica', label: 'Vendemmia Meccanica', dashboardRouteId: 'vendemmiaMeccanicaHome' },
     { id: 'parcoMacchine', label: 'Parco macchine', dashboardRouteId: 'parcoDashboard' },
     { id: 'vigneto', label: 'Vigneto', dashboardRouteId: 'vigneto' },
     { id: 'frutteto', label: 'Frutteto', dashboardRouteId: 'frutteto' },
@@ -266,6 +267,15 @@ export const QUICK_BAR_CATALOG = {
         modules: ['contoTerzi'],
         requireManodopera: false,
         section: 'contoTerzi'
+    },
+    vendemmiaMeccanicaHome: {
+        label: 'Vendemmia Meccanica',
+        desc: 'Hub servizio vendemmia meccanizzata CT',
+        icon: '🍇',
+        href: '../modules/vendemmia-meccanica/views/vm-home-standalone.html',
+        modules: ['vendemmiaMeccanica'],
+        requireManodopera: false,
+        section: 'vendemmiaMeccanica'
     },
     preventivi: {
         label: 'Preventivi',

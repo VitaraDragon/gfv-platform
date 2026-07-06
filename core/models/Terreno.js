@@ -23,6 +23,9 @@ export class Terreno extends Base {
    * @param {Date|Timestamp} data.dataScadenzaAffitto - Data scadenza affitto (opzionale, solo se tipoPossesso === "affitto")
    * @param {number} data.canoneAffitto - Canone mensile affitto in euro (opzionale)
    * @param {string} data.tipoCampo - Morfologia terreno: "pianura" | "collina" | "montagna" (opzionale, per conto terzi)
+   * @param {string} data.tipoPalo - Tipo palo vigneto (VM CT): ferro, legno, cemento, personalizzata
+   * @param {{ distanzaFile: number, distanzaCeppo: number }} data.sestoImpianto - Sesto impianto (VM CT)
+   * @param {Object} data.vendemmiaMeccanica - Stato stagione VM per anno { [anno]: { inPiano, vendemmiato, ... } }
    * @param {Date|Timestamp} data.creatoIl - Data creazione (alias createdAt)
    * @param {Date|Timestamp} data.aggiornatoIl - Data ultimo aggiornamento (alias updatedAt)
    */
@@ -36,6 +39,8 @@ export class Terreno extends Base {
     this.note = data.note || '';
     this.podere = data.podere || null;
     this.coltura = data.coltura || null;
+    this.colturaCategoria = data.colturaCategoria || null;
+    this.colturaSottocategoria = data.colturaSottocategoria || null;
     this.tipoPossesso = data.tipoPossesso || 'proprieta';
     this.dataScadenzaAffitto = data.dataScadenzaAffitto || null;
     this.canoneAffitto = data.canoneAffitto !== undefined ? parseFloat(data.canoneAffitto) : null;
@@ -43,6 +48,20 @@ export class Terreno extends Base {
     // Campo Conto Terzi (opzionale)
     this.clienteId = data.clienteId || null;  // Se presente → terreno cliente
     this.tipoCampo = data.tipoCampo || null;  // Morfologia: pianura, collina, montagna
+
+    // Campi Vendemmia Meccanica (terreni clienti CT)
+    this.tipoPalo = data.tipoPalo || null;
+    this.sestoImpianto = data.sestoImpianto && typeof data.sestoImpianto === 'object'
+      ? {
+          distanzaFile: data.sestoImpianto.distanzaFile !== undefined
+            ? parseFloat(data.sestoImpianto.distanzaFile) : null,
+          distanzaCeppo: data.sestoImpianto.distanzaCeppo !== undefined
+            ? parseFloat(data.sestoImpianto.distanzaCeppo) : null
+        }
+      : null;
+    this.vendemmiaMeccanica = data.vendemmiaMeccanica && typeof data.vendemmiaMeccanica === 'object'
+      ? data.vendemmiaMeccanica
+      : null;
     
     // Alias per compatibilità
     this.creatoIl = this.createdAt;
@@ -90,6 +109,21 @@ export class Terreno extends Base {
       const tipiValidi = ['pianura', 'collina', 'montagna'];
       if (!tipiValidi.includes(this.tipoCampo)) {
         errors.push('Tipo campo deve essere uno tra: pianura, collina, montagna');
+      }
+    }
+
+    if (this.tipoPalo !== null && this.tipoPalo !== undefined && String(this.tipoPalo).trim() === '') {
+      errors.push('Tipo palo non può essere vuoto se specificato');
+    }
+
+    if (this.sestoImpianto) {
+      const df = this.sestoImpianto.distanzaFile;
+      const dc = this.sestoImpianto.distanzaCeppo;
+      if (df !== null && df !== undefined && df <= 0) {
+        errors.push('Distanza tra file deve essere maggiore di zero');
+      }
+      if (dc !== null && dc !== undefined && dc <= 0) {
+        errors.push('Distanza tra ceppi deve essere maggiore di zero');
       }
     }
     

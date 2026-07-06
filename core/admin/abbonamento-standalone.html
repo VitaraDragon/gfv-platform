@@ -1506,12 +1506,18 @@
                     availableModuleIds: purchasableIds,
                     bundleCatalog: BUNDLES
                 });
-                const canPurchase = canActivateModule(planConfig.id, module.id, paidModules).canActivate;
+                const canPurchase = canActivateModule(planConfig.id, module.id, effectiveModules).canActivate;
                 const canTrial = trialCheck.canStart;
                 const isDisabled = !module.available || (!canTrial && !canPurchase);
+                const requiresHint = Array.isArray(module.requiresModules) && module.requiresModules.length
+                    ? module.requiresModules.map(function(depId) {
+                        const dep = getModuleConfig(depId);
+                        return dep ? dep.name : depId;
+                      }).join(', ')
+                    : '';
                 const actionHint = canTrial
                     ? 'Clicca per prova 30 giorni'
-                    : (canPurchase ? 'Clicca per attivare' : (trialCheck.reason || canActivateModule(planConfig.id, module.id, paidModules).reason));
+                    : (canPurchase ? 'Clicca per attivare' : (trialCheck.reason || canActivateModule(planConfig.id, module.id, effectiveModules).reason));
                 
                 return `
                     <div class="module-card ${isDisabled ? 'disabled' : ''}" 
@@ -1525,6 +1531,7 @@
                             ${module.badge ? `<span style="font-size: 10px; color: #ff9800;">(${module.badge})</span>` : ''}
                         </div>
                         <div class="module-price" style="font-size: 12px; margin-top: 5px;">${module.description}</div>
+                        ${requiresHint ? `<div style="margin-top: 6px; font-size: 11px; color: #6A1B9A;">Richiede: ${requiresHint}</div>` : ''}
                         <div style="margin-top: 5px; font-size: 11px; color: #666;">
                             ${module.available ? `€${module.price}/mese · €${monthlyToAnnual(module.price)}/anno` : 'Prossimamente'}
                         </div>
@@ -2001,7 +2008,7 @@
                     return;
                 }
 
-                const canActivate = canActivateModule(planId, moduleId, paidModules);
+                const canActivate = canActivateModule(planId, moduleId, effectiveModules);
                 if (!canActivate.canActivate) {
                     showAlert(canActivate.reason, 'error');
                     return;

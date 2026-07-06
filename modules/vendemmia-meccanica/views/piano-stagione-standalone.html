@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piano Stagione - Vendemmia Meccanica</title>
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #F3E5F5 0%, #6A1B9A 100%); min-height: 100vh; margin: 0; color: #333; }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header { background: linear-gradient(135deg, #6A1B9A, #4A148C); color: #fff; padding: 28px; border-radius: 12px; margin-bottom: 20px; display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; align-items: center; }
+        .content { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,.08); }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 20px; }
+        .stat { background: #F3E5F5; border: 1px solid #CE93D8; border-radius: 8px; padding: 12px; text-align: center; }
+        .stat strong { display: block; font-size: 22px; color: #6A1B9A; }
+        .filters { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 16px; align-items: end; }
+        .filters label { font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px; }
+        .filters select, .filters input { padding: 8px; border: 1px solid #ccc; border-radius: 6px; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { padding: 10px; border-bottom: 1px solid #eee; text-align: left; }
+        th { background: #F3E5F5; color: #4A148C; }
+        .btn { padding: 8px 14px; border: none; border-radius: 6px; cursor: pointer; text-decoration: none; display: inline-block; font-size: 13px; }
+        .btn-secondary { background: #6c757d; color: #fff; }
+        .btn-primary { background: #6A1B9A; color: #fff; }
+        .btn-sm { padding: 4px 8px; font-size: 12px; }
+        .badge { font-size: 11px; padding: 2px 8px; border-radius: 999px; background: #EDE7F6; color: #4A148C; }
+        .badge.ok { background: #C8E6C9; color: #2E7D32; }
+        .badge.warn { background: #FFECB3; color: #F57F17; }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 100; align-items: center; justify-content: center; padding: 12px; }
+        .modal.active { display: flex; }
+        .modal-box { background: #fff; border-radius: 10px; padding: 20px; width: min(920px, 96vw); max-height: 94vh; overflow-y: auto; }
+        .modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 12px 0; }
+        @media (max-width: 720px) { .modal-grid { grid-template-columns: 1fr; } }
+        .map-wrap { border: 1px solid #ddd; border-radius: 8px; overflow: hidden; height: 360px; margin: 12px 0; position: relative; }
+        .map-wrap.drawing-mode,
+        .map-wrap.drawing-mode .vm-zone-map-inner,
+        .map-wrap.drawing-mode .vm-zone-map-inner * { cursor: crosshair !important; }
+        .map-wrap.drawing-mode .vm-zone-map-inner div,
+        .map-wrap.drawing-mode .vm-zone-map-inner canvas { cursor: crosshair !important; }
+        .mappa-info { display: none; background: #F3E5F5; border: 1px solid #CE93D8; border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; font-size: 13px; }
+        .mappa-info.active { display: block; }
+        .mappa-info-item { display: flex; justify-content: space-between; gap: 12px; margin: 4px 0; }
+        .mappa-info-label { color: #666; }
+        .mappa-info-value { font-weight: 600; color: #4A148C; }
+        .btn-draw-active { background: #dc3545 !important; }
+        .map-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+        .map-legend { font-size: 12px; color: #666; margin-bottom: 8px; }
+        .map-legend span { display: inline-block; margin-right: 12px; }
+        .legend-boundary::before { content: ''; display: inline-block; width: 10px; height: 10px; background: #43A047; margin-right: 4px; border-radius: 2px; }
+        .legend-excluded::before { content: ''; display: inline-block; width: 10px; height: 10px; background: #E53935; margin-right: 4px; border-radius: 2px; }
+        .alert { padding: 12px; border-radius: 8px; margin-bottom: 12px; }
+        .alert-error { background: #f8d7da; color: #721c24; }
+        .alert-success { background: #d4edda; color: #155724; }
+        .alert-info { background: #E3F2FD; color: #0D47A1; border: 1px solid #90CAF9; }
+        .piano-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; align-items: center; }
+        .piano-toolbar .hint { flex: 1 1 220px; font-size: 13px; color: #666; }
+        .cliente-focus { font-size: 15px; color: #EDE7F6; margin-top: 6px; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <div>
+            <h1>📅 Piano Stagione</h1>
+            <p>Terreni vigneto clienti — avanzamento vendemmia <span id="anno-label"></span></p>
+            <p class="cliente-focus" id="cliente-focus" style="display:none;"></p>
+        </div>
+        <div>
+            <a href="vm-home-standalone.html" class="btn btn-secondary">← Hub VM</a>
+        </div>
+    </div>
+    <div class="content">
+        <div id="alert-container"></div>
+        <div id="piano-empty-banner" class="alert alert-info" style="display:none;"></div>
+        <div class="stats" id="kpi-grid"></div>
+        <div class="piano-toolbar">
+            <button type="button" class="btn btn-primary" id="btn-add-all-piano">➕ Aggiungi tutti i vigneti al piano</button>
+            <button type="button" class="btn btn-secondary" id="btn-remove-all-piano">Rimuovi tutti dal piano</button>
+            <span class="hint">Spunta la colonna <strong>In piano</strong> su ogni vigneto da servire in stagione, oppure usa il pulsante sopra.</span>
+        </div>
+        <div class="filters">
+            <div>
+                <label>Anno</label>
+                <input type="number" id="filter-anno" min="2020" max="2100">
+            </div>
+            <div>
+                <label>Cliente</label>
+                <select id="filter-cliente"><option value="">Tutti i clienti</option></select>
+            </div>
+            <div>
+                <label>Stato</label>
+                <select id="filter-stato">
+                    <option value="">Tutti i vigneti</option>
+                    <option value="inPiano">In piano</option>
+                    <option value="vendemmiato">Vendemmiati</option>
+                    <option value="residui">In piano, non vendemmiati</option>
+                    <option value="fuoriPiano">Non ancora in piano</option>
+                </select>
+            </div>
+            <button class="btn btn-primary" type="button" id="btn-refresh">Aggiorna</button>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Cliente</th>
+                        <th>Terreno</th>
+                        <th>Ha tot.</th>
+                        <th>Ha eff.</th>
+                        <th>In piano</th>
+                        <th>Vendemmiato</th>
+                        <th>Ha esclusi</th>
+                        <th>Azioni</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-piano"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="modal" id="modal-zone">
+    <div class="modal-box">
+        <h3>Zone escluse — <span id="modal-terreno-nome"></span></h3>
+        <p style="font-size:13px;color:#666;margin:8px 0;">Superficie totale terreno: <strong id="modal-ha-totali">0</strong> ha</p>
+
+        <div class="map-legend">
+            <span class="legend-boundary">Confini terreno (CT)</span>
+            <span class="legend-excluded">Zone non vendemmiate</span>
+        </div>
+        <p id="modal-auto-hint" class="alert alert-info" style="display:none;font-size:13px;padding:10px;margin:8px 0;">
+            Zone rosse calcolate automaticamente dal lavoro completato. Puoi modificarle, aggiungerne o cancellarle prima di salvare.
+        </p>
+        <div class="map-toolbar">
+            <button type="button" class="btn btn-sm btn-primary" id="btn-map-draw">✏️ Traccia zona</button>
+            <button type="button" class="btn btn-sm btn-secondary" id="btn-map-finish">✓ Chiudi zona</button>
+            <button type="button" class="btn btn-sm btn-secondary" id="btn-map-undo">Elimina ultima</button>
+            <button type="button" class="btn btn-sm btn-secondary" id="btn-map-clear">Cancella tutte</button>
+        </div>
+        <div class="mappa-info" id="vm-map-info">
+            <div class="mappa-info-item"><span class="mappa-info-label">Superficie zona in corso:</span><span class="mappa-info-value" id="vm-map-area">—</span></div>
+            <div class="mappa-info-item"><span class="mappa-info-label">Punti tracciati:</span><span class="mappa-info-value" id="vm-map-points">0</span></div>
+        </div>
+        <div class="map-wrap" id="vm-zone-map"></div>
+        <p id="modal-map-hint" style="font-size:12px;color:#888;margin:4px 0 12px;">
+            Clic sulla mappa per aggiungere punti (minimo 3). Clicca vicino al primo punto o doppio clic per chiudere.
+            Tieni <strong>Shift</strong> per disattivare lo snap ai confini. I punti devono restare dentro il terreno.
+        </p>
+
+        <div class="modal-grid">
+            <div>
+                <label>Ettari esclusi (da mappa o manuale)</label>
+                <input type="number" id="modal-ha-esclusi" step="0.01" min="0" style="width:100%;padding:8px;margin-top:4px;">
+            </div>
+            <div>
+                <label>Ettari vendemmiati (netti fatturabili)</label>
+                <input type="number" id="modal-ha-netti" step="0.01" min="0" style="width:100%;padding:8px;margin-top:4px;">
+            </div>
+        </div>
+        <p style="font-size:12px;color:#888;margin-bottom:12px;">Zone salvate: <strong id="modal-zone-count">0</strong></p>
+        <div style="display:flex;gap:8px;justify-content:flex-end;">
+            <button type="button" class="btn btn-secondary" id="modal-cancel">Annulla</button>
+            <button type="button" class="btn btn-primary" id="modal-save">Salva</button>
+        </div>
+    </div>
+</div>
+
+<script src="../../../node_modules/polygon-clipping/dist/polygon-clipping.umd.js"></script>
+<script>window.currentTableData = { pageType: 'piano-stagione-vm', summary: 'Caricamento...', items: [] };</script>
+<script>
+    const s = document.createElement('script');
+    s.src = '../../../core/config/firebase-config.js';
+    document.head.appendChild(s);
+</script>
+<script type="module">
+import { initVmPageAuth, showVmAlert, publishTonyTableData } from '../js/vm-page-auth.js';
+import { getPianoStagioneRows, summarizePianoStagione, updateStagioneTerreno, setFlagStagioneTerreno, setBulkFlagStagioneTerreni } from '../services/piano-stagione-service.js';
+import { syncPreventiviAccettatiToPiano } from '../services/preventivo-piano-sync-service.js';
+import { syncLavoriCompletatiToPiano, cleanupOrphanedPianoStagioneLavori } from '../services/lavoro-piano-sync-service.js';
+import { getAllClienti } from '../../conto-terzi/services/clienti-service.js';
+import { computeEttariVendemmiati } from '../services/zone-escluse-service.js';
+import { createVmZoneMappa } from '../js/vm-zone-mappa.js';
+import { getAnnoStagioneCorrente } from '../config/vm-constants.js';
+
+let allRows = [];
+let modalTerrenoId = null;
+let modalRow = null;
+let zoneMapCtrl = null;
+let urlClienteId = null;
+
+function readUrlClienteId() {
+    const p = new URLSearchParams(window.location.search);
+    const id = p.get('clienteId');
+    return id && String(id).trim() ? String(id).trim() : null;
+}
+
+function getHaTotali() {
+    return Number(document.getElementById('modal-ha-totali').textContent) || 0;
+}
+
+function syncNettiFromEsclusi() {
+    const total = getHaTotali();
+    const esclusi = Number(document.getElementById('modal-ha-esclusi').value) || 0;
+    document.getElementById('modal-ha-netti').value = computeEttariVendemmiati(total, { ettariEsclusi: esclusi });
+}
+
+function updateZoneCount(n) {
+    document.getElementById('modal-zone-count').textContent = String(n ?? 0);
+}
+
+function updateDrawingInfo(stats) {
+    const info = document.getElementById('vm-map-info');
+    const pointsEl = document.getElementById('vm-map-points');
+    const areaEl = document.getElementById('vm-map-area');
+    if (!info || !pointsEl || !areaEl) return;
+    const points = stats?.points || 0;
+    pointsEl.textContent = String(points);
+    if (points >= 3 && stats.areaHa != null) {
+        areaEl.textContent = stats.areaHa.toFixed(2) + ' ha';
+        info.classList.add('active');
+    } else if (points > 0) {
+        areaEl.textContent = '— (servono almeno 3 punti)';
+        info.classList.add('active');
+    } else {
+        areaEl.textContent = '—';
+        info.classList.remove('active');
+    }
+}
+
+function setDrawButtonState(isDrawing) {
+    const btn = document.getElementById('btn-map-draw');
+    if (!btn) return;
+    btn.textContent = isDrawing ? '⏸️ Pausa tracciamento' : '✏️ Traccia zona';
+    btn.classList.toggle('btn-draw-active', !!isDrawing);
+}
+
+async function ensureZoneMap() {
+    if (!zoneMapCtrl) {
+        zoneMapCtrl = createVmZoneMappa(document.getElementById('vm-zone-map'), {
+            onDrawingModeChange: setDrawButtonState,
+            onDrawingChange: updateDrawingInfo,
+            onChange: ({ zoneEscluse, ettariEsclusi }) => {
+                updateZoneCount(zoneEscluse.length);
+                updateDrawingInfo({ points: 0, areaHa: null });
+                if (ettariEsclusi != null && zoneEscluse.length > 0) {
+                    document.getElementById('modal-ha-esclusi').value = ettariEsclusi.toFixed(2);
+                    syncNettiFromEsclusi();
+                } else if (!zoneEscluse.length) {
+                    updateZoneCount(0);
+                }
+            }
+        });
+    }
+    await zoneMapCtrl.mount();
+}
+
+async function openZoneModal(row) {
+    modalTerrenoId = row.terrenoId;
+    modalRow = row;
+    document.getElementById('modal-terreno-nome').textContent = row.terrenoNome;
+    document.getElementById('modal-ha-totali').textContent = (row.superficie || 0).toFixed(2);
+    const esclusi = row.stato?.ettariEsclusi || 0;
+    document.getElementById('modal-ha-esclusi').value = esclusi ? esclusi : '';
+    document.getElementById('modal-ha-netti').value = row.ettariEffettivi || row.superficie || '';
+    updateZoneCount(Array.isArray(row.stato?.zoneEscluse) ? row.stato.zoneEscluse.length : 0);
+    const autoHint = document.getElementById('modal-auto-hint');
+    if (autoHint) {
+        const showAuto = row.stato?.zoneEscluseAutoDaLavoro === true
+            && row.stato?.zoneEscluseModificateManualmente !== true;
+        autoHint.style.display = showAuto ? 'block' : 'none';
+    }
+    document.getElementById('modal-zone').classList.add('active');
+
+    await ensureZoneMap();
+    setDrawButtonState(false);
+    updateDrawingInfo({ points: 0, areaHa: null });
+    if (zoneMapCtrl && zoneMapCtrl.mapReady) {
+        setTimeout(() => {
+            zoneMapCtrl.resize();
+            zoneMapCtrl.setBoundary(row.polygonCoords);
+            zoneMapCtrl.loadHarvestedZones(row.stato?.zoneVendemmiate || []);
+            zoneMapCtrl.loadExcludedZones(row.stato?.zoneEscluse || []);
+            if (Array.isArray(row.stato?.zoneEscluse) && row.stato.zoneEscluse.length) {
+                const fromMap = zoneMapCtrl.getExcludedHectares();
+                if (fromMap != null) {
+                    document.getElementById('modal-ha-esclusi').value = fromMap.toFixed(2);
+                    syncNettiFromEsclusi();
+                }
+            }
+        }, 200);
+    }
+}
+
+function closeZoneModal() {
+    document.getElementById('modal-zone').classList.remove('active');
+    if (zoneMapCtrl) {
+        zoneMapCtrl.stopDrawing(true);
+        setDrawButtonState(false);
+        updateDrawingInfo({ points: 0, areaHa: null });
+    }
+}
+
+function escapeHtml(s) {
+    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function getAnno() {
+    return Number(document.getElementById('filter-anno').value) || getAnnoStagioneCorrente();
+}
+
+function renderKpi(rows) {
+    const k = summarizePianoStagione(rows);
+    document.getElementById('kpi-grid').innerHTML = [
+        ['Terreni', k.terreniTotali],
+        ['In piano', k.inPiano],
+        ['Vendemmiati', k.vendemmiati],
+        ['Completamento', k.percentualeCompletata + '%'],
+        ['Ha in piano', k.ettariInPiano],
+        ['Ha vendemmiati', k.ettariVendemmiati]
+    ].map(([l, v]) => '<div class="stat"><strong>' + v + '</strong>' + l + '</div>').join('');
+}
+
+function applyFilters() {
+    const clienteId = document.getElementById('filter-cliente').value;
+    const stato = document.getElementById('filter-stato').value;
+    let rows = allRows.slice();
+    if (clienteId) rows = rows.filter(r => r.clienteId === clienteId);
+    if (stato === 'inPiano') rows = rows.filter(r => r.inPiano);
+    if (stato === 'vendemmiato') rows = rows.filter(r => r.vendemmiato);
+    if (stato === 'residui') rows = rows.filter(r => r.inPiano && !r.vendemmiato);
+    if (stato === 'fuoriPiano') rows = rows.filter(r => !r.inPiano);
+    return rows;
+}
+
+function updateEmptyBanner(rows) {
+    const banner = document.getElementById('piano-empty-banner');
+    const anno = getAnno();
+    const inPiano = rows.filter(r => r.inPiano).length;
+    if (!rows.length) {
+        banner.style.display = 'block';
+        banner.innerHTML = 'Nessun vigneto cliente trovato. Registra terreni con coltura vite in <a href="../../conto-terzi/views/terreni-clienti-standalone.html">Terreni clienti</a>.';
+        return;
+    }
+    if (inPiano === 0) {
+        banner.style.display = 'block';
+        banner.textContent = 'Il piano stagione ' + anno + ' è ancora vuoto: spunta «In piano» sui vigneti da servire, oppure clicca «Aggiungi tutti i vigneti al piano».';
+        return;
+    }
+    banner.style.display = 'none';
+    banner.textContent = '';
+}
+
+function renderTable(rows) {
+    const tbody = document.getElementById('tbody-piano');
+    updateEmptyBanner(allRows);
+    if (!rows.length) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:#888;">Nessun vigneto in elenco</td></tr>';
+    } else {
+        tbody.innerHTML = rows.map(r => {
+            const vmBadge = r.datiVmCompleti ? '' : ' <span class="badge warn">VM incompleto</span>';
+            return '<tr>' +
+                '<td>' + escapeHtml(r.clienteNome) + '</td>' +
+                '<td>' + escapeHtml(r.terrenoNome) + vmBadge + '</td>' +
+                '<td>' + (r.superficie ? r.superficie.toFixed(2) : '—') + '</td>' +
+                '<td>' + (r.ettariEffettivi ? r.ettariEffettivi.toFixed(2) : '—') + '</td>' +
+                '<td><input type="checkbox" data-flag="inPiano" data-id="' + r.terrenoId + '" ' + (r.inPiano ? 'checked' : '') + '></td>' +
+                '<td><input type="checkbox" data-flag="vendemmiato" data-id="' + r.terrenoId + '" ' + (r.vendemmiato ? 'checked' : '') + '></td>' +
+                '<td>' + (r.zoneEscluseCount || r.ettariEsclusi
+                    ? (r.ettariEsclusi ? r.ettariEsclusi.toFixed(2) : '—') + (r.zoneEscluseCount ? ' (' + r.zoneEscluseCount + ' zone)' : '')
+                    : '0') + '</td>' +
+                '<td><button type="button" class="btn btn-sm btn-primary" data-zone="' + r.terrenoId + '">Zone / Ha</button></td>' +
+                '</tr>';
+        }).join('');
+    }
+
+    const summary = rows.length
+        ? rows.length + ' terreni — ' + rows.filter(r => r.inPiano).length + ' in piano, ' + rows.filter(r => r.vendemmiato).length + ' vendemmiati'
+        : 'Nessun terreno cliente';
+    const items = rows.map(r => ({
+        cliente: r.clienteNome,
+        terreno: r.terrenoNome,
+        inPiano: r.inPiano,
+        vendemmiato: r.vendemmiato,
+        ettariEffettivi: r.ettariEffettivi
+    }));
+    publishTonyTableData('piano-stagione-vm', summary, items);
+}
+
+async function loadData() {
+    const anno = getAnno();
+    document.getElementById('anno-label').textContent = anno;
+
+    try {
+        const backfill = await syncPreventiviAccettatiToPiano(anno);
+        if (backfill.addedTerreni > 0) {
+            showVmAlert('alert-container', backfill.addedTerreni + ' vigneto/i aggiunto/i al piano da preventivi accettati.', 'success');
+        }
+    } catch (syncErr) {
+        console.warn('[VM piano] sync preventivi accettati:', syncErr.message);
+    }
+
+    try {
+        const orphanCleanup = await cleanupOrphanedPianoStagioneLavori(anno);
+        if (orphanCleanup.cleared > 0) {
+            showVmAlert('alert-container', orphanCleanup.cleared + ' vigneto/i ripristinati: lavoro eliminato, vendemmia annullata.', 'success');
+        }
+    } catch (syncErr) {
+        console.warn('[VM piano] cleanup lavori orfani:', syncErr.message);
+    }
+
+    try {
+        const lavoriSync = await syncLavoriCompletatiToPiano(anno);
+        if (lavoriSync.synced > 0) {
+            showVmAlert('alert-container', lavoriSync.synced + ' vigneto/i segnati vendemmiati da lavori completati.', 'success');
+        }
+    } catch (syncErr) {
+        console.warn('[VM piano] sync lavori completati:', syncErr.message);
+    }
+
+    const clienteFilter = document.getElementById('filter-cliente').value || urlClienteId || null;
+    allRows = await getPianoStagioneRows(anno, {
+        clienteId: clienteFilter,
+        soloVigneti: true
+    });
+
+    if (urlClienteId) {
+        const row = allRows.find(r => r.clienteId === urlClienteId);
+        const focus = document.getElementById('cliente-focus');
+        if (row && row.clienteNome) {
+            focus.style.display = 'block';
+            focus.textContent = 'Cliente: ' + row.clienteNome;
+        }
+        document.getElementById('filter-cliente').value = urlClienteId;
+    }
+
+    renderKpi(allRows);
+    renderTable(applyFilters());
+}
+
+async function bulkSetInPiano(value) {
+    const rows = applyFilters().length ? applyFilters() : allRows;
+    const targetIds = value
+        ? rows.filter(r => !r.inPiano).map(r => r.terrenoId)
+        : rows.filter(r => r.inPiano).map(r => r.terrenoId);
+    if (!targetIds.length) {
+        showVmAlert('alert-container', value ? 'Tutti i vigneti visibili sono già in piano' : 'Nessun vigneto in piano da rimuovere', 'error');
+        return;
+    }
+    const msg = value
+        ? 'Aggiungere ' + targetIds.length + ' vigneti al piano ' + getAnno() + '?'
+        : 'Rimuovere ' + targetIds.length + ' vigneti dal piano ' + getAnno() + '?';
+    if (!confirm(msg)) return;
+    await setBulkFlagStagioneTerreni(targetIds, getAnno(), 'inPiano', value);
+    showVmAlert('alert-container', value ? 'Vigneti aggiunti al piano' : 'Vigneti rimossi dal piano', 'success');
+    await loadData();
+}
+
+try {
+    await initVmPageAuth();
+    urlClienteId = readUrlClienteId();
+    document.getElementById('filter-anno').value = String(getAnnoStagioneCorrente());
+
+    const clienti = await getAllClienti({ orderBy: 'ragioneSociale' });
+    const sel = document.getElementById('filter-cliente');
+    clienti.forEach(c => {
+        const o = document.createElement('option');
+        o.value = c.id;
+        o.textContent = c.ragioneSociale || c.nome || c.id;
+        sel.appendChild(o);
+    });
+
+    document.getElementById('btn-refresh').addEventListener('click', loadData);
+    document.getElementById('btn-add-all-piano').addEventListener('click', () => bulkSetInPiano(true));
+    document.getElementById('btn-remove-all-piano').addEventListener('click', () => bulkSetInPiano(false));
+    ['filter-cliente', 'filter-stato', 'filter-anno'].forEach(id => {
+        document.getElementById(id).addEventListener('change', () => {
+            if (id === 'filter-cliente') urlClienteId = null;
+            if (id === 'filter-cliente' || id === 'filter-anno') loadData();
+            else renderTable(applyFilters());
+        });
+    });
+
+    document.getElementById('tbody-piano').addEventListener('change', async (e) => {
+        const t = e.target;
+        if (t.dataset.flag && t.dataset.id) {
+            try {
+                await setFlagStagioneTerreno(t.dataset.id, getAnno(), t.dataset.flag, t.checked);
+                await loadData();
+            } catch (err) {
+                showVmAlert('alert-container', err.message, 'error');
+                t.checked = !t.checked;
+            }
+        }
+    });
+
+    document.getElementById('tbody-piano').addEventListener('click', async (e) => {
+        const btn = e.target.closest('[data-zone]');
+        if (!btn) return;
+        const row = allRows.find(r => r.terrenoId === btn.dataset.zone);
+        if (!row) return;
+        try {
+            await openZoneModal(row);
+        } catch (err) {
+            showVmAlert('alert-container', err.message || 'Errore apertura mappa', 'error');
+        }
+    });
+
+    document.getElementById('modal-ha-esclusi').addEventListener('input', syncNettiFromEsclusi);
+
+    document.getElementById('btn-map-draw').addEventListener('click', () => {
+        if (!zoneMapCtrl?.mapReady) {
+            showVmAlert('alert-container', 'Mappa non disponibile — usa override manuale', 'error');
+            return;
+        }
+        zoneMapCtrl.toggleDrawing();
+    });
+
+    document.getElementById('btn-map-finish').addEventListener('click', () => {
+        if (!zoneMapCtrl?.mapReady) return;
+        if (!zoneMapCtrl.finishCurrentZone()) {
+            showVmAlert('alert-container', 'Servono almeno 3 punti per chiudere la zona', 'error');
+        } else {
+            setDrawButtonState(false);
+        }
+    });
+
+    document.getElementById('btn-map-undo').addEventListener('click', () => {
+        zoneMapCtrl?.removeLastZone();
+    });
+
+    document.getElementById('btn-map-clear').addEventListener('click', () => {
+        if (!zoneMapCtrl) return;
+        const count = zoneMapCtrl.getSerializedZones().length;
+        if (count && !confirm('Eliminare tutte le zone escluse tracciate?')) return;
+        zoneMapCtrl.clearAllZones();
+        document.getElementById('modal-ha-esclusi').value = '';
+        syncNettiFromEsclusi();
+    });
+
+    document.getElementById('modal-cancel').addEventListener('click', closeZoneModal);
+
+    document.getElementById('modal-save').addEventListener('click', async () => {
+        if (!modalTerrenoId) return;
+        try {
+            if (zoneMapCtrl?.mapReady) {
+                zoneMapCtrl.finishDrawingIfReady();
+            }
+            const esclusi = Number(document.getElementById('modal-ha-esclusi').value) || 0;
+            const netti = Number(document.getElementById('modal-ha-netti').value);
+            const zoneEscluse = zoneMapCtrl?.mapReady
+                ? zoneMapCtrl.getSerializedZones()
+                : (modalRow?.stato?.zoneEscluse || []);
+            if (!zoneEscluse.length && esclusi <= 0) {
+                showVmAlert('alert-container', 'Traccia almeno una zona (min. 3 punti) oppure indica gli ettari esclusi manualmente', 'error');
+                return;
+            }
+            const mapsApi = typeof google !== 'undefined' ? google.maps : undefined;
+            const saved = await updateStagioneTerreno(modalTerrenoId, getAnno(), {
+                zoneEscluse,
+                ettariEsclusi: esclusi,
+                ettariVendemmiati: netti,
+                zoneEscluseModificateManualmente: true,
+                zoneEscluseAutoDaLavoro: false
+            }, { mapsApi });
+            closeZoneModal();
+            const zoneMsg = Array.isArray(saved.zoneEscluse) && saved.zoneEscluse.length
+                ? saved.zoneEscluse.length + ' zone, ' + (saved.ettariEsclusi || 0).toFixed(2) + ' ha esclusi'
+                : (saved.ettariEsclusi || 0).toFixed(2) + ' ha esclusi';
+            showVmAlert('alert-container', 'Salvato: ' + zoneMsg + ' — ha netti ' + (saved.ettariVendemmiati || netti).toFixed(2), 'success');
+            await loadData();
+        } catch (err) {
+            showVmAlert('alert-container', err.message, 'error');
+        }
+    });
+
+    await loadData();
+} catch (e) {
+    showVmAlert('alert-container', e.message || 'Errore inizializzazione', 'error');
+    if ((e.message || '').includes('Moduli non attivi')) {
+        setTimeout(() => { window.location.href = '../../../core/dashboard-standalone.html'; }, 3000);
+    }
+}
+</script>
+</body>
+</html>

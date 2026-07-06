@@ -1529,6 +1529,7 @@
     </script>
     
     <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
+    <script src="../../node_modules/polygon-clipping/dist/polygon-clipping.umd.js"></script>
     <!-- Placeholder per Tony: currentTableData (aggiornato da renderLavori) -->
     <script>window.currentTableData = window.currentTableData || { pageType: 'lavori', summary: 'Caricamento dati in corso...', items: [] };</script>
     <!-- Firebase SDK -->
@@ -1828,8 +1829,38 @@
         }
 
         // Wrapper per populateTerrenoDropdown
-        function populateTerrenoDropdownWrapper(selectedId = null) {
-            populateTerrenoDropdownModule(lavoriState.terreniList, selectedId);
+        async function populateTerrenoDropdownWrapper(selectedId = null, clienteIdFilter = null) {
+            const tenantId = currentTenantId || lavoriState.currentTenantId;
+            let extraTerreno = null;
+
+            if (selectedId && !lavoriState.terreniList.some((t) => t.id === selectedId) && tenantId && db) {
+                try {
+                    const terrenoDoc = await getDoc(doc(db, 'tenants', tenantId, 'terreni', selectedId));
+                    if (terrenoDoc.exists()) {
+                        const data = terrenoDoc.data();
+                        extraTerreno = {
+                            id: terrenoDoc.id,
+                            nome: data.nome || '',
+                            superficie: data.superficie || 0,
+                            clienteId: data.clienteId || null,
+                            coltura: data.coltura || null,
+                            ...data
+                        };
+                        if (!lavoriState.terreniList.some((t) => t.id === selectedId)) {
+                            lavoriState.terreniList.push(extraTerreno);
+                            updateState({ terreniList: lavoriState.terreniList });
+                        }
+                    }
+                } catch (e) {
+                    console.warn('[GESTIONE LAVORI] Terreno lavoro non in lista, fetch fallito:', e);
+                }
+            }
+
+            populateTerrenoDropdownModule(lavoriState.terreniList, selectedId, {
+                clienteId: clienteIdFilter || null,
+                extraTerreno,
+                preserveDisabled: !!selectedId && !!clienteIdFilter
+            });
         }
 
         // Wrapper per populateCaposquadraDropdown
@@ -1872,13 +1903,15 @@
         }
 
         // Wrapper per loadTerreni
-        async function loadTerreniWrapper() {
-            // Rileva se siamo in modalità conto terzi
+        async function loadTerreniWrapper(forceContoTerziMode = null) {
             const urlParams = new URLSearchParams(window.location.search);
             const contoTerziFromUrl = urlParams.get('contoTerzi');
             const statoFromUrl = urlParams.get('stato');
-            const isContoTerziMode = contoTerziFromUrl === 'true' || 
-                                    (statoFromUrl === 'da_pianificare' && lavoriState.hasContoTerziModule);
+            const isContoTerziMode = forceContoTerziMode === true ||
+                (forceContoTerziMode !== false && (
+                    contoTerziFromUrl === 'true' ||
+                    (statoFromUrl === 'da_pianificare' && lavoriState.hasContoTerziModule)
+                ));
             
             await loadTerreniModule(
                 currentTenantId || lavoriState.currentTenantId,
@@ -2706,10 +2739,9 @@
                                     (statoFromUrl === 'da_pianificare' && lavoriState.hasContoTerziModule) ||
                                     isLavoroContoTerzi;
             
-            // IMPORTANTE: Ricarica i terreni per assicurarsi che siano corretti per la modalità corrente
-            // Se il lavoro è conto terzi, dobbiamo caricare terreni clienti
+            // IMPORTANTE: Ricarica i terreni clienti se il lavoro è conto terzi
             if (isLavoroContoTerzi || isContoTerziMode) {
-                await loadTerreniWrapper();
+                await loadTerreniWrapper(isLavoroContoTerzi || isContoTerziMode);
             }
             
             // Ricarica le liste necessarie prima di aprire il modal

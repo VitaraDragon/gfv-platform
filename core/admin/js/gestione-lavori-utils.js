@@ -162,3 +162,59 @@ export function updateDashboardLink() {
         dashboardLink.href = '../../modules/conto-terzi/views/conto-terzi-home-standalone.html';
     }
 }
+
+const LAVORO_CT_LOCK_FIELD_IDS = [
+    'lavoro-nome',
+    'lavoro-terreno',
+    'lavoro-categoria-principale',
+    'lavoro-sottocategoria',
+    'lavoro-tipo-lavoro'
+];
+
+/**
+ * Blocca campi già noti dal preventivo CT (da_pianificare).
+ * @param {Object} lavoro
+ */
+export function applyLavoroFormContoTerziDaPianificareLock(lavoro) {
+    if (!lavoro || lavoro.stato !== 'da_pianificare' || !lavoro.clienteId || !lavoro.preventivoId) {
+        resetLavoroFormContoTerziLock();
+        return;
+    }
+
+    LAVORO_CT_LOCK_FIELD_IDS.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.tagName === 'SELECT') {
+            el.disabled = true;
+        } else {
+            el.readOnly = true;
+        }
+    });
+
+    let hint = document.getElementById('lavoro-ct-preventivo-hint');
+    if (!hint) {
+        hint = document.createElement('p');
+        hint.id = 'lavoro-ct-preventivo-hint';
+        hint.style.cssText = 'color:#1565C0;font-size:12px;margin:0 0 12px 0;padding:8px 10px;background:#E3F2FD;border-radius:6px;';
+        const form = document.getElementById('lavoro-form');
+        if (form && form.firstChild) {
+            form.insertBefore(hint, form.firstChild);
+        }
+    }
+    hint.textContent = 'Dati da preventivo conto terzi: completa data, assegnazione e macchine.';
+    hint.style.display = 'block';
+}
+
+/**
+ * Ripristina editabilità campi form lavoro dopo chiusura modal CT.
+ */
+export function resetLavoroFormContoTerziLock() {
+    LAVORO_CT_LOCK_FIELD_IDS.forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.disabled = false;
+        el.readOnly = false;
+    });
+    const hint = document.getElementById('lavoro-ct-preventivo-hint');
+    if (hint) hint.style.display = 'none';
+}

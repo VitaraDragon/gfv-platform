@@ -1,6 +1,195 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-05 — E2E locale Node 24 + filtro scenari write P2.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-06 — Vendemmia Meccanica MVP + Tony FAB standalone.
+
+## Tony — FAB assente su molte pagine standalone (2026-07-06)
+
+**Problema:** il floating button Tony mancava su pagine VM (nessuno shell) e spesso anche dove lo shell c’era ma piano/moduli tenant non venivano pubblicati (`getPlanId()` null → loader non caricava il widget).
+
+| Fix | Dettaglio |
+|-----|-----------|
+| Head bootstrap | `gfv-standalone-head-bootstrap.js` in `<head>` pagine CT (clienti, preventivi, tariffe, …) — loader Tony **prima** di Firebase/auth |
+| Loader | `gfv-tony-tenant-bootstrap.js` agganciato a **`initializeFirebase()`** + inject diretto `gfv-tony-loader.js` |
+| Tenant | `setCurrentTenantId` pubblica sempre il tenant; auth CT chiama `setCurrentTenantId` dove mancava (clienti, preventivi, mappa) |
+| VM | `vm-page-auth.js` — shell + publish dopo auth su tutte le pagine vendemmia meccanica |
+| Report | `report-dashboard` / `report-terreni` — shell + `getCurrentTenant` |
+
+## Modulo Vendemmia Meccanica — Integrazione lavoro ↔ piano stagione (2026-07-06)
+
+**Obiettivo:** flusso end-to-end preventivo → lavoro → campo → approvazione → piano stagione coerente, con chiusura parziale e annullamento su elimina lavoro.
+
+| Fase | Comportamento |
+|------|----------------|
+| Preventivo accettato | `inPiano: true` su vigneto (`preventivo-piano-sync-service` + Cloud Function email) |
+| Pianifica | Lavoro `da_pianificare` in Gestione Lavori (CT: terreno precompilato) |
+| Campo | Caposquadra traccia zone vendemmiate (verdi); VM: chiusura parziale da **10%** (`lavoro-vm-utils`) |
+| Approvazione manager | `syncLavoroCompletatoToPianoStagione` → `vendemmiato`, `zoneVendemmiate`, zone escluse auto |
+| Zone escluse | Calcolo geometrico terreno − vendemmiato; modificabili dal manager (`zoneEscluseAutoDaLavoro` / `zoneEscluseModificateManualmente`) |
+| Elimina lavoro | `clearLavoroFromPianoStagione` → vendemmiato off, zone rimosse, `inPiano` invariato |
+| Orfani | `cleanupOrphanedPianoStagioneLavori` su refresh piano (lavoroId inesistente) |
+
+| File chiave | Ruolo |
+|-------------|--------|
+| `lavoro-piano-sync-service.js` | Sync completamento + revert + cleanup orfani |
+| `piano-stagione-service.js` | `revertVendemmiaLavoroInPiano` |
+| `zone-escluse-service.js` | `computeZoneEscluseAutomatiche` (polygon-clipping) |
+| `lavoro-vm-utils.js` | Riconoscimento VM, soglie parziale, link piano↔lavoro |
+| `gestione-lavori-events.js` | Hook approva + elimina lavoro |
+| `lavori-caposquadra-standalone.html` | Multi-zona, invio parziale al manager |
+
+**Test:** `lavoro-vm-utils.test.js`, `zone-escluse.test.js`, `lavoro-piano-sync.test.js` (funzioni pure).
+
+## Modulo Vendemmia Meccanica — Revert piano stagione su elimina lavoro (2026-07-06)
+
+**Obiettivo:** eliminando un lavoro VM, il piano stagione torna coerente (vendemmiato off, zone verdi/rosse rimosse); backfill orfani all’apertura piano.
+
+| Area | Dettaglio |
+|------|-----------|
+| Revert | `revertVendemmiaLavoroInPiano` — mantiene `inPiano`, azzera vendemmiato/zone/lavoroId |
+| Hook | `gestione-lavori-events.js` → `clearLavoroFromPianoStagione` prima di `deleteDoc` |
+| Orfani | `cleanupOrphanedPianoStagioneLavori` su refresh piano stagione (lavoroId inesistente) |
+
+## Modulo Vendemmia Meccanica — Zone escluse automatiche da lavoro (2026-07-06)
+
+**Obiettivo:** alla chiusura/approvazione lavoro VM, calcolare automaticamente le zone rosse (terreno − vendemmiato) e gli ettari esclusi; restano modificabili dal manager nel modal piano stagione.
+
+| Area | Dettaglio |
+|------|-----------|
+| Geometria | `zone-escluse-service.js` — `computeZoneEscluseAutomatiche` (polygon-clipping: difference terreno − union zone vendemmiate) |
+| Sync | `lavoro-piano-sync-service.js` — scrive `zoneEscluse`, `ettariEsclusi`, flag `zoneEscluseAutoDaLavoro`; non sovrascrive se `zoneEscluseModificateManualmente` |
+| UI | `piano-stagione-standalone.html` — hint zone auto; salvataggio imposta flag manuali |
+| Browser | script UMD `polygon-clipping` in gestione lavori + piano stagione |
+| Dipendenza | `polygon-clipping` in `package.json` |
+
+## Modulo Vendemmia Meccanica — Preventivo accettato → piano stagione (2026-07-05)
+
+**Obiettivo:** quando un preventivo «Vendemmia meccanica» viene accettato (manager o email), il vigneto compare automaticamente nel piano stagione (`inPiano`).
+
+| Area | Dettaglio |
+|------|-----------|
+| Sync client | `preventivo-piano-sync-service.js` — accettazione manager + backfill all’apertura piano |
+| Sync server | `functions/vm-preventivo-piano-sync.js` — accettazione via link email |
+| Hook | `preventivi-service.js`, `preventivi-standalone.html`, `piano-stagione-standalone.html` |
+| Terreno | Se indicato nel preventivo → quello; altrimenti vigneti del cliente |
+| Anno | Da `dataPrevista` del preventivo, altrimenti anno corrente |
+
+**Nota:** preventivi già accettati prima di questo aggiornamento vengono allineati al primo caricamento del piano stagione (backfill).
+
+## Modulo Vendemmia Meccanica — Multi-zona stesso giorno (lavori caposquadra) (2026-07-05)
+
+**Obiettivo:** per lavori «Vendemmia meccanica», l’operatore può tracciare più zone vendemmiate nella stessa data senza chiudere il modal.
+
+| Area | Dettaglio |
+|------|-----------|
+| Riconoscimento VM | `lavoro-vm-utils.js` — tipo lavoro / CT + modulo `vendemmiaMeccanica` |
+| UI caposquadra | `lavori-caposquadra-standalone.html` — «Salva e aggiungi altra zona», poligoni verdi, obbligo chiusura poligono |
+| Dati | Subcollection `zoneLavorate` invariata (N documenti per stessa data); progressi con unione geometrica esistente |
+| Test | `tests/vendemmia-meccanica/lavoro-vm-utils.test.js` |
+
+**Flusso:** Traccia zona → chiudi poligono → «Salva e aggiungi altra zona» (stessa data) → ripeti; «Salva e chiudi» per uscire. Altri tipi lavoro: comportamento precedente (salva e chiudi).
+
+## Modulo Vendemmia Meccanica — Card «Clienti in piano» + gestione piano (2026-07-05)
+
+**Obiettivo:** hub VM con annata corrente, elenco clienti con vigneti da terreni CT, flusso chiaro per comporre il piano stagione.
+
+| Area | Dettaglio |
+|------|-----------|
+| Hub VM | KPI «Clienti in piano» = 0 se vuoto; pannello clienti con vigneti (click → piano filtrato per cliente) |
+| Filtro vigneti | `piano-stagione-utils.js` — coltura categoria Vite o testo vite/vigneto su terreni clienti |
+| Piano stagione | Solo vigneti; banner se piano vuoto; pulsanti «Aggiungi tutti / Rimuovi tutti»; colonna In piano (checkbox) |
+| URL | `piano-stagione-standalone.html?clienteId=…` da hub |
+| Test | `tests/vendemmia-meccanica/piano-stagione-utils.test.js` (3) |
+
+**Flusso utente:** Terreni clienti (CT, categoria **Vite**) → Hub VM → Piano stagione → spunta «In piano».
+
+## Modulo Vendemmia Meccanica — Fix detection vigneti vs frutteto (2026-07-05)
+
+**Problema:** piano stagione vuoto; badge «Dati VM incompleti» anche su frutteti.
+
+| Causa | Fix |
+|-------|-----|
+| `colturaCategoria` su Firestore è **ID**, non testo «Vite» | `buildVignetoDetectionContext()` risolve ID categorie + nomi colture da anagrafica |
+| Modello `Terreno` non esponeva `colturaCategoria` | Aggiunti campi al modello core |
+| VM badge su tutti i terreni | Badge/link VM **solo vigneti**; sezione tipo palo nel form **solo categoria Vite** |
+| Frutteto poteva ereditare campi VM | Salvataggio azzera `tipoPalo`/`sestoImpianto` se coltura ≠ Vite |
+
+**Verifica:** terreno cliente → categoria **Vite** + tipo palo → compare in hub/piano stagione; frutteto senza badge VM.
+
+## Modulo Vendemmia Meccanica — Stripe checkout deploy (2026-07-03)
+
+**Problema:** attivazione modulo da Abbonamento → `Prezzo Stripe non configurato per "vendemmiaMeccanica"` (400 su `createStripeCheckoutSession`). Config locale OK; Cloud Functions in produzione senza voce in `stripe-prices.json`.
+
+**Fix:** rigenerati `functions/config/tony-module-recommendations.json` e `tony-bundles-catalog.json` (mancavano in workspace, bloccavano deploy); script `functions/scripts/generate-tony-configs.js`; **deploy functions** completato (`createStripeCheckoutSession`, `startModuleTrial`, ecc.).
+
+**Verifica:** con Conto Terzi attivo, toggle Vendemmia Meccanica → redirect Stripe €24/anno oppure prova 30 gg.
+
+## Modulo Vendemmia Meccanica — Abbonamento: attivazione trial (2026-07-03)
+
+**Obiettivo:** rendere attivabile `vendemmiaMeccanica` dalla pagina Abbonamento (prova 30 gg / acquisto).
+
+| Area | Dettaglio |
+|------|-----------|
+| Bug | `vendemmiaMeccanica` mancava in `functions/module-trial.js` → prova gratuita rifiutata dal server |
+| Fix | Aggiunto a whitelist trial; prerequisito `contoTerzi` enforced (client + Cloud Function) |
+| UI abbonamento | Badge «Richiede: Conto Terzi»; check prerequisiti su moduli effettivi (pagati + trial) |
+| Stripe | Price ID test `price_1Tp9lM3nOKBd0FguH9PfiGCs` — €2/mese (€24/anno) |
+
+**Flusso dev:** 1) prova/acquisto **Conto Terzi** → 2) prova **Vendemmia Meccanica** → card visibili in hub CT.
+
+## Modulo Vendemmia Meccanica — Card entry dashboard / hub (2026-07-03)
+
+**Obiettivo:** KPI stagione in hub VM, stat card su Conto Terzi, tile modulo in dashboard principale.
+
+| Area | Dettaglio |
+|------|-----------|
+| Hub VM | 5 stat card cliccabili (clienti in piano, % compl., ha residui/vendemmiati, ricavi) in `vm-home-standalone.html` |
+| Hub CT | 2 stat card VM + action card (se licenza attiva) in `conto-terzi-home-standalone.html` |
+| Dashboard | Riga «Moduli attivi» con tile VM (e altri moduli) per manager con Manodopera — `createDashboardModuleEntryTilesRow` |
+| KPI | `piano-stagione-kpi.js` esteso: `clientiInPiano`, `ettariResidui`, `terreniResidui` |
+
+## Modulo Vendemmia Meccanica — Mappa zone escluse (2026-07-03)
+
+**Obiettivo:** tracciare poligoni aree non vendemmiate nel piano stagione e calcolare ettari netti.
+
+| Area | Dettaglio |
+|------|-----------|
+| UI | Modal ampliata in `piano-stagione-standalone.html` — confini terreno CT (verde) + zone escluse (rosso) |
+| JS | `vm-zone-mappa.js` (controller poligoni multipli), `vm-maps-loader.js` (Google Maps + geometry) |
+| Servizio | Helper `normalizeLatLngCoord`, `serializePolygonPath` in `zone-escluse-service.js`; persistenza `zoneEscluse` su terreno |
+| Test | 6 test unitari (`tests/vendemmia-meccanica/zone-escluse.test.js`) |
+
+## Modulo Vendemmia Meccanica — PDF calcolo (2026-07-03)
+
+**Obiettivo:** export PDF del compenso vendemmia meccanica da calcolatore e storico.
+
+| Area | Dettaglio |
+|------|-----------|
+| Servizio | `modules/vendemmia-meccanica/services/calcolo-vm-pdf-service.js` — jsPDF, tabella terreni, totali |
+| UI | Pulsante «Esporta PDF» in `calcolatore-standalone.html`; pulsante PDF per riga in `calcoli-salvati-standalone.html` |
+| Auth | `initVmPageAuth` espone `tenantNome` (doc tenant) per intestazione PDF |
+| Test | 3 test helper formattazione (`tests/vendemmia-meccanica/calcolo-vm-pdf.test.js`) |
+
+## Modulo Vendemmia Meccanica — Fase 2 servizi + Fase 3 UI MVP (2026-07-03)
+
+| Area | Dettaglio |
+|------|-----------|
+| Servizi | `calcolo-compenso-vm-service`, `zone-escluse-service`, `tariffe-vm-service`, `piano-stagione-service`, `calcoli-vm-service`, `bilancio-vm-service` |
+| Test | 8 test unitari calcolo/ettari/KPI (`tests/vendemmia-meccanica/`) |
+| UI | `piano-stagione`, `calcolatore`, `tariffe-vm`, `calcoli-salvati`, `bilancio-vm` standalone; hub VM con link attivi |
+| Mancante MVP | entry dashboard/CT hub (3.9), responsive polish (3.10), Tony (Fase 5), integrazioni CT/Report (Fase 4) |
+
+## Modulo Vendemmia Meccanica — Fase 0 + inizio Fase 1 (2026-07-03)
+
+**Obiettivo:** setup licenza/gate e estensione terreni CT per servizio vendemmia meccanizzata a conto terzi.
+
+| Area | Dettaglio |
+|------|-----------|
+| Licenza | `vendemmiaMeccanica` in `subscription-plans.js` (€2/mese, richiede `contoTerzi`) |
+| Gate | Tile dashboard, quick bar, `tony-module-gate`, `engine.js`; card hub Conto Terzi |
+| Hub VM | `modules/vendemmia-meccanica/views/vm-home-standalone.html` + `config/vm-constants.js` |
+| Terreni CT | Campi `tipoPalo`, `sestoImpianto` nel form; badge stato VM; modello `Terreno.js` |
+| Firestore | Rules `calcoli-vendemmia-meccanica`, `spese-vendemmia-meccanica`; terreni su collection esistente |
+| Piano | `PLAN_MODULO_VENDEMMIA_MECCANICA.md` — decisioni O1–O12/O14 chiuse, checklist §13 aggiornata |
 
 ## GFV Farm Simulator — E2E locale Node 24 + filtro scenari (2026-07-05)
 

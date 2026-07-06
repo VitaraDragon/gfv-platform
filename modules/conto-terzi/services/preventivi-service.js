@@ -358,6 +358,19 @@ export async function accettaPreventivo(preventivoId, metodo = 'manager') {
       stato: nuovoStato,
       dataAccettazione: new Date()
     });
+
+    const preventivoAggiornato = {
+      ...preventivo,
+      id: preventivoId,
+      stato: nuovoStato,
+      dataAccettazione: new Date()
+    };
+    try {
+      const { syncPreventivoAccettatoToPiano } = await import('../../vendemmia-meccanica/services/preventivo-piano-sync-service.js');
+      await syncPreventivoAccettatoToPiano(preventivoAggiornato);
+    } catch (syncErr) {
+      console.warn('[VM] sync piano da preventivo accettato:', syncErr.message);
+    }
     
     // TODO: Inviare notifica in-app al manager
   } catch (error) {

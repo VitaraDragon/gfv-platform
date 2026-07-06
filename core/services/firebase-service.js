@@ -88,6 +88,11 @@ export function initializeFirebase(config) {
     if (typeof window !== 'undefined') {
       window.__firebaseReady = true;
       window.dispatchEvent(new CustomEvent('gfv-firebase-ready'));
+      import('../js/gfv-tony-tenant-bootstrap.js')
+        .then((m) => m.bootstrapTonyTenantFromAuth())
+        .catch((err) => {
+          console.warn('[firebase-service] Tony tenant bootstrap:', err.message || err);
+        });
     }
   } catch (e) { /* ignore */ }
   return { app, db, auth };

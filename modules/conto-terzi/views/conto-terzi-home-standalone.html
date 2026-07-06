@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conto Terzi - GFV Platform</title>
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <script src="../../../core/js/gfv-standalone-head-bootstrap.js"></script>
     <style>
         * {
             margin: 0;
@@ -213,6 +214,14 @@
                     <div class="stat-value" id="stat-lavori-da-pianificare" style="color: #856404;">-</div>
                     <div class="stat-label" style="color: #856404;">📝 Da Pianificare</div>
                 </a>
+                <a href="../../vendemmia-meccanica/views/piano-stagione-standalone.html" class="stat-card" id="stat-vm-card" style="display: none; text-decoration: none; color: inherit; cursor: pointer; background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%); border: 2px solid #6A1B9A;" title="Apri piano stagione vendemmia meccanica">
+                    <div class="stat-value" id="stat-vm-progress" style="color: #6A1B9A;">-</div>
+                    <div class="stat-label" style="color: #6A1B9A;">🍇 VM — Completamento</div>
+                </a>
+                <a href="../../vendemmia-meccanica/views/piano-stagione-standalone.html" class="stat-card" id="stat-vm-ha-card" style="display: none; text-decoration: none; color: inherit; cursor: pointer; background: linear-gradient(135deg, #EDE7F6 0%, #D1C4E9 100%); border: 2px solid #7B1FA2;" title="Ettari ancora da vendemmiare">
+                    <div class="stat-value" id="stat-vm-ha-residui" style="color: #4A148C;">-</div>
+                    <div class="stat-label" style="color: #4A148C;">Ha VM residui</div>
+                </a>
             </div>
 
             <h2 style="color: #1976D2; margin: 40px 0 20px 0;">Azioni Rapide</h2>
@@ -241,6 +250,11 @@
                     <span class="action-icon">💰</span>
                     <span class="action-title">Tariffe</span>
                     <span class="action-description">Configura tariffe per preventivi automatici</span>
+                </a>
+                <a href="../../vendemmia-meccanica/views/vm-home-standalone.html" class="action-card" id="card-vendemmia-meccanica" style="display: none; background: linear-gradient(135deg, #F3E5F5 0%, #E1BEE7 100%); border: 2px solid #6A1B9A;">
+                    <span class="action-icon">🍇</span>
+                    <span class="action-title" style="color: #6A1B9A;">Vendemmia Meccanica</span>
+                    <span class="action-description" style="color: #666;">Piano stagione, calcolo compenso e bilancio servizio CT</span>
                 </a>
                 <a href="../../../core/admin/gestione-lavori-standalone.html?stato=da_pianificare" class="action-card">
                     <span class="action-icon">📝</span>
@@ -278,6 +292,7 @@
         import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
         import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
         import { collection, getDocs, query, where, orderBy, getDoc, doc } from '../../../core/services/firebase-service.js';
+        import { setCurrentTenantId } from '../../../core/services/tenant-service.js';
 
         // Funzione per attendere il caricamento della configurazione Firebase
         function waitForConfig() {
@@ -320,6 +335,7 @@
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
                         currentTenantId = userData.tenantId;
+                        setCurrentTenantId(currentTenantId);
 
                         // Verifica permessi (solo Manager o Amministratore)
                         const ruoli = userData.ruoli || [];
@@ -338,6 +354,18 @@
 
                         // Carica statistiche
                         await loadStats();
+
+                        try {
+                            const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                            const modules = tenantDoc.exists() ? (tenantDoc.data().modules || []) : [];
+                            const vmCard = document.getElementById('card-vendemmia-meccanica');
+                            if (vmCard && modules.includes('vendemmiaMeccanica')) {
+                                vmCard.style.display = '';
+                                await loadVmStats();
+                            }
+                        } catch (vmErr) {
+                            console.warn('Verifica modulo VM:', vmErr);
+                        }
                     } else {
                         window.location.href = '../../../core/auth/login-standalone.html';
                     }
@@ -450,6 +478,26 @@
             } catch (error) {
                 console.error('Errore caricamento statistiche:', error);
                 showAlert('Errore caricamento statistiche: ' + error.message, 'error');
+            }
+        }
+
+        async function loadVmStats() {
+            try {
+                const { getPianoStagioneRows } = await import('../../vendemmia-meccanica/services/piano-stagione-service.js');
+                const { summarizePianoStagione } = await import('../../vendemmia-meccanica/services/piano-stagione-kpi.js');
+                const { getAnnoStagioneCorrente } = await import('../../vendemmia-meccanica/config/vm-constants.js');
+                const rows = await getPianoStagioneRows(getAnnoStagioneCorrente(), { soloVigneti: true });
+                const k = summarizePianoStagione(rows);
+                const progressEl = document.getElementById('stat-vm-progress');
+                const haEl = document.getElementById('stat-vm-ha-residui');
+                const cardEl = document.getElementById('stat-vm-card');
+                const haCardEl = document.getElementById('stat-vm-ha-card');
+                if (progressEl) progressEl.textContent = k.percentualeCompletata + '%';
+                if (haEl) haEl.textContent = k.ettariResidui.toFixed(2);
+                if (cardEl) cardEl.style.display = '';
+                if (haCardEl) haCardEl.style.display = '';
+            } catch (err) {
+                console.warn('Stat VM non disponibili:', err);
             }
         }
 
