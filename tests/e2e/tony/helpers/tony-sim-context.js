@@ -16,16 +16,21 @@ export {
 /** Query emulator + hook metriche E2E. */
 export const TONY_E2E_QUERY = 'emulator=1&tonyE2e=1';
 
+/** Query tier 3 live (Functions emulator + CF reale). */
+export const TONY_E2E_LIVE_QUERY = 'emulator=1&tonyE2e=1&tonyE2eLive=1';
+
 /**
  * @param {string} path - es. `/core/dashboard-standalone.html`
+ * @param {{ live?: boolean }} [opts]
  * @returns {string}
  */
-export function withTonyE2eQuery(path) {
+export function withTonyE2eQuery(path, opts = {}) {
   const raw = path.startsWith('/') ? path : `/${path}`;
   const [pathname, search = ''] = raw.split('?');
   const params = new URLSearchParams(search);
   params.set('emulator', '1');
   params.set('tonyE2e', '1');
+  if (opts.live) params.set('tonyE2eLive', '1');
   const qs = params.toString();
   return qs ? `${pathname}?${qs}` : pathname;
 }
@@ -33,9 +38,10 @@ export function withTonyE2eQuery(path) {
 /**
  * @param {import('playwright-core').Page} page
  * @param {string} path
+ * @param {{ live?: boolean }} [opts]
  */
-export async function gotoTonyE2ePage(page, path) {
-  await page.goto(withTonyE2eQuery(path));
+export async function gotoTonyE2ePage(page, path, opts = {}) {
+  await page.goto(withTonyE2eQuery(path, opts));
 }
 
 /**

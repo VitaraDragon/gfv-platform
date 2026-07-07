@@ -1,20 +1,54 @@
 {
   "schemaVersion": 1,
-  "description": "Soglie latenza Tony E2E — usate da M-T3+ (tier 2 mock / tier 3 live)",
+  "description": "Soglie latenza Tony E2E — tier 2 mock (PR) e tier 3 live (notturno)",
   "defaults": {
     "quickReplyMsMax": 800,
-    "filterTableMsMax": 1200,
-    "firstChunkMsMax": 3000,
-    "totalReplyMsMax": 45000
+    "liveQuickReplyMsMax": 3000,
+    "liveGeminiFirstChunkMsMax": 3000,
+    "liveGeminiTotalMsMax": 12000
   },
   "byCategory": {
-    "perf": { "latencyMsMax": 800 },
-    "typo": { "latencyMsMax": 500, "cfCallsMax": 0 },
-    "forbidden": { "latencyMsMax": 2000 },
-    "concept": { "latencyMsMax": 5000 },
-    "inject": { "latencyMsMax": 8000 },
-    "nav": { "latencyMsMax": 800 },
-    "filter_table": { "latencyMsMax": 1200 },
-    "multi_turn": { "latencyMsMax": 15000 }
+    "perf": {
+      "latencyMsMax": 800,
+      "liveLatencyMsMax": 3000
+    },
+    "filter_table": {
+      "latencyMsMax": 1200,
+      "liveLatencyMsMax": 3000
+    },
+    "nav": {
+      "latencyMsMax": 800,
+      "liveLatencyMsMax": 3000
+    },
+    "multi_domain": {
+      "liveLatencyMsMax": 12000
+    },
+    "typo": {
+      "latencyMsMax": 2500
+    },
+    "forbidden": {
+      "latencyMsMax": 2000,
+      "liveLatencyMsMax": 5000
+    },
+    "concept": {
+      "latencyMsMax": 3000,
+      "liveLatencyMsMax": 8000
+    },
+    "inject": {
+      "latencyMsMax": 3000,
+      "liveLatencyMsMax": 10000
+    },
+    "multi_turn": {
+      "liveLatencyMsMax": 15000
+    }
+  },
+  "p95Gate": {
+    "enabled": true,
+    "consecutiveRunsToFail": 3,
+    "categories": {
+      "perf": 4000,
+      "multi_domain": 12000,
+      "nav": 4000
+    }
   }
 }

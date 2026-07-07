@@ -595,8 +595,11 @@ class TonyService {
         const useCallable = err?.message?.includes('Service AI is not available') || err?.message?.includes('not available');
         if (useCallable) {
           try {
-            const { getFunctions, httpsCallable } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js');
+            const { getFunctions, httpsCallable, connectFunctionsEmulator } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js');
             const functions = getFunctions(app, 'europe-west1');
+            if (typeof window !== 'undefined' && window.__gfvTonyCfEmulatorBase && !window.__GFV_TONY_E2E_PROD_CF) {
+              connectFunctionsEmulator(functions, '127.0.0.1', 5001);
+            }
             this._tonyAskCallable = httpsCallable(functions, 'tonyAsk');
             this._tonyAskHttpUrl = this._resolveTonyAskCallableUrl(app);
             this._tonyAskStreamUrl = this._resolveTonyAskStreamUrl(app);
@@ -1085,6 +1088,12 @@ class TonyService {
    */
   _resolveCfBaseUrl(app) {
     try {
+      if (typeof window !== 'undefined' && window.__GFV_TONY_E2E_PROD_CF) {
+        return null;
+      }
+      if (typeof window !== 'undefined' && window.__gfvTonyCfEmulatorBase) {
+        return String(window.__gfvTonyCfEmulatorBase);
+      }
       const opts = app && app.options ? app.options : {};
       const projectId = opts.projectId || (typeof window !== 'undefined' && window.firebaseConfig && window.firebaseConfig.projectId);
       if (!projectId) return null;

@@ -8,6 +8,7 @@ import {
   resetTonyFormSaveConfirmFlags,
   tryInterceptTonyFormSaveConfirm,
   tryInterceptMagazzinoSaveBeforeCf,
+  tryInterceptPreventivoSaveBeforeCf,
   tryInterceptQuickHoursSaveBeforeCf,
   quickHoursFormReadyForTonySave,
   quickHoursDomReadyForTonySave,
@@ -300,6 +301,41 @@ describe('tryInterceptMagazzinoSaveBeforeCf', () => {
     expect(isTonyMagazzinoCfFakeSaveText('Prodotto salvato!')).toBe(true);
     expect(isTonyMagazzinoCfFakeSaveText('Perfetto, salvo?')).toBe(true);
     expect(isTonyMagazzinoCfFakeSaveText('Quale dosaggio minimo?')).toBe(false);
+  });
+});
+
+describe('tryInterceptPreventivoSaveBeforeCf', () => {
+  beforeEach(() => {
+    resetTonyFormSaveConfirmFlags();
+    global.window = global.window || {};
+    global.document = {
+      getElementById: (id) => {
+        if (id === 'preventivo-form') return { id: 'preventivo-form' };
+        return null;
+      },
+    };
+  });
+
+  afterEach(() => {
+    resetTonyFormSaveConfirmFlags();
+    delete window.__tonyBuildTonyFormContext;
+  });
+
+  it('«salva» con preventivo pronto → SAVE_ACTIVITY senza CF', () => {
+    window.__tonyBuildTonyFormContext = () => ({
+      formId: 'preventivo-form',
+      requiredEmpty: [],
+      interviewEmpty: [],
+    });
+    let saved = false;
+    const res = tryInterceptPreventivoSaveBeforeCf('salva', {
+      processTonyCommand: (cmd) => {
+        if (cmd.type === 'SAVE_ACTIVITY') saved = true;
+      },
+    });
+    expect(res.handled).toBe(true);
+    expect(res.confirmed).toBe(true);
+    expect(saved).toBe(true);
   });
 });
 

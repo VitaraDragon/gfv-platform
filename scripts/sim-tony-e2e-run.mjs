@@ -4,12 +4,16 @@
  * Prerequisiti: sim:emulators + npm start + tenant in manifest (sim:run).
  * M-T0: smoke infrastruttura + matrice JSON; scenari eseguibili solo se status=ready.
  * Filtro: `--only=T-PERF-001,T-DENY-001` o env `GFV_TONY_E2E_ONLY`.
+ * Tier 3 live: `--live` o `GFV_TONY_E2E_LIVE=1` — CF reale (Functions emulator + GEMINI_API_KEY).
  */
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 import { expect } from '@playwright/test';
 import { runFlowLavoro013 } from '../tests/e2e/tony/scenarios/flow-lavoro-013.mjs';
 import { runFlowPreventivo014 } from '../tests/e2e/tony/scenarios/flow-preventivo-014.mjs';
+import { runFlowPreventivo014Live } from '../tests/e2e/tony/scenarios/flow-preventivo-014-live.mjs';
 import { runFlowMovimento016 } from '../tests/e2e/tony/scenarios/flow-movimento-016.mjs';
 import { runFlowMovimento017 } from '../tests/e2e/tony/scenarios/flow-movimento-017.mjs';
 import { runFlowMovimento019 } from '../tests/e2e/tony/scenarios/flow-movimento-019.mjs';
@@ -18,10 +22,40 @@ import { runFlowProdotto018 } from '../tests/e2e/tony/scenarios/flow-prodotto-01
 import { runFlowSegnaOre021 } from '../tests/e2e/tony/scenarios/flow-segna-ore-021.mjs';
 import { runMatrixScenario } from '../tests/e2e/tony/scenarios/run-matrix-scenario.mjs';
 import { runWidgetSmokeAssertions } from '../tests/e2e/tony/scenarios/widget-smoke.mjs';
+import {
+  buildTonyE2ePerfReport,
+  evaluateTonyE2ePerfGate,
+  loadTonyE2eP95GateHistory,
+  appendTonyE2eP95GateHistory,
+} from '../tests/e2e/tony/helpers/tony-e2e-perf-report.mjs';
+import { readTonyScenarioPerf, resetTonyE2eScenarioState } from '../tests/e2e/tony/helpers/tony-e2e-scenario-perf.mjs';
 
+await import('./load-functions-secret-local.mjs');
+
+const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');
 const baseURL = process.env.GFV_E2E_BASE_URL || 'http://127.0.0.1:8000';
 const matrixPath = new URL('../tests/e2e/tony/fixtures/scenarios-matrix.json', import.meta.url);
 const latencyPath = new URL('../tests/e2e/tony/perf/latency-budgets.json', import.meta.url);
+const reportPath =
+  process.env.GFV_TONY_E2E_REPORT ||
+  join(rootDir, 'test-results', 'tony-e2e-live-report.json');
+const p95HistoryPath =
+  process.env.GFV_TONY_E2E_P95_HISTORY ||
+  join(rootDir, 'test-results', 'tony-e2e-p95-gate-history.json');
+
+const isLiveMode =
+  process.argv.includes('--live') ||
+  process.env.GFV_TONY_E2E_LIVE === '1' ||
+  process.env.GFV_TONY_E2E_LIVE === 'true';
+
+const enforceP95 =
+  process.argv.includes('--enforce-p95') ||
+  process.env.GFV_TONY_E2E_ENFORCE_P95 === '1' ||
+  process.env.GFV_TONY_E2E_ENFORCE_P95 === 'true';
+
+const useProdCf =
+  process.env.GFV_TONY_E2E_PROD_CF === '1' ||
+  process.env.GFV_TONY_E2E_PROD_CF === 'true';
 
 async function checkHttp(url, label) {
   try {
@@ -29,6 +63,23 @@ async function checkHttp(url, label) {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
   } catch (err) {
     throw new Error(`${label} non raggiungibile (${url}): ${err.message}`);
+  }
+}
+
+async function checkFunctionsEmulatorIfLive() {
+  if (!isLiveMode || useProdCf) return;
+  const url = 'http://127.0.0.1:5001/';
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(5000) });
+    // Root emulator spesso 404: basta una risposta HTTP per confermare che è in ascolto.
+    if (res.status >= 500) {
+      throw new Error(`HTTP ${res.status}`);
+    }
+  } catch (err) {
+    const detail = err.message || String(err);
+    throw new Error(
+      `Functions emulator (port 5001) non raggiungibile (${url}): ${detail} — avvia emulator con functions: npm run sim:emulators:live (o firebase emulators:start --only auth,firestore,functions)`
+    );
   }
 }
 
@@ -73,7 +124,7 @@ function launchOptions() {
   return opts;
 }
 
-/** @param {Array<{ id: string, status?: string }>} scenarios */
+/** @param {Array<{ id: string, status?: string, tier?: number }>} scenarios */
 function resolveScenariosToRun(scenarios) {
   const fromArg = process.argv.find((a) => a.startsWith('--only='));
   const raw = (
@@ -83,6 +134,12 @@ function resolveScenariosToRun(scenarios) {
   ).trim();
 
   let pool = scenarios.filter((s) => s.status === 'ready');
+  if (isLiveMode) {
+    pool = pool.filter((s) => s.tier === 3);
+  } else {
+    pool = pool.filter((s) => s.tier !== 3);
+  }
+
   if (pool.length === 0 && !raw) {
     return [];
   }
@@ -130,55 +187,141 @@ const SCENARIO_RUNNERS = {
   'T-FLOW-018': runFlowProdotto018,
   'T-FLOW-013': runFlowLavoro013,
   'T-FLOW-014': runFlowPreventivo014,
+  'T-FLOW-014-LIVE': runFlowPreventivo014Live,
 };
 
 async function runScenario(page, scenario) {
   if (scenario.status !== 'ready') {
     throw new Error(`Scenario ${scenario.id}: status=${scenario.status || 'draft'} — non eseguibile`);
   }
+  if (isLiveMode && scenario.mockCf) {
+    throw new Error(`Scenario ${scenario.id}: mockCf=true non ammesso in modalità live`);
+  }
   const runner = SCENARIO_RUNNERS[scenario.id] || runMatrixScenario;
   await runner(page, expect, scenario);
 }
 
+async function writePerfReport(report, budgets) {
+  await mkdir(dirname(reportPath), { recursive: true });
+  await writeFile(reportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  console.log(`[sim:tony:e2e${isLiveMode ? ':live' : ''}] report → ${reportPath}`);
+
+  const priorHistory = isLiveMode ? await loadTonyE2eP95GateHistory(p95HistoryPath) : null;
+  const gate = evaluateTonyE2ePerfGate(report, budgets, priorHistory);
+
+  if (isLiveMode) {
+    await appendTonyE2eP95GateHistory(p95HistoryPath, {
+      at: report.generatedAt,
+      breach: gate.breach,
+      reasons: gate.reasons,
+      consecutiveBreaches: gate.consecutiveBreaches,
+    });
+  }
+
+  if (gate.breach) {
+    if (gate.warnOnly) {
+      console.warn(
+        `[sim:tony:e2e:live] soglie p95 superate (${gate.consecutiveBreaches}/${gate.streakThreshold} run consecutivi):`,
+        gate.reasons.join('; ')
+      );
+    } else {
+      console.warn('[sim:tony:e2e:live] soglie p95 superate:', gate.reasons.join('; '));
+    }
+  }
+  if (enforceP95) {
+    console.log('[sim:tony:e2e:live] gate p95: ENFORCED');
+  }
+  return gate;
+}
+
 async function main() {
   const matrix = await loadMatrix();
-  await loadLatencyBudgets();
+  const budgets = await loadLatencyBudgets();
   const allScenarios = matrix.scenarios;
   const toRun = resolveScenariosToRun(allScenarios);
   const draftCount = allScenarios.filter((s) => s.status !== 'ready').length;
+  const modeLabel = isLiveMode ? 'live tier 3' : 'mock tier 2';
 
   const filterLabel =
     toRun.length === 0
-      ? `0 eseguibili (${allScenarios.length} in matrice, ${draftCount} draft)`
-      : `${toRun.length} scenari (filtro: ${toRun.map((s) => s.id).join(', ')})`;
+      ? `0 eseguibili (${allScenarios.length} in matrice, ${draftCount} draft, ${modeLabel})`
+      : `${toRun.length} scenari ${modeLabel} (filtro: ${toRun.map((s) => s.id).join(', ')})`;
 
-  console.log(`[sim:tony:e2e] prerequisiti… (${filterLabel})`);
-  console.log('[sim:tony:e2e] CF strategy: mock client Livello 2 (PR) — v. TONY_E2E_GUIDA §8');
+  console.log(`[sim:tony:e2e${isLiveMode ? ':live' : ''}] prerequisiti… (${filterLabel})`);
+  if (isLiveMode) {
+    if (useProdCf) {
+      console.log('[sim:tony:e2e:live] CF strategy: produzione europe-west1 (GEMINI già su Cloud Run)');
+    } else {
+      console.log('[sim:tony:e2e:live] CF strategy: Functions emulator + GEMINI_API_KEY — v. TONY_E2E_GUIDA §8');
+      if (!process.env.GEMINI_API_KEY) {
+        console.warn('[sim:tony:e2e:live] GEMINI_API_KEY assente — crea functions/.secret.local o usa GFV_TONY_E2E_PROD_CF=1');
+      }
+    }
+  } else {
+    console.log('[sim:tony:e2e] CF strategy: mock client Livello 2 (PR) — v. TONY_E2E_GUIDA §8');
+  }
   await checkHttp(`${baseURL}/`, 'http-server (npm start)');
   await checkHttp('http://127.0.0.1:8080/', 'Firestore emulator (sim:emulators)');
+  await checkFunctionsEmulatorIfLive();
   await checkManifest();
 
   const browser = await chromium.launch(launchOptions());
   const context = await browser.newContext({ baseURL });
+  if (isLiveMode) {
+    await context.addInitScript((prodCf) => {
+      if (prodCf) {
+        window.__GFV_TONY_E2E_PROD_CF = true;
+        return;
+      }
+      window.__GFV_TONY_E2E_LIVE = true;
+      const projectId =
+        (window.firebaseConfig && window.firebaseConfig.projectId) || 'gfv-platform';
+      window.__gfvTonyCfEmulatorBase = `http://127.0.0.1:5001/${projectId}/europe-west1`;
+    }, useProdCf);
+  }
   const page = await context.newPage();
 
-  console.log('[sim:tony:e2e] infra-smoke …');
+  console.log(`[sim:tony:e2e${isLiveMode ? ':live' : ''}] infra-smoke …`);
   await runInfraSmoke(page);
-  console.log('[sim:tony:e2e] infra-smoke OK');
+  console.log(`[sim:tony:e2e${isLiveMode ? ':live' : ''}] infra-smoke OK`);
 
   let passed = 0;
   const failures = [];
+  /** @type {Array<{ id: string, category?: string, passed: boolean, latencyMs?: number, usedGemini?: boolean|null, error?: string }>} */
+  const perfRows = [];
 
   for (const scenario of toRun) {
     const scenarioPage = await context.newPage();
-    process.stdout.write(`[sim:tony:e2e] ${scenario.id} … `);
+    await resetTonyE2eScenarioState(scenarioPage);
+    process.stdout.write(`[sim:tony:e2e${isLiveMode ? ':live' : ''}] ${scenario.id} … `);
     try {
       await runScenario(scenarioPage, scenario);
       passed += 1;
       console.log('OK');
+      if (isLiveMode) {
+        const perf = await readTonyScenarioPerf(scenarioPage);
+        perfRows.push({
+          id: scenario.id,
+          category: scenario.category,
+          passed: true,
+          latencyMs: perf && typeof perf.latencyMs === 'number' ? perf.latencyMs : undefined,
+          usedGemini: perf && typeof perf.usedGemini === 'boolean' ? perf.usedGemini : null,
+        });
+      }
     } catch (err) {
       console.log('FAIL');
       failures.push({ id: scenario.id, error: err });
+      if (isLiveMode) {
+        const perf = await readTonyScenarioPerf(scenarioPage).catch(() => null);
+        perfRows.push({
+          id: scenario.id,
+          category: scenario.category,
+          passed: false,
+          latencyMs: perf && typeof perf.latencyMs === 'number' ? perf.latencyMs : undefined,
+          usedGemini: perf && typeof perf.usedGemini === 'boolean' ? perf.usedGemini : null,
+          error: err.message || String(err),
+        });
+      }
     } finally {
       await scenarioPage.close().catch(() => {});
     }
@@ -186,8 +329,24 @@ async function main() {
 
   await browser.close();
 
+  if (isLiveMode && perfRows.length) {
+    const report = buildTonyE2ePerfReport(perfRows, budgets);
+    const gate = await writePerfReport(report, budgets);
+    console.log(
+      `[sim:tony:e2e:live] metriche: p50=${report.summary.p50LatencyMs ?? 'n/a'}ms p95=${report.summary.p95LatencyMs ?? 'n/a'}ms quickReplyHit=${report.summary.quickReplyHitPct ?? 'n/a'}%`
+    );
+    if (!gate.ok && enforceP95) {
+      failures.push({
+        id: 'P95-GATE',
+        error: new Error(
+          `${gate.reasons.join('; ')} (streak ${gate.consecutiveBreaches}/${gate.streakThreshold})`
+        ),
+      });
+    }
+  }
+
   if (failures.length) {
-    console.error('\n[sim:tony:e2e] Falliti:');
+    console.error(`\n[sim:tony:e2e${isLiveMode ? ':live' : ''}] Falliti:`);
     for (const f of failures) {
       console.error(`  • ${f.id}: ${f.error.message || f.error}`);
     }
@@ -196,15 +355,15 @@ async function main() {
 
   if (toRun.length === 0) {
     console.log(
-      `\n[sim:tony:e2e] smoke infrastruttura OK — 0/${allScenarios.length} scenari eseguibili. ` +
+      `\n[sim:tony:e2e${isLiveMode ? ':live' : ''}] smoke infrastruttura OK — 0/${allScenarios.length} scenari eseguibili (${modeLabel}). ` +
         'Impostare status=ready in scenarios-matrix.json.'
     );
   } else {
-    console.log(`\n[sim:tony:e2e] ${passed}/${toRun.length} scenari OK`);
+    console.log(`\n[sim:tony:e2e${isLiveMode ? ':live' : ''}] ${passed}/${toRun.length} scenari OK`);
   }
 }
 
 main().catch((err) => {
-  console.error('[sim:tony:e2e] ERRORE:', err.message || err);
+  console.error(`[sim:tony:e2e${isLiveMode ? ':live' : ''}] ERRORE:`, err.message || err);
   process.exit(1);
 });

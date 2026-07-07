@@ -8,6 +8,7 @@ import {
   tonyGetLastPerfMetrics,
   tonySendMessage,
   tonyWaitForReply,
+  waitForTonyTurnPerf,
 } from './tony-widget.js';
 
 /**
@@ -21,6 +22,8 @@ import {
  */
 export async function tonyRunMultiTurn(page, messages, opts = {}) {
   const perfTurns = [];
+  const replyTimeoutMs =
+    typeof opts.replyTimeoutMs === 'number' ? opts.replyTimeoutMs : 45_000;
   let turnCtx = {};
 
   for (const msg of messages) {
@@ -28,8 +31,13 @@ export async function tonyRunMultiTurn(page, messages, opts = {}) {
       await opts.beforeTurn(page, msg, turnCtx);
     }
     const tonyBefore = await tonySendMessage(page, msg);
-    const reply = await tonyWaitForReply(page, { tonyCountBefore: tonyBefore });
-    const perf = await tonyGetLastPerfMetrics(page);
+    const reply = await tonyWaitForReply(page, {
+      tonyCountBefore: tonyBefore,
+      timeoutMs: replyTimeoutMs,
+    });
+    const perf = await waitForTonyTurnPerf(page, {
+      timeoutMs: Math.min(replyTimeoutMs, 60_000),
+    });
     perfTurns.push(perf);
     turnCtx = {
       lastReply: reply,
@@ -62,4 +70,17 @@ export function assertZeroCfAcrossTurns(expect, perfTurns, opts = {}) {
       expect(perf.cfCalled, `turno ${i + 1} cfCalled`).toBe(false);
     }
   }
+}
+
+/**
+ * @param {import('@playwright/test').Expect} expect
+ * @param {Array<object|null|undefined>} perfTurns
+ * @param {{ minCfTurns?: number }} [opts]
+ */
+export function assertCfTurnsMin(expect, perfTurns, opts = {}) {
+  const min = typeof opts.minCfTurns === 'number' ? opts.minCfTurns : 1;
+  const cfHits = perfTurns.filter(
+    (p) => p && (p.cfCalled === true || p.usedGemini === true)
+  ).length;
+  expect(cfHits).toBeGreaterThanOrEqual(min);
 }

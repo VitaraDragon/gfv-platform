@@ -397,6 +397,34 @@ export function tryInterceptMagazzinoSaveBeforeCf(text, handlers) {
 }
 
 /**
+ * «salva»/«sì» con form preventivo pronto ma flag CF non armato — evita round-trip (stile magazzino).
+ * @param {string} text
+ * @param {{ appendMessage?: Function, speak?: Function, processTonyCommand?: Function, clearEarlyTyping?: Function }} handlers
+ * @returns {{ handled: boolean, confirmed?: boolean }}
+ */
+export function tryInterceptPreventivoSaveBeforeCf(text, handlers) {
+  handlers = handlers || {};
+  if (typeof window === 'undefined') return { handled: false };
+
+  var cfg = getTonyFormSaveLocalConfig('preventivo-form');
+  if (!cfg || window[cfg.awaitingFlag]) return { handled: false };
+  if (!cfg.isFormActive() || !formReadyForTonySave('preventivo-form')) return { handled: false };
+
+  if (isTonySaveConfirmText(text)) {
+    if (typeof handlers.clearEarlyTyping === 'function') handlers.clearEarlyTyping();
+    if (typeof cfg.beforeSave === 'function') cfg.beforeSave();
+    if (typeof console !== 'undefined' && console.log) {
+      console.log('[Tony] Salva preventivo-form: conferma utente locale (senza tonyAsk).');
+    }
+    if (typeof handlers.processTonyCommand === 'function') {
+      handlers.processTonyCommand({ type: 'SAVE_ACTIVITY' });
+    }
+    return { handled: true, confirmed: true };
+  }
+  return { handled: false };
+}
+
+/**
  * @returns {boolean}
  */
 export function isAnyTonyFormSaveConfirmPending() {
@@ -510,6 +538,7 @@ if (typeof window !== 'undefined') {
     terrenoFormReadyForTonySave: terrenoFormReadyForTonySave,
     terrenoProactiveReadyForSave: terrenoProactiveReadyForSave,
     tryInterceptMagazzinoSaveBeforeCf: tryInterceptMagazzinoSaveBeforeCf,
+    tryInterceptPreventivoSaveBeforeCf: tryInterceptPreventivoSaveBeforeCf,
     isAnyTonyFormSaveConfirmPending: isAnyTonyFormSaveConfirmPending,
     promptTonyFormSaveLocal: promptTonyFormSaveLocal,
     tryInterceptTonyFormSaveConfirm: tryInterceptTonyFormSaveConfirm,

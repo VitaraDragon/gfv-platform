@@ -124,5 +124,721 @@
     "aziendaNome": "Cascina Colombo",
     "seedVersion": 2,
     "createdAt": "2026-06-27T04:29:53.179Z"
+  },
+  {
+    "runId": "fb0f8327-75bb-4101-957b-6eac919f8b5a",
+    "templateId": "solo-titolare-viticola",
+    "tenantId": "sim_az_agr_ricci_371843",
+    "userId": "MCV443FIuDGShGXL6yqRZHLbhZMY",
+    "email": "sim+ricci_1782623371843@gfv.local",
+    "aziendaNome": "Az. Agr. Ricci",
+    "seedVersion": 2,
+    "createdAt": "2026-06-28T05:09:31.957Z"
+  },
+  {
+    "runId": "e2e47271-a5ad-4d62-bab2-079de2ac7b2d",
+    "templateId": "viticola-conto-terzi",
+    "tenantId": "sim_cascina_colombo_890342",
+    "userId": "DR9PRc1Qubwmo9z0FSVkPfHrg5oL",
+    "email": "sim+colombo_1782624890342@gfv.local",
+    "aziendaNome": "Cascina Colombo",
+    "seedVersion": 2,
+    "createdAt": "2026-06-28T05:34:50.472Z"
+  },
+  {
+    "runId": "ead650d6-83ef-4964-9b8a-e8bbb67c566b",
+    "templateId": "viticola-conto-terzi-manodopera",
+    "tenantId": "sim_azienda_vitivinicola_gallo_369585",
+    "userId": "KnKQI8127tQ3oeYrcyShVW568n6k",
+    "email": "sim+gallo_1782632369585@gfv.local",
+    "aziendaNome": "Azienda Vitivinicola Gallo",
+    "seedVersion": 2,
+    "createdAt": "2026-06-28T07:39:29.690Z",
+    "personas": [
+      {
+        "userId": "C8YodhqgXzy4IcWuOZunHP2a8PDP",
+        "email": "sim+ricci_525253@gfv.local",
+        "displayName": "Anna Ricci",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "bBrPhzpUls52FqXiCpdJZ2S0vL1j",
+        "email": "sim+ricci_525253_capo1@gfv.local",
+        "displayName": "Andrea Gallo",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "84EbAeC8Y4gyRgG4oQ4OJXdxFWh5",
+        "email": "sim+ricci_525253_op1@gfv.local",
+        "displayName": "Andrea Gallo",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "8Z4J9hFW5TVu8RPIRIFeGWxc9zR4",
+        "email": "sim+ricci_525253_op2@gfv.local",
+        "displayName": "Chiara Ferrari",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "qp5xjRo4tWWKdPJaGHRVXKk4rKrI",
+        "email": "sim+ricci_525253_op3@gfv.local",
+        "displayName": "Giuseppe Gallo",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "dc250fa1-1e4d-4cd1-84c1-1b62b71b7128",
+    "templateId": "viticola-conto-terzi-manodopera",
+    "tenantId": "sim_tenuta_marini_240634",
+    "userId": "IOiopJeadFDmAqxkdxpYELJ7EAwZ",
+    "email": "sim+marini_1782640240634@gfv.local",
+    "aziendaNome": "Tenuta Marini",
+    "seedVersion": 2,
+    "createdAt": "2026-06-28T09:50:40.745Z",
+    "personas": [
+      {
+        "userId": "h21f7YhEFDoC00Znrq5njaHnnwnq",
+        "email": "sim+ricci_525253@gfv.local",
+        "displayName": "Anna Ricci",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "oCAuhVMx7nHMDvIOvVfbYSuMrhXe",
+        "email": "sim+ricci_525253_capo1@gfv.local",
+        "displayName": "Andrea Gallo",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "MT4awqbORVGY8wK3J88nAkGqE6i5",
+        "email": "sim+ricci_525253_op1@gfv.local",
+        "displayName": "Andrea Gallo",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "qH2JeK6dGhPOuOYLubBsNww12MLM",
+        "email": "sim+ricci_525253_op2@gfv.local",
+        "displayName": "Chiara Ferrari",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "u68U6thUATJiXI1BDEv8CLn3YMVD",
+        "email": "sim+ricci_525253_op3@gfv.local",
+        "displayName": "Giuseppe Gallo",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "ea61759c-181a-4be5-a569-629f7a3c63d0",
+    "templateId": "viticola-conto-terzi-manodopera",
+    "tenantId": "sim_azienda_vitivinicola_gallo_123645",
+    "userId": "nS7gGMMBt1tvOylF3DD3JAXZ5Uy3",
+    "email": "sim+gallo_1782641123645@gfv.local",
+    "aziendaNome": "Azienda Vitivinicola Gallo",
+    "seedVersion": 2,
+    "createdAt": "2026-06-28T10:05:23.758Z",
+    "personas": [
+      {
+        "userId": "nS7gGMMBt1tvOylF3DD3JAXZ5Uy3",
+        "email": "sim+gallo_1782641123645@gfv.local",
+        "displayName": "Elena Gallo",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "RI7kY5RIJ1tvncT5v7h6Vf1qcEiC",
+        "email": "sim+gallo_1782641123645_capo1@gfv.local",
+        "displayName": "Stefano Bianchi",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "3gUJIbSIcCImgymEg5rPrFxzMuox",
+        "email": "sim+gallo_1782641123645_op1@gfv.local",
+        "displayName": "Stefano Bianchi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "spCbjM9bz9p8M1TNeQrKQ3yYiefl",
+        "email": "sim+gallo_1782641123645_op2@gfv.local",
+        "displayName": "Lucia Colombo",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "Cv16jEfOKYUQJn88DdzTOHiIXlDa",
+        "email": "sim+gallo_1782641123645_op3@gfv.local",
+        "displayName": "Paolo Bianchi",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "4cac2ca5-9350-45cf-878f-229346039f16",
+    "templateId": "viticola-conto-terzi-manodopera",
+    "tenantId": "sim_az_agr_ricci_984063",
+    "userId": "L9zGqZcGiPNyIyIvUDLirHtUmKia",
+    "email": "sim+ricci_1782890984063@gfv.local",
+    "aziendaNome": "Az. Agr. Ricci",
+    "seedVersion": 2,
+    "createdAt": "2026-07-01T07:29:45.893Z",
+    "personas": [
+      {
+        "userId": "q4FfXWASolDCG27MARlHMp9NYRhY",
+        "email": "sim+colombo_525252@gfv.local",
+        "displayName": "Giuseppe Colombo",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "HFkZ23gj237Pbm6QsNilZHWCacb4",
+        "email": "sim+colombo_525252_capo1@gfv.local",
+        "displayName": "Elena Marini",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "OFcTuo62MwgXJGuU0xg4xgIe2ZCt",
+        "email": "sim+colombo_525252_op1@gfv.local",
+        "displayName": "Elena Marini",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "Vu9T3KUIoiyCVxQuDUnRSNQmxzNz",
+        "email": "sim+colombo_525252_op2@gfv.local",
+        "displayName": "Stefano Verdi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "ZqjUk2jk1JJuhvh1bYZjL0apZic1",
+        "email": "sim+colombo_525252_op3@gfv.local",
+        "displayName": "Lucia Marini",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "93aca22d-2893-4b92-955c-ce06dc7411b2",
+    "templateId": "viticola-conto-terzi-manodopera",
+    "tenantId": "sim_azienda_vitivinicola_ferrari_083310",
+    "userId": "AVwwK7A8DgAIdHiqvcvmPuC3Kurj",
+    "email": "sim+ferrari_1782891083310@gfv.local",
+    "aziendaNome": "Azienda Vitivinicola Ferrari",
+    "seedVersion": 2,
+    "createdAt": "2026-07-01T07:31:23.435Z",
+    "personas": [
+      {
+        "userId": "AVwwK7A8DgAIdHiqvcvmPuC3Kurj",
+        "email": "sim+ferrari_1782891083310@gfv.local",
+        "displayName": "Marco Ferrari",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "dI60QRo3kT96V0INrkerrdp7Sgw8",
+        "email": "sim+ferrari_1782891083310_capo1@gfv.local",
+        "displayName": "Anna Colombo",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "3EfdeOxFGFvzEivEuXEazEJiBTDc",
+        "email": "sim+ferrari_1782891083310_op1@gfv.local",
+        "displayName": "Anna Colombo",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "aK7rrU5XSRgh6JIm2lEDBCxbnsJD",
+        "email": "sim+ferrari_1782891083310_op2@gfv.local",
+        "displayName": "Andrea Bianchi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "CtQ8qb197CmNEAXl5Rgavq9g3Pyh",
+        "email": "sim+ferrari_1782891083310_op3@gfv.local",
+        "displayName": "Chiara Colombo",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "c6adf08d-5939-41fe-9d9e-46c586d1628a",
+    "templateId": "viticola-conto-terzi-manodopera",
+    "tenantId": "sim_cascina_bianchi_823597",
+    "userId": "B49jqGlxnfYtXdlG5jntQ6FFzeM6",
+    "email": "sim+bianchi_1782891823597@gfv.local",
+    "aziendaNome": "Cascina Bianchi",
+    "seedVersion": 2,
+    "createdAt": "2026-07-01T07:43:43.731Z",
+    "personas": [
+      {
+        "userId": "9jeMLZmhfBChgYa6kI6yx5WftHY4",
+        "email": "sim+colombo_525252@gfv.local",
+        "displayName": "Giuseppe Colombo",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "PSmt9tv6Sot8TKArio9LD5JoJ7vt",
+        "email": "sim+colombo_525252_capo1@gfv.local",
+        "displayName": "Elena Marini",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "BGg43GiozJyrJqM5WUJrgTirToU1",
+        "email": "sim+colombo_525252_op1@gfv.local",
+        "displayName": "Elena Marini",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "QkuPFOpDfih4IKe80GlGYcNcEVLv",
+        "email": "sim+colombo_525252_op2@gfv.local",
+        "displayName": "Stefano Verdi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "AI4sdne5j9wiTIjvAu0mkPjQOGhb",
+        "email": "sim+colombo_525252_op3@gfv.local",
+        "displayName": "Lucia Marini",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "a7db8ad2-9e5f-464d-a0fb-7441517d4a39",
+    "templateId": "frutteto-solo-titolare",
+    "tenantId": "sim_azienda_vitivinicola_gallo_668935",
+    "userId": "mALkaG1QCLiXI650XufBnIUQOeUX",
+    "email": "sim+gallo_1782983668935@gfv.local",
+    "aziendaNome": "Azienda Vitivinicola Gallo",
+    "seedVersion": 2,
+    "createdAt": "2026-07-02T09:14:29.377Z"
+  },
+  {
+    "runId": "c7e9dff1-baa2-4873-b58b-1bf3454cf953",
+    "templateId": "viticola-conto-terzi-manodopera",
+    "tenantId": "sim_podere_conti_914706",
+    "userId": "MmqzY69JnN0NICDEoHmzgJ1mZNDC",
+    "email": "sim+conti_1782983914706@gfv.local",
+    "aziendaNome": "Podere Conti",
+    "seedVersion": 2,
+    "createdAt": "2026-07-02T09:18:34.821Z",
+    "personas": [
+      {
+        "userId": "ZczZotmF1o7QtyM8lIOncyinAtDu",
+        "email": "sim+ricci_525253@gfv.local",
+        "displayName": "Anna Ricci",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "CcoPPrZyNZuXLzVuTP6j8cwdzktn",
+        "email": "sim+ricci_525253_capo1@gfv.local",
+        "displayName": "Andrea Gallo",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "2oDg4ZeFCATwemZhqHzNCj8VLEAC",
+        "email": "sim+ricci_525253_op1@gfv.local",
+        "displayName": "Andrea Gallo",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "ynO7xzAnw2iVxOfRawkQCSgRhIZN",
+        "email": "sim+ricci_525253_op2@gfv.local",
+        "displayName": "Chiara Ferrari",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "G8uttuheIvZ6v5km1DBxPKFX6KIh",
+        "email": "sim+ricci_525253_op3@gfv.local",
+        "displayName": "Giuseppe Gallo",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "7ba9fbce-fc40-454a-acec-4eecac639bde",
+    "templateId": "viticola-conto-terzi-manodopera",
+    "tenantId": "sim_azienda_vitivinicola_gallo_843415",
+    "userId": "xX1ydkbuYpEQVaOtmtDloRTpeRZ2",
+    "email": "sim+gallo_1783134843415@gfv.local",
+    "aziendaNome": "Azienda Vitivinicola Gallo",
+    "seedVersion": 2,
+    "createdAt": "2026-07-04T03:14:03.530Z",
+    "personas": [
+      {
+        "userId": "xX1ydkbuYpEQVaOtmtDloRTpeRZ2",
+        "email": "sim+gallo_1783134843415@gfv.local",
+        "displayName": "Elena Gallo",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "Tun4xtjn21dZ7nQKwlhKfvxpYpwW",
+        "email": "sim+gallo_1783134843415_capo1@gfv.local",
+        "displayName": "Stefano Bianchi",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "xjyj5cyWxig3zQSuqDclRgg4g5T3",
+        "email": "sim+gallo_1783134843415_op1@gfv.local",
+        "displayName": "Stefano Bianchi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "Cx1w47CGAJSA1uXs2pTyZjHybyzV",
+        "email": "sim+gallo_1783134843415_op2@gfv.local",
+        "displayName": "Lucia Colombo",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "O0Z6bKxplSRldB3ZAzcfCSBlDE32",
+        "email": "sim+gallo_1783134843415_op3@gfv.local",
+        "displayName": "Paolo Bianchi",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "7afe5043-df54-4b5b-a029-80f3df122079",
+    "templateId": "frutteto-solo-titolare",
+    "tenantId": "sim_tenuta_marini_849484",
+    "userId": "2dRd41qQ4Tn8CXk97CjhbpsZitoD",
+    "email": "sim+marini_1783134849484@gfv.local",
+    "aziendaNome": "Tenuta Marini",
+    "seedVersion": 2,
+    "createdAt": "2026-07-04T03:14:09.608Z"
+  },
+  {
+    "runId": "2465ca37-e0c8-47a5-ae4a-bcdd4dde9164",
+    "templateId": "mista-viticola-frutteto-conto-terzi-manodopera",
+    "tenantId": "sim_azienda_vitivinicola_ferrari_854730",
+    "userId": "Df3aBbfm42eqoRP5dFBebIQWDJgB",
+    "email": "sim+ferrari_1783134854730@gfv.local",
+    "aziendaNome": "Azienda Vitivinicola Ferrari",
+    "seedVersion": 2,
+    "createdAt": "2026-07-04T03:14:14.873Z",
+    "personas": [
+      {
+        "userId": "Df3aBbfm42eqoRP5dFBebIQWDJgB",
+        "email": "sim+ferrari_1783134854730@gfv.local",
+        "displayName": "Marco Ferrari",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "4CieKcXMPMN97A2B3Bg6JN9k1Xzi",
+        "email": "sim+ferrari_1783134854730_capo1@gfv.local",
+        "displayName": "Anna Colombo",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "JsPhOy5762R5cH37F08oT7adhXmu",
+        "email": "sim+ferrari_1783134854730_op1@gfv.local",
+        "displayName": "Anna Colombo",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "qdegM37mG8C3riGrrPFinC1CTAKN",
+        "email": "sim+ferrari_1783134854730_op2@gfv.local",
+        "displayName": "Andrea Bianchi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "yrpApvG4xQxpBCeySZmYL06DoxsI",
+        "email": "sim+ferrari_1783134854730_op3@gfv.local",
+        "displayName": "Chiara Colombo",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "f0d10e9a-0f09-4498-87f0-b8c3643f3fb0",
+    "templateId": "viticola-conto-terzi-manodopera",
+    "tenantId": "sim_tenuta_verdi_981289",
+    "userId": "XpXD5Zdg3VxvCrsxdGq7bdK2gBcv",
+    "email": "sim+verdi_1783190981289@gfv.local",
+    "aziendaNome": "Tenuta Verdi",
+    "seedVersion": 2,
+    "createdAt": "2026-07-04T18:49:42.054Z",
+    "personas": [
+      {
+        "userId": "XpXD5Zdg3VxvCrsxdGq7bdK2gBcv",
+        "email": "sim+verdi_1783190981289@gfv.local",
+        "displayName": "Chiara Verdi",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "2jMK1z05KFNDBQAFftSikjbfQcpt",
+        "email": "sim+verdi_1783190981289_capo1@gfv.local",
+        "displayName": "Giuseppe Romano",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "P4W9PwrVQvL1GUlATdlY2TVdZTxj",
+        "email": "sim+verdi_1783190981289_op1@gfv.local",
+        "displayName": "Giuseppe Romano",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "EOONDb9ANS7HUVJtCv4xNq01CPDY",
+        "email": "sim+verdi_1783190981289_op2@gfv.local",
+        "displayName": "Elena Conti",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "KbnllS4w2uZlFQZZchADNJ5GRUnf",
+        "email": "sim+verdi_1783190981289_op3@gfv.local",
+        "displayName": "Stefano Romano",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "2212d6ce-477f-4f87-b3f9-646760d33bca",
+    "templateId": "viticola-conto-terzi-manodopera",
+    "tenantId": "sim_azienda_vitivinicola_ferrari_841100",
+    "userId": "XL2PuexNyQmJVQvjmb5WUeFbe34R",
+    "email": "sim+ferrari_1783237841100@gfv.local",
+    "aziendaNome": "Azienda Vitivinicola Ferrari",
+    "seedVersion": 2,
+    "createdAt": "2026-07-05T07:50:41.262Z",
+    "personas": [
+      {
+        "userId": "XL2PuexNyQmJVQvjmb5WUeFbe34R",
+        "email": "sim+ferrari_1783237841100@gfv.local",
+        "displayName": "Marco Ferrari",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "nIYZ658VlYzIKyOZSLDmTk7oaLE2",
+        "email": "sim+ferrari_1783237841100_capo1@gfv.local",
+        "displayName": "Anna Colombo",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "kSa2PSqPNwuC6tfBNCkTla26JBeX",
+        "email": "sim+ferrari_1783237841100_op1@gfv.local",
+        "displayName": "Anna Colombo",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "IZLveK5YkcS98oAVkSfNWROR6Y4U",
+        "email": "sim+ferrari_1783237841100_op2@gfv.local",
+        "displayName": "Andrea Bianchi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "FTsZjkmVs32OzuTv3NnEOpF1U3WF",
+        "email": "sim+ferrari_1783237841100_op3@gfv.local",
+        "displayName": "Chiara Colombo",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "acde0595-3f0a-4751-b188-08daf4527a53",
+    "templateId": "viticola-conto-terzi-manodopera",
+    "tenantId": "sim_tenuta_marini_060134",
+    "userId": "Ib4O85nE7aKMgI2fFPHUE3wsTgkr",
+    "email": "sim+marini_1783319060134@gfv.local",
+    "aziendaNome": "Tenuta Marini",
+    "seedVersion": 2,
+    "createdAt": "2026-07-06T06:24:22.053Z",
+    "personas": [
+      {
+        "userId": "Ib4O85nE7aKMgI2fFPHUE3wsTgkr",
+        "email": "sim+marini_1783319060134@gfv.local",
+        "displayName": "Paolo Marini",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "X0XzaHvRffzZtNNjG6S3qXofnIyd",
+        "email": "sim+marini_1783319060134_capo1@gfv.local",
+        "displayName": "Francesca Conti",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "cEej03j3hUZ35NhxgPqkYZzWuwyL",
+        "email": "sim+marini_1783319060134_op1@gfv.local",
+        "displayName": "Francesca Conti",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "qrJ6JvgGPcj8ertWtwtdjaxSGlfv",
+        "email": "sim+marini_1783319060134_op2@gfv.local",
+        "displayName": "Marco Romano",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "ZkNGkRwnomDUDsRG0NixocfiDEiu",
+        "email": "sim+marini_1783319060134_op3@gfv.local",
+        "displayName": "Anna Conti",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "e6a1aee3-cac2-4529-b10d-39a5d11c3629",
+    "templateId": "viticola-conto-terzi-manodopera",
+    "tenantId": "sim_tenuta_marini_062074",
+    "userId": "MP3ITrChF0dkH9KzQU6q6UfBNPzU",
+    "email": "sim+marini_1783335062074@gfv.local",
+    "aziendaNome": "Tenuta Marini",
+    "seedVersion": 2,
+    "createdAt": "2026-07-06T10:51:02.435Z",
+    "personas": [
+      {
+        "userId": "MP3ITrChF0dkH9KzQU6q6UfBNPzU",
+        "email": "sim+marini_1783335062074@gfv.local",
+        "displayName": "Paolo Marini",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "mnep3zPWCFeGL5oAVlCniLXYdyWb",
+        "email": "sim+marini_1783335062074_capo1@gfv.local",
+        "displayName": "Francesca Conti",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "6rAXRPGIPO5WbyHVMpoeaQbdy2Bv",
+        "email": "sim+marini_1783335062074_op1@gfv.local",
+        "displayName": "Francesca Conti",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "Iy46qjvNu6l2Qgcmb3o3VPctQ1Dk",
+        "email": "sim+marini_1783335062074_op2@gfv.local",
+        "displayName": "Marco Romano",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "vo9uSEBgaiFIq9nZzpN41kevCMCt",
+        "email": "sim+marini_1783335062074_op3@gfv.local",
+        "displayName": "Anna Conti",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
   }
 ]

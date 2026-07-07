@@ -1,6 +1,80 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-06 — **Piano Stagione VM chiuso** (operativo + polish 3.10 + Tony); doc allineata.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-07 — loop automiglioramento Tony E2E M-T5 + Piano Stagione VM chiuso.
+
+## Tony + Simulatore — loop automiglioramento sim + app (2026-07-07)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| App **T-PERF-004** | `tryTonyMultiBlockQuickReply` **prima** di quick reply singolo/nav/filter in `functions/index.js`; placeholder meteo se modulo non attivo (`tony-multi-block-quick-reply.js`) |
+| Sim robustezza | `resetTonyE2eScenarioState` tra scenari (sessionStorage condiviso); `waitForTonyReadyWithRetry` tier 3 live |
+| Gate p95 streak | `consecutiveRunsToFail: 3` in `latency-budgets.json` — history `test-results/tony-e2e-p95-gate-history.json`; warn fino a 3 run consecutivi oltre soglia |
+| CI | `simulator-ci.yml` — `GFV_TONY_E2E_ENFORCE_P95: '1'` (prima era `0`) |
+| Verifica locale | **4/4 tier 3** con gate (`T-PERF-003/004/005`, `T-FLOW-014-LIVE`) — ~4,5 min; p50 **1005 ms**, p95 **11093 ms** (preventivo CF); gate p95 **OK** |
+
+## Tony + Simulatore — gate p95 Tony E2E live (2026-07-07)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| Comando | `npm run sim:tony:e2e:live:gate` (equiv. `--enforce-p95` o `GFV_TONY_E2E_ENFORCE_P95=1`) |
+| Soglie | `tests/e2e/tony/perf/latency-budgets.json` — perf/nav **4s**, multi_domain **12s** p95 per categoria |
+| Metriche | `tony-e2e-scenario-perf.mjs` — latenza CF salvata in `sessionStorage` (sopravvive a navigazione post-save/nav) |
+| Report | `test-results/tony-e2e-live-report.json` — p50/p95 reali (es. perf 796ms, nav 730ms, preventivo CF ~12s) |
+| CI | `sim-ci-tony-e2e-live-inner.sh` — gate p95 **on** nel job notturno |
+| T-PERF-004 | Criteri assert allargati: keyword meteo/scorte estese, ultime 4 bolle Tony, **`responseMustMatchGroupsMin: 1`** (almeno un dominio) |
+
+## Tony + Simulatore — M-T5 suite tier 3 live 4/4 (2026-07-06)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| Verifica | **T-PERF-003/004/005 + T-FLOW-014-LIVE** tutti OK in una sessione (`npm run sim:tony:e2e:live`, ~3 min) |
+| Fix **T-FLOW-014-LIVE** | Intercept client-side preventivo (disamb terreno + data «domani») in `main.js` + `tony-form-injector.js`; guard `userMessageIsPreventivoCreateIntent`; reset form pre-dialogo; `waitForTonyTurnPerf` in helper E2E (metriche CF turno 1 non più `null`) |
+| Save 0 CF | `tryInterceptPreventivoSaveBeforeCf` + `tonyE2eFinishLocalInterceptTurn` con `cfCalled: false` esplicito |
+| Comando | `npm run sim:tony:e2e:live` (senza filtro `GFV_TONY_E2E_ONLY`) |
+| Prossimo M-T5 | Gate p95 `GFV_TONY_E2E_ENFORCE_P95=1`; CI notturno `sim:tony:e2e:live:ci`; T-FLOW-013-LIVE opzionale |
+
+## Tony + Simulatore — fix runner live + T-PERF-003 OK (2026-07-06)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| Bugfix runner | `load-functions-secret-local.mjs`: rimosso `process.exit(0)` se `functions/.secret.local` assente (bloccava `sim:tony:e2e:live:prod` e `sim:tony:e2e:live` senza file). `sim-tony-e2e-run.mjs`: import secret all'avvio; health check Functions emulator accetta HTTP 404 su root port 5001 |
+| Verifica locale | **T-PERF-003** live OK — risposta su tariffe attive, **678 ms**, quickReply **100%**, `usedGemini: true` (CF emulator + Gemini). Primo giro cold start ~3,7 s (soglia 3 s) — atteso |
+| Stack usato | `npm run sim:emulators:live` + `npm start` + `npm run sim:run -- --template=viticola-conto-terzi-manodopera` + `functions/.secret.local` (chiave da Secret Manager / `gcloud`, gitignored) |
+| Comando | `npm run sim:tony:e2e:live` — 4 scenari tier 3 in matrice (T-PERF-003/004/005, T-FLOW-014-LIVE). Filtro: `GFV_TONY_E2E_ONLY=T-PERF-003 npm run sim:tony:e2e:live` |
+| Report | `test-results/tony-e2e-live-report.json` (p50/p95, quickReplyHit%) |
+| `sim:tony:e2e:live:prod` | Script presente (`GFV_TONY_E2E_PROD_CF=1`) ma **non usabile con Auth emulator**: CF produzione rifiuta token emulator → «sessione scaduta». Per test live usare **Opzione B** (Functions emulator locale), non prod CF |
+| Prossimo M-T5 | Gate p95 `GFV_TONY_E2E_ENFORCE_P95=1` dopo baseline; CI notturno `sim:tony:e2e:live:ci`; T-FLOW-013-LIVE opzionale |
+| Guida | **`docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md` v1.4 §8.1** — procedura operativa tier 3 live (passo-passo, troubleshooting) |
+
+## Tony + Simulatore — M-T5 T-FLOW-014-LIVE preventivo CF (2026-07-06)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| Scenario | **T-FLOW-014-LIVE** — tier 3: CF reale turno 1 (crea preventivo), disamb terreno + «domani» client-side 0 CF, save locale 0 CF, assert lista |
+| Fix | Intercept `applyPreventivoTerrenoFromUserReply` / `applyPreventivoScheduleFromUserReply`; `waitForTonyTurnPerf`; reset form in `tony-preventivo-live.js` |
+| Runner | `flow-preventivo-014-live.mjs` (mock tier 2 **T-FLOW-014** invariato) |
+| Comando | `GFV_TONY_E2E_ONLY=T-FLOW-014-LIVE npm run sim:tony:e2e:live` |
+| Prossimo | Gate p95 `GFV_TONY_E2E_ENFORCE_P95=1`; T-FLOW-013-LIVE opzionale |
+
+## Tony + Simulatore — M-T5 tier 3 scenari live (2026-07-06)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| Scenari tier 3 | **T-PERF-003** (tariffe attive quick), **T-PERF-004** (multi-dominio meteo+scorte), **T-PERF-005** (nav live tariffe) |
+| Assert live | `responseMustMatchGroups` (multi-blocco), `replyTimeoutMs`, budget `liveLatencyMsMax` per tier 3 |
+| Comando | `npm run sim:tony:e2e:live` → 3 scenari (richiede `sim:emulators:live` + `GEMINI_API_KEY` per Gemini fallback) |
+| Prossimo | T-FLOW-014 live (preventivo CF reale); gate p95 `GFV_TONY_E2E_ENFORCE_P95=1` |
+
+## Tony + Simulatore — M-T5 live tier 3 kick-off (2026-07-06)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| Scenario tier 3 | **T-PERF-003** — «quante tariffe attive ho?» su pagina tariffe, CF reale (Functions emulator), binario A quick reply |
+| Infrastruttura | `sim:tony:e2e:live`, `sim:emulators:live`, `tests/e2e/tony/perf/latency-budgets.json`, helper `tony-e2e-perf-report.mjs` (p50/p95, quickReplyHit%) |
+| Client | `firebase-emulator-dev.js` + `tony-service.js` — routing CF su Functions emulator con `?tonyE2eLive=1` |
+| CI | Job notturno `simulator-tony-e2e-live` (cron 02:00 UTC + workflow_dispatch), artifact `tony-e2e-live-report.json` |
+| Comando locale | `npm run sim:emulators:live` + seed + `npm run sim:tony:e2e:live` |
+| Prossimo | T-PERF-004 multi-dominio; espandere tier 3 (preventivo CF reale); `GFV_TONY_E2E_ENFORCE_P95=1` dopo baseline |
 
 ## Vendemmia Meccanica — Piano Stagione VM: sezione chiusa (2026-07-06)
 

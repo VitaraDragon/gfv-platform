@@ -27,6 +27,7 @@ import {
     terrenoFormReadyForTonySave,
     terrenoProactiveReadyForSave,
     tryInterceptMagazzinoSaveBeforeCf,
+    tryInterceptPreventivoSaveBeforeCf,
     tryInterceptQuickHoursSaveBeforeCf,
     quickHoursFormReadyForTonySave,
     isTonyQuickHoursCfFakeSaveText,
@@ -73,6 +74,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
     var _tonyE2eMode = tonyE2eModeEnabled();
     var _tonyE2eTurnStartMs = 0;
     var _tonyE2eCfCalled = false;
+    var _tonyE2eTurnEndAttempts = 0;
     function tonyE2eRecordCommand(data) {
         if (!_tonyE2eMode || !data || !data.type) return;
         try {
@@ -88,6 +90,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         if (!_tonyE2eMode) return;
         _tonyE2eTurnStartMs = Date.now();
         _tonyE2eCfCalled = false;
+        _tonyE2eTurnEndAttempts = 0;
         try { window.__tonyLastCommands = []; } catch (eTs) { /* ignore */ }
     }
     function tonyE2eCfActuallyCalled() {
@@ -108,8 +111,9 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         try {
             window.__tonyLastPerf = Object.assign({
                 latencyMs: Date.now() - _tonyE2eTurnStartMs,
-                usedGemini: tonyE2eCfActuallyCalled(),
                 cfCalled: tonyE2eCfActuallyCalled(),
+                usedGemini: tonyE2eCfActuallyCalled(),
+                mockCf: !!(window.__GFV_TONY_E2E_MOCK_CF),
                 at: new Date().toISOString()
             }, extra || {});
         } catch (eTe) { /* ignore */ }
@@ -119,12 +123,33 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         if (!_tonyE2eMode || !_tonyE2eTurnStartMs) return;
         if (window.__tonyE2eTurnEndTimer) clearTimeout(window.__tonyE2eTurnEndTimer);
         window.__tonyE2eTurnEndTimer = setTimeout(function() {
-            if (typeof window.__tonyE2eIsBusy === 'function' && window.__tonyE2eIsBusy()) {
-                tonyE2eScheduleTurnEnd();
-                return;
+            var busy = typeof window.__tonyE2eIsBusy === 'function' && window.__tonyE2eIsBusy();
+            if (busy) {
+                _tonyE2eTurnEndAttempts += 1;
+                var hasTonyReply = false;
+                try {
+                    hasTonyReply = !!document.querySelector('#tony-messages .tony-msg.tony');
+                } catch (eReply) { /* ignore */ }
+                var confirmOpen = false;
+                try {
+                    var ov = document.getElementById('tony-confirm-overlay');
+                    confirmOpen = !!(ov && ov.offsetParent !== null && ov.style.display !== 'none');
+                } catch (eOv) { /* ignore */ }
+                if (
+                    _tonyE2eTurnEndAttempts < 12 &&
+                    !(hasTonyReply && (confirmOpen || _tonyE2eTurnEndAttempts >= 2))
+                ) {
+                    tonyE2eScheduleTurnEnd();
+                    return;
+                }
             }
+            _tonyE2eTurnEndAttempts = 0;
             tonyE2eTurnEnd();
         }, 500);
+    }
+    function tonyE2eFinishLocalInterceptTurn() {
+        if (!_tonyE2eMode) return;
+        tonyE2eTurnEnd({ localIntercept: true, cfCalled: false, usedGemini: false });
     }
     if (_tonyE2eMode) {
         window.__tonyE2eMode = true;
@@ -2443,6 +2468,14 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         if (!hasDay) return false;
         return /\b(allora|facciamo|imposta|procediamo|ok|salva|bozza|data|prevista)\b/.test(m) ||
             m.split(/\s+/).filter(Boolean).length <= 4;
+    }
+
+    function userMessageIsPreventivoCreateIntent(text) {
+        if (!text || typeof text !== 'string') return false;
+        var low = String(text).toLowerCase();
+        if (/\b(crea|creare|nuovo|fare|aprire|apri)\b/.test(low) && /\bpreventiv/.test(low)) return true;
+        if (/\bpreventiv\b/.test(low) && /\b(crea|creare|nuovo|fare)\b/.test(low)) return true;
+        return false;
     }
 
     function userMessageIsShortAffirmative(text) {
@@ -6388,6 +6421,72 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 }
             }
 
+            // Preventivo: disambiguazione terreno — client-side, no CF (stile lavoro macchine).
+            if (!opts.proactive && document.getElementById('preventivo-form') && window.TonyFormInjector &&
+                typeof window.TonyFormInjector.applyPreventivoTerrenoFromUserReply === 'function') {
+                var clientePrevMk = document.getElementById('cliente-id');
+                var terPrevMk = document.getElementById('terreno-id');
+                var shortPrevReply = text && String(text).trim().length <= 32 && text.split(/\s+/).length <= 3;
+                if (clientePrevMk && String(clientePrevMk.value || '').trim() &&
+                    terPrevMk && !String(terPrevMk.value || '').trim() &&
+                    shortPrevReply && !isTonySaveConfirmText(text) &&
+                    !userMessageIsPreventivoScheduleHint(text) && !userMessageIsPreventivoCreateIntent(text)) {
+                    var disPrevMk = window.__tonyPreventivoTerrenoDisambiguation;
+                    var lastTonyPrevMk = '';
+                    try {
+                        var nodesPrevMk = document.querySelectorAll('#tony-messages .tony-msg.tony');
+                        if (nodesPrevMk.length) {
+                            lastTonyPrevMk = String(nodesPrevMk[nodesPrevMk.length - 1].textContent || '').toLowerCase();
+                        }
+                    } catch (ePrevMk) { /* ignore */ }
+                    var disambPrevAsked = (disPrevMk && disPrevMk.options && disPrevMk.options.length > 1) ||
+                        /su quale terren|molti terreni|dobbiamo lavorare su|indica il nome del terreno/i.test(lastTonyPrevMk);
+                    if (disambPrevAsked) {
+                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                        appendMessage('Un attimo…', 'typing');
+                        window.TonyFormInjector.applyPreventivoTerrenoFromUserReply(text).then(function(resPrevTer) {
+                            removeTyping();
+                            if (resPrevTer && resPrevTer.handled && resPrevTer.message) {
+                                appendMessage(resPrevTer.message, 'tony');
+                            } else {
+                                appendMessage('Non ho capito quale terreno. Rispondi con il nome come in elenco.', 'tony');
+                            }
+                            tonyE2eFinishLocalInterceptTurn();
+                        }).catch(function(errPrevTer) {
+                            removeTyping();
+                            console.warn('[Tony] applyPreventivoTerrenoFromUserReply:', errPrevTer);
+                            tonyE2eFinishLocalInterceptTurn();
+                        });
+                        if (opts.fromVoice) isWaitingForTonyResponse = false;
+                        return;
+                    }
+                }
+            }
+
+            // Preventivo: data prevista (domani, lunedì, …) — client-side, no CF.
+            if (!opts.proactive && document.getElementById('preventivo-form') && window.TonyFormInjector &&
+                typeof window.TonyFormInjector.applyPreventivoScheduleFromUserReply === 'function' &&
+                userMessageIsPreventivoScheduleHint(text)) {
+                var terSchedMk = document.getElementById('terreno-id');
+                if (terSchedMk && String(terSchedMk.value || '').trim()) {
+                    if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    appendMessage('Un attimo…', 'typing');
+                    window.TonyFormInjector.applyPreventivoScheduleFromUserReply(text).then(function(resPrevDt) {
+                        removeTyping();
+                        if (resPrevDt && resPrevDt.handled && resPrevDt.message) {
+                            appendMessage(resPrevDt.message, 'tony');
+                        }
+                        tonyE2eFinishLocalInterceptTurn();
+                    }).catch(function(errPrevDt) {
+                        removeTyping();
+                        console.warn('[Tony] applyPreventivoScheduleFromUserReply:', errPrevDt);
+                        tonyE2eFinishLocalInterceptTurn();
+                    });
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
+            }
+
             // Risposta breve a disambiguazione trattore/attrezzo (client-side, no CF) — prima dell'intervista creazione.
             if (!opts.proactive && !opts._skipMacchineReplyIntercept) {
                 var pathLavMk = (window.location && window.location.pathname ? String(window.location.pathname).toLowerCase() : '');
@@ -6467,6 +6566,20 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     },
                 });
                 if (saveIntercept.handled) {
+                    tonyE2eFinishLocalInterceptTurn();
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
+                var prevSaveIntercept = tryInterceptPreventivoSaveBeforeCf(text, {
+                    appendMessage: appendMessage,
+                    speak: (window.Tony && typeof window.Tony.speak === 'function') ? window.Tony.speak.bind(window.Tony) : null,
+                    processTonyCommand: processTonyCommand,
+                    clearEarlyTyping: function () {
+                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    },
+                });
+                if (prevSaveIntercept.handled) {
+                    tonyE2eFinishLocalInterceptTurn();
                     if (opts.fromVoice) isWaitingForTonyResponse = false;
                     return;
                 }
@@ -6479,6 +6592,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     },
                 });
                 if (magSaveIntercept.handled) {
+                    tonyE2eFinishLocalInterceptTurn();
                     if (opts.fromVoice) isWaitingForTonyResponse = false;
                     return;
                 }

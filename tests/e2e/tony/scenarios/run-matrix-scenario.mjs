@@ -16,15 +16,17 @@ import {
   waitForCurrentTableData,
   waitForTonySimTenantData,
 } from '../helpers/tony-sim-context.js';
+import { captureTonyScenarioPerf, captureTonyScenarioReply } from '../helpers/tony-e2e-scenario-perf.mjs';
 import {
   openTonyPanel,
   tonyConfirmNavigationIfNeeded,
   tonyGetExecutedCommands,
-  tonyGetLastPerfMetrics,
   tonyGetLastReplyText,
   tonySendMessage,
   tonyWaitForReply,
   waitForTonyReady,
+  waitForTonyReadyWithRetry,
+  waitForTonyTurnPerf,
 } from '../helpers/tony-widget.js';
 
 const DEFAULT_START = '/core/dashboard-standalone.html';
@@ -57,7 +59,11 @@ export async function runMatrixScenario(page, expect, scenario) {
 
   await bootstrapTonyWidgetOnStandalonePage(page);
 
-  await waitForTonyReady(page);
+  if (scenario.tier === 3) {
+    await waitForTonyReadyWithRetry(page);
+  } else {
+    await waitForTonyReady(page);
+  }
 
   if (scenario.id === 'T-SMOKE-001') {
     await assertTonySimTenantReady(page, expect);
@@ -70,6 +76,21 @@ export async function runMatrixScenario(page, expect, scenario) {
   if (scenario.id === 'T-PERF-002') {
     await waitForCurrentTableData(page, 'lavori');
   }
+
+  if (scenario.id === 'T-PERF-003') {
+    await waitForCurrentTableData(page, 'tariffe');
+  }
+
+  if (scenario.id === 'T-PERF-004' || scenario.id === 'T-PERF-005') {
+    await waitForTonySimTenantData(page);
+  }
+
+  const replyTimeoutMs =
+    typeof scenario.expect?.replyTimeoutMs === 'number'
+      ? scenario.expect.replyTimeoutMs
+      : scenario.tier === 3
+        ? 60_000
+        : 45_000;
 
   if (scenario.id === 'T-TYPO-001') {
     await page.locator('#quick-hours-form').waitFor({ state: 'visible', timeout: 30_000 });
@@ -119,12 +140,17 @@ export async function runMatrixScenario(page, expect, scenario) {
       await applyTonyFreePlanForE2e(page);
     }
     const tonyBefore = await tonySendMessage(page, msg);
-    const reply = await tonyWaitForReply(page, { tonyCountBefore: tonyBefore });
+    const reply = await tonyWaitForReply(page, { tonyCountBefore: tonyBefore, timeoutMs: replyTimeoutMs });
+    const lastPerf = await waitForTonyTurnPerf(page, {
+      timeoutMs: replyTimeoutMs,
+    });
     turnCtx = {
       lastReply: reply,
-      lastPerf: await tonyGetLastPerfMetrics(page),
+      lastPerf,
       lastCommands: await tonyGetExecutedCommands(page),
     };
+    await captureTonyScenarioReply(page, reply);
+    await captureTonyScenarioPerf(page, lastPerf);
     if (scenario.id === 'T-DENY-001') {
       await page.waitForFunction(
         () => {

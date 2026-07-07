@@ -2838,6 +2838,25 @@ async function handleTonyAskRequest(request, streamOpts) {
           return finishTonyAskEarly(tonyPerf, message, prevOut);
         }
       }
+      const multiQuick = await tryTonyMultiBlockQuickReply({
+        message,
+        history,
+        ctx: ctxFinal,
+        meteoFns: {
+          db,
+          tenantId,
+          tryMeteoOperativoQuickReply,
+          tryMeteoGiornoQuickReply,
+          tryMeteoCondizioniQuickReply,
+        },
+      });
+      if (multiQuick) {
+        tonyPerf.quickReplyHit = "multi_block";
+        return finishTonyAskEarly(tonyPerf, message, {
+          text: multiQuick.text,
+          command: multiQuick.command || null,
+        });
+      }
       const bizQuick = tryTonyQuickReplies({ message, history, ctx: ctxFinal });
       if (bizQuick) {
         tonyPerf.quickReplyHit = bizQuick.id;
@@ -2863,25 +2882,6 @@ async function handleTonyAskRequest(request, streamOpts) {
         return finishTonyAskEarly(tonyPerf, message, {
           text: filterQuick.text,
           command: filterQuick.command || null,
-        });
-      }
-      const multiQuick = await tryTonyMultiBlockQuickReply({
-        message,
-        history,
-        ctx: ctxFinal,
-        meteoFns: {
-          db,
-          tenantId,
-          tryMeteoOperativoQuickReply,
-          tryMeteoGiornoQuickReply,
-          tryMeteoCondizioniQuickReply,
-        },
-      });
-      if (multiQuick) {
-        tonyPerf.quickReplyHit = "multi_block";
-        return finishTonyAskEarly(tonyPerf, message, {
-          text: multiQuick.text,
-          command: multiQuick.command || null,
         });
       }
       const activityQuick = tryTonyActivityPatterns({ message, history, ctx: ctxFinal });

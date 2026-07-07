@@ -10,10 +10,36 @@ import { connectFirestoreEmulator } from 'https://www.gstatic.com/firebasejs/11.
 const AUTH_EMULATOR_URL = 'http://127.0.0.1:9099';
 const FIRESTORE_HOST = '127.0.0.1';
 const FIRESTORE_PORT = 8080;
+const FUNCTIONS_HOST = '127.0.0.1';
+const FUNCTIONS_PORT = 5001;
 
 let _connected = false;
 
 const SIM_PENDING_LOGIN_KEY = 'gfv_sim_pending_login';
+
+/** Tony E2E tier 3 live — CF reale via Functions emulator (`?tonyE2eLive=1`). */
+export function shouldUseTonyE2eLive() {
+  if (typeof window === 'undefined') return false;
+  try {
+    if (window.__GFV_TONY_E2E_LIVE) return true;
+    const params = new URLSearchParams(window.location.search);
+    return params.get('tonyE2eLive') === '1';
+  } catch (_) { /* ignore */ }
+  return false;
+}
+
+/** Base URL HTTP tonyAsk/tonyAskStream su Functions emulator (regione europe-west1). */
+export function resolveTonyCfEmulatorBaseUrl() {
+  if (!shouldUseFirebaseEmulator() || !shouldUseTonyE2eLive()) return null;
+  try {
+    const projectId =
+      (typeof window !== 'undefined' && window.firebaseConfig && window.firebaseConfig.projectId) ||
+      'gfv-platform';
+    return `http://${FUNCTIONS_HOST}:${FUNCTIONS_PORT}/${projectId}/europe-west1`;
+  } catch (_) {
+    return null;
+  }
+}
 
 export function shouldUseFirebaseEmulator() {
   if (typeof window === 'undefined') return false;
@@ -47,9 +73,15 @@ export function connectFirebaseEmulatorsIfDev(firebaseService) {
   connectAuthEmulator(auth, AUTH_EMULATOR_URL, { disableWarnings: true });
   connectFirestoreEmulator(db, FIRESTORE_HOST, FIRESTORE_PORT);
 
+  if (shouldUseTonyE2eLive()) {
+    const cfBase = resolveTonyCfEmulatorBaseUrl();
+    if (cfBase && !window.__GFV_TONY_E2E_PROD_CF) window.__gfvTonyCfEmulatorBase = cfBase;
+  }
+
   _connected = true;
   installEmulatorLinkPropagation();
-  console.info('[GFV] Firebase Emulator — Auth 9099, Firestore 8080');
+  const liveLabel = shouldUseTonyE2eLive() ? ', Functions 5001 (Tony live)' : '';
+  console.info(`[GFV] Firebase Emulator — Auth 9099, Firestore 8080${liveLabel}`);
   return true;
 }
 

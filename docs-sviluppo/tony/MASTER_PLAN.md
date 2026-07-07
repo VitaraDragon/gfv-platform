@@ -283,6 +283,7 @@ Tony non "compila" grafici. Può:
 - **Piano performance dashboard panoramica** (Fase 0–**5** ✅ 2026-06-06; canary **`dashboard pronta` ~861 ms**; smoke `npm run dashboard:perf-smoke`): `docs-sviluppo/dashboard/PLAN_PERFORMANCE_DASHBOARD.md`
 - **PWA / deploy client**: hook **`pre-commit`** / script **`bump:pwa-cache`** aggiornano **`SW_CACHE_BUILD_ID`** in `service-worker.js` (vedi **`docs-sviluppo/GUIDA_PWA.md`** e **TONY_DECISIONI_E_REQUISITI.md** §3.8) — riduce cache stale su app installata
 - **Magazzino – ipotesi future (OCR/Gemini, bolla/fattura, prezzi in attesa)**: `docs-sviluppo/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` — da considerare quando si lavora su acquisizione documenti e movimenti d’acquisto
+- **Tony E2E simulatore (M-T0…M-T6)**: `docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md` — M-T4 ✅ mock 16/16; M-T5 ⏳ live (T-PERF-003 verificato locale 2026-07-06; stack `sim:emulators:live`)
 - **Inventario decisioni**: `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md`
 - **Changelog**: `docs-sviluppo/COSA_ABBIAMO_FATTO.md`
 - **Sicurezza (Firestore, link pubblici, callable)**: `docs-sviluppo/SICUREZZA_FLUSSI.md`

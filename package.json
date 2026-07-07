@@ -27,6 +27,7 @@
     "tony:canary": "node scripts/tony-connectivity-canary.mjs",
     "tony:tts-canary": "node scripts/tony-tts-canary.mjs",
     "sim:emulators": "node ./node_modules/firebase-tools/lib/bin/firebase.js emulators:start --only auth,firestore",
+    "sim:emulators:live": "node ./node_modules/firebase-tools/lib/bin/firebase.js emulators:start --only auth,firestore,functions",
     "sim:smoke": "node simulator/smoke-test.js",
     "sim:run": "node simulator/orchestrator.js",
     "sim:run:batch": "node simulator/run-batch.js",
@@ -51,7 +52,11 @@
     "sim:e2e:install": "playwright install --with-deps chromium",
     "sim:e2e:ci": "node simulator/ci-e2e-run.js",
     "sim:tony:e2e": "node scripts/sim-tony-e2e-run.mjs",
+    "sim:tony:e2e:live": "node scripts/sim-tony-e2e-run.mjs --live",
+    "sim:tony:e2e:live:gate": "node scripts/sim-tony-e2e-run.mjs --live --enforce-p95",
+    "sim:tony:e2e:live:prod": "node scripts/sim-tony-e2e-live-prod.mjs",
     "sim:tony:e2e:ci": "node simulator/ci-tony-e2e-run.js",
+    "sim:tony:e2e:live:ci": "node simulator/ci-tony-e2e-live-run.js",
     "sim:tony:vitest": "node scripts/sim-tony-vitest-run.mjs"
   },
   "keywords": [

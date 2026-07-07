@@ -68,6 +68,17 @@ async function tryTonyMultiBlockQuickReply(input) {
         usedDomains.add("meteo");
       }
     }
+    if (!usedDomains.has("meteo")) {
+      const meteoAttivo =
+        aziendaMeteo && (aziendaMeteo.disponibile === true || aziendaMeteo.moduloMeteoAttivo === true);
+      blocks.push({
+        domain: "meteo",
+        text: meteoAttivo
+          ? "Non ho un riepilogo meteo sintetico al momento; controlla le previsioni nel modulo Meteo prima del trattamento."
+          : "Il modulo Meteo non è attivo: non posso darti previsioni dettagliate, ma conviene verificare le condizioni locali prima del trattamento.",
+      });
+      usedDomains.add("meteo");
+    }
   }
 
   if (needsMagazzino) {

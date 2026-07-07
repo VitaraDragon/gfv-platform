@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "description": "Matrice scenari Tony E2E — M-T4 cross-module (16 ready)",
+  "description": "Matrice scenari Tony E2E — M-T4 (16 tier 2) + M-T5 tier 3 live",
   "scenarios": [
     {
       "id": "T-SMOKE-001",
@@ -35,6 +35,117 @@
         "usedGemini": false,
         "responseMustMatch": ["tariff"],
         "navigation": { "urlIncludes": "tariffe-standalone" }
+      }
+    },
+    {
+      "id": "T-PERF-003",
+      "status": "ready",
+      "tier": 3,
+      "category": "perf",
+      "description": "Live CF — quante tariffe attive ho? (binario A quick reply)",
+      "persona": "manager",
+      "templateIncludes": "conto-terzi",
+      "startUrl": "/modules/conto-terzi/views/tariffe-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerContoTerzi",
+      "messages": ["quante tariffe attive ho?"],
+      "mockCf": false,
+      "expect": {
+        "latencyMsMax": 3000,
+        "responseMustMatch": ["tariff", "attiv"],
+        "responseMustNotMatch": ["non ho", "sessione scaduta"]
+      }
+    },
+    {
+      "id": "T-PERF-004",
+      "status": "ready",
+      "tier": 3,
+      "category": "multi_domain",
+      "description": "Live CF — domanda multi-dominio meteo+scorte (multi_block quick o Gemini T4)",
+      "persona": "manager",
+      "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["domani trattamento, ho scorte di concime basse e che meteo c'è?"],
+      "mockCf": false,
+      "expect": {
+        "latencyMsMax": 12000,
+        "replyTimeoutMs": 60000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          [
+            "meteo",
+            "tempo",
+            "pioggia",
+            "prevision",
+            "previsioni",
+            "gradi",
+            "nuvol",
+            "vento",
+            "domani",
+            "sole",
+            "sereno",
+            "copert",
+            "clima",
+            "temperatur",
+            "rovesci",
+            "umid",
+            "condizion",
+            "atmosfer",
+            "cielo",
+            "maltempo",
+            "trattament",
+            "modulo meteo",
+            "non attivo",
+            "non e attivo"
+          ],
+          [
+            "scort",
+            "scorte",
+            "concime",
+            "giacenz",
+            "magazzin",
+            "sotto",
+            "prodot",
+            "bass",
+            "basse",
+            "esaur",
+            "riforn",
+            "quantit",
+            "stock",
+            "fertil",
+            "soglia",
+            "riord",
+            "livell",
+            "disponibil",
+            "insufficient",
+            "mancan",
+            "nutrient",
+            "riepilogo",
+            "paraffin",
+            "olio",
+            "riguardo alle scort"
+          ]
+        ],
+        "responseMustNotMatch": ["sessione scaduta", "piano free", "non ho accesso"]
+      }
+    },
+    {
+      "id": "T-PERF-005",
+      "status": "ready",
+      "tier": 3,
+      "category": "nav",
+      "description": "Live CF — nav quick reply portami alle tariffe (binario B)",
+      "persona": "manager",
+      "templateIncludes": "conto-terzi",
+      "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerContoTerzi",
+      "messages": ["portami alle tariffe"],
+      "mockCf": false,
+      "expect": {
+        "latencyMsMax": 3000,
+        "replyTimeoutMs": 45000,
+        "responseMustMatch": ["tariff"],
+        "navigation": { "urlIncludes": "tariffe-standalone" },
+        "responseMustNotMatch": ["sessione scaduta"]
       }
     },
     {
@@ -202,6 +313,26 @@
       "expect": {
         "cfCallsMax": 0,
         "usedGemini": false
+      }
+    },
+    {
+      "id": "T-FLOW-014-LIVE",
+      "status": "ready",
+      "tier": 3,
+      "category": "multi_turn",
+      "description": "Preventivo live CF — crea + disamb terreno via Tony → save locale → lista (3b-C14 tier 3)",
+      "persona": "manager",
+      "templateIncludes": "conto-terzi",
+      "startUrl": "/modules/conto-terzi/views/nuovo-preventivo-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerContoTerzi",
+      "messages": [],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 90000,
+        "minCfTurns": 1,
+        "saveCfCallsMax": 0,
+        "latencyMsMax": 15000,
+        "responseMustNotMatch": ["sessione scaduta", "piano free"]
       }
     },
     {

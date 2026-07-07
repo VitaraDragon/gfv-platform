@@ -4,6 +4,7 @@
  */
 
 import latencyBudgets from '../perf/latency-budgets.json' with { type: 'json' };
+import { readTonyScenarioReply } from './tony-e2e-scenario-perf.mjs';
 import {
   isTonyAdvancedActive,
   tonyGetExecutedCommands,
@@ -45,8 +46,11 @@ async function readInjectedFieldValue(page, fieldKey) {
 function resolveLatencyBudget(scenario, expectBlock) {
   if (typeof expectBlock.latencyMsMax === 'number') return expectBlock.latencyMsMax;
   const cat = scenario.category && latencyBudgets.byCategory?.[scenario.category];
+  if (scenario.tier === 3 && cat && typeof cat.liveLatencyMsMax === 'number') {
+    return cat.liveLatencyMsMax;
+  }
   if (cat && typeof cat.latencyMsMax === 'number') return cat.latencyMsMax;
-  return latencyBudgets.defaults?.quickReplyMsMax;
+  return undefined;
 }
 
 /**
@@ -69,7 +73,11 @@ export async function assertScenarioExpect(page, expect, scenario, ctx = {}) {
     expect(await isTonyAdvancedActive(page)).toBe(false);
   }
 
-  const reply = ctx.lastReply != null ? String(ctx.lastReply) : await tonyGetLastReplyText(page);
+  const lastReply = ctx.lastReply != null ? String(ctx.lastReply) : await tonyGetLastReplyText(page);
+  const reply =
+    Array.isArray(exp.responseMustMatchGroups) && exp.responseMustMatchGroups.length
+      ? await readTonyScenarioReply(page, lastReply)
+      : lastReply;
   const perf = ctx.lastPerf || (await tonyGetLastPerfMetrics(page));
   const commands = ctx.lastCommands || (await tonyGetExecutedCommands(page));
   const latency = ctx.lastPerf
@@ -86,11 +94,34 @@ export async function assertScenarioExpect(page, expect, scenario, ctx = {}) {
     }
   }
 
+  if (Array.isArray(exp.responseMustMatchAny) && exp.responseMustMatchAny.length) {
+    const low = reply.toLowerCase();
+    const hit = exp.responseMustMatchAny.some((fragment) =>
+      low.includes(String(fragment).toLowerCase())
+    );
+    expect(hit).toBe(true);
+  }
+
   if (Array.isArray(exp.responseMustNotMatch)) {
     const low = reply.toLowerCase();
     for (const fragment of exp.responseMustNotMatch) {
       expect(low).not.toContain(String(fragment).toLowerCase());
     }
+  }
+
+  if (Array.isArray(exp.responseMustMatchGroups) && exp.responseMustMatchGroups.length) {
+    const low = reply.toLowerCase();
+    let matched = 0;
+    for (const group of exp.responseMustMatchGroups) {
+      if (!Array.isArray(group) || !group.length) continue;
+      const groupHit = group.some((fragment) => low.includes(String(fragment).toLowerCase()));
+      if (groupHit) matched += 1;
+    }
+    const minGroups =
+      typeof exp.responseMustMatchGroupsMin === 'number'
+        ? exp.responseMustMatchGroupsMin
+        : exp.responseMustMatchGroups.length;
+    expect(matched).toBeGreaterThanOrEqual(minGroups);
   }
 
   if (Array.isArray(exp.commands)) {
@@ -116,6 +147,16 @@ export async function assertScenarioExpect(page, expect, scenario, ctx = {}) {
     } else if (perf) {
       expect(!!perf.usedGemini).toBe(exp.usedGemini);
     }
+  }
+
+  if (exp.quickReplyHit === true) {
+    const geminiUsed =
+      latency.usedGemini !== null
+        ? latency.usedGemini
+        : perf && typeof perf.usedGemini === 'boolean'
+          ? perf.usedGemini
+          : null;
+    expect(geminiUsed).toBe(false);
   }
 
   const budget = resolveLatencyBudget(scenario, exp);

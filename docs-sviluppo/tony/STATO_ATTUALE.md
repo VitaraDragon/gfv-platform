@@ -1,6 +1,6 @@
 # Stato attuale Tony – Verificato sul codice
 
-**Data**: 2026-07-06 (… **Piano Stagione VM chiuso** — polish UI + Tony filtri/aggregati; … **FAB Tony pagine standalone** — publish tenant centralizzato + VM/report; …)  
+**Data**: 2026-07-07 (… **Tony E2E M-T5** — suite tier 3 live 4/4 + gate p95; … **Piano Stagione VM chiuso** — polish UI + Tony filtri/aggregati; … **FAB Tony pagine standalone** — publish tenant centralizzato + VM/report; …)  
 **Fonte**: codice + `TONY_DECISIONI_E_REQUISITI.md` (… **hub navigazione manodopera manager** — 2026-06-13; **manodopera validazione ore capo→manager + field workspace slide Valida ore** — 2026-05-19)  
 **Sicurezza (link pubblici, Firestore, callable)**: `docs-sviluppo/SICUREZZA_FLUSSI.md`
 
@@ -29,7 +29,7 @@
 | Cloud Function **sendTransactionalEmail** | `functions/index.js` + `functions/email-resend.js` | ✅ Invio **inviti** e **preventivi** via **Resend** (mittente `no-reply@globalfarmview.net`), auth + ruolo manager/admin sul tenant; segreto `RESEND_API_KEY`; client `preventivi-standalone` / `gestisci-utenti-standalone` (2026-04-10). **Link registrazione negli inviti**: `APP_BASE_URL` in `gestisci-utenti-standalone` → GitHub Pages finché l’ERP non è su `globalfarmview.net` (solo landing lì). |
 | **Stripe billing (Abbonamento)** | `functions/stripe-billing.js`, `functions/stripe-webhooks.js`, `functions/module-trial.js`, `functions/index.js` | ✅ **2026-06-20:** Checkout Base/modulo/bundle. ✅ **2026-06-21 Fase 1:** `cancelStripeAddon`, `reactivateStripeAddon`, `stripeWebhook`; UI `abbonamento-standalone.html` (sezione disattivati riattivabili, sync moduli client); secret `STRIPE_WEBHOOK_SECRET`; **D5:** revoca accesso immediata + riattivazione fino a scadenza — verifica OK. ✅ **2026-06-22:** **prova gratuita moduli 30 giorni** (`startModuleTrial`, `syncModuleTrials`, `moduleTrials` Firestore, `core/utils/module-access-resolver.js`); anche piano Free; 1 modulo in prova contemporaneo. Handoff Fasi 2–4: `docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`. Test: `tests/stripe-billing-deactivation.test.js`, `tests/module-trial.test.js` |
 | Cloud Function **getTonyAudio** | `functions/index.js` | ✅ Google Cloud TTS MP3 base64; voce **`it-IT-Chirp3-HD-Charon`** (Chirp 3 HD — 2026-06-13); env **`TONY_TTS_VOICE`** / **`TONY_TTS_SPEAKING_RATE`** (default **1.05** — 2026-06-19); gate piano Free |
-| Cloud Function tonyAsk | `functions/index.js` | ✅ **Modello Gemini (2026-06-03):** `gemini-2.5-flash`. ✅ **Fase 4 (2026-06-03):** `tryTonyNavQuickReply`, `tryTonyFilterTableQuickReply`, `tryTonyMultiBlockQuickReply` prima di pattern attività/Gemini; log `quickReplyHit` nav/filter_table/riassunto_*/multi_block. ✅ **Fase 3 streaming (2026-05-25):** `handleTonyAskRequest` + `tonyAskStream`; pattern attività; Treasure Map. ✅ Preventivo / tier 2b / meteo / module gate. ✅ **Performance Fase 0–1:** cache Firestore + quick reply A + `PREVENTIVO_LIST_ACTION`. Pipeline: router → build tier → quick A → **nav → filter → multi-blocco** → pattern attività → lavoro entity → meteo → Gemini |
+| Cloud Function tonyAsk | `functions/index.js` | ✅ **Modello Gemini (2026-06-03):** `gemini-2.5-flash`. ✅ **Fase 4 (2026-06-03):** `tryTonyNavQuickReply`, `tryTonyFilterTableQuickReply`, `tryTonyMultiBlockQuickReply` prima di pattern attività/Gemini; log `quickReplyHit` nav/filter_table/riassunto_*/multi_block. ✅ **Fase 3 streaming (2026-05-25):** `handleTonyAskRequest` + `tonyAskStream`; pattern attività; Treasure Map. ✅ Preventivo / tier 2b / meteo / module gate. ✅ **Performance Fase 0–1:** cache Firestore + quick reply A + `PREVENTIVO_LIST_ACTION`. Pipeline: router → build tier → preventivo list → **multi-blocco → quick A → nav → filter** → pattern attività → lavoro entity → meteo → Gemini. ✅ **2026-07-07:** multi-blocco prima di `query_scorte`/nav (T-PERF-004); stub meteo se modulo off |
 | Cloud Function tonyAskStream | `functions/tony-ask-stream.js` | ✅ **Fase 3 (2026-05-25):** SSE `POST` + Bearer token; delega a `handleTonyAskRequest` con `stream: true`. ✅ **Fix modello + env (2026-06-03):** `gemini-2.5-flash` — risolve 404 su navigazione/chat; **`GEMINI_API_KEY`** e opz. **`GEMINI_MODEL`** su revisione Cloud Run **`tonyaskstream`**. Canary crea lavoro — `streamUsed=true`, ttfc ~5 s, form lavoro iniettato. |
 | Parser SSE client | `core/services/tony-sse-parse.js` | ✅ **2026-05-25:** `parseTonySseStream` — eventi `chunk`/`done`/`error`; usato da `tony-service._callTonyAskStream` con `response.text()`. |
 | Intent router + tier (Fase 2a→2b) | `functions/tony-intent-router.js`, `functions/tony-context-tier.js` | ✅ Classifica A/B/C + `tierCalculated`/`tierUsed`; fetch tier-aware; meteo operativo → binario A; conservativo T4 su crea lavoro/ambiguo. **Produzione (2026-05-24):** 62/80 log `[Tony Perf]` con `routerTierUsed` ≠ `T4_full`. Test: `tests/tony-intent-router.test.js`, `tests/tony-context-tier.test.js` |
@@ -166,6 +166,30 @@
 | Proattività "Ho notato X, vuoi che...?" | Media | Fase 6 |
 | Memoria storica (confronti anno/anno) | Bassa | |
 | Flusso campioni GPS (mappa multipunto raccolta/profilazione) | Media | Mini-spec definita in `TONY_DECISIONI_E_REQUISITI.md` §18; implementazione rimandata a fase 2 dedicata |
+| **Tony E2E live tier 3 — suite + gate p95** | Bassa | **4/4 + gate p95** verificati (2026-07-07); CI notturno **enforce p95 on** + streak 3 run; loop sim (`resetTonyE2eScenarioState`, `waitForTonyReadyWithRetry`); v. **`TONY_E2E_GUIDA_SVILUPPO.md`** §M-T5 |
+
+### 7.1 Tony + Simulatore E2E (track M-T0…M-T6)
+
+Guida operativa: **`docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md`**. Matrice: `tests/e2e/tony/fixtures/scenarios-matrix.json`.
+
+| Milestone | Stato | Contenuto |
+| --------- | ----- | --------- |
+| **M-T4** | ✅ | 16 scenari **tier 2 mock** — `npm run sim:tony:e2e` (PR CI `simulator-tony-e2e-mock`) |
+| **M-T5** | ⏳ | 4 scenari **tier 3 live** pronti in matrice; **T-PERF-003 verificato locale** (678 ms, quickReply 100%, 2026-07-06); report `test-results/tony-e2e-live-report.json` |
+| **M-T6** | 📋 | Chiusura track (matrice ≥50, handoff resto manuale) |
+
+**Strategia CF (§8 guida):** tier 2 = mock client (`tony-mock-cf.js`); tier 3 = **Functions emulator locale** (Opzione B) con `GEMINI_API_KEY` in `functions/.secret.local` (gitignored). CI notturno: `sim:tony:e2e:live:ci` + secret repo.
+
+**Comandi locali (tier 3):**
+
+```bash
+npm run sim:emulators:live   # auth + firestore + functions (5001)
+npm start
+npm run sim:run -- --template=viticola-conto-terzi-manodopera
+npm run sim:tony:e2e:live    # oppure GFV_TONY_E2E_ONLY=T-PERF-003 npm run sim:tony:e2e:live
+```
+
+**Limitazioni note:** `npm run sim:tony:e2e:live:prod` (CF produzione + Auth emulator) → **«sessione scaduta»** — non usare finché non esiste auth ibrido staging. Fix runner 2026-07-06: `load-functions-secret-local.mjs`, health check port 5001. **Procedura completa:** `TONY_E2E_GUIDA_SVILUPPO.md` **§8.1**.
 
 ---
 
@@ -183,7 +207,7 @@ Documenti creati per riprendere il lavoro **senza perdere contesto** (prompt, ba
 
 Indice: `docs-sviluppo/tony/README.md`.
 
-**Tony + sim E2E (2026-07-06, M-T3 ✅, M-T4 completo ✅):** 16 scenari mock tier 2 verdi (`npm run sim:tony:e2e`): 8 core M-T3 + **T-FLOW-013/014/015/016/017/018/019/021** (canary 3b-C13…C21 lavori, preventivo, magazzino). Vitest tier 1: `npm run sim:tony:vitest`. Prossimo: M-T5 live.
+**Tony + sim E2E (2026-07-07, M-T4 ✅, M-T5 ✅):** 16 scenari mock tier 2; **4/4 tier 3 live** + **gate p95** (`npm run sim:tony:e2e:live:gate`) con streak `consecutiveRunsToFail: 3`. CI enforce on. Guida: `TONY_E2E_GUIDA_SVILUPPO.md` §8–§10.
 
 ---
 

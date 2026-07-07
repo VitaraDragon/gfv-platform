@@ -1352,6 +1352,69 @@
   }
 
   /**
+   * Risposta breve utente a disambiguazione terreno Nuovo Preventivo — client-side, no CF.
+   * @returns {Promise<{handled: boolean, message: string, voiceText: string}>}
+   */
+  async function applyPreventivoTerrenoFromUserReply(userText) {
+    var out = { handled: false, message: '', voiceText: '' };
+    var text = String(userText || '').trim();
+    if (!text || !document.getElementById('preventivo-form')) return out;
+    var terEl = document.getElementById('terreno-id');
+    if (terEl && String(terEl.value || '').trim()) return out;
+
+    var candidates = [];
+    var dis = typeof window !== 'undefined' ? window.__tonyPreventivoTerrenoDisambiguation : null;
+    if (dis && Array.isArray(dis.options) && dis.options.length > 1) {
+      candidates = dis.options.map(function (o) {
+        return { id: o.id, label: o.nome || o.id, nome: o.nome || o.id, coltura: o.coltura || null };
+      });
+    } else if (terEl && terEl.options.length > 2) {
+      for (var i = 0; i < terEl.options.length; i++) {
+        var opt = terEl.options[i];
+        if (!opt || !opt.value) continue;
+        var lbl = String((opt.text || '').split('(')[0]).trim();
+        candidates.push({ id: opt.value, label: lbl, nome: lbl });
+      }
+    }
+    if (candidates.length < 2) return out;
+
+    var picked = resolveTerrenoFromDisambReply(text, candidates);
+    if (!picked) return out;
+
+    var ctx = (window.Tony && window.Tony.context) || {};
+    var terrenoVal = picked.id || picked.label;
+    var ok = await injectPreventivoForm({ 'terreno-id': terrenoVal }, ctx);
+    if (!ok) return out;
+    if (typeof window !== 'undefined') window.__tonyPreventivoTerrenoDisambiguation = null;
+    out.handled = true;
+    out.message = 'Ok, ho impostato il terreno nel preventivo.';
+    out.voiceText = out.message;
+    log('applyPreventivoTerrenoFromUserReply: terreno impostato da risposta utente');
+    return out;
+  }
+
+  /**
+   * Risposta breve utente con data prevista (es. «domani») — client-side, no CF.
+   * @returns {Promise<{handled: boolean, message: string, voiceText: string}>}
+   */
+  async function applyPreventivoScheduleFromUserReply(userText) {
+    var out = { handled: false, message: '', voiceText: '' };
+    var text = String(userText || '').trim();
+    if (!text || !document.getElementById('preventivo-form')) return out;
+    var terEl = document.getElementById('terreno-id');
+    if (!terEl || !String(terEl.value || '').trim()) return out;
+    var ctx = (window.Tony && window.Tony.context) || {};
+    var resolved = resolveValuePreventivo('data-prevista', text, ctx);
+    if (!resolved) return out;
+    var ok = await injectPreventivoForm({ 'data-prevista': resolved }, ctx);
+    if (!ok) return out;
+    out.handled = true;
+    out.message = 'Ok, ho impostato la data prevista nel preventivo.';
+    out.voiceText = out.message;
+    return out;
+  }
+
+  /**
    * Risposta breve utente a disambiguazione trattore/attrezzo — client-side, no CF.
    * @returns {Promise<{handled: boolean, readyForSave: boolean, message: string, voiceText: string}>}
    */
@@ -7137,6 +7200,8 @@
     isTerrenoDisambQualifierText: isTerrenoDisambQualifierText,
     offerTerrenoDisambResponse: offerTerrenoDisambResponse,
     injectPreventivoForm: injectPreventivoForm,
+    applyPreventivoTerrenoFromUserReply: applyPreventivoTerrenoFromUserReply,
+    applyPreventivoScheduleFromUserReply: applyPreventivoScheduleFromUserReply,
     injectTerrenoForm: injectTerrenoForm,
     injectProdottoForm: injectProdottoForm,
     resolveValueTerreno: resolveValueTerreno,

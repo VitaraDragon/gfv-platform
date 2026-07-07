@@ -46,6 +46,28 @@ export async function waitForTonyReady(page, { timeoutMs = 90_000 } = {}) {
 }
 
 /**
+ * Retry waitForTonyReady (suite live lunga: widget a volte non pronto al primo tick).
+ * @param {import('playwright-core').Page} page
+ * @param {{ timeoutMs?: number, retries?: number }} [opts]
+ */
+export async function waitForTonyReadyWithRetry(page, { timeoutMs = 90_000, retries = 2 } = {}) {
+  let lastErr;
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      const perAttemptTimeout = attempt === 0 ? timeoutMs : Math.min(timeoutMs, 60_000);
+      await waitForTonyReady(page, { timeoutMs: perAttemptTimeout });
+      return;
+    } catch (err) {
+      lastErr = err;
+      if (attempt < retries) {
+        await page.waitForTimeout(1500 * (attempt + 1));
+      }
+    }
+  }
+  throw lastErr;
+}
+
+/**
  * Apre il pannello chat Tony.
  * @param {import('playwright-core').Page} page
  */
@@ -232,6 +254,30 @@ export async function tonyGetLastReplyText(page) {
  */
 export async function tonyGetLastPerfMetrics(page) {
   return page.evaluate(() => window.__tonyLastPerf || null);
+}
+
+/**
+ * Attende che il hook E2E registri metriche turno (CF o intercept locale).
+ * @param {import('playwright-core').Page} page
+ * @param {{ timeoutMs?: number }} [opts]
+ */
+export async function waitForTonyTurnPerf(page, opts = {}) {
+  const timeoutMs = typeof opts.timeoutMs === 'number' ? opts.timeoutMs : 12_000;
+  await page
+    .waitForFunction(
+      () => {
+        const p = window.__tonyLastPerf;
+        if (!p || typeof p.latencyMs !== 'number') return false;
+        if (typeof window.__tonyE2eIsBusy === 'function' && window.__tonyE2eIsBusy()) {
+          return false;
+        }
+        return true;
+      },
+      null,
+      { timeout: timeoutMs, polling: 150 }
+    )
+    .catch(() => {});
+  return tonyGetLastPerfMetrics(page);
 }
 
 /**

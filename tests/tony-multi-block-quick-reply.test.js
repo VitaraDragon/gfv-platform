@@ -39,6 +39,25 @@ describe('tryTonyMultiBlockQuickReply', () => {
     expect(hit.text).toMatch(/scorta|Concime/i);
   });
 
+  it('meteo non attivo + scorte → multi_block con placeholder meteo', async () => {
+    const ctxNoMeteo = {
+      ...ctxMulti,
+      azienda: {
+        ...ctxMulti.azienda,
+        meteo: { disponibile: false, moduloMeteoAttivo: false },
+      },
+    };
+    const hit = await tryTonyMultiBlockQuickReply({
+      message: "domani trattamento, ho scorte di concime basse e che meteo c'è?",
+      ctx: ctxNoMeteo,
+      meteoFns: {},
+    });
+    expect(hit).not.toBeNull();
+    expect(hit.id).toBe('multi_block');
+    expect(hit.text).toMatch(/modulo meteo|meteo/i);
+    expect(hit.text).toMatch(/scort|Concime/i);
+  });
+
   it('singolo dominio → null', async () => {
     const hit = await tryTonyMultiBlockQuickReply({
       message: 'quanto costa trinciatura?',

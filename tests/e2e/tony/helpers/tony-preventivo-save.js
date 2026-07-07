@@ -3,7 +3,7 @@
  * @module tests/e2e/tony/helpers/tony-preventivo-save
  */
 
-import { tonyGetExecutedCommands, tonyGetLastPerfMetrics, tonyGetLastReplyText, tonySendMessage } from './tony-widget.js';
+import { tonyGetExecutedCommands, tonyGetLastReplyText, tonySendMessage, waitForTonyTurnPerf } from './tony-widget.js';
 import {
   TONY_E2E_PREVENTIVO_NOTE,
   TONY_E2E_PREVENTIVO_SUPERFICIE,
@@ -111,6 +111,12 @@ export async function ensurePreventivoFormComplete(page, ctx) {
     { timeout: 25_000 }
   );
 
+  const tipoAlreadySet = await page.evaluate(() => {
+    const sel = document.getElementById('tipo-lavoro');
+    return !!(sel && String(sel.value || '').trim());
+  });
+
+  if (!tipoAlreadySet) {
   const categoriaSelect = page.locator('#lavoro-categoria-principale');
   const categoriaCount = await categoriaSelect.locator('option').count();
   let tipoSelected = false;
@@ -162,6 +168,7 @@ export async function ensurePreventivoFormComplete(page, ctx) {
 
   if (!tipoSelected) {
     throw new Error('Impossibile selezionare tipo lavoro nel form preventivo');
+  }
   }
 
   await page.locator('#superficie').fill(superficie);
@@ -243,7 +250,7 @@ export async function confirmPreventivoSave(page, expect, opts = {}) {
       .then(() => true)
       .catch(() => false);
 
-    const perf = await tonyGetLastPerfMetrics(page);
+    const perf = await waitForTonyTurnPerf(page, { timeoutMs: 12_000 });
     perfTurns.push(perf);
 
     if (saved) {
@@ -253,7 +260,7 @@ export async function confirmPreventivoSave(page, expect, opts = {}) {
     const low = (await tonyGetLastReplyText(page)).toLowerCase();
     if (/vuoi che salvi|conferm/i.test(low)) {
       await tonySendMessage(page, 'sì');
-      perfTurns.push(await tonyGetLastPerfMetrics(page));
+      perfTurns.push(await waitForTonyTurnPerf(page, { timeoutMs: 12_000 }));
     }
     return { saved: false, lastReply: await tonyGetLastReplyText(page), lastPerf: perfTurns[perfTurns.length - 1] };
   }
