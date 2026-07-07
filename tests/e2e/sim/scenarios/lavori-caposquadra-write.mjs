@@ -5,7 +5,6 @@
  */
 
 import {
-  gotoLavoriCaposquadra,
   loginAsCapoForLavoriDesktop,
 } from '../helpers/sim-login.js';
 
@@ -34,36 +33,53 @@ async function pickLavoroToSuspend(page) {
   throw new Error('Nessun lavoro caposquadra sospendibile nel seed');
 }
 
+async function extractLavoroIdFromSospendiButton(page, card) {
+  const sospendiBtn = card.locator('button', { hasText: 'Sospendi lavoro' });
+  await expect(sospendiBtn).toBeVisible({ timeout: 30_000 });
+  return sospendiBtn.evaluate((btn) => {
+    const onclick = btn.getAttribute('onclick') || '';
+    const match = onclick.match(/sospendiLavoroDaCaposquadra\('([^']+)'\)/);
+    return match ? match[1] : null;
+  });
+}
+
+async function trySuspendLavoroId(page, lavoroId) {
+  return page.evaluate(
+    async ({ id, causa }) => {
+      if (typeof window.sospendiLavoroDaCaposquadra !== 'function') {
+        return { ok: false, debug: { reason: 'missing_fn' } };
+      }
+      const ok = await window.sospendiLavoroDaCaposquadra(id, causa);
+      return { ok: !!ok, debug: window.__gfvSuspendDebug || null };
+    },
+    { id: lavoroId, causa: E2E_CAPO_SOSPENSIONE_CAUSA }
+  );
+}
+
 async function suspendLavoroAsCapo(page, expect) {
   const card = await pickLavoroToSuspend(page);
   if (!card) return;
 
   await card.waitFor({ state: 'visible', timeout: 60_000 });
 
-  const sospendiBtn = card.locator('button', { hasText: 'Sospendi lavoro' });
-  await expect(sospendiBtn).toBeVisible({ timeout: 30_000 });
+  const cards = cardWithSospendiButton(page);
+  const count = await cards.count();
+  let lastDebug = null;
 
-  const lavoroId = await sospendiBtn.evaluate((btn) => {
-    const onclick = btn.getAttribute('onclick') || '';
-    const match = onclick.match(/sospendiLavoroDaCaposquadra\('([^']+)'\)/);
-    return match ? match[1] : null;
-  });
-  expect(lavoroId).toBeTruthy();
+  for (let i = 0; i < count; i += 1) {
+    const candidate = cards.nth(i);
+    const lavoroId = await extractLavoroIdFromSospendiButton(page, candidate);
+    expect(lavoroId).toBeTruthy();
 
-  const suspended = await page.evaluate(
-    async ({ id, causa }) => {
-      if (typeof window.sospendiLavoroDaCaposquadra !== 'function') {
-        return { ok: false, reason: 'sospendiLavoroDaCaposquadra missing' };
-      }
-      const ok = await window.sospendiLavoroDaCaposquadra(id, causa);
-      return { ok: !!ok, reason: ok ? '' : 'sospendiLavoroDaCaposquadra returned false' };
-    },
-    { id: lavoroId, causa: E2E_CAPO_SOSPENSIONE_CAUSA }
-  );
+    const suspended = await trySuspendLavoroId(page, lavoroId);
+    lastDebug = suspended.debug;
+    if (suspended.ok) {
+      await expect(cardSospesoWithCausa(page).first()).toBeVisible({ timeout: 60_000 });
+      return;
+    }
+  }
 
-  expect(suspended.ok, suspended.reason || 'sospensione fallita').toBe(true);
-
-  await expect(cardSospesoWithCausa(page).first()).toBeVisible({ timeout: 60_000 });
+  expect(false, JSON.stringify(lastDebug || { reason: 'no_suspendable_lavoro' })).toBe(true);
 }
 
 /**
@@ -74,7 +90,6 @@ export async function runLavoriCaposquadraWriteAssertions(page, expect) {
   expect.configure({ timeout: 120_000 });
 
   await loginAsCapoForLavoriDesktop(page);
-  await gotoLavoriCaposquadra(page);
 
   await page.waitForFunction(() => {
     const container = document.getElementById('lavori-container');

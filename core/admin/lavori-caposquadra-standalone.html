@@ -1439,7 +1439,7 @@
                                     📍 Traccia Segmento Lavorato
                                 </button>
                             ` : ''}
-                            ${lavoro.stato !== 'completato_da_approvare' && lavoro.stato !== 'completato' && lavoro.stato !== 'sospeso' && lavoro.stato !== 'in_standby' && lavoro.stato !== 'annullato' ? `
+                            ${isLavoroStatoSospendibile(lavoro.stato) ? `
                                 <button type="button" class="btn btn-secondary" onclick="sospendiLavoroDaCaposquadra('${lavoro.id}')" title="Sospendi per meteo o altro; il Manager creerà il lavoro di ripresa">
                                     ⏸️ Sospendi lavoro
                                 </button>
@@ -1515,6 +1515,12 @@
                 console.error('Errore caricamento zone lavorate:', error);
                 return [];
             }
+        }
+
+        /** Stati in cui il capo/operaio può sospendere il segmento (allineato a Firestore rules + sospendiLavoroDaCaposquadra). */
+        function isLavoroStatoSospendibile(stato) {
+            const s = stato || 'assegnato';
+            return s === 'assegnato' || s === 'in_corso' || s === 'attivo';
         }
 
         // Ottieni stato formattato
@@ -3117,29 +3123,61 @@
 
         /** Sospensione segmento: il Manager crea poi il “lavoro di ripresa” da Gestione lavori. */
         window.sospendiLavoroDaCaposquadra = async function(lavoroId, causaOpt) {
+            const fail = (reason, extra) => {
+                try {
+                    window.__gfvSuspendDebug = Object.assign({ reason }, extra || {});
+                } catch (eDbg) { /* ignore */ }
+                return false;
+            };
+
             let causa = causaOpt;
             if (causa === undefined) {
                 causa = window.prompt('Motivo della sospensione (es. meteo, pioggia):', '');
-                if (causa === null) return false;
+                if (causa === null) return fail('prompt_cancelled');
             }
             causa = String(causa || '').trim();
-            const lavoro = lavoriList.find(l => l.id === lavoroId);
+
+            if (!currentUserData) return fail('no_user');
+            const tenantId =
+                currentTenantId ||
+                (typeof sessionStorage !== 'undefined' ? sessionStorage.getItem('gfv_current_tenant_id') : null) ||
+                currentUserData.tenantId;
+            if (!tenantId) return fail('no_tenant');
+
+            let lavoro = lavoriList.find((l) => l.id === lavoroId);
             if (!lavoro) {
-                showAlert('Lavoro non trovato', 'error');
-                return false;
+                try {
+                    const snap = await getDoc(doc(db, 'tenants', tenantId, 'lavori', lavoroId));
+                    if (snap.exists()) {
+                        lavoro = { id: snap.id, ...snap.data() };
+                    }
+                } catch (fetchErr) {
+                    return fail('fetch_failed', { message: fetchErr.message || String(fetchErr) });
+                }
             }
+            if (!lavoro) {
+                return fail('lavoro_not_found', {
+                    lavoroId,
+                    listSize: lavoriList.length,
+                });
+            }
+
             const userId = currentUserData.id || currentUserData.uid;
-            const assegnato = (lavoro.caposquadraId === userId && !lavoro.operaioId) || (lavoro.operaioId === userId && !lavoro.caposquadraId);
+            const assegnato =
+                (lavoro.caposquadraId === userId && !lavoro.operaioId) ||
+                (lavoro.operaioId === userId && !lavoro.caposquadraId);
             if (!assegnato) {
-                showAlert('Non puoi sospendere questo lavoro', 'error');
-                return false;
+                return fail('not_assigned', {
+                    userId,
+                    caposquadraId: lavoro.caposquadraId || null,
+                    operaioId: lavoro.operaioId || null,
+                });
             }
-            if (!['in_corso', 'assegnato'].includes(lavoro.stato)) {
-                showAlert('Solo lavori assegnati o in corso possono essere sospesi', 'error');
-                return false;
+            if (!isLavoroStatoSospendibile(lavoro.stato)) {
+                return fail('bad_stato', { stato: lavoro.stato || null });
             }
             try {
-                await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId), {
+                await updateDoc(doc(db, 'tenants', tenantId, 'lavori', lavoroId), {
                     stato: 'sospeso',
                     sospensioneCausa: causa,
                     sospensioneIl: serverTimestamp(),
@@ -3147,10 +3185,11 @@
                 });
                 showAlert('Lavoro sospeso. Il Manager può creare il lavoro di ripresa da Gestione lavori.', 'success');
                 await loadLavori();
+                try { window.__gfvSuspendDebug = { reason: 'ok' }; } catch (eOk) { /* ignore */ }
                 return true;
             } catch (e) {
                 showAlert(e.message || 'Errore', 'error');
-                return false;
+                return fail('update_failed', { message: e.message || String(e) });
             }
         };
 

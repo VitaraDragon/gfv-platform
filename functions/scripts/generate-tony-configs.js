@@ -147,7 +147,12 @@ async function main() {
     bundles: bundleEntries,
   };
 
+  const bundlesCatalogStripe = Object.fromEntries(
+    BUNDLES.map((bundle) => [bundle.id, { modules: bundle.modules }])
+  );
+
   const targets = [
+    path.join(__dirname, "..", "config", "bundles-catalog.json"),
     path.join(__dirname, "..", "config", "tony-bundles-catalog.json"),
     path.join(__dirname, "..", "..", "core", "config", "tony-bundles-catalog.json"),
     path.join(__dirname, "..", "config", "tony-module-recommendations.json"),
@@ -156,10 +161,12 @@ async function main() {
 
   for (const target of targets) {
     fs.mkdirSync(path.dirname(target), { recursive: true });
-    const payload =
-      target.includes("tony-bundles-catalog")
-        ? bundlesCatalog
-        : RECOMMENDATIONS;
+    let payload = RECOMMENDATIONS;
+    if (target.endsWith("bundles-catalog.json") && !target.includes("tony-")) {
+      payload = bundlesCatalogStripe;
+    } else if (target.includes("tony-bundles-catalog")) {
+      payload = bundlesCatalog;
+    }
     fs.writeFileSync(target, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
   }
 
