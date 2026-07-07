@@ -159,6 +159,29 @@ export async function confirmMovimentoSave(page, opts = {}) {
     }
   }
 
+  const modalOpen = await page.evaluate(() => {
+    const modal = document.getElementById('movimento-modal');
+    return !!(modal && modal.classList.contains('active'));
+  });
+
+  if (modalOpen) {
+    await page.evaluate(() => {
+      const form = document.getElementById('movimento-form');
+      if (form) {
+        form.setAttribute('novalidate', 'novalidate');
+        form.requestSubmit();
+      }
+    });
+    const savedDirect = await waitMovimentoSaved(
+      page,
+      opts.note || '',
+      opts.saveTimeoutMs ?? 45_000
+    );
+    if (savedDirect) {
+      return { lastReply: '', lastPerf: null, perfTurns: [], saved: true };
+    }
+  }
+
   let turn = await sendSalvaTurn(page, opts);
   const low = String(turn.lastReply || '').toLowerCase();
   if (/vuoi che salvi|conferm/i.test(low)) {

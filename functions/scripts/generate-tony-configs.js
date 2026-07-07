@@ -154,10 +154,14 @@ async function main() {
     path.join(__dirname, "..", "..", "core", "config", "tony-module-recommendations.json"),
   ];
 
-  fs.writeFileSync(targets[0], `${JSON.stringify(bundlesCatalog, null, 2)}\n`, "utf8");
-  fs.writeFileSync(targets[1], `${JSON.stringify(bundlesCatalog, null, 2)}\n`, "utf8");
-  fs.writeFileSync(targets[2], `${JSON.stringify(RECOMMENDATIONS, null, 2)}\n`, "utf8");
-  fs.writeFileSync(targets[3], `${JSON.stringify(RECOMMENDATIONS, null, 2)}\n`, "utf8");
+  for (const target of targets) {
+    fs.mkdirSync(path.dirname(target), { recursive: true });
+    const payload =
+      target.includes("tony-bundles-catalog")
+        ? bundlesCatalog
+        : RECOMMENDATIONS;
+    fs.writeFileSync(target, `${JSON.stringify(payload, null, 2)}\n`, "utf8");
+  }
 
   console.log("Generated:");
   targets.forEach((p) => console.log(`  ${p}`));

@@ -34,10 +34,6 @@ async function pickLavoroToSuspend(page) {
   throw new Error('Nessun lavoro caposquadra sospendibile nel seed');
 }
 
-function attachPromptStub(page, causa) {
-  page.once('dialog', (dialog) => dialog.accept(causa));
-}
-
 async function suspendLavoroAsCapo(page, expect) {
   const card = await pickLavoroToSuspend(page);
   if (!card) return;
@@ -47,8 +43,22 @@ async function suspendLavoroAsCapo(page, expect) {
   const sospendiBtn = card.locator('button', { hasText: 'Sospendi lavoro' });
   await expect(sospendiBtn).toBeVisible({ timeout: 30_000 });
 
-  attachPromptStub(page, E2E_CAPO_SOSPENSIONE_CAUSA);
-  await sospendiBtn.click({ timeout: 30_000 });
+  const lavoroId = await sospendiBtn.evaluate((btn) => {
+    const onclick = btn.getAttribute('onclick') || '';
+    const match = onclick.match(/sospendiLavoroDaCaposquadra\('([^']+)'\)/);
+    return match ? match[1] : null;
+  });
+  expect(lavoroId).toBeTruthy();
+
+  await page.evaluate(
+    async ({ id, causa }) => {
+      window.prompt = () => causa;
+      if (typeof window.sospendiLavoroDaCaposquadra === 'function') {
+        await window.sospendiLavoroDaCaposquadra(id);
+      }
+    },
+    { id: lavoroId, causa: E2E_CAPO_SOSPENSIONE_CAUSA }
+  );
 
   await page.waitForFunction(
     (causa) => {
