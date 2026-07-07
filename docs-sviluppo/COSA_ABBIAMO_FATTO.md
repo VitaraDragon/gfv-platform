@@ -12,6 +12,14 @@
 | CI | `simulator-ci.yml` — `GFV_TONY_E2E_ENFORCE_P95: '1'` (prima era `0`) |
 | Verifica locale | **4/4 tier 3** con gate (`T-PERF-003/004/005`, `T-FLOW-014-LIVE`) — ~4,5 min; p50 **1005 ms**, p95 **11093 ms** (preventivo CF); gate p95 **OK** |
 
+## Tony + Simulatore — fix CI post M-T5 (2026-07-07)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| Vitest tier 1 | `tests/tony-freemium-plan-guard.test.js` — mappa `T-DENY-002` in matrix Vitest |
+| T-FLOW-019 | `confirmMovimentoSave` — save locale senza timeout su bolla Tony vuota; retry inject client invece di `tonyRunMultiTurn` |
+| Sim E2E | `lavori-caposquadra-write` — `addInitScript` su `prompt` + attesa toast/card sospensione |
+
 ## Tony + Simulatore — gate p95 Tony E2E live (2026-07-07)
 
 | Elemento | Dettaglio |

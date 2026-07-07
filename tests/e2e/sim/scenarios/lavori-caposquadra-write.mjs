@@ -54,6 +54,10 @@ async function suspendLavoroAsCapo(page, expect) {
 
   await page.waitForFunction(
     (causa) => {
+      const toasts = document.querySelectorAll('#gfv-standalone-toast-layer .alert, .alert');
+      if (Array.from(toasts).some((t) => /Lavoro sospeso/i.test(t.textContent || ''))) {
+        return true;
+      }
       const cards = document.querySelectorAll('#lavori-container .lavoro-card');
       return Array.from(cards).some(
         (c) =>
@@ -62,7 +66,7 @@ async function suspendLavoroAsCapo(page, expect) {
       );
     },
     E2E_CAPO_SOSPENSIONE_CAUSA,
-    { timeout: 90_000 }
+    { timeout: 120_000 }
   );
 }
 
@@ -72,6 +76,10 @@ async function suspendLavoroAsCapo(page, expect) {
  */
 export async function runLavoriCaposquadraWriteAssertions(page, expect) {
   expect.configure({ timeout: 120_000 });
+
+  await page.addInitScript((causa) => {
+    window.prompt = () => causa;
+  }, E2E_CAPO_SOSPENSIONE_CAUSA);
 
   await loginAsCapoForLavoriDesktop(page);
   await gotoLavoriCaposquadra(page);

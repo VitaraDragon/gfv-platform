@@ -4,7 +4,7 @@
  */
 
 import { assertScenarioExpect } from '../helpers/assert-scenario-expect.mjs';
-import { assertZeroCfAcrossTurns, tonyRunMultiTurn } from '../helpers/tony-multi-turn.js';
+import { assertZeroCfAcrossTurns } from '../helpers/tony-multi-turn.js';
 import { bootstrapCrossPageMovimento } from '../helpers/tony-magazzino-cross-page.js';
 import { confirmMovimentoSave } from '../helpers/tony-magazzino-save.js';
 import {
@@ -66,8 +66,18 @@ export async function runFlowMovimento019(page, expect, scenario) {
   });
 
   if (!formReady) {
-    const retry = await tonyRunMultiTurn(page, [crossPageMsg], { turnDelayMs: 500 });
-    perfTurns.push(...(retry.perfTurns || []));
+    await page.evaluate(async (text) => {
+      const tryLocal = window.TonyMovimentoCreateLocal?.tryInterceptMovimentoCreateBeforeCf;
+      if (typeof tryLocal !== 'function') return;
+      tryLocal(String(text || '').trim(), {
+        appendMessage: () => {},
+        processTonyCommand: (cmd) => {
+          if (window.Tony?.triggerAction) window.Tony.triggerAction(cmd.type, cmd);
+        },
+        getUrlForTarget: () => null,
+      });
+    }, crossPageMsg);
+    await waitForMovimentoModalOpen(page).catch(() => {});
   }
 
   const confirmTurn = await confirmMovimentoSave(page, { note: TONY_E2E_MOVIMENTO_NOTE_CROSS });

@@ -78,9 +78,11 @@ const TYPO_VITEST = {
 
 /** Scenario forbidden tier 1 — logica in tests/tony-field-role-guard.test.js */
 const FORBIDDEN_VITEST_FILE = 'tests/tony-field-role-guard.test.js';
+const FORBIDDEN_FREEMIUM_FILE = 'tests/tony-freemium-plan-guard.test.js';
 /** @type {Record<string, string>} */
 const FORBIDDEN_VITEST = {
   'T-DENY-001': FORBIDDEN_VITEST_FILE,
+  'T-DENY-002': FORBIDDEN_FREEMIUM_FILE,
   'T-DENY-004': FORBIDDEN_VITEST_FILE,
 };
 

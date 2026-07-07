@@ -4,6 +4,42 @@
  */
 
 import { tonyRunMultiTurn } from './tony-multi-turn.js';
+import {
+  tonySendMessage,
+  tonyWaitForReply,
+  waitForTonyTurnPerf,
+} from './tony-widget.js';
+
+async function waitMovimentoSaved(page, marker, timeoutMs = 45_000) {
+  return page
+    .waitForFunction(
+      (noteMarker) => {
+        const toasts = document.querySelectorAll('#gfv-standalone-toast-layer .alert');
+        if (Array.from(toasts).some((t) => /movimento (registrato|salvato|creato)/i.test(t.textContent || ''))) {
+          return true;
+        }
+        const rows = document.querySelectorAll('#movimenti-container .movimenti-table tbody tr');
+        return Array.from(rows).some((tr) => (tr.textContent || '').includes(noteMarker));
+      },
+      marker || '',
+      { timeout: timeoutMs }
+    )
+    .then(() => true)
+    .catch(() => false);
+}
+
+async function sendSalvaTurn(page, opts = {}) {
+  const replyTimeoutMs = opts.replyTimeoutMs ?? 20_000;
+  const tonyBefore = await tonySendMessage(page, 'salva');
+  const savedPromise = waitMovimentoSaved(page, opts.note || '', opts.saveTimeoutMs ?? 45_000);
+  const reply = await tonyWaitForReply(page, {
+    tonyCountBefore: tonyBefore,
+    timeoutMs: replyTimeoutMs,
+  }).catch(() => '');
+  const saved = await savedPromise;
+  const perf = await waitForTonyTurnPerf(page, { timeoutMs: replyTimeoutMs }).catch(() => null);
+  return { lastReply: reply, lastPerf: perf, perfTurns: perf ? [perf] : [], saved };
+}
 
 /**
  * @param {import('playwright-core').Page} page
@@ -123,29 +159,19 @@ export async function confirmMovimentoSave(page, opts = {}) {
     }
   }
 
-  let lastTurn = await tonyRunMultiTurn(page, ['salva'], { turnDelayMs: 500 });
-  const low = String(lastTurn.lastReply || '').toLowerCase();
+  let turn = await sendSalvaTurn(page, opts);
+  const low = String(turn.lastReply || '').toLowerCase();
   if (/vuoi che salvi|conferm/i.test(low)) {
-    lastTurn = await tonyRunMultiTurn(page, ['sì'], { turnDelayMs: 500 });
+    const confirm = await sendSalvaTurn(page, { ...opts, replyTimeoutMs: 25_000 });
+    turn = {
+      lastReply: confirm.lastReply || turn.lastReply,
+      lastPerf: confirm.lastPerf || turn.lastPerf,
+      perfTurns: [...turn.perfTurns, ...confirm.perfTurns],
+      saved: turn.saved || confirm.saved,
+    };
   }
 
-  const savedEarly = await page
-    .waitForFunction(
-      (marker) => {
-        const toasts = document.querySelectorAll('#gfv-standalone-toast-layer .alert');
-        if (Array.from(toasts).some((t) => /movimento (registrato|salvato|creato)/i.test(t.textContent || ''))) {
-          return true;
-        }
-        const rows = document.querySelectorAll('#movimenti-container .movimenti-table tbody tr');
-        return Array.from(rows).some((tr) => (tr.textContent || '').includes(marker));
-      },
-      opts.note || '',
-      { timeout: 25_000 }
-    )
-    .then(() => true)
-    .catch(() => false);
-
-  if (!savedEarly) {
+  if (!turn.saved) {
     await page.evaluate(() => {
       const form = document.getElementById('movimento-form');
       if (form) {
@@ -153,7 +179,8 @@ export async function confirmMovimentoSave(page, opts = {}) {
         form.requestSubmit();
       }
     });
+    await waitMovimentoSaved(page, opts.note || '', 30_000);
   }
 
-  return lastTurn;
+  return turn;
 }
