@@ -50,32 +50,20 @@ async function suspendLavoroAsCapo(page, expect) {
   });
   expect(lavoroId).toBeTruthy();
 
-  await page.evaluate(
+  const suspended = await page.evaluate(
     async ({ id, causa }) => {
-      window.prompt = () => causa;
-      if (typeof window.sospendiLavoroDaCaposquadra === 'function') {
-        await window.sospendiLavoroDaCaposquadra(id);
+      if (typeof window.sospendiLavoroDaCaposquadra !== 'function') {
+        return { ok: false, reason: 'sospendiLavoroDaCaposquadra missing' };
       }
+      const ok = await window.sospendiLavoroDaCaposquadra(id, causa);
+      return { ok: !!ok, reason: ok ? '' : 'sospendiLavoroDaCaposquadra returned false' };
     },
     { id: lavoroId, causa: E2E_CAPO_SOSPENSIONE_CAUSA }
   );
 
-  await page.waitForFunction(
-    (causa) => {
-      const toasts = document.querySelectorAll('#gfv-standalone-toast-layer .alert, .alert');
-      if (Array.from(toasts).some((t) => /Lavoro sospeso/i.test(t.textContent || ''))) {
-        return true;
-      }
-      const cards = document.querySelectorAll('#lavori-container .lavoro-card');
-      return Array.from(cards).some(
-        (c) =>
-          /Lavoro sospeso|sospeso/i.test(c.textContent || '') &&
-          (c.textContent || '').includes(causa)
-      );
-    },
-    E2E_CAPO_SOSPENSIONE_CAUSA,
-    { timeout: 120_000 }
-  );
+  expect(suspended.ok, suspended.reason || 'sospensione fallita').toBe(true);
+
+  await expect(cardSospesoWithCausa(page).first()).toBeVisible({ timeout: 60_000 });
 }
 
 /**
@@ -84,10 +72,6 @@ async function suspendLavoroAsCapo(page, expect) {
  */
 export async function runLavoriCaposquadraWriteAssertions(page, expect) {
   expect.configure({ timeout: 120_000 });
-
-  await page.addInitScript((causa) => {
-    window.prompt = () => causa;
-  }, E2E_CAPO_SOSPENSIONE_CAUSA);
 
   await loginAsCapoForLavoriDesktop(page);
   await gotoLavoriCaposquadra(page);

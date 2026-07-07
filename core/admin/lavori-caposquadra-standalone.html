@@ -3116,35 +3116,41 @@
         }
 
         /** Sospensione segmento: il Manager crea poi il “lavoro di ripresa” da Gestione lavori. */
-        window.sospendiLavoroDaCaposquadra = async function(lavoroId) {
-            const causa = window.prompt('Motivo della sospensione (es. meteo, pioggia):', '');
-            if (causa === null) return;
+        window.sospendiLavoroDaCaposquadra = async function(lavoroId, causaOpt) {
+            let causa = causaOpt;
+            if (causa === undefined) {
+                causa = window.prompt('Motivo della sospensione (es. meteo, pioggia):', '');
+                if (causa === null) return false;
+            }
+            causa = String(causa || '').trim();
             const lavoro = lavoriList.find(l => l.id === lavoroId);
             if (!lavoro) {
                 showAlert('Lavoro non trovato', 'error');
-                return;
+                return false;
             }
             const userId = currentUserData.id || currentUserData.uid;
             const assegnato = (lavoro.caposquadraId === userId && !lavoro.operaioId) || (lavoro.operaioId === userId && !lavoro.caposquadraId);
             if (!assegnato) {
                 showAlert('Non puoi sospendere questo lavoro', 'error');
-                return;
+                return false;
             }
             if (!['in_corso', 'assegnato'].includes(lavoro.stato)) {
                 showAlert('Solo lavori assegnati o in corso possono essere sospesi', 'error');
-                return;
+                return false;
             }
             try {
                 await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId), {
                     stato: 'sospeso',
-                    sospensioneCausa: (causa || '').trim(),
+                    sospensioneCausa: causa,
                     sospensioneIl: serverTimestamp(),
                     aggiornatoIl: serverTimestamp()
                 });
                 showAlert('Lavoro sospeso. Il Manager può creare il lavoro di ripresa da Gestione lavori.', 'success');
                 await loadLavori();
+                return true;
             } catch (e) {
                 showAlert(e.message || 'Errore', 'error');
+                return false;
             }
         };
 

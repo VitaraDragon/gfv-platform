@@ -147,6 +147,10 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install functions dependencies
+        run: npm ci
+        working-directory: functions
+
       - name: Generate Tony config JSON
         run: node functions/scripts/generate-tony-configs.js
 
