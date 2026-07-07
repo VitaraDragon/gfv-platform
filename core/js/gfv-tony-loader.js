@@ -9,9 +9,11 @@
         var path = (window.location.pathname || '').replace(/\\/g, '/');
         var isGH = path.indexOf('/gfv-platform/') >= 0;
         if (isGH) return window.location.origin + '/gfv-platform/core';
+        if (path.indexOf('/core/dev/') >= 0) return '../';
         if (path.indexOf('/core/admin/') >= 0) return '../';
         if (path.indexOf('/core/mobile/') >= 0) return '../';
         if (path.indexOf('/modules/') >= 0) return '../../../core/';
+        if (/\/core\/[^/]+\.html$/i.test(path)) return '';
         return '';
     }
 

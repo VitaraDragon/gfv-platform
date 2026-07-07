@@ -6,7 +6,7 @@
 import { assertScenarioExpect } from '../helpers/assert-scenario-expect.mjs';
 import { assertZeroCfAcrossTurns } from '../helpers/tony-multi-turn.js';
 import { bootstrapCrossPageMovimento } from '../helpers/tony-magazzino-cross-page.js';
-import { confirmMovimentoSave } from '../helpers/tony-magazzino-save.js';
+import { confirmMovimentoSave, waitForMovimentoModalOpen } from '../helpers/tony-magazzino-save.js';
 import {
   assertMovimentoEntrataInLista,
   TONY_E2E_MOVIMENTO_NOTE_CROSS,

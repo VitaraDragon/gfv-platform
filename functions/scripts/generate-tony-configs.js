@@ -8,19 +8,7 @@
 
 const fs = require("fs");
 const path = require("path");
-
-const MODULE_MONTHLY_PRICES = {
-  manodopera: 6,
-  parcoMacchine: 3,
-  contoTerzi: 6,
-  vendemmiaMeccanica: 2,
-  vigneto: 3,
-  frutteto: 3,
-  magazzino: 3,
-  tony: 5,
-  report: 5,
-  meteo: 1,
-};
+const { pathToFileURL } = require("url");
 
 const BUNDLE_LABELS = {
   "vigneto-operativo": "Viticoltore Operativo",
@@ -141,18 +129,22 @@ const RECOMMENDATIONS = {
   ],
 };
 
-function main() {
-  const bundlesCatalogPath = path.join(__dirname, "..", "config", "bundles-catalog.json");
-  const bundlesRaw = JSON.parse(fs.readFileSync(bundlesCatalogPath, "utf8"));
+async function main() {
+  const plansPath = path.join(__dirname, "..", "..", "core", "config", "subscription-plans.js");
+  const { BUNDLES, AVAILABLE_MODULES } = await import(pathToFileURL(plansPath).href);
+  const moduleMonthlyPrices = Object.fromEntries(
+    AVAILABLE_MODULES.filter((m) => m.available).map((m) => [m.id, m.price])
+  );
+  const bundleEntries = BUNDLES.map((bundle) => ({
+    id: bundle.id,
+    label: BUNDLE_LABELS[bundle.id] || bundle.name || bundle.id,
+    modules: bundle.modules,
+    monthlyPrice: bundle.price,
+  }));
 
   const bundlesCatalog = {
-    moduleMonthlyPrices: { ...MODULE_MONTHLY_PRICES },
-    bundles: Object.entries(bundlesRaw).map(([id, entry]) => ({
-      id,
-      label: BUNDLE_LABELS[id] || entry.name || id,
-      modules: entry.modules,
-      monthlyPrice: entry.price,
-    })),
+    moduleMonthlyPrices,
+    bundles: bundleEntries,
   };
 
   const targets = [
@@ -171,4 +163,7 @@ function main() {
   targets.forEach((p) => console.log(`  ${p}`));
 }
 
-main();
+main().catch((err) => {
+  console.error(err);
+  process.exit(1);
+});

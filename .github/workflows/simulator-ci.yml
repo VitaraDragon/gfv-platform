@@ -147,6 +147,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Tony config JSON
+        run: node functions/scripts/generate-tony-configs.js
+
       - name: Run Tony Vitest (matrix typo/forbidden + suite)
         run: npm run sim:tony:vitest
 
