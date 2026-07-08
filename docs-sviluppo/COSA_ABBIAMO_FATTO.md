@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-07 — loop automiglioramento Tony E2E M-T5 + Piano Stagione VM chiuso.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-08 — CI Tony E2E push + workflow_dispatch verde (tier 2 + tier 3 live).
+
+## Tony + Simulatore — CI verde push + dispatch (2026-07-08)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| Commit | `354d260` — `stripe-prices.json` in `generate-tony-configs.js`; helper `waitForLavoroCreatedInLista` (T-FLOW-013 post-save); deps Functions prima emulator live |
+| Push CI | [28952080525](https://github.com/VitaraDragon/gfv-platform/actions/runs/28952080525) — sim 71/71, tier 2 **16/16**, tier 3 live **skipped** (solo push) |
+| Dispatch CI | [28953194532](https://github.com/VitaraDragon/gfv-platform/actions/runs/28953194532) — **tutti i job OK**; tier 3 live **4/4**; gate p95 **ENFORCED** |
+| Metriche live CI | p50 **2519 ms**, p95 **10930 ms**, quickReplyHit **100%** — T-PERF-003 **2519 ms** (cold start runner), T-PERF-004 **3079 ms**, T-PERF-005 **1105 ms**, T-FLOW-014-LIVE **10930 ms** — tutti entro budget `latency-budgets.json` |
+| Secret CI | `GEMINI_API_KEY` sincronizzato repo (`scripts/sync-gemini-ci-secret.mjs`, commit `5bc0892`) |
 
 ## Tony + Simulatore — loop automiglioramento sim + app (2026-07-07)
 
