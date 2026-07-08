@@ -109,6 +109,31 @@ async function openNewAttivitaModal(page) {
 }
 
 /**
+ * Attende valore tipo lavoro stabile dopo cascade categoria/sottocategoria (reload async ~100ms).
+ * @param {import('playwright-core').Page} page
+ * @param {string} [expectedValue]
+ */
+async function waitForAttivitaTipoLavoroStable(page, expectedValue = '') {
+  const deadline = Date.now() + 15_000;
+  while (Date.now() < deadline) {
+    const snapshot = await page.evaluate((expected) => {
+      const sel = document.getElementById('attivita-tipo-lavoro-gerarchico');
+      if (!sel || !sel.value) return { ok: false, value: '' };
+      if (expected && sel.value !== expected) return { ok: false, value: sel.value };
+      const valid = Array.from(sel.options).some((o) => o.value === sel.value);
+      return { ok: valid, value: sel.value };
+    }, expectedValue);
+    if (snapshot.ok) {
+      await page.waitForTimeout(350);
+      const again = await page.locator('#attivita-tipo-lavoro-gerarchico').inputValue();
+      if (again && (!expectedValue || again === expectedValue)) return again;
+    }
+    await page.waitForTimeout(150);
+  }
+  throw new Error('Tipo lavoro attività non stabilizzato dopo cascade Concimazione');
+}
+
+/**
  * Seleziona categoria Concimazione + primo tipo lavoro disponibile.
  * @param {import('playwright-core').Page} page
  */
@@ -120,6 +145,7 @@ async function pickConcimazioneTipoLavoro(page) {
   }
   const catValue = (await concCategoria.first().getAttribute('value')) || '';
   await categoriaSelect.selectOption(catValue);
+  await page.waitForTimeout(250);
 
   const subGroup = page.locator('#attivita-sottocategoria-group');
   if (await subGroup.isVisible()) {
@@ -134,6 +160,7 @@ async function pickConcimazioneTipoLavoro(page) {
     } else {
       await subSelect.selectOption({ index: 1 });
     }
+    await page.waitForTimeout(450);
   }
 
   await page.waitForFunction(() => {
@@ -146,13 +173,21 @@ async function pickConcimazioneTipoLavoro(page) {
   const tipoValue = await tipoSelect.locator('option[value]:not([value=""])').first().getAttribute('value');
   if (!tipoValue) throw new Error('Nessun tipo lavoro sotto categoria Concimazione');
   await tipoSelect.selectOption(tipoValue);
-  await page.waitForFunction(
-    (expected) => document.getElementById('attivita-tipo-lavoro-gerarchico')?.value === expected,
-    tipoValue,
-    { timeout: 10_000 }
-  );
+  await waitForAttivitaTipoLavoroStable(page, tipoValue);
 
   return ((await tipoSelect.locator('option:checked').textContent()) || 'Concimazione').trim();
+}
+
+/**
+ * @param {import('playwright-core').Page} page
+ */
+async function ensureConcimazioneTipoBeforeSubmit(page) {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const current = await page.locator('#attivita-tipo-lavoro-gerarchico').inputValue();
+    if (current) return current;
+    await pickConcimazioneTipoLavoro(page);
+  }
+  throw new Error('Impossibile impostare tipo lavoro Concimazione prima del salvataggio attività');
 }
 
 /**
@@ -205,13 +240,6 @@ async function ensureConcimazioneAttivitaStub(page) {
   await page.locator('#attivita-pause').fill('0');
   await page.locator('#attivita-note').fill(E2E_CONCIMAZIONE_DIARIO_NOTE);
 
-  await pickConcimazioneTipoLavoro(page);
-
-  await page.waitForFunction(() => {
-    const tipo = document.getElementById('attivita-tipo-lavoro-gerarchico');
-    return tipo && tipo.value !== '';
-  }, { timeout: 10_000 });
-
   const colturaSelect = page.locator('#attivita-coltura-gerarchica');
   if (!(await colturaSelect.inputValue())) {
     const colCount = await colturaSelect.locator('option[value]:not([value=""])').count();
@@ -219,6 +247,9 @@ async function ensureConcimazioneAttivitaStub(page) {
       await colturaSelect.selectOption({ index: 1 });
     }
   }
+
+  await pickConcimazioneTipoLavoro(page);
+  await ensureConcimazioneTipoBeforeSubmit(page);
 
   await page.evaluate(() => {
     const form = document.getElementById('attivita-form');
