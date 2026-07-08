@@ -217,6 +217,12 @@ jobs:
       - name: Install Playwright Chromium
         run: npm run sim:e2e:install
 
+      - name: Install functions dependencies
+        run: npm ci --prefix functions
+
+      - name: Generate Tony config JSON
+        run: node functions/scripts/generate-tony-configs.js
+
       - name: Restore p95 gate history
         uses: actions/cache@v4
         with:

@@ -19,6 +19,27 @@ if (!process.env.GEMINI_API_KEY) {
   process.exit(0);
 }
 
+/** Functions emulator carica index.js all'avvio — deps e config Tony prima di emulators:exec. */
+function prepareFunctionsForEmulator() {
+  const npmCi = spawnSync('npm', ['ci', '--prefix', 'functions'], {
+    stdio: 'inherit',
+    cwd: root,
+    shell: process.platform === 'win32',
+  });
+  if (npmCi.status !== 0) {
+    process.exit(typeof npmCi.status === 'number' ? npmCi.status : 1);
+  }
+  const genCfg = spawnSync(process.execPath, ['functions/scripts/generate-tony-configs.js'], {
+    stdio: 'inherit',
+    cwd: root,
+  });
+  if (genCfg.status !== 0) {
+    process.exit(typeof genCfg.status === 'number' ? genCfg.status : 1);
+  }
+}
+
+prepareFunctionsForEmulator();
+
 const result = spawnSync(
   process.execPath,
   [firebaseBin, 'emulators:exec', '--only', 'auth,firestore,functions', inner],
