@@ -58,7 +58,7 @@ export async function runPopulateAssets() {
   const profile = getSimProfile();
   const template = profile?.template;
   const q = template?.quantities || {};
-  const seed = Date.now();
+  const seed = profile?.seed ?? Date.now();
   const db = getEmulatorDb();
 
   const categorieMap = await seedCategorieAttrezzi(db, tenantId, userId);

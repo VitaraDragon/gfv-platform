@@ -78,12 +78,18 @@ export function generaPersonaCampo(ruolo, index, seed, slug) {
 export function generaTerreni(count, seed = 0, options = {}) {
   const podere = options.podereNome || 'Podere principale';
   const morfologie = ['collina', 'pianura', 'collina', 'montagna'];
+  /** Coppia con query ambigua stabile ("le" → entrambi) per Tony E2E 3b-C13. */
+  const AMBIG_PAIR = ['Le Coste', 'Ronco del Sole'];
   return Array.from({ length: count }, (_, i) => {
     const lat = 45.4 + i * 0.01;
     const lng = 11.8 + i * 0.01;
     const delta = 0.0015;
+    let nome = pick(TERRENI, seed + i);
+    if (count >= 2 && i < AMBIG_PAIR.length) {
+      nome = AMBIG_PAIR[i];
+    }
     return {
-      nome: pick(TERRENI, seed + i),
+      nome,
       superficie: 1.5 + (i % 4) * 0.8,
       coltura: 'Vite da Vino',
       podere,
