@@ -40,6 +40,70 @@ function lavoriRowsWithMarker(page, marker) {
 }
 
 /**
+ * Attende toast o riga lista dopo creazione lavoro (con refresh filtri/reload).
+ * @param {import('playwright-core').Page} page
+ * @param {string} marker
+ * @param {{ timeoutMs?: number }} [opts]
+ */
+export async function waitForLavoroCreatedInLista(page, marker, { timeoutMs = 90_000 } = {}) {
+  const deadline = Date.now() + timeoutMs;
+  let reloaded = false;
+
+  while (Date.now() < deadline) {
+    const state = await page.evaluate((m) => {
+      const toasts = document.querySelectorAll('#gfv-standalone-toast-layer .alert');
+      if (Array.from(toasts).some((t) => /Lavoro creato con successo/i.test(t.textContent || ''))) {
+        return { ok: true, reason: 'toast' };
+      }
+      const container = document.getElementById('lavori-container');
+      if (container && /Caricamento/i.test(container.textContent || '')) {
+        return { ok: false, reason: 'loading' };
+      }
+      const rows = container ? container.querySelectorAll('.lavori-table tbody tr') : [];
+      if (Array.from(rows).some((tr) => (tr.textContent || '').includes(m))) {
+        return { ok: true, reason: 'row' };
+      }
+      const modal = document.getElementById('lavoro-modal');
+      const modalOpen = modal && modal.classList.contains('active');
+      const nome = document.getElementById('lavoro-nome')?.value || '';
+      return { ok: false, reason: modalOpen ? 'modal-open' : 'no-row', nome };
+    }, marker);
+
+    if (state.ok) return;
+
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+
+    if (!reloaded && remaining < 45_000) {
+      reloaded = true;
+      await page.evaluate(() => {
+        if (typeof applyFilters === 'function') applyFilters();
+      });
+      await page.waitForTimeout(800);
+      continue;
+    }
+
+    await page.waitForTimeout(500);
+  }
+
+  const diag = await page.evaluate((m) => {
+    const modal = document.getElementById('lavoro-modal');
+    return {
+      url: window.location.pathname,
+      modalOpen: !!(modal && modal.classList.contains('active')),
+      nome: document.getElementById('lavoro-nome')?.value || '',
+      terreno: document.getElementById('lavoro-terreno')?.value || '',
+      tipo: document.getElementById('lavoro-tipo-lavoro')?.value || '',
+      rowCount: document.querySelectorAll('#lavori-container .lavori-table tbody tr').length,
+      toast: (document.getElementById('gfv-standalone-toast-layer')?.textContent || '').slice(0, 200),
+      marker: m,
+    };
+  }, marker);
+
+  throw new Error(`post-save record: lavoro non in lista (${JSON.stringify(diag)})`);
+}
+
+/**
  * @param {import('playwright-core').Page} page
  * @param {string} marker
  */

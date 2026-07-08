@@ -131,7 +131,7 @@ const RECOMMENDATIONS = {
 
 async function main() {
   const plansPath = path.join(__dirname, "..", "..", "core", "config", "subscription-plans.js");
-  const { BUNDLES, AVAILABLE_MODULES } = await import(pathToFileURL(plansPath).href);
+  const { BUNDLES, AVAILABLE_MODULES, STRIPE_PRICE_IDS } = await import(pathToFileURL(plansPath).href);
   const moduleMonthlyPrices = Object.fromEntries(
     AVAILABLE_MODULES.filter((m) => m.available).map((m) => [m.id, m.price])
   );
@@ -153,6 +153,7 @@ async function main() {
 
   const targets = [
     path.join(__dirname, "..", "config", "bundles-catalog.json"),
+    path.join(__dirname, "..", "config", "stripe-prices.json"),
     path.join(__dirname, "..", "config", "tony-bundles-catalog.json"),
     path.join(__dirname, "..", "..", "core", "config", "tony-bundles-catalog.json"),
     path.join(__dirname, "..", "config", "tony-module-recommendations.json"),
@@ -164,6 +165,8 @@ async function main() {
     let payload = RECOMMENDATIONS;
     if (target.endsWith("bundles-catalog.json") && !target.includes("tony-")) {
       payload = bundlesCatalogStripe;
+    } else if (target.endsWith("stripe-prices.json")) {
+      payload = STRIPE_PRICE_IDS;
     } else if (target.includes("tony-bundles-catalog")) {
       payload = bundlesCatalog;
     }

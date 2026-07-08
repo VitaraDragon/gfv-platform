@@ -12,6 +12,7 @@ import {
   assertLavoroInLista,
   TONY_E2E_LAVORO_NOME,
   TONY_E2E_LAVORO_NOTE,
+  waitForLavoroCreatedInLista,
 } from '../helpers/tony-post-save.js';
 import {
   bootstrapTonyWidgetOnStandalonePage,
@@ -88,21 +89,9 @@ export async function runFlowLavoro013(page, expect, scenario) {
   });
 
   try {
-    await page.waitForFunction(
-      (marker) => {
-        const toasts = document.querySelectorAll('#gfv-standalone-toast-layer .alert');
-        if (Array.from(toasts).some((t) => /Lavoro creato con successo/i.test(t.textContent || ''))) {
-          return true;
-        }
-        return Array.from(document.querySelectorAll('#lavori-container .lavori-table tbody tr')).some(
-          (tr) => (tr.textContent || '').includes(marker)
-        );
-      },
-      TONY_E2E_LAVORO_NOME,
-      { timeout: 90_000 }
-    );
+    await waitForLavoroCreatedInLista(page, TONY_E2E_LAVORO_NOME, { timeoutMs: 90_000 });
   } catch (err) {
-    throw new Error(`post-save record: ${err.message}`);
+    throw new Error(String(err.message || err));
   }
 
   const expectAfterSave = { ...(scenario.expect || {}) };
