@@ -56,7 +56,7 @@ export async function runFlowLavoro013(page, expect, scenario) {
   const perfTurns = [];
 
   try {
-    await bootstrapCrossPageLavoro(page, crossPageMsg);
+    await bootstrapCrossPageLavoro(page, crossPageMsg, { terrenoAmbig: ctx.terrenoAmbig });
   } catch (err) {
     throw new Error(`cross-page bootstrap: ${err.message}`);
   }
