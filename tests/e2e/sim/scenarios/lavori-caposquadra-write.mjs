@@ -35,7 +35,7 @@ async function pickLavoroToSuspend(page) {
 
 async function extractLavoroIdFromSospendiButton(page, card) {
   const sospendiBtn = card.locator('button', { hasText: 'Sospendi lavoro' });
-  await expect(sospendiBtn).toBeVisible({ timeout: 30_000 });
+  await sospendiBtn.waitFor({ state: 'visible', timeout: 30_000 });
   return sospendiBtn.evaluate((btn) => {
     const onclick = btn.getAttribute('onclick') || '';
     const match = onclick.match(/sospendiLavoroDaCaposquadra\('([^']+)'\)/);
