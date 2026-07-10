@@ -1,16 +1,32 @@
 # Documenti di sviluppo
 
-Questa cartella contiene tutti i documenti creati durante lo sviluppo del progetto GFV Platform: analisi, piani, riepiloghi lavori, verifiche, checklist e specifiche.
+Questa cartella contiene la documentazione tecnica del progetto GFV Platform (analisi, piani, guide sviluppo, Tony, deploy).
 
-**Non fanno parte della documentazione utente** (che si trova in `documentazione-utente/`), ma servono come riferimento per chi lavora sul codice.
+**Documentazione utente:** `documentazione-utente/` e `core/GUIDA/`.
 
-## Tipi di documenti
+## Inizia qui
 
-- **ANALISI_*** – Analisi tecniche, costi, confronti
-- **PLAN_*** / **PIANO_*** – Piani e specifiche di moduli/funzionalità
-- **RIEPILOGO_*** – Riepiloghi delle sessioni di lavoro
-- **VERIFICA_*** / **TEST_*** – Verifiche e report di test
-- **GUIDA_*** – Guide per sviluppatori (Firebase, refactoring, ecc.)
-- **REFACTORING_*** – Stato e progressi dei refactoring
+1. **[LEGGIMI_PRIMA.md](LEGGIMI_PRIMA.md)** — quick start
+2. **[INDICE_DOCUMENTAZIONE.md](INDICE_DOCUMENTAZIONE.md)** — mappa completa
+3. **[STATO_PROGETTO_COMPLETO.md](STATO_PROGETTO_COMPLETO.md)** — stato attuale
+4. **[DOBBIAMO_ANCORA_FARE.md](DOBBIAMO_ANCORA_FARE.md)** — backlog
 
-Il README principale del progetto è nella [root del repository](../README.md).
+## Organizzazione (2026-07-10)
+
+| Cartella | Quando usarla |
+|----------|----------------|
+| **[obsoleto/](obsoleto/README.md)** | Storico, superseded, idee abbandonate |
+| **[in-sviluppo/](in-sviluppo/README.md)** | Funzionalità parzialmente implementate |
+| **[da-fare/](da-fare/README.md)** | Piani validi non ancora nel codice |
+| **Root + `tony/` + `GUIDA/`** | Documentazione **canonica** allineata al codice attuale |
+
+## Tipi di file in root
+
+- **PLAN_*** / **PIANO_*** — moduli implementati (riferimento architetturale)
+- **GUIDA_*** — guide operative (Firebase, PWA, test, Tony)
+- **CHECKLIST_*** — checklist deploy e test
+- **ANALISI_*** / **STRATEGIA_*** — analisi ancora valide (es. marketing, costi Firebase)
+
+Log di sessione e refactoring completati sono in **`obsoleto/`**.
+
+Il README principale del repository è nella [root](../README.md).

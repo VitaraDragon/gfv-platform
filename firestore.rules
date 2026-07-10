@@ -335,7 +335,7 @@ service cloud.firestore {
         (isCaposquadra(tenantId) && 
          // Verifica che il lavoro sia assegnato a questo caposquadra (lavoro di squadra, non autonomo)
          resource.data.caposquadraId == request.auth.uid &&
-         resource.data.operaioId == null &&
+         (!('operaioId' in resource.data) || resource.data.operaioId == null) &&
          // Permetti aggiornamento solo di questi campi specifici
          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
            'superficieTotaleLavorata',
@@ -364,7 +364,7 @@ service cloud.firestore {
         (hasRole('operaio', tenantId) &&
          // Verifica che il lavoro sia autonomo assegnato a questo operaio
          resource.data.operaioId == request.auth.uid &&
-         resource.data.caposquadraId == null &&
+         (!('caposquadraId' in resource.data) || resource.data.caposquadraId == null) &&
          // Permetti aggiornamento solo di questi campi specifici
          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
            'stato',

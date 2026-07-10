@@ -3,6 +3,8 @@
  * @module tests/e2e/sim/helpers/sim-login
  */
 
+import { simE2eTimeout } from './sim-e2e-timeouts.mjs';
+
 export const SIM_DEV_PATH = '/core/dev/simulator-dev-standalone.html?emulator=1';
 export const SCADENZE_LIST_PATH =
   '/modules/macchine/views/scadenze-list-standalone.html?emulator=1';
@@ -180,8 +182,8 @@ export async function pickManifestEntry(page, options = {}) {
 
 /** Attende caricamento tabella scadenze parco macchine (Firestore + render). */
 export async function waitForScadenzeListLoaded(page) {
-  await page.waitForURL(/scadenze-list-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Scadenze' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/scadenze-list-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Scadenze' }).waitFor({ timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(() => {
     const container = document.getElementById('table-container');
@@ -190,9 +192,9 @@ export async function waitForScadenzeListLoaded(page) {
     if (container.querySelector('.scadenze-table tbody tr')) return true;
     const empty = container.querySelector('.empty-state');
     return empty && !/Caricamento/i.test(empty.textContent || '');
-  }, { timeout: 60_000 });
+  }, { timeout: simE2eTimeout(60_000) });
 
-  await page.locator('.scadenze-table .status-dot').first().waitFor({ timeout: 60_000 });
+  await page.locator('.scadenze-table .status-dot').first().waitFor({ timeout: simE2eTimeout(60_000) });
 }
 
 /** Naviga alla lista scadenze parco (sessione emulator da login dev). */
@@ -203,17 +205,17 @@ export async function gotoScadenzeList(page) {
 
 /** Attende caricamento lista terreni (Firestore + render tabella). */
 export async function waitForTerreniListLoaded(page) {
-  await page.waitForURL(/terreni-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Terreni' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/terreni-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Terreni' }).waitFor({ timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(() => {
     const container = document.getElementById('terreni-container');
     if (!container) return false;
     if (/Caricamento terreni/i.test(container.textContent || '')) return false;
     return container.querySelectorAll('.terreno-row').length >= 4;
-  }, { timeout: 60_000 });
+  }, { timeout: simE2eTimeout(60_000) });
 
-  await page.locator('#terreni-container .alert-dot').first().waitFor({ timeout: 60_000 });
+  await page.locator('#terreni-container .alert-dot').first().waitFor({ timeout: simE2eTimeout(60_000) });
 }
 
 /** Naviga alla lista terreni (sessione emulator da login dev). */
@@ -224,17 +226,17 @@ export async function gotoTerreniList(page) {
 
 /** Attende caricamento diario attività (Firestore + render tabella). */
 export async function waitForAttivitaListLoaded(page) {
-  await page.waitForURL(/attivita-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Diario Attività' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/attivita-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Diario Attività' }).waitFor({ timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(() => {
     const container = document.getElementById('attivita-container');
     if (!container || container.style.display === 'none') return false;
     if (/Caricamento attività/i.test(container.textContent || '')) return false;
     return container.querySelectorAll('.attivita-row').length >= 15;
-  }, { timeout: 60_000 });
+  }, { timeout: simE2eTimeout(60_000) });
 
-  await page.locator('#attivita-container .attivita-row').first().waitFor({ timeout: 60_000 });
+  await page.locator('#attivita-container .attivita-row').first().waitFor({ timeout: simE2eTimeout(60_000) });
 }
 
 /** Naviga al diario attività (sessione emulator da login dev). */
@@ -245,8 +247,8 @@ export async function gotoAttivitaList(page) {
 
 /** Attende caricamento lista movimenti magazzino (Firestore + render tabella). */
 export async function waitForMovimentiListLoaded(page) {
-  await page.waitForURL(/movimenti-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Movimenti Magazzino' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/movimenti-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Movimenti Magazzino' }).waitFor({ timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(() => {
     const container = document.getElementById('movimenti-container');
@@ -254,10 +256,10 @@ export async function waitForMovimentiListLoaded(page) {
     if (container.querySelector('.loading')) return false;
     if (/Caricamento movimenti/i.test(container.textContent || '')) return false;
     return container.querySelectorAll('.movimenti-table tbody tr').length >= 10;
-  }, { timeout: 60_000 });
+  }, { timeout: simE2eTimeout(60_000) });
 
   await page.locator('#movimenti-container .movimenti-table tbody tr').first().waitFor({
-    timeout: 60_000,
+    timeout: simE2eTimeout(60_000),
   });
 }
 
@@ -268,7 +270,7 @@ export async function gotoMovimentiList(page) {
 }
 
 async function waitForVignetoTableLoaded(page, { h1Text, minRows, tbodySelector }) {
-  await page.locator('h1').filter({ hasText: h1Text }).waitFor({ timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: h1Text }).waitFor({ timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(
     ({ min, tbodySel }) => {
@@ -281,15 +283,15 @@ async function waitForVignetoTableLoaded(page, { h1Text, minRows, tbodySelector 
       return document.querySelectorAll(tbodySel).length >= min;
     },
     { min: minRows, tbodySel: tbodySelector },
-    { timeout: 60_000 }
+    { timeout: simE2eTimeout(60_000) }
   );
 
-  await page.locator(tbodySelector).first().waitFor({ timeout: 60_000 });
+  await page.locator(tbodySelector).first().waitFor({ timeout: simE2eTimeout(60_000) });
 }
 
 /** Attende caricamento lista potature vigneto. */
 export async function waitForPotaturaListLoaded(page) {
-  await page.waitForURL(/potatura-standalone\.html/, { timeout: 60_000 });
+  await page.waitForURL(/potatura-standalone\.html/, { timeout: simE2eTimeout(60_000) });
   await waitForVignetoTableLoaded(page, {
     h1Text: 'Potatura Vigneto',
     minRows: 3,
@@ -304,7 +306,7 @@ export async function gotoPotaturaList(page) {
 
 /** Attende caricamento lista trattamenti fitosanitari vigneto. */
 export async function waitForTrattamentiListLoaded(page) {
-  await page.waitForURL(/trattamenti-standalone\.html/, { timeout: 60_000 });
+  await page.waitForURL(/trattamenti-standalone\.html/, { timeout: simE2eTimeout(60_000) });
   await waitForVignetoTableLoaded(page, {
     h1Text: 'Trattamenti Vigneto',
     minRows: 6,
@@ -319,7 +321,7 @@ export async function gotoTrattamentiList(page) {
 
 /** Attende caricamento lista concimazioni vigneto. */
 export async function waitForConcimazioniListLoaded(page) {
-  await page.waitForURL(/concimazioni-standalone\.html/, { timeout: 60_000 });
+  await page.waitForURL(/concimazioni-standalone\.html/, { timeout: simE2eTimeout(60_000) });
   await waitForVignetoTableLoaded(page, {
     h1Text: 'Concimazioni Vigneto',
     minRows: 3,
@@ -334,8 +336,8 @@ export async function gotoConcimazioniList(page) {
 
 /** Attende caricamento lista clienti conto terzi. */
 export async function waitForClientiListLoaded(page) {
-  await page.waitForURL(/clienti-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Anagrafica Clienti' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/clienti-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Anagrafica Clienti' }).waitFor({ timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(() => {
     const container = document.getElementById('clienti-container');
@@ -343,10 +345,10 @@ export async function waitForClientiListLoaded(page) {
     if (container.querySelector('.loading')) return false;
     if (/Caricamento clienti/i.test(container.textContent || '')) return false;
     return container.querySelectorAll('.clienti-table tbody tr').length >= 3;
-  }, { timeout: 60_000 });
+  }, { timeout: simE2eTimeout(60_000) });
 
   await page.locator('#clienti-container .clienti-table tbody tr').first().waitFor({
-    timeout: 60_000,
+    timeout: simE2eTimeout(60_000),
   });
 }
 
@@ -357,8 +359,8 @@ export async function gotoClientiList(page) {
 
 /** Attende caricamento lista tariffe conto terzi. */
 export async function waitForTariffeListLoaded(page) {
-  await page.waitForURL(/tariffe-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Gestione Tariffe' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/tariffe-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Gestione Tariffe' }).waitFor({ timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(() => {
     const container = document.getElementById('tariffe-container');
@@ -366,10 +368,10 @@ export async function waitForTariffeListLoaded(page) {
     if (container.querySelector('.loading')) return false;
     if (/Caricamento tariffe/i.test(container.textContent || '')) return false;
     return container.querySelectorAll('.tariffe-table tbody tr').length >= 8;
-  }, { timeout: 60_000 });
+  }, { timeout: simE2eTimeout(60_000) });
 
   await page.locator('#tariffe-container .tariffe-table tbody tr').first().waitFor({
-    timeout: 60_000,
+    timeout: simE2eTimeout(60_000),
   });
 }
 
@@ -380,8 +382,8 @@ export async function gotoTariffeList(page) {
 
 /** Attende caricamento lista preventivi conto terzi. */
 export async function waitForPreventiviListLoaded(page) {
-  await page.waitForURL(/preventivi-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Preventivi' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/preventivi-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Preventivi' }).waitFor({ timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(() => {
     const container = document.getElementById('preventivi-container');
@@ -389,10 +391,10 @@ export async function waitForPreventiviListLoaded(page) {
     if (container.querySelector('.loading')) return false;
     if (/Caricamento preventivi/i.test(container.textContent || '')) return false;
     return container.querySelectorAll('.preventivi-table tbody tr').length >= 5;
-  }, { timeout: 60_000 });
+  }, { timeout: simE2eTimeout(60_000) });
 
   await page.locator('#preventivi-container .preventivi-table tbody tr').first().waitFor({
-    timeout: 60_000,
+    timeout: simE2eTimeout(60_000),
   });
 }
 
@@ -403,28 +405,28 @@ export async function gotoPreventiviList(page) {
 
 /** Attende caricamento terreni clienti dopo selezione cliente nel filtro. */
 export async function waitForTerreniClientiLoaded(page, { minCards = 1 } = {}) {
-  await page.waitForURL(/terreni-clienti-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Terreni Clienti' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/terreni-clienti-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Terreni Clienti' }).waitFor({ timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(
     (min) => document.querySelectorAll('#terreni-container .terreno-card').length >= min,
     minCards,
-    { timeout: 60_000 }
+    { timeout: simE2eTimeout(60_000) }
   );
 
-  await page.locator('#terreni-container .terreno-card').first().waitFor({ timeout: 60_000 });
+  await page.locator('#terreni-container .terreno-card').first().waitFor({ timeout: simE2eTimeout(60_000) });
 }
 
 /** Naviga a terreni clienti e seleziona il primo cliente nel filtro. */
 export async function gotoTerreniClientiList(page) {
   await page.goto(TERRENI_CLIENTI_PATH);
-  await page.waitForURL(/terreni-clienti-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Terreni Clienti' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/terreni-clienti-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Terreni Clienti' }).waitFor({ timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(() => {
     const select = document.getElementById('filter-cliente');
     return select && select.options.length > 1;
-  }, { timeout: 60_000 });
+  }, { timeout: simE2eTimeout(60_000) });
 
   const select = page.locator('#filter-cliente');
   const firstClienteValue = await select.locator('option').nth(1).getAttribute('value');
@@ -434,21 +436,21 @@ export async function gotoTerreniClientiList(page) {
 
 /** Attende che i widget scadenze dashboard abbiano finito il caricamento Firestore. */
 export async function waitForDashboardDeadlinesLoaded(page) {
-  await page.locator('.dashboard-deadlines-row').waitFor({ state: 'visible', timeout: 60_000 });
-  await page.getByRole('heading', { name: /Scadenze amministrazione/i }).waitFor({ timeout: 60_000 });
-  await page.getByRole('heading', { name: /In arrivo/i }).waitFor({ timeout: 60_000 });
+  await page.locator('.dashboard-deadlines-row').waitFor({ state: 'visible', timeout: simE2eTimeout(60_000) });
+  await page.getByRole('heading', { name: /Scadenze amministrazione/i }).waitFor({ timeout: simE2eTimeout(60_000) });
+  await page.getByRole('heading', { name: /In arrivo/i }).waitFor({ timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(() => {
     const empty = document.getElementById('scadenze-amministrazione-empty');
     if (empty && !empty.hidden && /Caricamento/i.test(empty.textContent || '')) return false;
     return document.querySelectorAll('#scadenze-amministrazione-list .dashboard-deadline-row').length > 0;
-  }, { timeout: 60_000 });
+  }, { timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(() => {
     const empty = document.getElementById('in-arrivo-empty');
     if (empty && !empty.hidden && /Caricamento/i.test(empty.textContent || '')) return false;
     return document.querySelectorAll('#in-arrivo-list .dashboard-deadline-row').length > 0;
-  }, { timeout: 60_000 });
+  }, { timeout: simE2eTimeout(60_000) });
 }
 
 /**
@@ -472,8 +474,8 @@ export async function loginAsManagerFromDevPage(page, options = {}) {
   const cardLocator = page.locator('.card');
 
   await Promise.race([
-    cardLocator.first().waitFor({ state: 'visible', timeout: 45_000 }),
-    emptyMsg.waitFor({ state: 'visible', timeout: 45_000 }),
+    cardLocator.first().waitFor({ state: 'visible', timeout: simE2eTimeout(45_000) }),
+    emptyMsg.waitFor({ state: 'visible', timeout: simE2eTimeout(45_000) }),
   ]);
 
   if (await emptyMsg.isVisible()) {
@@ -487,7 +489,7 @@ export async function loginAsManagerFromDevPage(page, options = {}) {
   }
 
   await card.getByRole('button', { name: 'Entra come manager' }).click();
-  await page.waitForURL(/dashboard-standalone\.html/, { timeout: 60_000 });
+  await page.waitForURL(/dashboard-standalone\.html/, { timeout: simE2eTimeout(60_000) });
   await waitForDashboardDeadlinesLoaded(page);
 }
 
@@ -510,8 +512,8 @@ export async function loginAsManagerManodopera(page, options = {}) {
 }
 
 async function waitForMezziTableLoaded(page, { urlPattern, h1Fragment, minRows }) {
-  await page.waitForURL(urlPattern, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: h1Fragment }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(urlPattern, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: h1Fragment }).waitFor({ timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(
     (min) => {
@@ -522,11 +524,11 @@ async function waitForMezziTableLoaded(page, { urlPattern, h1Fragment, minRows }
       return container.querySelectorAll('.mezzi-table tbody tr').length >= min;
     },
     minRows,
-    { timeout: 60_000 }
+    { timeout: simE2eTimeout(60_000) }
   );
 
   await page.locator('#table-container .mezzi-table tbody tr').first().waitFor({
-    timeout: 60_000,
+    timeout: simE2eTimeout(60_000),
   });
 }
 
@@ -570,8 +572,8 @@ export async function gotoFlottaList(page) {
 }
 
 export async function waitForProdottiListLoaded(page) {
-  await page.waitForURL(/prodotti-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Anagrafica Prodotti' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/prodotti-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Anagrafica Prodotti' }).waitFor({ timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(() => {
     const container = document.getElementById('prodotti-container');
@@ -579,10 +581,10 @@ export async function waitForProdottiListLoaded(page) {
     if (container.querySelector('.loading')) return false;
     if (/Caricamento prodotti/i.test(container.textContent || '')) return false;
     return container.querySelectorAll('.prodotti-table tbody tr').length >= 5;
-  }, { timeout: 60_000 });
+  }, { timeout: simE2eTimeout(60_000) });
 
   await page.locator('#prodotti-container .prodotti-table tbody tr').first().waitFor({
-    timeout: 60_000,
+    timeout: simE2eTimeout(60_000),
   });
 }
 
@@ -592,8 +594,8 @@ export async function gotoProdottiList(page) {
 }
 
 export async function waitForVignetiListLoaded(page, { minRows = 4 } = {}) {
-  await page.waitForURL(/vigneti-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Anagrafica Vigneti' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/vigneti-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Anagrafica Vigneti' }).waitFor({ timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(
     (min) => {
@@ -606,10 +608,10 @@ export async function waitForVignetiListLoaded(page, { minRows = 4 } = {}) {
       return document.querySelectorAll('#vigneti-tbody tr').length >= min;
     },
     minRows,
-    { timeout: 60_000 }
+    { timeout: simE2eTimeout(60_000) }
   );
 
-  await page.locator('#vigneti-tbody tr').first().waitFor({ timeout: 60_000 });
+  await page.locator('#vigneti-tbody tr').first().waitFor({ timeout: simE2eTimeout(60_000) });
 }
 
 export async function gotoVignetiList(page, options = {}) {
@@ -618,8 +620,8 @@ export async function gotoVignetiList(page, options = {}) {
 }
 
 export async function waitForGestioneLavoriLoaded(page) {
-  await page.waitForURL(/gestione-lavori-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Gestione Lavori' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/gestione-lavori-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Gestione Lavori' }).waitFor({ timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(() => {
     const container = document.getElementById('lavori-container');
@@ -630,7 +632,7 @@ export async function waitForGestioneLavoriLoaded(page) {
   }, { timeout: 90_000 });
 
   await page.locator('#lavori-container .lavori-table tbody tr').first().waitFor({
-    timeout: 60_000,
+    timeout: simE2eTimeout(60_000),
   });
 }
 
@@ -640,8 +642,8 @@ export async function gotoGestioneLavori(page) {
 }
 
 export async function waitForValidazioneOreLoaded(page) {
-  await page.waitForURL(/validazione-ore-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Validazione Ore' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/validazione-ore-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Validazione Ore' }).waitFor({ timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(() => {
     const container = document.getElementById('ore-container');
@@ -660,13 +662,13 @@ export async function gotoValidazioneOre(page) {
 }
 
 export async function waitForMacchineDashboardLoaded(page) {
-  await page.waitForURL(/macchine-dashboard-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Gestione Parco Macchine' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/macchine-dashboard-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Gestione Parco Macchine' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const el = document.getElementById('card-trattori-value');
     const t = el && (el.textContent || '').trim();
     return t && t !== '—' && t !== '-';
-  }, { timeout: 60_000 });
+  }, { timeout: simE2eTimeout(60_000) });
 }
 
 export async function gotoMacchineDashboard(page) {
@@ -675,17 +677,17 @@ export async function gotoMacchineDashboard(page) {
 }
 
 export async function waitForGuastiListLoaded(page) {
-  await page.waitForURL(/guasti-list-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Officina' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/guasti-list-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Officina' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const container = document.getElementById('table-container');
     if (!container) return false;
     if (container.querySelector('.loading')) return false;
     if (/Caricamento/i.test(container.textContent || '')) return false;
     return container.querySelectorAll('.guasti-table tbody tr').length >= 2;
-  }, { timeout: 60_000 });
+  }, { timeout: simE2eTimeout(60_000) });
   await page.locator('#table-container .guasti-table tbody tr').first().waitFor({
-    timeout: 60_000,
+    timeout: simE2eTimeout(60_000),
   });
 }
 
@@ -695,8 +697,8 @@ export async function gotoGuastiList(page) {
 }
 
 export async function waitForSegnalazioneGuastiLoaded(page) {
-  await page.waitForURL(/segnalazione-guasti-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Segnalazione Guasti' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/segnalazione-guasti-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Segnalazione Guasti' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.locator('#segnala-guasto-form #tipo-generico').waitFor({ state: 'visible', timeout: 90_000 });
   await page.waitForFunction(() => {
     const alertText = (document.getElementById('alert-container')?.textContent || '').trim();
@@ -710,13 +712,13 @@ export async function gotoSegnalazioneGuasti(page) {
 }
 
 export async function waitForMagazzinoHomeLoaded(page) {
-  await page.waitForURL(/magazzino-home-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Prodotti e Magazzino' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/magazzino-home-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Prodotti e Magazzino' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const el = document.getElementById('stat-prodotti');
     const t = el && (el.textContent || '').trim();
     return t && t !== '-';
-  }, { timeout: 60_000 });
+  }, { timeout: simE2eTimeout(60_000) });
 }
 
 export async function gotoMagazzinoHome(page) {
@@ -725,8 +727,8 @@ export async function gotoMagazzinoHome(page) {
 }
 
 export async function waitForTracciabilitaConsumiLoaded(page) {
-  await page.waitForURL(/tracciabilita-consumi-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Tracciabilità consumi' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/tracciabilita-consumi-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Tracciabilità consumi' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const container = document.getElementById('tabella-container');
     if (!container) return false;
@@ -745,8 +747,8 @@ export async function gotoTracciabilitaConsumi(page) {
 }
 
 export async function waitForVignetoDashboardLoaded(page) {
-  await page.waitForURL(/vigneto-dashboard-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'VIGNETO' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/vigneto-dashboard-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'VIGNETO' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const el = document.getElementById('stat-numero-vigneti');
     const t = el && (el.textContent || '').trim();
@@ -760,13 +762,13 @@ export async function gotoVignetoDashboard(page) {
 }
 
 export async function waitForContoTerziHomeLoaded(page) {
-  await page.waitForURL(/conto-terzi-home-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'CONTO TERZI' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/conto-terzi-home-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'CONTO TERZI' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const el = document.getElementById('stat-clienti');
     const t = el && (el.textContent || '').trim();
     return t && t !== '-';
-  }, { timeout: 60_000 });
+  }, { timeout: simE2eTimeout(60_000) });
 }
 
 export async function gotoContoTerziHome(page) {
@@ -775,8 +777,8 @@ export async function gotoContoTerziHome(page) {
 }
 
 export async function waitForMappaClientiLoaded(page) {
-  await page.waitForURL(/mappa-clienti-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Mappa Clienti' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/mappa-clienti-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Mappa Clienti' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const el = document.getElementById('select-cliente');
     return el && el.querySelectorAll('option:not([value=""])').length >= 2;
@@ -789,9 +791,9 @@ export async function gotoMappaClienti(page) {
 }
 
 export async function waitForManodoperaHomeLoaded(page) {
-  await page.waitForURL(/manodopera-home-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Manodopera' }).waitFor({ timeout: 60_000 });
-  await page.getByRole('link', { name: /Gestione Lavori/i }).first().waitFor({ timeout: 60_000 });
+  await page.waitForURL(/manodopera-home-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Manodopera' }).waitFor({ timeout: simE2eTimeout(60_000) });
+  await page.getByRole('link', { name: /Gestione Lavori/i }).first().waitFor({ timeout: simE2eTimeout(60_000) });
 }
 
 export async function gotoManodoperaHome(page) {
@@ -800,8 +802,8 @@ export async function gotoManodoperaHome(page) {
 }
 
 export async function waitForGestioneOperaiLoaded(page) {
-  await page.waitForURL(/gestione-operai-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Gestione Operai' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/gestione-operai-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Gestione Operai' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const container = document.getElementById('operai-container');
     if (!container) return false;
@@ -816,8 +818,8 @@ export async function gotoGestioneOperai(page) {
 }
 
 export async function waitForGestioneSquadreLoaded(page) {
-  await page.waitForURL(/gestione-squadre-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Gestione Squadre' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/gestione-squadre-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Gestione Squadre' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const container = document.getElementById('squadre-container');
     if (!container) return false;
@@ -832,8 +834,8 @@ export async function gotoGestioneSquadre(page) {
 }
 
 export async function waitForStatisticheManodoperaLoaded(page) {
-  await page.waitForURL(/statistiche-manodopera-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Statistiche Manodopera' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/statistiche-manodopera-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Statistiche Manodopera' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const el = document.getElementById('stat-lavori-totali');
     const t = el && (el.textContent || '').trim();
@@ -847,8 +849,8 @@ export async function gotoStatisticheManodopera(page) {
 }
 
 export async function waitForLavoriCaposquadraLoaded(page) {
-  await page.waitForURL(/lavori-caposquadra-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'I Miei Lavori' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/lavori-caposquadra-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'I Miei Lavori' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const container = document.getElementById('lavori-container');
     if (!container) return false;
@@ -865,8 +867,8 @@ export async function gotoLavoriCaposquadra(page) {
 
 /** Attende caricamento field workspace mobile (Firestore + lavori assegnati). */
 export async function waitForFieldWorkspaceLoaded(page) {
-  await page.waitForURL(/field-workspace-standalone\.html/, { timeout: 60_000 });
-  await page.locator('#field-swiper').waitFor({ state: 'visible', timeout: 60_000 });
+  await page.waitForURL(/field-workspace-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('#field-swiper').waitFor({ state: 'visible', timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(() => {
     const status = document.getElementById('field-mobile-status');
@@ -876,20 +878,20 @@ export async function waitForFieldWorkspaceLoaded(page) {
       return false;
     }
     return !/login/i.test(text);
-  }, { timeout: 60_000 });
+  }, { timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(() => {
     const select = document.getElementById('selected-work');
     if (!select) return false;
     return Array.from(select.options).filter((o) => o.value).length >= 1;
-  }, { timeout: 60_000 });
+  }, { timeout: simE2eTimeout(60_000) });
 
   await page.waitForFunction(() => {
     const toolbar = document.getElementById('field-toolbar-user');
     const name = document.getElementById('field-toolbar-user-name');
     if (!toolbar || toolbar.hidden) return false;
     return !!(name && (name.textContent || '').trim());
-  }, { timeout: 60_000 });
+  }, { timeout: simE2eTimeout(60_000) });
 }
 
 /** Naviga al field workspace (sessione emulator già attiva). */
@@ -907,8 +909,8 @@ async function loginAsPersonaFromDevPage(page, personaButtonPattern, options = {
   const cardLocator = page.locator('.card');
 
   await Promise.race([
-    cardLocator.first().waitFor({ state: 'visible', timeout: 45_000 }),
-    emptyMsg.waitFor({ state: 'visible', timeout: 45_000 }),
+    cardLocator.first().waitFor({ state: 'visible', timeout: simE2eTimeout(45_000) }),
+    emptyMsg.waitFor({ state: 'visible', timeout: simE2eTimeout(45_000) }),
   ]);
 
   if (await emptyMsg.isVisible()) {
@@ -959,8 +961,8 @@ export async function loginAsCapoForLavoriDesktop(page, options = {}) {
 }
 
 export async function waitForMappaAziendaleLoaded(page) {
-  await page.waitForURL(/mappa-aziendale-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Mappa aziendale' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/mappa-aziendale-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Mappa aziendale' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const root = document.getElementById('mappa-page-root');
     if (!root) return false;
@@ -977,8 +979,8 @@ export async function gotoMappaAziendale(page) {
 }
 
 export async function waitForStatisticheCoreLoaded(page) {
-  await page.waitForURL(/statistiche-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Statistiche e Dashboard' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/statistiche-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Statistiche e Dashboard' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const el = document.getElementById('metric-terreni');
     const t = el && (el.textContent || '').trim();
@@ -992,8 +994,8 @@ export async function gotoStatisticheCore(page) {
 }
 
 export async function waitForVignetoStatisticheLoaded(page) {
-  await page.waitForURL(/vigneto-statistiche-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'STATISTICHE VIGNETO' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/vigneto-statistiche-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'STATISTICHE VIGNETO' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const sel = document.getElementById('filtro-vigneto');
     return sel && sel.querySelectorAll('option:not([value=""])').length >= 1;
@@ -1006,8 +1008,8 @@ export async function gotoVignetoStatistiche(page) {
 }
 
 export async function waitForGestioneMacchineLoaded(page) {
-  await page.waitForURL(/gestione-macchine-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Gestione Macchine' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/gestione-macchine-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Gestione Macchine' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const container = document.getElementById('macchine-container');
     if (!container) return false;
@@ -1022,8 +1024,8 @@ export async function gotoGestioneMacchine(page) {
 }
 
 export async function waitForGestioneGuastiAdminLoaded(page) {
-  await page.waitForURL(/gestione-guasti-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Gestione Guasti' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/gestione-guasti-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Gestione Guasti' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const totali = document.getElementById('stat-totali');
     const t = (totali?.textContent || '').trim();
@@ -1052,8 +1054,8 @@ export async function gotoGestioneGuastiAdmin(page) {
 }
 
 export async function waitForNuovoPreventivoLoaded(page) {
-  await page.waitForURL(/nuovo-preventivo-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Nuovo Preventivo' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/nuovo-preventivo-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Nuovo Preventivo' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const cliente = document.getElementById('cliente-id');
     const categoria = document.getElementById('lavoro-categoria-principale');
@@ -1072,8 +1074,8 @@ export async function gotoNuovoPreventivo(page) {
 }
 
 export async function waitForCompensiOperaiLoaded(page) {
-  await page.waitForURL(/compensi-operai-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Compensi Operai' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/compensi-operai-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Compensi Operai' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const tbody = document.getElementById('compensi-body');
     if (!tbody) return false;
@@ -1087,8 +1089,8 @@ export async function gotoCompensiOperai(page) {
 }
 
 export async function waitForSegnaturaOreLoaded(page) {
-  await page.waitForURL(/segnatura-ore-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Segna Ore Lavorate' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/segnatura-ore-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Segna Ore Lavorate' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const lavori = document.getElementById('lavori-container');
     const ore = document.getElementById('ore-container');
@@ -1111,8 +1113,8 @@ export async function gotoSegnaturaOre(page) {
 }
 
 export async function waitForStatisticheLavoratoreLoaded(page) {
-  await page.waitForURL(/statistiche-lavoratore-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Le tue statistiche' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/statistiche-lavoratore-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Le tue statistiche' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     if (document.getElementById('loading-el')) return false;
     const ore = document.getElementById('m-ore');
@@ -1126,8 +1128,8 @@ export async function gotoStatisticheLavoratore(page) {
 }
 
 export async function waitForVendemmiaLoaded(page) {
-  await page.waitForURL(/vendemmia-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Gestione Vendemmia' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/vendemmia-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Gestione Vendemmia' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const loading = document.getElementById('loading');
     if (loading && loading.offsetParent !== null) return false;
@@ -1146,8 +1148,8 @@ export async function gotoVendemmia(page) {
 }
 
 export async function waitForCalcoloMaterialiLoaded(page) {
-  await page.waitForURL(/calcolo-materiali-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Calcolo Materiali Impianto' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/calcolo-materiali-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Calcolo Materiali Impianto' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const table = document.getElementById('table-pianificazioni');
     if (!table) return false;
@@ -1162,8 +1164,8 @@ export async function gotoCalcoloMateriali(page) {
 }
 
 export async function waitForPianificaImpiantoLoaded(page) {
-  await page.waitForURL(/pianifica-impianto-standalone\.html/, { timeout: 60_000 });
-  await page.locator('#headerTitolo').filter({ hasText: 'Pianificazione' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/pianifica-impianto-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('#headerTitolo').filter({ hasText: 'Pianificazione' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const sel = document.getElementById('terrenoSelect');
     return sel && sel.querySelectorAll('option:not([value=""])').length >= 1;
@@ -1176,8 +1178,8 @@ export async function gotoPianificaImpianto(page) {
 }
 
 export async function waitForGestisciUtentiLoaded(page) {
-  await page.waitForURL(/gestisci-utenti-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Gestisci Utenti' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/gestisci-utenti-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Gestisci Utenti' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const container = document.getElementById('users-container');
     if (!container) return false;
@@ -1192,8 +1194,8 @@ export async function gotoGestisciUtenti(page) {
 }
 
 export async function waitForImpostazioniLoaded(page) {
-  await page.waitForURL(/impostazioni-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Impostazioni' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/impostazioni-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Impostazioni' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const nome = document.getElementById('account-nome');
     const cognome = document.getElementById('account-cognome');
@@ -1231,7 +1233,7 @@ export async function loginAsManagerMisto(page, options = {}) {
 }
 
 async function waitForFruttetoTableLoaded(page, { h1Text, minRows, tbodySelector }) {
-  await page.locator('h1').filter({ hasText: h1Text }).waitFor({ timeout: 60_000 });
+  await page.locator('h1').filter({ hasText: h1Text }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(
     ({ min, tbodySel }) => {
       const wrap = document.getElementById('table-wrap');
@@ -1243,13 +1245,13 @@ async function waitForFruttetoTableLoaded(page, { h1Text, minRows, tbodySelector
       return document.querySelectorAll(tbodySel).length >= min;
     },
     { min: minRows, tbodySel: tbodySelector },
-    { timeout: 60_000 }
+    { timeout: simE2eTimeout(60_000) }
   );
-  await page.locator(tbodySelector).first().waitFor({ timeout: 60_000 });
+  await page.locator(tbodySelector).first().waitFor({ timeout: simE2eTimeout(60_000) });
 }
 
 export async function waitForFruttetoPotaturaListLoaded(page) {
-  await page.waitForURL(/frutteto\/views\/potatura-standalone\.html/, { timeout: 60_000 });
+  await page.waitForURL(/frutteto\/views\/potatura-standalone\.html/, { timeout: simE2eTimeout(60_000) });
   await waitForFruttetoTableLoaded(page, {
     h1Text: 'Potatura Frutteto',
     minRows: 3,
@@ -1263,7 +1265,7 @@ export async function gotoFruttetoPotaturaList(page) {
 }
 
 export async function waitForFruttetoTrattamentiListLoaded(page) {
-  await page.waitForURL(/frutteto\/views\/trattamenti-standalone\.html/, { timeout: 60_000 });
+  await page.waitForURL(/frutteto\/views\/trattamenti-standalone\.html/, { timeout: simE2eTimeout(60_000) });
   await waitForFruttetoTableLoaded(page, {
     h1Text: 'Trattamenti Frutteto',
     minRows: 6,
@@ -1277,7 +1279,7 @@ export async function gotoFruttetoTrattamentiList(page) {
 }
 
 export async function waitForFruttetoConcimazioniListLoaded(page) {
-  await page.waitForURL(/frutteto\/views\/concimazioni-standalone\.html/, { timeout: 60_000 });
+  await page.waitForURL(/frutteto\/views\/concimazioni-standalone\.html/, { timeout: simE2eTimeout(60_000) });
   await waitForFruttetoTableLoaded(page, {
     h1Text: 'Concimazioni Frutteto',
     minRows: 3,
@@ -1291,8 +1293,8 @@ export async function gotoFruttetoConcimazioniList(page) {
 }
 
 export async function waitForFruttetiListLoaded(page, { minRows = 4 } = {}) {
-  await page.waitForURL(/frutteti-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Anagrafica Frutteti' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/frutteti-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Anagrafica Frutteti' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(
     (min) => {
       const table = document.getElementById('frutteti-table');
@@ -1300,7 +1302,7 @@ export async function waitForFruttetiListLoaded(page, { minRows = 4 } = {}) {
       return table && table.style.display !== 'none' && tbody && tbody.querySelectorAll('tr').length >= min;
     },
     minRows,
-    { timeout: 60_000 }
+    { timeout: simE2eTimeout(60_000) }
   );
 }
 
@@ -1310,8 +1312,8 @@ export async function gotoFruttetiList(page, options = {}) {
 }
 
 export async function waitForFruttetoDashboardLoaded(page) {
-  await page.waitForURL(/frutteto-dashboard-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'FRUTTETO' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/frutteto-dashboard-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'FRUTTETO' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const el = document.getElementById('stat-numero-frutteti');
     const t = el && (el.textContent || '').trim();
@@ -1325,15 +1327,15 @@ export async function gotoFruttetoDashboard(page) {
 }
 
 export async function waitForRaccoltaFruttaListLoaded(page) {
-  await page.waitForURL(/raccolta-frutta-standalone\.html/, { timeout: 60_000 });
-  await page.locator('h1').filter({ hasText: 'Raccolta Frutta' }).waitFor({ timeout: 60_000 });
+  await page.waitForURL(/raccolta-frutta-standalone\.html/, { timeout: simE2eTimeout(60_000) });
+  await page.locator('h1').filter({ hasText: 'Raccolta Frutta' }).waitFor({ timeout: simE2eTimeout(60_000) });
   await page.waitForFunction(() => {
     const container = document.getElementById('table-container-raccolte');
     const loading = document.getElementById('loading-raccolte');
     if (loading && loading.style.display !== 'none') return false;
     return container && container.style.display !== 'none'
       && document.querySelectorAll('#raccolte-table-body tr').length >= 1;
-  }, { timeout: 60_000 });
+  }, { timeout: simE2eTimeout(60_000) });
 }
 
 export async function gotoRaccoltaFrutta(page) {

@@ -1,36 +1,34 @@
 # Tony – Documentazione consolidata
 
 **Cartella**: `docs-sviluppo/tony/`  
-**Ultimo aggiornamento**: 2026-07-01
+**Ultimo aggiornamento**: 2026-07-10
 
-Tony è l'assistente IA centrale di GFV Platform. Questa cartella contiene la documentazione consolidata per riferimento rapido e sviluppo.
+Tony è l'assistente IA centrale di GFV Platform. Questa cartella contiene i **documenti canonici** (stato e piano). Piani attivi e backlog sono in `in-sviluppo/` e `da-fare/`.
 
 ---
 
-## Documenti in questa cartella
+## Documenti in questa cartella (canonici)
 
 | File | Contenuto |
 |------|-----------|
 | **MASTER_PLAN.md** | Visione, architettura, roadmap, principi di scalabilità. Ogni modifica Tony deve allinearsi a questo piano. |
 | **STATO_ATTUALE.md** | Stato verificato sul codice: cosa funziona, cosa manca, prossimi passi. |
-| **PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md** | Design (non ancora implementato): sostituzioni operai, equipaggio minimo, shortlist, policy tenant, Tony. Da leggere prima di lavorare su manodopera/squadre/lavori. |
-| **PLAN_OTTIMIZZAZIONE_PERFORMANCE.md** | Piano performance Tony (rev. 3, 2026-05-24): Fase 0–2b implementate; tier enforcement + meteo preventivo-data; validazione produzione pending; Fase 3 streaming/form. |
-| **HANDOFF_CONTINUITA_PERFORMANCE_NAV.md** | **Handoff agenti** (2026-06-10): dove eravamo / siamo / arriviamo — nav quick reply, metriche client, perf review, fix meteo; prompt e backlog prioritizzato. |
-| **HANDOFF_TTS_CHIRP3.md** | **Handoff voce Tony** (2026-06-19): Chirp 3 HD Charon, `speakingRate` 1.05, latenza pipeline, canary TTS. |
-| **PIANO_AUDIO_PIPELINE_BARGEIN.md** | 📋 Piano Fase 1: `clearTonyAudioPipeline` + generation token (prerequisito chunking TTS); specifica per agenti. |
+| **HANDOFF_TTS_CHIRP3.md** | Handoff voce Tony: Chirp 3 HD Charon, `speakingRate`, latenza pipeline, canary TTS. |
+| **PIANO_AUDIO_PIPELINE_BARGEIN.md** | Fase 1 barge-in implementata; riferimento pipeline audio. |
 | **README.md** | Questo file – panoramica e link. |
 
-**Simulatore + Tony E2E (post v5 app):**
+## Documenti spostati (2026-07-10)
 
-| File | Contenuto |
-|------|-----------|
-| **`../simulator/TONY_E2E_GUIDA_SVILUPPO.md`** | Guida integrazione Tony ↔ sim: prerequisiti (**gate v5 app ✅ 2026-07-01**), 3 livelli test, matrice scenari, milestone M-T0…M-T6, CI |
+| Argomento | Nuovo path |
+|-----------|------------|
+| Performance Tony (Fase 0–4) | `docs-sviluppo/in-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` |
+| Handoff nav / quick reply | `docs-sviluppo/in-sviluppo/tony/HANDOFF_CONTINUITA_PERFORMANCE_NAV.md` |
+| Sostituzioni manodopera (design) | `docs-sviluppo/da-fare/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md` |
+| Tony E2E simulatore | `docs-sviluppo/in-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md` |
+| Tony Occhi / documenti Gemini | `docs-sviluppo/da-fare/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` |
+| Doc obsoleti Tony | `docs-sviluppo/obsoleto/archivio-tony/` |
 
-**Fuori cartella Tony (marketing/commerciale):**
-
-| File | Contenuto |
-|------|-----------|
-| **`../STRATEGIA_MARKETING_VENDITA_HANDOFF.md`** | Handoff strategia vendita: funnel Free→Base→moduli, Tony consigliere, backlog GTM, checklist agente. |
+**Indice generale:** `docs-sviluppo/INDICE_DOCUMENTAZIONE.md`
 
 ---
 
@@ -38,18 +36,15 @@ Tony è l'assistente IA centrale di GFV Platform. Questa cartella contiene la do
 
 | Argomento | Dove |
 |-----------|------|
-| **Decisioni e requisiti** | `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md` – inventario completo con fonte e stato |
-| **Guida sviluppo** | `docs-sviluppo/GUIDA_SVILUPPO_TONY.md` – flussi tecnici, file coinvolti |
-| **Context Builder** | `docs-sviluppo/CONTEXT_BUILDER_SPECIFICHE_SVILUPPO.md` – struttura ctx.azienda |
-| **currentTableData + FILTER_TABLE** | `docs-sviluppo/RIEPILOGO_CURRENTTABLEDATA_PER_MODULO_LISTE.md` – pattern per tabelle, keyToId, estensione |
-| **Changelog** | `docs-sviluppo/COSA_ABBIAMO_FATTO.md` – modifiche con date |
-| **Strategia marketing / vendita** | `docs-sviluppo/STRATEGIA_MARKETING_VENDITA_HANDOFF.md` – funnel, Tony consigliere, GTM backlog |
-| **Consigliere moduli (config)** | `functions/config/tony-module-recommendations.json`, `functions/tony-module-recommendations.js` |
+| **Decisioni e requisiti** | `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md` |
+| **Guida sviluppo** | `docs-sviluppo/GUIDA_SVILUPPO_TONY.md` |
+| **Context Builder** | `docs-sviluppo/CONTEXT_BUILDER_SPECIFICHE_SVILUPPO.md` |
+| **currentTableData + FILTER_TABLE** | `docs-sviluppo/RIEPILOGO_CURRENTTABLEDATA_PER_MODULO_LISTE.md` |
+| **Changelog** | `docs-sviluppo/COSA_ABBIAMO_FATTO.md` |
+| **Backlog attivo** | `docs-sviluppo/DOBBIAMO_ANCORA_FARE.md` |
+| **Strategia marketing / vendita** | `docs-sviluppo/STRATEGIA_MARKETING_VENDITA_HANDOFF.md` |
+| **Billing Stripe v2 (in corso)** | `docs-sviluppo/in-sviluppo/abbonamento/BILLING_V2_HANDOFF.md` |
 | **Canary TTS** | `npm run tony:tts-canary`; browser `__tonyTtsCanary()` |
-| **Trattamenti Vigneto/Frutteto** (performance lista, superficie da anagrafe terreno; non Tony) | `COSA_ABBIAMO_FATTO.md` §2026-04-05; guide `docs-sviluppo/guida-app/moduli/vigneto.md` e `frutteto.md` |
-| **Magazzino – roadmap ipotesi (Gemini/fotocamera, DDT/fattura)** | `docs-sviluppo/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` |
-| **Manodopera – sostituzioni / equipaggio / shortlist** (design) | `docs-sviluppo/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md` |
-| **Archivio** | `docs-sviluppo/archivio/` – doc obsoleti (MASTER_PLAN_TONY_UNIVERSAL, STATO_TONY) |
 
 ---
 
@@ -63,16 +58,6 @@ Tony è l'assistente IA centrale di GFV Platform. Questa cartella contiene la do
 | Form mapping | `core/config/tony-form-mapping.js` |
 | Form injector | `core/js/tony-form-injector.js` |
 | Service | `core/services/tony-service.js` |
-
----
-
-## Regole Cursor (.cursor/rules)
-
-- **project-guardian-tony.mdc** – PROJECT GUARDIAN con riferimento a `tony/MASTER_PLAN.md`
-- **tony-agent-onboarding.mdc** – istruzioni lettura doc e aggiornamento post-lavoro
-- **tony-context-builder.mdc** – riferimento Context Builder
-
-Se hai PROJECT GUARDIAN nelle regole utente di Cursor, aggiorna il path a `docs-sviluppo/tony/MASTER_PLAN.md`.
 
 ---
 

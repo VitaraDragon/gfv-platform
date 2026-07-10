@@ -1,7 +1,7 @@
 # Tony – Inventario decisioni e requisiti
 
 **Data estrazione**: 2026-03-08  
-**Ultimo aggiornamento**: 2026-06-22 (freemium E2E verificato; FAB Tony Base post-Stripe; alert toast)
+**Ultimo aggiornamento**: 2026-07-10 (Tony Occhi — design acquisizione documenti chat-first)
 **Obiettivo**: Raccogliere in un unico documento ogni decisione di prodotto, requisito e vincolo trovato nei documenti Tony, per evitare perdite durante il consolidamento.
 
 **Stati**: `implementato` | `in corso` | `parziale` | `pianificato` | `non implementato` | `abbandonato` | `da verificare`
@@ -30,7 +30,7 @@
 | 1.16 | **Domande abbonamento con «meteo»** non devono usare guida dashboard meteo | prodotto 2026-06-20 | implementato | `isModuleAdvisorQuestion` in `index.js` prima di meteo quick reply |
 | 1.17 | **Stripe Checkout** moduli e bundle (annuale) | prodotto 2026-06-20 | implementato | `createStripeCheckoutSession`, `fulfillStripeCheckout`, `abbonamento-standalone.html` |
 | 1.18 | **Disattivazione addon (D5)**: `cancel_at_period_end` su Stripe; **accesso app revocato subito** (`modules[]` / `activeBundles[]`); riattivazione **gratuita** fino a scadenza pagata (`reactivateStripeAddon`); no rimborso; sync webhook | prodotto 2026-06-20, revisione 2026-06-21 | **implementato** | `markAddonPendingDeactivation` / `clearAddonPendingDeactivation` + `computeAccessAfterRevokeAddon` / `RestoreAddon`; UI sezione «Disattivati (riattivabili)»; verifica utente OK |
-| 1.19 | **Billing v2 — coterm e converti bundle** (Fasi 2–3 handoff): rinnovo unico Base, proration mid-cycle, «Passa al bundle», migrazione doppie subscription | prodotto 2026-06-20 | **pianificato** | `docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md` §6 Fasi 2–4 |
+| 1.19 | **Billing v2 — coterm e converti bundle** (Fasi 2–3 handoff): rinnovo unico Base, proration mid-cycle, «Passa al bundle», migrazione doppie subscription | prodotto 2026-06-20 | **pianificato** | `docs-sviluppo/in-sviluppo/abbonamento/BILLING_V2_HANDOFF.md` §6 Fasi 2–4 |
 | 1.20 | **Prova gratuita moduli 30 giorni** (scelta utente, **anche Free**): 1 modulo in prova contemporaneo; 1 trial per modulo per tenant; dati conservati; conversione Stripe | prodotto 2026-06-22 | **implementato** | `functions/module-trial.js`, `core/utils/module-access-resolver.js`, UI Abbonamento |
 | 1.21 | **Freemium default + limiti Free** (5 terreni, 30 attività/mese): registrazione `piano: free`; enforcement CRUD terreni/attività | prodotto 2026-06-22 | **implementato** | `plan-limits-service.js`, toast sopra modal; upgrade Base via Stripe verificato |
 
@@ -451,6 +451,36 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 | Tony | ✅ Domanda morfologia; praticabilità; **due date prima/dopo** |
 | Test | ✅ … **`tests/tony-module-recommendations.test.js` (9)**, **`tests/tony-tts-latency-canary.test.js` (5)**, **`tests/tony-voice-transcript-punctuation.test.js` (4)**, `tests/tony-stream-tts-chunk.test.js`, `tests/tony-voice-pipeline-canary.test.js` |
 | Review log produzione | ✅ `scripts/tony-perf-log-review.mjs` — smoke 8 scenari router + **3 binario B quick**. Produzione 2026-06-03: ~25% `usedGemini=false`, hit nav/filter/riassunto |
+
+---
+
+## 20. Tony Occhi — acquisizione documenti (bolla / fattura)
+
+**Design completo**: `docs-sviluppo/da-fare/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` (agg. 2026-07-10).  
+**Stato implementazione codice**: non iniziato (pianificato).
+
+| # | Decisione | Fonte | Stato | Note |
+|---|-----------|-------|-------|------|
+| 20.1 | **Ingresso principale = icona fotocamera in chat Tony** (accanto al mic), non navigazione menù magazzino | prodotto 2026-07-10 | **pianificato** | `core/js/tony/ui.js` |
+| 20.2 | **Un solo componente upload**: file picker `image/*` + `application/pdf`; opz. `capture="environment"` | prodotto 2026-07-10 | **pianificato** | MVP; no camera live custom |
+| 20.3 | **Classificazione automatica** documento (bolla / fattura / sconosciuto); utente non sceglie tipo prima dello scatto | prodotto 2026-07-10 | **pianificato** | CF `tonyExtractDocument` + Gemini vision |
+| 20.4 | **Routing automatico** post-estrazione (movimenti entrata vs aggiornamento prezzi) con gate modulo **`magazzino`** e ruoli manager/admin | prodotto 2026-07-10 | **pianificato** | Estensione intent router |
+| 20.5 | **Conferma umana obbligatoria** tramite **form di revisione** (tipo bolla/fattura, righe editabili, **Registra dati**) — non solo testo chat | prodotto 2026-07-10 | **pianificato** | Mai auto-save qty/prezzi |
+| 20.6 | **Flusso due passi**: bolla → qty (+ prezzo in attesa); fattura → collegamento bolla → aggiorna `prezzoUnitario` | ROADMAP 2026-04-04, conferma 2026-07-10 | **pianificato** | Vincolo business |
+| 20.7 | **Pagina magazzino** per storico/audit documenti; **chat** per acquisizione al volo | prodotto 2026-07-10 | **pianificato** | |
+| 20.8 | **Vision-first Gemini 2.5 Flash**; OCR pipeline separata solo se necessario per costi | prodotto 2026-07-10 | **pianificato** | Allineato `TONY_GEMINI_MODEL` |
+| 20.9 | **Config centralizzata**: schemi JSON documento + mapping; integrazione movimenti via canone `tony-form-mapping` / save locale | prodotto 2026-07-10 | **pianificato** | No patch per singola pagina |
+| 20.10 | **Persistenza** `documentiAcquisiti` Firestore + file su Storage; movimenti con flag `prezzoInAttesa` opzionale | design 2026-07-10 | **pianificato** | Schema in ROADMAP §8 |
+| 20.11 | **Screenshot** accettati come immagine nello stesso pipeline (fallback, non canale dedicato) | prodotto 2026-07-10 | **pianificato** | |
+| 20.12 | **Camera live in-app**, email inoltrata, multi-agente IDP: **fuori MVP** | prodotto 2026-07-10 | **pianificato** | Fasi 2–3 ROADMAP §13 |
+| 20.13 | **Form di revisione documento** — badge bolla/fattura, intestazione e tabella righe **editabili**, azione **Registra dati** | prodotto 2026-07-10 | **pianificato** | Modal/pannello widget Tony |
+| 20.14 | **Acquisizione multipla** — più foto/PDF per stesso documento; **Aggiungi pagina** + **Acquisizione terminata** prima dell’estrazione | prodotto 2026-07-10 | **pianificato** | MVP; merge pagine in CF |
+| 20.15 | **Estrazione layout-agnostic** — nessun template per fornitore; schema JSON solo **in uscita**; prompt per tipo bolla/fattura | prodotto 2026-07-10 | **pianificato** | Gemini vision |
+| 20.16 | **Due step conferma**: (1) Acquisizione terminata (2) Registra dati sul form | prodotto 2026-07-10 | **pianificato** | ROADMAP §5.2–§5.4 |
+| 20.17 | Sessione Firestore `documentiAcquisiti/{sessionId}` con array **`pagine[]`** e stati `acquiring` → `review` → `confirmed` | design 2026-07-10 | **pianificato** | ROADMAP §8 |
+| 20.18 | **Animazione scanner** riusabile durante estrazione Gemini e popolamento form revisione (CSS, no librerie) | prodotto 2026-07-10 | **pianificato** | ROADMAP §5.4 D16 |
+| 20.19 | **Must-have Tony Occhi M1–M7**: duplicati, validazione totali, normalizzazione unità, confidence UI, audit estratto/confermato, link documento↔movimento, policy giacenza bolla | design 2026-07-10 | **pianificato** | ROADMAP §16.1 |
+| 20.20 | **Post-MVP P1–P7**: qualità foto, ripresa sessione, fornitore/prodotto nuovo, lista in attesa, proattività, retention Storage | design 2026-07-10 | **pianificato** | ROADMAP §16.2 |
 
 ---
 

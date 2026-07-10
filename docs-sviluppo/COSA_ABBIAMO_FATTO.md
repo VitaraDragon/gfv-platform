@@ -1,6 +1,124 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-10 — fix flake E2E T-FLOW-013 / T-FLOW-014-LIVE.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-10 — riorganizzazione docs-sviluppo.
+
+## Riorganizzazione documentazione docs-sviluppo (2026-07-10)
+
+| Cartella | File | Scopo |
+| -------- | ---- | ----- |
+| **`obsoleto/`** | ~84 | Log sessione, refactoring completati, strategie superate, vecchio archivio Tony |
+| **`in-sviluppo/`** | 12 | Tony perf, billing v2, meteo, E2E sim, vendemmia meccanica, report… |
+| **`da-fare/`** | 9 | Tony Occhi, scalabilità lavori, snellimento codice, Oliveto-related… |
+| **Indice** | `INDICE_DOCUMENTAZIONE.md` | Mappa doc implementato / in corso / backlog / obsoleto |
+
+Doc **canonici** restano in root (`STATO_PROGETTO_COMPLETO`, `ARCHITETTURA_MODULI`, …) e in `tony/` (`MASTER_PLAN`, `STATO_ATTUALE`). Aggiornati path in regole Cursor, README, `DOBBIAMO_ANCORA_FARE` §1.2 e §3.3.
+
+## Tony Occhi — backlog miglioramenti §16 (2026-07-10)
+
+| Priorità | Voci |
+| -------- | ---- |
+| **Must-have M1–M7** | Duplicati, validazione totali, unità, confidence UI, audit, link movimento, policy giacenza |
+| **Post-MVP P1–P7** | Qualità foto, ripresa sessione, fornitore/prodotto nuovo, lista in attesa, proattività, retention |
+| **Doc** | `ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` §16; decisioni 20.19–20.20 |
+
+## Tony Occhi — form revisione e acquisizione multipla (2026-07-10)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| **UX confermata** | Form con tipo **bolla/fattura**, dati estratti editabili, **Registra dati** |
+| **Multi-pagina** | **Aggiungi pagina** + **Acquisizione terminata** → merge → estrazione unica |
+| **Estrazione** | Layout fornitore-agnostic; schema normalizzato solo in uscita |
+| **Doc** | ROADMAP §5.4 form revisione; §20 decisioni 20.13–20.17 |
+
+## Tony Occhi — design acquisizione documenti chat-first (2026-07-10)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| **Documento** | `docs-sviluppo/da-fare/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` — da ipotesi a design pronto per sviluppo |
+| **Decisioni** | `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md` §20 (12 voci, stato `pianificato`) |
+| **UX** | Icona 📷 in chat Tony (accanto al mic); niente navigazione menù magazzino per acquisire |
+| **Ingresso** | File picker unico: immagine + PDF; `capture` opzionale su mobile |
+| **Flusso** | Upload → Gemini extract/classify → preview chat → conferma → movimenti o aggiornamento prezzi |
+| **Business** | Bolla (qty, prezzo in attesa) → fattura (link + prezzi); gate modulo `magazzino`, manager/admin |
+| **Architettura bozza** | CF `tonyExtractDocument`, Storage, collection `documentiAcquisiti`, config schemi JSON |
+| **Codice** | Non implementato — fasi MVP in ROADMAP §13 |
+
+## Simulatore Tony E2E — gate/explore + report diagnostico (2026-07-10)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| **Separazione modalità** | `mode=gate` (tier 1–2 mock, blocca CI) vs `mode=explore` (tier 3 live + draft, exit 0 salvo `--strict`) |
+| **Contratti scenario** | `scenarios-matrix.json` schema v2 — ogni scenario ha `contract.invariant`, `primaryAsserts`, `avoidAsserts` |
+| **Classificatore T1–T8** | `tests/e2e/tony/helpers/tony-e2e-diagnostic.mjs` — intercept miss, seed, parser, LLM flaky, test fragile, ecc. |
+| **Report JSON** | `test-results/tony-e2e-diagnostic-report.json` — findings con opzioni fix (B1/B3, C1, …) e raccomandazioni |
+| **Comandi npm** | `sim:tony:e2e:gate`, `sim:tony:e2e:explore`, `sim:tony:e2e:explore:draft`, `sim:tony:e2e:live:strict` |
+| **Vitest** | `tests/tony-e2e-diagnostic.test.js` — classificazione deterministica |
+| **CI** | Invariato gate PR via `sim:tony:e2e` → `--mode=gate` |
+
+## Simulatore E2E app — gate/explore + report diagnostico (2026-07-10)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| **Binario B** | 71 spec Playwright — stesso workflow decisionale del binario Tony |
+| **Registry auto** | `sim-e2e-scenario-meta.mjs` — contract + requiresSeedProfile da nome spec + override |
+| **Classificatore** | `sim-e2e-diagnostic.mjs` — T1 seed, T4 prodotto, T5 DOM, T6 timeout, T8 test fragile |
+| **Reporter Playwright** | `tests/e2e/sim/reporters/sim-diagnostic-reporter.mjs` |
+| **Report JSON** | `test-results/sim-e2e-diagnostic-report.json` |
+| **Comandi npm** | `sim:e2e:gate` (CI), `sim:e2e:explore` (diagnostica non bloccante), `sim:e2e:node` (runner legacy) |
+| **CI** | `sim-ci-e2e-inner.sh` → `npm run sim:e2e:gate` |
+| **Vitest** | `tests/sim-e2e-diagnostic.test.js` |
+| **Workflow unificato** | `npm run sim:diagnostic:explore` / `sim:diagnostic:gate` — v. `simulator/DIAGNOSTIC_WORKFLOW.md` |
+
+## Simulatore — comandi diagnostici unificati (2026-07-10)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| **Explore unificato** | `npm run sim:diagnostic:explore` — app + Tony explore + merge |
+| **Gate pre-push** | `npm run sim:diagnostic:gate` — app + Tony gate bloccante |
+| **Merge report** | `npm run sim:diagnostic:merge` → `test-results/diagnostic-merged-report.json` |
+| **Smoke** | `npm run sim:diagnostic:smoke` — 1 scenario per binario + merge |
+| **Guida** | `simulator/DIAGNOSTIC_WORKFLOW.md` |
+
+## Simulatore E2E — modalità fast explore (2026-07-10)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| **Helper timeout** | `tests/e2e/sim/helpers/sim-e2e-timeouts.mjs` — `simE2eTimeout`, `simE2ePause`, `GFV_E2E_FAST` / `GFV_E2E_MODE=explore` |
+| **App login** | `sim-login.js` — timeout nav 18s / 12s in fast (prima 60s/45s) |
+| **Node runner** | `sim-e2e-run.mjs` — nuova pagina per scenario + fast auto in explore |
+| **Playwright** | `playwright.config.js` — test 45s / expect 12s in explore |
+| **Tony widget** | pause UI e timeout risposta ridotti in fast |
+| **Attivazione** | automatica con `sim:diagnostic:explore`, `sim:e2e:explore`, `sim:e2e:node:explore`; override `GFV_E2E_TIMEOUT_MS` |
+
+## Simulatore E2E — fix 5 scenari explore (2026-07-10)
+
+| Scenario | Fix |
+| -------- | --- |
+| `gestione-lavori-write` | Assert idempotente: accetta badge sospeso/in_corso oltre ad assegnato |
+| `lavori-caposquadra-write` | Firestore rules: `operaioId`/`caposquadraId` assenti trattati come null |
+| `vendemmia-write` | Selezione vigneto con `tipoPalo` valido (evita E2E Sim Noir / Acciaio) |
+| `concimazione-diario-completa-write` | Wait attività + `concStep` return + timeout pagina |
+| `T-FLOW-014` | Timeout preventivo allineati in gate (no fast mode involontaria) |
+
+## Simulatore E2E — explore verde 71/71 + Tony 16/16 (2026-07-10)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| **Seed** | `frutteto-solo-titolare` + `mista-viticola-frutteto-conto-terzi-manodopera` (prerequisito 9 scenari frutteto/mista) |
+| **Assert harness** | `vigneto.mjs` — ceppi stub catena A accettati se link attività ≥ 3; `conto-terzi.mjs` — preventivi upper bound 12 (write E2E + emulator persistente) |
+| **Risultato** | `npm run sim:diagnostic:explore` → **71/71 app + 16/16 Tony**, **0 findings** — `test-results/diagnostic-merged-report.json` |
+
+## Simulatore E2E — gate Playwright vs node runner (2026-07-10)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| **Explore app** | Node runner — `sim:diagnostic:explore` → `sim:e2e:node:explore` (fast, ~8 min) |
+| **Gate app CI** | Playwright CLI — `sim:diagnostic:gate` → `sim:e2e:gate` (`sim-e2e-pw-run.mjs`, 71 spec, timeout 120s) |
+| **Gate Tony** | Mock tier 2 — `sim:tony:e2e:gate` (16 scenari; già incluso in explore e gate unificato) |
+| **Issue locale Windows** | `npx playwright test` resta **senza output** dopo `scenari=71` (anche con **1 spec**); processo appeso ore — **gate unificato non completabile** in locale con Playwright |
+| **Workaround gate locale** | Stessi contratti/scenari, runner node: `npm run sim:e2e:node` + `npm run sim:tony:e2e:gate` (+ opz. `npm run sim:diagnostic:merge`) |
+| **Triple-seed obbligatorio** | Oltre viticola: `frutteto-solo-titolare` + `mista-viticola-frutteto-conto-terzi-manodopera` (9 scenari frutteto/mista) |
+| **CI / push** | Invariato Linux: `sim:diagnostic:gate` Playwright — validazione pre-push resta su CI se gate locale PW bloccato |
 
 ## Tony + Simulatore — fix flake E2E T-FLOW-013 + T-FLOW-014-LIVE (2026-07-10)
 
@@ -71,7 +189,7 @@
 | Report | `test-results/tony-e2e-live-report.json` (p50/p95, quickReplyHit%) |
 | `sim:tony:e2e:live:prod` | Script presente (`GFV_TONY_E2E_PROD_CF=1`) ma **non usabile con Auth emulator**: CF produzione rifiuta token emulator → «sessione scaduta». Per test live usare **Opzione B** (Functions emulator locale), non prod CF |
 | Prossimo M-T5 | Gate p95 `GFV_TONY_E2E_ENFORCE_P95=1` dopo baseline; CI notturno `sim:tony:e2e:live:ci`; T-FLOW-013-LIVE opzionale |
-| Guida | **`docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md` v1.4 §8.1** — procedura operativa tier 3 live (passo-passo, troubleshooting) |
+| Guida | **`docs-sviluppo/in-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md` v1.4 §8.1** — procedura operativa tier 3 live (passo-passo, troubleshooting) |
 
 ## Tony + Simulatore — M-T5 T-FLOW-014-LIVE preventivo CF (2026-07-06)
 
@@ -836,7 +954,7 @@
 
 **Obiettivo:** documento operativo per il track **post v5 app** — test automatici Tony (tempi, typo, errori concetto, azioni non consentite) su tenant seed emulator, senza beta tester esterni.
 
-**File:** `docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md` — architettura 3 livelli (Vitest / E2E mock / LLM live), struttura repo target, matrice scenari JSON, milestone **M-T0…M-T6**, catalogo backlog, anti-pattern, handoff agenti.
+**File:** `docs-sviluppo/in-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md` — architettura 3 livelli (Vitest / E2E mock / LLM live), struttura repo target, matrice scenari JSON, milestone **M-T0…M-T6**, catalogo backlog, anti-pattern, handoff agenti.
 
 **Link:** `simulator/README.md`, `GFV_FARM_SIMULATOR.md` §11.3.8/§11.3.9, `docs-sviluppo/tony/README.md`.
 
@@ -1851,7 +1969,7 @@ Voce trial-only-Base annullata: ripristinato comportamento «prova anche su Free
 | `functions/stripe-billing.js` | `computeAccessAfterRevokeAddon`, `computeAccessAfterRestoreAddon`; `markAddonPendingDeactivation` / `clearAddonPendingDeactivation` aggiornano accesso app |
 | `core/admin/abbonamento-standalone.html` | Sezione revoked-pending, messaggi, sync moduli client |
 | `tests/stripe-billing-deactivation.test.js` | Test revoke/restore accesso |
-| `docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md` | Policy **D5** aggiornata |
+| `docs-sviluppo/in-sviluppo/abbonamento/BILLING_V2_HANDOFF.md` | Policy **D5** aggiornata |
 
 **Verifica:** flusso confermato OK in produzione/sandbox (disattiva → moduli/Tony off; riattiva → ripristino fino a scadenza pagata).
 
@@ -1895,7 +2013,7 @@ Completato deploy produzione/sandbox e **verifica manuale OK** (disattivazione: 
 
 ## Abbonamento — billing v2 Fase 1: implementazione codice (2026-06-21)
 
-Prima fase del handoff **`docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`**: disattivazione moduli/bundle allineata a Stripe e policy prodotto (D5 — accesso revocato subito, riattivazione fino a scadenza pagata).
+Prima fase del handoff **`docs-sviluppo/in-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`**: disattivazione moduli/bundle allineata a Stripe e policy prodotto (D5 — accesso revocato subito, riattivazione fino a scadenza pagata).
 
 | Componente | Dettaglio |
 |------------|-----------|
@@ -1906,7 +2024,7 @@ Prima fase del handoff **`docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`**: di
 
 ## Abbonamento — handoff billing v2 (decisioni prodotto, 2026-06-20)
 
-Documento per agenti: **`docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`**
+Documento per agenti: **`docs-sviluppo/in-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`**
 
 Decisioni chiuse: rinnovo **unico** (anniversario piano Base / coterm), proration su moduli mid-cycle, **nessun rimborso** annuale, disattivazione con **accesso off subito** + riattivazione gratuita fino a scadenza + sync Stripe, flusso **converti singoli → bundle**. Stato v1 (subscription separate, disattiva solo Firestore) vs target v2 descritti nel handoff.
 
@@ -2780,7 +2898,7 @@ Sessione di hardening **modalità continua**, **TTS stream**, **congedo vocale**
 - Test: `tony-lavoro-interview-client.test.js` (21 test: parser intervista, squadra, disamb. tipo 2 livelli, hint «crea lavoro per …»)
 
 **Documentazione aggiornata:**
-- `docs-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` — **rev. 6** (2026-05-30): §1.5 baseline intervista post-fix, §3b.8 intervista unificata + disamb. tipo, canary 3b-C5…C8, criteri **0 CF** su ogni risposta breve dopo il 1° turno
+- `docs-sviluppo/in-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` — **rev. 6** (2026-05-30): §1.5 baseline intervista post-fix, §3b.8 intervista unificata + disamb. tipo, canary 3b-C5…C8, criteri **0 CF** su ogni risposta breve dopo il 1° turno
 - `docs-sviluppo/tony/STATO_ATTUALE.md` — righe Widget / Form Injector / pattern disamb. client-side
 
 **Allineamento decisioni §14.6b (stato 2026-05-31):** pattern client-side completato su **attrezzo multiplo**, **intervista campi**, **conferma salvataggio**, **disamb. tipo** (2 livelli M/M), **operaio ambiguo autonomo**; **prossimi:** terreno ambiguo, save su altri form — sottocategoria da coltura resta deterministica.
@@ -2917,7 +3035,7 @@ Sessione di hardening **modalità continua**, **TTS stream**, **congedo vocale**
 **Esito:** prodotto OK (form completo → *«Vuoi che salvi?»*); UX **non accettabile** — ~3 turni CF (~33 s + ~34 s + ~5 s), domande su **luca** e **agrifull** già nel messaggio, **3 inject** completi con pause dropdown.
 
 **Documentazione aggiornata:**
-- `docs-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` — §1.3 comportamento reale; **Fase 3b** crea lavoro entity-first (task, file, canary 3b-C1…C4, criteri &lt;15 s)
+- `docs-sviluppo/in-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` — §1.3 comportamento reale; **Fase 3b** crea lavoro entity-first (task, file, canary 3b-C1…C4, criteri &lt;15 s)
 - `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md` — §19.6.10 regole entity-first / disambiguazione
 - `docs-sviluppo/tony/STATO_ATTUALE.md` — gap noto + prossimo lavoro
 - `docs-sviluppo/tony/MASTER_PLAN.md` — riferimento piano performance
@@ -2954,7 +3072,7 @@ Sessione di hardening **modalità continua**, **TTS stream**, **congedo vocale**
 
 ## Tony — Fase 3 performance: streaming SSE + pattern attività (2026-05-25)
 
-**Piano:** `docs-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §6.1, §9 Fase 3
+**Piano:** `docs-sviluppo/in-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §6.1, §9 Fase 3
 
 **Implementato (deploy CF `tonyAskStream` richiesto per attivazione end-to-end):**
 - **`functions/tonyAskStream`** (`tony-ask-stream.js`) — endpoint `onRequest` SSE, auth Bearer Firebase ID token; eventi `chunk` (delta testo Gemini) + `done` `{ text, command }`; quick reply binario A = solo `done`.
@@ -2989,7 +3107,7 @@ Sessione di hardening **modalità continua**, **TTS stream**, **congedo vocale**
 
 ## Tony — Fase 2b tier enforcement (2026-05-24)
 
-**Piano:** `docs-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §4.4, §Fase 2b
+**Piano:** `docs-sviluppo/in-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §4.4, §Fase 2b
 
 **Implementato:**
 - `buildContextAziendaTier(tenantId, tierMax)` in `functions/index.js` — fetch Firestore cumulativi T1→T4 (~4 fetch su binario A vs ~13 su T4 pieno).
@@ -3087,7 +3205,7 @@ Sessione di hardening **modalità continua**, **TTS stream**, **congedo vocale**
 
 ## Tony — Fase 2a shadow intent router (2026-05-23)
 
-**Piano:** `docs-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §4.6
+**Piano:** `docs-sviluppo/in-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §4.6
 
 **Implementato (log only, nessun cambio comportamento utente):**
 - `functions/tony-intent-router.js` — classifica binario A/B/C + `tierCalculated`; `tierUsed` resta sempre `T4_full`.
@@ -3117,7 +3235,7 @@ Sessione di hardening **modalità continua**, **TTS stream**, **congedo vocale**
 
 ## Tony — performance Fase 0 + Fase 1 (2026-05-23)
 
-**Piano:** `docs-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md`
+**Piano:** `docs-sviluppo/in-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md`
 
 **Cloud Functions:**
 - Log strutturato `[Tony Perf]` in `tonyAsk` (cacheHit, buildContextAziendaMs, buildContextMeteoMs, quickReplyHit, geminiMs, geminiRetryCount, profilo campo / Tony Avanzato).
@@ -3134,7 +3252,7 @@ Sessione di hardening **modalità continua**, **TTS stream**, **congedo vocale**
 
 ## Meteo Tony — documentazione meteo aggiornata (2026-05-22)
 
-**File:** `docs-sviluppo/meteo/PLAN_INTEGRAZIONE_METEO.md` (§11.6–§11.7), `functions/README.md` (sezione Tony meteo operativo).
+**File:** `docs-sviluppo/in-sviluppo/meteo/PLAN_INTEGRAZIONE_METEO.md` (§11.6–§11.7), `functions/README.md` (sezione Tony meteo operativo).
 
 **Contenuto:** tre assi valutazione date, `lavoroCampo`, asciugatura post-pioggia, doppia alternativa prima/dopo, flusso chat, file e test; riferimento incrociato a `TONY_DECISIONI_E_REQUISITI.md` §19.
 
@@ -3188,7 +3306,7 @@ Sessione di hardening **modalità continua**, **TTS stream**, **congedo vocale**
 
 ## ✅ Modulo Meteo pay-per-use (~€1/mese) + meteo base (2026-05-19)
 
-**Stato:** meteo **base** su piano **Base+**; modulo **`meteo`** acquistabile da Abbonamento con widget espanso, pagina dedicata e meteo per terreno. Traccia: **`docs-sviluppo/meteo/PLAN_INTEGRAZIONE_METEO.md`**.
+**Stato:** meteo **base** su piano **Base+**; modulo **`meteo`** acquistabile da Abbonamento con widget espanso, pagina dedicata e meteo per terreno. Traccia: **`docs-sviluppo/in-sviluppo/meteo/PLAN_INTEGRAZIONE_METEO.md`**.
 
 ### Gating
 - **Free:** nessun meteo (UI + callable).
@@ -3749,7 +3867,7 @@ Traccia decisioni: **`docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md` §19** (imple
 
 ## ✅ Manodopera: piano design sostituzioni / equipaggio in repo (2026-04-18)
 
-- Aggiunto **`docs-sviluppo/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md`**: design per shortlist sostituti, disponibilità automatica da lavori, competenze in anagrafica, policy tenant, integrazione Tony; riferimento in **`docs-sviluppo/tony/README.md`** e in **`.cursor/rules/tony-agent-onboarding.mdc`** (dopo i tre punti di lettura iniziale), così ogni nuovo agente vede il file da leggere prima di implementare su manodopera/squadre.
+- Aggiunto **`docs-sviluppo/da-fare/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md`**: design per shortlist sostituti, disponibilità automatica da lavori, competenze in anagrafica, policy tenant, integrazione Tony; riferimento in **`docs-sviluppo/tony/README.md`** e in **`.cursor/rules/tony-agent-onboarding.mdc`** (dopo i tre punti di lettura iniziale), così ogni nuovo agente vede il file da leggere prima di implementare su manodopera/squadre.
 
 ## ✅ PWA: bump cache a ogni commit (hook Git) (2026-04-18)
 

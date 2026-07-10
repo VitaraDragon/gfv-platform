@@ -3,6 +3,7 @@
  * @module tests/e2e/tony/helpers/assert-scenario-expect
  */
 
+import { simE2ePause } from '../../sim/helpers/sim-e2e-timeouts.mjs';
 import latencyBudgets from '../perf/latency-budgets.json' with { type: 'json' };
 import { readTonyScenarioReply } from './tony-e2e-scenario-perf.mjs';
 import {
@@ -169,7 +170,7 @@ export async function assertScenarioExpect(page, expect, scenario, ctx = {}) {
     if (needsLavoroModal) {
       await page.locator('#lavoro-terreno').waitFor({ state: 'attached', timeout: 30_000 });
     }
-    await page.waitForTimeout(800);
+    await page.waitForTimeout(simE2ePause(800));
     for (const key of exp.injectedFields) {
       const val = await readInjectedFieldValue(page, key);
       expect(val, `campo inject ${key}`).toBeTruthy();

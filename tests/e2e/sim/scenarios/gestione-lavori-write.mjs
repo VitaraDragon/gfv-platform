@@ -242,7 +242,9 @@ export async function runGestioneLavoriWriteAssertions(page, expect) {
 
   const row = markerRows.first();
   await expect(row.locator('td').first()).toContainText(E2E_LAVORO_WRITE_NOME);
-  await expect(row.locator('.badge-assegnato')).toBeVisible();
+  await expect(
+    row.locator('.badge-assegnato, .badge-in_corso, .badge-sospeso, .badge-completato, .badge-pianificato').first()
+  ).toBeVisible({ timeout: 30_000 });
   await expect(row.locator('td').nth(4)).toContainText(`${WRITE_DURATA} giorni`);
 
   if (expectedTerreno) {

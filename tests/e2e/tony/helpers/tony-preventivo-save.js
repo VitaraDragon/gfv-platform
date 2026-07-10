@@ -3,6 +3,7 @@
  * @module tests/e2e/tony/helpers/tony-preventivo-save
  */
 
+import { simE2ePause, simE2eTimeout } from '../../sim/helpers/sim-e2e-timeouts.mjs';
 import { tonyGetExecutedCommands, tonyGetLastReplyText, tonySendMessage, waitForTonyTurnPerf } from './tony-widget.js';
 import {
   TONY_E2E_PREVENTIVO_NOTE,
@@ -108,7 +109,7 @@ export async function ensurePreventivoFormComplete(page, ctx) {
       return coltura && coltura.value && sup;
     },
     null,
-    { timeout: 25_000 }
+    { timeout: simE2eTimeout(25_000) }
   );
 
   const tipoAlreadySet = await page.evaluate(() => {
@@ -219,7 +220,7 @@ export async function ensurePreventivoFormComplete(page, ctx) {
       return Array.from(nodes).some((n) => /vuoi che salvi il preventivo/i.test(n.textContent || ''));
     },
     null,
-    { timeout: 30_000 }
+    { timeout: simE2eTimeout(30_000) }
   );
 }
 
@@ -245,7 +246,7 @@ export async function confirmPreventivoSave(page, expect, opts = {}) {
           );
         },
         null,
-        { timeout: 25_000 }
+        { timeout: simE2eTimeout(25_000) }
       )
       .then(() => true)
       .catch(() => false);

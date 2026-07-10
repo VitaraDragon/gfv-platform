@@ -2,12 +2,31 @@
 /**
  * GFV Farm Simulator v4 — runner E2E browser (playwright-core + expect @playwright/test).
  * Prerequisiti: sim:emulators + npm start + tenant in manifest (sim:run).
- * Locale: Chrome di sistema (channel). CI: Chromium bundled (`npm run sim:e2e:install`).
- * Sottoinsiemi: `--only=scen1,scen2` o env `GFV_E2E_ONLY` (es. `npm run sim:e2e:write-p2`).
+ *
+ * Modalità: --mode=gate (blocca CI) | --mode=explore (report diagnostico, exit 0 salvo --strict)
+ * Output: test-results/sim-e2e-diagnostic-report.json
+ *
+ * Preferire npm run sim:e2e:pw per i 71 spec Playwright (+ reporter).
+ * Sottoinsiemi: `--only=scen1,scen2` o env `GFV_E2E_ONLY`.
  */
-import { readFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { readdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 import { expect } from '@playwright/test';
+import { captureSimFailureContext } from '../tests/e2e/sim/helpers/sim-e2e-failure-context.mjs';
+import {
+  buildSimDiagnosticReport,
+  buildSimFinding,
+  printSimDiagnosticSummary,
+} from '../tests/e2e/sim/helpers/sim-e2e-diagnostic.mjs';
+import {
+  buildRegistryFromSpecs,
+  buildScenarioMetaFromSpec,
+  resolveAppScenarioMode,
+} from '../tests/e2e/sim/helpers/sim-e2e-scenario-meta.mjs';
+import { isSimE2eFastMode, simE2eBrowserLaunchTimeout } from '../tests/e2e/sim/helpers/sim-e2e-timeouts.mjs';
 import {
   gotoAttivitaList,
   gotoClientiList,
@@ -189,6 +208,29 @@ import {
   loginAsManagerFrutteto,
 } from '../tests/e2e/sim/helpers/sim-login.js';
 
+const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..');
+const diagnosticReportPath =
+  process.env.GFV_E2E_DIAGNOSTIC ||
+  join(rootDir, 'test-results', 'sim-e2e-diagnostic-report.json');
+
+function resolveRunMode() {
+  const fromArg = process.argv.find((a) => a.startsWith('--mode='));
+  const raw = (
+    (fromArg ? fromArg.slice('--mode='.length) : '') ||
+    process.env.GFV_E2E_MODE ||
+    'gate'
+  ).trim();
+  return raw === 'explore' ? 'explore' : 'gate';
+}
+
+const runMode = resolveRunMode();
+process.env.GFV_E2E_MODE = runMode;
+if (runMode === 'explore') process.env.GFV_E2E_FAST = '1';
+const strictExplore =
+  process.argv.includes('--strict') ||
+  process.env.GFV_E2E_STRICT === '1' ||
+  process.env.GFV_E2E_STRICT === 'true';
+
 const baseURL = process.env.GFV_E2E_BASE_URL || 'http://127.0.0.1:8000';
 
 async function checkHttp(url, label) {
@@ -215,9 +257,9 @@ async function checkManifest() {
 
 function launchOptions() {
   const headless = process.env.GFV_E2E_HEADED !== '1';
-  const opts = { headless, timeout: 60_000 };
+  const opts = { headless, timeout: simE2eBrowserLaunchTimeout() };
   if (!headless) {
-    opts.slowMo = Number(process.env.GFV_E2E_SLOWMO) || 400;
+    opts.slowMo = Number(process.env.GFV_E2E_SLOWMO) || (isSimE2eFastMode() ? 0 : 400);
   }
   if (process.env.GFV_E2E_BROWSER_CHANNEL) {
     opts.channel = process.env.GFV_E2E_BROWSER_CHANNEL;
@@ -750,6 +792,41 @@ const SCENARIOS = [
       await runTrattamentoFruttetoCompletaWriteAssertions(page, expect);
     },
   },
+  {
+    name: 'trattori-write',
+    run: async (page) => {
+      const { runTrattoriWriteAssertions } = await import('../tests/e2e/sim/scenarios/trattori-write.mjs');
+      await runTrattoriWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'lavori-caposquadra-write',
+    run: async (page) => {
+      const { runLavoriCaposquadraWriteAssertions } = await import('../tests/e2e/sim/scenarios/lavori-caposquadra-write.mjs');
+      await runLavoriCaposquadraWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'concimazione-frutteto-completa-write',
+    run: async (page) => {
+      const { runConcimazioneFruttetoCompletaWriteAssertions } = await import('../tests/e2e/sim/scenarios/concimazione-frutteto-completa-write.mjs');
+      await runConcimazioneFruttetoCompletaWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'mista-azienda-read',
+    run: async (page) => {
+      const { runMistaAziendaReadAssertions } = await import('../tests/e2e/sim/scenarios/mista-azienda-read.mjs');
+      await runMistaAziendaReadAssertions(page, expect);
+    },
+  },
+  {
+    name: 'flusso-operativo-azienda',
+    run: async (page) => {
+      const { runFlussoOperativoAziendaAssertions } = await import('../tests/e2e/sim/scenarios/flusso-operativo-azienda.mjs');
+      await runFlussoOperativoAziendaAssertions(page, expect);
+    },
+  },
 ];
 
 /** @param {typeof SCENARIOS} scenarios */
@@ -760,13 +837,25 @@ function resolveScenariosToRun(scenarios) {
     process.env.GFV_E2E_ONLY ||
     ''
   ).trim();
-  if (!raw) return scenarios;
+
+  const specNames = readdirSync(join(rootDir, 'tests/e2e/sim')).filter((f) => f.endsWith('.spec.js'));
+  const registryById = new Map(
+    buildRegistryFromSpecs(specNames).map((s) => [s.id, s])
+  );
+
+  let pool = scenarios.filter((s) => {
+    if (runMode === 'explore') return true;
+    const meta = registryById.get(s.name) || buildScenarioMetaFromSpec(`${s.name}.spec.js`);
+    return resolveAppScenarioMode(meta) === 'gate';
+  });
+
+  if (!raw) return pool;
 
   const wanted = raw
     .split(/[,;\s]+/)
     .map((s) => s.trim())
     .filter(Boolean);
-  if (wanted.length === 0) return scenarios;
+  if (wanted.length === 0) return pool;
 
   const known = new Set(scenarios.map((s) => s.name));
   const missing = wanted.filter((name) => !known.has(name));
@@ -783,6 +872,13 @@ function resolveScenariosToRun(scenarios) {
     .sort((a, b) => order.get(a.name) - order.get(b.name));
 }
 
+async function writeDiagnosticReport(report) {
+  await mkdir(dirname(diagnosticReportPath), { recursive: true });
+  await writeFile(diagnosticReportPath, `${JSON.stringify(report, null, 2)}\n`, 'utf8');
+  console.log(`[sim:e2e] diagnostic → ${diagnosticReportPath}`);
+  printSimDiagnosticSummary(report);
+}
+
 async function main() {
   const scenarios = resolveScenariosToRun(SCENARIOS);
   const filterLabel =
@@ -790,38 +886,85 @@ async function main() {
       ? `${scenarios.length} scenari`
       : `${scenarios.length} scenari (filtro: ${scenarios.map((s) => s.name).join(', ')})`;
 
-  console.log(`[sim:e2e] prerequisiti… (${filterLabel})`);
+  console.log(`[sim:e2e] prerequisiti… (${filterLabel}, mode=${runMode})`);
+  if (runMode === 'explore' && !strictExplore) {
+    console.log('[sim:e2e] explore: fallimenti → findings, exit 0 (usa --strict per bloccare)');
+  }
+  if (isSimE2eFastMode()) {
+    console.log('[sim:e2e] fast mode: timeout nav 18s / login 12s (GFV_E2E_TIMEOUT_MS per override)');
+  }
   await checkHttp(`${baseURL}/`, 'http-server (npm start)');
   await checkHttp('http://127.0.0.1:8080/', 'Firestore emulator (sim:emulators)');
   await checkManifest();
 
   const browser = await chromium.launch(launchOptions());
   const context = await browser.newContext({ baseURL });
-  const page = await context.newPage();
 
   let passed = 0;
   const failures = [];
+  /** @type {Array<object>} */
+  const resultRows = [];
+  const specNames = readdirSync(join(rootDir, 'tests/e2e/sim')).filter((f) => f.endsWith('.spec.js'));
+  const registryById = new Map(
+    buildRegistryFromSpecs(specNames).map((s) => [s.id, s])
+  );
 
   for (const scenario of scenarios) {
+    const meta = registryById.get(scenario.name) || buildScenarioMetaFromSpec(`${scenario.name}.spec.js`);
+    const page = await context.newPage();
     process.stdout.write(`[sim:e2e] ${scenario.name} … `);
     try {
       await scenario.run(page);
       passed += 1;
       console.log('OK');
+      resultRows.push({
+        id: scenario.name,
+        mode: resolveAppScenarioMode(meta),
+        category: meta.category,
+        passed: true,
+      });
     } catch (err) {
       console.log('FAIL');
-      failures.push({ name: scenario.name, error: err });
+      const observed = await captureSimFailureContext(page).catch(() => ({}));
+      const finding = buildSimFinding({ scenario: meta, error: err, observed });
+      failures.push({ name: scenario.name, error: err, finding });
+      resultRows.push({
+        id: scenario.name,
+        mode: resolveAppScenarioMode(meta),
+        category: meta.category,
+        passed: false,
+        error: err.message || String(err),
+        classification: finding.classification,
+      });
+    } finally {
+      await page.close().catch(() => {});
     }
   }
 
   await browser.close();
 
+  const findings = failures.map((f) => f.finding).filter(Boolean);
+  const diagnosticReport = buildSimDiagnosticReport({
+    runMode,
+    results: resultRows,
+    findings,
+    strict: runMode === 'gate' || strictExplore,
+  });
+  await writeDiagnosticReport(diagnosticReport);
+
+  const shouldFailExit = failures.length > 0 && (runMode === 'gate' || strictExplore);
+
   if (failures.length) {
     console.error('\n[sim:e2e] Falliti:');
     for (const f of failures) {
-      console.error(`  • ${f.name}: ${f.error.message || f.error}`);
+      const cls = f.finding?.classification ? ` [${f.finding.classification}]` : '';
+      console.error(`  • ${f.name}${cls}: ${f.error.message || f.error}`);
     }
-    process.exit(1);
+    if (!shouldFailExit) {
+      console.warn(`[sim:e2e] explore: ${failures.length} finding(s) — exit 0`);
+    } else {
+      process.exit(1);
+    }
   }
 
   console.log(`\n[sim:e2e] ${passed}/${scenarios.length} scenari OK`);

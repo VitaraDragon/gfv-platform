@@ -10,9 +10,9 @@ alwaysApply: true
 1. **Leggi** `docs-sviluppo/tony/README.md` – panoramica e link
 2. **Leggi** `docs-sviluppo/tony/MASTER_PLAN.md` – visione, architettura, principi di scalabilità
 3. **Leggi** `docs-sviluppo/tony/STATO_ATTUALE.md` – stato verificato sul codice (§8 handoff agenti)
-4. **Se continui lavoro in corso** (performance/nav, TTS voce): leggi il handoff pertinente in `docs-sviluppo/tony/HANDOFF_CONTINUITA_PERFORMANCE_NAV.md` e/o `HANDOFF_TTS_CHIRP3.md`
+4. **Se continui lavoro in corso** (performance/nav, TTS voce): leggi il handoff pertinente in `docs-sviluppo/in-sviluppo/tony/HANDOFF_CONTINUITA_PERFORMANCE_NAV.md` e/o `docs-sviluppo/tony/HANDOFF_TTS_CHIRP3.md`
 
-**Manodopera / squadre / sostituzioni operai / equipaggio su lavori** (anche senza toccare Tony): leggi **`docs-sviluppo/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md`** prima di proporre implementazione — è il piano di design versionato in repo (shortlist, disponibilità automatica, policy tenant).
+**Manodopera / squadre / sostituzioni operai / equipaggio su lavori** (anche senza toccare Tony): leggi **`docs-sviluppo/da-fare/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md`** prima di proporre implementazione — è il piano di design versionato in repo (shortlist, disponibilità automatica, policy tenant).
 
 ## Regole obbligatorie
 
@@ -25,7 +25,7 @@ alwaysApply: true
 - Per il Context Builder: `docs-sviluppo/CONTEXT_BUILDER_SPECIFICHE_SVILUPPO.md`
 - Per currentTableData e FILTER_TABLE (estendere tabelle): `docs-sviluppo/RIEPILOGO_CURRENTTABLEDATA_PER_MODULO_LISTE.md`
 - Per pagine standalone (responsive, tabelle, filtri, CSS/JS centralizzato): `docs-sviluppo/LINEA_GUIDA_RESPONSIVE_STANDALONE.md`
-- Per ipotesi future su magazzino + acquisizione documenti (Gemini/fotocamera, DDT/fattura, prezzi in attesa): `docs-sviluppo/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` (v. anche `tony/MASTER_PLAN.md` §11)
+- Per ipotesi future su magazzino + acquisizione documenti (Gemini/fotocamera, DDT/fattura, prezzi in attesa): `docs-sviluppo/da-fare/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` (v. anche `tony/MASTER_PLAN.md` §11)
 
 ## Dopo ogni lavoro completato – Documentazione da aggiornare
 

@@ -82,8 +82,8 @@ flowchart LR
 | Asset | Path / comando |
 | ----- | -------------- |
 | Review perf + smoke router | `npm run tony:perf-review` → `scripts/tony-perf-log-review.mjs` |
-| Piano canary browser (3b-C13…C21) | `docs-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` |
-| Handoff nav/perf | `docs-sviluppo/tony/HANDOFF_CONTINUITA_PERFORMANCE_NAV.md` |
+| Piano canary browser (3b-C13…C21) | `docs-sviluppo/in-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` |
+| Handoff nav/perf | `docs-sviluppo/in-sviluppo/tony/HANDOFF_CONTINUITA_PERFORMANCE_NAV.md` |
 
 I canary **3b-C*** oggi sono **manual/semi-manuali** (console + DOM). Questa guida li **formalizza** in suite Playwright riusabile.
 

@@ -96,7 +96,8 @@ export async function runPreventiviListAssertions(page, expect) {
 
   const rows = table.locator('tbody tr');
   expect(await rows.count()).toBeGreaterThanOrEqual(5);
-  expect(await rows.count()).toBeLessThanOrEqual(8);
+  // Seed 5 + margine scenari write E2E e run explore accumulati sullo stesso emulator
+  expect(await rows.count()).toBeLessThanOrEqual(12);
 
   const countText = await page.locator('#preventivi-count').textContent();
   expect(parseInt(countText, 10)).toBeGreaterThanOrEqual(5);

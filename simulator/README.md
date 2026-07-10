@@ -9,7 +9,7 @@ Guida completa: [`docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md`](../docs-svilup
 **v3 cascata:** semafori affitti/macchine + Vitest + smoke Node ✅ — guida §11.1  
 **v4 Playwright:** scenari 1–19 ✅ — guida §11.2 (18 read)  
 **v5 roadmap:** **71 spec** E2E (triple-seed viticola + frutteto + mista), M2 + M3 + P2 + **write P2 + Fase 2 write** ✅ — guida §11.3  
-**Tony E2E (post-v5):** [`docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md`](../docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md)
+**Tony E2E (post-v5):** [`docs-sviluppo/in-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md`](../docs-sviluppo/in-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md)
 
 ## Prerequisiti
 
@@ -225,7 +225,7 @@ Dopo **M2 + M3 v5** (read/write app completi), il track successivo integra **Ton
 
 **Guida operativa (checklist milestone M-T0…M-T6, matrice scenari, CI a strati):**
 
-[`docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md`](../docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md)
+[`docs-sviluppo/in-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md`](../docs-sviluppo/in-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md)
 
 **Stato:** 📋 pianificato — comandi `sim:tony:e2e*` da implementare (§12 guida).
 

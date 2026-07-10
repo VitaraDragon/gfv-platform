@@ -268,22 +268,23 @@ Tony non "compila" grafici. Può:
 - **Eliminazioni bulk**: Tony non le esegue. Guida l'utente a farle manualmente.
 - **Impostazioni sensibili**: Cambio password, revoca utenti – Tony può spiegare come fare, non eseguire senza conferma esplicita.
 - **Moduli futuri**: Ogni nuovo modulo deve essere integrato via configurazione, non con patch ad hoc.
+- **Tony Occhi (documenti)**: **non ancora implementato**. Design pronto in `docs-sviluppo/da-fare/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` — acquisizione bolla/fattura da chat (icona 📷), classificazione e routing automatici, conferma umana; v. `TONY_DECISIONI_E_REQUISITI.md` §20.
 
 ---
 
 ## 11. Riferimenti
 
 - **Stato attuale**: `docs-sviluppo/tony/STATO_ATTUALE.md`
-- **Handoff agenti — performance / nav quick reply** (backlog nav binario B, metriche client 0 CF, `tony:perf-review`, fix meteo 2026-06-10): `docs-sviluppo/tony/HANDOFF_CONTINUITA_PERFORMANCE_NAV.md`
+- **Handoff agenti — performance / nav quick reply** (backlog nav binario B, metriche client 0 CF, `tony:perf-review`, fix meteo 2026-06-10): `docs-sviluppo/in-sviluppo/tony/HANDOFF_CONTINUITA_PERFORMANCE_NAV.md`
 - **Handoff agenti — voce TTS Chirp 3 HD** (migrazione, latenza 2026-06-19, `speakingRate` 1.05): `docs-sviluppo/tony/HANDOFF_TTS_CHIRP3.md`
 - **Strategia marketing / vendita / Tony consigliere moduli** (funnel Free→Base→moduli, backlog GTM): `docs-sviluppo/STRATEGIA_MARKETING_VENDITA_HANDOFF.md`
-- **Billing v2 Abbonamento / Stripe** (Fase 1 ✅ deploy+verifica 2026-06-21 — D5: accesso off alla disattivazione, riattivazione fino a scadenza; Fasi 2–4 coterm/converti bundle): `docs-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`
+- **Billing v2 Abbonamento / Stripe** (Fase 1 ✅ deploy+verifica 2026-06-21 — D5: accesso off alla disattivazione, riattivazione fino a scadenza; Fasi 2–4 coterm/converti bundle): `docs-sviluppo/in-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`
 - **Piano audio barge-in + chunking TTS** (Fase 1 ✅): `docs-sviluppo/tony/PIANO_AUDIO_PIPELINE_BARGEIN.md`
-- **Piano ottimizzazione performance Tony** (Fase 0–**4** ✅ deploy 2026-06-03; **Segna ore workspace 3b-C21** ✅ 2026-06-04; 4.4 offline deferred; canary §1.4, magazzino §1.7, field workspace §1.9, binario B §9 Fase 4): `docs-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md`
+- **Piano ottimizzazione performance Tony** (Fase 0–**4** ✅ deploy 2026-06-03; **Segna ore workspace 3b-C21** ✅ 2026-06-04; 4.4 offline deferred; canary §1.4, magazzino §1.7, field workspace §1.9, binario B §9 Fase 4): `docs-sviluppo/in-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md`
 - **Piano performance dashboard panoramica** (Fase 0–**5** ✅ 2026-06-06; canary **`dashboard pronta` ~861 ms**; smoke `npm run dashboard:perf-smoke`): `docs-sviluppo/dashboard/PLAN_PERFORMANCE_DASHBOARD.md`
 - **PWA / deploy client**: hook **`pre-commit`** / script **`bump:pwa-cache`** aggiornano **`SW_CACHE_BUILD_ID`** in `service-worker.js` (vedi **`docs-sviluppo/GUIDA_PWA.md`** e **TONY_DECISIONI_E_REQUISITI.md** §3.8) — riduce cache stale su app installata
-- **Magazzino – ipotesi future (OCR/Gemini, bolla/fattura, prezzi in attesa)**: `docs-sviluppo/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` — da considerare quando si lavora su acquisizione documenti e movimenti d’acquisto
-- **Tony E2E simulatore (M-T0…M-T6)**: `docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md` — M-T4 ✅ mock 16/16; M-T5 ⏳ live (T-PERF-003 verificato locale 2026-07-06; stack `sim:emulators:live`)
+- **Magazzino – Tony Occhi (acquisizione documenti, design pronto)**: `docs-sviluppo/da-fare/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` — chat-first (📷 in widget), bolla/fattura, Gemini vision, conferma umana; **non implementato** (§20 decisioni)
+- **Tony E2E simulatore (M-T0…M-T6)**: `docs-sviluppo/in-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md` — M-T4 ✅ mock 16/16; M-T5 ⏳ live (T-PERF-003 verificato locale 2026-07-06; stack `sim:emulators:live`)
 - **Inventario decisioni**: `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md`
 - **Changelog**: `docs-sviluppo/COSA_ABBIAMO_FATTO.md`
 - **Sicurezza (Firestore, link pubblici, callable)**: `docs-sviluppo/SICUREZZA_FLUSSI.md`

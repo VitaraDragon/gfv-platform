@@ -4,6 +4,7 @@
  */
 
 import { assertScenarioExpect } from '../helpers/assert-scenario-expect.mjs';
+import { simE2ePause } from '../../sim/helpers/sim-e2e-timeouts.mjs';
 import { activateTonyMockCf, installTonyMockCf } from '../helpers/tony-mock-cf.js';
 import {
   applyTonyFreePlanForE2e,
@@ -164,7 +165,7 @@ export async function runMatrixScenario(page, expect, scenario) {
     }
     if (scenario.expect?.navigation?.urlIncludes) {
       await tonyConfirmNavigationIfNeeded(page);
-      await page.waitForTimeout(400);
+      await page.waitForTimeout(simE2ePause(400));
     }
   }
 

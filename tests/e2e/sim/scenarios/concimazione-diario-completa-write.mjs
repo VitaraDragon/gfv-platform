@@ -4,6 +4,7 @@
  * @module tests/e2e/sim/scenarios/concimazione-diario-completa-write
  */
 
+import { simE2ePause, simE2eTimeout } from '../../sim/helpers/sim-e2e-timeouts.mjs';
 import {
   gotoAttivitaList,
   gotoConcimazioniList,
@@ -16,6 +17,18 @@ export const E2E_CONCIMAZIONE_DIARIO_NOTE = 'GFV_SIM_E2E_CONCIMAZIONE_DIARIO';
 export const E2E_CONCIMAZIONE_DIARIO_DOSAGGIO = '3';
 /** Data attività E2E — stesso mese seed, non futura rispetto al run CI. */
 const E2E_CONCIMAZIONE_DATA = '2026-06-16';
+
+/**
+ * @param {string} step
+ * @param {() => Promise<void>} fn
+ */
+async function concStep(step, fn) {
+  try {
+    return await fn();
+  } catch (err) {
+    throw new Error(`[${step}] ${err.message || err}`);
+  }
+}
 
 /**
  * Righe concimazione collegate ad attività diario (catena B via diario).
@@ -100,12 +113,12 @@ async function waitForOurConcimazioneRow(page) {
  */
 async function openNewAttivitaModal(page) {
   await page.getByRole('button', { name: /Aggiungi Attività/i }).click();
-  await page.locator('#attivita-modal.active').waitFor({ timeout: 30_000 });
+  await page.locator('#attivita-modal.active').waitFor({ timeout: simE2eTimeout(30_000) });
   await page.waitForFunction(() => {
     const terreno = document.getElementById('attivita-terreno');
     const categoria = document.getElementById('attivita-categoria-principale');
     return terreno && terreno.options.length > 1 && categoria && categoria.options.length > 1;
-  }, { timeout: 45_000 });
+  }, { timeout: simE2eTimeout(45_000) });
 }
 
 /**
@@ -195,14 +208,6 @@ async function ensureConcimazioneTipoBeforeSubmit(page) {
  * @param {import('playwright-core').Page} page
  */
 async function ensureConcimazioneAttivitaStub(page) {
-  await page.locator('#filter-ricerca').fill('');
-  await page.waitForFunction(() => {
-    const container = document.getElementById('attivita-container');
-    if (!container || container.querySelector('.loading')) return false;
-    if (/Caricamento/i.test(container.textContent || '')) return false;
-    return container.querySelectorAll('.attivita-row').length >= 5;
-  }, { timeout: 30_000 });
-
   const hasMarker = await page.evaluate(
     (marker) =>
       Array.from(document.querySelectorAll('#attivita-container .attivita-row')).some((row) =>
@@ -213,11 +218,6 @@ async function ensureConcimazioneAttivitaStub(page) {
   if (hasMarker) return;
 
   await page.locator('#filter-ricerca').fill('');
-  await page.waitForFunction(() => {
-    const container = document.getElementById('attivita-container');
-    return container && container.querySelectorAll('.attivita-row').length >= 5;
-  }, { timeout: 30_000 });
-
   await openNewAttivitaModal(page);
   await page.locator('#attivita-data').fill(E2E_CONCIMAZIONE_DATA);
   await page.waitForFunction(
@@ -375,7 +375,7 @@ async function completeConcimazioneStubFromAttivita(page) {
   await page.waitForFunction(() => {
     const g = document.getElementById('trattamento-scarico-magazzino-group');
     return g && window.getComputedStyle(g).display !== 'none';
-  }, { timeout: 30_000 });
+  }, { timeout: simE2eTimeout(30_000) });
 
   const scaricoCb = page.locator('#trattamento-registra-scarico-magazzino');
   await scaricoCb.check({ force: true });
@@ -421,16 +421,17 @@ function concimazioneRowByAttivitaLabel(page, attivitaLabel) {
  */
 export async function runConcimazioneDiarioCompletaWriteAssertions(page, expect) {
   expect.configure({ timeout: 90_000 });
+  page.setDefaultTimeout(90_000);
 
   await loginAsManagerManodopera(page);
 
   await gotoConcimazioniList(page);
 
   if ((await ourConcimazioneAttivitaRows(page).count()) === 0) {
-    await gotoAttivitaList(page);
-    await ensureConcimazioneAttivitaStub(page);
-    await gotoConcimazioniList(page);
-    await waitForOurConcimazioneRow(page);
+    await concStep('gotoAttivitaList', () => gotoAttivitaList(page));
+    await concStep('ensureConcimazioneAttivitaStub', () => ensureConcimazioneAttivitaStub(page));
+    await concStep('gotoConcimazioniList-after-stub', () => gotoConcimazioniList(page));
+    await concStep('waitForOurConcimazioneRow', () => waitForOurConcimazioneRow(page));
   }
 
   const completedRowEarly = await findOurCompletedConcimazioneRow(page);
@@ -449,11 +450,13 @@ export async function runConcimazioneDiarioCompletaWriteAssertions(page, expect)
   }
 
   if (incompleteRow) {
-    await gotoMovimentiList(page);
+    await concStep('gotoMovimentiList-before', () => gotoMovimentiList(page));
     const usciteBefore = await countMovimentiUscita(page);
 
-    await gotoConcimazioniList(page);
-    const { productLabel, attivitaLabel } = await completeConcimazioneStubFromAttivita(page);
+    await concStep('gotoConcimazioniList-complete', () => gotoConcimazioniList(page));
+    const { productLabel, attivitaLabel } = await concStep('completeConcimazioneStubFromAttivita', () =>
+      completeConcimazioneStubFromAttivita(page)
+    );
 
     const completedRow = concimazioneRowByAttivitaLabel(page, attivitaLabel).first();
     await expect(completedRow.locator('td').nth(4)).not.toHaveText('-');

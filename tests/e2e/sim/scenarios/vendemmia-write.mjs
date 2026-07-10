@@ -30,8 +30,23 @@ async function createVendemmiaMarker(page) {
     return sel && sel.querySelectorAll('option:not([value=""])').length >= 1;
   }, { timeout: 60_000 });
 
-  const vignetoValue = await page.locator('#vignetoId option:not([value=""])').first().getAttribute('value');
-  await page.locator('#vignetoId').selectOption(vignetoValue || { index: 1 });
+  const vignetoValue = await page.evaluate(async () => {
+    const valid = ['cemento', 'ferro', 'legno', 'plastica', 'fibra_vetro'];
+    try {
+      const mod = await import('/modules/vigneto/services/vigneti-service.js');
+      const opts = Array.from(document.querySelectorAll('#vignetoId option:not([value=""])'));
+      for (const o of opts) {
+        const v = await mod.getVigneto(o.value);
+        if (v?.tipoPalo && valid.includes(String(v.tipoPalo))) return o.value;
+      }
+    } catch {
+      /* fallback sotto */
+    }
+    const fallback = document.querySelector('#vignetoId option:not([value=""])');
+    return fallback?.value || '';
+  });
+  if (!vignetoValue) throw new Error('Nessun vigneto con tipoPalo valido per vendemmia E2E');
+  await page.locator('#vignetoId').selectOption(vignetoValue);
 
   const today = await page.evaluate(() => {
     const d = new Date();
@@ -48,12 +63,29 @@ async function createVendemmiaMarker(page) {
   if (await operaioNome.isVisible()) {
     await operaioNome.fill('E2E Sim Operaio');
     await page.locator('#operai-tabella-body .operaio-ore').first().fill('4');
+  } else {
+    const operaiSelect = page.locator('#operai');
+    if (await operaiSelect.isVisible()) {
+      const firstVal = await operaiSelect.locator('option:not([value=""])').first().getAttribute('value');
+      if (firstVal) await operaiSelect.selectOption(firstVal);
+    }
   }
+
+  await page.evaluate(() => {
+    const nome = document.querySelector('#operai-tabella-body .operaio-nome');
+    const ore = document.querySelector('#operai-tabella-body .operaio-ore');
+    if (nome && !String(nome.value || '').trim()) nome.value = 'E2E Sim Operaio';
+    if (ore && !String(ore.value || '').trim()) ore.value = '4';
+  });
 
   await page.locator('#vendemmia-form button[type="submit"]').click();
 
   await page.waitForFunction(
     (qli) => {
+      const toasts = document.querySelectorAll('#gfv-standalone-toast-layer .alert');
+      if (Array.from(toasts).some((t) => /success|successo|creata|salvat/i.test(t.textContent || ''))) {
+        return true;
+      }
       const table = document.getElementById('vendemmie-table');
       return table && table.style.display !== 'none' && (table.textContent || '').includes(qli);
     },

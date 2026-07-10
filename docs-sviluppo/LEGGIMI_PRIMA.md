@@ -1,6 +1,6 @@
 # 📖 LEGGIMI PRIMA - Per Nuove Conversazioni
 
-**Ultimo aggiornamento: 2026-03-08.**
+**Ultimo aggiornamento: 2026-07-10.**
 
 ## 🎯 Questo File Contiene Tutto
 
@@ -11,7 +11,7 @@ Se stai iniziando una **nuova conversazione** su questo progetto, **LEGGI PRIMA*
 ## ⚡ Quick Start (30 secondi)
 
 1. **Leggi**: `STATO_PROGETTO_COMPLETO.md` - Contiene TUTTO
-2. **Poi leggi**: `STRATEGIA_SVILUPPO.md` - Prossimi passi
+2. **Poi leggi**: `INDICE_DOCUMENTAZIONE.md` + `DOBBIAMO_ANCORA_FARE.md` - Backlog e mappa doc
 3. **Chiedi all'utente**: Cosa vuole sviluppare ora?
 
 ---
@@ -32,11 +32,10 @@ Se stai iniziando una **nuova conversazione** su questo progetto, **LEGGI PRIMA*
   - Chi chiama chi (interazioni tra core, parco-macchine, vigneto, frutteto, ecc.)
   - Riferimenti a intersezioni-moduli (flussi e ruoli) e ad altri doc
 
-### 3. Strategia
-- **`STRATEGIA_SVILUPPO.md`**
-  - Strategia di sviluppo
-  - Ordine moduli
-  - Timeline
+### 3. Backlog e organizzazione doc
+- **`INDICE_DOCUMENTAZIONE.md`** — mappa doc (implementato / in-sviluppo / da-fare / obsoleto)
+- **`DOBBIAMO_ANCORA_FARE.md`** — backlog unificato attivo
+- **`in-sviluppo/`**, **`da-fare/`**, **`obsoleto/`** — classificazione piani e storico
 
 ### 4. Core Base (Nuovo)
 - **`PLAN_CORE_BASE.md`** ⭐ **PIANIFICAZIONE COMPLETA CORE BASE**

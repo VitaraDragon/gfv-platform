@@ -1,13 +1,23 @@
 {
-  "schemaVersion": 1,
-  "description": "Matrice scenari Tony E2E — M-T4 (16 tier 2) + M-T5 tier 3 live",
+  "schemaVersion": 2,
+  "description": "Matrice scenari Tony E2E — gate (CI PR) + explore (tier 3 / draft). schemaVersion 2: mode + contract.",
+  "defaults": {
+    "gateMode": "Scenari tier 1–2 ready — bloccano CI se falliscono",
+    "exploreMode": "Tier 3 live e draft — report diagnostico, non bloccano merge (salvo --strict)"
+  },
   "scenarios": [
     {
       "id": "T-SMOKE-001",
       "status": "ready",
+      "mode": "gate",
       "tier": 2,
       "category": "infra",
       "description": "Login manager → dashboard → widget Tony visibile (Tony Avanzato attivo)",
+      "contract": {
+        "invariant": "Dopo login sim, widget Tony visibile e Tony Avanzato attivo",
+        "primaryAsserts": ["widgetVisible", "tonyAdvancedActive"],
+        "avoidAsserts": ["responseMustMatch testo esatto"]
+      },
       "persona": "manager",
       "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerFromDevPage",
@@ -21,9 +31,15 @@
     {
       "id": "T-PERF-001",
       "status": "ready",
+      "mode": "gate",
       "tier": 2,
       "category": "perf",
       "description": "Nav quick reply — portami alle tariffe",
+      "contract": {
+        "invariant": "Nav catalogata tariffe → usedGemini false + URL tariffe",
+        "primaryAsserts": ["usedGemini false", "navigation.urlIncludes tariffe"],
+        "avoidAsserts": ["responseMustMatch frase esatta"]
+      },
       "persona": "manager",
       "templateIncludes": "conto-terzi",
       "startUrl": "/modules/conto-terzi/views/tariffe-standalone.html?emulator=1&tonyE2e=1",
@@ -40,9 +56,15 @@
     {
       "id": "T-PERF-003",
       "status": "ready",
+      "mode": "explore",
       "tier": 3,
       "category": "perf",
       "description": "Live CF — quante tariffe attive ho? (binario A quick reply)",
+      "contract": {
+        "invariant": "Domanda analitica tariffe → risposta coerente con dati seed (no sessione scaduta)",
+        "primaryAsserts": ["responseMustMatchGroups o gruppi semantici", "responseMustNotMatch errori auth"],
+        "avoidAsserts": ["testo byte-identico Gemini"]
+      },
       "persona": "manager",
       "templateIncludes": "conto-terzi",
       "startUrl": "/modules/conto-terzi/views/tariffe-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
@@ -58,9 +80,15 @@
     {
       "id": "T-PERF-004",
       "status": "ready",
+      "mode": "explore",
       "tier": 3,
       "category": "multi_domain",
       "description": "Live CF — domanda multi-dominio meteo+scorte (multi_block quick o Gemini T4)",
+      "contract": {
+        "invariant": "Domanda multi-dominio → almeno un blocco semantico (meteo OR scorte)",
+        "primaryAsserts": ["responseMustMatchGroupsMin >= 1"],
+        "avoidAsserts": ["tutti i gruppi obbligatori simultanei"]
+      },
       "persona": "manager",
       "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
       "login": "loginAsManagerFromDevPage",
@@ -71,59 +99,8 @@
         "replyTimeoutMs": 60000,
         "responseMustMatchGroupsMin": 1,
         "responseMustMatchGroups": [
-          [
-            "meteo",
-            "tempo",
-            "pioggia",
-            "prevision",
-            "previsioni",
-            "gradi",
-            "nuvol",
-            "vento",
-            "domani",
-            "sole",
-            "sereno",
-            "copert",
-            "clima",
-            "temperatur",
-            "rovesci",
-            "umid",
-            "condizion",
-            "atmosfer",
-            "cielo",
-            "maltempo",
-            "trattament",
-            "modulo meteo",
-            "non attivo",
-            "non e attivo"
-          ],
-          [
-            "scort",
-            "scorte",
-            "concime",
-            "giacenz",
-            "magazzin",
-            "sotto",
-            "prodot",
-            "bass",
-            "basse",
-            "esaur",
-            "riforn",
-            "quantit",
-            "stock",
-            "fertil",
-            "soglia",
-            "riord",
-            "livell",
-            "disponibil",
-            "insufficient",
-            "mancan",
-            "nutrient",
-            "riepilogo",
-            "paraffin",
-            "olio",
-            "riguardo alle scort"
-          ]
+          ["meteo", "tempo", "pioggia", "prevision", "previsioni", "gradi", "nuvol", "vento", "domani", "sole", "sereno", "copert", "clima", "temperatur", "rovesci", "umid", "condizion", "atmosfer", "cielo", "maltempo", "trattament", "modulo meteo", "non attivo", "non e attivo"],
+          ["scort", "scorte", "concime", "giacenz", "magazzin", "sotto", "prodot", "bass", "basse", "esaur", "riforn", "quantit", "stock", "fertil", "soglia", "riord", "livell", "disponibil", "insufficient", "mancan", "nutrient", "riepilogo", "paraffin", "olio", "riguardo alle scort"]
         ],
         "responseMustNotMatch": ["sessione scaduta", "piano free", "non ho accesso"]
       }
@@ -131,9 +108,15 @@
     {
       "id": "T-PERF-005",
       "status": "ready",
+      "mode": "explore",
       "tier": 3,
       "category": "nav",
       "description": "Live CF — nav quick reply portami alle tariffe (binario B)",
+      "contract": {
+        "invariant": "Nav live tariffe → URL tariffe + risposta coerente",
+        "primaryAsserts": ["navigation.urlIncludes", "responseMustNotMatch sessione scaduta"],
+        "avoidAsserts": ["usedGemini false obbligatorio su live"]
+      },
       "persona": "manager",
       "templateIncludes": "conto-terzi",
       "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
@@ -151,9 +134,15 @@
     {
       "id": "T-PERF-002",
       "status": "ready",
+      "mode": "gate",
       "tier": 2,
       "category": "filter_table",
       "description": "RIASSUNTO su lista lavori con seed",
+      "contract": {
+        "invariant": "Su lista lavori con seed → RIASSUNTO locale senza Gemini",
+        "primaryAsserts": ["commands RIASSUNTO", "usedGemini false"],
+        "avoidAsserts": ["testo riassunto esatto"]
+      },
       "persona": "manager",
       "startUrl": "/core/admin/gestione-lavori-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerManodopera",
@@ -169,9 +158,15 @@
     {
       "id": "T-TYPO-001",
       "status": "ready",
+      "mode": "gate",
       "tier": 1,
       "category": "typo",
       "description": "Orari workspace — typo STT-like (client recovery 0 CF)",
+      "contract": {
+        "invariant": "Typo orario STT-like → ore inject HH:MM senza chiamate CF",
+        "primaryAsserts": ["injectedFields ora-inizio/ora-fine", "cfCallsMax 0"],
+        "avoidAsserts": ["testo risposta Tony esatto"]
+      },
       "persona": "operaio",
       "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsOperaioFromDevPage",
@@ -187,9 +182,15 @@
     {
       "id": "T-TYPO-002",
       "status": "draft",
+      "mode": "explore",
       "tier": 1,
       "category": "typo",
       "description": "Orari workspace — «dalle 6 al 18» (variante «al»)",
+      "contract": {
+        "invariant": "Variante «al» → stesso contratto T-TYPO-001",
+        "primaryAsserts": ["injectedFields", "cfCallsMax 0"],
+        "avoidAsserts": []
+      },
       "persona": "operaio",
       "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsOperaioFromDevPage",
@@ -204,9 +205,15 @@
     {
       "id": "T-TYPO-004",
       "status": "draft",
+      "mode": "explore",
       "tier": 1,
       "category": "typo",
       "description": "Conferma «ok salva» dopo intervista ore — save locale 0 CF",
+      "contract": {
+        "invariant": "Conferma ok salva → save locale senza CF",
+        "primaryAsserts": ["cfCallsMax 0"],
+        "avoidAsserts": []
+      },
       "persona": "operaio",
       "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsOperaioFromDevPage",
@@ -220,9 +227,15 @@
     {
       "id": "T-DENY-001",
       "status": "ready",
+      "mode": "gate",
       "tier": 1,
       "category": "forbidden",
       "description": "Operaio — APRI_PAGINA gestione utenti bloccato",
+      "contract": {
+        "invariant": "Operaio → nav gestione utenti bloccata, URL invariato",
+        "primaryAsserts": ["navigation.mustNotChange", "rifiuto esplicito"],
+        "avoidAsserts": ["testo scusa esatto"]
+      },
       "persona": "operaio",
       "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsOperaioFromDevPage",
@@ -236,9 +249,15 @@
     {
       "id": "T-DENY-002",
       "status": "ready",
+      "mode": "gate",
       "tier": 2,
       "category": "forbidden",
       "description": "Manager piano Free — navigazione Tony bloccata",
+      "contract": {
+        "invariant": "Piano Free → nav bloccata con messaggio piano/abbonamento",
+        "primaryAsserts": ["navigation.mustNotChange", "usedGemini false"],
+        "avoidAsserts": []
+      },
       "persona": "manager",
       "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerFromDevPage",
@@ -254,9 +273,15 @@
     {
       "id": "T-DENY-004",
       "status": "draft",
+      "mode": "explore",
       "tier": 1,
       "category": "forbidden",
       "description": "Operaio — validazione ore bloccata (solo caposquadra)",
+      "contract": {
+        "invariant": "Operaio → validazione ore vietata",
+        "primaryAsserts": ["commandsMustNot APRI_PAGINA:validazione-ore"],
+        "avoidAsserts": []
+      },
       "persona": "operaio",
       "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsOperaioFromDevPage",
@@ -270,9 +295,15 @@
     {
       "id": "T-CONCEPT-001",
       "status": "ready",
+      "mode": "gate",
       "tier": 2,
       "category": "concept",
       "description": "Trattamento su terreno inesistente — chiarimento o rifiuto",
+      "contract": {
+        "invariant": "Terreno inesistente → nessun inject, chiarimento/rifiuto",
+        "primaryAsserts": ["commandsMustNot INJECT_FORM_DATA"],
+        "avoidAsserts": []
+      },
       "persona": "manager",
       "startUrl": "/modules/vigneto/views/trattamenti-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerFromDevPage",
@@ -286,9 +317,15 @@
     {
       "id": "T-INJECT-001",
       "status": "ready",
+      "mode": "gate",
       "tier": 2,
       "category": "inject",
       "description": "Crea lavoro entity-first (pattern 3b-C6)",
+      "contract": {
+        "invariant": "Messaggio entity-first → campi terreno e tipo-lavoro inject non vuoti",
+        "primaryAsserts": ["injectedFields terreno, tipo-lavoro"],
+        "avoidAsserts": ["valori esatti terreno/tipo"]
+      },
       "persona": "manager",
       "startUrl": "/core/admin/gestione-lavori-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerManodopera",
@@ -301,9 +338,15 @@
     {
       "id": "T-FLOW-014",
       "status": "ready",
+      "mode": "gate",
       "tier": 2,
       "category": "multi_turn",
       "description": "Preventivo multi-step — disamb. terreno + save locale + lista (3b-C14)",
+      "contract": {
+        "invariant": "Flusso preventivo multi-turn → save locale 0 CF + riga in lista",
+        "primaryAsserts": ["cfCallsMax 0", "riga preventivo in lista"],
+        "avoidAsserts": ["nomi terreno hardcoded"]
+      },
       "persona": "manager",
       "templateIncludes": "conto-terzi",
       "startUrl": "/modules/conto-terzi/views/nuovo-preventivo-standalone.html?emulator=1&tonyE2e=1",
@@ -318,9 +361,15 @@
     {
       "id": "T-FLOW-014-LIVE",
       "status": "ready",
+      "mode": "explore",
       "tier": 3,
       "category": "multi_turn",
       "description": "Preventivo live CF — crea + disamb terreno via Tony → save locale → lista (3b-C14 tier 3)",
+      "contract": {
+        "invariant": "Preventivo live → almeno 1 turno CF, save locale, nessun errore auth/piano",
+        "primaryAsserts": ["minCfTurns >= 1", "saveCfCallsMax 0"],
+        "avoidAsserts": ["wording Gemini esatto"]
+      },
       "persona": "manager",
       "templateIncludes": "conto-terzi",
       "startUrl": "/modules/conto-terzi/views/nuovo-preventivo-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
@@ -338,9 +387,16 @@
     {
       "id": "T-FLOW-013",
       "status": "ready",
+      "mode": "gate",
       "tier": 2,
       "category": "multi_turn",
       "description": "Cross-page lavoro — terreni ambigui + operaio + save (3b-C13)",
+      "contract": {
+        "invariant": "Discovery ambiguità seed → intervista → save → riga lavori (0 CF)",
+        "primaryAsserts": ["cfCallsMax 0", "riga in gestione lavori"],
+        "avoidAsserts": ["nomi terreno/operaio fissi"]
+      },
+      "requiresSeedProfile": "viticola-conto-terzi-manodopera",
       "persona": "manager",
       "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerManodopera",
@@ -354,9 +410,15 @@
     {
       "id": "T-FLOW-021",
       "status": "ready",
+      "mode": "gate",
       "tier": 2,
       "category": "multi_turn",
       "description": "Segna ore workspace — intervista + save locale + validazione manager (3b-C21)",
+      "contract": {
+        "invariant": "Intervista ore → inject HH:MM → save locale → riga ore in validazione",
+        "primaryAsserts": ["injectedFields ore", "cfCallsMax 0", "riga ore visibile"],
+        "avoidAsserts": []
+      },
       "persona": "operaio",
       "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsOperaioFromDevPage",
@@ -371,9 +433,15 @@
     {
       "id": "T-FLOW-015",
       "status": "ready",
+      "mode": "gate",
       "tier": 2,
       "category": "multi_turn",
       "description": "Save prodotto magazzino dopo inject completo (3b-C15)",
+      "contract": {
+        "invariant": "Inject prodotto completo → save locale → riga in anagrafica",
+        "primaryAsserts": ["cfCallsMax 0", "riga prodotto in lista"],
+        "avoidAsserts": []
+      },
       "persona": "manager",
       "startUrl": "/modules/magazzino/views/prodotti-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerFromDevPage",
@@ -387,9 +455,15 @@
     {
       "id": "T-FLOW-017",
       "status": "ready",
+      "mode": "gate",
       "tier": 2,
       "category": "multi_turn",
       "description": "Movimento uscita client-side + save + lista (3b-C17)",
+      "contract": {
+        "invariant": "Uscita magazzino → save locale → riga movimenti",
+        "primaryAsserts": ["cfCallsMax 0", "riga movimento"],
+        "avoidAsserts": []
+      },
       "persona": "manager",
       "startUrl": "/modules/magazzino/views/movimenti-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerFromDevPage",
@@ -403,9 +477,15 @@
     {
       "id": "T-FLOW-018",
       "status": "ready",
+      "mode": "gate",
       "tier": 2,
       "category": "multi_turn",
       "description": "Creazione prodotto client-side + save + lista (3b-C18)",
+      "contract": {
+        "invariant": "Creazione prodotto → save locale → riga in anagrafica",
+        "primaryAsserts": ["cfCallsMax 0", "riga producto"],
+        "avoidAsserts": []
+      },
       "persona": "manager",
       "startUrl": "/modules/magazzino/views/prodotti-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerFromDevPage",
@@ -419,9 +499,15 @@
     {
       "id": "T-FLOW-019",
       "status": "ready",
+      "mode": "gate",
       "tier": 2,
       "category": "multi_turn",
       "description": "Cross-page movimento entrata dashboard → save + lista (3b-C19)",
+      "contract": {
+        "invariant": "Cross-page entrata magazzino → save → riga movimenti",
+        "primaryAsserts": ["cfCallsMax 0", "nav movimenti", "riga lista"],
+        "avoidAsserts": []
+      },
       "persona": "manager",
       "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerFromDevPage",
@@ -435,9 +521,15 @@
     {
       "id": "T-FLOW-016",
       "status": "ready",
+      "mode": "gate",
       "tier": 2,
       "category": "multi_turn",
       "description": "Movimento entrata client-side + save + riga lista (3b-C16)",
+      "contract": {
+        "invariant": "Entrata magazzino → save locale → riga in lista",
+        "primaryAsserts": ["cfCallsMax 0", "riga movimento"],
+        "avoidAsserts": []
+      },
       "persona": "manager",
       "startUrl": "/modules/magazzino/views/movimenti-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerFromDevPage",

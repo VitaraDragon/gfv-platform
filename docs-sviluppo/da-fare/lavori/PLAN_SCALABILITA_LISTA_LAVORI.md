@@ -8,7 +8,7 @@
 
 **Riferimenti**:
 - `docs-sviluppo/INTEGRAZIONE_GESTIONE_LAVORI.md` — moduli pagina
-- `docs-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` — §1.3, §3b.3 (tabella lavori in context CF)
+- `docs-sviluppo/in-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` — §1.3, §3b.3 (tabella lavori in context CF)
 - `.cursor/rules/tony-pagina-lista-e-form.mdc` — canone `currentTableData` + `table-data-ready`
 - `docs-sviluppo/RIEPILOGO_CURRENTTABLEDATA_PER_MODULO_LISTE.md` — pattern FILTER_TABLE
 - Codice: `core/admin/js/gestione-lavori-controller.js` (`loadLavori`, `renderLavori`), `gestione-lavori-events.js` (`applyFilters`)

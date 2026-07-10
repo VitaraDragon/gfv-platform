@@ -25,5 +25,5 @@ npm ci --prefix functions
 echo "[sim:tony:e2e:live:ci] seed template viticola-conto-terzi-manodopera…"
 npm run sim:run -- --template=viticola-conto-terzi-manodopera
 
-echo "[sim:tony:e2e:live:ci] Tony E2E live tier 3 (gate p95)…"
-GFV_TONY_E2E_LIVE=1 GFV_TONY_E2E_ENFORCE_P95=1 CI=true npm run sim:tony:e2e:live
+echo "[sim:tony:e2e:live:ci] Tony E2E live tier 3 (explore + strict + gate p95)…"
+GFV_TONY_E2E_LIVE=1 GFV_TONY_E2E_ENFORCE_P95=1 CI=true npm run sim:tony:e2e:live -- --strict

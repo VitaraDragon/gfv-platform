@@ -14,8 +14,7 @@
 - **Aggiornamento 2026-04-11**: **FATTO** in codice (verifica incrociata). In `firestore.rules`, `match /inviti/{invitoId}` — `allow create` è vincolata a utente autenticato, campi obbligatori, `inviatoDa == request.auth.uid`, `belongsToTenant` + `isManagerOrAdmin` sul `tenantId` (non più `create: if true`). Dettaglio storico: `COSA_ABBIAMO_FATTO.md` §2026-04-04; perimetro `docs-sviluppo/SICUREZZA_FLUSSI.md`.
 
 ### 1.2 Documentazione – Indice unico
-- **Cosa**: Molti file in docs-sviluppo; manca un indice che indichi “stato attuale” vs “storico” e dove trovare sicurezza, moduli, Tony.
-- **Da fare**: Creare **INDICE_DOCUMENTAZIONE.md** (o sezione in README) con: onboarding (LEGGIMI_PRIMA, STATO_PROGETTO_COMPLETO, ARCHITETTURA_MODULI), sicurezza (firestore.rules + istruzioni), moduli (ARCHITETTURA_MODULI, PLAN_*), Tony (GUIDA_SVILUPPO_TONY, CHECKLIST_TONY); indicare quali doc sono “stato attuale” e quali “storico”.
+- **Aggiornamento 2026-07-10**: **FATTO** — creato **`INDICE_DOCUMENTAZIONE.md`** + cartelle **`obsoleto/`**, **`in-sviluppo/`**, **`da-fare/`** (vedi README in ciascuna). Riorganizzati ~105 file; doc canonici restano in root e `tony/`.
 
 ### 1.3 Tony – Riepilogo su altre pagine lista
 - **Cosa**: Il riepilogo Tony (risposte tipo “Quanti sono?”, “Cosa c’è in lista?”) è già su: **tutte le liste Macchine** (trattori, attrezzi, flotta, scadenze, guasti), **entrambe le liste Magazzino** (prodotti, movimenti), **terreni**, **diario attività**, **gestione lavori** (2026-03-08).
@@ -67,7 +66,7 @@
 - **Un solo punto di init Tony**: Se lo standalone-bootstrap garantisce Firebase pronto prima di inserire Tony, ridurre o eliminare il polling in getAppInstance() e semplificare l’init. *(§4.1.)*
 
 ### 3.3 Documentazione storica
-- Archiviare o raggruppare i RIEPILOGO_LAVORI_* e mantenere un unico “stato attuale” aggiornato.
+- **Aggiornamento 2026-07-10**: **FATTO** — `RIEPILOGO_LAVORI_*`, refactoring completati e analisi superate spostati in **`docs-sviluppo/obsoleto/`**. Stato attuale: `STATO_PROGETTO_COMPLETO.md`, `tony/STATO_ATTUALE.md`, `COSA_ABBIAMO_FATTO.md`.
 
 ---
 

@@ -3,6 +3,8 @@
  * @module tests/e2e/tony/helpers/tony-widget
  */
 
+import { simE2ePause, simE2eTimeout } from '../../sim/helpers/sim-e2e-timeouts.mjs';
+
 const DEFAULT_REPLY_TIMEOUT_MS = 45_000;
 const REPLY_STABLE_MS = 400;
 
@@ -12,6 +14,7 @@ const REPLY_STABLE_MS = 400;
  * @param {{ timeoutMs?: number }} [opts]
  */
 export async function waitForTonyReady(page, { timeoutMs = 90_000 } = {}) {
+  const timeout = simE2eTimeout(timeoutMs);
   try {
     await page.waitForFunction(
       () => {
@@ -25,7 +28,7 @@ export async function waitForTonyReady(page, { timeoutMs = 90_000 } = {}) {
         );
       },
       null,
-      { timeout: timeoutMs }
+      { timeout }
     );
   } catch (err) {
     const diag = await page.evaluate(() => ({
@@ -41,7 +44,7 @@ export async function waitForTonyReady(page, { timeoutMs = 90_000 } = {}) {
   await page.waitForFunction(
     () => typeof window.__tonyDisplayProactive === 'function',
     null,
-    { timeout: timeoutMs }
+    { timeout }
   ).catch(() => {});
 }
 
@@ -60,7 +63,7 @@ export async function waitForTonyReadyWithRetry(page, { timeoutMs = 90_000, retr
     } catch (err) {
       lastErr = err;
       if (attempt < retries) {
-        await page.waitForTimeout(1500 * (attempt + 1));
+        await page.waitForTimeout(simE2ePause(1500 * (attempt + 1)));
       }
     }
   }
@@ -103,7 +106,7 @@ export async function tonySendMessage(page, text) {
   const trimmed = String(text || '').trim();
   if (!trimmed) throw new Error('tonySendMessage: testo vuoto');
   await openTonyPanel(page);
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(simE2ePause(600));
   const tonyCountBefore = await page.evaluate(
     () =>
       document.querySelectorAll(
@@ -146,11 +149,11 @@ export async function tonySendMessage(page, text) {
 export async function tonySendMessageCrossPage(page, text, opts = {}) {
   const trimmed = String(text || '').trim();
   if (!trimmed) throw new Error('tonySendMessageCrossPage: testo vuoto');
-  const timeoutMs = opts.timeoutMs || 90_000;
+  const timeoutMs = simE2eTimeout(opts.timeoutMs || 90_000);
   const navPattern = opts.navUrlPattern || /gestione-lavori-standalone\.html/;
 
   await openTonyPanel(page);
-  await page.waitForTimeout(600);
+  await page.waitForTimeout(simE2ePause(600));
   const tonyCountBefore = await page.evaluate(
     () =>
       document.querySelectorAll(
@@ -171,7 +174,7 @@ export async function tonySendMessageCrossPage(page, text, opts = {}) {
   const deadline = Date.now() + timeoutMs;
   while (Date.now() < deadline) {
     if (navPattern.test(page.url())) return tonyCountBefore;
-    await page.waitForTimeout(250);
+    await page.waitForTimeout(simE2ePause(250));
   }
 
   const hasPending = await page.evaluate(() => {
@@ -195,10 +198,11 @@ export async function tonySendMessageCrossPage(page, text, opts = {}) {
  * @returns {Promise<string>} testo ultima bolla assistant
  */
 export async function tonyWaitForReply(page, { timeoutMs = DEFAULT_REPLY_TIMEOUT_MS, stableMs = REPLY_STABLE_MS, tonyCountBefore = null } = {}) {
+  const replyTimeout = simE2eTimeout(timeoutMs);
   const countBefore = typeof tonyCountBefore === 'number'
     ? tonyCountBefore
     : await page.evaluate(() => document.querySelectorAll('#tony-messages .tony-msg.tony').length);
-  const deadline = Date.now() + timeoutMs;
+  const deadline = Date.now() + replyTimeout;
   let lastText = '';
   let stableSince = 0;
 
@@ -231,7 +235,7 @@ export async function tonyWaitForReply(page, { timeoutMs = DEFAULT_REPLY_TIMEOUT
     await page.waitForTimeout(100);
   }
   if (lastText) return lastText;
-  throw new Error(`tonyWaitForReply: timeout ${timeoutMs}ms (ultimo: "${lastText.slice(0, 80)}")`);
+  throw new Error(`tonyWaitForReply: timeout ${replyTimeout}ms (ultimo: "${lastText.slice(0, 80)}")`);
 }
 
 /**

@@ -1,6 +1,6 @@
 /**
  * Livello 1 — ogni scenario typo/forbidden in scenarios-matrix.json ha copertura Vitest.
- * @see docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md §M-T2
+ * @see docs-sviluppo/in-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md §M-T2
  */
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
