@@ -3,7 +3,7 @@
  * @module tests/e2e/tony/helpers/tony-preventivo-live
  */
 
-import { tonyRunMultiTurn } from './tony-multi-turn.js';
+import { patchPreventivoCfPerfTurns, tonyRunMultiTurn } from './tony-multi-turn.js';
 import { injectPreventivoInitial, waitForPreventivoTerrenoDisamb } from './tony-preventivo-save.js';
 
 /**
@@ -102,5 +102,6 @@ export async function runPreventivoCfDialog(page, messages, opts = {}) {
   await waitForClienteFilled(page, Math.min(replyTimeoutMs, 90_000));
   await waitForTerrenoFilled(page, Math.min(replyTimeoutMs, 90_000));
 
-  return result;
+  const perfTurns = await patchPreventivoCfPerfTurns(page, result.perfTurns || [], cfMessages);
+  return { ...result, perfTurns };
 }

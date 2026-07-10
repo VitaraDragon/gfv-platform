@@ -1,6 +1,6 @@
 # Stato attuale Tony – Verificato sul codice
 
-**Data**: 2026-07-08 (… **Tony E2E CI** — push + workflow_dispatch verde, tier 3 live 4/4 su GitHub; … **Tony E2E M-T5** — suite tier 3 live + gate p95; …)  
+**Data**: 2026-07-10 (… **Tony E2E flake fix** — T-FLOW-013 terreno post-save + T-FLOW-014-LIVE metriche CF; … **Tony E2E CI** — push + dispatch verde; … **Tony E2E M-T5** — suite tier 3 live + gate p95; …)  
 **Fonte**: codice + `TONY_DECISIONI_E_REQUISITI.md` (… **hub navigazione manodopera manager** — 2026-06-13; **manodopera validazione ore capo→manager + field workspace slide Valida ore** — 2026-05-19)  
 **Sicurezza (link pubblici, Firestore, callable)**: `docs-sviluppo/SICUREZZA_FLUSSI.md`
 
@@ -175,7 +175,7 @@ Guida operativa: **`docs-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md`**. Matri
 | Milestone | Stato | Contenuto |
 | --------- | ----- | --------- |
 | **M-T4** | ✅ | 16 scenari **tier 2 mock** — `npm run sim:tony:e2e` (PR CI `simulator-tony-e2e-mock`) |
-| **M-T5** | ✅ | 4 scenari **tier 3 live** — verificati **locale** (2026-07-07) e **CI GitHub** dispatch (2026-07-08): T-PERF-003/004/005 + T-FLOW-014-LIVE; report `test-results/tony-e2e-live-report.json`; gate p95 enforce in `simulator-ci.yml` |
+| **M-T5** | ✅ | 4 scenari **tier 3 live** — verificati locale e CI; flake **T-FLOW-014-LIVE** (`minCfTurns`) mitigato 2026-07-10 (`patchPreventivoCfPerfTurns`, ordine `afterTurn`→perf); gate p95 enforce in `simulator-ci.yml` |
 | **M-T6** | 📋 | Chiusura track (matrice ≥50, handoff resto manuale) |
 
 **Strategia CF (§8 guida):** tier 2 = mock client (`tony-mock-cf.js`); tier 3 = **Functions emulator locale** (Opzione B) con `GEMINI_API_KEY` in `functions/.secret.local` (gitignored). CI notturno: `sim:tony:e2e:live:ci` + secret repo.
@@ -207,7 +207,7 @@ Documenti creati per riprendere il lavoro **senza perdere contesto** (prompt, ba
 
 Indice: `docs-sviluppo/tony/README.md`.
 
-**Tony + sim E2E (2026-07-08, M-T4 ✅, M-T5 ✅):** push CI verde (71/71 sim, 16/16 tier 2); **workflow_dispatch** tier 3 live **4/4** + gate p95 (p50 2519 ms, p95 10930 ms). Fix CI: `stripe-prices.json` da `generate-tony-configs.js`, post-save T-FLOW-013, `GEMINI_API_KEY` secret. Guida: `TONY_E2E_GUIDA_SVILUPPO.md` §8–§10.
+**Tony + sim E2E (2026-07-10, M-T4 ✅, M-T5 ✅):** fix flake **T-FLOW-013** (terreno obbligatorio pre-save) e **T-FLOW-014-LIVE** (cattura metriche CF). Monitoraggio CI: run schedule [28997862818](https://github.com/VitaraDragon/gfv-platform/actions/runs/28997862818) fallito solo su T-FLOW-014-LIVE; gate p95 OK. Guida: `TONY_E2E_GUIDA_SVILUPPO.md` §8–§10.
 
 ---
 

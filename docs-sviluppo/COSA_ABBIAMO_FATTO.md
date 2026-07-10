@@ -1,6 +1,15 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-08 — CI Tony E2E push + workflow_dispatch verde (tier 2 + tier 3 live).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-10 — fix flake E2E T-FLOW-013 / T-FLOW-014-LIVE.
+
+## Tony + Simulatore — fix flake E2E T-FLOW-013 + T-FLOW-014-LIVE (2026-07-10)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| Contesto | Run CI [28956638510](https://github.com/VitaraDragon/gfv-platform/actions/runs/28956638510), [28997862818](https://github.com/VitaraDragon/gfv-platform/actions/runs/28997862818) — tier 2 **T-FLOW-013** post-save (terreno vuoto); tier 3 **T-FLOW-014-LIVE** `minCfTurns` 0 (metriche CF non catturate) |
+| **T-FLOW-013** | `ensureLavoroFormComplete` — fill `#lavoro-terreno` da `ctx.terrenoAmbig` (`pickId` in discovery); re-check prima `requestSubmit` |
+| **T-FLOW-014-LIVE** | `tonyRunMultiTurn` — `afterTurn` prima di `waitForTonyTurnPerf`; `patchPreventivoCfPerfTurns` se cliente compilato ma `cfCalled` assente |
+| Gate p95 | Invariato — nessun breach sui run falliti (solo assert funzionali) |
 
 ## Tony + Simulatore — CI verde push + dispatch (2026-07-08)
 

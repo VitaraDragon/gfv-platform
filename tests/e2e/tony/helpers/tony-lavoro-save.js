@@ -16,9 +16,12 @@ export async function ensureLavoroFormComplete(page, ctx = {}) {
   const tipoChat = ctx?.tipoLavoro?.chatReply || 'trinciatura tra le file';
   const trHint = ctx?.trattorePatch?.hint || '';
   const atHint = ctx?.attrezzoPatch?.hint || '';
+  const terrenoDisamb = ctx?.terrenoAmbig?.disambReply || '';
+  const terrenoNome = ctx?.terrenoAmbig?.pickNome || '';
+  const terrenoId = ctx?.terrenoAmbig?.pickId || '';
 
   await page.evaluate(
-    async ({ tipoNomeArg, tipoChatArg, trHintArg, atHintArg }) => {
+    async ({ tipoNomeArg, tipoChatArg, trHintArg, atHintArg, terrenoDisambArg, terrenoNomeArg, terrenoIdArg }) => {
       const tipoEl = document.getElementById('lavoro-tipo-lavoro');
       const catEl = document.getElementById('lavoro-categoria-principale');
       const injector = window.TonyFormInjector;
@@ -31,6 +34,35 @@ export async function ensureLavoroFormComplete(page, ctx = {}) {
       async function injectPatch(patch) {
         if (!injector?.injectLavoroForm) return;
         await injector.injectLavoroForm(patch, (window.Tony && window.Tony.context) || {});
+      }
+
+      const terrenoEl = document.getElementById('lavoro-terreno');
+      if (terrenoEl && !String(terrenoEl.value || '').trim()) {
+        if (terrenoIdArg) {
+          terrenoEl.value = terrenoIdArg;
+          terrenoEl.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        if (!String(terrenoEl.value || '').trim() && injector?.applyLavoroInterviewFromUserReply && terrenoDisambArg) {
+          await applyReply(terrenoDisambArg);
+        }
+        if (!String(terrenoEl.value || '').trim() && terrenoNomeArg) {
+          const stTer = window.lavoriState;
+          const terreni = (stTer && stTer.terreniList) || [];
+          const norm = (v) =>
+            String(v || '')
+              .toLowerCase()
+              .trim()
+              .replace(/\s+/g, ' ');
+          const hit =
+            terreni.find((t) => norm(t.nome) === norm(terrenoNomeArg)) ||
+            (injector?.findTerrenoInInterviewText
+              ? injector.findTerrenoInInterviewText(terrenoDisambArg || terrenoNomeArg, terreni)?.terreno
+              : null);
+          if (hit && hit.id) {
+            terrenoEl.value = hit.id;
+            terrenoEl.dispatchEvent(new Event('change', { bubbles: true }));
+          }
+        }
       }
 
       if (tipoEl && !tipoEl.value) {
@@ -86,6 +118,9 @@ export async function ensureLavoroFormComplete(page, ctx = {}) {
       tipoChatArg: tipoChat,
       trHintArg: trHint,
       atHintArg: atHint,
+      terrenoDisambArg: terrenoDisamb,
+      terrenoNomeArg: terrenoNome,
+      terrenoIdArg: terrenoId,
     }
   );
 }
@@ -125,6 +160,7 @@ export async function confirmLavoroSave(page, expect, { note, ctx = {} }) {
     .catch(() => false);
 
   if (!savedEarly) {
+    await ensureLavoroFormComplete(page, ctx);
     await page.evaluate(() => {
       const form = document.getElementById('lavoro-form');
       if (form) {

@@ -110,6 +110,7 @@ export async function discoverLavoroAmbiguiContext(page) {
             query: q,
             disambReply: String(disambReply).toLowerCase(),
             pickNome,
+            pickId: pick.id || null,
             candidateCount: tied.length,
           };
         }
