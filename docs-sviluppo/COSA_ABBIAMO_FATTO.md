@@ -139,6 +139,7 @@ Doc **canonici** restano in root (`STATO_PROGETTO_COMPLETO`, `ARCHITETTURA_MODUL
 | Tony ready | attesa proactive max **8 s** (prima ereditava timeout 90 s) |
 | Post-save lavoro | max **45 s** gate; **fail-fast 8 s** se `#lavoro-modal` resta aperto (`failFast: modal-stuck`) |
 | Save 013 | `confirmLavoroSave` — retry `ensureLavoroFormComplete` se submit non chiude modal |
+| **T-FLOW-016/017** | `confirmMovimentoSave` + `ensureMovimentoFormComplete` + `waitForMovimentoCreatedInLista` (fail-fast modal movimento) |
 | Test | `tests/sim-e2e-diagnostic.test.js` — casi gate-fast CI |
 
 ## Tony + Simulatore — fix flake E2E T-FLOW-013 + T-FLOW-014-LIVE (2026-07-10)
