@@ -52,7 +52,12 @@ export async function ensureMovimentoFormComplete(page, opts = {}) {
       const prezzoEl = document.getElementById('mov-prezzo');
       const prezzoGroup = document.getElementById('prezzo-group');
 
-      if (tipoEl && !String(tipoEl.value || '').trim()) {
+      if (tipoEl && tipoArg) {
+        if (String(tipoEl.value || '').trim() !== tipoArg) {
+          tipoEl.value = tipoArg;
+          tipoEl.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      } else if (tipoEl && !String(tipoEl.value || '').trim()) {
         tipoEl.value = tipoArg;
         tipoEl.dispatchEvent(new Event('change', { bubbles: true }));
       }
@@ -72,13 +77,21 @@ export async function ensureMovimentoFormComplete(page, opts = {}) {
           prodEl.dispatchEvent(new Event('change', { bubbles: true }));
         }
       }
-      if (qtyEl && !String(qtyEl.value || '').trim()) {
+      if (qtyEl && qtyArg) {
+        if (String(qtyEl.value || '').trim() !== String(qtyArg)) {
+          qtyEl.value = qtyArg;
+          qtyEl.dispatchEvent(new Event('input', { bubbles: true }));
+          qtyEl.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+      } else if (qtyEl && !String(qtyEl.value || '').trim()) {
         qtyEl.value = qtyArg;
         qtyEl.dispatchEvent(new Event('input', { bubbles: true }));
         qtyEl.dispatchEvent(new Event('change', { bubbles: true }));
       }
       if (tipoEl && tipoEl.value === 'entrata' && prezzoGroup) {
         prezzoGroup.style.display = 'block';
+      } else if (tipoEl && tipoEl.value === 'uscita' && prezzoGroup) {
+        prezzoGroup.style.display = 'none';
       }
       if (prezzoEl && tipoEl && tipoEl.value === 'entrata' && !String(prezzoEl.value || '').trim()) {
         prezzoEl.value = '1';
@@ -87,6 +100,122 @@ export async function ensureMovimentoFormComplete(page, opts = {}) {
     },
     { tipoArg: tipoDefault, qtyArg: qtyDefault, hintArg: prodottoHint }
   );
+}
+
+/**
+ * @param {import('playwright-core').Page} page
+ * @param {number} minQty
+ * @param {string} [prodottoHint]
+ */
+export async function pickProdottoWithGiacenzaForE2e(page, minQty, prodottoHint = 'rame') {
+  const picked = await page.evaluate(
+    ({ min, hint }) => {
+      const prodotti = window.__gfvMagazzinoProdotti || [];
+      const norm = (v) => String(v || '').toLowerCase();
+      const hinted = prodotti.filter(
+        (p) => norm(p.nome).includes(norm(hint)) || norm(p.codice || '').includes(norm(hint))
+      );
+      const pool = hinted.length ? hinted : prodotti;
+      let best = null;
+      for (const p of pool) {
+        const giacenza = p.giacenza != null ? Number(p.giacenza) : 0;
+        if (giacenza >= min && (!best || giacenza > best.giacenza)) {
+          best = { id: p.id, label: p.nome || p.codice || p.id, giacenza };
+        }
+      }
+      return best;
+    },
+    { min: minQty, hint: prodottoHint }
+  );
+  if (!picked?.id) {
+    throw new Error(`Nessun prodotto con giacenza >= ${minQty} (hint: ${prodottoHint})`);
+  }
+  return picked;
+}
+
+/**
+ * Garantisce giacenza minima per uscita E2E (entrata bootstrap se necessario).
+ * @param {import('playwright-core').Page} page
+ * @param {{ minQty?: number, prodottoHint?: string }} [opts]
+ */
+export async function ensureGiacenzaForMovimentoUscita(page, opts = {}) {
+  const minQty = Number(opts.minQty) || 5;
+  const prodottoHint = opts.prodottoHint || 'rame';
+  const picked = await pickProdottoWithGiacenzaForE2e(page, minQty, prodottoHint).catch(() => null);
+
+  if (picked?.id) {
+    return picked;
+  }
+
+  await page.evaluate(
+    async ({ min, hint }) => {
+      const modal = document.getElementById('movimento-modal');
+      if (modal?.classList.contains('active')) {
+        const closeBtn =
+          modal.querySelector('.modal-close') ||
+          modal.querySelector('[data-dismiss="modal"]') ||
+          modal.querySelector('button.close');
+        if (closeBtn) closeBtn.click();
+        else modal.classList.remove('active');
+        await new Promise((r) => setTimeout(r, 300));
+      }
+
+      const prodotti = window.__gfvMagazzinoProdotti || [];
+      const norm = (v) => String(v || '').toLowerCase();
+      const pick =
+        prodotti.find((p) => norm(p.nome).includes(norm(hint))) ||
+        prodotti.find((p) => norm(p.codice || '').includes(norm(hint))) ||
+        prodotti[0];
+      if (!pick) throw new Error('no-product');
+      const g = Number(pick.giacenza) || 0;
+      const need = Math.max(min - g + 1, min);
+      const btn = document.getElementById('btn-nuovo-movimento');
+      if (btn) btn.click();
+      await new Promise((r) => setTimeout(r, 500));
+      const tipoEl = document.getElementById('mov-tipo');
+      const prodEl = document.getElementById('mov-prodotto');
+      const qtyEl = document.getElementById('mov-quantita');
+      const dataEl = document.getElementById('mov-data');
+      const prezzoEl = document.getElementById('mov-prezzo');
+      const prezzoGroup = document.getElementById('prezzo-group');
+      if (tipoEl) {
+        tipoEl.value = 'entrata';
+        tipoEl.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      if (prezzoGroup) prezzoGroup.style.display = 'block';
+      if (prodEl) {
+        prodEl.value = pick.id;
+        prodEl.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+      if (dataEl) dataEl.value = new Date().toISOString().slice(0, 10);
+      if (qtyEl) qtyEl.value = String(need);
+      if (prezzoEl && !prezzoEl.value) prezzoEl.value = '1';
+      const form = document.getElementById('movimento-form');
+      if (form) {
+        form.setAttribute('novalidate', 'novalidate');
+        form.requestSubmit();
+      }
+    },
+    { min: minQty, hint: prodottoHint }
+  );
+
+  await page
+    .waitForFunction(
+      () => {
+        const modal = document.getElementById('movimento-modal');
+        return !modal || !modal.classList.contains('active');
+      },
+      null,
+      { timeout: 20_000 }
+    )
+    .catch(() => {});
+
+  await page.evaluate(async () => {
+    if (typeof loadProdotti === 'function') await loadProdotti();
+    if (typeof loadMovimenti === 'function') await loadMovimenti();
+  });
+
+  return pickProdottoWithGiacenzaForE2e(page, minQty, prodottoHint);
 }
 
 async function sendSalvaTurn(page, opts = {}) {
@@ -214,11 +343,34 @@ export async function confirmProdottoSave(page, opts = {}) {
  * @param {{ note?: string }} [opts]
  */
 export async function confirmMovimentoSave(page, opts = {}) {
+  if (opts.tipo === 'uscita') {
+    const minQty = Number(opts.quantita) || 5;
+    try {
+      const picked = await ensureGiacenzaForMovimentoUscita(page, {
+        minQty,
+        prodottoHint: opts.prodottoHint || 'rame',
+      });
+      opts = { ...opts, prodottoId: picked.id, prodottoHint: picked.label || opts.prodottoHint };
+    } catch {
+      /* bootstrap fallito — ensureMovimentoFormComplete proverà comunque */
+    }
+  }
+
   await ensureMovimentoFormComplete(page, {
     tipo: opts.tipo,
     quantita: opts.quantita,
     prodottoHint: opts.prodottoHint,
   });
+
+  if (opts.prodottoId) {
+    await page.evaluate((id) => {
+      const prodEl = document.getElementById('mov-prodotto');
+      if (prodEl && id) {
+        prodEl.value = id;
+        prodEl.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }, opts.prodottoId);
+  }
 
   if (opts.note) {
     const noteField = page.locator('#mov-note');

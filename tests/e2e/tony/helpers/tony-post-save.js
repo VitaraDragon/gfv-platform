@@ -5,6 +5,7 @@
 
 import {
   simE2eTonyPostSaveWaitTimeout,
+  simE2eTimeout,
   TONY_E2E_MODAL_STUCK_MS,
 } from '../../sim/helpers/sim-e2e-timeouts.mjs';
 import {
@@ -258,9 +259,9 @@ export async function assertOrePendingInValidazione(page, expect, opts = {}) {
  * Attende toast o riga lista dopo creazione movimento (con refresh render).
  * @param {import('playwright-core').Page} page
  * @param {string} marker
- * @param {{ timeoutMs?: number }} [opts]
+ * @param {{ timeoutMs?: number, tipo?: 'entrata'|'uscita' }} [opts]
  */
-export async function waitForMovimentoCreatedInLista(page, marker, { timeoutMs } = {}) {
+export async function waitForMovimentoCreatedInLista(page, marker, { timeoutMs, tipo } = {}) {
   const totalMs =
     typeof timeoutMs === 'number' ? timeoutMs : simE2eTonyPostSaveWaitTimeout();
   const deadline = Date.now() + totalMs;
@@ -268,33 +269,41 @@ export async function waitForMovimentoCreatedInLista(page, marker, { timeoutMs }
   let modalOpenSince = 0;
 
   while (Date.now() < deadline) {
-    const state = await page.evaluate((m) => {
-      const toasts = document.querySelectorAll('#gfv-standalone-toast-layer .alert');
-      if (Array.from(toasts).some((t) => /movimento (registrato|salvato|creato)/i.test(t.textContent || ''))) {
-        return { ok: true, reason: 'toast' };
-      }
-      const container = document.getElementById('movimenti-container');
-      if (!container || /Caricamento movimenti/i.test(container.textContent || '')) {
-        return { ok: false, reason: 'loading' };
-      }
-      const rows = container.querySelectorAll('.movimenti-table tbody tr');
-      if (Array.from(rows).some((tr) => (tr.textContent || '').includes(m))) {
-        return { ok: true, reason: 'row' };
-      }
-      const modal = document.getElementById('movimento-modal');
-      const modalOpen = !!(modal && modal.classList.contains('active'));
-      return {
-        ok: false,
-        reason: modalOpen ? 'modal-open' : 'no-row',
-        modalOpen,
-        prodotto: document.getElementById('mov-prodotto')?.value || '',
-        tipo: document.getElementById('mov-tipo')?.value || '',
-        quantita: document.getElementById('mov-quantita')?.value || '',
-        note: document.getElementById('mov-note')?.value || '',
-        toast: (document.getElementById('gfv-standalone-toast-layer')?.textContent || '').slice(0, 200),
-        marker: m,
-      };
-    }, marker);
+    const state = await page.evaluate(
+      ({ m, tipoFilter }) => {
+        const rowMatches = (tr) => {
+          if (!(tr.textContent || '').includes(m)) return false;
+          if (!tipoFilter) return true;
+          return !!tr.querySelector(`.badge-${tipoFilter}`);
+        };
+        const toasts = document.querySelectorAll('#gfv-standalone-toast-layer .alert');
+        if (Array.from(toasts).some((t) => /movimento (registrato|salvato|creato)/i.test(t.textContent || ''))) {
+          return { ok: true, reason: 'toast' };
+        }
+        const container = document.getElementById('movimenti-container');
+        if (!container || /Caricamento movimenti/i.test(container.textContent || '')) {
+          return { ok: false, reason: 'loading' };
+        }
+        const rows = container.querySelectorAll('.movimenti-table tbody tr');
+        if (Array.from(rows).some(rowMatches)) {
+          return { ok: true, reason: 'row' };
+        }
+        const modal = document.getElementById('movimento-modal');
+        const modalOpen = !!(modal && modal.classList.contains('active'));
+        return {
+          ok: false,
+          reason: modalOpen ? 'modal-open' : 'no-row',
+          modalOpen,
+          prodotto: document.getElementById('mov-prodotto')?.value || '',
+          tipo: document.getElementById('mov-tipo')?.value || '',
+          quantita: document.getElementById('mov-quantita')?.value || '',
+          note: document.getElementById('mov-note')?.value || '',
+          toast: (document.getElementById('gfv-standalone-toast-layer')?.textContent || '').slice(0, 200),
+          marker: m,
+        };
+      },
+      { m: marker, tipoFilter: tipo || '' }
+    );
 
     if (state.ok) return;
 
@@ -355,9 +364,10 @@ export async function waitForMovimentoCreatedInLista(page, marker, { timeoutMs }
 /**
  * @param {import('playwright-core').Page} page
  * @param {string} marker
+ * @param {{ tipo?: 'entrata'|'uscita' }} [opts]
  */
-async function waitForMovimentiTableWithMarker(page, marker) {
-  await waitForMovimentoCreatedInLista(page, marker);
+async function waitForMovimentiTableWithMarker(page, marker, opts = {}) {
+  await waitForMovimentoCreatedInLista(page, marker, { tipo: opts.tipo });
 }
 
 /**
@@ -368,16 +378,15 @@ async function waitForMovimentiTableWithMarker(page, marker) {
 export async function assertMovimentoEntrataInLista(page, expect, opts = {}) {
   const note = opts.note || TONY_E2E_MOVIMENTO_NOTE;
   const quantita = opts.quantita || '10';
-
-  expect.configure({ timeout: 90_000 });
+  const exp = expect.configure({ timeout: simE2eTimeout(90_000) });
 
   if (!/movimenti-standalone\.html/.test(page.url())) {
     await page.goto(withTonyE2eQuery(MOVIMENTI_LIST_PATH));
   }
-  await expect(page).toHaveURL(/movimenti-standalone\.html/);
-  await expect(page.locator('h1').filter({ hasText: 'Movimenti Magazzino' })).toBeVisible();
+  await exp(page).toHaveURL(/movimenti-standalone\.html/);
+  await exp(page.locator('h1').filter({ hasText: 'Movimenti Magazzino' })).toBeVisible();
 
-  await waitForMovimentiTableWithMarker(page, note);
+  await waitForMovimentiTableWithMarker(page, note, { tipo: 'entrata' });
 
   const row = page
     .locator('#movimenti-container .movimenti-table tbody tr')
@@ -385,9 +394,9 @@ export async function assertMovimentoEntrataInLista(page, expect, opts = {}) {
     .filter({ has: page.locator('.badge-entrata') })
     .first();
 
-  await expect(row).toBeVisible();
-  await expect(row).toContainText(note);
-  await expect(row).toContainText(quantita);
+  await exp(row).toBeVisible();
+  await exp(row).toContainText(note);
+  await exp(row).toContainText(quantita);
 }
 
 /**
@@ -440,16 +449,15 @@ export async function assertProdottoInLista(page, expect, opts = {}) {
 export async function assertMovimentoUscitaInLista(page, expect, opts = {}) {
   const note = opts.note || TONY_E2E_MOVIMENTO_NOTE_USCITA;
   const quantita = opts.quantita || '5';
-
-  expect.configure({ timeout: 90_000 });
+  const exp = expect.configure({ timeout: simE2eTimeout(90_000) });
 
   if (!/movimenti-standalone\.html/.test(page.url())) {
     await page.goto(withTonyE2eQuery(MOVIMENTI_LIST_PATH));
   }
-  await expect(page).toHaveURL(/movimenti-standalone\.html/);
-  await expect(page.locator('h1').filter({ hasText: 'Movimenti Magazzino' })).toBeVisible();
+  await exp(page).toHaveURL(/movimenti-standalone\.html/);
+  await exp(page.locator('h1').filter({ hasText: 'Movimenti Magazzino' })).toBeVisible();
 
-  await waitForMovimentiTableWithMarker(page, note);
+  await waitForMovimentiTableWithMarker(page, note, { tipo: 'uscita' });
 
   const row = page
     .locator('#movimenti-container .movimenti-table tbody tr')
@@ -457,9 +465,9 @@ export async function assertMovimentoUscitaInLista(page, expect, opts = {}) {
     .filter({ has: page.locator('.badge-uscita') })
     .first();
 
-  await expect(row).toBeVisible();
-  await expect(row).toContainText(note);
-  await expect(row).toContainText(quantita);
+  await exp(row).toBeVisible();
+  await exp(row).toContainText(note);
+  await exp(row).toContainText(quantita);
 }
 
 /**

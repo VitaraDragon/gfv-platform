@@ -7,6 +7,7 @@ import { assertScenarioExpect } from '../helpers/assert-scenario-expect.mjs';
 import { assertZeroCfAcrossTurns, tonyRunMultiTurn } from '../helpers/tony-multi-turn.js';
 import {
   confirmMovimentoSave,
+  ensureGiacenzaForMovimentoUscita,
   waitForMovimentoModalOpen,
 } from '../helpers/tony-magazzino-save.js';
 import {
@@ -51,6 +52,8 @@ export async function runFlowMovimento017(page, expect, scenario) {
   await bootstrapTonyWidgetOnStandalonePage(page);
   await waitForTonyReady(page);
   await waitForCurrentTableData(page, 'movimenti');
+
+  await ensureGiacenzaForMovimentoUscita(page, { minQty: 5, prodottoHint: 'rame' }).catch(() => {});
 
   const createResult = await tonyRunMultiTurn(page, [createMsg], { turnDelayMs: 500 });
 

@@ -17,6 +17,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 import { expect } from '@playwright/test';
+import { simE2eTimeout } from '../tests/e2e/sim/helpers/sim-e2e-timeouts.mjs';
 import { runFlowLavoro013 } from '../tests/e2e/tony/scenarios/flow-lavoro-013.mjs';
 import { runFlowPreventivo014 } from '../tests/e2e/tony/scenarios/flow-preventivo-014.mjs';
 import { runFlowPreventivo014Live } from '../tests/e2e/tony/scenarios/flow-preventivo-014-live.mjs';
@@ -251,7 +252,8 @@ async function runScenario(page, scenario) {
     throw new Error(`Scenario ${scenario.id}: mockCf=true non ammesso in modalità live`);
   }
   const runner = SCENARIO_RUNNERS[scenario.id] || runMatrixScenario;
-  await runner(page, expect, scenario);
+  const scenarioExpect = expect.configure({ timeout: simE2eTimeout(60_000) });
+  await runner(page, scenarioExpect, scenario);
 }
 
 async function writeDiagnosticReport(report) {
