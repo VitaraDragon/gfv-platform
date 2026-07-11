@@ -14,12 +14,13 @@ import {
   tonyGetLastReplyText,
 } from './tony-widget.js';
 
-/** @type {Record<string, string>} */
+/** @type {Record<string, string | string[]>} */
 const INJECTED_FIELD_DOM = {
   terreno: 'lavoro-terreno',
   'tipo-lavoro': 'lavoro-tipo-lavoro',
-  'ora-inizio': 'ora-start',
-  'ora-fine': 'ora-end',
+  // Mobile workspace (#ora-start) e desktop segnatura (#ora-inizio)
+  'ora-inizio': ['ora-inizio', 'ora-start'],
+  'ora-fine': ['ora-fine', 'ora-end'],
 };
 
 /**
@@ -27,16 +28,21 @@ const INJECTED_FIELD_DOM = {
  * @param {string} fieldKey
  */
 async function readInjectedFieldValue(page, fieldKey) {
-  const domId = INJECTED_FIELD_DOM[fieldKey] || fieldKey;
-  return page.evaluate((id) => {
-    const el = document.getElementById(id);
-    if (!el) return null;
-    if (el.tagName === 'SELECT') {
-      const opt = el.options[el.selectedIndex];
-      return (opt && (opt.textContent || opt.value)) || el.value || null;
-    }
-    return el.value || el.textContent || null;
-  }, domId);
+  const mapped = INJECTED_FIELD_DOM[fieldKey] || fieldKey;
+  const domIds = Array.isArray(mapped) ? mapped : [mapped];
+  for (const domId of domIds) {
+    const val = await page.evaluate((id) => {
+      const el = document.getElementById(id);
+      if (!el) return null;
+      if (el.tagName === 'SELECT') {
+        const opt = el.options[el.selectedIndex];
+        return (opt && (opt.textContent || opt.value)) || el.value || null;
+      }
+      return el.value || el.textContent || null;
+    }, domId);
+    if (val) return val;
+  }
+  return null;
 }
 
 /**

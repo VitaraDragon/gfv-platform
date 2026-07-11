@@ -26,6 +26,7 @@ import { runFlowMovimento019 } from '../tests/e2e/tony/scenarios/flow-movimento-
 import { runFlowProdotto015 } from '../tests/e2e/tony/scenarios/flow-prodotto-015.mjs';
 import { runFlowProdotto018 } from '../tests/e2e/tony/scenarios/flow-prodotto-018.mjs';
 import { runFlowSegnaOre021 } from '../tests/e2e/tony/scenarios/flow-segna-ore-021.mjs';
+import { runFlowSegnaOre022 } from '../tests/e2e/tony/scenarios/flow-segna-ore-022.mjs';
 import { runMatrixScenario } from '../tests/e2e/tony/scenarios/run-matrix-scenario.mjs';
 import { runWidgetSmokeAssertions } from '../tests/e2e/tony/scenarios/widget-smoke.mjs';
 import {
@@ -231,6 +232,7 @@ async function runInfraSmoke(page) {
 const SCENARIO_RUNNERS = {
   'T-SMOKE-001': runWidgetSmokeAssertions,
   'T-FLOW-021': runFlowSegnaOre021,
+  'T-FLOW-022': runFlowSegnaOre022,
   'T-FLOW-016': runFlowMovimento016,
   'T-FLOW-017': runFlowMovimento017,
   'T-FLOW-019': runFlowMovimento019,

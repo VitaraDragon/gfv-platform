@@ -4490,6 +4490,26 @@
     return null;
   }
 
+  /** Workspace mobile o pagina segnatura desktop (#ora-form). */
+  function resolveSegnaOreTargetWindow(injectOpts) {
+    injectOpts = injectOpts || {};
+    if (injectOpts.targetWindow && injectOpts.targetWindow.document) {
+      var d0 = injectOpts.targetWindow.document;
+      if (d0.getElementById('quick-hours-form') || d0.getElementById('ora-form')) {
+        return injectOpts.targetWindow;
+      }
+    }
+    var qh = resolveQuickHoursTargetWindow(injectOpts);
+    if (qh) return qh;
+    if (document.getElementById('ora-form')) return window;
+    try {
+      if (window.parent && window.parent !== window && window.parent.document.getElementById('ora-form')) {
+        return window.parent;
+      }
+    } catch (eOra) { /* cross-origin */ }
+    return null;
+  }
+
   /**
    * Form ore inline workspace mobile (`field-workspace-standalone.html`, `#quick-hours-form`).
    * Stesse chiavi logiche ora-* della pagina segnatura ore (senza modal / senza macchine qui).
@@ -4570,8 +4590,16 @@
     }
     var oraModal = document.getElementById('ora-modal');
     if (!oraModal || !oraModal.classList.contains('active')) {
-      log('injectSegnaOraForm: aprire prima il modal Segna ora (ora-modal)');
-      return false;
+      if (typeof window.openSegnaOraModal === 'function') {
+        log('injectSegnaOraForm: apro modal Segna ora (Tony desktop)');
+        await window.openSegnaOraModal(null);
+        await delay(500);
+        oraModal = document.getElementById('ora-modal');
+      }
+      if (!oraModal || !oraModal.classList.contains('active')) {
+        log('injectSegnaOraForm: aprire prima il modal Segna ora (ora-modal)');
+        return false;
+      }
     }
     var sel0 = document.getElementById('ora-lavoro');
     if (sel0 && sel0.options.length <= 1 && typeof window.openSegnaOraModal === 'function') {
@@ -7213,6 +7241,9 @@
     injectFieldWorkspaceQuickHoursForm: injectFieldWorkspaceQuickHoursForm,
     resolveQuickHoursTargetWindow: function (injectOpts) {
       return resolveQuickHoursTargetWindow(injectOpts || {});
+    },
+    resolveSegnaOreTargetWindow: function (injectOpts) {
+      return resolveSegnaOreTargetWindow(injectOpts || {});
     },
     resolveValueMagazzino: resolveValueMagazzino,
     applyBusinessRules: applyBusinessRules,

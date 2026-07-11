@@ -1,6 +1,15 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-10 — riorganizzazione docs-sviluppo.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-11 — Tony Segna ore motore unificato mobile/desktop.
+
+## Tony — Segna ore operaio/caposquadra: motore unificato (2026-07-11)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Motore locale** | `core/js/tony/tony-segna-ora-local-engine.js` — risoluzione `#quick-hours-form` (mobile) e `#ora-form` (desktop segnatura-ore); messaggio raggruppato con **tutti** i campi obbligatori mancanti; one-shot «dalle X alle Y, pausa N» |
+| **Desktop** | Intercettazioni 0 CF estese a `segnatura-ore-standalone.html`; `injectSegnaOraForm` apre automaticamente `#ora-modal`; save reale su `#ora-form` |
+| **Mobile** | Invariato (3b-C21); stesso motore e messaggi raggruppati |
+| **Test** | `tests/tony-segna-ora-local-engine.test.js` (7); E2E **T-FLOW-022** / 3b-C22 desktop one-shot — **gate OK** (2026-07-11); assert inject `ora-inizio`/`ora-fine` desktop; regressione **T-FLOW-021** OK |
 
 ## Riorganizzazione documentazione docs-sviluppo (2026-07-10)
 

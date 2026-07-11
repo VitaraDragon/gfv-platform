@@ -4,6 +4,13 @@
  * @module core/js/tony-form-save-local
  */
 
+import {
+  resolveSegnaOreTargetWindow,
+  readSegnaOreDomState,
+  getSegnaOreLavoroElement,
+  userBlobAcknowledgesZeroPause,
+} from './tony/tony-segna-ora-local-engine.js';
+
 /** @typedef {{
  *   formId: string,
  *   modalId?: string,
@@ -239,41 +246,35 @@ export function executeTonyMagazzinoSaveLocal(formId, handlers) {
 export function quickHoursDomReadyForTonySave(opts) {
   opts = opts || {};
   if (typeof window === 'undefined' || typeof document === 'undefined') return false;
-  var doc = null;
-  if (document.getElementById('quick-hours-form')) doc = document;
-  else {
-    try {
-      if (window.parent && window.parent !== window && window.parent.document &&
-          window.parent.document.getElementById('quick-hours-form')) {
-        doc = window.parent.document;
-      }
-    } catch (eP) { /* cross-origin */ }
-  }
-  if (!doc) return false;
-  var sel = doc.getElementById('selected-work') || doc.getElementById('quick-work-select');
-  var lavoroVal = sel && sel.value ? String(sel.value).trim() : '';
-  if (!lavoroVal) return false;
-  var dateEl = doc.getElementById('ora-data');
-  var start = doc.getElementById('ora-start');
-  var end = doc.getElementById('ora-end');
-  if (!dateEl || !start || !end) return false;
-  if (!String(dateEl.value || '').trim() || !String(start.value || '').trim() || !String(end.value || '').trim()) {
-    return false;
-  }
+
+  var target = resolveSegnaOreTargetWindow();
+  if (!target) return false;
+  var state = readSegnaOreDomState(target);
+  if (!state) return false;
+
+  if (target.formKind === 'ora-modal' && !state.modalActive) return false;
+
+  var lavoroEl = getSegnaOreLavoroElement(target.doc, target.formKind);
+  if (lavoroEl && !String(lavoroEl.value || '').trim()) return false;
+
+  if (!state.dateVal || !state.startVal || !state.endVal) return false;
+
   if (opts.forceIfSaveConfirm) return true;
-  var brEl = doc.getElementById('ora-break');
+
   var brNum = 0;
-  if (brEl && String(brEl.value || '').trim() !== '') {
-    var bp = parseInt(String(brEl.value).trim(), 10);
+  if (state.pauseVal !== '') {
+    var bp = parseInt(state.pauseVal, 10);
     brNum = Number.isFinite(bp) ? bp : 0;
   }
   if (brNum > 0) return true;
+
   try {
     if (window.__tonyQuickHoursPauseAckAt &&
         (Date.now() - window.__tonyQuickHoursPauseAckAt) < 30 * 60 * 1000) {
       return true;
     }
   } catch (eFl) { /* ignore */ }
+
   var lastU = '';
   try {
     if (typeof sessionStorage !== 'undefined') {
@@ -283,10 +284,7 @@ export function quickHoursDomReadyForTonySave(opts) {
   if (!lastU && typeof window !== 'undefined' && window.__tonyLastUserMessage) {
     lastU = String(window.__tonyLastUserMessage).trim();
   }
-  if (/^\s*(\d{1,3})\s*$/.test(lastU)) return true;
-  if (/^\s*(nessuna|nessun|niente|nulla)\s*$/i.test(lastU)) return true;
-  if (/nessun[ao]?\s+pausa|senza\s+pausa|no\s+pausa|zero\s+pausa|non\s+ho\s+fatto\s+pausa/i.test(lastU)) return true;
-  return false;
+  return userBlobAcknowledgesZeroPause(lastU);
 }
 
 /**
@@ -298,13 +296,18 @@ export function quickHoursFormReadyForTonySave(opts) {
   if (typeof window === 'undefined') return false;
   var getCtx = window.__tonyGetCurrentFormContext;
   var ctx = typeof getCtx === 'function' ? getCtx() : null;
-  if (ctx && ctx.formId === 'field-workspace-ore-form') {
+  if (ctx && (ctx.formId === 'field-workspace-ore-form' || ctx.formId === 'ora-form')) {
     if (ctx.requiredEmpty && ctx.requiredEmpty.length > 0) return false;
     if (ctx.interviewEmpty && ctx.interviewEmpty.length > 0) {
       return quickHoursDomReadyForTonySave(opts);
     }
   }
   return quickHoursDomReadyForTonySave(opts);
+}
+
+/** Alias esplicito — mobile (#quick-hours-form) e desktop (#ora-form). */
+export function segnaOreFormReadyForTonySave(opts) {
+  return quickHoursFormReadyForTonySave(opts);
 }
 
 /**
@@ -332,18 +335,41 @@ export function tryInterceptQuickHoursSaveBeforeCf(text, handlers) {
   if (!ready && isTonySaveConfirmText(text)) {
     var getCtx = window.__tonyGetCurrentFormContext;
     var ctx = typeof getCtx === 'function' ? getCtx() : null;
-    var ctxBlocked = ctx && ctx.requiredEmpty && ctx.requiredEmpty.length > 0;
-    if (!ctxBlocked) {
+    var reqEmpty = ctx && ctx.requiredEmpty && ctx.requiredEmpty.length ? ctx.requiredEmpty.slice() : [];
+    var onlyLavoroMissing = reqEmpty.length === 1 && reqEmpty[0] === 'ora-lavoro';
+    if (onlyLavoroMissing) {
+      try {
+        var targetLav = resolveSegnaOreTargetWindow();
+        if (targetLav && targetLav.doc) {
+          var lavoroEl = getSegnaOreLavoroElement(targetLav.doc, targetLav.formKind);
+          if (lavoroEl && lavoroEl.tagName === 'SELECT' && !String(lavoroEl.value || '').trim()) {
+            for (var oi = 0; oi < lavoroEl.options.length; oi++) {
+              var opt = lavoroEl.options[oi];
+              if (opt && String(opt.value || '').trim()) {
+                lavoroEl.value = opt.value;
+                lavoroEl.dispatchEvent(new Event('change', { bubbles: true }));
+                break;
+              }
+            }
+          }
+        }
+      } catch (eLav) { /* ignore */ }
+      ready = quickHoursDomReadyForTonySave();
+    }
+    var ctxBlocked = reqEmpty.length > 0 && !onlyLavoroMissing;
+    if (!ready && !ctxBlocked) {
       ready = quickHoursDomReadyForTonySave({ forceIfSaveConfirm: true });
     }
   }
   if (!ready) return { handled: false };
   if (!isTonySaveConfirmText(text)) return { handled: false };
   if (typeof handlers.clearEarlyTyping === 'function') handlers.clearEarlyTyping();
+  var target = resolveSegnaOreTargetWindow();
+  var formId = target && target.formKind === 'ora-modal' ? 'ora-form' : 'field-workspace-ore-form';
   if (typeof handlers.salvaQuickHours === 'function') {
     handlers.salvaQuickHours({ skipRecover: true });
   } else if (typeof handlers.processTonyCommand === 'function') {
-    handlers.processTonyCommand({ type: 'QUICK_SAVE', formId: 'field-workspace-ore-form' });
+    handlers.processTonyCommand({ type: 'QUICK_SAVE', formId: formId });
   }
   if (typeof console !== 'undefined' && console.log) {
     console.log('[Tony] Salva rapido workspace: conferma locale (senza tonyAsk).');
