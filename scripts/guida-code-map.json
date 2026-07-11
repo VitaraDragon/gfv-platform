@@ -1,0 +1,216 @@
+{
+  "modulesOrder": [
+    "CORE",
+    "TONY",
+    "MANODOPERA",
+    "MAGAZZINO",
+    "VIGNETO",
+    "FRUTTETO",
+    "CONTO_TERZI",
+    "PARCO_MACCHINE",
+    "METEO",
+    "INTERSEZIONI"
+  ],
+  "rules": [
+    {
+      "prefix": "core/js/tony/tony-segna-ora",
+      "modules": ["TONY", "MANODOPERA"],
+      "label": "Motore segna ore Tony (mobile + desktop)"
+    },
+    {
+      "prefix": "core/js/tony/",
+      "modules": ["TONY"],
+      "label": "Widget e motore Tony"
+    },
+    {
+      "includes": "segnatura-ore",
+      "modules": ["MANODOPERA"],
+      "label": "Pagina segnatura ore"
+    },
+    {
+      "includes": "field-workspace",
+      "modules": ["MANODOPERA"],
+      "label": "Workspace mobile campo"
+    },
+    {
+      "prefix": "core/config/tony-form-mapping.js",
+      "modules": ["TONY"],
+      "label": "Treasure Map form Tony"
+    },
+    {
+      "prefix": "core/js/tony-form-injector.js",
+      "modules": ["TONY"],
+      "label": "Inject form Tony"
+    },
+    {
+      "prefix": "core/js/tony-form-save-local.js",
+      "modules": ["TONY"],
+      "label": "Save locale form Tony"
+    },
+    {
+      "prefix": "core/js/gfv-tony-loader.js",
+      "modules": ["TONY", "CORE"],
+      "label": "Loader widget Tony"
+    },
+    {
+      "prefix": "core/services/tony-service.js",
+      "modules": ["TONY", "CORE"],
+      "label": "Runtime guida/sintesi Tony"
+    },
+    {
+      "prefix": "functions/index.js",
+      "modules": ["TONY", "INTERSEZIONI"],
+      "label": "Cloud Functions Tony / subagent"
+    },
+    {
+      "prefix": "functions/tony/",
+      "modules": ["TONY"],
+      "label": "Moduli cloud Tony"
+    },
+    {
+      "prefix": "core/mobile/",
+      "modules": ["MANODOPERA"],
+      "label": "Workspace mobile operaio/caposquadra"
+    },
+    {
+      "prefix": "core/segnatura-ore",
+      "modules": ["MANODOPERA"],
+      "label": "Segnatura ore desktop"
+    },
+    {
+      "prefix": "core/admin/gestione-lavori",
+      "modules": ["MANODOPERA"],
+      "label": "Gestione lavori manager"
+    },
+    {
+      "prefix": "core/admin/gestione-squadre",
+      "modules": ["MANODOPERA"],
+      "label": "Squadre"
+    },
+    {
+      "prefix": "core/admin/gestione-operai",
+      "modules": ["MANODOPERA"],
+      "label": "Operai"
+    },
+    {
+      "prefix": "core/admin/validazione-ore",
+      "modules": ["MANODOPERA"],
+      "label": "Validazione ore"
+    },
+    {
+      "prefix": "core/admin/lavori-caposquadra",
+      "modules": ["MANODOPERA"],
+      "label": "Lavori caposquadra"
+    },
+    {
+      "prefix": "core/admin/statistiche-manodopera",
+      "modules": ["MANODOPERA"],
+      "label": "Statistiche manodopera admin"
+    },
+    {
+      "prefix": "core/admin/compensi-operai",
+      "modules": ["MANODOPERA"],
+      "label": "Compensi operai"
+    },
+    {
+      "prefix": "core/statistiche-standalone",
+      "modules": ["MANODOPERA"],
+      "label": "Statistiche lavoratore"
+    },
+    {
+      "prefix": "modules/manodopera/",
+      "modules": ["MANODOPERA"],
+      "label": "Modulo manodopera"
+    },
+    {
+      "prefix": "modules/magazzino/",
+      "modules": ["MAGAZZINO"],
+      "label": "Modulo magazzino"
+    },
+    {
+      "prefix": "modules/vigneto/",
+      "modules": ["VIGNETO"],
+      "label": "Modulo vigneto"
+    },
+    {
+      "prefix": "modules/vendemmia-meccanica/",
+      "modules": ["VIGNETO"],
+      "label": "Vendemmia meccanica (collegata vigneto)"
+    },
+    {
+      "prefix": "modules/frutteto/",
+      "modules": ["FRUTTETO"],
+      "label": "Modulo frutteto"
+    },
+    {
+      "prefix": "modules/conto-terzi/",
+      "modules": ["CONTO_TERZI"],
+      "label": "Modulo conto terzi"
+    },
+    {
+      "prefix": "modules/parco-macchine/",
+      "modules": ["PARCO_MACCHINE"],
+      "label": "Parco macchine"
+    },
+    {
+      "prefix": "modules/macchine/",
+      "modules": ["PARCO_MACCHINE"],
+      "label": "Flotta / attrezzi / guasti"
+    },
+    {
+      "prefix": "modules/meteo/",
+      "modules": ["METEO"],
+      "label": "Modulo meteo"
+    },
+    {
+      "prefix": "core/dashboard",
+      "modules": ["CORE"],
+      "label": "Dashboard"
+    },
+    {
+      "prefix": "core/admin/gestisci-utenti",
+      "modules": ["CORE", "MANODOPERA"],
+      "label": "Utenti e inviti"
+    },
+    {
+      "prefix": "core/admin/impostazioni",
+      "modules": ["CORE"],
+      "label": "Impostazioni azienda"
+    },
+    {
+      "prefix": "core/terreni",
+      "modules": ["CORE"],
+      "label": "Terreni anagrafica"
+    },
+    {
+      "prefix": "core/mappa-",
+      "modules": ["CORE"],
+      "label": "Mappe azienda"
+    },
+    {
+      "prefix": "landing/",
+      "modules": ["CORE"],
+      "label": "Landing / marketing"
+    },
+    {
+      "prefix": "documentazione-utente/",
+      "modules": ["CORE"],
+      "label": "Indice guide HTML utente"
+    },
+    {
+      "includes": "currentTableData",
+      "modules": ["TONY", "INTERSEZIONI"],
+      "label": "Pattern liste Tony (cross-modulo)"
+    },
+    {
+      "includes": "tony-form-mapping",
+      "modules": ["TONY"],
+      "label": "Config form Tony"
+    },
+    {
+      "includes": "SUBAGENT_",
+      "modules": ["TONY", "INTERSEZIONI"],
+      "label": "Subagent cloud per modulo"
+    }
+  ]
+}
