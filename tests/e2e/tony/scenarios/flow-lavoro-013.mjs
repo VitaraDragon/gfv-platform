@@ -89,7 +89,7 @@ export async function runFlowLavoro013(page, expect, scenario) {
   });
 
   try {
-    await waitForLavoroCreatedInLista(page, TONY_E2E_LAVORO_NOME, { timeoutMs: 90_000 });
+    await waitForLavoroCreatedInLista(page, TONY_E2E_LAVORO_NOME);
   } catch (err) {
     throw new Error(String(err.message || err));
   }

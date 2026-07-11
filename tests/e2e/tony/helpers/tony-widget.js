@@ -3,7 +3,11 @@
  * @module tests/e2e/tony/helpers/tony-widget
  */
 
-import { simE2ePause, simE2eTimeout } from '../../sim/helpers/sim-e2e-timeouts.mjs';
+import {
+  simE2ePause,
+  simE2eTimeout,
+  simE2eTonyPerfWaitTimeout,
+} from '../../sim/helpers/sim-e2e-timeouts.mjs';
 
 const DEFAULT_REPLY_TIMEOUT_MS = 45_000;
 const REPLY_STABLE_MS = 400;
@@ -44,7 +48,7 @@ export async function waitForTonyReady(page, { timeoutMs = 90_000 } = {}) {
   await page.waitForFunction(
     () => typeof window.__tonyDisplayProactive === 'function',
     null,
-    { timeout }
+    { timeout: Math.min(timeout, 8_000) }
   ).catch(() => {});
 }
 
@@ -266,7 +270,9 @@ export async function tonyGetLastPerfMetrics(page) {
  * @param {{ timeoutMs?: number }} [opts]
  */
 export async function waitForTonyTurnPerf(page, opts = {}) {
-  const timeoutMs = typeof opts.timeoutMs === 'number' ? opts.timeoutMs : 12_000;
+  const cap = simE2eTonyPerfWaitTimeout();
+  const timeoutMs =
+    typeof opts.timeoutMs === 'number' ? Math.min(opts.timeoutMs, cap) : cap;
   await page
     .waitForFunction(
       () => {

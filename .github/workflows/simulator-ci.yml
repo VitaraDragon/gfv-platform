@@ -188,6 +188,8 @@ jobs:
         run: npm run sim:tony:e2e:ci
         env:
           CI: true
+          GFV_TONY_E2E_GATE_FAST: '1'
+          GFV_TONY_E2E_MODE: gate
 
   simulator-tony-e2e-live:
     name: sim:tony:e2e:live (Tony tier 3 CF)

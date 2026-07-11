@@ -313,6 +313,8 @@ async function main() {
   }
   if (isSimE2eFastMode()) {
     console.log('[sim:tony:e2e] fast mode: timeout risposta ~20s, pause UI ridotte (GFV_E2E_TIMEOUT_MS per override)');
+  } else if (process.env.CI === 'true' && runMode === 'gate') {
+    console.log('[sim:tony:e2e] gate-fast CI: perf wait ~8s, post-save max ~45s, modal stuck ~8s');
   }
   if (isLiveMode) {
     if (useProdCf) {

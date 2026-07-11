@@ -168,6 +168,27 @@ export async function confirmLavoroSave(page, expect, { note, ctx = {} }) {
         form.requestSubmit();
       }
     });
+    const retried = await page
+      .waitForFunction(
+        (marker) => {
+          const modal = document.getElementById('lavoro-modal');
+          if (modal && !modal.classList.contains('active')) return true;
+          const toasts = document.querySelectorAll('#gfv-standalone-toast-layer .alert');
+          if (Array.from(toasts).some((t) => /Lavoro creato con successo/i.test(t.textContent || ''))) {
+            return true;
+          }
+          return Array.from(document.querySelectorAll('#lavori-container .lavori-table tbody tr')).some(
+            (tr) => (tr.textContent || '').includes(marker)
+          );
+        },
+        TONY_E2E_LAVORO_NOME,
+        { timeout: 12_000 }
+      )
+      .then(() => true)
+      .catch(() => false);
+    if (!retried) {
+      await ensureLavoroFormComplete(page, ctx);
+    }
   }
 
   return lastTurn;

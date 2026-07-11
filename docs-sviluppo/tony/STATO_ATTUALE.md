@@ -1,6 +1,6 @@
 # Stato attuale Tony – Verificato sul codice
 
-**Data**: 2026-07-11 (… **Tony Segna ore motore unificato** — mobile + desktop segnatura-ore, one-shot + domanda raggruppata, 3b-C22 — 2026-07-11; … **Tony Occhi design** — acquisizione documenti chat-first; … **Tony E2E flake fix** — T-FLOW-013 terreno post-save + T-FLOW-014-LIVE metriche CF; … **Tony E2E CI** — push + dispatch verde; … **Tony E2E M-T5** — suite tier 3 live + gate p95; …)  
+**Data**: 2026-07-11 (… **Tony E2E gate-fast CI** — taglio timeout tier 2 (perf 8s, post-save 45s, modal stuck fail-fast) — 2026-07-11; … **Tony Segna ore motore unificato** — mobile + desktop segnatura-ore, one-shot + domanda raggruppata, 3b-C22 — 2026-07-11; … **Tony Occhi design** — acquisizione documenti chat-first; … **Tony E2E flake fix** — T-FLOW-013 terreno post-save + T-FLOW-014-LIVE metriche CF; … **Tony E2E CI** — push + dispatch verde; … **Tony E2E M-T5** — suite tier 3 live + gate p95; …)  
 **Fonte**: codice + `TONY_DECISIONI_E_REQUISITI.md` (… **hub navigazione manodopera manager** — 2026-06-13; **manodopera validazione ore capo→manager + field workspace slide Valida ore** — 2026-05-19)  
 **Sicurezza (link pubblici, Firestore, callable)**: `docs-sviluppo/SICUREZZA_FLUSSI.md`
 

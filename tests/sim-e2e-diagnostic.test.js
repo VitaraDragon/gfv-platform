@@ -11,7 +11,13 @@ import {
   buildScenarioMetaFromSpec,
   resolveAppScenarioMode,
 } from './tests/e2e/sim/helpers/sim-e2e-scenario-meta.mjs';
-import { simE2ePause, simE2eTimeout } from './tests/e2e/sim/helpers/sim-e2e-timeouts.mjs';
+import {
+  isTonyE2eGateFast,
+  simE2ePause,
+  simE2eTimeout,
+  simE2eTonyPerfWaitTimeout,
+  simE2eTonyPostSaveWaitTimeout,
+} from './tests/e2e/sim/helpers/sim-e2e-timeouts.mjs';
 
 describe('sim-e2e-scenario-meta', () => {
   it('write scenario → category write + seed profile', () => {
@@ -68,7 +74,14 @@ describe('recommendSimOptions', () => {
 });
 
 describe('sim-e2e-timeouts', () => {
-  const keys = ['GFV_E2E_FAST', 'GFV_E2E_MODE', 'GFV_E2E_TIMEOUT_MS'];
+  const keys = [
+    'GFV_E2E_FAST',
+    'GFV_E2E_MODE',
+    'GFV_E2E_TIMEOUT_MS',
+    'CI',
+    'GFV_TONY_E2E_GATE_FAST',
+    'GFV_TONY_E2E_MODE',
+  ];
   /** @type {Record<string, string|undefined>} */
   let saved = {};
 
@@ -84,15 +97,33 @@ describe('sim-e2e-timeouts', () => {
     }
   });
 
-  it('gate mode mantiene timeout pieni', () => {
+  it('gate locale (no CI) mantiene timeout pieni', () => {
     delete process.env.GFV_E2E_FAST;
     delete process.env.GFV_E2E_MODE;
     delete process.env.GFV_E2E_TIMEOUT_MS;
+    delete process.env.CI;
+    delete process.env.GFV_TONY_E2E_GATE_FAST;
+    delete process.env.GFV_TONY_E2E_MODE;
+    expect(isTonyE2eGateFast()).toBe(false);
     expect(simE2eTimeout(60_000)).toBe(60_000);
     expect(simE2ePause(600)).toBe(600);
+    expect(simE2eTonyPerfWaitTimeout()).toBe(12_000);
+    expect(simE2eTonyPostSaveWaitTimeout()).toBe(90_000);
+  });
+
+  it('gate-fast CI riduce perf/post-save', () => {
+    process.env.CI = 'true';
+    process.env.GFV_TONY_E2E_MODE = 'gate';
+    delete process.env.GFV_TONY_E2E_GATE_FAST;
+    expect(isTonyE2eGateFast()).toBe(true);
+    expect(simE2eTonyPerfWaitTimeout()).toBe(8_000);
+    expect(simE2eTonyPostSaveWaitTimeout()).toBe(45_000);
+    expect(simE2eTimeout(90_000)).toBe(18_000);
   });
 
   it('explore/fast riduce timeout e pause', () => {
+    delete process.env.CI;
+    delete process.env.GFV_TONY_E2E_GATE_FAST;
     process.env.GFV_E2E_MODE = 'explore';
     process.env.GFV_E2E_FAST = '1';
     delete process.env.GFV_E2E_TIMEOUT_MS;

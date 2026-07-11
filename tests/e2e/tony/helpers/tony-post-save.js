@@ -4,6 +4,10 @@
  */
 
 import {
+  simE2eTonyPostSaveWaitTimeout,
+  TONY_E2E_MODAL_STUCK_MS,
+} from '../../sim/helpers/sim-e2e-timeouts.mjs';
+import {
   gotoValidazioneOre,
   loginAsManagerManodopera,
   MOVIMENTI_LIST_PATH,
@@ -45,9 +49,12 @@ function lavoriRowsWithMarker(page, marker) {
  * @param {string} marker
  * @param {{ timeoutMs?: number }} [opts]
  */
-export async function waitForLavoroCreatedInLista(page, marker, { timeoutMs = 90_000 } = {}) {
-  const deadline = Date.now() + timeoutMs;
+export async function waitForLavoroCreatedInLista(page, marker, { timeoutMs } = {}) {
+  const totalMs =
+    typeof timeoutMs === 'number' ? timeoutMs : simE2eTonyPostSaveWaitTimeout();
+  const deadline = Date.now() + totalMs;
   let reloaded = false;
+  let modalOpenSince = 0;
 
   while (Date.now() < deadline) {
     const state = await page.evaluate((m) => {
@@ -64,17 +71,40 @@ export async function waitForLavoroCreatedInLista(page, marker, { timeoutMs = 90
         return { ok: true, reason: 'row' };
       }
       const modal = document.getElementById('lavoro-modal');
-      const modalOpen = modal && modal.classList.contains('active');
+      const modalOpen = !!(modal && modal.classList.contains('active'));
       const nome = document.getElementById('lavoro-nome')?.value || '';
-      return { ok: false, reason: modalOpen ? 'modal-open' : 'no-row', nome };
+      const terreno = document.getElementById('lavoro-terreno')?.value || '';
+      const tipo = document.getElementById('lavoro-tipo-lavoro')?.value || '';
+      const toast = (document.getElementById('gfv-standalone-toast-layer')?.textContent || '').slice(0, 200);
+      return { ok: false, reason: modalOpen ? 'modal-open' : 'no-row', nome, terreno, tipo, toast, modalOpen };
     }, marker);
 
     if (state.ok) return;
 
+    if (state.modalOpen) {
+      if (!modalOpenSince) modalOpenSince = Date.now();
+      else if (Date.now() - modalOpenSince >= TONY_E2E_MODAL_STUCK_MS) {
+        throw new Error(
+          `post-save record: lavoro non in lista (${JSON.stringify({
+            url: page.url().replace(/^https?:\/\/[^/]+/, ''),
+            modalOpen: true,
+            nome: state.nome,
+            terreno: state.terreno,
+            tipo: state.tipo,
+            toast: state.toast,
+            marker,
+            failFast: 'modal-stuck',
+          })})`
+        );
+      }
+    } else {
+      modalOpenSince = 0;
+    }
+
     const remaining = deadline - Date.now();
     if (remaining <= 0) break;
 
-    if (!reloaded && remaining < 45_000) {
+    if (!reloaded && remaining < Math.min(totalMs / 2, 25_000)) {
       reloaded = true;
       await page.evaluate(() => {
         if (typeof applyFilters === 'function') applyFilters();

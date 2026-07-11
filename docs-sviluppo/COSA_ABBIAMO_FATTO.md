@@ -129,6 +129,18 @@ Doc **canonici** restano in root (`STATO_PROGETTO_COMPLETO`, `ARCHITETTURA_MODUL
 | **Triple-seed obbligatorio** | Oltre viticola: `frutteto-solo-titolare` + `mista-viticola-frutteto-conto-terzi-manodopera` (9 scenari frutteto/mista) |
 | **CI / push** | Invariato Linux: `sim:diagnostic:gate` Playwright — validazione pre-push resta su CI se gate locale PW bloccato |
 
+## Tony E2E — gate-fast CI: taglio timeout tier 2 (2026-07-11)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| Problema | Job `sim:tony:e2e` ~13 min: doppia attesa 45 s (reply + perf), `waitForTonyReady` fino a 90 s su `__tonyDisplayProactive`, post-save lavoro 90 s anche con modal bloccato |
+| **Gate-fast CI** | `GFV_TONY_E2E_GATE_FAST` + `isTonyE2eGateFast()` — attivo in CI gate (`simulator-ci.yml`) |
+| Perf turn | `waitForTonyTurnPerf` cap **8 s** (non più `replyTimeoutMs` 45 s) |
+| Tony ready | attesa proactive max **8 s** (prima ereditava timeout 90 s) |
+| Post-save lavoro | max **45 s** gate; **fail-fast 8 s** se `#lavoro-modal` resta aperto (`failFast: modal-stuck`) |
+| Save 013 | `confirmLavoroSave` — retry `ensureLavoroFormComplete` se submit non chiude modal |
+| Test | `tests/sim-e2e-diagnostic.test.js` — casi gate-fast CI |
+
 ## Tony + Simulatore — fix flake E2E T-FLOW-013 + T-FLOW-014-LIVE (2026-07-10)
 
 | Elemento | Dettaglio |
