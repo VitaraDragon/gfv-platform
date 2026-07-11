@@ -142,9 +142,7 @@ export async function runMatrixScenario(page, expect, scenario) {
     }
     const tonyBefore = await tonySendMessage(page, msg);
     const reply = await tonyWaitForReply(page, { tonyCountBefore: tonyBefore, timeoutMs: replyTimeoutMs });
-    const lastPerf = await waitForTonyTurnPerf(page, {
-      timeoutMs: replyTimeoutMs,
-    });
+    const lastPerf = await waitForTonyTurnPerf(page);
     turnCtx = {
       lastReply: reply,
       lastPerf,

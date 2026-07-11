@@ -17,6 +17,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 import { expect } from '@playwright/test';
+import { simE2eTimeout } from '../tests/e2e/sim/helpers/sim-e2e-timeouts.mjs';
 import { runFlowLavoro013 } from '../tests/e2e/tony/scenarios/flow-lavoro-013.mjs';
 import { runFlowPreventivo014 } from '../tests/e2e/tony/scenarios/flow-preventivo-014.mjs';
 import { runFlowPreventivo014Live } from '../tests/e2e/tony/scenarios/flow-preventivo-014-live.mjs';
@@ -26,6 +27,7 @@ import { runFlowMovimento019 } from '../tests/e2e/tony/scenarios/flow-movimento-
 import { runFlowProdotto015 } from '../tests/e2e/tony/scenarios/flow-prodotto-015.mjs';
 import { runFlowProdotto018 } from '../tests/e2e/tony/scenarios/flow-prodotto-018.mjs';
 import { runFlowSegnaOre021 } from '../tests/e2e/tony/scenarios/flow-segna-ore-021.mjs';
+import { runFlowSegnaOre022 } from '../tests/e2e/tony/scenarios/flow-segna-ore-022.mjs';
 import { runMatrixScenario } from '../tests/e2e/tony/scenarios/run-matrix-scenario.mjs';
 import { runWidgetSmokeAssertions } from '../tests/e2e/tony/scenarios/widget-smoke.mjs';
 import {
@@ -231,6 +233,7 @@ async function runInfraSmoke(page) {
 const SCENARIO_RUNNERS = {
   'T-SMOKE-001': runWidgetSmokeAssertions,
   'T-FLOW-021': runFlowSegnaOre021,
+  'T-FLOW-022': runFlowSegnaOre022,
   'T-FLOW-016': runFlowMovimento016,
   'T-FLOW-017': runFlowMovimento017,
   'T-FLOW-019': runFlowMovimento019,
@@ -249,7 +252,8 @@ async function runScenario(page, scenario) {
     throw new Error(`Scenario ${scenario.id}: mockCf=true non ammesso in modalità live`);
   }
   const runner = SCENARIO_RUNNERS[scenario.id] || runMatrixScenario;
-  await runner(page, expect, scenario);
+  const scenarioExpect = expect.configure({ timeout: simE2eTimeout(60_000) });
+  await runner(page, scenarioExpect, scenario);
 }
 
 async function writeDiagnosticReport(report) {
@@ -311,6 +315,8 @@ async function main() {
   }
   if (isSimE2eFastMode()) {
     console.log('[sim:tony:e2e] fast mode: timeout risposta ~20s, pause UI ridotte (GFV_E2E_TIMEOUT_MS per override)');
+  } else if (process.env.CI === 'true' && runMode === 'gate') {
+    console.log('[sim:tony:e2e] gate-fast CI: perf wait ~8s, post-save max ~45s, modal stuck ~8s');
   }
   if (isLiveMode) {
     if (useProdCf) {

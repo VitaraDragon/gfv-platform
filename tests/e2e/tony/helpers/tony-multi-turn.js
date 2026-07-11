@@ -42,9 +42,7 @@ export async function tonyRunMultiTurn(page, messages, opts = {}) {
     if (typeof opts.afterTurn === 'function') {
       await opts.afterTurn(page, msg, turnCtx);
     }
-    const perf = await waitForTonyTurnPerf(page, {
-      timeoutMs: Math.min(replyTimeoutMs, 60_000),
-    });
+    const perf = await waitForTonyTurnPerf(page);
     perfTurns.push(perf);
     turnCtx = {
       ...turnCtx,

@@ -431,6 +431,29 @@
       }
     },
     {
+      "id": "T-FLOW-022",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Segna ore desktop segnatura-ore — one-shot fascia+pausa + save locale + validazione (3b-C22)",
+      "contract": {
+        "invariant": "Frase unica orari+pausa → inject #ora-form → save locale → riga ore in validazione",
+        "primaryAsserts": ["injectedFields ora-inizio/ora-fine", "cfCallsMax 0", "riga ore visibile"],
+        "avoidAsserts": []
+      },
+      "persona": "caposquadra",
+      "startUrl": "/core/segnatura-ore-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsCapoFromDevPage",
+      "messages": ["dalle 8 alle 17 con 0 minuti di pausa", "ok"],
+      "mockCf": false,
+      "expect": {
+        "clientRecovery": true,
+        "cfCallsMax": 0,
+        "injectedFields": ["ora-inizio", "ora-fine"]
+      }
+    },
+    {
       "id": "T-FLOW-015",
       "status": "ready",
       "mode": "gate",
@@ -446,6 +469,28 @@
       "startUrl": "/modules/magazzino/views/prodotti-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerFromDevPage",
       "messages": [],
+      "mockCf": false,
+      "expect": {
+        "cfCallsMax": 0,
+        "usedGemini": false
+      }
+    },
+    {
+      "id": "T-FLOW-016",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Movimento entrata client-side + save + riga lista (3b-C16)",
+      "contract": {
+        "invariant": "Entrata magazzino → save locale → riga in lista",
+        "primaryAsserts": ["cfCallsMax 0", "riga movimento"],
+        "avoidAsserts": []
+      },
+      "persona": "manager",
+      "startUrl": "/modules/magazzino/views/movimenti-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["crea entrata rame 10 unità", "salva"],
       "mockCf": false,
       "expect": {
         "cfCallsMax": 0,
@@ -512,28 +557,6 @@
       "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerFromDevPage",
       "messages": ["crea entrata rame 10 unità"],
-      "mockCf": false,
-      "expect": {
-        "cfCallsMax": 0,
-        "usedGemini": false
-      }
-    },
-    {
-      "id": "T-FLOW-016",
-      "status": "ready",
-      "mode": "gate",
-      "tier": 2,
-      "category": "multi_turn",
-      "description": "Movimento entrata client-side + save + riga lista (3b-C16)",
-      "contract": {
-        "invariant": "Entrata magazzino → save locale → riga in lista",
-        "primaryAsserts": ["cfCallsMax 0", "riga movimento"],
-        "avoidAsserts": []
-      },
-      "persona": "manager",
-      "startUrl": "/modules/magazzino/views/movimenti-standalone.html?emulator=1&tonyE2e=1",
-      "login": "loginAsManagerFromDevPage",
-      "messages": ["crea entrata rame 10 unità", "salva"],
       "mockCf": false,
       "expect": {
         "cfCallsMax": 0,
