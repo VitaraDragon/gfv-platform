@@ -1,6 +1,17 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-11 — Tony Segna ore motore unificato mobile/desktop.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-11 — merge PR #5 in `main`: segna ore unificato, gate-fast Tony E2E **17/17**, fix movimenti T-FLOW-016/017.
+
+## Tony — merge PR #5 + gate E2E 17/17 (2026-07-11)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **PR** | [#5](https://github.com/VitaraDragon/gfv-platform/pull/5) mergiata in `main` — branch `feat/tony-segna-ore-desktop-unified` eliminato |
+| **CI** | Tutti i check verdi: `sim:tony:e2e` **17/17** in **~4m27s** (gate-fast); `sim:e2e`, `sim:test`, `sim:tony:vitest`, `guida-impact` |
+| **Gate-fast** | `GFV_TONY_E2E_GATE_FAST=1` in CI — perf wait 8s, post-save 45s, modal stuck fail-fast 8s; suite tier 2 da ~13 min → **~4–6 min** |
+| **Runner** | `sim-tony-e2e-run.mjs`: `expect.configure({ timeout: simE2eTimeout(60_000) })` per scenario (fix assert 5s Playwright) |
+| **Movimenti E2E** | **T-FLOW-016** (entrata) + **T-FLOW-017** (uscita): `confirmMovimentoSave`, bootstrap giacenza (`ensureGiacenzaForMovimentoUscita`), filtro badge entrata/uscita in post-save; matrix: 016 prima di 017 |
+| **Helper** | `tony-magazzino-save.js`, `tony-post-save.js`, `sim-e2e-timeouts.mjs` |
 
 ## Tony — Segna ore operaio/caposquadra: motore unificato (2026-07-11)
 
@@ -9,7 +20,7 @@
 | **Motore locale** | `core/js/tony/tony-segna-ora-local-engine.js` — risoluzione `#quick-hours-form` (mobile) e `#ora-form` (desktop segnatura-ore); messaggio raggruppato con **tutti** i campi obbligatori mancanti; one-shot «dalle X alle Y, pausa N» |
 | **Desktop** | Intercettazioni 0 CF estese a `segnatura-ore-standalone.html`; `injectSegnaOraForm` apre automaticamente `#ora-modal`; save reale su `#ora-form` |
 | **Mobile** | Invariato (3b-C21); stesso motore e messaggi raggruppati |
-| **Test** | `tests/tony-segna-ora-local-engine.test.js` (7); E2E **T-FLOW-022** / 3b-C22 desktop one-shot — **gate OK** (2026-07-11); assert inject `ora-inizio`/`ora-fine` desktop; regressione **T-FLOW-021** OK |
+| **Test** | `tests/tony-segna-ora-local-engine.test.js` (7); E2E **T-FLOW-022** / 3b-C22 desktop one-shot — **gate OK** (2026-07-11, CI post-merge); assert inject `ora-inizio`/`ora-fine` desktop; regressione **T-FLOW-021** OK |
 
 ## Riorganizzazione documentazione docs-sviluppo (2026-07-10)
 

@@ -1,6 +1,6 @@
 # Stato attuale Tony – Verificato sul codice
 
-**Data**: 2026-07-11 (… **Tony E2E gate-fast CI** — taglio timeout tier 2 (perf 8s, post-save 45s, modal stuck fail-fast) — 2026-07-11; … **Tony Segna ore motore unificato** — mobile + desktop segnatura-ore, one-shot + domanda raggruppata, 3b-C22 — 2026-07-11; … **Tony Occhi design** — acquisizione documenti chat-first; … **Tony E2E flake fix** — T-FLOW-013 terreno post-save + T-FLOW-014-LIVE metriche CF; … **Tony E2E CI** — push + dispatch verde; … **Tony E2E M-T5** — suite tier 3 live + gate p95; …)  
+**Data**: 2026-07-11 (… **PR #5 merge** — segna ore unificato + gate Tony **17/17** CI ~4m27s — 2026-07-11; … **Tony E2E gate-fast CI** — taglio timeout tier 2 (perf 8s, post-save 45s, modal stuck fail-fast) — 2026-07-11; … **Tony E2E movimenti tier 2** — T-FLOW-016 entrata + T-FLOW-017 uscita (`confirmMovimentoSave`, bootstrap giacenza, expect timeout runner) — 2026-07-11; … **Tony Segna ore motore unificato** — mobile + desktop segnatura-ore, one-shot + domanda raggruppata, 3b-C22 — 2026-07-11; …)  
 **Fonte**: codice + `TONY_DECISIONI_E_REQUISITI.md` (… **hub navigazione manodopera manager** — 2026-06-13; **manodopera validazione ore capo→manager + field workspace slide Valida ore** — 2026-05-19)  
 **Sicurezza (link pubblici, Firestore, callable)**: `docs-sviluppo/SICUREZZA_FLUSSI.md`
 
@@ -13,7 +13,7 @@
 | **1** | Consolidamento fondamenti | ⏳ Parziale | Tony aggiunge terreno senza guidare passo-passo — **inject atomico + proattivo/save locale** ✅ (2026-06-08); **entity parser terreno** ✅ client + CF early exit (2026-06-14 merge locale); canary E2E browser da fare |
 | **2** | Navigazione cross-page | ✅ Completata | "Ho trinciato 6 ore" → attivita-modal; "Crea lavoro erpicatura nel Sangiovese" → lavoro-modal (2026-03-08); hub Manodopera manager (2026-06-13) |
 | **3** | Context Builder e dati aziendali | ✅ In corso | summaryScadenze ok; **movimentiRecenti** (ultimi 50) + summary in ctx da qualsiasi pagina; summarySottoScorta opzionale |
-| **4** | Iniezione universale | ✅ In corso | Attività, Lavori (entry point da ovunque 2026-03-08), Terreno (OPEN_MODAL+fields), **Nuovo Preventivo** (preventivo-form, 2026-03-24); **Magazzino** prodotto/movimento + save locale + creazione client-side (entrata/uscita/prodotto) + cross-page dashboard (3b-C15…C19, 2026-06-02), prezzo entrata catalogo; **intervista lavoro** ack tipo stem-only E2E ✅ (2026-06-03); **intervista lavoro vocale E2E** ✅ seconda macchina (2026-06-14, 0 CF); **form-trattamento** concimazioni/trattamenti campo (…); … |
+| **4** | Iniezione universale | ✅ In corso | Attività, Lavori (entry point da ovunque 2026-03-08), Terreno (OPEN_MODAL+fields), **Nuovo Preventivo** (preventivo-form, 2026-03-24); **Magazzino** prodotto/movimento + save locale + creazione client-side (entrata/uscita/prodotto) + cross-page dashboard (3b-C15…C19, 2026-06-02), prezzo entrata catalogo; **intervista lavoro** ack tipo stem-only E2E ✅ (2026-06-03); **intervista lavoro vocale E2E** ✅ seconda macchina (2026-06-14, 0 CF); **Segna ore** workspace mobile (**3b-C21**) + desktop segnatura-ore (**3b-C22**, motore unificato — 2026-07-11); **form-trattamento** concimazioni/trattamenti campo (…); … |
 | **5** | Grafici e report | ⏳ Parziale | APRI_PAGINA statistiche; MOSTRA_GRAFICO da fare |
 | **6** | Proattività e memoria | ⏳ Parziale | … **Tony consigliere moduli+bundle** (Base — 2026-06-19, **bundle/stacking 2026-06-20**); **modalità vocale continua** (`2026-06-20o`–`r`); … |
 
@@ -167,7 +167,7 @@
 | Proattività "Ho notato X, vuoi che...?" | Media | Fase 6 |
 | Memoria storica (confronti anno/anno) | Bassa | |
 | Flusso campioni GPS (mappa multipunto raccolta/profilazione) | Media | Mini-spec definita in `TONY_DECISIONI_E_REQUISITI.md` §18; implementazione rimandata a fase 2 dedicata |
-| **Tony E2E live tier 3 — suite + gate p95** | — | **4/4 + gate p95** verificati locale (2026-07-07) e **CI GitHub** (2026-07-08, run dispatch 28953194532); push CI tier 2 **16/16**; streak gate `consecutiveRunsToFail: 3` — monitorare history artifact |
+| **Tony E2E live tier 3 — suite + gate p95** | — | **4/4 + gate p95** verificati locale (2026-07-07) e **CI GitHub** (2026-07-08); push CI tier 2 **17/17** (2026-07-11, PR #5 merge); streak gate `consecutiveRunsToFail: 3` — monitorare history artifact |
 
 ### 7.1 Tony + Simulatore E2E (track M-T0…M-T6)
 
@@ -175,7 +175,7 @@ Guida operativa: **`docs-sviluppo/in-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.
 
 | Milestone | Stato | Contenuto |
 | --------- | ----- | --------- |
-| **M-T4** | ✅ | 16 scenari **tier 2 mock** — `npm run sim:tony:e2e` (PR CI `simulator-tony-e2e-mock`) |
+| **M-T4** | ✅ | **17 scenari tier 2 mock** — `npm run sim:tony:e2e` (PR CI `simulator-tony-e2e-mock`); gate-fast **~4–6 min** CI; include **T-FLOW-022** (segna ore desktop) + **T-FLOW-016/017** (movimenti entrata/uscita) |
 | **M-T5** | ✅ | 4 scenari **tier 3 live** — verificati locale e CI; flake **T-FLOW-014-LIVE** (`minCfTurns`) mitigato 2026-07-10 (`patchPreventivoCfPerfTurns`, ordine `afterTurn`→perf); gate p95 enforce in `simulator-ci.yml` |
 | **M-T6** | 📋 | Chiusura track (matrice ≥50, handoff resto manuale) |
 
@@ -183,7 +183,7 @@ Guida operativa: **`docs-sviluppo/in-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.
 
 | Elemento | Stato | Note |
 | -------- | ----- | ---- |
-| **Explore unificato** | ✅ | `sim:diagnostic:explore` — **71/71 app + 16/16 Tony**, 0 findings (node runner app + fast mode) |
+| **Explore unificato** | ✅ | `sim:diagnostic:explore` — **71/71 app + 17/17 Tony**, 0 findings (node runner app + fast mode) |
 | **Gate unificato locale (Playwright)** | ⚠️ | `sim:diagnostic:gate` — CLI Playwright **non procede** su Windows (hang post-`scenari=71`, nessun test listato) |
 | **Gate locale (workaround)** | ✅ | `npm run sim:e2e:node` + `npm run sim:tony:e2e:gate` — stessi 71 scenari app via `playwright-core` diretto |
 | **Gate CI** | ✅ | `sim:e2e:gate` Playwright su Linux (invariato) |
@@ -218,7 +218,7 @@ Documenti creati per riprendere il lavoro **senza perdere contesto** (prompt, ba
 
 Indice: `docs-sviluppo/tony/README.md`.
 
-**Tony + sim E2E (2026-07-10, M-T4 ✅, M-T5 ✅):** fix flake **T-FLOW-013** (terreno obbligatorio pre-save) e **T-FLOW-014-LIVE** (cattura metriche CF). **Diagnostic explore:** 71/71 app + 16/16 Tony, 0 findings. **Gate locale Playwright app:** hang avvio CLI Windows — usare `sim:e2e:node` + `sim:tony:e2e:gate` fino a fix; CI gate Playwright invariato. Guida: `TONY_E2E_GUIDA_SVILUPPO.md` §8–§10, `simulator/DIAGNOSTIC_WORKFLOW.md`.
+**Tony + sim E2E (2026-07-11, M-T4 ✅ 17/17, M-T5 ✅):** merge **PR #5** — segna ore desktop (**T-FLOW-022**), gate-fast CI (~4m27s), fix **T-FLOW-016/017** movimenti (giacenza bootstrap, `expect.configure` runner). Fix flake precedenti **T-FLOW-013** e **T-FLOW-014-LIVE**. **Gate locale Playwright app:** hang avvio CLI Windows — usare `sim:e2e:node` + `sim:tony:e2e:gate` fino a fix; CI gate Playwright invariato. Guida: `TONY_E2E_GUIDA_SVILUPPO.md` §8–§10, `simulator/DIAGNOSTIC_WORKFLOW.md`.
 
 ---
 
