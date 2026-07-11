@@ -44,7 +44,6 @@ const TYPO_VITEST = {
   },
   'T-TYPO-004'() {
     expect(isTonySaveConfirmText('ok salva')).toBe(true);
-    globalThis.window = {};
     globalThis.document = {
       getElementById: (id) => {
         const vals = {
@@ -58,6 +57,7 @@ const TYPO_VITEST = {
         return vals[id] || null;
       },
     };
+    globalThis.window = { document: globalThis.document };
     globalThis.window.__tonyGetCurrentFormContext = () => ({
       formId: 'field-workspace-ore-form',
       requiredEmpty: [],

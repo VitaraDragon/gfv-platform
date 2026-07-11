@@ -208,6 +208,7 @@ export function userBlobAcknowledgesZeroPause(userBlob) {
   var ub = String(userBlob || '').trim();
   if (!ub) return false;
   if (/^\s*(\d{1,3})\s*$/.test(ub)) return parseInt(ub, 10) === 0;
+  if (/^\s*(nessuna|nessun|niente|nulla)\s*$/i.test(ub)) return true;
   return /nessun[ao]?\s+pausa|senza\s+pausa|no\s+pausa|zero\s+pausa|non\s+ho\s+fatto\s+pausa/i.test(ub);
 }
 

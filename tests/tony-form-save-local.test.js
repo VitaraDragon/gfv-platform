@@ -342,7 +342,6 @@ describe('tryInterceptPreventivoSaveBeforeCf', () => {
 describe('tryInterceptQuickHoursSaveBeforeCf', () => {
   function mockQuickHoursDom(overrides) {
     overrides = overrides || {};
-    global.window = Object.assign({ parent: global.window }, overrides.window || {});
     global.document = {
       getElementById: (id) => {
         const vals = Object.assign({
@@ -356,6 +355,10 @@ describe('tryInterceptQuickHoursSaveBeforeCf', () => {
         return vals[id] || null;
       },
     };
+    global.window = Object.assign(
+      { parent: global.window, document: global.document },
+      overrides.window || {}
+    );
   }
 
   beforeEach(() => {
@@ -426,7 +429,6 @@ describe('quickHoursDomReadyForTonySave', () => {
   });
 
   it('true se DOM ha lavoro, orari e pausa', () => {
-    global.window = {};
     global.document = {
       getElementById: (id) => {
         const vals = {
@@ -440,12 +442,11 @@ describe('quickHoursDomReadyForTonySave', () => {
         return vals[id] || null;
       },
     };
+    global.window = { document: global.document };
     expect(quickHoursDomReadyForTonySave()).toBe(true);
   });
 
   it('false se manca pausa e ultimo messaggio non è numero', () => {
-    global.window = { parent: global.window };
-    global.sessionStorage = { getItem: () => 'sì' };
     global.document = {
       getElementById: (id) => {
         const vals = {
@@ -459,12 +460,12 @@ describe('quickHoursDomReadyForTonySave', () => {
         return vals[id] || null;
       },
     };
+    global.window = { parent: global.window, document: global.document };
+    global.sessionStorage = { getItem: () => 'sì' };
     expect(quickHoursDomReadyForTonySave()).toBe(false);
   });
 
   it('true con pausa 0 se ultimo messaggio è «nessuna»', () => {
-    global.window = { parent: global.window, __tonyLastUserMessage: 'nessuna' };
-    global.sessionStorage = { getItem: () => 'nessuna' };
     global.document = {
       getElementById: (id) => {
         const vals = {
@@ -478,11 +479,16 @@ describe('quickHoursDomReadyForTonySave', () => {
         return vals[id] || null;
       },
     };
+    global.window = {
+      parent: global.window,
+      document: global.document,
+      __tonyLastUserMessage: 'nessuna',
+    };
+    global.sessionStorage = { getItem: () => 'nessuna' };
     expect(quickHoursDomReadyForTonySave()).toBe(true);
   });
 
   it('true su conferma «ok» se orari completi (forceIfSaveConfirm)', () => {
-    global.window = { parent: global.window };
     global.document = {
       getElementById: (id) => {
         const vals = {
@@ -496,6 +502,7 @@ describe('quickHoursDomReadyForTonySave', () => {
         return vals[id] || null;
       },
     };
+    global.window = { parent: global.window, document: global.document };
     expect(quickHoursDomReadyForTonySave({ forceIfSaveConfirm: true })).toBe(true);
   });
 });
