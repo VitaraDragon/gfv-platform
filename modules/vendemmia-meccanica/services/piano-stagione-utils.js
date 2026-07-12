@@ -259,17 +259,43 @@ export function buildPreventiviCtUrl(preventivoId, clienteId) {
 }
 
 /**
- * Calcolatore VM con cliente e terreno preselezionati.
+ * Calcolatore VM con cliente, terreni e deep-link opzionali.
  * @param {string|null|undefined} clienteId
  * @param {string|null|undefined} [terrenoId]
+ * @param {{ lavoroId?: string|null, calcoloId?: string|null, terrenoIds?: string[]|string, basePath?: string }} [options]
  * @returns {string}
  */
-export function buildCalcolatoreVmUrl(clienteId, terrenoId) {
+export function buildCalcolatoreVmUrl(clienteId, terrenoId, options = {}) {
   const q = new URLSearchParams();
   if (clienteId) q.set('clienteId', String(clienteId));
   if (terrenoId) q.set('terrenoId', String(terrenoId));
+  if (options.lavoroId) q.set('lavoroId', String(options.lavoroId));
+  if (options.calcoloId) q.set('calcoloId', String(options.calcoloId));
+  if (!terrenoId && options.terrenoIds) {
+    const ids = Array.isArray(options.terrenoIds) ? options.terrenoIds : String(options.terrenoIds).split(',');
+    const clean = ids.map((id) => String(id || '').trim()).filter(Boolean);
+    if (clean.length) q.set('terrenoIds', clean.join(','));
+  }
   const qs = q.toString();
-  return 'calcolatore-standalone.html' + (qs ? '?' + qs : '');
+  const base = options.basePath || 'calcolatore-standalone.html';
+  return base + (qs ? '?' + qs : '');
+}
+
+/** Path calcolatore da core/admin (Gestione Lavori). */
+export const CALCOLATORE_VM_ADMIN_BASE = '../../modules/vendemmia-meccanica/views/calcolatore-standalone.html';
+
+/**
+ * Deep-link calcolatore precompilato da lavoro VM.
+ * @param {Object|null|undefined} lavoro
+ * @param {{ basePath?: string }} [options]
+ * @returns {string}
+ */
+export function buildCalcolatoreVmUrlFromLavoro(lavoro, options = {}) {
+  if (!lavoro) return buildCalcolatoreVmUrl(null, null, options);
+  return buildCalcolatoreVmUrl(lavoro.clienteId || null, lavoro.terrenoId || null, {
+    ...options,
+    lavoroId: lavoro.id || null
+  });
 }
 
 /**
@@ -301,5 +327,7 @@ export default {
   buildGestioneLavoriUrl,
   buildPreventiviCtUrl,
   buildCalcolatoreVmUrl,
+  buildCalcolatoreVmUrlFromLavoro,
+  CALCOLATORE_VM_ADMIN_BASE,
   rowHasVendemmiaDati
 };

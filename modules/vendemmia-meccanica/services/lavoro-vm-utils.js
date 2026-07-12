@@ -85,6 +85,21 @@ export function isLavoroVendemmiaMeccanica(lavoro, options = {}) {
  * @param {string} lavoroId
  * @returns {boolean}
  */
+/** Stati lavoro da cui è sensato aprire il calcolatore compenso. */
+export const CALCOLATORE_VM_LAVORO_STATI = ['completato', 'completato_da_approvare'];
+
+/**
+ * Lavoro VM completato/in approvazione con cliente e terreno → shortcut calcolatore.
+ * @param {Object|null|undefined} lavoro
+ * @param {{ hasVmModule?: boolean }} [options]
+ * @returns {boolean}
+ */
+export function isLavoroEligibleForCalcolatoreShortcut(lavoro, options = {}) {
+  if (!isLavoroVendemmiaMeccanica(lavoro, options)) return false;
+  if (!lavoro?.clienteId || !lavoro?.terrenoId) return false;
+  return CALCOLATORE_VM_LAVORO_STATI.includes(String(lavoro.stato || '').trim());
+}
+
 export function isPianoStagioneLinkedToLavoro(stato, lavoroId) {
   if (!stato?.vendemmiato || !lavoroId) return false;
   if (!stato.lavoroId) return true;
@@ -181,6 +196,8 @@ export default {
   isPreventivoAccettato,
   deriveAnnoStagioneFromPreventivo,
   isLavoroVendemmiaMeccanica,
+  isLavoroEligibleForCalcolatoreShortcut,
+  CALCOLATORE_VM_LAVORO_STATI,
   isPianoStagioneLinkedToLavoro,
   countZoneLavorateSameDay,
   toDateKeyString,

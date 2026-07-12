@@ -86,7 +86,7 @@ import { getAllClienti } from '../../conto-terzi/services/clienti-service.js';
 import { getAllTerreni } from '../../../core/services/terreni-service.js';
 import { getTariffeVmConfig } from '../services/tariffe-vm-service.js';
 import { calcolaCompensoVendemmia } from '../services/calcolo-compenso-vm-service.js';
-import { saveCalcoloVm, linkCalcoloVmToPreventivo, resolvePreventivoIdFromTerreni } from '../services/calcoli-vm-service.js';
+import { saveCalcoloVm, updateCalcoloVm, linkCalcoloVmToPreventivo, resolvePreventivoIdFromTerreni, parseCalcolatoreUrlParams, loadCalcoloPrefillContext } from '../services/calcoli-vm-service.js';
 import { generaPdfCalcoloVm } from '../services/calcolo-vm-pdf-service.js';
 import { DESTINAZIONI_TRASPORTO_PRESET, getAnnoStagioneCorrente } from '../config/vm-constants.js';
 import { buildPreventiviCtUrl } from '../services/piano-stagione-utils.js';
@@ -96,6 +96,12 @@ let terreniCliente = [];
 let lastBreakdown = null;
 let clientiMap = {};
 let tenantAziendaNome = '';
+/** @type {string|null} calcolo in riedit (?calcoloId=) */
+let editingCalcoloId = null;
+/** @type {string|null} lavoro sorgente (?lavoroId=) */
+let sourceLavoroId = null;
+/** @type {string|null} preventivo collegato al prefill */
+let linkedPreventivoId = null;
 
 function fmtEuro(n) { return '€ ' + (Number(n) || 0).toFixed(2); }
 
@@ -125,16 +131,51 @@ async function loadTerreni(clienteId, preselectIds = []) {
 }
 
 function readUrlPreselect() {
-    const p = new URLSearchParams(window.location.search);
-    const clienteId = p.get('clienteId');
-    const terrenoId = p.get('terrenoId');
-    const terrenoIds = terrenoId
-        ? [String(terrenoId).trim()]
-        : String(p.get('terrenoIds') || '').split(',').map((s) => s.trim()).filter(Boolean);
-    return {
-        clienteId: clienteId && String(clienteId).trim() ? String(clienteId).trim() : null,
-        terrenoIds
-    };
+    return parseCalcolatoreUrlParams(window.location.search);
+}
+
+function applyPrefillToForm(prefill) {
+    if (!prefill) return;
+    editingCalcoloId = prefill.calcoloId || null;
+    sourceLavoroId = prefill.lavoroId || null;
+    linkedPreventivoId = prefill.preventivoId || null;
+
+    if (prefill.dataVendemmia) {
+        document.getElementById('input-data').value = prefill.dataVendemmia;
+    }
+    if (prefill.quintali != null && Number.isFinite(Number(prefill.quintali))) {
+        document.getElementById('input-quintali').value = String(prefill.quintali);
+    }
+    if (prefill.scontoMaggiorazione != null && Number.isFinite(Number(prefill.scontoMaggiorazione))) {
+        document.getElementById('input-sconto').value = String(prefill.scontoMaggiorazione);
+    }
+    if (prefill.destinazioneTrasporto) {
+        document.getElementById('sel-destinazione').value = prefill.destinazioneTrasporto;
+    }
+}
+
+async function initFromUrlParams() {
+    const urlParams = readUrlPreselect();
+    const prefill = await loadCalcoloPrefillContext(urlParams);
+    const clienteId = (prefill && prefill.clienteId) || urlParams.clienteId;
+    const terrenoIds = (prefill && prefill.terrenoIds && prefill.terrenoIds.length)
+        ? prefill.terrenoIds
+        : urlParams.terrenoIds;
+
+    if (prefill) applyPrefillToForm(prefill);
+
+    const sel = document.getElementById('sel-cliente');
+    if (clienteId && clientiMap[clienteId]) {
+        sel.value = clienteId;
+        await loadTerreni(clienteId, terrenoIds);
+    }
+
+    if (editingCalcoloId) {
+        showVmAlert('alert-container', 'Modifica calcolo salvato — ricalcola e salva per aggiornare.', 'success');
+        document.getElementById('btn-calcola').click();
+    } else if (sourceLavoroId) {
+        showVmAlert('alert-container', 'Dati precompilati dal lavoro VM. Verifica quintali e destinazione trasporto.', 'success');
+    }
 }
 
 function renderResult(res) {
@@ -193,11 +234,7 @@ try {
 
     sel.addEventListener('change', () => loadTerreni(sel.value));
 
-    const urlPre = readUrlPreselect();
-    if (urlPre.clienteId && clientiMap[urlPre.clienteId]) {
-        sel.value = urlPre.clienteId;
-        await loadTerreni(urlPre.clienteId, urlPre.terrenoIds);
-    }
+    await initFromUrlParams();
 
     document.getElementById('btn-calcola').addEventListener('click', () => {
         const clienteId = sel.value;
@@ -226,15 +263,35 @@ try {
             const clienteId = document.getElementById('sel-cliente').value;
             const ids = [...document.querySelectorAll('input[name=terreno]:checked')].map(el => el.value);
             const selectedTerreni = terreniCliente.filter(t => ids.includes(t.id));
-            const preventivoId = resolvePreventivoIdFromTerreni(selectedTerreni, lastBreakdown.anno || getAnnoStagioneCorrente());
-            const calcoloId = await saveCalcoloVm(lastBreakdown, {
+            const preventivoId = linkedPreventivoId || resolvePreventivoIdFromTerreni(selectedTerreni, lastBreakdown.anno || getAnnoStagioneCorrente());
+            const extra = {
                 dataVendemmia: document.getElementById('input-data').value,
-                preventivoId
-            });
+                preventivoId,
+                lavoroId: sourceLavoroId || null
+            };
+            let calcoloId;
+            if (editingCalcoloId) {
+                await updateCalcoloVm(editingCalcoloId, {
+                    ...extra,
+                    clienteId: lastBreakdown.clienteId,
+                    clienteNome: lastBreakdown.clienteNome || '',
+                    anno: lastBreakdown.anno,
+                    destinazioneTrasporto: lastBreakdown.destinazioneTrasporto,
+                    quintali: lastBreakdown.quintali,
+                    scontoMaggiorazione: lastBreakdown.scontoMaggiorazione || 0,
+                    terreni: lastBreakdown.terreni,
+                    totaleVendemmia: lastBreakdown.totaleVendemmia,
+                    totaleTrasporto: lastBreakdown.totaleTrasporto,
+                    totaleFinale: lastBreakdown.totaleFinale
+                });
+                calcoloId = editingCalcoloId;
+            } else {
+                calcoloId = await saveCalcoloVm(lastBreakdown, extra);
+            }
             if (preventivoId) {
                 await linkCalcoloVmToPreventivo(calcoloId, preventivoId);
             }
-            let msg = 'Calcolo salvato (ID: ' + calcoloId + ')';
+            let msg = editingCalcoloId ? 'Calcolo aggiornato (ID: ' + calcoloId + ')' : 'Calcolo salvato (ID: ' + calcoloId + ')';
             if (preventivoId) {
                 msg += ' — collegato al <a href="' + buildPreventiviCtUrl(preventivoId, clienteId) + '">preventivo CT</a>';
             }

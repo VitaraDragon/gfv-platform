@@ -1,6 +1,6 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-11 — merge PR #5 in `main`: segna ore unificato, gate-fast Tony E2E **17/17**, fix movimenti T-FLOW-016/017.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-12 — **Calcolatore VM P1** (flusso lavoro + riedit); merge PR #5 in `main`: segna ore unificato, gate-fast Tony E2E **17/17**, fix movimenti T-FLOW-016/017.
 
 ## Tony — merge PR #5 + gate E2E 17/17 (2026-07-11)
 
@@ -253,6 +253,17 @@ Doc **canonici** restano in root (`STATO_PROGETTO_COMPLETO`, `ARCHITETTURA_MODUL
 | CI | Job notturno `simulator-tony-e2e-live` (cron 02:00 UTC + workflow_dispatch), artifact `tony-e2e-live-report.json` |
 | Comando locale | `npm run sim:emulators:live` + seed + `npm run sim:tony:e2e:live` |
 | Prossimo | T-PERF-004 multi-dominio; espandere tier 3 (preventivo CF reale); `GFV_TONY_E2E_ENFORCE_P95=1` dopo baseline |
+
+## Vendemmia Meccanica — Calcolatore P1: integrazione flusso lavoro + riedit (2026-07-06)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| Query `?lavoroId=` | Prefill cliente, terreni, quintali (se presenti sul lavoro), data; `lavoroId` salvato su calcolo |
+| Query `?calcoloId=` | Riedit da calcoli salvati: ricarica form, ricalcolo breakdown, `updateCalcoloVm` al salva |
+| Helper | `parseCalcolatoreUrlParams`, `loadCalcoloPrefillContext`, `buildPrefillFromLavoro/Salvato`; `buildCalcolatoreVmUrl` esteso (lavoroId/calcoloId); `buildCalcolatoreVmUrlFromLavoro` |
+| Gestione Lavori | Shortcut **🧮 Calcolatore** su lavori VM `completato` / `completato_da_approvare` (lista + dettaglio); gate `vendemmiaMeccanica` |
+| Calcoli salvati | Pulsante **Modifica** → calcolatore con `?calcoloId=` |
+| Test | `tests/vendemmia-meccanica/calcoli-vm-prefill.test.js` |
 
 ## Vendemmia Meccanica — Piano Stagione VM: sezione chiusa (2026-07-06)
 

@@ -52,7 +52,7 @@ import { initVmPageAuth, publishTonyTableData, showVmAlert } from '../js/vm-page
 import { getAllCalcoliVm, deleteCalcoloVm } from '../services/calcoli-vm-service.js';
 import { generaPdfCalcoloVm } from '../services/calcolo-vm-pdf-service.js';
 import { getAnnoStagioneCorrente } from '../config/vm-constants.js';
-import { buildPreventiviCtUrl } from '../services/piano-stagione-utils.js';
+import { buildPreventiviCtUrl, buildCalcolatoreVmUrl } from '../services/piano-stagione-utils.js';
 
 let calcoliCache = [];
 let tenantAziendaNome = '';
@@ -92,6 +92,7 @@ async function loadCalcoli() {
             '<td>' + (Array.isArray(c.terreni) ? c.terreni.length : 0) + '</td>' +
             '<td>' + fmtEuro(c.totaleFinale) + '</td>' +
             '<td style="white-space:nowrap">' +
+            '<a class="btn btn-secondary" style="margin-right:6px;text-decoration:none;" href="' + buildCalcolatoreVmUrl(c.clienteId, null, { calcoloId: c.id }) + '">Modifica</a>' +
             (c.preventivoId ? '<a class="btn btn-secondary" style="margin-right:6px;text-decoration:none;" href="' + buildPreventiviCtUrl(c.preventivoId, c.clienteId) + '">Preventivo</a>' : '') +
             '<button type="button" class="btn btn-pdf" data-pdf="' + c.id + '">PDF</button>' +
             '<button type="button" class="btn btn-danger" data-del="' + c.id + '">Elimina</button>' +

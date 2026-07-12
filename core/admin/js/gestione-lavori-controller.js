@@ -1687,10 +1687,35 @@ export async function renderLavori(
     maybeAutoStartLavoriTour,
     operaiList = [],
     currentTenantId = null,
-    db = null
+    db = null,
+    hasVendemmiaMeccanicaModule = false
 ) {
     const container = document.getElementById('lavori-container');
     const countEl = document.getElementById('lavori-count');
+
+    let vmShortcut = null;
+    if (hasVendemmiaMeccanicaModule) {
+        try {
+            const [lavoroVmUtils, pianoUtils] = await Promise.all([
+                import('../../../modules/vendemmia-meccanica/services/lavoro-vm-utils.js'),
+                import('../../../modules/vendemmia-meccanica/services/piano-stagione-utils.js')
+            ]);
+            vmShortcut = {
+                isEligible: lavoroVmUtils.isLavoroEligibleForCalcolatoreShortcut,
+                buildUrl: (lavoro) => pianoUtils.buildCalcolatoreVmUrlFromLavoro(lavoro, {
+                    basePath: pianoUtils.CALCOLATORE_VM_ADMIN_BASE
+                })
+            };
+        } catch (err) {
+            console.warn('[GESTIONE-LAVORI] Modulo VM shortcut non disponibile:', err.message);
+        }
+    }
+
+    function renderCalcolatoreVmLink(lavoro) {
+        if (!vmShortcut || !vmShortcut.isEligible(lavoro, { hasVmModule: true })) return '';
+        const href = vmShortcut.buildUrl(lavoro);
+        return '<a class="btn btn-primary btn-sm" href="' + escapeHtml(href) + '" target="_blank" rel="noopener" title="Apri calcolatore compenso">🧮 Calcolatore</a>';
+    }
 
     if (!container || !countEl) {
         console.error('renderLavori: Container o countEl non trovati');
@@ -1941,6 +1966,7 @@ export async function renderLavori(
                             <button class="btn btn-info btn-sm" onclick="openDettaglioModal('${lavoro.id}')">
                                 👁️ Dettagli
                             </button>
+                            ${renderCalcolatoreVmLink(lavoro)}
                         </div>
                     </td>
                 </tr>
@@ -2075,6 +2101,7 @@ export async function renderLavori(
                 <td>
                     <div class="action-buttons">
                         <button class="btn btn-info btn-sm" onclick="openDettaglioModal('${lavoro.id}')">👁️ Dettagli</button>
+                        ${renderCalcolatoreVmLink(lavoro)}
                         <button class="btn btn-info btn-sm" onclick="openModificaModal('${lavoro.id}')">✏️ Modifica</button>
                         ${hasManodoperaModule && lavoro.stato === 'in_standby' ? `<button type="button" class="btn btn-success btn-sm" onclick="openSostitutoAssenzaModal('${lavoro.id}')" title="Scegli sostituto dalla shortlist">👤 Assegna sostituto</button><button type="button" class="btn btn-primary btn-sm" onclick="openStandbyAssenzaModal('${lavoro.id}')" title="Ripristina senza sostituto">▶️ Ripristina</button>` : ''}
                         ${hasManodoperaModule && lavoro.stato !== 'completato' && lavoro.stato !== 'annullato' && lavoro.stato !== 'sospeso' && lavoro.stato !== 'in_standby' ? `<button type="button" class="btn btn-warning btn-sm" onclick="openStandbyAssenzaModal('${lavoro.id}')" title="Assenza operaio: metti il lavoro in standby">⏸️ Standby assenza</button>` : ''}
@@ -2250,6 +2277,7 @@ let isLoadingOverview = false;
  * @param {Function} loadProgressiLavoro - Funzione per caricare progressi lavoro
  * @param {Function} escapeHtml - Funzione per escape HTML
  * @param {Function} getStatoFormattato - Funzione per formattare stato
+ * @param {boolean} [hasVendemmiaMeccanicaModule=false]
  */
 export async function loadDettaglioOverview(
     lavoroId,
@@ -2260,7 +2288,8 @@ export async function loadDettaglioOverview(
     db,
     loadProgressiLavoro,
     escapeHtml,
-    getStatoFormattato
+    getStatoFormattato,
+    hasVendemmiaMeccanicaModule = false
 ) {
     const container = document.getElementById('dettaglio-overview-content');
     if (!container) {
@@ -2351,6 +2380,24 @@ export async function loadDettaglioOverview(
         const superficieLavorata = progressi.superficieLavorata || 0;
         const percentuale = superficieTotale > 0 ? Math.round((superficieLavorata / superficieTotale) * 100) : 0;
 
+        let calcolatoreVmHtml = '';
+        if (hasVendemmiaMeccanicaModule) {
+            try {
+                const [lavoroVmUtils, pianoUtils] = await Promise.all([
+                    import('../../../modules/vendemmia-meccanica/services/lavoro-vm-utils.js'),
+                    import('../../../modules/vendemmia-meccanica/services/piano-stagione-utils.js')
+                ]);
+                if (lavoroVmUtils.isLavoroEligibleForCalcolatoreShortcut(lavoro, { hasVmModule: true })) {
+                    const href = pianoUtils.buildCalcolatoreVmUrlFromLavoro(lavoro, {
+                        basePath: pianoUtils.CALCOLATORE_VM_ADMIN_BASE
+                    });
+                    calcolatoreVmHtml = '<div style="margin-top:16px;"><a class="btn btn-primary btn-sm" href="' + escapeHtml(href) + '" target="_blank" rel="noopener">🧮 Apri calcolatore compenso</a></div>';
+                }
+            } catch (err) {
+                console.warn('[GESTIONE-LAVORI] Link calcolatore VM:', err.message);
+            }
+        }
+
         container.innerHTML = `
             <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 20px; margin-bottom: 20px;">
                 <div class="ore-stat-card">
@@ -2397,6 +2444,7 @@ export async function loadDettaglioOverview(
             </div>
             
             ${lavoro.note ? `<div style="margin-top: 20px;"><strong>Note:</strong><br>${escapeHtml(lavoro.note)}</div>` : ''}
+            ${calcolatoreVmHtml}
             
             <div style="margin-top: 30px;">
                 <h4 style="margin-bottom: 15px;">Ore per Operaio</h4>

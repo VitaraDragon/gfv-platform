@@ -450,7 +450,7 @@ Flusso implementato (2026-07-06):
 | Elimina lavoro | `clearLavoroFromPianoStagione` in `openEliminaModal` |
 | Backfill piano | `syncLavoriCompletatiToPiano` + `cleanupOrphanedPianoStagioneLavori` all’apertura piano |
 
-Da fare (O16 residuo): shortcut «Apri calcolatore precompilato» da lavoro completato; `calcolo.lavoroId` end-to-end.
+Da fare (O16 residuo): ~~shortcut «Apri calcolatore precompilato» da lavoro completato; `calcolo.lavoroId` end-to-end~~ ✅ 2026-07-06 (P1 calcolatore).
 
 ### 9.4 Modulo Report
 
@@ -572,9 +572,9 @@ Legenda: ⬜ Da fare · 🔄 In corso · ✅ Completato · ⏸️ In attesa deci
 | 3.1 | `vm-home-standalone.html` — hub + link CT | ✅ | MVP hub; verticali VM placeholder Fase 3 |
 | 3.2 | `piano-stagione-standalone.html` — lista, stati, % avanzamento | ✅ | currentTableData + modal ha netti v1 |
 | 3.3 | Modal mappa zone escluse + zone vendemmiate da lavoro | ✅ | `vm-zone-mappa.js`; verdi read-only, rosse editabili |
-| 3.4 | `calcolatore-standalone.html` — lookup + risultati + salva | ✅ | |
+| 3.4 | `calcolatore-standalone.html` — lookup + risultati + salva | ✅ | P1 2026-07-06: `?lavoroId=`, `?calcoloId=` riedit, save `lavoroId` |
 | 3.5 | Generazione PDF calcolo | ✅ | `calcolo-vm-pdf-service.js`; calcolatore + calcoli salvati |
-| 3.6 | `calcoli-salvati-standalone.html` — storico, filtri, delete | ✅ | |
+| 3.6 | `calcoli-salvati-standalone.html` — storico, filtri, delete | ✅ | Link **Modifica** → calcolatore `?calcoloId=` |
 | 3.7 | `tariffe-vm-standalone.html` — griglia + trasporto | ✅ | |
 | 3.8 | `bilancio-vm-standalone.html` — KPI, spese, export | ✅ | Export CSV opzionale post-MVP |
 | 3.9 | Entry card su hub CT + dashboard principale | ✅ | KPI hub VM; stat CT; tile dashboard manodopera |

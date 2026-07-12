@@ -79,6 +79,12 @@ describe('piano-stagione-utils', () => {
     expect(url).toContain('terrenoId=terr-1');
   });
 
+  it('buildCalcolatoreVmUrl passa lavoroId e calcoloId', () => {
+    const url = buildCalcolatoreVmUrl('cli-1', 'terr-1', { lavoroId: 'lav-1', calcoloId: 'calc-1' });
+    expect(url).toContain('lavoroId=lav-1');
+    expect(url).toContain('calcoloId=calc-1');
+  });
+
   it('rowHasVendemmiaDati riconosce lavoro, zone e ha netti', () => {
     expect(rowHasVendemmiaDati({ lavoroId: 'l1' })).toBe(true);
     expect(rowHasVendemmiaDati({ zoneVendemmiateCount: 2 })).toBe(true);

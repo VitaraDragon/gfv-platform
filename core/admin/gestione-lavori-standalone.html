@@ -1725,6 +1725,7 @@
             hasParcoMacchineModule: false,
             hasManodoperaModule: false,
             hasContoTerziModule: false,
+            hasVendemmiaMeccanicaModule: false,
             
             // Tour
             lavoriTourAutoRequested: false,
@@ -1761,6 +1762,7 @@
         let hasParcoMacchineModule = false;
         let hasManodoperaModule = false;
         let hasContoTerziModule = false;
+        let hasVendemmiaMeccanicaModule = false;
         let categorieLavoriPrincipali = [];
         let sottocategorieLavoriMap = new Map();
         let tipiLavoroList = [];
@@ -1800,6 +1802,7 @@
             hasParcoMacchineModule = lavoriState.hasParcoMacchineModule;
             hasManodoperaModule = lavoriState.hasManodoperaModule;
             hasContoTerziModule = lavoriState.hasContoTerziModule;
+            hasVendemmiaMeccanicaModule = lavoriState.hasVendemmiaMeccanicaModule;
             lavoriTourAutoRequested = lavoriState.lavoriTourAutoRequested;
             lavoriTourOpenedModal = lavoriState.lavoriTourOpenedModal;
         }
@@ -2667,7 +2670,8 @@
                 maybeAutoStartLavoriTourWrapper,
                 lavoriState.operaiList,
                 currentTenantId || lavoriState.currentTenantId,
-                db
+                db,
+                lavoriState.hasVendemmiaMeccanicaModule
             );
             if (lavoriState.hasManodoperaModule) {
                 await refreshAssenzeSegnalateBanner();
@@ -2942,7 +2946,8 @@
                     return await loadProgressiLavoroModule(lavoroId, currentTenantId, db);
                 },
                 escapeHtmlUtil,
-                getStatoFormattatoUtil
+                getStatoFormattatoUtil,
+                lavoriState.hasVendemmiaMeccanicaModule
             );
         }
 
@@ -3204,6 +3209,7 @@
                     // Verifica moduli attivi
                     hasManodoperaModule = false;
                     hasContoTerziModule = false;
+                    hasVendemmiaMeccanicaModule = false;
                     if (currentTenantId) {
                         try {
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
@@ -3213,6 +3219,7 @@
                                 hasManodoperaModule = modules.includes('manodopera');
                                 hasParcoMacchineModule = modules.includes('parcoMacchine');
                                 hasContoTerziModule = modules.includes('contoTerzi');
+                                hasVendemmiaMeccanicaModule = modules.includes('vendemmiaMeccanica');
                                 
                                 // Inizializza context Tony: moduli + ruoli manager (evita guard profilo campo errata)
                                 var tonyOptsLavori = {
@@ -3254,7 +3261,8 @@
                     updateState({
                         hasManodoperaModule,
                         hasParcoMacchineModule,
-                        hasContoTerziModule
+                        hasContoTerziModule,
+                        hasVendemmiaMeccanicaModule
                     });
                     
                     // Mostra/nascondi sezione macchine se modulo Parco Macchine attivo
