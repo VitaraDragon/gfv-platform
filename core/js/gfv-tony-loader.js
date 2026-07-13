@@ -162,7 +162,7 @@
         document.head.appendChild(link);
         var s = document.createElement('script');
         s.type = 'module';
-        s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js?v=2026-06-22d';
+        s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js?v=2026-07-13b';
         document.body.appendChild(s);
     }
 

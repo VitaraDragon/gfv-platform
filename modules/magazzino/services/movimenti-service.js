@@ -124,6 +124,52 @@ export async function createMovimento(movimentoData) {
 }
 
 /**
+ * Aggiorna un movimento esistente senza modificare la giacenza.
+ * Consentito solo per campi che non alterano quantità, tipo o prodotto.
+ * @param {string} movimentoId - ID movimento
+ * @param {Object} updates - Campi da aggiornare (prezzoUnitario, prezzoInAttesa, note, documentoFatturaId, …)
+ * @returns {Promise<void>}
+ */
+export async function updateMovimento(movimentoId, updates = {}) {
+  try {
+    const tenantId = getCurrentTenantId();
+    if (!tenantId) {
+      throw new Error('Nessun tenant corrente disponibile');
+    }
+    if (!movimentoId) {
+      throw new Error('ID movimento obbligatorio');
+    }
+
+    const existing = await getMovimento(movimentoId);
+    if (!existing) {
+      throw new Error('Movimento non trovato');
+    }
+
+    if (updates.quantita != null && updates.quantita !== existing.quantita) {
+      throw new Error('Aggiornamento quantità non supportato da updateMovimento');
+    }
+    if (updates.tipo != null && updates.tipo !== existing.tipo) {
+      throw new Error('Aggiornamento tipo non supportato da updateMovimento');
+    }
+    if (updates.prodottoId != null && updates.prodottoId !== existing.prodottoId) {
+      throw new Error('Aggiornamento prodotto non supportato da updateMovimento');
+    }
+
+    const merged = Object.assign({}, existing, updates, { id: existing.id });
+    const movimento = new MovimentoMagazzino(merged);
+    const validation = movimento.validate();
+    if (!validation.valid) {
+      throw new Error(`Validazione fallita: ${validation.errors.join(', ')}`);
+    }
+
+    await updateDocument(COLLECTION_NAME, movimentoId, movimento.toFirestore(), tenantId);
+  } catch (error) {
+    console.error('Errore aggiornamento movimento:', error);
+    throw new Error(`Errore aggiornamento movimento: ${error.message}`);
+  }
+}
+
+/**
  * Elimina un movimento e ripristina la giacenza del prodotto
  * @param {string} movimentoId - ID movimento
  * @returns {Promise<void>}

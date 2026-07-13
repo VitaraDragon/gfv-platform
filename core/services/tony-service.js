@@ -408,6 +408,7 @@ class TonyService {
     this.ai = null;
     this.app = null;
     this._tonyAskCallable = null;
+    this._tonyExtractCallable = null;
     this._tonyAskHttpUrl = null;
     this._tonyAskStreamUrl = null;
     this.context = {};
@@ -601,6 +602,7 @@ class TonyService {
               connectFunctionsEmulator(functions, '127.0.0.1', 5001);
             }
             this._tonyAskCallable = httpsCallable(functions, 'tonyAsk');
+            this._tonyExtractCallable = httpsCallable(functions, 'tonyExtractDocument');
             this._tonyAskHttpUrl = this._resolveTonyAskCallableUrl(app);
             this._tonyAskStreamUrl = this._resolveTonyAskStreamUrl(app);
             this._useCallable = true;
@@ -1976,6 +1978,40 @@ class TonyService {
         console.error('[Tony] Errore in onAction callback:', e);
       }
     });
+  }
+
+  /**
+   * Callable tonyExtractDocument — Tony Occhi (Gemini vision su bolle/fatture).
+   * @param {{ pages: Array<{ mimeType: string, data: string, indice?: number }> }} params
+   */
+  async extractDocument(params) {
+    await this.init();
+    const callable = await this._ensureExtractCallable();
+    const pages = params && Array.isArray(params.pages) ? params.pages : [];
+    const payload = {
+      pages,
+      context: this._getContextForPrompt({ forCallable: true }),
+    };
+    const tenantId =
+      (this.context && this.context.dashboard && this.context.dashboard.tenantId) ||
+      (this.context && this.context.tenantId) ||
+      null;
+    if (tenantId) payload.tenantId = String(tenantId);
+    const r = await callable(payload);
+    return r.data;
+  }
+
+  async _ensureExtractCallable() {
+    if (this._tonyExtractCallable) return this._tonyExtractCallable;
+    const { getFunctions, httpsCallable, connectFunctionsEmulator } = await import(
+      'https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js'
+    );
+    const functions = getFunctions(this.app, 'europe-west1');
+    if (typeof window !== 'undefined' && window.__gfvTonyCfEmulatorBase && !window.__GFV_TONY_E2E_PROD_CF) {
+      connectFunctionsEmulator(functions, '127.0.0.1', 5001);
+    }
+    this._tonyExtractCallable = httpsCallable(functions, 'tonyExtractDocument');
+    return this._tonyExtractCallable;
   }
 
   /**

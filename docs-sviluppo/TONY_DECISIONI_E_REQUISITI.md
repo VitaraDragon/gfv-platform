@@ -1,7 +1,7 @@
 # Tony – Inventario decisioni e requisiti
 
 **Data estrazione**: 2026-03-08  
-**Ultimo aggiornamento**: 2026-07-10 (Tony Occhi — design acquisizione documenti chat-first)
+**Ultimo aggiornamento**: 2026-07-13 (Tony Occhi — piano evolutivo §17 ROADMAP, decisioni §20.21–20.30)
 **Obiettivo**: Raccogliere in un unico documento ogni decisione di prodotto, requisito e vincolo trovato nei documenti Tony, per evitare perdite durante il consolidamento.
 
 **Stati**: `implementato` | `in corso` | `parziale` | `pianificato` | `non implementato` | `abbandonato` | `da verificare`
@@ -454,33 +454,43 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 
 ---
 
-## 20. Tony Occhi — acquisizione documenti (bolla / fattura)
+## 20. Tony Occhi — acquisizione documenti (bolla / fattura / scontrino)
 
-**Design completo**: `docs-sviluppo/da-fare/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` (agg. 2026-07-10).  
-**Stato implementazione codice**: non iniziato (pianificato).
+**Design completo**: `docs-sviluppo/da-fare/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` (agg. 2026-07-13, **§17 piano agenti**).  
+**Stato implementazione codice**: **Fase 0–3** in codice (2026-07-12); prossimo blocco **§17.2** (€, scontrino, fattura diretta, match DDT, prodotto auto). Mancano Storage/Firestore sessioni e UI magazzino Fase 4.
 
 | # | Decisione | Fonte | Stato | Note |
 |---|-----------|-------|-------|------|
-| 20.1 | **Ingresso principale = icona fotocamera in chat Tony** (accanto al mic), non navigazione menù magazzino | prodotto 2026-07-10 | **pianificato** | `core/js/tony/ui.js` |
-| 20.2 | **Un solo componente upload**: file picker `image/*` + `application/pdf`; opz. `capture="environment"` | prodotto 2026-07-10 | **pianificato** | MVP; no camera live custom |
-| 20.3 | **Classificazione automatica** documento (bolla / fattura / sconosciuto); utente non sceglie tipo prima dello scatto | prodotto 2026-07-10 | **pianificato** | CF `tonyExtractDocument` + Gemini vision |
-| 20.4 | **Routing automatico** post-estrazione (movimenti entrata vs aggiornamento prezzi) con gate modulo **`magazzino`** e ruoli manager/admin | prodotto 2026-07-10 | **pianificato** | Estensione intent router |
-| 20.5 | **Conferma umana obbligatoria** tramite **form di revisione** (tipo bolla/fattura, righe editabili, **Registra dati**) — non solo testo chat | prodotto 2026-07-10 | **pianificato** | Mai auto-save qty/prezzi |
-| 20.6 | **Flusso due passi**: bolla → qty (+ prezzo in attesa); fattura → collegamento bolla → aggiorna `prezzoUnitario` | ROADMAP 2026-04-04, conferma 2026-07-10 | **pianificato** | Vincolo business |
+| 20.1 | **Ingresso principale = icona fotocamera in chat Tony** (accanto al mic), non navigazione menù magazzino | prodotto 2026-07-10 | **implementato** | `core/js/tony/ui.js` |
+| 20.2 | **Un solo componente upload**: file picker `image/*` + `application/pdf`; opz. `capture="environment"` | prodotto 2026-07-10 | **implementato** | MVP; no camera live custom |
+| 20.3 | **Classificazione automatica** documento (bolla / fattura / sconosciuto); utente non sceglie tipo prima dello scatto | prodotto 2026-07-10 | **implementato** | CF `tonyExtractDocument` + Gemini vision |
+| 20.4 | **Routing automatico** post-estrazione (movimenti entrata vs aggiornamento prezzi) con gate modulo **`magazzino`** e ruoli manager/admin | prodotto 2026-07-10 | **parziale** | Gate CF ✅; routing client via tipo documento nel form revisione |
+| 20.5 | **Conferma umana obbligatoria** tramite **form di revisione** (tipo bolla/fattura, righe editabili, **Registra dati**) — non solo testo chat | prodotto 2026-07-10 | **implementato** | Mai auto-save qty/prezzi |
+| 20.6 | **Flusso due passi**: bolla → qty (+ prezzo in attesa); fattura → collegamento bolla → aggiorna `prezzoUnitario` | ROADMAP 2026-04-04, conferma 2026-07-10 | **implementato** | `registerFatturaPrezzi` + `updateMovimento` (2026-07-12) |
 | 20.7 | **Pagina magazzino** per storico/audit documenti; **chat** per acquisizione al volo | prodotto 2026-07-10 | **pianificato** | |
 | 20.8 | **Vision-first Gemini 2.5 Flash**; OCR pipeline separata solo se necessario per costi | prodotto 2026-07-10 | **pianificato** | Allineato `TONY_GEMINI_MODEL` |
 | 20.9 | **Config centralizzata**: schemi JSON documento + mapping; integrazione movimenti via canone `tony-form-mapping` / save locale | prodotto 2026-07-10 | **pianificato** | No patch per singola pagina |
 | 20.10 | **Persistenza** `documentiAcquisiti` Firestore + file su Storage; movimenti con flag `prezzoInAttesa` opzionale | design 2026-07-10 | **pianificato** | Schema in ROADMAP §8 |
 | 20.11 | **Screenshot** accettati come immagine nello stesso pipeline (fallback, non canale dedicato) | prodotto 2026-07-10 | **pianificato** | |
 | 20.12 | **Camera live in-app**, email inoltrata, multi-agente IDP: **fuori MVP** | prodotto 2026-07-10 | **pianificato** | Fasi 2–3 ROADMAP §13 |
-| 20.13 | **Form di revisione documento** — badge bolla/fattura, intestazione e tabella righe **editabili**, azione **Registra dati** | prodotto 2026-07-10 | **pianificato** | Modal/pannello widget Tony |
-| 20.14 | **Acquisizione multipla** — più foto/PDF per stesso documento; **Aggiungi pagina** + **Acquisizione terminata** prima dell’estrazione | prodotto 2026-07-10 | **pianificato** | MVP; merge pagine in CF |
-| 20.15 | **Estrazione layout-agnostic** — nessun template per fornitore; schema JSON solo **in uscita**; prompt per tipo bolla/fattura | prodotto 2026-07-10 | **pianificato** | Gemini vision |
-| 20.16 | **Due step conferma**: (1) Acquisizione terminata (2) Registra dati sul form | prodotto 2026-07-10 | **pianificato** | ROADMAP §5.2–§5.4 |
+| 20.13 | **Form di revisione documento** — badge bolla/fattura, intestazione e tabella righe **editabili**, azione **Registra dati** | prodotto 2026-07-10 | **implementato** | Modal/pannello widget Tony |
+| 20.14 | **Acquisizione multipla** — più foto/PDF per stesso documento; **Aggiungi pagina** + **Acquisizione terminata** prima dell’estrazione | prodotto 2026-07-10 | **implementato** | MVP; merge pagine in CF |
+| 20.15 | **Estrazione layout-agnostic** — nessun template per fornitore; schema JSON solo **in uscita**; prompt per tipo bolla/fattura | prodotto 2026-07-10 | **implementato** | Gemini vision |
+| 20.16 | **Due step conferma**: (1) Acquisizione terminata (2) Registra dati sul form | prodotto 2026-07-10 | **implementato** | ROADMAP §5.2–§5.4 |
 | 20.17 | Sessione Firestore `documentiAcquisiti/{sessionId}` con array **`pagine[]`** e stati `acquiring` → `review` → `confirmed` | design 2026-07-10 | **pianificato** | ROADMAP §8 |
 | 20.18 | **Animazione scanner** riusabile durante estrazione Gemini e popolamento form revisione (CSS, no librerie) | prodotto 2026-07-10 | **pianificato** | ROADMAP §5.4 D16 |
 | 20.19 | **Must-have Tony Occhi M1–M7**: duplicati, validazione totali, normalizzazione unità, confidence UI, audit estratto/confermato, link documento↔movimento, policy giacenza bolla | design 2026-07-10 | **pianificato** | ROADMAP §16.1 |
 | 20.20 | **Post-MVP P1–P7**: qualità foto, ripresa sessione, fornitore/prodotto nuovo, lista in attesa, proattività, retention Storage | design 2026-07-10 | **pianificato** | ROADMAP §16.2 |
+| 20.21 | **Tipo scontrino** nel dropdown revisione — classificazione a parte; trattato come **fattura diretta** (entrata qty+prezzo, no bolla) | prodotto 2026-07-13 | **implementato** | `document-review-form.js`, schema CF `scontrino` |
+| 20.22 | **Fattura/scontrino senza bolla** → sempre **nuova entrata** (qty + prezzo + giacenza), anche se prodotto già in magazzino | prodotto 2026-07-13 | **implementato** | `registerFatturaEntrata`, `registerFatturaDocumento` |
+| 20.23 | **Fattura con bolla** → aggiorna prezzo su entrate esistenti; **non** raddoppia qty/giacenza | prodotto 2026-07-13 | **implementato** | `registerFatturaPrezzi`; match da rafforzare (20.24) |
+| 20.24 | **Match bolla automatico** da riferimento DDT in fattura (fornitore + numero + righe) | prodotto 2026-07-13 | **implementato** | `riferimentiBolla[]` CF + `resolveAutoBollaSessionFromEstrazione` |
+| 20.25 | **Prodotto sconosciuto** → creazione anagrafica **minima automatica** + **reminder** completamento (non blocca movimento) | prodotto 2026-07-13 | **implementato** | `ensureProdottiForRighe`, `daCompletare` su Prodotto, `document-prodotto-reminder.js`, lista `prodotti-standalone.html` |
+| 20.26 | **Categoria prodotto** suggerita automaticamente da OCR; dropdown prodotto filtrato per categoria | prodotto 2026-07-13 | **implementato** | `suggestCategoriaForRiga`, filtro dropdown form |
+| 20.27 | **Formattazione prezzi in €** nel form revisione | prodotto 2026-07-13 | **implementato** | `document-eur-format.js`, totali documento, colonna Prezzo (€) |
+| 20.28 | **Costi trattamenti**: aggiornare solo movimento entrata; evoluzione **prezzo medio ponderato** dalle entrate (non anagrafica statica) | prodotto 2026-07-13 | **pianificato** | Modulo economia; ROADMAP §17.6 |
+| 20.29 | **Preventivo** nel dropdown tipo documento — **riservato/disabilitato** finché non esiste design dedicato | prodotto 2026-07-13 | **pianificato** | Non misto a magazzino senza requisito |
+| 20.30 | **Modal revisione fullscreen** (fuori pannello chat) per documenti con molte righe | prodotto 2026-07-13 | **implementato** | `tony-doc-review-overlay` |
 
 ---
 

@@ -8,8 +8,27 @@ import { onAuthStateChanged, getDocumentData, getAuthInstance } from '../service
 import {
   getCurrentTenantId,
   setCurrentTenantId,
-  prefetchTenantForTony
+  prefetchTenantForTony,
+  getUserRolesForTenant
 } from '../services/tenant-service.js';
+
+function publishTonyUserRolesForCapture(tenantId, userId) {
+  if (!tenantId || !userId) return Promise.resolve();
+  return getUserRolesForTenant(tenantId, userId).then(function (ruoli) {
+    if (!Array.isArray(ruoli) || ruoli.length === 0) return;
+    try {
+      sessionStorage.setItem('gfv_tony_utente_ruoli', JSON.stringify(ruoli));
+    } catch (e) { /* ignore */ }
+    var payload = { utente_corrente: { ruoli: ruoli } };
+    if (typeof window.setTonyContext === 'function') {
+      window.setTonyContext(payload);
+    } else if (window.Tony && typeof window.Tony.setContext === 'function') {
+      var d = (window.Tony.context && window.Tony.context.dashboard) || {};
+      window.Tony.setContext('dashboard', Object.assign({}, d, payload));
+      try { if (typeof window.__tonyDocCaptureRefresh === 'function') window.__tonyDocCaptureRefresh(); } catch (e2) { /* ignore */ }
+    }
+  }).catch(function () { /* ignore */ });
+}
 
 let authListenerRegistered = false;
 
@@ -84,6 +103,7 @@ export function bootstrapTonyTenantFromAuth() {
         if (!tid) return;
         setCurrentTenantId(tid);
         await prefetchTenantForTony(tid);
+        await publishTonyUserRolesForCapture(tid, user.uid);
       } catch (err) {
         console.warn('[Tony bootstrap] publish tenant:', err.message || err);
       }

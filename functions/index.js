@@ -4124,6 +4124,18 @@ exports.handleTonyAskRequest = handleTonyAskRequest;
 const { tonyAskStream } = require("./tony-ask-stream");
 exports.tonyAskStream = tonyAskStream;
 
+const { handleTonyExtractDocument } = require("./tony-extract-document");
+exports.tonyExtractDocument = onCall(
+  {
+    region: "europe-west1",
+    secrets: [sentryDsn, geminiApiKey],
+    timeoutSeconds: 120,
+    memory: "512MiB",
+  },
+  async (request) => handleTonyExtractDocument(db, request)
+);
+exports.handleTonyExtractDocument = handleTonyExtractDocument;
+
 /**
  * Callable: getTonyAudio - Sintesi vocale neurale per Tony.
  * Riceve { text: string }, restituisce { audioContent: string } (base64 MP3).

@@ -42,6 +42,8 @@ export class Prodotto extends Base {
     this.giorniCarenza = data.giorniCarenza !== undefined && data.giorniCarenza !== '' ? parseInt(data.giorniCarenza, 10) : null;
     this.note = data.note || '';
     this.attivo = data.attivo !== undefined ? !!data.attivo : true;
+    /** Tony Occhi — anagrafica creata in automatico, da completare in magazzino */
+    this.daCompletare = data.daCompletare === true;
   }
 
   /**
@@ -82,8 +84,8 @@ export class Prodotto extends Base {
     }
 
     const cat = String(this.categoria || '').trim().toLowerCase();
-    const richiedeDos = cat === 'fitofarmaci' || cat === 'fertilizzanti';
-    const richiedeCar = cat === 'fitofarmaci';
+    const richiedeDos = !this.daCompletare && (cat === 'fitofarmaci' || cat === 'fertilizzanti');
+    const richiedeCar = !this.daCompletare && cat === 'fitofarmaci';
     if (richiedeDos) {
       if (this.dosaggioMin == null || !Number.isFinite(this.dosaggioMin)) {
         errors.push('Dosaggio minimo obbligatorio per fitofarmaci e fertilizzanti');

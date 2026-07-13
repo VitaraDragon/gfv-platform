@@ -82,10 +82,31 @@ export function injectWidget(scriptBase) {
         '<button type="button" class="tony-voice-confirm-cancel" id="tony-voice-cancel">Annulla</button>' +
         '<button type="button" class="tony-voice-confirm-ok" id="tony-voice-ok">Invia</button>' +
         '</div></div>' +
+        '<div class="tony-doc-capture" id="tony-doc-capture" style="display:none" aria-live="polite">' +
+        '<div class="tony-doc-scanner" id="tony-doc-scanner" style="display:none" aria-hidden="true"><span class="tony-doc-scanner-line"></span></div>' +
+        '<p class="tony-doc-status" id="tony-doc-status"></p>' +
+        '<div class="tony-doc-thumbs" id="tony-doc-thumbs"></div>' +
+        '<div class="tony-doc-actions">' +
+        '<button type="button" class="tony-doc-btn" id="tony-doc-add-page">Aggiungi pagina</button>' +
+        '<button type="button" class="tony-doc-btn tony-doc-btn-primary" id="tony-doc-finish">Acquisizione terminata</button>' +
+        '<button type="button" class="tony-doc-btn tony-doc-btn-ghost" id="tony-doc-cancel">Annulla</button>' +
+        '</div></div>' +
+        '<input type="file" id="tony-doc-file-input" accept="image/*,application/pdf" capture="environment" multiple style="display:none" aria-hidden="true">' +
         '<div class="tony-widget-input-row">' +
+        '<button type="button" class="tony-widget-camera" id="tony-camera" title="Acquisisci bolla o fattura" aria-label="Fotocamera documenti" style="display:none">📷</button>' +
         '<button type="button" class="tony-widget-mic" id="tony-mic" title="Clicca per attivare dialogo continuo (mani libere)" aria-label="Microfono">🎤</button>' +
         '<input type="text" class="tony-widget-input" id="tony-input" placeholder="Scrivi un messaggio..." autocomplete="off" maxlength="2000">' +
         '<button type="button" class="tony-widget-send" id="tony-send">Invia</button>' +
+        '</div>';
+
+    var docReviewOverlay = document.createElement('div');
+    docReviewOverlay.className = 'tony-doc-review-overlay';
+    docReviewOverlay.id = 'tony-doc-review-overlay';
+    docReviewOverlay.style.display = 'none';
+    docReviewOverlay.setAttribute('aria-hidden', 'true');
+    docReviewOverlay.innerHTML =
+        '<div class="tony-doc-review" id="tony-doc-review" role="dialog" aria-labelledby="tony-doc-review-title" aria-modal="true">' +
+        '<div class="tony-doc-review-inner" id="tony-doc-review-inner"></div>' +
         '</div>';
 
     var overlay = document.createElement('div');
@@ -105,6 +126,7 @@ export function injectWidget(scriptBase) {
 
     document.body.appendChild(fab);
     document.body.appendChild(panel);
+    document.body.appendChild(docReviewOverlay);
     document.body.appendChild(overlay);
 
     var messagesEl = document.getElementById('tony-messages');

@@ -49,6 +49,12 @@ export class MovimentoMagazzino extends Base {
     this.origineTrattamentoModulo = data.origineTrattamentoModulo || null;
     this.origineTrattamentoColturaId = data.origineTrattamentoColturaId || null;
     this.origineTrattamentoId = data.origineTrattamentoId || null;
+    /** Tony Occhi — bolla senza prezzo fino a fattura */
+    this.prezzoInAttesa = data.prezzoInAttesa === true;
+    /** Tony Occhi — id sessione acquisizione (client o Firestore) */
+    this.documentoAcquisitoId = data.documentoAcquisitoId || null;
+    /** Tony Occhi — id sessione fattura che ha aggiornato il prezzo */
+    this.documentoFatturaId = data.documentoFatturaId || null;
   }
 
   /**

@@ -51,6 +51,7 @@ import {
 import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo.js';
 import { applyStreamingTtsChunks, consumeCompleteStreamingSentences, getStreamingTtsRemainder, resolveVoiceTtsRemainder, reconcileUnspokenVoiceSegments, batchSentencesForTts, joinSentencesForItalianTts, speakTextInSentenceChunks } from './stream-tts-chunk.js';
 import { tonyWantsDashboardRiassunto, buildDashboardRiassuntoText, formatDashboardOpsBriefingText } from './meteo-dashboard-quick-reply-utils.js';
+import { initTonyDocumentCapture } from './document-capture.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
 export const TONY_CLIENT_BUILD = '2026-06-22d';
@@ -5295,6 +5296,16 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
     var sendBtn = document.getElementById('tony-send');
     var closeBtn = document.getElementById('tony-close');
 
+    var tonyDocCaptureApi = initTonyDocumentCapture({
+        appendMessage: appendMessage,
+        showMessageInChat: showMessageInChat,
+        getTonyService: function () { return window.Tony || window.TonyService || null; },
+        freemiumBlocked: window.__tonyFreemiumBlocked === true,
+    });
+    window.__tonyDocCaptureRefresh = tonyDocCaptureApi && tonyDocCaptureApi.refreshVisibility
+        ? tonyDocCaptureApi.refreshVisibility
+        : function () {};
+
     if (sendBtn) {
         function nascondiJsonDaStreaming(testo) {
             var t = testo.replace(/\{[\s\S]*?\}/g, '');
@@ -5879,6 +5890,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
 
         fab.addEventListener('click', function() {
             panel.classList.add('is-open');
+            try { if (typeof window.__tonyDocCaptureRefresh === 'function') window.__tonyDocCaptureRefresh(); } catch (eCapOpen) {}
             if (messagesEl.children.length === 0) {
                 var welcomeMessage;
                 if (tonyIsCampoLikeWorkspaceForTony()) {
@@ -8491,11 +8503,13 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             window.__tonyFreemiumBlocked = true;
                             if (fabEl) fabEl.style.display = 'none';
                             if (panelEl) panelEl.style.display = 'none';
+                            try { if (typeof window.__tonyDocCaptureRefresh === 'function') window.__tonyDocCaptureRefresh(); } catch (eCapFree) {}
                             return;
                         }
                         window.__tonyFreemiumBlocked = false;
                         if (fabEl) fabEl.style.display = '';
                         if (panelEl && panelEl.classList.contains('open')) panelEl.style.display = '';
+                        try { if (typeof window.__tonyDocCaptureRefresh === 'function') window.__tonyDocCaptureRefresh(); } catch (eCapBase) {}
                     }
 
                     window.setTonyContext = function(payload) {
@@ -8517,6 +8531,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             saveModuliToStorage(payload.moduli_attivi);
                             try { window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: payload.moduli_attivi } })); } catch (err) {}
                         }
+                        try { if (typeof window.__tonyDocCaptureRefresh === 'function') window.__tonyDocCaptureRefresh(); } catch (eCap) {}
                     };
                     // syncTonyModules è definito a livello script (sopra) per essere disponibile prima dell'init di Tony
                     // Recupera stato modulo Tony dal context o dal database
@@ -8549,6 +8564,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     console.log('[Tony] Moduli impostati da bootstrap:', moduliBoot.length);
                                 }
                             }
+                            try { if (typeof window.__tonyDocCaptureRefresh === 'function') window.__tonyDocCaptureRefresh(); } catch (eCapBoot) {}
                         } catch (e) {}
                     })();
                     try { applyTonyFreemiumGate(); } catch (eGateInit) {}
@@ -8595,6 +8611,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             try {
                                 applyTonyFreemiumGate();
                             } catch (eFg) {}
+                            try { if (typeof window.__tonyDocCaptureRefresh === 'function') window.__tonyDocCaptureRefresh(); } catch (eCapMod) {}
                             
                             var elapsedSinceInit = now - _tonyWidgetInitTime;
                             if (!Array.isArray(dashModsRaw) && elapsedSinceInit > 5000) {

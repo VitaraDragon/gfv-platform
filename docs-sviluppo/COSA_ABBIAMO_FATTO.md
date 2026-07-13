@@ -1,6 +1,111 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-12 — **Calcolatore VM P1** (flusso lavoro + riedit); merge PR #5 in `main`: segna ore unificato, gate-fast Tony E2E **17/17**, fix movimenti T-FLOW-016/017.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-13 — **Tony Occhi** step A–F (reminder anagrafica prodotti).
+
+## Tony Occhi — Step F reminder anagrafica (2026-07-13)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| **Reminder** | `document-prodotto-reminder.js` — messaggio post-registrazione + stash sessionStorage |
+| **Lista prodotti** | Badge «Da completare», filtro «Da completare (Tony)», banner nel modal, `daCompletare: false` al salvataggio |
+| **Tony proattivo** | `speak` su lista prodotti (stash post-Occhi o conteggio `daCompletare`) |
+| **Test** | Suite Tony Occhi **40/40** |
+
+## Tony Occhi — Step E categoria e prodotto minimo (2026-07-13)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| **Categoria** | `suggestCategoriaForRiga` da descrizione OCR; badge nel form; dropdown filtrato per categoria |
+| **Prodotto auto** | `ensureProdottiForRighe` + `daCompletare: true` su `Prodotto`; creazione silenziosa alla registrazione |
+| **Test** | Suite Tony Occhi **36/36** |
+
+## Tony Occhi — Step D match DDT automatico (2026-07-13)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| **Schema CF** | `riferimentiBolla[]` in estrazione fattura (`tony-document-schemas.js`) |
+| **Match** | `resolveAutoBollaSessionFromEstrazione` — numero DDT in nota movimento + fornitore → sessione bolla |
+| **Form** | Filtro bolla pre-selezionato; righe collegate via `matchRigheFatturaToMovimenti`; hint DDT auto |
+| **Test** | Suite Tony Occhi **33/33** |
+
+## Tony Occhi — Step B–C scontrino e fattura diretta (2026-07-13)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| **Dropdown** | Voci: Bolla, Fattura, **Scontrino**, Sconosciuto, Preventivo (disabilitato) |
+| **Scontrino** | `registerFatturaEntrata` → nuova entrata qty + prezzo, `prezzoInAttesa: false` |
+| **Fattura** | `registerFatturaDocumento` — righe con bolla → aggiorna prezzo; senza bolla → nuova entrata |
+| **CF/schema** | `tipoDocumento: scontrino` in `tony-document-schemas.js` + prompt Gemini |
+| **Test** | Suite Tony Occhi **30/30** |
+
+## Tony Occhi — Step A formattazione € (2026-07-13)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| **Helper** | `core/js/tony/document-eur-format.js` — `formatEurDisplay`, `formatEurForInput`, `parseEurInput` (it-IT EUR) |
+| **Form** | `document-review-form.js` — colonna Prezzo (€) con suffisso €; blur normalizza `12,50`; totali documento (imponibile/IVA/totale) se estratti |
+| **CSS** | `tony-widget.css` — `.tony-doc-eur-wrap`, `.tony-doc-review-totali` |
+| **Test** | `tests/tony-document-eur-format.test.js` (4); suite Tony Occhi **24** |
+
+## Tony Occhi — Piano evolutivo e decisioni prodotto (2026-07-13)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| **Documentazione** | `docs-sviluppo/da-fare/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` **§17** (piano agenti); `TONY_DECISIONI_E_REQUISITI.md` **§20.21–20.30** |
+| **Tipi documento** | Dropdown: **Bolla**, **Fattura**, **Scontrino** (entrata diretta come fattura senza bolla), **Sconosciuto**, **Preventivo** (riservato, disabilitato) |
+| **Fattura/scontrino senza bolla** | Nuova entrata qty + prezzo; giacenza aggiornata |
+| **Fattura con bolla** | Match auto DDT + righe → aggiorna prezzo entrate (`prezzoInAttesa`); no doppia giacenza |
+| **Prodotto sconosciuto** | Creazione minima automatica + reminder completamento; categoria suggerita da OCR |
+| **Costi trattamenti** | Solo movimento entrata; evoluzione: prezzo medio ponderato (§17.6) |
+| **Valuta** | Solo € v1 |
+| **UX** | Modal revisione fullscreen (`tony-doc-review-overlay`, 2026-07-13) |
+| **Prossimo codice** | Step **F** in ROADMAP §17.2 (reminder completamento anagrafica) — step **A–E** ✅ |
+
+## Tony Occhi — Fase 3 fattura + collegamento bolla (2026-07-12)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| **Registrazione fattura** | `core/js/tony/document-register.js` — `registerFatturaPrezzi`, match righe↔movimenti (`matchRigheFatturaToMovimenti`), filtro bolle in attesa |
+| **Servizio movimenti** | `modules/magazzino/services/movimenti-service.js` — `updateMovimento` (solo prezzo/note, senza toccare giacenza) |
+| **Form revisione** | `core/js/tony/document-review-form.js` — tipo fattura: filtro sessione bolla, colonna movimento bolla, prezzo obbligatorio |
+| **Modello** | `MovimentoMagazzino` — campo opz. `documentoFatturaId` |
+| **Test** | `tests/tony-document-register.test.js` (9); suite Tony Occhi **20/20** |
+| **Non ancora** | Storage/Firestore `documentiAcquisiti`, lista «In attesa» pagina magazzino (Fase 4) |
+
+## Tony Occhi — Fase 2 form revisione + registrazione bolla (2026-07-12)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| **Form revisione** | `core/js/tony/document-review-form.js` — overlay in widget: tipo bolla/fattura, intestazione editabile, tabella righe, match prodotto GFV, **Registra dati** |
+| **Match prodotti** | `core/js/tony/document-product-match.js` — suggerimento da nome/codice fornitore |
+| **Registrazione** | `core/js/tony/document-register.js` — `registerBollaMovimenti` → `createMovimento` entrata; `prezzoInAttesa` se prezzo vuoto |
+| **Modello** | `MovimentoMagazzino` — campi opz. `prezzoInAttesa`, `documentoAcquisitoId` |
+| **Test** | `tests/tony-document-register.test.js` |
+
+## Tony Occhi — Fase 1 chat + acquisizione multipla (2026-07-12)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| **UI** | Icona 📷 in widget Tony (`core/js/tony/ui.js`); pannello sessione con miniature, **Aggiungi pagina**, **Acquisizione terminata**, **Annulla** |
+| **Client** | `core/js/tony/document-capture.js` — file picker immagine/PDF, gate magazzino + manager/admin, chiamata CF |
+| **Service** | `Tony.extractDocument()` in `core/services/tony-service.js` → callable `tonyExtractDocument` |
+| **CSS** | `core/styles/tony-widget.css` — thumbnails, animazione scanner |
+| **Test** | `tests/tony-document-capture.test.js` (3) |
+| **Non ancora** | Storage/Firestore `documentiAcquisiti`, form revisione editabile, registrazione movimenti (Fase 2–3) |
+
+## Tony Occhi — PoC estrazione documenti Gemini vision (2026-07-12)
+
+| Elemento | Dettaglio |
+| -------- | --------- |
+| **CF callable** | `tonyExtractDocument` — `functions/tony-extract-document.js`, export in `functions/index.js` |
+| **Schema / prompt** | `functions/config/tony-document-schemas.js` — validazione pagine (jpeg/png/webp/pdf, max 10 MB), normalizzazione JSON |
+| **Gemini** | `gemini-2.5-flash` multimodale (`inlineData` + `responseMimeType: application/json`); stessa `GEMINI_API_KEY` di `tonyAsk` |
+| **Gate** | Auth + piano ≠ Free + ruolo manager/admin + modulo `magazzino` attivo |
+| **Input** | `{ pages: [{ mimeType, data (base64) }], tenantId?, context? }` |
+| **Output** | `{ ok, estrazione: { tipoDocumento, fornitore, righe, totali, … }, geminiMs }` |
+| **Test** | `tests/tony-extract-document.test.js` (8) |
+| **PoC locale** | `node scripts/tony-extract-document-poc.mjs path/to/bolla.jpg` (richiede `GEMINI_API_KEY`) |
+| **Non ancora** | UI 📷 widget, Storage/Firestore `documentiAcquisiti`, form revisione, registrazione movimenti |
 
 ## Tony — merge PR #5 + gate E2E 17/17 (2026-07-11)
 

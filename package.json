@@ -26,6 +26,7 @@
     "dashboard:perf-smoke": "vitest run tests/dashboard-perf-slo.test.js",
     "tony:canary": "node scripts/tony-connectivity-canary.mjs",
     "tony:tts-canary": "node scripts/tony-tts-canary.mjs",
+    "tony:extract-document-poc": "node scripts/tony-extract-document-poc.mjs",
     "sim:emulators": "node ./node_modules/firebase-tools/lib/bin/firebase.js emulators:start --only auth,firestore",
     "sim:emulators:live": "node ./node_modules/firebase-tools/lib/bin/firebase.js emulators:start --only auth,firestore,functions",
     "sim:smoke": "node simulator/smoke-test.js",

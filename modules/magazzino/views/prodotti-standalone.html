@@ -35,6 +35,16 @@
         .badge-sotto-scorta { background: #fff3cd; color: #856404; }
         .badge-attivo { background: #d4edda; color: #155724; }
         .badge-disattivo { background: #e2e3e5; color: #383d41; }
+        .badge-da-completare { background: #e8f5e9; color: #2d6a4f; margin-right: 4px; }
+        .prodotto-da-completare-banner {
+            background: #fff8e1;
+            border: 1px solid #ffe082;
+            color: #6d4c41;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
         .action-buttons { display: flex; gap: 5px; }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
@@ -92,6 +102,13 @@
                     </select>
                 </div>
                 <div class="filter-group">
+                    <label>Anagrafica</label>
+                    <select id="filter-da-completare">
+                        <option value="">Tutti</option>
+                        <option value="true">Da completare (Tony)</option>
+                    </select>
+                </div>
+                <div class="filter-group">
                     <label>Cerca</label>
                     <input type="text" id="filter-search" placeholder="Nome, codice...">
                 </div>
@@ -117,6 +134,9 @@
             </div>
             <form id="prodotto-form">
                 <input type="hidden" id="prodotto-id">
+                <div id="prodotto-da-completare-banner" class="prodotto-da-completare-banner" style="display:none" role="status">
+                    Prodotto creato automaticamente da Tony Occhi: completa dosaggi, carenza e altri dati mancanti, poi salva.
+                </div>
                 <div class="form-group">
                     <label for="prodotto-codice">Codice</label>
                     <input type="text" id="prodotto-codice" placeholder="Codice interno (opzionale)">
@@ -264,6 +284,7 @@
                 document.getElementById('btn-reset-filtri').onclick = resetFilters;
                 document.getElementById('filter-attivo').onchange = renderProdotti;
                 document.getElementById('filter-categoria').onchange = renderProdotti;
+                document.getElementById('filter-da-completare').onchange = renderProdotti;
                 document.getElementById('filter-search').oninput = renderProdotti;
                 document.getElementById('prodotto-form').onsubmit = saveProdotto;
                 document.getElementById('prodotto-categoria').addEventListener('change', syncProdottoDosaggioCarenzaRequiredDom);
@@ -294,6 +315,7 @@
         function resetFilters() {
             document.getElementById('filter-attivo').value = '';
             document.getElementById('filter-categoria').value = '';
+            document.getElementById('filter-da-completare').value = '';
             document.getElementById('filter-search').value = '';
             renderProdotti();
         }
@@ -301,14 +323,33 @@
         function filterProdotti() {
             const attivo = document.getElementById('filter-attivo').value;
             const categoria = document.getElementById('filter-categoria').value;
+            const daCompletare = document.getElementById('filter-da-completare').value;
             const search = (document.getElementById('filter-search').value || '').toLowerCase();
             return prodotti.filter(p => {
                 if (attivo === 'true' && !p.attivo) return false;
                 if (attivo === 'false' && p.attivo !== false) return false;
                 if (categoria && p.categoria !== categoria) return false;
+                if (daCompletare === 'true' && p.daCompletare !== true) return false;
                 if (search && !((p.nome || '').toLowerCase().includes(search) || (p.codice || '').toLowerCase().includes(search))) return false;
                 return true;
             });
+        }
+
+        async function speakProdottiDaCompletareReminder(daCompletareCount) {
+            try {
+                const mod = await import('../../../core/js/tony/document-prodotto-reminder.js');
+                const stash = mod.pullProdottoCompletamentoReminder();
+                if (stash && stash.items && stash.items.length && window.Tony && window.Tony.speak) {
+                    window.Tony.speak(mod.buildProdottoCompletamentoReminderMessage(stash.items));
+                    return;
+                }
+                if (daCompletareCount > 0 && !window.tonyDaCompletareAlertFired && window.Tony && window.Tony.speak) {
+                    window.tonyDaCompletareAlertFired = true;
+                    window.Tony.speak(mod.buildProdottiListaReminderMessage(daCompletareCount));
+                }
+            } catch (e) {
+                console.warn('[Tony] reminder prodotti:', e);
+            }
         }
 
         function renderProdotti() {
@@ -317,12 +358,14 @@
             const container = document.getElementById('prodotti-container');
 
             const sottoScortaCount = filtered.filter(p => p.scortaMinima != null && p.scortaMinima > 0 && (p.giacenza == null || p.giacenza < p.scortaMinima)).length;
+            const daCompletareCount = prodotti.filter(p => p.daCompletare === true && p.attivo !== false).length;
             const summaryParts = [];
             const n = filtered.length;
             if (n === 0) summaryParts.push('Nessun prodotto in elenco.');
             else {
                 summaryParts.push(n === 1 ? 'C\'è 1 prodotto in elenco.' : ('Ci sono ' + n + ' prodotti in elenco.'));
                 if (sottoScortaCount) summaryParts.push(sottoScortaCount === 1 ? '1 sotto scorta.' : (sottoScortaCount + ' sotto scorta.'));
+                if (daCompletareCount) summaryParts.push(daCompletareCount === 1 ? '1 da completare (Tony Occhi).' : (daCompletareCount + ' da completare (Tony Occhi).'));
             }
             window.currentTableData = {
                 pageType: 'prodotti',
@@ -336,6 +379,7 @@
                     giacenza: p.giacenza != null ? p.giacenza : '-',
                     scortaMinima: p.scortaMinima != null ? p.scortaMinima : '-',
                     sottoScorta: (p.scortaMinima != null && p.scortaMinima > 0 && (p.giacenza == null || p.giacenza < p.scortaMinima)),
+                    daCompletare: p.daCompletare === true,
                     attivo: p.attivo !== false
                 }))
             };
@@ -356,6 +400,7 @@
                         window.Tony.speak("Ti segnalo anche che ci sono " + sottoScortaCount + " prodotti sotto scorta.");
                     }
                 }
+                speakProdottiDaCompletareReminder(daCompletareCount);
             }, 4000);
 
             if (filtered.length === 0) {
@@ -370,6 +415,7 @@
                     <tbody>
                         ${filtered.map(p => {
                             const sottoScorta = (p.scortaMinima != null && p.scortaMinima > 0 && (p.giacenza == null || p.giacenza < p.scortaMinima));
+                            const daCompletare = p.daCompletare === true;
                             return `<tr>
                                 <td>${escapeHtml(p.codice || '-')}</td>
                                 <td>${escapeHtml(p.nome || '-')}</td>
@@ -377,7 +423,7 @@
                                 <td>${escapeHtml(p.unitaMisura || '-')}</td>
                                 <td>${formatNum(p.giacenza)}</td>
                                 <td>${formatNum(p.scortaMinima)}</td>
-                                <td>${sottoScorta ? '<span class="badge badge-sotto-scorta">Sotto scorta</span>' : ''} ${p.attivo === false ? '<span class="badge badge-disattivo">Disattivo</span>' : '<span class="badge badge-attivo">Attivo</span>'}</td>
+                                <td>${daCompletare ? '<span class="badge badge-da-completare">Da completare</span>' : ''} ${sottoScorta ? '<span class="badge badge-sotto-scorta">Sotto scorta</span>' : ''} ${p.attivo === false ? '<span class="badge badge-disattivo">Disattivo</span>' : '<span class="badge badge-attivo">Attivo</span>'}</td>
                                 <td class="action-buttons">
                                     <button class="btn btn-primary btn-sm" onclick="window.editProdotto('${p.id}')">Modifica</button>
                                     ${p.attivo !== false ? `<button class="btn btn-danger btn-sm" onclick="window.disattivaProdotto('${p.id}', '${escapeHtml(p.nome || '')}')">Disattiva</button>` : `<button class="btn btn-primary btn-sm" onclick="window.riattivaProdotto('${p.id}')">Riattiva</button>`}
@@ -414,6 +460,8 @@
             document.getElementById('prodotto-dosaggio-max').value = p.dosaggioMax != null ? p.dosaggioMax : '';
             document.getElementById('prodotto-giorni-carenza').value = p.giorniCarenza != null ? p.giorniCarenza : '';
             document.getElementById('prodotto-note').value = p.note || '';
+            const banner = document.getElementById('prodotto-da-completare-banner');
+            if (banner) banner.style.display = p.daCompletare === true ? 'block' : 'none';
             document.getElementById('prodotto-modal').classList.add('active');
             syncProdottoDosaggioCarenzaRequiredDom();
         };
@@ -443,6 +491,8 @@
             document.getElementById('modal-title').textContent = 'Nuovo Prodotto';
             document.getElementById('prodotto-form').reset();
             document.getElementById('prodotto-id').value = '';
+            const banner = document.getElementById('prodotto-da-completare-banner');
+            if (banner) banner.style.display = 'none';
             document.getElementById('prodotto-scorta-minima').value = 0;
             document.getElementById('prodotto-dosaggio-min').value = '';
             document.getElementById('prodotto-dosaggio-max').value = '';
@@ -502,7 +552,7 @@
             if (!data.nome) { showAlert('Nome obbligatorio.', 'error'); return; }
             try {
                 if (id) {
-                    await updateDoc(doc(db, 'tenants', currentTenantId, 'prodotti', id), { ...data, updatedAt: serverTimestamp() });
+                    await updateDoc(doc(db, 'tenants', currentTenantId, 'prodotti', id), { ...data, daCompletare: false, updatedAt: serverTimestamp() });
                     showAlert('Prodotto aggiornato.', 'success');
                 } else {
                     await addDoc(collection(db, 'tenants', currentTenantId, 'prodotti'), { ...data, giacenza: 0, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });

@@ -268,7 +268,7 @@ Tony non "compila" grafici. Può:
 - **Eliminazioni bulk**: Tony non le esegue. Guida l'utente a farle manualmente.
 - **Impostazioni sensibili**: Cambio password, revoca utenti – Tony può spiegare come fare, non eseguire senza conferma esplicita.
 - **Moduli futuri**: Ogni nuovo modulo deve essere integrato via configurazione, non con patch ad hoc.
-- **Tony Occhi (documenti)**: **non ancora implementato**. Design pronto in `docs-sviluppo/da-fare/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` — acquisizione bolla/fattura da chat (icona 📷), classificazione e routing automatici, conferma umana; v. `TONY_DECISIONI_E_REQUISITI.md` §20.
+- **Tony Occhi (documenti)**: **parzialmente implementato** (Fase 0–3, 2026-07-12). Piano evolutivo **§17** in `docs-sviluppo/da-fare/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` — scontrino, fattura diretta, match DDT, prodotto auto; v. `TONY_DECISIONI_E_REQUISITI.md` §20.
 
 ---
 
@@ -283,7 +283,7 @@ Tony non "compila" grafici. Può:
 - **Piano ottimizzazione performance Tony** (Fase 0–**4** ✅ deploy 2026-06-03; **Segna ore workspace 3b-C21** ✅ 2026-06-04; **Segna ore desktop 3b-C22** ✅ 2026-07-11; 4.4 offline deferred; canary §1.4, magazzino §1.7, field workspace §1.9, binario B §9 Fase 4): `docs-sviluppo/in-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md`
 - **Piano performance dashboard panoramica** (Fase 0–**5** ✅ 2026-06-06; canary **`dashboard pronta` ~861 ms**; smoke `npm run dashboard:perf-smoke`): `docs-sviluppo/dashboard/PLAN_PERFORMANCE_DASHBOARD.md`
 - **PWA / deploy client**: hook **`pre-commit`** / script **`bump:pwa-cache`** aggiornano **`SW_CACHE_BUILD_ID`** in `service-worker.js` (vedi **`docs-sviluppo/GUIDA_PWA.md`** e **TONY_DECISIONI_E_REQUISITI.md** §3.8) — riduce cache stale su app installata
-- **Magazzino – Tony Occhi (acquisizione documenti, design pronto)**: `docs-sviluppo/da-fare/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` — chat-first (📷 in widget), bolla/fattura, Gemini vision, conferma umana; **non implementato** (§20 decisioni)
+- **Magazzino – Tony Occhi (acquisizione documenti)**: `docs-sviluppo/da-fare/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` — Fase 0–3 in codice; **§17 piano agenti** (2026-07-13): scontrino, fattura diretta, €, preventivo riservato; §20 decisioni
 - **Tony E2E simulatore (M-T0…M-T6)**: `docs-sviluppo/in-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md` — M-T4 ✅ mock **17/17** (gate-fast CI ~4–6 min, 2026-07-11); M-T5 ✅ live tier 3 + gate p95
 - **Inventario decisioni**: `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md`
 - **Changelog**: `docs-sviluppo/COSA_ABBIAMO_FATTO.md`

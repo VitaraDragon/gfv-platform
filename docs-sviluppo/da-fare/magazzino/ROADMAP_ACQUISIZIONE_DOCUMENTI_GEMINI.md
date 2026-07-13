@@ -1,8 +1,8 @@
-# Tony Occhi — acquisizione documenti (bolla, fattura) e magazzino
+# Tony Occhi — acquisizione documenti (bolla, fattura, scontrino) e magazzino
 
-**Tipo**: design pronto per sviluppo — **non è ancora implementato nel codice**.  
+**Tipo**: design + **implementazione parziale** (Fase 0–3 in codice, 2026-07-12).  
 **Data prima stesura**: 2026-04-04  
-**Ultimo aggiornamento**: 2026-07-10 — UX form revisione, acquisizione multipla, layout fornitore-agnostic; chat-first, routing automatico  
+**Ultimo aggiornamento**: 2026-07-13 — piano evolutivo post-Fase 3 (scontrino, fattura diretta, prodotto auto, match bolla, €); modal revisione fullscreen  
 **Riferimento modulo**: `docs-sviluppo/ANALISI_MODULO_MAGAZZINO.md`, `docs-sviluppo/MAGAZZINO_APPENDICE_TRACCIABILITA_DASHBOARD_E_SCARICO.md`  
 **Decisioni correlate**: `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md` §20
 
@@ -115,15 +115,25 @@ Finché l’utente non preme **Acquisizione terminata**, **non** si chiama Gemin
 1. CF **`tonyExtractDocument`** riceve tutte le pagine della sessione
 2. Gemini vision — **layout fornitore-agnostic**: nessun template fisso per azienda; prompt per **tipo** (bolla vs fattura), schema **in uscita** normalizzato
 3. Merge righe da più pagine (stesso documento logico)
-4. Classificazione: **bolla** | **fattura** | **sconosciuto** (+ confidence)
+4. Classificazione: **bolla** | **fattura** | **scontrino** | **sconosciuto** (+ confidence); in form utente anche **Preventivo** (futuro, v. §17)
 
 ### 5.4 Form di revisione (ciò che vede l’utente)
 
-Dopo l’estrazione si apre un **form di revisione** (modal o pannello espanso nel widget Tony — non solo messaggio chat):
+Dopo l’estrazione si apre un **form di revisione** in **modal dedicato** a schermo (`tony-doc-review-overlay`, fuori dal pannello chat 380px) — non solo messaggio chat.
+
+**Dropdown tipo documento (confermato dall’utente)**
+
+| Valore | Uso | Registrazione |
+|--------|-----|----------------|
+| **Bolla / DDT** | Consegna merce, qty certa, prezzo spesso assente | Entrata; `prezzoInAttesa` se prezzo vuoto |
+| **Fattura** | Documento fiscale; di norma riferisce una o più bolle | Se match bolla → aggiorna prezzi su entrate esistenti; altrimenti → **fattura diretta** (nuova entrata, v. §17) |
+| **Scontrino** | Acquisto diretto (negozio, cassa, ecc.) — **classificazione a parte** | Come **fattura diretta**: nuova entrata qty + prezzo (no collegamento bolla obbligatorio) |
+| **Sconosciuto** | OCR incerto | Utente sceglie tipo corretto |
+| **Preventivo** | *Futuro — da ideare* | Fuori scope Fase 3–4; voce riservata nel dropdown |
 
 **Intestazione**
 
-- Badge: **Bolla di consegna** oppure **Fattura** (tipo rilevato; editabile se «sconosciuto»)
+- Tipo documento (dropdown sopra); fornitore, P.IVA, numero documento, data (editabili)
 - Fornitore, P.IVA, numero documento, data (campi editabili)
 - Link anteprima: miniature pagine acquisite
 
@@ -134,12 +144,14 @@ Dopo l’estrazione si apre un **form di revisione** (modal o pannello espanso n
 | … | … | L/kg | … (vuoto ok su bolla) | match suggerito | confidence bassa → evidenziata |
 
 - Righe **editabili** (correzione prima del save)
-- Match prodotto anagrafica: suggerimento + dropdown se ambiguo
-- Su **fattura**: opzione collegamento bolla esistente (fornitore + data + righe)
+- Match prodotto: **suggerimento automatico categoria** (da descrizione OCR) + prodotto GFV; dropdown prodotto filtrato per categoria (da implementare, §17.4)
+- Prezzi visualizzati in **€** (formattazione locale)
+- Su **fattura** (con bolla): collegamento bolla — auto-match da riferimento DDT in fattura + fornitore + righe; override manuale se serve
+- Su **fattura diretta** / **scontrino**: nessuna colonna «Collega bolla» obbligatoria
 
 **Azioni**
 
-- **Registra dati** — conferma finale → movimenti entrata o aggiornamento prezzi
+- **Registra dati** — conferma finale → movimenti entrata o aggiornamento prezzi (per tipo, §5.5 e §17)
 - **Annulla** — scarta sessione (Storage opzionale cleanup)
 - **Aggiungi pagina** (solo se estrazione incompleta) — torna a §5.2 con sessione riaperta
 
@@ -159,9 +171,19 @@ Implementazione suggerita: classe `.tony-doc-scanner` + `@keyframes` (translateY
 
 | Tipo confermato | Azione |
 |-----------------|--------|
-| **Bolla** | Crea movimenti **entrata** (qty); `prezzoUnitario` null o «in attesa» |
-| **Fattura** | Match bolla → **aggiorna** `prezzoUnitario` sui movimenti collegati |
+| **Bolla** | Crea movimenti **entrata** (qty); `prezzoUnitario` null → `prezzoInAttesa: true`. Prodotto noto → movimento; **prodotto sconosciuto** → creazione minima anagrafica + movimento (§19.4) |
+| **Fattura** (bolla trovata) | Match automatico/manuale → **aggiorna** `prezzoUnitario` e `prezzoInAttesa: false` su entrate esistenti (**senza** raddoppiare qty/giacenza) |
+| **Fattura** (bolla non trovata) | **Fattura diretta** → nuova entrata qty + prezzo (come scontrino) |
+| **Scontrino** | **Fattura diretta** → nuova entrata qty + prezzo; giacenza aggiornata anche se prodotto già presente |
+| **Preventivo** | *Da definire* — voce dropdown riservata |
 | **Tipo corretto dall’utente** | Usa scelta utente sul form, non solo classificazione automatica |
+
+**Assunzioni registrate (2026-07-13)**
+
+- Fattura cita bolla ma match fallisce → trattare come fattura diretta + **avviso** possibile duplicato
+- Reminder prodotto incompleto → Tony + elenco magazzino «da completare»; **non** blocca movimento già creato
+- Costi trattamenti: aggiornare solo **movimento entrata**; prezzo medio ponderato dalle entrate = evoluzione calcoli (§19.6), non anagrafica statica
+- Valuta: solo **€** in v1
 
 Integrazione **mani**: batch movimenti via canone save locale / servizio magazzino; riuso mapping dove possibile.
 
@@ -364,8 +386,14 @@ Progetti utili per **ispirazione**, non sostituzione di Tony:
 | **0 — PoC** | CF `tonyExtractDocument` su 1–N pagine; schema output; 3 documenti campione | JSON merge affidabile |
 | **1 — MVP chat + acquisizione multipla** | 📷, sessione pagine, **Acquisizione terminata**, estrazione | Foto multipla fattura lunga |
 | **2 — Form revisione + registrazione** | Form bolla/fattura editabile, **Registra dati**, movimenti entrata | E2E bolla → movimenti |
-| **3 — Fattura** | Collegamento bolla, aggiorna prezzi | Flusso due passi completo |
-| **4 — Magazzino UI + Context Builder** | Storico sessioni, entrate prezzo in attesa | Audit e proattività Tony |
+| **3 — Fattura** | Collegamento bolla, aggiorna prezzi | ✅ Implementato 2026-07-12 (`registerFatturaPrezzi`) |
+| **3b — UX revisione** | Modal fullscreen, formattazione € | ✅ Modal 2026-07-13; € da implementare |
+| **3c — Fattura diretta + scontrino** | Tipo **scontrino** nel dropdown; entrata senza bolla | Piano §17.2 |
+| **3d — Match bolla automatico** | Estrazione riferimento DDT in fattura + match sessioni | Piano §17.5 |
+| **3e — Prodotto auto + reminder** | Creazione minima silenziosa; categoria suggerita; reminder completamento | Piano §17.4 |
+| **4 — Magazzino UI + Context Builder** | Storico sessioni, entrate prezzo in attesa, prodotti incompleti | Audit e proattività Tony |
+| **5 — Preventivo** | Tipo documento + flusso (da ideare) | Dropdown riservato; design separato |
+| **6 — Costi trattamenti** | Prezzo medio ponderato da entrate reali | Modulo economia/trattamenti; §17.6 |
 
 ---
 
@@ -419,7 +447,7 @@ Complemento alle decisioni D1–D16: cosa aggiungere **senza** gonfiare il MVP, 
 | P1 | **Check qualità foto pre-upload** | Euristica client (dimensioni, luminosità opz.) → «rifai la foto» prima di Gemini | Dopo fase 1 |
 | P2 | **Ripresa sessione** | Sessione `acquiring` recuperabile se widget chiuso (Firestore + TTL es. 24 h) | Dopo fase 1 |
 | P3 | **Fornitore nuovo** | P.IVA/nome assente in anagrafica → flusso «salva testo libero» / «crea fornitore» (se esiste anagrafica) | Fase 3 |
-| P4 | **Prodotto non in catalogo** | Per riga senza match: associa manualmente / salta / «crea prodotto» (non bloccare intero documento) | Fase 2 |
+| P4 | **Prodotto non in catalogo** | Creazione **minima automatica** + reminder completamento anagrafica (decisione 2026-07-13) | Fase 3e |
 | P5 | **Lista «In attesa»** (pagina magazzino) | Entrate prezzo in attesa; bolle senza fattura collegata | Fase 4 |
 | P6 | **Tony proattivo** | Context Builder: count entrate senza prezzo; messaggio tipo «Hai N documenti in attesa» | Fase 4 |
 | P7 | **Regole Storage / retention** | Permessi Storage, retention foto (es. N anni), nota privacy documenti fiscali | Fase 3–4 |
@@ -441,7 +469,7 @@ Complemento alle decisioni D1–D16: cosa aggiungere **senza** gonfiare il MVP, 
 - Camera live custom (`getUserMedia`) come unico ingresso
 - Pipeline OCR parallela obbligatoria oltre Gemini
 - Save automatico senza form revisione
-- Tipi documento oltre **bolla** e **fattura**
+- **Preventivo** (solo voce dropdown finché non c’è design §17.7)
 
 ### 16.5 Ordine di implementazione consigliato
 
@@ -456,7 +484,92 @@ flowchart TD
 
 ---
 
-## 17. Changelog documento
+## 17. Piano dettagliato per agenti (decisioni 2026-07-13)
+
+**Handoff**: leggere questa sezione + `TONY_DECISIONI_E_REQUISITI.md` §20.21–20.30 prima di toccare Tony Occhi.  
+**Codice attuale**: Fase 0–3 parziale — v. `COSA_ABBIAMO_FATTO.md` (voci 2026-07-12 / 2026-07-13).
+
+### 17.1 Stato implementato (verificato)
+
+| Componente | File | Note |
+|------------|------|------|
+| Estrazione CF | `functions/tony-extract-document.js`, `functions/config/tony-document-schemas.js` | Deploy **`tonyExtractDocument`** obbligatorio in produzione |
+| Acquisizione chat | `core/js/tony/document-capture.js`, `core/js/tony/ui.js` | 📷, multi-pagina |
+| Form revisione | `core/js/tony/document-review-form.js` | Modal fullscreen `tony-doc-review-overlay` |
+| Registrazione bolla | `document-register.js` → `registerBollaMovimenti` | `prezzoInAttesa`, `documentoAcquisitoId` |
+| Registrazione fattura (solo con bolla) | `registerFatturaPrezzi` + `updateMovimento` | Match prodotto+qty; **non** fattura diretta |
+| Test | `tests/tony-document-*.test.js`, `tests/tony-extract-document.test.js` | 20 test |
+
+### 17.2 Prossimo blocco sviluppo (ordine vincolante)
+
+| Step | Scope | File principali | Done quando |
+|------|--------|-----------------|-------------|
+| **A** | Formattazione **€** in tabella revisione | `document-review-form.js`, CSS | Prezzi e totali in formato `it-IT` EUR | ✅ 2026-07-13 |
+| **B** | Tipo **scontrino** nel dropdown + routing | `document-review-form.js`, `tony-document-schemas.js`, CF prompt | Scontrino → stesso save di fattura diretta | ✅ 2026-07-13 |
+| **C** | **Fattura diretta** / scontrino → `registerFatturaEntrata` (nuova entrata qty+prezzo) | `document-register.js` | Registrazione senza movimento bolla collegato | ✅ 2026-07-13 |
+| **D** | **Match bolla auto** da riferimento DDT in fattura | schema estrazione `riferimentiBolla[]`, `document-register.js` | Fattura con DDT noto collega senza dropdown manuale | ✅ 2026-07-13 |
+| **E** | **Categoria suggerita** + creazione prodotto minima | `document-product-match.js`, `prodotti-service.js`, form | Riga senza match → prodotto stub + movimento | ✅ 2026-07-13 |
+| **F** | **Reminder** completamento anagrafica | Tony proattivo / lista magazzino (P5 parziale) | Prodotti `incompleto: true` visibili e richiamati | ✅ 2026-07-13 |
+| **G** | (Dopo) Prezzo **medio ponderato** per costi trattamenti | economia / `trattamento-scarico` | Uscite valutate su media entrate reali |
+
+### 17.3 Regole business (canone)
+
+```mermaid
+flowchart TD
+    subgraph ingest [Acquisizione]
+        A[📷 documento] --> B[Estrazione Gemini]
+        B --> C[Form revisione modal]
+    end
+    C --> T{Tipo confermato}
+    T -->|Bolla| B1[Entrata qty prezzo opzionale]
+    T -->|Fattura| F1{Bolla trovata?}
+    F1 -->|Sì| F2[Aggiorna prezzo entrate esistenti]
+    F1 -->|No| F3[Nuova entrata fattura diretta]
+    T -->|Scontrino| F3
+    B1 --> P{Prodotto in catalogo?}
+    F3 --> P
+    P -->|Sì| M[Movimento magazzino]
+    P -->|No| N[Crea prodotto minimo] --> M
+    M --> R[Reminder se anagrafica incompleta]
+```
+
+### 17.4 Prodotto e categoria
+
+- **Suggerimento automatico** categoria da descrizione OCR (map verso `fitofarmaci`, `fertilizzanti`, …).
+- Dropdown prodotto: filtrare per **categoria suggerita**, non solo elenco flat per nome.
+- **Creazione minima silenziosa** se nessun match: campi min `nome` (da descrizione), `categoria`, `unitaMisura`; flag `daCompletare` / equivalente; movimento creato subito.
+- **Reminder**: messaggio Tony post-save + voce in UI magazzino (Fase 4); non bloccare operazione.
+
+### 17.5 Match fattura ↔ bolla
+
+- Estrarre da fattura: `riferimentiBolla[]` (numero DDT, data opz., fornitore).
+- Cercare sessioni/movimenti con `documentoAcquisitoId` o note `doc {numero}` + stesso fornitore.
+- Match righe: prodotto + quantità (tolleranza 2%); una riga fattura → una entrata `prezzoInAttesa`.
+- Match fallito → **fattura diretta** + warning duplicato possibile.
+
+### 17.6 Costi trattamenti (evoluzione, non blocco MVP)
+
+- Alla registrazione fattura/bolla: aggiornare **solo** `prezzoUnitario` sul **movimento entrata** (già oggi per fattura con bolla).
+- **Non** aggiornare automaticamente `Prodotto.prezzoUnitario` in anagrafica.
+- Evoluzione calcoli: **prezzo medio ponderato** dalle entrate del prodotto per valorizzare uscite/trattamenti su dati reali; distinzione costo certo (post-fattura) vs stimato (prezzo medio o ultima entrata) — design in modulo economia, non in Tony Occhi core.
+
+### 17.7 Preventivo (riservato)
+
+- Voce **Preventivo** nel dropdown tipo documento — **disabilitata o «in arrivo»** finché non esiste design.
+- Flusso atteso: collegamento modulo **Conto terzi** / preventivi; **non** misto a movimenti magazzino entrata senza requisito esplicito.
+- Agente: non implementare preventivo senza nuova voce in §20 e approvazione prodotto.
+
+### 17.8 Estensioni schema JSON (CF)
+
+Da aggiungere in `tony-document-schemas.js` / prompt:
+
+- `tipoDocumento`: aggiungere valore `scontrino`
+- `riferimentiBolla`: `[{ numeroDocumento, dataDocumento?, fornitore? }]`
+- `tipoDocumentoConfermato` lato client: `bolla` | `fattura` | `scontrino` | `sconosciuto` | `preventivo` (ultimo solo UI, non save)
+
+---
+
+## 18. Changelog documento
 
 | Data | Modifica |
 |------|----------|
@@ -465,13 +578,15 @@ flowchart TD
 | 2026-07-10 (b) | **Form revisione** (bolla/fattura + righe editabili + Registra dati); **acquisizione multipla** + **Acquisizione terminata**; estrazione **layout-agnostic** (schema solo in uscita); stati `acquiring` / `review`; modello `pagine[]` e sessionId. |
 | 2026-07-10 (c) | **Animazione scanner** (D16) su estrazione e popolamento form. |
 | 2026-07-10 (d) | **§16 Backlog miglioramenti** — must-have M1–M7, post-MVP P1–P7, fase 2+ L1–L6, estensioni modello dati audit/duplicati. |
+| 2026-07-12 | Implementazione codice Fase 0–3 (PoC CF, chat, form, bolla, fattura con bolla). |
+| 2026-07-13 | **§17 Piano agenti**: scontrino, fattura diretta, match DDT auto, prodotto minimo + reminder, €, preventivo riservato; modal revisione fullscreen; fasi 3b–6. |
 
 ---
 
-## 18. Dove è collegato questo file
+## 19. Dove è collegato questo file
 
 - `docs-sviluppo/tony/MASTER_PLAN.md` (§10 Limitazioni, §11 Riferimenti)
-- `docs-sviluppo/tony/STATO_ATTUALE.md` (§ Tony Occhi — pianificato)
+- `docs-sviluppo/tony/STATO_ATTUALE.md` (§ Tony Occhi — Fase 0–3 parziale + §17)
 - `docs-sviluppo/tony/README.md` (tabella “Dove trovare cosa”)
 - `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md` (§20)
 - `docs-sviluppo/ANALISI_MODULO_MAGAZZINO.md` (puntatore in coda)
