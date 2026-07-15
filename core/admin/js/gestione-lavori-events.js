@@ -49,10 +49,12 @@ export function setupTipoAssegnazioneHandlers(hasManodoperaModule) {
         return;
     }
     
-    function updateVisibility() {
+    function updateVisibility(fromUserChange = false) {
         // Riacquista i riferimenti ogni volta per essere sicuri
         const currentTipoSquadra = document.getElementById('tipo-squadra');
         const currentTipoAutonomo = document.getElementById('tipo-autonomo');
+        const currentCaposquadraSelect = document.getElementById('lavoro-caposquadra');
+        const currentOperaioSelect = document.getElementById('lavoro-operaio');
         
         if (!currentTipoSquadra || !currentTipoAutonomo) {
             return;
@@ -61,22 +63,23 @@ export function setupTipoAssegnazioneHandlers(hasManodoperaModule) {
         if (currentTipoSquadra.checked) {
             caposquadraGroup.style.display = 'block';
             operaioGroup.style.display = 'none';
-            if (caposquadraSelect) {
-                caposquadraSelect.required = true;
+            if (currentCaposquadraSelect) {
+                currentCaposquadraSelect.required = true;
             }
-            if (operaioSelect) {
-                operaioSelect.required = false;
-                operaioSelect.value = '';
+            if (currentOperaioSelect) {
+                currentOperaioSelect.required = false;
+                // Solo se l'utente cambia tipo: in modifica non azzerare l'operaio già salvato
+                if (fromUserChange) currentOperaioSelect.value = '';
             }
         } else if (currentTipoAutonomo.checked) {
             caposquadraGroup.style.display = 'none';
             operaioGroup.style.display = 'block';
-            if (caposquadraSelect) {
-                caposquadraSelect.required = false;
-                caposquadraSelect.value = '';
+            if (currentCaposquadraSelect) {
+                currentCaposquadraSelect.required = false;
+                if (fromUserChange) currentCaposquadraSelect.value = '';
             }
-            if (operaioSelect) {
-                operaioSelect.required = true;
+            if (currentOperaioSelect) {
+                currentOperaioSelect.required = true;
             }
         }
     }
@@ -86,14 +89,14 @@ export function setupTipoAssegnazioneHandlers(hasManodoperaModule) {
     if (lavoroForm.dataset.tipoAssegnazioneHandlersSetup !== 'true') {
         lavoroForm.addEventListener('change', function(e) {
             if (e.target && e.target.name === 'tipo-assegnazione') {
-                updateVisibility();
+                updateVisibility(true);
             }
         });
         lavoroForm.dataset.tipoAssegnazioneHandlersSetup = 'true';
     }
     
-    // Inizializza visibilità
-    updateVisibility();
+    // Inizializza visibilità senza cancellare valori già impostati (modifica lavoro)
+    updateVisibility(false);
 }
 
 /**
@@ -211,10 +214,12 @@ export function setupMacchineHandlers(
         
         const handleTrattoreChange = function() {
             const trattoreId = this.value;
+            const attrezzoSelectEl = document.getElementById('lavoro-attrezzo');
+            const preserveAttrezzoId = attrezzoSelectEl?.value || null;
             
-            // Popola dropdown attrezzi compatibili
+            // Popola dropdown attrezzi compatibili (conserva attrezzo già selezionato in modifica)
             if (populateAttrezziDropdownCallback && trattoreId) {
-                populateAttrezziDropdownCallback(trattoreId);
+                populateAttrezziDropdownCallback(trattoreId, preserveAttrezzoId);
             }
             
             // Mostra/nascondi gruppo attrezzo
@@ -244,12 +249,23 @@ export function setupMacchineHandlers(
         
         newTrattoreSelect.addEventListener('change', handleTrattoreChange);
         
-        // Se c'è già un trattore selezionato (ad esempio quando si modifica un lavoro esistente),
-        // popola gli attrezzi immediatamente
+        // Se c'è già un trattore selezionato (modifica lavoro), ripopola attrezzi conservando la selezione
         if (newTrattoreSelect.value) {
-            // Usa setTimeout per assicurarsi che il DOM sia completamente pronto
             setTimeout(() => {
-                handleTrattoreChange.call(newTrattoreSelect);
+                const attrezzoEl = document.getElementById('lavoro-attrezzo');
+                const preserveAttrezzoId = attrezzoEl?.value || null;
+                if (populateAttrezziDropdownCallback) {
+                    populateAttrezziDropdownCallback(newTrattoreSelect.value, preserveAttrezzoId);
+                }
+                if (preserveAttrezzoId && attrezzoEl) {
+                    attrezzoEl.value = preserveAttrezzoId;
+                }
+                if (operatoreMacchinaGroup && (newTrattoreSelect.value || preserveAttrezzoId)) {
+                    operatoreMacchinaGroup.style.display = 'block';
+                }
+                if (populateOperatoreMacchinaDropdownCallback) {
+                    populateOperatoreMacchinaDropdownCallback();
+                }
             }, 100);
         }
     }
@@ -637,6 +653,8 @@ export function closeDettaglioModal(state, updateState) {
  * @param {Function} populateOperatoreMacchinaDropdownCallback - Callback per popolare dropdown operatore macchina
  * @param {Function} loadTipiLavoroCallback - Callback per caricare tipi lavoro
  * @param {Function} setupTipoAssegnazioneHandlersCallback - Callback per setup tipo assegnazione
+ * @param {Function} [applyMacchineFromLavoroCallback] - Callback per applicare macchine al form
+ * @param {Function} [applyAssegnazioneFromLavoroCallback] - Callback per applicare operaio/caposquadra al form
  */
 export async function openModificaModal(
     lavoroId,
@@ -656,7 +674,9 @@ export async function openModificaModal(
     populateOperatoreMacchinaDropdownCallback,
     loadTipiLavoroCallback,
     setupTipoAssegnazioneHandlersCallback,
-    setupMacchineHandlersCallback
+    setupMacchineHandlersCallback,
+    applyMacchineFromLavoroCallback,
+    applyAssegnazioneFromLavoroCallback
 ) {
     updateState({ currentLavoroId: lavoroId });
     const lavoro = lavoriList.find(l => l.id === lavoroId);
@@ -689,22 +709,9 @@ export async function openModificaModal(
         lavoroDataInizioInput.value = dataInizio.toISOString().split('T')[0];
     }
     
-    // Determina tipo assegnazione in base ai dati del lavoro (solo se Manodopera attivo)
-    if (hasManodoperaModule) {
-        const tipoAutonomo = document.getElementById('tipo-autonomo');
-        const tipoSquadra = document.getElementById('tipo-squadra');
-        if (lavoro.operaioId && !lavoro.caposquadraId) {
-            // Lavoro autonomo
-            if (tipoAutonomo) tipoAutonomo.checked = true;
-            if (tipoSquadra) tipoSquadra.checked = false;
-        } else {
-            // Lavoro di squadra (default o se caposquadraId presente)
-            if (tipoSquadra) tipoSquadra.checked = true;
-            if (tipoAutonomo) tipoAutonomo.checked = false;
-        }
-        
-        if (populateCaposquadraDropdownCallback) populateCaposquadraDropdownCallback(lavoro.caposquadraId || null);
-        if (populateOperaiDropdownCallback) populateOperaiDropdownCallback(lavoro.operaioId || null);
+    // Assegnazione manodopera (autonomo / squadra)
+    if (hasManodoperaModule && applyAssegnazioneFromLavoroCallback) {
+        applyAssegnazioneFromLavoroCallback(lavoro);
     }
     
     if (populateTerrenoDropdownCallback) await populateTerrenoDropdownCallback(lavoro.terrenoId, lavoro.clienteId || null);
@@ -731,30 +738,8 @@ export async function openModificaModal(
     }
     
     // Popola campi macchine se modulo Parco Macchine attivo
-    if (hasParcoMacchineModule) {
-        if (populateTrattoriDropdownCallback) populateTrattoriDropdownCallback();
-        const macchinaId = lavoro.macchinaId || null;
-        const attrezzoId = lavoro.attrezzoId || null;
-        const operatoreMacchinaId = lavoro.operatoreMacchinaId || null;
-        
-        const lavoroTrattore = document.getElementById('lavoro-trattore');
-        const lavoroAttrezzo = document.getElementById('lavoro-attrezzo');
-        const lavoroOperatoreMacchina = document.getElementById('lavoro-operatore-macchina');
-        
-        if (macchinaId && lavoroTrattore) {
-            lavoroTrattore.value = macchinaId;
-            if (populateAttrezziDropdownCallback) populateAttrezziDropdownCallback(macchinaId);
-        }
-        
-        if (attrezzoId && lavoroAttrezzo) {
-            lavoroAttrezzo.value = attrezzoId;
-        }
-        
-        if (operatoreMacchinaId && lavoroOperatoreMacchina) {
-            lavoroOperatoreMacchina.value = operatoreMacchinaId;
-        }
-        
-        if (populateOperatoreMacchinaDropdownCallback) populateOperatoreMacchinaDropdownCallback();
+    if (hasParcoMacchineModule && applyMacchineFromLavoroCallback) {
+        applyMacchineFromLavoroCallback(lavoro);
     }
     
     // Aggiorna visibilità dropdown
@@ -764,6 +749,17 @@ export async function openModificaModal(
     
     const lavoroModal = document.getElementById('lavoro-modal');
     if (lavoroModal) lavoroModal.classList.add('active');
+
+    // Dopo setupMacchineHandlers (MutationObserver + change trattore) riapplica macchine e assegnazione
+    if (hasParcoMacchineModule && applyMacchineFromLavoroCallback) {
+        setTimeout(() => applyMacchineFromLavoroCallback(lavoro), 350);
+    }
+    if (hasManodoperaModule && applyAssegnazioneFromLavoroCallback) {
+        setTimeout(() => {
+            applyAssegnazioneFromLavoroCallback(lavoro);
+            if (setupTipoAssegnazioneHandlersCallback) setupTipoAssegnazioneHandlersCallback();
+        }, 350);
+    }
 }
 
 /**
@@ -932,16 +928,23 @@ export async function approvaLavoro(
         lavoro.percentualeCompletamento ??
         0
     );
-    const isParzialePreview = lavoro.completamentoParziale === true ||
-        (Number.isFinite(percTracciataPreview) && percTracciataPreview > 0 && percTracciataPreview < 100);
+    const isRipresa = Boolean(lavoro.ripresaDaLavoroId);
+    const isParzialePreview = isRipresa
+        ? lavoro.completamentoParziale === true
+        : (lavoro.completamentoParziale === true ||
+            (Number.isFinite(percTracciataPreview) && percTracciataPreview > 0 && percTracciataPreview < 100));
     const msgParzialePreview = isParzialePreview
         ? `\n\n⚠️ Completamento PARZIALE (${percTracciataPreview}% tracciato).\n` +
           `Verrà approvato solo quanto fatto; per il resto del campo potrai creare una ripresa.`
         : '';
 
+    const msgOrigineRipresa = lavoro.ripresaDaLavoroId && !isParzialePreview
+        ? `\n\nIl lavoro sospeso originale verrà chiuso come completato.`
+        : '';
+
     const conferma = confirm(
         `Sei sicuro di voler approvare questo lavoro?\n\n` +
-        `Lavoro: ${lavoro.nome}${msgParzialePreview}\n\n` +
+        `Lavoro: ${lavoro.nome}${msgParzialePreview}${msgOrigineRipresa}\n\n` +
         `Il lavoro sarà marcato come completato${isParzialePreview ? ' (parziale)' : ' al 100%'}.`
     );
     
@@ -986,6 +989,23 @@ export async function approvaLavoro(
                 aggiornatoIl: serverTimestamp()
             };
         await updateDoc(lavoroRef, lavoroCompletatoData);
+
+        if (lavoro.ripresaDaLavoroId && !isParziale) {
+            try {
+                const { completaLavoroSospesoOrigineDaRipresa } = await import('../../services/lavori-service.js');
+                const chiusuraOrigine = await completaLavoroSospesoOrigineDaRipresa(
+                    { ...lavoro, ...lavoroCompletatoData, id: lavoroId },
+                    { tenantId: currentTenantId, db, ripresaStato: 'completato', isParziale: false }
+                );
+                if (chiusuraOrigine.updated) {
+                    console.log('[GESTIONE-LAVORI] Lavoro sospeso originale chiuso:', chiusuraOrigine.origineId);
+                } else {
+                    console.warn('[GESTIONE-LAVORI] Origine sospeso non chiusa:', chiusuraOrigine);
+                }
+            } catch (errOrigine) {
+                console.warn('[GESTIONE-LAVORI] Chiusura lavoro sospeso origine (non critico):', errOrigine);
+            }
+        }
         
         // Genera voce diario automatica se lavoro conto terzi completato
         if (hasContoTerziModule && lavoro.clienteId && generaVoceDiarioContoTerziCallback) {
@@ -1669,6 +1689,18 @@ export async function handleSalvaLavoro(
         tipoAssegnazione = document.querySelector('input[name="tipo-assegnazione"]:checked')?.value;
         caposquadraId = document.getElementById('lavoro-caposquadra')?.value || null;
         operaioId = document.getElementById('lavoro-operaio')?.value || null;
+
+        const lavoroOrigAssegnazione = state.currentLavoroId
+            ? state.lavoriList.find((l) => l.id === state.currentLavoroId)
+            : null;
+        if (state.currentLavoroId && lavoroOrigAssegnazione) {
+            if (tipoAssegnazione === 'autonomo' && !operaioId && lavoroOrigAssegnazione.operaioId) {
+                operaioId = lavoroOrigAssegnazione.operaioId;
+            }
+            if (tipoAssegnazione === 'squadra' && !caposquadraId && lavoroOrigAssegnazione.caposquadraId) {
+                caposquadraId = lavoroOrigAssegnazione.caposquadraId;
+            }
+        }
     }
     
     if (!nome || nome.length < 3) {
@@ -1773,8 +1805,8 @@ export async function handleSalvaLavoro(
         
         // Campi macchine (solo se modulo Parco Macchine attivo)
         if (state.hasParcoMacchineModule) {
-            const macchinaId = document.getElementById('lavoro-trattore')?.value || null;
-            const attrezzoId = document.getElementById('lavoro-attrezzo')?.value || null;
+            let macchinaId = document.getElementById('lavoro-trattore')?.value || null;
+            let attrezzoId = document.getElementById('lavoro-attrezzo')?.value || null;
             let operatoreMacchinaId = null;
             
             // Operatore macchina solo se Manodopera attivo
@@ -1784,6 +1816,14 @@ export async function handleSalvaLavoro(
                 // Se operatore macchina non specificato ma c'è un operaio responsabile, usa quello
                 if (!operatoreMacchinaId && tipoAssegnazione === 'autonomo' && operaioId) {
                     operatoreMacchinaId = operaioId;
+                }
+            }
+
+            if (state.currentLavoroId && lavoroOriginale) {
+                if (!macchinaId && lavoroOriginale.macchinaId) macchinaId = lavoroOriginale.macchinaId;
+                if (!attrezzoId && lavoroOriginale.attrezzoId) attrezzoId = lavoroOriginale.attrezzoId;
+                if (!operatoreMacchinaId && lavoroOriginale.operatoreMacchinaId) {
+                    operatoreMacchinaId = lavoroOriginale.operatoreMacchinaId;
                 }
             }
             
@@ -1806,20 +1846,20 @@ export async function handleSalvaLavoro(
                 }
             }
             
-            // Imposta macchine come in_uso se assegnate e lavoro non completato/annullato
-            const statiCompletati = ['completato', 'completato_da_approvare', 'annullato'];
-            const lavoroNonCompletato = !statiCompletati.includes(nuovoStato);
+            const statiCheLiberanoMacchine = ['completato', 'completato_da_approvare', 'annullato', 'sospeso', 'in_standby'];
+            const statiCheRiservanoMacchine = ['assegnato', 'in_corso', 'da_pianificare'];
+            const lavoroRiservaMacchine = statiCheRiservanoMacchine.includes(nuovoStato);
 
-            if (macchinaId && lavoroNonCompletato) {
+            if (macchinaId && lavoroRiservaMacchine) {
                 if (updateMacchinaStatoCallback) await updateMacchinaStatoCallback(macchinaId, 'in_uso');
             }
-            
-            if (attrezzoId && lavoroNonCompletato) {
+
+            if (attrezzoId && lavoroRiservaMacchine) {
                 if (updateMacchinaStatoCallback) await updateMacchinaStatoCallback(attrezzoId, 'in_uso');
             }
-            
-            // Libera macchine se lavoro completato/annullato
-            if (statiCompletati.includes(nuovoStato)) {
+
+            // Libera macchine se lavoro chiuso, sospeso o in standby
+            if (statiCheLiberanoMacchine.includes(nuovoStato)) {
                 if (macchinaId && updateMacchinaStatoCallback) {
                     await updateMacchinaStatoCallback(macchinaId, 'disponibile');
                 }
@@ -1917,6 +1957,19 @@ export async function handleSalvaLavoro(
             
             await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', state.currentLavoroId), lavoroData);
 
+            const idxSalvato = state.lavoriList.findIndex((l) => l.id === state.currentLavoroId);
+            if (idxSalvato >= 0) {
+                state.lavoriList[idxSalvato] = {
+                    ...state.lavoriList[idxSalvato],
+                    ...lavoroData,
+                    id: state.currentLavoroId,
+                    dataInizio: lavoroData.dataInizio?.toDate
+                        ? lavoroData.dataInizio.toDate()
+                        : state.lavoriList[idxSalvato].dataInizio
+                };
+                updateState({ lavoriList: [...state.lavoriList] });
+            }
+
             if (lavoroData.stato === 'completato' && !lavoroEraCompletato) {
                 try {
                     const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
@@ -1930,6 +1983,18 @@ export async function handleSalvaLavoro(
                     }
                 } catch (syncErr) {
                     console.warn('[GESTIONE-LAVORI] Sync piano stagione VM:', syncErr);
+                }
+
+                if (lavoroOriginale?.ripresaDaLavoroId && lavoroData.completamentoParziale !== true) {
+                    try {
+                        const { completaLavoroSospesoOrigineDaRipresa } = await import('../../services/lavori-service.js');
+                        await completaLavoroSospesoOrigineDaRipresa(
+                            { ...lavoroOriginale, ...lavoroData, id: state.currentLavoroId },
+                            { tenantId: currentTenantId, ripresaStato: 'completato', isParziale: false }
+                        );
+                    } catch (errOrigine) {
+                        console.warn('[GESTIONE-LAVORI] Chiusura lavoro sospeso origine (non critico):', errOrigine);
+                    }
                 }
             }
 

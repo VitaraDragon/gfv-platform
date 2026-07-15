@@ -71,7 +71,8 @@
     "sim:tony:e2e:ci": "node simulator/ci-tony-e2e-run.js",
     "sim:tony:e2e:live:ci": "node simulator/ci-tony-e2e-live-run.js",
     "sim:tony:sync-gemini-secret": "node scripts/sync-gemini-ci-secret.mjs",
-    "sim:tony:vitest": "node scripts/sim-tony-vitest-run.mjs"
+    "sim:tony:vitest": "node scripts/sim-tony-vitest-run.mjs",
+    "lavoro:ripresa-canary": "node scripts/lavoro-ripresa-canary.mjs"
   },
   "keywords": [
     "agriculture",

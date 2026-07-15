@@ -437,7 +437,16 @@ service cloud.firestore {
     // Collection: macchine (Parco Macchine)
     match /tenants/{tenantId}/macchine/{macchinaId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+      allow create, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+      // Manager: pieno controllo. Caposquadra/operaio: solo liberazione (sospensione lavoro / meteo).
+      allow update: if isAuthenticated() && belongsToTenant(tenantId) && (
+        isManagerOrAdmin(tenantId) ||
+        (
+          (isCaposquadra(tenantId) || hasRole('operaio', tenantId)) &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stato', 'updatedAt']) &&
+          request.resource.data.stato == 'disponibile'
+        )
+      );
     }
 
     // Collection: vigneti (Modulo Vigneto)

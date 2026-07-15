@@ -19,9 +19,9 @@ import { formatOreNette } from '../../js/attivita-utils.js';
 import {
     fetchLavoriDocumentsForFieldUser,
     resolveCaposquadraIdsForOperaio,
-    isLavoroVisibileOperaioCampo,
     isLavoroSegnabileOperaio,
-    resolveSegnaturaOreRoleFlags
+    resolveSegnaturaOreRoleFlags,
+    sliceOperaioLavoriWindow,
 } from '../../services/manodopera-lavori-scope.js';
 import { fetchOperaioIdsForCaposquadraSquadre } from '../../services/comunicazioni-squadra-service.js';
 import { segnalaAssenza } from '../../services/manodopera-assenze-service.js';
@@ -38,7 +38,10 @@ import {
     caposquadraIdsForQuery,
     primaryManodoperaUserId,
     comunicazioneVisibilePerOperaio,
-    normalizeDestinatariIds
+    normalizeDestinatariIds,
+    partitionComunicazioniRicevuteOperaio,
+    partitionComunicazioniInviateCapo,
+    countConfermePendentiInvio,
 } from '../../services/comunicazioni-squadra-utils.js';
 import { isOraDelCaposquadraSuLavoroSquadra } from '../../services/manodopera-ore-validazione-scope.js';
 
@@ -85,6 +88,10 @@ const btnRefreshPendingHoursEl = document.getElementById('btn-refresh-pending-ho
 const fieldValidazioneOreLinkEl = document.getElementById('field-validazione-ore-link');
 const sentCommunicationsListEl = document.getElementById('sent-communications-list');
 const receivedCommunicationsListEl = document.getElementById('received-communications-list');
+const sentCommunicationsHistoryEl = document.getElementById('sent-communications-history');
+const receivedCommunicationsHistoryEl = document.getElementById('received-communications-history');
+const toggleSentCommunicationsHistoryEl = document.getElementById('toggle-sent-communications-history');
+const toggleReceivedCommunicationsHistoryEl = document.getElementById('toggle-received-communications-history');
 const operaioModalEl = document.getElementById('operaio-contact-modal');
 const operaioContactNameEl = document.getElementById('operaio-contact-name');
 const operaioContactSubEl = document.getElementById('operaio-contact-sub');
@@ -116,6 +123,8 @@ let pullTouchStartY = 0;
 let pullTouchStartX = 0;
 let pendingFocusLavoroIdFromUrl = null;
 let pendingOpenSlideFromUrl = null;
+let receivedCommunicationsHistoryExpanded = false;
+let sentCommunicationsHistoryExpanded = false;
 
 function setStatus(text, isError = false) {
     if (!statusEl) return;
@@ -488,10 +497,6 @@ function normalizeWorkLabel(work) {
     return `${nome}${terreno ? ` - ${terreno}` : ''}`;
 }
 
-function isWorkRelevantForFieldRole(work) {
-    return isLavoroVisibileOperaioCampo(work);
-}
-
 async function loadWorksForSelection() {
     if (!currentTenantId || !currentUser) return;
     if (selectedWorkEl) {
@@ -502,15 +507,26 @@ async function loadWorksForSelection() {
         const roleFlags = userIsCaposquadra && !userIsOperaio
             ? { isCaposquadra: true, isOperaio: false }
             : resolveSegnaturaOreRoleFlags(currentUserData || {});
-        const rawList = await fetchLavoriDocumentsForFieldUser(getDb(), currentTenantId, userId, roleFlags);
+        const rawList = await fetchLavoriDocumentsForFieldUser(
+            getDb(),
+            currentTenantId,
+            userId,
+            roleFlags,
+            currentUserData || null
+        );
 
-        const eligible = rawList.filter((w) => (
-            userIsCaposquadra && !userIsOperaio
-                ? isWorkRelevantForFieldRole(w)
-                : isLavoroSegnabileOperaio(w)
-        ));
+        const eligible = rawList.filter((w) => isLavoroSegnabileOperaio(w));
 
-        const works = eligible.map((work) => ({
+        let narrowed = eligible;
+        // Mostra tutti i lavori segnabili fino a 12; oltre, finestra attorno al focus (con ripresa/in_corso sempre incluse)
+        if (narrowed.length > 12) {
+            narrowed = sliceOperaioLavoriWindow(narrowed, {
+                focusLavoroId: pendingFocusLavoroIdFromUrl,
+                maxNeighbors: 3,
+            });
+        }
+
+        const works = narrowed.map((work) => ({
             id: work.id,
             label: normalizeWorkLabel(work),
             raw: work
@@ -992,61 +1008,128 @@ async function resolveDestinatariIdsForSend() {
     return Array.from(fallback);
 }
 
+async function fetchReceivedCommunicationRows() {
+    const operaioUserId = primaryManodoperaUserId(currentUser, currentUserData);
+    const capoIdsOperaio = await resolveCaposquadraIdsForOperaio(getDb(), currentTenantId, operaioUserId);
+    const operaioLavoroIds = (Array.isArray(cachedWorks) && cachedWorks.length)
+        ? cachedWorks.map((w) => String(w.id))
+        : (await fetchLavoriDocumentsForFieldUser(
+            getDb(),
+            currentTenantId,
+            operaioUserId,
+            resolveSegnaturaOreRoleFlags(currentUserData || {}),
+            currentUserData || null
+        )).map((l) => String(l.id));
+    const commRef = collection(getDb(), `tenants/${currentTenantId}/comunicazioni`);
+    const snap = await getDocs(query(commRef, where('stato', '==', 'attiva')));
+    const rows = [];
+    snap.forEach((d) => {
+        const data = d.data();
+        const dataCom = data.data?.toDate ? data.data.toDate() : new Date(data.data);
+        if (!comunicazioneVisibilePerOperaio(data, currentUser, currentUserData, capoIdsOperaio, operaioLavoroIds)) return;
+        if (!isComunicazioneAttivaPerData(dataCom)) return;
+        rows.push({
+            id: d.id,
+            ...data,
+            dataCom,
+            haConfermato: confermeIncludesUser(data.conferme, currentUser, currentUserData)
+        });
+    });
+    return rows;
+}
+
+function renderReceivedCommunicationCard(row, { readOnly = false } = {}) {
+    const luogo = formatComunicazioneLuogo(row);
+    const testo = formatComunicazioneTesto(row);
+    const dataLabel = row.dataCom
+        ? row.dataCom.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
+        : '-';
+    const confermaBtn = row.haConfermato || readOnly
+        ? '<span class="inline-item-badge">✅ Confermato</span>'
+        : `<button type="button" class="field-mobile-btn primary" data-confirm-comm-id="${escapeHtmlUnsafe(row.id)}" style="margin-top:8px;">Conferma ricezione</button>`;
+    return `
+        <div class="inline-item" style="border-left: 3px solid ${row.haConfermato ? '#28a745' : '#ffc107'};">
+            <div class="inline-item-head">
+                <div class="inline-item-title">${escapeHtmlUnsafe(luogo)}</div>
+                <div class="inline-item-sub">${escapeHtmlUnsafe(row.orario || '--:--')} • ${escapeHtmlUnsafe(dataLabel)}</div>
+            </div>
+            ${testo ? `<div class="inline-item-sub">${escapeHtmlUnsafe(testo)}</div>` : ''}
+            <div class="inline-item-sub">Da: ${escapeHtmlUnsafe(row.caposquadraNome || 'Caposquadra')}</div>
+            ${confermaBtn}
+        </div>
+    `;
+}
+
+function setCommunicationsHistoryToggle(toggleEl, historyEl, count, expanded) {
+    if (!toggleEl || !historyEl) return;
+    if (count <= 0) {
+        toggleEl.hidden = true;
+        historyEl.hidden = true;
+        return;
+    }
+    toggleEl.hidden = false;
+    toggleEl.textContent = expanded
+        ? 'Nascondi comunicazioni precedenti'
+        : `Vedi comunicazioni precedenti (${count})`;
+    historyEl.hidden = !expanded;
+}
+
+function renderSentCommunicationCard(row, { readOnly = false } = {}) {
+    const destCount = normalizeDestinatariIds(row.destinatari).length;
+    const confermeCount = Array.isArray(row.conferme) ? row.conferme.length : 0;
+    const pending = countConfermePendentiInvio(row);
+    const badge = pending > 0
+        ? `<span class="inline-item-badge" style="background:#fef3c7;color:#92400e;">⏳ ${pending} in attesa</span>`
+        : `<span class="inline-item-badge">👍 ${confermeCount}/${destCount || '0'}</span>`;
+    const statoLabel = row.stato && row.stato !== 'attiva'
+        ? `<span class="inline-item-badge">${escapeHtmlUnsafe(String(row.stato))}</span>`
+        : '';
+    return `
+        <div class="inline-item"${readOnly ? ' style="opacity:0.92;"' : ''}>
+            <div class="inline-item-head">
+                <div class="inline-item-title">${escapeHtmlUnsafe(row.lavoroNome || 'Lavoro')}</div>
+                <div class="inline-item-sub">${escapeHtmlUnsafe(row.orario || '--:--')} • ${formatDateShort(row.data) || '-'}</div>
+            </div>
+            <div class="inline-item-sub">${escapeHtmlUnsafe((row.messaggio || '').slice(0, 120))}</div>
+            <div class="inline-item-head" style="margin-top: 6px; margin-bottom: 0;">
+                <div class="inline-item-sub">Conferme ricezione</div>
+                ${statoLabel || badge}
+            </div>
+        </div>
+    `;
+}
+
 async function loadReceivedCommunications() {
     if (!receivedCommunicationsListEl || !currentTenantId || !currentUser) return;
     receivedCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Caricamento comunicazioni...</div>';
+    if (receivedCommunicationsHistoryEl) receivedCommunicationsHistoryEl.innerHTML = '';
+    setCommunicationsHistoryToggle(
+        toggleReceivedCommunicationsHistoryEl,
+        receivedCommunicationsHistoryEl,
+        0,
+        receivedCommunicationsHistoryExpanded
+    );
     try {
-        const operaioUserId = primaryManodoperaUserId(currentUser, currentUserData);
-        const capoIdsOperaio = await resolveCaposquadraIdsForOperaio(getDb(), currentTenantId, operaioUserId);
-        const operaioLavoroIds = (Array.isArray(cachedWorks) && cachedWorks.length)
-            ? cachedWorks.map((w) => String(w.id))
-            : (await fetchLavoriDocumentsForFieldUser(
-                getDb(),
-                currentTenantId,
-                operaioUserId,
-                resolveSegnaturaOreRoleFlags(currentUserData || {})
-            )).map((l) => String(l.id));
-        const commRef = collection(getDb(), `tenants/${currentTenantId}/comunicazioni`);
-        const snap = await getDocs(query(commRef, where('stato', '==', 'attiva')));
-        const rows = [];
-        snap.forEach((d) => {
-            const data = d.data();
-            const dataCom = data.data?.toDate ? data.data.toDate() : new Date(data.data);
-            if (!comunicazioneVisibilePerOperaio(data, currentUser, currentUserData, capoIdsOperaio, operaioLavoroIds)) return;
-            if (!isComunicazioneAttivaPerData(dataCom)) return;
-            rows.push({
-                id: d.id,
-                ...data,
-                dataCom,
-                haConfermato: confermeIncludesUser(data.conferme, currentUser, currentUserData)
-            });
-        });
-        rows.sort((a, b) => (a.dataCom?.getTime?.() || 0) - (b.dataCom?.getTime?.() || 0));
-        if (!rows.length) {
+        const rows = await fetchReceivedCommunicationRows();
+        const { pending, history } = partitionComunicazioniRicevuteOperaio(rows);
+        if (!pending.length && !history.length) {
             receivedCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Nessuna comunicazione attiva.</div>';
             return;
         }
-        receivedCommunicationsListEl.innerHTML = rows.map((row) => {
-            const luogo = formatComunicazioneLuogo(row);
-            const testo = formatComunicazioneTesto(row);
-            const dataLabel = row.dataCom
-                ? row.dataCom.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
-                : '-';
-            const confermaBtn = row.haConfermato
-                ? '<span class="inline-item-badge">✅ Confermato</span>'
-                : `<button type="button" class="field-mobile-btn primary" data-confirm-comm-id="${escapeHtmlUnsafe(row.id)}" style="margin-top:8px;">Conferma ricezione</button>`;
-            return `
-                <div class="inline-item" style="border-left: 3px solid ${row.haConfermato ? '#28a745' : '#ffc107'};">
-                    <div class="inline-item-head">
-                        <div class="inline-item-title">${escapeHtmlUnsafe(luogo)}</div>
-                        <div class="inline-item-sub">${escapeHtmlUnsafe(row.orario || '--:--')} • ${escapeHtmlUnsafe(dataLabel)}</div>
-                    </div>
-                    ${testo ? `<div class="inline-item-sub">${escapeHtmlUnsafe(testo)}</div>` : ''}
-                    <div class="inline-item-sub">Da: ${escapeHtmlUnsafe(row.caposquadraNome || 'Caposquadra')}</div>
-                    ${confermaBtn}
-                </div>
-            `;
-        }).join('');
+        if (!pending.length) {
+            receivedCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Nessun messaggio da confermare.</div>';
+        } else {
+            receivedCommunicationsListEl.innerHTML = pending.map((row) => renderReceivedCommunicationCard(row)).join('');
+        }
+        if (receivedCommunicationsHistoryEl && history.length) {
+            receivedCommunicationsHistoryEl.innerHTML = history.map((row) => renderReceivedCommunicationCard(row, { readOnly: true })).join('');
+        }
+        setCommunicationsHistoryToggle(
+            toggleReceivedCommunicationsHistoryEl,
+            receivedCommunicationsHistoryEl,
+            history.length,
+            receivedCommunicationsHistoryExpanded
+        );
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore comunicazioni ricevute:', error);
         receivedCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Errore caricamento comunicazioni.</div>';
@@ -1081,6 +1164,13 @@ async function confirmReceivedCommunication(communicationId) {
 async function loadSentCommunications() {
     if (!sentCommunicationsListEl || !currentTenantId || !currentUser) return;
     sentCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Caricamento comunicazioni inviate...</div>';
+    if (sentCommunicationsHistoryEl) sentCommunicationsHistoryEl.innerHTML = '';
+    setCommunicationsHistoryToggle(
+        toggleSentCommunicationsHistoryEl,
+        sentCommunicationsHistoryEl,
+        0,
+        sentCommunicationsHistoryExpanded
+    );
     try {
         const commRef = collection(getDb(), `tenants/${currentTenantId}/comunicazioni`);
         const byId = new Map();
@@ -1089,30 +1179,25 @@ async function loadSentCommunications() {
             const snap = await getDocs(query(commRef, where('caposquadraId', '==', capoId)));
             snap.forEach((d) => byId.set(d.id, { id: d.id, ...d.data() }));
         }
-        const rows = Array.from(byId.values());
-        rows.sort((a, b) => {
-            const ad = (a.createdAt && a.createdAt.toDate) ? a.createdAt.toDate().getTime() : 0;
-            const bd = (b.createdAt && b.createdAt.toDate) ? b.createdAt.toDate().getTime() : 0;
-            return bd - ad;
-        });
-        const top = rows.slice(0, 5);
-        if (!top.length) {
+        const { inEvidenza, storico } = partitionComunicazioniInviateCapo(Array.from(byId.values()));
+        if (!inEvidenza.length && !storico.length) {
             sentCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Nessuna comunicazione inviata.</div>';
             return;
         }
-        sentCommunicationsListEl.innerHTML = top.map((row) => `
-            <div class="inline-item">
-                <div class="inline-item-head">
-                    <div class="inline-item-title">${escapeHtmlUnsafe(row.lavoroNome || 'Lavoro')}</div>
-                    <div class="inline-item-sub">${escapeHtmlUnsafe(row.orario || '--:--')} • ${formatDateShort(row.data) || '-'}</div>
-                </div>
-                <div class="inline-item-sub">${escapeHtmlUnsafe((row.messaggio || '').slice(0, 120))}</div>
-                <div class="inline-item-head" style="margin-top: 6px; margin-bottom: 0;">
-                    <div class="inline-item-sub">Conferme ricezione</div>
-                    <span class="inline-item-badge">👍 ${(Array.isArray(row.conferme) ? row.conferme.length : 0)}/${normalizeDestinatariIds(row.destinatari).length || '0'}</span>
-                </div>
-            </div>
-        `).join('');
+        if (!inEvidenza.length) {
+            sentCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Nessun invio in evidenza.</div>';
+        } else {
+            sentCommunicationsListEl.innerHTML = inEvidenza.map((row) => renderSentCommunicationCard(row)).join('');
+        }
+        if (sentCommunicationsHistoryEl && storico.length) {
+            sentCommunicationsHistoryEl.innerHTML = storico.map((row) => renderSentCommunicationCard(row, { readOnly: true })).join('');
+        }
+        setCommunicationsHistoryToggle(
+            toggleSentCommunicationsHistoryEl,
+            sentCommunicationsHistoryEl,
+            storico.length,
+            sentCommunicationsHistoryExpanded
+        );
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore comunicazioni inviate:', error);
         sentCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Errore caricamento comunicazioni.</div>';
@@ -1366,6 +1451,34 @@ function bindInlineSectionsActions() {
             const commId = target.getAttribute('data-confirm-comm-id');
             if (!commId) return;
             await confirmReceivedCommunication(commId);
+        });
+    }
+    if (toggleReceivedCommunicationsHistoryEl) {
+        toggleReceivedCommunicationsHistoryEl.addEventListener('click', () => {
+            receivedCommunicationsHistoryExpanded = !receivedCommunicationsHistoryExpanded;
+            const count = receivedCommunicationsHistoryEl
+                ? receivedCommunicationsHistoryEl.querySelectorAll('.inline-item').length
+                : 0;
+            setCommunicationsHistoryToggle(
+                toggleReceivedCommunicationsHistoryEl,
+                receivedCommunicationsHistoryEl,
+                count,
+                receivedCommunicationsHistoryExpanded
+            );
+        });
+    }
+    if (toggleSentCommunicationsHistoryEl) {
+        toggleSentCommunicationsHistoryEl.addEventListener('click', () => {
+            sentCommunicationsHistoryExpanded = !sentCommunicationsHistoryExpanded;
+            const count = sentCommunicationsHistoryEl
+                ? sentCommunicationsHistoryEl.querySelectorAll('.inline-item').length
+                : 0;
+            setCommunicationsHistoryToggle(
+                toggleSentCommunicationsHistoryEl,
+                sentCommunicationsHistoryEl,
+                count,
+                sentCommunicationsHistoryExpanded
+            );
         });
     }
     const onPendingHoursClick = async (event) => {

@@ -1571,6 +1571,8 @@
             renderLavori as renderLavoriModule,
             populateAttrezziDropdown as populateAttrezziDropdownModule,
             populateOperatoreMacchinaDropdown as populateOperatoreMacchinaDropdownModule,
+            applyMacchineToLavoroForm as applyMacchineToLavoroFormModule,
+            applyAssegnazioneToLavoroForm as applyAssegnazioneToLavoroFormModule,
             loadDettaglioOverview as loadDettaglioOverviewModule,
             loadDettaglioOre as loadDettaglioOreModule
         } from './js/gestione-lavori-controller.js';
@@ -1877,10 +1879,9 @@
         }
 
         // Wrapper per populateTrattoriDropdown
-        function populateTrattoriDropdownWrapper(trattoriListParam = null) {
-            // Usa parametro se passato, altrimenti usa lavoriState.trattoriList
+        function populateTrattoriDropdownWrapper(trattoriListParam = null, selectedMacchinaId = null) {
             const trattoriDaUsare = trattoriListParam || lavoriState.trattoriList;
-            populateTrattoriDropdownModule(trattoriDaUsare);
+            populateTrattoriDropdownModule(trattoriDaUsare, selectedMacchinaId);
         }
 
         // Wrapper per populateCategoriaLavoroDropdown
@@ -2035,7 +2036,8 @@
             );
             updateState({ categorieAttrezziList: lavoriState.categorieAttrezziList });
             const trattoreId = document.getElementById('lavoro-trattore')?.value;
-            if (trattoreId) populateAttrezziDropdownWrapper(trattoreId);
+            const attrezzoId = document.getElementById('lavoro-attrezzo')?.value;
+            if (trattoreId) populateAttrezziDropdownWrapper(trattoreId, attrezzoId || null);
         }
 
         // Wrapper per loadStatistics
@@ -2089,7 +2091,10 @@
                 showAlertUtil
             );
             updateState({ lavoriList: lavoriState.lavoriList });
-            // Carica statistiche dopo aver caricato i lavori
+            if (lavoriState.hasParcoMacchineModule) {
+                await loadTrattoriWrapper();
+                await loadAttrezziWrapper();
+            }
             await loadStatisticsWrapper();
         }
 
@@ -2631,7 +2636,7 @@
         }
 
         // Wrapper per populateAttrezziDropdown
-        function populateAttrezziDropdownWrapper(trattoreId) {
+        function populateAttrezziDropdownWrapper(trattoreId, selectedAttrezzoId = null) {
             populateAttrezziDropdownModule(
                 trattoreId,
                 lavoriState.trattoriList,
@@ -2641,7 +2646,31 @@
                     lavoriState.categorieAttrezziList,
                     lavoriState.categorieLavoriPrincipali,
                     lavoriState.sottocategorieLavoriMap
-                )
+                ),
+                selectedAttrezzoId
+            );
+        }
+
+        function applyMacchineFromLavoroWrapper(lavoro) {
+            applyMacchineToLavoroFormModule(
+                lavoro,
+                lavoriState.trattoriList,
+                lavoriState.attrezziList,
+                (categoriaId) => getNomeCategoriaModule(
+                    categoriaId,
+                    lavoriState.categorieAttrezziList,
+                    lavoriState.categorieLavoriPrincipali,
+                    lavoriState.sottocategorieLavoriMap
+                ),
+                lavoriState.operaiList
+            );
+        }
+
+        function applyAssegnazioneFromLavoroWrapper(lavoro) {
+            applyAssegnazioneToLavoroFormModule(
+                lavoro,
+                populateCaposquadraDropdownWrapper,
+                populateOperaiDropdownWrapper
             );
         }
 
@@ -2783,7 +2812,9 @@
                 populateOperatoreMacchinaDropdownWrapper,
                 loadTipiLavoroWrapper,
                 setupTipoAssegnazioneHandlersWrapper,
-                setupMacchineHandlersWrapper
+                setupMacchineHandlersWrapper,
+                applyMacchineFromLavoroWrapper,
+                applyAssegnazioneFromLavoroWrapper
             );
         }
 
@@ -2869,14 +2900,20 @@
                     dataInizio: input.value
                 });
                 closeRipresaLavoroModal();
-                showAlertUtil('Lavoro di ripresa creato (stato: Assegnato). La riga in elenco viene evidenziata.', 'success');
                 await loadLavoriWrapper();
-                requestAnimationFrame(() => {
+                requestAnimationFrame(async () => {
                     const row = document.getElementById('lavoro-row-' + nuovoId);
                     if (row) {
                         row.classList.add('gfv-lavoro-row-highlight');
                         row.scrollIntoView({ behavior: 'smooth', block: 'center' });
                         setTimeout(() => row.classList.remove('gfv-lavoro-row-highlight'), 5000);
+                    }
+                    try {
+                        await openModificaModalWrapper(nuovoId);
+                        showAlertUtil('Ripresa creata: verifica operaio e macchine, poi salva.', 'success');
+                    } catch (modalErr) {
+                        console.warn('[Gestione Lavori] Apertura modifica ripresa:', modalErr);
+                        showAlertUtil('Lavoro di ripresa creato. Apri Modifica per assegnare operaio e macchine.', 'success');
                     }
                 });
             } catch (e) {
@@ -3423,6 +3460,17 @@
                                                         populateAttrezziDropdownWrapper,
                                                         populateOperatoreMacchinaDropdownWrapper
                                                     );
+                                                }
+                                                if (lavoriState.currentLavoroId) {
+                                                    const lavoroCorrente = lavoriState.lavoriList.find(
+                                                        (l) => l.id === lavoriState.currentLavoroId
+                                                    );
+                                                    if (lavoroCorrente) {
+                                                        if (lavoriState.hasManodoperaModule) {
+                                                            applyAssegnazioneFromLavoroWrapper(lavoroCorrente);
+                                                        }
+                                                        applyMacchineFromLavoroWrapper(lavoroCorrente);
+                                                    }
                                                 }
                                             }, 100);
                                         }

@@ -74,6 +74,9 @@ Gestisci l’intero ciclo di vita dei lavori: pianificazione, assegnazione, avan
 
 - Il **caposquadra** può **sospendere** un lavoro **In corso** (con indicazione del motivo). Il lavoro passa allo stato **Sospeso**.
 - Il **Manager**, in **Gestione Lavori**, può creare un **nuovo lavoro di ripresa** collegato al lavoro sospeso tramite il pulsante **Crea ripresa**. Si apre una finestra in cui scegliere la **data di inizio** del nuovo lavoro (non è impostata automaticamente sul solo “oggi”): vengono copiati terreno, tipo lavoro e assegnazione; il nuovo lavoro è in stato **Assegnato** e collegato al precedente per tracciabilità.
+- Quando il **lavoro di ripresa** viene **completato e approvato** dal Manager (approvazione **non parziale**), il sistema **chiude automaticamente** anche il lavoro **sospeso** originale, impostandolo a **Completato**. In lista compare il collegamento tramite la ripresa approvata.
+- Ricaricando **Gestione Lavori**, eventuali catene già completate ma non allineate vengono **riparate automaticamente** (allineamento retroattivo).
+- Se in console compare un avviso di **skip** su una ripresa il cui lavoro sospeso originale **non esiste più** nel database (documento eliminato), il messaggio è atteso: non indica un errore sulla catena appena chiusa.
 
 ---
 
@@ -133,7 +136,7 @@ Gestisci l’intero ciclo di vita dei lavori: pianificazione, assegnazione, avan
 | Lavoro non visibile al caposquadra | Assegnazione mancante | Modifica lavoro e assegna |
 | Percentuale completamento errata | Zone non tracciate | Disegna poligoni aggiornati |
 | Macchina bloccata “in uso” | Lavoro non completato | Completa lavoro o libera macchine in Gestione Lavori |
-| Comunicazioni non ricevute | Operai non nella squadra | Aggiorna squadra o invia comunicazione manuale |
+| Lavoro sospeso resta sospeso dopo ripresa completata | Ripresa approvata prima del fix, o origine eliminata | Ricarica Gestione Lavori (repair automatico); se persiste, verifica che esista ancora il documento sospeso collegato |
 
 ---
 

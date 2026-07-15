@@ -10,7 +10,10 @@ import {
   getDocumentData, 
   updateDocument,
   deleteDocument,
-  getCollectionData 
+  getCollectionData,
+  serverTimestamp,
+  doc,
+  updateDoc
 } from './firebase-service.js';
 import { getCurrentTenantId } from './tenant-service.js';
 import { getCurrentUserData } from './auth-service.js';
@@ -440,7 +443,8 @@ export async function getNumeroLavoriCaposquadra(caposquadraId, stato = null) {
  * @param {string} lavoroId
  * @param {string} [causa]
  */
-export async function sospendiLavoro(lavoroId, causa = '') {
+export async function sospendiLavoro(lavoroId, causa = '', options = {}) {
+  const tenantId = options.tenantId ?? getCurrentTenantId();
   const lavoro = await getLavoro(lavoroId);
   if (!lavoro) throw new Error('Lavoro non trovato');
   if (!['in_corso', 'assegnato'].includes(lavoro.stato)) {
@@ -451,6 +455,216 @@ export async function sospendiLavoro(lavoroId, causa = '') {
     sospensioneCausa: (causa || '').trim(),
     sospensioneIl: new Date()
   });
+  if (tenantId && (lavoro.macchinaId || lavoro.attrezzoId)) {
+    const { liberaMacchineDaLavoro } = await import('./lavoro-macchine-lifecycle.js');
+    await liberaMacchineDaLavoro(
+      { id: lavoroId, macchinaId: lavoro.macchinaId, attrezzoId: lavoro.attrezzoId },
+      { tenantId, lavoriList: options.lavoriList }
+    );
+  }
+}
+
+/**
+ * Estrae l'id documento lavori da stringa, DocumentReference Firestore o path completo.
+ * @param {unknown} ref
+ * @returns {string|null}
+ */
+export function normalizeLavoroFirestoreId(ref) {
+  if (ref == null || ref === '') return null;
+  if (typeof ref === 'object') {
+    if (typeof ref.id === 'string' && ref.id.trim()) return ref.id.trim();
+    if (typeof ref.path === 'string' && ref.path.trim()) {
+      const parts = ref.path.split('/').filter(Boolean);
+      return parts.length ? parts[parts.length - 1] : null;
+    }
+  }
+  const raw = String(ref).trim();
+  if (!raw) return null;
+  if (raw.includes('/')) {
+    const parts = raw.split('/').filter(Boolean);
+    return parts.length ? parts[parts.length - 1] : null;
+  }
+  return raw;
+}
+
+/**
+ * Trova il lavoro sospeso origine collegato a una ripresa (lookup diretto + fallback radice/lista).
+ * @param {{ ripresaDaLavoroId?: unknown, lavoroRadiceId?: unknown, terrenoId?: string, operaioId?: string, caposquadraId?: string }} ripresa
+ * @param {Map<string, Record<string, unknown>>} byId
+ * @returns {{ id: string, data: Record<string, unknown> }|null}
+ */
+export function resolveOrigineSospesoForRipresa(ripresa, byId) {
+  if (!ripresa || !byId || byId.size === 0) return null;
+
+  const candidates = [
+    normalizeLavoroFirestoreId(ripresa.ripresaDaLavoroId),
+    normalizeLavoroFirestoreId(ripresa.lavoroRadiceId)
+  ].filter(Boolean);
+
+  for (const id of candidates) {
+    const lav = byId.get(String(id));
+    if (lav && lav.stato === 'sospeso' && !lav.ripresaDaLavoroId) {
+      return { id: String(id), data: lav };
+    }
+  }
+
+  for (const id of candidates) {
+    const lav = byId.get(String(id));
+    if (lav) return { id: String(id), data: lav };
+  }
+
+  for (const [id, lav] of byId.entries()) {
+    if (lav.stato !== 'sospeso' || lav.ripresaDaLavoroId) continue;
+    if (ripresa.terrenoId && lav.terrenoId !== ripresa.terrenoId) continue;
+    const stessoOperaio = ripresa.operaioId && lav.operaioId === ripresa.operaioId;
+    const stessoCapo = ripresa.caposquadraId && lav.caposquadraId === ripresa.caposquadraId;
+    if (!stessoOperaio && !stessoCapo) continue;
+    const radiceRipresa = normalizeLavoroFirestoreId(ripresa.lavoroRadiceId);
+    const radiceSosp = normalizeLavoroFirestoreId(lav.lavoroRadiceId) || id;
+    if (radiceRipresa && radiceSosp !== radiceRipresa && id !== radiceRipresa) continue;
+    const nomeRipresa = String(ripresa.nome || '').replace(/\s*\(ripresa\)\s*$/i, '').trim().toLowerCase();
+    const nomeSosp = String(lav.nome || '').trim().toLowerCase();
+    if (nomeRipresa && nomeSosp && nomeRipresa !== nomeSosp) continue;
+    return { id, data: lav };
+  }
+
+  return null;
+}
+
+/**
+ * True se, completata la ripresa al 100%, va chiuso anche il lavoro sospeso di origine.
+ * @param {{ ripresaDaLavoroId?: string|null, completamentoParziale?: boolean }} ripresaLavoro
+ * @param {string} [origineStato]
+ * @param {{ isParziale?: boolean }} [options]
+ * @returns {boolean}
+ */
+export function shouldCompletaLavoroSospesoOrigineDaRipresa(ripresaLavoro, origineStato, options = {}) {
+  const hasLink = Boolean(
+    ripresaLavoro?.ripresaDaLavoroId ||
+    options.origineId ||
+    normalizeLavoroFirestoreId(ripresaLavoro?.ripresaDaLavoroId)
+  );
+  if (!hasLink) return false;
+  const origine = origineStato || '';
+  if (origine === 'completato' || origine === 'completato_da_approvare' || origine === 'annullato') {
+    return false;
+  }
+  if (origine !== 'sospeso') return false;
+
+  if (options.isParziale === true) return false;
+  if (options.isParziale === false) return true;
+
+  const ripresaStato = options.ripresaStato || ripresaLavoro.stato || '';
+  if (ripresaStato === 'completato') return true;
+
+  if (ripresaLavoro.completamentoParziale === true) return false;
+  return true;
+}
+
+/**
+ * Chiude il lavoro sospeso originale quando la ripresa collegata è completata al 100%.
+ * @param {{ id?: string, ripresaDaLavoroId?: string|null, completamentoParziale?: boolean, superficieTotaleLavorata?: number, percentualeCompletamento?: number }} ripresaLavoro
+ * @param {Object} [options]
+ * @param {string} [options.tenantId]
+ * @param {boolean} [options.isParziale]
+ * @param {Date} [options.completatoIl]
+ * @returns {Promise<{ updated: boolean, origineId?: string, reason?: string }>}
+ */
+export async function completaLavoroSospesoOrigineDaRipresa(ripresaLavoro, options = {}) {
+  const tenantId = options.tenantId ?? getCurrentTenantId();
+  const origineId = normalizeLavoroFirestoreId(ripresaLavoro?.ripresaDaLavoroId)
+    ?? normalizeLavoroFirestoreId(options.origineId);
+  if (!tenantId || !origineId) {
+    return { updated: false, reason: 'no_ripresa_link' };
+  }
+
+  let origineData = options.origineSnapshot || null;
+  if (!origineData || origineData.stato == null) {
+    origineData = await getDocumentData(COLLECTION_NAME, origineId, tenantId);
+  }
+  if (!origineData) {
+    return {
+      updated: false,
+      reason: 'origine_not_found',
+      origineId,
+      ripresaId: ripresaLavoro?.id || null,
+      ripresaDaLavoroIdRaw: ripresaLavoro?.ripresaDaLavoroId ?? null
+    };
+  }
+
+  if (!shouldCompletaLavoroSospesoOrigineDaRipresa(ripresaLavoro, origineData.stato, options)) {
+    return {
+      updated: false,
+      reason: 'origine_non_eligible',
+      origineId,
+      origineStato: origineData.stato || null
+    };
+  }
+
+  const ripresaId = ripresaLavoro.id ? String(ripresaLavoro.id) : '';
+  const noteExtra = ripresaId
+    ? `Chiuso automaticamente al completamento della ripresa (${ripresaId}).`
+    : 'Chiuso automaticamente al completamento della ripresa collegata.';
+  const note = [origineData.note, noteExtra].filter(Boolean).join(' ').trim();
+
+  const updates = {
+    stato: 'completato',
+    percentualeCompletamento: 100,
+    superficieRimanente: 0,
+    completamentoParziale: false,
+    completatoTramiteRipresaId: ripresaId || null,
+    completatoIl: options.completatoIl ?? serverTimestamp(),
+    aggiornatoIl: serverTimestamp(),
+    note
+  };
+  if (ripresaLavoro.superficieTotaleLavorata != null) {
+    updates.superficieTotaleLavorata = ripresaLavoro.superficieTotaleLavorata;
+  }
+
+  if (options.db) {
+    const origineRef = doc(options.db, 'tenants', tenantId, COLLECTION_NAME, origineId);
+    await updateDoc(origineRef, updates);
+  } else {
+    await updateDocument(COLLECTION_NAME, origineId, updates, tenantId);
+  }
+  return { updated: true, origineId };
+}
+
+/**
+ * Ripara lavori sospesi il cui lavoro di ripresa risulta già completato (allineamento retroattivo).
+ * @param {Array<{ id: string, stato?: string, ripresaDaLavoroId?: string|null }>} lavoriList
+ * @param {string} tenantId
+ * @returns {Promise<string[]>} ID lavori origine aggiornati
+ */
+export async function repairSospesiConRipresaGiaCompletata(lavoriList, tenantId, db = null) {
+  if (!tenantId || !Array.isArray(lavoriList) || lavoriList.length === 0) return [];
+  const byId = new Map(lavoriList.map((l) => [String(l.id), l]));
+  const repaired = [];
+  for (const lav of lavoriList) {
+    if (!lav.ripresaDaLavoroId || lav.stato !== 'completato') continue;
+
+    const origineResolved = resolveOrigineSospesoForRipresa(lav, byId);
+    const res = await completaLavoroSospesoOrigineDaRipresa(lav, {
+      tenantId,
+      db,
+      ripresaStato: 'completato',
+      isParziale: false,
+      origineId: origineResolved?.id || null,
+      origineSnapshot: origineResolved?.data || null
+    });
+    if (res.updated && res.origineId) {
+      repaired.push(res.origineId);
+      const origine = byId.get(String(res.origineId));
+      if (origine) {
+        origine.stato = 'completato';
+        origine.percentualeCompletamento = 100;
+        origine.completatoTramiteRipresaId = lav.id;
+      }
+    } else if (!res.updated && res.reason) {
+      console.warn('[lavori-service] repair ripresa→origine skip:', lav.id, res);
+    }
+  }
+  return repaired;
 }
 
 /**
@@ -481,6 +695,13 @@ export async function creaLavoroRipresa(lavoroSospesoId, options = {}) {
   if (prev.ripresaDaLavoroId) {
     throw new Error('Usa il lavoro originale sospeso, non un lavoro di ripresa');
   }
+  if (prev.macchinaId || prev.attrezzoId) {
+    const { liberaMacchineDaLavoro } = await import('./lavoro-macchine-lifecycle.js');
+    await liberaMacchineDaLavoro(
+      { id: lavoroSospesoId, macchinaId: prev.macchinaId, attrezzoId: prev.attrezzoId },
+      { tenantId }
+    );
+  }
   const radiceId = prev.lavoroRadiceId || lavoroSospesoId;
   const nomeBase = (prev.nome || 'Lavoro').replace(/\s*\(ripresa\)\s*$/i, '').trim();
   const noteRipresa = [
@@ -498,10 +719,12 @@ export async function creaLavoroRipresa(lavoroSospesoId, options = {}) {
     throw new Error('Data inizio non valida');
   }
 
+  const isAutonomoRipresa = Boolean(prev.operaioId && !prev.caposquadraId);
+
   const nuovo = new Lavoro({
     nome: `${nomeBase || 'Lavoro'} (ripresa)`,
     terrenoId: prev.terrenoId,
-    caposquadraId: prev.caposquadraId,
+    caposquadraId: isAutonomoRipresa ? null : prev.caposquadraId,
     operaioId: prev.operaioId,
     tipoLavoro: prev.tipoLavoro,
     dataInizio: dataInizioRipresa,
@@ -514,8 +737,8 @@ export async function creaLavoroRipresa(lavoroSospesoId, options = {}) {
     macchinaId: prev.macchinaId,
     attrezzoId: prev.attrezzoId,
     operatoreMacchinaId: prev.operatoreMacchinaId,
-    ripresaDaLavoroId: lavoroSospesoId,
-    lavoroRadiceId: radiceId,
+    ripresaDaLavoroId: normalizeLavoroFirestoreId(lavoroSospesoId) || lavoroSospesoId,
+    lavoroRadiceId: normalizeLavoroFirestoreId(radiceId) || radiceId,
     creatoDa: creatoDaId
   });
   const validation = nuovo.validate();
@@ -543,6 +766,11 @@ export default {
   deleteLavoro,
   getNumeroLavoriCaposquadra,
   sospendiLavoro,
-  creaLavoroRipresa
+  creaLavoroRipresa,
+  normalizeLavoroFirestoreId,
+  resolveOrigineSospesoForRipresa,
+  shouldCompletaLavoroSospesoOrigineDaRipresa,
+  completaLavoroSospesoOrigineDaRipresa,
+  repairSospesiConRipresaGiaCompletata
 };
 

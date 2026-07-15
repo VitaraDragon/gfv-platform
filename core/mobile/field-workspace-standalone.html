@@ -101,11 +101,15 @@
                 </div>
                 <div class="slide-body slide-body-brand">
                     <section class="inline-team-section">
-                        <h3 class="inline-team-title">📬 Da leggere</h3>
-                        <p class="inline-team-subtitle">Conferma la ricezione per segnalare al caposquadra che hai visto il messaggio.</p>
+                        <h3 class="inline-team-title">📬 In evidenza</h3>
+                        <p class="inline-team-subtitle">Messaggi da confermare, dal più recente.</p>
                         <div id="received-communications-list" class="inline-list-card">
                             <div class="empty-state-inline">Caricamento comunicazioni...</div>
                         </div>
+                        <button type="button" id="toggle-received-communications-history" class="communications-history-toggle" hidden>
+                            Vedi comunicazioni precedenti
+                        </button>
+                        <div id="received-communications-history" class="inline-list-card communications-history-panel" hidden></div>
                     </section>
                 </div>
             </article>
@@ -131,11 +135,15 @@
                         <small id="quick-comm-status" class="hint-text"></small>
                     </form>
                     <section class="inline-team-section">
-                        <h3 class="inline-team-title">📨 Comunicazioni inviate</h3>
-                        <p class="inline-team-subtitle">Ultimi invii effettuati da questa schermata.</p>
+                        <h3 class="inline-team-title">📨 In evidenza</h3>
+                        <p class="inline-team-subtitle">Invii con conferme in attesa o recenti.</p>
                         <div id="sent-communications-list" class="inline-list-card">
                             <div class="empty-state-inline">Nessuna comunicazione inviata.</div>
                         </div>
+                        <button type="button" id="toggle-sent-communications-history" class="communications-history-toggle" hidden>
+                            Vedi comunicazioni precedenti
+                        </button>
+                        <div id="sent-communications-history" class="inline-list-card communications-history-panel" hidden></div>
                     </section>
                 </div>
             </article>

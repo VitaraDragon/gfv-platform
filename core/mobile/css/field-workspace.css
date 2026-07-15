@@ -342,6 +342,31 @@
     gap: 8px;
 }
 
+.communications-history-toggle {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px 12px;
+    border: 1px dashed #86efac;
+    border-radius: 10px;
+    background: #f0fdf4;
+    color: #166534;
+    font-size: 13px;
+    font-weight: 600;
+    text-align: center;
+    cursor: pointer;
+}
+
+.communications-history-panel {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px dashed #d1d5db;
+}
+
+.communications-history-panel .inline-item {
+    opacity: 0.92;
+}
+
 .inline-item {
     border: 1px solid #d1d5db;
     border-radius: 10px;

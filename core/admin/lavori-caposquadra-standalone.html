@@ -1178,8 +1178,8 @@
                 const fetched = await fetchLavoriDocumentsForFieldUser(db, currentTenantId, userId, {
                     isCaposquadra: !!isCaposquadra,
                     isOperaio: !!isOperaio,
-                    operaioIncludeSquadJobs: false
-                });
+                    operaioIncludeSquadJobs: !!isOperaio
+                }, currentUserData || null);
 
                 lavoriList = fetched.map((row) => {
                     const data = row;
@@ -1191,9 +1191,9 @@
                     };
                 });
 
-                if (isOperaio && !isCaposquadra && lavoriList.length > 3) {
+                if (isOperaio && !isCaposquadra && lavoriList.length > 10) {
                     const focusParam = (typeof focusLavoroId !== 'undefined' && focusLavoroId) ? focusLavoroId : null;
-                    lavoriList = sliceOperaioLavoriWindow(lavoriList, { focusLavoroId: focusParam, maxNeighbors: 1 }).map((w) => {
+                    lavoriList = sliceOperaioLavoriWindow(lavoriList, { focusLavoroId: focusParam, maxNeighbors: 2 }).map((w) => {
                         const dataInizio = w.dataInizio?.toDate ? w.dataInizio.toDate() : (w.dataInizio ? new Date(w.dataInizio) : null);
                         return Object.assign({}, w, { dataInizio: dataInizio });
                     });
@@ -3183,6 +3183,17 @@
                     sospensioneIl: serverTimestamp(),
                     aggiornatoIl: serverTimestamp()
                 });
+                if (lavoro.macchinaId || lavoro.attrezzoId) {
+                    try {
+                        const { liberaMacchineDaLavoro } = await import('../services/lavoro-macchine-lifecycle.js');
+                        await liberaMacchineDaLavoro(
+                            { id: lavoroId, macchinaId: lavoro.macchinaId, attrezzoId: lavoro.attrezzoId },
+                            { tenantId, lavoriList }
+                        );
+                    } catch (liberaErr) {
+                        console.warn('[CAPOSQUADRA] Liberazione macchine dopo sospensione:', liberaErr);
+                    }
+                }
                 showAlert('Lavoro sospeso. Il Manager può creare il lavoro di ripresa da Gestione lavori.', 'success');
                 await loadLavori();
                 try { window.__gfvSuspendDebug = { reason: 'ok' }; } catch (eOk) { /* ignore */ }

@@ -200,6 +200,40 @@ export function buildSegnaOreMissingFieldsMessage(state, opts) {
   return 'Mi servono: ' + missing.join(', ') + '. Esempio: «dalle 7 alle 18, pausa 30».';
 }
 
+export function extractSegnaOrePauseMinutesFromUserBlob(userBlob) {
+  if (!userBlob || typeof userBlob !== 'string') return null;
+  var pm = userBlob.match(/(\d+)\s*min(?:uti)?(?:\s+di\s*pausa)?/i);
+  if (pm) {
+    var n0 = parseInt(pm[1], 10);
+    if (Number.isFinite(n0) && n0 >= 0 && n0 <= 600) return n0;
+  }
+  var pmBare = userBlob.match(/(?:con\s+)?pausa\s+(\d{1,3})\b/i);
+  if (pmBare) {
+    var n1 = parseInt(pmBare[1], 10);
+    if (Number.isFinite(n1) && n1 >= 0 && n1 <= 600) return n1;
+  }
+  if (/un['']?ora\s+di\s+pausa/i.test(userBlob)) return 60;
+  if (/^\s*(nessuna|nessun|niente|nulla)\s*$/i.test(userBlob.trim())) return 0;
+  if (/nessun[ao]?\s+pausa|senza\s+pausa|no\s+pausa|zero\s+pausa|non\s+ho\s+fatto\s+pausa/i.test(userBlob)) {
+    return 0;
+  }
+  return null;
+}
+
+/**
+ * @param {string} userBlob
+ * @returns {boolean}
+ */
+export function userBlobMentionsSegnaOrePause(userBlob) {
+  if (extractSegnaOrePauseMinutesFromUserBlob(userBlob) != null) return true;
+  if (/un['']?ora\s+di\s+pausa/i.test(userBlob)) return true;
+  if (/nessun[ao]?\s+pausa|senza\s+pausa|no\s+pausa|zero\s+pausa|non\s+ho\s+fatto\s+pausa|mai\s+fatto\s+pausa|non\s+ho\s+paus/i.test(userBlob)) {
+    return true;
+  }
+  if (/\bpausa\b/i.test(userBlob) && /\b(nessun|niente|nulla|\b0\b)\b/i.test(userBlob)) return true;
+  return false;
+}
+
 /**
  * @param {string} userBlob
  * @returns {boolean}
@@ -347,5 +381,7 @@ if (typeof window !== 'undefined') {
     getSegnaOreDomFieldIds,
     getSegnaOreLavoroElement,
     userBlobAcknowledgesZeroPause,
+    extractSegnaOrePauseMinutesFromUserBlob,
+    userBlobMentionsSegnaOrePause,
   };
 }

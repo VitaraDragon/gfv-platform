@@ -95,6 +95,8 @@ export class Lavoro extends Base {
     this.ripresaDaLavoroId = data.ripresaDaLavoroId || null;
     /** Primo lavoro della catena (ripresa multipla); assente = questo documento è la radice */
     this.lavoroRadiceId = data.lavoroRadiceId || null;
+    /** Lavoro sospeso chiuso automaticamente quando la ripresa collegata è completata */
+    this.completatoTramiteRipresaId = data.completatoTramiteRipresaId || null;
     this.sospensioneCausa = data.sospensioneCausa != null ? String(data.sospensioneCausa) : '';
     this.sospensioneIl = data.sospensioneIl ? timestampToDate(data.sospensioneIl) : null;
 

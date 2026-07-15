@@ -148,10 +148,16 @@ describe('Tony quick-hours: parsing orari da chat (recovery / CF extract)', () =
         const n0 = parseInt(pm[1], 10);
         if (Number.isFinite(n0) && n0 >= 0 && n0 <= 600) return n0;
       }
+      const pmBare = userBlob.match(/(?:con\s+)?pausa\s+(\d{1,3})\b/i);
+      if (pmBare) {
+        const n1 = parseInt(pmBare[1], 10);
+        if (Number.isFinite(n1) && n1 >= 0 && n1 <= 600) return n1;
+      }
       if (/un['']?ora\s+di\s+pausa/i.test(userBlob)) return 60;
       return null;
     }
     expect(extractPauseUserOnly('dalle 6 alle 18')).toBeNull();
     expect(extractPauseUserOnly('dalle 6 alle 18 con 30 min di pausa')).toBe(30);
+    expect(extractPauseUserOnly('dalle 7:00 alle 17:30 con pausa 30')).toBe(30);
   });
 });

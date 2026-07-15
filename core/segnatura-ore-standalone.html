@@ -840,7 +840,7 @@
                 const userId = currentUserData.id || currentUserData.uid;
                 const roleFlags = resolveSegnaturaOreRoleFlags(currentUserData);
 
-                const fetched = await fetchLavoriDocumentsForFieldUser(db, currentTenantId, userId, roleFlags);
+                const fetched = await fetchLavoriDocumentsForFieldUser(db, currentTenantId, userId, roleFlags, currentUserData || null);
 
                 const dataLimite = new Date();
                 dataLimite.setDate(dataLimite.getDate() - 7);
@@ -1017,7 +1017,7 @@
                 const lavoriVisibili = await fetchLavoriDocumentsForFieldUser(db, currentTenantId, userId, {
                     isCaposquadra: !!isCaposquadraOre,
                     isOperaio: !!isOperaioOre
-                });
+                }, currentUserData || null);
 
                 for (const lav of lavoriVisibili) {
                     const lavoroId = lav.id;

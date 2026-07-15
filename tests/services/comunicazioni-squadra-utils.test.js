@@ -8,7 +8,11 @@ import {
     normalizeDestinatariIds,
     formatManodoperaDisplayName,
     indexManodoperaUserInMap,
-    getManodoperaDisplayNameFromMap
+    getManodoperaDisplayNameFromMap,
+    countConfermePendentiInvio,
+    partitionComunicazioniRicevuteOperaio,
+    partitionComunicazioniInviateCapo,
+    isComunicazioneInviataInEvidenzaCapo,
 } from '../../core/services/comunicazioni-squadra-utils.js';
 
 describe('comunicazioni-squadra-utils', () => {
@@ -62,5 +66,50 @@ describe('comunicazioni-squadra-utils', () => {
         });
         expect(getManodoperaDisplayNameFromMap(map, 'firebase-capo')).toBe('Luca Bianchi');
         expect(getManodoperaDisplayNameFromMap(map, 'doc-capo')).toBe('Luca Bianchi');
+    });
+
+    it('partitionComunicazioniRicevuteOperaio separa pending e history per data desc', () => {
+        const rows = [
+            { id: 'a', haConfermato: false, dataCom: new Date('2026-07-10') },
+            { id: 'b', haConfermato: true, dataCom: new Date('2026-07-12') },
+            { id: 'c', haConfermato: false, dataCom: new Date('2026-07-11') },
+        ];
+        const { pending, history } = partitionComunicazioniRicevuteOperaio(rows);
+        expect(pending.map((r) => r.id)).toEqual(['c', 'a']);
+        expect(history.map((r) => r.id)).toEqual(['b']);
+    });
+
+    it('isComunicazioneInviataInEvidenzaCapo con conferme pendenti o invio legacy recente', () => {
+        const now = new Date('2026-07-12T12:00:00');
+        expect(isComunicazioneInviataInEvidenzaCapo({
+            stato: 'attiva',
+            destinatari: ['op-1', 'op-2'],
+            conferme: [{ userId: 'op-1' }],
+        }, now)).toBe(true);
+        expect(isComunicazioneInviataInEvidenzaCapo({
+            stato: 'attiva',
+            destinatari: ['op-1'],
+            conferme: [{ userId: 'op-1' }],
+        }, now)).toBe(false);
+        expect(isComunicazioneInviataInEvidenzaCapo({
+            stato: 'attiva',
+            destinatari: [],
+            createdAt: { toDate: () => new Date('2026-07-10') },
+        }, now)).toBe(true);
+        expect(countConfermePendentiInvio({
+            destinatari: ['a', 'b'],
+            conferme: [{ userId: 'a' }],
+        })).toBe(1);
+    });
+
+    it('partitionComunicazioniInviateCapo separa evidenza e storico', () => {
+        const now = new Date('2026-07-12T12:00:00');
+        const rows = [
+            { id: '1', stato: 'attiva', destinatari: ['a'], conferme: [], createdAt: { toDate: () => new Date('2026-07-11') } },
+            { id: '2', stato: 'attiva', destinatari: ['a'], conferme: [{ userId: 'a' }], createdAt: { toDate: () => new Date('2026-07-10') } },
+        ];
+        const { inEvidenza, storico } = partitionComunicazioniInviateCapo(rows, now);
+        expect(inEvidenza.map((r) => r.id)).toEqual(['1']);
+        expect(storico.map((r) => r.id)).toEqual(['2']);
     });
 });

@@ -433,6 +433,16 @@ export async function loadLavori(currentTenantId, db, lavoriList, hasParcoMacchi
             return createdSec(b) - createdSec(a);
         });
 
+        try {
+            const { repairSospesiConRipresaGiaCompletata } = await import('../../services/lavori-service.js');
+            const repairedIds = await repairSospesiConRipresaGiaCompletata(lavoriList, currentTenantId, db);
+            if (repairedIds.length > 0) {
+                console.log('[GESTIONE-LAVORI] Allineati lavori sospesi con ripresa già completata:', repairedIds);
+            }
+        } catch (repairErr) {
+            console.warn('[GESTIONE-LAVORI] Repair catena ripresa (non critico):', repairErr);
+        }
+
         // Corregge macchine ancora in uso per lavori completati
         if (hasParcoMacchineModule && correggiMacchineLavoriCompletati) {
             await correggiMacchineLavoriCompletati();
@@ -897,9 +907,15 @@ export async function correggiMacchineLavoriCompletati(currentTenantId, db, lavo
         }
         
         const { doc, getDoc, updateDoc, serverTimestamp } = await import('../../services/firebase-service.js');
+        const { lavoroStatoRiservaMacchine, correggiMacchineLavoriSospesiOStandby } = await import('../../services/lavoro-macchine-lifecycle.js');
 
-        const lavoriCompletati = lavoriList.filter(l => 
-            (l.stato === 'completato' || l.stato === 'completato_da_approvare') && 
+        const sospesiCorretti = await correggiMacchineLavoriSospesiOStandby(currentTenantId, lavoriList);
+        if (sospesiCorretti > 0) {
+            console.info(`[GESTIONE-LAVORI] Liberate ${sospesiCorretti} macchine da lavori sospesi/standby`);
+        }
+
+        const lavoriCompletati = lavoriList.filter(l =>
+            (l.stato === 'completato' || l.stato === 'completato_da_approvare') &&
             (l.macchinaId || l.attrezzoId)
         );
 
@@ -907,11 +923,9 @@ export async function correggiMacchineLavoriCompletati(currentTenantId, db, lavo
             return;
         }
 
-        // Trova lavori attivi (non completati/annullati)
-        const lavoriAttivi = lavoriList.filter(l => 
-            l.stato !== 'completato' && 
-            l.stato !== 'completato_da_approvare' && 
-            l.stato !== 'annullato' &&
+        // Solo lavori che riservano macchine (sospeso/in_standby/completato no)
+        const lavoriAttivi = lavoriList.filter(l =>
+            lavoroStatoRiservaMacchine(l.stato) &&
             (l.macchinaId || l.attrezzoId)
         );
 
@@ -1286,12 +1300,93 @@ export function populateCaposquadraDropdown(caposquadraList, squadreList, select
         const option = document.createElement('option');
         option.value = capo.id;
         option.textContent = nomeCompleto;
-        if (selectedId === capo.id) {
+        if (manodoperaUserMatchesId(capo, selectedId)) {
             option.selected = true;
-            select.onchange(); // Trigger per mostrare info squadra
         }
         select.appendChild(option);
     });
+
+    if (selectedId) {
+        ensureManodoperaOptionInSelect(select, selectedId, caposquadraList, 'Caposquadra assegnato');
+        select.value = resolveManodoperaOptionValue(caposquadraList, selectedId);
+        select.onchange();
+    }
+}
+
+/**
+ * @param {Object} user
+ * @param {string|null} selectedId
+ * @returns {boolean}
+ */
+export function manodoperaUserMatchesId(user, selectedId) {
+    if (!user || selectedId == null || selectedId === '') return false;
+    const sid = String(selectedId);
+    if (String(user.id) === sid) return true;
+    if (user.uid && String(user.uid) === sid) return true;
+    return false;
+}
+
+/**
+ * @param {Array} usersList
+ * @param {string|null} selectedId
+ * @returns {string|null}
+ */
+export function resolveManodoperaOptionValue(usersList, selectedId) {
+    if (selectedId == null || selectedId === '') return null;
+    if (!Array.isArray(usersList)) return String(selectedId);
+    const found = usersList.find((u) => manodoperaUserMatchesId(u, selectedId));
+    return found ? String(found.id) : String(selectedId);
+}
+
+/**
+ * @param {HTMLSelectElement} select
+ * @param {string|null} selectedId
+ * @param {Array} usersList
+ * @param {string} fallbackLabel
+ */
+export function ensureManodoperaOptionInSelect(select, selectedId, usersList, fallbackLabel) {
+    if (!select || selectedId == null || selectedId === '') return;
+    const resolved = resolveManodoperaOptionValue(usersList, selectedId);
+    if (Array.from(select.options).some((o) => String(o.value) === resolved)) return;
+    const item = Array.isArray(usersList)
+        ? usersList.find((u) => manodoperaUserMatchesId(u, selectedId))
+        : null;
+    const option = document.createElement('option');
+    option.value = resolved;
+    const nome = item
+        ? `${item.nome || ''} ${item.cognome || ''}`.trim() || item.email
+        : fallbackLabel;
+    option.textContent = nome || `${fallbackLabel} (${resolved})`;
+    select.appendChild(option);
+}
+
+/**
+ * Imposta tipo assegnazione e dropdown operaio/caposquadra in modifica (lavoro autonomo o squadra).
+ * @param {Object} lavoro
+ * @param {Function} populateCaposquadraDropdown
+ * @param {Function} populateOperaiDropdown
+ */
+export function applyAssegnazioneToLavoroForm(lavoro, populateCaposquadraDropdown, populateOperaiDropdown) {
+    if (!lavoro) return;
+    const isAutonomo = Boolean(lavoro.operaioId && !lavoro.caposquadraId);
+    const tipoAutonomo = document.getElementById('tipo-autonomo');
+    const tipoSquadra = document.getElementById('tipo-squadra');
+    const caposquadraGroup = document.getElementById('caposquadra-group');
+    const operaioGroup = document.getElementById('operaio-group');
+
+    if (isAutonomo) {
+        if (tipoAutonomo) tipoAutonomo.checked = true;
+        if (tipoSquadra) tipoSquadra.checked = false;
+        if (populateOperaiDropdown) populateOperaiDropdown(lavoro.operaioId || null);
+        if (caposquadraGroup) caposquadraGroup.style.display = 'none';
+        if (operaioGroup) operaioGroup.style.display = 'block';
+    } else {
+        if (tipoSquadra) tipoSquadra.checked = true;
+        if (tipoAutonomo) tipoAutonomo.checked = false;
+        if (populateCaposquadraDropdown) populateCaposquadraDropdown(lavoro.caposquadraId || null);
+        if (caposquadraGroup) caposquadraGroup.style.display = 'block';
+        if (operaioGroup) operaioGroup.style.display = 'none';
+    }
 }
 
 /**
@@ -1329,18 +1424,44 @@ export function populateOperaiDropdown(operaiList, selectedId = null) {
         const option = document.createElement('option');
         option.value = operaio.id;
         option.textContent = `${nomeCompleto}${tipoOperaio}`;
-        if (selectedId === operaio.id) {
+        if (manodoperaUserMatchesId(operaio, selectedId)) {
             option.selected = true;
         }
         select.appendChild(option);
     });
+
+    if (selectedId) {
+        ensureManodoperaOptionInSelect(select, selectedId, operaiList, 'Operaio assegnato');
+        select.value = resolveManodoperaOptionValue(operaiList, selectedId);
+    }
+}
+
+/**
+ * Aggiunge un'opzione mancante al select (es. macchina già assegnata al lavoro ma filtrata dal dropdown).
+ * @param {HTMLSelectElement} select
+ * @param {string} id
+ * @param {Array} itemsList
+ * @param {string} fallbackLabel
+ */
+export function ensureMacchinaOptionInSelect(select, id, itemsList, fallbackLabel) {
+    if (!select || !id) return;
+    const idStr = String(id);
+    if (Array.from(select.options).some((o) => String(o.value) === idStr)) return;
+    const item = Array.isArray(itemsList) ? itemsList.find((x) => String(x.id) === idStr) : null;
+    const option = document.createElement('option');
+    option.value = idStr;
+    const nome = item?.nome || fallbackLabel;
+    option.textContent = item ? `🔄 ${nome} (assegnato al lavoro)` : `${fallbackLabel} (${idStr})`;
+    option.disabled = false;
+    select.appendChild(option);
 }
 
 /**
  * Popola dropdown trattori
  * @param {Array} trattoriList - Array trattori
+ * @param {string|null} [selectedMacchinaId] - Trattore già assegnato al lavoro in modifica (sempre selezionabile)
  */
-export function populateTrattoriDropdown(trattoriList) {
+export function populateTrattoriDropdown(trattoriList, selectedMacchinaId = null) {
     const select = document.getElementById('lavoro-trattore');
     if (!select) {
         return;
@@ -1349,6 +1470,10 @@ export function populateTrattoriDropdown(trattoriList) {
     select.innerHTML = '<option value="">-- Nessun trattore --</option>';
     
     if (!trattoriList || trattoriList.length === 0) {
+        if (selectedMacchinaId) {
+            ensureMacchinaOptionInSelect(select, selectedMacchinaId, trattoriList, 'Trattore assegnato');
+            select.value = String(selectedMacchinaId);
+        }
         return;
     }
     
@@ -1359,9 +1484,15 @@ export function populateTrattoriDropdown(trattoriList) {
         const cavalli = trattore.cavalli ? ` (${trattore.cavalli} CV)` : '';
         const stato = trattore.stato === 'disponibile' ? '✅' : trattore.stato === 'in_uso' ? '🔄' : '⚠️';
         option.textContent = `${stato} ${nome}${cavalli}`;
-        option.disabled = trattore.stato === 'in_uso' || trattore.stato === 'in_manutenzione' || trattore.stato === 'guasto';
+        const isCurrent = selectedMacchinaId && String(trattore.id) === String(selectedMacchinaId);
+        option.disabled = !isCurrent && (trattore.stato === 'in_uso' || trattore.stato === 'in_manutenzione' || trattore.stato === 'guasto');
         select.appendChild(option);
     });
+
+    if (selectedMacchinaId) {
+        ensureMacchinaOptionInSelect(select, selectedMacchinaId, trattoriList, 'Trattore assegnato');
+        select.value = String(selectedMacchinaId);
+    }
 }
 
 /**
@@ -2129,8 +2260,9 @@ export async function renderLavori(
  * @param {Array} trattoriList - Lista trattori
  * @param {Array} attrezziList - Lista attrezzi
  * @param {Function} getNomeCategoria - Funzione per ottenere nome categoria
+ * @param {string|null} [selectedAttrezzoId] - Attrezzo già assegnato al lavoro (sempre incluso)
  */
-export function populateAttrezziDropdown(trattoreId, trattoriList, attrezziList, getNomeCategoria) {
+export function populateAttrezziDropdown(trattoreId, trattoriList, attrezziList, getNomeCategoria, selectedAttrezzoId = null) {
     const select = document.getElementById('lavoro-attrezzo');
     const attrezzoGroup = document.getElementById('attrezzo-group');
     
@@ -2150,9 +2282,15 @@ export function populateAttrezziDropdown(trattoreId, trattoriList, attrezziList,
         return;
     }
     
-    const trattore = trattoriList.find(t => t.id === trattoreId);
+    const trattore = trattoriList.find(t => String(t.id) === String(trattoreId));
     if (!trattore) {
-        attrezzoGroup.style.display = 'none';
+        if (selectedAttrezzoId) {
+            attrezzoGroup.style.display = 'block';
+            ensureMacchinaOptionInSelect(select, selectedAttrezzoId, attrezziList, 'Attrezzo assegnato');
+            select.value = String(selectedAttrezzoId);
+        } else {
+            attrezzoGroup.style.display = 'none';
+        }
         return;
     }
 
@@ -2168,9 +2306,20 @@ export function populateAttrezziDropdown(trattoreId, trattoriList, attrezziList,
         return;
     }
     
-    const attrezziCompatibili = filterAttrezziDropdownCompatibili(trattore, attrezziList);
-    
+    let attrezziCompatibili = filterAttrezziDropdownCompatibili(trattore, attrezziList);
+    if (selectedAttrezzoId) {
+        const assigned = attrezziList.find((a) => String(a.id) === String(selectedAttrezzoId));
+        if (assigned && !attrezziCompatibili.some((a) => String(a.id) === String(selectedAttrezzoId))) {
+            attrezziCompatibili = [assigned, ...attrezziCompatibili];
+        }
+    }
+
     if (attrezziCompatibili.length === 0) {
+        if (selectedAttrezzoId) {
+            ensureMacchinaOptionInSelect(select, selectedAttrezzoId, attrezziList, 'Attrezzo assegnato');
+            select.value = String(selectedAttrezzoId);
+            return;
+        }
         const option = document.createElement('option');
         option.value = '';
         option.textContent = '-- Nessun attrezzo compatibile --';
@@ -2192,6 +2341,43 @@ export function populateAttrezziDropdown(trattoreId, trattoriList, attrezziList,
         option.disabled = false;
         select.appendChild(option);
     });
+
+    if (selectedAttrezzoId) {
+        ensureMacchinaOptionInSelect(select, selectedAttrezzoId, attrezziList, 'Attrezzo assegnato');
+        select.value = String(selectedAttrezzoId);
+    }
+}
+
+/**
+ * Applica trattore, attrezzo e operatore macchina al form lavoro (modifica / ripresa).
+ * @param {Object} lavoro
+ * @param {Array} trattoriList
+ * @param {Array} attrezziList
+ * @param {Function} getNomeCategoria
+ * @param {Array} [operaiList]
+ */
+export function applyMacchineToLavoroForm(lavoro, trattoriList, attrezziList, getNomeCategoria, operaiList = []) {
+    if (!lavoro) return;
+    const macchinaId = lavoro.macchinaId || null;
+    const attrezzoId = lavoro.attrezzoId || null;
+    const operatoreMacchinaId = lavoro.operatoreMacchinaId || null;
+
+    populateTrattoriDropdown(trattoriList, macchinaId);
+
+    const attrezzoGroup = document.getElementById('attrezzo-group');
+    if (macchinaId) {
+        populateAttrezziDropdown(macchinaId, trattoriList, attrezziList, getNomeCategoria, attrezzoId);
+        if (attrezzoGroup) attrezzoGroup.style.display = 'block';
+    } else if (attrezzoGroup) {
+        attrezzoGroup.style.display = 'none';
+    }
+
+    populateOperatoreMacchinaDropdown(operaiList);
+
+    const operatoreSelect = document.getElementById('lavoro-operatore-macchina');
+    if (operatoreMacchinaId && operatoreSelect) {
+        operatoreSelect.value = operatoreMacchinaId;
+    }
 }
 
 /**

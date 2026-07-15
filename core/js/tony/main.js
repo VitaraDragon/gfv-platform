@@ -19,6 +19,8 @@ import {
     ensureSegnaOreUiVisible,
     resolveOrOpenSegnaOreTarget,
     SEGNA_ORE_ASK_FALLBACK,
+    extractSegnaOrePauseMinutesFromUserBlob,
+    userBlobMentionsSegnaOrePause,
 } from './tony-segna-ora-local-engine.js';
 import {
     formReadyForTonySave,
@@ -959,10 +961,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
     /** True se in chat l'utente ha già parlato di pausa (anche «0» o «nessuna pausa»). */
     function tonyQuickHoursUserAcknowledgedPause(blob) {
         if (!blob || typeof blob !== 'string') blob = '';
-        if (/(\d+)\s*min(?:uti)?(?:\s+di\s*pausa)?/i.test(blob)) return true;
-        if (/un['']?ora\s+di\s+pausa/i.test(blob)) return true;
-        if (/nessun[ao]?\s+pausa|senza\s+pausa|no\s+pausa|zero\s+pausa|non\s+ho\s+fatto\s+pausa|mai\s+fatto\s+pausa|non\s+ho\s+paus/i.test(blob)) return true;
-        if (/\bpausa\b/i.test(blob) && /\b(nessun|niente|nulla|\b0\b)\b/i.test(blob)) return true;
+        if (userBlobMentionsSegnaOrePause(blob)) return true;
         try {
             if (window.__tonyQuickHoursPauseAckAt &&
                 (Date.now() - window.__tonyQuickHoursPauseAckAt) < TONY_SEGNA_ORE_LOCAL_INTERVIEW_MS) {
@@ -991,15 +990,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
      * Non usare cronologia mista utente+Tony: il modello può ripetere «60 minuti» e far matchare il primo numero.
      */
     function tonyExtractPauseMinutesFromUserBlob(userBlob) {
-        if (!userBlob || typeof userBlob !== 'string') return null;
-        var pm = userBlob.match(/(\d+)\s*min(?:uti)?(?:\s+di\s*pausa)?/i);
-        if (pm) {
-            var n0 = parseInt(pm[1], 10);
-            if (Number.isFinite(n0) && n0 >= 0 && n0 <= 600) return n0;
-        }
-        if (/un['']?ora\s+di\s+pausa/i.test(userBlob)) return 60;
-        if (/^\s*(nessuna|nessun|niente|nulla)\s*$/i.test(userBlob.trim())) return 0;
-        if (/nessun[ao]?\s+pausa|senza\s+pausa|no\s+pausa|zero\s+pausa|non\s+ho\s+fatto\s+pausa/i.test(userBlob)) return 0;
+        var base = extractSegnaOrePauseMinutesFromUserBlob(userBlob);
+        if (base != null) return base;
         try {
             var lastU2 = tonyGetLastUserMessage();
             if (lastU2 && /^\s*(\d{1,3})\s*$/.test(String(lastU2).trim())) {

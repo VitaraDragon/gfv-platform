@@ -4,6 +4,7 @@ import {
   buildSegnaOreMissingFieldsMessage,
   listSegnaOreMissingRequired,
   userBlobAcknowledgesZeroPause,
+  extractSegnaOrePauseMinutesFromUserBlob,
   getSegnaOreDomFieldIds,
 } from '../core/js/tony/tony-segna-ora-local-engine.js';
 
@@ -66,6 +67,12 @@ describe('tony-segna-ora-local-engine', () => {
     expect(userBlobAcknowledgesZeroPause('0')).toBe(true);
     expect(userBlobAcknowledgesZeroPause('nessuna pausa')).toBe(true);
     expect(userBlobAcknowledgesZeroPause('30')).toBe(false);
+  });
+
+  it('extractSegnaOrePauseMinutesFromUserBlob — vocale «con pausa 30»', () => {
+    expect(extractSegnaOrePauseMinutesFromUserBlob('dalle 7:00 alle 17:30 con pausa 30')).toBe(30);
+    expect(extractSegnaOrePauseMinutesFromUserBlob('dalle 6 alle 18 con 30 min di pausa')).toBe(30);
+    expect(extractSegnaOrePauseMinutesFromUserBlob('dalle 6 alle 18')).toBeNull();
   });
 
   it('getSegnaOreDomFieldIds — mobile vs desktop', () => {

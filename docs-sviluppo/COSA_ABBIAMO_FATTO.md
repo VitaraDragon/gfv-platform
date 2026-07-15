@@ -1,6 +1,20 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-13 — **Tony Occhi** step A–F (reminder anagrafica prodotti).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-15 — catena ripresa→chiusura lavoro sospeso; allineato a `main` con **Tony Occhi** step A–F (2026-07-13) e calcolatore VM P1 (2026-07-12).
+
+## Manodopera — catena ripresa → chiusura lavoro sospeso (2026-07-15)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Problema** | Dopo approvazione/completamento di un **lavoro di ripresa**, il lavoro **sospeso** originale restava in stato sospeso: (1) approvazione ripresa trattata come «parziale» se % tracciata sul **campo intero** &lt; 100%; (2) repair al reload bloccato da `completamentoParziale` + %; (3) `ripresaDaLavoroId` non risolto se documento origine assente o ID malformato. |
+| **Regola prodotto** | Ripresa **completata e approvata** (non parziale esplicita in dialogo manager) → origine **sospeso** passa a **completato** con `completatoTramiteRipresaId`. |
+| **Servizio** | `core/services/lavori-service.js`: `normalizeLavoroFirestoreId`, `resolveOrigineSospesoForRipresa`, `shouldCompletaLavoroSospesoOrigineDaRipresa`, `completaLavoroSospesoOrigineDaRipresa`, `repairSospesiConRipresaGiaCompletata` |
+| **Manager UI** | `core/admin/js/gestione-lavori-events.js` (`approvaLavoro`: ripresa non parziale solo se `completamentoParziale` esplicito operaio); `gestione-lavori-controller.js` (repair al `loadLavori` con istanza `db`) |
+| **Form autonomo** | Fix correlati persistenza trattore/attrezzo/operaio su riapertura form e visibilità ripresa in elenco operaio (`manodopera-lavori-scope.js`, `field-workspace-controller.js`) — sessione 2026-07-11/12 |
+| **Canary** | `scripts/lavoro-ripresa-canary.mjs` — probe emulator/produzione (read-only) catene ripresa |
+| **Test** | `tests/services/lavoro-ripresa-completamento.test.js`, aggiornamenti `manodopera-lavori-scope.test.js`, `gestione-lavori-macchine-form.test.js` |
+| **Verifica produzione** | Tenant Sabbie Gialle: Erpicatura `oelTyqmwiBo7KVfy5ctC` → **completato** via ripresa `oI8ztU64eH6M1T39MyBv`; console `[GESTIONE-LAVORI] Allineati lavori sospesi con ripresa già completata`. **Orfani attesi:** ripresa `bF4IWHLAFVkezdd6IN5V` → origine `Ai8Tw7alucgryMkibCOc` **assente** in Firestore (documento eliminato) — skip repair, non bug aperto. |
+| **Doc utente** | `documentazione-utente/04-FUNZIONALITA/GESTIONE_LAVORI.md` (§ sospensione/ripresa) |
 
 ## Tony Occhi — Step F reminder anagrafica (2026-07-13)
 
@@ -105,7 +119,6 @@
 | **Output** | `{ ok, estrazione: { tipoDocumento, fornitore, righe, totali, … }, geminiMs }` |
 | **Test** | `tests/tony-extract-document.test.js` (8) |
 | **PoC locale** | `node scripts/tony-extract-document-poc.mjs path/to/bolla.jpg` (richiede `GEMINI_API_KEY`) |
-| **Non ancora** | UI 📷 widget, Storage/Firestore `documentiAcquisiti`, form revisione, registrazione movimenti |
 
 ## Tony — merge PR #5 + gate E2E 17/17 (2026-07-11)
 

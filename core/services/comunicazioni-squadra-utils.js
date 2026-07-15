@@ -172,6 +172,85 @@ export function formatComunicazioneTesto(comm) {
 }
 
 /**
+ * @param {Record<string, unknown>} row
+ * @returns {number}
+ */
+export function countConfermePendentiInvio(row) {
+    const dest = normalizeDestinatariIds(row.destinatari).length;
+    const conf = Array.isArray(row.conferme) ? row.conferme.length : 0;
+    return Math.max(0, dest - conf);
+}
+
+/**
+ * @param {Array<Record<string, unknown>>} rows
+ * @param {'dataCom'|'createdAt'} dateKey
+ * @returns {Array<Record<string, unknown>>}
+ */
+export function sortComunicazioniDesc(rows, dateKey = 'dataCom') {
+    return [...rows].sort((a, b) => {
+        const ad = dateKey === 'createdAt'
+            ? (a.createdAt && typeof a.createdAt === 'object' && typeof a.createdAt.toDate === 'function'
+                ? a.createdAt.toDate()
+                : null)
+            : (a.dataCom instanceof Date ? a.dataCom : null);
+        const bd = dateKey === 'createdAt'
+            ? (b.createdAt && typeof b.createdAt === 'object' && typeof b.createdAt.toDate === 'function'
+                ? b.createdAt.toDate()
+                : null)
+            : (b.dataCom instanceof Date ? b.dataCom : null);
+        return (bd?.getTime?.() || 0) - (ad?.getTime?.() || 0);
+    });
+}
+
+/**
+ * @param {Array<{ haConfermato?: boolean }>} rows
+ * @returns {{ pending: Array<unknown>, history: Array<unknown> }}
+ */
+export function partitionComunicazioniRicevuteOperaio(rows) {
+    const pending = rows.filter((r) => !r.haConfermato);
+    const history = rows.filter((r) => r.haConfermato);
+    return {
+        pending: sortComunicazioniDesc(pending, 'dataCom'),
+        history: sortComunicazioniDesc(history, 'dataCom'),
+    };
+}
+
+/**
+ * Invio caposquadra ancora rilevante (conferme mancanti o invio legacy recente).
+ * @param {Record<string, unknown>} row
+ * @param {Date} [now]
+ * @returns {boolean}
+ */
+export function isComunicazioneInviataInEvidenzaCapo(row, now = new Date()) {
+    if (row.stato && row.stato !== 'attiva') return false;
+    const dest = normalizeDestinatariIds(row.destinatari).length;
+    if (dest > 0) return countConfermePendentiInvio(row) > 0;
+    const created = row.createdAt && typeof row.createdAt === 'object' && typeof row.createdAt.toDate === 'function'
+        ? row.createdAt.toDate()
+        : null;
+    if (!created) return true;
+    return (now.getTime() - created.getTime()) <= (7 * 86400000);
+}
+
+/**
+ * @param {Array<Record<string, unknown>>} rows
+ * @param {Date} [now]
+ * @returns {{ inEvidenza: Array<unknown>, storico: Array<unknown> }}
+ */
+export function partitionComunicazioniInviateCapo(rows, now = new Date()) {
+    const inEvidenza = [];
+    const storico = [];
+    rows.forEach((row) => {
+        if (isComunicazioneInviataInEvidenzaCapo(row, now)) inEvidenza.push(row);
+        else storico.push(row);
+    });
+    return {
+        inEvidenza: sortComunicazioniDesc(inEvidenza, 'createdAt'),
+        storico: sortComunicazioniDesc(storico, 'createdAt'),
+    };
+}
+
+/**
  * Nome visualizzato per operaio/caposquadra (ore, validazione, liste).
  * @param {Record<string, unknown> | null | undefined} userData
  * @returns {string}

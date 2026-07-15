@@ -103,6 +103,15 @@ export async function mettiLavoroInStandbyPerAssenza(options) {
     }
   );
 
+  const effectiveTenantId = tenantId || (await import('./tenant-service.js')).getCurrentTenantId();
+  if (effectiveTenantId && (lavoro.macchinaId || lavoro.attrezzoId)) {
+    const { liberaMacchineDaLavoro } = await import('./lavoro-macchine-lifecycle.js');
+    await liberaMacchineDaLavoro(
+      { id: lavoroId, macchinaId: lavoro.macchinaId, attrezzoId: lavoro.attrezzoId },
+      { tenantId: effectiveTenantId }
+    );
+  }
+
   await collegaAssenzaALavoroStandby(assenzaId, lavoroId, tenantId);
 
   return { assenzaId, lavoroId };
