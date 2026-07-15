@@ -17,7 +17,9 @@ const args = Object.fromEntries(
 );
 
 const LOCAL_PORT = Number(args['local-port'] || 8000);
-const EXPECTED_BUILD = '2026-06-20g';
+// Fonte di verità: build corrente nel sorgente main.js.
+const EXPECTED_BUILD = (readFileSync('core/js/tony/main.js', 'utf8')
+  .match(/TONY_CLIENT_BUILD\s*=\s*'([^']+)'/) || [])[1] || '?';
 const EXPECTED_SPEAKING_RATE = '1.0';
 
 const results = [];

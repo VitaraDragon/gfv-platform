@@ -8,6 +8,25 @@
 export const SEGNA_ORE_ASK_FALLBACK =
   'Mi servono orario di inizio, orario di fine e minuti di pausa (es. dalle 7 alle 18, pausa 30).';
 
+/** Rimuove inizio «fantasma» (autofill browser = ora corrente) se Tony inietta solo fine/pausa. */
+export function clearSpuriousQuickHoursAutofill(doc, fd) {
+  if (!doc || !fd || typeof fd !== 'object') return;
+  var hasStart = fd['ora-inizio'] != null && String(fd['ora-inizio']).trim() !== '';
+  var hasEnd = fd['ora-fine'] != null && String(fd['ora-fine']).trim() !== '';
+  if (hasStart && hasEnd) return;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  var now = new Date();
+  var nowHm = pad(now.getHours()) + ':' + pad(now.getMinutes());
+  var startEl = doc.getElementById('ora-start') || doc.getElementById('ora-inizio');
+  if (!startEl) return;
+  var curStart = String(startEl.value || '').trim();
+  if (!curStart || curStart.substring(0, 5) !== nowHm) return;
+  if (!hasStart && (hasEnd || fd['ora-pause'] != null)) {
+    startEl.value = '';
+    try { startEl.dispatchEvent(new Event('input', { bubbles: true })); } catch (eEv) { /* ignore */ }
+  }
+}
+
 /**
  * @typedef {'quick-hours'|'ora-modal'} SegnaOreFormKind
  * @typedef {{ window: Window, formKind: SegnaOreFormKind, doc: Document }} SegnaOreTarget
@@ -185,7 +204,13 @@ export function buildSegnaOreMissingFieldsMessage(state, opts) {
   opts = opts || {};
   var missing = listSegnaOreMissingRequired(state, opts);
   if (missing.length === 0) {
-    return 'Tutto pronto nel form. Vuoi salvare? Scrivi «sì» o «salva».';
+    var recap = '';
+    if (state && state.startVal && state.endVal) {
+      recap = 'dalle ' + state.startVal + ' alle ' + state.endVal;
+      var pauseN = state.pauseVal !== '' ? parseInt(state.pauseVal, 10) : 0;
+      recap += ', pausa ' + (Number.isFinite(pauseN) ? pauseN : 0) + ' min';
+    }
+    return 'Tutto pronto' + (recap ? ': ' + recap : ' nel form') + '. Vuoi salvare? Scrivi «sì» o «salva».';
   }
   if (missing.length === 1) {
     var one = missing[0];

@@ -161,6 +161,7 @@
 | 10.15 | Reconcile TTS fine stream: confronto testo finale con clip lette (`spokenTtsTexts`), non solo conteggio frasi | fix frase saltata a voce 2026-06-20 | implementato | build `2026-06-20q`; `reconcileUnspokenVoiceSegments` |
 | 10.16 | Saluto vocale ≠ congedo («Ciao Tony tutto bene» non chiude sessione; «Ok grazie» sì) | fix false positive farewell 2026-06-20 | implementato | `checkFarewellIntent` + `greetingHints` — build `2026-06-20q` |
 | 10.17 | Trascrizione STT: `?` automatico su domande (euristica italiano, Web Speech senza punteggiatura) | UX voce 2026-06-20 | implementato | `applyItalianVoiceQuestionPunctuation` in `engine.js` — build `2026-06-20r`; test `tony-voice-transcript-punctuation.test.js` |
+| 10.18 | Segna ore vocale: fascia «dalle X alle Y» fusa dall'ITN STT in «dalle H:MM» → ricostruzione `start = 60−MM`, `end = H+1` (es. «dalle 18:53» → «dalle 7 alle 19»); orologio corrente ±3 min resta scartato; minuti liberi accettati in fasce esplicite; recap fascia prima del salvataggio | fix vocale operaio 2026-07-15 | implementato | `reconstructSegnaOraItnClockRange` + `repairSegnaOraVoiceTranscript` (`engine.js`), recap `tony-segna-ora-local-engine.js` — build `2026-07-15p`; test `tony-segna-ora-time-range.test.js` 37/37; verificato utente da console |
 
 ---
 

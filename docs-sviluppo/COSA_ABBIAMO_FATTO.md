@@ -1,6 +1,18 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-15 — catena ripresa→chiusura lavoro sospeso; allineato a `main` con **Tony Occhi** step A–F (2026-07-13) e calcolatore VM P1 (2026-07-12).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-15 — fix vocale Segna ore «dalle X alle Y» (ricostruzione ITN, build `2026-07-15p`); catena ripresa→chiusura lavoro sospeso; allineato a `main` con **Tony Occhi** step A–F (2026-07-13) e calcolatore VM P1 (2026-07-12).
+
+## Tony — Segna ore vocale: fascia «dalle X alle Y» persa dall'STT (2026-07-15, build `2026-07-15p`)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Problema** | Dettatura «segna le ore dalle 7 alle 19 con 20 min di pausa»: l'inverse text normalization dell'STT fonde «7 alle 19» in un unico orario orologio «dalle 18:53» (le 19 meno 7 minuti). La guardia anti-orologio in `repairSegnaOraVoiceTranscript` scartava l'orario e riscriveva il messaggio come «segna le ore con 20 minuti di pausa» → Tony richiedeva la fascia. Con «ho iniziato alle 7 e finito alle 18» funzionava (nessun `dalle H:MM`). |
+| **Fix 1 — ricostruzione ITN** | `core/js/tony/engine.js`: nuova `reconstructSegnaOraItnClockRange` — da «dalle H:MM» (senza «alle N», minuti ≠ 0/30, ≠ orologio corrente ±3 min) ricostruisce `start = 60−MM`, `end = H+1` (es. 18:53 → dalle 7 alle 19). Usata in `repairSegnaOraVoiceTranscript` al posto del fallback che perdeva gli orari. |
+| **Fix 2 — minuti liberi in fasce esplicite** | `isSegnaOraUntrustedClockTime` con `explicitWorkRange`: minuti qualsiasi (es. «dalle 7:15 alle 18») ora accettati; scartato solo l'orologio corrente ±3 min. |
+| **Fix 3 — conferma orari** | `tony-segna-ora-local-engine.js`: messaggio pre-salvataggio ripete la fascia interpretata («Tutto pronto: dalle 07:00 alle 19:00, pausa 20 min. Vuoi salvare?») così l'utente verifica prima del «sì». |
+| **Pulizia** | Rimossa instrumentazione debug (`fetch 127.0.0.1:7864`, `#region agent log`) da `engine.js` e `main.js`. Canary TTS (`tests/tony-tts-latency-canary.test.js`, `scripts/tony-tts-canary.mjs`): build atteso letto da `main.js` invece che hardcoded (era fermo a `2026-06-20g`). |
+| **Test** | `tests/tony-segna-ora-time-range.test.js` — 37/37: ricostruzione ITN (caso reale «Segna dalle 18:53 con 20 minuti di pausa.» → «segna le ore dalle 7 alle 19 con 20 minuti di pausa»), guardia orologio con fake timers, fasce con minuti liberi. |
+| **Verifica utente** | ✅ 2026-07-15, account operaio (`lavori-caposquadra-standalone`): console conferma «Ho sentito: Segna le ore dalle 18:53…» → «Invio: segna le ore dalle 7 alle 19 con 20 minuti di pausa» → inject `ora-inizio 07:00`, `ora-fine 19:00`, `ora-pause 20`, percorso locale 0 CF. |
 
 ## Manodopera — catena ripresa → chiusura lavoro sospeso (2026-07-15)
 

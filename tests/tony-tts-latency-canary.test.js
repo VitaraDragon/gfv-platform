@@ -8,7 +8,8 @@ import { join } from 'node:path';
 const ROOT = process.cwd();
 const read = (rel) => readFileSync(join(ROOT, rel), 'utf8');
 
-const EXPECTED_BUILD = '2026-06-20g';
+// Fonte di verità: build corrente in main.js (il canary verifica l'allineamento del loader).
+const EXPECTED_BUILD = read('core/js/tony/main.js').match(/TONY_CLIENT_BUILD\s*=\s*'([^']+)'/)[1];
 
 describe('Tony TTS latency canary (2026-06-19a)', () => {
   it('voice.js — pipeline ottimizzata senza context JSON completo', () => {
@@ -41,6 +42,6 @@ describe('Tony TTS latency canary (2026-06-19a)', () => {
   it('script canary eseguibile presente', () => {
     const src = read('scripts/tony-tts-canary.mjs');
     expect(src).toMatch(/Tony TTS canary/);
-    expect(src).toMatch(new RegExp(EXPECTED_BUILD));
+    expect(src).toMatch(/TONY_CLIENT_BUILD/);
   });
 });

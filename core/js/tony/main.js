@@ -5,7 +5,7 @@
 
 import { injectWidget } from './ui.js';
 import { initTonyVoice } from './voice.js';
-import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTextFromJsonResidue, normalizeTonyTextWhitespace, applyItalianVoiceQuestionPunctuation, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts } from './engine.js';
+import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTextFromJsonResidue, normalizeTonyTextWhitespace, applyItalianVoiceQuestionPunctuation, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts, matchSegnaOraIncompleteDallePausaFromBlob, normalizeSegnaOraSttBlob, isSegnaOraUntrustedPartialStart, repairSegnaOraVoiceTranscript } from './engine.js';
 import { hasActiveModule, getModuliAttiviFromTonyContext, isApriPaginaTargetAllowed, tonyNotifyModuleInactive } from '../../config/tony-module-gate.js';
 import {
     getTonyFieldProfileFromContext,
@@ -21,6 +21,7 @@ import {
     SEGNA_ORE_ASK_FALLBACK,
     extractSegnaOrePauseMinutesFromUserBlob,
     userBlobMentionsSegnaOrePause,
+    clearSpuriousQuickHoursAutofill,
 } from './tony-segna-ora-local-engine.js';
 import {
     formReadyForTonySave,
@@ -56,7 +57,7 @@ import { tonyWantsDashboardRiassunto, buildDashboardRiassuntoText, formatDashboa
 import { initTonyDocumentCapture } from './document-capture.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-export const TONY_CLIENT_BUILD = '2026-06-22d';
+export const TONY_CLIENT_BUILD = '2026-07-15p';
 if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
@@ -1159,6 +1160,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         if (isTonySaveConfirmText(ub)) return true;
         if (tonyUserMessageSuggestsSegnaOre(ub)) return true;
         if (tonyMatchSegnaOraTimeRangeFromBlob(ub)) return true;
+        if (matchSegnaOraIncompleteDallePausaFromBlob(ub)) return true;
+        if (tonyExtractPauseMinutesFromUserBlob(ub) != null && !tonyMatchSegnaOraTimeRangeFromBlob(ub)) return true;
         if (tonyIsActiveSegnaOraInterview() || tonySegnaOraLocalInterviewRecent()) {
             var qhWin = tonyResolveQuickHoursWindow();
             if (qhWin && qhWin.document) {
@@ -1197,17 +1200,31 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     qhWin.gfvFieldWorkspaceGoToHoursSlide();
                 }
             } catch (eSl) { /* ignore */ }
-            var state = readSegnaOreDomState(target);
-            var msg;
-            if (quickHoursFormReadyForTonySave()) {
-                msg = buildSegnaOreMissingFieldsMessage(state, { pauseAcknowledged: true });
-            } else if (state && state.startVal && state.endVal) {
-                msg = buildSegnaOreMissingFieldsMessage(state);
+            tonyMarkSegnaOraLocalInterview();
+            var pauseMin = tonyExtractPauseMinutesFromUserBlob(ub);
+            var fdIntent = {};
+            if (pauseMin != null) fdIntent['ora-pause'] = String(pauseMin);
+            var afterInject = function() {
+                var state = readSegnaOreDomState(target);
+                var msg;
+                var pauseAck = pauseMin != null;
+                if (quickHoursFormReadyForTonySave({ userBlob: ub })) {
+                    msg = buildSegnaOreMissingFieldsMessage(state, { pauseAcknowledged: true });
+                } else if (state && state.startVal && state.endVal) {
+                    msg = buildSegnaOreMissingFieldsMessage(state, { pauseAcknowledged: pauseAck });
+                } else if (pauseAck) {
+                    msg = 'Ho capito pausa ' + pauseMin + ' min. Dimmi la fascia oraria, ad esempio «dalle 7 alle 18».';
+                } else {
+                    msg = buildSegnaOreMissingFieldsMessage(state || {});
+                }
+                tonyFinishSegnaOreLocalIntercept(ub, msg, handlers);
+                console.log('[Tony] Segna ore: intervista locale avvio (0 CF).');
+            };
+            if (Object.keys(fdIntent).length) {
+                Promise.resolve(tonyInjectSegnaOreFields(fdIntent, qhWin)).then(afterInject);
             } else {
-                msg = buildSegnaOreMissingFieldsMessage(state || {});
+                afterInject();
             }
-            tonyFinishSegnaOreLocalIntercept(ub, msg, handlers);
-            console.log('[Tony] Segna ore: intervista locale avvio (0 CF).');
         }).catch(function() {
             if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
         });
@@ -1223,8 +1240,10 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         if (!tonyIsCampoLikeWorkspaceForTony()) return { handled: false };
         var ub = String(text || '').trim();
         if (!ub || isTonySaveConfirmText(ub)) return { handled: false };
+        var hasRange = !!(tonyMatchSegnaOraTimeRangeFromBlob(ub) ||
+            tonyMatchSegnaOraTimeRangeFromUserHistory(6, ub));
+        if (!hasRange) return { handled: false };
         if (!tonyUserMessageSuggestsSegnaOre(ub) && !tonyMatchSegnaOraTimeRangeFromBlob(ub)) return { handled: false };
-        if (!tonyMatchSegnaOraTimeRangeFromBlob(ub)) return { handled: false };
         if (typeof handlers.clearEarlyTyping === 'function') handlers.clearEarlyTyping();
         if (typeof handlers.appendTyping === 'function') handlers.appendTyping();
         Promise.resolve(resolveOrOpenSegnaOreTarget()).then(function(target) {
@@ -1232,11 +1251,13 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
                 return;
             }
-            return Promise.resolve(tonyRecoverSegnaOraFromChatHistory({ userText: ub, maxTurns: 2, targetWindow: target.window })).then(function(ok) {
+            return Promise.resolve(tonyRecoverSegnaOraFromChatHistory({ userText: ub, maxTurns: 6, targetWindow: target.window })).then(function(ok) {
                 if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
                 if (!ok) return;
                 var state = readSegnaOreDomState(target);
-                var pauseInMsg = tonyExtractPauseMinutesFromUserBlob(ub) != null ||
+                var recentUb = tonyBuildSegnaOraUserBlobLastNUserTurns(6, ub);
+                var pauseInMsg = tonyExtractPauseMinutesFromUserBlob(recentUb) != null ||
+                    tonyExtractPauseMinutesFromUserBlob(ub) != null ||
                     /nessun[ao]?\s+pausa|senza\s+pausa|no\s+pausa|zero\s+pausa/i.test(ub);
                 var msg = quickHoursFormReadyForTonySave({ userBlob: ub }) || (state && state.startVal && state.endVal && pauseInMsg)
                     ? buildSegnaOreMissingFieldsMessage(state, { pauseAcknowledged: pauseInMsg })
@@ -1244,6 +1265,134 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 tonyFinishSegnaOreLocalIntercept(ub, msg, handlers);
                 console.log('[Tony] Segna ore: inject locale da fascia oraria (senza tonyAsk).');
             });
+        }).catch(function() {
+            if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
+        });
+        return { handled: true };
+    }
+
+    /** Pulisce inizio/fine nel form ore (autofill browser su input type=time). */
+    function tonyClearQuickHoursStartEnd(qhWin) {
+        if (!qhWin || !qhWin.document) return;
+        var doc = qhWin.document;
+        var st = doc.getElementById('ora-start') || doc.getElementById('ora-inizio');
+        var en = doc.getElementById('ora-end') || doc.getElementById('ora-fine');
+        if (st) {
+            st.value = '';
+            try { st.dispatchEvent(new Event('input', { bubbles: true })); } catch (eS) { /* ignore */ }
+        }
+        if (en) {
+            en.value = '';
+            try { en.dispatchEvent(new Event('input', { bubbles: true })); } catch (eE) { /* ignore */ }
+        }
+        try {
+            if (typeof qhWin.gfvFieldWorkspaceRecalcHours === 'function') qhWin.gfvFieldWorkspaceRecalcHours();
+            else if (typeof qhWin.gfvFieldWorkspaceClearHoursStartEnd === 'function') qhWin.gfvFieldWorkspaceClearHoursStartEnd();
+        } catch (eR) { /* ignore */ }
+    }
+
+    function tonyClearSpuriousQuickHoursAutofill(qhWin, fd) {
+        if (!qhWin || !qhWin.document || !fd) return;
+        clearSpuriousQuickHoursAutofill(qhWin.document, fd);
+    }
+
+    /**
+     * «dalle 17:53 con 45 min di pausa» senza fine → locale, non inietta inizio spurio.
+     * @returns {{ handled: boolean }}
+     */
+    function tryInterceptSegnaOrePartialFromBlobBeforeCf(text, handlers) {
+        handlers = handlers || {};
+        if (!tonyIsCampoLikeWorkspaceForTony()) return { handled: false };
+        var ub = String(text || '').trim();
+        if (!ub || isTonySaveConfirmText(ub)) return { handled: false };
+        if (tonyMatchSegnaOraTimeRangeFromBlob(ub)) return { handled: false };
+        var partial = matchSegnaOraIncompleteDallePausaFromBlob(ub);
+        if (!partial) return { handled: false };
+        if (typeof handlers.clearEarlyTyping === 'function') handlers.clearEarlyTyping();
+        if (typeof handlers.appendTyping === 'function') handlers.appendTyping();
+        Promise.resolve(resolveOrOpenSegnaOreTarget()).then(function(target) {
+            if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
+            if (!target) return;
+            try {
+                if (target.formKind === 'quick-hours' && typeof target.window.gfvFieldWorkspaceGoToHoursSlide === 'function') {
+                    target.window.gfvFieldWorkspaceGoToHoursSlide();
+                }
+            } catch (eSl) { /* ignore */ }
+            tonyClearQuickHoursStartEnd(target.window);
+            var fd = {};
+            if (partial.pauseMin != null) fd['ora-pause'] = String(partial.pauseMin);
+            if (!partial.untrustedStart) {
+                var padH = function(n) { return (n < 10 ? '0' : '') + n; };
+                fd['ora-inizio'] = padH(partial.startH) + ':' + padH(partial.startMi);
+            }
+            tonyClearSpuriousQuickHoursAutofill(target.window, fd);
+            var msg;
+            if (partial.untrustedStart) {
+                msg = 'Ho capito pausa ' + (partial.pauseMin != null ? partial.pauseMin : '0') +
+                    ' min. Non ho registrato l\'inizio (il riconoscimento vocale a volte confonde gli orari). ' +
+                    'Dimmi «dalle 7 alle 17» oppure «orario inizio 7, orario fine 18».';
+            } else if (partial.pauseMin != null) {
+                msg = 'Ho capito inizio alle ' + partial.startH + ' e pausa ' + partial.pauseMin +
+                    ' min. Dimmi l\'orario di fine (es. «alle 18»).';
+            } else {
+                msg = 'Dimmi orario di inizio e fine (es. dalle 7 alle 18).';
+            }
+            Promise.resolve(tonyInjectSegnaOreFields(fd, target.window)).then(function() {
+                if (partial.untrustedStart) tonyClearQuickHoursStartEnd(target.window);
+                var state = readSegnaOreDomState(target);
+                if (state && (partial.pauseMin != null || (!partial.untrustedStart && state.startVal))) {
+                    msg = buildSegnaOreMissingFieldsMessage(state, { pauseAcknowledged: partial.pauseMin != null });
+                }
+                tonyFinishSegnaOreLocalIntercept(ub, msg, handlers);
+                console.log('[Tony] Segna ore: fascia incompleta (dalle+pausa), percorso locale.');
+            });
+        }).catch(function() {
+            if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
+        });
+        return { handled: true };
+    }
+
+    /**
+     * Solo pausa nel messaggio (dopo repair STT) — inject pausa, non tocca inizio/fine.
+     * @returns {{ handled: boolean }}
+     */
+    function tryInterceptSegnaOrePausaIntentBeforeCf(text, handlers) {
+        handlers = handlers || {};
+        if (!tonyIsCampoLikeWorkspaceForTony()) return { handled: false };
+        var ub = String(text || '').trim();
+        if (!ub || isTonySaveConfirmText(ub)) return { handled: false };
+        if (tonyMatchSegnaOraTimeRangeFromBlob(ub) || matchSegnaOraIncompleteDallePausaFromBlob(ub)) {
+            return { handled: false };
+        }
+        if (/\bsegna\b/i.test(ub)) return { handled: false };
+        if (tonyUserMessageSuggestsSegnaOre(ub) || tonyIsActiveSegnaOraInterview() || tonySegnaOraLocalInterviewRecent()) {
+            return { handled: false };
+        }
+        if (tonyMatchSegnaOraTimeRangeFromUserHistory(6, ub)) {
+            return tryInterceptSegnaOreTurnBeforeCf(text, handlers);
+        }
+        var pauseMin = tonyExtractPauseMinutesFromUserBlob(ub);
+        if (pauseMin == null) return { handled: false };
+        var targetEarly = tonyGetSegnaOreTarget();
+        var stateEarly = targetEarly ? readSegnaOreDomState(targetEarly) : null;
+        if (stateEarly && stateEarly.startVal && stateEarly.endVal) {
+            return { handled: false };
+        }
+        if (typeof handlers.clearEarlyTyping === 'function') handlers.clearEarlyTyping();
+        if (typeof handlers.appendTyping === 'function') handlers.appendTyping();
+        Promise.resolve(resolveOrOpenSegnaOreTarget()).then(function(target) {
+            if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
+            if (!target) return;
+            try {
+                if (target.formKind === 'quick-hours' && typeof target.window.gfvFieldWorkspaceGoToHoursSlide === 'function') {
+                    target.window.gfvFieldWorkspaceGoToHoursSlide();
+                }
+            } catch (eSl) { /* ignore */ }
+            tonyClearQuickHoursStartEnd(target.window);
+            var msg = 'Ho sentito solo la pausa (' + pauseMin + ' min), non gli orari. ' +
+                'Dimmi la fascia con «dalle 7 alle 18» oppure «ho iniziato alle 7, finito alle 18».';
+            tonyFinishSegnaOreLocalIntercept(ub, msg, handlers);
+            console.log('[Tony] Segna ore: solo pausa nel messaggio (STT troncato su dalle/alle), nessun inject.');
         }).catch(function() {
             if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
         });
@@ -1413,6 +1562,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         if (!userBlob || typeof userBlob !== 'string') return false;
         if (/segn\w*\s+le\s+ore|registr\w*\s+le\s+ore|ore\s+di\s+(ieri|oggi)|segnatura\s+ore|segna\s+ore/i.test(userBlob)) return true;
         var u = userBlob.toLowerCase();
+        if (/\bdalle\s+\d{1,2}\b/.test(u) && /\balle\s+\d{1,2}\b/.test(u)) return true;
         if (/\b(ore|orari)\b/.test(u) && /\b(lavoro|lavorato|turno|ieri|oggi|pausa|inizio|fine)\b/.test(u)) return true;
         if (/\b(ho\s+lavorato|ho\s+iniziat|iniziat\w*\s+alle\s+\d|ore\s+lavorate|finito\s+il\s+turno|inizio\s+turno|registr\w*\s+il\s+tempo)\b/.test(u)) return true;
         if (tonyMatchSegnaOraTimeRangeFromBlob(userBlob)) return true;
@@ -5897,8 +6047,42 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             inputEl.focus();
         });
 
+        function collapseDuplicateVoiceTranscript(t) {
+            var s = String(t || '').replace(/\s+/g, ' ').trim();
+            if (!s) return s;
+            var half = Math.floor(s.length / 2);
+            if (half > 8) {
+                var a = s.slice(0, half).trim();
+                var b = s.slice(half).trim().replace(/\.$/, '');
+                if (a && b && a.toLowerCase() === b.toLowerCase()) return a;
+            }
+            return s;
+        }
+
+        function repairSttVoiceConcatenation(t) {
+            var s = String(t || '').trim();
+            if (s.length < 60) return s;
+            var compact = s.replace(/\s+/g, '');
+            if (!/segnasegna|oresegna|orecon/i.test(compact)) return s;
+            var dotted = s.split(/\.\s+/).map(function (x) { return String(x || '').trim(); }).filter(Boolean);
+            for (var di = dotted.length - 1; di >= 0; di--) {
+                var cand = dotted[di];
+                if (cand.length >= 12 && cand.length <= 200 && /\s/.test(cand)) return cand;
+            }
+            var tail = s.match(/(Segna\s+le\s+ore[\s\S]{8,160})$/i);
+            if (tail && tail[1]) return tail[1].replace(/\s+/g, ' ').trim();
+            return s;
+        }
+
         function finalizeVoiceUserTranscript(raw) {
-            return applyItalianVoiceQuestionPunctuation(String(raw || '').trim());
+            var rawIn = String(raw || '').trim();
+            var t = collapseDuplicateVoiceTranscript(repairSttVoiceConcatenation(applyItalianVoiceQuestionPunctuation(rawIn)));
+            try {
+                if (tonyIsCampoLikeWorkspaceForTony()) {
+                    t = repairSegnaOraVoiceTranscript(t);
+                }
+            } catch (eFv) { /* ignore */ }
+            return t;
         }
 
         var pendingVoiceText = null;
@@ -5908,8 +6092,22 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         var stopListeningRef = null;
         var autoModeTimeout = null;
         var AUTO_MODE_SILENCE_MS = 30000; // 30 secondi (inattività prima di spegnere microfono)
-        var VOICE_SPEECH_END_COMMIT_MS = 450; // attesa dopo fine parlato se transcript non ancora final
-        var VOICE_SPEECH_END_COMMIT_FINAL_MS = 220; // transcript già isFinal
+        var VOICE_SPEECH_END_COMMIT_MS = 450;
+        var VOICE_SPEECH_END_COMMIT_FINAL_MS = 220;
+        var VOICE_SPEECH_END_COMMIT_SEGNA_ORE_MS = 1200;
+
+        function getVoiceSpeechEndCommitDelay(hasFinalText) {
+            try {
+                if (tonyIsCampoLikeWorkspaceForTony()) {
+                    var pending = pendingVoiceText ? String(pendingVoiceText).trim() : '';
+                    if (pending && (/\b(dalle|alle|iniziato|inizio|finito)\b/i.test(pending) ||
+                        tonyExtractPauseMinutesFromUserBlob(pending) != null)) {
+                        return VOICE_SPEECH_END_COMMIT_SEGNA_ORE_MS;
+                    }
+                }
+            } catch (eDly) { /* ignore */ }
+            return hasFinalText ? VOICE_SPEECH_END_COMMIT_FINAL_MS : VOICE_SPEECH_END_COMMIT_MS;
+        }
         var VOICE_MIC_REOPEN_DELAY_MS = 100;
         var VOICE_RECOGNITION_RESTART_MS = 350;
         var VOICE_REOPEN_IDLE_DEFAULT_MS = 60;
@@ -6307,6 +6505,13 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             if (window.__tonyProactiveFormState) window.__tonyProactiveFormState = null;
             var text = (overrideText != null ? String(overrideText).trim() : (inputEl.value || '').trim());
             if (!text) return;
+            var rawSegnaOreText = text;
+            if (!opts.proactive && tonyIsCampoLikeWorkspaceForTony()) {
+                text = repairSegnaOraVoiceTranscript(text);
+                if (text !== String(rawSegnaOreText).trim()) {
+                    console.log('[Tony] Segna ore: testo vocale ripulito STT →', text);
+                }
+            }
             try {
             if (opts.fromVoice && _isSendingMessage) {
                 var voiceRetryEarly = typeof opts._voiceRetry === 'number' ? opts._voiceRetry : 0;
@@ -6411,19 +6616,32 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 saveState: saveTonyState,
             };
 
-            // Fascia oraria nel messaggio su workspace campo: inject locale, 0 CF.
+            // Fascia oraria completa (anche da cronologia turni): inject locale, 0 CF.
             if (!opts.proactive) {
                 var segnaOreTurnIntercept = tryInterceptSegnaOreTurnBeforeCf(text, segnaOreLocalHandlers);
                 if (segnaOreTurnIntercept.handled) {
                     if (opts.fromVoice) isWaitingForTonyResponse = false;
                     return;
                 }
+                var segnaOrePartialIntercept = tryInterceptSegnaOrePartialFromBlobBeforeCf(text, segnaOreLocalHandlers);
+                if (segnaOrePartialIntercept.handled) {
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
             }
 
-            // «segniamo le ore» senza orari: intervista locale, 0 CF (stile lavoro/magazzino).
+            // «segniamo le ore» (anche con sola pausa): intervista locale prima del ramo pausa isolata.
             if (!opts.proactive) {
                 var segnaOreIntentIntercept = tryInterceptSegnaOreIntentBeforeCf(text, segnaOreLocalHandlers);
                 if (segnaOreIntentIntercept.handled) {
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
+            }
+
+            if (!opts.proactive) {
+                var segnaOrePausaFragmentIntercept = tryInterceptSegnaOrePausaIntentBeforeCf(text, segnaOreLocalHandlers);
+                if (segnaOrePausaFragmentIntercept.handled) {
                     if (opts.fromVoice) isWaitingForTonyResponse = false;
                     return;
                 }
@@ -7057,9 +7275,11 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         return;
                     }
                     if (tryInterceptSegnaOreTurnBeforeCf(text, segnaOreLocalHandlers).handled ||
+                        tryInterceptSegnaOrePartialFromBlobBeforeCf(text, segnaOreLocalHandlers).handled ||
+                        tryInterceptSegnaOreIntentBeforeCf(text, segnaOreLocalHandlers).handled ||
+                        tryInterceptSegnaOrePausaIntentBeforeCf(text, segnaOreLocalHandlers).handled ||
                         tryInterceptSegnaOreSingleTimeBeforeCf(text, segnaOreLocalHandlers).handled ||
-                        tryInterceptSegnaOrePauseBeforeCf(text, segnaOreLocalHandlers).handled ||
-                        tryInterceptSegnaOreIntentBeforeCf(text, segnaOreLocalHandlers).handled) {
+                        tryInterceptSegnaOrePauseBeforeCf(text, segnaOreLocalHandlers).handled) {
                         if (opts.fromVoice) isWaitingForTonyResponse = false;
                         return;
                     }
@@ -8139,8 +8359,110 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             window.recognition = recognition; // Esposto per debug
             recognition.continuous = false; // Resta false, onspeechend + delay gestiscono la pausa
             recognition.interimResults = true;
-            recognition.maxAlternatives = 1;
+            recognition.maxAlternatives = 5;
             recognition.lang = 'it-IT';
+            var voiceSessionBestFinal = '';
+            var voiceSessionBestInterim = '';
+
+            function scoreVoiceSegnaOraTranscript(t) {
+                var s = String(t || '').trim();
+                if (!s) return 0;
+                try {
+                    if (tonyIsCampoLikeWorkspaceForTony()) {
+                        if (matchSegnaOraTimeRangeFromBlob(s)) return 100;
+                        var norm = normalizeSegnaOraSttBlob(s);
+                        if (matchSegnaOraTimeRangeFromBlob(norm)) return 95;
+                        if (/\bdalle\b/i.test(s) && /\balle\s+\d{1,2}\b/i.test(s)) return 60;
+                        var clockOnly = s.match(/\bdalle\s+(\d{1,2})[:.,](\d{2})\b/i);
+                        if (clockOnly && !/\balle\s+\d{1,2}\b/i.test(s)) {
+                            var now = new Date();
+                            var ch = parseInt(clockOnly[1], 10);
+                            var cmi = parseInt(clockOnly[2], 10);
+                            if (ch === now.getHours() && Math.abs(cmi - now.getMinutes()) <= 3) return 3;
+                        }
+                        if (/\b(dalle|alle|iniziato|finito|inizio)\b/i.test(s)) return 20;
+                    }
+                } catch (eSc) { /* ignore */ }
+                return Math.min(s.length, 15);
+            }
+
+            function collectVoiceResultAlternatives(res) {
+                var alts = [];
+                for (var ai = 0; ai < res.length; ai++) {
+                    var alt = String(res[ai].transcript || '').trim();
+                    if (alt) alts.push({ text: alt, score: scoreVoiceSegnaOraTranscript(alt) });
+                }
+                return alts;
+            }
+
+            function pickBestVoiceResultSegment(res) {
+                var best = String(res[0].transcript || '').trim();
+                var bestScore = scoreVoiceSegnaOraTranscript(best);
+                for (var ai = 1; ai < res.length; ai++) {
+                    var alt = String(res[ai].transcript || '').trim();
+                    if (!alt) continue;
+                    var sc = scoreVoiceSegnaOraTranscript(alt);
+                    if (sc > bestScore || (sc === bestScore && alt.length > best.length)) {
+                        best = alt;
+                        bestScore = sc;
+                    }
+                }
+                return best;
+            }
+
+            function updateVoiceBestFinal(seg) {
+                seg = String(seg || '').trim();
+                if (!seg) return;
+                var prev = voiceSessionBestFinal;
+                if (!prev) {
+                    voiceSessionBestFinal = seg;
+                    return;
+                }
+                if (seg === prev || prev.indexOf(seg) >= 0) return;
+                if (seg.indexOf(prev) === 0) {
+                    voiceSessionBestFinal = seg;
+                    return;
+                }
+                var prevScore = scoreVoiceSegnaOraTranscript(prev);
+                var segScore = scoreVoiceSegnaOraTranscript(seg);
+                if (segScore > prevScore || (segScore === prevScore && seg.length > prev.length)) {
+                    voiceSessionBestFinal = seg;
+                }
+            }
+
+            function updateVoiceBestInterim(interim) {
+                var t = String(interim || '').trim();
+                if (!t) return;
+                var curScore = scoreVoiceSegnaOraTranscript(voiceSessionBestInterim);
+                var newScore = scoreVoiceSegnaOraTranscript(t);
+                if (newScore > curScore || (newScore === curScore && t.length > voiceSessionBestInterim.length)) {
+                    voiceSessionBestInterim = t;
+                }
+            }
+
+            function mergeVoiceInterimWithFinals(interim, finalsJoined) {
+                var iNorm = String(interim || '').trim();
+                var fNorm = String(finalsJoined || '').trim();
+                if (!iNorm) return fNorm;
+                if (!fNorm) return iNorm;
+                var merged = (iNorm + ' ' + fNorm).replace(/\s+/g, ' ').trim();
+                if (matchSegnaOraTimeRangeFromBlob(merged)) return merged;
+                if (!matchSegnaOraTimeRangeFromBlob(fNorm) &&
+                    /\b(dalle|alle|iniziato|finito|inizio)\b/i.test(iNorm) &&
+                    !/\b(dalle|alle)\b/i.test(fNorm)) {
+                    return merged;
+                }
+                return fNorm;
+            }
+
+            function rebuildVoicePendingText() {
+                var best = voiceSessionBestFinal || '';
+                if (voiceSessionBestInterim) {
+                    best = mergeVoiceInterimWithFinals(voiceSessionBestInterim, best);
+                }
+                pendingVoiceText = best ? String(best).trim() : null;
+                return pendingVoiceText;
+            }
 
             recognition.onsoundstart = function() {
                 clearVoiceAutoSendTimer();
@@ -8149,19 +8471,34 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             recognition.onresult = function(e) {
                 if (tonyAudioPipelineActive() || isWaitingForTonyResponse || _isSendingMessage) return;
                 if (isAutoMode) resetAutoModeTimeout();
-                var transcript = '';
+                var latestInterim = '';
                 for (var i = e.resultIndex; i < e.results.length; i++) {
-                    transcript += e.results[i][0].transcript;
-                }
-                var txt = finalizeVoiceUserTranscript(transcript.trim());
-                if (txt) {
-                    voiceTranscriptEl.textContent = txt;
-                    var lastResult = e.results.length > 0 ? e.results[e.results.length - 1] : null;
-                    if (lastResult && lastResult.isFinal) {
-                        pendingVoiceText = txt;
-                        console.log('[Tony] Ho sentito (finale):', pendingVoiceText);
-                        if (isAutoMode) scheduleAutoVoiceSend('final');
+                    var res = e.results[i];
+                    if (res.isFinal) {
+                        var seg = pickBestVoiceResultSegment(res);
+                        var alts = collectVoiceResultAlternatives(res);
+                        var now = new Date();
+                        console.log('[Tony] STT alternative:', alts, 'orologio browser:', now.getHours() + ':' + now.getMinutes(), 'scelto:', seg);
+                        if (seg) {
+                            updateVoiceBestFinal(seg);
+                            rebuildVoicePendingText();
+                            console.log('[Tony] Ho sentito (finale):', pendingVoiceText);
+                        }
+                    } else {
+                        latestInterim = res[0].transcript;
                     }
+                }
+                if (latestInterim) {
+                    updateVoiceBestInterim(String(latestInterim).trim());
+                }
+                var displayTxt = rebuildVoicePendingText();
+                if (displayTxt) {
+                    displayTxt = finalizeVoiceUserTranscript(displayTxt);
+                } else if (latestInterim) {
+                    displayTxt = finalizeVoiceUserTranscript(String(latestInterim).trim());
+                }
+                if (displayTxt) {
+                    voiceTranscriptEl.textContent = displayTxt;
                     if (!isAutoMode) {
                         voiceConfirmEl.style.display = 'flex';
                     }
@@ -8177,6 +8514,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 if (!window.Tony || !window.Tony.isReady()) return;
                 clearVoiceAutoSendTimer();
                 pendingVoiceText = null;
+                voiceSessionBestFinal = '';
+                voiceSessionBestInterim = '';
                 voiceConfirmEl.style.display = 'none';
                 try {
                     recognition.start();
@@ -8203,13 +8542,15 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             function scheduleAutoVoiceSend(reason) {
                 if (!isAutoMode || tonyAudioPipelineActive() || isWaitingForTonyResponse || _isSendingMessage) return;
                 clearVoiceAutoSendTimer();
+                rebuildVoicePendingText();
                 var hasFinalText = !!(pendingVoiceText && String(pendingVoiceText).trim());
-                var delay = hasFinalText ? VOICE_SPEECH_END_COMMIT_FINAL_MS : VOICE_SPEECH_END_COMMIT_MS;
+                var delay = getVoiceSpeechEndCommitDelay(hasFinalText);
                 voiceAutoSendTimer = setTimeout(function() {
                     voiceAutoSendTimer = null;
                     if (!isAutoMode || tonyAudioPipelineActive() || isWaitingForTonyResponse || _isSendingMessage) return;
                     stopListening();
-                    var textToSend = pendingVoiceText ? finalizeVoiceUserTranscript(pendingVoiceText) : '';
+                    var pendingRaw = pendingVoiceText ? String(pendingVoiceText).trim() : '';
+                    var textToSend = pendingRaw ? finalizeVoiceUserTranscript(pendingRaw) : '';
                     pendingVoiceText = null;
                     if (textToSend) {
                         voiceLastSendAt = Date.now();
@@ -8233,6 +8574,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     return;
                 }
                 console.log('[Tony] Fine rilevamento voce, attendo processamento...');
+                rebuildVoicePendingText();
                 scheduleAutoVoiceSend('speechend');
             };
             recognition.onspeechstart = function() {
@@ -8251,6 +8593,10 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 }
                 if (isAutoMode) {
                     if (Date.now() < voiceMicSuppressOnendUntil) return;
+                    if (pendingVoiceText && String(pendingVoiceText).trim()) {
+                        scheduleAutoVoiceSend('onend');
+                        return;
+                    }
                     console.log('[Tony] Fine sessione naturale, riaccendo tra ' + VOICE_RECOGNITION_RESTART_MS + ' ms...');
                     scheduleMicReopenInAutoMode(VOICE_RECOGNITION_RESTART_MS);
                 } else {
@@ -8264,6 +8610,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 clearVoiceMicReopenTimer();
                 voiceMicSuppressOnendUntil = Date.now() + 1200;
                 pendingVoiceText = null;
+                voiceSessionBestFinal = '';
+                voiceSessionBestInterim = '';
                 if (typeof stopListeningRef === 'function') stopListeningRef();
                 return speakWithTTSCore(text, opts);
             };

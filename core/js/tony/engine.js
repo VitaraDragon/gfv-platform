@@ -534,6 +534,234 @@ export function resolveTonyUserVisibleText(text, command) {
 /** Minuti opzionali: «18:30», «18,30», «18 30», «18.30» */
 var SEGNA_ORA_MIN_SUFFIX = '(?:[:.,\\s](\\d{1,2}))?';
 
+/** STT italiano: congiunzione/virgola tra inizio e fine («dalle 7 e alle 18», «dalle 7, alle 18»). */
+var SEGNA_ORA_DALLE_ALLE_GLUE = '\\s*(?:[,;]|\\be\\b|\\bfino\\s+a)?\\s*';
+
+/**
+ * Normalizza testo STT italiano prima del parse orari Segna ore.
+ * @param {string} blob
+ * @returns {string}
+ */
+export function normalizeSegnaOraSttBlob(blob) {
+    if (!blob || typeof blob !== 'string') return '';
+    var s = blob.replace(/\s+/g, ' ').trim();
+    s = s.replace(/\bsegnale\s+ore\b/gi, 'segna le ore');
+    s = s.replace(/\bsegna\s+ore\b/gi, 'segna le ore');
+    s = normalizeSegnaOraDalleAlleSttGlue(s);
+    s = stripSegnaOraUntrustedClockDalleMarkers(s);
+    return s;
+}
+
+/**
+ * Ripulisce artefatti STT tra «dalle H» e «alle H» (vocale spesso inserisce «e» o virgola).
+ * @param {string} blob
+ * @returns {string}
+ */
+function normalizeSegnaOraDalleAlleSttGlue(blob) {
+    if (!blob || typeof blob !== 'string') return '';
+    var min = SEGNA_ORA_MIN_SUFFIX;
+    return blob.replace(
+        new RegExp('\\bdalle\\s+(\\d{1,2})' + min + SEGNA_ORA_DALLE_ALLE_GLUE + '(?:alle|al)\\s+(\\d{1,2})' + min, 'gi'),
+        function (_full, h1, m1, h2, m2) {
+            var out = 'dalle ' + h1;
+            if (m1 != null && String(m1).trim() !== '') out += ':' + m1;
+            out += ' alle ' + h2;
+            if (m2 != null && String(m2).trim() !== '') out += ':' + m2;
+            return out;
+        }
+    );
+}
+
+/**
+ * Inizio estratto da «dalle H:MM» senza fine: non fidarsi se sembra orologio/STT (es. 17:53).
+ * @param {number} h
+ * @param {number} mi
+ * @returns {boolean}
+ */
+export function isSegnaOraUntrustedPartialStart(h, mi) {
+    return isSegnaOraUntrustedClockTime(h, mi);
+}
+
+/**
+ * Orario che sembra l'orologio/STT (es. 17:53 adesso) — non usare come inizio/fine lavoro.
+ * @param {number} h
+ * @param {number} mi
+ * @returns {boolean}
+ */
+export function isSegnaOraUntrustedClockTime(h, mi, opts) {
+    opts = opts || {};
+    if (!Number.isFinite(h) || !Number.isFinite(mi)) return true;
+    if (opts.explicitWorkRange && (mi === 0 || mi === 30)) return false;
+    var now = new Date();
+    if (h === now.getHours() && Math.abs(mi - now.getMinutes()) <= 3) return true;
+    // Fascia dalle-alle esplicita: minuti liberi (es. «dalle 7:15 alle 18») sono legittimi.
+    if (opts.explicitWorkRange) return false;
+    if (mi !== 0 && mi !== 30) return true;
+    return false;
+}
+
+/**
+ * Rimuove «dalle/dalle 17:53» spurie (STT = orologio) lasciando «dalle 7» ecc.
+ * @param {string} blob
+ * @returns {string}
+ */
+function stripSegnaOraUntrustedClockDalleMarkers(blob) {
+    if (!blob || typeof blob !== 'string') return '';
+    var min = SEGNA_ORA_MIN_SUFFIX;
+    if (new RegExp('\\bdalle\\s+\\d{1,2}' + min + SEGNA_ORA_DALLE_ALLE_GLUE + '(?:alle|al)\\s+\\d{1,2}', 'i').test(blob)) {
+        return blob.replace(/\s+/g, ' ').trim();
+    }
+    var s = blob.replace(new RegExp('\\bdalle\\s+(\\d{1,2})' + min + '\\b', 'gi'), function (full, hStr, miStr) {
+        var h = parseInt(hStr, 10);
+        var mi = miStr != null && String(miStr).trim() !== '' ? parseInt(miStr, 10) : 0;
+        if (isSegnaOraUntrustedClockTime(h, mi)) return '';
+        return full;
+    });
+    return s.replace(/\s+/g, ' ').replace(/^\s*,\s*/g, '').trim();
+}
+
+function validateSegnaOraTrustedTimeRangeMatch(m, opts) {
+    opts = opts || {};
+    if (!m) return null;
+    var h1 = parseInt(m[1], 10);
+    var mi1 = m[2] ? parseInt(m[2], 10) : 0;
+    var h2 = parseInt(m[3], 10);
+    var mi2 = m[4] ? parseInt(m[4], 10) : 0;
+    var trustOpts = opts.explicitWorkRange ? { explicitWorkRange: true } : null;
+    if (isSegnaOraUntrustedClockTime(h1, mi1, trustOpts) || isSegnaOraUntrustedClockTime(h2, mi2, trustOpts)) return null;
+    return m;
+}
+
+/**
+ * STT inverse text normalization: «dalle 7 alle 19» può diventare «dalle 18:53»
+ * (l'ITN legge «7 alle 19» come «le 19 meno 7 minuti»). Ricostruisce la fascia probabile:
+ * start = 60 − minuti, end = ora + 1. Rifiuta orari che coincidono con l'orologio corrente
+ * (bug storico: STT inserisce l'ora attuale) e minuti 0/30 (orario di lavoro plausibile).
+ * @param {string} blob
+ * @returns {{ startH: number, endH: number, pauseMin: number|null }|null}
+ */
+export function reconstructSegnaOraItnClockRange(blob) {
+    if (!blob || typeof blob !== 'string') return null;
+    var s = blob.replace(/\s+/g, ' ').trim();
+    if (/\balle\s+\d{1,2}\b/i.test(s)) return null;
+    var m = s.match(/\bdalle\s+(\d{1,2})[:.,](\d{2})\b/i);
+    if (!m) return null;
+    var h = parseInt(m[1], 10);
+    var mi = parseInt(m[2], 10);
+    if (!Number.isFinite(h) || !Number.isFinite(mi)) return null;
+    if (mi === 0 || mi === 30) return null;
+    var now = new Date();
+    if (h === now.getHours() && Math.abs(mi - now.getMinutes()) <= 3) return null;
+    var startH = 60 - mi;
+    var endH = h + 1;
+    if (startH < 1 || startH > 23 || endH > 23 || startH >= endH) return null;
+    return { startH: startH, endH: endH, pauseMin: extractPauseMinutesFromSegnaOraBlob(s) };
+}
+
+/**
+ * Rimuove «dalle 16:53» / «dalle 17:53» spurie (STT = orologio, non orario di lavoro)
+ * e ricostruisce fasce compresse dall'ITN («dalle 18:53» → «dalle 7 alle 19»).
+ * @param {string} blob
+ * @returns {string}
+ */
+export function repairSegnaOraVoiceTranscript(blob) {
+    if (!blob || typeof blob !== 'string') return '';
+    var raw = blob.replace(/\s+/g, ' ').trim();
+    var s = normalizeSegnaOraSttBlob(blob);
+    if (matchSegnaOraTimeRangeFromBlob(s)) return s;
+    if (new RegExp('\\bdalle\\s+\\d{1,2}(?:[:.,]\\d{2})?' + SEGNA_ORA_DALLE_ALLE_GLUE + '(?:alle|al)\\s+\\d{1,2}', 'i').test(s)) return s;
+    var rawTimeHints = /\b(dalle|alle|iniziato|inizio|finito)\b/i.test(raw);
+    var normTimeHints = /\b(dalle|alle|iniziato|inizio|finito)\b/i.test(s);
+    var rawSegna = /\bsegna\b/i.test(raw);
+    var normUseful = s.replace(/[^a-zàèéìòù0-9]/gi, '').length;
+    function segnaOreFallbackWithPause() {
+        var pauseMin = extractPauseMinutesFromSegnaOraBlob(raw);
+        if (pauseMin != null) return 'segna le ore con ' + pauseMin + ' minuti di pausa';
+        return 'segna le ore';
+    }
+    var rawClockOnly = raw.match(/\bdalle\s+(\d{1,2})[:.,](\d{2})\b/i);
+    if (rawClockOnly && !/\balle\s+\d{1,2}\b/i.test(raw)) {
+        var rec = reconstructSegnaOraItnClockRange(raw);
+        if (rec) {
+            var out = (rawSegna ? 'segna le ore ' : '') + 'dalle ' + rec.startH + ' alle ' + rec.endH;
+            if (rec.pauseMin != null) out += ' con ' + rec.pauseMin + ' minuti di pausa';
+            return out;
+        }
+        if (rawSegna) return segnaOreFallbackWithPause();
+    }
+    if (rawSegna && rawTimeHints && !normTimeHints) {
+        return segnaOreFallbackWithPause();
+    }
+    if (rawSegna && raw.length >= 6 && normUseful <= 5) {
+        return segnaOreFallbackWithPause();
+    }
+    return s;
+}
+
+function extractPauseMinutesFromSegnaOraBlob(blob) {
+    if (!blob || typeof blob !== 'string') return null;
+    var pm = blob.match(/(\d+)\s*min(?:uti)?(?:\s+di\s*pausa)?/i);
+    if (pm) {
+        var n0 = parseInt(pm[1], 10);
+        if (Number.isFinite(n0) && n0 >= 0 && n0 <= 600) return n0;
+    }
+    var pmBare = blob.match(/(?:con\s+)?pausa\s+(\d{1,3})\b/i);
+    if (pmBare) {
+        var n1 = parseInt(pmBare[1], 10);
+        if (Number.isFinite(n1) && n1 >= 0 && n1 <= 600) return n1;
+    }
+    return null;
+}
+
+/**
+ * «orario di inizio 7 … orario di fine 18» / «orario inizio 7 … fine 18» (STT senza «alle»).
+ * @param {string} blob
+ * @returns {RegExpMatchArray|null}
+ */
+function matchSegnaOraLabeledInizioFineFromBlob(blob) {
+    if (!blob || typeof blob !== 'string') return null;
+    var min = SEGNA_ORA_MIN_SUFFIX;
+    var clock = '(?:alle\\s+)?(?:ore\\s+)?(?:le\\s+)?(\\d{1,2})' + min;
+    var oi = blob.match(new RegExp('orario\\s+(?:di\\s+)?inizio\\s+' + clock, 'i'));
+    var of = blob.match(new RegExp('orario\\s+(?:di\\s+)?fine\\s+' + clock, 'i'));
+    if (oi && of) {
+        return [oi[0] + ' … ' + of[0], oi[1], oi[2] || '', of[1], of[2] || ''];
+    }
+    var si = blob.match(new RegExp('(?:^|[\\s,])inizio\\s+' + clock, 'i'));
+    var sf = blob.match(new RegExp('\\bfine\\s+' + clock, 'i'));
+    if (si && sf) {
+        return [si[0] + ' … ' + sf[0], si[1], si[2] || '', sf[1], sf[2] || ''];
+    }
+    return null;
+}
+
+/**
+ * «dalle 7 con 60 min di pausa» senza fine (STT spesso tronca «alle 18» o mette l'orologio).
+ * @param {string} blob
+ * @returns {{ startH: number, startMi: number, pauseMin: number|null, untrustedStart: boolean }|null}
+ */
+export function matchSegnaOraIncompleteDallePausaFromBlob(blob) {
+    if (!blob || typeof blob !== 'string') return null;
+    blob = normalizeSegnaOraSttBlob(blob);
+    if (matchSegnaOraTimeRangeFromBlob(blob)) return null;
+    var min = SEGNA_ORA_MIN_SUFFIX;
+    var dm = blob.match(new RegExp('\\bdalle\\s+(\\d{1,2})' + min + '\\b', 'i'));
+    if (!dm) return null;
+    if (/\balle\s+\d{1,2}\b/i.test(blob.replace(/\bdalle\s+\d{1,2}(?:[:.,]\d{2})?\b/i, ''))) return null;
+    var pauseMin = extractPauseMinutesFromSegnaOraBlob(blob);
+    if (pauseMin == null && !/\bpausa\b/i.test(blob)) return null;
+    var h = parseInt(dm[1], 10);
+    var mi = dm[2] ? parseInt(dm[2], 10) : 0;
+    if (!Number.isFinite(h) || h < 0 || h > 23) return null;
+    if (!Number.isFinite(mi) || mi < 0 || mi > 59) return null;
+    return {
+        startH: h,
+        startMi: mi,
+        pauseMin: pauseMin,
+        untrustedStart: isSegnaOraUntrustedPartialStart(h, mi),
+    };
+}
+
 /**
  * Estrae fascia oraria da testo libero utente (Segna ore workspace).
  * Ritorna match stile RegExpExecArray: [0]=full, [1]=h1, [2]=m1?, [3]=h2, [4]=m2?
@@ -542,37 +770,58 @@ var SEGNA_ORA_MIN_SUFFIX = '(?:[:.,\\s](\\d{1,2}))?';
  */
 export function matchSegnaOraTimeRangeFromBlob(blob) {
     if (!blob || typeof blob !== 'string') return null;
+    blob = normalizeSegnaOraSttBlob(blob);
     var min = SEGNA_ORA_MIN_SUFFIX;
-    var m = blob.match(new RegExp('dalle\\s+(\\d{1,2})' + min + '\\s+alle\\s+(\\d{1,2})' + min, 'i'));
-    if (m) return m;
+    var glue = SEGNA_ORA_DALLE_ALLE_GLUE;
+    function trustedRange(m, explicitWorkRange) {
+        return validateSegnaOraTrustedTimeRangeMatch(m, explicitWorkRange ? { explicitWorkRange: true } : null);
+    }
+    var m = blob.match(new RegExp('dalle\\s+(\\d{1,2})' + min + glue + 'alle\\s+(\\d{1,2})' + min, 'i'));
+    if (m) return trustedRange(m, true);
+    m = blob.match(new RegExp('dalle\\s+(\\d{1,2})' + min + '\\s+alle\\s+(\\d{1,2})' + min, 'i'));
+    if (m) return trustedRange(m, true);
     // Typo vocali/STT: «daklle 6 aslle 18», «dalle 6 al 18»
     m = blob.match(new RegExp('\\bd[a-z]{0,4}l+e\\s+(\\d{1,2})' + min + '\\s+a[sxz]{0,2}l+e\\s+(\\d{1,2})' + min, 'i'));
-    if (m) return m;
+    if (m) return trustedRange(m);
+    m = blob.match(new RegExp('dalle\\s+(\\d{1,2})' + min + glue + 'al\\s+(\\d{1,2})' + min, 'i'));
+    if (m) return trustedRange(m, true);
     m = blob.match(new RegExp('dalle\\s+(\\d{1,2})' + min + '\\s+al\\s+(\\d{1,2})' + min, 'i'));
-    if (m) return m;
+    if (m) return trustedRange(m, true);
     m = blob.match(new RegExp('(?:^|\\s)(\\d{1,2})' + min + '\\s+a[sxz]{0,2}l+e\\s+(\\d{1,2})' + min + '\\b', 'i'));
-    if (m) return m;
+    if (m) return trustedRange(m);
     m = blob.match(new RegExp('(?:^|\\s)(\\d{1,2})' + min + '\\s+alle\\s+(\\d{1,2})' + min + '\\b', 'i'));
-    if (m) return m;
+    if (m) return trustedRange(m);
     m = blob.match(new RegExp('\\balle\\s+(\\d{1,2})' + min + '\\s+e\\s+(?:sono\\s+)?(?:finito|fine|terminato)\\s+alle\\s+(\\d{1,2})' + min, 'i'));
-    if (m) return m;
+    if (m) return trustedRange(m);
     m = blob.match(new RegExp('\\balle\\s+(\\d{1,2})' + min + '\\s+(?:fino\\s+)?alle\\s+(\\d{1,2})' + min, 'i'));
-    if (m) return m;
+    if (m) return trustedRange(m);
     m = blob.match(new RegExp('(?:ho\\s+)?(?:iniziato|inizio|cominciato|comincio)\\s+alle\\s+(\\d{1,2})' + min + '\\s+e\\s+(?:sono\\s+)?(?:finito|fine|terminato)\\s+alle\\s+(\\d{1,2})' + min, 'i'));
-    if (m) return m;
+    if (m) return trustedRange(m);
+    m = blob.match(new RegExp('(?:inizia|iniziato|inizio|cominciato|comincio)\\s+alle\\s+(\\d{1,2})' + min + '\\s+(?:e\\s+)?(?:finito|fine|terminato)?\\s*alle\\s+(\\d{1,2})' + min, 'i'));
+    if (m) return trustedRange(m);
+    m = blob.match(new RegExp('(?:inizia|iniziato|inizio)\\s+alle\\s+(\\d{1,2})' + min + '\\s+fine\\s+alle\\s+(\\d{1,2})' + min, 'i'));
+    if (m) return trustedRange(m);
+    m = matchSegnaOraLabeledInizioFineFromBlob(blob);
+    if (m) return trustedRange(m);
     var sm = blob.match(new RegExp('(?:ho\\s+)?(?:iniziato|inizio|cominciato|comincio)\\s+alle\\s+(\\d{1,2})' + min, 'i'));
+    if (!sm) {
+        sm = blob.match(new RegExp('(?:ho\\s+)?(?:iniziato|inizio|cominciato|comincio)\\s+(?!di\\s+fine\\b)(\\d{1,2})' + min, 'i'));
+    }
     if (sm) {
         var fm = blob.match(new RegExp('(?:finito|fine|terminato)\\s+alle\\s+(\\d{1,2})' + min, 'i'));
         if (fm) {
-            return [sm[0] + ' … ' + fm[0], sm[1], sm[2] || '', fm[1], fm[2] || ''];
+            return trustedRange([sm[0] + ' … ' + fm[0], sm[1], sm[2] || '', fm[1], fm[2] || '']);
         }
         var alleMatches = [];
         var reAlle = new RegExp('\\balle\\s+(\\d{1,2})' + min + '\\b', 'gi');
         var mm;
         while ((mm = reAlle.exec(blob)) !== null) {
+            var ah = parseInt(mm[1], 10);
+            var ami = mm[2] ? parseInt(mm[2], 10) : 0;
+            if (isSegnaOraUntrustedClockTime(ah, ami)) continue;
             alleMatches.push({
-                h: parseInt(mm[1], 10),
-                mi: mm[2] ? parseInt(mm[2], 10) : 0,
+                h: ah,
+                mi: ami,
                 index: mm.index
             });
         }
@@ -583,7 +832,7 @@ export function matchSegnaOraTimeRangeFromBlob(blob) {
             var sh = parseInt(sm[1], 10);
             var smi = sm[2] ? parseInt(sm[2], 10) : 0;
             if (cand && (cand.h !== sh || cand.mi !== smi)) {
-                return [blob, sm[1], sm[2] || '', String(cand.h), cand.mi ? String(cand.mi) : ''];
+                return trustedRange([blob, sm[1], sm[2] || '', String(cand.h), cand.mi ? String(cand.mi) : '']);
             }
         }
     }
@@ -593,13 +842,13 @@ export function matchSegnaOraTimeRangeFromBlob(blob) {
             var af0 = alleFlat[0];
             var af1 = alleFlat[alleFlat.length - 1];
             if (af0.h !== af1.h || af0.mi !== af1.mi) {
-                return [
+                return trustedRange([
                     blob,
                     String(af0.h),
                     af0.mi ? String(af0.mi) : '',
                     String(af1.h),
                     af1.mi ? String(af1.mi) : '',
-                ];
+                ]);
             }
         }
     }
@@ -619,6 +868,8 @@ export function matchSegnaOraSingleTimeFromBlob(blob) {
     var m = t.match(new RegExp('^(?:ho\\s+)?(?:finito|fine|terminato)\\s+alle\\s+(\\d{1,2})' + min + '\\s*$', 'i'));
     if (m) return [m[0], m[1], m[2] || '', 'end'];
     m = t.match(new RegExp('^(?:ho\\s+)?(?:iniziato|inizio|cominciato|comincio)\\s+alle\\s+(\\d{1,2})' + min + '\\s*$', 'i'));
+    if (m) return [m[0], m[1], m[2] || '', 'start'];
+    m = t.match(new RegExp('^(?:orario\\s+(?:di\\s+)?)?(?:iniziato|inizio|cominciato|comincio)\\s+(?:alle\\s+)?(\\d{1,2})' + min + '\\s*$', 'i'));
     if (m) return [m[0], m[1], m[2] || '', 'start'];
     m = t.match(new RegExp('^(?:alle|dalle?)\\s+(\\d{1,2})' + min + '\\s*$', 'i'));
     if (m) return [m[0], m[1], m[2] || '', 'unknown'];
@@ -660,6 +911,7 @@ function pushSegnaOraClockPoint(out, hStr, miStr) {
     var mi = miStr != null && String(miStr).trim() !== '' ? parseInt(miStr, 10) : 0;
     if (!Number.isFinite(h) || h < 0 || h > 23) return;
     if (!Number.isFinite(mi) || mi < 0 || mi > 59) return;
+    if (isSegnaOraUntrustedClockTime(h, mi)) return;
     var prev = out.length ? out[out.length - 1] : null;
     if (prev && prev.h === h && prev.mi === mi) return;
     out.push({ h: h, mi: mi });
@@ -670,7 +922,7 @@ export function collectSegnaOraAlleTimesFromUserTexts(userTexts) {
     if (!Array.isArray(userTexts)) return out;
     var min = SEGNA_ORA_MIN_SUFFIX;
     for (var i = 0; i < userTexts.length; i++) {
-        var line = String(userTexts[i] || '').trim();
+        var line = normalizeSegnaOraSttBlob(String(userTexts[i] || '').trim());
         if (!line) continue;
         var bare = line.match(new RegExp('^(\\d{1,2})' + min + '\\s*$'));
         if (bare) {
@@ -681,6 +933,11 @@ export function collectSegnaOraAlleTimesFromUserTexts(userTexts) {
         var mm;
         while ((mm = re.exec(line)) !== null) {
             pushSegnaOraClockPoint(out, mm[1], mm[2]);
+        }
+        var labeled = matchSegnaOraLabeledInizioFineFromBlob(line);
+        if (labeled) {
+            pushSegnaOraClockPoint(out, labeled[1], labeled[2]);
+            pushSegnaOraClockPoint(out, labeled[3], labeled[4]);
         }
     }
     return out;
@@ -702,13 +959,13 @@ export function matchSegnaOraTimeRangeFromUserTexts(userTexts) {
         var a0 = alle[0];
         var a1 = alle[alle.length - 1];
         if (a0.h !== a1.h || a0.mi !== a1.mi) {
-            return [
+            return validateSegnaOraTrustedTimeRangeMatch([
                 userTexts.join(' '),
                 String(a0.h),
                 a0.mi ? String(a0.mi) : '',
                 String(a1.h),
                 a1.mi ? String(a1.mi) : '',
-            ];
+            ]);
         }
     }
     return null;
