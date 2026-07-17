@@ -242,8 +242,12 @@
     background: #fff;
     border: 1px solid #e5e7eb;
     border-radius: 12px;
-    overflow: hidden;
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    max-height: calc(100dvh - 180px);
     padding: 10px;
+    padding-bottom: 72px; /* spazio sopra nav/Tony così lista comunicazioni non resta tagliata */
 }
 
 .slide-body-brand {

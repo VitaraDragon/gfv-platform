@@ -2,7 +2,11 @@ import { createRequire } from 'module';
 import { describe, it, expect } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { tryTonyNavQuickReply, resolveNavTarget } = require('../functions/tony-nav-quick-reply.js');
+const {
+  tryTonyNavQuickReply,
+  tryTonyFieldNavQuickReply,
+  resolveNavTarget,
+} = require('../functions/tony-nav-quick-reply.js');
 
 const moduli = ['tony', 'contoTerzi', 'magazzino', 'manodopera', 'meteo'];
 const ctxBase = {
@@ -27,6 +31,91 @@ describe('tryTonyNavQuickReply', () => {
     expect(resolveNavTarget('apri terreni')).toBe('terreni');
   });
 
+  it('portami alle comunicazioni → target comunicazioni', () => {
+    expect(resolveNavTarget('portami alle comunicazioni del caposquadra')).toBe('comunicazioni');
+    const hit = tryTonyNavQuickReply({
+      message: 'portami alle comunicazioni',
+      ctx: ctxBase,
+    });
+    expect(hit).not.toBeNull();
+    expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'comunicazioni' });
+  });
+});
+
+describe('tryTonyFieldNavQuickReply', () => {
+  const ctxField = {
+    ...ctxBase,
+    page: {
+      pagePath: '/core/mobile/field-workspace-standalone.html',
+      currentTableData: { pageType: 'field_workspace', summary: '', items: [] },
+    },
+  };
+
+  it('operaio: portami alle comunicazioni del caposquadra → APRI_PAGINA comunicazioni', () => {
+    const hit = tryTonyFieldNavQuickReply({
+      message: 'portami alle comunicazioni del caposquadra',
+      ctx: ctxField,
+      fieldProfile: 'operaio',
+    });
+    expect(hit).not.toBeNull();
+    expect(hit.id).toBe('nav_field');
+    expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'comunicazioni' });
+    expect(hit.text).toMatch(/comunicazioni/i);
+  });
+
+  it('operaio: portami alle mie statistiche → statistiche lavoratore (non desktop)', () => {
+    const hit = tryTonyFieldNavQuickReply({
+      message: 'portami alle mie statistiche',
+      ctx: ctxField,
+      fieldProfile: 'operaio',
+    });
+    expect(hit).not.toBeNull();
+    expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'statistiche lavoratore' });
+  });
+
+  it('operaio: portami alle statistiche → slide mobile', () => {
+    const hit = tryTonyFieldNavQuickReply({
+      message: 'portami alle statistiche',
+      ctx: ctxField,
+      fieldProfile: 'operaio',
+    });
+    expect(hit).not.toBeNull();
+    expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'statistiche lavoratore' });
+  });
+
+  it('operaio: portami ai lavori → slide lavoro campo (non Gestione Lavori)', () => {
+    const hit = tryTonyFieldNavQuickReply({
+      message: 'portami ai lavori',
+      ctx: ctxField,
+      fieldProfile: 'operaio',
+    });
+    expect(hit).not.toBeNull();
+    expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'lavoro campo' });
+    expect(hit.text).toMatch(/lavoro/i);
+  });
+
+  it('operaio: portami alle ore → segnatura ore (slide workspace)', () => {
+    const hit = tryTonyFieldNavQuickReply({
+      message: 'portami alle ore',
+      ctx: ctxField,
+      fieldProfile: 'operaio',
+    });
+    expect(hit).not.toBeNull();
+    expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'segnatura ore' });
+  });
+
+  it('caposquadra: validazione ore consentita', () => {
+    const hit = tryTonyFieldNavQuickReply({
+      message: 'portami alla validazione ore',
+      ctx: ctxField,
+      fieldProfile: 'caposquadra',
+    });
+    expect(hit).not.toBeNull();
+    expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'validazione ore' });
+  });
+});
+
+describe('tryTonyNavQuickReply — altri casi', () => {
   it('RIASSUNTO con tableDataSummary → testo tabella', () => {
     const hit = tryTonyNavQuickReply({
       message: 'RIASSUNTO',

@@ -54,7 +54,31 @@
         return mods.some(function (m) { return String(m).toLowerCase() === 'tony'; });
     }
 
+    /**
+     * Iframe embed (es. dettaglio lavoro / stats nel field-workspace): Tony resta sul parent.
+     * Evita doppio FAB e due chat indipendenti.
+     */
+    function shouldSuppressTonyAsEmbed() {
+        try {
+            var params = new URLSearchParams(window.location.search || '');
+            var embed = String(params.get('embed') || '').toLowerCase();
+            if (embed === 'mobile' || embed === '1' || embed === 'true') return true;
+            if (params.get('noTony') === '1') return true;
+            if (window.parent && window.parent !== window) {
+                try {
+                    if (window.parent.document && window.parent.document.getElementById('tony-fab')) {
+                        return true;
+                    }
+                    var pp = String(window.parent.location.pathname || '').toLowerCase();
+                    if (pp.indexOf('field-workspace') >= 0) return true;
+                } catch (eCross) { /* cross-origin */ }
+            }
+        } catch (e) { /* ignore */ }
+        return false;
+    }
+
     function shouldLoadTony() {
+        if (shouldSuppressTonyAsEmbed()) return false;
         var plan = getPlanId();
         if (plan === 'free') return hasTonyModule();
         if (plan === 'base') return true;
@@ -147,12 +171,9 @@
     bootstrapTenantContextForTony();
 
     function loadTonyWidgetScript() {
-        if (window.__gfvTonyWidgetRequested) {
-            if (document.getElementById('tony-fab')) return;
-            if (!shouldLoadTony()) return;
-            window.__gfvTonyWidgetRequested = false;
-        }
+        if (document.getElementById('tony-fab')) return;
         if (window.__gfvTonyWidgetRequested) return;
+        if (!shouldLoadTony()) return;
         window.__gfvTonyWidgetRequested = true;
         var base = resolveCoreBase();
         var sep = (base && !base.endsWith('/')) ? '/' : '';
@@ -162,7 +183,7 @@
         document.head.appendChild(link);
         var s = document.createElement('script');
         s.type = 'module';
-        s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js?v=2026-07-15p';
+        s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js?v=2026-07-17e';
         document.body.appendChild(s);
     }
 

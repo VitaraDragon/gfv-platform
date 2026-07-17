@@ -88,6 +88,7 @@
 | 5.2 | Fallback: OPEN_MODAL su pagina senza modal → APRI_PAGINA prima, poi riprova | MASTER_PLAN | implementato | checkTonyPendingAfterNav |
 | 5.3 | tony_pending_intent in sessionStorage per persistenza cross-page | ANALISI_SUBAGENT | implementato | |
 | 5.4 | OPEN_MODAL con fields → INJECT_FORM_DATA atomico (non N SET_FIELD) | TONY_SVILUPPO_2026-03 | implementato | |
+| 5.5 | **Profilo campo — nav slide workspace mobile:** «portami a comunicazioni / ore / lavori / statistiche / valida ore» → `APRI_PAGINA` + `gfvFieldWorkspaceGoToSlide` (0 CF se intercept locale); target `lavoro campo` / `statistiche lavoratore` (mai Gestione Lavori o Statistiche desktop); su field-workspace, APRI_PAGINA segnatura apre **slide Ore** (non pagina desktop); iframe `embed=mobile` non monta secondo FAB Tony | prodotto 2026-07-17 | **implementato** | `tony-nav-quick-reply.js` (`tryTonyFieldNavQuickReply`), `field-role-guard.js`, `engine.js`, `main.js` build `2026-07-17a`–`f`, `gfv-tony-loader.js`; ✅ verificato utente 2026-07-17 |
 
 ---
 

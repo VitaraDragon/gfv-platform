@@ -17,8 +17,14 @@ export var TONY_PAGE_MAP = {
     'segnatura ore': 'core/segnatura-ore-standalone.html', 'segnare ore': 'core/segnatura-ore-standalone.html',
     'workspace campo': 'core/mobile/field-workspace-standalone.html',
     'field workspace': 'core/mobile/field-workspace-standalone.html',
-    'statistiche lavoratore': 'core/mobile/statistiche-lavoratore-standalone.html',
-    'statistiche campo': 'core/mobile/statistiche-lavoratore-standalone.html',
+    'comunicazioni': 'core/mobile/field-workspace-standalone.html?openSlide=comunicazioni',
+    'comunicazioni squadra': 'core/mobile/field-workspace-standalone.html?openSlide=comunicazioni',
+    'comunicazioni caposquadra': 'core/mobile/field-workspace-standalone.html?openSlide=comunicazioni',
+    // Slide mobile nel workspace campo (iframe stats); non la pagina Statistiche desktop manager.
+    'statistiche lavoratore': 'core/mobile/field-workspace-standalone.html?openSlide=statistiche',
+    'statistiche campo': 'core/mobile/field-workspace-standalone.html?openSlide=statistiche',
+    // Slide Lavoro nel workspace mobile (profilo campo); non Gestione Lavori manager.
+    'lavoro campo': 'core/mobile/field-workspace-standalone.html?openSlide=lavoro',
     'validazione ore': 'core/admin/validazione-ore-standalone.html', 'validare ore': 'core/admin/validazione-ore-standalone.html',
     'lavori caposquadra': 'core/admin/lavori-caposquadra-standalone.html', 'i miei lavori': 'core/admin/lavori-caposquadra-standalone.html',
     'statistiche': 'core/statistiche-standalone.html',
@@ -123,7 +129,9 @@ export var TONY_LABEL_MAP = {
     'lavori': 'Gestione Lavori', 'gestione lavori': 'Gestione Lavori',
     'segnatura ore': 'Segnatura Ore', 'segnare ore': 'Segnatura Ore',
     'workspace campo': 'Workspace campo', 'field workspace': 'Workspace campo',
+    'comunicazioni': 'Comunicazioni', 'comunicazioni squadra': 'Comunicazioni', 'comunicazioni caposquadra': 'Comunicazioni',
     'statistiche lavoratore': 'Le tue statistiche', 'statistiche campo': 'Le tue statistiche',
+    'lavoro campo': 'Lavoro',
     'validazione ore': 'Validazione Ore', 'validare ore': 'Validazione Ore',
     'lavori caposquadra': 'I miei Lavori', 'i miei lavori': 'I miei Lavori',
     'statistiche': 'Statistiche', 'statistiche manodopera': 'Statistiche Manodopera', 'statistiche ore': 'Statistiche Manodopera',
@@ -184,7 +192,14 @@ export function resolveTarget(raw) {
         'previsioni': 'meteo', 'previsioni del tempo': 'meteo',
         'gestione lavori': 'lavori', 'parco macchine': 'parcoMacchine',
         'field-workspace': 'workspace campo', 'workspace mobile': 'workspace campo',
-        'home campo': 'workspace campo', 'flusso campo': 'workspace campo'
+        'home campo': 'workspace campo', 'flusso campo': 'workspace campo',
+        'messaggi': 'comunicazioni', 'messaggi squadra': 'comunicazioni',
+        'messaggi caposquadra': 'comunicazioni', 'messaggi del capo': 'comunicazioni',
+        'comunicazioni del caposquadra': 'comunicazioni', 'comunicazioni del capo': 'comunicazioni',
+        'mie statistiche': 'statistiche lavoratore', 'le mie statistiche': 'statistiche lavoratore',
+        'statistiche personali': 'statistiche lavoratore', 'statistiche operaio': 'statistiche lavoratore',
+        'lavoro campo': 'lavoro campo', 'slide lavoro': 'lavoro campo', 'il lavoro': 'lavoro campo',
+        'alle ore': 'segnatura ore', 'segna ore': 'segnatura ore', 'segna le ore': 'segnatura ore'
     };
     if (aliases[t]) return aliases[t];
     var normalized = t.replace(/\b(del|della|dei|delle|pagina|modulo|sezione|anagrafica)\b/g, ' ').replace(/\s+/g, ' ').trim();

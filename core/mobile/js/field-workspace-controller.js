@@ -309,6 +309,9 @@ function findSlideIndexByToken(token) {
         if (normalized === 'valida-ore' || normalized === 'validazione-ore' || normalized === 'validazione') {
             return title === 'valida ore';
         }
+        if (normalized === 'statistiche' || normalized === 'statistiche-lavoratore' || normalized === 'statistiche lavoratore') {
+            return title === 'statistiche';
+        }
         return title === normalized;
     });
 }
@@ -338,6 +341,29 @@ function syncSlideFromScroll() {
 function goToHoursSlideForTony() {
     const idx = findSlideIndexByToken('ore');
     if (idx >= 0) goToSlide(idx);
+}
+
+/**
+ * Tony: apri una slide del workspace per token (es. comunicazioni, ore, valida-ore).
+ * @param {string} token
+ * @returns {boolean}
+ */
+function goToSlideByTokenForTony(token) {
+    const idx = findSlideIndexByToken(token);
+    if (idx < 0) return false;
+    goToSlide(idx);
+    const tok = String(token || '').trim().toLowerCase();
+    if (tok === 'comunicazioni' || tok === 'comunicazioni-squadra') {
+        // Ricarica elenco (anche se già sulla slide) e porta in vista la lista.
+        Promise.resolve(loadReceivedCommunications()).then(() => {
+            try {
+                if (receivedCommunicationsListEl && typeof receivedCommunicationsListEl.scrollIntoView === 'function') {
+                    receivedCommunicationsListEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            } catch (eScroll) { /* ignore */ }
+        }).catch(() => { /* ignore */ });
+    }
+    return true;
 }
 
 /**
@@ -1011,27 +1037,32 @@ async function resolveDestinatariIdsForSend() {
 async function fetchReceivedCommunicationRows() {
     const operaioUserId = primaryManodoperaUserId(currentUser, currentUserData);
     const capoIdsOperaio = await resolveCaposquadraIdsForOperaio(getDb(), currentTenantId, operaioUserId);
-    const operaioLavoroIds = (Array.isArray(cachedWorks) && cachedWorks.length)
-        ? cachedWorks.map((w) => String(w.id))
-        : (await fetchLavoriDocumentsForFieldUser(
-            getDb(),
-            currentTenantId,
-            operaioUserId,
-            resolveSegnaturaOreRoleFlags(currentUserData || {}),
-            currentUserData || null
-        )).map((l) => String(l.id));
+    // Elenco lavori completo (non la finestra ridotta di cachedWorks): serve per visibilità legacy senza destinatari.
+    const lavoriDocs = await fetchLavoriDocumentsForFieldUser(
+        getDb(),
+        currentTenantId,
+        operaioUserId,
+        resolveSegnaturaOreRoleFlags(currentUserData || {}),
+        currentUserData || null
+    );
+    const operaioLavoroIds = lavoriDocs.map((l) => String(l.id));
+    const cachedIds = (Array.isArray(cachedWorks) ? cachedWorks : []).map((w) => String(w.id));
+    const lavoroIdsForVisibility = Array.from(new Set([...operaioLavoroIds, ...cachedIds]));
     const commRef = collection(getDb(), `tenants/${currentTenantId}/comunicazioni`);
     const snap = await getDocs(query(commRef, where('stato', '==', 'attiva')));
     const rows = [];
     snap.forEach((d) => {
         const data = d.data();
-        const dataCom = data.data?.toDate ? data.data.toDate() : new Date(data.data);
-        if (!comunicazioneVisibilePerOperaio(data, currentUser, currentUserData, capoIdsOperaio, operaioLavoroIds)) return;
+        const rawData = data.data;
+        const dataCom = rawData && typeof rawData.toDate === 'function'
+            ? rawData.toDate()
+            : (rawData ? new Date(rawData) : null);
+        if (!comunicazioneVisibilePerOperaio(data, currentUser, currentUserData, capoIdsOperaio, lavoroIdsForVisibility)) return;
         if (!isComunicazioneAttivaPerData(dataCom)) return;
         rows.push({
             id: d.id,
             ...data,
-            dataCom,
+            dataCom: dataCom && !Number.isNaN(dataCom.getTime()) ? dataCom : new Date(),
             haConfermato: confermeIncludesUser(data.conferme, currentUser, currentUserData)
         });
     });
@@ -1107,28 +1138,31 @@ async function loadReceivedCommunications() {
         toggleReceivedCommunicationsHistoryEl,
         receivedCommunicationsHistoryEl,
         0,
-        receivedCommunicationsHistoryExpanded
+        false
     );
     try {
         const rows = await fetchReceivedCommunicationRows();
         const { pending, history } = partitionComunicazioniRicevuteOperaio(rows);
         if (!pending.length && !history.length) {
-            receivedCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Nessuna comunicazione attiva.</div>';
+            receivedCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Nessuna comunicazione dal caposquadra negli ultimi 60 giorni.</div>';
             return;
         }
-        if (!pending.length) {
-            receivedCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Nessun messaggio da confermare.</div>';
-        } else {
-            receivedCommunicationsListEl.innerHTML = pending.map((row) => renderReceivedCommunicationCard(row)).join('');
+        // Mostra TUTTO in lista principale (da confermare + già lette): lo storico collassabile restava invisibile su mobile/Tony.
+        const mainParts = [];
+        if (pending.length) {
+            mainParts.push(...pending.map((row) => renderReceivedCommunicationCard(row)));
         }
-        if (receivedCommunicationsHistoryEl && history.length) {
-            receivedCommunicationsHistoryEl.innerHTML = history.map((row) => renderReceivedCommunicationCard(row, { readOnly: true })).join('');
+        if (history.length) {
+            mainParts.push(...history.map((row) => renderReceivedCommunicationCard(row, { readOnly: true })));
         }
+        receivedCommunicationsListEl.innerHTML = mainParts.join('');
+        // Pannello storico opzionale (duplicato) nascosto di default — tutto è già in lista.
+        if (receivedCommunicationsHistoryEl) receivedCommunicationsHistoryEl.innerHTML = '';
         setCommunicationsHistoryToggle(
             toggleReceivedCommunicationsHistoryEl,
             receivedCommunicationsHistoryEl,
-            history.length,
-            receivedCommunicationsHistoryExpanded
+            0,
+            false
         );
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore comunicazioni ricevute:', error);
@@ -1183,6 +1217,9 @@ async function loadSentCommunications() {
         if (!inEvidenza.length && !storico.length) {
             sentCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Nessuna comunicazione inviata.</div>';
             return;
+        }
+        if (!inEvidenza.length && storico.length) {
+            sentCommunicationsHistoryExpanded = true;
         }
         if (!inEvidenza.length) {
             sentCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Nessun invio in evidenza.</div>';
@@ -1263,6 +1300,7 @@ function calculateNetHours() {
 }
 
 window.gfvFieldWorkspaceGoToHoursSlide = goToHoursSlideForTony;
+window.gfvFieldWorkspaceGoToSlide = goToSlideByTokenForTony;
 window.gfvFieldWorkspaceRecalcHours = calculateNetHours;
 window.gfvFieldWorkspaceSelectLavoroById = selectLavoroByIdOrLabelForTony;
 window.gfvFieldWorkspaceGetSelectedLavoroId = function () {
@@ -1660,7 +1698,13 @@ async function initFieldWorkspace() {
                     roles = Array.isArray(userData.ruoli) ? userData.ruoli : [];
                 }
                 const normalizedRoles = normalizeRoles ? normalizeRoles(roles) : roles;
-                currentUserData = { ...userData, id: user.uid, uid: user.uid, ruoli: normalizedRoles };
+                // Conserva eventuale id documento users diverso da auth.uid (match destinatari comunicazioni).
+                currentUserData = {
+                    ...userData,
+                    id: userData.id || userDoc.id || user.uid,
+                    uid: user.uid,
+                    ruoli: normalizedRoles
+                };
                 currentUser = user;
                 currentTenantId = tenantId;
 

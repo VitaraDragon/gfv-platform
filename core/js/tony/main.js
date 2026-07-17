@@ -10,7 +10,8 @@ import { hasActiveModule, getModuliAttiviFromTonyContext, isApriPaginaTargetAllo
 import {
     getTonyFieldProfileFromContext,
     isRawTonyApriPaginaAllowed,
-    isTonyOpenModalBlockedForFieldProfile
+    isTonyOpenModalBlockedForFieldProfile,
+    remapTonyApriPaginaTargetForFieldProfile
 } from './field-role-guard.js';
 import {
     resolveSegnaOreTargetWindow,
@@ -57,7 +58,7 @@ import { tonyWantsDashboardRiassunto, buildDashboardRiassuntoText, formatDashboa
 import { initTonyDocumentCapture } from './document-capture.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-export const TONY_CLIENT_BUILD = '2026-07-15p';
+export const TONY_CLIENT_BUILD = '2026-07-17f';
 if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
@@ -646,7 +647,9 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             var r = String(resolved).toLowerCase();
             if (r.indexOf('segnatura') < 0 && r.indexOf('segnare ore') < 0) return false;
         } catch (e) { return false; }
-        console.log('[Tony] APRI_PAGINA verso segnatura ore bloccato: già su workspace campo mobile (nessun messaggio chat: inject/recovery gestiscono il flusso).');
+        // Non andare alla segnatura desktop: apri la slide Ore, poi eventuale inject.
+        try { tonyTryOpenFieldWorkspaceSlideForApriPagina(rawTarget); } catch (eSlideOre) { /* ignore */ }
+        console.log('[Tony] APRI_PAGINA segnatura ore → slide Ore workspace (no desktop).');
         try {
             var flds = null;
             if (dataOrParams && typeof dataOrParams === 'object') {
@@ -673,6 +676,94 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             }
         } catch (eInj) { /* ignore */ }
         return true;
+    }
+
+    /** Target che aprono slide del workspace campo: niente dialog «Aprire la pagina…?». */
+    function tonyShouldSkipApriPaginaConfirm(rawTarget) {
+        try {
+            var r = String(resolveTarget(rawTarget) || rawTarget || '').toLowerCase().trim();
+            if (!r) return false;
+            if (r === 'comunicazioni' || r.indexOf('comunicazioni') === 0) return true;
+            if (r === 'workspace campo' || r === 'field workspace') return true;
+            if (getTonyFieldProfileFromContext()) {
+                if (r.indexOf('segnatura') >= 0 || r.indexOf('segnare ore') >= 0) return true;
+                if (r === 'validazione ore' || r === 'validare ore') return true;
+                if (r === 'statistiche' || r === 'statistiche lavoratore' || r === 'statistiche campo') return true;
+                if (r === 'lavoro campo' || r === 'lavoro') return true;
+                if (r === 'lavori' || r === 'gestione lavori') return true;
+                if (r === 'lavori caposquadra' || r === 'i miei lavori') return true;
+                if (r === 'impostazioni') return true;
+            }
+        } catch (eSkip) { /* ignore */ }
+        return false;
+    }
+
+    /**
+     * Se già sul workspace campo mobile e il target è una slide (es. comunicazioni),
+     * apri la slide senza reload / dialog di conferma.
+     * @returns {boolean} true se gestito localmente
+     */
+    function tonyTryOpenFieldWorkspaceSlideForApriPagina(rawTarget) {
+        try {
+            var resolved = resolveTarget(rawTarget) || String(rawTarget || '').toLowerCase().trim();
+            var r = String(resolved).toLowerCase();
+            var path = (window.location.pathname || '').toLowerCase();
+            var onFieldWs =
+                path.indexOf('field-workspace-standalone') >= 0 ||
+                (window.currentTableData && window.currentTableData.pageType === 'field_workspace');
+            var goFn = typeof window.gfvFieldWorkspaceGoToSlide === 'function'
+                ? window.gfvFieldWorkspaceGoToSlide
+                : null;
+            var targetWin = window;
+            if (!onFieldWs || !goFn) {
+                try {
+                    if (window.parent && window.parent !== window) {
+                        var ppath = (window.parent.location.pathname || '').toLowerCase();
+                        if (ppath.indexOf('field-workspace-standalone') >= 0) onFieldWs = true;
+                        else if (window.parent.currentTableData && window.parent.currentTableData.pageType === 'field_workspace') onFieldWs = true;
+                        if (typeof window.parent.gfvFieldWorkspaceGoToSlide === 'function') {
+                            goFn = window.parent.gfvFieldWorkspaceGoToSlide.bind(window.parent);
+                            targetWin = window.parent;
+                        }
+                    }
+                } catch (ePw) { /* cross-origin */ }
+            }
+            if (!onFieldWs) return false;
+
+            var slideToken = null;
+            if (r === 'comunicazioni' || r.indexOf('comunicazioni') === 0) slideToken = 'comunicazioni';
+            else if (r === 'validazione ore' || r === 'validare ore') slideToken = 'valida-ore';
+            else if (r.indexOf('segnatura') >= 0 || r.indexOf('segnare ore') >= 0) slideToken = 'ore';
+            else if (r === 'statistiche' || r === 'statistiche lavoratore' || r === 'statistiche campo') slideToken = 'statistiche';
+            else if (r === 'lavoro campo' || r === 'lavoro') slideToken = 'lavoro';
+            else if (
+                r === 'lavori' || r === 'gestione lavori' ||
+                r === 'lavori caposquadra' || r === 'i miei lavori'
+            ) {
+                // Sul workspace mobile: slide Lavoro (non Gestione Lavori desktop).
+                slideToken = 'lavoro';
+            }
+            if (!slideToken) return false;
+            if (typeof goFn === 'function') {
+                var ok = goFn(slideToken);
+                if (ok) {
+                    console.log('[Tony] APRI_PAGINA slide workspace locale:', slideToken);
+                    return true;
+                }
+            }
+            // Fallback: URL con openSlide (stessa pagina, no confirm).
+            try {
+                var loc = targetWin.location;
+                var u = new URL(loc.href);
+                u.searchParams.set('openSlide', slideToken);
+                console.log('[Tony] APRI_PAGINA slide workspace via reload openSlide:', slideToken);
+                loc.href = u.toString();
+                return true;
+            } catch (eRel) { /* ignore */ }
+            return false;
+        } catch (e) {
+            return false;
+        }
     }
 
     /**
@@ -4838,6 +4929,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 case 'APRI_PAGINA':
                     console.log('[DEBUG CURSOR] processTonyCommand: Caso APRI_PAGINA');
                     var target = (data.target || (data.params && data.params.target) || '').toString().trim();
+                    target = remapTonyApriPaginaTargetForFieldProfile(target);
                     console.log('[DEBUG CURSOR] processTonyCommand: Target per APRI_PAGINA:', target);
                     if (target && !isRawTonyApriPaginaAllowed(target)) {
                         console.warn('[Tony] APRI_PAGINA bloccato per profilo campo:', target);
@@ -4852,6 +4944,9 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     if (target && tonyBlockApriSegnaturaIfOnFieldWorkspace(target, Object.assign({}, data, data.params && typeof data.params === 'object' ? data.params : {}))) {
                         break;
                     }
+                    if (target && tonyTryOpenFieldWorkspaceSlideForApriPagina(target)) {
+                        break;
+                    }
                     if (target) {
                         var resolved = resolveTarget(target) || target;
                         var url = getUrlForTarget(target);
@@ -4863,43 +4958,47 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 urlWithNotify += '&clienteId=' + encodeURIComponent(String(apParamsNavEarly.clienteId));
                             }
                             console.log('[DEBUG CURSOR] processTonyCommand: URL trovato per', target, '→', urlWithNotify);
-                            window.showTonyConfirmDialog('Aprire la pagina "' + label + '"?').then(function(ok) {
-                                if (ok) {
-                                    _tonyCommandQueue.length = 0;
-                                    console.log('[DEBUG CURSOR] processTonyCommand: Navigazione confermata, target:', resolved);
-                                    var apParams = (data.params && typeof data.params === 'object') ? Object.assign({}, data, data.params) : data;
-                                    var pendingModalPc = apParams._tonyPendingModal;
-                                    var pendingFieldsPc = apParams._tonyPendingFields || apParams.fields;
-                                    var rawTPc = (target || '').toLowerCase();
-                                    if (!pendingModalPc && pendingFieldsPc && typeof pendingFieldsPc === 'object' && Object.keys(pendingFieldsPc).length > 0) {
-                                        if (rawTPc.indexOf('nuovo') >= 0 && rawTPc.indexOf('preventivo') >= 0) pendingModalPc = 'preventivo-form';
-                                    }
-                                    if (!pendingModalPc && rawTPc.indexOf('nuovo') >= 0 && rawTPc.indexOf('preventivo') >= 0) {
-                                        pendingModalPc = 'preventivo-form';
-                                    }
-                                    if (pendingModalPc && target) {
-                                        try {
-                                            var rawTNavPc = (target || '').toLowerCase();
-                                            var isNuovoPrevNavPc = pendingModalPc === 'preventivo-form' || (rawTNavPc.indexOf('nuovo') >= 0 && rawTNavPc.indexOf('preventivo') >= 0);
-                                            var userPromptForPendingPc = isNuovoPrevNavPc ? tonyGetUserPromptForPendingNav() : '';
-                                            sessionStorage.setItem('tony_pending_intent', JSON.stringify({
-                                                target: target,
-                                                modalId: pendingModalPc,
-                                                fields: (pendingFieldsPc && typeof pendingFieldsPc === 'object') ? pendingFieldsPc : null,
-                                                userPromptForPending: userPromptForPendingPc || null
-                                            }));
-                                            console.log('[Tony] tony_pending_intent salvato (processTonyCommand):', pendingModalPc, target);
-                                        } catch (e) { console.warn('[Tony] Impossibile salvare pending intent:', e); }
-                                    }
-                                    window.location.hash = '#' + resolved;
-                                    try {
-                                        window.dispatchEvent(new CustomEvent('tony-navigate', { detail: { target: resolved, hash: '#' + resolved, url: urlWithNotify } }));
-                                    } catch (e) {}
-                                    window.location.href = urlWithNotify;
-                                } else {
-                                    console.log('[DEBUG CURSOR] processTonyCommand: Navigazione annullata dall\'utente');
+                            var runApriPaginaNavPc = function () {
+                                _tonyCommandQueue.length = 0;
+                                console.log('[DEBUG CURSOR] processTonyCommand: Navigazione, target:', resolved);
+                                var apParams = (data.params && typeof data.params === 'object') ? Object.assign({}, data, data.params) : data;
+                                var pendingModalPc = apParams._tonyPendingModal;
+                                var pendingFieldsPc = apParams._tonyPendingFields || apParams.fields;
+                                var rawTPc = (target || '').toLowerCase();
+                                if (!pendingModalPc && pendingFieldsPc && typeof pendingFieldsPc === 'object' && Object.keys(pendingFieldsPc).length > 0) {
+                                    if (rawTPc.indexOf('nuovo') >= 0 && rawTPc.indexOf('preventivo') >= 0) pendingModalPc = 'preventivo-form';
                                 }
-                            });
+                                if (!pendingModalPc && rawTPc.indexOf('nuovo') >= 0 && rawTPc.indexOf('preventivo') >= 0) {
+                                    pendingModalPc = 'preventivo-form';
+                                }
+                                if (pendingModalPc && target) {
+                                    try {
+                                        var rawTNavPc = (target || '').toLowerCase();
+                                        var isNuovoPrevNavPc = pendingModalPc === 'preventivo-form' || (rawTNavPc.indexOf('nuovo') >= 0 && rawTNavPc.indexOf('preventivo') >= 0);
+                                        var userPromptForPendingPc = isNuovoPrevNavPc ? tonyGetUserPromptForPendingNav() : '';
+                                        sessionStorage.setItem('tony_pending_intent', JSON.stringify({
+                                            target: target,
+                                            modalId: pendingModalPc,
+                                            fields: (pendingFieldsPc && typeof pendingFieldsPc === 'object') ? pendingFieldsPc : null,
+                                            userPromptForPending: userPromptForPendingPc || null
+                                        }));
+                                        console.log('[Tony] tony_pending_intent salvato (processTonyCommand):', pendingModalPc, target);
+                                    } catch (e) { console.warn('[Tony] Impossibile salvare pending intent:', e); }
+                                }
+                                window.location.hash = '#' + resolved;
+                                try {
+                                    window.dispatchEvent(new CustomEvent('tony-navigate', { detail: { target: resolved, hash: '#' + resolved, url: urlWithNotify } }));
+                                } catch (e) {}
+                                window.location.href = urlWithNotify;
+                            };
+                            if (tonyShouldSkipApriPaginaConfirm(target)) {
+                                runApriPaginaNavPc();
+                            } else {
+                                window.showTonyConfirmDialog('Aprire la pagina "' + label + '"?').then(function(ok) {
+                                    if (ok) runApriPaginaNavPc();
+                                    else console.log('[DEBUG CURSOR] processTonyCommand: Navigazione annullata dall\'utente');
+                                });
+                            }
                         } else {
                             console.warn('[DEBUG CURSOR] processTonyCommand: URL non trovato per target:', target);
                         }
@@ -5399,9 +5498,9 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         if (kind === 'modal') {
             msg = 'Dal tuo profilo campo non posso aprire questa scheda o il modulo richiesto. Per anagrafiche generali e magazzino serve un account manager.';
         } else if (label) {
-            msg = 'Non posso aprire «' + label + '» con il tuo profilo. Ti aiuto con workspace campo, ore, lavori assegnati o impostazioni account; per il resto chiedi a un manager.';
+            msg = 'Non posso aprire «' + label + '» con il tuo profilo. Ti aiuto con workspace campo, comunicazioni, ore, lavori assegnati o impostazioni account; per il resto chiedi a un manager.';
         } else {
-            msg = 'Non posso aprire questa pagina con il tuo profilo. Usa il workspace campo e le sezioni manodopera, oppure chiedi a un manager.';
+            msg = 'Non posso aprire questa pagina con il tuo profilo. Usa il workspace campo (comunicazioni, ore) e le sezioni manodopera, oppure chiedi a un manager.';
         }
         try { if (typeof removeTyping === 'function') removeTyping(); } catch (e0) {}
         try {
@@ -6615,6 +6714,57 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 },
                 saveState: saveTonyState,
             };
+
+            // Profilo campo: tutte le slide workspace in locale (0 CF) — evita Gemini «sei già su segna ore».
+            if (!opts.proactive && getTonyFieldProfileFromContext()) {
+                var fieldNavMsg = String(text || '').toLowerCase();
+                var fieldNavVerb = /\b(apri|portami|vai\s+a|vai\s+al|vai\s+alla|vai\s+alle|vai\s+ai|mandami|mostrami\s+la\s+pagina|naviga)\b/i.test(fieldNavMsg);
+                var fieldNavTarget = null;
+                var navFieldText = null;
+                if (fieldNavVerb) {
+                    if (/\bcomunicazion/i.test(fieldNavMsg) ||
+                        /\bmessagg\w*\s+(del\s+)?(capo|caposquadra|squadra)\b/i.test(fieldNavMsg)) {
+                        fieldNavTarget = 'comunicazioni';
+                        navFieldText = 'Ti porto alle comunicazioni.';
+                    } else if (/\bstatistiche\b/i.test(fieldNavMsg) &&
+                        !/\b(vigneto|frutteto|manodopera)\b/i.test(fieldNavMsg)) {
+                        fieldNavTarget = 'statistiche lavoratore';
+                        navFieldText = 'Ti porto alle tue statistiche.';
+                    } else if (/\b(validazion\w*\s+ore|valida\s+ore)\b/i.test(fieldNavMsg)) {
+                        fieldNavTarget = 'validazione ore';
+                        navFieldText = 'Ti porto alla validazione ore.';
+                    } else if (
+                        (/\b(segnatur|segnare\s+ore|segna\s+(le\s+)?ore|alle\s+ore)\b/i.test(fieldNavMsg) ||
+                            (/\bore\b/i.test(fieldNavMsg) && !/\b(valid|statist)/i.test(fieldNavMsg))) &&
+                        !/\bvalidaz/i.test(fieldNavMsg)
+                    ) {
+                        fieldNavTarget = 'segnatura ore';
+                        navFieldText = 'Ti porto alla segnatura ore.';
+                    } else if (
+                        (/\b(ai\s+)?lavori\b/i.test(fieldNavMsg) || /\bal\s+lavoro\b/i.test(fieldNavMsg) ||
+                            /\bcosa\s+devo\s+fare\b/i.test(fieldNavMsg)) &&
+                        !/\b(crea|nuovo|aggiungi|apri\s+gestione)\b/i.test(fieldNavMsg)
+                    ) {
+                        fieldNavTarget = 'lavoro campo';
+                        navFieldText = 'Ti porto al lavoro.';
+                    }
+                }
+                if (fieldNavTarget) {
+                    if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    try { if (typeof removeTyping === 'function') removeTyping(); } catch (eRmNav) { /* ignore */ }
+                    var openedLocal = tonyTryOpenFieldWorkspaceSlideForApriPagina(fieldNavTarget);
+                    if (!openedLocal) {
+                        processTonyCommand({ type: 'APRI_PAGINA', target: fieldNavTarget });
+                    }
+                    try {
+                        if (typeof showMessageInChat === 'function') showMessageInChat(navFieldText, 'tony');
+                        else if (typeof appendMessage === 'function') appendMessage(navFieldText, 'tony');
+                        if (window.Tony && typeof window.Tony.speak === 'function') window.Tony.speak(navFieldText);
+                    } catch (eNavSpeak) { /* ignore */ }
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
+            }
 
             // Fascia oraria completa (anche da cronologia turni): inject locale, 0 CF.
             if (!opts.proactive) {
@@ -9056,6 +9206,7 @@ window.addEventListener('tony-module-updated', function(e) {
                             console.log('[DEBUG CURSOR] onAction callback: Caso APRI_PAGINA');
                             var actualParams = params.params && typeof params.params === 'object' ? params.params : params;
                             var rawTarget = (actualParams.target || actualParams.modulo || '').toString().trim();
+                            rawTarget = remapTonyApriPaginaTargetForFieldProfile(rawTarget);
                             
                             if (!rawTarget) {
                                 console.warn('[DEBUG CURSOR] onAction callback: Target non trovato nei params');
@@ -9097,6 +9248,9 @@ window.addEventListener('tony-module-updated', function(e) {
                             if (tonyBlockApriSegnaturaIfOnFieldWorkspace(rawTarget, actualParams)) {
                                 return;
                             }
+                            if (tonyTryOpenFieldWorkspaceSlideForApriPagina(rawTarget)) {
+                                return;
+                            }
 
                             var url = getUrlForTarget(rawTarget);
                             if (!url) {
@@ -9113,41 +9267,45 @@ window.addEventListener('tony-module-updated', function(e) {
                             if (actualParams.clienteId) {
                                 urlWithNotify += '&clienteId=' + encodeURIComponent(String(actualParams.clienteId));
                             }
-                            window.showTonyConfirmDialog('Aprire la pagina "' + label + '"?').then(function(ok) {
-                                if (ok) {
-                                    _tonyCommandQueue.length = 0;
-                                    // Salvataggio intent solo alla conferma utente (evita residui da comandi annullati)
-                                    var pendingModal = actualParams._tonyPendingModal;
-                                    var pendingFields = actualParams._tonyPendingFields || actualParams.fields;
-                                    var rawT = (rawTarget || '').toLowerCase();
-                                    if (!pendingModal && pendingFields && typeof pendingFields === 'object' && Object.keys(pendingFields).length > 0) {
-                                        if (rawT.indexOf('nuovo') >= 0 && rawT.indexOf('preventivo') >= 0) pendingModal = 'preventivo-form';
-                                    }
-                                    // Cross-page: CF / onComplete possono passare solo target senza _tonyPendingModal né fields → serve comunque modal per checkTonyPendingAfterNav.
-                                    if (!pendingModal && rawT.indexOf('nuovo') >= 0 && rawT.indexOf('preventivo') >= 0) {
-                                        pendingModal = 'preventivo-form';
-                                    }
-                                    if (pendingModal && rawTarget) {
-                                        try {
-                                            var rawTNav = (rawTarget || '').toLowerCase();
-                                            var isNuovoPrevNav = pendingModal === 'preventivo-form' || (rawTNav.indexOf('nuovo') >= 0 && rawTNav.indexOf('preventivo') >= 0);
-                                            var userPromptForPending = isNuovoPrevNav ? tonyGetUserPromptForPendingNav() : '';
-                                            sessionStorage.setItem('tony_pending_intent', JSON.stringify({
-                                                target: rawTarget,
-                                                modalId: pendingModal,
-                                                fields: (pendingFields && typeof pendingFields === 'object') ? pendingFields : null,
-                                                userPromptForPending: userPromptForPending || null
-                                            }));
-                                            console.log('[Tony] tony_pending_intent salvato (post-conferma):', pendingModal, rawTarget);
-                                        } catch (e) { console.warn('[Tony] Impossibile salvare pending intent:', e); }
-                                    }
-                                    window.location.hash = '#' + resolved;
-                                    try {
-                                        window.dispatchEvent(new CustomEvent('tony-navigate', { detail: { target: resolved, hash: '#' + resolved, url: urlWithNotify } }));
-                                    } catch (e) {}
-                                    window.location.href = urlWithNotify;
+                            var runApriPaginaNavOn = function () {
+                                _tonyCommandQueue.length = 0;
+                                var pendingModal = actualParams._tonyPendingModal;
+                                var pendingFields = actualParams._tonyPendingFields || actualParams.fields;
+                                var rawT = (rawTarget || '').toLowerCase();
+                                if (!pendingModal && pendingFields && typeof pendingFields === 'object' && Object.keys(pendingFields).length > 0) {
+                                    if (rawT.indexOf('nuovo') >= 0 && rawT.indexOf('preventivo') >= 0) pendingModal = 'preventivo-form';
                                 }
-                            });
+                                // Cross-page: CF / onComplete possono passare solo target senza _tonyPendingModal né fields → serve comunque modal per checkTonyPendingAfterNav.
+                                if (!pendingModal && rawT.indexOf('nuovo') >= 0 && rawT.indexOf('preventivo') >= 0) {
+                                    pendingModal = 'preventivo-form';
+                                }
+                                if (pendingModal && rawTarget) {
+                                    try {
+                                        var rawTNav = (rawTarget || '').toLowerCase();
+                                        var isNuovoPrevNav = pendingModal === 'preventivo-form' || (rawTNav.indexOf('nuovo') >= 0 && rawTNav.indexOf('preventivo') >= 0);
+                                        var userPromptForPending = isNuovoPrevNav ? tonyGetUserPromptForPendingNav() : '';
+                                        sessionStorage.setItem('tony_pending_intent', JSON.stringify({
+                                            target: rawTarget,
+                                            modalId: pendingModal,
+                                            fields: (pendingFields && typeof pendingFields === 'object') ? pendingFields : null,
+                                            userPromptForPending: userPromptForPending || null
+                                        }));
+                                        console.log('[Tony] tony_pending_intent salvato (APRI_PAGINA):', pendingModal, rawTarget);
+                                    } catch (e) { console.warn('[Tony] Impossibile salvare pending intent:', e); }
+                                }
+                                window.location.hash = '#' + resolved;
+                                try {
+                                    window.dispatchEvent(new CustomEvent('tony-navigate', { detail: { target: resolved, hash: '#' + resolved, url: urlWithNotify } }));
+                                } catch (e) {}
+                                window.location.href = urlWithNotify;
+                            };
+                            if (tonyShouldSkipApriPaginaConfirm(rawTarget)) {
+                                runApriPaginaNavOn();
+                            } else {
+                                window.showTonyConfirmDialog('Aprire la pagina "' + label + '"?').then(function(ok) {
+                                    if (ok) runApriPaginaNavOn();
+                                });
+                            }
                             return;
                         }
                         

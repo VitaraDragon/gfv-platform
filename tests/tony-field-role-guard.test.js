@@ -8,22 +8,24 @@ import {
   isRawTonyApriPaginaAllowed,
   isTonyApriPaginaAllowedForFieldProfile,
   isTonyOpenModalBlockedForFieldProfile,
+  remapTonyApriPaginaTargetForFieldProfile,
 } from '../core/js/tony/field-role-guard.js';
-import { resolveTarget } from '../core/js/tony/engine.js';
+import { resolveTarget, getUrlForTarget } from '../core/js/tony/engine.js';
 
-function mockFieldWindow(roles, pathname = '/core/mobile/field-workspace-standalone.html') {
-  const store = {};
+function mockFieldWindow(roles, pathname = '/core/mobile/field-workspace-standalone.html', opts = {}) {
+  const store = { ...(opts.sessionStore || {}) };
+  const dashboard = opts.omitUtenteCorrente
+    ? {}
+    : { utente_corrente: { ruoli: roles } };
   globalThis.window = {
     Tony: {
       context: {
-        dashboard: {
-          utente_corrente: { ruoli: roles },
-        },
+        dashboard,
       },
     },
     location: { pathname },
     sessionStorage: {
-      getItem: (k) => store[k] ?? null,
+      getItem: (k) => (Object.prototype.hasOwnProperty.call(store, k) ? store[k] : null),
       setItem: (k, v) => {
         store[k] = v;
       },
@@ -55,9 +57,38 @@ describe('tony-field-role-guard', () => {
       expect(isTonyApriPaginaAllowedForFieldProfile('utenti')).toBe(false);
     });
 
-    it('consente workspace campo e segnatura ore', () => {
+    it('consente workspace campo, comunicazioni e segnatura ore', () => {
       expect(isRawTonyApriPaginaAllowed('workspace campo')).toBe(true);
+      expect(isRawTonyApriPaginaAllowed('comunicazioni')).toBe(true);
+      expect(isRawTonyApriPaginaAllowed('comunicazioni del caposquadra')).toBe(true);
       expect(isRawTonyApriPaginaAllowed('segnatura ore')).toBe(true);
+    });
+
+    it('remap «statistiche» desktop → slide mobile lavoratore', () => {
+      expect(remapTonyApriPaginaTargetForFieldProfile('statistiche')).toBe('statistiche lavoratore');
+      expect(isRawTonyApriPaginaAllowed('statistiche')).toBe(true);
+      const url = getUrlForTarget('statistiche lavoratore');
+      expect(url).toMatch(/field-workspace-standalone\.html/);
+      expect(url).toMatch(/openSlide=statistiche/);
+    });
+
+    it('remap «lavori» → slide lavoro campo', () => {
+      expect(remapTonyApriPaginaTargetForFieldProfile('lavori')).toBe('lavoro campo');
+      expect(isRawTonyApriPaginaAllowed('lavoro campo')).toBe(true);
+      const url = getUrlForTarget('lavoro campo');
+      expect(url).toMatch(/field-workspace-standalone\.html/);
+      expect(url).toMatch(/openSlide=lavoro/);
+    });
+  });
+
+  describe('profilo campo su statistiche-standalone (sessionStorage)', () => {
+    it('riconosce operaio senza utente_corrente in context', () => {
+      mockFieldWindow(['operaio'], '/core/statistiche-standalone.html', {
+        omitUtenteCorrente: true,
+        sessionStore: { gfv_tony_utente_ruoli: JSON.stringify(['operaio']) },
+      });
+      expect(getTonyFieldProfileFromContext()).toBe('operaio');
+      expect(isRawTonyApriPaginaAllowed('comunicazioni')).toBe(true);
     });
   });
 

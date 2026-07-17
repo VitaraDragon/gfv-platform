@@ -48,7 +48,7 @@ const {
   resolveMeteoModuleActive,
 } = require("./meteo-service");
 const { getCachedContextAzienda, invalidateTonyContextCache } = require("./tony-context-cache");
-const { tryTonyNavQuickReply } = require("./tony-nav-quick-reply");
+const { tryTonyNavQuickReply, tryTonyFieldNavQuickReply } = require("./tony-nav-quick-reply");
 const { tryTonyFilterTableQuickReply } = require("./tony-filter-table-quick-reply");
 const { tryTonyMultiBlockQuickReply } = require("./tony-multi-block-quick-reply");
 const { resolveEffectiveTierMax, sliceContextAziendaToTier, tierRankNum, normalizeTierMax } = require("./tony-context-tier");
@@ -1573,19 +1573,22 @@ SOMMA ETTARI (SUM_COLUMN) – quando page.currentTableData?.pageType === 'terren
 const SYSTEM_INSTRUCTION_TONY_FIELD = `Ruolo: Tony, assistente operativo GFV per account CAMPO (operaio o caposquadra).
 
 AMBITO (OBBLIGATORIO):
-- Rispondi SOLO in base a ciò che riguarda lavori assegnati, ore, segnatura, comunicazioni di squadra (se caposquadra), statistiche personali su ore, impostazioni account.
+- Rispondi SOLO in base a ciò che riguarda lavori assegnati, ore, segnatura, **comunicazioni di squadra** (operaio: messaggi ricevuti dal capo; caposquadra: invio e storico), statistiche personali su ore, impostazioni account.
 - VIETATO: elencare o nominare terreni aziendali come catalogo, clienti, preventivi, tariffe, prezzi al ettaro, prodotti magazzino, movimenti, listini, conti economici — anche se comparissero nel JSON del contesto (IGNORA qualsiasi riga fuori ambito; il contesto è già filtrato lato server).
 - VIETATO: rispondere a "tariffe", "quanto costa [lavoro]", "elenco terreni/campi aziendali", "clienti", "preventivi", "magazzino" con dati numerici o nomi: usa sempre il rifiuto breve sotto.
 - Se l'utente chiede dati aziendali globali, rispondi SOLO con una frase tipo: "Dal tuo profilo non ho accesso a questi dati; chiedi a un manager." e command null.
 
 NAVIGAZIONE (APRI_PAGINA) — SOLO questi target:
 - workspace campo (o field workspace)
+- **comunicazioni** (anche «comunicazioni del capo/caposquadra», «messaggi squadra»): target **"comunicazioni"** — NON è segna ore
 - segnatura ore
-- statistiche lavoratore (statistiche personali sulle ore)
+- **statistiche lavoratore** (anche «le mie statistiche», «portami alle statistiche»): target **"statistiche lavoratore"** — è la slide mobile nel workspace campo. **VIETATO** usare target **"statistiche"** (pagina desktop manager).
 - impostazioni
 - (solo caposquadra) lavori caposquadra, validazione ore
 
-NON usare APRI_PAGINA verso: dashboard, terreni, attività/diario aziendale completo, lavori (gestione manager), magazzino, macchine, vigneto, frutteto, conto terzi, clienti, preventivi, report, manodopera gestione, gestione operai, utenti.
+DISTINZIONE OBBLIGATORIA: se l'utente chiede di **aprire/portare/andare** alle **comunicazioni** (o messaggi del capo/squadra), usa SEMPRE APRI_PAGINA target **"comunicazioni"** e testo breve tipo "Ti porto alle comunicazioni.". **VIETATO** in quel caso chiedere orario di inizio/fine, pausa o avviare segna ore. Se chiede **statistiche** personali, usa **"statistiche lavoratore"** (non "statistiche").
+
+NON usare APRI_PAGINA verso: dashboard, terreni, attività/diario aziendale completo, lavori (gestione manager), **statistiche** (desktop), magazzino, macchine, vigneto, frutteto, conto terzi, clienti, preventivi, report, manodopera gestione, gestione operai, utenti.
 
 SEGNA ORE / WORKSPACE CAMPO (form inline quick-hours):
 - Se nel contesto ci sono lavori in elenco (page.currentTableData.items su field_workspace / lavori_caposquadra) e l'utente nomina un lavoro a parole (es. «potatura», «erpicatura sul trebbiano»), imposta **ora-lavoro** (o INJECT equivalente) sull'**id del lavoro che corrisponde a quel nome**, non basarti solo sul lavoro già evidenziato in interfaccia se il messaggio indica un altro elenco.
@@ -2826,6 +2829,23 @@ async function handleTonyAskRequest(request, streamOpts) {
       ctxFinal.attivita = ctxFinal.attivita || {};
       ctxFinal.attivita.terreni = azienda.terreni;
       ctxFinal.attivita.colture_con_filari = ["Vite", "Frutteto", "Olivo"];
+    }
+
+    // Navigazione deterministica profilo campo (es. «portami alle comunicazioni») — evita Gemini → segna ore.
+    if (tonyFieldProfile) {
+      const fieldNavQuick = tryTonyFieldNavQuickReply({
+        message,
+        history,
+        ctx: ctxFinal,
+        fieldProfile: tonyFieldProfile,
+      });
+      if (fieldNavQuick) {
+        tonyPerf.quickReplyHit = fieldNavQuick.id;
+        return finishTonyAskEarly(tonyPerf, message, {
+          text: fieldNavQuick.text,
+          command: fieldNavQuick.command || null,
+        });
+      }
     }
 
     if (isTonyAdvancedEarly && !tonyFieldProfile) {

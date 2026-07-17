@@ -89,6 +89,14 @@
         body.embed-mobile a[href*="dashboard-standalone.html"] {
             display: none !important;
         }
+        /* Tony resta sul parent (field-workspace): niente secondo FAB nell'iframe */
+        body.embed-mobile #tony-fab,
+        body.embed-mobile #tony-panel,
+        body.embed-mobile .tony-confirm-overlay,
+        body.embed-mobile #tony-doc-review-overlay {
+            display: none !important;
+            pointer-events: none !important;
+        }
 
         body.embed-mobile #zona-modal {
             padding: 0;

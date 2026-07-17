@@ -1,6 +1,36 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-15 — fix vocale Segna ore «dalle X alle Y» (ricostruzione ITN, build `2026-07-15p`); catena ripresa→chiusura lavoro sospeso; allineato a `main` con **Tony Occhi** step A–F (2026-07-13) e calcolatore VM P1 (2026-07-12).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-17 — nav slide workspace + doppio FAB verificati utente (build `2026-07-17e`–`f`); comunicazioni/statistiche; Segna ore ITN; catena ripresa; Tony Occhi A–F.
+
+## Tony — Nav slide workspace: ore/lavori senza «sei già su segna ore» (2026-07-17, build `2026-07-17f`)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Problema** | Dopo comunicazioni/statistiche (intercept locale), «portami alle ore» / «ai lavori» andavano in CF/Gemini: contesto `field_workspace` → risposta errata «Sei già nella pagina per segnare le ore» senza cambiare slide. Inoltre `tonyBlockApriSegnaturaIfOnFieldWorkspace` bloccava APRI_PAGINA segnatura senza aprire la slide Ore. |
+| **Fix** | Intercept locale su tutte le slide (comunicazioni, stats, ore, lavoro, valida ore); target `lavoro campo`; remap `lavori`→slide; CF `tryTonyFieldNavQuickReply` (ore/lavori); blocco segnatura apre slide Ore. |
+| **File** | `main.js`, `engine.js`, `field-role-guard.js`, `tony-nav-quick-reply.js` |
+| **Test** | `tony-nav-quick-reply.test.js`, `tony-field-role-guard.test.js` |
+| **Verifica utente** | ✅ 2026-07-17 — navigazione vocale tra slide (comunicazioni ↔ ore ↔ lavori / statistiche) OK su workspace mobile operaio (build `2026-07-17f`). |
+
+## Tony — Doppio FAB nel workspace mobile / slide Statistiche (2026-07-17, build `2026-07-17e`)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Problema** | Su field-workspace (slide Ore/Statistiche) apparivano **due FAB Tony** cliccabili → due chat: parent + iframe `lavori-caposquadra` (`embed=mobile`) caricava di nuovo il widget; il FAB dell’iframe restava visibile anche dopo lo swipe. |
+| **Fix** | `gfv-tony-loader.js`: non carica Tony se `embed=mobile` / `noTony=1` / parent già ha FAB o path `field-workspace`; rimossa race che poteva ri-richiedere il widget. CSS embed-mobile nasconde FAB/pannello residuali. |
+| **File** | `gfv-tony-loader.js`, `gfv-standalone-shell.js`, `lavori-caposquadra-standalone.html`, `main.js` (build `2026-07-17e`) |
+| **Test** | `tests/gfv-tony-embed-guard.test.js` (5) |
+| **Verifica utente** | ✅ 2026-07-17 — un solo FAB Tony sulle slide Statistiche/Ore (build `2026-07-17e`+). |
+
+## Tony — Navigazione vocale comunicazioni / statistiche mobile (2026-07-17, build `2026-07-17d`)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Problema** | Nav comunicazioni/statistiche campo OK dopo 17c, ma l’operaio **non vedeva i messaggi** del capo: confermati nascosti nello storico collassabile (tagliato da overflow/Tony); visibilità legacy legata a `cachedWorks` ridotto. |
+| **Fix lista (17d)** | Slide comunicazioni: **tutti** i messaggi (da confermare + già letti) in lista principale; reload all’apertura via Tony; lavori completi per filtro visibilità; conserva `users` doc id per match destinatari; più padding scroll. |
+| **Fix nav (17a–c)** | Target `comunicazioni` / `statistiche lavoratore` → slide mobile; no Statistiche desktop; no dialog conferma; remap + sessionStorage ruoli. |
+| **File** | `engine.js`, `field-role-guard.js`, `tony-nav-quick-reply.js`, `functions/index.js`, `field-workspace-controller.js`, `field-workspace-standalone.html`, `field-workspace.css`, `main.js` |
+| **Test** | `tony-nav-quick-reply.test.js`, `tony-field-role-guard.test.js` |
 
 ## Tony — Segna ore vocale: fascia «dalle X alle Y» persa dall'STT (2026-07-15, build `2026-07-15p`)
 
