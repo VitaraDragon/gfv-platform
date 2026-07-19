@@ -49,9 +49,328 @@ function normText(s) {
  * @returns {boolean}
  */
 export function isMovimentoPrezzoInAttesa(m) {
-  if (!m || m.tipo !== 'entrata') return false;
+  if (!m) return false;
+  // tipo assente: ok (lista già filtrata a entrate); solo escludi uscite esplicite
+  if (m.tipo != null && m.tipo !== 'entrata') return false;
   if (m.prezzoInAttesa === true) return true;
   return m.prezzoUnitario == null;
+}
+
+/**
+ * Anno calendario della data movimento (Date / Timestamp / ISO).
+ * @param {object} m
+ * @returns {number|null}
+ */
+export function getMovimentoDataYear(m) {
+  if (!m || m.data == null) return null;
+  var d = m.data;
+  if (typeof d.toDate === 'function') d = d.toDate();
+  if (!(d instanceof Date)) d = new Date(d);
+  if (isNaN(d.getTime())) return null;
+  return d.getFullYear();
+}
+
+/**
+ * Entrata con prezzo unitario certo (post-fattura / non in attesa).
+ * @param {object} m
+ * @returns {boolean}
+ */
+/**
+ * Parse prezzo da number o stringa IT ("94,25" / "1.234,56").
+ * @param {*} v
+ * @returns {number}
+ */
+export function parsePrezzoUnitarioNum(v) {
+  if (v == null || v === '') return NaN;
+  if (typeof v === 'number') return Number.isFinite(v) ? v : NaN;
+  var s = String(v).trim().replace(/\s/g, '');
+  if (!s) return NaN;
+  if (s.indexOf(',') >= 0) {
+    s = s.replace(/\./g, '').replace(',', '.');
+  }
+  return Number(s);
+}
+
+export function isEntrataConPrezzoCerto(m) {
+  if (!m) return false;
+  if (m.tipo != null && m.tipo !== 'entrata') return false;
+  var p = parsePrezzoUnitarioNum(m.prezzoUnitario);
+  var q = Number(m.quantita);
+  // Prezzo numerico valido = certo (anche se prezzoInAttesa è rimasto true per errore)
+  return Number.isFinite(p) && p > 0 && Number.isFinite(q) && q > 0;
+}
+
+/**
+ * Media ponderata prezzo×qty sulle entrate con prezzo certo (opz. filtro anno).
+ * @param {Array<object>} movimenti
+ * @param {{ anno?: number|null }} [opts]
+ * @returns {{ prezzoMedio: number, totaleQuantita: number, nEntrate: number, anno: number|null }|null}
+ */
+export function computePrezzoMedioPonderato(movimenti, opts) {
+  opts = opts || {};
+  var anno = opts.anno != null && opts.anno !== '' ? Number(opts.anno) : null;
+  if (anno != null && !Number.isFinite(anno)) anno = null;
+  var sumPQ = 0;
+  var sumQ = 0;
+  var n = 0;
+  (movimenti || []).forEach(function (m) {
+    if (!isEntrataConPrezzoCerto(m)) return;
+    if (anno != null) {
+      var y = getMovimentoDataYear(m);
+      // Data assente/illeggibile: non escludere (altrimenti media sempre vuota)
+      if (y != null && y !== anno) return;
+    }
+    sumPQ += parsePrezzoUnitarioNum(m.prezzoUnitario) * Number(m.quantita);
+    sumQ += Number(m.quantita);
+    n += 1;
+  });
+  if (!(sumQ > 0) || n === 0) return null;
+  return {
+    prezzoMedio: Math.round((sumPQ / sumQ) * 10000) / 10000,
+    totaleQuantita: sumQ,
+    nEntrate: n,
+    anno: anno,
+  };
+}
+
+/**
+ * Anno da data documento (YYYY-MM-DD o simile); fallback anno corrente.
+ * @param {string} dataStr
+ * @returns {number}
+ */
+export function parseAnnoFromDataDocumento(dataStr) {
+  var s = String(dataStr || '').trim();
+  var m = s.match(/(\d{4})/);
+  if (m) {
+    var y = parseInt(m[1], 10);
+    if (y >= 2000 && y <= 2100) return y;
+  }
+  return new Date().getFullYear();
+}
+
+/**
+ * Ricalcola e scrive `prezzoUnitario` anagrafica (media ponderata anno) per i prodotti indicati.
+ * Non blocca il flusso chiamante: errori per singolo prodotto → skip + warn.
+ * @param {object} params
+ * @param {string[]} params.prodottoIds
+ * @param {number} [params.anno]
+ * @param {function} params.getAllMovimenti - async (opts) => movimenti
+ * @param {function} params.updateProdotto - async (id, updates) => void
+ * @returns {Promise<{ updated: number, skipped: number }>}
+ */
+/**
+ * Carica entrate per un prodotto con fallback se manca l'indice Firestore.
+ * @param {function} getAllMovimenti
+ * @param {string} prodottoId
+ * @returns {Promise<Array<object>>}
+ */
+async function loadEntrateForProdottoPrezzoMedio(getAllMovimenti, prodottoId) {
+  var movs = [];
+  try {
+    movs = await getAllMovimenti({
+      prodottoId: prodottoId,
+      tipo: 'entrata',
+      orderDirection: 'desc',
+      limit: 500,
+    });
+  } catch (idxErr) {
+    try {
+      movs = await getAllMovimenti({
+        prodottoId: prodottoId,
+        orderDirection: 'desc',
+        limit: 500,
+      });
+      movs = (movs || []).filter(function (m) {
+        return !m || m.tipo == null || m.tipo === 'entrata';
+      });
+    } catch (e2) {
+      // Ultimo fallback: ultime entrate tenant, filtro in memoria
+      movs = await getAllMovimenti({
+        tipo: 'entrata',
+        orderDirection: 'desc',
+        limit: 400,
+      });
+      movs = (movs || []).filter(function (m) {
+        return m && m.prodottoId === prodottoId;
+      });
+    }
+  }
+  return movs || [];
+}
+
+export async function refreshPrezzoMedioAnagraficaProdotti(params) {
+  params = params || {};
+  var ids = [];
+  var seen = {};
+  (Array.isArray(params.prodottoIds) ? params.prodottoIds : []).forEach(function (id) {
+    if (!id || seen[id]) return;
+    seen[id] = true;
+    ids.push(id);
+  });
+  var getAllMovimenti = params.getAllMovimenti;
+  var updateProdotto = params.updateProdotto;
+  if (!ids.length || typeof getAllMovimenti !== 'function' || typeof updateProdotto !== 'function') {
+    return { updated: 0, skipped: ids.length };
+  }
+  var anno = params.anno != null ? Number(params.anno) : new Date().getFullYear();
+  if (!Number.isFinite(anno)) anno = new Date().getFullYear();
+  var seedByProd = {};
+  (Array.isArray(params.seedMovimenti) ? params.seedMovimenti : []).forEach(function (m) {
+    if (!m || !m.prodottoId) return;
+    if (!seedByProd[m.prodottoId]) seedByProd[m.prodottoId] = [];
+    seedByProd[m.prodottoId].push(m);
+  });
+  var updated = 0;
+  var skipped = 0;
+  for (var i = 0; i < ids.length; i++) {
+    var pid = ids[i];
+    try {
+      var movs = await loadEntrateForProdottoPrezzoMedio(getAllMovimenti, pid);
+      var seeds = seedByProd[pid] || [];
+      var calc = computePrezzoMedioPonderato(movs, { anno: anno });
+      // Fallback: tutte le entrate con prezzo (anno diverso / data assente)
+      if (!calc) calc = computePrezzoMedioPonderato(movs, { anno: null });
+      // Fallback: prezzi appena confermati sulla fattura (se query non li vede ancora)
+      if (!calc && seeds.length) {
+        calc = computePrezzoMedioPonderato(seeds, { anno: null });
+        if (calc) calc = Object.assign({}, calc, { anno: anno });
+      }
+      if (!calc) {
+        console.warn('[Tony Occhi] prezzo medio: nessuna entrata con prezzo per', pid);
+        skipped += 1;
+        continue;
+      }
+      var annoScrivi = calc.anno != null ? calc.anno : anno;
+      await updateProdotto(pid, {
+        prezzoUnitario: calc.prezzoMedio,
+        prezzoMedioAnno: annoScrivi,
+        prezzoMedioN: calc.nEntrate,
+        prezzoMedioAggiornatoAt: new Date().toISOString(),
+      });
+      updated += 1;
+    } catch (e) {
+      console.warn('[Tony Occhi] prezzo medio anagrafica:', pid, e && e.message ? e.message : e);
+      skipped += 1;
+    }
+  }
+  return { updated: updated, skipped: skipped };
+}
+
+/**
+ * @param {Array<object>} righe
+ * @param {string[]} [movimentoIds]
+ * @param {function} [getMovimento]
+ * @returns {Promise<string[]>}
+ */
+async function collectProdottoIdsForPrezzoMedio(righe, movimentoIds, getMovimento) {
+  var seen = {};
+  var ids = [];
+  function add(pid) {
+    if (!pid || seen[pid]) return;
+    seen[pid] = true;
+    ids.push(pid);
+  }
+  (Array.isArray(righe) ? righe : []).forEach(function (r) {
+    add(r && (r.prodottoIdConfermato || r.prodottoIdSuggerito));
+  });
+  if (typeof getMovimento === 'function' && Array.isArray(movimentoIds)) {
+    for (var i = 0; i < movimentoIds.length; i++) {
+      try {
+        var m = await getMovimento(movimentoIds[i]);
+        if (m && m.prodottoId) add(m.prodottoId);
+      } catch (_) { /* ignore */ }
+    }
+  }
+  return ids;
+}
+
+/**
+ * @param {object} params - deps register (getAllMovimenti, updateProdotto, getMovimento)
+ * @param {object} estrazione
+ * @param {Array<object>} righe
+ * @param {string[]} movimentoIds
+ */
+/**
+ * Movimenti “sintetici” dalle righe fattura (prezzo già confermato nel form).
+ * @param {object} estrazione
+ * @param {Array<object>} righe
+ * @returns {Array<object>}
+ */
+function seedMovimentiFromFatturaRighe(estrazione, righe) {
+  var dataMov = null;
+  try {
+    dataMov = parseDataDocumento(estrazione && estrazione.dataDocumento);
+  } catch (_) {
+    dataMov = new Date();
+  }
+  var out = [];
+  (Array.isArray(righe) ? righe : []).forEach(function (r) {
+    if (!r) return;
+    var pid = r.prodottoIdConfermato || r.prodottoIdSuggerito || '';
+    var p = Number(r.prezzoUnitario);
+    var q = Number(r.quantita);
+    if (!pid || !Number.isFinite(p) || p <= 0 || !Number.isFinite(q) || q <= 0) return;
+    out.push({
+      tipo: 'entrata',
+      prodottoId: pid,
+      prezzoUnitario: p,
+      quantita: q,
+      prezzoInAttesa: false,
+      data: dataMov,
+    });
+  });
+  return out;
+}
+
+async function maybeRefreshPrezzoMedioAfterFattura(params, estrazione, righe, movimentoIds) {
+  if (!params || typeof params.updateProdotto !== 'function' || typeof params.getAllMovimenti !== 'function') {
+    console.warn('[Tony Occhi] prezzo medio: deps mancanti (updateProdotto/getAllMovimenti)');
+    return null;
+  }
+  try {
+    var prodottoIds = await collectProdottoIdsForPrezzoMedio(righe, movimentoIds, params.getMovimento);
+    var seeds = seedMovimentiFromFatturaRighe(estrazione, righe);
+    seeds.forEach(function (m) {
+      if (m.prodottoId && prodottoIds.indexOf(m.prodottoId) < 0) prodottoIds.push(m.prodottoId);
+    });
+    if (!prodottoIds.length) {
+      console.warn('[Tony Occhi] prezzo medio: nessun prodottoId dalle righe/movimenti');
+      return { updated: 0, skipped: 0 };
+    }
+    var res = await refreshPrezzoMedioAnagraficaProdotti({
+      prodottoIds: prodottoIds,
+      anno: parseAnnoFromDataDocumento(estrazione && estrazione.dataDocumento),
+      seedMovimenti: seeds,
+      getAllMovimenti: params.getAllMovimenti,
+      updateProdotto: params.updateProdotto,
+    });
+    console.info('[Tony Occhi] prezzo medio anagrafica:', res);
+    return res;
+  } catch (e) {
+    console.warn('[Tony Occhi] refresh prezzo medio anagrafica:', e && e.message ? e.message : e);
+    return null;
+  }
+}
+
+/**
+ * Match fornitore tollerante (es. "Francesconi sas" vs "Francesconi s.a.s.").
+ * @param {string} fornitoreNome
+ * @param {string} note
+ * @returns {boolean}
+ */
+export function fornitoreNomeMatchesNote(fornitoreNome, note) {
+  var fn = normText(fornitoreNome);
+  if (!fn) return true;
+  var nn = normText(note);
+  if (!nn) return false;
+  if (nn.indexOf(fn) >= 0) return true;
+  var fnCompact = fn.replace(/\s+/g, '');
+  var nnCompact = nn.replace(/\s+/g, '');
+  if (fnCompact.length >= 5 && nnCompact.indexOf(fnCompact) >= 0) return true;
+  var parts = fn.split(' ').filter(function (w) { return w.length >= 5; });
+  if (parts.length && parts.every(function (w) { return nn.indexOf(w) >= 0; })) return true;
+  if (parts.length === 1 && nn.indexOf(parts[0]) >= 0) return true;
+  return false;
 }
 
 /**
@@ -71,9 +390,11 @@ export function filterMovimentiCandidatiFattura(movimenti, opts) {
   }
   var fn = normText(opts.fornitoreNome);
   if (fn) {
-    list = list.filter(function (m) {
-      return normText(m.note || '').indexOf(fn) >= 0;
+    var withForn = list.filter(function (m) {
+      return fornitoreNomeMatchesNote(opts.fornitoreNome, m.note || '');
     });
+    // Se il filtro fornitore azzera tutto (note senza ragione sociale), non bloccare il match
+    if (withForn.length) list = withForn;
   }
   return list;
 }
@@ -118,6 +439,44 @@ function extractDocNumFromNote(note) {
 }
 
 /**
+ * Parte numerica principale di un n. documento (es. "1490/00" → "1490").
+ * @param {string} s
+ * @returns {string}
+ */
+export function extractDocNumDigitsCore(s) {
+  var m = String(s || '').match(/(\d{3,})/);
+  return m ? m[1] : '';
+}
+
+/**
+ * Confronto tollerante numeri DDT (OCR: 1490↔1493, non 1490↔1500).
+ * @param {string} a
+ * @param {string} b
+ * @returns {boolean}
+ */
+export function docNumsLooselyEqual(a, b) {
+  var na = normDocNumero(a);
+  var nb = normDocNumero(b);
+  if (!na || !nb) return false;
+  if (na === nb) return true;
+  if (na.indexOf(nb) >= 0 || nb.indexOf(na) >= 0) return true;
+  var da = extractDocNumDigitsCore(a);
+  var db = extractDocNumDigitsCore(b);
+  if (!da || !db) return false;
+  if (da === db) return true;
+  // Stessa lunghezza, al più 1 cifra diversa (errori OCR tipici)
+  if (da.length === db.length && da.length >= 3) {
+    var diff = 0;
+    for (var i = 0; i < da.length; i++) {
+      if (da[i] !== db[i]) diff += 1;
+      if (diff > 1) return false;
+    }
+    return diff <= 1;
+  }
+  return false;
+}
+
+/**
  * @param {string} note
  * @param {string} docNum
  * @returns {boolean}
@@ -130,6 +489,16 @@ export function movimentoNoteContainsDocNum(note, docNum) {
   var noteCompact = normDocNumero(note);
   if (noteCompact.indexOf('doc' + n) >= 0) return true;
   if (n.length >= 3 && noteCompact.indexOf(n) >= 0) return true;
+  // Fuzzy: cifra core del doc cercato vs eventuali numeri in nota (dopo "doc …")
+  var core = extractDocNumDigitsCore(docNum);
+  if (!core) return false;
+  var docInNote = String(note || '').match(/doc\s+([^·]+)/i);
+  if (docInNote && docNumsLooselyEqual(docInNote[1], docNum)) return true;
+  // Altri numeri lunghi in nota
+  var nums = String(note || '').match(/\d{3,}/g) || [];
+  for (var i = 0; i < nums.length; i++) {
+    if (docNumsLooselyEqual(nums[i], core)) return true;
+  }
   return false;
 }
 
@@ -168,8 +537,8 @@ export function normalizeRiferimentiBolla(raw) {
 export function movimentoMatchesRiferimentoBolla(m, ref, fornitoreNome) {
   if (!m || !ref) return false;
   if (!movimentoNoteContainsDocNum(m.note, ref.numeroDocumento)) return false;
-  var fn = normText(fornitoreNome || ref.fornitore || '');
-  if (fn && normText(m.note || '').indexOf(fn) < 0) return false;
+  var fn = fornitoreNome || (ref && ref.fornitore) || '';
+  if (fn && !fornitoreNomeMatchesNote(fn, m.note || '')) return false;
   return true;
 }
 
@@ -191,22 +560,104 @@ export function scoreSessionsForRiferimentoBolla(movimenti, ref, fornitoreNome) 
 }
 
 /**
+ * Numero DDT/bolla associato a una riga fattura (campo o testo descrizione).
+ * @param {object} riga
+ * @returns {string}
+ */
+export function getRigaRiferimentoBollaNumero(riga) {
+  if (!riga) return '';
+  var rif = riga.riferimentoBolla;
+  if (rif && typeof rif === 'object' && rif.numeroDocumento) {
+    return String(rif.numeroDocumento).trim();
+  }
+  if (typeof rif === 'string' && rif.trim()) return rif.trim();
+  var desc = String(riga.descrizione || '');
+  var m = desc.match(
+    /(?:ddt|bolla)\s*(?:num(?:ero)?|n\.?|n°)?\s*[:.]?\s*([0-9]+(?:\s*\/\s*[0-9A-Za-z]+)?)/i
+  );
+  return m ? String(m[1] || '').replace(/\s+/g, '').trim() : '';
+}
+
+/**
+ * True se descrizione è solo intestazione gruppo DDT (non merce).
+ * @param {string} descrizione
+ * @returns {boolean}
+ */
+export function isDdtHeaderDescrizione(descrizione) {
+  var d = String(descrizione || '').trim();
+  if (!d) return false;
+  if (/^ddt\s*num/i.test(d)) return true;
+  if (/^ddt\s*[nN°.]/i.test(d)) return true;
+  if (/^documento\s+di\s+trasporto/i.test(d)) return true;
+  if (/^bolla\s+(n|num)/i.test(d)) return true;
+  if (/^ddt[\s.:/\d]/i.test(d) && !/\b(fung|inse|concim|maschera|spese|olio|rame|zolfo|fertil|seme)/i.test(d)) {
+    return true;
+  }
+  return false;
+}
+
+/**
+ * Rimuove intestazioni DDT e propaga riferimentoBolla alle righe successive.
+ * @param {Array<object>} righe
+ * @returns {Array<object>}
+ */
+export function sanitizeFatturaRighe(righe) {
+  var lastRif = null;
+  var out = [];
+  (righe || []).forEach(function (r) {
+    if (!r || typeof r !== 'object') return;
+    var descrizione = String(r.descrizione || '').trim();
+    if (!descrizione) return;
+    if (isDdtHeaderDescrizione(descrizione)) {
+      var num = getRigaRiferimentoBollaNumero({ descrizione: descrizione, riferimentoBolla: r.riferimentoBolla });
+      if (num) lastRif = { numeroDocumento: num, dataDocumento: '' };
+      return;
+    }
+    var row = Object.assign({}, r, { descrizione: descrizione });
+    var numRiga = getRigaRiferimentoBollaNumero(row);
+    if (numRiga) {
+      row.riferimentoBolla = Object.assign({}, row.riferimentoBolla || {}, { numeroDocumento: numRiga });
+      lastRif = row.riferimentoBolla;
+    } else if (lastRif && !row.riferimentoBolla) {
+      row.riferimentoBolla = Object.assign({}, lastRif);
+    }
+    out.push(row);
+  });
+  return out;
+}
+
+/**
  * @param {object} estrazione
  * @param {Array<object>} movimenti
- * @returns {{ sessionId: string, matchedRef: object|null, score: number, numeroDocumento: string }}
+ * @returns {{ sessionId: string, matchedRef: object|null, score: number, numeroDocumento: string, sessionIds: string[], multiSession: boolean }}
  */
 export function resolveAutoBollaSessionFromEstrazione(estrazione, movimenti) {
-  var empty = { sessionId: '', matchedRef: null, score: 0, numeroDocumento: '' };
+  var empty = {
+    sessionId: '',
+    matchedRef: null,
+    score: 0,
+    numeroDocumento: '',
+    sessionIds: [],
+    multiSession: false,
+  };
   if (!estrazione) return empty;
   var refs = normalizeRiferimentiBolla(estrazione.riferimentiBolla);
+  if (!refs.length && Array.isArray(estrazione.righe)) {
+    var fromRows = {};
+    estrazione.righe.forEach(function (r) {
+      var n = getRigaRiferimentoBollaNumero(r);
+      if (n) fromRows[n] = { numeroDocumento: n, dataDocumento: '', fornitore: '' };
+    });
+    refs = Object.keys(fromRows).map(function (k) { return fromRows[k]; });
+  }
   if (!refs.length) return empty;
   var fornitoreNome = estrazione.fornitore && estrazione.fornitore.nome ? estrazione.fornitore.nome : '';
-  var best = empty;
+  var sessionBest = {};
   refs.forEach(function (ref) {
     var counts = scoreSessionsForRiferimentoBolla(movimenti, ref, fornitoreNome);
     Object.keys(counts).forEach(function (sid) {
-      if (counts[sid] > best.score) {
-        best = {
+      if (!sessionBest[sid] || counts[sid] > sessionBest[sid].score) {
+        sessionBest[sid] = {
           sessionId: sid,
           matchedRef: ref,
           score: counts[sid],
@@ -215,7 +666,28 @@ export function resolveAutoBollaSessionFromEstrazione(estrazione, movimenti) {
       }
     });
   });
-  return best;
+  var sids = Object.keys(sessionBest);
+  if (!sids.length) return empty;
+  if (sids.length > 1) {
+    var totalScore = sids.reduce(function (acc, sid) { return acc + sessionBest[sid].score; }, 0);
+    return {
+      sessionId: '',
+      matchedRef: null,
+      score: totalScore,
+      numeroDocumento: refs.map(function (r) { return r.numeroDocumento; }).filter(Boolean).join(', '),
+      sessionIds: sids,
+      multiSession: true,
+    };
+  }
+  var only = sessionBest[sids[0]];
+  return {
+    sessionId: only.sessionId,
+    matchedRef: only.matchedRef,
+    score: only.score,
+    numeroDocumento: only.numeroDocumento,
+    sessionIds: [only.sessionId],
+    multiSession: false,
+  };
 }
 
 /**
@@ -240,24 +712,50 @@ export function qtyMatch(a, b, tolerance) {
  */
 export function matchRigaFatturaToMovimento(riga, candidati, usedIds) {
   var pid = riga.prodottoIdConfermato || riga.prodottoIdSuggerito || '';
-  if (!pid) return null;
   var qty = Number(riga.quantita);
   var hasQty = Number.isFinite(qty) && qty > 0;
-  var pool = (candidati || []).filter(function (m) {
-    if (!m || !m.id || usedIds.has(m.id)) return false;
-    if (m.prodottoId !== pid) return false;
-    if (!hasQty) return true;
-    return qtyMatch(m.quantita, qty);
-  });
-  if (!pool.length) return null;
-  if (hasQty) {
-    pool.sort(function (a, b) {
-      var da = Math.abs(a.quantita - qty);
-      var db = Math.abs(b.quantita - qty);
-      return da - db;
+  var refNum = getRigaRiferimentoBollaNumero(riga);
+
+  function sortByQty(pool) {
+    if (!hasQty || !pool.length) return pool;
+    return pool.slice().sort(function (a, b) {
+      return Math.abs(a.quantita - qty) - Math.abs(b.quantita - qty);
     });
   }
-  return pool[0];
+
+  // 1) DDT + qty (anche senza prodotto) — unico candidato → collega bolla
+  if (refNum && hasQty) {
+    var byDdtQty = (candidati || []).filter(function (m) {
+      if (!m || !m.id || usedIds.has(m.id)) return false;
+      if (!movimentoNoteContainsDocNum(m.note, refNum)) return false;
+      return qtyMatch(m.quantita, qty);
+    });
+    if (byDdtQty.length === 1) return byDdtQty[0];
+    if (byDdtQty.length > 1 && pid) {
+      var byDdtPid = byDdtQty.filter(function (m) { return m.prodottoId === pid; });
+      if (byDdtPid.length) return sortByQty(byDdtPid)[0];
+    }
+    if (byDdtQty.length > 1) return sortByQty(byDdtQty)[0];
+  }
+
+  if (!pid) return null;
+
+  function basePool(requireDdt) {
+    return (candidati || []).filter(function (m) {
+      if (!m || !m.id || usedIds.has(m.id)) return false;
+      if (m.prodottoId !== pid) return false;
+      if (requireDdt) {
+        if (!refNum || !movimentoNoteContainsDocNum(m.note, refNum)) return false;
+      }
+      if (!hasQty) return true;
+      return qtyMatch(m.quantita, qty);
+    });
+  }
+
+  var pool = refNum ? basePool(true) : [];
+  if (!pool.length) pool = basePool(false);
+  if (!pool.length) return null;
+  return sortByQty(pool)[0];
 }
 
 /**
@@ -272,6 +770,52 @@ export function matchRigheFatturaToMovimenti(righe, candidati) {
     if (mov && mov.id) used.add(mov.id);
     return { riga: r, movimento: mov, movimentoId: mov ? mov.id : null };
   });
+}
+
+/**
+ * Somma qty × prezzo delle righe (ignora righe senza prezzo).
+ * @param {Array<object>} righe
+ * @returns {number|null}
+ */
+export function sumRigheImportoNetto(righe) {
+  var sum = 0;
+  var any = false;
+  (righe || []).forEach(function (r) {
+    if (isDdtHeaderDescrizione(r && r.descrizione)) return;
+    var qty = Number(r && r.quantita);
+    var prezzo = Number(r && r.prezzoUnitario);
+    if (!Number.isFinite(qty) || qty <= 0 || !Number.isFinite(prezzo)) return;
+    sum += qty * prezzo;
+    any = true;
+  });
+  return any ? Math.round(sum * 100) / 100 : null;
+}
+
+/**
+ * Controlla coerenza Σ righe vs totali.imponibile (warning, non blocco).
+ * @param {Array<object>} righe
+ * @param {{ imponibile?: number|null }|null} totali
+ * @param {number} [toleranceAbs]
+ * @returns {{ ok: boolean, sumRighe: number|null, imponibile: number|null, delta: number|null, message: string }}
+ */
+export function checkRigheVsImponibile(righe, totali, toleranceAbs) {
+  var tol = toleranceAbs != null ? toleranceAbs : 1.5;
+  var sumRighe = sumRigheImportoNetto(righe);
+  var imponibile = totali && totali.imponibile != null ? Number(totali.imponibile) : null;
+  if (sumRighe == null || imponibile == null || !Number.isFinite(imponibile)) {
+    return { ok: true, sumRighe: sumRighe, imponibile: imponibile, delta: null, message: '' };
+  }
+  var delta = Math.round((sumRighe - imponibile) * 100) / 100;
+  if (Math.abs(delta) <= tol) {
+    return { ok: true, sumRighe: sumRighe, imponibile: imponibile, delta: delta, message: '' };
+  }
+  var msg =
+    'Attenzione: somma righe (' +
+    sumRighe.toFixed(2).replace('.', ',') +
+    ' €) diversa dall\'imponibile (' +
+    imponibile.toFixed(2).replace('.', ',') +
+    ' €). Possibile riga mancante o prezzo errato — controlla prima di registrare.';
+  return { ok: false, sumRighe: sumRighe, imponibile: imponibile, delta: delta, message: msg };
 }
 
 /**
@@ -623,7 +1167,13 @@ export async function registerFatturaEntrata(params) {
   if (!movimentoIds.length) {
     throw new Error('Nessun movimento creato. Controlla prodotto, quantità e prezzo sulle righe.');
   }
-  return { movimentoIds: movimentoIds, skipped: skipped, prodottiCreati: ensured.prodottiCreati };
+  var prezzoMedio = await maybeRefreshPrezzoMedioAfterFattura(params, estrazione, righe, movimentoIds);
+  return {
+    movimentoIds: movimentoIds,
+    skipped: skipped,
+    prodottiCreati: ensured.prodottiCreati,
+    prezzoMedio: prezzoMedio,
+  };
 }
 
 /**
@@ -693,6 +1243,7 @@ export async function registerFatturaDocumento(params) {
   if (!movimentoIds.length) {
     throw new Error('Nessun movimento registrato. Controlla prodotto, prezzo e collegamenti bolla.');
   }
+  var prezzoMedio = await maybeRefreshPrezzoMedioAfterFattura(params, estrazione, righe, movimentoIds);
   return {
     movimentoIds: movimentoIds,
     skipped: skipped,
@@ -700,6 +1251,7 @@ export async function registerFatturaDocumento(params) {
     creati: creati,
     aggiornati: aggiornati,
     prodottiCreati: prodottiCreati,
+    prezzoMedio: prezzoMedio,
   };
 }
 
@@ -790,13 +1342,17 @@ export function formatRegisterSuccessMessage(count, tipo, details) {
   if (tipo === 'fattura') {
     var creati = details.creati || 0;
     var aggiornati = details.aggiornati || 0;
+    var medioN = details.prezzoMedio && details.prezzoMedio.updated ? details.prezzoMedio.updated : 0;
+    var medioSuffix = medioN > 0
+      ? ' Prezzo medio aggiornato su ' + medioN + ' prodott' + (medioN === 1 ? 'o' : 'i') + ' in anagrafica.'
+      : '';
     if (creati > 0 && aggiornati > 0) {
-      return 'Fattura registrata: ' + aggiornati + ' moviment' + (aggiornati === 1 ? 'o' : 'i') + ' aggiornat' + (aggiornati === 1 ? 'o' : 'i') + ' con i prezzi e ' + creati + ' nuov' + (creati === 1 ? 'a entrata' : 'e entrate') + '.' + stubSuffix;
+      return 'Fattura registrata: ' + aggiornati + ' moviment' + (aggiornati === 1 ? 'o' : 'i') + ' aggiornat' + (aggiornati === 1 ? 'o' : 'i') + ' con i prezzi e ' + creati + ' nuov' + (creati === 1 ? 'a entrata' : 'e entrate') + '.' + stubSuffix + medioSuffix;
     }
     if (creati > 0) {
-      return 'Fattura diretta registrata: ' + n + ' moviment' + (n === 1 ? 'o' : 'i') + ' di entrata creat' + (n === 1 ? 'o' : 'i') + ' in magazzino.' + stubSuffix;
+      return 'Fattura diretta registrata: ' + n + ' moviment' + (n === 1 ? 'o' : 'i') + ' di entrata creat' + (n === 1 ? 'o' : 'i') + ' in magazzino.' + stubSuffix + medioSuffix;
     }
-    return 'Fattura registrata: ' + n + ' moviment' + (n === 1 ? 'o' : 'i') + ' aggiornat' + (n === 1 ? 'o' : 'i') + ' con i prezzi.' + stubSuffix;
+    return 'Fattura registrata: ' + n + ' moviment' + (n === 1 ? 'o' : 'i') + ' aggiornat' + (n === 1 ? 'o' : 'i') + ' con i prezzi.' + stubSuffix + medioSuffix;
   }
   var label = 'Bolla';
   return label + ' registrata: ' + n + ' moviment' + (n === 1 ? 'o' : 'i') + ' di entrata creat' + (n === 1 ? 'o' : 'i') + ' in magazzino.' + stubSuffix;

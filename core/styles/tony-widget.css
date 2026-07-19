@@ -764,6 +764,28 @@ body.tony-doc-review-modal-open {
     width: fit-content;
 }
 
+.tony-doc-ddt-badge {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 600;
+    color: #1d4e89;
+    background: #e7f1fb;
+    border-radius: 4px;
+    padding: 1px 6px;
+    width: fit-content;
+}
+
+.tony-doc-review-warn {
+    margin: 0 0 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: #7a4e00;
+    background: #fff8e6;
+    border: 1px solid #f0d59a;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
 .tony-doc-row-low-conf {
     background: #fff8e6;
 }

@@ -1,6 +1,6 @@
 /**
  * Prodotto Model - Modello dati prodotto (Prodotti e Magazzino)
- * Anagrafica prodotti con giacenza; si disattivano (non si eliminano) per mantenere lo storico.
+ * Anagrafica prodotti con giacenza; di norma si disattivano; eliminabili se senza movimenti.
  *
  * @module modules/magazzino/models/Prodotto
  */
@@ -17,7 +17,10 @@ export class Prodotto extends Base {
    * @param {string} data.categoria - Categoria: fitofarmaci, fertilizzanti, materiale_impianto, ricambi, sementi, altro
    * @param {string} data.unitaMisura - Unità di misura: kg, L, pezzi, m, m2, confezione, sacchi, altro
    * @param {number} data.scortaMinima - Scorta minima per alert (opzionale, default 0)
-   * @param {number} data.prezzoUnitario - Prezzo unitario di riferimento (opzionale; €/unità, es. €/kg per trattamenti)
+   * @param {number} data.prezzoUnitario - Prezzo medio ponderato (€/unità) dalle entrate fatturate dell'anno (sola lettura in UI)
+   * @param {number} data.prezzoMedioAnno - Anno di riferimento del prezzo medio (calendario)
+   * @param {number} data.prezzoMedioN - Numero di entrate usate per il calcolo
+   * @param {string} data.prezzoMedioAggiornatoAt - ISO timestamp ultimo ricalcolo
    * @param {number} data.giacenza - Giacenza corrente (aggiornata dai movimenti)
    * @param {number} data.dosaggioMin - Dosaggio minimo per ha (opzionale; unità = unitaMisura, es. kg/ha o L/ha)
    * @param {number} data.dosaggioMax - Dosaggio massimo per ha (opzionale; deve essere >= dosaggioMin)
@@ -31,7 +34,16 @@ export class Prodotto extends Base {
     this.categoria = data.categoria || 'altro';
     this.unitaMisura = data.unitaMisura || 'pezzi';
     this.scortaMinima = data.scortaMinima !== undefined ? parseFloat(data.scortaMinima) : 0;
-    this.prezzoUnitario = data.prezzoUnitario !== undefined ? parseFloat(data.prezzoUnitario) : null;
+    this.prezzoUnitario = data.prezzoUnitario !== undefined && data.prezzoUnitario !== null && data.prezzoUnitario !== ''
+      ? parseFloat(data.prezzoUnitario)
+      : null;
+    this.prezzoMedioAnno = data.prezzoMedioAnno != null && data.prezzoMedioAnno !== ''
+      ? parseInt(data.prezzoMedioAnno, 10)
+      : null;
+    this.prezzoMedioN = data.prezzoMedioN != null && data.prezzoMedioN !== ''
+      ? parseInt(data.prezzoMedioN, 10)
+      : null;
+    this.prezzoMedioAggiornatoAt = data.prezzoMedioAggiornatoAt || null;
     this.giacenza = data.giacenza !== undefined ? parseFloat(data.giacenza) : 0;
     // Range dosaggio: min e max per ha (es. 0,5–1 L/ha, 2–5 kg/ha). Retrocompatibilità: se esiste solo dosaggioConsigliato, usalo per entrambi.
     const dMin = data.dosaggioMin !== undefined && data.dosaggioMin !== '' ? parseFloat(data.dosaggioMin) : null;

@@ -113,15 +113,53 @@ async function extractDocumentWithGemini(apiKey, pages, stats) {
     contents: [{ parts: buildGeminiDocumentParts(pages) }],
     generationConfig: {
       temperature: 0.1,
-      maxOutputTokens: 4096,
+      // Fatture riepilogative: 4096 tronca spesso il JSON a metà array righe
+      maxOutputTokens: 8192,
       responseMimeType: "application/json",
     },
   };
   const res = await callGeminiWithRetry(url, body, "tonyExtractDocument", stats);
   const data = await res.json();
   const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  const parsed = parseExtractedDocumentJson(rawText);
-  return normalizeExtractionResult(parsed);
+  const finishReason = data?.candidates?.[0]?.finishReason || "";
+  try {
+    const parsed = parseExtractedDocumentJson(rawText);
+    return normalizeExtractionResult(parsed);
+  } catch (parseErr) {
+    // Secondo tentativo: chiedi solo riparazione JSON (senza ri-leggere l'immagine)
+    if (!rawText || typeof rawText !== "string") throw parseErr;
+    console.warn(
+      "[tonyExtractDocument] JSON parse fallito (" +
+        (parseErr && parseErr.message) +
+        "), finishReason=" +
+        finishReason +
+        " — retry riparazione"
+    );
+    const repairBody = {
+      contents: [
+        {
+          parts: [
+            {
+              text:
+                "Correggi il testo seguente in un UNICO oggetto JSON valido (schema estrazione documento magazzino). " +
+                "Niente markdown, niente commenti. Numeri con punto decimale. Chiudi array/oggetti incompleti se troncati.\n\n" +
+                rawText,
+            },
+          ],
+        },
+      ],
+      generationConfig: {
+        temperature: 0,
+        maxOutputTokens: 8192,
+        responseMimeType: "application/json",
+      },
+    };
+    const repairRes = await callGeminiWithRetry(url, repairBody, "tonyExtractDocument-repair", stats);
+    const repairData = await repairRes.json();
+    const repairText = repairData?.candidates?.[0]?.content?.parts?.[0]?.text;
+    const parsed = parseExtractedDocumentJson(repairText);
+    return normalizeExtractionResult(parsed);
+  }
 }
 
 /**

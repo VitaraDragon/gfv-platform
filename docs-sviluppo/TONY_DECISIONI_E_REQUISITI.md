@@ -1,7 +1,7 @@
 # Tony – Inventario decisioni e requisiti
 
 **Data estrazione**: 2026-03-08  
-**Ultimo aggiornamento**: 2026-07-13 (Tony Occhi — piano evolutivo §17 ROADMAP, decisioni §20.21–20.30)
+**Ultimo aggiornamento**: 2026-07-17 (Tony Occhi — match DDT per riga / fattura riepilogativa §20.24)
 **Obiettivo**: Raccogliere in un unico documento ogni decisione di prodotto, requisito e vincolo trovato nei documenti Tony, per evitare perdite durante il consolidamento.
 
 **Stati**: `implementato` | `in corso` | `parziale` | `pianificato` | `non implementato` | `abbandonato` | `da verificare`
@@ -486,11 +486,11 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 | 20.21 | **Tipo scontrino** nel dropdown revisione — classificazione a parte; trattato come **fattura diretta** (entrata qty+prezzo, no bolla) | prodotto 2026-07-13 | **implementato** | `document-review-form.js`, schema CF `scontrino` |
 | 20.22 | **Fattura/scontrino senza bolla** → sempre **nuova entrata** (qty + prezzo + giacenza), anche se prodotto già in magazzino | prodotto 2026-07-13 | **implementato** | `registerFatturaEntrata`, `registerFatturaDocumento` |
 | 20.23 | **Fattura con bolla** → aggiorna prezzo su entrate esistenti; **non** raddoppia qty/giacenza | prodotto 2026-07-13 | **implementato** | `registerFatturaPrezzi`; match da rafforzare (20.24) |
-| 20.24 | **Match bolla automatico** da riferimento DDT in fattura (fornitore + numero + righe) | prodotto 2026-07-13 | **implementato** | `riferimentiBolla[]` CF + `resolveAutoBollaSessionFromEstrazione` |
+| 20.24 | **Match bolla automatico** da riferimento DDT in fattura (fornitore + numero + righe) | prodotto 2026-07-13; raffinato 2026-07-17 | **implementato** | `riferimentiBolla[]` + **`riferimentoBolla` per riga**; scarta intestazioni «Ddt num»; multi-DDT senza forzare una sola sessione; match cascata DDT→prodotto+qty; warning Σ righe vs imponibile |
 | 20.25 | **Prodotto sconosciuto** → creazione anagrafica **minima automatica** + **reminder** completamento (non blocca movimento) | prodotto 2026-07-13 | **implementato** | `ensureProdottiForRighe`, `daCompletare` su Prodotto, `document-prodotto-reminder.js`, lista `prodotti-standalone.html` |
 | 20.26 | **Categoria prodotto** suggerita automaticamente da OCR; dropdown prodotto filtrato per categoria | prodotto 2026-07-13 | **implementato** | `suggestCategoriaForRiga`, filtro dropdown form |
 | 20.27 | **Formattazione prezzi in €** nel form revisione | prodotto 2026-07-13 | **implementato** | `document-eur-format.js`, totali documento, colonna Prezzo (€) |
-| 20.28 | **Costi trattamenti**: aggiornare solo movimento entrata; evoluzione **prezzo medio ponderato** dalle entrate (non anagrafica statica) | prodotto 2026-07-13 | **pianificato** | Modulo economia; ROADMAP §17.6 |
+| 20.28 | **Prezzo medio anagrafica**: `Prodotto.prezzoUnitario` = media ponderata (prezzo×qty) delle entrate con prezzo; movimenti = storico; campo sola lettura; ricalcolo a fattura/scontrino + auto/pulsante in anagrafica prodotti | prodotto 2026-07-13; conferma e verifica 2026-07-19 | **implementato** ✅ | `document-register.js`, `prodotti-standalone.html` (ricalcolo Firestore), `updateProdottoPrezzoMedio`; meta `prezzoMedioAnno` / `prezzoMedioN` |
 | 20.29 | **Preventivo** nel dropdown tipo documento — **riservato/disabilitato** finché non esiste design dedicato | prodotto 2026-07-13 | **pianificato** | Non misto a magazzino senza requisito |
 | 20.30 | **Modal revisione fullscreen** (fuori pannello chat) per documenti con molte righe | prodotto 2026-07-13 | **implementato** | `tony-doc-review-overlay` |
 

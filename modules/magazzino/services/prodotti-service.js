@@ -1,6 +1,6 @@
 /**
  * Prodotti Service - Servizio per gestione anagrafica prodotti (Prodotti e Magazzino)
- * CRUD prodotti con supporto multi-tenant. I prodotti si disattivano (non si eliminano) per mantenere lo storico.
+ * CRUD prodotti con supporto multi-tenant. Di norma si disattivano; eliminazione solo se senza movimenti.
  *
  * @module modules/magazzino/services/prodotti-service
  */
@@ -9,12 +9,14 @@ import {
   createDocument,
   getDocumentData,
   updateDocument,
-  getCollectionData
+  getCollectionData,
+  deleteDocument
 } from '../../../core/services/firebase-service.js';
 import { getCurrentTenantId } from '../../../core/services/tenant-service.js';
 import { Prodotto } from '../models/Prodotto.js';
 
 const COLLECTION_NAME = 'prodotti';
+const MOVIMENTI_COLLECTION = 'movimentiMagazzino';
 
 /**
  * Ottieni tutti i prodotti del tenant corrente
@@ -128,7 +130,7 @@ export async function createProdotto(prodottoData) {
 /**
  * Aggiorna un prodotto esistente (campi anagrafici; non modifica giacenza)
  * @param {string} prodottoId - ID prodotto
- * @param {Object} updates - Dati da aggiornare (codice, nome, categoria, unitaMisura, scortaMinima, prezzoUnitario, dosaggioMin, dosaggioMax, giorniCarenza, note, attivo)
+ * @param {Object} updates - Dati da aggiornare (codice, nome, categoria, unitaMisura, scortaMinima, prezzoUnitario/media, prezzoMedioAnno, prezzoMedioN, dosaggioMin, dosaggioMax, giorniCarenza, note, attivo)
  * @returns {Promise<void>}
  */
 export async function updateProdotto(prodottoId, updates) {
@@ -163,6 +165,38 @@ export async function updateProdotto(prodottoId, updates) {
 }
 
 /**
+ * Aggiorna solo il prezzo medio (Tony Occhi / fattura) senza ri-validare dosaggi anagrafica.
+ * @param {string} prodottoId
+ * @param {{ prezzoUnitario: number, prezzoMedioAnno?: number, prezzoMedioN?: number, prezzoMedioAggiornatoAt?: string }} data
+ * @returns {Promise<void>}
+ */
+export async function updateProdottoPrezzoMedio(prodottoId, data) {
+  try {
+    const tenantId = getCurrentTenantId();
+    if (!tenantId) {
+      throw new Error('Nessun tenant corrente disponibile');
+    }
+    if (!prodottoId) {
+      throw new Error('ID prodotto obbligatorio');
+    }
+    const prezzo = Number(data && data.prezzoUnitario);
+    if (!Number.isFinite(prezzo) || prezzo < 0) {
+      throw new Error('Prezzo medio non valido');
+    }
+    const patch = {
+      prezzoUnitario: prezzo,
+      prezzoMedioAnno: data.prezzoMedioAnno != null ? Number(data.prezzoMedioAnno) : null,
+      prezzoMedioN: data.prezzoMedioN != null ? Number(data.prezzoMedioN) : null,
+      prezzoMedioAggiornatoAt: data.prezzoMedioAggiornatoAt || new Date().toISOString(),
+    };
+    await updateDocument(COLLECTION_NAME, prodottoId, patch, tenantId);
+  } catch (error) {
+    console.error('Errore aggiornamento prezzo medio prodotto:', error);
+    throw new Error(`Errore aggiornamento prezzo medio: ${error.message}`);
+  }
+}
+
+/**
  * Disattiva un prodotto (non elimina; mantiene storico movimenti)
  * @param {string} prodottoId - ID prodotto
  * @returns {Promise<void>}
@@ -187,6 +221,51 @@ export async function riattivaProdotto(prodottoId) {
   } catch (error) {
     console.error('Errore riattivazione prodotto:', error);
     throw new Error(`Errore riattivazione prodotto: ${error.message}`);
+  }
+}
+
+/**
+ * Conta i movimenti collegati a un prodotto.
+ * @param {string} prodottoId
+ * @returns {Promise<number>}
+ */
+export async function countMovimentiForProdotto(prodottoId) {
+  const tenantId = getCurrentTenantId();
+  if (!tenantId) throw new Error('Nessun tenant corrente disponibile');
+  if (!prodottoId) throw new Error('ID prodotto obbligatorio');
+  const all = await getCollectionData(MOVIMENTI_COLLECTION, {
+    tenantId,
+    where: [['prodottoId', '==', prodottoId]]
+  });
+  return (all || []).length;
+}
+
+/**
+ * Elimina un prodotto solo se non ha movimenti collegati.
+ * @param {string} prodottoId
+ * @returns {Promise<void>}
+ */
+export async function deleteProdotto(prodottoId) {
+  try {
+    const tenantId = getCurrentTenantId();
+    if (!tenantId) throw new Error('Nessun tenant corrente disponibile');
+    if (!prodottoId) throw new Error('ID prodotto obbligatorio');
+
+    const esistente = await getProdotto(prodottoId);
+    if (!esistente) throw new Error('Prodotto non trovato');
+
+    const n = await countMovimentiForProdotto(prodottoId);
+    if (n > 0) {
+      throw new Error(
+        'Impossibile eliminare: ci sono ' + n + ' moviment' + (n === 1 ? 'o' : 'i') +
+        ' collegati. Elimina prima i movimenti oppure usa Disattiva.'
+      );
+    }
+
+    await deleteDocument(COLLECTION_NAME, prodottoId, tenantId);
+  } catch (error) {
+    console.error('Errore eliminazione prodotto:', error);
+    throw new Error(error.message || 'Errore eliminazione prodotto');
   }
 }
 

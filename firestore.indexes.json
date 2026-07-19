@@ -7,6 +7,31 @@
         { "fieldPath": "attiva", "order": "ASCENDING" },
         { "fieldPath": "tipoLavoro", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "movimentiMagazzino",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "tipo", "order": "ASCENDING" },
+        { "fieldPath": "data", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "movimentiMagazzino",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "prodottoId", "order": "ASCENDING" },
+        { "fieldPath": "tipo", "order": "ASCENDING" },
+        { "fieldPath": "data", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "movimentiMagazzino",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "prodottoId", "order": "ASCENDING" },
+        { "fieldPath": "data", "order": "DESCENDING" }
+      ]
     }
   ],
   "fieldOverrides": [

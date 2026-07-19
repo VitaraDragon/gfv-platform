@@ -1,6 +1,89 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-17 — nav slide workspace + doppio FAB verificati utente (build `2026-07-17e`–`f`); comunicazioni/statistiche; Segna ore ITN; catena ripresa; Tony Occhi A–F.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-19 — Prezzo medio anagrafica verificato utente (auto-ricalcolo prodotti).
+
+## Magazzino / Tony Occhi — Prezzo medio anagrafica (2026-07-19) ✅ verificato
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Comportamento** | `Prodotto.prezzoUnitario` = media ponderata (prezzo×qty) delle entrate con prezzo nei movimenti. Storico prezzi resta nei movimenti. |
+| **Trigger** | (1) Registrazione fattura/scontrino Tony Occhi; (2) apertura Anagrafica Prodotti se mancano prezzi (auto); (3) pulsante **↻ Aggiorna prezzi medi**. |
+| **UI** | Campo «Prezzo medio (€)» sola lettura; meta `prezzoMedioAnno` / `prezzoMedioN` / `prezzoMedioAggiornatoAt`. |
+| **Implementazione** | `computePrezzoMedioPonderato` + `refreshPrezzoMedioAnagraficaProdotti` (register); ricalcolo diretto Firestore in `prodotti-standalone.html` (affidabile se cache/tenant); `updateProdottoPrezzoMedio` senza ri-validare dosaggi. |
+| **Verifica** | 2026-07-19: utente — prezzi medi compaiono in anagrafica senza clic sul pulsante (auto al load). |
+| **File** | `document-register.js`, `document-review-form.js`, `Prodotto.js`, `prodotti-service.js`, `prodotti-standalone.html`, cache Tony `2026-07-19a`, test |
+| **Deploy** | Hard refresh JS (non CF); opz. `firebase deploy --only firestore:indexes` |
+
+## Tony Occhi — Fix dropdown «Movimento bolla» vuoto (2026-07-19)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Problema** | In revisione fattura il badge DDT era corretto, ma «Movimento bolla» mostrava solo il placeholder (nessuna opzione). |
+| **Causa** | Dopo il load, i movimenti candidati venivano mappati senza `tipo`; `filterMovimentiCandidatiFattura` li scartava tutti (`tipo !== 'entrata'`). |
+| **Fix** | Mappa conserva `tipo` / `prezzoInAttesa`; `isMovimentoPrezzoInAttesa` tollera `tipo` assente; hint UI sul ruolo badge vs collegamento. |
+| **File** | `document-review-form.js`, `document-register.js`, test |
+| **Deploy** | Hard refresh JS (nessuna CF) |
+
+## Tony Occhi — Numeri DDT OCR (prompt + match fuzzy) (2026-07-18)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Problema** | Gemini leggeva male n. DDT (es. 1490 → 1493/1500) su stessa foto; match bolla↔fattura falliva. |
+| **Fix** | Prompt: lettura cifra-per-cifra Numero D.D.T.; client: `docNumsLooselyEqual` (al più 1 cifra diversa) in `movimentoNoteContainsDocNum`. |
+| **File** | `tony-document-schemas.js`, `document-register.js`, test |
+| **Deploy** | `firebase deploy --only functions:tonyExtractDocument` + hard refresh JS |
+
+## Magazzino — Elimina multipla movimenti + fix responsive liste (2026-07-18)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Movimenti** | Checkbox riga + seleziona tutti; **Elimina selezionati** con ripristino giacenza. |
+| **Responsive** | Media query locali (il CSS pagina sovrascriveva `responsive-standalone.css`); tabella con scroll orizzontale e `min-width`. |
+| **File** | `movimenti-standalone.html`, `prodotti-standalone.html` |
+
+## Magazzino — Selezione multipla ed elimina prodotti (2026-07-18)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **UI** | Checkbox per riga + «seleziona tutti» (visibili); pulsante **Elimina selezionati**; salta prodotti con movimenti e riepiloga esito. |
+| **File** | `prodotti-standalone.html` |
+
+## Magazzino — Elimina prodotto + fix Disattiva (2026-07-18)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Problema** | Disattiva falliva su nomi con apostrofi/virgolette (onclick inline); mancava eliminazione definitiva dei prodotti di prova senza movimenti. |
+| **Fix** | Azioni via `data-action` (no nome in onclick); pulsante **Elimina** (solo se 0 movimenti); `deleteProdotto` in service. |
+| **File** | `prodotti-standalone.html`, `prodotti-service.js`, `Prodotto.js` |
+
+## Tony Occhi — Match fattura: no prodotto «DdT num», fornitore tollerante, DDT+qty (2026-07-17)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Problema** | Dopo estrazione ok: Prodotto GFV spurio «DdT num…»; Movimento bolla vuoto (filtro fornitore `sas` vs `s.a.s.`; match solo se prodotto già scelto). |
+| **Fix** | Esclude anagrafiche DDT-like; `fornitoreNomeMatchesNote`; match/collegamento **DDT+qty** anche senza prodotto. |
+| **File** | `document-product-match.js`, `document-register.js`, `document-review-form.js` |
+| **Deploy** | Solo frontend (hard refresh / GitHub Pages). CF non necessaria. |
+
+## Tony Occhi — Fix JSON fattura troncato + indice movimenti (2026-07-17)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Problema** | `tonyExtractDocument` 500: JSON Gemini non valido / troncato su fatture lunghe; query movimenti `tipo+data` senza indice composito. |
+| **Fix** | `maxOutputTokens` 8192; riparazione JSON (decimali IT, virgole finali, chiusura truncata) + retry riparazione; fallback query movimenti; indice `movimentiMagazzino` tipo+data. |
+| **File** | `tony-document-schemas.js`, `tony-extract-document.js`, `document-review-form.js`, `firestore.indexes.json` |
+| **Deploy** | `firebase deploy --only functions:tonyExtractDocument,firestore:indexes` (+ hosting/GitHub Pages per JS). |
+
+## Tony Occhi — Fattura riepilogativa multi-DDT (2026-07-17)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Problema** | Su fatture con gruppi «Ddt num: …» Gemini poteva trattare le intestazioni come prodotti, omettere righe merce e collegare male movimenti/prodotti; filtro «una sola bolla» rompeva fatture multi-DDT. |
+| **Estrazione CF** | Prompt + `normalizeExtractionResult`: scarta intestazioni DDT, campo `riferimentoBolla` per riga, merge in `riferimentiBolla[]`. |
+| **Match / UI** | Cascata DDT+prodotto+qty; multi-sessione → filtro «Tutte le bolle»; badge DDT riga; warning Σ righe vs imponibile (doppia conferma Registra); match prodotto meno ambiguo su fungicidi. |
+| **File** | `functions/config/tony-document-schemas.js`, `document-register.js`, `document-product-match.js`, `document-review-form.js`, `tony-widget.css` |
+| **Test** | `tony-extract-document.test.js`, `tony-document-register.test.js` (34) |
+| **Deploy** | **CF** `tonyExtractDocument` obbligatoria per il prompt; hosting per JS/CSS. |
 
 ## Tony — Nav slide workspace: ore/lavori senza «sei già su segna ore» (2026-07-17, build `2026-07-17f`)
 

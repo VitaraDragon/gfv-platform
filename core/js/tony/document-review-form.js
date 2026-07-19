@@ -23,6 +23,11 @@ import {
   resolveAutoBollaSessionFromEstrazione,
   normalizeRiferimentiBolla,
   isMovimentoPrezzoInAttesa,
+  sanitizeFatturaRighe,
+  getRigaRiferimentoBollaNumero,
+  checkRigheVsImponibile,
+  movimentoNoteContainsDocNum,
+  qtyMatch,
 } from './document-register.js';
 
 function escapeHtml(s) {
@@ -47,16 +52,32 @@ function resolveTipoConfermato(estrazione) {
 
 function cloneEstrazione(estrazione) {
   var e = estrazione && typeof estrazione === 'object' ? estrazione : {};
+  var tipoConf = resolveTipoConfermato(e);
+  var righeRaw = Array.isArray(e.righe) ? e.righe.map(function (r) { return Object.assign({}, r); }) : [];
+  var righe = (tipoConf === 'fattura' || e.tipoDocumento === 'fattura')
+    ? sanitizeFatturaRighe(righeRaw)
+    : righeRaw;
+  var refs = normalizeRiferimentiBolla(e.riferimentiBolla);
+  if (!refs.length && righe.length) {
+    var seen = {};
+    righe.forEach(function (r) {
+      var n = getRigaRiferimentoBollaNumero(r);
+      if (n && !seen[n]) {
+        seen[n] = true;
+        refs.push({ numeroDocumento: n, dataDocumento: '', fornitore: '' });
+      }
+    });
+  }
   return {
     tipoDocumento: e.tipoDocumento || 'sconosciuto',
-    tipoDocumentoConfermato: resolveTipoConfermato(e),
+    tipoDocumentoConfermato: tipoConf,
     confidence: e.confidence,
     fornitore: Object.assign({ nome: '', piva: '', confidence: null }, e.fornitore || {}),
     numeroDocumento: e.numeroDocumento || '',
     dataDocumento: e.dataDocumento || '',
-    righe: Array.isArray(e.righe) ? e.righe.map(function (r) { return Object.assign({}, r); }) : [],
+    righe: righe,
     totali: e.totali || null,
-    riferimentiBolla: normalizeRiferimentiBolla(e.riferimentiBolla),
+    riferimentiBolla: refs,
   };
 }
 
@@ -149,7 +170,7 @@ export async function openTonyDocumentReviewForm(opts) {
   var movimentiPrezzoInAttesa = [];
   var bollaSessionFilter = '';
   var bollaSessionUserOverride = false;
-  var autoBollaMatch = { sessionId: '', numeroDocumento: '', score: 0 };
+  var autoBollaMatch = { sessionId: '', numeroDocumento: '', score: 0, multiSession: false, sessionIds: [] };
   try {
     var mod = await import('../../../modules/magazzino/services/prodotti-service.js');
     prodotti = await mod.getAllProdotti({ soloAttivi: true });
@@ -167,15 +188,26 @@ export async function openTonyDocumentReviewForm(opts) {
   }
   try {
     var movMod0 = await import('../../../modules/magazzino/services/movimenti-service.js');
-    var allMov = await movMod0.getAllMovimenti({ tipo: 'entrata', orderDirection: 'desc', limit: 300 });
+    var allMov;
+    try {
+      allMov = await movMod0.getAllMovimenti({ tipo: 'entrata', orderDirection: 'desc', limit: 300 });
+    } catch (idxErr) {
+      // Indice composto tipo+data assente: fallback senza filtro tipo
+      console.warn('[Tony Occhi] query movimenti tipo+data fallita, fallback:', idxErr && idxErr.message);
+      allMov = await movMod0.getAllMovimenti({ orderDirection: 'desc', limit: 400 });
+      allMov = (allMov || []).filter(function (m) { return m && m.tipo === 'entrata'; });
+    }
     movimentiPrezzoInAttesa = (allMov || []).filter(isMovimentoPrezzoInAttesa).map(function (m) {
       return {
         id: m.id,
+        tipo: 'entrata',
         prodottoId: m.prodottoId,
         quantita: m.quantita,
         note: m.note || '',
         documentoAcquisitoId: m.documentoAcquisitoId || '',
         data: m.data,
+        prezzoUnitario: m.prezzoUnitario != null ? m.prezzoUnitario : null,
+        prezzoInAttesa: m.prezzoInAttesa === true || m.prezzoUnitario == null,
       };
     });
   } catch (e) {
@@ -184,7 +216,8 @@ export async function openTonyDocumentReviewForm(opts) {
 
   if (state.tipoDocumentoConfermato === 'fattura' || state.tipoDocumento === 'fattura') {
     autoBollaMatch = resolveAutoBollaSessionFromEstrazione(state, movimentiPrezzoInAttesa);
-    if (autoBollaMatch.sessionId) {
+    // Multi-DDT: lascia "Tutte le bolle" così il match per-riga può usare tutti i movimenti
+    if (autoBollaMatch.sessionId && !autoBollaMatch.multiSession) {
       bollaSessionFilter = autoBollaMatch.sessionId;
     }
   }
@@ -224,25 +257,53 @@ export async function openTonyDocumentReviewForm(opts) {
   function buildMovimentoOptions(riga, suggestedId) {
     var pid = riga.prodottoIdConfermato || riga.prodottoIdSuggerito || '';
     var qty = Number(riga.quantita);
-    var candidati = getCandidatiFiltrati();
+    var hasQty = Number.isFinite(qty) && qty > 0;
+    var refNum = getRigaRiferimentoBollaNumero(riga);
+    var candidati = getCandidatiFiltrati().slice();
+    candidati.sort(function (a, b) {
+      var aDdt = refNum && movimentoNoteContainsDocNum(a.note, refNum) ? 0 : 1;
+      var bDdt = refNum && movimentoNoteContainsDocNum(b.note, refNum) ? 0 : 1;
+      if (aDdt !== bDdt) return aDdt - bDdt;
+      var aPid = pid && a.prodottoId === pid ? 0 : 1;
+      var bPid = pid && b.prodottoId === pid ? 0 : 1;
+      if (aPid !== bPid) return aPid - bPid;
+      if (hasQty) return Math.abs(a.quantita - qty) - Math.abs(b.quantita - qty);
+      return 0;
+    });
     var opts = '<option value="">— Collega movimento bolla —</option>';
     var seen = {};
-    candidati.forEach(function (m) {
+    function addOpt(m, labelPrefix) {
       if (!m.id || seen[m.id]) return;
-      if (pid && m.prodottoId !== pid) return;
       seen[m.id] = true;
       var sel = (riga.movimentoIdConfermato || suggestedId) === m.id ? ' selected' : '';
-      var lab = 'Entrata ' + m.quantita;
+      var lab = (labelPrefix || '') + 'Entrata ' + m.quantita;
+      if (refNum && movimentoNoteContainsDocNum(m.note, refNum)) lab = 'DDT ' + refNum + ' · ' + lab;
       if (m.note) lab += ' · ' + String(m.note).slice(0, 40);
       opts += '<option value="' + escapeHtml(m.id) + '"' + sel + '>' + escapeHtml(lab) + '</option>';
+    }
+    // Stesso prodotto
+    candidati.forEach(function (m) {
+      if (pid && m.prodottoId !== pid) return;
+      addOpt(m, '');
     });
-    if (pid && Number.isFinite(qty) && qty > 0) {
+    // Stesso DDT + qty anche se prodotto diverso / assente
+    if (refNum && hasQty) {
       candidati.forEach(function (m) {
-        if (!m.id || seen[m.id] || m.prodottoId === pid) return;
-        seen[m.id] = true;
-        var sel2 = riga.movimentoIdConfermato === m.id ? ' selected' : '';
-        opts += '<option value="' + escapeHtml(m.id) + '"' + sel2 + '>' + escapeHtml('Altro prodotto · ' + m.quantita) + '</option>';
+        if (!movimentoNoteContainsDocNum(m.note, refNum)) return;
+        if (!qtyMatch(m.quantita, qty)) return;
+        addOpt(m, 'Qty+DDT · ');
       });
+    }
+    // Altri candidati
+    candidati.forEach(function (m) {
+      addOpt(m, 'Altro · ');
+    });
+    if (Object.keys(seen).length === 0) {
+      if (!movimentiPrezzoInAttesa.length) {
+        opts += '<option value="" disabled>Nessuna bolla in attesa di prezzo — registra prima le bolle, oppure lascia vuoto (fattura diretta)</option>';
+      } else {
+        opts += '<option value="" disabled>Nessun movimento bolla compatibile con questa riga — lascia vuoto per fattura diretta</option>';
+      }
     }
     return opts;
   }
@@ -292,6 +353,7 @@ export async function openTonyDocumentReviewForm(opts) {
       var catLabel = r.categoriaSuggerita && r.categoriaSuggerita !== 'altro'
         ? getCategoriaNome(r.categoriaSuggerita)
         : '';
+      var ddtNum = getRigaRiferimentoBollaNumero(r);
       var optsHtml = '<option value="">— Seleziona prodotto —</option>';
       var seen = {};
       (r.matchCandidates || []).forEach(function (c) {
@@ -324,6 +386,7 @@ export async function openTonyDocumentReviewForm(opts) {
       return (
         '<tr class="tony-doc-review-row' + (lowConf ? ' tony-doc-row-low-conf' : '') + '" data-idx="' + idx + '">' +
         '<td><div class="tony-doc-desc-cell"><input class="tony-doc-r-desc" type="text" value="' + escapeHtml(r.descrizione) + '" maxlength="200">' +
+        (ddtNum ? '<span class="tony-doc-ddt-badge" title="DDT collegato a questa riga">DDT ' + escapeHtml(ddtNum) + '</span>' : '') +
         (catLabel ? '<span class="tony-doc-cat-badge" title="Categoria suggerita">' + escapeHtml(catLabel) + '</span>' : '') +
         '</div></td>' +
         '<td><input class="tony-doc-r-qty" type="number" min="0" step="any" value="' + escapeHtml(r.quantita != null ? r.quantita : '') + '"></td>' +
@@ -341,9 +404,13 @@ export async function openTonyDocumentReviewForm(opts) {
     var hint = isScontrino
       ? 'Scontrino: inserisci prezzi e prodotti — verrà creata una nuova entrata in magazzino (qty + prezzo).'
       : isFattura
-        ? 'Fattura: collega le righe alla bolla se esiste, oppure lascia vuoto «Movimento bolla» per una nuova entrata (fattura diretta).'
+        ? 'Fattura: «Movimento bolla» collega la riga a un\'entrata già registrata dalla bolla (prezzo in attesa). Il badge DDT sotto la descrizione è solo il riferimento letto dalla fattura, non il collegamento. Lascia vuoto per una nuova entrata (fattura diretta).'
         : 'Righe evidenziate: revisione consigliata (bassa confidence). Su bolla il prezzo può restare vuoto (prezzo in attesa). Prodotti non trovati verranno creati in anagrafica al momento della registrazione.';
-    if (isFattura && autoBollaMatch.sessionId && bollaSessionFilter === autoBollaMatch.sessionId && !bollaSessionUserOverride) {
+    if (isFattura && !movimentiPrezzoInAttesa.length) {
+      hint += ' Nessuna entrata bolla in attesa di prezzo in magazzino: registra prima le bolle (con qty, prezzo vuoto), poi ripeti la fattura.';
+    } else if (isFattura && autoBollaMatch.multiSession && !bollaSessionUserOverride) {
+      hint += ' Fattura multi-DDT: collegamento per riga (badge DDT). Filtro bolla lasciato su tutte le bolle in attesa.';
+    } else if (isFattura && autoBollaMatch.sessionId && bollaSessionFilter === autoBollaMatch.sessionId && !bollaSessionUserOverride) {
       hint += ' Bolla collegata automaticamente da DDT ' + autoBollaMatch.numeroDocumento + ' (' + autoBollaMatch.score + ' entr' + (autoBollaMatch.score === 1 ? 'ata' : 'ate') + ').';
     }
     var riferimentiHtml = '';
@@ -351,6 +418,10 @@ export async function openTonyDocumentReviewForm(opts) {
       var refLabels = state.riferimentiBolla.map(function (r) { return r.numeroDocumento; }).join(', ');
       riferimentiHtml = '<p class="tony-doc-review-refs">DDT in fattura: <strong>' + escapeHtml(refLabels) + '</strong></p>';
     }
+    var coher = (isFattura || isScontrino) ? checkRigheVsImponibile(state.righe, state.totali) : { ok: true, message: '' };
+    var coherHtml = coher && !coher.ok && coher.message
+      ? '<p class="tony-doc-review-warn" role="status">' + escapeHtml(coher.message) + '</p>'
+      : '';
     var bollaFilterHtml = isFattura
       ? '<label class="tony-doc-review-bolla-filter">Collega bolla <select id="tony-doc-review-bolla">' + bollaOpts + '</select></label>'
       : '';
@@ -376,6 +447,7 @@ export async function openTonyDocumentReviewForm(opts) {
       '</div>' +
       riferimentiHtml +
       buildTotaliHtml() +
+      coherHtml +
       '<div class="tony-doc-review-table-wrap">' +
       '<table class="tony-doc-review-table"><thead><tr>' +
       tableHead +
@@ -398,7 +470,9 @@ export async function openTonyDocumentReviewForm(opts) {
         state.tipoDocumentoConfermato = tipoSel.value;
         if (tipoSel.value === 'fattura' && !bollaSessionUserOverride) {
           autoBollaMatch = resolveAutoBollaSessionFromEstrazione(state, movimentiPrezzoInAttesa);
-          if (autoBollaMatch.sessionId) bollaSessionFilter = autoBollaMatch.sessionId;
+          bollaSessionFilter = (autoBollaMatch.sessionId && !autoBollaMatch.multiSession)
+            ? autoBollaMatch.sessionId
+            : '';
         } else if (tipoSel.value !== 'fattura') {
           bollaSessionFilter = '';
         }
@@ -439,6 +513,14 @@ export async function openTonyDocumentReviewForm(opts) {
       if (errEl) errEl.textContent = validation.errors.join(' ');
       return;
     }
+    if (isFattura || isScontrino) {
+      var coherReg = checkRigheVsImponibile(state.righe, state.totali);
+      if (!coherReg.ok && coherReg.message && errEl && !errEl.dataset.coherAck) {
+        errEl.textContent = coherReg.message + ' Premi di nuovo «Registra dati» per confermare comunque.';
+        errEl.dataset.coherAck = '1';
+        return;
+      }
+    }
     var btn = inner.querySelector('#tony-doc-review-register');
     if (btn) btn.disabled = true;
     try {
@@ -466,6 +548,9 @@ export async function openTonyDocumentReviewForm(opts) {
           userId: userId,
           createMovimento: movMod.createMovimento,
           createProdotto: prodMod.createProdotto,
+          getAllMovimenti: movMod.getAllMovimenti,
+          updateProdotto: prodMod.updateProdottoPrezzoMedio || prodMod.updateProdotto,
+          getMovimento: movMod.getMovimento,
         });
       } else if (isFattura) {
         result = await registerFatturaDocumento({
@@ -478,6 +563,8 @@ export async function openTonyDocumentReviewForm(opts) {
           getMovimento: movMod.getMovimento,
           createMovimento: movMod.createMovimento,
           createProdotto: prodMod.createProdotto,
+          getAllMovimenti: movMod.getAllMovimenti,
+          updateProdotto: prodMod.updateProdottoPrezzoMedio || prodMod.updateProdotto,
         });
       } else {
         result = await registerBollaMovimenti({
@@ -497,6 +584,7 @@ export async function openTonyDocumentReviewForm(opts) {
         creati: result.creati,
         aggiornati: result.aggiornati,
         prodottiCreati: prodottiCreati,
+        prezzoMedio: result.prezzoMedio,
       });
       if (prodottiCreati > 0) {
         var rem = buildProdottoCompletamentoReminderMessage(prodottiCreatiList);

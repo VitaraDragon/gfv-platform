@@ -26,10 +26,38 @@ function normText(s) {
     .trim();
 }
 
+var WEAK_PRODUCT_TOKENS = {
+  da: 1, di: 1, del: 1, della: 1, con: 1, per: 1, the: 1,
+  fung: 1, fungicida: 1, inse: 1, insetticida: 1, concime: 1,
+  lt: 1, kg: 1, pz: 1, nr: 1, num: 1, ddt: 1, bolla: 1,
+};
+
 function tokenSet(s) {
   var t = normText(s);
   if (!t) return [];
   return t.split(' ').filter(function (w) { return w.length >= 2; });
+}
+
+function isWeakProductToken(w) {
+  return !!WEAK_PRODUCT_TOKENS[w] || w.length < 3;
+}
+
+/**
+ * Intestazione gruppo DDT — non matchare come prodotto.
+ * @param {string} descrizione
+ * @returns {boolean}
+ */
+export function isDdtHeaderDescrizione(descrizione) {
+  var d = String(descrizione || '').trim();
+  if (!d) return false;
+  if (/^ddt\s*num/i.test(d)) return true;
+  if (/^ddt\s*[nN°.]/i.test(d)) return true;
+  if (/^documento\s+di\s+trasporto/i.test(d)) return true;
+  if (/^bolla\s+(n|num)/i.test(d)) return true;
+  if (/^ddt[\s.:/\d]/i.test(d) && !/\b(fung|inse|concim|maschera|spese|olio|rame|zolfo|fertil|seme)/i.test(d)) {
+    return true;
+  }
+  return false;
 }
 
 /**
@@ -119,14 +147,20 @@ export function filterProdottiByCategoria(prodotti, categoria) {
  */
 export function suggestProdottoForRiga(descrizione, codiceFornitore, prodotti, opts) {
   opts = opts || {};
+  if (isDdtHeaderDescrizione(descrizione)) {
+    return { prodottoId: null, score: 0, candidates: [] };
+  }
   var pool = filterProdottiByCategoria(prodotti, opts.categoria);
   var desc = normText(descrizione);
   var cod = normText(codiceFornitore);
   var descTokens = tokenSet(descrizione);
+  var strongDescTokens = descTokens.filter(function (w) { return !isWeakProductToken(w); });
   var candidates = [];
 
   pool.forEach(function (p) {
     if (!p || !p.id) return;
+    // Prodotti spurii creati da intestazioni DDT (acquisizioni precedenti)
+    if (isDdtHeaderDescrizione(p.nome) || isDdtHeaderDescrizione(p.codice)) return;
     var nome = normText(p.nome);
     var codice = normText(p.codice);
     var score = 0;
@@ -138,13 +172,22 @@ export function suggestProdottoForRiga(descrizione, codiceFornitore, prodotti, o
       else if (nome.indexOf(desc) >= 0 || desc.indexOf(nome) >= 0) score += 0.45;
       else {
         var nomeTokens = tokenSet(p.nome);
-        var overlap = 0;
+        var strongOverlap = 0;
+        var weakOverlap = 0;
         descTokens.forEach(function (dt) {
-          if (nomeTokens.some(function (nt) { return nt === dt || nt.indexOf(dt) >= 0 || dt.indexOf(nt) >= 0; })) {
-            overlap += 1;
-          }
+          var hit = nomeTokens.some(function (nt) {
+            if (nt === dt) return true;
+            // Prefisso significativo (es. cuprocaffa → cuprocaffaro), non token generici corti
+            if (dt.length >= 5 && (nt.indexOf(dt) === 0 || dt.indexOf(nt) === 0)) return true;
+            if (nt.length >= 5 && dt.length >= 5 && (nt.indexOf(dt) >= 0 || dt.indexOf(nt) >= 0)) return true;
+            return false;
+          });
+          if (!hit) return;
+          if (isWeakProductToken(dt)) weakOverlap += 1;
+          else strongOverlap += 1;
         });
-        if (overlap > 0) score += Math.min(0.4, overlap * 0.12);
+        if (strongOverlap > 0) score += Math.min(0.55, strongOverlap * 0.22);
+        else if (weakOverlap > 0 && strongDescTokens.length === 0) score += Math.min(0.2, weakOverlap * 0.08);
       }
     }
     if (score > 0.08) {
@@ -163,7 +206,10 @@ export function suggestProdottoForRiga(descrizione, codiceFornitore, prodotti, o
 
   candidates.sort(function (a, b) { return b.score - a.score; });
   var top = candidates[0] || null;
-  var prodottoId = top && top.score >= 0.35 ? top.id : null;
+  var second = candidates[1] || null;
+  // Evita auto-selezione ambigua (due candidati vicini, tipico Fung.X vs Fung.Y)
+  var ambiguous = top && second && (top.score - second.score) < 0.08 && top.score < 0.7;
+  var prodottoId = top && top.score >= 0.35 && !ambiguous ? top.id : null;
   return {
     prodottoId: prodottoId,
     score: top ? top.score : 0,
@@ -177,14 +223,33 @@ export function suggestProdottoForRiga(descrizione, codiceFornitore, prodotti, o
  * @returns {Array<object>}
  */
 export function enrichRigheWithProdottoSuggestions(righe, prodotti) {
+  var byId = {};
+  (prodotti || []).forEach(function (p) {
+    if (p && p.id) byId[p.id] = p;
+  });
   return (righe || []).map(function (r) {
+    if (isDdtHeaderDescrizione(r.descrizione)) {
+      return Object.assign({}, r, {
+        categoriaSuggerita: 'altro',
+        categoriaScore: 0,
+        prodottoIdSuggerito: null,
+        prodottoIdConfermato: '',
+        matchCandidates: [],
+        matchScore: 0,
+      });
+    }
     var catSug = suggestCategoriaForRiga(r.descrizione);
     var sug = suggestProdottoForRiga(r.descrizione, r.codiceFornitore, prodotti, { categoria: catSug.categoria });
+    var confirmed = r.prodottoIdConfermato || sug.prodottoId || '';
+    // Non mantenere selezione su prodotto spurio "DdT num…"
+    if (confirmed && byId[confirmed] && isDdtHeaderDescrizione(byId[confirmed].nome)) {
+      confirmed = sug.prodottoId || '';
+    }
     return Object.assign({}, r, {
       categoriaSuggerita: catSug.categoria,
       categoriaScore: catSug.score,
       prodottoIdSuggerito: sug.prodottoId,
-      prodottoIdConfermato: r.prodottoIdConfermato || sug.prodottoId || '',
+      prodottoIdConfermato: confirmed,
       matchCandidates: sug.candidates,
       matchScore: sug.score,
     });

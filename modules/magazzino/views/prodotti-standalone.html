@@ -9,10 +9,10 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #E8F5E9 0%, #2E7D32 100%); color: #333; min-height: 100vh; }
-        .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
+        .container { max-width: 1600px; margin: 0 auto; padding: 20px; box-sizing: border-box; width: 100%; }
         .header { background: linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
         .header h1 { font-size: 28px; }
-        .header-actions { display: flex; gap: 10px; }
+        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
         .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; }
         .btn-primary { background: #2E7D32; color: white; }
         .btn-primary:hover { background: #1B5E20; }
@@ -20,14 +20,15 @@
         .btn-secondary:hover { background: #5a6268; }
         .btn-danger { background: #dc3545; color: white; }
         .btn-sm { padding: 5px 10px; font-size: 12px; }
-        .content { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .content { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); max-width: 100%; overflow-x: clip; }
         .filters { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; padding: 20px; background: #f8f9fa; border-radius: 8px; }
-        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 1 1 140px; }
         .filter-group label { font-size: 12px; font-weight: 600; color: #495057; }
-        .filter-group select, .filter-group input { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; }
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .filter-group select, .filter-group input { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; max-width: 100%; }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
         .section-header h2 { color: #2E7D32; font-size: 24px; }
-        .prodotti-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        .table-responsive { width: 100%; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .prodotti-table { width: 100%; min-width: 900px; border-collapse: collapse; margin-top: 12px; }
         .prodotti-table th, .prodotti-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e9ecef; }
         .prodotti-table th { background: #E8F5E9; font-weight: 600; color: #495057; }
         .prodotti-table tr:hover { background: #f1f8e9; }
@@ -45,7 +46,41 @@
             margin-bottom: 12px;
             font-size: 13px;
         }
-        .action-buttons { display: flex; gap: 5px; }
+        .action-buttons { display: flex; gap: 5px; flex-wrap: wrap; }
+        .prodotti-table th.col-check,
+        .prodotti-table td.col-check { width: 36px; text-align: center; vertical-align: middle; }
+        .prodotti-table .col-check input { width: 16px; height: 16px; cursor: pointer; }
+        .bulk-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .bulk-actions .bulk-count { font-size: 13px; color: #495057; min-width: 7em; }
+        .btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-danger:hover:not(:disabled) { background: #c82333; }
+        @media (max-width: 1024px) {
+            .container { padding: 16px; }
+            .content { padding: 24px; }
+        }
+        @media (max-width: 768px) {
+            .container { padding: 12px; }
+            .content { padding: 15px; }
+            .header { flex-direction: column; align-items: flex-start; padding: 20px; }
+            .header h1 { font-size: 22px; }
+            .header-actions { width: 100%; }
+            .header-actions .btn { flex: 1 1 auto; text-align: center; }
+            .filters { flex-direction: column; }
+            .section-header h2 { font-size: 20px; }
+            .prodotti-table { min-width: 820px; font-size: 12px; }
+            .prodotti-table th, .prodotti-table td { padding: 8px 6px; }
+        }
+        @media (max-width: 480px) {
+            .container { padding: 8px; }
+            .content { padding: 12px; }
+            .header { padding: 16px; }
+            .header-actions .btn { width: 100%; }
+        }
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
         .modal.active { display: flex; }
         .modal-content { background: white; padding: 30px; border-radius: 12px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
@@ -74,6 +109,7 @@
             </div>
             <div class="header-actions">
                 <button class="btn btn-primary" id="btn-nuovo-prodotto">➕ Nuovo Prodotto</button>
+                <button type="button" class="btn btn-primary" id="btn-ricalcola-prezzi-medi" title="Ricalcola media ponderata dalle entrate con prezzo nei movimenti">↻ Aggiorna prezzi medi</button>
                 <a href="magazzino-home-standalone.html" class="btn btn-secondary">← Prodotti e Magazzino</a>
             </div>
         </div>
@@ -118,7 +154,11 @@
             </div>
             <div class="section-header">
                 <h2>Elenco Prodotti</h2>
-                <div id="prodotti-count">0 prodotti</div>
+                <div class="bulk-actions">
+                    <span id="prodotti-count">0 prodotti</span>
+                    <span class="bulk-count" id="bulk-selected-count">0 selezionati</span>
+                    <button type="button" class="btn btn-danger btn-sm" id="btn-elimina-selezionati" disabled>Elimina selezionati</button>
+                </div>
             </div>
             <div id="prodotti-container" class="table-responsive">
                 <div class="loading">Caricamento prodotti...</div>
@@ -178,9 +218,9 @@
                         <input type="number" id="prodotto-scorta-minima" min="0" step="0.01" value="0" placeholder="0">
                     </div>
                     <div class="form-group">
-                        <label for="prodotto-prezzo">Prezzo unitario (€)</label>
-                        <input type="number" id="prodotto-prezzo" min="0" step="0.01" placeholder="Opzionale">
-                        <span class="form-hint">Per trattamenti: €/kg o €/L secondo unità di misura.</span>
+                        <label for="prodotto-prezzo">Prezzo medio (€)</label>
+                        <input type="number" id="prodotto-prezzo" min="0" step="0.01" placeholder="—" readonly>
+                        <span class="form-hint" id="prodotto-prezzo-hint">Media ponderata (prezzo×qty) dalle fatture dell’anno. Si aggiorna alla registrazione fattura; lo storico resta nei movimenti.</span>
                     </div>
                 </div>
                 <div class="form-row">
@@ -228,16 +268,24 @@
     <script type="module">
         import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
         import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
-        import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, orderBy, serverTimestamp } from '../../../core/services/firebase-service.js';
+        import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp } from '../../../core/services/firebase-service.js';
         import {
             syncProdottoDosaggioCarenzaRequiredDom,
             getProdottoDosaggioCarenzaRequiredFieldIds,
             prodottoCategoriaRichiedeDosaggio,
             prodottoCategoriaRichiedeGiorniCarenza,
         } from '../../../core/js/prodotto-form-required.js';
-
         if (!window.currentTableData || !window.currentTableData.summary || window.currentTableData.summary === '') {
             window.currentTableData = { pageType: 'prodotti', summary: 'Caricamento dati in corso...', items: [] };
+        }
+
+        function parsePrezzoNum(v) {
+            if (v == null || v === '') return NaN;
+            if (typeof v === 'number') return Number.isFinite(v) ? v : NaN;
+            var s = String(v).trim().replace(/\s/g, '');
+            if (!s) return NaN;
+            if (s.indexOf(',') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+            return Number(s);
         }
 
         function waitForConfig() {
@@ -258,6 +306,8 @@
         const db = getDb();
         let currentTenantId = null;
         let prodotti = [];
+        /** @type {Set<string>} */
+        const selectedProdottoIds = new Set();
 
         function showAlert(message, type) {
             if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(message, type || 'info'); return; }
@@ -279,6 +329,11 @@
                     return;
                 }
                 document.getElementById('btn-nuovo-prodotto').onclick = openModal;
+                const btnPrezziMedi = document.getElementById('btn-ricalcola-prezzi-medi');
+                if (btnPrezziMedi) btnPrezziMedi.onclick = function () { ricalcolaPrezziMediDaMovimenti({ quiet: false }); };
+                document.getElementById('btn-elimina-selezionati').onclick = function () {
+                    window.eliminaProdottiSelezionati();
+                };
                 document.getElementById('btn-close-modal').onclick = closeModal;
                 document.getElementById('btn-annulla-modal').onclick = closeModal;
                 document.getElementById('btn-reset-filtri').onclick = resetFilters;
@@ -288,14 +343,100 @@
                 document.getElementById('filter-search').oninput = renderProdotti;
                 document.getElementById('prodotto-form').onsubmit = saveProdotto;
                 document.getElementById('prodotto-categoria').addEventListener('change', syncProdottoDosaggioCarenzaRequiredDom);
-                await loadProdotti();
+                await loadProdotti({ autoPrezziMedi: true });
             } catch (e) {
                 console.error(e);
                 showAlert('Errore caricamento', 'error');
             }
         });
 
-        async function loadProdotti() {
+        /**
+         * Ricalcola prezzo medio in anagrafica leggendo i movimenti da Firestore (stesso tenant della pagina).
+         * @param {{ quiet?: boolean }} [opts]
+         */
+        async function ricalcolaPrezziMediDaMovimenti(opts) {
+            opts = opts || {};
+            const quiet = opts.quiet === true;
+            if (!currentTenantId) {
+                if (!quiet) showAlert('Nessun tenant.', 'error');
+                return { updated: 0 };
+            }
+            if (!prodotti.length) {
+                if (!quiet) showAlert('Nessun prodotto da aggiornare.', 'info');
+                return { updated: 0 };
+            }
+            const btn = document.getElementById('btn-ricalcola-prezzi-medi');
+            if (btn) btn.disabled = true;
+            try {
+                const movSnap = await getDocs(collection(db, 'tenants', currentTenantId, 'movimentiMagazzino'));
+                const byProd = {};
+                let entrateConPrezzo = 0;
+                movSnap.forEach((d) => {
+                    const m = d.data() || {};
+                    if (m.tipo && m.tipo !== 'entrata') return;
+                    const pid = m.prodottoId;
+                    if (!pid) return;
+                    const p = parsePrezzoNum(m.prezzoUnitario);
+                    const q = Number(m.quantita);
+                    if (!(Number.isFinite(p) && p > 0 && Number.isFinite(q) && q > 0)) return;
+                    entrateConPrezzo += 1;
+                    if (!byProd[pid]) byProd[pid] = { sumPQ: 0, sumQ: 0, n: 0 };
+                    byProd[pid].sumPQ += p * q;
+                    byProd[pid].sumQ += q;
+                    byProd[pid].n += 1;
+                });
+                console.info('[Prezzo medio] movimenti entrata con prezzo:', entrateConPrezzo, 'prodotti:', Object.keys(byProd).length);
+
+                const anno = new Date().getFullYear();
+                let updated = 0;
+                const missingLink = [];
+                for (const p of prodotti) {
+                    const agg = byProd[p.id];
+                    if (!agg || !(agg.sumQ > 0)) {
+                        if (p.prezzoUnitario == null || p.prezzoUnitario === '') {
+                            missingLink.push(p.nome || p.id);
+                        }
+                        continue;
+                    }
+                    const medio = Math.round((agg.sumPQ / agg.sumQ) * 10000) / 10000;
+                    const same = p.prezzoUnitario != null && Math.abs(Number(p.prezzoUnitario) - medio) < 0.00005
+                        && Number(p.prezzoMedioN) === agg.n;
+                    if (same) continue;
+                    await updateDoc(doc(db, 'tenants', currentTenantId, 'prodotti', p.id), {
+                        prezzoUnitario: medio,
+                        prezzoMedioAnno: anno,
+                        prezzoMedioN: agg.n,
+                        prezzoMedioAggiornatoAt: new Date().toISOString(),
+                        updatedAt: serverTimestamp(),
+                    });
+                    updated += 1;
+                }
+                console.info('[Prezzo medio] anagrafica aggiornata:', updated, 'senza movimenti a prezzo:', missingLink.length);
+                if (missingLink.length) {
+                    console.info('[Prezzo medio] prodotti senza entrate a prezzo (es.):', missingLink.slice(0, 8));
+                }
+                if (updated > 0) await loadProdotti({ autoPrezziMedi: false });
+                if (!quiet) {
+                    if (updated > 0) {
+                        showAlert('Prezzo medio aggiornato su ' + updated + ' prodott' + (updated === 1 ? 'o' : 'i') + '.', 'success');
+                    } else if (entrateConPrezzo === 0) {
+                        showAlert('Nei movimenti non ci sono entrate con prezzo > 0. Controlla Magazzino → Movimenti.', 'info');
+                    } else {
+                        showAlert('Trovate ' + entrateConPrezzo + ' entrate con prezzo, ma non collegate a questi prodotti (prodottoId diverso). Vedi console [Prezzo medio].', 'info');
+                    }
+                }
+                return { updated: updated, entrateConPrezzo: entrateConPrezzo };
+            } catch (e) {
+                console.error('[Prezzo medio] errore:', e);
+                if (!quiet) showAlert('Errore ricalcolo prezzi medi: ' + (e.message || e), 'error');
+                return { updated: 0, error: e };
+            } finally {
+                if (btn) btn.disabled = false;
+            }
+        }
+
+        async function loadProdotti(opts) {
+            opts = opts || {};
             const container = document.getElementById('prodotti-container');
             container.innerHTML = '<div class="loading">Caricamento prodotti...</div>';
             try {
@@ -305,6 +446,12 @@
                 prodotti = [];
                 snapshot.forEach(d => prodotti.push({ id: d.id, ...d.data() }));
                 renderProdotti();
+                if (opts.autoPrezziMedi) {
+                    const senzaPrezzo = prodotti.some((p) => p.prezzoUnitario == null || p.prezzoUnitario === '');
+                    if (senzaPrezzo) {
+                        await ricalcolaPrezziMediDaMovimenti({ quiet: true });
+                    }
+                }
             } catch (err) {
                 console.error(err);
                 showAlert('Errore: ' + err.message, 'error');
@@ -403,20 +550,30 @@
                 speakProdottiDaCompletareReminder(daCompletareCount);
             }, 4000);
 
+            // Rimuovi dalla selezione ID non più presenti in anagrafica
+            Array.from(selectedProdottoIds).forEach(function (id) {
+                if (!prodotti.some(function (p) { return p.id === id; })) selectedProdottoIds.delete(id);
+            });
+
             if (filtered.length === 0) {
                 container.innerHTML = '<div class="empty-state">Nessun prodotto trovato</div>';
+                updateBulkSelectionUi();
                 return;
             }
+            const allVisibleSelected = filtered.length > 0 && filtered.every(function (p) { return selectedProdottoIds.has(p.id); });
             const html = `
                 <table class="prodotti-table">
                     <thead><tr>
+                        <th class="col-check"><input type="checkbox" id="check-select-all" title="Seleziona tutti i prodotti visibili" ${allVisibleSelected ? 'checked' : ''}></th>
                         <th>Codice</th><th>Nome</th><th>Categoria</th><th>Um</th><th>Giacenza</th><th>Scorta min.</th><th>Stato</th><th>Azioni</th>
                     </tr></thead>
                     <tbody>
                         ${filtered.map(p => {
                             const sottoScorta = (p.scortaMinima != null && p.scortaMinima > 0 && (p.giacenza == null || p.giacenza < p.scortaMinima));
                             const daCompletare = p.daCompletare === true;
+                            const checked = selectedProdottoIds.has(p.id) ? ' checked' : '';
                             return `<tr>
+                                <td class="col-check"><input type="checkbox" class="prod-row-check" data-id="${p.id}"${checked}></td>
                                 <td>${escapeHtml(p.codice || '-')}</td>
                                 <td>${escapeHtml(p.nome || '-')}</td>
                                 <td>${escapeHtml(p.categoria || '-')}</td>
@@ -425,14 +582,61 @@
                                 <td>${formatNum(p.scortaMinima)}</td>
                                 <td>${daCompletare ? '<span class="badge badge-da-completare">Da completare</span>' : ''} ${sottoScorta ? '<span class="badge badge-sotto-scorta">Sotto scorta</span>' : ''} ${p.attivo === false ? '<span class="badge badge-disattivo">Disattivo</span>' : '<span class="badge badge-attivo">Attivo</span>'}</td>
                                 <td class="action-buttons">
-                                    <button class="btn btn-primary btn-sm" onclick="window.editProdotto('${p.id}')">Modifica</button>
-                                    ${p.attivo !== false ? `<button class="btn btn-danger btn-sm" onclick="window.disattivaProdotto('${p.id}', '${escapeHtml(p.nome || '')}')">Disattiva</button>` : `<button class="btn btn-primary btn-sm" onclick="window.riattivaProdotto('${p.id}')">Riattiva</button>`}
+                                    <button class="btn btn-primary btn-sm" data-action="edit" data-id="${p.id}">Modifica</button>
+                                    ${p.attivo !== false
+                                        ? `<button class="btn btn-secondary btn-sm" data-action="disattiva" data-id="${p.id}">Disattiva</button>`
+                                        : `<button class="btn btn-primary btn-sm" data-action="riattiva" data-id="${p.id}">Riattiva</button>`}
+                                    <button class="btn btn-danger btn-sm" data-action="elimina" data-id="${p.id}">Elimina</button>
                                 </td>
                             </tr>`;
                         }).join('')}
                     </tbody>
                 </table>`;
             container.innerHTML = html;
+
+            const selectAll = container.querySelector('#check-select-all');
+            if (selectAll) {
+                selectAll.addEventListener('change', function () {
+                    filtered.forEach(function (p) {
+                        if (selectAll.checked) selectedProdottoIds.add(p.id);
+                        else selectedProdottoIds.delete(p.id);
+                    });
+                    container.querySelectorAll('.prod-row-check').forEach(function (cb) {
+                        cb.checked = selectAll.checked;
+                    });
+                    updateBulkSelectionUi();
+                });
+            }
+            container.querySelectorAll('.prod-row-check').forEach(function (cb) {
+                cb.addEventListener('change', function () {
+                    const id = cb.getAttribute('data-id');
+                    if (cb.checked) selectedProdottoIds.add(id);
+                    else selectedProdottoIds.delete(id);
+                    if (selectAll) {
+                        selectAll.checked = filtered.every(function (p) { return selectedProdottoIds.has(p.id); });
+                    }
+                    updateBulkSelectionUi();
+                });
+            });
+            container.querySelectorAll('[data-action]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    var action = btn.getAttribute('data-action');
+                    var id = btn.getAttribute('data-id');
+                    if (action === 'edit') window.editProdotto(id);
+                    else if (action === 'disattiva') window.disattivaProdotto(id);
+                    else if (action === 'riattiva') window.riattivaProdotto(id);
+                    else if (action === 'elimina') window.eliminaProdotto(id);
+                });
+            });
+            updateBulkSelectionUi();
+        }
+
+        function updateBulkSelectionUi() {
+            const n = selectedProdottoIds.size;
+            const countEl = document.getElementById('bulk-selected-count');
+            const btn = document.getElementById('btn-elimina-selezionati');
+            if (countEl) countEl.textContent = n + ' selezionat' + (n === 1 ? 'o' : 'i');
+            if (btn) btn.disabled = n === 0;
         }
 
         function escapeHtml(s) {
@@ -456,6 +660,19 @@
             document.getElementById('prodotto-unita').value = p.unitaMisura || 'pezzi';
             document.getElementById('prodotto-scorta-minima').value = p.scortaMinima != null ? p.scortaMinima : 0;
             document.getElementById('prodotto-prezzo').value = p.prezzoUnitario != null ? p.prezzoUnitario : '';
+            const prezzoHint = document.getElementById('prodotto-prezzo-hint');
+            if (prezzoHint) {
+                if (p.prezzoMedioAnno && p.prezzoMedioN) {
+                    prezzoHint.textContent = 'Media ponderata ' + p.prezzoMedioAnno + ' su ' + p.prezzoMedioN +
+                        ' entrat' + (p.prezzoMedioN === 1 ? 'a' : 'e') +
+                        ' fatturat' + (p.prezzoMedioN === 1 ? 'a' : 'e') +
+                        '. Solo lettura — storico prezzi nei movimenti.';
+                } else if (p.prezzoUnitario != null) {
+                    prezzoHint.textContent = 'Valore in anagrafica (sola lettura). Si ricalcola dalle fatture dell’anno.';
+                } else {
+                    prezzoHint.textContent = 'Ancora nessun prezzo da fattura. Si compila alla registrazione (media ponderata anno).';
+                }
+            }
             document.getElementById('prodotto-dosaggio-min').value = p.dosaggioMin != null ? p.dosaggioMin : '';
             document.getElementById('prodotto-dosaggio-max').value = p.dosaggioMax != null ? p.dosaggioMax : '';
             document.getElementById('prodotto-giorni-carenza').value = p.giorniCarenza != null ? p.giorniCarenza : '';
@@ -466,7 +683,9 @@
             syncProdottoDosaggioCarenzaRequiredDom();
         };
 
-        window.disattivaProdotto = async function(id, nome) {
+        window.disattivaProdotto = async function(id) {
+            const p = prodotti.find(x => x.id === id);
+            const nome = (p && p.nome) ? p.nome : id;
             if (!confirm('Disattivare il prodotto "' + nome + '"? Resta nello storico.')) return;
             try {
                 await updateDoc(doc(db, 'tenants', currentTenantId, 'prodotti', id), { attivo: false, updatedAt: serverTimestamp() });
@@ -487,6 +706,86 @@
             }
         };
 
+        /**
+         * @param {string} id
+         * @returns {Promise<{ ok: boolean, reason?: string, nome?: string }>}
+         */
+        async function tryDeleteProdottoById(id) {
+            const p = prodotti.find(x => x.id === id);
+            const nome = (p && p.nome) ? p.nome : id;
+            const movSnap = await getDocs(query(
+                collection(db, 'tenants', currentTenantId, 'movimentiMagazzino'),
+                where('prodottoId', '==', id)
+            ));
+            if (!movSnap.empty) {
+                return {
+                    ok: false,
+                    nome: nome,
+                    reason: movSnap.size + ' moviment' + (movSnap.size === 1 ? 'o' : 'i') + ' collegati'
+                };
+            }
+            await deleteDoc(doc(db, 'tenants', currentTenantId, 'prodotti', id));
+            selectedProdottoIds.delete(id);
+            return { ok: true, nome: nome };
+        }
+
+        window.eliminaProdotto = async function(id) {
+            const p = prodotti.find(x => x.id === id);
+            const nome = (p && p.nome) ? p.nome : id;
+            if (!confirm('Eliminare definitivamente il prodotto "' + nome + '"?\nSolo se non ha movimenti collegati. Operazione non annullabile.')) return;
+            try {
+                const result = await tryDeleteProdottoById(id);
+                if (!result.ok) {
+                    showAlert(
+                        'Impossibile eliminare: ' + (result.reason || 'movimenti collegati') +
+                        '. Elimina prima i movimenti oppure usa Disattiva.',
+                        'error'
+                    );
+                    return;
+                }
+                showAlert('Prodotto eliminato.', 'success');
+                await loadProdotti();
+            } catch (e) {
+                showAlert('Errore: ' + e.message, 'error');
+            }
+        };
+
+        window.eliminaProdottiSelezionati = async function() {
+            const ids = Array.from(selectedProdottoIds);
+            if (!ids.length) return;
+            if (!confirm(
+                'Eliminare definitivamente ' + ids.length + ' prodott' + (ids.length === 1 ? 'o' : 'i') +
+                ' selezionat' + (ids.length === 1 ? 'o' : 'i') +
+                '?\nSolo quelli senza movimenti verranno eliminati. Operazione non annullabile.'
+            )) return;
+            const btn = document.getElementById('btn-elimina-selezionati');
+            if (btn) btn.disabled = true;
+            let deleted = 0;
+            const skipped = [];
+            try {
+                for (let i = 0; i < ids.length; i++) {
+                    try {
+                        const result = await tryDeleteProdottoById(ids[i]);
+                        if (result.ok) deleted += 1;
+                        else skipped.push((result.nome || ids[i]) + ' (' + (result.reason || 'skip') + ')');
+                    } catch (e) {
+                        const p = prodotti.find(x => x.id === ids[i]);
+                        skipped.push(((p && p.nome) || ids[i]) + ' (' + (e.message || 'errore') + ')');
+                    }
+                }
+                let msg = 'Eliminati ' + deleted + ' prodott' + (deleted === 1 ? 'o' : 'i') + '.';
+                if (skipped.length) {
+                    msg += ' Non eliminati: ' + skipped.slice(0, 5).join('; ') +
+                        (skipped.length > 5 ? ' … (+' + (skipped.length - 5) + ')' : '') + '.';
+                }
+                showAlert(msg, !deleted && skipped.length ? 'error' : 'success');
+                await loadProdotti();
+            } catch (e) {
+                showAlert('Errore: ' + e.message, 'error');
+                updateBulkSelectionUi();
+            }
+        };
+
         function openModal() {
             document.getElementById('modal-title').textContent = 'Nuovo Prodotto';
             document.getElementById('prodotto-form').reset();
@@ -494,6 +793,11 @@
             const banner = document.getElementById('prodotto-da-completare-banner');
             if (banner) banner.style.display = 'none';
             document.getElementById('prodotto-scorta-minima').value = 0;
+            document.getElementById('prodotto-prezzo').value = '';
+            const prezzoHint = document.getElementById('prodotto-prezzo-hint');
+            if (prezzoHint) {
+                prezzoHint.textContent = 'Si compila automaticamente alla registrazione fattura (media ponderata anno). Solo lettura.';
+            }
             document.getElementById('prodotto-dosaggio-min').value = '';
             document.getElementById('prodotto-dosaggio-max').value = '';
             document.getElementById('prodotto-giorni-carenza').value = '';
@@ -536,13 +840,13 @@
                 showAlert('Il dosaggio massimo deve essere >= dosaggio minimo.', 'error');
                 return;
             }
+            // prezzoUnitario / meta media: sola lettura, aggiornati da Tony Occhi (fattura) — non sovrascrivere dal form
             const data = {
                 codice: (document.getElementById('prodotto-codice').value || '').trim(),
                 nome: (document.getElementById('prodotto-nome').value || '').trim(),
                 categoria: document.getElementById('prodotto-categoria').value || 'altro',
                 unitaMisura: document.getElementById('prodotto-unita').value || 'pezzi',
                 scortaMinima: parseFloat(document.getElementById('prodotto-scorta-minima').value) || 0,
-                prezzoUnitario: document.getElementById('prodotto-prezzo').value ? parseFloat(document.getElementById('prodotto-prezzo').value) : null,
                 dosaggioMin,
                 dosaggioMax,
                 giorniCarenza: giorniCarenzaVal ? parseInt(giorniCarenzaVal, 10) : null,
@@ -555,7 +859,13 @@
                     await updateDoc(doc(db, 'tenants', currentTenantId, 'prodotti', id), { ...data, daCompletare: false, updatedAt: serverTimestamp() });
                     showAlert('Prodotto aggiornato.', 'success');
                 } else {
-                    await addDoc(collection(db, 'tenants', currentTenantId, 'prodotti'), { ...data, giacenza: 0, createdAt: serverTimestamp(), updatedAt: serverTimestamp() });
+                    await addDoc(collection(db, 'tenants', currentTenantId, 'prodotti'), {
+                        ...data,
+                        prezzoUnitario: null,
+                        giacenza: 0,
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    });
                     showAlert('Prodotto creato.', 'success');
                 }
                 closeModal();
