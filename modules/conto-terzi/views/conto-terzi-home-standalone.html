@@ -363,8 +363,29 @@
                                 vmCard.style.display = '';
                                 await loadVmStats();
                             }
+
+                            // §15.6 hub entry Conto terzi
+                            const { runTonyProactiveHubBriefing } = await import('../../../core/js/tony-proactive-hub-briefing.js');
+                            const mods = modules.includes('contoTerzi') ? modules : modules.concat(['contoTerzi']);
+                            if (window.Tony && typeof window.Tony.initContextWithModules === 'function') {
+                                window.Tony.initContextWithModules(mods, {
+                                    tenantId: currentTenantId,
+                                    utente_corrente: {
+                                        nome: ((userData.nome || '') + ' ' + (userData.cognome || '')).trim() || user.email || '',
+                                        ruoli: ruoli.slice()
+                                    }
+                                });
+                            }
+                            runTonyProactiveHubBriefing({
+                                hubId: 'contoTerzi',
+                                tenantId: currentTenantId,
+                                roles: ruoli,
+                                availableModules: mods,
+                                counts: window.__contoTerziHubCounts || {},
+                                speak: true,
+                            });
                         } catch (vmErr) {
-                            console.warn('Verifica modulo VM:', vmErr);
+                            console.warn('Verifica modulo VM / hub Tony:', vmErr);
                         }
                     } else {
                         window.location.href = '../../../core/auth/login-standalone.html';
@@ -435,6 +456,8 @@
                         return ['bozza', 'inviato', 'accettato_email', 'accettato_manager'].includes(stato);
                     });
                     document.getElementById('stat-preventivi').textContent = preventiviAperti.length;
+                    window.__contoTerziHubCounts = window.__contoTerziHubCounts || {};
+                    window.__contoTerziHubCounts.preventiviAperti = preventiviAperti.length;
                 } catch (error) {
                     console.warn('Errore caricamento preventivi:', error);
                     document.getElementById('stat-preventivi').textContent = '0';
@@ -459,6 +482,9 @@
                     });
                     const statDaPianificare = document.getElementById('stat-lavori-da-pianificare');
                     if (statDaPianificare) statDaPianificare.textContent = lavoriDaPianificare.length;
+                    window.__contoTerziHubCounts = window.__contoTerziHubCounts || {};
+                    window.__contoTerziHubCounts.lavoriInCorso = lavoriInCorso.length;
+                    window.__contoTerziHubCounts.lavoriDaPianificare = lavoriDaPianificare.length;
                     
                     // Lavori completati (con clienteId e stato completato)
                     const lavoriCompletati = lavoriSnapshot.docs.filter(doc => {

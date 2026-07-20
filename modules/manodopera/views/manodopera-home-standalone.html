@@ -386,6 +386,26 @@
                         }
                     });
                 }
+
+                // §15.6 hub entry: reminder Manodopera (fasce §15.5, no idle)
+                try {
+                    const { runTonyProactiveHubBriefing } = await import('../../../core/js/tony-proactive-hub-briefing.js');
+                    const snapReady = getDashboardCountsSnapshot() || snap;
+                    if (snapReady && snapReady.oreRefreshPromise) {
+                        try { await snapReady.oreRefreshPromise; } catch (_) { /* ignore */ }
+                    }
+                    const snapFinal = getDashboardCountsSnapshot() || snapReady;
+                    runTonyProactiveHubBriefing({
+                        hubId: 'manodopera',
+                        tenantId: currentTenantId,
+                        roles: Array.isArray(userData.ruoli) ? userData.ruoli : [],
+                        availableModules: modules,
+                        counts: { snap: snapFinal },
+                        speak: true,
+                    });
+                } catch (eHub) {
+                    console.warn('[Tony] hub briefing manodopera:', eHub);
+                }
             } catch (e) {
                 console.error(e);
                 showAlert('Errore caricamento dati', 'error');

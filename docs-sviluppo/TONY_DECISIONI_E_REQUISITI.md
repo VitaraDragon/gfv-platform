@@ -186,7 +186,7 @@
 | 3 | Tony risponde "Quali scadenze?" / "Come stanno i prodotti?" / sotto scorta | in corso | summaryScadenze ok; summarySottoScorta ok (2026-04-11) |
 | 4 | Aggiungere prodotto/cliente richiede solo aggiornare mapping | in corso | Attività e Lavori ok |
 | 5 | "Mostrami statistiche vigneto" → apre e/o riassume | parziale | |
-| 6 | Tony segnala proattivamente scadenze e sotto scorta | da fare | |
+| 6 | Tony segnala proattivamente scadenze e sotto scorta | **implementato** (v1) | Dashboard + hub §15.5–§15.6 (2026-07-20); memoria storica §15.4 ancora da fare |
 
 ---
 
@@ -232,10 +232,53 @@
 
 | # | Decisione | Fonte | Stato | Note |
 |---|-----------|-------|-------|------|
-| 15.1 | Proattività Dashboard (checkGlobalStatus, tonyGlobalBriefing) | STATO_TONY | implementato | |
+| 15.1 | Proattività Dashboard (checkGlobalStatus, tonyGlobalBriefing) | STATO_TONY | implementato | Allineato a §15.5 (2026-07-20) |
 | 15.2 | Proattività pagina Guasti | STATO_TONY | implementato | |
-| 15.3 | "Ho notato X, vuoi che...?" generico | MASTER_PLAN Fase 6 | da fare | |
+| 15.3 | Reminder mirati + follow-up «vuoi che…?» / «dimmi apri» cross-modulo, **senza invasività** | MASTER_PLAN Fase 6; raffinato 2026-07-20 | **implementato** (v1) | Catalogo §15.6 + follow-up APRI_PAGINA; «sì» nudo = RIASSUNTO |
 | 15.4 | Memoria storica: confronti anno/anno | MASTER_PLAN | da fare | |
+| 15.5 | **Policy anti-invasività briefing proattivo** (reminder, non monologo) | prodotto 2026-07-20 | **implementato** | `tony-proactive-briefing-policy.js` + `checkGlobalStatus`; test **13** |
+| 15.6 | **Reminder operativi multi-modulo** (flusso regolare app) — catalogo estendibile | prodotto 2026-07-20 | **implementato** (hub principali) | Dashboard + hub Manodopera/Magazzino/Vendemmia/CT/Macchine/Frutteto |
+
+### 15.5 — Policy frequenza e aggiornamenti (2026-07-20)
+
+| Regola | Comportamento |
+|--------|----------------|
+| **Fasce giornata** | Al più **3 riepiloghi “pieni” automatici al giorno**: prima apertura **mattina** (05–12), **pomeriggio** (12–18), **sera** (18–05 incl. notte). |
+| **Tra una fascia e l’altra** | Niente ripetizione del briefing completo a ogni ritorno in dashboard (o altra home). |
+| **Cambio rilevante** | Solo messaggio **incrementale**: es. «La situazione è un po’ cambiata: c’è da considerare anche X, Y, Z» — elenca **solo il delta**, non ripete tutto. |
+| **A richiesta** | L’utente può sempre chiedere un riassunto completo (RIASSUNTO / «fammi un riassunto»). |
+| **Ruolo** | Sono **reminder**; non aprire pannello/TTS per idle ripetuto; contesto `globalStatus` resta aggiornato in silenzio. |
+| **Ambito** | Vale per **tutti** i segnali del catalogo §15.6 (dashboard e moduli), non solo scorte/guasti. |
+| **Implementazione** | Dashboard: `localStorage` `tony.proactiveBriefing.v1:{tenantId}` → `{ dayKey, fasciaFull, fingerprint }`. Hub: `tony.proactiveHub.v1:{tenantId}:{hubId}` (stesse fasce, **senza idle**). Fingerprint da catalogo (scorte, scadenze, guasti, meteo, ore, prodotti, lavori, preventivi, vendemmie, raccolte, …). Persistenza **prima** del delivery. |
+### 15.6 — Reminder operativi multi-modulo (2026-07-20)
+
+**Obiettivo:** Tony ricorda operazioni incomplete o in sospeso per il **corretto funzionamento dell’app e del flusso lavorativo**, su tutti i moduli rilevanti — comprese evoluzioni future — senza diventare invasivo (§15.5).
+
+**Principio architetturale (obbligatorio):** catalogo/config di **segnali reminder** (id, modulo richiesto, ruoli, come contare/rilevare, testo breve, opz. `APRI_PAGINA` / azione, `hubIds`). **Vietato** accumulare `if (pagina === …)` nel core widget. Nuovo modulo = nuove voci in config + eventuale collector dati, non patch dedicate.
+
+**Segnali e hub v1 (implementati):**
+
+| Area / modulo | Segnali attivi | Hub entry |
+|---------------|----------------|-----------|
+| **Dashboard** | Pool completo (ore, prodotti, scorte, guasti, scadenze, meteo, …) | — (entry principale) |
+| **Manodopera** | `oreDaValidare`, `lavoriInCorso`, `lavoriDaPianificare` | home Manodopera |
+| **Magazzino** | `prodottiDaCompletare`, `sottoScorta` | home Magazzino |
+| **Vigneto / Vendemmia** | `vendemmieIncomplete` | pagina Vendemmia |
+| **Conto terzi** | `preventiviAperti`, lavori CT | home CT |
+| **Parco macchine** | `guastiAperti`, `scadenzeUrgenti` | dashboard macchine |
+| **Frutteto** | `raccolteIncomplete` (anno corrente) | dashboard frutteto |
+| **Meteo** | `meteoConsigli` | nel pool dashboard |
+| **Futuri** | Stesso pattern: segnale + gate + conteggio | nuovo `hubId` in config |
+
+**Composizione messaggio**
+
+- **Riepilogo pieno** (fascia mattina/pomeriggio/sera): elenco sintetico dei segnali attivi (priorità: bloccanti flusso > urgenza tempo > informativi). Hub: prefisso «Qui in {Hub}: …».
+- **Delta**: solo segnali **nuovi o peggiorati** rispetto all’ultimo fingerprint.
+- Follow-up: «dimmi «apri»» → `APRI_PAGINA` sul top segnale con target; **non** auto-open; «sì» nudo resta RIASSUNTO.
+
+**Ingresso UX:** dashboard e hub modulo alla prima apertura in fascia; non monologo su ogni pagina lista. Contesto `globalStatus` aggiornato anche in silenzio.
+
+**File:** `tony-proactive-signals.js`, `tony-proactive-briefing-policy.js`, `tony-proactive-hub-briefing.js`, `checkGlobalStatus` in `dashboard-standalone.html`. Test: **13** + **13**.
 
 ---
 
@@ -426,6 +469,7 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 | 19.10.4 | Briefing iniziale ~3 s dopo `checkGlobalStatus`; interazione mic prima del saluto può saltarlo (`barge_in_mic`) | implementato | Comportamento atteso, non bug |
 | 19.10.5 | Mobile/PWA: saluto proattivo dashboard in **chat** (TTS autoplay disattivato); pannello Tony si apre automaticamente | implementato | `tonyDashboardPreferChatBriefing`, `__tonyOpenChatPanel`, `openPanel` su `__tonyDisplayProactive` — 2026-06-15 |
 | 19.10.6 | Messaggio proattivo `_displayOnly` in `chatHistory` così «sì» al riassunto funziona dopo il saluto | implementato | `sendMessage` proactive path — 2026-06-15 |
+| 19.10.7 | Briefing dashboard rispetta **§15.5** (max 3 pieni/giorno per fascia; tra fasce solo delta su cambio rilevante) | **implementato** | `tony-proactive-briefing-policy.js` + `checkGlobalStatus` (2026-07-20); sostituisce solo `tonyDashboardBriefingFired` in-memory |
 
 ### 19.7 Implementazione (riferimento — 2026-05-22)
 

@@ -160,6 +160,21 @@
             loadTonyMeteoBriefingData,
             tonyMeteoBriefingAllowed,
         } from './js/dashboard-meteo-briefing.js';
+        import {
+            decideProactiveBriefingAction,
+            formatProactiveDeltaMessage,
+            loadProactiveBriefingState,
+            saveProactiveBriefingState,
+        } from './js/tony-proactive-briefing-policy.js';
+        import {
+            buildRawProactiveCounts,
+            collectProactiveSignals,
+            formatProactiveOpsAttentionSnippet,
+            pickProactiveOpenFollowUp,
+            pickProactiveOpenFollowUpFromDelta,
+            formatProactiveOpenFollowUpOffer,
+            createProactiveOpenOffer,
+        } from './config/tony-proactive-signals.js';
         import { loadDashboardDeadlinesWidgets } from './js/dashboard-deadlines.js';
         import { initDashboardQuickBar } from './js/dashboard-quick-bar.js';
         import {
@@ -656,6 +671,15 @@
                     (await awaitDashboardCountsSnapshot(tenantId)) ||
                     countsSnapshot ||
                     getDashboardCountsSnapshot();
+                // Attendi ore da validare se ancora in refresh (stesso fetch lavori, no N+1).
+                if (snap && snap.oreRefreshPromise) {
+                    try {
+                        await snap.oreRefreshPromise;
+                    } catch (eOre) {
+                        console.warn('[Tony] oreDaValidare pending:', eOre);
+                    }
+                }
+                const snapReady = getDashboardCountsSnapshot() || snap;
                 const meteoBriefingPromise =
                     tonyMeteoBriefingAllowed(mods, ruoliNormalizzati)
                         ? loadTonyMeteoBriefingData(tenantId).catch(function(e) {
@@ -664,24 +688,35 @@
                         })
                         : Promise.resolve(null);
 
-                const sottoScorta = hasMagazzino && snap ? snap.sottoScorta || 0 : 0;
-                const scadenzeUrgenti = hasParcoMacchine && snap ? snap.scadenzeUrgenti || 0 : 0;
-                const guastiAperti = hasParcoMacchine && snap ? snap.guastiAperti || 0 : 0;
+                const hasManodopera = mods.includes('manodopera');
+                const sottoScorta = hasMagazzino && snapReady ? snapReady.sottoScorta || 0 : 0;
+                const prodottiDaCompletare =
+                    hasMagazzino && snapReady ? snapReady.prodottiDaCompletare || 0 : 0;
+                const scadenzeUrgenti = hasParcoMacchine && snapReady ? snapReady.scadenzeUrgenti || 0 : 0;
+                const guastiAperti = hasParcoMacchine && snapReady ? snapReady.guastiAperti || 0 : 0;
+                const oreDaValidare = hasManodopera && snapReady ? snapReady.oreDaValidare || 0 : 0;
                 const meteoBriefing = await meteoBriefingPromise;
 
                 window.tonyMeteoBriefing = meteoBriefing || null;
                 window.tonyGlobalBriefing = {
                     sottoScorta: sottoScorta,
+                    prodottiDaCompletare: prodottiDaCompletare,
+                    oreDaValidare: oreDaValidare,
+                    lavoriInCorso: snapReady && snapReady.operativitaOggi
+                        ? snapReady.operativitaOggi.inCorso || 0
+                        : 0,
+                    lavoriDaPianificare: snapReady ? snapReady.daPianificare || 0 : 0,
                     scadenzeUrgenti: scadenzeUrgenti,
                     guastiAperti: guastiAperti,
-                    summarySottoScorta: snap && snap.summarySottoScorta ? snap.summarySottoScorta : '',
-                    summaryGuasti: snap && snap.summaryGuasti ? snap.summaryGuasti : '',
-                    summaryScadenze: snap && snap.summaryScadenze ? snap.summaryScadenze : '',
+                    summarySottoScorta: snapReady && snapReady.summarySottoScorta ? snapReady.summarySottoScorta : '',
+                    summaryGuasti: snapReady && snapReady.summaryGuasti ? snapReady.summaryGuasti : '',
+                    summaryScadenze: snapReady && snapReady.summaryScadenze ? snapReady.summaryScadenze : '',
                     meteo: meteoBriefing,
                     meteoConsigliCount: meteoBriefing && meteoBriefing.consigliCount ? meteoBriefing.consigliCount : 0,
                     availableModules: mods.slice(),
                     hasMagazzino: hasMagazzino,
                     hasParcoMacchine: hasParcoMacchine,
+                    hasManodopera: hasManodopera,
                 };
                 if (window.Tony && typeof window.Tony.setContext === 'function') {
                     window.Tony.setContext('globalStatus', window.tonyGlobalBriefing);
@@ -689,81 +724,87 @@
                         window.Tony.setContext('meteoBriefing', meteoBriefing);
                     }
                 }
-                const total =
-                    sottoScorta +
-                    scadenzeUrgenti +
-                    guastiAperti +
-                    (meteoBriefing && meteoBriefing.consigliCount ? meteoBriefing.consigliCount : 0);
+
+                const collected = collectProactiveSignals(
+                    { availableModules: mods, roles: ruoliNormalizzati, hubId: 'dashboard' },
+                    buildRawProactiveCounts({
+                        snap: snapReady,
+                        sottoScorta: sottoScorta,
+                        prodottiDaCompletare: prodottiDaCompletare,
+                        oreDaValidare: oreDaValidare,
+                        lavoriInCorso: snapReady && snapReady.operativitaOggi
+                            ? snapReady.operativitaOggi.inCorso || 0
+                            : 0,
+                        lavoriDaPianificare: snapReady ? snapReady.daPianificare || 0 : 0,
+                        scadenzeUrgenti: scadenzeUrgenti,
+                        guastiAperti: guastiAperti,
+                        meteoConsigliCount:
+                            meteoBriefing && meteoBriefing.consigliCount ? meteoBriefing.consigliCount : 0,
+                    })
+                );
                 const tonyBriefingEnabled = tonyHasTonyAdvancedModule(mods);
-                if (total > 0 && !window.tonyDashboardBriefingFired && window.Tony && tonyBriefingEnabled) {
-                    var greetingOps = (typeof window.getFriendlyGreeting === 'function') ? window.getFriendlyGreeting() : 'Buongiorno!';
-                    var opsAttentionPre =
-                        (hasMagazzino && sottoScorta > 0) || (hasParcoMacchine && (scadenzeUrgenti + guastiAperti) > 0);
-                    var speakCorePre =
-                        opsAttentionPre
-                            ? ' Ho controllato la situazione: ci sono alcune cose che richiedono attenzione' +
-                              (hasMagazzino && hasParcoMacchine ? ' tra scorte, scadenze e guasti' :
-                               hasMagazzino ? ' sulle scorte' :
-                               ' su scadenze e guasti') +
-                              '. Vuoi che ti faccia un riassunto o preferisci procedere tu?'
-                            : '';
-                    var speakMeteoPre =
-                        meteoBriefing && meteoBriefing.proactiveText
-                            ? ' ' + meteoBriefing.proactiveText
-                            : '';
-                    var briefingOpsText = greetingOps + speakCorePre + speakMeteoPre;
-                    if (tonyDashboardBriefingVoiceAllowed(mods)) {
-                        tonyDashboardPrefetchBriefingVoice(briefingOpsText);
-                    }
-                    setTimeout(function() {
-                        if (total <= 0 || window.tonyDashboardBriefingFired) return;
-                        tonyDashboardDeliverBriefing(
-                            briefingOpsText,
-                            tonyDashboardBriefingVoiceAllowed(mods),
-                            function() { window.tonyDashboardBriefingFired = true; }
-                        );
-                    }, 3000);
-                } else if (
-                    meteoBriefing &&
-                    meteoBriefing.proactiveText &&
-                    !window.tonyMeteoBriefingFired &&
-                    tonyBriefingEnabled
-                ) {
-                    if (tonyDashboardBriefingVoiceAllowed(mods)) {
-                        tonyDashboardPrefetchBriefingVoice(meteoBriefing.proactiveText);
-                    }
-                    setTimeout(function() {
-                        if (window.tonyMeteoBriefingFired) return;
-                        window.tonyMeteoBriefingFired = true;
-                        if (typeof window.__tonyDisplayProactive === 'function') {
-                            var voiceAllowedMeteo = tonyDashboardBriefingVoiceAllowed(mods);
-                            window.__tonyDisplayProactive(meteoBriefing.proactiveText, {
-                                speak: voiceAllowedMeteo,
-                                openPanel: voiceAllowedMeteo || tonyDashboardIsMobile(),
-                                dashboardBriefing: true
-                            });
-                        } else if (typeof window.__tonySendProactiveWhenUnlocked === 'function') {
-                            window.__tonySendProactiveWhenUnlocked(meteoBriefing.proactiveText);
-                        }
-                    }, 3500);
-                } else if (!window.tonyDashboardBriefingFired && window.Tony && tonyBriefingEnabled) {
-                    var greetingIdlePre = (typeof window.getFriendlyGreeting === 'function') ? window.getFriendlyGreeting() : 'Buongiorno!';
-                    var weatherIdlePre = meteoBriefing && meteoBriefing.weatherSummary
+                // §15.5: max 1 pieno/fascia; §15.6: messaggi da catalogo segnali.
+                if (!window.Tony || !tonyBriefingEnabled) {
+                    return;
+                }
+                var storage = null;
+                try { storage = window.localStorage; } catch (eLs) { storage = null; }
+                var nowBriefing = new Date();
+                var fingerprint = collected.fingerprint;
+                var prevState = loadProactiveBriefingState(storage, tenantId, nowBriefing);
+                var decision = decideProactiveBriefingAction(prevState, nowBriefing, fingerprint);
+                if (decision.action === 'silence') {
+                    return;
+                }
+
+                var greeting = (typeof window.getFriendlyGreeting === 'function') ? window.getFriendlyGreeting() : 'Buongiorno!';
+                var followUp =
+                    decision.action === 'delta'
+                        ? pickProactiveOpenFollowUpFromDelta(decision.worsened)
+                        : pickProactiveOpenFollowUp(collected.opsActive);
+                var speakCoreOps = formatProactiveOpsAttentionSnippet(collected.opsActive, followUp);
+                var speakMeteo =
+                    meteoBriefing && meteoBriefing.proactiveText
+                        ? ' ' + meteoBriefing.proactiveText
+                        : '';
+                var briefingText = '';
+                var openOffer = createProactiveOpenOffer(followUp);
+                if (decision.action === 'delta') {
+                    briefingText = (
+                        formatProactiveDeltaMessage(decision.worsened) +
+                        formatProactiveOpenFollowUpOffer(followUp)
+                    ).trim();
+                } else if (collected.opsActive.length > 0) {
+                    briefingText = (greeting + speakCoreOps + speakMeteo).trim();
+                } else if (meteoBriefing && meteoBriefing.proactiveText) {
+                    briefingText = String(meteoBriefing.proactiveText).trim();
+                    openOffer = null;
+                } else if (decision.allowIdleFull) {
+                    var weatherIdle = meteoBriefing && meteoBriefing.weatherSummary
                         ? ' ' + meteoBriefing.weatherSummary
                         : ' Tutto sotto controllo in azienda.';
-                    var briefingIdleText = greetingIdlePre + weatherIdlePre + ' Chiedimi un riassunto dettagliato quando vuoi.';
-                    if (tonyDashboardBriefingVoiceAllowed(mods)) {
-                        tonyDashboardPrefetchBriefingVoice(briefingIdleText);
-                    }
-                    setTimeout(function() {
-                        if (window.tonyDashboardBriefingFired) return;
-                        tonyDashboardDeliverBriefing(
-                            briefingIdleText,
-                            tonyDashboardBriefingVoiceAllowed(mods),
-                            function() { window.tonyDashboardBriefingFired = true; }
-                        );
-                    }, 3000);
+                    briefingText = greeting + weatherIdle + ' Chiedimi un riassunto dettagliato quando vuoi.';
+                    openOffer = null;
                 }
+
+                if (!briefingText) {
+                    return;
+                }
+
+                // Persisti subito (anti-spam): se l'utente naviga via prima del timeout non riparte un secondo pieno.
+                saveProactiveBriefingState(storage, tenantId, decision.nextState);
+                window.tonyDashboardBriefingFired = true;
+                window.tonyMeteoBriefingFired = true;
+                window.__tonyProactiveOpenOffer = openOffer;
+
+                var voiceAllowed = tonyDashboardBriefingVoiceAllowed(mods);
+                if (voiceAllowed) {
+                    tonyDashboardPrefetchBriefingVoice(briefingText);
+                }
+                var delayMs = decision.action === 'delta' ? 2500 : 3000;
+                setTimeout(function() {
+                    tonyDashboardDeliverBriefing(briefingText, voiceAllowed, null);
+                }, delayMs);
             } catch (e) {
                 console.warn('[Tony] checkGlobalStatus:', e);
             }

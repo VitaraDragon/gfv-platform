@@ -55,10 +55,15 @@ import {
 import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo.js';
 import { applyStreamingTtsChunks, consumeCompleteStreamingSentences, getStreamingTtsRemainder, resolveVoiceTtsRemainder, reconcileUnspokenVoiceSegments, batchSentencesForTts, joinSentencesForItalianTts, speakTextInSentenceChunks } from './stream-tts-chunk.js';
 import { tonyWantsDashboardRiassunto, buildDashboardRiassuntoText, formatDashboardOpsBriefingText } from './meteo-dashboard-quick-reply-utils.js';
+import {
+    tonyWantsProactiveOpenPage,
+    isProactiveOpenOfferFresh,
+    formatProactiveOpenAck,
+} from '../../config/tony-proactive-signals.js';
 import { initTonyDocumentCapture } from './document-capture.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-export const TONY_CLIENT_BUILD = '2026-07-17f';
+export const TONY_CLIENT_BUILD = '2026-07-20b';
 if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
@@ -7295,6 +7300,39 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 tonyDeliverDashboardRiassunto(fullReply, { fromVoice: opts.fromVoice });
                 return;
             }
+            // §15.6 Step 3: dopo briefing, «apri» → APRI_PAGINA sul target del catalogo (no auto-open).
+            var proactiveOpenOffer = window.__tonyProactiveOpenOffer || null;
+            if (
+                !opts.proactive &&
+                isProactiveOpenOfferFresh(proactiveOpenOffer) &&
+                tonyWantsProactiveOpenPage(text, { offer: proactiveOpenOffer })
+            ) {
+                var openTarget = String(proactiveOpenOffer.openPageTarget || '').trim();
+                var openAck = formatProactiveOpenAck(proactiveOpenOffer);
+                window.__tonyProactiveOpenOffer = null;
+                if (tonyEarlyTypingTimer) {
+                    clearTimeout(tonyEarlyTypingTimer);
+                    tonyEarlyTypingTimer = null;
+                }
+                removeTyping();
+                appendMessage(openAck, 'tony');
+                if (typeof speakWithTTS === 'function') {
+                    speakWithTTS(openAck, copyVoiceTtsOpts({ fromVoice: opts.fromVoice }));
+                }
+                saveTonyState();
+                clearVoiceTurnGuard();
+                _isSendingMessage = false;
+                sendBtn.disabled = false;
+                inputEl.disabled = false;
+                if (openTarget) {
+                    try {
+                        processTonyCommand({ type: 'APRI_PAGINA', target: openTarget });
+                    } catch (eOpen) {
+                        console.warn('[Tony] proactive open APRI_PAGINA:', eOpen);
+                    }
+                }
+                return;
+            }
             // Rileva intenti di apertura modulo
             var textLower = text.toLowerCase();
             var openModalIntents = ['apri il modulo', 'apri modulo', 'apri il form', 'apri form', 
@@ -8438,6 +8476,9 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             };
             if (options.openPanel === true) proactiveOpts.openPanel = true;
             if (options.dashboardBriefing === true) proactiveOpts.dashboardBriefing = true;
+            if (options.proactiveOpenOffer) {
+                window.__tonyProactiveOpenOffer = options.proactiveOpenOffer;
+            }
             sendMessage(String(text || '').trim(), proactiveOpts);
         };
         window.__tonyPromptLavoroSaveLocal = function() {

@@ -81,8 +81,15 @@ export function formatDashboardOpsBriefingText(data) {
   var hasParcoMacchine =
     data.hasParcoMacchine === true ||
     (data.hasParcoMacchine == null && mods.indexOf('parcoMacchine') >= 0);
+  var hasManodopera =
+    data.hasManodopera === true ||
+    (data.hasManodopera == null && mods.indexOf('manodopera') >= 0);
 
   var s = hasMagazzino ? Number(data.sottoScorta || 0) : 0;
+  var prodottiInc = hasMagazzino ? Number(data.prodottiDaCompletare || 0) : 0;
+  var ore = hasManodopera ? Number(data.oreDaValidare || 0) : 0;
+  var inCorso = hasManodopera ? Number(data.lavoriInCorso || 0) : 0;
+  var daPian = hasManodopera ? Number(data.lavoriDaPianificare || 0) : 0;
   var y = hasParcoMacchine ? Number(data.scadenzeUrgenti || 0) : 0;
   var z = hasParcoMacchine ? Number(data.guastiAperti || 0) : 0;
 
@@ -94,6 +101,34 @@ export function formatDashboardOpsBriefingText(data) {
   }
 
   var parts = [];
+
+  if (hasManodopera && ore > 0) {
+    parts.push(
+      ore === 1
+        ? 'C\'è 1 lavoro con ore da validare'
+        : 'Ci sono ' + ore + ' lavori con ore da validare'
+    );
+  }
+
+  if (hasManodopera && inCorso > 0) {
+    parts.push(
+      inCorso === 1 ? '1 lavoro in corso' : inCorso + ' lavori in corso'
+    );
+  }
+
+  if (hasManodopera && daPian > 0) {
+    parts.push(
+      daPian === 1 ? '1 lavoro da pianificare' : daPian + ' lavori da pianificare'
+    );
+  }
+
+  if (hasMagazzino && prodottiInc > 0) {
+    parts.push(
+      prodottiInc === 1
+        ? '1 prodotto da completare in anagrafica'
+        : prodottiInc + ' prodotti da completare in anagrafica'
+    );
+  }
 
   if (hasParcoMacchine && z > 0) {
     var gu = data.summaryGuasti ? String(data.summaryGuasti).trim() : '';

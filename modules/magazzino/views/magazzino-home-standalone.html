@@ -233,6 +233,47 @@
                     return;
                 }
                 await loadStats();
+                try {
+                    const userRoles = Array.isArray(userData.ruoli) ? userData.ruoli : [];
+                    const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                    const modules = tenantDoc.exists()
+                        ? (Array.isArray(tenantDoc.data().modules) ? tenantDoc.data().modules : [])
+                        : ['magazzino'];
+                    if (window.Tony && typeof window.Tony.initContextWithModules === 'function') {
+                        window.Tony.initContextWithModules(modules, {
+                            tenantId: currentTenantId,
+                            utente_corrente: {
+                                nome: ((userData.nome || '') + ' ' + (userData.cognome || '')).trim() || user.email || '',
+                                ruoli: userRoles.slice()
+                            }
+                        });
+                    }
+                    const { runTonyProactiveHubBriefing } = await import('../../../core/js/tony-proactive-hub-briefing.js');
+                    const { countProdottiDaCompletare } = await import('../../../core/js/tony/document-prodotto-reminder.js');
+                    const prodottiRef = collection(db, 'tenants', currentTenantId, 'prodotti');
+                    const prodottiSnap = await getDocs(prodottiRef);
+                    const rows = prodottiSnap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+                    const sottoScorta = rows.filter((p) => {
+                        if (p.attivo === false) return false;
+                        const sm = p.scortaMinima != null ? Number(p.scortaMinima) : NaN;
+                        if (!Number.isFinite(sm) || sm <= 0) return false;
+                        const g = p.giacenza != null ? Number(p.giacenza) : null;
+                        return g == null || !Number.isFinite(g) || g < sm;
+                    }).length;
+                    runTonyProactiveHubBriefing({
+                        hubId: 'magazzino',
+                        tenantId: currentTenantId,
+                        roles: userRoles,
+                        availableModules: modules.includes('magazzino') ? modules : modules.concat(['magazzino']),
+                        counts: {
+                            sottoScorta: sottoScorta,
+                            prodottiDaCompletare: countProdottiDaCompletare(rows),
+                        },
+                        speak: true,
+                    });
+                } catch (eHub) {
+                    console.warn('[Tony] hub briefing magazzino:', eHub);
+                }
             } catch (e) {
                 console.error(e);
                 showAlert('Errore caricamento dati', 'error');

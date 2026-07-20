@@ -765,6 +765,35 @@
                     }
 
                     await initDashboard();
+
+                    // §15.6 hub entry Frutteto — raccolte incomplete anno corrente
+                    try {
+                        const { getRaccolte } = await import('../services/raccolta-frutta-service.js');
+                        const { getAllFrutteti } = await import('../services/frutteti-service.js');
+                        const { runTonyProactiveHubBriefing } = await import('../../../core/js/tony-proactive-hub-briefing.js');
+                        const { countRaccolteIncomplete } = await import('../../../core/config/tony-proactive-signals.js');
+                        const { getDoc, doc } = await import('../../../core/services/firebase-service.js');
+                        const fruttetiList = await getAllFrutteti();
+                        const anno = new Date().getFullYear();
+                        const lists = await Promise.all(
+                            (fruttetiList || []).map((f) => getRaccolte(f.id, { anno: anno }).catch(() => []))
+                        );
+                        const tutte = lists.reduce((acc, arr) => acc.concat(arr || []), []);
+                        const incomplete = countRaccolteIncomplete(tutte);
+                        const userDoc = await getDoc(doc(db, 'users', user.uid));
+                        const userData = userDoc.exists() ? userDoc.data() : {};
+                        const ruoli = Array.isArray(userData.ruoli) ? userData.ruoli : ['manager'];
+                        runTonyProactiveHubBriefing({
+                            hubId: 'frutteto',
+                            tenantId: tenantId,
+                            roles: ruoli,
+                            availableModules: modules,
+                            counts: { raccolteIncomplete: incomplete },
+                            speak: true,
+                        });
+                    } catch (eHub) {
+                        console.warn('[Tony] hub briefing frutteto:', eHub);
+                    }
                 });
             } catch (error) {
                 console.error('[FRUTTETO DASHBOARD] Errore init:', error);

@@ -464,6 +464,47 @@
                     const guastiRaw = await getCollectionData('guasti', { tenantId });
                     const guasti = (guastiRaw || []).map(g => ({ ...g, stato: (g.stato || 'in-attesa').toLowerCase() }));
                     renderDashboard(macchine, guasti);
+
+                    // §15.6 hub entry Parco macchine
+                    try {
+                        const {
+                            buildGuastiApertiBriefingFromGuasti,
+                            buildScadenzeUrgentiBriefingFromMacchine,
+                        } = await import('../../../core/js/dashboard-tony-briefing-text.js');
+                        const { runTonyProactiveHubBriefing } = await import('../../../core/js/tony-proactive-hub-briefing.js');
+                        const userDoc = await getDoc(doc(db, 'users', user.uid));
+                        const userData = userDoc.exists() ? userDoc.data() : {};
+                        const ruoli = Array.isArray(userData.ruoli) ? userData.ruoli : ['manager'];
+                        const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
+                        const modules = tenantDoc.exists() && Array.isArray(tenantDoc.data().modules)
+                            ? tenantDoc.data().modules.slice()
+                            : [];
+                        if (!modules.includes('parcoMacchine')) modules.push('parcoMacchine');
+                        if (window.Tony && typeof window.Tony.initContextWithModules === 'function') {
+                            window.Tony.initContextWithModules(modules, {
+                                tenantId: tenantId,
+                                utente_corrente: {
+                                    nome: ((userData.nome || '') + ' ' + (userData.cognome || '')).trim() || user.email || '',
+                                    ruoli: ruoli.slice()
+                                }
+                            });
+                        }
+                        const guastiBrief = buildGuastiApertiBriefingFromGuasti(guasti, macchine);
+                        const scadenzeBrief = buildScadenzeUrgentiBriefingFromMacchine(macchine);
+                        runTonyProactiveHubBriefing({
+                            hubId: 'parcoMacchine',
+                            tenantId: tenantId,
+                            roles: ruoli,
+                            availableModules: modules,
+                            counts: {
+                                guastiAperti: guastiBrief.count || 0,
+                                scadenzeUrgenti: scadenzeBrief.count || 0,
+                            },
+                            speak: true,
+                        });
+                    } catch (eHub) {
+                        console.warn('[Tony] hub briefing parcoMacchine:', eHub);
+                    }
                 } catch (err) {
                     console.error('Errore caricamento dashboard macchine:', err);
                     renderDashboard([], []);

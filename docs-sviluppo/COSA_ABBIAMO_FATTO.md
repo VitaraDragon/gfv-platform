@@ -1,6 +1,21 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-20 — Tony Occhi: decisioni archivio documenti Magazzino (§20.33).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-20 — Tony proattività §15.5–§15.6 (dashboard + hub principali).
+
+## Tony — Proattività Fase 6 §15.5–§15.6 (2026-07-20) — stato consolidato
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **§15.5 Anti-invasività** | Max **1 riepilogo pieno / fascia** (mattina 05–12, pomeriggio 12–18, sera 18–05); max 3/giorno. Stessa fascia → silenzio salvo **delta** su fingerprint peggiorato. Idle max 1×/fascia (solo dashboard). Persistenza **prima** del delivery. |
+| **Storage dashboard** | `localStorage` `tony.proactiveBriefing.v1:{tenantId}` → `{ dayKey, fasciaFull, fingerprint }`. |
+| **§15.6 Catalogo** | `core/config/tony-proactive-signals.js` — id, moduli, ruoli, priorità, label, `openPageTarget`/`openPageLabel`, `hubIds`. |
+| **Segnali v1** | `oreDaValidare`, `lavoriInCorso`, `lavoriDaPianificare`, `prodottiDaCompletare`, `sottoScorta`, `guastiAperti`, `scadenzeUrgenti`, `preventiviAperti`, `vendemmieIncomplete`, `raccolteIncomplete`, `meteoConsigli`. |
+| **Follow-up «apri»** | Offerta sul segnale ops top con target; conferma solo «apri» / «sì, apri» (non «sì» nudo = RIASSUNTO); `APRI_PAGINA` via `processTonyCommand`; `window.__tonyProactiveOpenOffer` TTL 15 min. Build client `2026-07-20b`. |
+| **Hub entry** | Runner `tony-proactive-hub-briefing.js`; storage `tony.proactiveHub.v1:{tenantId}:{hubId}`; stile «Qui in {Hub}: …»; **niente idle** sugli hub. |
+| **Hub cablati** | Manodopera · Magazzino · Vendemmia · Conto terzi · Parco macchine · Frutteto. |
+| **File** | `tony-proactive-briefing-policy.js`, `tony-proactive-signals.js`, `tony-proactive-hub-briefing.js`, `dashboard-standalone.html` + home/dashboard hub. |
+| **Test** | policy **13** + catalogo **13** (**26** totali). |
+| **Fuori scope / da fare** | Memoria storica §15.4; Magazzino Occhi archivio; tour in-app; nuovi segnali solo con fonte dati chiara. |
 
 ## Tony Occhi — Archivio documenti Magazzino (decisioni prodotto) (2026-07-20)
 

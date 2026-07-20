@@ -13,6 +13,7 @@ import {
     buildGuastiApertiBriefingFromGuasti,
     buildScadenzeUrgentiBriefingFromMacchine,
 } from './dashboard-tony-briefing-text.js';
+import { countProdottiDaCompletare } from './tony/document-prodotto-reminder.js';
 import { dashboardPerfAsync } from './dashboard-perf.js';
 
 /** @type {DashboardCountsSnapshot|null} */
@@ -34,6 +35,7 @@ let _loadTenantId = null;
  * @property {string} tenantId
  * @property {number} loadedAt
  * @property {number} sottoScorta
+ * @property {number} prodottiDaCompletare
  * @property {number} guastiAperti
  * @property {number} scadenzeUrgenti
  * @property {number} affittiUrgenti
@@ -83,6 +85,7 @@ function serializeSnapshotForPrefetch(snapshot) {
         tenantId: snapshot.tenantId,
         loadedAt: snapshot.loadedAt,
         sottoScorta: snapshot.sottoScorta,
+        prodottiDaCompletare: snapshot.prodottiDaCompletare || 0,
         guastiAperti: snapshot.guastiAperti,
         scadenzeUrgenti: snapshot.scadenzeUrgenti,
         affittiUrgenti: snapshot.affittiUrgenti,
@@ -295,6 +298,7 @@ async function buildSnapshot(tenantId, ctx, dependencies) {
         tenantId,
         loadedAt: Date.now(),
         sottoScorta: 0,
+        prodottiDaCompletare: 0,
         guastiAperti: 0,
         scadenzeUrgenti: 0,
         affittiUrgenti: 0,
@@ -319,9 +323,13 @@ async function buildSnapshot(tenantId, ctx, dependencies) {
     if (hasMagazzino && db && collection && getDocs) {
         tasks.push(
             getDocs(collection(db, 'tenants', tenantId, 'prodotti')).then((snap) => {
+                const rows = snap.docs.map(function (d) {
+                    return Object.assign({ id: d.id }, d.data());
+                });
                 const briefing = buildSottoScortaBriefingFromProdotti(snap.docs);
                 result.sottoScorta = briefing.count || 0;
                 result.summarySottoScorta = briefing.summarySottoScorta || '';
+                result.prodottiDaCompletare = countProdottiDaCompletare(rows) || 0;
             })
         );
     }

@@ -1006,6 +1006,25 @@
                         await loadOperai();
                         await loadMacchine();
                         await loadVendemmie();
+
+                        // §15.6 hub entry: vendemmie incomplete (fasce §15.5, una volta per ingresso)
+                        try {
+                            const { runTonyProactiveHubBriefing } = await import('../../../core/js/tony-proactive-hub-briefing.js');
+                            const { countVendemmieIncomplete } = await import('../../../core/config/tony-proactive-signals.js');
+                            const tenant = await getCurrentTenant();
+                            const modules = Array.isArray(tenant?.modules) ? tenant.modules : [];
+                            const incomplete = countVendemmieIncomplete(allVendemmie || []);
+                            runTonyProactiveHubBriefing({
+                                hubId: 'vendemmia',
+                                tenantId: getCurrentTenantId(),
+                                roles: Array.isArray(userData.ruoli) ? userData.ruoli : ['manager'],
+                                availableModules: modules,
+                                counts: { vendemmieIncomplete: incomplete },
+                                speak: true,
+                            });
+                        } catch (eHub) {
+                            console.warn('[Tony] hub briefing vendemmia:', eHub);
+                        }
                     } catch (error) {
                         console.error('[VENDEMMIA] Errore in onAuthStateChanged:', error);
                         alert('Errore nel caricamento dei dati: ' + error.message);
