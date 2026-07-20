@@ -1,6 +1,53 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-19 — Prezzo medio anagrafica verificato utente (auto-ricalcolo prodotti).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-20 — Tony Occhi: decisioni archivio documenti Magazzino (§20.33).
+
+## Tony Occhi — Archivio documenti Magazzino (decisioni prodotto) (2026-07-20)
+
+| Area | Decisione |
+| ---- | --------- |
+| **Ruoli** | Form acquisizione → dati gestionale (movimenti/prezzi/prodotti). Archivio → **originali** foto/PDF per consultazione/stampa. |
+| **Dove** | Card in **Prodotti e Magazzino** (+ link da Movimenti). **Non** in Amministrazione. |
+| **UX** | Una lista filtrabile (non due hub Bolle/Fatture); ricerca → metadati + Apri originale + link bolla↔fattura/movimenti. |
+| **File** | Persistenza Storage dopo Registra; compressione; no foto→PDF obbligatorio solo per spazio. Oggi foto **non** salvate. |
+| **Doc** | `TONY_DECISIONI_E_REQUISITI.md` §20.7, §20.10, **§20.33** |
+
+## Tony Occhi — Vincoli prodotto estrazione (2026-07-19)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Layout** | Conferma: **non** standardizzare fatture/bolle (variano tra aziende e tra tipi documento). Solo schema output + tipo. §20.15. |
+| **Scope futuro** | Stesso Tony Occhi anche per **bolle di consegna merce prodotta** (uva/frutta/ortaggi/seminativi…), con tipi/routing dedicati — §20.32 pianificato. |
+| **Implicazione tecnica** | Evoluzioni (`responseSchema`, OCR, passate) devono restare layout-agnostic; niente template per fornitore/cliente. |
+
+## Tony Occhi — Acquisizione non riuscita (fail-closed) (2026-07-19)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Principio** | Meglio messaggio «acquisizione non riuscita» che form con dati inventati/mescolati. |
+| **Logica** | `evaluateExtractionOutcome`: `failed` → non apre revisione (data implausibile, confidence &lt; 0,45, zero righe, totali molto incoerenti, …). |
+| **UX** | Messaggio Tony chiaro + consiglio foto; soft-gate resta solo per warning meno gravi. |
+| **File** | `document-register.js`, `document-capture.js`, `document-review-form.js`, test; Tony `2026-07-19d` |
+| **Deploy** | Hard refresh JS; CF se anche Level B |
+
+## Tony Occhi — Sicurezza acquisizione Level B (seconda passata) (2026-07-19)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Obiettivo** | Caso ok resta 1× Flash; se controlli gravi falliscono → seconda passata Flash mirata + merge. |
+| **Trigger** | `no_rows`, confidence doc &lt; 0,5, ≥50% righe low-conf, n. doc mancante, Σ≠imponibile (Δ&gt;5€ e &gt;3%), poche righe vs imponibile alto. |
+| **File** | `functions/config/tony-document-safety.js`, `tony-extract-document.js`, `document-capture.js`, review UI, test |
+| **Deploy** | `firebase deploy --only functions:tonyExtractDocument` + hard refresh JS (Tony `2026-07-19c`) |
+
+## Tony Occhi — Controlli sicurezza acquisizione Level A (2026-07-19)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Obiettivo** | Acquisizione ancora su Flash (veloce); meno errori che passano inosservati. |
+| **Controlli** | `assessDocumentExtractionSafety`: confidence doc/righe &lt; 0,7, n. doc/fornitore mancanti, prezzo assente (fattura), qty sospetta, Σ vs imponibile. |
+| **UX** | Banner avvisi + righe gialle; primo «Registra» chiede conferma, secondo procede (soft-gate). |
+| **File** | `document-register.js`, `document-review-form.js`, `tony-widget.css`, cache Tony `2026-07-19b`, test |
+| **Deploy** | Hard refresh JS. Level B (2ª passata CF) implementato nella voce sopra. |
 
 ## Magazzino / Tony Occhi — Prezzo medio anagrafica (2026-07-19) ✅ verificato
 

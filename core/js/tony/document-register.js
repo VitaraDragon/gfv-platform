@@ -818,6 +818,289 @@ export function checkRigheVsImponibile(righe, totali, toleranceAbs) {
   return { ok: false, sumRighe: sumRighe, imponibile: imponibile, delta: delta, message: msg };
 }
 
+/** Soglia confidence sotto cui la riga/documento richiede attenzione (Level A sicurezza). */
+export var DOCUMENT_CONFIDENCE_WARN_THRESHOLD = 0.7;
+
+/**
+ * Controlli post-estrazione (veloci, no seconda chiamata Gemini).
+ * Soft-gate: needsAck → primo «Registra» chiede conferma, secondo procede.
+ * @param {object} estrazione
+ * @param {{ tipo?: string }} [opts]
+ * @returns {{
+ *   ok: boolean,
+ *   needsAck: boolean,
+ *   issues: Array<{ code: string, severity: string, message: string, rowIndex?: number|null }>,
+ *   lowConfidenceRowIndexes: number[],
+ *   summaryMessage: string
+ * }}
+ */
+export function assessDocumentExtractionSafety(estrazione, opts) {
+  opts = opts || {};
+  var e = estrazione || {};
+  var tipo = String(opts.tipo || e.tipoDocumentoConfermato || e.tipoDocumento || 'bolla').toLowerCase();
+  var isFatturaLike = tipo === 'fattura' || tipo === 'scontrino';
+  var righe = Array.isArray(e.righe) ? e.righe : [];
+  var issues = [];
+  var lowConfIdx = [];
+  var thr = DOCUMENT_CONFIDENCE_WARN_THRESHOLD;
+
+  var docConf = e.confidence != null ? Number(e.confidence) : null;
+  if (docConf != null && Number.isFinite(docConf) && docConf < thr) {
+    issues.push({
+      code: 'doc_confidence',
+      severity: 'warn',
+      message: 'Lettura documento incerta (confidence ' + Math.round(docConf * 100) + '%). Controlla intestazione e righe evidenziate.',
+      rowIndex: null,
+    });
+  }
+
+  if (!String(e.numeroDocumento || '').trim()) {
+    issues.push({
+      code: 'missing_numero',
+      severity: 'warn',
+      message: 'Numero documento assente o non letto — verifica prima di registrare (finisce nelle note movimento).',
+      rowIndex: null,
+    });
+  }
+
+  if (!e.fornitore || !String(e.fornitore.nome || '').trim()) {
+    issues.push({
+      code: 'missing_fornitore',
+      severity: 'warn',
+      message: 'Fornitore assente o non letto — controlla il campo Fornitore.',
+      rowIndex: null,
+    });
+  }
+
+  var dataYear = parseAnnoFromDataDocumento(e.dataDocumento);
+  var currentYear = new Date().getFullYear();
+  // Solo se la data è stata letta (parseAnno ha trovato un anno nel testo)
+  if (String(e.dataDocumento || '').trim() && dataYear >= 2000 && dataYear <= 2100) {
+    if (Math.abs(dataYear - currentYear) > 2) {
+      issues.push({
+        code: 'date_implausible',
+        severity: 'warn',
+        message:
+          'Data documento sospetta (' +
+          String(e.dataDocumento).trim() +
+          ', anno ' +
+          dataYear +
+          ') — possibile lettura errata. Verifica o rifai la foto.',
+        rowIndex: null,
+      });
+    }
+  }
+
+  var incompleteRows = 0;
+  var oddQtyRows = 0;
+  righe.forEach(function (r, idx) {
+    if (!r) return;
+    var desc = String(r.descrizione || '').trim();
+    var qty = Number(r.quantita);
+    var prezzo = parsePrezzoUnitarioNum(r.prezzoUnitario);
+    var conf = r.confidence != null ? Number(r.confidence) : null;
+    if (conf != null && Number.isFinite(conf) && conf < thr) {
+      lowConfIdx.push(idx);
+    }
+    if (!desc || desc.length < 2) {
+      if (Number.isFinite(qty) && qty > 0) {
+        incompleteRows += 1;
+        issues.push({
+          code: 'row_desc_short',
+          severity: 'warn',
+          message: 'Riga ' + (idx + 1) + ': descrizione assente o troppo corta.',
+          rowIndex: idx,
+        });
+      }
+    }
+    if (isFatturaLike && Number.isFinite(qty) && qty > 0 && !(Number.isFinite(prezzo) && prezzo > 0)) {
+      incompleteRows += 1;
+      issues.push({
+        code: 'row_missing_price',
+        severity: 'warn',
+        message: 'Riga ' + (idx + 1) + ': manca il prezzo (obbligatorio su fattura/scontrino).',
+        rowIndex: idx,
+      });
+    }
+    if (Number.isFinite(qty) && qty > 50000) {
+      oddQtyRows += 1;
+      issues.push({
+        code: 'row_qty_suspect',
+        severity: 'warn',
+        message: 'Riga ' + (idx + 1) + ': quantità sospetta (' + qty + ') — possibile errore di lettura.',
+        rowIndex: idx,
+      });
+    }
+  });
+
+  if (lowConfIdx.length) {
+    issues.push({
+      code: 'rows_low_confidence',
+      severity: 'warn',
+      message:
+        lowConfIdx.length +
+        ' riga' +
+        (lowConfIdx.length === 1 ? '' : 'e') +
+        ' con lettura incerta (evidenziate in giallo) — rivedile prima di registrare.',
+      rowIndex: lowConfIdx[0],
+    });
+  }
+
+  if (isFatturaLike) {
+    var coher = checkRigheVsImponibile(righe, e.totali);
+    if (!coher.ok && coher.message) {
+      issues.push({
+        code: 'imponibile_mismatch',
+        severity: 'warn',
+        message: coher.message,
+        rowIndex: null,
+      });
+    }
+  }
+
+  if (!righe.length) {
+    issues.push({
+      code: 'no_rows',
+      severity: 'warn',
+      message: 'Nessuna riga prodotto estratta — controlla il documento o ripeti l\'acquisizione.',
+      rowIndex: null,
+    });
+  }
+
+  // Dedup + max 5 avvisi di dettaglio riga (il banner resta leggibile)
+  var seenIssue = {};
+  var detailRowCount = 0;
+  issues = issues.filter(function (iss) {
+    var key = iss.code + ':' + (iss.rowIndex != null ? iss.rowIndex : '');
+    if (seenIssue[key]) return false;
+    var isDetail =
+      iss.code === 'row_desc_short' ||
+      iss.code === 'row_missing_price' ||
+      iss.code === 'row_qty_suspect';
+    if (isDetail) {
+      if (detailRowCount >= 5) return false;
+      detailRowCount += 1;
+    }
+    seenIssue[key] = true;
+    return true;
+  });
+
+  var needsAck = issues.length > 0;
+  var summaryMessage = '';
+  if (needsAck) {
+    var n = issues.length;
+    summaryMessage =
+      'Controlli sicurezza: ' +
+      n +
+      ' avvis' +
+      (n === 1 ? 'o' : 'i') +
+      '. Rivedi i punti sotto; al primo «Registra dati» ti chiederò conferma, al secondo procederò.';
+  }
+
+  return {
+    ok: !needsAck,
+    needsAck: needsAck,
+    issues: issues,
+    lowConfidenceRowIndexes: lowConfIdx,
+    summaryMessage: summaryMessage,
+    incompleteRows: incompleteRows,
+    oddQtyRows: oddQtyRows,
+  };
+}
+
+/**
+ * Esito acquisizione: failed = non aprire form (meglio fallire che inventare).
+ * @param {object} estrazione
+ * @param {{ tipo?: string }} [opts]
+ * @returns {{
+ *   status: 'ok'|'review_with_warnings'|'failed',
+ *   reasons: string[],
+ *   message: string,
+ *   safety: object
+ * }}
+ */
+export function evaluateExtractionOutcome(estrazione, opts) {
+  opts = opts || {};
+  var e = estrazione || {};
+  var safety = assessDocumentExtractionSafety(e, opts);
+  var codes = {};
+  (safety.issues || []).forEach(function (iss) {
+    if (iss && iss.code) codes[iss.code] = true;
+  });
+  var tipo = String(opts.tipo || e.tipoDocumentoConfermato || e.tipoDocumento || 'bolla').toLowerCase();
+  var righe = Array.isArray(e.righe) ? e.righe : [];
+  var docConf = e.confidence != null ? Number(e.confidence) : null;
+  var hard = [];
+
+  if (codes.no_rows || !righe.length) hard.push('no_rows');
+  if (docConf != null && Number.isFinite(docConf) && docConf < 0.45) hard.push('confidence_too_low');
+  if (codes.date_implausible) hard.push('date_implausible');
+
+  if (tipo === 'fattura' || tipo === 'scontrino') {
+    var coher = checkRigheVsImponibile(righe, e.totali);
+    if (!coher.ok && coher.delta != null && coher.imponibile != null) {
+      var abs = Math.abs(coher.delta);
+      var rel = abs / Math.max(Math.abs(coher.imponibile), 1);
+      if (abs > 20 && rel > 0.1) hard.push('totals_incoherent');
+    }
+  }
+
+  var lowShare = righe.length
+    ? (safety.lowConfidenceRowIndexes || []).length / righe.length
+    : 0;
+  if (lowShare >= 0.5 && (codes.missing_numero || (docConf != null && docConf < 0.6))) {
+    hard.push('unreliable_rows');
+  }
+
+  if (e.safetyPassBAttempted && !e.safetyPassB && codes.no_rows) {
+    hard.push('pass_b_failed');
+  }
+
+  // Dopo rilettura B: se i totali restano molto incoerenti → fail
+  if (e.safetyPassB && hard.indexOf('totals_incoherent') >= 0) {
+    hard.push('pass_b_still_incoherent');
+  }
+
+  if (tipo === 'sconosciuto' && docConf != null && docConf < 0.55) {
+    hard.push('unknown_type');
+  }
+
+  // Dedup reasons
+  var seen = {};
+  hard = hard.filter(function (r) {
+    if (seen[r]) return false;
+    seen[r] = true;
+    return true;
+  });
+
+  if (hard.length) {
+    return {
+      status: 'failed',
+      reasons: hard,
+      message:
+        'Acquisizione non riuscita: la lettura non è abbastanza affidabile (rischio di dati inventati o mescolati). ' +
+        'Non apro la registrazione. Rifai la foto: un solo foglio, senza penne/oggetti sopra, luce uniforme e testo ben leggibile.',
+      safety: safety,
+    };
+  }
+
+  if (safety.needsAck) {
+    return {
+      status: 'review_with_warnings',
+      reasons: (safety.issues || []).map(function (i) { return i.code; }),
+      message: safety.summaryMessage || 'Controlla gli avvisi prima di registrare.',
+      safety: safety,
+    };
+  }
+
+  return {
+    status: 'ok',
+    reasons: [],
+    message: '',
+    safety: safety,
+  };
+}
+
 /**
  * @param {string} tipo
  * @returns {boolean}

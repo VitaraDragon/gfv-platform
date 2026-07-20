@@ -6,6 +6,7 @@
 
 import { hasActiveModule, getModuliAttiviFromTonyContext, moduleInactiveMessage } from '../../config/tony-module-gate.js';
 import { openTonyDocumentReviewForm } from './document-review-form.js';
+import { evaluateExtractionOutcome } from './document-register.js';
 
 const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
 const MAX_BYTES = 10 * 1024 * 1024;
@@ -330,13 +331,44 @@ export function initTonyDocumentCapture(opts) {
       setScannerVisible(false);
       resetSession();
       if (estrazione) {
+        if (estrazione && result.safetyPassBReasons && !estrazione.safetyPassBReasons) {
+          estrazione.safetyPassBReasons = result.safetyPassBReasons;
+        }
+        if (result.safetyPassB) estrazione.safetyPassB = true;
+        if (result.safetyPassBAttempted) estrazione.safetyPassBAttempted = true;
+
+        var outcome = evaluateExtractionOutcome(estrazione);
+        if (outcome.status === 'failed') {
+          console.warn('[Tony Occhi] acquisizione rifiutata:', outcome.reasons);
+          showMessageInChat(outcome.message, 'tony');
+          if (window.Tony && typeof window.Tony.speak === 'function') {
+            try { window.Tony.speak(outcome.message); } catch (_) { /* ignore */ }
+          }
+          return;
+        }
+
+        if (result.safetyPassB || estrazione.safetyPassB) {
+          showMessageInChat(
+            'Ho fatto una rilettura di controllo. Controlla il form prima di registrare.',
+            'tony'
+          );
+        } else if (outcome.status === 'review_with_warnings') {
+          showMessageInChat(
+            'Lettura OK ma con punti da verificare — controlla gli avvisi nel form prima di registrare.',
+            'tony'
+          );
+        }
+
         await openTonyDocumentReviewForm({
           estrazione: estrazione,
           showMessageInChat: showMessageInChat,
           appendMessage: appendMessage,
         });
       } else {
-        showMessageInChat('Estrazione completata senza dati utilizzabili.', 'error');
+        showMessageInChat(
+          'Acquisizione non riuscita: nessun dato utilizzabile. Rifai la foto (un foglio, ben leggibile) e riprova.',
+          'tony'
+        );
       }
     } catch (err) {
       console.error('[Tony Occhi] estrazione:', err);

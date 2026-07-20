@@ -786,8 +786,56 @@ body.tony-doc-review-modal-open {
     flex-shrink: 0;
 }
 
+.tony-doc-review-passb {
+    margin: 0 0 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: #0d3b66;
+    background: #e8f4fc;
+    border: 1px solid #b8d4ea;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.tony-doc-review-safety {
+    margin: 0 0 8px;
+    padding: 8px 10px;
+    font-size: 12px;
+    color: #7a4e00;
+    background: #fff8e6;
+    border: 1px solid #f0d59a;
+    border-radius: 8px;
+    flex-shrink: 0;
+    max-height: 140px;
+    overflow: auto;
+}
+
+.tony-doc-review-safety-summary {
+    margin: 0 0 6px;
+    font-weight: 600;
+}
+
+.tony-doc-review-safety-list {
+    margin: 0;
+    padding-left: 1.2em;
+}
+
+.tony-doc-review-safety-list li {
+    margin: 0 0 4px;
+}
+
+.tony-doc-review-safety-ack {
+    margin: 6px 0 0;
+    font-weight: 600;
+    color: #5c3d00;
+}
+
 .tony-doc-row-low-conf {
     background: #fff8e6;
+}
+
+.tony-doc-row-low-conf td:first-child {
+    box-shadow: inset 3px 0 0 #e6a800;
 }
 
 .tony-doc-review-hint {

@@ -27,6 +27,9 @@ import {
   isEntrataConPrezzoCerto,
   parseAnnoFromDataDocumento,
   refreshPrezzoMedioAnagraficaProdotti,
+  assessDocumentExtractionSafety,
+  evaluateExtractionOutcome,
+  DOCUMENT_CONFIDENCE_WARN_THRESHOLD,
 } from '../core/js/tony/document-register.js';
 
 const PRODOTTI = [
@@ -236,6 +239,78 @@ describe('document-register', () => {
     expect(warn.ok).toBe(false);
     expect(warn.message).toMatch(/imponibile/i);
     expect(checkRigheVsImponibile(clean, { imponibile: 189.6 }).ok).toBe(true);
+  });
+
+  it('assessDocumentExtractionSafety: imponibile, confidence, soft-ack', () => {
+    expect(DOCUMENT_CONFIDENCE_WARN_THRESHOLD).toBe(0.7);
+    var okDoc = assessDocumentExtractionSafety({
+      tipoDocumento: 'fattura',
+      confidence: 0.95,
+      numeroDocumento: '695/V0',
+      fornitore: { nome: 'Francesconi' },
+      totali: { imponibile: 189.6 },
+      righe: [
+        { descrizione: 'KUSABI', quantita: 2, prezzoUnitario: 94.25, confidence: 0.9 },
+        { descrizione: 'Spese', quantita: 1, prezzoUnitario: 1.1, confidence: 0.9 },
+      ],
+    });
+    expect(okDoc.ok).toBe(true);
+    expect(okDoc.needsAck).toBe(false);
+
+    var risky = assessDocumentExtractionSafety({
+      tipoDocumento: 'fattura',
+      confidence: 0.4,
+      numeroDocumento: '',
+      fornitore: { nome: 'Francesconi' },
+      totali: { imponibile: 500 },
+      righe: [
+        { descrizione: 'KUSABI', quantita: 2, prezzoUnitario: 94.25, confidence: 0.5 },
+        { descrizione: 'Altro', quantita: 1, prezzoUnitario: null, confidence: 0.9 },
+      ],
+    });
+    expect(risky.needsAck).toBe(true);
+    expect(risky.lowConfidenceRowIndexes).toContain(0);
+    expect(risky.issues.some((i) => i.code === 'imponibile_mismatch')).toBe(true);
+    expect(risky.issues.some((i) => i.code === 'missing_numero')).toBe(true);
+    expect(risky.issues.some((i) => i.code === 'row_missing_price')).toBe(true);
+  });
+
+  it('evaluateExtractionOutcome: failed su data implausibile o zero righe', () => {
+    var failedDate = evaluateExtractionOutcome({
+      tipoDocumento: 'bolla',
+      confidence: 0.9,
+      numeroDocumento: '1490/00',
+      dataDocumento: '2023-06-09',
+      fornitore: { nome: 'Francesconi' },
+      righe: [
+        { descrizione: 'Maschera', quantita: 1, confidence: 0.9 },
+        { descrizione: 'Fortune', quantita: 120, confidence: 0.9 },
+      ],
+    });
+    expect(failedDate.status).toBe('failed');
+    expect(failedDate.reasons).toContain('date_implausible');
+    expect(failedDate.message).toMatch(/Acquisizione non riuscita/i);
+
+    var failedEmpty = evaluateExtractionOutcome({
+      tipoDocumento: 'bolla',
+      confidence: 0.8,
+      numeroDocumento: '1',
+      dataDocumento: '2026-07-01',
+      fornitore: { nome: 'X' },
+      righe: [],
+    });
+    expect(failedEmpty.status).toBe('failed');
+    expect(failedEmpty.reasons).toContain('no_rows');
+
+    var ok = evaluateExtractionOutcome({
+      tipoDocumento: 'bolla',
+      confidence: 0.9,
+      numeroDocumento: '1490/00',
+      dataDocumento: '2026-10-31',
+      fornitore: { nome: 'Francesconi' },
+      righe: [{ descrizione: 'Maschera', quantita: 1, confidence: 0.9 }],
+    });
+    expect(ok.status).toBe('ok');
   });
 
   it('validateRigheForFatturaDirettaRegister richiede prezzo e qty', () => {

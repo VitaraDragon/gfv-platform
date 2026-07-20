@@ -11,6 +11,11 @@ const {
   TONY_DOCUMENT_EXTRACTION_PROMPT,
 } = require('../functions/config/tony-document-schemas.js');
 const { tenantHasMagazzinoModule } = require('../functions/tony-extract-document.js');
+const {
+  shouldRunSafetySecondPass,
+  mergeSafetySecondPass,
+  countMerceRows,
+} = require('../functions/config/tony-document-safety.js');
 
 const MIN_JPEG_B64 =
   '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////2wBDAf//////////////////////////////////////////////////////////////////////////////////////wAARCAABAAEDAREAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAb/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIQAxAAAAGf/AP/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAQUCf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQMBAT8Bf//EABQRAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQIBAT8Bf//EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEABj8Cf//Z';
@@ -144,5 +149,60 @@ describe('tony-extract-document gate', () => {
   it('tenantHasMagazzinoModule', () => {
     expect(tenantHasMagazzinoModule(['tony', 'magazzino'])).toBe(true);
     expect(tenantHasMagazzinoModule(['tony', 'vigneto'])).toBe(false);
+  });
+});
+
+describe('tony-document-safety Level B', () => {
+  it('non richiede seconda passata se documento coerente', () => {
+    const gate = shouldRunSafetySecondPass({
+      tipoDocumento: 'fattura',
+      confidence: 0.9,
+      numeroDocumento: '695/V0',
+      totali: { imponibile: 189.6 },
+      righe: [
+        { descrizione: 'KUSABI', quantita: 2, prezzoUnitario: 94.25, confidence: 0.9 },
+        { descrizione: 'Spese', quantita: 1, prezzoUnitario: 1.1, confidence: 0.85 },
+      ],
+    });
+    expect(gate.run).toBe(false);
+  });
+
+  it('richiede seconda passata su imponibile incoerente o poche righe', () => {
+    const gate = shouldRunSafetySecondPass({
+      tipoDocumento: 'fattura',
+      confidence: 0.8,
+      numeroDocumento: '1',
+      totali: { imponibile: 4000 },
+      righe: [{ descrizione: 'Solo uno', quantita: 1, prezzoUnitario: 10, confidence: 0.9 }],
+    });
+    expect(gate.run).toBe(true);
+    expect(gate.reasons).toEqual(expect.arrayContaining(['imponibile_mismatch', 'few_rows_vs_imponibile']));
+  });
+
+  it('merge preferisce più righe dalla seconda passata', () => {
+    const first = {
+      tipoDocumento: 'fattura',
+      confidence: 0.6,
+      numeroDocumento: '',
+      fornitore: { nome: '', piva: '' },
+      righe: [{ descrizione: 'Prodotto A', quantita: 1, prezzoUnitario: 10 }],
+      totali: { imponibile: 100 },
+    };
+    const second = {
+      tipoDocumento: 'fattura',
+      confidence: 0.8,
+      numeroDocumento: '100/V0',
+      fornitore: { nome: 'Agri', piva: 'IT1' },
+      righe: [
+        { descrizione: 'Prodotto A', quantita: 1, prezzoUnitario: 10 },
+        { descrizione: 'Prodotto B', quantita: 2, prezzoUnitario: 45 },
+      ],
+      totali: { imponibile: 100 },
+    };
+    const merged = mergeSafetySecondPass(first, second, ['imponibile_mismatch']);
+    expect(merged.safetyPassB).toBe(true);
+    expect(merged.numeroDocumento).toBe('100/V0');
+    expect(merged.fornitore.nome).toBe('Agri');
+    expect(countMerceRows(merged.righe)).toBe(2);
   });
 });

@@ -8,6 +8,11 @@ const {
   normalizeExtractionResult,
   buildGeminiDocumentParts,
 } = require("./config/tony-document-schemas");
+const {
+  shouldRunSafetySecondPass,
+  buildSafetySecondPassParts,
+  mergeSafetySecondPass,
+} = require("./config/tony-document-safety");
 
 const TONY_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
@@ -106,19 +111,23 @@ function tenantHasMagazzinoModule(moduliAttivi) {
  * @param {string} apiKey
  * @param {Array<{ mimeType: string, data: string, indice: number }>} pages
  * @param {{ retryCount?: number }} [stats]
+ * @param {{ parts?: Array<object>, label?: string }} [options]
  */
-async function extractDocumentWithGemini(apiKey, pages, stats) {
+async function extractDocumentWithGemini(apiKey, pages, stats, options) {
+  options = options || {};
+  const label = options.label || "tonyExtractDocument";
+  const parts = Array.isArray(options.parts) ? options.parts : buildGeminiDocumentParts(pages);
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${TONY_GEMINI_MODEL}:generateContent?key=${apiKey}`;
   const body = {
-    contents: [{ parts: buildGeminiDocumentParts(pages) }],
+    contents: [{ parts }],
     generationConfig: {
-      temperature: 0.1,
+      temperature: options.temperature != null ? options.temperature : 0.1,
       // Fatture riepilogative: 4096 tronca spesso il JSON a metà array righe
       maxOutputTokens: 8192,
       responseMimeType: "application/json",
     },
   };
-  const res = await callGeminiWithRetry(url, body, "tonyExtractDocument", stats);
+  const res = await callGeminiWithRetry(url, body, label, stats);
   const data = await res.json();
   const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   const finishReason = data?.candidates?.[0]?.finishReason || "";
@@ -154,11 +163,57 @@ async function extractDocumentWithGemini(apiKey, pages, stats) {
         responseMimeType: "application/json",
       },
     };
-    const repairRes = await callGeminiWithRetry(url, repairBody, "tonyExtractDocument-repair", stats);
+    const repairRes = await callGeminiWithRetry(url, repairBody, label + "-repair", stats);
     const repairData = await repairRes.json();
     const repairText = repairData?.candidates?.[0]?.content?.parts?.[0]?.text;
     const parsed = parseExtractedDocumentJson(repairText);
     return normalizeExtractionResult(parsed);
+  }
+}
+
+/**
+ * Level B: seconda passata Flash solo se i controlli post-estrazione lo richiedono.
+ * @param {string} apiKey
+ * @param {Array} pages
+ * @param {object} first
+ * @param {{ retryCount?: number }} stats
+ * @returns {Promise<{ estrazione: object, safetyPassB: boolean, safetyPassBReasons: string[] }>}
+ */
+async function maybeRunSafetySecondPass(apiKey, pages, first, stats) {
+  const gate = shouldRunSafetySecondPass(first);
+  if (!gate.run) {
+    return { estrazione: first, safetyPassB: false, safetyPassBReasons: [] };
+  }
+  console.info("[tonyExtractDocument] Level B seconda passata:", gate.reasons.join(", "));
+  try {
+    const parts = buildSafetySecondPassParts(pages, first, gate.reasons);
+    const second = await extractDocumentWithGemini(apiKey, pages, stats, {
+      parts,
+      label: "tonyExtractDocument-safetyB",
+      temperature: 0.05,
+    });
+    const merged = mergeSafetySecondPass(first, second, gate.reasons);
+    return {
+      estrazione: merged,
+      safetyPassB: true,
+      safetyPassBReasons: gate.reasons,
+    };
+  } catch (e) {
+    console.warn(
+      "[tonyExtractDocument] Level B fallita, uso prima passata:",
+      e && e.message ? e.message : e
+    );
+    const fallback = Object.assign({}, first, {
+      safetyPassB: false,
+      safetyPassBAttempted: true,
+      safetyPassBReasons: gate.reasons,
+      safetyPassBError: e && e.message ? String(e.message).slice(0, 200) : "error",
+    });
+    return {
+      estrazione: fallback,
+      safetyPassB: false,
+      safetyPassBReasons: gate.reasons,
+    };
   }
 }
 
@@ -221,8 +276,14 @@ async function handleTonyExtractDocument(db, request) {
   const geminiStats = {};
   const started = Date.now();
   let estrazione;
+  let safetyPassB = false;
+  let safetyPassBReasons = [];
   try {
-    estrazione = await extractDocumentWithGemini(apiKey, pages, geminiStats);
+    const first = await extractDocumentWithGemini(apiKey, pages, geminiStats);
+    const passB = await maybeRunSafetySecondPass(apiKey, pages, first, geminiStats);
+    estrazione = passB.estrazione;
+    safetyPassB = !!passB.safetyPassB;
+    safetyPassBReasons = passB.safetyPassBReasons || [];
   } catch (e) {
     if (e instanceof HttpsError) throw e;
     console.error("[tonyExtractDocument] estrazione fallita:", e);
@@ -236,6 +297,8 @@ async function handleTonyExtractDocument(db, request) {
     pagineRicevute: pages.length,
     geminiMs: Date.now() - started,
     geminiRetryCount: geminiStats.retryCount || 0,
+    safetyPassB,
+    safetyPassBReasons,
     estrazione,
   };
 }
@@ -243,6 +306,7 @@ async function handleTonyExtractDocument(db, request) {
 module.exports = {
   handleTonyExtractDocument,
   extractDocumentWithGemini,
+  maybeRunSafetySecondPass,
   assertManagerOrAdminForTenant,
   tenantHasMagazzinoModule,
   TONY_GEMINI_MODEL,

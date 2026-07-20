@@ -25,7 +25,9 @@ import {
   isMovimentoPrezzoInAttesa,
   sanitizeFatturaRighe,
   getRigaRiferimentoBollaNumero,
-  checkRigheVsImponibile,
+  assessDocumentExtractionSafety,
+  evaluateExtractionOutcome,
+  DOCUMENT_CONFIDENCE_WARN_THRESHOLD,
   movimentoNoteContainsDocNum,
   qtyMatch,
 } from './document-register.js';
@@ -72,6 +74,8 @@ function cloneEstrazione(estrazione) {
     tipoDocumento: e.tipoDocumento || 'sconosciuto',
     tipoDocumentoConfermato: tipoConf,
     confidence: e.confidence,
+    safetyPassB: e.safetyPassB === true,
+    safetyPassBReasons: Array.isArray(e.safetyPassBReasons) ? e.safetyPassBReasons.slice() : [],
     fornitore: Object.assign({ nome: '', piva: '', confidence: null }, e.fornitore || {}),
     numeroDocumento: e.numeroDocumento || '',
     dataDocumento: e.dataDocumento || '',
@@ -171,6 +175,9 @@ export async function openTonyDocumentReviewForm(opts) {
   var bollaSessionFilter = '';
   var bollaSessionUserOverride = false;
   var autoBollaMatch = { sessionId: '', numeroDocumento: '', score: 0, multiSession: false, sessionIds: [] };
+  /** Soft-gate controlli sicurezza: primo Registra chiede conferma, secondo procede */
+  var safetyAck = false;
+  var didScrollSafetyRow = false;
   try {
     var mod = await import('../../../modules/magazzino/services/prodotti-service.js');
     prodotti = await mod.getAllProdotti({ soloAttivi: true });
@@ -344,8 +351,17 @@ export async function openTonyDocumentReviewForm(opts) {
       bollaOpts += '<option value="' + escapeHtml(g.sessionId) + '"' + sel + '>' + escapeHtml(g.label) + '</option>';
     });
 
+    var safety = assessDocumentExtractionSafety(state, { tipo: tipoConf });
+    var warnRowIdx = {};
+    (safety.lowConfidenceRowIndexes || []).forEach(function (i) { warnRowIdx[i] = true; });
+    (safety.issues || []).forEach(function (iss) {
+      if (iss.rowIndex != null) warnRowIdx[iss.rowIndex] = true;
+    });
+
     var rowsHtml = state.righe.map(function (r, idx) {
-      var lowConf = r.confidence != null && r.confidence < 0.7;
+      var lowConf =
+        warnRowIdx[idx] ||
+        (r.confidence != null && Number(r.confidence) < DOCUMENT_CONFIDENCE_WARN_THRESHOLD);
       var suggestedMovId = matchRows[idx] ? matchRows[idx].movimentoId : null;
       if (isFattura && !r.movimentoIdConfermato && suggestedMovId) {
         r.movimentoIdConfermato = suggestedMovId;
@@ -418,10 +434,31 @@ export async function openTonyDocumentReviewForm(opts) {
       var refLabels = state.riferimentiBolla.map(function (r) { return r.numeroDocumento; }).join(', ');
       riferimentiHtml = '<p class="tony-doc-review-refs">DDT in fattura: <strong>' + escapeHtml(refLabels) + '</strong></p>';
     }
-    var coher = (isFattura || isScontrino) ? checkRigheVsImponibile(state.righe, state.totali) : { ok: true, message: '' };
-    var coherHtml = coher && !coher.ok && coher.message
-      ? '<p class="tony-doc-review-warn" role="status">' + escapeHtml(coher.message) + '</p>'
-      : '';
+    var passBHtml = '';
+    if (state.safetyPassB) {
+      var reasonsLabel = (state.safetyPassBReasons && state.safetyPassBReasons.length)
+        ? state.safetyPassBReasons.join(', ')
+        : 'incoerenze rilevate';
+      passBHtml =
+        '<p class="tony-doc-review-passb" role="status">' +
+        'Rilettura di controllo eseguita (' + escapeHtml(reasonsLabel) + '). Verifica ancora numeri e righe.' +
+        '</p>';
+    }
+    var safetyHtml = '';
+    if (safety.needsAck && safety.issues && safety.issues.length) {
+      safetyHtml =
+        '<div class="tony-doc-review-safety" role="status">' +
+        '<p class="tony-doc-review-safety-summary">' + escapeHtml(safety.summaryMessage || 'Controlli sicurezza: verifica gli avvisi.') + '</p>' +
+        '<ul class="tony-doc-review-safety-list">' +
+        safety.issues.map(function (iss) {
+          return '<li>' + escapeHtml(iss.message) + '</li>';
+        }).join('') +
+        '</ul>' +
+        (safetyAck
+          ? '<p class="tony-doc-review-safety-ack">Conferma ricevuta: un altro clic su «Registra dati» procederà comunque.</p>'
+          : '') +
+        '</div>';
+    }
     var bollaFilterHtml = isFattura
       ? '<label class="tony-doc-review-bolla-filter">Collega bolla <select id="tony-doc-review-bolla">' + bollaOpts + '</select></label>'
       : '';
@@ -447,7 +484,8 @@ export async function openTonyDocumentReviewForm(opts) {
       '</div>' +
       riferimentiHtml +
       buildTotaliHtml() +
-      coherHtml +
+      passBHtml +
+      safetyHtml +
       '<div class="tony-doc-review-table-wrap">' +
       '<table class="tony-doc-review-table"><thead><tr>' +
       tableHead +
@@ -468,6 +506,7 @@ export async function openTonyDocumentReviewForm(opts) {
       tipoSel.addEventListener('change', function () {
         readFormState();
         state.tipoDocumentoConfermato = tipoSel.value;
+        safetyAck = false;
         if (tipoSel.value === 'fattura' && !bollaSessionUserOverride) {
           autoBollaMatch = resolveAutoBollaSessionFromEstrazione(state, movimentiPrezzoInAttesa);
           bollaSessionFilter = (autoBollaMatch.sessionId && !autoBollaMatch.multiSession)
@@ -484,10 +523,22 @@ export async function openTonyDocumentReviewForm(opts) {
       bollaSel.addEventListener('change', function () {
         readFormState();
         bollaSessionUserOverride = true;
+        safetyAck = false;
         render();
       });
     }
     attachPriceInputHandlers();
+    if (!didScrollSafetyRow) {
+      var firstWarn = inner.querySelector('.tony-doc-row-low-conf');
+      if (firstWarn && typeof firstWarn.scrollIntoView === 'function') {
+        try {
+          firstWarn.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        } catch (_) {
+          firstWarn.scrollIntoView(true);
+        }
+        didScrollSafetyRow = true;
+      }
+    }
   }
 
   function close() {
@@ -513,13 +564,25 @@ export async function openTonyDocumentReviewForm(opts) {
       if (errEl) errEl.textContent = validation.errors.join(' ');
       return;
     }
-    if (isFattura || isScontrino) {
-      var coherReg = checkRigheVsImponibile(state.righe, state.totali);
-      if (!coherReg.ok && coherReg.message && errEl && !errEl.dataset.coherAck) {
-        errEl.textContent = coherReg.message + ' Premi di nuovo «Registra dati» per confermare comunque.';
-        errEl.dataset.coherAck = '1';
-        return;
+    var outcomeReg = evaluateExtractionOutcome(state, { tipo: tipo });
+    if (outcomeReg.status === 'failed') {
+      if (errEl) errEl.textContent = outcomeReg.message;
+      return;
+    }
+    var safetyReg = outcomeReg.safety || assessDocumentExtractionSafety(state, { tipo: tipo });
+    if (safetyReg.needsAck && !safetyAck) {
+      safetyAck = true;
+      if (errEl) {
+        errEl.textContent =
+          'Controlli sicurezza: rivedi gli avvisi in alto (e le righe in giallo), poi premi di nuovo «Registra dati» per confermare.';
       }
+      render();
+      var errEl2 = inner.querySelector('#tony-doc-review-errors');
+      if (errEl2) {
+        errEl2.textContent =
+          'Controlli sicurezza: rivedi gli avvisi in alto (e le righe in giallo), poi premi di nuovo «Registra dati» per confermare.';
+      }
+      return;
     }
     var btn = inner.querySelector('#tony-doc-review-register');
     if (btn) btn.disabled = true;

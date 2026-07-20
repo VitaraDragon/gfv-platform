@@ -269,7 +269,7 @@ Tony non "compila" grafici. Può:
 - **Eliminazioni bulk**: Tony non le esegue. Guida l'utente a farle manualmente.
 - **Impostazioni sensibili**: Cambio password, revoca utenti – Tony può spiegare come fare, non eseguire senza conferma esplicita.
 - **Moduli futuri**: Ogni nuovo modulo deve essere integrato via configurazione, non con patch ad hoc.
-- **Tony Occhi (documenti)**: **parzialmente implementato** (Fase 0–3; hardening fattura / `riferimentoBolla` 2026-07-17; **prezzo medio anagrafica** media ponderata ✅ verificato 2026-07-19 — §20.28). Piano evolutivo **§17** in `docs-sviluppo/da-fare/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md`; v. `TONY_DECISIONI_E_REQUISITI.md` §20.
+- **Tony Occhi (documenti)**: **parzialmente implementato** (Fase 0–3; layout-agnostic §20.15; sicurezza A+B + fail-closed §20.31; prezzo medio §20.28). **Archivio Magazzino** (originali foto/PDF, lista filtrabile, non Amministrazione) — deciso **§20.33**, non in codice. **Futuro:** bolle merce prodotta §20.32. Piano **§17** ROADMAP magazzino; v. `TONY_DECISIONI_E_REQUISITI.md` §20.
 
 ---
 
