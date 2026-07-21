@@ -87,6 +87,7 @@ export function formatDashboardOpsBriefingText(data) {
 
   var s = hasMagazzino ? Number(data.sottoScorta || 0) : 0;
   var prodottiInc = hasMagazzino ? Number(data.prodottiDaCompletare || 0) : 0;
+  var prezziAtt = hasMagazzino ? Number(data.prezziInAttesa || 0) : 0;
   var ore = hasManodopera ? Number(data.oreDaValidare || 0) : 0;
   var inCorso = hasManodopera ? Number(data.lavoriInCorso || 0) : 0;
   var daPian = hasManodopera ? Number(data.lavoriDaPianificare || 0) : 0;
@@ -127,6 +128,14 @@ export function formatDashboardOpsBriefingText(data) {
       prodottiInc === 1
         ? '1 prodotto da completare in anagrafica'
         : prodottiInc + ' prodotti da completare in anagrafica'
+    );
+  }
+
+  if (hasMagazzino && prezziAtt > 0) {
+    parts.push(
+      prezziAtt === 1
+        ? '1 entrata magazzino ancora senza prezzo (bolla in attesa di fattura)'
+        : prezziAtt + ' entrate magazzino ancora senza prezzo (bolle in attesa di fattura)'
     );
   }
 

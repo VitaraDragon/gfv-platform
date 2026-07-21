@@ -7,6 +7,7 @@ import {
   validateRigheForFatturaDocumento,
   formatRegisterSuccessMessage,
   isMovimentoPrezzoInAttesa,
+  countMovimentiPrezzoInAttesa,
   filterMovimentiCandidatiFattura,
   matchRigheFatturaToMovimenti,
   splitRigheFatturaPerModo,
@@ -112,6 +113,11 @@ describe('document-register', () => {
     expect(isMovimentoPrezzoInAttesa({ tipo: 'uscita', prezzoUnitario: null })).toBe(false);
     // Oggetto “ridotto” come in review-form (tipo omesso): non deve azzerare i candidati
     expect(isMovimentoPrezzoInAttesa({ id: 'mX', prezzoUnitario: null, note: 'Tony Occhi' })).toBe(true);
+    expect(countMovimentiPrezzoInAttesa([
+      { tipo: 'entrata', prezzoInAttesa: true },
+      { tipo: 'entrata', prezzoUnitario: 3 },
+      { tipo: 'uscita', prezzoUnitario: null },
+    ])).toBe(1);
     var movs = [
       { id: 'm1', tipo: 'entrata', prezzoInAttesa: true, prodottoId: 'p1', quantita: 10, documentoAcquisitoId: 'toc-a', note: 'Tony Occhi · Agri' },
       { id: 'm2', tipo: 'entrata', prezzoUnitario: 5, prodottoId: 'p2', quantita: 3, documentoAcquisitoId: 'toc-b' },

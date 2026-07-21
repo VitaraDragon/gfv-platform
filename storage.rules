@@ -33,6 +33,28 @@ service firebase.storage {
       // Eliminazione: utenti autenticati del tenant
       allow delete: if isAuthenticated() && belongsToTenant(tenantId);
     }
+
+    // Tony Occhi — originali documenti acquisiti (foto/PDF)
+    // Path: tenants/{tenantId}/documentiAcquisiti/{sessionId}/page-N.ext
+    match /tenants/{tenantId}/documentiAcquisiti/{sessionId}/{fileName} {
+      function isDocumentPageFile() {
+        return fileName.matches('page-[0-9]+\\.(jpg|jpeg|png|webp|pdf)');
+      }
+      function isAllowedDocContentType() {
+        return request.resource.contentType.matches('image/.*')
+            || request.resource.contentType == 'application/pdf';
+      }
+
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+
+      allow create, update: if isAuthenticated()
+        && belongsToTenant(tenantId)
+        && isDocumentPageFile()
+        && isAllowedDocContentType()
+        && request.resource.size < 12 * 1024 * 1024;
+
+      allow delete: if isAuthenticated() && belongsToTenant(tenantId);
+    }
     
     // Blocca tutto il resto
     match /{allPaths=**} {

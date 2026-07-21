@@ -30,11 +30,12 @@ describe('tony-proactive-signals catalog', () => {
     expect(ids).toContain('lavoriInCorso');
     expect(ids).toContain('preventiviAperti');
     expect(ids).toContain('prodottiDaCompletare');
+    expect(ids).toContain('prezziInAttesa');
     expect(ids).toContain('affittiUrgenti');
     expect(ids).toContain('vendemmieIncomplete');
     expect(ids).toContain('raccolteIncomplete');
     expect(ids).toContain('meteoConsigli');
-    expect(TONY_PROACTIVE_SIGNALS.length).toBeGreaterThanOrEqual(13);
+    expect(TONY_PROACTIVE_SIGNALS.length).toBeGreaterThanOrEqual(14);
   });
 
   it('hub manodopera include approvare/sospesi, non meteo né scorte né affitti', () => {
@@ -68,6 +69,7 @@ describe('tony-proactive-signals catalog', () => {
     expect(ids).not.toContain('oreDaValidare');
     expect(ids).toContain('sottoScorta');
     expect(ids).toContain('prodottiDaCompletare');
+    expect(ids).toContain('prezziInAttesa');
   });
 
   it('gate ruoli: operaio non vede segnali manager', () => {
@@ -91,6 +93,7 @@ describe('tony-proactive-signals catalog', () => {
         lavoriDaApprovare: 2,
         lavoriSospesiDaRiprendere: 1,
         prodottiDaCompletare: 1,
+        prezziInAttesa: 5,
         sottoScorta: 2,
         affittiUrgenti: 4,
         guastiAperti: 0,
@@ -109,10 +112,12 @@ describe('tony-proactive-signals catalog', () => {
       'lavoriSospesiDaRiprendere',
       'lavoriInCorso',
       'prodottiDaCompletare',
+      'prezziInAttesa',
       'sottoScorta',
       'affittiUrgenti',
       'scadenzeUrgenti',
     ]);
+    expect(collected.fingerprint.prezziInAttesa).toBe(5);
     expect(collected.meteoActive[0].id).toBe('meteoConsigli');
   });
 

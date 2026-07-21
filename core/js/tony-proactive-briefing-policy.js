@@ -101,6 +101,7 @@ export function buildProactiveFingerprintFromBriefing(briefing) {
     lavoriDaPianificare: b.lavoriDaPianificare,
     preventiviAperti: b.preventiviAperti,
     prodottiDaCompletare: b.prodottiDaCompletare,
+    prezziInAttesa: b.prezziInAttesa,
     sottoScorta: b.sottoScorta,
     scadenzeUrgenti: b.scadenzeUrgenti,
     guastiAperti: b.guastiAperti,

@@ -9,6 +9,7 @@ import {
   stashProdottoCompletamentoReminder,
 } from './document-prodotto-reminder.js';
 import { formatEurDisplay, formatEurForInput, parseEurInput } from './document-eur-format.js';
+import { formatArchivePersistMessage } from './document-archive.js';
 import {
   registerBollaMovimenti,
   registerFatturaDocumento,
@@ -153,6 +154,7 @@ function closeReviewModal(shell, overlay) {
  * @param {object} opts
  * @param {object} opts.estrazione
  * @param {string} [opts.sessionId]
+ * @param {Array<{ mimeType: string, data: string, fileName?: string }>} [opts.pages] — originali per archivio Storage
  * @param {function(string, string=): void} opts.showMessageInChat
  * @param {function(string, string=): void} [opts.appendMessage]
  * @param {function(): void} [opts.onClose]
@@ -168,6 +170,7 @@ export async function openTonyDocumentReviewForm(opts) {
   var showMessageInChat = opts.showMessageInChat || function () {};
   var appendMessage = opts.appendMessage || showMessageInChat;
   var sessionId = opts.sessionId || newSessionId();
+  var archivePages = Array.isArray(opts.pages) ? opts.pages.slice() : [];
   var state = cloneEstrazione(opts.estrazione);
 
   var prodotti = [];
@@ -655,6 +658,34 @@ export async function openTonyDocumentReviewForm(opts) {
       }
       if (result.skipped > 0) msg += ' (' + result.skipped + ' righe saltate)';
       if (result.unmatched > 0) msg += ' (' + result.unmatched + ' senza collegamento bolla)';
+
+      // Persistenza originali (Storage + documentiAcquisiti) — non annulla i movimenti se fallisce
+      var documentoCollegatoId = null;
+      if (isFattura && bollaSessionFilter) documentoCollegatoId = bollaSessionFilter;
+      try {
+        var tenantMod = await import('../../services/tenant-service.js');
+        if (typeof tenantMod.getCurrentTenantId === 'function' && !tenantMod.getCurrentTenantId()) {
+          var tidCtx = window.Tony && window.Tony.context && window.Tony.context.dashboard
+            && window.Tony.context.dashboard.tenantId;
+          if (tidCtx && typeof tenantMod.setCurrentTenantId === 'function') {
+            tenantMod.setCurrentTenantId(tidCtx);
+          }
+        }
+        var archMod = await import('../../../modules/magazzino/services/documenti-acquisiti-service.js');
+        var archiveResult = await archMod.persistArchiveForSession({
+          sessionId: sessionId,
+          pages: archivePages,
+          estrazione: state,
+          movimentoIds: result.movimentoIds || [],
+          documentoCollegatoId: documentoCollegatoId,
+          userId: userId,
+        });
+        msg += formatArchivePersistMessage(archiveResult);
+      } catch (archErr) {
+        console.warn('[Tony Occhi] archivio post-registrazione:', archErr);
+        msg += formatArchivePersistMessage({ filePending: true });
+      }
+
       showMessageInChat(msg, 'tony');
       appendMessage('Registra dati — confermato.', 'user');
       if (window.Tony && typeof window.Tony.speak === 'function') window.Tony.speak(msg);

@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Archivio documenti - Prodotti e Magazzino - GFV Platform</title>
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #E8F5E9 0%, #2E7D32 100%);
+            color: #333;
+            min-height: 100vh;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header {
+            background: linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+        .header h1 { font-size: 28px; }
+        .header p { opacity: 0.92; margin-top: 6px; font-size: 15px; max-width: 640px; }
+        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; text-decoration: none; display: inline-block; }
+        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary:hover { background: #5a6268; }
+        .btn-primary { background: #2E7D32; color: white; }
+        .btn-primary:hover { background: #1B5E20; }
+        .btn-danger { background: #dc3545; color: white; }
+        .btn-danger:hover { background: #c82333; }
+        .btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+        .btn-sm { padding: 5px 10px; font-size: 12px; }
+        .content { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .filters {
+            display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap;
+            padding: 20px; background: #f8f9fa; border-radius: 8px; align-items: flex-end;
+        }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 12px; font-weight: 600; color: #495057; }
+        .filter-group input, .filter-group select {
+            padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; min-width: 140px;
+        }
+        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px; }
+        .section-header h2 { color: #2E7D32; font-size: 22px; }
+        .hint { font-size: 13px; color: #6c757d; margin-bottom: 16px; line-height: 1.45; }
+        .docs-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+        .docs-table th, .docs-table td { padding: 10px 12px; text-align: left; border-bottom: 1px solid #e9ecef; vertical-align: top; font-size: 14px; }
+        .docs-table th { background: #E8F5E9; font-weight: 600; color: #495057; font-size: 13px; }
+        .docs-table tr:hover { background: #f1f8e9; }
+        .docs-table tr.highlight { background: #fff8e1; outline: 2px solid #ffc107; }
+        .badge-tipo { display: inline-block; padding: 3px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
+        .badge-bolla { background: #e3f2fd; color: #1565c0; }
+        .badge-fattura { background: #f3e5f5; color: #6a1b9a; }
+        .badge-scontrino { background: #fff3e0; color: #e65100; }
+        .badge-altro { background: #eceff1; color: #455a64; }
+        .badge-warn { background: #fff3cd; color: #856404; font-size: 11px; padding: 2px 6px; border-radius: 4px; }
+        .action-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+        .loading, .empty-state { text-align: center; padding: 40px; color: #666; }
+        .alert { padding: 12px 16px; border-radius: 8px; margin-bottom: 16px; }
+        .alert-info { background: #e7f3ff; color: #0c5460; border: 1px solid #b8daff; font-size: 14px; line-height: 1.45; }
+        .alert-error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .link-muted { color: #1565c0; font-size: 13px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>📄 Archivio documenti</h1>
+                <p>Originali acquisiti con Tony (foto/PDF). Una sola lista filtrabile — bolla, fattura e scontrino insieme. I dati gestionali restano in Movimenti.</p>
+            </div>
+            <div>
+                <a href="magazzino-home-standalone.html" class="btn btn-secondary">← Prodotti e Magazzino</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div id="alert-container"></div>
+            <div class="alert alert-info">
+                Qui consulti e ristampi gli <strong>originali</strong>. Per qty/prezzi usa Movimenti. Download full solo on-demand (Apri / Stampa).
+            </div>
+
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="filter-tipo">Tipo</label>
+                    <select id="filter-tipo">
+                        <option value="">Tutti</option>
+                        <option value="bolla">Bolla</option>
+                        <option value="fattura">Fattura</option>
+                        <option value="scontrino">Scontrino</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-fornitore">Fornitore</label>
+                    <input type="text" id="filter-fornitore" placeholder="Nome…" autocomplete="off">
+                </div>
+                <div class="filter-group">
+                    <label for="filter-numero">N. documento</label>
+                    <input type="text" id="filter-numero" placeholder="Es. 1334" autocomplete="off">
+                </div>
+                <div class="filter-group">
+                    <label for="filter-periodo-su">Periodo su</label>
+                    <select id="filter-periodo-su">
+                        <option value="acquisizione" selected>Data acquisizione</option>
+                        <option value="documento">Data documento</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-dal">Dal</label>
+                    <input type="date" id="filter-dal">
+                </div>
+                <div class="filter-group">
+                    <label for="filter-al">Al</label>
+                    <input type="date" id="filter-al">
+                </div>
+                <div class="filter-group">
+                    <label for="filter-stato">Stato collegamento</label>
+                    <select id="filter-stato">
+                        <option value="">Tutti</option>
+                        <option value="prezzo_in_attesa">Prezzo in attesa</option>
+                        <option value="senza_fattura">Senza fattura</option>
+                        <option value="collegata">Collegata a fattura</option>
+                        <option value="collegata_a_bolla">Collegata a bolla</option>
+                        <option value="entrata_diretta">Entrata diretta</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-prezzo-attesa">&nbsp;</label>
+                    <label style="font-weight:500;display:flex;align-items:center;gap:6px;min-height:38px;">
+                        <input type="checkbox" id="filter-prezzo-attesa"> Solo prezzo in attesa
+                    </label>
+                </div>
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <button type="button" class="btn btn-secondary btn-sm" id="btn-reset-filtri">Azzera filtri</button>
+                </div>
+            </div>
+
+            <p class="hint">Acquisizione nuovi documenti: icona 📷 in chat Tony (non da questa pagina).</p>
+
+            <div class="section-header">
+                <h2>Documenti</h2>
+                <div id="docs-count">0 documenti</div>
+            </div>
+            <div id="docs-container">
+                <div class="loading">Caricamento…</div>
+            </div>
+        </div>
+    </div>
+
+    <script>window.currentTableData = window.currentTableData || { pageType: 'documenti_acquisiti', summary: 'Caricamento dati in corso...', items: [] };</script>
+    <script>
+        const configScript = document.createElement('script');
+        configScript.src = '../../../core/config/firebase-config.js';
+        configScript.onerror = function() {
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
+            document.head.appendChild(fallbackScript);
+        };
+        document.head.appendChild(configScript);
+    </script>
+    <script type="module">
+        import { initializeFirebase, getAuthInstance, getDb, onAuthStateChanged, getDoc, doc } from '../../../core/services/firebase-service.js';
+        import { setCurrentTenantId } from '../../../core/services/tenant-service.js';
+        import {
+            getAllDocumentiAcquisiti,
+            getDocumentoPageDownloadUrl,
+            deleteDocumentoAcquisito,
+        } from '../services/documenti-acquisiti-service.js';
+        import {
+            filterDocumentiAcquisiti,
+            formatStatoCollegamentoLabel,
+            formatDataAcquisizioneDisplay,
+            getDataAcquisizioneYmd,
+        } from '../../../core/js/tony/document-archive.js';
+
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') {
+                    resolve(window.firebaseConfig);
+                    return;
+                }
+                let attempts = 0;
+                const iv = setInterval(() => {
+                    attempts++;
+                    if (typeof window.firebaseConfig !== 'undefined') {
+                        clearInterval(iv);
+                        resolve(window.firebaseConfig);
+                    } else if (attempts >= 50) {
+                        clearInterval(iv);
+                        reject(new Error('Firebase config not loaded'));
+                    }
+                }, 100);
+            });
+        }
+
+        function escapeHtml(s) {
+            const div = document.createElement('div');
+            div.textContent = s == null ? '' : String(s);
+            return div.innerHTML;
+        }
+
+        function showAlert(message, type) {
+            const el = document.getElementById('alert-container');
+            if (!el) return;
+            el.innerHTML = '<div class="alert alert-' + (type === 'error' ? 'error' : 'info') + '">' + escapeHtml(message) + '</div>';
+        }
+
+        function tipoBadge(tipo) {
+            const t = String(tipo || '').toLowerCase();
+            const cls = t === 'bolla' ? 'badge-bolla' : t === 'fattura' ? 'badge-fattura' : t === 'scontrino' ? 'badge-scontrino' : 'badge-altro';
+            const label = t === 'bolla' ? 'Bolla' : t === 'fattura' ? 'Fattura' : t === 'scontrino' ? 'Scontrino' : (tipo || '—');
+            return '<span class="badge-tipo ' + cls + '">' + escapeHtml(label) + '</span>';
+        }
+
+        function focusIdFromQuery() {
+            try {
+                return new URLSearchParams(window.location.search).get('id') || '';
+            } catch (_) {
+                return '';
+            }
+        }
+
+        const firebaseConfig = await waitForConfig();
+        initializeFirebase(firebaseConfig);
+        const auth = getAuthInstance();
+        const db = getDb();
+
+        let currentTenantId = null;
+        /** @type {object[]} */
+        let allDocs = [];
+
+        function readFilters() {
+            return {
+                tipo: document.getElementById('filter-tipo').value,
+                fornitore: document.getElementById('filter-fornitore').value,
+                numero: document.getElementById('filter-numero').value,
+                dal: document.getElementById('filter-dal').value,
+                al: document.getElementById('filter-al').value,
+                periodoSu: document.getElementById('filter-periodo-su').value || 'acquisizione',
+                statoCollegamento: document.getElementById('filter-stato').value,
+                soloPrezzoInAttesa: document.getElementById('filter-prezzo-attesa').checked,
+            };
+        }
+
+        function formatDataDocumentoDisplay(raw) {
+            const s = String(raw || '').trim();
+            if (!s) return '—';
+            if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+                const y = s.slice(0, 4);
+                const m = s.slice(5, 7);
+                const d = s.slice(8, 10);
+                return d + '/' + m + '/' + y;
+            }
+            return s;
+        }
+
+        async function openOriginal(docRow, printAfter) {
+            const pages = Array.isArray(docRow.pagine) ? docRow.pagine : [];
+            if (!pages.length || !pages[0].storagePath) {
+                showAlert('Originale non disponibile (file in attesa o non caricato).', 'error');
+                return;
+            }
+            try {
+                const url = await getDocumentoPageDownloadUrl(pages[0].storagePath);
+                if (printAfter) {
+                    const w = window.open(url, '_blank', 'noopener');
+                    if (w) {
+                        try { w.addEventListener('load', function () { try { w.print(); } catch (_) {} }); } catch (_) {}
+                    }
+                } else {
+                    window.open(url, '_blank', 'noopener');
+                }
+                if (pages.length > 1) {
+                    showAlert('Aperta la prima pagina. Documento multi-pagina: ' + pages.length + ' file in archivio.', 'info');
+                }
+            } catch (e) {
+                console.error(e);
+                showAlert('Download non riuscito: ' + (e.message || e), 'error');
+            }
+        }
+
+        async function eliminaDocumentoRiga(docRow) {
+            if (!docRow || !docRow.id) return;
+            const tipo = docRow.tipoDocumentoConfermato || docRow.tipoDocumento || 'documento';
+            const num = docRow.numeroDocumento ? (' n. ' + docRow.numeroDocumento) : '';
+            const forn = (docRow.fornitore && docRow.fornitore.nome) ? (' — ' + docRow.fornitore.nome) : '';
+            if (!confirm(
+                'Eliminare dall\'archivio questo ' + tipo + num + forn + '?\n\n' +
+                'Verranno rimossi l\'originale (foto/PDF) e i metadati.\n' +
+                'I movimenti di magazzino collegati NON vengono eliminati.'
+            )) return;
+            try {
+                const result = await deleteDocumentoAcquisito(docRow.id, docRow);
+                let msg = 'Documento rimosso dall\'archivio.';
+                if (result.storageErrors && result.storageErrors.length) {
+                    msg += ' Alcuni file Storage non eliminati: ' + result.storageErrors.slice(0, 2).join('; ');
+                }
+                showAlert(msg, 'info');
+                await loadDocs();
+            } catch (e) {
+                console.error(e);
+                showAlert('Eliminazione non riuscita: ' + (e.message || e), 'error');
+            }
+        }
+
+        function publishTonyTable(filtered) {
+            const n = filtered.length;
+            const summary = n === 0
+                ? 'Nessun documento acquisito in elenco.'
+                : ('Ci sono ' + n + ' documenti acquisiti in elenco.');
+            const items = filtered.map(function (d) {
+                return {
+                    id: d.id,
+                    tipo: d.tipoDocumentoConfermato || d.tipoDocumento || '',
+                    fornitore: (d.fornitore && d.fornitore.nome) || '',
+                    numeroDocumento: d.numeroDocumento || '',
+                    dataDocumento: d.dataDocumento || '',
+                    dataAcquisizione: getDataAcquisizioneYmd(d),
+                    statoCollegamento: d.statoCollegamento || '',
+                    prezzoInAttesa: d.prezzoInAttesa === true,
+                    filePending: d.filePending === true,
+                    movimentoIds: Array.isArray(d.movimentoIds) ? d.movimentoIds : [],
+                    documentoCollegatoId: d.documentoCollegatoId || null,
+                };
+            });
+            window.currentTableData = {
+                pageType: 'documenti_acquisiti',
+                summary: summary,
+                items: items,
+            };
+            var page = (window.Tony && window.Tony.context && window.Tony.context.page) || {};
+            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                window.Tony.setContext('page', Object.assign({}, page, {
+                    pageType: 'documenti_acquisiti',
+                    tableDataSummary: window.currentTableData.summary,
+                    currentTableData: window.currentTableData,
+                }));
+            }
+            try {
+                window.dispatchEvent(new CustomEvent('table-data-ready', {
+                    detail: { currentTableData: window.currentTableData },
+                }));
+            } catch (e) { /* ignore */ }
+        }
+
+        function render() {
+            const focusId = focusIdFromQuery();
+            const filtered = filterDocumentiAcquisiti(allDocs, readFilters());
+            publishTonyTable(filtered);
+            document.getElementById('docs-count').textContent = filtered.length + ' document' + (filtered.length === 1 ? 'o' : 'i');
+            const container = document.getElementById('docs-container');
+            if (!filtered.length) {
+                container.innerHTML = '<div class="empty-state">Nessun documento trovato con i filtri attuali.</div>';
+                return;
+            }
+            container.innerHTML = `
+                <table class="docs-table">
+                    <thead><tr>
+                        <th>Tipo</th><th>Acquisito</th><th>Data doc</th><th>N. doc</th><th>Fornitore</th><th>Stato</th><th>Movimenti</th><th>Collegamento</th><th>Azioni</th>
+                    </tr></thead>
+                    <tbody>
+                        ${filtered.map(function (d) {
+                            const tipo = d.tipoDocumentoConfermato || d.tipoDocumento || '';
+                            const forn = (d.fornitore && d.fornitore.nome) || '—';
+                            const movN = Array.isArray(d.movimentoIds) ? d.movimentoIds.length : 0;
+                            const linkId = d.documentoCollegatoId || '';
+                            const pending = d.filePending ? ' <span class="badge-warn">file pending</span>' : '';
+                            const hl = focusId && d.id === focusId ? ' class="highlight"' : '';
+                            return '<tr' + hl + ' data-id="' + escapeHtml(d.id) + '">' +
+                                '<td>' + tipoBadge(tipo) + pending + '</td>' +
+                                '<td>' + escapeHtml(formatDataAcquisizioneDisplay(d)) + '</td>' +
+                                '<td>' + escapeHtml(formatDataDocumentoDisplay(d.dataDocumento)) + '</td>' +
+                                '<td>' + escapeHtml(d.numeroDocumento || '—') + '</td>' +
+                                '<td>' + escapeHtml(forn) + '</td>' +
+                                '<td>' + escapeHtml(formatStatoCollegamentoLabel(d)) + '</td>' +
+                                '<td>' + (movN
+                                    ? '<a class="link-muted" href="movimenti-standalone.html?documento=' + encodeURIComponent(d.id) + '">' + movN + ' mov.</a>'
+                                    : '—') + '</td>' +
+                                '<td>' + (linkId
+                                    ? '<a class="link-muted" href="?id=' + encodeURIComponent(linkId) + '">Doc collegato</a>'
+                                    : '—') + '</td>' +
+                                '<td class="action-buttons">' +
+                                    '<button type="button" class="btn btn-primary btn-sm" data-action="apri" data-id="' + escapeHtml(d.id) + '">Apri</button>' +
+                                    '<button type="button" class="btn btn-secondary btn-sm" data-action="stampa" data-id="' + escapeHtml(d.id) + '">Stampa</button>' +
+                                    '<button type="button" class="btn btn-danger btn-sm" data-action="elimina" data-id="' + escapeHtml(d.id) + '">Elimina</button>' +
+                                '</td></tr>';
+                        }).join('')}
+                    </tbody>
+                </table>`;
+
+            container.querySelectorAll('[data-action]').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    const id = btn.getAttribute('data-id');
+                    const action = btn.getAttribute('data-action');
+                    const row = allDocs.find(function (x) { return x.id === id; });
+                    if (!row) return;
+                    if (action === 'apri') openOriginal(row, false);
+                    else if (action === 'stampa') openOriginal(row, true);
+                    else if (action === 'elimina') eliminaDocumentoRiga(row);
+                });
+            });
+
+            if (focusId) {
+                const safeId = String(focusId).replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+                const tr = container.querySelector('tr[data-id="' + safeId + '"]');
+                if (tr) tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+
+        async function loadDocs() {
+            allDocs = await getAllDocumentiAcquisiti({ orderBy: 'confermatoIl', orderDirection: 'desc', limit: 500 });
+            allDocs = (allDocs || []).map(function (d) {
+                return Object.assign({}, d, { id: d.id });
+            });
+            allDocs.sort(function (a, b) {
+                const da = getDataAcquisizioneYmd(a) || String(a.confermatoIl || '');
+                const db_ = getDataAcquisizioneYmd(b) || String(b.confermatoIl || '');
+                if (db_ !== da) return db_.localeCompare(da);
+                // stesso giorno: preferisci ISO completo più recente
+                return String(b.confermatoIl || '').localeCompare(String(a.confermatoIl || ''));
+            });
+            render();
+        }
+
+        ['filter-tipo', 'filter-fornitore', 'filter-numero', 'filter-dal', 'filter-al', 'filter-periodo-su', 'filter-stato', 'filter-prezzo-attesa'].forEach(function (id) {
+            const el = document.getElementById(id);
+            if (!el) return;
+            el.addEventListener('change', render);
+            el.addEventListener('input', render);
+        });
+        document.getElementById('btn-reset-filtri').addEventListener('click', function () {
+            document.getElementById('filter-tipo').value = '';
+            document.getElementById('filter-fornitore').value = '';
+            document.getElementById('filter-numero').value = '';
+            document.getElementById('filter-dal').value = '';
+            document.getElementById('filter-al').value = '';
+            document.getElementById('filter-periodo-su').value = 'acquisizione';
+            document.getElementById('filter-stato').value = '';
+            document.getElementById('filter-prezzo-attesa').checked = false;
+            render();
+        });
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = '../../../core/auth/login-standalone.html';
+                return;
+            }
+            try {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) {
+                    window.location.href = '../../../core/auth/login-standalone.html';
+                    return;
+                }
+                const userData = userDoc.data();
+                currentTenantId = userData.tenantId || (userData.tenantMemberships && Object.keys(userData.tenantMemberships || {})[0]);
+                if (!currentTenantId) {
+                    showAlert('Tenant non disponibile.', 'error');
+                    return;
+                }
+                setCurrentTenantId(currentTenantId);
+                const ruoli = userData.ruoli || [];
+                const isManager = ruoli.some(function (r) {
+                    const rl = (r || '').toLowerCase();
+                    return rl.includes('manager') || rl.includes('amministratore');
+                });
+                if (!isManager) {
+                    showAlert('Solo Manager o Amministratore possono accedere all\'archivio documenti.', 'error');
+                    setTimeout(function () { window.location.href = '../../../core/dashboard-standalone.html'; }, 2000);
+                    return;
+                }
+                try {
+                    const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                    const modules = tenantDoc.exists()
+                        ? (Array.isArray(tenantDoc.data().modules) ? tenantDoc.data().modules : [])
+                        : ['magazzino'];
+                    if (window.Tony && typeof window.Tony.initContextWithModules === 'function') {
+                        window.Tony.initContextWithModules(modules, {
+                            tenantId: currentTenantId,
+                            utente_corrente: {
+                                nome: ((userData.nome || '') + ' ' + (userData.cognome || '')).trim() || user.email || '',
+                                ruoli: (Array.isArray(userData.ruoli) ? userData.ruoli : []).slice(),
+                            },
+                        });
+                    }
+                } catch (_) { /* ignore */ }
+                await loadDocs();
+            } catch (e) {
+                console.error(e);
+                showAlert('Errore caricamento archivio: ' + (e.message || e), 'error');
+                document.getElementById('docs-container').innerHTML = '<div class="empty-state">Errore caricamento</div>';
+            }
+        });
+    </script>
+    <script type="module" src="../../../core/js/tony-widget-standalone.js"></script>
+</body>
+</html>

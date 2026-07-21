@@ -32,6 +32,23 @@
         .section-header h2 { color: #2E7D32; font-size: 24px; }
         .bulk-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .bulk-actions .bulk-count { font-size: 13px; color: #495057; min-width: 7em; }
+        .alert-doc-filter {
+            display: none;
+            background: #e7f3ff;
+            color: #0c5460;
+            border: 1px solid #b8daff;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            line-height: 1.45;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .alert-doc-filter.visible { display: flex; }
+        .alert-doc-filter strong { font-weight: 600; }
         .table-responsive { width: 100%; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
         .movimenti-table { width: 100%; min-width: 1100px; border-collapse: collapse; margin-top: 12px; }
         .movimenti-table th, .movimenti-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e9ecef; }
@@ -99,6 +116,10 @@
 
         <div class="content">
             <div id="alert-container"></div>
+            <div id="alert-documento-filter" class="alert-doc-filter" role="status">
+                <span id="alert-documento-filter-text"></span>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-documento-filter">Mostra tutti i movimenti</button>
+            </div>
             <div class="filters">
                 <div class="filter-group">
                     <label>Tipo</label>
@@ -113,6 +134,12 @@
                     <select id="filter-prodotto">
                         <option value="">Tutti</option>
                     </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-prezzo-attesa">&nbsp;</label>
+                    <label style="font-weight:500;display:flex;align-items:center;gap:6px;min-height:38px;">
+                        <input type="checkbox" id="filter-prezzo-attesa"> Solo senza prezzo
+                    </label>
                 </div>
             </div>
             <div class="section-header">
@@ -294,6 +321,14 @@
                 document.getElementById('btn-elimina-selezionati').onclick = function () {
                     window.eliminaMovimentiSelezionati();
                 };
+                const btnClearDoc = document.getElementById('btn-clear-documento-filter');
+                if (btnClearDoc) {
+                    btnClearDoc.onclick = function () {
+                        clearDocumentoFilterFromUrl();
+                        selectedMovimentoIds.clear();
+                        renderMovimenti();
+                    };
+                }
                 document.getElementById('btn-close-modal').onclick = closeModal;
                 document.getElementById('btn-annulla-modal').onclick = closeModal;
                 document.getElementById('mov-tipo').onchange = function() {
@@ -314,6 +349,11 @@
                 document.getElementById('movimento-form').onsubmit = saveMovimento;
                 document.getElementById('filter-tipo').onchange = renderMovimenti;
                 document.getElementById('filter-prodotto').onchange = renderMovimenti;
+                const chkPrezzo = document.getElementById('filter-prezzo-attesa');
+                if (chkPrezzo) {
+                    if (prezzoInAttesaFilterFromQuery()) chkPrezzo.checked = true;
+                    chkPrezzo.onchange = renderMovimenti;
+                }
                 await loadProdotti();
                 await loadLavori();
                 await loadAttivita();
@@ -399,12 +439,71 @@
             }
         }
 
+        function documentoFilterFromQuery() {
+            try {
+                return new URLSearchParams(window.location.search).get('documento') || '';
+            } catch (_) {
+                return '';
+            }
+        }
+
+        function prezzoInAttesaFilterFromQuery() {
+            try {
+                const v = new URLSearchParams(window.location.search).get('prezzoInAttesa');
+                return v === '1' || v === 'true' || v === 'yes';
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function clearDocumentoFilterFromUrl() {
+            try {
+                const url = new URL(window.location.href);
+                if (!url.searchParams.has('documento')) return false;
+                url.searchParams.delete('documento');
+                window.history.replaceState({}, '', url.pathname + (url.search || '') + (url.hash || ''));
+                return true;
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function updateDocumentoFilterBanner(filteredCount) {
+            const banner = document.getElementById('alert-documento-filter');
+            const textEl = document.getElementById('alert-documento-filter-text');
+            const docId = documentoFilterFromQuery();
+            if (!banner || !textEl) return;
+            if (!docId) {
+                banner.classList.remove('visible');
+                textEl.textContent = '';
+                return;
+            }
+            const shortId = docId.length > 12 ? docId.slice(0, 8) + '…' : docId;
+            textEl.innerHTML =
+                '<strong>Filtro documento attivo</strong> (da Archivio): mostro solo i movimenti collegati a questa acquisizione' +
+                ' <code style="font-size:12px;">' + String(shortId).replace(/</g, '') + '</code>.' +
+                ' In elenco: <strong>' + filteredCount + '</strong> di <strong>' + movimenti.length + '</strong> totali nel magazzino.' +
+                ' Eliminare qui non cancella gli altri movimenti.';
+            banner.classList.add('visible');
+        }
+
         function filterMovimenti() {
             const tipo = document.getElementById('filter-tipo').value;
             const prodottoId = document.getElementById('filter-prodotto').value;
+            const docId = documentoFilterFromQuery();
+            const soloPrezzoAttesa = !!(document.getElementById('filter-prezzo-attesa') &&
+                document.getElementById('filter-prezzo-attesa').checked);
             return movimenti.filter(m => {
                 if (tipo && m.tipo !== tipo) return false;
                 if (prodottoId && m.prodottoId !== prodottoId) return false;
+                if (docId) {
+                    const linked = m.documentoAcquisitoId === docId || m.documentoFatturaId === docId;
+                    if (!linked) return false;
+                }
+                if (soloPrezzoAttesa) {
+                    if (m.tipo != null && m.tipo !== 'entrata') return false;
+                    if (!(m.prezzoInAttesa === true || m.prezzoUnitario == null)) return false;
+                }
                 return true;
             });
         }
@@ -463,13 +562,34 @@
             }
             try { window.dispatchEvent(new CustomEvent('table-data-ready', { detail: { currentTableData: window.currentTableData } })); } catch (e) {}
 
-            document.getElementById('movimenti-count').textContent = filtered.length + ' movimenti';
+            const docFilter = documentoFilterFromQuery();
+            document.getElementById('movimenti-count').textContent = docFilter
+                ? (filtered.length + ' di ' + movimenti.length + ' movimenti (filtro documento)')
+                : (filtered.length + ' movimenti');
+            updateDocumentoFilterBanner(filtered.length);
             const container = document.getElementById('movimenti-container');
             Array.from(selectedMovimentoIds).forEach(function (id) {
                 if (!movimenti.some(function (m) { return m.id === id; })) selectedMovimentoIds.delete(id);
             });
             if (filtered.length === 0) {
-                container.innerHTML = '<div class="empty-state">Nessun movimento trovato</div>';
+                if (docFilter) {
+                    container.innerHTML =
+                        '<div class="empty-state">' +
+                        '<p>Nessun movimento collegato a questo documento.</p>' +
+                        '<p style="margin-top:12px;font-size:14px;color:#666;">Gli altri movimenti del magazzino possono esserci ancora: usa «Mostra tutti i movimenti» sopra.</p>' +
+                        '<p style="margin-top:16px;"><button type="button" class="btn btn-primary btn-sm" id="btn-empty-clear-doc-filter">Mostra tutti i movimenti</button></p>' +
+                        '</div>';
+                    const btnEmpty = container.querySelector('#btn-empty-clear-doc-filter');
+                    if (btnEmpty) {
+                        btnEmpty.addEventListener('click', function () {
+                            clearDocumentoFilterFromUrl();
+                            selectedMovimentoIds.clear();
+                            renderMovimenti();
+                        });
+                    }
+                } else {
+                    container.innerHTML = '<div class="empty-state">Nessun movimento trovato</div>';
+                }
                 updateBulkSelectionUi();
                 return;
             }
@@ -495,6 +615,9 @@
                                 <td>${escapeHtml(getAttivitaLabel(m.attivitaId))}</td>
                                 <td>${escapeHtml((m.note || '').substring(0, 30))}${(m.note || '').length > 30 ? '...' : ''}</td>
                                 <td class="action-buttons">
+                                    ${(m.documentoAcquisitoId || m.documentoFatturaId)
+                                        ? `<a class="btn btn-secondary btn-sm" href="documenti-acquisiti-standalone.html?id=${encodeURIComponent(m.documentoAcquisitoId || m.documentoFatturaId)}" title="Apri originale in Archivio documenti">Documento</a>`
+                                        : ''}
                                     <button type="button" class="btn btn-warning btn-sm" data-action="modifica" data-id="${m.id}">Modifica</button>
                                     <button type="button" class="btn btn-danger btn-sm" data-action="elimina" data-id="${m.id}">Elimina</button>
                                 </td>
@@ -639,11 +762,17 @@
         window.eliminaMovimentiSelezionati = async function() {
             const ids = Array.from(selectedMovimentoIds);
             if (!ids.length) return;
-            if (!confirm(
+            const docFilter = documentoFilterFromQuery();
+            let confirmMsg =
                 'Eliminare definitivamente ' + ids.length + ' moviment' + (ids.length === 1 ? 'o' : 'i') +
                 ' selezionat' + (ids.length === 1 ? 'o' : 'i') +
-                '?\nLa giacenza dei prodotti verrà ripristinata. Operazione non annullabile.'
-            )) return;
+                '?\nLa giacenza dei prodotti verrà ripristinata. Operazione non annullabile.';
+            if (docFilter) {
+                confirmMsg +=
+                    '\n\nNota: è attivo il filtro documento (da Archivio). Verranno eliminati solo questi ' +
+                    ids.length + ' selezionati, non tutti i movimenti del magazzino.';
+            }
+            if (!confirm(confirmMsg)) return;
             const btn = document.getElementById('btn-elimina-selezionati');
             if (btn) btn.disabled = true;
             let deleted = 0;
@@ -663,7 +792,13 @@
                     msg += ' Non eliminati: ' + failed.slice(0, 5).join('; ') +
                         (failed.length > 5 ? ' … (+' + (failed.length - 5) + ')' : '') + '.';
                 }
+                // Dopo delete sotto filtro documento: togli il filtro così non sembra “magazzino vuoto”
+                if (docFilter) {
+                    clearDocumentoFilterFromUrl();
+                    msg += ' Mostro di nuovo tutti i movimenti.';
+                }
                 showAlert(msg, !deleted && failed.length ? 'error' : 'success');
+                selectedMovimentoIds.clear();
                 await loadProdotti();
                 await loadMovimenti();
             } catch (e) {

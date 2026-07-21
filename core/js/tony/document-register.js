@@ -57,6 +57,19 @@ export function isMovimentoPrezzoInAttesa(m) {
 }
 
 /**
+ * Conteggio entrate ancora senza prezzo (bolla in attesa di fattura).
+ * @param {Array<object>|null|undefined} movimenti
+ * @returns {number}
+ */
+export function countMovimentiPrezzoInAttesa(movimenti) {
+  var n = 0;
+  (movimenti || []).forEach(function (m) {
+    if (isMovimentoPrezzoInAttesa(m)) n += 1;
+  });
+  return n;
+}
+
+/**
  * Anno calendario della data movimento (Date / Timestamp / ISO).
  * @param {object} m
  * @returns {number|null}

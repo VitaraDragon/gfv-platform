@@ -17,6 +17,7 @@
  * @property {string[]} [hubIds]  dove mostrare il segnale (dashboard / hub modulo)
  * @property {string} [openPageTarget]
  * @property {string} [openPageLabel]
+ * @property {string} [openPageQuery] querystring da appendere a APRI_PAGINA (es. prezzoInAttesa=1)
  * @property {'ops'|'meteo'} [kind]
  */
 
@@ -127,6 +128,20 @@ export const TONY_PROACTIVE_SIGNALS = [
     labelPlural: 'prodotti da completare in anagrafica',
     openPageTarget: 'prodotti',
     openPageLabel: 'Prodotti',
+    kind: 'ops',
+  },
+  {
+    id: 'prezziInAttesa',
+    moduleIds: ['magazzino'],
+    roles: ['manager', 'amministratore'],
+    priority: 22,
+    enabled: true,
+    hubIds: ['dashboard', 'magazzino'],
+    labelSingular: 'entrata magazzino ancora senza prezzo (bolla in attesa di fattura)',
+    labelPlural: 'entrate magazzino ancora senza prezzo (bolle in attesa di fattura)',
+    openPageTarget: 'movimenti',
+    openPageLabel: 'Movimenti',
+    openPageQuery: 'prezzoInAttesa=1',
     kind: 'ops',
   },
   {
@@ -359,6 +374,7 @@ export function listApplicableProactiveSignals(ctx) {
  *   guastiAperti?: number,
  *   oreDaValidare?: number,
  *   prodottiDaCompletare?: number,
+ *   prezziInAttesa?: number,
  *   lavoriInCorso?: number,
  *   lavoriDaPianificare?: number,
  *   lavoriDaApprovare?: number,
@@ -392,6 +408,7 @@ export function buildRawProactiveCounts(sources) {
     lavoriDaPianificare: num(src.lavoriDaPianificare, snap && snap.daPianificare),
     preventiviAperti: num(src.preventiviAperti),
     prodottiDaCompletare: num(src.prodottiDaCompletare, snap && snap.prodottiDaCompletare),
+    prezziInAttesa: num(src.prezziInAttesa, snap && snap.prezziInAttesa),
     sottoScorta: num(src.sottoScorta, snap && snap.sottoScorta),
     affittiUrgenti: num(src.affittiUrgenti, snap && snap.affittiUrgenti),
     guastiAperti: num(src.guastiAperti, snap && snap.guastiAperti),
@@ -451,7 +468,7 @@ export function collectProactiveSignals(ctx, rawCounts) {
 }
 
 /**
- * @typedef {{ id: string, openPageTarget: string, openPageLabel: string, count: number }} ProactiveOpenFollowUp
+ * @typedef {{ id: string, openPageTarget: string, openPageLabel: string, count: number, openPageQuery?: string }} ProactiveOpenFollowUp
  */
 
 export function pickProactiveOpenFollowUp(opsActive) {
@@ -462,12 +479,15 @@ export function pickProactiveOpenFollowUp(opsActive) {
     if (!sig || !sig.openPageTarget) continue;
     const label = String(sig.openPageLabel || sig.openPageTarget).trim();
     if (!label) continue;
-    return {
+    /** @type {ProactiveOpenFollowUp} */
+    const follow = {
       id: sig.id,
       openPageTarget: String(sig.openPageTarget).trim(),
       openPageLabel: label,
       count: item.count || 0,
     };
+    if (sig.openPageQuery) follow.openPageQuery = String(sig.openPageQuery).trim();
+    return follow;
   }
   return null;
 }
@@ -622,13 +642,16 @@ export function isProactiveOpenOfferFresh(offer, nowMs) {
 
 export function createProactiveOpenOffer(followUp) {
   if (!followUp || !followUp.openPageTarget) return null;
-  return {
+  /** @type {{ id: string, openPageTarget: string, openPageLabel: string, count: number, at: number, openPageQuery?: string }} */
+  const offer = {
     id: followUp.id || '',
     openPageTarget: followUp.openPageTarget,
     openPageLabel: followUp.openPageLabel || followUp.openPageTarget,
     count: followUp.count || 0,
     at: Date.now(),
   };
+  if (followUp.openPageQuery) offer.openPageQuery = String(followUp.openPageQuery).trim();
+  return offer;
 }
 
 export function formatProactiveOpenAck(offer) {

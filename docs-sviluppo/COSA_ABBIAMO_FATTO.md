@@ -1,20 +1,55 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-21 — proattività reminder §15.5–§15.6 chiusa (hub UX + segnali maturi).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-21 — Tony Occhi archivio Magazzino + reminder `prezziInAttesa` (build `2026-07-21b`).
 
-## Tony — Proattività reminder §15.5–§15.6 (2026-07-20 / 21) — stato finale v1
+## Tony Occhi / Magazzino — chiusura blocco 2026-07-21 (riepilogo)
+
+| Pezzo | Stato |
+| ----- | ----- |
+| **Archivio documenti** | ✅ Persistenza Storage+Firestore, lista Magazzino, Apri/Stampa, Elimina riga, date Acquisito+Data doc, link Movimenti |
+| **UX Movimenti** | ✅ Banner filtro `?documento=`; «Mostra tutti»; checkbox «Solo senza prezzo» |
+| **Reminder `prezziInAttesa`** | ✅ Catalogo §15.6 (dashboard + hub Magazzino); «apri» → Movimenti filtrati |
+| **Build client** | `2026-07-21b` |
+| **Ancora fuori** | Retention Storage P7; bolle merce prodotta §20.32; memoria storica §15.4; assenze |
+
+## Tony — Reminder prezzi in attesa (§15.6) (2026-07-21)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Cosa non è** | Non è il caricamento prezzi dalla fattura (già automatico al Registra se collegata alla bolla). |
+| **Cosa è** | Reminder proattivo: entrate da **bolla** ancora con `prezzoInAttesa` (fattura non ancora acquisita/collegata). |
+| **Segnale** | `prezziInAttesa` in `tony-proactive-signals.js` (hubIds dashboard + magazzino; `openPageQuery: prezzoInAttesa=1`). |
+| **Conteggio** | `countMovimentiPrezzoInAttesa` — snapshot dashboard + home Magazzino. |
+| **UI Movimenti** | Checkbox «Solo senza prezzo»; auto da query `?prezzoInAttesa=1`. |
+| **APRI_PAGINA** | Supporto generico `query` / `openPageQuery` da catalogo (no patch dedicata pagina). |
+| **Build** | `2026-07-21b`. |
+| **Test** | catalogo / policy / register / meteo-quick-reply aggiornati. |
+
+## Tony Occhi — Archivio documenti Magazzino (2026-07-21)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Persistenza** | Dopo **Registra**: upload originali su Storage (`tenants/{tid}/documentiAcquisiti/{sessionId}/page-N…`) + metadati Firestore `documentiAcquisiti`. Compressione immagini client; PDF nativo as-is. Policy errori: movimenti già scritti restano; flag `filePending` + messaggio chat. |
+| **UI** | `documenti-acquisiti-standalone.html` — una lista filtrabile; colonne **Acquisito** (`confermatoIl`) + **Data doc**; periodo default su acquisizione; Apri/Stampa; **Elimina** riga (file+metadati, non i movimenti). Card home Magazzino. |
+| **Movimenti** | Pulsante **Documento** → archivio (`?id=`); filtro `?documento=` + banner «filtro attivo» / «Mostra tutti» (evita falso «magazzino vuoto»). |
+| **Rules** | Firestore `documentiAcquisiti` + Storage path documenti (tenant; create manager/admin). |
+| **Test** | `tests/tony-document-archive.test.js`. |
+| **File** | `document-archive.js`, `documenti-acquisiti-service.js`, wire `document-capture.js` / `document-review-form.js`. |
+| **Deploy** | `firebase deploy --only storage,firestore:rules` (+ hosting pagine) se non già fatto. |
+| **Fuori scope** | Retention/quota P7; bolle merce prodotta §20.32; stati sessione Firestore `acquiring`/`review` (solo `confirmed` post-Registra). |
+
+## Tony — Proattività reminder §15.5–§15.6 (2026-07-20 / 21) — stato v1 + prezziInAttesa
 
 | Area | Dettaglio |
 | ---- | --------- |
 | **§15.5** | Max 1 pieno/fascia (mattina 05–12 / pomeriggio 12–18 / sera 18–05); delta su fingerprint peggiorato; idle max 1×/fascia solo dashboard; persistenza prima del delivery. |
 | **Storage** | Dashboard `tony.proactiveBriefing.v1:{tenantId}`; hub `tony.proactiveHub.v1:{tenantId}:{hubId}` (no idle). |
-| **Catalogo** | `tony-proactive-signals.js` — id, moduli, ruoli, priorità, label, `openPageTarget`/`hubIds`. |
-| **Segnali** | `oreDaValidare`, `lavoriDaApprovare`, `lavoriSospesiDaRiprendere`, `lavoriInCorso`, `lavoriDaPianificare`, `prodottiDaCompletare`, `sottoScorta`, `affittiUrgenti`, `guastiAperti`, `scadenzeUrgenti`, `preventiviAperti`, `vendemmieIncomplete`, `raccolteIncomplete`, `meteoConsigli`. |
-| **Hub** | Manodopera · Magazzino · Vendemmia · Conto terzi · Parco macchine · Frutteto. Messaggio = punti + «dimmi apri»; **niente** offerta riassunto (eco inutili). Se chiesto riassunto → guida ad «apri»/Dashboard. |
-| **Dashboard** | Offerta riassunto invariata (pool + meteo). Follow-up «apri» su segnale ops top. |
-| **Build** | Client `2026-07-21a`. |
-| **Test** | catalogo **16** + policy **13** (**29**). |
-| **Fuori scope** | §15.4 memoria storica; archivio Magazzino Occhi; assenze / `prezziInAttesa` finché flussi incompleti; tour in-app. |
+| **Catalogo** | `tony-proactive-signals.js` — id, moduli, ruoli, priorità, label, `openPageTarget` / `openPageQuery` / `hubIds`. |
+| **Segnali Magazzino** | `prodottiDaCompletare`, **`prezziInAttesa`**, `sottoScorta` (+ pool dashboard). |
+| **Altri segnali** | `oreDaValidare`, `lavoriDaApprovare`, `lavoriSospesiDaRiprendere`, `lavoriInCorso`, `lavoriDaPianificare`, `affittiUrgenti`, `guastiAperti`, `scadenzeUrgenti`, `preventiviAperti`, `vendemmieIncomplete`, `raccolteIncomplete`, `meteoConsigli`. |
+| **Hub** | Manodopera · Magazzino · Vendemmia · Conto terzi · Parco macchine · Frutteto. Messaggio = punti + «dimmi apri»; niente offerta riassunto. |
+| **Build** | Client `2026-07-21b`. |
+| **Fuori scope** | §15.4 memoria storica; assenze; tour in-app. |
 
 ## Tony Occhi — Archivio documenti Magazzino (decisioni prodotto) (2026-07-20)
 
@@ -23,8 +58,8 @@
 | **Ruoli** | Form acquisizione → dati gestionale (movimenti/prezzi/prodotti). Archivio → **originali** foto/PDF per consultazione/stampa. |
 | **Dove** | Card in **Prodotti e Magazzino** (+ link da Movimenti). **Non** in Amministrazione. |
 | **UX** | Una lista filtrabile (non due hub Bolle/Fatture); ricerca → metadati + Apri originale + link bolla↔fattura/movimenti. |
-| **File** | Persistenza Storage dopo Registra; compressione; no foto→PDF obbligatorio solo per spazio. Oggi foto **non** salvate. |
-| **Doc** | `TONY_DECISIONI_E_REQUISITI.md` §20.7, §20.10, **§20.33** |
+| **File** | Persistenza Storage dopo Registra; compressione; no foto→PDF obbligatorio solo per spazio. **Implementato 2026-07-21** (v. voci sopra). |
+| **Doc** | `TONY_DECISIONI_E_REQUISITI.md` §20.7, §20.10, **§20.33**; reminder bolle scoperte §15.6 `prezziInAttesa`. |
 
 ## Tony Occhi — Vincoli prodotto estrazione (2026-07-19)
 

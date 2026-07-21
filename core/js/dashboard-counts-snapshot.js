@@ -14,6 +14,7 @@ import {
     buildScadenzeUrgentiBriefingFromMacchine,
 } from './dashboard-tony-briefing-text.js';
 import { countProdottiDaCompletare } from './tony/document-prodotto-reminder.js';
+import { countMovimentiPrezzoInAttesa } from './tony/document-register.js';
 import {
     countLavoriDaApprovareFromDocs,
     countLavoriSospesiDaRiprendereFromDocs,
@@ -40,6 +41,7 @@ let _loadTenantId = null;
  * @property {number} loadedAt
  * @property {number} sottoScorta
  * @property {number} prodottiDaCompletare
+ * @property {number} prezziInAttesa
  * @property {number} guastiAperti
  * @property {number} scadenzeUrgenti
  * @property {number} affittiUrgenti
@@ -92,6 +94,7 @@ function serializeSnapshotForPrefetch(snapshot) {
         loadedAt: snapshot.loadedAt,
         sottoScorta: snapshot.sottoScorta,
         prodottiDaCompletare: snapshot.prodottiDaCompletare || 0,
+        prezziInAttesa: snapshot.prezziInAttesa || 0,
         guastiAperti: snapshot.guastiAperti,
         scadenzeUrgenti: snapshot.scadenzeUrgenti,
         affittiUrgenti: snapshot.affittiUrgenti,
@@ -305,6 +308,7 @@ async function buildSnapshot(tenantId, ctx, dependencies) {
         loadedAt: Date.now(),
         sottoScorta: 0,
         prodottiDaCompletare: 0,
+        prezziInAttesa: 0,
         guastiAperti: 0,
         scadenzeUrgenti: 0,
         affittiUrgenti: 0,
@@ -339,6 +343,40 @@ async function buildSnapshot(tenantId, ctx, dependencies) {
                 result.summarySottoScorta = briefing.summarySottoScorta || '';
                 result.prodottiDaCompletare = countProdottiDaCompletare(rows) || 0;
             })
+        );
+        tasks.push(
+            (async function () {
+                const { query, where } = dependencies;
+                let movDocs = [];
+                try {
+                    if (typeof query === 'function' && typeof where === 'function') {
+                        const q = query(
+                            collection(db, 'tenants', tenantId, 'movimentiMagazzino'),
+                            where('prezzoInAttesa', '==', true)
+                        );
+                        const snap = await getDocs(q);
+                        movDocs = snap.docs.map(function (d) {
+                            return Object.assign({ id: d.id }, d.data());
+                        });
+                    } else {
+                        const snap = await getDocs(collection(db, 'tenants', tenantId, 'movimentiMagazzino'));
+                        movDocs = snap.docs.map(function (d) {
+                            return Object.assign({ id: d.id }, d.data());
+                        });
+                    }
+                } catch (err) {
+                    console.warn('[dashboard-counts] prezziInAttesa query fallback:', err && err.message);
+                    try {
+                        const snap = await getDocs(collection(db, 'tenants', tenantId, 'movimentiMagazzino'));
+                        movDocs = snap.docs.map(function (d) {
+                            return Object.assign({ id: d.id }, d.data());
+                        });
+                    } catch (e2) {
+                        movDocs = [];
+                    }
+                }
+                result.prezziInAttesa = countMovimentiPrezzoInAttesa(movDocs) || 0;
+            })()
         );
     }
 

@@ -65,7 +65,7 @@ import {
 import { initTonyDocumentCapture } from './document-capture.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-export const TONY_CLIENT_BUILD = '2026-07-21a';
+export const TONY_CLIENT_BUILD = '2026-07-21b';
 if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
@@ -4964,6 +4964,10 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             if (apParamsNavEarly.clienteId) {
                                 urlWithNotify += '&clienteId=' + encodeURIComponent(String(apParamsNavEarly.clienteId));
                             }
+                            var extraQuery = data.query || apParamsNavEarly.query || '';
+                            if (extraQuery) {
+                                urlWithNotify += '&' + String(extraQuery).replace(/^\?/, '').replace(/^&/, '');
+                            }
                             console.log('[DEBUG CURSOR] processTonyCommand: URL trovato per', target, '→', urlWithNotify);
                             var runApriPaginaNavPc = function () {
                                 _tonyCommandQueue.length = 0;
@@ -7342,7 +7346,11 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 inputEl.disabled = false;
                 if (openTarget) {
                     try {
-                        processTonyCommand({ type: 'APRI_PAGINA', target: openTarget });
+                        var openCmd = { type: 'APRI_PAGINA', target: openTarget };
+                        if (proactiveOpenOffer.openPageQuery) {
+                            openCmd.query = String(proactiveOpenOffer.openPageQuery).trim();
+                        }
+                        processTonyCommand(openCmd);
                     } catch (eOpen) {
                         console.warn('[Tony] proactive open APRI_PAGINA:', eOpen);
                     }

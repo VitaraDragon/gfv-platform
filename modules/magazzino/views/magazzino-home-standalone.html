@@ -162,6 +162,11 @@
                     <span class="action-title">Tracciabilità consumi</span>
                     <span class="action-description">Consulta le uscite per categoria prodotto (sola lettura)</span>
                 </a>
+                <a href="documenti-acquisiti-standalone.html" class="action-card">
+                    <span class="action-icon">📄</span>
+                    <span class="action-title">Archivio documenti</span>
+                    <span class="action-description">Originali bolla/fattura/scontrino acquisiti con Tony (foto/PDF)</span>
+                </a>
             </div>
         </div>
     </div>
@@ -250,6 +255,7 @@
                     }
                     const { runTonyProactiveHubBriefing } = await import('../../../core/js/tony-proactive-hub-briefing.js');
                     const { countProdottiDaCompletare } = await import('../../../core/js/tony/document-prodotto-reminder.js');
+                    const { countMovimentiPrezzoInAttesa } = await import('../../../core/js/tony/document-register.js');
                     const prodottiRef = collection(db, 'tenants', currentTenantId, 'prodotti');
                     const prodottiSnap = await getDocs(prodottiRef);
                     const rows = prodottiSnap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
@@ -260,6 +266,14 @@
                         const g = p.giacenza != null ? Number(p.giacenza) : null;
                         return g == null || !Number.isFinite(g) || g < sm;
                     }).length;
+                    let prezziInAttesa = 0;
+                    try {
+                        const movSnap = await getDocs(collection(db, 'tenants', currentTenantId, 'movimentiMagazzino'));
+                        const movRows = movSnap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+                        prezziInAttesa = countMovimentiPrezzoInAttesa(movRows);
+                    } catch (eMov) {
+                        console.warn('[Tony] conteggio prezziInAttesa:', eMov);
+                    }
                     runTonyProactiveHubBriefing({
                         hubId: 'magazzino',
                         tenantId: currentTenantId,
@@ -268,6 +282,7 @@
                         counts: {
                             sottoScorta: sottoScorta,
                             prodottiDaCompletare: countProdottiDaCompletare(rows),
+                            prezziInAttesa: prezziInAttesa,
                         },
                         speak: true,
                     });

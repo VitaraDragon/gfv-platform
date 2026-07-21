@@ -692,6 +692,8 @@
                 const sottoScorta = hasMagazzino && snapReady ? snapReady.sottoScorta || 0 : 0;
                 const prodottiDaCompletare =
                     hasMagazzino && snapReady ? snapReady.prodottiDaCompletare || 0 : 0;
+                const prezziInAttesa =
+                    hasMagazzino && snapReady ? snapReady.prezziInAttesa || 0 : 0;
                 const scadenzeUrgenti = hasParcoMacchine && snapReady ? snapReady.scadenzeUrgenti || 0 : 0;
                 const guastiAperti = hasParcoMacchine && snapReady ? snapReady.guastiAperti || 0 : 0;
                 const oreDaValidare = hasManodopera && snapReady ? snapReady.oreDaValidare || 0 : 0;
@@ -701,6 +703,7 @@
                 window.tonyGlobalBriefing = {
                     sottoScorta: sottoScorta,
                     prodottiDaCompletare: prodottiDaCompletare,
+                    prezziInAttesa: prezziInAttesa,
                     oreDaValidare: oreDaValidare,
                     lavoriDaApprovare: snapReady ? snapReady.lavoriDaApprovare || 0 : 0,
                     lavoriSospesiDaRiprendere: snapReady
@@ -736,6 +739,7 @@
                         snap: snapReady,
                         sottoScorta: sottoScorta,
                         prodottiDaCompletare: prodottiDaCompletare,
+                        prezziInAttesa: prezziInAttesa,
                         oreDaValidare: oreDaValidare,
                         lavoriDaApprovare: snapReady ? snapReady.lavoriDaApprovare || 0 : 0,
                         lavoriSospesiDaRiprendere: snapReady

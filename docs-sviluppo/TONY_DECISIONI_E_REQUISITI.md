@@ -237,7 +237,7 @@
 | 15.3 | Reminder mirati + follow-up «vuoi che…?» / «dimmi apri» cross-modulo, **senza invasività** | MASTER_PLAN Fase 6; raffinato 2026-07-20/21 | **implementato** (v1) | Dashboard: riassunto + «apri». Hub: solo «apri» (no offerta riassunto eco) |
 | 15.4 | Memoria storica: confronti anno/anno | MASTER_PLAN | da fare | |
 | 15.5 | **Policy anti-invasività briefing proattivo** (reminder, non monologo) | prodotto 2026-07-20 | **implementato** | `tony-proactive-briefing-policy.js` + `checkGlobalStatus`; test **13** |
-| 15.6 | **Reminder operativi multi-modulo** (flusso regolare app) — catalogo estendibile | prodotto 2026-07-20 | **implementato** (hub principali) | + affitti/approvare/sospesi + UX hub 2026-07-21; test **16+13** |
+| 15.6 | **Reminder operativi multi-modulo** (flusso regolare app) — catalogo estendibile | prodotto 2026-07-20 | **implementato** (hub principali) | + affitti/approvare/sospesi + UX hub; **`prezziInAttesa`** Magazzino 2026-07-21b |
 
 ### 15.5 — Policy frequenza e aggiornamenti (2026-07-20)
 
@@ -262,7 +262,7 @@
 |---------------|----------------|-----------|
 | **Dashboard** | Pool completo (ore, approvare, sospesi, prodotti, scorte, affitti, guasti, scadenze, meteo, …) | — (entry principale) |
 | **Manodopera** | `oreDaValidare`, `lavoriDaApprovare`, `lavoriSospesiDaRiprendere`, `lavoriInCorso`, `lavoriDaPianificare` | home Manodopera |
-| **Magazzino** | `prodottiDaCompletare`, `sottoScorta` | home Magazzino |
+| **Magazzino** | `prodottiDaCompletare`, `sottoScorta`, **`prezziInAttesa`** | home Magazzino |
 | **Vigneto / Vendemmia** | `vendemmieIncomplete` | pagina Vendemmia |
 | **Conto terzi** | `preventiviAperti`, lavori CT | home CT |
 | **Parco macchine** | `guastiAperti`, `scadenzeUrgenti` | dashboard macchine |
@@ -280,7 +280,9 @@
 
 **Ingresso UX:** dashboard e hub modulo alla prima apertura in fascia; non monologo su ogni pagina lista. Contesto `globalStatus` aggiornato anche in silenzio.
 
-**File:** `tony-proactive-signals.js`, `tony-proactive-briefing-policy.js`, `tony-proactive-hub-briefing.js`, `checkGlobalStatus` in `dashboard-standalone.html`. Build client `2026-07-21a`. Test: **16** + **13**.
+**File:** `tony-proactive-signals.js`, `tony-proactive-briefing-policy.js`, `tony-proactive-hub-briefing.js`, `checkGlobalStatus` in `dashboard-standalone.html`, `dashboard-counts-snapshot.js`. Build client **`2026-07-21b`**. Segnale Magazzino aggiuntivo: **`prezziInAttesa`** (bolle/entrate senza prezzo; «apri» → Movimenti con filtro).
+
+**Nota prodotto `prezziInAttesa`:** non sostituisce l’aggiornamento automatico prezzi al Registra fattura collegata a bolla; ricorda solo le entrate ancora scoperte.
 
 ---
 
@@ -505,7 +507,7 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 ## 20. Tony Occhi — acquisizione documenti (bolla / fattura / scontrino)
 
 **Design completo**: `docs-sviluppo/da-fare/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` (agg. 2026-07-13, **§17 piano agenti**).  
-**Stato implementazione codice**: **Fase 0–3** in codice (estrazione/revisione/registrazione ✅). **Manca** persistenza file + UI archivio Magazzino (**§20.10, §20.33** — deciso prodotto 2026-07-20).
+**Stato implementazione codice**: **Fase 0–3** + **Archivio Magazzino MVP** ✅ (2026-07-21): estrazione/revisione/registrazione + Storage + lista filtrabile + link Movimenti (**§20.7, §20.10, §20.33**).
 
 | # | Decisione | Fonte | Stato | Note |
 |---|-----------|-------|-------|------|
@@ -515,22 +517,22 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 | 20.4 | **Routing automatico** post-estrazione (movimenti entrata vs aggiornamento prezzi) con gate modulo **`magazzino`** e ruoli manager/admin | prodotto 2026-07-10 | **parziale** | Gate CF ✅; routing client via tipo documento nel form revisione |
 | 20.5 | **Conferma umana obbligatoria** tramite **form di revisione** (tipo bolla/fattura, righe editabili, **Registra dati**) — non solo testo chat | prodotto 2026-07-10 | **implementato** | Mai auto-save qty/prezzi |
 | 20.6 | **Flusso due passi**: bolla → qty (+ prezzo in attesa); fattura → collegamento bolla → aggiorna `prezzoUnitario` | ROADMAP 2026-04-04, conferma 2026-07-10 | **implementato** | `registerFatturaPrezzi` + `updateMovimento` (2026-07-12) |
-| 20.7 | **Chat = acquisizione**; **Magazzino = consultazione/archivio** documenti (non Amministrazione) | prodotto 2026-07-10; raffinato 2026-07-20 | **pianificato** | V. §20.33 |
+| 20.7 | **Chat = acquisizione**; **Magazzino = consultazione/archivio** documenti (non Amministrazione) | prodotto 2026-07-10; raffinato 2026-07-20 | **implementato** | Card Magazzino + `documenti-acquisiti-standalone.html` (2026-07-21) |
 | 20.8 | **Vision-first Gemini 2.5 Flash**; OCR pipeline separata solo se necessario per costi | prodotto 2026-07-10 | **pianificato** | Allineato `TONY_GEMINI_MODEL` |
 | 20.9 | **Config centralizzata**: schemi JSON documento + mapping; integrazione movimenti via canone `tony-form-mapping` / save locale | prodotto 2026-07-10 | **pianificato** | No patch per singola pagina |
-| 20.10 | **Persistenza** `documentiAcquisiti` Firestore + **originali** su Storage (foto compresse e/o PDF nativo utente); movimenti con `prezzoInAttesa` / `documentoAcquisitoId` | design 2026-07-10; raffinato 2026-07-20 | **pianificato** | Schema ROADMAP §8; UX §20.33; costi Storage sostenibili se compressione + download on-demand |
+| 20.10 | **Persistenza** `documentiAcquisiti` Firestore + **originali** su Storage (foto compresse e/o PDF nativo utente); movimenti con `prezzoInAttesa` / `documentoAcquisitoId` | design 2026-07-10; raffinato 2026-07-20 | **implementato** | `document-archive.js` + `documenti-acquisiti-service.js`; `filePending` se upload fallisce (2026-07-21) |
 | 20.11 | **Screenshot** accettati come immagine nello stesso pipeline (fallback, non canale dedicato) | prodotto 2026-07-10 | **pianificato** | |
 | 20.12 | **Camera live in-app**, email inoltrata, multi-agente IDP: **fuori MVP** | prodotto 2026-07-10 | **pianificato** | Fasi 2–3 ROADMAP §13 |
 | 20.13 | **Form di revisione documento** — badge bolla/fattura, intestazione e tabella righe **editabili**, azione **Registra dati** | prodotto 2026-07-10 | **implementato** | Modal/pannello widget Tony |
 | 20.14 | **Acquisizione multipla** — più foto/PDF per stesso documento; **Aggiungi pagina** + **Acquisizione terminata** prima dell’estrazione | prodotto 2026-07-10 | **implementato** | MVP; merge pagine in CF |
 | 20.15 | **Estrazione layout-agnostic** — **vietato** standardizzare layout di fatture/bolle (variano molto tra aziende e tra bolla↔fattura); nessun template per fornitore; si standardizza solo lo **schema JSON in uscita** + routing per tipo | prodotto 2026-07-10; conferma 2026-07-19 | **implementato** | Gemini vision; vincolo non negoziabile per evoluzioni (`responseSchema`, OCR, ecc.) |
 | 20.16 | **Due step conferma**: (1) Acquisizione terminata (2) Registra dati sul form | prodotto 2026-07-10 | **implementato** | ROADMAP §5.2–§5.4 |
-| 20.17 | Sessione Firestore `documentiAcquisiti/{sessionId}` con array **`pagine[]`** e stati `acquiring` → `review` → `confirmed` | design 2026-07-10 | **pianificato** | ROADMAP §8 |
+| 20.17 | Sessione Firestore `documentiAcquisiti/{sessionId}` con array **`pagine[]`** e stati `acquiring` → `review` → `confirmed` | design 2026-07-10 | **parziale** | MVP: scrittura **`confirmed`** post-Registra + `pagine[]`; stati `acquiring`/`review` su Firestore non ancora |
 | 20.18 | **Animazione scanner** riusabile durante estrazione Gemini e popolamento form revisione (CSS, no librerie) | prodotto 2026-07-10 | **pianificato** | ROADMAP §5.4 D16 |
-| 20.19 | **Must-have Tony Occhi M1–M7**: duplicati, validazione totali, normalizzazione unità, confidence UI, audit estratto/confermato, link documento↔movimento, policy giacenza bolla | design 2026-07-10; M4/totali 2026-07-19 | **parziale** | M4 + totali: `assessDocumentExtractionSafety` + soft-gate Registra; resto M1–M7 ancora aperto |
+| 20.19 | **Must-have Tony Occhi M1–M7**: duplicati, validazione totali, normalizzazione unità, confidence UI, audit estratto/confermato, link documento↔movimento, policy giacenza bolla | design 2026-07-10; M4/totali 2026-07-19 | **parziale** | M4 + totali ✅; **M6 link documento↔movimento** ✅ 2026-07-21; resto M1–M7 ancora aperto |
 | 20.31 | **Sicurezza acquisizione A+B + fail-closed**: A soft-ack; B 2ª passata CF; se lettura ancora inaffidabile → **non aprire form** («Acquisizione non riuscita») | prodotto 2026-07-19 | **implementato** | `evaluateExtractionOutcome`; Tony `2026-07-19d` |
 | 20.32 | **Tony Occhi anche per bolle di merce prodotta** (uva, frutta, ortaggi, seminativi, ecc.): stesso ingresso 📷 layout-agnostic; tipi/documenti e schema **in uscita** distinti dall’acquisto magazzino; routing verso moduli coltura/vendita/conferimento (design da fare, no template per cliente/cantina) | prodotto 2026-07-19 | **pianificato** | Estende §20 senza rompere 20.15; non misto a entrate fitofarmaci senza classificazione |
-| 20.33 | **Archivio documenti Magazzino (ruoli e UX)** — v. sotto | prodotto 2026-07-20 | **pianificato** | Non in codice; formalizza ROADMAP D6/M6 + stima costi |
+| 20.33 | **Archivio documenti Magazzino (ruoli e UX)** — v. sotto | prodotto 2026-07-20 | **implementato** | Lista unica + Apri/Stampa/Elimina + Acquisito/Data doc + link Movimenti (2026-07-21); P7 retention ancora aperto |
 | 20.20 | **Post-MVP P1–P7**: qualità foto, ripresa sessione, fornitore/prodotto nuovo, lista in attesa, proattività, retention Storage | design 2026-07-10 | **pianificato** | ROADMAP §16.2 |
 | 20.21 | **Tipo scontrino** nel dropdown revisione — classificazione a parte; trattato come **fattura diretta** (entrata qty+prezzo, no bolla) | prodotto 2026-07-13 | **implementato** | `document-review-form.js`, schema CF `scontrino` |
 | 20.22 | **Fattura/scontrino senza bolla** → sempre **nuova entrata** (qty + prezzo + giacenza), anche se prodotto già in magazzino | prodotto 2026-07-13 | **implementato** | `registerFatturaEntrata`, `registerFatturaDocumento` |
@@ -545,6 +547,8 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 
 ### 20.33 — Archivio documenti (dettaglio deciso 2026-07-20)
 
+**Stato codice (2026-07-21):** implementato MVP — `document-archive.js`, `documenti-acquisiti-service.js`, `documenti-acquisiti-standalone.html`. Evoluzioni UX stesse date: **Elimina** riga (originali+metadati, non movimenti); colonne **Acquisito** (`confermatoIl`) e **Data doc**; filtro periodo default su acquisizione; Movimenti con banner filtro `?documento=` e «Mostra tutti».
+
 **Due ruoli distinti**
 
 | Canale | Cosa fa | Cosa mostra |
@@ -554,34 +558,37 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 
 **Dove vive in app**
 
-- Card in **Prodotti e Magazzino** → es. «Documenti acquisiti» / «Archivio documenti».
+- Card in **Prodotti e Magazzino** → «Archivio documenti» (`documenti-acquisiti-standalone.html`).
 - **Non** in Amministrazione (utenti/squadre/abbonamento).
-- Link rapido anche da **Movimenti** (icona «Documento» su riga con `documentoAcquisitoId`).
+- Link rapido anche da **Movimenti** (pulsante «Documento» su riga con `documentoAcquisitoId` / `documentoFatturaId`).
 - Opzionale futuro: Tony «apri bolla N» — non sostituisce la lista.
 
 **UX lista**
 
-- **Una sola lista** filtrabile (tipo bolla/fattura/scontrino, fornitore, periodo, n. documento, stato collegamento / prezzo in attesa).
+- **Una sola lista** filtrabile (tipo bolla/fattura/scontrino, fornitore, periodo su acquisizione o data documento, n. documento, stato collegamento / prezzo in attesa).
 - **Non** due hub separati «Bolle» e «Fatture» (spezzerebbero il legame).
-- Risultato ricerca (es. marzo 2026 + Consorzio Agrario) = riga documento con metadati + azioni **Apri/Stampa originale**, **movimenti collegati**, **bolla↔fattura** se match.
+- Per riga: metadati + **Apri/Stampa originale** + **Elimina** + movimenti collegati + link bolla↔fattura se match.
 
 **Collegamenti (riuso codice esistente)**
 
 - `documentoAcquisitoId` su movimenti; sessioni con `movimentoIds[]`.
 - Match fattura↔bolla già in `document-register.js` (`riferimentoBolla`, note `doc …`, fornitore).
+- Reminder bolle scoperte: segnale §15.6 **`prezziInAttesa`** (dashboard/hub Magazzino).
 
 **File e costi**
 
-- Salvare **originali** dopo Registra (oggi le foto **non** sono persistite — solo base64 → CF).
+- Salvare **originali** dopo Registra (Storage + metadati Firestore) — **implementato**.
 - Compressione immagini lato client prima dell’upload; download full on-demand (no galleria full-res).
-- **Non** convertire obbligatoriamente foto→PDF solo per risparmiare spazio (poco guadagno, più errori); PDF nativo utente si archivia com’è; PDF multi-pagina o «Esporta/Stampa» è opzionale.
-- Retention / soft-quota tenant: evoluzione (P7 ROADMAP); Storage tipicamente secondario rispetto a costi Gemini.
+- **Non** convertire obbligatoriamente foto→PDF solo per risparmiare spazio; PDF nativo utente si archivia com’è.
+- Policy upload fallito: `filePending` (movimenti non annullati).
+- Retention / soft-quota tenant: evoluzione (P7 ROADMAP).
 
 **Flusso utente target**
 
 1. 📷 Tony → acquisizione → revisione → Registra → dati in magazzino + file in archivio.  
-2. Controllo: Magazzino → Documenti → filtri → Apri/Stampa originale.  
-3. Oppure: Movimenti → riga → Documento; da fattura → link bolla collegata (e viceversa).
+2. Controllo: Magazzino → Documenti → filtri → Apri/Stampa (o Elimina dall’archivio).  
+3. Oppure: Movimenti → riga → Documento; da fattura → link bolla collegata (e viceversa).  
+4. Bolle ancora senza fattura: Tony reminder `prezziInAttesa` → Movimenti «Solo senza prezzo».
 
 ---
 

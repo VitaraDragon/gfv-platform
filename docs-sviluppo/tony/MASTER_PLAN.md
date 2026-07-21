@@ -17,7 +17,7 @@
 | **3** | Context Builder e dati aziendali | ✅ **In corso** | summaryScadenze ok; movimenti recenti in ctx (max 50); **summarySottoScorta** + prodottiSottoScorta (2026-04-11); **`consigliModuli` / `consigliBundle` / segnali moduli** per Tony Guida Base (2026-06-19, **bundle 2026-06-20**); **gating freemium Tony** loader + CF (2026-06-22d, E2E verificato) |
 | **4** | Iniezione universale | ✅ **In corso** | Attività, Lavori (entry point da ovunque 2026-03-08), Terreno (OPEN_MODAL+fields + **entity parser** 2026-06-14), **Nuovo Preventivo** (preventivo-form, 2026-03-24; **filari + meteo data + disambiguazione terreno** verificati 2026-05-24); **Magazzino** prodotto/movimento + **save locale** + creazione client-side + **cross-page** (3b-C15…**C19** E2E 2026-06-02), dosaggio/carenza obbligatori fitofarmaci, prezzo entrata da catalogo; **intervista lavoro client-side** — ack tipo dopo stem vago E2E ✅ (2026-06-03); **intervista lavoro vocale E2E** ✅ multi-PC (2026-06-14); **Segna ore workspace campo** intervista + save locale 0 CF + validazione manager E2E ✅ (**3b-C21**, 2026-06-04); **Segna ore desktop segnatura-ore** stesso motore unificato + one-shot E2E ✅ (**3b-C22** / **T-FLOW-022**, 2026-07-11) |
 | **5** | Grafici e report | ⏳ Parziale | APRI_PAGINA statistiche; MOSTRA_GRAFICO da fare |
-| **6** | Proattività e memoria | ⏳ Parziale | **§15.5–§15.6** ✅ v1 reminder (dashboard + 6 hub, `2026-07-21a`); **§15.4** memoria storica ancora da fare. |
+| **6** | Proattività e memoria | ⏳ Parziale | **§15.5–§15.6** ✅ v1 reminder (dashboard + 6 hub) + **`prezziInAttesa`** (`2026-07-21b`); **§15.4** memoria storica ancora da fare. |
 
 ---
 
@@ -257,8 +257,9 @@ Tony non "compila" grafici. Può:
 - **Implementato (2026-06-20, build client `2026-06-20r`, verificato utente):** **modalità vocale continua** — mic reopen affidabile post-TTS (`completeTtsClip`); whitelist spegnimento auto-mode; reconcile TTS stream su clip lette (testo voce = testo chat); segnale acustico turno; **STT** con `?` su domande (`applyItalianVoiceQuestionPunctuation`); distinzione saluto/congedo vocale
 - **Implementato (2026-05-22):** praticabilità terreno per **morfologia** (pianura/collina/montagna), soglie mm lookback, **asciugatura post-pioggia** per lavorazioni terreno, **doppia alternativa** (prima/dopo giorno scartato), select `tipoCampo`, quick reply Tony (morfologia + praticabilità + due date) — v. `TONY_DECISIONI_E_REQUISITI.md` §19.8–§19.9; **UI Impostazioni** override soglie tenant ancora da fare (default hardcoded)
 - **Implementato (2026-07-20):** **§15.5** anti-invasività (fasce + delta + storage tenant); **§15.6** catalogo segnali + follow-up «apri» + **hub entry** su Manodopera, Magazzino, Vendemmia, Conto terzi, Parco macchine, Frutteto. Dettaglio: `TONY_DECISIONI_E_REQUISITI.md` §15.5–§15.6.
-- **Implementato (2026-07-21):** segnali `affittiUrgenti`, `lavoriDaApprovare`, `lavoriSospesiDaRiprendere`; **UX hub** senza offerta riassunto eco (solo «apri» + redirect Dashboard se chiesto). Build `2026-07-21a`. Test catalogo **16** + policy **13**.
-- Da fare: **memoria storica** (§15.4 confronti anno/anno); **card/chip Abbonamento** da `consigliModuli` (backlog marketing §8 handoff); opz. `prezziInAttesa` / `assenzeDaConfermare` **solo** quando i flussi prodotto sono completi
+- **Implementato (2026-07-21):** segnali `affittiUrgenti`, `lavoriDaApprovare`, `lavoriSospesiDaRiprendere`; **UX hub** senza offerta riassunto eco (solo «apri» + redirect Dashboard se chiesto). Build `2026-07-21a`.
+- **Implementato (2026-07-21b):** segnale Magazzino **`prezziInAttesa`** (bolle/entrate senza prezzo; non i prezzi fattura già automatici al Registra); follow-up «apri» → Movimenti `?prezzoInAttesa=1`; `openPageQuery` generico in catalogo/APRI_PAGINA. Archivio Occhi: Elimina riga, colonne Acquisito+Data doc, banner filtro Movimenti.
+- Da fare: **memoria storica** (§15.4 confronti anno/anno); **card/chip Abbonamento** da `consigliModuli` (backlog marketing §8 handoff); opz. `assenzeDaConfermare` quando il flusso prodotto è completo.
 - Backlog operativo concordato: flusso "campioni" con mappa punti georeferenziati (raccolta/profilazione maturazione), su pattern GPS opzionale riusabile e non bloccante
 - **Criterio done (obiettivo)**: reminder proattivi uniformi sui moduli ✅ v1 hub principali; memoria/confronti ancora da fare
 
@@ -271,7 +272,7 @@ Tony non "compila" grafici. Può:
 - **Eliminazioni bulk**: Tony non le esegue. Guida l'utente a farle manualmente.
 - **Impostazioni sensibili**: Cambio password, revoca utenti – Tony può spiegare come fare, non eseguire senza conferma esplicita.
 - **Moduli futuri**: Ogni nuovo modulo deve essere integrato via configurazione, non con patch ad hoc.
-- **Tony Occhi (documenti)**: **parzialmente implementato** (Fase 0–3; layout-agnostic §20.15; sicurezza A+B + fail-closed §20.31; prezzo medio §20.28). **Archivio Magazzino** (originali foto/PDF, lista filtrabile, non Amministrazione) — deciso **§20.33**, non in codice. **Futuro:** bolle merce prodotta §20.32. Piano **§17** ROADMAP magazzino; v. `TONY_DECISIONI_E_REQUISITI.md` §20.
+- **Tony Occhi (documenti)**: **parzialmente implementato** (Fase 0–3; layout-agnostic §20.15; sicurezza A+B + fail-closed §20.31; prezzo medio §20.28). **Archivio Magazzino MVP ✅** (2026-07-21): Storage + `documentiAcquisiti`, lista filtrabile (Acquisito/Data doc, Elimina, Apri/Stampa), link Movimenti (§20.33). Reminder **`prezziInAttesa`** ✅. **Futuro:** bolle merce prodotta §20.32; retention Storage P7. Piano **§17** ROADMAP magazzino; v. `TONY_DECISIONI_E_REQUISITI.md` §20.
 
 ---
 
@@ -286,7 +287,7 @@ Tony non "compila" grafici. Può:
 - **Piano ottimizzazione performance Tony** (Fase 0–**4** ✅ deploy 2026-06-03; **Segna ore workspace 3b-C21** ✅ 2026-06-04; **Segna ore desktop 3b-C22** ✅ 2026-07-11; 4.4 offline deferred; canary §1.4, magazzino §1.7, field workspace §1.9, binario B §9 Fase 4): `docs-sviluppo/in-sviluppo/tony/PLAN_OTTIMIZZAZIONE_PERFORMANCE.md`
 - **Piano performance dashboard panoramica** (Fase 0–**5** ✅ 2026-06-06; canary **`dashboard pronta` ~861 ms**; smoke `npm run dashboard:perf-smoke`): `docs-sviluppo/dashboard/PLAN_PERFORMANCE_DASHBOARD.md`
 - **PWA / deploy client**: hook **`pre-commit`** / script **`bump:pwa-cache`** aggiornano **`SW_CACHE_BUILD_ID`** in `service-worker.js` (vedi **`docs-sviluppo/GUIDA_PWA.md`** e **TONY_DECISIONI_E_REQUISITI.md** §3.8) — riduce cache stale su app installata
-- **Magazzino – Tony Occhi (acquisizione documenti)**: `docs-sviluppo/da-fare/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` — Fase 0–3 in codice; **§17** scontrino/fattura/match; **§20.28** prezzo medio anagrafica ✅ 2026-07-19
+- **Magazzino – Tony Occhi (acquisizione documenti)**: `docs-sviluppo/da-fare/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` — Fase 0–3 + **archivio MVP** + reminder **`prezziInAttesa`** ✅ 2026-07-21; **§20.28** prezzo medio; **§20.33** archivio
 - **Tony E2E simulatore (M-T0…M-T6)**: `docs-sviluppo/in-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md` — M-T4 ✅ mock **17/17** (gate-fast CI ~4–6 min, 2026-07-11); M-T5 ✅ live tier 3 + gate p95
 - **Inventario decisioni**: `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md`
 - **Changelog**: `docs-sviluppo/COSA_ABBIAMO_FATTO.md`

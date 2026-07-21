@@ -329,6 +329,14 @@ export function initTonyDocumentCapture(opts) {
       var result = await svc.extractDocument({ pages: pagesPayload });
       var estrazione = result && result.estrazione ? result.estrazione : null;
       setScannerVisible(false);
+      // Conserva originali per archivio Storage dopo «Registra» (prima azzerava la sessione).
+      var pagesForArchive = sessionPages.map(function (p) {
+        return {
+          mimeType: p.mimeType,
+          data: p.data,
+          fileName: p.fileName || 'pagina',
+        };
+      });
       resetSession();
       if (estrazione) {
         if (estrazione && result.safetyPassBReasons && !estrazione.safetyPassBReasons) {
@@ -361,6 +369,7 @@ export function initTonyDocumentCapture(opts) {
 
         await openTonyDocumentReviewForm({
           estrazione: estrazione,
+          pages: pagesForArchive,
           showMessageInChat: showMessageInChat,
           appendMessage: appendMessage,
         });

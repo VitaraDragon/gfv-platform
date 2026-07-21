@@ -127,6 +127,30 @@
       "module": "core"
     },
     {
+      "target": "simulator dev",
+      "path": "core/dev/simulator-dev-standalone.html",
+      "label": "Simulator Dev",
+      "module": "core"
+    },
+    {
+      "target": "mappa aziendale",
+      "path": "core/mappa-aziendale-standalone.html",
+      "label": "Mappa Aziendale",
+      "module": "core"
+    },
+    {
+      "target": "field workspace",
+      "path": "core/mobile/field-workspace-standalone.html",
+      "label": "Field Workspace",
+      "module": "core"
+    },
+    {
+      "target": "statistiche",
+      "path": "core/mobile/statistiche-lavoratore-standalone.html",
+      "label": "Statistiche Lavoratore",
+      "module": "core"
+    },
+    {
       "target": "segnatura ore",
       "path": "core/segnatura-ore-standalone.html",
       "label": "Segnatura Ore",
@@ -271,16 +295,16 @@
       "module": "macchine"
     },
     {
+      "target": "documenti acquisiti",
+      "path": "modules/magazzino/views/documenti-acquisiti-standalone.html",
+      "label": "Documenti Acquisiti",
+      "module": "magazzino"
+    },
+    {
       "target": "magazzino",
       "path": "modules/magazzino/views/magazzino-home-standalone.html",
       "label": "Magazzino Home",
       "module": "magazzino"
-    },
-    {
-      "target": "manodopera",
-      "path": "modules/manodopera/views/manodopera-home-standalone.html",
-      "label": "Manodopera Home",
-      "module": "manodopera"
     },
     {
       "target": "movimenti",
@@ -301,9 +325,27 @@
       "module": "magazzino"
     },
     {
+      "target": "manodopera home",
+      "path": "modules/manodopera/views/manodopera-home-standalone.html",
+      "label": "Manodopera Home",
+      "module": "manodopera"
+    },
+    {
+      "target": "meteo dashboard",
+      "path": "modules/meteo/views/meteo-dashboard-standalone.html",
+      "label": "Meteo Dashboard",
+      "module": "meteo"
+    },
+    {
       "target": "report",
       "path": "modules/report/views/report-dashboard-standalone.html",
       "label": "Report Dashboard",
+      "module": "report"
+    },
+    {
+      "target": "report vigneto",
+      "path": "modules/report/views/report-standalone.html",
+      "label": "Report",
       "module": "report"
     },
     {
@@ -313,10 +355,40 @@
       "module": "report"
     },
     {
-      "target": "report vigneto",
-      "path": "modules/report/views/report-standalone.html",
-      "label": "Report Vigneto",
-      "module": "report"
+      "target": "bilancio vm",
+      "path": "modules/vendemmia-meccanica/views/bilancio-vm-standalone.html",
+      "label": "Bilancio Vm",
+      "module": "vendemmia-meccanica"
+    },
+    {
+      "target": "calcolatore",
+      "path": "modules/vendemmia-meccanica/views/calcolatore-standalone.html",
+      "label": "Calcolatore",
+      "module": "vendemmia-meccanica"
+    },
+    {
+      "target": "calcoli salvati",
+      "path": "modules/vendemmia-meccanica/views/calcoli-salvati-standalone.html",
+      "label": "Calcoli Salvati",
+      "module": "vendemmia-meccanica"
+    },
+    {
+      "target": "piano stagione",
+      "path": "modules/vendemmia-meccanica/views/piano-stagione-standalone.html",
+      "label": "Piano Stagione",
+      "module": "vendemmia-meccanica"
+    },
+    {
+      "target": "tariffe vm",
+      "path": "modules/vendemmia-meccanica/views/tariffe-vm-standalone.html",
+      "label": "Tariffe Vm",
+      "module": "vendemmia-meccanica"
+    },
+    {
+      "target": "vm home",
+      "path": "modules/vendemmia-meccanica/views/vm-home-standalone.html",
+      "label": "Vm Home",
+      "module": "vendemmia-meccanica"
     },
     {
       "target": "calcolo materiali",
@@ -373,5 +445,5 @@
       "module": "vigneto"
     }
   ],
-  "generatedAt": "2026-04-11T12:00:00.000Z"
+  "generatedAt": "2026-07-21T05:13:37.793Z"
 }
