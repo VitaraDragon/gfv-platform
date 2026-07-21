@@ -59,11 +59,13 @@ import {
     tonyWantsProactiveOpenPage,
     isProactiveOpenOfferFresh,
     formatProactiveOpenAck,
+    buildHubProactiveRiassuntoReply,
+    getProactiveHub,
 } from '../../config/tony-proactive-signals.js';
 import { initTonyDocumentCapture } from './document-capture.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-export const TONY_CLIENT_BUILD = '2026-07-20b';
+export const TONY_CLIENT_BUILD = '2026-07-21a';
 if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
@@ -7294,6 +7296,20 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             if (wantsRiassunto) {
                 if (!window.tonyGlobalBriefing) {
                     tonyDeliverDashboardRiassunto('Sto ancora caricando il riepilogo dashboard. Riprova tra qualche secondo.', { fromVoice: opts.fromVoice });
+                    return;
+                }
+                // Hub: il reminder è già il riepilogo utile — non ripetere i soli conteggi.
+                var hubBriefId = window.tonyGlobalBriefing.hubId
+                    ? String(window.tonyGlobalBriefing.hubId).trim()
+                    : '';
+                if (hubBriefId && hubBriefId !== 'dashboard') {
+                    var hubDef = getProactiveHub(hubBriefId);
+                    var hubReply = buildHubProactiveRiassuntoReply(
+                        window.tonyGlobalBriefing,
+                        window.__tonyProactiveOpenOffer || null,
+                        hubDef
+                    );
+                    tonyDeliverDashboardRiassunto(hubReply, { fromVoice: opts.fromVoice });
                     return;
                 }
                 var fullReply = buildDashboardRiassuntoText(window.tonyGlobalBriefing, formatFriendlyBriefing(window.tonyGlobalBriefing));

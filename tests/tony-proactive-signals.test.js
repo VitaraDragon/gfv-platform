@@ -14,29 +14,38 @@ import {
   countVendemmieIncomplete,
   countPreventiviAperti,
   countRaccolteIncomplete,
+  countLavoriDaApprovareFromDocs,
+  countLavoriSospesiDaRiprendereFromDocs,
+  buildHubProactiveRiassuntoReply,
   proactiveHubStorageKey,
 } from '../core/config/tony-proactive-signals.js';
 import { decideProactiveBriefingAction } from '../core/js/tony-proactive-briefing-policy.js';
 
 describe('tony-proactive-signals catalog', () => {
-  it('v1 include ore, lavori, preventivi, prodotti, scorte, guasti, scadenze, vendemmia, raccolte, meteo', () => {
+  it('v1 include ore, lavori (approvare/sospesi), preventivi, prodotti, affitti, scorte, guasti, scadenze, vendemmia, raccolte, meteo', () => {
     const ids = getProactiveSignalIds();
     expect(ids).toContain('oreDaValidare');
+    expect(ids).toContain('lavoriDaApprovare');
+    expect(ids).toContain('lavoriSospesiDaRiprendere');
     expect(ids).toContain('lavoriInCorso');
     expect(ids).toContain('preventiviAperti');
     expect(ids).toContain('prodottiDaCompletare');
+    expect(ids).toContain('affittiUrgenti');
     expect(ids).toContain('vendemmieIncomplete');
     expect(ids).toContain('raccolteIncomplete');
     expect(ids).toContain('meteoConsigli');
-    expect(TONY_PROACTIVE_SIGNALS.length).toBeGreaterThanOrEqual(10);
+    expect(TONY_PROACTIVE_SIGNALS.length).toBeGreaterThanOrEqual(13);
   });
 
-  it('hub manodopera non include meteo né scorte', () => {
+  it('hub manodopera include approvare/sospesi, non meteo né scorte né affitti', () => {
     const ids = getProactiveSignalIdsForHub('manodopera');
     expect(ids).toContain('oreDaValidare');
+    expect(ids).toContain('lavoriDaApprovare');
+    expect(ids).toContain('lavoriSospesiDaRiprendere');
     expect(ids).toContain('lavoriInCorso');
     expect(ids).not.toContain('meteoConsigli');
     expect(ids).not.toContain('sottoScorta');
+    expect(ids).not.toContain('affittiUrgenti');
   });
 
   it('hub contoTerzi / parcoMacchine / frutteto', () => {
@@ -70,7 +79,7 @@ describe('tony-proactive-signals catalog', () => {
     expect(list.length).toBe(0);
   });
 
-  it('collectProactiveSignals dashboard — priorità ore prima di scorte', () => {
+  it('collectProactiveSignals dashboard — priorità ore prima di scorte; affitti e approvare nel fingerprint', () => {
     const collected = collectProactiveSignals(
       {
         availableModules: ['manodopera', 'magazzino', 'parcoMacchine', 'meteo'],
@@ -79,8 +88,11 @@ describe('tony-proactive-signals catalog', () => {
       },
       buildRawProactiveCounts({
         oreDaValidare: 3,
+        lavoriDaApprovare: 2,
+        lavoriSospesiDaRiprendere: 1,
         prodottiDaCompletare: 1,
         sottoScorta: 2,
+        affittiUrgenti: 4,
         guastiAperti: 0,
         scadenzeUrgenti: 1,
         meteoConsigliCount: 2,
@@ -88,18 +100,23 @@ describe('tony-proactive-signals catalog', () => {
       })
     );
     expect(collected.fingerprint.oreDaValidare).toBe(3);
+    expect(collected.fingerprint.affittiUrgenti).toBe(4);
+    expect(collected.fingerprint.lavoriDaApprovare).toBe(2);
     expect(collected.opsActive[0].id).toBe('oreDaValidare');
     expect(collected.opsActive.map((a) => a.id)).toEqual([
       'oreDaValidare',
+      'lavoriDaApprovare',
+      'lavoriSospesiDaRiprendere',
       'lavoriInCorso',
       'prodottiDaCompletare',
       'sottoScorta',
+      'affittiUrgenti',
       'scadenzeUrgenti',
     ]);
     expect(collected.meteoActive[0].id).toBe('meteoConsigli');
   });
 
-  it('formatProactiveOpsAttentionSnippet con hubLabel', () => {
+  it('formatProactiveOpsAttentionSnippet hub: niente offerta riassunto, sì «apri»', () => {
     const collected = collectProactiveSignals(
       { availableModules: ['manodopera'], roles: ['amministratore'], hubId: 'manodopera' },
       { oreDaValidare: 2 }
@@ -107,10 +124,34 @@ describe('tony-proactive-signals catalog', () => {
     const follow = pickProactiveOpenFollowUp(collected.opsActive);
     const text = formatProactiveOpsAttentionSnippet(collected.opsActive, follow, {
       hubLabel: 'Manodopera',
+      offerRiassunto: false,
     });
     expect(text).toContain('Qui in Manodopera');
     expect(text).toContain('2 lavori con ore da validare');
     expect(text).toContain('Validazione ore');
+    expect(text).toContain('apri');
+    expect(text).not.toMatch(/riassunto/i);
+  });
+
+  it('formatProactiveOpsAttentionSnippet dashboard offre ancora riassunto', () => {
+    const collected = collectProactiveSignals(
+      { availableModules: ['manodopera'], roles: ['manager'], hubId: 'dashboard' },
+      { oreDaValidare: 1 }
+    );
+    const text = formatProactiveOpsAttentionSnippet(collected.opsActive, null, {});
+    expect(text).toMatch(/riassunto/i);
+  });
+
+  it('buildHubProactiveRiassuntoReply non ripete i conteggi', () => {
+    const reply = buildHubProactiveRiassuntoReply(
+      { hubId: 'manodopera' },
+      { openPageLabel: 'Gestione lavori' },
+      { label: 'Manodopera' }
+    );
+    expect(reply).toContain('Manodopera');
+    expect(reply).toContain('apri');
+    expect(reply).toContain('Dashboard');
+    expect(reply).not.toMatch(/\d+\s+lavori/);
   });
 
   it('tonyWantsProactiveOpenPage — apri sì, sì nudo no', () => {
@@ -154,6 +195,24 @@ describe('tony-proactive-signals catalog', () => {
         { quantitaKg: 50, quantitaEttari: 1, specie: '', varieta: 'Golden' },
       ])
     ).toBe(2);
+  });
+
+  it('countLavoriDaApprovareFromDocs e countLavoriSospesiDaRiprendereFromDocs', () => {
+    expect(
+      countLavoriDaApprovareFromDocs([
+        { id: 'a', stato: 'completato_da_approvare' },
+        { id: 'b', stato: 'in_corso' },
+        { id: 'c', stato: 'completato_da_approvare' },
+      ])
+    ).toBe(2);
+    expect(
+      countLavoriSospesiDaRiprendereFromDocs([
+        { id: 's1', stato: 'sospeso' },
+        { id: 's2', stato: 'sospeso' },
+        { id: 'r1', stato: 'assegnato', ripresaDaLavoroId: 's2' },
+        { id: 'ok', stato: 'in_corso' },
+      ])
+    ).toBe(1);
   });
 
   it('proactiveHubStorageKey tenant+hub', () => {

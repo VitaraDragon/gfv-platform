@@ -14,6 +14,10 @@ import {
     buildScadenzeUrgentiBriefingFromMacchine,
 } from './dashboard-tony-briefing-text.js';
 import { countProdottiDaCompletare } from './tony/document-prodotto-reminder.js';
+import {
+    countLavoriDaApprovareFromDocs,
+    countLavoriSospesiDaRiprendereFromDocs,
+} from '../config/tony-proactive-signals.js';
 import { dashboardPerfAsync } from './dashboard-perf.js';
 
 /** @type {DashboardCountsSnapshot|null} */
@@ -41,6 +45,8 @@ let _loadTenantId = null;
  * @property {number} affittiUrgenti
  * @property {number} affittiTotal
  * @property {number} daPianificare
+ * @property {number} lavoriDaApprovare
+ * @property {number} lavoriSospesiDaRiprendere
  * @property {number} oreDaValidare
  * @property {boolean} [oreDaValidarePending]
  * @property {DashboardOperativitaOggi} operativitaOggi
@@ -304,6 +310,8 @@ async function buildSnapshot(tenantId, ctx, dependencies) {
         affittiUrgenti: 0,
         affittiTotal: 0,
         daPianificare: 0,
+        lavoriDaApprovare: 0,
+        lavoriSospesiDaRiprendere: 0,
         oreDaValidare: 0,
         oreDaValidarePending: false,
         operativitaOggi: { ...EMPTY_OPERATIVITA },
@@ -367,6 +375,8 @@ async function buildSnapshot(tenantId, ctx, dependencies) {
                 if (hasContoTerzi) result.daPianificare = derived.daPianificare;
                 result.operativitaOggi.programmatiOggi = derived.programmatiOggi;
                 result.operativitaOggi.inCorso = derived.inCorso;
+                result.lavoriDaApprovare = countLavoriDaApprovareFromDocs(docs);
+                result.lavoriSospesiDaRiprendere = countLavoriSospesiDaRiprendereFromDocs(docs);
             })
         );
 

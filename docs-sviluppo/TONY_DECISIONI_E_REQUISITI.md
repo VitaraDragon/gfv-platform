@@ -234,10 +234,10 @@
 |---|-----------|-------|-------|------|
 | 15.1 | Proattività Dashboard (checkGlobalStatus, tonyGlobalBriefing) | STATO_TONY | implementato | Allineato a §15.5 (2026-07-20) |
 | 15.2 | Proattività pagina Guasti | STATO_TONY | implementato | |
-| 15.3 | Reminder mirati + follow-up «vuoi che…?» / «dimmi apri» cross-modulo, **senza invasività** | MASTER_PLAN Fase 6; raffinato 2026-07-20 | **implementato** (v1) | Catalogo §15.6 + follow-up APRI_PAGINA; «sì» nudo = RIASSUNTO |
+| 15.3 | Reminder mirati + follow-up «vuoi che…?» / «dimmi apri» cross-modulo, **senza invasività** | MASTER_PLAN Fase 6; raffinato 2026-07-20/21 | **implementato** (v1) | Dashboard: riassunto + «apri». Hub: solo «apri» (no offerta riassunto eco) |
 | 15.4 | Memoria storica: confronti anno/anno | MASTER_PLAN | da fare | |
 | 15.5 | **Policy anti-invasività briefing proattivo** (reminder, non monologo) | prodotto 2026-07-20 | **implementato** | `tony-proactive-briefing-policy.js` + `checkGlobalStatus`; test **13** |
-| 15.6 | **Reminder operativi multi-modulo** (flusso regolare app) — catalogo estendibile | prodotto 2026-07-20 | **implementato** (hub principali) | Dashboard + hub Manodopera/Magazzino/Vendemmia/CT/Macchine/Frutteto |
+| 15.6 | **Reminder operativi multi-modulo** (flusso regolare app) — catalogo estendibile | prodotto 2026-07-20 | **implementato** (hub principali) | + affitti/approvare/sospesi + UX hub 2026-07-21; test **16+13** |
 
 ### 15.5 — Policy frequenza e aggiornamenti (2026-07-20)
 
@@ -246,7 +246,7 @@
 | **Fasce giornata** | Al più **3 riepiloghi “pieni” automatici al giorno**: prima apertura **mattina** (05–12), **pomeriggio** (12–18), **sera** (18–05 incl. notte). |
 | **Tra una fascia e l’altra** | Niente ripetizione del briefing completo a ogni ritorno in dashboard (o altra home). |
 | **Cambio rilevante** | Solo messaggio **incrementale**: es. «La situazione è un po’ cambiata: c’è da considerare anche X, Y, Z» — elenca **solo il delta**, non ripete tutto. |
-| **A richiesta** | L’utente può sempre chiedere un riassunto completo (RIASSUNTO / «fammi un riassunto»). |
+| **A richiesta** | Dashboard: riassunto completo (RIASSUNTO / «fammi un riassunto»). Hub: non si offre riassunto (il reminder è già il messaggio); se chiesto → guida ad «apri» o Dashboard. |
 | **Ruolo** | Sono **reminder**; non aprire pannello/TTS per idle ripetuto; contesto `globalStatus` resta aggiornato in silenzio. |
 | **Ambito** | Vale per **tutti** i segnali del catalogo §15.6 (dashboard e moduli), non solo scorte/guasti. |
 | **Implementazione** | Dashboard: `localStorage` `tony.proactiveBriefing.v1:{tenantId}` → `{ dayKey, fasciaFull, fingerprint }`. Hub: `tony.proactiveHub.v1:{tenantId}:{hubId}` (stesse fasce, **senza idle**). Fingerprint da catalogo (scorte, scadenze, guasti, meteo, ore, prodotti, lavori, preventivi, vendemmie, raccolte, …). Persistenza **prima** del delivery. |
@@ -260,13 +260,14 @@
 
 | Area / modulo | Segnali attivi | Hub entry |
 |---------------|----------------|-----------|
-| **Dashboard** | Pool completo (ore, prodotti, scorte, guasti, scadenze, meteo, …) | — (entry principale) |
-| **Manodopera** | `oreDaValidare`, `lavoriInCorso`, `lavoriDaPianificare` | home Manodopera |
+| **Dashboard** | Pool completo (ore, approvare, sospesi, prodotti, scorte, affitti, guasti, scadenze, meteo, …) | — (entry principale) |
+| **Manodopera** | `oreDaValidare`, `lavoriDaApprovare`, `lavoriSospesiDaRiprendere`, `lavoriInCorso`, `lavoriDaPianificare` | home Manodopera |
 | **Magazzino** | `prodottiDaCompletare`, `sottoScorta` | home Magazzino |
 | **Vigneto / Vendemmia** | `vendemmieIncomplete` | pagina Vendemmia |
 | **Conto terzi** | `preventiviAperti`, lavori CT | home CT |
 | **Parco macchine** | `guastiAperti`, `scadenzeUrgenti` | dashboard macchine |
 | **Frutteto** | `raccolteIncomplete` (anno corrente) | dashboard frutteto |
+| **Terreni (affitti)** | `affittiUrgenti` | solo dashboard → Terreni |
 | **Meteo** | `meteoConsigli` | nel pool dashboard |
 | **Futuri** | Stesso pattern: segnale + gate + conteggio | nuovo `hubId` in config |
 
@@ -274,11 +275,12 @@
 
 - **Riepilogo pieno** (fascia mattina/pomeriggio/sera): elenco sintetico dei segnali attivi (priorità: bloccanti flusso > urgenza tempo > informativi). Hub: prefisso «Qui in {Hub}: …».
 - **Delta**: solo segnali **nuovi o peggiorati** rispetto all’ultimo fingerprint.
-- Follow-up: «dimmi «apri»» → `APRI_PAGINA` sul top segnale con target; **non** auto-open; «sì» nudo resta RIASSUNTO.
+- Follow-up: «dimmi «apri»» → `APRI_PAGINA` sul top segnale con target; **non** auto-open; «sì» nudo resta RIASSUNTO (**solo dashboard**).
+- **Hub (2026-07-21):** niente offerta «vuoi un riassunto?» — il reminder è già il messaggio utile; se chiesto comunque → guida ad «apri»/Dashboard senza eco conteggi.
 
 **Ingresso UX:** dashboard e hub modulo alla prima apertura in fascia; non monologo su ogni pagina lista. Contesto `globalStatus` aggiornato anche in silenzio.
 
-**File:** `tony-proactive-signals.js`, `tony-proactive-briefing-policy.js`, `tony-proactive-hub-briefing.js`, `checkGlobalStatus` in `dashboard-standalone.html`. Test: **13** + **13**.
+**File:** `tony-proactive-signals.js`, `tony-proactive-briefing-policy.js`, `tony-proactive-hub-briefing.js`, `checkGlobalStatus` in `dashboard-standalone.html`. Build client `2026-07-21a`. Test: **16** + **13**.
 
 ---
 

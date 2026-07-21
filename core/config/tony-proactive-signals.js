@@ -52,6 +52,32 @@ export const TONY_PROACTIVE_SIGNALS = [
     kind: 'ops',
   },
   {
+    id: 'lavoriDaApprovare',
+    moduleIds: ['manodopera'],
+    roles: ['manager', 'amministratore'],
+    priority: 12,
+    enabled: true,
+    hubIds: ['dashboard', 'manodopera'],
+    labelSingular: 'lavoro da approvare',
+    labelPlural: 'lavori da approvare',
+    openPageTarget: 'lavori',
+    openPageLabel: 'Gestione lavori',
+    kind: 'ops',
+  },
+  {
+    id: 'lavoriSospesiDaRiprendere',
+    moduleIds: ['manodopera'],
+    roles: ['manager', 'amministratore'],
+    priority: 14,
+    enabled: true,
+    hubIds: ['dashboard', 'manodopera'],
+    labelSingular: 'lavoro sospeso da riprendere',
+    labelPlural: 'lavori sospesi da riprendere',
+    openPageTarget: 'lavori',
+    openPageLabel: 'Gestione lavori',
+    kind: 'ops',
+  },
+  {
     id: 'lavoriInCorso',
     moduleIds: ['manodopera', 'contoTerzi'],
     roles: ['manager', 'amministratore'],
@@ -114,6 +140,19 @@ export const TONY_PROACTIVE_SIGNALS = [
     labelPlural: 'prodotti sotto scorta',
     openPageTarget: 'prodotti',
     openPageLabel: 'Prodotti',
+    kind: 'ops',
+  },
+  {
+    id: 'affittiUrgenti',
+    moduleIds: [],
+    roles: ['manager', 'amministratore'],
+    priority: 35,
+    enabled: true,
+    hubIds: ['dashboard'],
+    labelSingular: 'affitto terreno in scadenza',
+    labelPlural: 'affitti terreni in scadenza',
+    openPageTarget: 'terreni',
+    openPageLabel: 'Terreni',
     kind: 'ops',
   },
   {
@@ -322,9 +361,12 @@ export function listApplicableProactiveSignals(ctx) {
  *   prodottiDaCompletare?: number,
  *   lavoriInCorso?: number,
  *   lavoriDaPianificare?: number,
+ *   lavoriDaApprovare?: number,
+ *   lavoriSospesiDaRiprendere?: number,
  *   preventiviAperti?: number,
  *   vendemmieIncomplete?: number,
- *   raccolteIncomplete?: number
+ *   raccolteIncomplete?: number,
+ *   affittiUrgenti?: number
  * }} sources
  * @returns {Record<string, number>}
  */
@@ -341,11 +383,17 @@ export function buildRawProactiveCounts(sources) {
   }
   return {
     oreDaValidare: num(src.oreDaValidare, snap && snap.oreDaValidare),
+    lavoriDaApprovare: num(src.lavoriDaApprovare, snap && snap.lavoriDaApprovare),
+    lavoriSospesiDaRiprendere: num(
+      src.lavoriSospesiDaRiprendere,
+      snap && snap.lavoriSospesiDaRiprendere
+    ),
     lavoriInCorso: num(src.lavoriInCorso, op && op.inCorso),
     lavoriDaPianificare: num(src.lavoriDaPianificare, snap && snap.daPianificare),
     preventiviAperti: num(src.preventiviAperti),
     prodottiDaCompletare: num(src.prodottiDaCompletare, snap && snap.prodottiDaCompletare),
     sottoScorta: num(src.sottoScorta, snap && snap.sottoScorta),
+    affittiUrgenti: num(src.affittiUrgenti, snap && snap.affittiUrgenti),
     guastiAperti: num(src.guastiAperti, snap && snap.guastiAperti),
     scadenzeUrgenti: num(src.scadenzeUrgenti, snap && snap.scadenzeUrgenti),
     vendemmieIncomplete: num(src.vendemmieIncomplete),
@@ -451,13 +499,14 @@ export function formatProactiveOpenFollowUpOffer(followUp) {
 /**
  * @param {Array<{ id: string, count: number, signal: TonyProactiveSignalDef }>} opsActive
  * @param {ProactiveOpenFollowUp|null|undefined} [followUp]
- * @param {{ hubLabel?: string }} [opts]
+ * @param {{ hubLabel?: string, offerRiassunto?: boolean }} [opts]
  * @returns {string}
  */
 export function formatProactiveOpsAttentionSnippet(opsActive, followUp, opts) {
   const list = Array.isArray(opsActive) ? opsActive : [];
   if (!list.length) return '';
   const hubLabel = opts && opts.hubLabel ? String(opts.hubLabel).trim() : '';
+  const offerRiassunto = !(opts && opts.offerRiassunto === false);
   const parts = list.map(function (item) {
     const label =
       item.count === 1 ? item.signal.labelSingular : item.signal.labelPlural;
@@ -468,11 +517,7 @@ export function formatProactiveOpsAttentionSnippet(opsActive, followUp, opts) {
     : ' Ho controllato la situazione: ';
   var core = '';
   if (parts.length === 1) {
-    core =
-      intro +
-      'c\'è da considerare ' +
-      parts[0] +
-      '. Vuoi che ti faccia un riassunto o preferisci procedere tu?';
+    core = intro + 'c\'è da considerare ' + parts[0] + '.';
   } else {
     const last = parts[parts.length - 1];
     const head = parts.slice(0, -1).join(', ');
@@ -482,9 +527,52 @@ export function formatProactiveOpsAttentionSnippet(opsActive, followUp, opts) {
       head +
       ' e ' +
       last +
-      '. Vuoi che ti faccia un riassunto o preferisci procedere tu?';
+      '.';
+  }
+  if (offerRiassunto) {
+    core += ' Vuoi che ti faccia un riassunto o preferisci procedere tu?';
   }
   return core + formatProactiveOpenFollowUpOffer(followUp);
+}
+
+/**
+ * Risposta se l’utente chiede «riassunto» dopo un reminder hub (niente eco dei soli conteggi).
+ * @param {{ hubId?: string }|null|undefined} briefing
+ * @param {{ openPageLabel?: string }|null|undefined} openOffer
+ * @param {{ hubLabel?: string }|null|undefined} [hub]
+ * @returns {string}
+ */
+export function buildHubProactiveRiassuntoReply(briefing, openOffer, hub) {
+  var label =
+    (hub && hub.label && String(hub.label).trim()) ||
+    (briefing && briefing.hubId ? String(briefing.hubId) : '') ||
+    'questo modulo';
+  if (label === 'manodopera') label = 'Manodopera';
+  if (label === 'magazzino') label = 'Magazzino';
+  if (label === 'vendemmia') label = 'Vendemmia';
+  if (label === 'frutteto') label = 'Frutteto';
+  if (label === 'parcoMacchine') label = 'Parco macchine';
+  if (label === 'contoTerzi') label = 'Conto terzi';
+  var page =
+    openOffer && openOffer.openPageLabel
+      ? String(openOffer.openPageLabel).trim()
+      : '';
+  var base =
+    'Su ' +
+    label +
+    ' i punti sono quelli del reminder — qui non c’è un secondo livello di dettaglio.';
+  if (page) {
+    return (
+      base +
+      ' Dimmi «apri» per andare a ' +
+      page +
+      ', oppure apri la Dashboard per un riassunto completo azienda.'
+    );
+  }
+  return (
+    base +
+    ' Apri la Dashboard se vuoi un riassunto completo azienda (meteo e altri moduli).'
+  );
 }
 
 export function normalizeProactiveOpenMsg(text) {
@@ -570,6 +658,65 @@ export function isVendemmiaIncompleteRecord(v) {
  */
 export function countVendemmieIncomplete(vendemmie) {
   return (vendemmie || []).filter(isVendemmiaIncompleteRecord).length;
+}
+
+/**
+ * Normalizza doc Firestore o plain object lavoro.
+ * @param {object} docSnapOrRow
+ * @returns {{ id: string, stato: string, ripresaDaLavoroId: string }}
+ */
+function normalizeLavoroRow(docSnapOrRow) {
+  if (!docSnapOrRow || typeof docSnapOrRow !== 'object') {
+    return { id: '', stato: '', ripresaDaLavoroId: '' };
+  }
+  var data =
+    typeof docSnapOrRow.data === 'function' ? docSnapOrRow.data() || {} : docSnapOrRow;
+  var id =
+    docSnapOrRow.id != null
+      ? String(docSnapOrRow.id)
+      : data.id != null
+        ? String(data.id)
+        : '';
+  return {
+    id: id,
+    stato: String(data.stato || '').toLowerCase(),
+    ripresaDaLavoroId:
+      data.ripresaDaLavoroId != null ? String(data.ripresaDaLavoroId).trim() : '',
+  };
+}
+
+/**
+ * Lavori in attesa di approvazione manager (`completato_da_approvare`).
+ * @param {Array<object>} docs
+ * @returns {number}
+ */
+export function countLavoriDaApprovareFromDocs(docs) {
+  var n = 0;
+  (docs || []).forEach(function (row) {
+    if (normalizeLavoroRow(row).stato === 'completato_da_approvare') n += 1;
+  });
+  return n;
+}
+
+/**
+ * Lavori sospesi senza ripresa già creata (CTA «Crea ripresa»).
+ * @param {Array<object>} docs
+ * @returns {number}
+ */
+export function countLavoriSospesiDaRiprendereFromDocs(docs) {
+  var list = (docs || []).map(normalizeLavoroRow);
+  var ripresaOrigineIds = {};
+  list.forEach(function (lav) {
+    if (lav.ripresaDaLavoroId) ripresaOrigineIds[lav.ripresaDaLavoroId] = true;
+  });
+  var n = 0;
+  list.forEach(function (lav) {
+    if (lav.stato !== 'sospeso') return;
+    if (lav.ripresaDaLavoroId) return;
+    if (ripresaOrigineIds[lav.id]) return;
+    n += 1;
+  });
+  return n;
 }
 
 const PREVENTIVI_APERTI_STATI = [

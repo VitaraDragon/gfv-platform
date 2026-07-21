@@ -702,10 +702,15 @@
                     sottoScorta: sottoScorta,
                     prodottiDaCompletare: prodottiDaCompletare,
                     oreDaValidare: oreDaValidare,
+                    lavoriDaApprovare: snapReady ? snapReady.lavoriDaApprovare || 0 : 0,
+                    lavoriSospesiDaRiprendere: snapReady
+                        ? snapReady.lavoriSospesiDaRiprendere || 0
+                        : 0,
                     lavoriInCorso: snapReady && snapReady.operativitaOggi
                         ? snapReady.operativitaOggi.inCorso || 0
                         : 0,
                     lavoriDaPianificare: snapReady ? snapReady.daPianificare || 0 : 0,
+                    affittiUrgenti: snapReady ? snapReady.affittiUrgenti || 0 : 0,
                     scadenzeUrgenti: scadenzeUrgenti,
                     guastiAperti: guastiAperti,
                     summarySottoScorta: snapReady && snapReady.summarySottoScorta ? snapReady.summarySottoScorta : '',
@@ -732,10 +737,15 @@
                         sottoScorta: sottoScorta,
                         prodottiDaCompletare: prodottiDaCompletare,
                         oreDaValidare: oreDaValidare,
+                        lavoriDaApprovare: snapReady ? snapReady.lavoriDaApprovare || 0 : 0,
+                        lavoriSospesiDaRiprendere: snapReady
+                            ? snapReady.lavoriSospesiDaRiprendere || 0
+                            : 0,
                         lavoriInCorso: snapReady && snapReady.operativitaOggi
                             ? snapReady.operativitaOggi.inCorso || 0
                             : 0,
                         lavoriDaPianificare: snapReady ? snapReady.daPianificare || 0 : 0,
+                        affittiUrgenti: snapReady ? snapReady.affittiUrgenti || 0 : 0,
                         scadenzeUrgenti: scadenzeUrgenti,
                         guastiAperti: guastiAperti,
                         meteoConsigliCount:

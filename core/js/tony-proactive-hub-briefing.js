@@ -147,7 +147,7 @@ export function runTonyProactiveHubBriefing(opts) {
     briefingText = formatProactiveOpsAttentionSnippet(
       collected.opsActive,
       followUp,
-      { hubLabel: hub.label }
+      { hubLabel: hub.label, offerRiassunto: false }
     ).trim();
   }
 
