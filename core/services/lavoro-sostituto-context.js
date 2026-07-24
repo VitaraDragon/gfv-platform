@@ -1,7 +1,25 @@
 /**
  * Contesto assenza/sostituto su lavoro (lettura per UI campo).
+ * Include slice giornaliero `equipaggioGiorno` per lavori di squadra.
  * @module core/services/lavoro-sostituto-context
  */
+
+/**
+ * @param {Object|null} lavoro
+ * @param {string} [giornoKey]
+ * @returns {{ assenti: string[], sostituzioni: Object[], prestitiUscita: Object[] }}
+ */
+export function getEquipaggioGiorno(lavoro, giornoKey) {
+  if (!lavoro?.equipaggioGiorno || !giornoKey) {
+    return { assenti: [], sostituzioni: [], prestitiUscita: [] };
+  }
+  const slice = lavoro.equipaggioGiorno[giornoKey] || {};
+  return {
+    assenti: [...(slice.assenti || [])],
+    sostituzioni: [...(slice.sostituzioni || [])],
+    prestitiUscita: [...(slice.prestitiUscita || [])]
+  };
+}
 
 /**
  * @param {Object|null} lavoro
@@ -9,13 +27,27 @@
  */
 export function getAssenzaSostitutoIds(lavoro) {
   if (!lavoro) return { assenteId: null, sostitutoId: null };
-  return {
-    assenteId:
-      lavoro.assenzaOperaioAssenteId ||
-      lavoro.standbyOperaioId ||
-      null,
-    sostitutoId: lavoro.assenzaSostitutoOperaioId || null
-  };
+  let assenteId =
+    lavoro.assenzaOperaioAssenteId ||
+    lavoro.standbyOperaioId ||
+    null;
+  let sostitutoId = lavoro.assenzaSostitutoOperaioId || null;
+
+  // Fallback: ultima sostituzione nel roster giornaliero (squadra)
+  if (!sostitutoId && lavoro.equipaggioGiorno) {
+    const keys = Object.keys(lavoro.equipaggioGiorno).sort();
+    const lastKey = keys[keys.length - 1];
+    if (lastKey) {
+      const slice = getEquipaggioGiorno(lavoro, lastKey);
+      const last = slice.sostituzioni[slice.sostituzioni.length - 1];
+      if (last) {
+        sostitutoId = last.sostitutoOperaioId || sostitutoId;
+        assenteId = last.assenteOperaioId || assenteId;
+      }
+    }
+  }
+
+  return { assenteId, sostitutoId };
 }
 
 /**

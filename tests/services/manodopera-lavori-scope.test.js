@@ -1,4 +1,13 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+// Evita import CDN gstatic da firebase-service (setup importActual fallisce in alcuni ambienti Node).
+vi.mock('../../core/services/firebase-service.js', () => ({
+    collection: vi.fn(),
+    getDocs: vi.fn(),
+    query: vi.fn(),
+    where: vi.fn(),
+}));
+
 import {
     isLavoroVisibileOperaioCampo,
     isLavoroInDropdownSegnaOre,
@@ -7,6 +16,8 @@ import {
     sliceOperaioLavoriWindow,
     resolveFieldUserIdVariants,
     lavoroAssegnatoDirettamenteAFieldUser,
+    resolveFieldWorkspaceLavoriRoleFlags,
+    resolveSegnaturaOreRoleFlags,
 } from '../../core/services/manodopera-lavori-scope.js';
 
 describe('isLavoroVisibileOperaioCampo', () => {
@@ -113,6 +124,34 @@ describe('sliceOperaioLavoriWindow', () => {
         ];
         const slice = sliceOperaioLavoriWindow(works, { maxNeighbors: 0 });
         expect(slice.map((w) => w.id)).toEqual(['ripresa']);
+    });
+});
+
+describe('resolveFieldWorkspaceLavoriRoleFlags', () => {
+    it('caposquadra ha priorità rispetto a operaio (dual-role)', () => {
+        const flags = resolveFieldWorkspaceLavoriRoleFlags({
+            ruoli: ['operaio', 'caposquadra']
+        });
+        expect(flags.isCaposquadra).toBe(true);
+        expect(flags.isOperaio).toBe(true);
+        expect(flags.operaioIncludeSquadJobs).toBe(false);
+    });
+
+    it('segna-ore preferisce ancora operaio (comportamento dedicato)', () => {
+        const flags = resolveSegnaturaOreRoleFlags({
+            ruoli: ['operaio', 'caposquadra']
+        });
+        expect(flags.isCaposquadra).toBe(false);
+        expect(flags.isOperaio).toBe(true);
+    });
+
+    it('capo puro vede solo scope caposquadra', () => {
+        const flags = resolveFieldWorkspaceLavoriRoleFlags({ ruoli: ['caposquadra'] });
+        expect(flags).toEqual({
+            isCaposquadra: true,
+            isOperaio: false,
+            operaioIncludeSquadJobs: false
+        });
     });
 });
 

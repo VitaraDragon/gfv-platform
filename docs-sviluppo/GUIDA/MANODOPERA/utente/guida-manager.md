@@ -32,6 +32,7 @@ Con Manodopera attivo la dashboard **non** elenca più tutte le funzioni in gran
 | Gestione squadre | [Impara qui](#mini-guida-gestione-squadre) |
 | Gestione operai | [Impara qui](#mini-guida-gestione-operai) |
 | Gestione lavori | [Impara qui](#mini-guida-gestione-lavori) |
+| Impegni giornalieri | [Impara qui](#mini-guida-impegni-giornalieri) |
 | Validazione ore (accettazione) | [Impara qui](#mini-guida-validazione-ore-accettazione) |
 | Segnatura ore da ufficio (facoltativo) | [Impara qui](#mini-guida-segnatura-ore-da-ufficio) |
 | Statistiche manodopera | [Impara qui](#mini-guida-statistiche-manodopera) |
@@ -69,7 +70,7 @@ La **home Manodopera** è la pagina principale del modulo: lì trovi numeri aggi
 
 **Tre sezioni con card** (tocca una card per aprire la funzione):
 
-1. **Pianificazione e lavori** — Gestione lavori, Da pianificare (se visibile), Validazione ore.  
+1. **Pianificazione e lavori** — Gestione lavori, **Impegni giornalieri**, Da pianificare (se visibile), Validazione ore.  
 2. **Persone** — Gestione operai, Gestione squadre, Gestisci utenti.  
 3. **Controllo e analisi** — Compensi operai, Statistiche manodopera.
 
@@ -228,6 +229,10 @@ Il lavoro salvato e assegnato correttamente è quello che **operaio** e **caposq
 4. **Categoria coerente**: scegliere la tipologia giusta aiuta statistiche, filtri e report ore.  
 5. **Stato aggiornato**: un lavoro lasciato in stato errato può non comparire nei flussi operativi.
 
+### Foto della giornata
+
+Per vedere **chi è libero, impegnato, assente o spostato** in un giorno (senza modificare nulla), usa **Impegni giornalieri** — vedi [mini-guida dedicata](#mini-guida-impegni-giornalieri). Dalla stessa Gestione lavori puoi aprire **Impegni giorno** dalla barra in alto.
+
 ### Modificare un lavoro già creato (procedura breve)
 
 1. In **Gestione Lavori** trova la riga con filtri per periodo, terreno o stato.  
@@ -240,6 +245,28 @@ Il lavoro salvato e assegnato correttamente è quello che **operaio** e **caposq
 1. Quando il caposquadra invia il lavoro in **completato da approvare**, apri il dettaglio e verifica ore, note e tracciamento.  
 2. Decidi tu: **approva** (chiusura definitiva) o **rifiuta** (il lavoro torna operativo per completare/correggere).  
 3. Dopo la decisione, controlla dashboard e mappa: indicatori e zone lavorate devono riflettere lo stato reale.
+
+---
+
+## Mini-guida impegni giornalieri
+
+È la **foto della giornata** della manodopera: per ogni operaio attivo vedi se è **libero**, **impegnato** (su quale lavoro), **assente**, **prestato** ad altro lavoro o **sostituto**. C’è anche la vista **per lavoro** (chi era previsto in squadra, chi manca, chi sostituisce).
+
+**Solo consultazione:** da qui non assegni sostituti né modifichi i lavori. Per le sostituzioni resti in **Gestione lavori** (assenze / standby / shortlist).
+
+### Come entrarci
+
+1. **Home Manodopera** → card **Impegni giornalieri** (sezione **Pianificazione e lavori**).  
+2. Da **Gestione lavori** → pulsante **Impegni giorno** in alto.  
+3. Con **Tony Avanzato**: «apri impegni giornalieri» (o «impegni giorno»).
+
+### Cosa fai in pagina
+
+1. Scegli la **data** (di default è oggi).  
+2. Leggi i **numeri in alto** (liberi, impegnati, assenti, …).  
+3. Nella tabella **Per operaio** controlla i badge e le note.  
+4. Nella tabella **Per lavoro** vedi previsti / assenti / sostituti e se l’equipaggio è sotto il minimo (dove applicabile).  
+5. Se serve agire: torna a **Gestione lavori** (link in pagina).
 
 ---
 

@@ -20,7 +20,9 @@ import {
     fetchLavoriDocumentsForFieldUser,
     resolveCaposquadraIdsForOperaio,
     isLavoroSegnabileOperaio,
+    isLavoroVisibileOperaioCampo,
     resolveSegnaturaOreRoleFlags,
+    resolveFieldWorkspaceLavoriRoleFlags,
     sliceOperaioLavoriWindow,
 } from '../../services/manodopera-lavori-scope.js';
 import { fetchOperaioIdsForCaposquadraSquadre } from '../../services/comunicazioni-squadra-service.js';
@@ -530,8 +532,10 @@ async function loadWorksForSelection() {
     }
     try {
         const userId = (currentUserData && (currentUserData.id || currentUserData.uid)) || currentUser.uid;
-        const roleFlags = userIsCaposquadra && !userIsOperaio
-            ? { isCaposquadra: true, isOperaio: false }
+        // Capo (anche dual-role): priorità lavori di squadra assegnati dal manager — non usare
+        // resolveSegnaturaOreRoleFlags (che preferisce operaio e nasconde i lavori capo).
+        const roleFlags = userIsCaposquadra
+            ? resolveFieldWorkspaceLavoriRoleFlags(currentUserData || { ruoli: ['caposquadra'] })
             : resolveSegnaturaOreRoleFlags(currentUserData || {});
         const rawList = await fetchLavoriDocumentsForFieldUser(
             getDb(),
@@ -541,11 +545,15 @@ async function loadWorksForSelection() {
             currentUserData || null
         );
 
-        const eligible = rawList.filter((w) => isLavoroSegnabileOperaio(w));
+        // Capo: elenco operativo completo (no taglio «max 14 giorni futuri» del dropdown Segna ore).
+        // Operaio: resta il filtro segnabile ore.
+        const eligible = rawList.filter((w) =>
+            userIsCaposquadra ? isLavoroVisibileOperaioCampo(w) : isLavoroSegnabileOperaio(w)
+        );
 
         let narrowed = eligible;
-        // Mostra tutti i lavori segnabili fino a 12; oltre, finestra attorno al focus (con ripresa/in_corso sempre incluse)
-        if (narrowed.length > 12) {
+        // Finestra ridotta SOLO per operaio (sliceOperaioLavoriWindow è vietata per caposquadra).
+        if (!userIsCaposquadra && narrowed.length > 12) {
             narrowed = sliceOperaioLavoriWindow(narrowed, {
                 focusLavoroId: pendingFocusLavoroIdFromUrl,
                 maxNeighbors: 3,
@@ -1042,7 +1050,9 @@ async function fetchReceivedCommunicationRows() {
         getDb(),
         currentTenantId,
         operaioUserId,
-        resolveSegnaturaOreRoleFlags(currentUserData || {}),
+        userIsCaposquadra
+            ? resolveFieldWorkspaceLavoriRoleFlags(currentUserData || { ruoli: ['caposquadra'] })
+            : resolveSegnaturaOreRoleFlags(currentUserData || {}),
         currentUserData || null
     );
     const operaioLavoroIds = lavoriDocs.map((l) => String(l.id));

@@ -331,6 +331,18 @@
       "module": "manodopera"
     },
     {
+      "target": "impegni giornalieri",
+      "path": "modules/manodopera/views/impegni-giornalieri-standalone.html",
+      "label": "Impegni giornalieri",
+      "module": "manodopera"
+    },
+    {
+      "target": "impegni giorno",
+      "path": "modules/manodopera/views/impegni-giornalieri-standalone.html",
+      "label": "Impegni giornalieri",
+      "module": "manodopera"
+    },
+    {
       "target": "meteo dashboard",
       "path": "modules/meteo/views/meteo-dashboard-standalone.html",
       "label": "Meteo Dashboard",

@@ -122,6 +122,26 @@ export class Lavoro extends Base {
       ? timestampToDate(data.assenzaSostitutoIl)
       : null;
 
+    /**
+     * Roster giornaliero / sostituzioni (non modifica Squadra.operai).
+     * Shape: { [giornoKey]: { assenti[], sostituzioni[], prestitiUscita[] } }
+     */
+    this.equipaggioGiorno =
+      data.equipaggioGiorno && typeof data.equipaggioGiorno === 'object'
+        ? data.equipaggioGiorno
+        : null;
+
+    /** Meta prestito manodopera (lavoro di origine quando qualcuno è spostato altrove) */
+    this.manodoperaPrestata =
+      data.manodoperaPrestata && typeof data.manodoperaPrestata === 'object'
+        ? data.manodoperaPrestata
+        : null;
+
+    /** Policy prestito / ranking shortlist (tenant) */
+    this.prioritaOperativa = data.prioritaOperativa || data.priorita || null;
+    this.sospendibile = data.sospendibile === true;
+    this.ritardabile = data.ritardabile === true;
+
     /** Snapshot costi (opzionale, es. da aggregazioni) — usato come fallback in prefill registro trattamenti/concimazioni */
     this.costi = data.costi && typeof data.costi === 'object' ? data.costi : null;
     

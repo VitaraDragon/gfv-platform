@@ -1,6 +1,37 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-21 — Tony Occhi archivio Magazzino + reminder `prezziInAttesa` (build `2026-07-21b`).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-24 — Vista impegni giornalieri manodopera.
+
+## Manodopera — vista impegni giornalieri (2026-07-24)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Motore** | `manodopera-impegni-giorno-logic.js` + `manodopera-impegni-giorno-service.js` — stesso grafo shortlist (squadre, assenze, `equipaggioGiorno`, prestito/sostituto). |
+| **UI** | `impegni-giornalieri-standalone.html` — date picker, KPI, sezioni Per operaio / Per lavoro; `currentTableData` `pageType: impegni_giornalieri`. |
+| **Come aprirla** | Hub Manodopera → card **Impegni giornalieri**; oppure Gestione lavori → **Impegni giorno**; Tony «apri impegni giornalieri» / «impegni giorno». |
+| **Nav** | Card hub; link Gestione lavori (`#impegni-giorno-link`, nascosto senza modulo); `tony-routes.json` + `NAV_TARGET_RULES` in `tony-nav-quick-reply.js`. |
+| **Test** | `tests/services/manodopera-impegni-giorno.test.js` (4). |
+| **Guide** | `GUIDA/MANODOPERA/utente/guida-manager.md` (+ sintesi/tecnica + mirror `core/GUIDA`). |
+| **Ancora fuori** | Roster completo; drag&drop equipaggio; Tony Context Builder su shortlist; self-service assenza operaio. |
+
+## Manodopera — sostituzioni oltre MVP (2026-07-22)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Shortlist** | Esclusione dura assenti confermati sul `giornoKey` del lavoro (`getOperaioIdsAssentiConfermatiPerGiorno`). |
+| **Disponibilità** | Libero / **Spostabile con conferma** / Impegnato (override); ranking liberi → spostabili → impegnati. |
+| **Policy** | `core/config/manodopera-sostituzione-policy-config.js` — priorità 3 livelli, `sospendibile`/`ritardabile`, pesi score. |
+| **Doppio movimento** | Conferma esplicita → sostituzione destinazione + buco/standby origine (`prestito_manodopera` / `equipaggioGiorno.prestitiUscita`). |
+| **Equipaggio minimo** | `evaluateEquipaggioMinimo` + banner modal + hint riga in Gestione lavori (es. carro). |
+| **Squadra** | Sostituzione su `caposquadraId` scrive `equipaggioGiorno[giorno]` (assenti/sostituzioni); **non** modifica `Squadra.operai`. |
+| **UI** | `gestione-lavori-sostituti-ui.js` + CSS card spostabile; deps `getAttrezziList` per min persone da attrezzo. |
+| **Test** | `manodopera-sostituti-shortlist.test.js`, `manodopera-sostituzione-policy-config.test.js`, `lavoro-sostituzione-assenza.test.js` (21 verdi). |
+| **Piano** | `docs-sviluppo/da-fare/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md` allineato allo stato codice. |
+| **Ancora fuori** | Roster completo; Tony/Context Builder su shortlist; pool riserve; drag&drop. *(Vista impegni: vedi voce 2026-07-24.)* |
+| **Canary E2E** | `npm run manodopera:sostituzione-canary` — capo (field-workspace segnala) + manager (standby → shortlist → assegna). Fix collaterale: campi `equipaggioGiorno` / `manodoperaPrestata` / priorità su modello `Lavoro` (altrimenti `updateLavoro` li scartava). |
+| **Fix elenco lavori capo** | 2026-07-22: lavori di squadra creati dal manager non comparivano al capo (dual-role trattato come solo operaio; filtro «Segna ore» 14gg; slice finestra applicato per errore al capo). Fix: `resolveFieldWorkspaceLavoriRoleFlags` + merge fetch capo/operaio + elenco capo senza slice/taglio 14gg. |
+
+
 
 ## Tony Occhi / Magazzino — chiusura blocco 2026-07-21 (riepilogo)
 

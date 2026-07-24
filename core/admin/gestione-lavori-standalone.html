@@ -302,6 +302,10 @@
             border-left: 4px solid #ff9800;
         }
 
+        .sostituto-card-spostabile {
+            border-left: 4px solid #1976d2;
+        }
+
         .sostituto-card-head {
             display: flex;
             justify-content: space-between;
@@ -318,6 +322,39 @@
         .sostituto-card-meta {
             font-size: 13px;
             color: #555;
+        }
+
+        .sostituto-card-warn {
+            font-size: 12px;
+            color: #b71c1c;
+            margin-top: 6px;
+        }
+
+        .equipaggio-minimo-banner {
+            font-size: 13px;
+            padding: 10px 12px;
+            border-radius: 6px;
+            margin: 8px 0 12px;
+        }
+
+        .equipaggio-minimo-incompleto {
+            background: #fff3e0;
+            border: 1px solid #ff9800;
+            color: #e65100;
+        }
+
+        .equipaggio-minimo-ok {
+            background: #e8f5e9;
+            border: 1px solid #81c784;
+            color: #2e7d32;
+        }
+
+        .equipaggio-row-warn {
+            display: block;
+            margin-top: 4px;
+            font-size: 11px;
+            color: #e65100;
+            font-weight: 600;
         }
 
         .badge-completato {
@@ -710,6 +747,7 @@
                 </a>
                 <button class="btn btn-primary" id="lavori-tour-button" type="button">🧭 Tour</button>
                 <button class="btn btn-primary" id="crea-lavoro-button" onclick="openCreaModal()">➕ Crea Nuovo Lavoro</button>
+                <a href="../../modules/manodopera/views/impegni-giornalieri-standalone.html" class="btn btn-secondary" id="impegni-giorno-link" title="Vista impegni del giorno">📅 Impegni giorno</a>
                 <a href="../../modules/manodopera/views/manodopera-home-standalone.html" id="dashboard-link" class="btn btn-secondary">← Manodopera</a>
             </div>
         </div>
@@ -923,7 +961,8 @@
             </div>
             <input type="hidden" id="sostituto-assenza-lavoro-id">
             <p id="sostituto-assenza-info" style="font-size:14px;color:#555;margin-bottom:8px;"></p>
-            <p style="font-size:13px;color:#666;margin:0 0 8px;">Scegli un candidato (shortlist). I liberi sono in cima.</p>
+            <div id="sostituto-equipaggio-banner"></div>
+            <p style="font-size:13px;color:#666;margin:0 0 8px;">Scegli un candidato (shortlist). Liberi e spostabili con conferma; assenti del giorno esclusi.</p>
             <div id="sostituto-shortlist"></div>
             <div style="margin-top:16px;">
                 <button type="button" class="btn btn-secondary" onclick="closeSostitutoAssenzaModal()">Chiudi</button>
@@ -3386,6 +3425,7 @@
                             getCurrentUserData: () => currentUserData,
                             getOperaiList: () => lavoriState.operaiList || [],
                             getSquadreList: () => lavoriState.squadreList || [],
+                            getAttrezziList: () => lavoriState.attrezziList || [],
                             renderLavori: () => renderLavoriWrapper()
                         };
                         initGestioneLavoriAssenzeUi(assenzeSostitutiDeps);

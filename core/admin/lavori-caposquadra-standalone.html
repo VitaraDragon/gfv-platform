@@ -1183,10 +1183,12 @@
                 const isOperaio = currentUserData.ruoli && currentUserData.ruoli.includes('operaio');
                 const userId = currentUserData.id || currentUserData.uid;
 
+                // Capo dual-role: non passare solo operaio (nasconderebbe i lavori di squadra).
+                // operaioIncludeSquadJobs=false se capo: i lavori squadra arrivano da caposquadraId.
                 const fetched = await fetchLavoriDocumentsForFieldUser(db, currentTenantId, userId, {
                     isCaposquadra: !!isCaposquadra,
                     isOperaio: !!isOperaio,
-                    operaioIncludeSquadJobs: !!isOperaio
+                    operaioIncludeSquadJobs: !!isOperaio && !isCaposquadra
                 }, currentUserData || null);
 
                 lavoriList = fetched.map((row) => {

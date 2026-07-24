@@ -28,6 +28,12 @@ import {
     getSottocategorieForParent,
     resolvePreserveCascadeSelection,
 } from '../../js/lavoro-cascade-filters.js';
+import { resolveRequiredSkillsForLavoro } from '../../config/manodopera-skills-config.js';
+import {
+    evaluateEquipaggioMinimo,
+    resolvePrevistiOperaioIds
+} from '../../services/manodopera-sostituti-shortlist-logic.js';
+import { toGiornoKey } from '../../config/manodopera-assenze-config.js';
 
 // ============================================
 // FUNZIONI HELPER
@@ -65,6 +71,11 @@ export function waitForConfig() {
  * @param {boolean} hasManodoperaModule - Se il modulo Manodopera è attivo
  */
 export function setupManodoperaVisibility(hasManodoperaModule) {
+    const impegniLink = document.getElementById('impegni-giorno-link');
+    if (impegniLink) {
+        impegniLink.style.display = hasManodoperaModule ? '' : 'none';
+    }
+
     // Statistica ore validate
     const statOreValidate = document.getElementById('stat-ore-validate')?.closest('.stat-card');
     if (statOreValidate) {
@@ -1848,6 +1859,53 @@ export async function renderLavori(
         return '<a class="btn btn-primary btn-sm" href="' + escapeHtml(href) + '" target="_blank" rel="noopener" title="Apri calcolatore compenso">🧮 Calcolatore</a>';
     }
 
+    function renderEquipaggioMinimoHint(lavoro) {
+        if (!hasManodoperaModule) return '';
+        const attrezzo =
+            (lavoro.attrezzoId && (attrezziList || []).find((a) => a.id === lavoro.attrezzoId)) ||
+            lavoro.attrezzo ||
+            null;
+        const req = resolveRequiredSkillsForLavoro({
+            tipoLavoroNome: lavoro.tipoLavoro,
+            sottocategoriaCodice: lavoro.sottocategoriaCodice,
+            categoriaCodice: lavoro.categoriaCodice,
+            attrezzo,
+            macchinaId: lavoro.macchinaId,
+            operatoreMacchinaId: lavoro.operatoreMacchinaId
+        });
+        if (req.equipaggioMinimo == null) return '';
+
+        const giornoKey =
+            lavoro.standbyGiornoKey ||
+            (lavoro.dataInizio ? toGiornoKey(lavoro.dataInizio) : toGiornoKey(new Date()));
+        const slice = (lavoro.equipaggioGiorno && lavoro.equipaggioGiorno[giornoKey]) || {};
+        const assentiIds = [
+            ...new Set(
+                [
+                    lavoro.standbyOperaioId,
+                    lavoro.assenzaOperaioAssenteId,
+                    ...(slice.assenti || [])
+                ].filter(Boolean)
+            )
+        ];
+        const sostitutiIds = [
+            ...new Set(
+                [
+                    lavoro.assenzaSostitutoOperaioId,
+                    ...((slice.sostituzioni || []).map((s) => s.sostitutoOperaioId))
+                ].filter(Boolean)
+            )
+        ];
+        const check = evaluateEquipaggioMinimo({
+            minPersone: req.equipaggioMinimo,
+            previstiIds: resolvePrevistiOperaioIds(lavoro, squadreList || []),
+            assentiIds,
+            sostitutiIds
+        });
+        if (!check.applicabile || !check.incompleto) return '';
+        return `<span class="equipaggio-row-warn" title="Equipaggio sotto il minimo operativo">⚠️ Equipaggio ${check.attivi}/${check.minPersone}</span>`;
+    }
+
     if (!container || !countEl) {
         console.error('renderLavori: Container o countEl non trovati');
         return;
@@ -2149,7 +2207,7 @@ export async function renderLavori(
             ? formatDateLikeToItalianLongLocal(lavoro.dataInizio)
             : 'N/A';
         const durata = lavoro.durataPrevista ? `${lavoro.durataPrevista} giorni` : 'N/A';
-        const statoBadge = `<span class="badge badge-${lavoro.stato || 'assegnato'}">${getStatoFormattato(lavoro.stato)}</span>`;
+        const statoBadge = `<span class="badge badge-${lavoro.stato || 'assegnato'}">${getStatoFormattato(lavoro.stato)}</span>${renderEquipaggioMinimoHint(lavoro)}`;
         
         // Calcola progressi
         const superficieTotale = lavoro.terreno?.superficie || 0;

@@ -1780,7 +1780,12 @@ export async function handleSalvaLavoro(
             nome,
             terrenoId,
             tipoLavoro,
-            dataInizio: Timestamp.fromDate(new Date(dataInizio)),
+            // Data locale a mezzogiorno (evita shift UTC che può far sparire lavori dai filtri giorno)
+            dataInizio: Timestamp.fromDate(
+                /^\d{4}-\d{2}-\d{2}$/.test(String(dataInizio))
+                    ? new Date(`${dataInizio}T12:00:00`)
+                    : new Date(dataInizio)
+            ),
             durataPrevista,
             stato: nuovoStato,
             note: note || '',

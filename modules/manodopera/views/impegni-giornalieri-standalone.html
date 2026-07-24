@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Impegni giornalieri - GFV Platform</title>
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <script>
+        window.currentTableData = {
+            pageType: 'impegni_giornalieri',
+            summary: 'Caricamento dati in corso...',
+            items: []
+        };
+    </script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            min-height: 100vh;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 20px; }
+        .header {
+            background: linear-gradient(135deg, #2E8B57 0%, #1B5E3A 100%);
+            color: white;
+            padding: 28px 30px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .header h1 { font-size: 28px; margin-bottom: 6px; }
+        .header p { font-size: 15px; opacity: 0.92; max-width: 560px; }
+        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.35);
+        }
+        .btn-primary { background: #fff; color: #1B5E3A; font-weight: 600; }
+        .content { display: grid; gap: 20px; }
+        .toolbar {
+            background: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: end;
+        }
+        .toolbar label { display: block; font-size: 13px; color: #555; margin-bottom: 4px; }
+        .toolbar input[type="date"] {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 12px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            padding: 16px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.06);
+            border-left: 4px solid #2E8B57;
+        }
+        .stat-card.warn { border-left-color: #ff9800; }
+        .stat-card.danger { border-left-color: #c62828; }
+        .stat-value { font-size: 26px; font-weight: 700; color: #1B5E3A; }
+        .stat-card.warn .stat-value { color: #e65100; }
+        .stat-card.danger .stat-value { color: #c62828; }
+        .stat-label { font-size: 12px; color: #666; margin-top: 4px; }
+        .panel {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+        }
+        .panel h2 {
+            color: #2E8B57;
+            font-size: 18px;
+            margin-bottom: 14px;
+            border-bottom: 2px solid #e9ecef;
+            padding-bottom: 8px;
+        }
+        .table-responsive { overflow-x: auto; }
+        table.impegni-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 560px;
+        }
+        table.impegni-table th,
+        table.impegni-table td {
+            text-align: left;
+            padding: 10px 12px;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        table.impegni-table th { color: #555; font-weight: 600; background: #f8f9fa; }
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .badge-libero { background: #e8f5e9; color: #2e7d32; }
+        .badge-impegnato { background: #fff3e0; color: #e65100; }
+        .badge-assente { background: #ffebee; color: #c62828; }
+        .badge-prestato { background: #e3f2fd; color: #1565c0; }
+        .badge-sostituto { background: #f3e5f5; color: #6a1b9a; }
+        .empty { color: #888; padding: 16px; text-align: center; }
+        .loading { color: #666; padding: 24px; text-align: center; }
+        .equipaggio-warn { color: #e65100; font-weight: 600; font-size: 12px; }
+        .link-lavoro {
+            color: #1565c0;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .link-lavoro:hover { text-decoration: underline; }
+        @media (max-width: 768px) {
+            .header { padding: 20px; }
+            .header h1 { font-size: 22px; }
+            .container { padding: 12px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>Impegni giornalieri</h1>
+                <p>Chi è libero, impegnato, assente o spostato oggi — stessa base della shortlist sostituti.</p>
+            </div>
+            <div class="header-actions">
+                <a href="manodopera-home-standalone.html" class="btn btn-secondary" id="hub-link">← Manodopera</a>
+                <a href="../../../core/admin/gestione-lavori-standalone.html" class="btn btn-primary">Gestione lavori</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="toolbar">
+                <div>
+                    <label for="impegni-giorno">Giorno</label>
+                    <input type="date" id="impegni-giorno">
+                </div>
+                <button type="button" class="btn btn-primary" id="impegni-refresh-btn" style="background:#2E8B57;color:#fff;">Aggiorna</button>
+            </div>
+
+            <div class="stats-grid" id="impegni-kpi">
+                <div class="stat-card"><div class="stat-value" id="kpi-liberi">-</div><div class="stat-label">Liberi</div></div>
+                <div class="stat-card warn"><div class="stat-value" id="kpi-impegnati">-</div><div class="stat-label">Impegnati / sostituti</div></div>
+                <div class="stat-card danger"><div class="stat-value" id="kpi-assenti">-</div><div class="stat-label">Assenti</div></div>
+                <div class="stat-card"><div class="stat-value" id="kpi-prestati">-</div><div class="stat-label">Prestati</div></div>
+                <div class="stat-card"><div class="stat-value" id="kpi-lavori">-</div><div class="stat-label">Lavori del giorno</div></div>
+            </div>
+
+            <div class="panel">
+                <h2>Per operaio</h2>
+                <div id="impegni-operai-container" class="table-responsive">
+                    <div class="loading">Caricamento...</div>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>Per lavoro</h2>
+                <div id="impegni-lavori-container" class="table-responsive">
+                    <div class="loading">Caricamento...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const configScript = document.createElement('script');
+        configScript.src = '../../../core/config/firebase-config.js';
+        document.head.appendChild(configScript);
+    </script>
+    <script type="module">
+        import { initializeFirebase, getAuthInstance, getDb, getDoc, doc } from '../../../core/services/firebase-service.js';
+        import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
+        import { setCurrentTenantId } from '../../../core/services/tenant-service.js';
+        import { toGiornoKey } from '../../../core/config/manodopera-assenze-config.js';
+        import {
+            buildImpegniGiorno,
+            IMPEGNO_STATO_LIBERO,
+            IMPEGNO_STATO_IMPEGNATO,
+            IMPEGNO_STATO_ASSENTE,
+            IMPEGNO_STATO_PRESTATO,
+            IMPEGNO_STATO_SOSTITUTO
+        } from '../../../core/services/manodopera-impegni-giorno-service.js';
+        import { wireManagerHomeLink } from '../../../core/config/manodopera-hub-nav.js';
+
+        function waitForConfig() {
+            return new Promise((resolve, reject) => {
+                if (typeof window.firebaseConfig !== 'undefined') {
+                    resolve(window.firebaseConfig);
+                    return;
+                }
+                let n = 0;
+                const t = setInterval(() => {
+                    n++;
+                    if (typeof window.firebaseConfig !== 'undefined') {
+                        clearInterval(t);
+                        resolve(window.firebaseConfig);
+                    } else if (n > 50) {
+                        clearInterval(t);
+                        reject(new Error('Firebase config non caricata'));
+                    }
+                }, 100);
+            });
+        }
+
+        function escapeHtml(s) {
+            return String(s ?? '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+
+        function badgeClass(stato) {
+            const map = {
+                [IMPEGNO_STATO_LIBERO]: 'badge-libero',
+                [IMPEGNO_STATO_IMPEGNATO]: 'badge-impegnato',
+                [IMPEGNO_STATO_ASSENTE]: 'badge-assente',
+                [IMPEGNO_STATO_PRESTATO]: 'badge-prestato',
+                [IMPEGNO_STATO_SOSTITUTO]: 'badge-sostituto'
+            };
+            return map[stato] || 'badge-libero';
+        }
+
+        function badgeLabel(stato) {
+            const map = {
+                [IMPEGNO_STATO_LIBERO]: 'Libero',
+                [IMPEGNO_STATO_IMPEGNATO]: 'Impegnato',
+                [IMPEGNO_STATO_ASSENTE]: 'Assente',
+                [IMPEGNO_STATO_PRESTATO]: 'Prestato',
+                [IMPEGNO_STATO_SOSTITUTO]: 'Sostituto'
+            };
+            return map[stato] || stato;
+        }
+
+        function publishTonyTable(snapshot) {
+            const items = (snapshot.perOperaio || []).map((r) => ({
+                nome: r.nome,
+                stato: r.statoDisponibilita,
+                lavoro: r.lavoroNome || '',
+                nota: r.nota || ''
+            }));
+            const kpi = snapshot.kpi || {};
+            window.currentTableData = {
+                pageType: 'impegni_giornalieri',
+                summary: `Impegni ${snapshot.giornoKey}: ${kpi.liberi || 0} liberi, ${kpi.impegnati || 0} impegnati, ${kpi.assenti || 0} assenti, ${kpi.lavoriGiorno || 0} lavori`,
+                items,
+                giornoKey: snapshot.giornoKey,
+                kpi
+            };
+            const page = (window.Tony && window.Tony.context && window.Tony.context.page) || {};
+            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                window.Tony.setContext('page', Object.assign({}, page, {
+                    tableDataSummary: window.currentTableData.summary,
+                    currentTableData: window.currentTableData
+                }));
+            }
+            window.dispatchEvent(new CustomEvent('table-data-ready', {
+                detail: { currentTableData: window.currentTableData }
+            }));
+        }
+
+        function renderOperai(rows) {
+            const el = document.getElementById('impegni-operai-container');
+            if (!rows.length) {
+                el.innerHTML = '<div class="empty">Nessun operaio attivo nel tenant.</div>';
+                return;
+            }
+            el.innerHTML = `
+                <table class="impegni-table">
+                    <thead>
+                        <tr><th>Operaio</th><th>Stato</th><th>Lavoro</th><th>Nota</th></tr>
+                    </thead>
+                    <tbody>
+                        ${rows.map((r) => `
+                            <tr>
+                                <td><strong>${escapeHtml(r.nome)}</strong></td>
+                                <td><span class="badge ${badgeClass(r.statoDisponibilita)}">${escapeHtml(badgeLabel(r.statoDisponibilita))}</span></td>
+                                <td>${r.lavoroId
+                                    ? `<a class="link-lavoro" href="../../../core/admin/gestione-lavori-standalone.html">${escapeHtml(r.lavoroNome || r.lavoroId)}</a>`
+                                    : '—'}</td>
+                                <td>${escapeHtml(r.nota || '')}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderLavori(rows) {
+            const el = document.getElementById('impegni-lavori-container');
+            if (!rows.length) {
+                el.innerHTML = '<div class="empty">Nessun lavoro copre questo giorno (assegnato / in corso / standby / sospeso).</div>';
+                return;
+            }
+            el.innerHTML = `
+                <table class="impegni-table">
+                    <thead>
+                        <tr>
+                            <th>Lavoro</th>
+                            <th>Stato</th>
+                            <th>Previsti</th>
+                            <th>Assenti</th>
+                            <th>Sostituti</th>
+                            <th>Equipaggio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${rows.map((r) => {
+                            const eq = r.equipaggioMinimo != null
+                                ? (r.equipaggioIncompleto
+                                    ? `<span class="equipaggio-warn">${r.equipaggioAttivi}/${r.equipaggioMinimo} (mancano ${r.equipaggioMancanti})</span>`
+                                    : `${r.equipaggioAttivi}/${r.equipaggioMinimo}`)
+                                : '—';
+                            return `
+                            <tr>
+                                <td><strong>${escapeHtml(r.lavoroNome)}</strong>${r.isSquadra ? ' <span style="color:#1976D2;font-size:12px;">squadra</span>' : ''}</td>
+                                <td>${escapeHtml(r.stato)}</td>
+                                <td>${escapeHtml((r.previstiNomi || []).join(', ') || '—')}</td>
+                                <td>${escapeHtml((r.assentiNomi || []).join(', ') || '—')}</td>
+                                <td>${escapeHtml((r.sostitutiNomi || []).join(', ') || '—')}</td>
+                                <td>${eq}</td>
+                            </tr>`;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+        function renderKpi(kpi) {
+            document.getElementById('kpi-liberi').textContent = kpi.liberi ?? 0;
+            document.getElementById('kpi-impegnati').textContent = kpi.impegnati ?? 0;
+            document.getElementById('kpi-assenti').textContent = kpi.assenti ?? 0;
+            document.getElementById('kpi-prestati').textContent = kpi.prestati ?? 0;
+            document.getElementById('kpi-lavori').textContent = kpi.lavoriGiorno ?? 0;
+        }
+
+        async function refresh() {
+            const giornoEl = document.getElementById('impegni-giorno');
+            const giornoKey = giornoEl.value || toGiornoKey(new Date());
+            document.getElementById('impegni-operai-container').innerHTML = '<div class="loading">Caricamento...</div>';
+            document.getElementById('impegni-lavori-container').innerHTML = '<div class="loading">Caricamento...</div>';
+            try {
+                const snap = await buildImpegniGiorno({ giornoKey });
+                renderKpi(snap.kpi || {});
+                renderOperai(snap.perOperaio || []);
+                renderLavori(snap.perLavoro || []);
+                publishTonyTable(snap);
+            } catch (e) {
+                console.error('[Impegni giornalieri]', e);
+                const msg = escapeHtml(e.message || 'Errore caricamento');
+                document.getElementById('impegni-operai-container').innerHTML = `<div class="empty" style="color:#c62828;">${msg}</div>`;
+                document.getElementById('impegni-lavori-container').innerHTML = '';
+            }
+        }
+
+        const firebaseConfig = await waitForConfig();
+        initializeFirebase(firebaseConfig);
+        const auth = getAuthInstance();
+        const db = getDb();
+
+        const giornoEl = document.getElementById('impegni-giorno');
+        giornoEl.value = toGiornoKey(new Date());
+        document.getElementById('impegni-refresh-btn').addEventListener('click', refresh);
+        giornoEl.addEventListener('change', refresh);
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = '../../../core/auth/login-standalone.html';
+                return;
+            }
+            try {
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) {
+                    window.location.href = '../../../core/auth/login-standalone.html';
+                    return;
+                }
+                const udata = userDoc.data();
+                const ruoli = udata.ruoli || [];
+                const ok = ruoli.some((r) => {
+                    const x = String(r || '').toLowerCase();
+                    return x.includes('manager') || x.includes('amministratore');
+                });
+                if (!ok) {
+                    alert('Solo manager/amministratore possono aprire gli impegni giornalieri.');
+                    window.location.href = '../../../core/dashboard-standalone.html';
+                    return;
+                }
+                const tenantId = sessionStorage.getItem('gfv_current_tenant_id') || udata.tenantId;
+                if (tenantId) setCurrentTenantId(tenantId);
+
+                let hasManodopera = false;
+                if (tenantId) {
+                    const tDoc = await getDoc(doc(db, 'tenants', tenantId));
+                    const modules = tDoc.exists() ? (tDoc.data().modules || []) : [];
+                    hasManodopera = modules.includes('manodopera');
+                    if (window.Tony && window.Tony.initContextWithModules) {
+                        window.Tony.initContextWithModules(modules, {
+                            tenantId,
+                            utente_corrente: {
+                                nome: `${udata.nome || ''} ${udata.cognome || ''}`.trim(),
+                                ruoli
+                            }
+                        });
+                    }
+                }
+                if (!hasManodopera) {
+                    alert('Modulo Manodopera non attivo.');
+                    window.location.href = '../../../core/dashboard-standalone.html';
+                    return;
+                }
+                wireManagerHomeLink('hub-link', true);
+                await refresh();
+            } catch (e) {
+                console.error(e);
+                alert('Errore caricamento pagina');
+            }
+        });
+    </script>
+</body>
+</html>

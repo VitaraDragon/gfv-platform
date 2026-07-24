@@ -22,6 +22,9 @@ export const ASSENZA_TIPI = Object.freeze([
 
 export const LAVORO_STAND_BY_CAUSA_ASSENZA = 'assenza_personale';
 
+/** Standby sul lavoro di origine quando un operaio è prestato altrove (doppio movimento). */
+export const LAVORO_STAND_BY_CAUSA_PRESTITO = 'prestito_manodopera';
+
 /** Stati lavoro ammessi prima di passare a in_standby per assenza */
 export const LAVORO_STATI_STANDBY_AMMESSI = Object.freeze([
   'da_pianificare',

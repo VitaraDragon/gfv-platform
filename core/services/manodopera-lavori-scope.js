@@ -237,6 +237,7 @@ export async function fetchLavoriDocumentsForFieldUser(db, tenantId, userId, rol
     const lavoriRef = collection(db, 'tenants', tenantId, 'lavori');
     const byId = new Map();
 
+    // Caposquadra: lavori di squadra assegnati a lui (anche se ha anche ruolo operaio).
     if (isCaposquadra) {
         await mergeLavoriQueryByUserField(
             db,
@@ -247,9 +248,10 @@ export async function fetchLavoriDocumentsForFieldUser(db, tenantId, userId, rol
             (data) => !data.operaioId,
             userData
         );
-        return Array.from(byId.values());
     }
 
+    // Operaio: autonomi + (opz.) lavori di squadra della propria squadra + sostituto.
+    // Se è anche capo, si uniscono ai risultati sopra (niente early-return che nascondeva i lavori capo).
     if (isOperaio) {
         await mergeLavoriQueryByUserField(
             db,
@@ -287,11 +289,38 @@ export async function fetchLavoriDocumentsForFieldUser(db, tenantId, userId, rol
         }
 
         await mergeLavoriQueryByUserField(db, lavoriRef, 'assenzaSostitutoOperaioId', userId, byId, () => true, userData);
-
-        return Array.from(byId.values());
     }
 
-    return [];
+    return Array.from(byId.values());
+}
+
+/**
+ * Flags fetch lavori per workspace campo / elenco capo.
+ * A differenza di {@link resolveSegnaturaOreRoleFlags} (preferisce operaio per «Segna ore»),
+ * qui il ruolo caposquadra ha priorità così i lavori di squadra assegnati dal manager compaiono sempre.
+ *
+ * @param {{ ruoli?: string[] }} userData
+ * @returns {{ isCaposquadra: boolean, isOperaio: boolean, operaioIncludeSquadJobs: boolean }}
+ */
+export function resolveFieldWorkspaceLavoriRoleFlags(userData) {
+    const ruoli = Array.isArray(userData?.ruoli)
+        ? userData.ruoli.map((r) => String(r || '').toLowerCase().trim())
+        : [];
+    const isOperaio = ruoli.includes('operaio');
+    const isCaposquadra = ruoli.includes('caposquadra');
+    if (isCaposquadra) {
+        return {
+            isCaposquadra: true,
+            // Dual-role: include anche eventuali lavori autonomi assegnati alla stessa persona
+            isOperaio: isOperaio,
+            // I lavori di squadra arrivano già dalla query caposquadraId
+            operaioIncludeSquadJobs: false
+        };
+    }
+    if (isOperaio) {
+        return { isCaposquadra: false, isOperaio: true, operaioIncludeSquadJobs: true };
+    }
+    return { isCaposquadra: false, isOperaio: false, operaioIncludeSquadJobs: true };
 }
 
 /**

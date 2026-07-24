@@ -118,6 +118,36 @@ export async function getAssenzaConfermataPerOperaioGiorno(operaioId, giornoKey,
 }
 
 /**
+ * Assenze confermate che coprono un giorno (per esclusioni dure shortlist).
+ * @param {string} giornoKey YYYY-MM-DD
+ * @param {string} [tenantId]
+ * @returns {Promise<Object[]>}
+ */
+export async function listAssenzeConfermatePerGiorno(giornoKey, tenantId = null) {
+  const tid = tenantId || getCurrentTenantId();
+  if (!tid || !giornoKey) return [];
+  const rows = await getCollectionData(COLLECTION_NAME, {
+    tenantId: tid,
+    where: [['stato', '==', ASSENZA_STATO_CONFERMATA]]
+  });
+  return (rows || [])
+    .map(normalizeAssenza)
+    .filter((a) =>
+      giornoInIntervalloAssenza(giornoKey, a.dataInizioGiorno, a.dataFineGiorno)
+    );
+}
+
+/**
+ * @param {string} giornoKey YYYY-MM-DD
+ * @param {string} [tenantId]
+ * @returns {Promise<Set<string>>}
+ */
+export async function getOperaioIdsAssentiConfermatiPerGiorno(giornoKey, tenantId = null) {
+  const rows = await listAssenzeConfermatePerGiorno(giornoKey, tenantId);
+  return new Set(rows.map((a) => a.operaioId).filter(Boolean));
+}
+
+/**
  * Caposquadra (o altro) segnala assenza — in attesa manager.
  * @param {Object} payload
  * @param {string} [tenantId]

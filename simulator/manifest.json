@@ -1068,5 +1068,57 @@
         ]
       }
     ]
+  },
+  {
+    "runId": "6dbee19f-1ae3-452d-93ea-77c9e600d5b0",
+    "templateId": "viticola-conto-terzi-manodopera",
+    "tenantId": "sim_cascina_colombo_575522",
+    "userId": "5ORs9vvczA0iQz3bgh2HynOV9PIZ",
+    "email": "sim+colombo_1784693575522@gfv.local",
+    "aziendaNome": "Cascina Colombo",
+    "seedVersion": 2,
+    "createdAt": "2026-07-22T04:12:57.779Z",
+    "personas": [
+      {
+        "userId": "5ORs9vvczA0iQz3bgh2HynOV9PIZ",
+        "email": "sim+colombo_1784693575522@gfv.local",
+        "displayName": "Giuseppe Colombo",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "kA5r8z7KnsTiHC6Tczx8qJ14qTPA",
+        "email": "sim+colombo_1784693575522_capo1@gfv.local",
+        "displayName": "Elena Marini",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "yRxznVudhwKxc4pzU0L5tBy65iC8",
+        "email": "sim+colombo_1784693575522_op1@gfv.local",
+        "displayName": "Elena Marini",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "KzwQnZX65nJ9h93ZUPYbMW72Ogdr",
+        "email": "sim+colombo_1784693575522_op2@gfv.local",
+        "displayName": "Stefano Verdi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "igGMy4lqLEA2VHuT1bgyU7iBVlLe",
+        "email": "sim+colombo_1784693575522_op3@gfv.local",
+        "displayName": "Lucia Marini",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
   }
 ]

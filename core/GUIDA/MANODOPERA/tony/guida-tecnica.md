@@ -7,6 +7,7 @@ Modulo in **`dashboard.moduli_attivi`** (chiave tipica `manodopera`). In contest
 | Area | File |
 |------|------|
 | **Home hub modulo** | `modules/manodopera/views/manodopera-home-standalone.html` |
+| **Impegni giornalieri** | `modules/manodopera/views/impegni-giornalieri-standalone.html` |
 | Versione mobile campo | `mobile/field-workspace-standalone.html` |
 | Segnatura ore (desktop) | `segnatura-ore-standalone.html` |
 | Validazione ore | `admin/validazione-ore-standalone.html` |
@@ -37,11 +38,12 @@ Con **Manodopera** attivo il controller **non** monta `createManagerSection` sot
 
 ## Target motore (`core/js/tony/engine.js`)
 
-Alias: **segnatura ore** / **segnare ore**, **validazione ore** / **validare ore**, **lavori caposquadra** / **i miei lavori**, **statistiche manodopera** / **statistiche ore**, **gestione squadre** / **squadre**, **gestione operai** / **operai**, **compensi operai** / **compensi**, **manodopera** / **home manodopera** / **dashboard manodopera** → hub `manodopera-home-standalone.html`.
+Alias: **segnatura ore** / **segnare ore**, **validazione ore** / **validare ore**, **lavori caposquadra** / **i miei lavori**, **statistiche manodopera** / **statistiche ore**, **gestione squadre** / **squadre**, **gestione operai** / **operai**, **compensi operai** / **compensi**, **manodopera** / **home manodopera** / **dashboard manodopera** → hub `manodopera-home-standalone.html`, **impegni giornalieri** / **impegni giorno** → `impegni-giornalieri-standalone.html` (`tony-routes.json` + `NAV_TARGET_RULES`).
 
 ## pageType / Tony
 
 - **`lavori`** — gestione lavori manager.  
+- **`impegni_giornalieri`** — vista impegni giorno (`manodopera-impegni-giorno-service.js` / logic pura); merge `setContext('page')` + `table-data-ready`.  
 - **`field_workspace`** / **`lavori_caposquadra`** — `_resolveFieldWorkspaceTableDataForEnumerate` in `tony-service.js`.
 
 ## Form Tony (avanzato)

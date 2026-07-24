@@ -26,7 +26,8 @@ import {
 export function resolveOperaioIdFromLavoro(lavoro) {
   if (!lavoro) return null;
   if (lavoro.operaioId) return lavoro.operaioId;
-  return null;
+  // Lavoro di squadra: nessun operaio singolo sul documento; standby usa selezione esplicita
+  return lavoro.standbyOperaioId || null;
 }
 
 /**

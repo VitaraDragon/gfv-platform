@@ -1,5 +1,5 @@
 /**
- * Shortlist sostituti per lavoro in standby (MVP: skill + impegni giornata).
+ * Shortlist sostituti per lavoro in standby (skill + impegni + assenze + policy).
  *
  * @module core/services/manodopera-sostituti-shortlist-service
  */
@@ -15,16 +15,24 @@ import {
   formatStelleDisplay
 } from '../config/manodopera-skills-config.js';
 import { toGiornoKey } from '../config/manodopera-assenze-config.js';
+import { getOperaioIdsAssentiConfermatiPerGiorno } from './manodopera-assenze-service.js';
+import { isLavoroPrestabile } from '../config/manodopera-sostituzione-policy-config.js';
 import {
   SHORTLIST_MAX_CANDIDATI,
   LAVORO_STATI_IMPEGNO,
   DISPONIBILITA_LIBERO,
   DISPONIBILITA_IMPEGNATO,
+  DISPONIBILITA_SPOSTABILE,
   getMinStelleSuSkillRichieste,
   operaioQualificatoPerSkill,
   buildOperaioSquadreMap,
   findImpegnoLavoroOperaio,
-  rankAndLimitShortlist
+  rankAndLimitShortlist,
+  classifyDisponibilitaCandidato,
+  buildMotivoDisponibilita,
+  resolvePrevistiOperaioIds,
+  evaluateEquipaggioMinimo,
+  wouldOrigineFallBelowMin
 } from './manodopera-sostituti-shortlist-logic.js';
 
 export {
@@ -32,22 +40,46 @@ export {
   LAVORO_STATI_IMPEGNO,
   DISPONIBILITA_LIBERO,
   DISPONIBILITA_IMPEGNATO,
+  DISPONIBILITA_SPOSTABILE,
   getMinStelleSuSkillRichieste,
   operaioQualificatoPerSkill,
   buildOperaioSquadreMap,
   findImpegnoLavoroOperaio,
-  rankAndLimitShortlist
+  rankAndLimitShortlist,
+  classifyDisponibilitaCandidato,
+  buildMotivoDisponibilita,
+  resolvePrevistiOperaioIds,
+  evaluateEquipaggioMinimo,
+  wouldOrigineFallBelowMin
 };
+
+/**
+ * @param {Object} lavoro
+ * @param {Array<Object>} [attrezziList]
+ * @returns {Object|null}
+ */
+function resolveAttrezzoForLavoro(lavoro, attrezziList = []) {
+  if (lavoro?.attrezzo && typeof lavoro.attrezzo === 'object') return lavoro.attrezzo;
+  if (!lavoro?.attrezzoId) return null;
+  return (attrezziList || []).find((a) => a.id === lavoro.attrezzoId) || null;
+}
 
 /**
  * @param {Object} options
  * @param {string} options.lavoroId
  * @param {Array<Object>} [options.operaiList]
  * @param {Array<Object>} [options.squadreList]
+ * @param {Array<Object>} [options.attrezziList]
  * @param {string} [options.tenantId]
  */
 export async function buildShortlistSostitutiPerLavoroStandby(options) {
-  const { lavoroId, operaiList = [], squadreList = [], tenantId: tidIn } = options;
+  const {
+    lavoroId,
+    operaiList = [],
+    squadreList = [],
+    attrezziList = [],
+    tenantId: tidIn
+  } = options;
   const tenantId = tidIn || getCurrentTenantId();
   if (!tenantId || !lavoroId) {
     throw new Error('tenantId e lavoroId obbligatori');
@@ -59,31 +91,63 @@ export async function buildShortlistSostitutiPerLavoroStandby(options) {
     throw new Error('Il lavoro non è in standby per assenza');
   }
 
+  const giornoKey = lavoro.standbyGiornoKey || toGiornoKey(new Date());
   const assenteOperaioId = lavoro.standbyOperaioId || lavoro.operaioId || null;
+  const attrezzo = resolveAttrezzoForLavoro(lavoro, attrezziList);
+
   const req = resolveRequiredSkillsForLavoro({
     tipoLavoroNome: lavoro.tipoLavoro,
     sottocategoriaCodice: lavoro.sottocategoriaCodice,
     categoriaCodice: lavoro.categoriaCodice,
-    attrezzo: lavoro.attrezzo || null,
+    attrezzo,
     macchinaId: lavoro.macchinaId,
     operatoreMacchinaId: lavoro.operatoreMacchinaId
   });
   const requiredSkillIds = req.skillIds || [];
+  const equipaggioMinimo = req.equipaggioMinimo ?? null;
 
-  const profiliRaw = await getCollectionData(PROFILI_COLLECTION, { tenantId });
+  const [profiliRaw, lavori, assentiSet] = await Promise.all([
+    getCollectionData(PROFILI_COLLECTION, { tenantId }),
+    getAllLavori(),
+    getOperaioIdsAssentiConfermatiPerGiorno(giornoKey, tenantId)
+  ]);
+
   const profiliByUser = new Map();
   for (const row of profiliRaw || []) {
     const uid = row.id || row.userId;
     if (uid) profiliByUser.set(uid, normalizeProfiloManodopera({ ...row, userId: uid }));
   }
 
-  const lavori = await getAllLavori();
   const squadreMap = buildOperaioSquadreMap(squadreList);
+  const previstiIds = resolvePrevistiOperaioIds(lavoro, squadreList);
+  const assentiIds = [
+    ...new Set(
+      [
+        assenteOperaioId,
+        ...(lavoro.equipaggioGiorno?.[giornoKey]?.assenti || [])
+      ].filter(Boolean)
+    )
+  ];
+  const sostitutiGia = (lavoro.equipaggioGiorno?.[giornoKey]?.sostituzioni || [])
+    .map((s) => s.sostitutoOperaioId)
+    .filter(Boolean);
+  if (lavoro.assenzaSostitutoOperaioId) {
+    sostitutiGia.push(lavoro.assenzaSostitutoOperaioId);
+  }
+
+  const equipaggioCheck = evaluateEquipaggioMinimo({
+    minPersone: equipaggioMinimo,
+    previstiIds,
+    assentiIds,
+    sostitutiIds: [...new Set(sostitutiGia)]
+  });
 
   const candidati = [];
   for (const op of operaiList) {
     const operaioId = op.id || op.uid;
     if (!operaioId || operaioId === assenteOperaioId) continue;
+    // Esclusione dura: assenza confermata sul giorno del lavoro
+    if (assentiSet.has(operaioId)) continue;
 
     const profilo =
       profiliByUser.get(operaioId) ||
@@ -97,6 +161,35 @@ export async function buildShortlistSostitutiPerLavoroStandby(options) {
 
     const stelleMinime = getMinStelleSuSkillRichieste(profilo, requiredSkillIds);
     const impegno = findImpegnoLavoroOperaio(operaioId, lavori, squadreMap, lavoroId);
+    const { disponibilita, richiedeConfermaSpostamento } = classifyDisponibilitaCandidato({
+      impegno,
+      lavoroDestinazione: lavoro,
+      isPrestabile: isLavoroPrestabile
+    });
+
+    const impegnoAttrezzo = impegno
+      ? resolveAttrezzoForLavoro(impegno, attrezziList)
+      : null;
+    const minOrigine = impegno
+      ? resolveRequiredSkillsForLavoro({
+          tipoLavoroNome: impegno.tipoLavoro,
+          sottocategoriaCodice: impegno.sottocategoriaCodice,
+          categoriaCodice: impegno.categoriaCodice,
+          attrezzo: impegnoAttrezzo,
+          macchinaId: impegno.macchinaId,
+          operatoreMacchinaId: impegno.operatoreMacchinaId
+        }).equipaggioMinimo
+      : null;
+
+    const origineSottoSogliaDopoPrestito = impegno
+      ? wouldOrigineFallBelowMin({
+          lavoroOrigine: impegno,
+          squadreList,
+          minPersoneOrigine: minOrigine,
+          operaioDaPrestareId: operaioId
+        })
+      : false;
+
     const nome = [op.nome, op.cognome].filter(Boolean).join(' ') || op.email || operaioId;
 
     candidati.push({
@@ -104,12 +197,12 @@ export async function buildShortlistSostitutiPerLavoroStandby(options) {
       nome,
       stelleMinime,
       stelleDisplay: formatStelleDisplay(stelleMinime),
-      disponibilita: impegno ? DISPONIBILITA_IMPEGNATO : DISPONIBILITA_LIBERO,
+      disponibilita,
+      richiedeConfermaSpostamento,
       impegnoLavoroId: impegno?.id || null,
       impegnoLavoroNome: impegno?.nome || impegno?.tipoLavoro || null,
-      motivo: impegno
-        ? `Impegnato su: ${impegno.nome || impegno.tipoLavoro || impegno.id}`
-        : 'Libero oggi',
+      origineSottoSogliaDopoPrestito,
+      motivo: buildMotivoDisponibilita(disponibilita, impegno),
       skillLabels: requiredSkillIds.map(getManodoperaSkillLabel)
     });
   }
@@ -120,9 +213,12 @@ export async function buildShortlistSostitutiPerLavoroStandby(options) {
     shortlist,
     tuttiQualificati: candidati.length,
     requiredSkillIds,
-    equipaggioMinimo: req.equipaggioMinimo ?? null,
+    equipaggioMinimo,
+    equipaggioCheck,
     assenteOperaioId,
+    previstiIds,
     lavoroNome: lavoro.nome || lavoro.tipoLavoro || lavoroId,
-    giornoKey: lavoro.standbyGiornoKey || toGiornoKey(new Date())
+    giornoKey,
+    isLavoroSquadra: Boolean(lavoro.caposquadraId && !lavoro.operaioId)
   };
 }

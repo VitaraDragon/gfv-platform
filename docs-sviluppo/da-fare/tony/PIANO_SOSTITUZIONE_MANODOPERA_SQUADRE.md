@@ -1,8 +1,24 @@
 # Piano (design): sostituzione manodopera / equipaggio squadre
 
-**Stato:** design — da implementare.  
+**Stato:** MVP + oltre-MVP parziale **implementato in codice** (2026-07-22; vista impegni 2026-07-24). Design decisions 2026-05-16 restano canoniche.  
+**Ultimo aggiornamento:** 2026-07-24 (vista impegni giornalieri manager: motore + pagina + nav + guide).  
 **Ultimo aggiornamento design:** 2026-05-16 (catalogo skill tenant pilota: tutte le sottocategorie lavoro, carro=frutta, trattamenti unificati, vendemmia→trattorista per trasporto).  
 **Per chi:** ogni agente o sviluppatore che lavora su **manodopera, squadre, assenze, shortlist sostituti, equipaggio minimo, profilo competenze, policy tenant**, integrazione Tony sul flusso.
+
+### Stato implementazione (verificato su codice — 2026-07-24)
+
+| Area | Stato | Note |
+|------|--------|------|
+| Config skill + scheda + batch `skillCalcolate` | ✅ | `manodopera-skills-config.js`, `profiliManodopera`, batch/auto-refresh |
+| Assenze segnalata→confermata + standby | ✅ | `assenzeOperai`, field-workspace capo, Gestione lavori |
+| Shortlist 3–4 (skill + disponibilità) | ✅ | Esclude assenti confermati del giorno; Libero / Spostabile / Impegnato |
+| Policy tenant (priorità, prestito, pesi) | ✅ minima | `manodopera-sostituzione-policy-config.js` |
+| Doppio movimento spostabile | ✅ | Destinazione + buco/standby origine (`prestito_manodopera`) |
+| Equipaggio minimo | ✅ avviso | Banner modal + hint riga lista; no blocco hard save |
+| Sostituzione lavoro di squadra | ✅ | `equipaggioGiorno[giornoKey]` (non modifica `Squadra.operai`) |
+| Vista impegni giornalieri (manager) | ✅ | Hub → card; Gestione lavori → Impegni giorno; Tony «impegni giornalieri». Solo lettura. |
+| Roster/partecipazioni completi | ⏳ | Solo slice `equipaggioGiorno` su sostituzione/prestito |
+| Tony / Context Builder shortlist | ❌ | Dopo dati stabili; Tony legge JSON materializzato |
 
 **Percorsi:** la copia **canonica nel repository** è questo file (`docs-sviluppo/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md`), così resta disponibile dopo `git clone`. In Cursor può esistere anche un piano omonimo sotto la cartella piani dell’utente (es. `.cursor/plans/`); in caso di dubbio, **prevalere il contenuto in repo** se è stato aggiornato lì.
 
@@ -357,24 +373,27 @@ In assenza di priorità e impegni strutturati, il sistema può al massimo elenca
 - [x] Elenco `skillId` pilota + regole vendemmia/carro/trattamenti — **§ Catalogo skill (2026-05-16)**.  
 - [x] File config `core/config/manodopera-skills-config.js` + test Vitest.  
 - [x] Scheda operaio MVP: servizio + UI gestione operai + regole Firestore `profiliManodopera`.  
-- [ ] Schema Firestore `profiliManodopera` (o alternativa) + UI scheda (lettura + edit skill dichiarate).  
-- [ ] Batch/trigger calcolo `skillCalcolate` da `oreOperai` + soglie stelle in config.  
+- [x] Schema Firestore `profiliManodopera` + UI scheda (lettura + edit skill dichiarate).  
+- [x] Batch/trigger calcolo `skillCalcolate` da `oreOperai` + soglie stelle in config.  
 - [ ] Override manager con audit (opzionale MVP+).
 
 **Sostituzioni e giornata**
 
-- [ ] Roster/partecipazioni: per **data** vs intero lavoro; path sub-coll. lavoro.  
-- [ ] Vista **impegni giornalieri** (autonomo + squadra + partecipazioni).  
-- [ ] Modulo o tabella **assenze** (ferie/permesso/malattia).  
-- [ ] Policy tenant: priorità lavori (3 livelli), prestito tra squadre, pool riserve, pesi score.  
-- [ ] Regole `minPersone` (tipo lavoro / attrezzo) + banner UI.  
-- [ ] Flusso: assenza → shortlist 3–4 → conferma (e doppio movimento se spostabile).  
+- [x] Modulo **assenze** (ferie/permesso/malattia) + conferma manager + standby lavoro.  
+- [x] Shortlist 3–4: skill + Libero/Spostabile/Impegnato; **esclusione assenti confermati**.  
+- [x] Policy tenant minima: priorità 3 livelli, `sospendibile`/`ritardabile`, pesi score (`manodopera-sostituzione-policy-config.js`).  
+- [x] Doppio movimento se spostabile (destinazione + buco/standby origine).  
+- [x] Regole `minPersone` (carro) + banner/avviso UI (modal + lista Gestione lavori).  
+- [x] Sostituzione su lavoro di **squadra** via `equipaggioGiorno` (senza toccare squadra globale).  
+- [ ] Roster/partecipazioni completi per data (oltre slice su sostituzione/prestito).  
+- [x] Vista **impegni giornalieri** dedicata (autonomo + squadra + slice `equipaggioGiorno`; solo lettura).  
+- [ ] Pool riserve configurabile (opzionale).  
 - [ ] Context Builder + comandi Tony generici (post-dati).
 
 **Da decidere**
 
-- [ ] Permessi caposquadra vs solo manager.  
-- [ ] Granularità oraria vs giornata intera al go-live.
+- [ ] Permessi caposquadra vs solo manager (oggi: capo segnala; manager conferma/assegna).  
+- [x] Granularità al go-live: **giornata intera** (fasce orarie = futuro).
 
 ---
 
