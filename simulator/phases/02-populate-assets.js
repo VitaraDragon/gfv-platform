@@ -27,6 +27,10 @@ import {
 } from '../lib/seed-parco-macchine-details.js';
 import { applyAffittiProfilesToTerreni } from '../lib/seed-terreni-affitti.js';
 import { requireSimTenantId, requireSimUserId, getSimProfile } from '../lib/sim-context.js';
+import {
+  isSostituzioniLabTemplate,
+  seedAttrezziSpecialiLab
+} from '../lib/manodopera-sostituzioni-lab.js';
 
 const CATEGORIE_PREDEFINITE = [
   { nome: 'Lavorazione del Terreno', codice: 'lavorazione_terreno', predefinita: true },
@@ -133,6 +137,14 @@ export async function runPopulateAssets() {
     attrezzi.push({ id, nome: a.nome });
   }
 
+  let attrezziSpeciali = [];
+  if (isSostituzioniLabTemplate(template) && template?.manodopera?.lab?.attrezzatureSpeciali !== false) {
+    attrezziSpeciali = await seedAttrezziSpecialiLab(db, tenantId, userId, categorieMap);
+    for (const a of attrezziSpeciali) {
+      attrezzi.push({ id: a.id, nome: a.nome, key: a.key, minPersoneEquipaggio: a.minPersoneEquipaggio });
+    }
+  }
+
   const flottaData = generaFlotta(q.flotta || 2, seed);
   const flotta = [];
   for (let i = 0; i < flottaData.length; i++) {
@@ -201,6 +213,7 @@ export async function runPopulateAssets() {
     terreni,
     trattori,
     attrezzi,
+    attrezziSpeciali,
     flotta,
     vigneti,
     frutteti,
@@ -209,6 +222,7 @@ export async function runPopulateAssets() {
       terreni: terreni.length,
       trattori: trattori.length,
       attrezzi: attrezzi.length,
+      attrezziSpeciali: attrezziSpeciali.length,
       flotta: flotta.length,
       vigneti: vigneti.length,
       frutteti: frutteti.length,

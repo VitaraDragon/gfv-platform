@@ -15,6 +15,7 @@ import {
 } from '../lib/manodopera-sim-actions.js';
 import { runAsPersona } from '../lib/run-as-persona.js';
 import { getSimProfile } from '../lib/sim-context.js';
+import { runSostituzioniLabSeed } from '../lib/manodopera-sostituzioni-lab.js';
 
 function toDateAtMorning(isoDate) {
   return new Date(`${isoDate}T08:00:00`);
@@ -32,7 +33,8 @@ function buildCounts(state) {
       comunicazioniConfermate: state.comunicazioniConfermate,
       assenzeMalattiaSegnalate: state.assenzeMalattiaSegnalate,
       assenzeMalattiaConfermate: state.assenzeMalattiaConfermate,
-      lavoriStandbyAssenza: state.lavoriStandbyAssenza
+      lavoriStandbyAssenza: state.lavoriStandbyAssenza,
+      labSostituzioni: state.labSostituzioni || null
     }
   };
 }
@@ -140,7 +142,10 @@ async function runRegimeMax(manodopera, q, manodoperaCfg) {
 async function runStandard(manodopera, q, manodoperaCfg) {
   const db = getEmulatorDb();
   const personasFull = requirePersonas();
-  const lavoriSquadra = manodopera.lavoriSquadra || [];
+  const lavoriSquadra = [
+    ...(manodopera.lavoriSquadra || []),
+    ...(manodopera.lavoriSpeciali || [])
+  ];
   const lavoriAutonomi = manodopera.lavoriAutonomi || [];
   const giorni = generaGiorniLavorativi(q.giorniOreSimulate ?? 10);
   const ctx = createSimContext(db, personasFull, manodoperaCfg, giorni);
@@ -151,14 +156,34 @@ async function runStandard(manodopera, q, manodoperaCfg) {
     await ctx.inviaEConfermaComunicazione(lavoro, isoDate);
   }
 
-  await ctx.simulaAssenzaMalattia(lavoriSquadra);
-  await ctx.completeSquadraChain(lavoriSquadra[0], toDateAtMorning(giorni[0]));
-  await ctx.completeAutonomoChain(lavoriAutonomi[0], toDateAtMorning(giorni[0]));
+  if (manodoperaCfg.scenarioLab) {
+    const labResult = await runSostituzioniLabSeed(ctx, manodopera, manodoperaCfg);
+    ctx.labSostituzioni = labResult.counts || {};
+    ctx.assenzeMalattiaSegnalate += labResult.counts?.assenzeSegnalate || 0;
+    ctx.assenzeMalattiaConfermate += labResult.counts?.assenzeConfermateStandby || 0;
+    ctx.lavoriStandbyAssenza +=
+      (labResult.counts?.assenzeConfermateStandby || 0) +
+      (labResult.counts?.standbyApertiPerManuale || 0);
+  } else {
+    await ctx.simulaAssenzaMalattia(lavoriSquadra);
+  }
+
+  const isStandbyLavoro = (id) =>
+    id === ctx.lavoroStandbyId || ctx.lavoriStandbyIds.has(id);
+
+  const lavoroOre =
+    lavoriSquadra.find((l) => !isStandbyLavoro(l.id)) || lavoriSquadra[0];
+  if (lavoroOre && !isStandbyLavoro(lavoroOre.id)) {
+    await ctx.completeSquadraChain(lavoroOre, toDateAtMorning(giorni[0]));
+  }
+  if (lavoriAutonomi[0]) {
+    await ctx.completeAutonomoChain(lavoriAutonomi[0], toDateAtMorning(giorni[0]));
+  }
 
   for (let d = 1; d < giorni.length; d++) {
     const data = toDateAtMorning(giorni[d]);
     const lavoro = lavoriSquadra[d % lavoriSquadra.length];
-    if (lavoro.id === ctx.lavoroStandbyId) continue;
+    if (isStandbyLavoro(lavoro.id)) continue;
     const capo = lavoro.squadra?.capo;
     const operai = lavoro.squadra?.operai || [];
     if (!capo || !operai.length) continue;
@@ -170,7 +195,7 @@ async function runStandard(manodopera, q, manodoperaCfg) {
 
   if (lavoriSquadra.length > 1 && giorni.length > 1) {
     const lavoro = lavoriSquadra[1];
-    if (lavoro.id !== ctx.lavoroStandbyId) {
+    if (!isStandbyLavoro(lavoro.id)) {
       const capo = lavoro.squadra?.capo;
       if (capo) {
         const oraCapoId = await ctx.segna(capo, lavoro.id, toDateAtMorning(giorni[1]));
@@ -217,6 +242,7 @@ function createSimContext(db, personasFull, manodoperaCfg, giorni) {
     simConferme,
     simAssenzaMalattia,
     lavoroStandbyId: null,
+    lavoriStandbyIds: new Set(),
     oreSegnate: 0,
     oreValidate: 0,
     oreDaValidare: 0,
@@ -224,7 +250,8 @@ function createSimContext(db, personasFull, manodoperaCfg, giorni) {
     comunicazioniConfermate: 0,
     assenzeMalattiaSegnalate: 0,
     assenzeMalattiaConfermate: 0,
-    lavoriStandbyAssenza: 0
+    lavoriStandbyAssenza: 0,
+    labSostituzioni: null
   };
 
   state.segna = async (persona, lavoroId, data) => {
@@ -299,6 +326,7 @@ function createSimContext(db, personasFull, manodoperaCfg, giorni) {
     state.assenzeMalattiaConfermate += 1;
     state.lavoriStandbyAssenza += 1;
     state.lavoroStandbyId = lavoro.id;
+    state.lavoriStandbyIds.add(lavoro.id);
   };
 
   state.completeSquadraChain = async (lavoro, data) => {

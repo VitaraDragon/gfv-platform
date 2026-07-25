@@ -51,6 +51,14 @@ npm run sim:run:batch -- --count=10 --verbose
 # Demo regime max — 2 aziende (manodopera 2 capi/10 op + solo titolare), 30 giorni
 npm run sim:run:demo-max
 
+# Lab sostituzioni — 5 aziende (assenze, shortlist, carro/trapianto, prestito)
+# Playbook (prove manuali + canary + note test locale): simulator/PLAYBOOK_SOSTITUZIONI_LAB.md
+npm run sim:run:sostituzioni-lab
+
+# Canary E2E flusso completo sostituzione (Playwright, 14 check) — richiede emulator + npm start
+# + seed: npm run sim:run -- --template=viticola-conto-terzi-manodopera
+npm run manodopera:sostituzione-canary
+
 # Solo creazione tenant/utente
 npm run sim:setup
 

@@ -34,6 +34,7 @@ const TIPI_ASSENZA_VALIDI = new Set([
   'permesso',
   'infortunio',
   'non_presenza',
+  'ingiustificata',
   'altro'
 ]);
 
@@ -394,4 +395,161 @@ export async function mettiLavoroStandbyAssenzaSim(db, lavoroId, assenzaId, oper
     standbyLavoroId: lavoroId,
     lavoroId: lavoroId
   });
+}
+
+/**
+ * Manager assegna sostituto su lavoro in standby (replica contratto client).
+ * @param {import('firebase-admin/firestore').Firestore} db
+ * @param {Object} options
+ * @param {string} options.lavoroId
+ * @param {string} options.sostitutoOperaioId
+ * @param {boolean} [options.confermaSpostamento]
+ * @param {string|null} [options.impegnoLavoroId]
+ */
+export async function assegnaSostitutoAssenzaSim(db, options = {}) {
+  const tenantId = requireSimTenantId();
+  const user = getActingUserData();
+  const managerId = user.id || user.uid;
+
+  if (!isManagerPersona(user)) {
+    throw new Error('Solo manager può assegnare sostituti');
+  }
+
+  const {
+    lavoroId,
+    sostitutoOperaioId,
+    confermaSpostamento = false,
+    impegnoLavoroId = null
+  } = options;
+
+  if (!lavoroId || !sostitutoOperaioId) {
+    throw new Error('lavoroId e sostitutoOperaioId obbligatori');
+  }
+
+  const lavoroRef = db.doc(`tenants/${tenantId}/lavori/${lavoroId}`);
+  const lavoroSnap = await lavoroRef.get();
+  if (!lavoroSnap.exists) throw new Error('Lavoro non trovato');
+  const lavoro = lavoroSnap.data();
+
+  if (lavoro.stato !== 'in_standby') {
+    throw new Error('Il lavoro non è in standby');
+  }
+  if (lavoro.standbyCausa && lavoro.standbyCausa !== LAVORO_STAND_BY_CAUSA_ASSENZA) {
+    throw new Error('Standby non legato ad assenza');
+  }
+
+  const assenteId = lavoro.standbyOperaioId || null;
+  if (assenteId && assenteId === sostitutoOperaioId) {
+    throw new Error('Il sostituto non può essere la persona assente');
+  }
+
+  const giornoKey = lavoro.standbyGiornoKey || toGiornoKey(new Date());
+  const needsPrestito = Boolean(impegnoLavoroId);
+  if (needsPrestito && !confermaSpostamento) {
+    throw new Error('Conferma spostamento obbligatoria per candidato impegnato');
+  }
+
+  const restore =
+    lavoro.standbyStatoPrecedente &&
+    ['da_pianificare', 'assegnato', 'in_corso'].includes(lavoro.standbyStatoPrecedente)
+      ? lavoro.standbyStatoPrecedente
+      : 'assegnato';
+
+  const eg = lavoro.equipaggioGiorno && typeof lavoro.equipaggioGiorno === 'object'
+    ? { ...lavoro.equipaggioGiorno }
+    : {};
+  const slice = {
+    assenti: [...(eg[giornoKey]?.assenti || [])],
+    sostituzioni: [...(eg[giornoKey]?.sostituzioni || [])],
+    prestitiUscita: [...(eg[giornoKey]?.prestitiUscita || [])]
+  };
+  if (assenteId && !slice.assenti.includes(assenteId)) {
+    slice.assenti.push(assenteId);
+  }
+  slice.sostituzioni.push({
+    assenteOperaioId: assenteId,
+    sostitutoOperaioId,
+    assegnatoDa: managerId,
+    impegnoOrigineLavoroId: impegnoLavoroId || null,
+    source: 'gfv_farm_simulator'
+  });
+  eg[giornoKey] = slice;
+
+  const patch = {
+    stato: restore,
+    assenzaOperaioAssenteId: assenteId,
+    assenzaSostitutoOperaioId: sostitutoOperaioId,
+    assenzaSostitutoDa: managerId,
+    assenzaSostitutoIl: FieldValue.serverTimestamp(),
+    standbyRipristinatoDa: managerId,
+    standbyRipristinatoIl: FieldValue.serverTimestamp(),
+    standbyStatoPrecedente: null,
+    standbyCausa: null,
+    standbyAssenzaId: null,
+    standbyOperaioId: null,
+    standbyDaIl: null,
+    standbyNota: null,
+    standbyGiornoKey: null,
+    equipaggioGiorno: eg
+  };
+
+  if (lavoro.operaioId && (!assenteId || lavoro.operaioId === assenteId)) {
+    patch.operaioId = sostitutoOperaioId;
+  }
+
+  if (needsPrestito) {
+    const origRef = db.doc(`tenants/${tenantId}/lavori/${impegnoLavoroId}`);
+    const origSnap = await origRef.get();
+    if (!origSnap.exists) throw new Error('Lavoro origine prestito non trovato');
+    const origine = origSnap.data();
+    const egO = origine.equipaggioGiorno && typeof origine.equipaggioGiorno === 'object'
+      ? { ...origine.equipaggioGiorno }
+      : {};
+    const sliceO = {
+      assenti: [...(egO[giornoKey]?.assenti || [])],
+      sostituzioni: [...(egO[giornoKey]?.sostituzioni || [])],
+      prestitiUscita: [...(egO[giornoKey]?.prestitiUscita || [])]
+    };
+    sliceO.prestitiUscita.push({
+      operaioId: sostitutoOperaioId,
+      versoLavoroId: lavoroId,
+      source: 'gfv_farm_simulator'
+    });
+    egO[giornoKey] = sliceO;
+    const patchOrig = {
+      equipaggioGiorno: egO,
+      manodoperaPrestata: {
+        operaioId: sostitutoOperaioId,
+        versoLavoroId: lavoroId,
+        giornoKey,
+        da: managerId
+      }
+    };
+    if (origine.operaioId === sostitutoOperaioId && origine.stato !== 'in_standby') {
+      patchOrig.stato = 'in_standby';
+      patchOrig.standbyStatoPrecedente = origine.stato;
+      patchOrig.standbyCausa = 'prestito_manodopera';
+      patchOrig.standbyOperaioId = sostitutoOperaioId;
+      patchOrig.standbyGiornoKey = giornoKey;
+      patchOrig.standbyNota = `Prestato come sostituto sul lavoro ${lavoroId}`;
+      patchOrig.standbyDaIl = FieldValue.serverTimestamp();
+    }
+    await origRef.update(patchOrig);
+  }
+
+  await lavoroRef.update(patch);
+
+  if (lavoro.standbyAssenzaId) {
+    await db.doc(`tenants/${tenantId}/assenzeOperai/${lavoro.standbyAssenzaId}`).update({
+      sostitutoOperaioId,
+      sostitutoAssegnatoDa: managerId,
+      sostitutoAssegnatoIl: FieldValue.serverTimestamp()
+    });
+  }
+
+  return {
+    lavoroId,
+    doppioMovimento: needsPrestito,
+    isLavoroSquadra: Boolean(lavoro.caposquadraId && !lavoro.operaioId)
+  };
 }

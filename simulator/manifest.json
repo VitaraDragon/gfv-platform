@@ -1120,5 +1120,445 @@
         ]
       }
     ]
+  },
+  {
+    "runId": "9f3e0cda-3b9f-4cd7-8d75-44d2e8b5543e",
+    "templateId": "lab-sost-01-facile-potatura",
+    "tenantId": "sim_podere_romano_910001",
+    "userId": "ThPB0DjmLKum3klLXOOzU7Cb7TQD",
+    "email": "sim+romano_910001@gfv.local",
+    "aziendaNome": "Podere Romano",
+    "seedVersion": 2,
+    "createdAt": "2026-07-25T05:04:08.400Z",
+    "personas": [
+      {
+        "userId": "ThPB0DjmLKum3klLXOOzU7Cb7TQD",
+        "email": "sim+romano_910001@gfv.local",
+        "displayName": "Lucia Romano",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "HETcJHIsHed6M3PIhaJwoGcmpmwR",
+        "email": "sim+romano_910001_capo1@gfv.local",
+        "displayName": "Paolo Ricci",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "hvuYVbvNkFaRciEzofNLGnlhwznr",
+        "email": "sim+romano_910001_op1@gfv.local",
+        "displayName": "Paolo Ricci",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "U1Bv2pNrv3duzADLf6erhIuBt5Rn",
+        "email": "sim+romano_910001_op2@gfv.local",
+        "displayName": "Francesca Rossi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "1ANJNfKjcGf0wcgiFkBWRpbOrpPa",
+        "email": "sim+romano_910001_op3@gfv.local",
+        "displayName": "Marco Ricci",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "gMsaqixiWaaDurbTmXvFjecE4eeb",
+        "email": "sim+romano_910001_op4@gfv.local",
+        "displayName": "Anna Rossi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "6psfdcz5yEDgTfZjZpUQeogSEH7Y",
+        "email": "sim+romano_910001_op5@gfv.local",
+        "displayName": "Andrea Ricci",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "e2e3022a-4248-4717-b1b8-7f652a3769ca",
+    "templateId": "lab-sost-02-carro-hard",
+    "tenantId": "sim_cascina_colombo_910002",
+    "userId": "wlgcBsFNT5L5CAmzU8cGtCStoKKF",
+    "email": "sim+colombo_910002@gfv.local",
+    "aziendaNome": "Cascina Colombo",
+    "seedVersion": 2,
+    "createdAt": "2026-07-25T05:04:11.488Z",
+    "personas": [
+      {
+        "userId": "wlgcBsFNT5L5CAmzU8cGtCStoKKF",
+        "email": "sim+colombo_910002@gfv.local",
+        "displayName": "Giuseppe Colombo",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "TUrdiK4fHnBAPmlHhzXSmabNkGNo",
+        "email": "sim+colombo_910002_capo1@gfv.local",
+        "displayName": "Elena Marini",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "BM3kiqFg1jZQk17lPs6LssUA7Xd3",
+        "email": "sim+colombo_910002_op1@gfv.local",
+        "displayName": "Elena Marini",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "mZ1w4uXHF53mfUtGzyTVKiyGI2Ct",
+        "email": "sim+colombo_910002_op2@gfv.local",
+        "displayName": "Stefano Verdi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "TwB0nueVU7UHNsqycedyKc2PfTg2",
+        "email": "sim+colombo_910002_op3@gfv.local",
+        "displayName": "Lucia Marini",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "UoypJN83s8yWsG9EyE1ZcXA8X5Aa",
+        "email": "sim+colombo_910002_op4@gfv.local",
+        "displayName": "Paolo Verdi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "iUJvr7NAquNP9n9e79fLHMPzlJfJ",
+        "email": "sim+colombo_910002_op5@gfv.local",
+        "displayName": "Francesca Marini",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "567bc37b-9442-4dd3-8d2c-267cc9cd1038",
+    "templateId": "lab-sost-03-prestito-occupati",
+    "tenantId": "sim_az_agr_ricci_910003",
+    "userId": "5KeD7NvSafVEiw1HKuQ67XPnlQCi",
+    "email": "sim+ricci_910003@gfv.local",
+    "aziendaNome": "Az. Agr. Ricci",
+    "seedVersion": 2,
+    "createdAt": "2026-07-25T05:04:13.499Z",
+    "personas": [
+      {
+        "userId": "5KeD7NvSafVEiw1HKuQ67XPnlQCi",
+        "email": "sim+ricci_910003@gfv.local",
+        "displayName": "Anna Ricci",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "XxtFJpadrYsU0gOl9jBhWXpn2uGK",
+        "email": "sim+ricci_910003_capo1@gfv.local",
+        "displayName": "Andrea Gallo",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "HjwfiNnMKLGfwwJqNU82uFkYCAsU",
+        "email": "sim+ricci_910003_capo2@gfv.local",
+        "displayName": "Chiara Ferrari",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "tMpJD9Ovai75cAGm34wFXReTrR5t",
+        "email": "sim+ricci_910003_op1@gfv.local",
+        "displayName": "Andrea Gallo",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "cEdBEjLfJIU4UbYPey8nI08T12TJ",
+        "email": "sim+ricci_910003_op2@gfv.local",
+        "displayName": "Chiara Ferrari",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "kZBAY6DUyu4bMn4sWGBjopJvIzkK",
+        "email": "sim+ricci_910003_op3@gfv.local",
+        "displayName": "Giuseppe Gallo",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "ACje1lS7VqtnaOSGqGu1ONGdc0J6",
+        "email": "sim+ricci_910003_op4@gfv.local",
+        "displayName": "Elena Ferrari",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "J1KR4v9uda5P7H9SpY0eZc3M4mBF",
+        "email": "sim+ricci_910003_op5@gfv.local",
+        "displayName": "Stefano Gallo",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "lNeVL1SMuLpYRDMebUJKC3Kg3zKd",
+        "email": "sim+ricci_910003_op6@gfv.local",
+        "displayName": "Lucia Ferrari",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "LEzHjWwkPfe8E02U68gtKeo3NZDL",
+        "email": "sim+ricci_910003_op7@gfv.local",
+        "displayName": "Paolo Gallo",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "cKjfDDpxqeWrxzsrblJGU5V1OEyJ",
+        "email": "sim+ricci_910003_op8@gfv.local",
+        "displayName": "Francesca Ferrari",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "aaecd063-2de3-4a27-a89d-0c9e5d03e70b",
+    "templateId": "lab-sost-04-assenze-miste",
+    "tenantId": "sim_tenuta_marini_910004",
+    "userId": "UFg1cr34Uso278tBPk6LCszVEi2I",
+    "email": "sim+marini_910004@gfv.local",
+    "aziendaNome": "Tenuta Marini",
+    "seedVersion": 2,
+    "createdAt": "2026-07-25T05:04:15.690Z",
+    "personas": [
+      {
+        "userId": "UFg1cr34Uso278tBPk6LCszVEi2I",
+        "email": "sim+marini_910004@gfv.local",
+        "displayName": "Paolo Marini",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "FsdUKIx8k00sOwXlC1JQlQMUwiMp",
+        "email": "sim+marini_910004_capo1@gfv.local",
+        "displayName": "Francesca Conti",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "GC4g5IV4cCRQeKd7yGLYKVGQ2OdB",
+        "email": "sim+marini_910004_capo2@gfv.local",
+        "displayName": "Marco Romano",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "KhCesWVVPz9hXoLv3q6HjcRoCT2W",
+        "email": "sim+marini_910004_op1@gfv.local",
+        "displayName": "Francesca Conti",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "ZdUDnqwEjgQvHBJUVxtd6oPdul6m",
+        "email": "sim+marini_910004_op2@gfv.local",
+        "displayName": "Marco Romano",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "3ojztIZ1NGngUoPUVUiU94FkaA1c",
+        "email": "sim+marini_910004_op3@gfv.local",
+        "displayName": "Anna Conti",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "oYkgb7mPgW7xnpfFC9j5TSJmfSnL",
+        "email": "sim+marini_910004_op4@gfv.local",
+        "displayName": "Andrea Romano",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "mFmhGGLws5ev4i9Vlw2Ay6LDN6RJ",
+        "email": "sim+marini_910004_op5@gfv.local",
+        "displayName": "Chiara Conti",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "6oPfwf7zP6iOohTD5gGahTFR5Dox",
+        "email": "sim+marini_910004_op6@gfv.local",
+        "displayName": "Giuseppe Romano",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "80e9f6e0-909f-4f42-b793-8bc96716f061",
+    "templateId": "lab-sost-05-trapianto-e-soft",
+    "tenantId": "sim_azienda_vitivinicola_gallo_910005",
+    "userId": "VMKOWQMsdDUFbsXFLOVqHeJGZ3Iy",
+    "email": "sim+gallo_910005@gfv.local",
+    "aziendaNome": "Azienda Vitivinicola Gallo",
+    "seedVersion": 2,
+    "createdAt": "2026-07-25T05:04:17.982Z",
+    "personas": [
+      {
+        "userId": "VMKOWQMsdDUFbsXFLOVqHeJGZ3Iy",
+        "email": "sim+gallo_910005@gfv.local",
+        "displayName": "Elena Gallo",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "t9cGeoKGbD1uAxoY6zQqxXWbfizi",
+        "email": "sim+gallo_910005_capo1@gfv.local",
+        "displayName": "Stefano Bianchi",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "jet2uDpwaZ5Dtha85W6tklTD3OHl",
+        "email": "sim+gallo_910005_op1@gfv.local",
+        "displayName": "Stefano Bianchi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "xSbNMAByQtfwVztp7IirpOeBXvJk",
+        "email": "sim+gallo_910005_op2@gfv.local",
+        "displayName": "Lucia Colombo",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "izwxMQOvFVZAGEVqwMOr9cJCtlRF",
+        "email": "sim+gallo_910005_op3@gfv.local",
+        "displayName": "Paolo Bianchi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "dCwS8uGGxLsVUmWAbFaawTAZTIbB",
+        "email": "sim+gallo_910005_op4@gfv.local",
+        "displayName": "Francesca Colombo",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "tBfKCFpKsiLgmoLM4tKK6r9lmFhc",
+        "email": "sim+gallo_910005_op5@gfv.local",
+        "displayName": "Marco Bianchi",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "395a0b58-a89e-49e1-8c87-80f90bf36b98",
+    "templateId": "viticola-conto-terzi-manodopera",
+    "tenantId": "sim_tenuta_verdi_053289",
+    "userId": "zhGZCCzDUSdmnfIpqzACHz1wpIVx",
+    "email": "sim+verdi_1784956053289@gfv.local",
+    "aziendaNome": "Tenuta Verdi",
+    "seedVersion": 2,
+    "createdAt": "2026-07-25T05:07:33.420Z",
+    "personas": [
+      {
+        "userId": "zhGZCCzDUSdmnfIpqzACHz1wpIVx",
+        "email": "sim+verdi_1784956053289@gfv.local",
+        "displayName": "Chiara Verdi",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "7psXV34SjwqOr9lpLmnIWGdROUuG",
+        "email": "sim+verdi_1784956053289_capo1@gfv.local",
+        "displayName": "Giuseppe Romano",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "by6WjNzCVkf3iE5DsdOfch4tLyoz",
+        "email": "sim+verdi_1784956053289_op1@gfv.local",
+        "displayName": "Giuseppe Romano",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "jgwDseTbraxkcY7wf3xl4qvGuAu6",
+        "email": "sim+verdi_1784956053289_op2@gfv.local",
+        "displayName": "Elena Conti",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "ZyuuHcFV1ledXJTlAEv0WNBX9ETG",
+        "email": "sim+verdi_1784956053289_op3@gfv.local",
+        "displayName": "Stefano Romano",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
   }
 ]

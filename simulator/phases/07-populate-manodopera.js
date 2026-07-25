@@ -11,6 +11,11 @@ import { getSimProfile, requireSimTenantId, requireSimUserId } from '../lib/sim-
 import { hasFruttetoModule, hasVignetoModule, isFruttetoTemplate } from '../lib/load-template.js';
 import { seedCateneFruttetoFromLavori } from '../lib/frutteto-stub-from-trigger.js';
 import { seedCateneVignetoFromLavori } from '../lib/vigneto-stub-from-trigger.js';
+import {
+  enrichLavoriSostituzioniLab,
+  isSostituzioniLabTemplate,
+  seedProfiliSkillLab
+} from '../lib/manodopera-sostituzioni-lab.js';
 
 const TIPI_LAVORO = ['Potatura', 'Trattamento', 'Erpicatura', 'Concimazione'];
 
@@ -88,6 +93,7 @@ export async function runPopulateManodopera(assets = {}) {
   const terreni = assets.terreni || [];
   const trattori = assets.trattori || [];
   const attrezzi = assets.attrezzi || [];
+  const attrezziSpeciali = assets.attrezziSpeciali || [];
   const vigneti = assets.vigneti || [];
   const frutteti = assets.frutteti || [];
   const fruttetoOnly = isFruttetoTemplate(template);
@@ -259,10 +265,35 @@ export async function runPopulateManodopera(assets = {}) {
     return { squadre, lavoriSquadra, lavoriAutonomi, lavoriCatena };
   });
 
+  let lavoriSpeciali = [];
+  let labTags = {};
+  let profiliLab = null;
+  if (isSostituzioniLabTemplate(template)) {
+    const skillMode = template.manodopera?.lab?.skillMode || 'mista';
+    profiliLab = await seedProfiliSkillLab(db, tenantId, personasFull, skillMode);
+    const labEnrich = await runAsPersona(managerDoc, () =>
+      enrichLavoriSostituzioniLab({
+        db,
+        tenantId,
+        managerId,
+        template,
+        personasFull,
+        squadre: result.squadre,
+        lavoriSquadra: result.lavoriSquadra,
+        terreni,
+        trattori,
+        attrezziSpeciali
+      })
+    );
+    lavoriSpeciali = labEnrich.lavoriSpeciali || [];
+    labTags = labEnrich.tags || {};
+  }
+
   const tuttiLavori = [
     ...result.lavoriSquadra,
     ...result.lavoriAutonomi,
-    ...(result.lavoriCatena || [])
+    ...(result.lavoriCatena || []),
+    ...lavoriSpeciali
   ];
 
   let cateneVigneto = null;
@@ -278,9 +309,11 @@ export async function runPopulateManodopera(assets = {}) {
 
   const counts = {
     squadre: result.squadre.length,
-    lavoriSquadra: result.lavoriSquadra.length + (result.lavoriCatena || []).length,
+    lavoriSquadra: result.lavoriSquadra.length + (result.lavoriCatena || []).length + lavoriSpeciali.length,
     lavoriAutonomi: result.lavoriAutonomi.length,
-    lavoriCatena: (result.lavoriCatena || []).length
+    lavoriCatena: (result.lavoriCatena || []).length,
+    lavoriSpecialiLab: lavoriSpeciali.length,
+    profiliSkillLab: profiliLab?.profili || 0
   };
 
   if (cateneFrutteto) {
@@ -299,6 +332,8 @@ export async function runPopulateManodopera(assets = {}) {
 
   return {
     ...result,
+    lavoriSpeciali,
+    labTags,
     cateneVigneto,
     cateneFrutteto,
     counts

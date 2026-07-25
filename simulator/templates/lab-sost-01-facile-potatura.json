@@ -1,0 +1,25 @@
+{
+  "templateId": "lab-sost-01-facile-potatura",
+  "descrizione": "Lab sostituzioni #1 — potatura variabile, shortlist facile (molti skill), malattia→standby da gestire a mano",
+  "extends": "viticola-conto-terzi-manodopera",
+  "quantities": {
+    "caposquadra": 1,
+    "operai": 5,
+    "squadre": 1,
+    "lavoriSquadra": 2,
+    "lavoriAutonomi": 1,
+    "giorniOreSimulate": 5,
+    "attrezzi": 3
+  },
+  "manodopera": {
+    "assenzaMalattia": false,
+    "standbyAssenzaMalattia": false,
+    "oreDaValidarePending": 1,
+    "scenarioLab": "01-facile-potatura",
+    "lab": {
+      "attrezzatureSpeciali": true,
+      "lavoriSpeciali": ["potatura_variabile"],
+      "skillMode": "facile"
+    }
+  }
+}

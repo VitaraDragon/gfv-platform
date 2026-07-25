@@ -220,6 +220,17 @@ export function resolveRequiredSkillsForLavoro(lavoroContext = {}) {
     note.push('equipaggio_carro_raccolta_frutta');
   }
 
+  // Attrezzi con minimo esplicito (es. trapiantatrice) anche fuori regola carro
+  const minDirect = lavoroContext.attrezzo?.minPersoneEquipaggio;
+  if (
+    equipaggioMinimo == null &&
+    typeof minDirect === 'number' &&
+    minDirect > 0
+  ) {
+    equipaggioMinimo = minDirect;
+    note.push('equipaggio_min_da_attrezzo');
+  }
+
   const hasMacchina =
     Boolean(lavoroContext.macchinaId) || Boolean(lavoroContext.operatoreMacchinaId);
 

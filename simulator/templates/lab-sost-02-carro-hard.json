@@ -1,0 +1,25 @@
+{
+  "templateId": "lab-sost-02-carro-hard",
+  "descrizione": "Lab sostituzioni #2 — frutteto, carro raccolta min 4, skill scarse → shortlist difficile + banner equipaggio",
+  "extends": "frutteto-conto-terzi-manodopera",
+  "quantities": {
+    "caposquadra": 1,
+    "operai": 5,
+    "squadre": 1,
+    "lavoriSquadra": 1,
+    "lavoriAutonomi": 1,
+    "giorniOreSimulate": 5,
+    "attrezzi": 2
+  },
+  "manodopera": {
+    "assenzaMalattia": false,
+    "standbyAssenzaMalattia": false,
+    "oreDaValidarePending": 1,
+    "scenarioLab": "02-carro-hard",
+    "lab": {
+      "attrezzatureSpeciali": true,
+      "lavoriSpeciali": ["carro_raccolta", "potatura_variabile"],
+      "skillMode": "difficile"
+    }
+  }
+}

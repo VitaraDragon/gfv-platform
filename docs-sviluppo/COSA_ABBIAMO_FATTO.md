@@ -1,6 +1,57 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-24 — Vista impegni giornalieri manodopera.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-25 — Lab + canary sostituzione (test locale documentati).
+
+## Manodopera — lab + canary sostituzione: come abbiamo testato (2026-07-25)
+
+### Cosa è stato aggiunto (strumenti)
+
+| Pezzo | Path / comando |
+| ----- | -------------- |
+| **5 template lab** | `simulator/templates/lab-sost-01-…` … `lab-sost-05-…` |
+| **Seed lab** | `simulator/lib/manodopera-sostituzioni-lab.js` + hook fasi 02/07/08; `assegnaSostitutoAssenzaSim` in `manodopera-sim-actions.js` |
+| **Runner 5 aziende** | `npm run sim:run:sostituzioni-lab` → `simulator/run-sostituzioni-lab.js` |
+| **Playbook prove** | `simulator/PLAYBOOK_SOSTITUZIONI_LAB.md` |
+| **Canary E2E completo** | `npm run manodopera:sostituzione-canary` → `scripts/manodopera-sostituzione-canary.mjs` (**14 check**) |
+| **Config prodotto usata dai test** | tipo assenza `ingiustificata`; `minPersoneEquipaggio` generico in `manodopera-skills-config.js` |
+
+### Ambiente e stack usati (locale, non GitHub Actions)
+
+1. **Firebase Emulator** Auth+Firestore — `npm run sim:emulators` (`127.0.0.1:9099` / `8080`, hub `4000`).  
+2. **http-server** — `npm start` su `http://127.0.0.1:8000`.  
+3. **Seed lab** — 5 tenant diversi (potatura facile, carro min4, prestito, assenze miste, trapianto+soft).  
+4. **Seed canary** — `viticola-conto-terzi-manodopera` (tenant “classico” per Playwright).  
+5. **Playwright** (`playwright-core` + Chrome channel) — login da `simulator-dev-standalone.html?emulator=1`, password `SimGFV2026!`.  
+6. **Verifica dati lab** — script Node Admin SDK sull’emulator: assenze/tipi, standby, impegni (assenti ≠ liberi).  
+7. **Vitest unitari** — `manodopera-impegni-giorno.test.js` (+ suite policy/shortlist già presenti).
+
+### Esito locale (2026-07-25)
+
+- Lab seed: **5/5 OK**.  
+- Verifica impegni/assenze sui 5 tenant: **LAB_VERIFY_OK**.  
+- Canary flusso completo: **14/14 PASS** (capo segnala → manager standby/shortlist/assegna → operaio ore → capo valida+zona+`completato_da_approvare` → manager `completato`).
+
+### Incidenti locali (non bug prodotto)
+
+| Problema | Cosa si è fatto |
+| -------- | --------------- |
+| Emulatori “zombie” (terminale ancora aperto, porte `8080`/`9099` morte; health `emu false`) | Riavvio `sim:emulators` + nuovo `npm start`; poi seed/canary. |
+| Tentativo di kill processi Java/porte host | **Bloccato da Cursor Auto-review** (permesso sicurezza: stop forzato processi host troppo ampio) — non usato; ripartenza pulita degli emulatori senza kill di massa. |
+| Canary: `getCurrentUserData()` nullo sul field-workspace | Adeguato il canary (Auth + `addDoc`/`updateDoc` come l’UI), non patch al core auth. |
+
+### Nota CI GitHub
+
+Queste prove sono state eseguite **solo in locale** (emulator + http-server + Playwright desktop). Storicamente, quando i test E2E/sim falliscono in modo intermittente o “strano”, il punto debole è spesso **GitHub Actions** (tempi, browser, cold start emulator, parallelismo), non il flusso funzionale già verificato a macchina. Il canary sostituzione **non** è (ancora) un job CI obbligatorio: va lanciato a mano o aggiunto in workflow dedicato se serve gate remoto.
+
+## Simulatore — lab sostituzioni manodopera (2026-07-25)
+
+| Area | Dettaglio |
+| ---- | --------- |
+| **Comando** | `npm run sim:run:sostituzioni-lab` (prereq `sim:emulators`) |
+| **Template** | `lab-sost-01`…`05` — potatura facile, carro hard, prestito, assenze miste (anche **ingiustificata**), trapiantatrice+soft |
+| **Seed** | Attrezzi carro/trapiantatrice con `minPersoneEquipaggio`; skill `profiliManodopera`; matrice assenze; sostituzioni/prestito via `assegnaSostitutoAssenzaSim` |
+| **Playbook** | `simulator/PLAYBOOK_SOSTITUZIONI_LAB.md` |
+| **Config** | Tipo assenza `ingiustificata`; `equipaggioMinimo` anche da `minPersoneEquipaggio` generico |
 
 ## Manodopera — vista impegni giornalieri (2026-07-24)
 

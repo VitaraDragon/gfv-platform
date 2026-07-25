@@ -1,0 +1,25 @@
+{
+  "templateId": "lab-sost-05-trapianto-e-soft",
+  "descrizione": "Lab sostituzioni #5 — trapiantatrice min 3 (standby manuale) + potatura soft con sostituzione già completata",
+  "extends": "viticola-conto-terzi-manodopera",
+  "quantities": {
+    "caposquadra": 1,
+    "operai": 5,
+    "squadre": 1,
+    "lavoriSquadra": 1,
+    "lavoriAutonomi": 1,
+    "giorniOreSimulate": 5,
+    "attrezzi": 2
+  },
+  "manodopera": {
+    "assenzaMalattia": false,
+    "standbyAssenzaMalattia": false,
+    "oreDaValidarePending": 1,
+    "scenarioLab": "05-trapianto-e-soft",
+    "lab": {
+      "attrezzatureSpeciali": true,
+      "lavoriSpeciali": ["trapiantatrice", "potatura_variabile"],
+      "skillMode": "difficile"
+    }
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "templateId": "lab-sost-03-prestito-occupati",
+  "descrizione": "Lab sostituzioni #3 — 2 squadre, tutti impegnati, prestito da lavoro scalabile (doppio movimento già seedato)",
+  "extends": "viticola-conto-terzi-manodopera",
+  "quantities": {
+    "caposquadra": 2,
+    "operai": 8,
+    "squadre": 2,
+    "lavoriSquadra": 2,
+    "lavoriAutonomi": 1,
+    "giorniOreSimulate": 5,
+    "attrezzi": 3
+  },
+  "manodopera": {
+    "assenzaMalattia": false,
+    "standbyAssenzaMalattia": false,
+    "oreDaValidarePending": 2,
+    "scenarioLab": "03-prestito-occupati",
+    "lab": {
+      "attrezzatureSpeciali": true,
+      "lavoriSpeciali": ["potatura_variabile", "lavoro_scalabile"],
+      "skillMode": "mista",
+      "autoSostituzioneSpostabile": true
+    }
+  }
+}

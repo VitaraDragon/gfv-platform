@@ -17,6 +17,7 @@ export const ASSENZA_TIPI = Object.freeze([
   { id: 'permesso', label: 'Permesso' },
   { id: 'infortunio', label: 'Infortunio' },
   { id: 'non_presenza', label: 'Non presenza / giustificata in sede' },
+  { id: 'ingiustificata', label: 'Assenza ingiustificata' },
   { id: 'altro', label: 'Altro' }
 ]);
 

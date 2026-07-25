@@ -1,0 +1,26 @@
+{
+  "templateId": "lab-sost-04-assenze-miste",
+  "descrizione": "Lab sostituzioni #4 — matrice tipi assenza (malattia, ferie, permesso, ingiustificata, non_presenza) + un standby aperto",
+  "extends": "viticola-conto-terzi-manodopera",
+  "quantities": {
+    "caposquadra": 2,
+    "operai": 6,
+    "squadre": 2,
+    "lavoriSquadra": 3,
+    "lavoriAutonomi": 1,
+    "giorniOreSimulate": 5,
+    "attrezzi": 3
+  },
+  "manodopera": {
+    "assenzaMalattia": false,
+    "standbyAssenzaMalattia": false,
+    "oreDaValidarePending": 1,
+    "scenarioLab": "04-assenze-miste",
+    "lab": {
+      "attrezzatureSpeciali": true,
+      "lavoriSpeciali": ["potatura_variabile", "carro_raccolta"],
+      "skillMode": "mista",
+      "autoSostituzioneLibera": true
+    }
+  }
+}
