@@ -468,7 +468,8 @@ export async function runConcimazioneDiarioCompletaWriteAssertions(page, expect)
     const usciteAfter = await countMovimentiUscita(page);
     expect(usciteAfter).toBeGreaterThanOrEqual(usciteBefore + 1);
 
-    const noteCells = await page.locator('#movimenti-container .movimenti-table tbody td:nth-child(10)').allTextContents();
+    // Colonna 1 = checkbox bulk; Note = 11
+    const noteCells = await page.locator('#movimenti-container .movimenti-table tbody td:nth-child(11)').allTextContents();
     expect(noteCells.some((n) => /Scarico da trattamento/i.test(n))).toBe(true);
   } else {
     const completedRow = ourConcimazioneAttivitaRows(page).first();

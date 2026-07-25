@@ -139,11 +139,12 @@ export async function runProdottiWriteAssertions(page, expect) {
   expect(rowCount).toBeGreaterThanOrEqual(1);
 
   const row = markerRows.first();
-  await expect(row.locator('td').nth(0)).toContainText(E2E_PRODOTTO_WRITE_CODICE);
-  await expect(row.locator('td').nth(1)).toContainText(E2E_PRODOTTO_WRITE_NOME);
-  await expect(row.locator('td').nth(2)).toContainText('ricambi');
-  await expect(row.locator('td').nth(3)).toContainText('pezzi');
-  await expect(row.locator('td').nth(4)).toContainText('0');
-  await expect(row.locator('td').nth(5)).toContainText(WRITE_SCORTA_MINIMA);
+  // Colonna 0 = checkbox bulk; Codice/Nome/… spostati di +1
+  await expect(row.locator('td').nth(1)).toContainText(E2E_PRODOTTO_WRITE_CODICE);
+  await expect(row.locator('td').nth(2)).toContainText(E2E_PRODOTTO_WRITE_NOME);
+  await expect(row.locator('td').nth(3)).toContainText('ricambi');
+  await expect(row.locator('td').nth(4)).toContainText('pezzi');
+  await expect(row.locator('td').nth(5)).toContainText('0');
+  await expect(row.locator('td').nth(6)).toContainText(WRITE_SCORTA_MINIMA);
   await expect(row.locator('.badge-attivo')).toBeVisible();
 }

@@ -120,7 +120,8 @@ export async function runMovimentiWriteAssertions(page, expect) {
     rowCount = await markerRows.count();
   } else {
     const firstRow = markerRows.first();
-    expectedProdotto = ((await firstRow.locator('td').nth(1).textContent()) || '').trim();
+    // Colonna 0 = checkbox bulk; Prodotto = 2
+    expectedProdotto = ((await firstRow.locator('td').nth(2).textContent()) || '').trim();
   }
 
   expect(rowCount).toBeGreaterThanOrEqual(1);
@@ -128,10 +129,11 @@ export async function runMovimentiWriteAssertions(page, expect) {
   const row = markerRows.first();
   await expect(row.locator('.badge-entrata')).toBeVisible();
   await expect(row).toContainText(E2E_MOVIMENTO_WRITE_NOTE);
-  await expect(row.locator('td').nth(3)).toContainText(WRITE_QUANTITA);
+  // Quantità = colonna 4 (dopo checkbox, data, prodotto, tipo)
+  await expect(row.locator('td').nth(4)).toContainText(WRITE_QUANTITA);
 
   if (expectedProdotto) {
     const prodottoShort = expectedProdotto.split('(')[0].trim();
-    await expect(row.locator('td').nth(1)).toContainText(prodottoShort);
+    await expect(row.locator('td').nth(2)).toContainText(prodottoShort);
   }
 }

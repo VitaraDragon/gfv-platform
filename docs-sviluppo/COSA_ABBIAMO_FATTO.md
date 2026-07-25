@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-25 — Lab + canary sostituzione (test locale documentati).
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-25 — Fix E2E magazzino indici colonne checkbox.
+
+## E2E sim — fix indici colonne magazzino (checkbox bulk) (2026-07-25)
+
+| Contesto | CI `sim:e2e` rossa su `main` (es. [30145472438](https://github.com/VitaraDragon/gfv-platform/actions/runs/30145472438)): 5 spec magazzino fail |
+| -------- | --- |
+| Causa | Tabelle `movimenti-standalone` / `prodotti-standalone` con colonna checkbox bulk in testa; i test leggevano ancora gli indici pre-checkbox (`Attività`/`Note`/`Quantità`/`Codice` sfasati di 1) |
+| Fix | +1 sugli indici in `tests/e2e/sim/scenarios/movimenti.mjs`, `movimenti-write.mjs`, `movimenti-uscita-write.mjs`, `prodotti-write.mjs`, `concimazione-diario-completa-write.mjs` (flusso-operativo riusa `runMovimentiAssertions`) |
+| Non toccato | Seed / HTML prodotto — solo assert E2E |
 
 ## Manodopera — lab + canary sostituzione: come abbiamo testato (2026-07-25)
 

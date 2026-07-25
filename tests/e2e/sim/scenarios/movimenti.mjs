@@ -34,7 +34,8 @@ export async function runMovimentiAssertions(page, expect) {
   const usciteBadges = table.locator('.badge-uscita');
   expect(await usciteBadges.count()).toBeGreaterThanOrEqual(10);
 
-  const attivitaCells = await table.locator('tbody td:nth-child(9)').allTextContents();
+  // Colonna 1 = checkbox bulk; Attività = 10, Note = 11, Prodotto = 3
+  const attivitaCells = await table.locator('tbody td:nth-child(10)').allTextContents();
   const linkedAttivita = attivitaCells.filter(
     (t) => t.trim() !== '-' && /Trattamento|Concimazione|Controllo fitosanitario/i.test(t)
   );
@@ -46,10 +47,10 @@ export async function runMovimentiAssertions(page, expect) {
   );
   expect(matchedTipi.length).toBeGreaterThanOrEqual(2);
 
-  const noteCells = await table.locator('tbody td:nth-child(10)').allTextContents();
+  const noteCells = await table.locator('tbody td:nth-child(11)').allTextContents();
   expect(noteCells.some((n) => /Scarico da trattamento/i.test(n))).toBe(true);
 
-  const prodotti = await table.locator('tbody td:nth-child(2)').allTextContents();
+  const prodotti = await table.locator('tbody td:nth-child(3)').allTextContents();
   expect(prodotti.filter((p) => p.trim().length > 0 && p.trim() !== '-').length).toBeGreaterThanOrEqual(10);
 
   await expect(page.getByRole('heading', { name: 'Elenco Movimenti' })).toBeVisible();
