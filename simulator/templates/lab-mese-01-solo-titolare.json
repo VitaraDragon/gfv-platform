@@ -1,0 +1,26 @@
+{
+  "templateId": "lab-mese-01-solo-titolare",
+  "descrizione": "Lab 1 mese — solo proprietario lavoratore (vigneto+macchine+magazzino, senza manodopera)",
+  "extends": "solo-titolare-viticola",
+  "scenarioMese": true,
+  "quantities": {
+    "terreni": 4,
+    "trattori": 2,
+    "attrezzi": 4,
+    "flotta": 4,
+    "vigneti": 4,
+    "prodotti": 8,
+    "attivitaGiorniLavorativi": 22,
+    "potatureVigneto": 5,
+    "trattamentiVigneto": 14,
+    "guasti": 2
+  },
+  "attivita": {
+    "scenarioMese": true,
+    "tipiLavoro": ["Potatura", "Trattamento", "Erpicatura", "Concimazione", "Controllo fitosanitario"]
+  },
+  "magazzino": {
+    "lasciaStubTrattamentiIncompleti": 1,
+    "seedCarichiMese": 6
+  }
+}

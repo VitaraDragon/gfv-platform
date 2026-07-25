@@ -55,6 +55,10 @@ npm run sim:run:demo-max
 # Playbook (prove manuali + canary + note test locale): simulator/PLAYBOOK_SOSTITUZIONI_LAB.md
 npm run sim:run:sostituzioni-lab
 
+# Lab 1 mese — 5 aziende diverse (~22 gg: solo titolare, manodopera, frutteto+CT, mista full, guasti)
+# Playbook: simulator/PLAYBOOK_MESE_AZIENDE.md
+npm run sim:run:mese-aziende
+
 # Canary E2E flusso completo sostituzione (Playwright, 14 check) — richiede emulator + npm start
 # + seed: npm run sim:run -- --template=viticola-conto-terzi-manodopera
 npm run manodopera:sostituzione-canary

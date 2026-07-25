@@ -73,8 +73,24 @@ export async function seedGuastiDemo(db, options = {}) {
   const guasti = [];
   let guastiAperti = 0;
 
-  for (let i = 0; i < Math.min(count, profiles.length); i++) {
-    const p = profiles[i];
+  // Oltre i 3 profili base: cicla con trattore/attrezzo diversi (lab stress guasti).
+  for (let i = 0; i < count; i++) {
+    const base = profiles[i % profiles.length];
+    const trattoreExtra = trattori[i % Math.max(trattori.length, 1)]?.id || trattoreId;
+    const attrezzoExtra = attrezzoIds[i % Math.max(attrezzoIds.length, 1)] || attrezzo1;
+    const p = i < profiles.length
+      ? base
+      : {
+          ...base,
+          macchinaId: base.macchinaId ? trattoreExtra : null,
+          attrezzoId: base.attrezzoId ? attrezzoExtra : null,
+          updateAttrezzoId: base.updateAttrezzoId ? attrezzoExtra : undefined,
+          dettagli: `${base.dettagli} [#${i + 1}]`,
+          // Extra oltre i 3: lascia aperti per stress UI (non ri-marcare risolti in loop)
+          stato: i % 2 === 0 ? 'in-attesa' : base.stato,
+          risolto: i % 2 === 0 ? false : base.risolto,
+          macchinaStato: i % 2 === 0 ? 'guasto' : base.macchinaStato
+        };
     const payload = {
       tipoGuasto: p.tipoGuasto,
       gravita: p.gravita,

@@ -16,6 +16,11 @@ import {
   isSostituzioniLabTemplate,
   seedProfiliSkillLab
 } from '../lib/manodopera-sostituzioni-lab.js';
+import {
+  durataLavoroAutonomoMese,
+  durataLavoroSquadraMese,
+  isScenarioMeseTemplate
+} from '../lib/mese-aziende-calendar.js';
 
 const TIPI_LAVORO = ['Potatura', 'Trattamento', 'Erpicatura', 'Concimazione'];
 
@@ -137,15 +142,20 @@ export async function runPopulateManodopera(assets = {}) {
       });
     }
 
+    const scenarioMese = isScenarioMeseTemplate(template);
     const lavoriSquadra = [];
     for (let i = 0; i < nLavoriSquadra; i++) {
       const squadra = squadre[i % squadre.length];
       const terreno = terrenoForLavoroSquadra(terrenoCtx, i);
       const trattore = trattori[i % Math.max(trattori.length, 1)];
       const attrezzo = attrezzi[i % Math.max(attrezzi.length, 1)];
+      // Lab mese: alterna lavori meccanizzati (macchina) e manuali (solo potatura senza macchina)
       const tipoLavoro = misto && i === 0
         ? 'Trattamento'
-        : TIPI_LAVORO[i % TIPI_LAVORO.length];
+        : scenarioMese && i % 2 === 1
+          ? 'Potatura'
+          : TIPI_LAVORO[i % TIPI_LAVORO.length];
+      const manuale = scenarioMese && tipoLavoro === 'Potatura' && i % 2 === 1;
 
       const lavoroData = {
         nome: `${tipoLavoro} squadra ${i + 1}`,
@@ -153,12 +163,14 @@ export async function runPopulateManodopera(assets = {}) {
         caposquadraId: squadra.caposquadraId,
         tipoLavoro,
         dataInizio,
-        durataPrevista: 5 + (i % 3),
+        durataPrevista: durataLavoroSquadraMese(i, scenarioMese),
         stato: 'assegnato',
-        note: 'Lavoro squadra simulatore v2',
+        note: scenarioMese
+          ? (manuale ? 'Lavoro squadra lab mese — manuale' : 'Lavoro squadra lab mese — con macchina')
+          : 'Lavoro squadra simulatore v2',
         creatoDa: managerId,
-        macchinaId: trattore?.id || null,
-        attrezzoId: attrezzo?.id || null,
+        macchinaId: manuale ? null : (trattore?.id || null),
+        attrezzoId: manuale ? null : (attrezzo?.id || null),
         superficieTotaleLavorata: 0,
         percentualeCompletamento: 0,
         giorniEffettivi: 0
@@ -185,9 +197,9 @@ export async function runPopulateManodopera(assets = {}) {
         operaioId: operaio.id,
         tipoLavoro,
         dataInizio,
-        durataPrevista: 3 + i,
+        durataPrevista: durataLavoroAutonomoMese(i, scenarioMese),
         stato: 'assegnato',
-        note: 'Lavoro autonomo simulatore v2',
+        note: scenarioMese ? 'Lavoro autonomo lab mese (1–2 giorni)' : 'Lavoro autonomo simulatore v2',
         creatoDa: managerId,
         superficieTotaleLavorata: 0,
         percentualeCompletamento: 0,

@@ -7,6 +7,10 @@ import { generaGiorniLavorativi } from '../generators/date-calendario.js';
 import { getEmulatorDb } from '../lib/emulator-context.js';
 import { addTenantDocument } from '../lib/firestore-write.js';
 import { isFruttetoTemplate } from '../lib/load-template.js';
+import {
+  isScenarioMeseTemplate,
+  tipoLavoroPerGiornoMese
+} from '../lib/mese-aziende-calendar.js';
 import { harvestDayIndexForTemplate, isColturaFrutteto } from '../lib/mixed-colture-utils.js';
 import { requireSimTenantId, getSimProfile } from '../lib/sim-context.js';
 
@@ -56,7 +60,9 @@ export async function runSimulateAttivita(assets) {
 
     const tipoLavoro = i === harvestDayIndex
       ? (isFruitTerreno || fruttetoOnly ? 'Raccolta' : 'Vendemmia Manuale')
-      : tipiLavoro[i % tipiLavoro.length];
+      : isScenarioMeseTemplate(template)
+        ? tipoLavoroPerGiornoMese(i, tipiLavoro, { fruttetoOnly, isFruitTerreno })
+        : tipiLavoro[i % tipiLavoro.length];
 
     const colturaDefault = fruttetoOnly ? (attCfg.coltura || 'Melo') : (attCfg.coltura || 'Vite da Vino');
     const coltura = isFruitTerreno ? (terreno.coltura || 'Melo') : colturaDefault;

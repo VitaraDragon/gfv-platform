@@ -1,6 +1,18 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-25 — Fix E2E magazzino indici colonne checkbox.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-25 — Lab Simulator 1 mese / 5 aziende.
+
+## Simulator — lab 1 mese / 5 aziende (2026-07-25)
+
+| Pezzo | Path / comando |
+| ----- | -------------- |
+| **5 template** | `simulator/templates/lab-mese-01-…` … `lab-mese-05-…` (~22 gg lavorativi) |
+| **Mix lavori + durate** | `simulator/lib/mese-aziende-calendar.js` + hook fasi 03/07 |
+| **Carichi magazzino** | `magazzino.seedCarichiMese` in fase 04 (`04-simulate-magazzino.js`) |
+| **Runner + verify** | `npm run sim:run:mese-aziende` → `run-mese-aziende.js` + `mese-aziende-verify.js` |
+| **Playbook** | `simulator/PLAYBOOK_MESE_AZIENDE.md` |
+
+Profili: solo titolare (no manodopera); viti+manodopera; frutteto+CT; mista full moduli seedabili; stress guasti/macchine. Lab locale (non gate CI).
 
 ## E2E sim — fix indici colonne magazzino (checkbox bulk) (2026-07-25)
 

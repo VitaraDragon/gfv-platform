@@ -6,6 +6,7 @@
  */
 
 import { Timestamp } from 'firebase-admin/firestore';
+import { generaGiorniLavorativi } from '../generators/date-calendario.js';
 import { getEmulatorDb } from '../lib/emulator-context.js';
 import { addTenantDocument, normalizeForAdmin } from '../lib/firestore-write.js';
 import { prezzoUnitarioPerScarico } from '../lib/link-scarichi-trattamento-vigneto.js';
@@ -17,6 +18,49 @@ import { expectedFruttetoCountsFromTemplate } from './05-simulate-frutteto.js';
 import { expectedVignetoCountsFromTemplate } from './05-simulate-vigneto.js';
 import { extraCatenaCountsManodopera } from '../lib/vigneto-stub-from-trigger.js';
 import { extraCatenaCountsManodoperaFrutteto } from '../lib/frutteto-stub-from-trigger.js';
+
+/**
+ * Numero entrate (acquisti) da seedare per lab mese.
+ * @param {object} template
+ */
+export function seedCarichiMeseCount(template) {
+  return Math.max(0, Number(template?.magazzino?.seedCarichiMese) || 0);
+}
+
+/**
+ * Seed movimenti entrata (acquisti) + aggiorna giacenza.
+ * @returns {Promise<string[]>}
+ */
+async function seedCarichiMagazzinoMese(db, tenantId, userId, prodotti, giacenzaById, nCarichi) {
+  if (nCarichi <= 0 || !prodotti.length) return [];
+  const dates = generaGiorniLavorativi(Math.max(nCarichi, 5));
+  const ids = [];
+  for (let i = 0; i < nCarichi; i++) {
+    const prodotto = prodotti[i % prodotti.length];
+    const quantita = 10 + (i % 5) * 2;
+    const prezzoU = typeof prodotto.prezzoMedio === 'number'
+      ? prodotto.prezzoMedio
+      : 8 + (i % 4);
+    const dataIso = dates[i % dates.length];
+    const movimentoId = await addTenantDocument(db, tenantId, 'movimentiMagazzino', normalizeForAdmin({
+      prodottoId: prodotto.id,
+      data: Timestamp.fromDate(new Date(`${dataIso}T10:00:00`)),
+      tipo: 'entrata',
+      quantita,
+      prezzoUnitario: prezzoU,
+      lavoroId: null,
+      attivitaId: null,
+      note: `Carico acquisto lab mese (${i + 1}/${nCarichi})`,
+      userId
+    }));
+    ids.push(movimentoId);
+    const prev = giacenzaById.get(prodotto.id) ?? 0;
+    const next = parseFloat((prev + quantita).toFixed(2));
+    giacenzaById.set(prodotto.id, next);
+    await prodotto.ref.update({ giacenza: next, updatedAt: new Date() });
+  }
+  return ids;
+}
 
 const QTY_SCARICO = 3.5;
 const DOSAGGIO = 2.5;
@@ -299,13 +343,50 @@ export async function runSimulateMagazzino(_options = {}) {
     }
   }
 
+  const nCarichi = seedCarichiMeseCount(template);
+  const carichiIds = await seedCarichiMagazzinoMese(
+    db,
+    tenantId,
+    userId,
+    prodotti,
+    giacenzaById,
+    nCarichi
+  );
+  movimentiIds.push(...carichiIds);
+
+  // Ricalcola sotto scorta; con stub incompleti ripristina almeno 1 prodotto sotto soglia
+  // (i carichi possono aver riportato le giacenze sopra minimo).
+  sottoScorta = 0;
+  for (const p of prodotti) {
+    const g = giacenzaById.get(p.id) ?? 0;
+    const min = p.scortaMinima ?? 0;
+    if (min > 0 && g < min) sottoScorta += 1;
+  }
+  if (sottoScorta === 0 && stubLeft > 0) {
+    const target = prodotti.find((p) => (p.scortaMinima ?? 0) > 0);
+    if (target) {
+      const min = target.scortaMinima;
+      const next = Math.max(0, min - 1);
+      await target.ref.update({ giacenza: next, updatedAt: new Date() });
+      giacenzaById.set(target.id, next);
+      sottoScorta = 1;
+    }
+  }
+
   if (vignetoCompletati > 0) {
     await syncSpeseVignetoTenant(db, tenantId, { anno: new Date().getFullYear() });
   }
 
   return {
     movimentiIds,
-    counts: { movimenti: movimentiIds.length, trattamenti: trattamentiCompletati, sottoScorta },
+    carichiIds,
+    counts: {
+      movimenti: movimentiIds.length,
+      uscite: movimentiIds.length - carichiIds.length,
+      carichi: carichiIds.length,
+      trattamenti: trattamentiCompletati,
+      sottoScorta
+    },
     sottoScorta
   };
 }

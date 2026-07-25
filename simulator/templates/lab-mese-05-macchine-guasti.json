@@ -1,0 +1,41 @@
+{
+  "templateId": "lab-mese-05-macchine-guasti",
+  "descrizione": "Lab 1 mese — stress macchine/guasti + mix lavori manuali vs meccanizzati",
+  "extends": "viticola-manodopera",
+  "scenarioMese": true,
+  "quantities": {
+    "terreni": 5,
+    "trattori": 3,
+    "attrezzi": 6,
+    "flotta": 5,
+    "vigneti": 5,
+    "prodotti": 8,
+    "attivitaGiorniLavorativi": 22,
+    "potatureVigneto": 6,
+    "trattamentiVigneto": 14,
+    "caposquadra": 1,
+    "operai": 4,
+    "squadre": 1,
+    "lavoriSquadra": 3,
+    "lavoriAutonomi": 2,
+    "giorniOreSimulate": 22,
+    "guasti": 5
+  },
+  "attivita": {
+    "scenarioMese": true,
+    "tipiLavoro": ["Potatura", "Trattamento", "Erpicatura", "Concimazione", "Controllo fitosanitario"]
+  },
+  "manodopera": {
+    "regimeMax": true,
+    "scenarioMese": true,
+    "comunicazioniSquadra": true,
+    "confermeOperai": true,
+    "assenzaMalattia": true,
+    "standbyAssenzaMalattia": true,
+    "oreDaValidarePending": 2
+  },
+  "magazzino": {
+    "lasciaStubTrattamentiIncompleti": 1,
+    "seedCarichiMese": 5
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "templateId": "lab-mese-04-mista-full",
+  "descrizione": "Lab 1 mese — tutti i moduli seedabili (vigneto+frutteto+parco+magazzino+manodopera+contoTerzi)",
+  "extends": "mista-viticola-frutteto-conto-terzi-manodopera",
+  "scenarioMese": true,
+  "quantities": {
+    "terreni": 6,
+    "terreniVigneto": 3,
+    "terreniFrutteto": 3,
+    "vigneti": 3,
+    "frutteti": 3,
+    "trattori": 2,
+    "attrezzi": 5,
+    "flotta": 4,
+    "prodotti": 10,
+    "attivitaGiorniLavorativi": 22,
+    "potatureVigneto": 4,
+    "trattamentiVigneto": 10,
+    "potatureFrutteto": 3,
+    "trattamentiFrutteto": 8,
+    "caposquadra": 2,
+    "operai": 6,
+    "squadre": 2,
+    "lavoriSquadra": 4,
+    "lavoriAutonomi": 2,
+    "giorniOreSimulate": 22,
+    "clienti": 3,
+    "poderiClienti": 3,
+    "terreniClienti": 6,
+    "tariffe": 10,
+    "preventivi": 6,
+    "guasti": 3
+  },
+  "attivita": {
+    "scenarioMese": true,
+    "tipiLavoro": ["Potatura", "Trattamento", "Erpicatura", "Concimazione", "Controllo fitosanitario"]
+  },
+  "manodopera": {
+    "regimeMax": true,
+    "scenarioMese": true,
+    "comunicazioniSquadra": true,
+    "confermeOperai": true,
+    "assenzaMalattia": true,
+    "standbyAssenzaMalattia": true,
+    "oreDaValidarePending": 2
+  },
+  "magazzino": {
+    "lasciaStubTrattamentiIncompleti": 1,
+    "seedCarichiMese": 8
+  }
+}

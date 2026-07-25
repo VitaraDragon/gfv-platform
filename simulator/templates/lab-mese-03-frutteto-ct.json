@@ -1,0 +1,32 @@
+{
+  "templateId": "lab-mese-03-frutteto-ct",
+  "descrizione": "Lab 1 mese — frutteto + conto terzi senza manodopera (titolare + clienti/preventivi + magazzino)",
+  "extends": "frutteto-conto-terzi",
+  "scenarioMese": true,
+  "quantities": {
+    "terreni": 4,
+    "trattori": 1,
+    "attrezzi": 3,
+    "flotta": 4,
+    "frutteti": 4,
+    "prodotti": 7,
+    "attivitaGiorniLavorativi": 22,
+    "potatureFrutteto": 4,
+    "trattamentiFrutteto": 12,
+    "clienti": 3,
+    "poderiClienti": 3,
+    "terreniClienti": 6,
+    "tariffe": 10,
+    "preventivi": 6,
+    "guasti": 1
+  },
+  "attivita": {
+    "scenarioMese": true,
+    "coltura": "Melo",
+    "tipiLavoro": ["Potatura", "Trattamento", "Erpicatura", "Concimazione", "Controllo fitosanitario"]
+  },
+  "magazzino": {
+    "lasciaStubTrattamentiIncompleti": 1,
+    "seedCarichiMese": 5
+  }
+}

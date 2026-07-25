@@ -1,0 +1,41 @@
+{
+  "templateId": "lab-mese-02-viti-manodopera",
+  "descrizione": "Lab 1 mese — viticola con manodopera (lavori 1g/multi-g, ore, comunicazioni, assenze)",
+  "extends": "viticola-manodopera",
+  "scenarioMese": true,
+  "quantities": {
+    "terreni": 5,
+    "trattori": 2,
+    "attrezzi": 4,
+    "flotta": 4,
+    "vigneti": 5,
+    "prodotti": 8,
+    "attivitaGiorniLavorativi": 22,
+    "potatureVigneto": 5,
+    "trattamentiVigneto": 14,
+    "caposquadra": 1,
+    "operai": 4,
+    "squadre": 1,
+    "lavoriSquadra": 3,
+    "lavoriAutonomi": 2,
+    "giorniOreSimulate": 22,
+    "guasti": 2
+  },
+  "attivita": {
+    "scenarioMese": true,
+    "tipiLavoro": ["Potatura", "Trattamento", "Erpicatura", "Concimazione", "Controllo fitosanitario"]
+  },
+  "manodopera": {
+    "regimeMax": true,
+    "scenarioMese": true,
+    "comunicazioniSquadra": true,
+    "confermeOperai": true,
+    "assenzaMalattia": true,
+    "standbyAssenzaMalattia": true,
+    "oreDaValidarePending": 2
+  },
+  "magazzino": {
+    "lasciaStubTrattamentiIncompleti": 1,
+    "seedCarichiMese": 5
+  }
+}
