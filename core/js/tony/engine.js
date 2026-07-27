@@ -599,20 +599,24 @@ export function isSegnaOraUntrustedPartialStart(h, mi) {
 
 /**
  * Orario che sembra l'orologio/STT (es. 17:53 adesso) — non usare come inizio/fine lavoro.
+ * Ore tonde / mezz'ora (7:00, 18:30) sono orari di lavoro legittimi anche se coincidono
+ * con l'ora corrente (CI/runner spesso parte alle :00 — non devono invalidare «dalle 7»).
  * @param {number} h
  * @param {number} mi
+ * @param {{ explicitWorkRange?: boolean }} [opts]
  * @returns {boolean}
  */
 export function isSegnaOraUntrustedClockTime(h, mi, opts) {
     opts = opts || {};
     if (!Number.isFinite(h) || !Number.isFinite(mi)) return true;
-    if (opts.explicitWorkRange && (mi === 0 || mi === 30)) return false;
+    // Orari tipici di lavoro: mai spurio per coincidenza con l'orologio di sistema.
+    if (mi === 0 || mi === 30) return false;
     var now = new Date();
     if (h === now.getHours() && Math.abs(mi - now.getMinutes()) <= 3) return true;
     // Fascia dalle-alle esplicita: minuti liberi (es. «dalle 7:15 alle 18») sono legittimi.
     if (opts.explicitWorkRange) return false;
-    if (mi !== 0 && mi !== 30) return true;
-    return false;
+    // Minuti “strani” fuori fascia esplicita: tipico artefatto STT.
+    return true;
 }
 
 /**
@@ -795,6 +799,9 @@ export function matchSegnaOraTimeRangeFromBlob(blob) {
     if (m) return trustedRange(m, true);
     m = blob.match(new RegExp('dalle\\s+(\\d{1,2})' + min + '\\s+alle\\s+(\\d{1,2})' + min, 'i'));
     if (m) return trustedRange(m, true);
+    // «dalle 7 fino alle 18» (fino+alle non coperto da glue «fino a»)
+    m = blob.match(new RegExp('dalle\\s+(\\d{1,2})' + min + '\\s+fino\\s+alle\\s+(\\d{1,2})' + min, 'i'));
+    if (m) return trustedRange(m, true);
     // Typo vocali/STT: «daklle 6 aslle 18», «dalle 6 al 18»
     m = blob.match(new RegExp('\\bd[a-z]{0,4}l+e\\s+(\\d{1,2})' + min + '\\s+a[sxz]{0,2}l+e\\s+(\\d{1,2})' + min, 'i'));
     if (m) return trustedRange(m);
@@ -807,17 +814,17 @@ export function matchSegnaOraTimeRangeFromBlob(blob) {
     m = blob.match(new RegExp('(?:^|\\s)(\\d{1,2})' + min + '\\s+alle\\s+(\\d{1,2})' + min + '\\b', 'i'));
     if (m) return trustedRange(m);
     m = blob.match(new RegExp('\\balle\\s+(\\d{1,2})' + min + '\\s+e\\s+(?:sono\\s+)?(?:finito|fine|terminato)\\s+alle\\s+(\\d{1,2})' + min, 'i'));
-    if (m) return trustedRange(m);
+    if (m) return trustedRange(m, true);
     m = blob.match(new RegExp('\\balle\\s+(\\d{1,2})' + min + '\\s+(?:fino\\s+)?alle\\s+(\\d{1,2})' + min, 'i'));
-    if (m) return trustedRange(m);
+    if (m) return trustedRange(m, true);
     m = blob.match(new RegExp('(?:ho\\s+)?(?:iniziato|inizio|cominciato|comincio)\\s+alle\\s+(\\d{1,2})' + min + '\\s+e\\s+(?:sono\\s+)?(?:finito|fine|terminato)\\s+alle\\s+(\\d{1,2})' + min, 'i'));
-    if (m) return trustedRange(m);
+    if (m) return trustedRange(m, true);
     m = blob.match(new RegExp('(?:inizia|iniziato|inizio|cominciato|comincio)\\s+alle\\s+(\\d{1,2})' + min + '\\s+(?:e\\s+)?(?:finito|fine|terminato)?\\s*alle\\s+(\\d{1,2})' + min, 'i'));
-    if (m) return trustedRange(m);
+    if (m) return trustedRange(m, true);
     m = blob.match(new RegExp('(?:inizia|iniziato|inizio)\\s+alle\\s+(\\d{1,2})' + min + '\\s+fine\\s+alle\\s+(\\d{1,2})' + min, 'i'));
-    if (m) return trustedRange(m);
+    if (m) return trustedRange(m, true);
     m = matchSegnaOraLabeledInizioFineFromBlob(blob);
-    if (m) return trustedRange(m);
+    if (m) return trustedRange(m, true);
     var sm = blob.match(new RegExp('(?:ho\\s+)?(?:iniziato|inizio|cominciato|comincio)\\s+alle\\s+(\\d{1,2})' + min, 'i'));
     if (!sm) {
         sm = blob.match(new RegExp('(?:ho\\s+)?(?:iniziato|inizio|cominciato|comincio)\\s+(?!di\\s+fine\\b)(\\d{1,2})' + min, 'i'));
@@ -974,13 +981,17 @@ export function matchSegnaOraTimeRangeFromUserTexts(userTexts) {
         var a0 = alle[0];
         var a1 = alle[alle.length - 1];
         if (a0.h !== a1.h || a0.mi !== a1.mi) {
-            return validateSegnaOraTrustedTimeRangeMatch([
-                userTexts.join(' '),
-                String(a0.h),
-                a0.mi ? String(a0.mi) : '',
-                String(a1.h),
-                a1.mi ? String(a1.mi) : '',
-            ]);
+            // Turni «alle 7» + «alle 18»: fascia di lavoro esplicita (ore tonde tipiche).
+            return validateSegnaOraTrustedTimeRangeMatch(
+                [
+                    userTexts.join(' '),
+                    String(a0.h),
+                    a0.mi ? String(a0.mi) : '',
+                    String(a1.h),
+                    a1.mi ? String(a1.mi) : '',
+                ],
+                { explicitWorkRange: true }
+            );
         }
     }
     return null;

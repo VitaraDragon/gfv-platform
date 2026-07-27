@@ -32,6 +32,26 @@ describe('matchSegnaOraTimeRangeFromBlob', () => {
     });
   });
 
+  it('ore tonde restano valide anche se coincidono con ora di sistema (CI ~07:00 UTC)', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(Date.UTC(2026, 6, 25, 7, 2, 0)));
+    try {
+      expect(toTimes(matchSegnaOraTimeRangeFromBlob('ho iniziato alle 7 e finito alle 18'))).toEqual({
+        start: '07:00',
+        end: '18:00',
+      });
+      expect(toTimes(matchSegnaOraTimeRangeFromUserTexts(['segniamo le ore', 'alle 7', 'alle 18']))).toEqual({
+        start: '07:00',
+        end: '18:00',
+      });
+      const incomplete = matchSegnaOraIncompleteDallePausaFromBlob('dalle 7 alle Dalle 17:53 pausa 45');
+      expect(incomplete).not.toBeNull();
+      expect(incomplete.startH).toBe(7);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('alle 8 e finito alle 19 con pausa', () => {
     expect(toTimes(matchSegnaOraTimeRangeFromBlob('alle 8 e finito alle 19 con 60 min di pausa'))).toEqual({
       start: '08:00',
