@@ -1,7 +1,7 @@
 # Stato attuale Tony – Verificato sul codice
 
-**Data**: 2026-07-25 (… **lab + canary sostituzione flusso completo** locale — 2026-07-25; **vista impegni giornalieri** — 2026-07-24; **Archivio Occhi Magazzino MVP** + **`prezziInAttesa`** — 2026-07-21; …)  
-**Fonte**: codice + `TONY_DECISIONI_E_REQUISITI.md` (… **lab/canary sostituzione** — 2026-07-25; **vista impegni giornalieri** — 2026-07-24; **hub navigazione manodopera manager** — 2026-06-13; …)  
+**Data**: 2026-07-27 (… **fix CI segna-ore ora tonda + T-FLOW-013** — 2026-07-27; **lab + canary sostituzione** — 2026-07-25; **vista impegni giornalieri** — 2026-07-24; …)  
+**Fonte**: codice + `TONY_DECISIONI_E_REQUISITI.md` (… **segna-ore trust ore tonde** — 2026-07-27; **lab/canary sostituzione** — 2026-07-25; **hub navigazione manodopera manager** — 2026-06-13; …)  
 **Sicurezza (link pubblici, Firestore, callable)**: `docs-sviluppo/SICUREZZA_FLUSSI.md`
 
 ---
@@ -74,7 +74,7 @@
 | Frasi saltate | A fine SSE: `reconcileUnspokenVoiceSegments` vs `spokenTtsTexts` + coda | Fix build `2026-06-20q` |
 | Saluto vs addio | «Ciao Tony tutto bene» → CF normale; «Ok grazie» → messaggio locale + fine sessione | `checkFarewellIntent` + `greetingHints` |
 | Trascrizione domande | Web Speech senza `?` → euristica aggiunge `?` | `applyItalianVoiceQuestionPunctuation` in `engine.js` |
-| Orari segna ore fusi dall'STT | «dalle 7 alle 19» trascritto come «dalle 18:53» (ITN = «le 19 meno 7») → fascia ricostruita `start = 60−MM`, `end = H+1`; orologio corrente ±3 min resta scartato; fasce esplicite accettano minuti liberi (es. «dalle 7:15 alle 18»); messaggio pre-save ripete la fascia interpretata | `reconstructSegnaOraItnClockRange` + `repairSegnaOraVoiceTranscript` in `engine.js`, recap in `tony-segna-ora-local-engine.js` — build `2026-07-15p`, ✅ verificato utente (log console) |
+| Orari segna ore fusi dall'STT | «dalle 7 alle 19» trascritto come «dalle 18:53» (ITN) → ricostruzione `start = 60−MM`, `end = H+1`; **ore tonde / mezz’ora mai scartate** per coincidenza orologio (fix CI 2026-07-27); minuti “strani” ±3 min dall’ora corrente sì; fasce esplicite (`explicitWorkRange`, «fino alle», iniziato/finito) accettano minuti liberi; recap pre-save | `isSegnaOraUntrustedClockTime` + `reconstructSegnaOraItnClockRange` in `engine.js`, recap `tony-segna-ora-local-engine.js` — test `tony-segna-ora-time-range` **38/38**; CI [30236873424](https://github.com/VitaraDragon/gfv-platform/actions/runs/30236873424) ✅ |
 | Debug console | Prefisso `[Tony Voice Auto]` su reopen / CF / TTS idle | Filtrabile in DevTools |
 
 **Deploy:** solo **hosting** (o localhost) per caricare JS aggiornato; **Functions** invariate in questa sessione.
@@ -224,7 +224,9 @@ Documenti creati per riprendere il lavoro **senza perdere contesto** (prompt, ba
 
 Indice: `docs-sviluppo/tony/README.md`.
 
-**Tony + sim E2E (2026-07-11, M-T4 ✅ 17/17, M-T5 ✅):** merge **PR #5** — segna ore desktop (**T-FLOW-022**), gate-fast CI (~4m27s), fix **T-FLOW-016/017** movimenti (giacenza bootstrap, `expect.configure` runner). Fix flake precedenti **T-FLOW-013** e **T-FLOW-014-LIVE**. **Gate locale Playwright app:** hang avvio CLI Windows — usare `sim:e2e:node` + `sim:tony:e2e:gate` fino a fix; CI gate Playwright invariato. Guida: `TONY_E2E_GUIDA_SVILUPPO.md` §8–§10, `simulator/DIAGNOSTIC_WORKFLOW.md`.
+**Tony + sim E2E (2026-07-11, M-T4 ✅ 17/17, M-T5 ✅):** merge **PR #5** — segna ore desktop (**T-FLOW-022**), gate-fast CI (~4m27s), fix **T-FLOW-016/017** movimenti. Fix flake precedenti **T-FLOW-013** e **T-FLOW-014-LIVE**. **Gate locale Playwright app:** hang avvio CLI Windows — usare `sim:e2e:node` + `sim:tony:e2e:gate` fino a fix; CI gate Playwright invariato. Guida: `TONY_E2E_GUIDA_SVILUPPO.md` §8–§10, `simulator/DIAGNOSTIC_WORKFLOW.md`.
+
+**CI Tony (2026-07-27, `d7f3bf5`):** fix vitest segna-ore (ora=7 UTC) + harden **T-FLOW-013** (`ensureLavoroFormComplete` tipo «Altro» / durata / assegnazione). Run [30236873424](https://github.com/VitaraDragon/gfv-platform/actions/runs/30236873424) — `sim:tony:vitest`, `sim:tony:e2e` mock, `sim:e2e`, `sim:test` tutti ✅.
 
 ---
 

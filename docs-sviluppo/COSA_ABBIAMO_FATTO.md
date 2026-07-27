@@ -1,13 +1,15 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-27 — Fix CI Tony segna-ore (ora=7) + T-FLOW-013.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-27 — Fix CI Tony segna-ore + T-FLOW-013 verificato verde.
 
 ## Tony — fix CI vitest segna-ore + T-FLOW-013 (2026-07-27)
 
 | Contesto | Run [30148569033](https://github.com/VitaraDragon/gfv-platform/actions/runs/30148569033): `sim:tony:vitest` + `T-FLOW-013` rossi; `sim:e2e`/`sim:test` ok |
 | -------- | --- |
-| Segna ore | Ore tonde (`7:00`) non vanno più trattate come orologio STT spurio quando coincidono con l’ora CI (UTC ~07:00); path «iniziato/finito», «fino alle», turni multipli → `explicitWorkRange` |
+| Segna ore | Ore tonde (`7:00` / `*:30`) non più “untrusted” per coincidenza orologio sistema (CI ~07:00 UTC); path «iniziato/finito», «fino alle», turni multipli → `explicitWorkRange` (`engine.js`) |
 | T-FLOW-013 | `ensureLavoroFormComplete` corregge tipo «Altro», riempie durata/data/assegnazione prima del save (modal-stuck) |
+| Test / commit | Locale `sim:tony:vitest` **467/467**; `tony-segna-ora-time-range` **38/38**; commit `d7f3bf5` |
+| CI verifica | Run [30236873424](https://github.com/VitaraDragon/gfv-platform/actions/runs/30236873424) **success** — vitest, tony e2e mock (16), sim e2e, sim test |
 
 ## Simulator — lab 1 mese / 5 aziende (2026-07-25)
 
