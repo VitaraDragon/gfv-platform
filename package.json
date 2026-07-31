@@ -75,7 +75,9 @@
     "sim:tony:sync-gemini-secret": "node scripts/sync-gemini-ci-secret.mjs",
     "sim:tony:vitest": "node scripts/sim-tony-vitest-run.mjs",
     "lavoro:ripresa-canary": "node scripts/lavoro-ripresa-canary.mjs",
-    "manodopera:sostituzione-canary": "node scripts/manodopera-sostituzione-canary.mjs"
+    "manodopera:sostituzione-canary": "node scripts/manodopera-sostituzione-canary.mjs",
+    "manodopera:roster-a2-canary": "node scripts/manodopera-roster-a2-canary.mjs",
+    "manodopera:roster-a2-canary:ci": "node simulator/ci-manodopera-roster-a2-run.js"
   },
   "keywords": [
     "agriculture",

@@ -60,6 +60,7 @@ function sliceContextAziendaToTier(azienda, tierMax) {
     out.macchine = azienda.macchine;
     out.trattori = azienda.trattori;
     out.attrezzi = azienda.attrezzi;
+    if (azienda.manodoperaGiorno != null) out.manodoperaGiorno = azienda.manodoperaGiorno;
   }
   if (max >= 4) {
     out.prodotti = azienda.prodotti;

@@ -962,8 +962,14 @@
             <input type="hidden" id="sostituto-assenza-lavoro-id">
             <p id="sostituto-assenza-info" style="font-size:14px;color:#555;margin-bottom:8px;"></p>
             <div id="sostituto-equipaggio-banner"></div>
-            <p style="font-size:13px;color:#666;margin:0 0 8px;">Scegli un candidato (shortlist). Liberi e spostabili con conferma; assenti del giorno esclusi.</p>
+            <p style="font-size:13px;color:#666;margin:0 0 8px;">Percorso consigliato: tap su un candidato della shortlist. Liberi e spostabili con conferma; assenti del giorno esclusi.</p>
             <div id="sostituto-shortlist"></div>
+            <p id="sostituto-manual-wrap" style="margin:14px 0 0;font-size:12px;color:#666;">
+                <button type="button" id="sostituto-scegli-manualmente" class="btn-link-manual" style="background:none;border:none;padding:0;color:#555;text-decoration:underline;cursor:pointer;font-size:12px;">
+                    Scegli manualmente…
+                </button>
+                <span style="color:#888;"> — opzione avanzata (roster del giorno), non sostituisce la shortlist</span>
+            </p>
             <div style="margin-top:16px;">
                 <button type="button" class="btn btn-secondary" onclick="closeSostitutoAssenzaModal()">Chiudi</button>
             </div>
@@ -3236,7 +3242,8 @@
                 // Carica dati utente
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 if (userDoc.exists()) {
-                    currentUserData = userDoc.data();
+                    // id/uid obbligatori per azioni manager (assenze, shortlist sostituti)
+                    currentUserData = { id: user.uid, uid: user.uid, ...userDoc.data() };
                     currentTenantId = currentUserData.tenantId;
                     
                     // Aggiorna state con currentTenantId
@@ -3423,10 +3430,13 @@
                         ]);
                         const assenzeSostitutiDeps = {
                             getCurrentUserData: () => currentUserData,
+                            getAuthUid: () => currentAuthUid || null,
                             getOperaiList: () => lavoriState.operaiList || [],
                             getSquadreList: () => lavoriState.squadreList || [],
                             getAttrezziList: () => lavoriState.attrezziList || [],
-                            renderLavori: () => renderLavoriWrapper()
+                            renderLavori: () => renderLavoriWrapper(),
+                            /** Ricarica da Firestore così standby/sostituto/prestito compaiono subito */
+                            reloadLavori: () => loadLavoriWrapper()
                         };
                         initGestioneLavoriAssenzeUi(assenzeSostitutiDeps);
                         initGestioneLavoriSostitutiUi(assenzeSostitutiDeps);

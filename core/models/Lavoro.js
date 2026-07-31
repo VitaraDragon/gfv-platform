@@ -124,7 +124,11 @@ export class Lavoro extends Base {
 
     /**
      * Roster giornaliero / sostituzioni (non modifica Squadra.operai).
-     * Shape: { [giornoKey]: { assenti[], sostituzioni[], prestitiUscita[] } }
+     * Shape: { [giornoKey]: {
+     *   partecipazioni: [{ operaioId, stato, origine, ... }],
+     *   materializzatoIl, materializzatoDa,
+     *   assenti[], sostituzioni[], prestitiUscita[]  // audit / compat
+     * } }
      */
     this.equipaggioGiorno =
       data.equipaggioGiorno && typeof data.equipaggioGiorno === 'object'

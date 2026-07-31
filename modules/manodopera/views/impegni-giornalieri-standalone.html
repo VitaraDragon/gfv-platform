@@ -137,6 +137,106 @@
             font-weight: 500;
         }
         .link-lavoro:hover { text-decoration: underline; }
+        .btn-roster-edit {
+            padding: 0;
+            font-size: 12px;
+            border: none;
+            background: none;
+            color: #666;
+            cursor: pointer;
+            font-weight: 500;
+            text-decoration: underline;
+            white-space: nowrap;
+        }
+        .btn-roster-edit:hover { color: #1B5E3A; }
+        .roster-edit-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.45);
+            z-index: 10000;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+        .roster-edit-modal.active { display: flex; }
+        .roster-edit-dialog {
+            background: #fff;
+            border-radius: 12px;
+            max-width: 480px;
+            width: 100%;
+            max-height: 90vh;
+            overflow: auto;
+            padding: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+        }
+        .roster-edit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 8px;
+        }
+        .roster-edit-header h3 { color: #1B5E3A; font-size: 18px; }
+        .roster-edit-close {
+            border: none;
+            background: transparent;
+            font-size: 28px;
+            line-height: 1;
+            cursor: pointer;
+            color: #666;
+        }
+        .roster-edit-hint { font-size: 13px; color: #666; margin-bottom: 14px; }
+        .roster-edit-ul { list-style: none; margin: 0 0 16px; padding: 0; }
+        .roster-edit-ul li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        .roster-edit-stato {
+            display: block;
+            font-size: 12px;
+            color: #666;
+            margin-top: 2px;
+        }
+        .btn-roster-remove {
+            border: 1px solid #c62828;
+            background: #ffebee;
+            color: #c62828;
+            border-radius: 6px;
+            padding: 5px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+        .roster-edit-locked { color: #999; font-size: 12px; }
+        .roster-edit-add label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; }
+        .roster-edit-add-row { display: flex; gap: 8px; flex-wrap: wrap; }
+        .roster-edit-add-row select {
+            flex: 1;
+            min-width: 160px;
+            padding: 8px 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        .btn-roster-add {
+            padding: 8px 14px;
+            border: none;
+            border-radius: 8px;
+            background: #2E8B57;
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .roster-edit-msg { margin-top: 10px; font-size: 13px; }
+        .roster-edit-msg.err { color: #c62828; }
+        .roster-edit-empty, .roster-edit-loading { color: #666; padding: 8px 0; font-size: 14px; }
         @media (max-width: 768px) {
             .header { padding: 20px; }
             .header h1 { font-size: 22px; }
@@ -149,7 +249,7 @@
         <div class="header">
             <div>
                 <h1>Impegni giornalieri</h1>
-                <p>Chi è libero, impegnato, assente o spostato oggi — stessa base della shortlist sostituti.</p>
+                <p>Foto del giorno: chi è libero, impegnato, assente o sostituto. Per le assenze usa la shortlist in Gestione lavori; qui sotto «Scegli manualmente» è solo un’opzione avanzata.</p>
             </div>
             <div class="header-actions">
                 <a href="manodopera-home-standalone.html" class="btn btn-secondary" id="hub-link">← Manodopera</a>
@@ -183,6 +283,10 @@
 
             <div class="panel">
                 <h2>Per lavoro</h2>
+                <p style="font-size:13px;color:#666;margin:-6px 0 12px;">
+                    Assenti e sostituti si aggiornano con <strong>Assegna sostituto</strong> (shortlist).
+                    «Scegli manualmente» serve solo a ritoccare il roster del giorno fuori da quel flusso.
+                </p>
                 <div id="impegni-lavori-container" class="table-responsive">
                     <div class="loading">Caricamento...</div>
                 </div>
@@ -209,6 +313,10 @@
             IMPEGNO_STATO_SOSTITUTO
         } from '../../../core/services/manodopera-impegni-giorno-service.js';
         import { wireManagerHomeLink } from '../../../core/config/manodopera-hub-nav.js';
+        import { openRosterEditModal } from '../../../core/js/manodopera-roster-edit-ui.js';
+
+        let lastOperaiList = [];
+        let currentManagerId = null;
 
         function waitForConfig() {
             return new Promise((resolve, reject) => {
@@ -326,10 +434,12 @@
                         <tr>
                             <th>Lavoro</th>
                             <th>Stato</th>
+                            <th>Roster attivi</th>
                             <th>Previsti</th>
                             <th>Assenti</th>
                             <th>Sostituti</th>
                             <th>Equipaggio</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -339,19 +449,56 @@
                                     ? `<span class="equipaggio-warn">${r.equipaggioAttivi}/${r.equipaggioMinimo} (mancano ${r.equipaggioMancanti})</span>`
                                     : `${r.equipaggioAttivi}/${r.equipaggioMinimo}`)
                                 : '—';
+                            const attivi = r.rosterMaterializzato
+                                ? escapeHtml((r.attiviNomi || []).join(', ') || '—')
+                                : '<span style="color:#888;">—</span>';
+                            const rosterBadge = r.rosterMaterializzato
+                                ? ' <span style="color:#2E8B57;font-size:11px;" title="Roster giornaliero materializzato">roster</span>'
+                                : '';
                             return `
                             <tr>
-                                <td><strong>${escapeHtml(r.lavoroNome)}</strong>${r.isSquadra ? ' <span style="color:#1976D2;font-size:12px;">squadra</span>' : ''}</td>
+                                <td><strong>${escapeHtml(r.lavoroNome)}</strong>${r.isSquadra ? ' <span style="color:#1976D2;font-size:12px;">squadra</span>' : ''}${rosterBadge}</td>
                                 <td>${escapeHtml(r.stato)}</td>
+                                <td>${attivi}</td>
                                 <td>${escapeHtml((r.previstiNomi || []).join(', ') || '—')}</td>
                                 <td>${escapeHtml((r.assentiNomi || []).join(', ') || '—')}</td>
                                 <td>${escapeHtml((r.sostitutiNomi || []).join(', ') || '—')}</td>
                                 <td>${eq}</td>
+                                <td>
+                                    <button type="button" class="btn-roster-edit"
+                                        data-lavoro-id="${escapeHtml(r.lavoroId)}"
+                                        data-lavoro-nome="${escapeHtml(r.lavoroNome)}"
+                                        title="Opzione avanzata: non sostituisce la shortlist assenze">Scegli manualmente…</button>
+                                </td>
                             </tr>`;
                         }).join('')}
                     </tbody>
                 </table>
             `;
+            el.querySelectorAll('.btn-roster-edit').forEach((btn) => {
+                btn.addEventListener('click', async () => {
+                    const lavoroId = btn.getAttribute('data-lavoro-id');
+                    const lavoroNome = btn.getAttribute('data-lavoro-nome') || '';
+                    const giornoKey = document.getElementById('impegni-giorno').value;
+                    if (!lavoroId || !giornoKey) return;
+                    btn.disabled = true;
+                    try {
+                        await openRosterEditModal({
+                            lavoroId,
+                            giornoKey,
+                            lavoroNome,
+                            managerId: currentManagerId,
+                            operaiList: lastOperaiList,
+                            onChanged: refresh
+                        });
+                    } catch (e) {
+                        console.error('[Impegni] roster edit', e);
+                        alert(e.message || 'Errore apertura roster');
+                    } finally {
+                        btn.disabled = false;
+                    }
+                });
+            });
         }
 
         function renderKpi(kpi) {
@@ -369,6 +516,7 @@
             document.getElementById('impegni-lavori-container').innerHTML = '<div class="loading">Caricamento...</div>';
             try {
                 const snap = await buildImpegniGiorno({ giornoKey });
+                lastOperaiList = snap.operaiList || [];
                 renderKpi(snap.kpi || {});
                 renderOperai(snap.perOperaio || []);
                 renderLavori(snap.perLavoro || []);
@@ -415,6 +563,14 @@
                 }
                 const tenantId = sessionStorage.getItem('gfv_current_tenant_id') || udata.tenantId;
                 if (tenantId) setCurrentTenantId(tenantId);
+                // Necessario per updateLavoro / A2 roster (getCurrentUserData)
+                const { setCurrentUserDataCache } = await import('../../../core/services/auth-service.js');
+                setCurrentUserDataCache({
+                    ...udata,
+                    id: user.uid,
+                    uid: user.uid,
+                    tenantId: tenantId || udata.tenantId
+                });
 
                 let hasManodopera = false;
                 if (tenantId) {
@@ -436,6 +592,7 @@
                     window.location.href = '../../../core/dashboard-standalone.html';
                     return;
                 }
+                currentManagerId = user.uid;
                 wireManagerHomeLink('hub-link', true);
                 await refresh();
             } catch (e) {

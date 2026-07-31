@@ -40,6 +40,39 @@ describe('tryTonyNavQuickReply', () => {
     expect(hit).not.toBeNull();
     expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'comunicazioni' });
   });
+
+  it('apri manodopera / home manodopera → hub (non dashboard)', () => {
+    expect(resolveNavTarget('apri manodopera')).toBe('manodopera');
+    expect(resolveNavTarget('portami alla home manodopera')).toBe('manodopera');
+    expect(resolveNavTarget('vai alla dashboard manodopera')).toBe('manodopera');
+    const hit = tryTonyNavQuickReply({
+      message: 'apri manodopera',
+      ctx: ctxBase,
+    });
+    expect(hit).not.toBeNull();
+    expect(hit.id).toBe('nav');
+    expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'manodopera' });
+    expect(hit.text).toMatch(/manodopera/i);
+  });
+
+  it('apri statistiche manodopera → stats (non hub)', () => {
+    expect(resolveNavTarget('apri statistiche manodopera')).toBe('statistiche manodopera');
+    const hit = tryTonyNavQuickReply({
+      message: 'portami alle statistiche manodopera',
+      ctx: ctxBase,
+    });
+    expect(hit).not.toBeNull();
+    expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'statistiche manodopera' });
+  });
+
+  it('modulo manodopera off → blocco hub', () => {
+    const hit = tryTonyNavQuickReply({
+      message: 'apri manodopera',
+      ctx: { moduli_attivi: ['tony'], dashboard: { moduli_attivi: ['tony'] } },
+    });
+    expect(hit.id).toBe('nav_module_blocked');
+    expect(hit.command).toBeNull();
+  });
 });
 
 describe('tryTonyFieldNavQuickReply', () => {

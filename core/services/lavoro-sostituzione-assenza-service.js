@@ -5,7 +5,7 @@
  * @module core/services/lavoro-sostituzione-assenza-service
  */
 
-import { serverTimestamp } from './firebase-service.js';
+import { serverTimestamp, getCollectionData } from './firebase-service.js';
 import { getLavoro, updateLavoro } from './lavori-service.js';
 import {
   LAVORO_STAND_BY_CAUSA_ASSENZA,
@@ -13,20 +13,44 @@ import {
   toGiornoKey
 } from '../config/manodopera-assenze-config.js';
 import { registraSostitutoSuAssenza } from './manodopera-assenze-service.js';
+import {
+  ensureRosterSlice,
+  applySostituzioneToRoster,
+  applyPrestitoUscitaToRoster,
+  mergeEquipaggioGiornoPatch
+} from './manodopera-roster-giorno-logic.js';
+import { getCurrentTenantId } from './tenant-service.js';
 
 /**
+ * @param {string|null} [tenantId]
+ * @returns {Promise<Object[]>}
+ */
+async function loadSquadreForRoster(tenantId = null) {
+  try {
+    const tid = tenantId || getCurrentTenantId();
+    if (!tid) return [];
+    return (await getCollectionData('squadre', { tenantId: tid })) || [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Slice equipaggio con roster materializzato (lazy seed da anagrafica).
+ *
  * @param {Object} lavoro
  * @param {string} giornoKey
+ * @param {Array<Object>} [squadreList]
  * @returns {Object}
  */
-function getEquipaggioGiornoSlice(lavoro, giornoKey) {
-  const root = (lavoro && lavoro.equipaggioGiorno) || {};
-  const slice = root[giornoKey] || {};
-  return {
-    assenti: [...(slice.assenti || [])],
-    sostituzioni: [...(slice.sostituzioni || [])],
-    prestitiUscita: [...(slice.prestitiUscita || [])]
-  };
+function ensureSliceForWrite(lavoro, giornoKey, squadreList = []) {
+  const { slice } = ensureRosterSlice({
+    lavoro,
+    giornoKey,
+    squadreList,
+    materializzatoDa: 'auto'
+  });
+  return slice;
 }
 
 /**
@@ -68,6 +92,8 @@ export async function applicaBucoPrestitoSuLavoroOrigine(options) {
     manodoperaPrestata: prestitoMeta
   };
 
+  const squadreList = await loadSquadreForRoster(tenantId);
+
   if (origine.operaioId === operaioId) {
     // Autonomo: standby tracciato (buco sul lavoro di origine)
     if (origine.stato !== 'in_standby') {
@@ -79,19 +105,23 @@ export async function applicaBucoPrestitoSuLavoroOrigine(options) {
     patchOrig.standbyGiornoKey = dayKey;
     patchOrig.standbyNota = `Prestato come sostituto sul lavoro ${versoLavoroId}`;
     patchOrig.standbyDaIl = serverTimestamp();
-  } else if (origine.caposquadraId) {
-    // Squadra: buco giornaliero su equipaggioGiorno (no modifica Squadra.operai)
-    const slice = getEquipaggioGiornoSlice(origine, dayKey);
-    if (!slice.assenti.includes(operaioId)) slice.assenti.push(operaioId);
-    slice.prestitiUscita.push({
+    // Roster giorno: marca prestato_out anche su autonomo
+    const sliceAuto = ensureSliceForWrite(origine, dayKey, squadreList);
+    const slicePrest = applyPrestitoUscitaToRoster(sliceAuto, {
       operaioId,
       versoLavoroId,
       daManagerId: managerId
     });
-    patchOrig.equipaggioGiorno = {
-      ...(origine.equipaggioGiorno || {}),
-      [dayKey]: slice
-    };
+    patchOrig.equipaggioGiorno = mergeEquipaggioGiornoPatch(origine, dayKey, slicePrest);
+  } else if (origine.caposquadraId) {
+    // Squadra: buco giornaliero su equipaggioGiorno (no modifica Squadra.operai)
+    const slice = ensureSliceForWrite(origine, dayKey, squadreList);
+    const slicePrest = applyPrestitoUscitaToRoster(slice, {
+      operaioId,
+      versoLavoroId,
+      daManagerId: managerId
+    });
+    patchOrig.equipaggioGiorno = mergeEquipaggioGiornoPatch(origine, dayKey, slicePrest);
   }
 
   await updateLavoro(lavoroOrigineId, patchOrig);
@@ -189,21 +219,16 @@ export async function assegnaSostitutoDaStandby(options) {
     patch.operaioId = sostitutoOperaioId;
   }
 
-  // Squadra (e anche autonomo): roster giornaliero tracciato senza toccare Squadra.operai
-  const slice = getEquipaggioGiornoSlice(lavoro, giornoKey);
-  if (assenteId && !slice.assenti.includes(assenteId)) {
-    slice.assenti.push(assenteId);
-  }
-  slice.sostituzioni.push({
+  // Roster giornaliero (partecipazioni + delta audit) senza toccare Squadra.operai
+  const squadreList = await loadSquadreForRoster(tenantId);
+  const sliceBase = ensureSliceForWrite(lavoro, giornoKey, squadreList);
+  const slice = applySostituzioneToRoster(sliceBase, {
     assenteOperaioId: assenteId || null,
     sostitutoOperaioId,
     assegnatoDa: managerId,
     impegnoOrigineLavoroId: impegnoLavoroId || null
   });
-  patch.equipaggioGiorno = {
-    ...(lavoro.equipaggioGiorno || {}),
-    [giornoKey]: slice
-  };
+  patch.equipaggioGiorno = mergeEquipaggioGiornoPatch(lavoro, giornoKey, slice);
 
   if (needsPrestito) {
     await applicaBucoPrestitoSuLavoroOrigine({

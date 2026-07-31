@@ -51,6 +51,8 @@ const TARGET_REQUIRES_MODULE = {
   'comunicazioni squadra': 'manodopera',
   'comunicazioni caposquadra': 'manodopera',
   manodopera: 'manodopera',
+  'impegni giornalieri': 'manodopera',
+  'impegni giorno': 'manodopera',
   vigneto: 'vigneto',
   frutteto: 'frutteto',
   meteo: 'meteo'

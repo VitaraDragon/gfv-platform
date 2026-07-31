@@ -13,6 +13,8 @@ import {
 import { getManodoperaSkillLabel } from '../../config/manodopera-skills-config.js';
 import { assegnaSostitutoDaStandby } from '../../services/lavoro-sostituzione-assenza-service.js';
 import { refreshAssenzeSegnalateBanner } from './gestione-lavori-assenze-ui.js';
+import { openRosterEditModal } from '../../js/manodopera-roster-edit-ui.js';
+import { toGiornoKey } from '../../config/manodopera-assenze-config.js';
 
 let sostitutiUiDeps = null;
 let sostitutiModalState = null;
@@ -110,12 +112,14 @@ export async function openSostitutoAssenzaModal(lavoroId) {
       bannerEl.innerHTML = renderEquipaggioBanner(result.equipaggioCheck);
     }
 
+    wireScegliManualemente(lavoroId, result);
+
     if (!result.shortlist.length) {
       listEl.innerHTML = `
         <div class="empty-state-inline" style="padding:16px;">
           Nessun candidato qualificato in shortlist.
           ${result.tuttiQualificati > 0 ? ` (${result.tuttiQualificati} operai esclusi per ranking/impegno/assenze)` : ''}
-          Verifica le skill in scheda operaio o assegna manualmente modificando il lavoro.
+          Verifica le skill in scheda operaio oppure usa <strong>Scegli manualmente…</strong> sotto (percorso avanzato).
         </div>
       `;
       return;
@@ -157,7 +161,52 @@ export async function openSostitutoAssenzaModal(lavoroId) {
   } catch (e) {
     console.error('[Gestione Lavori] shortlist sostituti:', e);
     listEl.innerHTML = `<div class="empty-state-inline" style="color:#c62828;">${escapeHtml(e.message || 'Errore caricamento')}</div>`;
+    wireScegliManualemente(lavoroId, null);
   }
+}
+
+/**
+ * Link secondario → roster A2 (non è il percorso sostituzione).
+ * @param {string} lavoroId
+ * @param {Object|null} shortlistResult
+ */
+function wireScegliManualemente(lavoroId, shortlistResult) {
+  const btn = document.getElementById('sostituto-scegli-manualmente');
+  if (!btn) return;
+  btn.onclick = async () => {
+    const giornoKey =
+      shortlistResult?.giornoKey ||
+      toGiornoKey(new Date());
+    const lavoroNome = shortlistResult?.lavoroNome || '';
+    const user = sostitutiUiDeps?.getCurrentUserData?.();
+    const managerId =
+      user?.id ||
+      user?.uid ||
+      (typeof sostitutiUiDeps?.getAuthUid === 'function' ? sostitutiUiDeps.getAuthUid() : null);
+    btn.disabled = true;
+    try {
+      closeSostitutoAssenzaModal();
+      await openRosterEditModal({
+        lavoroId,
+        giornoKey,
+        lavoroNome,
+        managerId,
+        operaiList: sostitutiUiDeps?.getOperaiList?.() || [],
+        onChanged: async () => {
+          if (typeof sostitutiUiDeps?.reloadLavori === 'function') {
+            await sostitutiUiDeps.reloadLavori();
+          } else if (typeof sostitutiUiDeps?.renderLavori === 'function') {
+            await sostitutiUiDeps.renderLavori();
+          }
+        }
+      });
+    } catch (e) {
+      console.error('[Gestione Lavori] scegli manualmente:', e);
+      showAlert(e.message || 'Errore apertura scelta manuale', 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  };
 }
 
 export function closeSostitutoAssenzaModal() {
@@ -170,9 +219,26 @@ export function closeSostitutoAssenzaModal() {
  */
 async function confermaSostituto(candidato) {
   const user = sostitutiUiDeps?.getCurrentUserData?.();
-  const managerId = user?.id || user?.uid;
+  const managerId =
+    user?.id ||
+    user?.uid ||
+    (typeof sostitutiUiDeps?.getAuthUid === 'function' ? sostitutiUiDeps.getAuthUid() : null);
   const lavoroId = document.getElementById('sostituto-assenza-lavoro-id')?.value;
-  if (!managerId || !lavoroId || !candidato?.operaioId) return;
+  if (!candidato?.operaioId) {
+    showAlert('Candidato non valido', 'error');
+    return;
+  }
+  if (!lavoroId) {
+    showAlert('Lavoro non selezionato. Chiudi e riapri Assegna sostituto.', 'error');
+    return;
+  }
+  if (!managerId) {
+    showAlert(
+      'Utente manager non riconosciuto (manca id sessione). Ricarica la pagina e riprova.',
+      'error'
+    );
+    return;
+  }
 
   const needsSpostamento =
     candidato.disponibilita === DISPONIBILITA_SPOSTABILE ||
@@ -194,6 +260,9 @@ async function confermaSostituto(candidato) {
   } else if (candidato.disponibilita === DISPONIBILITA_LIBERO) {
     const ok = window.confirm(`Assegnare ${candidato.nome} come sostituto e riattivare il lavoro?`);
     if (!ok) return;
+  } else {
+    const ok = window.confirm(`Assegnare ${candidato.nome} come sostituto e riattivare il lavoro?`);
+    if (!ok) return;
   }
 
   try {
@@ -213,7 +282,11 @@ async function confermaSostituto(candidato) {
     showAlert(`${candidato.nome} assegnato come sostituto. Lavoro riattivato.${extra}${squadra}`, 'success');
     closeSostitutoAssenzaModal();
     await refreshAssenzeSegnalateBanner();
-    sostitutiUiDeps?.renderLavori?.();
+    if (typeof sostitutiUiDeps?.reloadLavori === 'function') {
+      await sostitutiUiDeps.reloadLavori();
+    } else if (typeof sostitutiUiDeps?.renderLavori === 'function') {
+      await sostitutiUiDeps.renderLavori();
+    }
   } catch (e) {
     console.error('[Gestione Lavori] assegna sostituto:', e);
     showAlert(e.message || 'Errore assegnazione sostituto', 'error');

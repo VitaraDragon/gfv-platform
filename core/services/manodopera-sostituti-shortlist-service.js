@@ -6,7 +6,11 @@
 
 import { getCollectionData } from './firebase-service.js';
 import { getCurrentTenantId } from './tenant-service.js';
-import { getAllLavori, getLavoro } from './lavori-service.js';
+import { getAllLavori, getLavoro, updateLavoro } from './lavori-service.js';
+import {
+  ensureRosterSlice,
+  mergeEquipaggioGiornoPatch
+} from './manodopera-roster-giorno-logic.js';
 import { COLLECTION_NAME as PROFILI_COLLECTION } from './profilo-manodopera-service.js';
 import { normalizeProfiloManodopera } from './profilo-manodopera-normalize.js';
 import {
@@ -119,7 +123,7 @@ export async function buildShortlistSostitutiPerLavoroStandby(options) {
   }
 
   const squadreMap = buildOperaioSquadreMap(squadreList);
-  const previstiIds = resolvePrevistiOperaioIds(lavoro, squadreList);
+  const previstiIds = resolvePrevistiOperaioIds(lavoro, squadreList, giornoKey);
   const assentiIds = [
     ...new Set(
       [
@@ -208,6 +212,34 @@ export async function buildShortlistSostitutiPerLavoroStandby(options) {
   }
 
   const shortlist = rankAndLimitShortlist(candidati);
+
+  // Materializza shortlist su equipaggioGiorno per Context Builder / Tony (occhi, no ricalcolo)
+  try {
+    const { slice } = ensureRosterSlice({
+      lavoro,
+      giornoKey,
+      squadreList,
+      materializzatoDa: 'auto'
+    });
+    slice.shortlistCandidati = shortlist.map((c) => ({
+      operaioId: c.operaioId,
+      nome: c.nome,
+      disponibilita: c.disponibilita,
+      motivo: c.motivo,
+      stelleDisplay: c.stelleDisplay,
+      stelleMinime: c.stelleMinime,
+      richiedeConfermaSpostamento: !!c.richiedeConfermaSpostamento,
+      impegnoLavoroId: c.impegnoLavoroId || null,
+      impegnoLavoroNome: c.impegnoLavoroNome || null,
+      aggiornatoIl: new Date().toISOString()
+    }));
+    slice.shortlistAggiornataIl = new Date().toISOString();
+    await updateLavoro(lavoroId, {
+      equipaggioGiorno: mergeEquipaggioGiornoPatch(lavoro, giornoKey, slice)
+    });
+  } catch (e) {
+    console.warn('[shortlist] persist shortlistCandidati:', e?.message || e);
+  }
 
   return {
     shortlist,

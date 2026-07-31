@@ -1898,7 +1898,7 @@ export async function renderLavori(
         ];
         const check = evaluateEquipaggioMinimo({
             minPersone: req.equipaggioMinimo,
-            previstiIds: resolvePrevistiOperaioIds(lavoro, squadreList || []),
+            previstiIds: resolvePrevistiOperaioIds(lavoro, squadreList || [], giornoKey),
             assentiIds,
             sostitutiIds
         });

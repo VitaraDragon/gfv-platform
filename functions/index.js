@@ -56,8 +56,15 @@ const { tryTonyQuickReplies, isTonyOperationalCreationIntent, isTonyPreventivoFo
 const {
   filterAziendaByModuliAttivi,
   sanitizeTonyResultForModules,
+  hasActiveModule,
   TONY_MODULI_ATTIVI_RULE,
 } = require("./tony-module-gate");
+const {
+  fetchManodoperaGiornoContext,
+  isManodoperaGiornoQuestion,
+  isManodoperaPagePath,
+  formatManodoperaGiornoQuickReply,
+} = require("./tony-manodopera-giorno-context");
 const {
   buildModuleRecommendationHints,
   mergeActiveModuleIds,
@@ -2416,11 +2423,12 @@ SUB-AGENTE LOGISTICO (attivo quando [CONTESTO].page.pagePath contiene "/magazzin
  * Sub-Agente Manodopera: pagine ore, squadre, operai, compensi (path standalone core/admin o workspace campo).
  */
 const SUBAGENT_MANODOPERA = `
-SUB-AGENTE MANODOPERA (attivo quando [CONTESTO].page.pagePath indica hub manodopera, segnatura ore, validazione ore, gestione operai/squadre, compensi operai, statistiche manodopera, lavori caposquadra o versione mobile campo field-workspace):
+SUB-AGENTE MANODOPERA (attivo quando [CONTESTO].page.pagePath indica hub manodopera, segnatura ore, validazione ore, gestione operai/squadre, compensi operai, statistiche manodopera, lavori caposquadra, impegni giornalieri o versione mobile campo field-workspace):
 - Ti comporti come referente di organizzazione del lavoro in campo: segnatura ore, validazione, squadre (solo manager in gestione dedicata), operai, compensi, statistiche ore, versione mobile per operaio/caposquadra.
 - Per domande "come fare" su queste aree: integra **context.guida_sintesi_manodopera** se presente; linguaggio operativo (pulsanti, ordine dei passi), senza gergo da sviluppatore; non dire che il caposquadra «gestisce le squadre» (compito del manager).
-- Per navigazione: target segnatura ore, segnare ore, validazione ore, validare ore, lavori caposquadra, i miei lavori, statistiche manodopera, statistiche ore, gestione operai, operai, gestione squadre, squadre, compensi operai, compensi, manodopera (hub home modulo) come da mappa target.
+- Per navigazione: target segnatura ore, segnare ore, validazione ore, validare ore, lavori caposquadra, i miei lavori, statistiche manodopera, statistiche ore, gestione operai, operai, gestione squadre, squadre, compensi operai, compensi, manodopera (hub home modulo), impegni giornalieri / impegni giorno come da mappa target.
 - Distingui **operaio** (solo versione mobile semplificata, ore proprie, no Diario manageriale) da **caposquadra** (versione mobile con comunicazioni e validazione ore altrui) da **manager** (gestione squadre, anagrafiche, compensi, validazione globale).
+- **Roster / impegni / shortlist (occhi):** usa **azienda.manodoperaGiorno** se presente (summary, kpi, perOperaio, perLavoro, lavoriInStandbyAssenza[].shortlistCandidati). È JSON già materializzato dall'app: **non** inventare candidati, **non** ricalcolare ore o ranking. Se shortlistMaterializzata è false, invita ad aprire la shortlist in Gestione lavori. Se page.currentTableData (impegni_giornalieri) è presente, allineati a quella tabella.
 `;
 
 /**
@@ -2718,6 +2726,25 @@ async function handleTonyAskRequest(request, streamOpts) {
             summaryMeteo: "Meteo temporaneamente non disponibile.",
           };
         }
+      }
+
+      // Roster / impegni giorno + shortlist materializzata (modulo manodopera)
+      try {
+        const pagePathEarly = (ctx && ctx.page && ctx.page.pagePath) || "";
+        const wantManodoperaGiorno =
+          hasActiveModule(moduliAttiviEarly, "manodopera") &&
+          (isManodoperaGiornoQuestion(message) ||
+            isManodoperaPagePath(pagePathEarly) ||
+            (tonyPerf.routerShadow &&
+              Array.isArray(tonyPerf.routerShadow.domains) &&
+              tonyPerf.routerShadow.domains.includes("manodopera")));
+        if (wantManodoperaGiorno && tenantId) {
+          const manodoperaStart = Date.now();
+          azienda.manodoperaGiorno = await fetchManodoperaGiornoContext(db, tenantId);
+          tonyPerf.buildManodoperaGiornoMs = Date.now() - manodoperaStart;
+        }
+      } catch (manoErr) {
+        console.warn("[Tony Context Builder] manodoperaGiorno:", manoErr.message);
       }
     }
 

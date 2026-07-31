@@ -32,6 +32,9 @@ const NAV_TARGET_RULES = [
   { target: "comunicazioni", patterns: [/\bcomunicazion/i, /\bmessagg\w*\s+(del\s+)?(capo|caposquadra|squadra)\b/i, /\bmessaggi\b/i] },
   { target: "gestione lavori", patterns: [/\bgestione\s+lavor/i] },
   { target: "impegni giornalieri", patterns: [/\bimpegni\s+giornalier/i, /\bimpegni\s+(del\s+)?giorno\b/i, /\bchi\s+[eè]\s+(libero|impegnato)\b/i] },
+  // Prima di dashboard (home/dashboard generici) e di lavori — hub Manodopera + stats dedicate.
+  { target: "statistiche manodopera", patterns: [/\bstatistiche\s+manodopera\b/i, /\bstatistiche\s+ore\b/i] },
+  { target: "manodopera", patterns: [/\b(home|dashboard|hub)\s+manodopera\b/i, /\bmanodopera\s+(home|hub|dashboard)\b/i, /\bmanodopera\b/i] },
   { target: "lavori caposquadra", patterns: [/\bi\s+miei\s+lavor/i, /\blavori\s+caposquadra\b/i] },
   { target: "lavori", patterns: [/\blavor/i, /\bcosa\s+devo\s+fare\b/i] },
   { target: "terreni", patterns: [/\bterren/i, /\bappezzament/i, /\bmappa\b/i] },
@@ -82,6 +85,9 @@ const NAV_TEXT_BY_TARGET = {
   "gestione lavori": "Ti porto alla gestione lavori.",
   "impegni giornalieri": "Ti porto agli impegni giornalieri.",
   "impegni giorno": "Ti porto agli impegni giornalieri.",
+  manodopera: "Ti porto all'hub Manodopera.",
+  "statistiche manodopera": "Ti porto alle statistiche manodopera.",
+  "statistiche ore": "Ti porto alle statistiche manodopera.",
   tariffe: "Ti porto alle tariffe.",
   prodotti: "Ti porto all'anagrafica prodotti.",
   movimenti: "Ti porto ai movimenti di magazzino.",
@@ -149,6 +155,18 @@ function isAlreadyOnTargetPage(ctx, target) {
   if (t === "prodotti" && (pageType === "prodotti" || path.includes("prodotti"))) return true;
   if (t === "movimenti" && (pageType === "movimenti" || path.includes("movimenti"))) return true;
   if (t === "dashboard" && (path.includes("dashboard") || pageType === "dashboard")) return true;
+  if (
+    t === "manodopera" &&
+    (path.includes("manodopera-home") || path.includes("/manodopera/views/manodopera-home"))
+  ) {
+    return true;
+  }
+  if (
+    (t === "statistiche manodopera" || t === "statistiche ore") &&
+    (path.includes("statistiche-manodopera") || pageType === "statistiche_manodopera")
+  ) {
+    return true;
+  }
   if (t === "clienti" && (pageType === "clienti" || path.includes("clienti"))) return true;
   if (t === "preventivi" && (pageType === "preventivi" || path.includes("preventivi"))) return true;
   // Nota: «comunicazioni» è una slide del workspace — non considerare «già lì» solo perché path = field-workspace.

@@ -9,6 +9,10 @@ import {
   computeShortlistScore,
   isLavoroPrestabile
 } from '../config/manodopera-sostituzione-policy-config.js';
+import {
+  resolvePrevistiOperaioIdsForGiorno,
+  resolveAnagraficaPrevistiIds
+} from './manodopera-roster-giorno-logic.js';
 
 export const SHORTLIST_MAX_CANDIDATI = 4;
 
@@ -66,23 +70,21 @@ export function findImpegnoLavoroOperaio(operaioId, lavori, squadreMap, excludeL
 }
 
 /**
- * Operai previsti sul lavoro (anagrafica: autonomo o membri squadra del capo).
- * Non sostituisce un roster giornaliero dedicato.
+ * Operai previsti sul lavoro.
+ * Se `giornoKey` è passato e `equipaggioGiorno[giorno]` ha `partecipazioni`
+ * materializzate, usa il roster giornaliero; altrimenti anagrafica
+ * (autonomo / membri squadra del capo).
  *
  * @param {Object} lavoro
  * @param {Array<Object>} [squadreList]
+ * @param {string|null} [giornoKey]
  * @returns {string[]}
  */
-export function resolvePrevistiOperaioIds(lavoro, squadreList = []) {
-  if (!lavoro) return [];
-  if (lavoro.operaioId) return [lavoro.operaioId];
-  if (lavoro.caposquadraId) {
-    const squadra = (squadreList || []).find(
-      (s) => s.caposquadraId === lavoro.caposquadraId
-    );
-    return [...(squadra?.operai || [])].filter(Boolean);
+export function resolvePrevistiOperaioIds(lavoro, squadreList = [], giornoKey = null) {
+  if (giornoKey) {
+    return resolvePrevistiOperaioIdsForGiorno(lavoro, squadreList, giornoKey);
   }
-  return [];
+  return resolveAnagraficaPrevistiIds(lavoro, squadreList);
 }
 
 /**

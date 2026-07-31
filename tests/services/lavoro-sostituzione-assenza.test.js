@@ -7,7 +7,8 @@
 import { describe, test, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../core/services/firebase-service.js', () => ({
-  serverTimestamp: () => ({ __ts: true })
+  serverTimestamp: () => ({ __ts: true }),
+  getCollectionData: vi.fn(async () => [])
 }));
 
 vi.mock('../../core/services/lavori-service.js', () => ({
@@ -17,6 +18,10 @@ vi.mock('../../core/services/lavori-service.js', () => ({
 
 vi.mock('../../core/services/manodopera-assenze-service.js', () => ({
   registraSostitutoSuAssenza: vi.fn()
+}));
+
+vi.mock('../../core/services/tenant-service.js', () => ({
+  getCurrentTenantId: vi.fn(() => 'tenant-test')
 }));
 
 import { getLavoro, updateLavoro } from '../../core/services/lavori-service.js';
@@ -60,10 +65,21 @@ describe('lavoro-sostituzione-assenza-service', () => {
     expect(patch.stato).toBe('in_corso');
     expect(patch.equipaggioGiorno['2026-07-22'].assenti).toContain('assente1');
     expect(patch.equipaggioGiorno['2026-07-22'].sostituzioni[0].sostitutoOperaioId).toBe('sost1');
+    expect(patch.equipaggioGiorno['2026-07-22'].partecipazioni).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ operaioId: 'assente1', stato: 'sostituito' }),
+        expect.objectContaining({ operaioId: 'sost1', stato: 'aggiunto' })
+      ])
+    );
     expect(registraSostitutoSuAssenza).toHaveBeenCalledWith('A1', 'sost1', 'mgr1', null);
   });
 
-  test('squadra: non setta operaioId, scrive equipaggioGiorno', async () => {
+  test('squadra: non setta operaioId, scrive equipaggioGiorno + partecipazioni', async () => {
+    const { getCollectionData } = await import('../../core/services/firebase-service.js');
+    getCollectionData.mockResolvedValue([
+      { id: 'sq1', caposquadraId: 'cap1', operai: ['opAssente', 'op2'] }
+    ]);
+
     getLavoro.mockResolvedValue({
       id: 'Lsq',
       stato: 'in_standby',
@@ -86,6 +102,7 @@ describe('lavoro-sostituzione-assenza-service', () => {
     expect(patch.operaioId).toBeUndefined();
     expect(patch.assenzaSostitutoOperaioId).toBe('sost2');
     expect(patch.equipaggioGiorno['2026-07-22'].sostituzioni).toHaveLength(1);
+    expect(patch.equipaggioGiorno['2026-07-22'].partecipazioni.length).toBeGreaterThanOrEqual(2);
   });
 
   test('spostabile senza conferma → errore', async () => {
@@ -166,5 +183,10 @@ describe('lavoro-sostituzione-assenza-service', () => {
     expect(patch.stato).toBeUndefined();
     expect(patch.equipaggioGiorno['2026-07-22'].assenti).toContain('opX');
     expect(patch.equipaggioGiorno['2026-07-22'].prestitiUscita[0].versoLavoroId).toBe('Ldest');
+    expect(patch.equipaggioGiorno['2026-07-22'].partecipazioni).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ operaioId: 'opX', stato: 'prestato_out' })
+      ])
+    );
   });
 });

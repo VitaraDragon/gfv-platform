@@ -149,4 +149,50 @@ describe('manodopera-impegni-giorno-logic', () => {
     expect(lav.sostitutiIds).toContain('a');
     expect(lav.equipaggioMinimo).toBe(2);
   });
+
+  test('roster materializzato: previsti e attivi da partecipazioni', () => {
+    const snap = buildImpegniGiornoSnapshot({
+      giornoKey: GIORNO,
+      operaiList: [op('a', 'Anna'), op('b', 'Bruno'), op('s', 'Sara')],
+      squadreList: [{ id: 'sq1', caposquadraId: 'cap1', operai: ['a', 'b'] }],
+      lavoriList: [
+        {
+          id: 'L1',
+          nome: 'Carro',
+          stato: 'assegnato',
+          caposquadraId: 'cap1',
+          dataInizio: new Date(`${GIORNO}T08:00:00`),
+          durataPrevista: 1,
+          equipaggioGiorno: {
+            [GIORNO]: {
+              assenti: ['b'],
+              sostituzioni: [{ assenteOperaioId: 'b', sostitutoOperaioId: 's' }],
+              prestitiUscita: [],
+              materializzatoIl: '2026-07-27T08:00:00.000Z',
+              materializzatoDa: 'auto',
+              partecipazioni: [
+                { operaioId: 'a', stato: 'previsto', origine: 'squadra' },
+                { operaioId: 'b', stato: 'sostituito', origine: 'squadra' },
+                {
+                  operaioId: 's',
+                  stato: 'aggiunto',
+                  origine: 'sostituzione',
+                  sostitutoDiOperaioId: 'b'
+                }
+              ]
+            }
+          }
+        }
+      ],
+      assenzeConfermate: [],
+      equipaggioMinimoByLavoroId: { L1: 2 }
+    });
+
+    const lav = snap.perLavoro[0];
+    expect(lav.rosterMaterializzato).toBe(true);
+    expect(lav.previstiIds).toEqual(['a', 'b']);
+    expect(lav.attiviIds.sort()).toEqual(['a', 's']);
+    expect(lav.equipaggioAttivi).toBe(2);
+    expect(lav.equipaggioIncompleto).toBe(false);
+  });
 });

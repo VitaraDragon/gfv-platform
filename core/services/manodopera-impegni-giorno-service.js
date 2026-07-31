@@ -18,6 +18,7 @@ import { listAssenzeConfermatePerGiorno } from './manodopera-assenze-service.js'
 import { toGiornoKey } from '../config/manodopera-assenze-config.js';
 import { resolveRequiredSkillsForLavoro } from '../config/manodopera-skills-config.js';
 import { buildImpegniGiornoSnapshot } from './manodopera-impegni-giorno-logic.js';
+import { ensureRosterGiornoPerLavoriDelGiorno } from './manodopera-roster-giorno-service.js';
 
 export {
   buildImpegniGiornoSnapshot,
@@ -82,12 +83,28 @@ export async function buildImpegniGiorno(options = {}) {
   const giornoKey = giornoIn || toGiornoKey(new Date());
   if (!giornoKey) throw new Error('Giorno non valido');
 
-  const [lavoriList, assenzeConfermate, operaiList, squadreList] = await Promise.all([
+  const [lavoriRaw, assenzeConfermate, operaiList, squadreList] = await Promise.all([
     getAllLavori(),
     listAssenzeConfermatePerGiorno(giornoKey, tenantId),
     operaiIn ? Promise.resolve(operaiIn) : loadOperaiAttivi(tenantId),
     squadreIn ? Promise.resolve(squadreIn) : loadSquadre(tenantId)
   ]);
+
+  // Lazy seed roster giornaliero (partecipazioni) sui lavori del giorno
+  let lavoriList = lavoriRaw || [];
+  let rosterMaterializzati = 0;
+  try {
+    const rosterRes = await ensureRosterGiornoPerLavoriDelGiorno({
+      giornoKey,
+      lavoriList,
+      squadreList: squadreList || [],
+      tenantId
+    });
+    lavoriList = rosterRes.lavori || lavoriList;
+    rosterMaterializzati = rosterRes.materializzati || 0;
+  } catch (e) {
+    console.warn('[impegni-giorno] ensure roster:', e);
+  }
 
   const attrezziById = new Map((attrezziList || []).map((a) => [a.id, a]));
   const equipaggioMinimoByLavoroId = new Map();
@@ -118,6 +135,8 @@ export async function buildImpegniGiorno(options = {}) {
 
   return {
     ...snapshot,
-    tenantId
+    tenantId,
+    rosterMaterializzati,
+    operaiList: operaiList || []
   };
 }

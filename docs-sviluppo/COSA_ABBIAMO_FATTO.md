@@ -1,6 +1,94 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-27 — Fix CI Tony segna-ore + T-FLOW-013 verificato verde.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-31 — CI gate canary roster A2.
+
+## Manodopera — CI gate canary roster A2 (2026-07-31)
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Job** | `manodopera-roster-a2-canary` in `.github/workflows/simulator-ci.yml` |
+| **npm** | `manodopera:roster-a2-canary:ci` → `simulator/ci-manodopera-roster-a2-run.js` + `sim-ci-manodopera-roster-a2-inner.sh` |
+| **Step** | unit `--unit-only` poi full (Auth/Firestore emulator + seed + browser Chromium CI) |
+| **Launch** | canary: `channel: chrome` solo locale; in `CI` usa Chromium Playwright |
+
+## Manodopera — A2 come «Scegli manualmente» (secondario) (2026-07-31)
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Priorità UX** | Shortlist «Assegna sostituto» = percorso primario; A2 = opzione avanzata |
+| **Gestione lavori** | Link «Scegli manualmente…» sotto la shortlist (non compete con le card) |
+| **Impegni** | Pulsante primario rimosso → link secondario «Scegli manualmente…» + testo guida |
+| **Modal roster** | Titolo/hint: percorso avanzato; preferire shortlist per assenze |
+
+## Manodopera — canary roster A2 + nav impegni (2026-07-31)
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Script** | `npm run manodopera:roster-a2-canary` → `scripts/manodopera-roster-a2-canary.mjs` |
+| **UNIT** | PAGE_MAP impegni, nav B hub manodopera, logic A2 add/remove / no re-seed |
+| **BROWSER** | login manager → Impegni → `currentTableData` → add/remove roster + modal |
+| **Fix collaterale** | Impegni: `setCurrentUserDataCache` (senza di esso `updateLavoro` → «Utente non autenticato») |
+| **Esito** | **12/12 PASS** su emulator + seed `viticola-conto-terzi-manodopera` |
+| **Flag** | `--unit-only` (solo statici); `--keep` (non rimuove l’aggiunta A2) |
+
+## Manodopera — roster A2 add/remove partecipazione giorno (2026-07-31)
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Logic** | `addPartecipazioneManuale` / `removePartecipazioneManuale` / `canRemovePartecipazioneManuale` — origine `manuale`; non tocca `Squadra.operai` |
+| **Service** | `aggiungiPartecipazioneRosterGiorno` / `rimuoviPartecipazioneRosterGiorno` |
+| **UI** | Impegni giornalieri → «Modifica roster» + modal (`manodopera-roster-edit-ui.js`) |
+| **Regole** | Rimuovibili: previsti anagrafici e aggiunti manuali; bloccati: assente/sostituito/prestato/sostituto |
+| **Materializzato** | `materializzatoIl` anche su roster vuoto → no re-seed anagrafica dopo svuotamento |
+| **Test** | `manodopera-roster-giorno.test.js` (13) |
+
+## Tony — Nav binario B hub Manodopera (2026-07-31)
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **NAV_TARGET_RULES** | `manodopera` («apri manodopera», home/dashboard/hub manodopera) prima di `dashboard`/`home` generici |
+| **Disamb.** | `statistiche manodopera` / `statistiche ore` → pagina stats, non hub |
+| **Testo / already-there** | `NAV_TEXT_BY_TARGET` + path `manodopera-home` |
+| **Test** | `tony-nav-quick-reply.test.js` (+3 casi hub/stats/modulo off) |
+
+## Tony — APRI_PAGINA impegni giornalieri risolve URL client (2026-07-31)
+
+| Contesto | CF binario B e `tony-routes.json` emettevano `impegni giornalieri` / `impegni giorno`, ma `getUrlForTarget` tornava `null` |
+| -------- | --- |
+| Causa | Target assenti da `TONY_PAGE_MAP` / `TONY_LABEL_MAP` in `core/js/tony/engine.js` |
+| Fix | Aggiunti path verso `impegni-giornalieri-standalone.html`; gate client `tony-module-gate.js` allineato a CF (`manodopera`) |
+| Test | `tests/tony-page-map-impegni.test.js` |
+
+## Manodopera — fix click shortlist «Assegna sostituto» (2026-07-27)
+
+| Contesto | Click su card candidato (es. Spostabile) non faceva nulla |
+| -------- | --- |
+| Causa | `currentUserData` in Gestione lavori senza `id`/`uid` → `confermaSostituto` usciva in silenzio |
+| Fix | Set `id`/`uid` da Auth; fallback `getAuthUid`; alert se manager non riconosciuto |
+| Refresh | Dopo assegna/standby/ripristino: `reloadLavori()` (Firestore) invece di solo `renderLavori()` in memoria |
+
+## Manodopera — Context Builder roster/shortlist (Slice B) (2026-07-27)
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **CB** | `functions/tony-manodopera-giorno-context.js` → `azienda.manodoperaGiorno` (summary, kpi, perLavoro, perOperaio, lavoriInStandbyAssenza) quando modulo manodopera + domanda/pagina/domain |
+| **Shortlist persistita** | `buildShortlistSostitutiPerLavoroStandby` scrive `equipaggioGiorno[giorno].shortlistCandidati` (Tony legge, non ricalcola) |
+| **Quick reply** | `query_manodopera_giorno` — «chi è libero», impegni oggi, assenti, shortlist |
+| **Prompt** | Sub-agente Manodopera: usa `azienda.manodoperaGiorno` / `page.currentTableData` |
+| **Gate** | `filterAziendaByModuliAttivi` rimuove `manodoperaGiorno` se modulo off; tier T3 |
+| **Test** | `tony-manodopera-giorno-context.test.js` (4) + regressioni manodopera/quick reply |
+
+## Manodopera — roster / partecipazioni giornaliere A1 (2026-07-27)
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Modello** | `lavoro.equipaggioGiorno[giornoKey].partecipazioni[]` (`previsto` / `assente` / `sostituito` / `prestato_out` / `aggiunto`) + `materializzatoIl`/`Da`; delta `assenti`/`sostituzioni`/`prestitiUscita` restano per audit/compat |
+| **Logic pura** | `core/services/manodopera-roster-giorno-logic.js` — seed da anagrafica, idratazione legacy, apply assenza/sostituzione/prestito |
+| **Persistenza** | `manodopera-roster-giorno-service.js` — lazy seed per lavori del giorno; hook in `lavoro-sostituzione-assenza-service.js` |
+| **Lettura** | `resolvePrevistiOperaioIds(..., giornoKey)` usa roster se materializzato; vista impegni materializza on load + colonna «Roster attivi» |
+| **UI** | `impegni-giornalieri-standalone.html` — badge roster + attivi; write manager ancora solo via flusso assenza→sostituto/prestito (A1) |
+| **Test** | `manodopera-roster-giorno.test.js` (10) + sostituzione/impegni/shortlist verdi |
+| **Fuori scope** | Tony/Context Builder shortlist; add/remove manuale UI (A2); GPS |
 
 ## Tony — fix CI vitest segna-ore + T-FLOW-013 (2026-07-27)
 

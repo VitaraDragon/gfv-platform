@@ -305,6 +305,32 @@ function shouldSkipQuickReply(message, ctx) {
 
 const QUICK_REPLY_MAP = [
   {
+    id: "query_manodopera_giorno",
+    keywords: [
+      /chi\s+[eè]\s+libero/i,
+      /operai\s+liberi/i,
+      /impegni\s+(di\s+)?(oggi|giorno)/i,
+      /chi\s+[eè]\s+assente/i,
+      /assenze?\s+(di\s+)?oggi/i,
+      /roster/i,
+      /shortlist\s+sostitu/i,
+      /candidati\s+sostitu/i,
+      /chi\s+posso\s+(mettere|sostitu)/i,
+      /chi\s+manca\s+(sul|sul\s+lavoro|in\s+squadra)/i,
+    ],
+    tierRequired: "T3",
+    domains: ["manodopera"],
+    execute(ctx, message) {
+      const a = ctx.azienda || {};
+      const snap = a.manodoperaGiorno;
+      if (!snap) {
+        return "Non ho ancora il riepilogo manodopera del giorno nel contesto. Apri Impegni giornalieri o riprova tra poco.";
+      }
+      const { formatManodoperaGiornoQuickReply } = require("./tony-manodopera-giorno-context");
+      return formatManodoperaGiornoQuickReply(snap, message);
+    },
+  },
+  {
     id: "query_scorte",
     keywords: [
       /sotto\s*scorta/i,

@@ -66,8 +66,48 @@
       return path + q;
     }
 
+    async function assertAuthEmulatorUp() {
+      try {
+        const ctrl = new AbortController();
+        const t = setTimeout(() => ctrl.abort(), 2500);
+        const res = await fetch('http://127.0.0.1:9099/', { signal: ctrl.signal, mode: 'no-cors' });
+        clearTimeout(t);
+        return true;
+      } catch (_) {
+        throw new Error(
+          'Auth emulator non raggiungibile su http://127.0.0.1:9099. ' +
+            'Avvia in un terminale: npm run sim:emulators (hub http://127.0.0.1:4000). ' +
+            'Poi riprova Entra come manager.'
+        );
+      }
+    }
+
+    async function withTimeout(promise, ms, label) {
+      let timer;
+      const timeout = new Promise((_, reject) => {
+        timer = setTimeout(
+          () =>
+            reject(
+              new Error(
+                (label || 'Operazione') +
+                  ' in timeout (' +
+                  Math.round(ms / 1000) +
+                  's). Verifica che Auth emulator sia attivo (npm run sim:emulators).'
+              )
+            ),
+          ms
+        );
+      });
+      try {
+        return await Promise.race([promise, timeout]);
+      } finally {
+        clearTimeout(timer);
+      }
+    }
+
     async function enterCompany(entry, persona) {
       await window.GFVStandaloneReady;
+      await assertAuthEmulatorUp();
       const firebaseService = await import('../services/firebase-service.js');
       const { storeSimPendingLogin, storeSimPersonaLogin } = await import('../js/simulator-browser-auth.js');
       const { signInWithEmailAndPassword } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js');
@@ -81,7 +121,11 @@
         storeSimPendingLogin(entry, PASSWORD);
       }
       showStatus('Accesso in corso…', true);
-      await signInWithEmailAndPassword(auth, target.email, PASSWORD);
+      await withTimeout(
+        signInWithEmailAndPassword(auth, target.email, PASSWORD),
+        12000,
+        'Login Auth emulator'
+      );
       if (typeof auth.authStateReady === 'function') {
         await auth.authStateReady();
       }
@@ -292,11 +336,16 @@
         btnLogin.className = 'btn-primary';
         btnLogin.textContent = 'Entra come manager';
         btnLogin.onclick = async () => {
+          btnLogin.disabled = true;
+          const prev = btnLogin.textContent;
+          btnLogin.textContent = 'Accesso…';
           try {
             await enterCompany(entry);
             window.location.href = page('../dashboard-standalone.html');
           } catch (e) {
             showStatus(e.message || String(e), false);
+            btnLogin.disabled = false;
+            btnLogin.textContent = prev;
           }
         };
         actions.appendChild(btnLogin);
@@ -311,11 +360,16 @@
             btn.className = 'btn-persona';
             btn.textContent = personaLabel(persona);
             btn.onclick = async () => {
+              btn.disabled = true;
+              const prev = btn.textContent;
+              btn.textContent = 'Accesso…';
               try {
                 await enterCompany(entry, persona);
                 window.location.href = page(destinationForRole(role));
               } catch (e) {
                 showStatus(e.message || String(e), false);
+                btn.disabled = false;
+                btn.textContent = prev;
               }
             };
             personasWrap.appendChild(btn);

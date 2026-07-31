@@ -224,7 +224,9 @@ Tony non "compila" grafici. Può:
 - Fallback APRI_PAGINA + OPEN_MODAL quando modal assente
 - System prompt: routing intent (attività vs lavoro vs terreni vs domanda)
 - **Hub modulo Manodopera (2026-06-13):** home manager `manodopera-home-standalone.html`; Tony target `manodopera` → hub; card Moduli + quick bar `manodoperaHome` — allineamento pattern Magazzino/Vigneto (piano `docs-sviluppo/manodopera/PLAN_HUB_MODULO_MANODOPERA.md` Fase 1 ✅)
-- **Vista impegni giornalieri (2026-07-24):** pagina manager solo lettura (Libero/Impegnato/Assente/Prestato/Sostituto) sullo stesso grafo della shortlist; card hub + link Gestione lavori + APRI_PAGINA `impegni giornalieri` — piano `docs-sviluppo/da-fare/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md`
+- **Vista impegni giornalieri (2026-07-24):** pagina manager (Libero/Impegnato/Assente/Prestato/Sostituto) sullo stesso grafo della shortlist; card hub + link Gestione lavori + APRI_PAGINA `impegni giornalieri` — piano `docs-sviluppo/da-fare/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md`
+- **Roster giornaliero / partecipazioni (2026-07-27):** `equipaggioGiorno[giorno].partecipazioni[]` materializzato lazy da anagrafica; write via sostituzione/prestito; shortlist/impegni leggono lo stesso fatto
+- **Context Builder manodoperaGiorno (2026-07-27):** `azienda.manodoperaGiorno` + shortlist persistita su slice; quick reply occhi («chi è libero», impegni, shortlist) senza ricalcolo candidati in chat
 - **Workspace mobile profilo campo (2026-07-17):** nav vocale tra slide (comunicazioni, ore, lavoro, statistiche, valida ore) via intercept locale + `tryTonyFieldNavQuickReply`; un solo FAB Tony (no widget negli iframe `embed=mobile`) — ✅ verificato utente, build `2026-07-17e`–`f`
 - **Criterio done**: Operaio può dire "Ho fatto 8 ore di potatura" da qualsiasi pagina e Tony completa il flusso
 

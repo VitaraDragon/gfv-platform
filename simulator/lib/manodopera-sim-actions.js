@@ -27,6 +27,12 @@ import {
   LAVORO_STATI_STANDBY_AMMESSI,
   toGiornoKey
 } from '../../core/config/manodopera-assenze-config.js';
+import {
+  ensureRosterSlice,
+  applySostituzioneToRoster,
+  applyPrestitoUscitaToRoster,
+  mergeEquipaggioGiornoPatch
+} from '../../core/services/manodopera-roster-giorno-logic.js';
 
 const TIPI_ASSENZA_VALIDI = new Set([
   'malattia',
@@ -455,25 +461,31 @@ export async function assegnaSostitutoAssenzaSim(db, options = {}) {
       ? lavoro.standbyStatoPrecedente
       : 'assegnato';
 
-  const eg = lavoro.equipaggioGiorno && typeof lavoro.equipaggioGiorno === 'object'
-    ? { ...lavoro.equipaggioGiorno }
-    : {};
-  const slice = {
-    assenti: [...(eg[giornoKey]?.assenti || [])],
-    sostituzioni: [...(eg[giornoKey]?.sostituzioni || [])],
-    prestitiUscita: [...(eg[giornoKey]?.prestitiUscita || [])]
-  };
-  if (assenteId && !slice.assenti.includes(assenteId)) {
-    slice.assenti.push(assenteId);
+  let squadreList = [];
+  try {
+    const sqSnap = await db.collection(`tenants/${tenantId}/squadre`).get();
+    squadreList = sqSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+  } catch {
+    squadreList = [];
   }
-  slice.sostituzioni.push({
+
+  const lavoroWithId = { id: lavoroId, ...lavoro };
+  const { slice: sliceBase } = ensureRosterSlice({
+    lavoro: lavoroWithId,
+    giornoKey,
+    squadreList,
+    materializzatoDa: 'auto'
+  });
+  const slice = applySostituzioneToRoster(sliceBase, {
     assenteOperaioId: assenteId,
     sostitutoOperaioId,
     assegnatoDa: managerId,
-    impegnoOrigineLavoroId: impegnoLavoroId || null,
-    source: 'gfv_farm_simulator'
+    impegnoOrigineLavoroId: impegnoLavoroId || null
   });
-  eg[giornoKey] = slice;
+  // traccia source sim sull'ultima sostituzione
+  if (slice.sostituzioni?.length) {
+    slice.sostituzioni[slice.sostituzioni.length - 1].source = 'gfv_farm_simulator';
+  }
 
   const patch = {
     stato: restore,
@@ -490,7 +502,7 @@ export async function assegnaSostitutoAssenzaSim(db, options = {}) {
     standbyDaIl: null,
     standbyNota: null,
     standbyGiornoKey: null,
-    equipaggioGiorno: eg
+    equipaggioGiorno: mergeEquipaggioGiornoPatch(lavoroWithId, giornoKey, slice)
   };
 
   if (lavoro.operaioId && (!assenteId || lavoro.operaioId === assenteId)) {
@@ -501,23 +513,23 @@ export async function assegnaSostitutoAssenzaSim(db, options = {}) {
     const origRef = db.doc(`tenants/${tenantId}/lavori/${impegnoLavoroId}`);
     const origSnap = await origRef.get();
     if (!origSnap.exists) throw new Error('Lavoro origine prestito non trovato');
-    const origine = origSnap.data();
-    const egO = origine.equipaggioGiorno && typeof origine.equipaggioGiorno === 'object'
-      ? { ...origine.equipaggioGiorno }
-      : {};
-    const sliceO = {
-      assenti: [...(egO[giornoKey]?.assenti || [])],
-      sostituzioni: [...(egO[giornoKey]?.sostituzioni || [])],
-      prestitiUscita: [...(egO[giornoKey]?.prestitiUscita || [])]
-    };
-    sliceO.prestitiUscita.push({
+    const origine = { id: impegnoLavoroId, ...origSnap.data() };
+    const { slice: sliceOBase } = ensureRosterSlice({
+      lavoro: origine,
+      giornoKey,
+      squadreList,
+      materializzatoDa: 'auto'
+    });
+    const sliceO = applyPrestitoUscitaToRoster(sliceOBase, {
       operaioId: sostitutoOperaioId,
       versoLavoroId: lavoroId,
-      source: 'gfv_farm_simulator'
+      daManagerId: managerId
     });
-    egO[giornoKey] = sliceO;
+    if (sliceO.prestitiUscita?.length) {
+      sliceO.prestitiUscita[sliceO.prestitiUscita.length - 1].source = 'gfv_farm_simulator';
+    }
     const patchOrig = {
-      equipaggioGiorno: egO,
+      equipaggioGiorno: mergeEquipaggioGiornoPatch(origine, giornoKey, sliceO),
       manodoperaPrestata: {
         operaioId: sostitutoOperaioId,
         versoLavoroId: lavoroId,

@@ -77,6 +77,8 @@ const TARGET_REQUIRES_MODULE = {
   "compensi operai": "manodopera",
   compensi: "manodopera",
   manodopera: "manodopera",
+  "impegni giornalieri": "manodopera",
+  "impegni giorno": "manodopera",
   "workspace campo": "manodopera",
   "field workspace": "manodopera",
   comunicazioni: "manodopera",
@@ -123,6 +125,7 @@ const QUICK_REPLY_REQUIRES_MODULES = {
   query_conteggi_tariffe: ["contoTerzi"],
   query_movimenti_recenti: ["magazzino"],
   query_guasti_aperti: ["parcoMacchine"],
+  query_manodopera_giorno: ["manodopera"],
 };
 
 function normalizeTargetKey(raw) {
@@ -242,6 +245,10 @@ function filterAziendaByModuliAttivi(azienda, moduliAttivi, helpers) {
     } else if (typeof out.summaryScadenze === "string" && /mezzi|revisione|assicurazione|trattor/i.test(out.summaryScadenze)) {
       out.summaryScadenze = "Nessuna scadenza imminente sui terreni.";
     }
+  }
+
+  if (!hasActiveModule(moduliAttivi, "manodopera")) {
+    delete out.manodoperaGiorno;
   }
 
   return out;

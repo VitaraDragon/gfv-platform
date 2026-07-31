@@ -12,6 +12,11 @@ import {
   resolvePrevistiOperaioIds,
   evaluateEquipaggioMinimo
 } from './manodopera-sostituti-shortlist-logic.js';
+import {
+  getEquipaggioSlice as getRosterSlice,
+  isRosterMaterializzato,
+  getRosterAttiviIds
+} from './manodopera-roster-giorno-logic.js';
 
 /** @param {*} dataInizio @returns {Date|null} */
 function parseLavoroDataInizio(dataInizio) {
@@ -300,8 +305,10 @@ export function buildImpegnoLavoroRow(options = {}) {
 
   if (!lavoro?.id) return null;
 
-  const previstiIds = resolvePrevistiOperaioIds(lavoro, squadreList);
+  const previstiIds = resolvePrevistiOperaioIds(lavoro, squadreList, giornoKey);
   const slice = getEquipaggioSliceForGiorno(lavoro, giornoKey);
+  const rosterSlice = getRosterSlice(lavoro, giornoKey);
+  const rosterMaterializzato = isRosterMaterializzato(rosterSlice);
   const assentiIds = [
     ...new Set(
       [
@@ -327,6 +334,16 @@ export function buildImpegnoLavoroRow(options = {}) {
     sostitutiIds
   });
 
+  const attiviIds = rosterMaterializzato
+    ? getRosterAttiviIds(rosterSlice)
+    : null;
+  const attiviCount = attiviIds != null ? attiviIds.length : check.attivi;
+  const incompleto =
+    check.applicabile && equipaggioMinimo != null
+      ? attiviCount < equipaggioMinimo
+      : false;
+  const mancanti = incompleto ? Math.max(0, equipaggioMinimo - attiviCount) : 0;
+
   const labelOp = (id) => {
     const op = operaiById.get(id);
     return op ? nomeOperaio(op) : id;
@@ -345,10 +362,14 @@ export function buildImpegnoLavoroRow(options = {}) {
     assentiNomi: assentiIds.map(labelOp),
     sostitutiIds,
     sostitutiNomi: sostitutiIds.map(labelOp),
+    rosterMaterializzato,
+    partecipazioni: rosterMaterializzato ? rosterSlice.partecipazioni : [],
+    attiviIds: attiviIds || [],
+    attiviNomi: (attiviIds || []).map(labelOp),
     equipaggioMinimo: check.minPersone,
-    equipaggioAttivi: check.attivi,
-    equipaggioIncompleto: check.incompleto,
-    equipaggioMancanti: check.mancanti
+    equipaggioAttivi: attiviCount,
+    equipaggioIncompleto: incompleto,
+    equipaggioMancanti: mancanti
   };
 }
 

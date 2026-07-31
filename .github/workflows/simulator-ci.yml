@@ -22,7 +22,16 @@ on:
       - 'modules/frutteto/**'
       - 'scripts/sim-e2e-run.mjs'
       - 'scripts/sim-ci-e2e-inner.sh'
+      - 'scripts/manodopera-roster-a2-canary.mjs'
+      - 'scripts/sim-ci-manodopera-roster-a2-inner.sh'
+      - 'simulator/ci-manodopera-roster-a2-run.js'
       - 'simulator/verify-e2e-seed.js'
+      - 'core/services/manodopera-roster-giorno-*.js'
+      - 'core/js/manodopera-roster-edit-ui.js'
+      - 'core/services/manodopera-impegni-giorno-*.js'
+      - 'modules/manodopera/**'
+      - 'core/admin/js/gestione-lavori-sostituti-ui.js'
+      - 'functions/tony-nav-quick-reply.js'
       - 'playwright.config.js'
       - 'core/config/trattamenti-lavoro-defaults.js'
       - 'firebase.json'
@@ -50,7 +59,16 @@ on:
       - 'modules/frutteto/**'
       - 'scripts/sim-e2e-run.mjs'
       - 'scripts/sim-ci-e2e-inner.sh'
+      - 'scripts/manodopera-roster-a2-canary.mjs'
+      - 'scripts/sim-ci-manodopera-roster-a2-inner.sh'
+      - 'simulator/ci-manodopera-roster-a2-run.js'
       - 'simulator/verify-e2e-seed.js'
+      - 'core/services/manodopera-roster-giorno-*.js'
+      - 'core/js/manodopera-roster-edit-ui.js'
+      - 'core/services/manodopera-impegni-giorno-*.js'
+      - 'modules/manodopera/**'
+      - 'core/admin/js/gestione-lavori-sostituti-ui.js'
+      - 'functions/tony-nav-quick-reply.js'
       - 'playwright.config.js'
       - 'core/config/trattamenti-lavoro-defaults.js'
       - 'firebase.json'
@@ -156,6 +174,41 @@ jobs:
 
       - name: Run Tony Vitest (matrix typo/forbidden + suite)
         run: npm run sim:tony:vitest
+
+  manodopera-roster-a2-canary:
+    name: manodopera:roster-a2-canary (nav + A2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Setup Java (Firestore Emulator)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npm run sim:e2e:install
+
+      - name: Unit checks (no emulator)
+        run: npm run manodopera:roster-a2-canary -- --unit-only
+
+      - name: Full canary (emulator + seed + browser)
+        run: npm run manodopera:roster-a2-canary:ci
+        env:
+          CI: true
 
   simulator-tony-e2e-mock:
     name: sim:tony:e2e (Tony tier 2 mock)

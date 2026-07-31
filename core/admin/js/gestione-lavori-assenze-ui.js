@@ -241,7 +241,11 @@ export async function submitStandbyAssenzaModal() {
     showAlert('Lavoro in standby. Scegli il sostituto.', 'success');
     closeStandbyAssenzaModal();
     await refreshAssenzeSegnalateBanner();
-    assenzeUiDeps?.renderLavori?.();
+    if (typeof assenzeUiDeps?.reloadLavori === 'function') {
+      await assenzeUiDeps.reloadLavori();
+    } else {
+      assenzeUiDeps?.renderLavori?.();
+    }
     if (typeof window.openSostitutoAssenzaModal === 'function') {
       setTimeout(() => window.openSostitutoAssenzaModal(lavoroId), 350);
     }
@@ -260,7 +264,11 @@ export async function ripristinaDaStandbyModal() {
     await riportaLavoroDaStandbyAssenza(lavoroId, managerId);
     showAlert('Lavoro ripristinato dallo standby', 'success');
     closeStandbyAssenzaModal();
-    assenzeUiDeps?.renderLavori?.();
+    if (typeof assenzeUiDeps?.reloadLavori === 'function') {
+      await assenzeUiDeps.reloadLavori();
+    } else {
+      assenzeUiDeps?.renderLavori?.();
+    }
   } catch (e) {
     showAlert(e.message || 'Errore ripristino', 'error');
   }
