@@ -226,12 +226,22 @@ export function rankAndLimitShortlist(candidati) {
       return true;
     })
     .sort((a, b) => {
-      // Piano: prima liberi, poi spostabili, poi impegnati; score/stelle come tie-break
+      // Piano: liberi → spostabili → impegnati; score; poi più vicini (km noti)
       const da = orderDisp[a.disponibilita] ?? 3;
       const db = orderDisp[b.disponibilita] ?? 3;
       if (da !== db) return da - db;
       if ((b.score || 0) !== (a.score || 0)) return (b.score || 0) - (a.score || 0);
-      return (b.stelleMinime || 0) - (a.stelleMinime || 0);
+      if ((b.stelleMinime || 0) !== (a.stelleMinime || 0)) {
+        return (b.stelleMinime || 0) - (a.stelleMinime || 0);
+      }
+      const ka = a.distanzaKm != null && Number.isFinite(Number(a.distanzaKm))
+        ? Number(a.distanzaKm)
+        : Number.POSITIVE_INFINITY;
+      const kb = b.distanzaKm != null && Number.isFinite(Number(b.distanzaKm))
+        ? Number(b.distanzaKm)
+        : Number.POSITIVE_INFINITY;
+      if (ka !== kb) return ka - kb;
+      return 0;
     })
     .slice(0, SHORTLIST_MAX_CANDIDATI);
 }

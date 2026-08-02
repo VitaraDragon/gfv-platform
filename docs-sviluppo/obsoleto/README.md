@@ -1,6 +1,6 @@
 # Documentazione obsoleta
 
-**Aggiornato:** 2026-07-10
+**Aggiornato:** 2026-07-31
 
 Documenti **sostituiti**, **abbandonati** o **solo storici** (log di sessione, refactoring completati, analisi superate). Non usare per decisioni correnti.
 
@@ -20,7 +20,7 @@ Documenti **sostituiti**, **abbandonati** o **solo storici** (log di sessione, r
 - **`archivio-tony/`** – vecchi MASTER_PLAN / STATO Tony (pre consolidamento 2026-03)
 - **`riepiloghi-sessioni/`** – `RIEPILOGO_LAVORI_*` giornalieri (gen–feb 2026)
 - **`refactoring-completati/`** – log refactoring e standardizzazione servizi (2025–2026)
-- **`strategie-superate/`** – piani early-phase (login, freemium v1, organizzazione codice)
+- **`strategie-superate/`** – piani early-phase (login, freemium v1, organizzazione codice); **tracking GPS → area lavorata** scartato 2026-07-31 (`ROADMAP_TRACKING_GPS_AREA_LAVORATA.md` — vincoli legali/privacy Italia: art. 4 St. Lav. + GDPR, rischio controllo a distanza su smartphone dipendente)
 - **`analisi-superate/`** – audit, valutazioni e confronti mercato sostituiti da doc più recenti
 - **`tony-superato/`** – meta-analisi Tony e backlog Gemini già assorbiti nel codice
 

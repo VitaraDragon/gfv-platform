@@ -5,12 +5,115 @@
  */
 
 import { formatDateLikeToItalianLongLocal } from './date-format-it.js';
+import { toGiornoKey } from '../config/manodopera-assenze-config.js';
+import { resolveRequiredSkillsForLavoro } from '../config/manodopera-skills-config.js';
+import {
+    evaluateEquipaggioMinimo,
+    resolvePrevistiOperaioIds
+} from '../services/manodopera-sostituti-shortlist-logic.js';
+import { resolveLavoroManodoperaSeverita } from '../services/manodopera-problema-severita-logic.js';
 
 // ============================================
 // IMPORTS
 // ============================================
 // escapeHtml viene passato come callback
 // db, auth, collection, getDocs vengono passati come parametri o accessibili globalmente
+
+/**
+ * Severità manodopera da documento lavoro (mappa: standby + equipaggio se squadre note).
+ * @param {Object} data — campi Firestore lavoro
+ * @param {Array} [squadreList]
+ * @param {Object|null} [attrezzo]
+ * @returns {{ severita: string|null, motivo: string|null, pulse: boolean }}
+ */
+export function resolveSeveritaManodoperaPerMappa(data, squadreList = [], attrezzo = null) {
+    if (!data) return { severita: null, motivo: null, pulse: false };
+    const giornoKey =
+        data.standbyGiornoKey ||
+        (data.dataInizio
+            ? toGiornoKey(data.dataInizio?.toDate ? data.dataInizio.toDate() : data.dataInizio)
+            : toGiornoKey(new Date()));
+    const slice = (data.equipaggioGiorno && data.equipaggioGiorno[giornoKey]) || {};
+    const sostitutiIds = [
+        ...new Set(
+            [
+                data.assenzaSostitutoOperaioId,
+                ...((slice.sostituzioni || []).map((s) => s.sostitutoOperaioId))
+            ].filter(Boolean)
+        )
+    ];
+    const assentiIds = [
+        ...new Set(
+            [
+                data.standbyOperaioId,
+                data.assenzaOperaioAssenteId,
+                ...(slice.assenti || [])
+            ].filter(Boolean)
+        )
+    ];
+    let equipaggioIncompleto = false;
+    try {
+        const req = resolveRequiredSkillsForLavoro({
+            tipoLavoroNome: data.tipoLavoro,
+            sottocategoriaCodice: data.sottocategoriaCodice,
+            categoriaCodice: data.categoriaCodice,
+            attrezzo,
+            macchinaId: data.macchinaId,
+            operatoreMacchinaId: data.operatoreMacchinaId
+        });
+        if (req.equipaggioMinimo != null) {
+            const check = evaluateEquipaggioMinimo({
+                minPersone: req.equipaggioMinimo,
+                previstiIds: resolvePrevistiOperaioIds(
+                    { ...data, id: data.id },
+                    squadreList,
+                    giornoKey
+                ),
+                assentiIds,
+                sostitutiIds
+            });
+            equipaggioIncompleto = !!(check.applicabile && check.incompleto);
+        }
+    } catch (_) {
+        /* ignore */
+    }
+    const shortlistVuota =
+        data.stato === 'in_standby' &&
+        Array.isArray(slice.shortlistCandidati) &&
+        slice.shortlistCandidati.length === 0 &&
+        !!slice.shortlistAggiornataIl;
+    return resolveLavoroManodoperaSeverita({
+        stato: data.stato,
+        standbyCausa: data.standbyCausa || null,
+        sostitutiIds,
+        equipaggioIncompleto,
+        shortlistVuota
+    });
+}
+
+/**
+ * SVG data-URL marker lavori (progresso o allarme manodopera).
+ * @param {{ fill: string, label: string, ring?: string|null, ringWide?: boolean }} opts
+ * @returns {string}
+ */
+export function buildLavoroMarkerIconUrl(opts) {
+    const fill = opts.fill || '#6C757D';
+    const label = (opts.label || '').toString().slice(0, 2);
+    const ring = opts.ring || null;
+    const rOuter = opts.ringWide ? 15.5 : 14;
+    const ringSvg = ring
+        ? `<circle cx="16" cy="16" r="${rOuter}" fill="none" stroke="${ring}" stroke-width="${opts.ringWide ? 3.5 : 2.5}" opacity="0.85"/>`
+        : '';
+    const svg = `
+        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 36 36">
+            <g transform="translate(2,2)">
+                ${ringSvg}
+                <circle cx="16" cy="16" r="12" fill="${fill}" stroke="white" stroke-width="2"/>
+                <text x="16" y="21" font-size="13" font-weight="bold" fill="white" text-anchor="middle" font-family="Segoe UI,Arial,sans-serif">${label}</text>
+            </g>
+        </svg>`;
+    return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
 
 // ============================================
 // STATE MANAGEMENT
@@ -43,7 +146,7 @@ export function createMappaAziendaleSection(userData, hasManodopera = false, loa
                 <div style="flex: 1;">
                     <h2 style="margin: 0;"><span class="section-icon">🗺️</span> Vista Mappa Aziendale</h2>
                     <p style="color: #666; margin-top: 5px; margin-bottom: 0; font-size: 14px;">
-                        Visualizza tutti i terreni dell'azienda con i loro confini geolocalizzati sulla mappa satellitare
+                        Terreni geolocalizzati, progresso lavori e <strong>allarmi manodopera</strong> (standby / equipaggio) — senza tracking GPS sui dipendenti
                     </p>
                 </div>
                 <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -62,8 +165,11 @@ export function createMappaAziendaleSection(userData, hasManodopera = false, loa
                     <button id="toggle-overlay-lavori" class="mappa-control-btn" title="Mostra/Nascondi zone lavorate" style="margin-top: 20px;">
                         <span>👷</span> Zone Lavorate
                     </button>
-                    <button id="toggle-indicatori-lavori" class="mappa-control-btn" title="Mostra/Nascondi indicatori stato lavori" style="margin-top: 20px;">
-                        <span>📍</span> Indicatori Lavori
+                    <button id="toggle-allarmi-manodopera" class="mappa-control-btn active" title="Mostra/Nascondi allarmi manodopera (semaforo)" style="margin-top: 20px;">
+                        <span>🚨</span> Allarmi <span style="color: #c62828;">●</span>
+                    </button>
+                    <button id="toggle-indicatori-lavori" class="mappa-control-btn" title="Mostra/Nascondi indicatori progresso lavori" style="margin-top: 20px;">
+                        <span>📍</span> Progresso lavori
                     </button>
                 </div>
             </div>
@@ -695,10 +801,15 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
         const zoneLavoratePolygons = [];
         const zoneLavorateInfoWindows = [];
         
-        // Indicatori stato lavori - SOLO se Manodopera è attivo
+        // Indicatori progresso + allarmi manodopera
         let indicatoriLavoriVisible = false;
+        let allarmiManodoperaVisible = true;
         const lavoroMarkers = [];
+        const allarmeMarkers = [];
         const lavoroMarkersInfoWindows = [];
+        const allarmePulseTimers = [];
+        let countAllarmiRossi = 0;
+        let countAllarmiGialli = 0;
         
         // Carica zone lavorate - SOLO se Manodopera è attivo
         if (effectiveHasManodopera) {
@@ -815,70 +926,91 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
             }
         }
 
-        // Funzione per caricare e disegnare indicatori stato lavori
+        // Funzione per caricare e disegnare indicatori stato lavori + allarmi manodopera
         async function loadAndDrawIndicatoriLavori() {
             if (!hasManodopera) return;
             try {
-                // Usa currentTenantId già ottenuto sopra
                 const lavoriCollection = collection(db, `tenants/${currentTenantId}/lavori`);
+                let squadreList = [];
+                try {
+                    const { getAllSquadre } = await import('../services/squadre-service.js');
+                    squadreList = await getAllSquadre();
+                } catch (e) {
+                    console.warn('[mappa] squadre non disponibili per equipaggio:', e?.message || e);
+                }
+
                 const lavoriSnapshot = await getDocs(lavoriCollection);
-                
                 const lavoriConProgressi = [];
                 const oggi = new Date();
                 oggi.setHours(0, 0, 0, 0);
-                
-                lavoriSnapshot.forEach(doc => {
-                    const data = doc.data();
+
+                lavoriSnapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
                     const stato = data.stato || 'assegnato';
-                    if (stato !== 'completato' && stato !== 'annullato') {
-                        let giorniEffettivi = data.giorniEffettivi || 0;
-                        if (data.dataInizio && data.durataPrevista) {
-                            const dataInizio = data.dataInizio?.toDate 
-                                ? data.dataInizio.toDate() 
-                                : (data.dataInizio ? new Date(data.dataInizio) : null);
-                            if (dataInizio) {
-                                const dataInizioSenzaOra = new Date(dataInizio);
-                                dataInizioSenzaOra.setHours(0, 0, 0, 0);
-                                giorniEffettivi = Math.max(0, Math.floor((oggi - dataInizioSenzaOra) / (1000 * 60 * 60 * 24)) + 1);
-                            }
+                    if (stato === 'completato' || stato === 'annullato') return;
+
+                    let giorniEffettivi = data.giorniEffettivi || 0;
+                    if (data.dataInizio && data.durataPrevista) {
+                        const dataInizio = data.dataInizio?.toDate
+                            ? data.dataInizio.toDate()
+                            : (data.dataInizio ? new Date(data.dataInizio) : null);
+                        if (dataInizio) {
+                            const dataInizioSenzaOra = new Date(dataInizio);
+                            dataInizioSenzaOra.setHours(0, 0, 0, 0);
+                            giorniEffettivi = Math.max(
+                                0,
+                                Math.floor((oggi - dataInizioSenzaOra) / (1000 * 60 * 60 * 24)) + 1
+                            );
                         }
-                        
-                        lavoriConProgressi.push({
-                            id: doc.id,
-                            nome: data.nome || 'Lavoro senza nome',
-                            terrenoId: data.terrenoId,
-                            tipoLavoro: data.tipoLavoro || '',
-                            caposquadraId: data.caposquadraId,
-                            dataInizio: data.dataInizio?.toDate ? data.dataInizio.toDate() : (data.dataInizio ? new Date(data.dataInizio) : null),
-                            durataPrevista: data.durataPrevista || 0,
-                            stato: stato,
-                            percentualeCompletamento: data.percentualeCompletamento || 0,
-                            statoProgresso: data.statoProgresso || null,
-                            superficieTotaleLavorata: data.superficieTotaleLavorata || 0,
-                            giorniEffettivi: giorniEffettivi
-                        });
                     }
+
+                    const severitaInfo = resolveSeveritaManodoperaPerMappa(
+                        { ...data, id: docSnap.id },
+                        squadreList,
+                        null
+                    );
+
+                    lavoriConProgressi.push({
+                        id: docSnap.id,
+                        nome: data.nome || 'Lavoro senza nome',
+                        terrenoId: data.terrenoId,
+                        tipoLavoro: data.tipoLavoro || '',
+                        caposquadraId: data.caposquadraId,
+                        dataInizio: data.dataInizio?.toDate
+                            ? data.dataInizio.toDate()
+                            : (data.dataInizio ? new Date(data.dataInizio) : null),
+                        durataPrevista: data.durataPrevista || 0,
+                        stato,
+                        standbyCausa: data.standbyCausa || null,
+                        percentualeCompletamento: data.percentualeCompletamento || 0,
+                        statoProgresso: data.statoProgresso || null,
+                        superficieTotaleLavorata: data.superficieTotaleLavorata || 0,
+                        giorniEffettivi,
+                        severita: severitaInfo.severita,
+                        severitaMotivo: severitaInfo.motivo,
+                        severitaPulse: severitaInfo.pulse
+                    });
                 });
+
+                countAllarmiRossi = lavoriConProgressi.filter((l) => l.severita === 'rosso').length;
+                countAllarmiGialli = lavoriConProgressi.filter((l) => l.severita === 'giallo').length;
 
                 for (const lavoro of lavoriConProgressi) {
                     try {
-                        const terreno = terreni.find(t => t.id === lavoro.terrenoId);
+                        const terreno = terreni.find((t) => t.id === lavoro.terrenoId);
                         if (!terreno || !terreno.polygonCoords || terreno.polygonCoords.length < 3) {
                             continue;
                         }
-                        
+
                         if (!lavoro.statoProgresso && lavoro.dataInizio && lavoro.durataPrevista && lavoro.giorniEffettivi > 0) {
                             const superficieTotale = terreno.superficie || 0;
                             const superficieLavorata = lavoro.superficieTotaleLavorata || 0;
-                            
                             let percentualeCompletamento = lavoro.percentualeCompletamento;
                             if (!percentualeCompletamento && superficieTotale > 0) {
                                 percentualeCompletamento = (superficieLavorata / superficieTotale) * 100;
                             }
-                            
                             const percentualeTempo = (lavoro.giorniEffettivi / lavoro.durataPrevista) * 100;
                             const tolleranza = 10;
-                            
                             if (percentualeCompletamento > percentualeTempo + tolleranza) {
                                 lavoro.statoProgresso = 'in_anticipo';
                             } else if (percentualeCompletamento < percentualeTempo - tolleranza) {
@@ -886,7 +1018,6 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
                             } else {
                                 lavoro.statoProgresso = 'in_tempo';
                             }
-                            
                             if (!lavoro.percentualeCompletamento && superficieTotale > 0) {
                                 lavoro.percentualeCompletamento = percentualeCompletamento;
                             }
@@ -894,94 +1025,137 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
 
                         const centro = getPolygonCenter(terreno.polygonCoords);
                         const position = new google.maps.LatLng(centro.lat, centro.lng);
+                        const isAllarme = !!lavoro.severita;
 
-                        let markerColor = '#2E8B57';
-                        let markerIcon = '🟢';
-                        let markerLabel = '';
+                        let markerColor = '#6C757D';
+                        let markerLabel = 'A';
+                        let ring = null;
+                        let ringWide = false;
 
-                        if (lavoro.statoProgresso === 'in_ritardo') {
+                        if (isAllarme) {
+                            if (lavoro.severita === 'rosso') {
+                                markerColor = '#c62828';
+                                markerLabel = '!';
+                                ring = '#c62828';
+                                ringWide = true;
+                            } else {
+                                markerColor = '#f9a825';
+                                markerLabel = '!';
+                                ring = '#f9a825';
+                            }
+                        } else if (lavoro.statoProgresso === 'in_ritardo') {
                             markerColor = '#DC3545';
-                            markerIcon = '🔴';
                             markerLabel = 'R';
                         } else if (lavoro.statoProgresso === 'in_anticipo') {
                             markerColor = '#28A745';
-                            markerIcon = '🟢';
                             markerLabel = 'A';
                         } else if (lavoro.statoProgresso === 'in_tempo') {
                             markerColor = '#FFC107';
-                            markerIcon = '🟡';
                             markerLabel = 'T';
-                        } else {
-                            if (lavoro.stato === 'in_corso') {
-                                markerColor = '#17A2B8';
-                                markerIcon = '🔵';
-                                markerLabel = 'C';
-                            } else {
-                                markerColor = '#6C757D';
-                                markerIcon = '⚪';
-                                markerLabel = 'A';
-                            }
+                        } else if (lavoro.stato === 'in_corso') {
+                            markerColor = '#17A2B8';
+                            markerLabel = 'C';
+                        } else if (lavoro.stato === 'in_standby') {
+                            markerColor = '#880e4f';
+                            markerLabel = 'S';
                         }
 
-                        const markerIconUrl = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-                            <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
-                                <circle cx="16" cy="16" r="14" fill="${markerColor}" stroke="white" stroke-width="2"/>
-                                <text x="16" y="22" font-size="16" font-weight="bold" fill="white" text-anchor="middle">${markerLabel}</text>
-                            </svg>
-                        `)}`;
+                        const iconUrl = buildLavoroMarkerIconUrl({
+                            fill: markerColor,
+                            label: markerLabel,
+                            ring,
+                            ringWide
+                        });
+                        const iconUrlPulse = isAllarme && lavoro.severitaPulse
+                            ? buildLavoroMarkerIconUrl({
+                                fill: markerColor,
+                                label: markerLabel,
+                                ring: '#ff8a80',
+                                ringWide: true
+                            })
+                            : null;
+
+                        const showOnMap = isAllarme
+                            ? allarmiManodoperaVisible
+                            : indicatoriLavoriVisible;
 
                         const marker = new google.maps.Marker({
-                            position: position,
-                            map: indicatoriLavoriVisible ? map : null,
+                            position,
+                            map: showOnMap ? map : null,
                             icon: {
-                                url: markerIconUrl,
-                                scaledSize: new google.maps.Size(32, 32),
-                                anchor: new google.maps.Point(16, 16)
+                                url: iconUrl,
+                                scaledSize: new google.maps.Size(36, 36),
+                                anchor: new google.maps.Point(18, 18)
                             },
-                            title: `${lavoro.nome} - ${lavoro.statoProgresso || lavoro.stato}`,
-                            zIndex: 200,
-                            lavoro: {
-                                id: lavoro.id,
-                                nome: lavoro.nome,
-                                tipoLavoro: lavoro.tipoLavoro,
-                                terrenoNome: terreno.nome,
-                                stato: lavoro.stato,
-                                statoProgresso: lavoro.statoProgresso,
-                                percentualeCompletamento: lavoro.percentualeCompletamento,
-                                superficieTotaleLavorata: lavoro.superficieTotaleLavorata,
-                                giorniEffettivi: lavoro.giorniEffettivi,
-                                durataPrevista: lavoro.durataPrevista,
-                                dataInizio: lavoro.dataInizio
-                            }
+                            title: isAllarme
+                                ? `${lavoro.nome} — ${lavoro.severitaMotivo || 'Allarme manodopera'}`
+                                : `${lavoro.nome} - ${lavoro.statoProgresso || lavoro.stato}`,
+                            zIndex: isAllarme ? 300 : 200
                         });
+                        marker._gfv = {
+                            terrenoId: lavoro.terrenoId,
+                            isAllarme,
+                            severita: lavoro.severita
+                        };
 
-                        lavoroMarkers.push(marker);
+                        if (isAllarme) {
+                            allarmeMarkers.push(marker);
+                            if (iconUrlPulse && !window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+                                let pulseOn = false;
+                                const timer = setInterval(() => {
+                                    pulseOn = !pulseOn;
+                                    marker.setIcon({
+                                        url: pulseOn ? iconUrlPulse : iconUrl,
+                                        scaledSize: new google.maps.Size(36, 36),
+                                        anchor: new google.maps.Point(18, 18)
+                                    });
+                                }, 700);
+                                allarmePulseTimers.push(timer);
+                            }
+                        } else {
+                            lavoroMarkers.push(marker);
+                        }
 
-                        const statoProgressoFormattato = lavoro.statoProgresso 
-                            ? (lavoro.statoProgresso === 'in_anticipo' ? '🟢 In anticipo' : 
-                               lavoro.statoProgresso === 'in_tempo' ? '🟡 In tempo' : 
-                               '🔴 In ritardo')
+                        const statoProgressoFormattato = lavoro.statoProgresso
+                            ? (lavoro.statoProgresso === 'in_anticipo'
+                                ? '🟢 In anticipo'
+                                : lavoro.statoProgresso === 'in_tempo'
+                                    ? '🟡 In tempo'
+                                    : '🔴 In ritardo')
                             : '⏳ Non disponibile';
 
-                        const statoLavoroFormattato = lavoro.stato === 'in_corso' ? '🔄 In corso' :
-                                                      lavoro.stato === 'assegnato' ? '📋 Assegnato' :
-                                                      lavoro.stato;
+                        const statoLavoroFormattato =
+                            lavoro.stato === 'in_corso'
+                                ? '🔄 In corso'
+                                : lavoro.stato === 'assegnato'
+                                    ? '📋 Assegnato'
+                                    : lavoro.stato === 'in_standby'
+                                        ? '⏸️ In standby'
+                                        : lavoro.stato;
+
+                        const allarmeBlock = isAllarme
+                            ? `<p style="margin-top:8px;padding:8px;border-radius:6px;background:${lavoro.severita === 'rosso' ? '#ffebee' : '#fff8e1'};border-left:4px solid ${lavoro.severita === 'rosso' ? '#c62828' : '#f9a825'};">
+                                    <strong>${lavoro.severita === 'rosso' ? '🚨 Allarme' : '⚠️ Attenzione'}:</strong>
+                                    ${escapeHtml(lavoro.severitaMotivo || 'Problema manodopera')}
+                               </p>`
+                            : '';
 
                         const lavoroInfoContent = `
                             <div class="mappa-info-window">
                                 <h3>${escapeHtml(lavoro.nome)}</h3>
-                                <p><strong>Terreno:</strong> ${escapeHtml(terreno.nome)}</p>
+                                <p><strong>Terreno:</strong> ${escapeHtml(terreno.nome)}${terreno.podere ? ` · ${escapeHtml(terreno.podere)}` : ''}</p>
                                 ${lavoro.tipoLavoro ? `<p><strong>Tipo Lavoro:</strong> ${escapeHtml(lavoro.tipoLavoro)}</p>` : ''}
                                 <p><strong>Stato:</strong> ${statoLavoroFormattato}</p>
+                                ${allarmeBlock}
                                 <p><strong>Progresso:</strong> ${statoProgressoFormattato}</p>
-                                ${lavoro.percentualeCompletamento ? `<p><strong>Completamento:</strong> ${lavoro.percentualeCompletamento.toFixed(1)}%</p>` : ''}
+                                ${lavoro.percentualeCompletamento ? `<p><strong>Completamento:</strong> ${Number(lavoro.percentualeCompletamento).toFixed(1)}%</p>` : ''}
                                 ${lavoro.superficieTotaleLavorata ? `<p><strong>Superficie Lavorata:</strong> ${lavoro.superficieTotaleLavorata.toFixed(2)} ha</p>` : ''}
                                 ${lavoro.dataInizio ? `<p><strong>Data Inizio:</strong> ${formatDateLikeToItalianLongLocal(lavoro.dataInizio)}</p>` : ''}
                                 ${lavoro.durataPrevista ? `<p><strong>Durata Prevista:</strong> ${lavoro.durataPrevista} giorni</p>` : ''}
                                 ${lavoro.giorniEffettivi ? `<p><strong>Giorni Trascorsi:</strong> ${lavoro.giorniEffettivi}</p>` : ''}
                                 <p style="margin-top: 10px;">
                                     <a href="admin/gestione-lavori-standalone.html" style="color: #2E8B57; text-decoration: underline; font-size: 12px;">
-                                        Vedi dettagli lavoro →
+                                        ${isAllarme && lavoro.stato === 'in_standby' ? 'Assegna sostituto / Gestione lavori →' : 'Vedi dettagli lavoro →'}
                                     </a>
                                 </p>
                             </div>
@@ -990,17 +1164,28 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
                         const lavoroInfoWindow = new google.maps.InfoWindow({
                             content: lavoroInfoContent
                         });
-
                         lavoroMarkersInfoWindows.push(lavoroInfoWindow);
 
-                        marker.addListener('click', function() {
-                            infoWindows.forEach(iw => iw.close());
-                            zoneLavorateInfoWindows.forEach(iw => iw.close());
-                            lavoroMarkersInfoWindows.forEach(iw => iw.close());
+                        marker.addListener('click', function () {
+                            infoWindows.forEach((iw) => iw.close());
+                            zoneLavorateInfoWindows.forEach((iw) => iw.close());
+                            lavoroMarkersInfoWindows.forEach((iw) => iw.close());
                             lavoroInfoWindow.open(map, marker);
                         });
                     } catch (error) {
                         console.warn(`Errore creazione marker per lavoro ${lavoro.id}:`, error);
+                    }
+                }
+
+                const toggleAllarmiBtn = document.getElementById('toggle-allarmi-manodopera');
+                if (toggleAllarmiBtn) {
+                    if (countAllarmiRossi + countAllarmiGialli === 0) {
+                        toggleAllarmiBtn.innerHTML = '<span>🚨</span> Allarmi';
+                        toggleAllarmiBtn.classList.remove('active');
+                    } else {
+                        toggleAllarmiBtn.innerHTML =
+                            `<span>🚨</span> Allarmi (${countAllarmiRossi + countAllarmiGialli}) <span style="color: #c62828;">●</span>`;
+                        toggleAllarmiBtn.classList.add('active');
                     }
                 }
             } catch (error) {
@@ -1017,6 +1202,7 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
             
             let terreniVisibili = 0;
             const boundsFiltro = new google.maps.LatLngBounds();
+            const visibleTerrenoIds = new Set();
             
             terreni.forEach(terreno => {
                 const polygon = terrenoPolygonsMap.get(terreno.id);
@@ -1028,6 +1214,7 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
                 if (matchPodere && matchColtura) {
                     polygon.setMap(map);
                     terreniVisibili++;
+                    visibleTerrenoIds.add(terreno.id);
                     terreno.polygonCoords.forEach(coord => {
                         boundsFiltro.extend(new google.maps.LatLng(coord.lat, coord.lng));
                     });
@@ -1035,6 +1222,14 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
                     polygon.setMap(null);
                 }
             });
+
+            const syncMarkerVisibility = (marker, layerVisible) => {
+                const tid = marker._gfv && marker._gfv.terrenoId;
+                const terrenoOk = !tid || visibleTerrenoIds.has(tid);
+                marker.setMap(layerVisible && terrenoOk ? map : null);
+            };
+            lavoroMarkers.forEach((m) => syncMarkerVisibility(m, indicatoriLavoriVisible));
+            allarmeMarkers.forEach((m) => syncMarkerVisibility(m, allarmiManodoperaVisible));
             
             if (terreniVisibili > 0 && boundsFiltro.getNorthEast()) {
                 fitBoundsWithPadding(boundsFiltro, 50);
@@ -1065,7 +1260,8 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
                 legendaEsistente.remove();
             }
             
-            if (coltureVisibili.length > 0 || (hasManodopera && zoneLavoratePolygons.length > 0)) {
+            const showManodoperaLegend = hasManodopera;
+            if (coltureVisibili.length > 0 || (hasManodopera && zoneLavoratePolygons.length > 0) || showManodoperaLegend) {
                 const legendaDiv = document.createElement('div');
                 legendaDiv.className = 'mappa-legenda';
                 legendaDiv.innerHTML = `
@@ -1102,8 +1298,22 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
                             ` : ''}
                         </div>
                     ` : ''}
+                    ${hasManodopera ? `
+                        <div class="mappa-legenda-section">
+                            <strong style="font-size: 11px; color: #666;">Allarmi manodopera:</strong>
+                            <div class="mappa-legenda-item">
+                                <span class="mappa-legenda-dot mappa-legenda-dot--red mappa-legenda-dot--pulse" aria-hidden="true"></span>
+                                <span>Rosso (pulsato): standby assenza / equipaggio scoperto${countAllarmiRossi ? ` · ${countAllarmiRossi}` : ''}</span>
+                            </div>
+                            <div class="mappa-legenda-item">
+                                <span class="mappa-legenda-dot mappa-legenda-dot--yellow" aria-hidden="true"></span>
+                                <span>Giallo: buco prestito / attenzione${countAllarmiGialli ? ` · ${countAllarmiGialli}` : ''}</span>
+                            </div>
+                            <p class="mappa-legenda-note">Posizione = terreno del lavoro (anagrafica), non GPS dipendente.</p>
+                        </div>
+                    ` : ''}
                     ${hasManodopera && zoneLavoratePolygons.length > 0 ? `
-                        <div style="margin-top: ${coltureVisibili.length > 0 ? '15px' : '0'}; padding-top: ${coltureVisibili.length > 0 ? '15px' : '0'}; ${coltureVisibili.length > 0 ? 'border-top: 1px solid #ddd;' : ''}">
+                        <div class="mappa-legenda-section">
                             <strong style="font-size: 11px; color: #666;">Zone Lavorate:</strong>
                             <div class="mappa-legenda-item">
                                 <div class="mappa-legenda-color" style="background-color: #00FF00; border: 2px solid #00FF00;"></div>
@@ -1111,24 +1321,24 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
                             </div>
                         </div>
                     ` : ''}
-                    ${hasManodopera && lavoroMarkers.length > 0 ? `
-                        <div style="margin-top: ${(coltureVisibili.length > 0 || zoneLavoratePolygons.length > 0) ? '15px' : '0'}; padding-top: ${(coltureVisibili.length > 0 || zoneLavoratePolygons.length > 0) ? '15px' : '0'}; ${(coltureVisibili.length > 0 || zoneLavoratePolygons.length > 0) ? 'border-top: 1px solid #ddd;' : ''}">
-                            <strong style="font-size: 11px; color: #666;">Indicatori Lavori:</strong>
+                    ${hasManodopera ? `
+                        <div class="mappa-legenda-section">
+                            <strong style="font-size: 11px; color: #666;">Progresso lavori:</strong>
                             <div class="mappa-legenda-item">
-                                <span style="font-size: 16px; margin-right: 5px;">🔴</span>
-                                <span>In ritardo</span>
+                                <span class="mappa-legenda-dot" style="background:#DC3545;"></span>
+                                <span>R — In ritardo</span>
                             </div>
                             <div class="mappa-legenda-item">
-                                <span style="font-size: 16px; margin-right: 5px;">🟡</span>
-                                <span>In tempo</span>
+                                <span class="mappa-legenda-dot" style="background:#FFC107;"></span>
+                                <span>T — In tempo</span>
                             </div>
                             <div class="mappa-legenda-item">
-                                <span style="font-size: 16px; margin-right: 5px;">🟢</span>
-                                <span>In anticipo</span>
+                                <span class="mappa-legenda-dot" style="background:#28A745;"></span>
+                                <span>A — In anticipo</span>
                             </div>
                             <div class="mappa-legenda-item">
-                                <span style="font-size: 16px; margin-right: 5px;">🔵</span>
-                                <span>In corso</span>
+                                <span class="mappa-legenda-dot" style="background:#17A2B8;"></span>
+                                <span>C — In corso</span>
                             </div>
                         </div>
                     ` : ''}
@@ -1171,26 +1381,37 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
             });
         }
 
-        // Toggle indicatori lavori attivi
+        // Toggle allarmi manodopera (default ON)
+        const toggleAllarmiBtn = document.getElementById('toggle-allarmi-manodopera');
+        if (hasManodopera && toggleAllarmiBtn) {
+            toggleAllarmiBtn.addEventListener('click', function () {
+                allarmiManodoperaVisible = !allarmiManodoperaVisible;
+                applyFilters();
+                const n = countAllarmiRossi + countAllarmiGialli;
+                if (allarmiManodoperaVisible) {
+                    toggleAllarmiBtn.classList.add('active');
+                    toggleAllarmiBtn.innerHTML =
+                        `<span>🚨</span> Allarmi${n ? ` (${n})` : ''} <span style="color: #c62828;">●</span>`;
+                } else {
+                    toggleAllarmiBtn.classList.remove('active');
+                    toggleAllarmiBtn.innerHTML = `<span>🚨</span> Allarmi${n ? ` (${n})` : ''}`;
+                }
+            });
+        }
+
+        // Toggle indicatori progresso lavori
         const toggleIndicatoriBtn = document.getElementById('toggle-indicatori-lavori');
         if (hasManodopera && toggleIndicatoriBtn) {
             toggleIndicatoriBtn.addEventListener('click', function() {
                 indicatoriLavoriVisible = !indicatoriLavoriVisible;
-                
-                lavoroMarkers.forEach(marker => {
-                    if (indicatoriLavoriVisible) {
-                        marker.setMap(map);
-                    } else {
-                        marker.setMap(null);
-                    }
-                });
+                applyFilters();
 
                 if (indicatoriLavoriVisible) {
                     toggleIndicatoriBtn.classList.add('active');
-                    toggleIndicatoriBtn.innerHTML = '<span>📍</span> Indicatori Lavori <span style="color: #2E8B57;">●</span>';
+                    toggleIndicatoriBtn.innerHTML = '<span>📍</span> Progresso lavori <span style="color: #2E8B57;">●</span>';
                 } else {
                     toggleIndicatoriBtn.classList.remove('active');
-                    toggleIndicatoriBtn.innerHTML = '<span>📍</span> Indicatori Lavori';
+                    toggleIndicatoriBtn.innerHTML = '<span>📍</span> Progresso lavori';
                 }
             });
         }

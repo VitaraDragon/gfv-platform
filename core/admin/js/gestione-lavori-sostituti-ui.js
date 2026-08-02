@@ -137,7 +137,7 @@ export async function openSostitutoAssenzaModal(lavoroId) {
               <strong>${escapeHtml(c.nome)}</strong>
               <span class="sostituto-badge">${badge.label}</span>
             </div>
-            <div class="sostituto-card-meta">${escapeHtml(c.stelleDisplay)} · ${escapeHtml(c.motivo)}</div>
+            <div class="sostituto-card-meta">${escapeHtml(c.stelleDisplay)} · ${escapeHtml(c.motivo)}${c.prossimitaLabel ? ` · ${escapeHtml(c.prossimitaLabel)}` : ''}</div>
             ${sottoSoglia}
           </button>
         `;

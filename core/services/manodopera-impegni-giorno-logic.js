@@ -17,6 +17,10 @@ import {
   isRosterMaterializzato,
   getRosterAttiviIds
 } from './manodopera-roster-giorno-logic.js';
+import {
+  resolveLavoroManodoperaSeverita,
+  severitaSortRank
+} from './manodopera-problema-severita-logic.js';
 
 /** @param {*} dataInizio @returns {Date|null} */
 function parseLavoroDataInizio(dataInizio) {
@@ -344,6 +348,21 @@ export function buildImpegnoLavoroRow(options = {}) {
       : false;
   const mancanti = incompleto ? Math.max(0, equipaggioMinimo - attiviCount) : 0;
 
+  const shortlistCandidati = rosterSlice?.shortlistCandidati || [];
+  const shortlistVuota =
+    lavoro.stato === 'in_standby' &&
+    Array.isArray(shortlistCandidati) &&
+    shortlistCandidati.length === 0 &&
+    !!rosterSlice?.shortlistAggiornataIl;
+
+  const severitaInfo = resolveLavoroManodoperaSeverita({
+    stato: lavoro.stato,
+    standbyCausa: lavoro.standbyCausa || null,
+    sostitutiIds,
+    equipaggioIncompleto: incompleto,
+    shortlistVuota
+  });
+
   const labelOp = (id) => {
     const op = operaiById.get(id);
     return op ? nomeOperaio(op) : id;
@@ -353,6 +372,7 @@ export function buildImpegnoLavoroRow(options = {}) {
     lavoroId: lavoro.id,
     lavoroNome: lavoro.nome || lavoro.tipoLavoro || lavoro.id,
     stato: lavoro.stato || 'assegnato',
+    standbyCausa: lavoro.standbyCausa || null,
     caposquadraId: lavoro.caposquadraId || null,
     operaioId: lavoro.operaioId || null,
     isSquadra: Boolean(lavoro.caposquadraId && !lavoro.operaioId),
@@ -369,7 +389,10 @@ export function buildImpegnoLavoroRow(options = {}) {
     equipaggioMinimo: check.minPersone,
     equipaggioAttivi: attiviCount,
     equipaggioIncompleto: incompleto,
-    equipaggioMancanti: mancanti
+    equipaggioMancanti: mancanti,
+    severita: severitaInfo.severita,
+    severitaMotivo: severitaInfo.motivo,
+    severitaPulse: severitaInfo.pulse
   };
 }
 
@@ -461,7 +484,12 @@ export function buildImpegniGiornoSnapshot(input = {}) {
       })
     )
     .filter(Boolean)
-    .sort((a, b) => (a.lavoroNome || '').localeCompare(b.lavoroNome || '', 'it'));
+    .sort((a, b) => {
+      const sa = severitaSortRank(a.severita);
+      const sb = severitaSortRank(b.severita);
+      if (sa !== sb) return sa - sb;
+      return (a.lavoroNome || '').localeCompare(b.lavoroNome || '', 'it');
+    });
 
   const kpi = {
     totaleOperai: perOperaio.length,
@@ -472,7 +500,10 @@ export function buildImpegniGiornoSnapshot(input = {}) {
     assenti: perOperaio.filter((r) => r.statoDisponibilita === IMPEGNO_STATO_ASSENTE).length,
     prestati: perOperaio.filter((r) => r.statoDisponibilita === IMPEGNO_STATO_PRESTATO).length,
     lavoriGiorno: perLavoro.length,
-    equipaggioIncompleti: perLavoro.filter((r) => r.equipaggioIncompleto).length
+    equipaggioIncompleti: perLavoro.filter((r) => r.equipaggioIncompleto).length,
+    problemiRossi: perLavoro.filter((r) => r.severita === 'rosso').length,
+    problemiGialli: perLavoro.filter((r) => r.severita === 'giallo').length,
+    lavoriInStandby: perLavoro.filter((r) => r.stato === 'in_standby').length
   };
 
   return {

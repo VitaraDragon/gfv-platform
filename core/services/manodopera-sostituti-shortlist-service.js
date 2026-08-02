@@ -7,6 +7,7 @@
 import { getCollectionData } from './firebase-service.js';
 import { getCurrentTenantId } from './tenant-service.js';
 import { getAllLavori, getLavoro, updateLavoro } from './lavori-service.js';
+import { getAllTerreni } from './terreni-service.js';
 import {
   ensureRosterSlice,
   mergeEquipaggioGiornoPatch
@@ -21,6 +22,7 @@ import {
 import { toGiornoKey } from '../config/manodopera-assenze-config.js';
 import { getOperaioIdsAssentiConfermatiPerGiorno } from './manodopera-assenze-service.js';
 import { isLavoroPrestabile } from '../config/manodopera-sostituzione-policy-config.js';
+import { computeProximityMeta } from './geo-terreno-utils.js';
 import {
   SHORTLIST_MAX_CANDIDATI,
   LAVORO_STATI_IMPEGNO,
@@ -110,11 +112,18 @@ export async function buildShortlistSostitutiPerLavoroStandby(options) {
   const requiredSkillIds = req.skillIds || [];
   const equipaggioMinimo = req.equipaggioMinimo ?? null;
 
-  const [profiliRaw, lavori, assentiSet] = await Promise.all([
+  const [profiliRaw, lavori, assentiSet, terreniList] = await Promise.all([
     getCollectionData(PROFILI_COLLECTION, { tenantId }),
     getAllLavori(),
-    getOperaioIdsAssentiConfermatiPerGiorno(giornoKey, tenantId)
+    getOperaioIdsAssentiConfermatiPerGiorno(giornoKey, tenantId),
+    getAllTerreni({ includeTerreniClienti: true }).catch(() => [])
   ]);
+
+  const terreniById = new Map();
+  for (const t of terreniList || []) {
+    if (t?.id) terreniById.set(t.id, t);
+  }
+  const terrenoDest = lavoro.terrenoId ? terreniById.get(lavoro.terrenoId) || null : null;
 
   const profiliByUser = new Map();
   for (const row of profiliRaw || []) {
@@ -196,6 +205,15 @@ export async function buildShortlistSostitutiPerLavoroStandby(options) {
 
     const nome = [op.nome, op.cognome].filter(Boolean).join(' ') || op.email || operaioId;
 
+    const terrenoOrigId = impegno?.terrenoId || null;
+    const terrenoOrig = terrenoOrigId ? terreniById.get(terrenoOrigId) || null : null;
+    const prox = computeProximityMeta(
+      terrenoDest,
+      terrenoOrig,
+      lavoro.terrenoId || null,
+      terrenoOrigId
+    );
+
     candidati.push({
       operaioId,
       nome,
@@ -207,7 +225,11 @@ export async function buildShortlistSostitutiPerLavoroStandby(options) {
       impegnoLavoroNome: impegno?.nome || impegno?.tipoLavoro || null,
       origineSottoSogliaDopoPrestito,
       motivo: buildMotivoDisponibilita(disponibilita, impegno),
-      skillLabels: requiredSkillIds.map(getManodoperaSkillLabel)
+      skillLabels: requiredSkillIds.map(getManodoperaSkillLabel),
+      stessoTerreno: prox.stessoTerreno,
+      stessoPodere: prox.stessoPodere,
+      distanzaKm: prox.distanzaKm,
+      prossimitaLabel: prox.prossimitaLabel
     });
   }
 
@@ -231,6 +253,10 @@ export async function buildShortlistSostitutiPerLavoroStandby(options) {
       richiedeConfermaSpostamento: !!c.richiedeConfermaSpostamento,
       impegnoLavoroId: c.impegnoLavoroId || null,
       impegnoLavoroNome: c.impegnoLavoroNome || null,
+      stessoTerreno: !!c.stessoTerreno,
+      stessoPodere: !!c.stessoPodere,
+      distanzaKm: c.distanzaKm != null ? c.distanzaKm : null,
+      prossimitaLabel: c.prossimitaLabel || null,
       aggiornatoIl: new Date().toISOString()
     }));
     slice.shortlistAggiornataIl = new Date().toISOString();

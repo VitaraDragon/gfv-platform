@@ -1,24 +1,28 @@
 # Piano (design): sostituzione manodopera / equipaggio squadre
 
 **Stato:** MVP + oltre-MVP parziale **implementato in codice** (2026-07-22; vista impegni 2026-07-24; roster giornaliero 2026-07-27). Design decisions 2026-05-16 restano canoniche.  
-**Ultimo aggiornamento:** 2026-07-31 (A2: UI add/remove partecipazione su Impegni; Slice B CB 2026-07-27).  
+**Ultimo aggiornamento:** 2026-08-02 (mappa allarmi verificata canary 17/17 + prova utente; semaforo/prossimità; A2; Slice B CB).  
 **Ultimo aggiornamento design:** 2026-05-16 (catalogo skill tenant pilota: tutte le sottocategorie lavoro, carro=frutta, trattamenti unificati, vendemmia→trattorista per trasporto).  
 **Per chi:** ogni agente o sviluppatore che lavora su **manodopera, squadre, assenze, shortlist sostituti, equipaggio minimo, profilo competenze, policy tenant**, integrazione Tony sul flusso.
 
-### Stato implementazione (verificato su codice — 2026-07-27)
+### Stato implementazione (verificato su codice — 2026-08-02)
 
 | Area | Stato | Note |
 |------|--------|------|
 | Config skill + scheda + batch `skillCalcolate` | ✅ | `manodopera-skills-config.js`, `profiliManodopera`, batch/auto-refresh |
 | Assenze segnalata→confermata + standby | ✅ | `assenzeOperai`, field-workspace capo, Gestione lavori |
 | Shortlist 3–4 (skill + disponibilità) | ✅ | Esclude assenti confermati del giorno; Libero / Spostabile / Impegnato; previsti da roster se materializzato |
-| Policy tenant (priorità, prestito, pesi) | ✅ minima | `manodopera-sostituzione-policy-config.js` |
+| Policy tenant (priorità, prestito, pesi) | ✅ minima | `manodopera-sostituzione-policy-config.js` + bonus/penalità **prossimità terreno** |
 | Doppio movimento spostabile | ✅ | Destinazione + buco/standby origine (`prestito_manodopera`) |
 | Equipaggio minimo | ✅ avviso | Banner modal + hint riga lista; no blocco hard save |
 | Sostituzione lavoro di squadra | ✅ | `equipaggioGiorno[giornoKey]` (non modifica `Squadra.operai`) |
 | Vista impegni giornalieri (manager) | ✅ | Hub → card; Gestione lavori → Impegni giorno; Tony «impegni giornalieri». Lazy seed roster + colonna attivi. |
 | Roster/partecipazioni completi | ✅ A1+A2 | `partecipazioni[]` + seed lazy; write via assenza→sostituto/prestito; **A2** add/remove UI Impegni (2026-07-31) |
 | Tony / Context Builder shortlist | ✅ B | `azienda.manodoperaGiorno` (roster/KPI + `lavoriInStandbyAssenza[].shortlistCandidati`); persist shortlist all’apertura UI; quick reply `query_manodopera_giorno`; no ricalcolo candidati in chat |
+| Semaforo allarmi (rosso/giallo + pulse) | ✅ | `manodopera-problema-severita-logic.js` + CSS; Impegni + Gestione lavori (2026-07-31) |
+| Prossimità shortlist (terreno/podere/km) | ✅ | `geo-terreno-utils.js` da anagrafica terreno assegnato — **non** GPS telefono |
+| Overlay mappa pin allarmi / spostamento | ✅ pin+legenda | Pin + legenda + toggle Allarmi (2026-07-31); **canary 17/17 + prova utente 2026-08-02**; tap → shortlist filtrata ancora da fare |
+| Canary mappa manodopera | ✅ | `npm run mappa:manodopera-canary` / `:ci` — job `mappa-manodopera-canary` in `simulator-ci.yml` |
 
 **Percorsi:** la copia **canonica nel repository** è questo file (`docs-sviluppo/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md`), così resta disponibile dopo `git clone`. In Cursor può esistere anche un piano omonimo sotto la cartella piani dell’utente (es. `.cursor/plans/`); in caso di dubbio, **prevalere il contenuto in repo** se è stato aggiornato lì.
 

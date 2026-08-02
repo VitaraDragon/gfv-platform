@@ -16,13 +16,19 @@ export const PRIORITA_DEFAULT = 'normale';
 
 /**
  * Pesi score shortlist (indicativi, calibrabili per tenant).
- * score = stelle * wStelle + bonusLibero + bonusSpostabile - penalitaOrigineSottoSoglia
+ * score = stelle * wStelle + bonusLibero + bonusSpostabile
+ *   + bonus prossimità (terreno/podere) - penalità km - penalitaOrigineSottoSoglia
+ * Prossimità da anagrafica terreno (assegnazione giorno), non GPS telefono.
  */
 export const SOSTITUZIONE_SCORE_WEIGHTS = Object.freeze({
   stelle: 10,
   bonusLibero: 5,
   bonusSpostabile: 2,
-  penalitaOrigineSottoSoglia: 4
+  penalitaOrigineSottoSoglia: 4,
+  bonusStessoTerreno: 3,
+  bonusStessoPodere: 2,
+  penalitaPerKm: 0.2,
+  penalitaDistanzaMax: 3
 });
 
 /**
@@ -83,6 +89,19 @@ export function computeShortlistScore(candidato, weights = SOSTITUZIONE_SCORE_WE
   if (candidato.disponibilita === 'spostabile') score += weights.bonusSpostabile || 0;
   if (candidato.origineSottoSogliaDopoPrestito) {
     score -= weights.penalitaOrigineSottoSoglia || 0;
+  }
+  if (candidato.stessoTerreno) {
+    score += weights.bonusStessoTerreno || 0;
+  } else if (candidato.stessoPodere) {
+    score += weights.bonusStessoPodere || 0;
+  }
+  if (candidato.distanzaKm != null && Number.isFinite(Number(candidato.distanzaKm))) {
+    const km = Math.max(0, Number(candidato.distanzaKm));
+    const pen = Math.min(
+      km * (weights.penalitaPerKm || 0),
+      weights.penalitaDistanzaMax != null ? weights.penalitaDistanzaMax : Infinity
+    );
+    score -= pen;
   }
   return score;
 }

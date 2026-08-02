@@ -174,6 +174,8 @@
 | 11.2 | Eliminazioni bulk: Tony non le esegue | MASTER_PLAN | — | |
 | 11.3 | Impostazioni sensibili: Tony spiega, non esegue senza conferma | MASTER_PLAN | — | |
 | 11.4 | LLM non decide ordine click, quando campo figlio pronto, né dichiara salvataggio riuscito | GUIDA_OPERATIVO | — | |
+| 11.5 | **Niente tracking GPS continuo/sessione** su smartphone dipendente per area lavorata automatica (trail → buffer → poligono) | decisione prodotto 2026-07-31 | **scartato** | Motivo legale Italia: art. 4 St. Lav. + GDPR (controllo a distanza / geolocalizzazione lavoratori). Archivio: `obsoleto/strategie-superate/ROADMAP_TRACKING_GPS_AREA_LAVORATA.md`. Restano zone manuali, mappa ERP, GPS **puntuale** opzionale (§18 campioni, terreni, guasti) |
+| 11.6 | **Allarmi manodopera a semaforo** (rosso+pulse / giallo) su Impegni, Gestione lavori e **mappa aziendale**; ranking shortlist con **prossimità da terreno/podere assegnato** (non posizione telefono) | decisione prodotto 2026-07-31; verifica 2026-08-02 | **implementato** | Severità: `manodopera-problema-severita-logic.js`; geo: `geo-terreno-utils.js`; mappa: `dashboard-maps.js`. Canary `npm run mappa:manodopera-canary` **17/17 PASS** + prova utente OK. Opz. futuro: tap pin → shortlist filtrata |
 
 ---
 
@@ -315,6 +317,8 @@
 ---
 
 ## 18. Evoluzione GPS campioni (futuro)
+
+> **Fuori scope (scartato 2026-07-31):** tracking GPS di percorso lavorativo / area lavorata automatica — vedi §11.5. Questa sezione riguarda solo **punti campione** (GPS puntuale opzionale), non trail dipendenti.
 
 | # | Decisione/Requisito | Fonte | Stato | Note |
 |---|----------------------|-------|-------|------|

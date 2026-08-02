@@ -195,4 +195,30 @@ describe('manodopera-impegni-giorno-logic', () => {
     expect(lav.equipaggioAttivi).toBe(2);
     expect(lav.equipaggioIncompleto).toBe(false);
   });
+
+  test('standby assenza senza sostituto → severita rossa e KPI problemi', () => {
+    const snap = buildImpegniGiornoSnapshot({
+      giornoKey: GIORNO,
+      operaiList: [{ id: 'a', nome: 'Anna', cognome: 'Rossi' }],
+      squadreList: [],
+      lavoriList: [
+        {
+          id: 'Lstand',
+          nome: 'Potatura',
+          stato: 'in_standby',
+          standbyCausa: 'assenza_personale',
+          standbyOperaioId: 'a',
+          operaioId: 'a',
+          dataInizio: new Date(`${GIORNO}T08:00:00`),
+          durataPrevista: 1
+        }
+      ],
+      assenzeConfermate: [{ operaioId: 'a', dataInizio: GIORNO, dataFine: GIORNO }],
+      equipaggioMinimoByLavoroId: {}
+    });
+    expect(snap.perLavoro[0].severita).toBe('rosso');
+    expect(snap.perLavoro[0].severitaPulse).toBe(true);
+    expect(snap.kpi.problemiRossi).toBe(1);
+    expect(snap.kpi.lavoriInStandby).toBe(1);
+  });
 });

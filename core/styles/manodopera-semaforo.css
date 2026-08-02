@@ -1,0 +1,66 @@
+/**
+ * Semaforo allarmi manodopera (palette allineata a dashboard deadlines).
+ * Rosso = urgente (+ pulse); giallo = attenzione.
+ */
+
+.gfv-semaforo {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  vertical-align: middle;
+  margin-right: 6px;
+  flex-shrink: 0;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.08);
+}
+
+.gfv-semaforo--red {
+  background: #c62828;
+}
+
+.gfv-semaforo--yellow {
+  background: #f9a825;
+}
+
+.gfv-semaforo--green {
+  background: #2e7d32;
+}
+
+.gfv-semaforo--pulse {
+  animation: gfv-semaforo-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes gfv-semaforo-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(198, 40, 40, 0.55);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(198, 40, 40, 0);
+    transform: scale(1.12);
+  }
+}
+
+tr.gfv-row-alert--red,
+.lavoro-row-alert--red {
+  background: #ffebee;
+}
+
+tr.gfv-row-alert--yellow,
+.lavoro-row-alert--yellow {
+  background: #fff8e1;
+}
+
+.gfv-semaforo-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .gfv-semaforo--pulse {
+    animation: none;
+    box-shadow: 0 0 0 2px rgba(198, 40, 40, 0.35);
+  }
+}

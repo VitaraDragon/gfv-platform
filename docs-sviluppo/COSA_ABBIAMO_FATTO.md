@@ -1,6 +1,46 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-07-31 — CI gate canary roster A2.
+**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-08-02 — mappa allarmi verificata (canary + prova utente).
+
+## Mappa — canary allarmi / legenda (2026-08-02)
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Script** | `npm run mappa:manodopera-canary` → `scripts/mappa-manodopera-canary.mjs` |
+| **CI** | job `mappa-manodopera-canary` + `mappa:manodopera-canary:ci` (stesso schema roster A2: bash inner + emulators:exec) |
+| **Check** | UNIT severità/icon/sorgente; BROWSER toggle Allarmi/Progresso, legenda, marker allarme (mock Maps) |
+| **Esito locale** | **17/17 PASS** (seed `viticola-conto-terzi-manodopera`; marker rossi standby; toggle off/on; restore) |
+| **Prova utente** | 2026-08-02 — mappa allarmi/legenda OK su `mappa-aziendale-standalone.html?emulator=1` |
+
+## Mappa aziendale — allarmi manodopera + legenda (2026-07-31)
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Marker** | Pin `!` rosso/giallo su terreno del lavoro; pulse icon su rosso; layer «Allarmi» ON di default |
+| **Legenda** | Sezioni: colture · allarmi manodopera · zone lavorate · progresso (R/T/A/C) |
+| **Info window** | Blocco allarme + link Gestione lavori / assegna sostituto |
+| **Nota** | Posizione = terreno assegnato (anagrafica), non GPS dipendente |
+| **Test** | `mappa-manodopera-markers.test.js` (4) |
+
+## Manodopera — semaforo allarmi + vicinanza shortlist (2026-07-31)
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Severità** | `manodopera-problema-severita-logic.js` — rosso (standby assenza / equipaggio scoperto) + pulse; giallo (incompleto con sostituto / buco prestito) |
+| **UI** | Semaforo + riga evidenziata su Impegni giorno e Gestione lavori; KPI allarmi su Impegni; CSS `manodopera-semaforo.css` |
+| **Prossimità** | `geo-terreno-utils.js` + pesi in policy shortlist (stesso terreno/podere, penalità km) da **assegnazione terreno**, non GPS telefono |
+| **Shortlist UI** | Badge `prossimitaLabel` sulle card sostituti |
+| **Tony** | `currentTableData`: summary allarmi; items lavori con `severitaManodopera`; Impegni espone `lavoriProblema` |
+| **Test** | severita 7 + geo 5 + shortlist +2 + impegni severità — **33** nei file toccati |
+
+## Prodotto — tracking GPS → area lavorata scartato (2026-07-31)
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Decisione** | Non portare avanti trail GPS smartphone → area lavorata automatica |
+| **Motivo** | Vincoli Italia: art. 4 Statuto dei Lavoratori + GDPR (geolocalizzazione lavoratori / controllo a distanza); consenso dipendente non base solida |
+| **Archivio** | `obsoleto/strategie-superate/ROADMAP_TRACKING_GPS_AREA_LAVORATA.md` (ex `da-fare/lavori/`) |
+| **Resta valido** | Zone lavorate manuali; mappa aziendale da dati ERP; GPS puntuale (terreni/guasti/campioni) — scope distinto |
 
 ## Manodopera — CI gate canary roster A2 (2026-07-31)
 

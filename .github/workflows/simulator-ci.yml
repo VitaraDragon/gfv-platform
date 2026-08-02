@@ -25,6 +25,13 @@ on:
       - 'scripts/manodopera-roster-a2-canary.mjs'
       - 'scripts/sim-ci-manodopera-roster-a2-inner.sh'
       - 'simulator/ci-manodopera-roster-a2-run.js'
+      - 'scripts/mappa-manodopera-canary.mjs'
+      - 'scripts/sim-ci-mappa-manodopera-inner.sh'
+      - 'simulator/ci-mappa-manodopera-canary-run.js'
+      - 'core/js/dashboard-maps.js'
+      - 'core/js/mappa-aziendale-page.js'
+      - 'core/mappa-aziendale-standalone.html'
+      - 'core/services/manodopera-problema-severita-logic.js'
       - 'simulator/verify-e2e-seed.js'
       - 'core/services/manodopera-roster-giorno-*.js'
       - 'core/js/manodopera-roster-edit-ui.js'
@@ -62,6 +69,13 @@ on:
       - 'scripts/manodopera-roster-a2-canary.mjs'
       - 'scripts/sim-ci-manodopera-roster-a2-inner.sh'
       - 'simulator/ci-manodopera-roster-a2-run.js'
+      - 'scripts/mappa-manodopera-canary.mjs'
+      - 'scripts/sim-ci-mappa-manodopera-inner.sh'
+      - 'simulator/ci-mappa-manodopera-canary-run.js'
+      - 'core/js/dashboard-maps.js'
+      - 'core/js/mappa-aziendale-page.js'
+      - 'core/mappa-aziendale-standalone.html'
+      - 'core/services/manodopera-problema-severita-logic.js'
       - 'simulator/verify-e2e-seed.js'
       - 'core/services/manodopera-roster-giorno-*.js'
       - 'core/js/manodopera-roster-edit-ui.js'
@@ -207,6 +221,41 @@ jobs:
 
       - name: Full canary (emulator + seed + browser)
         run: npm run manodopera:roster-a2-canary:ci
+        env:
+          CI: true
+
+  mappa-manodopera-canary:
+    name: mappa:manodopera-canary (allarmi + legenda)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Setup Java (Firestore Emulator)
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright Chromium
+        run: npm run sim:e2e:install
+
+      - name: Unit checks (no emulator)
+        run: npm run mappa:manodopera-canary -- --unit-only
+
+      - name: Full canary (emulator + seed + browser)
+        run: npm run mappa:manodopera-canary:ci
         env:
           CI: true
 

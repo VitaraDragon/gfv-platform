@@ -34,6 +34,10 @@ import {
     resolvePrevistiOperaioIds
 } from '../../services/manodopera-sostituti-shortlist-logic.js';
 import { toGiornoKey } from '../../config/manodopera-assenze-config.js';
+import {
+    resolveLavoroManodoperaSeverita,
+    renderSemaforoHtml
+} from '../../services/manodopera-problema-severita-logic.js';
 
 // ============================================
 // FUNZIONI HELPER
@@ -1859,22 +1863,7 @@ export async function renderLavori(
         return '<a class="btn btn-primary btn-sm" href="' + escapeHtml(href) + '" target="_blank" rel="noopener" title="Apri calcolatore compenso">🧮 Calcolatore</a>';
     }
 
-    function renderEquipaggioMinimoHint(lavoro) {
-        if (!hasManodoperaModule) return '';
-        const attrezzo =
-            (lavoro.attrezzoId && (attrezziList || []).find((a) => a.id === lavoro.attrezzoId)) ||
-            lavoro.attrezzo ||
-            null;
-        const req = resolveRequiredSkillsForLavoro({
-            tipoLavoroNome: lavoro.tipoLavoro,
-            sottocategoriaCodice: lavoro.sottocategoriaCodice,
-            categoriaCodice: lavoro.categoriaCodice,
-            attrezzo,
-            macchinaId: lavoro.macchinaId,
-            operatoreMacchinaId: lavoro.operatoreMacchinaId
-        });
-        if (req.equipaggioMinimo == null) return '';
-
+    function getManodoperaProblemContext(lavoro) {
         const giornoKey =
             lavoro.standbyGiornoKey ||
             (lavoro.dataInizio ? toGiornoKey(lavoro.dataInizio) : toGiornoKey(new Date()));
@@ -1896,14 +1885,60 @@ export async function renderLavori(
                 ].filter(Boolean)
             )
         ];
-        const check = evaluateEquipaggioMinimo({
-            minPersone: req.equipaggioMinimo,
-            previstiIds: resolvePrevistiOperaioIds(lavoro, squadreList || [], giornoKey),
-            assentiIds,
-            sostitutiIds
+        const attrezzo =
+            (lavoro.attrezzoId && (attrezziList || []).find((a) => a.id === lavoro.attrezzoId)) ||
+            lavoro.attrezzo ||
+            null;
+        const req = resolveRequiredSkillsForLavoro({
+            tipoLavoroNome: lavoro.tipoLavoro,
+            sottocategoriaCodice: lavoro.sottocategoriaCodice,
+            categoriaCodice: lavoro.categoriaCodice,
+            attrezzo,
+            macchinaId: lavoro.macchinaId,
+            operatoreMacchinaId: lavoro.operatoreMacchinaId
         });
-        if (!check.applicabile || !check.incompleto) return '';
+        const check =
+            req.equipaggioMinimo != null
+                ? evaluateEquipaggioMinimo({
+                    minPersone: req.equipaggioMinimo,
+                    previstiIds: resolvePrevistiOperaioIds(lavoro, squadreList || [], giornoKey),
+                    assentiIds,
+                    sostitutiIds
+                })
+                : { applicabile: false, incompleto: false, attivi: 0, minPersone: null };
+        const shortlistVuota =
+            lavoro.stato === 'in_standby' &&
+            Array.isArray(slice.shortlistCandidati) &&
+            slice.shortlistCandidati.length === 0 &&
+            !!slice.shortlistAggiornataIl;
+        const severitaInfo = resolveLavoroManodoperaSeverita({
+            stato: lavoro.stato,
+            standbyCausa: lavoro.standbyCausa || null,
+            sostitutiIds,
+            equipaggioIncompleto: !!(check.applicabile && check.incompleto),
+            shortlistVuota
+        });
+        return { check, severitaInfo };
+    }
+
+    function renderEquipaggioMinimoHint(lavoro) {
+        if (!hasManodoperaModule) return '';
+        const { check } = getManodoperaProblemContext(lavoro);
+        if (!check.applicabile || !check.incompleto || check.minPersone == null) return '';
         return `<span class="equipaggio-row-warn" title="Equipaggio sotto il minimo operativo">⚠️ Equipaggio ${check.attivi}/${check.minPersone}</span>`;
+    }
+
+    function renderManodoperaSemaforo(lavoro) {
+        if (!hasManodoperaModule) return { html: '', rowClass: '' };
+        const { severitaInfo } = getManodoperaProblemContext(lavoro);
+        const html = renderSemaforoHtml(severitaInfo, escapeHtml);
+        const rowClass =
+            severitaInfo.severita === 'rosso'
+                ? ' gfv-row-alert--red'
+                : severitaInfo.severita === 'giallo'
+                    ? ' gfv-row-alert--yellow'
+                    : '';
+        return { html, rowClass };
     }
 
     if (!container || !countEl) {
@@ -1915,19 +1950,15 @@ export async function renderLavori(
     const terreniListToUse = terreniList || [];
     const caposquadraListToUse = caposquadraList || [];
     const operaiListToUse = operaiList || [];
-    const summaryParts = [];
-    if (filteredLavoriList.length === 0) {
-        summaryParts.push('Nessun lavoro in elenco.');
-    } else {
-        summaryParts.push('Ci sono ' + filteredLavoriList.length + ' lavori in elenco.');
-    }
-    const summaryStr = summaryParts.join(' ') + (summaryParts.length ? '.' : '');
     const itemsForTony = filteredLavoriList.map((lav) => {
         const terreno = terreniListToUse.find(t => t.id === lav.terrenoId);
         const caposquadra = caposquadraListToUse.find(c => c.id === lav.caposquadraId);
         const operaio = operaiListToUse.find(o => o.id === lav.operaioId);
         const tipoLavoroNome = lav.tipoLavoro || lav.tipoLavoroNome || lav.categoriaLavoroNome || '-';
         const diIso = dateLikeToIsoDateString(lav.dataInizio);
+        const sev = hasManodoperaModule
+            ? getManodoperaProblemContext(lav).severitaInfo
+            : { severita: null, motivo: null };
         return {
             id: lav.id,
             nome: lav.nome || '-',
@@ -1938,9 +1969,24 @@ export async function renderLavori(
             dataInizio: diIso || '-',
             dataInizioItaliana: diIso ? formatIsoDateToItalianLong(diIso) : '-',
             caposquadra: caposquadra ? `${(caposquadra.nome || '').trim()} ${(caposquadra.cognome || '').trim()}`.trim() || '-' : '-',
-            operaio: operaio ? `${(operaio.nome || '').trim()} ${(operaio.cognome || '').trim()}`.trim() || '-' : '-'
+            operaio: operaio ? `${(operaio.nome || '').trim()} ${(operaio.cognome || '').trim()}`.trim() || '-' : '-',
+            severitaManodopera: sev.severita || null,
+            problemaManodopera: sev.motivo || null
         };
     });
+    const summaryParts = [];
+    if (filteredLavoriList.length === 0) {
+        summaryParts.push('Nessun lavoro in elenco.');
+    } else {
+        summaryParts.push('Ci sono ' + filteredLavoriList.length + ' lavori in elenco.');
+        if (hasManodoperaModule) {
+            const nRossi = itemsForTony.filter((i) => i.severitaManodopera === 'rosso').length;
+            const nGialli = itemsForTony.filter((i) => i.severitaManodopera === 'giallo').length;
+            if (nRossi) summaryParts.push(nRossi + ' allarmi rossi manodopera');
+            if (nGialli) summaryParts.push(nGialli + ' attenzioni manodopera');
+        }
+    }
+    const summaryStr = summaryParts.join(' ') + (summaryParts.length ? '.' : '');
     if (typeof window !== 'undefined') {
         if (!window.currentTableData) window.currentTableData = { pageType: 'lavori', summary: '', items: [] };
         window.currentTableData.pageType = 'lavori';
@@ -2207,7 +2253,8 @@ export async function renderLavori(
             ? formatDateLikeToItalianLongLocal(lavoro.dataInizio)
             : 'N/A';
         const durata = lavoro.durataPrevista ? `${lavoro.durataPrevista} giorni` : 'N/A';
-        const statoBadge = `<span class="badge badge-${lavoro.stato || 'assegnato'}">${getStatoFormattato(lavoro.stato)}</span>${renderEquipaggioMinimoHint(lavoro)}`;
+        const semaforo = renderManodoperaSemaforo(lavoro);
+        const statoBadge = `${semaforo.html}<span class="badge badge-${lavoro.stato || 'assegnato'}">${getStatoFormattato(lavoro.stato)}</span>${renderEquipaggioMinimoHint(lavoro)}`;
         
         // Calcola progressi
         const superficieTotale = lavoro.terreno?.superficie || 0;
@@ -2278,7 +2325,7 @@ export async function renderLavori(
         const contoTerziBadge = isContoTerzi ? '<span class="badge" style="background: #1976D2; color: white; margin-left: 5px; font-size: 10px;">💼 Conto Terzi</span>' : '';
         
         html += `
-            <tr id="lavoro-row-${lavoro.id}" class="${isContoTerzi ? 'lavoro-conto-terzi' : ''}" data-lavoro-id="${lavoro.id}">
+            <tr id="lavoro-row-${lavoro.id}" class="${isContoTerzi ? 'lavoro-conto-terzi' : ''}${semaforo.rowClass}" data-lavoro-id="${lavoro.id}">
                 <td><strong>${escapeHtml(lavoro.nome || 'N/A')}</strong>${contoTerziBadge}${macchineInfo}</td>
                 <td>${escapeHtml(terrenoNome)}</td>
                 ${hasManodoperaModule ? `<td>${responsabileHtml}</td>` : ''}

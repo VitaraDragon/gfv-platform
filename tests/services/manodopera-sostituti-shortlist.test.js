@@ -166,4 +166,42 @@ describe('manodopera-sostituti-shortlist', () => {
     });
     expect(libero).toBeGreaterThan(spostabile);
   });
+
+  test('score: stesso terreno / podere vicino batte lontano (pari stelle e disp.)', () => {
+    const vicino = computeShortlistScore({
+      stelleMinime: 3,
+      disponibilita: DISPONIBILITA_SPOSTABILE,
+      stessoTerreno: true,
+      distanzaKm: 0
+    });
+    const lontano = computeShortlistScore({
+      stelleMinime: 3,
+      disponibilita: DISPONIBILITA_SPOSTABILE,
+      stessoTerreno: false,
+      stessoPodere: false,
+      distanzaKm: 12
+    });
+    expect(vicino).toBeGreaterThan(lontano);
+  });
+
+  test('rank: a pari score preferisce distanza minore', () => {
+    const ranked = rankAndLimitShortlist([
+      {
+        operaioId: 'far',
+        disponibilita: DISPONIBILITA_SPOSTABILE,
+        stelleMinime: 3,
+        distanzaKm: 8,
+        score: 32
+      },
+      {
+        operaioId: 'near',
+        disponibilita: DISPONIBILITA_SPOSTABILE,
+        stelleMinime: 3,
+        distanzaKm: 1,
+        score: 32
+      }
+    ]);
+    expect(ranked[0].operaioId).toBe('near');
+    expect(ranked[1].operaioId).toBe('far');
+  });
 });

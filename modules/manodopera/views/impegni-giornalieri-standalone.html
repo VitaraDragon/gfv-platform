@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Impegni giornalieri - GFV Platform</title>
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <link rel="stylesheet" href="../../../core/styles/manodopera-semaforo.css">
     <script>
         window.currentTableData = {
             pageType: 'impegni_giornalieri',
@@ -272,6 +273,9 @@
                 <div class="stat-card danger"><div class="stat-value" id="kpi-assenti">-</div><div class="stat-label">Assenti</div></div>
                 <div class="stat-card"><div class="stat-value" id="kpi-prestati">-</div><div class="stat-label">Prestati</div></div>
                 <div class="stat-card"><div class="stat-value" id="kpi-lavori">-</div><div class="stat-label">Lavori del giorno</div></div>
+                <div class="stat-card danger"><div class="stat-value" id="kpi-problemi-rossi">-</div><div class="stat-label">Allarmi rossi</div></div>
+                <div class="stat-card warn"><div class="stat-value" id="kpi-problemi-gialli">-</div><div class="stat-label">Attenzioni</div></div>
+                <div class="stat-card warn"><div class="stat-value" id="kpi-equipaggio">-</div><div class="stat-label">Equipaggio incompleto</div></div>
             </div>
 
             <div class="panel">
@@ -314,6 +318,7 @@
         } from '../../../core/services/manodopera-impegni-giorno-service.js';
         import { wireManagerHomeLink } from '../../../core/config/manodopera-hub-nav.js';
         import { openRosterEditModal } from '../../../core/js/manodopera-roster-edit-ui.js';
+        import { renderSemaforoHtml } from '../../../core/services/manodopera-problema-severita-logic.js';
 
         let lastOperaiList = [];
         let currentManagerId = null;
@@ -376,10 +381,23 @@
                 nota: r.nota || ''
             }));
             const kpi = snapshot.kpi || {};
+            const alarmParts = [];
+            if (kpi.problemiRossi) alarmParts.push(`${kpi.problemiRossi} allarmi rossi`);
+            if (kpi.problemiGialli) alarmParts.push(`${kpi.problemiGialli} attenzioni`);
+            const alarmTxt = alarmParts.length ? `; ${alarmParts.join(', ')}` : '';
             window.currentTableData = {
                 pageType: 'impegni_giornalieri',
-                summary: `Impegni ${snapshot.giornoKey}: ${kpi.liberi || 0} liberi, ${kpi.impegnati || 0} impegnati, ${kpi.assenti || 0} assenti, ${kpi.lavoriGiorno || 0} lavori`,
+                summary: `Impegni ${snapshot.giornoKey}: ${kpi.liberi || 0} liberi, ${kpi.impegnati || 0} impegnati, ${kpi.assenti || 0} assenti, ${kpi.lavoriGiorno || 0} lavori${alarmTxt}`,
                 items,
+                lavoriProblema: (snapshot.perLavoro || [])
+                    .filter((r) => r.severita)
+                    .map((r) => ({
+                        id: r.lavoroId,
+                        nome: r.lavoroNome,
+                        stato: r.stato,
+                        severita: r.severita,
+                        motivo: r.severitaMotivo || ''
+                    })),
                 giornoKey: snapshot.giornoKey,
                 kpi
             };
@@ -432,6 +450,7 @@
                 <table class="impegni-table">
                     <thead>
                         <tr>
+                            <th></th>
                             <th>Lavoro</th>
                             <th>Stato</th>
                             <th>Roster attivi</th>
@@ -455,8 +474,19 @@
                             const rosterBadge = r.rosterMaterializzato
                                 ? ' <span style="color:#2E8B57;font-size:11px;" title="Roster giornaliero materializzato">roster</span>'
                                 : '';
+                            const sem = renderSemaforoHtml({
+                                severita: r.severita,
+                                motivo: r.severitaMotivo,
+                                pulse: r.severitaPulse
+                            }, escapeHtml);
+                            const rowCls = r.severita === 'rosso'
+                                ? 'gfv-row-alert--red'
+                                : r.severita === 'giallo'
+                                    ? 'gfv-row-alert--yellow'
+                                    : '';
                             return `
-                            <tr>
+                            <tr class="${rowCls}">
+                                <td>${sem || '—'}</td>
                                 <td><strong>${escapeHtml(r.lavoroNome)}</strong>${r.isSquadra ? ' <span style="color:#1976D2;font-size:12px;">squadra</span>' : ''}${rosterBadge}</td>
                                 <td>${escapeHtml(r.stato)}</td>
                                 <td>${attivi}</td>
@@ -507,6 +537,9 @@
             document.getElementById('kpi-assenti').textContent = kpi.assenti ?? 0;
             document.getElementById('kpi-prestati').textContent = kpi.prestati ?? 0;
             document.getElementById('kpi-lavori').textContent = kpi.lavoriGiorno ?? 0;
+            document.getElementById('kpi-problemi-rossi').textContent = kpi.problemiRossi ?? 0;
+            document.getElementById('kpi-problemi-gialli').textContent = kpi.problemiGialli ?? 0;
+            document.getElementById('kpi-equipaggio').textContent = kpi.equipaggioIncompleti ?? 0;
         }
 
         async function refresh() {
