@@ -4,7 +4,10 @@
     "indexes": "firestore.indexes.json"
   },
   "storage": {"rules": "storage.rules"},
-  "functions": {"source": "functions"},
+  "functions": {
+    "source": "functions",
+    "predeploy": ["node functions/scripts/sync-notification-modules.cjs"]
+  },
   "emulators": {
     "auth": {"port": 9099},
     "firestore": {"port": 8080},

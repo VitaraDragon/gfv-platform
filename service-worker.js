@@ -4,7 +4,7 @@
 // in .githooks) oppure da `npm run bump:pwa-cache`. Ogni commit ottiene un ID nuovo
 // così CACHE_NAME cambia e in activate() le cache obsolete vengono eliminate.
 // Setup hook (una tantum): git config core.hooksPath .githooks
-const SW_CACHE_BUILD_ID = 't1787720000912';
+const SW_CACHE_BUILD_ID = 't1787720783904';
 const CACHE_NAME = 'gfv-platform-' + SW_CACHE_BUILD_ID;
 
 function isLocalDevHost(hostname) {
@@ -163,11 +163,14 @@ self.addEventListener('push', (event) => {
   const title = notification.title || data.title || 'GFV Platform';
   const body = notification.body || data.body || '';
   const url = data.url || notification.click_action || '';
+  let iconUrl = 'core/images/icon-192x192.png';
+  try {
+    iconUrl = new URL('core/images/icon-192x192.png', self.registration.scope).href;
+  } catch (e) { /* path relativo se lo scope non è un URL valido */ }
   event.waitUntil(
     self.registration.showNotification(title, {
       body,
-      icon: 'icons/icon-192x192.png',
-      badge: 'icons/icon-96x96.png',
+      icon: iconUrl,
       data: { url },
     })
   );

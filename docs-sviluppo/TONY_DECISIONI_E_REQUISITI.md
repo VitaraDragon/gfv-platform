@@ -1,7 +1,7 @@
 # Tony – Inventario decisioni e requisiti
 
 **Data estrazione**: 2026-03-08  
-**Ultimo aggiornamento**: 2026-07-17 (Tony Occhi — match DDT per riga / fattura riepilogativa §20.24)
+**Ultimo aggiornamento**: 2026-08-26 (push ciclo lavoro FCM §15.7 — icona `core/images`)
 **Obiettivo**: Raccogliere in un unico documento ogni decisione di prodotto, requisito e vincolo trovato nei documenti Tony, per evitare perdite durante il consolidamento.
 
 **Stati**: `implementato` | `in corso` | `parziale` | `pianificato` | `non implementato` | `abbandonato` | `da verificare`
@@ -240,6 +240,7 @@
 | 15.4 | Memoria storica: confronti anno/anno | MASTER_PLAN | da fare | |
 | 15.5 | **Policy anti-invasività briefing proattivo** (reminder, non monologo) | prodotto 2026-07-20 | **implementato** | `tony-proactive-briefing-policy.js` + `checkGlobalStatus`; test **13** |
 | 15.6 | **Reminder operativi multi-modulo** (flusso regolare app) — catalogo estendibile | prodotto 2026-07-20 | **implementato** (hub principali) | + affitti/approvare/sospesi + UX hub; **`prezziInAttesa`** Magazzino 2026-07-21b |
+| 15.7 | **Push ciclo lavoro fuori app** (FCM); Tony resta in-app. Catalogo eventi, no `if` di pagina | spec 2026-08-25 | **implementato** | `notification-catalog.js` + Functions + SW. Icona HTTPS `core/images/icon-192x192.png` (2026-08-26). Status bar Android = silhouette bianca |
 
 ### 15.5 — Policy frequenza e aggiornamenti (2026-07-20)
 

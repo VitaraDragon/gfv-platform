@@ -7,6 +7,7 @@
 
 import { getAppInstance, getAuthInstance, getDb, doc, getDoc, updateDoc } from '../services/firebase-service.js';
 import { loadNotificationPrefsFromUser, upsertFcmTokenInPrefs } from '../services/notification-prefs-service.js';
+import { buildNotificationIconUrl, resolveNotificationWebOrigin } from '../config/notification-catalog.js';
 
 function resolveServiceWorkerUrl() {
     const host = window.location.hostname || '';
@@ -81,7 +82,7 @@ export async function startNotificationFcm(opts = {}) {
         if (Notification.permission !== 'granted') return;
         registration.showNotification(title, {
             body,
-            icon: 'icons/icon-192x192.png',
+            icon: buildNotificationIconUrl(resolveNotificationWebOrigin()),
             data: { url: data.url || '' },
         }).catch((err) => console.warn('[push] foreground:', err));
     });

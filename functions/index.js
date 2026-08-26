@@ -4524,3 +4524,15 @@ exports.tonyInvalidateCacheOnMovimentiMagazzinoWrite =
 exports.tonyInvalidateCacheOnPreventiviWrite = makeTonyContextCacheInvalidateFn("preventivi");
 exports.tonyInvalidateCacheOnTariffeWrite = makeTonyContextCacheInvalidateFn("tariffe");
 exports.tonyInvalidateCacheOnGuastiWrite = makeTonyContextCacheInvalidateFn("guasti");
+
+const {
+  onComunicazioneCreated,
+  onLavoroWritten,
+  onOreOperaiCreated,
+  processNotificationQueue,
+} = require("./notification-dispatch");
+
+exports.onComunicazioneCreated = onComunicazioneCreated;
+exports.onLavoroWritten = onLavoroWritten;
+exports.onOreOperaiCreated = onOreOperaiCreated;
+exports.processNotificationQueue = processNotificationQueue;

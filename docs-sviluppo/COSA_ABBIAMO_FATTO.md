@@ -1,6 +1,13 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione (verifica codice/doc): 2026-08-02 — mappa allarmi verificata (canary + prova utente).
+**Ultimo aggiornamento documentazione: 2026-08-26 — icona push su core/images (URL assoluto).**
+
+## Push ciclo lavoro — icona app (2026-08-26)
+
+- Test live Sabbie Gialle: push `completato_da_approvare` arriva; in tendina titolo/corpo e provenienza app chiari. Pallino bianco in status bar: FCM/SW puntavano a `icons/icon-192x192.png` (cartella senza PNG in repo), non un caricamento in corso.
+- Icona reale: `core/images/icon-192x192.png`. Catalogo: `buildNotificationIconUrl` (HTTPS Pages). SW: URL da `registration.scope`. Functions: stesso URL assoluto — **dopo il push Pages serve `firebase deploy --only functions`**.
+- In tendina, dopo deploy, dovrebbe comparire Tony nel cerchio verde. Sulla status bar Android la small icon resta una silhouette bianca (limite OS su PNG a colori tondo).
+- Doc: `COSA_ABBIAMO_FATTO.md` (questa voce), `tony/STATO_ATTUALE.md` (riga Push ciclo lavoro), `TONY_DECISIONI_E_REQUISITI.md` §15.7. Master Plan: nessuna fase cambiata.
 
 ## Mappa — canary allarmi / legenda (2026-08-02)
 
