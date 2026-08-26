@@ -21,13 +21,13 @@ function resolveServiceWorkerUrl() {
 
 async function ensureServiceWorker() {
     if (!('serviceWorker' in navigator)) return null;
-    const existing = await navigator.serviceWorker.getRegistration();
-    if (existing) return existing;
     try {
-        return await navigator.serviceWorker.register(resolveServiceWorkerUrl());
+        const registration = await navigator.serviceWorker.register(resolveServiceWorkerUrl());
+        if (registration.update) await registration.update().catch(() => {});
+        return registration;
     } catch (err) {
         console.warn('[push] service worker:', err);
-        return null;
+        return navigator.serviceWorker.getRegistration();
     }
 }
 
@@ -65,7 +65,7 @@ export async function startNotificationFcm(opts = {}) {
     const registration = await ensureServiceWorker();
     if (!registration) return;
 
-    const { getMessaging, getToken, isSupported } = await import(
+    const { getMessaging, getToken, onMessage, isSupported } = await import(
         'https://www.gstatic.com/firebasejs/11.0.0/firebase-messaging.js'
     );
     const supported = await isSupported().catch(() => false);
@@ -73,6 +73,18 @@ export async function startNotificationFcm(opts = {}) {
 
     const app = getAppInstance();
     const messaging = getMessaging(app);
+    onMessage(messaging, (payload) => {
+        const notification = (payload && payload.notification) || {};
+        const data = (payload && payload.data) || {};
+        const title = notification.title || data.title || 'GFV Platform';
+        const body = notification.body || data.body || '';
+        if (Notification.permission !== 'granted') return;
+        registration.showNotification(title, {
+            body,
+            icon: 'icons/icon-192x192.png',
+            data: { url: data.url || '' },
+        }).catch((err) => console.warn('[push] foreground:', err));
+    });
     const token = await getToken(messaging, {
         vapidKey: String(vapidKey),
         serviceWorkerRegistration: registration,
