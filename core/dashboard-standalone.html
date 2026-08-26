@@ -11,7 +11,7 @@
     })();
     </script>
     <script>window.GFV_TOUR_DISABLED = true;</script>
-    <script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
+    <script>try{if(localStorage.getItem('gfv_demo_cloud_session')==='1'){localStorage.removeItem('gfv_firebase_emulator');}else if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard - GFV Platform</title>
@@ -845,6 +845,12 @@
             await dashboardPerfAsync('widgets.renderDashboardModule', () =>
                 renderDashboardModule(userData, availableModules, callbacks, dependencies)
             );
+            try {
+                const { startNotificationFcmBackground } = await import('./js/notification-fcm-client.js');
+                startNotificationFcmBackground({ userData, firebaseConfig });
+            } catch (pushErr) {
+                console.warn('[push] bootstrap dashboard:', pushErr);
+            }
 
             const hub = document.getElementById('dashboard-panorama-hub');
             if (!hub) {

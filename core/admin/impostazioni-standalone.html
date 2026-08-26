@@ -154,6 +154,23 @@
             margin-top: 5px;
         }
 
+        .notif-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+
+        .notif-toggle input[type="checkbox"] {
+            width: auto;
+            margin: 0;
+        }
+
+        #notifiche-orari-fieldset:disabled {
+            opacity: 0.55;
+        }
+
         .list-container {
             display: grid;
             gap: 10px;
@@ -438,6 +455,38 @@
                     </div>
 
                     <button type="submit" class="btn btn-primary">Salva Impostazioni Account</button>
+                </form>
+            </div>
+
+            <!-- Notifiche push (tutti i ruoli) — catalogo core/config/notification-catalog.js -->
+            <div class="card" id="notifiche-section">
+                <h2>Notifiche</h2>
+                <p class="info-text" style="margin-bottom: 18px;">Tony ti ricorda in app scorte, affitti e scadenze. Qui configuri solo le urgenze operative sul telefono: comunicazioni, lavori assegnati, ore da validare (caposquadra) e chiusura o sospeso (manager).</p>
+                <form id="notifiche-form" onsubmit="handleSaveNotifiche(event)">
+                    <div class="form-group">
+                        <label class="notif-toggle" for="notif-push-enabled">
+                            <input type="checkbox" id="notif-push-enabled" checked>
+                            <span>Notifiche push</span>
+                        </label>
+                    </div>
+                    <fieldset id="notifiche-orari-fieldset" style="border: none; padding: 0; margin: 0;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="notif-push-start">Dalle</label>
+                                <input type="time" id="notif-push-start" value="05:00" required>
+                            </div>
+                            <div class="form-group">
+                                <label for="notif-push-end">Alle</label>
+                                <input type="time" id="notif-push-end" value="21:00" required>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="notif-conferma-timeout">Reminder conferme mancanti (ore)</label>
+                            <input type="number" id="notif-conferma-timeout" min="1" max="24" step="1" value="6" required>
+                            <div class="info-text">Se qualcuno non conferma la ricezione, avvisa il mittente dopo questo tempo (conteggiato solo tra gli orari sopra). Default 6 ore.</div>
+                        </div>
+                    </fieldset>
+                    <button type="submit" class="btn btn-primary">Salva preferenze notifiche</button>
                 </form>
             </div>
 
@@ -807,6 +856,10 @@
         const app = getAppInstance();
         const auth = getAuthInstance();
         const db = getDb();
+        const {
+            loadNotificationPrefsFromUser,
+            saveUserNotificationPrefs,
+        } = await import('../services/notification-prefs-service.js');
         const { updatePassword, reauthenticateWithCredential, EmailAuthProvider } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js');
         const { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js');
         const storage = getStorage(app);
@@ -849,6 +902,7 @@
                     document.getElementById('account-cognome').value = currentUserData.cognome || '';
                     document.getElementById('account-email').value = currentUserData.email || user.email;
                     document.getElementById('account-telefono').value = currentUserData.telefono || '';
+                    fillNotificheForm(loadNotificationPrefsFromUser(currentUserData));
 
                     // Salva tenant ID
                     currentTenantId = currentUserData.tenantId;
@@ -1006,8 +1060,10 @@
                         }
                     }
                     
-                    // Account e Password sempre visibili per tutti
+                    // Account, notifiche e Password sempre visibili per tutti
                     document.getElementById('account-section').style.display = 'block';
+                    const notificheSection = document.getElementById('notifiche-section');
+                    if (notificheSection) notificheSection.style.display = 'block';
                     document.getElementById('password-section').style.display = 'block';
                 }
             } catch (error) {
@@ -1524,6 +1580,35 @@
             });
         }
 
+        function fillNotificheForm(prefs) {
+            const enabledEl = document.getElementById('notif-push-enabled');
+            const startEl = document.getElementById('notif-push-start');
+            const endEl = document.getElementById('notif-push-end');
+            const timeoutEl = document.getElementById('notif-conferma-timeout');
+            if (enabledEl) enabledEl.checked = prefs.pushEnabled !== false;
+            if (startEl) startEl.value = prefs.pushWindowStart || '05:00';
+            if (endEl) endEl.value = prefs.pushWindowEnd || '21:00';
+            if (timeoutEl) timeoutEl.value = String(prefs.confermaTimeoutHours || 6);
+            syncNotificheOrariDisabled();
+        }
+
+        function readNotificheFormValues() {
+            return {
+                pushEnabled: Boolean(document.getElementById('notif-push-enabled')?.checked),
+                pushWindowStart: document.getElementById('notif-push-start')?.value || '',
+                pushWindowEnd: document.getElementById('notif-push-end')?.value || '',
+                confermaTimeoutHours: Number(document.getElementById('notif-conferma-timeout')?.value),
+            };
+        }
+
+        function syncNotificheOrariDisabled() {
+            const enabledEl = document.getElementById('notif-push-enabled');
+            const fieldset = document.getElementById('notifiche-orari-fieldset');
+            if (fieldset && enabledEl) fieldset.disabled = !enabledEl.checked;
+        }
+
+        document.getElementById('notif-push-enabled')?.addEventListener('change', syncNotificheOrariDisabled);
+
         // Salva impostazioni account
         async function handleSaveAccount(e) {
             e.preventDefault();
@@ -1542,6 +1627,42 @@
                 showAlert('Impostazioni account salvate con successo', 'success');
             } catch (error) {
                 console.error('Errore salvataggio account:', error);
+                showAlert('Errore durante il salvataggio: ' + error.message, 'error');
+            }
+        }
+
+        async function handleSaveNotifiche(e) {
+            e.preventDefault();
+            const user = auth.currentUser;
+            if (!user) return;
+            try {
+                const result = await saveUserNotificationPrefs({
+                    updateDoc,
+                    doc,
+                    db,
+                    uid: user.uid,
+                    formValues: readNotificheFormValues(),
+                    existingPrefs: currentUserData && currentUserData.notificationPrefs,
+                });
+                if (!result.ok) {
+                    showAlert(result.error || 'Preferenze non valide', 'error');
+                    return;
+                }
+                if (currentUserData) currentUserData.notificationPrefs = result.prefs;
+                showAlert('Preferenze notifiche salvate', 'success');
+                if (result.prefs.pushEnabled) {
+                    try {
+                        const { startNotificationFcmBackground } = await import('../js/notification-fcm-client.js');
+                        startNotificationFcmBackground({
+                            userData: currentUserData,
+                            firebaseConfig: window.firebaseConfig,
+                        });
+                    } catch (pushErr) {
+                        console.warn('[push] bootstrap impostazioni:', pushErr);
+                    }
+                }
+            } catch (error) {
+                console.error('Errore salvataggio notifiche:', error);
                 showAlert('Errore durante il salvataggio: ' + error.message, 'error');
             }
         }
@@ -4257,6 +4378,7 @@
         window.searchSedeAddressFromForm = searchSedeAddressFromForm;
         window.clearSedeMarker = clearSedeMarker;
         window.handleSaveAccount = handleSaveAccount;
+        window.handleSaveNotifiche = handleSaveNotifiche;
         window.handleChangePassword = handleChangePassword;
         window.addTipoLavoro = addTipoLavoro;
         window.removeTipoLavoro = removeTipoLavoro;

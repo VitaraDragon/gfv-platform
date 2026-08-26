@@ -9,6 +9,7 @@ window.firebaseConfig = {
     projectId: "gfv-platform",
     storageBucket: "gfv-platform.firebasestorage.app",
     messagingSenderId: "495860225347",
-    appId: "1:495860225347:web:79edd2bdd78fe92f0bcbf6"
+    appId: "1:495860225347:web:79edd2bdd78fe92f0bcbf6",
+    vapidKey: "BKX3t7shwVNG-x2rV7PH0m_vhvS-vJEoNWLNPAc-8dkZEVQwZXfgEZ89QBo0VEawYeDaTiJvtSc5bmOlhBTXYsY"
 };
 

@@ -4,7 +4,7 @@
 // in .githooks) oppure da `npm run bump:pwa-cache`. Ogni commit ottiene un ID nuovo
 // così CACHE_NAME cambia e in activate() le cache obsolete vengono eliminate.
 // Setup hook (una tantum): git config core.hooksPath .githooks
-const SW_CACHE_BUILD_ID = 't1785645343515';
+const SW_CACHE_BUILD_ID = 't1787718799616';
 const CACHE_NAME = 'gfv-platform-' + SW_CACHE_BUILD_ID;
 
 function isLocalDevHost(hostname) {
@@ -147,5 +147,56 @@ self.addEventListener('fetch', (event) => {
     // Questo può accadere con estensioni del browser o richieste non standard
     return;
   }
+});
+
+self.addEventListener('push', (event) => {
+  let payload = {};
+  try {
+    payload = event.data ? event.data.json() : {};
+  } catch (err) {
+    try {
+      payload = { body: event.data ? event.data.text() : '' };
+    } catch (e2) {
+      payload = {};
+    }
+  }
+  const data = payload.data || payload;
+  const notification = payload.notification || {};
+  const title = notification.title || data.title || 'GFV Platform';
+  const body = notification.body || data.body || '';
+  const url = data.url || notification.click_action || '';
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body,
+      icon: 'icons/icon-192x192.png',
+      badge: 'icons/icon-96x96.png',
+      data: { url },
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const raw = (event.notification.data && event.notification.data.url) || '';
+  let target = self.registration.scope;
+  try {
+    target = raw ? new URL(raw, self.registration.scope).href : self.registration.scope;
+  } catch (err) {
+    target = self.registration.scope;
+  }
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      for (const client of clientList) {
+        if ('focus' in client) {
+          if (typeof client.navigate === 'function') {
+            return client.navigate(target).then((c) => (c && c.focus ? c.focus() : client.focus()));
+          }
+          return client.focus();
+        }
+      }
+      if (self.clients.openWindow) return self.clients.openWindow(target);
+      return undefined;
+    })
+  );
 });
 
