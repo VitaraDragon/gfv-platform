@@ -4,7 +4,7 @@
 
 ## Terreni — piano proposta confine da tap (2026-08-28)
 
-Piano di implementazione (solo documentazione, **nessun codice**): un tap sulla mappa **propone** il perimetro; conferma e ritocco obbligatori; tracciamento attuale resta fallback. Geometria = segmentatore, non Gemini. Tony fuori dal primo rilascio. Go/no-go su 20–30 terreni già mappati prima di scrivere UI. **Superficie in ha** = stesso calcolo del tracciamento classico (§21.11). **Aspetto bozza** = tratteggio bianco, non pulse (§21.12).
+Piano di implementazione (solo documentazione, **nessun codice**): un tap sulla mappa **propone** il perimetro; conferma e ritocco obbligatori; tracciamento attuale resta fallback. Geometria = segmentatore, non Gemini. Tony fuori dal primo rilascio. Go/no-go su 20–30 terreni già mappati prima di scrivere UI. **Superficie in ha** = stesso calcolo del tracciamento classico (§21.11). **Aspetto bozza** = tratteggio bianco, non pulse (§21.12). Migliorie extra (sessione mappa, tap correzione, snap vicini) in piano §13, non ancora requisiti.
 
 | Pezzo | Dettaglio |
 | ----- | --------- |

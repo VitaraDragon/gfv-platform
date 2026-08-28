@@ -269,6 +269,27 @@ Dopo un eventuale go Fase 0: aggiornare stato in questo file e in §21 (`pianifi
 
 ---
 
-## 13. Sintesi in una frase
+## 13. Migliorie possibili (non decisioni, non v1)
+
+Raccolte in chat il 2026-08-28. **Non sono requisiti** finché non si sceglie esplicitamente. Il v1 resta: un tap → bozza tratteggiata → ettari classici → ritocco → Salva.
+
+Ordine per impatto sul problema originale («catalogare tanti campi in fretta»):
+
+| Priorità | Idea | Perché aiuta | Costo / rischio |
+|----------|------|----------------|-----------------|
+| **A** | **Sessione di mappatura** (mappa grande, tap → bozza → nome breve → «prossimo campo», senza chiudere il modal ogni volta) | Il tap da solo non basta: oggi ogni terreno è apri form → anagrafica → mappa → Salva. La fatica torna sull’anagrafica. | UI nuova; attenzione a non salvare bozze incomplete (nome obbligatorio resta) |
+| **B** | **Tap di correzione** dopo la prima bozza: un tap *dentro* = «anche questa parte», un tap *fuori* = «togli questa parte» (point prompt multipli, nativo dei segmentatori) | È il modo più efficace di slegare due Sangiovese attaccati senza ridisegnare. Più utile di un modello più grosso. | Va spiegato in due parole in UI; non è magia se l’utente tocca a caso |
+| **C** | **Vicini in anagrafe visibili** (poligoni già salvati, stile confermato, non editabili) + **aggancio** del bordo proposto al confine del vicino | Il «puzzle» aziendale: niente buchi né sovrapposizioni tra due campi attaccati | Snap da calibrare (tolleranza metri); non forzare se l’utente allontana il vertice |
+| **D** | **Ettari scritti sulla bozza** (etichetta al centro del poligono), non solo sotto la mappa | Sul telefono il campo Superficie è lontano dallo sguardo sul satellite | Poco; attenzione al testo illeggibile sullo scuro |
+| **E** | **Intersezione evidenziata** (zona di overlap tratteggiata/hatch) oltre all’avviso testuale | L’avviso da solo si ignora; vedere *dove* si copre il vicino fa correggere in 2 secondi | Dipende da C |
+| **F** | Se l’utente ha già scritto gli ettari a mano: **avviso se la bozza differisce molto** (es. >15%) | Evita di sovrascrivere una superficie «da contratto» senza accorgersene | Soglia da definire; il classico già sovrascrive il campo con l’area mappa |
+
+Già nel piano, da non dimenticare se il ML delude: **Fase 1b** (chiusura automatica, meno punti, snap mentre si disegna a mano).
+
+**Non** come miglioria: pulse continuo, Gemini sul perimetro, auto-save, catasto come verità, Tony nel v1.
+
+---
+
+## 14. Sintesi in una frase
 
 **Tap sulla mappa = bozza di perimetro da confermare e ritoccare (ettari dallo stesso calcolo classico); segmentazione per la geometria, non Gemini; niente Tony e niente auto-save finché la proposta non batte “due terzi usabili” sui campi già mappati.**
