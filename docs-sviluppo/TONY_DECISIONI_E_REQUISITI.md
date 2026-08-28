@@ -1,7 +1,7 @@
 # Tony – Inventario decisioni e requisiti
 
 **Data estrazione**: 2026-03-08  
-**Ultimo aggiornamento**: 2026-08-28 (proposta confine terreno da tap §21 — design, non implementato)
+**Ultimo aggiornamento**: 2026-08-28 (proposta confine terreno da tap §21 — superficie ha = calcolo classico)
 **Obiettivo**: Raccogliere in un unico documento ogni decisione di prodotto, requisito e vincolo trovato nei documenti Tony, per evitare perdite durante il consolidamento.
 
 **Stati**: `implementato` | `in corso` | `parziale` | `pianificato` | `non implementato` | `abbandonato` | `da verificare`
@@ -614,6 +614,7 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 | 21.8 | Go/no-go su 20–30 terreni già mappati: «campo giusto + ritocco minimo» **≥ ~2/3** sui vigneti/frutteti ben bordati; se ~1/2 → non magia, al massimo scorciatoia o solo disegno più veloce senza IA | prodotto 2026-08-28 | **pianificato** | Fase 0 obbligatoria prima della UI |
 | 21.9 | Avviso se la proposta **sovrappone** un terreno già in anagrafe; un tap = un terreno | prodotto 2026-08-28 | **pianificato** | Due campi fusi = scarta (spezzare non è v1) |
 | 21.10 | Tony «mappa questo campo» solo **dopo** che l’azione mappa esiste | prodotto 2026-08-28 | **pianificato** | Fase 3 del piano; Tony apre, non salva |
+| 21.11 | Accettata la proposta, la **superficie in ha** è quella del sistema classico (stesso poligono, stesso calcolo mappa → campo Superficie) | prodotto 2026-08-28 | **pianificato** | `updateAreaInfo` / `computeArea`; si ricalcola se si ritoccano i vertici |
 
 **Affidabilità attesa:** assistente, non geometra. Due campi attaccati e visivamente uguali: rischio alto di fusione. IoU “buono” (~0,75) può comunque sballare gli ettari del 5–10%. Dettaglio e fasi: piano Terreni.
 

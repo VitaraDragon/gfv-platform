@@ -41,7 +41,8 @@ Queste voci chiudono la discussione del 2026-08-28. Prevalgono su ipotesi in cha
 
 | Tema | Decisione |
 |------|-----------|
-| **Obiettivo UX** | Non “crea confine definitivo”, ma **«Proponi confine»**. Tap → poligono in evidenza → superficie già calcolata → ritocco vertici se serve → **Salva** esplicito. |
+| **Obiettivo UX** | Non “crea confine definitivo”, ma **«Proponi confine»**. Tap → poligono in evidenza → **ettari calcolati come oggi** → ritocco vertici se serve → **Salva** esplicito. |
+| **Superficie (ha)** | **Sì, identica al sistema classico.** Stesso poligono → stessa funzione (`google.maps.geometry.spherical.computeArea` → m² / 10 000 = ha). Appare in «Superficie calcolata», riempie il campo **Superficie (ettari)** e si ricalcola se si spostano i vertici. Non un secondo motore di area. |
 | **Conferma umana** | **Obbligatoria.** Mai salvare in silenzio. Un poligono sbagliato si propaga a lavori, zone, vendemmia, mappa allarmi. Stesso principio del form di revisione Tony Occhi. |
 | **Fallback** | Il tracciamento attuale (tap punto-punto + trascinamento pallini) **resta**. Se la proposta è sbagliata: scarta e disegna a mano. |
 | **Un tap, un terreno** | La proposta è un solo poligono. Se il modello unisce due appezzamenti, l’utente deve poter **scartare** (spezzare in v1 non è obbligatorio: si ridisegna). |
@@ -85,9 +86,9 @@ Flusso unico:
 4. Un **segmentatore** restituisce una maschera (o un poligono già in coordinate mappa).
 5. Conversione in `polygonCoords` (≥ 3 vertici, poligono semplice).
 6. Overlay sulla mappa **editabile** (stesso Polygon Google già usato).
-7. Calcolo ettari con la funzione esistente.
+7. Calcolo ettari con **`updateAreaInfo`** già usata dal tracciamento classico (stesso overlay, stesso campo form).
 8. Check sovrapposizione con altri terreni del tenant.
-9. Utente ritocca / scarta / salva. Solo **Salva Terreno** persiste.
+9. Utente ritocca / scarta / salva. Solo **Salva Terreno** persiste (`polygonCoords` + `superficie` in ha).
 
 **Gemini non entra nel passo 4.** Eventuale passo semantico (coltura suggerita) è una fase successiva, con lo stesso vincolo: proposta + conferma, niente scrittura silenziosa.
 
@@ -251,4 +252,4 @@ Dopo un eventuale go Fase 0: aggiornare stato in questo file e in §21 (`pianifi
 
 ## 13. Sintesi in una frase
 
-**Tap sulla mappa = bozza di perimetro da confermare e ritoccare; segmentazione per la geometria, non Gemini; niente Tony e niente auto-save finché la proposta non batte “due terzi usabili” sui campi già mappati.**
+**Tap sulla mappa = bozza di perimetro da confermare e ritoccare (ettari dallo stesso calcolo classico); segmentazione per la geometria, non Gemini; niente Tony e niente auto-save finché la proposta non batte “due terzi usabili” sui campi già mappati.**
