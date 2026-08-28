@@ -1,6 +1,6 @@
 # Documentazione da fare
 
-**Aggiornato:** 2026-07-31
+**Aggiornato:** 2026-08-28
 
 Specifiche e proposte **non ancora implementate** (o solo in parte) ma **ancora compatibili** con la direzione del progetto (`tony/MASTER_PLAN.md`, `ARCHITETTURA_MODULI_E_INTERAZIONI.md`).
 
@@ -20,6 +20,7 @@ Vedi anche **`DOBBIAMO_ANCORA_FARE.md`** (root `docs-sviluppo/`) per sicurezza, 
 | `frutteto/` | Parametri e scarto statistiche frutteto |
 | `guida-app/` | Assistente knowledge base guida-app |
 | `vigneto/` | Potatura/trattamenti da lavori; reti antigrandine |
+| `terreni/` | Proposta confine da tap in mappa (`PIANO_PROPOSTA_CONFINE_TAP.md`) — design 2026-08-28, **non implementato**; Fase 0 pilota prima del codice |
 
 ## Non compatibile → obsoleto
 

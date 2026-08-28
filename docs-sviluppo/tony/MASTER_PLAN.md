@@ -270,7 +270,7 @@ Tony non "compila" grafici. Può:
 
 ## 10. Limitazioni esplicite
 
-- **Mappe**: Tony non traccia poligoni. Può aprire le pagine con mappe; il tracciamento resta manuale.
+- **Mappe**: Tony non traccia poligoni. Può aprire le pagine con mappe; il tracciamento resta manuale. **Proposta confine da tap** (design 2026-08-28): UX mappa Terreni, non Tony; confermata dall’utente. Piano: `docs-sviluppo/da-fare/terreni/PIANO_PROPOSTA_CONFINE_TAP.md` (`TONY_DECISIONI_E_REQUISITI.md` §21).
 - **Grafici**: Tony non genera grafici. Descrive dati o naviga alla pagina che li mostra.
 - **Eliminazioni bulk**: Tony non le esegue. Guida l'utente a farle manualmente.
 - **Impostazioni sensibili**: Cambio password, revoca utenti – Tony può spiegare come fare, non eseguire senza conferma esplicita.
@@ -291,6 +291,7 @@ Tony non "compila" grafici. Può:
 - **Piano performance dashboard panoramica** (Fase 0–**5** ✅ 2026-06-06; canary **`dashboard pronta` ~861 ms**; smoke `npm run dashboard:perf-smoke`): `docs-sviluppo/dashboard/PLAN_PERFORMANCE_DASHBOARD.md`
 - **PWA / deploy client**: hook **`pre-commit`** / script **`bump:pwa-cache`** aggiornano **`SW_CACHE_BUILD_ID`** in `service-worker.js` (vedi **`docs-sviluppo/GUIDA_PWA.md`** e **TONY_DECISIONI_E_REQUISITI.md** §3.8) — riduce cache stale su app installata
 - **Magazzino – Tony Occhi (acquisizione documenti)**: `docs-sviluppo/da-fare/magazzino/ROADMAP_ACQUISIZIONE_DOCUMENTI_GEMINI.md` — Fase 0–3 + **archivio MVP** + reminder **`prezziInAttesa`** ✅ 2026-07-21; **§20.28** prezzo medio; **§20.33** archivio
+- **Terreni – proposta confine da tap** (design, non implementato): `docs-sviluppo/da-fare/terreni/PIANO_PROPOSTA_CONFINE_TAP.md` — segmentazione + conferma umana; Gemini non disegna il perimetro; Tony fuori dal v1
 - **Tony E2E simulatore (M-T0…M-T6)**: `docs-sviluppo/in-sviluppo/simulator/TONY_E2E_GUIDA_SVILUPPO.md` — M-T4 ✅ mock **17/17** (gate-fast CI ~4–6 min, 2026-07-11); M-T5 ✅ live tier 3 + gate p95
 - **Inventario decisioni**: `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md`
 - **Changelog**: `docs-sviluppo/COSA_ABBIAMO_FATTO.md`

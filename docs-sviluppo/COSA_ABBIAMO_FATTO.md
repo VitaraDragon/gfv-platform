@@ -1,6 +1,6 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-08-28 — S5 push assenze + WhatsApp.**
+**Ultimo aggiornamento documentazione: 2026-08-28 — S5 push assenze + WhatsApp; piano proposta confine tap (design).**
 
 ## Push assenze turno + WhatsApp S5 (2026-08-28)
 
@@ -9,6 +9,16 @@
 - WhatsApp: Cloud Functions dopo 10 minuti utili in finestra; se mancano `WHATSAPP_TOKEN` / `WHATSAPP_PHONE_NUMBER_ID` lo scheduler salta con log, senza rompere FCM.
 - Inbox giorno su Gestione lavori e Impegni; deep link `assenzaId`. Serve **deploy Functions** + indici Firestore `notificationEvents`.
 - Doc: questa voce, `tony/STATO_ATTUALE.md` (riga Push), `TONY_DECISIONI_E_REQUISITI.md` §15.8. Spec S5: `SPEC_NOTIFICHE_PUSH_CICLO_LAVORO.md`.
+
+## Terreni — piano proposta confine da tap (2026-08-28)
+
+Piano di implementazione (solo documentazione, **nessun codice**): un tap sulla mappa **propone** il perimetro; conferma e ritocco obbligatori; tracciamento attuale resta fallback. Geometria = segmentatore, non Gemini. Tony fuori dal primo rilascio. Go/no-go su 20–30 terreni già mappati prima di scrivere UI. **Superficie in ha** = stesso calcolo del tracciamento classico (§21.11). **Aspetto bozza** = tratteggio bianco, non pulse (§21.12). Migliorie extra (sessione mappa, tap correzione, snap vicini) in piano §13, non ancora requisiti.
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Piano** | `docs-sviluppo/da-fare/terreni/PIANO_PROPOSTA_CONFINE_TAP.md` |
+| **Decisioni** | `TONY_DECISIONI_E_REQUISITI.md` §21 |
+| **Master Plan** | §10 Mappe: Tony continua a non tracciare poligoni; puntatore al piano Terreni |
 
 ## Push ciclo lavoro — icona app (2026-08-26)
 
