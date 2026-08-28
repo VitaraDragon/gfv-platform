@@ -43,6 +43,7 @@ Queste voci chiudono la discussione del 2026-08-28. Prevalgono su ipotesi in cha
 |------|-----------|
 | **Obiettivo UX** | Non “crea confine definitivo”, ma **«Proponi confine»**. Tap → poligono in evidenza → **ettari calcolati come oggi** → ritocco vertici se serve → **Salva** esplicito. |
 | **Superficie (ha)** | **Sì, identica al sistema classico.** Stesso poligono → stessa funzione (`google.maps.geometry.spherical.computeArea` → m² / 10 000 = ha). Appare in «Superficie calcolata», riempie il campo **Superficie (ettari)** e si ricalcola se si spostano i vertici. Non un secondo motore di area. |
+| **Aspetto della bozza** | **Tratteggio, non pulse.** Finché non si salva: perimetro **tratteggiato bianco** (spessore > tratto classico), riempimento coltura più trasparente, pallini vertice trascinabili. Dopo **Salva**: stesso stile solido del tracciamento attuale (colore coltura). Niente animazione continua (il pulse in GFV = allarme manodopera). Opzionale: un flash breve all’apparire, poi si ferma. Chip in mappa: «Bozza — verifica i confini». |
 | **Conferma umana** | **Obbligatoria.** Mai salvare in silenzio. Un poligono sbagliato si propaga a lavori, zone, vendemmia, mappa allarmi. Stesso principio del form di revisione Tony Occhi. |
 | **Fallback** | Il tracciamento attuale (tap punto-punto + trascinamento pallini) **resta**. Se la proposta è sbagliata: scarta e disegna a mano. |
 | **Un tap, un terreno** | La proposta è un solo poligono. Se il modello unisce due appezzamenti, l’utente deve poter **scartare** (spezzare in v1 non è obbligatorio: si ridisegna). |
@@ -85,14 +86,32 @@ Flusso unico:
 3. Si ritaglia la vista (o si usano bounds + punto in lat/lng).
 4. Un **segmentatore** restituisce una maschera (o un poligono già in coordinate mappa).
 5. Conversione in `polygonCoords` (≥ 3 vertici, poligono semplice).
-6. Overlay sulla mappa **editabile** (stesso Polygon Google già usato).
+6. Overlay sulla mappa **editabile**, in **stile bozza** (tratteggio bianco; vedi §3 Aspetto).
 7. Calcolo ettari con **`updateAreaInfo`** già usata dal tracciamento classico (stesso overlay, stesso campo form).
 8. Check sovrapposizione con altri terreni del tenant.
-9. Utente ritocca / scarta / salva. Solo **Salva Terreno** persiste (`polygonCoords` + `superficie` in ha).
+9. Utente ritocca / scarta / salva. Solo **Salva Terreno** persiste (`polygonCoords` + `superficie` in ha) e lo stile passa a **confermato** (tratto continuo colore coltura).
 
 **Gemini non entra nel passo 4.** Eventuale passo semantico (coltura suggerita) è una fase successiva, con lo stesso vincolo: proposta + conferma, niente scrittura silenziosa.
 
 Configurazione > codice: un helper mappa riusabile (terreni aziendali e, dopo, clienti), non rami `if (formId === 'terreno')` nel core Tony.
+
+### 5.1 Come si vede la proposta (stati visivi)
+
+Due stati, così l’utente non confonde bozza e terreno già in anagrafe.
+
+| Stato | Perimetro | Riempimento | Vertici | Animazione |
+|-------|-----------|-------------|---------|------------|
+| **Bozza** (dopo il tap, prima di Salva) | **Tratteggiato**, bianco, più spesso del tratto classico (legibile sul satellite) | Colore coltura già scelta (o Default blu), **più trasparente** del confermato (~0,18–0,25 vs 0,35) per vedere filari/siepi sotto | Pallini trascinabili come oggi | **Niente pulse continuo.** Al massimo un flash di 1–2 s all’apparire, poi fermo |
+| **Confermato** (dopo Salva, o terreno già salvato) | **Continuo**, colore coltura, spessore 3 — identico a Traccia Confini | Colore coltura, opacità attuale (~0,35) | Pallini in modifica, come oggi | Nessuna |
+
+Chip/testo sotto la mappa in bozza: **«Bozza dei confini — trascina i punti o Salva»**.
+
+**Perché non pulse / non verde / non rosso**
+
+- Il **pulse** in GFV è già il semaforo allarmi manodopera (mappa aziendale). Un poligono che pulsa sembrerebbe un’urgenza, stanca sul telefono e copre il satellite.
+- Il **verde pieno** è già delle zone lavorate.
+- Il **rosso** è già il terreno di riferimento quando si tracciano zone/vendemmia.
+- Il **tratteggio bianco** su satellite è il segnale “ancora da confermare”, indipendente dalla coltura (un tratteggio giallo sul seminativo sparirebbe).
 
 ---
 
@@ -168,9 +187,9 @@ Ordine vincolante. Non saltare la Fase 0.
 ### Fase 1 — UX «Proponi confine» (solo se go)
 
 - Pulsante accanto a **Traccia Confini** (label chiara: proposta, non creazione).
-- Tap → overlay editabile → superficie calcolata.
+- Tap → overlay editabile in **stile bozza** (tratteggio bianco, fill più trasparente, chip «Bozza») → **ettari con `updateAreaInfo`**; si ricalcola se si trascinano i vertici. Dopo Salva → stile classico solido.
 - Scarta proposta → torna al disegno attuale.
-- Stesso salvataggio `polygonCoords` / superficie.
+- Stesso salvataggio `polygonCoords` + `superficie` (ha).
 - Mobile: zoom sul poligono proposto.
 - Avviso sovrapposizione se rilevabile in modo semplice (stesso tenant, stessa “famiglia” di terreni).
 

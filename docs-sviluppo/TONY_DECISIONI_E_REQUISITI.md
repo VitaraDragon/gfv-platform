@@ -615,6 +615,7 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 | 21.9 | Avviso se la proposta **sovrappone** un terreno già in anagrafe; un tap = un terreno | prodotto 2026-08-28 | **pianificato** | Due campi fusi = scarta (spezzare non è v1) |
 | 21.10 | Tony «mappa questo campo» solo **dopo** che l’azione mappa esiste | prodotto 2026-08-28 | **pianificato** | Fase 3 del piano; Tony apre, non salva |
 | 21.11 | Accettata la proposta, la **superficie in ha** è quella del sistema classico (stesso poligono, stesso calcolo mappa → campo Superficie) | prodotto 2026-08-28 | **pianificato** | `updateAreaInfo` / `computeArea`; si ricalcola se si ritoccano i vertici |
+| 21.12 | **Aspetto bozza:** perimetro tratteggiato bianco, fill coltura più trasparente, vertici trascinabili; **niente pulse continuo**. Dopo Salva: tratto solido colore coltura come Traccia Confini | prodotto 2026-08-28 | **pianificato** | Pulse GFV = allarmi manodopera; verde = zone lavorate; rosso = terreno di riferimento zone. Opz. flash 1–2 s all’apparire. Chip «Bozza — verifica i confini» |
 
 **Affidabilità attesa:** assistente, non geometra. Due campi attaccati e visivamente uguali: rischio alto di fusione. IoU “buono” (~0,75) può comunque sballare gli ettari del 5–10%. Dettaglio e fasi: piano Terreni.
 
