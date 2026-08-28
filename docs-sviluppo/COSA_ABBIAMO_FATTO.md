@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-08-26 — icona push su core/images (URL assoluto).**
+**Ultimo aggiornamento documentazione: 2026-08-28 — piano proposta confine terreno da tap (design).**
+
+## Terreni — piano proposta confine da tap (2026-08-28)
+
+Piano di implementazione (solo documentazione, **nessun codice**): un tap sulla mappa **propone** il perimetro; conferma e ritocco obbligatori; tracciamento attuale resta fallback. Geometria = segmentatore, non Gemini. Tony fuori dal primo rilascio. Go/no-go su 20–30 terreni già mappati prima di scrivere UI.
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Piano** | `docs-sviluppo/da-fare/terreni/PIANO_PROPOSTA_CONFINE_TAP.md` |
+| **Decisioni** | `TONY_DECISIONI_E_REQUISITI.md` §21 |
+| **Master Plan** | §10 Mappe: Tony continua a non tracciare poligoni; puntatore al piano Terreni |
 
 ## Push ciclo lavoro — icona app (2026-08-26)
 

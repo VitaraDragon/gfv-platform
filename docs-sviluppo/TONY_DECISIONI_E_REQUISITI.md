@@ -1,7 +1,7 @@
 # Tony – Inventario decisioni e requisiti
 
 **Data estrazione**: 2026-03-08  
-**Ultimo aggiornamento**: 2026-08-26 (push ciclo lavoro FCM §15.7 — icona `core/images`)
+**Ultimo aggiornamento**: 2026-08-28 (proposta confine terreno da tap §21 — design, non implementato)
 **Obiettivo**: Raccogliere in un unico documento ogni decisione di prodotto, requisito e vincolo trovato nei documenti Tony, per evitare perdite durante il consolidamento.
 
 **Stati**: `implementato` | `in corso` | `parziale` | `pianificato` | `non implementato` | `abbandonato` | `da verificare`
@@ -170,7 +170,7 @@
 
 | # | Decisione | Fonte | Stato | Note |
 |---|-----------|-------|-------|------|
-| 11.1 | Mappe: Tony non traccia poligoni | MASTER_PLAN | — | |
+| 11.1 | Mappe: Tony non traccia poligoni | MASTER_PLAN | — | Invariato. Proposta confine da tap = UX mappa Terreni, non Tony. Piano e decisioni: §21 |
 | 11.2 | Eliminazioni bulk: Tony non le esegue | MASTER_PLAN | — | |
 | 11.3 | Impostazioni sensibili: Tony spiega, non esegue senza conferma | MASTER_PLAN | — | |
 | 11.4 | LLM non decide ordine click, quando campo figlio pronto, né dichiara salvataggio riuscito | GUIDA_OPERATIVO | — | |
@@ -594,6 +594,28 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 2. Controllo: Magazzino → Documenti → filtri → Apri/Stampa (o Elimina dall’archivio).  
 3. Oppure: Movimenti → riga → Documento; da fattura → link bolla collegata (e viceversa).  
 4. Bolle ancora senza fattura: Tony reminder `prezziInAttesa` → Movimenti «Solo senza prezzo».
+
+---
+
+## 21. Proposta confine terreno da tap (mappa) — 2026-08-28
+
+**Piano canonico:** `docs-sviluppo/da-fare/terreni/PIANO_PROPOSTA_CONFINE_TAP.md`  
+**Stato implementazione codice:** **non implementato** (solo design). Non scrivere codice finché la Fase 0 (pilota di misura) non ha go/no-go.
+
+| # | Decisione | Fonte | Stato | Note |
+|---|-----------|-------|-------|------|
+| 21.1 | Un tap/click sulla mappa **propone** il perimetro; non crea un confine definitivo | prodotto 2026-08-28 | **pianificato** | Label UX: «Proponi confine», non «crea confine» |
+| 21.2 | **Conferma umana obbligatoria** (ritocco vertici + Salva). Mai auto-save | prodotto 2026-08-28 | **pianificato** | Stesso principio del form revisione Tony Occhi (§20.5) |
+| 21.3 | Il tracciamento attuale (vertice per vertice) resta il **fallback** | prodotto 2026-08-28 | **pianificato** | Scarta proposta → disegno manuale |
+| 21.4 | Feature nella **mappa Terreni**, non come comando Tony nel primo rilascio | prodotto 2026-08-28 | **pianificato** | §11.1 resta: Tony non traccia poligoni |
+| 21.5 | **Gemini non disegna** il perimetro (geometria = segmentatore / point prompt). Gemini al massimo dopo, semantica (coltura/nome) | prodotto 2026-08-28 | **pianificato** | Gemini è debole sulle coordinate; rischio allucinazione lat/lng |
+| 21.6 | Riuso **`polygonCoords`** esistente; niente secondo modello geometrico | prodotto 2026-08-28 | **pianificato** | Consumatori: lavori, zone, vendemmia, mappa aziendale, allarmi |
+| 21.7 | Non è catasto / PAC / contratto / rilievo | prodotto 2026-08-28 | **pianificato** | Segue ciò che si vede sul satellite |
+| 21.8 | Go/no-go su 20–30 terreni già mappati: «campo giusto + ritocco minimo» **≥ ~2/3** sui vigneti/frutteti ben bordati; se ~1/2 → non magia, al massimo scorciatoia o solo disegno più veloce senza IA | prodotto 2026-08-28 | **pianificato** | Fase 0 obbligatoria prima della UI |
+| 21.9 | Avviso se la proposta **sovrappone** un terreno già in anagrafe; un tap = un terreno | prodotto 2026-08-28 | **pianificato** | Due campi fusi = scarta (spezzare non è v1) |
+| 21.10 | Tony «mappa questo campo» solo **dopo** che l’azione mappa esiste | prodotto 2026-08-28 | **pianificato** | Fase 3 del piano; Tony apre, non salva |
+
+**Affidabilità attesa:** assistente, non geometra. Due campi attaccati e visivamente uguali: rischio alto di fusione. IoU “buono” (~0,75) può comunque sballare gli ettari del 5–10%. Dettaglio e fasi: piano Terreni.
 
 ---
 
