@@ -95,6 +95,9 @@ function serializeEvent(doc) {
     sendAfter,
     createdAt,
     count: doc.count || 1,
+    skipFcm: Boolean(doc.skipFcm),
+    waStatus: doc.waStatus || null,
+    operaioNome: doc.operaioNome || null,
   };
 }
 
@@ -128,7 +131,15 @@ async function deliverEvent(db, eventRef, eventData) {
   }
   const { policy, catalog } = await getEngine();
   const prefs = policy.mergeNotificationPrefs(userSnap.data().notificationPrefs);
-  if (!prefs.pushEnabled) {
+  if (eventData.type === "assenza_turno" && (eventData.skipFcm || !prefs.assenzaPushEnabled)) {
+    await eventRef.update({
+      status: "sent",
+      reason: "push-off",
+      sentAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+    return;
+  }
+  if (eventData.type !== "assenza_turno" && !prefs.pushEnabled) {
     await eventRef.update({ status: "suppressed", reason: "prefs-off" });
     return;
   }
@@ -154,6 +165,8 @@ async function deliverEvent(db, eventRef, eventData) {
       body: String(eventData.body || ""),
       url: String(eventData.deepLink || ""),
       type: String(eventData.type || ""),
+      eventId: String(eventRef.id || ""),
+      sourceId: String(eventData.sourceId || ""),
     },
     webpush: {
       notification: {
@@ -188,6 +201,7 @@ async function persistAndSend(db, docs) {
     if (doc.coalesceKey) {
       const existing = await col(doc.tenantId).where("coalesceKey", "==", doc.coalesceKey).limit(1).get();
       if (!existing.empty) {
+        if (doc.type === "assenza_turno") continue;
         const prevRef = existing.docs[0].ref;
         const prev = existing.docs[0].data() || {};
         const nextCount = (Number(prev.count) || 1) + 1;
@@ -394,6 +408,243 @@ async function processConfermeInRitardo(db) {
   }
 }
 
+async function loadSquadre(db, tenantId) {
+  const snap = await db.collection(`tenants/${tenantId}/squadre`).get();
+  return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+}
+
+async function displayNameFromUserSnap(snap) {
+  if (!snap || !snap.exists) return "";
+  const d = snap.data() || {};
+  return [d.nome, d.cognome].filter(Boolean).join(" ").trim() || d.email || snap.id;
+}
+
+async function closeAssenzaNotificationEvents(db, tenantId, assenzaId, status) {
+  const snap = await db.collection(`tenants/${tenantId}/notificationEvents`)
+    .where("type", "==", "assenza_turno")
+    .where("sourceId", "==", String(assenzaId))
+    .get();
+  if (snap.empty) return;
+  const batch = db.batch();
+  snap.docs.forEach((d) => {
+    const cur = d.data() || {};
+    if (cur.status === "acted" || cur.status === "resolved") return;
+    batch.update(d.ref, {
+      status,
+      waStatus: "skipped",
+      closedAt: admin.firestore.FieldValue.serverTimestamp(),
+    });
+  });
+  await batch.commit();
+}
+
+async function handleAssenzaWritten(event) {
+  const tenantId = event.params.tenantId;
+  const assenzaId = event.params.assenzaId;
+  const before = event.data && event.data.before && event.data.before.exists
+    ? event.data.before.data()
+    : null;
+  const after = event.data && event.data.after && event.data.after.exists
+    ? event.data.after.data()
+    : null;
+  const { core } = await getEngine();
+  const db = admin.firestore();
+  const now = new Date();
+  const life = core.detectAssenzaLifecycle(before, after, now);
+  if (life.closeStatus) {
+    await closeAssenzaNotificationEvents(db, tenantId, assenzaId, life.closeStatus);
+  }
+  if (!life.notify || !after) return;
+
+  const tenantUsers = await loadTenantUsers(db, tenantId);
+  const squadre = await loadSquadre(db, tenantId);
+  let lavoro = null;
+  if (after.lavoroId) {
+    const lavoroSnap = await db.doc(`tenants/${tenantId}/lavori/${after.lavoroId}`).get();
+    if (lavoroSnap.exists) lavoro = { id: lavoroSnap.id, ...lavoroSnap.data() };
+  }
+  const operaioId = after.operaioId ? String(after.operaioId) : "";
+  let operaioNome = "Operaio";
+  if (operaioId) {
+    const opSnap = await db.collection("users").doc(operaioId).get();
+    operaioNome = (await displayNameFromUserSnap(opSnap)) || "Operaio";
+  }
+  const squad = squadre.find((s) => Array.isArray(s.operai) && s.operai.map(String).includes(operaioId));
+  const lavoroNome = (lavoro && lavoro.nome)
+    || (squad && squad.nome)
+    || "turno";
+  const prefsByUser = prefsMapFromUsers(tenantUsers);
+  const actor = after.segnalatoDa || after.confermatoDa || after.creatoDa || null;
+  const giorno = after.dataInizioGiorno || "";
+  const docs = core.buildNotificationEventDocs({
+    eventId: "assenza_turno",
+    tenantId,
+    sourceCollection: "assenzeOperai",
+    sourceId: assenzaId,
+    lavoroId: after.lavoroId || (lavoro && lavoro.id) || null,
+    actorUserId: actor,
+    lavoro: lavoro || {},
+    operaioId,
+    squadre,
+    tenantUsers,
+    vars: {
+      lavoroNome,
+      operaioNome,
+      dataGiorno: giorno,
+    },
+    prefsByUser,
+    now,
+  });
+  await persistAndSend(db, docs);
+}
+
+function whatsappConfig() {
+  const token = String(process.env.WHATSAPP_TOKEN || "").trim();
+  const phoneNumberId = String(process.env.WHATSAPP_PHONE_NUMBER_ID || "").trim();
+  const templateName = String(process.env.WHATSAPP_TEMPLATE_NAME || "").trim();
+  return { token, phoneNumberId, templateName };
+}
+
+async function sendWhatsAppMessage({ to, body, operaioNome, lavoroNome }) {
+  const cfg = whatsappConfig();
+  if (!cfg.token || !cfg.phoneNumberId) {
+    return { ok: false, reason: "whatsapp-not-configured" };
+  }
+  const toDigits = String(to || "").replace(/^\+/, "");
+  if (!toDigits) return { ok: false, reason: "no-phone" };
+  const url = `https://graph.facebook.com/v21.0/${cfg.phoneNumberId}/messages`;
+  const payload = cfg.templateName
+    ? {
+      messaging_product: "whatsapp",
+      to: toDigits,
+      type: "template",
+      template: {
+        name: cfg.templateName,
+        language: { code: "it" },
+        components: [{
+          type: "body",
+          parameters: [
+            { type: "text", text: String(operaioNome || "Operaio").slice(0, 60) },
+            { type: "text", text: String(lavoroNome || "turno").slice(0, 60) },
+          ],
+        }],
+      },
+    }
+    : {
+      messaging_product: "whatsapp",
+      to: toDigits,
+      type: "text",
+      text: { body: String(body || "").slice(0, 1000) },
+    };
+  const resp = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${cfg.token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+  });
+  if (!resp.ok) {
+    const errText = await resp.text().catch(() => "");
+    console.warn("[whatsapp] send failed", resp.status, errText.slice(0, 300));
+    return { ok: false, reason: `whatsapp-http-${resp.status}` };
+  }
+  return { ok: true };
+}
+
+async function processAssenzaWhatsApp(db) {
+  const { policy } = await getEngine();
+  const now = new Date();
+  let snap;
+  try {
+    snap = await db.collectionGroup("notificationEvents")
+      .where("waStatus", "==", "pending")
+      .limit(80)
+      .get();
+  } catch (err) {
+    console.warn("[whatsapp] query waStatus:", err && err.message);
+    return;
+  }
+  const cfg = whatsappConfig();
+  const grouped = new Map();
+  snap.docs.forEach((d) => {
+    const data = d.data() || {};
+    if (data.type !== "assenza_turno") return;
+    const key = `${data.tenantId}:${data.sourceId}`;
+    if (!grouped.has(key)) grouped.set(key, []);
+    grouped.get(key).push({ ref: d.ref, data, id: d.id });
+  });
+
+  for (const [key, pendingEvents] of grouped) {
+    const tenantId = pendingEvents[0].data.tenantId;
+    const sourceId = pendingEvents[0].data.sourceId;
+    let siblings;
+    try {
+      siblings = await db.collection(`tenants/${tenantId}/notificationEvents`)
+        .where("type", "==", "assenza_turno")
+        .where("sourceId", "==", String(sourceId))
+        .get();
+    } catch (err) {
+      console.warn("[whatsapp] siblings", key, err && err.message);
+      continue;
+    }
+    const sibData = siblings.docs.map((d) => d.data() || {});
+    const anyClosed = sibData.some((d) => {
+      const st = String(d.status || "");
+      return st === "seen" || st === "acted" || st === "resolved" || st === "dismissed";
+    });
+    const alreadyEscalated = sibData.some((d) => d.waStatus === "sent" || String(d.status) === "escalated");
+    if (anyClosed || alreadyEscalated) {
+      await Promise.all(pendingEvents.map((e) => e.ref.update({
+        waStatus: anyClosed ? "blocked-seen" : "skipped",
+      })));
+      continue;
+    }
+
+    for (const ev of pendingEvents) {
+      const userSnap = await db.collection("users").doc(String(ev.data.recipientUserId)).get();
+      const userData = userSnap.exists ? userSnap.data() : {};
+      const prefs = policy.mergeNotificationPrefs(userData && userData.notificationPrefs);
+      const sentAt = toJsDate(ev.data.sentAt) || toJsDate(ev.data.createdAt) || now;
+      if (!policy.shouldEscalateAssenzaWhatsApp({
+        createdAt: toJsDate(ev.data.createdAt),
+        sentAt,
+        now,
+        prefs,
+        groupSeen: false,
+        groupActed: false,
+        alreadyEscalated: false,
+      })) continue;
+
+      if (!cfg.token || !cfg.phoneNumberId) {
+        await ev.ref.update({ waStatus: "skipped", waReason: "whatsapp-not-configured" });
+        continue;
+      }
+      const phone = policy.normalizeNotifyPhone(userData && userData.telefono);
+      if (!phone) {
+        await ev.ref.update({ waStatus: "skipped", waReason: "no-phone" });
+        continue;
+      }
+      const waBody = `${ev.data.title || "Assenza oggi"}: ${ev.data.body || ""}`.trim();
+      const result = await sendWhatsAppMessage({
+        to: phone,
+        body: waBody,
+        operaioNome: ev.data.operaioNome || "Operaio",
+        lavoroNome: ev.data.lavoroNome || "turno",
+      });
+      if (!result.ok) {
+        await ev.ref.update({ waStatus: "pending", waReason: result.reason || "send-failed" });
+        continue;
+      }
+      await ev.ref.update({
+        waStatus: "sent",
+        status: "escalated",
+        waSentAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+    }
+  }
+}
+
 const onComunicazioneCreated = onDocumentCreated(
   { document: "tenants/{tenantId}/comunicazioni/{comunicazioneId}", region: REGION },
   handleComunicazioneCreated
@@ -409,12 +660,18 @@ const onOreOperaiCreated = onDocumentCreated(
   handleOreCreated
 );
 
+const onAssenzaWritten = onDocumentWritten(
+  { document: "tenants/{tenantId}/assenzeOperai/{assenzaId}", region: REGION },
+  handleAssenzaWritten
+);
+
 const processNotificationQueue = onSchedule(
-  { schedule: "every 15 minutes", region: REGION, timeZone: "Europe/Rome" },
+  { schedule: "every 5 minutes", region: REGION, timeZone: "Europe/Rome" },
   async () => {
     const db = admin.firestore();
     await processQueued(db);
     await processConfermeInRitardo(db);
+    await processAssenzaWhatsApp(db);
   }
 );
 
@@ -422,5 +679,6 @@ module.exports = {
   onComunicazioneCreated,
   onLavoroWritten,
   onOreOperaiCreated,
+  onAssenzaWritten,
   processNotificationQueue,
 };

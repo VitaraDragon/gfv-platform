@@ -1,13 +1,13 @@
 /**
- * Catalogo eventi push ciclo lavoro (comunicazioni + stati manager).
+ * Catalogo eventi push (ciclo lavoro + assenza turno).
  * Nuovo tipo = nuova voce qui + trigger Functions, non if sulla pagina.
  *
- * Tony in-app resta in tony-proactive-signals.js. Assenze/WA: linea guida separata.
+ * Tony in-app resta in tony-proactive-signals.js. WhatsApp = solo escalation assenza.
  *
  * @module core/config/notification-catalog
  */
 
-/** @typedef {'explicit_destinatari'|'lavoro_assegnatario'|'comunicazione_mittente'|'tenant_manager_admin'} NotificationRecipientMode */
+/** @typedef {'explicit_destinatari'|'lavoro_assegnatario'|'comunicazione_mittente'|'tenant_manager_admin'|'assenza_capo_e_manager'} NotificationRecipientMode */
 
 /**
  * @typedef {Object} NotificationEventDef
@@ -19,6 +19,7 @@
  * @property {string} titleTemplate
  * @property {string} bodyTemplate
  * @property {string} deepLinkPath
+ * @property {string} [capoDeepLinkPath]
  * @property {string} [openSlide]
  * @property {{ by: 'recipient_day', debounceMinutes: number }|null} [coalesce]
  * @property {boolean} [usesConfermaTimeout]
@@ -30,7 +31,14 @@ export const NOTIFICATION_PREFS_DEFAULTS = Object.freeze({
     pushWindowEnd: '21:00',
     timezone: 'Europe/Rome',
     confermaTimeoutHours: 6,
+    assenzaPushEnabled: true,
+    whatsappEnabled: false,
+    whatsappWindowStart: '06:00',
+    whatsappWindowEnd: '20:00',
 });
+
+/** Minuti utili in finestra WhatsApp prima dell'escalation assenza. */
+export const NOTIFICATION_WHATSAPP_TIMEOUT_MINUTES = 10;
 
 export const NOTIFICATION_MANAGER_STATI = Object.freeze([
     'completato_da_approvare',
@@ -140,6 +148,19 @@ export const NOTIFICATION_EVENTS = [
         deepLinkPath: 'core/admin/gestione-lavori-standalone.html',
         coalesce: null,
     },
+    {
+        id: 'assenza_turno',
+        enabled: true,
+        roles: ['caposquadra', 'manager', 'amministratore'],
+        recipientMode: 'assenza_capo_e_manager',
+        excludeActor: true,
+        titleTemplate: 'Assenza oggi — {lavoroNome}',
+        bodyTemplate: '{operaioNome} non c\'è. Tocca per scegliere il sostituto.',
+        deepLinkPath: 'core/admin/gestione-lavori-standalone.html',
+        capoDeepLinkPath: 'core/mobile/field-workspace-standalone.html',
+        coalesce: { by: 'source_recipient' },
+        usesWhatsappEscalation: true,
+    },
 ];
 
 /** @type {Readonly<Record<string, NotificationEventDef>>} */
@@ -188,23 +209,33 @@ export function italianCountAgreement(count) {
  * Deep link relativo alla root hosting (stessi query già usati da workspace / gestione lavori).
  *
  * @param {string} eventId
- * @param {{ lavoroId?: string, comunicazioneId?: string }} [params]
+ * @param {{ lavoroId?: string, comunicazioneId?: string, assenzaId?: string, data?: string, variant?: string }} [params]
  * @returns {string}
  */
 export function buildNotificationDeepLink(eventId, params = {}) {
     const def = getNotificationEvent(eventId);
     if (!def) return '';
+    const capoPath = def.capoDeepLinkPath || 'core/mobile/field-workspace-standalone.html';
+    const useCapo = eventId === 'assenza_turno' && params.variant === 'capo';
+    const path = useCapo ? capoPath : def.deepLinkPath;
     const q = new URLSearchParams();
-    if (def.openSlide) q.set('openSlide', def.openSlide);
-    if (params.lavoroId && def.deepLinkPath.includes('field-workspace')) {
-        q.set('focusLavoroId', String(params.lavoroId));
-    }
-    if (params.lavoroId && def.deepLinkPath.includes('gestione-lavori')) {
-        q.set('lavoroId', String(params.lavoroId));
+    if (useCapo) {
+        q.set('openSlide', 'lavoro');
+        if (params.lavoroId) q.set('focusLavoroId', String(params.lavoroId));
+    } else {
+        if (def.openSlide) q.set('openSlide', def.openSlide);
+        if (params.lavoroId && path.includes('field-workspace')) {
+            q.set('focusLavoroId', String(params.lavoroId));
+        }
+        if (params.lavoroId && path.includes('gestione-lavori')) {
+            q.set('lavoroId', String(params.lavoroId));
+        }
     }
     if (params.comunicazioneId) q.set('comunicazioneId', String(params.comunicazioneId));
+    if (params.assenzaId) q.set('assenzaId', String(params.assenzaId));
+    if (params.data) q.set('data', String(params.data));
     const qs = q.toString();
-    return qs ? `${def.deepLinkPath}?${qs}` : def.deepLinkPath;
+    return qs ? `${path}?${qs}` : path;
 }
 
 /**

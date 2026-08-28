@@ -23,6 +23,7 @@ export const firebaseConfig = {
   storageBucket: "gfv-platform.appspot.com",
   messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
   appId: "YOUR_APP_ID",
+  vapidKey: "YOUR_WEB_PUSH_VAPID_KEY",
   measurementId: "YOUR_MEASUREMENT_ID" // Opzionale, solo se usi Analytics
 };
 

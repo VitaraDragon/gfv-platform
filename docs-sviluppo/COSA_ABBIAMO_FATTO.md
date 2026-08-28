@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-08-26 — icona push su core/images (URL assoluto).**
+**Ultimo aggiornamento documentazione: 2026-08-28 — S5 push assenze + WhatsApp.**
+
+## Push assenze turno + WhatsApp S5 (2026-08-28)
+
+- Stesso tubo FCM del ciclo lavoro: evento catalogo `assenza_turno` (capo della squadra/lavoro + manager/admin, attore escluso). Solo se l’assenza copre **oggi**; ferie future no push.
+- Impostazioni: toggle push assenze (default on), WhatsApp (default off, serve telefono Account), finestra WA 06:00–20:00. Max 1 push + 1 WA; se uno marca `seen`/`acted` (sostituto o annullata) stop per tutti.
+- WhatsApp: Cloud Functions dopo 10 minuti utili in finestra; se mancano `WHATSAPP_TOKEN` / `WHATSAPP_PHONE_NUMBER_ID` lo scheduler salta con log, senza rompere FCM.
+- Inbox giorno su Gestione lavori e Impegni; deep link `assenzaId`. Serve **deploy Functions** + indici Firestore `notificationEvents`.
+- Doc: questa voce, `tony/STATO_ATTUALE.md` (riga Push), `TONY_DECISIONI_E_REQUISITI.md` §15.8. Spec S5: `SPEC_NOTIFICHE_PUSH_CICLO_LAVORO.md`.
 
 ## Push ciclo lavoro — icona app (2026-08-26)
 

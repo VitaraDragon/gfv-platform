@@ -258,6 +258,8 @@
             </div>
         </div>
 
+        <div id="assenze-oggi-banner" hidden style="background:#fff3e0;border:1px solid #ffcc80;border-radius:10px;padding:14px 16px;margin-bottom:16px;"></div>
+
         <div class="content">
             <div class="toolbar">
                 <div>
@@ -308,6 +310,8 @@
         import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
         import { setCurrentTenantId } from '../../../core/services/tenant-service.js';
         import { toGiornoKey } from '../../../core/config/manodopera-assenze-config.js';
+        import { listAssenzeApertePerGiorno } from '../../../core/services/manodopera-assenze-service.js';
+        import { markAssenzaNotificationsSeen } from '../../../core/services/notification-events-client.js';
         import {
             buildImpegniGiorno,
             IMPEGNO_STATO_LIBERO,
@@ -542,6 +546,36 @@
             document.getElementById('kpi-equipaggio').textContent = kpi.equipaggioIncompleti ?? 0;
         }
 
+        function nomeOperaioImpegni(operaioId, operaiList) {
+            const o = (operaiList || []).find((x) => (x.id || x.uid) === operaioId);
+            if (!o) return operaioId || 'Operaio';
+            return [o.nome, o.cognome].filter(Boolean).join(' ') || o.email || operaioId;
+        }
+
+        async function renderAssenzeOggiBanner(giornoKey, operaiList) {
+            const el = document.getElementById('assenze-oggi-banner');
+            if (!el) return;
+            try {
+                const rows = await listAssenzeApertePerGiorno(giornoKey);
+                if (!rows.length) {
+                    el.hidden = true;
+                    el.innerHTML = '';
+                    return;
+                }
+                el.hidden = false;
+                const items = rows.map((a) => {
+                    const nome = escapeHtml(nomeOperaioImpegni(a.operaioId, operaiList));
+                    const tipo = escapeHtml(a.tipoLabel || a.tipo || '');
+                    const href = `../../../core/admin/gestione-lavori-standalone.html?assenzaId=${encodeURIComponent(a.id)}&data=${encodeURIComponent(giornoKey)}`;
+                    return `<li style="margin-top:8px;"><strong>${nome}</strong> — ${tipo} · <a href="${href}">Scegli sostituto</a></li>`;
+                }).join('');
+                el.innerHTML = `<strong>Assenze da gestire (${rows.length})</strong><ul style="margin:8px 0 0;padding-left:18px;">${items}</ul>`;
+            } catch (e) {
+                console.warn('[Impegni] banner assenze:', e);
+                el.hidden = true;
+            }
+        }
+
         async function refresh() {
             const giornoEl = document.getElementById('impegni-giorno');
             const giornoKey = giornoEl.value || toGiornoKey(new Date());
@@ -554,6 +588,7 @@
                 renderOperai(snap.perOperaio || []);
                 renderLavori(snap.perLavoro || []);
                 publishTonyTable(snap);
+                await renderAssenzeOggiBanner(giornoKey, lastOperaiList);
             } catch (e) {
                 console.error('[Impegni giornalieri]', e);
                 const msg = escapeHtml(e.message || 'Errore caricamento');
@@ -568,7 +603,8 @@
         const db = getDb();
 
         const giornoEl = document.getElementById('impegni-giorno');
-        giornoEl.value = toGiornoKey(new Date());
+        const bootParams = new URLSearchParams(window.location.search || '');
+        giornoEl.value = bootParams.get('data') || toGiornoKey(new Date());
         document.getElementById('impegni-refresh-btn').addEventListener('click', refresh);
         giornoEl.addEventListener('change', refresh);
 
@@ -627,6 +663,12 @@
                 }
                 currentManagerId = user.uid;
                 wireManagerHomeLink('hub-link', true);
+                const assenzaIdBoot = bootParams.get('assenzaId');
+                if (assenzaIdBoot) {
+                    try { await markAssenzaNotificationsSeen(assenzaIdBoot); } catch (e) {
+                        console.warn('[Impegni] mark seen:', e);
+                    }
+                }
                 await refresh();
             } catch (e) {
                 console.error(e);

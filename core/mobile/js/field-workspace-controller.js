@@ -1718,6 +1718,16 @@ async function initFieldWorkspace() {
                 currentUser = user;
                 currentTenantId = tenantId;
 
+                try {
+                    const assenzaId = new URLSearchParams(window.location.search || '').get('assenzaId');
+                    if (assenzaId) {
+                        const { markAssenzaNotificationsSeen } = await import('../../services/notification-events-client.js');
+                        await markAssenzaNotificationsSeen(assenzaId, tenantId);
+                    }
+                } catch (seenErr) {
+                    console.warn('[workspace] mark assenza seen:', seenErr);
+                }
+
                 const isManagerOrAdmin = hasAnyRole
                     ? hasAnyRole({ ruoli: normalizedRoles }, ['manager', 'amministratore'])
                     : false;
@@ -1733,6 +1743,16 @@ async function initFieldWorkspace() {
                 if (!availableModules.includes('manodopera')) {
                     window.location.href = '../dashboard-standalone.html?ws=classic';
                     return;
+                }
+
+                try {
+                    const { startNotificationFcmBackground } = await import('../../js/notification-fcm-client.js');
+                    startNotificationFcmBackground({
+                        userData: currentUserData,
+                        firebaseConfig: window.firebaseConfig,
+                    });
+                } catch (pushErr) {
+                    console.warn('[push] bootstrap workspace:', pushErr);
                 }
 
                 const isCaposquadra = hasAnyRole

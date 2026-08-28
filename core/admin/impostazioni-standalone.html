@@ -167,7 +167,8 @@
             margin: 0;
         }
 
-        #notifiche-orari-fieldset:disabled {
+        #notifiche-orari-fieldset:disabled,
+        #notifiche-whatsapp-fieldset:disabled {
             opacity: 0.55;
         }
 
@@ -461,12 +462,12 @@
             <!-- Notifiche push (tutti i ruoli) — catalogo core/config/notification-catalog.js -->
             <div class="card" id="notifiche-section">
                 <h2>Notifiche</h2>
-                <p class="info-text" style="margin-bottom: 18px;">Tony ti ricorda in app scorte, affitti e scadenze. Qui configuri solo le urgenze operative sul telefono: comunicazioni, lavori assegnati, ore da validare (caposquadra) e chiusura o sospeso (manager).</p>
-                <form id="notifiche-form" onsubmit="handleSaveNotifiche(event)">
+                    <p class="info-text" style="margin-bottom: 18px;">Tony ti ricorda in app scorte, affitti e scadenze. Qui configuri le urgenze sul telefono: comunicazioni e lavori (ciclo operativo) e le assenze di oggi. WhatsApp parte solo se non apri la push in tempo.</p>
+                    <form id="notifiche-form" onsubmit="handleSaveNotifiche(event)">
                     <div class="form-group">
                         <label class="notif-toggle" for="notif-push-enabled">
                             <input type="checkbox" id="notif-push-enabled" checked>
-                            <span>Notifiche push</span>
+                            <span>Notifiche push (ciclo lavoro)</span>
                         </label>
                     </div>
                     <fieldset id="notifiche-orari-fieldset" style="border: none; padding: 0; margin: 0;">
@@ -484,6 +485,32 @@
                             <label for="notif-conferma-timeout">Reminder conferme mancanti (ore)</label>
                             <input type="number" id="notif-conferma-timeout" min="1" max="24" step="1" value="6" required>
                             <div class="info-text">Se qualcuno non conferma la ricezione, avvisa il mittente dopo questo tempo (conteggiato solo tra gli orari sopra). Default 6 ore.</div>
+                        </div>
+                    </fieldset>
+                    <div class="form-group" style="margin-top: 18px;">
+                        <label class="notif-toggle" for="notif-assenza-push-enabled">
+                            <input type="checkbox" id="notif-assenza-push-enabled" checked>
+                            <span>Notifiche push (assenze oggi)</span>
+                        </label>
+                        <div class="info-text">Avviso subito se manca qualcuno sul turno di oggi. Fuori orario resta in coda.</div>
+                    </div>
+                    <div class="form-group">
+                        <label class="notif-toggle" for="notif-whatsapp-enabled">
+                            <input type="checkbox" id="notif-whatsapp-enabled">
+                            <span>WhatsApp se non gestisco in tempo</span>
+                        </label>
+                        <div class="info-text">Un solo messaggio dopo 10 minuti utili, se non apri la notifica. Serve il telefono nel box Account.</div>
+                    </div>
+                    <fieldset id="notifiche-whatsapp-fieldset" style="border: none; padding: 0; margin: 0;">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="notif-whatsapp-start">WhatsApp dalle</label>
+                                <input type="time" id="notif-whatsapp-start" value="06:00">
+                            </div>
+                            <div class="form-group">
+                                <label for="notif-whatsapp-end">Alle</label>
+                                <input type="time" id="notif-whatsapp-end" value="20:00">
+                            </div>
                         </div>
                     </fieldset>
                     <button type="submit" class="btn btn-primary">Salva preferenze notifiche</button>
@@ -1585,11 +1612,20 @@
             const startEl = document.getElementById('notif-push-start');
             const endEl = document.getElementById('notif-push-end');
             const timeoutEl = document.getElementById('notif-conferma-timeout');
+            const assenzaEl = document.getElementById('notif-assenza-push-enabled');
+            const waEl = document.getElementById('notif-whatsapp-enabled');
+            const waStartEl = document.getElementById('notif-whatsapp-start');
+            const waEndEl = document.getElementById('notif-whatsapp-end');
             if (enabledEl) enabledEl.checked = prefs.pushEnabled !== false;
             if (startEl) startEl.value = prefs.pushWindowStart || '05:00';
             if (endEl) endEl.value = prefs.pushWindowEnd || '21:00';
             if (timeoutEl) timeoutEl.value = String(prefs.confermaTimeoutHours || 6);
+            if (assenzaEl) assenzaEl.checked = prefs.assenzaPushEnabled !== false;
+            if (waEl) waEl.checked = prefs.whatsappEnabled === true;
+            if (waStartEl) waStartEl.value = prefs.whatsappWindowStart || '06:00';
+            if (waEndEl) waEndEl.value = prefs.whatsappWindowEnd || '20:00';
             syncNotificheOrariDisabled();
+            syncNotificheWhatsappDisabled();
         }
 
         function readNotificheFormValues() {
@@ -1598,16 +1634,40 @@
                 pushWindowStart: document.getElementById('notif-push-start')?.value || '',
                 pushWindowEnd: document.getElementById('notif-push-end')?.value || '',
                 confermaTimeoutHours: Number(document.getElementById('notif-conferma-timeout')?.value),
+                assenzaPushEnabled: Boolean(document.getElementById('notif-assenza-push-enabled')?.checked),
+                whatsappEnabled: Boolean(document.getElementById('notif-whatsapp-enabled')?.checked),
+                whatsappWindowStart: document.getElementById('notif-whatsapp-start')?.value || '',
+                whatsappWindowEnd: document.getElementById('notif-whatsapp-end')?.value || '',
+                telefono: document.getElementById('account-telefono')?.value || '',
             };
         }
 
         function syncNotificheOrariDisabled() {
             const enabledEl = document.getElementById('notif-push-enabled');
+            const assenzaEl = document.getElementById('notif-assenza-push-enabled');
             const fieldset = document.getElementById('notifiche-orari-fieldset');
-            if (fieldset && enabledEl) fieldset.disabled = !enabledEl.checked;
+            if (fieldset) {
+                fieldset.disabled = !((enabledEl && enabledEl.checked) || (assenzaEl && assenzaEl.checked));
+            }
+        }
+
+        function syncNotificheWhatsappDisabled() {
+            const waEl = document.getElementById('notif-whatsapp-enabled');
+            const fieldset = document.getElementById('notifiche-whatsapp-fieldset');
+            if (fieldset && waEl) fieldset.disabled = !waEl.checked;
         }
 
         document.getElementById('notif-push-enabled')?.addEventListener('change', syncNotificheOrariDisabled);
+        document.getElementById('notif-assenza-push-enabled')?.addEventListener('change', syncNotificheOrariDisabled);
+        document.getElementById('notif-whatsapp-enabled')?.addEventListener('change', () => {
+            const waEl = document.getElementById('notif-whatsapp-enabled');
+            const phone = document.getElementById('account-telefono')?.value || '';
+            if (waEl && waEl.checked && !String(phone).replace(/\s/g, '')) {
+                waEl.checked = false;
+                showAlert('Inserisci prima il telefono nel box Account, poi riattiva WhatsApp.', 'warning');
+            }
+            syncNotificheWhatsappDisabled();
+        });
 
         // Salva impostazioni account
         async function handleSaveAccount(e) {
@@ -1649,8 +1709,15 @@
                     return;
                 }
                 if (currentUserData) currentUserData.notificationPrefs = result.prefs;
+                if (result.prefs.whatsappEnabled) {
+                    const telefono = document.getElementById('account-telefono')?.value || '';
+                    if (telefono && currentUserData && telefono !== currentUserData.telefono) {
+                        await updateDoc(doc(db, 'users', user.uid), { telefono });
+                        currentUserData.telefono = telefono;
+                    }
+                }
                 showAlert('Preferenze notifiche salvate', 'success');
-                if (result.prefs.pushEnabled) {
+                if (result.prefs.pushEnabled || result.prefs.assenzaPushEnabled) {
                     try {
                         const { startNotificationFcmBackground } = await import('../js/notification-fcm-client.js');
                         startNotificationFcmBackground({

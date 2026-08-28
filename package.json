@@ -78,6 +78,7 @@
     "manodopera:sostituzione-canary": "node scripts/manodopera-sostituzione-canary.mjs",
     "manodopera:roster-a2-canary": "node scripts/manodopera-roster-a2-canary.mjs",
     "manodopera:roster-a2-canary:ci": "node simulator/ci-manodopera-roster-a2-run.js",
+    "notifiche:ciclo-canary": "node scripts/notification-ciclo-canary.mjs",
     "mappa:manodopera-canary": "node scripts/mappa-manodopera-canary.mjs",
     "mappa:manodopera-canary:ci": "node simulator/ci-mappa-manodopera-canary-run.js"
   },

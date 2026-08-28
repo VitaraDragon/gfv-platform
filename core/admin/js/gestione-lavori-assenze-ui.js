@@ -7,10 +7,12 @@ import { showAlert, escapeHtml } from './gestione-lavori-utils.js';
 import { ASSENZA_TIPI, toGiornoKey } from '../../config/manodopera-assenze-config.js';
 import {
   listAssenzeSegnalate,
+  listAssenzeApertePerGiorno,
   getAssenza,
   findAssenzaSegnalataPerLavoro,
   findAssenzaSegnalataPerOperaio
 } from '../../services/manodopera-assenze-service.js';
+import { markAssenzaNotificationsSeen } from '../../services/notification-events-client.js';
 import {
   mettiLavoroInStandbyPerAssenza,
   riportaLavoroDaStandbyAssenza,
@@ -82,7 +84,15 @@ export async function refreshAssenzeSegnalateBanner() {
   const el = document.getElementById('assenze-segnalate-banner');
   if (!el) return;
   try {
-    const rows = await listAssenzeSegnalate();
+    const today = toGiornoKey(new Date());
+    const [segnalate, aperteOggi] = await Promise.all([
+      listAssenzeSegnalate(),
+      listAssenzeApertePerGiorno(today)
+    ]);
+    const byId = new Map();
+    segnalate.forEach((a) => { if (a && a.id) byId.set(a.id, a); });
+    aperteOggi.forEach((a) => { if (a && a.id) byId.set(a.id, a); });
+    const rows = Array.from(byId.values());
     if (!rows.length) {
       el.hidden = true;
       el.innerHTML = '';
@@ -94,20 +104,53 @@ export async function refreshAssenzeSegnalateBanner() {
         const nome = escapeHtml(nomeOperaioFromList(a.operaioId));
         const tipo = escapeHtml(a.tipoLabel || a.tipo || '');
         const giorno = escapeHtml(a.dataInizioGiorno || '');
-        const azione = a.lavoroId
-          ? `<button type="button" class="btn btn-warning btn-sm" style="margin-top:8px;" onclick="confermaSegnalazioneStandby('${escapeHtml(a.id)}','${escapeHtml(a.lavoroId)}')">Conferma e standby</button>`
-          : '<span style="display:block;margin-top:6px;font-size:12px;">Apri il lavoro e usa «Standby assenza».</span>';
+        const lavoroId = a.lavoroId || a.standbyLavoroId || '';
+        let azione = '';
+        if (a.stato === 'segnalata' && lavoroId) {
+          azione = `<button type="button" class="btn btn-warning btn-sm" style="margin-top:8px;" onclick="confermaSegnalazioneStandby('${escapeHtml(a.id)}','${escapeHtml(lavoroId)}')">Conferma e standby</button>`;
+        } else if (lavoroId && typeof window.openSostitutoAssenzaModal === 'function') {
+          azione = `<button type="button" class="btn btn-warning btn-sm" style="margin-top:8px;" onclick="openSostitutoAssenzaModal('${escapeHtml(lavoroId)}')">Scegli sostituto</button>`;
+        } else {
+          azione = '<span style="display:block;margin-top:6px;font-size:12px;">Apri il lavoro e usa «Standby assenza» o «Scegli sostituto».</span>';
+        }
         return `<li style="margin-top:10px;"><strong>${nome}</strong> — ${tipo} (${giorno})${azione}</li>`;
       })
       .join('');
     el.innerHTML = `
-      <strong>📩 ${rows.length} assenz${rows.length === 1 ? 'a' : 'e'} segnalat${rows.length === 1 ? 'a' : 'e'}</strong>
+      <strong>📩 ${rows.length} assenz${rows.length === 1 ? 'a' : 'e'} da gestire oggi</strong>
       <ul style="margin:8px 0 0;padding-left:18px;">${items}</ul>
     `;
   } catch (e) {
     console.warn('[Gestione Lavori] assenze segnalate:', e);
     el.hidden = true;
   }
+}
+
+/**
+ * Deep link push assenza: marca seen e apre standby/sostituto se c'è un lavoro.
+ * @param {string} assenzaId
+ */
+export async function openAssenzaFromDeepLink(assenzaId) {
+  if (!assenzaId) return;
+  try {
+    await markAssenzaNotificationsSeen(assenzaId);
+  } catch (e) {
+    console.warn('[Gestione Lavori] mark seen:', e);
+  }
+  const assenza = await getAssenza(assenzaId);
+  if (!assenza) return;
+  const banner = document.getElementById('assenze-segnalate-banner');
+  if (banner) {
+    banner.hidden = false;
+    banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  const lavoroId = assenza.lavoroId || assenza.standbyLavoroId;
+  if (!lavoroId) return;
+  if (assenza.stato === 'confermata' && typeof window.openSostitutoAssenzaModal === 'function') {
+    await window.openSostitutoAssenzaModal(lavoroId);
+    return;
+  }
+  await openStandbyAssenzaModal(lavoroId, { assenzaId });
 }
 
 /**

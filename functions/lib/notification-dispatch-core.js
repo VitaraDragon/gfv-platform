@@ -14,6 +14,10 @@ import {
     mergeNotificationPrefs,
     isInPushWindow,
     nextSendAt,
+    resolveNotificationDelivery,
+    rolesOfUser,
+    zonedGiornoKey,
+    assenzaCoversGiorno,
 } from './notification-policy.js';
 
 /**
@@ -43,6 +47,47 @@ export function detectLavoroPushEvents(before, after) {
         events.push('lavoro_sospeso');
     }
     return events;
+}
+
+/**
+ * Assenza last-minute / oggi: buca il turno di oggi (Europe/Rome).
+ *
+ * @param {Record<string, unknown>|null|undefined} after
+ * @param {Date} [now]
+ * @param {string} [timeZone]
+ * @returns {boolean}
+ */
+export function shouldNotifyAssenzaTurno(after, now = new Date(), timeZone = 'Europe/Rome') {
+    if (!after || typeof after !== 'object') return false;
+    if (after.sostitutoOperaioId) return false;
+    const stato = after.stato != null ? String(after.stato) : '';
+    if (stato !== 'segnalata' && stato !== 'confermata') return false;
+    const giorno = zonedGiornoKey(now, timeZone);
+    return assenzaCoversGiorno(giorno, after.dataInizioGiorno, after.dataFineGiorno);
+}
+
+/**
+ * @param {Record<string, unknown>|null|undefined} before
+ * @param {Record<string, unknown>|null|undefined} after
+ * @param {Date} [now]
+ * @returns {{ notify: boolean, closeStatus: 'acted'|'resolved'|null }}
+ */
+export function detectAssenzaLifecycle(before, after, now = new Date()) {
+    if (!after || typeof after !== 'object') {
+        return { notify: false, closeStatus: before ? 'resolved' : null };
+    }
+    const afterStato = after.stato != null ? String(after.stato) : '';
+    const beforeStato = before && before.stato != null ? String(before.stato) : '';
+    if (afterStato === 'annullata' && beforeStato !== 'annullata') {
+        return { notify: false, closeStatus: 'resolved' };
+    }
+    const hadSost = before && before.sostitutoOperaioId;
+    const hasSost = after.sostitutoOperaioId;
+    if (hasSost && !hadSost) return { notify: false, closeStatus: 'acted' };
+    if (!before && shouldNotifyAssenzaTurno(after, now)) {
+        return { notify: true, closeStatus: null };
+    }
+    return { notify: false, closeStatus: null };
 }
 
 /**
@@ -84,6 +129,8 @@ export function formatLavoroDataInizio(raw) {
  *   lavoroId?: string|null,
  *   destinatariIds?: unknown[],
  *   caposquadraId?: string|null,
+ *   operaioId?: string|null,
+ *   squadre?: Array<Record<string, unknown>>,
  *   tenantUsers?: Array<Record<string, unknown>>,
  *   vars?: Record<string, string|number|undefined|null>,
  *   now?: Date,
@@ -102,6 +149,8 @@ export function buildNotificationEventDocs(input) {
         actorUserId: input.actorUserId,
         destinatariIds: input.destinatariIds,
         caposquadraId: input.caposquadraId || lavoro.caposquadraId,
+        operaioId: input.operaioId,
+        squadre: input.squadre,
         lavoro,
         tenantUsers: input.tenantUsers,
         tenantId: input.tenantId,
@@ -115,21 +164,39 @@ export function buildNotificationEventDocs(input) {
         ...(input.vars || {}),
     };
     const copy = buildNotificationCopy(eventId, vars);
-    const deepLink = buildNotificationDeepLink(eventId, {
-        lavoroId: input.lavoroId || null,
-        comunicazioneId: input.sourceCollection === 'comunicazioni' ? input.sourceId : null,
-    });
     const debounceMinutes = Number.isFinite(Number(input.debounceMinutes))
         ? Number(input.debounceMinutes)
         : (def.coalesce && def.coalesce.debounceMinutes) || 0;
 
     return recipients.map((recipientUserId) => {
-        const prefs = mergeNotificationPrefs(
-            input.prefsByUser && input.prefsByUser[recipientUserId]
-        );
+        const rawPrefs = input.prefsByUser && input.prefsByUser[recipientUserId];
+        const prefs = mergeNotificationPrefs(rawPrefs);
+        const user = Array.isArray(input.tenantUsers)
+            ? input.tenantUsers.find((u) => {
+                if (!u || typeof u !== 'object') return false;
+                return [u.id, u.uid, u.userId].some((id) => id != null && String(id) === recipientUserId);
+            })
+            : null;
+        const roles = rolesOfUser(user, input.tenantId);
+        const isManager = roles.includes('manager') || roles.includes('amministratore');
+        const deepLink = buildNotificationDeepLink(eventId, {
+            lavoroId: input.lavoroId || null,
+            comunicazioneId: input.sourceCollection === 'comunicazioni' ? input.sourceId : null,
+            assenzaId: input.sourceCollection === 'assenzeOperai' ? input.sourceId : null,
+            data: input.vars && input.vars.dataGiorno ? String(input.vars.dataGiorno) : null,
+            variant: eventId === 'assenza_turno' && !isManager ? 'capo' : undefined,
+        });
         let status = 'pending';
         let sendAfter = now;
-        if (!prefs.pushEnabled) {
+        let skipFcm = false;
+        let waStatus = null;
+        if (eventId === 'assenza_turno') {
+            const delivery = resolveNotificationDelivery(eventId, rawPrefs, now);
+            status = delivery.status;
+            sendAfter = delivery.sendAfter;
+            skipFcm = delivery.skipFcm;
+            waStatus = delivery.waStatus;
+        } else if (!prefs.pushEnabled) {
             status = 'suppressed';
         } else if (!isInPushWindow(now, prefs.pushWindowStart, prefs.pushWindowEnd, prefs.timezone)) {
             status = 'queued';
@@ -143,7 +210,9 @@ export function buildNotificationEventDocs(input) {
         }
         const coalesceKey = def.coalesce && def.coalesce.by === 'recipient_day'
             ? oreDaValidareCoalesceKey(recipientUserId, now)
-            : null;
+            : (def.coalesce && def.coalesce.by === 'source_recipient'
+                ? `${eventId}:${input.sourceId}:${recipientUserId}`
+                : null);
         return {
             type: eventId,
             tenantId: input.tenantId,
@@ -161,6 +230,9 @@ export function buildNotificationEventDocs(input) {
             coalesceKey,
             sendAfter,
             createdAt: now,
+            skipFcm,
+            waStatus,
+            operaioNome: vars.operaioNome || null,
         };
     });
 }

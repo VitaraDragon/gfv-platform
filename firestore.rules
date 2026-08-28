@@ -572,6 +572,22 @@ service cloud.firestore {
       // Eliminazione: solo manager/admin
       allow delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
+
+    match /tenants/{tenantId}/notificationEvents/{eventId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId) &&
+        resource.data.keys().hasAny(['recipientUserIds']) &&
+        resource.data.recipientUserIds is list &&
+        resource.data.recipientUserIds.hasAny([request.auth.uid]);
+      allow create, delete: if false;
+      allow update: if isAuthenticated() && belongsToTenant(tenantId)
+        && resource.data.recipientUserId == request.auth.uid
+        && request.resource.data.recipientUserId == resource.data.recipientUserId
+        && request.resource.data.type == resource.data.type
+        && request.resource.data.status == 'seen'
+        && resource.data.status in ['pending', 'queued', 'sent']
+        && request.resource.data.diff(resource.data).affectedKeys()
+            .hasOnly(['status', 'seenAt', 'seenBy', 'updatedAt']);
+    }
   }
 }
 

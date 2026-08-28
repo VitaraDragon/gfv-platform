@@ -8,6 +8,7 @@
 import {
     NOTIFICATION_PREFS_DEFAULTS,
     NOTIFICATION_MANAGER_STATI,
+    NOTIFICATION_WHATSAPP_TIMEOUT_MINUTES,
     getNotificationEvent,
     italianCountAgreement,
     formatNotificationTemplate,
@@ -71,6 +72,8 @@ export function mergeNotificationPrefs(prefs) {
     const p = prefs && typeof prefs === 'object' ? prefs : {};
     const start = formatHm(p.pushWindowStart) || NOTIFICATION_PREFS_DEFAULTS.pushWindowStart;
     const end = formatHm(p.pushWindowEnd) || NOTIFICATION_PREFS_DEFAULTS.pushWindowEnd;
+    const waStart = formatHm(p.whatsappWindowStart) || NOTIFICATION_PREFS_DEFAULTS.whatsappWindowStart;
+    const waEnd = formatHm(p.whatsappWindowEnd) || NOTIFICATION_PREFS_DEFAULTS.whatsappWindowEnd;
     const timeout = Number(p.confermaTimeoutHours);
     return {
         pushEnabled: p.pushEnabled !== false,
@@ -82,7 +85,88 @@ export function mergeNotificationPrefs(prefs) {
         confermaTimeoutHours: Number.isFinite(timeout) && timeout > 0
             ? timeout
             : NOTIFICATION_PREFS_DEFAULTS.confermaTimeoutHours,
+        assenzaPushEnabled: p.assenzaPushEnabled !== false,
+        whatsappEnabled: p.whatsappEnabled === true,
+        whatsappWindowStart: waStart,
+        whatsappWindowEnd: waEnd,
     };
+}
+
+/**
+ * YYYY-MM-DD nel fuso indicato (Cloud Functions sono in UTC).
+ * @param {Date} date
+ * @param {string} [timeZone]
+ * @returns {string}
+ */
+export function zonedGiornoKey(date, timeZone = 'Europe/Rome') {
+    if (!(date instanceof Date) || Number.isNaN(date.getTime())) return '';
+    try {
+        const parts = new Intl.DateTimeFormat('en-CA', {
+            timeZone: timeZone || 'Europe/Rome',
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+        }).formatToParts(date);
+        const y = parts.find((p) => p.type === 'year')?.value;
+        const m = parts.find((p) => p.type === 'month')?.value;
+        const d = parts.find((p) => p.type === 'day')?.value;
+        if (!y || !m || !d) return '';
+        return `${y}-${m}-${d}`;
+    } catch (_err) {
+        return '';
+    }
+}
+
+/**
+ * @param {string} giornoKey
+ * @param {unknown} dataInizioGiorno
+ * @param {unknown} dataFineGiorno
+ * @returns {boolean}
+ */
+export function assenzaCoversGiorno(giornoKey, dataInizioGiorno, dataFineGiorno) {
+    if (!giornoKey || !dataInizioGiorno || !dataFineGiorno) return false;
+    return String(giornoKey) >= String(dataInizioGiorno) && String(giornoKey) <= String(dataFineGiorno);
+}
+
+/**
+ * E.164 minimale (IT: 3xx… → +39).
+ * @param {unknown} raw
+ * @returns {string}
+ */
+export function normalizeNotifyPhone(raw) {
+    const trimmed = String(raw || '').trim();
+    if (!trimmed) return '';
+    let s = trimmed.replace(/[^\d+]/g, '');
+    if (s.startsWith('00')) s = `+${s.slice(2)}`;
+    if (s.startsWith('+')) {
+        const rest = s.slice(1).replace(/\D/g, '');
+        return rest.length >= 8 && rest.length <= 15 ? `+${rest}` : '';
+    }
+    const d = s.replace(/\D/g, '');
+    if (d.length === 10 && d.startsWith('3')) return `+39${d}`;
+    if (d.length === 11 && d.startsWith('39')) return `+${d}`;
+    return '';
+}
+
+/**
+ * Caposquadra del lavoro, altrimenti della squadra che contiene l'operaio.
+ * @param {{ lavoro?: { caposquadraId?: unknown }|null, squadre?: Array<{ caposquadraId?: unknown, operai?: unknown[] }>, operaioId?: unknown, caposquadraId?: unknown }} ctx
+ * @returns {string}
+ */
+export function caposquadraIdForAssenza(ctx = {}) {
+    const fromArg = ctx.caposquadraId != null ? String(ctx.caposquadraId).trim() : '';
+    if (fromArg) return fromArg;
+    const fromLavoro = ctx.lavoro && ctx.lavoro.caposquadraId != null
+        ? String(ctx.lavoro.caposquadraId).trim()
+        : '';
+    if (fromLavoro) return fromLavoro;
+    const op = ctx.operaioId != null ? String(ctx.operaioId).trim() : '';
+    if (!op || !Array.isArray(ctx.squadre)) return '';
+    const squad = ctx.squadre.find((s) => {
+        const operai = s && Array.isArray(s.operai) ? s.operai : [];
+        return operai.map((id) => String(id)).includes(op);
+    });
+    return squad && squad.caposquadraId != null ? String(squad.caposquadraId).trim() : '';
 }
 
 /**
@@ -223,6 +307,21 @@ export function resolveNotificationRecipients(eventId, ctx = {}) {
             idsFromUserDoc(u).forEach((id) => ids.push(id));
         });
         ids = uniqueUserIds(ids);
+    } else if (def.recipientMode === 'assenza_capo_e_manager') {
+        const capo = caposquadraIdForAssenza({
+            lavoro: ctx.lavoro,
+            squadre: ctx.squadre,
+            operaioId: ctx.operaioId,
+            caposquadraId: ctx.caposquadraId,
+        });
+        if (capo) ids.push(capo);
+        const users = Array.isArray(ctx.tenantUsers) ? ctx.tenantUsers : [];
+        users.forEach((u) => {
+            const roles = rolesOfUser(u, ctx.tenantId);
+            if (!roles.includes('manager') && !roles.includes('amministratore')) return;
+            idsFromUserDoc(u).forEach((id) => ids.push(id));
+        });
+        ids = uniqueUserIds(ids);
     }
 
     if (def.excludeActor && actor) {
@@ -271,6 +370,96 @@ export function shouldEscalateConferme(opts) {
         prefs.timezone
     );
     return useful >= prefs.confermaTimeoutHours * 60;
+}
+
+/**
+ * Escalation WhatsApp assenza: 10 minuti utili in finestra WA, stop se qualcuno ha seen/acted.
+ *
+ * @param {{
+ *   createdAt?: Date,
+ *   sentAt?: Date,
+ *   now: Date,
+ *   groupSeen?: boolean,
+ *   groupActed?: boolean,
+ *   alreadyEscalated?: boolean,
+ *   prefs?: unknown,
+ *   timeoutMinutes?: number,
+ * }} opts
+ * @returns {boolean}
+ */
+export function shouldEscalateAssenzaWhatsApp(opts) {
+    const from = (opts && opts.sentAt instanceof Date) ? opts.sentAt
+        : (opts && opts.createdAt instanceof Date) ? opts.createdAt
+            : null;
+    const now = opts && opts.now;
+    if (!(from instanceof Date) || !(now instanceof Date)) return false;
+    if (opts.groupSeen || opts.groupActed || opts.alreadyEscalated) return false;
+    const prefs = mergeNotificationPrefs(opts.prefs);
+    if (!prefs.whatsappEnabled) return false;
+    if (!isInPushWindow(now, prefs.whatsappWindowStart, prefs.whatsappWindowEnd, prefs.timezone)) {
+        return false;
+    }
+    const timeout = Number(opts.timeoutMinutes);
+    const minutes = Number.isFinite(timeout) && timeout > 0
+        ? timeout
+        : NOTIFICATION_WHATSAPP_TIMEOUT_MINUTES;
+    const useful = usefulMinutesBetween(
+        from,
+        now,
+        prefs.whatsappWindowStart,
+        prefs.whatsappWindowEnd,
+        prefs.timezone
+    );
+    return useful >= minutes;
+}
+
+/**
+ * Stato di consegna push/WA per un destinatario (senza I/O).
+ *
+ * @param {string} eventId
+ * @param {unknown} prefs
+ * @param {Date} [now]
+ * @returns {{ status: string, sendAfter: Date, skipFcm: boolean, waStatus: string|null }}
+ */
+export function resolveNotificationDelivery(eventId, prefs, now = new Date()) {
+    const merged = mergeNotificationPrefs(prefs);
+    const tz = merged.timezone;
+    if (eventId === 'assenza_turno') {
+        const pushOn = merged.assenzaPushEnabled;
+        const waOn = merged.whatsappEnabled;
+        if (!pushOn && !waOn) {
+            return { status: 'suppressed', sendAfter: now, skipFcm: true, waStatus: 'skipped' };
+        }
+        if (!pushOn && waOn) {
+            return { status: 'pending', sendAfter: now, skipFcm: true, waStatus: 'pending' };
+        }
+        if (!isInPushWindow(now, merged.pushWindowStart, merged.pushWindowEnd, tz)) {
+            return {
+                status: 'queued',
+                sendAfter: nextSendAt(now, merged.pushWindowStart, merged.pushWindowEnd, tz),
+                skipFcm: false,
+                waStatus: waOn ? 'pending' : 'skipped',
+            };
+        }
+        return {
+            status: 'pending',
+            sendAfter: now,
+            skipFcm: false,
+            waStatus: waOn ? 'pending' : 'skipped',
+        };
+    }
+    if (!merged.pushEnabled) {
+        return { status: 'suppressed', sendAfter: now, skipFcm: false, waStatus: null };
+    }
+    if (!isInPushWindow(now, merged.pushWindowStart, merged.pushWindowEnd, tz)) {
+        return {
+            status: 'queued',
+            sendAfter: nextSendAt(now, merged.pushWindowStart, merged.pushWindowEnd, tz),
+            skipFcm: false,
+            waStatus: null,
+        };
+    }
+    return { status: 'pending', sendAfter: now, skipFcm: false, waStatus: null };
 }
 
 /**
@@ -335,6 +524,17 @@ export function validateNotificationPrefsForm(form) {
     }
     if (start >= end) {
         return { ok: false, error: 'L\'inizio della finestra deve essere prima della fine.' };
+    }
+    const waStart = parseHmToMinutes(merged.whatsappWindowStart);
+    const waEnd = parseHmToMinutes(merged.whatsappWindowEnd);
+    if (!Number.isFinite(waStart) || !Number.isFinite(waEnd)) {
+        return { ok: false, error: 'Orario WhatsApp non valido.' };
+    }
+    if (waStart >= waEnd) {
+        return { ok: false, error: 'L\'inizio della finestra WhatsApp deve essere prima della fine.' };
+    }
+    if (merged.whatsappEnabled && !normalizeNotifyPhone(raw.telefono)) {
+        return { ok: false, error: 'Per attivare WhatsApp inserisci un telefono valido nel box Account.' };
     }
     return { ok: true, prefs: merged };
 }

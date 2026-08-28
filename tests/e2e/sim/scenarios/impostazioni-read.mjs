@@ -17,6 +17,9 @@ export async function runImpostazioniReadAssertions(page, expect) {
 
   await expect(page.locator('h1').filter({ hasText: 'Impostazioni' })).toBeVisible();
   await expect(page.locator('#account-section')).toBeVisible();
+  await expect(page.locator('#notifiche-section')).toBeVisible();
+  await expect(page.locator('#notif-push-enabled')).toBeVisible();
+  await expect(page.locator('#notif-push-start')).toBeVisible();
 
   const nome = page.locator('#account-nome');
   const cognome = page.locator('#account-cognome');

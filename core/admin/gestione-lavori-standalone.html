@@ -1681,7 +1681,8 @@
             closeStandbyAssenzaModal,
             submitStandbyAssenzaModal,
             ripristinaDaStandbyModal,
-            confermaSegnalazioneStandby
+            confermaSegnalazioneStandby,
+            openAssenzaFromDeepLink
         } from './js/gestione-lavori-assenze-ui.js';
 
         import {
@@ -3441,6 +3442,14 @@
                         };
                         initGestioneLavoriAssenzeUi(assenzeSostitutiDeps);
                         initGestioneLavoriSostitutiUi(assenzeSostitutiDeps);
+                        const assenzaIdFromUrl = urlParams.get('assenzaId');
+                        if (assenzaIdFromUrl) {
+                            setTimeout(() => {
+                                openAssenzaFromDeepLink(assenzaIdFromUrl).catch((err) => {
+                                    console.warn('[Gestione Lavori] deep link assenza:', err);
+                                });
+                            }, 600);
+                        }
                     }
                     
                     // Carica macchine solo se modulo Parco Macchine attivo

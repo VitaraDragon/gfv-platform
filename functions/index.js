@@ -4529,10 +4529,12 @@ const {
   onComunicazioneCreated,
   onLavoroWritten,
   onOreOperaiCreated,
+  onAssenzaWritten,
   processNotificationQueue,
 } = require("./notification-dispatch");
 
 exports.onComunicazioneCreated = onComunicazioneCreated;
 exports.onLavoroWritten = onLavoroWritten;
 exports.onOreOperaiCreated = onOreOperaiCreated;
+exports.onAssenzaWritten = onAssenzaWritten;
 exports.processNotificationQueue = processNotificationQueue;

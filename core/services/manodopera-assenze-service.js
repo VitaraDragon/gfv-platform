@@ -148,6 +148,30 @@ export async function getOperaioIdsAssentiConfermatiPerGiorno(giornoKey, tenantI
 }
 
 /**
+ * Inbox giorno: segnalate aperte + confermate che coprono il giorno senza sostituto.
+ * @param {string} giornoKey YYYY-MM-DD
+ * @param {string} [tenantId]
+ * @returns {Promise<Object[]>}
+ */
+export async function listAssenzeApertePerGiorno(giornoKey, tenantId = null) {
+  const tid = tenantId || getCurrentTenantId();
+  if (!tid || !giornoKey) return [];
+  const [segnalate, confermate] = await Promise.all([
+    listAssenzeSegnalate(tid),
+    listAssenzeConfermatePerGiorno(giornoKey, tid)
+  ]);
+  const byId = new Map();
+  segnalate.forEach((a) => {
+    if (a && a.id) byId.set(a.id, a);
+  });
+  confermate.forEach((a) => {
+    if (!a || !a.id || a.sostitutoOperaioId) return;
+    byId.set(a.id, a);
+  });
+  return Array.from(byId.values());
+}
+
+/**
  * Caposquadra (o altro) segnala assenza — in attesa manager.
  * @param {Object} payload
  * @param {string} [tenantId]
