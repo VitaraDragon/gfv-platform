@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-08-28 — S5 push assenze + WhatsApp; piano proposta confine tap (design).**
+**Ultimo aggiornamento documentazione: 2026-08-30 — Copione primo spot social.**
+
+## Copione primo spot social (2026-08-30)
+
+- Nuovo foglio chiuso: `docs-sviluppo/COPIONE_PRIMO_SPOT_SOCIAL.md` (Linea A brand, non serie feature).
+- Storia: Tony abita il laptop; ondate mappe/radici → carte → operai+stelline → mezzi; retino Looney Tunes dopo la fuga; finale Soul (cenno cappello, voltata di spalle, battuta in montaggio).
+- Produzione ancora da fare: niente take/prompt in questo commit.
 
 ## Push assenze turno + WhatsApp S5 (2026-08-28)
 
