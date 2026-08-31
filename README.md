@@ -116,7 +116,23 @@ gfv-platform/
 
 ## 👥 Contribuire
 
-[Istruzioni per contribuire]
+### Branch e pubblicazione
+
+Il sito online è servito da **GitHub Pages dalla radice di `main`**: ogni commit su `main` è pubblicato subito.
+
+| Branch | Contenuto | Online |
+|--------|-----------|--------|
+| `main` | Solo versioni verificate | **Sì** — sito pubblico |
+| `develop` | Lavoro che funziona ma non ancora verificato a fondo | No |
+
+Flusso:
+
+1. Nuovo lavoro → branch dedicato che parte da `develop`.
+2. PR verso `develop`. La CI gira sulle PR e sui push a `develop`.
+3. Prove su `develop` **in locale con gli emulatori** (`?emulator=1`) o col simulatore, non sul sito pubblico.
+4. Quando la versione è considerata sicura: PR `develop` → `main`. Solo qui cambia ciò che è online.
+
+**Attenzione ai dati:** esiste un solo progetto Firebase (`gfv-platform`). `develop` e `main` condividono lo stesso Firestore, Auth e Storage: il branch protegge il *sito*, non i *dati*. Per provare scritture usa emulatori o simulatore, mai l'ambiente reale.
 
 ## 📞 Supporto
 

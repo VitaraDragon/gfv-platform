@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-08-30 — Copione primo spot social.**
+**Ultimo aggiornamento documentazione: 2026-08-31 — branch `develop` e flusso di pubblicazione.**
+
+## Repo — branch `develop`, sito solo da `main` (2026-08-31)
+
+- Pulizia GitHub: da 10 branch a 1. PR #7 e #8 mergiate; #1 e #6 chiuse (superata / duplicato di #7); eliminati 7 branch già mergiati o duplicati.
+- Nuovo branch **`develop`**: raccoglie il lavoro che funziona ma non è ancora verificato a fondo. Il sito pubblico resta servito da **GitHub Pages dalla radice di `main`**, quindi online c'è solo ciò che viene promosso.
+- CI: `simulator-ci.yml` gira anche sui push a `develop` (prima solo `main`); le PR erano già coperte senza filtro di branch.
+- Flusso documentato in `README.md` §Contribuire.
+- **Vincolo dati:** un solo progetto Firebase (`gfv-platform`). `develop` **non** è un ambiente separato: condivide Firestore/Auth/Storage con la produzione. Per provare scritture usare emulatori (`?emulator=1`) o simulatore.
 
 ## Copione primo spot social (2026-08-30)
 
