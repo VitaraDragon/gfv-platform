@@ -1,8 +1,10 @@
 # Documentazione obsoleta
 
-**Aggiornato:** 2026-07-31
+**Aggiornato:** 2026-09-01
 
 Documenti **sostituiti**, **abbandonati** o **solo storici** (log di sessione, refactoring completati, analisi superate). Non usare per decisioni correnti.
+
+Inventario cerchi aperti (codice): `docs-sviluppo/CERCHI_APERTI_2026-09-01.md`.
 
 ## Dove trovare lo stato attuale
 
@@ -20,7 +22,7 @@ Documenti **sostituiti**, **abbandonati** o **solo storici** (log di sessione, r
 - **`archivio-tony/`** – vecchi MASTER_PLAN / STATO Tony (pre consolidamento 2026-03)
 - **`riepiloghi-sessioni/`** – `RIEPILOGO_LAVORI_*` giornalieri (gen–feb 2026)
 - **`refactoring-completati/`** – log refactoring e standardizzazione servizi (2025–2026)
-- **`strategie-superate/`** – piani early-phase (login, freemium v1, organizzazione codice); **tracking GPS → area lavorata** scartato 2026-07-31 (`ROADMAP_TRACKING_GPS_AREA_LAVORATA.md` — vincoli legali/privacy Italia: art. 4 St. Lav. + GDPR, rischio controllo a distanza su smartphone dipendente)
+- **`strategie-superate/`** – piani early-phase (login, freemium v1, organizzazione codice); **tracking GPS → area lavorata** scartato 2026-07-31 (`ROADMAP_TRACKING_GPS_AREA_LAVORATA.md` — vincoli legali/privacy Italia: art. 4 St. Lav. + GDPR, rischio controllo a distanza su smartphone dipendente); **piano pagina Abbonamento gen-2026** (`PIANO_SVILUPPO_PAGINA_ABBONAMENTO.md`) — superato da Stripe Checkout + `in-sviluppo/abbonamento/BILLING_V2_HANDOFF.md` (2026-09-01)
 - **`analisi-superate/`** – audit, valutazioni e confronti mercato sostituiti da doc più recenti
 - **`tony-superato/`** – meta-analisi Tony e backlog Gemini già assorbiti nel codice
 

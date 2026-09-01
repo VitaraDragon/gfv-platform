@@ -1,7 +1,7 @@
 # Tony – Inventario decisioni e requisiti
 
 **Data estrazione**: 2026-03-08  
-**Ultimo aggiornamento**: 2026-08-28 (push S5 assenze + WhatsApp §15.8; proposta confine terreno da tap §21)
+**Ultimo aggiornamento**: 2026-09-01 (inventario codice `CERCHI_APERTI_2026-09-01.md`; nav manodopera/vapidKey/Occhi M2; … push S5 §15.8 2026-08-28; proposta confine §21)
 **Obiettivo**: Raccogliere in un unico documento ogni decisione di prodotto, requisito e vincolo trovato nei documenti Tony, per evitare perdite durante il consolidamento.
 
 **Stati**: `implementato` | `in corso` | `parziale` | `pianificato` | `non implementato` | `abbandonato` | `da verificare`
@@ -75,7 +75,7 @@
 | 4.5 | Sottocategoria da terreno: Vite/Frutteto/Olivo → solo "Tra le File" o "Sulla Fila", mai "Generale" | TONY_COMPILAZIONE, TONY_SVILUPPO_2026-03 | implementato | TERRENO_SOTTOCATEGORIA_PREFERENCE |
 | 4.6 | Divieto ID Firestore, uso nomi nelle SELECT (resolve by_name) | MASTER_PLAN Fase 1 | implementato | |
 | 4.7 | SAVE_ACTIVITY solo se required completi; non fidarsi di "ho salvato" dell'LLM | GUIDA_OPERATIVO | implementato | saveGuard, fallback |
-| 4.8 | segnala-guasto-form, macchina-form: INJECT_FORM_DATA non supportato | ANALISI_SUBAGENT | da fare | Subagent Meccanico li cita |
+| 4.8 | segnala-guasto-form, macchina-form: INJECT_FORM_DATA non supportato | ANALISI_SUBAGENT | da fare | Form HTML esistono. **Non** in `tony-form-mapping.js` / injector. Prompt CF cita `SAVE_FAULT` — comando **assente** nel client (verifica 2026-09-01) |
 
 ---
 
@@ -115,7 +115,7 @@
 | 7.3a | FILTER_TABLE lavori: stato, progresso, caposquadra, terreno, tipo, tipoLavoro, operaio. Match tipo lavoro: case-insensitive, nomi parziali, risoluzione tipoLavoroId (applyFilters riceve tipiLavoroList) | functions, main.js, gestione-lavori-events | implementato | 2026-03-08 |
 | 7.4 | SUM_COLUMN per terreni | functions, main.js | implementato | |
 | 7.5 | RIASSUNTO (tonyGlobalBriefing) | main.js | implementato | Client 0 CF: `buildDashboardRiassuntoText` + summary ops con **nomi** (2026-06-15); CF binario B invariato |
-| 7.6 | MOSTRA_GRAFICO | MASTER_PLAN | da fare | |
+| 7.6 | MOSTRA_GRAFICO | MASTER_PLAN | da fare | Zero occorrenze nel repo (2026-09-01) |
 | 7.7 | Creare: con conferma; Modificare: conferma esplicita; Eliminare: solo su richiesta; Bulk: mai | MASTER_PLAN §6 | — | Regole |
 
 ---
@@ -126,7 +126,7 @@
 |---|-----------|-------|-------|------|
 | 8.1 | Tony non genera grafici; descrive dati o naviga alla pagina | MASTER_PLAN | — | |
 | 8.2 | currentTableData: pageType, summary, items – pattern per domande informative | RIEPILOGO_CURRENTTABLEDATA | implementato | Vedi §8.3 per elenco pagine (allineato a `tony/STATO_ATTUALE.md`) |
-| 8.3 | Pagine con currentTableData (pageType) | STATO_ATTUALE | implementato | terreni, attivita, lavori, macchine, prodotti, movimenti, trattori, attrezzi, flotta, scadenze, guasti, clienti, preventivi, tariffe, terreniClienti, concimazioni_vigneto, concimazioni_frutteto, tracciabilita_consumi — altre liste admin/moduli da estendere con lo stesso canone |
+| 8.3 | Pagine con currentTableData (pageType) | STATO_ATTUALE | implementato | terreni, attivita, lavori, macchine, prodotti, movimenti, trattori, attrezzi, flotta, scadenze, guasti, clienti, preventivi, tariffe, terreniClienti, concimazioni_vigneto, concimazioni_frutteto, tracciabilita_consumi, vendemmia, piano-stagione-vm, calcoli-vendemmia-meccanica, impegni_giornalieri, lavori_caposquadra, segnatura_ore, field_workspace, meteo_dashboard, documenti_acquisiti. **Mancano:** vigneti, frutteti, potatura, trattamenti, raccolta, validazione ore, squadre, operai, compensi, statistiche, tariffe/bilancio VM, report (verifica 2026-09-01) |
 
 ---
 
@@ -241,7 +241,7 @@
 | 15.5 | **Policy anti-invasività briefing proattivo** (reminder, non monologo) | prodotto 2026-07-20 | **implementato** | `tony-proactive-briefing-policy.js` + `checkGlobalStatus`; test **13** |
 | 15.6 | **Reminder operativi multi-modulo** (flusso regolare app) — catalogo estendibile | prodotto 2026-07-20 | **implementato** (hub principali) | + affitti/approvare/sospesi + UX hub; **`prezziInAttesa`** Magazzino 2026-07-21b |
 | 15.7 | **Push ciclo lavoro fuori app** (FCM); Tony resta in-app. Catalogo eventi, no `if` di pagina | spec 2026-08-25 | **implementato** | `notification-catalog.js` + Functions + SW. Icona HTTPS `core/images/icon-192x192.png` (2026-08-26). Status bar Android = silhouette bianca |
-| 15.8 | **Push assenza turno + WhatsApp escalation** (stesso tubo FCM; non Tony; non n8n) | linea guida 2026-07-29; S5 2026-08-28 | **implementato** | Evento `assenza_turno`; 1 push + 1 WA; seen/acted chiude per tutti; WA skip se secrets Meta assenti |
+| 15.8 | **Push assenza turno + WhatsApp escalation** (stesso tubo FCM; non Tony; non n8n) | linea guida 2026-07-29; S5 2026-08-28 | **implementato** | Evento `assenza_turno`; 1 push + 1 WA; seen/acted chiude per tutti; WA skip se secrets Meta assenti. **`vapidKey` in firebase-config** (2026-09-01). Deploy Functions da verificare in produzione |
 
 ### 15.5 — Policy frequenza e aggiornamenti (2026-07-20)
 
@@ -430,7 +430,7 @@ Valori **default**; applicati al **peggior caso / finestra pioggia recente** sul
 | 19.6.9 | Preventivo su colture a **filari** (vite, trebbiano, …): tipo lavoro **Tra le file** + sottocategoria coerente; vietato downgrade a Generale/Trinciatura generica dopo inject o meteo | implementato | `upgradePreventivoLavorazioneFilari` (injector), `upgradePreventivoTipoForFilariCloud` (CF), `tonyStripConflictingPreventivoLavorazione` (widget — 2026-05-24) |
 | 19.6.10 | **Crea lavoro — entity-first (Fase 3b performance):** se il messaggio iniziale contiene operaio, trattore, attrezzo, terreno, data e durata **risolvibili** su elenchi tenant → primo `INJECT_FORM_DATA` **completo**; chiedere in chat **solo** ambiguità reale (match multipli/zero). Vietato chiedere «A chi lo assegno?» se operaio già detto e match univoco; vietato elencare trattori se nome utente matcha **un solo** mezzo. Follow-up: patch campi mancanti, non re-inject totale. Baseline campo: `PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §1.3 (2026-05-25) | **implementato** | CF: `tony-lavoro-entity-parser.js` + patchOnly + gating proattivo. **Client follow-up trattore (2026-05-25):** disamb. + risposta breve senza CF — §14.4. Sottocategoria da coltura terreno — §14.5 |
 | 19.6.11 | **Binario B deterministico (Fase 4 performance):** navigazione (`APRI_PAGINA`), `FILTER_TABLE` / `SUM_COLUMN` su richieste ovvie con `page.currentTableData.pageType` noto, `RIASSUNTO` da summary tabella o briefing — **senza Gemini**; moduli dedicati CF (`tony-nav-quick-reply.js`, `tony-filter-table-quick-reply.js`) + gate `tony-module-gate`; in dubbio → Gemini. Invalidazione `tonyContextCache` su write magazzino/conto terzi/guasti (trigger Firestore). Multi-blocco: meteo+scorte+scadenze se tutti i blocchi colpiscono (`tony-multi-block-quick-reply.js`). Offline coda ore: **deferred** | **implementato** | Deploy produzione 2026-06-03; canary E2E + `npm run tony:perf-review`. Vedi `PLAN_OTTIMIZZAZIONE_PERFORMANCE.md` §9 Fase 4 |
-| 19.6.12 | **Estensione nav binario B residua:** ~3 frasi da log produzione ancora su Gemini; gap `NAV_TARGET_RULES` (manodopera, oliveto, sinonimi verbi). Incrementale, non refactor | HANDOFF_CONTINUITA_PERFORMANCE_NAV §Priorità 1 | **da fare** | `npm run tony:perf-review`; test `tony-nav-quick-reply.test.js` |
+| 19.6.12 | **Estensione nav binario B residua:** hub `manodopera` **in mappa** (2026-07-31). Restano ~3 frasi da log produzione su Gemini; gap `oliveto` (modulo assente), vendemmia meccanica, report, tracciabilità, sinonimi verbi. Incrementale, non refactor | HANDOFF_CONTINUITA_PERFORMANCE_NAV §Priorità 1; inventario 2026-09-01 | **parziale** | `npm run tony:perf-review`; test `tony-nav-quick-reply.test.js` |
 | 19.6.13 | **Metriche client intercept 0 CF** (`tony_local_intercept`): ore, lavori, save locale non visibili in log `[Tony Perf]` | HANDOFF_CONTINUITA_PERFORMANCE_NAV §Priorità 2 | **da fare** | Contatore leggero in `core/js/tony/main.js` |
 | 19.6.14 | **Meteo typo giorno** (`mercoldì` → operativo) + test ancorati `2026-05-21` | meteo-service 2026-06-10 | **implementato** | `tests/meteo-tony-quick-reply.test.js` 47/47; deploy CF se non in prod |
 
@@ -527,7 +527,7 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 | 20.8 | **Vision-first Gemini 2.5 Flash**; OCR pipeline separata solo se necessario per costi | prodotto 2026-07-10 | **pianificato** | Allineato `TONY_GEMINI_MODEL` |
 | 20.9 | **Config centralizzata**: schemi JSON documento + mapping; integrazione movimenti via canone `tony-form-mapping` / save locale | prodotto 2026-07-10 | **pianificato** | No patch per singola pagina |
 | 20.10 | **Persistenza** `documentiAcquisiti` Firestore + **originali** su Storage (foto compresse e/o PDF nativo utente); movimenti con `prezzoInAttesa` / `documentoAcquisitoId` | design 2026-07-10; raffinato 2026-07-20 | **implementato** | `document-archive.js` + `documenti-acquisiti-service.js`; `filePending` se upload fallisce (2026-07-21) |
-| 20.11 | **Screenshot** accettati come immagine nello stesso pipeline (fallback, non canale dedicato) | prodotto 2026-07-10 | **pianificato** | |
+| 20.11 | **Screenshot** accettati come immagine nello stesso pipeline (fallback, non canale dedicato) | prodotto 2026-07-10 | **implementato** | File picker `image/*` (verifica 2026-09-01); non è un canale dedicato |
 | 20.12 | **Camera live in-app**, email inoltrata, multi-agente IDP: **fuori MVP** | prodotto 2026-07-10 | **pianificato** | Fasi 2–3 ROADMAP §13 |
 | 20.13 | **Form di revisione documento** — badge bolla/fattura, intestazione e tabella righe **editabili**, azione **Registra dati** | prodotto 2026-07-10 | **implementato** | Modal/pannello widget Tony |
 | 20.14 | **Acquisizione multipla** — più foto/PDF per stesso documento; **Aggiungi pagina** + **Acquisizione terminata** prima dell’estrazione | prodotto 2026-07-10 | **implementato** | MVP; merge pagine in CF |
@@ -535,7 +535,7 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 | 20.16 | **Due step conferma**: (1) Acquisizione terminata (2) Registra dati sul form | prodotto 2026-07-10 | **implementato** | ROADMAP §5.2–§5.4 |
 | 20.17 | Sessione Firestore `documentiAcquisiti/{sessionId}` con array **`pagine[]`** e stati `acquiring` → `review` → `confirmed` | design 2026-07-10 | **parziale** | MVP: scrittura **`confirmed`** post-Registra + `pagine[]`; stati `acquiring`/`review` su Firestore non ancora |
 | 20.18 | **Animazione scanner** riusabile durante estrazione Gemini e popolamento form revisione (CSS, no librerie) | prodotto 2026-07-10 | **pianificato** | ROADMAP §5.4 D16 |
-| 20.19 | **Must-have Tony Occhi M1–M7**: duplicati, validazione totali, normalizzazione unità, confidence UI, audit estratto/confermato, link documento↔movimento, policy giacenza bolla | design 2026-07-10; M4/totali 2026-07-19 | **parziale** | M4 + totali ✅; **M6 link documento↔movimento** ✅ 2026-07-21; resto M1–M7 ancora aperto |
+| 20.19 | **Must-have Tony Occhi M1–M7**: duplicati, validazione totali, normalizzazione unità, confidence UI, audit estratto/confermato, link documento↔movimento, policy giacenza bolla | design 2026-07-10; M4/totali 2026-07-19; verifica codice 2026-09-01 | **parziale** | **M2 totali + M4 confidence + M6 link** ✅. Giacenza alla bolla implicita (entrata aggiorna stock). **Aperti:** M1 duplicati, M3 unità, M5 audit estratto vs confermato, policy esplicita, P7 |
 | 20.31 | **Sicurezza acquisizione A+B + fail-closed**: A soft-ack; B 2ª passata CF; se lettura ancora inaffidabile → **non aprire form** («Acquisizione non riuscita») | prodotto 2026-07-19 | **implementato** | `evaluateExtractionOutcome`; Tony `2026-07-19d` |
 | 20.32 | **Tony Occhi anche per bolle di merce prodotta** (uva, frutta, ortaggi, seminativi, ecc.): stesso ingresso 📷 layout-agnostic; tipi/documenti e schema **in uscita** distinti dall’acquisto magazzino; routing verso moduli coltura/vendita/conferimento (design da fare, no template per cliente/cantina) | prodotto 2026-07-19 | **pianificato** | Estende §20 senza rompere 20.15; non misto a entrate fitofarmaci senza classificazione |
 | 20.33 | **Archivio documenti Magazzino (ruoli e UX)** — v. sotto | prodotto 2026-07-20 | **implementato** | Lista unica + Apri/Stampa/Elimina + Acquisito/Data doc + link Movimenti (2026-07-21); P7 retention ancora aperto |

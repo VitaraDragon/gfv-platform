@@ -1,8 +1,10 @@
 # 📋 Piano Sviluppo Pagina Abbonamento - GFV Platform
 
+> **OBSOLETO (2026-09-01).** Questo piano (gennaio 2026) descrive una pagina con prezzi hardcoded e senza Stripe. Il codice attuale è `core/admin/abbonamento-standalone.html` + `functions/stripe-billing.js`. Lavoro aperto: Billing v2 in `docs-sviluppo/in-sviluppo/abbonamento/BILLING_V2_HANDOFF.md`. Inventario: `docs-sviluppo/CERCHI_APERTI_2026-09-01.md`.
+
 **Data**: 2026-01-24  
 **Obiettivo**: Definire piano completo sviluppo pagina abbonamento con strategia freemium modulare  
-**Stato Attuale**: Pagina parzialmente implementata con problemi critici  
+**Stato Attuale**: **Obsoleto** — non usare per implementare.  
 **Strategia**: Freemium (30 attività, 5 terreni) + Moduli pay-per-use (€5-10/mese)
 
 ---

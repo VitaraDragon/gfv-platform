@@ -2,7 +2,7 @@
 
 **Creato:** 2026-06-20  
 **Pubblico:** agenti Cursor / sviluppo GFV Platform  
-**Stato:** decisioni prodotto **chiuse**; Fase 1 implementata (2026-06-21); Fasi 2–4 **da fare**
+**Stato:** decisioni prodotto **chiuse**; Fase 1 implementata (2026-06-21); Fasi 2–4 **da fare**. Verifica codice 2026-09-01: niente `renewalAnchor` / proration / «passa al bundle» in `stripe-billing.js`. Inventario: `docs-sviluppo/CERCHI_APERTI_2026-09-01.md`.
 
 ---
 

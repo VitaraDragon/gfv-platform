@@ -1,7 +1,7 @@
 # Piano (design): sostituzione manodopera / equipaggio squadre
 
 **Stato:** MVP + oltre-MVP parziale **implementato in codice** (2026-07-22; vista impegni 2026-07-24; roster giornaliero 2026-07-27). Design decisions 2026-05-16 restano canoniche.  
-**Ultimo aggiornamento:** 2026-08-02 (mappa allarmi verificata canary 17/17 + prova utente; semaforo/prossimità; A2; Slice B CB).  
+**Ultimo aggiornamento:** 2026-09-01 (conferma codice: tap mappa → shortlist e pool riserve ancora assenti; DnD assente). 2026-08-02 mappa allarmi canary 17/17.  
 **Ultimo aggiornamento design:** 2026-05-16 (catalogo skill tenant pilota: tutte le sottocategorie lavoro, carro=frutta, trattamenti unificati, vendemmia→trattorista per trasporto).  
 **Per chi:** ogni agente o sviluppatore che lavora su **manodopera, squadre, assenze, shortlist sostituti, equipaggio minimo, profilo competenze, policy tenant**, integrazione Tony sul flusso.
 

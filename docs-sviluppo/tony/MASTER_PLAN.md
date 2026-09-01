@@ -6,6 +6,8 @@
 
 *Consolidato da `docs-sviluppo/MASTER_PLAN_TONY_UNIVERSAL.md`*
 
+Inventario cerchi aperti (verifica codice **2026-09-01**): `docs-sviluppo/CERCHI_APERTI_2026-09-01.md`.
+
 ---
 
 ## Stato dello sviluppo (a colpo d'occhio)

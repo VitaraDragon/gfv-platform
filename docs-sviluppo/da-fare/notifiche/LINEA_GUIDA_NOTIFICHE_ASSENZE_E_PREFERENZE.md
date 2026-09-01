@@ -1,8 +1,8 @@
 # Linea guida: notifiche push, WhatsApp e preferenze (assenze + policy canali)
 
-**Tipo:** linea guida di prodotto + architettura (non ancora implementata)  
+**Tipo:** linea guida di prodotto + architettura  
 **Data:** 2026-07-29  
-**Stato:** decisioni concordate — pronto per specifica di implementazione a fasi  
+**Stato:** **implementata in codice** (S5 2026-08-28 — `functions/notification-dispatch.js`, preferenze Impostazioni). Restano deploy Functions + secret Meta se si vuole WhatsApp. Inventario: `CERCHI_APERTI_2026-09-01.md`.  
 **Per chi:** agenti e sviluppatori che lavorano su assenze, sostituzioni manodopera, Impostazioni, PWA, integrazioni esterne
 
 **Documenti correlati:**
@@ -11,7 +11,7 @@
 - `docs-sviluppo/da-fare/tony/PIANO_SOSTITUZIONE_MANODOPERA_SQUADRE.md` — flusso assenza → shortlist → sostituto
 - `docs-sviluppo/tony/MASTER_PLAN.md` — proattività Tony (§15.5–§15.6)
 - `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md` — policy anti-invasività briefing (§15.5)
-- `docs-sviluppo/GUIDA_PWA.md` — service worker attuale (cache; push ancora da fare)
+- `docs-sviluppo/GUIDA_PWA.md` — service worker + push FCM (ciclo + assenze)
 - `core/admin/impostazioni-standalone.html` — già presente telefono account (`account-telefono`)
 
 ---

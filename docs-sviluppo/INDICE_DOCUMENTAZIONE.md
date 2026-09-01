@@ -1,6 +1,6 @@
 # Indice documentazione sviluppo
 
-**Aggiornato:** 2026-07-10
+**Aggiornato:** 2026-09-01
 
 ## Onboarding (leggere per primi)
 
@@ -11,6 +11,7 @@
 | [ARCHITETTURA_MODULI_E_INTERAZIONI.md](ARCHITETTURA_MODULI_E_INTERAZIONI.md) | Moduli, servizi, interazioni |
 | [DOBBIAMO_ANCORA_FARE.md](DOBBIAMO_ANCORA_FARE.md) | Backlog unificato attivo |
 | [COSA_ABBIAMO_FATTO.md](COSA_ABBIAMO_FATTO.md) | Changelog cronologico |
+| [CERCHI_APERTI_2026-09-01.md](CERCHI_APERTI_2026-09-01.md) | Inventario verificato sul codice: a metà / fatto / da fare / obsoleto |
 
 ## Tony (assistente IA)
 
@@ -29,8 +30,8 @@
 | Cartella | Contenuto |
 |----------|-----------|
 | **[obsoleto/](obsoleto/README.md)** | Doc sostituiti, log sessione, analisi superate — **non usare per decisioni** |
-| **[in-sviluppo/](in-sviluppo/README.md)** | Lavoro parziale attivo (Tony perf, billing v2, vendemmia meccanica, E2E…) |
-| **[da-fare/](da-fare/README.md)** | Piani validi non ancora implementati (Tony Occhi, scalabilità lavori, snellimento…) |
+| **[in-sviluppo/](in-sviluppo/README.md)** | Lavoro parziale attivo (billing v2, VM, report, Tony perf…) |
+| **[da-fare/](da-fare/README.md)** | Piani validi non ancora chiusi (Occhi residui, scalabilità lavori, confine tap…) |
 
 ## Operativo
 

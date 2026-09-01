@@ -1,7 +1,7 @@
 # Handoff continuità — Tony performance, nav quick reply, metriche
 
 **Creato:** 2026-06-10  
-**Contesto:** conversazione su costi AI, ottimizzazioni già implementate, `tony:perf-review`, fix test meteo, estensione nav binario B.  
+**Aggiornato:** 2026-09-01 (verifica codice: hub manodopera **in** `NAV_TARGET_RULES`; TTS in produzione è Chirp 3 HD Charon, non Wavenet-D)  
 **Scopo:** permettere a un **nuovo agente Cursor** (o sviluppatore) di riprendere il lavoro **senza perdere il filo**: passato → presente → obiettivi → come verificare.
 
 ---
@@ -33,7 +33,7 @@ Dopo il lavoro aggiorna SOLO: COSA_ABBIAMO_FATTO.md, STATO_ATTUALE.md, MASTER_PL
 |------|-------------|
 | **Gemma / AI locale vs Gemini** | Restare su **Gemini 2.5 Flash** in CF. Ampliare **binario senza LLM** (client + quick reply CF), non self-host Gemma. |
 | **Costi a scala** (100 tenant, ~1000 operai) | Con ottimizzazioni già in codice: ordine **~€120–230/mese** AI totale (non €260–380). Tony Avanzato €5/modulo copre grosso modo il costo per tenant attivo. Prezzi da `core/config/subscription-plans.js`. |
-| **Voce Tony (TTS)** | Oggi `it-IT-Wavenet-D` in `getTonyAudio`. Upgrade opzionale: **Neural2** (stesso $/M), **Chirp 3 HD** (~2× costo TTS, impatto marginale su MRR). |
+| **Voce Tony (TTS)** | In produzione: **Chirp 3 HD Charon** (`getTonyAudio`). Handoff: `HANDOFF_TTS_CHIRP3.md`. |
 | **Quanto è già ottimizzato** | Molto: intercept client 0 CF + pipeline CF quick reply prima di Gemini. I log CF **sottostimano** il risparmio (ore/lavori locali non compaiono in `[Tony Perf]`). |
 
 ### Analisi produzione eseguita (`npm run tony:perf-review`, ~7 gg, 2026-06)
@@ -94,9 +94,10 @@ Ordine approssimativo: router → tier contesto → quick A → **nav** → **fi
 | Test | `tests/tony-nav-quick-reply.test.js` | 5 test |
 | Smoke review | `scripts/tony-perf-log-review.mjs` | 3 scenari binario B |
 
-**Gap noti mappa nav vs prompt Gemini / module gate** (candidati estensione, non bloccanti):
+**Gap noti mappa nav vs prompt Gemini / module gate** (candidati estensione, non bloccanti) — verifica codice **2026-09-01**:
 
-- `manodopera` (esplicito), `oliveto`, tracciabilità consumi
+- Hub **`manodopera`** + impegni + statistiche manodopera: **già in** `NAV_TARGET_RULES` (non ripartire da lì)
+- Ancora fuori mappa: `oliveto` (modulo inesistente), vendemmia meccanica, report, tracciabilità consumi
 - Sinonimi: «voglio andare…», «mostrami i terreni» (senza «la pagina»), «torna alla home»
 - I **3 messaggi reali** da log che ancora usano Gemini (da estrarre — vedi task 1 sotto)
 
