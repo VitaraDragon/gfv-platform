@@ -10,12 +10,16 @@
 
 | Artefatto | Destinazione | Comando tipico |
 |-----------|--------------|----------------|
-| **ERP** (`core/`, `modules/`, Tony client, …) | **GitHub Pages** `https://vitaradragon.github.io/gfv-platform/` | `git push origin main` |
+| **ERP** (`core/`, `modules/`, Tony client, …) | **GitHub Pages** `https://vitaradragon.github.io/gfv-platform/` | PR `develop` → `main` (vedi nota) |
 | **Landing** marketing (`landing/dist`) | **Firebase Hosting** `https://gfv-platform.web.app` | `npm run deploy:landing` |
 | **Cloud Functions** (Tony, meteo, email, …) | **Firebase / Cloud Run** | `npm run deploy:functions` |
 | **Firestore rules / indexes** | Firebase | `npm run deploy:rules` |
 
 Modifiche solo a `core/js/tony/*.js` → **push GitHub**, non hosting Firebase.
+
+> **Attenzione — dal 2026-09-01 non si pusha più direttamente su `main`.**
+> `main` è il sito pubblico: ogni commit è online all'istante. Il lavoro passa da `develop` e arriva su `main` con una PR di promozione.
+> Flusso completo: `docs-sviluppo/PUBBLICAZIONE_BRANCH_E_RELEASE.md` · `README.md` §Contribuire · `.cursor/rules/pubblicazione-e-branch.mdc`
 
 ---
 

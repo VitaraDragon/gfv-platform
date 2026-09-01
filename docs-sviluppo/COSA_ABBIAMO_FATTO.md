@@ -8,6 +8,8 @@
 - Nuovo branch **`develop`**: raccoglie il lavoro che funziona ma non è ancora verificato a fondo. Il sito pubblico resta servito da **GitHub Pages dalla radice di `main`**, quindi online c'è solo ciò che viene promosso.
 - CI: `simulator-ci.yml` gira anche sui push a `develop` (prima solo `main`); le PR erano già coperte senza filtro di branch.
 - Flusso documentato in `README.md` §Contribuire (per le persone) e in `.cursor/rules/pubblicazione-e-branch.mdc` (per gli agenti: mai push diretto su `main`, base PR `develop`, no merge senza richiesta, bump cache PWA a mano perché l'hook non gira per gli agenti, rollback con `git revert`).
+- Documento riepilogativo: **`docs-sviluppo/PUBBLICAZIONE_BRANCH_E_RELEASE.md`** — decisioni, stato, alternative valutate (feature flag / secondo hosting / progetto Firebase separato) e cosa resta da fare.
+- `DEPLOY_RUNBOOK.md` §1 allineato: l'ERP non si pubblica più con `git push origin main`.
 - **Vincolo dati:** un solo progetto Firebase (`gfv-platform`). `develop` **non** è un ambiente separato: condivide Firestore/Auth/Storage con la produzione. Per provare scritture usare emulatori (`?emulator=1`) o simulatore.
 
 ## Copione primo spot social (2026-08-30)
