@@ -123,7 +123,7 @@ Rules (Fase implementazione write): create/update **solo Cloud Functions** (Admi
 | **S0** | Spec + catalogo + policy destinatari/finestre (questo lavoro) | **fatto** 2026-08-25 |
 | **S1** | Preferenze Impostazioni (toggle + orari) senza FCM | **fatto** 2026-08-25 |
 | **S2** | CF: create comunicazione / lavoro assegnato → `notificationEvents` | **fatto** 2026-08-25 |
-| **S3** | FCM + `push` / `notificationclick` nel service worker + token in login | **fatto** 2026-08-25 (manca `vapidKey` in firebase-config per i token) |
+| **S3** | FCM + `push` / `notificationclick` nel service worker + token in login | **fatto** 2026-08-25; **`vapidKey` presente** in `core/config/firebase-config.js` (verifica 2026-09-01) |
 | **S4** | Scheduler conferme 6h + digest ore + trigger stati manager | **fatto** 2026-08-25 |
 | **S5** | Assenze + WhatsApp (linea guida 2026-07-29) sullo stesso tubo | **fatto** 2026-08-28 |
 

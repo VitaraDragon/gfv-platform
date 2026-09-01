@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-08-31 — branch `develop` e flusso di pubblicazione.**
+**Ultimo aggiornamento documentazione: 2026-09-01 — inventario cerchi aperti (verifica codice).**
+
+## Inventario cerchi aperti (2026-09-01)
+
+Verifica sul codice (non solo piani) di funzionalità a metà, doc stale e riclassificazione in-sviluppo / da-fare / obsoleto.
+
+- Documento: **`docs-sviluppo/CERCHI_APERTI_2026-09-01.md`**
+- Allineati: `tony/STATO_ATTUALE.md`, `tony/MASTER_PLAN.md` (puntatore), `TONY_DECISIONI_E_REQUISITI.md` (§4.8, §7.6, §8.3, §19.6.12, §20.11, §20.19)
+- Piano pagina Abbonamento gen-2026 (prezzi hardcoded) → `obsoleto/strategie-superate/`
+- Nav manodopera, vapidKey, Occhi M2/M4, parser terreno CF, calcoli VM `currentTableData`, meteo Tony fase 6, push S5: **già in codice**; i doc che li davano ancora aperti sono stati corretti
+- `MOSTRA_GRAFICO` confermato assente nel repo; `SAVE_FAULT` citato in CF ma assente nel client
 
 ## Repo — branch `develop`, sito solo da `main` (2026-08-31)
 

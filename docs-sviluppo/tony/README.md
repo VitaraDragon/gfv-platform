@@ -1,9 +1,9 @@
 # Tony – Documentazione consolidata
 
 **Cartella**: `docs-sviluppo/tony/`  
-**Ultimo aggiornamento**: 2026-07-10
+**Ultimo aggiornamento**: 2026-09-01
 
-Tony è l'assistente IA centrale di GFV Platform. Questa cartella contiene i **documenti canonici** (stato e piano). Piani attivi e backlog sono in `in-sviluppo/` e `da-fare/`.
+Tony è l'assistente IA centrale di GFV Platform. Questa cartella contiene i **documenti canonici** (stato e piano). Piani attivi e backlog sono in `in-sviluppo/` e `da-fare/`. Inventario cerchi aperti (verifica codice): **`docs-sviluppo/CERCHI_APERTI_2026-09-01.md`**.
 
 ---
 

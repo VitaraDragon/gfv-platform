@@ -1,8 +1,8 @@
 # Piano implementazione: Modulo Vendemmia Meccanica
 
 **Data creazione**: 2026-07-03  
-**Ultimo aggiornamento**: 2026-07-03 (sessione 1 — Fase 0 + inizio Fase 1)  
-**Stato**: 🔄 In corso — Fase 0 completata, Fase 1 parziale  
+**Ultimo aggiornamento**: 2026-09-01 (verifica codice: UI/servizi core fatti; Tony parziale)  
+**Stato**: 🔄 In corso — Fasi 1–3 servizi/UI **fatte**; Fase 4 integrazioni parziale; Fase 5 Tony parziale (piano + calcoli `currentTableData`; tariffe/bilancio/nav/mapping aperti). Inventario: `docs-sviluppo/CERCHI_APERTI_2026-09-01.md`.  
 **Priorità**: Alta (refactoring/evoluzione da `vecchia app/`)  
 **Dipendenza obbligatoria**: Modulo **Conto Terzi** (`contoTerzi`)  
 **Dipendenze opzionali**: Report (`report`), Preventivi/Lavori CT (già in CT), Parco Macchine, Vigneto (solo collegamenti espliciti)

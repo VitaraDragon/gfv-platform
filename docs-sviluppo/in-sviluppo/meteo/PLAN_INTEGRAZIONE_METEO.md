@@ -1,8 +1,8 @@
 # Piano integrazione Meteo — GFV Platform
 
 **Data creazione**: 2026-05-19  
-**Ultimo aggiornamento**: 2026-05-22  
-**Stato**: **Meteo base (fasi 0–3) in produzione** — **modulo Meteo pay-per-use (fasi 4–5) implementato** — **fase 6 Tony in corso** (chat operativa 2026-05-21; praticabilità morfologia + **`lavoroCampo`** + **asciugatura** + **doppia alternativa** 2026-05-22)  
+**Ultimo aggiornamento**: 2026-09-01 (verifica codice: fase 6 Tony **implementata**)  
+**Stato**: **Meteo base (fasi 0–3) in produzione** — **modulo Meteo pay-per-use (fasi 4–5) implementato** — **fase 6 Tony implementata** (chat operativa; praticabilità morfologia + **`lavoroCampo`** + **asciugatura** + **doppia alternativa**)  
 **Provider**: [OpenWeatherMap](https://openweathermap.org) — **One Call API 3.0**
 
 **Obiettivo del documento**: traccia unica delle decisioni di prodotto e tecniche per il meteo GFV, per continuare lo sviluppo (anche con altri agenti) senza perdere contesto.

@@ -1,7 +1,7 @@
 # Modulo Report — progettazione e specifica evolutiva
 
-**Stato:** bozza viva — aggiornare questo file man mano che il brainstorming e l’implementazione procedono.  
-**Ultimo aggiornamento contenuti:** 2026-04-11 (sezione Report Terreni — visione card e alert)  
+**Stato:** bozza viva + codice parziale.  
+**Ultimo aggiornamento contenuti:** 2026-09-01 (verifica: Report Terreni e export Vigneto reali; altre card `soon`; `MOSTRA_GRAFICO` assente). Inventario: `docs-sviluppo/CERCHI_APERTI_2026-09-01.md`.  
 **Riferimento prodotto generale:** `docs-sviluppo/tony/MASTER_PLAN.md` (Fase 5 — Grafici e report).
 
 ---

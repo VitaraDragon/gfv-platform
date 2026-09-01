@@ -1,8 +1,8 @@
 # Tony Occhi — acquisizione documenti (bolla, fattura, scontrino) e magazzino
 
-**Tipo**: design + **implementazione parziale** (Fase 0–3 in codice, 2026-07-12).  
+**Tipo**: design + **implementazione parziale** (Fase 0–3 + archivio in codice).  
 **Data prima stesura**: 2026-04-04  
-**Ultimo aggiornamento**: 2026-07-13 — piano evolutivo post-Fase 3 (scontrino, fattura diretta, prodotto auto, match bolla, €); modal revisione fullscreen  
+**Ultimo aggiornamento**: 2026-09-01 — verifica codice: M2 totali + M4 confidence + M6 link ✅; **M1 duplicati, M3 unità, M5 audit, P7** aperti. Inventario: `docs-sviluppo/CERCHI_APERTI_2026-09-01.md`.  
 **Riferimento modulo**: `docs-sviluppo/ANALISI_MODULO_MAGAZZINO.md`, `docs-sviluppo/MAGAZZINO_APPENDICE_TRACCIABILITA_DASHBOARD_E_SCARICO.md`  
 **Decisioni correlate**: `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md` §20
 
