@@ -1,0 +1,56 @@
+---
+description: GFV – pubblicazione e branch. main è il sito online (GitHub Pages), develop è integrazione. Regole per commit, PR, CI, dati reali, cache PWA e rollback.
+alwaysApply: true
+---
+
+# Pubblicazione — `main` è già la produzione
+
+Il sito pubblico è servito da **GitHub Pages dalla radice di `main`** → <https://vitaradragon.github.io/gfv-platform/>
+
+**Non esiste uno step di deploy**: ogni commit su `main` è online nell'istante del push. La PWA installata sui telefoni punta lì (`manifest.json` → `core/dashboard-standalone.html`).
+
+| Branch | Contenuto | Online |
+|--------|-----------|--------|
+| `main` | Solo versioni verificate | **Sì** — sito pubblico |
+| `develop` | Funziona ma non è ancora verificato a fondo | No |
+
+`develop` **non ha un indirizzo**: non è pubblicato da nessuna parte. Non proporlo all'utente come ambiente raggiungibile da telefono o browser.
+
+## Regole obbligatorie
+
+1. **Mai `git push` diretto su `main`.** Sempre branch dedicato + PR.
+2. **Base di default `develop`**, non `main`. `main` riceve solo la promozione di versioni verificate.
+3. **Non mergiare e non chiudere PR** senza richiesta esplicita dell'utente.
+4. **CI verde** (`.github/workflows/simulator-ci.yml`) prima di proporre la promozione su `main`.
+5. **Mai riscrivere la storia di `main`** (niente force push, niente amend su commit già pubblicati).
+
+## Dati — il branch non isola nulla
+
+Esiste **un solo progetto Firebase** (`gfv-platform`: `core/config/firebase-config.js`, `.firebaserc`). `develop` e `main` condividono lo stesso Firestore, Auth e Storage.
+
+Il branch protegge il **sito**, non i **dati**: una prova di scrittura da `develop` colpisce comunque la produzione. Per provare scritture usare gli emulatori (`?emulator=1`) o il simulatore (`npm run sim:*`), mai l'ambiente reale.
+
+## Cache PWA — trappola specifica per gli agenti
+
+`.githooks/pre-commit` aggiorna `SW_CACHE_BUILD_ID` in `service-worker.js`, così la PWA installata scarica la versione nuova invece di restare sulla cache vecchia.
+
+**Quell'hook non gira per gli agenti**, perché Cursor sovrascrive `core.hooksPath`. Quindi, se il commit tocca codice servito al browser (`core/`, `modules/`, `shared/`, `index.html`, asset), esegui prima a mano:
+
+```bash
+npm run bump:pwa-cache && git add service-worker.js
+```
+
+Non serve per commit di sola documentazione, test o configurazione CI.
+
+## Release e rollback
+
+- **Tag** sulla versione promossa su `main`, così «cosa c'è online» ha una risposta precisa e il rollback ha un punto noto.
+- **Rollback**: `git revert <commit>` + push su `main`. Il sito torna indietro in circa un minuto.
+
+## Se serve provare online
+
+Oggi **non** esiste un indirizzo di prova. Le opzioni vanno **proposte all'utente**, non implementate di iniziativa:
+
+- **Feature flag per tenant** — stesso schema di `core/config/tony-module-gate.js`, ma con lista separata da `moduliAttivi`: non mescolare «cosa il cliente ha pagato» con «cosa stiamo provando».
+- **Secondo sito Firebase Hosting** che pubblica `develop` (richiede dominio aggiunto ai domini autorizzati di Auth).
+- **Progetto Firebase separato** con dati propri: è l'unico che isola davvero, ed è anche il più oneroso.
