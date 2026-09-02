@@ -1,7 +1,7 @@
 # COPIONE PRIMO SPOT SOCIAL
 
 **Stato:** decisioni chiuse (2026-08-30). Prompt di generazione e take Higgsfield: dopo questo foglio.  
-**Linea:** spot brand / social (Linea A). Non mescolare con la serie feature (`GFV_spot_v11`, Luca / Mario / Giuseppe, UI vera).  
+**Linea:** spot brand / social (Linea A). Non mescolare con la serie feature (Linea B: `COPIONE_SPOT_FLUSSI_APP.md` — Soul + dolly sul telefono + UI vera).  
 **Durata:** ~26–30s (si può allungare se il loop A lo richiede). Master **16:9**, poi crop **9:16** (azione al centro).  
 **Motore video:** Seedance, clip da ~5s, **audio effetti acceso**. Musica e battuta **non** si generano.
 
