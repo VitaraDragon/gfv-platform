@@ -1,6 +1,18 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-08-31 — branch `develop` e flusso di pubblicazione.**
+**Ultimo aggiornamento documentazione: 2026-09-03 — zona lavorata a due punti (inizio/fine).**
+
+## Zona lavorata — due tocchi sul perimetro già tracciato (2026-09-03)
+
+Operaio e caposquadra non ridisegnano il campo: toccano **inizio** e **fine** sulla mappa, e si colora la fetta del **perimetro terreno già salvato** (stesso gesto per filari e seminativi). Anteprima verde + ettari, poi Salva. Il disegno a mano resta come fallback (e se il terreno non ha confini). Niente GPS trail (decisione §11.5 invariata). Tony non disegna.
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Geometria** | `core/js/zona-lavorata-slice.js` — taglio del poligono tra due rette perpendicolari a inizio→fine |
+| **UI** | `core/admin/lavori-caposquadra-standalone.html` (anche workspace mobile / fullscreen) |
+| **Salvataggio** | Stessa subcollection `zoneLavorate` (`tipo: poligono`, `modoTracciamento: due_punti`) |
+| **Test** | `tests/zona-lavorata-slice.test.js` (9) |
+| **Decisioni** | `TONY_DECISIONI_E_REQUISITI.md` §11.7 / §22 |
 
 ## Repo — branch `develop`, sito solo da `main` (2026-08-31)
 

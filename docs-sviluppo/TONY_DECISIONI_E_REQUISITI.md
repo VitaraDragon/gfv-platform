@@ -1,7 +1,7 @@
 # Tony – Inventario decisioni e requisiti
 
 **Data estrazione**: 2026-03-08  
-**Ultimo aggiornamento**: 2026-08-28 (push S5 assenze + WhatsApp §15.8; proposta confine terreno da tap §21)
+**Ultimo aggiornamento**: 2026-09-03 (zona lavorata due punti §11.7 / §22; push S5 assenze + WhatsApp §15.8; proposta confine terreno da tap §21)
 **Obiettivo**: Raccogliere in un unico documento ogni decisione di prodotto, requisito e vincolo trovato nei documenti Tony, per evitare perdite durante il consolidamento.
 
 **Stati**: `implementato` | `in corso` | `parziale` | `pianificato` | `non implementato` | `abbandonato` | `da verificare`
@@ -170,12 +170,13 @@
 
 | # | Decisione | Fonte | Stato | Note |
 |---|-----------|-------|-------|------|
-| 11.1 | Mappe: Tony non traccia poligoni | MASTER_PLAN | — | Invariato. Proposta confine da tap = UX mappa Terreni, non Tony. Piano e decisioni: §21 |
+| 11.1 | Mappe: Tony non traccia poligoni | MASTER_PLAN | — | Invariato. Zona lavorata due punti = UX mappa lavori, non Tony (§11.7 / §22). Proposta confine da tap = UX mappa Terreni (§21) |
 | 11.2 | Eliminazioni bulk: Tony non le esegue | MASTER_PLAN | — | |
 | 11.3 | Impostazioni sensibili: Tony spiega, non esegue senza conferma | MASTER_PLAN | — | |
 | 11.4 | LLM non decide ordine click, quando campo figlio pronto, né dichiara salvataggio riuscito | GUIDA_OPERATIVO | — | |
-| 11.5 | **Niente tracking GPS continuo/sessione** su smartphone dipendente per area lavorata automatica (trail → buffer → poligono) | decisione prodotto 2026-07-31 | **scartato** | Motivo legale Italia: art. 4 St. Lav. + GDPR (controllo a distanza / geolocalizzazione lavoratori). Archivio: `obsoleto/strategie-superate/ROADMAP_TRACKING_GPS_AREA_LAVORATA.md`. Restano zone manuali, mappa ERP, GPS **puntuale** opzionale (§18 campioni, terreni, guasti) |
+| 11.5 | **Niente tracking GPS continuo/sessione** su smartphone dipendente per area lavorata automatica (trail → buffer → poligono) | decisione prodotto 2026-07-31 | **scartato** | Motivo legale Italia: art. 4 St. Lav. + GDPR. Archivio: `obsoleto/strategie-superate/ROADMAP_TRACKING_GPS_AREA_LAVORATA.md`. Restano zone **manuali** (due punti sul perimetro già tracciato + fallback disegno a mano), mappa ERP, GPS **puntuale** opzionale (§18) |
 | 11.6 | **Allarmi manodopera a semaforo** (rosso+pulse / giallo) su Impegni, Gestione lavori e **mappa aziendale**; ranking shortlist con **prossimità da terreno/podere assegnato** (non posizione telefono) | decisione prodotto 2026-07-31; verifica 2026-08-02 | **implementato** | Severità: `manodopera-problema-severita-logic.js`; geo: `geo-terreno-utils.js`; mappa: `dashboard-maps.js`. Canary `npm run mappa:manodopera-canary` **17/17 PASS** + prova utente OK. Opz. futuro: tap pin → shortlist filtrata |
+| 11.7 | **Zona lavorata: due tocchi inizio/fine** colorano una fetta del **perimetro terreno già tracciato** (filari e seminativi). Conferma prima del Salva. Disegno a mano resta fallback | prodotto 2026-09-03 | **implementato** | Helper `core/js/zona-lavorata-slice.js`; UI `lavori-caposquadra-standalone.html`. Non è GPS trail. Tony non disegna. Dettaglio §22 |
 
 ---
 
@@ -621,6 +622,23 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 Migliorie ulteriori (sessione mappatura, tap dentro/fuori, snap ai vicini, ha sull’etichetta, hatch overlap): elenco nel piano §13, **non requisiti** finché non si sceglie.
 
 **Affidabilità attesa:** assistente, non geometra. Due campi attaccati e visivamente uguali: rischio alto di fusione. IoU “buono” (~0,75) può comunque sballare gli ettari del 5–10%. Dettaglio e fasi: piano Terreni.
+
+---
+
+## 22. Zona lavorata — due punti sul perimetro già tracciato (2026-09-03)
+
+**Stato codice:** **implementato** (helper + UI mappa lavori). Non è tracking GPS (§11.5 resta scartato). Tony non disegna (§11.1).
+
+| # | Decisione | Fonte | Stato | Note |
+|---|-----------|-------|-------|------|
+| 22.1 | Segnare la zona con **due tocchi: inizio e fine** | prodotto 2026-09-03 | **implementato** | Default su `lavori-caposquadra-standalone.html` se il terreno ha `polygonCoords` |
+| 22.2 | La zona è una **fetta del perimetro terreno già tracciato**, non un nuovo poligono libero | prodotto 2026-09-03 | **implementato** | Taglio con due rette perpendicolari a inizio→fine; vale per filari e seminativi |
+| 22.3 | **Conferma umana** prima del Salva (anteprima verde + ettari). Ritocco: trascinare i due marker | prodotto 2026-09-03 | **implementato** | Stesso salvataggio `zoneLavorate` (`coordinate`, `isChiuso`, `superficieHa`) |
+| 22.4 | Disegno a mano (segmento/poligono punto-punto) resta **fallback** | prodotto 2026-09-03 | **implementato** | Pulsante «A mano»; obbligatorio se manca il perimetro in Terreni |
+| 22.5 | Niente trail GPS dello smartphone, niente swipe in v1 | prodotto 2026-09-03 | **implementato** | Swipe resta idea futura; due tap sono il gesto solido su telefono |
+| 22.6 | Tony apre il form (`zona-form`) ma **non simula i tap** sulla mappa | MASTER_PLAN §10 | **invariato** | Mapping `zona-data` / note; geometria a cura dell’utente |
+
+Helper: `core/js/zona-lavorata-slice.js`. Test: `tests/zona-lavorata-slice.test.js`.
 
 ---
 

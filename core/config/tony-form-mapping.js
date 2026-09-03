@@ -476,7 +476,7 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     return null;
   }
 
-  /** Traccia segmento / zona lavorata (`lavori-caposquadra-standalone.html`, `#zona-form` in `#zona-modal`) — mappa manuale a cura dell'utente */
+  /** Traccia zona lavorata (`lavori-caposquadra-standalone.html`, `#zona-form` in `#zona-modal`) — geometria mappa a cura dell'utente (due punti sul perimetro, oppure disegno a mano) */
   const ZONA_SEGMENTO_FORM_MAP = {
     formId: 'zona-form',
     modalId: 'zona-modal',
@@ -488,7 +488,7 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     }
   };
 
-  const SYSTEM_INSTRUCTION_ZONA_SEGMENTO = `Ruolo: assistente per il form «Traccia segmento» (campo). Chiavi JSON: zona-data (YYYY-MM-DD), zona-larghezza (metri, opzionale), zona-note. Il disegno del percorso sulla mappa resta manuale; non simulare click in mappa. Apri il modal Traccia segmento dall'elenco lavori prima di INJECT_FORM_DATA se il form non è visibile.`;
+  const SYSTEM_INSTRUCTION_ZONA_SEGMENTO = `Ruolo: assistente per il form «Segna zona lavorata» (campo). Chiavi JSON: zona-data (YYYY-MM-DD), zona-larghezza (metri, solo se l'utente disegna a mano), zona-note. Il disegno sulla mappa resta dell'utente: due tocchi inizio/fine sul perimetro già tracciato del terreno, oppure tracciamento a mano. Non simulare click in mappa. Apri il modal Segna zona dall'elenco lavori prima di INJECT_FORM_DATA se il form non è visibile.`;
 
   /** Segna ore (`segnatura-ore-standalone.html`, `#ora-form` in `#ora-modal`) */
   const SEGNA_ORE_FORM_MAP = {

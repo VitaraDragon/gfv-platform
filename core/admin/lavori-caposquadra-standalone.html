@@ -214,8 +214,8 @@
             left: 8px;
             right: 8px;
             z-index: 25;
-            display: grid;
-            grid-template-columns: 1fr auto auto auto;
+            display: flex;
+            flex-wrap: wrap;
             gap: 6px;
             padding: 8px;
             background: rgba(255, 255, 255, 0.95);
@@ -227,7 +227,20 @@
             min-width: 0;
         }
 
-        body.embed-mobile.map-fullscreen #zona-modal #ripresa-storico-hint {
+        body.embed-mobile.map-fullscreen #zona-modal #zona-slice-hint,
+        body.embed-mobile.map-fullscreen #zona-modal #zona-manual-hint {
+            display: none !important;
+        }
+
+        body.embed-mobile.map-fullscreen #zona-modal #zona-slice-status.active {
+            position: absolute;
+            top: 114px;
+            left: 8px;
+            right: 8px;
+            z-index: 24;
+            margin: 0;
+            background: rgba(232, 245, 233, 0.96);
+        }
             position: absolute;
             top: 114px;
             left: 8px;
@@ -594,6 +607,20 @@
             display: block;
         }
 
+        #zona-slice-status {
+            display: none;
+            margin: 8px 10px 0;
+            padding: 8px 10px;
+            background: #e8f5e9;
+            border-left: 4px solid #2E8B57;
+            border-radius: 6px;
+            font-size: 13px;
+            color: #1b5e20;
+        }
+        #zona-slice-status.active {
+            display: block;
+        }
+
         .map-info p {
             margin: 5px 0;
             color: #333;
@@ -712,7 +739,7 @@
                     </small>
                 </div>
 
-                <div class="form-group">
+                <div class="form-group" id="zona-larghezza-group">
                     <label for="zona-larghezza">Larghezza di Lavoro (metri) <span style="color: #666; font-weight: normal;">(opzionale)</span></label>
                     <input type="number" id="zona-larghezza" step="0.1" min="0.1" value="" placeholder="Lascia vuoto per operazioni manuali">
                     <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
@@ -722,15 +749,23 @@
                 </div>
 
                 <div class="form-group map-group">
-                    <label>Traccia Segmento sulla Mappa *</label>
+                    <label id="zona-map-label">Segna zona sulla mappa *</label>
                     <div class="map-container">
                         <div class="map-controls">
                             <input type="text" id="map-search" placeholder="Cerca indirizzo...">
                             <button type="button" class="btn btn-primary" onclick="searchLocation()">🔍 Cerca</button>
-                            <button type="button" class="btn btn-info" id="btn-draw" onclick="toggleDrawing()">✏️ Traccia Segmento</button>
-                            <button type="button" class="btn btn-secondary" onclick="closeCurrentSegment()">🔒 Chiudi segmento</button>
+                            <button type="button" class="btn btn-info" id="btn-draw" onclick="toggleDrawing()">📍 Segna inizio e fine</button>
+                            <button type="button" class="btn btn-secondary" id="btn-zona-toggle-mode" onclick="toggleZonaDrawMode()">✏️ A mano</button>
+                            <button type="button" class="btn btn-secondary" id="btn-close-segment" onclick="closeCurrentSegment()">🔒 Chiudi segmento</button>
                             <button type="button" class="btn btn-secondary" onclick="clearSegment()">🗑️ Cancella</button>
                         </div>
+                        <p id="zona-slice-status">Tocca il punto di inizio sul terreno</p>
+                        <p id="zona-slice-hint" style="font-size: 13px; color: #1b5e20; background: #e8f5e9; padding: 8px 10px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #2E8B57;">
+                            Tocca <strong>inizio</strong> e <strong>fine</strong> sul campo: la zona si colora sul perimetro già tracciato del terreno (filari o seminativo). Puoi trascinare i due punti per ritoccare. Il disegno a mano resta disponibile.
+                        </p>
+                        <p id="zona-manual-hint" style="display:none; font-size: 13px; color: #1565c0; background: #e3f2fd; padding: 8px 10px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #1976d2;">
+                            Disegno a mano: tocca più punti sul percorso, poi chiudi il segmento se serve un poligono.
+                        </p>
                         <p id="vm-multizona-hint" style="display:none; font-size: 13px; color: #4a148c; background: #f3e5f5; padding: 8px 10px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #6a1b9a;">
                             <strong>Vendemmia meccanica:</strong> puoi tracciare <strong>più zone vendemmiate lo stesso giorno</strong> (es. due appezzamenti separati da un&apos;area non vendemmiabile). Chiudi ogni poligono prima di salvare, poi usa «Salva e aggiungi altra zona».
                         </p>
@@ -740,12 +775,12 @@
                         </p>
                         <div id="map"></div>
                         <div class="map-info" id="map-info">
-                            <p><strong>Lunghezza segmento:</strong> <span id="calculated-length">0.00</span> metri</p>
+                            <p><strong id="zona-length-label">Distanza inizio–fine:</strong> <span id="calculated-length">0.00</span> metri</p>
                             <p><strong>Superficie lavorata:</strong> <span id="calculated-area">0.00</span> ettari</p>
                         </div>
                     </div>
-                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
-                        💡 <strong>Suggerimento:</strong> Clicca sulla mappa per tracciare il percorso. Il sistema aggancia automaticamente i punti ai vertici e al confine del terreno quando sei vicino (entro 5-8 metri). <strong>Tieni premuto Shift mentre clicchi per disabilitare temporaneamente lo snap</strong> e posizionare i punti manualmente con precisione. Se tracci vicino al confine, la superficie viene calcolata estendendo fino al confine per una maggiore precisione.
+                    <small id="zona-map-footnote" style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                        💡 Tocca inizio e fine sul terreno già mappato. I punti vicini al confine si agganciano da soli (tieni Shift per posizionare a mano).
                     </small>
                 </div>
 
@@ -829,6 +864,10 @@
             isCompletamentoParzialeTracciato,
             getEtichettaSegnaCompletato
         } from '../../modules/vendemmia-meccanica/services/lavoro-vm-utils.js';
+        import {
+            slicePolygonBetweenPoints,
+            hasUsableTerrenoPolygon
+        } from '../js/zona-lavorata-slice.js';
 
         initializeFirebase(firebaseConfig);
         const app = getAppInstance();
@@ -858,11 +897,318 @@
         let savedSegments = []; // Array per memorizzare i segmenti salvati visualizzati sulla mappa
         let terrenoBoundaryCoords = []; // Coordinate del confine del terreno (per snap)
         let uncoveredAreaPolygon = null; // Poligono per visualizzare aree non coperte
+        let zonaDrawMode = 'slice'; // 'slice' (due punti) | 'manual'
+        let sliceStart = null;
+        let sliceEnd = null;
+        let sliceStartMarker = null;
+        let sliceEndMarker = null;
+        let slicePreviewPolygon = null;
+        let currentSliceResult = null;
         
         // Costanti per snap e tolleranza
         const SNAP_DISTANCE_METERS = 5; // Distanza massima per snap al confine (5 metri) - ridotto per maggiore precisione
         const VERTEX_SNAP_DISTANCE_METERS = 8; // Distanza massima per snap ai vertici (8 metri) - ridotto per maggiore precisione
         const PROXIMITY_TOLERANCE_METERS = 5; // Tolleranza per estendere fino al confine nel calcolo (5 metri)
+        const SLICE_MAX_OUTSIDE_METERS = 25;
+
+        function terrenoHasPolygon() {
+            return hasUsableTerrenoPolygon(currentTerreno && currentTerreno.polygonCoords);
+        }
+
+        function setDrawingCursor(on) {
+            const mapContainer = document.querySelector('.map-container');
+            if (!mapContainer) return;
+            if (on) mapContainer.classList.add('drawing-mode');
+            else mapContainer.classList.remove('drawing-mode');
+        }
+
+        function latLngPlain(ll) {
+            if (!ll) return null;
+            return { lat: ll.lat(), lng: ll.lng() };
+        }
+
+        function clearSliceGraphics() {
+            if (sliceStartMarker) {
+                sliceStartMarker.setMap(null);
+                sliceStartMarker = null;
+            }
+            if (sliceEndMarker) {
+                sliceEndMarker.setMap(null);
+                sliceEndMarker = null;
+            }
+            if (slicePreviewPolygon) {
+                slicePreviewPolygon.setMap(null);
+                slicePreviewPolygon = null;
+            }
+            sliceStart = null;
+            sliceEnd = null;
+            currentSliceResult = null;
+        }
+
+        function updateZonaModeUi() {
+            if (zonaDrawMode === 'slice' && !terrenoHasPolygon()) {
+                zonaDrawMode = 'manual';
+            }
+            const btnDraw = document.getElementById('btn-draw');
+            const btnClose = document.getElementById('btn-close-segment');
+            const btnToggle = document.getElementById('btn-zona-toggle-mode');
+            const larghezzaGroup = document.getElementById('zona-larghezza-group');
+            const sliceHint = document.getElementById('zona-slice-hint');
+            const manualHint = document.getElementById('zona-manual-hint');
+            const status = document.getElementById('zona-slice-status');
+            const lengthLabel = document.getElementById('zona-length-label');
+            const mapLabel = document.getElementById('zona-map-label');
+            const footnote = document.getElementById('zona-map-footnote');
+            const isSlice = zonaDrawMode === 'slice';
+
+            if (btnClose) btnClose.style.display = isSlice ? 'none' : '';
+            if (larghezzaGroup) larghezzaGroup.style.display = isSlice ? 'none' : '';
+            if (sliceHint) sliceHint.style.display = isSlice ? 'block' : 'none';
+            if (manualHint) manualHint.style.display = isSlice ? 'none' : 'block';
+            if (btnToggle) {
+                btnToggle.style.display = terrenoHasPolygon() ? '' : 'none';
+                btnToggle.textContent = isSlice ? '✏️ A mano' : '📍 Inizio e fine';
+            }
+            if (lengthLabel) {
+                lengthLabel.textContent = isSlice ? 'Distanza inizio–fine:' : 'Lunghezza segmento:';
+            }
+            if (mapLabel) {
+                mapLabel.textContent = isSlice ? 'Segna zona sulla mappa *' : 'Traccia segmento sulla mappa *';
+            }
+            if (footnote) {
+                footnote.innerHTML = isSlice
+                    ? '💡 Tocca inizio e fine sul terreno già mappato. I punti vicini al confine si agganciano da soli (tieni Shift per posizionare a mano).'
+                    : '💡 Clicca sulla mappa per tracciare il percorso. I punti vicini al confine si agganciano da soli (tieni Shift per disattivare lo snap).';
+            }
+            if (btnDraw) {
+                if (isSlice) {
+                    btnDraw.textContent = isDrawing ? '⏸️ Annulla segni' : '📍 Segna inizio e fine';
+                    btnDraw.style.background = isDrawing ? '#dc3545' : '#2E8B57';
+                } else if (isCurrentLavoroVm()) {
+                    btnDraw.textContent = isDrawing ? '⏸️ Pausa Tracciamento' : '✏️ Traccia zona vendemmiata';
+                    btnDraw.style.background = isDrawing ? '#dc3545' : '#17a2b8';
+                } else {
+                    btnDraw.textContent = isDrawing ? '⏸️ Pausa Tracciamento' : '✏️ Traccia Segmento';
+                    btnDraw.style.background = isDrawing ? '#dc3545' : '#17a2b8';
+                }
+            }
+            if (status) {
+                if (!isSlice) {
+                    status.classList.remove('active');
+                    status.style.display = 'none';
+                } else if (!sliceStart) {
+                    status.style.display = 'block';
+                    status.classList.add('active');
+                    status.textContent = 'Tocca il punto di inizio sul terreno';
+                } else if (!sliceEnd) {
+                    status.style.display = 'block';
+                    status.classList.add('active');
+                    status.textContent = 'Tocca il punto di fine';
+                } else {
+                    status.style.display = 'block';
+                    status.classList.add('active');
+                    status.textContent = 'Zona proposta sul perimetro del terreno — verifica e salva';
+                }
+            }
+            setDrawingCursor(isDrawing);
+        }
+
+        function makeSliceMarker(position, letter, color) {
+            const marker = new google.maps.Marker({
+                position: position,
+                map: map,
+                draggable: true,
+                label: {
+                    text: letter,
+                    color: '#ffffff',
+                    fontSize: '12px',
+                    fontWeight: '700'
+                },
+                icon: {
+                    path: google.maps.SymbolPath.CIRCLE,
+                    scale: 12,
+                    fillColor: color,
+                    fillOpacity: 1,
+                    strokeColor: '#ffffff',
+                    strokeWeight: 2
+                },
+                zIndex: 2000
+            });
+            return marker;
+        }
+
+        function bindSliceMarkerDrag(marker, which) {
+            marker.addListener('dragend', function() {
+                const pos = marker.getPosition();
+                if (which === 'start') sliceStart = pos;
+                else sliceEnd = pos;
+                if (sliceStart && sliceEnd) applySlicePreview();
+                else updateZonaModeUi();
+            });
+        }
+
+        function updateSliceInfo(result) {
+            const lengthEl = document.getElementById('calculated-length');
+            const areaEl = document.getElementById('calculated-area');
+            const info = document.getElementById('map-info');
+            if (info) info.classList.add('active');
+            if (lengthEl) lengthEl.textContent = (result.lengthMeters || 0).toFixed(2);
+            if (areaEl) areaEl.textContent = (result.areaHa || 0).toFixed(4);
+        }
+
+        function applySlicePreview() {
+            if (!sliceStart || !sliceEnd || !currentTerreno) return;
+            const result = slicePolygonBetweenPoints(
+                currentTerreno.polygonCoords,
+                latLngPlain(sliceStart),
+                latLngPlain(sliceEnd)
+            );
+            if (!result.ok) {
+                currentSliceResult = null;
+                currentSegmentCoords = [];
+                if (slicePreviewPolygon) {
+                    slicePreviewPolygon.setMap(null);
+                    slicePreviewPolygon = null;
+                }
+                const messages = {
+                    punti_troppo_vicini: 'Inizio e fine sono troppo vicini. Allontana il secondo tocco.',
+                    zona_vuota: 'I due punti non tagliano il terreno. Tocca due punti sul campo, nella direzione del lavoro.',
+                    terreno_senza_perimetro: 'Manca il perimetro del terreno. Traccialo in Terreni oppure usa il disegno a mano.',
+                    punti_non_validi: 'Punti non validi.'
+                };
+                showAlert(messages[result.error] || 'Impossibile calcolare la zona.', 'error');
+                updateZonaModeUi();
+                return;
+            }
+            currentSliceResult = result;
+            currentSegmentCoords = result.coords.map(function(c) {
+                return new google.maps.LatLng(c.lat, c.lng);
+            });
+            firstPoint = currentSegmentCoords[0] || null;
+            if (slicePreviewPolygon) slicePreviewPolygon.setMap(null);
+            slicePreviewPolygon = new google.maps.Polygon({
+                paths: currentSegmentCoords,
+                fillColor: '#28a745',
+                fillOpacity: 0.38,
+                strokeColor: '#ffffff',
+                strokeWeight: 3,
+                strokeOpacity: 1,
+                clickable: false,
+                zIndex: 900
+            });
+            slicePreviewPolygon.setMap(map);
+            updateSliceInfo(result);
+            isDrawing = false;
+            updateZonaModeUi();
+        }
+
+        function handleSliceMapClick(event) {
+            if (!isDrawing) return;
+            if (!terrenoHasPolygon()) {
+                showAlert('Per i due punti serve il perimetro del terreno già tracciato.', 'error');
+                return;
+            }
+            const snappedPoint = snapAndValidateMapPoint(event, { maxOutsideMeters: SLICE_MAX_OUTSIDE_METERS });
+            if (!snappedPoint) return;
+
+            if (!sliceStart) {
+                sliceStart = snappedPoint;
+                sliceStartMarker = makeSliceMarker(snappedPoint, 'I', '#2E8B57');
+                bindSliceMarkerDrag(sliceStartMarker, 'start');
+                updateZonaModeUi();
+                return;
+            }
+            if (!sliceEnd) {
+                sliceEnd = snappedPoint;
+                sliceEndMarker = makeSliceMarker(snappedPoint, 'F', '#e65100');
+                bindSliceMarkerDrag(sliceEndMarker, 'end');
+                applySlicePreview();
+            }
+        }
+
+        function snapAndValidateMapPoint(event, options) {
+            options = options || {};
+            const maxOutsideMeters = Number.isFinite(options.maxOutsideMeters)
+                ? options.maxOutsideMeters
+                : 3;
+            const disableSnap = event.domEvent && event.domEvent.shiftKey;
+            let snappedPoint = event.latLng;
+
+            if (!disableSnap && terrenoBoundaryCoords.length > 0) {
+                const vertexSnap = findNearestVertex(event.latLng, terrenoBoundaryCoords, VERTEX_SNAP_DISTANCE_METERS);
+                if (vertexSnap) {
+                    const snapDistance = google.maps.geometry.spherical.computeDistanceBetween(event.latLng, vertexSnap);
+                    if (snapDistance <= VERTEX_SNAP_DISTANCE_METERS) {
+                        snappedPoint = vertexSnap;
+                    }
+                }
+                if (snappedPoint === event.latLng) {
+                    const boundarySnap = findNearestPointOnBoundary(event.latLng, terrenoBoundaryCoords, SNAP_DISTANCE_METERS);
+                    if (boundarySnap) {
+                        const snapDistance = google.maps.geometry.spherical.computeDistanceBetween(event.latLng, boundarySnap);
+                        if (snapDistance <= SNAP_DISTANCE_METERS) {
+                            snappedPoint = boundarySnap;
+                        }
+                    }
+                }
+            }
+
+            if (terrenoPolygon) {
+                const isInside = google.maps.geometry.poly.containsLocation(snappedPoint, terrenoPolygon);
+                const distanceToBoundary = getDistanceToBoundary(snappedPoint, terrenoBoundaryCoords);
+                if (!isInside && distanceToBoundary > maxOutsideMeters) {
+                    showAlert('Tocca dentro i confini del terreno (o molto vicino al bordo).', 'error');
+                    return null;
+                }
+                if (!isInside && distanceToBoundary <= maxOutsideMeters) {
+                    snappedPoint = movePointInsideBoundary(snappedPoint, terrenoBoundaryCoords);
+                }
+            }
+            return snappedPoint;
+        }
+
+        function syncTerrenoOverlay() {
+            if (!map) return;
+            if (terrenoPolygon) {
+                terrenoPolygon.setMap(null);
+                terrenoPolygon = null;
+            }
+            terrenoBoundaryCoords = [];
+            if (!terrenoHasPolygon()) return;
+            const terrenoCoords = currentTerreno.polygonCoords.map(function(c) {
+                return new google.maps.LatLng(c.lat, c.lng);
+            });
+            terrenoBoundaryCoords = terrenoCoords;
+            terrenoPolygon = new google.maps.Polygon({
+                paths: terrenoCoords,
+                fillColor: '#e3f2fd',
+                fillOpacity: 0.2,
+                strokeColor: '#1976d2',
+                strokeWeight: 2,
+                clickable: false
+            });
+            terrenoPolygon.setMap(map);
+            const bounds = new google.maps.LatLngBounds();
+            terrenoCoords.forEach(function(coord) { bounds.extend(coord); });
+            map.fitBounds(bounds);
+        }
+
+        window.toggleZonaDrawMode = function() {
+            const next = zonaDrawMode === 'slice' ? 'manual' : 'slice';
+            if (next === 'slice' && !terrenoHasPolygon()) {
+                showAlert('Per i due punti serve il perimetro del terreno già tracciato in Terreni.', 'error');
+                return;
+            }
+            window.clearSegment();
+            zonaDrawMode = next;
+            isDrawing = zonaDrawMode === 'slice';
+            updateZonaModeUi();
+            if (zonaDrawMode === 'slice') {
+                showAlert('Tocca inizio e fine: la zona si colora sul perimetro del terreno.', 'info');
+            } else {
+                showAlert('Disegno a mano: tocca i punti del percorso, poi Chiudi segmento se serve.', 'info');
+            }
+        };
 
         const urlSearchParams = new URLSearchParams(typeof window !== 'undefined' ? (window.location.search || '') : '');
         const focusLavoroId = urlSearchParams.get('focusLavoroId');
@@ -926,25 +1272,20 @@
             const btnDefault = document.getElementById('btn-save-zona');
             const btnAnother = document.getElementById('btn-save-zona-another');
             const btnClose = document.getElementById('btn-save-zona-close');
-            const btnDraw = document.getElementById('btn-draw');
             const modalTitle = document.getElementById('modal-title');
 
             if (hint) hint.style.display = isCurrentLavoroVm() ? 'block' : 'none';
             if (btnDefault) btnDefault.style.display = isCurrentLavoroVm() ? 'none' : 'inline-block';
             if (btnAnother) btnAnother.style.display = isCurrentLavoroVm() ? 'inline-block' : 'none';
             if (btnClose) btnClose.style.display = isCurrentLavoroVm() ? 'inline-block' : 'none';
-            if (btnDraw && isCurrentLavoroVm()) {
-                btnDraw.textContent = '✏️ Traccia zona vendemmiata';
-            } else if (btnDraw) {
-                btnDraw.textContent = '✏️ Traccia Segmento';
-            }
             if (modalTitle && lavoro && isCurrentLavoroVm()) {
                 modalTitle.textContent = 'Traccia zona vendemmiata — ' + (lavoro.nome || '');
             }
+            updateZonaModeUi();
         }
 
         async function prepareAnotherVmZoneSameDay() {
-            clearSegment();
+            window.clearSegment();
             const noteEl = document.getElementById('zona-note');
             if (noteEl) noteEl.value = '';
             const lavoro = getCurrentLavoroRecord();
@@ -1446,7 +1787,7 @@
                             ` : ''}
                             ${lavoro.stato !== 'completato_da_approvare' && lavoro.stato !== 'completato' && lavoro.stato !== 'sospeso' && lavoro.stato !== 'in_standby' ? `
                                 <button class="btn btn-primary" onclick="${isEmbedMobile ? `openTracciaZonaMobileFullscreen('${lavoro.id}')` : `openTracciaZonaModal('${lavoro.id}')`}">
-                                    📍 Traccia Segmento Lavorato
+                                    📍 Segna zona lavorata
                                 </button>
                             ` : ''}
                             ${isLavoroStatoSospendibile(lavoro.stato) ? `
@@ -1570,7 +1911,7 @@
             // Carica terreno per mostrare confini sulla mappa
             currentTerreno = terreniMap.get(lavoro.terrenoId);
             
-            document.getElementById('modal-title').textContent = `Traccia Segmento Lavorato - ${escapeHtml(lavoro.nome)}`;
+            document.getElementById('modal-title').textContent = `Segna zona lavorata - ${escapeHtml(lavoro.nome)}`;
             document.getElementById('zona-lavoro-id').value = lavoroId;
             document.getElementById('zona-form').reset();
             
@@ -1582,6 +1923,7 @@
             // Reset mappa
             currentSegmentCoords = [];
             firstPoint = null;
+            clearSliceGraphics();
             if (polyline) {
                 polyline.setMap(null);
                 polyline = null;
@@ -1592,16 +1934,19 @@
                 uncoveredAreaPolygon.setMap(null);
                 uncoveredAreaPolygon = null;
             }
+            zonaDrawMode = terrenoHasPolygon() ? 'slice' : 'manual';
+            isDrawing = zonaDrawMode === 'slice';
             // Rimuovi classe drawing-mode se presente
             const mapContainer = document.querySelector('.map-container');
             if (mapContainer) {
                 mapContainer.classList.remove('drawing-mode');
             }
-            // Reset pulsante tracciamento
-            const btn = document.getElementById('btn-draw');
-            if (btn) {
-                btn.textContent = '✏️ Traccia Segmento';
-                btn.style.background = '#17a2b8';
+            // Reset pulsante / modo tracciamento
+            updateZonaModeUi();
+            if (zonaDrawMode === 'slice') {
+                showAlert('Tocca inizio e fine sul terreno: la zona si colora da sola.', 'info');
+            } else if (!terrenoHasPolygon()) {
+                showAlert('Questo terreno non ha il perimetro sulla mappa. Usa il tracciamento a mano, oppure traccia i confini in Terreni.', 'info');
             }
             
             // Aggiungi listener per aggiornare superficie quando cambia larghezza
@@ -1621,6 +1966,7 @@
             
             // Inizializza mappa se non già fatto
             await initMap();
+            syncTerrenoOverlay();
             
             const hintEl = document.getElementById('ripresa-storico-hint');
             if (hintEl) {
@@ -1720,16 +2066,20 @@
                 polyline.setMap(null);
                 polyline = null;
             }
+            clearSliceGraphics();
             currentSegmentCoords = [];
             firstPoint = null;
             isDrawing = false;
-            document.getElementById('btn-draw').textContent = '✏️ Traccia Segmento';
+            updateZonaModeUi();
             document.getElementById('map-info').classList.remove('active');
             
             // Rimuovi segmenti salvati visualizzati
             savedSegments.forEach(segment => {
                 if (segment.polyline) {
                     segment.polyline.setMap(null);
+                }
+                if (segment.polygon) {
+                    segment.polygon.setMap(null);
                 }
             });
             savedSegments = [];
@@ -1761,8 +2111,8 @@
             }
 
             if (map) {
-                map.setCenter(getMapCenter());
-                return; // Già inizializzata
+                syncTerrenoOverlay();
+                return;
             }
 
             try {
@@ -1774,37 +2124,16 @@
                     mapTypeId: google.maps.MapTypeId.SATELLITE
                 });
 
-                // Disegna confini terreno se disponibili
-                if (currentTerreno && currentTerreno.polygonCoords && currentTerreno.polygonCoords.length > 0) {
-                    const terrenoCoords = currentTerreno.polygonCoords.map(c => 
-                        new google.maps.LatLng(c.lat, c.lng)
-                    );
-                    
-                    // Salva coordinate confine per snap
-                    terrenoBoundaryCoords = terrenoCoords;
-                    
-                    terrenoPolygon = new google.maps.Polygon({
-                        paths: terrenoCoords,
-                        fillColor: '#e3f2fd',
-                        fillOpacity: 0.2,
-                        strokeColor: '#1976d2',
-                        strokeWeight: 2,
-                        clickable: false
-                    });
-                    terrenoPolygon.setMap(map);
-                    
-                    // Fit bounds al terreno
-                    const bounds = new google.maps.LatLngBounds();
-                    terrenoCoords.forEach(coord => bounds.extend(coord));
-                    map.fitBounds(bounds);
-                    
-                    // Aggiorna visualizzazione aree non coperte
-                    updateUncoveredArea();
-                }
+                syncTerrenoOverlay();
+                updateUncoveredArea();
 
-                // Click listener per tracciamento segmento (polyline)
+                // Click listener per tracciamento (due punti o segmento)
                 let clickTimeout = null;
                 map.addListener('click', function(event) {
+                    if (zonaDrawMode === 'slice') {
+                        handleSliceMapClick(event);
+                        return;
+                    }
                     if (isDrawing) {
                         // Gestisci doppio clic per terminare tracciamento
                         if (clickTimeout) {
@@ -1813,14 +2142,7 @@
                             // Doppio clic: termina tracciamento
                             if (polyline && currentSegmentCoords.length >= 2) {
                                 isDrawing = false;
-                                const btn = document.getElementById('btn-draw');
-                                const mapContainer = document.querySelector('.map-container');
-                                btn.textContent = '✏️ Traccia Segmento';
-                                btn.style.background = '#17a2b8';
-                                // Rimuovi classe per tornare al cursore normale
-                                if (mapContainer) {
-                                    mapContainer.classList.remove('drawing-mode');
-                                }
+                                updateZonaModeUi();
                                 showAlert('Tracciamento completato. Puoi modificare il segmento trascinando i punti.', 'success');
                                 return;
                             }
@@ -1951,8 +2273,7 @@
                                         
                                         // Termina tracciamento
                                         isDrawing = false;
-                                        document.getElementById('btn-draw').textContent = '✏️ Traccia Segmento';
-                                        document.getElementById('btn-draw').style.background = '#17a2b8';
+                                        updateZonaModeUi();
                                         showAlert('Segmento chiuso! Puoi modificarlo trascinando i punti.', 'success');
                                         
                                         updateSegmentInfo();
@@ -2239,25 +2560,42 @@
 
         // Toggle drawing mode
         window.toggleDrawing = function() {
+            if (zonaDrawMode === 'slice') {
+                if (isDrawing) {
+                    clearSliceGraphics();
+                    currentSegmentCoords = [];
+                    firstPoint = null;
+                    const info = document.getElementById('map-info');
+                    if (info) info.classList.remove('active');
+                    isDrawing = false;
+                } else {
+                    clearSliceGraphics();
+                    currentSegmentCoords = [];
+                    firstPoint = null;
+                    const info = document.getElementById('map-info');
+                    if (info) info.classList.remove('active');
+                    isDrawing = true;
+                    showAlert('Tocca il punto di inizio, poi il punto di fine.', 'info');
+                }
+                updateZonaModeUi();
+                return;
+            }
+
             isDrawing = !isDrawing;
             const btn = document.getElementById('btn-draw');
             const mapContainer = document.querySelector('.map-container');
             
             if (isDrawing) {
-                btn.textContent = '⏸️ Pausa Tracciamento';
-                btn.style.background = '#dc3545';
-                // Aggiungi classe per cursore crosshair
+                if (btn) {
+                    btn.textContent = '⏸️ Pausa Tracciamento';
+                    btn.style.background = '#dc3545';
+                }
                 if (mapContainer) {
                     mapContainer.classList.add('drawing-mode');
                 }
                 showAlert('Clicca sulla mappa per tracciare. Clicca sul primo punto o fai doppio clic per terminare.', 'info');
             } else {
-                btn.textContent = '✏️ Traccia Segmento';
-                btn.style.background = '#17a2b8';
-                // Rimuovi classe per tornare al cursore normale
-                if (mapContainer) {
-                    mapContainer.classList.remove('drawing-mode');
-                }
+                updateZonaModeUi();
             }
         };
 
@@ -2274,13 +2612,7 @@
                 currentSegmentCoords = path.getArray();
             }
             isDrawing = false;
-            const btn = document.getElementById('btn-draw');
-            if (btn) {
-                btn.textContent = '✏️ Traccia Segmento';
-                btn.style.background = '#17a2b8';
-            }
-            const mapContainer = document.querySelector('.map-container');
-            if (mapContainer) mapContainer.classList.remove('drawing-mode');
+            updateZonaModeUi();
             updateSegmentInfo();
             updateUncoveredArea();
             gfvMapTraceLog('segmento chiuso manualmente', { punti: currentSegmentCoords.length });
@@ -2295,7 +2627,7 @@
                 new google.maps.LatLng(c.lat, c.lng)
             );
             const sid = (idPrefix || '') + segmento.id;
-            const usePolygon = asPolygonFill && segmento.isChiuso !== false && coords.length >= 3;
+            const usePolygon = (asPolygonFill || segmento.isChiuso || segmento.tipo === 'poligono') && coords.length >= 3;
 
             if (usePolygon) {
                 const savedPolygon = new google.maps.Polygon({
@@ -2384,26 +2716,19 @@
             }
         }
 
-        // Cancella segmento
+        // Cancella segmento / zona proposta
         window.clearSegment = function() {
             if (polyline) {
                 polyline.setMap(null);
                 polyline = null;
             }
+            clearSliceGraphics();
             currentSegmentCoords = [];
             firstPoint = null;
-            document.getElementById('map-info').classList.remove('active');
-            // Rimuovi classe drawing-mode se presente
-            const mapContainer = document.querySelector('.map-container');
-            if (mapContainer) {
-                mapContainer.classList.remove('drawing-mode');
-            }
-            isDrawing = false;
-            const btn = document.getElementById('btn-draw');
-            if (btn) {
-                btn.textContent = '✏️ Traccia Segmento';
-                btn.style.background = '#17a2b8';
-            }
+            const info = document.getElementById('map-info');
+            if (info) info.classList.remove('active');
+            isDrawing = zonaDrawMode === 'slice';
+            updateZonaModeUi();
             updateUncoveredArea();
         };
 
@@ -2562,13 +2887,18 @@
                 return;
             }
             
-            if (!polyline || currentSegmentCoords.length < 2) {
+            if (zonaDrawMode === 'slice') {
+                if (!currentSliceResult || !currentSliceResult.ok || currentSegmentCoords.length < 3) {
+                    showAlert('Tocca inizio e fine sul terreno per colorare la zona, poi salva.', 'error');
+                    return;
+                }
+            } else if (!polyline || currentSegmentCoords.length < 2) {
                 showAlert('Traccia almeno 2 punti sulla mappa per definire il segmento', 'error');
                 return;
             }
             
-            // Valida che tutti i punti siano dentro i confini del terreno
-            if (terrenoPolygon) {
+            // Valida che tutti i punti siano dentro i confini del terreno (solo disegno a mano)
+            if (zonaDrawMode !== 'slice' && terrenoPolygon) {
                 const allInside = currentSegmentCoords.every(coord => 
                     google.maps.geometry.poly.containsLocation(coord, terrenoPolygon)
                 );
@@ -2592,7 +2922,7 @@
                     primoPunto,
                     ultimoPunto
                 );
-                const isChiuso = distanzaPrimoUltimo < 5; // Se primo e ultimo punto sono entro 5 metri, è chiuso
+                const isChiuso = zonaDrawMode === 'slice' || distanzaPrimoUltimo < 5;
 
                 if (isCurrentLavoroVm() && !isChiuso) {
                     showAlert('Chiudi il poligono (clic sul primo punto o «Chiudi segmento») prima di salvare la zona vendemmiata.', 'error');
@@ -2687,16 +3017,24 @@
                 const isOperaio = currentUserData.ruoli && currentUserData.ruoli.includes('operaio');
                 
                 const segmentoData = {
-                    tipo: isChiuso ? 'poligono' : 'segmento', // Identifica se è chiuso (poligono) o aperto (segmento)
+                    tipo: isChiuso ? 'poligono' : 'segmento',
                     data: Timestamp.fromDate(new Date(data)),
-                    coordinate: coordinate, // Coordinate del segmento (polyline) o poligono
+                    coordinate: coordinate,
                     lunghezzaMetri: lunghezzaTotale,
-                    larghezzaMetri: (isChiuso || !larghezzaValue || larghezzaValue <= 0) ? null : larghezzaValue, // Larghezza solo per segmenti aperti con valore valido
+                    larghezzaMetri: (isChiuso || !larghezzaValue || larghezzaValue <= 0) ? null : larghezzaValue,
                     superficieHa: superficieHa,
-                    isChiuso: isChiuso, // Flag per indicare se è chiuso
+                    isChiuso: isChiuso,
+                    modoTracciamento: zonaDrawMode === 'slice' ? 'due_punti' : 'segmento',
                     note: note || '',
                     creatoIl: serverTimestamp()
                 };
+                if (zonaDrawMode === 'slice' && currentSliceResult) {
+                    segmentoData.puntoInizio = currentSliceResult.start;
+                    segmentoData.puntoFine = currentSliceResult.end;
+                    if (!superficieHa && currentSliceResult.areaHa) {
+                        segmentoData.superficieHa = currentSliceResult.areaHa;
+                    }
+                }
                 
                 // Aggiungi caposquadraId o operaioId in base al ruolo
                 if (isCaposquadra) {
