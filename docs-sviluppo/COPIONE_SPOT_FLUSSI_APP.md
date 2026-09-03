@@ -157,3 +157,79 @@ Il trattore e il trincia **esistono solo qui**: servono al beat del guasto, non 
 3. Se la 1 è OK: clip 2 dallo stesso still o dall’ultimo fotogramma utile della 1.
 4. Screen recording form guasti (emulatore / tenant di prova).
 5. Montaggio: 1→2→3→4→UI. Musica in edit.
+
+---
+
+## 11. Brief agente locale (Higgsfield)
+
+Incollare all’agente Cursor **desktop** (Higgsfield autenticato). Non lanciare da cloud.
+
+```
+Sei l’agente di generazione Higgsfield per GFV Platform, Linea B (spot flussi app).
+
+LEGGI PRIMA
+- docs-sviluppo/COPIONE_SPOT_FLUSSI_APP.md (tutto, soprattutto §10–§11)
+- Non mescolare con Linea A (docs-sviluppo/COPIONE_PRIMO_SPOT_SOCIAL.md: laptop, retino, mezzi giocattolo).
+
+OBIETTIVO DI QUESTO TURNO (e basta)
+1) Verificare che Higgsfield MCP sia autenticato (show_characters).
+2) Confermare Soul Giuseppe ready.
+3) get_cost, poi generare SOLO:
+   - still A (fotogramma lock)
+   - clip 1 image-to-video da quello still (~5s)
+4) Mostrare still + clip e FERMARTI. Non clip 2–4, non UI, non montaggio, non musica.
+
+SOUL
+- Giuseppe: aa4e8f90-21a3-4c43-bb6a-6ebeb213d057
+- Un solo soul_id per generazione. Modelli still: soul_2 o soul_cinematic (solo questi accettano Soul).
+- Non usare Tony / Mario / Luca. Non l’uomo in camicia verde.
+
+STILE (vincolo duro)
+- Pixar 3D animated feature. Stesso filo delle take Soul già tenute (magazzino Giuseppe 3dc29479).
+- Vietato: live-action, photoreal, documentary, cartoon 2D Linea A.
+- Prompt always include: "Pixar 3D animated feature, stylized subsurface skin, cinematic lighting, no photoreal, no live-action".
+
+SCENA — still A (lock)
+- Vista dall’alto (high aerial / crane start) su frutteto a filari (alberi da frutto, NON vigneto).
+- Trattore da frutteto compatto, un colore (verde scuro o arancio), NESSUN logo / scritta / marca.
+- Dietro: trincia a mazze (flail mower) che lavora l’erba nel viale. Erba tagliata visibile.
+- Giuseppe Soul al posto di guida, riconoscibile, caschetto/abiti da campo coerenti col Soul.
+- Niente fumo, niente fermo, niente telefono, niente persone extra.
+- 16:9.
+
+CLIP 1 (da still A)
+- Motore: Seedance 2.0 (non 2.5: 2.0 rispetta start_image). start_image = job/media dello still A.
+- ~5s, 16:9, 720p finché non approvata, audio effetti ON, niente parlato, niente musica.
+- Camera scende / si avvicina (crane down + gentle push) mentre il trattore avanza tra i filari e il trincia taglia.
+- Giuseppe guida, concentratto, non arrabbiato.
+- Vietato in clip 1: fumo, stop, telefono, taglio di asse, seconda camera.
+
+DOPO (non ora)
+Clip 2 fumo dal TRINCIA (non dal cofano). Clip 3 scende + rabbia. Clip 4 dolly ¾ OTS sul SUO telefono (schermo spento/di schiena). Clip 5 = UI vera segnalazione-guasti, MAI generata.
+
+HIGGSFIELD — procedura
+1. get_workflow_instructions senza argomento; questa è generazione Soul+Seedance, NON ugc-website, NON faceless, NON ad-multiplier.
+2. show_characters action=list status=ready; se Giuseppe non è ready, STOP.
+3. models_explore get su soul_2 / soul_cinematic e seedance 2.0 (aspect, soul_id, start_image role).
+4. generate_image get_cost:true; poi genera still (count 1). use_unlim solo se l’utente lo chiede esplicitamente.
+5. Se lo still ha marche, fumo, vigneto, volto sbagliato o look fotoreale: NON fare il video; mostra e chiedi.
+6. generate_video Seedance 2.0, get_cost:true, poi 1 take. medias start_image = still approvato/ok.
+7. Restituisci job id still + job id clip 1. Stop.
+
+PROMPT STILL (inglese, da usare così, adatta solo se il modello rifiuta soul_id)
+
+Pixar 3D animated feature still, 16:9. High aerial view looking down a fruit orchard (apple or peach trees in neat rows, NOT a vineyard). A compact orchard tractor (solid dark green, no logos, no brand text) drives between the rows. A rear flail mower (trincia) is working, freshly cut grass in the alley. Giuseppe, the trained Soul character, sits in the driver's seat, clearly readable from above, field clothes, focused, not angry. Stylized Pixar subsurface skin, cinematic morning light, clean sky. No smoke, no fire, no phone, no other people, no readable text, no photoreal, no live-action.
+
+PROMPT CLIP 1 (image-to-video)
+
+Locked to the start frame. Pixar 3D animated feature. Camera crane-down from high aerial toward the tractor as it slowly advances between fruit-tree rows. The rear flail mower spins and cuts grass. Giuseppe stays in the seat, driving, calm and focused. Continuous single shot, no cut. Engine and mower SFX only. No smoke, no stopping, no phone, no speech, no music, no logos, no photoreal.
+
+VIETATO
+- Clip 2–4 in questo turno
+- UI / dashboard / Recraft (8ca92742)
+- Parlato italiano in generazione
+- Marche su trattore/trincia
+- Fumo o rabbia in clip 1
+- Riusare clip Linea A (laptop, retino) o start frame sbagliati (24a8eca6, 47ad0a1e, c4b295dd)
+- Bruciare crediti se Higgsfield non è auth o Giuseppe non è ready
+```
