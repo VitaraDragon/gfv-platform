@@ -1,6 +1,21 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-08-31 — branch `develop` e flusso di pubblicazione.**
+**Ultimo aggiornamento documentazione: 2026-09-03 — episodio 1 spot: segnalazione guasto.**
+
+## Spot — episodio 1 segnalazione guasto (2026-09-03)
+
+- Primo flusso in produzione: Giuseppe trincia in **frutteto** → fumo dal trincia → controllo arrabbiato → dolly ¾ sul telefono → UI `segnalazione-guasti-standalone`.
+- Trattore/trincia solo in questo episodio (beat del guasto), non da replicare in serie. Clip 1 pulita (niente fumo) come lock.
+- **Stile casa Linea B: Pixar 3D** (stesso filo magazzino / Soul). Non live-action.
+- Brief agente locale (Higgsfield desktop) in `COPIONE_SPOT_FLUSSI_APP.md` §11: still A + clip 1 only.
+- Scaletta in `COPIONE_SPOT_FLUSSI_APP.md` §10. Take Higgsfield non partite: connettore cloud 401.
+
+## Spot flussi app — Soul + dolly + UI vera (2026-09-02)
+
+- Formato Linea B chiuso: `docs-sviluppo/COPIONE_SPOT_FLUSSI_APP.md`. Gli unici attori da replicare sono i Soul (Tony, Luca, Mario, Giuseppe). Trattori e attrezzi non sono asset da far tornare identici.
+- Grammatica per episodio: gesto umano → sguardo al proprio telefono → dolly ¾ over-shoulder → taglio sulla **UI registrata**. Niente dashboard inventata.
+- Catalogo episodi (magazzino, crea lavoro, comunicazioni, conferma, preventivo, mappa, sostituto, Tony in chat). Produzione bloccata sulla screen recording, non su nuove take mezzo.
+- Linea A brand resta in `COPIONE_PRIMO_SPOT_SOCIAL.md` (laptop + retino); le due linee non si mescolano.
 
 ## Repo — branch `develop`, sito solo da `main` (2026-08-31)
 
