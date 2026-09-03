@@ -4,7 +4,7 @@
 **Linea:** serie feature. Non mescolare con lo spot brand (`COPIONE_PRIMO_SPOT_SOCIAL.md`, laptop + retino).  
 **Durata per episodio:** ~20–30s (guasto ha più beat). Master **16:9**, poi crop **9:16** (azione / volto + telefono al centro).  
 **Motore video Soul:** Seedance / Soul V2 o Soul Cinema, clip da ~5s. **UI mai generata.**  
-**Stile episodio guasto:** live-action cinematografico (non cartoon Linea A, non Pixar magazzino). Il volto è il Soul; il peso di fumo, metallo e rabbia chiede realismo.
+**Stile casa (tutti gli episodi):** **Pixar 3D** — stesso filo delle take Soul già tenute (magazzino Giuseppe, volti addestrati). Non live-action, non fotorealistico, non cartoon 2D Linea A. Un cambio di stile spezza la serie.
 
 ---
 
@@ -58,8 +58,8 @@ Chiusura (2–3s, a scelta, sempre uguale nella serie): logo GFV + `globalfarmvi
 
 | Sì | No |
 |---|---|
-| Volto Soul, gesto, OTS, dolly | Replicare lo stesso trattore / attrezzo / carro |
-| Sfondo agricolo *generico* | Marche, scritte su sacchi, UI sullo schermo Higgsfield |
+| Volto Soul, gesto, OTS, dolly, **look Pixar 3D** | Replicare lo stesso trattore / attrezzo / carro |
+| Sfondo agricolo *generico* (stesso stile 3D) | Live-action, fotoreale, marche, scritte su sacchi, UI Higgsfield |
 | Audio effetti ambiente (passi, sacco, ufficio) | Parlato italiano in generazione (labiale rotto) |
 | UI vera in montaggio | Dashboard Recraft (`8ca92742` e simili) |
 | Un flusso = un episodio | Incollare Linea A (laptop, retino, mezzi giocattolo) |
@@ -94,7 +94,7 @@ Serie lunga (manager → capo → operaio, stile `v11` ~93s): si monta **dopo**,
 
 1. Scegliere **un** flusso e **un** Soul.  
 2. Registrare la **UI vera** (emulatore o tenant di prova; niente UI finta). Piano medio del telefono: 9:16, stesso gesto (pollice che tocca).  
-3. Prompt Higgsfield: Soul + gesto + ¾ OTS + dolly in. Schermo del telefono **non** deve essere leggibile.  
+3. Prompt Higgsfield: **Pixar 3D** + Soul + gesto + ¾ OTS + dolly in. Schermo del telefono **non** deve essere leggibile.  
 4. Take ~5s; se il gesto è lungo, due clip sullo stesso asse (gesto → dolly).  
 5. Montaggio: coda dolly → testa UI. Musica unica. Logo.  
 6. Crop 9:16 con volto + telefono al centro.
@@ -128,7 +128,7 @@ Episodio 1 — Segnalazione guasto: still A (aereo pulito) → clip 1 crane down
 
 Il trattore e il trincia **esistono solo qui**: servono al beat del guasto, non vanno replicati negli altri episodi. Niente marche, niente scritte sull’attrezzo.
 
-**Fotogramma A (lock):** alto, frutteto a filari (alberi da frutto, **non** vigneto). Trattore da frutteto compatto, colore unico (verde scuro o arancio, senza logo). Dietro: **trincia a mazze** che lavora l’erba nel viale. Giuseppe Soul al posto di guida. Erba tagliata visibile. **Niente fumo, niente fermo.** Tutte le clip 1–2 partono da questo still.
+**Fotogramma A (lock):** Pixar 3D (stesso look del magazzino). Alto, frutteto a filari (alberi da frutto, **non** vigneto). Trattore da frutteto compatto, colore unico (verde scuro o arancio, senza logo). Dietro: **trincia a mazze** che lavora l’erba nel viale. Giuseppe Soul al posto di guida. Erba tagliata visibile. **Niente fumo, niente fermo.** Tutte le clip 1–2 partono da questo still.
 
 ### Scaletta
 
@@ -142,6 +142,7 @@ Il trattore e il trincia **esistono solo qui**: servono al beat del guasto, non 
 
 ### Decisioni chiuse (2026-09-03)
 
+- **Stile Pixar 3D** su still e clip (non live-action). Stesso filo delle generazioni Soul già tenute.
 - Fumo = dal **trincia**, modestamente (guasto meccanico, non incendio).
 - Rabbia = **dopo** aver visto il danno, non mentre guida.
 - Clip 1 **pulita** (senza fumo) per avere un lock riusabile.
@@ -151,7 +152,7 @@ Il trattore e il trincia **esistono solo qui**: servono al beat del guasto, non 
 
 ### Produzione
 
-1. Still A con Soul Giuseppe (`aa4e8f90-21a3-4c43-bb6a-6ebeb213d057`) + `soul_2` / `soul_cinematic`.
+1. Still A Pixar 3D con Soul Giuseppe (`aa4e8f90-21a3-4c43-bb6a-6ebeb213d057`) + `soul_2` / `soul_cinematic`. Prompt: *Pixar 3D animated feature still, subsurface skin, stylized orchard, no photoreal.*
 2. Clip 1 image-to-video da quello still (crane down, avanzamento, trincia al lavoro).
 3. Se la 1 è OK: clip 2 dallo stesso still o dall’ultimo fotogramma utile della 1.
 4. Screen recording form guasti (emulatore / tenant di prova).
