@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-02 — formato spot flussi app (Linea B).**
+**Ultimo aggiornamento documentazione: 2026-09-03 — episodio 1 spot: segnalazione guasto.**
+
+## Spot — episodio 1 segnalazione guasto (2026-09-03)
+
+- Primo flusso in produzione: Giuseppe trincia in **frutteto** → fumo dal trincia → controllo arrabbiato → dolly ¾ sul telefono → UI `segnalazione-guasti-standalone`.
+- Trattore/trincia solo in questo episodio (beat del guasto), non da replicare in serie. Clip 1 pulita (niente fumo) come lock.
+- Scaletta in `COPIONE_SPOT_FLUSSI_APP.md` §10. Take Higgsfield non partite: connettore cloud 401.
 
 ## Spot flussi app — Soul + dolly + UI vera (2026-09-02)
 

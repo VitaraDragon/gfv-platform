@@ -1,9 +1,10 @@
 # COPIONE SPOT FLUSSI APP (Linea B)
 
-**Stato:** formato chiuso (2026-09-02). Take Higgsfield: solo dopo screen recording della UI vera.  
+**Stato:** formato chiuso (2026-09-02). Episodio in produzione: **segnalazione guasto** (2026-09-03).  
 **Linea:** serie feature. Non mescolare con lo spot brand (`COPIONE_PRIMO_SPOT_SOCIAL.md`, laptop + retino).  
-**Durata per episodio:** ~15–25s. Master **16:9**, poi crop **9:16** (volto + telefono al centro).  
-**Motore video Soul:** Seedance / Soul V2 o Soul Cinema, clip da ~5s. **UI mai generata.**
+**Durata per episodio:** ~20–30s (guasto ha più beat). Master **16:9**, poi crop **9:16** (azione / volto + telefono al centro).  
+**Motore video Soul:** Seedance / Soul V2 o Soul Cinema, clip da ~5s. **UI mai generata.**  
+**Stile episodio guasto:** live-action cinematografico (non cartoon Linea A, non Pixar magazzino). Il volto è il Soul; il peso di fumo, metallo e rabbia chiede realismo.
 
 ---
 
@@ -69,18 +70,19 @@ Musica e battute: in montaggio, come Linea A.
 
 ## 6. Catalogo episodi (un flusso = uno spot)
 
-Ordine di produzione: prima quelli che **non** hanno bisogno di un mezzo riconoscibile.
+Il mezzo può comparire se **è il beat** (es. guasto al trincia). Non va tenuto identico negli altri episodi.
 
 | Ep | Flusso | Soul | Gesto | UI vera da registrare | Blocco |
 |---|---|---|---|---|---|
-| **1** | Magazzino — movimento / scarico | Giuseppe | Posa il sacco, guarda il telefono | `movimenti-standalone` (o home magazzino) | OTS `3dc29479` OK. Manca lo screen recording. |
-| 2 | Crea lavoro (ufficio) | Luca | Al laptop / telefono, un cenno | form Gestione lavori (terreno, tipo, assegnatario) | Clip ufficio Luca non partita |
-| 3 | Comunicazione squadra | Mario | Legge il telefono a bordo campo | thread comunicazioni / Impegni giorno | Mezzo in sfondo, non hero |
-| 4 | Conferma lavoro | Giuseppe | Conferma sul telefono | conferma ricezione / stato lavoro | Stessa grammatica del magazzino |
-| 5 | Preventivo conto terzi | Luca | Ufficio, scorre il preventivo | `nuovo-preventivo` / lista preventivi | |
-| 6 | Mappa / avanzamento | Luca | Guarda telefono o monitor | `mappa-aziendale` (progresso, allarmi) | |
-| 7 | Buco squadra / sostituto | Mario | Telefono, breve sguardo al filare | shortlist sostituti su Gestione lavori | |
-| 8 | Tony in chat | Luca | Parla, Tony riempie | widget Tony + form che si popola | UI vera obbligatoria sul “riempimento” |
+| **1** | **Segnalazione guasto** | Giuseppe | Trincia in frutteto → fumo → controllo arrabbiato → telefono | `segnalazione-guasti-standalone` (tipo macchina, attrezzo = trincia) | Scaletta §10. Prima take: still + clip 1. Higgsfield da cloud: 401, serve ri-auth. |
+| 2 | Magazzino — movimento / scarico | Giuseppe | Posa il sacco, guarda il telefono | `movimenti-standalone` (o home magazzino) | OTS `3dc29479` OK. Manca lo screen recording. |
+| 3 | Crea lavoro (ufficio) | Luca | Al laptop / telefono, un cenno | form Gestione lavori (terreno, tipo, assegnatario) | Clip ufficio Luca non partita |
+| 4 | Comunicazione squadra | Mario | Legge il telefono a bordo campo | thread comunicazioni / Impegni giorno | Mezzo in sfondo, non hero |
+| 5 | Conferma lavoro | Giuseppe | Conferma sul telefono | conferma ricezione / stato lavoro | Stessa grammatica del magazzino |
+| 6 | Preventivo conto terzi | Luca | Ufficio, scorre il preventivo | `nuovo-preventivo` / lista preventivi | |
+| 7 | Mappa / avanzamento | Luca | Guarda telefono o monitor | `mappa-aziendale` (progresso, allarmi) | |
+| 8 | Buco squadra / sostituto | Mario | Telefono, breve sguardo al filare | shortlist sostituti su Gestione lavori | |
+| 9 | Tony in chat | Luca | Parla, Tony riempie | widget Tony + form che si popola | UI vera obbligatoria sul “riempimento” |
 
 Parco macchine, vendemmia meccanica, trattamenti: **stesso schema**. Il Soul consulta la lista / il form sul telefono. Non si genera il mezzo del catalogo.
 
@@ -118,4 +120,39 @@ Non generare il pezzo Soul **prima** di avere la UI: senza match cut lo spot non
 
 ## 9. Prossimo passo
 
-Episodio 1 — Magazzino: registrare la schermata reale, poi montare sull’OTS già approvato. Generare altre clip Soul solo a episodio scelto + UI pronta.
+Episodio 1 — Segnalazione guasto: still A (aereo pulito) → clip 1 crane down. Clip 2–4 solo se la 1 è approvata. UI vera in parallelo (`core/admin/segnalazione-guasti-standalone.html`).
+
+---
+
+## 10. Episodio 1 — Segnalazione guasto (Giuseppe)
+
+Il trattore e il trincia **esistono solo qui**: servono al beat del guasto, non vanno replicati negli altri episodi. Niente marche, niente scritte sull’attrezzo.
+
+**Fotogramma A (lock):** alto, frutteto a filari (alberi da frutto, **non** vigneto). Trattore da frutteto compatto, colore unico (verde scuro o arancio, senza logo). Dietro: **trincia a mazze** che lavora l’erba nel viale. Giuseppe Soul al posto di guida. Erba tagliata visibile. **Niente fumo, niente fermo.** Tutte le clip 1–2 partono da questo still.
+
+### Scaletta
+
+| Clip | ~t | Immagine | Audio Higgsfield | Vietato |
+|---|---|---|---|---|
+| **1 Avvicinamento** | 0–5s | Parte dall’alto, camera scende / si avvicina mentre avanza tra i filari e il trincia taglia | Motore + trincia | Fumo, stop, telefono, parlato |
+| **2 Guasto** | 5–10s | Stesso asse, più vicino, ¾ posteriore. Colpo metallico; **fumo grigio dal trincia** (attrezzo dietro), non dal cofano. Giuseppe gira la testa; rallenta | Bang + trincia che muore + sibilo | Esplosione, fiamme, fumo dal trattore |
+| **3 Controllo + rabbia** | 10–15s | Fermo. Scende, va al trincia, vede il danno. **Arrabbiato**: mascella, gesto verso l’attrezzo (pugno / braccia). Non parla a camera | Passi, uccelli, metallo | Labiale italiano, urlo a noi, telefono già in mano |
+| **4 Dolly telefono** | 15–20s | ¾ over-shoulder. Ancora teso. Tira fuori **il suo** telefono, guarda lui. Dolly verso lo schermo (spento / blur / di schiena) | Tasca, tap | Telefono girato verso di noi, UI inventata |
+| **5 App vera** | 20–25s | Montaggio: `segnalazione-guasti` — tipo Macchina/Attrezzo, trattore + attrezzo trincia, gravità, dettagli | — | Recraft / dashboard finta |
+
+### Decisioni chiuse (2026-09-03)
+
+- Fumo = dal **trincia**, modestamente (guasto meccanico, non incendio).
+- Rabbia = **dopo** aver visto il danno, non mentre guida.
+- Clip 1 **pulita** (senza fumo) per avere un lock riusabile.
+- Un Soul per clip (solo Giuseppe).
+- Seedance ~5s, 16:9, effetti accesi, **niente parlato** in generazione.
+- Non generare clip 2–4 finché la 1 non è tenuta.
+
+### Produzione
+
+1. Still A con Soul Giuseppe (`aa4e8f90-21a3-4c43-bb6a-6ebeb213d057`) + `soul_2` / `soul_cinematic`.
+2. Clip 1 image-to-video da quello still (crane down, avanzamento, trincia al lavoro).
+3. Se la 1 è OK: clip 2 dallo stesso still o dall’ultimo fotogramma utile della 1.
+4. Screen recording form guasti (emulatore / tenant di prova).
+5. Montaggio: 1→2→3→4→UI. Musica in edit.
