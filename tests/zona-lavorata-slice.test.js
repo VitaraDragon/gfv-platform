@@ -8,7 +8,8 @@ import {
   hasUsableTerrenoPolygon,
   rectanglePolygonMeters,
   haversineMeters,
-  pointInPolygonLatLng
+  pointInPolygonLatLng,
+  toLatLngPoint
 } from '../core/js/zona-lavorata-slice.js';
 
 const ORIGIN = { lat: 44.5, lng: 11.3 };
@@ -39,6 +40,16 @@ describe('zona-lavorata-slice', () => {
     expect(hasUsableTerrenoPolygon(null)).toBe(false);
     expect(hasUsableTerrenoPolygon([{ lat: 1, lng: 2 }])).toBe(false);
     expect(hasUsableTerrenoPolygon(rectanglePolygonMeters(ORIGIN, 100, 50))).toBe(true);
+  });
+
+  test('toLatLngPoint accetta anche latitude/longitude', () => {
+    expect(toLatLngPoint({ latitude: 44.5, longitude: 11.3 })).toEqual({ lat: 44.5, lng: 11.3 });
+    const ring = [
+      { latitude: 44.5, longitude: 11.3 },
+      { latitude: 44.5, longitude: 11.301 },
+      { latitude: 44.501, longitude: 11.301 }
+    ];
+    expect(hasUsableTerrenoPolygon(ring)).toBe(true);
   });
 
   test('taglio metà campo: 50 m su 100×50 → ~0.25 ha', () => {
