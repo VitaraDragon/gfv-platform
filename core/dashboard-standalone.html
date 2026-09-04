@@ -949,7 +949,7 @@
             if (btnOff) btnOff.disabled = !!busy;
         }
 
-        async function persistPreviewMode(tenantId, previewOn, tenantNome, roles) {
+        async function persistPreviewMode(tenantId, previewOn, tenantNome) {
             const {
                 publishFeatureFlags,
                 previewFlagUpdatePayload
@@ -1003,12 +1003,12 @@
             const btnOff = document.getElementById('gfv-preview-btn-off');
             if (btnOn) {
                 btnOn.addEventListener('click', function () {
-                    persistPreviewMode(currentTenantId, true, nome, roles);
+                    persistPreviewMode(currentTenantId, true, nome);
                 });
             }
             if (btnOff) {
                 btnOff.addEventListener('click', function () {
-                    persistPreviewMode(currentTenantId, false, nome, roles);
+                    persistPreviewMode(currentTenantId, false, nome);
                 });
             }
         }

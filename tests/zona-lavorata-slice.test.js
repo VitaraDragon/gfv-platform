@@ -13,6 +13,17 @@ import {
 
 const ORIGIN = { lat: 44.5, lng: 11.3 };
 
+function ringHasChordNear(coords, a, b, tolM) {
+  for (let i = 0; i < coords.length; i++) {
+    const p = coords[i];
+    const q = coords[(i + 1) % coords.length];
+    const d1 = haversineMeters(p, a) + haversineMeters(q, b);
+    const d2 = haversineMeters(p, b) + haversineMeters(q, a);
+    if (d1 < tolM || d2 < tolM) return true;
+  }
+  return false;
+}
+
 function midOnRect(poly, tAlongWidth, tAlongHeight) {
   const sw = poly[0];
   const se = poly[1];
@@ -100,6 +111,29 @@ describe('zona-lavorata-slice', () => {
     expect(r.ok).toBe(true);
     expect(r.areaM2).toBeGreaterThan(1800);
     expect(r.areaM2).toBeLessThan(2100);
+  });
+
+  test('punti non allineati: tagli lungo il campo, non la diagonale I→F', () => {
+    const poly = rectanglePolygonMeters(ORIGIN, 100, 50);
+    const start = midOnRect(poly, 0.9, 0.8);
+    const end = midOnRect(poly, 0.5, 0.2);
+    const r = slicePolygonBetweenPoints(poly, start, end);
+    expect(r.ok).toBe(true);
+    // Δx=40 > Δy=30 → fascia verticale 40×50
+    expect(r.areaM2).toBeGreaterThan(1950);
+    expect(r.areaM2).toBeLessThan(2050);
+    expect(ringHasChordNear(r.coords, start, end, 8)).toBe(false);
+  });
+
+  test('sfalsati più in altezza: fascia orizzontale che segue i lati lunghi', () => {
+    const poly = rectanglePolygonMeters(ORIGIN, 100, 50);
+    const start = midOnRect(poly, 0.8, 0.9);
+    const end = midOnRect(poly, 0.6, 0.1);
+    const r = slicePolygonBetweenPoints(poly, start, end);
+    expect(r.ok).toBe(true);
+    // Δy=40 > Δx=20 → fascia 100×40
+    expect(r.areaM2).toBeGreaterThan(3900);
+    expect(r.areaM2).toBeLessThan(4100);
   });
 
   test('pointInPolygon e distanza rettangolo', () => {

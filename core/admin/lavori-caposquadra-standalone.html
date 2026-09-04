@@ -761,7 +761,7 @@
                         </div>
                         <p id="zona-slice-status">Tocca il punto di inizio sul terreno</p>
                         <p id="zona-slice-hint" style="font-size: 13px; color: #1b5e20; background: #e8f5e9; padding: 8px 10px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #2E8B57;">
-                            Tocca <strong>inizio</strong> e <strong>fine</strong> sul campo: la zona si colora sul perimetro già tracciato del terreno (filari o seminativo). Puoi trascinare i due punti per ritoccare. Il disegno a mano resta disponibile.
+                            Tocca <strong>inizio</strong> e <strong>fine</strong> sul campo: la zona segue i bordi del terreno tra le due stazioni (i tagli restano allineati al campo, anche se i punti non sono in linea). Puoi trascinare i due punti per ritoccare. Il disegno a mano resta disponibile.
                         </p>
                         <p id="zona-manual-hint" style="display:none; font-size: 13px; color: #1565c0; background: #e3f2fd; padding: 8px 10px; border-radius: 6px; margin: 8px 0; border-left: 4px solid #1976d2;">
                             Disegno a mano: tocca più punti sul percorso, poi chiudi il segmento se serve un poligono.
@@ -996,7 +996,7 @@
             }
             if (footnote) {
                 footnote.innerHTML = isSlice
-                    ? '💡 Tocca inizio e fine sul terreno già mappato. I punti vicini al confine si agganciano da soli (tieni Shift per posizionare a mano).'
+                    ? '💡 Tocca inizio e fine sul terreno già mappato. La zona segue i bordi del campo (non la diagonale tra i due punti). I punti vicini al confine si agganciano da soli (tieni Shift per posizionare a mano).'
                     : '💡 Clicca sulla mappa per tracciare il percorso. I punti vicini al confine si agganciano da soli (tieni Shift per disattivare lo snap).';
             }
             if (btnDraw) {
@@ -1091,7 +1091,7 @@
                 }
                 const messages = {
                     punti_troppo_vicini: 'Inizio e fine sono troppo vicini. Allontana il secondo tocco.',
-                    zona_vuota: 'I due punti non tagliano il terreno. Tocca due punti sul campo, nella direzione del lavoro.',
+                    zona_vuota: 'I due punti non tagliano il terreno. Tocca due punti sul campo, più distanti lungo il lavoro.',
                     terreno_senza_perimetro: 'Manca il perimetro del terreno. Traccialo in Terreni oppure usa il disegno a mano.',
                     punti_non_validi: 'Punti non validi.'
                 };
@@ -1227,7 +1227,7 @@
             isDrawing = zonaDrawMode === 'slice';
             updateZonaModeUi();
             if (zonaDrawMode === 'slice') {
-                showAlert('Tocca inizio e fine: la zona si colora sul perimetro del terreno.', 'info');
+                showAlert('Tocca inizio e fine: la zona segue i bordi del terreno.', 'info');
             } else {
                 showAlert('Disegno a mano: tocca i punti del percorso, poi Chiudi segmento se serve.', 'info');
             }
@@ -1969,7 +1969,7 @@
             // Reset pulsante / modo tracciamento
             updateZonaModeUi();
             if (zonaDrawMode === 'slice') {
-                showAlert('Tocca inizio e fine sul terreno: la zona si colora da sola.', 'info');
+                showAlert('Tocca inizio e fine sul terreno: la zona segue i bordi del campo.', 'info');
             } else if (!terrenoHasPolygon()) {
                 showAlert('Questo terreno non ha il perimetro sulla mappa. Usa il tracciamento a mano, oppure traccia i confini in Terreni.', 'info');
             }

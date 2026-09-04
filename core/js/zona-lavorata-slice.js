@@ -1,9 +1,10 @@
 /**
  * Zona lavorata da due punti (inizio / fine).
  *
- * Taglia il perimetro già tracciato del terreno: la zona è la fascia del
- * poligono compresa tra due rette perpendicolari alla direzione inizio→fine.
- * Vale per filari e seminativi: non richiede una griglia di filari.
+ * Taglia il perimetro già tracciato del terreno. I due tocchi fissano le
+ * stazioni di inizio/fine; i tagli sono allineati al campo (obb dei lati),
+ * non alla corda I→F. Così, anche se i punti non sono in linea, la zona
+ * segue i bordi del terreno e non taglia in diagonale i filari.
  *
  * Puro (niente Google Maps / Tony). Conferma umana resta nel form mappa.
  *
@@ -78,7 +79,7 @@ export function pointInPolygonLatLng(point, polygon) {
 }
 
 /**
- * Taglia il poligono del terreno tra due punti.
+ * Taglia il poligono del terreno tra due punti, con tagli allineati al campo.
  *
  * @param {Array<{lat:number,lng:number}>} polygonCoords
  * @param {{lat:number,lng:number}} start
@@ -127,26 +128,35 @@ export function slicePolygonBetweenPoints(polygonCoords, start, end, options) {
   const polyXY = polygon.map((p) => toXY(p, origin));
   const aXY = toXY(a, origin);
   const bXY = toXY(b, origin);
-  const dx = bXY.x - aXY.x;
-  const dy = bXY.y - aXY.y;
-  const lengthMeters = Math.hypot(dx, dy);
+  const lengthMeters = Math.hypot(bXY.x - aXY.x, bXY.y - aXY.y);
   if (lengthMeters < minDistanceMeters) {
     return empty('punti_troppo_vicini', { lengthMeters });
   }
 
-  const ux = dx / lengthMeters;
-  const uy = dy / lengthMeters;
-  const tOf = (p) => (p.x - aXY.x) * ux + (p.y - aXY.y) * uy;
+  const axes = polygonObbAxes(polyXY);
+  const axis = pickSliceAxis(axes, aXY, bXY, minDistanceMeters);
+  if (!axis) {
+    return empty('punti_troppo_vicini', { lengthMeters });
+  }
+
+  const tOf = (p) => p.x * axis.x + p.y * axis.y;
+  const tA = tOf(aXY);
+  const tB = tOf(bXY);
+  const tMin = Math.min(tA, tB);
+  const tMax = Math.max(tA, tB);
+  if (tMax - tMin < minDistanceMeters) {
+    return empty('punti_troppo_vicini', { lengthMeters });
+  }
 
   let clipped = clipHalfPlane(
     polyXY,
-    (p) => tOf(p) >= -CLIP_EPS_M,
-    (p1, p2) => intersectAtT(p1, p2, tOf, 0)
+    (p) => tOf(p) >= tMin - CLIP_EPS_M,
+    (p1, p2) => intersectAtT(p1, p2, tOf, tMin)
   );
   clipped = clipHalfPlane(
     clipped,
-    (p) => tOf(p) <= lengthMeters + CLIP_EPS_M,
-    (p1, p2) => intersectAtT(p1, p2, tOf, lengthMeters)
+    (p) => tOf(p) <= tMax + CLIP_EPS_M,
+    (p1, p2) => intersectAtT(p1, p2, tOf, tMax)
   );
   clipped = dedupeRing(clipped, 0.02);
 
@@ -243,6 +253,80 @@ function shoelaceAreaM2(ring) {
     a += ring[i].x * ring[j].y - ring[j].x * ring[i].y;
   }
   return Math.abs(a) / 2;
+}
+
+/**
+ * Assi del bounding box orientato allineato ai lati (min area).
+ * longAxis = lato più lungo del box.
+ * @param {Array<{x:number,y:number}>} polyXY
+ * @returns {{ longAxis: {x:number,y:number}, shortAxis: {x:number,y:number} }}
+ */
+function polygonObbAxes(polyXY) {
+  let bestArea = Infinity;
+  let bestLong = { x: 1, y: 0 };
+  let bestShort = { x: 0, y: 1 };
+  const n = polyXY.length;
+  for (let i = 0; i < n; i++) {
+    const a = polyXY[i];
+    const b = polyXY[(i + 1) % n];
+    const ex = b.x - a.x;
+    const ey = b.y - a.y;
+    const len = Math.hypot(ex, ey);
+    if (len < 1e-6) continue;
+    const ux = ex / len;
+    const uy = ey / len;
+    const vx = -uy;
+    const vy = ux;
+    let minU = Infinity;
+    let maxU = -Infinity;
+    let minV = Infinity;
+    let maxV = -Infinity;
+    for (let k = 0; k < n; k++) {
+      const p = polyXY[k];
+      const tu = p.x * ux + p.y * uy;
+      const tv = p.x * vx + p.y * vy;
+      if (tu < minU) minU = tu;
+      if (tu > maxU) maxU = tu;
+      if (tv < minV) minV = tv;
+      if (tv > maxV) maxV = tv;
+    }
+    const spanU = maxU - minU;
+    const spanV = maxV - minV;
+    const area = spanU * spanV;
+    if (area < bestArea - 1e-6 || (Math.abs(area - bestArea) <= 1e-6 && spanU > spanV)) {
+      bestArea = area;
+      if (spanU >= spanV) {
+        bestLong = { x: ux, y: uy };
+        bestShort = { x: vx, y: vy };
+      } else {
+        bestLong = { x: vx, y: vy };
+        bestShort = { x: ux, y: uy };
+      }
+    }
+  }
+  return { longAxis: bestLong, shortAxis: bestShort };
+}
+
+/**
+ * Sceglie l'asse del campo su cui inizio e fine sono più distanti,
+ * così i tagli restano paralleli a un lato anche se I e F non sono allineati.
+ * @param {{ longAxis: {x:number,y:number}, shortAxis: {x:number,y:number} }} axes
+ * @param {{x:number,y:number}} aXY
+ * @param {{x:number,y:number}} bXY
+ * @param {number} minDistanceMeters
+ * @returns {{x:number,y:number}|null}
+ */
+function pickSliceAxis(axes, aXY, bXY, minDistanceMeters) {
+  const dLong = Math.abs(projectOnAxis(bXY, axes.longAxis) - projectOnAxis(aXY, axes.longAxis));
+  const dShort = Math.abs(projectOnAxis(bXY, axes.shortAxis) - projectOnAxis(aXY, axes.shortAxis));
+  if (dLong >= dShort && dLong >= minDistanceMeters) return axes.longAxis;
+  if (dShort >= minDistanceMeters) return axes.shortAxis;
+  if (dLong >= minDistanceMeters) return axes.longAxis;
+  return null;
+}
+
+function projectOnAxis(p, axis) {
+  return p.x * axis.x + p.y * axis.y;
 }
 
 function clipHalfPlane(vertices, isInside, intersect) {

@@ -1,6 +1,10 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-04 — flag prova Sabbie Gialle + switch dashboard.**
+**Ultimo aggiornamento documentazione: 2026-09-04 — zona due punti: tagli allineati al campo.**
+
+## Zona lavorata — tagli allineati al campo, non alla diagonale I→F (2026-09-04)
+
+Se inizio e fine non sono in linea, la zona non taglia più in diagonale i filari. I due tocchi fissano le stazioni; i tagli seguono i lati del terreno (bounding box orientato). Test aggiunti in `tests/zona-lavorata-slice.test.js`.
 
 ## Flag prova tenant + switch dashboard Prova/Pubblicata (2026-09-04)
 

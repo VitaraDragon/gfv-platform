@@ -632,7 +632,7 @@ Migliorie ulteriori (sessione mappatura, tap dentro/fuori, snap ai vicini, ha su
 | # | Decisione | Fonte | Stato | Note |
 |---|-----------|-------|-------|------|
 | 22.1 | Segnare la zona con **due tocchi: inizio e fine** | prodotto 2026-09-03 | **implementato** | Default su `lavori-caposquadra-standalone.html` se il terreno ha `polygonCoords` **e** il flag prova è acceso (§22.7) |
-| 22.2 | La zona è una **fetta del perimetro terreno già tracciato**, non un nuovo poligono libero | prodotto 2026-09-03 | **implementato** | Taglio con due rette perpendicolari a inizio→fine; vale per filari e seminativi |
+| 22.2 | La zona è una **fetta del perimetro terreno già tracciato**, non un nuovo poligono libero | prodotto 2026-09-03; fix 2026-09-04 | **implementato** | Tagli allineati ai lati del campo (obb), non alla corda I→F: niente diagonali se i punti non sono in linea |
 | 22.3 | **Conferma umana** prima del Salva (anteprima verde + ettari). Ritocco: trascinare i due marker | prodotto 2026-09-03 | **implementato** | Stesso salvataggio `zoneLavorate` (`coordinate`, `isChiuso`, `superficieHa`) |
 | 22.4 | Disegno a mano (segmento/poligono punto-punto) resta **fallback** | prodotto 2026-09-03 | **implementato** | Pulsante «A mano»; obbligatorio se manca il perimetro in Terreni o se preview è off |
 | 22.5 | Niente trail GPS dello smartphone, niente swipe in v1 | prodotto 2026-09-03 | **implementato** | Swipe resta idea futura; due tap sono il gesto solido su telefono |
