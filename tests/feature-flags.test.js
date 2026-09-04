@@ -48,11 +48,11 @@ describe('feature-flags', () => {
     expect(isPreviewModeEnabled({ preview: true }, 'altro', 'Cantina')).toBe(true);
   });
 
-  test('zona a due punti segue il preview', () => {
+  test('zona a due punti è pubblicata: accesa anche senza preview', () => {
     const key = FEATURE_FLAG_KEYS.ZONA_LAVORATA_DUE_PUNTI;
     expect(isFeatureEnabled(key, undefined, 'sabbie_gialle')).toBe(true);
-    expect(isFeatureEnabled(key, { preview: false }, 'sabbie_gialle')).toBe(false);
-    expect(isFeatureEnabled(key, undefined, 'altro')).toBe(false);
+    expect(isFeatureEnabled(key, { preview: false }, 'sabbie_gialle')).toBe(true);
+    expect(isFeatureEnabled(key, undefined, 'altro')).toBe(true);
     expect(isFeatureEnabled('flagInesistente', { preview: true }, 'sabbie_gialle')).toBe(false);
   });
 

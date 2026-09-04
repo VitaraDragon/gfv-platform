@@ -602,7 +602,7 @@ async function loadWorksForSelection() {
 
 function updateLavoriDetailEmbed(loadIframe = false) {
     if (!lavoriDetailFrameEl || !lavoriFullDetailLinkEl) return;
-    const base = '../admin/lavori-caposquadra-standalone.html?ws=classic';
+    const base = '../admin/lavori-caposquadra-standalone.html?ws=classic&v=20260904c';
     if (!selectedWork) {
         lavoriDetailFrameEl.removeAttribute('src');
         lavoriDetailFrameEl.removeAttribute('data-embed-loaded');

@@ -1,6 +1,10 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-04 — zona due punti: tagli allineati al campo.**
+**Ultimo aggiornamento documentazione: 2026-09-04 — zona due punti sempre attiva in PWA.**
+
+## Zona due punti — sempre attiva (non più solo «Prova») (2026-09-04)
+
+Dopo la promozione su `main` la PWA restava su «Traccia segmento» se lo switch era su Pubblicata (o il tenant non matchava). La zona inizio/fine è **pubblicata**: `enabledAlways` in `feature-flags.js`. Lo switch resta per novità successive.
 
 ## Zona lavorata — tagli allineati al campo, non alla diagonale I→F (2026-09-04)
 
@@ -14,7 +18,7 @@ Su **Sabbie Gialle** le novità in verifica (prima: zona lavorata a due punti) s
 | ----- | --------- |
 | **Catalogo** | `core/config/feature-flags.js` |
 | **Switch** | `core/dashboard-standalone.html` + `core/styles/dashboard.css` |
-| **Gate UI** | `lavori-caposquadra-standalone.html` — due punti solo se `zonaLavorataDuePunti` |
+| **Gate UI** | `lavori-caposquadra-standalone.html` — due punti se il terreno ha perimetro (`enabledAlways`) |
 | **Test** | `tests/feature-flags.test.js` |
 | **Decisioni** | `TONY_DECISIONI_E_REQUISITI.md` §22.7 / §23 |
 

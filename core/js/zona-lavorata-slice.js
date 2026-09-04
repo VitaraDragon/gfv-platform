@@ -21,8 +21,12 @@ const CLOSE_RING_M = 0.5;
  */
 export function toLatLngPoint(p) {
   if (!p || typeof p !== 'object') return null;
-  const lat = Number(typeof p.lat === 'function' ? p.lat() : p.lat);
-  const lng = Number(typeof p.lng === 'function' ? p.lng() : p.lng);
+  const lat = Number(
+    typeof p.lat === 'function' ? p.lat() : (p.lat != null ? p.lat : p.latitude)
+  );
+  const lng = Number(
+    typeof p.lng === 'function' ? p.lng() : (p.lng != null ? p.lng : p.longitude)
+  );
   if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
   return { lat, lng };
 }
