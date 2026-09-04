@@ -241,14 +241,6 @@
             margin: 0;
             background: rgba(232, 245, 233, 0.96);
         }
-            position: absolute;
-            top: 114px;
-            left: 8px;
-            right: 8px;
-            z-index: 24;
-            margin: 0;
-            background: rgba(255, 243, 224, 0.96);
-        }
 
         body.embed-mobile.map-fullscreen #zona-modal .map-info {
             position: absolute;
@@ -866,7 +858,8 @@
         } from '../../modules/vendemmia-meccanica/services/lavoro-vm-utils.js';
         import {
             slicePolygonBetweenPoints,
-            hasUsableTerrenoPolygon
+            hasUsableTerrenoPolygon,
+            toLatLngPoint
         } from '../js/zona-lavorata-slice.js';
         import {
             FEATURE_FLAG_KEYS,
@@ -916,8 +909,13 @@
         const PROXIMITY_TOLERANCE_METERS = 5; // Tolleranza per estendere fino al confine nel calcolo (5 metri)
         const SLICE_MAX_OUTSIDE_METERS = 25;
 
+        function terrenoPolygonCoords(terreno) {
+            if (!terreno || typeof terreno !== 'object') return null;
+            return terreno.polygonCoords || terreno.poligonoCoords || terreno.coordinates || null;
+        }
+
         function terrenoHasPolygon() {
-            return hasUsableTerrenoPolygon(currentTerreno && currentTerreno.polygonCoords);
+            return hasUsableTerrenoPolygon(terrenoPolygonCoords(currentTerreno));
         }
 
         function zonaDuePuntiEnabled() {
@@ -1078,7 +1076,7 @@
         function applySlicePreview() {
             if (!sliceStart || !sliceEnd || !currentTerreno) return;
             const result = slicePolygonBetweenPoints(
-                currentTerreno.polygonCoords,
+                terrenoPolygonCoords(currentTerreno),
                 latLngPlain(sliceStart),
                 latLngPlain(sliceEnd)
             );
@@ -1194,9 +1192,10 @@
             }
             terrenoBoundaryCoords = [];
             if (!terrenoHasPolygon()) return;
-            const terrenoCoords = currentTerreno.polygonCoords.map(function(c) {
-                return new google.maps.LatLng(c.lat, c.lng);
-            });
+            const terrenoCoords = (terrenoPolygonCoords(currentTerreno) || []).map(function(c) {
+                const p = toLatLngPoint(c);
+                return p ? new google.maps.LatLng(p.lat, p.lng) : null;
+            }).filter(Boolean);
             terrenoBoundaryCoords = terrenoCoords;
             terrenoPolygon = new google.maps.Polygon({
                 paths: terrenoCoords,

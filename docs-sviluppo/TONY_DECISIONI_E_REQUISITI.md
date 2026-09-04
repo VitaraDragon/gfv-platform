@@ -637,7 +637,7 @@ Migliorie ulteriori (sessione mappatura, tap dentro/fuori, snap ai vicini, ha su
 | 22.4 | Disegno a mano (segmento/poligono punto-punto) resta **fallback** | prodotto 2026-09-03 | **implementato** | Pulsante «A mano»; obbligatorio se manca il perimetro in Terreni o se preview è off |
 | 22.5 | Niente trail GPS dello smartphone, niente swipe in v1 | prodotto 2026-09-03 | **implementato** | Swipe resta idea futura; due tap sono il gesto solido su telefono |
 | 22.6 | Tony apre il form (`zona-form`) ma **non simula i tap** sulla mappa | MASTER_PLAN §10 | **invariato** | Mapping `zona-data` / note; geometria a cura dell’utente |
-| 22.7 | Novelty accese solo con **flag prova tenant** (Sabbie Gialle), non con `moduliAttivi` | prodotto 2026-09-04 | **implementato** | Catalogo `feature-flags.js`; switch dashboard §23 |
+| 22.7 | Novelty accese solo con **flag prova tenant** (Sabbie Gialle), non con `moduliAttivi` | prodotto 2026-09-04 | **aggiornato** | Zona due punti **pubblicata** (`enabledAlways`, 2026-09-04): non si spegne più con «Pubblicata». Catalogo `feature-flags.js`; switch §23 |
 
 Helper: `core/js/zona-lavorata-slice.js`. Test: `tests/zona-lavorata-slice.test.js`.
 

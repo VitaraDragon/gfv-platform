@@ -21,7 +21,9 @@ export const PREVIEW_FLAG_CATALOG = {
   zonaLavorataDuePunti: {
     id: 'zonaLavorataDuePunti',
     label: 'Zona lavorata a due punti (inizio/fine sul perimetro)',
-    enabledWhenPreview: true
+    enabledWhenPreview: true,
+    /** Promossa su main: resta accesa anche con switch «Pubblicata». */
+    enabledAlways: true
   }
 };
 
@@ -95,9 +97,13 @@ export function isPreviewModeEnabled(featureFlags, tenantId, tenantNome) {
  * @returns {boolean}
  */
 export function isFeatureEnabled(flagId, featureFlags, tenantId, tenantNome) {
-  if (!isPreviewModeEnabled(featureFlags, tenantId, tenantNome)) return false;
   const spec = PREVIEW_FLAG_CATALOG[flagId];
-  return !!(spec && spec.enabledWhenPreview);
+  if (!spec) return false;
+  if (spec.enabledAlways) return true;
+  if (!isPreviewModeEnabled(featureFlags, tenantId, tenantNome)) {
+    return !!spec.enabledWhenPublished;
+  }
+  return !!spec.enabledWhenPreview;
 }
 
 /**
@@ -108,7 +114,8 @@ export function isFeatureEnabled(flagId, featureFlags, tenantId, tenantNome) {
 export function isFeatureEnabledFromWindow(flagId) {
   if (typeof window === 'undefined') return false;
   const spec = PREVIEW_FLAG_CATALOG[flagId];
-  if (!spec || !spec.enabledWhenPreview) return false;
+  if (!spec) return false;
+  if (spec.enabledAlways) return true;
   const published = window.__gfvFeatureFlags;
   if (published && typeof published.preview === 'boolean') {
     return published.preview === true;
