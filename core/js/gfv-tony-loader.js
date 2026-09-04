@@ -103,6 +103,11 @@
         try {
             window.dispatchEvent(new CustomEvent('gfv-tenant-tony-ready'));
         } catch (eReady) { /* ignore */ }
+        importCoreModule('config/feature-flags.js').then(function (ff) {
+            if (ff && typeof ff.publishFeatureFlags === 'function') {
+                ff.publishFeatureFlags(tenantData, tenantData.id || null);
+            }
+        }).catch(function () { /* ignore */ });
         if (typeof window.gfvTryLoadTonyWidgetWhenReady === 'function') {
             window.gfvTryLoadTonyWidgetWhenReady();
         }

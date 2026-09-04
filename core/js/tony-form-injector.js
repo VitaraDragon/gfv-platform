@@ -4444,7 +4444,7 @@
    * Form movimento magazzino.
    */
   /**
-   * Form traccia segmento / zona lavorata (operaio / caposquadra, `lavori-caposquadra-standalone.html`).
+   * Form segna zona lavorata (operaio / caposquadra, `lavori-caposquadra-standalone.html`).
    */
   async function injectZonaSegmentoForm(formData, context) {
     if (!formData || typeof formData !== 'object') return false;
@@ -4458,7 +4458,7 @@
     }
     var zonaModal = document.getElementById('zona-modal');
     if (!zonaModal || !zonaModal.classList.contains('active')) {
-      log('injectZonaSegmentoForm: aprire prima il modal Traccia segmento (zona-modal)');
+      log('injectZonaSegmentoForm: aprire prima il modal Segna zona (zona-modal)');
       return false;
     }
     function resolveZona(fieldId, value) {

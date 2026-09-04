@@ -1,6 +1,36 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-08-31 — branch `develop` e flusso di pubblicazione.**
+**Ultimo aggiornamento documentazione: 2026-09-04 — zona due punti: tagli allineati al campo.**
+
+## Zona lavorata — tagli allineati al campo, non alla diagonale I→F (2026-09-04)
+
+Se inizio e fine non sono in linea, la zona non taglia più in diagonale i filari. I due tocchi fissano le stazioni; i tagli seguono i lati del terreno (bounding box orientato). Test aggiunti in `tests/zona-lavorata-slice.test.js`.
+
+## Flag prova tenant + switch dashboard Prova/Pubblicata (2026-09-04)
+
+Su **Sabbie Gialle** le novità in verifica (prima: zona lavorata a due punti) si accendono con `tenants/{id}.featureFlags.preview`, **lista separata da `moduliAttivi`**. In dashboard (manager/admin) c’è lo switch visibile **Prova (develop)** / **Pubblicata (main)**. Non cambia il branch Git: stesso sito, comportamento diverso. Se il campo non è mai stato scritto, Sabbie Gialle è in prova. Altri tenant restano sul comportamento pubblicato.
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Catalogo** | `core/config/feature-flags.js` |
+| **Switch** | `core/dashboard-standalone.html` + `core/styles/dashboard.css` |
+| **Gate UI** | `lavori-caposquadra-standalone.html` — due punti solo se `zonaLavorataDuePunti` |
+| **Test** | `tests/feature-flags.test.js` |
+| **Decisioni** | `TONY_DECISIONI_E_REQUISITI.md` §22.7 / §23 |
+
+**Nota:** il telefono vede lo switch solo dopo promozione del codice su `main` (GitHub Pages).
+
+## Zona lavorata — due tocchi sul perimetro già tracciato (2026-09-03)
+
+Operaio e caposquadra non ridisegnano il campo: toccano **inizio** e **fine** sulla mappa, e si colora la fetta del **perimetro terreno già salvato** (stesso gesto per filari e seminativi). Anteprima verde + ettari, poi Salva. Il disegno a mano resta come fallback (e se il terreno non ha confini). Niente GPS trail (decisione §11.5 invariata). Tony non disegna.
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Geometria** | `core/js/zona-lavorata-slice.js` — taglio del poligono tra due rette perpendicolari a inizio→fine |
+| **UI** | `core/admin/lavori-caposquadra-standalone.html` (anche workspace mobile / fullscreen) |
+| **Salvataggio** | Stessa subcollection `zoneLavorate` (`tipo: poligono`, `modoTracciamento: due_punti`) |
+| **Test** | `tests/zona-lavorata-slice.test.js` (9) |
+| **Decisioni** | `TONY_DECISIONI_E_REQUISITI.md` §11.7 / §22 |
 
 ## Repo — branch `develop`, sito solo da `main` (2026-08-31)
 

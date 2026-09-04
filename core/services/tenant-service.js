@@ -34,6 +34,11 @@ let lastPublishedTenantId = null;
 export async function publishTenantDataForTony(tenant, modulesOpt = null) {
   if (!tenant || typeof window === 'undefined') return;
 
+  try {
+    const { publishFeatureFlags } = await import('../config/feature-flags.js');
+    publishFeatureFlags(tenant, tenant.id || currentTenantId);
+  } catch (_) { /* ignore */ }
+
   let modules = modulesOpt;
   if (!Array.isArray(modules)) {
     try {
