@@ -1,7 +1,7 @@
 # Tony – Inventario decisioni e requisiti
 
 **Data estrazione**: 2026-03-08  
-**Ultimo aggiornamento**: 2026-09-03 (zona lavorata due punti §11.7 / §22; push S5 assenze + WhatsApp §15.8; proposta confine terreno da tap §21)
+**Ultimo aggiornamento**: 2026-09-04 (flag prova tenant §22.7 / §23; zona lavorata due punti §11.7 / §22; push S5 assenze + WhatsApp §15.8; proposta confine terreno da tap §21)
 **Obiettivo**: Raccogliere in un unico documento ogni decisione di prodotto, requisito e vincolo trovato nei documenti Tony, per evitare perdite durante il consolidamento.
 
 **Stati**: `implementato` | `in corso` | `parziale` | `pianificato` | `non implementato` | `abbandonato` | `da verificare`
@@ -176,7 +176,7 @@
 | 11.4 | LLM non decide ordine click, quando campo figlio pronto, né dichiara salvataggio riuscito | GUIDA_OPERATIVO | — | |
 | 11.5 | **Niente tracking GPS continuo/sessione** su smartphone dipendente per area lavorata automatica (trail → buffer → poligono) | decisione prodotto 2026-07-31 | **scartato** | Motivo legale Italia: art. 4 St. Lav. + GDPR. Archivio: `obsoleto/strategie-superate/ROADMAP_TRACKING_GPS_AREA_LAVORATA.md`. Restano zone **manuali** (due punti sul perimetro già tracciato + fallback disegno a mano), mappa ERP, GPS **puntuale** opzionale (§18) |
 | 11.6 | **Allarmi manodopera a semaforo** (rosso+pulse / giallo) su Impegni, Gestione lavori e **mappa aziendale**; ranking shortlist con **prossimità da terreno/podere assegnato** (non posizione telefono) | decisione prodotto 2026-07-31; verifica 2026-08-02 | **implementato** | Severità: `manodopera-problema-severita-logic.js`; geo: `geo-terreno-utils.js`; mappa: `dashboard-maps.js`. Canary `npm run mappa:manodopera-canary` **17/17 PASS** + prova utente OK. Opz. futuro: tap pin → shortlist filtrata |
-| 11.7 | **Zona lavorata: due tocchi inizio/fine** colorano una fetta del **perimetro terreno già tracciato** (filari e seminativi). Conferma prima del Salva. Disegno a mano resta fallback | prodotto 2026-09-03 | **implementato** | Helper `core/js/zona-lavorata-slice.js`; UI `lavori-caposquadra-standalone.html`. Non è GPS trail. Tony non disegna. Dettaglio §22 |
+| 11.7 | **Zona lavorata: due tocchi inizio/fine** colorano una fetta del **perimetro terreno già tracciato** (filari e seminativi). Conferma prima del Salva. Disegno a mano resta fallback | prodotto 2026-09-03 | **implementato** | Helper `core/js/zona-lavorata-slice.js`; UI `lavori-caposquadra-standalone.html`. **2026-09-04:** gated da flag prova (§22.7 / §23). Non è GPS trail. Tony non disegna. Dettaglio §22 |
 
 ---
 
@@ -631,14 +631,28 @@ Migliorie ulteriori (sessione mappatura, tap dentro/fuori, snap ai vicini, ha su
 
 | # | Decisione | Fonte | Stato | Note |
 |---|-----------|-------|-------|------|
-| 22.1 | Segnare la zona con **due tocchi: inizio e fine** | prodotto 2026-09-03 | **implementato** | Default su `lavori-caposquadra-standalone.html` se il terreno ha `polygonCoords` |
+| 22.1 | Segnare la zona con **due tocchi: inizio e fine** | prodotto 2026-09-03 | **implementato** | Default su `lavori-caposquadra-standalone.html` se il terreno ha `polygonCoords` **e** il flag prova è acceso (§22.7) |
 | 22.2 | La zona è una **fetta del perimetro terreno già tracciato**, non un nuovo poligono libero | prodotto 2026-09-03 | **implementato** | Taglio con due rette perpendicolari a inizio→fine; vale per filari e seminativi |
 | 22.3 | **Conferma umana** prima del Salva (anteprima verde + ettari). Ritocco: trascinare i due marker | prodotto 2026-09-03 | **implementato** | Stesso salvataggio `zoneLavorate` (`coordinate`, `isChiuso`, `superficieHa`) |
-| 22.4 | Disegno a mano (segmento/poligono punto-punto) resta **fallback** | prodotto 2026-09-03 | **implementato** | Pulsante «A mano»; obbligatorio se manca il perimetro in Terreni |
+| 22.4 | Disegno a mano (segmento/poligono punto-punto) resta **fallback** | prodotto 2026-09-03 | **implementato** | Pulsante «A mano»; obbligatorio se manca il perimetro in Terreni o se preview è off |
 | 22.5 | Niente trail GPS dello smartphone, niente swipe in v1 | prodotto 2026-09-03 | **implementato** | Swipe resta idea futura; due tap sono il gesto solido su telefono |
 | 22.6 | Tony apre il form (`zona-form`) ma **non simula i tap** sulla mappa | MASTER_PLAN §10 | **invariato** | Mapping `zona-data` / note; geometria a cura dell’utente |
+| 22.7 | Novelty accese solo con **flag prova tenant** (Sabbie Gialle), non con `moduliAttivi` | prodotto 2026-09-04 | **implementato** | Catalogo `feature-flags.js`; switch dashboard §23 |
 
 Helper: `core/js/zona-lavorata-slice.js`. Test: `tests/zona-lavorata-slice.test.js`.
+
+---
+
+## 23. Flag di prova tenant — switch dashboard Prova/Pubblicata (2026-09-04)
+
+**Stato codice:** **implementato**. Non è un secondo ambiente e non cambia il branch Git. Stesso bundle su GitHub Pages (`main`); `preview` accende le novelty in verifica.
+
+| # | Decisione | Fonte | Stato | Note |
+|---|-----------|-------|-------|------|
+| 23.1 | Lista **separata** da `moduliAttivi` / piano a pagamento | pubblicazione 2026-08-31; prodotto 2026-09-04 | **implementato** | `tenants/{id}.featureFlags.preview` — non mescolare con abbonamento |
+| 23.2 | Attivazione su **Sabbie Gialle** (id `sabbie_gialle` / `sabbie_gialle_*` o nome) | prodotto 2026-09-04 | **implementato** | Default **prova on** se il campo non è mai stato scritto (niente write Firestore dall’agente) |
+| 23.3 | Switch visibile in **dashboard** per manager/admin: **Prova (develop)** ↔ **Pubblicata (main)** | prodotto 2026-09-04 | **implementato** | Persistenza `featureFlags.preview`; operaio/caposquadra non vedono lo switch (redirect campo) |
+| 23.4 | Lo switch **non** seleziona il branch Git | pubblicazione | **invariato** | Per vedere il codice nuovo sul telefono serve comunque promozione su `main` |
 
 ---
 

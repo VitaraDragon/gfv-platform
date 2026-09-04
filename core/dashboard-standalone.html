@@ -59,6 +59,19 @@
             </div>
         </div>
 
+        <div id="gfv-preview-switch-bar" class="gfv-preview-switch-bar" hidden>
+            <div class="gfv-preview-switch-inner">
+                <div class="gfv-preview-switch-copy">
+                    <strong id="gfv-preview-switch-title">Versione in uso</strong>
+                    <p id="gfv-preview-switch-hint">Prova accende le novità in verifica. Pubblicata è il comportamento stabile. È lo stesso sito: non cambia il branch Git.</p>
+                </div>
+                <div class="gfv-preview-switch" role="group" aria-label="Versione prova o pubblicata">
+                    <button type="button" id="gfv-preview-btn-on" class="gfv-preview-switch-btn" aria-pressed="false">Prova (develop)</button>
+                    <button type="button" id="gfv-preview-btn-off" class="gfv-preview-switch-btn" aria-pressed="false">Pubblicata (main)</button>
+                </div>
+            </div>
+        </div>
+
         <div id="dashboard-content" class="dashboard-content">
             <div class="loading">Caricamento dashboard...</div>
         </div>
@@ -912,6 +925,94 @@
             }
         }
 
+        function renderPreviewSwitchState(previewOn) {
+            const bar = document.getElementById('gfv-preview-switch-bar');
+            const btnOn = document.getElementById('gfv-preview-btn-on');
+            const btnOff = document.getElementById('gfv-preview-btn-off');
+            const title = document.getElementById('gfv-preview-switch-title');
+            if (!bar) return;
+            bar.hidden = false;
+            bar.dataset.mode = previewOn ? 'preview' : 'published';
+            if (title) {
+                title.textContent = previewOn
+                    ? 'Versione di prova (develop)'
+                    : 'Versione pubblicata (main)';
+            }
+            if (btnOn) btnOn.setAttribute('aria-pressed', previewOn ? 'true' : 'false');
+            if (btnOff) btnOff.setAttribute('aria-pressed', previewOn ? 'false' : 'true');
+        }
+
+        function setPreviewSwitchBusy(busy) {
+            const btnOn = document.getElementById('gfv-preview-btn-on');
+            const btnOff = document.getElementById('gfv-preview-btn-off');
+            if (btnOn) btnOn.disabled = !!busy;
+            if (btnOff) btnOff.disabled = !!busy;
+        }
+
+        async function persistPreviewMode(tenantId, previewOn, tenantNome, roles) {
+            const {
+                publishFeatureFlags,
+                previewFlagUpdatePayload
+            } = await import('./config/feature-flags.js');
+            setPreviewSwitchBusy(true);
+            try {
+                await updateDoc(doc(db, 'tenants', tenantId), previewFlagUpdatePayload(previewOn));
+                const tenant = Object.assign({}, window.__gfvTenantData || {}, {
+                    id: tenantId,
+                    nome: tenantNome || (window.__gfvTenantData && window.__gfvTenantData.nome) || '',
+                    featureFlags: Object.assign(
+                        {},
+                        (window.__gfvTenantData && window.__gfvTenantData.featureFlags) || {},
+                        { preview: previewOn }
+                    )
+                });
+                window.__gfvTenantData = tenant;
+                publishFeatureFlags(tenant, tenantId);
+                renderPreviewSwitchState(previewOn);
+            } catch (error) {
+                console.error('Errore salvataggio versione prova/pubblicata:', error);
+                alert('Non sono riuscito a cambiare versione. Riprova.');
+                const flags = (window.__gfvTenantData && window.__gfvTenantData.featureFlags) || {};
+                const { isPreviewModeEnabled } = await import('./config/feature-flags.js');
+                renderPreviewSwitchState(isPreviewModeEnabled(flags, tenantId, tenantNome));
+            } finally {
+                setPreviewSwitchBusy(false);
+            }
+        }
+
+        async function mountPreviewSwitch(tenantDataSnapshot, currentTenantId, roles) {
+            const {
+                publishFeatureFlags,
+                canShowPreviewSwitch,
+                isPreviewModeEnabled
+            } = await import('./config/feature-flags.js');
+            const tenant = Object.assign({ id: currentTenantId }, tenantDataSnapshot || {});
+            publishFeatureFlags(tenant, currentTenantId);
+            const bar = document.getElementById('gfv-preview-switch-bar');
+            if (!bar) return;
+            const nome = tenant.nome || tenant.name || '';
+            if (!currentTenantId || !canShowPreviewSwitch(currentTenantId, nome, roles)) {
+                bar.hidden = true;
+                return;
+            }
+            const previewOn = isPreviewModeEnabled(tenant.featureFlags, currentTenantId, nome);
+            renderPreviewSwitchState(previewOn);
+            if (bar.dataset.bound === '1') return;
+            bar.dataset.bound = '1';
+            const btnOn = document.getElementById('gfv-preview-btn-on');
+            const btnOff = document.getElementById('gfv-preview-btn-off');
+            if (btnOn) {
+                btnOn.addEventListener('click', function () {
+                    persistPreviewMode(currentTenantId, true, nome, roles);
+                });
+            }
+            if (btnOff) {
+                btnOff.addEventListener('click', function () {
+                    persistPreviewMode(currentTenantId, false, nome, roles);
+                });
+            }
+        }
+
         async function finishDashboardLoad(availableModules, userDataNormalized, currentTenantId, user) {
             const planId = window.__gfvSubscriptionPlanId || 'base';
             const hasTonyModule = Array.isArray(availableModules) && availableModules.some(function(m) {
@@ -1226,6 +1327,7 @@
                             });
                             window.__gfvSubscriptionPlanId = planNormalized;
                             try { window.dispatchEvent(new CustomEvent('gfv-subscription-plan', { detail: { planId: planNormalized } })); } catch (eP) {}
+                            await mountPreviewSwitch(tenantDataSnapshot, currentTenantId, normalizedRoles);
                             
                             // Routing mobile per ruoli campo (operaio/caposquadra)
                             if (redirectToFieldWorkspaceIfNeeded(userDataNormalized, availableModules)) {
@@ -1330,6 +1432,7 @@
                     });
                     window.__gfvSubscriptionPlanId = planNormalized;
                     try { window.dispatchEvent(new CustomEvent('gfv-subscription-plan', { detail: { planId: planNormalized } })); } catch (eP) {}
+                    await mountPreviewSwitch(tenantDataSnapshot, currentTenantId, normalizedRoles);
                     
                     // La visibilità del link "Invita Collaboratore" viene gestita in renderDashboard
                     // in base a se Manodopera è attivo o no

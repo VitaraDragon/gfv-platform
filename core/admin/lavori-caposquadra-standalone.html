@@ -868,6 +868,11 @@
             slicePolygonBetweenPoints,
             hasUsableTerrenoPolygon
         } from '../js/zona-lavorata-slice.js';
+        import {
+            FEATURE_FLAG_KEYS,
+            isFeatureEnabled,
+            publishFeatureFlags
+        } from '../config/feature-flags.js';
 
         initializeFirebase(firebaseConfig);
         const app = getAppInstance();
@@ -897,7 +902,7 @@
         let savedSegments = []; // Array per memorizzare i segmenti salvati visualizzati sulla mappa
         let terrenoBoundaryCoords = []; // Coordinate del confine del terreno (per snap)
         let uncoveredAreaPolygon = null; // Poligono per visualizzare aree non coperte
-        let zonaDrawMode = 'slice'; // 'slice' (due punti) | 'manual'
+        let zonaDrawMode = 'manual'; // 'slice' (due punti) | 'manual'
         let sliceStart = null;
         let sliceEnd = null;
         let sliceStartMarker = null;
@@ -913,6 +918,20 @@
 
         function terrenoHasPolygon() {
             return hasUsableTerrenoPolygon(currentTerreno && currentTerreno.polygonCoords);
+        }
+
+        function zonaDuePuntiEnabled() {
+            const tenant = window.__gfvTenantData || {};
+            return isFeatureEnabled(
+                FEATURE_FLAG_KEYS.ZONA_LAVORATA_DUE_PUNTI,
+                tenant.featureFlags,
+                currentTenantId || tenant.id,
+                tenant.nome || tenant.name
+            );
+        }
+
+        function defaultZonaDrawMode() {
+            return (zonaDuePuntiEnabled() && terrenoHasPolygon()) ? 'slice' : 'manual';
         }
 
         function setDrawingCursor(on) {
@@ -946,7 +965,7 @@
         }
 
         function updateZonaModeUi() {
-            if (zonaDrawMode === 'slice' && !terrenoHasPolygon()) {
+            if (zonaDrawMode === 'slice' && (!terrenoHasPolygon() || !zonaDuePuntiEnabled())) {
                 zonaDrawMode = 'manual';
             }
             const btnDraw = document.getElementById('btn-draw');
@@ -966,7 +985,7 @@
             if (sliceHint) sliceHint.style.display = isSlice ? 'block' : 'none';
             if (manualHint) manualHint.style.display = isSlice ? 'none' : 'block';
             if (btnToggle) {
-                btnToggle.style.display = terrenoHasPolygon() ? '' : 'none';
+                btnToggle.style.display = (terrenoHasPolygon() && zonaDuePuntiEnabled()) ? '' : 'none';
                 btnToggle.textContent = isSlice ? '✏️ A mano' : '📍 Inizio e fine';
             }
             if (lengthLabel) {
@@ -1195,6 +1214,10 @@
 
         window.toggleZonaDrawMode = function() {
             const next = zonaDrawMode === 'slice' ? 'manual' : 'slice';
+            if (next === 'slice' && !zonaDuePuntiEnabled()) {
+                showAlert('La zona a due punti è nella versione di prova. Il manager può accenderla dalla dashboard (Prova / Pubblicata).', 'info');
+                return;
+            }
             if (next === 'slice' && !terrenoHasPolygon()) {
                 showAlert('Per i due punti serve il perimetro del terreno già tracciato in Terreni.', 'error');
                 return;
@@ -1449,6 +1472,8 @@
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                             if (tenantDoc.exists()) {
                                 const tenantData = tenantDoc.data();
+                                window.__gfvTenantData = Object.assign({ id: currentTenantId }, tenantData);
+                                publishFeatureFlags(window.__gfvTenantData, currentTenantId);
                                 const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
                                 hasManodoperaModule = modules.includes('manodopera');
                                 hasVendemmiaMeccanicaModule = modules.includes('vendemmiaMeccanica');
@@ -1934,7 +1959,7 @@
                 uncoveredAreaPolygon.setMap(null);
                 uncoveredAreaPolygon = null;
             }
-            zonaDrawMode = terrenoHasPolygon() ? 'slice' : 'manual';
+            zonaDrawMode = defaultZonaDrawMode();
             isDrawing = zonaDrawMode === 'slice';
             // Rimuovi classe drawing-mode se presente
             const mapContainer = document.querySelector('.map-container');

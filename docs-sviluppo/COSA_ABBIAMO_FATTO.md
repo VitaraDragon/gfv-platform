@@ -1,6 +1,20 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-03 — zona lavorata a due punti (inizio/fine).**
+**Ultimo aggiornamento documentazione: 2026-09-04 — flag prova Sabbie Gialle + switch dashboard.**
+
+## Flag prova tenant + switch dashboard Prova/Pubblicata (2026-09-04)
+
+Su **Sabbie Gialle** le novità in verifica (prima: zona lavorata a due punti) si accendono con `tenants/{id}.featureFlags.preview`, **lista separata da `moduliAttivi`**. In dashboard (manager/admin) c’è lo switch visibile **Prova (develop)** / **Pubblicata (main)**. Non cambia il branch Git: stesso sito, comportamento diverso. Se il campo non è mai stato scritto, Sabbie Gialle è in prova. Altri tenant restano sul comportamento pubblicato.
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Catalogo** | `core/config/feature-flags.js` |
+| **Switch** | `core/dashboard-standalone.html` + `core/styles/dashboard.css` |
+| **Gate UI** | `lavori-caposquadra-standalone.html` — due punti solo se `zonaLavorataDuePunti` |
+| **Test** | `tests/feature-flags.test.js` |
+| **Decisioni** | `TONY_DECISIONI_E_REQUISITI.md` §22.7 / §23 |
+
+**Nota:** il telefono vede lo switch solo dopo promozione del codice su `main` (GitHub Pages).
 
 ## Zona lavorata — due tocchi sul perimetro già tracciato (2026-09-03)
 
