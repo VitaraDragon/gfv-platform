@@ -10,7 +10,6 @@ import {
   buildRawProactiveCounts,
   collectProactiveSignals,
   formatProactiveOpsAttentionSnippet,
-  formatProactiveOpenFollowUpOffer,
   pickProactiveOpenFollowUp,
   pickProactiveOpenFollowUpFromDelta,
   createProactiveOpenOffer,
@@ -139,10 +138,7 @@ export function runTonyProactiveHubBriefing(opts) {
 
   var briefingText = '';
   if (decision.action === 'delta') {
-    briefingText = (
-      formatProactiveDeltaMessage(decision.worsened) +
-      formatProactiveOpenFollowUpOffer(followUp)
-    ).trim();
+    briefingText = formatProactiveDeltaMessage(decision.worsened).trim();
   } else if (collected.opsActive.length > 0) {
     briefingText = formatProactiveOpsAttentionSnippet(
       collected.opsActive,

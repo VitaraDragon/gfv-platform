@@ -241,7 +241,7 @@
 |---|-----------|-------|-------|------|
 | 15.1 | Proattività Dashboard (checkGlobalStatus, tonyGlobalBriefing) | STATO_TONY | implementato | Allineato a §15.5 (2026-07-20) |
 | 15.2 | Proattività pagina Guasti | STATO_TONY | implementato | |
-| 15.3 | Reminder mirati + follow-up «vuoi che…?» / «dimmi apri» cross-modulo, **senza invasività** | MASTER_PLAN Fase 6; raffinato 2026-07-20/21 | **implementato** (v1) | Dashboard: riassunto + «apri». Hub: solo «apri» (no offerta riassunto eco) |
+| 15.3 | Reminder mirati + follow-up «vuoi che…?» cross-modulo, **senza invasività** | MASTER_PLAN Fase 6; raffinato 2026-07-20/21; CTA «dimmi apri» tolta 2026-09-05 | **implementato** (v1) | Dashboard: offerta riassunto. Hub: solo reminder (no eco riassunto). Niente «dimmi apri»: mic spento al briefing |
 | 15.4 | Memoria storica: confronti anno/anno | MASTER_PLAN | da fare | |
 | 15.5 | **Policy anti-invasività briefing proattivo** (reminder, non monologo) | prodotto 2026-07-20 | **implementato** | `tony-proactive-briefing-policy.js` + `checkGlobalStatus`; test **13** |
 | 15.6 | **Reminder operativi multi-modulo** (flusso regolare app) — catalogo estendibile | prodotto 2026-07-20 | **implementato** (hub principali) | + affitti/approvare/sospesi + UX hub; **`prezziInAttesa`** Magazzino 2026-07-21b |
@@ -284,8 +284,8 @@
 
 - **Riepilogo pieno** (fascia mattina/pomeriggio/sera): elenco sintetico dei segnali attivi (priorità: bloccanti flusso > urgenza tempo > informativi). Hub: prefisso «Qui in {Hub}: …».
 - **Delta**: solo segnali **nuovi o peggiorati** rispetto all’ultimo fingerprint.
-- Follow-up: «dimmi «apri»» → `APRI_PAGINA` sul top segnale con target; **non** auto-open; «sì» nudo resta RIASSUNTO (**solo dashboard**).
-- **Hub (2026-07-21):** niente offerta «vuoi un riassunto?» — il reminder è già il messaggio utile; se chiesto comunque → guida ad «apri»/Dashboard senza eco conteggi.
+- Follow-up parlato «dimmi «apri»» **rimosso** (2026-09-05): al briefing il mic è spento e «apri» nudo non apre la pagina citata. Handler silenzioso `APRI_PAGINA` resta in `main.js` se l’utente lo chiede esplicitamente dopo. «sì» nudo resta RIASSUNTO (**solo dashboard**).
+- **Hub (2026-07-21 / 2026-09-05):** niente offerta «vuoi un riassunto?» — il reminder è già il messaggio utile; se chiesto comunque → guida alla Dashboard senza eco conteggi e senza «dimmi apri».
 
 **Ingresso UX:** dashboard e hub modulo alla prima apertura in fascia; non monologo su ogni pagina lista. Contesto `globalStatus` aggiornato anche in silenzio.
 

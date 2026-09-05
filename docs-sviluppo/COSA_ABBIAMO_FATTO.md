@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-05 — Tony lazy-load + meteo/Maps; zona due punti su main.**
+**Ultimo aggiornamento documentazione: 2026-09-05 — briefing Tony senza CTA «dimmi apri».**
+
+## Briefing Tony — tolta la coda «dimmi apri» (2026-09-05)
+
+- **Perché:** dopo il reminder (dashboard manager, hub Magazzino e altri moduli) Tony diceva «Se vuoi posso aprire Terreni: dimmi «apri»». Il microfono non è attivo in quel momento; se l’utente lo accende e dice «apri», non apre la pagina citata. La frase confondeva e non era utile.
+- Testo del reminder: restano scadenze/cose da fare e, in dashboard, «Vuoi che ti faccia un riassunto o preferisci procedere tu?». Niente più offerta «dimmi apri» (stesso formatter per dashboard, delta e hub).
+- Se su un hub si chiede comunque un riassunto: guida alla Dashboard, senza «dimmi apri».
+- File: `tony-proactive-signals.js`, `tony-proactive-hub-briefing.js`, `dashboard-standalone.html`. Test: `tony-proactive-signals.test.js`.
+- Doc: questa voce, `tony/STATO_ATTUALE.md`, `TONY_DECISIONI` §15.3 / §15.6. Master Plan: nessuna fase cambiata.
 
 ## Tony lazy-load + tour CDN spento (2026-09-05)
 

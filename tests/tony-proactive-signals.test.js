@@ -5,6 +5,7 @@ import {
   buildRawProactiveCounts,
   collectProactiveSignals,
   formatProactiveOpsAttentionSnippet,
+  formatProactiveOpenFollowUpOffer,
   getProactiveSignalIds,
   getProactiveSignalIdsForHub,
   pickProactiveOpenFollowUp,
@@ -121,7 +122,7 @@ describe('tony-proactive-signals catalog', () => {
     expect(collected.meteoActive[0].id).toBe('meteoConsigli');
   });
 
-  it('formatProactiveOpsAttentionSnippet hub: niente offerta riassunto, sì «apri»', () => {
+  it('formatProactiveOpsAttentionSnippet hub: niente offerta riassunto né «dimmi apri»', () => {
     const collected = collectProactiveSignals(
       { availableModules: ['manodopera'], roles: ['amministratore'], hubId: 'manodopera' },
       { oreDaValidare: 2 }
@@ -133,9 +134,13 @@ describe('tony-proactive-signals catalog', () => {
     });
     expect(text).toContain('Qui in Manodopera');
     expect(text).toContain('2 lavori con ore da validare');
-    expect(text).toContain('Validazione ore');
-    expect(text).toContain('apri');
+    expect(text).not.toMatch(/dimmi|apri/i);
     expect(text).not.toMatch(/riassunto/i);
+  });
+
+  it('formatProactiveOpenFollowUpOffer non promette «dimmi apri»', () => {
+    const follow = { openPageLabel: 'Terreni', openPageTarget: 'terreni' };
+    expect(formatProactiveOpenFollowUpOffer(follow)).toBe('');
   });
 
   it('formatProactiveOpsAttentionSnippet dashboard offre ancora riassunto', () => {
@@ -143,8 +148,10 @@ describe('tony-proactive-signals catalog', () => {
       { availableModules: ['manodopera'], roles: ['manager'], hubId: 'dashboard' },
       { oreDaValidare: 1 }
     );
-    const text = formatProactiveOpsAttentionSnippet(collected.opsActive, null, {});
+    const follow = pickProactiveOpenFollowUp(collected.opsActive);
+    const text = formatProactiveOpsAttentionSnippet(collected.opsActive, follow, {});
     expect(text).toMatch(/riassunto/i);
+    expect(text).not.toMatch(/dimmi|apri/i);
   });
 
   it('buildHubProactiveRiassuntoReply non ripete i conteggi', () => {
@@ -154,8 +161,8 @@ describe('tony-proactive-signals catalog', () => {
       { label: 'Manodopera' }
     );
     expect(reply).toContain('Manodopera');
-    expect(reply).toContain('apri');
     expect(reply).toContain('Dashboard');
+    expect(reply).not.toMatch(/dimmi|«apri»/i);
     expect(reply).not.toMatch(/\d+\s+lavori/);
   });
 
