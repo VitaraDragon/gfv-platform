@@ -1,7 +1,7 @@
 # Piano scalabilità — Lista lavori (Gestione Lavori)
 
 **Data creazione**: 2026-05-30  
-**Stato**: 📋 **Da implementare** (decisione prodotto condivisa; nessun codice ancora)  
+**Stato**: 📋 **Da implementare** (query/filtro periodo + `currentTableData` limitato). **Parziale 2026-09-04:** Google Maps **non** si carica più all’apertura lista (`ensureGoogleMapsLoaded` al tab Mappa) — non sostituisce questo piano (`getDocs` di tutti i lavori resta).
 **Priorità**: Alta per vendita multi-tenant — il problema emerge già con **centinaia–migliaia** di lavori/anno, non solo con “aziende enormi”.
 
 **Obiettivo del documento**: traccia unica per rendere Gestione Lavori e Tony **sostenibili nel tempo** quando la collection `lavori` cresce (anni di storico), senza caricare tutto a ogni apertura pagina.

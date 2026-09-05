@@ -30,7 +30,7 @@
 |----------|-----------|
 | **[obsoleto/](obsoleto/README.md)** | Doc sostituiti, log sessione, analisi superate — **non usare per decisioni** |
 | **[in-sviluppo/](in-sviluppo/README.md)** | Lavoro parziale attivo (Tony perf, billing v2, vendemmia meccanica, E2E…) |
-| **[da-fare/](da-fare/README.md)** | Piani validi non ancora implementati (Tony Occhi, scalabilità lavori, snellimento…) |
+| **[da-fare/](da-fare/README.md)** | Piani validi non ancora implementati (Tony Occhi, scalabilità lavori, snellimento…). Lazy Tony ✅ 2026-09-05 |
 
 ## Operativo
 

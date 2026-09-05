@@ -31,6 +31,7 @@ function publishTonyUserRolesForCapture(tenantId, userId) {
 }
 
 let authListenerRegistered = false;
+let lastTonyAuthUid = null;
 
 function resolveCoreBaseForShell() {
   const path = (window.location.pathname || '').replace(/\\/g, '/');
@@ -46,7 +47,7 @@ function resolveCoreBaseForShell() {
 function ensureTonyLoaderShell() {
   const base = resolveCoreBaseForShell();
   const sep = base && !base.endsWith('/') ? '/' : '';
-  const loaderSrc = `${base ? base + sep : ''}js/gfv-tony-loader.js?v=20260706`;
+  const loaderSrc = `${base ? base + sep : ''}js/gfv-tony-loader.js?v=2026-09-05a`;
 
   if (!window.__gfvTonyLoaderRequested && !document.querySelector('script[src*="gfv-tony-loader"]')) {
     window.__gfvTonyLoaderRequested = true;
@@ -97,7 +98,20 @@ export function bootstrapTonyTenantFromAuth() {
   try {
     const auth = getAuthInstance();
     onAuthStateChanged(auth, async (user) => {
-      if (!user) return;
+      if (!user) {
+        lastTonyAuthUid = null;
+        return;
+      }
+      if (lastTonyAuthUid && lastTonyAuthUid !== user.uid) {
+        try {
+          sessionStorage.removeItem('tony_session_state');
+          sessionStorage.removeItem('gfv_tony_utente_ruoli');
+        } catch (eClr) { /* ignore */ }
+        try {
+          window.dispatchEvent(new CustomEvent('tony-auth-user-changed', { detail: { uid: user.uid } }));
+        } catch (eEv) { /* ignore */ }
+      }
+      lastTonyAuthUid = user.uid;
       try {
         const tid = await resolveTenantIdForUser(user);
         if (!tid) return;

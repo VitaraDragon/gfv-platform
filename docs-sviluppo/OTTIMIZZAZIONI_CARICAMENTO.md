@@ -1,6 +1,6 @@
 # Ottimizzazioni caricamento – GFV Platform
 
-**Data**: 2026-02-01  
+**Data**: 2026-02-01 (aggiornato 2026-09-05)  
 **Obiettivo**: Ridurre i tempi di caricamento percepiti e reali.
 
 ---
@@ -17,7 +17,7 @@
 ### 2. Dashboard (`core/dashboard-standalone.html`)
 
 - **Config in parallelo** (e base path per moduli, vedi sotto): al posto di `loadConfig().then(() => loadGoogleMapsConfig())` si usa `loadConfigAndMaps()`, così i due file partono insieme e il tempo di attesa è minore.
-- **Google Maps non blocca la prima paint**: tolto l’`await waitForGoogleMapsConfig()` prima di procedere. Firebase viene inizializzato subito dopo `waitForConfig()`, la dashboard si renderizza, e `loadGoogleMapsAPI()` parte in background; la mappa si abilita quando l’SDK è pronto.
+- **Google Maps non blocca la prima paint**: tolto l’`await waitForGoogleMapsConfig()` prima di procedere. Firebase viene inizializzato subito dopo `waitForConfig()`, la dashboard si renderizza. **2026-09-04:** Gestione lavori non carica più Maps all’avvio lista (`ensureGoogleMapsLoaded` solo al tab Mappa). **2026-09-05:** widget Tony lazy (idle/tap); intro.js CDN non più incluso.
 
 ---
 
@@ -64,7 +64,7 @@ Così si riducono ritardi e duplicazioni di logica.
   Invece di iniettare dinamicamente `firebase-config.js` e `google-maps-config.js`, includerli con `<script src="...">` nell’HTML (o inline in build). Si evita il round-trip aggiuntivo; va gestito il path relativo (es. `../config/` dalle sottocartelle).
 
 - **`defer` sugli script non critici**  
-  Per script come intro.js: `<script src="..." defer></script>` così non bloccano il parsing; l’esecuzione avviene dopo il DOM.
+  ~~intro.js con `defer`~~ — **2026-09-05:** intro.js **non si include più** (tour spento; moduli `*-tour.js` restano in repo).
 
 - **Service Worker e cache**  
   Il service worker può mettere in cache i file di config (e altri asset) per visite successive e uso offline.

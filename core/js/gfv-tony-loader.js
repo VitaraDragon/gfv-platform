@@ -1,9 +1,12 @@
 /**
  * Caricamento Tony widget solo se piano ≠ Free (o modulo Tony attivo/in prova).
- * Espone window.gfvLoadTonyWidget e polling finché il piano tenant è noto.
+ * FAB placeholder subito; widget (~900 KB) a idle o al tap. E2E (`tonyE2e=1`) resta eager.
+ * Espone window.gfvLoadTonyWidget e gfvTryLoadTonyWidgetWhenReady.
  */
 (function () {
     'use strict';
+
+    var TONY_LOADER_QUERY = '2026-09-05a';
 
     function resolveCoreBase() {
         var path = (window.location.pathname || '').replace(/\\/g, '/');
@@ -86,6 +89,15 @@
         return false;
     }
 
+    function shouldLoadTonyEager() {
+        try {
+            var sp = new URLSearchParams(window.location.search || '');
+            if (sp.get('tonyE2e') === '1' || sp.get('tonyEager') === '1') return true;
+            if (localStorage.getItem('gfv_tony_e2e') === '1') return true;
+        } catch (e) { /* ignore */ }
+        return false;
+    }
+
     function publishTenantForTony(tenantData, modulesOpt) {
         if (!tenantData || typeof tenantData !== 'object') return;
         var modules = modulesOpt;
@@ -136,38 +148,108 @@
         return import((base ? base + sep : '') + relativePath);
     }
 
+    function whenBodyReady(fn) {
+        if (document.body) {
+            fn();
+            return;
+        }
+        document.addEventListener('DOMContentLoaded', fn);
+    }
+
+    function injectPlaceholderFab() {
+        if (document.getElementById('tony-fab') || document.getElementById('tony-fab-placeholder')) return;
+        var btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = 'tony-fab-placeholder';
+        btn.className = 'tony-widget-fab';
+        btn.title = 'Chiedi a Tony';
+        btn.setAttribute('aria-label', 'Apri assistente Tony');
+        btn.setAttribute('aria-busy', 'true');
+        btn.style.cssText = 'position:fixed;bottom:24px;right:24px;z-index:9998;width:64px;height:64px;border-radius:50%;background:linear-gradient(135deg,#2E8B57 0%,#228B22 100%);color:#fff;border:none;box-shadow:0 4px 12px rgba(46,139,87,.4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:26px;padding:0;';
+        btn.textContent = '\uD83E\uDD16';
+        btn.addEventListener('click', function () {
+            window.__gfvTonyOpenAfterLoad = true;
+            loadTonyWidgetScript();
+        });
+        document.body.appendChild(btn);
+    }
+
+    function removePlaceholderFab() {
+        var p = document.getElementById('tony-fab-placeholder');
+        if (p && p.parentNode) p.parentNode.removeChild(p);
+    }
+
+    function watchForRealFabAndOpen() {
+        if (window.__gfvTonyFabWatchStarted) return;
+        window.__gfvTonyFabWatchStarted = true;
+        var n = 0;
+        var t = setInterval(function () {
+            n += 1;
+            var fab = document.getElementById('tony-fab');
+            var ready = !!(window.Tony && typeof window.Tony.isReady === 'function' && window.Tony.isReady());
+            if (fab) {
+                removePlaceholderFab();
+                if (window.__gfvTonyOpenAfterLoad && ready) {
+                    window.__gfvTonyOpenAfterLoad = false;
+                    try {
+                        if (typeof window.__tonyOpenChatPanel === 'function') window.__tonyOpenChatPanel();
+                        else fab.click();
+                    } catch (eOpen) { /* ignore */ }
+                    clearInterval(t);
+                    return;
+                }
+                if (!window.__gfvTonyOpenAfterLoad) {
+                    clearInterval(t);
+                    return;
+                }
+            }
+            if (n >= 100) {
+                clearInterval(t);
+            }
+        }, 80);
+    }
+
     /** Pagine legacy (es. preventivi CT) che non chiamano tenant-service: recupera tenant da auth. */
     function bootstrapTenantContextForTony() {
         if (window.__gfvTonyTenantBootstrapStarted) return;
         window.__gfvTonyTenantBootstrapStarted = true;
+        if (window.__gfvSubscriptionPlanId && window.__gfvModuliAttivi) return;
 
         var attempts = 0;
         var maxAttempts = 150;
+        var cached = null;
+
+        function tryResolve(fb, ts) {
+            if (!fb.getAuthInstance || !fb.getDocumentData) return;
+            var auth = fb.getAuthInstance();
+            if (!auth || !auth.currentUser) return;
+            var tid = ts.getCurrentTenantId && ts.getCurrentTenantId();
+            var p = tid
+                ? ts.getCurrentTenant()
+                : fb.getDocumentData('users', auth.currentUser.uid).then(function (userData) {
+                    if (!userData || !userData.tenantId) return null;
+                    ts.setCurrentTenantId(userData.tenantId);
+                    return ts.getCurrentTenant();
+                });
+            Promise.resolve(p).catch(function () { /* retry */ });
+        }
+
         var timer = setInterval(function () {
             attempts += 1;
-            importCoreModule('services/firebase-service.js')
-                .then(function (fb) {
-                    if (!fb.getAuthInstance || !fb.getDocumentData) return null;
-                    var auth = fb.getAuthInstance();
-                    if (!auth || !auth.currentUser) return null;
-                    return importCoreModule('services/tenant-service.js').then(function (ts) {
-                        var tid = ts.getCurrentTenantId();
-                        if (tid) return ts.getCurrentTenant();
-                        return fb.getDocumentData('users', auth.currentUser.uid).then(function (userData) {
-                            if (!userData || !userData.tenantId) return null;
-                            ts.setCurrentTenantId(userData.tenantId);
-                            return ts.getCurrentTenant();
-                        });
-                    });
-                })
-                .then(function (tenant) {
-                    if (tenant) clearInterval(timer);
-                })
-                .catch(function () { /* retry */ });
-
             if (window.__gfvSubscriptionPlanId && window.__gfvModuliAttivi) {
                 clearInterval(timer);
                 return;
+            }
+            if (cached) {
+                tryResolve(cached.fb, cached.ts);
+            } else {
+                Promise.all([
+                    importCoreModule('services/firebase-service.js'),
+                    importCoreModule('services/tenant-service.js')
+                ]).then(function (pair) {
+                    cached = { fb: pair[0], ts: pair[1] };
+                    tryResolve(cached.fb, cached.ts);
+                }).catch(function () { /* retry */ });
             }
             if (attempts >= maxAttempts) clearInterval(timer);
         }, 250);
@@ -176,29 +258,58 @@
     bootstrapTenantContextForTony();
 
     function loadTonyWidgetScript() {
-        if (document.getElementById('tony-fab')) return;
-        if (window.__gfvTonyWidgetRequested) return;
+        if (document.getElementById('tony-fab')) {
+            removePlaceholderFab();
+            return;
+        }
+        if (window.__gfvTonyWidgetRequested) {
+            watchForRealFabAndOpen();
+            return;
+        }
         if (!shouldLoadTony()) return;
         window.__gfvTonyWidgetRequested = true;
         var base = resolveCoreBase();
         var sep = (base && !base.endsWith('/')) ? '/' : '';
-        var link = document.createElement('link');
-        link.rel = 'stylesheet';
-        link.href = (base ? base + sep : '') + 'styles/tony-widget.css';
-        document.head.appendChild(link);
         var s = document.createElement('script');
         s.type = 'module';
-        s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js?v=2026-07-19d';
+        s.src = (base ? base + sep : '') + 'js/tony-widget-standalone.js?v=' + TONY_LOADER_QUERY;
         document.body.appendChild(s);
+        watchForRealFabAndOpen();
+    }
+
+    function scheduleDeferredTonyLoad() {
+        if (window.__gfvTonyDeferScheduled) return;
+        window.__gfvTonyDeferScheduled = true;
+        whenBodyReady(function () {
+            injectPlaceholderFab();
+            if (shouldLoadTonyEager()) {
+                loadTonyWidgetScript();
+                return;
+            }
+            var start = function () { loadTonyWidgetScript(); };
+            if (typeof requestIdleCallback === 'function') {
+                requestIdleCallback(start, { timeout: 2500 });
+            } else {
+                setTimeout(start, 1800);
+            }
+        });
     }
 
     window.gfvLoadTonyWidget = function () {
-        if (shouldLoadTony()) loadTonyWidgetScript();
+        if (!shouldLoadTony()) return;
+        if (shouldLoadTonyEager()) {
+            whenBodyReady(function () {
+                injectPlaceholderFab();
+                loadTonyWidgetScript();
+            });
+            return;
+        }
+        scheduleDeferredTonyLoad();
     };
 
     window.gfvTryLoadTonyWidgetWhenReady = function () {
         if (!shouldLoadTony()) return false;
-        loadTonyWidgetScript();
+        scheduleDeferredTonyLoad();
         return true;
     };
 

@@ -1,6 +1,6 @@
 # 📋 Riepilogo Tour Interattivi - GFV Platform
 
-**⚠️ Stato attuale (2026-03-18):** il tour è **disabilitato a livello piattaforma** (flag `window.GFV_TOUR_DISABLED`, pulsanti nascosti in `tour.css`). Il codice resta presente; per riattivare vedi `COSA_ABBIAMO_FATTO.md` voce "Tour interattivi disabilitati".
+**⚠️ Stato attuale (2026-09-05):** il tour è **disabilitato** (`window.GFV_TOUR_DISABLED`). I moduli `*-tour.js` restano in repo. **Non si scarica più** intro.js/CSS da unpkg né `tour.css` sulle pagine; pulsanti Tour `hidden`; import tour sostituiti da stub no-op. Per riattivare: flag off + re-includere CDN intro.js + `tour.css` + import dei moduli — vedi `COSA_ABBIAMO_FATTO.md` (voci 2026-03-18 e 2026-09-05). Storico implementazione sotto invariato.
 
 ---
 
@@ -84,8 +84,8 @@
 ## 📦 Dipendenze e Stili
 
 ### Libreria Intro.js
-- **CDN**: `https://unpkg.com/intro.js/minified/introjs.min.css` e script
-- **Versione**: Ultima disponibile su unpkg
+- **CDN (storico)**: `https://unpkg.com/intro.js/minified/introjs.min.css` e script — **non più incluso nelle pagine** (2026-09-05)
+- **Versione**: Ultima disponibile su unpkg (solo se si riattiva il tour)
 - **Warning**: `introJs() is deprecated` - ma funziona ancora con `.setOptions()`
 
 ### Stili Custom (`core/styles/tour.css`)

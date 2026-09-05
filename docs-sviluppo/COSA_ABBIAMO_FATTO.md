@@ -1,6 +1,22 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-04 — zona due punti sempre attiva in PWA.**
+**Ultimo aggiornamento documentazione: 2026-09-05 — Tony lazy-load + meteo/Maps; zona due punti su main.**
+
+## Tony lazy-load + tour CDN spento (2026-09-05)
+
+- **Perché:** su ogni standalone il widget Tony (~900 KB, injector + `main.js`) partiva in serie prima della lista; intro.js/CSS da unpkg si scaricavano ancora su dashboard/terreni/lavori/macchine anche con tour spento (`GFV_TOUR_DISABLED`).
+- Loader (`gfv-tony-loader.js`): FAB placeholder subito; `tony-widget-standalone.js` a `requestIdleCallback` (max 2,5 s) o al tap. `?tonyE2e=1` / `gfv_tony_e2e=1` resta eager per gli E2E. Polling piano/tenant si ferma al primo ok; bootstrap tenant importa Firebase una volta sola.
+- Tour: rimossi `<script>`/`<link>` unpkg intro.js e `tour.css` dalle 4 pagine + test bootstrap; pulsanti Tour `hidden`. I moduli `*-tour.js` restano in repo. Per riattivare: flag `GFV_TOUR_DISABLED = false`, re-includere intro.js + `tour.css`, ripristinare gli import `*-tour.js` (non basta più solo `tour.css`).
+- Mobilità Fase 2 invariata: Tony resta su ogni pagina, cambia solo *quando* si scarica. Reminder/briefing partono dopo il load idle, non prima di «dashboard pronta».
+- Doc: questa voce, `tony/STATO_ATTUALE.md`, `TONY_DECISIONI` §3.10, `DOBBIAMO_ANCORA_FARE.md`, `da-fare/snellimento/`, `obsoleto/riepiloghi-sessioni/RIEPILOGO_TOUR.md`. Master Plan: nessuna fase cambiata.
+
+## Dashboard / Gestione lavori — meteo non blocca «pronta» + Maps on-demand (2026-09-04)
+
+- **Perché:** su Sabbie Gialle la prima visita dashboard era **6 466 ms** «pronta» (canary giugno ~861 ms); `meteo.fetchAndRender` ~4,5 s teneva `widgets.parallelBatch`. Gestione lavori caricava Google Maps a 500 ms anche solo sulla lista (~125 request, ~9,8 s).
+- Dashboard: `initDashboardMeteo` parte in parallelo ma **non** è nell’`await` di `widgets.parallelBatch`. Hub/scadenze/quick bar restano sul path critico. Card meteo: «Caricamento meteo…» (o cache localStorage) poi fill. Reminder Tony invariato: `loadTonyMeteoBriefingData` → `getMeteoTerreni` resta in `checkGlobalStatus` dopo «pronta».
+- Gestione lavori: `ensureGoogleMapsLoaded` solo al tab Mappa (`loadDettaglioMap`). Lista senza script Maps.
+- **Misure Sabbie (localhost, post entrambe le patch, 2026-09-05):** «pronta» **1 111 ms** (1ª) / **561 ms** (2ª); click→pronta 1,4 s / 0,9 s; lista lavori ~2 s, 0 request Maps. Residuo: Maps eager ancora su terreni, vendemmia, trattamenti/concimazioni/potatura/raccolta, caposquadra, guasti.
+- Doc: questa voce, `tony/STATO_ATTUALE.md` (riga Dashboard), `dashboard/PLAN_PERFORMANCE_DASHBOARD.md` addendum 2026-09. Master Plan: nessuna fase cambiata.
 
 ## Zona due punti — sempre attiva (non più solo «Prova») (2026-09-04)
 
@@ -76,6 +92,220 @@ Piano di implementazione (solo documentazione, **nessun codice**): un tap sulla 
 - Icona reale: `core/images/icon-192x192.png`. Catalogo: `buildNotificationIconUrl` (HTTPS Pages). SW: URL da `registration.scope`. Functions: stesso URL assoluto — **dopo il push Pages serve `firebase deploy --only functions`**.
 - In tendina, dopo deploy, dovrebbe comparire Tony nel cerchio verde. Sulla status bar Android la small icon resta una silhouette bianca (limite OS su PNG a colori tondo).
 - Doc: `COSA_ABBIAMO_FATTO.md` (questa voce), `tony/STATO_ATTUALE.md` (riga Push ciclo lavoro), `TONY_DECISIONI_E_REQUISITI.md` §15.7. Master Plan: nessuna fase cambiata.
+
+## Push ciclo lavoro — vapidKey locale (2026-08-26)
+
+- Chiave pubblica Web Push (FCM) inserita in `core/config/firebase-config.js` e `core/firebase-config.js` (gitignored). Il client `notification-fcm-client.js` può registrare i token.
+- Non committare questi file. Per la prova: ricaricare dashboard o workspace campo, accettare le notifiche browser, poi da capo inviare una comunicazione a un operaio.
+
+## Video spot — primo montaggio commerciale ffmpeg (2026-08-23/24)
+
+- Cartella: `Documents\primo video spot GFV`. Assemblaggio **ffmpeg** (H01–H08 + UI C01–C05 + T0/T1), non Filmora. Durata **~1:33**, 1920×1080 30 fps.
+- **Tony guida** lo spot. Voce = `it-IT-Chirp3-HD-Charon` (stessa TTS di `getTonyAudio` / `TONY_TTS_VOICE`). C03 = audio in-app della clip ore.
+- T0/T1: I2V parlato italiano (Higgsfield Wan 2.7 da still `tony presenta.jpg` / `Tony saluto silenzioso.jpg`). Audio Higgsfield (UK) scartato; VO Chirp3 allineata al labiale.
+- **GFV** in chiusura: **Gi Effe Vu** (lettere italiane). Take approvato `GFV_spot_v10.mp4` — **non sovrascrivere**. Taglio di lavoro mix: `GFV_spot_v11.mp4`.
+- Niente «manager», niente sottotitoli a frase. Cartelli: Pomeriggio · Monte Olivo, ore 7 · Sera.
+- Dettaglio: `VIDEO_STORYBOARD_SCRIPT_E_CLIP.md` §4 · `primo video spot GFV\LEGGIMI-MONTAGGIO.txt`.
+- Documenti obbligatori Tony: `COSA_ABBIAMO_FATTO.md` (questa voce), `tony/STATO_ATTUALE.md` (riga getTonyAudio), `TONY_DECISIONI_E_REQUISITI.md` §10.20. Master Plan: nessuna fase cambiata.
+- Prossimo: eventuale Filmora (mockup / taglio prof); `START_HERE`; invio al professore.
+
+## Video spot — H08 Luca ufficio sera (→ C05) (2026-08-21)
+
+- Still Gemini: ufficio sera, lampada accesa, finestra di lato, quaderno semiaperto a 45° con pagine bianche, destra sul coperchio obliquo, laptop schermo nero. I2V Seedance **TENERE:** `Downloads\hf_20260821_153742_bd1b6f3f-9a8c-41f4-aad1-5b5b2b77d175.mp4` (5 s 16:9, no audio). Chiude il quaderno, poi dolly (Filmora zoom ultimo 0,5 s → C05).
+- Pacchetto Higgsfield **H01–H08 chiuso**. Prossimo: montaggio Filmora (giornata + clip UI C01–C05).
+
+## Video spot — H07 Mario sera auto in aia (→ C04) (2026-08-21)
+
+- Still: primo Gemini (guida UK) specchiato in orizzontale → guida italiana. I2V Seedance **TENERE:** `Downloads\hf_20260821_142116_7895eec2-a70f-4b12-81eb-528c5be66fc5.mp4` (5 s 16:9, no audio). Entra con l’altra gamba, toglie il dito dallo schermo, poi dolly (Filmora zoom ultimo 0,5 s → C04).
+- Prossimo: H08 tenuto. Pacchetto H01–H08 chiuso.
+
+## Video spot — H07/H08 scene sera dedicate (2026-08-21)
+
+- C04/C05 **non** si chiudono con riuso di H02b/H01 (pomeriggio). Scene nuove, momenti diversi della giornata.
+- **H07** Mario: in **macchina**, ancora nell’**aia**, verso sera → **TENERE** `hf_20260821_142116_7895eec2-…` → C04.
+- **H08** Luca: ufficio sera, **luci accese** → **TENERE** `hf_20260821_153742_bd1b6f3f-…` → C05.
+
+## Video spot — H06 Giuseppe sera telefono (→ C03) (2026-08-21)
+
+- Still Gemini: Giuseppe solo, maglia beige, sera, un telefono schermo nero 3/4, forbici nel fodero con impugnatura in fuori. I2V Seedance **TENERE:** `Downloads\hf_20260821_134024_95fc988c-f378-4414-b2a3-1c2aed0fa924.mp4` (5 s 16:9, no audio). Sbadiglio, poi dolly sul display (non riempie di nero: in Filmora zoom ultimo 0,5 s poi C03).
+- Pacchetto Higgsfield **H01–H06 tenuto**. C04/C05 = scene nuove H07/H08 (non riuso).
+
+## Video spot — H05 Giuseppe + comparse filari (diradamento) (2026-08-21)
+
+- Still Gemini: Giuseppe 3/4 maglia beige, cesoie su grappolo verde; comparse su **filari diversi** (blu e arancio); casa a sinistra; luce diurna. I2V Seedance **TENERE:** `Downloads\hf_20260821_131934_12d246f8-0747-46f2-b2ef-c41823256d02.mp4` (5 s 16:9, no audio). Giuseppe taglia un grappolo e lo lascia cadere; stesso gesto sulle comparse.
+- H06 tenuto. Pacchetto H01–H06 chiuso.
+
+## Video spot — H04 ritrovo Squadra Rossi ore 7 (2026-08-21)
+
+- Still Gemini: casa vicina, filari che partono da lì, alba, Mario spiega, Giuseppe + comparse (2 donne), niente posa da foto. I2V Seedance **TENERE:** `Downloads\hf_20260821_125641_2d38c342-088d-4e5f-a201-cb0876c7971e.mp4` (5 s 16:9, no audio). Mario indica i filari, gli altri ascoltano.
+- Prossimo: H05 Giuseppe + 1–2 comparse al lavoro sul filare (foglie agosto / diradamento; nome in UI resta Potatura di Produzione).
+
+## Video spot — H03b Giuseppe telefono magazzino (→ ricezione) (2026-08-21)
+
+- Still Gemini 3/4 laterale, un telefono schermo nero. I2V Seedance **TENERE:** `Downloads\hf_20260821_114541_94b7bb26-d462-472e-a042-d2c658d18b36.mp4` (5 s 16:9, no audio). Asciuga la fronte con la mano libera, poi dolly sul display (non riempie di nero: in Filmora zoom ultimo 0,5 s poi clip ricezione).
+- H04 tenuto. Prossimo H05.
+
+## Video spot — H03a Giuseppe sacchi + magazzino (2026-08-21)
+
+- Still Gemini `Giuseppe_sposta_sacchi`: aia, magazzino dietro, posa un sacco sulla pila. I2V Seedance **TENERE:** `Downloads\hf_20260821_102132_af72f479-950a-4e18-af85-15e2f897b6e5.mp4` (5 s 16:9, no audio). Gesto lento, camera ferma, niente telefono.
+- Ponte pomeriggio operaio chiuso: H03a + H03b tenuti.
+
+## Video spot — H02b Mario cabina + telefono (→ C02) (2026-08-21)
+
+- Still Gemini `Mario_trattore_rosso_cabina_telefono`: cabina trattore rosso, telefono schermo nero. I2V Seedance **TENERE:** `Downloads\hf_20260821_042905_cb1763fb-1c09-4152-b2b5-3c552f96260e.mp4` (5 s 16:9, no audio). Dolly verso il display (non riempie di nero: in Filmora zoom ultimo 0,5 s poi C02).
+- Ponte pomeriggio capo chiuso: H02a trattore + H02b telefono → C02. H03a + H03b tenuti.
+
+## Video spot — H02a Mario trattore (giornata, altro lavoro) (2026-08-21)
+
+- Still Gemini `Mario_trattore_lavora_terra`: campo arato (non vigneto), trattore rosso, Mario alla guida. I2V Seedance **TENERE:** `Downloads\hf_20260821_035909_aa26ab88-e4f6-41e7-8fe5-65b4e2953c5d.mp4` (5 s 16:9, no audio). Solco lento, polvere, niente telefono.
+- H02 spezzato e **chiuso**: H02a lavoro in corso; H02b cabina + telefono → C02.
+
+## Video spot — H01 Luca ufficio giornata (2026-08-21)
+
+- Still Gemini `Luca_Impegnato_lavoro`: polo sage, carte, laptop schermo spento. I2V Seedance **TENERE:** `Downloads\hf_20260820_160946_0831fc22-10c8-403b-a6c0-aa21162580df.mp4` (5 s 16:9, no audio). Carte → PC → avvicinamento al display (non riempie di nero: in Filmora zoom ultimo 0,5 s poi C01).
+- H02a + H02b tenuti.
+
+## Video spot — storyboard giornata + lock personaggi (2026-08-20)
+
+- Aggiornato `VIDEO_STORYBOARD_SCRIPT_E_CLIP.md`: la storia è la **giornata** allineata alle clip UI (pomeriggio: Luca crea → Mario comunica → Giuseppe conferma; ore 7 alla casa; potatura; sera ore/valida/ufficio). §11 = scene Higgsfield H01–H06 (inquadratura, set, movimento, prompt I2V). Filmora assembla e inserisce C01–C05.
+- I2V idle tenuti: Mario `hf_20260820_141520_15b9e1d4-…`; Giuseppe `hf_20260820_150004_6233a701-…` (solo lui, no Tony in frame). Restano fallback; i crediti nuovi vanno alle scene di giornata, non a un film unico.
+
+## Video spot — Luca manager I2V (2026-08-20)
+
+- Still Gemini `L_laptop`: Luca rasato, tempie grigie, polo sage, ufficio, laptop schermo spento. Primo take scartato (Tony giovane + barba).
+- I2V Seedance da tenere: `Downloads\hf_20260820_113831_752260ba-e42c-4698-a59a-a882a2863f4e.mp4` (5 s 16:9 fumetto, **senza traccia audio**). Ponte C01 e riuso C05. In montaggio preferire i secondi centrali (blink a inizio/fine).
+- Prossimo: Mario Rossi in vigneto (telefono schermo spento), poi Giuseppe+Tony.
+
+## Video spot — ciclo UI + Tony Higgsfield (2026-08-20)
+
+- Clip UI tenant **AZIENDA DEMO GFV** (ciclo Potatura Monte Olivo, capo Mario Rossi, operaio Giuseppe Ferrari): C01–C05 usabili; tagli FFmpeg su invio comunicazione (logout) e quadro manager (flash «0 lavori»). File in `Videos\Captures\`; elenco in `VIDEO_STORYBOARD_SCRIPT_E_CLIP.md`.
+- Personaggi: brief Gemini `VIDEO_BRIEF_GEMINI_PERSONAGGI.md`. Approvati `T_identity` (full body 3/4 studio) e `T_present` (gesto verso spazio UI). Niente scritta GFV sul gilet (resta la foglia del FAB). Turnaround fronte scartato (Gemini ricopiava la posa).
+- Higgsfield Piano Plus: I2V **Seedance da start image**. Take fotorealistico (`hf_…c4234855…`) scartato. Take Tony buono: `hf_20260820_102138_e4d77e21….mp4` (fumetto, 5 s 16:9) — **mutare l’inglese** in montaggio. Luca ufficio fatto (vedi voce sopra). Mancano Mario/Giuseppe in vigneto; audio off; niente altri still da studio.
+
+## Tony — crea lavoro: un solo turno + terreno dal primo messaggio (2026-08-16)
+
+- Doppio lavoro: voce ritentava `sendMessage` mentre il primo «crea lavoro» era ancora in corso.
+- Terreno assente: `isLavoriFormDataReady` tornava true senza `terreniList` (flag `__lavoriFormDataReady`).
+- Spam console moduli: `setContext('dashboard', { plan })` azzerava `moduli_attivi` (replace, non merge).
+- Fix: ignora crea/voce duplicati; gate terreni prima del parse; merge `dashboard`/`session` come `page`. Build `2026-08-16b`.
+
+## Tony — crea lavoro: inject come prima + «su» terreno (2026-08-16)
+
+- Confronto vs ultimo push GitHub (`fcc2ba5`): l’intervista locale entity-dense è tutta su working copy, non era sul remote.
+- Regressione 14/08: secondo `buildLavoroInterviewPatch` + unique-hit forzato mettevano terreno/tipo nello stesso turno; se la cascata falliva Tony segnava tutto il turno come fallito.
+- Ora: stesso schema di ricerca terreno del push (no inferenza da cognome); «su» resta preposizione esplicita; se la cascata terreno/tipo fallisce si iniettano comunque capo/data/durata. Build `2026-08-16a`.
+
+## Tony — crea lavoro atomico: «su Monte Olivo» non più scartato (2026-08-14)
+
+- Sintomo: frase unica (assegnatario + data + durata + «su Monte Olivo» + tipo) iniettava solo capo/data/durata; Tony chiedeva il terreno e poi «ripeti».
+- Causa: «su» non era preposizione di terreno; con «per Mario Rossi» il parser saltava il terreno (guardia anti-cognome). Secondo giro: stessa domanda → «Ripeti con più dettaglio».
+- Fix: riconosce «su»; estrae il nome appezzamento; unique-hit se il nome terreno è nel testo; niente «ripeti» generico su messaggio denso. Build `2026-08-14b` (Ctrl+F5).
+- Test: `tony-lavoro-interview-client.test.js`.
+
+## Tony — chat e lavoro campo non più condivisi tra ruoli (2026-08-14)
+
+- Sintomo in clip demo: stessa chat Luca → Mario → Giuseppe; lavoro selezionato in localStorage unico per browser.
+- `tony_session_state` ora porta `uid`; restore scartato se l’utente non coincide. Switcher / logout / cambio auth azzerano chat.
+- Field workspace: `gfv_mobile_selected_work_id:{uid}` (niente ripristino del lavoro dell’utente precedente).
+- Prima della prossima presa: refresh forzato (Ctrl+F5) sullo switcher.
+
+## Tony — segna ore: niente doppia richiesta salva (2026-08-07)
+
+- Inject locale con `skipSavePrompt` (niente timer «Form completo, confermi?» → CF).
+- Se il messaggio denso ha già «vorrei salvare…» e il form è pronto → salva subito.
+- Flag `__tonyQuickHoursCfAskedSaveAt` quando Tony chiede «Vuoi salvare?» in locale.
+- Build `2026-08-07b`.
+
+## Tony — segna ore voce: STT «pausa ha» + eco fascia (2026-08-07)
+
+- Parser pausa: `pausa ha/di/da/a 45` oltre a `pausa 45`.
+- Collapse eco STT `dalle 7:00 alle dalle 7:00 alle 18:00`.
+- Build client `2026-08-07a`.
+
+## Gestione lavori — delete a cascata (2026-08-07)
+
+- Eliminazione lavoro da manager: conferma con conteggi (ore, zone, comunicazioni, diario, crop/VM) e cascata centralizzata in `lavori-service.deleteLavoroCascade`.
+- Hard delete: `oreOperai`, `zoneLavorate`, comunicazioni, attivita, assenze collegate, calcoli/spese VM, vendemmia/potatura/trattamento/raccolta; unlink preventivi/guasti; blocco se esistono riprese figlie.
+- UI thin in `gestione-lavori-events.openEliminaModal` (niente più `deleteDoc` diretto).
+- **Fix orfani (stesso giorno):** `purgeOrphanComunicazioni` dopo cascata + al load Gestione lavori; field-workspace nasconde comunicazioni con `lavoroId` assente (residui prove video).
+
+## Tony — voce crea lavoro: collapse STT + lexicon potatura (2026-08-06)
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Sintomo** | Stessa frase entity-dense: **scritto OK**, **voce** form incompleto / intervista |
+| **Causa** | Web Speech ripete «crea un lavoro…» e mishear («statura»→potatura); non errore utente |
+| **Fix** | `collapseDuplicateVoiceTranscript` (2× crea/nuovo lavoro); lexicon `statura di produzione` / `potature`; build **`2026-08-06c`** |
+| **Test** | `tony-italian-stt-normalize.test.js` |
+
+## Tony — crea lavoro: «salva» dopo inject completo (2026-08-06)
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Problema** | Dopo «Ok, ho compilato il lavoro» → «salva» finiva in intervista («Non ho capito…») perché `__tonyAwaitingLavoroSaveConfirm` non era armato |
+| **Fix** | `markLavoroInterviewReadyForSave` arma subito conferma + messaggio «Vuoi che salvi?»; `tryInterceptLavoroSaveBeforeCf` (stile preventivo); build **`2026-08-06b`** |
+| **File** | `tony-form-injector.js`, `tony-form-save-local.js`, `tony/main.js` |
+
+## Tony — chat: messaggio utente duplicato dopo navigazione (2026-08-06)
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Problema** | «Portami a magazzino» / «Portami al vigneto» → due bolle utente uguali + una risposta Tony (visibile soprattutto dopo restore sessione) |
+| **Causa** | `tonyEnsureUserTurnInChatHistory` + `_pushChatTurn` CF senza `skipUserHistory` → user due volte in `chatHistory` |
+| **Fix** | `skipUserHistory` se bolla già scritta; dedupe in `_pushChatTurn`; collapse consecutivi in `restoreTonyState`; build **`2026-08-06a`** |
+| **File** | `tony/main.js`, `tony-service.js`, loader/widget cache bust |
+
+## Tony — crea lavoro entity-dense: inject completo + domanda solo residua (2026-08-06)
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Problema** | Frase completa («crea lavoro di squadra per Mario… domani… Monte Olivo… potatura di produzione») → flusso locale chiedeva tutto a pezzi; early return su manuale/meccanica scartava il patch già estratto |
+| **Fix A** | `inferTipoModoFromSubtypeQualifier` — «produzione»/«verde» implica modo; non chiedere M/M se già nel messaggio |
+| **Fix B** | Prima della domanda tipo/modo: `injectLavoroInterviewPatchNow` applica i campi già chiari (capo, terreno, data, durata) |
+| **Fix C** | Dopo risposta M/M (e disamb. tipo/terreno): `mergePendingLavoroCreationIntoPatch` riprende il messaggio iniziale (anche assignee) |
+| **File** | `core/js/tony-form-injector.js` |
+| **Test** | `tony-lavoro-interview-client.test.js` (+3 scenari) |
+
+## Tony — STT italiano: lexicon + scoring alternative (2026-08-04)
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Problema** | Web Speech Chrome (`it-IT`) trascrive male («alla» → «Allah», H isolate, typo magazzino/terreni); non limitato al tenant demo |
+| **Fix** | `normalizeItalianSttTranscript` + `ITALIAN_STT_LEXICON_REPLACEMENTS` in `engine.js`; pipeline in `finalizeVoiceUserTranscript` |
+| **Scoring** | `scoreItalianSttLexicon` + confidence tie-break in `pickBestVoiceResultSegment` (preferisce «alla» vs «Allah» tra le 5 alternative) |
+| **Test** | `tony-italian-stt-normalize.test.js` (5) |
+| **Fuori scope** | STT cloud (Chirp) resta fase successiva |
+
+## Demo cloud — geo privacy-safe v2 (2026-08-04)
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Scope** | Solo tenant `demo_azienda_demo_gfv_v1` — nessun impatto account reali |
+| **Zone** | Fasce lineari ovest→est (`linearWorkedStrip`) al posto dei rettangoli concentrici |
+| **Origin** | Demo Valley v2 ~44.72 / 27.55 (pianura aperta); `demoGeoSafeVersion: 2` |
+| **UI** | `core/js/demo-map-privacy.js` — roadmap senza POI/etichette se `tenantId` demo (gestione lavori + mappa aziendale) |
+| **Seed** | `npm run demo:cloud:seed -- … --geo-only --force-geo --confirm-production --execute` |
+| **Auth mode** | `gfv_demo_cloud_session` anche in `localStorage` (evita kick su Auth emulator 9099 dopo tab simulatore) |
+| **Doc** | `da-fare/demo/PIANO_TENANT_DEMO_PRODUZIONE.md` §6.1 · `scripts/demo-cloud/README.md` · note video/storyboard |
+
+## Linguaggio utente — niente «Tony Occhi» in UI/guide (2026-08-02)
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Scelta** | Chat: prima persona; guide scritte: Tony + foto/PDF; **«Tony Occhi»** solo commenti/dev/roadmap/STATO |
+| **Guide** | TONY/MAGAZZINO/CORE utente+sintesi, INTERSEZIONI, README + mirror `core/GUIDA` |
+| **Runtime** | Fallback sintesi + regola guida in `tony-service.js`; esempio ECCEZIONE GUIDA in `functions/index.js`; test howto aggiornato |
+| **UI** | Banner/summary prodotti; reminder/match/note movimento in `document-*` |
+
+## Tony — guide «come fare» senza navigazione automatica (2026-08-02)
+
+| Pezzo | Dettaglio |
+| ----- | --------- |
+| **Problema** | «Spiegami come registrare una bolla/fattura» → Gemini emetteva `APRI_PAGINA` magazzino insieme alla risposta → rischio di lasciare la chat senza spiegazione |
+| **CF** | `stripNavCommandsOnHowToGuide` in `tony-quick-replies.js` + apply in `handleTonyAskRequest`; regola ECCEZIONE GUIDA in `SYSTEM_INSTRUCTION_ADVANCED` |
+| **Client** | `triggerAction` in `tony-service.js` blocca `APRI_PAGINA`/`OPEN_MODAL` se ultimo messaggio è intento guida |
+| **Test** | `tony-howto-nav-guard.test.js` (6) |
+| **Nota** | Serve **redeploy functions** (+ hosting se cambi solo client) per effetto in emulator/prod |
 
 ## Mappa — canary allarmi / legenda (2026-08-02)
 
@@ -5530,7 +5760,7 @@ Disabilitare il tour (inibizione) su tutte le pagine senza rimuovere codice: sol
 - **Moduli tour** (`dashboard-tour.js`, `terreni-tour.js`, `gestione-macchine-tour.js`, `gestione-lavori-tour.js`): all’inizio di `setup*` e `maybeAutoStart*` è stato aggiunto il controllo `if (window.GFV_TOUR_DISABLED) return;` così non viene eseguito né il setup del pulsante né l’auto-avvio.
 
 ### Risultato
-Tour non visibile e non avviabile. Per riattivarlo: rimuovere il flag dalle pagine (o impostare `GFV_TOUR_DISABLED = false`) e rimuovere/commentare la regola in `tour.css`.
+Tour non visibile e non avviabile. **2026-09-05:** intro.js/CSS unpkg e `tour.css` non sono più inclusi nelle pagine; i pulsanti sono `hidden` in HTML; gli import `*-tour.js` sono stub no-op. Per riattivare: `GFV_TOUR_DISABLED = false`, re-includere intro.js + `tour.css`, ripristinare gli import dei moduli tour (il solo `tour.css` non basta più). Codice tour resta in repo.
 
 ---
 

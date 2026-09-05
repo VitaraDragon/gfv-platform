@@ -71,6 +71,7 @@ Checklist operativa per lo sviluppo del modulo Tony (assistente IA). Riferimento
 | 4.5 | **Conferma prima di aprire pagina**: per richieste "come fare" Tony non emette APRI_PAGINA; propone in testo; apre solo dopo conferma utente ("sì"/"apri") | System instruction, COSA_ABBIAMO_FATTO | [x] fatto |
 | 4.6 | **Dialog conferma** custom (no confirm nativo): overlay + box "Aprire la pagina «X»?" con Annulla/Apri; stile in tony-widget.css | COSA_ABBIAMO_FATTO | [x] fatto |
 | 4.7 | **Tony su tutte le pagine**: loader `tony-widget-standalone.js` importa `core/js/tony/main.js`; logica in `tony/` (main, ui, engine, voice); FAB + chat + dialog; URL assoluti + resolveTarget | GUIDA_SVILUPPO_TONY §3 | [x] fatto |
+| 4.7a | **Lazy-load widget**: FAB placeholder; `tony-widget-standalone.js` a idle/tap (`gfv-tony-loader.js`); E2E eager `?tonyE2e=1` | COSA_ABBIAMO_FATTO 2026-09-05, TONY_DECISIONI §3.10 | [x] fatto |
 | 4.8 | **Compilazione form Lavori** (INJECT_FORM_DATA): Tony compila form Crea Nuovo Lavoro con sottocategoria, tipo, macchine, stato; contesto coltura_categoria, colture_con_filari | TONY_COMPILAZIONE_LAVORI_2026-02 | [x] fatto (2026-02-16) |
 | 4.9 | (Opz.) Lavori: onAction per SEGNA_ATTIVITA, UPDATE_JOB, ecc. | §9, §8 Azioni V1 | [ ] da fare |
 | 4.10 | (Opz.) Magazzino: onAction per AGGIORNA_MAGAZZINO, MOSTRA_SCORTE | §9, §8 | [ ] da fare |

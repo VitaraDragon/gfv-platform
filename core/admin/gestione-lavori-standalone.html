@@ -2,11 +2,11 @@
 <html lang="it">
 <head>
     <script>window.GFV_TOUR_DISABLED = true;</script>
+    <!-- Demo cloud = produzione: non riattivare Auth/Firestore emulator -->
+    <script>try{if(localStorage.getItem('gfv_demo_cloud_session')==='1'){localStorage.removeItem('gfv_firebase_emulator');}else if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Lavori - GFV Platform</title>
-    <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
-    <link rel="stylesheet" href="../styles/tour.css">
     <link rel="stylesheet" href="../styles/responsive-standalone.css">
     <link rel="stylesheet" href="../styles/manodopera-semaforo.css">
     <style>
@@ -746,7 +746,7 @@
                     <span>⚙️</span>
                     <span>Impostazioni</span>
                 </a>
-                <button class="btn btn-primary" id="lavori-tour-button" type="button">🧭 Tour</button>
+                <button class="btn btn-primary" id="lavori-tour-button" type="button" style="display: none;" hidden>🧭 Tour</button>
                 <button class="btn btn-primary" id="crea-lavoro-button" onclick="openCreaModal()">➕ Crea Nuovo Lavoro</button>
                 <a href="../../modules/manodopera/views/impegni-giornalieri-standalone.html" class="btn btn-secondary" id="impegni-giorno-link" title="Vista impegni del giorno">📅 Impegni giorno</a>
                 <a href="../../modules/manodopera/views/manodopera-home-standalone.html" id="dashboard-link" class="btn btn-secondary">← Manodopera</a>
@@ -1555,26 +1555,48 @@
         document.head.appendChild(mapsConfigScript);
     </script>
     
-    <!-- Google Maps API -->
+    <!-- Google Maps API: solo al primo tab Mappa (non sulla lista) -->
     <script>
-        // Carica Google Maps API dopo che la config è pronta
-        function loadGoogleMapsAPI() {
-            const apiKey = window.GOOGLE_MAPS_API_KEY || 'AIzaSyDno2cpcMHfs_FqhD4-hi_esj6pBixyJBk';
-            const script = document.createElement('script');
-            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=geometry&callback=initGoogleMaps`;
-            script.async = true;
-            script.defer = true;
-            document.head.appendChild(script);
-        }
-        
-        window.initGoogleMaps = function() {
+        let gfvLavoriMapsLoadPromise = null;
+        window.initGoogleMaps = function () {};
+
+        window.ensureGoogleMapsLoaded = function ensureGoogleMapsLoaded() {
+            if (typeof google !== 'undefined' && google.maps) {
+                return Promise.resolve();
+            }
+            if (gfvLavoriMapsLoadPromise) return gfvLavoriMapsLoadPromise;
+
+            gfvLavoriMapsLoadPromise = new Promise(function (resolve, reject) {
+                const existing = document.querySelector('script[src*="maps.googleapis.com"]');
+                if (existing) {
+                    const started = Date.now();
+                    const timer = setInterval(function () {
+                        if (typeof google !== 'undefined' && google.maps) {
+                            clearInterval(timer);
+                            resolve();
+                        } else if (Date.now() - started > 15000) {
+                            clearInterval(timer);
+                            reject(new Error('Google Maps timeout'));
+                        }
+                    }, 50);
+                    return;
+                }
+
+                window.initGoogleMaps = function () { resolve(); };
+                const apiKey = window.GOOGLE_MAPS_API_KEY || 'AIzaSyDno2cpcMHfs_FqhD4-hi_esj6pBixyJBk';
+                const script = document.createElement('script');
+                script.src = 'https://maps.googleapis.com/maps/api/js?key=' + apiKey + '&libraries=geometry&callback=initGoogleMaps';
+                script.async = true;
+                script.defer = true;
+                script.onerror = function () {
+                    reject(new Error('Google Maps load failed'));
+                };
+                document.head.appendChild(script);
+            });
+            return gfvLavoriMapsLoadPromise;
         };
-        
-        // Prova a caricare dopo un breve delay per assicurarsi che la config sia caricata
-        setTimeout(loadGoogleMapsAPI, 500);
     </script>
     
-    <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
     <script src="../../node_modules/polygon-clipping/dist/polygon-clipping.umd.js"></script>
     <!-- Placeholder per Tony: currentTableData (aggiornato da renderLavori) -->
     <script>window.currentTableData = window.currentTableData || { pageType: 'lavori', summary: 'Caricamento dati in corso...', items: [] };</script>
@@ -1668,13 +1690,6 @@
         } from './js/gestione-lavori-events.js';
 
         import {
-            setupLavoriTourButton as setupLavoriTourButtonModule,
-            maybeAutoStartLavoriTour as maybeAutoStartLavoriTourModule,
-            startLavoriTour as startLavoriTourModule,
-            buildLavoriTourSteps as buildLavoriTourStepsModule
-        } from './js/gestione-lavori-tour.js';
-
-        import {
             initGestioneLavoriAssenzeUi,
             refreshAssenzeSegnalateBanner,
             openStandbyAssenzaModal,
@@ -1690,6 +1705,10 @@
             openSostitutoAssenzaModal,
             closeSostitutoAssenzaModal
         } from './js/gestione-lavori-sostituti-ui.js';
+
+        function setupLavoriTourButtonModule() { /* tour disattivato: modulo resta in repo */ }
+        function maybeAutoStartLavoriTourModule() {}
+        function startLavoriTourModule() {}
 
         // Import per modulo Vigneto (pianificazioni e forme allevamento)
         let getAllPianificazioniModule = null;
@@ -3471,6 +3490,12 @@
 
                     loadLavoriWrapper().then(function () {
                         if (statoFromUrl) applyFiltersWrapper();
+                        // Ripulisce comunicazioni legate a lavori già eliminati (residui pre-cascata)
+                        return import('../services/lavori-service.js').then(function (mod) {
+                            if (typeof mod.purgeOrphanComunicazioni === 'function') {
+                                return mod.purgeOrphanComunicazioni(currentTenantId || lavoriState.currentTenantId);
+                            }
+                        });
                     }).catch(function (err) {
                         console.warn('[Gestione Lavori] loadLavori background:', err);
                     });

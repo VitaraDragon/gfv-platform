@@ -5,8 +5,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gestione Macchine - GFV Platform</title>
-    <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
-    <link rel="stylesheet" href="../styles/tour.css">
     <link rel="stylesheet" href="../styles/responsive-standalone.css">
     <style>
         * {
@@ -374,7 +372,7 @@
                     <span>⚙️</span>
                     <span>Impostazioni</span>
                 </a>
-                <button class="btn btn-primary" id="macchine-tour-button" type="button">🧭 Tour</button>
+                <button class="btn btn-primary" id="macchine-tour-button" type="button" style="display: none;" hidden>🧭 Tour</button>
                 <button class="btn btn-primary" id="nuova-macchina-button" onclick="openMacchinaModal()">➕ Nuova Macchina</button>
                 <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
             </div>
@@ -710,7 +708,6 @@
         };
     </script>
     
-    <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
     <!-- Firebase SDK -->
     <script type="module">
         import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
@@ -744,11 +741,9 @@
             handleSalvaCategoria as handleSalvaCategoriaModule,
             loadStoricoGuasti as loadStoricoGuastiModule
         } from './js/gestione-macchine-events.js';
-        import {
-            setupMacchineTourButton as setupMacchineTourButtonModule,
-            maybeAutoStartMacchineTour as maybeAutoStartMacchineTourModule,
-            startMacchineTour as startMacchineTourModule
-        } from './js/gestione-macchine-tour.js';
+        function setupMacchineTourButtonModule() { /* tour disattivato: modulo resta in repo */ }
+        function maybeAutoStartMacchineTourModule() {}
+        function startMacchineTourModule() {}
 
         function waitForConfig() {
             return new Promise((resolve, reject) => {

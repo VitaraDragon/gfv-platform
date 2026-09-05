@@ -11,6 +11,7 @@
 **Fuori scope di questo piano** (track separati):
 - Consultazione **storica multi-anno** e confronti temporali strutturati (aggregati per anno, trend, “rispetto allo scorso anno”): iniziativa **trasversale app** — vedi §9; necessaria per consigli basati sul passato, ma non implementata qui.
 - Rewrite stack (React/Flutter), offline IndexedDB completo, satellite/IoT.
+- **Caricamento client del widget** (peso JS prima della lista): track dashboard/`gfv-tony-loader` — **lazy-load ✅ 2026-09-05** (idle/tap; Fase 2 invariata). Vedi `COSA_ABBIAMO_FATTO.md` e `dashboard/PLAN_PERFORMANCE_DASHBOARD.md` addendum 2026-09. Questo piano resta sulla latenza **turno chat / CF**.
 
 ---
 

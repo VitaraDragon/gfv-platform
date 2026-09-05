@@ -19,8 +19,6 @@
     <meta name="theme-color" content="#2E8B57">
     <link rel="stylesheet" href="styles/dashboard.css">
     <link rel="stylesheet" href="styles/responsive-standalone.css">
-    <link rel="stylesheet" href="styles/tour.css">
-    <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
 </head>
 <body>
     <div class="dashboard-container">
@@ -39,7 +37,7 @@
                     <span>📘</span>
                     <span>Guide</span>
                 </a>
-                <button class="btn btn-primary" id="dashboard-tour-button" type="button" style="display: inline-flex; align-items: center; gap: 8px;">
+                <button class="btn btn-primary" id="dashboard-tour-button" type="button" style="display: none;" hidden>
                     <span>🧭</span>
                     <span>Tour</span>
                 </button>
@@ -88,12 +86,11 @@
       alertScript.src = (base ? base + sep : '') + 'js/standalone-alert-global.js';
       document.head.appendChild(alertScript);
       var tonyLoader = document.createElement('script');
-      tonyLoader.src = (base ? base + sep : '') + 'js/gfv-tony-loader.js';
+      tonyLoader.src = (base ? base + sep : '') + 'js/gfv-tony-loader.js?v=2026-09-05a';
       document.head.appendChild(tonyLoader);
     })();
     </script>
 
-    <script src="https://unpkg.com/intro.js/minified/intro.min.js" defer></script>
     <script src="js/config-loader.js"></script>
     <script src="js/dashboard-utils.js"></script>
     <script src="js/dashboard-sections.js"></script>
@@ -224,16 +221,14 @@
             formattaOre as formattaOreModule
         } from './js/dashboard-data.js';
         import {
-            setupDashboardTour as setupDashboardTourModule,
-            startDashboardTour as startDashboardTourModule
-        } from './js/dashboard-tour.js';
-        import {
             handleLogout as handleLogoutModule,
             confermaComunicazione as confermaComunicazioneModule,
             handleRapidaLavoroChange as handleRapidaLavoroChangeModule,
             handleSendComunicazioneRapida as handleSendComunicazioneRapidaModule,
             showRapidaMessage as showRapidaMessageModule
         } from './js/dashboard-events.js';
+
+        function setupDashboardTourModule() { /* tour disattivato: modulo resta in repo */ }
 
         // Carica configurazione
         const firebaseConfig = await waitForConfig();
@@ -271,7 +266,7 @@
         const { ensureSimulatorSession } = await import('./js/simulator-browser-auth.js');
         await ensureSimulatorSession(auth);
         const db = getDb();
-        console.log('[Tony] Firebase OK. Tony widget caricato da tony-widget-standalone.js.');
+        console.log('[Tony] Firebase OK. Widget Tony in lazy-load (idle o tap FAB).');
 
         // Conta utenti del tenant
         let tenantUserCount = 1; // Default a 1 (solo utente corrente)
@@ -879,6 +874,19 @@
                 const uid = user && user.uid;
                 const deadlinesRow = document.querySelector('.dashboard-deadlines-row');
 
+                // Meteo: parte in parallelo ma non blocca «dashboard pronta».
+                // Tony briefing usa un altro fetch (getMeteoTerreni) già in differita.
+                const meteoPromise = dashboardPerfAsync('widgets.meteo', () => initDashboardMeteo({
+                    tenantId: tid,
+                    planId: window.__gfvSubscriptionPlanId || 'base',
+                    hasMeteoModule: mods.includes('meteo'),
+                    hasManodopera,
+                    dependencies,
+                    countsSnapshot
+                })).catch(function (meteoErr) {
+                    console.warn('init dashboard meteo:', meteoErr);
+                });
+
                 await dashboardPerfAsync('widgets.parallelBatch', () =>
                     Promise.all([
                         dashboardPerfAsync('widgets.hub', () => initDashboardPanoramaHub({
@@ -887,14 +895,6 @@
                             hasManodopera,
                             hasContoTerzi,
                             availableModules: mods,
-                            dependencies,
-                            countsSnapshot
-                        })),
-                        dashboardPerfAsync('widgets.meteo', () => initDashboardMeteo({
-                            tenantId: tid,
-                            planId: window.__gfvSubscriptionPlanId || 'base',
-                            hasMeteoModule: mods.includes('meteo'),
-                            hasManodopera,
                             dependencies,
                             countsSnapshot
                         })),
@@ -920,6 +920,7 @@
                         }))
                     ])
                 );
+                void meteoPromise;
             } catch (e) {
                 console.warn('init dashboard widgets:', e);
             }

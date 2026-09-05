@@ -1,6 +1,6 @@
 # 📋 Stato Progetto Completo - GFV Platform
 
-**Ultimo aggiornamento**: 2026-02-27 (verifica allineamento codice e documentazione)  
+**Ultimo aggiornamento**: 2026-09-05 (nota performance client: meteo/Maps/Tony lazy — vedi `COSA_ABBIAMO_FATTO.md`; file storico, stato Tony in `tony/STATO_ATTUALE.md`)  
 **Versione**: 2.0.12-alpha  
 **Stato**: In sviluppo attivo - Core Base completo + Modulo Manodopera COMPLETO + **Modulo Vigneto ~80-85% COMPLETATO** (Anagrafica Vigneti, Gestione Vendemmia con Tracciamento Poligono, Rilevamento Automatico da Lavori, Calcolo Compensi con Costi Macchine, Integrazione Sistema Lavori/Diario, Sistema Spese/Costi, Filtri Viste, Integrità Dati, **Pianificazione Impianti con Calcolo Materiali, Integrazione Creazione Vigneti da Lavori Impianto**) + Modulo Parco Macchine COMPLETO + Modulo Conto Terzi COMPLETO + Sistema Categorie Gerarchico Unificato + Sistema Segnalazione Guasti + Sistema Multi-Tenant Membership COMPLETO + Standardizzazione Error Handling COMPLETA
 
@@ -2511,7 +2511,7 @@ git ls-files | grep "vecchia"
 4. ✅ ~~Pulizia Completa Log Debug Modulo Statistiche Vigneto~~ **COMPLETATO** (2026-01-22) - Rimossi tutti i log di debug (~65+ log), codice pulito e pronto per produzione
 5. 🟡 **Pianificazione Nuovi Impianti - Card Dedicata Gestione Salvate** (2-3 ore) - Implementare card dedicata nel sottomenù "PIANIFICA VIGNETO" per visualizzare/caricare/eliminare pianificazioni salvate
 2. 🟡 **Eseguire Test Manuali Multi-tenant** (1-2 ore) - Verificare isolamento reale con dati Firebase usando guida `tests/security/test-isolamento-multi-tenant.md`
-3. 🟡 **Ottimizzare Performance** (3-4 ore) - Implementare lazy loading per moduli admin, caricare Google Maps solo quando necessario, ottimizzare caricamento iniziale dashboard, strategia cache più aggressiva
+3. 🟢 **Ottimizzare Performance** — **parziale 2026-09:** dashboard meteo fuori da «pronta», Maps lazy lista Gestione lavori, Tony lazy-load, intro.js non scaricato. **Resta:** Maps eager su altre liste; `getDocs` tutti i lavori (`da-fare/lavori/PLAN_SCALABILITA_LISTA_LAVORI.md`). Non ancora in PWA. Dettaglio: `COSA_ABBIAMO_FATTO.md` 2026-09-04/05.
 4. 🟢 **Completare Test Coverage** (8-10 ore) - Test integrazione per tutti i servizi, test E2E per flussi critici, coverage > 80%
 5. 🟢 **Documentazione API** (2-3 ore) - JSDoc completo per tutti i servizi, generare documentazione API automatica, esempi d'uso
 

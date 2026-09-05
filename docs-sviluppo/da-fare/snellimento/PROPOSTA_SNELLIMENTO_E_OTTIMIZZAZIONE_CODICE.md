@@ -1,6 +1,6 @@
 # Proposta snellimento e ottimizzazione del codice
 
-**Data**: 25 febbraio 2026  
+**Data**: 25 febbraio 2026 (aggiornato 2026-09-05: lazy load Tony ✅)  
 **Obiettivo**: Ridurre duplicazione, alleggerire file monolitici e uniformare i pattern senza stravolgere l’architettura attuale.
 
 ---
@@ -110,10 +110,9 @@ Le modifiche proposte **non** hanno tutte lo stesso tipo di effetto. In sintesi:
 - **Riduzione/rimozione log di debug** in `tony-widget-standalone.js`:  
   Leggera **riduzione del tempo di esecuzione** (meno `console.log`) e file leggermente più piccolo; impatto piccolo ma positivo.
 
-- **Lazy load di Tony** (caricare il widget Tony solo al primo click sul FAB):  
-  **Sì, riduzione netta del tempo di caricamento iniziale** sulle pagine dove Tony è incluso. Fino al primo click non si scaricano né si eseguono: `tony-widget-standalone.js`, `tony-form-schemas.js`, `tony-smart-filler.js`, `tony-form-injector.js`, CSS Tony, e l’init (polling, Tony.init). Su connessioni lente o dispositivi deboli la prima paint risulta più veloce. **Contro**: al primo click sul FAB c’è un breve “Caricamento…” prima che la chat sia pronta.
+- **Lazy load di Tony** ✅ **2026-09-05** (`gfv-tony-loader.js`): FAB placeholder subito; widget (standalone + injector + `main.js`) a `requestIdleCallback` (max 2,5 s) o al tap. E2E eager (`?tonyE2e=1`). Su Sabbie, a ~400 ms dalla dashboard i file Tony non partono ancora. **Contro residuo:** al tap prima dell’idle c’è un breve attesa finché il widget è pronto.
 
-**In sintesi**: la maggior parte delle proposte **non** serve a ridurre i tempi di caricamento; l’unica che incide in modo chiaro è il **lazy load di Tony**.
+**In sintesi**: la maggior parte delle proposte **non** serve a ridurre i tempi di caricamento; l’unica che incideva in modo chiaro era il **lazy load di Tony** (ora fatto). Restano bootstrap/utils/CSS (manutenibilità).
 
 ### 5.2 Cosa comporterebbero davvero le altre modifiche
 
@@ -125,13 +124,13 @@ Le modifiche proposte **non** hanno tutte lo stesso tipo di effetto. In sintesi:
 | **Spezzare tony-widget in moduli** | File più piccoli e chiari; possibilità di testare voce/comandi separatamente. | Manutenzione e debug più facili; nessun guadagno diretto di velocità (stesso codice totale). |
 | **Rimuovere/condizionare log debug** | Meno rumore in console; file leggermente più piccolo. | Leggera riduzione tempo di esecuzione. |
 | **CSS condiviso liste** | Un solo file da cambiare per tema liste; meno CSS duplicato. | Cache browser può servire un unico `list-views.css` per tutte le liste; guadagno minimo su caricamento. |
-| **Lazy load Tony** | **Riduzione tempo di caricamento iniziale** (Tony non viene caricato finché non serve). | Meno lavoro JS e meno richieste alla prima apertura pagina. |
+| **Lazy load Tony** ✅ 2026-09-05 | **Riduzione tempo di caricamento iniziale** (widget dopo idle/tap). | Meno lavoro JS e meno richieste alla prima paint. |
 | **service-helper usato ovunque** | Un solo punto per cache/error handling (se lo si implementa lì). | Potenziale per future ottimizzazioni (es. cache liste); oggi soprattutto coerenza. |
 
 ### 5.3 Riepilogo per obiettivo
 
 - **Vuoi ridurre i tempi di caricamento?**  
-  → L’intervento che conta è il **lazy load di Tony**. Il resto ha impatto trascurabile o nullo sui tempi.
+  → **Lazy load Tony ✅ 2026-09-05.** Residuo percepibile: Maps eager su liste non-lavori; `getDocs` di tutti i lavori (altro piano).
 
 - **Vuoi meno bug e meno fatica a modificare il codice?**  
   → Bootstrap unico, utils condivisi, path-resolver, spezzare il widget Tony, CSS condiviso: **manutenibilità e coerenza**.
@@ -152,7 +151,7 @@ Le modifiche proposte **non** hanno tutte lo stesso tipo di effetto. In sintesi:
 | Standardizzare path-resolver ovunque | Medio | Medio | Media |
 | CSS condiviso liste (list-views.css) | Medio | Basso | Media |
 | list-utils.js per liste Parco Macchine | Medio | Basso | Bassa |
-| Lazy load Tony (caricamento al primo click) | Performance | Medio | Bassa |
+| Lazy load Tony (idle/tap) | Performance | Medio | ✅ **fatto 2026-09-05** |
 
 ---
 
@@ -173,7 +172,7 @@ Sì, il codice **si può snellire e ottimizzare** senza cambiare architettura. I
 3. **Riduzione log di debug** e **suddividere tony-widget-standalone.js** in moduli più piccoli.
 4. **Path-resolver** usato ovunque e **CSS condiviso** per le liste.
 
-Procedendo in modo incrementale si riduce duplicazione, si migliora manutenibilità e si prepara il terreno per eventuali ottimizzazioni di caricamento (es. lazy load di Tony).
+Procedendo in modo incrementale si riduce duplicazione e si migliora manutenibilità. Il lazy load Tony è **fatto** (2026-09-05); restano bootstrap/utils/CSS.
 
 ---
 

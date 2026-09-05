@@ -7,8 +7,7 @@
     <title>Gestione Terreni (Test Bootstrap) - GFV Platform</title>
     <link rel="manifest" href="../manifest.json">
     <meta name="theme-color" content="#2E8B57">
-    <link rel="stylesheet" href="https://unpkg.com/intro.js/minified/introjs.min.css">
-    <link rel="stylesheet" href="./styles/tour.css">
+    <link rel="stylesheet" href="./styles/responsive-standalone.css">
     <style>
         * {
             margin: 0;
@@ -568,7 +567,7 @@
                     <span>Impostazioni</span>
                 </a>
                 <a href="dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
-                <button class="btn btn-primary" id="terreni-tour-button" type="button">🧭 Tour</button>
+                <button class="btn btn-primary" id="terreni-tour-button" type="button" style="display: none;" hidden>🧭 Tour</button>
                 <button class="btn btn-primary" id="add-terreno-button" onclick="openTerrenoModal()">+ Aggiungi Terreno</button>
             </div>
         </div>
@@ -736,7 +735,6 @@
     <!-- Bootstrap unico: config + Firebase + Tenant + Tony -->
     <script type="module" src="js/standalone-bootstrap.js" data-config-base=""></script>
 
-    <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script>
     <!-- Firebase SDK e Google Maps -->
     <script type="module">
         // ============================================
@@ -783,13 +781,11 @@
             setupColturaColorListener as setupColturaColorListenerModule
         } from './js/terreni-events.js';
 
-        import {
-            setupTerreniTourButton as setupTerreniTourButtonModule,
-            maybeAutoStartTerreniTour as maybeAutoStartTerreniTourModule,
-            startTerreniTour as startTerreniTourModule
-        } from './js/terreni-tour.js';
-
         import { formatIsoDateToItalianLong } from './js/date-format-it.js';
+
+        function setupTerreniTourButtonModule() { /* tour disattivato: modulo resta in repo */ }
+        function maybeAutoStartTerreniTourModule() {}
+        function startTerreniTourModule() {}
 
         // Attendi bootstrap (config, Firebase, tenant, Tony già pronti)
         try {

@@ -1,10 +1,11 @@
 # Piano performance — Dashboard standalone
 
 **Creato:** 2026-06-06  
-**Ultimo aggiornamento:** 2026-06-06  
-**Stato:** Fase 0 ✅ · Fase 1 ✅ · Fase 2 ✅ · Fase 3 ✅ · Fase 4 ✅ · **Fase 5 ✅**  
-**Baseline canary:** tenant **Sabbie Gialle**, `http://localhost:8000/core/dashboard-standalone.html?dashboardPerf=1`  
-**Canary attuale (post Fase 4):** `dashboard pronta` **~861 ms** (baseline ~18,4 s)  
+**Ultimo aggiornamento:** 2026-09-05  
+**Stato:** Fase 0 ✅ · Fase 1 ✅ · Fase 2 ✅ · Fase 3 ✅ · Fase 4 ✅ · **Fase 5 ✅** · **Addendum 2026-09** (meteo fuori path critico + Maps lista lavori + Tony lazy)  
+**Baseline canary:** tenant **Sabbie Gialle**, `http://localhost:8000/core/dashboard-standalone.html?dashboardPerf=1` (validare su porta che serve i file attuali, es. **8011**)  
+**Canary giugno 2026 (post Fase 4–5):** `dashboard pronta` **~861 ms** (baseline ~18,4 s)  
+**Canary 2026-09-05 (addendum, Sabbie locale):** `dashboard pronta` **1 111 ms** (1ª) / **561 ms** (2ª) — da 6 466 ms pre-patch. Lista lavori ~2 s, 0 Maps (da ~9,8 s / 125 request).  
 **Strumentazione:** `core/js/dashboard-perf.js` — **off in produzione** di default; on su localhost o `?dashboardPerf=1` / `localStorage gfv_dashboard_perf=1`
 
 ---
@@ -366,6 +367,22 @@ Avviare `loadDashboardCountsSnapshot` **in parallelo** al render DOM (non await 
 **File:** `core/js/dashboard-quick-bar.js`, `core/services/meteo-service.js`, `core/js/dashboard-meteo.js`, `core/js/dashboard-login-prefetch.js`, `core/js/dashboard-counts-snapshot.js`, `core/js/dashboard-perf.js`, `core/js/dashboard-perf-slo.js`, `core/auth/login-standalone.html`, `core/services/tenant-service.js`, `tests/dashboard-perf-slo.test.js`.
 
 **Backlog opzionale (medio termine):** 3.A collection group ore · 3.B contatore denormalizzato · invalidazione snapshot su `visibilitychange` (tab nascosta a lungo).
+
+---
+
+### Addendum 2026-09 — meteo, Maps lista, Tony lazy ✅ (locale)
+
+Regressione osservata su Sabbie (set 2026): «pronta» **~6,5 s** perché `meteo.fetchAndRender` (~4,5 s) era di nuovo nell’`await` di `widgets.parallelBatch`; Gestione lavori caricava Maps a 500 ms sulla sola lista.
+
+| # | Intervento | Stato | File |
+|---|------------|-------|------|
+| A.1 | `initDashboardMeteo` in parallelo ma **non** in `await Promise.all` del batch | ✅ 2026-09-04 | `dashboard-standalone.html` |
+| A.2 | Briefing Tony `getMeteoTerreni` invariato (dopo «pronta») | ✅ invariato | `checkGlobalStatus` |
+| A.3 | Google Maps Gestione lavori solo al tab Mappa (`ensureGoogleMapsLoaded`) | ✅ 2026-09-04 | `gestione-lavori-maps.js` + HTML |
+| A.4 | Tony widget lazy (idle/tap; E2E eager); intro.js CDN rimosso | ✅ 2026-09-05 | `gfv-tony-loader.js` |
+| A.5 | Maps on-demand su **altre** liste (terreni, vendemmia, trattamenti, …) | ⏳ da fare | stesso pattern A.3 |
+
+**Deploy:** su `main` (PWA GitHub Pages, SW network-first). Dettaglio numeri: `COSA_ABBIAMO_FATTO.md` 2026-09-04/05.
 
 ---
 

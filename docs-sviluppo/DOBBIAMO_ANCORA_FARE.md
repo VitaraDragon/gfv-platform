@@ -6,6 +6,8 @@
 
 > **Aggiornamento 2026-03-08**: §1.3 – **FATTO** per terreni, diario attività, gestione lavori. currentTableData implementato in attivita-controller.js, terreni, gestione-lavori-controller.js. FILTER_TABLE lavori in main.js + functions. Le altre voci restano valide.
 
+> **Aggiornamento 2026-09-05**: lazy load Tony ✅; dashboard meteo fuori da «pronta» + Maps lazy lista lavori ✅. Residuo: Maps altre liste, scalabilità `getDocs` lavori, log debug. Dettaglio: `COSA_ABBIAMO_FATTO.md`.
+
 ---
 
 ## 1. Priorità alta
@@ -86,7 +88,8 @@
 |------|-----------|
 | **Sicurezza** | ~~Inviti `create` aperto~~ — **chiuso** in rules (2026-04-04; verifica doc 2026-04-11). |
 | **Documentazione** | Indice (INDICE_DOCUMENTAZIONE.md), README/roadmap allineati, consolidamento doc storica. |
-| **Tony** | Riepilogo su altre liste (vigneti, clienti, validazione ore, …); terreni, attivita, gestione lavori già dotati; log debug condizionati; opzionale lazy load. *(Widget già spezzato in core/js/tony/.)* |
+| **Tony** | Riepilogo su altre liste (vigneti, clienti, validazione ore, …); terreni, attivita, gestione lavori già dotati; log debug condizionati. ~~Opzionale lazy load~~ **✅ 2026-09-05** (`gfv-tony-loader.js` idle/tap; E2E eager). *(Widget già spezzato in core/js/tony/.)* |
+| **Performance client** | Dashboard meteo fuori da «pronta» + Maps lazy lista lavori ✅ 2026-09-04; Tony lazy + no intro.js ✅ 2026-09-05. **Residuo:** Maps on-demand su terreni/vendemmia/trattamenti/…; scalabilità `getDocs` tutti i lavori (`da-fare/lavori/PLAN_SCALABILITA_LISTA_LAVORI.md`). |
 | **Codice** | Bootstrap unico, escapeHtml/showAlert condivisi, path-resolver ovunque, CSS condiviso liste, list-utils macchine, service-helper coerente. |
 | **Test** | Più test servizi (mock), 1–2 E2E critici. |
 | **Vari** | TODO nei servizi, controller senza globali, path Unix in repo. |

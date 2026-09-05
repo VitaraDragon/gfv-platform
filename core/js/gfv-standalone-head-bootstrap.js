@@ -18,5 +18,5 @@
     }
 
     loadScript('standalone-alert-global.js');
-    loadScript('gfv-tony-loader.js?v=20260706');
+    loadScript('gfv-tony-loader.js?v=2026-09-05a');
 })();

@@ -5,6 +5,7 @@
  */
 
 import { formatDateLikeToItalianLongWeekday } from '../../js/date-format-it.js';
+import { withDemoPrivacyMapOptions } from '../../js/demo-map-privacy.js';
 
 // ============================================
 // CONSTANTS
@@ -23,6 +24,57 @@ const COLORI_GIORNI = [
     { stroke: '#8000FF', fill: '#8000FF' }, // Viola (giorno 9)
     { stroke: '#FF8080', fill: '#FF8080' }  // Salmone (giorno 10)
 ];
+
+let mapsLoadPromise = null;
+
+/**
+ * Carica Google Maps solo al primo bisogno (tab Mappa), non all'apertura lista.
+ * @returns {Promise<void>}
+ */
+export function ensureGoogleMapsLoaded() {
+    if (typeof window !== 'undefined' && typeof window.ensureGoogleMapsLoaded === 'function'
+        && window.ensureGoogleMapsLoaded !== ensureGoogleMapsLoaded) {
+        return window.ensureGoogleMapsLoaded();
+    }
+    if (typeof google !== 'undefined' && google.maps) {
+        return Promise.resolve();
+    }
+    if (mapsLoadPromise) return mapsLoadPromise;
+
+    mapsLoadPromise = new Promise(function (resolve, reject) {
+        const existing = typeof document !== 'undefined'
+            ? document.querySelector('script[src*="maps.googleapis.com"]')
+            : null;
+        if (existing) {
+            const started = Date.now();
+            const timer = setInterval(function () {
+                if (typeof google !== 'undefined' && google.maps) {
+                    clearInterval(timer);
+                    resolve();
+                } else if (Date.now() - started > 15000) {
+                    clearInterval(timer);
+                    reject(new Error('Google Maps timeout'));
+                }
+            }, 50);
+            return;
+        }
+
+        if (typeof window !== 'undefined') {
+            window.initGoogleMaps = function () { resolve(); };
+        }
+        const apiKey = (typeof window !== 'undefined' && window.GOOGLE_MAPS_API_KEY)
+            || 'AIzaSyDno2cpcMHfs_FqhD4-hi_esj6pBixyJBk';
+        const script = document.createElement('script');
+        script.src = 'https://maps.googleapis.com/maps/api/js?key=' + apiKey + '&libraries=geometry&callback=initGoogleMaps';
+        script.async = true;
+        script.defer = true;
+        script.onerror = function () {
+            reject(new Error('Google Maps load failed'));
+        };
+        document.head.appendChild(script);
+    });
+    return mapsLoadPromise;
+}
 
 // ============================================
 // FUNZIONI PRINCIPALI
@@ -69,12 +121,25 @@ export async function loadDettaglioMap(
 
         // Inizializza mappa (sempre re-inizializza per ogni lavoro)
         const center = terreno.coordinate || { lat: 45.0, lng: 9.0 };
+        try {
+            await ensureGoogleMapsLoaded();
+        } catch (mapsErr) {
+            console.warn('Google Maps non disponibile:', mapsErr);
+        }
         if (typeof google !== 'undefined' && google.maps) {
-            const dettaglioMap = new google.maps.Map(mapContainer, {
-                zoom: 15,
-                center: center,
-                mapTypeId: 'satellite'
-            });
+            // Stile privacy (no POI/etichette) solo tenant demo cloud
+            const dettaglioMap = new google.maps.Map(
+                mapContainer,
+                withDemoPrivacyMapOptions(
+                    {
+                        zoom: 15,
+                        center: center,
+                        mapTypeId: 'satellite',
+                        streetViewControl: false
+                    },
+                    currentTenantId
+                )
+            );
             updateState({ dettaglioMap });
         } else {
             if (mapContainer) mapContainer.innerHTML = '<div class="empty-state">Google Maps non disponibile. Attendi il caricamento...</div>';
