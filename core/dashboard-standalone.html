@@ -182,7 +182,6 @@
             formatProactiveOpsAttentionSnippet,
             pickProactiveOpenFollowUp,
             pickProactiveOpenFollowUpFromDelta,
-            formatProactiveOpenFollowUpOffer,
             createProactiveOpenOffer,
         } from './config/tony-proactive-signals.js';
         import { loadDashboardDeadlinesWidgets } from './js/dashboard-deadlines.js';
@@ -792,10 +791,7 @@
                 var briefingText = '';
                 var openOffer = createProactiveOpenOffer(followUp);
                 if (decision.action === 'delta') {
-                    briefingText = (
-                        formatProactiveDeltaMessage(decision.worsened) +
-                        formatProactiveOpenFollowUpOffer(followUp)
-                    ).trim();
+                    briefingText = formatProactiveDeltaMessage(decision.worsened).trim();
                 } else if (collected.opsActive.length > 0) {
                     briefingText = (greeting + speakCoreOps + speakMeteo).trim();
                 } else if (meteoBriefing && meteoBriefing.proactiveText) {

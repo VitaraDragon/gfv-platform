@@ -507,13 +507,10 @@ export function pickProactiveOpenFollowUpFromDelta(worsened) {
   return pickProactiveOpenFollowUp(asActive);
 }
 
-export function formatProactiveOpenFollowUpOffer(followUp) {
-  if (!followUp || !followUp.openPageLabel) return '';
-  return (
-    ' Se vuoi posso aprire ' +
-    followUp.openPageLabel +
-    ': dimmi «apri».'
-  );
+export function formatProactiveOpenFollowUpOffer(/* followUp */) {
+  // CTA «dimmi apri» rimossa (2026-09-05): al briefing il mic è spento e
+  // «apri» nudo non apre la pagina citata. Handler silenzioso resta in main.js.
+  return '';
 }
 
 /**
@@ -522,7 +519,7 @@ export function formatProactiveOpenFollowUpOffer(followUp) {
  * @param {{ hubLabel?: string, offerRiassunto?: boolean }} [opts]
  * @returns {string}
  */
-export function formatProactiveOpsAttentionSnippet(opsActive, followUp, opts) {
+export function formatProactiveOpsAttentionSnippet(opsActive, _followUp, opts) {
   const list = Array.isArray(opsActive) ? opsActive : [];
   if (!list.length) return '';
   const hubLabel = opts && opts.hubLabel ? String(opts.hubLabel).trim() : '';
@@ -552,7 +549,7 @@ export function formatProactiveOpsAttentionSnippet(opsActive, followUp, opts) {
   if (offerRiassunto) {
     core += ' Vuoi che ti faccia un riassunto o preferisci procedere tu?';
   }
-  return core + formatProactiveOpenFollowUpOffer(followUp);
+  return core;
 }
 
 /**
@@ -562,7 +559,7 @@ export function formatProactiveOpsAttentionSnippet(opsActive, followUp, opts) {
  * @param {{ hubLabel?: string }|null|undefined} [hub]
  * @returns {string}
  */
-export function buildHubProactiveRiassuntoReply(briefing, openOffer, hub) {
+export function buildHubProactiveRiassuntoReply(briefing, _openOffer, hub) {
   var label =
     (hub && hub.label && String(hub.label).trim()) ||
     (briefing && briefing.hubId ? String(briefing.hubId) : '') ||
@@ -573,22 +570,10 @@ export function buildHubProactiveRiassuntoReply(briefing, openOffer, hub) {
   if (label === 'frutteto') label = 'Frutteto';
   if (label === 'parcoMacchine') label = 'Parco macchine';
   if (label === 'contoTerzi') label = 'Conto terzi';
-  var page =
-    openOffer && openOffer.openPageLabel
-      ? String(openOffer.openPageLabel).trim()
-      : '';
   var base =
     'Su ' +
     label +
     ' i punti sono quelli del reminder — qui non c’è un secondo livello di dettaglio.';
-  if (page) {
-    return (
-      base +
-      ' Dimmi «apri» per andare a ' +
-      page +
-      ', oppure apri la Dashboard per un riassunto completo azienda.'
-    );
-  }
   return (
     base +
     ' Apri la Dashboard se vuoi un riassunto completo azienda (meteo e altri moduli).'
