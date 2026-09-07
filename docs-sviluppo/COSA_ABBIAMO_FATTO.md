@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-06 — documentazione disegno confini 1b (Terreni + CT).**
+**Ultimo aggiornamento documentazione: 2026-09-07 — copione spot ep. 2 zona lavorata.**
+
+## Spot — episodio 2 zona lavorata / progressi (2026-09-07)
+
+- Copione chiuso in `COPIONE_SPOT_FLUSSI_APP.md` §12–§13. Successivo del guasto trincia (ep. 1): dopo l’eccezione, il ritmo quotidiano.
+- **Correzione ruoli:** segna la zona il **caposquadra** su lavoro di squadra (catena manager → capo → squadra). L’operaio segna solo su lavori **autonomi** — non è il caso da spot.
+- Clip 2: Mario **vicino al trattore fermo e alla terra lavorata** (stesso frame), ¾, dolly telefono → UI → mappa manager.
+- Produzione Soul **dopo** screen recording U1/U2. Brief §13: still A + clip 1 Mario in cabina.
+- Stesso commit porta in `develop` anche il foglio casa Linea B (formato Soul + dolly + UI vera, scaletta ep. 1 guasto): prima stava solo sulla PR #12.
 
 ## Documentazione — disegno confini 1b (2026-09-06)
 
