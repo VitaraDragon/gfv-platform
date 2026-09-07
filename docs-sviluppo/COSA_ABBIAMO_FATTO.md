@@ -6,8 +6,7 @@
 
 - Copione chiuso in `COPIONE_SPOT_FLUSSI_APP.md` §12–§13. Successivo del guasto trincia (ep. 1): dopo l’eccezione, il ritmo quotidiano.
 - **Correzione ruoli:** segna la zona il **caposquadra** su lavoro di squadra (catena manager → capo → squadra). L’operaio segna solo su lavori **autonomi** — non è il caso da spot.
-- Storia: **Mario** fermo in cabina in **seminativo** (erpicatura) → **riuso dolly H02b** (`cb1763fb`) o rigenerazione da stesso still cabina → UI due tocchi (login caposquadra) → **Luca** → tab Mappa Gestione lavori.
-- **Trattore:** rosso Mario (H02a/H02b), **non** il compatto+trincia dell’ep. 1 Giuseppe/frutteto.
+- Montaggio ep. 2: **H02a riuso** (trattore al lavoro) → **clip 2 nuova** (Mario sceso, ¾ a piedi sul terreno lavorato, dolly telefono) → UI due tocchi → mappa manager. Non H02b cabina.
 - Produzione Soul **dopo** screen recording U1/U2. Brief §13: still A + clip 1 Mario in cabina.
 - Stesso commit porta in `develop` anche il foglio casa Linea B (formato Soul + dolly + UI vera, scaletta ep. 1 guasto): prima stava solo sulla PR #12.
 
