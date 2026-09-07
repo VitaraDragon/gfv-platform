@@ -173,7 +173,7 @@
 
 | # | Decisione | Fonte | Stato | Note |
 |---|-----------|-------|-------|------|
-| 11.1 | Mappe: Tony non traccia poligoni | MASTER_PLAN | — | Invariato. Zona lavorata due punti = UX mappa lavori, non Tony (§11.7 / §22). Proposta confine da tap = UX mappa Terreni (§21) |
+| 11.1 | Mappe: Tony non traccia poligoni | MASTER_PLAN | — | Invariato. Zona lavorata due punti = UX mappa lavori, non Tony (§11.7 / §22). Proposta confine da tap **abbandonata** (no-go SAM, §21) |
 | 11.2 | Eliminazioni bulk: Tony non le esegue | MASTER_PLAN | — | |
 | 11.3 | Impostazioni sensibili: Tony spiega, non esegue senza conferma | MASTER_PLAN | — | |
 | 11.4 | LLM non decide ordine click, quando campo figlio pronto, né dichiara salvataggio riuscito | GUIDA_OPERATIVO | — | |
@@ -605,27 +605,29 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 
 ## 21. Proposta confine terreno da tap (mappa) — 2026-08-28
 
-**Piano canonico:** `docs-sviluppo/da-fare/terreni/PIANO_PROPOSTA_CONFINE_TAP.md`  
-**Stato implementazione codice:** **non implementato** (solo design). Non scrivere codice finché la Fase 0 (pilota di misura) non ha go/no-go.
+**Piano canonico (archivio):** `docs-sviluppo/obsoleto/strategie-superate/PIANO_PROPOSTA_CONFINE_TAP.md`  
+**Stato implementazione codice:** segmentatore **abbandonato** (no-go 2026-09-05). **Fase 1b implementata** (disegno a mano più veloce, §21.14). Harness SAM: `core/dev/obsoleto/proposta-confine/` (non prodotto). Tony non disegna.
 
 | # | Decisione | Fonte | Stato | Note |
 |---|-----------|-------|-------|------|
-| 21.1 | Un tap/click sulla mappa **propone** il perimetro; non crea un confine definitivo | prodotto 2026-08-28 | **pianificato** | Label UX: «Proponi confine», non «crea confine» |
+| 21.1 | Un tap/click sulla mappa **propone** il perimetro; non crea un confine definitivo | prodotto 2026-08-28 | **abbandonato** | Motore (SAM) no-go; niente pulsante in Terreni |
 | 21.2 | **Conferma umana obbligatoria** (ritocco vertici + Salva). Mai auto-save | prodotto 2026-08-28 | **pianificato** | Stesso principio del form revisione Tony Occhi (§20.5) |
 | 21.3 | Il tracciamento attuale (vertice per vertice) resta il **fallback** | prodotto 2026-08-28 | **pianificato** | Scarta proposta → disegno manuale |
 | 21.4 | Feature nella **mappa Terreni**, non come comando Tony nel primo rilascio | prodotto 2026-08-28 | **pianificato** | §11.1 resta: Tony non traccia poligoni |
 | 21.5 | **Gemini non disegna** il perimetro (geometria = segmentatore / point prompt). Gemini al massimo dopo, semantica (coltura/nome) | prodotto 2026-08-28 | **pianificato** | Gemini è debole sulle coordinate; rischio allucinazione lat/lng |
 | 21.6 | Riuso **`polygonCoords`** esistente; niente secondo modello geometrico | prodotto 2026-08-28 | **pianificato** | Consumatori: lavori, zone, vendemmia, mappa aziendale, allarmi |
 | 21.7 | Non è catasto / PAC / contratto / rilievo | prodotto 2026-08-28 | **pianificato** | Segue ciò che si vede sul satellite |
-| 21.8 | Go/no-go su 20–30 terreni già mappati: «campo giusto + ritocco minimo» **≥ ~2/3** sui vigneti/frutteti ben bordati; se ~1/2 → non magia, al massimo scorciatoia o solo disegno più veloce senza IA | prodotto 2026-08-28 | **pianificato** | Fase 0 obbligatoria prima della UI |
+| 21.8 | Go/no-go su 20–30 terreni già mappati: «campo giusto + ritocco minimo» **≥ ~2/3** sui vigneti/frutteti ben bordati; se ~1/2 → non magia | prodotto 2026-08-28; misura 2026-09-05 | **abbandonato (no-go)** | Pilota Sabbie Gialle: campi facili “quasi” (albero taglia il filare); campi attaccati = invasione. Si traccia a mano. Non è un SAM troppo piccolo. |
 | 21.9 | Avviso se la proposta **sovrappone** un terreno già in anagrafe; un tap = un terreno | prodotto 2026-08-28 | **pianificato** | Due campi fusi = scarta (spezzare non è v1) |
 | 21.10 | Tony «mappa questo campo» solo **dopo** che l’azione mappa esiste | prodotto 2026-08-28 | **pianificato** | Fase 3 del piano; Tony apre, non salva |
 | 21.11 | Accettata la proposta, la **superficie in ha** è quella del sistema classico (stesso poligono, stesso calcolo mappa → campo Superficie) | prodotto 2026-08-28 | **pianificato** | `updateAreaInfo` / `computeArea`; si ricalcola se si ritoccano i vertici |
-| 21.12 | **Aspetto bozza:** perimetro tratteggiato bianco, fill coltura più trasparente, vertici trascinabili; **niente pulse continuo**. Dopo Salva: tratto solido colore coltura come Traccia Confini | prodotto 2026-08-28 | **pianificato** | Pulse GFV = allarmi manodopera; verde = zone lavorate; rosso = terreno di riferimento zone. Opz. flash 1–2 s all’apparire. Chip «Bozza — verifica i confini» |
+| 21.12 | **Aspetto bozza:** perimetro tratteggiato bianco, fill coltura più trasparente, vertici trascinabili; **niente pulse continuo**. Dopo Salva: tratto solido colore coltura come Traccia Confini | prodotto 2026-08-28 | **abbandonato** | Non applicato: niente bozza in UI |
+| 21.13 | **Non** implementare «Proponi confine» da segmentatore. Non riprendere SAM/SAM2/Gemini sul perimetro | prodotto 2026-09-05 | **abbandonato** | Motore a macchie chiuso |
+| 21.14 | Disegno a mano più veloce: chiusura vicino al primo punto, doppio tap, togli ultimo, snap ai campi già in anagrafe | prodotto 2026-09-05; CT 2026-09-06 | **implementato** | Fase 1b; stesso `polygonCoords`; Terreni e terreni clienti CT; Tony non disegna |
 
-Migliorie ulteriori (sessione mappatura, tap dentro/fuori, snap ai vicini, ha sull’etichetta, hatch overlap): elenco nel piano §13, **non requisiti** finché non si sceglie.
+Migliorie ulteriori (sessione mappatura, tap correzione, snap vicini): piano §13, **non requisiti**.
 
-**Affidabilità attesa:** assistente, non geometra. Due campi attaccati e visivamente uguali: rischio alto di fusione. IoU “buono” (~0,75) può comunque sballare gli ettari del 5–10%. Dettaglio e fasi: piano Terreni.
+**Esito misura:** il tap-a-macchia non batte il tracciamento vertice-per-vertice. Dettaglio: piano Terreni §7.
 
 ---
 

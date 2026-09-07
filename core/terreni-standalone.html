@@ -719,13 +719,15 @@
                                 <button type="button" class="btn btn-primary" onclick="searchLocation()">🔍 Cerca</button>
                             </div>
                             <button type="button" class="btn btn-success" id="btn-draw" onclick="toggleDrawing()">✏️ Traccia Confini</button>
+                            <button type="button" class="btn btn-secondary" id="btn-undo-vertex" hidden disabled onclick="undoLastVertex()" title="Toglie l’ultimo punto">↩️ Togli ultimo</button>
                             <button type="button" class="btn btn-danger" onclick="clearPolygon()">🗑️ Cancella</button>
                             <div class="map-gps-buttons">
                                 <button type="button" class="btn btn-secondary" onclick="centerMapOnMyLocation()" title="Centra la mappa sulla tua posizione">📍 Centra sulla mia posizione</button>
                                 <button type="button" class="btn btn-secondary" onclick="addGpsVertexToPolygon()" title="Aggiunge un vertice del poligono nella posizione GPS corrente">➕ Punto da GPS</button>
                             </div>
                             <p class="map-gps-hint" id="map-gps-hint">
-                                <strong>GPS:</strong> la posizione è approssimativa (spesso ± diversi metri, peggio sotto copertura). Usa la vista satellite e regola i vertici a mano per i confini reali.
+                                <strong>Traccia:</strong> tocca gli angoli. Vicino al primo punto (pallino bianco), o un <strong>doppio tap</strong>, chiude il perimetro. I campi già salvati restano visibili in chiaro: il vertice si <strong>aggancia</strong> se sei sul loro bordo.
+                                <strong>GPS:</strong> la posizione è approssimativa (spesso ± diversi metri). Controlla sempre sul satellite.
                             </p>
                         </div>
                         <div id="map"></div>
@@ -809,7 +811,9 @@
             clearPolygon as clearPolygonModule,
             loadExistingPolygon as loadExistingPolygonModule,
             centerMapOnMyLocation as centerMapOnMyLocationModule,
-            addGpsVertexToPolygon as addGpsVertexToPolygonModule
+            addGpsVertexToPolygon as addGpsVertexToPolygonModule,
+            undoLastVertex as undoLastVertexModule,
+            resetDrawSession as resetDrawSessionModule
         } from './js/terreni-maps.js';
 
         import {
@@ -1292,6 +1296,7 @@
         // Wrapper per closeTerrenoModal
         function closeTerrenoModalWrapper() {
             closeTerrenoModalModule(terreniState, updateState);
+            resetDrawSessionModule();
         }
 
         // Wrapper per handleSaveTerreno
@@ -1357,6 +1362,10 @@
 
         function addGpsVertexToPolygonWrapper() {
             return addGpsVertexToPolygonModule(terreniState, updateState, () => terreniState);
+        }
+
+        function undoLastVertexWrapper() {
+            return undoLastVertexModule(terreniState, updateState, () => terreniState);
         }
 
         // Wrapper per loadExistingPolygon
@@ -1453,6 +1462,7 @@
         window.loadExistingPolygon = loadExistingPolygonWrapper;
         window.centerMapOnMyLocation = centerMapOnMyLocationWrapper;
         window.addGpsVertexToPolygon = addGpsVertexToPolygonWrapper;
+        window.undoLastVertex = undoLastVertexWrapper;
 
         // Setup tour button
         setupTerreniTourButtonWrapper();

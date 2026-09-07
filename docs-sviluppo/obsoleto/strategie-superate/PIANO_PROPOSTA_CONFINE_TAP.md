@@ -1,9 +1,12 @@
-# Piano: proposta confine terreno da tap (mappa)
+# Piano: proposta confine terreno da tap (mappa) — NON PORTARE AVANTI
 
-**Stato:** pianificato (design, non implementato)  
+**Stato:** **abbandonato / no-go** sul segmentatore SAM. **Fase 1b implementata** (2026-09-05): disegno a mano più veloce, senza proposta automatica.  
+**Spostato da:** `docs-sviluppo/da-fare/terreni/PIANO_PROPOSTA_CONFINE_TAP.md`  
 **Data decisioni:** 2026-08-28  
-**Per chi:** agenti e sviluppatori che toccano **anagrafica Terreni**, **mappa**, `polygonCoords`, eventuali CF di segmentazione.  
-**Non implementare il codice** finché la **Fase 0 (pilota di misura)** non ha un go/no-go esplicito.
+**Avvio codice Fase 0:** 2026-09-05  
+**No-go prodotto:** 2026-09-05 (Sabbie Gialle, pilota; decisione utente)  
+**Per chi:** archivio storico. Non è backlog.  
+**Non implementare** «Proponi confine» da segmentatore. Non riprendere SAM/SAM2/Gemini sul perimetro senza nuova decisione esplicita.
 
 **Analisi coerenza Master Plan (Fase 4 / GIS Terreni):** questa modifica è scalabile perché non introduce un secondo modello geometrico né `if` Tony per il form terreno. Il tap produce una **proposta** nello stesso `polygonCoords` già usato da lavori, zone, vendemmia, mappa aziendale e allarmi manodopera. La conferma umana è lo stesso principio di Tony Occhi (proposta + revisione, mai auto-save). Tony resta fuori dal primo rilascio: può aprire la pagina; non traccia poligoni.
 
@@ -171,20 +174,21 @@ la stessa metrica **verso uno su due** → non vendere come magia; tenere al mas
 
 Non usare un unico “90% dei pixel” come KPI di prodotto.
 
+**Esito 2026-09-05 (no-go):** su Sabbie Gialle (es. Larghetta) SAM riconosce spesso il campo “facile” ma non è utilizzabile: albero/buco di colore taglia il filare; campi attaccati = invasione del vicino. Si fa prima a tracciare a mano. Il limite è la classe di tecnologia (segmentazione a macchia), non un modello troppo piccolo. Fase 1 (pulsante in Terreni) **non si fa**. Fase 1b (disegno più veloce senza IA) **implementata** 2026-09-05; terreni clienti CT allineati 2026-09-06.
+
 ---
 
 ## 8. Fasi di lavoro
 
 Ordine vincolante. Non saltare la Fase 0.
 
-### Fase 0 — Pilota di misura (obbligatoria)
+### Fase 0 — Pilota di misura — **chiusa, no-go** (2026-09-05)
 
-- Nessuna UI utente nuova in produzione.
-- Confrontare proposte del segmentatore con terreni già in anagrafe.
-- Decisione go / no-go / “solo miglioramento disegno”.
-- Esito da annotare in `TONY_DECISIONI_E_REQUISITI.md` §21 e in questo file (stato).
+- Nessuna UI utente nuova in produzione. ✅
+- Pilota misurato su Sabbie Gialle (SAM browser). Esito: **non usabile** come proposta di confine (vedi §7).
+- Codice harness in `core/dev/obsoleto/proposta-confine/`. Non è prodotto. Non estendere.
 
-### Fase 1 — UX «Proponi confine» (solo se go)
+### Fase 1 — UX «Proponi confine» — **non fare** (no-go Fase 0)
 
 - Pulsante accanto a **Traccia Confini** (label chiara: proposta, non creazione).
 - Tap → overlay editabile in **stile bozza** (tratteggio bianco, fill più trasparente, chip «Bozza») → **ettari con `updateAreaInfo`**; si ricalcola se si trascinano i vertici. Dopo Salva → stile classico solido.
@@ -193,17 +197,18 @@ Ordine vincolante. Non saltare la Fase 0.
 - Mobile: zoom sul poligono proposto.
 - Avviso sovrapposizione se rilevabile in modo semplice (stesso tenant, stessa “famiglia” di terreni).
 
-### Fase 1b — Disegno più veloce senza IA (parallela o alternativa)
+### Fase 1b — Disegno più veloce senza IA — **implementata** (2026-09-05)
 
-- Chiusura automatica, doppio tap, meno attrito sui vertici.
-- Eventuale snap visivo.
-- Da fare **comunque** se Fase 0 è no-go; utile anche se Fase 1 va in produzione.
+- Chiusura vicino al primo vertice (pallino bianco) o doppio tap; pulsante «Togli ultimo».
+- Campi già in anagrafe visibili in chiaro; snap al bordo/vertice del vicino (anche in ritocco).
+- Helper: `core/js/terreni-draw-helpers.js`. UI: `terreni-maps.js` / `terreni-standalone.html`.
+- Terreni clienti CT: **allineati 2026-09-06** (stesso `terreni-maps.js`).
 
-### Fase 2 — Qualità (dopo v1 usabile)
+### Fase 2 — Qualità (dopo v1 usabile) — **non fare** (no-go Fase 1)
 
-- Feedback esplicito “proposta inaffidabile, disegna a mano”.
+- Feedback esplicito “proposta inaffidabile, disegna a mano” (era per SAM).
 - Non unire in silenzio due campi; preferire fallire in modo visibile.
-- Allineare **terreni clienti** (Conto terzi) allo stesso helper, senza fork.
+- Allineare **terreni clienti** (Conto terzi) allo stesso helper: **fatto in 1b** (2026-09-06).
 
 ### Fase 3 — Fuori v1 (solo con requisito esplicito)
 
@@ -240,19 +245,22 @@ Ordine vincolante. Non saltare la Fase 0.
 
 ---
 
-## 11. File che si toccheranno (solo a implementazione, non ora)
+## 11. File
 
-Indicativi, da non anticipare prima del go Fase 0:
+**Fase 0 (2026-09-05), già in repo:**
+
+- `core/dev/obsoleto/proposta-confine/proposta-confine-geo.js` + `tests/proposta-confine-geo.test.js`
+- `core/dev/obsoleto/proposta-confine/proposta-confine-segmenter.js` + `tests/proposta-confine-segmenter.test.js`
+- `core/dev/obsoleto/proposta-confine/proposta-confine-pilot.js` + `proposta-confine-pilot.html`
+
+**Fase 1 (solo dopo go), indicativi:**
 
 - `core/js/terreni-maps.js` — ingresso proposta + riuso Polygon editabile
 - `core/terreni-standalone.html` — pulsante, hint, stati UI
 - in seguito `modules/conto-terzi/views/terreni-clienti-standalone.html`
-- eventuale modulo helper (maschera → `polygonCoords`, overlap)
-- eventuale Cloud Function di inferenza (non Gemini per la geometria)
-- test: overlap, conversione maschera, non regressione area/vertici
-- guida utente Terreni **solo dopo** il rilascio (checklist GUIDA), non in questo commit di design
+- guida utente Terreni **solo dopo** il rilascio (checklist GUIDA)
 
-Tony (`tony-form-mapping.js`, `main.js`, CF `tonyAsk`): **non toccare** in Fase 1.
+Tony (`tony-form-mapping.js`, `main.js`, CF `tonyAsk`): **non toccare** in Fase 0 né in Fase 1.
 
 ---
 
@@ -260,12 +268,10 @@ Tony (`tony-form-mapping.js`, `main.js`, CF `tonyAsk`): **non toccare** in Fase 
 
 | Documento | Ruolo |
 |-----------|--------|
-| Questo file | Piano di implementazione e decisioni |
-| `TONY_DECISIONI_E_REQUISITI.md` §21 | Inventario decisioni (stato **pianificato**) |
-| `tony/MASTER_PLAN.md` §10 | Tony continua a **non** tracciare poligoni; puntatore a questo piano |
-| `COSA_ABBIAMO_FATTO.md` | Changelog: piano scritto 2026-08-28 |
-
-Dopo un eventuale go Fase 0: aggiornare stato in questo file e in §21 (`pianificato` → `in corso` / `implementato` / `abbandonato`).
+| Questo file | Piano e **no-go** segmentatore (2026-09-05) |
+| `TONY_DECISIONI_E_REQUISITI.md` §21 | Motore a macchie **abbandonato**; UI Terreni invariata |
+| `tony/MASTER_PLAN.md` §10 | Tony continua a **non** tracciare poligoni |
+| `COSA_ABBIAMO_FATTO.md` | Changelog: piano 2026-08-28; pilota + no-go 2026-09-05 |
 
 ---
 
@@ -292,4 +298,4 @@ Già nel piano, da non dimenticare se il ML delude: **Fase 1b** (chiusura automa
 
 ## 14. Sintesi in una frase
 
-**Tap sulla mappa = bozza di perimetro da confermare e ritoccare (ettari dallo stesso calcolo classico); segmentazione per la geometria, non Gemini; niente Tony e niente auto-save finché la proposta non batte “due terzi usabili” sui campi già mappati.**
+**Segmentatore (SAM / macchie) abbandonato. Niente pulsante «Proponi confine». Fase 1b implementata (2026-09-05): chiusura / doppio tap / snap vicini sul disegno a mano.**

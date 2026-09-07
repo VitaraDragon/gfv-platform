@@ -109,9 +109,10 @@ Associare al cliente uno o più **terreni** su cui eseguirete i lavori (superfic
 
 1. Dalla home apri **Terreni clienti**.  
 2. **Nuovo terreno** (o equivalente): scegli il **cliente** dall’elenco anagrafica.  
-3. Compila **nome** del terreno o podere, **superficie**, **coltura** o dati colturali se richiesti, eventuali **coordinate** o riferimenti geografici come da form.  
-4. **Salva**.  
-5. Per **modificare** o **eliminare**, usa le azioni sulla riga e conferma dove richiesto.
+3. Compila **nome** del terreno o podere, **superficie**, **coltura** o dati colturali se richiesti.  
+4. Sulla **mappa** (opzionale): **Traccia confini**, tocca gli angoli; **chiudi** toccando il primo punto (pallino bianco) o con **doppio tap**. **Togli ultimo** se sbagli. I campi già salvati di quel cliente restano visibili e il vertice si **aggancia** al bordo.  
+5. **Salva**.  
+6. Per **modificare** o **eliminare**, usa le azioni sulla riga e conferma dove richiesto.
 
 ### Collegamento con i preventivi
 

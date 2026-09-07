@@ -9,10 +9,26 @@
 // ============================================
 import { getColturaColor, showAlert } from './terreni-utils.js';
 import { getCurrentPositionGeo } from './geo-capture.js';
+import {
+  resolveDrawTap,
+  neighborRingsFromTerreni,
+  snapToNeighborRings,
+  DOUBLE_TAP_M
+} from './terreni-draw-helpers.js';
+import { toLatLngPoint, haversineMeters } from './zona-lavorata-slice.js';
 
 /** Overlay ultima posizione GPS (non persistito in Firestore) */
 let userLocationMarker = null;
 let userLocationAccuracyCircle = null;
+
+/** Sessioni disegno 1b (non persistite) */
+let lastTapAt = null;
+let lastTapPoint = null;
+let neighborOverlays = [];
+let startVertexMarker = null;
+let snappingPath = false;
+const pathListenerBound = new WeakSet();
+let snapHintShown = false;
 
 // ============================================
 // STATE MANAGEMENT
@@ -35,14 +51,184 @@ function clearUserLocationOverlays() {
     }
 }
 
-/**
- * Aggiunge un vertice al poligono (stesso comportamento di un click sulla mappa).
- */
-function appendVertexFromLatLng(map, latLng, getState, updateState) {
-    const currentState = getState();
-    if (!currentState.isDrawing) {
-        return false;
+function neighborRingsForState(state) {
+    return neighborRingsFromTerreni(state && state.terreni, state && state.currentTerrenoId);
+}
+
+function toGoogleLatLng(point) {
+    const p = toLatLngPoint(point);
+    if (!p) return null;
+    return new google.maps.LatLng(p.lat, p.lng);
+}
+
+function rememberTap(point) {
+    lastTapAt = Date.now();
+    lastTapPoint = toLatLngPoint(point);
+}
+
+function resetDrawGesture() {
+    lastTapAt = null;
+    lastTapPoint = null;
+}
+
+/** Pulisce overlay di sessione (chiusura modal). */
+export function resetDrawSession() {
+    clearNeighborOverlays();
+    clearStartVertexMarker();
+    resetDrawGesture();
+    snapHintShown = false;
+}
+
+function clearStartVertexMarker() {
+    if (startVertexMarker) {
+        startVertexMarker.setMap(null);
+        startVertexMarker = null;
     }
+}
+
+function clearNeighborOverlays() {
+    neighborOverlays.forEach((poly) => {
+        if (poly) poly.setMap(null);
+    });
+    neighborOverlays = [];
+}
+
+function syncNeighborOverlays(map, state) {
+    clearNeighborOverlays();
+    if (!map || !google || !google.maps) return;
+    const rings = neighborRingsForState(state);
+    rings.forEach((ring) => {
+        const poly = new google.maps.Polygon({
+            paths: ring.map((p) => new google.maps.LatLng(p.lat, p.lng)),
+            fillColor: '#ffffff',
+            fillOpacity: 0.08,
+            strokeColor: '#f8f8f8',
+            strokeWeight: 2,
+            strokeOpacity: 0.85,
+            clickable: false,
+            editable: false,
+            draggable: false,
+            zIndex: 1
+        });
+        poly.setMap(map);
+        neighborOverlays.push(poly);
+    });
+}
+
+function syncStartVertexMarker(map, coords, isDrawing) {
+    clearStartVertexMarker();
+    if (!isDrawing || !map || !coords || coords.length < 1) return;
+    const first = toLatLngPoint(coords[0]);
+    if (!first) return;
+    startVertexMarker = new google.maps.Marker({
+        map,
+        position: first,
+        clickable: false,
+        zIndex: 4,
+        title: 'Primo punto — tocca qui per chiudere',
+        icon: {
+            path: google.maps.SymbolPath.CIRCLE,
+            scale: 7,
+            fillColor: '#ffffff',
+            fillOpacity: 1,
+            strokeColor: '#2E8B57',
+            strokeWeight: 3
+        }
+    });
+}
+
+function refreshAreaFromState(getState, updateState) {
+    const updatedState = getState();
+    const coords = updatedState.currentPolygonCoords || [];
+    if (coords.length >= 3) {
+        const mapInfo = document.getElementById('map-info');
+        if (mapInfo) mapInfo.classList.add('active');
+        updateAreaInfo(updatedState);
+    } else {
+        const mapInfo = document.getElementById('map-info');
+        if (mapInfo) mapInfo.classList.remove('active');
+    }
+    syncStartVertexMarker(updatedState.map, coords, updatedState.isDrawing);
+    updateUndoButton(updatedState);
+}
+
+function maybeSnapPathIndex(path, index, getState) {
+    if (snappingPath) return;
+    const state = getState();
+    const rings = neighborRingsForState(state);
+    if (!rings.length) return;
+    const raw = path.getAt(index);
+    const snapped = snapToNeighborRings(raw, rings);
+    if (!snapped.snapped) return;
+    const current = toLatLngPoint(raw);
+    if (current && haversineMeters(current, snapped.point) < 0.35) return;
+    snappingPath = true;
+    path.setAt(index, toGoogleLatLng(snapped.point));
+    snappingPath = false;
+    if (!snapHintShown) {
+        snapHintShown = true;
+        showAlert('Vertice agganciato al campo vicino.', 'success');
+    }
+}
+
+function bindPolygonPathListeners(polygon, getState, updateState) {
+    if (!polygon || pathListenerBound.has(polygon)) return;
+    pathListenerBound.add(polygon);
+    const path = polygon.getPath();
+    const sync = () => {
+        const currentPolygonCoords = path.getArray();
+        updateState({ currentPolygonCoords });
+        refreshAreaFromState(getState, updateState);
+    };
+    google.maps.event.addListener(path, 'set_at', function (index) {
+        maybeSnapPathIndex(path, index, getState);
+        sync();
+    });
+    google.maps.event.addListener(path, 'insert_at', sync);
+    google.maps.event.addListener(path, 'remove_at', sync);
+}
+
+function applyDrawingUi(state, isDrawing) {
+    const btn = document.getElementById('btn-draw');
+    const mapElement = document.getElementById('map');
+    if (isDrawing) {
+        if (btn) {
+            btn.textContent = '⏹️ Stop Tracciamento';
+            btn.className = 'btn btn-danger';
+        }
+        if (mapElement) mapElement.style.cursor = 'crosshair';
+        if (state.map) state.map.setOptions({ disableDoubleClickZoom: true });
+    } else {
+        if (btn) {
+            btn.textContent = '✏️ Traccia Confini';
+            btn.className = 'btn btn-success';
+        }
+        if (mapElement) mapElement.style.cursor = 'default';
+        if (state.map) state.map.setOptions({ disableDoubleClickZoom: false });
+    }
+    updateUndoButton({ ...state, isDrawing });
+}
+
+function updateUndoButton(state) {
+    const undoBtn = document.getElementById('btn-undo-vertex');
+    if (!undoBtn) return;
+    const n = (state.currentPolygonCoords || []).length;
+    undoBtn.hidden = !state.isDrawing;
+    undoBtn.disabled = !state.isDrawing || n < 1;
+}
+
+function stopDrawing(state, updateState, options) {
+    if (!state.isDrawing) return;
+    applyDrawingUi(state, false);
+    updateState({ isDrawing: false });
+    resetDrawGesture();
+    if (options && options.announce) {
+        showAlert('Perimetro chiuso. Trascina i vertici se serve, poi Salva.', 'success');
+    }
+}
+
+function pushVertex(map, latLng, getState, updateState) {
+    const currentState = getState();
     if (!currentState.polygon) {
         const colors = getColturaColor();
         const polygon = new google.maps.Polygon({
@@ -54,25 +240,64 @@ function appendVertexFromLatLng(map, latLng, getState, updateState) {
             strokeOpacity: 1.0,
             clickable: false,
             editable: true,
-            draggable: true
+            draggable: true,
+            zIndex: 3
         });
         polygon.setMap(map);
-        const currentPolygonCoords = [latLng];
-        updateState({ polygon, currentPolygonCoords });
+        bindPolygonPathListeners(polygon, getState, updateState);
+        updateState({ polygon, currentPolygonCoords: [latLng] });
     } else {
+        bindPolygonPathListeners(currentState.polygon, getState, updateState);
         const path = currentState.polygon.getPath();
         path.push(latLng);
-        const currentPolygonCoords = path.getArray();
-        updateState({ currentPolygonCoords });
+        updateState({ currentPolygonCoords: path.getArray() });
     }
-    setTimeout(() => {
-        const updatedState = getState();
-        if (updatedState.currentPolygonCoords && updatedState.currentPolygonCoords.length >= 3) {
-            const mapInfo = document.getElementById('map-info');
-            if (mapInfo) mapInfo.classList.add('active');
-            updateAreaInfo(updatedState);
+    setTimeout(() => refreshAreaFromState(getState, updateState), 0);
+}
+
+/**
+ * Aggiunge un vertice, oppure chiude il perimetro (vicino al primo / doppio tap).
+ */
+function appendVertexFromLatLng(map, latLng, getState, updateState) {
+    const currentState = getState();
+    if (!currentState.isDrawing) {
+        return false;
+    }
+    const decision = resolveDrawTap({
+        tap: latLng,
+        vertices: currentState.currentPolygonCoords || [],
+        now: Date.now(),
+        lastTapAt,
+        lastTapPoint,
+        neighborRings: neighborRingsForState(currentState)
+    });
+    rememberTap(latLng);
+
+    if (decision.action === 'ignore') {
+        return false;
+    }
+    if (decision.action === 'close') {
+        if (decision.dropLastIfNear && currentState.polygon) {
+            const path = currentState.polygon.getPath();
+            const last = path.getLength() ? path.getAt(path.getLength() - 1) : null;
+            const lastPt = toLatLngPoint(last);
+            const tapPt = toLatLngPoint(latLng);
+            if (lastPt && tapPt && haversineMeters(lastPt, tapPt) <= DOUBLE_TAP_M && path.getLength() > 3) {
+                path.pop();
+                updateState({ currentPolygonCoords: path.getArray() });
+            }
         }
-    }, 0);
+        stopDrawing(getState(), updateState, { announce: true });
+        refreshAreaFromState(getState, updateState);
+        return true;
+    }
+
+    const addAt = toGoogleLatLng(decision.point) || latLng;
+    pushVertex(map, addAt, getState, updateState);
+    if (decision.snapped && !snapHintShown) {
+        snapHintShown = true;
+        showAlert('Vertice agganciato al campo vicino.', 'success');
+    }
     return true;
 }
 
@@ -199,10 +424,13 @@ export function initMap(state, updateState, getState = () => state) {
     }
     
     if (state.map) {
+        syncNeighborOverlays(state.map, getState());
         return; // Già inizializzata
     }
     
     try {
+        clearNeighborOverlays();
+        clearStartVertexMarker();
         const defaultCenter = { lat: 44.4949, lng: 11.3426 }; // Bologna area
         
         const map = new google.maps.Map(document.getElementById('map'), {
@@ -214,23 +442,19 @@ export function initMap(state, updateState, getState = () => state) {
         // Aggiorna state
         updateState({ map });
 
-        // Click listener per tracciamento poligono
-        // IMPORTANTE: usa getState() per leggere sempre lo state corrente invece della closure
         map.addListener('click', function(event) {
             appendVertexFromLatLng(map, event.latLng, getState, updateState);
         });
-
-        // Listener per modifiche poligono
-        map.addListener('polygon_changed', function() {
+        map.addListener('dblclick', function(event) {
             const currentState = getState();
-            if (currentState.polygon) {
-                const currentPolygonCoords = currentState.polygon.getPath().getArray();
-                updateState({ currentPolygonCoords });
-                if (currentPolygonCoords.length >= 3) {
-                    updateAreaInfo(currentState);
-                }
+            if (!currentState.isDrawing) return;
+            if (event && event.stop) event.stop();
+            const n = (currentState.currentPolygonCoords || []).length;
+            if (n >= 3) {
+                stopDrawing(currentState, updateState, { announce: true });
             }
         });
+        syncNeighborOverlays(map, getState());
     } catch (error) {
         console.error('Errore inizializzazione mappa:', error);
     }
@@ -277,32 +501,48 @@ export function toggleDrawing(state, updateState) {
     if (!state.map) {
         return;
     }
-    
+
     const isDrawing = !state.isDrawing;
-    const btn = document.getElementById('btn-draw');
-    const mapElement = document.getElementById('map');
-    
     if (isDrawing) {
-        if (btn) {
-            btn.textContent = '⏹️ Stop Tracciamento';
-            btn.className = 'btn btn-danger';
-        }
-        if (mapElement) mapElement.style.cursor = 'crosshair';
+        resetDrawGesture();
+        snapHintShown = false;
         if (state.polygon) {
             state.polygon.setMap(null);
             updateState({ polygon: null, currentPolygonCoords: [] });
             const mapInfo = document.getElementById('map-info');
             if (mapInfo) mapInfo.classList.remove('active');
         }
+        clearStartVertexMarker();
+        syncNeighborOverlays(state.map, { ...state, polygon: null, currentPolygonCoords: [] });
+        applyDrawingUi(state, true);
+        updateState({ isDrawing: true });
+        showAlert('Tocca gli angoli. Vicino al primo punto, o un doppio tap, chiude il perimetro.', 'success');
     } else {
-        if (btn) {
-            btn.textContent = '✏️ Traccia Confini';
-            btn.className = 'btn btn-success';
-        }
-        if (mapElement) mapElement.style.cursor = 'default';
+        stopDrawing(state, updateState);
     }
-    
-    updateState({ isDrawing });
+}
+
+/**
+ * Toglie l’ultimo vertice mentre si traccia.
+ */
+export function undoLastVertex(state, updateState, getState = () => state) {
+    const currentState = getState();
+    if (!currentState.isDrawing || !currentState.polygon) {
+        return false;
+    }
+    const path = currentState.polygon.getPath();
+    if (!path.getLength()) return false;
+    path.pop();
+    const currentPolygonCoords = path.getArray();
+    if (currentPolygonCoords.length === 0) {
+        currentState.polygon.setMap(null);
+        updateState({ polygon: null, currentPolygonCoords: [] });
+        clearStartVertexMarker();
+    } else {
+        updateState({ currentPolygonCoords });
+    }
+    refreshAreaFromState(getState, updateState);
+    return true;
 }
 
 /**
@@ -319,6 +559,9 @@ export function clearPolygon(state, updateState) {
         const superficieInput = document.getElementById('terreno-superficie');
         if (superficieInput) superficieInput.value = '';
     }
+    clearStartVertexMarker();
+    resetDrawGesture();
+    updateUndoButton({ ...state, currentPolygonCoords: [] });
 }
 
 /**
@@ -384,34 +627,10 @@ export function loadExistingPolygon(polygonCoords, state, updateState) {
     
     polygon.setMap(state.map);
     const currentPolygonCoords = polygon.getPath().getArray();
-    
-    // Aggiorna state
+
     updateState({ polygon, currentPolygonCoords });
-    
-    // Listener per modifiche
-    google.maps.event.addListener(polygon.getPath(), 'set_at', function() {
-        const currentPolygonCoords = polygon.getPath().getArray();
-        updateState({ currentPolygonCoords });
-        if (currentPolygonCoords.length >= 3) {
-            updateAreaInfo({ ...state, polygon, currentPolygonCoords });
-        }
-    });
-
-    google.maps.event.addListener(polygon.getPath(), 'insert_at', function() {
-        const currentPolygonCoords = polygon.getPath().getArray();
-        updateState({ currentPolygonCoords });
-        if (currentPolygonCoords.length >= 3) {
-            updateAreaInfo({ ...state, polygon, currentPolygonCoords });
-        }
-    });
-
-    google.maps.event.addListener(polygon.getPath(), 'remove_at', function() {
-        const currentPolygonCoords = polygon.getPath().getArray();
-        updateState({ currentPolygonCoords });
-        if (currentPolygonCoords.length >= 3) {
-            updateAreaInfo({ ...state, polygon, currentPolygonCoords });
-        }
-    });
+    bindPolygonPathListeners(polygon, () => state, updateState);
+    syncNeighborOverlays(state.map, state);
 
     // Fit bounds automatico
     const bounds = new google.maps.LatLngBounds();

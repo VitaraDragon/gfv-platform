@@ -195,11 +195,13 @@ La mappa nella scheda terreno serve a **disegnare il contorno del campo** sulla 
 1. **Cerca un punto di partenza** (campo «Cerca indirizzo» + pulsante di ricerca) per avvicinarti alla zona giusta, oppure usa **Centra sulla mia posizione** se sei già in campo (la precisione GPS può oscillare: per confini precisi conviene sempre controllare a video).
 2. Premi **Traccia confini**: la modalità di disegno si attiva (il pulsante mostra che sei in tracciamento).
 3. **Clicca sulla mappa** lungo il perimetro: ogni clic aggiunge un punto del contorno. Servono **almeno tre punti** per avere una superficie chiusa.
-4. Puoi **aggiungere un punto usando il GPS** con **Punto da GPS** se ti trovi sul confine (ricorda che il GPS è approssimativo: il testo sotto la mappa lo ricorda; spesso si integra con click precisi).
-5. Per **correggere** il disegno: il contorno è modificabile — puoi **spostare i punti** (vertici) trascinandoli sulla mappa finché il poligono coincide con il confine reale. Puoi anche **spostare tutta la forma** se il sistema lo consente trascinando l’area.
-6. Se vuoi **ricominciare da capo** il disegno, usa **Cancella**: elimina tutto il poligono e puoi ripartire.
-7. Quando il poligono è valido, la **superficie calcolata** si aggiorna (in ettari) e il campo superficie in alto può compilarsi automaticamente.
-8. **Salva terreno** chiude la scheda e registra tutto.
+4. Per **chiudere** il perimetro: tocca vicino al **primo punto** (pallino bianco) oppure fai **doppio tap**. Se sbagli l’ultimo angolo, **Togli ultimo**.
+5. I campi **già salvati** restano visibili in chiaro: se tocchi o trascini un punto sul loro bordo, il vertice si **aggancia** (così due campi attaccati combaciano).
+6. Puoi **aggiungere un punto usando il GPS** con **Punto da GPS** se ti trovi sul confine (ricorda che il GPS è approssimativo: il testo sotto la mappa lo ricorda; spesso si integra con click precisi).
+7. Per **correggere** il disegno: il contorno è modificabile — puoi **spostare i punti** (vertici) trascinandoli sulla mappa finché il poligono coincide con il confine reale. Puoi anche **spostare tutta la forma** se il sistema lo consente trascinando l’area.
+8. Se vuoi **ricominciare da capo** il disegno, usa **Cancella**: elimina tutto il poligono e puoi ripartire.
+9. Quando il poligono è valido, la **superficie calcolata** si aggiorna (in ettari) e il campo superficie in alto può compilarsi automaticamente.
+10. **Salva terreno** chiude la scheda e registra tutto.
 
 Se la mappa non si carica, compare un avviso: in quel caso serve una configurazione tecnica delle mappe lato sistema (non è colpa dei tuoi passaggi).
 
@@ -240,7 +242,7 @@ Se non hai ancora disegnato nessun contorno, compare un invito ad andare in Terr
 
 **Con solo app base (senza modulo squadre/lavori avanzato):** di solito vedi la **mappa satellitare** con i poligoni dei campi. Naviga zoomando e trascinando come su una mappa normale.
 
-**Se la vostra azienda ha il modulo Manodopera (o lavori strutturati):** possono comparire **filtri** per podere e coltura e pulsanti come «Zone lavorate» e «Indicatori lavori». Il dettaglio è nella guida **Manodopera**.
+**Se la vostra azienda ha il modulo Manodopera (o lavori strutturati):** possono comparire **filtri** per podere e coltura, **zone lavorate**, **indicatori / progresso** dei lavori e il layer **Allarmi** (pin **!** rosso/giallo sul terreno del lavoro in problema — spesso acceso di default; posizione = terreno assegnato, non GPS dipendente). Il dettaglio passo passo è nella guida **Manodopera**.
 
 Per usare bene la mappa, conviene avere **nome e confini** dei terreni già a posto nella pagina Terreni.
 
@@ -269,21 +271,23 @@ Nella pagina **Abbonamento** (menu **Moduli** o tile dedicata) vedi il **piano c
 ### Piano gratuito (Free)
 
 - Di solito **limiti** su terreni (es. massimo 5) e attività al mese (es. 30).
-- **Nessun modulo** opzionale acquistabile finché non passate al piano Base.
+- **Nessun modulo** opzionale **acquistabile** finché non passate al piano Base.
+- Potete però avviare una **prova gratuita di 30 giorni** di **un modulo alla volta** (senza carta), dalla stessa pagina **Abbonamento**: i dati restano salvati dopo la scadenza; per continuare serve Base + modulo a pagamento.
 - **Nessun assistente Tony** in chat (il pulsante non compare o il servizio non è disponibile).
 
 ### Piano Base (a pagamento)
 
 - Terreni e attività **senza i limiti** del gratuito (secondo quanto indicato in pagina Abbonamento).
 - **Tony Guida**: assistente in chat per **orientarvi** (dove andare, cosa significa un’etichetta, passi da fare). Su questo piano Tony può anche suggerire **moduli utili** per la vostra azienda, in modo non invadente.
-- I **moduli verticali** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, …) si **attivano a parte**, ciascuno con il suo prezzo mensile: ogni modulo aggiunge voci al menu **Moduli** e nuove pagine.
-- Il **modulo Tony Avanzato** (se lo attivate) aggiunge **automazioni**: aprire pagine, compilare schede, filtrare elenchi. È **distinto** da Tony Guida incluso nel Base: potete usare la guida senza acquistare le automazioni.
+- I **moduli verticali** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Vendemmia meccanica, Report, …) si **attivano a parte**, ciascuno con il suo prezzo (o in prova 30 giorni, un modulo alla volta): ogni modulo aggiunge voci al menu **Moduli** e nuove pagine.
+- Il **modulo Tony Avanzato** (se lo attivate) aggiunge **automazioni**: aprire pagine, compilare schede, filtrare elenchi, acquisire bolle/fatture da foto o PDF. È **distinto** da Tony Guida incluso nel Base: potete usare la guida senza acquistare le automazioni.
 
 ### Cosa fare in pratica
 
-- Avvicinati ai limiti del Free → valuta il passaggio a **Base**.
-- Con Base attivo → attivate **solo i moduli** che vi servono (non dovete prendere tutto).
-- Per capire Tony (chat, voce, differenza Guida/Avanzato) apri la **guida modulo Tony** dalla raccolta Guide.
+- Avvicinati ai limiti del Free → valuta il passaggio a **Base** (oppure prova un modulo per 30 giorni).
+- In Abbonamento → **prova 30 giorni** o attiva a pagamento **solo i moduli** che vi servono.
+- Alla **disattivazione** un modulo smette subito di funzionare; se era già pagato potete spesso **riattivarlo** fino alla data già coperta (dettaglio in pagina).
+- Per capire Tony (chat, voce, differenza Guida/Avanzato, documenti foto/PDF) apri la **guida modulo Tony** dalla raccolta Guide.
 
 **Non devi capire nulla di tecnologia:** pensa al piano come al “pacchetto servizi” della tua azienda e ai moduli come optionali à la carte.
 

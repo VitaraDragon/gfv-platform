@@ -417,6 +417,16 @@
             color: #333;
         }
 
+        .map-gps-hint {
+            width: 100%;
+            flex-basis: 100%;
+            margin: 0;
+            padding: 0 2px 4px;
+            font-size: 0.82rem;
+            color: #555;
+            line-height: 1.35;
+        }
+
         .modal-content {
             max-width: 800px;
         }
@@ -628,7 +638,11 @@
                                 <button type="button" class="btn btn-primary" onclick="searchLocation()">🔍 Cerca</button>
                             </div>
                             <button type="button" class="btn btn-success" id="btn-draw" onclick="toggleDrawing()">✏️ Traccia Confini</button>
+                            <button type="button" class="btn btn-secondary" id="btn-undo-vertex" hidden disabled onclick="undoLastVertex()" title="Toglie l’ultimo punto">↩️ Togli ultimo</button>
                             <button type="button" class="btn btn-danger" onclick="clearPolygon()">🗑️ Cancella</button>
+                            <p class="map-gps-hint" id="map-gps-hint">
+                                <strong>Traccia:</strong> tocca gli angoli. Vicino al primo punto (pallino bianco), o un <strong>doppio tap</strong>, chiude il perimetro. I campi già salvati di questo cliente restano visibili in chiaro: il vertice si <strong>aggancia</strong> se sei sul loro bordo.
+                            </p>
                         </div>
                         <div id="map"></div>
                         <div class="map-info" id="map-info">
@@ -805,6 +819,15 @@
         import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, setDoc, query, where, orderBy, serverTimestamp } from '../../../core/services/firebase-service.js';
         import { buildVignetoDetectionContext, isTerrenoVignetoCliente } from '../../vendemmia-meccanica/services/piano-stagione-utils.js';
+        import {
+            initMap as initMapModule,
+            searchLocation as searchLocationModule,
+            toggleDrawing as toggleDrawingModule,
+            clearPolygon as clearPolygonModule,
+            loadExistingPolygon as loadExistingPolygonModule,
+            undoLastVertex as undoLastVertexModule,
+            resetDrawSession as resetDrawSessionModule
+        } from '../../../core/js/terreni-maps.js';
 
         // Classe Terreno inline (per evitare import ES6)
         class Terreno {
@@ -932,6 +955,22 @@
         let viewMapPolygon = null;
         let isDrawing = false;
         let currentPolygonCoords = [];
+        const mapsState = {
+            map: null,
+            polygon: null,
+            isDrawing: false,
+            currentPolygonCoords: [],
+            terreni: [],
+            currentTerrenoId: null
+        };
+
+        function updateMapsState(updates) {
+            Object.assign(mapsState, updates);
+            map = mapsState.map;
+            polygon = mapsState.polygon;
+            isDrawing = mapsState.isDrawing;
+            currentPolygonCoords = mapsState.currentPolygonCoords || [];
+        }
         
         // Google Maps variables (per poderi)
         let podereMap = null;
@@ -1001,6 +1040,7 @@
                                 document.getElementById('btn-nuovo-podere').disabled = false;
                             } else {
                                 terreni = [];
+                                mapsState.terreni = [];
                                 renderTerreni([]);
                                 poderi = [];
                                 renderPoderi([]);
@@ -1082,6 +1122,7 @@
                 });
                 
                 terreni = terreniList;
+                mapsState.terreni = terreni;
                 renderTerreni(terreni);
             } catch (error) {
                 console.error('Errore caricamento terreni:', error);
@@ -1253,12 +1294,14 @@
             document.getElementById('terreno-sesto-file').value = '';
             document.getElementById('terreno-sesto-ceppo').value = '';
             
-            // Reset mappa
+            // Reset disegno (riusa la mappa se già creata)
             clearPolygon();
-            isDrawing = false;
-            if (map) {
-                map = null;
-            }
+            updateMapsState({
+                isDrawing: false,
+                currentTerrenoId: terrenoId || null,
+                terreni
+            });
+            resetDrawSessionModule();
             
             // Carica colture e poderi
             await loadColture();
@@ -1338,7 +1381,8 @@
         function closeTerrenoModal() {
             document.getElementById('terreno-modal').classList.remove('active');
             clearPolygon();
-            isDrawing = false;
+            updateMapsState({ isDrawing: false, currentTerrenoId: null });
+            resetDrawSessionModule();
         }
 
         // Click su card terreno: apri mappa (solo visualizzazione)
@@ -1650,10 +1694,11 @@
             
             // Salva coordinate poligono se presente
             if (currentPolygonCoords && currentPolygonCoords.length >= 3) {
-                terrenoData.polygonCoords = currentPolygonCoords.map(coord => ({
-                    lat: coord.lat(),
-                    lng: coord.lng()
-                }));
+                terrenoData.polygonCoords = currentPolygonCoords.map(coord => {
+                    const lat = typeof coord.lat === 'function' ? coord.lat() : coord.lat;
+                    const lng = typeof coord.lng === 'function' ? coord.lng() : coord.lng;
+                    return { lat, lng };
+                });
             }
 
             try {
@@ -2248,213 +2293,43 @@
             });
         }
 
-        // Inizializza mappa
-        window.initMap = async function() {
+        async function initMap() {
             await waitForGoogleMaps();
-            
-            if (!window.googleMapsReady || !google || !google.maps) {
-                document.getElementById('map').innerHTML = `
-                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8f9fa; border-radius: 8px; flex-direction: column; padding: 20px;">
-                        <h3 style="color: #dc3545; margin-bottom: 15px;">⚠️ Google Maps non disponibile</h3>
-                        <p style="color: #666; text-align: center;">
-                            Per utilizzare la mappa e il calcolo automatico della superficie,<br>
-                            è necessario configurare una chiave API di Google Maps valida.
-                        </p>
-                    </div>
-                `;
-                return;
+            if (typeof google !== 'undefined' && google.maps) {
+                window.googleMapsReady = true;
             }
-            
-            if (map) return; // Già inizializzata
-            
-            try {
-                const defaultCenter = { lat: 44.4949, lng: 11.3426 }; // Bologna area
-                
-                map = new google.maps.Map(document.getElementById('map'), {
-                    zoom: 15,
-                    center: defaultCenter,
-                    mapTypeId: google.maps.MapTypeId.SATELLITE
-                });
-
-                // Click listener per tracciamento poligono
-                map.addListener('click', function(event) {
-                    if (isDrawing) {
-                        if (!polygon) {
-                            polygon = new google.maps.Polygon({
-                                paths: [event.latLng],
-                                fillColor: '#28a745',
-                                fillOpacity: 0.3,
-                                strokeColor: '#28a745',
-                                strokeWeight: 2,
-                                clickable: false,
-                                editable: true,
-                                draggable: true
-                            });
-                            polygon.setMap(map);
-                            currentPolygonCoords = [event.latLng];
-                        } else {
-                            const path = polygon.getPath();
-                            path.push(event.latLng);
-                            currentPolygonCoords = path.getArray();
-                        }
-                        
-                        if (currentPolygonCoords.length >= 3) {
-                            document.getElementById('map-info').classList.add('active');
-                            updateAreaInfo();
-                        }
-                    }
-                });
-
-            } catch (error) {
-                console.error('Errore inizializzazione mappa:', error);
-            }
-        };
-
-        // Cerca indirizzo
-        window.searchLocation = function() {
-            if (!map || !google || !google.maps) return;
-            
-            const geocoder = new google.maps.Geocoder();
-            const address = document.getElementById('map-search').value;
-
-            if (!address) {
-                showAlert('Inserisci un indirizzo da cercare', 'error');
-                return;
-            }
-
-            geocoder.geocode({ address: address }, function(results, status) {
-                if (status === 'OK') {
-                    map.setCenter(results[0].geometry.location);
-                    map.setZoom(18);
-                    
-                    new google.maps.Marker({
-                        map: map,
-                        position: results[0].geometry.location,
-                        title: address
-                    });
-                } else {
-                    showAlert('Indirizzo non trovato: ' + status, 'error');
-                }
-            });
-        };
-
-        // Toggle tracciamento
-        window.toggleDrawing = function() {
-            if (!map) return;
-            
-            isDrawing = !isDrawing;
-            const btn = document.getElementById('btn-draw');
-            
-            if (isDrawing) {
-                btn.textContent = '⏹️ Stop Tracciamento';
-                btn.className = 'btn btn-danger';
-                document.getElementById('map').style.cursor = 'crosshair';
-                if (polygon) {
-                    polygon.setMap(null);
-                    polygon = null;
-                    currentPolygonCoords = [];
-                    document.getElementById('map-info').classList.remove('active');
-                }
-            } else {
-                btn.textContent = '✏️ Traccia Confini';
-                btn.className = 'btn btn-success';
-                document.getElementById('map').style.cursor = 'default';
-            }
-        };
-
-        // Cancella poligono
-        window.clearPolygon = function() {
-            if (polygon) {
-                polygon.setMap(null);
-                polygon = null;
-                currentPolygonCoords = [];
-                document.getElementById('map-info').classList.remove('active');
-                document.getElementById('terreno-superficie').value = '';
-            }
-        };
-
-        // Aggiorna info area
-        function updateAreaInfo() {
-            if (!polygon || !google || !google.maps) return;
-            
-            const area = google.maps.geometry.spherical.computeArea(currentPolygonCoords);
-            const areaHectares = area / 10000;
-            
-            document.getElementById('calculated-area').textContent = areaHectares.toFixed(2);
-            
-            // Aggiorna SEMPRE il campo superficie con il valore calcolato dalla mappa
-            if (areaHectares > 0) {
-                document.getElementById('terreno-superficie').value = areaHectares.toFixed(2);
-                document.getElementById('manual-area').textContent = areaHectares.toFixed(2);
-            }
+            mapsState.terreni = terreni;
+            initMapModule(mapsState, updateMapsState, () => mapsState);
         }
 
-        // Carica poligono esistente
-        window.loadExistingPolygon = function(polygonCoords) {
-            if (!map || !google || !google.maps) return;
-            
-            if (!polygonCoords || polygonCoords.length === 0) return;
-            
-            clearPolygon();
-            
-            // Converti coordinate in LatLng se necessario
-            const coords = polygonCoords.map(coord => {
-                if (coord.lat && coord.lng) {
-                    return new google.maps.LatLng(coord.lat, coord.lng);
-                }
-                return coord;
-            });
-            
-            polygon = new google.maps.Polygon({
-                paths: coords,
-                fillColor: '#28a745',
-                fillOpacity: 0.3,
-                strokeColor: '#28a745',
-                strokeWeight: 2,
-                editable: true,
-                draggable: true
-            });
-            
-            polygon.setMap(map);
-            currentPolygonCoords = polygon.getPath().getArray();
-            
-            // Listener per modifiche
-            google.maps.event.addListener(polygon.getPath(), 'set_at', function() {
-                currentPolygonCoords = polygon.getPath().getArray();
-                if (currentPolygonCoords.length >= 3) {
-                    updateAreaInfo();
-                }
-            });
+        function searchLocation() {
+            searchLocationModule(mapsState);
+        }
 
-            google.maps.event.addListener(polygon.getPath(), 'insert_at', function() {
-                currentPolygonCoords = polygon.getPath().getArray();
-                if (currentPolygonCoords.length >= 3) {
-                    updateAreaInfo();
-                }
-            });
+        function toggleDrawing() {
+            mapsState.terreni = terreni;
+            toggleDrawingModule(mapsState, updateMapsState);
+        }
 
-            google.maps.event.addListener(polygon.getPath(), 'remove_at', function() {
-                currentPolygonCoords = polygon.getPath().getArray();
-                if (currentPolygonCoords.length >= 3) {
-                    updateAreaInfo();
-                }
-            });
-            
-            // Fit bounds
-            const bounds = new google.maps.LatLngBounds();
-            coords.forEach(coord => bounds.extend(coord));
-            map.fitBounds(bounds);
-            
-            document.getElementById('map-info').classList.add('active');
-            updateAreaInfo();
-            
-            // Calcola e aggiorna superficie quando si carica un poligono esistente
-            if (currentPolygonCoords.length >= 3) {
-                const area = google.maps.geometry.spherical.computeArea(currentPolygonCoords);
-                const areaHectares = area / 10000;
-                document.getElementById('terreno-superficie').value = areaHectares.toFixed(2);
-            }
-        };
+        function clearPolygon() {
+            clearPolygonModule(mapsState, updateMapsState);
+        }
+
+        function loadExistingPolygon(polygonCoords) {
+            mapsState.terreni = terreni;
+            loadExistingPolygonModule(polygonCoords, mapsState, updateMapsState);
+        }
+
+        function undoLastVertex() {
+            undoLastVertexModule(mapsState, updateMapsState, () => mapsState);
+        }
+
+        window.initMap = initMap;
+        window.searchLocation = searchLocation;
+        window.toggleDrawing = toggleDrawing;
+        window.clearPolygon = clearPolygon;
+        window.loadExistingPolygon = loadExistingPolygon;
+        window.undoLastVertex = undoLastVertex;
 
         // ========== Google Maps Functions per Poderi ==========
         

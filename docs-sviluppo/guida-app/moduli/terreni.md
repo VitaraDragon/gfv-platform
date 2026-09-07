@@ -23,6 +23,7 @@ In parole semplici: se il terreno non e` gestito bene, tutto il resto diventa me
 
 - Creazione/modifica terreno (nome, coltura, podere, possesso, scadenze).
 - Tracciamento confini su mappa con calcolo superficie.
+- Disegno più veloce: chiusura toccando il primo punto o con doppio tap; Togli ultimo; i campi già salvati restano visibili e il vertice si aggancia al bordo.
 - Strumenti GPS operativi in mappa (centraggio e acquisizione punto).
 - Gestione affitto/scadenza e dati contrattuali.
 - Vista mappa aziendale con filtri.
@@ -79,7 +80,7 @@ Consiglio operativo: evita di cancellare un terreno se e` gia in uso; di solito 
 1. Apri `Terreni`.
 2. Clicca `Nuovo terreno`.
 3. Inserisci anagrafica e dati affitto/scadenza.
-4. Traccia i confini in mappa.
+4. Traccia i confini in mappa (angoli; chiudi sul primo punto o doppio tap).
 5. Salva e controlla che il terreno sia in elenco.
 
 ## 9. Uso con Tony

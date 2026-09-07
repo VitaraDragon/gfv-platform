@@ -1,6 +1,43 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-05 — briefing Tony senza CTA «dimmi apri».**
+**Ultimo aggiornamento documentazione: 2026-09-06 — documentazione disegno confini 1b (Terreni + CT).**
+
+## Documentazione — disegno confini 1b (2026-09-06)
+
+- **Obbligatoria:** questa changelog; `tony/STATO_ATTUALE.md` (riga Disegno confini 1b); `tony/MASTER_PLAN.md` §10/§11; `TONY_DECISIONI_E_REQUISITI.md` §21.14.
+- **Guide:** `GUIDA/CORE` e `GUIDA/CONTO_TERZI` (utente, sintesi, tecnica Tony) + mirror `core/GUIDA/`; `GUIDA/INTERSEZIONI/tony/intersezioni.md`; legacy `guida-app/moduli/terreni.md`; fallback `tony-guida-app.js`. Mappa codice: `scripts/guida-code-map.json` (`terreni-maps.js`, `terreni-draw-helpers.js`).
+
+## Terreni clienti (Conto terzi) — stesso disegno 1b (2026-09-06)
+
+- **Perché:** il tracciamento in Terreni clienti era ancora il vecchio click-solo, duplicato in pagina.
+- Ora riusa `terreni-maps.js` (chiusura / doppio tap / togli ultimo / snap). I vicini sono i terreni **già salvati di quel cliente**. Tony non disegna.
+- UI: `modules/conto-terzi/views/terreni-clienti-standalone.html`.
+
+## Terreni — disegno a mano più veloce, Fase 1b (2026-09-05)
+
+- **Perché:** SAM/macchie no-go; catalogare resta vertice per vertice. Si sveltisce il disegno esistente, senza proposta automatica.
+- In **Traccia Confini**: chiusura toccando vicino al primo punto (pallino bianco) o con **doppio tap**; **Togli ultimo**; i terreni già in anagrafe restano visibili; il vertice si **aggancia** al bordo del vicino (anche trascinando). Stesso `polygonCoords`. Tony non disegna.
+- Helper puri + test: `core/js/terreni-draw-helpers.js`, `tests/terreni-draw-helpers.test.js`. UI: `terreni-maps.js` + `terreni-standalone.html`.
+- Non è «Proponi confine». **Terreni clienti CT allineati 2026-09-06** (stesso modulo).
+
+## Terreni — proposta confine: file spostati in obsoleto (2026-09-05)
+
+- Piano: `docs-sviluppo/obsoleto/strategie-superate/PIANO_PROPOSTA_CONFINE_TAP.md` (era `da-fare/terreni/`). Cartella `da-fare/terreni/` rimossa.
+- Harness: `core/dev/obsoleto/proposta-confine/` (era `core/js/proposta-confine-*.js` + `core/dev/proposta-confine-pilot.html`). Test restano in `tests/` e importano da lì.
+
+## Terreni — proposta confine da tap: SAM abbandonato (2026-09-05)
+
+- **Perché:** sul pilota Sabbie Gialle il segmentatore (SAM / “macchie”) sui campi facili è “quasi” ma taglia i filari (es. albero); sui campi attaccati invade il vicino. Si fa prima a tracciare a mano. Non è un modello troppo piccolo: è la classe di tecnologia.
+- **Decisione:** no-go. Niente pulsante «Proponi confine» in Terreni. Non riprendere SAM/SAM2/Gemini sul perimetro. Fase 1b poi **implementata** (2026-09-05 Terreni, 2026-09-06 clienti CT).
+- Codice pilota in `core/dev/obsoleto/proposta-confine/`, non prodotto.
+- Doc: piano in `obsoleto/strategie-superate/`, `TONY_DECISIONI` §21.8 / §21.13, Master Plan §10/§11, `tony/STATO_ATTUALE.md`.
+
+## Terreni — Fase 0 pilota proposta confine da tap (2026-09-05)
+
+- **Perché:** catalogare i campi dal telefono è lento (vertice per vertice). Il piano chiede di **misurare** il segmentatore su terreni già mappati prima di un pulsante in produzione.
+- Helper puri: `core/dev/obsoleto/proposta-confine/proposta-confine-geo.js` (IoU, overlap, ettari, ritocco, score §7, mask→`polygonCoords`). Segmentatore: SAM in browser + stub CI (`proposta-confine-segmenter.js`). Pagina solo-dev `core/dev/obsoleto/proposta-confine/proposta-confine-pilot.html`: tap / tap al centro, bozza tratteggiata vs anagrafe, export JSON. Non salva, non è in Terreni, non è un comando Tony. **Fix 2026-09-05:** `env.allowLocalModels = false` così slimsam si scarica da Hugging Face, non da `localhost:8000/models/` (404). **Score:** se >8% della bozza sta fuori dal poligono salvato → invasione, non «campo giusto» (caso Larghetta: SAM ha preso un pezzo di campo accanto).
+- Test: `proposta-confine-geo.test.js`, `proposta-confine-segmenter.test.js`. Go/no-go chiuso lo stesso giorno: **no-go** (voce sopra).
+- Doc: questa voce, piano Terreni, `TONY_DECISIONI` §21, Master Plan §10/§11.
 
 ## Briefing Tony — tolta la coda «dimmi apri» (2026-09-05)
 
@@ -90,7 +127,7 @@ Piano di implementazione (solo documentazione, **nessun codice**): un tap sulla 
 
 | Pezzo | Dettaglio |
 | ----- | --------- |
-| **Piano** | `docs-sviluppo/da-fare/terreni/PIANO_PROPOSTA_CONFINE_TAP.md` |
+| **Piano** | `docs-sviluppo/obsoleto/strategie-superate/PIANO_PROPOSTA_CONFINE_TAP.md` |
 | **Decisioni** | `TONY_DECISIONI_E_REQUISITI.md` §21 |
 | **Master Plan** | §10 Mappe: Tony continua a non tracciare poligoni; puntatore al piano Terreni |
 

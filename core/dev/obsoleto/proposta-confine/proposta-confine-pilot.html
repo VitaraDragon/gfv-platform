@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dev — Pilota proposta confine da tap</title>
+  <link rel="stylesheet" href="../../../styles/responsive-standalone.css">
+  <style>
+    body { font-family: 'Segoe UI', sans-serif; background: #f4f6f5; margin: 0; padding: 20px; }
+    .wrap { max-width: 1100px; margin: 0 auto; }
+    h1 { color: #2E8B57; margin: 0 0 6px; font-size: 22px; }
+    .hint { color: #555; font-size: 14px; margin: 0 0 16px; line-height: 1.45; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 12px; }
+    select, button { border-radius: 8px; padding: 8px 12px; font-size: 14px; border: 1px solid #cfd8d3; }
+    button { cursor: pointer; border: none; }
+    .btn-primary { background: #2E8B57; color: #fff; }
+    .btn-secondary { background: #e8f5ee; color: #2E8B57; }
+    .btn-ghost { background: #fff; color: #444; border: 1px solid #cfd8d3; }
+    #map { height: 420px; border-radius: 12px; background: #ddd; position: relative; }
+    .map-wrap { position: relative; }
+    .chip {
+      position: absolute; left: 12px; bottom: 12px; z-index: 2;
+      background: rgba(0,0,0,.62); color: #fff; padding: 6px 10px;
+      border-radius: 999px; font-size: 12px; font-weight: 600;
+    }
+    .status { margin: 12px 0; padding: 10px 12px; border-radius: 8px; font-size: 14px; display: none; }
+    .status.show { display: block; }
+    .status.ok { background: #d4edda; color: #155724; }
+    .status.err { background: #f8d7da; color: #721c24; }
+    .status.warn { background: #fff3cd; color: #856404; }
+    .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; margin: 12px 0; }
+    .metric { background: #fff; border-radius: 10px; padding: 10px 12px; box-shadow: 0 1px 4px rgba(0,0,0,.06); }
+    .metric span { display: block; font-size: 11px; color: #777; text-transform: uppercase; }
+    .metric strong { font-size: 15px; }
+    table { width: 100%; border-collapse: collapse; background: #fff; border-radius: 10px; overflow: hidden; font-size: 13px; }
+    th, td { padding: 8px 10px; text-align: left; border-bottom: 1px solid #eee; }
+    th { background: #eef6f1; }
+    .empty-row { color: #888; text-align: center; }
+    .meta { font-size: 13px; color: #666; margin-bottom: 8px; }
+    .summary { font-size: 14px; margin: 10px 0 16px; }
+  </style>
+  <script type="module" src="../../../js/standalone-bootstrap.js" data-config-base="../../.."></script>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Pilota Fase 0 — proposta confine da tap (abbandonato)</h1>
+    <p class="hint">
+      <strong>Abbandonato (2026-09-05).</strong> No-go sul segmentatore. Pagina solo archivio: confronta il segmentatore con i poligoni già in anagrafe.
+      Non salva terreni, non è il pulsante «Proponi confine».
+      Go/no-go: «campo giusto + ritocco minimo» sopra circa due terzi su 20–30 vigneti/frutteti ben bordati.
+      URL: <code>core/dev/obsoleto/proposta-confine/proposta-confine-pilot.html</code>
+      SAM scarica il modello da Hugging Face al primo uso (non da questo server). I messaggi MetaMask in console sono dell’estensione, non di GFV.
+    </p>
+    <p class="meta" id="tenant-label">Tenant…</p>
+    <p class="meta" id="terreni-count"></p>
+
+    <div class="toolbar">
+      <select id="terreno-select"></select>
+      <select id="engine-select" title="SAM per la misura reale; stub solo per verificare la pipeline">
+        <option value="sam">SAM (browser)</option>
+        <option value="stub">Stub rettangolo (solo pipeline)</option>
+      </select>
+      <button type="button" class="btn-primary" id="btn-center">Tap al centro</button>
+      <button type="button" class="btn-secondary" id="btn-export">Esporta JSON</button>
+      <button type="button" class="btn-ghost" id="btn-clear">Svuota tabella</button>
+    </div>
+
+    <div class="map-wrap">
+      <div id="map"></div>
+      <div id="draft-chip" class="chip" hidden>Bozza — verifica i confini</div>
+    </div>
+    <div id="pilot-status" class="status"></div>
+
+    <div id="metrics" class="metrics" hidden>
+      <div class="metric"><span>Campo giusto</span><strong id="m-giusto">—</strong></div>
+      <div class="metric"><span>Ritocco minimo</span><strong id="m-ritocco">—</strong></div>
+      <div class="metric"><span>Scostamento ha</span><strong id="m-ha-delta">—</strong></div>
+      <div class="metric"><span>IoU</span><strong id="m-iou">—</strong></div>
+      <div class="metric"><span>ha proposta / salvati</span><strong id="m-ha">—</strong></div>
+      <div class="metric"><span>Latenza</span><strong id="m-lat">—</strong></div>
+      <div class="metric"><span>Fuori dal campo</span><strong id="m-fuori">—</strong></div>
+      <div class="metric"><span>Overlap altri terreni</span><strong id="m-overlap">—</strong></div>
+    </div>
+
+    <p class="summary" id="session-summary"></p>
+    <table>
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Terreno</th>
+          <th>Coltura</th>
+          <th>Giusto</th>
+          <th>Ritocco</th>
+          <th>Δ ha</th>
+          <th>IoU</th>
+          <th>Note</th>
+        </tr>
+      </thead>
+      <tbody id="session-body"></tbody>
+    </table>
+  </div>
+  <script type="module">
+    import { bootstrapPropostaConfinePilot } from './proposta-confine-pilot.js';
+    bootstrapPropostaConfinePilot().catch((err) => {
+      const el = document.getElementById('pilot-status');
+      if (el) {
+        el.textContent = 'Avvio fallito: ' + (err && err.message ? err.message : String(err));
+        el.className = 'status show err';
+      }
+    });
+  </script>
+</body>
+</html>

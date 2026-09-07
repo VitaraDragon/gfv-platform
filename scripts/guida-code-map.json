@@ -9,6 +9,8 @@
     "CONTO_TERZI",
     "PARCO_MACCHINE",
     "METEO",
+    "VENDEMMIA_MECCANICA",
+    "REPORT",
     "INTERSEZIONI"
   ],
   "rules": [
@@ -163,6 +165,36 @@
       "label": "Modulo meteo"
     },
     {
+      "prefix": "modules/vendemmia-meccanica/",
+      "modules": ["VENDEMMIA_MECCANICA"],
+      "label": "Vendemmia meccanica"
+    },
+    {
+      "prefix": "modules/report/",
+      "modules": ["REPORT"],
+      "label": "Modulo report"
+    },
+    {
+      "includes": "document-archive",
+      "modules": ["MAGAZZINO", "TONY"],
+      "label": "Tony Occhi archivio documenti"
+    },
+    {
+      "includes": "documenti-acquisiti",
+      "modules": ["MAGAZZINO", "TONY"],
+      "label": "Archivio documenti magazzino"
+    },
+    {
+      "includes": "manodopera-problema-severita",
+      "modules": ["MANODOPERA"],
+      "label": "Semaforo allarmi manodopera"
+    },
+    {
+      "includes": "impegni-giornalieri",
+      "modules": ["MANODOPERA"],
+      "label": "Impegni giornalieri"
+    },
+    {
       "prefix": "core/dashboard",
       "modules": ["CORE"],
       "label": "Dashboard"
@@ -181,6 +213,16 @@
       "prefix": "core/terreni",
       "modules": ["CORE"],
       "label": "Terreni anagrafica"
+    },
+    {
+      "prefix": "core/js/terreni-maps.js",
+      "modules": ["CORE", "CONTO_TERZI"],
+      "label": "Disegno confini mappa Terreni (anche clienti CT)"
+    },
+    {
+      "prefix": "core/js/terreni-draw-helpers.js",
+      "modules": ["CORE", "CONTO_TERZI"],
+      "label": "Helper disegno confini 1b"
     },
     {
       "prefix": "core/mappa-",

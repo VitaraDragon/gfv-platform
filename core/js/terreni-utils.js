@@ -209,7 +209,10 @@ export function mapColturaToColorCategory(colturaNome, colturaCategoria) {
 export function getColturaColor() {
     const colturaSelect = document.getElementById('terreno-coltura');
     const colturaCategoriaSelect = document.getElementById('terreno-coltura-categoria');
-    const colturaNome = colturaSelect ? colturaSelect.value : null;
+    const colturaSottoSelect = document.getElementById('terreno-coltura-sottocategoria');
+    const colturaNome = (colturaSelect && colturaSelect.value)
+        || (colturaSottoSelect && colturaSottoSelect.value)
+        || null;
     const colturaCategoria = colturaCategoriaSelect ? 
         colturaCategoriaSelect.options[colturaCategoriaSelect.selectedIndex]?.text : null;
     

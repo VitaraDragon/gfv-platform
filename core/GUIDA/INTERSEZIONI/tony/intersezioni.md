@@ -23,20 +23,25 @@ Quando indichi **dove andare** in chat o in guida, usa sempre il linguaggio dell
 |--------|------------|-------------------|
 | Manodopera | KPI + Pianificazione / Persone / Controllo | **← Manodopera** dalle pagine interne |
 | Vigneto / Frutteto | Dashboard coltura (statistiche, azioni rapide) | **← Dashboard** verso home generale |
-| Magazzino | Riepilogo giacenze, azioni rapide | **← Dashboard** |
+| Magazzino | Riepilogo giacenze, azioni rapide, Archivio documenti | **← Dashboard** |
 | Conto Terzi | Panoramica clienti, preventivi, lavori | **← Dashboard** |
 | Parco Macchine | Panoramica mezzi, azioni rapide | **← Dashboard** |
+| Vendemmia meccanica | Home VM, piano stagione, calcolatore | **← Dashboard** |
+| Report | Dashboard report / bilanci | **← Dashboard** |
 | Core (Terreni, Diario, …) | pagina dedicata | **← Dashboard** o breadcrumb equivalente |
 
 ### Scorciatoie Terreni (Core)
 
 - Icona **grappolo** (Vigneto) o **mela** (Frutteto) sulla riga terreno → **anagrafica** coltura per quel campo, **non** la dashboard del modulo.
 - Per il riepilogo viola/arancio del modulo → **Moduli** → **Vigneto** / **Frutteto**.
+- **Traccia confini** (Terreni aziendali e **Terreni clienti** Conto terzi): stesso gesto — chiusura sul primo punto o doppio tap, Togli ultimo, aggancio ai campi già salvati (in CT solo quelli del cliente). Tony non disegna il poligono.
 
 ### Tony tra moduli
 
 - **Tony Guida** (piano Base): spiega i passaggi e indica **Moduli** + nome modulo; non apre pagine da solo.
-- **Tony Avanzato**: può **aprire** moduli e schede (es. «apri Conto Terzi», «vai a validazione ore») se il modulo e i permessi lo consentono.
+- **Tony Avanzato**: può **aprire** moduli e schede (es. «apri Conto Terzi», «vai a validazione ore», «apri impegni giornalieri») se il modulo e i permessi lo consentono.
+- **Documenti magazzino** (Avanzato + Magazzino): foto/PDF dalla chat → movimenti + Archivio; reminder **prezzi in attesa**.
+- **Briefing** anche su hub (es. Magazzino): reminder corti + follow-up «apri»; riassunto lungo tipicamente in dashboard.
 - Se l'utente è su una pagina e chiede un'azione di **altro modulo**, il percorso tipico è: descrivere **Moduli** → modulo → sezione, oppure (Avanzato) navigazione automatica.
 
 ---
@@ -89,6 +94,27 @@ Ruoli: principalmente manager/amministratore.
 1. Operaio: versione **mobile**, lavoro scelto, registrazione ore.
 2. Caposquadra: validazione ore squadra (mobile).
 3. Manager: **Manodopera** → **Validazione ore**, **Statistiche manodopera**, alert in **Richiede attenzione** (ore da validare).
+
+### 2.5 Assenza → sostituto → mappa
+
+1. Manager: **Manodopera** → **Gestione lavori** → segna **assenza** → lavoro in **standby** se sotto equipaggio minimo.
+2. **Assegna sostituto** (shortlist con prossimità terreno/podere) oppure, eccezione, Impegni → **Scegli manualmente** (roster giorno).
+3. Controlla **Impegni giornalieri** (semaforo rosso/giallo, KPI allarmi).
+4. **Mappa** aziendale: layer **Allarmi** (pin ! sul terreno del lavoro) → link a Gestione lavori.
+5. Tony Avanzato: «chi è libero?», «candidati sostituto» — legge shortlist/contesto giorno, non ricalcola.
+
+### 2.6 Bolla magazzino (foto / PDF con Tony)
+
+1. Tony Avanzato + Magazzino: dalla chat, foto/PDF → revisione → **Registra**.
+2. **Movimenti** (entrate) + **Archivio documenti**; eventuale **prezzo in attesa**.
+3. Completare prezzo in Movimenti o da reminder dashboard/hub («apri»).
+4. Prezzo medio prodotto aggiornato quando le entrate con prezzo lo prevedono.
+
+### 2.7 Vendemmia meccanica ↔ lavori / Conto terzi
+
+1. Modulo **Vendemmia meccanica** attivo (+ spesso Conto terzi per clienti).
+2. **Piano stagione** / home VM → terreni in piano; **calcolatore** compenso; sync con **lavori** Manodopera quando il lavoro è di tipo VM.
+3. Chiusura lavoro / zone → aggiornamento stato piano (vendemmiato / residui) secondo regole modulo.
 
 ---
 
@@ -156,6 +182,8 @@ Punto chiave: la stessa funzione può comportarsi in modo diverso in base al ruo
 ### Esempi pratici
 
 - «Dal preventivo accettato al lavoro operativo»: elencare **Conto Terzi** → pianifica → **Manodopera** → **Gestione lavori** → ore → **Validazione ore**; con Avanzato, aprire i passaggi consentiti.
+- «Manca un operaio oggi»: **Gestione lavori** → assenza → shortlist → Impegni/semaforo → mappa Allarmi; Tony può elencare liberi/candidati dal contesto giorno.
+- «Ho una bolla da registrare»: foto/PDF in chat con Tony → revisione → Magazzino Movimenti + Archivio; prezzi in attesa se manca prezzo.
 - «Ho registrato trattamento, come verifico lo scarico?»: **Moduli** → **Magazzino** → **Tracciabilità consumi** (e **Movimenti**); ricordare che la riga trattamento nasce da lavoro/Diario con categoria corretta.
 - «Devo passare dal vigneto al magazzino»: non usare Terreni/grappolo per il riepilogo; **Moduli** → **Vigneto** per dashboard, **Moduli** → **Magazzino** per giacenze.
-- «Apri manodopera e validazione ore»: intent valido per Avanzato; operaio/caposquadra → solo flussi mobile pertinenti al ruolo.
+- «Apri manodopera e validazione ore» / «apri impegni giornalieri»: intent valido per Avanzato; operaio/caposquadra → solo flussi mobile pertinenti al ruolo.
