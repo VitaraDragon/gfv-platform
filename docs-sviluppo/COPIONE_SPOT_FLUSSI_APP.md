@@ -75,7 +75,7 @@ Il mezzo può comparire se **è il beat** (es. guasto al trincia). Non va tenuto
 | Ep | Flusso | Soul | Gesto | UI vera da registrare | Blocco |
 |---|---|---|---|---|---|
 | **1** | **Segnalazione guasto** | Giuseppe | Trincia in frutteto → fumo → controllo arrabbiato → telefono | `segnalazione-guasti-standalone` (tipo macchina, attrezzo = trincia) | Scaletta §10. Prima take: still + clip 1. Higgsfield da cloud: 401, serve ri-auth. |
-| **2** | **Zona lavorata / progressi** | Mario → Luca | Fermo in cabina, due tocchi, mappa che si colora in ufficio | `lavori-caposquadra-standalone` (account capo, due punti) + tab Mappa Gestione lavori | Copione §12. Non girare Soul prima della UI. |
+| **2** | **Zona lavorata / progressi** | Mario → Luca | Seminativo, trattore rosso fermo + dolly cabina H02b | `lavori-caposquadra-standalone` (capo, due punti) + tab Mappa Gestione lavori | Copione §12. Riuso H02b per clip 2 se possibile. |
 | 3 | Magazzino — movimento / scarico | Giuseppe | Posa il sacco, guarda il telefono | `movimenti-standalone` (o home magazzino) | OTS `3dc29479` OK. Manca lo screen recording. Può aspettare: take già tenuta. |
 | 4 | Crea lavoro (ufficio) | Luca | Al laptop / telefono, un cenno | form Gestione lavori (terreno, tipo, assegnatario) | Clip ufficio Luca non partita |
 | 5 | Comunicazione squadra | Mario | Legge il telefono a bordo campo | thread comunicazioni / Impegni giorno | Mezzo in sfondo, non hero |
@@ -113,6 +113,8 @@ Non generare il pezzo Soul **prima** di avere la UI: senza match cut lo spot non
 | Soul Tony | `dfdc8ee8-1009-4240-87dd-2d8d91fbef59` |
 | Soul Giuseppe | `aa4e8f90-21a3-4c43-bb6a-6ebeb213d057` |
 | Soul Mario | `97dd3f71-ab41-45b8-ad00-e0de8182484d` |
+| **Ep. 2 — trattore Mario (seminativo)** | Still `Mario_trattore_lavora_terra` (clip 1, fermo) · still `Mario_trattore_rosso_cabina_telefono` (clip 2) · I2V dolly **TENERE** `hf_20260821_042905_cb1763fb-1c09-4152-b2b5-3c552f96260e` (H02b) |
+| Ep. 1 — trattore compatto frutteto + trincia | Solo Giuseppe / guasto — **non** riusare in ep. 2 |
 | Non riusare | `8ca92742` (UI finta), telefono girato verso camera, marche sui sacchi |
 | Non mescolare | clip laptop / retino / mezzi giocattolo della Linea A |
 
@@ -128,7 +130,7 @@ Non generare il pezzo Soul **prima** di avere la UI: senza match cut lo spot non
 
 ## 10. Episodio 1 — Segnalazione guasto (Giuseppe)
 
-Il trattore e il trincia **esistono solo qui**: servono al beat del guasto, non vanno replicati negli altri episodi. Niente marche, niente scritte sull’attrezzo.
+Il trattore compatto da frutteto e il trincia **esistono solo qui** (Giuseppe, beat del guasto). L’ep. 2 usa il **trattore rosso di Mario** in seminativo (asset H02a/H02b), senza attrezzo posteriore. Niente marche, niente scritte sull’attrezzo.
 
 **Fotogramma A (lock):** Pixar 3D (stesso look del magazzino). Alto, frutteto a filari (alberi da frutto, **non** vigneto). Trattore da frutteto compatto, colore unico (verde scuro o arancio, senza logo). Dietro: **trincia a mazze** che lavora l’erba nel viale. Giuseppe Soul al posto di guida. Erba tagliata visibile. **Niente fumo, niente fermo.** Tutte le clip 1–2 partono da questo still.
 
@@ -244,7 +246,7 @@ VIETATO
 
 **Catena ruoli (prodotto).** Manager assegna il lavoro al caposquadra → il capo coordina la squadra in campo → **il capo traccia la zona lavorata** ogni giorno (`SPECIFICA_DASHBOARD_RUOLI.md`). L’operaio segna la zona **solo** su lavori **autonomi** (`operaioId` senza `caposquadraId`). Questo spot racconta il caso tipico — **lavoro di squadra** — quindi **Mario**, non Giuseppe.
 
-**Una frase.** Fine giornata. Mario ferma il trattore a fine filare, due tocchi sul telefono, la fetta diventa verde. In ufficio Luca apre la mappa: ettari di oggi, percentuale, in tempo.
+**Una frase.** Fine giornata in **seminativo**. Mario ferma il trattore al bordo del pezzo erpicato, due tocchi sul telefono, la fetta diventa verde. In ufficio Luca apre la mappa: ettari di oggi, percentuale, in tempo.
 
 ### Personaggi e set (contrasto con ep. 1)
 
@@ -252,14 +254,14 @@ VIETATO
 |---|---|---|
 | Soul in campo | Giuseppe | **Mario** (caposquadra) |
 | Soul in ufficio | — | Luca (clip sue, **mai** nello stesso fotogramma) |
-| Luogo | Frutteto + trattore + trincia | **Vigneto** (o seminativo), trattore **fermo** in cabina |
+| Luogo | Frutteto + trincia | **Seminativo** (campo aperto, solchi / terreno lavorato) |
+| Trattore | Compatto frutteto (verde scuro o arancio) + trincia | **Rosso, stesso asset Mario** di H02a/H02b — **fermo**, senza attrezzo |
 | Emozione | Rabbia dopo il danno | Calma, giornata chiusa |
-| Hero | Il guasto (mezzo solo qui) | I **due tocchi** + la mappa che si colora |
-| Macchina | Sì, beat del guasto | Trattore **generico** in sfondo/cabina — **non** lo stesso asset dell’ep. 1, non hero-machine |
+| Hero | Il guasto | I **due tocchi** + la mappa che si colora |
 
-Giuseppe fuori: qui non è un lavoro autonomo. Il payoff resta manager (Luca), ma chi segna è il capo.
+Giuseppe fuori: non è un lavoro autonomo. Il payoff resta manager (Luca), ma chi segna è il capo.
 
-**Perché dal trattore.** Il capo su lavori meccanici di squadra è spesso in cabina; la grammatica OTS + dolly è già tenuta (`H02b` / `3dc29479`). Si legge subito «fine turno in campo» senza inventare una posa a piedi con cesoie.
+**Perché seminativo + stesso trattore Mario.** L’erpicatura in seminativo è il caso tipico meccanico di squadra; il campo aperto si legge bene in due tocchi sulla mappa. **Non** si reinventa il mezzo: si riusa il **trattore rosso in cabina** già tenuto (`Mario_trattore_lavora_terra` / `Mario_trattore_rosso_cabina_telefono`, clip dolly `hf_20260821_042905_cb1763fb`). Resta distinto dal compatto+trincia dell’ep. 1 (Giuseppe, frutteto).
 
 ### Prodotto (vincoli duri — non inventare UI)
 
@@ -271,9 +273,9 @@ Flusso vero, già pubblicato (`zonaLavorataDuePunti`, `enabledAlways`):
 4. Anteprima **verde** + ettari. Poi **Salva zona**.
 5. Luca, tab **Mappa** di Gestione lavori: zona del giorno (verde = giorno 1), superficie, % di completamento, badge **In tempo**.
 
-**Vietato in UI e in Soul:** disegno a mano come gesto hero; trail GPS; heatmap inventata; Recraft; due Soul nello stesso frame; frutteto (è l’ep. 1); trincia in fumo; parlato in generazione; Giuseppe come chi segna (caso autonomo, non questo episodio).
+**Vietato in UI e in Soul:** disegno a mano come gesto hero; trail GPS; heatmap inventata; Recraft; due Soul nello stesso frame; frutteto / trincia / fumo (ep. 1); trattore compatto frutteto dell’ep. 1; parlato in generazione; Giuseppe come chi segna.
 
-Numeri da tenere in registrazione (leggibili in 2s): **1,4 ha oggi · 42% · 1 / 3 giorni · In tempo**. Lavoro: **Erpicatura** o **Trinciatura tra le file** su vigneto già in anagrafe — lavoro **di squadra** assegnato a Mario.
+Numeri da tenere in registrazione (leggibili in 2s): **1,4 ha oggi · 42% · 1 / 3 giorni · In tempo**. Lavoro: **Erpicatura** (o fresatura) su **seminativo** già in anagrafe — lavoro **di squadra** assegnato a Mario. In UI opzionale: larghezza attrezzo ~3 m.
 
 ### Scaletta (~28–32s)
 
@@ -281,8 +283,8 @@ Due blocchi Soul (Mario, poi Luca). Ogni blocco rispetta la grammatica §4. UI *
 
 | Clip | ~t | Chi | Immagine | Audio Higgsfield | Vietato |
 |---|---|---|---|---|---|
-| **1 Fine filare** | 0–5s | Mario | Still A: vigneto, tardo pomeriggio. Trattore compatto **fermo** a fine filare (rosso generico, niente logo). Mario Soul in **cabina**, guarda il tratto appena lavorato. Motore spento. Niente telefono. Camera ferma o lieve push | Motore che si spegne, uccelli | Trincia, fumo, frutteto, rabbia, telefono, parlato |
-| **2 Sguardo + dolly** | 5–10s | Mario | ¾ over-shoulder in **cabina**. Tira fuori **il suo** telefono, guarda lui. Dolly verso lo schermo (spento / blur / di schiena). Stesso asse di `H02b` / `3dc29479` | Tasca, tap | Telefono girato verso di noi, UI inventata, scende dal trattore |
+| **1 Fine pezzo** | 0–5s | Mario | Still A: **seminativo**, tardo pomeriggio. **Stesso trattore rosso Mario** (H02a), **fermo** al bordo del pezzo erpicato (solco/terreno lavorato vs da fare). Mario in **cabina**, guarda indietro sul tratto fatto. Motore spento. Niente telefono. Camera ferma o lieve push | Motore che si spegne, vento campo | Trincia, fumo, frutteto, vigneto, telefono, parlato |
+| **2 Dolly cabina** | 5–10s | Mario | **Riuso preferito:** clip H02b tenuta (`cb1763fb`) — ¾ cabina, telefono schermo nero, **dolly verso display**. Alternativa: rigenerare da still `Mario_trattore_rosso_cabina_telefono` con stesso prompt/asse. In montaggio: zoom ultimi 0,5 s se serve match cut su U1 | Tasca, tap (se rigenerata) | Telefono verso camera, UI inventata, scende dal trattore |
 | **3 App caposquadra** | 10–18s | — | Montaggio, 9:16 telefono: `lavori-caposquadra-standalone` (sessione **caposquadra**) → **Segna zona lavorata** → tap inizio → tap fine → fetta verde + `1,40 ha` → **Salva zona** | — (tap in edit se serve) | «A mano», Recraft, GPS, poligono libero, account operaio |
 | **4 Ufficio** | 18–23s | Luca | Ufficio, polo, laptop o telefono. Un cenno verso lo schermo (schermo Higgsfield spento). Dolly breve ¾, stesso look Pixar | Ufficio, click | Parlato, UI finta, Mario in stanza |
 | **5 App manager** | 23–30s | — | Montaggio: Gestione lavori → tab **Mappa**. Compare la zona verde di oggi, lista `1,40 ha`, percentuale **42%**, badge **In tempo**. Niente overlay inventato | — | `mappa-aziendale` come unica inquadratura se il dettaglio lavoro non si legge; dashboard Recraft |
@@ -319,8 +321,9 @@ Match cut: coda dolly Mario → testa U1 (pollice già sul primo tap). Coda doll
 ### Decisioni chiuse (2026-09-07, agg. ruoli)
 
 - Episodio **2** della serie. Il beat è **segna (capo) → vede (manager)**.
-- **Mario** segna (lavoro di squadra), **Luca** legge. Giuseppe fuori — segna zone solo in autonomo, caso raro per lo spot.
-- Trattore **fermo in cabina** (fine giornata), non hero-machine come ep. 1. Riusa grammatica cabina+telefono, non lo stesso still del guasto.
+- **Mario** segna (lavoro di squadra), **Luca** legge. Giuseppe fuori.
+- **Seminativo** + **trattore rosso Mario** (asset H02a/H02b), fermo in cabina. **Non** il compatto+trincia dell’ep. 1.
+- **Clip 2:** riuso diretto H02b (`cb1763fb`) se il look combacia; altrimenti rigenerare da stesso still cabina.
 - Gesto hero = **due tocchi** sul perimetro già tracciato. Disegno a mano = fallback, non si mostra.
 - Niente GPS continuo (decisione prodotto §11.5).
 - Due Soul, clip separate. UI vera obbligatoria; senza U1/U2 non si genera Soul.
@@ -330,12 +333,11 @@ Match cut: coda dolly Mario → testa U1 (pollice già sul primo tap). Coda doll
 
 ### Produzione
 
-1. Registrare **U1** (sessione caposquadra) e **U2** (emulatore / tenant di prova).
-2. Still A Pixar 3D + Soul Mario (`97dd3f71-ab41-45b8-ad00-e0de8182484d`).
-3. Clip 1 image-to-video da quello still (trattore fermo, sguardo lungo il filare fatto).
-4. Se la 1 è OK: clip 2 dolly telefono in cabina (stesso asse ¾ di `H02b`).
-5. Still Luca + clip 4 (ufficio, dolly). Soul Luca: personaggio Higgsfield «Balanced Focused Creator» da rinominare Luca — non inventare un volto.
-6. Montaggio: 1→2→U1→4→U2→logo. Musica in edit.
+1. Registrare **U1** (sessione caposquadra) e **U2** (emulatore / tenant di prova). Terreno demo = **seminativo** con perimetro.
+2. **Clip 1:** still A da `Mario_trattore_lavora_terra` (variante **fermo** a fine pezzo erpicato) + Soul Mario (`97dd3f71-ab41-45b8-ad00-e0de8182484d`) → I2V Seedance ~5s. Oppure ultimo fotogramma utile di H02a con freeze/match se già coerente.
+3. **Clip 2:** **riuso** `hf_20260821_042905_cb1763fb` (H02b) — niente crediti se il take è pulito. Se rigeneri: still `Mario_trattore_rosso_cabina_telefono`, stesso dolly ¾ verso schermo nero.
+4. Still Luca + clip 4 (ufficio, dolly).
+5. Montaggio: 1 → 2 (o H02b) → U1 → 4 → U2 → logo. Match cut: coda dolly → pollice su primo tap U1. Musica in edit.
 
 **Nota episodio autonomo (fuori da questo spot).** Se un giorno servisse un secondo take «Giuseppe a piedi», sarebbe un episodio a parte con lavoro `operaioId` — non mescolarlo qui.
 
@@ -355,10 +357,13 @@ LEGGI PRIMA
 OBIETTIVO DI QUESTO TURNO (e basta)
 1) Verificare Higgsfield MCP autenticato (show_characters).
 2) Confermare Soul Mario ready (97dd3f71-ab41-45b8-ad00-e0de8182484d).
-3) get_cost, poi generare SOLO:
-   - still A (fotogramma lock, vigneto, Mario in cabina trattore fermo, niente telefono)
+3) get_cost, poi generare SOLO (se H02b NON è riusabile in montaggio):
+   - still A (seminativo, Mario in cabina trattore rosso FERMO, niente telefono)
    - clip 1 image-to-video da quello still (~5s)
-4) Mostrare still + clip e FERMARTI. Non clip 2 dolly, non Luca, non UI, non montaggio.
+4) Se H02b (cb1763fb) è già OK per clip 2, NON rigenerare il dolly — mostra still + clip 1 e FERMARTI.
+
+PRIMA DI GENERARE
+- Controlla se puoi montare clip 2 con H02b tenuta: hf_20260821_042905_cb1763fb-1c09-4152-b2b5-3c552f96260e (stesso trattore rosso, dolly cabina). Se sì, genera solo clip 1.
 
 PRECONDIZIONE
 Se l’utente non ha la screen recording U1 (caposquadra, due tocchi + salva zona), STOP. Non bruciare crediti.
@@ -369,51 +374,51 @@ SOUL
 - Non usare Tony / Giuseppe / Luca. Non l’uomo in camicia verde.
 
 STILE (vincolo duro)
-- Pixar 3D animated feature. Stesso filo cabina H02b e magazzino 3dc29479.
-- Vietato: live-action, photoreal, documentary, cartoon 2D Linea A.
+- Pixar 3D animated feature. Stesso filo H02a/H02b (trattore rosso Mario, seminativo).
+- Vietato: live-action, photoreal, documentary, cartoon 2D Linea A, frutteto, trincia ep. 1.
 - Prompt always include: "Pixar 3D animated feature, stylized subsurface skin, cinematic lighting, no photoreal, no live-action".
 
-SCENA — still A (lock)
-- Tardo pomeriggio, vigneto a filari (vite, NON frutteto).
-- Trattore compatto FERMO a fine filare (rosso generico, NESSUN logo / marca / attrezzo posteriore visibile).
-- Mario Soul in CABINA, ¾, guarda lungo il viale appena lavorato (erba/terreno lavorato in primo piano).
-- Espressione calma, giornata chiusa, NON arrabbiata. Motore spento.
-- Niente telefono, niente fumo, niente trincia, niente altre persone, niente testo.
+SCENA — still A (lock) — basata su Mario_trattore_lavora_terra, ma FERMO
+- Tardo pomeriggio, **seminativo** (open arable field, furrows, NOT vineyard, NOT orchard).
+- **Same red tractor** as H02a/H02b (generic, no logos, NO rear implement).
+- Mario Soul in CABIN, ¾, looks back along the **just-worked** strip (worked soil vs untouched).
+- Tractor STOPPED, engine off. Calm end-of-day.
+- Niente telefono, niente fumo, niente trincia, niente frutteto, niente altre persone, niente testo.
 - 16:9.
 
-CLIP 1 (da still A)
-- Motore: Seedance 2.0 (non 2.5: 2.0 rispetta start_image). start_image = job/media dello still A.
-- ~5s, 16:9, 720p finché non approvata, audio effetti ON, niente parlato, niente musica.
-- Lieve push-in. Mario in cabina gira lo sguardo lungo il filare fatto, un respiro. Trattore fermo. Niente telefono in questa clip.
-- Continuous single shot, no cut.
-- Vietato: telefono, fumo, trincia, frutteto, rabbia, labiale, scende dal trattore, seconda camera.
+CLIP 1 (da still A) — solo se serve nuova clip 1
+- Motore: Seedance 2.0. start_image = still A.
+- ~5s, 16:9, 720p, audio effetti ON, niente parlato, niente musica.
+- Lieve push-in. Mario in cab turns head along worked field strip, exhales. Tractor stays still.
+- Vietato: telefono, moving tractor, smoke, orchard, vineyard, anger, speech.
 
-DOPO (non ora)
-Clip 2: ¾ OTS in cabina, tira fuori IL SUO telefono, dolly verso schermo spento/di schiena (grammatica H02b / 3dc29479).
-Clip 3 = UI vera U1 (caposquadra, due tocchi), MAI generata.
-Clip 4 = Luca ufficio (Soul Luca). Clip 5 = UI vera U2 (mappa manager).
+CLIP 2 — NON generare se H02b cb1763fb va in montaggio
+- Riuso diretto: hf_20260821_042905_cb1763fb (¾ cabina, dolly verso telefono nero).
+- Se rigeneri: still Mario_trattore_rosso_cabina_telefono, stesso movimento H02b.
 
 HIGGSFIELD — procedura
 1. get_workflow_instructions senza argomento; questa è generazione Soul+Seedance, NON ugc, NON faceless, NON ad-multiplier.
 2. show_characters action=list status=ready; se Mario non è ready, STOP.
 3. models_explore get su soul_2 / soul_cinematic e seedance 2.0.
 4. generate_image get_cost:true; poi 1 still. use_unlim solo se l’utente lo chiede.
-5. Se lo still ha trincia, fumo, frutteto, telefono, volto sbagliato o look fotoreale: NON fare il video; mostra e chiedi.
+5. Se lo still ha trincia, frutteto, vigneto, telefono, trattore in movimento, volto sbagliato o look fotoreale: NON fare il video; mostra e chiedi.
 6. generate_video Seedance 2.0, get_cost:true, poi 1 take.
 7. Restituisci job id still + job id clip 1. Stop.
 
 PROMPT STILL (inglese)
 
-Pixar 3D animated feature still, 16:9. Late-afternoon vineyard, neat grapevine rows. A compact red tractor stopped at the end of a row (generic, no logos, no brand text, no rear implement). Mario, the trained Soul character, sits in the driver's cab, field clothes, calm and tired-in-a-good-way, looking along the alley he just finished. Engine off. Stylized Pixar subsurface skin, warm cinematic light. No phone, no smoke, no flail mower, no orchard trees, no other people, no readable text, no photoreal, no live-action.
+Pixar 3D animated feature still, 16:9. Late-afternoon open arable field (seminativo), furrows, worked soil. The same red generic tractor as reference H02a, STOPPED at the edge of the worked strip (no logos, no rear implement). Mario, the trained Soul character, sits in the driver's cab, field clothes, calm, looking back along the strip he just finished. Engine off. Stylized Pixar subsurface skin, warm cinematic light. No phone, no smoke, no flail mower, no orchard, no vineyard, no other people, no readable text, no photoreal, no live-action.
 
 PROMPT CLIP 1 (image-to-video)
 
-Locked to the start frame. Pixar 3D animated feature. Gentle camera push-in. Mario in the tractor cab slowly turns his head along the finished vineyard row, exhales. Tractor stays still, engine off. No phone, no leaving the cab. Vineyard wind and distant birds only. Continuous single shot. No orchard, no smoke, no anger, no speech, no music, no logos, no photoreal.
+Locked to the start frame. Pixar 3D animated feature. Gentle camera push-in. Mario in the stopped red tractor cab slowly turns his head along the finished worked field strip, exhales. Tractor stays still, engine off. Field wind only. Continuous single shot. No orchard, no vineyard, no smoke, no moving tractor, no phone, no speech, no music, no logos, no photoreal.
 
 VIETATO
-- Clip 2+, Luca, UI, Recraft (8ca92742)
+- Rigenerare clip 2 se H02b cb1763fb è già OK
+- Clip 2+ Luca, UI, Recraft (8ca92742)
 - Parlato italiano in generazione
-- Frutteto / trincia / fumo (episodio 1)
+- Frutteto / trincia / fumo (episodio 1 Giuseppe)
+- Trattore compatto frutteto ep. 1
 - Giuseppe al posto di Mario
 - Telefono in still A o clip 1
 - Riusare clip Linea A o start frame sbagliati (24a8eca6, 47ad0a1e, c4b295dd)
