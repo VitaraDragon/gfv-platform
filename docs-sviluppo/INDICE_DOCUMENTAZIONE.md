@@ -1,6 +1,6 @@
 # Indice documentazione sviluppo
 
-**Aggiornato:** 2026-07-10
+**Aggiornato:** 2026-09-08
 
 ## Onboarding (leggere per primi)
 
@@ -30,12 +30,13 @@
 |----------|-----------|
 | **[obsoleto/](obsoleto/README.md)** | Doc sostituiti, log sessione, analisi superate — **non usare per decisioni** |
 | **[in-sviluppo/](in-sviluppo/README.md)** | Lavoro parziale attivo (Tony perf, billing v2, vendemmia meccanica, E2E…) |
-| **[da-fare/](da-fare/README.md)** | Piani validi non ancora implementati (Tony Occhi, scalabilità lavori, snellimento…). Lazy Tony ✅ 2026-09-05 |
+| **[da-fare/](da-fare/README.md)** | Piani validi non ancora implementati (lancio legale/produzione, Tony Occhi, scalabilità lavori, snellimento…). Lazy Tony ✅ 2026-09-05 |
 
 ## Operativo
 
 | Documento | Scopo |
 |-----------|--------|
+| [da-fare/lancio/PIANO_LANCIO_LEGALE_E_PRODUZIONE.md](da-fare/lancio/PIANO_LANCIO_LEGALE_E_PRODUZIONE.md) | Lancio: Iubenda, GDPR, P.IVA, Stripe live, checklist |
 | [DEPLOY_RUNBOOK.md](DEPLOY_RUNBOOK.md) | Deploy Firebase/hosting/functions |
 | [SICUREZZA_FLUSSI.md](SICUREZZA_FLUSSI.md) | Perimetro sicurezza |
 | [GUIDA_CONFIGURAZIONE_FIREBASE.md](GUIDA_CONFIGURAZIONE_FIREBASE.md) | Setup Firebase |

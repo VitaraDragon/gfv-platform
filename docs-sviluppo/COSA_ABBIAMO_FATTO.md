@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-06 — documentazione disegno confini 1b (Terreni + CT).**
+**Ultimo aggiornamento documentazione: 2026-09-08 — piano lancio legale e produzione commerciale.**
+
+## Documentazione — piano lancio legale e produzione (2026-09-08)
+
+- **Perché:** punto unico su Iubenda, GDPR (titolare vs responsabile), P.IVA agricola esistente, cosa manca nel codice per vendere (Stripe live, fulfill, lock unpaid, checkbox registrazione).
+- **File:** `da-fare/lancio/PIANO_LANCIO_LEGALE_E_PRODUZIONE.md`. Indice + `da-fare/README.md`. Nessun cambio prodotto in questo commit.
+- Non è parere legale/fiscale.
 
 ## Documentazione — disegno confini 1b (2026-09-06)
 

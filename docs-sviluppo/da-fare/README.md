@@ -1,6 +1,6 @@
 # Documentazione da fare
 
-**Aggiornato:** 2026-09-06
+**Aggiornato:** 2026-09-08
 
 Specifiche e proposte **non ancora implementate** (o solo in parte) ma **ancora compatibili** con la direzione del progetto (`tony/MASTER_PLAN.md`, `ARCHITETTURA_MODULI_E_INTERAZIONI.md`).
 
@@ -12,6 +12,7 @@ Vedi anche **`DOBBIAMO_ANCORA_FARE.md`** (root `docs-sviluppo/`) per sicurezza, 
 
 | Cartella / file | Descrizione |
 |-----------------|-------------|
+| `lancio/` | Punto di partenza **legale + produzione commerciale** (Iubenda, P.IVA agricola, Stripe live, checkbox, lock unpaid) — `PIANO_LANCIO_LEGALE_E_PRODUZIONE.md` |
 | `demo/` | Tenant **AZIENDA DEMO GFV** in produzione (seed, switcher, reset) — `PIANO_TENANT_DEMO_PRODUZIONE.md` |
 | `magazzino/` | Tony Occhi – acquisizione documenti (Gemini/fotocamera) |
 | `lavori/` | Scalabilità lista lavori (`PLAN_SCALABILITA_LISTA_LAVORI.md`) — **non** tracking GPS trail (scartato → `obsoleto/strategie-superate/ROADMAP_TRACKING_GPS_AREA_LAVORATA.md`) |
