@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-06 — documentazione disegno confini 1b (Terreni + CT).**
+**Ultimo aggiornamento documentazione: 2026-09-09 — icona app GFV.**
+
+## Icona app GFV (2026-09-09)
+
+- **Perché:** l’icona PWA era la scenetta 3D (globo + trattore + satellite); su `core/images` e nella coming-soon c’era il volto di Tony. Tre ruoli mescolati.
+- **Marchio:** lettere **GFV** su verde `#1F6B3A`, colline nella G. Master `icons/gfv-mark.svg`; PNG in `icons/` e `core/images/icon-*.png`. Tony resta solo `core/images/tony-icon.png` (FAB/chat).
+- Favicon landing allineata. `logoorizzontale.png` invariato (export). Splash PWA `background_color` `#1F6B3A`.
 
 ## Documentazione — disegno confini 1b (2026-09-06)
 
