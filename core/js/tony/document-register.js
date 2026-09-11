@@ -1086,6 +1086,15 @@ export function evaluateExtractionOutcome(estrazione, opts) {
     return true;
   });
 
+  if (e.fonteEstrazione === 'fatturapa') {
+    return {
+      status: 'ok',
+      reasons: [],
+      message: '',
+      safety: safety,
+    };
+  }
+
   if (hard.length) {
     return {
       status: 'failed',

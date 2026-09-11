@@ -3,6 +3,7 @@ import {
   canUseTonyDocumentCapture,
   isTonyManagerOrAdmin,
   formatDocumentExtractionSummary,
+  resolveDocumentMime,
 } from '../core/js/tony/document-capture.js';
 
 describe('tony-document-capture client', () => {
@@ -46,5 +47,23 @@ describe('tony-document-capture client', () => {
     expect(text).toMatch(/Bolla/i);
     expect(text).toMatch(/Agri Nord/);
     expect(text).toMatch(/Urea/);
+  });
+
+  it('resolveDocumentMime accetta xml anche senza MIME browser', () => {
+    expect(resolveDocumentMime({ type: '', name: 'IT01234567890_ABC.xml' })).toBe('application/xml');
+    expect(resolveDocumentMime({ type: 'text/xml', name: 'fattura.xml' })).toBe('application/xml');
+    expect(resolveDocumentMime({ type: 'image/jpeg', name: 'bolla.jpg' })).toBe('image/jpeg');
+  });
+
+  it('formatDocumentExtractionSummary distingue FatturaPA XML', () => {
+    const text = formatDocumentExtractionSummary({
+      tipoDocumento: 'fattura',
+      fonteEstrazione: 'fatturapa',
+      fornitore: { nome: 'Agri Nord' },
+      numeroDocumento: '695/V0',
+      righe: [{ descrizione: 'Urea' }],
+    });
+    expect(text).toMatch(/fattura elettronica XML/i);
+    expect(text).toMatch(/Agri Nord/);
   });
 });

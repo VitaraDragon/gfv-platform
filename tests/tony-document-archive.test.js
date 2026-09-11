@@ -29,6 +29,7 @@ describe('document-archive paths e mime', () => {
   it('extFromMime', () => {
     expect(extFromMime('image/jpeg')).toBe('jpg');
     expect(extFromMime('application/pdf')).toBe('pdf');
+    expect(extFromMime('application/xml')).toBe('xml');
     expect(extFromMime('image/webp')).toBe('webp');
   });
 

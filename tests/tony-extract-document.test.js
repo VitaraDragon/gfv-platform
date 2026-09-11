@@ -34,6 +34,12 @@ describe('tony-document-schemas', () => {
     ).toThrow(/MIME non supportato/);
   });
 
+  it('accetta XML fattura elettronica', () => {
+    const xmlB64 = Buffer.from('<FatturaElettronica></FatturaElettronica>', 'utf8').toString('base64');
+    const pages = validateDocumentPages([{ mimeType: 'application/xml', data: xmlB64 }]);
+    expect(pages[0].mimeType).toBe('application/xml');
+  });
+
   it('rifiuta array vuoto', () => {
     expect(() => validateDocumentPages([])).toThrow(/almeno una pagina/);
   });
@@ -82,6 +88,16 @@ describe('tony-document-schemas', () => {
     expect(out.righe[0].quantita).toBe(10);
     expect(out.righe[0].prezzoUnitario).toBe(2.5);
     expect(out.totali.totale).toBe(25);
+    expect(out.fonteEstrazione).toBeUndefined();
+  });
+
+  it('preserve fonteEstrazione fatturapa', () => {
+    const out = normalizeExtractionResult({
+      tipoDocumento: 'fattura',
+      fonteEstrazione: 'fatturapa',
+      righe: [{ descrizione: 'Urea', quantita: 1 }],
+    });
+    expect(out.fonteEstrazione).toBe('fatturapa');
   });
 
   it('normalizza tipo scontrino', () => {
@@ -142,6 +158,17 @@ describe('tony-document-schemas', () => {
     expect(parts[0].text).toMatch(/bolle/i);
     expect(parts[0].text).toMatch(/riepilogativ/i);
     expect(parts[0].text).toMatch(/CIFRA PER CIFRA/i);
+  });
+
+  it('buildGeminiDocumentParts include trascrizione se presente e salta XML', () => {
+    const pages = [
+      { mimeType: 'image/png', data: 'abc123', indice: 1 },
+      { mimeType: 'application/xml', data: 'eA==', indice: 2 },
+    ];
+    const parts = buildGeminiDocumentParts(pages, { transcription: 'DDT 1490/00 Urea 10 kg' });
+    expect(parts.some((p) => p.text && /TRASCRIZIONE LETTERALE/.test(p.text))).toBe(true);
+    expect(parts.some((p) => p.inlineData && p.inlineData.mimeType === 'application/xml')).toBe(false);
+    expect(parts.some((p) => p.inlineData && p.inlineData.mimeType === 'image/png')).toBe(true);
   });
 });
 

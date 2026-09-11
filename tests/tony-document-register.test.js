@@ -319,6 +319,23 @@ describe('document-register', () => {
     expect(ok.status).toBe('ok');
   });
 
+  it('evaluateExtractionOutcome: FatturaPA XML non è fail-closed', () => {
+    var xmlOk = evaluateExtractionOutcome({
+      tipoDocumento: 'fattura',
+      fonteEstrazione: 'fatturapa',
+      confidence: 1,
+      numeroDocumento: '695/V0',
+      dataDocumento: '2026-07-15',
+      fornitore: { nome: 'Agri' },
+      totali: { imponibile: 26.1, iva: 1.24, totale: 27.14 },
+      righe: [
+        { descrizione: 'Urea', quantita: 10, prezzoUnitario: 2.5, confidence: 1 },
+        { descrizione: 'Spese', quantita: 1, prezzoUnitario: 1.1, confidence: 1 },
+      ],
+    });
+    expect(xmlOk.status).toBe('ok');
+  });
+
   it('validateRigheForFatturaDirettaRegister richiede prezzo e qty', () => {
     expect(
       validateRigheForFatturaDirettaRegister([

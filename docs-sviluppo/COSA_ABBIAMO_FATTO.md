@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-09 — icona app GFV.**
+**Ultimo aggiornamento documentazione: 2026-09-11 — acquisizione fatture/bolle (FatturaPA + OCR due passate).**
+
+## Acquisizione documenti — FatturaPA XML + OCR due passate (2026-09-11)
+
+- **Perché:** la lettura “a vista” con Gemini Flash era approssimativa sui numeri (DDT 1490 vs 1493, righe omesse). Serve un’ottima percentuale, non un’ipotesi.
+- **Fatture:** se l’utente carica l’**XML della fattura elettronica** (FatturaPA / Agenzia Entrate), i dati si leggono in modo **deterministico** (fornitore, P.IVA, numero, date, righe, DDT, totali) — non è OCR. Accettati anche XML dentro PDF in chiaro.
+- **Bolle / foto / PDF scan:** pipeline **due passate** Gemini (trascrizione cifra-per-cifra → JSON strutturato + `responseSchema`) e seconda passata di sicurezza invariata. Nessun template per fornitore (§20.15).
+- **Fuori scope ora:** plugin IDP di terze parti (Rossum, Azure Document Intelligence, Data Alchemy, …) — valutati; il canale XML italiano è il salto di accuratezza senza nuovo fornitore né template.
+- File: `functions/config/tony-fatturapa.js`, `tony-extract-document.js`, `tony-document-schemas.js`; picker 📷 accetta `.xml`. Test: `tests/tony-fatturapa.test.js`.
 
 ## Icona app GFV (2026-09-09)
 

@@ -7,14 +7,20 @@ const {
   parseExtractedDocumentJson,
   normalizeExtractionResult,
   buildGeminiDocumentParts,
+  buildGeminiTranscribeParts,
+  isVisionDocumentPage,
+  TONY_DOCUMENT_RESPONSE_SCHEMA,
 } = require("./config/tony-document-schemas");
 const {
   shouldRunSafetySecondPass,
   buildSafetySecondPassParts,
   mergeSafetySecondPass,
 } = require("./config/tony-document-safety");
+const { tryExtractFatturaPaFromPages, isXmlMime } = require("./config/tony-fatturapa");
 
 const TONY_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+const TONY_DOCUMENT_GEMINI_MODEL =
+  process.env.GEMINI_DOCUMENT_MODEL || process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
 async function assertManagerOrAdminForTenant(db, uid, tenantId) {
   if (!tenantId || typeof tenantId !== "string") {
@@ -106,26 +112,52 @@ function tenantHasMagazzinoModule(moduliAttivi) {
   return (moduliAttivi || []).some((m) => String(m).toLowerCase() === "magazzino");
 }
 
+function geminiDocumentUrl(apiKey) {
+  return `https://generativelanguage.googleapis.com/v1beta/models/${TONY_DOCUMENT_GEMINI_MODEL}:generateContent?key=${apiKey}`;
+}
+
 /**
- * Chiamata Gemini vision — estrazione documento (PoC Tony Occhi).
+ * Passata OCR: testo verbatim. Se fallisce, l'estrazione vision-only resta valida.
  * @param {string} apiKey
- * @param {Array<{ mimeType: string, data: string, indice: number }>} pages
+ * @param {Array} pages
  * @param {{ retryCount?: number }} [stats]
- * @param {{ parts?: Array<object>, label?: string }} [options]
+ * @returns {Promise<string>}
  */
-async function extractDocumentWithGemini(apiKey, pages, stats, options) {
-  options = options || {};
-  const label = options.label || "tonyExtractDocument";
-  const parts = Array.isArray(options.parts) ? options.parts : buildGeminiDocumentParts(pages);
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${TONY_GEMINI_MODEL}:generateContent?key=${apiKey}`;
+async function transcribeDocumentWithGemini(apiKey, pages, stats) {
+  const parts = buildGeminiTranscribeParts(pages);
+  if (parts.length < 3) return "";
   const body = {
     contents: [{ parts }],
     generationConfig: {
-      temperature: options.temperature != null ? options.temperature : 0.1,
-      // Fatture riepilogative: 4096 tronca spesso il JSON a metà array righe
+      temperature: 0,
       maxOutputTokens: 8192,
-      responseMimeType: "application/json",
     },
+  };
+  const res = await callGeminiWithRetry(geminiDocumentUrl(apiKey), body, "tonyExtractDocument-ocr", stats);
+  const data = await res.json();
+  const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  return typeof rawText === "string" ? rawText.trim() : "";
+}
+
+async function extractDocumentWithGemini(apiKey, pages, stats, options) {
+  options = options || {};
+  const label = options.label || "tonyExtractDocument";
+  const parts = Array.isArray(options.parts)
+    ? options.parts
+    : buildGeminiDocumentParts(pages, { transcription: options.transcription });
+  const generationConfig = {
+    temperature: options.temperature != null ? options.temperature : 0.1,
+    // Fatture riepilogative: 4096 tronca spesso il JSON a metà array righe
+    maxOutputTokens: 8192,
+    responseMimeType: "application/json",
+  };
+  if (options.useSchema !== false) {
+    generationConfig.responseSchema = TONY_DOCUMENT_RESPONSE_SCHEMA;
+  }
+  const url = geminiDocumentUrl(apiKey);
+  const body = {
+    contents: [{ parts }],
+    generationConfig,
   };
   const res = await callGeminiWithRetry(url, body, label, stats);
   const data = await res.json();
@@ -163,7 +195,7 @@ async function extractDocumentWithGemini(apiKey, pages, stats, options) {
         responseMimeType: "application/json",
       },
     };
-    const repairRes = await callGeminiWithRetry(url, repairBody, label + "-repair", stats);
+    const repairRes = await callGeminiWithRetry(geminiDocumentUrl(apiKey), repairBody, label + "-repair", stats);
     const repairData = await repairRes.json();
     const repairText = repairData?.candidates?.[0]?.content?.parts?.[0]?.text;
     const parsed = parseExtractedDocumentJson(repairText);
@@ -265,6 +297,39 @@ async function handleTonyExtractDocument(db, request) {
     throw new HttpsError("invalid-argument", e.message || "Pagine non valide.");
   }
 
+  const started = Date.now();
+  const fatturapa = tryExtractFatturaPaFromPages(pages);
+  if (fatturapa && Array.isArray(fatturapa.righe) && fatturapa.righe.length) {
+    const estrazioneXml = normalizeExtractionResult(fatturapa);
+    console.info(
+      "[tonyExtractDocument] FatturaPA XML:",
+      estrazioneXml.numeroDocumento || "(senza numero)",
+      "righe=" + estrazioneXml.righe.length
+    );
+    return {
+      ok: true,
+      tenantId,
+      model: "fatturapa-xml",
+      fonteEstrazione: "fatturapa",
+      transcriptionUsed: false,
+      pagineRicevute: pages.length,
+      geminiMs: Date.now() - started,
+      geminiRetryCount: 0,
+      safetyPassB: false,
+      safetyPassBReasons: [],
+      estrazione: estrazioneXml,
+    };
+  }
+
+  const hasVision = pages.some(isVisionDocumentPage);
+  const hasXml = pages.some((p) => isXmlMime(p.mimeType));
+  if (!hasVision && hasXml) {
+    throw new HttpsError(
+      "invalid-argument",
+      "XML non riconosciuto come fattura elettronica (FatturaPA). Usa il file XML dell’Agenzia delle Entrate, oppure una foto o un PDF della bolla/fattura."
+    );
+  }
+
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
     throw new HttpsError(
@@ -274,16 +339,32 @@ async function handleTonyExtractDocument(db, request) {
   }
 
   const geminiStats = {};
-  const started = Date.now();
   let estrazione;
   let safetyPassB = false;
   let safetyPassBReasons = [];
+  const fonteEstrazione = "gemini";
+  let transcriptionUsed = false;
   try {
-    const first = await extractDocumentWithGemini(apiKey, pages, geminiStats);
+    let transcription = "";
+    try {
+      transcription = await transcribeDocumentWithGemini(apiKey, pages, geminiStats);
+      transcriptionUsed = transcription.length > 40;
+    } catch (ocrErr) {
+      console.warn(
+        "[tonyExtractDocument] trascrizione OCR saltata:",
+        ocrErr && ocrErr.message ? ocrErr.message : ocrErr
+      );
+    }
+    const first = await extractDocumentWithGemini(apiKey, pages, geminiStats, {
+      transcription: transcriptionUsed ? transcription : "",
+    });
     const passB = await maybeRunSafetySecondPass(apiKey, pages, first, geminiStats);
     estrazione = passB.estrazione;
     safetyPassB = !!passB.safetyPassB;
     safetyPassBReasons = passB.safetyPassBReasons || [];
+    if (estrazione && typeof estrazione === "object") {
+      estrazione.fonteEstrazione = "gemini";
+    }
   } catch (e) {
     if (e instanceof HttpsError) throw e;
     console.error("[tonyExtractDocument] estrazione fallita:", e);
@@ -293,7 +374,9 @@ async function handleTonyExtractDocument(db, request) {
   return {
     ok: true,
     tenantId,
-    model: TONY_GEMINI_MODEL,
+    model: TONY_DOCUMENT_GEMINI_MODEL,
+    fonteEstrazione,
+    transcriptionUsed,
     pagineRicevute: pages.length,
     geminiMs: Date.now() - started,
     geminiRetryCount: geminiStats.retryCount || 0,
@@ -306,8 +389,10 @@ async function handleTonyExtractDocument(db, request) {
 module.exports = {
   handleTonyExtractDocument,
   extractDocumentWithGemini,
+  transcribeDocumentWithGemini,
   maybeRunSafetySecondPass,
   assertManagerOrAdminForTenant,
   tenantHasMagazzinoModule,
   TONY_GEMINI_MODEL,
+  TONY_DOCUMENT_GEMINI_MODEL,
 };

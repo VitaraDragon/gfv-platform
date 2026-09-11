@@ -91,9 +91,9 @@ export function injectWidget(scriptBase) {
         '<button type="button" class="tony-doc-btn tony-doc-btn-primary" id="tony-doc-finish">Acquisizione terminata</button>' +
         '<button type="button" class="tony-doc-btn tony-doc-btn-ghost" id="tony-doc-cancel">Annulla</button>' +
         '</div></div>' +
-        '<input type="file" id="tony-doc-file-input" accept="image/*,application/pdf" capture="environment" multiple style="display:none" aria-hidden="true">' +
+        '<input type="file" id="tony-doc-file-input" accept="image/*,application/pdf,application/xml,text/xml,.xml" capture="environment" multiple style="display:none" aria-hidden="true">' +
         '<div class="tony-widget-input-row">' +
-        '<button type="button" class="tony-widget-camera" id="tony-camera" title="Acquisisci bolla o fattura" aria-label="Fotocamera documenti" style="display:none">📷</button>' +
+        '<button type="button" class="tony-widget-camera" id="tony-camera" title="Acquisisci bolla, fattura o XML" aria-label="Fotocamera documenti" style="display:none">📷</button>' +
         '<button type="button" class="tony-widget-mic" id="tony-mic" title="Clicca per attivare dialogo continuo (mani libere)" aria-label="Microfono">🎤</button>' +
         '<input type="text" class="tony-widget-input" id="tony-input" placeholder="Scrivi un messaggio..." autocomplete="off" maxlength="2000">' +
         '<button type="button" class="tony-widget-send" id="tony-send">Invia</button>' +

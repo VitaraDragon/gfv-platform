@@ -8,9 +8,37 @@ import { hasActiveModule, getModuliAttiviFromTonyContext, moduleInactiveMessage 
 import { openTonyDocumentReviewForm } from './document-review-form.js';
 import { evaluateExtractionOutcome } from './document-register.js';
 
-const ALLOWED_MIME = new Set(['image/jpeg', 'image/png', 'image/webp', 'application/pdf']);
+const ALLOWED_MIME = new Set([
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'application/pdf',
+  'application/xml',
+  'text/xml',
+  'application/fatturapa+xml',
+]);
 const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_PAGES = 10;
+
+/**
+ * @param {{ type?: string, name?: string }} file
+ * @returns {string}
+ */
+export function resolveDocumentMime(file) {
+  var mime = String((file && file.type) || '').toLowerCase().trim();
+  var name = String((file && file.name) || '').toLowerCase();
+  if (mime === 'image/jpg') mime = 'image/jpeg';
+  if (ALLOWED_MIME.has(mime)) {
+    if (mime === 'text/xml') return 'application/xml';
+    return mime;
+  }
+  if (/\.xml$/i.test(name)) return 'application/xml';
+  if (/\.pdf$/i.test(name)) return 'application/pdf';
+  if (/\.(jpe?g)$/i.test(name)) return 'image/jpeg';
+  if (/\.png$/i.test(name)) return 'image/png';
+  if (/\.webp$/i.test(name)) return 'image/webp';
+  return mime;
+}
 
 /**
  * @returns {string[]}
@@ -69,9 +97,9 @@ export async function fileToDocumentPage(file) {
   if (!file || typeof file !== 'object') {
     throw new Error('File non valido.');
   }
-  var mime = String(file.type || '').toLowerCase().trim();
+  var mime = resolveDocumentMime(file);
   if (!ALLOWED_MIME.has(mime)) {
-    throw new Error('Formato non supportato. Usa foto (JPEG/PNG/WebP) o PDF.');
+    throw new Error('Formato non supportato. Usa foto (JPEG/PNG/WebP), PDF o XML della fattura elettronica.');
   }
   if (file.size > MAX_BYTES) {
     throw new Error('File troppo grande (max ~10 MB).');
@@ -114,9 +142,12 @@ export function formatDocumentExtractionSummary(estrazione) {
       : tipo === 'scontrino'
         ? 'Scontrino'
         : 'Documento';
+  var fonteXml = String(estrazione.fonteEstrazione || '').toLowerCase() === 'fatturapa';
   var forn = estrazione.fornitore && estrazione.fornitore.nome ? estrazione.fornitore.nome : '';
   var righe = Array.isArray(estrazione.righe) ? estrazione.righe : [];
-  var parts = ['Ho letto una ' + tipoLabel + (forn ? ' da ' + forn : '') + ' con ' + righe.length + ' righe.'];
+  var parts = fonteXml
+    ? ['Ho letto la fattura elettronica XML' + (forn ? ' di ' + forn : '') + ' con ' + righe.length + ' righe (dati fiscali, non una foto).']
+    : ['Ho letto una ' + tipoLabel + (forn ? ' da ' + forn : '') + ' con ' + righe.length + ' righe.'];
   if (estrazione.numeroDocumento) parts.push('N. ' + estrazione.numeroDocumento);
   if (estrazione.dataDocumento) parts.push('Data ' + estrazione.dataDocumento);
   var refs = Array.isArray(estrazione.riferimentiBolla) ? estrazione.riferimentiBolla : [];
@@ -203,6 +234,11 @@ export function initTonyDocumentCapture(opts) {
         pdfIcon.className = 'tony-doc-thumb-pdf';
         pdfIcon.textContent = 'PDF';
         wrap.appendChild(pdfIcon);
+      } else if (page.mimeType === 'application/xml' || page.mimeType === 'text/xml' || page.mimeType === 'application/fatturapa+xml') {
+        var xmlIcon = document.createElement('span');
+        xmlIcon.className = 'tony-doc-thumb-pdf';
+        xmlIcon.textContent = 'XML';
+        wrap.appendChild(xmlIcon);
       } else if (page.previewUrl) {
         var img = document.createElement('img');
         img.src = page.previewUrl;
@@ -342,7 +378,9 @@ export function initTonyDocumentCapture(opts) {
         if (estrazione && result.safetyPassBReasons && !estrazione.safetyPassBReasons) {
           estrazione.safetyPassBReasons = result.safetyPassBReasons;
         }
-        if (result.safetyPassB) estrazione.safetyPassB = true;
+        if (result.fonteEstrazione && !estrazione.fonteEstrazione) {
+          estrazione.fonteEstrazione = result.fonteEstrazione;
+        }
         if (result.safetyPassBAttempted) estrazione.safetyPassBAttempted = true;
 
         var outcome = evaluateExtractionOutcome(estrazione);

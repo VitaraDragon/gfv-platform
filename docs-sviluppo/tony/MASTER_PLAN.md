@@ -275,7 +275,7 @@ Tony non "compila" grafici. Può:
 - **Eliminazioni bulk**: Tony non le esegue. Guida l'utente a farle manualmente.
 - **Impostazioni sensibili**: Cambio password, revoca utenti – Tony può spiegare come fare, non eseguire senza conferma esplicita.
 - **Moduli futuri**: Ogni nuovo modulo deve essere integrato via configurazione, non con patch ad hoc.
-- **Tony Occhi (documenti)**: **parzialmente implementato** (Fase 0–3; layout-agnostic §20.15; sicurezza A+B + fail-closed §20.31; prezzo medio §20.28). **Archivio Magazzino MVP ✅** (2026-07-21): Storage + `documentiAcquisiti`, lista filtrabile (Acquisito/Data doc, Elimina, Apri/Stampa), link Movimenti (§20.33). Reminder **`prezziInAttesa`** ✅. **Futuro:** bolle merce prodotta §20.32; retention Storage P7. Piano **§17** ROADMAP magazzino; v. `TONY_DECISIONI_E_REQUISITI.md` §20.
+- **Tony Occhi (documenti)**: **parzialmente implementato** (Fase 0–3; layout-agnostic §20.15; sicurezza A+B + fail-closed §20.31; prezzo medio §20.28). **2026-09-11:** FatturaPA XML deterministico (§20.34) + OCR due passate su foto/PDF (§20.35). **Archivio Magazzino MVP ✅** (2026-07-21). Reminder **`prezziInAttesa`** ✅. **Futuro:** bolle merce prodotta §20.32; retention Storage P7; IDP terzi solo se il paper DDT resta insufficiente (§20.36). Piano ROADMAP magazzino; v. `TONY_DECISIONI_E_REQUISITI.md` §20.
 
 ---
 

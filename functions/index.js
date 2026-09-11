@@ -4176,7 +4176,7 @@ exports.tonyExtractDocument = onCall(
   {
     region: "europe-west1",
     secrets: [sentryDsn, geminiApiKey],
-    timeoutSeconds: 120,
+    timeoutSeconds: 180,
     memory: "512MiB",
   },
   async (request) => handleTonyExtractDocument(db, request)
