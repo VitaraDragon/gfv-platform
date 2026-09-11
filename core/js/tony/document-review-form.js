@@ -442,7 +442,7 @@ export async function openTonyDocumentReviewForm(opts) {
     if (state.fonteEstrazione === 'fatturapa') {
       passBHtml =
         '<p class="tony-doc-review-passb" role="status">' +
-        'Letto da fattura elettronica XML (FatturaPA): numeri e righe coincidono col file fiscale. Controlla comunque il match prodotti.' +
+        'Numeri letti con alta affidabilità. Controlla il collegamento ai prodotti in magazzino, poi registra.' +
         '</p>';
     } else if (state.safetyPassB) {
       var reasonsLabel = (state.safetyPassBReasons && state.safetyPassBReasons.length)

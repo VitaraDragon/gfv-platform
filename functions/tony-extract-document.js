@@ -326,7 +326,7 @@ async function handleTonyExtractDocument(db, request) {
   if (!hasVision && hasXml) {
     throw new HttpsError(
       "invalid-argument",
-      "XML non riconosciuto come fattura elettronica (FatturaPA). Usa il file XML dell’Agenzia delle Entrate, oppure una foto o un PDF della bolla/fattura."
+      "Non riesco a leggere questo file. Scatta una foto della bolla o della fattura, oppure carica il PDF."
     );
   }
 

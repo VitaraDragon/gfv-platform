@@ -1,14 +1,13 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-11 — acquisizione fatture/bolle (FatturaPA + OCR due passate).**
+**Ultimo aggiornamento documentazione: 2026-09-11 — foto bolla/fattura più precisa (due passate); XML solo extra silenzioso.**
 
-## Acquisizione documenti — FatturaPA XML + OCR due passate (2026-09-11)
+## Acquisizione documenti — foto resta l’idea; due passate sui numeri (2026-09-11)
 
-- **Perché:** la lettura “a vista” con Gemini Flash era approssimativa sui numeri (DDT 1490 vs 1493, righe omesse). Serve un’ottima percentuale, non un’ipotesi.
-- **Fatture:** se l’utente carica l’**XML della fattura elettronica** (FatturaPA / Agenzia Entrate), i dati si leggono in modo **deterministico** (fornitore, P.IVA, numero, date, righe, DDT, totali) — non è OCR. Accettati anche XML dentro PDF in chiaro.
-- **Bolle / foto / PDF scan:** pipeline **due passate** Gemini (trascrizione cifra-per-cifra → JSON strutturato + `responseSchema`) e seconda passata di sicurezza invariata. Nessun template per fornitore (§20.15).
-- **Fuori scope ora:** plugin IDP di terze parti (Rossum, Azure Document Intelligence, Data Alchemy, …) — valutati; il canale XML italiano è il salto di accuratezza senza nuovo fornitore né template.
-- File: `functions/config/tony-fatturapa.js`, `tony-extract-document.js`, `tony-document-schemas.js`; picker 📷 accetta `.xml`. Test: `tests/tony-fatturapa.test.js`.
+- **Promessa prodotto (invariata):** 📷 fotografi bolla o fattura → Tony legge le cifre → revisione → a cascata movimenti/prezzi in magazzino. Non si chiede all’utente di “andare a prendere l’XML”.
+- **Accuratezza foto/PDF:** due passate Gemini (trascrizione cifra-per-cifra → JSON + `responseSchema`) + Level B se i totali non tornano. Stesso form, stessa registrazione.
+- **XML FatturaPA:** extra **silenzioso** se qualcuno carica già quel file (ufficio). Non è il flusso da insegnare; l’UI 📷 resta “bolla o fattura”.
+- File: `tony-extract-document.js`, `tony-document-schemas.js`, `tony-fatturapa.js`. Test: `tests/tony-fatturapa.test.js` + suite documenti.
 
 ## Icona app GFV (2026-09-09)
 

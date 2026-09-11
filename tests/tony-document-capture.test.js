@@ -55,7 +55,7 @@ describe('tony-document-capture client', () => {
     expect(resolveDocumentMime({ type: 'image/jpeg', name: 'bolla.jpg' })).toBe('image/jpeg');
   });
 
-  it('formatDocumentExtractionSummary distingue FatturaPA XML', () => {
+  it('formatDocumentExtractionSummary su fattura XML parla come una foto (stessa idea 📷)', () => {
     const text = formatDocumentExtractionSummary({
       tipoDocumento: 'fattura',
       fonteEstrazione: 'fatturapa',
@@ -63,7 +63,8 @@ describe('tony-document-capture client', () => {
       numeroDocumento: '695/V0',
       righe: [{ descrizione: 'Urea' }],
     });
-    expect(text).toMatch(/fattura elettronica XML/i);
+    expect(text).toMatch(/Fattura/i);
     expect(text).toMatch(/Agri Nord/);
+    expect(text).not.toMatch(/XML/i);
   });
 });

@@ -99,7 +99,7 @@ export async function fileToDocumentPage(file) {
   }
   var mime = resolveDocumentMime(file);
   if (!ALLOWED_MIME.has(mime)) {
-    throw new Error('Formato non supportato. Usa foto (JPEG/PNG/WebP), PDF o XML della fattura elettronica.');
+    throw new Error('Formato non supportato. Scatta o carica una foto (JPEG/PNG/WebP) o un PDF.');
   }
   if (file.size > MAX_BYTES) {
     throw new Error('File troppo grande (max ~10 MB).');
@@ -142,12 +142,9 @@ export function formatDocumentExtractionSummary(estrazione) {
       : tipo === 'scontrino'
         ? 'Scontrino'
         : 'Documento';
-  var fonteXml = String(estrazione.fonteEstrazione || '').toLowerCase() === 'fatturapa';
   var forn = estrazione.fornitore && estrazione.fornitore.nome ? estrazione.fornitore.nome : '';
   var righe = Array.isArray(estrazione.righe) ? estrazione.righe : [];
-  var parts = fonteXml
-    ? ['Ho letto la fattura elettronica XML' + (forn ? ' di ' + forn : '') + ' con ' + righe.length + ' righe (dati fiscali, non una foto).']
-    : ['Ho letto una ' + tipoLabel + (forn ? ' da ' + forn : '') + ' con ' + righe.length + ' righe.'];
+  var parts = ['Ho letto una ' + tipoLabel + (forn ? ' da ' + forn : '') + ' con ' + righe.length + ' righe.'];
   if (estrazione.numeroDocumento) parts.push('N. ' + estrazione.numeroDocumento);
   if (estrazione.dataDocumento) parts.push('Data ' + estrazione.dataDocumento);
   var refs = Array.isArray(estrazione.riferimentiBolla) ? estrazione.riferimentiBolla : [];
