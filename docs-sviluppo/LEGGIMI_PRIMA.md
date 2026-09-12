@@ -1,6 +1,6 @@
 # 📖 LEGGIMI PRIMA - Per Nuove Conversazioni
 
-**Ultimo aggiornamento: 2026-07-10.**
+**Ultimo aggiornamento: 2026-09-12.**
 
 ## 🎯 Questo File Contiene Tutto
 
@@ -35,6 +35,7 @@ Se stai iniziando una **nuova conversazione** su questo progetto, **LEGGI PRIMA*
 ### 3. Backlog e organizzazione doc
 - **`INDICE_DOCUMENTAZIONE.md`** — mappa doc (implementato / in-sviluppo / da-fare / obsoleto)
 - **`DOBBIAMO_ANCORA_FARE.md`** — backlog unificato attivo
+- **`VALUTAZIONE_APP_2026-09-12.md`** — snapshot periodico (dove siamo come app; sicurezza spiegata anche per non programmatori)
 - **`in-sviluppo/`**, **`da-fare/`**, **`obsoleto/`** — classificazione piani e storico
 
 ### 4. Core Base (Nuovo)

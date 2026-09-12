@@ -1,8 +1,8 @@
 # Sicurezza – Flussi GFV Platform (riferimento operativo)
 
-**Ultimo aggiornamento**: 2026-04-04
+**Ultimo aggiornamento**: 2026-09-12 (link snapshot periodico)
 
-Documento sintetico per **perimetro** e **deploy**; il dettaglio storico resta in `COSA_ABBIAMO_FATTO.md`.
+Documento sintetico per **perimetro** e **deploy**; il dettaglio storico resta in `COSA_ABBIAMO_FATTO.md`. Quadro complessivo e FAQ (“è hacking o uso normale?”): `VALUTAZIONE_APP_2026-09-12.md` §2 e §6.
 
 ---
 
