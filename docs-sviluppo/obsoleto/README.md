@@ -14,6 +14,7 @@ Documenti **sostituiti**, **abbandonati** o **solo storici** (log di sessione, r
 | Tony – codice | `tony/STATO_ATTUALE.md` |
 | Backlog attivo | `DOBBIAMO_ANCORA_FARE.md` |
 | Architettura moduli | `ARCHITETTURA_MODULI_E_INTERAZIONI.md` |
+| Snapshot periodico app (giudizio corrente) | `VALUTAZIONE_APP_2026-09-12.md` |
 
 ## Contenuto di questa cartella
 

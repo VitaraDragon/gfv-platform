@@ -1,6 +1,6 @@
 # Indice documentazione sviluppo
 
-**Aggiornato:** 2026-07-10
+**Aggiornato:** 2026-09-12
 
 ## Onboarding (leggere per primi)
 
@@ -11,6 +11,7 @@
 | [ARCHITETTURA_MODULI_E_INTERAZIONI.md](ARCHITETTURA_MODULI_E_INTERAZIONI.md) | Moduli, servizi, interazioni |
 | [DOBBIAMO_ANCORA_FARE.md](DOBBIAMO_ANCORA_FARE.md) | Backlog unificato attivo |
 | [COSA_ABBIAMO_FATTO.md](COSA_ABBIAMO_FATTO.md) | Changelog cronologico |
+| [VALUTAZIONE_APP_2026-09-12.md](VALUTAZIONE_APP_2026-09-12.md) | Snapshot periodico app (codice, sicurezza in linguaggio semplice, concorrenza). **Giudizio corrente.** |
 
 ## Tony (assistente IA)
 
@@ -37,7 +38,7 @@
 | Documento | Scopo |
 |-----------|--------|
 | [DEPLOY_RUNBOOK.md](DEPLOY_RUNBOOK.md) | Deploy Firebase/hosting/functions |
-| [SICUREZZA_FLUSSI.md](SICUREZZA_FLUSSI.md) | Perimetro sicurezza |
+| [SICUREZZA_FLUSSI.md](SICUREZZA_FLUSSI.md) | Perimetro sicurezza operativo (preventivi, inviti). Quadro e FAQ: `VALUTAZIONE_APP_2026-09-12.md` §2 e §6 |
 | [GUIDA_CONFIGURAZIONE_FIREBASE.md](GUIDA_CONFIGURAZIONE_FIREBASE.md) | Setup Firebase |
 | [LINEA_GUIDA_RESPONSIVE_STANDALONE.md](LINEA_GUIDA_RESPONSIVE_STANDALONE.md) | Pagine standalone |
 | [simulator/GFV_FARM_SIMULATOR.md](simulator/GFV_FARM_SIMULATOR.md) | Simulatore farm + CI |

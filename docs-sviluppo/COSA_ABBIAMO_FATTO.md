@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-12 — deploy produzione `tonyExtractDocument`.**
+**Ultimo aggiornamento documentazione: 2026-09-12 — snapshot periodico app + deploy `tonyExtractDocument`.**
+
+## Snapshot periodico app (2026-09-12)
+
+- **Cosa:** `docs-sviluppo/VALUTAZIONE_APP_2026-09-12.md` — fotografia codice / sicurezza / prodotto / concorrenza. Include FAQ in linguaggio semplice (uso normale vs lucchetto database).
+- **Giudizio corrente** al posto di `VALUTAZIONE_APP_2026-02-25.md` e `VALUTAZIONE_DETTAGLIATA_APP_2026.md` (restano storia). Indice aggiornato.
+- **Cosa no:** nessun cambio al codice dell’app.
 
 ## Deploy produzione — `tonyExtractDocument` (2026-09-12)
 
