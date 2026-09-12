@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-11 — foto bolla/fattura più precisa (due passate); XML solo extra silenzioso.**
+**Ultimo aggiornamento documentazione: 2026-09-12 — guide utente foto bolla/fattura (promessa 📷).**
+
+## Guide utente — foto bolla/fattura (2026-09-12)
+
+- **Perché:** l’acquisizione è migliorata sulla **foto** (due passate sui numeri); le guide non descrivevano lo scatto né la cascata in magazzino. L’XML non si insegna: extra silenzioso.
+- **TONY / MAGAZZINO / CORE / INTERSEZIONI** (utente, sintesi, tecnica) + mirror `core/GUIDA/`. Gesto: fotocamera in chat → revisione → **Registra dati** → Movimenti + Archivio.
+- `scripts/guida-code-map.json`: `document-capture`, `tony-extract-document`, `tony-fatturapa`.
 
 ## Acquisizione documenti — foto resta l’idea; due passate sui numeri (2026-09-11)
 

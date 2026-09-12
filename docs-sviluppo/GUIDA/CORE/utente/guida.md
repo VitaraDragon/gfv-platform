@@ -280,7 +280,7 @@ Nella pagina **Abbonamento** (menu **Moduli** o tile dedicata) vedi il **piano c
 - Terreni e attività **senza i limiti** del gratuito (secondo quanto indicato in pagina Abbonamento).
 - **Tony Guida**: assistente in chat per **orientarvi** (dove andare, cosa significa un’etichetta, passi da fare). Su questo piano Tony può anche suggerire **moduli utili** per la vostra azienda, in modo non invadente.
 - I **moduli verticali** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Vendemmia meccanica, Report, …) si **attivano a parte**, ciascuno con il suo prezzo (o in prova 30 giorni, un modulo alla volta): ogni modulo aggiunge voci al menu **Moduli** e nuove pagine.
-- Il **modulo Tony Avanzato** (se lo attivate) aggiunge **automazioni**: aprire pagine, compilare schede, filtrare elenchi, acquisire bolle/fatture da foto o PDF. È **distinto** da Tony Guida incluso nel Base: potete usare la guida senza acquistare le automazioni.
+- Il **modulo Tony Avanzato** (se lo attivate) aggiunge **automazioni**: aprire pagine, compilare schede, filtrare elenchi, **fotografare bolle e fatture** (Tony legge le cifre; voi confermate e i dati scendono in magazzino). È **distinto** da Tony Guida incluso nel Base: potete usare la guida senza acquistare le automazioni.
 
 ### Cosa fare in pratica
 
