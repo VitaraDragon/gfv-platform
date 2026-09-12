@@ -1,6 +1,11 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-12 — guide utente foto bolla/fattura (promessa 📷).**
+**Ultimo aggiornamento documentazione: 2026-09-12 — deploy produzione `tonyExtractDocument`.**
+
+## Deploy produzione — `tonyExtractDocument` (2026-09-12)
+
+- **Cosa:** aggiornata la callable `tonyExtractDocument` (`europe-west1`) sul progetto Firebase `gfv-platform`. Le foto/PDF in chat usano già le due passate sui numeri (timeout 180 s).
+- **Cosa no:** `main` / GitHub Pages non toccati. Guide e ritocchi client restano su `develop` finché non si promuove.
 
 ## Guide utente — foto bolla/fattura (2026-09-12)
 
