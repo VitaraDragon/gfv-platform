@@ -602,7 +602,7 @@ class TonyService {
               connectFunctionsEmulator(functions, '127.0.0.1', 5001);
             }
             this._tonyAskCallable = httpsCallable(functions, 'tonyAsk');
-            this._tonyExtractCallable = httpsCallable(functions, 'tonyExtractDocument');
+            this._tonyExtractCallable = httpsCallable(functions, 'tonyExtractDocument', { timeout: 180000 });
             this._tonyAskHttpUrl = this._resolveTonyAskCallableUrl(app);
             this._tonyAskStreamUrl = this._resolveTonyAskStreamUrl(app);
             this._useCallable = true;
@@ -2010,7 +2010,7 @@ class TonyService {
     if (typeof window !== 'undefined' && window.__gfvTonyCfEmulatorBase && !window.__GFV_TONY_E2E_PROD_CF) {
       connectFunctionsEmulator(functions, '127.0.0.1', 5001);
     }
-    this._tonyExtractCallable = httpsCallable(functions, 'tonyExtractDocument');
+    this._tonyExtractCallable = httpsCallable(functions, 'tonyExtractDocument', { timeout: 180000 });
     return this._tonyExtractCallable;
   }
 

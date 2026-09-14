@@ -7,10 +7,19 @@ const {
   parseExtractedDocumentJson,
   normalizeExtractionResult,
   buildGeminiDocumentParts,
+  buildGeminiReconcileParts,
   TONY_DOCUMENT_MAX_PAGES,
   TONY_DOCUMENT_EXTRACTION_PROMPT,
+  TONY_DOCUMENT_TRANSCRIBE_PROMPT,
+  TONY_DOCUMENT_RECONCILE_PROMPT,
 } = require('../functions/config/tony-document-schemas.js');
-const { tenantHasMagazzinoModule } = require('../functions/tony-extract-document.js');
+const {
+  tenantHasMagazzinoModule,
+  applyDocumentGeminiGenerationConfig,
+  pickReconciledExtraction,
+  runTwoPassExtraction,
+  TONY_DOCUMENT_THINKING_BUDGET,
+} = require('../functions/tony-extract-document.js');
 const {
   shouldRunSafetySecondPass,
   mergeSafetySecondPass,
@@ -170,6 +179,22 @@ describe('tony-document-schemas', () => {
     expect(parts.some((p) => p.inlineData && p.inlineData.mimeType === 'application/xml')).toBe(false);
     expect(parts.some((p) => p.inlineData && p.inlineData.mimeType === 'image/png')).toBe(true);
   });
+
+  it('OCR prompt salta boilerplate legale e resta cifra-per-cifra', () => {
+    expect(TONY_DOCUMENT_TRANSCRIBE_PROMPT).toMatch(/CIFRA PER CIFRA/i);
+    expect(TONY_DOCUMENT_TRANSCRIBE_PROMPT).toMatch(/piè di pagina|condizioni di pagamento/i);
+  });
+
+  it('reconcile è solo testo, senza immagini', () => {
+    const parts = buildGeminiReconcileParts(
+      { tipoDocumento: 'fattura', numeroDocumento: '1493/00', righe: [{ descrizione: 'Urea' }] },
+      'Fattura n. 1490/00 Urea 10 kg'
+    );
+    expect(TONY_DOCUMENT_RECONCILE_PROMPT).toMatch(/CIFRA PER CIFRA/i);
+    expect(parts.some((p) => p.inlineData)).toBe(false);
+    expect(parts.some((p) => /1493\/00/.test(p.text || ''))).toBe(true);
+    expect(parts.some((p) => /1490\/00/.test(p.text || ''))).toBe(true);
+  });
 });
 
 describe('tony-extract-document gate', () => {
@@ -231,5 +256,131 @@ describe('tony-document-safety Level B', () => {
     expect(merged.numeroDocumento).toBe('100/V0');
     expect(merged.fornitore.nome).toBe('Agri');
     expect(countMerceRows(merged.righe)).toBe(2);
+  });
+});
+
+describe('tony-extract-document pipeline parallela', () => {
+  it('disattiva il thinking Gemini sulle chiamate documento', () => {
+    const cfg = applyDocumentGeminiGenerationConfig({ temperature: 0 });
+    expect(TONY_DOCUMENT_THINKING_BUDGET).toBe(0);
+    expect(cfg.thinkingConfig.thinkingBudget).toBe(0);
+  });
+
+  it('se il reconcile perde righe tiene la copertura vision e copia n. documento', () => {
+    const first = {
+      tipoDocumento: 'fattura',
+      numeroDocumento: '1493/00',
+      fornitore: { nome: 'Agri', piva: '' },
+      righe: [
+        { descrizione: 'Urea 46', quantita: 10, prezzoUnitario: 2.5 },
+        { descrizione: 'NPK', quantita: 5, prezzoUnitario: 1 },
+      ],
+      totali: { totale: 30 },
+    };
+    const reconciled = {
+      tipoDocumento: 'fattura',
+      numeroDocumento: '1490/00',
+      fornitore: { nome: 'Agri', piva: 'IT1' },
+      righe: [{ descrizione: 'Urea 46', quantita: 10, prezzoUnitario: 2.5 }],
+      totali: { totale: 30 },
+    };
+    const out = pickReconciledExtraction(first, reconciled);
+    expect(out.numeroDocumento).toBe('1490/00');
+    expect(out.fornitore.piva).toBe('IT1');
+    expect(out.righe).toHaveLength(2);
+  });
+
+  it('OCR e JSON vision partono insieme, poi reconcile allinea le cifre', async () => {
+    let inflight = 0;
+    let maxInflight = 0;
+    const seen = [];
+    const prevFetch = global.fetch;
+    global.fetch = async (_url, opts) => {
+      const body = JSON.parse(opts.body);
+      const blob = JSON.stringify(body);
+      const hasInline = blob.includes('inlineData');
+      const mime = body.generationConfig && body.generationConfig.responseMimeType;
+      expect(body.generationConfig.thinkingConfig.thinkingBudget).toBe(0);
+      inflight += 1;
+      maxInflight = Math.max(maxInflight, inflight);
+      await new Promise((r) => setTimeout(r, 40));
+      inflight -= 1;
+      if (!mime) {
+        seen.push('ocr');
+        return {
+          ok: true,
+          json: async () => ({
+            candidates: [
+              {
+                content: {
+                  parts: [
+                    {
+                      text: 'Fattura n. 1490/00 Agri Srl Urea 10 kg prezzo 2.50 Totale 25.00',
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+        };
+      }
+      if (hasInline) {
+        seen.push('extract');
+        return {
+          ok: true,
+          json: async () => ({
+            candidates: [
+              {
+                content: {
+                  parts: [
+                    {
+                      text: JSON.stringify({
+                        tipoDocumento: 'fattura',
+                        numeroDocumento: '1493/00',
+                        righe: [{ descrizione: 'Urea', quantita: 10, prezzoUnitario: 2.5 }],
+                        totali: { totale: 25 },
+                      }),
+                    },
+                  ],
+                },
+              },
+            ],
+          }),
+        };
+      }
+      seen.push('reconcile');
+      return {
+        ok: true,
+        json: async () => ({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      tipoDocumento: 'fattura',
+                      numeroDocumento: '1490/00',
+                      righe: [{ descrizione: 'Urea', quantita: 10, prezzoUnitario: 2.5 }],
+                      totali: { totale: 25 },
+                    }),
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+      };
+    };
+    try {
+      const pages = [{ mimeType: 'image/jpeg', data: MIN_JPEG_B64, indice: 1 }];
+      const out = await runTwoPassExtraction('fake-key', pages, {});
+      expect(maxInflight).toBeGreaterThanOrEqual(2);
+      expect(seen).toEqual(expect.arrayContaining(['ocr', 'extract', 'reconcile']));
+      expect(out.transcriptionUsed).toBe(true);
+      expect(out.estrazione.numeroDocumento).toBe('1490/00');
+      expect(out.timings.parallelWallMs).toBeGreaterThan(0);
+    } finally {
+      global.fetch = prevFetch;
+    }
   });
 });

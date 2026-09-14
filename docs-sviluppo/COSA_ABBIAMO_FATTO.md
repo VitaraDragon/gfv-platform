@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-12 — deploy produzione `tonyExtractDocument`.**
+**Ultimo aggiornamento documentazione: 2026-09-14 — estrazione foto più veloce (thinking off + parallelo).**
+
+## Acquisizione documenti — stessa accuratezza, meno attesa (2026-09-14)
+
+- **Perché:** le due passate Gemini in serie, con thinking dinamico di Flash, rendevano l’acquisizione 📷 molto lenta.
+- **Cosa:** thinking disattivato (`thinkingBudget: 0`); OCR e JSON vision **in parallelo**; allineamento cifre con una chiamata **solo testo** (niente seconda lettura delle foto). Level B invariato se i totali non tornano.
+- File: `tony-extract-document.js`, `tony-document-schemas.js`. Timeout client callable 180 s. Test pipeline parallela in `tests/tony-extract-document.test.js`.
 
 ## Deploy produzione — `tonyExtractDocument` (2026-09-12)
 
