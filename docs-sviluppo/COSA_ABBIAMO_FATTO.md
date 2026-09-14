@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-12 — deploy produzione `tonyExtractDocument`.**
+**Ultimo aggiornamento documentazione: 2026-09-14 — piano offline campo.**
+
+## Piano offline campo (2026-09-14)
+
+- **Perché:** in vigneto il cellulare spesso non prende; non perdere le decisioni su cosa fare offline.
+- **Doc:** `docs-sviluppo/da-fare/offline/PIANO_OFFLINE_CAMPO.md` (analisi codice, **nessuna patch**).
+- **Scope chiuso:** segna ore (coda IndexedDB al ritorno della linea), segnalazione guasti, punto GPS (anche vertici perimetro terreno). Non tutta l’ERP; Tony e Maps restano online.
+- **Oggi:** non c’è coda. Salva ore/guasti = `addDoc` immediato; senza rete l’azione si perde. «Salva locale» Tony = 0 CF, comunque Firestore. Fase 4.4 resta deferred, ora con perimetro prodotto scritto.
+- Indice: `da-fare/README.md`. Puntatori: `tony/STATO_ATTUALE.md` (4.4), `GUIDA_PWA.md`.
 
 ## Deploy produzione — `tonyExtractDocument` (2026-09-12)
 

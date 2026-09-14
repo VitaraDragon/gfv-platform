@@ -176,6 +176,8 @@ Questo garantisce che i dati dinamici siano sempre aggiornati.
 
 ## 🚀 Prossimi miglioramenti (opzionali)
 
+Piano campo (ore, guasti, GPS/perimetro, perché oggi la PWA **non** è usabile senza rete): `docs-sviluppo/da-fare/offline/PIANO_OFFLINE_CAMPO.md`.
+
 - [ ] Aggiungere notifiche push
 - [ ] Migliorare strategia cache per file statici
 - [ ] Aggiungere pagina offline personalizzata

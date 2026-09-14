@@ -1,6 +1,6 @@
 # Documentazione da fare
 
-**Aggiornato:** 2026-09-06
+**Aggiornato:** 2026-09-14
 
 Specifiche e proposte **non ancora implementate** (o solo in parte) ma **ancora compatibili** con la direzione del progetto (`tony/MASTER_PLAN.md`, `ARCHITETTURA_MODULI_E_INTERAZIONI.md`).
 
@@ -21,6 +21,7 @@ Vedi anche **`DOBBIAMO_ANCORA_FARE.md`** (root `docs-sviluppo/`) per sicurezza, 
 | `frutteto/` | Parametri e scarto statistiche frutteto |
 | `guida-app/` | Assistente knowledge base guida-app |
 | `vigneto/` | Potatura/trattamenti da lavori; reti antigrandine |
+| `offline/` | Lavorare in campo senza (o con poco) segnale: ore, guasti, GPS/perimetro — `PIANO_OFFLINE_CAMPO.md` (2026-09-14, nessuna implementazione) |
 
 ## Non compatibile → obsoleto
 

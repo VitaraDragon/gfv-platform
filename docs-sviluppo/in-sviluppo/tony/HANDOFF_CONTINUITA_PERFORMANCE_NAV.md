@@ -184,7 +184,7 @@ Stato: Fase 0–4 implementate; validazione numerica **pending** su campione pi�
 | Voce | Motivo |
 |------|--------|
 | Gemma / LLM self-hosted | Decisione: no per ora |
-| Coda offline ore mobile | Fase 4.4 **deferred** (`PLAN_OTTIMIZZAZIONE_PERFORMANCE.md`) |
+| Coda offline ore mobile | Fase 4.4 **deferred** — perimetro prodotto 2026-09-14: `docs-sviluppo/da-fare/offline/PIANO_OFFLINE_CAMPO.md` |
 | Refactor totale navigazione Gemini prompt | Solo estensione incrementale `NAV_TARGET_RULES` |
 | Visione / upload immagini Tony | Master Plan — non senza requisito esplicito |
 
