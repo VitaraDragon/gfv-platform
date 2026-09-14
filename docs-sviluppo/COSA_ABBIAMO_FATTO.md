@@ -1,6 +1,11 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-14 — estrazione foto più veloce (thinking off + parallelo).**
+**Ultimo aggiornamento documentazione: 2026-09-14 — deploy produzione pipeline foto veloce (thinking off + parallelo).**
+
+## Deploy produzione — pipeline veloce `tonyExtractDocument` (2026-09-14)
+
+- **Cosa:** aggiornata `tonyExtractDocument` (`europe-west1`) su `gfv-platform`. `thinkingBudget: 0`, OCR e JSON in parallelo, allineamento cifre solo testo.
+- **Cosa no:** `main` / GitHub Pages non toccati. Il codice client con timeout allineato resta sul branch/PR su `develop`.
 
 ## Acquisizione documenti — stessa accuratezza, meno attesa (2026-09-14)
 
