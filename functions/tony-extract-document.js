@@ -8,19 +8,24 @@ const {
   normalizeExtractionResult,
   buildGeminiDocumentParts,
   buildGeminiTranscribeParts,
+  buildGeminiReconcileParts,
   isVisionDocumentPage,
+  mergeRiferimentiBolla,
   TONY_DOCUMENT_RESPONSE_SCHEMA,
 } = require("./config/tony-document-schemas");
 const {
   shouldRunSafetySecondPass,
   buildSafetySecondPassParts,
   mergeSafetySecondPass,
+  countMerceRows,
 } = require("./config/tony-document-safety");
 const { tryExtractFatturaPaFromPages, isXmlMime } = require("./config/tony-fatturapa");
 
 const TONY_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 const TONY_DOCUMENT_GEMINI_MODEL =
   process.env.GEMINI_DOCUMENT_MODEL || process.env.GEMINI_MODEL || "gemini-2.5-flash";
+/** Gemini 2.5 Flash di default pensa in dinamico: su foto/PDF raddoppia i tempi. */
+const TONY_DOCUMENT_THINKING_BUDGET = 0;
 
 async function assertManagerOrAdminForTenant(db, uid, tenantId) {
   if (!tenantId || typeof tenantId !== "string") {
@@ -117,6 +122,17 @@ function geminiDocumentUrl(apiKey) {
 }
 
 /**
+ * Disattiva il thinking Gemini 2.5 sulle chiamate documento (OCR è copia cifre, non ragionamento).
+ * @param {object} generationConfig
+ * @returns {object}
+ */
+function applyDocumentGeminiGenerationConfig(generationConfig) {
+  const cfg = generationConfig && typeof generationConfig === "object" ? generationConfig : {};
+  cfg.thinkingConfig = { thinkingBudget: TONY_DOCUMENT_THINKING_BUDGET };
+  return cfg;
+}
+
+/**
  * Passata OCR: testo verbatim. Se fallisce, l'estrazione vision-only resta valida.
  * @param {string} apiKey
  * @param {Array} pages
@@ -128,10 +144,10 @@ async function transcribeDocumentWithGemini(apiKey, pages, stats) {
   if (parts.length < 3) return "";
   const body = {
     contents: [{ parts }],
-    generationConfig: {
+    generationConfig: applyDocumentGeminiGenerationConfig({
       temperature: 0,
       maxOutputTokens: 8192,
-    },
+    }),
   };
   const res = await callGeminiWithRetry(geminiDocumentUrl(apiKey), body, "tonyExtractDocument-ocr", stats);
   const data = await res.json();
@@ -145,12 +161,12 @@ async function extractDocumentWithGemini(apiKey, pages, stats, options) {
   const parts = Array.isArray(options.parts)
     ? options.parts
     : buildGeminiDocumentParts(pages, { transcription: options.transcription });
-  const generationConfig = {
+  const generationConfig = applyDocumentGeminiGenerationConfig({
     temperature: options.temperature != null ? options.temperature : 0.1,
     // Fatture riepilogative: 4096 tronca spesso il JSON a metà array righe
     maxOutputTokens: 8192,
     responseMimeType: "application/json",
-  };
+  });
   if (options.useSchema !== false) {
     generationConfig.responseSchema = TONY_DOCUMENT_RESPONSE_SCHEMA;
   }
@@ -189,11 +205,11 @@ async function extractDocumentWithGemini(apiKey, pages, stats, options) {
           ],
         },
       ],
-      generationConfig: {
+      generationConfig: applyDocumentGeminiGenerationConfig({
         temperature: 0,
         maxOutputTokens: 8192,
         responseMimeType: "application/json",
-      },
+      }),
     };
     const repairRes = await callGeminiWithRetry(geminiDocumentUrl(apiKey), repairBody, label + "-repair", stats);
     const repairData = await repairRes.json();
@@ -201,6 +217,143 @@ async function extractDocumentWithGemini(apiKey, pages, stats, options) {
     const parsed = parseExtractedDocumentJson(repairText);
     return normalizeExtractionResult(parsed);
   }
+}
+
+function descriptionsSimilar(a, b) {
+  const left = String(a || "").toLowerCase().trim();
+  const right = String(b || "").toLowerCase().trim();
+  if (!left || !right) return false;
+  if (left === right) return true;
+  const a8 = left.slice(0, 8);
+  const b8 = right.slice(0, 8);
+  return (a8.length >= 4 && right.includes(a8)) || (b8.length >= 4 && left.includes(b8));
+}
+
+function overlayRigaNumeri(baseRows, recRows) {
+  const rec = Array.isArray(recRows) ? recRows : [];
+  return (Array.isArray(baseRows) ? baseRows : []).map((row, i) => {
+    const candidate = rec[i];
+    if (!candidate || !descriptionsSimilar(row && row.descrizione, candidate.descrizione)) {
+      return row;
+    }
+    return Object.assign({}, row, {
+      quantita: candidate.quantita != null ? candidate.quantita : row.quantita,
+      prezzoUnitario: candidate.prezzoUnitario != null ? candidate.prezzoUnitario : row.prezzoUnitario,
+      riferimentoBolla: candidate.riferimentoBolla || row.riferimentoBolla,
+    });
+  });
+}
+
+/**
+ * Se il reconcile perde righe, tieni la copertura del JSON vision e copia solo le cifre sicure.
+ * @param {object} first
+ * @param {object} reconciled
+ * @returns {object}
+ */
+function pickReconciledExtraction(first, reconciled) {
+  const base = first && typeof first === "object" ? first : { righe: [] };
+  const rec = reconciled && typeof reconciled === "object" ? reconciled : null;
+  if (!rec) return base;
+  if (countMerceRows(rec.righe) >= countMerceRows(base.righe)) return rec;
+  const overlaid = Object.assign({}, base, {
+    numeroDocumento: rec.numeroDocumento || base.numeroDocumento,
+    dataDocumento: rec.dataDocumento || base.dataDocumento,
+    totali: rec.totali || base.totali,
+    riferimentiBolla: mergeRiferimentiBolla(base.riferimentiBolla, rec.riferimentiBolla),
+    righe: overlayRigaNumeri(base.righe, rec.righe),
+  });
+  if (rec.fornitore) {
+    const prev = base.fornitore || {};
+    overlaid.fornitore = {
+      nome: prev.nome || rec.fornitore.nome || "",
+      piva: rec.fornitore.piva || prev.piva || "",
+      confidence: prev.confidence != null ? prev.confidence : rec.fornitore.confidence,
+    };
+  }
+  return overlaid;
+}
+
+async function reconcileExtractionWithTranscription(apiKey, estrazione, transcription, stats) {
+  const parts = buildGeminiReconcileParts(estrazione, transcription);
+  const generationConfig = applyDocumentGeminiGenerationConfig({
+    temperature: 0,
+    maxOutputTokens: 8192,
+    responseMimeType: "application/json",
+    responseSchema: TONY_DOCUMENT_RESPONSE_SCHEMA,
+  });
+  const body = {
+    contents: [{ parts }],
+    generationConfig,
+  };
+  const res = await callGeminiWithRetry(
+    geminiDocumentUrl(apiKey),
+    body,
+    "tonyExtractDocument-reconcile",
+    stats
+  );
+  const data = await res.json();
+  const rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  const parsed = parseExtractedDocumentJson(rawText);
+  return pickReconciledExtraction(estrazione, normalizeExtractionResult(parsed));
+}
+
+/**
+ * OCR e JSON vision in parallelo; allineamento cifre in una chiamata solo testo.
+ * @param {string} apiKey
+ * @param {Array} pages
+ * @param {{ retryCount?: number }} stats
+ * @returns {Promise<{ estrazione: object, transcriptionUsed: boolean, timings: object }>}
+ */
+async function runTwoPassExtraction(apiKey, pages, stats) {
+  const timings = { transcribeMs: null, extractMs: null, reconcileMs: null, parallelWallMs: null };
+  const wallStart = Date.now();
+  const ocrP = (async () => {
+    const start = Date.now();
+    try {
+      const text = await transcribeDocumentWithGemini(apiKey, pages, stats);
+      timings.transcribeMs = Date.now() - start;
+      return { ok: true, text };
+    } catch (err) {
+      timings.transcribeMs = Date.now() - start;
+      return { ok: false, err };
+    }
+  })();
+  const jsonP = (async () => {
+    const start = Date.now();
+    const first = await extractDocumentWithGemini(apiKey, pages, stats, { transcription: "" });
+    timings.extractMs = Date.now() - start;
+    return first;
+  })();
+  const [ocr, first] = await Promise.all([ocrP, jsonP]);
+  timings.parallelWallMs = Date.now() - wallStart;
+
+  let transcription = "";
+  if (ocr.ok) {
+    transcription = String(ocr.text || "").trim();
+  } else {
+    console.warn(
+      "[tonyExtractDocument] trascrizione OCR saltata:",
+      ocr.err && ocr.err.message ? ocr.err.message : ocr.err
+    );
+  }
+  const transcriptionUsed = transcription.length > 40;
+  let estrazione = first;
+  if (transcriptionUsed) {
+    const start = Date.now();
+    try {
+      estrazione = await reconcileExtractionWithTranscription(apiKey, first, transcription, stats);
+      timings.reconcileMs = Date.now() - start;
+    } catch (e) {
+      timings.reconcileMs = Date.now() - start;
+      console.warn(
+        "[tonyExtractDocument] reconcile saltato, uso JSON vision:",
+        e && e.message ? e.message : e
+      );
+      estrazione = first;
+    }
+  }
+  console.info("[tonyExtractDocument] pipeline parallela", JSON.stringify(Object.assign({ transcriptionUsed }, timings)));
+  return { estrazione, transcriptionUsed, timings };
 }
 
 /**
@@ -345,20 +498,9 @@ async function handleTonyExtractDocument(db, request) {
   const fonteEstrazione = "gemini";
   let transcriptionUsed = false;
   try {
-    let transcription = "";
-    try {
-      transcription = await transcribeDocumentWithGemini(apiKey, pages, geminiStats);
-      transcriptionUsed = transcription.length > 40;
-    } catch (ocrErr) {
-      console.warn(
-        "[tonyExtractDocument] trascrizione OCR saltata:",
-        ocrErr && ocrErr.message ? ocrErr.message : ocrErr
-      );
-    }
-    const first = await extractDocumentWithGemini(apiKey, pages, geminiStats, {
-      transcription: transcriptionUsed ? transcription : "",
-    });
-    const passB = await maybeRunSafetySecondPass(apiKey, pages, first, geminiStats);
+    const twoPass = await runTwoPassExtraction(apiKey, pages, geminiStats);
+    transcriptionUsed = !!twoPass.transcriptionUsed;
+    const passB = await maybeRunSafetySecondPass(apiKey, pages, twoPass.estrazione, geminiStats);
     estrazione = passB.estrazione;
     safetyPassB = !!passB.safetyPassB;
     safetyPassBReasons = passB.safetyPassBReasons || [];
@@ -390,9 +532,14 @@ module.exports = {
   handleTonyExtractDocument,
   extractDocumentWithGemini,
   transcribeDocumentWithGemini,
+  reconcileExtractionWithTranscription,
+  runTwoPassExtraction,
+  pickReconciledExtraction,
+  applyDocumentGeminiGenerationConfig,
   maybeRunSafetySecondPass,
   assertManagerOrAdminForTenant,
   tenantHasMagazzinoModule,
   TONY_GEMINI_MODEL,
   TONY_DOCUMENT_GEMINI_MODEL,
+  TONY_DOCUMENT_THINKING_BUDGET,
 };

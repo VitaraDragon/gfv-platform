@@ -56,14 +56,33 @@ Altre regole:
 - Se è presente una TRASCRIZIONE LETTERALE, copia i numeri da lì; se trascrizione e immagine discordano, rileggi CIFRA PER CIFRA dal riquadro visibile (non arrotondare)`;
 
 /** Prima passata: OCR/trascrizione verbatim (riduce allucinazioni su numeri DDT/qty/prezzi). */
-const TONY_DOCUMENT_TRANSCRIBE_PROMPT = `Trascrivi in modo LETTERALE tutto il testo visibile in queste pagine (documento italiano: bolla/DDT, fattura o scontrino).
+const TONY_DOCUMENT_TRANSCRIBE_PROMPT = `Trascrivi in modo LETTERALE il testo utile di queste pagine (documento italiano: bolla/DDT, fattura o scontrino).
+
+Includi:
+- intestazione: fornitore, P.IVA, n. documento, data
+- tabella merce: una riga di testo per ogni prodotto (descrizione, qty, unità, prezzo)
+- riferimenti DDT/bolla
+- totali (imponibile, IVA, totale)
 
 Regole:
 - Copia i numeri CIFRA PER CIFRA, senza arrotondare né “correggere”
-- Conserva la struttura delle tabelle (una riga di testo per ogni riga merce)
-- Includi intestazione (fornitore, P.IVA, n. documento, data), riferimenti DDT, totali
-- Non interpretare, non omettere righe, non inventare
+- Non interpretare, non omettere righe merce, non inventare
+- Salta piè di pagina, condizioni di pagamento, privacy, IBAN, ripetizioni legali
 - Output: solo testo, niente JSON e niente markdown`;
+
+/** Allinea le cifre del JSON alla trascrizione, senza rileggere le immagini. */
+const TONY_DOCUMENT_RECONCILE_PROMPT = `Confronta il JSON di estrazione con la TRASCRIZIONE LETTERALE dello stesso documento (bolla/fattura/scontrino italiano).
+
+Restituisci SOLO un oggetto JSON valido, stesso schema di estrazione magazzino.
+
+Regole:
+- Copia numeroDocumento, date, quantità, prezzi, totali, P.IVA e riferimenti DDT dalla trascrizione quando le cifre discordano
+- Non arrotondare: CIFRA PER CIFRA
+- Non eliminare righe merce già presenti nel JSON
+- Se la trascrizione ha una riga merce assente nel JSON, aggiungila
+- Non inventare prodotti assenti da entrambe le fonti
+- Layout-agnostic: nessuno schema per fornitore
+- JSON stretto: numeri con punto decimale`;
 
 /**
  * Schema JSON Gemini (responseSchema) — standardizza SOLO l'uscita, non il layout fornitore.
@@ -532,12 +551,35 @@ function buildGeminiDocumentParts(pages, options) {
   return parts;
 }
 
+/**
+ * Passata testo-only: allinea cifre JSON ↔ trascrizione, senza inlineData.
+ * @param {object} estrazione
+ * @param {string} transcription
+ * @returns {Array<object>}
+ */
+function buildGeminiReconcileParts(estrazione, transcription) {
+  let jsonText = "{}";
+  try {
+    jsonText = JSON.stringify(estrazione || {});
+  } catch (_) {
+    jsonText = "{}";
+  }
+  const ocr = String(transcription || "").trim().slice(0, 24000);
+  return [
+    { text: TONY_DOCUMENT_RECONCILE_PROMPT },
+    { text: "JSON ESTRAZIONE:\n" + jsonText.slice(0, 24000) },
+    { text: "TRASCRIZIONE LETTERALE:\n" + ocr },
+    { text: "Restituisci solo il JSON corretto cifra per cifra." },
+  ];
+}
+
 module.exports = {
   TONY_DOCUMENT_ALLOWED_MIME,
   TONY_DOCUMENT_MAX_BYTES_PER_PAGE,
   TONY_DOCUMENT_MAX_PAGES,
   TONY_DOCUMENT_EXTRACTION_PROMPT,
   TONY_DOCUMENT_TRANSCRIBE_PROMPT,
+  TONY_DOCUMENT_RECONCILE_PROMPT,
   TONY_DOCUMENT_RESPONSE_SCHEMA,
   validateDocumentPages,
   parseExtractedDocumentJson,
@@ -546,6 +588,8 @@ module.exports = {
   isVisionDocumentPage,
   buildGeminiTranscribeParts,
   buildGeminiDocumentParts,
+  buildGeminiReconcileParts,
+  mergeRiferimentiBolla,
   isDdtHeaderDescrizione,
   extractRiferimentoBollaFromText,
   normalizeRigaRiferimentoBolla,
