@@ -1,6 +1,15 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-12 — deploy produzione `tonyExtractDocument`.**
+**Ultimo aggiornamento documentazione: 2026-09-15 — voce Tony su iPhone (app installata): motore STT «registratore» + CF `tonyTranscribeAudio`.**
+
+## Voce Tony su iPhone — web app da schermata Home (2026-09-15)
+
+- **Problema:** su iPhone l'app installata non chiedeva il permesso microfono e il 🎤 non faceva nulla. Causa: WebKit non abilita `SpeechRecognition` nelle web app da Home ([bug 225298](https://bugs.webkit.org/show_bug.cgi?id=225298), aperto dal 2021) — l'API esiste, quindi il feature-detect passava, ma `start()` non parte mai. `getUserMedia` invece funziona.
+- **Soluzione:** secondo motore STT dietro la **stessa interfaccia `SpeechRecognition`** (`core/js/tony/voice-recorder-stt.js`): `getUserMedia` + `MediaRecorder` + VAD locale (RMS su `AnalyserNode`, silenzio ≥ 900 ms = fine frase) → callable **`tonyTranscribeAudio`** (`functions/tony-transcribe-audio.js`, Gemini audio `inlineData`, `responseSchema` `{hasSpeech, transcript}`) → `onresult` finale → `onspeechend` → `onend`. Il widget (`main.js`) non distingue i motori: `chooseSttEngine(window)` sceglie una sola volta (iOS + standalone → registratore; altrove Web Speech). Override test: `sessionStorage.tony_stt_engine = 'recorder'|'webspeech'`.
+- **Limiti:** niente risultati parziali (testo 1–3 s dopo la pausa; mic arancione = «sto trascrivendo»); su iOS il permesso mic **non viene memorizzato** per le web app da Home (WebKit 215884) → prompt a ogni avvio; costo Gemini per clip (max 60 s / ~3 MB). Piano Free bloccato come `getTonyAudio`.
+- **Fix collaterale (tutti i browser):** su `not-allowed` / `service-not-allowed` / `audio-capture` il dialogo continuo si spegne (`AUTO_MODE_OFF_REASONS.mic-error`) invece di riaprire il mic ogni 350 ms ripetendo l'errore; messaggio con istruzioni per iPhone (dettatura / Safari).
+- Build widget **`2026-09-15a`** (`main.js` + loader). **Deploy richiesto:** `firebase deploy --only functions:tonyTranscribeAudio` — senza CF il registratore risponde `network` in chat.
+- Test: `tests/tony-voice-recorder-stt.test.js` (23 — scelta motore, VAD, adapter con timer finti), `tests/tony-transcribe-audio.test.js` (11 — validazione, prompt, parsing, callable con `fetch` mock). Smoke Chromium reale (mic finto): `getUserMedia` → `MediaRecorder` webm/opus → analyser → CF mock → `onresult`.
 
 ## Deploy produzione — `tonyExtractDocument` (2026-09-12)
 
