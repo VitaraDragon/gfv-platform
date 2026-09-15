@@ -63,9 +63,10 @@ import {
     getProactiveHub,
 } from '../../config/tony-proactive-signals.js';
 import { initTonyDocumentCapture } from './document-capture.js';
+import { chooseSttEngine, createRecorderSpeechRecognition, isIosLikeDevice, isStandaloneDisplayMode } from './voice-recorder-stt.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-export const TONY_CLIENT_BUILD = '2026-07-21b';
+export const TONY_CLIENT_BUILD = '2026-09-15a';
 if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
@@ -6395,7 +6396,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             }, AUTO_MODE_SILENCE_MS);
         }
 
-        var AUTO_MODE_OFF_REASONS = { 'user-mic': 1, 'panel-close': 1, inactivity: 1, 'voice-farewell': 1 };
+        var AUTO_MODE_OFF_REASONS = { 'user-mic': 1, 'panel-close': 1, inactivity: 1, 'voice-farewell': 1, 'mic-error': 1 };
 
         function toggleAutoMode(active, reason) {
             if (!active) {
@@ -6426,7 +6427,11 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 }
                 if (stopListeningRef) stopListeningRef();
                 panel.classList.remove('is-auto-mode');
-                micBtn.classList.remove('tony-mic-active', 'is-auto-mode');
+                micBtn.classList.remove('tony-mic-active', 'is-auto-mode', 'tony-mic-transcribing');
+                // Motore registratore: rilascia il microfono (spegne l'indicatore rosso di iOS).
+                try {
+                    if (window.recognition && typeof window.recognition.release === 'function') window.recognition.release();
+                } catch (eRel) { /* ignore */ }
                 console.log('[Tony] Modalità continua disattivata.', reason ? '(' + reason + ')' : '');
             }
             saveTonyState();
@@ -8569,13 +8574,40 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         var voiceOkBtn = document.getElementById('tony-voice-ok');
         var micBtn = document.getElementById('tony-mic');
 
-        if (SpeechRecognition && micBtn && voiceConfirmEl) {
-            var recognition = new SpeechRecognition();
+        /**
+         * Motore STT: Web Speech dove funziona; «registratore» (getUserMedia + MediaRecorder + CF
+         * tonyTranscribeAudio) dove la Web Speech API è muta — web app iOS da schermata Home.
+         * Stessa interfaccia SpeechRecognition: il resto del widget non distingue i due motori.
+         */
+        var tonySttEngine = chooseSttEngine(window);
+        window.__tonySttEngine = tonySttEngine;
+        function tonyCreateSpeechRecognition() {
+            if (tonySttEngine === 'recorder') {
+                return createRecorderSpeechRecognition({
+                    transcribe: function(payload) {
+                        var svc = window.Tony || window.TonyService;
+                        if (!svc || typeof svc.transcribeAudio !== 'function') {
+                            return Promise.reject({ name: 'failed-precondition', message: 'Servizio Tony non pronto.' });
+                        }
+                        return svc.transcribeAudio(payload);
+                    },
+                    log: function(msg, detail) { logVoiceAuto('[recorder] ' + msg, detail); }
+                });
+            }
+            if (SpeechRecognition) return new SpeechRecognition();
+            return null;
+        }
+
+        var recognition = (micBtn && voiceConfirmEl) ? tonyCreateSpeechRecognition() : null;
+        if (recognition) {
+            console.log('[Tony] Motore STT:', tonySttEngine);
             window.recognition = recognition; // Esposto per debug
             recognition.continuous = false; // Resta false, onspeechend + delay gestiscono la pausa
             recognition.interimResults = true;
             recognition.maxAlternatives = 5;
             recognition.lang = 'it-IT';
+            var VOICE_FATAL_ERRORS = { 'not-allowed': 1, 'service-not-allowed': 1, 'audio-capture': 1, 'language-not-supported': 1 };
+            var voiceFatalErrorAt = 0;
             var voiceSessionBestFinal = '';
             var voiceSessionBestInterim = '';
 
@@ -8720,10 +8752,43 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 }
             };
             recognition.onerror = function(e) {
-                if (e.error !== 'aborted' && e.error !== 'no-speech') {
-                    appendMessage('Microfono: ' + (e.error === 'not-allowed' ? 'permesso negato' : e.error), 'error');
+                var code = e && e.error ? String(e.error) : '';
+                if (code === 'aborted' || code === 'no-speech') return;
+                micBtn.classList.remove('tony-mic-transcribing');
+                if (VOICE_FATAL_ERRORS[code]) {
+                    // Permesso negato / mic assente: spegni il dialogo continuo, altrimenti il
+                    // ciclo onend → riapertura ogni 350 ms ripete l'errore all'infinito.
+                    var wasAuto = isAutoMode;
+                    if (wasAuto) toggleAutoMode(false, 'mic-error');
+                    if (Date.now() - voiceFatalErrorAt > 5000) {
+                        voiceFatalErrorAt = Date.now();
+                        appendMessage(tonyVoiceErrorMessage(code, e && e.message), 'error');
+                    }
+                    return;
                 }
+                appendMessage('Microfono: ' + (e && e.message ? e.message : code), 'error');
             };
+            recognition.onaudioend = function() {
+                if (tonySttEngine === 'recorder' && isAutoMode) micBtn.classList.add('tony-mic-transcribing');
+            };
+
+            function tonyVoiceErrorMessage(code, detail) {
+                if (code === 'not-allowed' || code === 'service-not-allowed') {
+                    var base = 'Microfono: permesso negato.';
+                    if (tonySttEngine === 'recorder') {
+                        return base + ' Consenti l\'accesso al microfono quando l\'app lo chiede (su iPhone il permesso va ridato a ogni avvio dell\'app).';
+                    }
+                    if (isIosLikeDevice(navigator) && isStandaloneDisplayMode(window)) {
+                        return base + ' Su iPhone la dettatura Web Speech non funziona nell\'app installata: apri il sito in Safari oppure aggiorna l\'app.';
+                    }
+                    if (isIosLikeDevice(navigator)) {
+                        return base + ' Su iPhone serve anche Impostazioni → Generali → Tastiera → Abilita dettatura.';
+                    }
+                    return base + ' Controlla i permessi del sito nel browser.';
+                }
+                if (code === 'audio-capture') return 'Microfono non disponibile: ' + (detail || 'nessun dispositivo di ingresso trovato.');
+                return 'Microfono: ' + (detail || code);
+            }
 
             function startListening() {
                 if (!window.Tony || !window.Tony.isReady()) return;
@@ -8798,6 +8863,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             };
 
             recognition.onend = function() {
+                micBtn.classList.remove('tony-mic-transcribing');
                 if (tonyAudioPipelineActive()) {
                     console.log('[Tony] TTS in corso, microfono resta spento.');
                     return;
@@ -8857,6 +8923,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             });
         } else if (micBtn) {
             micBtn.style.display = 'none';
+            console.log('[Tony] Nessun motore STT disponibile: microfono nascosto.');
         }
 
         var tonyConfirmOverlay = document.getElementById('tony-confirm-overlay');

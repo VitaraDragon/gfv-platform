@@ -246,6 +246,14 @@
     display: none !important;
 }
 
+/* Motore registratore (iOS PWA): clip inviato alla trascrizione, in attesa del testo */
+.tony-widget-mic.tony-mic-transcribing {
+    background-color: #f0ad4e !important;
+    border-color: #f0ad4e;
+    color: white !important;
+    animation: tony-mic-pulse 0.7s ease-in-out infinite;
+}
+
 .tony-widget-mic:disabled {
     opacity: 0.6;
     cursor: not-allowed;
