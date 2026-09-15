@@ -4184,6 +4184,31 @@ exports.tonyExtractDocument = onCall(
 exports.handleTonyExtractDocument = handleTonyExtractDocument;
 
 /**
+ * Callable: tonyTranscribeAudio — STT server-side (Gemini audio) per le piattaforme
+ * senza Web Speech API (web app iOS da schermata Home). Body: { audio: { mimeType, data, durationMs? } }.
+ */
+const {
+  handleTonyTranscribeAudio,
+} = require("./tony-transcribe-audio");
+const {
+  resolveTenantIdForTony: resolveTenantIdForTonyDoc,
+  resolveTenantSubscriptionPlan: resolveTenantSubscriptionPlanDoc,
+} = require("./tony-extract-document");
+exports.tonyTranscribeAudio = onCall(
+  {
+    region: "europe-west1",
+    secrets: [sentryDsn, geminiApiKey],
+    timeoutSeconds: 60,
+    memory: "512MiB",
+  },
+  async (request) =>
+    handleTonyTranscribeAudio(db, request, {
+      resolveTenantId: resolveTenantIdForTonyDoc,
+      resolvePlan: resolveTenantSubscriptionPlanDoc,
+    })
+);
+
+/**
  * Callable: getTonyAudio - Sintesi vocale neurale per Tony.
  * Riceve { text: string }, restituisce { audioContent: string } (base64 MP3).
  * Richiede utente autenticato. Abilita "Cloud Text-to-Speech API" in Google Cloud Console.

@@ -393,6 +393,8 @@ module.exports = {
   maybeRunSafetySecondPass,
   assertManagerOrAdminForTenant,
   tenantHasMagazzinoModule,
+  resolveTenantIdForTony,
+  resolveTenantSubscriptionPlan,
   TONY_GEMINI_MODEL,
   TONY_DOCUMENT_GEMINI_MODEL,
 };
