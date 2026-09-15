@@ -175,6 +175,21 @@
       "label": "Modulo report"
     },
     {
+      "includes": "document-capture",
+      "modules": ["TONY", "MAGAZZINO"],
+      "label": "Acquisizione foto bolla/fattura Tony"
+    },
+    {
+      "includes": "tony-extract-document",
+      "modules": ["TONY", "MAGAZZINO"],
+      "label": "Estrazione documenti CF"
+    },
+    {
+      "includes": "tony-fatturapa",
+      "modules": ["TONY", "MAGAZZINO"],
+      "label": "Parser FatturaPA extra silenzioso"
+    },
+    {
       "includes": "document-archive",
       "modules": ["MAGAZZINO", "TONY"],
       "label": "Tony Occhi archivio documenti"

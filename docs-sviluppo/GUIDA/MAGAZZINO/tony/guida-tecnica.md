@@ -10,6 +10,7 @@ Modulo tenant: tipicamente `magazzino` (minuscolo; verificare `tenant.modules`).
 | Anagrafica prodotti | `prodotti-standalone.html` |
 | Movimenti | `movimenti-standalone.html` |
 | Tracciabilità consumi | `tracciabilita-consumi-standalone.html` |
+| Archivio documenti | `documenti-acquisiti-standalone.html` |
 
 ## pageType / liste Tony
 
@@ -24,6 +25,10 @@ Target utili: `magazzino` (home), `prodotti`, `movimenti`, alias **tracciabilit�
 ## Form Tony (Tony avanzato)
 
 - **`prodotto-form`** / **`movimento-form`**: mapping in `core/config/tony-form-mapping.js`, injector in `core/js/tony-form-injector.js`; comandi **INJECT_FORM_DATA**, **OPEN_MODAL** `prodotto-modal` / `movimento-modal`; regole magazzino in `functions/index.js` (SAVE solo su conferma esplicita).
+
+## Acquisizione documenti (foto → magazzino)
+
+Ingresso 📷 chat (`document-capture.js`), non la lista archivio. CF `tonyExtractDocument`: due passate Gemini sui numeri; XML FatturaPA solo extra se il file è già quello. Save: `document-register.js` (bolla / fattura / scontrino). Originali: Storage + `documentiAcquisiti`. Vedi `GUIDA/TONY/tony/guida-tecnica.md` (stesso flusso).
 
 ## Riassunto Tony
 

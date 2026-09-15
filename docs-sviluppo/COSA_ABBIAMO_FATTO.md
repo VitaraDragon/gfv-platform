@@ -1,6 +1,33 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-09 — icona app GFV.**
+**Ultimo aggiornamento documentazione: 2026-09-15 — voce Tony su iPhone (app installata): motore STT «registratore» + CF `tonyTranscribeAudio`.**
+
+## Voce Tony su iPhone — web app da schermata Home (2026-09-15)
+
+- **Problema:** su iPhone l'app installata non chiedeva il permesso microfono e il 🎤 non faceva nulla. Causa: WebKit non abilita `SpeechRecognition` nelle web app da Home ([bug 225298](https://bugs.webkit.org/show_bug.cgi?id=225298), aperto dal 2021) — l'API esiste, quindi il feature-detect passava, ma `start()` non parte mai. `getUserMedia` invece funziona.
+- **Soluzione:** secondo motore STT dietro la **stessa interfaccia `SpeechRecognition`** (`core/js/tony/voice-recorder-stt.js`): `getUserMedia` + `MediaRecorder` + VAD locale (RMS su `AnalyserNode`, silenzio ≥ 900 ms = fine frase) → callable **`tonyTranscribeAudio`** (`functions/tony-transcribe-audio.js`, Gemini audio `inlineData`, `responseSchema` `{hasSpeech, transcript}`) → `onresult` finale → `onspeechend` → `onend`. Il widget (`main.js`) non distingue i motori: `chooseSttEngine(window)` sceglie una sola volta (iOS + standalone → registratore; altrove Web Speech). Override test: `sessionStorage.tony_stt_engine = 'recorder'|'webspeech'`.
+- **Limiti:** niente risultati parziali (testo 1–3 s dopo la pausa; mic arancione = «sto trascrivendo»); su iOS il permesso mic **non viene memorizzato** per le web app da Home (WebKit 215884) → prompt a ogni avvio; costo Gemini per clip (max 60 s / ~3 MB). Piano Free bloccato come `getTonyAudio`.
+- **Fix collaterale (tutti i browser):** su `not-allowed` / `service-not-allowed` / `audio-capture` il dialogo continuo si spegne (`AUTO_MODE_OFF_REASONS.mic-error`) invece di riaprire il mic ogni 350 ms ripetendo l'errore; messaggio con istruzioni per iPhone (dettatura / Safari).
+- Build widget **`2026-09-15a`** (`main.js` + loader). **CF in produzione** (2026-09-15, `gfv-platform`, `europe-west1`, 512 MiB, timeout 60 s): `firebase deploy --only functions:tonyTranscribeAudio`; verificata con POST anonimo → `401 UNAUTHENTICATED` dal nostro handler. Il client (branch) non è ancora online: arriva su `main` con la promozione.
+- Test: `tests/tony-voice-recorder-stt.test.js` (23 — scelta motore, VAD, adapter con timer finti), `tests/tony-transcribe-audio.test.js` (11 — validazione, prompt, parsing, callable con `fetch` mock). Smoke Chromium reale (mic finto): `getUserMedia` → `MediaRecorder` webm/opus → analyser → CF mock → `onresult`.
+
+## Deploy produzione — `tonyExtractDocument` (2026-09-12)
+
+- **Cosa:** aggiornata la callable `tonyExtractDocument` (`europe-west1`) sul progetto Firebase `gfv-platform`. Le foto/PDF in chat usano già le due passate sui numeri (timeout 180 s).
+- **Cosa no:** `main` / GitHub Pages non toccati. Guide e ritocchi client restano su `develop` finché non si promuove.
+
+## Guide utente — foto bolla/fattura (2026-09-12)
+
+- **Perché:** l’acquisizione è migliorata sulla **foto** (due passate sui numeri); le guide non descrivevano lo scatto né la cascata in magazzino. L’XML non si insegna: extra silenzioso.
+- **TONY / MAGAZZINO / CORE / INTERSEZIONI** (utente, sintesi, tecnica) + mirror `core/GUIDA/`. Gesto: fotocamera in chat → revisione → **Registra dati** → Movimenti + Archivio.
+- `scripts/guida-code-map.json`: `document-capture`, `tony-extract-document`, `tony-fatturapa`.
+
+## Acquisizione documenti — foto resta l’idea; due passate sui numeri (2026-09-11)
+
+- **Promessa prodotto (invariata):** 📷 fotografi bolla o fattura → Tony legge le cifre → revisione → a cascata movimenti/prezzi in magazzino. Non si chiede all’utente di “andare a prendere l’XML”.
+- **Accuratezza foto/PDF:** due passate Gemini (trascrizione cifra-per-cifra → JSON + `responseSchema`) + Level B se i totali non tornano. Stesso form, stessa registrazione.
+- **XML FatturaPA:** extra **silenzioso** se qualcuno carica già quel file (ufficio). Non è il flusso da insegnare; l’UI 📷 resta “bolla o fattura”.
+- File: `tony-extract-document.js`, `tony-document-schemas.js`, `tony-fatturapa.js`. Test: `tests/tony-fatturapa.test.js` + suite documenti.
 
 ## Icona app GFV (2026-09-09)
 

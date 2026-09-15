@@ -40,7 +40,7 @@ Quando indichi **dove andare** in chat o in guida, usa sempre il linguaggio dell
 
 - **Tony Guida** (piano Base): spiega i passaggi e indica **Moduli** + nome modulo; non apre pagine da solo.
 - **Tony Avanzato**: può **aprire** moduli e schede (es. «apri Conto Terzi», «vai a validazione ore», «apri impegni giornalieri») se il modulo e i permessi lo consentono.
-- **Documenti magazzino** (Avanzato + Magazzino): foto/PDF dalla chat → movimenti + Archivio; reminder **prezzi in attesa**.
+- **Documenti magazzino** (Avanzato + Magazzino): foto/PDF dalla chat → Tony legge le cifre → revisione → movimenti + Archivio; reminder **prezzi in attesa**.
 - **Briefing** anche su hub (es. Magazzino): reminder corti + follow-up «apri»; riassunto lungo tipicamente in dashboard.
 - Se l'utente è su una pagina e chiede un'azione di **altro modulo**, il percorso tipico è: descrivere **Moduli** → modulo → sezione, oppure (Avanzato) navigazione automatica.
 
@@ -103,12 +103,15 @@ Ruoli: principalmente manager/amministratore.
 4. **Mappa** aziendale: layer **Allarmi** (pin ! sul terreno del lavoro) → link a Gestione lavori.
 5. Tony Avanzato: «chi è libero?», «candidati sostituto» — legge shortlist/contesto giorno, non ricalcola.
 
-### 2.6 Bolla magazzino (foto / PDF con Tony)
+### 2.6 Bolla o fattura magazzino (foto / PDF con Tony)
 
-1. Tony Avanzato + Magazzino: dalla chat, foto/PDF → revisione → **Registra**.
-2. **Movimenti** (entrate) + **Archivio documenti**; eventuale **prezzo in attesa**.
-3. Completare prezzo in Movimenti o da reminder dashboard/hub («apri»).
-4. Prezzo medio prodotto aggiornato quando le entrate con prezzo lo prevedono.
+1. **Tony Avanzato** + **Magazzino**, ruolo manager/admin: in chat, icona **fotocamera** → scatto o PDF → **Acquisizione terminata**.
+2. Tony **legge le cifre** (più attento sui numeri di una sola occhiata) → **form di revisione** → **Registra dati**.
+3. Cascata: **Movimenti** (entrate) + **Archivio documenti**; sulla bolla eventuale **prezzo in attesa** fino alla fattura (senza raddoppiare la merce).
+4. Completare prezzo in Movimenti o da reminder dashboard/hub Magazzino («apri»).
+5. Prezzo medio prodotto aggiornato quando le entrate con prezzo lo prevedono.
+
+L’ingresso resta lo **scatto**, non un file fiscale da cercare. Dettaglio: guida **Tony** (foto bolla o fattura) e guida **Magazzino**.
 
 ### 2.7 Vendemmia meccanica ↔ lavori / Conto terzi
 

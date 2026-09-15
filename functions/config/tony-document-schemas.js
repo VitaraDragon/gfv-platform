@@ -1,11 +1,14 @@
 "use strict";
 
-/** MIME ammessi per Tony Occhi PoC (vision Gemini). */
+/** MIME ammessi: vision Gemini + XML FatturaPA. */
 const TONY_DOCUMENT_ALLOWED_MIME = new Set([
   "image/jpeg",
   "image/png",
   "image/webp",
   "application/pdf",
+  "application/xml",
+  "text/xml",
+  "application/fatturapa+xml",
 ]);
 
 /** ~10 MB per pagina (base64 ≈ 4/3 del binario). */
@@ -49,7 +52,85 @@ Altre regole:
 - Unisci righe duplicate su più pagine dello stesso documento
 - Non inventare prodotti: se illeggibile, confidence bassa e descrizione parziale
 - Layout fornitore-agnostic: nessun template fisso
-- JSON stretto: virgolette doppie, numeri con punto decimale (es. 61.04 non 61,04), niente virgola finale, niente testo fuori dal JSON`;
+- JSON stretto: virgolette doppie, numeri con punto decimale (es. 61.04 non 61,04), niente virgola finale, niente testo fuori dal JSON
+- Se è presente una TRASCRIZIONE LETTERALE, copia i numeri da lì; se trascrizione e immagine discordano, rileggi CIFRA PER CIFRA dal riquadro visibile (non arrotondare)`;
+
+/** Prima passata: OCR/trascrizione verbatim (riduce allucinazioni su numeri DDT/qty/prezzi). */
+const TONY_DOCUMENT_TRANSCRIBE_PROMPT = `Trascrivi in modo LETTERALE tutto il testo visibile in queste pagine (documento italiano: bolla/DDT, fattura o scontrino).
+
+Regole:
+- Copia i numeri CIFRA PER CIFRA, senza arrotondare né “correggere”
+- Conserva la struttura delle tabelle (una riga di testo per ogni riga merce)
+- Includi intestazione (fornitore, P.IVA, n. documento, data), riferimenti DDT, totali
+- Non interpretare, non omettere righe, non inventare
+- Output: solo testo, niente JSON e niente markdown`;
+
+/**
+ * Schema JSON Gemini (responseSchema) — standardizza SOLO l'uscita, non il layout fornitore.
+ * Tipi in maiuscolo come richiesto dall'API generateContent v1beta.
+ */
+const TONY_DOCUMENT_RESPONSE_SCHEMA = {
+  type: "OBJECT",
+  properties: {
+    tipoDocumento: {
+      type: "STRING",
+      enum: ["bolla", "fattura", "scontrino", "sconosciuto"],
+    },
+    confidence: { type: "NUMBER" },
+    fornitore: {
+      type: "OBJECT",
+      properties: {
+        nome: { type: "STRING" },
+        piva: { type: "STRING" },
+        confidence: { type: "NUMBER" },
+      },
+    },
+    numeroDocumento: { type: "STRING" },
+    dataDocumento: { type: "STRING" },
+    righe: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          descrizione: { type: "STRING" },
+          codiceFornitore: { type: "STRING" },
+          quantita: { type: "NUMBER" },
+          unita: { type: "STRING" },
+          prezzoUnitario: { type: "NUMBER" },
+          riferimentoBolla: {
+            type: "OBJECT",
+            properties: {
+              numeroDocumento: { type: "STRING" },
+              dataDocumento: { type: "STRING" },
+            },
+          },
+          confidence: { type: "NUMBER" },
+          paginaOrigine: { type: "INTEGER" },
+        },
+      },
+    },
+    totali: {
+      type: "OBJECT",
+      properties: {
+        imponibile: { type: "NUMBER" },
+        iva: { type: "NUMBER" },
+        totale: { type: "NUMBER" },
+      },
+    },
+    riferimentiBolla: {
+      type: "ARRAY",
+      items: {
+        type: "OBJECT",
+        properties: {
+          numeroDocumento: { type: "STRING" },
+          dataDocumento: { type: "STRING" },
+          fornitore: { type: "STRING" },
+        },
+      },
+    },
+  },
+  required: ["tipoDocumento", "righe"],
+};
 
 /**
  * @param {unknown} pages
@@ -69,7 +150,7 @@ function validateDocumentPages(pages) {
     const mimeType = String(page.mimeType || "").trim().toLowerCase();
     if (!TONY_DOCUMENT_ALLOWED_MIME.has(mimeType)) {
       throw new Error(
-        `Pagina ${idx + 1}: MIME non supportato (${mimeType || "mancante"}). Ammessi: jpeg, png, webp, pdf.`
+        `Pagina ${idx + 1}: MIME non supportato (${mimeType || "mancante"}). Ammessi: jpeg, png, webp, pdf, xml fattura elettronica.`
       );
     }
     const data = typeof page.data === "string" ? page.data.trim() : "";
@@ -370,7 +451,8 @@ function normalizeExtractionResult(raw) {
     };
   }
 
-  return {
+  const fonte = String(raw.fonteEstrazione || "").toLowerCase().trim();
+  const out = {
     tipoDocumento,
     confidence: clamp01(raw.confidence),
     fornitore: {
@@ -384,15 +466,56 @@ function normalizeExtractionResult(raw) {
     totali,
     riferimentiBolla: mergeRiferimentiBolla(raw.riferimentiBolla, refsFromRows),
   };
+  if (fonte === "fatturapa" || fonte === "gemini") {
+    out.fonteEstrazione = fonte;
+  }
+  if (Number.isFinite(Number(raw.fattureNelFile)) && Number(raw.fattureNelFile) > 1) {
+    out.fattureNelFile = Number(raw.fattureNelFile);
+  }
+  return out;
+}
+
+function isVisionDocumentPage(page) {
+  const mime = String((page && page.mimeType) || "").toLowerCase();
+  return mime.indexOf("image/") === 0 || mime === "application/pdf";
 }
 
 /**
  * @param {Array<{ mimeType: string, data: string, indice: number }>} pages
  * @returns {Array<object>}
  */
-function buildGeminiDocumentParts(pages) {
+function buildGeminiTranscribeParts(pages) {
+  const parts = [{ text: TONY_DOCUMENT_TRANSCRIBE_PROMPT }];
+  (pages || []).filter(isVisionDocumentPage).forEach((page) => {
+    parts.push({ text: `--- Pagina ${page.indice} (${page.mimeType}) ---` });
+    parts.push({
+      inlineData: {
+        mimeType: page.mimeType,
+        data: page.data,
+      },
+    });
+  });
+  parts.push({ text: "Trascrivi ora tutto il testo visibile, cifra per cifra." });
+  return parts;
+}
+
+/**
+ * @param {Array<{ mimeType: string, data: string, indice: number }>} pages
+ * @param {{ transcription?: string }} [options]
+ * @returns {Array<object>}
+ */
+function buildGeminiDocumentParts(pages, options) {
+  options = options || {};
   const parts = [{ text: TONY_DOCUMENT_EXTRACTION_PROMPT }];
-  for (const page of pages) {
+  const transcription = String(options.transcription || "").trim();
+  if (transcription) {
+    parts.push({
+      text:
+        "TRASCRIZIONE LETTERALE DEL DOCUMENTO (usa questi numeri; se discordano dall'immagine, rileggi CIFRA PER CIFRA il riquadro visibile):\n\n" +
+        transcription.slice(0, 24000),
+    });
+  }
+  (pages || []).filter(isVisionDocumentPage).forEach((page) => {
     parts.push({
       text: `--- Pagina ${page.indice} (${page.mimeType}) ---`,
     });
@@ -402,7 +525,7 @@ function buildGeminiDocumentParts(pages) {
         data: page.data,
       },
     });
-  }
+  });
   parts.push({
     text: "Restituisci solo il JSON di estrazione secondo le regole sopra.",
   });
@@ -414,10 +537,14 @@ module.exports = {
   TONY_DOCUMENT_MAX_BYTES_PER_PAGE,
   TONY_DOCUMENT_MAX_PAGES,
   TONY_DOCUMENT_EXTRACTION_PROMPT,
+  TONY_DOCUMENT_TRANSCRIBE_PROMPT,
+  TONY_DOCUMENT_RESPONSE_SCHEMA,
   validateDocumentPages,
   parseExtractedDocumentJson,
   repairExtractedDocumentJsonText,
   normalizeExtractionResult,
+  isVisionDocumentPage,
+  buildGeminiTranscribeParts,
   buildGeminiDocumentParts,
   isDdtHeaderDescrizione,
   extractRiferimentoBollaFromText,

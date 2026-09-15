@@ -37,6 +37,7 @@ export function extFromMime(mimeType) {
   if (m === 'image/png') return 'png';
   if (m === 'image/webp') return 'webp';
   if (m === 'application/pdf') return 'pdf';
+  if (m === 'application/xml' || m === 'text/xml' || m === 'application/fatturapa+xml') return 'xml';
   return 'bin';
 }
 

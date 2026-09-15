@@ -24,6 +24,10 @@ Snapshot da `dashboard-counts-snapshot` + testi `dashboard-tony-briefing-text.js
 
 Client-side su Gestione lavori / ore: `__tonyLavoroCreationFlow`, segna ore senza orari; conferme esplicite «sì»/«apri»; disambiguazione terreno/macchina.
 
+## Foto bolla / fattura (Avanzato + Magazzino)
+
+Ingresso **fotocamera in chat** (non un menu magazzino). Stesso gesto di sempre: scatto → revisione → **Registra dati** → movimenti. Tony legge i numeri in **due passate** (trascrizione cifra-per-cifra, poi campi). Conferma umana obbligatoria. Dettaglio in guida lunga TONY; Magazzino: **Archivio documenti**, prezzi in attesa.
+
 ## Conferme
 
 Risposte esplicite dell’utente dopo domande di Tony; non rubare «sì» al briefing se intervista meteo/lavoro in corso.

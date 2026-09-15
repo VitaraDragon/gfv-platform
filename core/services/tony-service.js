@@ -2015,6 +2015,48 @@ class TonyService {
   }
 
   /**
+   * Callable tonyTranscribeAudio — STT server-side (Gemini audio) per le piattaforme
+   * senza Web Speech API (web app iOS da schermata Home).
+   * @param {{ mimeType: string, data: string, durationMs?: number, lang?: string, hint?: string }} params
+   * @returns {Promise<{ transcript: string, hasSpeech: boolean }>}
+   */
+  async transcribeAudio(params) {
+    await this.init();
+    const callable = await this._ensureTranscribeCallable();
+    params = params || {};
+    const payload = {
+      audio: {
+        mimeType: String(params.mimeType || ''),
+        data: String(params.data || ''),
+      },
+      lang: params.lang || 'it-IT',
+      context: this._getContextForPrompt({ forCallable: true }),
+    };
+    if (params.durationMs != null) payload.audio.durationMs = params.durationMs;
+    if (params.hint) payload.hint = String(params.hint);
+    const tenantId =
+      (this.context && this.context.dashboard && this.context.dashboard.tenantId) ||
+      (this.context && this.context.tenantId) ||
+      null;
+    if (tenantId) payload.tenantId = String(tenantId);
+    const r = await callable(payload);
+    return r.data;
+  }
+
+  async _ensureTranscribeCallable() {
+    if (this._tonyTranscribeCallable) return this._tonyTranscribeCallable;
+    const { getFunctions, httpsCallable, connectFunctionsEmulator } = await import(
+      'https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js'
+    );
+    const functions = getFunctions(this.app, 'europe-west1');
+    if (typeof window !== 'undefined' && window.__gfvTonyCfEmulatorBase && !window.__GFV_TONY_E2E_PROD_CF) {
+      connectFunctionsEmulator(functions, '127.0.0.1', 5001);
+    }
+    this._tonyTranscribeCallable = httpsCallable(functions, 'tonyTranscribeAudio');
+    return this._tonyTranscribeCallable;
+  }
+
+  /**
    * Indica se Tony è pronto (init completato).
    */
   isReady() {

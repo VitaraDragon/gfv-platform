@@ -13,6 +13,7 @@ Verificate **Abbonamento** o chiedete all'amministratore se il modulo non compar
 3. **Movimenti** per entrate e uscite che aggiornano le **giacenze**. **[Impara qui](#mini-guida-movimenti)**
 4. **Tracciabilità consumi** per capire dove sono stati usati i prodotti (lettura e filtri). **[Impara qui](#tracciabilita-consumi)**
 5. Se usate **Vigneto** o **Frutteto**, gli scarichi da trattamenti o concimazioni possono aggiornare il magazzino quando la configurazione lo prevede. **[Impara qui](#collegamento-con-vigneto-e-frutteto)**
+6. Con **Tony Avanzato**, dalla chat potete **fotografare** una bolla o una fattura: Tony legge le cifre e, dopo la vostra conferma, i dati scendono in **Movimenti** e in **Archivio documenti**. **[Impara qui](#mini-guida-foto-bolla-o-fattura)**
 
 ---
 
@@ -26,6 +27,7 @@ Verificate **Abbonamento** o chiedete all'amministratore se il modulo non compar
 | Tracciabilità consumi | [Impara qui](#tracciabilita-consumi) |
 | Sotto scorta e avvisi | [Impara qui](#sotto-scorta) |
 | Collegamento Vigneto / Frutteto | [Impara qui](#collegamento-con-vigneto-e-frutteto) |
+| Foto bolla o fattura (Tony) | [Impara qui](#mini-guida-foto-bolla-o-fattura) |
 | Se qualcosa non compare | [Impara qui](#se-qualcosa-non-compara) |
 
 ---
@@ -34,7 +36,7 @@ Verificate **Abbonamento** o chiedete all'amministratore se il modulo non compar
 
 1. Dalla **dashboard principale** aprite **Moduli** e toccate **Magazzino** (📦). Se avete configurato **I miei accessi**, può esserci anche una scorciatoia lì.
 2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard potete trovare un **riquadro** **Magazzino** (eventualmente con avviso ⚠ se ci sono prodotti **sotto scorta**): è un’extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** in **Moduli** o nelle scorciatoie. In **Richiede attenzione** possono comparire alert su prodotti sotto scorta che aprono direttamente il magazzino.
-3. Arrivate alla **home del magazzino**: riepilogo con numeri (prodotti attivi, valore giacenza, eventuali **sotto scorta**), **azioni rapide** verso **Anagrafica prodotti**, **Movimenti** e **Tracciabilità consumi**.
+3. Arrivate alla **home del magazzino**: riepilogo con numeri (prodotti attivi, valore giacenza, eventuali **sotto scorta**), **azioni rapide** verso **Anagrafica prodotti**, **Movimenti**, **Tracciabilità consumi** e **Archivio documenti** (originali delle bolle/fatture acquisite con Tony).
 4. Da lì usate i pulsanti o le schede per aprire la sezione che vi serve. Il pulsante **← Dashboard** riporta alla home generale.
 
 ---
@@ -42,7 +44,7 @@ Verificate **Abbonamento** o chiedete all'amministratore se il modulo non compar
 ## Cosa trovi nella home magazzino
 
 - **Riepilogo**: conteggi utili a colpo d'occhio (prodotti, valore stimato, voci sotto soglia).
-- **Azioni rapide**: scorciatoie verso le tre aree principali (anagrafica, movimenti, tracciabilità).
+- **Azioni rapide**: scorciatoie verso anagrafica, movimenti, tracciabilità e **Archivio documenti**.
 - **Avvisi**: se compaiono messaggi su prodotti sotto scorta, aprite **Anagrafica prodotti** o **Movimenti** per verificare giacenze e ultimi carichi/scarichi.
 
 ---
@@ -120,12 +122,28 @@ Quando completate un **trattamento** o una **concimazione** in campo e avete spu
 
 ---
 
+## Mini-guida: foto bolla o fattura
+
+Serve **Tony Avanzato** (oltre al Magazzino) e un ruolo **manager** o **amministratore**. L’ingresso è la **fotocamera in chat Tony**, non un menu nascosto.
+
+1. Aprite Tony → icona **fotocamera** → **scattate** (o caricate il PDF) della bolla o della fattura.
+2. **Acquisizione terminata**: Tony legge le **cifre** (quantità, prezzi, numero documento) e apre il **riepilogo da controllare**.
+3. **Registra dati**: nascono o si aggiornano i **movimenti** di entrata. Sulla **bolla** il prezzo può restare **in attesa** fino alla **fattura** (senza raddoppiare la merce). L’originale finisce in **Archivio documenti**.
+4. In **Movimenti** potete filtrare le entrate **senza prezzo**; in dashboard/hub Magazzino Tony può ricordarvi i **prezzi in attesa**.
+
+Foto nitida, un foglio, luce uniforme. Controllate sempre il riepilogo prima di registrare: Tony è più attento sui numeri di una lettura affrettata, ma una foto storta può ancora sbagliare.
+
+Dettaglio del gesto in chat: guida **Tony** (sezione foto bolla o fattura).
+
+---
+
 ## Se qualcosa non compare
 
 - **Modulo non attivo** sull'abbonamento → niente voce **Magazzino** in **Moduli** (né riquadro in fondo pagina).
 - **Giacenze strane** → controllate **movimenti** e unità di misura; spesso manca un carico iniziale.
 - **Tracciabilità vuota o incompleta** → servono movimenti o scarichi registrati; la pagina è di lettura.
 - **Non vedo il pulsante Nuovo** → ruolo o permesso insufficiente; chiedete al manager.
+- **Non vedo la fotocamera in chat Tony** → servono Tony Avanzato, Magazzino e ruolo manager/admin; la guida **Tony** spiega il gesto.
 
 ---
 
@@ -133,4 +151,5 @@ Quando completate un **trattamento** o una **concimazione** in campo e avete spu
 
 - Guida **Core** (Terreni, Diario, Lavori).
 - Guide **Vigneto** e **Frutteto** per i registri che generano consumi.
+- Guida **Tony** per fotografare bolla o fattura dalla chat.
 - Guida **Conto terzi** se collegate prezzi e offerte esterne.
