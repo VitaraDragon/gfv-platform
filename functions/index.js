@@ -28,6 +28,7 @@ const {
   handleCancelStripeAddon,
   handleReactivateStripeAddon,
 } = require("./stripe-billing");
+const { handleStripeWebhookRequest } = require("./stripe-webhooks");
 const {
   handleStartModuleTrial,
   handleSyncModuleTrials,
