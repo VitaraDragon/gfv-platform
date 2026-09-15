@@ -109,21 +109,15 @@ const TONY_TTS_VOICE = process.env.TONY_TTS_VOICE || "it-IT-Chirp3-HD-Charon";
 /** Velocità parlato (override: env TONY_TTS_SPEAKING_RATE). */
 const TONY_TTS_SPEAKING_RATE = Number(process.env.TONY_TTS_SPEAKING_RATE || "1.0");
 
-/** Piano tenant: Tony è assente in freemium; enforcement anche lato callable. */
-function normalizeSubscriptionPlanId(raw) {
-  if (raw == null || raw === "") return "base";
-  const p = String(raw).trim().toLowerCase();
-  if (p === "free" || p === "freemium") return "free";
-  if (["starter", "professional", "enterprise"].includes(p)) return "base";
-  if (p === "base") return "base";
-  return "base";
-}
+/** Piano tenant: Tony è assente in freemium; enforcement anche lato callable (regola in tenant-plan.js). */
+const { normalizeSubscriptionPlanId, resolveTenantPlanId } = require("./tenant-plan");
 
 async function resolveTenantSubscription(dashboard, ctx, tenantIdHint) {
-  let raw =
+  const rawFromClient =
     (dashboard && (dashboard.plan || dashboard.piano)) ||
     (ctx && (ctx.plan || ctx.piano)) ||
     null;
+  let planId = normalizeSubscriptionPlanId(rawFromClient);
   let activeBundles = [];
   let tenantModules = [];
   const tid = tenantIdHint ? String(tenantIdHint) : null;
@@ -131,8 +125,8 @@ async function resolveTenantSubscription(dashboard, ctx, tenantIdHint) {
     try {
       const snap = await db.collection("tenants").doc(tid).get();
       if (snap.exists) {
-        const td = snap.data();
-        raw = (td && (td.plan || td.piano)) || raw;
+        const td = snap.data() || {};
+        planId = resolveTenantPlanId(td, { fallbackRaw: rawFromClient });
         activeBundles = Array.isArray(td.activeBundles) ? td.activeBundles : [];
         tenantModules = Array.isArray(td.modules) ? td.modules : [];
       }
@@ -141,7 +135,7 @@ async function resolveTenantSubscription(dashboard, ctx, tenantIdHint) {
     }
   }
   return {
-    planId: normalizeSubscriptionPlanId(raw),
+    planId,
     activeBundles,
     tenantModules,
   };
