@@ -1,6 +1,13 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-16 — Playwright CI rosso da settembre: Gestione Lavori non si avviava per un file mai committato.**
+**Ultimo aggiornamento documentazione: 2026-09-16 — CI Playwright su ogni modifica a core/ + guardia import relativi.**
+
+## CI Playwright su core/modules/shared + guardia import relativi (2026-09-16)
+
+- **Problema residuo dopo il fix Gestione Lavori:** i filtri `paths` di `.github/workflows/simulator-ci.yml` escludevano `core/js/*.js` e `core/admin/**`, quindi la CI Playwright non partiva proprio sulle pagine che testa (è lo stesso buco che ha fatto passare inosservato il commit del 5 settembre).
+- **CI:** filtri allargati a `core/**`, `modules/**`, `shared/**`, `index.html`, `service-worker.js`, `functions/**`, `tests/**`, `scripts/**`. Nuovo job `static-import-guard` (Vitest, senza Java/browser): `tests/relative-imports-resolve.test.js` + `tests/functions-index-handlers-defined.test.js`.
+- **Guardia import:** ogni import relativo (`./`, `../`) in `core/`, `modules/`, `shared/`, `index.html` deve puntare a un file esistente e restare dentro la radice del repo. Intercetta in <1 s file mai committati (caso `demo-map-privacy.js`) e percorsi che su GitHub Pages (`/gfv-platform/`) escono dal sito. Controprova: senza il file o con `../../modules/` da `attivita-standalone.html` il test fallisce.
+- **Fix collaterale (produzione):** quattro import dinamici con profondità sbagliata — `core/admin/{gestione-guasti,segnalazione-guasti,lavori-caposquadra}-standalone.html` (`../../../modules/` → `../../modules/`) e `core/attivita-standalone.html` (`../../modules/` → `../modules/`). In locale il browser tronca a `/` e funzionano; su Pages puntano fuori dal sito → 404 su elenco macchine in guasti, aggiornamento vigneti in lavori caposquadra, utilizzo macchine in attività. Lazy e in `try/catch`, quindi la pagina non crasha. Bump cache PWA.
 
 ## Playwright CI rosso — `core/js/demo-map-privacy.js` mancante, Gestione Lavori rotta (2026-09-16)
 
@@ -8,7 +15,7 @@
 - **Causa:** il commit `0bdde50` (2026-09-05, Maps lazy su lavori) ha aggiunto in `core/admin/js/gestione-lavori-maps.js` l'import statico `../../js/demo-map-privacy.js` senza committare il file (esisteva solo in locale; la voce «Demo cloud geo privacy-safe v2» lo dava per fatto). Import ES statico → 404 → l'intero `<script type="module">` della pagina non parte → lista lavori ferma su «caricamento». **Anche in produzione** (`https://vitaradragon.github.io/gfv-platform/core/js/demo-map-privacy.js` → 404).
 - **Fix:** ricreato `core/js/demo-map-privacy.js` — `withDemoPrivacyMapOptions(options, tenantId)` restituisce le opzioni inalterate per ogni tenant, e per `demo_azienda_demo_gfv_v1` forza `roadmap` senza POI/etichette, `mapTypeControl`/`streetViewControl` off. Esporta anche `isDemoPrivacyTenant`. Bump cache PWA.
 - **Verifica locale** (emulatori Auth+Firestore, seed `viticola-conto-terzi-manodopera`, Chrome di sistema): i 2 spec sim passano in 7 s; senza il file lo stesso spec riproduce esattamente il fallimento CI; i 3 scenari Tony mock passano 3/3 (`--only=T-PERF-002,T-INJECT-001,T-FLOW-013`, `GFV_E2E_BROWSER_CHANNEL=chrome`).
-- **Nota per il futuro:** una scansione degli import relativi in `core/`, `modules/`, `shared/` (non committata) mostra altri import **dinamici** con `../../../modules/...` da `core/admin/*.html` e `../../modules/...` da `core/attivita-standalone.html` che in locale risolvono solo perché il browser tronca alla root; su GitHub Pages (`/gfv-platform/`) puntano fuori dal sito. Sono lazy e in `try/catch`, quindi non bloccano la pagina, ma vanno verificati a parte.
+- **Follow-up (stesso giorno):** i quattro import dinamici con profondità sbagliata e i filtri CI sono stati sistemati nella voce «CI Playwright su core/modules/shared» sopra.
 
 ## Tony Guida onboarding — nuovi tenant Free, 7 giorni (2026-09-16)
 
