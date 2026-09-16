@@ -282,6 +282,11 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Contatore giornaliero Tony Guida onboarding piano Free (solo Cloud Functions — admin SDK)
+    match /tenants/{tenantId}/tonyOnboardingQuota/{document=**} {
+      allow read, write: if false;
+    }
+
     // Collection: liste (dati personalizzati, es. colture)
     match /tenants/{tenantId}/liste/{listaId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
