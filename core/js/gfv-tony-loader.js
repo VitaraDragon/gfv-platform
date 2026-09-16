@@ -1,12 +1,13 @@
 /**
- * Caricamento Tony widget solo se piano ≠ Free (o modulo Tony attivo/in prova).
+ * Caricamento Tony widget solo se piano ≠ Free (o modulo Tony attivo/in prova, o Free in
+ * periodo Tony Guida onboarding — `tenant.tonyGuidaOnboardingEndsAt` nel futuro).
  * FAB placeholder subito; widget (~900 KB) a idle o al tap. E2E (`tonyE2e=1`) resta eager.
  * Espone window.gfvLoadTonyWidget e gfvTryLoadTonyWidgetWhenReady.
  */
 (function () {
     'use strict';
 
-    var TONY_LOADER_QUERY = '2026-09-05a';
+    var TONY_LOADER_QUERY = '2026-09-16a';
 
     function resolveCoreBase() {
         var path = (window.location.pathname || '').replace(/\\/g, '/');
@@ -58,6 +59,28 @@
     }
 
     /**
+     * Piano Free in periodo Tony Guida onboarding (nuovo tenant): il widget si carica.
+     * Regola inline (script non-module) — mirror di core/config/tony-guida-onboarding.js.
+     */
+    function isTonyGuidaOnboardingActive() {
+        try {
+            var td = window.__gfvTenantData;
+            var raw = td && td.tonyGuidaOnboardingEndsAt;
+            if (!raw) return false;
+            var endsAt = null;
+            if (raw instanceof Date) endsAt = raw;
+            else if (typeof raw.toDate === 'function') endsAt = raw.toDate();
+            else if (typeof raw === 'number') endsAt = new Date(raw > 1e12 ? raw : raw * 1000);
+            else if (typeof raw === 'object' && typeof (raw.seconds != null ? raw.seconds : raw._seconds) === 'number') {
+                endsAt = new Date((raw.seconds != null ? raw.seconds : raw._seconds) * 1000);
+            } else endsAt = new Date(raw);
+            if (!endsAt || isNaN(endsAt.getTime())) return false;
+            return endsAt.getTime() > Date.now();
+        } catch (e) { /* ignore */ }
+        return false;
+    }
+
+    /**
      * Iframe embed (es. dettaglio lavoro / stats nel field-workspace): Tony resta sul parent.
      * Evita doppio FAB e due chat indipendenti.
      */
@@ -83,7 +106,7 @@
     function shouldLoadTony() {
         if (shouldSuppressTonyAsEmbed()) return false;
         var plan = getPlanId();
-        if (plan === 'free') return hasTonyModule();
+        if (plan === 'free') return hasTonyModule() || isTonyGuidaOnboardingActive();
         if (plan === 'base') return true;
         if (plan === null && (window.__gfvTenantData || window.__gfvModuliAttivi)) return true;
         return false;
@@ -350,7 +373,7 @@
             return;
         }
         var plan = getPlanId();
-        if (plan === 'free' && !hasTonyModule()) {
+        if (plan === 'free' && !hasTonyModule() && !isTonyGuidaOnboardingActive()) {
             clearInterval(timer);
             return;
         }

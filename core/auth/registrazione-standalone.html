@@ -354,6 +354,7 @@
         import { doc, setDoc, getDoc, updateDoc, collection, addDoc, serverTimestamp, deleteDoc } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
         import { createUserWithEmailAndPassword, deleteUser } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+        import { computeTonyGuidaOnboardingEndsAt } from '../config/tony-guida-onboarding.js';
 
         initializeFirebase(firebaseConfig);
         const app = getAppInstance();
@@ -577,7 +578,9 @@
                     creatoIl: serverTimestamp(),
                     piano: 'free', // Piano freemium (limiti terreni/attività; upgrade da Abbonamento)
                     moduli: [], // Nessun modulo avanzato, solo core base
-                    stato: 'attivo'
+                    stato: 'attivo',
+                    // Tony Guida in prova per i primi giorni (core/config/tony-guida-onboarding.js)
+                    tonyGuidaOnboardingEndsAt: computeTonyGuidaOnboardingEndsAt()
                 };
 
                 // Salva il tenant PRIMA dell'utente

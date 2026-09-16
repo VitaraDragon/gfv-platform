@@ -12,7 +12,7 @@
 
 | # | Decisione | Fonte | Stato | Note |
 |---|-----------|-------|-------|------|
-| 1.1 | **Freemium (free)**: Tony completamente assente – né widget, né endpoint, né guida | TONY_MODULO_SEPARATO, GUIDA_OPERATIVO | **implementato** | `gfv-tony-loader.js` + `gfv-standalone-shell.js`; script non caricato su Free; build `2026-06-22d` |
+| 1.1 | **Freemium (free)**: Tony completamente assente – né widget, né endpoint, né guida | TONY_MODULO_SEPARATO, GUIDA_OPERATIVO | **implementato** (rivista da 1.22) | `gfv-tony-loader.js` + `gfv-standalone-shell.js`; script non caricato su Free; build `2026-06-22d`. **Eccezione 2026-09-16:** nuovi tenant Free hanno Tony Guida nei primi 7 giorni (§1.22) |
 | 1.2 | **Base a pagamento**: Tony Guida presente – solo spiegazioni, nessuna azione operativa | TONY_MODULO_SEPARATO, GUIDA_OPERATIVO | **implementato** | SYSTEM_INSTRUCTION_BASE; FAB verificato post-Stripe Checkout |
 | 1.3 | **Modulo Tony attivo** (`moduli_attivi.includes('tony')`): Tony Operativo – tutte le funzioni | TONY_MODULO_SEPARATO, GUIDA_OPERATIVO | implementato | SYSTEM_INSTRUCTION_ADVANCED |
 | 1.4 | Tony Guida e Tony Operativo sono due esperienze diverse; Guida non deve essere impattata da refactor Operativo | GUIDA_OPERATIVO | implementato | |
@@ -33,6 +33,7 @@
 | 1.19 | **Billing v2 — coterm e converti bundle** (Fasi 2–3 handoff): rinnovo unico Base, proration mid-cycle, «Passa al bundle», migrazione doppie subscription | prodotto 2026-06-20 | **pianificato** | `docs-sviluppo/in-sviluppo/abbonamento/BILLING_V2_HANDOFF.md` §6 Fasi 2–4 |
 | 1.20 | **Prova gratuita moduli 30 giorni** (scelta utente, **anche Free**): 1 modulo in prova contemporaneo; 1 trial per modulo per tenant; dati conservati; conversione Stripe | prodotto 2026-06-22 | **implementato** | `functions/module-trial.js`, `core/utils/module-access-resolver.js`, UI Abbonamento |
 | 1.21 | **Freemium default + limiti Free** (5 terreni, 30 attività/mese): registrazione `piano: free`; enforcement CRUD terreni/attività | prodotto 2026-06-22 | **implementato** | `plan-limits-service.js`, toast sopra modal; upgrade Base via Stripe verificato |
+| 1.22 | **Tony Guida onboarding Free**: nuovo tenant Free ha **Tony Guida** (mai Avanzato) per **7 giorni** dalla registrazione, **30 domande/giorno** per tenant, **voce inclusa** (TTS + STT); acquisizione documenti esclusa; a scadenza torna assente con messaggio «periodo terminato → Base». Tenant creati prima non lo ricevono | prodotto 2026-09-16 | **implementato** (CF da deployare) | Campo `tenants/{id}.tonyGuidaOnboardingEndsAt` scritto in registrazione; `functions/tony-guida-onboarding.js` (gate + quota `tonyOnboardingQuota/{YYYY-MM-DD}` Europe/Rome) + mirror `core/config/tony-guida-onboarding.js`; loader/widget/`tonyAsk`/`getTonyAudio`/`tonyTranscribeAudio`; test `tests/tony-guida-onboarding.test.js` |
 
 ---
 
@@ -299,7 +300,7 @@
 
 | # | Voce | Fonte | Azione |
 |---|------|-------|--------|
-| 16.1 | Tony completamente assente in freemium (widget + endpoint) | TONY_MODULO_SEPARATO, GUIDA_OPERATIVO | ✅ **Implementato** (2026-06-22d): loader + shell; E2E Free→Base verificato |
+| 16.1 | Tony completamente assente in freemium (widget + endpoint) | TONY_MODULO_SEPARATO, GUIDA_OPERATIVO | ✅ **Implementato** (2026-06-22d): loader + shell; E2E Free→Base verificato. Dal 2026-09-16 eccezione onboarding 7 giorni (§1.22) |
 | 16.2 | Regola FORM PRONTO nel system prompt | ANALISI_SUBAGENT | ✅ Implementato in CF |
 | 16.3 | Guard form pronto in processTonyCommand | ANALISI_SUBAGENT | Parziale: fallback navigazione |
 | 16.4 | currentTableData attivita: DOBBIAMO dice "da dotare" | DOBBIAMO_ANCORA_FARE | ✅ attivita-controller.js popola; DOBBIAMO obsoleto |
