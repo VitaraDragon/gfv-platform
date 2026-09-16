@@ -2,7 +2,7 @@
 
 **Data**: 2026-09-15 (… **voce iPhone PWA: motore STT registratore + CF `tonyTranscribeAudio`** — 2026-09-15; **guide foto bolla/fattura** — 2026-09-12; **disegno 1b terreni clienti CT** — 2026-09-06; **proposta confine tap no-go / SAM abbandonato** — 2026-09-05; …)  
 **Fonte**: codice + `TONY_DECISIONI_E_REQUISITI.md` (… **§3.10 lazy-load** — 2026-09-05; **§22.7 / §23 flag prova** — 2026-09-04; **§11.7 / §22 zona due punti** — 2026-09-03; **§11.6 allarmi/mappa** — 2026-08-02; …)  
-**Build widget**: `2026-09-15a`
+**Build widget**: `2026-09-16a`
 
 **Sicurezza (link pubblici, Firestore, callable)**: `docs-sviluppo/SICUREZZA_FLUSSI.md`
 
@@ -161,6 +161,7 @@
 | Piano | Tony | Stato |
 |-------|------|-------|
 | Free | Completamente assente (desiderato) | ✅ Loader + bootstrap auth→tenant (2026-07-06); script Tony non caricato su Free; CF `tonyAsk`/`getTonyAudio` rifiutano Free. **2026-09-15:** piano risolto lato server con `functions/tenant-plan.js` (stessa regola del client: `plan` > `piano`, Stripe Base attivo ⇒ Base). **Gap aperto:** prova 30 gg del modulo `tony` consentita su Free → loader carica il widget ma widget e CF bloccano (da decidere: vietare la prova o ammettere Tony con modulo effettivo) |
+| **Free — nuovo tenant (onboarding)** | **Tony Guida per 7 giorni** dalla registrazione, 30 domande/giorno per tenant, voce inclusa; mai Avanzato | ✅ **2026-09-16** (`TONY_DECISIONI` §1.22): `tenants/{id}.tonyGuidaOnboardingEndsAt` scritto in registrazione; `functions/tony-guida-onboarding.js` (gate, quota `tonyOnboardingQuota/{YYYY-MM-DD}` Europe/Rome, nota prompt) + mirror `core/config/tony-guida-onboarding.js`; benvenuto con giorni rimanenti; a scadenza «periodo terminato → Base». **CF da deployare** (`tonyAsk`, `tonyAskStream`, `getTonyAudio`, `tonyTranscribeAudio`) + `firestore.rules`. Tenant creati prima non lo ricevono |
 | Base (senza modulo tony) | Tony Guida – solo spiegazioni | ✅ FAB + chat verificati post-Stripe (2026-06-22d); `SYSTEM_INSTRUCTION_BASE` |
 | Modulo Tony attivo | Tony Operativo – tutte le funzioni | ✅ SYSTEM_INSTRUCTION_ADVANCED |
 
