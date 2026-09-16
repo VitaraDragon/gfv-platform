@@ -7,6 +7,7 @@ import { injectWidget } from './ui.js';
 import { initTonyVoice } from './voice.js';
 import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTextFromJsonResidue, normalizeTonyTextWhitespace, applyItalianVoiceQuestionPunctuation, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts, matchSegnaOraIncompleteDallePausaFromBlob, normalizeSegnaOraSttBlob, isSegnaOraUntrustedPartialStart, repairSegnaOraVoiceTranscript } from './engine.js';
 import { hasActiveModule, getModuliAttiviFromTonyContext, isApriPaginaTargetAllowed, tonyNotifyModuleInactive } from '../../config/tony-module-gate.js';
+import { getTonyGuidaOnboardingFromWindow, tonyGuidaOnboardingWelcomeMessage } from '../../config/tony-guida-onboarding.js';
 import {
     getTonyFieldProfileFromContext,
     isRawTonyApriPaginaAllowed,
@@ -5474,6 +5475,15 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         getInputEl: function() { return null; }
     };
 
+    /**
+     * Piano Free bloccato salvo periodo Tony Guida onboarding (nuovo tenant, `tonyGuidaOnboardingEndsAt`).
+     * @param {string|null} plan
+     */
+    function isTonyBlockedForPlan(plan) {
+        if (plan !== 'free') return false;
+        return !getTonyGuidaOnboardingFromWindow().active;
+    }
+
     var _initialPlanGate = resolvePlanForWidgetGate();
     var uiApi = injectWidget(scriptBase);
     var appendMessage = uiApi.appendMessage, removeTyping = uiApi.removeTyping, showMessageInChat = uiApi.showMessageInChat;
@@ -5484,8 +5494,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             if (type === 'tony' && _tonyE2eTurnStartMs) tonyE2eScheduleTurnEnd();
         };
     }
-    window.__tonyFreemiumBlocked = _initialPlanGate === 'free';
-    if (_initialPlanGate === 'free') {
+    window.__tonyFreemiumBlocked = isTonyBlockedForPlan(_initialPlanGate);
+    if (window.__tonyFreemiumBlocked) {
         var _fabHideInit = document.getElementById('tony-fab');
         var _panelHideInit = document.getElementById('tony-panel');
         if (_fabHideInit) _fabHideInit.style.display = 'none';
@@ -6146,8 +6156,11 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             try { if (typeof window.__tonyDocCaptureRefresh === 'function') window.__tonyDocCaptureRefresh(); } catch (eCapOpen) {}
             if (messagesEl.children.length === 0) {
                 var welcomeMessage;
+                var onboardingWelcome = resolvePlanForWidgetGate() === 'free' ? getTonyGuidaOnboardingFromWindow() : null;
                 if (tonyIsCampoLikeWorkspaceForTony()) {
                     welcomeMessage = 'Sono Tony, il tuo assistente personale per questa app.';
+                } else if (onboardingWelcome && onboardingWelcome.active) {
+                    welcomeMessage = tonyGuidaOnboardingWelcomeMessage(onboardingWelcome);
                 } else if (isTonyAdvancedActive) {
                     welcomeMessage = 'Ciao! Sono Tony, il tuo assistente. Posso rispondere a domande, aprire pagine, compilare form e molto altro. Prova ad esempio: "Apri il modulo attività" o "Portami ai terreni".';
                 } else {
@@ -8194,6 +8207,10 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             function tonyFormatCallableError(err) {
                 var code = err && err.code ? String(err.code) : '';
                 var msg = err && err.message ? String(err.message) : '';
+                // Messaggi di piano/quota del server (Tony Guida onboarding) mostrati così come sono.
+                if (/periodo di prova di Tony Guida|piano Free/i.test(msg)) {
+                    return msg;
+                }
                 if (code.indexOf('resource-exhausted') >= 0 ||
                     /429|RESOURCE_EXHAUSTED|limite di richieste|sovraccarico|Troppe richieste/i.test(msg)) {
                     return 'Servizio AI al momento sovraccarico (limite richieste). Attendi 30–60 secondi e riprova.';
@@ -9121,7 +9138,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         var plan = getTonyResolvedPlanId();
                         var fabEl = document.getElementById('tony-fab');
                         var panelEl = document.getElementById('tony-panel');
-                        if (plan === 'free') {
+                        if (isTonyBlockedForPlan(plan)) {
                             window.__tonyFreemiumBlocked = true;
                             if (fabEl) fabEl.style.display = 'none';
                             if (panelEl) panelEl.style.display = 'none';

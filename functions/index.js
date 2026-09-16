@@ -110,8 +110,18 @@ const TONY_TTS_VOICE = process.env.TONY_TTS_VOICE || "it-IT-Chirp3-HD-Charon";
 /** Velocità parlato (override: env TONY_TTS_SPEAKING_RATE). */
 const TONY_TTS_SPEAKING_RATE = Number(process.env.TONY_TTS_SPEAKING_RATE || "1.0");
 
-/** Piano tenant: Tony è assente in freemium; enforcement anche lato callable (regola in tenant-plan.js). */
+/**
+ * Piano tenant: Tony è assente in freemium (regola in tenant-plan.js), salvo il periodo
+ * Tony Guida onboarding dei nuovi tenant Free (tony-guida-onboarding.js).
+ */
 const { normalizeSubscriptionPlanId, resolveTenantPlanId } = require("./tenant-plan");
+const {
+  resolveTonyGuidaOnboarding,
+  tonyFreeDeniedMessage,
+  buildTonyGuidaOnboardingPromptNote,
+  consumeTonyGuidaOnboardingQuota,
+  TONY_ONBOARDING_QUOTA_MESSAGE,
+} = require("./tony-guida-onboarding");
 
 async function resolveTenantSubscription(dashboard, ctx, tenantIdHint) {
   const rawFromClient =
@@ -121,12 +131,14 @@ async function resolveTenantSubscription(dashboard, ctx, tenantIdHint) {
   let planId = normalizeSubscriptionPlanId(rawFromClient);
   let activeBundles = [];
   let tenantModules = [];
+  let tenantData = null;
   const tid = tenantIdHint ? String(tenantIdHint) : null;
   if (tid) {
     try {
       const snap = await db.collection("tenants").doc(tid).get();
       if (snap.exists) {
         const td = snap.data() || {};
+        tenantData = td;
         planId = resolveTenantPlanId(td, { fallbackRaw: rawFromClient });
         activeBundles = Array.isArray(td.activeBundles) ? td.activeBundles : [];
         tenantModules = Array.isArray(td.modules) ? td.modules : [];
@@ -135,16 +147,36 @@ async function resolveTenantSubscription(dashboard, ctx, tenantIdHint) {
       console.warn("[Tony] resolveTenantSubscription:", e.message);
     }
   }
+  const onboarding = resolveTonyGuidaOnboarding(tenantData);
   return {
     planId,
     activeBundles,
     tenantModules,
+    tenantData,
+    /** Free in periodo Tony Guida onboarding: chat/voce consentite, mai Avanzato. */
+    tonyGuidaOnboarding: onboarding,
+    tonyGuidaOnboardingActive: planId === "free" && onboarding.active,
   };
 }
 
-async function resolveTenantSubscriptionPlan(dashboard, ctx, tenantIdHint) {
+/**
+ * Gate Tony (chat/voce) per tenant Free: passa solo in onboarding, altrimenti permission-denied
+ * con messaggio "mai avuto" / "periodo terminato".
+ * @param {Awaited<ReturnType<typeof resolveTenantSubscription>>} sub
+ */
+function assertTonyAllowedForPlan(sub) {
+  if (sub.planId !== "free") return;
+  if (sub.tonyGuidaOnboardingActive) return;
+  throw new HttpsError("permission-denied", tonyFreeDeniedMessage(sub.tenantData));
+}
+
+/**
+ * Piano "ai fini di Tony voce" (tonyTranscribeAudio): Free in onboarding vale come Base.
+ * Firma compatibile con tony-extract-document.resolveTenantSubscriptionPlan (db, dashboard, ctx, tenantId).
+ */
+async function resolveTenantPlanForTonyVoiceDoc(_db, dashboard, ctx, tenantIdHint) {
   const sub = await resolveTenantSubscription(dashboard, ctx, tenantIdHint);
-  return sub.planId;
+  return sub.tonyGuidaOnboardingActive ? "base" : sub.planId;
 }
 
 async function resolveTenantIdForTony(authUid, dashboard, ctx) {
@@ -2443,6 +2475,7 @@ const SUBAGENT_TONY_MODULO = `
 SUB-AGENTE GUIDA UTENTE TONY (usa quando l'utente chiede cos'è Tony, cosa può fare, differenza tra guida e avanzato, piano free, widget assente, voce/microfono, profilo campo, briefing dashboard):
 - Integra **context.guida_sintesi_tony** se presente; linguaggio semplice e passi pratici, senza gergo da sviluppatore.
 - Distingui: **Tony Guida** (orientamento) vs **modulo Tony / Tony Avanzato** (navigazione e automazioni: richiede il modulo "tony" nel tenant oltre al piano che consente l'assistente).
+- Piano Free: Tony Guida è disponibile solo nei primi 7 giorni dalla registrazione dell'azienda (periodo di prova, 30 domande al giorno); poi serve il piano Base.
 `;
 
 /**
@@ -2539,11 +2572,13 @@ async function handleTonyAskRequest(request, streamOpts) {
     const tenantSubscription = await resolveTenantSubscription(dashboard, ctx, tenantIdForTonyPlan);
     const subscriptionPlanId = tenantSubscription.planId;
     const tenantActiveBundles = tenantSubscription.activeBundles;
-    if (subscriptionPlanId === "free") {
-      throw new HttpsError(
-        "permission-denied",
-        "Tony non è disponibile sul piano Free. Passa al piano Base dalla pagina Abbonamento per usare Tony Guida."
-      );
+    assertTonyAllowedForPlan(tenantSubscription);
+    const tonyGuidaOnboardingActive = tenantSubscription.tonyGuidaOnboardingActive === true;
+    if (tonyGuidaOnboardingActive && tenantIdForTonyPlan) {
+      const quota = await consumeTonyGuidaOnboardingQuota(db, tenantIdForTonyPlan);
+      if (!quota.allowed) {
+        throw new HttpsError("resource-exhausted", TONY_ONBOARDING_QUOTA_MESSAGE);
+      }
     }
 
     let ruoliUtente =
@@ -2579,7 +2614,9 @@ async function handleTonyAskRequest(request, streamOpts) {
       moduliAttiviEarly,
       tenantSubscription.tenantModules
     );
+    // Free in onboarding: sempre Tony Guida, anche se il modulo tony risultasse attivo (es. prova modulo).
     const isTonyAdvancedEarly =
+      !tonyGuidaOnboardingActive &&
       Array.isArray(moduliAttiviEarly) &&
       moduliAttiviEarly.some((m) => String(m).toLowerCase() === "tony");
 
@@ -2964,7 +3001,9 @@ async function handleTonyAskRequest(request, streamOpts) {
             : [];
     // Tony Avanzato solo se il modulo 'tony' è attivo nel tenant (nessun bypass navigazione).
     let isTonyAdvanced =
-      Array.isArray(moduliAttivi) && moduliAttivi.some((m) => String(m).toLowerCase() === "tony");
+      !tonyGuidaOnboardingActive &&
+      Array.isArray(moduliAttivi) &&
+      moduliAttivi.some((m) => String(m).toLowerCase() === "tony");
     const isTonyAdvancedActive = isTonyAdvanced;
     tonyPerf.isTonyAdvanced = isTonyAdvancedActive;
 
@@ -3043,6 +3082,9 @@ async function handleTonyAskRequest(request, streamOpts) {
         extraBlocks += SUBAGENT_FRUTTETO;
       }
       extraBlocks += SUBAGENT_TONY_MODULO;
+    }
+    if (tonyGuidaOnboardingActive && !tonyFieldProfile) {
+      extraBlocks += buildTonyGuidaOnboardingPromptNote(tenantSubscription.tonyGuidaOnboarding);
     }
     if (isTonyAdvanced && !tonyFieldProfile) {
       extraBlocks += TONY_MODULI_ATTIVI_RULE;
@@ -4187,7 +4229,6 @@ const {
 } = require("./tony-transcribe-audio");
 const {
   resolveTenantIdForTony: resolveTenantIdForTonyDoc,
-  resolveTenantSubscriptionPlan: resolveTenantSubscriptionPlanDoc,
 } = require("./tony-extract-document");
 exports.tonyTranscribeAudio = onCall(
   {
@@ -4199,7 +4240,7 @@ exports.tonyTranscribeAudio = onCall(
   async (request) =>
     handleTonyTranscribeAudio(db, request, {
       resolveTenantId: resolveTenantIdForTonyDoc,
-      resolvePlan: resolveTenantSubscriptionPlanDoc,
+      resolvePlan: resolveTenantPlanForTonyVoiceDoc,
     })
 );
 
@@ -4218,13 +4259,8 @@ exports.getTonyAudio = onCall(
     const ctxAudio = request.data?.context != null ? request.data.context : {};
     const dashAudio = ctxAudio.dashboard != null ? ctxAudio.dashboard : {};
     const tenantIdAudio = await resolveTenantIdForTony(request.auth.uid, dashAudio, ctxAudio);
-    const planAudio = await resolveTenantSubscriptionPlan(dashAudio, ctxAudio, tenantIdAudio);
-    if (planAudio === "free") {
-      throw new HttpsError(
-        "permission-denied",
-        "Tony non è disponibile sul piano Free. Passa al piano Base dalla pagina Abbonamento per usare Tony Guida."
-      );
-    }
+    const subAudio = await resolveTenantSubscription(dashAudio, ctxAudio, tenantIdAudio);
+    assertTonyAllowedForPlan(subAudio);
 
     const text = request.data?.text;
     if (!text || typeof text !== "string") {
