@@ -1049,10 +1049,15 @@
             return date <= new Date();
         }
 
-        /** Allinea scadenza da Stripe se c'è abbonamento ma data locale obsoleta. */
+        /**
+         * Allinea il tenant da Stripe se c'è abbonamento ma data locale obsoleta,
+         * oppure se il documento è rimasto `plan: free` nonostante l'abbonamento Base
+         * (checkout completato senza ritorno del client, es. web app iOS installata).
+         */
         async function syncStripeFromServerIfNeeded() {
             if (!currentTenantId || !currentTenantData?.stripeSubscriptionId) return;
-            if (!tenantExpiryIsPast(currentTenantData)) return;
+            const planStillFree = resolvePlanIdFromTenant(currentTenantData) === 'free';
+            if (!planStillFree && !tenantExpiryIsPast(currentTenantData)) return;
             try {
                 const sync = getHttpsCallable('syncStripeSubscription');
                 await sync({ tenantId: currentTenantId });
