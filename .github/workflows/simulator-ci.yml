@@ -4,43 +4,20 @@ on:
   push:
     branches: [main, develop]
     paths:
+      # Tutto il codice servito al browser: i job Playwright esercitano le pagine,
+      # quindi devono partire ogni volta che cambiano (v. regressione demo-map-privacy 2026-09).
+      - 'core/**'
+      - 'modules/**'
+      - 'shared/**'
+      - 'index.html'
+      - 'service-worker.js'
+      - 'manifest.json'
+      - 'functions/**'
       - 'simulator/**'
-      - 'tests/simulator/**'
-      - 'tests/e2e/sim/**'
-      - 'tests/e2e/tony/**'
-      - 'tests/tony/**'
-      - 'tests/tony*.test.js'
-      - 'core/js/tony/**'
-      - 'core/js/firebase-emulator-dev.js'
-      - 'core/services/tony-service.js'
-      - 'core/js/gfv-tony-loader.js'
-      - 'scripts/sim-tony-e2e-run.mjs'
-      - 'scripts/sim-ci-tony-e2e-inner.sh'
-      - 'scripts/sim-ci-tony-e2e-live-inner.sh'
-      - 'simulator/ci-tony-e2e-run.js'
-      - 'simulator/ci-tony-e2e-live-run.js'
-      - 'modules/frutteto/**'
-      - 'scripts/sim-e2e-run.mjs'
-      - 'scripts/sim-ci-e2e-inner.sh'
-      - 'scripts/manodopera-roster-a2-canary.mjs'
-      - 'scripts/sim-ci-manodopera-roster-a2-inner.sh'
-      - 'simulator/ci-manodopera-roster-a2-run.js'
-      - 'scripts/mappa-manodopera-canary.mjs'
-      - 'scripts/sim-ci-mappa-manodopera-inner.sh'
-      - 'simulator/ci-mappa-manodopera-canary-run.js'
-      - 'core/js/dashboard-maps.js'
-      - 'core/js/mappa-aziendale-page.js'
-      - 'core/mappa-aziendale-standalone.html'
-      - 'core/services/manodopera-problema-severita-logic.js'
-      - 'simulator/verify-e2e-seed.js'
-      - 'core/services/manodopera-roster-giorno-*.js'
-      - 'core/js/manodopera-roster-edit-ui.js'
-      - 'core/services/manodopera-impegni-giorno-*.js'
-      - 'modules/manodopera/**'
-      - 'core/admin/js/gestione-lavori-sostituti-ui.js'
-      - 'functions/tony-nav-quick-reply.js'
+      - 'tests/**'
+      - 'scripts/**'
       - 'playwright.config.js'
-      - 'core/config/trattamenti-lavoro-defaults.js'
+      - 'vitest.config.js'
       - 'firebase.json'
       - '.firebaserc'
       - 'package.json'
@@ -48,43 +25,20 @@ on:
       - '.github/workflows/simulator-ci.yml'
   pull_request:
     paths:
+      # Tutto il codice servito al browser: i job Playwright esercitano le pagine,
+      # quindi devono partire ogni volta che cambiano (v. regressione demo-map-privacy 2026-09).
+      - 'core/**'
+      - 'modules/**'
+      - 'shared/**'
+      - 'index.html'
+      - 'service-worker.js'
+      - 'manifest.json'
+      - 'functions/**'
       - 'simulator/**'
-      - 'tests/simulator/**'
-      - 'tests/e2e/sim/**'
-      - 'tests/e2e/tony/**'
-      - 'tests/tony/**'
-      - 'tests/tony*.test.js'
-      - 'core/js/tony/**'
-      - 'core/js/firebase-emulator-dev.js'
-      - 'core/services/tony-service.js'
-      - 'core/js/gfv-tony-loader.js'
-      - 'scripts/sim-tony-e2e-run.mjs'
-      - 'scripts/sim-ci-tony-e2e-inner.sh'
-      - 'scripts/sim-ci-tony-e2e-live-inner.sh'
-      - 'simulator/ci-tony-e2e-run.js'
-      - 'simulator/ci-tony-e2e-live-run.js'
-      - 'modules/frutteto/**'
-      - 'scripts/sim-e2e-run.mjs'
-      - 'scripts/sim-ci-e2e-inner.sh'
-      - 'scripts/manodopera-roster-a2-canary.mjs'
-      - 'scripts/sim-ci-manodopera-roster-a2-inner.sh'
-      - 'simulator/ci-manodopera-roster-a2-run.js'
-      - 'scripts/mappa-manodopera-canary.mjs'
-      - 'scripts/sim-ci-mappa-manodopera-inner.sh'
-      - 'simulator/ci-mappa-manodopera-canary-run.js'
-      - 'core/js/dashboard-maps.js'
-      - 'core/js/mappa-aziendale-page.js'
-      - 'core/mappa-aziendale-standalone.html'
-      - 'core/services/manodopera-problema-severita-logic.js'
-      - 'simulator/verify-e2e-seed.js'
-      - 'core/services/manodopera-roster-giorno-*.js'
-      - 'core/js/manodopera-roster-edit-ui.js'
-      - 'core/services/manodopera-impegni-giorno-*.js'
-      - 'modules/manodopera/**'
-      - 'core/admin/js/gestione-lavori-sostituti-ui.js'
-      - 'functions/tony-nav-quick-reply.js'
+      - 'tests/**'
+      - 'scripts/**'
       - 'playwright.config.js'
-      - 'core/config/trattamenti-lavoro-defaults.js'
+      - 'vitest.config.js'
       - 'firebase.json'
       - '.firebaserc'
       - 'package.json'
@@ -102,6 +56,27 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  static-import-guard:
+    name: import-guard (import relativi risolvibili)
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Import relativi (core/, modules/, shared/) + handler functions/index.js
+        run: npx vitest run tests/relative-imports-resolve.test.js tests/functions-index-handlers-defined.test.js
+
   simulator-emulator:
     name: sim:test (Auth + Firestore emulator)
     runs-on: ubuntu-latest
