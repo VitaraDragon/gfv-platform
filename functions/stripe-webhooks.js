@@ -4,6 +4,7 @@ const Stripe = require("stripe");
 const {
   syncAddonFromStripeSubscription,
   handleStripeInvoicePaymentFailed,
+  handleStripeCheckoutSessionCompleted,
 } = require("./stripe-billing");
 
 function getStripeClients(apiKey, webhookSecret) {
@@ -66,6 +67,13 @@ async function handleStripeWebhookRequest(db, stripeApiKey, webhookSecret, req, 
 
   try {
     switch (event.type) {
+      case "checkout.session.completed": {
+        // Fulfillment server-side: il ritorno del client (fulfillStripeCheckout) può non avvenire
+        // (web app iOS installata → Stripe nel browser in-app, sessione app non condivisa).
+        const outcome = await handleStripeCheckoutSessionCompleted(db, stripe, event.data.object);
+        console.log("[stripeWebhook] checkout.session.completed", outcome);
+        break;
+      }
       case "customer.subscription.updated":
         await syncAddonFromStripeSubscription(db, event.data.object, event.type);
         break;

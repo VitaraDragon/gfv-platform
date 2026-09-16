@@ -49,30 +49,28 @@ async function assertManagerOrAdminForTenant(db, uid, tenantId) {
   );
 }
 
-function normalizeSubscriptionPlanId(raw) {
-  if (raw == null || raw === "") return "base";
-  const p = String(raw).trim().toLowerCase();
-  if (p === "free" || p === "freemium") return "free";
-  return "base";
-}
+const { normalizeSubscriptionPlanId, resolveTenantPlanId } = require("./tenant-plan");
 
+/**
+ * Piano tenant: Firestore è la fonte di verità (stessa regola di tonyAsk);
+ * il piano inviato dal client vale solo se il doc non è leggibile.
+ */
 async function resolveTenantSubscriptionPlan(db, dashboard, ctx, tenantIdHint) {
-  let raw =
+  const rawFromClient =
     (dashboard && (dashboard.plan || dashboard.piano)) ||
     (ctx && (ctx.plan || ctx.piano)) ||
     null;
-  if (!raw && tenantIdHint) {
+  if (tenantIdHint) {
     try {
       const tSnap = await db.collection("tenants").doc(String(tenantIdHint)).get();
       if (tSnap.exists) {
-        const td = tSnap.data();
-        raw = td.piano || td.plan || raw;
+        return resolveTenantPlanId(tSnap.data() || {}, { fallbackRaw: rawFromClient });
       }
     } catch (e) {
       console.warn("[tonyExtractDocument] resolve plan:", e.message);
     }
   }
-  return normalizeSubscriptionPlanId(raw);
+  return normalizeSubscriptionPlanId(rawFromClient);
 }
 
 async function resolveTenantIdForTony(db, authUid, dashboard, ctx, explicitTenantId) {

@@ -9,6 +9,7 @@ const { assertManagerOrAdminForTenant } = require("./email-resend");
 const STRIPE_PRICE_IDS = require("./config/stripe-prices.json");
 const BUNDLES_CATALOG = require("./config/bundles-catalog.json");
 const { markModuleTrialConverted, markBundleTrialsConverted } = require("./module-trial");
+const { resolveTenantPlanId } = require("./tenant-plan");
 const STRIPE_ENV = process.env.STRIPE_ENV || "test";
 
 function getStripeClient(apiKey) {
@@ -47,14 +48,6 @@ function getPriceIdForCatalog(catalogId) {
   const envMap = STRIPE_PRICE_IDS[STRIPE_ENV] || {};
   const priceId = envMap[catalogId];
   return typeof priceId === "string" && priceId.startsWith("price_") ? priceId : null;
-}
-
-function normalizePlanId(raw) {
-  if (raw == null || raw === "") return "base";
-  const p = String(raw).trim().toLowerCase();
-  if (p === "free" || p === "freemium") return "free";
-  if (["starter", "professional", "enterprise", "base"].includes(p)) return "base";
-  return "base";
 }
 
 /** URL di ritorno Checkout: https in produzione; localhost http ammesso in test Stripe. */
@@ -216,8 +209,8 @@ async function syncTenantFromStripeSubscription(db, stripeApiKey, tenantId) {
   if (!currentPeriodEnd) {
     throw new HttpsError("failed-precondition", "Impossibile leggere la scadenza da Stripe.");
   }
-  const planId = tenant.plan || tenant.piano || "base";
-  await applyPlanToTenant(db, tenantId, planId === "free" ? "base" : planId, {
+  // Un abbonamento Stripe del piano esiste solo per Base: il piano Free non passa da Stripe.
+  await applyPlanToTenant(db, tenantId, "base", {
     customerId: tenant.stripeCustomerId,
     subscriptionId,
     currentPeriodEnd,
@@ -258,7 +251,7 @@ async function handleCreateStripeCheckoutSession(db, stripeApiKey, request) {
   if (!tenantSnap.exists) {
     throw new HttpsError("not-found", "Tenant non trovato.");
   }
-  const tenantPlan = normalizePlanId(tenantSnap.data()?.plan || tenantSnap.data()?.piano);
+  const tenantPlan = resolveTenantPlanId(tenantSnap.data() || {});
 
   if (checkoutType === "plan") {
     if (catalogId === "free") {
@@ -329,25 +322,32 @@ async function handleCreateStripeCheckoutSession(db, stripeApiKey, request) {
   return { url: session.url, sessionId: session.id, checkoutType, catalogId };
 }
 
-async function handleFulfillStripeCheckout(db, stripeApiKey, request) {
-  if (!request.auth) {
-    throw new HttpsError("unauthenticated", "Autenticazione richiesta.");
+/**
+ * Tenant a cui appartiene una Checkout Session (metadata o client_reference_id).
+ * @param {object} session
+ * @returns {string|null}
+ */
+function tenantIdFromCheckoutSession(session) {
+  const meta = (session && session.metadata) || {};
+  if (meta.tenantId) return String(meta.tenantId);
+  if (session && session.client_reference_id) return String(session.client_reference_id);
+  return null;
+}
+
+/**
+ * Applica al tenant ciò che una Checkout Session pagata ha acquistato (piano / modulo / bundle).
+ * Idempotente: richiamabile sia dal client al ritorno da Stripe sia dal webhook
+ * `checkout.session.completed` (unico canale affidabile quando il ritorno avviene in un
+ * browser diverso, es. web app iOS installata che apre Stripe nel browser in-app).
+ * @param {object} db Firestore
+ * @param {object} stripe client Stripe
+ * @param {object} session Checkout Session (già recuperata o dal payload webhook)
+ * @param {string} tenantId tenant atteso
+ */
+async function applyCheckoutSessionToTenant(db, stripe, session, tenantId) {
+  if (!tenantId) {
+    throw new HttpsError("invalid-argument", "tenantId obbligatorio.");
   }
-  const data = request.data || {};
-  const tenantId = data.tenantId;
-  const sessionId = data.sessionId;
-
-  if (!tenantId || !sessionId) {
-    throw new HttpsError("invalid-argument", "tenantId e sessionId obbligatori.");
-  }
-
-  await assertManagerOrAdminForTenant(db, request.auth.uid, tenantId);
-
-  const stripe = getStripeClient(stripeApiKey);
-  const session = await stripe.checkout.sessions.retrieve(String(sessionId), {
-    expand: ["subscription"],
-  });
-
   if (session.metadata && session.metadata.tenantId && session.metadata.tenantId !== tenantId) {
     throw new HttpsError("permission-denied", "Sessione non valida per questo tenant.");
   }
@@ -387,6 +387,51 @@ async function handleFulfillStripeCheckout(db, stripeApiKey, request) {
 
   await applyPlanToTenant(db, tenantId, catalogId === "free" ? "base" : catalogId, stripeInfo);
   return { ok: true, checkoutType: "plan", catalogId, subscriptionId: subscriptionId || null, expiryDate: currentPeriodEnd };
+}
+
+async function handleFulfillStripeCheckout(db, stripeApiKey, request) {
+  if (!request.auth) {
+    throw new HttpsError("unauthenticated", "Autenticazione richiesta.");
+  }
+  const data = request.data || {};
+  const tenantId = data.tenantId;
+  const sessionId = data.sessionId;
+
+  if (!tenantId || !sessionId) {
+    throw new HttpsError("invalid-argument", "tenantId e sessionId obbligatori.");
+  }
+
+  await assertManagerOrAdminForTenant(db, request.auth.uid, tenantId);
+
+  const stripe = getStripeClient(stripeApiKey);
+  const session = await stripe.checkout.sessions.retrieve(String(sessionId), {
+    expand: ["subscription"],
+  });
+
+  return applyCheckoutSessionToTenant(db, stripe, session, tenantId);
+}
+
+/**
+ * Webhook `checkout.session.completed`: fulfillment server-side, indipendente dal ritorno
+ * del client alla pagina Abbonamento.
+ * @param {object} db Firestore
+ * @param {object} stripe client Stripe
+ * @param {object} session payload evento
+ */
+async function handleStripeCheckoutSessionCompleted(db, stripe, session) {
+  if (!session || session.mode !== "subscription") {
+    return { ok: false, reason: "not_subscription_checkout" };
+  }
+  const tenantId = tenantIdFromCheckoutSession(session);
+  if (!tenantId) {
+    console.warn("[stripe-webhook] checkout.session.completed senza tenantId", session.id);
+    return { ok: false, reason: "tenant_not_found" };
+  }
+  if (session.payment_status !== "paid" && session.status !== "complete") {
+    return { ok: false, reason: "not_paid", tenantId };
+  }
+  const result = await applyCheckoutSessionToTenant(db, stripe, session, tenantId);
+  return Object.assign({ tenantId, sessionId: session.id || null }, result);
 }
 
 async function handleSyncStripeSubscription(db, stripeApiKey, request) {
@@ -801,7 +846,8 @@ async function syncAddonFromStripeSubscription(db, subscription, eventType) {
       });
       return { ok: true, tenantId, scope: "plan", action: "expired" };
     }
-    await applyPlanToTenant(db, tenantId, tenant.plan || tenant.piano || "base", {
+    // Subscription del piano attiva ⇒ Base: non propagare mai il `piano: 'free'` scritto alla registrazione.
+    await applyPlanToTenant(db, tenantId, "base", {
       customerId: typeof subscription.customer === "string" ? subscription.customer : subscription.customer?.id,
       subscriptionId: subscription.id,
       currentPeriodEnd: periodEnd,
@@ -858,6 +904,9 @@ async function handleStripeInvoicePaymentFailed(db, invoice) {
 module.exports = {
   handleCreateStripeCheckoutSession,
   handleFulfillStripeCheckout,
+  handleStripeCheckoutSessionCompleted,
+  applyCheckoutSessionToTenant,
+  tenantIdFromCheckoutSession,
   handleSyncStripeSubscription,
   handleCancelStripeAddon,
   handleReactivateStripeAddon,
