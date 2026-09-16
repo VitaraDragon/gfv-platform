@@ -730,7 +730,7 @@
                             }
                             
                             // Usa servizio centralizzato
-                            const { getAllMacchine } = await import('../../../modules/parco-macchine/services/macchine-service.js');
+                            const { getAllMacchine } = await import('../../modules/parco-macchine/services/macchine-service.js');
                             let macchine = await getAllMacchine({
                                 // Non usiamo soloAttive per evitare problemi con indice Firestore
                                 // Filtriamo lato client invece
