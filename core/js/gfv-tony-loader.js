@@ -7,7 +7,35 @@
 (function () {
     'use strict';
 
-    var TONY_LOADER_QUERY = '2026-09-16a';
+    var TONY_LOADER_QUERY = '2026-09-16b';
+
+    /** iOS «Aggiungi a Home»: senza questi meta (iOS < 16.4) la PWA non è standalone
+     *  e Web Speech resta muta. Iniettiamo su ogni pagina che carica Tony. */
+    (function ensureIosWebAppMeta() {
+        try {
+            if (!document.head) return;
+            function addMeta(name, content) {
+                if (document.querySelector('meta[name="' + name + '"]')) return;
+                var m = document.createElement('meta');
+                m.name = name;
+                m.content = content;
+                document.head.appendChild(m);
+            }
+            addMeta('apple-mobile-web-app-capable', 'yes');
+            addMeta('mobile-web-app-capable', 'yes');
+            addMeta('apple-mobile-web-app-status-bar-style', 'default');
+            addMeta('apple-mobile-web-app-title', 'GFV Platform');
+            if (!document.querySelector('link[rel="apple-touch-icon"]')) {
+                var l = document.createElement('link');
+                l.rel = 'apple-touch-icon';
+                l.sizes = '180x180';
+                var path = (window.location && window.location.pathname) || '';
+                var prefix = path.indexOf('/gfv-platform/') >= 0 ? '/gfv-platform' : '';
+                l.href = prefix + '/icons/icon-180x180.png';
+                document.head.appendChild(l);
+            }
+        } catch (eMeta) { /* ignore */ }
+    })();
 
     function resolveCoreBase() {
         var path = (window.location.pathname || '').replace(/\\/g, '/');
