@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-16 — Tony Guida in prova 7 giorni per i nuovi tenant Free (30 domande/giorno, voce inclusa).**
+**Ultimo aggiornamento documentazione: 2026-09-16 — Playwright CI rosso da settembre: Gestione Lavori non si avviava per un file mai committato.**
+
+## Playwright CI rosso — `core/js/demo-map-privacy.js` mancante, Gestione Lavori rotta (2026-09-16)
+
+- **Sintomo:** da giorni i job `sim:e2e` e `sim:tony:e2e` fallivano su ogni push/PR (`gestione-lavori-write`, `manodopera-admin`, `T-PERF-002`, `T-INJECT-001`, `T-FLOW-013`) con finding `T6_PERF_BUDGET_EXCEEDED` / «Tony non pronto» sulla pagina `gestione-lavori-standalone.html`; gli altri 69 spec passavano. Playwright funzionava: segnalava un bug vero.
+- **Causa:** il commit `0bdde50` (2026-09-05, Maps lazy su lavori) ha aggiunto in `core/admin/js/gestione-lavori-maps.js` l'import statico `../../js/demo-map-privacy.js` senza committare il file (esisteva solo in locale; la voce «Demo cloud geo privacy-safe v2» lo dava per fatto). Import ES statico → 404 → l'intero `<script type="module">` della pagina non parte → lista lavori ferma su «caricamento». **Anche in produzione** (`https://vitaradragon.github.io/gfv-platform/core/js/demo-map-privacy.js` → 404).
+- **Fix:** ricreato `core/js/demo-map-privacy.js` — `withDemoPrivacyMapOptions(options, tenantId)` restituisce le opzioni inalterate per ogni tenant, e per `demo_azienda_demo_gfv_v1` forza `roadmap` senza POI/etichette, `mapTypeControl`/`streetViewControl` off. Esporta anche `isDemoPrivacyTenant`. Bump cache PWA.
+- **Verifica locale** (emulatori Auth+Firestore, seed `viticola-conto-terzi-manodopera`, Chrome di sistema): i 2 spec sim passano in 7 s; senza il file lo stesso spec riproduce esattamente il fallimento CI; i 3 scenari Tony mock passano 3/3 (`--only=T-PERF-002,T-INJECT-001,T-FLOW-013`, `GFV_E2E_BROWSER_CHANNEL=chrome`).
+- **Nota per il futuro:** una scansione degli import relativi in `core/`, `modules/`, `shared/` (non committata) mostra altri import **dinamici** con `../../../modules/...` da `core/admin/*.html` e `../../modules/...` da `core/attivita-standalone.html` che in locale risolvono solo perché il browser tronca alla root; su GitHub Pages (`/gfv-platform/`) puntano fuori dal sito. Sono lazy e in `try/catch`, quindi non bloccano la pagina, ma vanno verificati a parte.
 
 ## Tony Guida onboarding — nuovi tenant Free, 7 giorni (2026-09-16)
 
