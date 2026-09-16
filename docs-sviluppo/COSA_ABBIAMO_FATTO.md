@@ -1,6 +1,15 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-16 — CI Playwright su ogni modifica a core/ + guardia import relativi.**
+**Ultimo aggiornamento documentazione: 2026-09-16 — voce iPhone (microfono + dettatura + TTS).**
+
+## Voce iPhone — microfono, dettatura e TTS (2026-09-16)
+
+- **Segnalazione:** un amico ieri ha detto che su iPhone il microfono di Tony non funzionava bene (voce + dettatura). Ieri stesso erano già in produzione due cause: Web Speech muta nella web app da Home (WebKit 225298) e `tonyTranscribeAudio` che rifiutava i tenant Base con `piano: 'free'`. Restavano buchi che su iPhone reale spengono mic o voce anche con il motore registratore.
+- **Motore STT su tutto iOS:** `chooseSttEngine` usa il registratore (`getUserMedia` + `MediaRecorder` + CF) su **Safari e PWA**, non solo `display-mode: standalone`. In Safari la Web Speech API dipende dalla dettatura di sistema (spesso assente o instabile); se la PWA non veniva rilevata come standalone si restava sul motore muto.
+- **Registratore più robusto:** vincoli mic troppo stretti (`OverconstrainedError`) → fallback `{ audio: true }`; `MediaRecorder.start(timeslice)` rifiutato da Safari → `start()` senza slice; AudioContext `suspended` (gesto già consumato) **non** viene ricreato: si manda un clip a durata fissa invece di un falso «nessun parlato»; lo stream mic si tiene 60 s tra un turno e l’altro così il TTS lungo non costringe un nuovo `getUserMedia` fuori dal tap.
+- **Tony che parla:** iOS blocca `Audio.play()` dopo l’await di `getTonyAudio`. Al tap su FAB o microfono si suona un WAV silenzioso (`unlockTonyHtmlAudio`) e gli elementi audio hanno `playsInline`.
+- **PWA iOS:** meta `apple-mobile-web-app-capable` (e touch icon) su dashboard (start_url), login, e inject dal loader Tony — senza questi meta, su iOS &lt; 16.4 «Aggiungi a Home» non è standalone.
+- Build widget **`2026-09-16b`**. Test: `tests/tony-voice-recorder-stt.test.js` (28). **Non verificato su iPhone fisico** da questo ambiente (nessun device); va confermato: tap 🎤 → permesso mic → frase → Tony risponde a voce → il mic si riapre.
 
 ## CI Playwright su core/modules/shared + guardia import relativi (2026-09-16)
 

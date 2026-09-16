@@ -9,6 +9,7 @@ import {
   mapRecorderErrorToSpeechError,
   buildFinalResultEvent,
   createRecorderSpeechRecognition,
+  streamIsUsable,
   RECORDER_STT_DEFAULTS,
 } from '../core/js/tony/voice-recorder-stt.js';
 
@@ -56,8 +57,8 @@ describe('voice-recorder-stt — scelta motore', () => {
     expect(chooseSttEngine(mkWin())).toBe('webspeech');
   });
 
-  it('iPhone Safari (non installata) → webspeech', () => {
-    expect(chooseSttEngine(mkWin({ navigator: { userAgent: IPHONE_UA, platform: 'iPhone' } }))).toBe('webspeech');
+  it('iPhone Safari (non installata) → recorder (Web Speech inaffidabile / muta in PWA)', () => {
+    expect(chooseSttEngine(mkWin({ navigator: { userAgent: IPHONE_UA, platform: 'iPhone' } }))).toBe('recorder');
   });
 
   it('iPhone web app da schermata Home → recorder anche se Web Speech esiste', () => {
@@ -65,9 +66,11 @@ describe('voice-recorder-stt — scelta motore', () => {
     expect(chooseSttEngine(win)).toBe('recorder');
   });
 
-  it('iPhone standalone senza MediaRecorder → none (mic nascosto)', () => {
-    const win = mkWin({ navigator: { userAgent: IPHONE_UA, platform: 'iPhone', standalone: true }, MediaRecorder: null });
-    expect(chooseSttEngine(win)).toBe('none');
+  it('iPhone senza MediaRecorder → webspeech se c\'è, altrimenti none', () => {
+    const withSpeech = mkWin({ navigator: { userAgent: IPHONE_UA, platform: 'iPhone', standalone: true }, MediaRecorder: null });
+    expect(chooseSttEngine(withSpeech)).toBe('webspeech');
+    const none = mkWin({ navigator: { userAgent: IPHONE_UA, platform: 'iPhone' }, MediaRecorder: null, webSpeech: false });
+    expect(chooseSttEngine(none)).toBe('none');
   });
 
   it('override sessionStorage per test', () => {
@@ -376,5 +379,60 @@ describe('voice-recorder-stt — adapter SpeechRecognition-like', () => {
   it('usa i default documentati', () => {
     expect(RECORDER_STT_DEFAULTS.silenceMs).toBe(900);
     expect(RECORDER_STT_DEFAULTS.maxUtteranceMs).toBe(30000);
+    expect(RECORDER_STT_DEFAULTS.releaseStreamAfterIdleMs).toBe(60000);
+  });
+
+  it('streamIsUsable: tracce live sì, ended no, readyState assente = live', () => {
+    expect(streamIsUsable(null)).toBe(false);
+    expect(streamIsUsable({ active: false, getAudioTracks: () => [{ readyState: 'live' }] })).toBe(false);
+    expect(streamIsUsable({ active: true, getAudioTracks: () => [{ readyState: 'ended' }] })).toBe(false);
+    expect(streamIsUsable({ active: true, getAudioTracks: () => [{ stop: () => {} }] })).toBe(true);
+    expect(streamIsUsable({ active: true, getAudioTracks: () => [{ readyState: 'live' }] })).toBe(true);
+  });
+
+  it('getUserMedia OverconstrainedError → fallback { audio: true }', async () => {
+    const gum = vi.fn((c) => {
+      if (c && c.audio && typeof c.audio === 'object') {
+        return Promise.reject({ name: 'OverconstrainedError', message: 'x' });
+      }
+      return Promise.resolve(mkStream());
+    });
+    const { rec, events } = mkRec({ getUserMedia: gum });
+    rec.start();
+    await vi.advanceTimersByTimeAsync(20);
+    expect(gum).toHaveBeenCalledTimes(2);
+    expect(events).toContain('onstart');
+  });
+
+  it('MediaRecorder.start(timeslice) che lancia → retry senza timeslice', async () => {
+    class TimesliceThenOk extends FakeMediaRecorder {
+      start(timeslice) {
+        if (timeslice) throw new Error('timeslice not supported');
+        this.state = 'recording';
+      }
+    }
+    const { rec, events } = mkRec({ MediaRecorder: TimesliceThenOk });
+    rec.start();
+    await vi.advanceTimersByTimeAsync(20);
+    expect(events).toContain('onstart');
+  });
+
+  it('AudioContext suspended → niente VAD silenzioso, clip a durata fissa verso la CF', async () => {
+    function SuspendedCtx() {
+      this.state = 'suspended';
+      this.resume = () => Promise.resolve();
+      this.createMediaStreamSource = () => ({ connect: () => {} });
+      this.createAnalyser = () => new FakeAnalyser();
+    }
+    const { rec, events, transcribe } = mkRec({
+      AudioContext: SuspendedCtx,
+      options: { silenceMs: 300, noSpeechTimeoutMs: 8000, minSpeechMs: 100, tickMs: 50, noAnalyserClipMs: 400, releaseStreamAfterIdleMs: 500 },
+    });
+    rec.start();
+    await vi.advanceTimersByTimeAsync(20);
+    level = 60;
+    await vi.advanceTimersByTimeAsync(500);
+    expect(transcribe).toHaveBeenCalledTimes(1);
+    expect(events).toContain('onresult:Dalle 7 alle 12');
   });
 });
