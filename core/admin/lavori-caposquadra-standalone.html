@@ -3442,7 +3442,7 @@
                             const hasVignetoModule = tenantData.modules && tenantData.modules.includes('vigneto');
                             
                             if (hasVignetoModule) {
-                                const { aggiornaVignetiDaTerreno } = await import('../../../modules/vigneto/services/lavori-vigneto-service.js');
+                                const { aggiornaVignetiDaTerreno } = await import('../../modules/vigneto/services/lavori-vigneto-service.js');
                                 const annoLavoro = lavoro.dataInizio?.toDate 
                                     ? lavoro.dataInizio.toDate().getFullYear() 
                                     : new Date().getFullYear();
