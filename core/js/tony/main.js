@@ -67,7 +67,7 @@ import { initTonyDocumentCapture } from './document-capture.js';
 import { chooseSttEngine, createRecorderSpeechRecognition, isIosLikeDevice, isStandaloneDisplayMode } from './voice-recorder-stt.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-export const TONY_CLIENT_BUILD = '2026-09-15a';
+    export const TONY_CLIENT_BUILD = '2026-09-16b';
 if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
@@ -6153,6 +6153,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
 
         fab.addEventListener('click', function() {
             panel.classList.add('is-open');
+            try { if (typeof window.__tonyUnlockHtmlAudio === 'function') window.__tonyUnlockHtmlAudio(); } catch (eUnlock) {}
             try { if (typeof window.__tonyDocCaptureRefresh === 'function') window.__tonyDocCaptureRefresh(); } catch (eCapOpen) {}
             if (messagesEl.children.length === 0) {
                 var welcomeMessage;
@@ -6429,6 +6430,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 isWaitingForTonyResponse = false;
                 panel.classList.add('is-auto-mode');
                 console.log('[Tony] Modalità continua attivata.');
+                try { if (typeof window.__tonyUnlockHtmlAudio === 'function') window.__tonyUnlockHtmlAudio(); } catch (eUnlockAm) {}
                 if (startListeningRef) startListeningRef();
                 resetAutoModeTimeout();
             } else {
@@ -8593,8 +8595,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
 
         /**
          * Motore STT: Web Speech dove funziona; «registratore» (getUserMedia + MediaRecorder + CF
-         * tonyTranscribeAudio) dove la Web Speech API è muta — web app iOS da schermata Home.
-         * Stessa interfaccia SpeechRecognition: il resto del widget non distingue i due motori.
+         * tonyTranscribeAudio) su iPhone/iPad (Safari e web app da Home: Web Speech muta o
+         * dipende dalla dettatura di sistema). Stessa interfaccia SpeechRecognition.
          */
         var tonySttEngine = chooseSttEngine(window);
         window.__tonySttEngine = tonySttEngine;
@@ -8792,14 +8794,11 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             function tonyVoiceErrorMessage(code, detail) {
                 if (code === 'not-allowed' || code === 'service-not-allowed') {
                     var base = 'Microfono: permesso negato.';
-                    if (tonySttEngine === 'recorder') {
-                        return base + ' Consenti l\'accesso al microfono quando l\'app lo chiede (su iPhone il permesso va ridato a ogni avvio dell\'app).';
-                    }
-                    if (isIosLikeDevice(navigator) && isStandaloneDisplayMode(window)) {
-                        return base + ' Su iPhone la dettatura Web Speech non funziona nell\'app installata: apri il sito in Safari oppure aggiorna l\'app.';
-                    }
-                    if (isIosLikeDevice(navigator)) {
-                        return base + ' Su iPhone serve anche Impostazioni → Generali → Tastiera → Abilita dettatura.';
+                    if (tonySttEngine === 'recorder' || isIosLikeDevice(navigator)) {
+                        var iosHint = isStandaloneDisplayMode(window)
+                            ? ' Su iPhone, nell\'app dalla schermata Home, il permesso microfono va ridato a ogni avvio.'
+                            : ' Su iPhone: Impostazioni → Safari (o l\'app GFV) → Microfono → Consenti.';
+                        return base + (isIosLikeDevice(navigator) ? iosHint : ' Consenti l\'accesso al microfono quando l\'app lo chiede.');
                     }
                     return base + ' Controlla i permessi del sito nel browser.';
                 }
@@ -8915,6 +8914,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             };
 
             micBtn.addEventListener('click', function() {
+                try { if (typeof window.__tonyUnlockHtmlAudio === 'function') window.__tonyUnlockHtmlAudio(); } catch (eUnlockMic) {}
                 if (tonyAudioPipelineActive()) {
                     if (clearTonyAudioPipeline) clearTonyAudioPipeline({ bump: true, reason: 'barge_in_mic' });
                     if (isAutoMode && startListeningRef) {

@@ -42,8 +42,10 @@ export var RECORDER_STT_DEFAULTS = {
   minSpeechRms: 0.012,
   /** Intervallo di campionamento del VAD. */
   tickMs: 60,
-  /** Dopo quanto rilasciare lo stream microfono se nessuna nuova sessione. */
-  releaseStreamAfterIdleMs: 20000,
+  /** Dopo quanto rilasciare lo stream microfono se nessuna nuova sessione.
+   *  60 s: copre TTS lunghi in auto-mode senza un nuovo getUserMedia (su iOS
+   *  getUserMedia fuori dal gesto utente fallisce). */
+  releaseStreamAfterIdleMs: 60000,
   /** Senza AudioContext (nessun VAD): durata fissa del clip inviato alla CF. */
   noAnalyserClipMs: 6000,
   /** Timeslice MediaRecorder. */
@@ -85,7 +87,8 @@ export function isStandaloneDisplayMode(win) {
 /**
  * Decide il motore STT. Regola unica per tutte le pagine:
  * - override esplicito (`sessionStorage.tony_stt_engine` = `recorder` | `webspeech`) per test;
- * - iOS + standalone → registratore (Web Speech muto lì);
+ * - iPhone/iPad → registratore (Web Speech è muta nella web app da Home — WebKit 225298 —
+ *   e in Safari è legata alla dettatura di sistema, spesso assente o instabile);
  * - altrimenti Web Speech se disponibile, altrimenti registratore se possibile.
  * @param {{ navigator?: object, matchMedia?: Function, MediaRecorder?: Function, sessionStorage?: object, SpeechRecognition?: Function, webkitSpeechRecognition?: Function }} win
  * @returns {'webspeech'|'recorder'|'none'}
@@ -103,11 +106,35 @@ export function chooseSttEngine(win) {
   if (override === 'recorder' && canRecord) return 'recorder';
   if (override === 'webspeech' && hasWebSpeech) return 'webspeech';
 
-  if (isIosLikeDevice(nav) && isStandaloneDisplayMode(win)) {
-    return canRecord ? 'recorder' : 'none';
+  if (isIosLikeDevice(nav)) {
+    if (canRecord) return 'recorder';
+    if (hasWebSpeech) return 'webspeech';
+    return 'none';
   }
   if (hasWebSpeech) return 'webspeech';
   return canRecord ? 'recorder' : 'none';
+}
+
+/**
+ * Stream microfono ancora usabile (tracce live). Su iOS il TTS HTML può
+ * interrompere le tracce: `stream.active` da solo non basta.
+ * @param {MediaStream|null|undefined} s
+ */
+export function streamIsUsable(s) {
+  if (!s) return false;
+  if (s.active === false) return false;
+  try {
+    var tracks = typeof s.getAudioTracks === 'function' ? s.getAudioTracks() : (s.getTracks ? s.getTracks() : []);
+    if (!tracks || !tracks.length) return s.active !== false;
+    return tracks.some(function (t) {
+      if (!t) return false;
+      var rs = t.readyState;
+      if (rs && rs !== 'live') return false;
+      return true;
+    });
+  } catch (e) {
+    return s.active !== false;
+  }
 }
 
 /**
@@ -426,22 +453,24 @@ export function createRecorderSpeechRecognition(deps) {
     try {
       attachAnalyser();
     } catch (e) {
-      // Safari: sample rate del mic ≠ contesto creato prima di getUserMedia → ricrea una volta
-      log('analyser: retry con nuovo AudioContext', e);
-      try { if (typeof audioCtx.close === 'function') audioCtx.close(); } catch (e2) { /* ignore */ }
-      audioCtx = null;
+      // Non ricreare l'AudioContext fuori dal gesto utente: su iOS resterebbe
+      // `suspended` e il VAD leggerebbe solo silenzio. Clip a durata fissa.
+      log('analyser non disponibile, uso clip a durata fissa', e);
       analyser = null;
-      try {
-        if (ensureAudioContext()) attachAnalyser();
-      } catch (e3) {
-        log('analyser non disponibile', e3);
-        analyser = null;
-      }
+      analyserBuf = null;
     }
   }
 
   function currentRms() {
     if (!analyser || !analyserBuf) return null;
+    // Contesto sospeso → RMS sempre ≈ silenzio → falso «no-speech». Non fidarsi.
+    if (audioCtx && audioCtx.state && audioCtx.state !== 'running') {
+      if (audioCtx.state === 'suspended' && typeof audioCtx.resume === 'function') {
+        var rp = audioCtx.resume();
+        if (rp && typeof rp.catch === 'function') rp.catch(function () { /* ignore */ });
+      }
+      return null;
+    }
     try {
       analyser.getByteTimeDomainData(analyserBuf);
       return rmsFromByteTimeDomain(analyserBuf);
@@ -586,8 +615,13 @@ export function createRecorderSpeechRecognition(deps) {
     try {
       recorder.start(cfg.timesliceMs);
     } catch (e) {
-      fail(mySession, e);
-      return;
+      // Safari a volte rifiuta il timeslice: prova senza (i dati arrivano su stop).
+      try {
+        recorder.start();
+      } catch (e2) {
+        fail(mySession, e2);
+        return;
+      }
     }
     sessionStartedAt = now();
     emit('onstart');
@@ -611,12 +645,21 @@ export function createRecorderSpeechRecognition(deps) {
     clearReleaseTimer();
     var mySession = ++sessionId;
     ensureAudioContext();
-    if (stream && stream.active !== false) {
+    if (streamIsUsable(stream)) {
       beginRecording(mySession);
       return;
     }
     releaseStream();
-    getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false })
+    var preferred = { audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false };
+    getUserMedia(preferred)
+      .catch(function (err) {
+        var name = err && err.name ? String(err.name) : '';
+        if (/Overconstrained|ConstraintNotSatisfied/i.test(name)) {
+          log('getUserMedia fallback { audio: true }', name);
+          return getUserMedia({ audio: true, video: false });
+        }
+        return Promise.reject(err);
+      })
       .then(function (s) {
         if (mySession !== sessionId) {
           try { s.getTracks().forEach(function (t) { t.stop(); }); } catch (e) { /* ignore */ }
