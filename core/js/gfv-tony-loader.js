@@ -7,7 +7,7 @@
 (function () {
     'use strict';
 
-    var TONY_LOADER_QUERY = '2026-09-16b';
+    var TONY_LOADER_QUERY = '2026-09-17a';
 
     /** iOS «Aggiungi a Home»: senza questi meta (iOS < 16.4) la PWA non è standalone
      *  e Web Speech resta muta. Iniettiamo su ogni pagina che carica Tony. */

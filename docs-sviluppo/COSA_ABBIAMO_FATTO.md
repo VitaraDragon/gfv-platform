@@ -1,6 +1,13 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-16 — voce iPhone (microfono + dettatura + TTS).**
+**Ultimo aggiornamento documentazione: 2026-09-17 — chat Tony su iPhone (larghezza viewport + fotocamera visibile).**
+
+## Chat Tony su iPhone — pannello e riga input nel viewport (2026-09-17)
+
+- **Segnalazione:** su iPhone la finestra chat è più larga dello schermo: bisogna scrollare in orizzontale per vedere la fotocamera (e il resto della barra). Su Android/PC la stessa chat sta nel viewport.
+- **Cause:** (1) Safari zoomma la pagina se l’input ha `font-size` &lt; 16px; (2) `<input>` in flex non si restringe (`min-width: auto`) e la riga 📷+🎤+campo+Invia sfora; (3) sotto 480px il foglio usava `left:0; right:0; width:100%`, che su iOS si allarga con le tabelle ERP più larghe dello schermo.
+- **Fix (solo CSS del widget, stesso su ogni pagina):** input 16px + `flex: 1 1 0; min-width: 0`; pannello `min-width: 0` + `overflow-x: hidden` + `max-width: 100dvw`; foglio smartphone da **768px** (linea guida) con `width: 100dvw; left: 0; right: auto` (non 100% del documento); 📷/🎤 `flex-shrink: 0`; padding safe-area. Cache CSS `?v=` sul loader.
+- Build widget **`2026-09-17a`**. Test: `tests/tony-widget-mobile-layout.test.js`. Fixture visiva: `tests/fixtures/tony-widget-mobile-chat.html`.
 
 ## Voce iPhone — microfono, dettatura e TTS (2026-09-16)
 
