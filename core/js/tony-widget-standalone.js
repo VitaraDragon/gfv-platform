@@ -8,7 +8,7 @@
     'use strict';
 
     /** Bump a ogni fix Tony client — invalida cache moduli ES6 del browser. */
-    var TONY_LOADER_BUILD = '2026-09-16b';
+    var TONY_LOADER_BUILD = '2026-09-17b';
 
     var scriptBase = typeof import.meta !== 'undefined' && import.meta.url
         ? import.meta.url
@@ -55,7 +55,7 @@
     if (scriptBase) {
         var link = document.createElement('link');
         link.rel = 'stylesheet';
-        link.href = new URL('../styles/tony-widget.css', scriptBase).href;
+        link.href = new URL('../styles/tony-widget.css', scriptBase).href + '?v=' + encodeURIComponent(TONY_LOADER_BUILD);
         document.head.appendChild(link);
 
         // Treasure Map: necessario per injectProdottoForm / injectMovimentoForm / getFormMap

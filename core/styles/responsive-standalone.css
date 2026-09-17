@@ -7,6 +7,13 @@
  * Dashboard usa .dashboard-container, .dashboard-header: stesse regole applicate qui.
  */
 
+/* iOS PWA (viewport-fit=cover): non finire sotto il notch in landscape.
+   Top/bottom li gestiscono header full-bleed e widget Tony (position:fixed). */
+body {
+    padding-left: env(safe-area-inset-left, 0px);
+    padding-right: env(safe-area-inset-right, 0px);
+}
+
 /* ========== 1024px – Tablet / desktop stretto ========== */
 @media (max-width: 1024px) {
     .container {
