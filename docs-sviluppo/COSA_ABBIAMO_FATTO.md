@@ -1,6 +1,13 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-17 — chat Tony iPhone (tastiera + safe-area).**
+**Ultimo aggiornamento documentazione: 2026-09-17 — Tony Occhi: galleria + HEIC.**
+
+## Tony Occhi — galleria e foto HEIC (2026-09-17)
+
+- **Segnalazione:** su iPhone 📷 apriva solo la fotocamera (`capture="environment"`) e le foto della Libreria in HEIC venivano rifiutate («Formato non supportato»). La guida utente parlava già di «scatta o scegli dalla galleria».
+- **Picker:** rimosso `capture`. Un solo `<input type="file" accept="image/*,.heic,.heif,…">`: iOS mostra Scatta / Fototeca / Sfoglia; desktop resta il file picker. Stesso componente su ogni pagina (nessun `if` iPhone).
+- **HEIC/HEIF:** riconosciuti da MIME o estensione; Safari/iOS li decodifica in canvas e li invia a Gemini come **JPEG** (lato max 2048 px). La CF `tonyExtractDocument` non cambia (resta jpeg/png/webp/pdf/xml). Se il browser non decodifica HEIC (tipicamente Chrome desktop): messaggio di scattare o esportare JPEG.
+- Build widget **`2026-09-17c`**. Test: `tests/tony-document-capture.test.js`.
 
 ## Chat Tony su iPhone — tastiera e notch (2026-09-17)
 
