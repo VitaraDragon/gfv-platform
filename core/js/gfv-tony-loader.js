@@ -7,10 +7,11 @@
 (function () {
     'use strict';
 
-    var TONY_LOADER_QUERY = '2026-09-17a';
+    var TONY_LOADER_QUERY = '2026-09-17b';
 
     /** iOS «Aggiungi a Home»: senza questi meta (iOS < 16.4) la PWA non è standalone
-     *  e Web Speech resta muta. Iniettiamo su ogni pagina che carica Tony. */
+     *  e Web Speech resta muta. Iniettiamo su ogni pagina che carica Tony.
+     *  viewport-fit=cover è obbligatorio perché env(safe-area-inset-*) non sia 0. */
     (function ensureIosWebAppMeta() {
         try {
             if (!document.head) return;
@@ -20,6 +21,12 @@
                 m.name = name;
                 m.content = content;
                 document.head.appendChild(m);
+            }
+            var vp = document.querySelector('meta[name="viewport"]');
+            if (!vp) {
+                addMeta('viewport', 'width=device-width, initial-scale=1.0, viewport-fit=cover');
+            } else if (String(vp.content || '').indexOf('viewport-fit') < 0) {
+                vp.content = String(vp.content || 'width=device-width, initial-scale=1.0').replace(/\s*$/, '') + ', viewport-fit=cover';
             }
             addMeta('apple-mobile-web-app-capable', 'yes');
             addMeta('mobile-web-app-capable', 'yes');

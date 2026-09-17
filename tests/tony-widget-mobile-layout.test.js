@@ -45,4 +45,10 @@ describe('Tony widget — layout mobile / iPhone', () => {
   it('il CSS del widget è cache-bustato col build del loader', () => {
     expect(loader).toMatch(/tony-widget\.css.*\?v=/);
   });
+
+  it('su smartphone il foglio si alza con --tony-keyboard-inset (tastiera iOS)', () => {
+    const mobile = css.split('@media (max-width: 768px)')[1] || '';
+    expect(mobile).toMatch(/bottom:\s*var\(--tony-keyboard-inset/);
+    expect(mobile).toMatch(/is-keyboard-open/);
+  });
 });
