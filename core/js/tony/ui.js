@@ -3,6 +3,8 @@
  * @module core/js/tony/ui
  */
 
+import { bindTonyVisualViewport } from './visual-viewport.js';
+
 /**
  * Crea e inietta il widget (FAB, pannello, overlay). Restituisce l'API per appendMessage, removeTyping, showMessageInChat e setSendHandler.
  * @param {string} scriptBase - URL base (import.meta.url del loader)
@@ -34,6 +36,7 @@ export function injectWidget(scriptBase) {
                 el.scrollTop = el.scrollHeight;
             }
         }
+        bindTonyVisualViewport();
         return {
             appendMessage,
             removeTyping,
@@ -128,6 +131,7 @@ export function injectWidget(scriptBase) {
     document.body.appendChild(panel);
     document.body.appendChild(docReviewOverlay);
     document.body.appendChild(overlay);
+    bindTonyVisualViewport();
 
     var messagesEl = document.getElementById('tony-messages');
     var inputEl = document.getElementById('tony-input');

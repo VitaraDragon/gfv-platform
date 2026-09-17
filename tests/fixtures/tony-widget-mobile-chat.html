@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Tony chat — fixture layout mobile</title>
+    <link rel="stylesheet" href="../../core/styles/tony-widget.css">
+    <style>
+        body { margin: 0; font-family: sans-serif; }
+        /* Simula una tabella larga (pagine ERP): su iOS allarga il layout viewport. */
+        .wide-table { width: 1200px; background: #e8f5e9; padding: 8px; }
+    </style>
+</head>
+<body>
+    <div class="wide-table">Tabella larga (non deve allargare la chat Tony)</div>
+    <button type="button" class="tony-widget-fab" id="tony-fab" aria-label="Apri assistente Tony">🤖</button>
+    <div class="tony-widget-panel is-open" id="tony-panel" role="dialog" aria-label="Chat con Tony">
+        <div class="tony-widget-header">
+            <h2>Tony – Assistente</h2>
+            <button type="button" class="tony-widget-close" id="tony-close" aria-label="Chiudi">×</button>
+        </div>
+        <div class="tony-widget-messages" id="tony-messages">
+            <div class="tony-msg tony">Ciao, come posso aiutarti?</div>
+        </div>
+        <div class="tony-widget-input-row">
+            <button type="button" class="tony-widget-camera" id="tony-camera" title="Acquisisci bolla o fattura" aria-label="Fotocamera documenti">📷</button>
+            <button type="button" class="tony-widget-mic" id="tony-mic" aria-label="Microfono">🎤</button>
+            <input type="text" class="tony-widget-input" id="tony-input" placeholder="Scrivi un messaggio..." maxlength="2000">
+            <button type="button" class="tony-widget-send" id="tony-send">Invia</button>
+        </div>
+    </div>
+</body>
+</html>
