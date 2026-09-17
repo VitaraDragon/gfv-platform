@@ -1,8 +1,8 @@
 # Stato attuale Tony – Verificato sul codice
 
-**Data**: 2026-09-17 (… **chat Tony iPhone: pannello 100dvw + riga 📷 visibile** — 2026-09-17; **voce iPhone: recorder su tutto iOS + sblocco TTS** — 2026-09-16; **voce iPhone PWA: motore STT registratore + CF `tonyTranscribeAudio`** — 2026-09-15; …)  
+**Data**: 2026-09-17 (… **chat Tony iPhone: tastiera visualViewport + viewport-fit/safe-area** — 2026-09-17; **chat Tony iPhone: pannello 100dvw + riga 📷 visibile** — 2026-09-17; **voce iPhone: recorder su tutto iOS + sblocco TTS** — 2026-09-16; …)  
 **Fonte**: codice + `TONY_DECISIONI_E_REQUISITI.md` (… **§3.10 lazy-load** — 2026-09-05; **§22.7 / §23 flag prova** — 2026-09-04; **§11.7 / §22 zona due punti** — 2026-09-03; **§11.6 allarmi/mappa** — 2026-08-02; …)  
-**Build widget**: `2026-09-17a`
+**Build widget**: `2026-09-17b`
 
 **Sicurezza (link pubblici, Firestore, callable)**: `docs-sviluppo/SICUREZZA_FLUSSI.md`
 

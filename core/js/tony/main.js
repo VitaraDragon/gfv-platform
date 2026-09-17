@@ -67,7 +67,7 @@ import { initTonyDocumentCapture } from './document-capture.js';
 import { chooseSttEngine, createRecorderSpeechRecognition, isIosLikeDevice, isStandaloneDisplayMode } from './voice-recorder-stt.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-    export const TONY_CLIENT_BUILD = '2026-09-17a';
+    export const TONY_CLIENT_BUILD = '2026-09-17b';
 if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
@@ -6170,6 +6170,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 appendMessage(welcomeMessage, 'tony');
             }
             inputEl.focus();
+            try { if (typeof window.__tonySyncKeyboardInset === 'function') window.__tonySyncKeyboardInset(); } catch (eKb) {}
         });
 
         function collapseDuplicateVoiceTranscript(t) {
