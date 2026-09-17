@@ -17,8 +17,31 @@ const ALLOWED_MIME = new Set([
   'text/xml',
   'application/fatturapa+xml',
 ]);
+const HEIC_MIME = new Set([
+  'image/heic',
+  'image/heif',
+  'image/heic-sequence',
+  'image/heif-sequence',
+]);
 const MAX_BYTES = 10 * 1024 * 1024;
 const MAX_PAGES = 10;
+/** Lato lungo max prima di Gemini: abbastanza per OCR, evita JPEG > 10 MB da HEIC 12 MP. */
+export var DOCUMENT_IMAGE_MAX_EDGE = 2048;
+export var DOCUMENT_JPEG_QUALITY = 0.85;
+var HEIC_DECODE_ERROR =
+  'Non riesco a leggere questa foto (formato HEIC). Scatta una nuova foto oppure salvala come JPEG e riprova.';
+
+/**
+ * Foto iPhone dalla Libreria (High Efficiency) — MIME o estensione.
+ * @param {{ type?: string, name?: string }|null|undefined} file
+ * @returns {boolean}
+ */
+export function isHeicLikeDocumentFile(file) {
+  var mime = String((file && file.type) || '').toLowerCase().trim();
+  var name = String((file && file.name) || '').toLowerCase();
+  if (HEIC_MIME.has(mime)) return true;
+  return /\.(heic|heif)$/i.test(name);
+}
 
 /**
  * @param {{ type?: string, name?: string }} file
@@ -32,12 +55,167 @@ export function resolveDocumentMime(file) {
     if (mime === 'text/xml') return 'application/xml';
     return mime;
   }
+  if (isHeicLikeDocumentFile(file)) return 'image/heic';
   if (/\.xml$/i.test(name)) return 'application/xml';
   if (/\.pdf$/i.test(name)) return 'application/pdf';
   if (/\.(jpe?g)$/i.test(name)) return 'image/jpeg';
   if (/\.png$/i.test(name)) return 'image/png';
   if (/\.webp$/i.test(name)) return 'image/webp';
   return mime;
+}
+
+function loadImageFromBlob(blob) {
+  return new Promise(function (resolve, reject) {
+    if (typeof URL === 'undefined' || typeof Image === 'undefined') {
+      reject(new Error('decode-unavailable'));
+      return;
+    }
+    var url = URL.createObjectURL(blob);
+    var img = new Image();
+    img.onload = function () {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = function () {
+      URL.revokeObjectURL(url);
+      reject(new Error('decode-failed'));
+    };
+    img.src = url;
+  });
+}
+
+function canvasToJpegBlob(canvas, quality) {
+  return new Promise(function (resolve, reject) {
+    if (typeof canvas.toBlob === 'function') {
+      canvas.toBlob(function (b) {
+        if (b) resolve(b);
+        else reject(new Error('toBlob fallito'));
+      }, 'image/jpeg', quality);
+      return;
+    }
+    try {
+      var dataUrl = canvas.toDataURL('image/jpeg', quality);
+      var comma = dataUrl.indexOf(',');
+      var b64 = comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl;
+      var bin = typeof atob === 'function' ? atob(b64) : Buffer.from(b64, 'base64').toString('binary');
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      resolve(new Blob([bytes], { type: 'image/jpeg' }));
+    } catch (e) {
+      reject(e);
+    }
+  });
+}
+
+function jpegFileFromBlob(blob, originalName, FileCtor) {
+  var base = String(originalName || 'foto').replace(/\.(heic|heif)$/i, '');
+  if (!base) base = 'foto';
+  var fileName = base + '.jpg';
+  var Ctor = FileCtor || (typeof File !== 'undefined' ? File : null);
+  if (typeof Ctor === 'function') {
+    return new Ctor([blob], fileName, { type: 'image/jpeg', lastModified: Date.now() });
+  }
+  try { blob.name = fileName; } catch (_) { /* ignore */ }
+  return blob;
+}
+
+function readFileAsBase64(file) {
+  if (typeof FileReader === 'function') {
+    return new Promise(function (resolve, reject) {
+      var reader = new FileReader();
+      reader.onload = function () {
+        try {
+          var result = String(reader.result || '');
+          var comma = result.indexOf(',');
+          resolve(comma >= 0 ? result.slice(comma + 1) : result);
+        } catch (e) {
+          reject(e);
+        }
+      };
+      reader.onerror = function () { reject(new Error('Lettura file non riuscita.')); };
+      reader.readAsDataURL(file);
+    });
+  }
+  if (file && typeof file.arrayBuffer === 'function') {
+    return file.arrayBuffer().then(function (buf) {
+      if (typeof Buffer !== 'undefined') {
+        return Buffer.from(buf).toString('base64');
+      }
+      var bytes = new Uint8Array(buf);
+      var binary = '';
+      for (var i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      return btoa(binary);
+    });
+  }
+  return Promise.reject(new Error('Lettura file non riuscita.'));
+}
+
+/**
+ * Safari/iOS decodifica HEIC in canvas; Chrome desktop spesso no.
+ * @param {Blob} file
+ * @param {{ maxEdge?: number, quality?: number, createImageBitmap?: function, document?: Document, File?: function }} [opts]
+ * @returns {Promise<File|Blob>}
+ */
+export async function convertRasterFileToJpeg(file, opts) {
+  opts = opts || {};
+  var maxEdge = opts.maxEdge != null ? opts.maxEdge : DOCUMENT_IMAGE_MAX_EDGE;
+  var quality = opts.quality != null ? opts.quality : DOCUMENT_JPEG_QUALITY;
+  var doc = opts.document || (typeof document !== 'undefined' ? document : null);
+  var createBitmap = opts.createImageBitmap
+    || (typeof createImageBitmap === 'function' ? createImageBitmap : null);
+
+  var bitmap;
+  try {
+    if (createBitmap) {
+      try {
+        bitmap = await createBitmap(file);
+      } catch (e) {
+        bitmap = await loadImageFromBlob(file);
+      }
+    } else {
+      bitmap = await loadImageFromBlob(file);
+    }
+  } catch (e) {
+    throw new Error(HEIC_DECODE_ERROR);
+  }
+
+  var w = bitmap.width || bitmap.naturalWidth || 0;
+  var h = bitmap.height || bitmap.naturalHeight || 0;
+  if (!(w > 0 && h > 0) || !doc) {
+    if (typeof bitmap.close === 'function') {
+      try { bitmap.close(); } catch (_) { /* ignore */ }
+    }
+    throw new Error(HEIC_DECODE_ERROR);
+  }
+
+  var scale = Math.min(1, maxEdge / Math.max(w, h));
+  var tw = Math.max(1, Math.round(w * scale));
+  var th = Math.max(1, Math.round(h * scale));
+  var canvas = doc.createElement('canvas');
+  canvas.width = tw;
+  canvas.height = th;
+  var ctx = canvas.getContext('2d');
+  if (!ctx) {
+    throw new Error(HEIC_DECODE_ERROR);
+  }
+  ctx.drawImage(bitmap, 0, 0, tw, th);
+  if (typeof bitmap.close === 'function') {
+    try { bitmap.close(); } catch (_) { /* ignore */ }
+  }
+
+  var outBlob;
+  try {
+    outBlob = await canvasToJpegBlob(canvas, quality);
+    if (outBlob.size > MAX_BYTES) {
+      outBlob = await canvasToJpegBlob(canvas, 0.7);
+    }
+  } catch (e2) {
+    throw new Error(HEIC_DECODE_ERROR);
+  }
+  if (!outBlob || outBlob.size > MAX_BYTES) {
+    throw new Error('File troppo grande (max ~10 MB).');
+  }
+  return jpegFileFromBlob(outBlob, file && file.name, opts.File);
 }
 
 /**
@@ -91,38 +269,33 @@ export function canUseTonyDocumentCapture(opts) {
 
 /**
  * @param {File} file
- * @returns {Promise<{ mimeType: string, data: string, fileName: string, size: number }>}
+ * @param {{ convertRasterFileToJpeg?: function, createImageBitmap?: function, document?: Document, File?: function }} [opts]
+ * @returns {Promise<{ mimeType: string, data: string, fileName: string, size: number, sourceFile?: File|Blob }>}
  */
-export async function fileToDocumentPage(file) {
+export async function fileToDocumentPage(file, opts) {
+  opts = opts || {};
   if (!file || typeof file !== 'object') {
     throw new Error('File non valido.');
   }
-  var mime = resolveDocumentMime(file);
-  if (!ALLOWED_MIME.has(mime)) {
-    throw new Error('Formato non supportato. Scatta o carica una foto (JPEG/PNG/WebP) o un PDF.');
+  var working = file;
+  if (isHeicLikeDocumentFile(file)) {
+    var convert = opts.convertRasterFileToJpeg || convertRasterFileToJpeg;
+    working = await convert(file, opts);
   }
-  if (file.size > MAX_BYTES) {
+  var mime = resolveDocumentMime(working);
+  if (!ALLOWED_MIME.has(mime)) {
+    throw new Error('Formato non supportato. Scatta o scegli dalla galleria una foto (JPEG, PNG, WebP, HEIC) o un PDF.');
+  }
+  if (working.size > MAX_BYTES) {
     throw new Error('File troppo grande (max ~10 MB).');
   }
-  var data = await new Promise(function (resolve, reject) {
-    var reader = new FileReader();
-    reader.onload = function () {
-      try {
-        var result = String(reader.result || '');
-        var comma = result.indexOf(',');
-        resolve(comma >= 0 ? result.slice(comma + 1) : result);
-      } catch (e) {
-        reject(e);
-      }
-    };
-    reader.onerror = function () { reject(new Error('Lettura file non riuscita.')); };
-    reader.readAsDataURL(file);
-  });
+  var data = await readFileAsBase64(working);
   return {
     mimeType: mime,
     data: data,
-    fileName: file.name || 'pagina',
-    size: file.size,
+    fileName: working.name || file.name || 'pagina',
+    size: working.size,
+    sourceFile: working,
   };
 }
 
@@ -316,8 +489,10 @@ export function initTonyDocumentCapture(opts) {
       try {
         var page = await fileToDocumentPage(fileList[i]);
         var previewUrl = null;
-        if (page.mimeType.indexOf('image/') === 0 && fileList[i]) {
-          try { previewUrl = URL.createObjectURL(fileList[i]); } catch (e) { /* ignore */ }
+        if (page.mimeType.indexOf('image/') === 0) {
+          try {
+            previewUrl = URL.createObjectURL(page.sourceFile || fileList[i]);
+          } catch (e) { /* ignore */ }
         }
         sessionPages.push({
           id: 'p-' + Date.now() + '-' + i,
