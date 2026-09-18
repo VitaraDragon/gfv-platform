@@ -1,6 +1,15 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-18 — giacenza magazzino atomica (increment).**
+**Ultimo aggiornamento documentazione: 2026-09-18 — preventivi: numero atomico + accettazione in transazione.**
+
+## Preventivi — numero lock e accettazione/rifiuto in transazione (2026-09-18)
+
+- **Problema:** `generaNumeroPreventivo` (servizio e duplicato in `nuovo-preventivo-standalone.html`) faceva max+1 sulla collection: due create insieme potevano prendere lo stesso `PREV-anno-NNN`. Accettazione/rifiuto erano get+update senza check atomico: email e manager (o due click) potevano entrambi “vincere”. Il servizio `accettaPreventivo` passava da `updatePreventivo`, che rifiuta gli `inviato` (solo bozza/annullato); la lista manager bypassava con `updateDoc` senza `canBeAccepted`.
+- **Fix numero:** `allocatePreventivoNumero` — query max esistenti fuori transazione, poi transazione sul documento tenant `preventivoSeqByYear.{anno}` (`max(stored, esistenti)+1`). Nessuna collection nuova, nessuna regola Firestore nuova. Gap ammessi. Niente fallback timestamp. Pagina Nuovo preventivo usa lo stesso helper, non più max+1 locale.
+- **Fix stato:** `transizionaStatoPreventivo` — transazione get + `preventivoPuoEssereAccettato` (bozza/inviato, non scaduto) + patch. `accettaPreventivo` / `rifiutaPreventivo` e i pulsanti lista passano di qui. Cloud Function `aggiornaStatoPreventivoPubblico` (link email) usa `runTransaction` Admin: il secondo writer vede lo stato già cambiato. Path email live in produzione solo dopo `deploy:functions`.
+- **Non toccato:** `updatePreventivo` (gate bozza per le modifiche di contenuto); inviti `allow read: if true`; `find*ByLavoroId` first-match; transazione unica create-preventivo+seq (se create fallisce dopo allocate resta un buco di sequenza).
+- Test: `tests/services/preventivi-lock.test.js`. Canary `npm run preventivi:lock-canary`.
+- **Prova emulator:** da annotare dopo il canary.
 
 ## Magazzino — giacenza atomica, niente race read-modify-write (2026-09-18)
 
