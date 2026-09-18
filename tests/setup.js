@@ -30,7 +30,8 @@ vi.mock('firebase/firestore', () => {
         toDate: () => date
       }))
     },
-    serverTimestamp: vi.fn(() => ({ seconds: Date.now() / 1000, nanoseconds: 0 }))
+    serverTimestamp: vi.fn(() => ({ seconds: Date.now() / 1000, nanoseconds: 0 })),
+    increment: vi.fn((n) => ({ _increment: n }))
   };
 });
 
