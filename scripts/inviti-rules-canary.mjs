@@ -387,15 +387,43 @@ async function main() {
       });
       const page = await context.newPage();
       await loginAndTenant(page, entry);
-      await page.goto('/core/admin/gestisci-utenti-standalone.html?emulator=1', {
-        waitUntil: 'domcontentloaded',
+      await page.waitForFunction(() => {
+        return window.__firebaseReady === true
+          && !!sessionStorage.getItem('gfv_current_tenant_id');
+      }, null, { timeout: 60_000 });
+
+      const listed = await page.evaluate(async ({ tenantId, inviteEmail }) => {
+        const mod = await import('/core/services/firebase-service.js');
+        const db = mod.getDb();
+        const snap = await mod.getDocs(mod.query(
+          mod.collection(db, 'inviti'),
+          mod.where('tenantId', '==', tenantId),
+          mod.where('stato', '==', 'invitato')
+        ));
+        const emails = snap.docs.map((d) => (d.data() && d.data().email) || '');
+        return { hit: emails.includes(inviteEmail), n: emails.length };
+      }, { tenantId: entry.tenantId, inviteEmail });
+      if (listed.hit) pass('ui:managerTenantQuery', `n=${listed.n}`);
+      else fail('ui:managerTenantQuery', JSON.stringify(listed));
+
+      const unscoped = await page.evaluate(async () => {
+        const mod = await import('/core/services/firebase-service.js');
+        const db = mod.getDb();
+        try {
+          await mod.getDocs(mod.query(
+            mod.collection(db, 'inviti'),
+            mod.where('stato', '==', 'invitato')
+          ));
+          return { denied: false };
+        } catch (e) {
+          return {
+            denied: /permission-denied/i.test(String((e && e.code) || '')) || /permission/i.test(String((e && e.message) || '')),
+            code: e && e.code,
+          };
+        }
       });
-      await page.waitForFunction(() => window.__firebaseReady === true, null, { timeout: 45_000 });
-      const visible = await page.getByText(inviteEmail, { exact: false }).waitFor({ timeout: 45_000 })
-        .then(() => true)
-        .catch(() => false);
-      if (visible) pass('ui:gestisciUtenti', inviteEmail);
-      else fail('ui:gestisciUtenti', `invito non visibile su gestisci-utenti (${page.url()})`);
+      if (unscoped.denied) pass('ui:managerUnscopedDenied', unscoped.code || 'denied');
+      else fail('ui:managerUnscopedDenied', JSON.stringify(unscoped));
     } finally {
       await browser.close();
     }

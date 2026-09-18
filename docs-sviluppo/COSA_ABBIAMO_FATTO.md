@@ -9,6 +9,7 @@
 - **Non toccare in questo giro:** `find*ByLavoroId` first-match; transazione unica movimento+giacenza.
 - **Ordine live (obbligatorio):** 1) `deploy:functions` (`getInvitoPubblico`) 2) client su `main` 3) `deploy:rules`. Invertire 2 e 3 spezza la registrazione (il client vecchio interroga Firestore, le rules nuove negano `list`).
 - Test: `tests/services/invito-pubblico.test.js`, `tests/invito-client-no-public-query.test.js`. Canary `npm run inviti:rules-canary`.
+- **Prova emulator (2026-09-18):** Auth+Firestore emulator. Reload `firestore.rules` a caldo. Tenant `sim_az_agr_ricci_208883`. Unauth list/query-token/get → **403**. Manager query `tenantId+stato` vede l’invito; query altro tenant **DENIED**; operaio list **403**. `handleGetInvitoPubblico` restituisce l’invito sanitizzato (niente `leakField`). Client SDK manager: tenant query ok, query senza tenantId **permission-denied**. Canary **10/10**. Nessuna scrittura su produzione. **Non** `deploy:rules` / merge finché non richiesto.
 
 ## Preventivi — numero lock e accettazione/rifiuto in transazione (2026-09-18)
 
