@@ -8,10 +8,9 @@
  */
 import { chromium } from 'playwright-core';
 import { assertSimulatorSafeToRun } from '../simulator/lib/guard-production.js';
-import { getEmulatorDb } from '../simulator/lib/emulator-context.js';
+import { getEmulatorDb, getEmulatorAuth } from '../simulator/lib/emulator-context.js';
 import { isEmulatorAvailable } from '../simulator/lib/emulator-available.js';
 import { addTenantDocument, getTenantDocument } from '../simulator/lib/firestore-write.js';
-import { readManifest } from '../simulator/lib/manifest.js';
 
 const BASE = process.env.GFV_E2E_BASE_URL || 'http://127.0.0.1:8000';
 const ARG_TENANT = (process.argv.find((a) => a.startsWith('--tenant=')) || '').split('=')[1] || '';
@@ -28,42 +27,88 @@ function fail(id, detail) {
   console.log(`  FAIL  ${id}: ${detail}`);
 }
 
-function pickTenant() {
-  const list = readManifest();
+const PASSWORD = 'SimGFV2026!';
+
+async function pickLiveTenant(db) {
   if (ARG_TENANT) {
-    const hit = list.find((e) => e.tenantId === ARG_TENANT);
-    if (!hit) throw new Error(`Tenant ${ARG_TENANT} assente in simulator/manifest.json`);
-    return hit;
+    const snap = await db.doc(`tenants/${ARG_TENANT}`).get();
+    if (!snap.exists) throw new Error(`Tenant ${ARG_TENANT} assente sull'emulator`);
+    const users = await db.collection('users').where('tenantId', '==', ARG_TENANT).get();
+    const admin = users.docs.find((d) => {
+      const ruoli = d.data().ruoli || [];
+      return ruoli.some((r) => /manager|amministratore/i.test(String(r)));
+    });
+    if (!admin) throw new Error(`Nessun manager/admin per ${ARG_TENANT}`);
+    return { tenantId: ARG_TENANT, userId: admin.id, email: admin.data().email };
   }
-  const hit = [...list].reverse().find((e) => (e.templateId || '').includes('viticola')) || list.at(-1);
-  if (!hit) throw new Error('Nessun tenant in simulator/manifest.json — npm run sim:run');
-  return hit;
+  const tenants = await db.collection('tenants').get();
+  if (tenants.empty) throw new Error('Nessun tenant sull\'emulator — npm run sim:run');
+  const preferred = tenants.docs.find((d) => (d.data().modules || []).includes('magazzino')) || tenants.docs[0];
+  const users = await db.collection('users').where('tenantId', '==', preferred.id).get();
+  const admin = users.docs.find((d) => {
+    const ruoli = d.data().ruoli || [];
+    return ruoli.some((r) => /manager|amministratore/i.test(String(r)));
+  });
+  if (!admin) throw new Error(`Nessun manager/admin per ${preferred.id}`);
+  return { tenantId: preferred.id, userId: admin.id, email: admin.data().email };
 }
 
-async function loginManager(page, tenantId) {
-  await page.goto('/core/dev/simulator-dev-standalone.html?emulator=1');
-  await page.locator('.card').first().waitFor({ state: 'visible', timeout: 45_000 });
-  const emptyMsg = page.getByText('Nessuna azienda in manifest');
-  if (await emptyMsg.isVisible().catch(() => false)) {
-    throw new Error('Nessuna azienda in manifest — npm run sim:run');
-  }
-  const card = page.locator('.card').filter({ hasText: tenantId });
-  if ((await card.count()) === 0) {
-    throw new Error(`Card tenant ${tenantId} non in manifest`);
-  }
-  await card.getByRole('button', { name: /Entra come manager/i }).click();
-  await page.waitForURL(/dashboard-standalone\.html/, { timeout: 60_000 });
+async function ensureAuthUser(entry) {
+  const auth = getEmulatorAuth();
+  try {
+    await auth.getUser(entry.userId);
+    await auth.updateUser(entry.userId, { password: PASSWORD, email: entry.email });
+    return;
+  } catch (_) { /* create below */ }
+  try {
+    const byEmail = await auth.getUserByEmail(entry.email);
+    if (byEmail.uid !== entry.userId) {
+      await auth.deleteUser(byEmail.uid);
+    } else {
+      await auth.updateUser(byEmail.uid, { password: PASSWORD });
+      return;
+    }
+  } catch (_) { /* create */ }
+  await auth.createUser({
+    uid: entry.userId,
+    email: entry.email,
+    password: PASSWORD,
+    displayName: entry.email,
+    emailVerified: true,
+  });
+}
+
+async function loginAndTenant(page, entry) {
+  await ensureAuthUser(entry);
+  await page.goto('/core/auth/login-standalone.html?emulator=1', { waitUntil: 'domcontentloaded' });
+  await page.waitForFunction(() => window.__firebaseReady === true, null, { timeout: 45_000 });
+  await page.locator('#email').waitFor({ state: 'visible', timeout: 45_000 });
+  await page.locator('#email').fill(entry.email);
+  await page.locator('#password').fill(PASSWORD);
+  await Promise.all([
+    page.waitForURL(/dashboard-standalone\.html/, { timeout: 60_000, waitUntil: 'domcontentloaded' }),
+    page.locator('#login-form').evaluate((form) => form.requestSubmit()),
+  ]);
+  return entry.tenantId;
 }
 
 async function openMovimenti(page) {
-  await page.goto('/modules/magazzino/views/movimenti-standalone.html?emulator=1');
+  await page.goto('/modules/magazzino/views/movimenti-standalone.html?emulator=1', {
+    waitUntil: 'domcontentloaded',
+  });
   await page.locator('h1').filter({ hasText: 'Movimenti Magazzino' }).waitFor({ timeout: 60_000 });
-  await page.waitForFunction(() => window.__firebaseReady === true, { timeout: 30_000 });
+  await page.waitForFunction(() => {
+    const btn = document.getElementById('btn-nuovo-movimento');
+    return window.__firebaseReady === true
+      && btn
+      && typeof btn.onclick === 'function'
+      && !!sessionStorage.getItem('gfv_current_tenant_id');
+  }, null, { timeout: 60_000 });
 }
 
 async function parallelCreateUscite(page, prodottoId, qtyList) {
   return page.evaluate(async ({ prodottoId: pid, qtyList: qtys, note }) => {
-    const { createMovimento } = await import('../services/movimenti-service.js');
+    const { createMovimento } = await import('/modules/magazzino/services/movimenti-service.js');
     const ids = await Promise.all(
       qtys.map((q) =>
         createMovimento({
@@ -81,8 +126,8 @@ async function parallelCreateUscite(page, prodottoId, qtyList) {
 
 async function parallelRenameAndUscita(page, prodottoId, newName, qty) {
   return page.evaluate(async ({ prodottoId: pid, newName: nome, qty: q, note }) => {
-    const { updateProdotto } = await import('../services/prodotti-service.js');
-    const { createMovimento } = await import('../services/movimenti-service.js');
+    const { updateProdotto } = await import('/modules/magazzino/services/prodotti-service.js');
+    const { createMovimento } = await import('/modules/magazzino/services/movimenti-service.js');
     const [movId] = await Promise.all([
       createMovimento({
         prodottoId: pid,
@@ -99,7 +144,7 @@ async function parallelRenameAndUscita(page, prodottoId, newName, qty) {
 
 async function parallelPageIncrements(page, tenantId, prodottoId, deltas) {
   return page.evaluate(async ({ tenantId: tid, prodottoId: pid, deltas: ds }) => {
-    const { increment, updateDoc, doc, getDb } = await import('../../../core/services/firebase-service.js');
+    const { increment, updateDoc, doc, getDb } = await import('/core/services/firebase-service.js');
     const db = getDb();
     const ref = doc(db, 'tenants', tid, 'prodotti', pid);
     await Promise.all(
@@ -115,23 +160,9 @@ async function main() {
     process.exit(1);
   }
 
-  const entry = pickTenant();
-  const tenantId = entry.tenantId;
   const db = getEmulatorDb();
-  console.log(`[magazzino-giacenza-canary] tenant=${tenantId} base=${BASE}`);
-
-  const prodottoId = await addTenantDocument(db, tenantId, 'prodotti', {
-    codice: MARKER,
-    nome: `${MARKER} Urea`,
-    categoria: 'fertilizzanti',
-    unitaMisura: 'kg',
-    scortaMinima: 0,
-    giacenza: START,
-    dosaggioMin: 1,
-    dosaggioMax: 2,
-    attivo: true,
-  });
-  pass('seed:prodotto', `${prodottoId} giacenza=${START}`);
+  const entry = await pickLiveTenant(db);
+  console.log(`[magazzino-giacenza-canary] tenant=${entry.tenantId} email=${entry.email} base=${BASE}`);
 
   const browser = await chromium.launch({
     headless: true,
@@ -141,12 +172,27 @@ async function main() {
   await context.addInitScript(() => {
     try { localStorage.setItem('gfv_firebase_emulator', '1'); } catch (_) {}
   });
-  const page = await context.newPage();
 
   const movimentoIds = [];
+  let tenantId = ARG_TENANT;
+  let prodottoId = null;
   try {
-    await loginManager(page, tenantId);
-    pass('login:manager', page.url());
+    const page = await context.newPage();
+    tenantId = await loginAndTenant(page, entry);
+    pass('login:manager', `${tenantId} ${page.url()}`);
+
+    prodottoId = await addTenantDocument(db, tenantId, 'prodotti', {
+      codice: MARKER,
+      nome: `${MARKER} Urea`,
+      categoria: 'fertilizzanti',
+      unitaMisura: 'kg',
+      scortaMinima: 0,
+      giacenza: START,
+      dosaggioMin: 1,
+      dosaggioMax: 2,
+      attivo: true,
+    });
+    pass('seed:prodotto', `${prodottoId} giacenza=${START}`);
 
     await openMovimenti(page);
     pass('ui:movimenti', 'pagina pronta');
@@ -188,7 +234,9 @@ async function main() {
       } catch (_) { /* ignore */ }
     }
     try {
-      await db.doc(`tenants/${tenantId}/prodotti/${prodottoId}`).delete();
+      if (prodottoId && tenantId) {
+        await db.doc(`tenants/${tenantId}/prodotti/${prodottoId}`).delete();
+      }
     } catch (_) { /* ignore */ }
   }
 

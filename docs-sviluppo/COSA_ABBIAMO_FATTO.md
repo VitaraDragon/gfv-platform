@@ -8,6 +8,7 @@
 - **Fix:** `incrementDocumentField` in `firebase-service.js` (`FieldValue.increment`). `aggiornaGiacenzaProdotto` lo usa per tutti i caller (movimenti-service, scarico trattamenti, Tony Occhi). Pagina Movimenti: `applyGiacenzaDelta` con `increment`. `updateProdotto` toglie `giacenza` dal payload anagrafica così un rinomina non sovrascrive lo stock. Scarico oltre giacenza resta permesso (può andare negativo).
 - **Non toccato:** transazione movimento+giacenza in un solo commit (se increment fallisce dopo `addDoc` resta un movimento orfano — caso raro); home magazzino; seed simulatore.
 - Test: `tests/services/giacenza-increment.test.js`. Canary `npm run magazzino:giacenza-canary`.
+- **Prova emulator (2026-09-18):** Auth+Firestore emulator. Login manager tenant `sim_podere_conti_910716`. Due `createMovimento` uscite parallele 7+5 su giacenza 100 → **88** (non 95 last-write-wins). Rinomina anagrafica in parallelo a un’altra uscita: giacenza **85** e nome aggiornato. Due `increment` pagina −4 e −6 → **75**. Canary **6/6**. Nessuna scrittura su produzione.
 
 ## Gestione lavori — delete a cascata realmente nel codice (2026-09-18)
 
