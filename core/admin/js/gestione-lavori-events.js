@@ -791,100 +791,49 @@ export async function openEliminaModal(
         showAlert('Lavoro non trovato', 'error');
         return;
     }
-    
-    if (confirm(`Sei sicuro di voler eliminare il lavoro "${lavoro.nome}"?\n\nQuesta azione non può essere annullata.`)) {
-        try {
-            const { doc, deleteDoc } = await import('../../services/firebase-service.js');
-            
-            // Libera macchine se assegnate (solo se modulo Parco Macchine attivo)
-            if (hasParcoMacchineModule && updateMacchinaStatoCallback) {
-                if (lavoro.macchinaId) {
-                    await updateMacchinaStatoCallback(lavoro.macchinaId, 'disponibile');
-                }
-                if (lavoro.attrezzoId) {
-                    await updateMacchinaStatoCallback(lavoro.attrezzoId, 'disponibile');
-                }
-            }
-            
-            // Gestione vendemmia collegata (se modulo vigneto attivo)
-            try {
-                const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
-                const hasVignetoModule = await hasModuleAccess('vigneto');
-                
-                if (hasVignetoModule) {
-                    const { findVendemmiaByLavoroId, deleteVendemmia } = await import('../../../modules/vigneto/services/vendemmia-service.js');
-                    const vendemmiaCollegata = await findVendemmiaByLavoroId(lavoroId);
-                    
-                    if (vendemmiaCollegata) {
-                        console.log('[GESTIONE-LAVORI] Lavoro collegato a vendemmia, elimino vendemmia:', vendemmiaCollegata.vendemmiaId);
-                        await deleteVendemmia(vendemmiaCollegata.vignetoId, vendemmiaCollegata.vendemmiaId);
-                        console.log('[GESTIONE-LAVORI] ✓ Vendemmia eliminata');
-                    }
-                    const { findPotaturaByLavoroId, deletePotatura } = await import('../../../modules/vigneto/services/potatura-vigneto-service.js');
-                    const potaturaCollegata = await findPotaturaByLavoroId(lavoroId);
-                    if (potaturaCollegata) {
-                        await deletePotatura(potaturaCollegata.vignetoId, potaturaCollegata.potaturaId);
-                        console.log('[GESTIONE-LAVORI] ✓ Potatura vigneto eliminata');
-                    }
-                    const { findTrattamentoByLavoroId, deleteTrattamento } = await import('../../../modules/vigneto/services/trattamenti-vigneto-service.js');
-                    const trattamentoCollegato = await findTrattamentoByLavoroId(lavoroId);
-                    if (trattamentoCollegato) {
-                        await deleteTrattamento(trattamentoCollegato.vignetoId, trattamentoCollegato.trattamentoId);
-                        console.log('[GESTIONE-LAVORI] ✓ Trattamento vigneto eliminato');
-                    }
-                }
-                const hasFruttetoModule = await hasModuleAccess('frutteto');
-                if (hasFruttetoModule) {
-                    const { findPotaturaByLavoroId, deletePotatura } = await import('../../../modules/frutteto/services/potatura-frutteto-service.js');
-                    const potaturaF = await findPotaturaByLavoroId(lavoroId);
-                    if (potaturaF) {
-                        await deletePotatura(potaturaF.fruttetoId, potaturaF.potaturaId);
-                        console.log('[GESTIONE-LAVORI] ✓ Potatura frutteto eliminata');
-                    }
-                    const { findTrattamentoByLavoroId, deleteTrattamento } = await import('../../../modules/frutteto/services/trattamenti-frutteto-service.js');
-                    const trattamentoF = await findTrattamentoByLavoroId(lavoroId);
-                    if (trattamentoF) {
-                        await deleteTrattamento(trattamentoF.fruttetoId, trattamentoF.trattamentoId);
-                        console.log('[GESTIONE-LAVORI] ✓ Trattamento frutteto eliminato');
-                    }
-                }
-            } catch (error) {
-                console.warn('[GESTIONE-LAVORI] Errore eliminazione vendemmia/potatura/trattamento collegati:', error);
-                // Non blocchiamo l'operazione principale
-            }
 
-            // Vendemmia meccanica CT: ripristina piano stagione (vendemmiato + zone)
-            try {
-                const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
-                const hasVmModule = await hasModuleAccess('vendemmiaMeccanica');
-                if (hasVmModule) {
-                    const { clearLavoroFromPianoStagione } = await import('../../../modules/vendemmia-meccanica/services/lavoro-piano-sync-service.js');
-                    const revertResult = await clearLavoroFromPianoStagione(
-                        { ...lavoro, id: lavoroId },
-                        { hasVmModule: true, tenantId: currentTenantId }
-                    );
-                    if (revertResult.cleared) {
-                        console.log('[GESTIONE-LAVORI] ✓ Piano stagione VM ripristinato per terreno', revertResult.terrenoId);
-                    }
-                }
-            } catch (error) {
-                console.warn('[GESTIONE-LAVORI] Errore ripristino piano stagione VM:', error);
-            }
-            
-            await deleteDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId));
-            showAlert('Lavoro eliminato con successo!', 'success');
-            
-            // Ricarica macchine per aggiornare stati
-            if (hasParcoMacchineModule) {
-                if (loadTrattoriCallback) await loadTrattoriCallback();
-                if (loadAttrezziCallback) await loadAttrezziCallback();
-            }
-            
-            if (loadLavoriCallback) await loadLavoriCallback();
-        } catch (error) {
-            console.error('Errore eliminazione lavoro:', error);
-            showAlert(`Errore: ${error.message}`, 'error');
+    try {
+        const {
+            countRelatedLavoroData,
+            deleteLavoroCascade,
+            formatLavoroDeleteConfirmMessage,
+            formatLavoroDeleteBlockedByRipreseMessage
+        } = await import('../../services/lavori-service.js');
+
+        const counts = await countRelatedLavoroData(lavoroId, {
+            tenantId: currentTenantId,
+            lavoro: { ...lavoro, id: lavoroId }
+        });
+
+        if ((counts.ripreseFiglie || 0) > 0) {
+            showAlert(formatLavoroDeleteBlockedByRipreseMessage(counts), 'error');
+            return;
         }
+
+        if (!confirm(formatLavoroDeleteConfirmMessage(lavoro.nome, counts))) {
+            return;
+        }
+
+        await deleteLavoroCascade(lavoroId, {
+            tenantId: currentTenantId,
+            lavoro: { ...lavoro, id: lavoroId },
+            lavoriList
+        });
+        showAlert('Lavoro eliminato con successo!', 'success');
+
+        if (hasParcoMacchineModule) {
+            if (loadTrattoriCallback) await loadTrattoriCallback();
+            if (loadAttrezziCallback) await loadAttrezziCallback();
+        }
+
+        if (loadLavoriCallback) await loadLavoriCallback();
+    } catch (error) {
+        console.error('Errore eliminazione lavoro:', error);
+        if (error && error.code === 'LAVORO_HAS_RIPRESE_FIGLIE') {
+            showAlert(error.message, 'error');
+            return;
+        }
+        showAlert(`Errore: ${error.message}`, 'error');
     }
 }
 

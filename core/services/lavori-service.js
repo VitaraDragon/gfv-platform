@@ -18,6 +18,25 @@ import {
 import { getCurrentTenantId } from './tenant-service.js';
 import { getCurrentUserData } from './auth-service.js';
 import { Lavoro } from '../models/Lavoro.js';
+import {
+  countRelatedLavoroData,
+  deleteLavoroCascade,
+  purgeOrphanComunicazioni,
+  formatLavoroDeleteConfirmMessage,
+  formatLavoroDeleteBlockedByRipreseMessage,
+  collectLiveLavoroIdSet,
+  LAVORO_HAS_RIPRESE_FIGLIE
+} from './lavoro-delete-cascade.js';
+
+export {
+  countRelatedLavoroData,
+  deleteLavoroCascade,
+  purgeOrphanComunicazioni,
+  formatLavoroDeleteConfirmMessage,
+  formatLavoroDeleteBlockedByRipreseMessage,
+  collectLiveLavoroIdSet,
+  LAVORO_HAS_RIPRESE_FIGLIE
+};
 
 const COLLECTION_NAME = 'lavori';
 
@@ -371,54 +390,18 @@ export async function updateLavoro(lavoroId, updates) {
 }
 
 /**
- * Elimina un lavoro
- * @param {string} lavoroId - ID lavoro
- * @param {Object} options - Opzioni eliminazione
- * @param {boolean} options.force - Se true, elimina anche se ha zone lavorate o ore (default: false)
- * @returns {Promise<void>}
- * @throws {Error} Se lavoro ha zone lavorate o ore e force=false
+ * Elimina un lavoro e i dati collegati (ore, zone, comunicazioni, diario, crop, …).
+ * Blocca se esistono lavori di ripresa figlie. La conferma con conteggi è in UI.
+ * @param {string} lavoroId
+ * @param {{ tenantId?: string, lavoro?: Object, lavoriList?: Array }} [options]
+ * @returns {Promise<{ counts: Record<string, number> }>}
  */
 export async function deleteLavoro(lavoroId, options = {}) {
   try {
-    const tenantId = getCurrentTenantId();
-    if (!tenantId) {
-      throw new Error('Nessun tenant corrente disponibile');
-    }
-    
-    const user = getCurrentUserData();
-    if (!user) {
-      throw new Error('Utente non autenticato');
-    }
-    
-    // Verifica permessi: solo manager e amministratore possono eliminare lavori
-    if (!user.ruoli || (!user.ruoli.includes('manager') && !user.ruoli.includes('amministratore'))) {
-      throw new Error('Non hai i permessi per eliminare lavori');
-    }
-    
-    if (!lavoroId) {
-      throw new Error('ID lavoro obbligatorio');
-    }
-    
-    // Verifica se lavoro ha zone lavorate (se sub-collection esiste)
-    // Nota: questa verifica sarà implementata quando avremo il modulo zone lavorate
-    // Per ora, permettiamo eliminazione se force=true
-    
-    // Verifica se lavoro ha ore associate (se collezione ore esiste)
-    // Nota: questa verifica sarà implementata quando avremo il modulo ore
-    // Per ora, permettiamo eliminazione se force=true
-    
-    const { force = false } = options;
-    
-    if (!force) {
-      // TODO: Verifica zone lavorate e ore quando moduli saranno implementati
-      // Per ora, chiediamo sempre conferma forzata
-      throw new Error('Per eliminare un lavoro con dati associati, usa force=true');
-    }
-    
-    await deleteDocument(COLLECTION_NAME, lavoroId, tenantId);
+    return await deleteLavoroCascade(lavoroId, options);
   } catch (error) {
     console.error('Errore eliminazione lavoro:', error);
-    throw error; // Rilancia l'errore così la UI può gestirlo
+    throw error;
   }
 }
 
@@ -764,6 +747,9 @@ export default {
   createLavoro,
   updateLavoro,
   deleteLavoro,
+  deleteLavoroCascade,
+  countRelatedLavoroData,
+  purgeOrphanComunicazioni,
   getNumeroLavoriCaposquadra,
   sospendiLavoro,
   creaLavoroRipresa,
