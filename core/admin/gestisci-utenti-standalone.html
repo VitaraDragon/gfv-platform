@@ -775,39 +775,31 @@
                     }
                 });
 
-                // Carica anche inviti pendenti
-                let invitesQuery;
+                // Inviti pendenti: solo del tenant corrente (le rules non permettono list globale).
+                const invites = [];
                 if (currentTenantId) {
-                    invitesQuery = query(
+                    const invitesQuery = query(
                         collection(db, 'inviti'),
                         where('tenantId', '==', currentTenantId),
                         where('stato', '==', 'invitato')
                     );
-                } else {
-                    invitesQuery = query(
-                        collection(db, 'inviti'),
-                        where('stato', '==', 'invitato')
-                    );
-                }
-
-                const invitesSnapshot = await getDocs(invitesQuery);
-                const invites = [];
-                invitesSnapshot.forEach(doc => {
-                    const inviteData = doc.data();
-                    // Aggiungi inviti come "utenti" con stato "invitato"
-                    invites.push({
-                        id: 'invite-' + doc.id,
-                        email: inviteData.email,
-                        nome: inviteData.nome,
-                        cognome: inviteData.cognome,
-                        ruoli: inviteData.ruoli || [],
-                        stato: 'invitato',
-                        tenantId: inviteData.tenantId,
-                        invitoId: doc.id,
-                        inviatoIl: inviteData.inviatoIl,
-                        scadeIl: inviteData.scadeIl
+                    const invitesSnapshot = await getDocs(invitesQuery);
+                    invitesSnapshot.forEach(docSnap => {
+                        const inviteData = docSnap.data();
+                        invites.push({
+                            id: 'invite-' + docSnap.id,
+                            email: inviteData.email,
+                            nome: inviteData.nome,
+                            cognome: inviteData.cognome,
+                            ruoli: inviteData.ruoli || [],
+                            stato: 'invitato',
+                            tenantId: inviteData.tenantId,
+                            invitoId: docSnap.id,
+                            inviatoIl: inviteData.inviatoIl,
+                            scadeIl: inviteData.scadeIl
+                        });
                     });
-                });
+                }
 
                 // Combina utenti e inviti
                 const allUsers = [...users, ...invites];

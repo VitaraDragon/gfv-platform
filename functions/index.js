@@ -21,6 +21,7 @@ const {
 } = require("./tony-lavoro-entity-parser");
 const { defineSecret } = require("firebase-functions/params");
 const { handleSendTransactionalEmail } = require("./email-resend");
+const { handleGetInvitoPubblico } = require("./invito-pubblico");
 const {
   handleCreateStripeCheckoutSession,
   handleFulfillStripeCheckout,
@@ -4349,6 +4350,29 @@ exports.getPreventivoPubblico = onCall(
       },
       clienteRagioneSociale,
     };
+  }
+);
+
+/**
+ * Callable pubblica (senza login): dati invito per registrazione-invito-standalone.html.
+ * Sostituisce letture Firestore pubbliche su /inviti (token nel URL).
+ */
+exports.getInvitoPubblico = onCall(
+  { region: "europe-west1", cors: true, invoker: "public" },
+  async (request) => {
+    try {
+      return await handleGetInvitoPubblico(db, request.data && request.data.token);
+    } catch (e) {
+      if (e && typeof e.code === "string") {
+        const allowed = ["invalid-argument", "not-found", "failed-precondition"];
+        if (allowed.includes(e.code)) {
+          throw new HttpsError(e.code, e.message || "Errore invito.");
+        }
+      }
+      if (e instanceof HttpsError) throw e;
+      console.error("[getInvitoPubblico]", e && e.message);
+      throw new HttpsError("internal", "Errore lettura invito.");
+    }
   }
 );
 

@@ -1,6 +1,15 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-18 — preventivi: numero atomico + accettazione in transazione.**
+**Ultimo aggiornamento documentazione: 2026-09-18 — inviti: chiusura lettura pubblica + callable getInvitoPubblico.**
+
+## Inviti — chiusura `allow read: if true` (2026-09-18)
+
+- **Problema:** `firestore.rules` su `/inviti/{id}` aveva `allow read: if true`. Chiunque poteva listare tutta la collection (`email`, `token`, `tenantId`). La registrazione non autenticata (`registrazione-invito-standalone.html` + `verifyInviteToken`) interrogava `where('token','==',token)`: quella query richiede `list`, quindi non si può chiudere la lettura senza un altro canale.
+- **Fix:** stesso schema dei preventivi pubblici. Callable `getInvitoPubblico` (Admin lookup per token, allowlist di campi, `europe-west1`, `invoker: "public"`). Client `fetchInvitoByToken` / `verifyInviteToken`. Pagina registrazione: niente query su `/inviti`; i fallback email-già-in-uso usano l’invito già in memoria. Gestione utenti: lista inviti **solo** con `tenantId == currentTenantId` (tolto il fallback che elencava tutti i pendenti). Rules: `get`/`list` solo manager/admin del tenant dell’invito; create/update/delete invariati (l’accettazione resta `update` autenticato con match email su `stato`/`accettatoIl`).
+- **Non toccare in questo giro:** `find*ByLavoroId` first-match; transazione unica movimento+giacenza.
+- **Ordine live (obbligatorio):** 1) `deploy:functions` (`getInvitoPubblico`) 2) client su `main` 3) `deploy:rules`. Invertire 2 e 3 spezza la registrazione (il client vecchio interroga Firestore, le rules nuove negano `list`).
+- Test: `tests/services/invito-pubblico.test.js`, `tests/invito-client-no-public-query.test.js`. Canary `npm run inviti:rules-canary`.
+- **Prova emulator (2026-09-18):** Auth+Firestore emulator. Reload `firestore.rules` a caldo. Tenant `sim_az_agr_ricci_208883`. Unauth list/query-token/get → **403**. Manager query `tenantId+stato` vede l’invito; query altro tenant **DENIED**; operaio list **403**. `handleGetInvitoPubblico` restituisce l’invito sanitizzato (niente `leakField`). Client SDK manager: tenant query ok, query senza tenantId **permission-denied**. Canary **10/10**. Nessuna scrittura su produzione. **Non** `deploy:rules` / merge finché non richiesto.
 
 ## Preventivi — numero lock e accettazione/rifiuto in transazione (2026-09-18)
 
