@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-18 — delete lavoro a cascata (codice).**
+**Ultimo aggiornamento documentazione: 2026-09-18 — giacenza magazzino atomica (increment).**
+
+## Magazzino — giacenza atomica, niente race read-modify-write (2026-09-18)
+
+- **Problema:** `aggiornaGiacenzaProdotto` leggeva la giacenza, sommava il delta e scriveva il totale. Due scarichi insieme (trattamento + movimento, due operatori, elimina mentre arriva un altro) perdevano un delta: restava il totale dell’ultimo writer. La pagina Movimenti faceva la stessa cosa in locale (`getDoc` + `updateDoc` del numero).
+- **Fix:** `incrementDocumentField` in `firebase-service.js` (`FieldValue.increment`). `aggiornaGiacenzaProdotto` lo usa per tutti i caller (movimenti-service, scarico trattamenti, Tony Occhi). Pagina Movimenti: `applyGiacenzaDelta` con `increment`. `updateProdotto` toglie `giacenza` dal payload anagrafica così un rinomina non sovrascrive lo stock. Scarico oltre giacenza resta permesso (può andare negativo).
+- **Non toccato:** transazione movimento+giacenza in un solo commit (se increment fallisce dopo `addDoc` resta un movimento orfano — caso raro); home magazzino; seed simulatore.
+- Test: `tests/services/giacenza-increment.test.js`. Canary `npm run magazzino:giacenza-canary`.
+- **Prova emulator (2026-09-18):** Auth+Firestore emulator. Login manager tenant `sim_podere_conti_910716`. Due `createMovimento` uscite parallele 7+5 su giacenza 100 → **88** (non 95 last-write-wins). Rinomina anagrafica in parallelo a un’altra uscita: giacenza **85** e nome aggiornato. Due `increment` pagina −4 e −6 → **75**. Canary **6/6**. Nessuna scrittura su produzione.
 
 ## Gestione lavori — delete a cascata realmente nel codice (2026-09-18)
 
@@ -18,7 +26,7 @@
 
 - **Problema:** con Magazzino in prova (30 giorni, `moduleTrials`) e non ancora in `tenant.modules`, le pagine trattamenti/concimazioni (Vigneto e Frutteto) nascondevano la checkbox «registra scarico» e `tenantHasMagazzinoModule()` saltava comunque la scrittura uscite: leggevano solo i moduli pagati.
 - **Fix:** stesso resolver dei moduli effettivi (`hasModuleAccessFromTenant` / `hasModuleAccess` + `getAvailableModules`): pagati ∪ trial attivi. Servizio `trattamento-scarico-magazzino-service.js`; quattro pagine standalone. Tony su quelle pagine riceve `moduli_attivi` effettivi (anche magazzino in prova).
-- **Non toccato:** giacenza RMW, home magazzino, `tonyExtractDocument` (già su `moduliAttivi` del context).
+- **Non toccato:** home magazzino, `tonyExtractDocument` (già su `moduliAttivi` del context).
 - Test: `tests/module-access-resolver.test.js`, `tests/trattamento-scarico-magazzino-gate.test.js`.
 - **Prova emulator (2026-09-18):** Auth+Firestore emulator + `npm start`. Seed `solo-titolare-viticola` tenant `sim_az_agr_ricci_208883`, Magazzino **solo in prova** (tolto da `modules`). Login manager (`SimGFV2026!`) da `simulator-dev-standalone.html?emulator=1`. Trattamenti vigneto: checkbox scarico **visibile**; salvataggio stub incompleto → nuovo movimento uscita `hiTKAi8sqv2m9As3FAn9` (10→11). Con trial scaduto la checkbox **scompare**. Canary `npm run magazzino:trial-scarico-canary` **6/6**. Nessuna scrittura sul Firestore di produzione.
 
