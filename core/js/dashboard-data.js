@@ -15,6 +15,10 @@ import {
     primaryManodoperaUserId
 } from '../services/comunicazioni-squadra-utils.js';
 import {
+    collectLiveLavoroIdSet,
+    comunicazioneRiferisceLavoroInesistente
+} from '../services/lavoro-delete-cascade.js';
+import {
     fetchLavoriDocumentsForFieldUser,
     isLavoroVisibileOperaioCampo,
     parseLavoroDataInizio,
@@ -1345,6 +1349,16 @@ export async function loadComunicazioniOperaio(userData, dependencies) {
             where('stato', '==', 'attiva')
         );
         const querySnapshot = await getDocs(q);
+        const candidateLavoroIds = [];
+        querySnapshot.forEach((docSnap) => {
+            const lid = docSnap.data()?.lavoroId;
+            if (lid) candidateLavoroIds.push(lid);
+        });
+        const liveLavoroIds = await collectLiveLavoroIdSet(
+            userData.tenantId,
+            operaioLavoroIds,
+            candidateLavoroIds
+        );
         
         const container = document.getElementById('comunicazioni-operaio-list');
         if (!container) return;
@@ -1354,7 +1368,7 @@ export async function loadComunicazioniOperaio(userData, dependencies) {
             const comm = docSnap.data();
             const dataCom = comm.data?.toDate ? comm.data.toDate() : new Date(comm.data);
             
-            if (!comunicazioneVisibilePerOperaio(comm, user, userData, capoIdsOperaio, operaioLavoroIds)) return;
+            if (!comunicazioneVisibilePerOperaio(comm, user, userData, capoIdsOperaio, operaioLavoroIds, liveLavoroIds)) return;
             if (!isComunicazioneAttivaPerData(dataCom)) return;
 
             comunicazioniAttive.push({
@@ -1850,17 +1864,27 @@ export async function loadComunicazioniInviateCaposquadra(userData, dependencies
         
         // Converti in array e ordina per createdAt in memoria
         const comunicazioniArray = [];
+        const candidateLavoroIds = [];
         querySnapshot.forEach((docSnap) => {
             const comm = docSnap.data();
+            if (comm.lavoroId) candidateLavoroIds.push(comm.lavoroId);
             comunicazioniArray.push({
                 id: docSnap.id,
                 ...comm,
                 createdAtValue: comm.createdAt?.toDate ? comm.createdAt.toDate() : new Date(comm.createdAt || 0)
             });
         });
+        const liveLavoroIds = await collectLiveLavoroIdSet(
+            userData.tenantId,
+            [],
+            candidateLavoroIds
+        );
+        const comunicazioniVive = comunicazioniArray.filter(
+            (comm) => !comunicazioneRiferisceLavoroInesistente(comm, liveLavoroIds)
+        );
         
         // Ordina per data creazione (più recenti prima) - mostra solo l'ultima
-        comunicazioniArray.sort((a, b) => {
+        comunicazioniVive.sort((a, b) => {
             const dateA = a.createdAtValue || new Date(0);
             const dateB = b.createdAtValue || new Date(0);
             return dateB - dateA; // Ordine decrescente
@@ -1869,7 +1893,7 @@ export async function loadComunicazioniInviateCaposquadra(userData, dependencies
         const container = document.getElementById('comunicazioni-inviate-content');
         if (!container) return;
         
-        if (comunicazioniArray.length === 0) {
+        if (comunicazioniVive.length === 0) {
             container.innerHTML = `
                 <div style="text-align: center; padding: 15px; color: #666; font-size: 14px;">
                     Nessuna comunicazione inviata ancora.
@@ -1879,7 +1903,7 @@ export async function loadComunicazioniInviateCaposquadra(userData, dependencies
         }
         
         // Mostra solo l'ultima comunicazione
-        const comm = comunicazioniArray[0];
+        const comm = comunicazioniVive[0];
         const dataCom = comm.data?.toDate ? comm.data.toDate() : new Date(comm.data);
         const dataFormatted = formatDateLikeToItalianLongLocal(dataCom);
         const oraFormatted = comm.orario || '07:00';
@@ -1923,11 +1947,11 @@ export async function loadComunicazioniInviateCaposquadra(userData, dependencies
         `;
         
         // Aggiungi link per vedere tutte le comunicazioni se ce ne sono più di una
-        if (comunicazioniArray.length > 1) {
+        if (comunicazioniVive.length > 1) {
             htmlContent += `
                 <div style="text-align: center; margin-top: 10px; padding-top: 10px; border-top: 1px solid #e9ecef;">
                     <a href="admin/impostazioni-standalone.html" style="color: #2E8B57; text-decoration: none; font-size: 13px; font-weight: 500;">
-                        Vedi tutte le comunicazioni (${comunicazioniArray.length}) →
+                        Vedi tutte le comunicazioni (${comunicazioniVive.length}) →
                     </a>
                 </div>
             `;
