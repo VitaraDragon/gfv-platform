@@ -10,54 +10,124 @@ import {
   getDocumentData, 
   updateDocument,
   deleteDocument,
-  getCollectionData 
+  getCollectionData,
+  getDocument,
+  runFirestoreTransaction,
+  serverTimestamp
 } from '../../../core/services/firebase-service.js';
 import { getCurrentTenantId } from '../../../core/services/tenant-service.js';
 import { Preventivo } from '../models/Preventivo.js';
 import { calcolaTariffaPreventivo } from './tariffe-service.js';
 import { getCliente } from './clienti-service.js';
+import {
+  PREVENTIVO_SEQ_FIELD,
+  preventivoAnnoCorrente,
+  formatPreventivoNumero,
+  maxSeqFromNumeri,
+  nextPreventivoSeq,
+  decideTransizionePreventivo,
+  firestoreSnapExists
+} from './preventivo-lock-utils.js';
 
 const COLLECTION_NAME = 'preventivi';
 
+function snapData(snap) {
+  if (!snap) return {};
+  if (typeof snap.data === 'function') return snap.data() || {};
+  return {};
+}
+
 /**
- * Genera numero preventivo progressivo (es. PREV-2025-001)
- * @returns {Promise<string>} Numero preventivo
+ * Alloca il prossimo numero preventivo in transazione sul documento tenant
+ * (`preventivoSeqByYear.{anno}`). Due create concorrenti non prendono lo stesso PREV-anno-NNN.
+ * @param {string|null} tenantId
+ * @param {Date} [now]
+ * @returns {Promise<string>}
  */
-async function generaNumeroPreventivo() {
+export async function allocatePreventivoNumero(tenantId = null, now = new Date()) {
+  const id = tenantId || getCurrentTenantId();
+  if (!id) {
+    throw new Error('Nessun tenant corrente disponibile');
+  }
+
+  const anno = preventivoAnnoCorrente(now);
+  const prefisso = `PREV-${anno}-`;
+  let maxExisting = 0;
   try {
-    const tenantId = getCurrentTenantId();
-    if (!tenantId) {
-      throw new Error('Nessun tenant corrente disponibile');
-    }
-    
-    const anno = new Date().getFullYear();
-    const prefisso = `PREV-${anno}-`;
-    
-    // Ottieni tutti i preventivi dell'anno corrente
     const preventivi = await getCollectionData(COLLECTION_NAME, {
-      tenantId,
+      tenantId: id,
       where: [['numero', '>=', prefisso], ['numero', '<', `${prefisso}Z`]]
     });
-    
-    // Estrai numeri progressivi
-    const numeri = preventivi
-      .map(p => {
-        const match = p.numero?.match(new RegExp(`^${prefisso}(\\d+)$`));
-        return match ? parseInt(match[1]) : 0;
-      })
-      .filter(n => n > 0);
-    
-    // Calcola prossimo numero
-    const prossimoNumero = numeri.length > 0 ? Math.max(...numeri) + 1 : 1;
-    
-    return `${prefisso}${String(prossimoNumero).padStart(3, '0')}`;
+    maxExisting = maxSeqFromNumeri((preventivi || []).map((p) => p.numero), anno);
   } catch (error) {
-    console.error('Errore generazione numero preventivo:', error);
-    // Fallback: usa timestamp
-    const anno = new Date().getFullYear();
-    const timestamp = Date.now().toString().slice(-6);
-    return `PREV-${anno}-${timestamp}`;
+    console.warn('[preventivi] query sequenza esistenti:', error && error.message);
   }
+
+  const tenantRef = getDocument('tenants', id);
+  return runFirestoreTransaction(async (transaction) => {
+    const snap = await transaction.get(tenantRef);
+    if (!firestoreSnapExists(snap)) {
+      throw new Error('Tenant non trovato');
+    }
+    const data = snapData(snap);
+    const storedMap = data[PREVENTIVO_SEQ_FIELD] || {};
+    const stored = storedMap[String(anno)] ?? storedMap[anno] ?? 0;
+    const next = nextPreventivoSeq(stored, maxExisting);
+    transaction.update(tenantRef, {
+      [`${PREVENTIVO_SEQ_FIELD}.${anno}`]: next,
+      updatedAt: serverTimestamp()
+    });
+    return formatPreventivoNumero(anno, next);
+  });
+}
+
+/**
+ * @returns {Promise<string>}
+ */
+async function generaNumeroPreventivo() {
+  return allocatePreventivoNumero();
+}
+
+/**
+ * Accetta/rifiuta in transazione: secondo writer concorrente vede lo stato già cambiato e fallisce.
+ * Non passa da updatePreventivo (gate solo bozza/annullato).
+ * @param {string} preventivoId
+ * @param {'accetta'|'rifiuta'} azione
+ * @param {string} [metodo]
+ * @returns {Promise<Object>}
+ */
+export async function transizionaStatoPreventivo(preventivoId, azione, metodo = 'manager') {
+  const tenantId = getCurrentTenantId();
+  if (!tenantId) {
+    throw new Error('Nessun tenant corrente disponibile');
+  }
+  if (!preventivoId) {
+    throw new Error('ID preventivo obbligatorio');
+  }
+
+  const prevRef = getDocument(COLLECTION_NAME, preventivoId, tenantId);
+  return runFirestoreTransaction(async (transaction) => {
+    const snap = await transaction.get(prevRef);
+    if (!firestoreSnapExists(snap)) {
+      throw new Error('Preventivo non trovato');
+    }
+    const data = snapData(snap);
+    const decision = decideTransizionePreventivo(data.stato, data.dataScadenza, azione, metodo);
+    if (!decision.ok) {
+      throw new Error(decision.reason);
+    }
+    const patch = { ...decision.patch, updatedAt: serverTimestamp() };
+    if (Object.prototype.hasOwnProperty.call(patch, 'dataAccettazione')) {
+      patch.dataAccettazione = serverTimestamp();
+    }
+    transaction.update(prevRef, patch);
+    return {
+      ...data,
+      id: preventivoId,
+      stato: decision.patch.stato,
+      dataAccettazione: decision.patch.dataAccettazione || data.dataAccettazione || null
+    };
+  });
 }
 
 /**
@@ -343,36 +413,15 @@ export async function inviaPreventivoEmail(preventivoId) {
  */
 export async function accettaPreventivo(preventivoId, metodo = 'manager') {
   try {
-    const preventivo = await getPreventivo(preventivoId);
-    if (!preventivo) {
-      throw new Error('Preventivo non trovato');
-    }
-    
-    if (!preventivo.canBeAccepted()) {
-      throw new Error('Preventivo non può essere accettato (stato o scaduto)');
-    }
-    
-    const nuovoStato = metodo === 'email' ? 'accettato_email' : 'accettato_manager';
-    
-    await updatePreventivo(preventivoId, {
-      stato: nuovoStato,
-      dataAccettazione: new Date()
-    });
-
-    const preventivoAggiornato = {
-      ...preventivo,
-      id: preventivoId,
-      stato: nuovoStato,
-      dataAccettazione: new Date()
-    };
+    const preventivoAggiornato = await transizionaStatoPreventivo(preventivoId, 'accetta', metodo);
+    let syncResult = null;
     try {
       const { syncPreventivoAccettatoToPiano } = await import('../../vendemmia-meccanica/services/preventivo-piano-sync-service.js');
-      await syncPreventivoAccettatoToPiano(preventivoAggiornato);
+      syncResult = await syncPreventivoAccettatoToPiano(preventivoAggiornato);
     } catch (syncErr) {
       console.warn('[VM] sync piano da preventivo accettato:', syncErr.message);
     }
-    
-    // TODO: Inviare notifica in-app al manager
+    return { preventivo: preventivoAggiornato, syncResult };
   } catch (error) {
     console.error('Errore accettazione preventivo:', error);
     throw new Error(`Errore accettazione preventivo: ${error.message}`);
@@ -386,20 +435,7 @@ export async function accettaPreventivo(preventivoId, metodo = 'manager') {
  */
 export async function rifiutaPreventivo(preventivoId) {
   try {
-    const preventivo = await getPreventivo(preventivoId);
-    if (!preventivo) {
-      throw new Error('Preventivo non trovato');
-    }
-    
-    if (!preventivo.canBeAccepted()) {
-      throw new Error('Preventivo non può essere rifiutato (stato o scaduto)');
-    }
-    
-    await updatePreventivo(preventivoId, {
-      stato: 'rifiutato'
-    });
-    
-    // TODO: Inviare notifica in-app al manager
+    await transizionaStatoPreventivo(preventivoId, 'rifiuta');
   } catch (error) {
     console.error('Errore rifiuto preventivo:', error);
     throw new Error(`Errore rifiuto preventivo: ${error.message}`);
@@ -483,6 +519,8 @@ export default {
   createPreventivo,
   updatePreventivo,
   inviaPreventivoEmail,
+  allocatePreventivoNumero,
+  transizionaStatoPreventivo,
   accettaPreventivo,
   rifiutaPreventivo,
   annullaPreventivo,
