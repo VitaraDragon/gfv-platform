@@ -12,6 +12,7 @@
 - **UI:** `openEliminaModal` conta → alert se riprese → `confirm` con elenco → `deleteLavoroCascade`. Purge orfani dopo la delete e al load di Gestione lavori.
 - **Campo / dashboard:** `comunicazioneVisibilePerOperaio` nasconde i messaggi agganciati a un lavoro inesistente (anche con destinatari); stesso filtro su invii capo (workspace + dashboard). `collectLiveLavoroIdSet` fa get puntuale sugli id sconosciuti.
 - Test: `tests/services/lavoro-delete-cascade.test.js`.
+- **Prova emulatori (2026-09-18):** `npm run lavoro:delete-cascade-canary` su Auth+Firestore emulator + `viticola-manodopera`. 24/24: blocco ripresa figlia (toast, origine intatta); confirm con conteggi (2 ore, zona, comunicazione, diario, assenza, trattamento, preventivo); hard-delete + unlink preventivo `accettato_manager` / guasto / standby. Nessuna scrittura su produzione.
 
 ## Magazzino — scarico da trattamenti/concimazioni in prova moduli (2026-09-18)
 
