@@ -76,6 +76,7 @@
     "sim:tony:vitest": "node scripts/sim-tony-vitest-run.mjs",
     "lavoro:ripresa-canary": "node scripts/lavoro-ripresa-canary.mjs",
     "magazzino:trial-scarico-canary": "node scripts/magazzino-trial-scarico-canary.mjs",
+    "magazzino:giacenza-canary": "node scripts/magazzino-giacenza-canary.mjs",
     "lavoro:delete-cascade-canary": "node scripts/lavoro-delete-cascade-canary.mjs",
     "manodopera:sostituzione-canary": "node scripts/manodopera-sostituzione-canary.mjs",
     "manodopera:roster-a2-canary": "node scripts/manodopera-roster-a2-canary.mjs",
