@@ -1813,7 +1813,7 @@
         async function init() {
             await waitForConfig();
             const { initializeFirebase, getAuthInstance } = await import(resolvePath('../../../core/services/firebase-service.js'));
-            const { initializeTenantService, getCurrentTenantId } = await import(resolvePath('../../../core/services/tenant-service.js'));
+            const { initializeTenantService, getCurrentTenantId, setCurrentTenantId, hasModuleAccess, getAvailableModules } = await import(resolvePath('../../../core/services/tenant-service.js'));
             await initializeFirebase(window.firebaseConfig);
             initializeTenantService();
             const auth = getAuthInstance();
@@ -1830,37 +1830,29 @@
                 let hasManodoperaModule = false;
                 try {
                     const tenantId = getCurrentTenantId();
-                    const { getDb } = await import(resolvePath('../../../core/services/firebase-service.js'));
-                    const { getDoc, doc } = await import(resolvePath('../../../core/services/firebase-service.js'));
-                    const db = getDb();
-                    if (db && tenantId) {
-                        const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
-                        if (tenantDoc.exists()) {
-                            const tenantData = tenantDoc.data();
-                            const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
-                            hasManodoperaModule = modules.includes('manodopera');
-                            hasMagazzinoModule = modules.includes('magazzino');
-                            
-                            // Inizializza context Tony con i moduli attivi usando helper
-                            if (window.Tony && window.Tony.initContextWithModules) {
-                                window.Tony.initContextWithModules(modules);
-                            } else {
-                                // Fallback se helper non disponibile (retry manuale)
-                                var initTonyContext = function(retries) {
-                                    retries = retries || 0;
-                                    if (window.Tony && typeof window.Tony.setContext === 'function') {
-                                        window.Tony.setContext('dashboard', {
-                                            info_azienda: { moduli_attivi: modules },
-                                            moduli_attivi: modules
-                                        });
-                                        console.log('[Concimazioni frutteto] Context Tony inizializzato con moduli:', modules);
-                                    } else if (retries < 10) {
-                                        setTimeout(function() { initTonyContext(retries + 1); }, 500);
-                                    }
-                                };
-                                initTonyContext();
+                    if (tenantId) setCurrentTenantId(tenantId);
+                    hasManodoperaModule = await hasModuleAccess('manodopera');
+                    hasMagazzinoModule = await hasModuleAccess('magazzino');
+                    const modules = await getAvailableModules();
+
+                    // Inizializza context Tony con i moduli attivi usando helper
+                    if (window.Tony && window.Tony.initContextWithModules) {
+                        window.Tony.initContextWithModules(modules);
+                    } else {
+                        // Fallback se helper non disponibile (retry manuale)
+                        var initTonyContext = function(retries) {
+                            retries = retries || 0;
+                            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                                window.Tony.setContext('dashboard', {
+                                    info_azienda: { moduli_attivi: modules },
+                                    moduli_attivi: modules
+                                });
+                                console.log('[Concimazioni frutteto] Context Tony inizializzato con moduli:', modules);
+                            } else if (retries < 10) {
+                                setTimeout(function() { initTonyContext(retries + 1); }, 500);
                             }
-                        }
+                        };
+                        initTonyContext();
                     }
                 } catch (err) { console.warn('Verifica modulo manodopera:', err); }
                 const operatoreGroup = document.getElementById('trattamento-operatore-group');
