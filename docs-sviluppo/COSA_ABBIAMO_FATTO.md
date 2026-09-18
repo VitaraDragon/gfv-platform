@@ -1,6 +1,18 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-18 — Magazzino: scarico trattamenti anche in prova.**
+**Ultimo aggiornamento documentazione: 2026-09-18 — delete lavoro a cascata (codice).**
+
+## Gestione lavori — delete a cascata realmente nel codice (2026-09-18)
+
+- **Gap:** il changelog del 2026-08-07 descriveva `countRelatedLavoroData` / `deleteLavoroCascade` / `purgeOrphanComunicazioni`, ma in JS non c’erano. `deleteLavoro` lanciava «usa force=true»; `openEliminaModal` faceva `deleteDoc` sul solo documento lavoro (più primo stub coltura e libera macchine), lasciando ore, zone, comunicazioni, diario, assenze, VM, magazzino.
+- **Servizio:** `core/services/lavoro-delete-cascade-utils.js` (puri: conteggi, conferma, blocco riprese, unlink preventivo, orfani) + `lavoro-delete-cascade.js` (I/O). `lavori-service.deleteLavoro` delega alla cascata. Nessun `if` per pagina: un’orchestrazione riusabile.
+- **Cosa viene eliminato:** subcollection `oreOperai` / `zoneLavorate`; comunicazioni; voci diario `attivita`; assenze con `lavoroId`; calcoli/spese VM; vendemmie/potature/trattamenti/raccolte (tutti i match, non solo `find*ByLavoroId`); movimenti magazzino residui. Trattamenti **prima** così `deleteTrattamento` ripristina giacenze.
+- **Cosa non si cancella:** preventivi (`pianificato` → `accettato_manager`, `lavoroId` null); guasti (`lavoroId` null); assenze solo in standby (`standbyLavoroId` null). Macchine liberate con `liberaMacchineDaLavoro` (non se un altro lavoro le tiene). Piano stagione VM ripristinato.
+- **Blocco:** se esiste un lavoro con `ripresaDaLavoroId` = questo, errore `LAVORO_HAS_RIPRESE_FIGLIE` — va tolta prima la ripresa.
+- **UI:** `openEliminaModal` conta → alert se riprese → `confirm` con elenco → `deleteLavoroCascade`. Purge orfani dopo la delete e al load di Gestione lavori.
+- **Campo / dashboard:** `comunicazioneVisibilePerOperaio` nasconde i messaggi agganciati a un lavoro inesistente (anche con destinatari); stesso filtro su invii capo (workspace + dashboard). `collectLiveLavoroIdSet` fa get puntuale sugli id sconosciuti.
+- Test: `tests/services/lavoro-delete-cascade.test.js`.
+- **Prova emulatori (2026-09-18):** `npm run lavoro:delete-cascade-canary` su Auth+Firestore emulator + `viticola-manodopera`. 24/24: blocco ripresa figlia (toast, origine intatta); confirm con conteggi (2 ore, zona, comunicazione, diario, assenza, trattamento, preventivo); hard-delete + unlink preventivo `accettato_manager` / guasto / standby. Nessuna scrittura su produzione.
 
 ## Magazzino — scarico da trattamenti/concimazioni in prova moduli (2026-09-18)
 
@@ -9,8 +21,6 @@
 - **Non toccato:** giacenza RMW, home magazzino, `tonyExtractDocument` (già su `moduliAttivi` del context).
 - Test: `tests/module-access-resolver.test.js`, `tests/trattamento-scarico-magazzino-gate.test.js`.
 - **Prova emulator (2026-09-18):** Auth+Firestore emulator + `npm start`. Seed `solo-titolare-viticola` tenant `sim_az_agr_ricci_208883`, Magazzino **solo in prova** (tolto da `modules`). Login manager (`SimGFV2026!`) da `simulator-dev-standalone.html?emulator=1`. Trattamenti vigneto: checkbox scarico **visibile**; salvataggio stub incompleto → nuovo movimento uscita `hiTKAi8sqv2m9As3FAn9` (10→11). Con trial scaduto la checkbox **scompare**. Canary `npm run magazzino:trial-scarico-canary` **6/6**. Nessuna scrittura sul Firestore di produzione.
-
-## Tony Occhi — galleria e foto HEIC (2026-09-17)
 
 ## Tony Occhi — galleria e foto HEIC (2026-09-17)
 
@@ -379,6 +389,7 @@ Piano di implementazione (solo documentazione, **nessun codice**): un tap sulla 
 
 ## Gestione lavori — delete a cascata (2026-08-07)
 
+- **Nota 2026-09-18:** questa voce era solo documentazione; le API non esistevano nel JS. Implementazione reale nella voce in testa a questo file.
 - Eliminazione lavoro da manager: conferma con conteggi (ore, zone, comunicazioni, diario, crop/VM) e cascata centralizzata in `lavori-service.deleteLavoroCascade`.
 - Hard delete: `oreOperai`, `zoneLavorate`, comunicazioni, attivita, assenze collegate, calcoli/spese VM, vendemmia/potatura/trattamento/raccolta; unlink preventivi/guasti; blocco se esistono riprese figlie.
 - UI thin in `gestione-lavori-events.openEliminaModal` (niente più `deleteDoc` diretto).
