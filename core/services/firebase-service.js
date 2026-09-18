@@ -27,7 +27,8 @@ import {
   limit,
   setDoc,
   Timestamp,
-  serverTimestamp
+  serverTimestamp,
+  increment
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js";
 import { connectFirebaseEmulatorsIfDev } from '../js/firebase-emulator-dev.js';
@@ -49,7 +50,8 @@ export {
   limit,
   setDoc,
   Timestamp,
-  serverTimestamp
+  serverTimestamp,
+  increment
 };
 
 // Configurazione Firebase (da centralizzare)
@@ -258,6 +260,43 @@ export async function updateDocument(collectionName, documentId, data, tenantId 
     await updateDoc(docRef, updateData);
   } catch (error) {
     console.error(`Errore aggiornamento documento ${documentId} in ${collectionName}:`, error);
+    throw new Error(`Errore aggiornamento documento: ${error.message}`);
+  }
+}
+
+/**
+ * Incremento atomico di un campo numerico (niente lettura + scrittura).
+ * Due writer concorrenti non si sovrascrivono: Firestore applica entrambi i delta.
+ * @param {string} collectionName
+ * @param {string} documentId
+ * @param {string} field
+ * @param {number} delta
+ * @param {string|null} tenantId
+ * @returns {Promise<void>}
+ */
+export async function incrementDocumentField(collectionName, documentId, field, delta, tenantId = null) {
+  if (!collectionName) {
+    throw new Error('Collection obbligatoria');
+  }
+  if (!documentId) {
+    throw new Error('ID documento obbligatorio');
+  }
+  if (!field || typeof field !== 'string') {
+    throw new Error('Campo obbligatorio');
+  }
+  const n = Number(delta);
+  if (!Number.isFinite(n)) {
+    throw new Error('Delta non valido');
+  }
+  if (n === 0) return;
+  try {
+    const docRef = getDocument(collectionName, documentId, tenantId);
+    await updateDoc(docRef, {
+      [field]: increment(n),
+      updatedAt: serverTimestamp()
+    });
+  } catch (error) {
+    console.error(`Errore increment ${field} su ${documentId} in ${collectionName}:`, error);
     throw new Error(`Errore aggiornamento documento: ${error.message}`);
   }
 }

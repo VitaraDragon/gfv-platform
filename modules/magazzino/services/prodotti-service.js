@@ -10,10 +10,15 @@ import {
   getDocumentData,
   updateDocument,
   getCollectionData,
-  deleteDocument
+  deleteDocument,
+  incrementDocumentField
 } from '../../../core/services/firebase-service.js';
 import { getCurrentTenantId } from '../../../core/services/tenant-service.js';
 import { Prodotto } from '../models/Prodotto.js';
+import {
+  parseGiacenzaDelta,
+  omitGiacenzaFromAnagraficaPayload
+} from './giacenza-utils.js';
 
 const COLLECTION_NAME = 'prodotti';
 const MOVIMENTI_COLLECTION = 'movimentiMagazzino';
@@ -157,7 +162,12 @@ export async function updateProdotto(prodottoId, updates) {
       throw new Error(`Validazione fallita: ${validation.errors.join(', ')}`);
     }
 
-    await updateDocument(COLLECTION_NAME, prodottoId, prodottoEsistente.toFirestore(), tenantId);
+    await updateDocument(
+      COLLECTION_NAME,
+      prodottoId,
+      omitGiacenzaFromAnagraficaPayload(prodottoEsistente.toFirestore()),
+      tenantId
+    );
   } catch (error) {
     console.error('Errore aggiornamento prodotto:', error);
     throw new Error(`Errore aggiornamento prodotto: ${error.message}`);
@@ -270,7 +280,8 @@ export async function deleteProdotto(prodottoId) {
 }
 
 /**
- * Aggiorna la giacenza di un prodotto (usato internamente da movimenti-service)
+ * Aggiorna la giacenza di un prodotto con increment atomico (niente lettura + scrittura).
+ * Due scarichi concorrenti non si perdono. Scarico oltre giacenza permesso (può andare negativo).
  * @param {string} prodottoId - ID prodotto
  * @param {number} delta - Variazione (+ per entrata, - per uscita)
  * @returns {Promise<void>}
@@ -285,13 +296,15 @@ export async function aggiornaGiacenzaProdotto(prodottoId, delta) {
       throw new Error('ID prodotto obbligatorio');
     }
 
-    const prodotto = await getProdotto(prodottoId);
-    if (!prodotto) {
+    const n = parseGiacenzaDelta(delta);
+    if (n === 0) return;
+
+    const existing = await getDocumentData(COLLECTION_NAME, prodottoId, tenantId);
+    if (!existing) {
       throw new Error('Prodotto non trovato');
     }
 
-    const nuovaGiacenza = (prodotto.giacenza || 0) + delta;
-    await updateDocument(COLLECTION_NAME, prodottoId, { giacenza: nuovaGiacenza }, tenantId);
+    await incrementDocumentField(COLLECTION_NAME, prodottoId, 'giacenza', n, tenantId);
   } catch (error) {
     console.error('Errore aggiornamento giacenza:', error);
     throw new Error(`Errore aggiornamento giacenza: ${error.message}`);
