@@ -8,6 +8,7 @@
 - **Fix:** stesso resolver dei moduli effettivi (`hasModuleAccessFromTenant` / `hasModuleAccess` + `getAvailableModules`): pagati ∪ trial attivi. Servizio `trattamento-scarico-magazzino-service.js`; quattro pagine standalone. Tony su quelle pagine riceve `moduli_attivi` effettivi (anche magazzino in prova).
 - **Non toccato:** giacenza RMW, home magazzino, `tonyExtractDocument` (già su `moduliAttivi` del context).
 - Test: `tests/module-access-resolver.test.js`, `tests/trattamento-scarico-magazzino-gate.test.js`.
+- **Prova emulator (2026-09-18):** Auth+Firestore emulator + `npm start`. Seed `solo-titolare-viticola` tenant `sim_az_agr_ricci_208883`, Magazzino **solo in prova** (tolto da `modules`). Login manager (`SimGFV2026!`) da `simulator-dev-standalone.html?emulator=1`. Trattamenti vigneto: checkbox scarico **visibile**; salvataggio stub incompleto → nuovo movimento uscita `hiTKAi8sqv2m9As3FAn9` (10→11). Con trial scaduto la checkbox **scompare**. Canary `npm run magazzino:trial-scarico-canary` **6/6**. Nessuna scrittura sul Firestore di produzione.
 
 ## Tony Occhi — galleria e foto HEIC (2026-09-17)
 
