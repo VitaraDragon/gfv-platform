@@ -9,7 +9,7 @@
 - **Fix stato:** `transizionaStatoPreventivo` — transazione get + `preventivoPuoEssereAccettato` (bozza/inviato, non scaduto) + patch. `accettaPreventivo` / `rifiutaPreventivo` e i pulsanti lista passano di qui. Cloud Function `aggiornaStatoPreventivoPubblico` (link email) usa `runTransaction` Admin: il secondo writer vede lo stato già cambiato. Path email live in produzione solo dopo `deploy:functions`.
 - **Non toccato:** `updatePreventivo` (gate bozza per le modifiche di contenuto); inviti `allow read: if true`; `find*ByLavoroId` first-match; transazione unica create-preventivo+seq (se create fallisce dopo allocate resta un buco di sequenza).
 - Test: `tests/services/preventivi-lock.test.js`. Canary `npm run preventivi:lock-canary`.
-- **Prova emulator:** da annotare dopo il canary.
+- **Prova emulator (2026-09-18):** Auth+Firestore emulator. Login manager tenant `sim_az_agr_ricci_208883`. Due `allocatePreventivoNumero` paralleli → **PREV-2026-001** e **PREV-2026-002**. Due `createPreventivo` paralleli → **PREV-2026-003** e **PREV-2026-004**. Due `accettaPreventivo` sullo stesso inviato: uno vince, l’altro fallisce, stato unico (`accettato_email` o `accettato_manager`). Accetta + rifiuta su due doc distinti. `preventivoSeqByYear.2026=4`. Canary **7/7**. Nessuna scrittura su produzione.
 
 ## Magazzino — giacenza atomica, niente race read-modify-write (2026-09-18)
 
