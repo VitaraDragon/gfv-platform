@@ -369,7 +369,8 @@
     <script type="module">
         import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
         import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
-        import { collection, getDocs, doc, getDoc, addDoc, query, where, orderBy, serverTimestamp, Timestamp } from '../../../core/services/firebase-service.js';
+        import { collection, getDocs, doc, getDoc, addDoc, query, orderBy, serverTimestamp, Timestamp } from '../../../core/services/firebase-service.js';
+        import { allocatePreventivoNumero } from '../services/preventivi-service.js';
 
         // Funzione per attendere il caricamento della configurazione Firebase
         function waitForConfig() {
@@ -1619,33 +1620,9 @@
             }
         }
 
-        // Genera numero preventivo
+        // Numero preventivo: sequenza tenant in transazione (niente max+1 locale).
         async function generaNumeroPreventivo() {
-            try {
-                const anno = new Date().getFullYear();
-                const prefisso = `PREV-${anno}-`;
-                
-                const preventiviQuery = query(
-                    collection(db, 'tenants', currentTenantId, 'preventivi'),
-                    where('numero', '>=', prefisso),
-                    where('numero', '<', `${prefisso}Z`)
-                );
-                const snapshot = await getDocs(preventiviQuery);
-                
-                const numeri = [];
-                snapshot.forEach(doc => {
-                    const match = doc.data().numero?.match(new RegExp(`^${prefisso}(\\d+)$`));
-                    if (match) numeri.push(parseInt(match[1]));
-                });
-                
-                const prossimoNumero = numeri.length > 0 ? Math.max(...numeri) + 1 : 1;
-                return `${prefisso}${String(prossimoNumero).padStart(3, '0')}`;
-            } catch (error) {
-                console.error('Errore generazione numero:', error);
-                const anno = new Date().getFullYear();
-                const timestamp = Date.now().toString().slice(-6);
-                return `PREV-${anno}-${timestamp}`;
-            }
+            return allocatePreventivoNumero(currentTenantId);
         }
 
         // Genera token accettazione

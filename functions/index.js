@@ -4372,42 +4372,51 @@ exports.aggiornaStatoPreventivoPubblico = onCall(
       throw new HttpsError("not-found", "Preventivo non trovato.");
     }
 
-    const d = found.data;
-    const stato = d.stato;
-    const dataScadenza = d.dataScadenza && typeof d.dataScadenza.toDate === "function" ? d.dataScadenza.toDate() : null;
-    const isScaduto = dataScadenza && new Date() > dataScadenza;
+    const result = await db.runTransaction(async (transaction) => {
+      const snap = await transaction.get(found.ref);
+      if (!snap.exists) {
+        throw new HttpsError("not-found", "Preventivo non trovato.");
+      }
+      const d = snap.data() || {};
+      const stato = d.stato;
+      const dataScadenza = d.dataScadenza && typeof d.dataScadenza.toDate === "function" ? d.dataScadenza.toDate() : null;
+      const isScaduto = dataScadenza && new Date() > dataScadenza;
 
-    if (isScaduto) {
-      throw new HttpsError("failed-precondition", "Preventivo scaduto.");
-    }
-    if (!["bozza", "inviato"].includes(stato)) {
-      throw new HttpsError("failed-precondition", "Stato preventivo non consente questa operazione.");
-    }
+      if (isScaduto) {
+        throw new HttpsError("failed-precondition", "Preventivo scaduto.");
+      }
+      if (!["bozza", "inviato"].includes(stato)) {
+        throw new HttpsError("failed-precondition", "Stato preventivo non consente questa operazione.");
+      }
 
-    if (azione === "accetta") {
-      await found.ref.update({
-        stato: "accettato_email",
-        dataAccettazione: admin.firestore.FieldValue.serverTimestamp(),
+      if (azione === "accetta") {
+        transaction.update(found.ref, {
+          stato: "accettato_email",
+          dataAccettazione: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        return { stato: "accettato_email", data: d };
+      }
+
+      transaction.update(found.ref, {
+        stato: "rifiutato",
       });
+      return { stato: "rifiutato", data: d };
+    });
+
+    if (result.stato === "accettato_email") {
       try {
         const { syncPreventivoAccettatoToPianoAdmin } = require("./vm-preventivo-piano-sync");
         await syncPreventivoAccettatoToPianoAdmin(db, found.tenantId, {
-          ...d,
+          ...result.data,
           id: found.preventivoId,
           stato: "accettato_email",
         });
       } catch (syncErr) {
         console.warn("[VM] sync piano da preventivo email:", syncErr.message);
       }
-      await invalidateTonyContextCache(db, found.tenantId);
-      return { ok: true, stato: "accettato_email" };
     }
-
-    await found.ref.update({
-      stato: "rifiutato",
-    });
     await invalidateTonyContextCache(db, found.tenantId);
-    return { ok: true, stato: "rifiutato" };
+    return { ok: true, stato: result.stato };
   }
 );
 
