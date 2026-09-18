@@ -422,6 +422,7 @@
         import { collection, query, where, getDocs, doc, setDoc, updateDoc, getDoc, serverTimestamp } from '../services/firebase-service.js';
         import { onAuthStateChanged, signOut } from '../services/firebase-service.js';
         import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
+        import { fetchInvitoByToken } from '../services/invito-service-standalone.js';
 
         initializeFirebase(firebaseConfig);
         const app = getAppInstance();
@@ -475,27 +476,13 @@
                 // Se sì, non serve logout (sta già registrando il suo account)
                 // Se no, facciamo logout per permettere la registrazione
                 try {
-                    // Carica l'invito per vedere l'email
-                    const invitiQuery = query(
-                        collection(db, 'inviti'),
-                        where('token', '==', token),
-                        where('stato', '==', 'invitato')
-                    );
-                    const snapshot = await getDocs(invitiQuery);
-                    
-                    if (!snapshot.empty) {
-                        const invitoData = snapshot.docs[0].data();
-                        // Se l'email dell'invito è diversa dall'utente loggato, fai logout
-                        if (invitoData.email.toLowerCase() !== user.email.toLowerCase()) {
+                    const invitoData = await fetchInvitoByToken(token);
+                    if (invitoData.email && user.email &&
+                        invitoData.email.toLowerCase() !== user.email.toLowerCase()) {
 
                             await signOut(auth);
-                            // Ricarica la pagina per continuare con il token
                             window.location.reload();
                             return;
-                        } else {
-                            // Stesso utente, può continuare
-
-                        }
                     }
                 } catch (error) {
                     console.error('Errore verifica invito:', error);
@@ -519,21 +506,7 @@
             showLoading('Verifica invito in corso...');
             
             try {
-                // Cerca invito con token e stato "invitato"
-                const invitiQuery = query(
-                    collection(db, 'inviti'),
-                    where('token', '==', token),
-                    where('stato', '==', 'invitato')
-                );
-                
-                const snapshot = await getDocs(invitiQuery);
-                
-                if (snapshot.empty) {
-                    throw new Error('Token invalido o già utilizzato');
-                }
-                
-                const invitoDoc = snapshot.docs[0];
-                const invitoRawData = invitoDoc.data();
+                const invitoRawData = await fetchInvitoByToken(token);
 
 // Assicuriamoci che i ruoli siano un array
                 let ruoliInvito = invitoRawData.ruoli;
@@ -549,14 +522,15 @@
                 }
                 
                 inviteData = {
-                    id: invitoDoc.id,
+                    id: invitoRawData.id,
                     ...invitoRawData,
-                    ruoli: ruoliInvito // Usa l'array normalizzato
+                    ruoli: ruoliInvito
                 };
 
-// Verifica scadenza
-                const scadeIl = inviteData.scadeIl?.toDate ? inviteData.scadeIl.toDate() : new Date(inviteData.scadeIl);
-                if (new Date() > scadeIl) {
+                const scadeIl = inviteData.scadeIl && inviteData.scadeIl.toDate
+                    ? inviteData.scadeIl.toDate()
+                    : (inviteData.scadeIl ? new Date(inviteData.scadeIl) : null);
+                if (scadeIl && !Number.isNaN(scadeIl.getTime()) && new Date() > scadeIl) {
                     throw new Error('Token scaduto. Contatta l\'amministratore per un nuovo invito.');
                 }
                 
@@ -733,20 +707,10 @@
                             const userCredential = await signInWithEmailAndPassword(auth, inviteData.email, password);
                             const firebaseUser = userCredential.user;
                             
-                            // Carica invito per ottenere tenantId e ruoli
-                            const invitiQuery = query(
-                                collection(db, 'inviti'),
-                                where('token', '==', inviteData.token || (new URLSearchParams(window.location.search).get('token'))),
-                                where('stato', '==', 'invitato')
-                            );
-                            const invitiSnapshot = await getDocs(invitiQuery);
-                            
-                            if (invitiSnapshot.empty) {
+                            const invito = inviteData;
+                            if (!invito || !invito.id || !invito.tenantId) {
                                 throw new Error('Invito non trovato');
                             }
-                            
-                            const invitoDoc = invitiSnapshot.docs[0];
-                            const invito = invitoDoc.data();
                             
                             // Aggiungi membership
                             const userDocRef = doc(db, 'users', firebaseUser.uid);
@@ -775,7 +739,7 @@
                             tenantMemberships: tenantMemberships
                         });
                         
-                        await updateDoc(doc(db, 'inviti', invitoDoc.id), {
+                        await updateDoc(doc(db, 'inviti', invito.id), {
                             stato: 'accettato',
                             accettatoIl: serverTimestamp()
                         });
@@ -868,20 +832,10 @@
                         const userCredential = await signInWithEmailAndPassword(auth, inviteData.email, password);
                         const firebaseUser = userCredential.user;
                         
-                        // Carica invito per ottenere tenantId e ruoli
-                        const invitiQuery = query(
-                            collection(db, 'inviti'),
-                            where('token', '==', inviteData.token || (new URLSearchParams(window.location.search).get('token'))),
-                            where('stato', '==', 'invitato')
-                        );
-                        const invitiSnapshot = await getDocs(invitiQuery);
-                        
-                        if (invitiSnapshot.empty) {
+                        const invito = inviteData;
+                        if (!invito || !invito.id || !invito.tenantId) {
                             throw new Error('Invito non trovato');
                         }
-                        
-                        const invitoDoc = invitiSnapshot.docs[0];
-                        const invito = invitoDoc.data();
                         
                         // Aggiungi membership
                         const userDocRef = doc(db, 'users', firebaseUser.uid);
@@ -910,7 +864,7 @@
                             tenantMemberships: tenantMemberships
                         });
                         
-                        await updateDoc(doc(db, 'inviti', invitoDoc.id), {
+                        await updateDoc(doc(db, 'inviti', invito.id), {
                             stato: 'accettato',
                             accettatoIl: serverTimestamp()
                         });

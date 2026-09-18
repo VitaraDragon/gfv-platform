@@ -137,12 +137,15 @@ service cloud.firestore {
     }
     
     // Collection: inviti (globale)
-    // NOTA: Permettiamo lettura pubblica per permettere verifica token durante registrazione
-    // I dati dell'invito (email, nome, cognome, ruoli) non sono sensibili e devono essere accessibili
-    // La sicurezza è garantita dal token unico e casuale che viene verificato
+    // Lettura client: solo manager/admin del tenant dell'invito (lista Gestione utenti).
+    // Registrazione non autenticata: callable getInvitoPubblico (Admin lookup per token).
+    // Non si può esprimere in rules «list solo se conosci il token» — query token== richiede list.
     match /inviti/{invitoId} {
-      // Lettura: pubblica (necessaria per registrazione con token non autenticato)
-      allow read: if true;
+      allow get, list: if isAuthenticated()
+        && resource.data.tenantId is string
+        && resource.data.tenantId != ''
+        && belongsToTenant(resource.data.tenantId)
+        && isManagerOrAdmin(resource.data.tenantId);
       
       // Creazione: solo manager/amministratore del tenant indicato, a proprio nome (anti-abuso / spam).
       // Allineato a invito-service-standalone.js e gestisci-utenti-standalone.html (campi obbligatori).
