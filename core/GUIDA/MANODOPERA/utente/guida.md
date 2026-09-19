@@ -32,7 +32,7 @@ Oltre alla **guida Manager** (pulsante omonimo nella documentazione online), que
 1. **Entrare in Manodopera** — Dalla **dashboard** apri **Moduli** e tocca **Manodopera** (👷), oppure usa **Per te oggi** → «Manodopera: lavori, squadre e ore». Si apre la **home del modulo**: numeri in alto (programmati oggi, in corso, ore da validare) e tre **sezioni** con le funzioni principali.  
 2. **Invita collaboratore** — In alto sulla dashboard può comparire **Invita collaboratore** (con modulo attivo e permessi giusti). Porta al percorso **Gestisci utenti** per inviti e ruoli.  
 3. **Amministrazione** — Da **Moduli** → **Amministrazione** (👑) raggiungi utenti, abbonamento e altre voci amministrative; dalla **home Manodopera**, sezione **Persone**, hai scorciatoie dirette a squadre, operai e utenti.  
-4. **Poi** crei **lavori** e controlli **validazione ore** e **statistiche**, come nella guida Manager. Dalle pagine interne il link **← Manodopera** riporta alla home del modulo.
+4. **Poi** crei **lavori** e controlli **validazione ore** e **statistiche**, come nella guida Manager. Dalle pagine interne il link **← Dashboard** riporta alla home del modulo.
 
 Con **Manodopera** attivo la dashboard **non** mostra più grandi card sparse (Gestione lavori, Validazione ore, …): tutto passa da **Moduli**, dalla **home Manodopera** o da **I miei accessi** se l’hai configurata.
 

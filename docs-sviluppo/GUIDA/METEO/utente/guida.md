@@ -77,7 +77,7 @@ Serve **piano Base** + **modulo Meteo** attivo in **Abbonamento**.
 1. **Moduli** → **Meteo** (🌦️). Opzionale: **I miei accessi** se l’avete configurato.
 2. **Senza Manodopera**, in fondo alla dashboard può esserci un **riquadro** **Meteo** (stessa voce del menu): scorciatoia opzionale.
 3. Dalla dashboard, con modulo attivo, il link **Modulo Meteo →** nel widget meteo apre la stessa pagina.
-4. **← Dashboard** in alto riporta alla home generale.
+4. **← Dashboard Principale** in alto riporta alla home generale.
 
 Se il modulo **non** è attivo, la pagina spiega di attivarlo da **Abbonamento** e ricorda che con il Base avete già **Meteo sede** in dashboard.
 
