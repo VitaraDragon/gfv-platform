@@ -81,7 +81,6 @@
 - **Test:** `tests/simulator-standalone-page.test.js`.
 - **Resto aperto:** pagine di prova dello snellimento.
 - Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
-
 ## Fix CI — Tony FAB assente (2026-09-19)
 
 - **Perché:** `main.js` in commit importava da `engine.js` (`normalizeItalianSttTranscript` e affini) e `tony-form-save-local.js` (`tryInterceptLavoroSaveBeforeCf`) export rimasti fuori. Il modulo crashava all’import: FAB assente, E2E mock 0/17.
