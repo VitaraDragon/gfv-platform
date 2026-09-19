@@ -1,7 +1,7 @@
 # Tony – Inventario decisioni e requisiti
 
 **Data estrazione**: 2026-03-08  
-**Ultimo aggiornamento**: 2026-09-05 (lazy-load widget §3.10; flag prova tenant §22.7 / §23; zona lavorata due punti §11.7 / §22; push S5 assenze + WhatsApp §15.8)
+**Ultimo aggiornamento**: 2026-09-19 (bozza telefono manager §25; piano campo §24; lazy-load widget §3.10; flag prova §22.7 / §23; zona due punti §11.7 / §22; push S5)
 **Obiettivo**: Raccogliere in un unico documento ogni decisione di prodotto, requisito e vincolo trovato nei documenti Tony, per evitare perdite durante il consolidamento.
 
 **Stati**: `implementato` | `in corso` | `parziale` | `pianificato` | `non implementato` | `abbandonato` | `da verificare`
@@ -664,6 +664,43 @@ Helper: `core/js/zona-lavorata-slice.js`. Test: `tests/zona-lavorata-slice.test.
 | 23.2 | Attivazione su **Sabbie Gialle** (id `sabbie_gialle` / `sabbie_gialle_*` o nome) | prodotto 2026-09-04 | **implementato** | Default **prova on** se il campo non è mai stato scritto (niente write Firestore dall’agente) |
 | 23.3 | Switch visibile in **dashboard** per manager/admin: **Prova (develop)** ↔ **Pubblicata (main)** | prodotto 2026-09-04 | **implementato** | Persistenza `featureFlags.preview`; operaio/caposquadra non vedono lo switch (redirect campo) |
 | 23.4 | Lo switch **non** seleziona il branch Git | pubblicazione | **invariato** | Per vedere il codice nuovo sul telefono serve comunque promozione su `main` |
+
+---
+
+## 24. Campo — home mobile unica + lingue operaio/caposquadra (2026-09-19)
+
+**Stato codice:** **pianificato** (nessun implementato in questo registro). Piano esecutivo per agenti: `docs-sviluppo/da-fare/manodopera/PIANO_CAMPO_MOBILE_MULTILINGUA.md`.
+
+Non è internazionalizzazione dell’ERP. È semplificare il telefono in campo in Italia (squadre miste, vendemmia). Master Plan §3: priorità operaio/caposquadra.
+
+| # | Decisione | Fonte | Stato | Note |
+|---|-----------|-------|-------|------|
+| 24.1 | **Non** tradurre dashboard, moduli ufficio, abbonamento, guide complete, Tony ERP | prodotto 2026-09-19 | **pianificato** (vincolo) | Unico i18n oggi è meteo EN→IT — direzione opposta |
+| 24.2 | Multilinguismo **solo profilo campo** (operaio / caposquadra, no manager/admin) | prodotto 2026-09-19 | **pianificato** | Home `field-workspace-standalone.html` |
+| 24.3 | Lingue MVP: **`it` + `ro` + `en`**. Francese, albanese, arabo, punjabi **dopo** richiesta tenant | prodotto 2026-09-19 | **pianificato** | Selettore: bandiere + nome nativo, anche al **login** |
+| 24.4 | Due strati: catalogo **cornice** + pulsante **Traduci** sul testo delle comunicazioni (Gemini). Nomi lavori/terreni/persone non tradotti | prodotto 2026-09-19 | **pianificato** | Capo può scrivere in italiano; operaio legge nella sua lingua |
+| 24.5 | Home campo **solo mobile** anche da PC; togliere toggle 🖥️. Pagine sotto (zone, validazione, impostazioni, guasti) restano **compiti**, non seconda app | prodotto 2026-09-19 | **pianificato** | `shouldUseFieldMobileWorkspace` senza opt-out `classic` per solo campo |
+| 24.6 | **Segnalazione guasti** in mobile se `parcoMacchine` (anche caposquadra-only, così non dipende dalla dashboard) | prodotto 2026-09-19 | **pianificato** | Oggi la guida manda alla desktop |
+| 24.7 | Preferenza `users/{uid}.preferredLanguage` + `localStorage` pre-login. Catalogo `field-ui-i18n.js`, no framework su 75 HTML | prodotto 2026-09-19 | **pianificato** | Test completezza chiavi IT/RO/EN |
+| 24.8 | Tony voce/STT/TTS in altre lingue **fuori MVP**; `APRI_PAGINA` campo resta sulle slide (già §5.5). Nuovo target whitelist se si aggiunge guasti | prodotto 2026-09-19 | **pianificato** | Non aprire Gestione Lavori / dashboard |
+| 24.9 | Manager o admin (anche con ruolo capo/operaio) **resta** in dashboard italiano | prodotto 2026-09-19 | **pianificato** | Invariato rispetto a `shouldUseFieldMobileWorkspace` |
+| 24.10 | Ordine implementazione: home+guasti → cornice i18n → traduci messaggi → push lingua destinatario | prodotto 2026-09-19 | **pianificato** | Dettaglio fasi nel piano §7 |
+
+---
+
+## 25. Telefono manager / proprietario — bozza da perfezionare (2026-09-19)
+
+**Stato codice:** **non implementare**. Documento di lavoro: `docs-sviluppo/da-fare/dashboard/PIANO_MOBILE_MANAGER.md`.  
+Non è il piano campo (§24). Due home restano volute (campo vs ufficio); non due uffici.
+
+| # | Decisione | Fonte | Stato | Note |
+|---|-----------|-------|-------|------|
+| 25.1 | **Niente** seconda app / workspace mobile dedicato al manager | prodotto 2026-09-19 | **deciso** | Stesso motivo per cui si chiude la desktop campo: un prodotto, non due |
+| 25.2 | Si migliora la **stessa** dashboard/hub/standalone (home «oggi», tabelle→card dove serve, form una colonna) | prodotto 2026-09-19 | **deciso** (direzione) | Dettaglio liste/azioni **aperto** (piano §8) |
+| 25.3 | Ufficio resta **italiano**; no i18n dashboard | prodotto 2026-09-19 | **deciso** | Allineato §24.2 / §24.9 |
+| 25.4 | Manager/admin restano in dashboard, non nel workspace campo | prodotto 2026-09-19 | **deciso** | `shouldUseFieldMobileWorkspace` |
+| 25.5 | Non promettere tutto l’ERP in tasca (preventivi pesanti, compensi, report, anagrafiche) | prodotto 2026-09-19 | **deciso** (principio) | Telefono = vedere e sbloccare |
+| 25.6 | Quali liste a card, quali 4–6 azioni home, form da accorciare, ordine vs piano campo | prodotto 2026-09-19 | **da decidere** | Checklist Q1–Q8 nel piano §8 |
 
 ---
 
