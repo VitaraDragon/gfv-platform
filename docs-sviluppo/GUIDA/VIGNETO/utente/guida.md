@@ -44,7 +44,7 @@ Verificate **Abbonamento** o chiedete all’amministratore se il modulo non comp
 2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard potete trovare un **riquadro** **Vigneto** (stessa voce del menu): è un’extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** in **Moduli** o nelle scorciatoie (**Per te oggi**, **Accessi rapidi**, **I miei accessi**): è normale non vedere il riquadro.
 3. Arrivate alla **Dashboard Vigneto**: riepilogo economico/produzione (anno selezionabile), numero vigneti, vendemmie, **azioni rapide** verso tutte le pagine del modulo.
 4. **Permesso importante:** la **Dashboard Vigneto** è pensata per **Manager** e **Amministratore**. Se il vostro ruolo non è tra questi, l’app può riportarvi alla dashboard principale o bloccare l’accesso — è una scelta di sicurezza del progetto.
-5. Altre pagine del modulo (anagrafica vigneti, trattamenti, ecc.) si raggiungono dalle azioni rapide della dashboard vigneto o dal menu del modulo. Il pulsante **← Dashboard** riporta alla home generale.
+5. Altre pagine del modulo (anagrafica vigneti, trattamenti, ecc.) si raggiungono dalle azioni rapide della dashboard vigneto o dal menu del modulo. Il pulsante **← Dashboard Principale** riporta alla home generale. Dalle pagine del modulo **← Dashboard** riporta all’hub Vigneto.
 
 ---
 

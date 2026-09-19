@@ -48,7 +48,7 @@ Il modulo va **attivato sull’abbonamento** dell’azienda. Se non trovi **Cont
 1. Dalla **dashboard principale** apri **Moduli** e tocca **Conto Terzi** (🤝). Se hai configurato **I miei accessi**, può esserci anche una scorciatoia lì.
 2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard puoi trovare un **riquadro** **Conto Terzi**: è un’extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** in **Moduli** o nelle scorciatoie. In **Richiede attenzione** possono comparire alert su **lavori da pianificare** che aprono il modulo.
 3. Arrivi alla **home del modulo**: titolo di tipo **Conto Terzi** con sottotitolo sul gestire clienti e lavori esterni.
-4. Il pulsante **← Dashboard** in alto riporta alla home generale.
+4. Il pulsante **← Dashboard Principale** in alto riporta alla home generale.
 
 ### Cosa mostra la panoramica
 
