@@ -1106,6 +1106,11 @@
                     resolve();
                     return;
                 }
+                if (typeof window.GOOGLE_MAPS_API_KEY !== 'undefined') {
+                    window.googleMapsConfig = { apiKey: window.GOOGLE_MAPS_API_KEY };
+                    resolve();
+                    return;
+                }
 
                 const mapsConfigScript = document.createElement('script');
                 // Prova prima il file in core/config/, poi quello in core/
@@ -1222,117 +1227,14 @@
         }
     </script>
 
-    <!-- Load Firebase config from external file -->
-    <!-- Fallback: usa raw GitHub se il file locale non è disponibile (per GitHub Pages) -->
-    <script>
-        function loadConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve();
-                    return;
-                }
-
-                const configScript = document.createElement('script');
-                configScript.src = 'config/firebase-config.js';
-                
-                configScript.onload = function() {
-                    setTimeout(() => {
-                        if (typeof window.firebaseConfig !== 'undefined') {
-                            resolve();
-                        } else {
-                            loadFallbackConfig().then(resolve).catch(reject);
-                        }
-                    }, 100);
-                };
-                
-                configScript.onerror = function() {
-                    loadFallbackConfig().then(resolve).catch(reject);
-                };
-                
-                document.head.appendChild(configScript);
-            });
-        }
-
-        function loadFallbackConfig() {
-            return new Promise((resolve, reject) => {
-                const fallbackScript = document.createElement('script');
-                fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-                
-                fallbackScript.onload = function() {
-                    setTimeout(() => {
-                        if (typeof window.firebaseConfig !== 'undefined') {
-                            resolve();
-                        } else {
-                            reject(new Error('Firebase config not found even after loading from GitHub'));
-                        }
-                    }, 100);
-                };
-                
-                fallbackScript.onerror = function() {
-                    reject(new Error('Failed to load Firebase config from GitHub'));
-                };
-                
-                document.head.appendChild(fallbackScript);
-            });
-        }
-
-        loadConfig().catch(error => {
-            console.error('Errore caricamento config:', error);
-        });
-    </script>
-    
     <!-- Placeholder per Tony: oggetto globale; .items aggiornato da renderAttivita -->
     <script>window.currentTableData = window.currentTableData || { pageType: 'attivita', summary: 'Caricamento dati in corso...', items: [] };</script>
-    
-    <!-- Firebase SDK -->
+    <script type="module" src="js/standalone-bootstrap.js" data-config-base=""></script>
     <script type="module">
-        // Attendi che lo script config sia caricato
-        await waitForConfigModule();
-
-        // Fallback currentTableData per Tony (se placeholder non eseguito)
-        if (!window.currentTableData || !window.currentTableData.summary || window.currentTableData.summary === '') {
-            window.currentTableData = { pageType: 'attivita', summary: 'Caricamento dati in corso...', items: [] };
-        }
-
-        const firebaseConfig = window.firebaseConfig;
-
-        const {
-            initializeFirebase,
-            awaitFirebaseEmulatorConnect,
-            awaitAuthStateReady,
-            getAuthInstance,
-            getDb,
-            getAppInstance,
-            onAuthStateChanged,
-            signOut,
-            collection,
-            doc,
-            getDoc,
-            getDocs,
-            addDoc,
-            updateDoc,
-            deleteDoc,
-            query,
-            orderBy,
-            where,
-            serverTimestamp
-        } = await import('./services/firebase-service.js');
-        const { withEmulatorQuery } = await import('./js/firebase-emulator-dev.js');
-        const loginPageUrl = () => withEmulatorQuery('./auth/login-standalone.html');
-        initializeFirebase(firebaseConfig);
-        await awaitFirebaseEmulatorConnect();
-        await awaitAuthStateReady();
-        const app = getAppInstance();
-        const auth = getAuthInstance();
-        const { ensureSimulatorSession } = await import('./js/simulator-browser-auth.js');
-        await ensureSimulatorSession(auth);
-        const db = getDb();
-
         // ============================================
         // IMPORT MODULI (prima di tutto)
         // ============================================
         import { 
-            waitForConfig as waitForConfigModule,
             getTenantId as getTenantIdModule,
             getAttivitaCollection as getAttivitaCollectionModule,
             getTerreniCollection as getTerreniCollectionModule,
@@ -1396,6 +1298,36 @@
             mostraMappaZonaLavorata as mostraMappaZonaLavorataModule,
             closeMappaZoneModal as closeMappaZoneModalModule
         } from './js/attivita-maps.js';
+
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[attivita] Bootstrap failed:', err);
+            throw err;
+        }
+
+        const {
+            getAuthInstance,
+            getDb,
+            getAppInstance,
+            onAuthStateChanged,
+            signOut,
+            collection,
+            doc,
+            getDoc,
+            getDocs,
+            addDoc,
+            updateDoc,
+            deleteDoc,
+            query,
+            orderBy,
+            where,
+            serverTimestamp
+        } = await import('./services/firebase-service.js');
+        const { resolveAuthUser, loginPageUrl } = await import('./js/simulator-standalone-page.js');
+        const app = getAppInstance();
+        const auth = getAuthInstance();
+        const db = getDb();
         
         // Import service unificato macchine (solo se modulo attivo)
         let macchineUtilizzoService = null;
@@ -1507,15 +1439,9 @@
         let currentUserData = null;
         
         onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
             if (!user) {
-                await awaitAuthStateReady();
-                user = auth.currentUser;
-            }
-            if (!user) {
-                user = await ensureSimulatorSession(auth);
-            }
-            if (!user) {
-                window.location.href = loginPageUrl();
+                window.location.href = await loginPageUrl('./auth/login-standalone.html');
                 return;
             }
 
@@ -1944,7 +1870,7 @@
         // Logout
         document.getElementById('logout-button').addEventListener('click', async () => {
             await signOut(auth);
-            window.location.href = loginPageUrl();
+            window.location.href = await loginPageUrl('./auth/login-standalone.html');
         });
 
         // Carica macchine (solo se modulo Parco Macchine attivo) - wrapper
@@ -3224,18 +3150,6 @@
                     });
             });
         }
-    </script>
-    <!-- GFV standalone shell: alert toast + Tony gated -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var s = document.createElement('script');
-      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-      document.body.appendChild(s);
-    })();
     </script>
 </body>
 </html>

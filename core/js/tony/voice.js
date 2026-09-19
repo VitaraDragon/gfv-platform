@@ -3,6 +3,7 @@
  * @module core/js/tony/voice
  */
 
+import { tonyDebugLog } from './debug.js';
 import { normalizeTonyTextWhitespace } from './engine.js';
 
 var lastTTSCache = { text: '', audioBase64: '', voice: '' };
@@ -301,9 +302,7 @@ export function initTonyVoice(options) {
             stopCurrentTonyAudioElement();
             if (window.speechSynthesis) window.speechSynthesis.cancel();
             window.__tonyPlayOnInteractionScheduled = false;
-            if (typeof console !== 'undefined' && console.log) {
-                console.log('[Tony Voice] pipeline cleared', options.reason || '', 'gen=' + currentGeneration());
-            }
+            tonyDebugLog('[Tony Voice] pipeline cleared', options.reason || '', 'gen=' + currentGeneration());
         }
 
         function playAudioFromBase64(testoPulito, audioContent, opts, onDone, genAtStart) {
@@ -331,9 +330,7 @@ export function initTonyVoice(options) {
                     window.__tonyAudioQueue.unshift({ text: testoPulito, opts: opts, gen: genAtStart });
                     window.__tonyIsSpeaking = false;
                     schedulePlayOnFirstInteraction();
-                    if (typeof console !== 'undefined' && console.log) {
-                        console.log('[Tony] Audio rinviato: riproduzione al primo click (policy browser).');
-                    }
+                    tonyDebugLog('[Tony] Audio rinviato: riproduzione al primo click (policy browser).');
                     return;
                 }
                 console.error('[Tony] Errore play():', e);

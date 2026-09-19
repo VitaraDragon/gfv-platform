@@ -3,6 +3,7 @@
  * Solo manager / amministratore (stesso criterio d’uso della mappa in dashboard).
  */
 import { createMappaAziendaleSection, loadMappaAziendale } from './dashboard-maps.js';
+import { resolveAuthUser, loginPageUrl } from './simulator-standalone-page.js';
 
 async function resolveCurrentTenantId(userData) {
     if (!userData) return null;
@@ -64,13 +65,10 @@ function renderError(message) {
 }
 
 export async function bootstrapMappaAziendalePage() {
-    const { waitForConfig, loadGoogleMapsAPI } = window.GFVConfigLoader;
+    const { loadGoogleMapsAPI } = window.GFVConfigLoader;
     const { hasRole, hasManodoperaModule, normalizeRoles, escapeHtml } = window.GFVDashboardUtils;
 
-    const firebaseConfig = await waitForConfig();
-
     const {
-        initializeFirebase,
         getAuthInstance,
         getDb,
         getAppInstance,
@@ -82,7 +80,6 @@ export async function bootstrapMappaAziendalePage() {
         signOut
     } = await import('../services/firebase-service.js');
 
-    initializeFirebase(firebaseConfig);
     const auth = getAuthInstance();
     const db = getDb();
     const app = getAppInstance();
@@ -110,14 +107,15 @@ export async function bootstrapMappaAziendalePage() {
             } catch (e) {
                 console.warn(e);
             }
-            window.location.href = './auth/login-standalone.html';
+            window.location.href = await loginPageUrl('./auth/login-standalone.html');
         });
     }
 
     onAuthStateChanged(auth, async (user) => {
         const root = document.getElementById('mappa-page-root');
+        if (!user) user = await resolveAuthUser(auth);
         if (!user) {
-            window.location.href = './auth/login-standalone.html';
+            window.location.href = await loginPageUrl('./auth/login-standalone.html');
             return;
         }
 

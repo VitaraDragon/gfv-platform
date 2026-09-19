@@ -6,6 +6,10 @@
 
 > **Aggiornamento 2026-03-08**: §1.3 – **FATTO** per terreni, diario attività, gestione lavori. currentTableData implementato in attivita-controller.js, terreni, gestione-lavori-controller.js. FILTER_TABLE lavori in main.js + functions. Le altre voci restano valide.
 
+> **Aggiornamento 2026-09-19**: snellimento — Diario attività + Gestione lavori + lavori caposquadra + **tutto Conto Terzi** + **tutto Magazzino** + **tutto Vigneto** + **tutto Frutteto** + dashboard Parco Macchine + **tutta Manodopera** + Amministrazione + Impostazioni + Abbonamento + Gestione macchine + Gestione/Segnalazione guasti + Statistiche core + Dashboard + Segnatura ore + Mappa aziendale + **tutto Report** + Dashboard meteo + **tutto Auth** + **tutto Mobile** + **tutta Vendemmia Meccanica** su `standalone-bootstrap.js`. Restano le altre standalone.
+
+> **Aggiornamento 2026-09-18**: snellimento — **piloto** 5 liste Parco Macchine su `standalone-bootstrap.js` + `gfv-page-utils.js`. Restano le altre standalone.
+
 > **Aggiornamento 2026-09-05**: lazy load Tony ✅; dashboard meteo fuori da «pronta» + Maps lazy lista lavori ✅. Residuo: Maps altre liste, scalabilità `getDocs` lavori, log debug. Dettaglio: `COSA_ABBIAMO_FATTO.md`.
 
 ---
@@ -28,9 +32,9 @@
 - **Come**: Seguire la checklist in RIEPILOGO_CURRENTTABLEDATA_PER_MODULO_LISTE.md (placeholder, pageType, summary, items in render, setContext, table-data-ready).
 
 ### 1.4 Snellimento – Bootstrap unico e utility condivise
-- **Bootstrap unico**: **`core/js/standalone-bootstrap.js`** esiste (carica config, Firebase, tenant, inietta Tony). Usato in `terreni-test-bootstrap.html`, `prodotti-test-bootstrap.html` come prova. **Da fare**: estendere l'adozione a tutte le pagine standalone (oggi la maggior parte usa ancora lo schema manuale con config-loader + waitForConfig). *(Riferimento: PROPOSTA_SNELLIMENTO §2.1.)*
-- **Utility condivise**: Centralizzare in **shared/utils** (o core/js/utils.js): `escapeHtml(str)`, `showAlert(containerId, message, type)` (o allineare a `shared/utils/error-handler.js` con `showMessage`). Usare ovunque al posto delle copie locali. *(§2.2.)*
-- **Log di debug Tony**: Rimuovere o condizionare i `console.log` in `core/js/tony/main.js` (es. dietro `window.__TONY_DEBUG`). *(§3.1.)*
+- **Bootstrap unico**: **`core/js/standalone-bootstrap.js`** esiste (carica config, Firebase, tenant, inietta Tony). **2026-09-19:** 5 liste + dashboard Parco Macchine + **tutto Magazzino** + **tutto Conto Terzi** + Terreni + Diario attività + Gestione lavori + lavori caposquadra + **tutto Vigneto** + **tutto Frutteto** + **tutta Manodopera** + Amministrazione + Impostazioni + Abbonamento + Gestione macchine + Gestione/Segnalazione guasti + Statistiche core + Dashboard + Segnatura ore + Mappa aziendale + **tutto Report** + Dashboard meteo + **tutto Auth** + **tutto Mobile** + **tutta Vendemmia Meccanica**. **Da fare:** pagine di prova. *(Riferimento: PROPOSTA_SNELLIMENTO §2.1.)*
+- **Utility condivise**: **`core/js/gfv-page-utils.js`** (`escapeHtml`, `showAlert` via `standalone-alert.js`). Usato dalle liste macchine, magazzino prodotti/movimenti e CT tariffe/preventivi/clienti. **Da fare:** sostituire le copie locali sulle altre pagine. *(§2.2.)*
+- **Log di debug Tony**: ✅ **2026-09-19** — `core/js/tony/debug.js` (`tonyDebugLog`); attivi solo con `window.__TONY_DEBUG`. *(§3.1.)*
 
 ---
 
@@ -43,8 +47,8 @@
 - **Path e git**: Usare path Unix in repo; evitare duplicati `core/` vs `core\`; eventuale .gitattributes.
 
 ### 2.2 Snellimento – Path-resolver e CSS
-- **Path-resolver**: Standardizzare l’uso di **path-resolver** (o wrapper da core/js) per tutti gli import dinamici verso core e parco-macchine; niente path “magici” sparsi. *(PROPOSTA_SNELLIMENTO §2.3.)*
-- **CSS condiviso liste**: Introdurre un foglio condiviso (es. `core/styles/list-views.css` o `modules/macchine/styles/list-views.css`) con classi comuni per le liste (trattori, attrezzi, flotta, scadenze, guasti, prodotti); le pagine tengono solo stili specifici. *(§4.3.)*
+- **Path-resolver**: wrapper **`core/js/gfv-path.js`** esiste; **tutto Vigneto** e **tutto Frutteto**. Nessuna view di produzione con `resolvePath` locale. *(PROPOSTA_SNELLIMENTO §2.3.)*
+- **CSS condiviso liste**: foglio **`core/styles/list-views.css`** esiste; **5 liste Parco Macchine** + **prodotti**. Piano §4.3 chiuso.
 - **list-utils.js (Parco Macchine)**: Estrarre un piccolo modulo con `statoBadge(stato)`, eventuale `renderTableMezzi(filtered, columnsConfig)` per le 5 liste macchine, per evitare blocchi ripetuti. *(§2.2.)*
 
 ### 2.3 Tony – Widget più manutenibile

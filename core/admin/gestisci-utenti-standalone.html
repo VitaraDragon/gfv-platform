@@ -498,60 +498,24 @@
         </div>
     </div>
 
-    <!-- Load Firebase config from external file -->
-    <!-- Fallback: usa raw GitHub se il file locale non è disponibile (per GitHub Pages) -->
-    <script>
-        const configScript = document.createElement('script');
-        configScript.src = '../config/firebase-config.js';
-        configScript.onerror = function() {
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallbackScript);
-        };
-        document.head.appendChild(configScript);
-    </script>
-    
-    <!-- Firebase SDK -->
+    <script type="module" src="../js/standalone-bootstrap.js" data-config-base="../"></script>
     <script type="module">
         import { formatDateLikeToItalianLongLocal, formatDateTimeItalianReadable } from '../js/date-format-it.js';
-        // Funzione per attendere il caricamento della configurazione Firebase
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve(window.firebaseConfig);
-                    return;
-                }
-                
-                let attempts = 0;
-                const maxAttempts = 50;
-                
-                const checkInterval = setInterval(() => {
-                    attempts++;
-                    if (typeof window.firebaseConfig !== 'undefined') {
-                        clearInterval(checkInterval);
-                        resolve(window.firebaseConfig);
-                    } else if (attempts >= maxAttempts) {
-                        clearInterval(checkInterval);
-                        reject(new Error('Firebase config not loaded after 5 seconds'));
-                    }
-                }, 100);
-            });
+        import { showAlert } from '../js/gfv-page-utils.js';
+        import { resolveAuthUser, loginPageUrl } from '../js/simulator-standalone-page.js';
+
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[gestisci-utenti] Bootstrap failed:', err);
+            throw err;
         }
 
-        const firebaseConfig = await waitForConfig();
-
-        import { initializeFirebase, getDb, getAuthInstance, getHttpsCallable } from '../services/firebase-service.js';
+        import { getDb, getAuthInstance, getHttpsCallable } from '../services/firebase-service.js';
         import { onAuthStateChanged, signOut } from '../services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, addDoc } from '../services/firebase-service.js';
         import { signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
 
-        initializeFirebase(firebaseConfig);
-        
-        // Inizializza tenant-service per supporto multi-tenant
-        const { initializeTenantService } = await import('../services/tenant-service.js');
-        initializeTenantService();
-        
-        // Ottieni istanze Firebase dal service
         const auth = getAuthInstance();
         const db = getDb();
         const sendTransactionalEmail = getHttpsCallable('sendTransactionalEmail');
@@ -586,9 +550,10 @@
 
         // Verifica autenticazione e carica utenti
         onAuthStateChanged(auth, async (authUser) => {
-            user = authUser; // Salva in variabile globale
+            user = authUser;
+            if (!user) user = await resolveAuthUser(auth);
             if (!user) {
-                window.location.href = '../auth/login-standalone.html';
+                window.location.href = await loginPageUrl('../auth/login-standalone.html');
                 return;
             }
 
@@ -683,7 +648,7 @@
                     // Carica utenti
                     await loadUsers();
                 } else {
-                    window.location.href = '../auth/login-standalone.html';
+                    window.location.href = await loginPageUrl('../auth/login-standalone.html');
                 }
             } catch (error) {
                 console.error('Errore:', error);
@@ -1696,12 +1661,6 @@
             }
         }
 
-        // Utility: mostra alert
-        function showAlert(message, type = 'success') {
-            if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(message, type); return; }
-            console.warn('[showAlert] gfvShowAlert non disponibile:', message);
-        }
-
         // Annulla invito (cambia solo lo stato)
         async function annullaInvito(invitoId) {
             if (!confirm('Sei sicuro di voler annullare questo invito?')) {
@@ -1782,18 +1741,6 @@
         window.annullaInvito = annullaInvito;
         window.rimuoviInvito = rimuoviInvito;
         window.rimuoviUtente = rimuoviUtente;
-    </script>
-    <!-- GFV standalone shell: alert toast + Tony gated -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var s = document.createElement('script');
-      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-      document.body.appendChild(s);
-    })();
     </script>
 </body>
 </html>

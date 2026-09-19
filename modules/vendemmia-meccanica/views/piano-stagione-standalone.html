@@ -189,12 +189,9 @@
 
 <script src="../../../node_modules/polygon-clipping/dist/polygon-clipping.umd.js"></script>
 <script>window.currentTableData = { pageType: 'piano-stagione-vm', summary: 'Caricamento...', items: [] };</script>
-<script>
-    const s = document.createElement('script');
-    s.src = '../../../core/config/firebase-config.js';
-    document.head.appendChild(s);
-</script>
+<script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
 <script type="module">
+import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
 import { initVmPageAuth, showVmAlert, publishTonyTableData } from '../js/vm-page-auth.js';
 import { getPianoStagioneRows, summarizePianoStagione, buildPianoStagioneTonyContext, updateStagioneTerreno, setFlagStagioneTerreno, setBulkFlagStagioneTerreni } from '../services/piano-stagione-service.js';
 import { syncPreventiviAccettatiToPiano } from '../services/preventivo-piano-sync-service.js';
@@ -321,10 +318,6 @@ function closeZoneModal() {
         setDrawButtonState(false);
         updateDrawingInfo({ points: 0, areaHa: null });
     }
-}
-
-function escapeHtml(s) {
-    return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
 function getAnno() {

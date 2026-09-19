@@ -156,19 +156,12 @@
     </div>
 
     <script>window.currentTableData = window.currentTableData || { pageType: 'documenti_acquisiti', summary: 'Caricamento dati in corso...', items: [] };</script>
-    <script>
-        const configScript = document.createElement('script');
-        configScript.src = '../../../core/config/firebase-config.js';
-        configScript.onerror = function() {
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallbackScript);
-        };
-        document.head.appendChild(configScript);
-    </script>
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { initializeFirebase, getAuthInstance, getDb, onAuthStateChanged, getDoc, doc } from '../../../core/services/firebase-service.js';
+        import { getAuthInstance, getDb, onAuthStateChanged, getDoc, doc } from '../../../core/services/firebase-service.js';
         import { setCurrentTenantId } from '../../../core/services/tenant-service.js';
+        import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
+        import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import {
             getAllDocumentiAcquisiti,
             getDocumentoPageDownloadUrl,
@@ -180,32 +173,6 @@
             formatDataAcquisizioneDisplay,
             getDataAcquisizioneYmd,
         } from '../../../core/js/tony/document-archive.js';
-
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve(window.firebaseConfig);
-                    return;
-                }
-                let attempts = 0;
-                const iv = setInterval(() => {
-                    attempts++;
-                    if (typeof window.firebaseConfig !== 'undefined') {
-                        clearInterval(iv);
-                        resolve(window.firebaseConfig);
-                    } else if (attempts >= 50) {
-                        clearInterval(iv);
-                        reject(new Error('Firebase config not loaded'));
-                    }
-                }, 100);
-            });
-        }
-
-        function escapeHtml(s) {
-            const div = document.createElement('div');
-            div.textContent = s == null ? '' : String(s);
-            return div.innerHTML;
-        }
 
         function showAlert(message, type) {
             const el = document.getElementById('alert-container');
@@ -228,8 +195,12 @@
             }
         }
 
-        const firebaseConfig = await waitForConfig();
-        initializeFirebase(firebaseConfig);
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[documenti-acquisiti] Bootstrap failed:', err);
+            throw err;
+        }
         const auth = getAuthInstance();
         const db = getDb();
 
@@ -449,14 +420,15 @@
         });
 
         onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
             if (!user) {
-                window.location.href = '../../../core/auth/login-standalone.html';
+                window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
                 return;
             }
             try {
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 if (!userDoc.exists()) {
-                    window.location.href = '../../../core/auth/login-standalone.html';
+                    window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
                     return;
                 }
                 const userData = userDoc.data();
@@ -499,6 +471,5 @@
             }
         });
     </script>
-    <script type="module" src="../../../core/js/tony-widget-standalone.js"></script>
 </body>
 </html>

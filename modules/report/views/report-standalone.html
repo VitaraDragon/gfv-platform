@@ -188,53 +188,20 @@
     </div>
   </div>
 
-  <!-- Load Firebase config from external file -->
-  <script>
-    const configScript = document.createElement('script');
-    configScript.src = '../../../core/config/firebase-config.js';
-    configScript.onerror = function() {
-      const fallbackScript = document.createElement('script');
-      fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-      document.head.appendChild(fallbackScript);
-    };
-    document.head.appendChild(configScript);
-  </script>
-
+  <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
   <script type="module">
     import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
-    function waitForConfig() {
-      return new Promise((resolve, reject) => {
-        if (typeof window.firebaseConfig !== 'undefined') {
-          resolve(window.firebaseConfig);
-          return;
-        }
-        let attempts = 0;
-        const maxAttempts = 50;
-        const checkInterval = setInterval(() => {
-          attempts++;
-          if (typeof window.firebaseConfig !== 'undefined') {
-            clearInterval(checkInterval);
-            resolve(window.firebaseConfig);
-          } else if (attempts >= maxAttempts) {
-            clearInterval(checkInterval);
-            reject(new Error('Firebase config not loaded after 5 seconds'));
-          }
-        }, 100);
-      });
+    import { showAlert } from '../../../core/js/gfv-page-utils.js';
+    import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+
+    try {
+      await window.GFVStandaloneReady;
+    } catch (err) {
+      console.error('[report] Bootstrap failed:', err);
+      throw err;
     }
 
-    function showAlert(message, type = 'info') {
-      if (typeof window.gfvShowAlert === 'function') {
-        window.gfvShowAlert(message, type);
-        return;
-      }
-      const alertContainer = document.getElementById('alert-container');
-      if (alertContainer) {
-        alertContainer.innerHTML = `<div class="alert ${type === 'error' ? 'alert-error' : 'alert-info'}">${message}</div>`;
-      }
-    }
     function clearAlert() {
-      if (typeof window.gfvShowAlert === 'function') return;
       const alertContainer = document.getElementById('alert-container');
       if (alertContainer) alertContainer.innerHTML = '';
     }
@@ -249,12 +216,10 @@
       return v.toLocaleString('it-IT', { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
     }
 
-    const firebaseConfig = await waitForConfig();
-    const { initializeFirebase, getAuthInstance, onAuthStateChanged } = await import('../../../core/services/firebase-service.js');
+    const { getAuthInstance, onAuthStateChanged } = await import('../../../core/services/firebase-service.js');
     const { initializeTenantService, getCurrentTenant, getCurrentTenantId, getAvailableModules } = await import('../../../core/services/tenant-service.js');
     const { hasReportModuleAccess } = await import('../services/report-service.js');
 
-    initializeFirebase(firebaseConfig);
     const auth = getAuthInstance();
     initializeTenantService();
 
@@ -508,8 +473,9 @@
 
     // Boot
     onAuthStateChanged(auth, async (user) => {
+      if (!user) user = await resolveAuthUser(auth);
       if (!user) {
-        window.location.href = '../../../core/auth/login-standalone.html';
+        window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
         return;
       }
 
@@ -555,18 +521,6 @@
     selVigneto.addEventListener('change', loadData);
     btnExportExcel.addEventListener('click', exportExcel);
   </script>
-  <!-- GFV standalone shell: alert toast + Tony gated -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var s = document.createElement('script');
-      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-      document.body.appendChild(s);
-    })();
-    </script>
 </body>
 </html>
 

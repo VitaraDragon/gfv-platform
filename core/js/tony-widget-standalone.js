@@ -8,7 +8,7 @@
     'use strict';
 
     /** Bump a ogni fix Tony client — invalida cache moduli ES6 del browser. */
-    var TONY_LOADER_BUILD = '2026-07-21b';
+    var TONY_LOADER_BUILD = '2026-08-16b';
 
     var scriptBase = typeof import.meta !== 'undefined' && import.meta.url
         ? import.meta.url
@@ -24,7 +24,8 @@
 
     function appendClassicScript(relativePath, onload, onerror) {
         var s = document.createElement('script');
-        s.src = new URL(relativePath, scriptBase).href;
+        s.src = new URL(relativePath, scriptBase).href +
+            (String(relativePath).indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(TONY_LOADER_BUILD);
         if (onload) s.onload = onload;
         if (onerror) {
             s.onerror = onerror;

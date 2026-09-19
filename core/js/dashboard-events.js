@@ -68,6 +68,8 @@ export async function handleLogout(auth, db, cleanupCallbacks = {}) {
         // Rimuovi anche il flag di sessione
         sessionStorage.removeItem('gfv_expected_user_id');
         sessionStorage.removeItem('gfv_user_just_registered');
+        sessionStorage.removeItem('tony_session_state');
+        sessionStorage.removeItem('gfv_tony_utente_ruoli');
         
         await signOut(auth);
         window.location.href = './auth/login-standalone.html';

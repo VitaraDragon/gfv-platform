@@ -690,48 +690,20 @@
         </div>
     </div>
 
-    <!-- Load Firebase config from external file -->
-    <script>
-        const configScript = document.createElement('script');
-        configScript.src = '../config/firebase-config.js';
-        configScript.onerror = function() {
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallbackScript);
-        };
-        document.head.appendChild(configScript);
-    </script>
-    
-    <!-- Firebase SDK -->
+    <script type="module" src="../js/standalone-bootstrap.js" data-config-base="../"></script>
     <script type="module">
         import { formatDateLikeToItalianLongLocal } from '../js/date-format-it.js';
-        // Verifica che la configurazione Firebase sia caricata
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve(window.firebaseConfig);
-                    return;
-                }
-                
-                let attempts = 0;
-                const maxAttempts = 50;
-                
-                const checkInterval = setInterval(() => {
-                    attempts++;
-                    if (typeof window.firebaseConfig !== 'undefined') {
-                        clearInterval(checkInterval);
-                        resolve(window.firebaseConfig);
-                    } else if (attempts >= maxAttempts) {
-                        clearInterval(checkInterval);
-                        reject(new Error('Firebase config not loaded'));
-                    }
-                }, 100);
-            });
+        import { showAlert } from '../js/gfv-page-utils.js';
+        import { resolveAuthUser, loginPageUrl } from '../js/simulator-standalone-page.js';
+
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[abbonamento] Bootstrap failed:', err);
+            throw err;
         }
 
-        const firebaseConfig = await waitForConfig();
-
-        import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
+        import { getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
         import { doc, getDoc, updateDoc, serverTimestamp, Timestamp } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
         import { getHttpsCallable } from '../services/firebase-service.js';
@@ -771,7 +743,6 @@
             formatTrialEndDate
         } from '../utils/module-access-resolver.js';
 
-        initializeFirebase(firebaseConfig);
         const app = getAppInstance();
         const auth = getAuthInstance();
         const db = getDb();
@@ -932,13 +903,9 @@
 
         // Verifica autenticazione e carica dati
         onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
             if (!user) {
-                if (!authBootstrapDone) {
-                    authBootstrapDone = true;
-                    await new Promise(resolve => setTimeout(resolve, 600));
-                    if (auth.currentUser) return;
-                }
-                window.location.href = '../auth/login-standalone.html';
+                window.location.href = await loginPageUrl('../auth/login-standalone.html');
                 return;
             }
 
@@ -2165,12 +2132,6 @@
             }
         };
 
-        // Mostra alert
-        function showAlert(message, type = 'info') {
-            if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(message, type); return; }
-            console.warn('[showAlert] gfvShowAlert non disponibile:', message);
-        }
-
         let confirmDialogResolver = null;
 
         function escapeConfirmHtml(value) {
@@ -2457,18 +2418,6 @@
                 showAlert(`Errore cambio piano: ${error.message}`, 'error');
             }
         };
-    </script>
-    <!-- GFV standalone shell: alert toast + Tony gated -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var s = document.createElement('script');
-      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-      document.body.appendChild(s);
-    })();
     </script>
 </body>
 </html>

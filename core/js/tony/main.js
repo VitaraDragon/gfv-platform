@@ -3,9 +3,10 @@
  * @module core/js/tony/main
  */
 
+import { tonyDebugLog } from './debug.js';
 import { injectWidget } from './ui.js';
 import { initTonyVoice } from './voice.js';
-import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTextFromJsonResidue, normalizeTonyTextWhitespace, applyItalianVoiceQuestionPunctuation, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts, matchSegnaOraIncompleteDallePausaFromBlob, normalizeSegnaOraSttBlob, isSegnaOraUntrustedPartialStart, repairSegnaOraVoiceTranscript } from './engine.js';
+import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTextFromJsonResidue, normalizeTonyTextWhitespace, applyItalianVoiceQuestionPunctuation, normalizeItalianSttTranscript, collapseDuplicateVoiceTranscript, scoreItalianSttLexicon, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts, matchSegnaOraIncompleteDallePausaFromBlob, normalizeSegnaOraSttBlob, isSegnaOraUntrustedPartialStart, repairSegnaOraVoiceTranscript } from './engine.js';
 import { hasActiveModule, getModuliAttiviFromTonyContext, isApriPaginaTargetAllowed, tonyNotifyModuleInactive } from '../../config/tony-module-gate.js';
 import {
     getTonyFieldProfileFromContext,
@@ -39,6 +40,7 @@ import {
     terrenoFormReadyForTonySave,
     terrenoProactiveReadyForSave,
     tryInterceptMagazzinoSaveBeforeCf,
+    tryInterceptLavoroSaveBeforeCf,
     tryInterceptPreventivoSaveBeforeCf,
     tryInterceptQuickHoursSaveBeforeCf,
     quickHoursFormReadyForTonySave,
@@ -65,7 +67,7 @@ import {
 import { initTonyDocumentCapture } from './document-capture.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-export const TONY_CLIENT_BUILD = '2026-07-21b';
+export const TONY_CLIENT_BUILD = '2026-08-16b';
 if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
@@ -298,6 +300,18 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         }
     }
 
+    function tonyMaybePromptLavoroSaveAfterReady(res) {
+        if (!res || !res.readyForSave) {
+            tonyTryPromptLavoroSaveIfComplete();
+            return;
+        }
+        // Flag già armato da markLavoroInterviewReadyForSave: non ridoppiare «Vuoi che salvi?».
+        if (window.__tonyAwaitingLavoroSaveConfirm) return;
+        if (typeof window.__tonyPromptLavoroSaveLocal === 'function') {
+            setTimeout(function () { window.__tonyPromptLavoroSaveLocal(); }, 600);
+        }
+    }
+
     function tonyEnsureLavoroModalForInterview() {
         return new Promise(function (resolve) {
             var modal = document.getElementById('lavoro-modal');
@@ -335,7 +349,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         });
     }
 
-    function tonyFinishLavoroInterviewTurn(resIv, opts) {
+    function tonyFinishLavoroInterviewTurn(resIv, opts, userText) {
         removeTyping();
         if (resIv && resIv.handled) {
             if (resIv.message) {
@@ -344,15 +358,23 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     window.Tony.speak(resIv.voiceText);
                 }
             }
-            if (resIv.readyForSave && typeof window.__tonyPromptLavoroSaveLocal === 'function') {
-                setTimeout(function () { window.__tonyPromptLavoroSaveLocal(); }, 600);
-            } else {
-                tonyTryPromptLavoroSaveIfComplete();
+            tonyMaybePromptLavoroSaveAfterReady(resIv);
+        } else if (isTonySaveConfirmText(userText) && window.TonyFormInjector &&
+            typeof window.TonyFormInjector.lavoroInterviewReadyForSave === 'function' &&
+            window.TonyFormInjector.lavoroInterviewReadyForSave()) {
+            // «salva» durante creation flow senza flag: salva invece di «Non ho capito».
+            var lavSaveLate = tryInterceptLavoroSaveBeforeCf(userText, {
+                appendMessage: appendMessage,
+                processTonyCommand: processTonyCommand,
+            });
+            if (!lavSaveLate.handled) {
+                appendMessage('Vuoi che salvi il lavoro?', 'tony');
+                window.__tonyAwaitingLavoroSaveConfirm = true;
             }
         } else {
             appendMessage('Non ho capito. Ripeti con squadra/persona, terreno, tipo lavoro, data o durata (es. martedì, domani, 3).', 'tony');
         }
-        if (opts.fromVoice) isWaitingForTonyResponse = false;
+        if (opts && opts.fromVoice) isWaitingForTonyResponse = false;
     }
 
     /** Rimuove domande ridondanti su data/durata se l'utente le aveva già nel messaggio. */
@@ -656,7 +678,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         } catch (e) { return false; }
         // Non andare alla segnatura desktop: apri la slide Ore, poi eventuale inject.
         try { tonyTryOpenFieldWorkspaceSlideForApriPagina(rawTarget); } catch (eSlideOre) { /* ignore */ }
-        console.log('[Tony] APRI_PAGINA segnatura ore → slide Ore workspace (no desktop).');
+        tonyDebugLog('[Tony] APRI_PAGINA segnatura ore → slide Ore workspace (no desktop).');
         try {
             var flds = null;
             if (dataOrParams && typeof dataOrParams === 'object') {
@@ -673,7 +695,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     setTimeout(function() {
                         Promise.resolve(tonyRecoverSegnaOraFromChatHistory()).then(function(okRec) {
                             if (!okRec) {
-                                console.log('[Tony] Blocco segnatura: nessun orario ricavato dalla chat (es. «dalle 7 alle 18» o «iniziato alle 7 e finito alle 18»).');
+                                tonyDebugLog('[Tony] Blocco segnatura: nessun orario ricavato dalla chat (es. «dalle 7 alle 18» o «iniziato alle 7 e finito alle 18»).');
                             }
                         });
                     }, 380);
@@ -754,7 +776,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             if (typeof goFn === 'function') {
                 var ok = goFn(slideToken);
                 if (ok) {
-                    console.log('[Tony] APRI_PAGINA slide workspace locale:', slideToken);
+                    tonyDebugLog('[Tony] APRI_PAGINA slide workspace locale:', slideToken);
                     return true;
                 }
             }
@@ -763,7 +785,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 var loc = targetWin.location;
                 var u = new URL(loc.href);
                 u.searchParams.set('openSlide', slideToken);
-                console.log('[Tony] APRI_PAGINA slide workspace via reload openSlide:', slideToken);
+                tonyDebugLog('[Tony] APRI_PAGINA slide workspace via reload openSlide:', slideToken);
                 loc.href = u.toString();
                 return true;
             } catch (eRel) { /* ignore */ }
@@ -1246,9 +1268,32 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         tonyMarkSegnaOraLocalInterview();
         tonyPushLocalChatTurn(userText, msg, { skipUserPush: true });
         window.__tonyLastCfAssistantText = msg;
+        // Evita secondo «Form completo, confermi?» (timer proattivo → CF) subito dopo la domanda locale.
+        if (/vuoi\s+salvare|scrivi\s+«?s[iì]»?\s+o\s+«?salva/i.test(String(msg || ''))) {
+            window.__tonyQuickHoursCfAskedSaveAt = Date.now();
+            try {
+                if (window.__tonyProactiveAskTimerId) {
+                    clearTimeout(window.__tonyProactiveAskTimerId);
+                    window.__tonyProactiveAskTimerId = null;
+                }
+                if (window.__tonyIdleReminderTimerId) {
+                    clearTimeout(window.__tonyIdleReminderTimerId);
+                    window.__tonyIdleReminderTimerId = null;
+                }
+                window.__tonyProactiveFormState = null;
+            } catch (eClr) { /* ignore */ }
+        }
         if (typeof handlers.appendMessage === 'function') handlers.appendMessage(msg, 'tony');
         if (typeof handlers.speak === 'function') handlers.speak(msg);
         if (typeof handlers.saveState === 'function') handlers.saveState();
+    }
+
+    /** Intent salva già nel messaggio denso («vorrei salvare le ore…»), non solo «salva»/«sì» isolati. */
+    function tonyUserBlobImpliesSegnaOreSaveIntent(userBlob) {
+        var ub = String(userBlob || '').trim();
+        if (!ub) return false;
+        if (isTonySaveConfirmText(ub)) return true;
+        return /\b(vorrei\s+salvare|voglio\s+salvare|salva(?:re)?\s+le\s+ore|salva(?:re)?\s+il\s+turno)\b/i.test(ub);
     }
 
     /** Messaggio utente appartenente al flusso Segna ore workspace (intercettabile senza CF). */
@@ -1316,7 +1361,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     msg = buildSegnaOreMissingFieldsMessage(state || {});
                 }
                 tonyFinishSegnaOreLocalIntercept(ub, msg, handlers);
-                console.log('[Tony] Segna ore: intervista locale avvio (0 CF).');
+                tonyDebugLog('[Tony] Segna ore: intervista locale avvio (0 CF).');
             };
             if (Object.keys(fdIntent).length) {
                 Promise.resolve(tonyInjectSegnaOreFields(fdIntent, qhWin)).then(afterInject);
@@ -1349,7 +1394,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
                 return;
             }
-            return Promise.resolve(tonyRecoverSegnaOraFromChatHistory({ userText: ub, maxTurns: 6, targetWindow: target.window })).then(function(ok) {
+            return Promise.resolve(tonyRecoverSegnaOraFromChatHistory({
+                userText: ub,
+                maxTurns: 6,
+                targetWindow: target.window,
+                skipSavePrompt: true
+            })).then(function(ok) {
                 if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
                 if (!ok) return;
                 var state = readSegnaOreDomState(target);
@@ -1357,11 +1407,19 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 var pauseInMsg = tonyExtractPauseMinutesFromUserBlob(recentUb) != null ||
                     tonyExtractPauseMinutesFromUserBlob(ub) != null ||
                     /nessun[ao]?\s+pausa|senza\s+pausa|no\s+pausa|zero\s+pausa/i.test(ub);
-                var msg = quickHoursFormReadyForTonySave({ userBlob: ub }) || (state && state.startVal && state.endVal && pauseInMsg)
+                var formReady = !!(quickHoursFormReadyForTonySave({ userBlob: ub }) ||
+                    (state && state.startVal && state.endVal && pauseInMsg));
+                if (formReady && tonyUserBlobImpliesSegnaOreSaveIntent(ub)) {
+                    tonyFinishSegnaOreLocalIntercept(ub, 'Ok, salvo le ore.', handlers);
+                    tonySalvaQuickHoursWorkspace({ skipRecover: true });
+                    tonyDebugLog('[Tony] Segna ore: inject+salva in un turno (senza tonyAsk / senza doppia conferma).');
+                    return;
+                }
+                var msg = formReady
                     ? buildSegnaOreMissingFieldsMessage(state, { pauseAcknowledged: pauseInMsg })
                     : buildSegnaOreMissingFieldsMessage(state || {}, { pauseAcknowledged: pauseInMsg });
                 tonyFinishSegnaOreLocalIntercept(ub, msg, handlers);
-                console.log('[Tony] Segna ore: inject locale da fascia oraria (senza tonyAsk).');
+                tonyDebugLog('[Tony] Segna ore: inject locale da fascia oraria (senza tonyAsk).');
             });
         }).catch(function() {
             if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
@@ -1442,7 +1500,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     msg = buildSegnaOreMissingFieldsMessage(state, { pauseAcknowledged: partial.pauseMin != null });
                 }
                 tonyFinishSegnaOreLocalIntercept(ub, msg, handlers);
-                console.log('[Tony] Segna ore: fascia incompleta (dalle+pausa), percorso locale.');
+                tonyDebugLog('[Tony] Segna ore: fascia incompleta (dalle+pausa), percorso locale.');
             });
         }).catch(function() {
             if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
@@ -1490,7 +1548,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             var msg = 'Ho sentito solo la pausa (' + pauseMin + ' min), non gli orari. ' +
                 'Dimmi la fascia con «dalle 7 alle 18» oppure «ho iniziato alle 7, finito alle 18».';
             tonyFinishSegnaOreLocalIntercept(ub, msg, handlers);
-            console.log('[Tony] Segna ore: solo pausa nel messaggio (STT troncato su dalle/alle), nessun inject.');
+            tonyDebugLog('[Tony] Segna ore: solo pausa nel messaggio (STT troncato su dalle/alle), nessun inject.');
         }).catch(function() {
             if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
         });
@@ -1537,7 +1595,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             var stateAfter = readSegnaOreDomState(target);
             var msg = buildSegnaOreMissingFieldsMessage(stateAfter || {}, {});
             tonyFinishSegnaOreLocalIntercept(ub, msg, handlers);
-            console.log('[Tony] Segna ore: inject locale singolo orario (senza tonyAsk).');
+            tonyDebugLog('[Tony] Segna ore: inject locale singolo orario (senza tonyAsk).');
         }).catch(function() {
             if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
         });
@@ -1572,7 +1630,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             var stateAfter = readSegnaOreDomState(target);
             var msg = buildSegnaOreMissingFieldsMessage(stateAfter || {}, { pauseAcknowledged: true });
             tonyFinishSegnaOreLocalIntercept(ub, msg, handlers);
-            console.log('[Tony] Segna ore: inject pausa locale (senza tonyAsk).');
+            tonyDebugLog('[Tony] Segna ore: inject pausa locale (senza tonyAsk).');
         }).catch(function() {
             if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
         });
@@ -1889,7 +1947,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     }
                 }
                 Promise.resolve(tonyRecoverSegnaOraFromChatHistory({ userText: userMessagePlain, maxTurns: 2 })).then(function(ok) {
-                    if (ok) console.log('[Tony] Fallback post-CF: ore compilate sul workspace (risposta senza inject affidabile).');
+                    if (ok) tonyDebugLog('[Tony] Fallback post-CF: ore compilate sul workspace (risposta senza inject affidabile).');
                     resolve(!!ok);
                 }).catch(function() {
                     resolve(false);
@@ -2020,7 +2078,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             fd = tonyResolveOraLavoroForQuickHours(fd, recentUb);
             return Promise.resolve(tonyInjectSegnaOreFields(fd, qhWin)).then(function (ok) {
                 if (ok) {
-                    console.log('[Tony] Segna ore: compilazione da chat / ultimo messaggio utente (sessionStorage).');
+                    tonyDebugLog('[Tony] Segna ore: compilazione da chat / ultimo messaggio utente (sessionStorage).');
                     if (!opts.skipSavePrompt) tonyPromptSaveAfterQuickHoursInject();
                 }
                 return ok;
@@ -2063,7 +2121,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 }
                 try {
                     form.requestSubmit();
-                    console.log('[Tony] SALVA: submit su ' + (formKind === 'quick-hours' ? 'quick-hours-form' : 'ora-form'));
+                    tonyDebugLog('[Tony] SALVA: submit su ' + (formKind === 'quick-hours' ? 'quick-hours-form' : 'ora-form'));
                 } catch (eSub) {
                     var btn = form.querySelector('button[type="submit"]');
                     if (btn) btn.click();
@@ -2148,7 +2206,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
 
         setTimeout(function() {
             try {
-                console.log('[Tony Queue] Eseguo comando da coda:', source, command && command.type ? command.type : 'UNKNOWN');
+                tonyDebugLog('[Tony Queue] Eseguo comando da coda:', source, command && command.type ? command.type : 'UNKNOWN');
                 processTonyCommand(command);
             } finally {
                 _isProcessingTonyCommand = false;
@@ -2350,13 +2408,13 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             delete outPartial['lavoro-categoria-principale'];
             if (preventivoSubIncomingDowngradesDom(curSubText, formData['lavoro-sottocategoria'])) {
                 delete outPartial['lavoro-sottocategoria'];
-                console.log('[Tony] Preventivo: ignorata sottocategoria downgrade (DOM già: "' + curSubText + '")');
+                tonyDebugLog('[Tony] Preventivo: ignorata sottocategoria downgrade (DOM già: "' + curSubText + '")');
             }
             return outPartial;
         }
         var out = Object.assign({}, formData);
         PREVENTIVO_LAVORAZIONE_FIELD_IDS.forEach(function (k) { delete out[k]; });
-        console.log('[Tony] Preventivo: ignorata sovrascrittura lavorazione (DOM già: "' + curText + '")');
+        tonyDebugLog('[Tony] Preventivo: ignorata sovrascrittura lavorazione (DOM già: "' + curText + '")');
         return out;
     }
 
@@ -2386,7 +2444,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
      * @param {string} tipoLavoroText - Testo del tipo lavoro selezionato
      */
     function handleSmartTipoLavoroSet(tipoLavoroValue, tipoLavoroText) {
-        console.log('[Tony Smart SET_FIELD] Deduzione automatica per tipo lavoro:', tipoLavoroValue, tipoLavoroText);
+        tonyDebugLog('[Tony Smart SET_FIELD] Deduzione automatica per tipo lavoro:', tipoLavoroValue, tipoLavoroText);
         
         // Verifica se SmartFormFiller è disponibile (caricato dinamicamente)
         if (window.SmartFormFiller) {
@@ -2396,7 +2454,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
              // Il filler si occupa ora di TUTTO: Categoria -> Tipo Lavoro -> Sottocategoria
              // Non serve più chiamare handleSmartSottocategoriaSet manualmente qui
              filler.fillField('attivita-tipo-lavoro-gerarchico', tipoLavoroValue, context).then(() => {
-                 console.log('[Tony Smart SET_FIELD] Filler completato per:', tipoLavoroValue);
+                 tonyDebugLog('[Tony Smart SET_FIELD] Filler completato per:', tipoLavoroValue);
              });
              return;
         }
@@ -2444,7 +2502,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             return;
         }
         
-        console.log('[Tony Smart SET_FIELD] Tipo lavoro trovato:', tipoLavoroObj);
+        tonyDebugLog('[Tony Smart SET_FIELD] Tipo lavoro trovato:', tipoLavoroObj);
         
         // Deduzione categoria principale
         var categoriaId = tipoLavoroObj.categoriaId;
@@ -2460,7 +2518,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         if (sottocatMap[parentId].some(function(sc) { return sc.id === categoriaId; })) {
                             categoriaId = parentId;
                             categoriaFound = true;
-                            console.log('[Tony Smart SET_FIELD] Categoria trovata come sottocategoria, uso parent:', categoriaId);
+                            tonyDebugLog('[Tony Smart SET_FIELD] Categoria trovata come sottocategoria, uso parent:', categoriaId);
                             break;
                         }
                     }
@@ -2485,7 +2543,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         });
                         if (categoriaOpt) {
                             categoriaId = categoriaOpt.value;
-                            console.log('[Tony Smart SET_FIELD] Mappatura inversa categoria: trovato per nome, uso ID:', categoriaId);
+                            tonyDebugLog('[Tony Smart SET_FIELD] Mappatura inversa categoria: trovato per nome, uso ID:', categoriaId);
                         }
                     }
                 }
@@ -2503,22 +2561,22 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     if (window.jQuery || window.$) {
                         var $cat = (window.jQuery || window.$)(categoriaSelect);
                         $cat.trigger('change');
-                        console.log('[Tony Smart SET_FIELD] Trigger jQuery change per categoria');
+                        tonyDebugLog('[Tony Smart SET_FIELD] Trigger jQuery change per categoria');
                     }
-                    console.log('[Tony Smart SET_FIELD] Categoria principale impostata con trigger cascata:', categoriaId);
+                    tonyDebugLog('[Tony Smart SET_FIELD] Categoria principale impostata con trigger cascata:', categoriaId);
                     
                     // MONITORAGGIO CASCATA: Attendi che il dropdown tipo-lavoro-gerarchico si popoli
                     var tipoLavoroSelect = document.getElementById('attivita-tipo-lavoro-gerarchico');
                     if (tipoLavoroSelect) {
                         var initialOptionsCount = tipoLavoroSelect.options.length;
-                        console.log('[Tony Smart SET_FIELD] Opzioni tipo lavoro iniziali:', initialOptionsCount);
+                        tonyDebugLog('[Tony Smart SET_FIELD] Opzioni tipo lavoro iniziali:', initialOptionsCount);
                         
                         // Monitora fino a quando il dropdown non si popola (da 1 opzione a molte)
                         var checkInterval = setInterval(function() {
                             var currentOptionsCount = tipoLavoroSelect.options.length;
                             if (currentOptionsCount > initialOptionsCount) {
                                 clearInterval(checkInterval);
-                                console.log('[Tony Smart SET_FIELD] Dropdown tipo lavoro popolato! Opzioni:', currentOptionsCount);
+                                tonyDebugLog('[Tony Smart SET_FIELD] Dropdown tipo lavoro popolato! Opzioni:', currentOptionsCount);
                                 
                                 // Ora procedi con sottocategoria e tipo lavoro
                                 setTimeout(function() {
@@ -2557,7 +2615,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
     function handleSmartSottocategoriaSet(tipoLavoroObj, categoriaPrincipaleId, tipoLavoroValue) {
         var sottocategoriaSelect = document.getElementById('attivita-sottocategoria');
         if (!sottocategoriaSelect || sottocategoriaSelect.style.display === 'none') {
-            console.log('[Tony Smart SET_FIELD] Sottocategoria non visibile o non disponibile');
+            tonyDebugLog('[Tony Smart SET_FIELD] Sottocategoria non visibile o non disponibile');
             return;
         }
         
@@ -2566,7 +2624,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         // Priorità 1: Se il tipo lavoro ha già una sottocategoriaId predefinita, usala
         if (tipoLavoroObj.sottocategoriaId) {
             sottocategoriaId = tipoLavoroObj.sottocategoriaId;
-            console.log('[Tony Smart SET_FIELD] Usando sottocategoriaId predefinita:', sottocategoriaId);
+            tonyDebugLog('[Tony Smart SET_FIELD] Usando sottocategoriaId predefinita:', sottocategoriaId);
         } else {
             // Priorità 2: Preselezione basata sul terreno
             var terrenoSelect = document.getElementById('attivita-terreno');
@@ -2596,7 +2654,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             });
                             if (traLeFileOpt) {
                                 sottocategoriaId = traLeFileOpt.value;
-                                console.log('[Tony Smart SET_FIELD] Preselezione "Tra le File" per terreno Vite/Frutteto');
+                                tonyDebugLog('[Tony Smart SET_FIELD] Preselezione "Tra le File" per terreno Vite/Frutteto');
                             }
                         }
                     }
@@ -2608,7 +2666,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         });
                         if (generaleOpt) {
                             sottocategoriaId = generaleOpt.value;
-                            console.log('[Tony Smart SET_FIELD] Preselezione "Generale" per terreno Seminativo');
+                            tonyDebugLog('[Tony Smart SET_FIELD] Preselezione "Generale" per terreno Seminativo');
                         }
                     }
                 }
@@ -2629,9 +2687,9 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 if (window.jQuery || window.$) {
                     var $subcat = (window.jQuery || window.$)(sottocategoriaSelect);
                     $subcat.trigger('change');
-                    console.log('[Tony Smart SET_FIELD] Trigger jQuery change per sottocategoria');
+                    tonyDebugLog('[Tony Smart SET_FIELD] Trigger jQuery change per sottocategoria');
                 }
-                console.log('[Tony Smart SET_FIELD] Sottocategoria impostata con trigger cascata:', sottocategoriaId);
+                tonyDebugLog('[Tony Smart SET_FIELD] Sottocategoria impostata con trigger cascata:', sottocategoriaId);
                 
                 // Attendi che il dropdown tipo lavoro si aggiorni dopo il cambio sottocategoria
                 setTimeout(function() {
@@ -2652,7 +2710,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     var $tl = (window.jQuery || window.$)(tipoLavoroSelect);
                                     $tl.trigger('change');
                                 }
-                                console.log('[Tony Smart SET_FIELD] Tipo lavoro ri-impostato dopo sincronizzazione:', tipoLavoroValue);
+                                tonyDebugLog('[Tony Smart SET_FIELD] Tipo lavoro ri-impostato dopo sincronizzazione:', tipoLavoroValue);
                             } else {
                                 console.warn('[Tony Smart SET_FIELD] Tipo lavoro non più disponibile dopo cambio sottocategoria:', tipoLavoroValue);
                             }
@@ -2663,7 +2721,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 console.warn('[Tony Smart SET_FIELD] Sottocategoria non trovata nel dropdown:', sottocategoriaId);
             }
         } else {
-            console.log('[Tony Smart SET_FIELD] Nessuna preselezione sottocategoria disponibile');
+            tonyDebugLog('[Tony Smart SET_FIELD] Nessuna preselezione sottocategoria disponibile');
             // Anche se non c'è sottocategoria, ri-imposta il tipo lavoro dopo un breve delay
             if (tipoLavoroValue) {
                 setTimeout(function() {
@@ -2682,7 +2740,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 var $tl = (window.jQuery || window.$)(tipoLavoroSelect);
                                 $tl.trigger('change');
                             }
-                            console.log('[Tony Smart SET_FIELD] Tipo lavoro ri-impostato dopo sincronizzazione (senza sottocategoria):', tipoLavoroValue);
+                            tonyDebugLog('[Tony Smart SET_FIELD] Tipo lavoro ri-impostato dopo sincronizzazione (senza sottocategoria):', tipoLavoroValue);
                         }
                     }
                 }, 300);
@@ -3141,9 +3199,9 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
     function processTonyCommand(data) {
         data = normalizeTonyCommand(data);
         tonyE2eRecordCommand(data);
-        // console.log('[DEBUG CURSOR] processTonyCommand: Chiamata ricevuta');
-        // console.log('[DEBUG CURSOR] processTonyCommand: Dati comando:', JSON.stringify(data, null, 2));
-        console.log('[Tony] Esecuzione comando:', data && data.type, data && (data.field || data.id || ''));
+        // tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Chiamata ricevuta');
+        // tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Dati comando:', JSON.stringify(data, null, 2));
+        tonyDebugLog('[Tony] Esecuzione comando:', data && data.type, data && (data.field || data.id || ''));
 
         if (!data || !data.type) {
             console.warn('[Tony] Comando malformato o vuoto.');
@@ -3160,7 +3218,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         try {
             switch (String(data.type).toUpperCase()) {
                 case '_WAIT_MODAL_READY':
-                    console.log('[Tony] Attesa popolamento modal completata, proseguo con i SET_FIELD');
+                    tonyDebugLog('[Tony] Attesa popolamento modal completata, proseguo con i SET_FIELD');
                     break;
                 case 'INJECT_FORM_DATA':
                     // CF / modello possono usare "fields" o "fieldValues" (come OPEN_MODAL) invece di "formData"
@@ -3180,7 +3238,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         var lastMagInj = window.__tonyMagazzinoLastInject;
                         if (lastMagInj && lastMagInj.formId === data.formId && (Date.now() - lastMagInj.t) < 15000 && lastMagInj.formData && typeof lastMagInj.formData === 'object') {
                             data.formData = Object.assign({}, lastMagInj.formData, data.formData);
-                            console.log('[Tony] INJECT_FORM_DATA magazzino: merge con inject precedente (<15s)');
+                            tonyDebugLog('[Tony] INJECT_FORM_DATA magazzino: merge con inject precedente (<15s)');
                         }
                         window.__tonyMagazzinoLastInject = { formId: data.formId, formData: Object.assign({}, data.formData), t: Date.now() };
                     }
@@ -3205,7 +3263,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         if (data.formId === 'preventivo-form' && !document.getElementById('preventivo-form')) {
                             window.__tonyInjectionInProgress = false;
                             if (window.Tony && typeof window.Tony.triggerAction === 'function') {
-                                console.log('[Tony] INJECT_FORM_DATA: form preventivo assente, apro Nuovo Preventivo con intent pendente');
+                                tonyDebugLog('[Tony] INJECT_FORM_DATA: form preventivo assente, apro Nuovo Preventivo con intent pendente');
                                 window.Tony.triggerAction('APRI_PAGINA', {
                                     target: 'nuovo preventivo',
                                     _tonyPendingModal: 'preventivo-form',
@@ -3226,7 +3284,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         if (data.formData && typeof data.formData === 'object') {
                             var fdInj = data.formData;
                             if (data.formId === 'attivita-form' && tonyPayloadLooksLikePreventivoFormData(fdInj)) {
-                                console.log('[Tony] INJECT_FORM_DATA: attivita-form con chiavi preventivo → uso preventivo-form (anche cross-page)');
+                                tonyDebugLog('[Tony] INJECT_FORM_DATA: attivita-form con chiavi preventivo → uso preventivo-form (anche cross-page)');
                                 data.formId = 'preventivo-form';
                             }
                         }
@@ -3247,7 +3305,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     data.formData['data-prevista'] = data.formData['data_prevista'];
                                     delete data.formData['data_prevista'];
                                 }
-                                console.log('[Tony] INJECT_FORM_DATA: alias data → data-prevista (Nuovo Preventivo)');
+                                tonyDebugLog('[Tony] INJECT_FORM_DATA: alias data → data-prevista (Nuovo Preventivo)');
                                 fdInj = data.formData;
                             }
                         }
@@ -3261,14 +3319,14 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     fdOraFromAtt['ora-note'] = noteAtt;
                                 }
                                 fdOraFromAtt = tonyResolveOraLavoroForQuickHours(fdOraFromAtt, tonyBuildSegnaOraUserBlobLastNUserTurns(6));
-                                console.log('[Tony] INJECT attivita-form con manodopera: profilo campo → workspace Segna ore');
+                                tonyDebugLog('[Tony] INJECT attivita-form con manodopera: profilo campo → workspace Segna ore');
                                 window.Tony.triggerAction('APRI_PAGINA', {
                                     target: 'workspace campo',
                                     _tonyPendingModal: 'quick-hours-form',
                                     _tonyPendingFields: Object.keys(fdOraFromAtt).length > 0 ? fdOraFromAtt : null
                                 });
                             } else {
-                                console.log('[Tony] INJECT attivita-form ignorato: manodopera attivo, profilo manager (né diario né Segna ore)');
+                                tonyDebugLog('[Tony] INJECT attivita-form ignorato: manodopera attivo, profilo manager (né diario né Segna ore)');
                             }
                             break;
                         }
@@ -3278,7 +3336,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         if (data.formId === 'terreno-form' && !document.getElementById('terreno-form')) {
                             window.__tonyInjectionInProgress = false;
                             if (window.Tony && typeof window.Tony.triggerAction === 'function') {
-                                console.log('[Tony] INJECT_FORM_DATA: form terreno assente, apro pagina Terreni con intent pendente');
+                                tonyDebugLog('[Tony] INJECT_FORM_DATA: form terreno assente, apro pagina Terreni con intent pendente');
                                 window.Tony.triggerAction('APRI_PAGINA', {
                                     target: 'terreni',
                                     _tonyPendingModal: 'terreno-modal',
@@ -3288,13 +3346,13 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             break;
                         }
                         if (targetModalId && !isModalOpen && data.formData && Object.keys(data.formData).length > 0) {
-                            console.log('[Tony] INJECT_FORM_DATA: modal non aperto, apro prima ' + targetModalId + ' e poi inietto');
+                            tonyDebugLog('[Tony] INJECT_FORM_DATA: modal non aperto, apro prima ' + targetModalId + ' e poi inietto');
                             window.__tonyInjectionInProgress = false;
                             enqueueTonyCommand({ type: 'OPEN_MODAL', id: targetModalId, fields: data.formData }, { source: 'inject-guard-open-first' });
                             break;
                         }
                         if (data.formId === 'lavoro-form' || data.formId === 'lavoro-modal') {
-                            console.log('[Tony] INJECT_FORM_DATA: iniezione formData lavoro');
+                            tonyDebugLog('[Tony] INJECT_FORM_DATA: iniezione formData lavoro');
                             if (window.Tony && typeof window.Tony.setContext === 'function') {
                                 window.Tony.setContext('lavori', ctx.lavori || {});
                             }
@@ -3312,13 +3370,13 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 });
                                 if (Object.keys(merged).length > Object.keys(formDataToInject).length) {
                                     formDataToInject = merged;
-                                    console.log('[Tony] INJECT_FORM_DATA: merge con valori esistenti, campi totali:', Object.keys(formDataToInject).length);
+                                    tonyDebugLog('[Tony] INJECT_FORM_DATA: merge con valori esistenti, campi totali:', Object.keys(formDataToInject).length);
                                 }
                             }
                             window.TonyFormInjector.injectLavoroForm(formDataToInject, ctx, patchOnlyLavoro ? { patchOnly: true } : undefined).then(function(ok) {
                                 window.__tonyInjectionInProgress = false;
                                 if (ok) {
-                                    console.log('[Tony] Form lavoro iniettato con successo');
+                                    tonyDebugLog('[Tony] Form lavoro iniettato con successo');
                                     window.__tonyLavoroCreationFlow = true;
                                     if (window.__tonyLavoroPersonDisambCandidates && window.__tonyLavoroPersonDisambCandidates.length > 1 &&
                                         window.TonyFormInjector && typeof window.TonyFormInjector.promptLavoroInterviewMissing === 'function') {
@@ -3347,7 +3405,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                         var formCtx = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
                                         var modalEl = document.getElementById('lavoro-modal');
                                         if (!modalEl || !modalEl.classList.contains('active')) {
-                                            if (retryCount === 0) console.log('[Tony] Timer proattivo lavoro: modal non aperto, skip');
+                                            if (retryCount === 0) tonyDebugLog('[Tony] Timer proattivo lavoro: modal non aperto, skip');
                                             return;
                                         }
                                         if (!formCtx || !formCtx.formId) {
@@ -3355,7 +3413,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                                 window.__tonyProactiveAskTimerId = setTimeout(function() { window.__tonyProactiveAskTimerId = null; runProactiveCheckLavoro(retryCount + 1); }, 1500);
                                                 return;
                                             }
-                                            console.log('[Tony] Timer proattivo lavoro: formCtx non disponibile dopo retry, uso solo DOM per needsMacchine');
+                                            tonyDebugLog('[Tony] Timer proattivo lavoro: formCtx non disponibile dopo retry, uso solo DOM per needsMacchine');
                                         }
                                         var hasRequiredEmpty = (formCtx && formCtx.requiredEmpty && formCtx.requiredEmpty.length > 0);
                                         var needsMacchine = false;
@@ -3372,19 +3430,19 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                         var needsMacchineOnly = !hasRequiredEmpty && needsMacchine;
                                         var lastUpDense = tonyGetLastUserMessage();
                                         if (lastUpDense && tonyUserMessageEntityDenseForLavoro(lastUpDense) && (hasRequiredEmpty || needsMacchine)) {
-                                            console.log('[Tony] Timer proattivo lavoro: skip (messaggio entity-dense, attendo inject completo)');
+                                            tonyDebugLog('[Tony] Timer proattivo lavoro: skip (messaggio entity-dense, attendo inject completo)');
                                             window.__tonyProactiveFormState = null;
                                             return;
                                         }
                                         if (!tonyShouldArmProactiveMissingFieldsAsk() && (hasRequiredEmpty || needsMacchine)) {
                                             if (!(needsMacchineOnly && tonyShouldArmProactiveMacchineAsk())) {
-                                                console.log('[Tony] Timer proattivo lavoro: skip (CF chiede già all\'utente)');
+                                                tonyDebugLog('[Tony] Timer proattivo lavoro: skip (CF chiede già all\'utente)');
                                                 window.__tonyProactiveFormState = null;
                                                 return;
                                             }
                                         }
                                         window.__tonyProactiveFormState = { active: true, type: formComplete ? 'ready_for_save' : 'missing_fields', formId: 'lavoro-form', modalId: 'lavoro-modal', needsMacchineOnly: !!needsMacchineOnly };
-                                        console.log('[Tony] Timer proattivo lavoro: check eseguito, type=', window.__tonyProactiveFormState.type, 'hasRequiredEmpty=', hasRequiredEmpty, 'needsMacchine=', needsMacchine);
+                                        tonyDebugLog('[Tony] Timer proattivo lavoro: check eseguito, type=', window.__tonyProactiveFormState.type, 'hasRequiredEmpty=', hasRequiredEmpty, 'needsMacchine=', needsMacchine);
                                         var idleDelayLavoro = needsMacchineOnly ? MACCHINE_ONLY_ASK_DELAY_MS : (formComplete ? 800 : IDLE_REMINDER_MS);
                                         window.__tonyIdleReminderTimerId = setTimeout(function() {
                                             window.__tonyIdleReminderTimerId = null;
@@ -3491,7 +3549,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 }
                             });
                         } else if (data.formId === 'preventivo-form') {
-                            console.log('[Tony] INJECT_FORM_DATA: iniezione formData Nuovo Preventivo');
+                            tonyDebugLog('[Tony] INJECT_FORM_DATA: iniezione formData Nuovo Preventivo');
                             var formDataPrev = data.formData;
                             var formCtxPrev = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
                             if (formCtxPrev && formCtxPrev.fields && formCtxPrev.fields.length > 0) {
@@ -3526,7 +3584,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                         console.warn('[Tony] Iniezione form preventivo fallita');
                                         return;
                                     }
-                                    console.log('[Tony] Form preventivo iniettato con successo');
+                                    tonyDebugLog('[Tony] Form preventivo iniettato con successo');
                                     if (window.__tonyProactiveAskTimerId) clearTimeout(window.__tonyProactiveAskTimerId);
                                     if (window.__tonyIdleReminderTimerId) { clearTimeout(window.__tonyIdleReminderTimerId); window.__tonyIdleReminderTimerId = null; }
                                     function runProactiveCheckPreventivo(retryCount) {
@@ -3540,7 +3598,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                                 }, 1200);
                                                 return;
                                             }
-                                            console.log('[Tony] Timer proattivo preventivo: #preventivo-form assente, skip');
+                                            tonyDebugLog('[Tony] Timer proattivo preventivo: #preventivo-form assente, skip');
                                             return;
                                         }
                                         var buildPrev = window.__tonyBuildTonyFormContext;
@@ -3555,7 +3613,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                                 }, 1200);
                                                 return;
                                             }
-                                            console.log('[Tony] Timer proattivo preventivo: formCtx non disponibile dopo retry');
+                                            tonyDebugLog('[Tony] Timer proattivo preventivo: formCtx non disponibile dopo retry');
                                             return;
                                         }
                                         var reqEmpty = (formCtxP.requiredEmpty && formCtxP.requiredEmpty.slice) ? formCtxP.requiredEmpty.slice() : [];
@@ -3575,7 +3633,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                             modalId: 'preventivo-form',
                                             proactiveMissingMessage: proactiveMissingMsg
                                         };
-                                        console.log('[Tony] Timer proattivo preventivo: check eseguito, type=', window.__tonyProactiveFormState.type, 'requiredEmpty=', reqEmpty);
+                                        tonyDebugLog('[Tony] Timer proattivo preventivo: check eseguito, type=', window.__tonyProactiveFormState.type, 'requiredEmpty=', reqEmpty);
                                         window.__tonyIdleReminderTimerId = setTimeout(function() {
                                             window.__tonyIdleReminderTimerId = null;
                                             if (window.__tonyInjectionInProgress) return;
@@ -3655,7 +3713,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 proceedPreventivoInjectRest();
                             });
                         } else if (data.formId === 'attivita-form') {
-                            console.log('[Tony] INJECT_FORM_DATA: iniezione formData attività');
+                            tonyDebugLog('[Tony] INJECT_FORM_DATA: iniezione formData attività');
                             var formDataAttivita = data.formData;
                             var formCtxAttivita = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
                             if (formCtxAttivita && formCtxAttivita.fields && formCtxAttivita.fields.length > 0) {
@@ -3673,7 +3731,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             window.TonyFormInjector.injectAttivitaForm(formDataAttivita, ctx).then(function(ok) {
                                 window.__tonyInjectionInProgress = false;
                                 if (ok) {
-                                    console.log('[Tony] Form data iniettato con successo');
+                                    tonyDebugLog('[Tony] Form data iniettato con successo');
                                     if (window.__tonyProactiveAskTimerId) clearTimeout(window.__tonyProactiveAskTimerId);
                                     if (window.__tonyIdleReminderTimerId) { clearTimeout(window.__tonyIdleReminderTimerId); window.__tonyIdleReminderTimerId = null; }
                                     window.__tonyProactiveAskTimerId = setTimeout(function() {
@@ -3706,7 +3764,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 }
                             });
                         } else if (data.formId === 'prodotto-form') {
-                            console.log('[Tony] INJECT_FORM_DATA: iniezione formData prodotto');
+                            tonyDebugLog('[Tony] INJECT_FORM_DATA: iniezione formData prodotto');
                             var formDataProdotto = data.formData;
                             var formCtxProdotto = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
                             if (formCtxProdotto && formCtxProdotto.fields && formCtxProdotto.fields.length > 0) {
@@ -3724,7 +3782,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             window.TonyFormInjector.injectProdottoForm(formDataProdotto, ctx).then(function(ok) {
                                 window.__tonyInjectionInProgress = false;
                                 if (ok) {
-                                    console.log('[Tony] Form prodotto iniettato con successo');
+                                    tonyDebugLog('[Tony] Form prodotto iniettato con successo');
                                     if (typeof window.__tonySyncProdottoDosaggioCarenzaRequired === 'function') {
                                         window.__tonySyncProdottoDosaggioCarenzaRequired();
                                     }
@@ -3761,7 +3819,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 }
                             });
                         } else if (data.formId === 'movimento-form') {
-                            console.log('[Tony] INJECT_FORM_DATA: iniezione formData movimento');
+                            tonyDebugLog('[Tony] INJECT_FORM_DATA: iniezione formData movimento');
                             var formDataMov = data.formData;
                             var formCtxMov = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
                             if (formCtxMov && formCtxMov.fields && formCtxMov.fields.length > 0) {
@@ -3779,7 +3837,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             window.TonyFormInjector.injectMovimentoForm(formDataMov, ctx).then(function(ok) {
                                 window.__tonyInjectionInProgress = false;
                                 if (ok) {
-                                    console.log('[Tony] Form movimento iniettato con successo');
+                                    tonyDebugLog('[Tony] Form movimento iniettato con successo');
                                     if (window.__tonyProactiveAskTimerId) clearTimeout(window.__tonyProactiveAskTimerId);
                                     if (window.__tonyIdleReminderTimerId) { clearTimeout(window.__tonyIdleReminderTimerId); window.__tonyIdleReminderTimerId = null; }
                                     window.__tonyProactiveAskTimerId = setTimeout(function() {
@@ -3818,7 +3876,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 }
                             });
                         } else if (data.formId === 'terreno-form' || data.formId === 'terreno-modal') {
-                            console.log('[Tony] INJECT_FORM_DATA: iniezione formData terreno');
+                            tonyDebugLog('[Tony] INJECT_FORM_DATA: iniezione formData terreno');
                             var formDataTerreno = data.formData;
                             var formCtxTerreno = typeof window.__tonyGetCurrentFormContext === 'function' ? window.__tonyGetCurrentFormContext() : null;
                             if (formCtxTerreno && formCtxTerreno.fields && formCtxTerreno.fields.length > 0) {
@@ -3841,14 +3899,14 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             window.TonyFormInjector.injectTerrenoForm(formDataTerreno, ctx).then(function (ok) {
                                 window.__tonyInjectionInProgress = false;
                                 if (ok) {
-                                    console.log('[Tony] Form terreno iniettato con successo');
+                                    tonyDebugLog('[Tony] Form terreno iniettato con successo');
                                     tonyScheduleTerrenoProactiveAfterInject();
                                 } else {
                                     console.warn('[Tony] Iniezione form terreno fallita');
                                 }
                             });
                         } else if (data.formId === 'zona-form') {
-                            console.log('[Tony] INJECT_FORM_DATA: zona-form (traccia segmento lavorato)');
+                            tonyDebugLog('[Tony] INJECT_FORM_DATA: zona-form (traccia segmento lavorato)');
                             var formDataZona = data.formData;
                             if (!document.getElementById('zona-form')) {
                                 window.__tonyInjectionInProgress = false;
@@ -3857,11 +3915,11 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             }
                             window.TonyFormInjector.injectZonaSegmentoForm(formDataZona, ctx).then(function (ok) {
                                 window.__tonyInjectionInProgress = false;
-                                if (ok) console.log('[Tony] Form zona segmento iniettato');
+                                if (ok) tonyDebugLog('[Tony] Form zona segmento iniettato');
                                 else console.warn('[Tony] Iniezione zona-form fallita');
                             });
                         } else if (data.formId === 'ora-form' || data.formId === 'field-workspace-ore-form') {
-                            console.log('[Tony] INJECT_FORM_DATA: ora-form / workspace mobile ore');
+                            tonyDebugLog('[Tony] INJECT_FORM_DATA: ora-form / workspace mobile ore');
                             var formDataOra = tonySanitizeCfWorkspaceOraFormData(data.formData);
                             formDataOra = tonyResolveOraLavoroForQuickHours(formDataOra, tonyBuildSegnaOraUserBlobLastNUserTurns(6));
                             if (!document.getElementById('ora-form') && !tonyResolveQuickHoursWindow()) {
@@ -3870,7 +3928,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     fdNav = tonyMapAttivitaFieldsToSegnaOra(fdNav);
                                     fdNav = tonyResolveOraLavoroForQuickHours(fdNav, tonyBuildSegnaOraUserBlobLastNUserTurns(6));
                                     window.__tonyInjectionInProgress = false;
-                                    console.log('[Tony] INJECT ora-form: form assente — navigo a workspace campo (Segna ore inline)');
+                                    tonyDebugLog('[Tony] INJECT ora-form: form assente — navigo a workspace campo (Segna ore inline)');
                                     window.Tony.triggerAction('APRI_PAGINA', {
                                         target: 'workspace campo',
                                         _tonyPendingModal: 'quick-hours-form',
@@ -3880,12 +3938,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 }
                                 if (tonyModuliAttiviIncludeManodopera() && !getTonyFieldProfileFromContext()) {
                                     window.__tonyInjectionInProgress = false;
-                                    console.log('[Tony] INJECT ora-form ignorato: Segna ore riservato a operai/caposquadra');
+                                    tonyDebugLog('[Tony] INJECT ora-form ignorato: Segna ore riservato a operai/caposquadra');
                                     break;
                                 }
                                 if (window.Tony && typeof window.Tony.triggerAction === 'function') {
                                     window.__tonyInjectionInProgress = false;
-                                    console.log('[Tony] INJECT ora-form: form assente — navigo a Segna ore standalone');
+                                    tonyDebugLog('[Tony] INJECT ora-form: form assente — navigo a Segna ore standalone');
                                     window.Tony.triggerAction('APRI_PAGINA', {
                                         target: 'segnatura ore',
                                         _tonyPendingModal: 'ora-modal',
@@ -3915,7 +3973,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             Promise.resolve(injectOraPromise).then(function (ok) {
                                 window.__tonyInjectionInProgress = false;
                                 if (ok) {
-                                    console.log('[Tony] Form segna ora iniettato');
+                                    tonyDebugLog('[Tony] Form segna ora iniettato');
                                     var cfSaveAsk = window.__tonyQuickHoursCfAskedSaveAt &&
                                         (Date.now() - window.__tonyQuickHoursCfAskedSaveAt) < 15000;
                                     if (!cfSaveAsk) tonyPromptSaveAfterQuickHoursInject();
@@ -3968,7 +4026,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 }
                                 window.TonyFormInjector.injectTrattamentoCampoForm(fdTratt, ctxTratt0).then(function(ok) {
                                     window.__tonyInjectionInProgress = false;
-                                    if (ok) console.log('[Tony] Form trattamento campo iniettato');
+                                    if (ok) tonyDebugLog('[Tony] Form trattamento campo iniettato');
                                     else console.warn('[Tony] Iniezione form trattamento campo fallita');
                                     // Nessun timer proattivo «Form completo, confermi salvataggio?» qui: dopo ~10s inviava un secondo
                                     // messaggio alla CF mentre l’utente stava ancora leggendo / rispondendo alla domanda su
@@ -3992,9 +4050,9 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     }
                     break;
                 case 'OPEN_MODAL':
-                    console.log('[DEBUG CURSOR] processTonyCommand: Caso OPEN_MODAL');
+                    tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Caso OPEN_MODAL');
                     var modalId = data.id || data.target;
-                    console.log('[DEBUG CURSOR] processTonyCommand: modalId originale:', modalId);
+                    tonyDebugLog('[DEBUG CURSOR] processTonyCommand: modalId originale:', modalId);
                     
                     if (modalId && isTonyOpenModalBlockedForFieldProfile(modalId)) {
                         console.warn('[Tony] OPEN_MODAL bloccato per profilo campo:', modalId);
@@ -4012,7 +4070,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         var _qhTwOra = tonyResolveQuickHoursWindow();
                         if (window.TonyFormInjector && typeof window.TonyFormInjector.injectFieldWorkspaceQuickHoursForm === 'function' && _qhTwOra) {
                             window.TonyFormInjector.injectFieldWorkspaceQuickHoursForm(_oraWsFlds || {}, window.Tony && window.Tony.context, { targetWindow: _qhTwOra }).then(function (okOraWs) {
-                                if (okOraWs) console.log('[Tony] Ore compilate sul form inline workspace mobile (stessa schermata Segna ore).');
+                                if (okOraWs) tonyDebugLog('[Tony] Ore compilate sul form inline workspace mobile (stessa schermata Segna ore).');
                             });
                         }
                         break;
@@ -4025,7 +4083,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             var _oraNavFlds = (data.fields && typeof data.fields === 'object') ? Object.assign({}, data.fields) : {};
                             _oraNavFlds = tonyMapAttivitaFieldsToSegnaOra(_oraNavFlds);
                             _oraNavFlds = tonyResolveOraLavoroForQuickHours(_oraNavFlds, tonyBuildSegnaOraUserBlobLastNUserTurns(6));
-                            console.log('[Tony] OPEN_MODAL ora-modal senza form inline: navigo a workspace campo (quick-hours-form)');
+                            tonyDebugLog('[Tony] OPEN_MODAL ora-modal senza form inline: navigo a workspace campo (quick-hours-form)');
                             window.Tony.triggerAction('APRI_PAGINA', {
                                 target: 'workspace campo',
                                 _tonyPendingModal: 'quick-hours-form',
@@ -4038,11 +4096,11 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     if (modalId) {
                         var resolvedId = modalId;
                         var modalKey = (modalId || '').toString().toLowerCase().replace(/\s+/g, '-').replace(/_/g, '-');
-                        console.log('[DEBUG CURSOR] processTonyCommand: modalKey normalizzato:', modalKey);
+                        tonyDebugLog('[DEBUG CURSOR] processTonyCommand: modalKey normalizzato:', modalKey);
                         
                         // Verifica se l'ID esiste nel DOM
                         var originalExists = !!document.getElementById(modalId);
-                        console.log('[DEBUG CURSOR] processTonyCommand: Modal con ID originale esiste nel DOM:', originalExists);
+                        tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Modal con ID originale esiste nel DOM:', originalExists);
                         
                         // Se attivita-modal richiesto ma non esiste (es. dashboard): Diario — salvo che i campi siano chiaramente Nuovo Preventivo (errore comune del modello).
                         if ((modalId === 'attivita-modal' || (modalKey && modalKey.indexOf('attivita') >= 0)) && !document.getElementById('attivita-modal')) {
@@ -4051,11 +4109,11 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 return m && m.classList.contains('active');
                             })();
                             if (modalTrattamentoAttivo) {
-                                console.log('[Tony] OPEN_MODAL attivita-modal ignorato: aperto modal Completa trattamento/concimazione campo (usa INJECT su form-trattamento).');
+                                tonyDebugLog('[Tony] OPEN_MODAL attivita-modal ignorato: aperto modal Completa trattamento/concimazione campo (usa INJECT su form-trattamento).');
                                 break;
                             }
                             if (tonyOpenModalShouldRouteToPreventivo(data.fields) && window.Tony && typeof window.Tony.triggerAction === 'function') {
-                                console.log('[Tony] OPEN_MODAL attivita-modal → Nuovo Preventivo (campi preventivo o ultimo messaggio utente)');
+                                tonyDebugLog('[Tony] OPEN_MODAL attivita-modal → Nuovo Preventivo (campi preventivo o ultimo messaggio utente)');
                                 window.Tony.triggerAction('APRI_PAGINA', {
                                     target: 'nuovo preventivo',
                                     _tonyPendingModal: 'preventivo-form',
@@ -4077,12 +4135,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     _pendingFields = tonyResolveOraLavoroForQuickHours(_pendingFields, tonyBuildSegnaOraUserBlobLastNUserTurns(6));
                                 }
                                 if (_man && !_fpAtt) {
-                                    console.log('[Tony] OPEN_MODAL attivita-modal ignorato: manodopera attivo, profilo manager (né diario né Segna ore)');
+                                    tonyDebugLog('[Tony] OPEN_MODAL attivita-modal ignorato: manodopera attivo, profilo manager (né diario né Segna ore)');
                                     break;
                                 }
                                 var _attNavTarget = _fpAtt ? 'workspace campo' : 'attivita';
                                 var _pendModal = _fpAtt ? (_man ? 'quick-hours-form' : null) : 'attivita-modal';
-                                console.log('[Tony] Modal attività non presente in questa pagina, apro', _attNavTarget);
+                                tonyDebugLog('[Tony] Modal attività non presente in questa pagina, apro', _attNavTarget);
                                 window.Tony.triggerAction('APRI_PAGINA', {
                                     target: _attNavTarget,
                                     _tonyPendingModal: _pendModal,
@@ -4094,7 +4152,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
 
                         if (modalId === 'lavoro-modal' && !document.getElementById('lavoro-modal')) {
                             if (tonyOpenModalShouldRouteToPreventivo(data.fields) && window.Tony && typeof window.Tony.triggerAction === 'function') {
-                                console.log('[Tony] OPEN_MODAL lavoro-modal → Nuovo Preventivo (campi preventivo o ultimo messaggio utente, non Gestione Lavori)');
+                                tonyDebugLog('[Tony] OPEN_MODAL lavoro-modal → Nuovo Preventivo (campi preventivo o ultimo messaggio utente, non Gestione Lavori)');
                                 window.Tony.triggerAction('APRI_PAGINA', {
                                     target: 'nuovo preventivo',
                                     _tonyPendingModal: 'preventivo-form',
@@ -4120,7 +4178,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 break;
                             }
                             if (window.Tony && typeof window.Tony.triggerAction === 'function') {
-                                console.log('[Tony] Form preventivo non in pagina, apro Nuovo Preventivo');
+                                tonyDebugLog('[Tony] Form preventivo non in pagina, apro Nuovo Preventivo');
                                 window.Tony.triggerAction('APRI_PAGINA', {
                                     target: 'nuovo preventivo',
                                     _tonyPendingModal: 'preventivo-form',
@@ -4132,67 +4190,67 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         
                         if (!originalExists && (MODAL_ID_FALLBACK[modalId] || MODAL_ID_FALLBACK[modalKey])) {
                             resolvedId = MODAL_ID_FALLBACK[modalId] || MODAL_ID_FALLBACK[modalKey];
-                            console.log('[DEBUG CURSOR] processTonyCommand: ID non trovato, fallback da', modalId, '→', resolvedId);
-                            console.log('[Tony] OPEN_MODAL: ID non trovato, fallback da', modalId, '→', resolvedId);
+                            tonyDebugLog('[DEBUG CURSOR] processTonyCommand: ID non trovato, fallback da', modalId, '→', resolvedId);
+                            tonyDebugLog('[Tony] OPEN_MODAL: ID non trovato, fallback da', modalId, '→', resolvedId);
                         }
                         
-                        console.log('[DEBUG CURSOR] processTonyCommand: resolvedId finale:', resolvedId);
-                        console.log('[DEBUG CURSOR] processTonyCommand: Verifica esistenza modal nel DOM...');
+                        tonyDebugLog('[DEBUG CURSOR] processTonyCommand: resolvedId finale:', resolvedId);
+                        tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Verifica esistenza modal nel DOM...');
                         var modalExists = !!document.getElementById(resolvedId);
-                        console.log('[DEBUG CURSOR] processTonyCommand: Modal con resolvedId esiste:', modalExists);
+                        tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Modal con resolvedId esiste:', modalExists);
                         
                         // Lista tutti i modal presenti nel DOM per debug
                         var allModals = document.querySelectorAll('.modal, [id*="modal"], [id*="Modal"]');
-                        console.log('[DEBUG CURSOR] processTonyCommand: Tutti i modal trovati nel DOM:', Array.from(allModals).map(function(m) { return m.id || '(senza id)'; }));
+                        tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Tutti i modal trovati nel DOM:', Array.from(allModals).map(function(m) { return m.id || '(senza id)'; }));
                         
-                        console.log('[Tony] Apertura modal:', resolvedId);
+                        tonyDebugLog('[Tony] Apertura modal:', resolvedId);
                         var opened = false;
                         if (resolvedId === 'prodotto-modal') {
                             var btnNuovoProd = document.getElementById('btn-nuovo-prodotto');
                             if (btnNuovoProd) {
                                 btnNuovoProd.click();
                                 opened = true;
-                                console.log('[Tony] Apertura prodotto-modal via btn-nuovo-prodotto (form reset)');
+                                tonyDebugLog('[Tony] Apertura prodotto-modal via btn-nuovo-prodotto (form reset)');
                             }
                         } else if (resolvedId === 'movimento-modal') {
                             var btnNuovoMov = document.getElementById('btn-nuovo-movimento');
                             if (btnNuovoMov) {
                                 btnNuovoMov.click();
                                 opened = true;
-                                console.log('[Tony] Apertura movimento-modal via btn-nuovo-movimento (form reset)');
+                                tonyDebugLog('[Tony] Apertura movimento-modal via btn-nuovo-movimento (form reset)');
                             }
                         }
                         if (!opened && $ && $.fn && $.fn.modal) {
-                            console.log('[DEBUG CURSOR] processTonyCommand: Uso jQuery per aprire modal');
+                            tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Uso jQuery per aprire modal');
                             var $modal = $('#' + resolvedId);
-                            console.log('[DEBUG CURSOR] processTonyCommand: jQuery selector trovato:', $modal.length, 'elementi');
+                            tonyDebugLog('[DEBUG CURSOR] processTonyCommand: jQuery selector trovato:', $modal.length, 'elementi');
                             if ($modal.length) {
                                 $modal.modal('show');
                                 opened = true;
-                                console.log('[DEBUG CURSOR] processTonyCommand: Modal aperto con jQuery');
+                                tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Modal aperto con jQuery');
                             } else {
                                 console.warn('[DEBUG CURSOR] processTonyCommand: jQuery selector non ha trovato elementi');
                             }
                         } else if (!opened) {
-                            console.log('[DEBUG CURSOR] processTonyCommand: Uso metodo nativo per aprire modal');
+                            tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Uso metodo nativo per aprire modal');
                             var modalEl = document.getElementById(resolvedId);
-                            console.log('[DEBUG CURSOR] processTonyCommand: Elemento trovato:', !!modalEl);
+                            tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Elemento trovato:', !!modalEl);
                             if (modalEl) {
                                 modalEl.classList.add('active');
                                 opened = true;
-                                console.log('[DEBUG CURSOR] processTonyCommand: Classe "active" aggiunta al modal');
+                                tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Classe "active" aggiunta al modal');
                             } else {
                                 console.warn('[DEBUG CURSOR] processTonyCommand: Elemento modal non trovato con getElementById');
                             }
                         }
                         if (opened) {
                             _lastModalOpenTime = Date.now();
-                            console.log('[DEBUG CURSOR] processTonyCommand: Modal aperto con successo, _lastModalOpenTime aggiornato');
+                            tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Modal aperto con successo, _lastModalOpenTime aggiornato');
                             if (resolvedId === 'attivita-modal') {
                                 function tryOpenAttivitaModal(retries) {
                                     retries = retries || 0;
                                     if (typeof window.openAttivitaModal === 'function') {
-                                        console.log('[Tony] Inizializzo modal attività (popolamento dropdown categoria/tipi)');
+                                        tonyDebugLog('[Tony] Inizializzo modal attività (popolamento dropdown categoria/tipi)');
                                         window.openAttivitaModal().catch(function(e) {
                                             console.warn('[Tony] openAttivitaModal fallito:', e);
                                         });
@@ -4204,7 +4262,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 tryOpenAttivitaModal();
                             } else if (resolvedId === 'lavoro-modal') {
                                 if (typeof window.openCreaModal === 'function') {
-                                    console.log('[Tony] Inizializzo modal lavoro (popolamento dropdown)');
+                                    tonyDebugLog('[Tony] Inizializzo modal lavoro (popolamento dropdown)');
                                     window.__tonyLavoroCreationFlow = true;
                                     if (window.TonyFormInjector && typeof window.TonyFormInjector.resetLavoroInterviewSessionState === 'function') {
                                         window.TonyFormInjector.resetLavoroInterviewSessionState();
@@ -4216,7 +4274,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 }
                             } else if (resolvedId === 'terreno-modal') {
                                 if (typeof window.openTerrenoModal === 'function') {
-                                    console.log('[Tony] Inizializzo modal terreno (popolamento poderi/colture)');
+                                    tonyDebugLog('[Tony] Inizializzo modal terreno (popolamento poderi/colture)');
                                     window.openTerrenoModal(null).catch(function(e) {
                                         console.warn('[Tony] openTerrenoModal fallito:', e);
                                     });
@@ -4224,7 +4282,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 }
                             } else if (resolvedId === 'ora-modal') {
                                 if (typeof window.openSegnaOraModal === 'function') {
-                                    console.log('[Tony] Inizializzo modal Segna ora (dropdown lavori)');
+                                    tonyDebugLog('[Tony] Inizializzo modal Segna ora (dropdown lavori)');
                                     window.openSegnaOraModal(null);
                                     enqueueTonyCommand({ type: '_WAIT_MODAL_READY' }, { source: 'post-open-ora', delayMs: 900 });
                                 }
@@ -4330,8 +4388,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 }, POST_INJECT_CHECK_DELAY_MS);
                             }
                             setTimeout(function() {
-                                console.log('[DEBUG CURSOR] processTonyCommand: Timeout 500ms scaduto, modal dovrebbe essere visibile');
-                                console.log('[Tony] Modal pronto, ora i campi dovrebbero essere rilevabili.');
+                                tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Timeout 500ms scaduto, modal dovrebbe essere visibile');
+                                tonyDebugLog('[Tony] Modal pronto, ora i campi dovrebbero essere rilevabili.');
                             }, 500);
                         } else {
                             console.error('[DEBUG CURSOR] processTonyCommand: ERRORE - Modal NON aperto!');
@@ -4373,7 +4431,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     _oraFbFlds = tonyResolveOraLavoroForQuickHours(_oraFbFlds, tonyBuildSegnaOraUserBlobLastNUserTurns(6));
                                     data = Object.assign({}, data, { fields: _oraFbFlds });
                                 }
-                                console.log('[Tony] Fallback: Modal non trovato, apro pagina:', pendingTarget);
+                                tonyDebugLog('[Tony] Fallback: Modal non trovato, apro pagina:', pendingTarget);
                                 window.Tony.triggerAction('APRI_PAGINA', {
                                     target: pendingTarget,
                                     _tonyPendingModal: pendingModalId,
@@ -4390,7 +4448,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     break;
 
                 case 'SET_FIELD':
-                    console.log('[DEBUG CURSOR] processTonyCommand: Caso SET_FIELD');
+                    tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Caso SET_FIELD');
                     var fieldId = data.field || data.id;
                     var value = data.value;
                     
@@ -4398,13 +4456,13 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     // Se stiamo impostando il tipo lavoro gerarchico, deleghiamo SUBITO al SmartFormFiller
                     // e impediamo l'esecuzione standard che fallirebbe su un dropdown vuoto.
                     if (fieldId === 'attivita-tipo-lavoro-gerarchico' && window.SmartFormFiller) {
-                        console.log('[Tony] Intercettato SET_FIELD per SmartFormFiller:', fieldId, value);
+                        tonyDebugLog('[Tony] Intercettato SET_FIELD per SmartFormFiller:', fieldId, value);
                         var filler = new SmartFormFiller();
                         var context = window.Tony ? window.Tony.context : {};
                         
                         // Esegui in background (non blocchiamo il thread UI)
                         filler.fillField(fieldId, value, context).then(function(success) {
-                            console.log('[Tony] SmartFormFiller completato:', success);
+                            tonyDebugLog('[Tony] SmartFormFiller completato:', success);
                             if (success) {
                                 // Opzionale: feedback visivo o log
                             } else {
@@ -4416,8 +4474,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         return; 
                     }
 
-                    console.log('[DEBUG CURSOR] processTonyCommand: fieldId originale:', fieldId);
-                    console.log('[DEBUG CURSOR] processTonyCommand: value:', value);
+                    tonyDebugLog('[DEBUG CURSOR] processTonyCommand: fieldId originale:', fieldId);
+                    tonyDebugLog('[DEBUG CURSOR] processTonyCommand: value:', value);
                     
                     if (fieldId) {
                         // AUTO-OPEN MODAL: Se il modal non è aperto, aprilo prima di impostare il campo
@@ -4434,7 +4492,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             var isModalActive = modal && (modal.classList.contains('active') || modal.style.display === 'block' || (window.jQuery && window.jQuery(modal).is(':visible')));
                             
                             if (modal && !isModalActive) {
-                                console.log('[Tony] Auto-opening modal ' + targetModalId + ' per campo ' + fieldId);
+                                tonyDebugLog('[Tony] Auto-opening modal ' + targetModalId + ' per campo ' + fieldId);
                                 enqueueTonyCommand({ type: 'OPEN_MODAL', id: targetModalId }, { source: 'auto-open-modal' });
                                 enqueueTonyCommand(data, { source: 'auto-retry-set-field', delayMs: 1000 });
                                 return;
@@ -4444,7 +4502,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 var pendingFields = {};
                                 if (fieldId && value != null) pendingFields[fieldId] = value;
                                 var _attNavTarget2 = getTonyFieldProfileFromContext() ? 'workspace campo' : 'attivita';
-                                console.log('[Tony] SET_FIELD su modal assente, navigo a', _attNavTarget2, 'con campi pendenti');
+                                tonyDebugLog('[Tony] SET_FIELD su modal assente, navigo a', _attNavTarget2, 'con campi pendenti');
                                 window.Tony.triggerAction('APRI_PAGINA', {
                                     target: _attNavTarget2,
                                     _tonyPendingModal: getTonyFieldProfileFromContext() ? null : 'attivita-modal',
@@ -4455,7 +4513,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             if (!modal && targetModalId === 'prodotto-modal' && window.Tony && typeof window.Tony.triggerAction === 'function') {
                                 var pendingFieldsP = {};
                                 if (fieldId && value != null) pendingFieldsP[fieldId] = value;
-                                console.log('[Tony] SET_FIELD su modal assente, navigo a Prodotti con campi pendenti');
+                                tonyDebugLog('[Tony] SET_FIELD su modal assente, navigo a Prodotti con campi pendenti');
                                 window.Tony.triggerAction('APRI_PAGINA', {
                                     target: 'prodotti',
                                     _tonyPendingModal: 'prodotto-modal',
@@ -4466,7 +4524,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             if (!modal && targetModalId === 'movimento-modal' && window.Tony && typeof window.Tony.triggerAction === 'function') {
                                 var pendingFieldsM = {};
                                 if (fieldId && value != null) pendingFieldsM[fieldId] = value;
-                                console.log('[Tony] SET_FIELD su modal assente, navigo a Movimenti con campi pendenti');
+                                tonyDebugLog('[Tony] SET_FIELD su modal assente, navigo a Movimenti con campi pendenti');
                                 window.Tony.triggerAction('APRI_PAGINA', {
                                     target: 'movimenti',
                                     _tonyPendingModal: 'movimento-modal',
@@ -4480,14 +4538,14 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 pendingFieldsOra = tonyMapAttivitaFieldsToSegnaOra(pendingFieldsOra);
                                 pendingFieldsOra = tonyResolveOraLavoroForQuickHours(pendingFieldsOra, tonyBuildSegnaOraUserBlobLastNUserTurns(6));
                                 if (getTonyFieldProfileFromContext() && tonyModuliAttiviIncludeManodopera()) {
-                                    console.log('[Tony] SET_FIELD ora-* senza modal: navigo a workspace campo (Segna ore inline)');
+                                    tonyDebugLog('[Tony] SET_FIELD ora-* senza modal: navigo a workspace campo (Segna ore inline)');
                                     window.Tony.triggerAction('APRI_PAGINA', {
                                         target: 'workspace campo',
                                         _tonyPendingModal: 'quick-hours-form',
                                         _tonyPendingFields: Object.keys(pendingFieldsOra).length > 0 ? pendingFieldsOra : null
                                     });
                                 } else {
-                                    console.log('[Tony] SET_FIELD ora-* senza modal: navigo a Segna ore (standalone)');
+                                    tonyDebugLog('[Tony] SET_FIELD ora-* senza modal: navigo a Segna ore (standalone)');
                                     window.Tony.triggerAction('APRI_PAGINA', {
                                         target: 'segnatura ore',
                                         _tonyPendingModal: 'ora-modal',
@@ -4506,17 +4564,17 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         }
                         
                         var fieldExists = !!document.getElementById(fieldId);
-                        console.log('[DEBUG CURSOR] processTonyCommand: Campo con ID originale esiste:', fieldExists);
+                        tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Campo con ID originale esiste:', fieldExists);
                         
                         if (!fieldExists) {
                             var fieldKey = (fieldId || '').toString().toLowerCase().trim().replace(/\s+/g, '_');
                             var resolvedField = FIELD_ID_FALLBACK[fieldId] || FIELD_ID_FALLBACK[fieldKey];
-                            console.log('[DEBUG CURSOR] processTonyCommand: fieldKey normalizzato:', fieldKey);
-                            console.log('[DEBUG CURSOR] processTonyCommand: resolvedField da fallback:', resolvedField);
+                            tonyDebugLog('[DEBUG CURSOR] processTonyCommand: fieldKey normalizzato:', fieldKey);
+                            tonyDebugLog('[DEBUG CURSOR] processTonyCommand: resolvedField da fallback:', resolvedField);
                             
                             if (resolvedField) {
-                                console.log('[DEBUG CURSOR] processTonyCommand: Fallback applicato:', fieldId, '→', resolvedField);
-                                console.log('[Tony] SET_FIELD: fallback da', fieldId, '→', resolvedField);
+                                tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Fallback applicato:', fieldId, '→', resolvedField);
+                                tonyDebugLog('[Tony] SET_FIELD: fallback da', fieldId, '→', resolvedField);
                                 fieldId = resolvedField;
                             } else {
                                 console.warn('[DEBUG CURSOR] processTonyCommand: Nessun fallback trovato per fieldId:', fieldId);
@@ -4526,7 +4584,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         // Delega al Form Engine quando il campo è supportato e presente nel DOM.
                         // In questo modo riduciamo i fallback hardcoded del widget.
                         if (window.SmartFormFiller && isSmartFillerEligibleField(fieldId) && document.getElementById(fieldId)) {
-                            console.log('[Tony] SET_FIELD delegato a SmartFormFiller:', fieldId, value);
+                            tonyDebugLog('[Tony] SET_FIELD delegato a SmartFormFiller:', fieldId, value);
                             var smartFiller = new SmartFormFiller();
                             var smartContext = window.Tony ? window.Tony.context : {};
                             smartFiller.fillField(fieldId, value, smartContext).then(function(success) {
@@ -4540,17 +4598,17 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         }
                         
                         var runSetField = function() {
-                            console.log('[DEBUG CURSOR] processTonyCommand: runSetField eseguita');
+                            tonyDebugLog('[DEBUG CURSOR] processTonyCommand: runSetField eseguita');
                             var el = document.getElementById(fieldId);
-                            console.log('[DEBUG CURSOR] processTonyCommand: Elemento campo trovato:', !!el);
+                            tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Elemento campo trovato:', !!el);
                             
                             if (el) {
-                                console.log('[DEBUG CURSOR] processTonyCommand: Tipo elemento:', el.tagName, 'Tipo input:', el.type || 'N/A');
-                                console.log('[Tony] Imposto campo ' + fieldId + ' = ' + value);
+                                tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Tipo elemento:', el.tagName, 'Tipo input:', el.type || 'N/A');
+                                tonyDebugLog('[Tony] Imposto campo ' + fieldId + ' = ' + value);
                                 var val = value != null ? String(value) : '';
                                 
                                 if (el.tagName === 'SELECT') {
-                                    console.log('[DEBUG CURSOR] processTonyCommand: Campo è SELECT, cerco opzione...');
+                                    tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Campo è SELECT, cerco opzione...');
                                     var valLower = val.toLowerCase().trim();
                                     var opt = null;
                                     var targetValue = val; // Default: usa il valore fornito
@@ -4567,7 +4625,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                         });
                                         if (opt) {
                                             targetValue = opt.value; // Usa l'ID corrispondente al testo trovato
-                                            console.log('[Tony SET_FIELD] Mappatura testo→ID:', val, '→', targetValue);
+                                            tonyDebugLog('[Tony SET_FIELD] Mappatura testo→ID:', val, '→', targetValue);
                                         }
                                     }
                                     
@@ -4599,7 +4657,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     }
                                     
                                     if (opt) {
-                                        console.log('[DEBUG CURSOR] processTonyCommand: Opzione trovata:', targetValue, opt.text);
+                                        tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Opzione trovata:', targetValue, opt.text);
                                         
                                         // Imposta il valore
                                         el.value = targetValue;
@@ -4621,7 +4679,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                             var $el = (window.jQuery || window.$)(el);
                                             $el.trigger('input');
                                             $el.trigger('change');
-                                            console.log('[Tony SET_FIELD] Trigger jQuery input+change eseguito');
+                                            tonyDebugLog('[Tony SET_FIELD] Trigger jQuery input+change eseguito');
                                         }
                                         
                                         // AGGIORNAMENTO VISIVO: Se non era già focalizzato, rimuovi il focus per forzare refresh
@@ -4630,7 +4688,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                                 el.blur();
                                                 // VERIFICA: Controlla che il valore sia stato effettivamente impostato
                                                 if (el.value === targetValue) {
-                                                    console.log('[Tony SET_FIELD] ✓ Valore SELECT verificato:', el.value, '=', opt.text);
+                                                    tonyDebugLog('[Tony SET_FIELD] ✓ Valore SELECT verificato:', el.value, '=', opt.text);
                                                 } else {
                                                     console.warn('[Tony SET_FIELD] ⚠ Valore SELECT non corrisponde! Atteso:', targetValue, 'Trovato:', el.value);
                                                 }
@@ -4638,13 +4696,13 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                         } else {
                                             // VERIFICA immediata se già focalizzato
                                             if (el.value === targetValue) {
-                                                console.log('[Tony SET_FIELD] ✓ Valore SELECT verificato:', el.value, '=', opt.text);
+                                                tonyDebugLog('[Tony SET_FIELD] ✓ Valore SELECT verificato:', el.value, '=', opt.text);
                                             } else {
                                                 console.warn('[Tony SET_FIELD] ⚠ Valore SELECT non corrisponde! Atteso:', targetValue, 'Trovato:', el.value);
                                             }
                                         }
                                         
-                                        console.log('[DEBUG CURSOR] processTonyCommand: Eventi input+change+jQuery dispatchati per SELECT, valore:', targetValue);
+                                        tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Eventi input+change+jQuery dispatchati per SELECT, valore:', targetValue);
                                         
                                         // SMART SET_FIELD: Se è il campo tipo-lavoro-gerarchico, deduci categoria e sottocategoria
                                         if (fieldId === 'attivita-tipo-lavoro-gerarchico') {
@@ -4680,7 +4738,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                                 el.blur();
                                                 // VERIFICA: Controlla che il valore sia stato effettivamente impostato
                                                 if (el.value === targetValue) {
-                                                    console.log('[Tony SET_FIELD] ✓ Valore SELECT verificato (valore diretto):', el.value);
+                                                    tonyDebugLog('[Tony SET_FIELD] ✓ Valore SELECT verificato (valore diretto):', el.value);
                                                 } else {
                                                     console.warn('[Tony SET_FIELD] ⚠ Valore SELECT non corrisponde! Atteso:', targetValue, 'Trovato:', el.value);
                                                 }
@@ -4688,7 +4746,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                         } else {
                                             // VERIFICA immediata se già focalizzato
                                             if (el.value === targetValue) {
-                                                console.log('[Tony SET_FIELD] ✓ Valore SELECT verificato (valore diretto):', el.value);
+                                                tonyDebugLog('[Tony SET_FIELD] ✓ Valore SELECT verificato (valore diretto):', el.value);
                                             } else {
                                                 console.warn('[Tony SET_FIELD] ⚠ Valore SELECT non corrisponde! Atteso:', targetValue, 'Trovato:', el.value);
                                             }
@@ -4702,7 +4760,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                         }
                                     }
                                 } else {
-                                    console.log('[DEBUG CURSOR] processTonyCommand: Campo è INPUT/TEXTAREA, imposto valore:', val);
+                                    tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Campo è INPUT/TEXTAREA, imposto valore:', val);
                                     el.value = val;
                                     
                                     // TRIGGER DELLA CASCATA anche per input/textarea
@@ -4712,9 +4770,9 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                         var $el = (window.jQuery || window.$)(el);
                                         $el.trigger('change');
                                     }
-                                    console.log('[DEBUG CURSOR] processTonyCommand: Eventi input+change+jQuery dispatchati per INPUT/TEXTAREA');
+                                    tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Eventi input+change+jQuery dispatchati per INPUT/TEXTAREA');
                                 }
-                                console.log('[DEBUG CURSOR] processTonyCommand: SET_FIELD completato con successo');
+                                tonyDebugLog('[DEBUG CURSOR] processTonyCommand: SET_FIELD completato con successo');
                                 if (fieldId.indexOf('prodotto-') === 0 || fieldId.indexOf('mov-') === 0) {
                                     scheduleTonyMagazzinoProactiveAfterSetField();
                                 }
@@ -4730,14 +4788,14 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         
                         var timeSinceModalOpen = Date.now() - _lastModalOpenTime;
                         var delay = (timeSinceModalOpen < 600) ? 500 : 0;
-                        console.log('[DEBUG CURSOR] processTonyCommand: Tempo da apertura modal:', timeSinceModalOpen, 'ms');
-                        console.log('[DEBUG CURSOR] processTonyCommand: Delay applicato:', delay, 'ms');
+                        tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Tempo da apertura modal:', timeSinceModalOpen, 'ms');
+                        tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Delay applicato:', delay, 'ms');
                         
                         if (delay > 0) {
-                            console.log('[DEBUG CURSOR] processTonyCommand: Esecuzione ritardata di', delay, 'ms');
+                            tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Esecuzione ritardata di', delay, 'ms');
                             setTimeout(runSetField, delay);
                         } else {
-                            console.log('[DEBUG CURSOR] processTonyCommand: Esecuzione immediata');
+                            tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Esecuzione immediata');
                             runSetField();
                         }
                     } else {
@@ -4747,7 +4805,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     break;
 
                 case 'SAVE_ACTIVITY':
-                    console.log('[DEBUG CURSOR] processTonyCommand: Caso SAVE_ACTIVITY');
+                    tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Caso SAVE_ACTIVITY');
                     var preventivoFormEl = document.getElementById('preventivo-form');
                     var modalTrattamentoAct = (function() {
                         var m = document.getElementById('modal-trattamento');
@@ -4805,7 +4863,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     if (!saveBtn) saveBtn = document.getElementById('lavoro-form');
                     
                     if (saveBtn) {
-                        console.log('[Tony] SAVE_ACTIVITY: Clicco bottone salvataggio', saveBtn);
+                        tonyDebugLog('[Tony] SAVE_ACTIVITY: Clicco bottone salvataggio', saveBtn);
                         saveBtn.click();
                         // Rimuovi eventuali SAVE_ACTIVITY duplicati dalla coda (evita doppio salvataggio)
                         _tonyCommandQueue = _tonyCommandQueue.filter(function(e) { return e.command.type !== 'SAVE_ACTIVITY'; });
@@ -4864,11 +4922,11 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     } else if (typeof window.validateForm === 'function') {
                                         window.validateForm(btnEl);
                                     }
-                                    console.log('[Tony] Click pulsante submit:', btnId);
+                                    tonyDebugLog('[Tony] Click pulsante submit:', btnId);
                                     submitBtn.click();
                                 }
                             } else {
-                                console.log('[Tony] Click pulsante:', btnId);
+                                tonyDebugLog('[Tony] Click pulsante:', btnId);
                                 btnEl.click();
                             }
                         } else if ($ && $('#' + btnId).length) {
@@ -4934,10 +4992,10 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     break;
 
                 case 'APRI_PAGINA':
-                    console.log('[DEBUG CURSOR] processTonyCommand: Caso APRI_PAGINA');
+                    tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Caso APRI_PAGINA');
                     var target = (data.target || (data.params && data.params.target) || '').toString().trim();
                     target = remapTonyApriPaginaTargetForFieldProfile(target);
-                    console.log('[DEBUG CURSOR] processTonyCommand: Target per APRI_PAGINA:', target);
+                    tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Target per APRI_PAGINA:', target);
                     if (target && !isRawTonyApriPaginaAllowed(target)) {
                         console.warn('[Tony] APRI_PAGINA bloccato per profilo campo:', target);
                         tonyNotifyFieldProfileBlocked('page', target);
@@ -4968,10 +5026,10 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             if (extraQuery) {
                                 urlWithNotify += '&' + String(extraQuery).replace(/^\?/, '').replace(/^&/, '');
                             }
-                            console.log('[DEBUG CURSOR] processTonyCommand: URL trovato per', target, '→', urlWithNotify);
+                            tonyDebugLog('[DEBUG CURSOR] processTonyCommand: URL trovato per', target, '→', urlWithNotify);
                             var runApriPaginaNavPc = function () {
                                 _tonyCommandQueue.length = 0;
-                                console.log('[DEBUG CURSOR] processTonyCommand: Navigazione, target:', resolved);
+                                tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Navigazione, target:', resolved);
                                 var apParams = (data.params && typeof data.params === 'object') ? Object.assign({}, data, data.params) : data;
                                 var pendingModalPc = apParams._tonyPendingModal;
                                 var pendingFieldsPc = apParams._tonyPendingFields || apParams.fields;
@@ -4993,7 +5051,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                             fields: (pendingFieldsPc && typeof pendingFieldsPc === 'object') ? pendingFieldsPc : null,
                                             userPromptForPending: userPromptForPendingPc || null
                                         }));
-                                        console.log('[Tony] tony_pending_intent salvato (processTonyCommand):', pendingModalPc, target);
+                                        tonyDebugLog('[Tony] tony_pending_intent salvato (processTonyCommand):', pendingModalPc, target);
                                     } catch (e) { console.warn('[Tony] Impossibile salvare pending intent:', e); }
                                 }
                                 window.location.hash = '#' + resolved;
@@ -5007,7 +5065,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             } else {
                                 window.showTonyConfirmDialog('Aprire la pagina "' + label + '"?').then(function(ok) {
                                     if (ok) runApriPaginaNavPc();
-                                    else console.log('[DEBUG CURSOR] processTonyCommand: Navigazione annullata dall\'utente');
+                                    else tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Navigazione annullata dall\'utente');
                                 });
                             }
                         } else {
@@ -5019,7 +5077,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     break;
 
                 case 'SHOW_TABLE':
-                    console.log('[Tony] SHOW_TABLE: già sulla pagina lista, tabella visibile.');
+                    tonyDebugLog('[Tony] SHOW_TABLE: già sulla pagina lista, tabella visibile.');
                     try {
                         var tableEl = document.querySelector('.prodotti-table, .movimenti-table, .mezzi-table, .guasti-table, .scadenze-table');
                         if (tableEl) {
@@ -5045,7 +5103,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             if (typeof window.applyTonyFieldWorkspaceFilter === 'function') {
                                 window.applyTonyFieldWorkspaceFilter(params);
                             } else {
-                                console.log('[Tony] FILTER_TABLE: field_workspace — filtri lista opzionali non attivi; usa il contesto items.');
+                                tonyDebugLog('[Tony] FILTER_TABLE: field_workspace — filtri lista opzionali non attivi; usa il contesto items.');
                             }
                             return;
                         }
@@ -5126,7 +5184,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (e2) {}
                                 }
                             });
-                            console.log('[Tony] FILTER_TABLE: tutti i filtri resettati (' + pageType + ')');
+                            tonyDebugLog('[Tony] FILTER_TABLE: tutti i filtri resettati (' + pageType + ')');
                             return;
                         }
 
@@ -5186,9 +5244,9 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             });
                             if (isAttivita && params.tipoLavoro) {
                                 var sel = document.getElementById('filter-tipo-lavoro');
-                                console.log('[Tony] FILTER_TABLE attivita tipoLavoro:', params.tipoLavoro, '-> select.value:', sel ? sel.value : 'N/A');
+                                tonyDebugLog('[Tony] FILTER_TABLE attivita tipoLavoro:', params.tipoLavoro, '-> select.value:', sel ? sel.value : 'N/A');
                             }
-                            console.log('[Tony] FILTER_TABLE: applicati', modified.length, 'filtri (' + pageType + ')');
+                            tonyDebugLog('[Tony] FILTER_TABLE: applicati', modified.length, 'filtri (' + pageType + ')');
                         } else {
                             var filterType = (params.filterType || '').toString().toLowerCase();
                             var value = params.value;
@@ -5206,7 +5264,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     }
                                     setFilterValue(el, retroVal, matchByTextRetro);
                                     try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
-                                    console.log('[Tony] FILTER_TABLE (retrocompat):', realId, '=', el.value);
+                                    tonyDebugLog('[Tony] FILTER_TABLE (retrocompat):', realId, '=', el.value);
                                 } else {
                                     console.warn('[Tony] FILTER_TABLE: elemento non trovato per', filterType, '(ID:', realId + ')');
                                 }
@@ -5245,7 +5303,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
                                 }
                             });
-                            console.log('[Tony] SUM_COLUMN: filtri resettati per calcolo globale');
+                            tonyDebugLog('[Tony] SUM_COLUMN: filtri resettati per calcolo globale');
                         }
 
                         function applyFiltersFromParams() {
@@ -5328,7 +5386,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             var msg = messageTemplate.replace(/__TOTAL__/g, totalStr);
                             if (typeof showMessageInChat === 'function') showMessageInChat(msg, 'tony');
                             if (window.Tony && typeof window.Tony.speak === 'function') window.Tony.speak(msg);
-                            console.log('[Tony] SUM_COLUMN: totale Ha =', total, 'msg=', msg);
+                            tonyDebugLog('[Tony] SUM_COLUMN: totale Ha =', total, 'msg=', msg);
                         }, 100);
                     })();
                     break;
@@ -5346,7 +5404,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             console.warn('[Tony] SALVA dalla CF ignorato: conferma salvataggio non nell’ultimo messaggio utente (es. «sì», «salva»).');
                             break;
                         }
-                        console.log('[Tony] SALVA: workspace mobile — inject da chat + submit form.');
+                        tonyDebugLog('[Tony] SALVA: workspace mobile — inject da chat + submit form.');
                         tonySalvaQuickHoursWorkspace();
                     } else {
                         enqueueTonyCommand({ type: 'SAVE_ACTIVITY' }, { source: 'salva-delegates-save_activity', delayMs: 120 });
@@ -5364,7 +5422,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             console.warn('[Tony] ' + String(data.type).toUpperCase() + ' ignorato: nessuna conferma esplicita nell’ultimo messaggio utente.');
                             break;
                         }
-                        console.log('[Tony] ' + String(data.type).toUpperCase() + ': Segna ore workspace — stesso flusso di SALVA.');
+                        tonyDebugLog('[Tony] ' + String(data.type).toUpperCase() + ': Segna ore workspace — stesso flusso di SALVA.');
                         tonySalvaQuickHoursWorkspace();
                     } else {
                         console.warn('[Tony] ' + String(data.type).toUpperCase() + ': formId non supportato sul client:', subFormId || '(vuoto)');
@@ -5398,7 +5456,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     }
                     if (window.TonyFormInjector && typeof window.TonyFormInjector.injectFieldWorkspaceQuickHoursForm === 'function') {
                         Promise.resolve(window.TonyFormInjector.injectFieldWorkspaceQuickHoursForm(injectKv, window.Tony && window.Tony.context, { targetWindow: qhSv })).then(function (okSv) {
-                            if (okSv) console.log('[Tony] SET_VALUE/QUICK_FORM_FILL → inject quick-hours:', rawId, sval);
+                            if (okSv) tonyDebugLog('[Tony] SET_VALUE/QUICK_FORM_FILL → inject quick-hours:', rawId, sval);
                         });
                     }
                     break;
@@ -5577,25 +5635,25 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             }
             function clean(t) { return cleanTextFromJsonResidue(t || ''); }
             if (!str || typeof str !== 'string') {
-                console.log('[DEBUG CURSOR] parseRobustTonyResponse: input non valido (non stringa o vuoto)');
+                tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: input non valido (non stringa o vuoto)');
                 clearQueueIfUnrepairable();
                 return null;
             }
             
-            console.log('[DEBUG CURSOR] parseRobustTonyResponse: input ricevuto, lunghezza:', str.length);
-            console.log('[DEBUG CURSOR] parseRobustTonyResponse: preview:', str.substring(0, 200) + (str.length > 200 ? '...' : ''));
+            tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: input ricevuto, lunghezza:', str.length);
+            tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: preview:', str.substring(0, 200) + (str.length > 200 ? '...' : ''));
             
             var jsonMatch = str.match(/\{[\s\S]*\}/);
             
             if (!jsonMatch) {
-                console.log('[DEBUG CURSOR] parseRobustTonyResponse: Nessun JSON completo trovato, cerco JSON troncato...');
+                tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: Nessun JSON completo trovato, cerco JSON troncato...');
                 var startIdx = str.indexOf('{');
                 if (startIdx >= 0) {
                     var incompleteJson = str.substring(startIdx);
                     var openBraces = (incompleteJson.match(/\{/g) || []).length;
                     var closeBraces = (incompleteJson.match(/\}/g) || []).length;
                     var missingBraces = openBraces - closeBraces;
-                    console.log('[DEBUG CURSOR] parseRobustTonyResponse: Trovato JSON incompleto, parentesi aperte:', openBraces, 'chiuse:', closeBraces, 'mancanti:', missingBraces);
+                    tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: Trovato JSON incompleto, parentesi aperte:', openBraces, 'chiuse:', closeBraces, 'mancanti:', missingBraces);
                     if (missingBraces > 0 && missingBraces <= 10) {
                         var completedJson = incompleteJson + '}'.repeat(missingBraces);
                         jsonMatch = [completedJson];
@@ -5620,24 +5678,24 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             }
             
             if (!jsonMatch) {
-                console.log('[DEBUG CURSOR] parseRobustTonyResponse: Nessun JSON trovato o non riparabile');
+                tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: Nessun JSON trovato o non riparabile');
                 clearQueueIfUnrepairable();
                 return null;
             }
             
             var jsonStr = jsonMatch[0];
-            console.log('[DEBUG CURSOR] parseRobustTonyResponse: JSON estratto (primo tentativo):', jsonStr.substring(0, 300) + (jsonStr.length > 300 ? '...' : ''));
+            tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: JSON estratto (primo tentativo):', jsonStr.substring(0, 300) + (jsonStr.length > 300 ? '...' : ''));
             
             // Prova a parsare il JSON completo
             try {
                 var parsed = JSON.parse(jsonStr);
-                console.log('[DEBUG CURSOR] parseRobustTonyResponse: JSON parsato con successo:', parsed);
+                tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: JSON parsato con successo:', parsed);
                 
                 if (parsed && typeof parsed === 'object') {
                     // Caso 1: { "text": "...", "command": {...} }
                     if (parsed.command && typeof parsed.command === 'object') {
                         var text = (parsed.text != null ? String(parsed.text).trim() : '') || '';
-                        console.log('[DEBUG CURSOR] parseRobustTonyResponse: Trovato formato text+command. Text:', text, 'Command:', parsed.command);
+                        tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: Trovato formato text+command. Text:', text, 'Command:', parsed.command);
                         return { text: clean(text) || 'Ok.', command: parsed.command };
                     }
                     // Caso 1b: { "text": "...", "action": "...", "params": {...} } (formato alternativo)
@@ -5647,12 +5705,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             type: parsed.action,
                             ...(parsed.params || {})
                         };
-                        console.log('[DEBUG CURSOR] parseRobustTonyResponse: Trovato formato text+action. Text:', text, 'Action:', parsed.action, 'Params:', parsed.params);
+                        tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: Trovato formato text+action. Text:', text, 'Action:', parsed.action, 'Params:', parsed.params);
                         return { text: clean(text) || 'Ok.', command: actionCommand };
                     }
                     // Caso 2: { "type": "OPEN_MODAL", ... } (comando standalone)
                     if (parsed.type && (parsed.type === 'OPEN_MODAL' || parsed.type === 'SET_FIELD' || parsed.type === 'CLICK_BUTTON' || parsed.type === 'APRI_PAGINA' || parsed.type === 'SAVE_ACTIVITY')) {
-                        console.log('[DEBUG CURSOR] parseRobustTonyResponse: Trovato comando standalone:', parsed);
+                        tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: Trovato comando standalone:', parsed);
                         var textBefore = str.substring(0, jsonMatch.index).trim();
                         return { text: clean(textBefore) || 'Ok.', command: parsed };
                     }
@@ -5663,36 +5721,36 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             type: parsed.action,
                             ...(parsed.params || {})
                         };
-                        console.log('[DEBUG CURSOR] parseRobustTonyResponse: Trovato action standalone:', parsed.action, 'Params:', parsed.params);
+                        tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: Trovato action standalone:', parsed.action, 'Params:', parsed.params);
                         return { text: clean(textBefore) || 'Ok.', command: actionCommand };
                     }
                     // Caso 3: Solo { "text": "..." } senza command
                     if (parsed.text != null) {
-                        console.log('[DEBUG CURSOR] parseRobustTonyResponse: Trovato solo text, nessun command');
+                        tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: Trovato solo text, nessun command');
                         return { text: clean(String(parsed.text).trim()) || 'Ok.', command: null };
                     }
                 }
             } catch (e) {
                 console.warn('[DEBUG CURSOR] parseRobustTonyResponse: Errore parsing JSON completo:', e.message);
-                console.log('[DEBUG CURSOR] parseRobustTonyResponse: Tentativo con completamento e trimming progressivo...');
+                tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: Tentativo con completamento e trimming progressivo...');
                 
                 // Prima prova a completare il JSON aggiungendo parentesi mancanti
                 var openBraces = (jsonStr.match(/\{/g) || []).length;
                 var closeBraces = (jsonStr.match(/\}/g) || []).length;
                 var missingBraces = openBraces - closeBraces;
-                console.log('[DEBUG CURSOR] parseRobustTonyResponse: Parentesi nel JSON estratto - aperte:', openBraces, 'chiuse:', closeBraces, 'mancanti:', missingBraces);
+                tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: Parentesi nel JSON estratto - aperte:', openBraces, 'chiuse:', closeBraces, 'mancanti:', missingBraces);
                 
                 if (missingBraces > 0) {
                     var completedJson = jsonStr + '}'.repeat(missingBraces);
-                    console.log('[DEBUG CURSOR] parseRobustTonyResponse: Tentativo con JSON completato:', completedJson.substring(0, 300) + (completedJson.length > 300 ? '...' : ''));
+                    tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: Tentativo con JSON completato:', completedJson.substring(0, 300) + (completedJson.length > 300 ? '...' : ''));
                     try {
                         var parsedCompleted = JSON.parse(completedJson);
-                        console.log('[DEBUG CURSOR] parseRobustTonyResponse: JSON completato parsato con successo:', parsedCompleted);
+                        tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: JSON completato parsato con successo:', parsedCompleted);
                         
                         if (parsedCompleted && typeof parsedCompleted === 'object') {
                             if (parsedCompleted.command && typeof parsedCompleted.command === 'object') {
                                 var textCompleted = (parsedCompleted.text != null ? String(parsedCompleted.text).trim() : '') || '';
-                                console.log('[DEBUG CURSOR] parseRobustTonyResponse: Trovato formato text+command dopo completamento');
+                                tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: Trovato formato text+command dopo completamento');
                                 return { text: clean(textCompleted) || 'Ok.', command: parsedCompleted.command };
                             }
                             if (parsedCompleted.action) {
@@ -5701,12 +5759,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     type: parsedCompleted.action,
                                     ...(parsedCompleted.params || {})
                                 };
-                                console.log('[DEBUG CURSOR] parseRobustTonyResponse: Trovato formato text+action dopo completamento');
+                                tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: Trovato formato text+action dopo completamento');
                                 return { text: clean(textCompleted) || 'Ok.', command: actionCommand };
                             }
                             if (parsedCompleted.type && (parsedCompleted.type === 'OPEN_MODAL' || parsedCompleted.type === 'SET_FIELD' || parsedCompleted.type === 'CLICK_BUTTON' || parsedCompleted.type === 'APRI_PAGINA' || parsedCompleted.type === 'SAVE_ACTIVITY')) {
                                 var textBeforeCompleted = str.substring(0, jsonMatch.index).trim();
-                                console.log('[DEBUG CURSOR] parseRobustTonyResponse: Trovato comando standalone dopo completamento');
+                                tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: Trovato comando standalone dopo completamento');
                                 return { text: clean(textBeforeCompleted) || 'Ok.', command: parsedCompleted };
                             }
                         }
@@ -5727,12 +5785,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     
                     try {
                         var parsedTrimmed = JSON.parse(trimmed);
-                        console.log('[DEBUG CURSOR] parseRobustTonyResponse: JSON parsato dopo trimming (tentativo', tries + 1, '):', parsedTrimmed);
+                        tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: JSON parsato dopo trimming (tentativo', tries + 1, '):', parsedTrimmed);
                         
                         if (parsedTrimmed && typeof parsedTrimmed === 'object') {
                             if (parsedTrimmed.command && typeof parsedTrimmed.command === 'object') {
                                 var textTrimmed = (parsedTrimmed.text != null ? String(parsedTrimmed.text).trim() : '') || '';
-                                console.log('[DEBUG CURSOR] parseRobustTonyResponse: Trovato formato text+command dopo trimming');
+                                tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: Trovato formato text+command dopo trimming');
                                 return { text: clean(textTrimmed) || 'Ok.', command: parsedTrimmed.command };
                             }
                             if (parsedTrimmed.action) {
@@ -5741,12 +5799,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     type: parsedTrimmed.action,
                                     ...(parsedTrimmed.params || {})
                                 };
-                                console.log('[DEBUG CURSOR] parseRobustTonyResponse: Trovato formato text+action dopo trimming');
+                                tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: Trovato formato text+action dopo trimming');
                                 return { text: clean(textTrimmed) || 'Ok.', command: actionCommand };
                             }
                             if (parsedTrimmed.type && (parsedTrimmed.type === 'OPEN_MODAL' || parsedTrimmed.type === 'SET_FIELD' || parsedTrimmed.type === 'CLICK_BUTTON' || parsedTrimmed.type === 'APRI_PAGINA' || parsedTrimmed.type === 'SAVE_ACTIVITY')) {
                                 var textBeforeTrimmed = str.substring(0, jsonMatch.index).trim();
-                                console.log('[DEBUG CURSOR] parseRobustTonyResponse: Trovato comando standalone dopo trimming');
+                                tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: Trovato comando standalone dopo trimming');
                                 return { text: clean(textBeforeTrimmed) || 'Ok.', command: parsedTrimmed };
                             }
                         }
@@ -5758,7 +5816,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 console.error('[DEBUG CURSOR] parseRobustTonyResponse: Impossibile parsare JSON dopo', tries, 'tentativi di trimming');
             }
             
-            console.log('[DEBUG CURSOR] parseRobustTonyResponse: Nessun formato riconosciuto, ritorno null e svuoto coda');
+            tonyDebugLog('[DEBUG CURSOR] parseRobustTonyResponse: Nessun formato riconosciuto, ritorno null e svuoto coda');
             clearQueueIfUnrepairable();
             return null;
         }
@@ -6157,36 +6215,31 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             inputEl.focus();
         });
 
-        function collapseDuplicateVoiceTranscript(t) {
-            var s = String(t || '').replace(/\s+/g, ' ').trim();
-            if (!s) return s;
-            var half = Math.floor(s.length / 2);
-            if (half > 8) {
-                var a = s.slice(0, half).trim();
-                var b = s.slice(half).trim().replace(/\.$/, '');
-                if (a && b && a.toLowerCase() === b.toLowerCase()) return a;
-            }
-            return s;
-        }
-
         function repairSttVoiceConcatenation(t) {
             var s = String(t || '').trim();
             if (s.length < 60) return s;
             var compact = s.replace(/\s+/g, '');
-            if (!/segnasegna|oresegna|orecon/i.test(compact)) return s;
+            if (!/segnasegna|oresegna|orecon|creaunlavoro|crealavoro/i.test(compact)) return s;
             var dotted = s.split(/\.\s+/).map(function (x) { return String(x || '').trim(); }).filter(Boolean);
             for (var di = dotted.length - 1; di >= 0; di--) {
                 var cand = dotted[di];
                 if (cand.length >= 12 && cand.length <= 200 && /\s/.test(cand)) return cand;
             }
-            var tail = s.match(/(Segna\s+le\s+ore[\s\S]{8,160})$/i);
-            if (tail && tail[1]) return tail[1].replace(/\s+/g, ' ').trim();
+            var tailSegna = s.match(/(Segna\s+le\s+ore[\s\S]{8,160})$/i);
+            if (tailSegna && tailSegna[1]) return tailSegna[1].replace(/\s+/g, ' ').trim();
+            var tailCrea = s.match(/(crea(?:\s+un)?\s+lavoro[\s\S]{12,220})$/i);
+            if (tailCrea && tailCrea[1]) return tailCrea[1].replace(/\s+/g, ' ').trim();
             return s;
         }
 
         function finalizeVoiceUserTranscript(raw) {
             var rawIn = String(raw || '').trim();
-            var t = collapseDuplicateVoiceTranscript(repairSttVoiceConcatenation(applyItalianVoiceQuestionPunctuation(rawIn)));
+            // raw → concat → lexicon IT/GFV → ? domande → collapse duplicati → (campo) segna-ore
+            var t = collapseDuplicateVoiceTranscript(
+                applyItalianVoiceQuestionPunctuation(
+                    normalizeItalianSttTranscript(repairSttVoiceConcatenation(rawIn))
+                )
+            );
             try {
                 if (tonyIsCampoLikeWorkspaceForTony()) {
                     t = repairSegnaOraVoiceTranscript(t);
@@ -6227,6 +6280,34 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         var voiceMicReopenDeferred = false;
         var voiceLastSendAt = 0;
         var TONY_SESSION_MAX_AGE_MS = 600000;
+        var TONY_SESSION_STATE_KEY = 'tony_session_state';
+
+        /** UID atteso della sessione (login / switcher). Serve a non ripristinare la chat di un altro utente. */
+        function tonySessionOwnerUid() {
+            try {
+                var expected = sessionStorage.getItem('gfv_expected_user_id');
+                if (expected) return String(expected);
+            } catch (e0) { /* ignore */ }
+            return '';
+        }
+
+        function clearTonyChatSessionStorage() {
+            try {
+                sessionStorage.removeItem(TONY_SESSION_STATE_KEY);
+                sessionStorage.removeItem('gfv_tony_utente_ruoli');
+            } catch (eClr) { /* ignore */ }
+        }
+
+        function clearTonyChatUi() {
+            try {
+                if (window.Tony && Array.isArray(window.Tony.chatHistory)) {
+                    window.Tony.chatHistory = [];
+                }
+                if (messagesEl) {
+                    while (messagesEl.firstChild) messagesEl.removeChild(messagesEl.firstChild);
+                }
+            } catch (eUi) { /* ignore */ }
+        }
 
         /** Copia immutabile opts TTS — mai passare l'oggetto sendMessage per riferimento. */
         function copyVoiceTtsOpts(sendOpts, extra) {
@@ -6268,7 +6349,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
 
         function logVoiceAuto(msg, detail) {
             if (typeof console !== 'undefined' && console.log) {
-                console.log('[Tony Voice Auto]', msg, detail != null ? detail : '');
+                tonyDebugLog('[Tony Voice Auto]', msg, detail != null ? detail : '');
             }
         }
 
@@ -6323,11 +6404,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             try {
                 var chatHistory = (window.Tony && window.Tony.chatHistory) ? window.Tony.chatHistory : [];
                 var state = {
+                    uid: tonySessionOwnerUid(),
                     chatHistory: chatHistory,
                     lastPath: window.location.pathname,
                     timestamp: Date.now()
                 };
-                sessionStorage.setItem('tony_session_state', JSON.stringify(state));
+                sessionStorage.setItem(TONY_SESSION_STATE_KEY, JSON.stringify(state));
                 var moduli = window.Tony && window.Tony.context && (window.Tony.context.dashboard && window.Tony.context.dashboard.moduli_attivi || window.Tony.context.moduli_attivi);
                 if (Array.isArray(moduli) && moduli.length > 0) {
                     sessionStorage.setItem(TONY_MODULI_STORAGE_KEY, JSON.stringify(moduli));
@@ -6347,16 +6429,39 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         }
                     } catch (e) {}
                 }
-                var saved = sessionStorage.getItem('tony_session_state');
+                var saved = sessionStorage.getItem(TONY_SESSION_STATE_KEY);
                 if (!saved) return;
                 var state = JSON.parse(saved);
-                if (Date.now() - state.timestamp > TONY_SESSION_MAX_AGE_MS) return;
+                if (Date.now() - state.timestamp > TONY_SESSION_MAX_AGE_MS) {
+                    clearTonyChatSessionStorage();
+                    return;
+                }
+                var owner = tonySessionOwnerUid();
+                if ((state.uid && owner && state.uid !== owner) || (!state.uid && owner)) {
+                    clearTonyChatSessionStorage();
+                    return;
+                }
 
                 if (state.chatHistory && state.chatHistory.length && window.Tony) {
-                    window.Tony.chatHistory = state.chatHistory;
+                    // Collapse user turns duplicati consecutivi (regressione ensure+CF _pushChatTurn).
+                    var deduped = [];
+                    for (var di = 0; di < state.chatHistory.length; di++) {
+                        var dm = state.chatHistory[di];
+                        if (!dm) continue;
+                        var dTxt = (dm.parts && dm.parts[0]) ? String(dm.parts[0].text || '').trim() : '';
+                        var prev = deduped.length ? deduped[deduped.length - 1] : null;
+                        var prevTxt = prev && prev.parts && prev.parts[0]
+                            ? String(prev.parts[0].text || '').trim()
+                            : '';
+                        if (prev && prev.role === 'user' && dm.role === 'user' && dTxt && dTxt === prevTxt) {
+                            continue;
+                        }
+                        deduped.push(dm);
+                    }
+                    window.Tony.chatHistory = deduped;
                     while (messagesEl.firstChild) messagesEl.removeChild(messagesEl.firstChild);
-                    for (var i = 0; i < state.chatHistory.length; i++) {
-                        var m = state.chatHistory[i];
+                    for (var i = 0; i < deduped.length; i++) {
+                        var m = deduped[i];
                         var txt = (m.parts && m.parts[0]) ? m.parts[0].text : '';
                         if (!txt) continue;
                         var role = m.role === 'user' ? 'user' : 'tony';
@@ -6389,7 +6494,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             if (autoModeTimeout) clearTimeout(autoModeTimeout);
             if (!isAutoMode) return;
             autoModeTimeout = setTimeout(function() {
-                console.log('[Tony] Inattività raggiunta. Spengo tutto.');
+                tonyDebugLog('[Tony] Inattività raggiunta. Spengo tutto.');
                 toggleAutoMode(false, 'inactivity');
                 appendMessage('Sessione vocale scaduta per inattività.', 'tony');
             }, AUTO_MODE_SILENCE_MS);
@@ -6414,7 +6519,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             if (active) {
                 isWaitingForTonyResponse = false;
                 panel.classList.add('is-auto-mode');
-                console.log('[Tony] Modalità continua attivata.');
+                tonyDebugLog('[Tony] Modalità continua attivata.');
                 if (startListeningRef) startListeningRef();
                 resetAutoModeTimeout();
             } else {
@@ -6427,7 +6532,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 if (stopListeningRef) stopListeningRef();
                 panel.classList.remove('is-auto-mode');
                 micBtn.classList.remove('tony-mic-active', 'is-auto-mode');
-                console.log('[Tony] Modalità continua disattivata.', reason ? '(' + reason + ')' : '');
+                tonyDebugLog('[Tony] Modalità continua disattivata.', reason ? '(' + reason + ')' : '');
             }
             saveTonyState();
         }
@@ -6619,11 +6724,16 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             if (!opts.proactive && tonyIsCampoLikeWorkspaceForTony()) {
                 text = repairSegnaOraVoiceTranscript(text);
                 if (text !== String(rawSegnaOreText).trim()) {
-                    console.log('[Tony] Segna ore: testo vocale ripulito STT →', text);
+                    tonyDebugLog('[Tony] Segna ore: testo vocale ripulito STT →', text);
                 }
             }
             try {
             if (opts.fromVoice && _isSendingMessage) {
+                if (tonyIsLocalLavoroCreationIntent(text) || window.__tonyLavoroCreationFlow ||
+                    window.__tonyLavoroCreationTurnBusy) {
+                    console.warn('[Tony] Voice: ignoro crea lavoro duplicato (turno già in corso).');
+                    return;
+                }
                 var voiceRetryEarly = typeof opts._voiceRetry === 'number' ? opts._voiceRetry : 0;
                 if (voiceRetryEarly < 20) {
                     console.warn('[Tony] Voice: coda CF occupata, riprovo tra 400 ms (' + (voiceRetryEarly + 1) + '/20)');
@@ -6647,7 +6757,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 isWaitingForTonyResponse = true;
                 pendingVoiceText = null;
                 if (typeof stopListeningRef === 'function') stopListeningRef();
-                console.log('[Tony] Voice turn avviato (build ' + (window.__TONY_CLIENT_BUILD || '?') + '):', text.slice(0, 80));
+                tonyDebugLog('[Tony] Voice turn avviato (build ' + (window.__TONY_CLIENT_BUILD || '?') + '):', text.slice(0, 80));
             }
             if (!window.Tony || !window.Tony.isReady()) {
                 releaseVoiceTurnFromIntercept();
@@ -6684,10 +6794,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             if (!opts.proactive && !opts._displayOnly) tonyE2eTurnStart();
             if (checkFarewellIntent(text)) opts.isClosingSession = true;
             if (window.speechSynthesis) window.speechSynthesis.cancel();
+            var userBubbleWritten = false;
             if (!opts.proactive && !opts._suppressUserBubble) {
                 inputEl.value = '';
                 appendMessage(text, 'user');
                 tonyEnsureUserTurnInChatHistory(text);
+                userBubbleWritten = true;
             }
             var tonyEarlyTypingTimer = null;
             if (!opts.proactive) {
@@ -6920,7 +7032,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     typeof window.TonyFormInjector.applyLavoroMacchineFromUserReply === 'function' &&
                     !tipoCorrectionMk && !routeToInterviewMk &&
                     (window.TonyFormInjector.userCanReplyToMacchineDisamb(text) || macchineDisambPending)) {
-                    console.log('[Tony] Intercept macchine reply client-side:', text);
+                    tonyDebugLog('[Tony] Intercept macchine reply client-side:', text);
                     if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
                     appendMessage('Un attimo…', 'typing');
                     var disambFieldErrMk = disambFieldMk === 'lavoro-attrezzo' ? 'attrezzo' : 'trattore';
@@ -6936,11 +7048,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     window.Tony.speak(res.voiceText);
                                 }
                             }
-                            if (res.readyForSave && typeof window.__tonyPromptLavoroSaveLocal === 'function') {
-                                setTimeout(function() { window.__tonyPromptLavoroSaveLocal(); }, 600);
-                            } else {
-                                tonyTryPromptLavoroSaveIfComplete();
-                            }
+                            tonyMaybePromptLavoroSaveAfterReady(res);
                         } else {
                             var errFieldMk = (res && res.field === 'lavoro-attrezzo') ? 'attrezzo' : disambFieldErrMk;
                             var errExamplesMk = errFieldMk === 'attrezzo'
@@ -6971,6 +7079,18 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     },
                 });
                 if (saveIntercept.handled) {
+                    tonyE2eFinishLocalInterceptTurn();
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    return;
+                }
+                var lavSaveIntercept = tryInterceptLavoroSaveBeforeCf(text, {
+                    appendMessage: appendMessage,
+                    processTonyCommand: processTonyCommand,
+                    clearEarlyTyping: function () {
+                        if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    },
+                });
+                if (lavSaveIntercept.handled) {
                     tonyE2eFinishLocalInterceptTurn();
                     if (opts.fromVoice) isWaitingForTonyResponse = false;
                     return;
@@ -7041,10 +7161,17 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
 
             // Creazione lavoro locale — no CF (crea lavoro + risposte intervista). Anche cross-page.
             if (!opts.proactive && !opts._skipLavoroLocalCreation && window.TonyFormInjector &&
-                tonyIsLocalLavoroCreationIntent(text)) {
+                (tonyIsLocalLavoroCreationIntent(text) || window.__tonyLavoroCreationFlow) &&
+                window.__tonyLavoroCreationTurnBusy) {
+                console.warn('[Tony] Creazione lavoro: ignoro messaggio duplicato (turno già in corso).');
+                if (opts.fromVoice) isWaitingForTonyResponse = false;
+                return;
+            }
+            if (!opts.proactive && !opts._skipLavoroLocalCreation && window.TonyFormInjector &&
+                tonyIsLocalLavoroCreationIntent(text) && !window.__tonyLavoroCreationFlow) {
                 if (!tonyOnGestioneLavoriPage()) {
                     window.__tonyLavoroCreationFlow = true;
-                    console.log('[Tony] Creazione lavoro cross-page: flusso locale (no CF).');
+                    tonyDebugLog('[Tony] Creazione lavoro cross-page: flusso locale (no CF).');
                     if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
                     try {
                         sessionStorage.setItem('tony_pending_lavoro_local_intent', JSON.stringify({
@@ -7067,7 +7194,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     return;
                 }
                 window.__tonyLavoroCreationFlow = true;
-                console.log('[Tony] Creazione lavoro: flusso locale (no CF).');
+                window.__tonyLavoroCreationTurnBusy = true;
+                tonyDebugLog('[Tony] Creazione lavoro: flusso locale (no CF).');
                 if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
                 appendMessage('Un attimo…', 'typing');
                 _isSendingMessage = true;
@@ -7099,13 +7227,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         appendMessage(msg, 'tony');
                         if (window.Tony && typeof window.Tony.speak === 'function') window.Tony.speak(loc && loc.voiceText ? loc.voiceText : msg);
                     }
-                    if (loc && loc.readyForSave) {
-                        tonyTryPromptLavoroSaveIfComplete();
-                    }
+                    tonyMaybePromptLavoroSaveAfterReady(loc);
                 }).catch(function (err) {
                     removeTyping();
                     console.warn('[Tony] avvio locale crea lavoro:', err);
                 }).finally(function () {
+                    window.__tonyLavoroCreationTurnBusy = false;
                     _isSendingMessage = false;
                     if (opts.fromVoice) isWaitingForTonyResponse = false;
                 });
@@ -7117,6 +7244,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
                     appendMessage('Un attimo…', 'typing');
                     _isSendingMessage = true;
+                    window.__tonyLavoroCreationTurnBusy = true;
                     tonyEnsureLavoroModalForInterview().then(function () {
                         var waitReady = window.TonyFormInjector.waitForLavoriFormDataReady
                             ? window.TonyFormInjector.waitForLavoriFormDataReady(8000)
@@ -7128,11 +7256,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             return window.TonyFormInjector.applyLavoroInterviewFromUserReply(text);
                         });
                     }).then(function (resIv) {
-                        tonyFinishLavoroInterviewTurn(resIv, opts);
+                        tonyFinishLavoroInterviewTurn(resIv, opts, text);
                     }).catch(function (errIv) {
                         removeTyping();
                         console.warn('[Tony] intervista lavoro locale:', errIv);
                     }).finally(function () {
+                        window.__tonyLavoroCreationTurnBusy = false;
                         _isSendingMessage = false;
                     });
                     return;
@@ -7147,7 +7276,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     typeof window.TonyFormInjector.userCanReplyToLavoroInterview === 'function' &&
                     typeof window.TonyFormInjector.applyLavoroInterviewFromUserReply === 'function' &&
                     window.TonyFormInjector.userCanReplyToLavoroInterview(text)) {
-                    console.log('[Tony] Intercept intervista lavoro client-side:', text);
+                    tonyDebugLog('[Tony] Intercept intervista lavoro client-side:', text);
                     if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
                     appendMessage('Un attimo…', 'typing');
                     var waitIv = window.TonyFormInjector.waitForLavoriFormDataReady
@@ -7167,8 +7296,17 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             if (window.Tony && typeof window.Tony.speak === 'function' && resIv.voiceText) {
                                 window.Tony.speak(resIv.voiceText);
                             }
-                            if (resIv.readyForSave && typeof window.__tonyPromptLavoroSaveLocal === 'function') {
-                                setTimeout(function() { window.__tonyPromptLavoroSaveLocal(); }, 600);
+                            tonyMaybePromptLavoroSaveAfterReady(resIv);
+                        } else if (isTonySaveConfirmText(text) && window.TonyFormInjector &&
+                            typeof window.TonyFormInjector.lavoroInterviewReadyForSave === 'function' &&
+                            window.TonyFormInjector.lavoroInterviewReadyForSave()) {
+                            var lavSaveIv = tryInterceptLavoroSaveBeforeCf(text, {
+                                appendMessage: appendMessage,
+                                processTonyCommand: processTonyCommand,
+                            });
+                            if (!lavSaveIv.handled) {
+                                appendMessage('Vuoi che salvi il lavoro?', 'tony');
+                                window.__tonyAwaitingLavoroSaveConfirm = true;
                             }
                         } else {
                             appendMessage('Non ho capito. Ripeti con squadra/persona, terreno, tipo lavoro, data o durata (es. martedì, domani, 3).', 'tony');
@@ -7384,7 +7522,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     // Verifica che il modal abbia un form con campi - AGNOSTICO: qualsiasi form
                     var form = modal.querySelector('form');
                     if (form && form.querySelectorAll('input, select, textarea').length > 0) {
-                        console.log('[Tony Widget Sync] Modal trovato e attivo dopo', attempt * 100, 'ms');
+                        tonyDebugLog('[Tony Widget Sync] Modal trovato e attivo dopo', attempt * 100, 'ms');
                         var formCtx = getCurrentFormContext();
                         callback(formCtx);
                         return;
@@ -7461,7 +7599,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 if (!opts.proactive && tonyResolveQuickHoursWindow() && tonyIsCampoLikeWorkspaceForTony() &&
                     tonyMessageIsFieldWorkspaceSegnaOreTurn(text)) {
                     _isSendingMessage = false;
-                    console.log('[Tony] Segna ore workspace: percorso locale (CF non usata).');
+                    tonyDebugLog('[Tony] Segna ore workspace: percorso locale (CF non usata).');
                     var hSave = tryInterceptQuickHoursSaveBeforeCf(text, {
                         clearEarlyTyping: function () {
                             if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
@@ -7524,7 +7662,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     reopenMicIfAutoMode();
                 }, 95000);
                 if (opts.fromVoice) {
-                    console.log('[Tony] Voice: preparazione contesto CF…');
+                    tonyDebugLog('[Tony] Voice: preparazione contesto CF…');
                 }
                 if (window.Tony.setContext) {
                     window.Tony.setContext('form', formCtx || {});
@@ -7579,7 +7717,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         items: (freshTable.items && Array.isArray(freshTable.items)) ? freshTable.items : (freshTable.items != null ? [].concat(freshTable.items) : [])
                     }) : null;
                     if (freshTable) {
-                        console.log('[Tony] Contesto tabella inviato alla CF:', freshTable.pageType || '(no pageType)', (freshTable.items && freshTable.items.length) || 0, 'righe, summary:', (freshTable.summary || '').substring(0, 50));
+                        tonyDebugLog('[Tony] Contesto tabella inviato alla CF:', freshTable.pageType || '(no pageType)', (freshTable.items && freshTable.items.length) || 0, 'righe, summary:', (freshTable.summary || '').substring(0, 50));
                     }
                     if (pathStr.indexOf('terreni') !== -1 && freshTable && freshTable.items && Array.isArray(freshTable.items)) {
                         var _seenP = {}, _seenC = {};
@@ -7717,7 +7855,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         };
                         if (!parsedData.text && rawData.text == null) parsedData.text = 'Ok.';
                     } else if (typeof rawData === 'string') {
-                        console.log('[DEBUG CURSOR] onComplete: Dati sono stringa, avvio parsing robusto...');
+                        tonyDebugLog('[DEBUG CURSOR] onComplete: Dati sono stringa, avvio parsing robusto...');
                         
                         // Se modulo attivo, usa parsing ultra-robusto con regex match(/\{[\s\S]*\}/)
                         if (isTonyAdvancedActive) {
@@ -7782,7 +7920,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     } else {
                                         parsedData = { text: rawData, command: null };
                                     }
-                                    console.log('[DEBUG CURSOR] onComplete: Parsing ultra-robusto riuscito:', parsedData);
+                                    tonyDebugLog('[DEBUG CURSOR] onComplete: Parsing ultra-robusto riuscito:', parsedData);
                                 } catch (e) {
                                     console.warn('[DEBUG CURSOR] onComplete: Parsing ultra-robusto fallito, provo parser robusto:', e.message);
                                     // Fallback al parser robusto esistente
@@ -7802,7 +7940,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             // Modulo non attivo: rimuovi qualsiasi comando JSON
                             var cleanedText = rawData.replace(/\{[\s\S]*?\}/g, '').trim();
                             parsedData = { text: cleanedText || rawData, command: null };
-                            console.log('[DEBUG CURSOR] onComplete: Modulo non attivo, comandi rimossi');
+                            tonyDebugLog('[DEBUG CURSOR] onComplete: Modulo non attivo, comandi rimossi');
                         }
                     } else {
                         console.warn('[DEBUG CURSOR] onComplete: Tipo dati sconosciuto:', typeof rawData);
@@ -7827,7 +7965,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         type: parsedData.action,
                         ...(parsedData.params || {})
                     };
-                    console.log('[DEBUG CURSOR] onComplete: Convertito action in command:', commandToExecute);
+                    tonyDebugLog('[DEBUG CURSOR] onComplete: Convertito action in command:', commandToExecute);
                 }
                 // Fallback: testo "salvata/salvato" senza command → SAVE_ACTIVITY se form completo. NON attivare su domande (es. "Quali orari hai fatto?").
                 if (!commandToExecute && parsedData.text) {
@@ -7852,17 +7990,17 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     var fidMagFb = formCtxFb.formId === 'movimento-form' ? 'movimento-form' : 'prodotto-form';
                                     if (magazzinoFormReadyForTonySave(fidMagFb)) {
                                         window.__tonyMagazzinoExecuteSaveAfterCf = fidMagFb;
-                                        console.log('[Tony] Fallback magazzino: ultimo messaggio utente conferma → save locale (no testo CF)');
+                                        tonyDebugLog('[Tony] Fallback magazzino: ultimo messaggio utente conferma → save locale (no testo CF)');
                                     } else {
                                         commandToExecute = { type: 'SAVE_ACTIVITY' };
-                                        console.log('[Tony] Fallback SAVE magazzino: ultimo messaggio utente è conferma esplicita');
+                                        tonyDebugLog('[Tony] Fallback SAVE magazzino: ultimo messaggio utente è conferma esplicita');
                                     }
                                 } else {
-                                    console.log('[Tony] Fallback testo→SAVE disattivato su prodotti/movimenti: niente click Salva da solo testo modello');
+                                    tonyDebugLog('[Tony] Fallback testo→SAVE disattivato su prodotti/movimenti: niente click Salva da solo testo modello');
                                 }
                             } else {
                                 commandToExecute = { type: 'SAVE_ACTIVITY' };
-                                console.log('[Tony] Fallback: testo conferma salvataggio senza command → SAVE_ACTIVITY');
+                                tonyDebugLog('[Tony] Fallback: testo conferma salvataggio senza command → SAVE_ACTIVITY');
                             }
                         }
                     }
@@ -7879,7 +8017,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             proactiveCmdT === 'SALVA' ||
                             proactiveCmdT === 'SAVE'
                         ) {
-                            console.log('[Tony] Comando salvataggio annullato: promemoria proattivo non è conferma utente (' + proactiveCmdT + ')');
+                            tonyDebugLog('[Tony] Comando salvataggio annullato: promemoria proattivo non è conferma utente (' + proactiveCmdT + ')');
                             commandToExecute = null;
                             parsedData.command = null;
                         }
@@ -7908,11 +8046,11 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 (window.currentTableData && window.currentTableData.pageType === 'terreni')
                             ));
                             if (apriPaginaAlreadyHandledByService) {
-                                console.log('[Tony] onComplete: APRI_PAGINA già eseguito via triggerAction nel service, skip seconda invocazione');
+                                tonyDebugLog('[Tony] onComplete: APRI_PAGINA già eseguito via triggerAction nel service, skip seconda invocazione');
                             } else if (_isOnTerreni && (target === 'terreni' || target === 'terreni-test-bootstrap')) {
-                                console.log('[Tony] onComplete: APRI_PAGINA terreni già gestito dalla guard, skip');
+                                tonyDebugLog('[Tony] onComplete: APRI_PAGINA terreni già gestito dalla guard, skip');
                             } else if (window.Tony && typeof window.Tony.triggerAction === 'function') {
-                                console.log('[DEBUG CURSOR] onComplete: Gestione APRI_PAGINA tramite onAction, target:', target);
+                                tonyDebugLog('[DEBUG CURSOR] onComplete: Gestione APRI_PAGINA tramite onAction, target:', target);
                                 if (target) {
                                     var navPayload = { target: target };
                                     var pOn = (commandToExecute.params && typeof commandToExecute.params === 'object') ? commandToExecute.params : {};
@@ -7937,7 +8075,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 }
                             }
                         } else {
-                            console.log('[Tony] ESEGUO COMANDO:', commandToExecute);
+                            tonyDebugLog('[Tony] ESEGUO COMANDO:', commandToExecute);
                             
                             // Evita doppio enqueue: tony-service chiama triggerAction prima di restituire { text, command },
                             // quindi onAction callback ha già accodato. Non enqueueare di nuovo.
@@ -7967,7 +8105,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             setTimeout(function() {
                                 var updatedCtx = getCurrentFormContext();
                                 if (updatedCtx && window.Tony && window.Tony.setContext) {
-                                    console.log('[DEBUG CURSOR] onComplete: Aggiornamento contesto form dopo SET_FIELD');
+                                    tonyDebugLog('[DEBUG CURSOR] onComplete: Aggiornamento contesto form dopo SET_FIELD');
                                     window.Tony.setContext('form', updatedCtx);
                                 }
                             }, 300);
@@ -8257,8 +8395,9 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     textForTony = buildForcedLavoroPrompt(text);
                 }
 
+                // User già in chatHistory via tonyEnsureUserTurnInChatHistory: evita doppia bolla al restore post-nav.
                 var tonyAskOpts = {
-                    skipUserHistory: !!opts.proactive,
+                    skipUserHistory: !!opts.proactive || userBubbleWritten || !!opts.skipUserHistory,
                     proactive: !!opts.proactive,
                     forceStream: !!opts.fromVoice
                 };
@@ -8279,7 +8418,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         gen: typeof window.__tonyGeneration === 'number' ? window.__tonyGeneration : 0
                     };
                     if (opts.fromVoice) {
-                        console.log('[Tony] Voice: tonyAskStream avviato');
+                        tonyDebugLog('[Tony] Voice: tonyAskStream avviato');
                     }
                     window.Tony.askStream(textForTony, Object.assign({}, tonyAskOpts, {
                         onChunk: function(chunk) {
@@ -8361,7 +8500,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     })).then(onComplete).catch(onError).finally(onFinally);
                 } else {
                     if (opts.fromVoice) {
-                        console.log('[Tony] Voice: tonyAsk avviato');
+                        tonyDebugLog('[Tony] Voice: tonyAsk avviato');
                     }
                     window.Tony.ask(textForTony, tonyAskOpts).then(onComplete).catch(onError).finally(onFinally);
                 }
@@ -8398,13 +8537,13 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             if (_tonyE2eMode && !window.__GFV_TONY_E2E_MOCK_CF) _tonyE2eCfCalled = true;
             scheduleVoiceTurnGuard();
             if (opts.fromVoice) {
-                console.log('[Tony] Voice: dispatch verso CF…');
+                tonyDebugLog('[Tony] Voice: dispatch verso CF…');
             }
             // Se rilevato intento di apertura modulo, attendi che il modal sia nel DOM
             if (hasOpenModalIntent) {
-                console.log('[Tony Widget Sync] Intent apertura modulo rilevato, attendo che modal sia nel DOM (max 1000ms)');
+                tonyDebugLog('[Tony Widget Sync] Intent apertura modulo rilevato, attendo che modal sia nel DOM (max 1000ms)');
                 waitForModalAndGetContext(function(formCtx) {
-                    console.log('[Tony Widget Sync] Contesto estratto dopo attesa modal:', formCtx ? JSON.stringify(formCtx, null, 2) : '{}');
+                    tonyDebugLog('[Tony Widget Sync] Contesto estratto dopo attesa modal:', formCtx ? JSON.stringify(formCtx, null, 2) : '{}');
                     // FIX CODA ESECUZIONE: Garantisce che formCtx non sia null
                     sendRequestWithContext(formCtx || { fields: [] });
                 });
@@ -8413,10 +8552,10 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 // Il modal si apre solo dopo la risposta di Tony, quindi evitiamo attese lunghe inutili
                 var formCtxNow = getCurrentFormContext();
                 if (formCtxNow && formCtxNow.fields && formCtxNow.fields.length > 0) {
-                    console.log('[Tony Widget Sync] Parola chiave: modal già aperto, invio contesto immediato');
+                    tonyDebugLog('[Tony Widget Sync] Parola chiave: modal già aperto, invio contesto immediato');
                     sendRequestWithContext(formCtxNow);
                 } else {
-                    console.log('[Tony Widget Sync] Parola chiave: breve attesa modal (max 300ms)');
+                    tonyDebugLog('[Tony Widget Sync] Parola chiave: breve attesa modal (max 300ms)');
                     waitForModalAndGetContext(function(formCtx) {
                         sendRequestWithContext(formCtx || { fields: [] });
                     }, 3);
@@ -8439,7 +8578,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         tonyFinalizeSendToCf();
                         return;
                     }
-                    console.log('[Tony] Meteo dashboard: risposta locale (cache client)');
+                    tonyDebugLog('[Tony] Meteo dashboard: risposta locale (cache client)');
                     return meteoMod.tryDashboardMeteoQuickReply(text).then(function(localMeteo) {
                         if (localMeteo && localMeteo.handled && localMeteo.text) {
                             tonyFinishLocalVoiceReply(localMeteo.text);
@@ -8471,7 +8610,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             var msg = String(text || '').trim();
             if (!msg) return;
             if (isAnyTonyFormSaveConfirmPending()) {
-                console.log('[Tony] Proattivo omesso: in attesa conferma salvataggio locale.');
+                tonyDebugLog('[Tony] Proattivo omesso: in attesa conferma salvataggio locale.');
                 return;
             }
             var n = 0;
@@ -8579,9 +8718,10 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             var voiceSessionBestFinal = '';
             var voiceSessionBestInterim = '';
 
-            function scoreVoiceSegnaOraTranscript(t) {
+            function scoreVoiceSegnaOraTranscript(t, confidence) {
                 var s = String(t || '').trim();
                 if (!s) return 0;
+                var score = 0;
                 try {
                     if (tonyIsCampoLikeWorkspaceForTony()) {
                         if (matchSegnaOraTimeRangeFromBlob(s)) return 100;
@@ -8595,28 +8735,38 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             var cmi = parseInt(clockOnly[2], 10);
                             if (ch === now.getHours() && Math.abs(cmi - now.getMinutes()) <= 3) return 3;
                         }
-                        if (/\b(dalle|alle|iniziato|finito|inizio)\b/i.test(s)) return 20;
+                        if (/\b(dalle|alle|iniziato|finito|inizio)\b/i.test(s)) score = 20;
                     }
                 } catch (eSc) { /* ignore */ }
-                return Math.min(s.length, 15);
+                // Lessico GFV / penalità spurî (allah, …) anche fuori da segna ore
+                score += scoreItalianSttLexicon(s);
+                score += Math.min(s.length, 15);
+                if (typeof confidence === 'number' && Number.isFinite(confidence)) {
+                    score += confidence * 10;
+                }
+                return score;
             }
 
             function collectVoiceResultAlternatives(res) {
                 var alts = [];
                 for (var ai = 0; ai < res.length; ai++) {
                     var alt = String(res[ai].transcript || '').trim();
-                    if (alt) alts.push({ text: alt, score: scoreVoiceSegnaOraTranscript(alt) });
+                    if (!alt) continue;
+                    var conf = typeof res[ai].confidence === 'number' ? res[ai].confidence : undefined;
+                    alts.push({ text: alt, score: scoreVoiceSegnaOraTranscript(alt, conf), confidence: conf });
                 }
                 return alts;
             }
 
             function pickBestVoiceResultSegment(res) {
                 var best = String(res[0].transcript || '').trim();
-                var bestScore = scoreVoiceSegnaOraTranscript(best);
+                var bestConf = typeof res[0].confidence === 'number' ? res[0].confidence : undefined;
+                var bestScore = scoreVoiceSegnaOraTranscript(best, bestConf);
                 for (var ai = 1; ai < res.length; ai++) {
                     var alt = String(res[ai].transcript || '').trim();
                     if (!alt) continue;
-                    var sc = scoreVoiceSegnaOraTranscript(alt);
+                    var conf = typeof res[ai].confidence === 'number' ? res[ai].confidence : undefined;
+                    var sc = scoreVoiceSegnaOraTranscript(alt, conf);
                     if (sc > bestScore || (sc === bestScore && alt.length > best.length)) {
                         best = alt;
                         bestScore = sc;
@@ -8693,11 +8843,11 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         var seg = pickBestVoiceResultSegment(res);
                         var alts = collectVoiceResultAlternatives(res);
                         var now = new Date();
-                        console.log('[Tony] STT alternative:', alts, 'orologio browser:', now.getHours() + ':' + now.getMinutes(), 'scelto:', seg);
+                        tonyDebugLog('[Tony] STT alternative:', alts, 'orologio browser:', now.getHours() + ':' + now.getMinutes(), 'scelto:', seg);
                         if (seg) {
                             updateVoiceBestFinal(seg);
                             rebuildVoicePendingText();
-                            console.log('[Tony] Ho sentito (finale):', pendingVoiceText);
+                            tonyDebugLog('[Tony] Ho sentito (finale):', pendingVoiceText);
                         }
                     } else {
                         latestInterim = res[0].transcript;
@@ -8769,7 +8919,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     pendingVoiceText = null;
                     if (textToSend) {
                         voiceLastSendAt = Date.now();
-                        console.log('[Tony] Invio testo vocale (' + (reason || 'auto') + '):', textToSend);
+                        tonyDebugLog('[Tony] Invio testo vocale (' + (reason || 'auto') + '):', textToSend);
                         resetAutoModeTimeout();
                         sendMessage(textToSend, { fromVoice: true });
                     } else {
@@ -8782,13 +8932,13 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
 
             recognition.onspeechend = function() {
                 if (tonyAudioPipelineActive() || isWaitingForTonyResponse || _isSendingMessage) {
-                    console.log('[Tony] Speechend ignorato: Tony in risposta o TTS attivo.');
+                    tonyDebugLog('[Tony] Speechend ignorato: Tony in risposta o TTS attivo.');
                     try { recognition.stop(); } catch (err) {}
                     clearVoiceAutoSendTimer();
                     pendingVoiceText = null;
                     return;
                 }
-                console.log('[Tony] Fine rilevamento voce, attendo processamento...');
+                tonyDebugLog('[Tony] Fine rilevamento voce, attendo processamento...');
                 rebuildVoicePendingText();
                 scheduleAutoVoiceSend('speechend');
             };
@@ -8799,11 +8949,11 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
 
             recognition.onend = function() {
                 if (tonyAudioPipelineActive()) {
-                    console.log('[Tony] TTS in corso, microfono resta spento.');
+                    tonyDebugLog('[Tony] TTS in corso, microfono resta spento.');
                     return;
                 }
                 if (isWaitingForTonyResponse || _isSendingMessage) {
-                    console.log('[Tony] In attesa risposta Tony, microfono non riaccendo.');
+                    tonyDebugLog('[Tony] In attesa risposta Tony, microfono non riaccendo.');
                     return;
                 }
                 if (isAutoMode) {
@@ -8812,7 +8962,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         scheduleAutoVoiceSend('onend');
                         return;
                     }
-                    console.log('[Tony] Fine sessione naturale, riaccendo tra ' + VOICE_RECOGNITION_RESTART_MS + ' ms...');
+                    tonyDebugLog('[Tony] Fine sessione naturale, riaccendo tra ' + VOICE_RECOGNITION_RESTART_MS + ' ms...');
                     scheduleMicReopenInAutoMode(VOICE_RECOGNITION_RESTART_MS);
                 } else {
                     micBtn.classList.remove('tony-mic-active');
@@ -8890,6 +9040,10 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         };
 
         window.addEventListener('beforeunload', saveTonyState);
+        window.addEventListener('tony-auth-user-changed', function () {
+            clearTonyChatSessionStorage();
+            clearTonyChatUi();
+        });
         window.__tonyRestoreSession = restoreTonyState;
     }
 
@@ -8948,7 +9102,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
      */
     window.syncTonyModules = function(modules, options) {
         var arr = Array.isArray(modules) ? modules : [];
-        console.log('[Tony Sync] Ricevuti moduli:', arr.length ? arr : '(vuoto)');
+        tonyDebugLog('[Tony Sync] Ricevuti moduli:', arr.length ? arr : '(vuoto)');
         var doRetry = options && options.retry === false ? false : true;
         var maxRetries = 25;
         var attempt = 0;
@@ -9024,7 +9178,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         if (routesRes.ok) {
                             var routesData = await routesRes.json();
                             window.__tonyAvailableRoutes = (routesData && routesData.routes) || [];
-                            console.log('[Tony] Rotte disponibili caricate:', window.__tonyAvailableRoutes.length);
+                            tonyDebugLog('[Tony] Rotte disponibili caricate:', window.__tonyAvailableRoutes.length);
                         }
                     } catch (e) {
                         window.__tonyAvailableRoutes = [];
@@ -9116,7 +9270,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 window.Tony.setContext('dashboard', { info_azienda: { moduli_attivi: moduliBoot }, moduli_attivi: moduliBoot });
                                 saveModuliToStorage(moduliBoot);
                                 if (typeof console !== 'undefined' && console.log) {
-                                    console.log('[Tony] Moduli impostati da bootstrap:', moduliBoot.length);
+                                    tonyDebugLog('[Tony] Moduli impostati da bootstrap:', moduliBoot.length);
                                 }
                             }
                             try { if (typeof window.__tonyDocCaptureRefresh === 'function') window.__tonyDocCaptureRefresh(); } catch (eCapBoot) {}
@@ -9151,7 +9305,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     window.Tony.setContext('dashboard', { info_azienda: { moduli_attivi: discovered }, moduli_attivi: discovered });
                                     saveModuliToStorage(discovered);
                                     moduliAttivi = discovered;
-                                    console.log('[Tony] Moduli ripristinati da auto-discovery (tenant/bootstrap/storage):', moduliAttivi.length);
+                                    tonyDebugLog('[Tony] Moduli ripristinati da auto-discovery (tenant/bootstrap/storage):', moduliAttivi.length);
                                 }
                             }
                             
@@ -9161,7 +9315,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 moduliAttivi.some(function(m) { return String(m).toLowerCase() === 'tony'; });
                             
                             if (wasActive !== isTonyAdvancedActive || force) {
-                                console.log('[Tony] Stato modulo avanzato:', isTonyAdvancedActive ? 'ATTIVO' : 'NON ATTIVO', 'Moduli:', moduliAttivi);
+                                tonyDebugLog('[Tony] Stato modulo avanzato:', isTonyAdvancedActive ? 'ATTIVO' : 'NON ATTIVO', 'Moduli:', moduliAttivi);
                             }
                             try {
                                 applyTonyFreemiumGate();
@@ -9203,7 +9357,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         if (!window.Tony || typeof window.Tony.isReady !== 'function' || !window.Tony.isReady()) return;
                         if (typeof window.__tonyDisplayProactive !== 'function') return;
                         _tonyProntoLogged = true;
-                        console.log('[Tony] Pronto (widget standalone). Modulo avanzato:', isTonyAdvancedActive ? 'ATTIVO' : 'NON ATTIVO', 'build:', window.__TONY_CLIENT_BUILD || '?');
+                        tonyDebugLog('[Tony] Pronto (widget standalone). Modulo avanzato:', isTonyAdvancedActive ? 'ATTIVO' : 'NON ATTIVO', 'build:', window.__TONY_CLIENT_BUILD || '?');
                         try {
                             window.dispatchEvent(new CustomEvent('tony-widget-ready'));
                         } catch (eReady) { /* ignore */ }
@@ -9212,7 +9366,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
 window.addEventListener('tony-module-updated', function(e) {
                         var newModules = e.detail && e.detail.modules;
                         if (newModules && Array.isArray(newModules)) {
-                            console.log('[Tony] Evento aggiornamento modulo ricevuto:', newModules);
+                            tonyDebugLog('[Tony] Evento aggiornamento modulo ricevuto:', newModules);
                             saveModuliToStorage(newModules);
                             if (window.Tony && window.Tony.setContext) {
                                 window.Tony.setContext('dashboard', {
@@ -9268,7 +9422,7 @@ window.addEventListener('tony-module-updated', function(e) {
                                 appendMessage('Per aprire pagine con Tony attiva il modulo Tony Avanzato dalla pagina Abbonamento. Nel frattempo puoi usare il menu dell\'app.', 'tony');
                                 return;
                             }
-                            console.log('[DEBUG CURSOR] onAction callback: Caso APRI_PAGINA');
+                            tonyDebugLog('[DEBUG CURSOR] onAction callback: Caso APRI_PAGINA');
                             var actualParams = params.params && typeof params.params === 'object' ? params.params : params;
                             var rawTarget = (actualParams.target || actualParams.modulo || '').toString().trim();
                             rawTarget = remapTonyApriPaginaTargetForFieldProfile(rawTarget);
@@ -9296,7 +9450,7 @@ window.addEventListener('tony-module-updated', function(e) {
                                 (window.currentTableData && window.currentTableData.pageType === 'terreni')
                             ));
                             if (isOnTerreniPage && (rawTarget === 'terreni' || rawTarget === 'terreni-test-bootstrap')) {
-                                console.log('[Tony] Già sulla pagina terreni: ignoro APRI_PAGINA, eseguo FILTER_TABLE reset');
+                                tonyDebugLog('[Tony] Già sulla pagina terreni: ignoro APRI_PAGINA, eseguo FILTER_TABLE reset');
                                 enqueueTonyCommand({ type: 'FILTER_TABLE', params: { filterType: 'reset', value: '' } }, { source: 'apri-pagina-guard' });
                                 return;
                             }
@@ -9306,7 +9460,7 @@ window.addEventListener('tony-module-updated', function(e) {
                                 (window.currentTableData && window.currentTableData.pageType === 'attivita')
                             ));
                             if (isOnAttivitaPage && (rawTarget === 'attivita' || rawTarget === 'diario' || rawTarget === 'attivita-standalone')) {
-                                console.log('[Tony] Già sulla pagina attivita: ignoro APRI_PAGINA, eseguo FILTER_TABLE reset');
+                                tonyDebugLog('[Tony] Già sulla pagina attivita: ignoro APRI_PAGINA, eseguo FILTER_TABLE reset');
                                 enqueueTonyCommand({ type: 'FILTER_TABLE', params: { filterType: 'reset', value: '' } }, { source: 'apri-pagina-guard' });
                                 return;
                             }
@@ -9355,7 +9509,7 @@ window.addEventListener('tony-module-updated', function(e) {
                                             fields: (pendingFields && typeof pendingFields === 'object') ? pendingFields : null,
                                             userPromptForPending: userPromptForPending || null
                                         }));
-                                        console.log('[Tony] tony_pending_intent salvato (APRI_PAGINA):', pendingModal, rawTarget);
+                                        tonyDebugLog('[Tony] tony_pending_intent salvato (APRI_PAGINA):', pendingModal, rawTarget);
                                     } catch (e) { console.warn('[Tony] Impossibile salvare pending intent:', e); }
                                 }
                                 window.location.hash = '#' + resolved;
@@ -9561,7 +9715,7 @@ window.addEventListener('tony-module-updated', function(e) {
                                             }
                                             window.__tonyPreventivoPostNavEnrichDone = true;
                                             var enrichSuffix = '\n\n[Contesto: pagina Nuovo Preventivo già aperta nel browser. Rispondi con un solo comando JSON INJECT_FORM_DATA con formId "preventivo-form" e formData completo (cliente-id, tipo-lavoro, terreno-id se noto, colture, data-prevista, ecc.) dedotto dal messaggio.]';
-                                            console.log('[Tony] Post-nav: richiesta completamento preventivo a Tony (skipUserHistory), delay era', enrichDelayMs + 'ms');
+                                            tonyDebugLog('[Tony] Post-nav: richiesta completamento preventivo a Tony (skipUserHistory), delay era', enrichDelayMs + 'ms');
                                             window.Tony.ask(userPromptNav + enrichSuffix, { skipUserHistory: true }).catch(function(err) {
                                                 console.warn('[Tony] ask post-nav preventivo:', err);
                                             });

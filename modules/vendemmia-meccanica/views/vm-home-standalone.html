@@ -285,22 +285,15 @@
         </div>
     </div>
 
-    <script>
-        const configScript = document.createElement('script');
-        configScript.src = '../../../core/config/firebase-config.js';
-        document.head.appendChild(configScript);
-    </script>
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
+        import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
         import { initVmPageAuth, showVmAlert } from '../js/vm-page-auth.js';
         import { getPianoStagioneRows } from '../services/piano-stagione-service.js';
         import { summarizePianoStagione } from '../services/piano-stagione-kpi.js';
         import { groupClientiVignetoPiano, buildVignetoDetectionContext } from '../services/piano-stagione-utils.js';
         import { getBilancioVmAnno } from '../services/bilancio-vm-service.js';
         import { getAnnoStagioneCorrente } from '../config/vm-constants.js';
-
-        function escapeHtml(s) {
-            return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-        }
 
         function renderClientiVigneto(clienti, anno) {
             const list = document.getElementById('clienti-piano-list');

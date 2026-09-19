@@ -38,7 +38,7 @@
         <button type="button" class="btn btn-primary" id="btn-save" style="margin-top:20px;">Salva tariffe</button>
     </div>
 </div>
-<script>const sc=document.createElement('script');sc.src='../../../core/config/firebase-config.js';document.head.appendChild(sc);</script>
+<script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
 <script type="module">
 import { initVmPageAuth, showVmAlert } from '../js/vm-page-auth.js';
 import { getTariffeVmConfig, saveTariffeVmConfig } from '../services/tariffe-vm-service.js';

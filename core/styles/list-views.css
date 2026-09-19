@@ -1,0 +1,294 @@
+/**
+ * Chrome condiviso per liste standalone (tabella, filtri, modal, badge).
+ * Tema: variabili CSS. Default = Parco Macchine (teal).
+ * Override per pagina: --list-accent, --list-header-from, ecc.
+ *
+ * @see docs-sviluppo/da-fare/snellimento/PROPOSTA_SNELLIMENTO_E_OTTIMIZZAZIONE_CODICE.md §4.3
+ */
+
+:root {
+    --list-text: #333;
+    --list-bg-from: #E0F7FA;
+    --list-bg-to: #80DEEA;
+    --list-header-from: #0097A7;
+    --list-header-to: #006064;
+    --list-accent: #0097A7;
+    --list-accent-dark: #006064;
+    --list-border: #80DEEA;
+    --list-filter-bg: #E0F7FA;
+    --list-th-from: #E0F7FA;
+    --list-th-to: #B2EBF2;
+    --list-row-hover: #E0F7FA;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, var(--list-bg-from) 0%, var(--list-bg-to) 100%);
+    color: var(--list-text);
+    min-height: 100vh;
+}
+
+.container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.header {
+    background: linear-gradient(135deg, var(--list-header-from) 0%, var(--list-header-to) 100%);
+    color: white;
+    padding: 24px 30px;
+    border-radius: 12px;
+    margin-bottom: 24px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.header h1 { font-size: 24px; }
+
+.header-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.btn {
+    padding: 10px 18px;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 14px;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background: var(--list-accent);
+    color: white;
+}
+
+.btn-primary:hover { background: var(--list-accent-dark); }
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.25);
+    color: white;
+    border: 1px solid rgba(255, 255, 255, 0.5);
+}
+
+.btn-secondary:hover { background: rgba(255, 255, 255, 0.35); }
+
+.btn-success {
+    background: #2e7d32;
+    color: white;
+}
+
+.btn-success:hover { background: #1b5e20; }
+
+.btn-danger { background: #dc3545; color: white; }
+.btn-danger:hover:not(:disabled) { background: #c82333; }
+.btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+
+.content {
+    background: white;
+    padding: 24px;
+    border-radius: 12px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filters {
+    display: flex;
+    gap: 15px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    padding: 16px;
+    background: var(--list-filter-bg);
+    border-radius: 8px;
+    border: 1px solid var(--list-border);
+}
+
+.filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.filter-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--list-accent-dark);
+}
+
+.filter-group input,
+.filter-group select {
+    padding: 8px 12px;
+    border: 2px solid var(--list-border);
+    border-radius: 6px;
+    font-size: 14px;
+    min-width: 200px;
+}
+
+.filter-group input:focus,
+.filter-group select:focus {
+    outline: none;
+    border-color: var(--list-accent);
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+}
+
+.section-header h2 {
+    color: var(--list-accent-dark);
+    font-size: 20px;
+}
+
+.mezzi-table,
+.list-table,
+.scadenze-table,
+.guasti-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.mezzi-table th,
+.mezzi-table td,
+.list-table th,
+.list-table td,
+.scadenze-table th,
+.scadenze-table td,
+.guasti-table th,
+.guasti-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--list-border);
+}
+
+.mezzi-table th,
+.list-table th,
+.scadenze-table th,
+.guasti-table th {
+    background: linear-gradient(135deg, var(--list-th-from) 0%, var(--list-th-to) 100%);
+    font-weight: 600;
+    color: var(--list-accent-dark);
+}
+
+.mezzi-table tr:hover,
+.list-table tr:hover,
+.scadenze-table tr:hover,
+.guasti-table tr:hover { background: var(--list-row-hover); }
+
+.badge {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+}
+
+.badge-disponibile { background: #d4edda; color: #155724; }
+.badge-in-uso { background: #fff3cd; color: #856404; }
+.badge-manutenzione { background: #B2EBF2; color: #006064; }
+.badge-guasto { background: #ffcdd2; color: #b71c1c; }
+
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal.active { display: flex; }
+
+.modal-content {
+    background: white;
+    padding: 28px;
+    border-radius: 12px;
+    max-width: 480px;
+    width: 90%;
+    border: 2px solid var(--list-accent);
+}
+
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.modal-header h3 {
+    color: var(--list-accent-dark);
+    font-size: 18px;
+}
+
+.close-btn {
+    background: none;
+    border: none;
+    font-size: 22px;
+    cursor: pointer;
+    color: #666;
+}
+
+.form-group { margin-bottom: 16px; }
+
+.form-group label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: var(--list-text);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+    padding: 10px;
+    border: 2px solid var(--list-border);
+    border-radius: 6px;
+    font-size: 14px;
+}
+
+.form-group textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+.form-group input:focus,
+.form-group select:focus {
+    outline: none;
+    border-color: var(--list-accent);
+}
+
+.loading,
+.empty-state {
+    text-align: center;
+    padding: 40px;
+    color: #666;
+}
+
+.empty-state { color: #999; }
+
+.alert {
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 16px;
+}
+
+.alert-success { background: #d4edda; color: #155724; }
+.alert-error { background: #f8d7da; color: #721c24; }

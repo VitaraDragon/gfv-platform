@@ -136,39 +136,23 @@
         </div>
     </div>
 
-    <script>
-        const configScript = document.createElement('script');
-        configScript.src = '../../../core/config/firebase-config.js';
-        configScript.onerror = function() {
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallbackScript);
-        };
-        document.head.appendChild(configScript);
-    </script>
     <script>window.currentTableData = window.currentTableData || { pageType: 'tracciabilita_consumi', summary: 'Caricamento dati in corso...', consumiAggregates: [], items: [] };</script>
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
         import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
-        import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
-        import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
-        import { collection, getDocs, getDoc, doc, query, orderBy } from '../../../core/services/firebase-service.js';
+        import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, getDoc, doc, query, orderBy } from '../../../core/services/firebase-service.js';
+        import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
+        import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import { CATEGORIE_PRODOTTO } from '../config/categorie-prodotto.js';
 
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') { resolve(window.firebaseConfig); return; }
-                let attempts = 0;
-                const iv = setInterval(() => {
-                    attempts++;
-                    if (typeof window.firebaseConfig !== 'undefined') { clearInterval(iv); resolve(window.firebaseConfig); }
-                    else if (attempts >= 50) { clearInterval(iv); reject(new Error('Config timeout')); }
-                }, 100);
-            });
-        }
-
         const categoriaNomeById = Object.fromEntries(CATEGORIE_PRODOTTO.map(c => [c.id, c.nome]));
-        const firebaseConfig = await waitForConfig();
-        initializeFirebase(firebaseConfig);
+
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[tracciabilita-consumi] Bootstrap failed:', err);
+            throw err;
+        }
         const auth = getAuthInstance();
         const db = getDb();
 
@@ -187,14 +171,7 @@
         /** Sessioni collassate sospeso/ripresa (indice = data-chain-idx). */
         let chainSessionPopupData = [];
 
-        function escapeHtml(s) {
-            if (s == null || s === undefined) return '';
-            return String(s)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
-        }
+        // escapeHtml: import da gfv-page-utils.js
 
         function formatData(d) {
             if (!d) return '-';
@@ -1181,10 +1158,11 @@
         setFilterCategoriaOptions();
 
         onAuthStateChanged(auth, async (user) => {
-            if (!user) { window.location.href = '../../../core/auth/login-standalone.html'; return; }
+            if (!user) user = await resolveAuthUser(auth);
+            if (!user) { window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html'); return; }
             try {
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
-                if (!userDoc.exists()) { window.location.href = '../../../core/auth/login-standalone.html'; return; }
+                if (!userDoc.exists()) { window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html'); return; }
                 const userData = userDoc.data();
                 currentTenantId = userData.tenantId || (userData.tenantMemberships && Object.keys(userData.tenantMemberships || {})[0]);
                 const ruoli = userData.ruoli || [];
@@ -1230,19 +1208,6 @@
                 closeSessioneTrattamentoModal();
             }
         });
-    </script>
-    <script>
-    <!-- GFV standalone shell: alert toast + Tony gated -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var s = document.createElement('script');
-      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-      document.body.appendChild(s);
-    })();
     </script>
 </body>
 </html>
