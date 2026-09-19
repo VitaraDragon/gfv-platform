@@ -1,6 +1,13 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-18 — inviti: chiusura lettura pubblica + callable getInvitoPubblico.**
+**Ultimo aggiornamento documentazione: 2026-09-19 — piano campo: mobile unica + lingue operaio/caposquadra (non implementato).**
+
+## Piano campo — mobile unica + multilinguismo operai/caposquadra (2026-09-19)
+
+- **Decisione prodotto (doc, niente codice):** non tradurre l’ERP intero. Perimetro = **profilo campo** (operaio / caposquadra): home **solo versione mobile**, cornice **IT + RO + EN**, pulsante **Traduci** sulle comunicazioni, **segnalazione guasti** in mobile. Francese e Tony vocale in altre lingue fuori MVP. Manager/admin restano sulla dashboard in italiano.
+- **Piano agente (canonico):** `docs-sviluppo/da-fare/manodopera/PIANO_CAMPO_MOBILE_MULTILINGUA.md`. Decisioni: `TONY_DECISIONI_E_REQUISITI.md` §24. Handoff: `tony/STATO_ATTUALE.md` §8.
+- **Fasi previste:** (1) togliere home desktop campo + guasti in mobile (2) catalogo stringhe login/workspace (3) traduci messaggi (4) push nella lingua del destinatario.
+- **Non implementato** in questo commit: nessun cambio UI/CF.
 
 ## Inviti — chiusura `allow read: if true` (2026-09-18)
 
