@@ -1,6 +1,13 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-19 — Snellimento: log debug Tony dietro __TONY_DEBUG.**
+**Ultimo aggiornamento documentazione: 2026-09-19 — Fix CI Tony: export engine/form-save usati da main.js.**
+
+## Fix CI — Tony FAB assente (2026-09-19)
+
+- **Perché:** `main.js` in commit importava da `engine.js` (`normalizeItalianSttTranscript` e affini) e `tony-form-save-local.js` (`tryInterceptLavoroSaveBeforeCf`) export rimasti fuori. Il modulo crashava all’import: FAB assente, E2E mock 0/17.
+- **Cosa:** allineati gli export nel commit; test `tests/tony-italian-stt-normalize.test.js`.
+- **Resto aperto:** pagine di prova dello snellimento.
+- Doc: questa voce. Master Plan: nessuna fase cambiata.
 
 ## Snellimento codice — Log debug Tony (2026-09-19)
 

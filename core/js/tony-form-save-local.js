@@ -423,6 +423,38 @@ export function tryInterceptMagazzinoSaveBeforeCf(text, handlers) {
 }
 
 /**
+ * «salva»/«sì» con form lavoro pronto ma flag conferma non armato — evita intervista «Non ho capito».
+ * @param {string} text
+ * @param {{ appendMessage?: Function, speak?: Function, processTonyCommand?: Function, clearEarlyTyping?: Function }} handlers
+ * @returns {{ handled: boolean, confirmed?: boolean }}
+ */
+export function tryInterceptLavoroSaveBeforeCf(text, handlers) {
+  handlers = handlers || {};
+  if (typeof window === 'undefined') return { handled: false };
+
+  var cfg = getTonyFormSaveLocalConfig('lavoro-form');
+  if (!cfg || window[cfg.awaitingFlag]) return { handled: false };
+  if (!cfg.isFormActive()) return { handled: false };
+  if (!isTonySaveConfirmText(text)) return { handled: false };
+
+  var ready = typeof window.TonyFormInjector !== 'undefined' &&
+    typeof window.TonyFormInjector.lavoroInterviewReadyForSave === 'function' &&
+    window.TonyFormInjector.lavoroInterviewReadyForSave();
+  if (!ready && !formReadyForTonySave('lavoro-form')) return { handled: false };
+
+  if (typeof handlers.clearEarlyTyping === 'function') handlers.clearEarlyTyping();
+  if (typeof cfg.beforeSave === 'function') cfg.beforeSave();
+  if (typeof cfg.onConfirmReset === 'function') cfg.onConfirmReset();
+  if (typeof console !== 'undefined' && console.log) {
+    console.log('[Tony] Salva lavoro-form: conferma utente locale pre-CF (senza tonyAsk).');
+  }
+  if (typeof handlers.processTonyCommand === 'function') {
+    handlers.processTonyCommand({ type: 'SAVE_ACTIVITY' });
+  }
+  return { handled: true, confirmed: true };
+}
+
+/**
  * «salva»/«sì» con form preventivo pronto ma flag CF non armato — evita round-trip (stile magazzino).
  * @param {string} text
  * @param {{ appendMessage?: Function, speak?: Function, processTonyCommand?: Function, clearEarlyTyping?: Function }} handlers
@@ -564,6 +596,7 @@ if (typeof window !== 'undefined') {
     terrenoFormReadyForTonySave: terrenoFormReadyForTonySave,
     terrenoProactiveReadyForSave: terrenoProactiveReadyForSave,
     tryInterceptMagazzinoSaveBeforeCf: tryInterceptMagazzinoSaveBeforeCf,
+    tryInterceptLavoroSaveBeforeCf: tryInterceptLavoroSaveBeforeCf,
     tryInterceptPreventivoSaveBeforeCf: tryInterceptPreventivoSaveBeforeCf,
     isAnyTonyFormSaveConfirmPending: isAnyTonyFormSaveConfirmPending,
     promptTonyFormSaveLocal: promptTonyFormSaveLocal,
