@@ -5,7 +5,7 @@ Modulo **Manodopera** attivo nell’**abbonamento**. Linguaggio utente: **versio
 ## Manager — ingresso e home
 
 - **Dashboard con Manodopera attivo:** niente card sparse sotto la panoramica; ingresso via **Moduli** → **Manodopera**, **Per te oggi** («Manodopera: lavori, squadre e ore»), **I miei accessi**, alert **Richiede attenzione**, o Tony «apri manodopera».  
-- **Home Manodopera:** KPI (programmati oggi, in corso, ore da validare, eventuale da pianificare con Conto terzi) + sezioni **Pianificazione e lavori** / **Persone** / **Controllo e analisi** (gestione lavori, **impegni giornalieri**, validazione ore, operai, squadre, utenti, compensi, statistiche). **← Dashboard** torna alla dashboard principale; dalle pagine admin **← Manodopera** torna alla home modulo.  
+- **Home Manodopera:** KPI (programmati oggi, in corso, ore da validare, eventuale da pianificare con Conto terzi) + sezioni **Pianificazione e lavori** / **Persone** / **Controllo e analisi** (gestione lavori, **impegni giornalieri**, validazione ore, operai, squadre, utenti, compensi, statistiche). **← Dashboard Principale** torna alla dashboard principale; dalle pagine interne **← Dashboard** torna alla home del modulo.  
 - **Impegni giornalieri:** foto del giorno (libero / impegnato / assente / prestato / sostituto) + vista per lavoro; solo lettura. Ingresso: card hub, **Impegni giorno** da Gestione lavori, o Tony «apri impegni giornalieri».  
 - **Amministrazione** (👑): da **Moduli**, non come card in pagina quando Manodopera è attivo.
 

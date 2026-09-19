@@ -19,7 +19,7 @@ Modulo in **`dashboard.moduli_attivi`** (chiave tipica `manodopera`). In contest
 | Compensi operai | `admin/compensi-operai-standalone.html` |
 | Statistiche lavoratore (embed mobile) | `mobile/statistiche-lavoratore-standalone.html` |
 
-Navigazione admin → hub: `core/config/manodopera-hub-nav.js` (`wireManagerHomeLink`, label **← Manodopera** se `hasManodopera`).
+Navigazione admin → hub: `core/config/manodopera-hub-nav.js` (`wireManagerHomeLink`, label **← Dashboard**; hub modulo → home app: **← Dashboard Principale**).
 
 Dashboard ingresso hub: `MODULE_CATALOG.manodopera` in `dashboard-hub.js`; tile `createManodoperaCard()` in `dashboard-sections.js` (menu **Moduli**, variant `manodopera`); **Per te oggi** → href hub; quick bar `manodoperaHome` in `dashboard-quick-bar.js`.
 
