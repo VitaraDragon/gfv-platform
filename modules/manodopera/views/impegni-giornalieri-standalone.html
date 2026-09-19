@@ -300,15 +300,12 @@
         </div>
     </div>
 
-    <script>
-        const configScript = document.createElement('script');
-        configScript.src = '../../../core/config/firebase-config.js';
-        document.head.appendChild(configScript);
-    </script>
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { initializeFirebase, getAuthInstance, getDb, getDoc, doc } from '../../../core/services/firebase-service.js';
-        import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
+        import { getAuthInstance, getDb, getDoc, doc, onAuthStateChanged } from '../../../core/services/firebase-service.js';
         import { setCurrentTenantId } from '../../../core/services/tenant-service.js';
+        import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
+        import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import { toGiornoKey } from '../../../core/config/manodopera-assenze-config.js';
         import { listAssenzeApertePerGiorno } from '../../../core/services/manodopera-assenze-service.js';
         import { markAssenzaNotificationsSeen } from '../../../core/services/notification-events-client.js';
@@ -327,32 +324,11 @@
         let lastOperaiList = [];
         let currentManagerId = null;
 
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve(window.firebaseConfig);
-                    return;
-                }
-                let n = 0;
-                const t = setInterval(() => {
-                    n++;
-                    if (typeof window.firebaseConfig !== 'undefined') {
-                        clearInterval(t);
-                        resolve(window.firebaseConfig);
-                    } else if (n > 50) {
-                        clearInterval(t);
-                        reject(new Error('Firebase config non caricata'));
-                    }
-                }, 100);
-            });
-        }
-
-        function escapeHtml(s) {
-            return String(s ?? '')
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;');
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[impegni-giornalieri] Bootstrap failed:', err);
+            throw err;
         }
 
         function badgeClass(stato) {
@@ -597,8 +573,6 @@
             }
         }
 
-        const firebaseConfig = await waitForConfig();
-        initializeFirebase(firebaseConfig);
         const auth = getAuthInstance();
         const db = getDb();
 
@@ -609,14 +583,15 @@
         giornoEl.addEventListener('change', refresh);
 
         onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
             if (!user) {
-                window.location.href = '../../../core/auth/login-standalone.html';
+                window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
                 return;
             }
             try {
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 if (!userDoc.exists()) {
-                    window.location.href = '../../../core/auth/login-standalone.html';
+                    window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
                     return;
                 }
                 const udata = userDoc.data();

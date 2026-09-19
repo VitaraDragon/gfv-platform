@@ -528,66 +528,7 @@
         </div>
     </div>
 
-    <!-- Load Firebase config from external file -->
-    <!-- Fallback: usa raw GitHub se il file locale non è disponibile (per GitHub Pages) -->
-    <script>
-        function loadConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve();
-                    return;
-                }
-
-                const configScript = document.createElement('script');
-                configScript.src = 'config/firebase-config.js';
-                
-                configScript.onload = function() {
-                    setTimeout(() => {
-                        if (typeof window.firebaseConfig !== 'undefined') {
-                            resolve();
-                        } else {
-                            loadFallbackConfig().then(resolve).catch(reject);
-                        }
-                    }, 100);
-                };
-                
-                configScript.onerror = function() {
-                    loadFallbackConfig().then(resolve).catch(reject);
-                };
-                
-                document.head.appendChild(configScript);
-            });
-        }
-
-        function loadFallbackConfig() {
-            return new Promise((resolve, reject) => {
-                const fallbackScript = document.createElement('script');
-                fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-                
-                fallbackScript.onload = function() {
-                    setTimeout(() => {
-                        if (typeof window.firebaseConfig !== 'undefined') {
-                            resolve();
-                        } else {
-                            reject(new Error('Firebase config not found even after loading from GitHub'));
-                        }
-                    }, 100);
-                };
-                
-                fallbackScript.onerror = function() {
-                    reject(new Error('Failed to load Firebase config from GitHub'));
-                };
-                
-                document.head.appendChild(fallbackScript);
-            });
-        }
-
-        loadConfig().catch(error => {
-            console.error('Errore caricamento config:', error);
-        });
-    </script>
-    
-    <!-- Firebase SDK -->
+    <script type="module" src="js/standalone-bootstrap.js" data-config-base=""></script>
     <script type="module">
         // ============================================
         // IMPORT MODULI (prima di tutto)
@@ -645,35 +586,16 @@
             resetFilters as resetFiltersModule,
             initApp as initAppModule
         } from './js/statistiche-events.js';
+        import { resolveAuthUser, loginPageUrl } from './js/simulator-standalone-page.js';
 
-        // Attendi che lo script config sia caricato
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve(window.firebaseConfig);
-                    return;
-                }
-                
-                let attempts = 0;
-                const maxAttempts = 50;
-                
-                const checkInterval = setInterval(() => {
-                    attempts++;
-                    if (typeof window.firebaseConfig !== 'undefined') {
-                        clearInterval(checkInterval);
-                        resolve(window.firebaseConfig);
-                    } else if (attempts >= maxAttempts) {
-                        clearInterval(checkInterval);
-                        reject(new Error('Firebase config not loaded after 5 seconds'));
-                    }
-                }, 100);
-            });
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[statistiche] Bootstrap failed:', err);
+            throw err;
         }
 
-        const firebaseConfig = await waitForConfig();
-
         const {
-            initializeFirebase,
             getAuthInstance,
             getDb,
             getAppInstance,
@@ -687,7 +609,6 @@
             where,
             orderBy
         } = await import('./services/firebase-service.js');
-        initializeFirebase(firebaseConfig);
         const app = getAppInstance();
         const auth = getAuthInstance();
         const db = getDb();
@@ -1024,8 +945,9 @@
 
         // Verifica autenticazione
         onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
             if (!user) {
-                window.location.href = './auth/login-standalone.html';
+                window.location.href = await loginPageUrl('./auth/login-standalone.html');
                 return;
             }
 
@@ -2335,18 +2257,6 @@
                     });
             });
         }
-    </script>
-    <!-- GFV standalone shell: alert toast + Tony gated -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var s = document.createElement('script');
-      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-      document.body.appendChild(s);
-    })();
     </script>
 </body>
 </html>

@@ -1,6 +1,728 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-18 — inviti: chiusura lettura pubblica + callable getInvitoPubblico.**
+**Ultimo aggiornamento documentazione: 2026-09-20 — merge snellimento su develop (conflitti bootstrap + lock/giacenza/iPhone).**
+
+## Merge snellimento in develop (2026-09-20)
+
+- **Cosa:** `feat/snellimento-produzione` riallineato a `develop`. Conflitti: bootstrap unico (niente `waitForConfig`/`initializeFirebase` in pagina) + lock preventivi, giacenza `increment`, voce iPhone, inviti, delete comunicazioni su lavori assenti.
+- **Perché:** la PR #58 era CONFLICTING: su develop erano già arrivati inviti, preventivi, magazzino e Tony iPhone.
+- Doc: questa voce, `STATO_ATTUALE.md` riga data. Master Plan: nessuna fase cambiata.
+
+## CI snellimento verde + rimozione log debug (2026-09-20)
+
+- **Cosa:** tolta strumentazione (`gfvLavoriMark`, ingest debug, dump wait). Resta il bind handler categoria/tipo prima dei load, paint lista, refs dal seed, catalogo in background, `demo-map-privacy.js`.
+- **Perché:** CI ufficiale `bb15bb7` ([35526632655](https://github.com/VitaraDragon/gfv-platform/actions/runs/35526632655)): 7 job verdi; Tony mock 17/17; sim:e2e 71 passed 0 failed; `gestione-lavori-write` 2.4s al primo tentativo.
+- Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
+
+## Fix CI — handler form lavori prima di macchine/stats (2026-09-20)
+
+- **Cosa:** `setupCategoriaLavoroHandler` / assegnazione si legano subito, non dopo macchine+statistiche. Il picker tipo del write e2e non gira più su un select senza `change`.
+- **Perché:** CI `dca0e26` job verde per retry Playwright; primo tentativo 120s in `pickTipoLavoroInModal`. Categorie già in dropdown, tipi mai popolati.
+- **File:** `core/admin/gestione-lavori-standalone.html`, `tests/e2e/sim/scenarios/gestione-lavori-write.mjs`.
+
+## Fix CI — dropdown tipi lavoro dal seed (2026-09-20)
+
+- **Perché:** dopo `379f1f3` Tony mock 17/17 e `manodopera-admin` verdi; `gestione-lavori-write` restava sui 120s in `pickTipoLavoroInModal` perché categorie/tipi partivano solo dopo lo seed catalogo.
+- **Cosa:** terreni/categorie/tipi in parallelo a lista+roster (lettura seed); write del catalogo in background.
+- **Resto aperto:** CI GitHub sul PR.
+- Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
+
+## Fix CI — import `demo-map-privacy.js` mancante (2026-09-20)
+
+- **Perché:** CI `83d8a2f` ancora rossa. Dump `[gfv-ctd-wait]`: `step: null`, `items: 0`, summary ancora «Caricamento dati in corso...». Il modulo pagina non partiva: `gestione-lavori-maps.js` importa `core/js/demo-map-privacy.js` assente dal commit.
+- **Cosa:** aggiunto il modulo (stili mappa solo per tenant demo). Locale il file c’era già, per questo i test in macchina passavano.
+- **Resto aperto:** CI GitHub sul PR.
+- Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
+
+## Fix CI — paint lista lavori senza macchine/catalogo (2026-09-20)
+
+- **Perché:** su CI `65dd192` restava rosso (T-PERF-002 / T-INJECT-001 / T-FLOW-013 + gestione-lavori 120s). Il wrapper lista aspettava anche trattori/statistiche e lo seed catalogo partiva in parallelo a `getDocs` sul seed fresco.
+- **Cosa:** primo paint = solo `getDocs` lavori + roster; `currentTableData` subito dopo `getDocs`; catalogo/macchine/stats dopo. Un solo init Auth. Marker `data-gfv-lavori-step` se il wait CI fallisce.
+- **Test:** locale `gestione-lavori-write` + `manodopera-admin` 2/2 in 4.7s.
+- **Resto aperto:** CI GitHub sul PR.
+- Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
+
+## Fix CI — lista lavori + roster prima dello seed catalogo (2026-09-20)
+
+- **Perché:** il paint-first dopo `getDocs` non sbloccava la CI: `currentTableData` e i nomi capo arrivavano solo dopo seed catalogo / import VM / repair. Log: primo paint `names: 0`; dopo roster parallelo `names: 4` e `roster-painted`.
+- **Cosa:** `loadLavori` e roster partono subito; catalogo in parallelo. `renderLavori` pubblica `currentTableData` e dipinge la tabella prima dell’import VM. Repair/macchine in background. Wait E2E: 3 righe + `.caposquadra-name` se c’è la colonna Caposquadra.
+- **Test:** locale `gestione-lavori-write` + `manodopera-admin` 2/2 in 6s; T-PERF-002 / T-INJECT-001 / T-FLOW-013 3/3.
+- **Resto aperto:** CI GitHub sul PR.
+- Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
+
+## Fix CI — lista lavori: paint prima di repair/macchine (2026-09-20)
+
+- **Perché:** dopo il push precedente la CI restava rossa su T-PERF-002 / T-INJECT-001 / T-FLOW-013 e su `gestione-lavori-write` / `manodopera-admin`: `#lavori-container` non usciva da «Caricamento» entro 90s.
+- **Cosa:** `loadLavori` disegna la tabella subito dopo `getDocs`; repair e `correggiMacchine` dopo. Init: `loadLavori` in parallelo a terreni/categorie/tipi; secondo `applyFilters` dopo roster manodopera. Wait E2E: almeno 3 righe e `.caposquadra-name` se c’è la colonna Caposquadra.
+- **Test:** locale T-PERF-002 / T-INJECT-001 / T-FLOW-013 3/3; `gestione-lavori-write` + `manodopera-admin` ok.
+- **Resto aperto:** CI GitHub sul PR.
+- Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
+
+## Fix CI — save lavoro, tabelle colture, card aziende sim (2026-09-20)
+
+- **Perché:** su `feat/snellimento-produzione` la CI restava rossa: T-FLOW-013 (SAVE lavoro silenzioso), T6_PERF table-wrap 18s (`getBasePath` non importato dopo l’estrazione + render lavori N+1), card aziende bloccate su `GFVStandaloneReady`.
+- **Cosa:** `tryInterceptLavoroSaveBeforeCf` chiede conferma + `savedMessage` «Lavoro salvato!». Gestione lavori: terreni/categorie/tipi prima di `loadLavori`; `renderLavori` usa mappe in memoria. Import `getBasePath` da `gfv-path.js` su trattamenti/concimazioni/frutteti. Simulator-dev disegna le card da `manifest.json` senza aspettare Ready (Entra aspetta ancora).
+- **Test:** `tests/tony-form-save-local.test.js`; locale T-PERF-002 / T-INJECT-001 / T-FLOW-013 3/3; i tre spec card-login verdi; le due fail della suite 71 erano seed sporco / worker appeso, ok in isolamento.
+- **Resto aperto:** chiuso in parte (colture/card); lista lavori nella voce successiva.
+- Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
+
+## Fix CI — placeholder Ready e tabella lavori (2026-09-20)
+
+- **Perché:** le standalone potevano fare `await window.GFVStandaloneReady` mentre la promise non esisteva ancora (`undefined` → proseguono a vuoto). Gestione lavori aspettava macchine/context Tony prima di popolare `currentTableData`.
+- **Cosa:** `core/js/standalone-ready.js` — placeholder condiviso, settle dal bootstrap. Importato da `firebase-service` (solo browser), `simulator-standalone-page` e `standalone-bootstrap`. Gestione lavori: `loadLavori` in parallelo ai dati di riferimento; context Tony non blocca la tabella.
+- **Test:** `tests/standalone-ready.test.js`, `tests/simulator-standalone-page.test.js`.
+- **Resto aperto:** chiuso dalla voce «save lavoro, tabelle colture, card aziende sim» (stesso giorno).
+- Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
+
+## Fix CI — workspace e gestione lavori dopo bootstrap (2026-09-19)
+
+- **Perché:** lo snellimento lasciava `field-workspace-controller.js` importare `buildComunicazioneConfermeRicezioneRows` non in commit (modulo morto) e, dopo `ensureSimulatorSession` nel bootstrap, un tick Auth `null` reindirizzava a login. Gate Tony: form ore assente, `currentTableData` lavori fermo, mock CF perso.
+- **Cosa:** export conferme in `comunicazioni-squadra-utils.js`. Il retry Auth è in `resolveAuthUser` (tutte le standalone che già lo chiamano: vigneto, frutteto, guasti, concimazioni, …). `waitForStandaloneReady` su field workspace e gestione lavori. Ruoli campo: fallback se `hasAnyRole` manca.
+- **Test:** `tests/simulator-standalone-page.test.js`.
+- **Resto aperto:** pagine di prova dello snellimento.
+- Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
+
+## Fix CI — Tony FAB assente (2026-09-19)
+
+- **Perché:** `main.js` in commit importava da `engine.js` (`normalizeItalianSttTranscript` e affini) e `tony-form-save-local.js` (`tryInterceptLavoroSaveBeforeCf`) export rimasti fuori. Il modulo crashava all’import: FAB assente, E2E mock 0/17.
+- **Cosa:** allineati gli export nel commit; test `tests/tony-italian-stt-normalize.test.js`.
+- **Resto aperto:** pagine di prova dello snellimento.
+- Doc: questa voce. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Log debug Tony (2026-09-19)
+
+- **Perché:** `main.js` emetteva decine di `console.log` a ogni comando, anche in produzione.
+- **Cosa:** helper `core/js/tony/debug.js` (`tonyDebugLog`). Usato da `main.js` e dai log runtime di `voice.js`. Attivi solo con `window.__TONY_DEBUG = true`. Canary TTS e `console.warn` invariati. Test `tests/tony-debug.test.js`.
+- **Resto aperto:** pagine di prova dello snellimento.
+- Doc: questa voce, `STATO_ATTUALE.md` widget + §8, proposta snellimento §3.1. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — CSS liste prodotti (2026-09-19)
+
+- **Perché:** prodotti era l’ultima lista del piano CSS con chrome duplicato (tema verde magazzino).
+- **Cosa:** `modules/magazzino/views/prodotti-standalone.html` include `list-views.css` e override delle variabili tema. Restano tabella, badge, bulk, form-row e modal 600px. Con questa pagina è chiuso il CSS liste del piano (§4.3).
+- **Resto aperto:** log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §2.2, proposta snellimento §4.3. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — CSS liste guasti (2026-09-19)
+
+- **Perché:** guasti ancora con il blocco `<style>` comune delle liste macchine.
+- **Cosa:** `modules/macchine/views/guasti-list-standalone.html` include `list-views.css` (alias `.guasti-table`, `btn-success`, textarea). Restano solo badge gravità/stato e modal 440px.
+- **Resto aperto:** prodotti; log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §2.2, proposta snellimento §4.3. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — CSS liste scadenze (2026-09-19)
+
+- **Perché:** scadenze ancora con il blocco `<style>` comune delle liste macchine.
+- **Cosa:** `modules/macchine/views/scadenze-list-standalone.html` include `list-views.css` (alias `.scadenze-table`). Restano solo stili specifici: riga scaduta, pallini stato, rinnova, modal 420px.
+- **Resto aperto:** guasti, prodotti; log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §2.2, proposta snellimento §4.3. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — CSS liste flotta (2026-09-19)
+
+- **Perché:** flotta ancora con lo stesso blocco `<style>` delle altre liste macchine.
+- **Cosa:** `modules/macchine/views/flotta-list-standalone.html` include `core/styles/list-views.css` e non tiene più lo style inline.
+- **Resto aperto:** scadenze, guasti, prodotti; log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §2.2, proposta snellimento §4.3. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — CSS liste attrezzi (2026-09-19)
+
+- **Perché:** attrezzi ancora con lo stesso blocco `<style>` delle altre liste macchine.
+- **Cosa:** `modules/macchine/views/attrezzi-list-standalone.html` include `core/styles/list-views.css` e non tiene più lo style inline.
+- **Resto aperto:** flotta, scadenze, guasti, prodotti; log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §2.2, proposta snellimento §4.3. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — CSS liste trattori (2026-09-19)
+
+- **Perché:** le liste Parco Macchine ripetono lo stesso blocco `<style>` (tabella, filtri, modal, badge).
+- **Cosa:** creato `core/styles/list-views.css` (variabili tema + classi comuni). `modules/macchine/views/trattori-list-standalone.html` include il foglio e non tiene più lo style inline.
+- **Resto aperto:** attrezzi, flotta, scadenze, guasti, prodotti; log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §2.2, proposta snellimento §4.3. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Path-resolver dashboard frutteto (2026-09-19)
+
+- **Perché:** dashboard frutteto ancora con `getBasePath` / `resolvePath` locali.
+- **Cosa:** `modules/frutteto/views/frutteto-dashboard-standalone.html` importa `resolvePath` da `gfv-path.js`. Con questa pagina è chiuso il `resolvePath` locale su Vigneto e Frutteto.
+- **Resto aperto:** CSS liste; log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.3. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Path-resolver frutteti (2026-09-19)
+
+- **Perché:** anagrafica frutteti ancora con `getBasePath` / `resolvePath` locali.
+- **Cosa:** `modules/frutteto/views/frutteti-standalone.html` importa `resolvePath` da `gfv-path.js`.
+- **Resto aperto:** frutteto-dashboard; CSS liste; log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.3. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Path-resolver raccolta frutta (2026-09-19)
+
+- **Perché:** raccolta frutta ancora con `getBasePath` / `resolvePath` locali.
+- **Cosa:** `modules/frutteto/views/raccolta-frutta-standalone.html` importa `resolvePath` da `gfv-path.js`.
+- **Resto aperto:** frutteti, frutteto-dashboard; CSS liste; log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.3. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Path-resolver concimazioni frutteto (2026-09-19)
+
+- **Perché:** concimazioni frutteto ancora con `getBasePath` / `resolvePath` locali.
+- **Cosa:** `modules/frutteto/views/concimazioni-standalone.html` importa `resolvePath` da `gfv-path.js`.
+- **Resto aperto:** raccolta-frutta, frutteti, frutteto-dashboard; CSS liste; log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.3. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Path-resolver potatura frutteto (2026-09-19)
+
+- **Perché:** potatura frutteto ancora con `getBasePath` / `resolvePath` locali.
+- **Cosa:** `modules/frutteto/views/potatura-standalone.html` importa `resolvePath` da `gfv-path.js`.
+- **Resto aperto:** concimazioni, raccolta-frutta, frutteti, frutteto-dashboard; CSS liste; log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.3. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Path-resolver trattamenti frutteto (2026-09-19)
+
+- **Perché:** trattamenti frutteto ancora con `getBasePath` / `resolvePath` locali.
+- **Cosa:** `modules/frutteto/views/trattamenti-standalone.html` importa `resolvePath` da `gfv-path.js`.
+- **Resto aperto:** altre view frutteto con `resolvePath` locale; CSS liste; log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.3. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Path-resolver pianifica impianto (2026-09-19)
+
+- **Perché:** pianifica impianto ancora con `getBasePath` / `resolvePath` locali.
+- **Cosa:** `modules/vigneto/views/pianifica-impianto-standalone.html` importa `resolvePath` da `gfv-path.js`. Con questa pagina è chiuso il `resolvePath` locale su Vigneto.
+- **Resto aperto:** view frutteto con `resolvePath` locale; CSS liste; log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.3. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Path-resolver calcolo materiali (2026-09-19)
+
+- **Perché:** calcolo materiali ancora con `getBasePath` / `resolvePath` locali.
+- **Cosa:** `modules/vigneto/views/calcolo-materiali-standalone.html` importa `resolvePath` da `gfv-path.js`.
+- **Resto aperto:** altre view con `resolvePath` locale; CSS liste; log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.3. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Path-resolver anagrafica vigneti (2026-09-19)
+
+- **Perché:** anagrafica vigneti ancora con `getBasePath` / `resolvePath` locali.
+- **Cosa:** `modules/vigneto/views/vigneti-standalone.html` importa `resolvePath` da `gfv-path.js`.
+- **Resto aperto:** altre view con `resolvePath` locale; CSS liste; log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.3. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Path-resolver vendemmia (2026-09-19)
+
+- **Perché:** vendemmia ancora con `getBasePath` / `resolvePath` locali per gli import dinamici core.
+- **Cosa:** `modules/vigneto/views/vendemmia-standalone.html` importa `resolvePath` da `gfv-path.js`.
+- **Resto aperto:** altre view con `resolvePath` locale; CSS liste; log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.3. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Path-resolver concimazioni vigneto (2026-09-19)
+
+- **Perché:** concimazioni vigneto ancora con `getBasePath` / `resolvePath` locali.
+- **Cosa:** `modules/vigneto/views/concimazioni-standalone.html` importa `resolvePath` da `gfv-path.js`.
+- **Resto aperto:** altre view con `resolvePath` locale; CSS liste; log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.3. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Path-resolver potatura vigneto (2026-09-19)
+
+- **Perché:** potatura vigneto ancora con `getBasePath` / `resolvePath` locali.
+- **Cosa:** `modules/vigneto/views/potatura-standalone.html` importa `resolvePath` da `gfv-path.js`.
+- **Resto aperto:** altre view con `resolvePath` locale; CSS liste; log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.3. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Path-resolver (2026-09-19)
+
+- **Perché:** ogni view vigneto/frutteto copia `getBasePath` / `resolvePath` per gli import dinamici.
+- **Cosa:** aggiunto `core/js/gfv-path.js` (wrapper di `path-resolver.js`, `resolvePath` = `resolveImportPath`) e test `tests/gfv-path.test.js`. Pilota: `modules/vigneto/views/trattamenti-standalone.html` toglie le funzioni locali.
+- **Resto aperto:** altre view con `resolvePath` locale; CSS liste; log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.3. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Bilancio VM (2026-09-19)
+
+- **Perché:** pagina bilancio servizio ancora su `firebase-config.js` inline.
+- **Cosa:** `modules/vendemmia-meccanica/views/bilancio-vm-standalone.html` usa `standalone-bootstrap.js`. Auth resta su `initVmPageAuth`. KPI e form spese invariati. Con questa pagina è chiuso il modulo Vendemmia Meccanica.
+- **Resto aperto:** path-resolver, CSS liste, log debug Tony (e pagine di prova).
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Tariffe VM (2026-09-19)
+
+- **Perché:** pagina tariffe ancora su `firebase-config.js` inline.
+- **Cosa:** `modules/vendemmia-meccanica/views/tariffe-vm-standalone.html` usa `standalone-bootstrap.js`. Auth resta su `initVmPageAuth`. Griglia e `showVmAlert` invariati.
+- **Resto aperto:** bilancio VM; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Calcoli salvati VM (2026-09-19)
+
+- **Perché:** pagina calcoli salvati ancora su `firebase-config.js` inline.
+- **Cosa:** `modules/vendemmia-meccanica/views/calcoli-salvati-standalone.html` usa `standalone-bootstrap.js`. Auth resta su `initVmPageAuth`. `currentTableData`, jsPDF e `showVmAlert` invariati.
+- **Resto aperto:** tariffe, bilancio VM; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Calcolatore VM (2026-09-19)
+
+- **Perché:** pagina calcolatore ancora su `firebase-config.js` inline.
+- **Cosa:** `modules/vendemmia-meccanica/views/calcolatore-standalone.html` usa `standalone-bootstrap.js`. Auth resta su `initVmPageAuth`. jsPDF, `showVmAlert` e salvataggio calcolo invariati.
+- **Resto aperto:** calcoli salvati, tariffe, bilancio VM; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Piano stagione VM (2026-09-19)
+
+- **Perché:** pagina piano stagione ancora su `firebase-config.js` inline e `escapeHtml` locale.
+- **Cosa:** `modules/vendemmia-meccanica/views/piano-stagione-standalone.html` usa `standalone-bootstrap.js` + `escapeHtml` da `gfv-page-utils.js`. Auth resta su `initVmPageAuth` (già bootstrap-aware). `currentTableData`, polygon-clipping e `showVmAlert` invariati.
+- **Resto aperto:** calcolatore, calcoli salvati, tariffe, bilancio VM; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Home vendemmia meccanica (2026-09-19)
+
+- **Perché:** hub VM ancora su `firebase-config.js` inline; `initVmPageAuth` duplicava init Firebase e lo shell.
+- **Cosa:** `modules/vendemmia-meccanica/views/vm-home-standalone.html` usa `standalone-bootstrap.js` + `escapeHtml` da `gfv-page-utils.js`. `vm-page-auth.js` attende `GFVStandaloneReady` se presente, altrimenti resta il fallback per le altre pagine VM. Auth su `resolveAuthUser` / `loginPageUrl`. `showVmAlert` su `#alert-container` invariato.
+- **Resto aperto:** altre pagine VM; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Statistiche lavoratore (2026-09-19)
+
+- **Perché:** pagina statistiche lavoratore ancora su `config-loader` + `waitForConfig` e init Firebase locale.
+- **Cosa:** `core/mobile/statistiche-lavoratore-standalone.html` usa `standalone-bootstrap.js`. Auth su `resolveAuthUser` / `loginPageUrl`. Chart.js e `dashboard-utils` invariati. Redirect manager verso dashboard classica invariato. Con questa pagina è chiuso il blocco mobile standalone.
+- **Resto aperto:** path-resolver, CSS liste, log debug Tony (e pagine di prova / vendemmia meccanica se in scope).
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Workspace campo (2026-09-19)
+
+- **Perché:** workspace mobile ancora su `config-loader` + `waitForConfig` / init Firebase nel controller e shell iniettato a mano.
+- **Cosa:** `core/mobile/field-workspace-standalone.html` usa `standalone-bootstrap.js`. Il controller attende `GFVStandaloneReady` e auth su `resolveAuthUser` / `loginPageUrl`. Emulator head, `dashboard-utils` e `currentTableData` invariati. Redirect manager verso dashboard classica invariato.
+- **Resto aperto:** statistiche-lavoratore; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Reset password (2026-09-19)
+
+- **Perché:** pagina reset password ancora su `firebase-config.js` inline + `waitForConfig` locale e init Firebase duplicato.
+- **Cosa:** `core/auth/reset-password-standalone.html` usa `standalone-bootstrap.js`. Tolti config inline, init Firebase locale e `escapeHtml` inutilizzato. Flusso `oobCode` e messaggi form invariati. Con questa pagina è chiuso il blocco auth standalone.
+- **Resto aperto:** mobile (field-workspace, statistiche-lavoratore); path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Registrazione invito (2026-09-19)
+
+- **Perché:** pagina invito ancora su `firebase-config.js` inline + `waitForConfig` locale e init Firebase duplicato.
+- **Cosa:** `core/auth/registrazione-invito-standalone.html` usa `standalone-bootstrap.js`. Tolti config inline e init Firebase locale. Auth già loggato su `resolveAuthUser`. Flusso token/invito invariato.
+- **Resto aperto:** reset password; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Registrazione (2026-09-19)
+
+- **Perché:** pagina registrazione ancora su `firebase-config.js` inline + `waitForConfig` locale e init Firebase duplicato.
+- **Cosa:** `core/auth/registrazione-standalone.html` usa `standalone-bootstrap.js`. Tolti config inline e init Firebase locale. Auth già loggato su `resolveAuthUser`. Validazione campi e creazione account invariate.
+- **Resto aperto:** invito, reset password; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Login (2026-09-19)
+
+- **Perché:** pagina login ancora su `firebase-config.js` inline + `waitForConfig` locale e init Firebase duplicato.
+- **Cosa:** `core/auth/login-standalone.html` usa `standalone-bootstrap.js` + `escapeHtml` da `gfv-page-utils.js`. Tolti config inline e init Firebase locale. Auth già loggato su `resolveAuthUser`. Messaggi form, banner PWA e reset password invariati.
+- **Resto aperto:** registrazione, invito, reset password; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Dashboard meteo (2026-09-19)
+
+- **Perché:** pagina meteo ancora su `firebase-config.js` inline + `waitForConfig` locale, `config-loader` e shell duplicati.
+- **Cosa:** `modules/meteo/views/meteo-dashboard-standalone.html` usa `standalone-bootstrap.js` + `escapeHtml` da `gfv-page-utils.js`. Tolti config inline, init Firebase locale, `dashboard-utils` e lo shell. Auth su `resolveAuthUser` + `loginPageUrl`. `loadGoogleMapsAPI` invariato.
+- **Resto aperto:** auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Report vigneto (2026-09-19)
+
+- **Perché:** pagina report vigneto ancora su `firebase-config.js` inline + `waitForConfig` locale, toast e shell duplicati.
+- **Cosa:** `modules/report/views/report-standalone.html` usa `standalone-bootstrap.js` + `showAlert` da `gfv-page-utils.js`. Tolti config inline, init Firebase locale e lo shell. Auth su `resolveAuthUser` + `loginPageUrl`. ExcelJS invariato. Con questa pagina è chiuso il modulo Report.
+- **Resto aperto:** meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Report terreni (2026-09-19)
+
+- **Perché:** pagina report terreni ancora su `firebase-config.js` inline + `waitForConfig` locale, `escHtml` e shell duplicati.
+- **Cosa:** `modules/report/views/report-terreni-standalone.html` usa `standalone-bootstrap.js` + `escapeHtml` da `gfv-page-utils.js`. Tolti config inline, init Firebase locale e lo shell. Auth su `resolveAuthUser` + `loginPageUrl`.
+- **Resto aperto:** report-standalone (vigneto), meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Dashboard Report (2026-09-19)
+
+- **Perché:** hub report ancora su `firebase-config.js` inline + `waitForConfig` locale e shell duplicato.
+- **Cosa:** `modules/report/views/report-dashboard-standalone.html` usa `standalone-bootstrap.js` + auth su `resolveAuthUser` / `loginPageUrl`. Tolti config inline, init Firebase locale e lo shell.
+- **Resto aperto:** report-standalone, report-terreni, meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Mappa aziendale (2026-09-19)
+
+- **Perché:** pagina mappa ancora su ConfigLoader + `waitForConfig`/`initializeFirebase` locali e shell duplicato.
+- **Cosa:** `core/mappa-aziendale-standalone.html` + `core/js/mappa-aziendale-page.js` usano `standalone-bootstrap.js` (`data-config-base=""`). Tolti config inline, init Firebase locale e lo shell. Auth su `resolveAuthUser` + `loginPageUrl`. `loadGoogleMapsAPI` e `dashboard-maps.js` invariati.
+- **Resto aperto:** report, meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Segnatura ore (2026-09-19)
+
+- **Perché:** pagina segnatura ancora su `firebase-config.js` inline + `waitForConfig` locale, toast/`escapeHtml` e shell duplicati.
+- **Cosa:** `core/segnatura-ore-standalone.html` usa `standalone-bootstrap.js` (`data-config-base=""`) + `showAlert`/`escapeHtml` da `gfv-page-utils.js`. Tolti config inline, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`. `currentTableData` invariato.
+- **Resto aperto:** mappa, report, meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Dashboard (2026-09-19)
+
+- **Perché:** hub dashboard ancora su ConfigLoader + `waitForConfig`/`initializeFirebase` locali e loader Tony/alert duplicati.
+- **Cosa:** `core/dashboard-standalone.html` usa `standalone-bootstrap.js` (`data-config-base=""`). Tolti config inline, init Firebase locale e i loader alert/Tony in testa. Auth su `resolveAuthUser` + `loginPageUrl`. Utils/sezioni/hub/meteo e script emulator in head invariati.
+- **Resto aperto:** segnatura ore, mappa, report, meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Statistiche core (2026-09-19)
+
+- **Perché:** pagina statistiche ancora su `firebase-config.js` inline + `waitForConfig` locale e shell duplicato.
+- **Cosa:** `core/statistiche-standalone.html` usa `standalone-bootstrap.js` (`data-config-base=""`). Tolti config inline, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`. Chart.js e moduli `statistiche-*` invariati.
+- **Resto aperto:** dashboard, segnatura ore, mappa, report, meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Segnalazione guasti (2026-09-19)
+
+- **Perché:** pagina segnalazione ancora su `firebase-config.js` inline + `initializeFirebase` locale e toast/shell duplicati.
+- **Cosa:** `core/admin/segnalazione-guasti-standalone.html` usa `standalone-bootstrap.js` (`data-config-base="../"`) + `showAlert` da `gfv-page-utils.js`. Tolti config inline, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`. Script Maps e hook emulator/simulator invariati.
+- **Resto aperto:** report, meteo, auth, altre core; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Gestione guasti (2026-09-19)
+
+- **Perché:** pagina admin guasti ancora su `firebase-config.js` inline + `initializeFirebase` locale e toast/shell duplicati.
+- **Cosa:** `core/admin/gestione-guasti-standalone.html` usa `standalone-bootstrap.js` (`data-config-base="../"`) + `showAlert` da `gfv-page-utils.js`. Tolti config inline, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`.
+- **Resto aperto:** segnalazione guasti, report, meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Gestione macchine (2026-09-19)
+
+- **Perché:** pagina admin macchine ancora su `firebase-config.js` inline + `waitForConfig` locale e shell duplicato.
+- **Cosa:** `core/admin/gestione-macchine-standalone.html` usa `standalone-bootstrap.js` (`data-config-base="../"`). Tolti config inline, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`. Utils/controller/events della pagina invariati.
+- **Resto aperto:** gestione/segnalazione guasti, report, meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Abbonamento (2026-09-19)
+
+- **Perché:** pagina abbonamento ancora su `firebase-config.js` inline + `waitForConfig` locale, toast e shell duplicati.
+- **Cosa:** `core/admin/abbonamento-standalone.html` usa `standalone-bootstrap.js` (`data-config-base="../"`) + `showAlert` da `gfv-page-utils.js`. Tolti config inline, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`.
+- **Resto aperto:** gestione macchine/guasti, report, meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Impostazioni (2026-09-19)
+
+- **Perché:** pagina impostazioni ancora su `firebase-config.js` inline + `waitForConfig` locale, toast/`escapeHtml` e shell duplicati.
+- **Cosa:** `core/admin/impostazioni-standalone.html` usa `standalone-bootstrap.js` (`data-config-base="../"`) + `showAlert`/`escapeHtml` da `gfv-page-utils.js`. Tolti config Firebase inline, init locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`. Script Maps invariato.
+- **Resto aperto:** abbonamento, gestione macchine/guasti, report, meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Amministrazione (2026-09-19)
+
+- **Perché:** hub amministrazione ancora su `firebase-config.js` inline + `waitForConfig` locale e shell duplicato.
+- **Cosa:** `core/admin/amministrazione-standalone.html` usa `standalone-bootstrap.js` (`data-config-base="../"`). Tolti config inline, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`.
+- **Resto aperto:** impostazioni, abbonamento, gestione macchine/guasti, report, meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Statistiche manodopera (2026-09-19)
+
+- **Perché:** pagina statistiche ancora su `firebase-config.js` inline + `waitForConfig` locale, `escapeHtml` e shell duplicati.
+- **Cosa:** `core/admin/statistiche-manodopera-standalone.html` usa `standalone-bootstrap.js` (`data-config-base="../"`) + `escapeHtml` da `gfv-page-utils.js`. Tolti config inline, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`.
+- **Resto aperto:** altri core/admin, report, meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Compensi operai (2026-09-19)
+
+- **Perché:** pagina compensi ancora su `firebase-config.js` inline + `waitForConfig` locale e shell duplicato.
+- **Cosa:** `core/admin/compensi-operai-standalone.html` usa `standalone-bootstrap.js` (`data-config-base="../"`). Tolti config inline, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`. ExcelJS e `alert()` nativi di export/permessi invariati.
+- **Resto aperto:** statistiche manodopera, altri core/admin, report, meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Gestisci utenti (2026-09-19)
+
+- **Perché:** pagina utenti ancora su `firebase-config.js` inline + `waitForConfig` locale e toast/shell duplicati.
+- **Cosa:** `core/admin/gestisci-utenti-standalone.html` usa `standalone-bootstrap.js` (`data-config-base="../"`) + `showAlert` da `gfv-page-utils.js`. Tolti config inline, init Firebase/tenant locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`.
+- **Resto aperto:** compensi, statistiche manodopera, altri core/admin, report, meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Gestione squadre (2026-09-19)
+
+- **Perché:** pagina squadre ancora su `firebase-config.js` inline + `waitForConfig` locale e toast/shell duplicati.
+- **Cosa:** `core/admin/gestione-squadre-standalone.html` usa `standalone-bootstrap.js` (`data-config-base="../"`) + `showAlert`/`escapeHtml` da `gfv-page-utils.js`. Tolti config inline, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`.
+- **Resto aperto:** utenti, compensi, statistiche manodopera, altri core/admin, report, meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Gestione operai (2026-09-19)
+
+- **Perché:** anagrafica operai ancora su `firebase-config.js` inline + `waitForConfig` locale e toast/shell duplicati.
+- **Cosa:** `core/admin/gestione-operai-standalone.html` usa `standalone-bootstrap.js` (`data-config-base="../"`) + `showAlert` da `gfv-page-utils.js`. Tolti config inline, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`.
+- **Resto aperto:** squadre, utenti, compensi, statistiche manodopera, altri core/admin, report, meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Validazione ore (2026-09-19)
+
+- **Perché:** pagina validazione ancora su `firebase-config.js` inline + `waitForConfig` locale e toast/shell duplicati.
+- **Cosa:** `core/admin/validazione-ore-standalone.html` usa `standalone-bootstrap.js` (`data-config-base="../"`) + `showAlert` da `gfv-page-utils.js`. Tolti config inline, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`.
+- **Resto aperto:** altre manodopera, core/admin, report, meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Impegni giornalieri (2026-09-19)
+
+- **Perché:** pagina impegni ancora su `firebase-config.js` inline + `waitForConfig` locale e `escapeHtml` duplicato.
+- **Cosa:** `modules/manodopera/views/impegni-giornalieri-standalone.html` usa `standalone-bootstrap.js` + `escapeHtml` da `gfv-page-utils.js`. Tolti config inline e init Firebase locale. Auth su `resolveAuthUser` + `loginPageUrl`. `currentTableData` invariato.
+- **Resto aperto:** altre manodopera, core/admin, report, meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Home Manodopera (2026-09-19)
+
+- **Perché:** hub manodopera ancora su `firebase-config.js` inline + `waitForConfig` locale e toast/shell duplicati.
+- **Cosa:** `modules/manodopera/views/manodopera-home-standalone.html` usa `standalone-bootstrap.js` + `showAlert` da `gfv-page-utils.js`. Tolti config inline, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`.
+- **Resto aperto:** core/admin residui, altre manodopera, report, meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Dashboard Parco Macchine (2026-09-19)
+
+- **Perché:** hub macchine ancora su `GFVConfigLoader` + `afterFirebaseInit` e shell inline, mentre le 5 liste sono già allineate.
+- **Cosa:** `modules/macchine/views/macchine-dashboard-standalone.html` usa `standalone-bootstrap.js` + `escapeHtml` da `gfv-page-utils.js`. Tolti config-loader, init Firebase locale e lo shell inline. Login già su `loginPageUrl`.
+- **Resto aperto:** core/admin residui, manodopera, report, meteo, auth; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Statistiche Frutteto (2026-09-19)
+
+- **Perché:** ultima pagina Frutteto ancora su `GFVConfigLoader` + `initializeFirebase` locale.
+- **Cosa:** `modules/frutteto/views/frutteto-statistiche-standalone.html` usa `standalone-bootstrap.js` + `showAlert` da `gfv-page-utils.js`. Tolti config-loader, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`.
+- **Resto aperto:** core/admin residui; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Concimazioni Frutteto (2026-09-19)
+
+- **Perché:** pagina concimazioni ancora su `GFVConfigLoader` + `initializeFirebase` locale, login senza `loginPageUrl`.
+- **Cosa:** `modules/frutteto/views/concimazioni-standalone.html` usa `standalone-bootstrap.js` + `showAlert` da `gfv-page-utils.js`. Tolti config-loader, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`. `currentTableData` invariato.
+- **Resto aperto:** statistiche Frutteto; core/admin residui; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Trattamenti Frutteto (2026-09-19)
+
+- **Perché:** pagina trattamenti ancora su `GFVConfigLoader` + `initializeFirebase` locale e toast locale.
+- **Cosa:** `modules/frutteto/views/trattamenti-standalone.html` usa `standalone-bootstrap.js` + `showAlert` da `gfv-page-utils.js`. Tolti config-loader, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`.
+- **Resto aperto:** concimazioni, statistiche Frutteto; core/admin residui; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Potatura Frutteto (2026-09-19)
+
+- **Perché:** pagina potatura ancora su `GFVConfigLoader` + `initializeFirebase` locale e toast locale.
+- **Cosa:** `modules/frutteto/views/potatura-standalone.html` usa `standalone-bootstrap.js` + `showAlert` da `gfv-page-utils.js`. Tolti config-loader, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`.
+- **Resto aperto:** trattamenti, concimazioni, statistiche Frutteto; core/admin residui; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Raccolta frutta (2026-09-19)
+
+- **Perché:** lista raccolte ancora su `GFVConfigLoader` + `initializeFirebase` locale, login senza `loginPageUrl`.
+- **Cosa:** `modules/frutteto/views/raccolta-frutta-standalone.html` usa `standalone-bootstrap.js`. Tolti config-loader, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`. Maps esistenti invariate.
+- **Resto aperto:** potatura, trattamenti, concimazioni, statistiche Frutteto; core/admin residui; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Anagrafica Frutteti (2026-09-19)
+
+- **Perché:** lista frutteti ancora su `GFVConfigLoader` + `initializeFirebase` locale, login senza `loginPageUrl`.
+- **Cosa:** `modules/frutteto/views/frutteti-standalone.html` usa `standalone-bootstrap.js`. Tolti config-loader, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`.
+- **Resto aperto:** raccolta, potatura, trattamenti, concimazioni, statistiche Frutteto; core/admin residui; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Dashboard Frutteto (2026-09-19)
+
+- **Perché:** prima pagina Frutteto dopo Vigneto completo; hub ancora su `GFVConfigLoader` + `initializeFirebase` locale.
+- **Cosa:** `modules/frutteto/views/frutteto-dashboard-standalone.html` usa `standalone-bootstrap.js`. Tolti config-loader, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`.
+- **Resto aperto:** anagrafica, raccolta, potatura, trattamenti, concimazioni, statistiche Frutteto; core/admin residui; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Calcolo materiali Vigneto (2026-09-19)
+
+- **Perché:** ultima pagina Vigneto ancora su `GFVConfigLoader` + `initializeFirebase` locale.
+- **Cosa:** `modules/vigneto/views/calcolo-materiali-standalone.html` usa `standalone-bootstrap.js` + `showAlert` da `gfv-page-utils.js`. Tolti config-loader, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`.
+- **Resto aperto:** tutto Frutteto; core/admin residui; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Pianifica impianto Vigneto (2026-09-19)
+
+- **Perché:** pagina pianificazione ancora su `GFVConfigLoader` + `initializeFirebase` locale, login con path `../../../../core` e senza `loginPageUrl`.
+- **Cosa:** `modules/vigneto/views/pianifica-impianto-standalone.html` usa `standalone-bootstrap.js`. Tolti config-loader, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`. Maps esistenti invariate.
+- **Resto aperto:** calcolo-materiali; tutto Frutteto; core/admin residui; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Statistiche Vigneto (2026-09-19)
+
+- **Perché:** pagina statistiche ancora su `GFVConfigLoader` + `initializeFirebase` locale, login senza `loginPageUrl`.
+- **Cosa:** `modules/vigneto/views/vigneto-statistiche-standalone.html` usa `standalone-bootstrap.js` + `showAlert` da `gfv-page-utils.js`. Tolti config-loader, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`.
+- **Resto aperto:** pianifica-impianto, calcolo-materiali; tutto Frutteto; core/admin residui; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Concimazioni Vigneto (2026-09-19)
+
+- **Perché:** pagina concimazioni ancora su `GFVConfigLoader` + `initializeFirebase` locale, login senza `loginPageUrl`.
+- **Cosa:** `modules/vigneto/views/concimazioni-standalone.html` usa `standalone-bootstrap.js` + `showAlert` da `gfv-page-utils.js`. Tolti config-loader, init Firebase locale e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`. `currentTableData` invariato.
+- **Resto aperto:** statistiche, pianifica-impianto, calcolo-materiali; tutto Frutteto; core/admin residui; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Trattamenti Vigneto (2026-09-19)
+
+- **Perché:** pagina trattamenti ancora su `GFVConfigLoader` + `initializeFirebase`/`afterFirebaseInit` e toast locale.
+- **Cosa:** `modules/vigneto/views/trattamenti-standalone.html` usa `standalone-bootstrap.js` + `showAlert` da `gfv-page-utils.js`. Tolti config-loader, init Firebase locale e lo shell in fondo. Login già su `loginPageUrl`.
+- **Resto aperto:** concimazioni, statistiche, pianifica-impianto, calcolo-materiali; tutto Frutteto; core/admin residui; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Potatura Vigneto (2026-09-19)
+
+- **Perché:** pagina potatura ancora su `GFVConfigLoader` + `initializeFirebase`/`afterFirebaseInit` e toast locale.
+- **Cosa:** `modules/vigneto/views/potatura-standalone.html` usa `standalone-bootstrap.js` + `showAlert` da `gfv-page-utils.js`. Tolti config-loader, init Firebase locale e lo shell in fondo. Login già su `loginPageUrl`.
+- **Resto aperto:** trattamenti, concimazioni, statistiche, pianifica-impianto, calcolo-materiali; tutto Frutteto; core/admin residui; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Vendemmia Vigneto (2026-09-19)
+
+- **Perché:** lista vendemmie ancora su `GFVConfigLoader` + `initializeFirebase` locale, login senza `loginPageUrl`.
+- **Cosa:** `modules/vigneto/views/vendemmia-standalone.html` usa `standalone-bootstrap.js`. Tolti config-loader, `waitForConfig`/`initializeFirebase` e lo shell in fondo. Auth su `resolveAuthUser` + `loginPageUrl`. `currentTableData` e caricamento Maps esistenti invariati.
+- **Resto aperto:** potatura, trattamenti, concimazioni, statistiche, pianifica-impianto, calcolo-materiali; tutto Frutteto; core/admin residui; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Dashboard e anagrafica Vigneto (2026-09-19)
+
+- **Perché:** prime pagine colture dopo Magazzino/CT; hub e lista vigneti ancora su `GFVConfigLoader` + init Firebase locale.
+- **Cosa:** `vigneto-dashboard-standalone.html` e `vigneti-standalone.html` usano `standalone-bootstrap.js`. Tolti config-loader inline, `waitForConfig`/`initializeFirebase`/`afterFirebaseInit` e lo shell in fondo. Login su `loginPageUrl`.
+- **Resto aperto:** vendemmia, potatura, trattamenti, concimazioni, statistiche, pianifica-impianto, calcolo-materiali; tutto Frutteto; core/admin residui; path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Tracciabilità consumi Magazzino (2026-09-19)
+
+- **Perché:** ultima pagina Magazzino ancora sul vecchio init.
+- **Cosa:** `modules/magazzino/views/tracciabilita-consumi-standalone.html` usa `standalone-bootstrap.js` + `escapeHtml` da `gfv-page-utils.js`. Tolti config Firebase inline, `waitForConfig`/`initializeFirebase` e lo shell in fondo (c’era anche un `<script>` orfano). Login allineato a `loginPageUrl`. `currentTableData` invariato.
+- **Resto aperto:** altre standalone (core/admin, colture, …), path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Documenti acquisiti Magazzino (2026-09-19)
+
+- **Perché:** archivio documenti dopo home Magazzino.
+- **Cosa:** `modules/magazzino/views/documenti-acquisiti-standalone.html` usa `standalone-bootstrap.js` + `escapeHtml` da `gfv-page-utils.js`. Tolti config Firebase inline, `waitForConfig`/`initializeFirebase` e il loader Tony diretto (`tony-widget-standalone.js`). Login allineato a `loginPageUrl`. `showAlert` resta inline (`#alert-container`). `currentTableData` invariato.
+- **Resto aperto:** tracciabilità consumi, altre standalone, path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Home Magazzino (2026-09-19)
+
+- **Perché:** hub Magazzino dopo prodotti/movimenti già allineati.
+- **Cosa:** `modules/magazzino/views/magazzino-home-standalone.html` usa `standalone-bootstrap.js` + `gfv-page-utils.js`. Tolti config Firebase inline, `waitForConfig`/`initializeFirebase`, `showAlert` locale e lo shell in fondo. Login allineato a `loginPageUrl`. Briefing Tony e `syncTonyPageMagazzinoHome` invariati.
+- **Resto aperto:** documenti acquisiti, tracciabilità consumi, altre standalone, path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Accetta preventivo CT (2026-09-19)
+
+- **Perché:** ultima pagina Conto Terzi ancora sul vecchio init (link pubblico a token).
+- **Cosa:** `modules/conto-terzi/views/accetta-preventivo-standalone.html` usa `standalone-bootstrap.js` + `gfv-page-utils.js`. Tolti config Firebase inline (anche il fallback hardcoded), `waitForConfig`/`initializeFirebase`, `showAlert` locale e lo shell in fondo. Callable pubbliche invariate. Senza token resta il messaggio «Token non valido».
+- **Resto aperto:** altre standalone fuori CT, path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Mappa clienti CT (2026-09-19)
+
+- **Perché:** ultima pagina geografica CT ancora sul vecchio init.
+- **Cosa:** `modules/conto-terzi/views/mappa-clienti-standalone.html` usa `standalone-bootstrap.js` (`data-config-base="../../../core"`) + `gfv-page-utils.js`. Tolti `gfv-standalone-head-bootstrap`, config Firebase/Maps inline, `waitForConfig`/`initializeFirebase`, `escapeHtml` locale e lo shell in fondo. Login allineato a `loginPageUrl` (`auth/login-standalone.html`). Maps API resta lazy dopo la chiave del bootstrap.
+- **Resto aperto:** accetta preventivo, altre standalone, path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Nuovo preventivo CT (2026-09-19)
+
+- **Perché:** form CT dopo hub e liste già allineate; Tony `preventivoState` invariato.
+- **Cosa:** `modules/conto-terzi/views/nuovo-preventivo-standalone.html` usa `standalone-bootstrap.js` (`data-config-base="../../../core"`) + `gfv-page-utils.js`. Tolti `gfv-standalone-head-bootstrap`, config Firebase inline, `waitForConfig`/`initializeFirebase`, `showAlert` locale e lo shell in fondo. Login allineato a `loginPageUrl`.
+- **Resto aperto:** accetta preventivo, mappa clienti, altre standalone, path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Home Conto Terzi (2026-09-19)
+
+- **Perché:** hub CT dopo le liste già allineate.
+- **Cosa:** `modules/conto-terzi/views/conto-terzi-home-standalone.html` usa `standalone-bootstrap.js` (`data-config-base="../../../core"`) + `gfv-page-utils.js`. Tolti `gfv-standalone-head-bootstrap`, config Firebase inline, `waitForConfig`/`initializeFirebase`, `showAlert` locale e lo shell in fondo. Login allineato a `loginPageUrl`.
+- **Resto aperto:** nuovo preventivo, accetta preventivo, mappa clienti, altre standalone, path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Terreni clienti CT (2026-09-19)
+
+- **Perché:** ultima lista Conto Terzi ancora sul vecchio init, dopo tariffe/preventivi/clienti.
+- **Cosa:** `modules/conto-terzi/views/terreni-clienti-standalone.html` usa `standalone-bootstrap.js` (`data-config-base="../../../core"`) + `gfv-page-utils.js`. Tolti `gfv-standalone-head-bootstrap`, config Firebase/Maps inline, `waitForConfig`/`initializeFirebase`, copie locali `showAlert`/`escapeHtml` e lo shell in fondo. Login allineato a `loginPageUrl`.
+- **Resto aperto:** altre standalone CT (home, nuovo preventivo, accetta, mappa), path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Lavori caposquadra (2026-09-19)
+
+- **Perché:** stessa area admin di Gestione lavori; pagina campo caposquadra/operaio.
+- **Cosa:** `core/admin/lavori-caposquadra-standalone.html` usa `standalone-bootstrap.js` (`data-config-base="../"`) + `gfv-page-utils.js`. Tolti config Firebase/Maps inline, `waitForConfig`/`initializeFirebase`, copie locali `showAlert`/`escapeHtml` e lo shell in fondo. Login allineato a `loginPageUrl`.
+- **Resto aperto:** terreni clienti CT, altre standalone, path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Gestione lavori (2026-09-19)
+
+- **Perché:** lista core admin dopo Diario attività; prima pagina `core/admin/` sul bootstrap unico (`data-config-base="../"`).
+- **Cosa:** `core/admin/gestione-lavori-standalone.html` usa `standalone-bootstrap.js`. Tolti config Firebase/Maps inline, `waitForConfig`/`initializeFirebase` in pagina e lo shell in fondo. Login allineato a `loginPageUrl`. Alert/escape restano su `gestione-lavori-utils.js`. Maps resta lazy al tab Mappa.
+- **Resto aperto:** lavori caposquadra, terreni clienti CT, altre standalone, path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Diario attività (2026-09-19)
+
+- **Perché:** lista core dopo Terreni, stesso schema bootstrap.
+- **Cosa:** `core/attivita-standalone.html` usa `standalone-bootstrap.js` (`data-config-base=""`). Tolti config Firebase inline, `waitForConfig`/`initializeFirebase`/emulator in pagina e lo shell in fondo. Login/logout allineati a `loginPageUrl`. Alert/escape restano su `attivita-utils.js` (già su `standalone-alert.js`). Maps: se bootstrap ha già la chiave, non ricarica il file config.
+- **Resto aperto:** terreni clienti CT, altre standalone, path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Terreni (2026-09-18)
+
+- **Perché:** lista core dopo macchine, magazzino e Conto Terzi.
+- **Cosa:** `core/terreni-standalone.html` usa `standalone-bootstrap.js` (`data-config-base=""`). Tolti config Firebase/Maps inline, `waitForConfig`/`initializeFirebase`/emulator in pagina e lo shell in fondo. Login/logout allineati a `loginPageUrl`. Alert/escape restano su `terreni-utils.js` (già condivisi, non copie inline).
+- **Resto aperto:** terreni clienti CT, attività, altre standalone, path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Conto Terzi tariffe, preventivi, clienti (2026-09-18)
+
+- **Perché:** terzo gruppo di liste, stesso schema macchine + magazzino.
+- **Cosa:** `tariffe-standalone.html`, `preventivi-standalone.html`, `clienti-standalone.html` usano `standalone-bootstrap.js` + `gfv-page-utils.js`. Tolti `waitForConfig`, config inline, `gfv-standalone-head-bootstrap` (doppio loader Tony) e lo shell in fondo. Redirect login allineato al simulatore.
+- **Resto aperto:** altre CT (terreni clienti, nuovo preventivo, home), attività, path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — Magazzino prodotti e movimenti (2026-09-18)
+
+- **Perché:** stesso schema del piloto Parco Macchine, sul secondo gruppo di liste.
+- **Cosa:** `prodotti-standalone.html` e `movimenti-standalone.html` usano `standalone-bootstrap.js` + `gfv-page-utils.js`. Tolti `waitForConfig`/config inline, `initializeFirebase` in pagina e lo shell duplicato in fondo. Redirect login allineato al simulatore (`loginPageUrl`).
+- **Resto aperto:** altre standalone magazzino (home, documenti, tracciabilità), path-resolver, CSS liste, log debug Tony.
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## Snellimento codice — piloto liste Parco Macchine (2026-09-18)
+
+- **Perché:** avvio della proposta `da-fare/snellimento/PROPOSTA_SNELLIMENTO_E_OTTIMIZZAZIONE_CODICE.md` (bootstrap unico + `escapeHtml`/`showAlert`), senza riscrittura generale.
+- **Cosa:** `core/js/gfv-page-utils.js` (utility condivise). Le 5 liste Parco Macchine (trattori, attrezzi, flotta, scadenze, guasti) usano `standalone-bootstrap.js` + quelle utility, al posto del blocco config/Firebase/Tony copiato in pagina. Flotta e guasti allineati al redirect login del simulatore (`loginPageUrl`).
+- **Test:** `tests/gfv-page-utils.test.js`.
+- **Resto aperto:** le altre standalone, path-resolver, CSS liste, log debug Tony. Non è un guadagno di velocità (lazy Tony già fatto).
+- Doc: questa voce, `DOBBIAMO_ANCORA_FARE.md` §1.4, proposta snellimento §2.1–§2.2. Master Plan: nessuna fase cambiata.
+
+## QA simulatore / Playwright locale (2026-09-18)
+
+- **Perché:** controllo generale app con canary + Farm Simulator. Playwright in locale (Node 24 Windows) restava appeso senza output; Chrome di sistema 152 è incompatibile con Playwright 1.49 (`channel: chrome`).
+- **Sblocco:** `PW_DISABLE_TS_ESM=1` in `scripts/sim-e2e-pw-run.mjs` (il `module.register` ESM di PW 1.49 su Node 24 non parte). Browser di default = **Chromium bundled** (`playwright.config.js`), non Chrome installato. Cache persistente: `%LOCALAPPDATA%\ms-playwright` (`npx playwright install chromium` o zip revision 1148). Chrome di sistema solo con `GFV_E2E_BROWSER_CHANNEL=chrome`.
+- **Verificato su questo PC (emulator + `npm start`):** smoke simulatore; seed `viticola-conto-terzi-manodopera` + `frutteto-solo-titolare` + mista; `sim:test` + Vitest 7 template; canary unit roster A2 / mappa / ciclo push 22/22; Tony connectivity 8/8; **`npm run sim:e2e:gate` → 71/71 passed, 0 failed** (6.3 min).
+- **Non coperto:** telefoni Android/iOS reali; canary browser sostituzione/roster/mappa dopo lo sblocco; Vitest dominio 9 fail (jsdom/`https:` import + 2 assert manodopera da rivedere). PWA iOS: manca `viewport-fit=cover` / `apple-mobile-web-app-capable`.
+- Doc: `simulator/README.md`, `docs-sviluppo/simulator/GFV_FARM_SIMULATOR.md` §11.2. Master Plan / decisioni Tony: nessuna fase cambiata.
+
+## Video spot — sostituzioni manodopera (2026-09-16)
+
+- **Perché:** quarto flusso Linea B (Pixar 3D): raccolta pesche a 4, Mario segnala assenza, Luca shortlist / prestito Giuseppe dal magazzino, il carro parte e raccoglie nel filare. Stefano **non** compare.
+- App-true: equipaggio minimo 4 compreso Mario; senza il 4° non si parte. Catena: Segnala assenza (Mario) → Assegna sostituto / prestito (Luca) → Giuseppe sale.
+- Pacchetto Higgsfield **chiuso** (7 clip da 5 s 16:9: 1–5, 4b, 6). Still = GPT Image 2 (Nano Banana non in catalogo; max 3 ref, **niente `soul_id`**). Video = Seedance 2.0 I2V, SFX on; parlato Seedance da mutare in montaggio. Preset **IN THE DARK** declinato. Schermi telefono/laptop **neri**; UI GFV si registra a parte.
+- Cartella ufficiale (fuori repo): `Documents\personaggi GFV\video\sostituzioni\` — `clip/` solo take tenuti (`01-scena1` … `06-raccolta.mp4` = H `be377c93`) · scarti I2V in `clip/varianti/` · lastre `STILL/` + lettera · `STILL/varianti/` · `registrazioni schermo/` vuota.
+- Clip 6: take F ok sul gesto ma carro in retromarcia. Direzione forzata con `start_image` `06da6e1f` + `end_image` `a546a6ff` (carro più in fondo). Non invertire il file; non riusare un take in retromarcia come `video_references`.
+- Rec UI da fare: Mario field workspace → Segnala assenza; Luca Gestione lavori → Assegna sostituto / prestito. Switcher `demo-switcher-standalone.html`, tenant AZIENDA DEMO GFV, Chrome 390×844.
+- Dettaglio: `VIDEO_STORYBOARD_SCRIPT_E_CLIP.md` §14. Master Plan / decisioni Tony: nessuna fase cambiata.
+
+## Video spot — movimento magazzino (2026-09-10)
+
+- **Perché:** terzo flusso Linea B (Pixar 3D): carico merce in magazzino + registrazione entrata. La foto bolla è solo il verbo «scatta»; **non** si mostra OCR/Tony documenti (non commerciale-ready).
+- App-true: Giuseppe Ferrari è **operaio** → può scaricare i sacchi, **non** può registrare bolla/movimenti. Luca Martini è **manager/amministratore** → Movimenti e acquisizione documenti sono solo suoi (`canUseTonyDocumentCapture` + gate `movimenti-standalone.html`).
+- Pacchetto Higgsfield **chiuso** (2 clip da 5 s 16:9). Still = Nano Banana (`image_references`, **niente `soul_id`**). Video = Seedance 2.0 I2V, SFX on, no parlato/musica; preset **IN THE DARK** declinato. Schermi telefono **neri**; UI GFV si registra a parte.
+- Cartella ufficiale (fuori repo): `Documents\personaggi GFV\video\movimento magazzino\` — `clip/01-giuseppe-sacchi-magazzino.mp4` (`07c89dba`) · `clip/02-luca-foto-bolla.mp4` (`d806d303`) · still `01`/`02` + `varianti/` · `registrazioni schermo/` vuota.
+- Costume di **questa** sequenza: Giuseppe maglia menta; Luca **polo blu navy** in magazzino (non la polo sage da ufficio), così non si confondono.
+- Lezioni: 4 `image_references` su Nano Banana = fail silenzioso (max 3); non usare lo still Giuseppe `51256e42` come ref di Luca (copia identità); Genjutsu motion-control sul clip flash fa accendere lo schermo — rifare Seedance col **prompt esatto** di `6c061344`, cambiando solo vestito/start frame.
+- Rec UI da Cursor **non** fatta (Playwright senza ffmpeg). Prossimo: Luca su tenant demo, Movimenti → Entrata (prodotti generici: Rame / Zolfo / NPK), Chrome 390×844.
+- Dettaglio: `VIDEO_STORYBOARD_SCRIPT_E_CLIP.md` §13. Master Plan / decisioni Tony: nessuna fase cambiata.
+
+## Video spot — trattamento Mario, pioggia, zona, ripresa (2026-09-10)
+
+- **Perché:** secondo flusso della serie feature (Linea B, Pixar 3D): trattamento in vigna interrotto dalla pioggia, ore + zona lavorata **prima** di Sospendi, Luca vede `sospeso` e fa **Crea ripresa**, Mario riprende la sera.
+- Pacchetto Higgsfield **chiuso** (6 clip da 5 s 16:9). Still = Nano Banana (`image_references`, **niente `soul_id`**). Video = Seedance 2.0 I2V, SFX on, no parlato/musica; preset **IN THE DARK** declinato. Schermi telefono/laptop **neri**; UI GFV si registra a parte.
+- Cartella ufficiale (fuori repo): `Documents\personaggi GFV\video\trattamento mario\` — `clip/` take 01–06, `STILL/` lastre + start frame, `clip/scarti/` e `STILL/varianti/`, `registrazioni schermo/` vuota.
+- App-true: zona e ore mentre il lavoro è ancora `assegnato`/`in_corso` (dopo Sospendi la UI nasconde la zona). Due beat Luca distinti: libreria = vede sospensione; finestra = Crea ripresa. Polo sage di Luca invariato.
+- Lezioni: trattore hero = compatto da frutteto **con cabina chiusa** (khaki), non il trattore studio di Giuseppe; nebbia solo dal **ventola posteriore** dell’atomizzatore; Seedance sui still trattamento spesso fallisce senza `video_references` (usare `bf7c9b1e` o la clip 01 tenuta); clip 06 **copia l’andatura** della 01, cambia solo la luce.
+- Prossimo: registrare UI reale (switcher `demo-switcher-standalone.html`, tenant AZIENDA DEMO GFV, Chrome 390×844, crop sull’app). Niente altre generazioni Higgsfield se non richiesto.
+- Dettaglio: `VIDEO_STORYBOARD_SCRIPT_E_CLIP.md` §12. Master Plan / decisioni Tony: nessuna fase cambiata.
 
 ## Inviti — chiusura `allow read: if true` (2026-09-18)
 

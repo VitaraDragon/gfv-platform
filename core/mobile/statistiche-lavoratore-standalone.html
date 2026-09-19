@@ -99,13 +99,11 @@
         </div>
     </div>
 
-    <script src="../js/config-loader.js"></script>
     <script src="../js/dashboard-utils.js"></script>
-    <script>
-        window.GFVConfigLoader.loadConfigAndMaps().catch(function (e) { console.error(e); });
-    </script>
+    <script type="module" src="../js/standalone-bootstrap.js" data-config-base="../"></script>
     <script type="module">
-        import { initializeFirebase, getAuthInstance, getDb, onAuthStateChanged, getDoc, doc } from '../services/firebase-service.js';
+        import { resolveAuthUser, loginPageUrl } from '../js/simulator-standalone-page.js';
+        import { getAuthInstance, getDb, onAuthStateChanged, getDoc, doc } from '../services/firebase-service.js';
         import { setCurrentTenantId, getCurrentTenantId, getUserRolesForTenant } from '../services/tenant-service.js';
         import { getOreOperaio } from '../services/ore-service.js';
 
@@ -470,14 +468,19 @@
         }
 
         async function boot() {
-            const firebaseConfig = await window.GFVConfigLoader.waitForConfig();
-            initializeFirebase(firebaseConfig);
+            try {
+                await window.GFVStandaloneReady;
+            } catch (err) {
+                console.error('[statistiche-lavoratore] Bootstrap failed:', err);
+                throw err;
+            }
             const auth = getAuthInstance();
             const db = getDb();
 
             onAuthStateChanged(auth, async (user) => {
+                if (!user) user = await resolveAuthUser(auth);
                 if (!user) {
-                    window.location.href = '../auth/login-standalone.html';
+                    window.location.href = await loginPageUrl('../auth/login-standalone.html');
                     return;
                 }
                 try {

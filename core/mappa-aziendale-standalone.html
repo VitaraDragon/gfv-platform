@@ -62,33 +62,20 @@
         </div>
     </div>
 
-    <!-- GFV standalone shell: alert toast + Tony gated -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var s = document.createElement('script');
-      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-      document.body.appendChild(s);
-    })();
-    </script>
-
-    <script src="js/config-loader.js"></script>
     <script src="js/dashboard-utils.js"></script>
-    <script>
-        window.GFVConfigLoader.loadConfigAndMaps().then(function() {}).catch(function(error) {
-            console.error('Errore caricamento config:', error);
-            var root = document.getElementById('mappa-page-root');
-            if (root) {
-                root.innerHTML = '<div class="dashboard-section" style="margin:24px;"><h3 style="color:#dc3545;">⚠️ Errore configurazione</h3><p>' + (error && error.message ? error.message : 'Config non disponibile') + '</p></div>';
-            }
-        });
-    </script>
-
+    <script type="module" src="js/standalone-bootstrap.js" data-config-base=""></script>
     <script type="module">
         import { bootstrapMappaAziendalePage } from './js/mappa-aziendale-page.js';
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[mappa-aziendale] Bootstrap failed:', err);
+            var root = document.getElementById('mappa-page-root');
+            if (root) {
+                root.innerHTML = '<div class="dashboard-section" style="margin:24px;"><h3 style="color:#dc3545;">⚠️ Errore configurazione</h3><p>' + (err && err.message ? err.message : 'Config non disponibile') + '</p></div>';
+            }
+            throw err;
+        }
         bootstrapMappaAziendalePage();
     </script>
 </body>

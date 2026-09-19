@@ -17,7 +17,7 @@ Vedi anche **`DOBBIAMO_ANCORA_FARE.md`** (root `docs-sviluppo/`) per sicurezza, 
 | `lavori/` | Scalabilità lista lavori (`PLAN_SCALABILITA_LISTA_LAVORI.md`) — **non** tracking GPS trail (scartato → `obsoleto/strategie-superate/ROADMAP_TRACKING_GPS_AREA_LAVORATA.md`) |
 | `tony/` | Sostituzione manodopera / equipaggio su lavori (design; **vista impegni giornalieri ✅ 2026-07-24** — restano roster completo, Context Builder shortlist, …) |
 | `notifiche/` | Push ciclo lavoro (spec 2026-08-25) + linea guida assenze/WhatsApp (2026-07-29). Catalogo: `core/config/notification-catalog.js` |
-| `snellimento/` | Bootstrap unico, utils condivise, CSS liste. **Lazy load Tony ✅ 2026-09-05** (resto della proposta ancora aperto) |
+| `snellimento/` | Bootstrap unico, utils condivise, CSS liste. **Lazy load Tony ✅ 2026-09-05**. **Standalone produzione + wrapper path + CSS liste + log debug `__TONY_DEBUG` ✅ 2026-09-19** (pagine di prova ancora aperte) |
 | `frutteto/` | Parametri e scarto statistiche frutteto |
 | `guida-app/` | Assistente knowledge base guida-app |
 | `vigneto/` | Potatura/trattamenti da lavori; reti antigrandine |

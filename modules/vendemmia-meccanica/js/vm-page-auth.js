@@ -6,6 +6,7 @@
 import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
 import { onAuthStateChanged, getDoc, doc } from '../../../core/services/firebase-service.js';
 import { setCurrentTenantId } from '../../../core/services/tenant-service.js';
+import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 import { MODULE_ID, REQUIRES_MODULES } from '../config/vm-constants.js';
 
 function ensureGfvStandaloneShell() {
@@ -51,22 +52,28 @@ export function waitForFirebaseConfig(timeoutMs = 5000) {
  * @returns {Promise<{ user: object, tenantId: string, modules: string[] }>}
  */
 export async function initVmPageAuth(options = {}) {
-  ensureGfvStandaloneShell();
-  const config = await waitForFirebaseConfig();
-  initializeFirebase(config);
+  if (typeof window !== 'undefined' && window.GFVStandaloneReady) {
+    await window.GFVStandaloneReady;
+  } else {
+    ensureGfvStandaloneShell();
+    const config = await waitForFirebaseConfig();
+    initializeFirebase(config);
+  }
   const auth = getAuthInstance();
   const db = getDb();
+  const loginHref = await loginPageUrl('../../../core/auth/login-standalone.html');
 
   return new Promise((resolve, reject) => {
     onAuthStateChanged(auth, async (user) => {
+      if (!user) user = await resolveAuthUser(auth);
       if (!user) {
-        window.location.href = '../../../core/auth/login-standalone.html';
+        window.location.href = loginHref;
         return;
       }
       try {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         if (!userDoc.exists()) {
-          window.location.href = '../../../core/auth/login-standalone.html';
+          window.location.href = loginHref;
           return;
         }
         const userData = userDoc.data();

@@ -1,6 +1,6 @@
 # Proposta snellimento e ottimizzazione del codice
 
-**Data**: 25 febbraio 2026 (aggiornato 2026-09-05: lazy load Tony ✅)  
+**Data**: 25 febbraio 2026 (aggiornato 2026-09-19: Diario attività; 2026-09-18: piloto macchine + Magazzino + CT + Terreni; 2026-09-05: lazy load Tony ✅)  
 **Obiettivo**: Ridurre duplicazione, alleggerire file monolitici e uniformare i pattern senza stravolgere l’architettura attuale.
 
 ---
@@ -30,6 +30,8 @@ L’architettura (core / modules / shared, multi-tenant, servizi) è solida. Ci 
 - Le pagine includono **un solo script** (e opzionalmente il placeholder `currentTableData` dove serve) invece di 4–5 righe ripetute.
 - **Effetto**: meno copy-paste, un solo punto da aggiornare per cambi di path o di init; riduzione linee nelle HTML.
 
+**Stato 2026-09-19:** lo script esiste. **Produzione:** 5 liste + dashboard Parco Macchine + **tutto Magazzino** + **tutto Conto Terzi** + Terreni + Diario attività + Gestione lavori + lavori caposquadra + **tutto Vigneto** + **tutto Frutteto** + **tutta Manodopera** + Amministrazione + Impostazioni + Abbonamento + Gestione macchine + Gestione/Segnalazione guasti + Statistiche core + Dashboard + Segnatura ore + Mappa aziendale + **tutto Report** + Dashboard meteo + **tutto Auth** + **tutto Mobile** + **tutta Vendemmia Meccanica** con `await window.GFVStandaloneReady`. Restano le pagine di prova.
+
 ### 2.2 Funzioni utility ripetute: `escapeHtml`, `showAlert`, badge stato
 
 **Problema**: `escapeHtml`, `showAlert` (o equivalenti) e funzioni tipo `statoBadge` compaiono **in molte pagine** (liste macchine, prodotti, gestione squadre, statistiche, ecc.) con implementazioni quasi identiche.
@@ -41,6 +43,8 @@ L’architettura (core / modules / shared, multi-tenant, servizi) è solida. Ci 
 - Per le **liste Parco Macchine** (trattori, attrezzi, flotta, scadenze, guasti): estrarre **un piccolo modulo** (es. `modules/macchine/js/list-utils.js`) con `statoBadge(stato)`, `renderTableMezzi(filtered, columnsConfig)` se la struttura tabella è simile, così si evita di ripetere gli stessi blocchi in 5 file.
 - **Effetto**: meno codice duplicato, comportamento uniforme (anche per accessibilità e sicurezza XSS).
 
+**Stato 2026-09-19:** `core/js/gfv-page-utils.js` (`escapeHtml` + `showAlert` via `standalone-alert.js`). Usato dalle 5 liste Parco Macchine, Magazzino prodotti/movimenti, Conto Terzi tariffe/preventivi/clienti/terreni clienti e lavori caposquadra. Terreni, Diario attività e Gestione lavori tengono i rispettivi `*-utils.js` (già su `standalone-alert.js`). Copie locali restano sulle altre pagine. `statoBadge` / `list-utils.js` non toccati (priorità bassa).
+
 ### 2.3 `resolvePath` / path verso core e parco-macchine
 
 **Problema**: Nei moduli (vigneto, frutteto, macchine) **ogni view** definisce una propria `resolvePath` o usa path relativi diversi (`'../../../core'`, `'../../parco-macchine'`, ecc.). Esiste già `core/services/path-resolver.js` ma non è usato ovunque.
@@ -50,17 +54,19 @@ L’architettura (core / modules / shared, multi-tenant, servizi) è solida. Ci 
 - Le pagine che sono in `modules/X/views/` ricevono il base path da un unico punto (es. da `GFV_CONFIG_BASE` o da `path-resolver`) e non ridefiniscono logiche di path.
 - **Effetto**: niente path “magici” sparsi; meno errori quando si spostano file.
 
+**Stato 2026-09-19:** wrapper `core/js/gfv-path.js` (`resolvePath` = `resolveImportPath`). **Tutto Vigneto** e **tutto Frutteto** allineati. Nessuna view di produzione con `resolvePath` locale.
+
 ---
 
 ## 3. File monolitici da spezzare
 
 ### 3.1 `tony-widget-standalone.js` → **core/js/tony/** ✅ FATTO (2026-02)
 
-**Stato**: La logica è stata estratta in `core/js/tony/` (main.js, ui.js, engine.js, voice.js). `tony-widget-standalone.js` è il loader. Vedi GUIDA_SVILUPPO_TONY §11. **Ancora da fare**: condizionare i log di debug (es. `window.__TONY_DEBUG`).
+**Stato**: La logica è stata estratta in `core/js/tony/` (main.js, ui.js, engine.js, voice.js). `tony-widget-standalone.js` è il loader. Vedi GUIDA_SVILUPPO_TONY §11. **2026-09-19:** log di debug dietro `window.__TONY_DEBUG` (`core/js/tony/debug.js`).
 
 **Problema originale** (risolto): Un solo file gestiva UI, voce, coda comandi, parsing, contesto, sync moduli, rotte. Conteneva molti `console.log` di debug.
 
-**Rimane da fare**: condizionare i log di debug (es. dietro `window.__TONY_DEBUG`). L'estrazione in moduli è completata (main, ui, engine, voice):
+**Log debug ✅ 2026-09-19:** `tonyDebugLog` no-op di default; `window.__TONY_DEBUG = true` in console per riattivarli. L'estrazione in moduli è completata (main, ui, engine, voice):
    - **tony-widget-ui.js**: creazione DOM (FAB, pannello, dialog), gestione open/close, append messaggi, dialog conferma.
    - **tony-widget-voice.js**: STT, TTS, coda audio, modalità continua, timeout, congedo, barge-in.
    - **tony-widget-commands.js**: parsing risposta, coda comandi, `processTonyCommand`, `SET_FIELD` / `OPEN_MODAL` / `INJECT_FORM_DATA` (e relativi helper).
@@ -95,6 +101,8 @@ L’architettura (core / modules / shared, multi-tenant, servizi) è solida. Ci 
 
 - Le pagine liste (trattori, attrezzi, flotta, scadenze, guasti, prodotti) hanno **blocchi `<style>` molto simili** (tabella, badge, filtri, modal, bottoni). Si può introdurre un **foglio condiviso** (es. `core/styles/list-views.css` o `modules/macchine/styles/list-views.css`) con classi comuni e includerlo nelle liste; le pagine tengono solo gli stili specifici.
 - **Effetto**: meno CSS duplicato, aspetto più uniforme, modifiche di tema in un solo file.
+
+**Stato 2026-09-19:** esiste `core/styles/list-views.css` (tema via CSS variables). Allineate le **5 liste Parco Macchine** e **prodotti** (tema verde). Piano §4.3 chiuso.
 
 ---
 
@@ -144,8 +152,8 @@ Le modifiche proposte **non** hanno tutte lo stesso tipo di effetto. In sintesi:
 
 | Intervento | Impatto | Sforzo | Priorità |
 |------------|--------|--------|----------|
-| Bootstrap unico (standalone-bootstrap.js) | Alto (molte pagine) | Medio | Alta |
-| Shared escapeHtml + showAlert / uso error-handler | Medio | Basso | Alta |
+| Bootstrap unico (standalone-bootstrap.js) | Alto (molte pagine) | Medio | Alta — **piloto 5 liste macchine 2026-09-18** |
+| Shared escapeHtml + showAlert / uso error-handler | Medio | Basso | Alta — **`gfv-page-utils.js` + 5 liste 2026-09-18** |
 | Rimozione/condizionamento log debug in tony-widget | Medio | Basso | Alta |
 | Spezzare tony-widget in 4–5 moduli | Alto (manutenibilità) | Alto | Media |
 | Standardizzare path-resolver ovunque | Medio | Medio | Media |
@@ -172,7 +180,7 @@ Sì, il codice **si può snellire e ottimizzare** senza cambiare architettura. I
 3. **Riduzione log di debug** e **suddividere tony-widget-standalone.js** in moduli più piccoli.
 4. **Path-resolver** usato ovunque e **CSS condiviso** per le liste.
 
-Procedendo in modo incrementale si riduce duplicazione e si migliora manutenibilità. Il lazy load Tony è **fatto** (2026-09-05); restano bootstrap/utils/CSS.
+Procedendo in modo incrementale si riduce duplicazione e si migliora manutenibilità. Il lazy load Tony è **fatto** (2026-09-05). **2026-09-19:** bootstrap + utils su tutte le standalone di produzione; path-resolver: wrapper `gfv-path.js` + **tutto Vigneto e Frutteto**; CSS liste: `list-views.css` + **5 liste Parco Macchine** + **prodotti**; log debug Tony dietro `window.__TONY_DEBUG`. Restano le pagine di prova.
 
 ---
 

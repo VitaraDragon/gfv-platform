@@ -675,21 +675,11 @@
         </div>
     </div>
 
-    <!-- Load Firebase config from external file -->
-    <script>
-        const configScript = document.createElement('script');
-        configScript.src = '../config/firebase-config.js';
-        configScript.onerror = function() {
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallbackScript);
-        };
-        document.head.appendChild(configScript);
-    </script>
-    
-    <!-- Firebase SDK -->
+    <script type="module" src="../js/standalone-bootstrap.js" data-config-base="../"></script>
     <script type="module">
         import { formatDateLikeToItalianLongLocal } from '../js/date-format-it.js';
+        import { showAlert } from '../js/gfv-page-utils.js';
+        import { resolveAuthUser, loginPageUrl } from '../js/simulator-standalone-page.js';
         import {
             MANODOPERA_SKILL_UI_GROUPS,
             getManodoperaSkillLabel,
@@ -702,37 +692,17 @@
             summarizeProfiloForList
         } from '../services/profilo-manodopera-service.js';
         import { recalculateSkillCalcolateForTenant } from '../services/profilo-manodopera-skill-batch-service.js';
-        // Funzione per attendere il caricamento della configurazione Firebase
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve(window.firebaseConfig);
-                    return;
-                }
-                
-                let attempts = 0;
-                const maxAttempts = 50;
-                
-                const checkInterval = setInterval(() => {
-                    attempts++;
-                    if (typeof window.firebaseConfig !== 'undefined') {
-                        clearInterval(checkInterval);
-                        resolve(window.firebaseConfig);
-                    } else if (attempts >= maxAttempts) {
-                        clearInterval(checkInterval);
-                        reject(new Error('Firebase config not loaded after 5 seconds'));
-                    }
-                }, 100);
-            });
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[gestione-operai] Bootstrap failed:', err);
+            throw err;
         }
 
-        const firebaseConfig = await waitForConfig();
-
-        import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
+        import { getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
         import { getDoc, doc, collection, getDocs, query, where, setDoc, Timestamp } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
 
-        initializeFirebase(firebaseConfig);
         const app = getAppInstance();
         const auth = getAuthInstance();
         const db = getDb();
@@ -751,6 +721,7 @@
 
         // Verifica autenticazione
         onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
             if (user) {
                 currentUser = user;
                 try {
@@ -826,14 +797,14 @@
                         // Carica operai
                         await loadOperai();
                     } else {
-                        window.location.href = '../auth/login-standalone.html';
+                        window.location.href = await loginPageUrl('../auth/login-standalone.html');
                     }
                 } catch (error) {
                     console.error('Errore:', error);
                     showAlert('Errore caricamento dati', 'error');
                 }
             } else {
-                window.location.href = '../auth/login-standalone.html';
+                window.location.href = await loginPageUrl('../auth/login-standalone.html');
             }
         });
 
@@ -1421,12 +1392,6 @@
             }
         }
 
-        // Mostra alert
-        function showAlert(message, type) {
-            if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(message, type || 'info'); return; }
-            console.warn('[showAlert] gfvShowAlert non disponibile:', message);
-        }
-
         // Export funzioni globali
         window.openContrattoModal = openContrattoModal;
         window.closeContrattoModal = closeContrattoModal;
@@ -1436,18 +1401,6 @@
         window.handleSalvaScheda = handleSalvaScheda;
         window.applySkillDefaultsFromTipoOperaio = applySkillDefaultsFromTipoOperaio;
         window.resetFilters = resetFilters;
-    </script>
-    <!-- GFV standalone shell: alert toast + Tony gated -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var s = document.createElement('script');
-      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-      document.body.appendChild(s);
-    })();
     </script>
 </body>
 </html>

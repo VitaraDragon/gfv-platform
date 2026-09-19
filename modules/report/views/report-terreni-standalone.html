@@ -173,40 +173,19 @@
     </div>
   </div>
 
-  <script>
-    const configScript = document.createElement('script');
-    configScript.src = '../../../core/config/firebase-config.js';
-    configScript.onerror = function () {
-      const s2 = document.createElement('script');
-      s2.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-      document.head.appendChild(s2);
-    };
-    document.head.appendChild(configScript);
-  </script>
-
+  <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
   <script type="module">
-    function waitForConfig() {
-      return new Promise((resolve, reject) => {
-        if (typeof window.firebaseConfig !== 'undefined') {
-          resolve(window.firebaseConfig);
-          return;
-        }
-        let n = 0;
-        const t = setInterval(() => {
-          n++;
-          if (typeof window.firebaseConfig !== 'undefined') {
-            clearInterval(t);
-            resolve(window.firebaseConfig);
-          } else if (n >= 50) {
-            clearInterval(t);
-            reject(new Error('Config Firebase'));
-          }
-        }, 100);
-      });
+    import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
+    import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+
+    try {
+      await window.GFVStandaloneReady;
+    } catch (err) {
+      console.error('[report-terreni] Bootstrap failed:', err);
+      throw err;
     }
 
     import {
-      initializeFirebase,
       getAuthInstance,
       onAuthStateChanged,
       getDocumentData
@@ -217,8 +196,6 @@
     import { getAgrarianYearBounds, getSolarYearBounds, formatRangeIt } from '../js/report-time-range.js';
     import { buildReportTerreniRows } from '../services/report-terreni-service.js';
 
-    await waitForConfig();
-    initializeFirebase(window.firebaseConfig);
     const auth = getAuthInstance();
     initializeTenantService();
 
@@ -299,11 +276,7 @@
       periodLabel.textContent = p.label || formatRangeIt(p.start, p.end);
     }
 
-    function escHtml(s) {
-      const d = document.createElement('div');
-      d.textContent = s == null ? '' : String(s);
-      return d.innerHTML;
-    }
+    const escHtml = escapeHtml;
 
     function renderReportRows(reportRows) {
       terreniGrid.innerHTML = '';
@@ -377,8 +350,9 @@
     updatePeriodLabel();
 
     onAuthStateChanged(auth, async (user) => {
+      if (!user) user = await resolveAuthUser(auth);
       if (!user) {
-        window.location.href = '../../../core/auth/login-standalone.html';
+        window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
         return;
       }
       const userData = await getDocumentData('users', user.uid);
@@ -402,18 +376,6 @@
       mainContent.classList.remove('hidden');
       await refreshReport();
     });
-  </script>
-  <!-- GFV standalone shell: alert toast + Tony gated -->
-  <script>
-  (function() {
-    var path = (window.location.pathname || '').replace(/\\/g, '/');
-    var isGH = path.indexOf('/gfv-platform/') >= 0;
-    var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-    var sep = (base && !base.endsWith('/')) ? '/' : '';
-    var s = document.createElement('script');
-    s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-    document.body.appendChild(s);
-  })();
   </script>
 </body>
 </html>

@@ -791,62 +791,14 @@
         </div>
     </div>
 
-    <!-- Load Firebase and Google Maps config -->
-    <script>
-        const configScript = document.createElement('script');
-        configScript.src = '../config/firebase-config.js';
-        configScript.onerror = function() {
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallbackScript);
-        };
-        document.head.appendChild(configScript);
-    </script>
-
-    <script>
-        // Load Google Maps config
-        const mapsConfigScript = document.createElement('script');
-        mapsConfigScript.src = '../config/google-maps-config.js';
-        mapsConfigScript.onerror = function() {
-            const fallbackMapsScript = document.createElement('script');
-            fallbackMapsScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
-            document.head.appendChild(fallbackMapsScript);
-        };
-        document.head.appendChild(mapsConfigScript);
-    </script>
-    
-    <!-- Firebase SDK -->
+    <script type="module" src="../js/standalone-bootstrap.js" data-config-base="../"></script>
     <script type="module">
         import { formatDateLikeToItalianLongLocal } from '../js/date-format-it.js';
-        // Funzione per attendere il caricamento della configurazione Firebase
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve(window.firebaseConfig);
-                    return;
-                }
-                
-                let attempts = 0;
-                const maxAttempts = 50;
-                
-                const checkInterval = setInterval(() => {
-                    attempts++;
-                    if (typeof window.firebaseConfig !== 'undefined') {
-                        clearInterval(checkInterval);
-                        resolve(window.firebaseConfig);
-                    } else if (attempts >= maxAttempts) {
-                        clearInterval(checkInterval);
-                        reject(new Error('Firebase config not loaded after 5 seconds'));
-                    }
-                }, 100);
-            });
-        }
-
-        const firebaseConfig = await waitForConfig();
-
-        import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
+        import { escapeHtml, showAlert } from '../js/gfv-page-utils.js';
+        import { getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, orderBy, serverTimestamp, Timestamp } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
+        import { resolveAuthUser, loginPageUrl } from '../js/simulator-standalone-page.js';
         import { fetchLavoriDocumentsForFieldUser, sliceOperaioLavoriWindow } from '../services/manodopera-lavori-scope.js';
         import {
             isLavoroVendemmiaMeccanica,
@@ -867,7 +819,13 @@
             publishFeatureFlags
         } from '../config/feature-flags.js';
 
-        initializeFirebase(firebaseConfig);
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[lavori-caposquadra] Bootstrap failed:', err);
+            throw err;
+        }
+
         const app = getAppInstance();
         const auth = getAuthInstance();
         const db = getDb();
@@ -1440,8 +1398,9 @@
 
         // Verifica autenticazione e permessi
         onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
             if (!user) {
-                window.location.href = '../auth/login-standalone.html';
+                window.location.href = await loginPageUrl('../auth/login-standalone.html');
                 return;
             }
 
@@ -1516,7 +1475,7 @@
                     await loadTerreni();
                     await loadLavori();
                 } else {
-                    window.location.href = '../auth/login-standalone.html';
+                    window.location.href = await loginPageUrl('../auth/login-standalone.html');
                 }
             } catch (error) {
                 console.error('Errore:', error);
@@ -3125,11 +3084,7 @@
             window.handleSalvaZona(event || { preventDefault: function() {} });
         };
 
-        // Mostra alert
-        function showAlert(message, type = 'info') {
-            if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(message, type); return; }
-            console.warn('[showAlert] gfvShowAlert non disponibile:', message);
-        }
+        // showAlert / escapeHtml: import da gfv-page-utils.js
 
         // Calcola superficie lavorata unificata (unione geometrica invece di somma semplice)
         async function calculateUnifiedWorkedArea(zone) {
@@ -3709,24 +3664,6 @@
             }
         };
         
-        // Escape HTML
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-    </script>
-    <!-- GFV standalone shell: alert toast + Tony gated -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var s = document.createElement('script');
-      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-      document.body.appendChild(s);
-    })();
     </script>
 </body>
 </html>

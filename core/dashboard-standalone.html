@@ -96,31 +96,12 @@
     })();
     </script>
 
-    <script src="js/config-loader.js"></script>
     <script src="js/dashboard-utils.js"></script>
     <script src="js/dashboard-sections.js"></script>
-    
-    <!-- Carica Firebase e Google Maps config in parallelo (più veloce) -->
-    <script>
-        window.GFVConfigLoader.loadConfigAndMaps().then(() => {
-            // Config pronti; lo script module procederà con Firebase e Maps
-        }).catch(error => {
-            console.error('Errore caricamento config:', error);
-            document.getElementById('dashboard-content').innerHTML = `
-                <div style="padding: 20px; text-align: center;">
-                    <h3 style="color: #dc3545;">⚠️ Errore Configurazione</h3>
-                    <p>File di configurazione Firebase non trovato.</p>
-                    <p>Errore: ${error.message}</p>
-                </div>
-            `;
-        });
-    </script>
-    
-    <!-- Firebase SDK da CDN -->
+    <script type="module" src="js/standalone-bootstrap.js" data-config-base=""></script>
     <script type="module">
         import { formatDateTimeItalianReadable } from './js/date-format-it.js';
-        // Usa funzioni dai moduli caricati
-        const { waitForConfig } = window.GFVConfigLoader;
+        import { resolveAuthUser, loginPageUrl } from './js/simulator-standalone-page.js';
         const { 
             roleNames, 
             normalizeRole, 
@@ -234,12 +215,24 @@
 
         function setupDashboardTourModule() { /* tour disattivato: modulo resta in repo */ }
 
-        // Carica configurazione
-        const firebaseConfig = await waitForConfig();
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[dashboard] Bootstrap failed:', err);
+            const content = document.getElementById('dashboard-content');
+            if (content) {
+                content.innerHTML = `
+                    <div style="padding: 20px; text-align: center;">
+                        <h3 style="color: #dc3545;">⚠️ Errore Configurazione</h3>
+                        <p>File di configurazione Firebase non trovato.</p>
+                        <p>Errore: ${err && err.message ? err.message : String(err)}</p>
+                    </div>
+                `;
+            }
+            throw err;
+        }
 
-        // Inizializza Firebase usando il service condiviso (tutto da firebase-service = stesso SDK 11)
         const {
-            initializeFirebase,
             awaitFirebaseEmulatorConnect,
             awaitAuthStateReady,
             getAuthInstance,
@@ -261,9 +254,6 @@
             Timestamp,
             onSnapshot
         } = await import('./services/firebase-service.js');
-        const { withEmulatorQuery } = await import('./js/firebase-emulator-dev.js');
-        const loginPageUrl = () => withEmulatorQuery('./auth/login-standalone.html');
-        initializeFirebase(firebaseConfig);
         await awaitFirebaseEmulatorConnect();
         await awaitAuthStateReady();
         const auth = getAuthInstance();
@@ -1166,13 +1156,10 @@
                 await awaitAuthStateReady();
                 user = auth.currentUser;
             }
+            if (!user) user = await resolveAuthUser(auth);
             if (!user) {
-                user = await ensureSimulatorSession(auth);
-            }
-            if (!user) {
-                // Non autenticato, redirect a login
                 sessionStorage.removeItem('gfv_expected_user_id');
-                window.location.href = loginPageUrl();
+                window.location.href = await loginPageUrl('./auth/login-standalone.html');
                 return;
             }
             
@@ -1185,7 +1172,7 @@
                     const { signOut } = await import('./services/firebase-service.js');
                     await signOut(auth);
                     sessionStorage.removeItem('gfv_expected_user_id');
-                    window.location.href = loginPageUrl();
+                    window.location.href = await loginPageUrl('./auth/login-standalone.html');
                     return;
                 } else {
                     // Questa scheda è appena stata usata per registrazione, aggiorna l'utente previsto
@@ -1561,7 +1548,7 @@
                 sessionStorage.removeItem('gfv_expected_user_id');
                 sessionStorage.removeItem('gfv_user_just_registered');
                 await signOut(auth);
-                window.location.href = loginPageUrl();
+                window.location.href = await loginPageUrl('./auth/login-standalone.html');
             } catch (error) {
                 console.error('Errore logout:', error);
                 alert('Errore durante il logout');

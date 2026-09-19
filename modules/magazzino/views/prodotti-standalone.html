@@ -6,33 +6,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anagrafica Prodotti - Prodotti e Magazzino - GFV Platform</title>
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <link rel="stylesheet" href="../../../core/styles/list-views.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #E8F5E9 0%, #2E7D32 100%); color: #333; min-height: 100vh; }
-        .container { max-width: 1600px; margin: 0 auto; padding: 20px; box-sizing: border-box; width: 100%; }
-        .header { background: linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+        :root {
+            --list-bg-from: #E8F5E9;
+            --list-bg-to: #2E7D32;
+            --list-header-from: #2E7D32;
+            --list-header-to: #1B5E20;
+            --list-accent: #2E7D32;
+            --list-accent-dark: #1B5E20;
+            --list-border: #ced4da;
+            --list-filter-bg: #f8f9fa;
+            --list-th-from: #E8F5E9;
+            --list-th-to: #E8F5E9;
+            --list-row-hover: #f1f8e9;
+        }
+        .container { max-width: 1600px; width: 100%; }
+        .header { padding: 30px; margin-bottom: 30px; gap: 20px; }
         .header h1 { font-size: 28px; }
-        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; }
-        .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; }
-        .btn-primary { background: #2E7D32; color: white; }
-        .btn-primary:hover { background: #1B5E20; }
-        .btn-secondary { background: #6c757d; color: white; }
+        .btn-secondary { background: #6c757d; color: white; border: none; }
         .btn-secondary:hover { background: #5a6268; }
-        .btn-danger { background: #dc3545; color: white; }
-        .btn-sm { padding: 5px 10px; font-size: 12px; }
-        .content { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); max-width: 100%; overflow-x: clip; }
-        .filters { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; padding: 20px; background: #f8f9fa; border-radius: 8px; }
-        .filter-group { display: flex; flex-direction: column; gap: 5px; min-width: 0; flex: 1 1 140px; }
-        .filter-group label { font-size: 12px; font-weight: 600; color: #495057; }
-        .filter-group select, .filter-group input { padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; max-width: 100%; }
-        .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
-        .section-header h2 { color: #2E7D32; font-size: 24px; }
-        .table-responsive { width: 100%; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+        .content { padding: 30px; max-width: 100%; overflow-x: clip; }
+        .filters { border: none; padding: 20px; }
+        .filter-group { min-width: 0; flex: 1 1 140px; gap: 5px; }
+        .filter-group label { color: #495057; }
+        .filter-group select,
+        .filter-group input { border-width: 1px; border-color: #ced4da; min-width: 0; max-width: 100%; }
+        .section-header { margin-bottom: 20px; flex-wrap: wrap; gap: 12px; }
+        .section-header h2 { font-size: 24px; }
         .prodotti-table { width: 100%; min-width: 900px; border-collapse: collapse; margin-top: 12px; }
-        .prodotti-table th, .prodotti-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e9ecef; }
+        .prodotti-table th,
+        .prodotti-table td { padding: 12px; text-align: left; border-bottom: 1px solid #e9ecef; }
         .prodotti-table th { background: #E8F5E9; font-weight: 600; color: #495057; }
         .prodotti-table tr:hover { background: #f1f8e9; }
-        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 12px; }
         .badge-sotto-scorta { background: #fff3cd; color: #856404; }
         .badge-attivo { background: #d4edda; color: #155724; }
         .badge-disattivo { background: #e2e3e5; color: #383d41; }
@@ -50,54 +56,26 @@
         .prodotti-table th.col-check,
         .prodotti-table td.col-check { width: 36px; text-align: center; vertical-align: middle; }
         .prodotti-table .col-check input { width: 16px; height: 16px; cursor: pointer; }
-        .bulk-actions {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
+        .bulk-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
         .bulk-actions .bulk-count { font-size: 13px; color: #495057; min-width: 7em; }
-        .btn-danger:disabled { opacity: 0.5; cursor: not-allowed; }
-        .btn-danger:hover:not(:disabled) { background: #c82333; }
-        @media (max-width: 1024px) {
-            .container { padding: 16px; }
-            .content { padding: 24px; }
-        }
-        @media (max-width: 768px) {
-            .container { padding: 12px; }
-            .content { padding: 15px; }
-            .header { flex-direction: column; align-items: flex-start; padding: 20px; }
-            .header h1 { font-size: 22px; }
-            .header-actions { width: 100%; }
-            .header-actions .btn { flex: 1 1 auto; text-align: center; }
-            .filters { flex-direction: column; }
-            .section-header h2 { font-size: 20px; }
-            .prodotti-table { min-width: 820px; font-size: 12px; }
-            .prodotti-table th, .prodotti-table td { padding: 8px 6px; }
-        }
-        @media (max-width: 480px) {
-            .container { padding: 8px; }
-            .content { padding: 12px; }
-            .header { padding: 16px; }
-            .header-actions .btn { width: 100%; }
-        }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
-        .modal.active { display: flex; }
-        .modal-content { background: white; padding: 30px; border-radius: 12px; max-width: 600px; width: 90%; max-height: 90vh; overflow-y: auto; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
-        .modal-header h3 { color: #2E7D32; font-size: 20px; }
-        .close-btn { background: none; border: none; font-size: 24px; cursor: pointer; color: #999; }
+        .modal-content { padding: 30px; max-width: 600px; max-height: 90vh; overflow-y: auto; border: none; }
+        .modal-header h3 { font-size: 20px; }
+        .close-btn { font-size: 24px; color: #999; }
         .form-group { margin-bottom: 20px; }
         .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
-        .form-group label { display: block; margin-bottom: 5px; font-weight: 500; color: #495057; }
-        .form-group input, .form-group select, .form-group textarea { width: 100%; padding: 10px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px; }
-        .form-group textarea { min-height: 80px; resize: vertical; }
+        .form-group label { margin-bottom: 5px; color: #495057; }
+        .form-group input,
+        .form-group select,
+        .form-group textarea { border: 1px solid #ced4da; }
         .form-hint { display: block; font-size: 12px; color: #6c757d; margin-top: 4px; }
-        .loading { text-align: center; padding: 40px; color: #666; }
-        .empty-state { text-align: center; padding: 40px; color: #999; }
-        .alert { padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-        .alert-success { background: #d4edda; color: #155724; }
-        .alert-error { background: #f8d7da; color: #721c24; }
+        .alert { padding: 15px; margin-bottom: 20px; }
+        @media (max-width: 768px) {
+            .header h1 { font-size: 22px; }
+            .section-header h2 { font-size: 20px; }
+            .prodotti-table { min-width: 820px; font-size: 12px; }
+            .prodotti-table th,
+            .prodotti-table td { padding: 8px 6px; }
+        }
     </style>
 </head>
 <body>
@@ -175,7 +153,7 @@
             <form id="prodotto-form">
                 <input type="hidden" id="prodotto-id">
                 <div id="prodotto-da-completare-banner" class="prodotto-da-completare-banner" style="display:none" role="status">
-                    Prodotto creato automaticamente da Tony Occhi: completa dosaggi, carenza e altri dati mancanti, poi salva.
+                    Prodotto creato automaticamente da Tony: completa dosaggi, carenza e altri dati mancanti, poi salva.
                 </div>
                 <div class="form-group">
                     <label for="prodotto-codice">Codice</label>
@@ -253,28 +231,26 @@
         </div>
     </div>
 
-    <script>
-        const configScript = document.createElement('script');
-        configScript.src = '../../../core/config/firebase-config.js';
-        configScript.onerror = function() {
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallbackScript);
-        };
-        document.head.appendChild(configScript);
-    </script>
     <!-- Tony: canone liste — placeholder; renderProdotti aggiorna summary/items, merge setContext('page'), table-data-ready -->
     <script>window.currentTableData = window.currentTableData || { pageType: 'prodotti', summary: 'Caricamento dati in corso...', items: [] };</script>
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
-        import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
-        import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp } from '../../../core/services/firebase-service.js';
+        import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp } from '../../../core/services/firebase-service.js';
         import {
             syncProdottoDosaggioCarenzaRequiredDom,
             getProdottoDosaggioCarenzaRequiredFieldIds,
             prodottoCategoriaRichiedeDosaggio,
             prodottoCategoriaRichiedeGiorniCarenza,
         } from '../../../core/js/prodotto-form-required.js';
+        import { escapeHtml, showAlert } from '../../../core/js/gfv-page-utils.js';
+        import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[prodotti] Bootstrap failed:', err);
+            throw err;
+        }
         if (!window.currentTableData || !window.currentTableData.summary || window.currentTableData.summary === '') {
             window.currentTableData = { pageType: 'prodotti', summary: 'Caricamento dati in corso...', items: [] };
         }
@@ -288,20 +264,6 @@
             return Number(s);
         }
 
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') { resolve(window.firebaseConfig); return; }
-                let attempts = 0;
-                const iv = setInterval(() => {
-                    attempts++;
-                    if (typeof window.firebaseConfig !== 'undefined') { clearInterval(iv); resolve(window.firebaseConfig); }
-                    else if (attempts >= 50) { clearInterval(iv); reject(new Error('Config timeout')); }
-                }, 100);
-            });
-        }
-
-        const firebaseConfig = await waitForConfig();
-        initializeFirebase(firebaseConfig);
         const auth = getAuthInstance();
         const db = getDb();
         let currentTenantId = null;
@@ -309,16 +271,12 @@
         /** @type {Set<string>} */
         const selectedProdottoIds = new Set();
 
-        function showAlert(message, type) {
-            if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(message, type || 'info'); return; }
-            console.warn('[showAlert] gfvShowAlert non disponibile:', message);
-        }
-
         onAuthStateChanged(auth, async (user) => {
-            if (!user) { window.location.href = '../../../core/auth/login-standalone.html'; return; }
+            if (!user) user = await resolveAuthUser(auth);
+            if (!user) { window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html'); return; }
             try {
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
-                if (!userDoc.exists()) { window.location.href = '../../../core/auth/login-standalone.html'; return; }
+                if (!userDoc.exists()) { window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html'); return; }
                 const userData = userDoc.data();
                 currentTenantId = userData.tenantId || (userData.tenantMemberships && Object.keys(userData.tenantMemberships || {})[0]);
                 const ruoli = userData.ruoli || [];
@@ -512,7 +470,7 @@
             else {
                 summaryParts.push(n === 1 ? 'C\'è 1 prodotto in elenco.' : ('Ci sono ' + n + ' prodotti in elenco.'));
                 if (sottoScortaCount) summaryParts.push(sottoScortaCount === 1 ? '1 sotto scorta.' : (sottoScortaCount + ' sotto scorta.'));
-                if (daCompletareCount) summaryParts.push(daCompletareCount === 1 ? '1 da completare (Tony Occhi).' : (daCompletareCount + ' da completare (Tony Occhi).'));
+                if (daCompletareCount) summaryParts.push(daCompletareCount === 1 ? '1 da completare (creato da Tony).' : (daCompletareCount + ' da completare (creati da Tony).'));
             }
             window.currentTableData = {
                 pageType: 'prodotti',
@@ -639,11 +597,6 @@
             if (btn) btn.disabled = n === 0;
         }
 
-        function escapeHtml(s) {
-            const div = document.createElement('div');
-            div.textContent = s;
-            return div.innerHTML;
-        }
         function formatNum(n) {
             if (n == null) return '-';
             return Number(n);
@@ -874,18 +827,6 @@
                 showAlert('Errore: ' + err.message, 'error');
             }
         }
-    </script>
-    <!-- GFV standalone shell: alert toast + Tony gated -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var s = document.createElement('script');
-      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-      document.body.appendChild(s);
-    })();
     </script>
 </body>
 </html>

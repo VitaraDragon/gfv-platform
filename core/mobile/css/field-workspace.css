@@ -409,6 +409,66 @@
     color: #166534;
 }
 
+/* Elenco conferme ricezione (capo → comunicazioni inviate) */
+.comm-receipts {
+    margin-top: 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fafafa;
+    padding: 0 8px 6px;
+}
+
+.comm-receipts-summary {
+    cursor: pointer;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #374151;
+    padding: 8px 2px;
+}
+
+.comm-receipts-summary::-webkit-details-marker {
+    display: none;
+}
+
+.comm-receipt-list {
+    list-style: none;
+    margin: 0;
+    padding: 0 0 4px;
+}
+
+.comm-receipt-row {
+    display: grid;
+    grid-template-columns: 22px 1fr auto;
+    align-items: center;
+    gap: 6px;
+    padding: 5px 2px;
+    border-top: 1px solid #eee;
+    font-size: 12px;
+}
+
+.comm-receipt-name {
+    color: #111827;
+    font-weight: 600;
+}
+
+.comm-receipt-state {
+    color: #6b7280;
+    font-size: 11px;
+}
+
+.comm-receipt-row.is-ok .comm-receipt-state {
+    color: #166534;
+}
+
+.comm-receipt-row.is-wait .comm-receipt-state {
+    color: #92400e;
+}
+
 .inline-item-actions {
     margin-top: 8px;
     display: flex;

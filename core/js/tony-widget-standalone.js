@@ -24,7 +24,8 @@
 
     function appendClassicScript(relativePath, onload, onerror) {
         var s = document.createElement('script');
-        s.src = new URL(relativePath, scriptBase).href;
+        s.src = new URL(relativePath, scriptBase).href +
+            (String(relativePath).indexOf('?') >= 0 ? '&' : '?') + 'v=' + encodeURIComponent(TONY_LOADER_BUILD);
         if (onload) s.onload = onload;
         if (onerror) {
             s.onerror = onerror;

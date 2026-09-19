@@ -314,26 +314,23 @@
         </div>
     </div>
 
-    <script>window.GFV_CONFIG_BASE = '../../../core';</script>
-    <script src="../../../core/js/config-loader.js"></script>
-    <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
+        import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
+        import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+
         (async function() {
-            const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
-            const firebaseConfig = await waitForConfig();
+            try {
+                await window.GFVStandaloneReady;
+            } catch (err) {
+                console.error('[macchine-dashboard] Bootstrap failed:', err);
+                throw err;
+            }
+
             const firebaseService = await import('../../../core/services/firebase-service.js');
-            const { getDb, getDoc, doc } = firebaseService;
-            const { afterFirebaseInit, resolveAuthUser, loginPageUrl } = await import('../../../core/js/simulator-standalone-page.js');
+            const { getAuthInstance, getDb, getDoc, doc } = firebaseService;
             const { getCurrentTenantId, getCurrentTenant, setCurrentTenantId, initializeTenantService } = await import('../../../core/services/tenant-service.js');
-            firebaseService.initializeFirebase(firebaseConfig);
-            const auth = await afterFirebaseInit(firebaseService);
-            (function loadGfvStandaloneShell() {
-                var base = (function(){ var p = (window.location.pathname||'').replace(/\\/g,'/'); return p.indexOf('/gfv-platform/') >= 0 ? (window.location.origin + '/gfv-platform/core') : '../../../core'; })();
-                var sep = (base && !base.endsWith('/')) ? '/' : '';
-                var s = document.createElement('script');
-                s.src = base + sep + 'js/gfv-standalone-shell.js';
-                document.body.appendChild(s);
-            })();
+            const auth = getAuthInstance();
             const db = getDb();
             initializeTenantService();
 
@@ -344,13 +341,6 @@
             function renderCardList(elId, html) {
                 const el = document.getElementById(elId);
                 if (el) el.innerHTML = html;
-            }
-
-            function escapeHtml(s) {
-                if (s == null) return '';
-                const div = document.createElement('div');
-                div.textContent = s;
-                return div.innerHTML;
             }
 
             function renderDashboard(macchine, guasti) {

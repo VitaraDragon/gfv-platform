@@ -1,5 +1,4 @@
 import {
-    initializeFirebase,
     getAuthInstance,
     getDb,
     onAuthStateChanged,
@@ -14,6 +13,7 @@ import {
     serverTimestamp,
     Timestamp
 } from '../../services/firebase-service.js';
+import { resolveAuthUserWithRetry, loginPageUrl, waitForStandaloneReady } from '../../js/simulator-standalone-page.js';
 import { formatOreNette } from '../../js/attivita-utils.js';
 
 import {
@@ -44,6 +44,8 @@ import {
     partitionComunicazioniRicevuteOperaio,
     partitionComunicazioniInviateCapo,
     countConfermePendentiInvio,
+    buildComunicazioneConfermeRicezioneRows,
+    indexManodoperaUserInMap,
 } from '../../services/comunicazioni-squadra-utils.js';
 import {
     collectLiveLavoroIdSet,
@@ -129,6 +131,31 @@ let pullTouchStartY = 0;
 let pullTouchStartX = 0;
 let pendingFocusLavoroIdFromUrl = null;
 let pendingOpenSlideFromUrl = null;
+
+function selectedWorkStorageKey() {
+    const uid = currentUser && currentUser.uid;
+    return uid ? `gfv_mobile_selected_work_id:${uid}` : '';
+}
+
+function readSavedSelectedWorkId() {
+    try {
+        const key = selectedWorkStorageKey();
+        return key ? (localStorage.getItem(key) || '') : '';
+    } catch (e) {
+        return '';
+    }
+}
+
+function writeSavedSelectedWorkId(value) {
+    try {
+        const key = selectedWorkStorageKey();
+        if (!key || !value) return;
+        localStorage.setItem(key, value);
+        localStorage.removeItem('gfv_mobile_selected_work_id');
+    } catch (e) {
+        // ignore
+    }
+}
 let receivedCommunicationsHistoryExpanded = false;
 let sentCommunicationsHistoryExpanded = false;
 
@@ -458,7 +485,7 @@ function populateWorkSelectors(works) {
         quickWorkSelectEl.innerHTML = options;
     }
     try {
-        const saved = localStorage.getItem('gfv_mobile_selected_work_id');
+        const saved = readSavedSelectedWorkId();
         if (saved) {
             if (selectedWorkEl) selectedWorkEl.value = saved;
             if (quickWorkSelectEl) quickWorkSelectEl.value = saved;
@@ -1129,7 +1156,65 @@ function setCommunicationsHistoryToggle(toggleEl, historyEl, count, expanded) {
     historyEl.hidden = !expanded;
 }
 
-function renderSentCommunicationCard(row, { readOnly = false } = {}) {
+function buildOperaioNameMapFromSquadCache() {
+    const map = new Map();
+    (lastSquadMembers || []).forEach((m) => {
+        if (!m) return;
+        const docId = m.id || m.uid;
+        if (!docId) return;
+        indexManodoperaUserInMap(map, String(docId), m);
+    });
+    return map;
+}
+
+async function ensureOperaioNamesForCommunications(rows) {
+    const map = buildOperaioNameMapFromSquadCache();
+    const missing = new Set();
+    (rows || []).forEach((row) => {
+        normalizeDestinatariIds(row.destinatari).forEach((id) => {
+            if (id && !map.has(String(id))) missing.add(String(id));
+        });
+        (Array.isArray(row.conferme) ? row.conferme : []).forEach((c) => {
+            const uid = c && typeof c === 'object' ? c.userId : c;
+            if (uid && !map.has(String(uid))) missing.add(String(uid));
+        });
+    });
+    for (const oid of missing) {
+        try {
+            const udoc = await getDoc(doc(getDb(), 'users', oid));
+            if (udoc.exists()) indexManodoperaUserInMap(map, udoc.id, udoc.data());
+        } catch (_) { /* ignore singolo fetch */ }
+    }
+    return map;
+}
+
+function renderSentCommunicationReceiptsHtml(row, nameByUserId) {
+    const receiptRows = buildComunicazioneConfermeRicezioneRows(row, nameByUserId);
+    if (!receiptRows.length) {
+        return '<div class="inline-item-sub" style="margin-top:6px;">Nessun destinatario registrato su questo invio.</div>';
+    }
+    const pending = countConfermePendentiInvio(row);
+    const confermeCount = receiptRows.filter((r) => r.confermato).length;
+    const destCount = receiptRows.length;
+    const items = receiptRows.map((r) => `
+        <li class="comm-receipt-row ${r.confermato ? 'is-ok' : 'is-wait'}">
+            <span class="comm-receipt-mark" aria-hidden="true">${r.confermato ? '👍' : '⏳'}</span>
+            <span class="comm-receipt-name">${escapeHtmlUnsafe(r.nome)}</span>
+            <span class="comm-receipt-state">${r.confermato ? 'Confermato' : 'In attesa'}</span>
+        </li>
+    `).join('');
+    return `
+        <details class="comm-receipts" ${pending > 0 ? 'open' : ''}>
+            <summary class="comm-receipts-summary">
+                Chi ha confermato
+                <span class="inline-item-badge" style="margin-left:6px;">${confermeCount}/${destCount}</span>
+            </summary>
+            <ul class="comm-receipt-list">${items}</ul>
+        </details>
+    `;
+}
+
+function renderSentCommunicationCard(row, { readOnly = false, nameByUserId = null } = {}) {
     const destCount = normalizeDestinatariIds(row.destinatari).length;
     const confermeCount = Array.isArray(row.conferme) ? row.conferme.length : 0;
     const pending = countConfermePendentiInvio(row);
@@ -1138,6 +1223,10 @@ function renderSentCommunicationCard(row, { readOnly = false } = {}) {
         : `<span class="inline-item-badge">👍 ${confermeCount}/${destCount || '0'}</span>`;
     const statoLabel = row.stato && row.stato !== 'attiva'
         ? `<span class="inline-item-badge">${escapeHtmlUnsafe(String(row.stato))}</span>`
+        : '';
+    const nameMap = nameByUserId || buildOperaioNameMapFromSquadCache();
+    const receiptsHtml = destCount > 0
+        ? renderSentCommunicationReceiptsHtml(row, nameMap)
         : '';
     return `
         <div class="inline-item"${readOnly ? ' style="opacity:0.92;"' : ''}>
@@ -1150,6 +1239,7 @@ function renderSentCommunicationCard(row, { readOnly = false } = {}) {
                 <div class="inline-item-sub">Conferme ricezione</div>
                 ${statoLabel || badge}
             </div>
+            ${receiptsHtml}
         </div>
     `;
 }
@@ -1165,7 +1255,7 @@ async function loadReceivedCommunications() {
         false
     );
     try {
-        const rows = await fetchReceivedCommunicationRows();
+        const rows = await filterComunicazioniWithExistingLavoro(await fetchReceivedCommunicationRows());
         const { pending, history } = partitionComunicazioniRicevuteOperaio(rows);
         if (!pending.length && !history.length) {
             receivedCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Nessuna comunicazione dal caposquadra negli ultimi 60 giorni.</div>';
@@ -1219,6 +1309,35 @@ async function confirmReceivedCommunication(communicationId) {
     }
 }
 
+/**
+ * Nasconde comunicazioni legate a lavori già eliminati (orfani pre-cascata).
+ * @param {Array<Record<string, unknown>>} rows
+ * @returns {Promise<Array<Record<string, unknown>>>}
+ */
+async function filterComunicazioniWithExistingLavoro(rows) {
+    if (!Array.isArray(rows) || !rows.length || !currentTenantId) return rows || [];
+    const db = getDb();
+    if (!db) return rows;
+    const ids = Array.from(new Set(
+        rows
+            .map((r) => (r && r.lavoroId != null ? String(r.lavoroId).trim() : ''))
+            .filter(Boolean)
+    ));
+    if (!ids.length) return rows;
+    const existing = new Set();
+    await Promise.all(ids.map(async (lavoroId) => {
+        try {
+            const snap = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId));
+            if (snap.exists()) existing.add(lavoroId);
+        } catch (_) { /* ignore */ }
+    }));
+    return rows.filter((r) => {
+        const lid = r && r.lavoroId != null ? String(r.lavoroId).trim() : '';
+        if (!lid) return true;
+        return existing.has(lid);
+    });
+}
+
 async function loadSentCommunications() {
     if (!sentCommunicationsListEl || !currentTenantId || !currentUser) return;
     sentCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Caricamento comunicazioni inviate...</div>';
@@ -1246,16 +1365,21 @@ async function loadSentCommunications() {
             sentCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Nessuna comunicazione inviata.</div>';
             return;
         }
+        const nameByUserId = await ensureOperaioNamesForCommunications([...visibiliEvidenza, ...visibiliStorico]);
         if (!visibiliEvidenza.length && visibiliStorico.length) {
             sentCommunicationsHistoryExpanded = true;
         }
         if (!visibiliEvidenza.length) {
             sentCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Nessun invio in evidenza.</div>';
         } else {
-            sentCommunicationsListEl.innerHTML = visibiliEvidenza.map((row) => renderSentCommunicationCard(row)).join('');
+            sentCommunicationsListEl.innerHTML = visibiliEvidenza
+                .map((row) => renderSentCommunicationCard(row, { nameByUserId }))
+                .join('');
         }
         if (sentCommunicationsHistoryEl && visibiliStorico.length) {
-            sentCommunicationsHistoryEl.innerHTML = visibiliStorico.map((row) => renderSentCommunicationCard(row, { readOnly: true })).join('');
+            sentCommunicationsHistoryEl.innerHTML = visibiliStorico
+                .map((row) => renderSentCommunicationCard(row, { readOnly: true, nameByUserId }))
+                .join('');
         }
         setCommunicationsHistoryToggle(
             toggleSentCommunicationsHistoryEl,
@@ -1335,7 +1459,7 @@ window.gfvFieldWorkspaceGetSelectedLavoroId = function () {
     try {
         if (selectedWorkEl && selectedWorkEl.value) return selectedWorkEl.value;
         if (selectedWork && selectedWork.id) return selectedWork.id;
-        return localStorage.getItem('gfv_mobile_selected_work_id') || '';
+        return readSavedSelectedWorkId();
     } catch (e) {
         return '';
     }
@@ -1414,7 +1538,7 @@ function bindWorkSelection() {
         if (selectedWorkEl && selectedWorkEl.value !== value) selectedWorkEl.value = value;
         if (quickWorkSelectEl && quickWorkSelectEl.value !== value) quickWorkSelectEl.value = value;
         try {
-            localStorage.setItem('gfv_mobile_selected_work_id', value);
+            writeSavedSelectedWorkId(value);
         } catch (error) {
             // ignore
         }
@@ -1605,9 +1729,13 @@ function bindPullToRefresh() {
 }
 
 function bindToolbar() {
+    const setPref = (value) => {
+        const fn = fieldWorkspaceUtils().setFieldWorkspacePreference || setFieldWorkspacePreference;
+        if (typeof fn === 'function') fn(value);
+    };
     if (btnModeDesktopEl) {
         btnModeDesktopEl.addEventListener('click', () => {
-            setFieldWorkspacePreference('classic');
+            setPref('classic');
             setModeButtonsState('classic');
             window.location.href = '../dashboard-standalone.html?ws=classic';
         });
@@ -1615,7 +1743,7 @@ function bindToolbar() {
 
     if (btnModeMobileEl) {
         btnModeMobileEl.addEventListener('click', () => {
-            setFieldWorkspacePreference('auto');
+            setPref('auto');
             setModeButtonsState('mobile');
             setStatus('Versione mobile attiva.');
         });
@@ -1655,10 +1783,20 @@ function bindToolbar() {
     if (oraBreakEl) oraBreakEl.addEventListener('input', calculateNetHours);
 }
 
+function roleListHas(roles, names) {
+    const set = new Set((Array.isArray(roles) ? roles : []).map((r) => String(r).toLowerCase()));
+    return names.some((n) => set.has(String(n).toLowerCase()));
+}
+
+function fieldWorkspaceUtils() {
+    return window.GFVDashboardUtils || {};
+}
+
 function applyUrlPreference() {
     const pref = getWorkspacePreferenceFromUrl();
-    if (pref) {
-        setFieldWorkspacePreference(pref);
+    const setPref = fieldWorkspaceUtils().setFieldWorkspacePreference || setFieldWorkspacePreference;
+    if (pref && typeof setPref === 'function') {
+        setPref(pref);
         setModeButtonsState(pref);
         return;
     }
@@ -1675,26 +1813,14 @@ async function initFieldWorkspace() {
     bindPullToRefresh();
 
     try {
-        const firebaseConfig = await window.GFVConfigLoader.waitForConfig();
-        initializeFirebase(firebaseConfig);
-        const { awaitFirebaseEmulatorConnect, awaitAuthStateReady } = await import('../../services/firebase-service.js');
-        await awaitFirebaseEmulatorConnect();
-        await awaitAuthStateReady();
+        await waitForStandaloneReady();
         const auth = getAuthInstance();
         const db = getDb();
-        try {
-            const { ensureSimulatorSession } = await import('../../js/simulator-browser-auth.js');
-            await ensureSimulatorSession(auth);
-        } catch (_) { /* ignore */ }
 
         onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUserWithRetry(auth);
             if (!user) {
-                try {
-                    const { ensureSimulatorSession } = await import('../../js/simulator-browser-auth.js');
-                    const recovered = await ensureSimulatorSession(auth);
-                    if (recovered) return;
-                } catch (_) { /* ignore */ }
-                window.location.href = '../auth/login-standalone.html';
+                window.location.href = await loginPageUrl('../auth/login-standalone.html');
                 return;
             }
             if (fieldWorkspaceInitializedForUid === user.uid) return;
@@ -1725,7 +1851,10 @@ async function initFieldWorkspace() {
                 if (!Array.isArray(roles) || roles.length === 0) {
                     roles = Array.isArray(userData.ruoli) ? userData.ruoli : [];
                 }
-                const normalizedRoles = normalizeRoles ? normalizeRoles(roles) : roles;
+                const utils = fieldWorkspaceUtils();
+                const normalizeRolesFn = utils.normalizeRoles || normalizeRoles;
+                const hasAnyRoleFn = utils.hasAnyRole || hasAnyRole;
+                const normalizedRoles = normalizeRolesFn ? normalizeRolesFn(roles) : roles;
                 // Conserva eventuale id documento users diverso da auth.uid (match destinatari comunicazioni).
                 currentUserData = {
                     ...userData,
@@ -1746,12 +1875,12 @@ async function initFieldWorkspace() {
                     console.warn('[workspace] mark assenza seen:', seenErr);
                 }
 
-                const isManagerOrAdmin = hasAnyRole
-                    ? hasAnyRole({ ruoli: normalizedRoles }, ['manager', 'amministratore'])
-                    : false;
-                const isFieldRole = hasAnyRole
-                    ? hasAnyRole({ ruoli: normalizedRoles }, ['operaio', 'caposquadra'])
-                    : false;
+                const isManagerOrAdmin = hasAnyRoleFn
+                    ? hasAnyRoleFn({ ruoli: normalizedRoles }, ['manager', 'amministratore'])
+                    : roleListHas(normalizedRoles, ['manager', 'amministratore']);
+                const isFieldRole = hasAnyRoleFn
+                    ? hasAnyRoleFn({ ruoli: normalizedRoles }, ['operaio', 'caposquadra'])
+                    : roleListHas(normalizedRoles, ['operaio', 'caposquadra']);
 
                 if (isManagerOrAdmin || !isFieldRole) {
                     window.location.href = '../dashboard-standalone.html?ws=classic';
@@ -1773,12 +1902,12 @@ async function initFieldWorkspace() {
                     console.warn('[push] bootstrap workspace:', pushErr);
                 }
 
-                const isCaposquadra = hasAnyRole
-                    ? hasAnyRole({ ruoli: normalizedRoles }, ['caposquadra'])
-                    : false;
-                const isOperaio = hasAnyRole
-                    ? hasAnyRole({ ruoli: normalizedRoles }, ['operaio'])
-                    : false;
+                const isCaposquadra = hasAnyRoleFn
+                    ? hasAnyRoleFn({ ruoli: normalizedRoles }, ['caposquadra'])
+                    : roleListHas(normalizedRoles, ['caposquadra']);
+                const isOperaio = hasAnyRoleFn
+                    ? hasAnyRoleFn({ ruoli: normalizedRoles }, ['operaio'])
+                    : roleListHas(normalizedRoles, ['operaio']);
                 userIsCaposquadra = isCaposquadra;
                 userIsOperaio = isOperaio;
                 if (inlineTeamSectionEl) {

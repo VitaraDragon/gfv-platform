@@ -383,65 +383,19 @@
         </div>
     </div>
 
-    <!-- Load Firebase config from external file -->
-    <!-- Fallback: usa raw GitHub se il file locale non è disponibile (per GitHub Pages) -->
-    <script>
-        // Prova prima il percorso locale, poi il raw GitHub
-        const configScript = document.createElement('script');
-        configScript.src = '../config/firebase-config.js';
-        configScript.onerror = function() {
-            // Se fallisce, carica da raw GitHub
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallbackScript);
-        };
-        document.head.appendChild(configScript);
-    </script>
-    
-    <!-- Firebase SDK da CDN -->
+    <script type="module" src="../js/standalone-bootstrap.js" data-config-base="../"></script>
     <script type="module">
-        // Attendi che lo script config sia caricato
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve(window.firebaseConfig);
-                    return;
-                }
-                
-                // Prova a caricare manualmente se non è stato caricato
-                const script = document.createElement('script');
-                // Prova prima locale, poi raw GitHub
-                script.src = '../config/firebase-config.js';
-                script.onerror = function() {
-                    const fallback = document.createElement('script');
-                    fallback.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-                    fallback.onload = () => {
-                        if (typeof window.firebaseConfig !== 'undefined') {
-                            resolve(window.firebaseConfig);
-                        } else {
-                            reject(new Error('Firebase config not found after loading'));
-                        }
-                    };
-                    fallback.onerror = () => reject(new Error('Failed to load firebase-config.js'));
-                    document.head.appendChild(fallback);
-                };
-                script.onload = () => {
-                    if (typeof window.firebaseConfig !== 'undefined') {
-                        resolve(window.firebaseConfig);
-                    } else {
-                        reject(new Error('Firebase config not found after loading'));
-                    }
-                };
-                script.onerror = () => reject(new Error('Failed to load firebase-config.js'));
-                document.head.appendChild(script);
-            });
+        import { escapeHtml } from '../js/gfv-page-utils.js';
+        import { resolveAuthUser } from '../js/simulator-standalone-page.js';
+
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[login] Bootstrap failed:', err);
+            throw err;
         }
 
-        // Carica configurazione
-        const firebaseConfig = await waitForConfig();
-
         const {
-            initializeFirebase,
             getAuthInstance,
             getDb,
             getAppInstance,
@@ -455,9 +409,6 @@
             where,
             getDocs
         } = await import('../services/firebase-service.js');
-        initializeFirebase(firebaseConfig);
-        const { connectFirebaseEmulatorsIfDev } = await import('../js/firebase-emulator-dev.js');
-        await connectFirebaseEmulatorsIfDev({ getAuthInstance, getDb });
         const app = getAppInstance();
         const auth = getAuthInstance();
         const db = getDb();
@@ -528,12 +479,6 @@
             }, 5000);
         }
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
         function validateForm() {
             let isValid = true;
             const email = emailInput.value.trim();
@@ -579,9 +524,9 @@
         }
 
         // Verifica se già autenticato
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
             if (user) {
-                // Già autenticato, redirect a dashboard
                 window.location.href = '../dashboard-standalone.html';
             }
         });
