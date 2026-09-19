@@ -1,6 +1,6 @@
 # Stato attuale Tony – Verificato sul codice
 
-**Data**: 2026-09-19 (… **Piano campo mobile + lingue operaio/capo** — 2026-09-19, doc §8 / `PIANO_CAMPO_MOBILE_MULTILINGUA.md`; **Inviti: chiusura lettura pubblica + getInvitoPubblico** — 2026-09-18; **Preventivi numero lock + accettazione in transazione** — 2026-09-18; **Magazzino giacenza atomica (increment)** — 2026-09-18; **delete lavoro a cascata nel codice** — 2026-09-18; **Magazzino scarico trattamenti: gate trial** — 2026-09-18; **Tony Occhi: galleria + HEIC→JPEG** — 2026-09-17; **chat Tony iPhone: tastiera visualViewport + viewport-fit/safe-area** — 2026-09-17; **chat Tony iPhone: pannello 100dvw + riga 📷 visibile** — 2026-09-17; **voce iPhone: recorder su tutto iOS + sblocco TTS** — 2026-09-16; …)  
+**Data**: 2026-09-19 (… **Bozza telefono manager** — 2026-09-19, `PIANO_MOBILE_MANAGER.md` / §25; **Piano campo mobile + lingue operaio/capo** — 2026-09-19, doc §8 / `PIANO_CAMPO_MOBILE_MULTILINGUA.md`; **Inviti: chiusura lettura pubblica + getInvitoPubblico** — 2026-09-18; **Preventivi numero lock + accettazione in transazione** — 2026-09-18; **Magazzino giacenza atomica (increment)** — 2026-09-18; **delete lavoro a cascata nel codice** — 2026-09-18; **Magazzino scarico trattamenti: gate trial** — 2026-09-18; **Tony Occhi: galleria + HEIC→JPEG** — 2026-09-17; **chat Tony iPhone: tastiera visualViewport + viewport-fit/safe-area** — 2026-09-17; **chat Tony iPhone: pannello 100dvw + riga 📷 visibile** — 2026-09-17; **voce iPhone: recorder su tutto iOS + sblocco TTS** — 2026-09-16; …)  
 **Fonte**: codice + `TONY_DECISIONI_E_REQUISITI.md` (… **§3.10 lazy-load** — 2026-09-05; **§22.7 / §23 flag prova** — 2026-09-04; **§11.7 / §22 zona due punti** — 2026-09-03; **§11.6 allarmi/mappa** — 2026-08-02; …)  
 **Build widget**: `2026-09-17c`
 
@@ -243,6 +243,7 @@ Documenti creati per riprendere il lavoro **senza perdere contesto** (prompt, ba
 | `docs-sviluppo/da-fare/notifiche/SPEC_NOTIFICHE_PUSH_CICLO_LAVORO.md` | Push FCM ciclo lavoro + **S5 assenze/WA** (catalogo, non Tony in-app). Icona: `core/images/icon-192x192.png` URL assoluto |
 | `docs-sviluppo/dashboard/PLAN_PERFORMANCE_DASHBOARD.md` | Client load dashboard (Fasi 0–5 + addendum 2026-09 meteo/Maps/Tony lazy). Misure Sabbie in `COSA_ABBIAMO_FATTO.md` |
 | **`docs-sviluppo/da-fare/manodopera/PIANO_CAMPO_MOBILE_MULTILINGUA.md`** | **Pianificato 2026-09-19:** home campo **solo mobile**, lingue **IT/RO/EN** per operaio/caposquadra, traduci comunicazioni, guasti in mobile. **Non** i18n ERP. Decisioni §24 `TONY_DECISIONI_E_REQUISITI.md`. Prima di toccare workspace / login campo / toggle 🖥️ leggere quel piano |
+| **`docs-sviluppo/da-fare/dashboard/PIANO_MOBILE_MANAGER.md`** | **Bozza aperta 2026-09-19:** telefono manager/proprietario — **niente** seconda app; stessa dashboard più usabile. Da perfezionare (§8 del piano). **Non implementare** prima. Decisioni §25 |
 
 Indice: `docs-sviluppo/tony/README.md`.
 

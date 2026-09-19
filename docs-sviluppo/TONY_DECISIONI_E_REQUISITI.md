@@ -1,7 +1,7 @@
 # Tony – Inventario decisioni e requisiti
 
 **Data estrazione**: 2026-03-08  
-**Ultimo aggiornamento**: 2026-09-19 (piano campo mobile + lingue operaio/caposquadra §24; lazy-load widget §3.10; flag prova §22.7 / §23; zona due punti §11.7 / §22; push S5)
+**Ultimo aggiornamento**: 2026-09-19 (bozza telefono manager §25; piano campo §24; lazy-load widget §3.10; flag prova §22.7 / §23; zona due punti §11.7 / §22; push S5)
 **Obiettivo**: Raccogliere in un unico documento ogni decisione di prodotto, requisito e vincolo trovato nei documenti Tony, per evitare perdite durante il consolidamento.
 
 **Stati**: `implementato` | `in corso` | `parziale` | `pianificato` | `non implementato` | `abbandonato` | `da verificare`
@@ -685,6 +685,22 @@ Non è internazionalizzazione dell’ERP. È semplificare il telefono in campo i
 | 24.8 | Tony voce/STT/TTS in altre lingue **fuori MVP**; `APRI_PAGINA` campo resta sulle slide (già §5.5). Nuovo target whitelist se si aggiunge guasti | prodotto 2026-09-19 | **pianificato** | Non aprire Gestione Lavori / dashboard |
 | 24.9 | Manager o admin (anche con ruolo capo/operaio) **resta** in dashboard italiano | prodotto 2026-09-19 | **pianificato** | Invariato rispetto a `shouldUseFieldMobileWorkspace` |
 | 24.10 | Ordine implementazione: home+guasti → cornice i18n → traduci messaggi → push lingua destinatario | prodotto 2026-09-19 | **pianificato** | Dettaglio fasi nel piano §7 |
+
+---
+
+## 25. Telefono manager / proprietario — bozza da perfezionare (2026-09-19)
+
+**Stato codice:** **non implementare**. Documento di lavoro: `docs-sviluppo/da-fare/dashboard/PIANO_MOBILE_MANAGER.md`.  
+Non è il piano campo (§24). Due home restano volute (campo vs ufficio); non due uffici.
+
+| # | Decisione | Fonte | Stato | Note |
+|---|-----------|-------|-------|------|
+| 25.1 | **Niente** seconda app / workspace mobile dedicato al manager | prodotto 2026-09-19 | **deciso** | Stesso motivo per cui si chiude la desktop campo: un prodotto, non due |
+| 25.2 | Si migliora la **stessa** dashboard/hub/standalone (home «oggi», tabelle→card dove serve, form una colonna) | prodotto 2026-09-19 | **deciso** (direzione) | Dettaglio liste/azioni **aperto** (piano §8) |
+| 25.3 | Ufficio resta **italiano**; no i18n dashboard | prodotto 2026-09-19 | **deciso** | Allineato §24.2 / §24.9 |
+| 25.4 | Manager/admin restano in dashboard, non nel workspace campo | prodotto 2026-09-19 | **deciso** | `shouldUseFieldMobileWorkspace` |
+| 25.5 | Non promettere tutto l’ERP in tasca (preventivi pesanti, compensi, report, anagrafiche) | prodotto 2026-09-19 | **deciso** (principio) | Telefono = vedere e sbloccare |
+| 25.6 | Quali liste a card, quali 4–6 azioni home, form da accorciare, ordine vs piano campo | prodotto 2026-09-19 | **da decidere** | Checklist Q1–Q8 nel piano §8 |
 
 ---
 

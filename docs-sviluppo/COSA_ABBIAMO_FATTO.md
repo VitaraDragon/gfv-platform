@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-19 — piano campo: mobile unica + lingue operaio/caposquadra (non implementato).**
+**Ultimo aggiornamento documentazione: 2026-09-19 — bozza telefono manager (da perfezionare) + piano campo.**
+
+## Bozza telefono manager / proprietario (2026-09-19)
+
+- **Aperto, niente codice.** Non si fa una seconda app mobile per l’ufficio. Si migliora la **stessa** dashboard (home «oggi», tabelle→card sulle liste usate in tasca, form a una colonna). Lingua ufficio italiano. Dopo (o in parallelo leggero) il piano campo.
+- **Piano:** `docs-sviluppo/da-fare/dashboard/PIANO_MOBILE_MANAGER.md`. Decisioni ferme + domande aperte: `TONY_DECISIONI_E_REQUISITI.md` §25.
+- **Non implementare** finché il product owner non chiude la checklist §8 del piano.
 
 ## Piano campo — mobile unica + multilinguismo operai/caposquadra (2026-09-19)
 
