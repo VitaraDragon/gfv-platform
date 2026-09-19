@@ -41,7 +41,7 @@ Verificate **Abbonamento** o chiedete all’amministratore se il modulo non comp
 1. Dalla **dashboard principale** aprite **Moduli** e toccate **Frutteto**. Se avete configurato **I miei accessi**, può esserci anche una scorciatoia lì.
 2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard potete trovare un **riquadro** **Frutteto**: è un’extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** in **Moduli** o nelle scorciatoie: è normale non vedere il riquadro.
 3. Arrivate alla **Dashboard Frutteto**: titolo e colori arancio, **filtri** in alto (frutteto e anno), **Panoramica** con numeri (produzione kg, resa, spese, numero frutteti, raccolte anno), **Azioni rapide** verso tutte le pagine del modulo.
-4. In basso due blocchi: **Raccolte recenti** (tabella) e **Lavori frutteto** (tabella) — significato distinto, vedi **[sotto](#raccolte-recenti-e-lavori-frutteto-in-dashboard)**. Il pulsante **← Dashboard** riporta alla home generale.
+4. In basso due blocchi: **Raccolte recenti** (tabella) e **Lavori frutteto** (tabella) — significato distinto, vedi **[sotto](#raccolte-recenti-e-lavori-frutteto-in-dashboard)**. Il pulsante **← Dashboard Principale** riporta alla home generale. Dalle pagine del modulo **← Dashboard** riporta all’hub Frutteto.
 
 ---
 

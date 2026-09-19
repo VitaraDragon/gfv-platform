@@ -57,7 +57,7 @@ La **home Manodopera** è la pagina principale del modulo: lì trovi numeri aggi
 
 ### Cosa vedi in home
 
-**In alto** — titolo **Manodopera** e pulsante **← Dashboard** (torna alla dashboard principale dell’app).
+**In alto** — titolo **Manodopera** e pulsante **← Dashboard Principale** (torna alla dashboard principale dell’app).
 
 **Panoramica numerica** (i numeri sono cliccabili):
 
@@ -76,7 +76,7 @@ La **home Manodopera** è la pagina principale del modulo: lì trovi numeri aggi
 
 ### Tornare indietro dalle pagine interne
 
-Quando apri Gestione lavori, Validazione ore, Gestione squadre e simili, in alto compare **← Manodopera**: riporta alla **home del modulo**, non alla dashboard generale. Per la dashboard usa **← Dashboard** dalla home Manodopera.
+Quando apri Gestione lavori, Validazione ore, Gestione squadre e simili, in alto compare **← Dashboard**: riporta alla **home del modulo**, non alla dashboard generale. Per la home dell’app usa **← Dashboard Principale** dalla home Manodopera.
 
 ---
 
@@ -150,7 +150,7 @@ Sotto, una griglia di **funzioni** con titoli chiari. Quelli tipici sono:
 | **Gestione Macchine** | Compare se il modulo **Parco Macchine** è attivo (mezzi, guasti, manutenzioni). |
 | **Abbonamento** | Piano dell’azienda e **attivazione moduli** (senza Manodopera molte funzioni manodopera non esistono). |
 
-Per tornare alla **dashboard principale** usa **Indietro** o il link in alto. Dalle pagine operative manodopera (**Gestione lavori**, **Validazione ore**, …) preferisci **← Manodopera** per la home del modulo.
+Per tornare alla **dashboard principale** usa **← Dashboard Principale** dalla home Manodopera. Dalle pagine operative (**Gestione lavori**, **Validazione ore**, …) usa **← Dashboard** per la home del modulo.
 
 ---
 

@@ -21,14 +21,14 @@ Quando indichi **dove andare** in chat o in guida, usa sempre il linguaggio dell
 
 | Modulo | Home / hub | Torna indietro con |
 |--------|------------|-------------------|
-| Manodopera | KPI + Pianificazione / Persone / Controllo | **← Manodopera** dalle pagine interne |
-| Vigneto / Frutteto | Dashboard coltura (statistiche, azioni rapide) | **← Dashboard** verso home generale |
-| Magazzino | Riepilogo giacenze, azioni rapide, Archivio documenti | **← Dashboard** |
-| Conto Terzi | Panoramica clienti, preventivi, lavori | **← Dashboard** |
-| Parco Macchine | Panoramica mezzi, azioni rapide | **← Dashboard** |
-| Vendemmia meccanica | Home VM, piano stagione, calcolatore | **← Dashboard** |
-| Report | Dashboard report / bilanci | **← Dashboard** |
-| Core (Terreni, Diario, …) | pagina dedicata | **← Dashboard** o breadcrumb equivalente |
+| Manodopera | KPI + Pianificazione / Persone / Controllo | **← Dashboard** dalle pagine interne; **← Dashboard Principale** dall’hub |
+| Vigneto / Frutteto | Dashboard coltura (statistiche, azioni rapide) | **← Dashboard** dalle pagine interne; **← Dashboard Principale** dall’hub |
+| Magazzino | Riepilogo giacenze, azioni rapide, Archivio documenti | **← Dashboard** dalle pagine interne; **← Dashboard Principale** dall’hub |
+| Conto Terzi | Panoramica clienti, preventivi, lavori | **← Dashboard** dalle pagine interne; **← Dashboard Principale** dall’hub |
+| Parco Macchine | Panoramica mezzi, azioni rapide | **← Dashboard** dalle pagine interne; **← Dashboard Principale** dall’hub |
+| Vendemmia meccanica | Home VM, piano stagione, calcolatore | **← Dashboard** dalle pagine interne; **← Dashboard Principale** dall’hub |
+| Report | Dashboard report / bilanci | **← Dashboard** dalle pagine interne; **← Dashboard Principale** dall’hub |
+| Core (Terreni, Diario, …) | pagina dedicata | **← Dashboard** (home app) |
 
 ### Scorciatoie Terreni (Core)
 
