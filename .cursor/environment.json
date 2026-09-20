@@ -1,0 +1,23 @@
+{
+  "name": "GFV Platform",
+  "install": "npm ci && npm ci --prefix functions && node functions/scripts/generate-tony-configs.js",
+  "terminals": [
+    {
+      "name": "app-server",
+      "command": "npm start",
+      "description": "Static PWA served by http-server on http://127.0.0.1:8000 (app entry: /core/dashboard-standalone.html). Root / is the public landing page."
+    },
+    {
+      "name": "firebase-emulators",
+      "command": "npm run sim:emulators",
+      "description": "Firebase Auth (9099) + Firestore (8080) emulators for local dev/testing. Requires Java (bundled in the base image). Seed data with `npm run sim:run -- --template=viticola-conto-terzi-manodopera`, then open /core/dev/simulator-dev-standalone.html?emulator=1 (password SimGFV2026!)."
+    }
+  ],
+  "ports": [
+    { "name": "web", "port": 8000 },
+    { "name": "firebase-emulator-ui", "port": 4000 },
+    { "name": "firestore-emulator", "port": 8080 },
+    { "name": "auth-emulator", "port": 9099 },
+    { "name": "functions-emulator", "port": 5001 }
+  ]
+}
