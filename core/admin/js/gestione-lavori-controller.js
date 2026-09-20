@@ -448,23 +448,47 @@ export async function loadLavori(currentTenantId, db, lavoriList, hasParcoMacchi
             return createdSec(b) - createdSec(a);
         });
 
-        try {
-            const { repairSospesiConRipresaGiaCompletata } = await import('../../services/lavori-service.js');
-            const repairedIds = await repairSospesiConRipresaGiaCompletata(lavoriList, currentTenantId, db);
-            if (repairedIds.length > 0) {
-                console.log('[GESTIONE-LAVORI] Allineati lavori sospesi con ripresa già completata:', repairedIds);
-            }
-        } catch (repairErr) {
-            console.warn('[GESTIONE-LAVORI] Repair catena ripresa (non critico):', repairErr);
+        if (typeof window !== 'undefined' && lavoriList.length > 0) {
+            const items = lavoriList.slice(0, 80).map((lav) => ({
+                id: lav.id,
+                nome: lav.nome || '-',
+                stato: lav.stato || '-',
+                tipoLavoro: lav.tipoLavoro || lav.tipoLavoroNome || '-'
+            }));
+            window.currentTableData = Object.assign({}, window.currentTableData || {}, {
+                pageType: 'lavori',
+                summary: 'Ci sono ' + lavoriList.length + ' lavori in elenco.',
+                items: items
+            });
+            try {
+                window.dispatchEvent(new CustomEvent('table-data-ready', {
+                    detail: { currentTableData: window.currentTableData }
+                }));
+            } catch (e) { /* ignore */ }
         }
 
-        // Corregge macchine ancora in uso per lavori completati
-        if (hasParcoMacchineModule && correggiMacchineLavoriCompletati) {
-            await correggiMacchineLavoriCompletati();
-        }
-
-        // Applica filtri
+        // Primo paint subito: repair/macchine non devono tenere #lavori-container su «Caricamento».
         if (applyFilters) applyFilters();
+
+        void (async () => {
+            try {
+                const { repairSospesiConRipresaGiaCompletata } = await import('../../services/lavori-service.js');
+                const repairedIds = await repairSospesiConRipresaGiaCompletata(lavoriList, currentTenantId, db);
+                if (repairedIds.length > 0) {
+                    console.log('[GESTIONE-LAVORI] Allineati lavori sospesi con ripresa già completata:', repairedIds);
+                    if (applyFilters) applyFilters();
+                }
+            } catch (repairErr) {
+                console.warn('[GESTIONE-LAVORI] Repair catena ripresa (non critico):', repairErr);
+            }
+            try {
+                if (hasParcoMacchineModule && correggiMacchineLavoriCompletati) {
+                    await correggiMacchineLavoriCompletati();
+                }
+            } catch (corrErr) {
+                console.warn('[GESTIONE-LAVORI] Correggi macchine (non critico):', corrErr);
+            }
+        })();
     } catch (error) {
         console.error('Errore caricamento lavori:', error);
         if (container) {
@@ -1839,23 +1863,7 @@ export async function renderLavori(
     const container = document.getElementById('lavori-container');
     const countEl = document.getElementById('lavori-count');
 
-    let vmShortcut = null;
-    if (hasVendemmiaMeccanicaModule) {
-        try {
-            const [lavoroVmUtils, pianoUtils] = await Promise.all([
-                import('../../../modules/vendemmia-meccanica/services/lavoro-vm-utils.js'),
-                import('../../../modules/vendemmia-meccanica/services/piano-stagione-utils.js')
-            ]);
-            vmShortcut = {
-                isEligible: lavoroVmUtils.isLavoroEligibleForCalcolatoreShortcut,
-                buildUrl: (lavoro) => pianoUtils.buildCalcolatoreVmUrlFromLavoro(lavoro, {
-                    basePath: pianoUtils.CALCOLATORE_VM_ADMIN_BASE
-                })
-            };
-        } catch (err) {
-            console.warn('[GESTIONE-LAVORI] Modulo VM shortcut non disponibile:', err.message);
-        }
-    }
+    let vmShortcut = (typeof window !== 'undefined' && window.__gfvVmShortcut) || null;
 
     function renderCalcolatoreVmLink(lavoro) {
         if (!vmShortcut || !vmShortcut.isEligible(lavoro, { hasVmModule: true })) return '';
@@ -2026,56 +2034,26 @@ export async function renderLavori(
     if (terreniListToUse.length === 0) {
     }
     
-    const lavoriConDettagli = await Promise.all(
-        filteredLavoriList.map(async (lavoro) => {
-            let terreno = terreniListToUse.find(t => t.id === lavoro.terrenoId);
-            
-            // Se il terreno non è nella lista (può succedere per terreni clienti quando non siamo in modalità conto terzi),
-            // caricalo direttamente da Firestore
-            if (lavoro.terrenoId && !terreno && currentTenantId && db) {
-                try {
-                    const { doc, getDoc } = await import('../../services/firebase-service.js');
-                    const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', lavoro.terrenoId));
-                    if (terrenoDoc.exists()) {
-                        const terrenoData = terrenoDoc.data();
-                        terreno = {
-                            id: terrenoDoc.id,
-                            nome: terrenoData.nome || '',
-                            superficie: terrenoData.superficie || 0,
-                            coordinate: terrenoData.coordinate || null,
-                            polygonCoords: terrenoData.polygonCoords || null,
-                            coltura: terrenoData.coltura || null,
-                            colturaCategoria: terrenoData.colturaCategoria || null,
-                            colturaSottocategoria: terrenoData.colturaSottocategoria || null,
-                            tipoCampo: terrenoData.tipoCampo || null,
-                            clienteId: terrenoData.clienteId || null,
-                            ...terrenoData
-                        };
-                    }
-                } catch (error) {
-                    console.warn(`[GESTIONE LAVORI] Errore caricamento terreno ${lavoro.terrenoId}:`, error);
-                }
-            }
-            
+    const lavoriConDettagli = filteredLavoriList.map((lavoro) => {
+            const terreno = terreniListToUse.find(t => t.id === lavoro.terrenoId);
             const caposquadra = caposquadraListToUse.find(c => c.id === lavoro.caposquadraId);
             const squadra = squadreListToUse.find(s => s.caposquadraId === lavoro.caposquadraId);
             const operaio = operaiListToUse.find(o => o.id === lavoro.operaioId);
-            
-            return { 
-                ...lavoro, 
-                terreno, 
+            return {
+                ...lavoro,
+                terreno,
                 caposquadra,
                 squadra,
                 operaio
             };
-        })
-    );
+        });
 
-    // Carica progressi per ogni lavoro
-    const lavoriConProgressi = await Promise.all(
-        lavoriConDettagli.map(async (lavoro) => {
-            const progressi = loadProgressiLavoro ? await loadProgressiLavoro(lavoro.id) : { superficieLavorata: 0 };
-            const lavoroConProgressi = { ...lavoro, ...progressi };
+    // Progressi dal documento già in lista (niente getDoc/zone N+1 prima del primo paint).
+    const lavoriConProgressi = lavoriConDettagli.map((lavoro) => {
+            const lavoroConProgressi = {
+                ...lavoro,
+                superficieLavorata: lavoro.superficieTotaleLavorata || lavoro.superficieLavorata || 0
+            };
             
             // Calcola stato progresso se non presente o se necessario ricalcolarlo
             if (lavoroConProgressi.dataInizio && lavoroConProgressi.durataPrevista) {
@@ -2092,7 +2070,6 @@ export async function renderLavori(
                 // Calcola stato progresso se non presente
                 if (!lavoroConProgressi.statoProgresso && giorniEffettivi > 0) {
                     const superficieTotale = lavoroConProgressi.terreno?.superficie || 0;
-                    // Usa superficieTotaleLavorata dal documento lavoro o superficieLavorata calcolata da loadProgressiLavoro
                     const superficieLavorata = lavoroConProgressi.superficieTotaleLavorata || lavoroConProgressi.superficieLavorata || 0;
                     const percentualeCompletamento = superficieTotale > 0 ? (superficieLavorata / superficieTotale * 100) : 0;
                     const percentualeTempo = (giorniEffettivi / lavoroConProgressi.durataPrevista) * 100;
@@ -2112,8 +2089,7 @@ export async function renderLavori(
             }
             
             return lavoroConProgressi;
-        })
-    );
+        });
 
     // Applica filtro stato progresso se presente (dopo il calcolo)
     const progressoFilter = document.getElementById('filter-progresso')?.value || '';
@@ -2357,6 +2333,24 @@ export async function renderLavori(
     container.innerHTML = html;
     countEl.textContent = `${filteredLavoriList.length} lavor${filteredLavoriList.length !== 1 ? 'i' : 'o'}`;
     if (maybeAutoStartLavoriTour) maybeAutoStartLavoriTour();
+
+    if (hasVendemmiaMeccanicaModule && typeof window !== 'undefined' && window.__gfvVmShortcut == null) {
+        try {
+            const [lavoroVmUtils, pianoUtils] = await Promise.all([
+                import('../../../modules/vendemmia-meccanica/services/lavoro-vm-utils.js'),
+                import('../../../modules/vendemmia-meccanica/services/piano-stagione-utils.js')
+            ]);
+            window.__gfvVmShortcut = {
+                isEligible: lavoroVmUtils.isLavoroEligibleForCalcolatoreShortcut,
+                buildUrl: (lavoro) => pianoUtils.buildCalcolatoreVmUrlFromLavoro(lavoro, {
+                    basePath: pianoUtils.CALCOLATORE_VM_ADMIN_BASE
+                })
+            };
+        } catch (err) {
+            window.__gfvVmShortcut = false;
+            console.warn('[GESTIONE-LAVORI] Modulo VM shortcut non disponibile:', err.message);
+        }
+    }
 }
 
 /**

@@ -369,6 +369,133 @@ export function applyItalianVoiceQuestionPunctuation(text) {
 }
 
 /**
+ * Correzioni conservative Web Speech IT → italiano GFV (word-boundary).
+ * Ordine: più specifici prima. Non tocca orari «dalle X alle Y».
+ */
+export const ITALIAN_STT_LEXICON_REPLACEMENTS = [
+    // Artefatti comuni Chrome STT (allah ≈ alla)
+    { pattern: /\ballah\b/gi, replacement: 'alla' },
+    { pattern: /\ballà\b/gi, replacement: 'alla' },
+    { pattern: /\ba\s+lah\b/gi, replacement: 'alla' },
+    // Moduli / navigazione GFV
+    { pattern: /\bmagazino\b/gi, replacement: 'magazzino' },
+    { pattern: /\bmagasino\b/gi, replacement: 'magazzino' },
+    { pattern: /\btereni\b/gi, replacement: 'terreni' },
+    { pattern: /\bterrano\b/gi, replacement: 'terreno' },
+    { pattern: /\bcapo\s+squadra\b/gi, replacement: 'caposquadra' },
+    { pattern: /\bmanod\s*opera\b/gi, replacement: 'manodopera' },
+    { pattern: /\bvignetto\b/gi, replacement: 'vigneto' },
+    { pattern: /\bfruteto\b/gi, replacement: 'frutteto' },
+    { pattern: /\btratori\b/gi, replacement: 'trattori' },
+    { pattern: /\btratore\b/gi, replacement: 'trattore' },
+    // Tipi lavoro — mishear frequenti Web Speech (crea lavoro vocale)
+    { pattern: /\bstatura\s+di\s+produzione\b/gi, replacement: 'potatura di produzione' },
+    { pattern: /\bstatura\s+di\s+produz\w*\b/gi, replacement: 'potatura di produzione' },
+    { pattern: /\bstatura\b(?=\s+(?:di\s+)?(?:manuale|meccanic|verde))/gi, replacement: 'potatura' },
+    { pattern: /\bpotature\b/gi, replacement: 'potatura' },
+    { pattern: /\berpicature\b/gi, replacement: 'erpicatura' },
+    { pattern: /\btrinciature\b/gi, replacement: 'trinciatura' },
+    { pattern: /\bmonte\s+olivo\b/gi, replacement: 'Monte Olivo' },
+    // Navigazione tipica
+    { pattern: /\bportami\s+allah\b/gi, replacement: 'portami alla' },
+    { pattern: /\bapri\s+allah\b/gi, replacement: 'apri la' },
+    { pattern: /\bvai\s+allah\b/gi, replacement: 'vai alla' }
+];
+
+/** Token spurî tipici STT — usati per penalizzare alternative. */
+const ITALIAN_STT_SPURIOUS_TOKENS = /\b(allah|allà|statura)\b/i;
+
+/** Termini GFV / navigazione — usati per preferire alternative. */
+const ITALIAN_STT_GFV_LEXICON_HITS = /\b(portami|apri|aprire|vai|pagina|modulo|magazzino|terreni|terreno|lavori|lavoro|manodopera|caposquadra|operaio|trattore|trattori|attrezzo|vigneto|frutteto|guasti|preventivo|dashboard|potatura|erpicatura|trinciatura|produzione|squadra|alla|delle|del|della)\b/gi;
+
+/**
+ * Normalizza trascrizione Web Speech italiana (artefatti + lessico GFV).
+ * @param {string} text
+ * @returns {string}
+ */
+export function normalizeItalianSttTranscript(text) {
+    if (text == null || typeof text !== 'string') return text == null ? '' : String(text);
+    var s = text.replace(/\s+/g, ' ').trim();
+    if (!s) return s;
+
+    for (var i = 0; i < ITALIAN_STT_LEXICON_REPLACEMENTS.length; i++) {
+        var rule = ITALIAN_STT_LEXICON_REPLACEMENTS[i];
+        s = s.replace(rule.pattern, rule.replacement);
+    }
+
+    // Lettere H/h isolate (artefatto STT) — non toccare parole come «ho»
+    s = s.replace(/(^|\s)[Hh](\s|$)/g, ' ');
+    s = s.replace(/\balla\s+alla\b/gi, 'alla');
+    s = s.replace(/\s+/g, ' ').trim();
+    return s;
+}
+
+/**
+ * Web Speech a volte ripete la stessa frase (o «crea lavoro…» due volte con coda più ricca).
+ * Tiene la copia più completa.
+ * @param {string} text
+ * @returns {string}
+ */
+export function collapseDuplicateVoiceTranscript(text) {
+    var s = String(text || '').replace(/\s+/g, ' ').trim();
+    if (!s) return s;
+
+    var half = Math.floor(s.length / 2);
+    if (half > 8) {
+        var a = s.slice(0, half).trim();
+        var b = s.slice(half).trim().replace(/\.$/, '');
+        if (a && b && a.toLowerCase() === b.toLowerCase()) return a;
+    }
+
+    // «crea un lavoro … crea un lavoro … potatura» → tieni la seconda (di solito più completa)
+    var creaRe = /\bcrea(?:\s+un)?\s+lavoro\b/gi;
+    var idxs = [];
+    var m;
+    while ((m = creaRe.exec(s)) !== null) idxs.push(m.index);
+    if (idxs.length >= 2) {
+        var first = s.slice(idxs[0], idxs[1]).trim();
+        var second = s.slice(idxs[1]).trim();
+        if (second.length >= 20 && second.length >= first.length * 0.75) return second;
+        if (first.length >= second.length) return first;
+        return second;
+    }
+
+    // «nuovo lavoro … nuovo lavoro …»
+    var nuovoRe = /\bnuovo\s+lavoro\b/gi;
+    idxs = [];
+    while ((m = nuovoRe.exec(s)) !== null) idxs.push(m.index);
+    if (idxs.length >= 2) {
+        var nFirst = s.slice(idxs[0], idxs[1]).trim();
+        var nSecond = s.slice(idxs[1]).trim();
+        if (nSecond.length >= 20 && nSecond.length >= nFirst.length * 0.75) return nSecond;
+        return nFirst.length >= nSecond.length ? nFirst : nSecond;
+    }
+
+    // «dalle 7:00 alle dalle 7:00 alle 18:00» (eco STT sulla fascia)
+    s = s.replace(/\bdalle\s+(\d{1,2}(?::\d{2})?)\s+alle\s+dalle\s+/gi, 'dalle ');
+
+    return s;
+}
+
+/**
+ * Punteggio lessicale GFV per scegliere tra alternative Web Speech (oltre al bonus segna-ore).
+ * @param {string} t
+ * @returns {number}
+ */
+export function scoreItalianSttLexicon(t) {
+    var s = String(t || '').trim();
+    if (!s) return 0;
+    var score = 0;
+    if (ITALIAN_STT_SPURIOUS_TOKENS.test(s)) score -= 40;
+    var hits = s.match(ITALIAN_STT_GFV_LEXICON_HITS);
+    if (hits) score += Math.min(hits.length * 8, 40);
+    // Preferisci forma già normalizzata (allah → alla) rispetto a spurio grezzo
+    var norm = normalizeItalianSttTranscript(s);
+    if (norm !== s && !ITALIAN_STT_SPURIOUS_TOKENS.test(norm)) score += 5;
+    return score;
+}
+
+/**
  * Rimuove residui JSON dal testo (graffe, virgolette, virgole finali) per display e TTS.
  */
 export function cleanTextFromJsonResidue(s) {

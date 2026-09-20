@@ -171,58 +171,33 @@
         </div>
     </div>
 
-    <script>
-        const configScript = document.createElement('script');
-        configScript.src = '../../../core/config/firebase-config.js';
-        configScript.onerror = function() {
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallbackScript);
-        };
-        document.head.appendChild(configScript);
-    </script>
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
-        import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
-        import { collection, getDocs, query, where, orderBy, limit, Timestamp, getDoc, doc } from '../../../core/services/firebase-service.js';
+        import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, query, where, orderBy, limit, Timestamp, getDoc, doc } from '../../../core/services/firebase-service.js';
+        import { showAlert } from '../../../core/js/gfv-page-utils.js';
+        import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve(window.firebaseConfig);
-                    return;
-                }
-                let attempts = 0;
-                const maxAttempts = 50;
-                const checkInterval = setInterval(() => {
-                    attempts++;
-                    if (typeof window.firebaseConfig !== 'undefined') {
-                        clearInterval(checkInterval);
-                        resolve(window.firebaseConfig);
-                    } else if (attempts >= maxAttempts) {
-                        clearInterval(checkInterval);
-                        reject(new Error('Firebase config not loaded'));
-                    }
-                }, 100);
-            });
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[magazzino-home] Bootstrap failed:', err);
+            throw err;
         }
-
-        const firebaseConfig = await waitForConfig();
-        initializeFirebase(firebaseConfig);
         const auth = getAuthInstance();
         const db = getDb();
 
         let currentTenantId = null;
 
         onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
             if (!user) {
-                window.location.href = '../../../core/auth/login-standalone.html';
+                window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
                 return;
             }
             try {
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 if (!userDoc.exists()) {
-                    window.location.href = '../../../core/auth/login-standalone.html';
+                    window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
                     return;
                 }
                 const userData = userDoc.data();
@@ -334,22 +309,6 @@
             }
         }
 
-        function showAlert(message, type) {
-            if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(message, type || 'info'); return; }
-            console.warn('[showAlert] gfvShowAlert non disponibile:', message);
-        }
-    </script>
-    <!-- GFV standalone shell: alert toast + Tony gated -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var s = document.createElement('script');
-      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-      document.body.appendChild(s);
-    })();
     </script>
     <script>
     (function syncTonyPageMagazzinoHome() {

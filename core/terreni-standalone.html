@@ -754,36 +754,12 @@
 
     <!-- Placeholder per Tony: oggetto globale; .items aggiornato da Firestore/filtri -->
     <script>window.currentTableData = window.currentTableData || { pageType: 'terreni', summary: 'Caricamento terreni...', items: [] };</script>
-
-    <!-- Load Firebase and Google Maps config from external files -->
-    <!-- Fallback: usa raw GitHub se i file locali non sono disponibili (per GitHub Pages) -->
-    <script>
-        const firebaseConfigScript = document.createElement('script');
-        firebaseConfigScript.src = 'config/firebase-config.js';
-        firebaseConfigScript.onerror = function() {
-            const fallback = document.createElement('script');
-            fallback.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallback);
-        };
-        document.head.appendChild(firebaseConfigScript);
-        
-        const mapsConfigScript = document.createElement('script');
-        mapsConfigScript.src = 'config/google-maps-config.js';
-        mapsConfigScript.onerror = function() {
-            const fallback = document.createElement('script');
-            fallback.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
-            document.head.appendChild(fallback);
-        };
-        document.head.appendChild(mapsConfigScript);
-    </script>
-    
-    <!-- Firebase SDK e Google Maps -->
+    <script type="module" src="js/standalone-bootstrap.js" data-config-base=""></script>
     <script type="module">
         // ============================================
         // IMPORT MODULI (prima di tutto)
         // ============================================
         import { 
-            waitForConfig as waitForConfigModule,
             getTenantId as getTenantIdModule,
             getTerreniCollection as getTerreniCollectionModule,
             loadPoderi as loadPoderiModule,
@@ -833,17 +809,17 @@
         function maybeAutoStartTerreniTourModule() {}
         function startTerreniTourModule() {}
 
-        // Attendi che le configurazioni siano caricate
-        await waitForConfigModule();
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[terreni] Bootstrap failed:', err);
+            throw err;
+        }
 
         const firebaseConfig = window.firebaseConfig;
         const GOOGLE_MAPS_API_KEY = window.GOOGLE_MAPS_API_KEY || 'YOUR_GOOGLE_MAPS_API_KEY_HERE';
 
-        // Inizializza Firebase con il service condiviso (stesso SDK 11 di dashboard e servizi)
         const {
-            initializeFirebase,
-            awaitFirebaseEmulatorConnect,
-            awaitAuthStateReady,
             getAuthInstance,
             getDb,
             getAppInstance,
@@ -863,15 +839,9 @@
             serverTimestamp,
             Timestamp
         } = await import('./services/firebase-service.js');
-        const { withEmulatorQuery } = await import('./js/firebase-emulator-dev.js');
-        const loginPageUrl = () => withEmulatorQuery('./auth/login-standalone.html');
-        initializeFirebase(firebaseConfig);
-        await awaitFirebaseEmulatorConnect();
-        await awaitAuthStateReady();
+        const { resolveAuthUser, loginPageUrl } = await import('./js/simulator-standalone-page.js');
         const app = getAppInstance();
         const auth = getAuthInstance();
-        const { ensureSimulatorSession } = await import('./js/simulator-browser-auth.js');
-        await ensureSimulatorSession(auth);
         const db = getDb();
 
         // ============================================
@@ -952,11 +922,6 @@
         // ============================================
         // WRAPPER FUNCTIONS
         // ============================================
-
-        // Wrapper per waitForConfig (usa quello del modulo)
-        async function waitForConfigWrapper() {
-            return await waitForConfigModule();
-        }
 
         // Wrapper per getTenantId
         async function getTenantIdWrapper(userId) {
@@ -1532,15 +1497,9 @@
 
         // Verifica autenticazione
         onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
             if (!user) {
-                await awaitAuthStateReady();
-                user = auth.currentUser;
-            }
-            if (!user) {
-                user = await ensureSimulatorSession(auth);
-            }
-            if (!user) {
-                window.location.href = loginPageUrl();
+                window.location.href = await loginPageUrl('./auth/login-standalone.html');
                 return;
             }
 
@@ -1601,7 +1560,7 @@
         document.getElementById('user-info').parentElement.addEventListener('click', async (e) => {
             if (e.target.id === 'logout-button') {
                 await signOut(auth);
-                window.location.href = loginPageUrl();
+                window.location.href = await loginPageUrl('./auth/login-standalone.html');
             }
         });
 
@@ -1902,18 +1861,6 @@
                     });
             });
         }
-    </script>
-    <!-- GFV standalone shell: alert toast + Tony gated -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var s = document.createElement('script');
-      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-      document.body.appendChild(s);
-    })();
     </script>
 </body>
 </html>

@@ -631,49 +631,16 @@
         </div>
     </div>
 
-    <script>window.GFV_CONFIG_BASE = '../../../core';</script>
-    <script src="../../../core/js/config-loader.js"></script>
-    <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
+        import { resolvePath, getBasePath } from '../../../core/js/gfv-path.js';
+        import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 
-        function getBasePath() {
-            if (window.location.protocol === 'file:') {
-                return '';
-            }
-            const pathname = window.location.pathname;
-            const coreIndex = pathname.indexOf('/core/');
-            const modulesIndex = pathname.indexOf('/modules/');
-            if (coreIndex !== -1) {
-                return pathname.substring(0, coreIndex);
-            }
-            if (modulesIndex !== -1) {
-                return pathname.substring(0, modulesIndex);
-            }
-            return '/';
-        }
-
-        function resolvePath(relativePath) {
-            if (relativePath.startsWith('http://') || relativePath.startsWith('https://')) {
-                return relativePath;
-            }
-            const basePath = getBasePath();
-            if (relativePath.startsWith('/')) {
-                const pathWithoutSlash = relativePath.substring(1);
-                return basePath === '/' ? '/' + pathWithoutSlash : basePath + '/' + pathWithoutSlash;
-            }
-            const currentUrl = new URL(window.location.href);
-            const docPath = currentUrl.pathname;
-            const lastSlash = docPath.lastIndexOf('/');
-            const docDir = lastSlash !== -1 ? docPath.substring(0, lastSlash + 1) : '/';
-            const resolvedUrl = new URL(relativePath, currentUrl.origin + docDir);
-            let resolvedPath = resolvedUrl.pathname;
-            if (basePath && basePath !== '/' && !resolvedPath.startsWith(basePath)) {
-                const pathWithoutSlash = resolvedPath.startsWith('/') ? resolvedPath.substring(1) : resolvedPath;
-                const normalizedBasePath = basePath.endsWith('/') ? basePath : basePath + '/';
-                return normalizedBasePath + pathWithoutSlash;
-            }
-            return resolvedPath;
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[frutteti] Bootstrap failed:', err);
+            throw err;
         }
 
         // Import servizi modulo frutteto
@@ -694,7 +661,7 @@
 
         const { getAllTerreni } = terreniServiceModule;
         const { populateVarietaDropdown, addVarietaPersonalizzata } = varietaFruttetoServiceModule;
-        const { initializeFirebase, getAuthInstance, getDb, onAuthStateChanged, getDoc, doc } = firebaseServiceModule;
+        const { getAuthInstance, getDb, onAuthStateChanged, getDoc, doc } = firebaseServiceModule;
         const { getCurrentTenantId, getCurrentTenant, initializeTenantService } = tenantServiceModule;
         const { initializeAuthService } = authServiceModule;
         const { getAllColture } = coltureServiceModule;
@@ -749,8 +716,6 @@
 
         async function init() {
             try {
-                const firebaseConfig = await waitForConfig();
-                initializeFirebase(firebaseConfig);
                 const auth = getAuthInstance();
                 const db = getDb();
 
@@ -758,15 +723,16 @@
                 initializeTenantService();
 
                 onAuthStateChanged(auth, async (user) => {
+                    if (!user) user = await resolveAuthUser(auth);
                     if (!user) {
-                        window.location.href = resolvePath('../../../core/auth/login-standalone.html');
+                        window.location.href = await loginPageUrl(resolvePath('../../../core/auth/login-standalone.html'));
                         return;
                     }
 
                     try {
                         const userDoc = await getDoc(doc(db, 'users', user.uid));
                         if (!userDoc.exists()) {
-                            window.location.href = resolvePath('../../../core/auth/login-standalone.html');
+                            window.location.href = await loginPageUrl(resolvePath('../../../core/auth/login-standalone.html'));
                             return;
                         }
 
@@ -1688,18 +1654,6 @@
 
         // Avvio
         init();
-    </script>
-    <!-- GFV standalone shell: alert toast + Tony gated -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var s = document.createElement('script');
-      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-      document.body.appendChild(s);
-    })();
     </script>
 </body>
 </html>

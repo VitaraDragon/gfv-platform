@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Anagrafica Clienti - Conto Terzi - GFV Platform</title>
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
-    <script src="../../../core/js/gfv-standalone-head-bootstrap.js"></script>
     <style>
         * {
             margin: 0;
@@ -480,24 +479,11 @@
 
     <!-- Placeholder Tony currentTableData (aggiornato da renderClienti) -->
     <script>window.currentTableData = window.currentTableData || { pageType: 'clienti', summary: 'Caricamento dati in corso...', items: [] };</script>
-
-    <!-- Load Firebase config from external file -->
-    <script>
-        const configScript = document.createElement('script');
-        configScript.src = '../../../core/config/firebase-config.js';
-        configScript.onerror = function() {
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallbackScript);
-        };
-        document.head.appendChild(configScript);
-    </script>
-    
-    <!-- Firebase SDK -->
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
-        import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
-        import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, Timestamp } from '../../../core/services/firebase-service.js';
+        import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, Timestamp } from '../../../core/services/firebase-service.js';
+        import { escapeHtml, showAlert } from '../../../core/js/gfv-page-utils.js';
+        import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 
         // Classe Cliente inline (per evitare import ES6)
         class Cliente {
@@ -529,32 +515,12 @@
             }
         }
 
-        // Funzione per attendere il caricamento della configurazione Firebase
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve(window.firebaseConfig);
-                    return;
-                }
-                
-                let attempts = 0;
-                const maxAttempts = 50;
-                
-                const checkInterval = setInterval(() => {
-                    attempts++;
-                    if (typeof window.firebaseConfig !== 'undefined') {
-                        clearInterval(checkInterval);
-                        resolve(window.firebaseConfig);
-                    } else if (attempts >= maxAttempts) {
-                        clearInterval(checkInterval);
-                        reject(new Error('Firebase config not loaded after 5 seconds'));
-                    }
-                }, 100);
-            });
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[clienti] Bootstrap failed:', err);
+            throw err;
         }
-
-        const firebaseConfig = await waitForConfig();
-        initializeFirebase(firebaseConfig);
         const auth = getAuthInstance();
         const db = getDb();
 
@@ -568,6 +534,7 @@
 
         // Verifica autenticazione
         onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
             if (user) {
                 currentUser = user;
                 try {
@@ -600,14 +567,14 @@
                         // Carica clienti
                         await loadClienti();
                     } else {
-                        window.location.href = '../../../core/auth/login-standalone.html';
+                        window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
                     }
                 } catch (error) {
                     console.error('Errore:', error);
                     showAlert('Errore caricamento dati', 'error');
                 }
             } else {
-                window.location.href = '../../../core/auth/login-standalone.html';
+                window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
             }
         });
 
@@ -897,18 +864,6 @@
             }
         }
 
-        // Utility functions
-        function showAlert(message, type = 'success') {
-            if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(message, type); return; }
-            console.warn('[showAlert] gfvShowAlert non disponibile:', message);
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
         // Export per onclick
         window.openClienteModal = openClienteModal;
         window.closeClienteModal = closeClienteModal;
@@ -916,18 +871,6 @@
         window.editCliente = editCliente;
         window.deleteClienteConfirm = deleteClienteConfirm;
         window.resetFilters = resetFilters;
-    </script>
-    <!-- GFV standalone shell: alert toast + Tony gated -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var s = document.createElement('script');
-      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-      document.body.appendChild(s);
-    })();
     </script>
 </body>
 </html>

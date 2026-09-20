@@ -109,6 +109,30 @@ describe('tryInterceptTonyFormSaveConfirm', () => {
     resetTonyFormSaveConfirmFlags();
   });
 
+  it('intercept lavoro «sì» → SAVE_ACTIVITY + bolla salvato', () => {
+    window.__tonyAwaitingLavoroSaveConfirm = true;
+    const cfg = TONY_FORM_SAVE_LOCAL_CONFIG['lavoro-form'];
+    const origActive = cfg.isFormActive;
+    cfg.isFormActive = () => true;
+
+    const messages = [];
+    let saved = false;
+    const res = tryInterceptTonyFormSaveConfirm('sì', {
+      appendMessage: (msg, role) => messages.push({ msg, role }),
+      processTonyCommand: (cmd) => {
+        if (cmd.type === 'SAVE_ACTIVITY') saved = true;
+      },
+    });
+
+    expect(res.handled).toBe(true);
+    expect(res.confirmed).toBe(true);
+    expect(saved).toBe(true);
+    expect(window.__tonyAwaitingLavoroSaveConfirm).toBe(false);
+    expect(messages).toEqual([{ msg: 'Lavoro salvato!', role: 'tony' }]);
+
+    cfg.isFormActive = origActive;
+  });
+
   it('intercept preventivo «salva» → SAVE_ACTIVITY senza CF', () => {
     window.__tonyAwaitingPreventivoSaveConfirm = true;
     const prevCfg = TONY_FORM_SAVE_LOCAL_CONFIG['preventivo-form'];

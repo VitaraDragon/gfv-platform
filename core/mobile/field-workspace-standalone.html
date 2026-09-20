@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Versione mobile — GFV</title>
-    <script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1'){localStorage.setItem('gfv_firebase_emulator','1');}}catch(e){}</script>
+    <script>try{if(localStorage.getItem('gfv_demo_cloud_session')==='1'){localStorage.removeItem('gfv_firebase_emulator');}else if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1'){localStorage.setItem('gfv_firebase_emulator','1');}}catch(e){}</script>
     <link rel="manifest" href="../../manifest.json">
     <meta name="theme-color" content="#2E8B57">
     <link rel="stylesheet" href="../styles/responsive-standalone.css">
@@ -240,30 +240,8 @@
         </div>
     </div>
 
-    <script src="../js/config-loader.js"></script>
     <script src="../js/dashboard-utils.js"></script>
-    <script>
-        window.GFVConfigLoader.loadConfigAndMaps().catch((error) => {
-            console.error('Errore caricamento configurazione:', error);
-            const status = document.getElementById('field-mobile-status');
-            if (status) {
-                status.textContent = `Errore configurazione: ${error.message}`;
-                status.style.color = '#b91c1c';
-            }
-        });
-    </script>
+    <script type="module" src="../js/standalone-bootstrap.js" data-config-base="../"></script>
     <script type="module" src="./js/field-workspace-controller.js"></script>
-    <!-- GFV standalone shell: alert toast + Tony gated -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/core/mobile/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : '')));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var s = document.createElement('script');
-      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-      document.body.appendChild(s);
-    })();
-    </script>
 </body>
 </html>

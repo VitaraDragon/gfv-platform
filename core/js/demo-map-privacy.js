@@ -9,6 +9,7 @@
 
 /** Tenant demo cloud (vedi COSA_ABBIAMO_FATTO — Demo cloud geo privacy-safe v2). */
 export const DEMO_PRIVACY_TENANT_IDS = Object.freeze(['demo_azienda_demo_gfv_v1']);
+export const DEMO_CLOUD_TENANT_ID = DEMO_PRIVACY_TENANT_IDS[0];
 
 /** Stili Google Maps: nascondono POI, etichette e transit. */
 export const DEMO_PRIVACY_MAP_STYLES = Object.freeze([
@@ -27,6 +28,10 @@ export const DEMO_PRIVACY_MAP_STYLES = Object.freeze([
 export function isDemoPrivacyTenant(tenantId) {
     if (typeof tenantId !== 'string' || !tenantId) return false;
     return DEMO_PRIVACY_TENANT_IDS.includes(tenantId);
+}
+
+export function isDemoCloudTenant(tenantId) {
+    return isDemoPrivacyTenant(tenantId);
 }
 
 /**

@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mappa Clienti - Conto Terzi - GFV Platform</title>
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
-    <script src="../../../core/js/gfv-standalone-head-bootstrap.js"></script>
     <style>
         * {
             margin: 0;
@@ -236,75 +235,22 @@
         </div>
     </div>
 
-    <!-- Load Firebase config from external file -->
-    <script>
-        const configScript = document.createElement('script');
-        configScript.src = '../../../core/config/firebase-config.js';
-        configScript.onerror = function() {
-            const fallbackScript = document.createElement('script');
-            fallbackScript.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallbackScript);
-        };
-        document.head.appendChild(configScript);
-    </script>
-
-    <!-- Load Google Maps config from external file -->
-    <script>
-        const mapsConfigScript = document.createElement('script');
-        mapsConfigScript.src = '../../../core/config/google-maps-config.js';
-        mapsConfigScript.onerror = function() {
-            const fallback = document.createElement('script');
-            fallback.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
-            document.head.appendChild(fallback);
-        };
-        document.head.appendChild(mapsConfigScript);
-    </script>
-
-    <!-- Firebase SDK da CDN -->
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { initializeFirebase, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
-        import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
-        import { collection, getDocs, getDoc, doc, query, where, orderBy } from '../../../core/services/firebase-service.js';
+        import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, getDoc, doc, query, where, orderBy } from '../../../core/services/firebase-service.js';
+        import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
+        import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 
-        // Funzione per attendere il caricamento della configurazione Firebase
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve(window.firebaseConfig);
-                    return;
-                }
-                
-                let attempts = 0;
-                const maxAttempts = 50;
-                
-                const checkInterval = setInterval(() => {
-                    attempts++;
-                    if (typeof window.firebaseConfig !== 'undefined') {
-                        clearInterval(checkInterval);
-                        resolve(window.firebaseConfig);
-                    } else if (attempts >= maxAttempts) {
-                        clearInterval(checkInterval);
-                        reject(new Error('Firebase config not loaded after 5 seconds'));
-                    }
-                }, 100);
-            });
-        }
-
-        // Avvolgi tutto in una funzione asincrona auto-invocata
         (async function() {
-            // Carica configurazione Firebase
-            let firebaseConfig;
             try {
-                firebaseConfig = await waitForConfig();
+                await window.GFVStandaloneReady;
             } catch (error) {
-                console.error('Errore caricamento config Firebase:', error);
-                document.getElementById('mappa-container').innerHTML = '<div class="no-data"><div class="no-data-icon">⚠️</div><p>Errore caricamento configurazione Firebase</p></div>';
+                console.error('[mappa-clienti] Bootstrap failed:', error);
+                const box = document.getElementById('mappa-container');
+                if (box) box.innerHTML = '<div class="no-data"><div class="no-data-icon">⚠️</div><p>Errore caricamento configurazione</p></div>';
                 return;
             }
 
-            if (!firebaseConfig) return;
-
-        initializeFirebase(firebaseConfig);
         const auth = getAuthInstance();
         const db = getDb();
 
@@ -476,13 +422,7 @@
             return 'Default';
         }
 
-        // Funzione escape HTML
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+        // escapeHtml: import da gfv-page-utils.js
 
         // Funzione per zoom intelligente con padding
         function fitBoundsWithPadding(boundsToFit, paddingPixels = 50) {
@@ -1055,6 +995,7 @@
 
         // Inizializzazione
         onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
             if (user) {
                 currentUser = user;
                 
@@ -1079,22 +1020,10 @@
                     console.error('Errore caricamento dati utente:', error);
                 }
             } else {
-                window.location.href = '../../../core/login-standalone.html';
+                window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
             }
         });
-        })(); // Chiudi funzione asincrona auto-invocata
-    </script>
-    <!-- GFV standalone shell: alert toast + Tony gated -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var s = document.createElement('script');
-      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-      document.body.appendChild(s);
-    })();
+        })();
     </script>
 </body>
 </html>

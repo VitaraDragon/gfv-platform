@@ -211,82 +211,12 @@
         </div>
     </div>
 
-    <!-- Load Firebase config from external file -->
-    <script>
-        // Configurazione Firebase di fallback (se il file esterno non viene caricato)
-        const fallbackConfig = {
-            apiKey: "AIzaSyBOqH6Oax3_JRQhMaU8Fp36wxgYo3s_pw0",
-            authDomain: "gfv-platform.firebaseapp.com",
-            projectId: "gfv-platform",
-            storageBucket: "gfv-platform.firebasestorage.app",
-            messagingSenderId: "495860225347",
-            appId: "1:495860225347:web:79edd2bdd78fe92f0bcbf6"
-        };
-
-        // Prova a caricare la configurazione da file esterno
-        const configScript = document.createElement('script');
-        configScript.src = '../../../core/config/firebase-config.js';
-        configScript.onload = function() {
-            // Se il file viene caricato ma non definisce window.firebaseConfig, usa il fallback
-            setTimeout(() => {
-                if (typeof window.firebaseConfig === 'undefined') {
-                    console.warn('Firebase config file loaded but config not found, using fallback');
-                    window.firebaseConfig = fallbackConfig;
-                }
-            }, 100);
-        };
-        configScript.onerror = function() {
-            console.warn('Firebase config file not found, using fallback');
-            // Usa configurazione di fallback
-            window.firebaseConfig = fallbackConfig;
-        };
-        document.head.appendChild(configScript);
-        
-        // Timeout di sicurezza: se dopo 1 secondo non è ancora caricato, usa fallback
-        setTimeout(() => {
-            if (typeof window.firebaseConfig === 'undefined') {
-                console.warn('Firebase config loading timeout, using fallback');
-                window.firebaseConfig = fallbackConfig;
-            }
-        }, 1000);
-    </script>
-    
-    <!-- Firebase SDK + Callable pubbliche (nessuna lettura Firestore client su tenants/clienti/preventivi) -->
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { initializeFirebase, getAppInstance } from '../../../core/services/firebase-service.js';
+        import { getAppInstance } from '../../../core/services/firebase-service.js';
+        import { showAlert } from '../../../core/js/gfv-page-utils.js';
 
-        // Variabili globali per le funzioni di accettazione/rifiuto
         let preventivoData = null;
-
-        // Funzione per attendere il caricamento della configurazione Firebase
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve(window.firebaseConfig);
-                    return;
-                }
-                
-                let attempts = 0;
-                const maxAttempts = 50;
-                
-                const checkInterval = setInterval(() => {
-                    attempts++;
-                    if (typeof window.firebaseConfig !== 'undefined') {
-                        clearInterval(checkInterval);
-                        resolve(window.firebaseConfig);
-                    } else if (attempts >= maxAttempts) {
-                        clearInterval(checkInterval);
-                        reject(new Error('Firebase config not loaded after 5 seconds'));
-                    }
-                }, 100);
-            });
-        }
-
-        // Utility functions
-        function showAlert(message, type = 'info') {
-            if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(message, type); return; }
-            console.warn('[showAlert] gfvShowAlert non disponibile:', message);
-        }
 
         // Funzioni accetta/rifiuta (definite globalmente)
         async function getPreventivoCallable() {
@@ -380,13 +310,18 @@
         const token = urlParams.get('token');
         const action = urlParams.get('action') || (window.location.pathname.includes('accetta') ? 'accetta' : 'rifiuta');
 
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[accetta-preventivo] Bootstrap failed:', err);
+            document.getElementById('loading').innerHTML = '<div class="alert alert-error">Errore caricamento configurazione.</div>';
+            throw err;
+        }
+
         if (!token) {
             document.getElementById('loading').innerHTML = '<div class="alert alert-error">Token non valido. Link non valido o scaduto.</div>';
         } else {
             try {
-                const firebaseConfig = await waitForConfig();
-                initializeFirebase(firebaseConfig);
-
                 const { getPreventivoPubblico } = await getPreventivoCallable();
                 const res = await getPreventivoPubblico({ token });
                 const payload = res.data;
@@ -451,18 +386,6 @@
                 document.getElementById('loading').innerHTML = '<div class="alert alert-error">Errore caricamento preventivo: ' + msg + '</div>';
             }
         }
-    </script>
-    <!-- GFV standalone shell: alert toast + Tony gated -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var s = document.createElement('script');
-      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-      document.body.appendChild(s);
-    })();
     </script>
 </body>
 </html>

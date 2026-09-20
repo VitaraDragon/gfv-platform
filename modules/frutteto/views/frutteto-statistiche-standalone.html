@@ -208,15 +208,20 @@
         </div>
     </div>
 
-    <script>window.GFV_CONFIG_BASE = '../../../core';</script>
-    <script src="../../../core/js/config-loader.js"></script>
-    <script>window.GFVConfigLoader.loadConfigAndMaps().catch(function(e){ console.error('Config load error', e); });</script>
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        const waitForConfig = () => window.GFVConfigLoader.waitForConfig();
-        const firebaseConfig = await waitForConfig();
-        const { initializeFirebase, getAuthInstance, getDb, onAuthStateChanged, getDoc, doc } = await import('../../../core/services/firebase-service.js');
+        import { showAlert } from '../../../core/js/gfv-page-utils.js';
+        import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[frutteto-statistiche] Bootstrap failed:', err);
+            throw err;
+        }
+
+        const { getAuthInstance, getDb, onAuthStateChanged, getDoc, doc } = await import('../../../core/services/firebase-service.js');
         const { getCurrentTenantId, getCurrentTenant, initializeTenantService } = await import('../../../core/services/tenant-service.js');
-        initializeFirebase(firebaseConfig);
         const auth = getAuthInstance();
         const db = getDb();
         initializeTenantService();
@@ -229,11 +234,6 @@
         let debounceTimer = null;
         const CACHE_TTL = 5 * 60 * 1000;
         const CACHE_PREFIX = 'frutteto_stats_';
-
-        function showAlert(message, type = 'info') {
-            if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(message, type); return; }
-            console.warn('[showAlert] gfvShowAlert non disponibile:', message);
-        }
 
         const chartOrder = [
             'chart-produzione-tempo', 'chart-resa-specie', 'chart-produzione-mensile',
@@ -268,14 +268,15 @@
         }
 
         onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
             if (!user) {
-                window.location.href = '../../../core/auth/login-standalone.html';
+                window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
                 return;
             }
             try {
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 if (!userDoc.exists()) {
-                    window.location.href = '../../../core/auth/login-standalone.html';
+                    window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
                     return;
                 }
                 const userData = userDoc.data();
@@ -781,18 +782,6 @@
                 }
             });
         }
-    </script>
-    <!-- GFV standalone shell: alert toast + Tony gated -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var s = document.createElement('script');
-      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-      document.body.appendChild(s);
-    })();
     </script>
 </body>
 </html>

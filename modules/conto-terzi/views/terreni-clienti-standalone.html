@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Terreni Clienti - Conto Terzi - GFV Platform</title>
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
-    <script src="../../../core/js/gfv-standalone-head-bootstrap.js"></script>
     <style>
         * {
             margin: 0;
@@ -791,33 +790,11 @@
 
     <!-- Placeholder Tony currentTableData (aggiornato da renderTerreni) -->
     <script>window.currentTableData = window.currentTableData || { pageType: 'terreniClienti', summary: 'Caricamento dati in corso...', items: [] };</script>
-    
-    <!-- Load Firebase and Google Maps config from external files -->
-    <script>
-        const firebaseConfigScript = document.createElement('script');
-        firebaseConfigScript.src = '../../../core/config/firebase-config.js';
-        firebaseConfigScript.onerror = function() {
-            const fallback = document.createElement('script');
-            fallback.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/firebase-config.js';
-            document.head.appendChild(fallback);
-        };
-        document.head.appendChild(firebaseConfigScript);
-        
-        const mapsConfigScript = document.createElement('script');
-        mapsConfigScript.src = '../../../core/config/google-maps-config.js';
-        mapsConfigScript.onerror = function() {
-            const fallback = document.createElement('script');
-            fallback.src = 'https://raw.githubusercontent.com/VitaraDragon/gfv-platform/main/core/config/google-maps-config.js';
-            document.head.appendChild(fallback);
-        };
-        document.head.appendChild(mapsConfigScript);
-    </script>
-    
-    <!-- Firebase SDK -->
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { initializeFirebase, getAppInstance, getAuthInstance, getDb } from '../../../core/services/firebase-service.js';
-        import { onAuthStateChanged } from '../../../core/services/firebase-service.js';
-        import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, setDoc, query, where, orderBy, serverTimestamp } from '../../../core/services/firebase-service.js';
+        import { getAppInstance, getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, setDoc, query, where, orderBy, serverTimestamp } from '../../../core/services/firebase-service.js';
+        import { escapeHtml, showAlert } from '../../../core/js/gfv-page-utils.js';
+        import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import { buildVignetoDetectionContext, isTerrenoVignetoCliente } from '../../vendemmia-meccanica/services/piano-stagione-utils.js';
         import {
             initMap as initMapModule,
@@ -908,32 +885,12 @@
             return html;
         }
 
-        // Funzione per attendere il caricamento della configurazione Firebase
-        function waitForConfig() {
-            return new Promise((resolve, reject) => {
-                if (typeof window.firebaseConfig !== 'undefined') {
-                    resolve(window.firebaseConfig);
-                    return;
-                }
-                
-                let attempts = 0;
-                const maxAttempts = 50;
-                
-                const checkInterval = setInterval(() => {
-                    attempts++;
-                    if (typeof window.firebaseConfig !== 'undefined') {
-                        clearInterval(checkInterval);
-                        resolve(window.firebaseConfig);
-                    } else if (attempts >= maxAttempts) {
-                        clearInterval(checkInterval);
-                        reject(new Error('Firebase config not loaded after 5 seconds'));
-                    }
-                }, 100);
-            });
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[terreni-clienti] Bootstrap failed:', err);
+            throw err;
         }
-
-        const firebaseConfig = await waitForConfig();
-        initializeFirebase(firebaseConfig);
         const app = getAppInstance();
         const auth = getAuthInstance();
         const db = getDb();
@@ -982,6 +939,7 @@
 
         // Verifica autenticazione
         onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
             if (user) {
                 currentUser = user;
                 try {
@@ -1055,14 +1013,14 @@
                             }
                         });
                     } else {
-                        window.location.href = '../../../core/auth/login-standalone.html';
+                        window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
                     }
                 } catch (error) {
                     console.error('Errore:', error);
                     showAlert('Errore caricamento dati', 'error');
                 }
             } else {
-                window.location.href = '../../../core/auth/login-standalone.html';
+                window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
             }
         });
 
@@ -1761,17 +1719,7 @@
             }
         };
 
-        // Utility functions
-        function showAlert(message, type = 'success') {
-            if (typeof window.gfvShowAlert === 'function') { window.gfvShowAlert(message, type); return; }
-            console.warn('[showAlert] gfvShowAlert non disponibile:', message);
-        }
-
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
+        // showAlert / escapeHtml: import da gfv-page-utils.js
 
         // Variabile per struttura colture gerarchica (organizzata per categoria)
         let coltureGerarchiche = {};
@@ -2504,18 +2452,6 @@
         window.openTerrenoModal = openTerrenoModal;
         window.closeTerrenoModal = closeTerrenoModal;
         window.handleSalvaTerreno = handleSalvaTerreno;
-    </script>
-    <!-- GFV standalone shell: alert toast + Tony gated -->
-    <script>
-    (function() {
-      var path = (window.location.pathname || '').replace(/\\/g, '/');
-      var isGH = path.indexOf('/gfv-platform/') >= 0;
-      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
-      var sep = (base && !base.endsWith('/')) ? '/' : '';
-      var s = document.createElement('script');
-      s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
-      document.body.appendChild(s);
-    })();
     </script>
 </body>
 </html>
