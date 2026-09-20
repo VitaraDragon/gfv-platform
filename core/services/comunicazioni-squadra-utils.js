@@ -188,6 +188,50 @@ export function countConfermePendentiInvio(row) {
 }
 
 /**
+ * Elenco destinatari con stato conferma ricezione (per UI capo).
+ * Match robusto uid/doc id tramite mappa utenti (indexManodoperaUserInMap).
+ *
+ * @param {Record<string, unknown>} row — comunicazione con destinatari + conferme
+ * @param {Map<string, Record<string, unknown>>} [nameByUserId]
+ * @returns {Array<{ userId: string, nome: string, confermato: boolean }>}
+ */
+export function buildComunicazioneConfermeRicezioneRows(row, nameByUserId = new Map()) {
+    const destIds = normalizeDestinatariIds(row && row.destinatari);
+    const conferme = Array.isArray(row && row.conferme) ? row.conferme : [];
+    const confirmedRaw = new Set();
+    conferme.forEach((c) => {
+        if (c && typeof c === 'object' && c.userId) confirmedRaw.add(String(c.userId));
+        else if (typeof c === 'string' && c.trim()) confirmedRaw.add(c.trim());
+    });
+    const confirmedExpanded = new Set(confirmedRaw);
+    confirmedRaw.forEach((cid) => {
+        const user = nameByUserId.get(String(cid));
+        if (!user) return;
+        resolveManodoperaUserIds({ uid: String(cid) }, user).forEach((id) => {
+            if (id) confirmedExpanded.add(String(id));
+        });
+    });
+
+    const rows = destIds.map((id) => {
+        const sid = String(id);
+        const user = nameByUserId.get(sid);
+        const aliases = user
+            ? resolveManodoperaUserIds({ uid: sid }, user)
+            : [sid];
+        const confermato = aliases.some((a) => confirmedExpanded.has(String(a)));
+        let nome = formatManodoperaDisplayName(user);
+        if (!nome || nome === 'N/A') nome = 'Operaio';
+        return { userId: sid, nome, confermato };
+    });
+
+    rows.sort((a, b) => {
+        if (a.confermato !== b.confermato) return a.confermato ? -1 : 1;
+        return a.nome.localeCompare(b.nome, 'it');
+    });
+    return rows;
+}
+
+/**
  * @param {Array<Record<string, unknown>>} rows
  * @param {'dataCom'|'createdAt'} dateKey
  * @returns {Array<Record<string, unknown>>}
