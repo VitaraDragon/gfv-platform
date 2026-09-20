@@ -1,6 +1,13 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-20 — Fix CI: paint lista lavori senza macchine/catalogo.**
+**Ultimo aggiornamento documentazione: 2026-09-20 — Fix CI: import mappa demo mancante.**
+
+## Fix CI — import `demo-map-privacy.js` mancante (2026-09-20)
+
+- **Perché:** CI `83d8a2f` ancora rossa. Dump `[gfv-ctd-wait]`: `step: null`, `items: 0`, summary ancora «Caricamento dati in corso...». Il modulo pagina non partiva: `gestione-lavori-maps.js` importa `core/js/demo-map-privacy.js` assente dal commit.
+- **Cosa:** aggiunto il modulo (stili mappa solo per tenant demo). Locale il file c’era già, per questo i test in macchina passavano.
+- **Resto aperto:** CI GitHub sul PR.
+- Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
 
 ## Fix CI — paint lista lavori senza macchine/catalogo (2026-09-20)
 

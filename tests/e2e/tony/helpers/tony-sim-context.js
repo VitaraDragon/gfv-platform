@@ -195,6 +195,7 @@ export async function waitForCurrentTableData(page, pageType, { timeoutMs = 90_0
         const t = window.currentTableData || {};
         return {
           step: window.__gfvLavoriStep || document.documentElement.getAttribute('data-gfv-lavori-step'),
+          pageError: window.__gfvPageError || null,
           url: location.href,
           pageType: t.pageType || null,
           items: Array.isArray(t.items) ? t.items.length : -1,

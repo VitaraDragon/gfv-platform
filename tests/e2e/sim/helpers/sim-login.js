@@ -644,6 +644,7 @@ export async function waitForGestioneLavoriLoaded(page) {
         const c = document.getElementById('lavori-container');
         return {
           step: window.__gfvLavoriStep || document.documentElement.getAttribute('data-gfv-lavori-step'),
+          pageError: window.__gfvPageError || null,
           url: location.href,
           pageType: t.pageType || null,
           items: Array.isArray(t.items) ? t.items.length : -1,
