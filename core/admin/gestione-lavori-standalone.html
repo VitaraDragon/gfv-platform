@@ -3407,8 +3407,12 @@
                         }
                     }
                     
-                    // Carica dati iniziali - PRIMA i dati di riferimento (terreni, categorie, ecc.)
-                    // poi i lavori che dipendono da questi dati
+                    // Lista lavori in parallelo ai dati di riferimento: Tony currentTableData
+                    // non deve aspettare macchine / context form.
+                    const lavoriLoadPromise = lavoroIdFromUrl
+                        ? Promise.resolve()
+                        : loadLavoriWrapper();
+
                     await Promise.all([
                         loadTerreniWrapper(),
                         loadCategorieLavoriWrapper(),
@@ -3453,15 +3457,19 @@
                         ]);
                     }
                     
-                    // Tony inject: context + dropdown PRIMA della tabella lavori (loadLavori è pesante e non serve al modal)
-                    await publishTonyLavoriFormContextForInject();
+                    // Tony inject: non bloccare la tabella se il context fallisce
+                    try {
+                        await publishTonyLavoriFormContextForInject();
+                    } catch (tonyCtxErr) {
+                        console.warn('[Gestione Lavori] Context Tony form:', tonyCtxErr);
+                    }
 
                     if (hasManodoperaModule) {
                         setupTipoAssegnazioneHandlersWrapper();
                     }
                     setupCategoriaLavoroHandlerWrapper();
 
-                    loadLavoriWrapper().then(function () {
+                    lavoriLoadPromise.then(function () {
                         if (statoFromUrl) applyFiltersWrapper();
                         // Ripulisce comunicazioni legate a lavori già eliminati (residui pre-cascata)
                         return import('../services/lavori-service.js').then(function (mod) {

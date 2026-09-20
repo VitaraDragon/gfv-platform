@@ -9,6 +9,8 @@
  * @see DOBBIAMO_ANCORA_FARE §1.4, PROPOSTA_SNELLIMENTO §2.1
  */
 
+import { ensureStandaloneReadyPlaceholder, settleStandaloneReady } from './standalone-ready.js';
+
 (function bootstrap() {
   const step = (name) => `[standalone-bootstrap] ${name}`;
 
@@ -70,6 +72,7 @@
     return loadScript(new URL('gfv-standalone-shell.js', import.meta.url).href);
   }
 
+  ensureStandaloneReadyPlaceholder();
   const promise = new Promise((resolve, reject) => {
     (async () => {
       try {
@@ -155,14 +158,16 @@
           window.gfvTryLoadTonyWidgetWhenReady();
         }
 
+        settleStandaloneReady(true);
         resolve();
       } catch (err) {
         const message = err && err.message ? err.message : String(err);
         console.error(step('bootstrap failed: ' + message), err);
+        settleStandaloneReady(false, err);
         reject(err);
       }
     })();
   });
 
-  window.GFVStandaloneReady = promise;
+  if (!window.GFVStandaloneReady) window.GFVStandaloneReady = promise;
 })();

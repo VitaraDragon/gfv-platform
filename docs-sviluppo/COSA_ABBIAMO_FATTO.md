@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-19 — Fix CI Tony: auth workspace/lavori dopo bootstrap unico.**
+**Ultimo aggiornamento documentazione: 2026-09-20 — Fix CI: placeholder GFVStandaloneReady + loadLavori parallelo.**
+
+## Fix CI — placeholder Ready e tabella lavori (2026-09-20)
+
+- **Perché:** le standalone potevano fare `await window.GFVStandaloneReady` mentre la promise non esisteva ancora (`undefined` → proseguono a vuoto). Gestione lavori aspettava macchine/context Tony prima di popolare `currentTableData`.
+- **Cosa:** `core/js/standalone-ready.js` — placeholder condiviso, settle dal bootstrap. Importato da `firebase-service` (solo browser), `simulator-standalone-page` e `standalone-bootstrap`. Gestione lavori: `loadLavori` in parallelo ai dati di riferimento; context Tony non blocca la tabella.
+- **Test:** `tests/standalone-ready.test.js`, `tests/simulator-standalone-page.test.js`.
+- **Resto aperto:** verifica CI T-PERF-002 / T-INJECT-001 / T-FLOW-013 e sim:e2e colture 18s.
+- Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
 
 ## Fix CI — workspace e gestione lavori dopo bootstrap (2026-09-19)
 

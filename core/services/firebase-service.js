@@ -27,10 +27,16 @@ import {
   limit,
   setDoc,
   Timestamp,
-  serverTimestamp
+  serverTimestamp,
+  writeBatch
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js";
 import { connectFirebaseEmulatorsIfDev } from '../js/firebase-emulator-dev.js';
+import { ensureStandaloneReadyPlaceholder } from '../js/standalone-ready.js';
+
+if (typeof document !== 'undefined') {
+  ensureStandaloneReadyPlaceholder();
+}
 
 // Re-export per moduli che importano da firebase-service (stesso SDK, niente "different Firestore SDK")
 export { signOut, onAuthStateChanged };
@@ -49,7 +55,8 @@ export {
   limit,
   setDoc,
   Timestamp,
-  serverTimestamp
+  serverTimestamp,
+  writeBatch
 };
 
 // Configurazione Firebase (da centralizzare)

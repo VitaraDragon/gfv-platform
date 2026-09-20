@@ -3,6 +3,12 @@
  * @module core/js/simulator-standalone-page
  */
 
+import { ensureStandaloneReadyPlaceholder } from './standalone-ready.js';
+
+if (typeof document !== 'undefined') {
+  ensureStandaloneReadyPlaceholder();
+}
+
 /**
  * Dopo initializeFirebase: connessione emulator + ripristino sessione simulatore.
  * @param {typeof import('../services/firebase-service.js')} firebaseService
@@ -53,13 +59,22 @@ export async function resolveAuthUser(auth) {
  * @returns {Promise<void>}
  */
 export async function waitForStandaloneReady(timeoutMs = 20000) {
-  const g = globalThis;
-  const start = Date.now();
-  while (g.GFVStandaloneReady == null && Date.now() - start < timeoutMs) {
-    await new Promise((r) => setTimeout(r, 30));
-  }
-  if (g.GFVStandaloneReady) {
-    await g.GFVStandaloneReady;
+  const ready = ensureStandaloneReadyPlaceholder();
+  let timeoutId;
+  let timedOut = false;
+  const timeout = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => {
+      timedOut = true;
+      reject(new Error('GFVStandaloneReady timeout'));
+    }, timeoutMs);
+  });
+  try {
+    await Promise.race([ready, timeout]);
+  } catch (err) {
+    if (!timedOut) throw err;
+    console.warn('[waitForStandaloneReady]', err && err.message ? err.message : err);
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
