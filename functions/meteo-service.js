@@ -29,13 +29,7 @@ const CACHE_TTL_MS = 15 * 60 * 1000;
 const MAX_TERRENI_METEO = 30;
 const OW_ONE_CALL_URL = "https://api.openweathermap.org/data/3.0/onecall";
 
-function normalizeSubscriptionPlanId(raw) {
-  if (raw == null || raw === "") return "base";
-  const p = String(raw).trim().toLowerCase();
-  if (p === "free" || p === "freemium") return "free";
-  if (["starter", "professional", "enterprise", "base"].includes(p)) return "base";
-  return "base";
-}
+const { resolveTenantPlanId } = require("./tenant-plan");
 
 function normalizeCoordinate(raw) {
   if (!raw || typeof raw !== "object") return null;
@@ -94,7 +88,7 @@ async function loadTenantContext(db, tenantId) {
     throw new HttpsError("not-found", "Tenant non trovato.");
   }
   const tenantData = tenantSnap.data() || {};
-  const plan = normalizeSubscriptionPlanId(tenantData.plan || tenantData.piano);
+  const plan = resolveTenantPlanId(tenantData);
   return { tenantData, plan };
 }
 

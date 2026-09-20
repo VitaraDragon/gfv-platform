@@ -41,6 +41,21 @@ Consigliere: `skipModuleIds` include `tony`; segnali gated se modulo disattivato
 - `main.js`: `__tonyLavoroCreationFlow`, intercept «crea lavoro», segna ore senza orari; 0 CF sui turni intervista dove implementato.
 - Conferme salvataggio form prima di nuova intervista.
 
+## Acquisizione documenti (foto / PDF)
+
+Promessa: 📷 in chat → revisione → cascata magazzino. **Non** insegnare XML al posto dello scatto.
+
+| Pezzo | Path |
+|-------|------|
+| Picker + sessione pagine | `core/js/tony/ui.js`, `document-capture.js` |
+| Form revisione | `core/js/tony/document-review-form.js` |
+| Registrazione movimenti | `core/js/tony/document-register.js` |
+| CF estrazione | `functions/tony-extract-document.js` — due passate Gemini (`buildGeminiTranscribeParts` + `responseSchema`); Level B invariato |
+| Extra silenzioso | `functions/config/tony-fatturapa.js` se il file è già XML SDI; UI resta «bolla o fattura» |
+| Archivio | `document-archive.js`, lista Magazzino `documenti-acquisiti-standalone.html` |
+
+Gate: modulo `magazzino` + `tony` + manager/admin; piano non Free. Callable `tonyExtractDocument` (timeout 180 s). Decisioni §20.34–20.36.
+
 ## Contesto page / tabelle
 
 Canone: `window.currentTableData`, evento `table-data-ready`, merge `setContext('page', …)`.

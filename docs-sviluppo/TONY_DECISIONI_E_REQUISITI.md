@@ -12,7 +12,7 @@
 
 | # | Decisione | Fonte | Stato | Note |
 |---|-----------|-------|-------|------|
-| 1.1 | **Freemium (free)**: Tony completamente assente – né widget, né endpoint, né guida | TONY_MODULO_SEPARATO, GUIDA_OPERATIVO | **implementato** | `gfv-tony-loader.js` + `gfv-standalone-shell.js`; script non caricato su Free; build `2026-06-22d` |
+| 1.1 | **Freemium (free)**: Tony completamente assente – né widget, né endpoint, né guida | TONY_MODULO_SEPARATO, GUIDA_OPERATIVO | **implementato** (rivista da 1.22) | `gfv-tony-loader.js` + `gfv-standalone-shell.js`; script non caricato su Free; build `2026-06-22d`. **Eccezione 2026-09-16:** nuovi tenant Free hanno Tony Guida nei primi 7 giorni (§1.22) |
 | 1.2 | **Base a pagamento**: Tony Guida presente – solo spiegazioni, nessuna azione operativa | TONY_MODULO_SEPARATO, GUIDA_OPERATIVO | **implementato** | SYSTEM_INSTRUCTION_BASE; FAB verificato post-Stripe Checkout |
 | 1.3 | **Modulo Tony attivo** (`moduli_attivi.includes('tony')`): Tony Operativo – tutte le funzioni | TONY_MODULO_SEPARATO, GUIDA_OPERATIVO | implementato | SYSTEM_INSTRUCTION_ADVANCED |
 | 1.4 | Tony Guida e Tony Operativo sono due esperienze diverse; Guida non deve essere impattata da refactor Operativo | GUIDA_OPERATIVO | implementato | |
@@ -33,6 +33,7 @@
 | 1.19 | **Billing v2 — coterm e converti bundle** (Fasi 2–3 handoff): rinnovo unico Base, proration mid-cycle, «Passa al bundle», migrazione doppie subscription | prodotto 2026-06-20 | **pianificato** | `docs-sviluppo/in-sviluppo/abbonamento/BILLING_V2_HANDOFF.md` §6 Fasi 2–4 |
 | 1.20 | **Prova gratuita moduli 30 giorni** (scelta utente, **anche Free**): 1 modulo in prova contemporaneo; 1 trial per modulo per tenant; dati conservati; conversione Stripe | prodotto 2026-06-22 | **implementato** | `functions/module-trial.js`, `core/utils/module-access-resolver.js`, UI Abbonamento |
 | 1.21 | **Freemium default + limiti Free** (5 terreni, 30 attività/mese): registrazione `piano: free`; enforcement CRUD terreni/attività | prodotto 2026-06-22 | **implementato** | `plan-limits-service.js`, toast sopra modal; upgrade Base via Stripe verificato |
+| 1.22 | **Tony Guida onboarding Free**: nuovo tenant Free ha **Tony Guida** (mai Avanzato) per **7 giorni** dalla registrazione, **30 domande/giorno** per tenant, **voce inclusa** (TTS + STT); acquisizione documenti esclusa; a scadenza torna assente con messaggio «periodo terminato → Base». Tenant creati prima non lo ricevono | prodotto 2026-09-16 | **implementato** (CF da deployare) | Campo `tenants/{id}.tonyGuidaOnboardingEndsAt` scritto in registrazione; `functions/tony-guida-onboarding.js` (gate + quota `tonyOnboardingQuota/{YYYY-MM-DD}` Europe/Rome) + mirror `core/config/tony-guida-onboarding.js`; loader/widget/`tonyAsk`/`getTonyAudio`/`tonyTranscribeAudio`; test `tests/tony-guida-onboarding.test.js` |
 
 ---
 
@@ -166,6 +167,7 @@
 | 10.18 | Segna ore vocale: fascia «dalle X alle Y» fusa dall'ITN STT in «dalle H:MM» → ricostruzione `start = 60−MM`, `end = H+1` (es. «dalle 18:53» → «dalle 7 alle 19»); orologio corrente ±3 min resta scartato **solo se minuti non tondi**; **ore tonde / mezz’ora (`:00`/`:30`) mai untrusted** per coincidenza orologio (CI ~07:00 UTC); fasce esplicite / «fino alle» / iniziato-finito → `explicitWorkRange`; recap fascia prima del salvataggio | fix vocale operaio 2026-07-15; harden CI 2026-07-27 | implementato | `isSegnaOraUntrustedClockTime` + `reconstructSegnaOraItnClockRange` (`engine.js`), recap `tony-segna-ora-local-engine.js`; test `tony-segna-ora-time-range.test.js` **38/38**; CI [30236873424](https://github.com/VitaraDragon/gfv-platform/actions/runs/30236873424) ✅ |
 | 10.19 | Trascrizione STT Web Speech: post-normalizzazione lessicale IT/GFV (`allah`→`alla`, typo magazzino/terreni, H isolate) + scoring alternative con penalità spurî / bonus lessico GFV (+ confidence se presente) | UX voce 2026-08-04 | implementato | `normalizeItalianSttTranscript` + `scoreItalianSttLexicon` in `engine.js`; `finalizeVoiceUserTranscript` / `pickBestVoiceResultSegment` in `main.js`; test `tony-italian-stt-normalize.test.js` |
 | 10.20 | Spot commerciale: voce Tony = **stessa** Chirp3 Charon di `getTonyAudio` (non Edge, non audio Higgsfield). Marchio **GFV** parlato **Gi Effe Vu**. C03 = TTS in-app della clip ore. | montaggio spot 2026-08-23/24 | implementato | `GFV_spot_v10.mp4` (pronuncia, non sovrascrivere) · `GFV_spot_v11.mp4` (taglio lavoro); `VIDEO_STORYBOARD_SCRIPT_E_CLIP.md` §4 |
+| 10.21 | Voce iPhone: motore STT **registratore** su Safari e PWA (non solo standalone); sblocco HTML Audio al tap; fallback getUserMedia / MediaRecorder / AudioContext sospeso | segnalazione mic iPhone 2026-09-16 | implementato | build `2026-09-16b`; `chooseSttEngine` iOS→recorder; `unlockTonyHtmlAudio`; test `tony-voice-recorder-stt` |
 
 ---
 
@@ -299,7 +301,7 @@
 
 | # | Voce | Fonte | Azione |
 |---|------|-------|--------|
-| 16.1 | Tony completamente assente in freemium (widget + endpoint) | TONY_MODULO_SEPARATO, GUIDA_OPERATIVO | ✅ **Implementato** (2026-06-22d): loader + shell; E2E Free→Base verificato |
+| 16.1 | Tony completamente assente in freemium (widget + endpoint) | TONY_MODULO_SEPARATO, GUIDA_OPERATIVO | ✅ **Implementato** (2026-06-22d): loader + shell; E2E Free→Base verificato. Dal 2026-09-16 eccezione onboarding 7 giorni (§1.22) |
 | 16.2 | Regola FORM PRONTO nel system prompt | ANALISI_SUBAGENT | ✅ Implementato in CF |
 | 16.3 | Guard form pronto in processTonyCommand | ANALISI_SUBAGENT | Parziale: fallback navigazione |
 | 16.4 | currentTableData attivita: DOBBIAMO dice "da dotare" | DOBBIAMO_ANCORA_FARE | ✅ attivita-controller.js popola; DOBBIAMO obsoleto |
@@ -523,17 +525,17 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 | # | Decisione | Fonte | Stato | Note |
 |---|-----------|-------|-------|------|
 | 20.1 | **Ingresso principale = icona fotocamera in chat Tony** (accanto al mic), non navigazione menù magazzino | prodotto 2026-07-10 | **implementato** | `core/js/tony/ui.js` |
-| 20.2 | **Un solo componente upload**: file picker `image/*` + `application/pdf`; opz. `capture="environment"` | prodotto 2026-07-10 | **implementato** | MVP; no camera live custom |
-| 20.3 | **Classificazione automatica** documento (bolla / fattura / sconosciuto); utente non sceglie tipo prima dello scatto | prodotto 2026-07-10 | **implementato** | CF `tonyExtractDocument` + Gemini vision |
+| 20.2 | **Un solo componente upload**: file picker `image/*` + `application/pdf` **senza `capture` obbligatorio** (su iPhone: Scatta / Fototeca / Sfoglia). HEIC/HEIF dalla galleria convertiti in JPEG lato client prima della CF. XML FatturaPA **accettato in silenzio** se arriva, non pubblicizzato in UI | prodotto 2026-07-10; raffinato 2026-09-11; galleria+HEIC 2026-09-17 | **implementato** | Ingresso utente = foto/PDF; XML extra; `convertRasterFileToJpeg` |
+| 20.3 | **Classificazione automatica** documento (bolla / fattura / sconosciuto); utente non sceglie tipo prima dello scatto | prodotto 2026-07-10 | **implementato** | CF `tonyExtractDocument` + Gemini vision; XML → sempre fattura |
 | 20.4 | **Routing automatico** post-estrazione (movimenti entrata vs aggiornamento prezzi) con gate modulo **`magazzino`** e ruoli manager/admin | prodotto 2026-07-10 | **parziale** | Gate CF ✅; routing client via tipo documento nel form revisione |
 | 20.5 | **Conferma umana obbligatoria** tramite **form di revisione** (tipo bolla/fattura, righe editabili, **Registra dati**) — non solo testo chat | prodotto 2026-07-10 | **implementato** | Mai auto-save qty/prezzi |
 | 20.6 | **Flusso due passi**: bolla → qty (+ prezzo in attesa); fattura → collegamento bolla → aggiorna `prezzoUnitario` | ROADMAP 2026-04-04, conferma 2026-07-10 | **implementato** | `registerFatturaPrezzi` + `updateMovimento` (2026-07-12) |
 | 20.7 | **Chat = acquisizione**; **Magazzino = consultazione/archivio** documenti (non Amministrazione) | prodotto 2026-07-10; raffinato 2026-07-20 | **implementato** | Card Magazzino + `documenti-acquisiti-standalone.html` (2026-07-21) |
-| 20.8 | **Vision-first Gemini 2.5 Flash**; OCR pipeline separata solo se necessario per costi | prodotto 2026-07-10 | **pianificato** | Allineato `TONY_GEMINI_MODEL` |
+| 20.8 | **Vision-first Gemini sulla foto/PDF** (promessa 📷). Due passate (trascrizione + JSON) per i numeri. XML FatturaPA solo se il file è già quello — non sostituisce lo scatto | prodotto 2026-07-10; raffinato 2026-09-11 | **implementato** | `GEMINI_DOCUMENT_MODEL` opz.; default Flash |
 | 20.9 | **Config centralizzata**: schemi JSON documento + mapping; integrazione movimenti via canone `tony-form-mapping` / save locale | prodotto 2026-07-10 | **pianificato** | No patch per singola pagina |
 | 20.10 | **Persistenza** `documentiAcquisiti` Firestore + **originali** su Storage (foto compresse e/o PDF nativo utente); movimenti con `prezzoInAttesa` / `documentoAcquisitoId` | design 2026-07-10; raffinato 2026-07-20 | **implementato** | `document-archive.js` + `documenti-acquisiti-service.js`; `filePending` se upload fallisce (2026-07-21) |
 | 20.11 | **Screenshot** accettati come immagine nello stesso pipeline (fallback, non canale dedicato) | prodotto 2026-07-10 | **pianificato** | |
-| 20.12 | **Camera live in-app**, email inoltrata, multi-agente IDP: **fuori MVP** | prodotto 2026-07-10 | **pianificato** | Fasi 2–3 ROADMAP §13 |
+| 20.12 | **Camera live in-app**, email inoltrata, multi-agente IDP: **fuori MVP** | prodotto 2026-07-10; conferma 2026-09-11 | **pianificato** | IDP terzi = §20.36 |
 | 20.13 | **Form di revisione documento** — badge bolla/fattura, intestazione e tabella righe **editabili**, azione **Registra dati** | prodotto 2026-07-10 | **implementato** | Modal/pannello widget Tony |
 | 20.14 | **Acquisizione multipla** — più foto/PDF per stesso documento; **Aggiungi pagina** + **Acquisizione terminata** prima dell’estrazione | prodotto 2026-07-10 | **implementato** | MVP; merge pagine in CF |
 | 20.15 | **Estrazione layout-agnostic** — **vietato** standardizzare layout di fatture/bolle (variano molto tra aziende e tra bolla↔fattura); nessun template per fornitore; si standardizza solo lo **schema JSON in uscita** + routing per tipo | prodotto 2026-07-10; conferma 2026-07-19 | **implementato** | Gemini vision; vincolo non negoziabile per evoluzioni (`responseSchema`, OCR, ecc.) |
@@ -555,6 +557,9 @@ Richiesta esplicita «data **dopo il** N» → solo scansione posticipata (singo
 | 20.28 | **Prezzo medio anagrafica**: `Prodotto.prezzoUnitario` = media ponderata (prezzo×qty) delle entrate con prezzo; movimenti = storico; campo sola lettura; ricalcolo a fattura/scontrino + auto/pulsante in anagrafica prodotti | prodotto 2026-07-13; conferma e verifica 2026-07-19 | **implementato** ✅ | `document-register.js`, `prodotti-standalone.html` (ricalcolo Firestore), `updateProdottoPrezzoMedio`; meta `prezzoMedioAnno` / `prezzoMedioN` |
 | 20.29 | **Preventivo** nel dropdown tipo documento — **riservato/disabilitato** finché non esiste design dedicato | prodotto 2026-07-13 | **pianificato** | Non misto a magazzino senza requisito |
 | 20.30 | **Modal revisione fullscreen** (fuori pannello chat) per documenti con molte righe | prodotto 2026-07-13 | **implementato** | `tony-doc-review-overlay` |
+| 20.34 | **XML FatturaPA è un extra, non il prodotto.** Ingresso = 📷 foto/PDF. Se il file è già XML SDI, parser deterministico (no Gemini) e stesso form/cascata magazzino. Non insegnare “prendi l’XML al posto della foto” | prodotto 2026-09-11 | **implementato** | `tony-fatturapa.js`; UI camera invariata (“bolla o fattura”) |
+| 20.35 | **Due passate Gemini su foto/PDF**: (1) trascrizione verbatim cifra-per-cifra (2) estrazione JSON con `responseSchema` + immagini. Level B invariato se totali incoerenti. Nessun layout per fornitore (§20.15) | prodotto 2026-09-11 | **implementato** | CF `tonyExtractDocument`; timeout 180 s |
+| 20.36 | **Niente IDP di terze parti in v1.** La foto resta il canale. Riaperto solo se, dopo le due passate Gemini, le bolle/fatture scattate in campo restano inaffidabili | prodotto 2026-09-11 | **pianificato** | Non sostituire 📷 con un rituale XML o un SaaS |
 
 ### 20.33 — Archivio documenti (dettaglio deciso 2026-07-20)
 

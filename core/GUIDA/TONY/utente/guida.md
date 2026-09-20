@@ -19,7 +19,8 @@ Se cerchi solo una riga su «cos’è quella icona», vedi anche la **guida Core
 7. Ruoli **operaio** e **caposquadra**: limiti e utilità in campo. **[Impara qui](#mini-guida-tony-per-operaio-e-caposquadra)**  
 8. **Dashboard manager**: promemoria su scorte, scadenze, guasti e meteo; voce o chat a seconda del dispositivo. **[Impara qui](#mini-guida-briefing-in-dashboard)**  
 9. **Creazione lavoro e ore a voce** (Tony Avanzato, dove previsto). **[Impara qui](#mini-guida-intervista-vocale-lavori-e-ore)**  
-10. Se qualcosa **non va** o non compare. **[Impara qui](#se-qualcosa-non-va)**  
+10. **Foto di una bolla o una fattura** (Tony Avanzato + Magazzino): scatti, controlli, i dati scendono in magazzino. **[Impara qui](#mini-guida-foto-di-bolla-o-fattura)**  
+11. Se qualcosa **non va** o non compare. **[Impara qui](#se-qualcosa-non-va)**  
 
 ---
 
@@ -36,6 +37,7 @@ Se cerchi solo una riga su «cos’è quella icona», vedi anche la **guida Core
 | Tony per operaio e caposquadra | [Impara qui](#mini-guida-tony-per-operaio-e-caposquadra) |
 | Briefing in dashboard | [Impara qui](#mini-guida-briefing-in-dashboard) |
 | Intervista vocale lavori e ore | [Impara qui](#mini-guida-intervista-vocale-lavori-e-ore) |
+| Foto di bolla o fattura | [Impara qui](#mini-guida-foto-di-bolla-o-fattura) |
 | Se qualcosa non va | [Impara qui](#se-qualcosa-non-va) |
 
 ---
@@ -256,6 +258,36 @@ Con **Tony Avanzato**, su alcune pagine (soprattutto **Gestione lavori** e fluss
 
 ---
 
+## Mini-guida: foto di bolla o fattura
+
+### L’idea
+
+Con **Tony Avanzato** e il modulo **Magazzino**, il gesto è quello: **fotografi** (o carichi il PDF) della **bolla** o della **fattura**. Tony **legge le cifre**, ti mostra un **riepilogo da controllare**, e quando premi **Registra dati** le quantità e i prezzi **entrano in magazzino** (movimenti, prodotti, collegamento bolla↔fattura dove previsto).
+
+Non serve un altro rituale: resti in **chat**, icona **fotocamera** accanto al microfono. Manager o amministratore.
+
+### Passi
+
+1. Apri Tony.  
+2. Tocca l’icona **fotocamera** (se non la vedi: manca Magazzino, Tony Avanzato, o non sei manager/amministratore).  
+3. **Scatta** o scegli dalla galleria (un foglio per volta; per fatture lunghe **Aggiungi pagina**).  
+4. **Acquisizione terminata** — Tony legge il documento (può richiedere qualche secondo).  
+5. Controlla il **form di revisione**: tipo (bolla / fattura / scontrino), fornitore, numero, date, **righe** (prodotto, quantità, prezzo). Correggi se serve.  
+6. **Registra dati** — da lì a cascata: **entrate** in **Movimenti**, eventuale **prezzo in attesa** sulla bolla, collegamento quando arriva la fattura, originale in **Archivio documenti** (home Magazzino).
+
+### Consigli per una buona lettura
+
+- Un **foglio intero**, piatto, **luce uniforme**, testo nitido.  
+- Tony legge i **numeri con più attenzione** di una sola occhiata (copia le cifre, poi le mette nei campi). Resta comunque la **revisione**: una foto storta o buia può ancora sbagliare.  
+- **Bolla** spesso senza prezzo: va bene; completi quando arriva la **fattura**.  
+- Prodotti non in anagrafica: Tony può crearne uno **minimo**; poi lo completi in **Anagrafica prodotti**.
+
+### Esempio
+
+In cortile ricevi una bolla. Apri Tony → fotocamera → scatto → **Acquisizione terminata** → controlli le quantità → **Registra dati**. In magazzino la merce è caricata; i prezzi arriveranno con la fattura.
+
+---
+
 ## Se qualcosa non va
 
 | Problema | Cosa controllare |
@@ -267,6 +299,7 @@ Con **Tony Avanzato**, su alcune pagine (soprattutto **Gestione lavori** e fluss
 | **Briefing** assente | Serve ruolo **manager/admin**; messaggio proattivo solo con **Tony Avanzato**; su **mobile** controlla la **chat** (può aprirsi da sola). |
 | **Voce** assente o microfono muto | Permessi browser; altoparlante; su mobile spesso solo **testo**; aspetta fine messaggio; prova a **scrivere**. |
 | Intervista lavoro **si ferma** | Ripeti l’ultima risposta; specifica terreno/lavoro con nome **completo**; conferma con «sì» esplicito. |
+| **Fotocamera** assente o acquisizione fallita | Servono **Tony Avanzato** + **Magazzino** e ruolo manager/admin. Rifai la foto: un foglio, luce uniforme, testo leggibile. |
 | Risposta **generica** | Riformula con **contesto** («sono nella lista preventivi, …») o una richiesta alla volta. |
 
 ---

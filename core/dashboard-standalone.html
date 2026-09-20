@@ -13,10 +13,15 @@
     <script>window.GFV_TOUR_DISABLED = true;</script>
     <script>try{if(localStorage.getItem('gfv_demo_cloud_session')==='1'){localStorage.removeItem('gfv_firebase_emulator');}else if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Dashboard - GFV Platform</title>
     <link rel="manifest" href="../manifest.json">
     <meta name="theme-color" content="#2E8B57">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="GFV Platform">
+    <link rel="apple-touch-icon" sizes="180x180" href="../icons/icon-180x180.png">
     <link rel="stylesheet" href="styles/dashboard.css">
     <link rel="stylesheet" href="styles/responsive-standalone.css">
 </head>
@@ -74,6 +79,22 @@
             <div class="loading">Caricamento dashboard...</div>
         </div>
     </div>
+
+    <!-- GFV: alert toast + Tony gated (loader in head, attivazione dopo init tenant) -->
+    <script>
+    (function() {
+      var path = (window.location.pathname || '').replace(/\\/g, '/');
+      var isGH = path.indexOf('/gfv-platform/') >= 0;
+      var base = isGH ? (window.location.origin + '/gfv-platform/core') : (path.indexOf('/core/admin/') >= 0 ? '../' : (path.indexOf('/modules/') >= 0 ? '../../../core/' : ''));
+      var sep = (base && !base.endsWith('/')) ? '/' : '';
+      var alertScript = document.createElement('script');
+      alertScript.src = (base ? base + sep : '') + 'js/standalone-alert-global.js';
+      document.head.appendChild(alertScript);
+      var tonyLoader = document.createElement('script');
+      tonyLoader.src = (base ? base + sep : '') + 'js/gfv-tony-loader.js?v=2026-09-17c';
+      document.head.appendChild(tonyLoader);
+    })();
+    </script>
 
     <script src="js/dashboard-utils.js"></script>
     <script src="js/dashboard-sections.js"></script>

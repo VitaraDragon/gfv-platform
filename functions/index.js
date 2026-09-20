@@ -21,6 +21,7 @@ const {
 } = require("./tony-lavoro-entity-parser");
 const { defineSecret } = require("firebase-functions/params");
 const { handleSendTransactionalEmail } = require("./email-resend");
+const { handleGetInvitoPubblico } = require("./invito-pubblico");
 const {
   handleCreateStripeCheckoutSession,
   handleFulfillStripeCheckout,
@@ -28,6 +29,7 @@ const {
   handleCancelStripeAddon,
   handleReactivateStripeAddon,
 } = require("./stripe-billing");
+const { handleStripeWebhookRequest } = require("./stripe-webhooks");
 const {
   handleStartModuleTrial,
   handleSyncModuleTrials,
@@ -109,30 +111,36 @@ const TONY_TTS_VOICE = process.env.TONY_TTS_VOICE || "it-IT-Chirp3-HD-Charon";
 /** Velocità parlato (override: env TONY_TTS_SPEAKING_RATE). */
 const TONY_TTS_SPEAKING_RATE = Number(process.env.TONY_TTS_SPEAKING_RATE || "1.0");
 
-/** Piano tenant: Tony è assente in freemium; enforcement anche lato callable. */
-function normalizeSubscriptionPlanId(raw) {
-  if (raw == null || raw === "") return "base";
-  const p = String(raw).trim().toLowerCase();
-  if (p === "free" || p === "freemium") return "free";
-  if (["starter", "professional", "enterprise"].includes(p)) return "base";
-  if (p === "base") return "base";
-  return "base";
-}
+/**
+ * Piano tenant: Tony è assente in freemium (regola in tenant-plan.js), salvo il periodo
+ * Tony Guida onboarding dei nuovi tenant Free (tony-guida-onboarding.js).
+ */
+const { normalizeSubscriptionPlanId, resolveTenantPlanId } = require("./tenant-plan");
+const {
+  resolveTonyGuidaOnboarding,
+  tonyFreeDeniedMessage,
+  buildTonyGuidaOnboardingPromptNote,
+  consumeTonyGuidaOnboardingQuota,
+  TONY_ONBOARDING_QUOTA_MESSAGE,
+} = require("./tony-guida-onboarding");
 
 async function resolveTenantSubscription(dashboard, ctx, tenantIdHint) {
-  let raw =
+  const rawFromClient =
     (dashboard && (dashboard.plan || dashboard.piano)) ||
     (ctx && (ctx.plan || ctx.piano)) ||
     null;
+  let planId = normalizeSubscriptionPlanId(rawFromClient);
   let activeBundles = [];
   let tenantModules = [];
+  let tenantData = null;
   const tid = tenantIdHint ? String(tenantIdHint) : null;
   if (tid) {
     try {
       const snap = await db.collection("tenants").doc(tid).get();
       if (snap.exists) {
-        const td = snap.data();
-        raw = (td && (td.plan || td.piano)) || raw;
+        const td = snap.data() || {};
+        tenantData = td;
+        planId = resolveTenantPlanId(td, { fallbackRaw: rawFromClient });
         activeBundles = Array.isArray(td.activeBundles) ? td.activeBundles : [];
         tenantModules = Array.isArray(td.modules) ? td.modules : [];
       }
@@ -140,16 +148,36 @@ async function resolveTenantSubscription(dashboard, ctx, tenantIdHint) {
       console.warn("[Tony] resolveTenantSubscription:", e.message);
     }
   }
+  const onboarding = resolveTonyGuidaOnboarding(tenantData);
   return {
-    planId: normalizeSubscriptionPlanId(raw),
+    planId,
     activeBundles,
     tenantModules,
+    tenantData,
+    /** Free in periodo Tony Guida onboarding: chat/voce consentite, mai Avanzato. */
+    tonyGuidaOnboarding: onboarding,
+    tonyGuidaOnboardingActive: planId === "free" && onboarding.active,
   };
 }
 
-async function resolveTenantSubscriptionPlan(dashboard, ctx, tenantIdHint) {
+/**
+ * Gate Tony (chat/voce) per tenant Free: passa solo in onboarding, altrimenti permission-denied
+ * con messaggio "mai avuto" / "periodo terminato".
+ * @param {Awaited<ReturnType<typeof resolveTenantSubscription>>} sub
+ */
+function assertTonyAllowedForPlan(sub) {
+  if (sub.planId !== "free") return;
+  if (sub.tonyGuidaOnboardingActive) return;
+  throw new HttpsError("permission-denied", tonyFreeDeniedMessage(sub.tenantData));
+}
+
+/**
+ * Piano "ai fini di Tony voce" (tonyTranscribeAudio): Free in onboarding vale come Base.
+ * Firma compatibile con tony-extract-document.resolveTenantSubscriptionPlan (db, dashboard, ctx, tenantId).
+ */
+async function resolveTenantPlanForTonyVoiceDoc(_db, dashboard, ctx, tenantIdHint) {
   const sub = await resolveTenantSubscription(dashboard, ctx, tenantIdHint);
-  return sub.planId;
+  return sub.tonyGuidaOnboardingActive ? "base" : sub.planId;
 }
 
 async function resolveTenantIdForTony(authUid, dashboard, ctx) {
@@ -2448,6 +2476,7 @@ const SUBAGENT_TONY_MODULO = `
 SUB-AGENTE GUIDA UTENTE TONY (usa quando l'utente chiede cos'è Tony, cosa può fare, differenza tra guida e avanzato, piano free, widget assente, voce/microfono, profilo campo, briefing dashboard):
 - Integra **context.guida_sintesi_tony** se presente; linguaggio semplice e passi pratici, senza gergo da sviluppatore.
 - Distingui: **Tony Guida** (orientamento) vs **modulo Tony / Tony Avanzato** (navigazione e automazioni: richiede il modulo "tony" nel tenant oltre al piano che consente l'assistente).
+- Piano Free: Tony Guida è disponibile solo nei primi 7 giorni dalla registrazione dell'azienda (periodo di prova, 30 domande al giorno); poi serve il piano Base.
 `;
 
 /**
@@ -2544,11 +2573,13 @@ async function handleTonyAskRequest(request, streamOpts) {
     const tenantSubscription = await resolveTenantSubscription(dashboard, ctx, tenantIdForTonyPlan);
     const subscriptionPlanId = tenantSubscription.planId;
     const tenantActiveBundles = tenantSubscription.activeBundles;
-    if (subscriptionPlanId === "free") {
-      throw new HttpsError(
-        "permission-denied",
-        "Tony non è disponibile sul piano Free. Passa al piano Base dalla pagina Abbonamento per usare Tony Guida."
-      );
+    assertTonyAllowedForPlan(tenantSubscription);
+    const tonyGuidaOnboardingActive = tenantSubscription.tonyGuidaOnboardingActive === true;
+    if (tonyGuidaOnboardingActive && tenantIdForTonyPlan) {
+      const quota = await consumeTonyGuidaOnboardingQuota(db, tenantIdForTonyPlan);
+      if (!quota.allowed) {
+        throw new HttpsError("resource-exhausted", TONY_ONBOARDING_QUOTA_MESSAGE);
+      }
     }
 
     let ruoliUtente =
@@ -2584,7 +2615,9 @@ async function handleTonyAskRequest(request, streamOpts) {
       moduliAttiviEarly,
       tenantSubscription.tenantModules
     );
+    // Free in onboarding: sempre Tony Guida, anche se il modulo tony risultasse attivo (es. prova modulo).
     const isTonyAdvancedEarly =
+      !tonyGuidaOnboardingActive &&
       Array.isArray(moduliAttiviEarly) &&
       moduliAttiviEarly.some((m) => String(m).toLowerCase() === "tony");
 
@@ -2969,7 +3002,9 @@ async function handleTonyAskRequest(request, streamOpts) {
             : [];
     // Tony Avanzato solo se il modulo 'tony' è attivo nel tenant (nessun bypass navigazione).
     let isTonyAdvanced =
-      Array.isArray(moduliAttivi) && moduliAttivi.some((m) => String(m).toLowerCase() === "tony");
+      !tonyGuidaOnboardingActive &&
+      Array.isArray(moduliAttivi) &&
+      moduliAttivi.some((m) => String(m).toLowerCase() === "tony");
     const isTonyAdvancedActive = isTonyAdvanced;
     tonyPerf.isTonyAdvanced = isTonyAdvancedActive;
 
@@ -3048,6 +3083,9 @@ async function handleTonyAskRequest(request, streamOpts) {
         extraBlocks += SUBAGENT_FRUTTETO;
       }
       extraBlocks += SUBAGENT_TONY_MODULO;
+    }
+    if (tonyGuidaOnboardingActive && !tonyFieldProfile) {
+      extraBlocks += buildTonyGuidaOnboardingPromptNote(tenantSubscription.tonyGuidaOnboarding);
     }
     if (isTonyAdvanced && !tonyFieldProfile) {
       extraBlocks += TONY_MODULI_ATTIVI_RULE;
@@ -4176,12 +4214,36 @@ exports.tonyExtractDocument = onCall(
   {
     region: "europe-west1",
     secrets: [sentryDsn, geminiApiKey],
-    timeoutSeconds: 120,
+    timeoutSeconds: 180,
     memory: "512MiB",
   },
   async (request) => handleTonyExtractDocument(db, request)
 );
 exports.handleTonyExtractDocument = handleTonyExtractDocument;
+
+/**
+ * Callable: tonyTranscribeAudio — STT server-side (Gemini audio) per le piattaforme
+ * senza Web Speech API (web app iOS da schermata Home). Body: { audio: { mimeType, data, durationMs? } }.
+ */
+const {
+  handleTonyTranscribeAudio,
+} = require("./tony-transcribe-audio");
+const {
+  resolveTenantIdForTony: resolveTenantIdForTonyDoc,
+} = require("./tony-extract-document");
+exports.tonyTranscribeAudio = onCall(
+  {
+    region: "europe-west1",
+    secrets: [sentryDsn, geminiApiKey],
+    timeoutSeconds: 60,
+    memory: "512MiB",
+  },
+  async (request) =>
+    handleTonyTranscribeAudio(db, request, {
+      resolveTenantId: resolveTenantIdForTonyDoc,
+      resolvePlan: resolveTenantPlanForTonyVoiceDoc,
+    })
+);
 
 /**
  * Callable: getTonyAudio - Sintesi vocale neurale per Tony.
@@ -4198,13 +4260,8 @@ exports.getTonyAudio = onCall(
     const ctxAudio = request.data?.context != null ? request.data.context : {};
     const dashAudio = ctxAudio.dashboard != null ? ctxAudio.dashboard : {};
     const tenantIdAudio = await resolveTenantIdForTony(request.auth.uid, dashAudio, ctxAudio);
-    const planAudio = await resolveTenantSubscriptionPlan(dashAudio, ctxAudio, tenantIdAudio);
-    if (planAudio === "free") {
-      throw new HttpsError(
-        "permission-denied",
-        "Tony non è disponibile sul piano Free. Passa al piano Base dalla pagina Abbonamento per usare Tony Guida."
-      );
-    }
+    const subAudio = await resolveTenantSubscription(dashAudio, ctxAudio, tenantIdAudio);
+    assertTonyAllowedForPlan(subAudio);
 
     const text = request.data?.text;
     if (!text || typeof text !== "string") {
@@ -4297,6 +4354,29 @@ exports.getPreventivoPubblico = onCall(
 );
 
 /**
+ * Callable pubblica (senza login): dati invito per registrazione-invito-standalone.html.
+ * Sostituisce letture Firestore pubbliche su /inviti (token nel URL).
+ */
+exports.getInvitoPubblico = onCall(
+  { region: "europe-west1", cors: true, invoker: "public" },
+  async (request) => {
+    try {
+      return await handleGetInvitoPubblico(db, request.data && request.data.token);
+    } catch (e) {
+      if (e && typeof e.code === "string") {
+        const allowed = ["invalid-argument", "not-found", "failed-precondition"];
+        if (allowed.includes(e.code)) {
+          throw new HttpsError(e.code, e.message || "Errore invito.");
+        }
+      }
+      if (e instanceof HttpsError) throw e;
+      console.error("[getInvitoPubblico]", e && e.message);
+      throw new HttpsError("internal", "Errore lettura invito.");
+    }
+  }
+);
+
+/**
  * Callable pubblica: accetta o rifiuta preventivo (validazione token lato server).
  */
 exports.aggiornaStatoPreventivoPubblico = onCall(
@@ -4316,42 +4396,51 @@ exports.aggiornaStatoPreventivoPubblico = onCall(
       throw new HttpsError("not-found", "Preventivo non trovato.");
     }
 
-    const d = found.data;
-    const stato = d.stato;
-    const dataScadenza = d.dataScadenza && typeof d.dataScadenza.toDate === "function" ? d.dataScadenza.toDate() : null;
-    const isScaduto = dataScadenza && new Date() > dataScadenza;
+    const result = await db.runTransaction(async (transaction) => {
+      const snap = await transaction.get(found.ref);
+      if (!snap.exists) {
+        throw new HttpsError("not-found", "Preventivo non trovato.");
+      }
+      const d = snap.data() || {};
+      const stato = d.stato;
+      const dataScadenza = d.dataScadenza && typeof d.dataScadenza.toDate === "function" ? d.dataScadenza.toDate() : null;
+      const isScaduto = dataScadenza && new Date() > dataScadenza;
 
-    if (isScaduto) {
-      throw new HttpsError("failed-precondition", "Preventivo scaduto.");
-    }
-    if (!["bozza", "inviato"].includes(stato)) {
-      throw new HttpsError("failed-precondition", "Stato preventivo non consente questa operazione.");
-    }
+      if (isScaduto) {
+        throw new HttpsError("failed-precondition", "Preventivo scaduto.");
+      }
+      if (!["bozza", "inviato"].includes(stato)) {
+        throw new HttpsError("failed-precondition", "Stato preventivo non consente questa operazione.");
+      }
 
-    if (azione === "accetta") {
-      await found.ref.update({
-        stato: "accettato_email",
-        dataAccettazione: admin.firestore.FieldValue.serverTimestamp(),
+      if (azione === "accetta") {
+        transaction.update(found.ref, {
+          stato: "accettato_email",
+          dataAccettazione: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        return { stato: "accettato_email", data: d };
+      }
+
+      transaction.update(found.ref, {
+        stato: "rifiutato",
       });
+      return { stato: "rifiutato", data: d };
+    });
+
+    if (result.stato === "accettato_email") {
       try {
         const { syncPreventivoAccettatoToPianoAdmin } = require("./vm-preventivo-piano-sync");
         await syncPreventivoAccettatoToPianoAdmin(db, found.tenantId, {
-          ...d,
+          ...result.data,
           id: found.preventivoId,
           stato: "accettato_email",
         });
       } catch (syncErr) {
         console.warn("[VM] sync piano da preventivo email:", syncErr.message);
       }
-      await invalidateTonyContextCache(db, found.tenantId);
-      return { ok: true, stato: "accettato_email" };
     }
-
-    await found.ref.update({
-      stato: "rifiutato",
-    });
     await invalidateTonyContextCache(db, found.tenantId);
-    return { ok: true, stato: "rifiutato" };
+    return { ok: true, stato: result.stato };
   }
 );
 

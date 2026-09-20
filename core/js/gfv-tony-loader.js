@@ -1,12 +1,48 @@
 /**
- * Caricamento Tony widget solo se piano ≠ Free (o modulo Tony attivo/in prova).
+ * Caricamento Tony widget solo se piano ≠ Free (o modulo Tony attivo/in prova, o Free in
+ * periodo Tony Guida onboarding — `tenant.tonyGuidaOnboardingEndsAt` nel futuro).
  * FAB placeholder subito; widget (~900 KB) a idle o al tap. E2E (`tonyE2e=1`) resta eager.
  * Espone window.gfvLoadTonyWidget e gfvTryLoadTonyWidgetWhenReady.
  */
 (function () {
     'use strict';
 
-    var TONY_LOADER_QUERY = '2026-09-05a';
+    var TONY_LOADER_QUERY = '2026-09-17c';
+
+    /** iOS «Aggiungi a Home»: senza questi meta (iOS < 16.4) la PWA non è standalone
+     *  e Web Speech resta muta. Iniettiamo su ogni pagina che carica Tony.
+     *  viewport-fit=cover è obbligatorio perché env(safe-area-inset-*) non sia 0. */
+    (function ensureIosWebAppMeta() {
+        try {
+            if (!document.head) return;
+            function addMeta(name, content) {
+                if (document.querySelector('meta[name="' + name + '"]')) return;
+                var m = document.createElement('meta');
+                m.name = name;
+                m.content = content;
+                document.head.appendChild(m);
+            }
+            var vp = document.querySelector('meta[name="viewport"]');
+            if (!vp) {
+                addMeta('viewport', 'width=device-width, initial-scale=1.0, viewport-fit=cover');
+            } else if (String(vp.content || '').indexOf('viewport-fit') < 0) {
+                vp.content = String(vp.content || 'width=device-width, initial-scale=1.0').replace(/\s*$/, '') + ', viewport-fit=cover';
+            }
+            addMeta('apple-mobile-web-app-capable', 'yes');
+            addMeta('mobile-web-app-capable', 'yes');
+            addMeta('apple-mobile-web-app-status-bar-style', 'default');
+            addMeta('apple-mobile-web-app-title', 'GFV Platform');
+            if (!document.querySelector('link[rel="apple-touch-icon"]')) {
+                var l = document.createElement('link');
+                l.rel = 'apple-touch-icon';
+                l.sizes = '180x180';
+                var path = (window.location && window.location.pathname) || '';
+                var prefix = path.indexOf('/gfv-platform/') >= 0 ? '/gfv-platform' : '';
+                l.href = prefix + '/icons/icon-180x180.png';
+                document.head.appendChild(l);
+            }
+        } catch (eMeta) { /* ignore */ }
+    })();
 
     function resolveCoreBase() {
         var path = (window.location.pathname || '').replace(/\\/g, '/');
@@ -58,6 +94,28 @@
     }
 
     /**
+     * Piano Free in periodo Tony Guida onboarding (nuovo tenant): il widget si carica.
+     * Regola inline (script non-module) — mirror di core/config/tony-guida-onboarding.js.
+     */
+    function isTonyGuidaOnboardingActive() {
+        try {
+            var td = window.__gfvTenantData;
+            var raw = td && td.tonyGuidaOnboardingEndsAt;
+            if (!raw) return false;
+            var endsAt = null;
+            if (raw instanceof Date) endsAt = raw;
+            else if (typeof raw.toDate === 'function') endsAt = raw.toDate();
+            else if (typeof raw === 'number') endsAt = new Date(raw > 1e12 ? raw : raw * 1000);
+            else if (typeof raw === 'object' && typeof (raw.seconds != null ? raw.seconds : raw._seconds) === 'number') {
+                endsAt = new Date((raw.seconds != null ? raw.seconds : raw._seconds) * 1000);
+            } else endsAt = new Date(raw);
+            if (!endsAt || isNaN(endsAt.getTime())) return false;
+            return endsAt.getTime() > Date.now();
+        } catch (e) { /* ignore */ }
+        return false;
+    }
+
+    /**
      * Iframe embed (es. dettaglio lavoro / stats nel field-workspace): Tony resta sul parent.
      * Evita doppio FAB e due chat indipendenti.
      */
@@ -83,7 +141,7 @@
     function shouldLoadTony() {
         if (shouldSuppressTonyAsEmbed()) return false;
         var plan = getPlanId();
-        if (plan === 'free') return hasTonyModule();
+        if (plan === 'free') return hasTonyModule() || isTonyGuidaOnboardingActive();
         if (plan === 'base') return true;
         if (plan === null && (window.__gfvTenantData || window.__gfvModuliAttivi)) return true;
         return false;
@@ -350,7 +408,7 @@
             return;
         }
         var plan = getPlanId();
-        if (plan === 'free' && !hasTonyModule()) {
+        if (plan === 'free' && !hasTonyModule() && !isTonyGuidaOnboardingActive()) {
             clearInterval(timer);
             return;
         }

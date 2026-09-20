@@ -8,6 +8,7 @@
 
 import { getDocumentData, getCollectionData, createDocument, updateDocument, getAuthInstance, getCollection } from './firebase-service.js';
 import { onAuthStateChanged } from './firebase-service.js';
+import { computeTonyGuidaOnboardingEndsAt } from '../config/tony-guida-onboarding.js';
 
 // Cache tenant corrente
 let currentTenantId = null;
@@ -402,6 +403,9 @@ export async function createTenant(tenantData, createdBy) {
       createdAt: new Date(),
       updatedAt: new Date()
     };
+    if (String(plan).toLowerCase() === 'free') {
+      tenant.tonyGuidaOnboardingEndsAt = computeTonyGuidaOnboardingEndsAt();
+    }
     
     const tenantId = await createDocument('tenants', tenant);
     return tenantId;

@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-20 — CI snellimento verde; rimossa strumentazione debug.**
+**Ultimo aggiornamento documentazione: 2026-09-20 — merge snellimento su develop (conflitti bootstrap + lock/giacenza/iPhone).**
+
+## Merge snellimento in develop (2026-09-20)
+
+- **Cosa:** `feat/snellimento-produzione` riallineato a `develop`. Conflitti: bootstrap unico (niente `waitForConfig`/`initializeFirebase` in pagina) + lock preventivi, giacenza `increment`, voce iPhone, inviti, delete comunicazioni su lavori assenti.
+- **Perché:** la PR #58 era CONFLICTING: su develop erano già arrivati inviti, preventivi, magazzino e Tony iPhone.
+- Doc: questa voce, `STATO_ATTUALE.md` riga data. Master Plan: nessuna fase cambiata.
 
 ## CI snellimento verde + rimozione log debug (2026-09-20)
 
@@ -718,6 +724,152 @@
 - Prossimo: registrare UI reale (switcher `demo-switcher-standalone.html`, tenant AZIENDA DEMO GFV, Chrome 390×844, crop sull’app). Niente altre generazioni Higgsfield se non richiesto.
 - Dettaglio: `VIDEO_STORYBOARD_SCRIPT_E_CLIP.md` §12. Master Plan / decisioni Tony: nessuna fase cambiata.
 
+## Inviti — chiusura `allow read: if true` (2026-09-18)
+
+- **Problema:** `firestore.rules` su `/inviti/{id}` aveva `allow read: if true`. Chiunque poteva listare tutta la collection (`email`, `token`, `tenantId`). La registrazione non autenticata (`registrazione-invito-standalone.html` + `verifyInviteToken`) interrogava `where('token','==',token)`: quella query richiede `list`, quindi non si può chiudere la lettura senza un altro canale.
+- **Fix:** stesso schema dei preventivi pubblici. Callable `getInvitoPubblico` (Admin lookup per token, allowlist di campi, `europe-west1`, `invoker: "public"`). Client `fetchInvitoByToken` / `verifyInviteToken`. Pagina registrazione: niente query su `/inviti`; i fallback email-già-in-uso usano l’invito già in memoria. Gestione utenti: lista inviti **solo** con `tenantId == currentTenantId` (tolto il fallback che elencava tutti i pendenti). Rules: `get`/`list` solo manager/admin del tenant dell’invito; create/update/delete invariati (l’accettazione resta `update` autenticato con match email su `stato`/`accettatoIl`).
+- **Non toccare in questo giro:** `find*ByLavoroId` first-match; transazione unica movimento+giacenza.
+- **Ordine live (obbligatorio):** 1) `deploy:functions` (`getInvitoPubblico`) 2) client su `main` 3) `deploy:rules`. Invertire 2 e 3 spezza la registrazione (il client vecchio interroga Firestore, le rules nuove negano `list`).
+- Test: `tests/services/invito-pubblico.test.js`, `tests/invito-client-no-public-query.test.js`. Canary `npm run inviti:rules-canary`.
+- **Prova emulator (2026-09-18):** Auth+Firestore emulator. Reload `firestore.rules` a caldo. Tenant `sim_az_agr_ricci_208883`. Unauth list/query-token/get → **403**. Manager query `tenantId+stato` vede l’invito; query altro tenant **DENIED**; operaio list **403**. `handleGetInvitoPubblico` restituisce l’invito sanitizzato (niente `leakField`). Client SDK manager: tenant query ok, query senza tenantId **permission-denied**. Canary **10/10**. Nessuna scrittura su produzione. **Non** `deploy:rules` / merge finché non richiesto.
+
+## Preventivi — numero lock e accettazione/rifiuto in transazione (2026-09-18)
+
+- **Problema:** `generaNumeroPreventivo` (servizio e duplicato in `nuovo-preventivo-standalone.html`) faceva max+1 sulla collection: due create insieme potevano prendere lo stesso `PREV-anno-NNN`. Accettazione/rifiuto erano get+update senza check atomico: email e manager (o due click) potevano entrambi “vincere”. Il servizio `accettaPreventivo` passava da `updatePreventivo`, che rifiuta gli `inviato` (solo bozza/annullato); la lista manager bypassava con `updateDoc` senza `canBeAccepted`.
+- **Fix numero:** `allocatePreventivoNumero` — query max esistenti fuori transazione, poi transazione sul documento tenant `preventivoSeqByYear.{anno}` (`max(stored, esistenti)+1`). Nessuna collection nuova, nessuna regola Firestore nuova. Gap ammessi. Niente fallback timestamp. Pagina Nuovo preventivo usa lo stesso helper, non più max+1 locale.
+- **Fix stato:** `transizionaStatoPreventivo` — transazione get + `preventivoPuoEssereAccettato` (bozza/inviato, non scaduto) + patch. `accettaPreventivo` / `rifiutaPreventivo` e i pulsanti lista passano di qui. Cloud Function `aggiornaStatoPreventivoPubblico` (link email) usa `runTransaction` Admin: il secondo writer vede lo stato già cambiato. Path email live in produzione solo dopo `deploy:functions`.
+- **Non toccato:** `updatePreventivo` (gate bozza per le modifiche di contenuto); inviti `allow read: if true`; `find*ByLavoroId` first-match; transazione unica create-preventivo+seq (se create fallisce dopo allocate resta un buco di sequenza).
+- Test: `tests/services/preventivi-lock.test.js`. Canary `npm run preventivi:lock-canary`.
+- **Prova emulator (2026-09-18):** Auth+Firestore emulator. Login manager tenant `sim_az_agr_ricci_208883`. Due `allocatePreventivoNumero` paralleli → **PREV-2026-001** e **PREV-2026-002**. Due `createPreventivo` paralleli → **PREV-2026-003** e **PREV-2026-004**. Due `accettaPreventivo` sullo stesso inviato: uno vince, l’altro fallisce, stato unico (`accettato_email` o `accettato_manager`). Accetta + rifiuta su due doc distinti. `preventivoSeqByYear.2026=4`. Canary **7/7**. Nessuna scrittura su produzione.
+
+## Magazzino — giacenza atomica, niente race read-modify-write (2026-09-18)
+
+- **Problema:** `aggiornaGiacenzaProdotto` leggeva la giacenza, sommava il delta e scriveva il totale. Due scarichi insieme (trattamento + movimento, due operatori, elimina mentre arriva un altro) perdevano un delta: restava il totale dell’ultimo writer. La pagina Movimenti faceva la stessa cosa in locale (`getDoc` + `updateDoc` del numero).
+- **Fix:** `incrementDocumentField` in `firebase-service.js` (`FieldValue.increment`). `aggiornaGiacenzaProdotto` lo usa per tutti i caller (movimenti-service, scarico trattamenti, Tony Occhi). Pagina Movimenti: `applyGiacenzaDelta` con `increment`. `updateProdotto` toglie `giacenza` dal payload anagrafica così un rinomina non sovrascrive lo stock. Scarico oltre giacenza resta permesso (può andare negativo).
+- **Non toccato:** transazione movimento+giacenza in un solo commit (se increment fallisce dopo `addDoc` resta un movimento orfano — caso raro); home magazzino; seed simulatore.
+- Test: `tests/services/giacenza-increment.test.js`. Canary `npm run magazzino:giacenza-canary`.
+- **Prova emulator (2026-09-18):** Auth+Firestore emulator. Login manager tenant `sim_podere_conti_910716`. Due `createMovimento` uscite parallele 7+5 su giacenza 100 → **88** (non 95 last-write-wins). Rinomina anagrafica in parallelo a un’altra uscita: giacenza **85** e nome aggiornato. Due `increment` pagina −4 e −6 → **75**. Canary **6/6**. Nessuna scrittura su produzione.
+
+## Gestione lavori — delete a cascata realmente nel codice (2026-09-18)
+
+- **Gap:** il changelog del 2026-08-07 descriveva `countRelatedLavoroData` / `deleteLavoroCascade` / `purgeOrphanComunicazioni`, ma in JS non c’erano. `deleteLavoro` lanciava «usa force=true»; `openEliminaModal` faceva `deleteDoc` sul solo documento lavoro (più primo stub coltura e libera macchine), lasciando ore, zone, comunicazioni, diario, assenze, VM, magazzino.
+- **Servizio:** `core/services/lavoro-delete-cascade-utils.js` (puri: conteggi, conferma, blocco riprese, unlink preventivo, orfani) + `lavoro-delete-cascade.js` (I/O). `lavori-service.deleteLavoro` delega alla cascata. Nessun `if` per pagina: un’orchestrazione riusabile.
+- **Cosa viene eliminato:** subcollection `oreOperai` / `zoneLavorate`; comunicazioni; voci diario `attivita`; assenze con `lavoroId`; calcoli/spese VM; vendemmie/potature/trattamenti/raccolte (tutti i match, non solo `find*ByLavoroId`); movimenti magazzino residui. Trattamenti **prima** così `deleteTrattamento` ripristina giacenze.
+- **Cosa non si cancella:** preventivi (`pianificato` → `accettato_manager`, `lavoroId` null); guasti (`lavoroId` null); assenze solo in standby (`standbyLavoroId` null). Macchine liberate con `liberaMacchineDaLavoro` (non se un altro lavoro le tiene). Piano stagione VM ripristinato.
+- **Blocco:** se esiste un lavoro con `ripresaDaLavoroId` = questo, errore `LAVORO_HAS_RIPRESE_FIGLIE` — va tolta prima la ripresa.
+- **UI:** `openEliminaModal` conta → alert se riprese → `confirm` con elenco → `deleteLavoroCascade`. Purge orfani dopo la delete e al load di Gestione lavori.
+- **Campo / dashboard:** `comunicazioneVisibilePerOperaio` nasconde i messaggi agganciati a un lavoro inesistente (anche con destinatari); stesso filtro su invii capo (workspace + dashboard). `collectLiveLavoroIdSet` fa get puntuale sugli id sconosciuti.
+- Test: `tests/services/lavoro-delete-cascade.test.js`.
+- **Prova emulatori (2026-09-18):** `npm run lavoro:delete-cascade-canary` su Auth+Firestore emulator + `viticola-manodopera`. 24/24: blocco ripresa figlia (toast, origine intatta); confirm con conteggi (2 ore, zona, comunicazione, diario, assenza, trattamento, preventivo); hard-delete + unlink preventivo `accettato_manager` / guasto / standby. Nessuna scrittura su produzione.
+
+## Magazzino — scarico da trattamenti/concimazioni in prova moduli (2026-09-18)
+
+- **Problema:** con Magazzino in prova (30 giorni, `moduleTrials`) e non ancora in `tenant.modules`, le pagine trattamenti/concimazioni (Vigneto e Frutteto) nascondevano la checkbox «registra scarico» e `tenantHasMagazzinoModule()` saltava comunque la scrittura uscite: leggevano solo i moduli pagati.
+- **Fix:** stesso resolver dei moduli effettivi (`hasModuleAccessFromTenant` / `hasModuleAccess` + `getAvailableModules`): pagati ∪ trial attivi. Servizio `trattamento-scarico-magazzino-service.js`; quattro pagine standalone. Tony su quelle pagine riceve `moduli_attivi` effettivi (anche magazzino in prova).
+- **Non toccato:** home magazzino, `tonyExtractDocument` (già su `moduliAttivi` del context).
+- Test: `tests/module-access-resolver.test.js`, `tests/trattamento-scarico-magazzino-gate.test.js`.
+- **Prova emulator (2026-09-18):** Auth+Firestore emulator + `npm start`. Seed `solo-titolare-viticola` tenant `sim_az_agr_ricci_208883`, Magazzino **solo in prova** (tolto da `modules`). Login manager (`SimGFV2026!`) da `simulator-dev-standalone.html?emulator=1`. Trattamenti vigneto: checkbox scarico **visibile**; salvataggio stub incompleto → nuovo movimento uscita `hiTKAi8sqv2m9As3FAn9` (10→11). Con trial scaduto la checkbox **scompare**. Canary `npm run magazzino:trial-scarico-canary` **6/6**. Nessuna scrittura sul Firestore di produzione.
+
+## Tony Occhi — galleria e foto HEIC (2026-09-17)
+
+- **Segnalazione:** su iPhone 📷 apriva solo la fotocamera (`capture="environment"`) e le foto della Libreria in HEIC venivano rifiutate («Formato non supportato»). La guida utente parlava già di «scatta o scegli dalla galleria».
+- **Picker:** rimosso `capture`. Un solo `<input type="file" accept="image/*,.heic,.heif,…">`: iOS mostra Scatta / Fototeca / Sfoglia; desktop resta il file picker. Stesso componente su ogni pagina (nessun `if` iPhone).
+- **HEIC/HEIF:** riconosciuti da MIME o estensione; Safari/iOS li decodifica in canvas e li invia a Gemini come **JPEG** (lato max 2048 px). La CF `tonyExtractDocument` non cambia (resta jpeg/png/webp/pdf/xml). Se il browser non decodifica HEIC (tipicamente Chrome desktop): messaggio di scattare o esportare JPEG.
+- Build widget **`2026-09-17c`**. Test: `tests/tony-document-capture.test.js`.
+
+## Chat Tony su iPhone — tastiera e notch (2026-09-17)
+
+- **Tastiera:** su iOS `position:fixed` resta agganciato al layout viewport, quindi il campo della chat finiva **sotto la tastiera**. `visualViewport` calcola l’inset (`layoutHeight − visualBottom`); sotto 120 px si ignora la barra URL. Il foglio usa `--tony-keyboard-inset` su `bottom` / `max-height`; con tastiera aperta il FAB si nasconde e il padding home-indicator va a 0. Stessa formula su Android.
+- **Notch / home indicator:** `env(safe-area-inset-*)` è 0 senza `viewport-fit=cover`. Il loader Tony lo aggiunge al meta viewport (e login/dashboard/workspace campo in HTML). Header chat e riga input usano safe-area left/right; foglio `padding-bottom` per l’home indicator; header workspace campo `padding-top` per il notch; `body` left/right in `responsive-standalone.css`.
+- File: `core/js/tony/visual-viewport.js` (bind da `ui.js`). Build **`2026-09-17b`**. Test: `tests/tony-visual-viewport.test.js`.
+
+## Chat Tony su iPhone — pannello e riga input nel viewport (2026-09-17)
+
+- **Segnalazione:** su iPhone la finestra chat è più larga dello schermo: bisogna scrollare in orizzontale per vedere la fotocamera (e il resto della barra). Su Android/PC la stessa chat sta nel viewport.
+- **Cause:** (1) Safari zoomma la pagina se l’input ha `font-size` &lt; 16px; (2) `<input>` in flex non si restringe (`min-width: auto`) e la riga 📷+🎤+campo+Invia sfora; (3) sotto 480px il foglio usava `left:0; right:0; width:100%`, che su iOS si allarga con le tabelle ERP più larghe dello schermo.
+- **Fix (solo CSS del widget, stesso su ogni pagina):** input 16px + `flex: 1 1 0; min-width: 0`; pannello `min-width: 0` + `overflow-x: hidden` + `max-width: 100dvw`; foglio smartphone da **768px** (linea guida) con `width: 100dvw; left: 0; right: auto` (non 100% del documento); 📷/🎤 `flex-shrink: 0`; padding safe-area. Cache CSS `?v=` sul loader.
+- Build widget **`2026-09-17a`**. Test: `tests/tony-widget-mobile-layout.test.js`. Fixture visiva: `tests/fixtures/tony-widget-mobile-chat.html`.
+
+## Voce iPhone — microfono, dettatura e TTS (2026-09-16)
+
+- **Segnalazione:** un amico ieri ha detto che su iPhone il microfono di Tony non funzionava bene (voce + dettatura). Ieri stesso erano già in produzione due cause: Web Speech muta nella web app da Home (WebKit 225298) e `tonyTranscribeAudio` che rifiutava i tenant Base con `piano: 'free'`. Restavano buchi che su iPhone reale spengono mic o voce anche con il motore registratore.
+- **Motore STT su tutto iOS:** `chooseSttEngine` usa il registratore (`getUserMedia` + `MediaRecorder` + CF) su **Safari e PWA**, non solo `display-mode: standalone`. In Safari la Web Speech API dipende dalla dettatura di sistema (spesso assente o instabile); se la PWA non veniva rilevata come standalone si restava sul motore muto.
+- **Registratore più robusto:** vincoli mic troppo stretti (`OverconstrainedError`) → fallback `{ audio: true }`; `MediaRecorder.start(timeslice)` rifiutato da Safari → `start()` senza slice; AudioContext `suspended` (gesto già consumato) **non** viene ricreato: si manda un clip a durata fissa invece di un falso «nessun parlato»; lo stream mic si tiene 60 s tra un turno e l’altro così il TTS lungo non costringe un nuovo `getUserMedia` fuori dal tap.
+- **Tony che parla:** iOS blocca `Audio.play()` dopo l’await di `getTonyAudio`. Al tap su FAB o microfono si suona un WAV silenzioso (`unlockTonyHtmlAudio`) e gli elementi audio hanno `playsInline`.
+- **PWA iOS:** meta `apple-mobile-web-app-capable` (e touch icon) su dashboard (start_url), login, e inject dal loader Tony — senza questi meta, su iOS &lt; 16.4 «Aggiungi a Home» non è standalone.
+- Build widget **`2026-09-16b`**. Test: `tests/tony-voice-recorder-stt.test.js` (28). **Non verificato su iPhone fisico** da questo ambiente (nessun device); va confermato: tap 🎤 → permesso mic → frase → Tony risponde a voce → il mic si riapre.
+
+## CI Playwright su core/modules/shared + guardia import relativi (2026-09-16)
+
+- **Problema residuo dopo il fix Gestione Lavori:** i filtri `paths` di `.github/workflows/simulator-ci.yml` escludevano `core/js/*.js` e `core/admin/**`, quindi la CI Playwright non partiva proprio sulle pagine che testa (è lo stesso buco che ha fatto passare inosservato il commit del 5 settembre).
+- **CI:** filtri allargati a `core/**`, `modules/**`, `shared/**`, `index.html`, `service-worker.js`, `functions/**`, `tests/**`, `scripts/**`. Nuovo job `static-import-guard` (Vitest, senza Java/browser): `tests/relative-imports-resolve.test.js` + `tests/functions-index-handlers-defined.test.js`.
+- **Guardia import:** ogni import relativo (`./`, `../`) in `core/`, `modules/`, `shared/`, `index.html` deve puntare a un file esistente e restare dentro la radice del repo. Intercetta in <1 s file mai committati (caso `demo-map-privacy.js`) e percorsi che su GitHub Pages (`/gfv-platform/`) escono dal sito. Controprova: senza il file o con `../../modules/` da `attivita-standalone.html` il test fallisce.
+- **Fix collaterale (produzione):** quattro import dinamici con profondità sbagliata — `core/admin/{gestione-guasti,segnalazione-guasti,lavori-caposquadra}-standalone.html` (`../../../modules/` → `../../modules/`) e `core/attivita-standalone.html` (`../../modules/` → `../modules/`). In locale il browser tronca a `/` e funzionano; su Pages puntano fuori dal sito → 404 su elenco macchine in guasti, aggiornamento vigneti in lavori caposquadra, utilizzo macchine in attività. Lazy e in `try/catch`, quindi la pagina non crasha. Bump cache PWA.
+
+## Playwright CI rosso — `core/js/demo-map-privacy.js` mancante, Gestione Lavori rotta (2026-09-16)
+
+- **Sintomo:** da giorni i job `sim:e2e` e `sim:tony:e2e` fallivano su ogni push/PR (`gestione-lavori-write`, `manodopera-admin`, `T-PERF-002`, `T-INJECT-001`, `T-FLOW-013`) con finding `T6_PERF_BUDGET_EXCEEDED` / «Tony non pronto» sulla pagina `gestione-lavori-standalone.html`; gli altri 69 spec passavano. Playwright funzionava: segnalava un bug vero.
+- **Causa:** il commit `0bdde50` (2026-09-05, Maps lazy su lavori) ha aggiunto in `core/admin/js/gestione-lavori-maps.js` l'import statico `../../js/demo-map-privacy.js` senza committare il file (esisteva solo in locale; la voce «Demo cloud geo privacy-safe v2» lo dava per fatto). Import ES statico → 404 → l'intero `<script type="module">` della pagina non parte → lista lavori ferma su «caricamento». **Anche in produzione** (`https://vitaradragon.github.io/gfv-platform/core/js/demo-map-privacy.js` → 404).
+- **Fix:** ricreato `core/js/demo-map-privacy.js` — `withDemoPrivacyMapOptions(options, tenantId)` restituisce le opzioni inalterate per ogni tenant, e per `demo_azienda_demo_gfv_v1` forza `roadmap` senza POI/etichette, `mapTypeControl`/`streetViewControl` off. Esporta anche `isDemoPrivacyTenant`. Bump cache PWA.
+- **Verifica locale** (emulatori Auth+Firestore, seed `viticola-conto-terzi-manodopera`, Chrome di sistema): i 2 spec sim passano in 7 s; senza il file lo stesso spec riproduce esattamente il fallimento CI; i 3 scenari Tony mock passano 3/3 (`--only=T-PERF-002,T-INJECT-001,T-FLOW-013`, `GFV_E2E_BROWSER_CHANNEL=chrome`).
+- **Follow-up (stesso giorno):** i quattro import dinamici con profondità sbagliata e i filtri CI sono stati sistemati nella voce «CI Playwright su core/modules/shared» sopra.
+
+## Tony Guida onboarding — nuovi tenant Free, 7 giorni (2026-09-16)
+
+- **Decisione prodotto** (`TONY_DECISIONI` §1.22, rivede §1.1): chi crea un'azienda sul piano Free trova Tony Guida per i primi **7 giorni** (solo spiegazioni, mai Avanzato), con **30 domande al giorno** per tenant e **voce inclusa** (TTS `getTonyAudio` + STT `tonyTranscribeAudio`). Scopo: accompagnare i primi passi (terreni, attività, collaboratori, moduli) e far assaggiare il Base. Finito il periodo Tony sparisce come oggi; l'ultimo messaggio spiega «periodo terminato → piano Base».
+- **Ancora temporale:** la registrazione (`core/auth/registrazione-standalone.html`, e `createTenant` in `tenant-service.js`) scrive **`tenants/{id}.tonyGuidaOnboardingEndsAt`** = creazione + 7 giorni. Campo esplicito, non calcolato da `creatoIl`: si può allungare a mano per un cliente e i **tenant esistenti (senza campo) non lo ricevono**.
+- **Server = fonte di verità** (`functions/tony-guida-onboarding.js`): `resolveTenantSubscription` restituisce `tonyGuidaOnboarding` (attivo/scaduto/giorni rimanenti); `assertTonyAllowedForPlan` sostituisce i tre `if (plan === "free") throw` di `tonyAsk`/`tonyAskStream`, `getTonyAudio`; `tonyTranscribeAudio` riceve un resolver «Free in onboarding vale Base». Su Free in onboarding `isTonyAdvanced` è **forzato false** (anche con modulo `tony` in prova) e il prompt riceve una nota con giorni rimanenti e limiti Free. **Quota:** transazione su `tenants/{id}/tonyOnboardingQuota/{YYYY-MM-DD}` (giorno **Europe/Rome**), solo chat; oltre 30 → `resource-exhausted` con messaggio dedicato. `firestore.rules`: sottocollezione solo admin SDK. `tonyExtractDocument` resta bloccato su Free.
+- **Client:** `core/config/tony-guida-onboarding.js` (mirror costanti/regola); `gfv-tony-loader.js` carica il widget su Free se il campo è nel futuro (regola inline, script non-module); `main.js` `isTonyBlockedForPlan` al posto di `plan === 'free'` (init + `applyTonyFreemiumGate`), benvenuto «ti accompagno gratis nei primi 7 giorni (ancora per N giorni)…», `tonyFormatCallableError` non riformula i messaggi piano/quota del server. Testi guida (`tony-guida-app.js`, `SUBAGENT_TONY_MODULO`) aggiornati. Build widget **`2026-09-16a`**, bump cache PWA.
+- **Da fare per andare live:** `npm run deploy:functions` (o `--only functions:tonyAsk,functions:tonyAskStream,functions:getTonyAudio,functions:tonyTranscribeAudio`) + `npm run deploy:rules`; poi promozione su `main`. Finché le CF non sono deployate un nuovo tenant vede il FAB ma le chiamate vengono rifiutate.
+- **Limite noto:** `tonyGuidaOnboardingEndsAt` è sul doc tenant, scrivibile da manager/admin del tenant come già `plan`/`piano` (le rules non limitano i campi): nessuna nuova superficie rispetto a oggi, ma se si vorrà blindare va spostato in un doc solo-server.
+- Test: `tests/tony-guida-onboarding.test.js` (21 — costanti server/client allineate, stati attivo/scaduto/assente, Timestamp serializzati, messaggi, chiave giorno Roma, quota 30/31 con Firestore finto per tenant/giorno); `tests/tony-freemium-plan-guard.test.js` esteso (fixture E2E Free senza campo restano bloccate).
+
+## Tony «non funziona» dopo attivazione moduli via Stripe — piano tenant lato server (2026-09-15)
+
+- **Segnalazione:** un nuovo utente (iPhone, carta test Stripe) attiva piano e moduli ma Tony non risponde. Verifica **statica** (nessun accesso a Firestore/log di produzione dall'ambiente agente): trovate tre incoerenze che producono esattamente «FAB visibile, chiamate rifiutate».
+- **Causa 1 — due campi piano.** La registrazione scrive solo `piano: 'free'` (`registrazione-standalone.html`); Stripe scrive `plan: 'base'`. Il doc finisce con entrambi. In `functions/tony-extract-document.js` il fallback leggeva **`piano || plan`** → un tenant passato a Base risultava ancora Free per **`tonyTranscribeAudio`** (la voce su iPhone) e `tonyExtractDocument`.
+- **Causa 2 — client e server non d'accordo.** Loader e widget mostrano Tony anche se `plan` è rimasto `free` ma c'è `stripeSubscriptionId` attivo; `tonyAsk`/`getTonyAudio`/meteo leggevano solo `plan || piano` e rifiutavano con «Tony non è disponibile sul piano Free». Ora tutte le CF usano **`resolveTenantPlanId`** (`functions/tenant-plan.js`): `plan` > `piano`; abbonamento Stripe Base attivo (`status` assente/`active`/`trialing`/`expiring`) ⇒ Base. Firestore vince sul piano inviato dal client.
+- **Causa 3 — fulfillment dipendente dal ritorno del client.** Il piano veniva scritto solo da `fulfillStripeCheckout`, chiamata dalla pagina Abbonamento al rientro da Stripe. Nella **web app iOS installata** Stripe si apre nel browser in-app: l'utente lì può non essere loggato e il `?checkout=success&session_id=…` si perde. Inoltre il webhook `customer.subscription.updated` sul piano scriveva `applyPlanToTenant(tenant.plan || tenant.piano)` → poteva **ribadire `plan: 'free'`** con `stripeSubscriptionId` attivo. Ora: webhook **`checkout.session.completed`** → `applyCheckoutSessionToTenant` (stesso codice della callable, idempotente: piano / modulo / bundle); sync subscription piano scrive sempre `base`.
+- **Deploy eseguito (2026-09-15 14:47 UTC, dal branch, CLI `firebase deploy --only functions:…`):** aggiornate le 12 CF `stripeWebhook`, `tonyAsk`, `tonyAskStream`, `getTonyAudio`, `tonyTranscribeAudio`, `tonyExtractDocument`, `createStripeCheckoutSession`, `fulfillStripeCheckout`, `syncStripeSubscription`, `getMeteoSede`, `getMeteoSedeAvanzato`, `getMeteoTerreni`. Verifica: `POST` senza firma su `stripeWebhook` → **400 «Missing stripe-signature»** (prima 500 ReferenceError); nessun WARNING/ERROR nei log post-deploy. **Endpoint Stripe test `we_1Tko6V3nOKBd0Fguf4TeLRvN`** (`…/stripeWebhook`): aggiunto **`checkout.session.completed`** via API agli eventi già presenti (`customer.subscription.created/updated/deleted`, `invoice.payment_failed`). La parte client (`abbonamento-standalone.html`) va online solo con la promozione su `main`.
+- **Non cambiato (da decidere):** con piano **Free** una **prova gratuita del modulo `tony`** è consentita (`startModuleTrial`) e il loader carica il widget, ma widget e CF bloccano Free (decisione §1.1) → FAB che appare e sparisce. O si vieta la prova di `tony` su Free, o si ammette Tony quando il modulo è effettivo anche su Free.
+- **Verifica su produzione (login Firebase MCP, 2026-09-15 14:15 UTC) — tenant `miele_di_romagna_bVGG9zoQ`:** `plan: 'base'`, `piano: 'free'`, `status: 'active'`, `stripeSubscriptionId` dalle 06:04, bundle `gfv-completo` dalle 06:10 (tutti i moduli incluso `tony`), `moduleTrials: {}`. Log: `tonyAskStream` **risponde** (06:05 e 12:37, `isTonyAdvanced: true`), `getTonyAudio` ok; **`tonyTranscribeAudio` rifiuta 6 volte** (12:28–12:37, auth valida, risposta 4xx in ~10 ms, nessuna trascrizione). È esattamente la **Causa 1**: il microfono su iPhone passa da `tonyTranscribeAudio`, che leggeva `piano || plan` → «Tony non è disponibile sul piano Free». La chat scritta funzionava. Nessuna riparazione dati necessaria: `plan` è già `base`.
+- **Bug aggiuntivo trovato nei log — webhook Stripe rotto in produzione:** ogni evento (06:05, 06:10, 07:06, 07:09, 09:10) fallisce con `ReferenceError: handleStripeWebhookRequest is not defined` (`index.js:4470`). Il commit `58db8e9` (2026-06-23, simulatore) aveva rimosso `require("./stripe-webhooks")` da `functions/index.js`; nessun test lo intercettava perché i test importano `stripe-webhooks.js`, non `index.js`, e su `functions/` non gira ESLint. **Ripristinato l'import**; nuovo `tests/functions-index-handlers-defined.test.js` (ogni `handleXxx(` usato in `index.js` deve essere dichiarato/importato). Conseguenza pratica: da giugno rinnovi, cancellazioni e `invoice.payment_failed` non aggiornavano Firestore; il fulfillment client (`fulfillStripeCheckout` al rientro) ha finora mascherato il problema.
+- **Auto-riparazione tenant già colpiti:** `core/admin/abbonamento-standalone.html` → `syncStripeFromServerIfNeeded` chiama `syncStripeSubscription` anche quando c'è `stripeSubscriptionId` ma il doc risolve ancora `free` (prima solo a scadenza passata); la CF ora scrive sempre `plan: 'base'`. Bump cache PWA eseguito.
+- Test: `tests/tony-tenant-plan-gate.test.js` (8), `tests/stripe-checkout-fulfillment.test.js` (10, Firestore/Stripe finti); `npm run sim:tony:vitest` 50 file / 532 ✅.
+
+## Voce Tony su iPhone — web app da schermata Home (2026-09-15)
+
+- **Problema:** su iPhone l'app installata non chiedeva il permesso microfono e il 🎤 non faceva nulla. Causa: WebKit non abilita `SpeechRecognition` nelle web app da Home ([bug 225298](https://bugs.webkit.org/show_bug.cgi?id=225298), aperto dal 2021) — l'API esiste, quindi il feature-detect passava, ma `start()` non parte mai. `getUserMedia` invece funziona.
+- **Soluzione:** secondo motore STT dietro la **stessa interfaccia `SpeechRecognition`** (`core/js/tony/voice-recorder-stt.js`): `getUserMedia` + `MediaRecorder` + VAD locale (RMS su `AnalyserNode`, silenzio ≥ 900 ms = fine frase) → callable **`tonyTranscribeAudio`** (`functions/tony-transcribe-audio.js`, Gemini audio `inlineData`, `responseSchema` `{hasSpeech, transcript}`) → `onresult` finale → `onspeechend` → `onend`. Il widget (`main.js`) non distingue i motori: `chooseSttEngine(window)` sceglie una sola volta (iOS + standalone → registratore; altrove Web Speech). Override test: `sessionStorage.tony_stt_engine = 'recorder'|'webspeech'`.
+- **Limiti:** niente risultati parziali (testo 1–3 s dopo la pausa; mic arancione = «sto trascrivendo»); su iOS il permesso mic **non viene memorizzato** per le web app da Home (WebKit 215884) → prompt a ogni avvio; costo Gemini per clip (max 60 s / ~3 MB). Piano Free bloccato come `getTonyAudio`.
+- **Fix collaterale (tutti i browser):** su `not-allowed` / `service-not-allowed` / `audio-capture` il dialogo continuo si spegne (`AUTO_MODE_OFF_REASONS.mic-error`) invece di riaprire il mic ogni 350 ms ripetendo l'errore; messaggio con istruzioni per iPhone (dettatura / Safari).
+- Build widget **`2026-09-15a`** (`main.js` + loader). **CF in produzione** (2026-09-15, `gfv-platform`, `europe-west1`, 512 MiB, timeout 60 s): `firebase deploy --only functions:tonyTranscribeAudio`; verificata con POST anonimo → `401 UNAUTHENTICATED` dal nostro handler. Il client (branch) non è ancora online: arriva su `main` con la promozione.
+- Test: `tests/tony-voice-recorder-stt.test.js` (23 — scelta motore, VAD, adapter con timer finti), `tests/tony-transcribe-audio.test.js` (11 — validazione, prompt, parsing, callable con `fetch` mock). Smoke Chromium reale (mic finto): `getUserMedia` → `MediaRecorder` webm/opus → analyser → CF mock → `onresult`.
+
+## Deploy produzione — `tonyExtractDocument` (2026-09-12)
+
+- **Cosa:** aggiornata la callable `tonyExtractDocument` (`europe-west1`) sul progetto Firebase `gfv-platform`. Le foto/PDF in chat usano già le due passate sui numeri (timeout 180 s).
+- **Cosa no:** `main` / GitHub Pages non toccati. Guide e ritocchi client restano su `develop` finché non si promuove.
+
+## Guide utente — foto bolla/fattura (2026-09-12)
+
+- **Perché:** l’acquisizione è migliorata sulla **foto** (due passate sui numeri); le guide non descrivevano lo scatto né la cascata in magazzino. L’XML non si insegna: extra silenzioso.
+- **TONY / MAGAZZINO / CORE / INTERSEZIONI** (utente, sintesi, tecnica) + mirror `core/GUIDA/`. Gesto: fotocamera in chat → revisione → **Registra dati** → Movimenti + Archivio.
+- `scripts/guida-code-map.json`: `document-capture`, `tony-extract-document`, `tony-fatturapa`.
+
+## Acquisizione documenti — foto resta l’idea; due passate sui numeri (2026-09-11)
+
+- **Promessa prodotto (invariata):** 📷 fotografi bolla o fattura → Tony legge le cifre → revisione → a cascata movimenti/prezzi in magazzino. Non si chiede all’utente di “andare a prendere l’XML”.
+- **Accuratezza foto/PDF:** due passate Gemini (trascrizione cifra-per-cifra → JSON + `responseSchema`) + Level B se i totali non tornano. Stesso form, stessa registrazione.
+- **XML FatturaPA:** extra **silenzioso** se qualcuno carica già quel file (ufficio). Non è il flusso da insegnare; l’UI 📷 resta “bolla o fattura”.
+- File: `tony-extract-document.js`, `tony-document-schemas.js`, `tony-fatturapa.js`. Test: `tests/tony-fatturapa.test.js` + suite documenti.
+
+## Icona app GFV (2026-09-09)
+
+- **Perché:** l’icona PWA era la scenetta 3D (globo + trattore + satellite); su `core/images` e nella coming-soon c’era il volto di Tony. Tre ruoli mescolati.
+- **Marchio:** lettere **GFV** su verde `#1F6B3A`, colline nella G. Master `icons/gfv-mark.svg`; PNG in `icons/` e `core/images/icon-*.png`. Tony resta solo `core/images/tony-icon.png` (FAB/chat).
+- Favicon landing allineata. `logoorizzontale.png` invariato (export). Splash PWA `background_color` `#1F6B3A`.
+
 ## Documentazione — disegno confini 1b (2026-09-06)
 
 - **Obbligatoria:** questa changelog; `tony/STATO_ATTUALE.md` (riga Disegno confini 1b); `tony/MASTER_PLAN.md` §10/§11; `TONY_DECISIONI_E_REQUISITI.md` §21.14.
@@ -985,6 +1137,7 @@ Piano di implementazione (solo documentazione, **nessun codice**): un tap sulla 
 
 ## Gestione lavori — delete a cascata (2026-08-07)
 
+- **Nota 2026-09-18:** questa voce era solo documentazione; le API non esistevano nel JS. Implementazione reale nella voce in testa a questo file.
 - Eliminazione lavoro da manager: conferma con conteggi (ore, zone, comunicazioni, diario, crop/VM) e cascata centralizzata in `lavori-service.deleteLavoroCascade`.
 - Hard delete: `oreOperai`, `zoneLavorate`, comunicazioni, attivita, assenze collegate, calcoli/spese VM, vendemmia/potatura/trattamento/raccolta; unlink preventivi/guasti; blocco se esistono riprese figlie.
 - UI thin in `gestione-lavori-events.openEliminaModal` (niente più `deleteDoc` diretto).

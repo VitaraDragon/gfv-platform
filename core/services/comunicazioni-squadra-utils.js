@@ -2,6 +2,8 @@
  * Utility condivise per comunicazioni caposquadra → operai (match ID, destinatari).
  */
 
+import { comunicazioneRiferisceLavoroInesistente } from './lavoro-delete-cascade-utils.js';
+
 /**
  * @param {unknown} entry
  * @returns {string|null}
@@ -112,14 +114,18 @@ export function isComunicazioneAttivaPerData(dataCom) {
 
 /**
  * Visibilità per operaio: destinatario esplicito, oppure invio legacy senza destinatari
- * ma dal proprio caposquadra.
+ * ma dal proprio caposquadra. Se `existingLavoroIds` è passato, nasconde i messaggi
+ * agganciati a un lavoro già eliminato.
  * @param {Record<string, unknown>} comm
  * @param {import('firebase/auth').User | null | undefined} authUser
  * @param {Record<string, unknown> | null | undefined} userData
  * @param {string|null|undefined} caposquadraIdOperaio
+ * @param {string[]|undefined} operaioLavoroIds
+ * @param {Set<string>|string[]|undefined} existingLavoroIds
  */
-export function comunicazioneVisibilePerOperaio(comm, authUser, userData, caposquadraIdOperaio, operaioLavoroIds) {
+export function comunicazioneVisibilePerOperaio(comm, authUser, userData, caposquadraIdOperaio, operaioLavoroIds, existingLavoroIds) {
     if (!comm || typeof comm !== 'object') return false;
+    if (comunicazioneRiferisceLavoroInesistente(comm, existingLavoroIds)) return false;
     const destIds = normalizeDestinatariIds(comm.destinatari);
     if (destIds.length > 0) {
         return destinatariIncludesUser(comm.destinatari, authUser, userData);

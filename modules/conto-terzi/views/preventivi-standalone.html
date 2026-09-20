@@ -372,9 +372,9 @@
     <script type="module">
         import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         import { getAuthInstance, getDb, getHttpsCallable, onAuthStateChanged, collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, Timestamp } from '../../../core/services/firebase-service.js';
-        import { syncPreventivoAccettatoToPiano } from '../../vendemmia-meccanica/services/preventivo-piano-sync-service.js';
         import { escapeHtml, showAlert } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+        import { accettaPreventivo, rifiutaPreventivo as rifiutaPreventivoLocked } from '../services/preventivi-service.js';
 
         try {
             await window.GFVStandaloneReady;
@@ -1165,23 +1165,13 @@
                     return;
                 }
 
-                const preventivoRef = doc(db, 'tenants', currentTenantId, 'preventivi', preventivoId);
-                const prevSnap = await getDoc(preventivoRef);
-                const prevData = prevSnap.exists() ? prevSnap.data() : {};
-                await updateDoc(preventivoRef, {
-                    stato: 'accettato_manager',
-                    dataAccettazione: serverTimestamp()
-                });
+                const result = await accettaPreventivo(preventivoId, 'manager');
+                const syncResult = result && result.syncResult;
 
                 try {
-                    const syncResult = await syncPreventivoAccettatoToPiano({
-                        ...prevData,
-                        id: preventivoId,
-                        stato: 'accettato_manager'
-                    });
-                    if (syncResult.synced && syncResult.added > 0) {
+                    if (syncResult && syncResult.synced && syncResult.added > 0) {
                         showAlert('Preventivo accettato — ' + syncResult.added + ' vigneto/i aggiunto/i al piano stagione ' + syncResult.anno, 'success');
-                    } else if (syncResult.reason === 'no-terreno') {
+                    } else if (syncResult && syncResult.reason === 'no-terreno') {
                         showAlert('Preventivo accettato. Seleziona un terreno nel preventivo per comparire nel piano stagione VM.', 'success');
                     } else {
                         showAlert('Preventivo accettato con successo', 'success');
@@ -1238,10 +1228,7 @@
                     return;
                 }
 
-                const preventivoRef = doc(db, 'tenants', currentTenantId, 'preventivi', preventivoId);
-                await updateDoc(preventivoRef, {
-                    stato: 'rifiutato'
-                });
+                await rifiutaPreventivoLocked(preventivoId);
                 
                 showAlert('Preventivo rifiutato', 'success');
                 await loadPreventivi();

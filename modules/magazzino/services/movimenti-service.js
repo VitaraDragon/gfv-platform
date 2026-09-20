@@ -15,6 +15,7 @@ import {
 import { getCurrentTenantId } from '../../../core/services/tenant-service.js';
 import { MovimentoMagazzino } from '../models/MovimentoMagazzino.js';
 import { getProdotto, aggiornaGiacenzaProdotto, getAllProdotti } from './prodotti-service.js';
+import { movimentoGiacenzaDelta } from './giacenza-utils.js';
 
 const COLLECTION_NAME = 'movimentiMagazzino';
 
@@ -112,9 +113,11 @@ export async function createMovimento(movimentoData) {
 
     const movimentoId = await createDocument(COLLECTION_NAME, movimento.toFirestore(), tenantId);
 
-    // Aggiorna giacenza prodotto: entrata +quantita, uscita -quantita (permesso negativo)
-    const delta = movimento.tipo === 'entrata' ? movimento.quantita : -movimento.quantita;
-    await aggiornaGiacenzaProdotto(movimento.prodottoId, delta);
+    // Giacenza atomica: entrata +quantita, uscita -quantita (permesso negativo)
+    await aggiornaGiacenzaProdotto(
+      movimento.prodottoId,
+      movimentoGiacenzaDelta(movimento.tipo, movimento.quantita)
+    );
 
     return movimentoId;
   } catch (error) {
@@ -189,9 +192,11 @@ export async function deleteMovimento(movimentoId) {
       throw new Error('Movimento non trovato');
     }
 
-    // Ripristina giacenza: inverti il delta (entrata -quantita, uscita +quantita)
-    const delta = movimento.tipo === 'entrata' ? -movimento.quantita : movimento.quantita;
-    await aggiornaGiacenzaProdotto(movimento.prodottoId, delta);
+    // Ripristina giacenza: inverti il delta atomico (entrata -quantita, uscita +quantita)
+    await aggiornaGiacenzaProdotto(
+      movimento.prodottoId,
+      -movimentoGiacenzaDelta(movimento.tipo, movimento.quantita)
+    );
 
     await deleteDocument(COLLECTION_NAME, movimentoId, tenantId);
   } catch (error) {

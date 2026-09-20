@@ -101,51 +101,68 @@ export async function createInvito(db, collection, query, where, getDocs, addDoc
 }
 
 /**
+ * Mappa errori della callable getInvitoPubblico in messaggi utente.
+ * @param {*} error
+ * @returns {Error}
+ */
+export function mapInvitoPubblicoError(error) {
+    const code = String((error && error.code) || '');
+    const msg = String((error && error.message) || '');
+    if (/invalid-argument/i.test(code) || /Token non valido/i.test(msg)) {
+        return new Error('Token non valido.');
+    }
+    if (/failed-precondition/i.test(code) || /scaduto/i.test(msg)) {
+        return new Error('Token scaduto. Contatta l\'amministratore per un nuovo invito.');
+    }
+    if (/not-found/i.test(code) || /già utilizzato/i.test(msg) || /non trovato/i.test(msg)) {
+        return new Error('Token invalido o già utilizzato');
+    }
+    return new Error(msg || 'Errore verifica invito');
+}
+
+/**
+ * Legge un invito dal token via Cloud Function (niente query pubblica su /inviti).
+ * @param {string} token
+ * @returns {Promise<Object>}
+ */
+export async function fetchInvitoByToken(token) {
+    const { getHttpsCallable } = await import('./firebase-service.js');
+    const callable = getHttpsCallable('getInvitoPubblico');
+    try {
+        const result = await callable({ token: String(token || '') });
+        const invito = result && result.data && result.data.invito;
+        if (!invito || !invito.id) {
+            throw new Error('Token invalido o già utilizzato');
+        }
+        return invito;
+    } catch (error) {
+        throw mapInvitoPubblicoError(error);
+    }
+}
+
+/**
  * Verifica un token invito
- * @param {Object} db - Istanza Firestore
- * @param {Object} collection - Funzione collection di Firestore
- * @param {Object} query - Funzione query di Firestore
- * @param {Object} where - Funzione where di Firestore
- * @param {Object} getDocs - Funzione getDocs di Firestore
+ * @param {Object} db - Istanza Firestore (compat, non usato: lookup via CF)
+ * @param {Object} collection - Funzione collection di Firestore (compat)
+ * @param {Object} query - Funzione query di Firestore (compat)
+ * @param {Object} where - Funzione where di Firestore (compat)
+ * @param {Object} getDocs - Funzione getDocs di Firestore (compat)
  * @param {string} token - Token da verificare
  * @returns {Promise<Object>} Dati invito
  */
 export async function verifyInviteToken(db, collection, query, where, getDocs, token) {
     try {
-        // Cerca invito con token e stato "invitato"
-        const invitiQuery = query(
-            collection(db, 'inviti'),
-            where('token', '==', token),
-            where('stato', '==', 'invitato')
-        );
-        
-        const snapshot = await getDocs(invitiQuery);
-        
-        if (snapshot.empty) {
-            throw new Error('Token invalido o già utilizzato');
-        }
-        
-        const invitoDoc = snapshot.docs[0];
-        const invitoData = invitoDoc.data();
-        
-        console.error('🔍 [VERIFY_TOKEN] Invito caricato da Firestore:', {
-            id: invitoDoc.id,
-            email: invitoData.email,
-            isExistingUser: invitoData.isExistingUser,
-            isExistingUserType: typeof invitoData.isExistingUser,
-            allKeys: Object.keys(invitoData)
-        });
-        
-        // Verifica scadenza
-        const scadeIl = invitoData.scadeIl?.toDate ? invitoData.scadeIl.toDate() : new Date(invitoData.scadeIl);
-        if (new Date() > scadeIl) {
+        const invitoData = await fetchInvitoByToken(token);
+
+        const scadeIl = invitoData.scadeIl && invitoData.scadeIl.toDate
+            ? invitoData.scadeIl.toDate()
+            : (invitoData.scadeIl ? new Date(invitoData.scadeIl) : null);
+        if (scadeIl && !Number.isNaN(scadeIl.getTime()) && new Date() > scadeIl) {
             throw new Error('Token scaduto. Contatta l\'amministratore per un nuovo invito.');
         }
-        
+
         return {
-            id: invitoDoc.id,
             ...invitoData,
-            // Assicurati che isExistingUser sia un booleano
             isExistingUser: invitoData.isExistingUser === true || invitoData.isExistingUser === 'true'
         };
     } catch (error) {
@@ -397,6 +414,8 @@ export async function acceptInvito(auth, db, createUserWithEmailAndPassword, sig
 export default {
     generateInviteToken,
     createInvito,
+    fetchInvitoByToken,
+    mapInvitoPubblicoError,
     verifyInviteToken,
     acceptInvito
 };

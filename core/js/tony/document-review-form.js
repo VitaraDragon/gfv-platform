@@ -75,6 +75,7 @@ function cloneEstrazione(estrazione) {
     tipoDocumento: e.tipoDocumento || 'sconosciuto',
     tipoDocumentoConfermato: tipoConf,
     confidence: e.confidence,
+    fonteEstrazione: e.fonteEstrazione || '',
     safetyPassB: e.safetyPassB === true,
     safetyPassBReasons: Array.isArray(e.safetyPassBReasons) ? e.safetyPassBReasons.slice() : [],
     fornitore: Object.assign({ nome: '', piva: '', confidence: null }, e.fornitore || {}),
@@ -438,7 +439,12 @@ export async function openTonyDocumentReviewForm(opts) {
       riferimentiHtml = '<p class="tony-doc-review-refs">DDT in fattura: <strong>' + escapeHtml(refLabels) + '</strong></p>';
     }
     var passBHtml = '';
-    if (state.safetyPassB) {
+    if (state.fonteEstrazione === 'fatturapa') {
+      passBHtml =
+        '<p class="tony-doc-review-passb" role="status">' +
+        'Numeri letti con alta affidabilità. Controlla il collegamento ai prodotti in magazzino, poi registra.' +
+        '</p>';
+    } else if (state.safetyPassB) {
       var reasonsLabel = (state.safetyPassBReasons && state.safetyPassBReasons.length)
         ? state.safetyPassBReasons.join(', ')
         : 'incoerenze rilevate';

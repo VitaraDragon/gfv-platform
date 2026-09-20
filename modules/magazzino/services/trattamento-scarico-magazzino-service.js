@@ -7,6 +7,7 @@
 
 import { getDocumentData } from '../../../core/services/firebase-service.js';
 import { getCurrentTenantId, getCurrentUser } from '../../../core/services/tenant-service.js';
+import { hasModuleAccessFromTenant } from '../../../core/utils/module-access-resolver.js';
 import { getProdotto } from './prodotti-service.js';
 import { createMovimento, deleteMovimento } from './movimenti-service.js';
 
@@ -39,8 +40,7 @@ export async function tenantHasMagazzinoModule() {
     const tenantId = getCurrentTenantId();
     if (!tenantId) return false;
     const data = await getDocumentData('tenants', tenantId, null);
-    const modules = Array.isArray(data?.modules) ? data.modules : [];
-    return modules.includes('magazzino');
+    return hasModuleAccessFromTenant(data, 'magazzino');
   } catch (e) {
     console.warn('[trattamento-scarico-magazzino] tenant modules:', e);
     return false;

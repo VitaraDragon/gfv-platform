@@ -305,13 +305,55 @@ export function initTonyVoice(options) {
             tonyDebugLog('[Tony Voice] pipeline cleared', options.reason || '', 'gen=' + currentGeneration());
         }
 
+        /**
+         * iOS blocca HTMLAudioElement.play() dopo un await (getTonyAudio) se non
+         * abbiamo sbloccato l'audio in un gesto utente (tap FAB / mic).
+         * Uno WAV silenzioso suonato al tap sblocca la sessione.
+         */
+        var SILENT_WAV = 'data:audio/wav;base64,UklGRigAAABXQVZFZm10IBIAAAABAAEARKwAAIhYAQACABAAAABkYXRhAgAAAAEA';
+
+        function prepareTonyAudioElement(audio) {
+            if (!audio) return audio;
+            try {
+                audio.setAttribute('playsinline', 'true');
+                audio.setAttribute('webkit-playsinline', 'true');
+                audio.playsInline = true;
+            } catch (_) { /* ignore */ }
+            return audio;
+        }
+
+        function unlockTonyHtmlAudio() {
+            if (typeof window === 'undefined' || window.__tonyHtmlAudioUnlocked) return;
+            try {
+                var a = window.__tonyUnlockAudioEl;
+                if (!a) {
+                    a = window.__tonyUnlockAudioEl = new Audio(SILENT_WAV);
+                    prepareTonyAudioElement(a);
+                    a.volume = 0.01;
+                }
+                var p = a.play();
+                if (p && typeof p.then === 'function') {
+                    p.then(function () {
+                        try { a.pause(); a.currentTime = 0; } catch (_) {}
+                        window.__tonyHtmlAudioUnlocked = true;
+                    }).catch(function () { /* prossimo gesto */ });
+                } else {
+                    window.__tonyHtmlAudioUnlocked = true;
+                }
+            } catch (_) { /* ignore */ }
+        }
+
+        if (typeof window !== 'undefined') {
+            window.__tonyUnlockHtmlAudio = unlockTonyHtmlAudio;
+        }
+
         function playAudioFromBase64(testoPulito, audioContent, opts, onDone, genAtStart) {
             opts = opts || {};
             if (!onDone) onDone = function() {};
             function isStale() { return genAtStart !== currentGeneration(); }
 
             var audioSrc = 'data:audio/mp3;base64,' + audioContent;
-            window.currentTonyAudio = new Audio(audioSrc);
+            window.currentTonyAudio = prepareTonyAudioElement(new Audio(audioSrc));
             window.currentTonyAudio.onplay = function() { onPlayStart(); };
             window.currentTonyAudio.onerror = function(e) {
                 console.error('[Tony] Audio element error:', e);
@@ -490,7 +532,8 @@ export function initTonyVoice(options) {
         speakWithTTS: speakWithTTS,
         prefetchTonyTTS: prefetchTonyTTS,
         clearTonyAudioPipeline: clearTonyAudioPipeline,
-        warmTonyTtsPipeline: warmTonyTtsPipeline
+        warmTonyTtsPipeline: warmTonyTtsPipeline,
+        unlockTonyHtmlAudio: unlockTonyHtmlAudio
     };
 }
 

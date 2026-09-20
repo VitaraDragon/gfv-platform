@@ -3,6 +3,8 @@
  * @module core/js/tony/ui
  */
 
+import { bindTonyVisualViewport } from './visual-viewport.js';
+
 /**
  * Crea e inietta il widget (FAB, pannello, overlay). Restituisce l'API per appendMessage, removeTyping, showMessageInChat e setSendHandler.
  * @param {string} scriptBase - URL base (import.meta.url del loader)
@@ -34,6 +36,7 @@ export function injectWidget(scriptBase) {
                 el.scrollTop = el.scrollHeight;
             }
         }
+        bindTonyVisualViewport();
         return {
             appendMessage,
             removeTyping,
@@ -91,9 +94,9 @@ export function injectWidget(scriptBase) {
         '<button type="button" class="tony-doc-btn tony-doc-btn-primary" id="tony-doc-finish">Acquisizione terminata</button>' +
         '<button type="button" class="tony-doc-btn tony-doc-btn-ghost" id="tony-doc-cancel">Annulla</button>' +
         '</div></div>' +
-        '<input type="file" id="tony-doc-file-input" accept="image/*,application/pdf" capture="environment" multiple style="display:none" aria-hidden="true">' +
+        '<input type="file" id="tony-doc-file-input" accept="image/*,.heic,.heif,application/pdf,application/xml,text/xml,.xml" multiple style="display:none" aria-hidden="true">' +
         '<div class="tony-widget-input-row">' +
-        '<button type="button" class="tony-widget-camera" id="tony-camera" title="Acquisisci bolla o fattura" aria-label="Fotocamera documenti" style="display:none">📷</button>' +
+        '<button type="button" class="tony-widget-camera" id="tony-camera" title="Scatta o scegli dalla galleria una bolla o fattura" aria-label="Fotocamera o galleria documenti" style="display:none">📷</button>' +
         '<button type="button" class="tony-widget-mic" id="tony-mic" title="Clicca per attivare dialogo continuo (mani libere)" aria-label="Microfono">🎤</button>' +
         '<input type="text" class="tony-widget-input" id="tony-input" placeholder="Scrivi un messaggio..." autocomplete="off" maxlength="2000">' +
         '<button type="button" class="tony-widget-send" id="tony-send">Invia</button>' +
@@ -128,6 +131,7 @@ export function injectWidget(scriptBase) {
     document.body.appendChild(panel);
     document.body.appendChild(docReviewOverlay);
     document.body.appendChild(overlay);
+    bindTonyVisualViewport();
 
     var messagesEl = document.getElementById('tony-messages');
     var inputEl = document.getElementById('tony-input');

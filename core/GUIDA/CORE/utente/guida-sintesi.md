@@ -19,7 +19,7 @@ Apri il riquadro, scegli la voce; se ci sono due livelli (es. categoria coltura 
 
 - **Free**: limiti terreni/attività; **no** acquisto moduli; **sì prova 30 giorni** di **un modulo alla volta** da Abbonamento; **no** Tony.
 - **Base**: terreni/attività illimitati, **Tony Guida** (orientamento + suggerimenti moduli non invasivi), moduli verticali **pay-per-use** (o prova 30gg) separati.
-- **Modulo Tony Avanzato**: automazioni (navigazione, form, filtri, foto/PDF documenti magazzino) — **oltre** Tony Guida del Base; non confonderli.
+- **Modulo Tony Avanzato**: automazioni (navigazione, form, filtri, **foto bolla/fattura** → magazzino) — **oltre** Tony Guida del Base; non confonderli.
 
 ## Ruoli e moduli
 

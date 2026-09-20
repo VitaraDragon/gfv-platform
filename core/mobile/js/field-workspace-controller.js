@@ -47,6 +47,10 @@ import {
     buildComunicazioneConfermeRicezioneRows,
     indexManodoperaUserInMap,
 } from '../../services/comunicazioni-squadra-utils.js';
+import {
+    collectLiveLavoroIdSet,
+    comunicazioneRiferisceLavoroInesistente
+} from '../../services/lavoro-delete-cascade.js';
 import { isOraDelCaposquadraSuLavoroSquadra } from '../../services/manodopera-ore-validazione-scope.js';
 
 const {
@@ -1087,6 +1091,16 @@ async function fetchReceivedCommunicationRows() {
     const lavoroIdsForVisibility = Array.from(new Set([...operaioLavoroIds, ...cachedIds]));
     const commRef = collection(getDb(), `tenants/${currentTenantId}/comunicazioni`);
     const snap = await getDocs(query(commRef, where('stato', '==', 'attiva')));
+    const candidateLavoroIds = [];
+    snap.forEach((d) => {
+        const lid = d.data()?.lavoroId;
+        if (lid) candidateLavoroIds.push(lid);
+    });
+    const liveLavoroIds = await collectLiveLavoroIdSet(
+        currentTenantId,
+        lavoroIdsForVisibility,
+        candidateLavoroIds
+    );
     const rows = [];
     snap.forEach((d) => {
         const data = d.data();
@@ -1094,7 +1108,7 @@ async function fetchReceivedCommunicationRows() {
         const dataCom = rawData && typeof rawData.toDate === 'function'
             ? rawData.toDate()
             : (rawData ? new Date(rawData) : null);
-        if (!comunicazioneVisibilePerOperaio(data, currentUser, currentUserData, capoIdsOperaio, lavoroIdsForVisibility)) return;
+        if (!comunicazioneVisibilePerOperaio(data, currentUser, currentUserData, capoIdsOperaio, lavoroIdsForVisibility, liveLavoroIds)) return;
         if (!isComunicazioneAttivaPerData(dataCom)) return;
         rows.push({
             id: d.id,
@@ -1342,32 +1356,35 @@ async function loadSentCommunications() {
             const snap = await getDocs(query(commRef, where('caposquadraId', '==', capoId)));
             snap.forEach((d) => byId.set(d.id, { id: d.id, ...d.data() }));
         }
-        const allRows = await filterComunicazioniWithExistingLavoro(Array.from(byId.values()));
-        const { inEvidenza, storico } = partitionComunicazioniInviateCapo(allRows);
-        if (!inEvidenza.length && !storico.length) {
+        const { inEvidenza, storico } = partitionComunicazioniInviateCapo(Array.from(byId.values()));
+        const candidateIds = Array.from(byId.values()).map((r) => r.lavoroId).filter(Boolean);
+        const liveLavoroIds = await collectLiveLavoroIdSet(currentTenantId, [], candidateIds);
+        const visibiliEvidenza = inEvidenza.filter((row) => !comunicazioneRiferisceLavoroInesistente(row, liveLavoroIds));
+        const visibiliStorico = storico.filter((row) => !comunicazioneRiferisceLavoroInesistente(row, liveLavoroIds));
+        if (!visibiliEvidenza.length && !visibiliStorico.length) {
             sentCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Nessuna comunicazione inviata.</div>';
             return;
         }
-        const nameByUserId = await ensureOperaioNamesForCommunications([...inEvidenza, ...storico]);
-        if (!inEvidenza.length && storico.length) {
+        const nameByUserId = await ensureOperaioNamesForCommunications([...visibiliEvidenza, ...visibiliStorico]);
+        if (!visibiliEvidenza.length && visibiliStorico.length) {
             sentCommunicationsHistoryExpanded = true;
         }
-        if (!inEvidenza.length) {
+        if (!visibiliEvidenza.length) {
             sentCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Nessun invio in evidenza.</div>';
         } else {
-            sentCommunicationsListEl.innerHTML = inEvidenza
+            sentCommunicationsListEl.innerHTML = visibiliEvidenza
                 .map((row) => renderSentCommunicationCard(row, { nameByUserId }))
                 .join('');
         }
-        if (sentCommunicationsHistoryEl && storico.length) {
-            sentCommunicationsHistoryEl.innerHTML = storico
+        if (sentCommunicationsHistoryEl && visibiliStorico.length) {
+            sentCommunicationsHistoryEl.innerHTML = visibiliStorico
                 .map((row) => renderSentCommunicationCard(row, { readOnly: true, nameByUserId }))
                 .join('');
         }
         setCommunicationsHistoryToggle(
             toggleSentCommunicationsHistoryEl,
             sentCommunicationsHistoryEl,
-            storico.length,
+            visibiliStorico.length,
             sentCommunicationsHistoryExpanded
         );
     } catch (error) {

@@ -35,7 +35,7 @@ Se non sapete se è attivo, controllate **Abbonamento** o chiedete all’amminis
 
 1. Dalla **dashboard** aprite **Moduli** e toccate **Parco Macchine** (🚜). Se avete configurato **I miei accessi**, può esserci anche una scorciatoia lì.
 2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard potete trovare un **riquadro** **Parco Macchine**: è un’extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** in **Moduli** o nelle scorciatoie. In **Richiede attenzione** possono comparire alert su **scadenze** o **guasti** che aprono il modulo.
-3. Arrivate alla **pagina hub** «Gestione Parco Macchine»: **Panoramica** con conteggi (trattori, attrezzature, flotta, manutenzioni, scadenze, officina/guasti) e **Azioni rapide** verso le singole pagine. Il pulsante **← Dashboard** riporta alla home generale.
+3. Arrivate alla **pagina hub** «Gestione Parco Macchine»: **Panoramica** con conteggi (trattori, attrezzature, flotta, manutenzioni, scadenze, officina/guasti) e **Azioni rapide** verso le singole pagine. Il pulsante **← Dashboard Principale** riporta alla home generale. Dalle liste del modulo (trattori, attrezzature, …) **← Dashboard** riporta all’hub.
 
 Da smartphone i passi sono gli stessi; i pulsanti possono andare a capo.
 

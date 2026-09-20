@@ -110,7 +110,7 @@
             </div>
             <div class="header-actions">
                 <button class="btn btn-primary" id="btn-nuovo-movimento">➕ Nuovo Movimento</button>
-                <a href="magazzino-home-standalone.html" class="btn btn-secondary">← Prodotti e Magazzino</a>
+                <a href="magazzino-home-standalone.html" class="btn btn-secondary">← Dashboard</a>
             </div>
         </div>
 
@@ -225,7 +225,7 @@
     <script type="module">
         import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
         import { suggestMovPrezzoInDom } from '../../../core/js/movimento-prezzo-catalogo.js';
-        import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, getDoc, doc, addDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, Timestamp } from '../../../core/services/firebase-service.js';
+        import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, getDoc, doc, addDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, Timestamp, increment } from '../../../core/services/firebase-service.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import { escapeHtml, showAlert } from '../../../core/js/gfv-page-utils.js';
 
@@ -680,6 +680,16 @@
             document.getElementById('movimento-modal').classList.add('active');
         };
 
+        async function applyGiacenzaDelta(prodottoId, delta) {
+            if (!prodottoId) return;
+            const n = Number(delta);
+            if (!Number.isFinite(n) || n === 0) return;
+            const prodRef = doc(db, 'tenants', currentTenantId, 'prodotti', prodottoId);
+            const prodSnap = await getDoc(prodRef);
+            if (!prodSnap.exists()) return;
+            await updateDoc(prodRef, { giacenza: increment(n), updatedAt: serverTimestamp() });
+        }
+
         /**
          * @param {string} movimentoId
          * @returns {Promise<{ ok: boolean, reason?: string }>}
@@ -688,14 +698,9 @@
             const mov = movimenti.find(m => m.id === movimentoId);
             if (!mov) return { ok: false, reason: 'non trovato' };
             if (mov.prodottoId) {
-                const prodRef = doc(db, 'tenants', currentTenantId, 'prodotti', mov.prodottoId);
-                const prodSnap = await getDoc(prodRef);
                 const delta = mov.tipo === 'entrata' ? -Number(mov.quantita || 0) : Number(mov.quantita || 0);
-                const nuovaGiacenza = (prodSnap.exists() ? (prodSnap.data().giacenza || 0) : 0) + delta;
                 await deleteDoc(doc(db, 'tenants', currentTenantId, 'movimentiMagazzino', movimentoId));
-                if (prodSnap.exists()) {
-                    await updateDoc(prodRef, { giacenza: nuovaGiacenza, updatedAt: serverTimestamp() });
-                }
+                await applyGiacenzaDelta(mov.prodottoId, delta);
             } else {
                 await deleteDoc(doc(db, 'tenants', currentTenantId, 'movimentiMagazzino', movimentoId));
             }
@@ -820,35 +825,14 @@
                     const deltaOld = movOld.tipo === 'entrata' ? -movOld.quantita : movOld.quantita;
                     const deltaNew = tipo === 'entrata' ? quantita : -quantita;
 
-                    const prodOldRef = doc(db, 'tenants', currentTenantId, 'prodotti', movOld.prodottoId);
-                    const prodOldSnap = await getDoc(prodOldRef);
-                    const giacenzaOld = prodOldSnap.exists() ? (prodOldSnap.data().giacenza || 0) : 0;
-                    await updateDoc(prodOldRef, { giacenza: giacenzaOld + deltaOld, updatedAt: serverTimestamp() });
-
-                    if (prodottoId !== movOld.prodottoId) {
-                        const prodNewRef = doc(db, 'tenants', currentTenantId, 'prodotti', prodottoId);
-                        const prodNewSnap = await getDoc(prodNewRef);
-                        const giacenzaNew = prodNewSnap.exists() ? (prodNewSnap.data().giacenza || 0) : 0;
-                        await updateDoc(prodNewRef, { giacenza: giacenzaNew + deltaNew, updatedAt: serverTimestamp() });
-                    } else {
-                        const prodRef = doc(db, 'tenants', currentTenantId, 'prodotti', prodottoId);
-                        const prodSnap = await getDoc(prodRef);
-                        const giacenza = prodSnap.exists() ? (prodSnap.data().giacenza || 0) : 0;
-                        await updateDoc(prodRef, { giacenza: giacenza + deltaNew, updatedAt: serverTimestamp() });
-                    }
-
+                    await applyGiacenzaDelta(movOld.prodottoId, deltaOld);
+                    await applyGiacenzaDelta(prodottoId, deltaNew);
                     await updateDoc(movRef, movimentoData);
                     showAlert('Movimento aggiornato.', 'success');
                 } else {
                     movimentoData.createdAt = serverTimestamp();
                     await addDoc(collection(db, 'tenants', currentTenantId, 'movimentiMagazzino'), movimentoData);
-
-                    const prodRef = doc(db, 'tenants', currentTenantId, 'prodotti', prodottoId);
-                    const prodSnap = await getDoc(prodRef);
-                    const delta = tipo === 'entrata' ? quantita : -quantita;
-                    const nuovaGiacenza = (prodSnap.exists() ? (prodSnap.data().giacenza || 0) : 0) + delta;
-                    await updateDoc(prodRef, { giacenza: nuovaGiacenza, updatedAt: serverTimestamp() });
-
+                    await applyGiacenzaDelta(prodottoId, tipo === 'entrata' ? quantita : -quantita);
                     showAlert('Movimento registrato.', 'success');
                 }
 

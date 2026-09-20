@@ -26,12 +26,14 @@ export function getManagerHomeHref(hasManodopera, scope = 'core-admin') {
  * @param {boolean} hasManodopera
  * @returns {string}
  */
-export function getManagerHomeLabel(hasManodopera) {
-    return hasManodopera ? '← Manodopera' : '← Dashboard';
+export function getManagerHomeLabel(_hasManodopera) {
+    // Destinazione cambia (hub vs home app), etichetta no.
+    // «← Dashboard Principale» sta solo sugli hub modulo.
+    return '← Dashboard';
 }
 
 /**
- * Aggiorna link «Dashboard» / «Manodopera» in header pagine admin.
+ * Aggiorna href del link di uscita in header pagine admin (etichetta sempre «← Dashboard»).
  * @param {HTMLElement|string|null} target
  * @param {boolean} hasManodopera
  * @param {'core-admin'|'core-root'} [scope]

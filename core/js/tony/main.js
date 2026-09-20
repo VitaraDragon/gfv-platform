@@ -8,6 +8,7 @@ import { injectWidget } from './ui.js';
 import { initTonyVoice } from './voice.js';
 import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTextFromJsonResidue, normalizeTonyTextWhitespace, applyItalianVoiceQuestionPunctuation, normalizeItalianSttTranscript, collapseDuplicateVoiceTranscript, scoreItalianSttLexicon, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts, matchSegnaOraIncompleteDallePausaFromBlob, normalizeSegnaOraSttBlob, isSegnaOraUntrustedPartialStart, repairSegnaOraVoiceTranscript } from './engine.js';
 import { hasActiveModule, getModuliAttiviFromTonyContext, isApriPaginaTargetAllowed, tonyNotifyModuleInactive } from '../../config/tony-module-gate.js';
+import { getTonyGuidaOnboardingFromWindow, tonyGuidaOnboardingWelcomeMessage } from '../../config/tony-guida-onboarding.js';
 import {
     getTonyFieldProfileFromContext,
     isRawTonyApriPaginaAllowed,
@@ -65,9 +66,10 @@ import {
     getProactiveHub,
 } from '../../config/tony-proactive-signals.js';
 import { initTonyDocumentCapture } from './document-capture.js';
+import { chooseSttEngine, createRecorderSpeechRecognition, isIosLikeDevice, isStandaloneDisplayMode } from './voice-recorder-stt.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-export const TONY_CLIENT_BUILD = '2026-08-16b';
+    export const TONY_CLIENT_BUILD = '2026-09-17c';
 if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
 
 (function() {
@@ -5531,6 +5533,15 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         getInputEl: function() { return null; }
     };
 
+    /**
+     * Piano Free bloccato salvo periodo Tony Guida onboarding (nuovo tenant, `tonyGuidaOnboardingEndsAt`).
+     * @param {string|null} plan
+     */
+    function isTonyBlockedForPlan(plan) {
+        if (plan !== 'free') return false;
+        return !getTonyGuidaOnboardingFromWindow().active;
+    }
+
     var _initialPlanGate = resolvePlanForWidgetGate();
     var uiApi = injectWidget(scriptBase);
     var appendMessage = uiApi.appendMessage, removeTyping = uiApi.removeTyping, showMessageInChat = uiApi.showMessageInChat;
@@ -5541,8 +5552,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             if (type === 'tony' && _tonyE2eTurnStartMs) tonyE2eScheduleTurnEnd();
         };
     }
-    window.__tonyFreemiumBlocked = _initialPlanGate === 'free';
-    if (_initialPlanGate === 'free') {
+    window.__tonyFreemiumBlocked = isTonyBlockedForPlan(_initialPlanGate);
+    if (window.__tonyFreemiumBlocked) {
         var _fabHideInit = document.getElementById('tony-fab');
         var _panelHideInit = document.getElementById('tony-panel');
         if (_fabHideInit) _fabHideInit.style.display = 'none';
@@ -6200,11 +6211,15 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
 
         fab.addEventListener('click', function() {
             panel.classList.add('is-open');
+            try { if (typeof window.__tonyUnlockHtmlAudio === 'function') window.__tonyUnlockHtmlAudio(); } catch (eUnlock) {}
             try { if (typeof window.__tonyDocCaptureRefresh === 'function') window.__tonyDocCaptureRefresh(); } catch (eCapOpen) {}
             if (messagesEl.children.length === 0) {
                 var welcomeMessage;
+                var onboardingWelcome = resolvePlanForWidgetGate() === 'free' ? getTonyGuidaOnboardingFromWindow() : null;
                 if (tonyIsCampoLikeWorkspaceForTony()) {
                     welcomeMessage = 'Sono Tony, il tuo assistente personale per questa app.';
+                } else if (onboardingWelcome && onboardingWelcome.active) {
+                    welcomeMessage = tonyGuidaOnboardingWelcomeMessage(onboardingWelcome);
                 } else if (isTonyAdvancedActive) {
                     welcomeMessage = 'Ciao! Sono Tony, il tuo assistente. Posso rispondere a domande, aprire pagine, compilare form e molto altro. Prova ad esempio: "Apri il modulo attività" o "Portami ai terreni".';
                 } else {
@@ -6213,6 +6228,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 appendMessage(welcomeMessage, 'tony');
             }
             inputEl.focus();
+            try { if (typeof window.__tonySyncKeyboardInset === 'function') window.__tonySyncKeyboardInset(); } catch (eKb) {}
         });
 
         function repairSttVoiceConcatenation(t) {
@@ -6500,7 +6516,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             }, AUTO_MODE_SILENCE_MS);
         }
 
-        var AUTO_MODE_OFF_REASONS = { 'user-mic': 1, 'panel-close': 1, inactivity: 1, 'voice-farewell': 1 };
+        var AUTO_MODE_OFF_REASONS = { 'user-mic': 1, 'panel-close': 1, inactivity: 1, 'voice-farewell': 1, 'mic-error': 1 };
 
         function toggleAutoMode(active, reason) {
             if (!active) {
@@ -6520,6 +6536,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 isWaitingForTonyResponse = false;
                 panel.classList.add('is-auto-mode');
                 tonyDebugLog('[Tony] Modalità continua attivata.');
+                try { if (typeof window.__tonyUnlockHtmlAudio === 'function') window.__tonyUnlockHtmlAudio(); } catch (eUnlockAm) {}
                 if (startListeningRef) startListeningRef();
                 resetAutoModeTimeout();
             } else {
@@ -6531,7 +6548,11 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 }
                 if (stopListeningRef) stopListeningRef();
                 panel.classList.remove('is-auto-mode');
-                micBtn.classList.remove('tony-mic-active', 'is-auto-mode');
+                micBtn.classList.remove('tony-mic-active', 'is-auto-mode', 'tony-mic-transcribing');
+                // Motore registratore: rilascia il microfono (spegne l'indicatore rosso di iOS).
+                try {
+                    if (window.recognition && typeof window.recognition.release === 'function') window.recognition.release();
+                } catch (eRel) { /* ignore */ }
                 tonyDebugLog('[Tony] Modalità continua disattivata.', reason ? '(' + reason + ')' : '');
             }
             saveTonyState();
@@ -8327,6 +8348,10 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             function tonyFormatCallableError(err) {
                 var code = err && err.code ? String(err.code) : '';
                 var msg = err && err.message ? String(err.message) : '';
+                // Messaggi di piano/quota del server (Tony Guida onboarding) mostrati così come sono.
+                if (/periodo di prova di Tony Guida|piano Free/i.test(msg)) {
+                    return msg;
+                }
                 if (code.indexOf('resource-exhausted') >= 0 ||
                     /429|RESOURCE_EXHAUSTED|limite di richieste|sovraccarico|Troppe richieste/i.test(msg)) {
                     return 'Servizio AI al momento sovraccarico (limite richieste). Attendi 30–60 secondi e riprova.';
@@ -8708,13 +8733,40 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         var voiceOkBtn = document.getElementById('tony-voice-ok');
         var micBtn = document.getElementById('tony-mic');
 
-        if (SpeechRecognition && micBtn && voiceConfirmEl) {
-            var recognition = new SpeechRecognition();
+        /**
+         * Motore STT: Web Speech dove funziona; «registratore» (getUserMedia + MediaRecorder + CF
+         * tonyTranscribeAudio) su iPhone/iPad (Safari e web app da Home: Web Speech muta o
+         * dipende dalla dettatura di sistema). Stessa interfaccia SpeechRecognition.
+         */
+        var tonySttEngine = chooseSttEngine(window);
+        window.__tonySttEngine = tonySttEngine;
+        function tonyCreateSpeechRecognition() {
+            if (tonySttEngine === 'recorder') {
+                return createRecorderSpeechRecognition({
+                    transcribe: function(payload) {
+                        var svc = window.Tony || window.TonyService;
+                        if (!svc || typeof svc.transcribeAudio !== 'function') {
+                            return Promise.reject({ name: 'failed-precondition', message: 'Servizio Tony non pronto.' });
+                        }
+                        return svc.transcribeAudio(payload);
+                    },
+                    log: function(msg, detail) { logVoiceAuto('[recorder] ' + msg, detail); }
+                });
+            }
+            if (SpeechRecognition) return new SpeechRecognition();
+            return null;
+        }
+
+        var recognition = (micBtn && voiceConfirmEl) ? tonyCreateSpeechRecognition() : null;
+        if (recognition) {
+            console.log('[Tony] Motore STT:', tonySttEngine);
             window.recognition = recognition; // Esposto per debug
             recognition.continuous = false; // Resta false, onspeechend + delay gestiscono la pausa
             recognition.interimResults = true;
             recognition.maxAlternatives = 5;
             recognition.lang = 'it-IT';
+            var VOICE_FATAL_ERRORS = { 'not-allowed': 1, 'service-not-allowed': 1, 'audio-capture': 1, 'language-not-supported': 1 };
+            var voiceFatalErrorAt = 0;
             var voiceSessionBestFinal = '';
             var voiceSessionBestInterim = '';
 
@@ -8870,10 +8922,40 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 }
             };
             recognition.onerror = function(e) {
-                if (e.error !== 'aborted' && e.error !== 'no-speech') {
-                    appendMessage('Microfono: ' + (e.error === 'not-allowed' ? 'permesso negato' : e.error), 'error');
+                var code = e && e.error ? String(e.error) : '';
+                if (code === 'aborted' || code === 'no-speech') return;
+                micBtn.classList.remove('tony-mic-transcribing');
+                if (VOICE_FATAL_ERRORS[code]) {
+                    // Permesso negato / mic assente: spegni il dialogo continuo, altrimenti il
+                    // ciclo onend → riapertura ogni 350 ms ripete l'errore all'infinito.
+                    var wasAuto = isAutoMode;
+                    if (wasAuto) toggleAutoMode(false, 'mic-error');
+                    if (Date.now() - voiceFatalErrorAt > 5000) {
+                        voiceFatalErrorAt = Date.now();
+                        appendMessage(tonyVoiceErrorMessage(code, e && e.message), 'error');
+                    }
+                    return;
                 }
+                appendMessage('Microfono: ' + (e && e.message ? e.message : code), 'error');
             };
+            recognition.onaudioend = function() {
+                if (tonySttEngine === 'recorder' && isAutoMode) micBtn.classList.add('tony-mic-transcribing');
+            };
+
+            function tonyVoiceErrorMessage(code, detail) {
+                if (code === 'not-allowed' || code === 'service-not-allowed') {
+                    var base = 'Microfono: permesso negato.';
+                    if (tonySttEngine === 'recorder' || isIosLikeDevice(navigator)) {
+                        var iosHint = isStandaloneDisplayMode(window)
+                            ? ' Su iPhone, nell\'app dalla schermata Home, il permesso microfono va ridato a ogni avvio.'
+                            : ' Su iPhone: Impostazioni → Safari (o l\'app GFV) → Microfono → Consenti.';
+                        return base + (isIosLikeDevice(navigator) ? iosHint : ' Consenti l\'accesso al microfono quando l\'app lo chiede.');
+                    }
+                    return base + ' Controlla i permessi del sito nel browser.';
+                }
+                if (code === 'audio-capture') return 'Microfono non disponibile: ' + (detail || 'nessun dispositivo di ingresso trovato.');
+                return 'Microfono: ' + (detail || code);
+            }
 
             function startListening() {
                 if (!window.Tony || !window.Tony.isReady()) return;
@@ -8948,6 +9030,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             };
 
             recognition.onend = function() {
+                micBtn.classList.remove('tony-mic-transcribing');
                 if (tonyAudioPipelineActive()) {
                     tonyDebugLog('[Tony] TTS in corso, microfono resta spento.');
                     return;
@@ -8982,6 +9065,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             };
 
             micBtn.addEventListener('click', function() {
+                try { if (typeof window.__tonyUnlockHtmlAudio === 'function') window.__tonyUnlockHtmlAudio(); } catch (eUnlockMic) {}
                 if (tonyAudioPipelineActive()) {
                     if (clearTonyAudioPipeline) clearTonyAudioPipeline({ bump: true, reason: 'barge_in_mic' });
                     if (isAutoMode && startListeningRef) {
@@ -9007,6 +9091,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             });
         } else if (micBtn) {
             micBtn.style.display = 'none';
+            console.log('[Tony] Nessun motore STT disponibile: microfono nascosto.');
         }
 
         var tonyConfirmOverlay = document.getElementById('tony-confirm-overlay');
@@ -9208,7 +9293,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         var plan = getTonyResolvedPlanId();
                         var fabEl = document.getElementById('tony-fab');
                         var panelEl = document.getElementById('tony-panel');
-                        if (plan === 'free') {
+                        if (isTonyBlockedForPlan(plan)) {
                             window.__tonyFreemiumBlocked = true;
                             if (fabEl) fabEl.style.display = 'none';
                             if (panelEl) panelEl.style.display = 'none';
