@@ -1,13 +1,21 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-20 — Fix CI snellimento: save lavoro Tony, tabelle colture, card simulator-dev.**
+**Ultimo aggiornamento documentazione: 2026-09-20 — Fix CI: primo paint lista lavori prima di repair/macchine.**
+
+## Fix CI — lista lavori: paint prima di repair/macchine (2026-09-20)
+
+- **Perché:** dopo il push precedente la CI restava rossa su T-PERF-002 / T-INJECT-001 / T-FLOW-013 e su `gestione-lavori-write` / `manodopera-admin`: `#lavori-container` non usciva da «Caricamento» entro 90s.
+- **Cosa:** `loadLavori` disegna la tabella subito dopo `getDocs`; repair e `correggiMacchine` dopo. Init: `loadLavori` in parallelo a terreni/categorie/tipi; secondo `applyFilters` dopo roster manodopera. Wait E2E: almeno 3 righe e `.caposquadra-name` se c’è la colonna Caposquadra.
+- **Test:** locale T-PERF-002 / T-INJECT-001 / T-FLOW-013 3/3; `gestione-lavori-write` + `manodopera-admin` ok.
+- **Resto aperto:** CI GitHub sul PR.
+- Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
 
 ## Fix CI — save lavoro, tabelle colture, card aziende sim (2026-09-20)
 
 - **Perché:** su `feat/snellimento-produzione` la CI restava rossa: T-FLOW-013 (SAVE lavoro silenzioso), T6_PERF table-wrap 18s (`getBasePath` non importato dopo l’estrazione + render lavori N+1), card aziende bloccate su `GFVStandaloneReady`.
 - **Cosa:** `tryInterceptLavoroSaveBeforeCf` chiede conferma + `savedMessage` «Lavoro salvato!». Gestione lavori: terreni/categorie/tipi prima di `loadLavori`; `renderLavori` usa mappe in memoria. Import `getBasePath` da `gfv-path.js` su trattamenti/concimazioni/frutteti. Simulator-dev disegna le card da `manifest.json` senza aspettare Ready (Entra aspetta ancora).
 - **Test:** `tests/tony-form-save-local.test.js`; locale T-PERF-002 / T-INJECT-001 / T-FLOW-013 3/3; i tre spec card-login verdi; le due fail della suite 71 erano seed sporco / worker appeso, ok in isolamento.
-- **Resto aperto:** CI GitHub sul PR dopo push.
+- **Resto aperto:** chiuso in parte (colture/card); lista lavori nella voce successiva.
 - Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
 
 ## Fix CI — placeholder Ready e tabella lavori (2026-09-20)

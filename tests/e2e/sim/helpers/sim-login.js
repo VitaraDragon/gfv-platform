@@ -628,7 +628,13 @@ export async function waitForGestioneLavoriLoaded(page) {
     if (!container) return false;
     if (container.querySelector('.loading')) return false;
     if (/Caricamento lavori/i.test(container.textContent || '')) return false;
-    return container.querySelectorAll('.lavori-table tbody tr').length >= 3;
+    if (container.querySelectorAll('.lavori-table tbody tr').length < 3) return false;
+    // Secondo paint: nomi capo/operaio dopo il load manodopera.
+    const hasAssigneeCol = /Caposquadra/i.test(
+      (container.querySelector('.lavori-table thead') && container.querySelector('.lavori-table thead').textContent) || ''
+    );
+    if (hasAssigneeCol && !container.querySelector('.caposquadra-name')) return false;
+    return true;
   }, { timeout: 90_000 });
 
   await page.locator('#lavori-container .lavori-table tbody tr').first().waitFor({
