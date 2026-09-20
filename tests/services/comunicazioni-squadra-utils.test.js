@@ -13,6 +13,7 @@ import {
     partitionComunicazioniRicevuteOperaio,
     partitionComunicazioniInviateCapo,
     isComunicazioneInviataInEvidenzaCapo,
+    buildComunicazioneConfermeRicezioneRows,
 } from '../../core/services/comunicazioni-squadra-utils.js';
 
 describe('comunicazioni-squadra-utils', () => {
@@ -111,5 +112,29 @@ describe('comunicazioni-squadra-utils', () => {
         const { inEvidenza, storico } = partitionComunicazioniInviateCapo(rows, now);
         expect(inEvidenza.map((r) => r.id)).toEqual(['1']);
         expect(storico.map((r) => r.id)).toEqual(['2']);
+    });
+
+    it('buildComunicazioneConfermeRicezioneRows elenca nomi e match uid/doc', () => {
+        const map = new Map();
+        indexManodoperaUserInMap(map, 'doc-op-1', {
+            nome: 'Giuseppe',
+            cognome: 'Ferrari',
+            uid: 'firebase-op-1',
+        });
+        indexManodoperaUserInMap(map, 'doc-op-2', {
+            nome: 'Anna',
+            cognome: 'Bianchi',
+            uid: 'firebase-op-2',
+        });
+        const rows = buildComunicazioneConfermeRicezioneRows(
+            {
+                destinatari: ['doc-op-1', 'doc-op-2'],
+                conferme: [{ userId: 'firebase-op-1' }],
+            },
+            map
+        );
+        expect(rows).toHaveLength(2);
+        expect(rows[0]).toMatchObject({ nome: 'Giuseppe Ferrari', confermato: true });
+        expect(rows[1]).toMatchObject({ nome: 'Anna Bianchi', confermato: false });
     });
 });

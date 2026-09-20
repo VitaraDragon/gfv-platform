@@ -238,6 +238,8 @@ Documenti creati per riprendere il lavoro **senza perdere contesto** (prompt, ba
 
 **Log debug widget (2026-09-19):** `core/js/tony/debug.js` — `tonyDebugLog` no-op se `window.__TONY_DEBUG` è falsy. In console: `window.__TONY_DEBUG = true`. I `console.warn` / `console.error` restano. Canary TTS (`__tonyTtsCanary`) continua a loggare. Test: `tests/tony-debug.test.js`.
 
+**Auth standalone post-bootstrap (2026-09-19 / 2026-09-20):** retry Auth in `resolveAuthUser` (`simulator-standalone-page.js`) — vale per tutte le standalone che già lo usano. `waitForStandaloneReady` su field workspace e gestione lavori. Export `buildComunicazioneConfermeRicezioneRows` per il controller workspace. Test: `tests/simulator-standalone-page.test.js`.
+
 Indice: `docs-sviluppo/tony/README.md`.
 
 **Tony + sim E2E (2026-07-11, M-T4 ✅ 17/17, M-T5 ✅):** merge **PR #5** — segna ore desktop (**T-FLOW-022**), gate-fast CI (~4m27s), fix **T-FLOW-016/017** movimenti. Fix flake precedenti **T-FLOW-013** e **T-FLOW-014-LIVE**. **Gate locale Playwright app:** hang avvio CLI Windows — usare `sim:e2e:node` + `sim:tony:e2e:gate` fino a fix; CI gate Playwright invariato. Guida: `TONY_E2E_GUIDA_SVILUPPO.md` §8–§10, `simulator/DIAGNOSTIC_WORKFLOW.md`.

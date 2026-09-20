@@ -1712,7 +1712,7 @@
         }
 
         try {
-            await window.GFVStandaloneReady;
+            await waitForStandaloneReady();
         } catch (err) {
             console.error('[gestione-lavori] Bootstrap failed:', err);
             throw err;
@@ -1722,7 +1722,7 @@
         import { collection, getDocs, doc, getDoc, setDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, Timestamp } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
         import { wireManagerHomeLink } from '../config/manodopera-hub-nav.js';
-        import { resolveAuthUser, loginPageUrl } from '../js/simulator-standalone-page.js';
+        import { resolveAuthUserWithRetry, loginPageUrl, waitForStandaloneReady } from '../js/simulator-standalone-page.js';
 
         // Verifica che Google Maps API sia caricata
         if (typeof window.GOOGLE_MAPS_API_KEY === 'undefined') {
@@ -3225,7 +3225,7 @@
 
         // Verifica autenticazione e permessi
         onAuthStateChanged(auth, async (user) => {
-            if (!user) user = await resolveAuthUser(auth);
+            if (!user) user = await resolveAuthUserWithRetry(auth);
             if (!user) {
                 window.location.href = await loginPageUrl('../auth/login-standalone.html');
                 return;

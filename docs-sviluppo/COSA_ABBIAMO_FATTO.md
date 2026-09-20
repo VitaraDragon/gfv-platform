@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-19 — Fix CI Tony: export engine/form-save usati da main.js.**
+**Ultimo aggiornamento documentazione: 2026-09-19 — Fix CI Tony: auth workspace/lavori dopo bootstrap unico.**
+
+## Fix CI — workspace e gestione lavori dopo bootstrap (2026-09-19)
+
+- **Perché:** lo snellimento lasciava `field-workspace-controller.js` importare `buildComunicazioneConfermeRicezioneRows` non in commit (modulo morto) e, dopo `ensureSimulatorSession` nel bootstrap, un tick Auth `null` reindirizzava a login. Gate Tony: form ore assente, `currentTableData` lavori fermo, mock CF perso.
+- **Cosa:** export conferme in `comunicazioni-squadra-utils.js`. Il retry Auth è in `resolveAuthUser` (tutte le standalone che già lo chiamano: vigneto, frutteto, guasti, concimazioni, …). `waitForStandaloneReady` su field workspace e gestione lavori. Ruoli campo: fallback se `hasAnyRole` manca.
+- **Test:** `tests/simulator-standalone-page.test.js`.
+- **Resto aperto:** pagine di prova dello snellimento.
+- Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
 
 ## Fix CI — Tony FAB assente (2026-09-19)
 

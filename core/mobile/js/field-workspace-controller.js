@@ -13,7 +13,7 @@ import {
     serverTimestamp,
     Timestamp
 } from '../../services/firebase-service.js';
-import { resolveAuthUser, loginPageUrl } from '../../js/simulator-standalone-page.js';
+import { resolveAuthUserWithRetry, loginPageUrl, waitForStandaloneReady } from '../../js/simulator-standalone-page.js';
 import { formatOreNette } from '../../js/attivita-utils.js';
 
 import {
@@ -1712,9 +1712,13 @@ function bindPullToRefresh() {
 }
 
 function bindToolbar() {
+    const setPref = (value) => {
+        const fn = fieldWorkspaceUtils().setFieldWorkspacePreference || setFieldWorkspacePreference;
+        if (typeof fn === 'function') fn(value);
+    };
     if (btnModeDesktopEl) {
         btnModeDesktopEl.addEventListener('click', () => {
-            setFieldWorkspacePreference('classic');
+            setPref('classic');
             setModeButtonsState('classic');
             window.location.href = '../dashboard-standalone.html?ws=classic';
         });
@@ -1722,7 +1726,7 @@ function bindToolbar() {
 
     if (btnModeMobileEl) {
         btnModeMobileEl.addEventListener('click', () => {
-            setFieldWorkspacePreference('auto');
+            setPref('auto');
             setModeButtonsState('mobile');
             setStatus('Versione mobile attiva.');
         });
@@ -1762,10 +1766,20 @@ function bindToolbar() {
     if (oraBreakEl) oraBreakEl.addEventListener('input', calculateNetHours);
 }
 
+function roleListHas(roles, names) {
+    const set = new Set((Array.isArray(roles) ? roles : []).map((r) => String(r).toLowerCase()));
+    return names.some((n) => set.has(String(n).toLowerCase()));
+}
+
+function fieldWorkspaceUtils() {
+    return window.GFVDashboardUtils || {};
+}
+
 function applyUrlPreference() {
     const pref = getWorkspacePreferenceFromUrl();
-    if (pref) {
-        setFieldWorkspacePreference(pref);
+    const setPref = fieldWorkspaceUtils().setFieldWorkspacePreference || setFieldWorkspacePreference;
+    if (pref && typeof setPref === 'function') {
+        setPref(pref);
         setModeButtonsState(pref);
         return;
     }
@@ -1782,12 +1796,12 @@ async function initFieldWorkspace() {
     bindPullToRefresh();
 
     try {
-        await window.GFVStandaloneReady;
+        await waitForStandaloneReady();
         const auth = getAuthInstance();
         const db = getDb();
 
         onAuthStateChanged(auth, async (user) => {
-            if (!user) user = await resolveAuthUser(auth);
+            if (!user) user = await resolveAuthUserWithRetry(auth);
             if (!user) {
                 window.location.href = await loginPageUrl('../auth/login-standalone.html');
                 return;
@@ -1820,7 +1834,10 @@ async function initFieldWorkspace() {
                 if (!Array.isArray(roles) || roles.length === 0) {
                     roles = Array.isArray(userData.ruoli) ? userData.ruoli : [];
                 }
-                const normalizedRoles = normalizeRoles ? normalizeRoles(roles) : roles;
+                const utils = fieldWorkspaceUtils();
+                const normalizeRolesFn = utils.normalizeRoles || normalizeRoles;
+                const hasAnyRoleFn = utils.hasAnyRole || hasAnyRole;
+                const normalizedRoles = normalizeRolesFn ? normalizeRolesFn(roles) : roles;
                 // Conserva eventuale id documento users diverso da auth.uid (match destinatari comunicazioni).
                 currentUserData = {
                     ...userData,
@@ -1841,12 +1858,12 @@ async function initFieldWorkspace() {
                     console.warn('[workspace] mark assenza seen:', seenErr);
                 }
 
-                const isManagerOrAdmin = hasAnyRole
-                    ? hasAnyRole({ ruoli: normalizedRoles }, ['manager', 'amministratore'])
-                    : false;
-                const isFieldRole = hasAnyRole
-                    ? hasAnyRole({ ruoli: normalizedRoles }, ['operaio', 'caposquadra'])
-                    : false;
+                const isManagerOrAdmin = hasAnyRoleFn
+                    ? hasAnyRoleFn({ ruoli: normalizedRoles }, ['manager', 'amministratore'])
+                    : roleListHas(normalizedRoles, ['manager', 'amministratore']);
+                const isFieldRole = hasAnyRoleFn
+                    ? hasAnyRoleFn({ ruoli: normalizedRoles }, ['operaio', 'caposquadra'])
+                    : roleListHas(normalizedRoles, ['operaio', 'caposquadra']);
 
                 if (isManagerOrAdmin || !isFieldRole) {
                     window.location.href = '../dashboard-standalone.html?ws=classic';
@@ -1868,12 +1885,12 @@ async function initFieldWorkspace() {
                     console.warn('[push] bootstrap workspace:', pushErr);
                 }
 
-                const isCaposquadra = hasAnyRole
-                    ? hasAnyRole({ ruoli: normalizedRoles }, ['caposquadra'])
-                    : false;
-                const isOperaio = hasAnyRole
-                    ? hasAnyRole({ ruoli: normalizedRoles }, ['operaio'])
-                    : false;
+                const isCaposquadra = hasAnyRoleFn
+                    ? hasAnyRoleFn({ ruoli: normalizedRoles }, ['caposquadra'])
+                    : roleListHas(normalizedRoles, ['caposquadra']);
+                const isOperaio = hasAnyRoleFn
+                    ? hasAnyRoleFn({ ruoli: normalizedRoles }, ['operaio'])
+                    : roleListHas(normalizedRoles, ['operaio']);
                 userIsCaposquadra = isCaposquadra;
                 userIsOperaio = isOperaio;
                 if (inlineTeamSectionEl) {
