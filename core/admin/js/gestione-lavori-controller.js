@@ -448,11 +448,15 @@ export async function loadLavori(currentTenantId, db, lavoriList, hasParcoMacchi
             return createdSec(b) - createdSec(a);
         });
 
+        // Primo paint subito: repair/macchine non devono tenere #lavori-container su «Caricamento».
+        if (applyFilters) applyFilters();
+
         try {
             const { repairSospesiConRipresaGiaCompletata } = await import('../../services/lavori-service.js');
             const repairedIds = await repairSospesiConRipresaGiaCompletata(lavoriList, currentTenantId, db);
             if (repairedIds.length > 0) {
                 console.log('[GESTIONE-LAVORI] Allineati lavori sospesi con ripresa già completata:', repairedIds);
+                if (applyFilters) applyFilters();
             }
         } catch (repairErr) {
             console.warn('[GESTIONE-LAVORI] Repair catena ripresa (non critico):', repairErr);
@@ -462,9 +466,6 @@ export async function loadLavori(currentTenantId, db, lavoriList, hasParcoMacchi
         if (hasParcoMacchineModule && correggiMacchineLavoriCompletati) {
             await correggiMacchineLavoriCompletati();
         }
-
-        // Applica filtri
-        if (applyFilters) applyFilters();
     } catch (error) {
         console.error('Errore caricamento lavori:', error);
         if (container) {

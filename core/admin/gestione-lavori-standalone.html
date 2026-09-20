@@ -3407,17 +3407,16 @@
                         }
                     }
                     
-                    // Terreni prima della lista: renderLavori non deve fare getDoc N+1
-                    // mentre #lavori-container resta su «Caricamento lavori...».
-                    await Promise.all([
-                        loadTerreniWrapper(),
-                        loadCategorieLavoriWrapper(),
-                        loadTipiLavoroWrapper() // Carica tutti i tipi (senza filtro categoria)
-                    ]);
-
+                    // Lista in parallelo ai riferimenti: render è sincrono, non N+1.
                     const lavoriLoadPromise = lavoroIdFromUrl
                         ? Promise.resolve()
                         : loadLavoriWrapper();
+                    await Promise.all([
+                        loadTerreniWrapper(),
+                        loadCategorieLavoriWrapper(),
+                        loadTipiLavoroWrapper(),
+                        lavoriLoadPromise
+                    ]);
                     
                     // Carica dati Manodopera solo se modulo attivo
                     if (hasManodoperaModule) {
@@ -3456,6 +3455,8 @@
                             loadCategorieAttrezziWrapper()
                         ]);
                     }
+
+                    applyFiltersWrapper();
                     
                     // Tony inject: non bloccare la tabella se il context fallisce
                     try {
@@ -3469,16 +3470,13 @@
                     }
                     setupCategoriaLavoroHandlerWrapper();
 
-                    lavoriLoadPromise.then(function () {
-                        if (statoFromUrl) applyFiltersWrapper();
-                        // Ripulisce comunicazioni legate a lavori già eliminati (residui pre-cascata)
-                        return import('../services/lavori-service.js').then(function (mod) {
-                            if (typeof mod.purgeOrphanComunicazioni === 'function') {
-                                return mod.purgeOrphanComunicazioni(currentTenantId || lavoriState.currentTenantId);
-                            }
-                        });
+                    if (statoFromUrl) applyFiltersWrapper();
+                    import('../services/lavori-service.js').then(function (mod) {
+                        if (typeof mod.purgeOrphanComunicazioni === 'function') {
+                            return mod.purgeOrphanComunicazioni(currentTenantId || lavoriState.currentTenantId);
+                        }
                     }).catch(function (err) {
-                        console.warn('[Gestione Lavori] loadLavori background:', err);
+                        console.warn('[Gestione Lavori] purge orphan comunicazioni:', err);
                     });
                     
                     // Se openModal=crea nell'URL, apri il modal crea lavoro
