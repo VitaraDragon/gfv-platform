@@ -28,11 +28,15 @@ import {
   setDoc,
   Timestamp,
   serverTimestamp,
-  increment,
-  runTransaction
+  writeBatch
 } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
 import { getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-functions.js";
 import { connectFirebaseEmulatorsIfDev } from '../js/firebase-emulator-dev.js';
+import { ensureStandaloneReadyPlaceholder } from '../js/standalone-ready.js';
+
+if (typeof document !== 'undefined') {
+  ensureStandaloneReadyPlaceholder();
+}
 
 // Re-export per moduli che importano da firebase-service (stesso SDK, niente "different Firestore SDK")
 export { signOut, onAuthStateChanged };
@@ -52,8 +56,7 @@ export {
   setDoc,
   Timestamp,
   serverTimestamp,
-  increment,
-  runTransaction
+  writeBatch
 };
 
 // Configurazione Firebase (da centralizzare)
@@ -264,56 +267,6 @@ export async function updateDocument(collectionName, documentId, data, tenantId 
     console.error(`Errore aggiornamento documento ${documentId} in ${collectionName}:`, error);
     throw new Error(`Errore aggiornamento documento: ${error.message}`);
   }
-}
-
-/**
- * Incremento atomico di un campo numerico (niente lettura + scrittura).
- * Due writer concorrenti non si sovrascrivono: Firestore applica entrambi i delta.
- * @param {string} collectionName
- * @param {string} documentId
- * @param {string} field
- * @param {number} delta
- * @param {string|null} tenantId
- * @returns {Promise<void>}
- */
-export async function incrementDocumentField(collectionName, documentId, field, delta, tenantId = null) {
-  if (!collectionName) {
-    throw new Error('Collection obbligatoria');
-  }
-  if (!documentId) {
-    throw new Error('ID documento obbligatorio');
-  }
-  if (!field || typeof field !== 'string') {
-    throw new Error('Campo obbligatorio');
-  }
-  const n = Number(delta);
-  if (!Number.isFinite(n)) {
-    throw new Error('Delta non valido');
-  }
-  if (n === 0) return;
-  try {
-    const docRef = getDocument(collectionName, documentId, tenantId);
-    await updateDoc(docRef, {
-      [field]: increment(n),
-      updatedAt: serverTimestamp()
-    });
-  } catch (error) {
-    console.error(`Errore increment ${field} su ${documentId} in ${collectionName}:`, error);
-    throw new Error(`Errore aggiornamento documento: ${error.message}`);
-  }
-}
-
-/**
- * Transazione Firestore sullo stesso SDK del resto dell'app.
- * Usare per read-check-write sullo stesso documento (es. stato preventivo, contatore tenant).
- * @param {function} updateFunction
- * @returns {Promise<*>}
- */
-export async function runFirestoreTransaction(updateFunction) {
-  if (typeof updateFunction !== 'function') {
-    throw new Error('Transazione: callback obbligatoria');
-  }
-  return runTransaction(getDb(), updateFunction);
 }
 
 /**

@@ -2,6 +2,7 @@
  * @vitest-environment node
  */
 import { describe, expect, test, afterEach } from 'vitest';
+import { settleStandaloneReady } from '../core/js/standalone-ready.js';
 import {
   waitForStandaloneReady,
   resolveAuthUser,
@@ -11,17 +12,22 @@ import {
 describe('waitForStandaloneReady', () => {
   afterEach(() => {
     delete globalThis.GFVStandaloneReady;
+    delete globalThis.__gfvStandaloneReadyResolve;
+    delete globalThis.__gfvStandaloneReadyReject;
   });
 
-  test('attende la promise se arriva dopo il primo tick', async () => {
+  test('attende il settle del placeholder se il bootstrap arriva dopo', async () => {
     const ready = waitForStandaloneReady(2000);
-    await new Promise((r) => setTimeout(r, 40));
-    let resolved = false;
-    globalThis.GFVStandaloneReady = Promise.resolve().then(() => {
-      resolved = true;
-    });
-    await ready;
-    expect(resolved).toBe(true);
+    await new Promise((r) => setTimeout(r, 20));
+    settleStandaloneReady(true);
+    await expect(ready).resolves.toBeUndefined();
+  });
+
+  test('propaga il reject del bootstrap, non lo ingoia', async () => {
+    const ready = waitForStandaloneReady(2000);
+    await new Promise((r) => setTimeout(r, 20));
+    settleStandaloneReady(false, new Error('bootstrap failed'));
+    await expect(ready).rejects.toThrow('bootstrap failed');
   });
 
   test('risolve subito se la promise è già presente', async () => {
