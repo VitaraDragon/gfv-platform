@@ -629,7 +629,6 @@ export async function waitForGestioneLavoriLoaded(page) {
     if (container.querySelector('.loading')) return false;
     if (/Caricamento lavori/i.test(container.textContent || '')) return false;
     if (container.querySelectorAll('.lavori-table tbody tr').length < 3) return false;
-    // Secondo paint: nomi capo/operaio dopo il load manodopera.
     const hasAssigneeCol = /Caposquadra/i.test(
       (container.querySelector('.lavori-table thead') && container.querySelector('.lavori-table thead').textContent) || ''
     );
