@@ -1,6 +1,13 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-20 — Fix CI: import mappa demo mancante.**
+**Ultimo aggiornamento documentazione: 2026-09-20 — Fix CI: dropdown tipi lavoro dal seed, catalogo in background.**
+
+## Fix CI — dropdown tipi lavoro dal seed (2026-09-20)
+
+- **Perché:** dopo `379f1f3` Tony mock 17/17 e `manodopera-admin` verdi; `gestione-lavori-write` restava sui 120s in `pickTipoLavoroInModal` perché categorie/tipi partivano solo dopo lo seed catalogo.
+- **Cosa:** terreni/categorie/tipi in parallelo a lista+roster (lettura seed); write del catalogo in background.
+- **Resto aperto:** CI GitHub sul PR.
+- Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
 
 ## Fix CI — import `demo-map-privacy.js` mancante (2026-09-20)
 

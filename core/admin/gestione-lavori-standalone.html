@@ -3395,6 +3395,11 @@
                             loadSquadreWrapper()
                         ])
                         : Promise.resolve();
+                    const refsPromise = Promise.all([
+                        loadTerreniWrapper(),
+                        loadCategorieLavoriWrapper(),
+                        loadTipiLavoroWrapper()
+                    ]);
 
                     // Rileva se siamo in modalità conto terzi
                     const isContoTerziMode = contoTerziFromUrl === 'true' || 
@@ -3432,15 +3437,30 @@
                         }
                     }
 
-                    await Promise.all([lavoriLoadPromise, rosterPromise]);
+                    await Promise.all([lavoriLoadPromise, rosterPromise, refsPromise]);
                     applyFiltersWrapper();
-                    gfvLavoriMark('roster-painted', { capo: (lavoriState.caposquadraList || []).length });
+                    gfvLavoriMark('roster-painted', {
+                        capo: (lavoriState.caposquadraList || []).length,
+                        tipi: (lavoriState.tipiLavoroList || []).length,
+                        cat: (lavoriState.categorieLavoriPrincipali || []).length
+                    });
 
-                    await migraCategorieLavoriEsistenti();
-                    await initializeCategorieLavoriModule(currentTenantId, db);
-                    await initializeTipiLavoroPredefinitiModule(currentTenantId, db, app, auth);
-                    await migraDatiEsistenti();
-                    gfvLavoriMark('catalog-done');
+                    // Seed catalogo dopo che lista e dropdown sono già usabili (write e2e).
+                    void (async () => {
+                        try {
+                            await migraCategorieLavoriEsistenti();
+                            await initializeCategorieLavoriModule(currentTenantId, db);
+                            await initializeTipiLavoroPredefinitiModule(currentTenantId, db, app, auth);
+                            await migraDatiEsistenti();
+                            await Promise.all([
+                                loadCategorieLavoriWrapper(),
+                                loadTipiLavoroWrapper()
+                            ]);
+                            gfvLavoriMark('catalog-done');
+                        } catch (catalogErr) {
+                            console.warn('[gestione-lavori] catalog seed:', catalogErr);
+                        }
+                    })();
 
                     if (hasManodoperaModule) {
                         const assenzeSostitutiDeps = {
@@ -3465,12 +3485,6 @@
                         }
                     }
 
-                    await Promise.all([
-                        loadTerreniWrapper(),
-                        loadCategorieLavoriWrapper(),
-                        loadTipiLavoroWrapper()
-                    ]);
-                    
                     // Carica macchine solo se modulo Parco Macchine attivo
                     if (hasParcoMacchineModule) {
                         await Promise.all([
