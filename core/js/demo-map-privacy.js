@@ -1,56 +1,47 @@
 /**
- * Privacy geografica per il tenant demo cloud: le mappe Google del tenant demo
- * usano la roadmap senza POI né etichette, così le coordinate "Demo Valley"
- * non mostrano toponimi reali. Per tutti gli altri tenant le opzioni passano
- * inalterate.
- *
- * @module core/js/demo-map-privacy
+ * Privacy map helpers — SOLO tenant AZIENDA DEMO GFV.
+ * Non alterare stile mappe degli account reali.
  */
 
-/** Tenant demo cloud (vedi COSA_ABBIAMO_FATTO — Demo cloud geo privacy-safe v2). */
-export const DEMO_PRIVACY_TENANT_IDS = Object.freeze(['demo_azienda_demo_gfv_v1']);
+export const DEMO_CLOUD_TENANT_ID = 'demo_azienda_demo_gfv_v1';
 
-/** Stili Google Maps: nascondono POI, etichette e transit. */
-export const DEMO_PRIVACY_MAP_STYLES = Object.freeze([
-    { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-    { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-    { featureType: 'administrative', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-    { featureType: 'road', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-    { featureType: 'water', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-    { featureType: 'landscape', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-]);
+/** Stile roadmap: nasconde POI, transit e etichette strade/amministrative. */
+export const DEMO_PRIVACY_MAP_STYLES = [
+  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'road', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'road', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
+  { featureType: 'administrative', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'administrative.locality', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'administrative.neighborhood', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'water', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'landscape', elementType: 'labels', stylers: [{ visibility: 'off' }] }
+];
 
 /**
+ * Gate stretto: solo il tenantId della demo cloud.
  * @param {string|null|undefined} tenantId
  * @returns {boolean}
  */
-export function isDemoPrivacyTenant(tenantId) {
-    if (typeof tenantId !== 'string' || !tenantId) return false;
-    return DEMO_PRIVACY_TENANT_IDS.includes(tenantId);
+export function isDemoCloudTenant(tenantId) {
+  return tenantId === DEMO_CLOUD_TENANT_ID;
 }
 
 /**
- * Restituisce le opzioni mappa da passare a `new google.maps.Map(...)`.
- * Per il tenant demo forza roadmap senza POI/etichette e disattiva Street View
- * e il selettore tipo mappa (evita che l'utente torni al satellite reale).
- *
- * @template {object} T
- * @param {T} options Opzioni mappa originali (non mutate)
+ * Opzioni Map Google: privacy-safe solo se tenant demo.
+ * @param {object} baseOptions
  * @param {string|null|undefined} tenantId
- * @returns {T|(T & object)}
+ * @returns {object}
  */
-export function withDemoPrivacyMapOptions(options, tenantId) {
-    const base = options && typeof options === 'object' ? options : {};
-    if (!isDemoPrivacyTenant(tenantId)) return base;
-    return Object.assign({}, base, {
-        mapTypeId: 'roadmap',
-        mapTypeControl: false,
-        streetViewControl: false,
-        styles: DEMO_PRIVACY_MAP_STYLES.slice(),
-    });
-}
-
-if (typeof window !== 'undefined') {
-    window.withDemoPrivacyMapOptions = withDemoPrivacyMapOptions;
-    window.isDemoPrivacyTenant = isDemoPrivacyTenant;
+export function withDemoPrivacyMapOptions(baseOptions = {}, tenantId) {
+  if (!isDemoCloudTenant(tenantId)) return baseOptions;
+  return {
+    ...baseOptions,
+    // Roadmap + styles: le etichette spariscono; satellite le ignora in parte
+    mapTypeId: baseOptions.mapTypeId === 'satellite' ? 'roadmap' : (baseOptions.mapTypeId || 'roadmap'),
+    styles: DEMO_PRIVACY_MAP_STYLES,
+    streetViewControl: false,
+    mapTypeControl: true
+  };
 }

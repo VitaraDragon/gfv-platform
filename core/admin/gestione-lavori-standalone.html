@@ -1576,6 +1576,16 @@
     <script src="../../node_modules/polygon-clipping/dist/polygon-clipping.umd.js"></script>
     <!-- Placeholder per Tony: currentTableData (aggiornato da renderLavori) -->
     <script>window.currentTableData = window.currentTableData || { pageType: 'lavori', summary: 'Caricamento dati in corso...', items: [] };</script>
+    <script>
+        window.__gfvLavoriStep = 'html-parsed';
+        window.addEventListener('error', function (e) {
+            window.__gfvPageError = (e && (e.message || (e.error && e.error.message))) || 'error';
+        });
+        window.addEventListener('unhandledrejection', function (e) {
+            var r = e && e.reason;
+            window.__gfvPageError = String((r && (r.message || r)) || r || 'rejection');
+        });
+    </script>
     <script type="module" src="../js/standalone-bootstrap.js" data-config-base="../"></script>
     <script type="module">
         // ============================================
