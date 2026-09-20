@@ -1576,16 +1576,6 @@
     <script src="../../node_modules/polygon-clipping/dist/polygon-clipping.umd.js"></script>
     <!-- Placeholder per Tony: currentTableData (aggiornato da renderLavori) -->
     <script>window.currentTableData = window.currentTableData || { pageType: 'lavori', summary: 'Caricamento dati in corso...', items: [] };</script>
-    <script>
-        window.__gfvLavoriStep = 'html-parsed';
-        window.addEventListener('error', function (e) {
-            window.__gfvPageError = (e && (e.message || (e.error && e.error.message))) || 'error';
-        });
-        window.addEventListener('unhandledrejection', function (e) {
-            var r = e && e.reason;
-            window.__gfvPageError = String((r && (r.message || r)) || r || 'rejection');
-        });
-    </script>
     <script type="module" src="../js/standalone-bootstrap.js" data-config-base="../"></script>
     <script type="module">
         // ============================================
@@ -2127,17 +2117,8 @@
             );
         }
 
-        function gfvLavoriMark(step, extra) {
-            try {
-                window.__gfvLavoriStep = step;
-                document.documentElement.setAttribute('data-gfv-lavori-step', step);
-                console.warn('[gfv-lavori]', step, extra || '');
-            } catch (e) { /* ignore */ }
-        }
-
         // Solo getDocs + primo paint. Niente macchine/statistiche/catalogo.
         async function loadLavoriListOnly() {
-            gfvLavoriMark('list-start');
             await loadLavoriModule(
                 currentTenantId || lavoriState.currentTenantId,
                 db,
@@ -2148,7 +2129,6 @@
                 showAlertUtil
             );
             updateState({ lavoriList: lavoriState.lavoriList });
-            gfvLavoriMark('list-done', { n: (lavoriState.lavoriList || []).length });
         }
 
         // Wrapper per loadLavori
@@ -3258,7 +3238,6 @@
             }
             if (lavoriPageInitStarted) return;
             lavoriPageInitStarted = true;
-            gfvLavoriMark('auth-ok');
 
             try {
                 currentAuthUid = user.uid;
@@ -3387,10 +3366,6 @@
                         setupTipoAssegnazioneHandlersWrapper();
                     }
                     setupCategoriaLavoroHandlerWrapper();
-                    gfvLavoriMark('handlers-bound');
-                    // #region agent log
-                    fetch('http://127.0.0.1:7534/ingest/14067aed-4ffb-4910-bf8d-8f0ea157de96',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b60001'},body:JSON.stringify({sessionId:'b60001',runId:'post-fix',hypothesisId:'H15',location:'gestione-lavori-standalone.html:handlers-bound',message:'form handlers bound before loads',data:{hasManodoperaModule:!!hasManodoperaModule},timestamp:Date.now()})}).catch(()=>{});
-                    // #endregion
 
                     // Lista + roster subito. Catalogo/macchine/stats dopo il paint (su CI fresco le write saturano l'emulator).
                     const urlParams = new URLSearchParams(window.location.search);
@@ -3450,11 +3425,6 @@
 
                     await Promise.all([lavoriLoadPromise, rosterPromise, refsPromise]);
                     applyFiltersWrapper();
-                    gfvLavoriMark('roster-painted', {
-                        capo: (lavoriState.caposquadraList || []).length,
-                        tipi: (lavoriState.tipiLavoroList || []).length,
-                        cat: (lavoriState.categorieLavoriPrincipali || []).length
-                    });
 
                     // Seed catalogo dopo che lista e dropdown sono già usabili (write e2e).
                     void (async () => {
@@ -3467,7 +3437,6 @@
                                 loadCategorieLavoriWrapper(),
                                 loadTipiLavoroWrapper()
                             ]);
-                            gfvLavoriMark('catalog-done');
                         } catch (catalogErr) {
                             console.warn('[gestione-lavori] catalog seed:', catalogErr);
                         }
