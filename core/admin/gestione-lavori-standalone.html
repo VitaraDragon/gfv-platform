@@ -2117,8 +2117,17 @@
             );
         }
 
-        // Wrapper per loadLavori
-        async function loadLavoriWrapper() {
+        function gfvLavoriMark(step, extra) {
+            try {
+                window.__gfvLavoriStep = step;
+                document.documentElement.setAttribute('data-gfv-lavori-step', step);
+                console.warn('[gfv-lavori]', step, extra || '');
+            } catch (e) { /* ignore */ }
+        }
+
+        // Solo getDocs + primo paint. Niente macchine/statistiche/catalogo.
+        async function loadLavoriListOnly() {
+            gfvLavoriMark('list-start');
             await loadLavoriModule(
                 currentTenantId || lavoriState.currentTenantId,
                 db,
@@ -2129,6 +2138,12 @@
                 showAlertUtil
             );
             updateState({ lavoriList: lavoriState.lavoriList });
+            gfvLavoriMark('list-done', { n: (lavoriState.lavoriList || []).length });
+        }
+
+        // Wrapper per loadLavori
+        async function loadLavoriWrapper() {
+            await loadLavoriListOnly();
             if (lavoriState.hasParcoMacchineModule) {
                 await loadTrattoriWrapper();
                 await loadAttrezziWrapper();
@@ -3224,12 +3239,16 @@
         setupLavoriTourButtonWrapper();
 
         // Verifica autenticazione e permessi
+        let lavoriPageInitStarted = false;
         onAuthStateChanged(auth, async (user) => {
             if (!user) user = await resolveAuthUserWithRetry(auth);
             if (!user) {
                 window.location.href = await loginPageUrl('../auth/login-standalone.html');
                 return;
             }
+            if (lavoriPageInitStarted) return;
+            lavoriPageInitStarted = true;
+            gfvLavoriMark('auth-ok');
 
             try {
                 currentAuthUid = user.uid;
@@ -3352,13 +3371,13 @@
                     setupManodoperaVisibilityModule(hasManodoperaModule);
                     wireManagerHomeLink('dashboard-link', hasManodoperaModule);
 
-                    // Lista + roster subito: lo seed catalogo non deve bloccare currentTableData / nomi capo.
+                    // Lista + roster subito. Catalogo/macchine/stats dopo il paint (su CI fresco le write saturano l'emulator).
                     const urlParams = new URLSearchParams(window.location.search);
                     const statoFromUrl = urlParams.get('stato');
                     const contoTerziFromUrl = urlParams.get('contoTerzi');
                     const lavoroIdFromUrl = urlParams.get('lavoroId');
                     const openModalCrea = urlParams.get('openModal') === 'crea';
-                    const lavoriLoadPromise = loadLavoriWrapper();
+                    const lavoriLoadPromise = loadLavoriListOnly();
                     const rosterPromise = hasManodoperaModule
                         ? Promise.all([
                             loadCaposquadraWrapper(),
@@ -3366,12 +3385,6 @@
                             loadSquadreWrapper()
                         ])
                         : Promise.resolve();
-                    const catalogPromise = (async () => {
-                        await migraCategorieLavoriEsistenti();
-                        await initializeCategorieLavoriModule(currentTenantId, db);
-                        await initializeTipiLavoroPredefinitiModule(currentTenantId, db, app, auth);
-                        await migraDatiEsistenti();
-                    })();
 
                     // Rileva se siamo in modalità conto terzi
                     const isContoTerziMode = contoTerziFromUrl === 'true' || 
@@ -3411,6 +3424,13 @@
 
                     await Promise.all([lavoriLoadPromise, rosterPromise]);
                     applyFiltersWrapper();
+                    gfvLavoriMark('roster-painted', { capo: (lavoriState.caposquadraList || []).length });
+
+                    await migraCategorieLavoriEsistenti();
+                    await initializeCategorieLavoriModule(currentTenantId, db);
+                    await initializeTipiLavoroPredefinitiModule(currentTenantId, db, app, auth);
+                    await migraDatiEsistenti();
+                    gfvLavoriMark('catalog-done');
 
                     if (hasManodoperaModule) {
                         const assenzeSostitutiDeps = {
@@ -3435,7 +3455,6 @@
                         }
                     }
 
-                    await catalogPromise;
                     await Promise.all([
                         loadTerreniWrapper(),
                         loadCategorieLavoriWrapper(),
@@ -3450,6 +3469,7 @@
                             loadCategorieAttrezziWrapper()
                         ]);
                     }
+                    await loadStatisticsWrapper();
 
                     applyFiltersWrapper();
                     
