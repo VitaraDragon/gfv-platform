@@ -448,6 +448,25 @@ export async function loadLavori(currentTenantId, db, lavoriList, hasParcoMacchi
             return createdSec(b) - createdSec(a);
         });
 
+        if (typeof window !== 'undefined' && lavoriList.length > 0) {
+            const items = lavoriList.slice(0, 80).map((lav) => ({
+                id: lav.id,
+                nome: lav.nome || '-',
+                stato: lav.stato || '-',
+                tipoLavoro: lav.tipoLavoro || lav.tipoLavoroNome || '-'
+            }));
+            window.currentTableData = Object.assign({}, window.currentTableData || {}, {
+                pageType: 'lavori',
+                summary: 'Ci sono ' + lavoriList.length + ' lavori in elenco.',
+                items: items
+            });
+            try {
+                window.dispatchEvent(new CustomEvent('table-data-ready', {
+                    detail: { currentTableData: window.currentTableData }
+                }));
+            } catch (e) { /* ignore */ }
+        }
+
         // Primo paint subito: repair/macchine non devono tenere #lavori-container su «Caricamento».
         if (applyFilters) applyFilters();
 

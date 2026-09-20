@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-20 — Fix CI: lista lavori + roster prima dello seed catalogo.**
+**Ultimo aggiornamento documentazione: 2026-09-20 — Fix CI: paint lista lavori senza macchine/catalogo.**
+
+## Fix CI — paint lista lavori senza macchine/catalogo (2026-09-20)
+
+- **Perché:** su CI `65dd192` restava rosso (T-PERF-002 / T-INJECT-001 / T-FLOW-013 + gestione-lavori 120s). Il wrapper lista aspettava anche trattori/statistiche e lo seed catalogo partiva in parallelo a `getDocs` sul seed fresco.
+- **Cosa:** primo paint = solo `getDocs` lavori + roster; `currentTableData` subito dopo `getDocs`; catalogo/macchine/stats dopo. Un solo init Auth. Marker `data-gfv-lavori-step` se il wait CI fallisce.
+- **Test:** locale `gestione-lavori-write` + `manodopera-admin` 2/2 in 4.7s.
+- **Resto aperto:** CI GitHub sul PR.
+- Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
 
 ## Fix CI — lista lavori + roster prima dello seed catalogo (2026-09-20)
 

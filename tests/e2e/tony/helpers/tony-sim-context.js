@@ -175,18 +175,47 @@ export async function bootstrapTonyWidgetOnStandalonePage(page) {
  * @param {{ timeoutMs?: number }} [opts]
  */
 export async function waitForCurrentTableData(page, pageType, { timeoutMs = 90_000 } = {}) {
-  await page.waitForFunction(
-    (pt) => {
-      const t = window.currentTableData;
-      if (!t || String(t.pageType || '') !== pt) return false;
-      if (!Array.isArray(t.items) || t.items.length === 0) return false;
-      const summary = typeof t.summary === 'string' ? t.summary.trim() : '';
-      if (!summary || /caricamento/i.test(summary)) return false;
-      return true;
-    },
-    pageType,
-    { timeout: timeoutMs }
-  );
+  try {
+    await page.waitForFunction(
+      (pt) => {
+        const t = window.currentTableData;
+        if (!t || String(t.pageType || '') !== pt) return false;
+        if (!Array.isArray(t.items) || t.items.length === 0) return false;
+        const summary = typeof t.summary === 'string' ? t.summary.trim() : '';
+        if (!summary || /caricamento/i.test(summary)) return false;
+        return true;
+      },
+      pageType,
+      { timeout: timeoutMs }
+    );
+  } catch (err) {
+    // #region agent log
+    try {
+      const snap = await page.evaluate(() => {
+        const t = window.currentTableData || {};
+        return {
+          step: window.__gfvLavoriStep || document.documentElement.getAttribute('data-gfv-lavori-step'),
+          url: location.href,
+          pageType: t.pageType || null,
+          items: Array.isArray(t.items) ? t.items.length : -1,
+          summary: typeof t.summary === 'string' ? t.summary.slice(0, 80) : null
+        };
+      });
+      console.error('[gfv-ctd-wait]', JSON.stringify(snap));
+      const fs = await import('node:fs');
+      fs.appendFileSync('debug-b60001.log', JSON.stringify({
+        sessionId: 'b60001',
+        runId: 'ci-hang2',
+        hypothesisId: 'H9',
+        location: 'tony-sim-context.js:waitForCurrentTableData',
+        message: 'wait-timeout',
+        data: Object.assign({ expectedPageType: pageType }, snap),
+        timestamp: Date.now()
+      }) + '\n');
+    } catch (logErr) { /* ignore */ }
+    // #endregion
+    throw err;
+  }
 }
 
 /**
