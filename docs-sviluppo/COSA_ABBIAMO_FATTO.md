@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-20 — Fix CI: handler categoria/tipo lavori prima dei load.**
+**Ultimo aggiornamento documentazione: 2026-09-20 — CI snellimento verde; rimossa strumentazione debug.**
+
+## CI snellimento verde + rimozione log debug (2026-09-20)
+
+- **Cosa:** tolta strumentazione (`gfvLavoriMark`, ingest debug, dump wait). Resta il bind handler categoria/tipo prima dei load, paint lista, refs dal seed, catalogo in background, `demo-map-privacy.js`.
+- **Perché:** CI ufficiale `bb15bb7` ([35526632655](https://github.com/VitaraDragon/gfv-platform/actions/runs/35526632655)): 7 job verdi; Tony mock 17/17; sim:e2e 71 passed 0 failed; `gestione-lavori-write` 2.4s al primo tentativo.
+- Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
 
 ## Fix CI — handler form lavori prima di macchine/stats (2026-09-20)
 

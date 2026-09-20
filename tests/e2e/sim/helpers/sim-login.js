@@ -623,52 +623,18 @@ export async function waitForGestioneLavoriLoaded(page) {
   await page.waitForURL(/gestione-lavori-standalone\.html/, { timeout: simE2eTimeout(60_000) });
   await page.locator('h1').filter({ hasText: 'Gestione Lavori' }).waitFor({ timeout: simE2eTimeout(60_000) });
 
-  try {
-    await page.waitForFunction(() => {
-      const container = document.getElementById('lavori-container');
-      if (!container) return false;
-      if (container.querySelector('.loading')) return false;
-      if (/Caricamento lavori/i.test(container.textContent || '')) return false;
-      if (container.querySelectorAll('.lavori-table tbody tr').length < 3) return false;
-      const hasAssigneeCol = /Caposquadra/i.test(
-        (container.querySelector('.lavori-table thead') && container.querySelector('.lavori-table thead').textContent) || ''
-      );
-      if (hasAssigneeCol && !container.querySelector('.caposquadra-name')) return false;
-      return true;
-    }, { timeout: 90_000 });
-  } catch (err) {
-    // #region agent log
-    try {
-      const snap = await page.evaluate(() => {
-        const t = window.currentTableData || {};
-        const c = document.getElementById('lavori-container');
-        return {
-          step: window.__gfvLavoriStep || document.documentElement.getAttribute('data-gfv-lavori-step'),
-          pageError: window.__gfvPageError || null,
-          url: location.href,
-          pageType: t.pageType || null,
-          items: Array.isArray(t.items) ? t.items.length : -1,
-          summary: typeof t.summary === 'string' ? t.summary.slice(0, 80) : null,
-          rows: c ? c.querySelectorAll('.lavori-table tbody tr').length : -1,
-          names: c ? c.querySelectorAll('.caposquadra-name').length : -1,
-          loading: !!(c && (c.querySelector('.loading') || /Caricamento lavori/i.test(c.textContent || '')))
-        };
-      });
-      console.error('[gfv-lavori-wait]', JSON.stringify(snap));
-      const fs = await import('node:fs');
-      fs.appendFileSync('debug-b60001.log', JSON.stringify({
-        sessionId: 'b60001',
-        runId: 'ci-hang2',
-        hypothesisId: 'H9',
-        location: 'sim-login.js:waitForGestioneLavoriLoaded',
-        message: 'wait-timeout',
-        data: snap,
-        timestamp: Date.now()
-      }) + '\n');
-    } catch (logErr) { /* ignore */ }
-    // #endregion
-    throw err;
-  }
+  await page.waitForFunction(() => {
+    const container = document.getElementById('lavori-container');
+    if (!container) return false;
+    if (container.querySelector('.loading')) return false;
+    if (/Caricamento lavori/i.test(container.textContent || '')) return false;
+    if (container.querySelectorAll('.lavori-table tbody tr').length < 3) return false;
+    const hasAssigneeCol = /Caposquadra/i.test(
+      (container.querySelector('.lavori-table thead') && container.querySelector('.lavori-table thead').textContent) || ''
+    );
+    if (hasAssigneeCol && !container.querySelector('.caposquadra-name')) return false;
+    return true;
+  }, { timeout: 90_000 });
 
   await page.locator('#lavori-container .lavori-table tbody tr').first().waitFor({
     timeout: simE2eTimeout(60_000),

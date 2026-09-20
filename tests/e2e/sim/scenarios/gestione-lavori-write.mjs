@@ -62,35 +62,11 @@ async function openNewLavoroModal(page) {
 async function pickTipoLavoroInModal(page) {
   const categoriaSelect = page.locator('#lavoro-categoria-principale');
   const categoriaCount = await categoriaSelect.locator('option').count();
-  const pickerDump = await page.evaluate(() => ({
-    step: document.documentElement.getAttribute('data-gfv-lavori-step'),
-    tipi: (window.lavoriState && window.lavoriState.tipiLavoroList && window.lavoriState.tipiLavoroList.length) || 0,
-    cat: (window.lavoriState && window.lavoriState.categorieLavoriPrincipali && window.lavoriState.categorieLavoriPrincipali.length) || 0
-  }));
-  console.error('[gfv-lavori-pick]', JSON.stringify({ categoriaCount, ...pickerDump }));
-  // #region agent log
-  fetch('http://127.0.0.1:7534/ingest/14067aed-4ffb-4910-bf8d-8f0ea157de96',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b60001'},body:JSON.stringify({sessionId:'b60001',runId:'post-fix',hypothesisId:'H15',location:'gestione-lavori-write.mjs:pickTipo',message:'pickTipo start',data:{categoriaCount,...pickerDump},timestamp:Date.now()})}).catch(()=>{});
-  // #endregion
 
   for (let i = 1; i < categoriaCount; i += 1) {
     const value = await categoriaSelect.locator('option').nth(i).getAttribute('value');
     if (!value) continue;
     await categoriaSelect.selectOption(value);
-    if (i === 1) {
-      const afterSelect = await page.evaluate(() => {
-        const group = document.getElementById('tipo-lavoro-group');
-        const sel = document.getElementById('lavoro-tipo-lavoro');
-        return {
-          step: document.documentElement.getAttribute('data-gfv-lavori-step'),
-          tipoDisplay: group ? group.style.display : null,
-          tipoOptions: sel ? sel.options.length : 0
-        };
-      });
-      console.error('[gfv-lavori-pick-after]', JSON.stringify(afterSelect));
-      // #region agent log
-      fetch('http://127.0.0.1:7534/ingest/14067aed-4ffb-4910-bf8d-8f0ea157de96',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'b60001'},body:JSON.stringify({sessionId:'b60001',runId:'post-fix',hypothesisId:'H15',location:'gestione-lavori-write.mjs:afterSelect',message:'first category selected',data:afterSelect,timestamp:Date.now()})}).catch(()=>{});
-      // #endregion
-    }
 
     const subGroup = page.locator('#lavoro-sottocategoria-group');
     if (await subGroup.isVisible()) {
@@ -234,7 +210,6 @@ export async function runGestioneLavoriWriteAssertions(page, expect) {
   let expectedCaposquadra = '';
 
   if (rowCount === 0) {
-    console.error('[gfv-lavori-write] creating');
     const totalBefore = await page.evaluate(
       () => document.querySelectorAll('#lavori-container .lavori-table tbody tr').length
     );
@@ -258,7 +233,6 @@ export async function runGestioneLavoriWriteAssertions(page, expect) {
     markerRows = lavoriRowsWithMarker(page, E2E_LAVORO_WRITE_NOME);
     rowCount = await markerRows.count();
   } else {
-    console.error('[gfv-lavori-write] skip-create marker exists');
     const firstRow = markerRows.first();
     expectedTerreno = ((await firstRow.locator('td').nth(1).textContent()) || '').trim();
     expectedCaposquadra = ((await firstRow.locator('td').nth(2).textContent()) || '').trim();
