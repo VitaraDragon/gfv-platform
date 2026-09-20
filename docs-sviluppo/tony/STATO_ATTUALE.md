@@ -1,6 +1,6 @@
 # Stato attuale Tony – Verificato sul codice
 
-**Data**: 2026-09-20 (… **CI snellimento save/tabelle/card** — 2026-09-20; **Inviti: chiusura lettura pubblica + getInvitoPubblico** — 2026-09-18; **Preventivi numero lock + accettazione in transazione** — 2026-09-18; **Magazzino giacenza atomica (increment)** — 2026-09-18; **delete lavoro a cascata nel codice** — 2026-09-18; **Tony Occhi: galleria + HEIC→JPEG** — 2026-09-17; **voce iPhone: recorder su tutto iOS + sblocco TTS** — 2026-09-16; **placeholder `GFVStandaloneReady`** — 2026-09-20; **log debug `window.__TONY_DEBUG`** — 2026-09-19; **disegno 1b terreni clienti CT** — 2026-09-06; …)  
+**Data**: 2026-09-20 (… **promozione snellimento su main** — 2026-09-20; **CI snellimento save/tabelle/card** — 2026-09-20; **Inviti: chiusura lettura pubblica + getInvitoPubblico** — 2026-09-18; **Preventivi numero lock + accettazione in transazione** — 2026-09-18; **Magazzino giacenza atomica (increment)** — 2026-09-18; **delete lavoro a cascata nel codice** — 2026-09-18; **Tony Occhi: galleria + HEIC→JPEG** — 2026-09-17; **voce iPhone: recorder su tutto iOS + sblocco TTS** — 2026-09-16; **placeholder `GFVStandaloneReady`** — 2026-09-20; **log debug `window.__TONY_DEBUG`** — 2026-09-19; **disegno 1b terreni clienti CT** — 2026-09-06; …)  
 **Fonte**: codice + `TONY_DECISIONI_E_REQUISITI.md` (… **§3.10 lazy-load** — 2026-09-05; **§22.7 / §23 flag prova** — 2026-09-04; **§11.7 / §22 zona due punti** — 2026-09-03; **§11.6 allarmi/mappa** — 2026-08-02; …)  
 **Build widget**: `2026-09-17c`
 

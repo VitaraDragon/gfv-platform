@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-20 — merge snellimento su develop (conflitti bootstrap + lock/giacenza/iPhone).**
+**Ultimo aggiornamento documentazione: 2026-09-20 — promozione snellimento su main.**
+
+## Promozione su main — bootstrap unico standalone (2026-09-20)
+
+- **Cosa:** cherry-pick da `develop` (`7af8178` / PR #58) su branch da `main`. Bootstrap unico sulle pagine standalone; `increment`/`runTransaction` di magazzino e preventivi restano; lista lavori paint-first.
+- **Perché:** `main` e `develop` hanno storie parallele (promozioni a cherry-pick). CI develop verde: [35530137514](https://github.com/VitaraDragon/gfv-platform/actions/runs/35530137514).
+- Doc: questa voce. Master Plan: nessuna fase cambiata.
 
 ## Merge snellimento in develop (2026-09-20)
 
