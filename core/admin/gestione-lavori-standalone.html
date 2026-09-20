@@ -3352,21 +3352,27 @@
                     setupManodoperaVisibilityModule(hasManodoperaModule);
                     wireManagerHomeLink('dashboard-link', hasManodoperaModule);
 
-                    // Migra prima categorie esistenti (se presenti)
-                    await migraCategorieLavoriEsistenti();
-                    
-                    // Inizializza categorie e tipi lavoro predefiniti se necessario
-                    await initializeCategorieLavoriModule(currentTenantId, db);
-                    await initializeTipiLavoroPredefinitiModule(currentTenantId, db, app, auth);
-                    
-                    // Migra dati esistenti dalla lista piatta alla struttura gerarchica
-                    await migraDatiEsistenti();
-
-                    // Leggi parametro URL per filtro stato (es: ?stato=da_pianificare)
+                    // Lista + roster subito: lo seed catalogo non deve bloccare currentTableData / nomi capo.
                     const urlParams = new URLSearchParams(window.location.search);
                     const statoFromUrl = urlParams.get('stato');
                     const contoTerziFromUrl = urlParams.get('contoTerzi');
-                    
+                    const lavoroIdFromUrl = urlParams.get('lavoroId');
+                    const openModalCrea = urlParams.get('openModal') === 'crea';
+                    const lavoriLoadPromise = loadLavoriWrapper();
+                    const rosterPromise = hasManodoperaModule
+                        ? Promise.all([
+                            loadCaposquadraWrapper(),
+                            loadOperaiWrapper(),
+                            loadSquadreWrapper()
+                        ])
+                        : Promise.resolve();
+                    const catalogPromise = (async () => {
+                        await migraCategorieLavoriEsistenti();
+                        await initializeCategorieLavoriModule(currentTenantId, db);
+                        await initializeTipiLavoroPredefinitiModule(currentTenantId, db, app, auth);
+                        await migraDatiEsistenti();
+                    })();
+
                     // Rileva se siamo in modalità conto terzi
                     const isContoTerziMode = contoTerziFromUrl === 'true' || 
                                             (statoFromUrl === 'da_pianificare' && hasContoTerziModule);
@@ -3388,12 +3394,8 @@
                     }
                     
                     // Se c'è il parametro lavoroId nell'URL, apri automaticamente il modal dettaglio
-                    const lavoroIdFromUrl = urlParams.get('lavoroId');
-                    const openModalCrea = urlParams.get('openModal') === 'crea';
                     if (lavoroIdFromUrl) {
-                        // Attendi che i lavori siano caricati
-                        await loadLavoriWrapper();
-                        // Apri modal dettaglio
+                        await lavoriLoadPromise;
                         setTimeout(async () => {
                             await openDettaglioModalWrapper(lavoroIdFromUrl);
                         }, 500);
@@ -3406,25 +3408,11 @@
                             filterStatoEl.value = statoFromUrl;
                         }
                     }
-                    
-                    // Lista in parallelo ai riferimenti: render è sincrono, non N+1.
-                    const lavoriLoadPromise = lavoroIdFromUrl
-                        ? Promise.resolve()
-                        : loadLavoriWrapper();
-                    await Promise.all([
-                        loadTerreniWrapper(),
-                        loadCategorieLavoriWrapper(),
-                        loadTipiLavoroWrapper(),
-                        lavoriLoadPromise
-                    ]);
-                    
-                    // Carica dati Manodopera solo se modulo attivo
+
+                    await Promise.all([lavoriLoadPromise, rosterPromise]);
+                    applyFiltersWrapper();
+
                     if (hasManodoperaModule) {
-                        await Promise.all([
-                            loadCaposquadraWrapper(),
-                            loadOperaiWrapper(),
-                            loadSquadreWrapper()
-                        ]);
                         const assenzeSostitutiDeps = {
                             getCurrentUserData: () => currentUserData,
                             getAuthUid: () => currentAuthUid || null,
@@ -3446,6 +3434,13 @@
                             }, 600);
                         }
                     }
+
+                    await catalogPromise;
+                    await Promise.all([
+                        loadTerreniWrapper(),
+                        loadCategorieLavoriWrapper(),
+                        loadTipiLavoroWrapper()
+                    ]);
                     
                     // Carica macchine solo se modulo Parco Macchine attivo
                     if (hasParcoMacchineModule) {

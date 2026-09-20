@@ -451,21 +451,25 @@ export async function loadLavori(currentTenantId, db, lavoriList, hasParcoMacchi
         // Primo paint subito: repair/macchine non devono tenere #lavori-container su «Caricamento».
         if (applyFilters) applyFilters();
 
-        try {
-            const { repairSospesiConRipresaGiaCompletata } = await import('../../services/lavori-service.js');
-            const repairedIds = await repairSospesiConRipresaGiaCompletata(lavoriList, currentTenantId, db);
-            if (repairedIds.length > 0) {
-                console.log('[GESTIONE-LAVORI] Allineati lavori sospesi con ripresa già completata:', repairedIds);
-                if (applyFilters) applyFilters();
+        void (async () => {
+            try {
+                const { repairSospesiConRipresaGiaCompletata } = await import('../../services/lavori-service.js');
+                const repairedIds = await repairSospesiConRipresaGiaCompletata(lavoriList, currentTenantId, db);
+                if (repairedIds.length > 0) {
+                    console.log('[GESTIONE-LAVORI] Allineati lavori sospesi con ripresa già completata:', repairedIds);
+                    if (applyFilters) applyFilters();
+                }
+            } catch (repairErr) {
+                console.warn('[GESTIONE-LAVORI] Repair catena ripresa (non critico):', repairErr);
             }
-        } catch (repairErr) {
-            console.warn('[GESTIONE-LAVORI] Repair catena ripresa (non critico):', repairErr);
-        }
-
-        // Corregge macchine ancora in uso per lavori completati
-        if (hasParcoMacchineModule && correggiMacchineLavoriCompletati) {
-            await correggiMacchineLavoriCompletati();
-        }
+            try {
+                if (hasParcoMacchineModule && correggiMacchineLavoriCompletati) {
+                    await correggiMacchineLavoriCompletati();
+                }
+            } catch (corrErr) {
+                console.warn('[GESTIONE-LAVORI] Correggi macchine (non critico):', corrErr);
+            }
+        })();
     } catch (error) {
         console.error('Errore caricamento lavori:', error);
         if (container) {
@@ -1840,23 +1844,7 @@ export async function renderLavori(
     const container = document.getElementById('lavori-container');
     const countEl = document.getElementById('lavori-count');
 
-    let vmShortcut = null;
-    if (hasVendemmiaMeccanicaModule) {
-        try {
-            const [lavoroVmUtils, pianoUtils] = await Promise.all([
-                import('../../../modules/vendemmia-meccanica/services/lavoro-vm-utils.js'),
-                import('../../../modules/vendemmia-meccanica/services/piano-stagione-utils.js')
-            ]);
-            vmShortcut = {
-                isEligible: lavoroVmUtils.isLavoroEligibleForCalcolatoreShortcut,
-                buildUrl: (lavoro) => pianoUtils.buildCalcolatoreVmUrlFromLavoro(lavoro, {
-                    basePath: pianoUtils.CALCOLATORE_VM_ADMIN_BASE
-                })
-            };
-        } catch (err) {
-            console.warn('[GESTIONE-LAVORI] Modulo VM shortcut non disponibile:', err.message);
-        }
-    }
+    let vmShortcut = (typeof window !== 'undefined' && window.__gfvVmShortcut) || null;
 
     function renderCalcolatoreVmLink(lavoro) {
         if (!vmShortcut || !vmShortcut.isEligible(lavoro, { hasVmModule: true })) return '';
@@ -2326,6 +2314,24 @@ export async function renderLavori(
     container.innerHTML = html;
     countEl.textContent = `${filteredLavoriList.length} lavor${filteredLavoriList.length !== 1 ? 'i' : 'o'}`;
     if (maybeAutoStartLavoriTour) maybeAutoStartLavoriTour();
+
+    if (hasVendemmiaMeccanicaModule && typeof window !== 'undefined' && window.__gfvVmShortcut == null) {
+        try {
+            const [lavoroVmUtils, pianoUtils] = await Promise.all([
+                import('../../../modules/vendemmia-meccanica/services/lavoro-vm-utils.js'),
+                import('../../../modules/vendemmia-meccanica/services/piano-stagione-utils.js')
+            ]);
+            window.__gfvVmShortcut = {
+                isEligible: lavoroVmUtils.isLavoroEligibleForCalcolatoreShortcut,
+                buildUrl: (lavoro) => pianoUtils.buildCalcolatoreVmUrlFromLavoro(lavoro, {
+                    basePath: pianoUtils.CALCOLATORE_VM_ADMIN_BASE
+                })
+            };
+        } catch (err) {
+            window.__gfvVmShortcut = false;
+            console.warn('[GESTIONE-LAVORI] Modulo VM shortcut non disponibile:', err.message);
+        }
+    }
 }
 
 /**

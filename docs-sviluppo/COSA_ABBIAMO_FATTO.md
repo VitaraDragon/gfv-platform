@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-20 — Fix CI: primo paint lista lavori prima di repair/macchine.**
+**Ultimo aggiornamento documentazione: 2026-09-20 — Fix CI: lista lavori + roster prima dello seed catalogo.**
+
+## Fix CI — lista lavori + roster prima dello seed catalogo (2026-09-20)
+
+- **Perché:** il paint-first dopo `getDocs` non sbloccava la CI: `currentTableData` e i nomi capo arrivavano solo dopo seed catalogo / import VM / repair. Log: primo paint `names: 0`; dopo roster parallelo `names: 4` e `roster-painted`.
+- **Cosa:** `loadLavori` e roster partono subito; catalogo in parallelo. `renderLavori` pubblica `currentTableData` e dipinge la tabella prima dell’import VM. Repair/macchine in background. Wait E2E: 3 righe + `.caposquadra-name` se c’è la colonna Caposquadra.
+- **Test:** locale `gestione-lavori-write` + `manodopera-admin` 2/2 in 6s; T-PERF-002 / T-INJECT-001 / T-FLOW-013 3/3.
+- **Resto aperto:** CI GitHub sul PR.
+- Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
 
 ## Fix CI — lista lavori: paint prima di repair/macchine (2026-09-20)
 
