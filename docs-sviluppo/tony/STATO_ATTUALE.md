@@ -242,7 +242,7 @@ Documenti creati per riprendere il lavoro **senza perdere contesto** (prompt, ba
 
 **Placeholder `GFVStandaloneReady` (2026-09-20):** `core/js/standalone-ready.js` — la pagina non fa più `await undefined` se il bootstrap arriva dopo. Settle in `standalone-bootstrap.js`. Gestione lavori: terreni/categorie/tipi **prima** di `loadLavori`; `renderLavori` sincrono su mappe in memoria (niente N+1 `getDoc`). Test: `tests/standalone-ready.test.js`.
 
-**CI snellimento (2026-09-20):** save lavoro Tony di nuovo con conferma + bubble «Lavoro salvato!» (`tony-form-save-local.js`). Liste colture: import `getBasePath` da `gfv-path.js`. Pagina aziende sim: card da `manifest.json` senza aspettare Ready. Gestione lavori: lista+roster+dropdown dal seed; catalogo in background; `demo-map-privacy.js` in commit. Test: `tests/tony-form-save-local.test.js`; CI Tony mock 17/17 (`379f1f3`); locale write/admin.
+**CI snellimento (2026-09-20):** save lavoro Tony di nuovo con conferma + bubble «Lavoro salvato!». Liste colture: `getBasePath` da `gfv-path.js`. Gestione lavori: handler categoria/tipo subito (prima di macchine/stats); lista+roster+dropdown dal seed; catalogo in background; `demo-map-privacy.js` in commit. CI Tony mock 17/17; write e2e ancora flaky su `dca0e26` (retry).
 
 Indice: `docs-sviluppo/tony/README.md`.
 

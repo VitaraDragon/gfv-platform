@@ -1,6 +1,12 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-20 — Fix CI: dropdown tipi lavoro dal seed, catalogo in background.**
+**Ultimo aggiornamento documentazione: 2026-09-20 — Fix CI: handler categoria/tipo lavori prima dei load.**
+
+## Fix CI — handler form lavori prima di macchine/stats (2026-09-20)
+
+- **Cosa:** `setupCategoriaLavoroHandler` / assegnazione si legano subito, non dopo macchine+statistiche. Il picker tipo del write e2e non gira più su un select senza `change`.
+- **Perché:** CI `dca0e26` job verde per retry Playwright; primo tentativo 120s in `pickTipoLavoroInModal`. Categorie già in dropdown, tipi mai popolati.
+- **File:** `core/admin/gestione-lavori-standalone.html`, `tests/e2e/sim/scenarios/gestione-lavori-write.mjs`.
 
 ## Fix CI — dropdown tipi lavoro dal seed (2026-09-20)
 
