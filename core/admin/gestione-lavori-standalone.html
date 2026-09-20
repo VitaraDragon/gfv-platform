@@ -3361,7 +3361,7 @@
                     
                     // Migra dati esistenti dalla lista piatta alla struttura gerarchica
                     await migraDatiEsistenti();
-                    
+
                     // Leggi parametro URL per filtro stato (es: ?stato=da_pianificare)
                     const urlParams = new URLSearchParams(window.location.search);
                     const statoFromUrl = urlParams.get('stato');
@@ -3407,17 +3407,17 @@
                         }
                     }
                     
-                    // Lista lavori in parallelo ai dati di riferimento: Tony currentTableData
-                    // non deve aspettare macchine / context form.
-                    const lavoriLoadPromise = lavoroIdFromUrl
-                        ? Promise.resolve()
-                        : loadLavoriWrapper();
-
+                    // Terreni prima della lista: renderLavori non deve fare getDoc N+1
+                    // mentre #lavori-container resta su «Caricamento lavori...».
                     await Promise.all([
                         loadTerreniWrapper(),
                         loadCategorieLavoriWrapper(),
                         loadTipiLavoroWrapper() // Carica tutti i tipi (senza filtro categoria)
                     ]);
+
+                    const lavoriLoadPromise = lavoroIdFromUrl
+                        ? Promise.resolve()
+                        : loadLavoriWrapper();
                     
                     // Carica dati Manodopera solo se modulo attivo
                     if (hasManodoperaModule) {

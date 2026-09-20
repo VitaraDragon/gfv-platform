@@ -1,6 +1,6 @@
 # Stato attuale Tony – Verificato sul codice
 
-**Data**: 2026-09-20 (… **placeholder `GFVStandaloneReady`** — 2026-09-20; **log debug `window.__TONY_DEBUG`** — 2026-09-19; **disegno 1b terreni clienti CT** — 2026-09-06; **proposta confine tap no-go / SAM abbandonato** — 2026-09-05; **briefing senza CTA «dimmi apri»** — 2026-09-05; **Tony lazy-load + intro.js non scaricato** — 2026-09-05; **dashboard meteo/Maps lazy** — 2026-09-04; **flag prova + switch dashboard** — 2026-09-04; **zona lavorata due punti** — 2026-09-03; **push S5 assenze + WhatsApp** — 2026-08-28; …)  
+**Data**: 2026-09-20 (… **CI snellimento save/tabelle/card** — 2026-09-20; **placeholder `GFVStandaloneReady`** — 2026-09-20; **log debug `window.__TONY_DEBUG`** — 2026-09-19; **disegno 1b terreni clienti CT** — 2026-09-06; **proposta confine tap no-go / SAM abbandonato** — 2026-09-05; **briefing senza CTA «dimmi apri»** — 2026-09-05; **Tony lazy-load + intro.js non scaricato** — 2026-09-05; **dashboard meteo/Maps lazy** — 2026-09-04; **flag prova + switch dashboard** — 2026-09-04; **zona lavorata due punti** — 2026-09-03; **push S5 assenze + WhatsApp** — 2026-08-28; …)  
 **Fonte**: codice + `TONY_DECISIONI_E_REQUISITI.md` (… **§3.10 lazy-load** — 2026-09-05; **§22.7 / §23 flag prova** — 2026-09-04; **§11.7 / §22 zona due punti** — 2026-09-03; **§11.6 allarmi/mappa** — 2026-08-02; …)  
 **Build widget**: `2026-08-16b`
 
@@ -240,7 +240,9 @@ Documenti creati per riprendere il lavoro **senza perdere contesto** (prompt, ba
 
 **Auth standalone post-bootstrap (2026-09-19 / 2026-09-20):** retry Auth in `resolveAuthUser` (`simulator-standalone-page.js`) — vale per tutte le standalone che già lo usano. `waitForStandaloneReady` su field workspace e gestione lavori. Export `buildComunicazioneConfermeRicezioneRows` per il controller workspace. Test: `tests/simulator-standalone-page.test.js`.
 
-**Placeholder `GFVStandaloneReady` (2026-09-20):** `core/js/standalone-ready.js` — la pagina non fa più `await undefined` se il bootstrap arriva dopo. Settle in `standalone-bootstrap.js`. Gestione lavori: `loadLavori` in parallelo ai dati di riferimento (Tony `currentTableData` non aspetta macchine). Test: `tests/standalone-ready.test.js`.
+**Placeholder `GFVStandaloneReady` (2026-09-20):** `core/js/standalone-ready.js` — la pagina non fa più `await undefined` se il bootstrap arriva dopo. Settle in `standalone-bootstrap.js`. Gestione lavori: terreni/categorie/tipi **prima** di `loadLavori`; `renderLavori` sincrono su mappe in memoria (niente N+1 `getDoc`). Test: `tests/standalone-ready.test.js`.
+
+**CI snellimento (2026-09-20):** save lavoro Tony di nuovo con conferma + bubble «Lavoro salvato!» (`tony-form-save-local.js`). Liste colture: import `getBasePath` da `gfv-path.js`. Pagina aziende sim: card da `manifest.json` senza aspettare Ready. Test: `tests/tony-form-save-local.test.js`.
 
 Indice: `docs-sviluppo/tony/README.md`.
 

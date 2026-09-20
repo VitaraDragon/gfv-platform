@@ -1,13 +1,21 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-20 — Fix CI: placeholder GFVStandaloneReady + loadLavori parallelo.**
+**Ultimo aggiornamento documentazione: 2026-09-20 — Fix CI snellimento: save lavoro Tony, tabelle colture, card simulator-dev.**
+
+## Fix CI — save lavoro, tabelle colture, card aziende sim (2026-09-20)
+
+- **Perché:** su `feat/snellimento-produzione` la CI restava rossa: T-FLOW-013 (SAVE lavoro silenzioso), T6_PERF table-wrap 18s (`getBasePath` non importato dopo l’estrazione + render lavori N+1), card aziende bloccate su `GFVStandaloneReady`.
+- **Cosa:** `tryInterceptLavoroSaveBeforeCf` chiede conferma + `savedMessage` «Lavoro salvato!». Gestione lavori: terreni/categorie/tipi prima di `loadLavori`; `renderLavori` usa mappe in memoria. Import `getBasePath` da `gfv-path.js` su trattamenti/concimazioni/frutteti. Simulator-dev disegna le card da `manifest.json` senza aspettare Ready (Entra aspetta ancora).
+- **Test:** `tests/tony-form-save-local.test.js`; locale T-PERF-002 / T-INJECT-001 / T-FLOW-013 3/3; i tre spec card-login verdi; le due fail della suite 71 erano seed sporco / worker appeso, ok in isolamento.
+- **Resto aperto:** CI GitHub sul PR dopo push.
+- Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
 
 ## Fix CI — placeholder Ready e tabella lavori (2026-09-20)
 
 - **Perché:** le standalone potevano fare `await window.GFVStandaloneReady` mentre la promise non esisteva ancora (`undefined` → proseguono a vuoto). Gestione lavori aspettava macchine/context Tony prima di popolare `currentTableData`.
 - **Cosa:** `core/js/standalone-ready.js` — placeholder condiviso, settle dal bootstrap. Importato da `firebase-service` (solo browser), `simulator-standalone-page` e `standalone-bootstrap`. Gestione lavori: `loadLavori` in parallelo ai dati di riferimento; context Tony non blocca la tabella.
 - **Test:** `tests/standalone-ready.test.js`, `tests/simulator-standalone-page.test.js`.
-- **Resto aperto:** verifica CI T-PERF-002 / T-INJECT-001 / T-FLOW-013 e sim:e2e colture 18s.
+- **Resto aperto:** chiuso dalla voce «save lavoro, tabelle colture, card aziende sim» (stesso giorno).
 - Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
 
 ## Fix CI — workspace e gestione lavori dopo bootstrap (2026-09-19)
