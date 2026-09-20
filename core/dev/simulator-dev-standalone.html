@@ -40,7 +40,7 @@
     .status.err { background: #f8d7da; color: #721c24; }
     .empty { padding: 24px; text-align: center; color: #888; }
   </style>
-  <script>try{localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
+  <script>try{localStorage.setItem('gfv_firebase_emulator','1');localStorage.removeItem('gfv_demo_cloud_session');sessionStorage.removeItem('gfv_demo_cloud_session');}catch(e){}</script>
   <script type="module" src="../js/standalone-bootstrap.js" data-config-base=".."></script>
 </head>
 <body>
@@ -386,11 +386,16 @@
 
     (async () => {
       try {
-        await window.GFVStandaloneReady;
         const entries = await loadManifest();
         render(entries);
       } catch (e) {
         listEl.innerHTML = '';
+        showStatus(e.message || String(e), false);
+        return;
+      }
+      try {
+        await window.GFVStandaloneReady;
+      } catch (e) {
         showStatus(e.message || String(e), false);
       }
     })();

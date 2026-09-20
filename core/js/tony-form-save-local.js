@@ -16,6 +16,7 @@ import {
  *   modalId?: string,
  *   awaitingFlag: string,
  *   saveMessage: string,
+ *   savedMessage?: string,
  *   speakText?: string,
  *   denyMessage?: string,
  *   isFormActive: () => boolean,
@@ -33,6 +34,7 @@ export const TONY_FORM_SAVE_LOCAL_CONFIG = {
     modalId: 'lavoro-modal',
     awaitingFlag: '__tonyAwaitingLavoroSaveConfirm',
     saveMessage: 'Vuoi che salvi il lavoro?',
+    savedMessage: 'Lavoro salvato!',
     speakText: 'Vuoi che salvi il lavoro?',
     isFormActive: function isLavoroFormActiveForSave() {
       var pathLav = (typeof window !== 'undefined' && window.location && window.location.pathname)
@@ -58,6 +60,7 @@ export const TONY_FORM_SAVE_LOCAL_CONFIG = {
     modalId: 'preventivo-form',
     awaitingFlag: '__tonyAwaitingPreventivoSaveConfirm',
     saveMessage: 'Vuoi che salvi il preventivo?',
+    savedMessage: 'Preventivo salvato!',
     speakText: 'Vuoi che salvi il preventivo?',
     isFormActive: function isPreventivoFormActiveForSave() {
       return typeof document !== 'undefined' && !!document.getElementById('preventivo-form');
@@ -68,6 +71,7 @@ export const TONY_FORM_SAVE_LOCAL_CONFIG = {
     modalId: 'terreno-modal',
     awaitingFlag: '__tonyAwaitingTerrenoSaveConfirm',
     saveMessage: 'Vuoi che salvi il terreno?',
+    savedMessage: 'Terreno salvato!',
     speakText: 'Vuoi che salvi il terreno?',
     isFormActive: function isTerrenoFormActiveForSave() {
       var modal = typeof document !== 'undefined' ? document.getElementById('terreno-modal') : null;
@@ -79,6 +83,7 @@ export const TONY_FORM_SAVE_LOCAL_CONFIG = {
     modalId: 'prodotto-modal',
     awaitingFlag: '__tonyAwaitingProdottoSaveConfirm',
     saveMessage: 'Vuoi che salvi il prodotto?',
+    savedMessage: 'Prodotto salvato!',
     speakText: 'Vuoi che salvi il prodotto?',
     isFormActive: function isProdottoFormActiveForSave() {
       var modal = typeof document !== 'undefined' ? document.getElementById('prodotto-modal') : null;
@@ -90,6 +95,7 @@ export const TONY_FORM_SAVE_LOCAL_CONFIG = {
     modalId: 'movimento-modal',
     awaitingFlag: '__tonyAwaitingMovimentoSaveConfirm',
     saveMessage: 'Vuoi che salvi il movimento?',
+    savedMessage: 'Movimento registrato!',
     speakText: 'Vuoi che salvi il movimento?',
     isFormActive: function isMovimentoFormActiveForSave() {
       var modal = typeof document !== 'undefined' ? document.getElementById('movimento-modal') : null;
@@ -443,15 +449,9 @@ export function tryInterceptLavoroSaveBeforeCf(text, handlers) {
   if (!ready && !formReadyForTonySave('lavoro-form')) return { handled: false };
 
   if (typeof handlers.clearEarlyTyping === 'function') handlers.clearEarlyTyping();
-  if (typeof cfg.beforeSave === 'function') cfg.beforeSave();
-  if (typeof cfg.onConfirmReset === 'function') cfg.onConfirmReset();
-  if (typeof console !== 'undefined' && console.log) {
-    console.log('[Tony] Salva lavoro-form: conferma utente locale pre-CF (senza tonyAsk).');
-  }
-  if (typeof handlers.processTonyCommand === 'function') {
-    handlers.processTonyCommand({ type: 'SAVE_ACTIVITY' });
-  }
-  return { handled: true, confirmed: true };
+  // Prompt + flag: il «sì» successivo passa da tryInterceptTonyFormSaveConfirm (niente save muto).
+  promptTonyFormSaveLocal('lavoro-form', handlers);
+  return { handled: true, confirmed: false };
 }
 
 /**
@@ -557,6 +557,9 @@ export function tryInterceptTonyFormSaveConfirm(text, handlers) {
         console.log('[Tony] Salva ' + label + ': conferma utente locale (senza tonyAsk).');
       }
       if (typeof cfg.beforeSave === 'function') cfg.beforeSave();
+      if (typeof handlers.appendMessage === 'function' && cfg.savedMessage) {
+        handlers.appendMessage(cfg.savedMessage, 'tony');
+      }
       if (typeof handlers.processTonyCommand === 'function') {
         handlers.processTonyCommand({ type: 'SAVE_ACTIVITY' });
       }

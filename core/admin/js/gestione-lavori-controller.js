@@ -2026,56 +2026,26 @@ export async function renderLavori(
     if (terreniListToUse.length === 0) {
     }
     
-    const lavoriConDettagli = await Promise.all(
-        filteredLavoriList.map(async (lavoro) => {
-            let terreno = terreniListToUse.find(t => t.id === lavoro.terrenoId);
-            
-            // Se il terreno non è nella lista (può succedere per terreni clienti quando non siamo in modalità conto terzi),
-            // caricalo direttamente da Firestore
-            if (lavoro.terrenoId && !terreno && currentTenantId && db) {
-                try {
-                    const { doc, getDoc } = await import('../../services/firebase-service.js');
-                    const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', lavoro.terrenoId));
-                    if (terrenoDoc.exists()) {
-                        const terrenoData = terrenoDoc.data();
-                        terreno = {
-                            id: terrenoDoc.id,
-                            nome: terrenoData.nome || '',
-                            superficie: terrenoData.superficie || 0,
-                            coordinate: terrenoData.coordinate || null,
-                            polygonCoords: terrenoData.polygonCoords || null,
-                            coltura: terrenoData.coltura || null,
-                            colturaCategoria: terrenoData.colturaCategoria || null,
-                            colturaSottocategoria: terrenoData.colturaSottocategoria || null,
-                            tipoCampo: terrenoData.tipoCampo || null,
-                            clienteId: terrenoData.clienteId || null,
-                            ...terrenoData
-                        };
-                    }
-                } catch (error) {
-                    console.warn(`[GESTIONE LAVORI] Errore caricamento terreno ${lavoro.terrenoId}:`, error);
-                }
-            }
-            
+    const lavoriConDettagli = filteredLavoriList.map((lavoro) => {
+            const terreno = terreniListToUse.find(t => t.id === lavoro.terrenoId);
             const caposquadra = caposquadraListToUse.find(c => c.id === lavoro.caposquadraId);
             const squadra = squadreListToUse.find(s => s.caposquadraId === lavoro.caposquadraId);
             const operaio = operaiListToUse.find(o => o.id === lavoro.operaioId);
-            
-            return { 
-                ...lavoro, 
-                terreno, 
+            return {
+                ...lavoro,
+                terreno,
                 caposquadra,
                 squadra,
                 operaio
             };
-        })
-    );
+        });
 
-    // Carica progressi per ogni lavoro
-    const lavoriConProgressi = await Promise.all(
-        lavoriConDettagli.map(async (lavoro) => {
-            const progressi = loadProgressiLavoro ? await loadProgressiLavoro(lavoro.id) : { superficieLavorata: 0 };
-            const lavoroConProgressi = { ...lavoro, ...progressi };
+    // Progressi dal documento già in lista (niente getDoc/zone N+1 prima del primo paint).
+    const lavoriConProgressi = lavoriConDettagli.map((lavoro) => {
+            const lavoroConProgressi = {
+                ...lavoro,
+                superficieLavorata: lavoro.superficieTotaleLavorata || lavoro.superficieLavorata || 0
+            };
             
             // Calcola stato progresso se non presente o se necessario ricalcolarlo
             if (lavoroConProgressi.dataInizio && lavoroConProgressi.durataPrevista) {
@@ -2092,7 +2062,6 @@ export async function renderLavori(
                 // Calcola stato progresso se non presente
                 if (!lavoroConProgressi.statoProgresso && giorniEffettivi > 0) {
                     const superficieTotale = lavoroConProgressi.terreno?.superficie || 0;
-                    // Usa superficieTotaleLavorata dal documento lavoro o superficieLavorata calcolata da loadProgressiLavoro
                     const superficieLavorata = lavoroConProgressi.superficieTotaleLavorata || lavoroConProgressi.superficieLavorata || 0;
                     const percentualeCompletamento = superficieTotale > 0 ? (superficieLavorata / superficieTotale * 100) : 0;
                     const percentualeTempo = (giorniEffettivi / lavoroConProgressi.durataPrevista) * 100;
@@ -2112,8 +2081,7 @@ export async function renderLavori(
             }
             
             return lavoroConProgressi;
-        })
-    );
+        });
 
     // Applica filtro stato progresso se presente (dopo il calcolo)
     const progressoFilter = document.getElementById('filter-progresso')?.value || '';
