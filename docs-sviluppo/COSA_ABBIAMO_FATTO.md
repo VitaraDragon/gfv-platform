@@ -1,6 +1,13 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-21 — Tony nav: dashboard, meteo, reminder.**
+**Ultimo aggiornamento documentazione: 2026-09-21 — allineamento docs telefono + Higgsfield.**
+
+## Allineamento — piani dal telefono in locale + ordine Higgsfield (2026-09-21)
+
+- **Cosa:** portati in `docs-sviluppo/` i piani creati da cellulare/cloud (campo mobile, telefono manager, offline, lancio, agenti erranti, valutazione 12/09, cerchi aperti, copione Linea B) e i fogli video già parcheggiati in `wip/post-snellimento`. Registro Tony: nuove §24 e §25. Output Higgsfield resta in `workspace/output/` (gitignore).
+- **Perché:** lavoro PC e telefono non condividevano gli stessi file; i piani restavano solo su PR bozza.
+- **Non toccato:** codice app; PR #26 (estrazione documenti) è implementazione, non portata.
+- Doc: questa voce, `da-fare/README.md`, `INDICE_DOCUMENTAZIONE.md`. Master Plan: nessuna fase cambiata.
 
 ## Fix Tony — dalla dashboard «portami al meteo» non legge più le previsioni (2026-09-21)
 

@@ -73,3 +73,6 @@ vecchia app/
 
 # Prompt generati (npm run guida:suggest)
 scripts/guida-suggest-output/
+
+# Higgsfield — spot adv aperti: lastre/clip generate in locale, non in git
+workspace/output/

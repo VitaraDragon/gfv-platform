@@ -1,6 +1,6 @@
 # Indice documentazione sviluppo
 
-**Aggiornato:** 2026-07-10
+**Aggiornato:** 2026-09-21
 
 ## Onboarding (leggere per primi)
 
@@ -30,7 +30,7 @@
 |----------|-----------|
 | **[obsoleto/](obsoleto/README.md)** | Doc sostituiti, log sessione, analisi superate — **non usare per decisioni** |
 | **[in-sviluppo/](in-sviluppo/README.md)** | Lavoro parziale attivo (Tony perf, billing v2, vendemmia meccanica, E2E…) |
-| **[da-fare/](da-fare/README.md)** | Piani validi non ancora implementati (Tony Occhi, scalabilità lavori, snellimento…). Lazy Tony ✅ 2026-09-05 |
+| **[da-fare/](da-fare/README.md)** | Piani validi non ancora implementati (campo mobile, offline, lancio, demo tenant, Tony Occhi, snellimento…). Lazy Tony ✅ 2026-09-05 |
 
 ## Operativo
 
@@ -49,6 +49,25 @@ Piani completati — codice in `modules/` e `core/`:
 - `PLAN_CORE_BASE.md`, `PLAN_MODULO_VIGNETO_DETTAGLIATO.md`, `PLAN_MODULO_FRUTTETO_DETTAGLIATO.md`
 - `PLAN_MODULO_CONTO_TERZI.md`, `PLAN_MODULI_INTERCONNESSI.md`
 - `manodopera/PLAN_HUB_MODULO_MANODOPERA.md`, `dashboard/PLAN_PERFORMANCE_DASHBOARD.md`
+
+## Snapshot e inventario (foto, non stato operativo)
+
+| Documento | Scopo |
+|-----------|--------|
+| [VALUTAZIONE_APP_2026-09-12.md](VALUTAZIONE_APP_2026-09-12.md) | Valutazione prodotto/sicurezza al 12 settembre 2026 |
+| [CERCHI_APERTI_2026-09-01.md](CERCHI_APERTI_2026-09-01.md) | Inventario cerchi aperti al 1 settembre 2026 (poi chiusi in parte: inviti, magazzino, delete lavori) |
+| [PROGETTO_APP_SNAPSHOT_2026-09-05.md](PROGETTO_APP_SNAPSHOT_2026-09-05.md) | Specifica tecnica dump 5 settembre — non è la fonte di verità |
+
+## Spot / Higgsfield (progetto aperto)
+
+| Documento | Scopo |
+|-----------|--------|
+| [COPIONE_PRIMO_SPOT_SOCIAL.md](COPIONE_PRIMO_SPOT_SOCIAL.md) | Linea A — spot brand (laptop + retino) |
+| [COPIONE_SPOT_FLUSSI_APP.md](COPIONE_SPOT_FLUSSI_APP.md) | Linea B — serie feature (guasto, zona lavorata) |
+| [PIANO_VIDEO_PRESENTAZIONE_PROF_E_RIUSO_COMMERCIALE.md](PIANO_VIDEO_PRESENTAZIONE_PROF_E_RIUSO_COMMERCIALE.md) | Direzione video e riuso commerciale |
+| [VIDEO_STORYBOARD_SCRIPT_E_CLIP.md](VIDEO_STORYBOARD_SCRIPT_E_CLIP.md) | Storyboard, script, lista clip |
+| [VIDEO_BRIEF_GEMINI_PERSONAGGI.md](VIDEO_BRIEF_GEMINI_PERSONAGGI.md) | Brief personaggi Linea A (non usare per Linea B) |
+| [`workspace/README.md`](../workspace/README.md) | Output Higgsfield in locale (gitignored) |
 
 ## Guide utente (mirror)
 
