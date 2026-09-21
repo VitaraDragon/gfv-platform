@@ -89,7 +89,11 @@
     html[data-screen="carico"] #screen-carico,
     html[data-screen="meteo"] #screen-meteo,
     html[data-screen="mappa"] #screen-mappa,
-    html[data-screen="dettaglio"] #screen-dettaglio { display: block; }
+    html[data-screen="dettaglio"] #screen-dettaglio,
+    html[data-screen="hub"] #screen-hub,
+    html[data-screen="sub"] #screen-sub,
+    html[data-screen="abbonamento"] #screen-abbonamento,
+    html[data-screen="opzioni"] #screen-opzioni { display: block; }
 
     .app-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
     .app-actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -109,6 +113,7 @@
       color: #333;
       font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
     }
+    html[data-theme="oggi"][data-accent="vigneto"] .phone,
     html[data-theme="oggi"][data-screen="vigneto"] .phone {
       background: linear-gradient(135deg, #E1BEE7 0%, #6A1B9A 100%);
     }
@@ -121,6 +126,21 @@
       background: linear-gradient(135deg, #e3f2fd 0%, #e8f5e9 100%);
     }
     html[data-theme="oggi"][data-screen="mappa"] .phone { background: #f5f7fa; }
+    html[data-theme="oggi"][data-accent="frutteto"] .phone {
+      background: linear-gradient(135deg, #FFE0B2 0%, #FF6F00 100%);
+    }
+    html[data-theme="oggi"][data-accent="manodopera"] .phone {
+      background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+    }
+    html[data-theme="oggi"][data-accent="magazzino"] .phone {
+      background: linear-gradient(135deg, #C8E6C9 0%, #2E7D32 100%);
+    }
+    html[data-theme="oggi"][data-accent="macchine"] .phone {
+      background: linear-gradient(135deg, #BBDEFB 0%, #1565C0 100%);
+    }
+    html[data-theme="oggi"][data-accent="ct"] .phone {
+      background: linear-gradient(135deg, #FFE0B2 0%, #EF6C00 100%);
+    }
     html[data-theme="oggi"] .wrap { padding: 16px; }
     html[data-theme="oggi"] .app-header {
       background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
@@ -130,15 +150,26 @@
       margin-bottom: 16px;
       box-shadow: 0 4px 6px rgba(0,0,0,.1);
     }
+    html[data-theme="oggi"][data-accent="vigneto"] .app-header,
     html[data-theme="oggi"][data-screen="vigneto"] .app-header {
       background: linear-gradient(135deg, #6A1B9A 0%, #4A148C 100%);
-      text-align: center;
-      justify-content: center;
-      padding: 36px 20px;
     }
     html[data-theme="oggi"][data-screen="meteo"] .app-header {
       background: linear-gradient(135deg, #0288D1 0%, #01579B 100%);
     }
+    html[data-theme="oggi"][data-accent="frutteto"] .app-header {
+      background: linear-gradient(135deg, #FF6F00 0%, #E65100 100%);
+    }
+    html[data-theme="oggi"][data-accent="macchine"] .app-header {
+      background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
+    }
+    html[data-theme="oggi"][data-accent="ct"] .app-header {
+      background: linear-gradient(135deg, #EF6C00 0%, #E65100 100%);
+    }
+    html[data-theme="oggi"][data-accent="frutteto"] .stat { border-left-color: #FF6F00; background: linear-gradient(135deg, #FFF3E0, #FFE0B2); }
+    html[data-theme="oggi"][data-accent="frutteto"] .stat b,
+    html[data-theme="oggi"][data-accent="frutteto"] .panel h2 { color: #E65100; }
+    html[data-theme="oggi"][data-accent="frutteto"] .card { background: #fff; border-color: #FF6F00; }
     html[data-theme="oggi"] .app-header h1 { margin: 0 0 6px; font-size: 24px; }
     html[data-theme="oggi"] .app-header p { margin: 0; font-size: 13px; opacity: .92; }
     html[data-theme="oggi"] .btn-ghost {
@@ -218,6 +249,7 @@
       box-shadow: none;
       align-items: center;
     }
+    html[data-theme="proposta"][data-accent="vigneto"] .app-header,
     html[data-theme="proposta"][data-screen="vigneto"] .app-header {
       border-bottom: 3px solid #6A1B9A;
     }
@@ -234,6 +266,10 @@
     html[data-theme="proposta"][data-screen="mappa"] .app-header {
       border-bottom: 3px solid #2E8B57;
     }
+    html[data-theme="proposta"][data-accent="frutteto"] .app-header { border-bottom: 3px solid #FF6F00; }
+    html[data-theme="proposta"][data-accent="macchine"] .app-header { border-bottom: 3px solid #1565C0; }
+    html[data-theme="proposta"][data-accent="ct"] .app-header { border-bottom: 3px solid #EF6C00; }
+    a.card, button.card { cursor: pointer; }
     html[data-theme="proposta"] .brand {
       display: flex;
       align-items: center;
@@ -685,6 +721,59 @@
       width: 26px;
       height: 26px;
     }
+    .mod-row, .opt-block {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px;
+      background: #fff;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      text-align: left;
+      width: 100%;
+      border: 0;
+      font: inherit;
+      color: inherit;
+    }
+    html[data-theme="proposta"] .mod-row,
+    html[data-theme="proposta"] .opt-block {
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 14px;
+    }
+    .mod-row strong, .opt-block strong { display: block; font-size: 14px; }
+    .mod-row small, .opt-block small { display: block; font-size: 12px; color: #666; margin-top: 2px; }
+    .tag {
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .tag.on { background: #dcfce7; color: #166534; }
+    .tag.off { background: #f5f5f4; color: #57534e; }
+    .tag.soon { background: #fff3cd; color: #856404; }
+    .tag.trial { background: #e0f2fe; color: #0369a1; }
+    .plan-box {
+      padding: 16px;
+      background: #f0f8f4;
+      border: 2px solid #2E8B57;
+      border-radius: 12px;
+      margin-bottom: 14px;
+    }
+    html[data-theme="proposta"] .plan-box {
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 16px;
+    }
+    .plan-box .price { font-size: 28px; font-weight: 700; }
+    .plan-box .price span { font-size: 14px; font-weight: 400; color: #666; }
+    html[data-theme="oggi"] button.card {
+      background: #f8f9fa;
+      border: 2px solid transparent;
+    }
 
     html[data-theme="oggi"] .briefing,
     html[data-theme="oggi"] .brand img,
@@ -784,7 +873,14 @@
       <div class="seg" role="group" aria-label="Tipo di pagina">
         <button type="button" data-screen="dashboard" aria-pressed="true">Home</button>
         <button type="button" data-screen="vigneto" aria-pressed="false">Vigneto</button>
+        <button type="button" data-go="hub:frutteto" aria-pressed="false">Frutteto</button>
+      </div>
+    </div>
+    <div class="lab-row">
+      <div class="seg" role="group" aria-label="Liste e account">
         <button type="button" data-screen="lista" aria-pressed="false">Lista</button>
+        <button type="button" data-go="abbonamento" aria-pressed="false">Abb.</button>
+        <button type="button" data-go="opzioni" aria-pressed="false">Opzioni</button>
       </div>
     </div>
     <div class="lab-row">
@@ -809,7 +905,7 @@
             </div>
           </div>
           <div class="app-actions">
-            <span class="btn btn-ghost"><span class="emoji">⚙️ </span>Impostazioni</span>
+            <button type="button" class="btn btn-ghost" data-go="opzioni"><span class="emoji">⚙️ </span>Impostazioni</button>
           </div>
         </header>
 
@@ -830,29 +926,77 @@
         <div class="panel">
           <h2><span class="emoji">📋 </span>Azioni rapide</h2>
           <div class="grid cards">
-            <a class="card" href="#" data-fake>
+            <a class="card" href="#" data-go="hub:terreni">
               <span class="ico">🗺️</span>
               <span class="svg-ico ico-core" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg></span>
               <strong>Terreni</strong>
               <small>Anagrafica e mappa</small>
             </a>
-            <a class="card" href="#" data-fake>
-              <span class="ico">📝</span>
-              <span class="svg-ico ico-core" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h10l4 4v12H5z"/><path d="M15 4v4h4M8 12h8M8 16h6"/></svg></span>
-              <strong>Diario attività</strong>
-              <small>Registra il lavoro</small>
+            <a class="card" href="#" data-go="lista">
+              <span class="ico">📋</span>
+              <span class="svg-ico ico-core" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
+              <strong>Gestione lavori</strong>
+              <small>Lista e dettaglio</small>
             </a>
-            <a class="card" href="#" data-fake>
+            <a class="card" href="#" data-go="vigneto">
+              <span class="ico">🍇</span>
+              <span class="svg-ico ico-vigneto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg></span>
+              <strong>Vigneto</strong>
+              <small>Anagrafica, vendemmia, trattamenti</small>
+            </a>
+            <a class="card" href="#" data-go="hub:frutteto">
+              <span class="ico">🍎</span>
+              <span class="svg-ico ico-frutto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="6"/><path d="M12 7c0-3 2-4 4-4"/></svg></span>
+              <strong>Frutteto</strong>
+              <small>Anagrafica, raccolta, trattamenti</small>
+            </a>
+            <a class="card" href="#" data-go="hub:manodopera">
               <span class="ico">👷</span>
-              <span class="svg-ico ico-core" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c1-4 4-6 6-6s5 2 6 6"/><circle cx="17" cy="9" r="2"/><path d="M16 20c.4-2 1.5-3.5 3-4"/></svg></span>
+              <span class="svg-ico ico-core" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c1-4 4-6 6-6s5 2 6 6"/></svg></span>
               <strong>Manodopera</strong>
               <small>Lavori, squadre, ore</small>
             </a>
-            <a class="card" href="#" data-fake>
+            <a class="card" href="#" data-go="hub:magazzino">
               <span class="ico">📦</span>
-              <span class="svg-ico ico-frutto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h18v12H3zM3 8l9-4 9 4M12 8v12"/></svg></span>
+              <span class="svg-ico ico-frutto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h18v12H3zM12 8v12"/></svg></span>
               <strong>Magazzino</strong>
               <small>Prodotti e movimenti</small>
+            </a>
+            <a class="card" href="#" data-go="hub:macchine">
+              <span class="ico">🚜</span>
+              <span class="svg-ico ico-blue" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="13" height="7" rx="1"/><circle cx="7" cy="18" r="2"/><circle cx="16" cy="18" r="2"/></svg></span>
+              <strong>Parco macchine</strong>
+              <small>Trattori, attrezzi, scadenze</small>
+            </a>
+            <a class="card" href="#" data-go="hub:ct">
+              <span class="ico">🤝</span>
+              <span class="svg-ico ico-frutto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h8M8 12l-3 4M16 12l3 4"/></svg></span>
+              <strong>Conto terzi</strong>
+              <small>Clienti, preventivi, tariffe</small>
+            </a>
+            <a class="card" href="#" data-go="meteo">
+              <span class="ico">🌦️</span>
+              <span class="svg-ico ico-meteo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="9" r="3"/><path d="M12 9h6a3 3 0 010 6H7"/></svg></span>
+              <strong>Meteo</strong>
+              <small>Sede e campi</small>
+            </a>
+            <a class="card" href="#" data-go="hub:report">
+              <span class="ico">📑</span>
+              <span class="svg-ico ico-core" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4h9l3 3v13H6z"/></svg></span>
+              <strong>Report</strong>
+              <small>Bilancio per area</small>
+            </a>
+            <a class="card" href="#" data-go="abbonamento">
+              <span class="ico">💳</span>
+              <span class="svg-ico ico-core" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M2 10h20"/></svg></span>
+              <strong>Abbonamento</strong>
+              <small>Piano Base e moduli</small>
+            </a>
+            <a class="card" href="#" data-go="opzioni">
+              <span class="ico">⚙️</span>
+              <span class="svg-ico ico-core" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></span>
+              <strong>Impostazioni</strong>
+              <small>Azienda, account, liste</small>
             </a>
           </div>
         </div>
@@ -884,31 +1028,150 @@
         <div class="panel">
           <h2>Azioni rapide</h2>
           <div class="grid cards">
-            <a class="card" href="#" data-fake>
+            <a class="card" href="#" data-go="sub:vigneti">
               <span class="ico">🍇</span>
               <span class="svg-ico ico-vigneto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="10" r="2"/><circle cx="13" cy="8" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="11" cy="14" r="2"/><path d="M12 4v2"/></svg></span>
               <strong>Anagrafica vigneti</strong>
               <small>Dati tecnici e filari</small>
             </a>
-            <a class="card" href="#" data-fake>
+            <a class="card" href="#" data-go="sub:vendemmia">
               <span class="ico">🍷</span>
               <span class="svg-ico ico-vigneto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 4h8l1 7a5 5 0 11-10 0zM12 16v4M9 20h6"/></svg></span>
               <strong>Vendemmia</strong>
               <small>Registra la produzione</small>
             </a>
-            <a class="card" href="#" data-fake>
+            <a class="card" href="#" data-go="sub:v-potatura">
               <span class="ico">✂️</span>
               <span class="svg-ico ico-vigneto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="7" r="3"/><circle cx="6" cy="17" r="3"/><path d="M8.5 8.5L20 20M8.5 15.5L20 4"/></svg></span>
               <strong>Potatura</strong>
               <small>Invernale, verde, rinnovo</small>
             </a>
-            <a class="card" href="#" data-fake>
+            <a class="card" href="#" data-go="sub:v-trattamenti">
               <span class="ico">🧪</span>
               <span class="svg-ico ico-vigneto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3h4v7l5 8H5l5-8z"/></svg></span>
               <strong>Trattamenti</strong>
               <small>Fitosanitari di campo</small>
             </a>
           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HUB GENERICO (Frutteto e altri moduli) -->
+    <section class="screen" id="screen-hub">
+      <div class="wrap">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1 id="hub-title">Modulo</h1>
+              <p id="hub-sub">Sottotitolo</p>
+            </div>
+          </div>
+          <div class="app-actions">
+            <button type="button" class="btn btn-ghost" data-go="dashboard">← Home</button>
+          </div>
+        </header>
+        <div class="panel">
+          <div class="grid stats" id="hub-kpis"></div>
+        </div>
+        <div class="panel">
+          <h2>Azioni rapide</h2>
+          <div class="grid cards" id="hub-cards"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SOTTO-MENU LISTA -->
+    <section class="screen" id="screen-sub">
+      <div class="wrap">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1 id="sub-title">Lista</h1>
+              <p id="sub-sub"></p>
+            </div>
+          </div>
+          <div class="app-actions">
+            <button type="button" class="btn btn-ghost" id="sub-back">← Hub</button>
+          </div>
+        </header>
+        <div class="panel">
+          <div class="wide-wrap" id="sub-table-wrap"></div>
+          <div class="job-cards" id="sub-cards"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABBONAMENTO -->
+    <section class="screen" id="screen-abbonamento">
+      <div class="wrap">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1><span class="emoji">💳 </span>Abbonamento</h1>
+              <p class="only-old-copy">Gestisci il tuo piano e i moduli attivi</p>
+              <p class="only-new-copy">Piano Base · 6 moduli attivi</p>
+            </div>
+          </div>
+          <div class="app-actions">
+            <button type="button" class="btn btn-ghost" data-go="dashboard">← Home</button>
+          </div>
+        </header>
+        <div class="panel">
+          <div class="plan-box">
+            <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.04em;">Piano attuale</div>
+            <div class="price">Base <span>€5/mese · addebito annuale</span></div>
+            <p class="muted" style="margin:8px 0 0;font-size:13px;">Terreni, diario, gestione lavori. I moduli sotto si aggiungono a pezzo.</p>
+          </div>
+          <h2>Moduli attivi</h2>
+          <div class="mod-row"><div><strong>🍇 Vigneto</strong><small>Gestione vigneti e vendemmia</small></div><span class="tag on">Attivo · €3</span></div>
+          <div class="mod-row"><div><strong>🍎 Frutteto</strong><small>Gestione frutteti e raccolta</small></div><span class="tag on">Attivo · €3</span></div>
+          <div class="mod-row"><div><strong>👷 Manodopera</strong><small>Squadre, ore, validazione</small></div><span class="tag on">Attivo · €6</span></div>
+          <div class="mod-row"><div><strong>📦 Magazzino</strong><small>Prodotti e movimenti</small></div><span class="tag on">Attivo · €3</span></div>
+          <div class="mod-row"><div><strong>🌦️ Meteo</strong><small>Previsioni sede e campi</small></div><span class="tag on">Attivo · €1</span></div>
+          <div class="mod-row"><div><strong>🤖 Tony Avanzato</strong><small>Azioni operative in chat</small></div><span class="tag on">Attivo · €5</span></div>
+          <h2 style="margin-top:18px;">Disponibili</h2>
+          <div class="mod-row"><div><strong>🚜 Parco macchine</strong><small>Trattori, attrezzi, scadenze</small></div><span class="tag trial">Prova 30 gg · €3</span></div>
+          <div class="mod-row"><div><strong>🤝 Conto terzi</strong><small>Clienti, preventivi, tariffe</small></div><span class="tag off">Attiva · €6</span></div>
+          <div class="mod-row"><div><strong>📑 Report</strong><small>Bilancio per area</small></div><span class="tag off">Attiva · €5</span></div>
+          <div class="mod-row"><div><strong>🫒 Oliveto</strong><small>Gestione oliveti e raccolta</small></div><span class="tag soon">Prossimamente</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- OPZIONI / IMPOSTAZIONI -->
+    <section class="screen" id="screen-opzioni">
+      <div class="wrap">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1><span class="emoji">⚙️ </span>Impostazioni</h1>
+              <p class="only-old-copy">Configura azienda e account</p>
+              <p class="only-new-copy">Sabbie Gialle · Marco</p>
+            </div>
+          </div>
+          <div class="app-actions">
+            <button type="button" class="btn btn-ghost" data-go="dashboard">← Home</button>
+          </div>
+        </header>
+        <div class="panel">
+          <h2>Azienda</h2>
+          <div class="opt-block"><div><strong>Nome</strong><small>Sabbie Gialle</small></div></div>
+          <div class="opt-block"><div><strong>Partita IVA</strong><small>IT01234567890</small></div></div>
+          <div class="opt-block"><div><strong>Sede</strong><small>Via dei Filari 12, Castelnuovo</small></div></div>
+          <h2 style="margin-top:16px;">Account</h2>
+          <div class="opt-block"><div><strong>Marco Rossi</strong><small>marco@sabbiegialle.it · manager</small></div></div>
+          <div class="opt-block"><div><strong>Notifiche push</strong><small>Ciclo lavoro e assenze</small></div><span class="tag on">On</span></div>
+          <div class="opt-block"><div><strong>Cambio password</strong><small>Ultimo cambio 3 mesi fa</small></div></div>
+          <h2 style="margin-top:16px;">Liste e tariffe</h2>
+          <div class="opt-block"><div><strong>Poderi</strong><small>2 poderì · sede + Olmo</small></div></div>
+          <div class="opt-block"><div><strong>Tipi lavoro</strong><small>78 tipi · categorie e sottocategorie</small></div></div>
+          <div class="opt-block"><div><strong>Colture</strong><small>Vite, nettarina, mela, albicocca</small></div></div>
+          <div class="opt-block"><div><strong>Tariffe operai</strong><small>Da €11,50/h</small></div></div>
         </div>
       </div>
     </section>
@@ -1321,7 +1584,7 @@
       var params = new URLSearchParams(location.search);
       var theme = params.get("theme") || localStorage.getItem("gfvUiPreviewTheme") || "oggi";
       var screen = params.get("screen") || localStorage.getItem("gfvUiPreviewScreen") || "dashboard";
-      var screens = { dashboard: 1, vigneto: 1, lista: 1, carico: 1, meteo: 1, mappa: 1, dettaglio: 1 };
+      var screens = { dashboard: 1, vigneto: 1, lista: 1, carico: 1, meteo: 1, mappa: 1, dettaglio: 1, hub: 1, sub: 1, abbonamento: 1, opzioni: 1 };
       var JOBS = {
         potatura: {
           title: "Potatura Sangiovese",
@@ -1408,14 +1671,298 @@
       var job = params.get("job") || "potatura";
       var dtab = params.get("tab") || "overview";
       var dayFilter = "tutte";
+      var hubId = params.get("hub") || "frutteto";
+      var subId = params.get("sub") || "frutteti";
+      var HUBS = {
+        frutteto: {
+          accent: "frutteto",
+          title: "🍎 Dashboard Frutteto",
+          oldCopy: "Panoramica completa gestione frutteti e raccolta",
+          newCopy: "6 frutteti · 4,2 ha",
+          kpis: [
+            { v: "18,4 t", l: "Produzione anno" },
+            { v: "4,4 t/ha", l: "Resa media" },
+            { v: "€ 2,1k", l: "Spese totali" },
+            { v: "6", l: "Frutteti" },
+            { v: "9", l: "Raccolte anno" }
+          ],
+          cards: [
+            { go: "sub:frutteti", ico: "🍎", skin: "ico-frutto", title: "Anagrafica Frutteti", desc: "Gestisci anagrafica frutteti e dati tecnici" },
+            { go: "sub:raccolta", ico: "📦", skin: "ico-frutto", title: "Gestione Raccolta Frutta", desc: "Registra raccolte e traccia produzione" },
+            { go: "sub:f-potatura", ico: "✂️", skin: "ico-frutto", title: "Potatura", desc: "Invernale, verde, formazione, rinnovo" },
+            { go: "sub:f-trattamenti", ico: "🧪", skin: "ico-frutto", title: "Trattamenti", desc: "Fitosanitari di campo" },
+            { go: "sub:f-concimazioni", ico: "🌱", skin: "ico-frutto", title: "Concimazioni", desc: "Concimazioni di campo" },
+            { go: "sub:f-pianifica", ico: "📐", skin: "ico-frutto", title: "Pianifica Nuovo Impianto", desc: "File, piante e materiali" },
+            { go: "sub:f-materiali", ico: "🔢", skin: "ico-frutto", title: "Calcolo Materiali", desc: "Dalle pianificazioni salvate" },
+            { go: "sub:f-stats", ico: "📊", skin: "ico-frutto", title: "Statistiche e Grafici", desc: "Analisi e grafici" }
+          ]
+        },
+        manodopera: {
+          accent: "manodopera",
+          title: "👷 Manodopera",
+          oldCopy: "Lavori, squadre, ore",
+          newCopy: "3 lavori aperti · 2 ore da validare",
+          kpis: [{ v: "3", l: "Lavori aperti" }, { v: "2", l: "Ore da validare" }, { v: "8", l: "Operai" }],
+          cards: [
+            { go: "lista", ico: "📋", title: "Gestione lavori", desc: "Lista manager, mappa, dettaglio" },
+            { go: "sub:impegni", ico: "📅", title: "Impegni giornalieri", desc: "Chi è dove oggi" },
+            { go: "sub:validazione", ico: "⏰", title: "Validazione ore", desc: "Approva le ore di campo" },
+            { go: "sub:operai", ico: "👷", title: "Gestione operai", desc: "Contratti e competenze" },
+            { go: "sub:squadre", ico: "👥", title: "Gestione squadre", desc: "Capi e membri" },
+            { go: "sub:compensi", ico: "💰", title: "Compensi operai", desc: "Calcolo e storico" }
+          ]
+        },
+        magazzino: {
+          accent: "magazzino",
+          title: "📦 Magazzino",
+          oldCopy: "Prodotti, giacenze, movimenti",
+          newCopy: "1 sotto scorta · 5 prezzi in attesa",
+          kpis: [{ v: "42", l: "Prodotti" }, { v: "1", l: "Sotto scorta" }, { v: "5", l: "Prezzi in attesa" }],
+          cards: [
+            { go: "sub:prodotti", ico: "📦", skin: "ico-frutto", title: "Anagrafica Prodotti", desc: "Catalogo e giacenze" },
+            { go: "sub:movimenti", ico: "↔️", skin: "ico-frutto", title: "Movimenti", desc: "Entrate e uscite" },
+            { go: "sub:tracciabilita", ico: "🔎", skin: "ico-frutto", title: "Tracciabilità consumi", desc: "Da trattamenti e concimazioni" },
+            { go: "sub:archivio", ico: "📄", skin: "ico-frutto", title: "Archivio documenti", desc: "Bolle e fatture" }
+          ]
+        },
+        macchine: {
+          accent: "macchine",
+          title: "🚜 Parco macchine",
+          oldCopy: "Trattori, attrezzi, scadenze",
+          newCopy: "4 trattori · 1 scadenza",
+          kpis: [{ v: "4", l: "Trattori" }, { v: "9", l: "Attrezzi" }, { v: "1", l: "Scadenza 7 gg" }],
+          cards: [
+            { go: "sub:trattori", ico: "🚜", skin: "ico-blue", title: "Elenco Trattori", desc: "In uso e disponibili" },
+            { go: "sub:attrezzi", ico: "🔧", skin: "ico-blue", title: "Elenco Attrezzature", desc: "Categorie e CV min" },
+            { go: "sub:scadenze", ico: "📅", skin: "ico-blue", title: "Scadenze", desc: "Revisione e assicurazione" },
+            { go: "sub:officina", ico: "🛠️", skin: "ico-blue", title: "Officina & Guasti", desc: "Aperti e risolti" }
+          ]
+        },
+        ct: {
+          accent: "ct",
+          title: "🤝 Conto terzi",
+          oldCopy: "Clienti, preventivi, tariffe",
+          newCopy: "3 preventivi aperti",
+          kpis: [{ v: "12", l: "Clienti" }, { v: "3", l: "Preventivi" }, { v: "18", l: "Tariffe" }],
+          cards: [
+            { go: "sub:clienti", ico: "👤", skin: "ico-frutto", title: "Anagrafica Clienti", desc: "Ragione sociale e contatti" },
+            { go: "sub:terreni-ct", ico: "🗺️", skin: "ico-frutto", title: "Terreni Clienti", desc: "Campi da lavorare" },
+            { go: "sub:preventivi", ico: "📄", skin: "ico-frutto", title: "Preventivi", desc: "Bozza, inviati, accettati" },
+            { go: "sub:tariffe", ico: "💶", skin: "ico-frutto", title: "Tariffe", desc: "Listino lavori CT" }
+          ]
+        },
+        terreni: {
+          accent: "manodopera",
+          title: "🗺️ Terreni",
+          oldCopy: "Anagrafica terreni aziendali",
+          newCopy: "14 terreni · 22 ha",
+          kpis: [{ v: "14", l: "Terreni" }, { v: "22 ha", l: "Superficie" }],
+          cards: [
+            { go: "sub:terreni-list", ico: "🗺️", title: "Elenco terreni", desc: "Nome, ha, coltura" },
+            { go: "mappa", ico: "📍", title: "Mappa aziendale", desc: "Confini e allarmi" }
+          ]
+        },
+        report: {
+          accent: "manodopera",
+          title: "📑 Report",
+          oldCopy: "Bilancio per area",
+          newCopy: "Sintesi 2026",
+          kpis: [{ v: "€ 48k", l: "Costi anno" }, { v: "5", l: "Aree" }],
+          cards: [
+            { go: "sub:rep-terreni", ico: "🗺️", title: "Terreni", desc: "Costi per campo" },
+            { go: "sub:rep-vigneto", ico: "🍇", skin: "ico-vigneto", title: "Vigneto", desc: "Vendemmia e spese" },
+            { go: "sub:rep-frutteto", ico: "🍎", skin: "ico-frutto", title: "Frutteto", desc: "Raccolta e spese" }
+          ]
+        }
+      };
+      var SUBS = {
+        frutteti: { hub: "frutteto", title: "Anagrafica frutteti", sub: "6 impianti", cols: ["Nome", "Specie", "Ha", "Forma"], items: [
+          { name: "Nettarine Olmo", meta: "Nettarina · 1,80 ha · vaso" },
+          { name: "Meleti Nord", meta: "Mela Golden · 1,20 ha · fusetto" },
+          { name: "Albicocche Sud", meta: "Albicocca · 1,20 ha · palmetta" }
+        ]},
+        raccolta: { hub: "frutteto", title: "Raccolta frutta", sub: "9 raccolte nel 2026", cols: ["Data", "Frutteto", "Kg", "Resa"], items: [
+          { name: "12 ago · Nettarine Olmo", meta: "3.200 kg · 17,8 t/ha" },
+          { name: "3 set · Meleti Nord", meta: "2.100 kg · 17,5 t/ha" }
+        ]},
+        "f-potatura": { hub: "frutteto", title: "Potatura", sub: "Invernale e verde", cols: ["Data", "Frutteto", "Tipo"], items: [
+          { name: "Potatura invernale · Olmo", meta: "18 feb · 1,80 ha" },
+          { name: "Verde · Meleti Nord", meta: "12 giu · 1,20 ha" }
+        ]},
+        "f-trattamenti": { hub: "frutteto", title: "Trattamenti", sub: "Fitosanitari di campo", cols: ["Data", "Prodotto", "Frutteto"], items: [
+          { name: "Olio bianco · Nettarine", meta: "4 mar · carenza 20 gg" },
+          { name: "Zolfo · Meleti", meta: "22 apr" }
+        ]},
+        "f-concimazioni": { hub: "frutteto", title: "Concimazioni", sub: "Di campo", cols: ["Data", "Prodotto", "Ha"], items: [
+          { name: "Concime fogliare · Olmo", meta: "9 mag · 1,80 ha" }
+        ]},
+        "f-pianifica": { hub: "frutteto", title: "Pianifica impianto", sub: "Calcolo file e piante", cols: ["Nome", "Specie", "Piante"], items: [
+          { name: "Nuovo meleto ovest", meta: "Mela · 2.400 piante · bozza" }
+        ]},
+        "f-materiali": { hub: "frutteto", title: "Calcolo materiali", sub: "Dalle pianificazioni", cols: ["Voce", "Q.tà", "Unità"], items: [
+          { name: "Pali", meta: "420 pz" },
+          { name: "Filo", meta: "1.800 m" }
+        ]},
+        "f-stats": { hub: "frutteto", title: "Statistiche frutteto", sub: "Anno 2026", cols: ["Indicatore", "Valore"], items: [
+          { name: "Produzione", meta: "18,4 t" },
+          { name: "Resa media", meta: "4,4 t/ha" },
+          { name: "Spese", meta: "€ 2.140" }
+        ]},
+        vigneti: { hub: "vigneto", title: "Anagrafica vigneti", sub: "12 impianti", cols: ["Nome", "Vitigno", "Ha"], items: [
+          { name: "Sangiovese Pannelli", meta: "Sangiovese · 2,00 ha" },
+          { name: "Larghetta", meta: "Trebbiano · 1,50 ha" }
+        ]},
+        vendemmia: { hub: "vigneto", title: "Vendemmia", sub: "2026", cols: ["Data", "Vigneto", "Q.li"], items: [
+          { name: "28 set · Pannelli", meta: "42 q · in corso" }
+        ]},
+        "v-potatura": { hub: "vigneto", title: "Potatura vigneto", sub: "Invernale e verde", cols: ["Data", "Vigneto", "Tipo"], items: [
+          { name: "Invernale · Pannelli", meta: "10 feb" }
+        ]},
+        "v-trattamenti": { hub: "vigneto", title: "Trattamenti vigneto", sub: "Fitosanitari", cols: ["Data", "Prodotto"], items: [
+          { name: "Rame · Pannelli", meta: "18 apr" }
+        ]},
+        impegni: { hub: "manodopera", title: "Impegni giornalieri", sub: "Oggi", cols: ["Persona", "Lavoro", "Campo"], items: [
+          { name: "Gaia Bianchi", meta: "Potatura · Pannelli" },
+          { name: "Luca Fabbri", meta: "Trinciatura · Larghetta" }
+        ]},
+        validazione: { hub: "manodopera", title: "Validazione ore", sub: "2 da validare", cols: ["Operaio", "Ore", "Lavoro"], items: [
+          { name: "Luca Fabbri", meta: "2 h · Trinciatura" }
+        ]},
+        operai: { hub: "manodopera", title: "Gestione operai", sub: "8 persone", cols: ["Nome", "Ruolo"], items: [
+          { name: "Gaia Bianchi", meta: "Caposquadra" },
+          { name: "Luca Fabbri", meta: "Operaio autonomo" }
+        ]},
+        squadre: { hub: "manodopera", title: "Gestione squadre", sub: "2 squadre", cols: ["Nome", "Capo", "Membri"], items: [
+          { name: "Squadra Gaia", meta: "4 persone" }
+        ]},
+        compensi: { hub: "manodopera", title: "Compensi operai", sub: "Marzo 2026", cols: ["Nome", "Ore", "Importo"], items: [
+          { name: "Gaia Bianchi", meta: "86 h · € 1.247" }
+        ]},
+        prodotti: { hub: "magazzino", title: "Anagrafica prodotti", sub: "42 prodotti", cols: ["Nome", "Giacenza"], items: [
+          { name: "Concime fogliare", meta: "4 L · sotto scorta" },
+          { name: "Rame", meta: "12 kg" }
+        ]},
+        movimenti: { hub: "magazzino", title: "Movimenti", sub: "Ultime uscite", cols: ["Data", "Prodotto", "Q.tà"], items: [
+          { name: "Uscita rame", meta: "18 apr · −2 kg" }
+        ]},
+        tracciabilita: { hub: "magazzino", title: "Tracciabilità", sub: "Da trattamenti", cols: ["Data", "Prodotto", "Campo"], items: [
+          { name: "Zolfo · Meleti", meta: "22 apr" }
+        ]},
+        archivio: { hub: "magazzino", title: "Archivio documenti", sub: "Bolle e fatture", cols: ["Doc", "Fornitore", "Stato"], items: [
+          { name: "DDT 128", meta: "Agraria Rossi · 5 prezzi in attesa" }
+        ]},
+        trattori: { hub: "macchine", title: "Trattori", sub: "4 mezzi", cols: ["Nome", "CV", "Stato"], items: [
+          { name: "T5", meta: "105 CV · in uso" }
+        ]},
+        attrezzi: { hub: "macchine", title: "Attrezzature", sub: "9 attrezzi", cols: ["Nome", "Categoria"], items: [
+          { name: "Rotante 200", meta: "Lavorazione suolo" }
+        ]},
+        scadenze: { hub: "macchine", title: "Scadenze mezzi", sub: "7 giorni", cols: ["Mezzo", "Scadenza"], items: [
+          { name: "T5 revisione", meta: "28 set" }
+        ]},
+        officina: { hub: "macchine", title: "Officina e guasti", sub: "2 aperti", cols: ["Mezzo", "Guasto"], items: [
+          { name: "T5", meta: "Perdita olio · aperto" }
+        ]},
+        clienti: { hub: "ct", title: "Clienti", sub: "12 anagrafiche", cols: ["Ragione sociale", "Comune"], items: [
+          { name: "Podere Bianchi", meta: "Castelnuovo" }
+        ]},
+        "terreni-ct": { hub: "ct", title: "Terreni clienti", sub: "Campi da lavorare", cols: ["Terreno", "Cliente", "Ha"], items: [
+          { name: "Campo strada", meta: "Bianchi · 3,1 ha" }
+        ]},
+        preventivi: { hub: "ct", title: "Preventivi", sub: "3 aperti", cols: ["N.", "Cliente", "Stato"], items: [
+          { name: "2026-012", meta: "Bianchi · inviato" }
+        ]},
+        tariffe: { hub: "ct", title: "Tariffe CT", sub: "Listino", cols: ["Lavoro", "€/ha"], items: [
+          { name: "Trinciatura", meta: "€ 85/ha" }
+        ]},
+        "terreni-list": { hub: "terreni", title: "Terreni aziendali", sub: "14 campi", cols: ["Nome", "Ha", "Coltura"], items: [
+          { name: "Pannelli", meta: "2,00 ha · vigneto" },
+          { name: "Olmo", meta: "3,10 ha · frutteto" }
+        ]},
+        "rep-terreni": { hub: "report", title: "Report terreni", sub: "2026", cols: ["Campo", "Costo"], items: [{ name: "Pannelli", meta: "€ 4.200" }] },
+        "rep-vigneto": { hub: "report", title: "Report vigneto", sub: "2026", cols: ["Voce", "Valore"], items: [{ name: "Vendemmia", meta: "42 q" }] },
+        "rep-frutteto": { hub: "report", title: "Report frutteto", sub: "2026", cols: ["Voce", "Valore"], items: [{ name: "Raccolta", meta: "18,4 t" }] }
+      };
       if (theme !== "oggi" && theme !== "proposta") theme = "oggi";
       if (!screens[screen]) screen = "dashboard";
       if (!JOBS[job]) job = "potatura";
       if (dtab !== "map" && dtab !== "ore") dtab = "overview";
+      if (screen === "hub" && !HUBS[hubId]) hubId = "frutteto";
+      if (screen === "sub" && !SUBS[subId]) subId = "frutteti";
 
       function setText(id, value) {
         var el = document.getElementById(id);
         if (el) el.textContent = value;
+      }
+      function cardMarkup(c) {
+        return '<a class="card" href="#" data-go="' + c.go + '">' +
+          '<span class="ico">' + c.ico + '</span>' +
+          '<span class="svg-ico ' + (c.skin || "ico-core") + '" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/></svg></span>' +
+          "<strong>" + c.title + "</strong><small>" + c.desc + "</small></a>";
+      }
+      function currentAccent() {
+        if (screen === "vigneto") return "vigneto";
+        if (screen === "hub" && HUBS[hubId]) return HUBS[hubId].accent;
+        if (screen === "sub" && SUBS[subId]) {
+          var hid = SUBS[subId].hub;
+          if (hid === "vigneto") return "vigneto";
+          if (HUBS[hid]) return HUBS[hid].accent;
+        }
+        return "";
+      }
+      function fillHub() {
+        var h = HUBS[hubId] || HUBS.frutteto;
+        setText("hub-title", h.title);
+        var subEl = document.getElementById("hub-sub");
+        if (subEl) subEl.textContent = theme === "proposta" ? h.newCopy : h.oldCopy;
+        var kpis = document.getElementById("hub-kpis");
+        if (kpis) kpis.innerHTML = (h.kpis || []).map(function (k) {
+          return '<div class="stat"><b>' + k.v + "</b><span>" + k.l + "</span></div>";
+        }).join("");
+        var cards = document.getElementById("hub-cards");
+        if (cards) cards.innerHTML = (h.cards || []).map(cardMarkup).join("");
+      }
+      function fillSub() {
+        var s = SUBS[subId] || SUBS.frutteti;
+        setText("sub-title", s.title);
+        setText("sub-sub", s.sub || "");
+        var cols = s.cols || ["Nome", "Dettaglio"];
+        var items = s.items || [];
+        var table = document.getElementById("sub-table-wrap");
+        if (table) {
+          table.innerHTML = "<table><thead><tr>" + cols.map(function (c) { return "<th>" + c + "</th>"; }).join("") +
+            "</tr></thead><tbody>" + items.map(function (it) {
+              return "<tr><td><strong>" + it.name + "</strong></td><td>" + it.meta + "</td>" +
+                (cols.length > 2 ? "<td></td>".repeat(cols.length - 2) : "") + "</tr>";
+            }).join("") + "</tbody></table>";
+        }
+        var cards = document.getElementById("sub-cards");
+        if (cards) {
+          cards.innerHTML = items.map(function (it) {
+            return '<article class="job-card"><div class="job-top"><h3>' + it.name +
+              "</h3></div><p class=\"job-line\">" + it.meta + "</p></article>";
+          }).join("");
+        }
+      }
+      function navigateTo(go) {
+        if (!go) return;
+        if (go.indexOf("hub:") === 0) {
+          hubId = go.slice(4);
+          if (!HUBS[hubId]) hubId = "frutteto";
+          screen = "hub";
+        } else if (go.indexOf("sub:") === 0) {
+          subId = go.slice(4);
+          if (SUBS[subId]) hubId = SUBS[subId].hub;
+          screen = SUBS[subId] ? "sub" : "hub";
+        } else {
+          screen = go;
+        }
+        if (!screens[screen]) screen = "dashboard";
+        dtab = "overview";
+        localStorage.setItem("gfvUiPreviewScreen", screen);
+        apply();
+        var phone = document.getElementById("phone");
+        if (phone) phone.scrollTop = 0;
       }
       function peopleHtml(list) {
         return list.map(function (p) {
@@ -1523,8 +2070,11 @@
         html.setAttribute("data-theme", theme);
         html.setAttribute("data-screen", screen);
         html.setAttribute("data-dtab", dtab);
+        html.setAttribute("data-accent", currentAccent());
         var q = "?theme=" + encodeURIComponent(theme) + "&screen=" + encodeURIComponent(screen);
         if (screen === "dettaglio") q += "&job=" + encodeURIComponent(job) + "&tab=" + encodeURIComponent(dtab);
+        if (screen === "hub") q += "&hub=" + encodeURIComponent(hubId);
+        if (screen === "sub") q += "&sub=" + encodeURIComponent(subId);
         try { history.replaceState(null, "", q); } catch (e) {}
         document.querySelectorAll(".seg--theme [data-theme]").forEach(function (b) {
           b.setAttribute("aria-pressed", b.getAttribute("data-theme") === theme ? "true" : "false");
@@ -1533,10 +2083,18 @@
           var s = b.getAttribute("data-screen");
           b.setAttribute("aria-pressed", s === screen || (screen === "dettaglio" && s === "lista") ? "true" : "false");
         });
+        document.querySelectorAll(".seg [data-go]").forEach(function (b) {
+          var g = b.getAttribute("data-go");
+          var on = g === screen ||
+            (g === "hub:" + hubId && (screen === "hub" || (screen === "sub" && SUBS[subId] && SUBS[subId].hub === hubId)));
+          b.setAttribute("aria-pressed", on ? "true" : "false");
+        });
         var color = theme === "proposta" ? "#F6F3EC" : "#1c1917";
         var meta = document.querySelector('meta[name="theme-color"]');
         if (meta) meta.setAttribute("content", color);
         if (screen === "dettaglio") fillDetail();
+        if (screen === "hub") fillHub();
+        if (screen === "sub") fillSub();
       }
       apply();
       document.querySelectorAll(".seg--theme [data-theme]").forEach(function (b) {
@@ -1554,6 +2112,20 @@
           apply();
         });
       });
+      document.addEventListener("click", function (e) {
+        var t = e.target.closest("[data-go]");
+        if (!t) return;
+        e.preventDefault();
+        navigateTo(t.getAttribute("data-go"));
+      });
+      var subBack = document.getElementById("sub-back");
+      if (subBack) {
+        subBack.addEventListener("click", function () {
+          var parent = SUBS[subId] && SUBS[subId].hub;
+          if (parent === "vigneto") navigateTo("vigneto");
+          else navigateTo("hub:" + (parent || hubId || "frutteto"));
+        });
+      }
       document.getElementById("d-back").addEventListener("click", function () {
         screen = "lista";
         dtab = "overview";
