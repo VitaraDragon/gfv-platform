@@ -4,8 +4,8 @@
 
 ## Prova UI — pagina Oggi vs proposta (2026-09-21)
 
-- **Cosa:** pagina isolata `core/dev/ui-preview-doppio-pelle.html`: stessa Home / Vigneto / Lista, interruttore Oggi vs proposta. Niente login, niente Firebase, niente voce in navigazione. Tony resta il volto; la proposta spegne gradienti di pagina e emoji di chrome.
-- **Perché:** vedere lo stile sul telefono prima di toccare le pagine vere.
+- **Cosa:** pagina isolata `core/dev/ui-preview-doppio-pelle.html`: Home / Vigneto / Lista, più **Pieno** (20 reminder: muro vs striscione), **Meteo** e **Mappa** (tela, non card). Niente login, niente Firebase, niente voce in navigazione.
+- **Perché:** vedere sul telefono striscione Tony sotto carico, e come starebbero meteo/mappa nello stesso chrome, prima di toccare le pagine vere.
 - **File:** `core/dev/ui-preview-doppio-pelle.html`.
 - Doc: questa voce. Master Plan: nessuna fase cambiata.
 

@@ -60,8 +60,9 @@
       border: 0;
       background: transparent;
       color: #e7e5e4;
-      font: 600 14px/1.2 system-ui, sans-serif;
+      font: 600 13px/1.2 system-ui, sans-serif;
       cursor: pointer;
+      padding: 0 4px;
     }
     .seg button[aria-pressed="true"] {
       background: #fafaf9;
@@ -84,7 +85,10 @@
     .screen { display: none; padding-bottom: 96px; }
     html[data-screen="dashboard"] #screen-dashboard,
     html[data-screen="vigneto"] #screen-vigneto,
-    html[data-screen="lista"] #screen-lista { display: block; }
+    html[data-screen="lista"] #screen-lista,
+    html[data-screen="carico"] #screen-carico,
+    html[data-screen="meteo"] #screen-meteo,
+    html[data-screen="mappa"] #screen-mappa { display: block; }
 
     .app-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
     .app-actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -110,6 +114,11 @@
     html[data-theme="oggi"][data-screen="lista"] .phone {
       background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
     }
+    html[data-theme="oggi"][data-screen="carico"] .phone { background: #f5f7fa; }
+    html[data-theme="oggi"][data-screen="meteo"] .phone {
+      background: linear-gradient(135deg, #e3f2fd 0%, #e8f5e9 100%);
+    }
+    html[data-theme="oggi"][data-screen="mappa"] .phone { background: #f5f7fa; }
     html[data-theme="oggi"] .wrap { padding: 16px; }
     html[data-theme="oggi"] .app-header {
       background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
@@ -124,6 +133,9 @@
       text-align: center;
       justify-content: center;
       padding: 36px 20px;
+    }
+    html[data-theme="oggi"][data-screen="meteo"] .app-header {
+      background: linear-gradient(135deg, #0288D1 0%, #01579B 100%);
     }
     html[data-theme="oggi"] .app-header h1 { margin: 0 0 6px; font-size: 24px; }
     html[data-theme="oggi"] .app-header p { margin: 0; font-size: 13px; opacity: .92; }
@@ -208,6 +220,15 @@
       border-bottom: 3px solid #6A1B9A;
     }
     html[data-theme="proposta"][data-screen="lista"] .app-header {
+      border-bottom: 3px solid #2E8B57;
+    }
+    html[data-theme="proposta"][data-screen="carico"] .app-header {
+      border-bottom: 3px solid #2E8B57;
+    }
+    html[data-theme="proposta"][data-screen="meteo"] .app-header {
+      border-bottom: 3px solid #0288D1;
+    }
+    html[data-theme="proposta"][data-screen="mappa"] .app-header {
       border-bottom: 3px solid #2E8B57;
     }
     html[data-theme="proposta"] .brand {
@@ -309,6 +330,111 @@
     html[data-theme="proposta"] .ico-vigneto { background: #f3e8fb; color: #6A1B9A; }
     html[data-theme="proposta"] .ico-frutto { background: #ffedd5; color: #c2410c; }
     html[data-theme="proposta"] .ico-blue { background: #e0f2fe; color: #0369a1; }
+    html[data-theme="proposta"] .ico-meteo { background: #e0f2fe; color: #0277bd; }
+
+    /* Dump 20 righe (oggi) vs striscione collassato (proposta) */
+    .dump {
+      background: #fff;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 4px rgba(0,0,0,.1);
+      font-size: 14px;
+      line-height: 1.5;
+      color: #333;
+    }
+    .dump p { margin: 0; }
+    .strip {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 16px;
+      padding: 12px;
+      margin-bottom: 14px;
+      width: 100%;
+      text-align: left;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .strip img { width: 48px; height: 48px; flex-shrink: 0; }
+    .strip-body { flex: 1; min-width: 0; }
+    .strip-body p { margin: 0; font-size: 14px; line-height: 1.4; }
+    .strip-more {
+      margin: 10px 0 0;
+      padding: 0;
+      list-style: none;
+      display: none;
+    }
+    .strip.is-open .strip-more { display: block; }
+    .strip-more li {
+      font-size: 13px;
+      color: #44403c;
+      padding: 8px 0;
+      border-top: 1px solid #f5f5f4;
+    }
+    .strip-chat {
+      display: none;
+      margin-top: 8px;
+      font-size: 13px;
+      font-weight: 650;
+      color: #1f6b3a;
+      background: none;
+      border: 0;
+      padding: 8px 0;
+      cursor: pointer;
+    }
+    .strip.is-open .strip-chat { display: inline-flex; }
+
+    .fake-map {
+      position: relative;
+      min-height: 280px;
+      height: min(52vh, 420px);
+      border-radius: 14px;
+      overflow: hidden;
+      background: #c5d4a8;
+      border: 1px solid #d6d3d1;
+    }
+    html[data-theme="oggi"] .fake-map {
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    }
+    .fake-map svg { width: 100%; height: 100%; display: block; }
+    .map-pin {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #dc3545;
+      color: #fff;
+      font-weight: 800;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    .meteo-detail {
+      margin-top: 12px;
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 14px;
+      padding: 14px;
+    }
+    html[data-theme="oggi"] .meteo-detail {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.08);
+    }
+    .meteo-detail h3 { margin: 0 0 6px; font-size: 16px; }
+    .meteo-detail p { margin: 0; font-size: 13px; color: #57534e; }
+    .wrap-canvas { display: flex; flex-direction: column; min-height: calc(100dvh - 200px); }
+    .wrap-canvas .fake-map { flex: 1; }
+
     html[data-theme="proposta"] table { width: 100%; border-collapse: collapse; font-size: 14px; background: #FFFEFA; border-radius: 14px; overflow: hidden; border: 1px solid #e7e5e4; }
     html[data-theme="proposta"] th { text-align: left; color: #57534e; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; padding: 10px 12px; font-weight: 650; }
     html[data-theme="proposta"] td { padding: 12px; border-top: 1px solid #f5f5f4; }
@@ -318,7 +444,9 @@
 
     html[data-theme="oggi"] .briefing,
     html[data-theme="oggi"] .brand img,
-    html[data-theme="oggi"] .only-new-copy { display: none; }
+    html[data-theme="oggi"] .only-new-copy,
+    html[data-theme="oggi"] .strip { display: none; }
+    html[data-theme="proposta"] .dump { display: none; }
 
     /* Tony FAB + pannello */
     .fab {
@@ -415,6 +543,13 @@
         <button type="button" data-screen="lista" aria-pressed="false">Lista</button>
       </div>
     </div>
+    <div class="lab-row">
+      <div class="seg" role="group" aria-label="Altre prove">
+        <button type="button" data-screen="carico" aria-pressed="false">Pieno</button>
+        <button type="button" data-screen="meteo" aria-pressed="false">Meteo</button>
+        <button type="button" data-screen="mappa" aria-pressed="false">Mappa</button>
+      </div>
+    </div>
   </div>
 
   <div class="phone" id="phone">
@@ -489,7 +624,7 @@
             <div>
               <h1><span class="emoji">🍇 </span>Dashboard Vigneto</h1>
               <p class="only-old-copy">Gestisci i tuoi vigneti</p>
-              <p class="only-new-copy">Stesso menu di oggi, stanza più quieta</p>
+              <p class="only-new-copy">12 vigneti · 8,4 ha</p>
             </div>
           </div>
         </header>
@@ -578,6 +713,135 @@
       </div>
     </section>
 
+    <!-- TONY PIENO (20 reminder) -->
+    <section class="screen" id="screen-carico">
+      <div class="wrap">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1><span class="emoji">🌾 </span>GFV Platform</h1>
+              <p>Sabbie Gialle · manager</p>
+            </div>
+          </div>
+        </header>
+
+        <div class="dump">
+          <p>Ho controllato la situazione: ci sono alcune cose che richiedono attenzione — 4 lavori con ore da validare, 3 lavori da approvare, 2 lavori sospesi da riprendere, 8 prodotti sotto scorta: Concime fogliare, Rame, Zolfo, Zolfo bagnabile, Bacillus, Caolino, Olio bianco, Magnesio (+ altri 4), 5 prezzi in attesa, 2 guasti aperti sul T5 e sulla rotante, 3 scadenze mezzi entro 7 giorni, 2 affitti in scadenza questo mese, 1 preventivo aperto da 12 giorni, vendemmia Sangiovese incompleta, raccolta nettarine incompleta, e domani 12 mm in sede. Vuoi che ti faccia un riassunto o preferisci procedere tu?</p>
+        </div>
+
+        <button type="button" class="strip" id="strip-carico" aria-expanded="false">
+          <img class="tony-face" src="../images/tony-icon.png" alt="">
+          <div class="strip-body">
+            <p><strong>20 cose da vedere.</strong> La più urgente: 4 ore da validare.</p>
+            <ul class="strip-more">
+              <li>4 lavori con ore da validare</li>
+              <li>8 prodotti sotto scorta</li>
+              <li>5 bolle senza prezzo</li>
+              <li>3 scadenze mezzi</li>
+              <li>2 affitti in scadenza</li>
+            </ul>
+            <span class="strip-chat" id="strip-open-tony">+15 in chat con Tony</span>
+          </div>
+        </button>
+
+        <div class="panel">
+          <h2><span class="emoji">📋 </span>Azioni rapide</h2>
+          <div class="grid cards">
+            <a class="card" href="#" data-fake>
+              <span class="ico">👷</span>
+              <span class="svg-ico ico-core" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c1-4 4-6 6-6s5 2 6 6"/></svg></span>
+              <strong>Manodopera</strong>
+              <small>Lavori, squadre, ore</small>
+            </a>
+            <a class="card" href="#" data-fake>
+              <span class="ico">📦</span>
+              <span class="svg-ico ico-frutto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h18v12H3zM12 8v12"/></svg></span>
+              <strong>Magazzino</strong>
+              <small>Prodotti e movimenti</small>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- METEO (tela) -->
+    <section class="screen" id="screen-meteo">
+      <div class="wrap wrap-canvas">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1><span class="emoji">🌦️ </span>Meteo</h1>
+              <p class="only-old-copy">Scegli un campo sulla mappa satellitare</p>
+              <p class="only-new-copy">Sede · tap un campo per il dettaglio</p>
+            </div>
+          </div>
+        </header>
+
+        <div class="dump">
+          <p>Meteo sede: oggi 18°, coperto. Domani 12 mm di pioggia (pop 85%). Consigli: sospendere i trattamenti su Sangiovese Pannelli, Larghetta, Olmo, Olmo basso, Filari nord, Vigna nuova…</p>
+        </div>
+
+        <button type="button" class="strip" id="strip-meteo" aria-expanded="false">
+          <img class="tony-face" src="../images/tony-icon.png" alt="">
+          <div class="strip-body">
+            <p><strong>Domani 12 mm in sede.</strong> Meglio non trattare.</p>
+          </div>
+        </button>
+
+        <div class="fake-map" aria-hidden="true">
+          <svg viewBox="0 0 320 220" preserveAspectRatio="xMidYMid slice">
+            <rect width="320" height="220" fill="#9caf7a"/>
+            <path d="M20 40 L140 30 L155 120 L35 140 Z" fill="#6b8f4e" stroke="#4a6b32" stroke-width="2"/>
+            <path d="M160 50 L290 40 L300 130 L170 145 Z" fill="#7a9a55" stroke="#4a6b32" stroke-width="2"/>
+            <path d="M40 155 L150 150 L145 205 L30 200 Z" fill="#5e8344" stroke="#4a6b32" stroke-width="2"/>
+            <circle cx="90" cy="80" r="5" fill="#0288D1"/>
+            <circle cx="220" cy="90" r="5" fill="#0288D1"/>
+          </svg>
+        </div>
+        <div class="meteo-detail">
+          <h3>Sangiovese · Pannelli</h3>
+          <p>Oggi 18° · coperto. Domani 12 mm, pop 85%.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAPPA (tela) -->
+    <section class="screen" id="screen-mappa">
+      <div class="wrap wrap-canvas">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1><span class="emoji">🗺️ </span>Mappa aziendale</h1>
+              <p class="only-old-copy">Terreni e lavori sul satellite</p>
+              <p class="only-new-copy">3 allarmi in campo</p>
+            </div>
+          </div>
+        </header>
+
+        <button type="button" class="strip" id="strip-mappa" aria-expanded="false">
+          <img class="tony-face" src="../images/tony-icon.png" alt="">
+          <div class="strip-body">
+            <p><strong>3 allarmi in campo.</strong> Il più grave: squadra scoperta su Larghetta.</p>
+          </div>
+        </button>
+
+        <div class="fake-map" aria-hidden="true">
+          <svg viewBox="0 0 320 260" preserveAspectRatio="xMidYMid slice">
+            <rect width="320" height="260" fill="#8aa36a"/>
+            <path d="M18 36 L150 24 L168 128 L28 148 Z" fill="#5d7f42" stroke="#3f5c2c" stroke-width="2"/>
+            <path d="M175 40 L302 32 L308 150 L182 158 Z" fill="#6e9150" stroke="#3f5c2c" stroke-width="2"/>
+            <path d="M30 168 L160 160 L152 240 L24 232 Z" fill="#4e7036" stroke="#3f5c2c" stroke-width="2"/>
+          </svg>
+          <span class="map-pin" style="left:22%;top:28%;">!</span>
+          <span class="map-pin" style="left:62%;top:36%;">!</span>
+          <span class="map-pin" style="left:28%;top:68%;">!</span>
+        </div>
+      </div>
+    </section>
+
     <button type="button" class="fab" id="tony-fab" aria-label="Apri Tony">
       <img class="tony-face" src="../images/tony-icon.png" alt="">
     </button>
@@ -604,8 +868,9 @@
       var params = new URLSearchParams(location.search);
       var theme = params.get("theme") || localStorage.getItem("gfvUiPreviewTheme") || "oggi";
       var screen = params.get("screen") || localStorage.getItem("gfvUiPreviewScreen") || "dashboard";
+      var screens = { dashboard: 1, vigneto: 1, lista: 1, carico: 1, meteo: 1, mappa: 1 };
       if (theme !== "oggi" && theme !== "proposta") theme = "oggi";
-      if (screen !== "dashboard" && screen !== "vigneto" && screen !== "lista") screen = "dashboard";
+      if (!screens[screen]) screen = "dashboard";
       function apply() {
         html.setAttribute("data-theme", theme);
         html.setAttribute("data-screen", screen);
@@ -638,11 +903,34 @@
         });
       });
       var panel = document.getElementById("tony-panel");
+      var msgs = panel.querySelector(".tony-msgs");
+      var remainder =
+        "4 ore da validare, 3 lavori da approvare, 2 sospesi, 8 prodotti sotto scorta, 5 prezzi in attesa, 2 guasti, 3 scadenze mezzi, 2 affitti, 1 preventivo aperto, vendemmia e raccolta incomplete, 12 mm in sede domani. Dimmi quale apriamo.";
+      function openTony(text) {
+        if (text) {
+          msgs.innerHTML =
+            '<div class="bubble tony"></div>';
+          msgs.querySelector(".bubble").textContent = text;
+        }
+        panel.classList.add("open");
+      }
       document.getElementById("tony-fab").addEventListener("click", function () {
         panel.classList.toggle("open");
       });
       document.getElementById("tony-close").addEventListener("click", function () {
         panel.classList.remove("open");
+      });
+      document.querySelectorAll(".strip").forEach(function (el) {
+        el.addEventListener("click", function (e) {
+          if (e.target && e.target.id === "strip-open-tony") {
+            e.preventDefault();
+            e.stopPropagation();
+            openTony(remainder);
+            return;
+          }
+          var open = el.classList.toggle("is-open");
+          el.setAttribute("aria-expanded", open ? "true" : "false");
+        });
       });
       document.querySelectorAll("[data-fake]").forEach(function (a) {
         a.addEventListener("click", function (e) { e.preventDefault(); });
