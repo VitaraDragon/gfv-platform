@@ -15,6 +15,18 @@ const ctxBase = {
 };
 
 describe('tryTonyNavQuickReply', () => {
+  it('portami a magazzino → APRI_PAGINA magazzino (non ore)', () => {
+    const hit = tryTonyNavQuickReply({
+      message: 'portami a magazzino',
+      ctx: ctxBase,
+    });
+    expect(hit).not.toBeNull();
+    expect(hit.id).toBe('nav');
+    expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'magazzino' });
+    expect(hit.text).toMatch(/magazzino/i);
+    expect(hit.text).not.toMatch(/segnatura|validazione/i);
+  });
+
   it('portami alle tariffe → APRI_PAGINA tariffe', () => {
     const hit = tryTonyNavQuickReply({
       message: 'portami alle tariffe',
@@ -63,6 +75,88 @@ describe('tryTonyNavQuickReply', () => {
     });
     expect(hit).not.toBeNull();
     expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'statistiche manodopera' });
+  });
+
+  it('da meteo-dashboard «portami alla dashboard» → home ERP (non già lì)', () => {
+    const hit = tryTonyNavQuickReply({
+      message: 'portami alla dashboard',
+      ctx: {
+        ...ctxBase,
+        page: {
+          pagePath: '/modules/meteo/views/meteo-dashboard-standalone.html',
+          currentTableData: { pageType: 'meteo_dashboard', summary: '', items: [] },
+        },
+      },
+    });
+    expect(hit).not.toBeNull();
+    expect(hit.id).toBe('nav');
+    expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'dashboard' });
+  });
+
+  it('da meteo-dashboard «torna alla dashboard» → home ERP', () => {
+    const hit = tryTonyNavQuickReply({
+      message: 'torna alla dashboard',
+      ctx: {
+        ...ctxBase,
+        page: {
+          pagePath: '/modules/meteo/views/meteo-dashboard-standalone.html',
+          currentTableData: { pageType: 'meteo_dashboard' },
+        },
+      },
+    });
+    expect(hit.id).toBe('nav');
+    expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'dashboard' });
+  });
+
+  it('su dashboard principale «portami alla dashboard» → già lì', () => {
+    const hit = tryTonyNavQuickReply({
+      message: 'portami alla dashboard',
+      ctx: {
+        ...ctxBase,
+        page: { pagePath: '/core/dashboard-standalone.html' },
+      },
+    });
+    expect(hit.id).toBe('nav_already_there');
+    expect(hit.command).toBeNull();
+  });
+
+  it('da dashboard «portami al meteo» → modulo meteo', () => {
+    const hit = tryTonyNavQuickReply({
+      message: 'portami al meteo',
+      ctx: {
+        ...ctxBase,
+        page: { pagePath: '/core/dashboard-standalone.html' },
+      },
+    });
+    expect(hit.id).toBe('nav');
+    expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'meteo' });
+  });
+
+  it('su meteo-dashboard «portami al meteo» → già lì', () => {
+    const hit = tryTonyNavQuickReply({
+      message: 'portami al meteo',
+      ctx: {
+        ...ctxBase,
+        page: {
+          pagePath: '/modules/meteo/views/meteo-dashboard-standalone.html',
+          currentTableData: { pageType: 'meteo_dashboard' },
+        },
+      },
+    });
+    expect(hit.id).toBe('nav_already_there');
+    expect(hit.command).toBeNull();
+  });
+
+  it('da macchine-dashboard «portami alla dashboard» → home ERP', () => {
+    const hit = tryTonyNavQuickReply({
+      message: 'portami alla dashboard',
+      ctx: {
+        ...ctxBase,
+        page: { pagePath: '/modules/macchine/views/macchine-dashboard-standalone.html' },
+      },
+    });
+    expect(hit.id).toBe('nav');
+    expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'dashboard' });
   });
 
   it('modulo manodopera off → blocco hub', () => {
