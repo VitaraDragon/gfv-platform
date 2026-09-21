@@ -441,6 +441,94 @@
     html[data-theme="proposta"] .pill { background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 650; padding: 3px 8px; border-radius: 999px; }
     html[data-theme="proposta"] .pill.ok { background: #dcfce7; color: #166534; }
     html[data-theme="proposta"] .only-old-copy { display: none; }
+    html[data-theme="oggi"] .job-cards { display: none; }
+    html[data-theme="proposta"] .wide-wrap { display: none; }
+
+    .wide-wrap {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 0 -4px;
+      overscroll-behavior-x: contain;
+    }
+    .wide-wrap table { min-width: 920px; font-size: 12px; }
+    .wide-wrap th, .wide-wrap td { white-space: nowrap; vertical-align: top; }
+    .scroll-hint { margin: 0 0 8px; font-size: 12px; }
+    .bar {
+      height: 16px;
+      background: #e9ecef;
+      border-radius: 8px;
+      overflow: hidden;
+      min-width: 80px;
+    }
+    .bar > span { display: block; height: 100%; background: #2E8B57; color: #fff; font-size: 10px; line-height: 16px; text-align: center; }
+    .bar.warn > span { background: #ffc107; color: #333; }
+    .bar.bad > span { background: #dc3545; }
+    .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .dot.red { background: #dc3545; box-shadow: 0 0 0 3px rgba(220,53,69,.25); }
+    .dot.yellow { background: #ffc107; }
+    .dot.green { background: #28a745; }
+
+    .job-cards { display: flex; flex-direction: column; gap: 10px; }
+    .job-card {
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 16px;
+      padding: 14px;
+    }
+    .job-card.is-alert { border-color: #f0ad4e; }
+    .job-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .job-top h3 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
+    .job-pills { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+    .job-line { margin: 6px 0 10px; font-size: 13px; color: #57534e; }
+    .job-prog { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .job-prog .bar { flex: 1; height: 10px; border-radius: 999px; }
+    .job-prog .bar > span { line-height: 10px; font-size: 0; }
+    .job-ha { font-size: 12px; font-weight: 650; color: #1c1917; white-space: nowrap; }
+    .job-meta { font-size: 12px; color: #57534e; line-height: 1.45; }
+    .job-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .job-actions .btn-main {
+      flex: 1;
+      min-height: 44px;
+      border: 0;
+      border-radius: 12px;
+      background: #2E8B57;
+      color: #fff;
+      font-weight: 650;
+      font-size: 14px;
+    }
+    .job-actions .btn-more {
+      min-height: 44px;
+      padding: 0 14px;
+      border-radius: 12px;
+      border: 1px solid #d6d3d1;
+      background: #F6F3EC;
+      font-weight: 650;
+      font-size: 14px;
+    }
+    .job-extra { display: none; margin-top: 8px; }
+    .job-card.is-open .job-extra { display: flex; flex-wrap: wrap; gap: 8px; }
+    .job-extra button {
+      min-height: 40px;
+      padding: 0 12px;
+      border-radius: 10px;
+      border: 1px solid #e7e5e4;
+      background: #fff;
+      font-size: 13px;
+    }
 
     html[data-theme="oggi"] .briefing,
     html[data-theme="oggi"] .brand img,
@@ -687,28 +775,116 @@
 
         <div class="panel">
           <h2 class="only-old-copy">Elenco lavori</h2>
-          <table>
-            <thead>
-              <tr><th>Lavoro</th><th>Terreno</th><th>Stato</th></tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Potatura Sangiovese</td>
-                <td>Pannelli</td>
-                <td><span class="pill">In corso</span></td>
-              </tr>
-              <tr>
-                <td>Trinciatura</td>
-                <td>Larghetta</td>
-                <td><span class="pill">In corso</span></td>
-              </tr>
-              <tr>
-                <td>Erpicatura</td>
-                <td>Olmo</td>
-                <td><span class="pill ok">Fatto</span></td>
-              </tr>
-            </tbody>
-          </table>
+          <p class="only-old-copy muted scroll-hint">9 colonne come in app · scorri in orizzontale →</p>
+
+          <div class="wide-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Terreno</th>
+                  <th>Caposquadra</th>
+                  <th>Data inizio</th>
+                  <th>Durata</th>
+                  <th>Progressi</th>
+                  <th>Stato progresso</th>
+                  <th>Stato</th>
+                  <th>Azioni</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Potatura Sangiovese</strong><div class="muted">🚜 T5 + rotante 200</div></td>
+                  <td>Pannelli</td>
+                  <td>👥 Gaia Bianchi</td>
+                  <td>lunedì 16 marzo 2026</td>
+                  <td>3 giorni</td>
+                  <td><div class="bar"><span style="width:62%">62%</span></div><div class="muted">1,24 / 2,00 ha</div></td>
+                  <td><span class="pill ok">In tempo</span><div class="muted">2/3 giorni (1 rim.)</div></td>
+                  <td><span class="dot yellow"></span>In corso</td>
+                  <td>👁️ ✏️ ⏸️ 🗑️</td>
+                </tr>
+                <tr>
+                  <td><strong>Trinciatura</strong> <span class="pill">💼 CT</span></td>
+                  <td>Larghetta</td>
+                  <td>👤 Luca Fabbri</td>
+                  <td>venerdì 13 marzo 2026</td>
+                  <td>2 giorni</td>
+                  <td><div class="bar bad"><span style="width:20%">20%</span></div><div class="muted">0,30 / 1,50 ha</div></td>
+                  <td><span class="pill">In ritardo</span><div class="muted">3/2 giorni</div></td>
+                  <td><span class="dot red"></span>Da approvare</td>
+                  <td>✅ ❌ 👁️</td>
+                </tr>
+                <tr>
+                  <td><strong>Erpicatura</strong></td>
+                  <td>Olmo</td>
+                  <td>👥 Gaia Bianchi</td>
+                  <td>lunedì 9 marzo 2026</td>
+                  <td>1 giorno</td>
+                  <td><div class="bar"><span style="width:100%">100%</span></div><div class="muted">3,10 / 3,10 ha</div></td>
+                  <td><span class="pill ok">In tempo</span></td>
+                  <td><span class="dot green"></span>Completato</td>
+                  <td>👁️ 🗑️</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="job-cards">
+            <article class="job-card">
+              <div class="job-top">
+                <h3>Potatura Sangiovese</h3>
+                <div class="job-pills"><span class="dot yellow"></span><span class="pill">In corso</span></div>
+              </div>
+              <p class="job-line">Pannelli · Gaia Bianchi</p>
+              <div class="job-prog"><div class="bar"><span style="width:62%"></span></div><span class="job-ha">1,24 / 2,00 ha</span></div>
+              <p class="job-meta">16 mar · 3 giorni · in tempo 2/3 (1 rim.)<br>T5 + rotante 200</p>
+              <div class="job-actions">
+                <button type="button" class="btn-main" data-fake>Dettagli</button>
+                <button type="button" class="btn-more" data-job-more>Altro</button>
+              </div>
+              <div class="job-extra">
+                <button type="button" data-fake>Modifica</button>
+                <button type="button" data-fake>Standby assenza</button>
+                <button type="button" data-fake>Elimina</button>
+              </div>
+            </article>
+
+            <article class="job-card is-alert">
+              <div class="job-top">
+                <h3>Trinciatura</h3>
+                <div class="job-pills"><span class="dot red"></span><span class="pill">Da approvare</span></div>
+              </div>
+              <p class="job-line">Larghetta · Luca Fabbri · conto terzi</p>
+              <div class="job-prog"><div class="bar bad"><span style="width:20%"></span></div><span class="job-ha">0,30 / 1,50 ha</span></div>
+              <p class="job-meta">13 mar · 2 giorni · in ritardo 3/2</p>
+              <div class="job-actions">
+                <button type="button" class="btn-main" data-fake>Approva</button>
+                <button type="button" class="btn-more" data-job-more>Altro</button>
+              </div>
+              <div class="job-extra">
+                <button type="button" data-fake>Rifiuta</button>
+                <button type="button" data-fake>Dettagli</button>
+              </div>
+            </article>
+
+            <article class="job-card">
+              <div class="job-top">
+                <h3>Erpicatura</h3>
+                <div class="job-pills"><span class="dot green"></span><span class="pill ok">Completato</span></div>
+              </div>
+              <p class="job-line">Olmo · Gaia Bianchi</p>
+              <div class="job-prog"><div class="bar"><span style="width:100%"></span></div><span class="job-ha">3,10 / 3,10 ha</span></div>
+              <p class="job-meta">9 mar · 1 giorno · in tempo</p>
+              <div class="job-actions">
+                <button type="button" class="btn-main" data-fake>Dettagli</button>
+                <button type="button" class="btn-more" data-job-more>Altro</button>
+              </div>
+              <div class="job-extra">
+                <button type="button" data-fake>Elimina</button>
+              </div>
+            </article>
+          </div>
         </div>
       </div>
     </section>
@@ -934,6 +1110,14 @@
       });
       document.querySelectorAll("[data-fake]").forEach(function (a) {
         a.addEventListener("click", function (e) { e.preventDefault(); });
+      });
+      document.querySelectorAll("[data-job-more]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var card = b.closest(".job-card");
+          if (!card) return;
+          var open = card.classList.toggle("is-open");
+          b.textContent = open ? "Chiudi" : "Altro";
+        });
       });
     })();
   </script>

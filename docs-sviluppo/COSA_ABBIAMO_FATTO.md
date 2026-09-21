@@ -4,7 +4,7 @@
 
 ## Prova UI — pagina Oggi vs proposta (2026-09-21)
 
-- **Cosa:** pagina isolata `core/dev/ui-preview-doppio-pelle.html`: Home / Vigneto / Lista, più **Pieno** (20 reminder: muro vs striscione), **Meteo** e **Mappa** (tela, non card). Niente login, niente Firebase, niente voce in navigazione.
+- **Cosa:** pagina isolata `core/dev/ui-preview-doppio-pelle.html`: Home / Vigneto / Lista (Gestione lavori con campi veri: Nome+CT+macchine, Terreno, Caposquadra, Data, Durata, Progressi, Stato progresso, Stato/semaforo, Azioni — tabella 9 col in scroll vs schede impilate con azione primaria + Altro), più **Pieno**, **Meteo** e **Mappa**. Niente login, niente Firebase, niente voce in navigazione.
 - **Perché:** vedere sul telefono striscione Tony sotto carico, e come starebbero meteo/mappa nello stesso chrome, prima di toccare le pagine vere.
 - **File:** `core/dev/ui-preview-doppio-pelle.html`.
 - Doc: questa voce. Master Plan: nessuna fase cambiata.
