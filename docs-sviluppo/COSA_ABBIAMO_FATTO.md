@@ -1,6 +1,13 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-21 — prova UI doppia pelle (pagina di prova, non in app).**
+**Ultimo aggiornamento documentazione: 2026-09-21 — prova UI, menù moduli a swipe.**
+
+## Prova UI — menù moduli nascosto (swipe giù) (2026-09-21)
+
+- **Cosa:** nella pagina di prova la barra grigia non sta più sempre in cima. Resta un maniglia; swipe giù (o tap) apre lo sheet con stile Oggi/Proposta, ~20 moduli e prove. Scelto un modulo lo sheet si chiude e resta solo la schermata.
+- **Perché:** con tutti i moduli attivi la barra di laboratorio mangiava metà telefono; lo stesso gesto è la proposta per l’app (catalogo, non chrome permanente).
+- **File:** `core/dev/ui-preview-doppio-pelle.html`.
+- Doc: questa voce. Master Plan: nessuna fase cambiata.
 
 ## Prova UI — pagina Oggi vs proposta (2026-09-21)
 

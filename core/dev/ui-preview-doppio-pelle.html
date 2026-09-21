@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it" data-theme="oggi" data-screen="dashboard">
+<html lang="it" data-theme="oggi" data-screen="dashboard" data-lab="closed">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
@@ -28,24 +28,90 @@
     }
     button, a { -webkit-tap-highlight-color: transparent; }
 
-    /* —— Barra di laboratorio (non è l'app) —— */
-    .lab {
+    /* —— Menù moduli (swipe giù). Non è chrome dell’app. —— */
+    .lab-handle {
       position: sticky;
       top: 0;
-      z-index: 40;
-      background: #1c1917;
-      padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 10px;
+      z-index: 50;
+      width: 100%;
+      min-height: 48px;
+      margin: 0;
+      padding: calc(6px + env(safe-area-inset-top, 0px)) 12px 8px;
+      border: 0;
       border-bottom: 1px solid #44403c;
+      background: #1c1917;
+      color: #e7e5e4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font: 600 12px/1.25 system-ui, sans-serif;
+      cursor: pointer;
     }
+    .lab-grip {
+      width: 36px;
+      height: 4px;
+      border-radius: 99px;
+      background: #78716c;
+    }
+    .lab-handle-label { color: #d6d3d1; }
+    .lab-handle-hint {
+      font-weight: 500;
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #a8a29e;
+    }
+    html[data-lab="open"] .lab-handle { border-bottom-color: transparent; }
+    .lab-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 44;
+      background: rgba(28, 25, 23, 0.45);
+    }
+    html[data-lab="open"] .lab-backdrop { display: block; }
+    .lab {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 46;
+      max-height: min(82dvh, 720px);
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      background: #1c1917;
+      color: #fafaf9;
+      padding: calc(56px + env(safe-area-inset-top, 0px)) 12px 20px;
+      border-bottom: 1px solid #44403c;
+      border-radius: 0 0 18px 18px;
+      transform: translateY(-110%);
+      transition: transform 0.28s ease;
+      pointer-events: none;
+    }
+    html[data-lab="open"] .lab {
+      transform: none;
+      pointer-events: auto;
+    }
+    html[data-lab="open"] body,
+    html[data-lab="open"] .phone { overflow: hidden; }
     .lab-kicker {
-      margin: 0 0 8px;
+      margin: 0 0 10px;
       font-size: 11px;
       letter-spacing: 0.04em;
       text-transform: uppercase;
       color: #a8a29e;
     }
-    .lab-row { display: flex; gap: 8px; margin-bottom: 8px; }
-    .lab-row:last-child { margin-bottom: 0; }
+    .lab-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .lab h3 {
+      margin: 14px 0 8px;
+      font: 600 11px/1.2 system-ui, sans-serif;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #a8a29e;
+    }
+    .lab h3:first-of-type { margin-top: 4px; }
     .seg {
       flex: 1;
       display: flex;
@@ -71,6 +137,40 @@
     .seg--theme button[data-theme="proposta"][aria-pressed="true"] {
       background: #2E8B57;
       color: #fff;
+    }
+    .lab-mods {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .lab-mod {
+      min-height: 52px;
+      margin: 0;
+      padding: 8px 10px;
+      border: 1px solid #57534e;
+      border-radius: 12px;
+      background: #292524;
+      color: #e7e5e4;
+      text-align: left;
+      font: 600 13px/1.25 system-ui, sans-serif;
+      cursor: pointer;
+    }
+    .lab-mod small {
+      display: block;
+      margin-top: 2px;
+      font-weight: 500;
+      font-size: 11px;
+      color: #a8a29e;
+    }
+    .lab-mod[aria-pressed="true"] {
+      background: #fafaf9;
+      color: #1c1917;
+      border-color: #fafaf9;
+    }
+    .lab-mod[aria-pressed="true"] small { color: #57534e; }
+    .lab-mod.is-soon {
+      opacity: 0.48;
+      cursor: default;
     }
 
     /* —— Mock app —— */
@@ -861,34 +961,48 @@
   </style>
 </head>
 <body>
-  <div class="lab">
-    <p class="lab-kicker">Pagina di prova · dati finti · non è l’app</p>
+  <button type="button" class="lab-handle" id="lab-handle" aria-expanded="false" aria-controls="lab">
+    <span class="lab-grip" aria-hidden="true"></span>
+    <span class="lab-handle-label" id="lab-handle-label">Oggi · Home</span>
+    <span class="lab-handle-hint" id="lab-handle-hint">Scorri in basso · 20 moduli</span>
+  </button>
+  <div class="lab-backdrop" id="lab-backdrop" hidden></div>
+  <div class="lab" id="lab" aria-hidden="true">
+    <p class="lab-kicker">Scegli un modulo · il menù si chiude da solo</p>
     <div class="lab-row">
       <div class="seg seg--theme" role="group" aria-label="Stile">
         <button type="button" data-theme="oggi" aria-pressed="true">Oggi</button>
         <button type="button" data-theme="proposta" aria-pressed="false">Proposta</button>
       </div>
     </div>
-    <div class="lab-row">
-      <div class="seg" role="group" aria-label="Tipo di pagina">
-        <button type="button" data-screen="dashboard" aria-pressed="true">Home</button>
-        <button type="button" data-screen="vigneto" aria-pressed="false">Vigneto</button>
-        <button type="button" data-go="hub:frutteto" aria-pressed="false">Frutteto</button>
-      </div>
+    <h3>Moduli</h3>
+    <div class="lab-mods" role="group" aria-label="Moduli">
+      <button type="button" class="lab-mod" data-go="dashboard">Home<small>Tony e azioni rapide</small></button>
+      <button type="button" class="lab-mod" data-go="hub:terreni">Terreni<small>Anagrafica e mappa</small></button>
+      <button type="button" class="lab-mod" data-go="lista">Gestione lavori<small>Lista e dettaglio</small></button>
+      <button type="button" class="lab-mod" data-go="vigneto">Vigneto<small>Anagrafica e vendemmia</small></button>
+      <button type="button" class="lab-mod" data-go="hub:frutteto">Frutteto<small>Anagrafica e raccolta</small></button>
+      <button type="button" class="lab-mod" data-go="hub:manodopera">Manodopera<small>Squadre e ore</small></button>
+      <button type="button" class="lab-mod" data-go="hub:magazzino">Magazzino<small>Prodotti e movimenti</small></button>
+      <button type="button" class="lab-mod" data-go="hub:macchine">Parco macchine<small>Trattori e scadenze</small></button>
+      <button type="button" class="lab-mod" data-go="hub:ct">Conto terzi<small>Clienti e preventivi</small></button>
+      <button type="button" class="lab-mod" data-go="meteo">Meteo<small>Sede e campi</small></button>
+      <button type="button" class="lab-mod" data-go="hub:report">Report<small>Bilancio per area</small></button>
+      <button type="button" class="lab-mod" data-go="abbonamento">Abbonamento<small>Piano e moduli</small></button>
+      <button type="button" class="lab-mod" data-go="opzioni">Impostazioni<small>Azienda e liste</small></button>
     </div>
-    <div class="lab-row">
-      <div class="seg" role="group" aria-label="Liste e account">
-        <button type="button" data-screen="lista" aria-pressed="false">Lista</button>
-        <button type="button" data-go="abbonamento" aria-pressed="false">Abb.</button>
-        <button type="button" data-go="opzioni" aria-pressed="false">Opzioni</button>
-      </div>
+    <h3>Prove di pagina</h3>
+    <div class="lab-mods" role="group" aria-label="Prove">
+      <button type="button" class="lab-mod" data-go="carico">Reminder pieno<small>20 righe, come non fare</small></button>
+      <button type="button" class="lab-mod" data-go="mappa">Mappa<small>Campi e allarmi</small></button>
+      <button type="button" class="lab-mod" data-go="dettaglio">Dettaglio lavoro<small>Panoramica, mappa, ore</small></button>
     </div>
-    <div class="lab-row">
-      <div class="seg" role="group" aria-label="Altre prove">
-        <button type="button" data-screen="carico" aria-pressed="false">Pieno</button>
-        <button type="button" data-screen="meteo" aria-pressed="false">Meteo</button>
-        <button type="button" data-screen="mappa" aria-pressed="false">Mappa</button>
-      </div>
+    <h3>Prossimamente</h3>
+    <div class="lab-mods" role="group" aria-label="Prossimamente">
+      <button type="button" class="lab-mod is-soon" disabled>Oliveto<small>Non attivo</small></button>
+      <button type="button" class="lab-mod is-soon" disabled>Seminativi<small>Non attivo</small></button>
+      <button type="button" class="lab-mod is-soon" disabled>Zootecnia<small>Non attivo</small></button>
+      <button type="button" class="lab-mod is-soon" disabled>Cantina<small>Non attivo</small></button>
     </div>
   </div>
 
@@ -1944,6 +2058,37 @@
           }).join("");
         }
       }
+      var HUB_SHORT = {
+        frutteto: "Frutteto", manodopera: "Manodopera", magazzino: "Magazzino",
+        macchine: "Parco macchine", ct: "Conto terzi", terreni: "Terreni", report: "Report"
+      };
+      var PLACE = {
+        dashboard: "Home", lista: "Gestione lavori", dettaglio: "Dettaglio lavoro",
+        carico: "Reminder pieno", meteo: "Meteo", mappa: "Mappa",
+        abbonamento: "Abbonamento", opzioni: "Impostazioni", vigneto: "Vigneto"
+      };
+      function placeName() {
+        if (screen === "hub") return HUB_SHORT[hubId] || "Hub";
+        if (screen === "sub") return (SUBS[subId] && SUBS[subId].title) || "Lista";
+        return PLACE[screen] || "Home";
+      }
+      var labOpen = params.get("lab") === "1";
+      var ignoreHandleClick = false;
+      var labEl = document.getElementById("lab");
+      var labHandle = document.getElementById("lab-handle");
+      var labBackdrop = document.getElementById("lab-backdrop");
+      var labHint = document.getElementById("lab-handle-hint");
+      function setLabOpen(open) {
+        labOpen = !!open;
+        html.setAttribute("data-lab", labOpen ? "open" : "closed");
+        if (labEl) {
+          labEl.setAttribute("aria-hidden", labOpen ? "false" : "true");
+          if (labEl.toggleAttribute) labEl.toggleAttribute("inert", !labOpen);
+        }
+        if (labHandle) labHandle.setAttribute("aria-expanded", labOpen ? "true" : "false");
+        if (labBackdrop) labBackdrop.hidden = !labOpen;
+        if (labHint) labHint.textContent = labOpen ? "Scorri in alto per chiudere" : "Scorri in basso · 20 moduli";
+      }
       function navigateTo(go) {
         if (!go) return;
         if (go.indexOf("hub:") === 0) {
@@ -1961,6 +2106,7 @@
         dtab = "overview";
         localStorage.setItem("gfvUiPreviewScreen", screen);
         apply();
+        setLabOpen(false);
         var phone = document.getElementById("phone");
         if (phone) phone.scrollTop = 0;
       }
@@ -2076,17 +2222,20 @@
         if (screen === "hub") q += "&hub=" + encodeURIComponent(hubId);
         if (screen === "sub") q += "&sub=" + encodeURIComponent(subId);
         try { history.replaceState(null, "", q); } catch (e) {}
+        var handleLabel = document.getElementById("lab-handle-label");
+        if (handleLabel) {
+          handleLabel.textContent = (theme === "proposta" ? "Proposta" : "Oggi") + " · " + placeName();
+        }
         document.querySelectorAll(".seg--theme [data-theme]").forEach(function (b) {
           b.setAttribute("aria-pressed", b.getAttribute("data-theme") === theme ? "true" : "false");
         });
-        document.querySelectorAll(".seg:not(.seg--theme) [data-screen]").forEach(function (b) {
-          var s = b.getAttribute("data-screen");
-          b.setAttribute("aria-pressed", s === screen || (screen === "dettaglio" && s === "lista") ? "true" : "false");
-        });
-        document.querySelectorAll(".seg [data-go]").forEach(function (b) {
+        document.querySelectorAll(".lab-mod[data-go]").forEach(function (b) {
           var g = b.getAttribute("data-go");
+          var parentHub = SUBS[subId] && SUBS[subId].hub;
           var on = g === screen ||
-            (g === "hub:" + hubId && (screen === "hub" || (screen === "sub" && SUBS[subId] && SUBS[subId].hub === hubId)));
+            (g === "lista" && screen === "dettaglio") ||
+            (g === "hub:" + hubId && (screen === "hub" || (screen === "sub" && parentHub === hubId))) ||
+            (g === "vigneto" && (screen === "vigneto" || (screen === "sub" && parentHub === "vigneto")));
           b.setAttribute("aria-pressed", on ? "true" : "false");
         });
         var color = theme === "proposta" ? "#F6F3EC" : "#1c1917";
@@ -2097,18 +2246,91 @@
         if (screen === "sub") fillSub();
       }
       apply();
+      setLabOpen(labOpen);
+      if (labHandle) {
+        labHandle.addEventListener("click", function () {
+          if (ignoreHandleClick) {
+            ignoreHandleClick = false;
+            return;
+          }
+          setLabOpen(!labOpen);
+        });
+      }
+      if (labBackdrop) {
+        labBackdrop.addEventListener("click", function () {
+          setLabOpen(false);
+        });
+      }
+      (function bindLabSwipe() {
+        var startY = 0;
+        var startX = 0;
+        var tracking = false;
+        var origin = "";
+        function point(e) {
+          return e.changedTouches && e.changedTouches[0] ? e.changedTouches[0] : e.touches && e.touches[0] ? e.touches[0] : e;
+        }
+        function begin(e, from) {
+          var p = point(e);
+          if (!p) return;
+          startY = p.clientY;
+          startX = p.clientX;
+          tracking = true;
+          origin = from;
+        }
+        function move(e) {
+          if (!tracking) return;
+          var p = point(e);
+          if (!p) return;
+          var dy = p.clientY - startY;
+          var dx = p.clientX - startX;
+          if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+            tracking = false;
+            return;
+          }
+          var phone = document.getElementById("phone");
+          if (!labOpen && origin === "phone" && phone && phone.scrollTop > 4) {
+            tracking = false;
+            return;
+          }
+          if (!labOpen && dy > 56 && (origin === "handle" || origin === "phone")) {
+            if (origin === "handle") ignoreHandleClick = true;
+            setLabOpen(true);
+            tracking = false;
+          } else if (labOpen && dy < -56 && (origin === "handle" || origin === "lab")) {
+            if (origin === "lab" && labEl && labEl.scrollTop > 4) return;
+            if (origin === "handle") ignoreHandleClick = true;
+            setLabOpen(false);
+            tracking = false;
+          }
+        }
+        function end() { tracking = false; }
+        if (labHandle) {
+          labHandle.addEventListener("touchstart", function (e) { begin(e, "handle"); }, { passive: true });
+          labHandle.addEventListener("touchmove", move, { passive: true });
+          labHandle.addEventListener("touchend", end);
+        }
+        if (labEl) {
+          labEl.addEventListener("touchstart", function (e) { begin(e, "lab"); }, { passive: true });
+          labEl.addEventListener("touchmove", move, { passive: true });
+          labEl.addEventListener("touchend", end);
+        }
+        var phone = document.getElementById("phone");
+        if (phone) {
+          phone.addEventListener("touchstart", function (e) {
+            if (labOpen) return;
+            var p = point(e);
+            if (!p) return;
+            if (phone.scrollTop > 4 && p.clientY > 96) return;
+            begin(e, "phone");
+          }, { passive: true });
+          phone.addEventListener("touchmove", move, { passive: true });
+          phone.addEventListener("touchend", end);
+        }
+      })();
       document.querySelectorAll(".seg--theme [data-theme]").forEach(function (b) {
         b.addEventListener("click", function () {
           theme = b.getAttribute("data-theme");
           localStorage.setItem("gfvUiPreviewTheme", theme);
-          apply();
-        });
-      });
-      document.querySelectorAll('.seg:not(.seg--theme) [data-screen]').forEach(function (b) {
-        b.addEventListener("click", function () {
-          screen = b.getAttribute("data-screen");
-          dtab = "overview";
-          localStorage.setItem("gfvUiPreviewScreen", screen);
           apply();
         });
       });
