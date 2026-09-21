@@ -171,6 +171,21 @@ describe('tony-proactive-signals catalog', () => {
     expect(tonyWantsProactiveOpenPage('sì')).toBe(false);
   });
 
+  it('tonyWantsProactiveOpenPage — destinazione diversa dal reminder non è conferma', () => {
+    const oreOffer = { openPageTarget: 'validazione ore', openPageLabel: 'Validazione ore' };
+    expect(tonyWantsProactiveOpenPage('portami a magazzino', { offer: oreOffer })).toBe(false);
+    expect(tonyWantsProactiveOpenPage('portami al magazzino', { offer: oreOffer })).toBe(false);
+    expect(tonyWantsProactiveOpenPage('apri magazzino', { offer: oreOffer })).toBe(false);
+    expect(tonyWantsProactiveOpenPage('vai ai terreni', { offer: oreOffer })).toBe(false);
+    expect(tonyWantsProactiveOpenPage('apri', { offer: oreOffer })).toBe(true);
+    expect(tonyWantsProactiveOpenPage('sì, apri', { offer: oreOffer })).toBe(true);
+    expect(tonyWantsProactiveOpenPage('portami', { offer: oreOffer })).toBe(true);
+    expect(
+      tonyWantsProactiveOpenPage('portami alla validazione ore', { offer: oreOffer })
+    ).toBe(true);
+    expect(tonyWantsProactiveOpenPage('apri validazione ore', { offer: oreOffer })).toBe(true);
+  });
+
   it('isProactiveOpenOfferFresh rispetta TTL', () => {
     expect(isProactiveOpenOfferFresh({ openPageTarget: 'prodotti', at: Date.now() })).toBe(true);
     expect(
