@@ -1,6 +1,13 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-21 — allineamento docs telefono + Higgsfield.**
+**Ultimo aggiornamento documentazione: 2026-09-21 — prova UI doppia pelle (pagina di prova, non in app).**
+
+## Prova UI — pagina Oggi vs proposta (2026-09-21)
+
+- **Cosa:** pagina isolata `core/dev/ui-preview-doppio-pelle.html`: stessa Home / Vigneto / Lista, interruttore Oggi vs proposta. Niente login, niente Firebase, niente voce in navigazione. Tony resta il volto; la proposta spegne gradienti di pagina e emoji di chrome.
+- **Perché:** vedere lo stile sul telefono prima di toccare le pagine vere.
+- **File:** `core/dev/ui-preview-doppio-pelle.html`.
+- Doc: questa voce. Master Plan: nessuna fase cambiata.
 
 ## Allineamento — piani dal telefono in locale + ordine Higgsfield (2026-09-21)
 

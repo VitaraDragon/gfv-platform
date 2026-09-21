@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="oggi" data-screen="dashboard">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#1c1917">
+  <title>Prova UI — Oggi vs proposta · GFV</title>
+  <link rel="icon" type="image/png" href="../images/icon-192x192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --lab-bg: #1c1917;
+      --lab-fg: #fafaf9;
+      --tony-src: url("../images/tony-icon.png");
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      background: var(--lab-bg);
+      color: var(--lab-fg);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh;
+    }
+    button, a { -webkit-tap-highlight-color: transparent; }
+
+    /* —— Barra di laboratorio (non è l'app) —— */
+    .lab {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: #1c1917;
+      padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 10px;
+      border-bottom: 1px solid #44403c;
+    }
+    .lab-kicker {
+      margin: 0 0 8px;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #a8a29e;
+    }
+    .lab-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .lab-row:last-child { margin-bottom: 0; }
+    .seg {
+      flex: 1;
+      display: flex;
+      border: 1px solid #57534e;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #292524;
+    }
+    .seg button {
+      flex: 1;
+      min-height: 44px;
+      border: 0;
+      background: transparent;
+      color: #e7e5e4;
+      font: 600 14px/1.2 system-ui, sans-serif;
+      cursor: pointer;
+    }
+    .seg button[aria-pressed="true"] {
+      background: #fafaf9;
+      color: #1c1917;
+    }
+    .seg--theme button[data-theme="proposta"][aria-pressed="true"] {
+      background: #2E8B57;
+      color: #fff;
+    }
+
+    /* —— Mock app —— */
+    .phone {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      overflow: hidden;
+    }
+    .screen { display: none; padding-bottom: 96px; }
+    html[data-screen="dashboard"] #screen-dashboard,
+    html[data-screen="vigneto"] #screen-vigneto,
+    html[data-screen="lista"] #screen-lista { display: block; }
+
+    .app-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .app-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 8px 12px; border-radius: 8px; border: 0; font-size: 13px; text-decoration: none; cursor: default; }
+    .grid { display: grid; gap: 12px; }
+    .muted { color: #666; }
+    img.tony-face {
+      display: block;
+      object-fit: cover;
+      border-radius: 50%;
+      background: #cfe8d6;
+    }
+
+    /* ========== OGGI ========== */
+    html[data-theme="oggi"] .phone {
+      background: #f5f7fa;
+      color: #333;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+    html[data-theme="oggi"][data-screen="vigneto"] .phone {
+      background: linear-gradient(135deg, #E1BEE7 0%, #6A1B9A 100%);
+    }
+    html[data-theme="oggi"][data-screen="lista"] .phone {
+      background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+    }
+    html[data-theme="oggi"] .wrap { padding: 16px; }
+    html[data-theme="oggi"] .app-header {
+      background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+      color: #fff;
+      padding: 28px 20px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 6px rgba(0,0,0,.1);
+    }
+    html[data-theme="oggi"][data-screen="vigneto"] .app-header {
+      background: linear-gradient(135deg, #6A1B9A 0%, #4A148C 100%);
+      text-align: center;
+      justify-content: center;
+      padding: 36px 20px;
+    }
+    html[data-theme="oggi"] .app-header h1 { margin: 0 0 6px; font-size: 24px; }
+    html[data-theme="oggi"] .app-header p { margin: 0; font-size: 13px; opacity: .92; }
+    html[data-theme="oggi"] .btn-ghost {
+      background: rgba(255,255,255,.2);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.3);
+    }
+    html[data-theme="oggi"] .panel {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,.1);
+      margin-bottom: 14px;
+    }
+    html[data-theme="oggi"] .panel h2 { margin: 0 0 12px; font-size: 16px; color: #2E8B57; }
+    html[data-theme="oggi"][data-screen="vigneto"] .panel h2 { color: #6A1B9A; }
+    html[data-theme="oggi"] .stats { grid-template-columns: 1fr 1fr; }
+    html[data-theme="oggi"] .stat {
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      border-left: 4px solid #2E8B57;
+    }
+    html[data-theme="oggi"][data-screen="vigneto"] .stat {
+      background: linear-gradient(135deg, #F3E5F5, #E1BEE7);
+      border-left-color: #6A1B9A;
+    }
+    html[data-theme="oggi"] .stat b { display: block; font-size: 26px; color: #2E8B57; }
+    html[data-theme="oggi"][data-screen="vigneto"] .stat b { color: #6A1B9A; }
+    html[data-theme="oggi"] .stat span { font-size: 12px; color: #666; }
+    html[data-theme="oggi"] .cards { grid-template-columns: 1fr 1fr; }
+    html[data-theme="oggi"] .card {
+      background: #f8f9fa;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      padding: 16px 10px;
+      text-align: center;
+      text-decoration: none;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    html[data-theme="oggi"][data-screen="vigneto"] .card {
+      background: #fff;
+      border-color: #6A1B9A;
+      border-radius: 12px;
+      padding: 20px 10px;
+    }
+    html[data-theme="oggi"] .card .ico { font-size: 28px; line-height: 1; }
+    html[data-theme="oggi"][data-screen="vigneto"] .card .ico { font-size: 40px; }
+    html[data-theme="oggi"] .card strong { font-size: 14px; }
+    html[data-theme="oggi"] .card small { font-size: 11px; color: #666; }
+    html[data-theme="oggi"] .svg-ico { display: none; }
+    html[data-theme="oggi"] table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    html[data-theme="oggi"] th { text-align: left; color: #2E8B57; padding: 8px 6px; border-bottom: 2px solid #e9ecef; }
+    html[data-theme="oggi"] td { padding: 10px 6px; border-bottom: 1px solid #eee; }
+    html[data-theme="oggi"] .pill { background: #fff3cd; color: #856404; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+    html[data-theme="oggi"] .pill.ok { background: #d4edda; color: #155724; }
+
+    /* ========== PROPOSTA ========== */
+    html[data-theme="proposta"] .phone {
+      background: #F6F3EC;
+      color: #1c1917;
+      font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    }
+    html[data-theme="proposta"] .wrap { padding: 12px 14px 16px; }
+    html[data-theme="proposta"] .app-header {
+      background: #FFFEFA;
+      color: #1c1917;
+      padding: 12px 14px;
+      border-radius: 0;
+      margin: 0 -14px 14px;
+      border-bottom: 1px solid #e7e5e4;
+      box-shadow: none;
+      align-items: center;
+    }
+    html[data-theme="proposta"][data-screen="vigneto"] .app-header {
+      border-bottom: 3px solid #6A1B9A;
+    }
+    html[data-theme="proposta"][data-screen="lista"] .app-header {
+      border-bottom: 3px solid #2E8B57;
+    }
+    html[data-theme="proposta"] .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    html[data-theme="proposta"] .brand img {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+    }
+    html[data-theme="proposta"] .app-header h1 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    html[data-theme="proposta"] .app-header p {
+      margin: 2px 0 0;
+      font-size: 12px;
+      color: #57534e;
+    }
+    html[data-theme="proposta"] .emoji { display: none; }
+    html[data-theme="proposta"] .btn-ghost {
+      background: #F6F3EC;
+      color: #1c1917;
+      border: 1px solid #d6d3d1;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    html[data-theme="proposta"] .briefing {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 16px;
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+    html[data-theme="proposta"] .briefing img { width: 48px; height: 48px; flex-shrink: 0; }
+    html[data-theme="proposta"] .briefing p { margin: 0; font-size: 14px; line-height: 1.45; }
+    html[data-theme="proposta"] .briefing p strong { font-weight: 650; }
+    html[data-theme="proposta"] .panel {
+      background: transparent;
+      box-shadow: none;
+      padding: 0;
+      margin-bottom: 18px;
+    }
+    html[data-theme="proposta"] .panel h2 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 650;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #57534e;
+    }
+    html[data-theme="proposta"] .stats { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    html[data-theme="proposta"] .stat {
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 14px;
+      padding: 12px 10px;
+      text-align: left;
+    }
+    html[data-theme="proposta"] .stat b { display: block; font-size: 20px; color: #1c1917; letter-spacing: -0.03em; }
+    html[data-theme="proposta"] .stat span { font-size: 11px; color: #57534e; }
+    html[data-theme="proposta"] .cards { grid-template-columns: 1fr; gap: 8px; }
+    html[data-theme="proposta"] .card {
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 14px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 40px 1fr;
+      grid-template-rows: auto auto;
+      column-gap: 12px;
+      row-gap: 2px;
+      text-align: left;
+      text-decoration: none;
+      color: inherit;
+      align-items: center;
+    }
+    html[data-theme="proposta"] .card .ico { display: none; }
+    html[data-theme="proposta"] .svg-ico {
+      grid-row: 1 / span 2;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    html[data-theme="proposta"] .svg-ico svg { width: 20px; height: 20px; }
+    html[data-theme="proposta"] .card strong { font-size: 15px; font-weight: 650; }
+    html[data-theme="proposta"] .card small { font-size: 12px; color: #57534e; grid-column: 2; }
+    html[data-theme="proposta"] .ico-core { background: #e8f5ee; color: #1f6b3a; }
+    html[data-theme="proposta"] .ico-vigneto { background: #f3e8fb; color: #6A1B9A; }
+    html[data-theme="proposta"] .ico-frutto { background: #ffedd5; color: #c2410c; }
+    html[data-theme="proposta"] .ico-blue { background: #e0f2fe; color: #0369a1; }
+    html[data-theme="proposta"] table { width: 100%; border-collapse: collapse; font-size: 14px; background: #FFFEFA; border-radius: 14px; overflow: hidden; border: 1px solid #e7e5e4; }
+    html[data-theme="proposta"] th { text-align: left; color: #57534e; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; padding: 10px 12px; font-weight: 650; }
+    html[data-theme="proposta"] td { padding: 12px; border-top: 1px solid #f5f5f4; }
+    html[data-theme="proposta"] .pill { background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 650; padding: 3px 8px; border-radius: 999px; }
+    html[data-theme="proposta"] .pill.ok { background: #dcfce7; color: #166534; }
+    html[data-theme="proposta"] .only-old-copy { display: none; }
+
+    html[data-theme="oggi"] .briefing,
+    html[data-theme="oggi"] .brand img,
+    html[data-theme="oggi"] .only-new-copy { display: none; }
+
+    /* Tony FAB + pannello */
+    .fab {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(46,139,87,.4);
+      background: linear-gradient(135deg, #2E8B57, #228B22);
+      z-index: 20;
+    }
+    html[data-theme="proposta"] .fab {
+      box-shadow: 0 8px 20px rgba(28,25,23,.18);
+      background: #FFFEFA;
+      border: 2px solid #2E8B57;
+    }
+    .fab img { width: 54px; height: 54px; margin: 5px auto 0; }
+    html[data-theme="proposta"] .fab img { width: 58px; height: 58px; margin: 1px auto 0; }
+
+    .tony-panel {
+      display: none;
+      position: absolute;
+      left: 12px;
+      right: 12px;
+      bottom: 88px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.15);
+      overflow: hidden;
+      z-index: 21;
+      max-height: 58vh;
+      flex-direction: column;
+    }
+    .tony-panel.open { display: flex; }
+    .tony-hd {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: linear-gradient(135deg, #2E8B57, #228B22);
+      color: #fff;
+      font-weight: 600;
+    }
+    html[data-theme="proposta"] .tony-panel {
+      border-radius: 20px 20px 16px 16px;
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+    }
+    html[data-theme="proposta"] .tony-hd {
+      background: #FFFEFA;
+      color: #1c1917;
+      border-bottom: 1px solid #e7e5e4;
+    }
+    .tony-hd span { display: flex; align-items: center; gap: 8px; }
+    .tony-hd img { width: 36px; height: 36px; }
+    .tony-x {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 0; background: rgba(255,255,255,.2); color: inherit; font-size: 20px;
+    }
+    html[data-theme="proposta"] .tony-x { background: #F6F3EC; }
+    .tony-msgs { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .bubble { max-width: 88%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.45; }
+    .bubble.tony { align-self: flex-start; background: #f0f4f2; border: 1px solid #e0e8e4; border-bottom-left-radius: 4px; color: #333; }
+    .bubble.user { align-self: flex-end; background: #2E8B57; color: #fff; border-bottom-right-radius: 4px; }
+    html[data-theme="proposta"] .bubble.tony {
+      background: #F6F3EC;
+      border: 0;
+      border-radius: 4px 18px 18px 18px;
+      color: #1c1917;
+    }
+    html[data-theme="proposta"] .bubble.user {
+      border-radius: 18px 18px 4px 18px;
+    }
+  </style>
+</head>
+<body>
+  <div class="lab">
+    <p class="lab-kicker">Pagina di prova · dati finti · non è l’app</p>
+    <div class="lab-row">
+      <div class="seg seg--theme" role="group" aria-label="Stile">
+        <button type="button" data-theme="oggi" aria-pressed="true">Oggi</button>
+        <button type="button" data-theme="proposta" aria-pressed="false">Proposta</button>
+      </div>
+    </div>
+    <div class="lab-row">
+      <div class="seg" role="group" aria-label="Tipo di pagina">
+        <button type="button" data-screen="dashboard" aria-pressed="true">Home</button>
+        <button type="button" data-screen="vigneto" aria-pressed="false">Vigneto</button>
+        <button type="button" data-screen="lista" aria-pressed="false">Lista</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="phone" id="phone">
+    <!-- HOME ERP -->
+    <section class="screen" id="screen-dashboard">
+      <div class="wrap">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1><span class="emoji">🌾 </span>GFV Platform</h1>
+              <p>Marco · manager</p>
+            </div>
+          </div>
+          <div class="app-actions">
+            <span class="btn btn-ghost"><span class="emoji">⚙️ </span>Impostazioni</span>
+          </div>
+        </header>
+
+        <div class="briefing">
+          <img class="tony-face" src="../images/tony-icon.png" alt="">
+          <p><strong>Buongiorno Marco.</strong> 2 ore da validare, concime sotto scorta. Vuoi che apra Validazione ore?</p>
+        </div>
+
+        <div class="panel">
+          <h2><span class="emoji">⏳ </span>Per te oggi</h2>
+          <div class="grid stats">
+            <div class="stat"><b>2</b><span>Ore da validare</span></div>
+            <div class="stat"><b>1</b><span>Sotto scorta</span></div>
+            <div class="stat"><b>3</b><span>Lavori aperti</span></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2><span class="emoji">📋 </span>Azioni rapide</h2>
+          <div class="grid cards">
+            <a class="card" href="#" data-fake>
+              <span class="ico">🗺️</span>
+              <span class="svg-ico ico-core" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg></span>
+              <strong>Terreni</strong>
+              <small>Anagrafica e mappa</small>
+            </a>
+            <a class="card" href="#" data-fake>
+              <span class="ico">📝</span>
+              <span class="svg-ico ico-core" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 4h10l4 4v12H5z"/><path d="M15 4v4h4M8 12h8M8 16h6"/></svg></span>
+              <strong>Diario attività</strong>
+              <small>Registra il lavoro</small>
+            </a>
+            <a class="card" href="#" data-fake>
+              <span class="ico">👷</span>
+              <span class="svg-ico ico-core" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c1-4 4-6 6-6s5 2 6 6"/><circle cx="17" cy="9" r="2"/><path d="M16 20c.4-2 1.5-3.5 3-4"/></svg></span>
+              <strong>Manodopera</strong>
+              <small>Lavori, squadre, ore</small>
+            </a>
+            <a class="card" href="#" data-fake>
+              <span class="ico">📦</span>
+              <span class="svg-ico ico-frutto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h18v12H3zM3 8l9-4 9 4M12 8v12"/></svg></span>
+              <strong>Magazzino</strong>
+              <small>Prodotti e movimenti</small>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOME MODULO VIGNETO -->
+    <section class="screen" id="screen-vigneto">
+      <div class="wrap">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1><span class="emoji">🍇 </span>Dashboard Vigneto</h1>
+              <p class="only-old-copy">Gestisci i tuoi vigneti</p>
+              <p class="only-new-copy">Stesso menu di oggi, stanza più quieta</p>
+            </div>
+          </div>
+        </header>
+
+        <div class="panel">
+          <div class="grid stats">
+            <div class="stat"><b>12</b><span>Vigneti</span></div>
+            <div class="stat"><b>8,4</b><span>Ettari</span></div>
+            <div class="stat"><b>2</b><span>Trattamenti</span></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Azioni rapide</h2>
+          <div class="grid cards">
+            <a class="card" href="#" data-fake>
+              <span class="ico">🍇</span>
+              <span class="svg-ico ico-vigneto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="10" r="2"/><circle cx="13" cy="8" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="11" cy="14" r="2"/><path d="M12 4v2"/></svg></span>
+              <strong>Anagrafica vigneti</strong>
+              <small>Dati tecnici e filari</small>
+            </a>
+            <a class="card" href="#" data-fake>
+              <span class="ico">🍷</span>
+              <span class="svg-ico ico-vigneto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 4h8l1 7a5 5 0 11-10 0zM12 16v4M9 20h6"/></svg></span>
+              <strong>Vendemmia</strong>
+              <small>Registra la produzione</small>
+            </a>
+            <a class="card" href="#" data-fake>
+              <span class="ico">✂️</span>
+              <span class="svg-ico ico-vigneto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="7" r="3"/><circle cx="6" cy="17" r="3"/><path d="M8.5 8.5L20 20M8.5 15.5L20 4"/></svg></span>
+              <strong>Potatura</strong>
+              <small>Invernale, verde, rinnovo</small>
+            </a>
+            <a class="card" href="#" data-fake>
+              <span class="ico">🧪</span>
+              <span class="svg-ico ico-vigneto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3h4v7l5 8H5l5-8z"/></svg></span>
+              <strong>Trattamenti</strong>
+              <small>Fitosanitari di campo</small>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LISTA -->
+    <section class="screen" id="screen-lista">
+      <div class="wrap">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1><span class="emoji">📋 </span>Gestione lavori</h1>
+              <p>3 aperti · 1 da validare</p>
+            </div>
+          </div>
+          <div class="app-actions">
+            <span class="btn btn-ghost"><span class="emoji">➕ </span>Nuovo</span>
+          </div>
+        </header>
+
+        <div class="panel">
+          <h2 class="only-old-copy">Elenco lavori</h2>
+          <table>
+            <thead>
+              <tr><th>Lavoro</th><th>Terreno</th><th>Stato</th></tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Potatura Sangiovese</td>
+                <td>Pannelli</td>
+                <td><span class="pill">In corso</span></td>
+              </tr>
+              <tr>
+                <td>Trinciatura</td>
+                <td>Larghetta</td>
+                <td><span class="pill">In corso</span></td>
+              </tr>
+              <tr>
+                <td>Erpicatura</td>
+                <td>Olmo</td>
+                <td><span class="pill ok">Fatto</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <button type="button" class="fab" id="tony-fab" aria-label="Apri Tony">
+      <img class="tony-face" src="../images/tony-icon.png" alt="">
+    </button>
+
+    <div class="tony-panel" id="tony-panel" role="dialog" aria-label="Tony">
+      <div class="tony-hd">
+        <span>
+          <img class="tony-face" src="../images/tony-icon.png" alt="">
+          Tony
+        </span>
+        <button type="button" class="tony-x" id="tony-close" aria-label="Chiudi">×</button>
+      </div>
+      <div class="tony-msgs">
+        <div class="bubble tony">Buongiorno Marco. 2 ore da validare e il concime fogliare è sotto scorta. Vuoi che apra Validazione ore?</div>
+        <div class="bubble user">Sì, apri</div>
+        <div class="bubble tony">Ok, ti porto alla validazione. Il resto dell’app resta un attrezzo: io resto il viso.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var html = document.documentElement;
+      var theme = localStorage.getItem("gfvUiPreviewTheme") || "oggi";
+      var screen = localStorage.getItem("gfvUiPreviewScreen") || "dashboard";
+      function apply() {
+        html.setAttribute("data-theme", theme);
+        html.setAttribute("data-screen", screen);
+        document.querySelectorAll(".seg--theme [data-theme]").forEach(function (b) {
+          b.setAttribute("aria-pressed", b.getAttribute("data-theme") === theme ? "true" : "false");
+        });
+        document.querySelectorAll(".seg:not(.seg--theme) [data-screen]").forEach(function (b) {
+          b.setAttribute("aria-pressed", b.getAttribute("data-screen") === screen ? "true" : "false");
+        });
+        var color = theme === "proposta" ? "#F6F3EC" : "#1c1917";
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", color);
+      }
+      apply();
+      document.querySelectorAll(".seg--theme [data-theme]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          theme = b.getAttribute("data-theme");
+          localStorage.setItem("gfvUiPreviewTheme", theme);
+          apply();
+        });
+      });
+      document.querySelectorAll('.seg:not(.seg--theme) [data-screen]').forEach(function (b) {
+        b.addEventListener("click", function () {
+          screen = b.getAttribute("data-screen");
+          localStorage.setItem("gfvUiPreviewScreen", screen);
+          apply();
+        });
+      });
+      var panel = document.getElementById("tony-panel");
+      document.getElementById("tony-fab").addEventListener("click", function () {
+        panel.classList.toggle("open");
+      });
+      document.getElementById("tony-close").addEventListener("click", function () {
+        panel.classList.remove("open");
+      });
+      document.querySelectorAll("[data-fake]").forEach(function (a) {
+        a.addEventListener("click", function (e) { e.preventDefault(); });
+      });
+    })();
+  </script>
+</body>
+</html>
