@@ -586,7 +586,11 @@
     html[data-dtab="ore"] #dtab-ore { display: block; }
     html[data-theme="oggi"] .d-new { display: none !important; }
     html[data-theme="proposta"] .d-old { display: none !important; }
-    html[data-dtab="map"] #dettaglio-wrap.wrap-canvas .fake-map { min-height: 240px; }
+    html[data-dtab="map"] #dettaglio-wrap.wrap-canvas .fake-map {
+      min-height: 200px;
+      height: 34vh;
+      flex: 0 0 auto;
+    }
 
     .d-fields {
       display: grid;
