@@ -77,7 +77,9 @@
       position: relative;
       flex: 1;
       min-height: 0;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
     }
     .screen { display: none; padding-bottom: 96px; }
     html[data-screen="dashboard"] #screen-dashboard,
@@ -320,9 +322,9 @@
 
     /* Tony FAB + pannello */
     .fab {
-      position: absolute;
+      position: fixed;
       right: 16px;
-      bottom: 16px;
+      bottom: calc(16px + env(safe-area-inset-bottom, 0px));
       width: 64px;
       height: 64px;
       border-radius: 50%;
@@ -343,16 +345,16 @@
 
     .tony-panel {
       display: none;
-      position: absolute;
+      position: fixed;
       left: 12px;
       right: 12px;
-      bottom: 88px;
+      bottom: calc(88px + env(safe-area-inset-bottom, 0px));
       background: #fff;
       border-radius: 12px;
       box-shadow: 0 8px 32px rgba(0,0,0,.15);
       overflow: hidden;
       z-index: 21;
-      max-height: 58vh;
+      max-height: 52vh;
       flex-direction: column;
     }
     .tony-panel.open { display: flex; }
@@ -599,11 +601,17 @@
   <script>
     (function () {
       var html = document.documentElement;
-      var theme = localStorage.getItem("gfvUiPreviewTheme") || "oggi";
-      var screen = localStorage.getItem("gfvUiPreviewScreen") || "dashboard";
+      var params = new URLSearchParams(location.search);
+      var theme = params.get("theme") || localStorage.getItem("gfvUiPreviewTheme") || "oggi";
+      var screen = params.get("screen") || localStorage.getItem("gfvUiPreviewScreen") || "dashboard";
+      if (theme !== "oggi" && theme !== "proposta") theme = "oggi";
+      if (screen !== "dashboard" && screen !== "vigneto" && screen !== "lista") screen = "dashboard";
       function apply() {
         html.setAttribute("data-theme", theme);
         html.setAttribute("data-screen", screen);
+        try {
+          history.replaceState(null, "", "?theme=" + encodeURIComponent(theme) + "&screen=" + encodeURIComponent(screen));
+        } catch (e) {}
         document.querySelectorAll(".seg--theme [data-theme]").forEach(function (b) {
           b.setAttribute("aria-pressed", b.getAttribute("data-theme") === theme ? "true" : "false");
         });
