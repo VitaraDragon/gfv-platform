@@ -10,15 +10,21 @@ import {
 import { pulisciTestoPerVoce } from '../core/js/tony/voice.js';
 
 describe('meteo-dashboard-quick-reply', () => {
-  it('riconosce domanda meteo domani', () => {
+  it('riconosce domanda meteo domani, non la navigazione al modulo', () => {
     expect(isDashboardMeteoQuestion("Com'è il meteo domani")).toBe(true);
     expect(isDashboardMeteoQuestion('previsioni pioggia')).toBe(true);
     expect(isDashboardMeteoQuestion('apri il modulo attività')).toBe(false);
+    expect(isDashboardMeteoQuestion('portami al meteo')).toBe(false);
+    expect(isDashboardMeteoQuestion('torna al meteo')).toBe(false);
+    expect(isDashboardMeteoQuestion('apri il modulo meteo')).toBe(false);
   });
 
-  it('isTonyDashboardPagePath su pathname dashboard', () => {
+  it('isTonyDashboardPagePath è solo la home ERP, non meteo/vigneto', () => {
     expect(isTonyDashboardPagePath({ location: { pathname: '/core/dashboard-standalone.html' } })).toBe(true);
+    expect(isTonyDashboardPagePath({ location: { pathname: '/gfv-platform/core/dashboard-standalone.html' } })).toBe(true);
     expect(isTonyDashboardPagePath({ location: { pathname: '/core/terreni-standalone.html' } })).toBe(false);
+    expect(isTonyDashboardPagePath({ location: { pathname: '/modules/meteo/views/meteo-dashboard-standalone.html' } })).toBe(false);
+    expect(isTonyDashboardPagePath({ location: { pathname: '/modules/vigneto/views/vigneto-dashboard-standalone.html' } })).toBe(false);
   });
 
   it('formatSedeMeteoReply domani — testo adatto al TTS (no 19–29°C)', () => {

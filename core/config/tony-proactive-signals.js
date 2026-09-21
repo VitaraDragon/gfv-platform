@@ -589,6 +589,61 @@ export function normalizeProactiveOpenMsg(text) {
     .trim();
 }
 
+/**
+ * Rimuove verbi di navigazione e cortesia: resta solo l’eventuale destinazione.
+ * «portami a magazzino» → «magazzino»; «apri» / «sì apri» → ''.
+ * @param {string} normalizedMsg
+ * @returns {string}
+ */
+function stripProactiveOpenNavWrapper(normalizedMsg) {
+  return String(normalizedMsg || '')
+    .replace(/^(si|ok|okay|certo|va bene)[,.\s]*/i, '')
+    .replace(
+      /\b(apri|apriamola|apriamolo|aprila|aprilo|portami|portaci|mandami|mostrami|indirizzami|naviga|vai)\b/gi,
+      ' '
+    )
+    .replace(/\b(a|al|alla|allo|all|ai|agli|in|su|sul|sulla|da|dal)\b/gi, ' ')
+    .replace(/\b(il|lo|la|i|gli|le|un|uno|una)\b/gi, ' ')
+    .replace(/\b(pagina|modulo|sezione)\b/gi, ' ')
+    .replace(/\b(per favore|per piacere|grazie|please|adesso|ora|subito)\b/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function leftoverIsBareProactiveOpen(leftover) {
+  return !leftover || /^(li|la|lo|le|gli|ci|qui|qua)$/.test(leftover);
+}
+
+function leftoverMatchesOffer(leftover, offerNorms) {
+  if (!leftover) return true;
+  for (var i = 0; i < offerNorms.length; i++) {
+    var n = offerNorms[i];
+    if (!n) continue;
+    if (leftover === n || leftover.indexOf(n) >= 0 || n.indexOf(leftover) >= 0) return true;
+  }
+  return false;
+}
+
+/**
+ * True se l’utente ha nominato una pagina diversa da quella del reminder
+ * (es. briefing Validazione ore + «portami a magazzino»).
+ * @param {string} normalizedMsg
+ * @param {{ openPageLabel?: string, openPageTarget?: string }|null} offer
+ * @returns {boolean}
+ */
+function userNamedDifferentProactiveDestination(normalizedMsg, offer) {
+  if (!offer) return false;
+  var leftover = stripProactiveOpenNavWrapper(normalizedMsg);
+  if (leftoverIsBareProactiveOpen(leftover)) return false;
+  if (leftover.length < 3) return false;
+  var norms = [
+    normalizeProactiveOpenMsg(offer.openPageLabel),
+    normalizeProactiveOpenMsg(offer.openPageTarget),
+  ].filter(Boolean);
+  if (!norms.length) return true;
+  return !leftoverMatchesOffer(leftover, norms);
+}
+
 export function tonyWantsProactiveOpenPage(text, opts) {
   opts = opts || {};
   const m = normalizeProactiveOpenMsg(text);
@@ -602,6 +657,9 @@ export function tonyWantsProactiveOpenPage(text, opts) {
   const targetNorm = offer && offer.openPageTarget
     ? normalizeProactiveOpenMsg(offer.openPageTarget)
     : '';
+
+  // «portami a magazzino» dopo un reminder su Validazione ore non è una conferma.
+  if (userNamedDifferentProactiveDestination(m, offer)) return false;
 
   if (/^(apri|apriamola|apriamolo|aprila|aprilo)(\s|$)/.test(m)) return true;
   if (/\b(si|ok|okay)\s*,?\s*(apri|portami|vai)\b/.test(m)) return true;

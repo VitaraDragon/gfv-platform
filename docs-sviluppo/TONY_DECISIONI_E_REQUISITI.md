@@ -286,7 +286,7 @@
 
 - **Riepilogo pieno** (fascia mattina/pomeriggio/sera): elenco sintetico dei segnali attivi (priorità: bloccanti flusso > urgenza tempo > informativi). Hub: prefisso «Qui in {Hub}: …».
 - **Delta**: solo segnali **nuovi o peggiorati** rispetto all’ultimo fingerprint.
-- Follow-up parlato «dimmi «apri»» **rimosso** (2026-09-05): al briefing il mic è spento e «apri» nudo non apre la pagina citata. Handler silenzioso `APRI_PAGINA` resta in `main.js` se l’utente lo chiede esplicitamente dopo. «sì» nudo resta RIASSUNTO (**solo dashboard**).
+- Follow-up parlato «dimmi «apri»» **rimosso** (2026-09-05): al briefing il mic è spento e «apri» nudo non apre la pagina citata. Handler silenzioso `APRI_PAGINA` resta in `main.js` se l’utente lo chiede esplicitamente dopo (**2026-09-21:** solo conferma nuda «apri/portami» o la pagina del reminder; «portami a magazzino» non ruba l’offerta su Validazione ore). «sì» nudo resta RIASSUNTO (**solo dashboard**).
 - **Hub (2026-07-21 / 2026-09-05):** niente offerta «vuoi un riassunto?» — il reminder è già il messaggio utile; se chiesto comunque → guida alla Dashboard senza eco conteggi e senza «dimmi apri».
 
 **Ingresso UX:** dashboard e hub modulo alla prima apertura in fascia; non monologo su ogni pagina lista. Contesto `globalStatus` aggiornato anche in silenzio.

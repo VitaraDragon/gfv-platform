@@ -1,5 +1,7 @@
 /** Pure helpers — testabili senza Firebase. */
 
+import { isTonyMainDashboardPath } from './engine.js';
+
 export function normalizeMeteoMsg(text) {
   return String(text || '')
     .toLowerCase()
@@ -11,6 +13,8 @@ export function normalizeMeteoMsg(text) {
 export function isDashboardMeteoQuestion(text) {
   var m = normalizeMeteoMsg(text);
   if (!m) return false;
+  // «portami al meteo» è navigazione, non una domanda sulle previsioni.
+  if (isTonyMeteoModuleNavRequest(text)) return false;
   if (/\b(meteo|tempo|pioggia|piove|piovera|prevision|vento|temperatur|umidit|nuvol|sole|cielo)\b/.test(m)) {
     return true;
   }
@@ -20,11 +24,30 @@ export function isDashboardMeteoQuestion(text) {
   return false;
 }
 
+/**
+ * «Apri / portami / torna al meteo» → pagina modulo, non forecast parlato.
+ * @param {string} text
+ * @returns {boolean}
+ */
+export function isTonyMeteoModuleNavRequest(text) {
+  var m = normalizeMeteoMsg(text);
+  if (!m) return false;
+  if (!/\b(apri|portami|riportami|torna|vai\s+a|vai\s+al|vai\s+alla|vai\s+alle|vai\s+ai|mandami|mostrami\s+la\s+pagina|naviga)\b/i.test(m)) {
+    return false;
+  }
+  if (/\b(modulo\s+meteo|pagina\s+meteo|previsioni?\s+meteo)\b/i.test(m)) return true;
+  if (/\bmeteo\b/i.test(m)) return true;
+  if (/\bprevisioni?\b/i.test(m) && !/\b(pioggia|vento|temperatur|umidit|domani|oggi|dopodomani)\b/i.test(m)) {
+    return true;
+  }
+  return false;
+}
+
 export function isTonyDashboardPagePath(windowRef) {
   try {
     var w = windowRef || (typeof window !== 'undefined' ? window : null);
-    var p = w && w.location && w.location.pathname ? String(w.location.pathname).toLowerCase() : '';
-    return p.indexOf('dashboard') >= 0;
+    var p = w && w.location && w.location.pathname ? String(w.location.pathname) : '';
+    return isTonyMainDashboardPath(p);
   } catch (_) {
     return false;
   }
