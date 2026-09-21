@@ -477,7 +477,7 @@
     .dot.yellow { background: #ffc107; }
     .dot.green { background: #28a745; }
 
-    .job-cards { display: flex; flex-direction: column; gap: 10px; }
+    .job-cards { display: flex; flex-direction: column; gap: 10px; padding-bottom: 28px; }
     .job-card {
       background: #FFFEFA;
       border: 1px solid #e7e5e4;
@@ -1119,6 +1119,10 @@
           b.textContent = open ? "Chiudi" : "Altro";
         });
       });
+      if (params.get("more") === "1") {
+        var firstMore = document.querySelector("[data-job-more]");
+        if (firstMore) firstMore.click();
+      }
     })();
   </script>
 </body>
