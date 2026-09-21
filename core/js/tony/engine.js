@@ -214,6 +214,56 @@ export function resolveTarget(raw) {
     return null;
 }
 
+/**
+ * Home ERP (`core/dashboard-standalone.html`), non le dashboard di modulo
+ * (meteo/vigneto/frutteto/macchine/report).
+ * @param {string} [pathname]
+ * @returns {boolean}
+ */
+export function isTonyMainDashboardPath(pathname) {
+    var p = String(
+        pathname != null
+            ? pathname
+            : (typeof window !== 'undefined' && window.location && window.location.pathname) || ''
+    )
+        .toLowerCase()
+        .replace(/\\/g, '/');
+    return /(?:^|\/)dashboard-standalone(?:\.html)?(?:[?#]|$)/.test(p);
+}
+
+/**
+ * «Portami alla dashboard / home / pagina principale» senza qualificatore di modulo.
+ * @param {string} text
+ * @returns {boolean}
+ */
+export function isTonyMainDashboardNavRequest(text) {
+    var m = String(text || '').toLowerCase();
+    if (!m) return false;
+    if (!/\b(apri|portami|riportami|torna|vai\s+a|vai\s+al|vai\s+alla|vai\s+alle|vai\s+ai|mandami|mostrami\s+la\s+pagina|naviga)\b/i.test(m)) {
+        return false;
+    }
+    var hasModuleHub = /\b(manodopera|magazzino|meteo|vigneto|frutteto|macchine|conto\s+terzi|campo)\b/i.test(m);
+    if ((/\bpagina\s+principale\b/i.test(m) || /\bhome\b/i.test(m)) && !hasModuleHub) return true;
+    if (/\bdashboard\b/i.test(m) && !hasModuleHub) return true;
+    return false;
+}
+
+/**
+ * Pagina modulo Meteo (`meteo-dashboard-standalone.html`), non la home ERP.
+ * @param {string} [pathname]
+ * @returns {boolean}
+ */
+export function isTonyMeteoModulePath(pathname) {
+    var p = String(
+        pathname != null
+            ? pathname
+            : (typeof window !== 'undefined' && window.location && window.location.pathname) || ''
+    )
+        .toLowerCase()
+        .replace(/\\/g, '/');
+    return /(?:^|\/)meteo-dashboard-standalone(?:\.html)?(?:[?#]|$)/.test(p);
+}
+
 export function getUrlForTarget(target, pathname) {
     var resolved = resolveTarget(target);
     if (!resolved) return null;

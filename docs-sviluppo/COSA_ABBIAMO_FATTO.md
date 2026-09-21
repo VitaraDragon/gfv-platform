@@ -1,12 +1,39 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-20 — promozione snellimento su main.**
+**Ultimo aggiornamento documentazione: 2026-09-21 — promozione Tony nav su main.**
+
+## Promozione su main — Tony nav dashboard / meteo / reminder (2026-09-21)
+
+- **Cosa:** cherry-pick da `develop` (`22781a4` / PR #60) su branch da `main`. Nav Tony: destinazione nominata, home ERP vs dashboard di modulo, «portami al meteo» ≠ previsioni.
+- **Perché:** `main` e `develop` hanno storie parallele (promozioni a cherry-pick). CI develop verde su PR #60. CF `tonyAsk`/`tonyAskStream` già deployate.
+- Doc: questa voce. Master Plan: nessuna fase cambiata.
 
 ## Promozione su main — bootstrap unico standalone (2026-09-20)
 
 - **Cosa:** cherry-pick da `develop` (`7af8178` / PR #58) su branch da `main`. Bootstrap unico sulle pagine standalone; `increment`/`runTransaction` di magazzino e preventivi restano; lista lavori paint-first.
 - **Perché:** `main` e `develop` hanno storie parallele (promozioni a cherry-pick). CI develop verde: [35530137514](https://github.com/VitaraDragon/gfv-platform/actions/runs/35530137514).
 - Doc: questa voce. Master Plan: nessuna fase cambiata.
+
+## Fix Tony — dalla dashboard «portami al meteo» non legge più le previsioni (2026-09-21)
+
+- **Cosa:** sulla home ERP, «apri/portami/torna al meteo» apre il modulo Meteo. Le previsioni restano per «com’è il meteo», «piove domani», ecc.
+- **Perché:** l’intercept locale dashboard trattava qualsiasi frase con «meteo» come domanda sulle previsioni.
+- **File:** `core/js/tony/meteo-dashboard-quick-reply-utils.js`, `core/js/tony/main.js`, `core/js/tony/engine.js`, `functions/tony-nav-quick-reply.js`.
+- Doc: questa voce, `STATO_ATTUALE.md`. Master Plan: nessuna fase cambiata.
+
+## Fix Tony — da dashboard di modulo «portami alla dashboard» non è già in home (2026-09-21)
+
+- **Cosa:** «già sulla dashboard» solo su `core/dashboard-standalone.html`. Da Meteo/Vigneto/Frutteto/Macchine/Report Tony porta alla home. Client intercept 0 CF per test locale senza deploy CF. Verbo «torna».
+- **Perché:** `path.includes("dashboard")` matchava `meteo-dashboard-standalone.html`.
+- **File:** `functions/tony-nav-quick-reply.js`, `core/js/tony/engine.js`, `core/js/tony/main.js`, `core/js/tony/meteo-dashboard-quick-reply-utils.js`.
+- Doc: questa voce, `STATO_ATTUALE.md`. Master Plan: nessuna fase cambiata.
+
+## Fix Tony — «portami a magazzino» non apre più Validazione/segnatura ore (2026-09-21)
+
+- **Cosa:** `tonyWantsProactiveOpenPage` conferma il reminder solo con «apri/portami» nudo o se la pagina nominata è quella dell’offerta. Una destinazione diversa (es. Magazzino) passa alla nav normale.
+- **Perché:** dopo il briefing dashboard (TTL 15 min, spesso «Validazione ore») qualsiasi «portami/apri/vai» apriva la pagina del reminder. Al secondo tentativo l’offerta era già consumata e la nav era corretta.
+- **File:** `core/config/tony-proactive-signals.js`, `tests/tony-proactive-signals.test.js`.
+- Doc: questa voce, `STATO_ATTUALE.md`, `TONY_DECISIONI_E_REQUISITI.md` §15.6. Master Plan: nessuna fase cambiata.
 
 ## Merge snellimento in develop (2026-09-20)
 

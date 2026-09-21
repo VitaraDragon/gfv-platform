@@ -16,7 +16,7 @@ const {
 } = require("./tony-module-gate");
 
 const NAV_VERB_RE =
-  /\b(apri|portami|vai\s+a|vai\s+al|vai\s+alla|vai\s+alle|vai\s+ai|mandami|mostrami\s+la\s+pagina|naviga)\b/i;
+  /\b(apri|portami|riportami|torna|vai\s+a|vai\s+al|vai\s+alla|vai\s+alle|vai\s+ai|mandami|mostrami\s+la\s+pagina|naviga)\b/i;
 
 const RIASSUNTO_RE = /\b(riassunto|briefing|cosa\s+devo\s+fare\s+oggi)\b/i;
 
@@ -154,7 +154,16 @@ function isAlreadyOnTargetPage(ctx, target) {
   }
   if (t === "prodotti" && (pageType === "prodotti" || path.includes("prodotti"))) return true;
   if (t === "movimenti" && (pageType === "movimenti" || path.includes("movimenti"))) return true;
-  if (t === "dashboard" && (path.includes("dashboard") || pageType === "dashboard")) return true;
+  // Solo home ERP (`core/dashboard-standalone.html`), non meteo/vigneto/frutteto/macchine/report *-dashboard-*.
+  if (
+    t === "dashboard" &&
+    (pageType === "dashboard" || /(?:^|\/)dashboard-standalone(?:\.html)?(?:[?#]|$)/.test(path))
+  ) {
+    return true;
+  }
+  if (t === "meteo" && (pageType === "meteo_dashboard" || path.includes("meteo-dashboard-standalone"))) {
+    return true;
+  }
   if (
     t === "manodopera" &&
     (path.includes("manodopera-home") || path.includes("/manodopera/views/manodopera-home"))

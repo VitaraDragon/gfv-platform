@@ -6,7 +6,7 @@
 import { tonyDebugLog } from './debug.js';
 import { injectWidget } from './ui.js';
 import { initTonyVoice } from './voice.js';
-import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, cleanTextFromJsonResidue, normalizeTonyTextWhitespace, applyItalianVoiceQuestionPunctuation, normalizeItalianSttTranscript, collapseDuplicateVoiceTranscript, scoreItalianSttLexicon, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts, matchSegnaOraIncompleteDallePausaFromBlob, normalizeSegnaOraSttBlob, isSegnaOraUntrustedPartialStart, repairSegnaOraVoiceTranscript } from './engine.js';
+import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, isTonyMainDashboardPath, isTonyMainDashboardNavRequest, isTonyMeteoModulePath, cleanTextFromJsonResidue, normalizeTonyTextWhitespace, applyItalianVoiceQuestionPunctuation, normalizeItalianSttTranscript, collapseDuplicateVoiceTranscript, scoreItalianSttLexicon, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts, matchSegnaOraIncompleteDallePausaFromBlob, normalizeSegnaOraSttBlob, isSegnaOraUntrustedPartialStart, repairSegnaOraVoiceTranscript } from './engine.js';
 import { hasActiveModule, getModuliAttiviFromTonyContext, isApriPaginaTargetAllowed, tonyNotifyModuleInactive } from '../../config/tony-module-gate.js';
 import { getTonyGuidaOnboardingFromWindow, tonyGuidaOnboardingWelcomeMessage } from '../../config/tony-guida-onboarding.js';
 import {
@@ -57,7 +57,7 @@ import {
 } from '../tony-prodotto-create-local.js';
 import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo.js';
 import { applyStreamingTtsChunks, consumeCompleteStreamingSentences, getStreamingTtsRemainder, resolveVoiceTtsRemainder, reconcileUnspokenVoiceSegments, batchSentencesForTts, joinSentencesForItalianTts, speakTextInSentenceChunks } from './stream-tts-chunk.js';
-import { tonyWantsDashboardRiassunto, buildDashboardRiassuntoText, formatDashboardOpsBriefingText } from './meteo-dashboard-quick-reply-utils.js';
+import { tonyWantsDashboardRiassunto, buildDashboardRiassuntoText, formatDashboardOpsBriefingText, isTonyMeteoModuleNavRequest } from './meteo-dashboard-quick-reply-utils.js';
 import {
     tonyWantsProactiveOpenPage,
     isProactiveOpenOfferFresh,
@@ -6858,6 +6858,40 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 },
                 saveState: saveTonyState,
             };
+
+            // Home ERP: da dashboard di modulo (meteo/vigneto/…) «portami alla dashboard» non è «già lì».
+            if (!opts.proactive && !getTonyFieldProfileFromContext() &&
+                isTonyMainDashboardNavRequest(text) && !isTonyMainDashboardPath()) {
+                if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                try { if (typeof removeTyping === 'function') removeTyping(); } catch (eRmDash) { /* ignore */ }
+                var dashNavText = 'Ti porto alla dashboard.';
+                try {
+                    if (typeof showMessageInChat === 'function') showMessageInChat(dashNavText, 'tony');
+                    else if (typeof appendMessage === 'function') appendMessage(dashNavText, 'tony');
+                    if (window.Tony && typeof window.Tony.speak === 'function') window.Tony.speak(dashNavText);
+                } catch (eDashSpeak) { /* ignore */ }
+                processTonyCommand({ type: 'APRI_PAGINA', target: 'dashboard' });
+                if (opts.fromVoice) isWaitingForTonyResponse = false;
+                _isSendingMessage = false;
+                return;
+            }
+
+            // Da dashboard (o altra pagina): «portami al meteo» apre il modulo, non legge le previsioni.
+            if (!opts.proactive && !getTonyFieldProfileFromContext() &&
+                isTonyMeteoModuleNavRequest(text) && !isTonyMeteoModulePath()) {
+                if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                try { if (typeof removeTyping === 'function') removeTyping(); } catch (eRmMeteo) { /* ignore */ }
+                var meteoNavText = 'Ti porto al modulo meteo.';
+                try {
+                    if (typeof showMessageInChat === 'function') showMessageInChat(meteoNavText, 'tony');
+                    else if (typeof appendMessage === 'function') appendMessage(meteoNavText, 'tony');
+                    if (window.Tony && typeof window.Tony.speak === 'function') window.Tony.speak(meteoNavText);
+                } catch (eMeteoSpeak) { /* ignore */ }
+                processTonyCommand({ type: 'APRI_PAGINA', target: 'meteo' });
+                if (opts.fromVoice) isWaitingForTonyResponse = false;
+                _isSendingMessage = false;
+                return;
+            }
 
             // Profilo campo: tutte le slide workspace in locale (0 CF) — evita Gemini «sei già su segna ore».
             if (!opts.proactive && getTonyFieldProfileFromContext()) {
