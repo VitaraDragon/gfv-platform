@@ -172,6 +172,7 @@
       opacity: 0.48;
       cursor: default;
     }
+    .lab-kicker--desk { display: none; }
 
     /* —— Mock app —— */
     .phone {
@@ -958,6 +959,78 @@
     html[data-theme="proposta"] .bubble.user {
       border-radius: 18px 18px 4px 18px;
     }
+
+    /* PC: catalogo a sinistra, contenuto a destra. Niente swipe. */
+    @media (min-width: 1024px) {
+      body {
+        flex-direction: row;
+        align-items: stretch;
+      }
+      .lab-handle { display: none; }
+      .lab-backdrop,
+      html[data-lab="open"] .lab-backdrop { display: none !important; }
+      .lab {
+        position: relative;
+        top: auto;
+        left: auto;
+        right: auto;
+        z-index: 3;
+        width: 272px;
+        max-height: none;
+        height: 100dvh;
+        flex-shrink: 0;
+        transform: none !important;
+        pointer-events: auto !important;
+        border-radius: 0;
+        border-bottom: 0;
+        border-right: 1px solid #44403c;
+        padding: 16px 12px 28px;
+      }
+      html[data-lab="open"] body { overflow: hidden; }
+      html[data-lab="open"] .phone { overflow-x: hidden; overflow-y: auto; }
+      .lab-kicker--phone { display: none; }
+      .lab-kicker--desk { display: block; }
+      .lab-mods { grid-template-columns: 1fr; }
+      .lab-mod { min-height: 44px; }
+      .phone { flex: 1; min-width: 0; }
+      html[data-theme="proposta"] .wrap {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 28px 48px;
+      }
+      html[data-theme="proposta"] .app-header {
+        margin: 0 -28px 20px;
+        padding: 16px 28px;
+      }
+      html[data-theme="proposta"] .cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      html[data-theme="proposta"][data-screen="dashboard"] .cards {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      html[data-theme="proposta"] .stats {
+        grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+      }
+      html[data-theme="proposta"] .wide-wrap { display: block; }
+      html[data-theme="proposta"] .job-cards { display: none; }
+      html[data-theme="proposta"] .scroll-hint { display: none; }
+      html[data-theme="oggi"] .wrap {
+        max-width: 1120px;
+        margin: 0 auto;
+      }
+      html[data-theme="oggi"] .cards {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .fab { right: 24px; bottom: 24px; }
+      .tony-panel {
+        left: auto;
+        right: 24px;
+        width: 380px;
+        bottom: 100px;
+        max-height: 60vh;
+      }
+    }
   </style>
 </head>
 <body>
@@ -968,7 +1041,8 @@
   </button>
   <div class="lab-backdrop" id="lab-backdrop" hidden></div>
   <div class="lab" id="lab" aria-hidden="true">
-    <p class="lab-kicker">Scegli un modulo · il menù si chiude da solo</p>
+    <p class="lab-kicker lab-kicker--phone">Scegli un modulo · il menù si chiude da solo</p>
+    <p class="lab-kicker lab-kicker--desk">Click sul modulo · resta a sinistra, cambia a destra</p>
     <div class="lab-row">
       <div class="seg seg--theme" role="group" aria-label="Stile">
         <button type="button" data-theme="oggi" aria-pressed="true">Oggi</button>
@@ -2078,7 +2152,10 @@
       var labHandle = document.getElementById("lab-handle");
       var labBackdrop = document.getElementById("lab-backdrop");
       var labHint = document.getElementById("lab-handle-hint");
+      var deskMq = window.matchMedia("(min-width: 1024px)");
+      function isDesktop() { return deskMq.matches; }
       function setLabOpen(open) {
+        if (isDesktop()) open = true;
         labOpen = !!open;
         html.setAttribute("data-lab", labOpen ? "open" : "closed");
         if (labEl) {
@@ -2086,8 +2163,12 @@
           if (labEl.toggleAttribute) labEl.toggleAttribute("inert", !labOpen);
         }
         if (labHandle) labHandle.setAttribute("aria-expanded", labOpen ? "true" : "false");
-        if (labBackdrop) labBackdrop.hidden = !labOpen;
-        if (labHint) labHint.textContent = labOpen ? "Scorri in alto per chiudere" : "Scorri in basso · 20 moduli";
+        if (labBackdrop) labBackdrop.hidden = !labOpen || isDesktop();
+        if (labHint) {
+          labHint.textContent = isDesktop()
+            ? "Catalogo a sinistra"
+            : (labOpen ? "Scorri in alto per chiudere" : "Scorri in basso · 20 moduli");
+        }
       }
       function navigateTo(go) {
         if (!go) return;
@@ -2106,7 +2187,7 @@
         dtab = "overview";
         localStorage.setItem("gfvUiPreviewScreen", screen);
         apply();
-        setLabOpen(false);
+        setLabOpen(isDesktop());
         var phone = document.getElementById("phone");
         if (phone) phone.scrollTop = 0;
       }
@@ -2247,8 +2328,16 @@
       }
       apply();
       setLabOpen(labOpen);
+      if (deskMq.addEventListener) {
+        deskMq.addEventListener("change", function () {
+          setLabOpen(isDesktop());
+        });
+      } else if (deskMq.addListener) {
+        deskMq.addListener(function () { setLabOpen(isDesktop()); });
+      }
       if (labHandle) {
         labHandle.addEventListener("click", function () {
+          if (isDesktop()) return;
           if (ignoreHandleClick) {
             ignoreHandleClick = false;
             return;
@@ -2270,6 +2359,7 @@
           return e.changedTouches && e.changedTouches[0] ? e.changedTouches[0] : e.touches && e.touches[0] ? e.touches[0] : e;
         }
         function begin(e, from) {
+          if (isDesktop()) return;
           var p = point(e);
           if (!p) return;
           startY = p.clientY;
@@ -2278,7 +2368,7 @@
           origin = from;
         }
         function move(e) {
-          if (!tracking) return;
+          if (!tracking || isDesktop()) return;
           var p = point(e);
           if (!p) return;
           var dy = p.clientY - startY;

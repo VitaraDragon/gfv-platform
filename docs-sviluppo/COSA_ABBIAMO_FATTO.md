@@ -1,6 +1,13 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-21 — prova UI, menù moduli a swipe.**
+**Ultimo aggiornamento documentazione: 2026-09-21 — prova UI, chrome PC vs telefono.**
+
+## Prova UI — catalogo a sinistra sul PC (2026-09-21)
+
+- **Cosa:** da 1024px la stessa pagina di prova non usa più lo swipe: i moduli restano in una colonna a sinistra, a destra cambia solo il contenuto. Liste in pelle Proposta tornano tabella. Sul telefono resta lo sheet che si chiude dopo la scelta.
+- **Perché:** il manager in ufficio non ha il touch; lo spazio c’è, nascondere il catalogo dopo ogni click sarebbe un passo in più inutile.
+- **File:** `core/dev/ui-preview-doppio-pelle.html`.
+- Doc: questa voce. Master Plan: nessuna fase cambiata.
 
 ## Prova UI — menù moduli nascosto (swipe giù) (2026-09-21)
 
