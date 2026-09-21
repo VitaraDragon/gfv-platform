@@ -4,7 +4,7 @@
 
 ## Prova UI — pagina Oggi vs proposta (2026-09-21)
 
-- **Cosa:** pagina isolata `core/dev/ui-preview-doppio-pelle.html`: Home / Vigneto / Lista (Gestione lavori con campi veri: Nome+CT+macchine, Terreno, Caposquadra, Data, Durata, Progressi, Stato progresso, Stato/semaforo, Azioni — tabella 9 col in scroll vs schede impilate con azione primaria + Altro), più **Pieno**, **Meteo** e **Mappa**. Niente login, niente Firebase, niente voce in navigazione.
+- **Cosa:** pagina isolata `core/dev/ui-preview-doppio-pelle.html`: Home / Vigneto / Lista (Gestione lavori con campi veri: Nome+CT+macchine, Terreno, Caposquadra, Data, Durata, Progressi, Stato progresso, Stato/semaforo, Azioni — tabella 9 col in scroll vs schede impilate con azione primaria + Altro), **Dettaglio lavoro** (Panoramica / Mappa / Ore, tre lavori finti, Oggi = 4 KPI + tab Ore duplicata, Proposta = striscia + elenco persone + mappa a tela), più **Pieno**, **Meteo** e **Mappa**. Niente login, niente Firebase, niente voce in navigazione.
 - **Perché:** vedere sul telefono striscione Tony sotto carico, e come starebbero meteo/mappa nello stesso chrome, prima di toccare le pagine vere.
 - **File:** `core/dev/ui-preview-doppio-pelle.html`.
 - Doc: questa voce. Master Plan: nessuna fase cambiata.

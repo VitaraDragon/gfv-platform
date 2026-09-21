@@ -88,7 +88,8 @@
     html[data-screen="lista"] #screen-lista,
     html[data-screen="carico"] #screen-carico,
     html[data-screen="meteo"] #screen-meteo,
-    html[data-screen="mappa"] #screen-mappa { display: block; }
+    html[data-screen="mappa"] #screen-mappa,
+    html[data-screen="dettaglio"] #screen-dettaglio { display: block; }
 
     .app-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
     .app-actions { display: flex; gap: 8px; flex-wrap: wrap; }
@@ -111,7 +112,8 @@
     html[data-theme="oggi"][data-screen="vigneto"] .phone {
       background: linear-gradient(135deg, #E1BEE7 0%, #6A1B9A 100%);
     }
-    html[data-theme="oggi"][data-screen="lista"] .phone {
+    html[data-theme="oggi"][data-screen="lista"] .phone,
+    html[data-theme="oggi"][data-screen="dettaglio"] .phone {
       background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
     }
     html[data-theme="oggi"][data-screen="carico"] .phone { background: #f5f7fa; }
@@ -219,7 +221,8 @@
     html[data-theme="proposta"][data-screen="vigneto"] .app-header {
       border-bottom: 3px solid #6A1B9A;
     }
-    html[data-theme="proposta"][data-screen="lista"] .app-header {
+    html[data-theme="proposta"][data-screen="lista"] .app-header,
+    html[data-theme="proposta"][data-screen="dettaglio"] .app-header {
       border-bottom: 3px solid #2E8B57;
     }
     html[data-theme="proposta"][data-screen="carico"] .app-header {
@@ -529,6 +532,155 @@
       background: #fff;
       font-size: 13px;
     }
+    .icon-act {
+      background: none;
+      border: 0;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 2px 4px;
+      line-height: 1.2;
+    }
+
+    .d-tabs {
+      display: flex;
+      margin-bottom: 14px;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #f8f9fa;
+    }
+    .d-tabs button {
+      flex: 1;
+      min-height: 44px;
+      border: 0;
+      background: transparent;
+      font-weight: 650;
+      font-size: 13px;
+      cursor: pointer;
+      color: #333;
+    }
+    .d-tabs button[aria-pressed="true"] {
+      background: #2E8B57;
+      color: #fff;
+    }
+    html[data-theme="proposta"] .d-tabs {
+      border: 1px solid #e7e5e4;
+      border-radius: 12px;
+      background: #EDEAE3;
+      gap: 4px;
+      padding: 4px;
+      overflow: visible;
+    }
+    html[data-theme="proposta"] .d-tabs button {
+      border-radius: 10px;
+      font-family: inherit;
+      color: #44403c;
+    }
+    html[data-theme="proposta"] .d-tabs button[aria-pressed="true"] {
+      background: #FFFEFA;
+      color: #1c1917;
+    }
+    .dtab { display: none; }
+    html[data-dtab="overview"] #dtab-overview,
+    html[data-dtab="map"] #dtab-map,
+    html[data-dtab="ore"] #dtab-ore { display: block; }
+    html[data-theme="oggi"] .d-new { display: none !important; }
+    html[data-theme="proposta"] .d-old { display: none !important; }
+    html[data-dtab="map"] #dettaglio-wrap.wrap-canvas .fake-map { min-height: 240px; }
+
+    .d-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      font-size: 14px;
+    }
+    .d-dl {
+      margin: 0 0 14px;
+      display: grid;
+      gap: 8px;
+    }
+    .d-dl div {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 12px;
+      font-size: 13px;
+    }
+    .d-dl dt { color: #57534e; margin: 0; }
+    .d-dl dd { margin: 0; font-weight: 650; text-align: right; }
+    .d-summary {
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .d-ore-line { margin: 0 0 12px; font-size: 14px; color: #44403c; }
+    .d-person {
+      padding: 14px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    html[data-theme="proposta"] .d-person {
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 14px;
+    }
+    .d-person strong { display: block; font-size: 14px; }
+    .d-hours {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+    .d-hours .ok { color: #2E8B57; }
+    .d-hours .wait { color: #b78105; }
+    .d-hours .no { color: #dc3545; }
+    .d-filter {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .d-filter select {
+      flex: 1;
+      min-height: 40px;
+      min-width: 140px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    html[data-theme="proposta"] .d-filter select {
+      border-color: #e7e5e4;
+      border-radius: 12px;
+      background: #FFFEFA;
+      font-family: inherit;
+    }
+    .d-zone {
+      padding: 10px 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    html[data-theme="proposta"] .d-zone {
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 12px;
+    }
+    .map-pin.zone {
+      background: #2E8B57;
+      font-size: 12px;
+      width: 26px;
+      height: 26px;
+    }
 
     html[data-theme="oggi"] .briefing,
     html[data-theme="oggi"] .brand img,
@@ -802,7 +954,10 @@
                   <td><div class="bar"><span style="width:62%">62%</span></div><div class="muted">1,24 / 2,00 ha</div></td>
                   <td><span class="pill ok">In tempo</span><div class="muted">2/3 giorni (1 rim.)</div></td>
                   <td><span class="dot yellow"></span>In corso</td>
-                  <td>👁️ ✏️ ⏸️ 🗑️</td>
+                  <td>
+                    <button type="button" class="icon-act" data-open-dettaglio="potatura" title="Dettagli">👁️</button>
+                    <span aria-hidden="true">✏️ ⏸️ 🗑️</span>
+                  </td>
                 </tr>
                 <tr>
                   <td><strong>Trinciatura</strong> <span class="pill">💼 CT</span></td>
@@ -813,7 +968,10 @@
                   <td><div class="bar bad"><span style="width:20%">20%</span></div><div class="muted">0,30 / 1,50 ha</div></td>
                   <td><span class="pill">In ritardo</span><div class="muted">3/2 giorni</div></td>
                   <td><span class="dot red"></span>Da approvare</td>
-                  <td>✅ ❌ 👁️</td>
+                  <td>
+                    <span aria-hidden="true">✅ ❌</span>
+                    <button type="button" class="icon-act" data-open-dettaglio="trinciatura" title="Dettagli">👁️</button>
+                  </td>
                 </tr>
                 <tr>
                   <td><strong>Erpicatura</strong></td>
@@ -824,7 +982,10 @@
                   <td><div class="bar"><span style="width:100%">100%</span></div><div class="muted">3,10 / 3,10 ha</div></td>
                   <td><span class="pill ok">In tempo</span></td>
                   <td><span class="dot green"></span>Completato</td>
-                  <td>👁️ 🗑️</td>
+                  <td>
+                    <button type="button" class="icon-act" data-open-dettaglio="erpicatura" title="Dettagli">👁️</button>
+                    <span aria-hidden="true">🗑️</span>
+                  </td>
                 </tr>
               </tbody>
             </table>
@@ -840,7 +1001,7 @@
               <div class="job-prog"><div class="bar"><span style="width:62%"></span></div><span class="job-ha">1,24 / 2,00 ha</span></div>
               <p class="job-meta">16 mar · 3 giorni · in tempo 2/3 (1 rim.)<br>T5 + rotante 200</p>
               <div class="job-actions">
-                <button type="button" class="btn-main" data-fake>Dettagli</button>
+                <button type="button" class="btn-main" data-open-dettaglio="potatura">Dettagli</button>
                 <button type="button" class="btn-more" data-job-more>Altro</button>
               </div>
               <div class="job-extra">
@@ -864,7 +1025,7 @@
               </div>
               <div class="job-extra">
                 <button type="button" data-fake>Rifiuta</button>
-                <button type="button" data-fake>Dettagli</button>
+                <button type="button" data-open-dettaglio="trinciatura">Dettagli</button>
               </div>
             </article>
 
@@ -877,13 +1038,125 @@
               <div class="job-prog"><div class="bar"><span style="width:100%"></span></div><span class="job-ha">3,10 / 3,10 ha</span></div>
               <p class="job-meta">9 mar · 1 giorno · in tempo</p>
               <div class="job-actions">
-                <button type="button" class="btn-main" data-fake>Dettagli</button>
+                <button type="button" class="btn-main" data-open-dettaglio="erpicatura">Dettagli</button>
                 <button type="button" class="btn-more" data-job-more>Altro</button>
               </div>
               <div class="job-extra">
                 <button type="button" data-fake>Elimina</button>
               </div>
             </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DETTAGLIO LAVORO -->
+    <section class="screen" id="screen-dettaglio">
+      <div class="wrap" id="dettaglio-wrap">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1><span class="emoji">📋 </span><span id="d-title">Potatura Sangiovese</span></h1>
+              <p id="d-sub">Pannelli · Gaia Bianchi</p>
+            </div>
+          </div>
+          <div class="app-actions">
+            <button type="button" class="btn btn-ghost" id="d-back">← Lista</button>
+          </div>
+        </header>
+
+        <p class="d-new d-ore-line" id="d-strip">2 ore di Luca da validare su questo lavoro.</p>
+
+        <div class="d-tabs" role="tablist" aria-label="Sezioni dettaglio">
+          <button type="button" data-dtab="overview" aria-pressed="true"><span class="emoji">📊 </span>Panoramica</button>
+          <button type="button" data-dtab="map" aria-pressed="false"><span class="emoji">🗺️ </span>Mappa</button>
+          <button type="button" data-dtab="ore" aria-pressed="false"><span class="emoji">⏰ </span>Ore</button>
+        </div>
+
+        <div id="dtab-overview" class="dtab">
+          <div class="d-old panel">
+            <div class="grid stats">
+            <div class="stat"><b id="d-ha-old">1,24 / 2,00</b><span>Superficie lavorata (ha)</span></div>
+            <div class="stat"><b id="d-pct-old">62%</b><span>Percentuale completamento</span></div>
+            <div class="stat"><b id="d-v-old">14h</b><span>Ore validate</span></div>
+            <div class="stat"><b id="d-d-old">2h</b><span>Ore da validare</span></div>
+            </div>
+          </div>
+
+          <div class="d-old panel">
+            <h2>Progressi</h2>
+            <div class="bar" id="d-bar-old" style="height:28px;"><span id="d-bar-old-fill" style="width:62%;line-height:28px;font-size:13px;">62%</span></div>
+            <p class="muted" id="d-progress-old" style="margin:8px 0 0;">In tempo · 2/3 giorni (1 rim.)</p>
+          </div>
+
+          <div class="d-old panel">
+            <div class="d-fields">
+              <div><strong>Terreno:</strong> <span id="d-terreno-old">Pannelli</span></div>
+              <div><strong>Caposquadra:</strong> <span id="d-capo-old">Gaia Bianchi</span></div>
+              <div><strong>Data inizio:</strong> <span id="d-date-old">lunedì 16 marzo 2026</span></div>
+              <div><strong>Durata:</strong> <span id="d-durata-old">3 giorni</span></div>
+              <div><strong>Stato:</strong> <span class="dot yellow" id="d-dot-old"></span><span id="d-stato-old">In corso</span></div>
+              <div><strong>Macchine:</strong> <span id="d-mac-old">T5 + rotante 200</span></div>
+            </div>
+            <p id="d-note-old" style="margin:14px 0 0;"><strong>Note:</strong> Filari 1–12. Lasciare 2 gemme.</p>
+          </div>
+
+          <div class="d-new d-summary">
+            <div class="job-prog"><div class="bar" id="d-bar-new"><span id="d-bar-new-fill" style="width:62%"></span></div><span class="job-ha" id="d-ha-new">1,24 / 2,00 ha</span></div>
+            <p class="job-meta" id="d-progress-new">62% · in tempo 2/3 (1 rim.) · 14h validate · 2h da validare</p>
+          </div>
+          <dl class="d-new d-dl">
+            <div><dt>Terreno</dt><dd id="d-terreno-new">Pannelli</dd></div>
+            <div><dt>Caposquadra</dt><dd id="d-capo-new">Gaia Bianchi</dd></div>
+            <div><dt>Inizio</dt><dd id="d-date-new">16 marzo 2026</dd></div>
+            <div><dt>Durata</dt><dd id="d-durata-new">3 giorni</dd></div>
+            <div><dt>Stato</dt><dd id="d-stato-new">In corso</dd></div>
+            <div><dt>Macchine</dt><dd id="d-mac-new">T5 + rotante 200</dd></div>
+          </dl>
+          <p class="d-new" id="d-note-new" style="margin:0 0 14px;font-size:13px;color:#44403c;">Filari 1–12. Lasciare 2 gemme.</p>
+
+          <div class="panel">
+            <h2>Ore per operaio</h2>
+            <div id="d-people"></div>
+          </div>
+        </div>
+
+        <div id="dtab-map" class="dtab">
+          <div class="d-filter d-old">
+            <span>🗓️ Filtro per giorno</span>
+            <select id="d-day-filter" aria-label="Filtro per giorno"></select>
+          </div>
+          <div class="d-new d-filter">
+            <select id="d-day-filter-new" aria-label="Giorno in mappa"></select>
+          </div>
+          <div class="fake-map" id="d-map" aria-hidden="true">
+            <svg viewBox="0 0 320 220" preserveAspectRatio="xMidYMid slice">
+              <rect width="320" height="220" fill="#8aa36a"/>
+              <path d="M24 32 L168 22 L184 150 L32 162 Z" fill="#5d7f42" stroke="#3f5c2c" stroke-width="2"/>
+              <path id="d-zone-poly" d="M40 48 L110 42 L118 100 L46 108 Z" fill="#c4e08a" stroke="#2E8B57" stroke-width="2" opacity="0.85"/>
+            </svg>
+            <span class="map-pin zone" id="d-pin-a" style="left:22%;top:32%;">1</span>
+            <span class="map-pin zone" id="d-pin-b" style="left:48%;top:52%;">2</span>
+          </div>
+          <div class="panel" style="margin-top:12px;">
+            <h2>Zone lavorate</h2>
+            <div id="d-zones"></div>
+          </div>
+        </div>
+
+        <div id="dtab-ore" class="dtab">
+          <div class="d-old panel">
+            <div class="grid stats">
+            <div class="stat"><b id="d-ov-old">14h</b><span>Ore validate</span></div>
+            <div class="stat"><b id="d-od-old">2h</b><span>Ore da validare</span></div>
+            <div class="stat"><b id="d-or-old">0h</b><span>Ore rifiutate</span></div>
+            </div>
+          </div>
+          <p class="d-new d-ore-line" id="d-ore-line">16h in totale · 14 validate · 2 da validare · 0 rifiutate</p>
+          <div class="panel">
+            <h2>Ore per operaio</h2>
+            <div id="d-people-ore"></div>
           </div>
         </div>
       </div>
@@ -1044,24 +1317,222 @@
       var params = new URLSearchParams(location.search);
       var theme = params.get("theme") || localStorage.getItem("gfvUiPreviewTheme") || "oggi";
       var screen = params.get("screen") || localStorage.getItem("gfvUiPreviewScreen") || "dashboard";
-      var screens = { dashboard: 1, vigneto: 1, lista: 1, carico: 1, meteo: 1, mappa: 1 };
+      var screens = { dashboard: 1, vigneto: 1, lista: 1, carico: 1, meteo: 1, mappa: 1, dettaglio: 1 };
+      var JOBS = {
+        potatura: {
+          title: "Potatura Sangiovese",
+          sub: "Pannelli · Gaia Bianchi",
+          terreno: "Pannelli",
+          capo: "Gaia Bianchi",
+          date: "lunedì 16 marzo 2026",
+          dateShort: "16 marzo 2026",
+          durata: "3 giorni",
+          stato: "In corso",
+          statoDot: "yellow",
+          ha: "1,24 / 2,00 ha",
+          haNum: "1,24 / 2,00",
+          pct: 62,
+          barClass: "",
+          progress: "In tempo · 2/3 giorni (1 rim.)",
+          macchine: "T5 + rotante 200",
+          note: "Filari 1–12. Lasciare 2 gemme.",
+          oreV: 14, oreD: 2, oreR: 0,
+          strip: "2 ore di Luca da validare su questo lavoro.",
+          people: [
+            { name: "Gaia Bianchi", v: 8, d: 0, r: 0 },
+            { name: "Luca Fabbri", v: 6, d: 2, r: 0 }
+          ],
+          zones: [
+            { day: "16 mar", ha: "0,62 ha", label: "Filari 1–6" },
+            { day: "17 mar", ha: "0,62 ha", label: "Filari 7–12" }
+          ]
+        },
+        trinciatura: {
+          title: "Trinciatura",
+          sub: "Larghetta · Luca Fabbri · CT",
+          terreno: "Larghetta",
+          capo: "Luca Fabbri",
+          date: "venerdì 13 marzo 2026",
+          dateShort: "13 marzo 2026",
+          durata: "2 giorni",
+          stato: "Da approvare",
+          statoDot: "red",
+          ha: "0,30 / 1,50 ha",
+          haNum: "0,30 / 1,50",
+          pct: 20,
+          barClass: "bad",
+          progress: "In ritardo · 3/2 giorni",
+          macchine: "—",
+          note: "Conto terzi. In attesa di approvazione manager.",
+          oreV: 4, oreD: 3, oreR: 0,
+          strip: "Questo lavoro è da approvare. 3 ore ancora da validare.",
+          people: [
+            { name: "Luca Fabbri", v: 4, d: 3, r: 0 }
+          ],
+          zones: [
+            { day: "13 mar", ha: "0,30 ha", label: "Bordo strada" }
+          ]
+        },
+        erpicatura: {
+          title: "Erpicatura",
+          sub: "Olmo · Gaia Bianchi",
+          terreno: "Olmo",
+          capo: "Gaia Bianchi",
+          date: "lunedì 9 marzo 2026",
+          dateShort: "9 marzo 2026",
+          durata: "1 giorno",
+          stato: "Completato",
+          statoDot: "green",
+          ha: "3,10 / 3,10 ha",
+          haNum: "3,10 / 3,10",
+          pct: 100,
+          barClass: "",
+          progress: "In tempo",
+          macchine: "T5 + erpice",
+          note: "",
+          oreV: 8, oreD: 0, oreR: 0,
+          strip: "Lavoro chiuso. Niente in sospeso.",
+          people: [
+            { name: "Gaia Bianchi", v: 5, d: 0, r: 0 },
+            { name: "Marco Rossi", v: 3, d: 0, r: 0 }
+          ],
+          zones: [
+            { day: "9 mar", ha: "3,10 ha", label: "Campo intero" }
+          ]
+        }
+      };
+      var job = params.get("job") || "potatura";
+      var dtab = params.get("tab") || "overview";
+      var dayFilter = "tutte";
       if (theme !== "oggi" && theme !== "proposta") theme = "oggi";
       if (!screens[screen]) screen = "dashboard";
+      if (!JOBS[job]) job = "potatura";
+      if (dtab !== "map" && dtab !== "ore") dtab = "overview";
+
+      function setText(id, value) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = value;
+      }
+      function peopleHtml(list) {
+        return list.map(function (p) {
+          return '<div class="d-person"><strong>' + p.name + '</strong>' +
+            '<div class="d-hours">' +
+            '<span class="ok">✅ ' + p.v + 'h validate</span>' +
+            '<span class="wait">⏳ ' + p.d + 'h da validare</span>' +
+            '<span class="no">❌ ' + p.r + 'h rifiutate</span>' +
+            '</div></div>';
+        }).join("");
+      }
+      function fillZones(j) {
+        var zones = j.zones || [];
+        var shown = dayFilter === "tutte" ? zones : zones.filter(function (z) { return z.day === dayFilter; });
+        var box = document.getElementById("d-zones");
+        if (box) {
+          box.innerHTML = shown.length
+            ? shown.map(function (z) {
+                return '<div class="d-zone"><strong>' + z.day + '</strong> · ' + z.ha + ' · ' + z.label + '</div>';
+              }).join("")
+            : '<div class="d-zone">Nessuna zona per questo filtro</div>';
+        }
+        var pinA = document.getElementById("d-pin-a");
+        var pinB = document.getElementById("d-pin-b");
+        if (pinA) pinA.style.display = (!zones[0] || (dayFilter !== "tutte" && dayFilter !== zones[0].day)) ? "none" : "";
+        if (pinB) pinB.style.display = (!zones[1] || (dayFilter !== "tutte" && dayFilter !== zones[1].day)) ? "none" : "";
+      }
+      function fillSelects(j) {
+        var opts = '<option value="tutte">Tutte le date</option>' +
+          (j.zones || []).map(function (z) {
+            return '<option value="' + z.day + '">' + z.day + '</option>';
+          }).join("");
+        ["d-day-filter", "d-day-filter-new"].forEach(function (id) {
+          var sel = document.getElementById(id);
+          if (!sel) return;
+          sel.innerHTML = opts;
+          sel.value = dayFilter;
+        });
+      }
+      function fillDetail() {
+        var j = JOBS[job] || JOBS.potatura;
+        setText("d-title", j.title);
+        setText("d-sub", j.sub);
+        setText("d-strip", j.strip);
+        setText("d-ha-old", j.haNum);
+        setText("d-pct-old", j.pct + "%");
+        setText("d-v-old", j.oreV + "h");
+        setText("d-d-old", j.oreD + "h");
+        setText("d-progress-old", j.progress);
+        setText("d-terreno-old", j.terreno);
+        setText("d-capo-old", j.capo);
+        setText("d-date-old", j.date);
+        setText("d-durata-old", j.durata);
+        setText("d-stato-old", j.stato);
+        setText("d-mac-old", j.macchine);
+        var noteOld = document.getElementById("d-note-old");
+        if (noteOld) {
+          noteOld.style.display = j.note ? "" : "none";
+          noteOld.innerHTML = j.note ? "<strong>Note:</strong> " + j.note : "";
+        }
+        var dot = document.getElementById("d-dot-old");
+        if (dot) dot.className = "dot " + j.statoDot;
+        var barOld = document.getElementById("d-bar-old");
+        var fillOld = document.getElementById("d-bar-old-fill");
+        if (barOld) barOld.className = "bar" + (j.barClass ? " " + j.barClass : "");
+        if (fillOld) {
+          fillOld.style.width = j.pct + "%";
+          fillOld.textContent = j.pct + "%";
+        }
+        setText("d-ha-new", j.ha);
+        setText("d-progress-new", j.pct + "% · " + j.progress.toLowerCase() + " · " + j.oreV + "h validate · " + j.oreD + "h da validare");
+        setText("d-terreno-new", j.terreno);
+        setText("d-capo-new", j.capo);
+        setText("d-date-new", j.dateShort);
+        setText("d-durata-new", j.durata);
+        setText("d-stato-new", j.stato);
+        setText("d-mac-new", j.macchine);
+        var noteNew = document.getElementById("d-note-new");
+        if (noteNew) {
+          noteNew.style.display = j.note ? "" : "none";
+          noteNew.textContent = j.note;
+        }
+        var barNew = document.getElementById("d-bar-new");
+        var fillNew = document.getElementById("d-bar-new-fill");
+        if (barNew) barNew.className = "bar" + (j.barClass ? " " + j.barClass : "");
+        if (fillNew) fillNew.style.width = j.pct + "%";
+        var ph = peopleHtml(j.people);
+        var p1 = document.getElementById("d-people");
+        var p2 = document.getElementById("d-people-ore");
+        if (p1) p1.innerHTML = ph;
+        if (p2) p2.innerHTML = ph;
+        setText("d-ov-old", j.oreV + "h");
+        setText("d-od-old", j.oreD + "h");
+        setText("d-or-old", j.oreR + "h");
+        setText("d-ore-line", (j.oreV + j.oreD + j.oreR) + "h in totale · " + j.oreV + " validate · " + j.oreD + " da validare · " + j.oreR + " rifiutate");
+        fillSelects(j);
+        fillZones(j);
+        var wrap = document.getElementById("dettaglio-wrap");
+        if (wrap) wrap.classList.toggle("wrap-canvas", dtab === "map");
+        document.querySelectorAll(".d-tabs [data-dtab]").forEach(function (b) {
+          b.setAttribute("aria-pressed", b.getAttribute("data-dtab") === dtab ? "true" : "false");
+        });
+      }
       function apply() {
         html.setAttribute("data-theme", theme);
         html.setAttribute("data-screen", screen);
-        try {
-          history.replaceState(null, "", "?theme=" + encodeURIComponent(theme) + "&screen=" + encodeURIComponent(screen));
-        } catch (e) {}
+        html.setAttribute("data-dtab", dtab);
+        var q = "?theme=" + encodeURIComponent(theme) + "&screen=" + encodeURIComponent(screen);
+        if (screen === "dettaglio") q += "&job=" + encodeURIComponent(job) + "&tab=" + encodeURIComponent(dtab);
+        try { history.replaceState(null, "", q); } catch (e) {}
         document.querySelectorAll(".seg--theme [data-theme]").forEach(function (b) {
           b.setAttribute("aria-pressed", b.getAttribute("data-theme") === theme ? "true" : "false");
         });
         document.querySelectorAll(".seg:not(.seg--theme) [data-screen]").forEach(function (b) {
-          b.setAttribute("aria-pressed", b.getAttribute("data-screen") === screen ? "true" : "false");
+          var s = b.getAttribute("data-screen");
+          b.setAttribute("aria-pressed", s === screen || (screen === "dettaglio" && s === "lista") ? "true" : "false");
         });
         var color = theme === "proposta" ? "#F6F3EC" : "#1c1917";
         var meta = document.querySelector('meta[name="theme-color"]');
         if (meta) meta.setAttribute("content", color);
+        if (screen === "dettaglio") fillDetail();
       }
       apply();
       document.querySelectorAll(".seg--theme [data-theme]").forEach(function (b) {
@@ -1074,10 +1545,49 @@
       document.querySelectorAll('.seg:not(.seg--theme) [data-screen]').forEach(function (b) {
         b.addEventListener("click", function () {
           screen = b.getAttribute("data-screen");
+          dtab = "overview";
           localStorage.setItem("gfvUiPreviewScreen", screen);
           apply();
         });
       });
+      document.getElementById("d-back").addEventListener("click", function () {
+        screen = "lista";
+        dtab = "overview";
+        localStorage.setItem("gfvUiPreviewScreen", "lista");
+        apply();
+      });
+      document.querySelectorAll(".d-tabs [data-dtab]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          dtab = b.getAttribute("data-dtab");
+          apply();
+          document.getElementById("phone").scrollTop = 0;
+        });
+      });
+      document.querySelectorAll("[data-open-dettaglio]").forEach(function (b) {
+        b.addEventListener("click", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          job = b.getAttribute("data-open-dettaglio") || "potatura";
+          dtab = "overview";
+          dayFilter = "tutte";
+          screen = "dettaglio";
+          localStorage.setItem("gfvUiPreviewScreen", "dettaglio");
+          apply();
+          document.getElementById("phone").scrollTop = 0;
+        });
+      });
+      function onDayChange(e) {
+        dayFilter = e.target.value || "tutte";
+        ["d-day-filter", "d-day-filter-new"].forEach(function (id) {
+          var sel = document.getElementById(id);
+          if (sel) sel.value = dayFilter;
+        });
+        fillZones(JOBS[job] || JOBS.potatura);
+      }
+      var dayOld = document.getElementById("d-day-filter");
+      var dayNew = document.getElementById("d-day-filter-new");
+      if (dayOld) dayOld.addEventListener("change", onDayChange);
+      if (dayNew) dayNew.addEventListener("change", onDayChange);
       var panel = document.getElementById("tony-panel");
       var msgs = panel.querySelector(".tony-msgs");
       var remainder =
