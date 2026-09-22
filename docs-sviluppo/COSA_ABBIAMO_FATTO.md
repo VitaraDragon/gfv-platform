@@ -1,6 +1,15 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-21 — prova UI, chrome PC vs telefono.**
+**Ultimo aggiornamento documentazione: 2026-09-22 — piano pelle Proposta su app (rollback).**
+
+## Piano — pelle Proposta sull’app vera, con ritorno indietro (2026-09-22)
+
+- **Cosa:** documento di handoff `docs-sviluppo/da-fare/ui/PIANO_PELLE_PROPOSTA_SU_APP.md`: look della prova isolata applicabile alle pagine vere dietro flag Prova/Pubblicata (Sabbie Gialle), senza sostituire lo stile attuale. Prompt per un agente nuovo; fette 0–4; rollback tap + git revert.
+- **Perché:** il PO vuole vedere il cambio su tutta l’app dal telefono ma non è convinto; `develop` non è online; mettere solo la pagina `core/dev/` su `main` non cambia l’app.
+- **File:** il piano; indici `da-fare/README.md`; registro §26. Nessun codice app.
+- Doc: questa voce, `TONY_DECISIONI_E_REQUISITI.md` §26. Master Plan: nessuna fase cambiata.
+
+## Prova UI — catalogo a sinistra sul PC (2026-09-21)
 
 ## Prova UI — catalogo a sinistra sul PC (2026-09-21)
 

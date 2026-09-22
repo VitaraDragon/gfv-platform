@@ -1,7 +1,7 @@
 # Tony – Inventario decisioni e requisiti
 
 **Data estrazione**: 2026-03-08  
-**Ultimo aggiornamento**: 2026-09-21 (bozza telefono manager §25; piano campo §24; lazy-load widget §3.10; flag prova tenant §22.7 / §23; zona lavorata due punti §11.7 / §22; push S5 assenze + WhatsApp §15.8)
+**Ultimo aggiornamento**: 2026-09-22 (piano pelle Proposta §26; bozza telefono manager §25; piano campo §24; lazy-load widget §3.10; flag prova tenant §22.7 / §23; zona lavorata due punti §11.7 / §22; push S5 assenze + WhatsApp §15.8)
 **Obiettivo**: Raccogliere in un unico documento ogni decisione di prodotto, requisito e vincolo trovato nei documenti Tony, per evitare perdite durante il consolidamento.
 
 **Stati**: `implementato` | `in corso` | `parziale` | `pianificato` | `non implementato` | `abbandonato` | `da verificare`
@@ -701,6 +701,22 @@ Non è il piano campo (§24). Due home restano volute (campo vs ufficio); non du
 | 25.4 | Manager/admin restano in dashboard, non nel workspace campo | prodotto 2026-09-19 | **deciso** | `shouldUseFieldMobileWorkspace` |
 | 25.5 | Non promettere tutto l’ERP in tasca (preventivi pesanti, compensi, report, anagrafiche) | prodotto 2026-09-19 | **deciso** (principio) | Telefono = vedere e sbloccare |
 | 25.6 | Quali liste a card, quali 4–6 azioni home, form da accorciare, ordine vs piano campo | prodotto 2026-09-19 | **da decidere** | Checklist Q1–Q8 nel piano §8 |
+
+---
+
+## 26. Pelle UI «Proposta» sull’app (prova, rollback obbligatorio) (2026-09-22)
+
+**Stato codice:** **pianificato** (solo pagina isolata `core/dev/ui-preview-doppio-pelle.html`, PR #64). Piano esecutivo: `docs-sviluppo/da-fare/ui/PIANO_PELLE_PROPOSTA_SU_APP.md`.  
+Non è il piano telefono manager (§25) e non è il piano campo (§24). Il look **non** è scelto come definitivo.
+
+| # | Decisione | Fonte | Stato | Note |
+|---|-----------|-------|-------|------|
+| 26.1 | Lo stile attuale **resta** finché il PO non conferma la pelle. La Proposta è **affiancata** | prodotto 2026-09-22 | **pianificato** | PO non convinto; vuole vederla su tutta l’app |
+| 26.2 | Gate = flag tenant `uiPelleProposta` nello switch **Prova/Pubblicata** (Sabbie Gialle), **non** `moduliAttivi` | prodotto 2026-09-22 | **pianificato** | Stesso schema §23; `enabledAlways: false` |
+| 26.3 | Rollback: tap **Pubblicata** (senza deploy) e/o `git revert` su `main` + tag pre-promozione | prodotto 2026-09-22 | **pianificato** | `develop` non è un URL; il telefono vede solo `main` |
+| 26.4 | Telefono: catalogo in sheet (si chiude dopo la scelta). PC ≥1024px: sidebar sempre visibile | prodotto 2026-09-21/22 | **pianificato** | Prova isolata già lo mostra |
+| 26.5 | Liste: schede su telefono, tabella su desktop. Reminder Tony 1 riga (§15.5) | prodotto 2026-09-21 | **pianificato** | Allineato §25.2 sulle liste, altro track di lavoro |
+| 26.6 | Workspace campo fuori scope. Niente seconda app, niente `if (formId)` nel core | prodotto 2026-09-22 | **pianificato** (vincolo) | Master Plan + §24 + §25.1 |
 
 ---
 
