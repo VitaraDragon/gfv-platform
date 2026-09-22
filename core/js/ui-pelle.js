@@ -17,6 +17,8 @@ import {
   moduleFromLocation,
   visibleShellEntries,
   homeActionsFromShell,
+  moduleMenuEntries,
+  accountMenuEntries,
   cardsModelFromRows
 } from './ui-pelle-state.js';
 import { iconNameForEmoji, iconNameForModule, iconSvg } from './ui-pelle-icons.js';
@@ -158,13 +160,23 @@ function markCurrent(root) {
   });
 }
 
-function setLab(open) {
+function setLab(which) {
   const html = document.documentElement;
-  html.setAttribute('data-gfv-pelle-lab', open ? 'open' : 'closed');
+  const open = which === 'moduli' || which === 'altro' ? which : 'closed';
+  html.setAttribute('data-gfv-pelle-lab', open);
   const handle = document.getElementById('gfv-pelle-handle');
+  const alt = document.getElementById('gfv-pelle-alt');
   const lab = document.getElementById('gfv-pelle-lab');
-  if (handle) handle.setAttribute('aria-expanded', open ? 'true' : 'false');
-  if (lab) lab.setAttribute('aria-hidden', open ? 'false' : 'true');
+  const altLab = document.getElementById('gfv-pelle-alt-lab');
+  if (handle) handle.setAttribute('aria-expanded', open === 'moduli' ? 'true' : 'false');
+  if (alt) alt.setAttribute('aria-expanded', open === 'altro' ? 'true' : 'false');
+  if (lab) lab.setAttribute('aria-hidden', open === 'moduli' ? 'false' : 'true');
+  if (altLab) altLab.setAttribute('aria-hidden', open === 'altro' ? 'false' : 'true');
+}
+
+function toggleLab(which) {
+  const cur = document.documentElement.getAttribute('data-gfv-pelle-lab');
+  setLab(cur === which ? 'closed' : which);
 }
 
 function loadCatalog() {
@@ -180,14 +192,27 @@ function shellEntriesFrom(catalog) {
   return visibleShellEntries(catalog, Array.isArray(moduli) ? moduli : null);
 }
 
+function linkHtml(e) {
+  const blank = e.blank ? ' target="_blank" rel="noopener"' : '';
+  return (
+    '<a class="gfv-pelle-mod" href="' + escapeHtml(absHref(e.href)) + '"' + blank + '>' +
+    escapeHtml(e.label) +
+    (e.hint ? '<small>' + escapeHtml(e.hint) + '</small>' : '') +
+    '</a>'
+  );
+}
+
 function mountShell(entries) {
-  const sig = entries.map((e) => e.id + '\t' + e.href).join('|');
+  const modules = moduleMenuEntries(entries);
+  const account = accountMenuEntries();
+  const sig = modules.map((e) => e.id + '\t' + e.href).join('|');
   let root = document.getElementById('gfv-pelle-shell');
   if (root && shellSig === sig) {
     markCurrent(root);
     const place = document.documentElement.getAttribute('data-gfv-pelle-place') || 'Home';
     const label = document.getElementById('gfv-pelle-handle-label');
     if (label) label.textContent = 'Proposta · ' + place;
+    ensureAzienda(root);
     return;
   }
   shellSig = sig;
@@ -197,43 +222,74 @@ function mountShell(entries) {
     root.id = 'gfv-pelle-shell';
     document.body.prepend(root);
   }
-  const links = entries.map((e) => {
-    return (
-      '<a class="gfv-pelle-mod" href="' + escapeHtml(absHref(e.href)) + '">' +
-      escapeHtml(e.label) +
-      (e.hint ? '<small>' + escapeHtml(e.hint) + '</small>' : '') +
-      '</a>'
-    );
-  }).join('');
+  const links = modules.map(linkHtml).join('');
+  const accountLinks = account.map(linkHtml).join('');
   root.innerHTML =
+    '<div class="gfv-pelle-top">' +
     '<button type="button" class="gfv-pelle-handle" id="gfv-pelle-handle" aria-expanded="false" aria-controls="gfv-pelle-lab" aria-label="Apri o chiudi i moduli">' +
     '<span class="gfv-pelle-grip" aria-hidden="true"></span>' +
     '<span class="gfv-pelle-clip" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></span>' +
     '<span class="gfv-pelle-handle-label" id="gfv-pelle-handle-label">Proposta · ' + escapeHtml(place) + '</span>' +
     '<span class="gfv-pelle-handle-hint">Tocca per i moduli</span>' +
     '</button>' +
+    '<button type="button" class="gfv-pelle-alt" id="gfv-pelle-alt" aria-expanded="false" aria-controls="gfv-pelle-alt-lab" aria-label="Apri o chiudi impostazioni e guide">Altro</button>' +
+    '</div>' +
     '<div class="gfv-pelle-backdrop" id="gfv-pelle-backdrop" hidden></div>' +
     '<nav class="gfv-pelle-lab" id="gfv-pelle-lab" aria-hidden="true" aria-label="Moduli">' +
     '<p class="gfv-pelle-kicker gfv-pelle-kicker--phone">Scegli un modulo. Il menu si chiude.</p>' +
     '<p class="gfv-pelle-kicker gfv-pelle-kicker--desk">Scegli un modulo. Il menu si chiude.</p>' +
     '<div class="gfv-pelle-mods">' + links + '</div>' +
+    '</nav>' +
+    '<nav class="gfv-pelle-lab gfv-pelle-lab--altro" id="gfv-pelle-alt-lab" aria-hidden="true" aria-label="Impostazioni e guide">' +
+    '<p class="gfv-pelle-kicker">Impostazioni, guide e azienda. Il menu si chiude.</p>' +
+    '<div class="gfv-pelle-mods" id="gfv-pelle-alt-mods">' + accountLinks + '</div>' +
     '</nav>';
   markCurrent(root);
   const handle = document.getElementById('gfv-pelle-handle');
+  const alt = document.getElementById('gfv-pelle-alt');
   const backdrop = document.getElementById('gfv-pelle-backdrop');
-  if (handle) {
-    handle.addEventListener('click', () => {
-      const open = document.documentElement.getAttribute('data-gfv-pelle-lab') === 'open';
-      setLab(!open);
-    });
-  }
-  if (backdrop) {
-    backdrop.addEventListener('click', () => setLab(false));
-  }
+  if (handle) handle.addEventListener('click', () => toggleLab('moduli'));
+  if (alt) alt.addEventListener('click', () => toggleLab('altro'));
+  if (backdrop) backdrop.addEventListener('click', () => setLab('closed'));
   root.querySelectorAll('a.gfv-pelle-mod').forEach((a) => {
-    a.addEventListener('click', () => setLab(false));
+    a.addEventListener('click', () => setLab('closed'));
   });
-  setLab(false);
+  setLab('closed');
+  ensureAzienda(root);
+}
+
+function ensureAzienda(root) {
+  const box = root && root.querySelector('#gfv-pelle-alt-mods');
+  if (!box || box.querySelector('[data-gfv-azienda]')) return;
+  import('../services/tenant-service.js').then((mod) => {
+    if (!box.isConnected || box.querySelector('[data-gfv-azienda]')) return;
+    return Promise.all([mod.getUserTenants(), mod.getCurrentTenantId()]).then((pair) => {
+      const tenants = pair[0];
+      const currentId = pair[1];
+      if (!box.isConnected || box.querySelector('[data-gfv-azienda]')) return;
+      if (!Array.isArray(tenants) || tenants.length < 2) return;
+      const current = tenants.find((t) => t && t.tenantId === currentId);
+      const name = (current && (current.nome || current.name)) || 'Cambia';
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'gfv-pelle-mod';
+      btn.setAttribute('data-gfv-azienda', '1');
+      btn.innerHTML = 'Azienda<small>' + escapeHtml(name) + '</small>';
+      btn.addEventListener('click', () => {
+        setLab('closed');
+        import('../services/tenant-selection-service.js').then((sel) => {
+          sel.showTenantSelector(tenants, (tenantId) => {
+            sel.handleTenantSelection(tenantId).then(() => {
+              window.location.reload();
+            }).catch(() => {
+              window.alert('Errore durante il cambio azienda. Riprova.');
+            });
+          });
+        }).catch(() => { /* selettore non disponibile */ });
+      });
+      box.appendChild(btn);
+    });
+  }).catch(() => { /* una azienda, o l'accesso non è ancora pronto */ });
 }
 
 function syncBriefing() {
@@ -455,7 +511,7 @@ function restoreActionIcons() {
 
 function onEscape(e) {
   if (e.key !== 'Escape') return;
-  if (document.documentElement.getAttribute('data-gfv-pelle-lab') === 'open') setLab(false);
+  if (document.documentElement.getAttribute('data-gfv-pelle-lab') !== 'closed') setLab('closed');
 }
 
 /**

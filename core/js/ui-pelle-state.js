@@ -219,6 +219,18 @@ export function homeActionsFromShell(entries, max) {
   return (entries || []).filter((e) => e && !HOME_SKIP[e.id]).slice(0, limit);
 }
 
+/** Impostazioni non stanno nel catalogo moduli. */
+export function moduleMenuEntries(entries) {
+  return (entries || []).filter((e) => e && e.id !== 'impostazioni');
+}
+
+export function accountMenuEntries() {
+  return [
+    { id: 'impostazioni', label: 'Impostazioni', hint: 'Azienda e account', href: 'admin/impostazioni-standalone.html' },
+    { id: 'guide', label: 'Guide', hint: 'Come si usa', href: '../documentazione-utente/index.html', blank: true }
+  ];
+}
+
 /**
  * Scheda da una riga tabella: titolo, fino a 3 fatti, stato, azioni.
  * @param {string[]} headers

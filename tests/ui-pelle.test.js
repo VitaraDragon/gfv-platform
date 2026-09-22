@@ -11,6 +11,8 @@ import {
   moduleFromLocation,
   visibleShellEntries,
   homeActionsFromShell,
+  moduleMenuEntries,
+  accountMenuEntries,
   cardsModelFromRows,
   PELLE_ACCENT
 } from '../core/js/ui-pelle-state.js';
@@ -81,6 +83,8 @@ describe('ui-pelle stato', () => {
     expect(ids).toContain('frutteto');
     expect(ids).toContain('lavori');
     expect(ids).toContain('impostazioni');
+    expect(moduleMenuEntries(entries).map((e) => e.id)).not.toContain('impostazioni');
+    expect(accountMenuEntries().map((e) => e.id)).toEqual(['impostazioni', 'guide']);
     expect(ids).not.toContain('manodopera');
     const frutteto = entries.find((e) => e.id === 'frutteto');
     expect(frutteto.href).toBe('../modules/frutteto/views/frutteto-dashboard-standalone.html');
