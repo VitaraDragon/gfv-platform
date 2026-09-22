@@ -1,6 +1,13 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-21 — allineamento docs telefono + Higgsfield.**
+**Ultimo aggiornamento documentazione: 2026-09-22 — pelle Proposta dietro flag (Fetata 0–1).**
+
+## Pelle Proposta dietro flag, senza sostituire lo stile (2026-09-22)
+
+- **Cosa:** Fetata 0–1 del piano `docs-sviluppo/da-fare/ui/PIANO_PELLE_PROPOSTA_SU_APP.md`. Flag `uiPelleProposta` (`enabledAlways: false`): acceso solo con switch Prova, spento con Pubblicata. Token in `core/styles/ui-pelle-proposta.css` (import dal CSS standalone, regole solo con `data-pelle="proposta"`). `applyPelleFromFlags` sulle pagine con `data-gfv-pelle-host`. Shell moduli da `MODULE_CATALOG`. Pilota: Home, hub Frutteto, anagrafica frutteti (schede sotto 1024px / tabella da 1024), Gestione lavori (stesso schema, dettaglio già a tre tab).
+- **Perché:** il product owner vuole vedere il look sull’app vera e tornare indietro con un tap, senza buttare lo stile di oggi.
+- **Non toccato:** workspace campo, `main`, Firestore. Tag locale di rollback `ui-pre-pelle-20260922` sul commit di `main` (non pushato).
+- Doc: questa voce, registro Tony §26, piano pelle. Master Plan: nessuna fase cambiata.
 
 ## Allineamento — piani dal telefono in locale + ordine Higgsfield (2026-09-21)
 

@@ -13,7 +13,8 @@
 
 export const FEATURE_FLAG_KEYS = {
   PREVIEW: 'preview',
-  ZONA_LAVORATA_DUE_PUNTI: 'zonaLavorataDuePunti'
+  ZONA_LAVORATA_DUE_PUNTI: 'zonaLavorataDuePunti',
+  UI_PELLE_PROPOSTA: 'uiPelleProposta'
 };
 
 /** Catalogo novelty accese quando preview è on. */
@@ -24,6 +25,13 @@ export const PREVIEW_FLAG_CATALOG = {
     enabledWhenPreview: true,
     /** Promossa su main: resta accesa anche con switch «Pubblicata». */
     enabledAlways: true
+  },
+  uiPelleProposta: {
+    id: 'uiPelleProposta',
+    label: 'Pelle Proposta (carta, menu moduli, schede su telefono)',
+    enabledWhenPreview: true,
+    /** Spenta con switch «Pubblicata». Non è la pelle di tutti. */
+    enabledAlways: false
   }
 };
 
