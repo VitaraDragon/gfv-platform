@@ -714,7 +714,7 @@ Non è il piano telefono manager (§25) e non è il piano campo (§24). Il look 
 | 26.1 | Lo stile attuale **resta** finché il PO non conferma la pelle. La Proposta è **affiancata** | prodotto 2026-09-22 | **implementato** (vincolo) | Senza `data-pelle="proposta"` le pagine restano com’erano |
 | 26.2 | Gate = flag tenant `uiPelleProposta` nello switch **Prova/Pubblicata** (Sabbie Gialle), **non** `moduliAttivi` | prodotto 2026-09-22 | **parziale** | `enabledAlways: false`. Tap Pubblicata spegne senza deploy. Fetata 2–4 no |
 | 26.3 | Rollback: tap **Pubblicata** e/o `git revert` su `main` + tag pre-promozione | prodotto 2026-09-22 | **parziale** | Tag locale `ui-pre-pelle-20260922` sul commit di `main`, non pushato. Il telefono vede la pelle solo dopo promozione |
-| 26.4 | Telefono: catalogo in sheet (si chiude dopo la scelta). PC ≥1024px: sidebar sempre visibile | prodotto 2026-09-21/22 | **parziale** | Shell su tutte le standalone ufficio del bootstrap. Swipe non limato. Campo e login no |
+| 26.4 | Telefono: catalogo in sheet (si chiude dopo la scelta). PC: menu a sinistra a scomparsa, graffetta «Moduli» | prodotto 2026-09-22 | **parziale** | Prova: non più colonna sempre aperta. Campo e login no |
 | 26.5 | Liste: schede su telefono, tabella su desktop. Reminder Tony 1 riga (§15.5) | prodotto 2026-09-21 | **parziale** | Ogni `.table-responsive` ufficio. Home: 1 riga, expand max 5 |
 | 26.6 | Workspace campo fuori scope. Niente seconda app, niente `if (formId)` nel core | prodotto 2026-09-22 | **implementato** (vincolo) | Host solo con `data-gfv-pelle-host`; campo non incluso |
 

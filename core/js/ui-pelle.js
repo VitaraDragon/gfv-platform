@@ -203,15 +203,16 @@ function mountShell(entries) {
     );
   }).join('');
   root.innerHTML =
-    '<button type="button" class="gfv-pelle-handle" id="gfv-pelle-handle" aria-expanded="false" aria-controls="gfv-pelle-lab">' +
+    '<button type="button" class="gfv-pelle-handle" id="gfv-pelle-handle" aria-expanded="false" aria-controls="gfv-pelle-lab" aria-label="Apri o chiudi i moduli">' +
     '<span class="gfv-pelle-grip" aria-hidden="true"></span>' +
+    '<span class="gfv-pelle-clip" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></span>' +
     '<span class="gfv-pelle-handle-label" id="gfv-pelle-handle-label">Proposta · ' + escapeHtml(place) + '</span>' +
     '<span class="gfv-pelle-handle-hint">Tocca per i moduli</span>' +
     '</button>' +
     '<div class="gfv-pelle-backdrop" id="gfv-pelle-backdrop" hidden></div>' +
     '<nav class="gfv-pelle-lab" id="gfv-pelle-lab" aria-hidden="true" aria-label="Moduli">' +
     '<p class="gfv-pelle-kicker gfv-pelle-kicker--phone">Scegli un modulo. Il menu si chiude.</p>' +
-    '<p class="gfv-pelle-kicker gfv-pelle-kicker--desk">Moduli</p>' +
+    '<p class="gfv-pelle-kicker gfv-pelle-kicker--desk">Scegli un modulo. Il menu si chiude.</p>' +
     '<div class="gfv-pelle-mods">' + links + '</div>' +
     '</nav>';
   markCurrent(root);

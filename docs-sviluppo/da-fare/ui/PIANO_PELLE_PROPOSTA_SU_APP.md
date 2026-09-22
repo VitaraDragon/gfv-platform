@@ -44,7 +44,7 @@ L’agente **non parte** col restyling delle 35+ pagine. In ordine:
 | P3 | **Non** mescolare questo flag con `moduliAttivi` / abbonamento | «Cosa ha pagato» ≠ «cosa stiamo provando» (`feature-flags.js`, §23.1) |
 | P4 | **Non** clonare xFarm; **non** portare lo «stile fumetto» sul chrome ERP. Tony (viso, FAB, chat) può restare più vivo; l’ERP è carta/quiete | Deciso in conversazione 2026-09-21 |
 | P5 | Home = **«oggi»** (Tony + pochi numeri + 4–6 azioni frequenti). I 20 moduli **non** sono la prima schermata | Catalogo a parte |
-| P6 | **Telefono:** catalogo in sheet (maniglia + tap; swipe ancora da limare). Scelta → lo sheet **si chiude**. **PC (≥1024px):** colonna sinistra **sempre visibile**, click, niente swipe | Stesso catalogo, due gusci |
+| P6 | **Telefono:** catalogo in sheet (maniglia + tap; swipe ancora da limare). Scelta → lo sheet **si chiude**. **PC (≥1024px):** menu a sinistra **a scomparsa** (chiuso di default). Si apre con la graffetta «Moduli» sul bordo; si chiude con un altro click, con lo sfondo o scegliendo un modulo | Stesso catalogo, due gusci. Prova chiesta il 2026-09-22 |
 | P7 | Liste: telefono = **schede**; desktop = **tabella** (Gestione lavori 9 colonne, non schiacciare) | Già in prova |
 | P8 | Dettaglio lavoro ≠ le 9 colonne di nuovo. Tre tab: Panoramica / Mappa / Ore | Già in prova |
 | P9 | Reminder Tony: **1 riga**, max 5 in expand, il resto in chat. Vietato lo striscione da 20 righe (schermata «Pieno» della prova = come **non** fare) | §15.5–§15.6 |
@@ -115,7 +115,7 @@ Schermi: Home, hub (Frutteto e altri da catalogo `HUBS`), sotto-liste `SUBS`, Ge
 - Header basso, accento **solo** bordo (Frutteto arancio `#FF6F00`, Vigneto viola, Manodopera verde, Macchine blu, CT arancio, Meteo azzurro).
 - Card silenziose, icone lineari in proposta (emoji solo in pelle Oggi).
 - Telefono: maniglia `Proposta · <posto>` → sheet moduli; tap/swipe; dopo la scelta resta solo la pagina.
-- PC: rail 272px, moduli in colonna, contenuto a destra; liste = tabella.
+- PC: pagina a tutta larghezza; graffetta «Moduli» sul bordo sinistro apre un pannello da 272px. Liste = tabella.
 
 **Pelle Oggi:** chrome colorato 2018 (gradient header, card colorate). Serve come **controllo A/B**, non da «migliorare» in questo track.
 
@@ -270,3 +270,4 @@ Non toccare il workspace campo. Non inventare if per singolo formId.
 | 0 | 2026-09-22 | Prima stesura da conversazione: prova isolata, rollback, vedere su tutta l’app |
 | 1 | 2026-09-22 | Fetata 0–1: flag `uiPelleProposta`, shell da `MODULE_CATALOG`, Home + Frutteto + anagrafica + Gestione lavori. Ancora gated. |
 | 2 | 2026-09-22 | Stessa pelle su tutte le standalone ufficio (anche Magazzino e le altre liste). Campo e login esclusi. |
+| 3 | 2026-09-22 | Su PC il menu a sinistra non resta aperto: graffetta sul bordo, chiuso di default. |
