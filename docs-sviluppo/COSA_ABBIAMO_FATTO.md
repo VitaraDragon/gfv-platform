@@ -4,7 +4,7 @@
 
 ## Pelle Proposta dietro flag, senza sostituire lo stile (2026-09-22)
 
-- **Cosa:** Fetata 0–1 e estensione alle pagine ufficio del piano `docs-sviluppo/da-fare/ui/PIANO_PELLE_PROPOSTA_SU_APP.md`. Flag `uiPelleProposta` (`enabledAlways: false`). La pelle parte su ogni standalone del bootstrap (hub, liste, impostazioni), non solo Home/Frutteto/Gestione lavori. Carta, header basso, schede telefono / tabella desktop. Su PC il menu a sinistra è a scomparsa: graffetta «Moduli» sul bordo, chiuso di default. Nel riquadro accanto al nome c’è un’icona a tratto (colore del modulo). Calcolo materiali aperto da Frutteto resta arancio (il file è condiviso col Vigneto). Fuori: workspace campo, login, registrazione.
+- **Cosa:** Fetata 0–1 e estensione alle pagine ufficio del piano `docs-sviluppo/da-fare/ui/PIANO_PELLE_PROPOSTA_SU_APP.md`. Flag `uiPelleProposta` (`enabledAlways: false`). La pelle parte su ogni standalone del bootstrap (hub, liste, impostazioni), non solo Home/Frutteto/Gestione lavori. Carta, header basso, schede telefono / tabella desktop. Su PC il menu a sinistra è a scomparsa: graffetta «Moduli» sul bordo, chiuso di default. Nel riquadro accanto al nome c’è un’icona a tratto (colore del modulo). Calcolo materiali aperto da Frutteto, con Proposta, resta la carta e l’accento è arancio; il gradiente arancio resta solo con Pubblicata. Fuori: workspace campo, login, registrazione.
 - **Perché:** il product owner vuole vedere il look sull’app vera e tornare indietro con un tap, senza buttare lo stile di oggi.
 - **Non toccato:** workspace campo, `main`, Firestore. Tag locale di rollback `ui-pre-pelle-20260922` sul commit di `main` (non pushato).
 - Doc: questa voce, registro Tony §26, piano pelle. Master Plan: nessuna fase cambiata.

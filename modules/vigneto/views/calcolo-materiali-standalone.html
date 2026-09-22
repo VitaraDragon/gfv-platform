@@ -296,6 +296,19 @@
             border-bottom: 1px solid var(--theme-line);
         }
 
+        .riepilogo-pianificazione {
+            margin-top: 30px;
+            padding: 20px;
+            background: var(--theme-wash);
+            border-radius: 8px;
+            position: relative;
+        }
+
+        .riepilogo-pianificazione h3 {
+            color: var(--theme-accent);
+            margin-bottom: 15px;
+        }
+
         .loading {
             text-align: center;
             padding: 40px;
@@ -1266,8 +1279,8 @@
 
             // Aggiungi riepilogo
             html += `
-                <div style="margin-top: 30px; padding: 20px; background: var(--theme-wash); border-radius: 8px; position: relative;">
-                    <h3 style="color: var(--theme-accent); margin-bottom: 15px;">Riepilogo Pianificazione</h3>
+                <div class="riepilogo-pianificazione">
+                    <h3>Riepilogo Pianificazione</h3>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                         <div>
                             <strong>Tipo Impianto:</strong><br>

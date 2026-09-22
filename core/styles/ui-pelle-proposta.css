@@ -44,24 +44,6 @@ html[data-pelle="proposta"] body .dashboard-header .user-info {
   color: var(--gfv-pelle-muted) !important;
 }
 
-/* Pagine impianto condivise: il file è nel vigneto, il gradiente segue ?coltura= (inline su html). */
-html[data-pelle="proposta"][style*="--theme-bg"] body {
-  background: var(--theme-bg) !important;
-  background-image: var(--theme-bg) !important;
-}
-
-html[data-pelle="proposta"][style*="--theme-header"] body .header {
-  background: var(--theme-header) !important;
-  background-image: var(--theme-header) !important;
-  color: #fff !important;
-  border-bottom: 0 !important;
-}
-
-html[data-pelle="proposta"][style*="--theme-header"] body .header h1,
-html[data-pelle="proposta"][style*="--theme-header"] body .header p {
-  color: #fff !important;
-}
-
 html[data-pelle="proposta"] body .header .btn,
 html[data-pelle="proposta"] body .header .btn-primary,
 html[data-pelle="proposta"] body .header .btn-secondary,
@@ -366,14 +348,44 @@ html[data-pelle="proposta"] table.lavori-table {
 
 html[data-pelle="proposta"][data-shell="desktop"] [data-gfv-pelle-list] th,
 html[data-pelle="proposta"][data-shell="desktop"] .table-responsive th,
-html[data-pelle="proposta"] table.lavori-table th {
+html[data-pelle="proposta"] table.lavori-table th,
+html[data-pelle="proposta"] .table-container th {
   text-align: left;
   color: var(--gfv-pelle-muted) !important;
   background: var(--gfv-pelle-panel) !important;
+  background-image: none !important;
   font-size: 11px;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   padding: 10px 12px;
+}
+
+html[data-pelle="proposta"] .config-section,
+html[data-pelle="proposta"] .riepilogo-pianificazione,
+html[data-pelle="proposta"] tbody tr.total-row {
+  background: var(--gfv-pelle-paper) !important;
+  background-image: none !important;
+}
+
+html[data-pelle="proposta"] tbody tr:hover {
+  background: #f5f5f4 !important;
+}
+
+html[data-pelle="proposta"] .section-title,
+html[data-pelle="proposta"] .materiali-category h3,
+html[data-pelle="proposta"] .riepilogo-pianificazione h3 {
+  color: var(--gfv-pelle-ink) !important;
+  border-bottom-color: var(--gfv-pelle-line) !important;
+}
+
+html[data-pelle="proposta"] .form-group input,
+html[data-pelle="proposta"] .form-group select {
+  border-color: var(--gfv-pelle-line) !important;
+}
+
+html[data-pelle="proposta"] .form-group input:focus,
+html[data-pelle="proposta"] .form-group select:focus {
+  border-color: var(--gfv-pelle-accent) !important;
 }
 
 html[data-pelle="proposta"] .modal-content {
