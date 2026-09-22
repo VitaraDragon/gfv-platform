@@ -5,7 +5,8 @@
 **Per chi:** agenti e sviluppo che toccano **dashboard**, hub moduli, liste/tabelle standalone, form/modal, Tony in tasca per manager/admin.  
 **Fonte:** conversazione 2026-09-19 (dopo il piano campo operai/caposquadra).  
 **Registro:** `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md` §25.  
-**Piano gemello (campo, decisioni chiuse):** `docs-sviluppo/da-fare/manodopera/PIANO_CAMPO_MOBILE_MULTILINGUA.md` — **non mescolare** i due lavori.
+**Piano gemello (campo, decisioni chiuse):** `docs-sviluppo/da-fare/manodopera/PIANO_CAMPO_MOBILE_MULTILINGUA.md` — **non mescolare** i due lavori.  
+**Piano look (pelle Proposta, rollback):** `docs-sviluppo/da-fare/ui/PIANO_PELLE_PROPOSTA_SU_APP.md` — chrome/sheet/sidebar e flag Prova/Pubblicata; **non** è questo file. Le card in tasca restano qui (§4.2).
 
 **Analisi Coerenza Master Plan: [§3 Utenze — manager priorità media] + [Fase 2/4 config > codice]** — Una seconda app mobile manager non è scalabile: duplica decine di pagine, form e Tony. È scalabile **migliorare la stessa app** (home “oggi” + tabelle→card + form a una colonna) perché resta un solo mapping, un solo salvataggio, niente `if (ruolo === 'manager' && mobile)`.
 

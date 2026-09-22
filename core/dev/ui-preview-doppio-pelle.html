@@ -1,0 +1,2527 @@
+<!DOCTYPE html>
+<html lang="it" data-theme="oggi" data-screen="dashboard" data-lab="closed">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="theme-color" content="#1c1917">
+  <title>Prova UI — Oggi vs proposta · GFV</title>
+  <link rel="icon" type="image/png" href="../images/icon-192x192.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --lab-bg: #1c1917;
+      --lab-fg: #fafaf9;
+      --tony-src: url("../images/tony-icon.png");
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      background: var(--lab-bg);
+      color: var(--lab-fg);
+      font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+      display: flex;
+      flex-direction: column;
+      min-height: 100dvh;
+    }
+    button, a { -webkit-tap-highlight-color: transparent; }
+
+    /* —— Menù moduli (swipe giù). Non è chrome dell’app. —— */
+    .lab-handle {
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      width: 100%;
+      min-height: 48px;
+      margin: 0;
+      padding: calc(6px + env(safe-area-inset-top, 0px)) 12px 8px;
+      border: 0;
+      border-bottom: 1px solid #44403c;
+      background: #1c1917;
+      color: #e7e5e4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      font: 600 12px/1.25 system-ui, sans-serif;
+      cursor: pointer;
+    }
+    .lab-grip {
+      width: 36px;
+      height: 4px;
+      border-radius: 99px;
+      background: #78716c;
+    }
+    .lab-handle-label { color: #d6d3d1; }
+    .lab-handle-hint {
+      font-weight: 500;
+      font-size: 10px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #a8a29e;
+    }
+    html[data-lab="open"] .lab-handle { border-bottom-color: transparent; }
+    .lab-backdrop {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 44;
+      background: rgba(28, 25, 23, 0.45);
+    }
+    html[data-lab="open"] .lab-backdrop { display: block; }
+    .lab {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 46;
+      max-height: min(82dvh, 720px);
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      background: #1c1917;
+      color: #fafaf9;
+      padding: calc(56px + env(safe-area-inset-top, 0px)) 12px 20px;
+      border-bottom: 1px solid #44403c;
+      border-radius: 0 0 18px 18px;
+      transform: translateY(-110%);
+      transition: transform 0.28s ease;
+      pointer-events: none;
+    }
+    html[data-lab="open"] .lab {
+      transform: none;
+      pointer-events: auto;
+    }
+    html[data-lab="open"] body,
+    html[data-lab="open"] .phone { overflow: hidden; }
+    .lab-kicker {
+      margin: 0 0 10px;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #a8a29e;
+    }
+    .lab-row { display: flex; gap: 8px; margin-bottom: 12px; }
+    .lab h3 {
+      margin: 14px 0 8px;
+      font: 600 11px/1.2 system-ui, sans-serif;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: #a8a29e;
+    }
+    .lab h3:first-of-type { margin-top: 4px; }
+    .seg {
+      flex: 1;
+      display: flex;
+      border: 1px solid #57534e;
+      border-radius: 10px;
+      overflow: hidden;
+      background: #292524;
+    }
+    .seg button {
+      flex: 1;
+      min-height: 44px;
+      border: 0;
+      background: transparent;
+      color: #e7e5e4;
+      font: 600 13px/1.2 system-ui, sans-serif;
+      cursor: pointer;
+      padding: 0 4px;
+    }
+    .seg button[aria-pressed="true"] {
+      background: #fafaf9;
+      color: #1c1917;
+    }
+    .seg--theme button[data-theme="proposta"][aria-pressed="true"] {
+      background: #2E8B57;
+      color: #fff;
+    }
+    .lab-mods {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .lab-mod {
+      min-height: 52px;
+      margin: 0;
+      padding: 8px 10px;
+      border: 1px solid #57534e;
+      border-radius: 12px;
+      background: #292524;
+      color: #e7e5e4;
+      text-align: left;
+      font: 600 13px/1.25 system-ui, sans-serif;
+      cursor: pointer;
+    }
+    .lab-mod small {
+      display: block;
+      margin-top: 2px;
+      font-weight: 500;
+      font-size: 11px;
+      color: #a8a29e;
+    }
+    .lab-mod[aria-pressed="true"] {
+      background: #fafaf9;
+      color: #1c1917;
+      border-color: #fafaf9;
+    }
+    .lab-mod[aria-pressed="true"] small { color: #57534e; }
+    .lab-mod.is-soon {
+      opacity: 0.48;
+      cursor: default;
+    }
+    .lab-kicker--desk { display: none; }
+
+    /* —— Mock app —— */
+    .phone {
+      position: relative;
+      flex: 1;
+      min-height: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .screen { display: none; padding-bottom: 96px; }
+    html[data-screen="dashboard"] #screen-dashboard,
+    html[data-screen="vigneto"] #screen-vigneto,
+    html[data-screen="lista"] #screen-lista,
+    html[data-screen="carico"] #screen-carico,
+    html[data-screen="meteo"] #screen-meteo,
+    html[data-screen="mappa"] #screen-mappa,
+    html[data-screen="dettaglio"] #screen-dettaglio,
+    html[data-screen="hub"] #screen-hub,
+    html[data-screen="sub"] #screen-sub,
+    html[data-screen="abbonamento"] #screen-abbonamento,
+    html[data-screen="opzioni"] #screen-opzioni { display: block; }
+
+    .app-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; }
+    .app-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 8px 12px; border-radius: 8px; border: 0; font-size: 13px; text-decoration: none; cursor: default; }
+    .grid { display: grid; gap: 12px; }
+    .muted { color: #666; }
+    img.tony-face {
+      display: block;
+      object-fit: cover;
+      border-radius: 50%;
+      background: #cfe8d6;
+    }
+
+    /* ========== OGGI ========== */
+    html[data-theme="oggi"] .phone {
+      background: #f5f7fa;
+      color: #333;
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    }
+    html[data-theme="oggi"][data-accent="vigneto"] .phone,
+    html[data-theme="oggi"][data-screen="vigneto"] .phone {
+      background: linear-gradient(135deg, #E1BEE7 0%, #6A1B9A 100%);
+    }
+    html[data-theme="oggi"][data-screen="lista"] .phone,
+    html[data-theme="oggi"][data-screen="dettaglio"] .phone {
+      background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+    }
+    html[data-theme="oggi"][data-screen="carico"] .phone { background: #f5f7fa; }
+    html[data-theme="oggi"][data-screen="meteo"] .phone {
+      background: linear-gradient(135deg, #e3f2fd 0%, #e8f5e9 100%);
+    }
+    html[data-theme="oggi"][data-screen="mappa"] .phone { background: #f5f7fa; }
+    html[data-theme="oggi"][data-accent="frutteto"] .phone {
+      background: linear-gradient(135deg, #FFE0B2 0%, #FF6F00 100%);
+    }
+    html[data-theme="oggi"][data-accent="manodopera"] .phone {
+      background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+    }
+    html[data-theme="oggi"][data-accent="magazzino"] .phone {
+      background: linear-gradient(135deg, #C8E6C9 0%, #2E7D32 100%);
+    }
+    html[data-theme="oggi"][data-accent="macchine"] .phone {
+      background: linear-gradient(135deg, #BBDEFB 0%, #1565C0 100%);
+    }
+    html[data-theme="oggi"][data-accent="ct"] .phone {
+      background: linear-gradient(135deg, #FFE0B2 0%, #EF6C00 100%);
+    }
+    html[data-theme="oggi"] .wrap { padding: 16px; }
+    html[data-theme="oggi"] .app-header {
+      background: linear-gradient(135deg, #2E8B57 0%, #228B22 100%);
+      color: #fff;
+      padding: 28px 20px;
+      border-radius: 12px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 6px rgba(0,0,0,.1);
+    }
+    html[data-theme="oggi"][data-accent="vigneto"] .app-header,
+    html[data-theme="oggi"][data-screen="vigneto"] .app-header {
+      background: linear-gradient(135deg, #6A1B9A 0%, #4A148C 100%);
+    }
+    html[data-theme="oggi"][data-screen="meteo"] .app-header {
+      background: linear-gradient(135deg, #0288D1 0%, #01579B 100%);
+    }
+    html[data-theme="oggi"][data-accent="frutteto"] .app-header {
+      background: linear-gradient(135deg, #FF6F00 0%, #E65100 100%);
+    }
+    html[data-theme="oggi"][data-accent="macchine"] .app-header {
+      background: linear-gradient(135deg, #1565C0 0%, #0D47A1 100%);
+    }
+    html[data-theme="oggi"][data-accent="ct"] .app-header {
+      background: linear-gradient(135deg, #EF6C00 0%, #E65100 100%);
+    }
+    html[data-theme="oggi"][data-accent="frutteto"] .stat { border-left-color: #FF6F00; background: linear-gradient(135deg, #FFF3E0, #FFE0B2); }
+    html[data-theme="oggi"][data-accent="frutteto"] .stat b,
+    html[data-theme="oggi"][data-accent="frutteto"] .panel h2 { color: #E65100; }
+    html[data-theme="oggi"][data-accent="frutteto"] .card { background: #fff; border-color: #FF6F00; }
+    html[data-theme="oggi"] .app-header h1 { margin: 0 0 6px; font-size: 24px; }
+    html[data-theme="oggi"] .app-header p { margin: 0; font-size: 13px; opacity: .92; }
+    html[data-theme="oggi"] .btn-ghost {
+      background: rgba(255,255,255,.2);
+      color: #fff;
+      border: 1px solid rgba(255,255,255,.3);
+    }
+    html[data-theme="oggi"] .panel {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px;
+      box-shadow: 0 2px 4px rgba(0,0,0,.1);
+      margin-bottom: 14px;
+    }
+    html[data-theme="oggi"] .panel h2 { margin: 0 0 12px; font-size: 16px; color: #2E8B57; }
+    html[data-theme="oggi"][data-screen="vigneto"] .panel h2 { color: #6A1B9A; }
+    html[data-theme="oggi"] .stats { grid-template-columns: 1fr 1fr; }
+    html[data-theme="oggi"] .stat {
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      border-radius: 12px;
+      padding: 16px;
+      text-align: center;
+      border-left: 4px solid #2E8B57;
+    }
+    html[data-theme="oggi"][data-screen="vigneto"] .stat {
+      background: linear-gradient(135deg, #F3E5F5, #E1BEE7);
+      border-left-color: #6A1B9A;
+    }
+    html[data-theme="oggi"] .stat b { display: block; font-size: 26px; color: #2E8B57; }
+    html[data-theme="oggi"][data-screen="vigneto"] .stat b { color: #6A1B9A; }
+    html[data-theme="oggi"] .stat span { font-size: 12px; color: #666; }
+    html[data-theme="oggi"] .cards { grid-template-columns: 1fr 1fr; }
+    html[data-theme="oggi"] .card {
+      background: #f8f9fa;
+      border: 2px solid transparent;
+      border-radius: 8px;
+      padding: 16px 10px;
+      text-align: center;
+      text-decoration: none;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+    }
+    html[data-theme="oggi"][data-screen="vigneto"] .card {
+      background: #fff;
+      border-color: #6A1B9A;
+      border-radius: 12px;
+      padding: 20px 10px;
+    }
+    html[data-theme="oggi"] .card .ico { font-size: 28px; line-height: 1; }
+    html[data-theme="oggi"][data-screen="vigneto"] .card .ico { font-size: 40px; }
+    html[data-theme="oggi"] .card strong { font-size: 14px; }
+    html[data-theme="oggi"] .card small { font-size: 11px; color: #666; }
+    html[data-theme="oggi"] .svg-ico { display: none; }
+    html[data-theme="oggi"] table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    html[data-theme="oggi"] th { text-align: left; color: #2E8B57; padding: 8px 6px; border-bottom: 2px solid #e9ecef; }
+    html[data-theme="oggi"] td { padding: 10px 6px; border-bottom: 1px solid #eee; }
+    html[data-theme="oggi"] .pill { background: #fff3cd; color: #856404; font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 20px; }
+    html[data-theme="oggi"] .pill.ok { background: #d4edda; color: #155724; }
+
+    /* ========== PROPOSTA ========== */
+    html[data-theme="proposta"] .phone {
+      background: #F6F3EC;
+      color: #1c1917;
+      font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    }
+    html[data-theme="proposta"] .wrap { padding: 12px 14px 16px; }
+    html[data-theme="proposta"] .app-header {
+      background: #FFFEFA;
+      color: #1c1917;
+      padding: 12px 14px;
+      border-radius: 0;
+      margin: 0 -14px 14px;
+      border-bottom: 1px solid #e7e5e4;
+      box-shadow: none;
+      align-items: center;
+    }
+    html[data-theme="proposta"][data-accent="vigneto"] .app-header,
+    html[data-theme="proposta"][data-screen="vigneto"] .app-header {
+      border-bottom: 3px solid #6A1B9A;
+    }
+    html[data-theme="proposta"][data-screen="lista"] .app-header,
+    html[data-theme="proposta"][data-screen="dettaglio"] .app-header {
+      border-bottom: 3px solid #2E8B57;
+    }
+    html[data-theme="proposta"][data-screen="carico"] .app-header {
+      border-bottom: 3px solid #2E8B57;
+    }
+    html[data-theme="proposta"][data-screen="meteo"] .app-header {
+      border-bottom: 3px solid #0288D1;
+    }
+    html[data-theme="proposta"][data-screen="mappa"] .app-header {
+      border-bottom: 3px solid #2E8B57;
+    }
+    html[data-theme="proposta"][data-accent="frutteto"] .app-header { border-bottom: 3px solid #FF6F00; }
+    html[data-theme="proposta"][data-accent="macchine"] .app-header { border-bottom: 3px solid #1565C0; }
+    html[data-theme="proposta"][data-accent="ct"] .app-header { border-bottom: 3px solid #EF6C00; }
+    a.card, button.card { cursor: pointer; }
+    html[data-theme="proposta"] .brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    html[data-theme="proposta"] .brand img {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+    }
+    html[data-theme="proposta"] .app-header h1 {
+      margin: 0;
+      font-size: 17px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+    html[data-theme="proposta"] .app-header p {
+      margin: 2px 0 0;
+      font-size: 12px;
+      color: #57534e;
+    }
+    html[data-theme="proposta"] .emoji { display: none; }
+    html[data-theme="proposta"] .btn-ghost {
+      background: #F6F3EC;
+      color: #1c1917;
+      border: 1px solid #d6d3d1;
+      border-radius: 10px;
+      font-weight: 600;
+    }
+    html[data-theme="proposta"] .briefing {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 16px;
+      padding: 12px;
+      margin-bottom: 14px;
+    }
+    html[data-theme="proposta"] .briefing img { width: 48px; height: 48px; flex-shrink: 0; }
+    html[data-theme="proposta"] .briefing p { margin: 0; font-size: 14px; line-height: 1.45; }
+    html[data-theme="proposta"] .briefing p strong { font-weight: 650; }
+    html[data-theme="proposta"] .panel {
+      background: transparent;
+      box-shadow: none;
+      padding: 0;
+      margin-bottom: 18px;
+    }
+    html[data-theme="proposta"] .panel h2 {
+      margin: 0 0 10px;
+      font-size: 13px;
+      font-weight: 650;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #57534e;
+    }
+    html[data-theme="proposta"] .stats { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+    html[data-theme="proposta"] .stat {
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 14px;
+      padding: 12px 10px;
+      text-align: left;
+    }
+    html[data-theme="proposta"] .stat b { display: block; font-size: 20px; color: #1c1917; letter-spacing: -0.03em; }
+    html[data-theme="proposta"] .stat span { font-size: 11px; color: #57534e; }
+    html[data-theme="proposta"] .cards { grid-template-columns: 1fr; gap: 8px; }
+    html[data-theme="proposta"] .card {
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 14px;
+      padding: 12px;
+      display: grid;
+      grid-template-columns: 40px 1fr;
+      grid-template-rows: auto auto;
+      column-gap: 12px;
+      row-gap: 2px;
+      text-align: left;
+      text-decoration: none;
+      color: inherit;
+      align-items: center;
+    }
+    html[data-theme="proposta"] .card .ico { display: none; }
+    html[data-theme="proposta"] .svg-ico {
+      grid-row: 1 / span 2;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    html[data-theme="proposta"] .svg-ico svg { width: 20px; height: 20px; }
+    html[data-theme="proposta"] .card strong { font-size: 15px; font-weight: 650; }
+    html[data-theme="proposta"] .card small { font-size: 12px; color: #57534e; grid-column: 2; }
+    html[data-theme="proposta"] .ico-core { background: #e8f5ee; color: #1f6b3a; }
+    html[data-theme="proposta"] .ico-vigneto { background: #f3e8fb; color: #6A1B9A; }
+    html[data-theme="proposta"] .ico-frutto { background: #ffedd5; color: #c2410c; }
+    html[data-theme="proposta"] .ico-blue { background: #e0f2fe; color: #0369a1; }
+    html[data-theme="proposta"] .ico-meteo { background: #e0f2fe; color: #0277bd; }
+
+    /* Dump 20 righe (oggi) vs striscione collassato (proposta) */
+    .dump {
+      background: #fff;
+      border-radius: 12px;
+      padding: 14px 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 4px rgba(0,0,0,.1);
+      font-size: 14px;
+      line-height: 1.5;
+      color: #333;
+    }
+    .dump p { margin: 0; }
+    .strip {
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 16px;
+      padding: 12px;
+      margin-bottom: 14px;
+      width: 100%;
+      text-align: left;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      -webkit-appearance: none;
+      appearance: none;
+    }
+    .strip img { width: 48px; height: 48px; flex-shrink: 0; }
+    .strip-body { flex: 1; min-width: 0; }
+    .strip-body p { margin: 0; font-size: 14px; line-height: 1.4; }
+    .strip-more {
+      margin: 10px 0 0;
+      padding: 0;
+      list-style: none;
+      display: none;
+    }
+    .strip.is-open .strip-more { display: block; }
+    .strip-more li {
+      font-size: 13px;
+      color: #44403c;
+      padding: 8px 0;
+      border-top: 1px solid #f5f5f4;
+    }
+    .strip-chat {
+      display: none;
+      margin-top: 8px;
+      font-size: 13px;
+      font-weight: 650;
+      color: #1f6b3a;
+      background: none;
+      border: 0;
+      padding: 8px 0;
+      cursor: pointer;
+    }
+    .strip.is-open .strip-chat { display: inline-flex; }
+
+    .fake-map {
+      position: relative;
+      min-height: 280px;
+      height: min(52vh, 420px);
+      border-radius: 14px;
+      overflow: hidden;
+      background: #c5d4a8;
+      border: 1px solid #d6d3d1;
+    }
+    html[data-theme="oggi"] .fake-map {
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.12);
+    }
+    .fake-map svg { width: 100%; height: 100%; display: block; }
+    .map-pin {
+      position: absolute;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: #dc3545;
+      color: #fff;
+      font-weight: 800;
+      font-size: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px rgba(0,0,0,.25);
+    }
+    .meteo-detail {
+      margin-top: 12px;
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 14px;
+      padding: 14px;
+    }
+    html[data-theme="oggi"] .meteo-detail {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,.08);
+    }
+    .meteo-detail h3 { margin: 0 0 6px; font-size: 16px; }
+    .meteo-detail p { margin: 0; font-size: 13px; color: #57534e; }
+    .wrap-canvas { display: flex; flex-direction: column; min-height: calc(100dvh - 200px); }
+    .wrap-canvas .fake-map { flex: 1; }
+
+    html[data-theme="proposta"] table { width: 100%; border-collapse: collapse; font-size: 14px; background: #FFFEFA; border-radius: 14px; overflow: hidden; border: 1px solid #e7e5e4; }
+    html[data-theme="proposta"] th { text-align: left; color: #57534e; font-size: 11px; letter-spacing: 0.04em; text-transform: uppercase; padding: 10px 12px; font-weight: 650; }
+    html[data-theme="proposta"] td { padding: 12px; border-top: 1px solid #f5f5f4; }
+    html[data-theme="proposta"] .pill { background: #fef3c7; color: #92400e; font-size: 11px; font-weight: 650; padding: 3px 8px; border-radius: 999px; }
+    html[data-theme="proposta"] .pill.ok { background: #dcfce7; color: #166534; }
+    html[data-theme="proposta"] .only-old-copy { display: none; }
+    html[data-theme="oggi"] .job-cards { display: none; }
+    html[data-theme="proposta"] .wide-wrap { display: none; }
+
+    .wide-wrap {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      margin: 0 -4px;
+      overscroll-behavior-x: contain;
+    }
+    .wide-wrap table { min-width: 920px; font-size: 12px; }
+    .wide-wrap th, .wide-wrap td { white-space: nowrap; vertical-align: top; }
+    .scroll-hint { margin: 0 0 8px; font-size: 12px; }
+    .bar {
+      height: 16px;
+      background: #e9ecef;
+      border-radius: 8px;
+      overflow: hidden;
+      min-width: 80px;
+    }
+    .bar > span { display: block; height: 100%; background: #2E8B57; color: #fff; font-size: 10px; line-height: 16px; text-align: center; }
+    .bar.warn > span { background: #ffc107; color: #333; }
+    .bar.bad > span { background: #dc3545; }
+    .dot {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .dot.red { background: #dc3545; box-shadow: 0 0 0 3px rgba(220,53,69,.25); }
+    .dot.yellow { background: #ffc107; }
+    .dot.green { background: #28a745; }
+
+    .job-cards { display: flex; flex-direction: column; gap: 10px; padding-bottom: 28px; }
+    .job-card {
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 16px;
+      padding: 14px;
+    }
+    .job-card.is-alert { border-color: #f0ad4e; }
+    .job-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 8px;
+    }
+    .job-top h3 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.02em; }
+    .job-pills { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+    .job-line { margin: 6px 0 10px; font-size: 13px; color: #57534e; }
+    .job-prog { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+    .job-prog .bar { flex: 1; height: 10px; border-radius: 999px; }
+    .job-prog .bar > span { line-height: 10px; font-size: 0; }
+    .job-ha { font-size: 12px; font-weight: 650; color: #1c1917; white-space: nowrap; }
+    .job-meta { font-size: 12px; color: #57534e; line-height: 1.45; }
+    .job-actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+    .job-actions .btn-main {
+      flex: 1;
+      min-height: 44px;
+      border: 0;
+      border-radius: 12px;
+      background: #2E8B57;
+      color: #fff;
+      font-weight: 650;
+      font-size: 14px;
+    }
+    .job-actions .btn-more {
+      min-height: 44px;
+      padding: 0 14px;
+      border-radius: 12px;
+      border: 1px solid #d6d3d1;
+      background: #F6F3EC;
+      font-weight: 650;
+      font-size: 14px;
+    }
+    .job-extra { display: none; margin-top: 8px; }
+    .job-card.is-open .job-extra { display: flex; flex-wrap: wrap; gap: 8px; }
+    .job-extra button {
+      min-height: 40px;
+      padding: 0 12px;
+      border-radius: 10px;
+      border: 1px solid #e7e5e4;
+      background: #fff;
+      font-size: 13px;
+    }
+    .icon-act {
+      background: none;
+      border: 0;
+      cursor: pointer;
+      font-size: 16px;
+      padding: 2px 4px;
+      line-height: 1.2;
+    }
+
+    .d-tabs {
+      display: flex;
+      margin-bottom: 14px;
+      border: 1px solid #dee2e6;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #f8f9fa;
+    }
+    .d-tabs button {
+      flex: 1;
+      min-height: 44px;
+      border: 0;
+      background: transparent;
+      font-weight: 650;
+      font-size: 13px;
+      cursor: pointer;
+      color: #333;
+    }
+    .d-tabs button[aria-pressed="true"] {
+      background: #2E8B57;
+      color: #fff;
+    }
+    html[data-theme="proposta"] .d-tabs {
+      border: 1px solid #e7e5e4;
+      border-radius: 12px;
+      background: #EDEAE3;
+      gap: 4px;
+      padding: 4px;
+      overflow: visible;
+    }
+    html[data-theme="proposta"] .d-tabs button {
+      border-radius: 10px;
+      font-family: inherit;
+      color: #44403c;
+    }
+    html[data-theme="proposta"] .d-tabs button[aria-pressed="true"] {
+      background: #FFFEFA;
+      color: #1c1917;
+    }
+    .dtab { display: none; }
+    html[data-dtab="overview"] #dtab-overview,
+    html[data-dtab="map"] #dtab-map,
+    html[data-dtab="ore"] #dtab-ore { display: block; }
+    html[data-theme="oggi"] .d-new { display: none !important; }
+    html[data-theme="proposta"] .d-old { display: none !important; }
+    html[data-dtab="map"] #dettaglio-wrap.wrap-canvas .fake-map {
+      min-height: 200px;
+      height: 34vh;
+      flex: 0 0 auto;
+    }
+
+    .d-fields {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      font-size: 14px;
+    }
+    .d-dl {
+      margin: 0 0 14px;
+      display: grid;
+      gap: 8px;
+    }
+    .d-dl div {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 10px 12px;
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 12px;
+      font-size: 13px;
+    }
+    .d-dl dt { color: #57534e; margin: 0; }
+    .d-dl dd { margin: 0; font-weight: 650; text-align: right; }
+    .d-summary {
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 12px;
+    }
+    .d-ore-line { margin: 0 0 12px; font-size: 14px; color: #44403c; }
+    .d-person {
+      padding: 14px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      margin-bottom: 8px;
+    }
+    html[data-theme="proposta"] .d-person {
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 14px;
+    }
+    .d-person strong { display: block; font-size: 14px; }
+    .d-hours {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 8px;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+    .d-hours .ok { color: #2E8B57; }
+    .d-hours .wait { color: #b78105; }
+    .d-hours .no { color: #dc3545; }
+    .d-filter {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    .d-filter select {
+      flex: 1;
+      min-height: 40px;
+      min-width: 140px;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      font-size: 14px;
+    }
+    html[data-theme="proposta"] .d-filter select {
+      border-color: #e7e5e4;
+      border-radius: 12px;
+      background: #FFFEFA;
+      font-family: inherit;
+    }
+    .d-zone {
+      padding: 10px 12px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      margin-top: 8px;
+      font-size: 13px;
+    }
+    html[data-theme="proposta"] .d-zone {
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 12px;
+    }
+    .map-pin.zone {
+      background: #2E8B57;
+      font-size: 12px;
+      width: 26px;
+      height: 26px;
+    }
+    .mod-row, .opt-block {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 12px;
+      background: #fff;
+      border-radius: 8px;
+      margin-bottom: 8px;
+      text-align: left;
+      width: 100%;
+      border: 0;
+      font: inherit;
+      color: inherit;
+    }
+    html[data-theme="proposta"] .mod-row,
+    html[data-theme="proposta"] .opt-block {
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 14px;
+    }
+    .mod-row strong, .opt-block strong { display: block; font-size: 14px; }
+    .mod-row small, .opt-block small { display: block; font-size: 12px; color: #666; margin-top: 2px; }
+    .tag {
+      flex-shrink: 0;
+      font-size: 11px;
+      font-weight: 700;
+      padding: 4px 8px;
+      border-radius: 999px;
+      white-space: nowrap;
+    }
+    .tag.on { background: #dcfce7; color: #166534; }
+    .tag.off { background: #f5f5f4; color: #57534e; }
+    .tag.soon { background: #fff3cd; color: #856404; }
+    .tag.trial { background: #e0f2fe; color: #0369a1; }
+    .plan-box {
+      padding: 16px;
+      background: #f0f8f4;
+      border: 2px solid #2E8B57;
+      border-radius: 12px;
+      margin-bottom: 14px;
+    }
+    html[data-theme="proposta"] .plan-box {
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+      border-radius: 16px;
+    }
+    .plan-box .price { font-size: 28px; font-weight: 700; }
+    .plan-box .price span { font-size: 14px; font-weight: 400; color: #666; }
+    html[data-theme="oggi"] button.card {
+      background: #f8f9fa;
+      border: 2px solid transparent;
+    }
+
+    html[data-theme="oggi"] .briefing,
+    html[data-theme="oggi"] .brand img,
+    html[data-theme="oggi"] .only-new-copy,
+    html[data-theme="oggi"] .strip { display: none; }
+    html[data-theme="proposta"] .dump { display: none; }
+
+    /* Tony FAB + pannello */
+    .fab {
+      position: fixed;
+      right: 16px;
+      bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      border: 0;
+      padding: 0;
+      cursor: pointer;
+      box-shadow: 0 4px 12px rgba(46,139,87,.4);
+      background: linear-gradient(135deg, #2E8B57, #228B22);
+      z-index: 20;
+    }
+    html[data-theme="proposta"] .fab {
+      box-shadow: 0 8px 20px rgba(28,25,23,.18);
+      background: #FFFEFA;
+      border: 2px solid #2E8B57;
+    }
+    .fab img { width: 54px; height: 54px; margin: 5px auto 0; }
+    html[data-theme="proposta"] .fab img { width: 58px; height: 58px; margin: 1px auto 0; }
+
+    .tony-panel {
+      display: none;
+      position: fixed;
+      left: 12px;
+      right: 12px;
+      bottom: calc(88px + env(safe-area-inset-bottom, 0px));
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0,0,0,.15);
+      overflow: hidden;
+      z-index: 21;
+      max-height: 52vh;
+      flex-direction: column;
+    }
+    .tony-panel.open { display: flex; }
+    .tony-hd {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 14px;
+      background: linear-gradient(135deg, #2E8B57, #228B22);
+      color: #fff;
+      font-weight: 600;
+    }
+    html[data-theme="proposta"] .tony-panel {
+      border-radius: 20px 20px 16px 16px;
+      background: #FFFEFA;
+      border: 1px solid #e7e5e4;
+    }
+    html[data-theme="proposta"] .tony-hd {
+      background: #FFFEFA;
+      color: #1c1917;
+      border-bottom: 1px solid #e7e5e4;
+    }
+    .tony-hd span { display: flex; align-items: center; gap: 8px; }
+    .tony-hd img { width: 36px; height: 36px; }
+    .tony-x {
+      width: 36px; height: 36px; border-radius: 50%;
+      border: 0; background: rgba(255,255,255,.2); color: inherit; font-size: 20px;
+    }
+    html[data-theme="proposta"] .tony-x { background: #F6F3EC; }
+    .tony-msgs { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+    .bubble { max-width: 88%; padding: 10px 14px; border-radius: 12px; font-size: 14px; line-height: 1.45; }
+    .bubble.tony { align-self: flex-start; background: #f0f4f2; border: 1px solid #e0e8e4; border-bottom-left-radius: 4px; color: #333; }
+    .bubble.user { align-self: flex-end; background: #2E8B57; color: #fff; border-bottom-right-radius: 4px; }
+    html[data-theme="proposta"] .bubble.tony {
+      background: #F6F3EC;
+      border: 0;
+      border-radius: 4px 18px 18px 18px;
+      color: #1c1917;
+    }
+    html[data-theme="proposta"] .bubble.user {
+      border-radius: 18px 18px 4px 18px;
+    }
+
+    /* PC: catalogo a sinistra, contenuto a destra. Niente swipe. */
+    @media (min-width: 1024px) {
+      body {
+        flex-direction: row;
+        align-items: stretch;
+      }
+      .lab-handle { display: none; }
+      .lab-backdrop,
+      html[data-lab="open"] .lab-backdrop { display: none !important; }
+      .lab {
+        position: relative;
+        top: auto;
+        left: auto;
+        right: auto;
+        z-index: 3;
+        width: 272px;
+        max-height: none;
+        height: 100dvh;
+        flex-shrink: 0;
+        transform: none !important;
+        pointer-events: auto !important;
+        border-radius: 0;
+        border-bottom: 0;
+        border-right: 1px solid #44403c;
+        padding: 16px 12px 28px;
+      }
+      html[data-lab="open"] body { overflow: hidden; }
+      html[data-lab="open"] .phone { overflow-x: hidden; overflow-y: auto; }
+      .lab-kicker--phone { display: none; }
+      .lab-kicker--desk { display: block; }
+      .lab-mods { grid-template-columns: 1fr; }
+      .lab-mod { min-height: 44px; }
+      .phone { flex: 1; min-width: 0; }
+      html[data-theme="proposta"] .wrap {
+        max-width: 1120px;
+        margin: 0 auto;
+        padding: 0 28px 48px;
+      }
+      html[data-theme="proposta"] .app-header {
+        margin: 0 -28px 20px;
+        padding: 16px 28px;
+      }
+      html[data-theme="proposta"] .cards {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+      }
+      html[data-theme="proposta"][data-screen="dashboard"] .cards {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      html[data-theme="proposta"] .stats {
+        grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+      }
+      html[data-theme="proposta"] .wide-wrap { display: block; }
+      html[data-theme="proposta"] .job-cards { display: none; }
+      html[data-theme="proposta"] .scroll-hint { display: none; }
+      html[data-theme="oggi"] .wrap {
+        max-width: 1120px;
+        margin: 0 auto;
+      }
+      html[data-theme="oggi"] .cards {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+      }
+      .fab { right: 24px; bottom: 24px; }
+      .tony-panel {
+        left: auto;
+        right: 24px;
+        width: 380px;
+        bottom: 100px;
+        max-height: 60vh;
+      }
+    }
+  </style>
+</head>
+<body>
+  <button type="button" class="lab-handle" id="lab-handle" aria-expanded="false" aria-controls="lab">
+    <span class="lab-grip" aria-hidden="true"></span>
+    <span class="lab-handle-label" id="lab-handle-label">Oggi · Home</span>
+    <span class="lab-handle-hint" id="lab-handle-hint">Scorri in basso · 20 moduli</span>
+  </button>
+  <div class="lab-backdrop" id="lab-backdrop" hidden></div>
+  <div class="lab" id="lab" aria-hidden="true">
+    <p class="lab-kicker lab-kicker--phone">Scegli un modulo · il menù si chiude da solo</p>
+    <p class="lab-kicker lab-kicker--desk">Click sul modulo · resta a sinistra, cambia a destra</p>
+    <div class="lab-row">
+      <div class="seg seg--theme" role="group" aria-label="Stile">
+        <button type="button" data-theme="oggi" aria-pressed="true">Oggi</button>
+        <button type="button" data-theme="proposta" aria-pressed="false">Proposta</button>
+      </div>
+    </div>
+    <h3>Moduli</h3>
+    <div class="lab-mods" role="group" aria-label="Moduli">
+      <button type="button" class="lab-mod" data-go="dashboard">Home<small>Tony e azioni rapide</small></button>
+      <button type="button" class="lab-mod" data-go="hub:terreni">Terreni<small>Anagrafica e mappa</small></button>
+      <button type="button" class="lab-mod" data-go="lista">Gestione lavori<small>Lista e dettaglio</small></button>
+      <button type="button" class="lab-mod" data-go="vigneto">Vigneto<small>Anagrafica e vendemmia</small></button>
+      <button type="button" class="lab-mod" data-go="hub:frutteto">Frutteto<small>Anagrafica e raccolta</small></button>
+      <button type="button" class="lab-mod" data-go="hub:manodopera">Manodopera<small>Squadre e ore</small></button>
+      <button type="button" class="lab-mod" data-go="hub:magazzino">Magazzino<small>Prodotti e movimenti</small></button>
+      <button type="button" class="lab-mod" data-go="hub:macchine">Parco macchine<small>Trattori e scadenze</small></button>
+      <button type="button" class="lab-mod" data-go="hub:ct">Conto terzi<small>Clienti e preventivi</small></button>
+      <button type="button" class="lab-mod" data-go="meteo">Meteo<small>Sede e campi</small></button>
+      <button type="button" class="lab-mod" data-go="hub:report">Report<small>Bilancio per area</small></button>
+      <button type="button" class="lab-mod" data-go="abbonamento">Abbonamento<small>Piano e moduli</small></button>
+      <button type="button" class="lab-mod" data-go="opzioni">Impostazioni<small>Azienda e liste</small></button>
+    </div>
+    <h3>Prove di pagina</h3>
+    <div class="lab-mods" role="group" aria-label="Prove">
+      <button type="button" class="lab-mod" data-go="carico">Reminder pieno<small>20 righe, come non fare</small></button>
+      <button type="button" class="lab-mod" data-go="mappa">Mappa<small>Campi e allarmi</small></button>
+      <button type="button" class="lab-mod" data-go="dettaglio">Dettaglio lavoro<small>Panoramica, mappa, ore</small></button>
+    </div>
+    <h3>Prossimamente</h3>
+    <div class="lab-mods" role="group" aria-label="Prossimamente">
+      <button type="button" class="lab-mod is-soon" disabled>Oliveto<small>Non attivo</small></button>
+      <button type="button" class="lab-mod is-soon" disabled>Seminativi<small>Non attivo</small></button>
+      <button type="button" class="lab-mod is-soon" disabled>Zootecnia<small>Non attivo</small></button>
+      <button type="button" class="lab-mod is-soon" disabled>Cantina<small>Non attivo</small></button>
+    </div>
+  </div>
+
+  <div class="phone" id="phone">
+    <!-- HOME ERP -->
+    <section class="screen" id="screen-dashboard">
+      <div class="wrap">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1><span class="emoji">🌾 </span>GFV Platform</h1>
+              <p>Marco · manager</p>
+            </div>
+          </div>
+          <div class="app-actions">
+            <button type="button" class="btn btn-ghost" data-go="opzioni"><span class="emoji">⚙️ </span>Impostazioni</button>
+          </div>
+        </header>
+
+        <div class="briefing">
+          <img class="tony-face" src="../images/tony-icon.png" alt="">
+          <p><strong>Buongiorno Marco.</strong> 2 ore da validare, concime sotto scorta. Vuoi che apra Validazione ore?</p>
+        </div>
+
+        <div class="panel">
+          <h2><span class="emoji">⏳ </span>Per te oggi</h2>
+          <div class="grid stats">
+            <div class="stat"><b>2</b><span>Ore da validare</span></div>
+            <div class="stat"><b>1</b><span>Sotto scorta</span></div>
+            <div class="stat"><b>3</b><span>Lavori aperti</span></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2><span class="emoji">📋 </span>Azioni rapide</h2>
+          <div class="grid cards">
+            <a class="card" href="#" data-go="hub:terreni">
+              <span class="ico">🗺️</span>
+              <span class="svg-ico ico-core" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg></span>
+              <strong>Terreni</strong>
+              <small>Anagrafica e mappa</small>
+            </a>
+            <a class="card" href="#" data-go="lista">
+              <span class="ico">📋</span>
+              <span class="svg-ico ico-core" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg></span>
+              <strong>Gestione lavori</strong>
+              <small>Lista e dettaglio</small>
+            </a>
+            <a class="card" href="#" data-go="vigneto">
+              <span class="ico">🍇</span>
+              <span class="svg-ico ico-vigneto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="8"/></svg></span>
+              <strong>Vigneto</strong>
+              <small>Anagrafica, vendemmia, trattamenti</small>
+            </a>
+            <a class="card" href="#" data-go="hub:frutteto">
+              <span class="ico">🍎</span>
+              <span class="svg-ico ico-frutto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="6"/><path d="M12 7c0-3 2-4 4-4"/></svg></span>
+              <strong>Frutteto</strong>
+              <small>Anagrafica, raccolta, trattamenti</small>
+            </a>
+            <a class="card" href="#" data-go="hub:manodopera">
+              <span class="ico">👷</span>
+              <span class="svg-ico ico-core" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c1-4 4-6 6-6s5 2 6 6"/></svg></span>
+              <strong>Manodopera</strong>
+              <small>Lavori, squadre, ore</small>
+            </a>
+            <a class="card" href="#" data-go="hub:magazzino">
+              <span class="ico">📦</span>
+              <span class="svg-ico ico-frutto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h18v12H3zM12 8v12"/></svg></span>
+              <strong>Magazzino</strong>
+              <small>Prodotti e movimenti</small>
+            </a>
+            <a class="card" href="#" data-go="hub:macchine">
+              <span class="ico">🚜</span>
+              <span class="svg-ico ico-blue" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="10" width="13" height="7" rx="1"/><circle cx="7" cy="18" r="2"/><circle cx="16" cy="18" r="2"/></svg></span>
+              <strong>Parco macchine</strong>
+              <small>Trattori, attrezzi, scadenze</small>
+            </a>
+            <a class="card" href="#" data-go="hub:ct">
+              <span class="ico">🤝</span>
+              <span class="svg-ico ico-frutto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 12h8M8 12l-3 4M16 12l3 4"/></svg></span>
+              <strong>Conto terzi</strong>
+              <small>Clienti, preventivi, tariffe</small>
+            </a>
+            <a class="card" href="#" data-go="meteo">
+              <span class="ico">🌦️</span>
+              <span class="svg-ico ico-meteo" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="9" r="3"/><path d="M12 9h6a3 3 0 010 6H7"/></svg></span>
+              <strong>Meteo</strong>
+              <small>Sede e campi</small>
+            </a>
+            <a class="card" href="#" data-go="hub:report">
+              <span class="ico">📑</span>
+              <span class="svg-ico ico-core" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 4h9l3 3v13H6z"/></svg></span>
+              <strong>Report</strong>
+              <small>Bilancio per area</small>
+            </a>
+            <a class="card" href="#" data-go="abbonamento">
+              <span class="ico">💳</span>
+              <span class="svg-ico ico-core" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M2 10h20"/></svg></span>
+              <strong>Abbonamento</strong>
+              <small>Piano Base e moduli</small>
+            </a>
+            <a class="card" href="#" data-go="opzioni">
+              <span class="ico">⚙️</span>
+              <span class="svg-ico ico-core" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg></span>
+              <strong>Impostazioni</strong>
+              <small>Azienda, account, liste</small>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HOME MODULO VIGNETO -->
+    <section class="screen" id="screen-vigneto">
+      <div class="wrap">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1><span class="emoji">🍇 </span>Dashboard Vigneto</h1>
+              <p class="only-old-copy">Gestisci i tuoi vigneti</p>
+              <p class="only-new-copy">12 vigneti · 8,4 ha</p>
+            </div>
+          </div>
+        </header>
+
+        <div class="panel">
+          <div class="grid stats">
+            <div class="stat"><b>12</b><span>Vigneti</span></div>
+            <div class="stat"><b>8,4</b><span>Ettari</span></div>
+            <div class="stat"><b>2</b><span>Trattamenti</span></div>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h2>Azioni rapide</h2>
+          <div class="grid cards">
+            <a class="card" href="#" data-go="sub:vigneti">
+              <span class="ico">🍇</span>
+              <span class="svg-ico ico-vigneto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="10" r="2"/><circle cx="13" cy="8" r="2"/><circle cx="15" cy="12" r="2"/><circle cx="11" cy="14" r="2"/><path d="M12 4v2"/></svg></span>
+              <strong>Anagrafica vigneti</strong>
+              <small>Dati tecnici e filari</small>
+            </a>
+            <a class="card" href="#" data-go="sub:vendemmia">
+              <span class="ico">🍷</span>
+              <span class="svg-ico ico-vigneto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 4h8l1 7a5 5 0 11-10 0zM12 16v4M9 20h6"/></svg></span>
+              <strong>Vendemmia</strong>
+              <small>Registra la produzione</small>
+            </a>
+            <a class="card" href="#" data-go="sub:v-potatura">
+              <span class="ico">✂️</span>
+              <span class="svg-ico ico-vigneto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="7" r="3"/><circle cx="6" cy="17" r="3"/><path d="M8.5 8.5L20 20M8.5 15.5L20 4"/></svg></span>
+              <strong>Potatura</strong>
+              <small>Invernale, verde, rinnovo</small>
+            </a>
+            <a class="card" href="#" data-go="sub:v-trattamenti">
+              <span class="ico">🧪</span>
+              <span class="svg-ico ico-vigneto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 3h4v7l5 8H5l5-8z"/></svg></span>
+              <strong>Trattamenti</strong>
+              <small>Fitosanitari di campo</small>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- HUB GENERICO (Frutteto e altri moduli) -->
+    <section class="screen" id="screen-hub">
+      <div class="wrap">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1 id="hub-title">Modulo</h1>
+              <p id="hub-sub">Sottotitolo</p>
+            </div>
+          </div>
+          <div class="app-actions">
+            <button type="button" class="btn btn-ghost" data-go="dashboard">← Home</button>
+          </div>
+        </header>
+        <div class="panel">
+          <div class="grid stats" id="hub-kpis"></div>
+        </div>
+        <div class="panel">
+          <h2>Azioni rapide</h2>
+          <div class="grid cards" id="hub-cards"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- SOTTO-MENU LISTA -->
+    <section class="screen" id="screen-sub">
+      <div class="wrap">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1 id="sub-title">Lista</h1>
+              <p id="sub-sub"></p>
+            </div>
+          </div>
+          <div class="app-actions">
+            <button type="button" class="btn btn-ghost" id="sub-back">← Hub</button>
+          </div>
+        </header>
+        <div class="panel">
+          <div class="wide-wrap" id="sub-table-wrap"></div>
+          <div class="job-cards" id="sub-cards"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABBONAMENTO -->
+    <section class="screen" id="screen-abbonamento">
+      <div class="wrap">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1><span class="emoji">💳 </span>Abbonamento</h1>
+              <p class="only-old-copy">Gestisci il tuo piano e i moduli attivi</p>
+              <p class="only-new-copy">Piano Base · 6 moduli attivi</p>
+            </div>
+          </div>
+          <div class="app-actions">
+            <button type="button" class="btn btn-ghost" data-go="dashboard">← Home</button>
+          </div>
+        </header>
+        <div class="panel">
+          <div class="plan-box">
+            <div class="muted" style="font-size:12px;text-transform:uppercase;letter-spacing:.04em;">Piano attuale</div>
+            <div class="price">Base <span>€5/mese · addebito annuale</span></div>
+            <p class="muted" style="margin:8px 0 0;font-size:13px;">Terreni, diario, gestione lavori. I moduli sotto si aggiungono a pezzo.</p>
+          </div>
+          <h2>Moduli attivi</h2>
+          <div class="mod-row"><div><strong>🍇 Vigneto</strong><small>Gestione vigneti e vendemmia</small></div><span class="tag on">Attivo · €3</span></div>
+          <div class="mod-row"><div><strong>🍎 Frutteto</strong><small>Gestione frutteti e raccolta</small></div><span class="tag on">Attivo · €3</span></div>
+          <div class="mod-row"><div><strong>👷 Manodopera</strong><small>Squadre, ore, validazione</small></div><span class="tag on">Attivo · €6</span></div>
+          <div class="mod-row"><div><strong>📦 Magazzino</strong><small>Prodotti e movimenti</small></div><span class="tag on">Attivo · €3</span></div>
+          <div class="mod-row"><div><strong>🌦️ Meteo</strong><small>Previsioni sede e campi</small></div><span class="tag on">Attivo · €1</span></div>
+          <div class="mod-row"><div><strong>🤖 Tony Avanzato</strong><small>Azioni operative in chat</small></div><span class="tag on">Attivo · €5</span></div>
+          <h2 style="margin-top:18px;">Disponibili</h2>
+          <div class="mod-row"><div><strong>🚜 Parco macchine</strong><small>Trattori, attrezzi, scadenze</small></div><span class="tag trial">Prova 30 gg · €3</span></div>
+          <div class="mod-row"><div><strong>🤝 Conto terzi</strong><small>Clienti, preventivi, tariffe</small></div><span class="tag off">Attiva · €6</span></div>
+          <div class="mod-row"><div><strong>📑 Report</strong><small>Bilancio per area</small></div><span class="tag off">Attiva · €5</span></div>
+          <div class="mod-row"><div><strong>🫒 Oliveto</strong><small>Gestione oliveti e raccolta</small></div><span class="tag soon">Prossimamente</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- OPZIONI / IMPOSTAZIONI -->
+    <section class="screen" id="screen-opzioni">
+      <div class="wrap">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1><span class="emoji">⚙️ </span>Impostazioni</h1>
+              <p class="only-old-copy">Configura azienda e account</p>
+              <p class="only-new-copy">Sabbie Gialle · Marco</p>
+            </div>
+          </div>
+          <div class="app-actions">
+            <button type="button" class="btn btn-ghost" data-go="dashboard">← Home</button>
+          </div>
+        </header>
+        <div class="panel">
+          <h2>Azienda</h2>
+          <div class="opt-block"><div><strong>Nome</strong><small>Sabbie Gialle</small></div></div>
+          <div class="opt-block"><div><strong>Partita IVA</strong><small>IT01234567890</small></div></div>
+          <div class="opt-block"><div><strong>Sede</strong><small>Via dei Filari 12, Castelnuovo</small></div></div>
+          <h2 style="margin-top:16px;">Account</h2>
+          <div class="opt-block"><div><strong>Marco Rossi</strong><small>marco@sabbiegialle.it · manager</small></div></div>
+          <div class="opt-block"><div><strong>Notifiche push</strong><small>Ciclo lavoro e assenze</small></div><span class="tag on">On</span></div>
+          <div class="opt-block"><div><strong>Cambio password</strong><small>Ultimo cambio 3 mesi fa</small></div></div>
+          <h2 style="margin-top:16px;">Liste e tariffe</h2>
+          <div class="opt-block"><div><strong>Poderi</strong><small>2 poderì · sede + Olmo</small></div></div>
+          <div class="opt-block"><div><strong>Tipi lavoro</strong><small>78 tipi · categorie e sottocategorie</small></div></div>
+          <div class="opt-block"><div><strong>Colture</strong><small>Vite, nettarina, mela, albicocca</small></div></div>
+          <div class="opt-block"><div><strong>Tariffe operai</strong><small>Da €11,50/h</small></div></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LISTA -->
+    <section class="screen" id="screen-lista">
+      <div class="wrap">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1><span class="emoji">📋 </span>Gestione lavori</h1>
+              <p>3 aperti · 1 da validare</p>
+            </div>
+          </div>
+          <div class="app-actions">
+            <span class="btn btn-ghost"><span class="emoji">➕ </span>Nuovo</span>
+          </div>
+        </header>
+
+        <div class="panel">
+          <h2 class="only-old-copy">Elenco lavori</h2>
+          <p class="only-old-copy muted scroll-hint">9 colonne come in app · scorri in orizzontale →</p>
+
+          <div class="wide-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Nome</th>
+                  <th>Terreno</th>
+                  <th>Caposquadra</th>
+                  <th>Data inizio</th>
+                  <th>Durata</th>
+                  <th>Progressi</th>
+                  <th>Stato progresso</th>
+                  <th>Stato</th>
+                  <th>Azioni</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Potatura Sangiovese</strong><div class="muted">🚜 T5 + rotante 200</div></td>
+                  <td>Pannelli</td>
+                  <td>👥 Gaia Bianchi</td>
+                  <td>lunedì 16 marzo 2026</td>
+                  <td>3 giorni</td>
+                  <td><div class="bar"><span style="width:62%">62%</span></div><div class="muted">1,24 / 2,00 ha</div></td>
+                  <td><span class="pill ok">In tempo</span><div class="muted">2/3 giorni (1 rim.)</div></td>
+                  <td><span class="dot yellow"></span>In corso</td>
+                  <td>
+                    <button type="button" class="icon-act" data-open-dettaglio="potatura" title="Dettagli">👁️</button>
+                    <span aria-hidden="true">✏️ ⏸️ 🗑️</span>
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>Trinciatura</strong> <span class="pill">💼 CT</span></td>
+                  <td>Larghetta</td>
+                  <td>👤 Luca Fabbri</td>
+                  <td>venerdì 13 marzo 2026</td>
+                  <td>2 giorni</td>
+                  <td><div class="bar bad"><span style="width:20%">20%</span></div><div class="muted">0,30 / 1,50 ha</div></td>
+                  <td><span class="pill">In ritardo</span><div class="muted">3/2 giorni</div></td>
+                  <td><span class="dot red"></span>Da approvare</td>
+                  <td>
+                    <span aria-hidden="true">✅ ❌</span>
+                    <button type="button" class="icon-act" data-open-dettaglio="trinciatura" title="Dettagli">👁️</button>
+                  </td>
+                </tr>
+                <tr>
+                  <td><strong>Erpicatura</strong></td>
+                  <td>Olmo</td>
+                  <td>👥 Gaia Bianchi</td>
+                  <td>lunedì 9 marzo 2026</td>
+                  <td>1 giorno</td>
+                  <td><div class="bar"><span style="width:100%">100%</span></div><div class="muted">3,10 / 3,10 ha</div></td>
+                  <td><span class="pill ok">In tempo</span></td>
+                  <td><span class="dot green"></span>Completato</td>
+                  <td>
+                    <button type="button" class="icon-act" data-open-dettaglio="erpicatura" title="Dettagli">👁️</button>
+                    <span aria-hidden="true">🗑️</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="job-cards">
+            <article class="job-card">
+              <div class="job-top">
+                <h3>Potatura Sangiovese</h3>
+                <div class="job-pills"><span class="dot yellow"></span><span class="pill">In corso</span></div>
+              </div>
+              <p class="job-line">Pannelli · Gaia Bianchi</p>
+              <div class="job-prog"><div class="bar"><span style="width:62%"></span></div><span class="job-ha">1,24 / 2,00 ha</span></div>
+              <p class="job-meta">16 mar · 3 giorni · in tempo 2/3 (1 rim.)<br>T5 + rotante 200</p>
+              <div class="job-actions">
+                <button type="button" class="btn-main" data-open-dettaglio="potatura">Dettagli</button>
+                <button type="button" class="btn-more" data-job-more>Altro</button>
+              </div>
+              <div class="job-extra">
+                <button type="button" data-fake>Modifica</button>
+                <button type="button" data-fake>Standby assenza</button>
+                <button type="button" data-fake>Elimina</button>
+              </div>
+            </article>
+
+            <article class="job-card is-alert">
+              <div class="job-top">
+                <h3>Trinciatura</h3>
+                <div class="job-pills"><span class="dot red"></span><span class="pill">Da approvare</span></div>
+              </div>
+              <p class="job-line">Larghetta · Luca Fabbri · conto terzi</p>
+              <div class="job-prog"><div class="bar bad"><span style="width:20%"></span></div><span class="job-ha">0,30 / 1,50 ha</span></div>
+              <p class="job-meta">13 mar · 2 giorni · in ritardo 3/2</p>
+              <div class="job-actions">
+                <button type="button" class="btn-main" data-fake>Approva</button>
+                <button type="button" class="btn-more" data-job-more>Altro</button>
+              </div>
+              <div class="job-extra">
+                <button type="button" data-fake>Rifiuta</button>
+                <button type="button" data-open-dettaglio="trinciatura">Dettagli</button>
+              </div>
+            </article>
+
+            <article class="job-card">
+              <div class="job-top">
+                <h3>Erpicatura</h3>
+                <div class="job-pills"><span class="dot green"></span><span class="pill ok">Completato</span></div>
+              </div>
+              <p class="job-line">Olmo · Gaia Bianchi</p>
+              <div class="job-prog"><div class="bar"><span style="width:100%"></span></div><span class="job-ha">3,10 / 3,10 ha</span></div>
+              <p class="job-meta">9 mar · 1 giorno · in tempo</p>
+              <div class="job-actions">
+                <button type="button" class="btn-main" data-open-dettaglio="erpicatura">Dettagli</button>
+                <button type="button" class="btn-more" data-job-more>Altro</button>
+              </div>
+              <div class="job-extra">
+                <button type="button" data-fake>Elimina</button>
+              </div>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- DETTAGLIO LAVORO -->
+    <section class="screen" id="screen-dettaglio">
+      <div class="wrap" id="dettaglio-wrap">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1><span class="emoji">📋 </span><span id="d-title">Potatura Sangiovese</span></h1>
+              <p id="d-sub">Pannelli · Gaia Bianchi</p>
+            </div>
+          </div>
+          <div class="app-actions">
+            <button type="button" class="btn btn-ghost" id="d-back">← Lista</button>
+          </div>
+        </header>
+
+        <p class="d-new d-ore-line" id="d-strip">2 ore di Luca da validare su questo lavoro.</p>
+
+        <div class="d-tabs" role="tablist" aria-label="Sezioni dettaglio">
+          <button type="button" data-dtab="overview" aria-pressed="true"><span class="emoji">📊 </span>Panoramica</button>
+          <button type="button" data-dtab="map" aria-pressed="false"><span class="emoji">🗺️ </span>Mappa</button>
+          <button type="button" data-dtab="ore" aria-pressed="false"><span class="emoji">⏰ </span>Ore</button>
+        </div>
+
+        <div id="dtab-overview" class="dtab">
+          <div class="d-old panel">
+            <div class="grid stats">
+            <div class="stat"><b id="d-ha-old">1,24 / 2,00</b><span>Superficie lavorata (ha)</span></div>
+            <div class="stat"><b id="d-pct-old">62%</b><span>Percentuale completamento</span></div>
+            <div class="stat"><b id="d-v-old">14h</b><span>Ore validate</span></div>
+            <div class="stat"><b id="d-d-old">2h</b><span>Ore da validare</span></div>
+            </div>
+          </div>
+
+          <div class="d-old panel">
+            <h2>Progressi</h2>
+            <div class="bar" id="d-bar-old" style="height:28px;"><span id="d-bar-old-fill" style="width:62%;line-height:28px;font-size:13px;">62%</span></div>
+            <p class="muted" id="d-progress-old" style="margin:8px 0 0;">In tempo · 2/3 giorni (1 rim.)</p>
+          </div>
+
+          <div class="d-old panel">
+            <div class="d-fields">
+              <div><strong>Terreno:</strong> <span id="d-terreno-old">Pannelli</span></div>
+              <div><strong>Caposquadra:</strong> <span id="d-capo-old">Gaia Bianchi</span></div>
+              <div><strong>Data inizio:</strong> <span id="d-date-old">lunedì 16 marzo 2026</span></div>
+              <div><strong>Durata:</strong> <span id="d-durata-old">3 giorni</span></div>
+              <div><strong>Stato:</strong> <span class="dot yellow" id="d-dot-old"></span><span id="d-stato-old">In corso</span></div>
+              <div><strong>Macchine:</strong> <span id="d-mac-old">T5 + rotante 200</span></div>
+            </div>
+            <p id="d-note-old" style="margin:14px 0 0;"><strong>Note:</strong> Filari 1–12. Lasciare 2 gemme.</p>
+          </div>
+
+          <div class="d-new d-summary">
+            <div class="job-prog"><div class="bar" id="d-bar-new"><span id="d-bar-new-fill" style="width:62%"></span></div><span class="job-ha" id="d-ha-new">1,24 / 2,00 ha</span></div>
+            <p class="job-meta" id="d-progress-new">62% · in tempo 2/3 (1 rim.) · 14h validate · 2h da validare</p>
+          </div>
+          <dl class="d-new d-dl">
+            <div><dt>Terreno</dt><dd id="d-terreno-new">Pannelli</dd></div>
+            <div><dt>Caposquadra</dt><dd id="d-capo-new">Gaia Bianchi</dd></div>
+            <div><dt>Inizio</dt><dd id="d-date-new">16 marzo 2026</dd></div>
+            <div><dt>Durata</dt><dd id="d-durata-new">3 giorni</dd></div>
+            <div><dt>Stato</dt><dd id="d-stato-new">In corso</dd></div>
+            <div><dt>Macchine</dt><dd id="d-mac-new">T5 + rotante 200</dd></div>
+          </dl>
+          <p class="d-new" id="d-note-new" style="margin:0 0 14px;font-size:13px;color:#44403c;">Filari 1–12. Lasciare 2 gemme.</p>
+
+          <div class="panel">
+            <h2>Ore per operaio</h2>
+            <div id="d-people"></div>
+          </div>
+        </div>
+
+        <div id="dtab-map" class="dtab">
+          <div class="d-filter d-old">
+            <span>🗓️ Filtro per giorno</span>
+            <select id="d-day-filter" aria-label="Filtro per giorno"></select>
+          </div>
+          <div class="d-new d-filter">
+            <select id="d-day-filter-new" aria-label="Giorno in mappa"></select>
+          </div>
+          <div class="fake-map" id="d-map" aria-hidden="true">
+            <svg viewBox="0 0 320 220" preserveAspectRatio="xMidYMid slice">
+              <rect width="320" height="220" fill="#8aa36a"/>
+              <path d="M24 32 L168 22 L184 150 L32 162 Z" fill="#5d7f42" stroke="#3f5c2c" stroke-width="2"/>
+              <path id="d-zone-poly" d="M40 48 L110 42 L118 100 L46 108 Z" fill="#c4e08a" stroke="#2E8B57" stroke-width="2" opacity="0.85"/>
+            </svg>
+            <span class="map-pin zone" id="d-pin-a" style="left:22%;top:32%;">1</span>
+            <span class="map-pin zone" id="d-pin-b" style="left:48%;top:52%;">2</span>
+          </div>
+          <div class="panel" style="margin-top:12px;">
+            <h2>Zone lavorate</h2>
+            <div id="d-zones"></div>
+          </div>
+        </div>
+
+        <div id="dtab-ore" class="dtab">
+          <div class="d-old panel">
+            <div class="grid stats">
+            <div class="stat"><b id="d-ov-old">14h</b><span>Ore validate</span></div>
+            <div class="stat"><b id="d-od-old">2h</b><span>Ore da validare</span></div>
+            <div class="stat"><b id="d-or-old">0h</b><span>Ore rifiutate</span></div>
+            </div>
+          </div>
+          <p class="d-new d-ore-line" id="d-ore-line">16h in totale · 14 validate · 2 da validare · 0 rifiutate</p>
+          <div class="panel">
+            <h2>Ore per operaio</h2>
+            <div id="d-people-ore"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TONY PIENO (20 reminder) -->
+    <section class="screen" id="screen-carico">
+      <div class="wrap">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1><span class="emoji">🌾 </span>GFV Platform</h1>
+              <p>Sabbie Gialle · manager</p>
+            </div>
+          </div>
+        </header>
+
+        <div class="dump">
+          <p>Ho controllato la situazione: ci sono alcune cose che richiedono attenzione — 4 lavori con ore da validare, 3 lavori da approvare, 2 lavori sospesi da riprendere, 8 prodotti sotto scorta: Concime fogliare, Rame, Zolfo, Zolfo bagnabile, Bacillus, Caolino, Olio bianco, Magnesio (+ altri 4), 5 prezzi in attesa, 2 guasti aperti sul T5 e sulla rotante, 3 scadenze mezzi entro 7 giorni, 2 affitti in scadenza questo mese, 1 preventivo aperto da 12 giorni, vendemmia Sangiovese incompleta, raccolta nettarine incompleta, e domani 12 mm in sede. Vuoi che ti faccia un riassunto o preferisci procedere tu?</p>
+        </div>
+
+        <button type="button" class="strip" id="strip-carico" aria-expanded="false">
+          <img class="tony-face" src="../images/tony-icon.png" alt="">
+          <div class="strip-body">
+            <p><strong>20 cose da vedere.</strong> La più urgente: 4 ore da validare.</p>
+            <ul class="strip-more">
+              <li>4 lavori con ore da validare</li>
+              <li>8 prodotti sotto scorta</li>
+              <li>5 bolle senza prezzo</li>
+              <li>3 scadenze mezzi</li>
+              <li>2 affitti in scadenza</li>
+            </ul>
+            <span class="strip-chat" id="strip-open-tony">+15 in chat con Tony</span>
+          </div>
+        </button>
+
+        <div class="panel">
+          <h2><span class="emoji">📋 </span>Azioni rapide</h2>
+          <div class="grid cards">
+            <a class="card" href="#" data-fake>
+              <span class="ico">👷</span>
+              <span class="svg-ico ico-core" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="8" r="3"/><path d="M3 20c1-4 4-6 6-6s5 2 6 6"/></svg></span>
+              <strong>Manodopera</strong>
+              <small>Lavori, squadre, ore</small>
+            </a>
+            <a class="card" href="#" data-fake>
+              <span class="ico">📦</span>
+              <span class="svg-ico ico-frutto" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8h18v12H3zM12 8v12"/></svg></span>
+              <strong>Magazzino</strong>
+              <small>Prodotti e movimenti</small>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- METEO (tela) -->
+    <section class="screen" id="screen-meteo">
+      <div class="wrap wrap-canvas">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1><span class="emoji">🌦️ </span>Meteo</h1>
+              <p class="only-old-copy">Scegli un campo sulla mappa satellitare</p>
+              <p class="only-new-copy">Sede · tap un campo per il dettaglio</p>
+            </div>
+          </div>
+        </header>
+
+        <div class="dump">
+          <p>Meteo sede: oggi 18°, coperto. Domani 12 mm di pioggia (pop 85%). Consigli: sospendere i trattamenti su Sangiovese Pannelli, Larghetta, Olmo, Olmo basso, Filari nord, Vigna nuova…</p>
+        </div>
+
+        <button type="button" class="strip" id="strip-meteo" aria-expanded="false">
+          <img class="tony-face" src="../images/tony-icon.png" alt="">
+          <div class="strip-body">
+            <p><strong>Domani 12 mm in sede.</strong> Meglio non trattare.</p>
+          </div>
+        </button>
+
+        <div class="fake-map" aria-hidden="true">
+          <svg viewBox="0 0 320 220" preserveAspectRatio="xMidYMid slice">
+            <rect width="320" height="220" fill="#9caf7a"/>
+            <path d="M20 40 L140 30 L155 120 L35 140 Z" fill="#6b8f4e" stroke="#4a6b32" stroke-width="2"/>
+            <path d="M160 50 L290 40 L300 130 L170 145 Z" fill="#7a9a55" stroke="#4a6b32" stroke-width="2"/>
+            <path d="M40 155 L150 150 L145 205 L30 200 Z" fill="#5e8344" stroke="#4a6b32" stroke-width="2"/>
+            <circle cx="90" cy="80" r="5" fill="#0288D1"/>
+            <circle cx="220" cy="90" r="5" fill="#0288D1"/>
+          </svg>
+        </div>
+        <div class="meteo-detail">
+          <h3>Sangiovese · Pannelli</h3>
+          <p>Oggi 18° · coperto. Domani 12 mm, pop 85%.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- MAPPA (tela) -->
+    <section class="screen" id="screen-mappa">
+      <div class="wrap wrap-canvas">
+        <header class="app-header">
+          <div class="brand">
+            <img src="../images/icon-192x192.png" alt="">
+            <div>
+              <h1><span class="emoji">🗺️ </span>Mappa aziendale</h1>
+              <p class="only-old-copy">Terreni e lavori sul satellite</p>
+              <p class="only-new-copy">3 allarmi in campo</p>
+            </div>
+          </div>
+        </header>
+
+        <button type="button" class="strip" id="strip-mappa" aria-expanded="false">
+          <img class="tony-face" src="../images/tony-icon.png" alt="">
+          <div class="strip-body">
+            <p><strong>3 allarmi in campo.</strong> Il più grave: squadra scoperta su Larghetta.</p>
+          </div>
+        </button>
+
+        <div class="fake-map" aria-hidden="true">
+          <svg viewBox="0 0 320 260" preserveAspectRatio="xMidYMid slice">
+            <rect width="320" height="260" fill="#8aa36a"/>
+            <path d="M18 36 L150 24 L168 128 L28 148 Z" fill="#5d7f42" stroke="#3f5c2c" stroke-width="2"/>
+            <path d="M175 40 L302 32 L308 150 L182 158 Z" fill="#6e9150" stroke="#3f5c2c" stroke-width="2"/>
+            <path d="M30 168 L160 160 L152 240 L24 232 Z" fill="#4e7036" stroke="#3f5c2c" stroke-width="2"/>
+          </svg>
+          <span class="map-pin" style="left:22%;top:28%;">!</span>
+          <span class="map-pin" style="left:62%;top:36%;">!</span>
+          <span class="map-pin" style="left:28%;top:68%;">!</span>
+        </div>
+      </div>
+    </section>
+
+    <button type="button" class="fab" id="tony-fab" aria-label="Apri Tony">
+      <img class="tony-face" src="../images/tony-icon.png" alt="">
+    </button>
+
+    <div class="tony-panel" id="tony-panel" role="dialog" aria-label="Tony">
+      <div class="tony-hd">
+        <span>
+          <img class="tony-face" src="../images/tony-icon.png" alt="">
+          Tony
+        </span>
+        <button type="button" class="tony-x" id="tony-close" aria-label="Chiudi">×</button>
+      </div>
+      <div class="tony-msgs">
+        <div class="bubble tony">Buongiorno Marco. 2 ore da validare e il concime fogliare è sotto scorta. Vuoi che apra Validazione ore?</div>
+        <div class="bubble user">Sì, apri</div>
+        <div class="bubble tony">Ok, ti porto alla validazione. Il resto dell’app resta un attrezzo: io resto il viso.</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var html = document.documentElement;
+      var params = new URLSearchParams(location.search);
+      var theme = params.get("theme") || localStorage.getItem("gfvUiPreviewTheme") || "oggi";
+      var screen = params.get("screen") || localStorage.getItem("gfvUiPreviewScreen") || "dashboard";
+      var screens = { dashboard: 1, vigneto: 1, lista: 1, carico: 1, meteo: 1, mappa: 1, dettaglio: 1, hub: 1, sub: 1, abbonamento: 1, opzioni: 1 };
+      var JOBS = {
+        potatura: {
+          title: "Potatura Sangiovese",
+          sub: "Pannelli · Gaia Bianchi",
+          terreno: "Pannelli",
+          capo: "Gaia Bianchi",
+          date: "lunedì 16 marzo 2026",
+          dateShort: "16 marzo 2026",
+          durata: "3 giorni",
+          stato: "In corso",
+          statoDot: "yellow",
+          ha: "1,24 / 2,00 ha",
+          haNum: "1,24 / 2,00",
+          pct: 62,
+          barClass: "",
+          progress: "In tempo · 2/3 giorni (1 rim.)",
+          macchine: "T5 + rotante 200",
+          note: "Filari 1–12. Lasciare 2 gemme.",
+          oreV: 14, oreD: 2, oreR: 0,
+          strip: "2 ore di Luca da validare su questo lavoro.",
+          people: [
+            { name: "Gaia Bianchi", v: 8, d: 0, r: 0 },
+            { name: "Luca Fabbri", v: 6, d: 2, r: 0 }
+          ],
+          zones: [
+            { day: "16 mar", ha: "0,62 ha", label: "Filari 1–6" },
+            { day: "17 mar", ha: "0,62 ha", label: "Filari 7–12" }
+          ]
+        },
+        trinciatura: {
+          title: "Trinciatura",
+          sub: "Larghetta · Luca Fabbri · CT",
+          terreno: "Larghetta",
+          capo: "Luca Fabbri",
+          date: "venerdì 13 marzo 2026",
+          dateShort: "13 marzo 2026",
+          durata: "2 giorni",
+          stato: "Da approvare",
+          statoDot: "red",
+          ha: "0,30 / 1,50 ha",
+          haNum: "0,30 / 1,50",
+          pct: 20,
+          barClass: "bad",
+          progress: "In ritardo · 3/2 giorni",
+          macchine: "—",
+          note: "Conto terzi. In attesa di approvazione manager.",
+          oreV: 4, oreD: 3, oreR: 0,
+          strip: "Questo lavoro è da approvare. 3 ore ancora da validare.",
+          people: [
+            { name: "Luca Fabbri", v: 4, d: 3, r: 0 }
+          ],
+          zones: [
+            { day: "13 mar", ha: "0,30 ha", label: "Bordo strada" }
+          ]
+        },
+        erpicatura: {
+          title: "Erpicatura",
+          sub: "Olmo · Gaia Bianchi",
+          terreno: "Olmo",
+          capo: "Gaia Bianchi",
+          date: "lunedì 9 marzo 2026",
+          dateShort: "9 marzo 2026",
+          durata: "1 giorno",
+          stato: "Completato",
+          statoDot: "green",
+          ha: "3,10 / 3,10 ha",
+          haNum: "3,10 / 3,10",
+          pct: 100,
+          barClass: "",
+          progress: "In tempo",
+          macchine: "T5 + erpice",
+          note: "",
+          oreV: 8, oreD: 0, oreR: 0,
+          strip: "Lavoro chiuso. Niente in sospeso.",
+          people: [
+            { name: "Gaia Bianchi", v: 5, d: 0, r: 0 },
+            { name: "Marco Rossi", v: 3, d: 0, r: 0 }
+          ],
+          zones: [
+            { day: "9 mar", ha: "3,10 ha", label: "Campo intero" }
+          ]
+        }
+      };
+      var job = params.get("job") || "potatura";
+      var dtab = params.get("tab") || "overview";
+      var dayFilter = "tutte";
+      var hubId = params.get("hub") || "frutteto";
+      var subId = params.get("sub") || "frutteti";
+      var HUBS = {
+        frutteto: {
+          accent: "frutteto",
+          title: "🍎 Dashboard Frutteto",
+          oldCopy: "Panoramica completa gestione frutteti e raccolta",
+          newCopy: "6 frutteti · 4,2 ha",
+          kpis: [
+            { v: "18,4 t", l: "Produzione anno" },
+            { v: "4,4 t/ha", l: "Resa media" },
+            { v: "€ 2,1k", l: "Spese totali" },
+            { v: "6", l: "Frutteti" },
+            { v: "9", l: "Raccolte anno" }
+          ],
+          cards: [
+            { go: "sub:frutteti", ico: "🍎", skin: "ico-frutto", title: "Anagrafica Frutteti", desc: "Gestisci anagrafica frutteti e dati tecnici" },
+            { go: "sub:raccolta", ico: "📦", skin: "ico-frutto", title: "Gestione Raccolta Frutta", desc: "Registra raccolte e traccia produzione" },
+            { go: "sub:f-potatura", ico: "✂️", skin: "ico-frutto", title: "Potatura", desc: "Invernale, verde, formazione, rinnovo" },
+            { go: "sub:f-trattamenti", ico: "🧪", skin: "ico-frutto", title: "Trattamenti", desc: "Fitosanitari di campo" },
+            { go: "sub:f-concimazioni", ico: "🌱", skin: "ico-frutto", title: "Concimazioni", desc: "Concimazioni di campo" },
+            { go: "sub:f-pianifica", ico: "📐", skin: "ico-frutto", title: "Pianifica Nuovo Impianto", desc: "File, piante e materiali" },
+            { go: "sub:f-materiali", ico: "🔢", skin: "ico-frutto", title: "Calcolo Materiali", desc: "Dalle pianificazioni salvate" },
+            { go: "sub:f-stats", ico: "📊", skin: "ico-frutto", title: "Statistiche e Grafici", desc: "Analisi e grafici" }
+          ]
+        },
+        manodopera: {
+          accent: "manodopera",
+          title: "👷 Manodopera",
+          oldCopy: "Lavori, squadre, ore",
+          newCopy: "3 lavori aperti · 2 ore da validare",
+          kpis: [{ v: "3", l: "Lavori aperti" }, { v: "2", l: "Ore da validare" }, { v: "8", l: "Operai" }],
+          cards: [
+            { go: "lista", ico: "📋", title: "Gestione lavori", desc: "Lista manager, mappa, dettaglio" },
+            { go: "sub:impegni", ico: "📅", title: "Impegni giornalieri", desc: "Chi è dove oggi" },
+            { go: "sub:validazione", ico: "⏰", title: "Validazione ore", desc: "Approva le ore di campo" },
+            { go: "sub:operai", ico: "👷", title: "Gestione operai", desc: "Contratti e competenze" },
+            { go: "sub:squadre", ico: "👥", title: "Gestione squadre", desc: "Capi e membri" },
+            { go: "sub:compensi", ico: "💰", title: "Compensi operai", desc: "Calcolo e storico" }
+          ]
+        },
+        magazzino: {
+          accent: "magazzino",
+          title: "📦 Magazzino",
+          oldCopy: "Prodotti, giacenze, movimenti",
+          newCopy: "1 sotto scorta · 5 prezzi in attesa",
+          kpis: [{ v: "42", l: "Prodotti" }, { v: "1", l: "Sotto scorta" }, { v: "5", l: "Prezzi in attesa" }],
+          cards: [
+            { go: "sub:prodotti", ico: "📦", skin: "ico-frutto", title: "Anagrafica Prodotti", desc: "Catalogo e giacenze" },
+            { go: "sub:movimenti", ico: "↔️", skin: "ico-frutto", title: "Movimenti", desc: "Entrate e uscite" },
+            { go: "sub:tracciabilita", ico: "🔎", skin: "ico-frutto", title: "Tracciabilità consumi", desc: "Da trattamenti e concimazioni" },
+            { go: "sub:archivio", ico: "📄", skin: "ico-frutto", title: "Archivio documenti", desc: "Bolle e fatture" }
+          ]
+        },
+        macchine: {
+          accent: "macchine",
+          title: "🚜 Parco macchine",
+          oldCopy: "Trattori, attrezzi, scadenze",
+          newCopy: "4 trattori · 1 scadenza",
+          kpis: [{ v: "4", l: "Trattori" }, { v: "9", l: "Attrezzi" }, { v: "1", l: "Scadenza 7 gg" }],
+          cards: [
+            { go: "sub:trattori", ico: "🚜", skin: "ico-blue", title: "Elenco Trattori", desc: "In uso e disponibili" },
+            { go: "sub:attrezzi", ico: "🔧", skin: "ico-blue", title: "Elenco Attrezzature", desc: "Categorie e CV min" },
+            { go: "sub:scadenze", ico: "📅", skin: "ico-blue", title: "Scadenze", desc: "Revisione e assicurazione" },
+            { go: "sub:officina", ico: "🛠️", skin: "ico-blue", title: "Officina & Guasti", desc: "Aperti e risolti" }
+          ]
+        },
+        ct: {
+          accent: "ct",
+          title: "🤝 Conto terzi",
+          oldCopy: "Clienti, preventivi, tariffe",
+          newCopy: "3 preventivi aperti",
+          kpis: [{ v: "12", l: "Clienti" }, { v: "3", l: "Preventivi" }, { v: "18", l: "Tariffe" }],
+          cards: [
+            { go: "sub:clienti", ico: "👤", skin: "ico-frutto", title: "Anagrafica Clienti", desc: "Ragione sociale e contatti" },
+            { go: "sub:terreni-ct", ico: "🗺️", skin: "ico-frutto", title: "Terreni Clienti", desc: "Campi da lavorare" },
+            { go: "sub:preventivi", ico: "📄", skin: "ico-frutto", title: "Preventivi", desc: "Bozza, inviati, accettati" },
+            { go: "sub:tariffe", ico: "💶", skin: "ico-frutto", title: "Tariffe", desc: "Listino lavori CT" }
+          ]
+        },
+        terreni: {
+          accent: "manodopera",
+          title: "🗺️ Terreni",
+          oldCopy: "Anagrafica terreni aziendali",
+          newCopy: "14 terreni · 22 ha",
+          kpis: [{ v: "14", l: "Terreni" }, { v: "22 ha", l: "Superficie" }],
+          cards: [
+            { go: "sub:terreni-list", ico: "🗺️", title: "Elenco terreni", desc: "Nome, ha, coltura" },
+            { go: "mappa", ico: "📍", title: "Mappa aziendale", desc: "Confini e allarmi" }
+          ]
+        },
+        report: {
+          accent: "manodopera",
+          title: "📑 Report",
+          oldCopy: "Bilancio per area",
+          newCopy: "Sintesi 2026",
+          kpis: [{ v: "€ 48k", l: "Costi anno" }, { v: "5", l: "Aree" }],
+          cards: [
+            { go: "sub:rep-terreni", ico: "🗺️", title: "Terreni", desc: "Costi per campo" },
+            { go: "sub:rep-vigneto", ico: "🍇", skin: "ico-vigneto", title: "Vigneto", desc: "Vendemmia e spese" },
+            { go: "sub:rep-frutteto", ico: "🍎", skin: "ico-frutto", title: "Frutteto", desc: "Raccolta e spese" }
+          ]
+        }
+      };
+      var SUBS = {
+        frutteti: { hub: "frutteto", title: "Anagrafica frutteti", sub: "6 impianti", cols: ["Nome", "Specie", "Ha", "Forma"], items: [
+          { name: "Nettarine Olmo", meta: "Nettarina · 1,80 ha · vaso" },
+          { name: "Meleti Nord", meta: "Mela Golden · 1,20 ha · fusetto" },
+          { name: "Albicocche Sud", meta: "Albicocca · 1,20 ha · palmetta" }
+        ]},
+        raccolta: { hub: "frutteto", title: "Raccolta frutta", sub: "9 raccolte nel 2026", cols: ["Data", "Frutteto", "Kg", "Resa"], items: [
+          { name: "12 ago · Nettarine Olmo", meta: "3.200 kg · 17,8 t/ha" },
+          { name: "3 set · Meleti Nord", meta: "2.100 kg · 17,5 t/ha" }
+        ]},
+        "f-potatura": { hub: "frutteto", title: "Potatura", sub: "Invernale e verde", cols: ["Data", "Frutteto", "Tipo"], items: [
+          { name: "Potatura invernale · Olmo", meta: "18 feb · 1,80 ha" },
+          { name: "Verde · Meleti Nord", meta: "12 giu · 1,20 ha" }
+        ]},
+        "f-trattamenti": { hub: "frutteto", title: "Trattamenti", sub: "Fitosanitari di campo", cols: ["Data", "Prodotto", "Frutteto"], items: [
+          { name: "Olio bianco · Nettarine", meta: "4 mar · carenza 20 gg" },
+          { name: "Zolfo · Meleti", meta: "22 apr" }
+        ]},
+        "f-concimazioni": { hub: "frutteto", title: "Concimazioni", sub: "Di campo", cols: ["Data", "Prodotto", "Ha"], items: [
+          { name: "Concime fogliare · Olmo", meta: "9 mag · 1,80 ha" }
+        ]},
+        "f-pianifica": { hub: "frutteto", title: "Pianifica impianto", sub: "Calcolo file e piante", cols: ["Nome", "Specie", "Piante"], items: [
+          { name: "Nuovo meleto ovest", meta: "Mela · 2.400 piante · bozza" }
+        ]},
+        "f-materiali": { hub: "frutteto", title: "Calcolo materiali", sub: "Dalle pianificazioni", cols: ["Voce", "Q.tà", "Unità"], items: [
+          { name: "Pali", meta: "420 pz" },
+          { name: "Filo", meta: "1.800 m" }
+        ]},
+        "f-stats": { hub: "frutteto", title: "Statistiche frutteto", sub: "Anno 2026", cols: ["Indicatore", "Valore"], items: [
+          { name: "Produzione", meta: "18,4 t" },
+          { name: "Resa media", meta: "4,4 t/ha" },
+          { name: "Spese", meta: "€ 2.140" }
+        ]},
+        vigneti: { hub: "vigneto", title: "Anagrafica vigneti", sub: "12 impianti", cols: ["Nome", "Vitigno", "Ha"], items: [
+          { name: "Sangiovese Pannelli", meta: "Sangiovese · 2,00 ha" },
+          { name: "Larghetta", meta: "Trebbiano · 1,50 ha" }
+        ]},
+        vendemmia: { hub: "vigneto", title: "Vendemmia", sub: "2026", cols: ["Data", "Vigneto", "Q.li"], items: [
+          { name: "28 set · Pannelli", meta: "42 q · in corso" }
+        ]},
+        "v-potatura": { hub: "vigneto", title: "Potatura vigneto", sub: "Invernale e verde", cols: ["Data", "Vigneto", "Tipo"], items: [
+          { name: "Invernale · Pannelli", meta: "10 feb" }
+        ]},
+        "v-trattamenti": { hub: "vigneto", title: "Trattamenti vigneto", sub: "Fitosanitari", cols: ["Data", "Prodotto"], items: [
+          { name: "Rame · Pannelli", meta: "18 apr" }
+        ]},
+        impegni: { hub: "manodopera", title: "Impegni giornalieri", sub: "Oggi", cols: ["Persona", "Lavoro", "Campo"], items: [
+          { name: "Gaia Bianchi", meta: "Potatura · Pannelli" },
+          { name: "Luca Fabbri", meta: "Trinciatura · Larghetta" }
+        ]},
+        validazione: { hub: "manodopera", title: "Validazione ore", sub: "2 da validare", cols: ["Operaio", "Ore", "Lavoro"], items: [
+          { name: "Luca Fabbri", meta: "2 h · Trinciatura" }
+        ]},
+        operai: { hub: "manodopera", title: "Gestione operai", sub: "8 persone", cols: ["Nome", "Ruolo"], items: [
+          { name: "Gaia Bianchi", meta: "Caposquadra" },
+          { name: "Luca Fabbri", meta: "Operaio autonomo" }
+        ]},
+        squadre: { hub: "manodopera", title: "Gestione squadre", sub: "2 squadre", cols: ["Nome", "Capo", "Membri"], items: [
+          { name: "Squadra Gaia", meta: "4 persone" }
+        ]},
+        compensi: { hub: "manodopera", title: "Compensi operai", sub: "Marzo 2026", cols: ["Nome", "Ore", "Importo"], items: [
+          { name: "Gaia Bianchi", meta: "86 h · € 1.247" }
+        ]},
+        prodotti: { hub: "magazzino", title: "Anagrafica prodotti", sub: "42 prodotti", cols: ["Nome", "Giacenza"], items: [
+          { name: "Concime fogliare", meta: "4 L · sotto scorta" },
+          { name: "Rame", meta: "12 kg" }
+        ]},
+        movimenti: { hub: "magazzino", title: "Movimenti", sub: "Ultime uscite", cols: ["Data", "Prodotto", "Q.tà"], items: [
+          { name: "Uscita rame", meta: "18 apr · −2 kg" }
+        ]},
+        tracciabilita: { hub: "magazzino", title: "Tracciabilità", sub: "Da trattamenti", cols: ["Data", "Prodotto", "Campo"], items: [
+          { name: "Zolfo · Meleti", meta: "22 apr" }
+        ]},
+        archivio: { hub: "magazzino", title: "Archivio documenti", sub: "Bolle e fatture", cols: ["Doc", "Fornitore", "Stato"], items: [
+          { name: "DDT 128", meta: "Agraria Rossi · 5 prezzi in attesa" }
+        ]},
+        trattori: { hub: "macchine", title: "Trattori", sub: "4 mezzi", cols: ["Nome", "CV", "Stato"], items: [
+          { name: "T5", meta: "105 CV · in uso" }
+        ]},
+        attrezzi: { hub: "macchine", title: "Attrezzature", sub: "9 attrezzi", cols: ["Nome", "Categoria"], items: [
+          { name: "Rotante 200", meta: "Lavorazione suolo" }
+        ]},
+        scadenze: { hub: "macchine", title: "Scadenze mezzi", sub: "7 giorni", cols: ["Mezzo", "Scadenza"], items: [
+          { name: "T5 revisione", meta: "28 set" }
+        ]},
+        officina: { hub: "macchine", title: "Officina e guasti", sub: "2 aperti", cols: ["Mezzo", "Guasto"], items: [
+          { name: "T5", meta: "Perdita olio · aperto" }
+        ]},
+        clienti: { hub: "ct", title: "Clienti", sub: "12 anagrafiche", cols: ["Ragione sociale", "Comune"], items: [
+          { name: "Podere Bianchi", meta: "Castelnuovo" }
+        ]},
+        "terreni-ct": { hub: "ct", title: "Terreni clienti", sub: "Campi da lavorare", cols: ["Terreno", "Cliente", "Ha"], items: [
+          { name: "Campo strada", meta: "Bianchi · 3,1 ha" }
+        ]},
+        preventivi: { hub: "ct", title: "Preventivi", sub: "3 aperti", cols: ["N.", "Cliente", "Stato"], items: [
+          { name: "2026-012", meta: "Bianchi · inviato" }
+        ]},
+        tariffe: { hub: "ct", title: "Tariffe CT", sub: "Listino", cols: ["Lavoro", "€/ha"], items: [
+          { name: "Trinciatura", meta: "€ 85/ha" }
+        ]},
+        "terreni-list": { hub: "terreni", title: "Terreni aziendali", sub: "14 campi", cols: ["Nome", "Ha", "Coltura"], items: [
+          { name: "Pannelli", meta: "2,00 ha · vigneto" },
+          { name: "Olmo", meta: "3,10 ha · frutteto" }
+        ]},
+        "rep-terreni": { hub: "report", title: "Report terreni", sub: "2026", cols: ["Campo", "Costo"], items: [{ name: "Pannelli", meta: "€ 4.200" }] },
+        "rep-vigneto": { hub: "report", title: "Report vigneto", sub: "2026", cols: ["Voce", "Valore"], items: [{ name: "Vendemmia", meta: "42 q" }] },
+        "rep-frutteto": { hub: "report", title: "Report frutteto", sub: "2026", cols: ["Voce", "Valore"], items: [{ name: "Raccolta", meta: "18,4 t" }] }
+      };
+      if (theme !== "oggi" && theme !== "proposta") theme = "oggi";
+      if (!screens[screen]) screen = "dashboard";
+      if (!JOBS[job]) job = "potatura";
+      if (dtab !== "map" && dtab !== "ore") dtab = "overview";
+      if (screen === "hub" && !HUBS[hubId]) hubId = "frutteto";
+      if (screen === "sub" && !SUBS[subId]) subId = "frutteti";
+
+      function setText(id, value) {
+        var el = document.getElementById(id);
+        if (el) el.textContent = value;
+      }
+      function cardMarkup(c) {
+        return '<a class="card" href="#" data-go="' + c.go + '">' +
+          '<span class="ico">' + c.ico + '</span>' +
+          '<span class="svg-ico ' + (c.skin || "ico-core") + '" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="7"/></svg></span>' +
+          "<strong>" + c.title + "</strong><small>" + c.desc + "</small></a>";
+      }
+      function currentAccent() {
+        if (screen === "vigneto") return "vigneto";
+        if (screen === "hub" && HUBS[hubId]) return HUBS[hubId].accent;
+        if (screen === "sub" && SUBS[subId]) {
+          var hid = SUBS[subId].hub;
+          if (hid === "vigneto") return "vigneto";
+          if (HUBS[hid]) return HUBS[hid].accent;
+        }
+        return "";
+      }
+      function fillHub() {
+        var h = HUBS[hubId] || HUBS.frutteto;
+        setText("hub-title", h.title);
+        var subEl = document.getElementById("hub-sub");
+        if (subEl) subEl.textContent = theme === "proposta" ? h.newCopy : h.oldCopy;
+        var kpis = document.getElementById("hub-kpis");
+        if (kpis) kpis.innerHTML = (h.kpis || []).map(function (k) {
+          return '<div class="stat"><b>' + k.v + "</b><span>" + k.l + "</span></div>";
+        }).join("");
+        var cards = document.getElementById("hub-cards");
+        if (cards) cards.innerHTML = (h.cards || []).map(cardMarkup).join("");
+      }
+      function fillSub() {
+        var s = SUBS[subId] || SUBS.frutteti;
+        setText("sub-title", s.title);
+        setText("sub-sub", s.sub || "");
+        var cols = s.cols || ["Nome", "Dettaglio"];
+        var items = s.items || [];
+        var table = document.getElementById("sub-table-wrap");
+        if (table) {
+          table.innerHTML = "<table><thead><tr>" + cols.map(function (c) { return "<th>" + c + "</th>"; }).join("") +
+            "</tr></thead><tbody>" + items.map(function (it) {
+              return "<tr><td><strong>" + it.name + "</strong></td><td>" + it.meta + "</td>" +
+                (cols.length > 2 ? "<td></td>".repeat(cols.length - 2) : "") + "</tr>";
+            }).join("") + "</tbody></table>";
+        }
+        var cards = document.getElementById("sub-cards");
+        if (cards) {
+          cards.innerHTML = items.map(function (it) {
+            return '<article class="job-card"><div class="job-top"><h3>' + it.name +
+              "</h3></div><p class=\"job-line\">" + it.meta + "</p></article>";
+          }).join("");
+        }
+      }
+      var HUB_SHORT = {
+        frutteto: "Frutteto", manodopera: "Manodopera", magazzino: "Magazzino",
+        macchine: "Parco macchine", ct: "Conto terzi", terreni: "Terreni", report: "Report"
+      };
+      var PLACE = {
+        dashboard: "Home", lista: "Gestione lavori", dettaglio: "Dettaglio lavoro",
+        carico: "Reminder pieno", meteo: "Meteo", mappa: "Mappa",
+        abbonamento: "Abbonamento", opzioni: "Impostazioni", vigneto: "Vigneto"
+      };
+      function placeName() {
+        if (screen === "hub") return HUB_SHORT[hubId] || "Hub";
+        if (screen === "sub") return (SUBS[subId] && SUBS[subId].title) || "Lista";
+        return PLACE[screen] || "Home";
+      }
+      var labOpen = params.get("lab") === "1";
+      var ignoreHandleClick = false;
+      var labEl = document.getElementById("lab");
+      var labHandle = document.getElementById("lab-handle");
+      var labBackdrop = document.getElementById("lab-backdrop");
+      var labHint = document.getElementById("lab-handle-hint");
+      var deskMq = window.matchMedia("(min-width: 1024px)");
+      function isDesktop() { return deskMq.matches; }
+      function setLabOpen(open) {
+        if (isDesktop()) open = true;
+        labOpen = !!open;
+        html.setAttribute("data-lab", labOpen ? "open" : "closed");
+        if (labEl) {
+          labEl.setAttribute("aria-hidden", labOpen ? "false" : "true");
+          if (labEl.toggleAttribute) labEl.toggleAttribute("inert", !labOpen);
+        }
+        if (labHandle) labHandle.setAttribute("aria-expanded", labOpen ? "true" : "false");
+        if (labBackdrop) labBackdrop.hidden = !labOpen || isDesktop();
+        if (labHint) {
+          labHint.textContent = isDesktop()
+            ? "Catalogo a sinistra"
+            : (labOpen ? "Scorri in alto per chiudere" : "Scorri in basso · 20 moduli");
+        }
+      }
+      function navigateTo(go) {
+        if (!go) return;
+        if (go.indexOf("hub:") === 0) {
+          hubId = go.slice(4);
+          if (!HUBS[hubId]) hubId = "frutteto";
+          screen = "hub";
+        } else if (go.indexOf("sub:") === 0) {
+          subId = go.slice(4);
+          if (SUBS[subId]) hubId = SUBS[subId].hub;
+          screen = SUBS[subId] ? "sub" : "hub";
+        } else {
+          screen = go;
+        }
+        if (!screens[screen]) screen = "dashboard";
+        dtab = "overview";
+        localStorage.setItem("gfvUiPreviewScreen", screen);
+        apply();
+        setLabOpen(isDesktop());
+        var phone = document.getElementById("phone");
+        if (phone) phone.scrollTop = 0;
+      }
+      function peopleHtml(list) {
+        return list.map(function (p) {
+          return '<div class="d-person"><strong>' + p.name + '</strong>' +
+            '<div class="d-hours">' +
+            '<span class="ok">✅ ' + p.v + 'h validate</span>' +
+            '<span class="wait">⏳ ' + p.d + 'h da validare</span>' +
+            '<span class="no">❌ ' + p.r + 'h rifiutate</span>' +
+            '</div></div>';
+        }).join("");
+      }
+      function fillZones(j) {
+        var zones = j.zones || [];
+        var shown = dayFilter === "tutte" ? zones : zones.filter(function (z) { return z.day === dayFilter; });
+        var box = document.getElementById("d-zones");
+        if (box) {
+          box.innerHTML = shown.length
+            ? shown.map(function (z) {
+                return '<div class="d-zone"><strong>' + z.day + '</strong> · ' + z.ha + ' · ' + z.label + '</div>';
+              }).join("")
+            : '<div class="d-zone">Nessuna zona per questo filtro</div>';
+        }
+        var pinA = document.getElementById("d-pin-a");
+        var pinB = document.getElementById("d-pin-b");
+        if (pinA) pinA.style.display = (!zones[0] || (dayFilter !== "tutte" && dayFilter !== zones[0].day)) ? "none" : "";
+        if (pinB) pinB.style.display = (!zones[1] || (dayFilter !== "tutte" && dayFilter !== zones[1].day)) ? "none" : "";
+      }
+      function fillSelects(j) {
+        var opts = '<option value="tutte">Tutte le date</option>' +
+          (j.zones || []).map(function (z) {
+            return '<option value="' + z.day + '">' + z.day + '</option>';
+          }).join("");
+        ["d-day-filter", "d-day-filter-new"].forEach(function (id) {
+          var sel = document.getElementById(id);
+          if (!sel) return;
+          sel.innerHTML = opts;
+          sel.value = dayFilter;
+        });
+      }
+      function fillDetail() {
+        var j = JOBS[job] || JOBS.potatura;
+        setText("d-title", j.title);
+        setText("d-sub", j.sub);
+        setText("d-strip", j.strip);
+        setText("d-ha-old", j.haNum);
+        setText("d-pct-old", j.pct + "%");
+        setText("d-v-old", j.oreV + "h");
+        setText("d-d-old", j.oreD + "h");
+        setText("d-progress-old", j.progress);
+        setText("d-terreno-old", j.terreno);
+        setText("d-capo-old", j.capo);
+        setText("d-date-old", j.date);
+        setText("d-durata-old", j.durata);
+        setText("d-stato-old", j.stato);
+        setText("d-mac-old", j.macchine);
+        var noteOld = document.getElementById("d-note-old");
+        if (noteOld) {
+          noteOld.style.display = j.note ? "" : "none";
+          noteOld.innerHTML = j.note ? "<strong>Note:</strong> " + j.note : "";
+        }
+        var dot = document.getElementById("d-dot-old");
+        if (dot) dot.className = "dot " + j.statoDot;
+        var barOld = document.getElementById("d-bar-old");
+        var fillOld = document.getElementById("d-bar-old-fill");
+        if (barOld) barOld.className = "bar" + (j.barClass ? " " + j.barClass : "");
+        if (fillOld) {
+          fillOld.style.width = j.pct + "%";
+          fillOld.textContent = j.pct + "%";
+        }
+        setText("d-ha-new", j.ha);
+        setText("d-progress-new", j.pct + "% · " + j.progress.toLowerCase() + " · " + j.oreV + "h validate · " + j.oreD + "h da validare");
+        setText("d-terreno-new", j.terreno);
+        setText("d-capo-new", j.capo);
+        setText("d-date-new", j.dateShort);
+        setText("d-durata-new", j.durata);
+        setText("d-stato-new", j.stato);
+        setText("d-mac-new", j.macchine);
+        var noteNew = document.getElementById("d-note-new");
+        if (noteNew) {
+          noteNew.style.display = j.note ? "" : "none";
+          noteNew.textContent = j.note;
+        }
+        var barNew = document.getElementById("d-bar-new");
+        var fillNew = document.getElementById("d-bar-new-fill");
+        if (barNew) barNew.className = "bar" + (j.barClass ? " " + j.barClass : "");
+        if (fillNew) fillNew.style.width = j.pct + "%";
+        var ph = peopleHtml(j.people);
+        var p1 = document.getElementById("d-people");
+        var p2 = document.getElementById("d-people-ore");
+        if (p1) p1.innerHTML = ph;
+        if (p2) p2.innerHTML = ph;
+        setText("d-ov-old", j.oreV + "h");
+        setText("d-od-old", j.oreD + "h");
+        setText("d-or-old", j.oreR + "h");
+        setText("d-ore-line", (j.oreV + j.oreD + j.oreR) + "h in totale · " + j.oreV + " validate · " + j.oreD + " da validare · " + j.oreR + " rifiutate");
+        fillSelects(j);
+        fillZones(j);
+        var wrap = document.getElementById("dettaglio-wrap");
+        if (wrap) wrap.classList.toggle("wrap-canvas", dtab === "map");
+        document.querySelectorAll(".d-tabs [data-dtab]").forEach(function (b) {
+          b.setAttribute("aria-pressed", b.getAttribute("data-dtab") === dtab ? "true" : "false");
+        });
+      }
+      function apply() {
+        html.setAttribute("data-theme", theme);
+        html.setAttribute("data-screen", screen);
+        html.setAttribute("data-dtab", dtab);
+        html.setAttribute("data-accent", currentAccent());
+        var q = "?theme=" + encodeURIComponent(theme) + "&screen=" + encodeURIComponent(screen);
+        if (screen === "dettaglio") q += "&job=" + encodeURIComponent(job) + "&tab=" + encodeURIComponent(dtab);
+        if (screen === "hub") q += "&hub=" + encodeURIComponent(hubId);
+        if (screen === "sub") q += "&sub=" + encodeURIComponent(subId);
+        try { history.replaceState(null, "", q); } catch (e) {}
+        var handleLabel = document.getElementById("lab-handle-label");
+        if (handleLabel) {
+          handleLabel.textContent = (theme === "proposta" ? "Proposta" : "Oggi") + " · " + placeName();
+        }
+        document.querySelectorAll(".seg--theme [data-theme]").forEach(function (b) {
+          b.setAttribute("aria-pressed", b.getAttribute("data-theme") === theme ? "true" : "false");
+        });
+        document.querySelectorAll(".lab-mod[data-go]").forEach(function (b) {
+          var g = b.getAttribute("data-go");
+          var parentHub = SUBS[subId] && SUBS[subId].hub;
+          var on = g === screen ||
+            (g === "lista" && screen === "dettaglio") ||
+            (g === "hub:" + hubId && (screen === "hub" || (screen === "sub" && parentHub === hubId))) ||
+            (g === "vigneto" && (screen === "vigneto" || (screen === "sub" && parentHub === "vigneto")));
+          b.setAttribute("aria-pressed", on ? "true" : "false");
+        });
+        var color = theme === "proposta" ? "#F6F3EC" : "#1c1917";
+        var meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.setAttribute("content", color);
+        if (screen === "dettaglio") fillDetail();
+        if (screen === "hub") fillHub();
+        if (screen === "sub") fillSub();
+      }
+      apply();
+      setLabOpen(labOpen);
+      if (deskMq.addEventListener) {
+        deskMq.addEventListener("change", function () {
+          setLabOpen(isDesktop());
+        });
+      } else if (deskMq.addListener) {
+        deskMq.addListener(function () { setLabOpen(isDesktop()); });
+      }
+      if (labHandle) {
+        labHandle.addEventListener("click", function () {
+          if (isDesktop()) return;
+          if (ignoreHandleClick) {
+            ignoreHandleClick = false;
+            return;
+          }
+          setLabOpen(!labOpen);
+        });
+      }
+      if (labBackdrop) {
+        labBackdrop.addEventListener("click", function () {
+          setLabOpen(false);
+        });
+      }
+      (function bindLabSwipe() {
+        var startY = 0;
+        var startX = 0;
+        var tracking = false;
+        var origin = "";
+        function point(e) {
+          return e.changedTouches && e.changedTouches[0] ? e.changedTouches[0] : e.touches && e.touches[0] ? e.touches[0] : e;
+        }
+        function begin(e, from) {
+          if (isDesktop()) return;
+          var p = point(e);
+          if (!p) return;
+          startY = p.clientY;
+          startX = p.clientX;
+          tracking = true;
+          origin = from;
+        }
+        function move(e) {
+          if (!tracking || isDesktop()) return;
+          var p = point(e);
+          if (!p) return;
+          var dy = p.clientY - startY;
+          var dx = p.clientX - startX;
+          if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+            tracking = false;
+            return;
+          }
+          var phone = document.getElementById("phone");
+          if (!labOpen && origin === "phone" && phone && phone.scrollTop > 4) {
+            tracking = false;
+            return;
+          }
+          if (!labOpen && dy > 56 && (origin === "handle" || origin === "phone")) {
+            if (origin === "handle") ignoreHandleClick = true;
+            setLabOpen(true);
+            tracking = false;
+          } else if (labOpen && dy < -56 && (origin === "handle" || origin === "lab")) {
+            if (origin === "lab" && labEl && labEl.scrollTop > 4) return;
+            if (origin === "handle") ignoreHandleClick = true;
+            setLabOpen(false);
+            tracking = false;
+          }
+        }
+        function end() { tracking = false; }
+        if (labHandle) {
+          labHandle.addEventListener("touchstart", function (e) { begin(e, "handle"); }, { passive: true });
+          labHandle.addEventListener("touchmove", move, { passive: true });
+          labHandle.addEventListener("touchend", end);
+        }
+        if (labEl) {
+          labEl.addEventListener("touchstart", function (e) { begin(e, "lab"); }, { passive: true });
+          labEl.addEventListener("touchmove", move, { passive: true });
+          labEl.addEventListener("touchend", end);
+        }
+        var phone = document.getElementById("phone");
+        if (phone) {
+          phone.addEventListener("touchstart", function (e) {
+            if (labOpen) return;
+            var p = point(e);
+            if (!p) return;
+            if (phone.scrollTop > 4 && p.clientY > 96) return;
+            begin(e, "phone");
+          }, { passive: true });
+          phone.addEventListener("touchmove", move, { passive: true });
+          phone.addEventListener("touchend", end);
+        }
+      })();
+      document.querySelectorAll(".seg--theme [data-theme]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          theme = b.getAttribute("data-theme");
+          localStorage.setItem("gfvUiPreviewTheme", theme);
+          apply();
+        });
+      });
+      document.addEventListener("click", function (e) {
+        var t = e.target.closest("[data-go]");
+        if (!t) return;
+        e.preventDefault();
+        navigateTo(t.getAttribute("data-go"));
+      });
+      var subBack = document.getElementById("sub-back");
+      if (subBack) {
+        subBack.addEventListener("click", function () {
+          var parent = SUBS[subId] && SUBS[subId].hub;
+          if (parent === "vigneto") navigateTo("vigneto");
+          else navigateTo("hub:" + (parent || hubId || "frutteto"));
+        });
+      }
+      document.getElementById("d-back").addEventListener("click", function () {
+        screen = "lista";
+        dtab = "overview";
+        localStorage.setItem("gfvUiPreviewScreen", "lista");
+        apply();
+      });
+      document.querySelectorAll(".d-tabs [data-dtab]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          dtab = b.getAttribute("data-dtab");
+          apply();
+          document.getElementById("phone").scrollTop = 0;
+        });
+      });
+      document.querySelectorAll("[data-open-dettaglio]").forEach(function (b) {
+        b.addEventListener("click", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          job = b.getAttribute("data-open-dettaglio") || "potatura";
+          dtab = "overview";
+          dayFilter = "tutte";
+          screen = "dettaglio";
+          localStorage.setItem("gfvUiPreviewScreen", "dettaglio");
+          apply();
+          document.getElementById("phone").scrollTop = 0;
+        });
+      });
+      function onDayChange(e) {
+        dayFilter = e.target.value || "tutte";
+        ["d-day-filter", "d-day-filter-new"].forEach(function (id) {
+          var sel = document.getElementById(id);
+          if (sel) sel.value = dayFilter;
+        });
+        fillZones(JOBS[job] || JOBS.potatura);
+      }
+      var dayOld = document.getElementById("d-day-filter");
+      var dayNew = document.getElementById("d-day-filter-new");
+      if (dayOld) dayOld.addEventListener("change", onDayChange);
+      if (dayNew) dayNew.addEventListener("change", onDayChange);
+      var panel = document.getElementById("tony-panel");
+      var msgs = panel.querySelector(".tony-msgs");
+      var remainder =
+        "4 ore da validare, 3 lavori da approvare, 2 sospesi, 8 prodotti sotto scorta, 5 prezzi in attesa, 2 guasti, 3 scadenze mezzi, 2 affitti, 1 preventivo aperto, vendemmia e raccolta incomplete, 12 mm in sede domani. Dimmi quale apriamo.";
+      function openTony(text) {
+        if (text) {
+          msgs.innerHTML =
+            '<div class="bubble tony"></div>';
+          msgs.querySelector(".bubble").textContent = text;
+        }
+        panel.classList.add("open");
+      }
+      document.getElementById("tony-fab").addEventListener("click", function () {
+        panel.classList.toggle("open");
+      });
+      document.getElementById("tony-close").addEventListener("click", function () {
+        panel.classList.remove("open");
+      });
+      document.querySelectorAll(".strip").forEach(function (el) {
+        el.addEventListener("click", function (e) {
+          if (e.target && e.target.id === "strip-open-tony") {
+            e.preventDefault();
+            e.stopPropagation();
+            openTony(remainder);
+            return;
+          }
+          var open = el.classList.toggle("is-open");
+          el.setAttribute("aria-expanded", open ? "true" : "false");
+        });
+      });
+      document.querySelectorAll("[data-fake]").forEach(function (a) {
+        a.addEventListener("click", function (e) { e.preventDefault(); });
+      });
+      document.querySelectorAll("[data-job-more]").forEach(function (b) {
+        b.addEventListener("click", function () {
+          var card = b.closest(".job-card");
+          if (!card) return;
+          var open = card.classList.toggle("is-open");
+          b.textContent = open ? "Chiudi" : "Altro";
+        });
+      });
+      if (params.get("more") === "1") {
+        var firstMore = document.querySelector("[data-job-more]");
+        if (firstMore) firstMore.click();
+      }
+    })();
+  </script>
+</body>
+</html>

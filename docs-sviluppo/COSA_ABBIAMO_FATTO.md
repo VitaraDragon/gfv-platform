@@ -1,6 +1,36 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-21 — allineamento docs telefono + Higgsfield.**
+**Ultimo aggiornamento documentazione: 2026-09-22 — piano pelle Proposta su app (rollback).**
+
+## Piano — pelle Proposta sull’app vera, con ritorno indietro (2026-09-22)
+
+- **Cosa:** documento di handoff `docs-sviluppo/da-fare/ui/PIANO_PELLE_PROPOSTA_SU_APP.md`: look della prova isolata applicabile alle pagine vere dietro flag Prova/Pubblicata (Sabbie Gialle), senza sostituire lo stile attuale. Prompt per un agente nuovo; fette 0–4; rollback tap + git revert.
+- **Perché:** il PO vuole vedere il cambio su tutta l’app dal telefono ma non è convinto; `develop` non è online; mettere solo la pagina `core/dev/` su `main` non cambia l’app.
+- **File:** il piano; indici `da-fare/README.md`; registro §26. Nessun codice app.
+- Doc: questa voce, `TONY_DECISIONI_E_REQUISITI.md` §26. Master Plan: nessuna fase cambiata.
+
+## Prova UI — catalogo a sinistra sul PC (2026-09-21)
+
+## Prova UI — catalogo a sinistra sul PC (2026-09-21)
+
+- **Cosa:** da 1024px la stessa pagina di prova non usa più lo swipe: i moduli restano in una colonna a sinistra, a destra cambia solo il contenuto. Liste in pelle Proposta tornano tabella. Sul telefono resta lo sheet che si chiude dopo la scelta.
+- **Perché:** il manager in ufficio non ha il touch; lo spazio c’è, nascondere il catalogo dopo ogni click sarebbe un passo in più inutile.
+- **File:** `core/dev/ui-preview-doppio-pelle.html`.
+- Doc: questa voce. Master Plan: nessuna fase cambiata.
+
+## Prova UI — menù moduli nascosto (swipe giù) (2026-09-21)
+
+- **Cosa:** nella pagina di prova la barra grigia non sta più sempre in cima. Resta un maniglia; swipe giù (o tap) apre lo sheet con stile Oggi/Proposta, ~20 moduli e prove. Scelto un modulo lo sheet si chiude e resta solo la schermata.
+- **Perché:** con tutti i moduli attivi la barra di laboratorio mangiava metà telefono; lo stesso gesto è la proposta per l’app (catalogo, non chrome permanente).
+- **File:** `core/dev/ui-preview-doppio-pelle.html`.
+- Doc: questa voce. Master Plan: nessuna fase cambiata.
+
+## Prova UI — pagina Oggi vs proposta (2026-09-21)
+
+- **Cosa:** pagina isolata `core/dev/ui-preview-doppio-pelle.html`: Home (tutti i moduli cliccabili), Vigneto, **Frutteto hub + 8 sotto-menu**, altri hub (Manodopera, Magazzino, Macchine, CT, Report, Terreni), **Abbonamento** (piano Base + moduli), **Impostazioni**, Lista/Dettaglio lavori, Pieno, Meteo, Mappa. Niente login, niente Firebase.
+- **Perché:** vedere sul telefono striscione Tony sotto carico, e come starebbero meteo/mappa nello stesso chrome, prima di toccare le pagine vere.
+- **File:** `core/dev/ui-preview-doppio-pelle.html`.
+- Doc: questa voce. Master Plan: nessuna fase cambiata.
 
 ## Allineamento — piani dal telefono in locale + ordine Higgsfield (2026-09-21)
 
