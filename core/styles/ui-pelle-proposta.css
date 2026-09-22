@@ -44,6 +44,24 @@ html[data-pelle="proposta"] body .dashboard-header .user-info {
   color: var(--gfv-pelle-muted) !important;
 }
 
+/* Pagine impianto condivise: il file è nel vigneto, il gradiente segue ?coltura= (inline su html). */
+html[data-pelle="proposta"][style*="--theme-bg"] body {
+  background: var(--theme-bg) !important;
+  background-image: var(--theme-bg) !important;
+}
+
+html[data-pelle="proposta"][style*="--theme-header"] body .header {
+  background: var(--theme-header) !important;
+  background-image: var(--theme-header) !important;
+  color: #fff !important;
+  border-bottom: 0 !important;
+}
+
+html[data-pelle="proposta"][style*="--theme-header"] body .header h1,
+html[data-pelle="proposta"][style*="--theme-header"] body .header p {
+  color: #fff !important;
+}
+
 html[data-pelle="proposta"] body .header .btn,
 html[data-pelle="proposta"] body .header .btn-primary,
 html[data-pelle="proposta"] body .header .btn-secondary,

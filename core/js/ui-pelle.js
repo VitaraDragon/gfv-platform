@@ -14,6 +14,7 @@ import {
   isFieldWorkspacePath,
   isPelleSkippedPath,
   moduleFromPath,
+  moduleFromLocation,
   visibleShellEntries,
   homeActionsFromShell,
   cardsModelFromRows
@@ -60,8 +61,9 @@ function pageHost() {
 function ensurePageMeta() {
   const html = document.documentElement;
   const path = window.location && window.location.pathname;
+  const search = window.location && window.location.search;
   if (!html.getAttribute('data-gfv-module')) {
-    const mod = moduleFromPath(path);
+    const mod = moduleFromLocation(path, search);
     if (mod) html.setAttribute('data-gfv-module', mod);
   }
   if (!html.getAttribute('data-gfv-pelle-place')) {

@@ -8,6 +8,7 @@ import {
   isFieldWorkspacePath,
   isPelleSkippedPath,
   moduleFromPath,
+  moduleFromLocation,
   visibleShellEntries,
   homeActionsFromShell,
   cardsModelFromRows,
@@ -63,6 +64,14 @@ describe('ui-pelle stato', () => {
     expect(moduleFromPath('/modules/vigneto/views/vigneto-dashboard-standalone.html')).toBe('vigneto');
     expect(moduleFromPath('/core/dashboard-standalone.html')).toBe('home');
     expect(moduleFromPath('/core/admin/gestione-lavori-standalone.html')).toBe('lavori');
+    expect(moduleFromLocation(
+      '/modules/vigneto/views/calcolo-materiali-standalone.html',
+      '?coltura=frutteto'
+    )).toBe('frutteto');
+    expect(moduleFromLocation(
+      '/modules/vigneto/views/calcolo-materiali-standalone.html',
+      ''
+    )).toBe('vigneto');
   });
 
   test('shell legge il catalogo e nasconde i moduli non attivi', () => {

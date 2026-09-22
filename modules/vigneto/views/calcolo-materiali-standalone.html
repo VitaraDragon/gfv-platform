@@ -10,8 +10,8 @@
         (function() {
             var coltura = (new URLSearchParams(window.location.search)).get('coltura');
             var themes = {
-                frutteto: { bg: 'linear-gradient(135deg, #FFE0B2 0%, #FF6F00 100%)', header: 'linear-gradient(135deg, #FF6F00 0%, #E65100 100%)', accent: '#FF6F00', accentDark: '#E65100' },
-                oliveto: { bg: 'linear-gradient(135deg, #C8E6C9 0%, #2E7D32 100%)', header: 'linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)', accent: '#2E7D32', accentDark: '#1B5E20' }
+                frutteto: { bg: 'linear-gradient(135deg, #FFE0B2 0%, #FF6F00 100%)', header: 'linear-gradient(135deg, #FF6F00 0%, #E65100 100%)', accent: '#FF6F00', accentDark: '#E65100', line: '#FFCC80', wash: '#FFF3E0' },
+                oliveto: { bg: 'linear-gradient(135deg, #C8E6C9 0%, #2E7D32 100%)', header: 'linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%)', accent: '#2E7D32', accentDark: '#1B5E20', line: '#A5D6A7', wash: '#E8F5E9' }
             };
             var t = coltura && themes[coltura.toLowerCase()];
             if (t) {
@@ -19,6 +19,8 @@
                 document.documentElement.style.setProperty('--theme-header', t.header);
                 document.documentElement.style.setProperty('--theme-accent', t.accent);
                 document.documentElement.style.setProperty('--theme-accent-dark', t.accentDark);
+                document.documentElement.style.setProperty('--theme-line', t.line);
+                document.documentElement.style.setProperty('--theme-wash', t.wash);
                 var meta = document.getElementById('metaThemeColor');
                 if (meta) meta.setAttribute('content', t.accent);
             }
@@ -39,6 +41,8 @@
             --theme-header: linear-gradient(135deg, #6A1B9A 0%, #4A148C 100%);
             --theme-accent: #6A1B9A;
             --theme-accent-dark: #4A148C;
+            --theme-line: #E1BEE7;
+            --theme-wash: #F3E5F5;
         }
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -138,7 +142,7 @@
             font-size: 20px;
             margin-bottom: 20px;
             padding-bottom: 10px;
-            border-bottom: 2px solid #E1BEE7;
+            border-bottom: 2px solid var(--theme-line);
         }
 
         .table-container {
@@ -174,11 +178,11 @@
         }
 
         tbody tr:hover {
-            background: #F3E5F5;
+            background: var(--theme-wash);
         }
 
         tbody tr.total-row {
-            background: #E1BEE7;
+            background: var(--theme-line);
             font-weight: 600;
         }
 
@@ -198,7 +202,7 @@
         .form-group select {
             width: 100%;
             padding: 10px;
-            border: 2px solid #E1BEE7;
+            border: 2px solid var(--theme-line);
             border-radius: 8px;
             font-size: 14px;
             transition: border-color 0.3s;
@@ -207,7 +211,7 @@
         .form-group input:focus,
         .form-group select:focus {
             outline: none;
-            border-color: #6A1B9A;
+            border-color: var(--theme-accent);
         }
 
         .form-row {
@@ -270,7 +274,7 @@
         }
 
         .config-section {
-            background: #F3E5F5;
+            background: var(--theme-wash);
             padding: 20px;
             border-radius: 8px;
             margin-bottom: 20px;
@@ -285,11 +289,11 @@
         }
 
         .materiali-category h3 {
-            color: #6A1B9A;
+            color: var(--theme-accent);
             font-size: 18px;
             margin-bottom: 15px;
             padding-bottom: 8px;
-            border-bottom: 1px solid #E1BEE7;
+            border-bottom: 1px solid var(--theme-line);
         }
 
         .loading {
@@ -1262,8 +1266,8 @@
 
             // Aggiungi riepilogo
             html += `
-                <div style="margin-top: 30px; padding: 20px; background: #F3E5F5; border-radius: 8px; position: relative;">
-                    <h3 style="color: #6A1B9A; margin-bottom: 15px;">Riepilogo Pianificazione</h3>
+                <div style="margin-top: 30px; padding: 20px; background: var(--theme-wash); border-radius: 8px; position: relative;">
+                    <h3 style="color: var(--theme-accent); margin-bottom: 15px;">Riepilogo Pianificazione</h3>
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
                         <div>
                             <strong>Tipo Impianto:</strong><br>

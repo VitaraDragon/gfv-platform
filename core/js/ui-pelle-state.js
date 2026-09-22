@@ -16,6 +16,7 @@ export const PELLE_ACCENT = {
   parcoMacchine: '#1565C0',
   contoTerzi: '#EF6C00',
   meteo: '#0288D1',
+  oliveto: '#2E7D32',
   lavori: '#2E8B57',
   terreni: '#1f6b3a',
   report: '#1c1917',
@@ -145,6 +146,27 @@ export function moduleFromPath(pathname) {
     if (p.indexOf(frag) >= 0) return mod;
   }
   return '';
+}
+
+/** Pagine impianto condivise: il file sta nel vigneto, il colore segue ?coltura=. */
+const SHARED_COLTURA_FILES = {
+  'calcolo-materiali-standalone.html': true,
+  'pianifica-impianto-standalone.html': true
+};
+
+const COLTURA_TO_MODULE = {
+  frutteto: 'frutteto',
+  vigneto: 'vigneto',
+  oliveto: 'oliveto'
+};
+
+export function moduleFromLocation(pathname, search) {
+  const file = String(pathname || '').replace(/\\/g, '/').split('/').pop() || '';
+  if (SHARED_COLTURA_FILES[file]) {
+    const coltura = String(new URLSearchParams(String(search || '').replace(/^\?/, '')).get('coltura') || '').toLowerCase();
+    if (COLTURA_TO_MODULE[coltura]) return COLTURA_TO_MODULE[coltura];
+  }
+  return moduleFromPath(pathname);
 }
 
 /**
