@@ -18,8 +18,42 @@ export const PELLE_ACCENT = {
   meteo: '#0288D1',
   lavori: '#2E8B57',
   terreni: '#1f6b3a',
-  report: '#1c1917'
+  report: '#1c1917',
+  magazzino: '#2E7D32'
 };
+
+/** Pagine che non prendono la pelle. Il campo e il login restano com’erano. */
+export const PELLE_SKIP_FRAGMENTS = [
+  'field-workspace',
+  '/mobile/',
+  'login-standalone',
+  'registrazione-standalone',
+  'registrazione-invito',
+  'reset-password',
+  'simulator-dev',
+  'prodotti-test',
+  'terreni-test',
+  '/dev/'
+];
+
+/** Primo frammento che compare nel path vince. `dashboard-standalone.html` è il nome file esatto, non gli hub. */
+export const PELLE_PATH_MODULES = [
+  ['/modules/magazzino/', 'magazzino'],
+  ['/modules/frutteto/', 'frutteto'],
+  ['/modules/vigneto/', 'vigneto'],
+  ['/modules/manodopera/', 'manodopera'],
+  ['/modules/macchine/', 'parcoMacchine'],
+  ['/modules/conto-terzi/', 'contoTerzi'],
+  ['/modules/meteo/', 'meteo'],
+  ['/modules/report/', 'report'],
+  ['/modules/vendemmia-meccanica/', 'contoTerzi'],
+  ['gestione-lavori', 'lavori'],
+  ['validazione-ore', 'manodopera'],
+  ['impegni-giornalieri', 'manodopera'],
+  ['terreni-standalone', 'terreni'],
+  ['mappa-aziendale', 'terreni'],
+  ['attivita-standalone', 'diarioAttivita']
+];
 
 /**
  * Voci shell. `catalogId` legge etichetta e href da MODULE_CATALOG.
@@ -86,6 +120,31 @@ export function computePelleState(input) {
  */
 export function isFieldWorkspacePath(pathname) {
   return String(pathname || '').replace(/\\/g, '/').indexOf('field-workspace') >= 0;
+}
+
+/**
+ * @param {string} pathname
+ * @returns {boolean}
+ */
+export function isPelleSkippedPath(pathname) {
+  const p = String(pathname || '').replace(/\\/g, '/').toLowerCase();
+  return PELLE_SKIP_FRAGMENTS.some((fragment) => p.indexOf(fragment) >= 0);
+}
+
+/**
+ * @param {string} pathname
+ * @returns {string}
+ */
+export function moduleFromPath(pathname) {
+  const p = String(pathname || '').replace(/\\/g, '/');
+  const file = p.split('/').pop() || '';
+  if (file === 'dashboard-standalone.html') return 'home';
+  for (let i = 0; i < PELLE_PATH_MODULES.length; i += 1) {
+    const frag = PELLE_PATH_MODULES[i][0];
+    const mod = PELLE_PATH_MODULES[i][1];
+    if (p.indexOf(frag) >= 0) return mod;
+  }
+  return '';
 }
 
 /**

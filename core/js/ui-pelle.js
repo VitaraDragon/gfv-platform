@@ -1,5 +1,6 @@
 /**
- * Pelle Proposta: un include, pagine con data-gfv-pelle-host="1".
+ * Pelle Proposta su ogni pagina ufficio che carica il bootstrap.
+ * Spenta con data-gfv-pelle-host="0", sul campo e sul login.
  * Flag uiPelleProposta. Spento = attributo oggi e niente shell.
  * @module core/js/ui-pelle
  */
@@ -11,6 +12,8 @@ import {
   PELLE_ACCENT,
   computePelleState,
   isFieldWorkspacePath,
+  isPelleSkippedPath,
+  moduleFromPath,
   visibleShellEntries,
   homeActionsFromShell,
   cardsModelFromRows
@@ -47,7 +50,37 @@ function escapeHtml(s) {
 }
 
 function pageHost() {
-  return document.documentElement.getAttribute('data-gfv-pelle-host') === '1';
+  if (document.documentElement.getAttribute('data-gfv-pelle-host') === '0') return false;
+  const path = window.location && window.location.pathname;
+  if (isFieldWorkspacePath(path) || isPelleSkippedPath(path)) return false;
+  return true;
+}
+
+function ensurePageMeta() {
+  const html = document.documentElement;
+  const path = window.location && window.location.pathname;
+  if (!html.getAttribute('data-gfv-module')) {
+    const mod = moduleFromPath(path);
+    if (mod) html.setAttribute('data-gfv-module', mod);
+  }
+  if (!html.getAttribute('data-gfv-pelle-place')) {
+    const h1 = document.querySelector('h1');
+    const raw = (h1 && h1.textContent) || document.title || 'GFV';
+    const place = String(raw)
+      .replace(/[\u{1F300}-\u{1FAFF}\u2600-\u27BF]/gu, '')
+      .replace(/\s*-\s*GFV[\s\S]*$/i, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .slice(0, 48);
+    html.setAttribute('data-gfv-pelle-place', place || 'GFV');
+  }
+  if (
+    !html.getAttribute('data-gfv-pelle-surface') &&
+    moduleFromPath(path) === 'home' &&
+    String(path || '').indexOf('/modules/') < 0
+  ) {
+    html.setAttribute('data-gfv-pelle-surface', 'home');
+  }
 }
 
 function resolveAccentId() {
@@ -341,10 +374,20 @@ function isOwnPelleMutation(record) {
   });
 }
 
+function listHosts() {
+  const nodes = Array.from(document.querySelectorAll('[data-gfv-pelle-list], .table-responsive, .table-container'));
+  return nodes.filter((el) => {
+    if (el.closest('.modal') || el.closest('.gfv-pelle-cards')) return false;
+    const parent = el.parentElement;
+    if (parent && parent.closest('[data-gfv-pelle-list], .table-responsive, .table-container')) return false;
+    return true;
+  });
+}
+
 function syncLists() {
   listLock = true;
   try {
-    document.querySelectorAll('[data-gfv-pelle-list]').forEach(renderCardsHost);
+    listHosts().forEach(renderCardsHost);
   } finally {
     listLock = false;
   }
@@ -358,7 +401,7 @@ function watchLists() {
       window.clearTimeout(listTimer);
       listTimer = window.setTimeout(syncLists, 40);
     });
-    document.querySelectorAll('[data-gfv-pelle-list]').forEach((el) => {
+    document.querySelectorAll('.content, .container, #dashboard-content').forEach((el) => {
       listObserver.observe(el, { childList: true, subtree: true });
     });
   }
@@ -398,6 +441,7 @@ export function applyPelleFromFlags() {
   const field = isFieldWorkspacePath(window.location && window.location.pathname);
   const desktop = typeof window.matchMedia === 'function' && window.matchMedia(PELLE_DESKTOP_MQ).matches;
   const flagOn = isFeatureEnabledFromWindow(PELLE_FLAG_ID);
+  if (pageHost()) ensurePageMeta();
   const surface = document.documentElement.getAttribute('data-gfv-pelle-surface') || '';
   const state = computePelleState({
     host: pageHost(),

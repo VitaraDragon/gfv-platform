@@ -6,6 +6,8 @@ import { describe, test, expect } from 'vitest';
 import {
   computePelleState,
   isFieldWorkspacePath,
+  isPelleSkippedPath,
+  moduleFromPath,
   visibleShellEntries,
   homeActionsFromShell,
   cardsModelFromRows,
@@ -54,6 +56,13 @@ describe('ui-pelle stato', () => {
     expect(computePelleState({ host: true, fieldWorkspace: true, flagOn: true }).apply).toBe(false);
     expect(isFieldWorkspacePath('/modules/manodopera/views/field-workspace-standalone.html')).toBe(true);
     expect(isFieldWorkspacePath('/core/dashboard-standalone.html')).toBe(false);
+    expect(isPelleSkippedPath('/core/mobile/field-workspace-standalone.html')).toBe(true);
+    expect(isPelleSkippedPath('/core/auth/login-standalone.html')).toBe(true);
+    expect(isPelleSkippedPath('/modules/magazzino/views/magazzino-home-standalone.html')).toBe(false);
+    expect(moduleFromPath('/modules/magazzino/views/magazzino-home-standalone.html')).toBe('magazzino');
+    expect(moduleFromPath('/modules/vigneto/views/vigneto-dashboard-standalone.html')).toBe('vigneto');
+    expect(moduleFromPath('/core/dashboard-standalone.html')).toBe('home');
+    expect(moduleFromPath('/core/admin/gestione-lavori-standalone.html')).toBe('lavori');
   });
 
   test('shell legge il catalogo e nasconde i moduli non attivi', () => {

@@ -13,7 +13,8 @@ html[data-pelle="proposta"] {
 }
 
 html[data-pelle="proposta"] body {
-  background: var(--gfv-pelle-paper);
+  background: var(--gfv-pelle-paper) !important;
+  background-image: none !important;
   color: var(--gfv-pelle-ink);
   font-family: "Plus Jakarta Sans", system-ui, sans-serif;
 }
@@ -22,6 +23,7 @@ html[data-pelle="proposta"] body .header,
 html[data-pelle="proposta"] body .dashboard-header,
 html[data-pelle="proposta"] body.conto-terzi-mode .header {
   background: var(--gfv-pelle-panel) !important;
+  background-image: none !important;
   color: var(--gfv-pelle-ink) !important;
   border-radius: 0 !important;
   box-shadow: none !important;
@@ -30,16 +32,16 @@ html[data-pelle="proposta"] body.conto-terzi-mode .header {
 }
 
 html[data-pelle="proposta"] body .header h1,
-html[data-pelle="proposta"] body .dashboard-header h1,
 html[data-pelle="proposta"] body .header p,
+html[data-pelle="proposta"] body .dashboard-header h1,
 html[data-pelle="proposta"] body .dashboard-header .user-info,
 html[data-pelle="proposta"] body .dashboard-header .user-roles {
-  color: var(--gfv-pelle-ink);
+  color: var(--gfv-pelle-ink) !important;
 }
 
 html[data-pelle="proposta"] body .header p,
 html[data-pelle="proposta"] body .dashboard-header .user-info {
-  color: var(--gfv-pelle-muted);
+  color: var(--gfv-pelle-muted) !important;
 }
 
 html[data-pelle="proposta"] body .header .btn,
@@ -64,18 +66,31 @@ html[data-pelle="proposta"] .dashboard-hub-heading {
   text-transform: uppercase;
 }
 
+html[data-pelle="proposta"] .content,
 html[data-pelle="proposta"] .stat-card,
+html[data-pelle="proposta"] body.conto-terzi-mode .stat-card,
 html[data-pelle="proposta"] .action-card,
 html[data-pelle="proposta"] .dashboard-hub-block,
 html[data-pelle="proposta"] .filters,
 html[data-pelle="proposta"] .dashboard-section {
   background: var(--gfv-pelle-panel) !important;
+  background-image: none !important;
   color: var(--gfv-pelle-ink) !important;
   border: 1px solid var(--gfv-pelle-line) !important;
   box-shadow: none !important;
 }
 
-html[data-pelle="proposta"] .stat-card:hover,
+html[data-pelle="proposta"] .stat-card.secondary,
+html[data-pelle="proposta"] .stat-card.warning,
+html[data-pelle="proposta"] .stat-card.danger,
+html[data-pelle="proposta"] .stat-card-ritardo,
+html[data-pelle="proposta"] .stat-card-tempo,
+html[data-pelle="proposta"] .stat-card-anticipo,
+html[data-pelle="proposta"] body.conto-terzi-mode .stat-card:not(.secondary):not(.warning):not(.danger):not(.stat-card-ritardo):not(.stat-card-tempo):not(.stat-card-anticipo) {
+  background: var(--gfv-pelle-panel) !important;
+  background-image: none !important;
+  color: var(--gfv-pelle-ink) !important;
+}
 html[data-pelle="proposta"] .action-card:hover {
   transform: none;
 }
@@ -239,8 +254,16 @@ html[data-pelle="proposta"] .gfv-pelle-card small {
 }
 
 /* Liste: schede sul telefono, tabella su desktop */
-html[data-pelle="proposta"][data-shell="phone"] [data-gfv-pelle-list] table {
+html[data-pelle="proposta"][data-shell="phone"] [data-gfv-pelle-list] table,
+html[data-pelle="proposta"][data-shell="phone"] .table-responsive > table,
+html[data-pelle="proposta"][data-shell="phone"] .table-container > table,
+html[data-pelle="proposta"][data-shell="phone"] .table-responsive table,
+html[data-pelle="proposta"][data-shell="phone"] .table-container table {
   display: none !important;
+}
+
+html[data-pelle="proposta"][data-shell="phone"] .modal table {
+  display: table !important;
 }
 
 html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-cards,
@@ -296,6 +319,7 @@ html[data-pelle="proposta"] .gfv-pelle-job-actions {
 }
 
 html[data-pelle="proposta"][data-shell="desktop"] [data-gfv-pelle-list] table,
+html[data-pelle="proposta"][data-shell="desktop"] .table-responsive table,
 html[data-pelle="proposta"] table.lavori-table {
   width: 100%;
   border-collapse: collapse;
@@ -305,9 +329,11 @@ html[data-pelle="proposta"] table.lavori-table {
 }
 
 html[data-pelle="proposta"][data-shell="desktop"] [data-gfv-pelle-list] th,
+html[data-pelle="proposta"][data-shell="desktop"] .table-responsive th,
 html[data-pelle="proposta"] table.lavori-table th {
   text-align: left;
-  color: var(--gfv-pelle-muted);
+  color: var(--gfv-pelle-muted) !important;
+  background: var(--gfv-pelle-panel) !important;
   font-size: 11px;
   letter-spacing: 0.04em;
   text-transform: uppercase;

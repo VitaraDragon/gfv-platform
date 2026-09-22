@@ -269,3 +269,4 @@ Non toccare il workspace campo. Non inventare if per singolo formId.
 |-----------|------|------|
 | 0 | 2026-09-22 | Prima stesura da conversazione: prova isolata, rollback, vedere su tutta l’app |
 | 1 | 2026-09-22 | Fetata 0–1: flag `uiPelleProposta`, shell da `MODULE_CATALOG`, Home + Frutteto + anagrafica + Gestione lavori. Ancora gated. |
+| 2 | 2026-09-22 | Stessa pelle su tutte le standalone ufficio (anche Magazzino e le altre liste). Campo e login esclusi. |
