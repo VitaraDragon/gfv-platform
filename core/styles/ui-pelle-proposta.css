@@ -120,12 +120,25 @@ html[data-pelle="proposta"] .action-card {
 
 html[data-pelle="proposta"] .action-icon {
   grid-row: 1 / span 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: 0;
   width: 40px;
   height: 40px;
   margin: 0;
   border-radius: 12px;
-  background: #ffedd5;
+  color: var(--gfv-pelle-accent);
+  background: #fffef8;
+  background: color-mix(in srgb, currentColor 14%, #fffef8);
+  border: 1px solid color-mix(in srgb, currentColor 28%, #e7e5e4);
+}
+
+html[data-pelle="proposta"] .action-icon svg,
+html[data-pelle="proposta"] .gfv-pelle-ico svg {
+  width: 20px;
+  height: 20px;
+  display: block;
 }
 
 html[data-pelle="proposta"] .action-title,
@@ -236,11 +249,16 @@ html[data-pelle="proposta"] .gfv-pelle-card {
 
 html[data-pelle="proposta"] .gfv-pelle-ico {
   grid-row: 1 / span 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 40px;
   height: 40px;
   border-radius: 12px;
-  background: #e8f5ee;
-  border: 1px solid var(--gfv-pelle-line);
+  color: var(--gfv-pelle-accent);
+  background: #fffef8;
+  background: color-mix(in srgb, currentColor 14%, #fffef8);
+  border: 1px solid color-mix(in srgb, currentColor 28%, #e7e5e4);
 }
 
 html[data-pelle="proposta"] .gfv-pelle-card strong {

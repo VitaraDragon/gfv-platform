@@ -271,3 +271,4 @@ Non toccare il workspace campo. Non inventare if per singolo formId.
 | 1 | 2026-09-22 | Fetata 0–1: flag `uiPelleProposta`, shell da `MODULE_CATALOG`, Home + Frutteto + anagrafica + Gestione lavori. Ancora gated. |
 | 2 | 2026-09-22 | Stessa pelle su tutte le standalone ufficio (anche Magazzino e le altre liste). Campo e login esclusi. |
 | 3 | 2026-09-22 | Su PC il menu a sinistra non resta aperto: graffetta sul bordo, chiuso di default. |
+| 4 | 2026-09-22 | Il riquadro accanto al nome porta un’icona a tratto, nel colore del modulo. |

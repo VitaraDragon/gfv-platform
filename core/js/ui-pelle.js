@@ -18,6 +18,7 @@ import {
   homeActionsFromShell,
   cardsModelFromRows
 } from './ui-pelle-state.js';
+import { iconNameForEmoji, iconNameForModule, iconSvg } from './ui-pelle-icons.js';
 
 const FONT_ID = 'gfv-pelle-font';
 const FONT_HREF = 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap';
@@ -300,7 +301,9 @@ function mountHome(entries) {
   const cards = actions.map((a) => {
     return (
       '<a class="gfv-pelle-card" href="' + escapeHtml(absHref(a.href)) + '">' +
-      '<span class="gfv-pelle-ico" aria-hidden="true"></span>' +
+      '<span class="gfv-pelle-ico" style="color:' + escapeHtml(PELLE_ACCENT[a.id] || '#1c1917') + '" aria-hidden="true">' +
+      iconSvg(iconNameForModule(a.id)) +
+      '</span>' +
       '<strong>' + escapeHtml(a.label) + '</strong>' +
       (a.hint ? '<small>' + escapeHtml(a.hint) + '</small>' : '') +
       '</a>'
@@ -428,6 +431,26 @@ function watchHome(entries) {
   mountHome(entries);
 }
 
+function paintActionIcons() {
+  document.querySelectorAll('.action-icon').forEach((el) => {
+    if (!el.getAttribute('data-gfv-emoji')) {
+      const raw = (el.textContent || '').trim();
+      if (raw) el.setAttribute('data-gfv-emoji', raw);
+    }
+    const key = iconNameForEmoji(el.getAttribute('data-gfv-emoji') || '');
+    if (el.getAttribute('data-gfv-ico') === key && el.querySelector('svg')) return;
+    el.setAttribute('data-gfv-ico', key);
+    el.innerHTML = iconSvg(key);
+  });
+}
+
+function restoreActionIcons() {
+  document.querySelectorAll('.action-icon[data-gfv-emoji]').forEach((el) => {
+    el.textContent = el.getAttribute('data-gfv-emoji');
+    el.removeAttribute('data-gfv-ico');
+  });
+}
+
 function onEscape(e) {
   if (e.key !== 'Escape') return;
   if (document.documentElement.getAttribute('data-gfv-pelle-lab') === 'open') setLab(false);
@@ -458,6 +481,7 @@ export function applyPelleFromFlags() {
     unmountCards();
     disconnectObservers();
     ensureFont(false);
+    restoreActionIcons();
     return;
   }
   const html = document.documentElement;
@@ -472,6 +496,8 @@ export function applyPelleFromFlags() {
     html.style.removeProperty('--gfv-pelle-accent');
   }
   ensureFont(state.pelle === 'proposta');
+  if (state.pelle === 'proposta') paintActionIcons();
+  else restoreActionIcons();
   if (!state.mountShell) {
     unmountShell();
     unmountHome();

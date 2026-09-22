@@ -117,3 +117,16 @@ describe('ui-pelle stato', () => {
     expect(PELLE_ACCENT.frutteto).toBe('#FF6F00');
   });
 });
+
+describe('icone a tratto', () => {
+  test('modulo e emoji già in pagina scelgono la stessa famiglia di segni', async () => {
+    const { iconNameForModule, iconNameForEmoji, iconSvg } = await import('../core/js/ui-pelle-icons.js');
+    expect(iconNameForModule('frutteto')).toBe('apple');
+    expect(iconNameForModule('vigneto')).toBe('grape');
+    expect(iconNameForEmoji('🍎')).toBe('apple');
+    expect(iconNameForEmoji('👷‍♂️')).toBe('user');
+    expect(iconNameForEmoji('sconosciuto')).toBe('mark');
+    expect(iconSvg('apple')).toContain('<svg');
+    expect(iconSvg('nonesiste')).toContain('circle');
+  });
+});
