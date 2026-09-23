@@ -34,8 +34,12 @@
             background: linear-gradient(180deg, #2E8B57 0%, #256E4A 100%);
             color: white;
             padding: 30px;
-            text-align: center;
-            position: relative;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
         }
 
         .header h1 {
@@ -50,21 +54,18 @@
         }
 
         .user-info {
-            position: absolute;
-            top: 20px;
-            right: 20px;
+            margin-top: 8px;
             display: flex;
             align-items: center;
             gap: 15px;
         }
 
         .header-actions {
-            position: absolute;
-            top: 20px;
-            left: 20px;
             display: flex;
             gap: 10px;
             align-items: center;
+            flex-wrap: wrap;
+            justify-content: flex-end;
         }
 
         .user-info span {
@@ -603,9 +604,9 @@
         }
 
         @media (max-width: 768px) {
-            .user-info {
-                position: static;
-                margin-top: 15px;
+            .header-actions {
+                width: 100%;
+                justify-content: flex-start;
             }
         }
     </style>
@@ -714,17 +715,19 @@
     </script>
     <div class="container">
         <div class="header" id="main-header">
-            <h1>📅 Diario Attività</h1>
-            <p>Registra e gestisci le attività lavorative</p>
+            <div>
+                <h1>📅 Diario Attività</h1>
+                <p>Registra e gestisci le attività lavorative</p>
+                <div class="user-info">
+                    <span id="user-info">Caricamento...</span>
+                </div>
+            </div>
             <div class="header-actions">
                 <a href="admin/impostazioni-standalone.html" class="btn btn-primary" style="text-decoration: none; display: none; align-items: center; gap: 8px;" id="impostazioni-link">
                     <span>⚙️</span>
                     <span>Impostazioni</span>
                 </a>
                 <a href="#" id="dashboard-link" class="btn btn-secondary" style="text-decoration: none;">← Dashboard</a>
-            </div>
-            <div class="user-info">
-                <span id="user-info">Caricamento...</span>
                 <button id="logout-button" class="btn btn-primary">Logout</button>
             </div>
         </div>

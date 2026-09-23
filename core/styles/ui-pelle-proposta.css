@@ -1,0 +1,763 @@
+/**
+ * Pelle Proposta — token e chrome. Attiva solo con html[data-pelle="proposta"].
+ * Senza l'attributo (o con data-pelle="oggi") queste regole non cambiano la pagina.
+ */
+
+html[data-pelle="proposta"] {
+  --gfv-pelle-paper: #F6F3EC;
+  --gfv-pelle-panel: #FFFEFA;
+  --gfv-pelle-ink: #1c1917;
+  --gfv-pelle-muted: #57534e;
+  --gfv-pelle-line: #e7e5e4;
+  --gfv-pelle-accent: #1c1917;
+}
+
+html[data-pelle="proposta"] body {
+  background: var(--gfv-pelle-paper) !important;
+  background-image: none !important;
+  color: var(--gfv-pelle-ink);
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+}
+
+html[data-pelle="proposta"] body .header,
+html[data-pelle="proposta"] body .dashboard-header,
+html[data-pelle="proposta"] body.conto-terzi-mode .header {
+  background: var(--gfv-pelle-panel) !important;
+  background-image: none !important;
+  color: var(--gfv-pelle-ink) !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border-bottom: 3px solid var(--gfv-pelle-accent) !important;
+  text-align: left;
+}
+
+html[data-pelle="proposta"] body .header h1,
+html[data-pelle="proposta"] body .header p,
+html[data-pelle="proposta"] body .dashboard-header h1,
+html[data-pelle="proposta"] body .dashboard-header .user-info,
+html[data-pelle="proposta"] body .dashboard-header .user-roles {
+  color: var(--gfv-pelle-ink) !important;
+}
+
+html[data-pelle="proposta"] body .header p,
+html[data-pelle="proposta"] body .dashboard-header .user-info {
+  color: var(--gfv-pelle-muted) !important;
+}
+
+html[data-pelle="proposta"] body .header .btn,
+html[data-pelle="proposta"] body .header .btn-primary,
+html[data-pelle="proposta"] body .header .btn-secondary,
+html[data-pelle="proposta"] body .dashboard-header .btn,
+html[data-pelle="proposta"] body .dashboard-header .btn-primary,
+html[data-pelle="proposta"] body .dashboard-header .logout-button {
+  background: var(--gfv-pelle-paper) !important;
+  color: var(--gfv-pelle-ink) !important;
+  border: 1px solid #d6d3d1 !important;
+  box-shadow: none !important;
+}
+
+html[data-pelle="proposta"] .content h2,
+html[data-pelle="proposta"] .dashboard-content h2,
+html[data-pelle="proposta"] .dashboard-hub-heading {
+  color: var(--gfv-pelle-muted) !important;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+html[data-pelle="proposta"] .content,
+html[data-pelle="proposta"] .stat-card,
+html[data-pelle="proposta"] body.conto-terzi-mode .stat-card,
+html[data-pelle="proposta"] .action-card,
+html[data-pelle="proposta"] .dashboard-hub-block,
+html[data-pelle="proposta"] .filters,
+html[data-pelle="proposta"] .dashboard-section {
+  background: var(--gfv-pelle-panel) !important;
+  background-image: none !important;
+  color: var(--gfv-pelle-ink) !important;
+  border: 1px solid var(--gfv-pelle-line) !important;
+  box-shadow: none !important;
+}
+
+html[data-pelle="proposta"] .stat-card.secondary,
+html[data-pelle="proposta"] .stat-card.warning,
+html[data-pelle="proposta"] .stat-card.danger,
+html[data-pelle="proposta"] .stat-card-ritardo,
+html[data-pelle="proposta"] .stat-card-tempo,
+html[data-pelle="proposta"] .stat-card-anticipo,
+html[data-pelle="proposta"] body.conto-terzi-mode .stat-card:not(.secondary):not(.warning):not(.danger):not(.stat-card-ritardo):not(.stat-card-tempo):not(.stat-card-anticipo) {
+  background: var(--gfv-pelle-panel) !important;
+  background-image: none !important;
+  color: var(--gfv-pelle-ink) !important;
+}
+html[data-pelle="proposta"] .action-card:hover {
+  transform: none;
+}
+
+html[data-pelle="proposta"] .stat-value,
+html[data-pelle="proposta"] .stat-label,
+html[data-pelle="proposta"] .action-title,
+html[data-pelle="proposta"] .action-description {
+  color: var(--gfv-pelle-ink);
+}
+
+html[data-pelle="proposta"] .stat-label,
+html[data-pelle="proposta"] .action-description {
+  color: var(--gfv-pelle-muted);
+}
+
+html[data-pelle="proposta"] .action-card {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  column-gap: 12px;
+  row-gap: 2px;
+  align-items: center;
+  text-align: left;
+  border-radius: 14px;
+  padding: 12px;
+}
+
+html[data-pelle="proposta"] .action-icon {
+  grid-row: 1 / span 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0;
+  width: 40px;
+  height: 40px;
+  margin: 0;
+  border-radius: 12px;
+  color: var(--gfv-pelle-accent);
+  background: #fffef8;
+  background: color-mix(in srgb, currentColor 14%, #fffef8);
+  border: 1px solid color-mix(in srgb, currentColor 28%, #e7e5e4);
+}
+
+html[data-pelle="proposta"] .action-icon svg,
+html[data-pelle="proposta"] .gfv-pelle-ico svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+html[data-pelle="proposta"] .action-title,
+html[data-pelle="proposta"] .action-description {
+  grid-column: 2;
+}
+
+html[data-pelle="proposta"] .action-title {
+  font-size: 15px;
+}
+
+html[data-pelle="proposta"][data-shell="phone"] .quick-actions {
+  grid-template-columns: 1fr;
+}
+
+html[data-pelle="proposta"][data-shell="phone"] .stats-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] .quick-actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Home: il catalogo moduli non è la prima schermata */
+html[data-pelle="proposta"][data-gfv-pelle-surface="home"] .dashboard-module-entry-row,
+html[data-pelle="proposta"][data-gfv-pelle-surface="home"] .dashboard-module-menu,
+html[data-pelle="proposta"][data-gfv-pelle-surface="home"] .dashboard-quick-bar-wrap,
+html[data-pelle="proposta"][data-gfv-pelle-surface="home"] .dashboard-hub-block--shortcuts {
+  display: none !important;
+}
+
+html[data-pelle="proposta"] .dashboard-hub-block--attention .dashboard-hub-list li:nth-child(n+2) {
+  display: none;
+}
+
+html[data-pelle="proposta"] .dashboard-hub-block--attention.is-open .dashboard-hub-list li:nth-child(n+2) {
+  display: list-item;
+}
+
+html[data-pelle="proposta"] .dashboard-hub-block--attention.is-open .dashboard-hub-list li:nth-child(n+6) {
+  display: none;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-briefing {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: var(--gfv-pelle-panel);
+  border: 1px solid var(--gfv-pelle-line);
+  border-radius: 16px;
+  padding: 12px;
+  margin-bottom: 14px;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-briefing img {
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  border-radius: 12px;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-briefing p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-more {
+  display: inline-flex;
+  margin-top: 8px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: #1f6b3a;
+  font-weight: 650;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-panel h2 {
+  margin: 0 0 10px;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-cards-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+html[data-pelle="proposta"] .gfv-pelle-card {
+  display: grid;
+  grid-template-columns: 40px 1fr;
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  row-gap: 2px;
+  align-items: center;
+  background: var(--gfv-pelle-panel);
+  border: 1px solid var(--gfv-pelle-line);
+  border-radius: 14px;
+  padding: 12px;
+  text-decoration: none;
+  color: inherit;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-ico {
+  grid-row: 1 / span 2;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  color: var(--gfv-pelle-accent);
+  background: #fffef8;
+  background: color-mix(in srgb, currentColor 14%, #fffef8);
+  border: 1px solid color-mix(in srgb, currentColor 28%, #e7e5e4);
+}
+
+html[data-pelle="proposta"] .gfv-pelle-card strong {
+  font-size: 15px;
+  font-weight: 650;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-card small {
+  font-size: 12px;
+  color: var(--gfv-pelle-muted);
+}
+
+/* Liste: schede sul telefono, tabella su desktop */
+html[data-pelle="proposta"][data-shell="phone"] [data-gfv-pelle-list] table,
+html[data-pelle="proposta"][data-shell="phone"] .table-responsive > table,
+html[data-pelle="proposta"][data-shell="phone"] .table-container > table,
+html[data-pelle="proposta"][data-shell="phone"] .table-responsive table,
+html[data-pelle="proposta"][data-shell="phone"] .table-container table {
+  display: none !important;
+}
+
+html[data-pelle="proposta"][data-shell="phone"] .modal table {
+  display: table !important;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-cards,
+html[data-pelle="oggi"] .gfv-pelle-cards {
+  display: none !important;
+}
+
+html[data-pelle="proposta"][data-shell="phone"] .gfv-pelle-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 28px;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-job {
+  background: var(--gfv-pelle-panel);
+  border: 1px solid var(--gfv-pelle-line);
+  border-radius: 16px;
+  padding: 14px;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-job.is-alert {
+  border-color: #f0ad4e;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-job-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-job-top h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: none;
+  color: var(--gfv-pelle-ink) !important;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-job-line {
+  margin: 6px 0 10px;
+  font-size: 13px;
+  color: var(--gfv-pelle-muted);
+}
+
+html[data-pelle="proposta"] .gfv-pelle-job-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] [data-gfv-pelle-list] table,
+html[data-pelle="proposta"][data-shell="desktop"] .table-responsive table,
+html[data-pelle="proposta"] table.lavori-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+  background: var(--gfv-pelle-panel);
+  border: 1px solid var(--gfv-pelle-line);
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] [data-gfv-pelle-list] th,
+html[data-pelle="proposta"][data-shell="desktop"] .table-responsive th,
+html[data-pelle="proposta"] table.lavori-table th,
+html[data-pelle="proposta"] .table-container th {
+  text-align: left;
+  color: var(--gfv-pelle-muted) !important;
+  background: var(--gfv-pelle-panel) !important;
+  background-image: none !important;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 10px 12px;
+}
+
+html[data-pelle="proposta"] .config-section,
+html[data-pelle="proposta"] .riepilogo-pianificazione,
+html[data-pelle="proposta"] tbody tr.total-row {
+  background: var(--gfv-pelle-paper) !important;
+  background-image: none !important;
+}
+
+html[data-pelle="proposta"] tbody tr:hover {
+  background: #f5f5f4 !important;
+}
+
+html[data-pelle="proposta"] .section-title,
+html[data-pelle="proposta"] .materiali-category h3,
+html[data-pelle="proposta"] .riepilogo-pianificazione h3 {
+  color: var(--gfv-pelle-ink) !important;
+  border-bottom-color: var(--gfv-pelle-line) !important;
+}
+
+html[data-pelle="proposta"] .form-group input,
+html[data-pelle="proposta"] .form-group select {
+  border-color: var(--gfv-pelle-line) !important;
+}
+
+html[data-pelle="proposta"] .form-group input:focus,
+html[data-pelle="proposta"] .form-group select:focus {
+  border-color: var(--gfv-pelle-accent) !important;
+}
+
+html[data-pelle="proposta"] .modal-content {
+  background: var(--gfv-pelle-panel);
+  color: var(--gfv-pelle-ink);
+  border-radius: 16px;
+}
+
+html[data-pelle="proposta"] .modal-header h3 {
+  color: var(--gfv-pelle-ink);
+}
+
+html[data-pelle="proposta"] .modal-tabs {
+  display: flex;
+  border: 1px solid var(--gfv-pelle-line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--gfv-pelle-paper);
+}
+
+html[data-pelle="proposta"] .modal-tab {
+  background: transparent;
+  color: var(--gfv-pelle-muted);
+  border: 0;
+}
+
+html[data-pelle="proposta"] .modal-tab.active {
+  background: var(--gfv-pelle-panel);
+  color: var(--gfv-pelle-ink);
+}
+
+/* Shell: stesso DOM, sheet sotto 1024 e pannelli a scomparsa da 1024 */
+html[data-pelle="proposta"] .gfv-pelle-top {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  display: flex;
+  align-items: stretch;
+  background: #1c1917;
+  border-bottom: 1px solid #44403c;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-map {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  z-index: 2;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 48px;
+  margin: 0;
+  padding: calc(6px + env(safe-area-inset-top, 0px)) 10px 8px;
+  border: 0;
+  background: transparent;
+  color: #e7e5e4;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-handle {
+  position: relative;
+  flex: 1;
+  width: auto;
+  min-height: 48px;
+  margin: 0;
+  padding: calc(6px + env(safe-area-inset-top, 0px)) 12px 8px;
+  border: 0;
+  background: transparent;
+  color: #e7e5e4;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  font: 600 12px/1.25 "Plus Jakarta Sans", system-ui, sans-serif;
+  cursor: pointer;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-alt {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: calc(6px + env(safe-area-inset-top, 0px)) 14px 8px;
+  border: 0;
+  border-left: 1px solid #44403c;
+  background: transparent;
+  color: #e7e5e4;
+  cursor: pointer;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-gear svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+html[data-pelle="proposta"] .dashboard-header a[href="admin/impostazioni-standalone.html"],
+html[data-pelle="proposta"] #dashboard-documentation-guide-link,
+html[data-pelle="proposta"] #switch-tenant-button,
+html[data-pelle="proposta"] #mappa-aziendale-header-link,
+html[data-pelle="proposta"] .logout-button,
+html[data-pelle="proposta"] #logout-button,
+html[data-pelle="proposta"] #mappa-logout-button {
+  display: none !important;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-grip {
+  width: 36px;
+  height: 4px;
+  border-radius: 99px;
+  background: #78716c;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-clip {
+  display: none;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-handle-hint {
+  font-weight: 500;
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #a8a29e;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 44;
+  background: rgba(28, 25, 23, 0.45);
+}
+
+html[data-pelle="proposta"][data-gfv-pelle-lab="moduli"] .gfv-pelle-backdrop,
+html[data-pelle="proposta"][data-gfv-pelle-lab="altro"] .gfv-pelle-backdrop,
+html[data-pelle="proposta"][data-gfv-pelle-lab="mappa"] .gfv-pelle-backdrop {
+  display: block;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-lab {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 46;
+  max-height: min(82dvh, 720px);
+  overflow: auto;
+  background: #1c1917;
+  color: #fafaf9;
+  border-bottom: 1px solid #44403c;
+  padding: 12px 12px 20px;
+  transform: translateY(-110%);
+  pointer-events: none;
+}
+
+html[data-pelle="proposta"][data-gfv-pelle-lab="moduli"] .gfv-pelle-lab:not(.gfv-pelle-lab--altro):not(.gfv-pelle-lab--mappa),
+html[data-pelle="proposta"][data-gfv-pelle-lab="altro"] .gfv-pelle-lab--altro,
+html[data-pelle="proposta"][data-gfv-pelle-lab="mappa"] .gfv-pelle-lab--mappa {
+  transform: none;
+  pointer-events: auto;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-kicker {
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: #a8a29e;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-kicker--desk {
+  display: none;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-mods {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-mod {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 52px;
+  padding: 8px 10px;
+  border-radius: 12px;
+  background: #292524;
+  color: #fafaf9;
+  text-decoration: none;
+  font-size: 14px;
+  font-weight: 650;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-mod small {
+  font-size: 11px;
+  font-weight: 500;
+  color: #a8a29e;
+}
+
+html[data-pelle="proposta"] button.gfv-pelle-mod {
+  width: 100%;
+  border: 0;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-mod[aria-current="page"] {
+  outline: 1px solid #d6d3d1;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-lab--altro .gfv-pelle-mods,
+html[data-pelle="proposta"] .gfv-pelle-lab--mappa .gfv-pelle-mods {
+  grid-template-columns: 1fr;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-top {
+  position: static;
+  display: block;
+  width: 0;
+  height: 0;
+  overflow: visible;
+  background: transparent;
+  border: 0;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-map {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  right: auto;
+  z-index: 60;
+  width: 44px;
+  min-height: 44px;
+  padding: 8px;
+  transform: translateX(-50%);
+  border: 1px solid #d6d3d1;
+  border-radius: 14px;
+  background: #fffef8;
+  color: #1c1917;
+  box-shadow: 3px 3px 0 #e7e5e4;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-alt {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 60;
+  width: 44px;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid #d6d3d1;
+  border-radius: 14px 0 0 14px;
+  background: #fffef8;
+  color: #1c1917;
+  box-shadow: -3px 3px 0 #e7e5e4;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-kicker--phone,
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-grip,
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-handle-hint {
+  display: none !important;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-handle {
+  display: flex;
+  position: fixed;
+  top: 72px;
+  left: 0;
+  z-index: 60;
+  transition: left 0.18s ease;
+  width: 44px;
+  min-height: 44px;
+  margin: 0;
+  padding: 8px;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  border: 1px solid #d6d3d1;
+  border-left: 0;
+  border-radius: 0 14px 14px 0;
+  background: #fffef8;
+  color: #1c1917;
+  box-shadow: 3px 3px 0 #e7e5e4;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-clip {
+  display: flex;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-handle-label {
+  display: none;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"][data-gfv-pelle-lab="moduli"] .gfv-pelle-handle {
+  left: 272px;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-kicker--desk {
+  display: block;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-lab:not(.gfv-pelle-lab--altro):not(.gfv-pelle-lab--mappa) {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: auto;
+  width: 272px;
+  height: 100dvh;
+  max-height: none;
+  transform: translateX(-105%);
+  pointer-events: none;
+  border-bottom: 0;
+  border-right: 1px solid #44403c;
+  border-radius: 0;
+  padding: 16px 12px 28px;
+  z-index: 46;
+  transition: transform 0.18s ease;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"][data-gfv-pelle-lab="moduli"] .gfv-pelle-lab:not(.gfv-pelle-lab--altro):not(.gfv-pelle-lab--mappa) {
+  transform: none;
+  pointer-events: auto;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-lab--altro {
+  top: 68px;
+  right: 16px;
+  left: auto;
+  width: min(320px, calc(100vw - 32px));
+  max-height: min(70dvh, 520px);
+  border-radius: 16px;
+  border: 1px solid #44403c;
+  transform: translateY(-12px);
+  opacity: 0;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"][data-gfv-pelle-lab="altro"] .gfv-pelle-lab--altro {
+  transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-lab--mappa {
+  top: 68px;
+  left: 50%;
+  right: auto;
+  width: min(320px, calc(100vw - 32px));
+  max-height: min(70dvh, 520px);
+  border-radius: 16px;
+  border: 1px solid #44403c;
+  transform: translate(-50%, -12px);
+  opacity: 0;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"][data-gfv-pelle-lab="mappa"] .gfv-pelle-lab--mappa {
+  transform: translate(-50%, 0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-mods {
+  grid-template-columns: 1fr;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] .dashboard-container,
+html[data-pelle="proposta"][data-shell="desktop"] .container {
+  flex: 1;
+  min-width: 0;
+}
