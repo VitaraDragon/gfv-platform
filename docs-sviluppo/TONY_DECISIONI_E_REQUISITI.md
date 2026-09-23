@@ -714,9 +714,14 @@ Non è il piano telefono manager (§25) e non è il piano campo (§24). Il look 
 | 26.1 | Lo stile attuale **resta** finché il PO non conferma la pelle. La Proposta è **affiancata** | prodotto 2026-09-22 | **implementato** (vincolo) | Senza `data-pelle="proposta"` le pagine restano com’erano |
 | 26.2 | Gate = flag tenant `uiPelleProposta` nello switch **Prova/Pubblicata** (Sabbie Gialle), **non** `moduliAttivi` | prodotto 2026-09-22 | **parziale** | `enabledAlways: false`. Tap Pubblicata spegne senza deploy. Fetata 2–4 no |
 | 26.3 | Rollback: tap **Pubblicata** e/o `git revert` su `main` + tag pre-promozione | prodotto 2026-09-22 | **parziale** | Tag locale `ui-pre-pelle-20260922` sul commit di `main`, non pushato. Il telefono vede la pelle solo dopo promozione |
-| 26.4 | Telefono: catalogo in sheet (si chiude dopo la scelta). PC: menu a sinistra a scomparsa, graffetta «Moduli» | prodotto 2026-09-22 | **parziale** | Prova: non più colonna sempre aperta. Campo e login no |
+| 26.4 | Telefono: catalogo in sheet (si chiude dopo la scelta). PC: menu a sinistra a scomparsa. La graffetta è solo icona (niente scritta «Moduli») | prodotto 2026-09-22, aggiornato 2026-09-23 | **parziale** | La scritta copriva la chat. Campo e login no |
 | 26.5 | Liste: schede su telefono, tabella su desktop. Reminder Tony 1 riga (§15.5) | prodotto 2026-09-21 | **parziale** | Ogni `.table-responsive` ufficio. Home: 1 riga, expand max 5 |
 | 26.6 | Workspace campo fuori scope. Niente seconda app, niente `if (formId)` nel core | prodotto 2026-09-22 | **implementato** (vincolo) | Host solo con `data-gfv-pelle-host`; campo non incluso |
+| 26.7 | Cartina in alto al centro: apre subito la mappa aziendale, senza un secondo menu | prodotto 2026-09-23 | **parziale** | Solo con Proposta. Link `mappa-aziendale-standalone.html` |
+| 26.8 | Ingranaggio in alto a destra: Impostazioni, Guide, Logout. «Azienda» solo se ci sono almeno due tenant, prima del Logout | prodotto 2026-09-23 | **parziale** | Con Proposta spariscono dall’header di pagina Impostazioni, Guide, Cambia azienda, Mappa e Logout |
+| 26.9 | Diario nel menu moduli non compare se Manodopera è attivo | prodotto 2026-09-23 | **parziale** | Stessa regola della dashboard normale |
+| 26.10 | «← Dashboard» in Impostazioni torna alla home principale, non all’hub Manodopera | prodotto 2026-09-23 | **parziale** | Solo quella pagina. Il resto degli admin non cambia |
+| 26.11 | Pulsanti di movimento in alto a destra nell’header, titolo a sinistra. Con una descrizione lunga il testo si restringe e i pulsanti restano sulla stessa riga | prodotto 2026-09-23 | **parziale** | Vale anche con Pubblicata. Pagine e eccezioni in `COSA_ABBIAMO_FATTO.md` (2026-09-23) |
 
 ---
 

@@ -19,6 +19,7 @@ import {
   homeActionsFromShell,
   moduleMenuEntries,
   accountMenuEntries,
+  mapMenuEntries,
   cardsModelFromRows
 } from './ui-pelle-state.js';
 import { iconNameForEmoji, iconNameForModule, iconSvg } from './ui-pelle-icons.js';
@@ -193,18 +194,35 @@ function shellEntriesFrom(catalog) {
 }
 
 function linkHtml(e) {
+  const inner = escapeHtml(e.label) + (e.hint ? '<small>' + escapeHtml(e.hint) + '</small>' : '');
+  if (e.action) {
+    return '<button type="button" class="gfv-pelle-mod" data-gfv-action="' + escapeHtml(e.action) + '">' + inner + '</button>';
+  }
   const blank = e.blank ? ' target="_blank" rel="noopener"' : '';
-  return (
-    '<a class="gfv-pelle-mod" href="' + escapeHtml(absHref(e.href)) + '"' + blank + '>' +
-    escapeHtml(e.label) +
-    (e.hint ? '<small>' + escapeHtml(e.hint) + '</small>' : '') +
-    '</a>'
-  );
+  return '<a class="gfv-pelle-mod" href="' + escapeHtml(absHref(e.href)) + '"' + blank + '>' + inner + '</a>';
+}
+
+function logoutFromPelle() {
+  Promise.all([
+    import('../services/auth-service.js'),
+    import('./simulator-standalone-page.js')
+  ]).then((mods) => {
+    return mods[0].signOutUser().then(() => mods[1].loginPageUrl(absHref('auth/login-standalone.html')));
+  }).then((url) => {
+    try {
+      sessionStorage.removeItem('gfv_expected_user_id');
+      sessionStorage.removeItem('gfv_user_just_registered');
+    } catch (e) { /* sessione non disponibile */ }
+    window.location.href = url;
+  }).catch(() => {
+    window.alert('Errore durante il logout');
+  });
 }
 
 function mountShell(entries) {
   const modules = moduleMenuEntries(entries);
   const account = accountMenuEntries();
+  const mapHref = absHref((mapMenuEntries()[0] || {}).href || 'mappa-aziendale-standalone.html');
   const sig = modules.map((e) => e.id + '\t' + e.href).join('|');
   let root = document.getElementById('gfv-pelle-shell');
   if (root && shellSig === sig) {
@@ -212,7 +230,6 @@ function mountShell(entries) {
     const place = document.documentElement.getAttribute('data-gfv-pelle-place') || 'Home';
     const label = document.getElementById('gfv-pelle-handle-label');
     if (label) label.textContent = 'Proposta · ' + place;
-    ensureAzienda(root);
     return;
   }
   shellSig = sig;
@@ -232,7 +249,12 @@ function mountShell(entries) {
     '<span class="gfv-pelle-handle-label" id="gfv-pelle-handle-label">Proposta · ' + escapeHtml(place) + '</span>' +
     '<span class="gfv-pelle-handle-hint">Tocca per i moduli</span>' +
     '</button>' +
-    '<button type="button" class="gfv-pelle-alt" id="gfv-pelle-alt" aria-expanded="false" aria-controls="gfv-pelle-alt-lab" aria-label="Apri o chiudi impostazioni e guide">Altro</button>' +
+    '<a class="gfv-pelle-map" id="gfv-pelle-map" href="' + escapeHtml(mapHref) + '" aria-label="Apri la mappa">' +
+    '<span class="gfv-pelle-gear" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3z"/><path d="M9 3v15"/><path d="M15 6v15"/></svg></span>' +
+    '</a>' +
+    '<button type="button" class="gfv-pelle-alt" id="gfv-pelle-alt" aria-expanded="false" aria-controls="gfv-pelle-alt-lab" aria-label="Apri o chiudi le opzioni">' +
+    '<span class="gfv-pelle-gear" aria-hidden="true"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>' +
+    '</button>' +
     '</div>' +
     '<div class="gfv-pelle-backdrop" id="gfv-pelle-backdrop" hidden></div>' +
     '<nav class="gfv-pelle-lab" id="gfv-pelle-lab" aria-hidden="true" aria-label="Moduli">' +
@@ -240,8 +262,8 @@ function mountShell(entries) {
     '<p class="gfv-pelle-kicker gfv-pelle-kicker--desk">Scegli un modulo. Il menu si chiude.</p>' +
     '<div class="gfv-pelle-mods">' + links + '</div>' +
     '</nav>' +
-    '<nav class="gfv-pelle-lab gfv-pelle-lab--altro" id="gfv-pelle-alt-lab" aria-hidden="true" aria-label="Impostazioni e guide">' +
-    '<p class="gfv-pelle-kicker">Impostazioni, guide e azienda. Il menu si chiude.</p>' +
+    '<nav class="gfv-pelle-lab gfv-pelle-lab--altro" id="gfv-pelle-alt-lab" aria-hidden="true" aria-label="Opzioni">' +
+    '<p class="gfv-pelle-kicker">Impostazioni, guide e logout. Il menu si chiude.</p>' +
     '<div class="gfv-pelle-mods" id="gfv-pelle-alt-mods">' + accountLinks + '</div>' +
     '</nav>';
   markCurrent(root);
@@ -249,13 +271,24 @@ function mountShell(entries) {
   const alt = document.getElementById('gfv-pelle-alt');
   const backdrop = document.getElementById('gfv-pelle-backdrop');
   if (handle) handle.addEventListener('click', () => toggleLab('moduli'));
-  if (alt) alt.addEventListener('click', () => toggleLab('altro'));
+  if (alt) {
+    alt.addEventListener('click', () => {
+      const opening = document.documentElement.getAttribute('data-gfv-pelle-lab') !== 'altro';
+      toggleLab('altro');
+      if (opening) ensureAzienda(root);
+    });
+  }
   if (backdrop) backdrop.addEventListener('click', () => setLab('closed'));
   root.querySelectorAll('a.gfv-pelle-mod').forEach((a) => {
     a.addEventListener('click', () => setLab('closed'));
   });
+  root.querySelectorAll('[data-gfv-action="logout"]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      setLab('closed');
+      logoutFromPelle();
+    });
+  });
   setLab('closed');
-  ensureAzienda(root);
 }
 
 function ensureAzienda(root) {
@@ -287,7 +320,9 @@ function ensureAzienda(root) {
           });
         }).catch(() => { /* selettore non disponibile */ });
       });
-      box.appendChild(btn);
+      const logoutBtn = box.querySelector('[data-gfv-action="logout"]');
+      if (logoutBtn) box.insertBefore(btn, logoutBtn);
+      else box.appendChild(btn);
     });
   }).catch(() => { /* una azienda, o l'accesso non è ancora pronto */ });
 }
@@ -563,6 +598,7 @@ export function applyPelleFromFlags() {
     disconnectObservers();
     return;
   }
+  mountShell(shellEntriesFrom(catalogCache));
   loadCatalog().then((catalog) => {
     if (seq !== applySeq) return;
     if (document.documentElement.getAttribute('data-pelle') !== 'proposta') return;
@@ -585,7 +621,7 @@ export function applyPelleFromFlags() {
         listObserver = null;
       }
     }
-  }).catch(() => { /* catalogo non disponibile: la pagina resta col chrome carta */ });
+  }).catch(() => { /* catalogo non disponibile: restano graffetta e menu Altro */ });
 }
 
 export function bootPelle() {

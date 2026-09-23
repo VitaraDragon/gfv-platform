@@ -1,6 +1,15 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-22 — pelle Proposta dietro flag (Fetata 0–1).**
+**Ultimo aggiornamento documentazione: 2026-09-23 — pelle Proposta: menu, mappa, logout e header allineati.**
+
+## Pelle Proposta — menu, mappa, logout e header allineati (2026-09-23)
+
+- **Cosa:** ancora dietro `uiPelleProposta` (Prova/Pubblicata). Su PC la graffetta è solo icona (niente scritta «Moduli», copriva la chat). In alto al centro una cartina apre subito la mappa aziendale. L’ingranaggio in alto a destra tiene Impostazioni, Guide e Logout; «Azienda» compare solo con almeno due aziende, prima del Logout. Con Proposta spariscono dall’header di pagina Impostazioni, Guide, Cambia azienda, Mappa e Logout. Diario non compare nel menu moduli se Manodopera è attivo. Il link «← Dashboard» in Impostazioni torna alla home principale. I pulsanti di movimento (Dashboard, e Impostazioni dove c’è) stanno in alto a destra, il titolo a sinistra: se la descrizione è lunga il testo si restringe e i pulsanti restano sulla stessa riga. Questo allineamento dell’header vale anche con Pubblicata.
+- **Pagine header sistemate:** Diario / lavori in corso / lavori completati; home Conto terzi, Frutteto e Vigneto; statistiche Frutteto, Vigneto e aziendali; trattamenti, concimazioni e potatura (Vigneto e Frutteto); Raccolta frutta; Tracciabilità consumi; Archivio documenti; Impegni giornalieri; Abbonamento.
+- **Già a posto, non toccate:** Terreni, Gestione lavori, liste (macchine, prodotti), Manodopera, Magazzino movimenti, Meteo, Report, Parco macchine, anagrafica Frutteti e Vigneti, home Vendemmia meccanica. Caposquadra tiene «← Dashboard» sulla scheda del lavoro. Accetta preventivo non ha pulsanti di movimento.
+- **Perché:** le scelte di navigazione della prova devono stare nel posto che il product owner ha indicato, e gli header non devono divergere da Terreni e Gestione lavori.
+- **Non toccato:** workspace campo, `main`, Firestore. Non è online sul telefono finché non si promuove il branch. Master Plan: nessuna fase cambiata.
+- Doc: questa voce, registro Tony §26.7–26.11, piano pelle revisione 5.
 
 ## Pelle Proposta dietro flag, senza sostituire lo stile (2026-09-22)
 

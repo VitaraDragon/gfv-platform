@@ -44,7 +44,7 @@ L’agente **non parte** col restyling delle 35+ pagine. In ordine:
 | P3 | **Non** mescolare questo flag con `moduliAttivi` / abbonamento | «Cosa ha pagato» ≠ «cosa stiamo provando» (`feature-flags.js`, §23.1) |
 | P4 | **Non** clonare xFarm; **non** portare lo «stile fumetto» sul chrome ERP. Tony (viso, FAB, chat) può restare più vivo; l’ERP è carta/quiete | Deciso in conversazione 2026-09-21 |
 | P5 | Home = **«oggi»** (Tony + pochi numeri + 4–6 azioni frequenti). I 20 moduli **non** sono la prima schermata | Catalogo a parte |
-| P6 | **Telefono:** catalogo in sheet (maniglia + tap; swipe ancora da limare). Scelta → lo sheet **si chiude**. **PC (≥1024px):** menu a sinistra **a scomparsa** (chiuso di default). Si apre con la graffetta «Moduli» sul bordo; si chiude con un altro click, con lo sfondo o scegliendo un modulo | Stesso catalogo, due gusci. Prova chiesta il 2026-09-22 |
+| P6 | **Telefono:** catalogo in sheet (maniglia + tap; swipe ancora da limare). Scelta → lo sheet **si chiude**. **PC (≥1024px):** menu a sinistra **a scomparsa** (chiuso di default). Si apre con la graffetta sul bordo (solo icona, senza la scritta «Moduli»); si chiude con un altro click, con lo sfondo o scegliendo un modulo | Stesso catalogo, due gusci. Prova 2026-09-22; icona sola 2026-09-23 |
 | P7 | Liste: telefono = **schede**; desktop = **tabella** (Gestione lavori 9 colonne, non schiacciare) | Già in prova |
 | P8 | Dettaglio lavoro ≠ le 9 colonne di nuovo. Tre tab: Panoramica / Mappa / Ore | Già in prova |
 | P9 | Reminder Tony: **1 riga**, max 5 in expand, il resto in chat. Vietato lo striscione da 20 righe (schermata «Pieno» della prova = come **non** fare) | §15.5–§15.6 |
@@ -52,6 +52,9 @@ L’agente **non parte** col restyling delle 35+ pagine. In ordine:
 | P11 | Branch di lavoro + PR su **`develop`**. `main` solo quando il PO chiede di **vedere sull’app installata**, e **sempre** con flag spento di default per chi non è in prova |
 | P12 | Workspace **campo** (operaio/capo) **fuori scope** | Altro piano: `PIANO_CAMPO_MOBILE_MULTILINGUA.md` |
 | P13 | Un solo Firebase. Prove di scrittura = emulatori / simulatore, non produzione | Pubblicazione |
+| P14 | **Cartina** in alto al centro: apre subito la mappa aziendale. **Ingranaggio** in alto a destra: Impostazioni, Guide, Logout; «Azienda» solo con almeno due tenant. Con Proposta quei link non stanno anche nell’header della pagina | Scelte 2026-09-23 |
+| P15 | **Diario** nel menu moduli è nascosto se Manodopera è attivo. In Impostazioni «← Dashboard» torna alla home principale | Come l’app normale; 2026-09-23 |
+| P16 | Header delle pagine: titolo a sinistra, pulsanti di movimento in alto a destra. Una descrizione lunga non manda i pulsanti sulla riga sotto | Vale Oggi e Proposta; 2026-09-23 |
 
 ---
 
@@ -115,7 +118,7 @@ Schermi: Home, hub (Frutteto e altri da catalogo `HUBS`), sotto-liste `SUBS`, Ge
 - Header basso, accento **solo** bordo (Frutteto arancio `#FF6F00`, Vigneto viola, Manodopera verde, Macchine blu, CT arancio, Meteo azzurro).
 - Card silenziose, icone lineari in proposta (emoji solo in pelle Oggi).
 - Telefono: maniglia `Proposta · <posto>` → sheet moduli; tap/swipe; dopo la scelta resta solo la pagina.
-- PC: pagina a tutta larghezza; graffetta «Moduli» sul bordo sinistro apre un pannello da 272px. Liste = tabella.
+- PC: pagina a tutta larghezza; graffetta (solo icona) sul bordo sinistro apre un pannello da 272px. Cartina al centro apre la mappa. Ingranaggio in alto a destra: Impostazioni, Guide, Logout. Liste = tabella.
 
 **Pelle Oggi:** chrome colorato 2018 (gradient header, card colorate). Serve come **controllo A/B**, non da «migliorare» in questo track.
 
@@ -272,3 +275,4 @@ Non toccare il workspace campo. Non inventare if per singolo formId.
 | 2 | 2026-09-22 | Stessa pelle su tutte le standalone ufficio (anche Magazzino e le altre liste). Campo e login esclusi. |
 | 3 | 2026-09-22 | Su PC il menu a sinistra non resta aperto: graffetta sul bordo, chiuso di default. |
 | 4 | 2026-09-22 | Il riquadro accanto al nome porta un’icona a tratto, nel colore del modulo. |
+| 5 | 2026-09-23 | Graffetta solo icona. Cartina → mappa diretta. Ingranaggio con Logout (e Azienda se serve). Diario nascosto con Manodopera. Header: pulsanti in alto a destra anche dove la descrizione è lunga. Ancora gated, non su `main`. |

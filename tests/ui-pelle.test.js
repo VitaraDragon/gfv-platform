@@ -13,6 +13,7 @@ import {
   homeActionsFromShell,
   moduleMenuEntries,
   accountMenuEntries,
+  mapMenuEntries,
   cardsModelFromRows,
   PELLE_ACCENT
 } from '../core/js/ui-pelle-state.js';
@@ -84,7 +85,10 @@ describe('ui-pelle stato', () => {
     expect(ids).toContain('lavori');
     expect(ids).toContain('impostazioni');
     expect(moduleMenuEntries(entries).map((e) => e.id)).not.toContain('impostazioni');
-    expect(accountMenuEntries().map((e) => e.id)).toEqual(['impostazioni', 'guide']);
+    expect(accountMenuEntries().map((e) => e.id)).toEqual(['impostazioni', 'guide', 'logout']);
+    expect(accountMenuEntries().find((e) => e.id === 'logout').action).toBe('logout');
+    expect(mapMenuEntries()[0].href).toBe('mappa-aziendale-standalone.html');
+    expect(ids).toContain('diarioAttivita');
     expect(ids).not.toContain('manodopera');
     const frutteto = entries.find((e) => e.id === 'frutteto');
     expect(frutteto.href).toBe('../modules/frutteto/views/frutteto-dashboard-standalone.html');
@@ -95,6 +99,7 @@ describe('ui-pelle stato', () => {
     const entries = visibleShellEntries(catalog, ['manodopera'], undefined);
     const stats = entries.find((e) => e.id === 'statistiche');
     expect(stats.href).toBe('admin/statistiche-manodopera-standalone.html');
+    expect(entries.map((e) => e.id)).not.toContain('diarioAttivita');
   });
 
   test('home: al massimo 6 azioni, il catalogo non è la home', () => {

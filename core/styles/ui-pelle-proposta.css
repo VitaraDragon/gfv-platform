@@ -428,6 +428,26 @@ html[data-pelle="proposta"] .gfv-pelle-top {
   border-bottom: 1px solid #44403c;
 }
 
+html[data-pelle="proposta"] .gfv-pelle-map {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  z-index: 2;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 48px;
+  margin: 0;
+  padding: calc(6px + env(safe-area-inset-top, 0px)) 10px 8px;
+  border: 0;
+  background: transparent;
+  color: #e7e5e4;
+  text-decoration: none;
+  cursor: pointer;
+}
+
 html[data-pelle="proposta"] .gfv-pelle-handle {
   position: relative;
   flex: 1;
@@ -440,7 +460,7 @@ html[data-pelle="proposta"] .gfv-pelle-handle {
   color: #e7e5e4;
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: flex-start;
   gap: 4px;
   font: 600 12px/1.25 "Plus Jakarta Sans", system-ui, sans-serif;
   cursor: pointer;
@@ -448,14 +468,32 @@ html[data-pelle="proposta"] .gfv-pelle-handle {
 
 html[data-pelle="proposta"] .gfv-pelle-alt {
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   margin: 0;
   padding: calc(6px + env(safe-area-inset-top, 0px)) 14px 8px;
   border: 0;
   border-left: 1px solid #44403c;
   background: transparent;
   color: #e7e5e4;
-  font: 700 12px/1.2 "Plus Jakarta Sans", system-ui, sans-serif;
   cursor: pointer;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-gear svg {
+  width: 22px;
+  height: 22px;
+  display: block;
+}
+
+html[data-pelle="proposta"] .dashboard-header a[href="admin/impostazioni-standalone.html"],
+html[data-pelle="proposta"] #dashboard-documentation-guide-link,
+html[data-pelle="proposta"] #switch-tenant-button,
+html[data-pelle="proposta"] #mappa-aziendale-header-link,
+html[data-pelle="proposta"] .logout-button,
+html[data-pelle="proposta"] #logout-button,
+html[data-pelle="proposta"] #mappa-logout-button {
+  display: none !important;
 }
 
 html[data-pelle="proposta"] .gfv-pelle-grip {
@@ -486,7 +524,8 @@ html[data-pelle="proposta"] .gfv-pelle-backdrop {
 }
 
 html[data-pelle="proposta"][data-gfv-pelle-lab="moduli"] .gfv-pelle-backdrop,
-html[data-pelle="proposta"][data-gfv-pelle-lab="altro"] .gfv-pelle-backdrop {
+html[data-pelle="proposta"][data-gfv-pelle-lab="altro"] .gfv-pelle-backdrop,
+html[data-pelle="proposta"][data-gfv-pelle-lab="mappa"] .gfv-pelle-backdrop {
   display: block;
 }
 
@@ -506,8 +545,9 @@ html[data-pelle="proposta"] .gfv-pelle-lab {
   pointer-events: none;
 }
 
-html[data-pelle="proposta"][data-gfv-pelle-lab="moduli"] .gfv-pelle-lab:not(.gfv-pelle-lab--altro),
-html[data-pelle="proposta"][data-gfv-pelle-lab="altro"] .gfv-pelle-lab--altro {
+html[data-pelle="proposta"][data-gfv-pelle-lab="moduli"] .gfv-pelle-lab:not(.gfv-pelle-lab--altro):not(.gfv-pelle-lab--mappa),
+html[data-pelle="proposta"][data-gfv-pelle-lab="altro"] .gfv-pelle-lab--altro,
+html[data-pelle="proposta"][data-gfv-pelle-lab="mappa"] .gfv-pelle-lab--mappa {
   transform: none;
   pointer-events: auto;
 }
@@ -561,7 +601,8 @@ html[data-pelle="proposta"] .gfv-pelle-mod[aria-current="page"] {
   outline: 1px solid #d6d3d1;
 }
 
-html[data-pelle="proposta"] .gfv-pelle-lab--altro .gfv-pelle-mods {
+html[data-pelle="proposta"] .gfv-pelle-lab--altro .gfv-pelle-mods,
+html[data-pelle="proposta"] .gfv-pelle-lab--mappa .gfv-pelle-mods {
   grid-template-columns: 1fr;
 }
 
@@ -575,13 +616,31 @@ html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-top {
   border: 0;
 }
 
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-map {
+  position: fixed;
+  top: 16px;
+  left: 50%;
+  right: auto;
+  z-index: 60;
+  width: 44px;
+  min-height: 44px;
+  padding: 8px;
+  transform: translateX(-50%);
+  border: 1px solid #d6d3d1;
+  border-radius: 14px;
+  background: #fffef8;
+  color: #1c1917;
+  box-shadow: 3px 3px 0 #e7e5e4;
+}
+
 html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-alt {
   position: fixed;
   top: 16px;
   right: 16px;
   z-index: 60;
+  width: 44px;
   min-height: 44px;
-  padding: 8px 14px;
+  padding: 8px;
   border: 1px solid #d6d3d1;
   border-radius: 14px 0 0 14px;
   background: #fffef8;
@@ -602,13 +661,14 @@ html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-handle {
   left: 0;
   z-index: 60;
   transition: left 0.18s ease;
-  width: auto;
+  width: 44px;
   min-height: 44px;
   margin: 0;
-  padding: 8px 12px 8px 10px;
+  padding: 8px;
   flex-direction: row;
   align-items: center;
-  gap: 8px;
+  justify-content: center;
+  gap: 0;
   border: 1px solid #d6d3d1;
   border-left: 0;
   border-radius: 0 14px 14px 0;
@@ -622,13 +682,7 @@ html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-clip {
 }
 
 html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-handle-label {
-  font-size: 0;
-}
-
-html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-handle-label::after {
-  content: "Moduli";
-  font-size: 13px;
-  font-weight: 700;
+  display: none;
 }
 
 html[data-pelle="proposta"][data-shell="desktop"][data-gfv-pelle-lab="moduli"] .gfv-pelle-handle {
@@ -639,7 +693,7 @@ html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-kicker--desk {
   display: block;
 }
 
-html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-lab:not(.gfv-pelle-lab--altro) {
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-lab:not(.gfv-pelle-lab--altro):not(.gfv-pelle-lab--mappa) {
   position: fixed;
   top: 0;
   left: 0;
@@ -657,7 +711,7 @@ html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-lab:not(.gfv-pelle-
   transition: transform 0.18s ease;
 }
 
-html[data-pelle="proposta"][data-shell="desktop"][data-gfv-pelle-lab="moduli"] .gfv-pelle-lab:not(.gfv-pelle-lab--altro) {
+html[data-pelle="proposta"][data-shell="desktop"][data-gfv-pelle-lab="moduli"] .gfv-pelle-lab:not(.gfv-pelle-lab--altro):not(.gfv-pelle-lab--mappa) {
   transform: none;
   pointer-events: auto;
 }
@@ -676,6 +730,24 @@ html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-lab--altro {
 
 html[data-pelle="proposta"][data-shell="desktop"][data-gfv-pelle-lab="altro"] .gfv-pelle-lab--altro {
   transform: none;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-lab--mappa {
+  top: 68px;
+  left: 50%;
+  right: auto;
+  width: min(320px, calc(100vw - 32px));
+  max-height: min(70dvh, 520px);
+  border-radius: 16px;
+  border: 1px solid #44403c;
+  transform: translate(-50%, -12px);
+  opacity: 0;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"][data-gfv-pelle-lab="mappa"] .gfv-pelle-lab--mappa {
+  transform: translate(-50%, 0);
   opacity: 1;
   pointer-events: auto;
 }

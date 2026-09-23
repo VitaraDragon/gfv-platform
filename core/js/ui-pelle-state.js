@@ -73,7 +73,7 @@ export const PELLE_SHELL_ORDER = [
   { catalogId: 'contoTerzi', hint: 'Clienti e preventivi', optional: true },
   { catalogId: 'meteo', hint: 'Sede e campi', optional: true },
   { catalogId: 'report', hint: 'Bilancio per area', optional: true },
-  { catalogId: 'diarioAttivita', hint: 'Diario' },
+  { catalogId: 'diarioAttivita', hint: 'Diario', hideWhenManodopera: true },
   { catalogId: 'abbonamento', hint: 'Piano e moduli' },
   { catalogId: 'statistiche', hint: 'Numeri' },
   { id: 'impostazioni', label: 'Impostazioni', hint: 'Azienda e account', href: 'admin/impostazioni-standalone.html' }
@@ -182,6 +182,7 @@ export function visibleShellEntries(catalog, moduliAttivi, order) {
     if (item.catalogId) {
       const meta = catalog && catalog[item.catalogId];
       if (!meta || !meta.href) return;
+      if (item.hideWhenManodopera && active && active.indexOf('manodopera') >= 0) return;
       if (item.optional && active && active.indexOf(item.catalogId) < 0) return;
       const href =
         item.catalogId === 'statistiche' &&
@@ -227,7 +228,14 @@ export function moduleMenuEntries(entries) {
 export function accountMenuEntries() {
   return [
     { id: 'impostazioni', label: 'Impostazioni', hint: 'Azienda e account', href: 'admin/impostazioni-standalone.html' },
-    { id: 'guide', label: 'Guide', hint: 'Come si usa', href: '../documentazione-utente/index.html', blank: true }
+    { id: 'guide', label: 'Guide', hint: 'Come si usa', href: '../documentazione-utente/index.html', blank: true },
+    { id: 'logout', label: 'Logout', hint: 'Esci dall’account', action: 'logout' }
+  ];
+}
+
+export function mapMenuEntries() {
+  return [
+    { id: 'mappa', label: 'Mappa aziendale', hint: 'Terreni e lavori', href: 'mappa-aziendale-standalone.html' }
   ];
 }
 

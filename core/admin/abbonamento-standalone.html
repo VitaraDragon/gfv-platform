@@ -33,10 +33,14 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
+            align-items: flex-start;
+            flex-wrap: nowrap;
             gap: 20px;
+            text-align: left;
         }
+
+        .header > div:first-child { flex: 1 1 auto; min-width: 0; }
+        .header > a { flex-shrink: 0; margin-left: auto; align-self: flex-start; }
 
         .header h1 {
             font-size: 28px;
