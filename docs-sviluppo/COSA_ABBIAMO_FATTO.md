@@ -1,6 +1,24 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-21 — promozione piani telefono su main.**
+**Ultimo aggiornamento documentazione: 2026-09-23 — promozione pelle Proposta su main.**
+
+## Promozione su main — pelle Proposta (2026-09-23)
+
+- **Cosa:** file da `f033b1a` (branch `cursor/ui-pelle-proposta-f0-f1`, PR #65) portati su un branch da `main`. Flag `uiPelleProposta` resta spento di default: la pelle si vede con **Prova**. L’allineamento degli header (pulsanti in alto a destra) vale anche con Pubblicata.
+- **Perché:** il telefono e la PWA leggono solo `main`.
+- Doc: questa voce, registro Tony §26, piano pelle. Master Plan: nessuna fase cambiata.
+
+## Pelle Proposta — menu, mappa, logout e header allineati (2026-09-23)
+
+- **Cosa:** ancora dietro `uiPelleProposta` (Prova/Pubblicata). Su PC la graffetta è solo icona (niente scritta «Moduli», copriva la chat). In alto al centro una cartina apre subito la mappa aziendale. L’ingranaggio in alto a destra tiene Impostazioni, Guide e Logout; «Azienda» compare solo con almeno due aziende, prima del Logout. Con Proposta spariscono dall’header di pagina Impostazioni, Guide, Cambia azienda, Mappa e Logout. Diario non compare nel menu moduli se Manodopera è attivo. Il link «← Dashboard» in Impostazioni torna alla home principale. I pulsanti di movimento stanno in alto a destra, il titolo a sinistra.
+- **Pagine header sistemate:** Diario / lavori in corso / lavori completati; home Conto terzi, Frutteto e Vigneto; statistiche Frutteto, Vigneto e aziendali; trattamenti, concimazioni e potatura (Vigneto e Frutteto); Raccolta frutta; Tracciabilità consumi; Archivio documenti; Impegni giornalieri; Abbonamento.
+- Doc: registro Tony §26.7–26.11, piano pelle revisione 5.
+
+## Pelle Proposta dietro flag, senza sostituire lo stile (2026-09-22)
+
+- **Cosa:** Fetata 0–1 sulle pagine ufficio. Flag `uiPelleProposta` (`enabledAlways: false`). Carta, header basso, schede telefono / tabella desktop. Menu moduli a scomparsa. Calcolo materiali da Frutteto, con Proposta, resta carta con accento arancio. Fuori: workspace campo, login, registrazione.
+- **Perché:** vedere il look sull’app vera e tornare indietro con un tap.
+- Doc: registro Tony §26, piano pelle. Master Plan: nessuna fase cambiata.
 
 ## Promozione su main — piani decisi da telefono e Higgsfield (2026-09-21)
 

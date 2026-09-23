@@ -36,8 +36,12 @@
             background: linear-gradient(180deg, #2E8B57 0%, #256E4A 100%);
             color: white;
             padding: 30px;
-            text-align: center;
-            position: relative;
+            text-align: left;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
         }
 
         .header h1 {
@@ -52,12 +56,18 @@
         }
 
         .user-info {
-            position: absolute;
-            top: 20px;
-            right: 20px;
+            margin-top: 8px;
             display: flex;
             align-items: center;
             gap: 15px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+            justify-content: flex-end;
         }
 
         .user-info span {
@@ -253,10 +263,9 @@
                 grid-template-columns: 1fr;
             }
 
-            .user-info {
-                position: static;
-                justify-content: center;
-                margin-top: 15px;
+            .header-actions {
+                width: 100%;
+                justify-content: flex-start;
             }
         }
 
@@ -314,11 +323,15 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>📊 Statistiche e Dashboard</h1>
-            <p>Analisi delle attività e metriche aziendali</p>
-            <div class="user-info">
-                <span id="user-name">Caricamento...</span>
-                <button class="btn btn-primary" onclick="window.location.href='dashboard-standalone.html'">Dashboard</button>
+            <div>
+                <h1>📊 Statistiche e Dashboard</h1>
+                <p>Analisi delle attività e metriche aziendali</p>
+                <div class="user-info">
+                    <span id="user-name">Caricamento...</span>
+                </div>
+            </div>
+            <div class="header-actions">
+                <button class="btn btn-primary" onclick="window.location.href='dashboard-standalone.html'">← Dashboard</button>
             </div>
         </div>
 

@@ -158,6 +158,12 @@ import { ensureStandaloneReadyPlaceholder, settleStandaloneReady } from './stand
           window.gfvTryLoadTonyWidgetWhenReady();
         }
 
+        await import('./ui-pelle.js').then((pelle) => {
+          if (pelle && typeof pelle.bootPelle === 'function') pelle.bootPelle();
+        }).catch((errPelle) => {
+          console.warn(step('ui-pelle:'), errPelle);
+        });
+
         settleStandaloneReady(true);
         resolve();
       } catch (err) {
