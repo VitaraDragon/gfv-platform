@@ -1,6 +1,22 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-21 — allineamento docs telefono + Higgsfield.**
+**Ultimo aggiornamento documentazione: 2026-09-23 — pelle Proposta: menu, mappa, logout e header allineati.**
+
+## Pelle Proposta — menu, mappa, logout e header allineati (2026-09-23)
+
+- **Cosa:** ancora dietro `uiPelleProposta` (Prova/Pubblicata). Su PC la graffetta è solo icona (niente scritta «Moduli», copriva la chat). In alto al centro una cartina apre subito la mappa aziendale. L’ingranaggio in alto a destra tiene Impostazioni, Guide e Logout; «Azienda» compare solo con almeno due aziende, prima del Logout. Con Proposta spariscono dall’header di pagina Impostazioni, Guide, Cambia azienda, Mappa e Logout. Diario non compare nel menu moduli se Manodopera è attivo. Il link «← Dashboard» in Impostazioni torna alla home principale. I pulsanti di movimento (Dashboard, e Impostazioni dove c’è) stanno in alto a destra, il titolo a sinistra: se la descrizione è lunga il testo si restringe e i pulsanti restano sulla stessa riga. Questo allineamento dell’header vale anche con Pubblicata.
+- **Pagine header sistemate:** Diario / lavori in corso / lavori completati; home Conto terzi, Frutteto e Vigneto; statistiche Frutteto, Vigneto e aziendali; trattamenti, concimazioni e potatura (Vigneto e Frutteto); Raccolta frutta; Tracciabilità consumi; Archivio documenti; Impegni giornalieri; Abbonamento.
+- **Già a posto, non toccate:** Terreni, Gestione lavori, liste (macchine, prodotti), Manodopera, Magazzino movimenti, Meteo, Report, Parco macchine, anagrafica Frutteti e Vigneti, home Vendemmia meccanica. Caposquadra tiene «← Dashboard» sulla scheda del lavoro. Accetta preventivo non ha pulsanti di movimento.
+- **Perché:** le scelte di navigazione della prova devono stare nel posto che il product owner ha indicato, e gli header non devono divergere da Terreni e Gestione lavori.
+- **Non toccato:** workspace campo, `main`, Firestore. Non è online sul telefono finché non si promuove il branch. Master Plan: nessuna fase cambiata.
+- Doc: questa voce, registro Tony §26.7–26.11, piano pelle revisione 5.
+
+## Pelle Proposta dietro flag, senza sostituire lo stile (2026-09-22)
+
+- **Cosa:** Fetata 0–1 e estensione alle pagine ufficio del piano `docs-sviluppo/da-fare/ui/PIANO_PELLE_PROPOSTA_SU_APP.md`. Flag `uiPelleProposta` (`enabledAlways: false`). La pelle parte su ogni standalone del bootstrap (hub, liste, impostazioni), non solo Home/Frutteto/Gestione lavori. Carta, header basso, schede telefono / tabella desktop. Su PC il menu a sinistra è a scomparsa: graffetta «Moduli» sul bordo, chiuso di default. Nel riquadro accanto al nome c’è un’icona a tratto (colore del modulo). Calcolo materiali aperto da Frutteto, con Proposta, resta la carta e l’accento è arancio; il gradiente arancio resta solo con Pubblicata. I moduli stanno nella graffetta a sinistra; Impostazioni, Guide e (se ci sono più aziende) il cambio azienda stanno nel menu Altro in alto. Fuori: workspace campo, login, registrazione.
+- **Perché:** il product owner vuole vedere il look sull’app vera e tornare indietro con un tap, senza buttare lo stile di oggi.
+- **Non toccato:** workspace campo, `main`, Firestore. Tag locale di rollback `ui-pre-pelle-20260922` sul commit di `main` (non pushato).
+- Doc: questa voce, registro Tony §26, piano pelle. Master Plan: nessuna fase cambiata.
 
 ## Allineamento — piani dal telefono in locale + ordine Higgsfield (2026-09-21)
 

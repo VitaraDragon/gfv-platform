@@ -9,7 +9,9 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #E8F5E9 0%, #2E7D32 100%); color: #333; min-height: 100vh; }
         .container { max-width: 1600px; margin: 0 auto; padding: 20px; }
-        .header { background: linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 20px; }
+        .header { background: linear-gradient(135deg, #2E7D32 0%, #1B5E20 100%); color: white; padding: 30px; border-radius: 12px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: nowrap; gap: 20px; text-align: left; }
+        .header > div:first-child { flex: 1 1 auto; min-width: 0; }
+        .header > div:last-child { flex-shrink: 0; margin-left: auto; align-self: flex-start; }
         .header h1 { font-size: 28px; }
         .header p { opacity: 0.92; margin-top: 6px; font-size: 15px; max-width: 560px; }
         .btn { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; text-decoration: none; display: inline-block; }

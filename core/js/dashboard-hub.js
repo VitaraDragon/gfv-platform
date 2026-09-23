@@ -9,7 +9,7 @@ import {
 } from './dashboard-counts-snapshot.js';
 import { dashboardPerfAsync } from './dashboard-perf.js';
 
-const MODULE_CATALOG = {
+export const MODULE_CATALOG = {
     amministrazione: { label: 'Amministrazione', href: 'admin/amministrazione-standalone.html', icon: '👑' },
     statistiche: { label: 'Statistiche', href: 'statistiche-standalone.html', icon: '📊', hrefManodopera: 'admin/statistiche-manodopera-standalone.html' },
     terreni: { label: 'Terreni', href: 'terreni-standalone.html', icon: '🗺️' },
