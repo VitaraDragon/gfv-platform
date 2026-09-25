@@ -812,3 +812,79 @@ html[data-pelle="proposta"][data-shell="desktop"] .container {
   flex: 1;
   min-width: 0;
 }
+
+html[data-pelle="proposta"] body:has(.meteo-page) {
+  padding: 0;
+}
+
+html[data-pelle="proposta"] .meteo-page {
+  max-width: none;
+  padding: 16px 16px 32px;
+}
+
+html[data-pelle="proposta"] .meteo-header {
+  background: transparent !important;
+  background-image: none !important;
+  color: var(--gfv-pelle-ink) !important;
+  padding: 8px 0 16px;
+  border-radius: 0;
+  border-bottom: 1px solid var(--gfv-pelle-line);
+  flex-wrap: nowrap;
+  align-items: flex-start;
+  gap: 20px;
+}
+
+html[data-pelle="proposta"] .meteo-header > span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+html[data-pelle="proposta"] .meteo-header h1,
+html[data-pelle="proposta"] .meteo-header p,
+html[data-pelle="proposta"] .meteo-map-heading,
+html[data-pelle="proposta"] .meteo-panel h2,
+html[data-pelle="proposta"] .meteo-terreno-card h3,
+html[data-pelle="proposta"] .meteo-detail-panel h2 {
+  color: var(--gfv-pelle-ink) !important;
+}
+
+html[data-pelle="proposta"] .meteo-header p,
+html[data-pelle="proposta"] .meteo-map-intro,
+html[data-pelle="proposta"] .meteo-summary,
+html[data-pelle="proposta"] .meteo-status,
+html[data-pelle="proposta"] .meteo-muted,
+html[data-pelle="proposta"] .meteo-detail-meta,
+html[data-pelle="proposta"] .meteo-block__place,
+html[data-pelle="proposta"] .meteo-block__meta {
+  color: var(--gfv-pelle-muted) !important;
+}
+
+html[data-pelle="proposta"] .meteo-btn-back {
+  flex-shrink: 0;
+  margin-left: auto;
+  align-self: flex-start;
+  background: var(--gfv-pelle-paper) !important;
+  color: var(--gfv-pelle-ink) !important;
+  border: 1px solid #d6d3d1 !important;
+}
+
+html[data-pelle="proposta"] .meteo-panel,
+html[data-pelle="proposta"] .meteo-terreno-card,
+html[data-pelle="proposta"] .meteo-detail-panel,
+html[data-pelle="proposta"] .meteo-detail-panel--hint {
+  background: var(--gfv-pelle-panel) !important;
+  border: 1px solid var(--gfv-pelle-line) !important;
+  box-shadow: none !important;
+  color: var(--gfv-pelle-ink);
+}
+
+html[data-pelle="proposta"] .meteo-block__temp,
+html[data-pelle="proposta"] .meteo-sede-more summary {
+  color: var(--gfv-pelle-accent) !important;
+}
+
+html[data-pelle="proposta"] .meteo-mappa-container {
+  border: 1px solid var(--gfv-pelle-line);
+  box-shadow: none;
+  border-radius: 16px;
+}
