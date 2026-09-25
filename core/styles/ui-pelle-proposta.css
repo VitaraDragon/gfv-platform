@@ -1,7 +1,18 @@
 /**
  * Pelle Proposta — token e chrome. Attiva solo con html[data-pelle="proposta"].
  * Senza l'attributo (o con data-pelle="oggi") queste regole non cambiano la pagina.
+ * Il cambio pagina è una dissolvenza breve. Lo script la salta se la Proposta è spenta.
  */
+
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation-duration: 0.18s;
+  animation-timing-function: ease;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-top {
+  view-transition-name: gfv-pelle-bar;
+}
 
 html[data-pelle="proposta"] {
   --gfv-pelle-paper: #F6F3EC;
@@ -448,6 +459,10 @@ html[data-pelle="proposta"] .gfv-pelle-map {
   cursor: pointer;
 }
 
+html[data-pelle="proposta"] .gfv-pelle-map[aria-current="page"] {
+  box-shadow: inset 0 -2px 0 #fff;
+}
+
 html[data-pelle="proposta"] .gfv-pelle-handle {
   position: relative;
   flex: 1;
@@ -459,9 +474,9 @@ html[data-pelle="proposta"] .gfv-pelle-handle {
   background: transparent;
   color: #e7e5e4;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
   font: 600 12px/1.25 "Plus Jakarta Sans", system-ui, sans-serif;
   cursor: pointer;
 }
@@ -496,23 +511,23 @@ html[data-pelle="proposta"] #mappa-logout-button {
   display: none !important;
 }
 
-html[data-pelle="proposta"] .gfv-pelle-grip {
-  width: 36px;
-  height: 4px;
-  border-radius: 99px;
-  background: #78716c;
-}
-
-html[data-pelle="proposta"] .gfv-pelle-clip {
+html[data-pelle="proposta"] .gfv-pelle-grip,
+html[data-pelle="proposta"] .gfv-pelle-handle-hint {
   display: none;
 }
 
-html[data-pelle="proposta"] .gfv-pelle-handle-hint {
-  font-weight: 500;
-  font-size: 10px;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: #a8a29e;
+html[data-pelle="proposta"] .gfv-pelle-clip {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  color: inherit;
+}
+
+html[data-pelle="proposta"] .gfv-pelle-clip svg {
+  width: 22px;
+  height: 22px;
+  display: block;
 }
 
 html[data-pelle="proposta"] .gfv-pelle-backdrop {
@@ -543,6 +558,7 @@ html[data-pelle="proposta"] .gfv-pelle-lab {
   padding: 12px 12px 20px;
   transform: translateY(-110%);
   pointer-events: none;
+  transition: transform 0.18s ease;
 }
 
 html[data-pelle="proposta"][data-gfv-pelle-lab="moduli"] .gfv-pelle-lab:not(.gfv-pelle-lab--altro):not(.gfv-pelle-lab--mappa),
@@ -631,6 +647,40 @@ html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-map {
   background: #fffef8;
   color: #1c1917;
   box-shadow: 3px 3px 0 #e7e5e4;
+}
+
+html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-map[aria-current="page"] {
+  box-shadow: inset 0 0 0 2px #1c1917;
+}
+
+html[data-pelle="proposta"] .mappa-pelle-status {
+  margin: 12px 16px;
+  font: 600 14px/1.3 "Plus Jakarta Sans", system-ui, sans-serif;
+  color: #57534e;
+}
+
+html[data-pelle="proposta"] #mappa-aziendale-container {
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+html[data-pelle="proposta"] #mappa-aziendale-container.is-map-ready {
+  opacity: 1;
+}
+
+html[data-pelle="proposta"] .mappa-page-map-section:has(#mappa-aziendale-container.is-map-ready) .mappa-pelle-status {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-pelle="proposta"] #mappa-aziendale-container,
+  html[data-pelle="proposta"] .gfv-pelle-lab,
+  ::view-transition-old(root),
+  ::view-transition-new(root) {
+    opacity: 1;
+    transition: none;
+    animation: none;
+  }
 }
 
 html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-alt {
@@ -724,8 +774,9 @@ html[data-pelle="proposta"][data-shell="desktop"] .gfv-pelle-lab--altro {
   max-height: min(70dvh, 520px);
   border-radius: 16px;
   border: 1px solid #44403c;
-  transform: translateY(-12px);
-  opacity: 0;
+  transform: translateX(110%);
+  opacity: 1;
+  transition: transform 0.18s ease;
 }
 
 html[data-pelle="proposta"][data-shell="desktop"][data-gfv-pelle-lab="altro"] .gfv-pelle-lab--altro {

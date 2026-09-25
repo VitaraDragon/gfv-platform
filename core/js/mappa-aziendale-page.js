@@ -178,6 +178,12 @@ export async function bootstrapMappaAziendalePage() {
                 loadMappaAziendale(ud, hm, dependencies);
             });
             section.classList.add('mappa-page-map-section');
+            if (document.documentElement.getAttribute('data-pelle') === 'proposta') {
+                const status = document.createElement('p');
+                status.className = 'mappa-pelle-status';
+                status.textContent = 'Mappa in caricamento';
+                section.prepend(status);
+            }
             root.appendChild(section);
         } catch (err) {
             console.error('[Mappa aziendale]', err);
