@@ -712,7 +712,7 @@ Non è il piano telefono manager (§25) e non è il piano campo (§24). Il look 
 | # | Decisione | Fonte | Stato | Note |
 |---|-----------|-------|-------|------|
 | 26.1 | Lo stile attuale **resta** finché il PO non conferma la pelle. La Proposta è **affiancata** | prodotto 2026-09-22 | **implementato** (vincolo) | Senza `data-pelle="proposta"` le pagine restano com’erano |
-| 26.2 | Gate = flag tenant `uiPelleProposta` nello switch **Prova/Pubblicata** (Sabbie Gialle), **non** `moduliAttivi` | prodotto 2026-09-22 | **parziale** | `enabledAlways: false`. Tap Pubblicata spegne senza deploy. Fetata 2–4 no |
+| 26.2 | La pelle Proposta è quella delle pagine ufficio (`enabledAlways`). Lo switch Prova non la spegne più | prodotto 2026-09-22, aggiornato 2026-09-25 | **implementato** | Campo e login restano fuori. Rollback: `git revert`. Fetata 2–4 no |
 | 26.3 | Rollback: tap **Pubblicata** e/o `git revert` su `main` + tag pre-promozione | prodotto 2026-09-22 | **parziale** | Tag locale `ui-pre-pelle-20260922` sul commit di `main`, non pushato. Il telefono vede la pelle solo dopo promozione |
 | 26.4 | Telefono: catalogo in sheet (si chiude dopo la scelta). PC: menu a sinistra a scomparsa. La graffetta è solo icona, anche sul telefono (niente «Tocca per i moduli») | prodotto 2026-09-22, aggiornato 2026-09-25 | **parziale** | Sul telefono la scritta sostituiva l’icona. Campo e login no |
 | 26.5 | Liste: schede su telefono, tabella su desktop. Reminder Tony 1 riga (§15.5) | prodotto 2026-09-21 | **parziale** | Ogni `.table-responsive` ufficio. Home: 1 riga, expand max 5 |

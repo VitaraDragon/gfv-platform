@@ -30,8 +30,8 @@ export const PREVIEW_FLAG_CATALOG = {
     id: 'uiPelleProposta',
     label: 'Pelle Proposta (carta, menu moduli, schede su telefono)',
     enabledWhenPreview: true,
-    /** Spenta con switch «Pubblicata». Non è la pelle di tutti. */
-    enabledAlways: false
+    /** Promossa: è la pelle delle pagine ufficio, anche con switch «Pubblicata». */
+    enabledAlways: true
   }
 };
 
