@@ -506,6 +506,13 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
             streetViewControl: false,
             fullscreenControl: true
         });
+
+        const markMapReady = () => {
+            const readyEl = document.getElementById(containerId);
+            if (readyEl) readyEl.classList.add('is-map-ready');
+        };
+        google.maps.event.addListenerOnce(map, 'tilesloaded', markMapReady);
+        setTimeout(markMapReady, 2500);
         
         // Forza resize della mappa per assicurarsi che venga renderizzata correttamente
         setTimeout(() => {

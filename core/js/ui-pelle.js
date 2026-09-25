@@ -580,6 +580,10 @@ export function applyPelleFromFlags() {
   const html = document.documentElement;
   html.setAttribute('data-pelle', state.pelle);
   html.setAttribute('data-shell', state.shell);
+  try {
+    if (state.pelle === 'proposta') sessionStorage.setItem('gfv-pelle-turn', '1');
+    else sessionStorage.removeItem('gfv-pelle-turn');
+  } catch (eTurn) { /* sessionStorage non disponibile */ }
   const accentId = resolveAccentId();
   if (accentId && PELLE_ACCENT[accentId]) {
     html.setAttribute('data-accent', accentId);
@@ -622,6 +626,26 @@ export function applyPelleFromFlags() {
       }
     }
   }).catch(() => { /* catalogo non disponibile: restano graffetta e menu Altro */ });
+}
+
+function pelleTurnOn() {
+  try {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return false;
+    return sessionStorage.getItem('gfv-pelle-turn') === '1'
+      || document.documentElement.getAttribute('data-pelle') === 'proposta';
+  } catch (e) {
+    return document.documentElement.getAttribute('data-pelle') === 'proposta';
+  }
+}
+
+function skipPageTurn(e) {
+  if (!e || !e.viewTransition || pelleTurnOn()) return;
+  e.viewTransition.skipTransition();
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pageswap', skipPageTurn);
+  window.addEventListener('pagereveal', skipPageTurn);
 }
 
 export function bootPelle() {

@@ -1,6 +1,26 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-23 — promozione pelle Proposta su main.**
+**Ultimo aggiornamento documentazione: 2026-09-25 — dissolvenza al cambio pagina.**
+
+## Pelle Proposta — dissolvenza al cambio pagina (2026-09-25)
+
+- **Cosa:** con Prova, il passaggio da una pagina ufficio all’altra è una dissolvenza di 0,18 s. Con Pubblicata, o se il sistema chiede meno movimenti, il cambio è immediato. La barra ha un nome di transizione così, quando c’è già, non viene ridisegnata da zero.
+- **Perché:** un giro di pagina da quaderno non regge su documenti separati. La prova è la dissolvenza unica.
+
+## Pelle Proposta — ingranaggio con lo stesso scorrimento (2026-09-25)
+
+- **Cosa:** il menu delle opzioni scorre come quello dei moduli, stessa durata (0,18 s). Sul PC entra da destra; sul telefono i due fogli scendono entrambi dall’alto. Se il sistema chiede meno animazioni, il movimento resta quello del browser.
+- **Perché:** la graffetta aveva già lo scorrimento, l’ingranaggio compariva di colpo.
+
+## Pelle Proposta — arrivo sulla mappa (2026-09-25)
+
+- **Cosa:** con Prova, la mappa aziendale tiene la stessa barra (titolo «Proposta · Mappa», cartina segnata). Sotto c’è «Mappa in caricamento» finché arrivano le tessere, poi la mappa compare. Con Pubblicata la pagina resta com’era.
+- **Perché:** la cartina non è un menu; il salto era il telaio che spariva e la mappa che compariva vuota.
+
+## Pelle Proposta — graffetta sul telefono (2026-09-25)
+
+- **Cosa:** nella barra dei tre menu, sul telefono, al posto di «Tocca per i moduli» c’è la graffetta, come la cartina e l’ingranaggio. «Proposta · Home» resta. Su PC la graffetta era già solo icona.
+- **Perché:** sullo smartphone la graffetta era nascosta e si leggeva solo la scritta.
 
 ## Promozione su main — pelle Proposta (2026-09-23)
 
