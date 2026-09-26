@@ -118,6 +118,24 @@ html[data-pelle="proposta"] .action-description {
   color: var(--gfv-pelle-muted);
 }
 
+/* Il colore in linea (bianco sulle card colorate) batte la regola sopra. Con la pelle lo sfondo è carta. */
+html[data-pelle="proposta"] .stat-value[style*="color"],
+html[data-pelle="proposta"] .stat-label[style*="color"] {
+  color: var(--gfv-pelle-ink) !important;
+}
+
+html[data-pelle="proposta"] .stat-label[style*="color"] {
+  color: var(--gfv-pelle-muted) !important;
+}
+
+html[data-pelle="proposta"] .stats-section h2 {
+  color: var(--gfv-pelle-ink) !important;
+  font-size: 20px;
+  font-weight: 650;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
 html[data-pelle="proposta"] .action-card {
   display: grid;
   grid-template-columns: 40px 1fr;

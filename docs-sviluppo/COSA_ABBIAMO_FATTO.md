@@ -4,7 +4,7 @@
 
 ## Pelle Proposta effettiva (2026-09-25)
 
-- **Cosa:** la pelle Proposta non è più dietro **Prova**. Le pagine ufficio la disegnano subito, Meteo compreso (header carta, niente gradiente azzurro). Login, registrazione e workspace di campo restano com’erano. Lo switch non riporta la pelle vecchia.
+- **Cosa:** la pelle Proposta non è più dietro **Prova**. Le pagine ufficio la disegnano subito, Meteo compreso (stessi margini delle altre pagine, header carta, niente gradiente azzurro). Su Statistiche manodopera i numeri delle card tornano leggibili (erano bianchi sulla carta) e «Media ore/giorno» del report non sovrascrive più quella delle ore. Login, registrazione e workspace di campo restano com’erano. Lo switch non riporta la pelle vecchia.
 - **Perché:** su `main` si vedeva ancora la pelle di prima, e al cambio pagina ricompariva per un attimo. Rollback: `git revert`.
 
 ## Pelle Proposta — dissolvenza al cambio pagina (2026-09-25)
