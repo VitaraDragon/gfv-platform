@@ -1,6 +1,11 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-26 — Abbonamento nel menu opzioni.**
+**Ultimo aggiornamento documentazione: 2026-09-26 — layout telefono della pelle.**
+
+## Pelle Proposta — layout telefono (2026-09-26)
+
+- **Cosa:** sotto i 1024 px la barra tiene titolo, cartina e ingranaggio sulla stessa riga senza sovrapposizioni; il titolo lungo si accorcia. Le card delle statistiche sono una colonna sotto i 480 px e due fino a 768. I menu rispettano notch e barra dei gesti (iOS e Android). La barra di stato del telefono segue il colore della pelle.
+- **Perché:** su schermi stretti la cartina copriva il titolo e le card restavano schiacciate su tre colonne.
 
 ## Pelle Proposta — Abbonamento nelle opzioni (2026-09-26)
 

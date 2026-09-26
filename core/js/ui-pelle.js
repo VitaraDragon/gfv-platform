@@ -110,6 +110,20 @@ function ensureFont(on) {
   document.head.appendChild(link);
 }
 
+function syncStatusBar(on) {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) return;
+  if (on) {
+    if (!meta.hasAttribute('data-gfv-theme')) meta.setAttribute('data-gfv-theme', meta.getAttribute('content') || '');
+    meta.setAttribute('content', '#1c1917');
+    return;
+  }
+  if (meta.hasAttribute('data-gfv-theme')) {
+    meta.setAttribute('content', meta.getAttribute('data-gfv-theme'));
+    meta.removeAttribute('data-gfv-theme');
+  }
+}
+
 function clearPelleAttrs() {
   const html = document.documentElement;
   html.removeAttribute('data-pelle');
@@ -574,6 +588,7 @@ export function applyPelleFromFlags() {
     unmountCards();
     disconnectObservers();
     ensureFont(false);
+    syncStatusBar(false);
     restoreActionIcons();
     return;
   }
@@ -593,6 +608,7 @@ export function applyPelleFromFlags() {
     html.style.removeProperty('--gfv-pelle-accent');
   }
   ensureFont(state.pelle === 'proposta');
+  syncStatusBar(state.pelle === 'proposta');
   if (state.pelle === 'proposta') paintActionIcons();
   else restoreActionIcons();
   if (!state.mountShell) {
