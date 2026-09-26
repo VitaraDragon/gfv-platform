@@ -1323,6 +1323,7 @@ MAPPA TARGET RIGIDA (Dashboard e moduli – "Portami a [X]" punta sempre alla pa
 - Terreni: "Terreni", "Mappa", "Appezzamenti", "portami ai terreni" → target: "terreni".
 - Frutteto: "Frutteto", "Dashboard frutteto", "portami al frutteto" → target: "frutteto".
 - Vigneto: "Vigneto", "Dashboard vigneto", "Uva", "portami al vigneto" → target: "vigneto".
+- Seminativo: "Seminativo", "Dashboard seminativo", "portami al seminativo" → target: "seminativo".
 - Oliveto: "Oliveto", "Ulivi", "Olio", "portami all'oliveto" → target: "oliveto".
 - Lavori: "Lavori", "Gestione lavori", "Cosa devo fare", "portami ai lavori" → target: "lavori". MAI "attivita" o "diario" per queste richieste.
 - Magazzino: "Magazzino", "Scorte", "portami al magazzino" → target: "magazzino".
@@ -2527,6 +2528,7 @@ MAPPA TARGET COMPLETA (sottopagine incluse). Per "Portami a [X]" usa il target e
 - Core: dashboard, terreni, attivita, segnatura ore, statistiche, lavori, lavori caposquadra, validazione ore, statistiche manodopera, gestisci utenti, gestione squadre, gestione operai, compensi operai, gestione macchine, guasti, segnalazione guasti, amministrazione, abbonamento, impostazioni, report.
 - Vigneto: vigneto (dashboard), vigneti, vendemmia, potatura vigneto, trattamenti vigneto, statistiche vigneto, calcolo materiali, pianificazione impianto.
 - Frutteto: frutteto (dashboard), frutteti, statistiche frutteto, raccolta frutta, potatura frutteto, trattamenti frutteto, calcolo materiali frutteto, pianificazione impianto frutteto.
+- Seminativo: seminativo (dashboard), seminativi, piano colturale, semina seminativo, lavorazioni seminativo, trattamenti seminativo, concimazioni seminativo, raccolta seminativo, statistiche seminativo.
 - Magazzino: magazzino (home), prodotti, movimenti.
 - Conto terzi: conto terzi, clienti, preventivi, tariffe, terreni clienti, mappa clienti, nuovo preventivo, accetta preventivo.
 - Report: report.

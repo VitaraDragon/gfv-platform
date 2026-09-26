@@ -135,6 +135,7 @@ describe('ui-pelle stato', () => {
     expect(cards[0].actionsHtml).toContain('Apri');
     expect(cards[0].alert).toBe(true);
     expect(PELLE_ACCENT.frutteto).toBe('#FF6F00');
+    expect(PELLE_ACCENT.seminativo).toBe('#C9A227');
   });
 });
 
@@ -143,6 +144,7 @@ describe('icone a tratto', () => {
     const { iconNameForModule, iconNameForEmoji, iconSvg } = await import('../core/js/ui-pelle-icons.js');
     expect(iconNameForModule('frutteto')).toBe('apple');
     expect(iconNameForModule('vigneto')).toBe('grape');
+    expect(iconNameForModule('seminativo')).toBe('wheat');
     expect(iconNameForEmoji('🍎')).toBe('apple');
     expect(iconNameForEmoji('👷‍♂️')).toBe('user');
     expect(iconNameForEmoji('sconosciuto')).toBe('mark');

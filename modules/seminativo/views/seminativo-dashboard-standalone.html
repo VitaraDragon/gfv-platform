@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Seminativo" data-gfv-module="seminativo">
+<head>
+<script>try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
+<script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Dashboard Seminativo - GFV Platform</title>
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <link rel="stylesheet" href="seminativo-standalone.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🌾 Seminativo</h1>
+                <p>Hub del modulo: campagne, semina, lavorazioni e raccolta. Scheletro in costruzione.</p>
+            </div>
+            <div class="header-actions">
+                <a href="../../../core/dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <h2>Panoramica</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-campagne">—</div>
+                    <div class="stat-label">Campagne aperte</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-ettari">—</div>
+                    <div class="stat-label">Ettari in ciclo</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-semine">—</div>
+                    <div class="stat-label">Semine anno</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-raccolte">—</div>
+                    <div class="stat-label">Raccolte anno</div>
+                </div>
+            </div>
+
+            <h2>Azioni rapide</h2>
+            <div class="quick-actions" id="seminativo-hub-cards"></div>
+
+            <div class="section" style="margin-top: 40px;">
+                <h2>Stato modulo</h2>
+                <div class="placeholder-box">
+                    <strong>Scheletro</strong>
+                    <p>Le pagine sono collegate. Anagrafica, piano colturale, semina, lavorazioni, trattamenti, concimazioni, raccolta e statistiche arriveranno nelle fasi successive. Niente potatura né impianto permanente.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
+    <script type="module">
+        import { resolvePath } from '../../../core/js/gfv-path.js';
+        import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+        import { SEMINATIVO_HUB_CARDS } from '../config/seminativo-hub.js';
+        import { publishSeminativoTableData, placeholderTableData } from '../js/seminativo-page-context.js';
+
+        function renderHubCards() {
+            const root = document.getElementById('seminativo-hub-cards');
+            if (!root) return;
+            root.innerHTML = SEMINATIVO_HUB_CARDS.map((card) => (
+                '<a href="' + card.href + '" class="action-card" data-card-id="' + card.id + '">' +
+                    '<span class="action-icon">' + card.icon + '</span>' +
+                    '<span class="action-title">' + card.title + '</span>' +
+                    '<span class="action-description">' + card.description + '</span>' +
+                '</a>'
+            )).join('');
+        }
+
+        function syncTonyModules(modules) {
+            if (typeof window.syncTonyModules === 'function') {
+                window.syncTonyModules(modules);
+            } else if (window.setTonyContext) {
+                window.setTonyContext({ moduli_attivi: modules });
+            } else {
+                window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules } }));
+            }
+        }
+
+        renderHubCards();
+        publishSeminativoTableData(placeholderTableData(
+            'seminativo_hub',
+            'Caricamento dati in corso...'
+        ));
+
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[seminativo-dashboard] Bootstrap failed:', err);
+            throw err;
+        }
+
+        const firebaseServiceModule = await import(resolvePath('../../../core/services/firebase-service.js'));
+        const tenantServiceModule = await import(resolvePath('../../../core/services/tenant-service.js'));
+        const { getAuthInstance, onAuthStateChanged } = firebaseServiceModule;
+        const { getCurrentTenantId, getCurrentTenant, initializeTenantService } = tenantServiceModule;
+
+        const auth = getAuthInstance();
+        initializeTenantService();
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
+            if (!user) {
+                window.location.href = await loginPageUrl(resolvePath('../../../core/auth/login-standalone.html'));
+                return;
+            }
+            if (!getCurrentTenantId()) {
+                console.warn('[seminativo-dashboard] Tenant non disponibile');
+                return;
+            }
+            const tenant = await getCurrentTenant().catch(() => null);
+            const modules = Array.isArray(tenant?.modules) ? tenant.modules.slice() : [];
+            if (!modules.some((m) => String(m || '').toLowerCase() === 'seminativo')) modules.push('seminativo');
+            if (!modules.some((m) => String(m || '').toLowerCase() === 'tony')) modules.push('tony');
+            syncTonyModules(modules);
+            publishSeminativoTableData({
+                pageType: 'seminativo_hub',
+                summary: 'Hub Seminativo: ' + SEMINATIVO_HUB_CARDS.length + ' sottocategorie in scheletro.',
+                items: SEMINATIVO_HUB_CARDS.map((card) => ({
+                    id: card.id,
+                    titolo: card.title,
+                    href: card.href,
+                    pageType: card.pageType
+                }))
+            });
+        });
+    </script>
+</body>
+</html>

@@ -1,7 +1,7 @@
 # Tony – Inventario decisioni e requisiti
 
 **Data estrazione**: 2026-03-08  
-**Ultimo aggiornamento**: 2026-09-22 (pelle Proposta in prova §26; bozza telefono manager §25; piano campo §24; lazy-load widget §3.10; flag prova tenant §22.7 / §23; zona lavorata due punti §11.7 / §22; push S5 assenze + WhatsApp §15.8)
+**Ultimo aggiornamento**: 2026-09-26 (scheletro modulo Seminativo §27; pelle Proposta in prova §26; bozza telefono manager §25; piano campo §24; lazy-load widget §3.10; flag prova tenant §22.7 / §23; zona lavorata due punti §11.7 / §22; push S5 assenze + WhatsApp §15.8)
 **Obiettivo**: Raccogliere in un unico documento ogni decisione di prodotto, requisito e vincolo trovato nei documenti Tony, per evitare perdite durante il consolidamento.
 
 **Stati**: `implementato` | `in corso` | `parziale` | `pianificato` | `non implementato` | `abbandonato` | `da verificare`
@@ -725,6 +725,21 @@ Non è il piano telefono manager (§25) e non è il piano campo (§24). Fetata 2
 | 26.12 | Menu e cambio pagina: scorrimento 0,18 s (graffetta da sinistra, ingranaggio da destra; sul telefono entrambi dall’alto). Dissolvenza al cambio pagina, non un giro da quaderno. Meno movimento se il sistema lo chiede | prodotto 2026-09-25 | **implementato** su `main` (#67) | Lo script in testa alle pagine evita il flash della pelle vecchia |
 | 26.13 | Meteo usa la stessa carta e gli stessi margini delle altre pagine ufficio (blocco centrato, max 1400 px). Niente gradiente azzurro | prodotto 2026-09-25, aggiornato 2026-09-26 | **implementato** (non su `main`) | La graffetta non copre la spiegazione |
 | 26.14 | Statistiche manodopera: numeri scuri sulla carta. «Media ore/giorno» del report e quella delle ore sono due valori distinti | prodotto 2026-09-26 | **implementato** (non su `main`) | Prima il testo restava bianco e i due campi condividevano l’id |
+
+---
+
+## 27. Modulo Seminativo — scheletro hub (2026-09-26)
+
+Stesso ingresso di Vigneto/Frutteto (hub + card), dedicato alle colture erbacee. Non è un clone dell’impianto permanente.
+
+| # | Decisione | Fonte | Stato | Note |
+|---|-----------|-------|-------|------|
+| 27.1 | **Hub + sottocategorie**: anagrafica campagne, piano colturale/rotazioni, semina, lavorazioni terreno, trattamenti, concimazioni, raccolta/mietitura, statistiche | prodotto 2026-09-26 | **scheletro** | Config `modules/seminativo/config/seminativo-hub.js`. Pagine placeholder + wiring catalogo/Tony |
+| 27.2 | **Niente** potatura, pianifica impianto, calcolo materiali | prodotto 2026-09-26 | **implementato** (vincolo) | Il seminativo non è un impianto a filari |
+| 27.3 | **Anagrafica per campagna**: un record terreno + campagna + coltura/varietà (non documento permanente come vigneto) | prodotto 2026-09-26 | **scheletro** | Modello `SeminativoCampagna`; collezione `seminativi` |
+| 27.4 | **Perimetro colture**: solo categoria Seminativo (non prato, non ortive) | prodotto 2026-09-26 | **deciso** | |
+| 27.5 | **Pay-per-use** come le altre colture; in vendita solo a modulo pronto. Oggi `available: false` / badge Prossimamente (come Oliveto) | prodotto 2026-09-26 | **scheletro** | `subscription-plans.js`; visibile in dashboard se `tenant.modules` include `seminativo` |
+| 27.6 | Tony: config (rotte, gate, PAGE_MAP), niente `if` per pagina singola nel core | MASTER_PLAN §4 | **scheletro** | Nav «portami al seminativo» |
 
 ---
 

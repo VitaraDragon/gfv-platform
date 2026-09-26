@@ -455,6 +455,7 @@ window.GFVDashboardSections.createDashboardModuleSidebar = function createDashbo
         if (mods.includes('vendemmiaMeccanica')) appendCard(S.createVendemmiaMeccanicaCard());
         if (mods.includes('vigneto')) appendCard(S.createVignetoCard());
         if (mods.includes('frutteto')) appendCard(S.createFruttetoCard());
+        if (mods.includes('seminativo')) appendCard(S.createSeminativoCard());
         if (mods.includes('magazzino')) appendCard(S.createMagazzinoCard(sotto));
         if (mods.includes('parcoMacchine')) appendCard(S.createMacchineCard());
         if (mods.includes('report')) appendCard(S.createReportCard());
@@ -469,6 +470,7 @@ window.GFVDashboardSections.createDashboardModuleSidebar = function createDashbo
         if (mods.includes('vendemmiaMeccanica')) appendCard(S.createVendemmiaMeccanicaCard());
         if (mods.includes('vigneto')) appendCard(S.createVignetoCard());
         if (mods.includes('frutteto')) appendCard(S.createFruttetoCard());
+        if (mods.includes('seminativo')) appendCard(S.createSeminativoCard());
         if (mods.includes('magazzino')) appendCard(S.createMagazzinoCard(sotto));
         if (mods.includes('parcoMacchine')) appendCard(S.createMacchineCard());
         if (mods.includes('report')) appendCard(S.createReportCard());
@@ -550,7 +552,7 @@ window.GFVDashboardSections.createDashboardQuickBarSection = function createDash
                     <h3 id="dashboard-quick-bar-modal-title">Componi la tua barra</h3>
                     <button type="button" class="dashboard-quick-bar-modal__x" data-quick-bar-close aria-label="Chiudi">×</button>
                 </div>
-                <p class="dashboard-quick-bar-modal__hint">Sotto trovi tutti gli accessi disponibili (anche le sottopagine: vigneto, frutteto, magazzino, conto terzi, parco macchine, report, manodopera), organizzati per modulo. Tocca una card per aggiungerla o toglierla dalla barra (massimo 5). Solo percorsi previsti dall’app; niente URL liberi.</p>
+                <p class="dashboard-quick-bar-modal__hint">Sotto trovi tutti gli accessi disponibili (anche le sottopagine: vigneto, frutteto, seminativo, magazzino, conto terzi, parco macchine, report, manodopera), organizzati per modulo. Tocca una card per aggiungerla o toglierla dalla barra (massimo 5). Solo percorsi previsti dall’app; niente URL liberi.</p>
                 <form id="dashboard-quick-bar-form" class="dashboard-quick-bar-form">
                     <div class="dashboard-quick-bar-draft-block">
                         <h4 class="dashboard-quick-bar-draft-block__title">Anteprima — I miei accessi</h4>
@@ -683,6 +685,7 @@ window.GFVDashboardSections.createDashboardModuleEntryTilesRow = function create
     if (mods.includes('vendemmiaMeccanica')) appendTile(S.createVendemmiaMeccanicaCard());
     if (mods.includes('vigneto')) appendTile(S.createVignetoCard());
     if (mods.includes('frutteto')) appendTile(S.createFruttetoCard());
+    if (mods.includes('seminativo')) appendTile(S.createSeminativoCard());
     if (mods.includes('magazzino')) appendTile(S.createMagazzinoCard(0));
     if (mods.includes('parcoMacchine')) appendTile(S.createMacchineCard());
     if (mods.includes('report')) appendTile(S.createReportCard());
@@ -753,6 +756,24 @@ window.GFVDashboardSections.createFruttetoCard = function createFruttetoCard() {
             <span class="dashboard-module-tile__body">
                 <span class="dashboard-module-tile__title">Frutteto</span>
                 <span class="dashboard-module-tile__desc">Alberi, raccolta e qualità. Pianificazione colture e interventi.</span>
+            </span>
+        </a>
+    `;
+    return section;
+};
+
+/**
+ * Card Seminativo — tile compatto
+ */
+window.GFVDashboardSections.createSeminativoCard = function createSeminativoCard() {
+    const section = document.createElement('div');
+    section.className = 'dashboard-section dashboard-section--module-tile';
+    section.innerHTML = `
+        <a href="../modules/seminativo/views/seminativo-dashboard-standalone.html" class="dashboard-module-tile" data-module="seminativo" style="--module-accent:#C9A227;">
+            <span class="dashboard-module-tile__icon" aria-hidden="true">🌾</span>
+            <span class="dashboard-module-tile__body">
+                <span class="dashboard-module-tile__title">Seminativo</span>
+                <span class="dashboard-module-tile__desc">Campagne, semina, lavorazioni e raccolta. Colture erbacee da granella.</span>
             </span>
         </a>
     `;

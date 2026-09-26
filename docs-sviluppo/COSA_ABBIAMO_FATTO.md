@@ -1,6 +1,23 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-26 — pelle Proposta, resoconto intero dal 22 settembre.**
+**Ultimo aggiornamento documentazione: 2026-09-26 — scheletro modulo Seminativo (hub + sottocategorie).**
+
+## 2026-09-26 — Scheletro modulo Seminativo
+
+Primo passo del modulo coltura **Seminativo**, stesso stile hub di Vigneto/Frutteto ma **senza** potatura, pianifica impianto e calcolo materiali (non sono un impianto permanente).
+
+**Cosa c’è**
+- Hub `modules/seminativo/views/seminativo-dashboard-standalone.html` + 8 sottopagine placeholder (anagrafica campagne, piano colturale, semina, lavorazioni, trattamenti, concimazioni, raccolta/mietitura, statistiche).
+- Anagrafica **per campagna** (`SeminativoCampagna`: terreno + campagna + coltura/varietà), collezione prevista `tenants/{id}/seminativi`.
+- Wiring: `MODULE_CATALOG`, card dashboard, quick bar, pelle (`#C9A227`), rotte Tony, gate moduli, nav «portami al seminativo».
+- Abbonamento: voce `seminativo` **Prossimamente** (`available: false`), come Oliveto. Per vederlo in dashboard aggiungere `seminativo` a `tenant.modules`.
+- Perimetro: solo categoria coltura Seminativo (non prato, non ortive). CRUD e KPI reali: fasi successive.
+
+Test: `tests/seminativo-module-skeleton.test.js`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-26 — pelle Proposta, resoconto intero dal 22 settembre.**
 
 ## Pelle Proposta — resoconto dal 22 al 26 settembre 2026
 

@@ -11,6 +11,7 @@ const MODULE_LABELS = {
   manodopera: "Manodopera",
   vigneto: "Vigneto",
   frutteto: "Frutteto",
+  seminativo: "Seminativo",
   meteo: "Meteo",
 };
 
@@ -112,6 +113,17 @@ const TARGET_REQUIRES_MODULE = {
   "calcolo materiali frutteto": "frutteto",
   "pianificazione impianto frutteto": "frutteto",
   "pianifica impianto frutteto": "frutteto",
+  seminativo: "seminativo",
+  seminativi: "seminativo",
+  "piano colturale": "seminativo",
+  "semina seminativo": "seminativo",
+  "lavorazioni seminativo": "seminativo",
+  "trattamenti seminativo": "seminativo",
+  "concimazioni seminativo": "seminativo",
+  "concimazione seminativo": "seminativo",
+  "raccolta seminativo": "seminativo",
+  "statistiche seminativo": "seminativo",
+  "seminativo statistiche": "seminativo",
   meteo: "meteo",
   "modulo meteo": "meteo",
   "previsioni meteo": "meteo",
@@ -308,7 +320,7 @@ function sanitizeTonyResultForModules(result, moduliAttivi) {
 
 const TONY_MODULI_ATTIVI_RULE = `
 MODULI ATTIVI (obbligatorio): in [CONTESTO].dashboard.moduli_attivi (o moduli_attivi) c'è l'elenco dei moduli pagati dal tenant.
-- NON menzionare né usare dati di moduli assenti dall'elenco (magazzino → prodotti/scorte/movimenti; contoTerzi → clienti/preventivi/tariffe; parcoMacchine → macchine/scadenze mezzi/guasti; manodopera; vigneto; frutteto; meteo).
+- NON menzionare né usare dati di moduli assenti dall'elenco (magazzino → prodotti/scorte/movimenti; contoTerzi → clienti/preventivi/tariffe; parcoMacchine → macchine/scadenze mezzi/guasti; manodopera; vigneto; frutteto; seminativo; meteo).
 - NON usare APRI_PAGINA né OPEN_MODAL verso pagine di un modulo non attivo: spiega che il modulo non è attivo e indica la pagina Abbonamento.
 - I dati in azienda.* sono già filtrati lato server: se mancano tariffe o prodotti, non inventare — indica che serve attivare il modulo.
 `;

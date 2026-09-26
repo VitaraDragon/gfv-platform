@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Seminativo" data-gfv-module="seminativo">
+<head>
+<script>try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
+<script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Statistiche — Seminativo - GFV Platform</title>
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <link rel="stylesheet" href="seminativo-standalone.css">
+</head>
+<body data-seminativo-page="statistiche" data-page-type="statistiche_seminativo">
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🌾 Statistiche — Seminativo</h1>
+                <p>Sottocategoria del modulo Seminativo. Pagina in scheletro: i form e i dati arriveranno dopo.</p>
+            </div>
+            <div class="header-actions">
+                <a href="seminativo-dashboard-standalone.html" class="btn btn-secondary">← Seminativo</a>
+                <a href="../../../core/dashboard-standalone.html" class="btn btn-secondary">Dashboard</a>
+            </div>
+        </div>
+        <div class="content">
+            <div class="placeholder-box">
+                <strong>In costruzione</strong>
+                <p>Questa pagina segue il canone liste Tony (<code>currentTableData</code> + <code>table-data-ready</code>). Nessun dato persistito in questa fase.</p>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
+    <script type="module">
+        import { initSeminativoPlaceholderPage } from '../js/seminativo-placeholder-page.js';
+        initSeminativoPlaceholderPage();
+    </script>
+</body>
+</html>

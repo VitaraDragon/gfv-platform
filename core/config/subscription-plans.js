@@ -174,6 +174,16 @@ export const AVAILABLE_MODULES = [
     badge: 'Prossimamente'
   },
   {
+    id: 'seminativo',
+    name: 'Seminativo',
+    icon: '🌾',
+    description: 'Campagne, semina, lavorazioni e raccolta',
+    price: 3,
+    available: false, // Scheletro hub — non in vendita
+    category: 'colture',
+    badge: 'Prossimamente'
+  },
+  {
     id: 'magazzino',
     name: 'Prodotti e Magazzino',
     icon: '📦',

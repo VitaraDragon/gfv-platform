@@ -28,6 +28,7 @@ export const QUICK_BAR_SECTION_ORDER = [
     { id: 'parcoMacchine', label: 'Parco macchine', dashboardRouteId: 'parcoDashboard' },
     { id: 'vigneto', label: 'Vigneto', dashboardRouteId: 'vigneto' },
     { id: 'frutteto', label: 'Frutteto', dashboardRouteId: 'frutteto' },
+    { id: 'seminativo', label: 'Seminativo', dashboardRouteId: 'seminativo' },
     { id: 'magazzino', label: 'Magazzino', dashboardRouteId: 'magazzino' },
     { id: 'report', label: 'Report', dashboardRouteId: 'report' },
     { id: 'meteo', label: 'Meteo', dashboardRouteId: 'meteo' }
@@ -438,6 +439,87 @@ export const QUICK_BAR_CATALOG = {
         modules: ['frutteto'],
         requireManodopera: false,
         section: 'frutteto'
+    },
+    seminativo: {
+        label: 'Seminativo',
+        desc: 'Dashboard seminativo',
+        icon: '🌾',
+        href: '../modules/seminativo/views/seminativo-dashboard-standalone.html',
+        modules: ['seminativo'],
+        requireManodopera: false,
+        section: 'seminativo'
+    },
+    seminativoAnagrafica: {
+        label: 'Anagrafica seminativo',
+        desc: 'Campagne collegate ai terreni',
+        icon: '🌾',
+        href: '../modules/seminativo/views/seminativi-standalone.html',
+        modules: ['seminativo'],
+        requireManodopera: false,
+        section: 'seminativo'
+    },
+    seminativoPiano: {
+        label: 'Piano colturale',
+        desc: 'Rotazioni e coltura per campagna',
+        icon: '🗓️',
+        href: '../modules/seminativo/views/piano-colturale-standalone.html',
+        modules: ['seminativo'],
+        requireManodopera: false,
+        section: 'seminativo'
+    },
+    seminativoSemina: {
+        label: 'Semina',
+        desc: 'Registro semine',
+        icon: '🌱',
+        href: '../modules/seminativo/views/semina-standalone.html',
+        modules: ['seminativo'],
+        requireManodopera: false,
+        section: 'seminativo'
+    },
+    seminativoLavorazioni: {
+        label: 'Lavorazioni (seminativo)',
+        desc: 'Aratura, erpicatura e lavorazioni',
+        icon: '🚜',
+        href: '../modules/seminativo/views/lavorazioni-standalone.html',
+        modules: ['seminativo'],
+        requireManodopera: false,
+        section: 'seminativo'
+    },
+    seminativoTrattamenti: {
+        label: 'Trattamenti (seminativo)',
+        desc: 'Trattamenti fitosanitari',
+        icon: '🧪',
+        href: '../modules/seminativo/views/trattamenti-standalone.html',
+        modules: ['seminativo'],
+        requireManodopera: false,
+        section: 'seminativo'
+    },
+    seminativoConcimazioni: {
+        label: 'Concimazioni (seminativo)',
+        desc: 'Concimazioni di campo',
+        icon: '🌿',
+        href: '../modules/seminativo/views/concimazioni-standalone.html',
+        modules: ['seminativo'],
+        requireManodopera: false,
+        section: 'seminativo'
+    },
+    seminativoRaccolta: {
+        label: 'Raccolta / mietitura',
+        desc: 'Registro raccolte seminativo',
+        icon: '📦',
+        href: '../modules/seminativo/views/raccolta-standalone.html',
+        modules: ['seminativo'],
+        requireManodopera: false,
+        section: 'seminativo'
+    },
+    seminativoStatistiche: {
+        label: 'Statistiche seminativo',
+        desc: 'KPI e riepiloghi seminativo',
+        icon: '📊',
+        href: '../modules/seminativo/views/seminativo-statistiche-standalone.html',
+        modules: ['seminativo'],
+        requireManodopera: false,
+        section: 'seminativo'
     },
     fruttetoAlberi: {
         label: 'Frutteti',
