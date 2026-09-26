@@ -1,6 +1,11 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-26 — layout telefono della pelle.**
+**Ultimo aggiornamento documentazione: 2026-09-26 — barra telefono senza scritte.**
+
+## Pelle Proposta — barra telefono senza scritte (2026-09-26)
+
+- **Cosa:** nella barra nera, anche con la finestra stretta, non compare «Proposta · Home». Restano graffetta, cartina e ingranaggio.
+- **Perché:** quella scritta era solo sul telefono e nell’emulatore. Su PC la barra è già solo icone.
 
 ## Pelle Proposta — layout telefono (2026-09-26)
 

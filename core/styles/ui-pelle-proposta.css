@@ -542,10 +542,7 @@ html[data-pelle="proposta"][data-shell="phone"] .gfv-pelle-handle {
 }
 
 html[data-pelle="proposta"][data-shell="phone"] .gfv-pelle-handle-label {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  display: none;
 }
 
 html[data-pelle="proposta"][data-shell="phone"] .gfv-pelle-alt {
