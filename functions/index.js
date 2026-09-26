@@ -96,6 +96,14 @@ const stripeSecretKey = defineSecret("STRIPE_SECRET_KEY");
 /** Stripe webhook — firebase functions:secrets:set STRIPE_WEBHOOK_SECRET */
 const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 
+/** ElevenLabs TTS — firebase functions:secrets:set ELEVENLABS_API_KEY */
+const elevenLabsApiKey = defineSecret("ELEVENLABS_API_KEY");
+
+const {
+  resolveTonyTtsConfig,
+  synthesizeElevenLabsAudio,
+} = require("./tony-tts-provider");
+
 const ttsClient = new textToSpeech.TextToSpeechClient();
 
 if (!admin.apps.length) {
@@ -106,9 +114,7 @@ const db = admin.firestore();
 /** Modello Gemini REST (override: env GEMINI_MODEL). gemini-2.0-flash deprecato → 404. */
 const TONY_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
-/** Voce TTS Tony (override: env TONY_TTS_VOICE). Rollback: it-IT-Wavenet-D */
-const TONY_TTS_VOICE = process.env.TONY_TTS_VOICE || "it-IT-Chirp3-HD-Charon";
-/** Velocità parlato (override: env TONY_TTS_SPEAKING_RATE). */
+/** Velocità parlato fallback (override: env TONY_TTS_SPEAKING_RATE). */
 const TONY_TTS_SPEAKING_RATE = Number(process.env.TONY_TTS_SPEAKING_RATE || "1.0");
 
 /**
@@ -4248,10 +4254,11 @@ exports.tonyTranscribeAudio = onCall(
 /**
  * Callable: getTonyAudio - Sintesi vocale neurale per Tony.
  * Riceve { text: string }, restituisce { audioContent: string } (base64 MP3).
- * Richiede utente autenticato. Abilita "Cloud Text-to-Speech API" in Google Cloud Console.
+ * Default: ElevenLabs (voce 5zD2eYSLIo8c2zkowMfP) se c'è ELEVENLABS_API_KEY.
+ * Rollback: TONY_TTS_PROVIDER=google (Chirp 3 Charon).
  */
 exports.getTonyAudio = onCall(
-  { region: "europe-west1", secrets: [sentryDsn] },
+  { region: "europe-west1", secrets: [sentryDsn, elevenLabsApiKey] },
   async (request) => {
     if (!request.auth) {
       throw new HttpsError("unauthenticated", "Utente non autenticato.");
@@ -4268,35 +4275,55 @@ exports.getTonyAudio = onCall(
       throw new HttpsError("invalid-argument", "Campo 'text' (stringa) obbligatorio.");
     }
 
-    const voiceName = TONY_TTS_VOICE;
+    const ttsCfg = resolveTonyTtsConfig({
+      elevenLabsApiKey: process.env.ELEVENLABS_API_KEY || "",
+    });
+    const voiceName = ttsCfg.voice;
+    const speakingRate = Number.isFinite(ttsCfg.speakingRate)
+      ? ttsCfg.speakingRate
+      : TONY_TTS_SPEAKING_RATE;
     console.log("[getTonyAudio] Chiamata ricevuta", {
       textLen: text.length,
       textPreview: text.substring(0, 60) + (text.length > 60 ? "..." : ""),
+      provider: ttsCfg.provider,
       voice: voiceName,
-      speakingRate: TONY_TTS_SPEAKING_RATE,
+      speakingRate,
+      fallbackReason: ttsCfg.fallbackReason || undefined,
       ts: new Date().toISOString(),
     });
 
-    const [response] = await ttsClient.synthesizeSpeech({
-      input: { text },
-      voice: {
-        languageCode: "it-IT",
-        name: voiceName,
-      },
-      audioConfig: {
-        audioEncoding: "MP3",
-        speakingRate: TONY_TTS_SPEAKING_RATE,
-      },
-    });
+    let audioContent;
+    if (ttsCfg.provider === "elevenlabs") {
+      audioContent = await synthesizeElevenLabsAudio({
+        text,
+        voice: voiceName,
+        modelId: ttsCfg.modelId,
+        speakingRate,
+        apiKey: ttsCfg.apiKey,
+      });
+    } else {
+      const [response] = await ttsClient.synthesizeSpeech({
+        input: { text },
+        voice: {
+          languageCode: "it-IT",
+          name: voiceName,
+        },
+        audioConfig: {
+          audioEncoding: "MP3",
+          speakingRate,
+        },
+      });
+      audioContent = response.audioContent.toString("base64");
+    }
 
-    const audioContent = response.audioContent.toString("base64");
     console.log("[getTonyAudio] Audio generato", {
       audioLenBase64: audioContent.length,
+      provider: ttsCfg.provider,
       voice: voiceName,
-      speakingRate: TONY_TTS_SPEAKING_RATE,
+      speakingRate,
       ts: new Date().toISOString(),
     });
-    return { audioContent, voice: voiceName };
+    return { audioContent, voice: voiceName, provider: ttsCfg.provider };
   }
 );
 

@@ -1,6 +1,10 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-21 — allineamento docs telefono + Higgsfield.**
+**Ultimo aggiornamento documentazione: 2026-09-26 — voce Tony ElevenLabs in getTonyAudio.**
+
+## 2026-09-26 — Tony TTS: voce ElevenLabs (nonno Tony)
+
+`getTonyAudio` può sintetizzare con **ElevenLabs Flash** (voce salvata `5zD2eYSLIo8c2zkowMfP`) invece di Chirp 3 Charon. Stesso contratto client (MP3 base64). Default ElevenLabs se c’è `ELEVENLABS_API_KEY`, altrimenti Google. Rollback: `TONY_TTS_PROVIDER=google`. Helper `functions/tony-tts-provider.js`. Test `tests/tony-tts-provider.test.js`. Deploy: `firebase functions:secrets:set ELEVENLABS_API_KEY` poi `firebase deploy --only functions:getTonyAudio`.
 
 ## Allineamento — piani dal telefono in locale + ordine Higgsfield (2026-09-21)
 
