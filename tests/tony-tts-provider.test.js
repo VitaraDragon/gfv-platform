@@ -8,6 +8,7 @@ const {
   isGoogleVoiceName,
   clampElevenSpeed,
   resolveTonyTtsConfig,
+  buildElevenLabsTtsBody,
   synthesizeElevenLabsAudio,
 } = require('../functions/tony-tts-provider.js');
 
@@ -66,6 +67,29 @@ describe('tony-tts-provider — helper', () => {
   });
 });
 
+describe('tony-tts-provider — body ElevenLabs', () => {
+  it('mette language_code it e speed solo in voice_settings se ≠ 1', () => {
+    const base = buildElevenLabsTtsBody({
+      text: 'Ciao',
+      modelId: 'eleven_flash_v2_5',
+      speakingRate: 1,
+    });
+    expect(base).toEqual({
+      text: 'Ciao',
+      model_id: 'eleven_flash_v2_5',
+      language_code: 'it',
+    });
+    expect(base.speed).toBeUndefined();
+    const slower = buildElevenLabsTtsBody({
+      text: 'Ciao',
+      modelId: 'eleven_flash_v2_5',
+      speakingRate: 0.9,
+    });
+    expect(slower.voice_settings).toEqual({ speed: 0.9 });
+    expect(slower.speed).toBeUndefined();
+  });
+});
+
 describe('tony-tts-provider — synthesizeElevenLabsAudio', () => {
   it('chiama l’API con voice id, Flash e MP3', async () => {
     const calls = [];
@@ -91,7 +115,9 @@ describe('tony-tts-provider — synthesizeElevenLabsAudio', () => {
     expect(calls[0].init.headers['xi-api-key']).toBe('sk-test');
     const body = JSON.parse(calls[0].init.body);
     expect(body.model_id).toBe('eleven_flash_v2_5');
+    expect(body.language_code).toBe('it');
     expect(body.text).toBe('Ti porto alle tariffe.');
+    expect(body.speed).toBeUndefined();
     expect(b64).toBe(Buffer.from('fake-mp3').toString('base64'));
   });
 

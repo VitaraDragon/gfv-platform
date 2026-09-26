@@ -100,6 +100,7 @@ const stripeWebhookSecret = defineSecret("STRIPE_WEBHOOK_SECRET");
 const elevenLabsApiKey = defineSecret("ELEVENLABS_API_KEY");
 
 const {
+  TONY_TTS_GOOGLE_VOICE_DEFAULT,
   resolveTonyTtsConfig,
   synthesizeElevenLabsAudio,
 } = require("./tony-tts-provider");
@@ -4278,52 +4279,81 @@ exports.getTonyAudio = onCall(
     const ttsCfg = resolveTonyTtsConfig({
       elevenLabsApiKey: process.env.ELEVENLABS_API_KEY || "",
     });
-    const voiceName = ttsCfg.voice;
+    let voiceName = ttsCfg.voice;
+    let usedProvider = ttsCfg.provider;
+    let fallbackReason = ttsCfg.fallbackReason || "";
     const speakingRate = Number.isFinite(ttsCfg.speakingRate)
       ? ttsCfg.speakingRate
       : TONY_TTS_SPEAKING_RATE;
     console.log("[getTonyAudio] Chiamata ricevuta", {
       textLen: text.length,
       textPreview: text.substring(0, 60) + (text.length > 60 ? "..." : ""),
-      provider: ttsCfg.provider,
+      provider: usedProvider,
       voice: voiceName,
       speakingRate,
-      fallbackReason: ttsCfg.fallbackReason || undefined,
+      fallbackReason: fallbackReason || undefined,
       ts: new Date().toISOString(),
     });
 
-    let audioContent;
-    if (ttsCfg.provider === "elevenlabs") {
-      audioContent = await synthesizeElevenLabsAudio({
-        text,
-        voice: voiceName,
-        modelId: ttsCfg.modelId,
-        speakingRate,
-        apiKey: ttsCfg.apiKey,
-      });
-    } else {
+    async function synthesizeGoogleTonyAudio(voice) {
       const [response] = await ttsClient.synthesizeSpeech({
         input: { text },
         voice: {
           languageCode: "it-IT",
-          name: voiceName,
+          name: voice,
         },
         audioConfig: {
           audioEncoding: "MP3",
           speakingRate,
         },
       });
-      audioContent = response.audioContent.toString("base64");
+      return response.audioContent.toString("base64");
+    }
+
+    let audioContent;
+    try {
+      if (usedProvider === "elevenlabs") {
+        audioContent = await synthesizeElevenLabsAudio({
+          text,
+          voice: voiceName,
+          modelId: ttsCfg.modelId,
+          speakingRate,
+          apiKey: ttsCfg.apiKey,
+        });
+      } else {
+        audioContent = await synthesizeGoogleTonyAudio(voiceName);
+      }
+    } catch (err) {
+      const errMsg = String((err && err.message) || err).slice(0, 220);
+      if (usedProvider !== "elevenlabs") {
+        console.error("[getTonyAudio] Google TTS fallito", { message: errMsg });
+        throw new HttpsError("internal", "Errore sintesi vocale.");
+      }
+      console.error("[getTonyAudio] ElevenLabs fallito, fallback Google", {
+        message: errMsg,
+      });
+      usedProvider = "google";
+      voiceName = TONY_TTS_GOOGLE_VOICE_DEFAULT;
+      fallbackReason = "elevenlabs_error";
+      try {
+        audioContent = await synthesizeGoogleTonyAudio(voiceName);
+      } catch (googleErr) {
+        console.error("[getTonyAudio] Fallback Google fallito", {
+          message: String((googleErr && googleErr.message) || googleErr).slice(0, 220),
+        });
+        throw new HttpsError("internal", "Errore sintesi vocale.");
+      }
     }
 
     console.log("[getTonyAudio] Audio generato", {
       audioLenBase64: audioContent.length,
-      provider: ttsCfg.provider,
+      provider: usedProvider,
       voice: voiceName,
       speakingRate,
+      fallbackReason: fallbackReason || undefined,
       ts: new Date().toISOString(),
     });
-    return { audioContent, voice: voiceName, provider: ttsCfg.provider };
+    return { audioContent, voice: voiceName, provider: usedProvider };
   }
 );
 

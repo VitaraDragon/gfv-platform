@@ -68,6 +68,24 @@ function resolveTonyTtsConfig(opts) {
 }
 
 /**
+ * Body ufficiale convert TTS: `speed` sta in `voice_settings`, non in root
+ * (un `speed` top-level può dare 422 → callable INTERNAL).
+ * @param {{ text: string, modelId: string, speakingRate?: number, languageCode?: string }} args
+ */
+function buildElevenLabsTtsBody(args) {
+  const body = {
+    text: args.text,
+    model_id: args.modelId,
+    language_code: args.languageCode || "it",
+  };
+  const speed = clampElevenSpeed(args.speakingRate);
+  if (speed !== 1) {
+    body.voice_settings = { speed };
+  }
+  return body;
+}
+
+/**
  * @param {{
  *   text: string,
  *   voice: string,
@@ -81,19 +99,28 @@ async function synthesizeElevenLabsAudio(args) {
   const fetchFn = args.fetchFn || fetch;
   const voice = encodeURIComponent(args.voice);
   const url = TONY_TTS_ELEVEN_URL + "/" + voice + "?output_format=mp3_44100_128";
-  const res = await fetchFn(url, {
-    method: "POST",
-    headers: {
-      "xi-api-key": args.apiKey,
-      "Content-Type": "application/json",
-      Accept: "audio/mpeg",
-    },
-    body: JSON.stringify({
-      text: args.text,
-      model_id: args.modelId,
-      speed: clampElevenSpeed(args.speakingRate),
-    }),
-  });
+  const ac = typeof AbortController === "function" ? new AbortController() : null;
+  const timer = ac ? setTimeout(function () { ac.abort(); }, 12000) : null;
+  let res;
+  try {
+    res = await fetchFn(url, {
+      method: "POST",
+      headers: {
+        "xi-api-key": args.apiKey,
+        "Content-Type": "application/json",
+        Accept: "audio/mpeg",
+      },
+      body: JSON.stringify(buildElevenLabsTtsBody(args)),
+      signal: ac ? ac.signal : undefined,
+    });
+  } catch (err) {
+    if (err && err.name === "AbortError") {
+      throw new Error("ElevenLabs TTS timeout");
+    }
+    throw err;
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
   if (!res.ok) {
     const errText = typeof res.text === "function" ? await res.text() : "";
     throw new Error(
@@ -114,5 +141,6 @@ module.exports = {
   isGoogleVoiceName,
   clampElevenSpeed,
   resolveTonyTtsConfig,
+  buildElevenLabsTtsBody,
   synthesizeElevenLabsAudio,
 };
