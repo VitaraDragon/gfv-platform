@@ -221,7 +221,7 @@ function logoutFromPelle() {
 
 function mountShell(entries) {
   const modules = moduleMenuEntries(entries);
-  const account = accountMenuEntries();
+  const account = accountMenuEntries(entries);
   const mapHref = absHref((mapMenuEntries()[0] || {}).href || 'mappa-aziendale-standalone.html');
   const sig = modules.map((e) => e.id + '\t' + e.href).join('|');
   let root = document.getElementById('gfv-pelle-shell');
@@ -263,7 +263,7 @@ function mountShell(entries) {
     '<div class="gfv-pelle-mods">' + links + '</div>' +
     '</nav>' +
     '<nav class="gfv-pelle-lab gfv-pelle-lab--altro" id="gfv-pelle-alt-lab" aria-hidden="true" aria-label="Opzioni">' +
-    '<p class="gfv-pelle-kicker">Impostazioni, guide e logout. Il menu si chiude.</p>' +
+    '<p class="gfv-pelle-kicker">Impostazioni, abbonamento, guide e logout. Il menu si chiude.</p>' +
     '<div class="gfv-pelle-mods" id="gfv-pelle-alt-mods">' + accountLinks + '</div>' +
     '</nav>';
   markCurrent(root);

@@ -1,6 +1,11 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-25 — pelle Proposta effettiva.**
+**Ultimo aggiornamento documentazione: 2026-09-26 — Abbonamento nel menu opzioni.**
+
+## Pelle Proposta — Abbonamento nelle opzioni (2026-09-26)
+
+- **Cosa:** il link Abbonamento esce dall’elenco moduli (graffetta) e sta nell’ingranaggio, dopo Impostazioni e prima delle Guide.
+- **Perché:** è il piano e i moduli a pagamento, non una pagina di lavoro.
 
 ## Pelle Proposta effettiva (2026-09-25)
 

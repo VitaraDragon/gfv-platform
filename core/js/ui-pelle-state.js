@@ -74,7 +74,7 @@ export const PELLE_SHELL_ORDER = [
   { catalogId: 'meteo', hint: 'Sede e campi', optional: true },
   { catalogId: 'report', hint: 'Bilancio per area', optional: true },
   { catalogId: 'diarioAttivita', hint: 'Diario', hideWhenManodopera: true },
-  { catalogId: 'abbonamento', hint: 'Piano e moduli' },
+  { catalogId: 'abbonamento', hint: 'Piano e moduli', menu: 'opzioni' },
   { catalogId: 'statistiche', hint: 'Numeri' },
   { id: 'impostazioni', label: 'Impostazioni', hint: 'Azienda e account', href: 'admin/impostazioni-standalone.html' }
 ];
@@ -195,7 +195,8 @@ export function visibleShellEntries(catalog, moduliAttivi, order) {
         id: item.catalogId,
         label: meta.label || item.catalogId,
         hint: item.hint || '',
-        href
+        href,
+        menu: item.menu || ''
       });
       return;
     }
@@ -220,14 +221,16 @@ export function homeActionsFromShell(entries, max) {
   return (entries || []).filter((e) => e && !HOME_SKIP[e.id]).slice(0, limit);
 }
 
-/** Impostazioni non stanno nel catalogo moduli. */
+/** Impostazioni e le voci con menu «opzioni» non stanno nell’elenco moduli. */
 export function moduleMenuEntries(entries) {
-  return (entries || []).filter((e) => e && e.id !== 'impostazioni');
+  return (entries || []).filter((e) => e && e.id !== 'impostazioni' && e.menu !== 'opzioni');
 }
 
-export function accountMenuEntries() {
+export function accountMenuEntries(entries) {
+  const fromShell = (entries || []).filter((e) => e && e.menu === 'opzioni');
   return [
     { id: 'impostazioni', label: 'Impostazioni', hint: 'Azienda e account', href: 'admin/impostazioni-standalone.html' },
+    ...fromShell,
     { id: 'guide', label: 'Guide', hint: 'Come si usa', href: '../documentazione-utente/index.html', blank: true },
     { id: 'logout', label: 'Logout', hint: 'Esci dall’account', action: 'logout' }
   ];
