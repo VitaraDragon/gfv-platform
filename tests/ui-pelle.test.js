@@ -85,7 +85,9 @@ describe('ui-pelle stato', () => {
     expect(ids).toContain('lavori');
     expect(ids).toContain('impostazioni');
     expect(moduleMenuEntries(entries).map((e) => e.id)).not.toContain('impostazioni');
-    expect(accountMenuEntries().map((e) => e.id)).toEqual(['impostazioni', 'guide', 'logout']);
+    expect(moduleMenuEntries(entries).map((e) => e.id)).not.toContain('abbonamento');
+    expect(accountMenuEntries(entries).map((e) => e.id)).toEqual(['impostazioni', 'abbonamento', 'guide', 'logout']);
+    expect(accountMenuEntries(entries).find((e) => e.id === 'abbonamento').href).toBe('admin/abbonamento-standalone.html');
     expect(accountMenuEntries().find((e) => e.id === 'logout').action).toBe('logout');
     expect(mapMenuEntries()[0].href).toBe('mappa-aziendale-standalone.html');
     expect(ids).toContain('diarioAttivita');

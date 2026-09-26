@@ -1,10 +1,10 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<script>try{if(sessionStorage.getItem("gfv-pelle-turn")==="1"&&!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
+<script>try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
 
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Statistiche Manodopera - GFV Platform</title>
     <link rel="stylesheet" href="../styles/responsive-standalone.css">
     <style>
@@ -289,7 +289,7 @@
                         <div class="stat-label" style="color: rgba(255,255,255,0.9);">Ore Totali</div>
                     </div>
                     <div class="stat-card" style="background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%); color: white;">
-                        <div class="stat-value" id="stat-media-ore-giorno" style="color: white;">-</div>
+                        <div class="stat-value" id="stat-media-ore-giorno-report" style="color: white;">-</div>
                         <div class="stat-label" style="color: rgba(255,255,255,0.9);">Media Ore/Giorno</div>
                     </div>
                     <div class="stat-card" style="background: linear-gradient(135deg, #17a2b8 0%, #117a8b 100%); color: white;">
@@ -883,7 +883,7 @@
                 };
                 
                 document.getElementById('stat-ore-totali-operai').textContent = formatOre(oreTotaliFiltrate);
-                document.getElementById('stat-media-ore-giorno').textContent = formatOre(mediaOreGiorno);
+                document.getElementById('stat-media-ore-giorno-report').textContent = formatOre(mediaOreGiorno);
                 document.getElementById('stat-giorni-lavorati').textContent = giorniLavorati;
                 document.getElementById('stat-operai-attivi').textContent = operaiAttivi;
                 

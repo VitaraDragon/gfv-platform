@@ -704,24 +704,27 @@ Non è il piano campo (§24). Due home restano volute (campo vs ufficio); non du
 
 ---
 
-## 26. Pelle UI «Proposta» sull’app (prova, rollback obbligatorio) (2026-09-22)
+## 26. Pelle UI «Proposta» sull’app (2026-09-22, aggiornato 2026-09-26)
 
-**Stato codice:** **parziale** (Fetata 0–1, flag spento di default per chi non è in Prova). Piano: `docs-sviluppo/da-fare/ui/PIANO_PELLE_PROPOSTA_SU_APP.md`. Riferimento visivo: `core/dev/ui-preview-doppio-pelle.html` (PR #64).  
-Non è il piano telefono manager (§25) e non è il piano campo (§24). Il look **non** è la pelle definitiva.
+**Stato codice:** la Proposta è la pelle delle pagine ufficio sul branch `cursor/pelle-proposta-effettiva` (PR #68, non ancora su `main`). Su `main` restano PR #66 (pelle dietro **Prova**) e PR #67 (niente flash della pelle vecchia, graffetta sul telefono, scorrimento menu, dissolvenza). Lo smartphone legge `main`. Piano: `docs-sviluppo/da-fare/ui/PIANO_PELLE_PROPOSTA_SU_APP.md`. Resoconto: `COSA_ABBIAMO_FATTO.md` (voce 22–26 settembre 2026).  
+Non è il piano telefono manager (§25) e non è il piano campo (§24). Fetata 2–4 no. Nessuna fase del Master Plan è cambiata.
 
 | # | Decisione | Fonte | Stato | Note |
 |---|-----------|-------|-------|------|
-| 26.1 | Lo stile attuale **resta** finché il PO non conferma la pelle. La Proposta è **affiancata** | prodotto 2026-09-22 | **implementato** (vincolo) | Senza `data-pelle="proposta"` le pagine restano com’erano |
-| 26.2 | Gate = flag tenant `uiPelleProposta` nello switch **Prova/Pubblicata** (Sabbie Gialle), **non** `moduliAttivi` | prodotto 2026-09-22 | **parziale** | `enabledAlways: false`. Tap Pubblicata spegne senza deploy. Fetata 2–4 no |
-| 26.3 | Rollback: tap **Pubblicata** e/o `git revert` su `main` + tag pre-promozione | prodotto 2026-09-22 | **parziale** | Tag locale `ui-pre-pelle-20260922` sul commit di `main`, non pushato. Il telefono vede la pelle solo dopo promozione |
-| 26.4 | Telefono: catalogo in sheet (si chiude dopo la scelta). PC: menu a sinistra a scomparsa. La graffetta è solo icona, anche sul telefono (niente «Tocca per i moduli») | prodotto 2026-09-22, aggiornato 2026-09-25 | **parziale** | Sul telefono la scritta sostituiva l’icona. Campo e login no |
+| 26.1 | Lo stile di prima restava affiancato finché il PO non confermava la pelle | prodotto 2026-09-22 | **superato** il 2026-09-25 | Vedi §26.2. Senza `data-pelle="proposta"` le pagine restano com’erano |
+| 26.2 | La pelle Proposta è quella delle pagine ufficio (`enabledAlways`). Lo switch Prova non la spegne più | prodotto 2026-09-22, aggiornato 2026-09-25 | **implementato** (non su `main`) | Campo, login e registrazione restano fuori. Rollback: `git revert` |
+| 26.3 | Rollback: `git revert` su `main`. Il tap **Pubblicata** non spegne più la pelle | prodotto 2026-09-22, aggiornato 2026-09-25 | **parziale** | Tag locale `ui-pre-pelle-20260922` sul commit di `main` prima della pelle, non pushato. Il telefono ha #67, non #68 |
+| 26.4 | Telefono: catalogo in sheet (si chiude dopo la scelta). PC: menu a sinistra a scomparsa. La barra nera non ha scritte: solo graffetta, cartina e ingranaggio. Le statistiche seguono 1 colonna sotto 480 px e 2 fino a 768. Notch e barra gesti via `viewport-fit=cover` | prodotto 2026-09-22, aggiornato 2026-09-26 | **parziale** | «Proposta · Home» e «Tocca per i moduli» coprivano la barra. Campo e login no |
 | 26.5 | Liste: schede su telefono, tabella su desktop. Reminder Tony 1 riga (§15.5) | prodotto 2026-09-21 | **parziale** | Ogni `.table-responsive` ufficio. Home: 1 riga, expand max 5 |
 | 26.6 | Workspace campo fuori scope. Niente seconda app, niente `if (formId)` nel core | prodotto 2026-09-22 | **implementato** (vincolo) | Host solo con `data-gfv-pelle-host`; campo non incluso |
-| 26.7 | Cartina in alto al centro: apre subito la mappa aziendale, senza un secondo menu. Con Proposta la pagina tiene la stessa barra («Proposta · Mappa») e la mappa compare quando le tessere sono pronte | prodotto 2026-09-23, aggiornato 2026-09-25 | **parziale** | Solo con Proposta. Link `mappa-aziendale-standalone.html` |
-| 26.8 | Ingranaggio in alto a destra: Impostazioni, Guide, Logout. «Azienda» solo se ci sono almeno due tenant, prima del Logout | prodotto 2026-09-23 | **parziale** | Con Proposta spariscono dall’header di pagina Impostazioni, Guide, Cambia azienda, Mappa e Logout |
+| 26.7 | Cartina in alto al centro: apre subito la mappa aziendale, senza un secondo menu. Con Proposta la pagina tiene la stessa barra, senza scritte, e la mappa compare quando le tessere sono pronte | prodotto 2026-09-23, aggiornato 2026-09-26 | **parziale** | Solo con Proposta. Link `mappa-aziendale-standalone.html` |
+| 26.8 | Ingranaggio in alto a destra: Impostazioni, Abbonamento, Guide, Logout. «Azienda» solo se ci sono almeno due tenant, prima del Logout. Abbonamento non sta nell’elenco moduli | prodotto 2026-09-23, aggiornato 2026-09-26 | **parziale** | Con Proposta spariscono dall’header di pagina Impostazioni, Guide, Cambia azienda, Mappa e Logout |
 | 26.9 | Diario nel menu moduli non compare se Manodopera è attivo | prodotto 2026-09-23 | **parziale** | Stessa regola della dashboard normale |
 | 26.10 | «← Dashboard» in Impostazioni torna alla home principale, non all’hub Manodopera | prodotto 2026-09-23 | **parziale** | Solo quella pagina. Il resto degli admin non cambia |
-| 26.11 | Pulsanti di movimento in alto a destra nell’header, titolo a sinistra. Con una descrizione lunga il testo si restringe e i pulsanti restano sulla stessa riga | prodotto 2026-09-23 | **parziale** | Vale anche con Pubblicata. Pagine e eccezioni in `COSA_ABBIAMO_FATTO.md` (2026-09-23) |
+| 26.11 | Pulsanti di movimento in alto a destra nell’header, titolo a sinistra. Con una descrizione lunga il testo si restringe e i pulsanti restano sulla stessa riga | prodotto 2026-09-23 | **parziale** | Vale anche con Pubblicata. Pagine in `COSA_ABBIAMO_FATTO.md` (resoconto 22–26 settembre) |
+| 26.12 | Menu e cambio pagina: scorrimento 0,18 s (graffetta da sinistra, ingranaggio da destra; sul telefono entrambi dall’alto). Dissolvenza al cambio pagina, non un giro da quaderno. Meno movimento se il sistema lo chiede | prodotto 2026-09-25 | **implementato** su `main` (#67) | Lo script in testa alle pagine evita il flash della pelle vecchia |
+| 26.13 | Meteo usa la stessa carta e gli stessi margini delle altre pagine ufficio (blocco centrato, max 1400 px). Niente gradiente azzurro | prodotto 2026-09-25, aggiornato 2026-09-26 | **implementato** (non su `main`) | La graffetta non copre la spiegazione |
+| 26.14 | Statistiche manodopera: numeri scuri sulla carta. «Media ore/giorno» del report e quella delle ore sono due valori distinti | prodotto 2026-09-26 | **implementato** (non su `main`) | Prima il testo restava bianco e i due campi condividevano l’id |
 
 ---
 

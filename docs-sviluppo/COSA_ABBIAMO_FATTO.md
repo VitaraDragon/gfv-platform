@@ -1,44 +1,43 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-25 — dissolvenza al cambio pagina.**
+**Ultimo aggiornamento documentazione: 2026-09-26 — pelle Proposta, resoconto intero dal 22 settembre.**
 
-## Pelle Proposta — dissolvenza al cambio pagina (2026-09-25)
+## Pelle Proposta — resoconto dal 22 al 26 settembre 2026
 
-- **Cosa:** con Prova, il passaggio da una pagina ufficio all’altra è una dissolvenza di 0,18 s. Con Pubblicata, o se il sistema chiede meno movimenti, il cambio è immediato. La barra ha un nome di transizione così, quando c’è già, non viene ridisegnata da zero.
-- **Perché:** un giro di pagina da quaderno non regge su documenti separati. La prova è la dissolvenza unica.
+La pelle carta delle pagine ufficio. Non è una fase Tony: il Master Plan non cambia. Registro: `TONY_DECISIONI_E_REQUISITI.md` §26.
 
-## Pelle Proposta — ingranaggio con lo stesso scorrimento (2026-09-25)
+**Dove sta il codice.** Su `main` ci sono solo i primi due passi, già online (PR #66 e #67): la pelle si accendeva con **Prova** e al cambio pagina non tornava più quella vecchia per un attimo. Tutto il resto — pelle sempre accesa, Meteo, Statistiche manodopera, Abbonamento nell’ingranaggio, layout telefono, barra senza scritte — è sul branch `cursor/pelle-proposta-effettiva`, pull request #68, **non ancora su `main`**. Lo smartphone legge `main`, quindi lì quei cambiamenti non si vedono finché #68 non viene promossa. In locale e nell’emulatore del PC si vedono subito.
 
-- **Cosa:** il menu delle opzioni scorre come quello dei moduli, stessa durata (0,18 s). Sul PC entra da destra; sul telefono i due fogli scendono entrambi dall’alto. Se il sistema chiede meno animazioni, il movimento resta quello del browser.
-- **Perché:** la graffetta aveva già lo scorrimento, l’ingranaggio compariva di colpo.
+**Come è adesso, a fine lavoro**
 
-## Pelle Proposta — arrivo sulla mappa (2026-09-25)
+- Pagine ufficio: carta, subito, senza lo switch **Prova**. Lo switch non riporta la pelle vecchia.
+- Fuori: login, registrazione, reset password, workspace di campo, pagine di prova e di sviluppo.
+- Barra: graffetta a sinistra, cartina al centro, ingranaggio a destra. Nessuna scritta, né su PC né sul telefono (niente «Proposta · Home», niente «Tocca per i moduli»).
+- Graffetta: elenco dei moduli di lavoro. Il Diario non compare se Manodopera è attivo.
+- Ingranaggio: Impostazioni, Abbonamento, Guide, Logout. «Azienda» solo se ci sono almeno due aziende, subito prima di Logout.
+- Cartina: apre la mappa aziendale, senza un secondo menu. Sulla mappa resta la stessa barra; sotto, «Mappa in caricamento» finché arrivano le tessere.
+- Con la pelle, dall’header di pagina spariscono Impostazioni, Guide, Cambia azienda, Mappa e Logout: stanno nella barra.
+- Titolo a sinistra, pulsanti di movimento in alto a destra. Se la descrizione è lunga, il testo si restringe e i pulsanti restano sulla stessa riga.
+- «← Dashboard» in Impostazioni torna alla home principale.
+- Liste: schede sul telefono, tabella sul PC.
+- Sotto i 480 pixel le card delle statistiche stanno una sotto l’altra; fino a 768 pixel sono due per riga. I menu lasciano lo spazio del notch e della barra dei gesti (Android e iPhone). La striscia di stato del telefono è scura, come la barra.
+- I due menu scorrono in 0,18 secondi: sul PC la graffetta da sinistra e l’ingranaggio da destra; sul telefono entrambi scendono dall’alto. Il cambio pagina è una dissolvenza della stessa durata, non un giro da quaderno. Se il sistema chiede meno movimenti, il cambio è immediato.
 
-- **Cosa:** con Prova, la mappa aziendale tiene la stessa barra (titolo «Proposta · Mappa», cartina segnata). Sotto c’è «Mappa in caricamento» finché arrivano le tessere, poi la mappa compare. Con Pubblicata la pagina resta com’era.
-- **Perché:** la cartina non è un menu; il salto era il telaio che spariva e la mappa che compariva vuota.
+**In ordine, dall’inizio**
 
-## Pelle Proposta — graffetta sul telefono (2026-09-25)
+1. **22 settembre — pelle affiancata, spenta di default.** Carta, header basso, menu moduli a scomparsa, schede sul telefono e tabella sul PC. Flag `uiPelleProposta` con `enabledAlways: false`: si vedeva solo con **Prova**. Calcolo materiali aperto dal Frutteto restava carta, con l’accento arancio. Campo e login fuori.
+2. **23 settembre — barra e header.** Su PC la graffetta diventa solo icona (la scritta «Moduli» copriva la chat). La cartina in alto al centro apre la mappa. L’ingranaggio tiene Impostazioni, Guide e Logout; «Azienda» solo con almeno due tenant. Diario nascosto nel menu se Manodopera è attivo. Pulsanti di movimento in alto a destra su: Diario, lavori in corso e completati; home Conto terzi, Frutteto e Vigneto; statistiche Frutteto, Vigneto e aziendali; trattamenti, concimazioni e potatura (Vigneto e Frutteto); Raccolta frutta; Tracciabilità consumi; Archivio documenti; Impegni giornalieri; Abbonamento.
+3. **23 settembre — prima promozione.** PR #66 su `main`. Sul telefono la pelle c’era solo con **Prova**.
+4. **25 settembre — graffetta anche sul telefono.** Al posto di «Tocca per i moduli» compare l’icona, come cartina e ingranaggio. In quel momento in barra restava ancora «Proposta · Home»: è stata tolta il 26.
+5. **25 settembre — movimento.** L’ingranaggio scorre come la graffetta (0,18 s). Il cambio pagina è una dissolvenza di 0,18 s. Sulla mappa la barra resta e le tessere compaiono quando sono pronte.
+6. **25 settembre — niente più flash della pelle vecchia, se la sessione l’aveva già.** Uno script in testa alle pagine ufficio ridisegna la Proposta subito, così al cambio pagina non ricompare quella di prima. Promosso su `main` con la PR #67. In quella versione lo script partiva solo se la sessione aveva già acceso la pelle.
+7. **25 settembre — la Proposta diventa la pelle delle pagine ufficio.** `uiPelleProposta` passa a `enabledAlways: true` e lo script in testa la disegna sempre, anche al primo arrivo. Lo switch **Prova** non la spegne. Rollback: `git revert`, non il tap su Pubblicata. Tag locale `ui-pre-pelle-20260922` sul commit di `main` prima della pelle, non pushato. Questa voce e le successive non sono su `main`.
+8. **25–26 settembre — Meteo.** Via il gradiente azzurro e il font vecchio: header carta, come le altre. Poi gli stessi margini (blocco centrato, largo al massimo 1400 pixel): la graffetta non copre più la spiegazione del modulo.
+9. **26 settembre — Statistiche manodopera.** I numeri erano bianchi sulla carta e non si leggevano. Ora sono scuri. «Media ore/giorno» del report ore operai non usa più lo stesso identificatore di quella in Statistiche ore, e non la sovrascrive.
+10. **26 settembre — Abbonamento.** Esce dall’elenco moduli e sta nell’ingranaggio, dopo Impostazioni e prima delle Guide.
+11. **26 settembre — telefono.** La barra tiene le tre icone in riga, senza sovrapporsi. Card a una o due colonne secondo la larghezza. `viewport-fit=cover` sulle pagine ufficio, così notch e barra dei gesti non coprono il menu. Poi tolta ogni scritta dalla barra nera.
 
-- **Cosa:** nella barra dei tre menu, sul telefono, al posto di «Tocca per i moduli» c’è la graffetta, come la cartina e l’ingranaggio. «Proposta · Home» resta. Su PC la graffetta era già solo icona.
-- **Perché:** sullo smartphone la graffetta era nascosta e si leggeva solo la scritta.
-
-## Promozione su main — pelle Proposta (2026-09-23)
-
-- **Cosa:** file da `f033b1a` (branch `cursor/ui-pelle-proposta-f0-f1`, PR #65) portati su un branch da `main`. Flag `uiPelleProposta` resta spento di default: la pelle si vede con **Prova**. L’allineamento degli header (pulsanti in alto a destra) vale anche con Pubblicata.
-- **Perché:** il telefono e la PWA leggono solo `main`.
-- Doc: questa voce, registro Tony §26, piano pelle. Master Plan: nessuna fase cambiata.
-
-## Pelle Proposta — menu, mappa, logout e header allineati (2026-09-23)
-
-- **Cosa:** ancora dietro `uiPelleProposta` (Prova/Pubblicata). Su PC la graffetta è solo icona (niente scritta «Moduli», copriva la chat). In alto al centro una cartina apre subito la mappa aziendale. L’ingranaggio in alto a destra tiene Impostazioni, Guide e Logout; «Azienda» compare solo con almeno due aziende, prima del Logout. Con Proposta spariscono dall’header di pagina Impostazioni, Guide, Cambia azienda, Mappa e Logout. Diario non compare nel menu moduli se Manodopera è attivo. Il link «← Dashboard» in Impostazioni torna alla home principale. I pulsanti di movimento stanno in alto a destra, il titolo a sinistra.
-- **Pagine header sistemate:** Diario / lavori in corso / lavori completati; home Conto terzi, Frutteto e Vigneto; statistiche Frutteto, Vigneto e aziendali; trattamenti, concimazioni e potatura (Vigneto e Frutteto); Raccolta frutta; Tracciabilità consumi; Archivio documenti; Impegni giornalieri; Abbonamento.
-- Doc: registro Tony §26.7–26.11, piano pelle revisione 5.
-
-## Pelle Proposta dietro flag, senza sostituire lo stile (2026-09-22)
-
-- **Cosa:** Fetata 0–1 sulle pagine ufficio. Flag `uiPelleProposta` (`enabledAlways: false`). Carta, header basso, schede telefono / tabella desktop. Menu moduli a scomparsa. Calcolo materiali da Frutteto, con Proposta, resta carta con accento arancio. Fuori: workspace campo, login, registrazione.
-- **Perché:** vedere il look sull’app vera e tornare indietro con un tap.
-- Doc: registro Tony §26, piano pelle. Master Plan: nessuna fase cambiata.
+I moduli accesi o spenti dell’azienda non fanno parte di questo lavoro: la pelle non li cambia.
 
 ## Promozione su main — piani decisi da telefono e Higgsfield (2026-09-21)
 

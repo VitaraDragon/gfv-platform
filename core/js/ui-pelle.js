@@ -110,6 +110,20 @@ function ensureFont(on) {
   document.head.appendChild(link);
 }
 
+function syncStatusBar(on) {
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if (!meta) return;
+  if (on) {
+    if (!meta.hasAttribute('data-gfv-theme')) meta.setAttribute('data-gfv-theme', meta.getAttribute('content') || '');
+    meta.setAttribute('content', '#1c1917');
+    return;
+  }
+  if (meta.hasAttribute('data-gfv-theme')) {
+    meta.setAttribute('content', meta.getAttribute('data-gfv-theme'));
+    meta.removeAttribute('data-gfv-theme');
+  }
+}
+
 function clearPelleAttrs() {
   const html = document.documentElement;
   html.removeAttribute('data-pelle');
@@ -221,7 +235,7 @@ function logoutFromPelle() {
 
 function mountShell(entries) {
   const modules = moduleMenuEntries(entries);
-  const account = accountMenuEntries();
+  const account = accountMenuEntries(entries);
   const mapHref = absHref((mapMenuEntries()[0] || {}).href || 'mappa-aziendale-standalone.html');
   const sig = modules.map((e) => e.id + '\t' + e.href).join('|');
   let root = document.getElementById('gfv-pelle-shell');
@@ -263,7 +277,7 @@ function mountShell(entries) {
     '<div class="gfv-pelle-mods">' + links + '</div>' +
     '</nav>' +
     '<nav class="gfv-pelle-lab gfv-pelle-lab--altro" id="gfv-pelle-alt-lab" aria-hidden="true" aria-label="Opzioni">' +
-    '<p class="gfv-pelle-kicker">Impostazioni, guide e logout. Il menu si chiude.</p>' +
+    '<p class="gfv-pelle-kicker">Impostazioni, abbonamento, guide e logout. Il menu si chiude.</p>' +
     '<div class="gfv-pelle-mods" id="gfv-pelle-alt-mods">' + accountLinks + '</div>' +
     '</nav>';
   markCurrent(root);
@@ -574,6 +588,7 @@ export function applyPelleFromFlags() {
     unmountCards();
     disconnectObservers();
     ensureFont(false);
+    syncStatusBar(false);
     restoreActionIcons();
     return;
   }
@@ -593,6 +608,7 @@ export function applyPelleFromFlags() {
     html.style.removeProperty('--gfv-pelle-accent');
   }
   ensureFont(state.pelle === 'proposta');
+  syncStatusBar(state.pelle === 'proposta');
   if (state.pelle === 'proposta') paintActionIcons();
   else restoreActionIcons();
   if (!state.mountShell) {
