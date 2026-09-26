@@ -1,6 +1,22 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-26 — scheletro modulo Seminativo (hub + sottocategorie).**
+**Ultimo aggiornamento documentazione: 2026-09-26 — anagrafica campagne Seminativo (lista + form).**
+
+## 2026-09-26 — Anagrafica campagne Seminativo
+
+Prima pagina reale del modulo: CRUD campagne su `tenants/{id}/seminativi` (terreno + campagna + coltura/varietà), non un impianto permanente.
+
+**Cosa c’è**
+- Lista + modal `#seminativo-campagna-form` con filtri terreno/campagna/coltura/stato/ricerca.
+- Terreni solo categoria Seminativo; unicità terreno+campagna nel servizio.
+- Tony: `SEMINATIVO_CAMPAGNA_FORM_MAP`, `FILTER_KEY_MAP.seminativi`, FILTER_TABLE in CF, inject generico da mapping (niente `if` di pagina).
+- `firestore.rules` su `/seminativi`. Card hub anagrafica non è più placeholder.
+
+Test: `tests/seminativo-anagrafica.test.js`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-26 — scheletro modulo Seminativo (hub + sottocategorie).**
 
 ## 2026-09-26 — Scheletro modulo Seminativo
 

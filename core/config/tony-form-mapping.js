@@ -537,6 +537,43 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     }
   };
 
+  const SEMINATIVO_CAMPAGNA_FORM_MAP = {
+    formId: 'seminativo-campagna-form',
+    modalId: 'seminativo-campagna-modal',
+    openFn: 'openSeminativoCampagnaModal',
+    injectionOrder: [
+      'campagna-terreno',
+      'campagna-anno',
+      'campagna-coltura',
+      'campagna-varieta',
+      'campagna-superficie',
+      'campagna-resa-prevista',
+      'campagna-data-semina',
+      'campagna-data-raccolta',
+      'campagna-stato',
+      'campagna-note'
+    ],
+    fields: {
+      'campagna-terreno': { type: 'select', resolve: 'by_name', lookup: 'terreni', required: true, description: 'Terreno seminativo (nome come in anagrafica)' },
+      'campagna-anno': { type: 'text', resolve: 'as_is', required: true, description: 'Campagna agricola (es. 2026/2027 o 2026)' },
+      'campagna-coltura': { type: 'select', resolve: 'by_name', lookup: 'colture', required: true, description: 'Coltura della categoria Seminativo (Grano, Mais, Orzo…)' },
+      'campagna-varieta': { type: 'text', resolve: 'as_is', description: 'Varietà (opzionale)' },
+      'campagna-superficie': { type: 'number', resolve: 'as_is', description: 'Superficie in ettari' },
+      'campagna-resa-prevista': { type: 'number', resolve: 'as_is', description: 'Resa prevista in quintali/ha' },
+      'campagna-data-semina': { type: 'date', resolve: 'as_is', description: 'Data semina prevista YYYY-MM-DD' },
+      'campagna-data-raccolta': { type: 'date', resolve: 'as_is', description: 'Data raccolta prevista YYYY-MM-DD' },
+      'campagna-stato': { type: 'select', resolve: 'as_is', description: 'pianificato | seminato | in_ciclo | raccolto | chiuso' },
+      'campagna-note': { type: 'text', resolve: 'as_is', description: 'Note' }
+    },
+    tonyInterviewFieldIds: [
+      'campagna-terreno',
+      'campagna-anno',
+      'campagna-coltura'
+    ]
+  };
+
+  const SYSTEM_INSTRUCTION_SEMINATIVO_CAMPAGNA = `Ruolo: compilazione «Nuova campagna seminativo». Chiavi: campagna-terreno (nome terreno categoria Seminativo), campagna-anno (es. 2026/2027), campagna-coltura (Grano, Mais…), campagna-varieta, campagna-superficie (ha), campagna-resa-prevista (q/ha), campagna-data-semina / campagna-data-raccolta (YYYY-MM-DD), campagna-stato (pianificato, seminato, in_ciclo, raccolto, chiuso), campagna-note. Apri il modal prima di INJECT se chiuso. Un terreno ha una sola campagna per anno.`;
+
   const mapping = {
     'attivita-modal': ATTIVITA_FORM_MAP,
     attivita: ATTIVITA_FORM_MAP,
@@ -562,7 +599,10 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     zona: ZONA_SEGMENTO_FORM_MAP,
     'ora-form': SEGNA_ORE_FORM_MAP,
     'segna-ora': SEGNA_ORE_FORM_MAP,
-    'field-workspace-ore-form': FIELD_WORKSPACE_ORE_FORM_MAP
+    'field-workspace-ore-form': FIELD_WORKSPACE_ORE_FORM_MAP,
+    'seminativo-campagna-form': SEMINATIVO_CAMPAGNA_FORM_MAP,
+    'seminativo-campagna-modal': SEMINATIVO_CAMPAGNA_FORM_MAP,
+    seminativi: SEMINATIVO_CAMPAGNA_FORM_MAP
   };
 
   const schemas = {
@@ -585,7 +625,10 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     'trattamento-concimazione-form': SYSTEM_INSTRUCTION_TRATTAMENTO_CAMPO,
     'zona-form': SYSTEM_INSTRUCTION_ZONA_SEGMENTO,
     'ora-form': SYSTEM_INSTRUCTION_SEGNA_ORE,
-    'field-workspace-ore-form': SYSTEM_INSTRUCTION_SEGNA_ORE + ' Su workspace mobile il form è inline (schermata Segna ore), non aprire segnatura-ore-standalone.'
+    'field-workspace-ore-form': SYSTEM_INSTRUCTION_SEGNA_ORE + ' Su workspace mobile il form è inline (schermata Segna ore), non aprire segnatura-ore-standalone.',
+    'seminativo-campagna-form': SYSTEM_INSTRUCTION_SEMINATIVO_CAMPAGNA,
+    'seminativo-campagna-modal': SYSTEM_INSTRUCTION_SEMINATIVO_CAMPAGNA,
+    seminativi: SYSTEM_INSTRUCTION_SEMINATIVO_CAMPAGNA
   };
 
   /** Allineato a core/config/trattamenti-lavoro-defaults.js */
@@ -633,6 +676,8 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     SYSTEM_INSTRUCTION_ZONA_SEGMENTO,
     SEGNA_ORE_FORM_MAP,
     FIELD_WORKSPACE_ORE_FORM_MAP,
-    SYSTEM_INSTRUCTION_SEGNA_ORE
+    SYSTEM_INSTRUCTION_SEGNA_ORE,
+    SEMINATIVO_CAMPAGNA_FORM_MAP,
+    SYSTEM_INSTRUCTION_SEMINATIVO_CAMPAGNA
   };
 })(typeof window !== 'undefined' ? window : globalThis);

@@ -34,7 +34,7 @@ export const SEMINATIVO_HUB_CARDS = [
     href: 'seminativi-standalone.html',
     tonyTarget: 'seminativi',
     pageType: 'seminativi',
-    placeholder: true
+    placeholder: false
   },
   {
     id: 'piano',

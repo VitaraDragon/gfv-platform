@@ -14,6 +14,50 @@ export const SEMINATIVO_CAMPAGNA_STATI = [
   'chiuso'
 ];
 
+export const SEMINATIVO_CAMPAGNA_STATO_LABELS = {
+  pianificato: 'Pianificato',
+  seminato: 'Seminato',
+  in_ciclo: 'In ciclo',
+  raccolto: 'Raccolto',
+  chiuso: 'Chiuso'
+};
+
+/** Chiave unica terreno + campagna (trim, case-insensitive, spazi compressi). */
+export function normalizeCampagnaKey(value) {
+  return String(value == null ? '' : value).trim().toLowerCase().replace(/\s+/g, '');
+}
+
+export function sameCampagnaKey(a, b) {
+  if (!a || !b) return false;
+  return String(a.terrenoId || '') === String(b.terrenoId || '')
+    && normalizeCampagnaKey(a.campagna) !== ''
+    && normalizeCampagnaKey(a.campagna) === normalizeCampagnaKey(b.campagna);
+}
+
+export function findDuplicateCampagna(list, candidato, excludeId) {
+  if (!Array.isArray(list) || !candidato) return null;
+  const skip = excludeId != null ? String(excludeId) : '';
+  return list.find((item) => {
+    if (!item) return false;
+    if (skip && String(item.id || '') === skip) return false;
+    return sameCampagnaKey(item, candidato);
+  }) || null;
+}
+
+/** Campagna agricola IT: da settembre è anno/anno+1. */
+export function defaultCampagnaLabel(now = new Date()) {
+  const y = now.getFullYear();
+  const month = now.getMonth();
+  if (month >= 8) return `${y}/${y + 1}`;
+  return `${y - 1}/${y}`;
+}
+
+export function isTerrenoSeminativo(terreno) {
+  if (!terreno) return false;
+  const cat = String(terreno.colturaCategoria || '').toLowerCase().trim();
+  return cat.includes('seminativ');
+}
+
 export class SeminativoCampagna {
   /**
    * @param {Object} [data]
@@ -80,5 +124,27 @@ export class SeminativoCampagna {
       stato: this.stato,
       note: this.note
     };
+  }
+
+  update(updates = {}) {
+    Object.keys(updates).forEach((key) => {
+      if (updates[key] !== undefined) this[key] = updates[key];
+    });
+    if (updates.campagna != null) this.campagna = String(updates.campagna).trim();
+    if (updates.superficieEttari !== undefined) {
+      this.superficieEttari = updates.superficieEttari !== null
+        ? parseFloat(updates.superficieEttari)
+        : null;
+    }
+    if (updates.resaPrevistaQliHa !== undefined) {
+      this.resaPrevistaQliHa = updates.resaPrevistaQliHa !== null
+        ? parseFloat(updates.resaPrevistaQliHa)
+        : null;
+    }
+    return this;
+  }
+
+  static fromData(data = {}) {
+    return new SeminativoCampagna(data);
   }
 }

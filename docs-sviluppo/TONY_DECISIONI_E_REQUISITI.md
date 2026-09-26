@@ -1,7 +1,7 @@
 # Tony – Inventario decisioni e requisiti
 
 **Data estrazione**: 2026-03-08  
-**Ultimo aggiornamento**: 2026-09-26 (scheletro modulo Seminativo §27; pelle Proposta in prova §26; bozza telefono manager §25; piano campo §24; lazy-load widget §3.10; flag prova tenant §22.7 / §23; zona lavorata due punti §11.7 / §22; push S5 assenze + WhatsApp §15.8)
+**Ultimo aggiornamento**: 2026-09-26 (anagrafica campagne Seminativo §27.3; scheletro modulo Seminativo §27; pelle Proposta in prova §26; bozza telefono manager §25; piano campo §24; lazy-load widget §3.10; flag prova tenant §22.7 / §23; zona lavorata due punti §11.7 / §22; push S5 assenze + WhatsApp §15.8)
 **Obiettivo**: Raccogliere in un unico documento ogni decisione di prodotto, requisito e vincolo trovato nei documenti Tony, per evitare perdite durante il consolidamento.
 
 **Stati**: `implementato` | `in corso` | `parziale` | `pianificato` | `non implementato` | `abbandonato` | `da verificare`
@@ -736,10 +736,10 @@ Stesso ingresso di Vigneto/Frutteto (hub + card), dedicato alle colture erbacee.
 |---|-----------|-------|-------|------|
 | 27.1 | **Hub + sottocategorie**: anagrafica campagne, piano colturale/rotazioni, semina, lavorazioni terreno, trattamenti, concimazioni, raccolta/mietitura, statistiche | prodotto 2026-09-26 | **scheletro** | Config `modules/seminativo/config/seminativo-hub.js`. Pagine placeholder + wiring catalogo/Tony |
 | 27.2 | **Niente** potatura, pianifica impianto, calcolo materiali | prodotto 2026-09-26 | **implementato** (vincolo) | Il seminativo non è un impianto a filari |
-| 27.3 | **Anagrafica per campagna**: un record terreno + campagna + coltura/varietà (non documento permanente come vigneto) | prodotto 2026-09-26 | **scheletro** | Modello `SeminativoCampagna`; collezione `seminativi` |
-| 27.4 | **Perimetro colture**: solo categoria Seminativo (non prato, non ortive) | prodotto 2026-09-26 | **deciso** | |
+| 27.3 | **Anagrafica per campagna**: un record terreno + campagna + coltura/varietà (non documento permanente come vigneto) | prodotto 2026-09-26 | **implementato** | Lista+form `seminativi-standalone.html`; servizio CRUD; unicità terreno+campagna |
+| 27.4 | **Perimetro colture**: solo categoria Seminativo (non prato, non ortive) | prodotto 2026-09-26 | **implementato** | `isTerrenoSeminativo` + catalogo colture `codice=seminativo` |
 | 27.5 | **Pay-per-use** come le altre colture; in vendita solo a modulo pronto. Oggi `available: false` / badge Prossimamente (come Oliveto) | prodotto 2026-09-26 | **scheletro** | `subscription-plans.js`; visibile in dashboard se `tenant.modules` include `seminativo` |
-| 27.6 | Tony: config (rotte, gate, PAGE_MAP), niente `if` per pagina singola nel core | MASTER_PLAN §4 | **scheletro** | Nav «portami al seminativo» |
+| 27.6 | Tony: config (rotte, gate, PAGE_MAP, form mapping, FILTER_TABLE), niente `if` per pagina singola nel core | MASTER_PLAN §4 | **parziale** | Nav + `SEMINATIVO_CAMPAGNA_FORM_MAP` + `FILTER_KEY_MAP.seminativi`; inject da mapping |
 
 ---
 

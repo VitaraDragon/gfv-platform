@@ -528,6 +528,12 @@ service cloud.firestore {
       allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
+    // Collection: seminativi (Modulo Seminativo — campagne, non impianto permanente)
+    match /tenants/{tenantId}/seminativi/{campagnaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
     // Collection: raccolteFrutta (raccolte frutta standalone, non sotto frutteti)
     match /tenants/{tenantId}/raccolteFrutta/{raccoltaId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
