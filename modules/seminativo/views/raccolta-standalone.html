@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Seminativo" data-gfv-module="seminativo">
+<html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Raccolta" data-gfv-module="seminativo">
 <head>
 <script>try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
 <script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Raccolta / mietitura — Seminativo - GFV Platform</title>
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#C9A227">
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <link rel="stylesheet" href="seminativo-standalone.css">
 </head>
@@ -13,25 +15,130 @@
     <div class="container">
         <div class="header">
             <div>
-                <h1>🌾 Raccolta / mietitura — Seminativo</h1>
-                <p>Sottocategoria del modulo Seminativo. Pagina in scheletro: i form e i dati arriveranno dopo.</p>
+                <h1>📦 Raccolta / mietitura — Seminativo</h1>
+                <p>Le mietiture a pieno campo provengono da lavori o attività con categoria <strong>Raccolta</strong>. Si completano quintali, superficie e destinazione come la vendemmia: i costi di manodopera e macchina arrivano dal lavoro o dal diario. La vendemmia resta nel vigneto. I dati del lavoro restano in sola lettura.</p>
             </div>
             <div class="header-actions">
-                <a href="seminativo-dashboard-standalone.html" class="btn btn-secondary">← Seminativo</a>
-                <a href="../../../core/dashboard-standalone.html" class="btn btn-secondary">Dashboard</a>
+                <a id="link-diario" class="btn btn-primary" href="../../../core/attivita-standalone.html">Registra nel diario</a>
+                <a id="link-nuovo-lavoro" class="btn btn-primary" href="../../../core/admin/gestione-lavori-standalone.html" hidden>Nuovo lavoro</a>
+                <a href="seminativo-dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
             </div>
         </div>
         <div class="content">
-            <div class="placeholder-box">
-                <strong>In costruzione</strong>
-                <p>Questa pagina segue il canone liste Tony (<code>currentTableData</code> + <code>table-data-ready</code>). Nessun dato persistito in questa fase.</p>
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="filter-terreno">Terreno</label>
+                    <select id="filter-terreno"><option value="">Tutti i terreni</option></select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-campagna">Campagna</label>
+                    <select id="filter-campagna"><option value="">Tutte le campagne</option></select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-ricerca">Ricerca</label>
+                    <input type="search" id="filter-ricerca" placeholder="Tipo, varietà, terreno…">
+                </div>
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <button type="button" id="btn-reset-filtri" class="btn btn-secondary">Pulisci filtri</button>
+                </div>
+            </div>
+            <div class="table-container table-responsive" data-gfv-pelle-list>
+                <div id="loading" class="loading">Caricamento raccolte...</div>
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <h3>Nessuna raccolta trovata</h3>
+                    <p>Crea un lavoro o un'attività nel diario con categoria Raccolta a pieno campo, sul terreno di una campagna seminativo.</p>
+                </div>
+                <table id="raccolta-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Campagna</th>
+                            <th>Lavoro / Attività</th>
+                            <th>Terreno</th>
+                            <th>Quantità (qli)</th>
+                            <th>Superficie (ha)</th>
+                            <th>Resa (qli/ha)</th>
+                            <th>Destinazione</th>
+                            <th>Costo (€)</th>
+                            <th>Riferimento</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="raccolta-table-body"></tbody>
+                </table>
             </div>
         </div>
     </div>
+
+    <div id="modal-raccolta" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-raccolta-title">Completa raccolta</h2>
+                <button type="button" class="close" id="btn-close-raccolta-modal" aria-label="Chiudi">&times;</button>
+            </div>
+            <p id="raccolta-contesto"></p>
+            <form id="form-raccolta">
+                <input type="hidden" id="raccolta-id">
+                <div class="form-group">
+                    <label for="raccolta-varieta">Varietà</label>
+                    <input type="text" id="raccolta-varieta" readonly>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="raccolta-quantita">Quantità raccolta (quintali) *</label>
+                        <input type="number" id="raccolta-quantita" required min="0.01" step="0.01" placeholder="es. 120">
+                    </div>
+                    <div class="form-group">
+                        <label for="raccolta-superficie">Superficie raccolta (ha) *</label>
+                        <label for="raccolta-superficie-anagrafe" style="display:flex;align-items:flex-start;gap:10px;font-weight:normal;">
+                            <input type="checkbox" id="raccolta-superficie-anagrafe" style="margin-top:4px;">
+                            <span>Tutto il terreno: usa la superficie da anagrafe terreni.</span>
+                        </label>
+                        <input type="number" id="raccolta-superficie" required min="0.01" step="0.01" placeholder="es. 3,20">
+                    </div>
+                </div>
+                <div class="info-box" id="raccolta-resa-info" style="display:none;">
+                    <strong>Resa calcolata:</strong> <span id="raccolta-resa">—</span>
+                </div>
+                <div class="form-group">
+                    <label for="raccolta-destinazione">Destinazione *</label>
+                    <select id="raccolta-destinazione" required>
+                        <option value="">Seleziona</option>
+                        <option value="vendita">Vendita</option>
+                        <option value="stoccaggio">Stoccaggio</option>
+                        <option value="uso_aziendale">Uso aziendale</option>
+                    </select>
+                </div>
+                <div id="raccolta-proprietario-message" class="form-group" style="display:none;">
+                    <small>Lavoro svolto dal proprietario (modulo Manodopera non attivo).</small>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="raccolta-costo-mano">Costo manodopera (€)</label>
+                        <input type="number" id="raccolta-costo-mano" min="0" step="0.01" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="raccolta-costo-macchina">Costo macchina (€)</label>
+                        <input type="number" id="raccolta-costo-macchina" min="0" step="0.01" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="raccolta-note">Note</label>
+                        <textarea id="raccolta-note" rows="2"></textarea>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-btn">Annulla</button>
+                    <button type="submit" class="btn btn-success">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { initSeminativoPlaceholderPage } from '../js/seminativo-placeholder-page.js';
-        initSeminativoPlaceholderPage();
+        import { initRaccoltaPage } from '../js/raccolta-page.js';
+        initRaccoltaPage();
     </script>
 </body>
 </html>

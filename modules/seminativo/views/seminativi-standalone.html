@@ -20,8 +20,7 @@
             </div>
             <div class="header-actions">
                 <button type="button" id="btn-nuova-campagna" class="btn btn-primary">Nuova campagna</button>
-                <a href="seminativo-dashboard-standalone.html" class="btn btn-secondary">← Seminativo</a>
-                <a href="../../../core/dashboard-standalone.html" class="btn btn-secondary">Dashboard</a>
+                <a href="seminativo-dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
             </div>
         </div>
 
@@ -76,7 +75,9 @@
                             <th>Varietà</th>
                             <th>Superficie (ha)</th>
                             <th>Resa prev. (q/ha)</th>
+                            <th>Costo Totale Anno (€)</th>
                             <th>Stato</th>
+                            <th>Dettaglio Spese</th>
                             <th>Azioni</th>
                         </tr>
                     </thead>
@@ -113,7 +114,12 @@
                     </div>
                     <div class="form-group">
                         <label for="campagna-varieta">Varietà</label>
-                        <input type="text" id="campagna-varieta" name="campagna-varieta" placeholder="es. Bologna">
+                        <div class="varieta-picker">
+                            <select id="campagna-varieta" name="campagna-varieta">
+                                <option value="">Prima scegli la coltura</option>
+                            </select>
+                            <button type="button" id="btn-add-varieta" class="btn btn-secondary btn-add-varieta" title="Aggiungi varietà">+</button>
+                        </div>
                     </div>
                     <div class="form-group">
                         <label for="campagna-superficie">Superficie (ha)</label>
@@ -147,6 +153,35 @@
                     <button type="submit" class="btn btn-success">Salva</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <div id="seminativo-varieta-modal" class="modal modal-varieta">
+        <div class="modal-content modal-content-narrow">
+            <div class="modal-header">
+                <h2>Nuova varietà</h2>
+                <button type="button" class="close" id="btn-close-varieta-modal" aria-label="Chiudi">&times;</button>
+            </div>
+            <form id="seminativo-varieta-form">
+                <div class="form-group">
+                    <label for="nuova-varieta">Nome varietà</label>
+                    <input type="text" id="nuova-varieta" required placeholder="es. Bologna">
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="btn-cancel-varieta" class="btn btn-secondary">Annulla</button>
+                    <button type="submit" class="btn btn-success">Aggiungi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="seminativo-spese-modal" class="modal">
+        <div class="modal-content" style="max-width: 1200px; max-height: 90vh; overflow-y: auto;">
+            <div class="modal-header">
+                <h2 id="seminativo-spese-title">📊 Dettaglio Spese</h2>
+                <button type="button" class="close" id="btn-close-spese-modal" aria-label="Chiudi">&times;</button>
+            </div>
+            <div id="seminativo-spese-body" style="padding: 20px;"></div>
         </div>
     </div>
 

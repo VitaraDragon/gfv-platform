@@ -254,23 +254,36 @@ export function cardsModelFromRows(headers, rows) {
   const heads = Array.isArray(headers) ? headers : [];
   const actionIdx = heads.findIndex((h) => /azioni/i.test(String(h || '')));
   const statoIdx = heads.findIndex((h) => /^stato$/i.test(String(h || '').trim()));
+  const dettaglioIdx = heads.findIndex((h) => /dettaglio\s+spese/i.test(String(h || '').trim()));
+  const costoIdx = heads.findIndex((h) => /^costo/i.test(String(h || '').trim()));
   return (rows || []).map((row) => {
     const cells = (row && row.cells) || [];
     const title = cells[0] ? String(cells[0].text || '').trim() : '';
     const facts = [];
+    const skipFact = new Set([0, actionIdx, statoIdx, dettaglioIdx, costoIdx].filter((index) => index >= 0));
+    const factLimit = costoIdx >= 0 ? 2 : 3;
     cells.forEach((cell, i) => {
-      if (i === 0 || i === actionIdx || i === statoIdx) return;
-      if (facts.length >= 3) return;
+      if (skipFact.has(i)) return;
+      if (facts.length >= factLimit) return;
       const text = String((cell && cell.text) || '').replace(/\s+/g, ' ').trim();
       if (!text) return;
       const label = heads[i] ? String(heads[i]).trim() : '';
       facts.push(label ? label + ': ' + text : text);
     });
+    if (costoIdx >= 0 && cells[costoIdx]) {
+      const text = String(cells[costoIdx].text || '').replace(/\s+/g, ' ').trim();
+      if (text) {
+        const label = heads[costoIdx] ? String(heads[costoIdx]).trim() : 'Costo';
+        facts.push(label + ': ' + text);
+      }
+    }
+    const dettaglioHtml = dettaglioIdx >= 0 && cells[dettaglioIdx] ? String(cells[dettaglioIdx].html || '') : '';
+    const azioniHtml = actionIdx >= 0 && cells[actionIdx] ? String(cells[actionIdx].html || '') : '';
     return {
       title: title || 'Voce',
       facts,
       statoHtml: statoIdx >= 0 && cells[statoIdx] ? String(cells[statoIdx].html || '') : '',
-      actionsHtml: actionIdx >= 0 && cells[actionIdx] ? String(cells[actionIdx].html || '') : '',
+      actionsHtml: [dettaglioHtml, azioniHtml].filter(Boolean).join(' '),
       alert: !!(row && row.alert)
     };
   });

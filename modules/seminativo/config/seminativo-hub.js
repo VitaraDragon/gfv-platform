@@ -9,8 +9,17 @@ export const SEMINATIVO_MODULE_ID = 'seminativo';
 export const SEMINATIVO_ACCENT = '#C9A227';
 export const SEMINATIVO_ACCENT_DARK = '#8D6E00';
 
-/** Collezione Firestore prevista: tenants/{tenantId}/seminativi (record per campagna). */
+/** Collezione Firestore: tenants/{tenantId}/seminativi (record per campagna). */
 export const SEMINATIVO_COLLECTION = 'seminativi';
+
+/** Collezione Firestore: tenants/{tenantId}/semineSeminativo (eventi di semina). */
+export const SEMINE_SEMINATIVO_COLLECTION = 'semineSeminativo';
+
+/** Collezione Firestore: tenants/{tenantId}/trattamentiSeminativo (dati prodotto su lavoro o diario). */
+export const TRATTAMENTI_SEMINATIVO_COLLECTION = 'trattamentiSeminativo';
+
+/** Collezione Firestore: tenants/{tenantId}/raccolteSeminativo (quintali su lavoro o diario). */
+export const RACCOLTE_SEMINATIVO_COLLECTION = 'raccolteSeminativo';
 
 /**
  * @typedef {Object} SeminativoHubCard
@@ -39,12 +48,12 @@ export const SEMINATIVO_HUB_CARDS = [
   {
     id: 'piano',
     title: 'Piano colturale',
-    description: 'Rotazioni e coltura prevista per campagna.',
+    description: 'Propone la coltura della campagna successiva a partire da quella in campo.',
     icon: '🗓️',
     href: 'piano-colturale-standalone.html',
     tonyTarget: 'piano colturale',
     pageType: 'piano_colturale_seminativo',
-    placeholder: true
+    placeholder: false
   },
   {
     id: 'semina',
@@ -54,57 +63,57 @@ export const SEMINATIVO_HUB_CARDS = [
     href: 'semina-standalone.html',
     tonyTarget: 'semina seminativo',
     pageType: 'semina_seminativo',
-    placeholder: true
+    placeholder: false
   },
   {
     id: 'lavorazioni',
     title: 'Lavorazioni terreno',
-    description: 'Aratura, erpicatura e altre lavorazioni del seminativo.',
+    description: 'Arature ed erpicature lette dal diario e, con Manodopera, dai lavori.',
     icon: '🚜',
     href: 'lavorazioni-standalone.html',
     tonyTarget: 'lavorazioni seminativo',
     pageType: 'lavorazioni_seminativo',
-    placeholder: true
+    placeholder: false
   },
   {
     id: 'trattamenti',
     title: 'Trattamenti',
-    description: 'Trattamenti fitosanitari sul seminativo.',
+    description: 'Trattamenti fitosanitari dal diario e, con Manodopera, dai lavori. Stesso completamento del vigneto: prodotti, dose, costi e scarico magazzino.',
     icon: '🧪',
     href: 'trattamenti-standalone.html',
     tonyTarget: 'trattamenti seminativo',
     pageType: 'trattamenti_seminativo',
-    placeholder: true
+    placeholder: false
   },
   {
     id: 'concimazioni',
     title: 'Concimazioni',
-    description: 'Concimazioni di campo sul seminativo.',
+    description: 'Concimazioni a pieno campo dal diario e, con Manodopera, dai lavori. Stesso completamento dei trattamenti.',
     icon: '🌿',
     href: 'concimazioni-standalone.html',
     tonyTarget: 'concimazioni seminativo',
     pageType: 'concimazioni_seminativo',
-    placeholder: true
+    placeholder: false
   },
   {
     id: 'raccolta',
     title: 'Raccolta / mietitura',
-    description: 'Rese, quantità e destinazione del raccolto.',
+    description: 'Mietitura a pieno campo dal diario e, con Manodopera, dai lavori. Quintali, superficie e costi sulla campagna.',
     icon: '📦',
     href: 'raccolta-standalone.html',
     tonyTarget: 'raccolta seminativo',
     pageType: 'raccolta_seminativo',
-    placeholder: true
+    placeholder: false
   },
   {
     id: 'statistiche',
     title: 'Statistiche e grafici',
-    description: 'KPI di campagna, rese e costi.',
+    description: 'Quintali, resa effettiva e costi di campagna. La resa prevista dell’anagrafica resta a parte.',
     icon: '📊',
     href: 'seminativo-statistiche-standalone.html',
     tonyTarget: 'statistiche seminativo',
     pageType: 'statistiche_seminativo',
-    placeholder: true
+    placeholder: false
   }
 ];
 

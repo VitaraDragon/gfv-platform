@@ -1,37 +1,85 @@
 <!DOCTYPE html>
-<html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Seminativo" data-gfv-module="seminativo">
+<html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Statistiche" data-gfv-module="seminativo">
 <head>
 <script>try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
 <script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Statistiche — Seminativo - GFV Platform</title>
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#C9A227">
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <link rel="stylesheet" href="seminativo-standalone.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 </head>
 <body data-seminativo-page="statistiche" data-page-type="statistiche_seminativo">
     <div class="container">
         <div class="header">
             <div>
-                <h1>🌾 Statistiche — Seminativo</h1>
-                <p>Sottocategoria del modulo Seminativo. Pagina in scheletro: i form e i dati arriveranno dopo.</p>
+                <h1>📊 Statistiche — Seminativo</h1>
+                <p>Numeri di campagna: quintali raccolti, resa effettiva e costi. La resa prevista resta quella scritta in anagrafica e non viene ricalcolata qui. Le misure di qualità dell’uva restano alla vendemmia.</p>
             </div>
             <div class="header-actions">
-                <a href="seminativo-dashboard-standalone.html" class="btn btn-secondary">← Seminativo</a>
-                <a href="../../../core/dashboard-standalone.html" class="btn btn-secondary">Dashboard</a>
+                <a href="seminativo-dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
             </div>
         </div>
         <div class="content">
-            <div class="placeholder-box">
-                <strong>In costruzione</strong>
-                <p>Questa pagina segue il canone liste Tony (<code>currentTableData</code> + <code>table-data-ready</code>). Nessun dato persistito in questa fase.</p>
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="filter-terreno">Terreno</label>
+                    <select id="filter-terreno"><option value="">Tutti i terreni</option></select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-campagna">Campagna</label>
+                    <select id="filter-campagna"><option value="">Tutte le campagne</option></select>
+                </div>
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <button type="button" id="btn-reset-filtri" class="btn btn-secondary">Pulisci filtri</button>
+                </div>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-value" id="kpi-produzione">—</div><div class="stat-label">Quintali raccolti</div></div>
+                <div class="stat-card"><div class="stat-value" id="kpi-resa-effettiva">—</div><div class="stat-label">Resa effettiva (qli/ha)</div></div>
+                <div class="stat-card"><div class="stat-value" id="kpi-resa-prevista">—</div><div class="stat-label">Resa prevista (qli/ha)</div></div>
+                <div class="stat-card"><div class="stat-value" id="kpi-lavori">—</div><div class="stat-label">Manodopera e macchine (€)</div></div>
+                <div class="stat-card"><div class="stat-value" id="kpi-prodotti">—</div><div class="stat-label">Prodotti (€)</div></div>
+                <div class="stat-card"><div class="stat-value" id="kpi-costo">—</div><div class="stat-label">Costo totale (€)</div></div>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card"><h3>Produzione (qli)</h3><canvas id="chart-produzione"></canvas></div>
+                <div class="stat-card"><h3>Resa prevista e effettiva</h3><canvas id="chart-rese"></canvas></div>
+                <div class="stat-card"><h3>Costi</h3><canvas id="chart-costi"></canvas></div>
+            </div>
+            <div class="table-container table-responsive" data-gfv-pelle-list>
+                <div id="loading" class="loading">Caricamento statistiche...</div>
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <h3>Nessuna campagna</h3>
+                    <p>Le statistiche compaiono quando esiste almeno una campagna seminativo.</p>
+                </div>
+                <table id="statistiche-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Campagna</th>
+                            <th>Terreno</th>
+                            <th>Quintali</th>
+                            <th>Resa prevista</th>
+                            <th>Resa effettiva</th>
+                            <th>Manodopera (€)</th>
+                            <th>Macchine (€)</th>
+                            <th>Prodotti (€)</th>
+                            <th>Costo totale (€)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="statistiche-table-body"></tbody>
+                </table>
             </div>
         </div>
     </div>
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { initSeminativoPlaceholderPage } from '../js/seminativo-placeholder-page.js';
-        initSeminativoPlaceholderPage();
+        import { initStatistichePage } from '../js/statistiche-page.js';
+        initStatistichePage();
     </script>
 </body>
 </html>

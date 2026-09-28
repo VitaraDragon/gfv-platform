@@ -19,6 +19,11 @@ import {
   listTerreniSeminativo,
   listColtureSeminativo
 } from '../services/seminativi-service.js';
+import {
+  getVarietaPerColtura,
+  addVarietaPersonalizzata
+} from '../services/varieta-seminativo-service.js';
+import { spesePerCampagne } from '../services/seminativo-spese-service.js';
 
 const PAGE_TYPE = 'seminativi';
 
@@ -26,6 +31,7 @@ let terreni = [];
 let colture = [];
 let allCampagne = [];
 let visibleCampagne = [];
+let speseById = {};
 let currentEditingId = null;
 
 function escapeHtml(value) {
@@ -109,6 +115,7 @@ function buildTableData(items) {
       superficieEttari: row.superficieEttari,
       resaPrevistaQliHa: row.resaPrevistaQliHa,
       stato: row.stato,
+      costoTotale: speseById[row.id] ? speseById[row.id].costoTotale : 0,
       dataSeminaPrevista: formatDate(row.dataSeminaPrevista),
       dataRaccoltaPrevista: formatDate(row.dataRaccoltaPrevista)
     }))
@@ -167,6 +174,28 @@ function populateCampagnaFilter() {
   );
 }
 
+function selectedColturaNome() {
+  const coltura = getColturaById(document.getElementById('campagna-coltura')?.value);
+  return coltura ? (coltura.nome || '') : '';
+}
+
+function refreshVarietaSelect(preferredValue) {
+  const el = document.getElementById('campagna-varieta');
+  const nome = selectedColturaNome();
+  const names = nome ? getVarietaPerColtura(nome) : [];
+  const preferred = preferredValue != null ? String(preferredValue).trim() : '';
+  const opts = names.map((name) => ({ value: name, label: name }));
+  if (preferred && !names.some((name) => name.toLowerCase() === preferred.toLowerCase())) {
+    opts.push({ value: preferred, label: preferred });
+  }
+  fillSelect(el, opts, nome ? 'Seleziona varietà' : 'Prima scegli la coltura');
+  if (!el || !preferred) return;
+  const match = Array.from(el.options).find((option) => (
+    option.value.toLowerCase() === preferred.toLowerCase()
+  ));
+  if (match) el.value = match.value;
+}
+
 function populateStatoSelects() {
   const opts = SEMINATIVO_CAMPAGNA_STATI.map((s) => ({ value: s, label: statoLabel(s) }));
   fillSelect(document.getElementById('campagna-stato'), opts, 'Seleziona stato');
@@ -209,6 +238,23 @@ function resetFilters() {
   applyFilters();
 }
 
+function formatEuro(value) {
+  return (Number(value) || 0).toFixed(2);
+}
+
+function speseDi(row) {
+  return speseById[row.id] || {
+    costoTotale: 0,
+    costoManodopera: 0,
+    costoMacchine: 0,
+    costoProdotti: 0,
+    prodotti: [],
+    lavori: [],
+    attivita: [],
+    intervallo: null
+  };
+}
+
 function renderTable() {
   const tbody = document.getElementById('seminativi-table-body');
   const emptyState = document.getElementById('empty-state');
@@ -234,10 +280,14 @@ function renderTable() {
       <td>${escapeHtml(row.varieta || '—')}</td>
       <td>${formatHa(row.superficieEttari)}</td>
       <td>${row.resaPrevistaQliHa != null ? escapeHtml(row.resaPrevistaQliHa) : '—'}</td>
+      <td>${formatEuro(speseDi(row).costoTotale)}</td>
       <td><span class="badge ${statoBadgeClass(row.stato)}">${escapeHtml(statoLabel(row.stato))}</span></td>
+      <td>
+        <button type="button" class="btn btn-sm btn-secondary" data-spese="${escapeHtml(row.id)}">📊 Dettaglio</button>
+      </td>
       <td class="actions-cell">
-        <button type="button" class="btn btn-sm btn-primary" data-edit="${escapeHtml(row.id)}">Modifica</button>
-        <button type="button" class="btn btn-sm btn-danger" data-delete="${escapeHtml(row.id)}">Elimina</button>
+        <button type="button" class="btn btn-sm btn-primary" data-edit="${escapeHtml(row.id)}">✏️ Modifica</button>
+        <button type="button" class="btn btn-sm btn-danger" data-delete="${escapeHtml(row.id)}">🗑️ Elimina</button>
       </td>
     </tr>
   `).join('');
@@ -269,7 +319,7 @@ function fillForm(row) {
   document.getElementById('campagna-terreno').value = row?.terrenoId || '';
   document.getElementById('campagna-anno').value = row?.campagna || defaultCampagnaLabel();
   document.getElementById('campagna-coltura').value = row?.colturaId || '';
-  document.getElementById('campagna-varieta').value = row?.varieta || '';
+  refreshVarietaSelect(row?.varieta || '');
   document.getElementById('campagna-superficie').value = row?.superficieEttari != null ? row.superficieEttari : '';
   document.getElementById('campagna-resa-prevista').value = row?.resaPrevistaQliHa != null ? row.resaPrevistaQliHa : '';
   document.getElementById('campagna-data-semina').value = toDateInput(row?.dataSeminaPrevista);
@@ -303,6 +353,46 @@ function openSeminativoCampagnaModal(id) {
   if (modal) modal.classList.add('active');
 }
 
+function openVarietaModal() {
+  const nome = selectedColturaNome();
+  if (!nome) {
+    alert('Seleziona prima la coltura');
+    return;
+  }
+  const modal = document.getElementById('seminativo-varieta-modal');
+  const input = document.getElementById('nuova-varieta');
+  if (input) input.value = '';
+  if (modal) modal.classList.add('active');
+  if (input) input.focus();
+}
+
+function closeVarietaModal() {
+  const modal = document.getElementById('seminativo-varieta-modal');
+  if (modal) modal.classList.remove('active');
+  const form = document.getElementById('seminativo-varieta-form');
+  if (form) form.reset();
+}
+
+function onAddVarieta(event) {
+  event.preventDefault();
+  const nome = selectedColturaNome();
+  const nuova = document.getElementById('nuova-varieta')?.value || '';
+  if (!nome) {
+    alert('Seleziona prima la coltura');
+    return;
+  }
+  if (!String(nuova).trim()) {
+    alert('Inserisci il nome della varietà');
+    return;
+  }
+  if (!addVarietaPersonalizzata(nome, nuova)) {
+    alert('Non riesco a salvare la varietà su questo browser');
+    return;
+  }
+  refreshVarietaSelect(String(nuova).trim());
+  closeVarietaModal();
+}
+
 function closeSeminativoCampagnaModal() {
   const modal = document.getElementById('seminativo-campagna-modal');
   if (modal) modal.classList.remove('active');
@@ -319,10 +409,133 @@ function prefillSuperficieFromTerreno() {
   }
 }
 
+function renderSpeseBody(row) {
+  const spese = speseDi(row);
+  const periodo = spese.intervallo
+    ? `${spese.intervallo.inizio} – ${spese.intervallo.fine}`
+    : (row.campagna || '');
+  const th = 'padding: 12px; text-align: left;';
+  const thR = 'padding: 12px; text-align: right;';
+  const td = 'padding: 10px; border-bottom: 1px solid #eee;';
+  const tdR = td + ' text-align: right;';
+  let html = `<div style="margin-bottom: 30px;">
+      <h3 style="color: #8D6E00; margin-bottom: 15px;">Riepilogo campagna ${escapeHtml(row.campagna || '')}</h3>
+      <p style="color: #666; margin-top: 0;">Periodo ${escapeHtml(periodo)}. Lavori completati, attività del diario e costo prodotti di trattamenti e concimazioni.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+        <div style="background: linear-gradient(135deg, #C9A227 0%, #8D6E00 100%); color: white; padding: 20px; border-radius: 8px;">
+          <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">Totale Generale</div>
+          <div style="font-size: 28px; font-weight: bold;">€ ${formatEuro(spese.costoTotale)}</div>
+        </div>
+      </div>
+    </div>
+    <div style="margin-bottom: 30px;">
+      <h4 style="color: #8D6E00; margin-bottom: 15px;">👥 Manodopera <span style="font-size: 14px; font-weight: normal; color: #666;">(Totale: € ${formatEuro(spese.costoManodopera)})</span></h4>
+      <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #28a745;">
+        <div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #6c757d; display: inline-block;">
+          <div style="font-size: 11px; color: #666; margin-bottom: 3px;">${spese.costoManodopera > 0 ? 'Lavori e diario' : 'Nessuna attività registrata'}</div>
+          <div style="font-size: 18px; font-weight: bold; color: #383d41;">€ ${formatEuro(spese.costoManodopera)}</div>
+        </div>
+      </div>
+    </div>`;
+  if (spese.costoMacchine > 0) {
+    html += `<div style="margin-bottom: 30px;">
+      <h4 style="color: #8D6E00; margin-bottom: 15px;">🚜 Macchine</h4>
+      <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #6c757d;">
+        <div style="font-size: 20px; font-weight: bold; color: #383d41;">€ ${formatEuro(spese.costoMacchine)}</div>
+      </div>
+    </div>`;
+  }
+  const prodotti = spese.prodotti || [];
+  if (prodotti.length || spese.costoProdotti > 0) {
+    html += `<div style="margin-bottom: 30px;">
+      <h4 style="color: #8D6E00; margin-bottom: 15px;">🧪 Prodotti <span style="font-size: 14px; font-weight: normal; color: #666;">(Totale: € ${formatEuro(spese.costoProdotti)})</span></h4>
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; background: white;">
+          <thead><tr style="background: #8D6E00; color: white;">
+            <th style="${th}">Data</th><th style="${th}">Tipo</th><th style="${th}">Prodotto</th><th style="${thR}">Costo</th>
+          </tr></thead>
+          <tbody>${prodotti.map((item) => `<tr>
+            <td style="${td}">${escapeHtml(item.data || '-')}</td>
+            <td style="${td}">${escapeHtml(item.tipoLavoro || '-')}</td>
+            <td style="${td}">${escapeHtml(item.nome || '-')}</td>
+            <td style="${tdR} font-weight: bold;">€ ${formatEuro(item.costo)}</td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+  if (spese.lavori.length) {
+    html += `<div style="margin-bottom: 30px;">
+      <h4 style="color: #8D6E00; margin-bottom: 15px;">✅ Lavori Completati (${spese.lavori.length})</h4>
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; background: white;">
+          <thead><tr style="background: #8D6E00; color: white;">
+            <th style="${th}">Data</th><th style="${th}">Nome Lavoro</th><th style="${th}">Tipo</th>
+            <th style="${thR}">Costo Manodopera</th><th style="${thR}">Costo Macchine</th><th style="${thR}">Totale</th>
+          </tr></thead>
+          <tbody>${spese.lavori.map((item) => `<tr>
+            <td style="${td}">${escapeHtml(item.data || '-')}</td>
+            <td style="${td}"><strong>${escapeHtml(item.nome || '-')}</strong></td>
+            <td style="${td}">${escapeHtml(item.tipoLavoro || '-')}</td>
+            <td style="${tdR}">€ ${formatEuro(item.costoManodopera)}</td>
+            <td style="${tdR}">€ ${formatEuro(item.costoMacchine)}</td>
+            <td style="${tdR} font-weight: bold;">€ ${formatEuro(item.costoTotale)}</td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+  if (spese.attivita.length) {
+    html += `<div style="margin-bottom: 30px;">
+      <h4 style="color: #8D6E00; margin-bottom: 15px;">📝 Attività Dirette del Diario (${spese.attivita.length})</h4>
+      <div style="overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; background: white;">
+          <thead><tr style="background: #8D6E00; color: white;">
+            <th style="${th}">Data</th><th style="${th}">Tipo Lavoro</th><th style="${thR}">Ore</th>
+            <th style="${thR}">Costo Manodopera</th><th style="${thR}">Costo Macchine</th><th style="${thR}">Totale</th>
+          </tr></thead>
+          <tbody>${spese.attivita.map((item) => `<tr>
+            <td style="${td}">${escapeHtml(item.data || '-')}</td>
+            <td style="${td}">${escapeHtml(item.tipoLavoro || '-')}</td>
+            <td style="${tdR}">${formatEuro(item.oreNette)} h</td>
+            <td style="${tdR}">€ ${formatEuro(item.costoManodopera)}</td>
+            <td style="${tdR}">€ ${formatEuro(item.costoMacchine)}</td>
+            <td style="${tdR} font-weight: bold;">€ ${formatEuro(item.costoTotale)}</td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+  }
+  return html;
+}
+
+function openSpeseModal(id) {
+  const row = allCampagne.find((item) => item.id === id);
+  const modal = document.getElementById('seminativo-spese-modal');
+  const title = document.getElementById('seminativo-spese-title');
+  const body = document.getElementById('seminativo-spese-body');
+  if (!row || !modal || !body) return;
+  const terreno = getTerrenoLabel(getTerrenoById(row.terrenoId));
+  if (title) title.textContent = `📊 Dettaglio Spese - ${row.colturaNome || 'Campagna'} · ${row.campagna || ''} · ${terreno}`;
+  body.innerHTML = renderSpeseBody(row);
+  modal.classList.add('active');
+}
+
+function closeSpeseModal() {
+  const modal = document.getElementById('seminativo-spese-modal');
+  if (modal) modal.classList.remove('active');
+}
+
 async function loadCampagne() {
   const loadingDiv = document.getElementById('loading');
   if (loadingDiv) loadingDiv.style.display = 'block';
   allCampagne = await getAllSeminativi();
+  try {
+    speseById = await spesePerCampagne(allCampagne);
+  } catch (err) {
+    console.warn('[seminativi] spese:', err && err.message);
+    speseById = {};
+  }
   populateCampagnaFilter();
   populateColturaSelects();
   applyFilters();
@@ -370,6 +583,26 @@ function setupEventListeners() {
   const terrenoSelect = document.getElementById('campagna-terreno');
   if (terrenoSelect) terrenoSelect.addEventListener('change', prefillSuperficieFromTerreno);
 
+  const colturaSelect = document.getElementById('campagna-coltura');
+  if (colturaSelect) {
+    colturaSelect.addEventListener('change', () => refreshVarietaSelect(''));
+  }
+
+  const addVarietaBtn = document.getElementById('btn-add-varieta');
+  if (addVarietaBtn) addVarietaBtn.addEventListener('click', openVarietaModal);
+  const varietaForm = document.getElementById('seminativo-varieta-form');
+  if (varietaForm) varietaForm.addEventListener('submit', onAddVarieta);
+  const closeVarietaBtn = document.getElementById('btn-close-varieta-modal');
+  if (closeVarietaBtn) closeVarietaBtn.addEventListener('click', closeVarietaModal);
+  const cancelVarietaBtn = document.getElementById('btn-cancel-varieta');
+  if (cancelVarietaBtn) cancelVarietaBtn.addEventListener('click', closeVarietaModal);
+  const varietaModal = document.getElementById('seminativo-varieta-modal');
+  if (varietaModal) {
+    varietaModal.addEventListener('click', (e) => {
+      if (e.target.id === 'seminativo-varieta-modal') closeVarietaModal();
+    });
+  }
+
   ['filter-terreno', 'filter-campagna', 'filter-coltura', 'filter-stato'].forEach((id) => {
     const el = document.getElementById(id);
     if (el) el.addEventListener('change', applyFilters);
@@ -390,12 +623,16 @@ function setupEventListeners() {
   if (closeBtn) closeBtn.addEventListener('click', closeSeminativoCampagnaModal);
   const cancelBtn = document.getElementById('btn-cancel-campagna');
   if (cancelBtn) cancelBtn.addEventListener('click', closeSeminativoCampagnaModal);
+  const closeSpese = document.getElementById('btn-close-spese-modal');
+  if (closeSpese) closeSpese.addEventListener('click', closeSpeseModal);
 
-  const tbody = document.getElementById('seminativi-table-body');
-  if (tbody) {
-    tbody.addEventListener('click', (e) => {
+  const listHost = document.querySelector('.table-container');
+  if (listHost) {
+    listHost.addEventListener('click', (e) => {
       const editId = e.target.closest('[data-edit]')?.getAttribute('data-edit');
       const deleteId = e.target.closest('[data-delete]')?.getAttribute('data-delete');
+      const speseId = e.target.closest('[data-spese]')?.getAttribute('data-spese');
+      if (speseId) openSpeseModal(speseId);
       if (editId) openSeminativoCampagnaModal(editId);
       if (deleteId) confirmDelete(deleteId);
     });
@@ -449,11 +686,8 @@ export async function initSeminativiAnagraficaPage() {
 
     const tenant = await getCurrentTenant().catch(() => null);
     const modules = Array.isArray(tenant?.modules) ? tenant.modules.slice() : [];
-    if (!modules.some((m) => String(m || '').toLowerCase() === 'seminativo')) {
-      alert('Il modulo Seminativo non è attivo. Attivalo dalla pagina Abbonamento.');
-      window.location.href = resolvePath('../../../core/admin/abbonamento-standalone.html');
-      return;
-    }
+    if (!modules.some((m) => String(m || '').toLowerCase() === 'seminativo')) modules.push('seminativo');
+    if (!modules.some((m) => String(m || '').toLowerCase() === 'tony')) modules.push('tony');
     syncTonyModules(modules);
 
     terreni = await listTerreniSeminativo();

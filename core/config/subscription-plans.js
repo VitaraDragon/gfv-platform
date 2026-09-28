@@ -179,9 +179,8 @@ export const AVAILABLE_MODULES = [
     icon: '🌾',
     description: 'Campagne, semina, lavorazioni e raccolta',
     price: 3,
-    available: false, // Scheletro hub — non in vendita
-    category: 'colture',
-    badge: 'Prossimamente'
+    available: true,
+    category: 'colture'
   },
   {
     id: 'magazzino',
@@ -309,7 +308,7 @@ export const BUNDLES = [
     id: 'gfv-completo',
     name: 'GFV Completo',
     modules: ALL_AVAILABLE_MODULE_IDS,
-    price: 30, // singoli €35 → risparmio €5 (~14%)
+    price: 30, // singoli €40 con il seminativo → risparmio €10
     isComplete: true,
     description: 'Tutti i moduli disponibili: colture, manodopera, conto terzi, magazzino, meteo, report e Tony Avanzato',
     suggestedFor: ALL_AVAILABLE_MODULE_IDS,
@@ -594,6 +593,7 @@ export const STRIPE_PRICE_IDS = {
     contoTerzi: 'price_1Tkf0M3nOKBd0FguQGTqs7f2',
     vigneto: 'price_1Tkf0M3nOKBd0FguugiLQvPB',
     frutteto: 'price_1Tkf0N3nOKBd0FgucJZM0u4U',
+    seminativo: 'price_1UKK7T3nOKBd0FguQIBTPSNB',
     magazzino: 'price_1Tkf0N3nOKBd0Fgu7GJL6cXm',
     tony: 'price_1Tkf0O3nOKBd0FguXdsS260m',
     report: 'price_1Tkf0O3nOKBd0FgutP7Cv0kt',

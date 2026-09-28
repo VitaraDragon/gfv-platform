@@ -1,6 +1,166 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-26 — anagrafica campagne Seminativo (lista + form).**
+**Ultimo aggiornamento documentazione: 2026-09-27 — Seminativo in vendita.**
+
+## 2026-09-27 — Seminativo in vendita
+
+Il modulo è acquistabile come Vigneto e Frutteto: 3 € al mese. Tolto il badge Prossimamente. Il bundle completo lo include insieme agli altri moduli disponibili.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — piano colturale Seminativo.**
+
+## 2026-09-27 — Piano colturale Seminativo
+
+Il piano legge la coltura in campo e propone la successiva: genere diverso e ruolo complementare (dopo il grano, mais, soia, girasole o favino). La conferma salva la campagna successiva in anagrafica, stato pianificato. Non certifica la PAC.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — hub Seminativo con raccolte e lavori.**
+
+## 2026-09-27 — Elenchi hub Seminativo
+
+Sotto le card l’hub mostra le raccolte recenti della campagna e i lavori a pieno campo già completati, più le attività del diario. Filari e vendemmia restano fuori. Senza Manodopera restano solo le attività del diario.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — hub Seminativo con i numeri della campagna.**
+
+## 2026-09-27 — Hub Seminativo
+
+La panoramica dell’hub mostra campagne aperte, ettari, semine e raccolte della campagna agricola corrente. Le campagne chiuse non entrano nel conteggio. Il piano colturale resta l’unica card ancora da fare. Il modulo non è in vendita.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — costo campagna allineato alle statistiche.**
+
+## 2026-09-27 — Costo campagna Seminativo
+
+Il totale in anagrafica è lo stesso delle statistiche: manodopera e macchine del periodo, più il costo prodotti di trattamenti e concimazioni. Manodopera e macchine già contate sul lavoro o sul diario non si sommano una seconda volta dal documento del trattamento.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — statistiche Seminativo per campagna.**
+
+## 2026-09-27 — Statistiche Seminativo
+
+La pagina legge, senza un archivio nuovo, quintali delle mietiture, resa effettiva (quintali / ettari di campagna) e costi di manodopera, macchine e prodotti. La resa prevista dell’anagrafica resta un numero a parte. Niente gradazione o acidità.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — raccolta Seminativo sulla campagna.**
+
+## 2026-09-27 — Raccolta / mietitura Seminativo
+
+La pagina legge lavori e diario di categoria Raccolta a pieno campo, sulla campagna. Si completano quintali, superficie e destinazione; manodopera e macchina arrivano dal lavoro o dal diario, come in vendemmia. La vendemmia e le lavorazioni sulla fila restano fuori. Collezione `raccolteSeminativo`. La prima mietitura salvata porta la campagna a raccolto. Regole `raccolteSeminativo` pubblicate su Firestore il 2026-09-27.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — concimazioni Seminativo sullo stesso schema dei trattamenti.**
+
+## 2026-09-27 — Concimazioni Seminativo
+
+La pagina legge lavori e diario di categoria Concimazione a pieno campo, sulla campagna. Completa con lo stesso `form-trattamento` e la stessa collezione `trattamentiSeminativo` già pubblicata. Le concimazioni sulla fila restano fuori, come le lavorazioni tra i filari.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — trattamenti Seminativo sullo schema del vigneto.**
+
+## 2026-09-27 — Trattamenti Seminativo sullo schema del vigneto
+
+Il completamento usa lo stesso form del vigneto (`form-trattamento`): righe prodotto dall’anagrafica, dose per ettaro, quantità e costo calcolati, manodopera e macchina precompilate dal lavoro o dal diario, avviso se la dose esce dal range, scarico magazzino se il modulo è attivo. Resta la differenza di modulo: la riga è legata alla campagna seminativo, non a un vigneto. Regole `trattamentiSeminativo` pubblicate su Firestore il 2026-09-27.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — pagina Trattamenti del Seminativo.**
+
+## 2026-09-27 — Trattamenti Seminativo
+
+La pagina elenca lavori e attività di diario con categoria Trattamenti, sul terreno di una campagna. Come nel vigneto si completa prodotto, dose, carenza e costo; il lavoro resta nel diario o in gestione lavori. Collezione `trattamentiSeminativo`. Regole Firestore nel repo, da pubblicare a parte.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — anagrafica Seminativo allineata ai pulsanti spese del vigneto.**
+
+## 2026-09-27 — Pulsanti spese in anagrafica Seminativo
+
+La lista campagne mette «Costo Totale Anno (€)» prima dello stato, poi la colonna «Dettaglio Spese» (📊 Dettaglio) e infine Azioni (✏️ Modifica, 🗑️ Elimina), come l’anagrafica vigneto.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — costo campagna in anagrafica Seminativo.**
+
+## 2026-09-27 — Costo campagna in anagrafica Seminativo
+
+La lista campagne mostra il costo del periodo agricolo (1 settembre – 31 agosto): lavori completati e attività dirette del diario sul terreno, manodopera e macchine, come il dettaglio spese del vigneto. Il pulsante Dettaglio apre le due tabelle. I prodotti di trattamenti e concimazioni restano fuori finché quelle pagine non ci sono.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — pulsante Dashboard delle pagine Seminativo.**
+
+## 2026-09-27 — Dashboard delle pagine Seminativo
+
+Nelle sottopagine il pulsante torna all’hub del modulo (`seminativo-dashboard-standalone.html`), come in vigneto e frutteto. Dall’hub si esce con «Dashboard Principale».
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — lavorazioni Seminativo dal diario e dai lavori.**
+
+## 2026-09-27 — Lavorazioni terreno Seminativo
+
+La pagina legge il diario (`attivita`) e, se il tenant ha Manodopera, i lavori. Solo terreni seminativo e tipi di campo aperto (sottocategoria Generale: Aratura, Erpicatura, …). Restano fuori «tra le file» e «sulla fila». Non c’è una collezione dedicata né un form locale: si registra dal diario o da gestione lavori. Tony: FILTER_TABLE su `lavorazioni_seminativo` (terreno, tipo, origine, ricerca); per registrare usa APRI_PAGINA, non un modal.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — pulsante Modifica visibile in elenco Seminativo.**
+
+## 2026-09-27 — Modifica in elenco Seminativo
+
+Il pulsante Modifica usava lo stile bianco dell’intestazione e spariva sul fondo chiaro della lista. In elenco è oro scuro. Il clic vale anche sulla scheda telefono, non solo sulla riga della tabella.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — regole Firestore seminativi e semine in produzione.**
+
+## 2026-09-27 — Regole Firestore seminativi e semine pubblicate
+
+`firebase deploy --only firestore:rules` sul progetto `gfv-platform`. Lettura per chi appartiene al tenant; creazione, modifica e cancellazione solo manager o admin. Collezioni: `seminativi` e `semineSeminativo`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — terreni Seminativo collegati all’anagrafica aziendale.**
+
+## 2026-09-27 — Terreni Seminativo dall’anagrafica aziendale
+
+Il menu terreno di campagna e semina legge `getAllTerreni()`, come vigneto e frutteto. Il terreno azienda salva il nome coltura (`Grano`, `Mais`, …), non sempre la categoria: il filtro ora riconosce quel nome (catalogo Seminativo) e l’id categoria. Vite, prato e ortive restano fuori.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — pagina Semina del modulo Seminativo.**
+
+## 2026-09-27 — Semina collegata alla campagna
+
+Registro su `tenants/{id}/semineSeminativo`: campagna già creata, data, varietà (elenco della coltura) e dose. La prima semina porta la campagna da pianificato a seminato; se si elimina l’ultima e lo stato è ancora seminato, torna a pianificato. Tony: `SEMINATIVO_SEMINA_FORM_MAP` e FILTER_TABLE su `semina_seminativo`. Regole Firestore pubblicate il 2026-09-27.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — varietà Seminativo per coltura.**
+
+## 2026-09-27 — Anagrafica Seminativo: varietà da elenco della coltura
+
+Il campo varietà non è più testo libero. Ogni coltura della categoria Seminativo ha un elenco (Grano → Bologna, Riso → Carnaroli, …). Il menu si aggiorna con la coltura. Il pulsante «+» salva una varietà in più solo nel browser. Tony la compila come select dal mapping, senza un `if` di pagina.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — card Abbonamento Seminativo con pulsante Apri.**
+
+## 2026-09-27 — Abbonamento: Apri hub Seminativo senza metterlo in vendita
+
+La card resta `available: false` e badge Prossimamente. `previewHref` nel catalogo moduli mostra «Apri» verso l’hub, senza prova gratuita né checkout Stripe.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-26 — anagrafica campagne Seminativo (lista + form).**
 
 ## 2026-09-26 — Anagrafica campagne Seminativo
 

@@ -120,6 +120,53 @@ body {
     color: #666;
 }
 
+.action-card.is-placeholder {
+    border-style: dashed;
+}
+
+.action-badge {
+    margin-top: 12px;
+    font-size: 12px;
+    font-weight: 700;
+    color: #8D6E00;
+}
+
+.hub-list {
+    margin-top: 40px;
+}
+
+.btn-link {
+    background: transparent;
+    color: #8D6E00;
+    text-decoration: underline;
+    padding: 0;
+}
+
+.badge-diario {
+    display: inline-block;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    background: #FFF8E1;
+    color: #8D6E00;
+}
+
+.proposte-rotazione,
+.altra-coltura {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-top: 8px;
+}
+
+.scelta-rotazione {
+    font-size: 13px;
+    color: #8D6E00;
+    font-weight: 600;
+}
+
 .section h2,
 .content > h2 {
     color: #8D6E00;
@@ -164,10 +211,20 @@ body {
     flex-wrap: wrap;
 }
 
-.btn-primary {
+.header .btn-primary {
     background: rgba(255, 255, 255, 0.2);
     color: white;
     border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.content .btn-primary {
+    background: #8D6E00;
+    color: #fff;
+    border: 1px solid #8D6E00;
+}
+
+.content .btn-primary:hover {
+    background: #6F5600;
 }
 
 .btn-success {
@@ -275,6 +332,14 @@ th {
     padding: 20px;
 }
 
+.modal-varieta {
+    z-index: 1100;
+}
+
+.modal-content-narrow {
+    max-width: 420px;
+}
+
 .modal-content {
     background: white;
     border-radius: 12px;
@@ -320,6 +385,23 @@ th {
 
 .form-group.full {
     grid-column: 1 / -1;
+}
+
+.varieta-picker {
+    display: flex;
+    gap: 6px;
+    align-items: stretch;
+}
+
+.varieta-picker select {
+    flex: 1;
+    width: auto;
+}
+
+.btn-add-varieta {
+    padding: 8px 12px;
+    font-size: 18px;
+    line-height: 1;
 }
 
 .form-group label {

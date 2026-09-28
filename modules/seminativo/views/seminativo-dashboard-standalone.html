@@ -14,15 +14,15 @@
         <div class="header">
             <div>
                 <h1>🌾 Seminativo</h1>
-                <p>Hub del modulo: campagne, semina, lavorazioni e raccolta. Scheletro in costruzione.</p>
+                <p>Campagne, semina, lavorazioni e raccolta.</p>
             </div>
             <div class="header-actions">
-                <a href="../../../core/dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+                <a href="../../../core/dashboard-standalone.html" class="btn btn-secondary">← Dashboard Principale</a>
             </div>
         </div>
 
         <div class="content">
-            <h2>Panoramica</h2>
+            <h2 id="panoramica-title">Panoramica</h2>
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-value" id="stat-campagne">—</div>
@@ -30,26 +30,63 @@
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="stat-ettari">—</div>
-                    <div class="stat-label">Ettari in ciclo</div>
+                    <div class="stat-label">Ettari aperti</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="stat-semine">—</div>
-                    <div class="stat-label">Semine anno</div>
+                    <div class="stat-label">Semine</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-value" id="stat-raccolte">—</div>
-                    <div class="stat-label">Raccolte anno</div>
+                    <div class="stat-label">Raccolte</div>
                 </div>
             </div>
 
             <h2>Azioni rapide</h2>
             <div class="quick-actions" id="seminativo-hub-cards"></div>
 
-            <div class="section" style="margin-top: 40px;">
-                <h2>Stato modulo</h2>
-                <div class="placeholder-box">
-                    <strong>Scheletro</strong>
-                    <p>Le pagine sono collegate. Anagrafica, piano colturale, semina, lavorazioni, trattamenti, concimazioni, raccolta e statistiche arriveranno nelle fasi successive. Niente potatura né impianto permanente.</p>
+            <div class="section hub-list">
+                <h2>Raccolte recenti</h2>
+                <div class="table-container">
+                    <table id="table-raccolte">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Terreno</th>
+                                <th>Quantità (Qli)</th>
+                                <th>Resa (Qli/Ha)</th>
+                                <th>Costo Totale (€)</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="6" class="loading">Caricamento raccolte...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section hub-list">
+                <h2>Lavori seminativo</h2>
+                <div class="table-container">
+                    <table id="table-lavori">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Terreno</th>
+                                <th>Tipo Lavoro</th>
+                                <th>Stato</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" class="loading">Caricamento lavori...</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -59,20 +96,8 @@
     <script type="module">
         import { resolvePath } from '../../../core/js/gfv-path.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
-        import { SEMINATIVO_HUB_CARDS } from '../config/seminativo-hub.js';
         import { publishSeminativoTableData, placeholderTableData } from '../js/seminativo-page-context.js';
-
-        function renderHubCards() {
-            const root = document.getElementById('seminativo-hub-cards');
-            if (!root) return;
-            root.innerHTML = SEMINATIVO_HUB_CARDS.map((card) => (
-                '<a href="' + card.href + '" class="action-card" data-card-id="' + card.id + '">' +
-                    '<span class="action-icon">' + card.icon + '</span>' +
-                    '<span class="action-title">' + card.title + '</span>' +
-                    '<span class="action-description">' + card.description + '</span>' +
-                '</a>'
-            )).join('');
-        }
+        import { renderSeminativoHubCards, refreshSeminativoHub } from '../js/seminativo-hub-page.js';
 
         function syncTonyModules(modules) {
             if (typeof window.syncTonyModules === 'function') {
@@ -84,7 +109,7 @@
             }
         }
 
-        renderHubCards();
+        renderSeminativoHubCards();
         publishSeminativoTableData(placeholderTableData(
             'seminativo_hub',
             'Caricamento dati in corso...'
@@ -120,16 +145,12 @@
             if (!modules.some((m) => String(m || '').toLowerCase() === 'seminativo')) modules.push('seminativo');
             if (!modules.some((m) => String(m || '').toLowerCase() === 'tony')) modules.push('tony');
             syncTonyModules(modules);
-            publishSeminativoTableData({
-                pageType: 'seminativo_hub',
-                summary: 'Hub Seminativo: ' + SEMINATIVO_HUB_CARDS.length + ' sottocategorie in scheletro.',
-                items: SEMINATIVO_HUB_CARDS.map((card) => ({
-                    id: card.id,
-                    titolo: card.title,
-                    href: card.href,
-                    pageType: card.pageType
-                }))
-            });
+            try {
+                const includeLavori = modules.some((item) => String(item || '').toLowerCase() === 'manodopera');
+                await refreshSeminativoHub({ includeLavori });
+            } catch (err) {
+                console.error('[seminativo-dashboard] Panoramica non disponibile:', err);
+            }
         });
     </script>
 </body>

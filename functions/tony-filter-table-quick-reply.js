@@ -21,6 +21,8 @@ const SUPPORTED_PAGE_TYPES = new Set([
   "vendemmia",
   "tracciabilita_consumi",
   "seminativi",
+  "semina_seminativo",
+  "lavorazioni_seminativo",
 ]);
 
 const FILTER_VERB_RE =
@@ -55,6 +57,8 @@ function isFilterRequest(message) {
   if (/\bfiltra\s+per\b/i.test(msg)) return true;
   if (/\b(pianificat|in\s+ciclo|raccolt|chius[oaie]|seminat)/i.test(msg)) return true;
   if (/\bcampagna\s+20\d{2}/i.test(msg)) return true;
+  if (/\b(aratur|erpicatur|fresatur|vangatur|ripuntatur|estirpatur|rullatur)/i.test(msg)) return true;
+  if (/\b(solo\s+dal\s+diario|solo\s+diario|solo\s+lavori)\b/i.test(msg)) return true;
   return false;
 }
 
@@ -331,6 +335,61 @@ function tryTonyFilterTableQuickReply(input) {
         id: "filter_table_seminativi_coltura",
         text: `Filtro le campagne di ${coltura}.`,
         command: { type: "FILTER_TABLE", params: { coltura } },
+      };
+    }
+  }
+
+  if (pageType === "semina_seminativo") {
+    const campagna = extractCampagnaToken(message);
+    if (campagna) {
+      return {
+        id: "filter_table_semina_campagna",
+        text: `Filtro le semine della campagna ${campagna}.`,
+        command: { type: "FILTER_TABLE", params: { ricerca: campagna } },
+      };
+    }
+    const coltura = resolveColturaFromItems(message, ctx);
+    if (coltura) {
+      return {
+        id: "filter_table_semina_coltura",
+        text: `Filtro le semine di ${coltura}.`,
+        command: { type: "FILTER_TABLE", params: { ricerca: coltura } },
+      };
+    }
+  }
+
+  if (pageType === "lavorazioni_seminativo") {
+    const msg = normalizeItTony(message);
+    const tipi = ["aratura", "erpicatura", "fresatura", "vangatura", "ripuntatura", "estirpatura", "rullatura"];
+    const hit = tipi.find((tipo) => msg.includes(tipo));
+    if (hit) {
+      const label = hit.charAt(0).toUpperCase() + hit.slice(1);
+      return {
+        id: "filter_table_lavorazioni_tipo",
+        text: `Filtro le lavorazioni: ${label}.`,
+        command: { type: "FILTER_TABLE", params: { tipo: label } },
+      };
+    }
+    if (/\bdiario\b/.test(msg)) {
+      return {
+        id: "filter_table_lavorazioni_diario",
+        text: "Mostro solo le attività del diario.",
+        command: { type: "FILTER_TABLE", params: { origine: "diario" } },
+      };
+    }
+    if (/\blavori\b/.test(msg)) {
+      return {
+        id: "filter_table_lavorazioni_lavoro",
+        text: "Mostro solo i lavori.",
+        command: { type: "FILTER_TABLE", params: { origine: "lavoro" } },
+      };
+    }
+    const campagna = extractCampagnaToken(message);
+    if (campagna) {
+      return {
+        id: "filter_table_lavorazioni_campagna",
+        text: `Filtro le lavorazioni della campagna ${campagna}.`,
+        command: { type: "FILTER_TABLE", params: { ricerca: campagna } },
       };
     }
   }

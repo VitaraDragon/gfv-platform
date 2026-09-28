@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Seminativo" data-gfv-module="seminativo">
+<html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Semina" data-gfv-module="seminativo">
 <head>
 <script>try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
 <script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Semina — Seminativo - GFV Platform</title>
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#C9A227">
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <link rel="stylesheet" href="seminativo-standalone.css">
 </head>
@@ -13,25 +15,130 @@
     <div class="container">
         <div class="header">
             <div>
-                <h1>🌾 Semina — Seminativo</h1>
-                <p>Sottocategoria del modulo Seminativo. Pagina in scheletro: i form e i dati arriveranno dopo.</p>
+                <h1>🌱 Semina — Seminativo</h1>
+                <p>Registra data, varietà e dose sulla campagna già creata. La prima semina porta la campagna a Seminato.</p>
             </div>
             <div class="header-actions">
-                <a href="seminativo-dashboard-standalone.html" class="btn btn-secondary">← Seminativo</a>
-                <a href="../../../core/dashboard-standalone.html" class="btn btn-secondary">Dashboard</a>
+                <button type="button" id="btn-nuova-semina" class="btn btn-primary">Nuova semina</button>
+                <a href="seminativo-dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
             </div>
         </div>
+
         <div class="content">
-            <div class="placeholder-box">
-                <strong>In costruzione</strong>
-                <p>Questa pagina segue il canone liste Tony (<code>currentTableData</code> + <code>table-data-ready</code>). Nessun dato persistito in questa fase.</p>
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="filter-campagna">Campagna</label>
+                    <select id="filter-campagna">
+                        <option value="">Tutte le campagne</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-ricerca">Ricerca</label>
+                    <input type="search" id="filter-ricerca" placeholder="Coltura, varietà, data…">
+                </div>
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <button type="button" id="btn-reset-filtri" class="btn btn-secondary">Pulisci filtri</button>
+                </div>
+            </div>
+
+            <div class="table-container table-responsive" data-gfv-pelle-list>
+                <div id="loading" class="loading">Caricamento semine...</div>
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <h3>Nessuna semina trovata</h3>
+                    <p>Registra la semina di una campagna già presente in anagrafica.</p>
+                </div>
+                <table id="semine-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Campagna</th>
+                            <th>Varietà</th>
+                            <th>Dose</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="semine-table-body"></tbody>
+                </table>
             </div>
         </div>
     </div>
+
+    <div id="seminativo-semina-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="seminativo-semina-modal-title">Nuova semina</h2>
+                <button type="button" class="close" id="btn-close-semina-modal" aria-label="Chiudi">&times;</button>
+            </div>
+            <form id="seminativo-semina-form">
+                <input type="hidden" id="semina-id">
+                <div class="form-grid">
+                    <div class="form-group full">
+                        <label for="semina-campagna">Campagna *</label>
+                        <select id="semina-campagna" name="semina-campagna" required>
+                            <option value="">Seleziona campagna</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="semina-data">Data semina *</label>
+                        <input type="date" id="semina-data" name="semina-data" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="semina-varieta">Varietà</label>
+                        <div class="varieta-picker">
+                            <select id="semina-varieta" name="semina-varieta">
+                                <option value="">Prima scegli la campagna</option>
+                            </select>
+                            <button type="button" id="btn-add-varieta" class="btn btn-secondary btn-add-varieta" title="Aggiungi varietà">+</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="semina-dose">Dose seme</label>
+                        <input type="number" id="semina-dose" name="semina-dose" min="0" step="0.1">
+                    </div>
+                    <div class="form-group">
+                        <label for="semina-unita">Unità</label>
+                        <select id="semina-unita" name="semina-unita">
+                            <option value="kg/ha">kg/ha</option>
+                            <option value="kg">kg</option>
+                        </select>
+                    </div>
+                    <div class="form-group full">
+                        <label for="semina-note">Note</label>
+                        <textarea id="semina-note" name="semina-note"></textarea>
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="btn-cancel-semina" class="btn btn-secondary">Annulla</button>
+                    <button type="submit" class="btn btn-success">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div id="seminativo-varieta-modal" class="modal modal-varieta">
+        <div class="modal-content modal-content-narrow">
+            <div class="modal-header">
+                <h2>Nuova varietà</h2>
+                <button type="button" class="close" id="btn-close-varieta-modal" aria-label="Chiudi">&times;</button>
+            </div>
+            <form id="seminativo-varieta-form">
+                <div class="form-group">
+                    <label for="nuova-varieta">Nome varietà</label>
+                    <input type="text" id="nuova-varieta" required placeholder="es. Bologna">
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="btn-cancel-varieta" class="btn btn-secondary">Annulla</button>
+                    <button type="submit" class="btn btn-success">Aggiungi</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { initSeminativoPlaceholderPage } from '../js/seminativo-placeholder-page.js';
-        initSeminativoPlaceholderPage();
+        import { initSeminePage } from '../js/semine-page.js';
+        initSeminePage();
     </script>
 </body>
 </html>

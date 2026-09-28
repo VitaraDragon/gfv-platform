@@ -59,11 +59,18 @@ describe('Modulo Seminativo — scheletro', () => {
     expect(ok.toFirestore().campagna).toBe('2025/2026');
   });
 
-  it('abbonamento Prossimamente come oliveto e catalogo dashboard', () => {
+  it('abbonamento in vendita allo stesso prezzo di vigneto e frutteto', () => {
     const plan = AVAILABLE_MODULES.find((m) => m.id === 'seminativo');
+    const vigneto = AVAILABLE_MODULES.find((m) => m.id === 'vigneto');
+    const frutteto = AVAILABLE_MODULES.find((m) => m.id === 'frutteto');
     expect(plan).toBeTruthy();
-    expect(plan.available).toBe(false);
-    expect(plan.badge).toBe('Prossimamente');
+    expect(plan.available).toBe(true);
+    expect(plan.badge).toBeUndefined();
+    expect(plan.previewHref).toBeUndefined();
+    expect(plan.price).toBe(3);
+    expect(plan.price).toBe(vigneto.price);
+    expect(plan.price).toBe(frutteto.price);
+    expect(readUtf8('core/admin/abbonamento-standalone.html')).toContain('module.previewHref');
     expect(readUtf8('core/js/dashboard-hub.js')).toContain('seminativo-dashboard-standalone.html');
     expect(readUtf8('core/js/dashboard-sections.js')).toContain('createSeminativoCard');
   });

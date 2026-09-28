@@ -6,6 +6,8 @@
  * @module modules/seminativo/models/SeminativoCampagna
  */
 
+import { COLTURE_PREDEFINITE } from '../../../core/config/app-catalog-seed-data.js';
+
 export const SEMINATIVO_CAMPAGNA_STATI = [
   'pianificato',
   'seminato',
@@ -52,10 +54,43 @@ export function defaultCampagnaLabel(now = new Date()) {
   return `${y - 1}/${y}`;
 }
 
-export function isTerrenoSeminativo(terreno) {
+const NOMI_COLTURE_SEMINATIVO = new Set(
+  COLTURE_PREDEFINITE
+    .filter((c) => String(c.categoriaCodice || '').toLowerCase() === 'seminativo' && c.nome)
+    .map((c) => String(c.nome).trim().toLowerCase())
+);
+
+function testoTerreno(value) {
+  return String(value == null ? '' : value).trim().toLowerCase();
+}
+
+/**
+ * Terreno aziendale di seminativo.
+ * L'anagrafica terreni salva il nome coltura in `coltura` (come il filtro Vite del vigneto),
+ * non sempre `colturaCategoria`. Si accetta anche l'id categoria del catalogo.
+ * Prato, ortive e vite restano fuori.
+ *
+ * @param {Object} terreno
+ * @param {{ nomiColture?: Set<string>|string[], categoriaIds?: Set<string>|string[] }} [ctx]
+ */
+export function isTerrenoSeminativo(terreno, ctx = {}) {
   if (!terreno) return false;
-  const cat = String(terreno.colturaCategoria || '').toLowerCase().trim();
-  return cat.includes('seminativ');
+  const cat = String(terreno.colturaCategoria || '').trim();
+  if (testoTerreno(cat).includes('seminativ')) return true;
+  if (cat && ctx.categoriaIds) {
+    const ids = ctx.categoriaIds instanceof Set ? ctx.categoriaIds : new Set(ctx.categoriaIds);
+    if (ids.has(cat)) return true;
+  }
+  const nomi = new Set(NOMI_COLTURE_SEMINATIVO);
+  if (ctx.nomiColture) {
+    const extra = ctx.nomiColture instanceof Set ? ctx.nomiColture : ctx.nomiColture;
+    for (const nome of extra) {
+      const key = testoTerreno(nome);
+      if (key) nomi.add(key);
+    }
+  }
+  const testi = [terreno.coltura, terreno.colturaSottocategoria].map(testoTerreno).filter(Boolean);
+  return testi.some((t) => t.includes('seminativ') || nomi.has(t));
 }
 
 export class SeminativoCampagna {

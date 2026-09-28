@@ -157,12 +157,33 @@ export async function existsCampagnaForTerreno(terrenoId, campagna, excludeId) {
 }
 
 /**
- * Terreni aziendali con categoria Seminativo (non prato, non ortive).
+ * Terreni aziendali la cui coltura è Seminativo (nome salvato sul terreno, o id categoria).
+ * Stessa fonte di vigneto/frutteto: `getAllTerreni()`. Esclusi prato, ortive, vite.
  * @returns {Promise<Array>}
  */
 export async function listTerreniSeminativo() {
   const terreni = await getAllTerreni();
-  return terreni.filter(isTerrenoSeminativo);
+  const ctx = { nomiColture: new Set(), categoriaIds: new Set() };
+  try {
+    const categorie = await getAllCategorie({
+      applicabileA: 'colture',
+      orderBy: 'ordine'
+    });
+    const categoria = (categorie || []).find((c) => {
+      const codice = String(c.codice || '').toLowerCase();
+      const nome = String(c.nome || '').toLowerCase();
+      return codice === CATEGORIA_CODICE || nome.includes('seminativ');
+    });
+    if (categoria && categoria.id) ctx.categoriaIds.add(String(categoria.id));
+    const colture = await listColtureSeminativo();
+    (colture || []).forEach((c) => {
+      const nome = String(c.nome || '').trim().toLowerCase();
+      if (nome) ctx.nomiColture.add(nome);
+    });
+  } catch (err) {
+    console.warn('[seminativo] catalogo per i terreni:', err && err.message);
+  }
+  return terreni.filter((t) => isTerrenoSeminativo(t, ctx));
 }
 
 /**

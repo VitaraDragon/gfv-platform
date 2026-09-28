@@ -1,11 +1,13 @@
 <!DOCTYPE html>
-<html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Seminativo" data-gfv-module="seminativo">
+<html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Concimazioni" data-gfv-module="seminativo">
 <head>
 <script>try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
 <script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Concimazioni — Seminativo - GFV Platform</title>
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#C9A227">
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <link rel="stylesheet" href="seminativo-standalone.css">
 </head>
@@ -13,25 +15,161 @@
     <div class="container">
         <div class="header">
             <div>
-                <h1>🌾 Concimazioni — Seminativo</h1>
-                <p>Sottocategoria del modulo Seminativo. Pagina in scheletro: i form e i dati arriveranno dopo.</p>
+                <h1>🌿 Concimazioni — Seminativo</h1>
+                <p>Le concimazioni a pieno campo provengono da lavori o attività con categoria <strong>Concimazione</strong>. Il completamento è lo stesso dei trattamenti: prodotti, dose e costi dal lavoro o dal diario. Le concimazioni sulla fila restano nel vigneto.</p>
             </div>
             <div class="header-actions">
-                <a href="seminativo-dashboard-standalone.html" class="btn btn-secondary">← Seminativo</a>
-                <a href="../../../core/dashboard-standalone.html" class="btn btn-secondary">Dashboard</a>
+                <a id="link-diario" class="btn btn-primary" href="../../../core/attivita-standalone.html">Registra nel diario</a>
+                <a id="link-nuovo-lavoro" class="btn btn-primary" href="../../../core/admin/gestione-lavori-standalone.html" hidden>Nuovo lavoro</a>
+                <a href="seminativo-dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
             </div>
         </div>
         <div class="content">
-            <div class="placeholder-box">
-                <strong>In costruzione</strong>
-                <p>Questa pagina segue il canone liste Tony (<code>currentTableData</code> + <code>table-data-ready</code>). Nessun dato persistito in questa fase.</p>
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="filter-terreno">Terreno</label>
+                    <select id="filter-terreno"><option value="">Tutti i terreni</option></select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-campagna">Campagna</label>
+                    <select id="filter-campagna"><option value="">Tutte le campagne</option></select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-ricerca">Ricerca</label>
+                    <input type="search" id="filter-ricerca" placeholder="Prodotto, tipo, terreno…">
+                </div>
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <button type="button" id="btn-reset-filtri" class="btn btn-secondary">Pulisci filtri</button>
+                </div>
+            </div>
+            <div class="table-container table-responsive" data-gfv-pelle-list>
+                <div id="loading" class="loading">Caricamento concimazioni...</div>
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <h3>Nessuna concimazione trovata</h3>
+                    <p>Crea un lavoro o un'attività nel diario con categoria Concimazione a pieno campo, sul terreno di una campagna seminativo.</p>
+                </div>
+                <table id="trattamenti-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Campagna</th>
+                            <th>Lavoro / Attività</th>
+                            <th>Terreno</th>
+                            <th>Prodotto</th>
+                            <th>Superficie (ha)</th>
+                            <th>Costo (€)</th>
+                            <th>Riferimento</th>
+                            <th>Avvisi</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="trattamenti-table-body"></tbody>
+                </table>
             </div>
         </div>
     </div>
+
+    <div id="modal-trattamento" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-trattamento-title">Completa concimazione</h2>
+                <button type="button" class="close" id="btn-close-trattamento-modal" aria-label="Chiudi">&times;</button>
+            </div>
+            <p id="trattamento-contesto"></p>
+            <form id="form-trattamento">
+                <input type="hidden" id="trattamento-id">
+                <div class="form-group">
+                    <label for="trattamento-superficie">Superficie trattata (ha)</label>
+                    <label for="trattamento-superficie-anagrafe" style="display:flex;align-items:flex-start;gap:10px;font-weight:normal;">
+                        <input type="checkbox" id="trattamento-superficie-anagrafe" style="margin-top:4px;">
+                        <span>Tutto il terreno: usa la superficie da anagrafe terreni.</span>
+                    </label>
+                    <input type="number" id="trattamento-superficie" min="0.01" step="0.01" placeholder="es. 3,04">
+                </div>
+                <div class="form-group">
+                    <label>Prodotti *</label>
+                    <div style="margin-bottom:8px;">
+                        <button type="button" class="btn btn-sm btn-primary" id="btn-aggiungi-prodotto-trattamento">Aggiungi prodotto</button>
+                    </div>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%;font-size:13px;">
+                            <thead>
+                                <tr>
+                                    <th>Prodotto</th>
+                                    <th>Dosaggio (per ha)</th>
+                                    <th>Unità</th>
+                                    <th>Quantità</th>
+                                    <th>Costo (€)</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody id="tbody-prodotti-trattamento"></tbody>
+                        </table>
+                    </div>
+                    <p id="totale-costo-prodotti-trattamento" style="margin-top:8px;font-weight:600;color:#8D6E00;">Totale costo prodotti: 0 €</p>
+                </div>
+                <div id="trattamento-operatore-group" class="form-group">
+                    <label for="trattamento-operatore">Operatore</label>
+                    <input type="text" id="trattamento-operatore" placeholder="Nome operatore">
+                </div>
+                <div id="trattamento-proprietario-message" class="form-group" style="display:none;">
+                    <small>Lavoro svolto dal proprietario (modulo Manodopera non attivo).</small>
+                </div>
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label for="trattamento-costo-mano">Costo manodopera (€)</label>
+                        <input type="number" id="trattamento-costo-mano" min="0" step="0.01" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="trattamento-costo-macchina">Costo macchina (€)</label>
+                        <input type="number" id="trattamento-costo-macchina" min="0" step="0.01" value="0">
+                    </div>
+                    <div class="form-group">
+                        <label for="trattamento-giorni-carenza">Giorni di carenza</label>
+                        <input type="number" id="trattamento-giorni-carenza" min="0" step="1" placeholder="Max dai prodotti">
+                    </div>
+                    <div class="form-group">
+                        <label for="trattamento-condizioni-meteo">Condizioni meteo</label>
+                        <select id="trattamento-condizioni-meteo">
+                            <option value="">— Non specificato —</option>
+                            <option value="sereno">Sereno</option>
+                            <option value="nuvoloso">Nuvoloso</option>
+                            <option value="pioggia">Pioggia</option>
+                            <option value="vento forte">Vento forte</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="trattamento-copertura-terreno">Copertura del terreno</label>
+                        <select id="trattamento-copertura-terreno">
+                            <option value="non_dichiarata">Non specificato</option>
+                            <option value="completa">Intervento su tutta l’area prevista</option>
+                            <option value="parziale">Intervento parziale</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="trattamento-note">Note</label>
+                        <textarea id="trattamento-note" rows="2"></textarea>
+                    </div>
+                </div>
+                <div id="trattamento-scarico-magazzino-group" class="form-group" style="display:none;">
+                    <label style="display:flex;align-items:flex-start;gap:10px;font-weight:normal;">
+                        <input type="checkbox" id="trattamento-registra-scarico-magazzino" style="margin-top:4px;">
+                        <span>Registra scarico in magazzino in base alle quantità delle righe con prodotto dall’anagrafica.</span>
+                    </label>
+                </div>
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" id="cancel-btn">Annulla</button>
+                    <button type="submit" class="btn btn-success">Salva</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { initSeminativoPlaceholderPage } from '../js/seminativo-placeholder-page.js';
-        initSeminativoPlaceholderPage();
+        import { initConcimazioniPage } from '../js/trattamenti-page.js';
+        initConcimazioniPage();
     </script>
 </body>
 </html>
