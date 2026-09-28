@@ -20,6 +20,7 @@ const CATALOG = [
   { id: "vendemmiaMeccanica", type: "module", name: "GFV Modulo Vendemmia Meccanica", description: "Vendemmia meccanizzata CT: piano stagione, calcolo, PDF", monthly: 2 },
   { id: "vigneto", type: "module", name: "GFV Modulo Vigneto", description: "Gestione vigneti e vendemmia", monthly: 3 },
   { id: "frutteto", type: "module", name: "GFV Modulo Frutteto", description: "Gestione frutteti e raccolta", monthly: 3 },
+  { id: "seminativo", type: "module", name: "GFV Modulo Seminativo", description: "Campagne, semina, lavorazioni e raccolta", monthly: 3 },
   { id: "magazzino", type: "module", name: "GFV Modulo Magazzino", description: "Prodotti, giacenze e movimenti", monthly: 3 },
   { id: "tony", type: "module", name: "GFV Tony Avanzato", description: "Assistente IA operativo", monthly: 5 },
   { id: "report", type: "module", name: "GFV Modulo Report", description: "Report e sintesi aziendali", monthly: 5 },

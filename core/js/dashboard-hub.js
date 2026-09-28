@@ -18,6 +18,7 @@ export const MODULE_CATALOG = {
     contoTerzi: { label: 'Conto Terzi', href: '../modules/conto-terzi/views/conto-terzi-home-standalone.html', icon: '🤝' },
     vigneto: { label: 'Vigneto', href: '../modules/vigneto/views/vigneto-dashboard-standalone.html', icon: '🍇' },
     frutteto: { label: 'Frutteto', href: '../modules/frutteto/views/frutteto-dashboard-standalone.html', icon: '🍎' },
+    seminativo: { label: 'Seminativo', href: '../modules/seminativo/views/seminativo-dashboard-standalone.html', icon: '🌾' },
     magazzino: { label: 'Magazzino', href: '../modules/magazzino/views/magazzino-home-standalone.html', icon: '📦' },
     manodopera: { label: 'Manodopera', href: '../modules/manodopera/views/manodopera-home-standalone.html', icon: '👷' },
     parcoMacchine: { label: 'Parco Macchine', href: '../modules/macchine/views/macchine-dashboard-standalone.html', icon: '🚜' },

@@ -8,6 +8,7 @@
 const PATHS = {
   apple: '<path d="M12 8c-4 .8-6 4-6 7a6 6 0 0 0 12 0c0-3-2-6.2-6-7z"/><path d="M12 8c.2-2 1.6-3.4 3.6-3.8"/>',
   grape: '<circle cx="9" cy="9" r="2"/><circle cx="14" cy="9" r="2"/><circle cx="11.5" cy="13" r="2"/><path d="M12 5c.6 0 1.4.6 1.6 1.6"/>',
+  wheat: '<path d="M12 21V8"/><path d="M12 8c2-2 4-2 5 0-2 1.2-3.2 2.4-5 3"/><path d="M12 8c-2-2-4-2-5 0 2 1.2 3.2 2.4 5 3"/><path d="M12 13c2-1.6 4-1.4 5 .4-2 1-3.2 2-5 2.6"/><path d="M12 13c-2-1.6-4-1.4-5 .4 2 1 3.2 2 5 2.6"/>',
   wine: '<path d="M8 3h8l-1 7a3 3 0 0 1-6 0L8 3z"/><path d="M12 13v6"/><path d="M9 21h6"/>',
   box: '<path d="M3 7l9-4 9 4-9 4-9-4z"/><path d="M3 7v10l9 4 9-4V7"/><path d="M12 11v10"/>',
   map: '<path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3z"/><path d="M9 3v15"/><path d="M15 6v15"/>',
@@ -50,6 +51,7 @@ const MODULE_ICON = {
   lavori: 'clipboard',
   vigneto: 'grape',
   frutteto: 'apple',
+  seminativo: 'wheat',
   manodopera: 'users',
   magazzino: 'box',
   parcoMacchine: 'tractor',
@@ -65,6 +67,7 @@ const MODULE_ICON = {
 const EMOJI_ICON = {
   '🍎': 'apple',
   '🍇': 'grape',
+  '🌾': 'wheat',
   '🍷': 'wine',
   '📦': 'box',
   '🗺️': 'map',

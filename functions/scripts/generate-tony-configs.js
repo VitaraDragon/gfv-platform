@@ -49,6 +49,17 @@ const RECOMMENDATIONS = {
       },
     },
     {
+      id: "seminativo",
+      label: "Seminativo",
+      available: false,
+      triggers: [
+        { type: "categoryShare", category: "Seminativo", minCount: 3, minShare: 0.35, weight: 80 },
+      ],
+      complements: {
+        magazzino: "per seme, concimi e scarichi da trattamenti",
+      },
+    },
+    {
       id: "contoTerzi",
       label: "Conto Terzi",
       available: true,

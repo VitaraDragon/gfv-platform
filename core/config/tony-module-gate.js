@@ -11,6 +11,7 @@ const MODULE_LABELS = {
   manodopera: 'Manodopera',
   vigneto: 'Vigneto',
   frutteto: 'Frutteto',
+  seminativo: 'Seminativo',
   meteo: 'Meteo'
 };
 
@@ -55,6 +56,17 @@ const TARGET_REQUIRES_MODULE = {
   'impegni giorno': 'manodopera',
   vigneto: 'vigneto',
   frutteto: 'frutteto',
+  seminativo: 'seminativo',
+  seminativi: 'seminativo',
+  'piano colturale': 'seminativo',
+  'semina seminativo': 'seminativo',
+  'lavorazioni seminativo': 'seminativo',
+  'trattamenti seminativo': 'seminativo',
+  'concimazioni seminativo': 'seminativo',
+  'concimazione seminativo': 'seminativo',
+  'raccolta seminativo': 'seminativo',
+  'statistiche seminativo': 'seminativo',
+  'seminativo statistiche': 'seminativo',
   meteo: 'meteo'
 };
 

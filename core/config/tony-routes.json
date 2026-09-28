@@ -259,6 +259,60 @@
       "module": "frutteto"
     },
     {
+      "target": "seminativo",
+      "path": "modules/seminativo/views/seminativo-dashboard-standalone.html",
+      "label": "Seminativo Dashboard",
+      "module": "seminativo"
+    },
+    {
+      "target": "seminativi",
+      "path": "modules/seminativo/views/seminativi-standalone.html",
+      "label": "Anagrafica Seminativo",
+      "module": "seminativo"
+    },
+    {
+      "target": "piano colturale",
+      "path": "modules/seminativo/views/piano-colturale-standalone.html",
+      "label": "Piano colturale",
+      "module": "seminativo"
+    },
+    {
+      "target": "semina seminativo",
+      "path": "modules/seminativo/views/semina-standalone.html",
+      "label": "Semina",
+      "module": "seminativo"
+    },
+    {
+      "target": "lavorazioni seminativo",
+      "path": "modules/seminativo/views/lavorazioni-standalone.html",
+      "label": "Lavorazioni terreno",
+      "module": "seminativo"
+    },
+    {
+      "target": "trattamenti seminativo",
+      "path": "modules/seminativo/views/trattamenti-standalone.html",
+      "label": "Trattamenti Seminativo",
+      "module": "seminativo"
+    },
+    {
+      "target": "concimazioni seminativo",
+      "path": "modules/seminativo/views/concimazioni-standalone.html",
+      "label": "Concimazioni Seminativo",
+      "module": "seminativo"
+    },
+    {
+      "target": "raccolta seminativo",
+      "path": "modules/seminativo/views/raccolta-standalone.html",
+      "label": "Raccolta / mietitura",
+      "module": "seminativo"
+    },
+    {
+      "target": "statistiche seminativo",
+      "path": "modules/seminativo/views/seminativo-statistiche-standalone.html",
+      "label": "Seminativo Statistiche",
+      "module": "seminativo"
+    },
+    {
       "target": "elenco attrezzi",
       "path": "modules/macchine/views/attrezzi-list-standalone.html",
       "label": "Attrezzi List",

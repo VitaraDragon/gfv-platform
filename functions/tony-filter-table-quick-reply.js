@@ -20,6 +20,9 @@ const SUPPORTED_PAGE_TYPES = new Set([
   "preventivi",
   "vendemmia",
   "tracciabilita_consumi",
+  "seminativi",
+  "semina_seminativo",
+  "lavorazioni_seminativo",
 ]);
 
 const FILTER_VERB_RE =
@@ -52,7 +55,45 @@ function isFilterRequest(message) {
     return true;
   }
   if (/\bfiltra\s+per\b/i.test(msg)) return true;
+  if (/\b(pianificat|in\s+ciclo|raccolt|chius[oaie]|seminat)/i.test(msg)) return true;
+  if (/\bcampagna\s+20\d{2}/i.test(msg)) return true;
+  if (/\b(aratur|erpicatur|fresatur|vangatur|ripuntatur|estirpatur|rullatur)/i.test(msg)) return true;
+  if (/\b(solo\s+dal\s+diario|solo\s+diario|solo\s+lavori)\b/i.test(msg)) return true;
   return false;
+}
+
+function resolveSeminativiStato(message) {
+  const msg = normalizeItTony(message);
+  if (/\bpianificat/.test(msg)) return "pianificato";
+  if (/\bin\s+ciclo\b/.test(msg)) return "in_ciclo";
+  if (/\braccolt/.test(msg)) return "raccolto";
+  if (/\bchius/.test(msg)) return "chiuso";
+  if (/\bseminat/.test(msg)) return "seminato";
+  return null;
+}
+
+function extractCampagnaToken(message) {
+  const m = String(message || "").match(/\b(20\d{2}\s*\/\s*20\d{2}|20\d{2})\b/);
+  return m ? m[1].replace(/\s+/g, "") : null;
+}
+
+function resolveColturaFromItems(message, ctx) {
+  const msg = normalizeItTony(message);
+  const items = (ctx && ctx.page && ctx.page.currentTableData && ctx.page.currentTableData.items) || [];
+  let best = null;
+  let bestLen = 0;
+  for (const it of items) {
+    const n = String(it.coltura || "").trim();
+    if (!n) continue;
+    const nn = normalizeItTony(n);
+    if (nn && (msg.includes(nn) || nn.includes(msg))) {
+      if (nn.length > bestLen) {
+        best = n;
+        bestLen = nn.length;
+      }
+    }
+  }
+  return best;
 }
 
 function isResetRequest(message) {
@@ -258,6 +299,97 @@ function tryTonyFilterTableQuickReply(input) {
         id: "filter_table_terreni_categoria",
         text: "Filtro per categoria seminativo.",
         command: { type: "FILTER_TABLE", params: { categoria: "Seminativo" } },
+      };
+    }
+  }
+
+  if (pageType === "seminativi") {
+    const stato = resolveSeminativiStato(message);
+    if (stato) {
+      return {
+        id: "filter_table_seminativi_stato",
+        text: `Filtro le campagne ${stato.replace("_", " ")}.`,
+        command: { type: "FILTER_TABLE", params: { stato } },
+      };
+    }
+    const campagna = extractCampagnaToken(message);
+    if (campagna) {
+      return {
+        id: "filter_table_seminativi_campagna",
+        text: `Filtro la campagna ${campagna}.`,
+        command: { type: "FILTER_TABLE", params: { campagna } },
+      };
+    }
+    const token = extractTerrenoToken(message);
+    const terreno = resolveTerrenoValue(token, ctx);
+    if (terreno) {
+      return {
+        id: "filter_table_seminativi_terreno",
+        text: `Filtro le campagne per ${terreno}.`,
+        command: { type: "FILTER_TABLE", params: { terreno } },
+      };
+    }
+    const coltura = resolveColturaFromItems(message, ctx);
+    if (coltura) {
+      return {
+        id: "filter_table_seminativi_coltura",
+        text: `Filtro le campagne di ${coltura}.`,
+        command: { type: "FILTER_TABLE", params: { coltura } },
+      };
+    }
+  }
+
+  if (pageType === "semina_seminativo") {
+    const campagna = extractCampagnaToken(message);
+    if (campagna) {
+      return {
+        id: "filter_table_semina_campagna",
+        text: `Filtro le semine della campagna ${campagna}.`,
+        command: { type: "FILTER_TABLE", params: { ricerca: campagna } },
+      };
+    }
+    const coltura = resolveColturaFromItems(message, ctx);
+    if (coltura) {
+      return {
+        id: "filter_table_semina_coltura",
+        text: `Filtro le semine di ${coltura}.`,
+        command: { type: "FILTER_TABLE", params: { ricerca: coltura } },
+      };
+    }
+  }
+
+  if (pageType === "lavorazioni_seminativo") {
+    const msg = normalizeItTony(message);
+    const tipi = ["aratura", "erpicatura", "fresatura", "vangatura", "ripuntatura", "estirpatura", "rullatura"];
+    const hit = tipi.find((tipo) => msg.includes(tipo));
+    if (hit) {
+      const label = hit.charAt(0).toUpperCase() + hit.slice(1);
+      return {
+        id: "filter_table_lavorazioni_tipo",
+        text: `Filtro le lavorazioni: ${label}.`,
+        command: { type: "FILTER_TABLE", params: { tipo: label } },
+      };
+    }
+    if (/\bdiario\b/.test(msg)) {
+      return {
+        id: "filter_table_lavorazioni_diario",
+        text: "Mostro solo le attività del diario.",
+        command: { type: "FILTER_TABLE", params: { origine: "diario" } },
+      };
+    }
+    if (/\blavori\b/.test(msg)) {
+      return {
+        id: "filter_table_lavorazioni_lavoro",
+        text: "Mostro solo i lavori.",
+        command: { type: "FILTER_TABLE", params: { origine: "lavoro" } },
+      };
+    }
+    const campagna = extractCampagnaToken(message);
+    if (campagna) {
+      return {
+        id: "filter_table_lavorazioni_campagna",
+        text: `Filtro le lavorazioni della campagna ${campagna}.`,
+        command: { type: "FILTER_TABLE", params: { ricerca: campagna } },
       };
     }
   }

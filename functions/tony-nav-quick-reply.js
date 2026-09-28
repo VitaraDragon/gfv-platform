@@ -51,6 +51,7 @@ const NAV_TARGET_RULES = [
   { target: "meteo", patterns: [/\bmeteo\b/i, /\bprevision/i] },
   { target: "vigneto", patterns: [/\bvignet/i, /\buva\b/i] },
   { target: "frutteto", patterns: [/\bfruttet/i] },
+  { target: "seminativo", patterns: [/\bseminativ/i] },
 ];
 
 /** Target APRI_PAGINA ammessi per profilo campo (allineato a field-role-guard client). */
@@ -102,6 +103,7 @@ const NAV_TEXT_BY_TARGET = {
   meteo: "Ti porto al modulo meteo.",
   vigneto: "Ti porto al vigneto.",
   frutteto: "Ti porto al frutteto.",
+  seminativo: "Ti porto al seminativo.",
   comunicazioni: "Ti porto alle comunicazioni.",
   "comunicazioni squadra": "Ti porto alle comunicazioni.",
   "comunicazioni caposquadra": "Ti porto alle comunicazioni.",

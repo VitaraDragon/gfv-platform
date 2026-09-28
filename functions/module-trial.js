@@ -18,6 +18,7 @@ const AVAILABLE_MODULE_IDS = [
   "vendemmiaMeccanica",
   "vigneto",
   "frutteto",
+  "seminativo",
   "magazzino",
   "tony",
   "report",

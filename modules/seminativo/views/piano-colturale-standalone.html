@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Piano colturale" data-gfv-module="seminativo">
+<head>
+<script>try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
+<script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Piano colturale — Seminativo - GFV Platform</title>
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <link rel="stylesheet" href="seminativo-standalone.css">
+</head>
+<body data-seminativo-page="piano" data-page-type="piano_colturale_seminativo">
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🌾 Piano colturale — Seminativo</h1>
+                <p>Propone la coltura della campagna successiva a partire da quella in campo. La conferma la salva come pianificata.</p>
+            </div>
+            <div class="header-actions">
+                <a href="seminativo-dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+            </div>
+        </div>
+        <div class="content">
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="filter-terreno">Terreno</label>
+                    <select id="filter-terreno">
+                        <option value="">Tutti i terreni</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-ricerca">Ricerca</label>
+                    <input type="search" id="filter-ricerca" placeholder="Terreno o coltura…">
+                </div>
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <button type="button" id="btn-reset-filtri" class="btn btn-secondary">Pulisci filtri</button>
+                </div>
+            </div>
+            <div class="table-container table-responsive" data-gfv-pelle-list>
+                <div id="loading" class="loading">Caricamento piano colturale...</div>
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <h3>Nessun terreno seminativo</h3>
+                    <p>Il piano usa i terreni aziendali con coltura da seminativo.</p>
+                </div>
+                <table id="piano-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Terreno</th>
+                            <th>Campagna in campo</th>
+                            <th>Coltura</th>
+                            <th>Campagna successiva</th>
+                            <th>Proposte</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
+    <script type="module">
+        import { initPianoColturalePage } from '../js/piano-colturale-page.js';
+        initPianoColturalePage();
+    </script>
+</body>
+</html>
