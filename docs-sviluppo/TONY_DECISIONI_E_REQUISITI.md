@@ -147,7 +147,7 @@
 
 | # | Decisione | Fonte | Stato | Note |
 |---|-----------|-------|-------|------|
-| 10.1 | TTS cloud (getTonyAudio), voce **it-IT-Chirp3-HD-Charon** (Chirp 3 HD; rollback env `it-IT-Wavenet-D`) | HANDOFF_TTS_CHIRP3, functions | implementato | 2026-06-13 |
+| 10.1 | TTS cloud (`getTonyAudio`): default **ElevenLabs** voce `5zD2eYSLIo8c2zkowMfP` (Flash) se c’è `ELEVENLABS_API_KEY`; rollback **`TONY_TTS_PROVIDER=google`** → Chirp 3 Charon | HANDOFF_TTS_CHIRP3, functions | implementato | 2026-09-26 |
 | 10.2 | askStream per streaming risposta | TONY_DA_IMPLEMENTARE | implementato | |
 | 10.3 | Pulizia testo per TTS (no markdown, emoji, JSON) | TONY_DA_IMPLEMENTARE | implementato | |
 | 10.4 | Modalità continua, barge-in, congedo vocale | TONY_FUNZIONI | implementato | |
