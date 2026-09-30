@@ -67,6 +67,10 @@ Canone: `window.currentTableData`, evento `table-data-ready`, merge `setContext(
 
 `engine.js`: `manodopera` / `home manodopera` → `modules/manodopera/views/manodopera-home-standalone.html` (allineato guida MANODOPERA).
 
+## Notifiche push vs Tony in-app
+
+Push FCM / catalogo / Impostazioni: vedi **`GUIDA/CORE/tony/guida-tecnica.md`** (§ Notifiche push). Proattivo Tony dashboard = altro canale (`tony-proactive-signals.js`, briefing). Non mischiare nei consigli all’utente.
+
 ## Navigazione APRI_PAGINA / quick-reply
 
 - Config: `functions/tony-nav-quick-reply.js` (+ gate moduli). Verbi anche `riportami` / `torna`.

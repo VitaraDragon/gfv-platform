@@ -12,7 +12,8 @@ Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più sc
 2. Se sei **manager** o **amministratore**, orientati sulla **dashboard** (panoramica, menu Moduli, scorciatoie). **[Impara qui: Dashboard manager](#mini-guida-dashboard-per-manager-e-amministratore)**  
 3. Poi **Terreni** (scheda completa e confini sulla mappa). **[Impara qui: Terreni](#mini-guida-aggiungere-o-modificare-un-terreno)**  
 4. Poi **Diario attività** per le giornate in campo. **[Impara qui: Diario](#mini-guida-compilare-il-diario-attivita)**  
-5. Usa la **mappa** e **Statistiche** per il quadro d’insieme e i grafici filtrati. **[Impara qui: Mappa](#mini-guida-la-mappa-in-dashboard)** · **[Impara qui: Statistiche](#mini-guida-statistiche-e-filtri)**
+5. Usa la **mappa** e **Statistiche** per il quadro d’insieme e i grafici filtrati. **[Impara qui: Mappa](#mini-guida-la-mappa-in-dashboard)** · **[Impara qui: Statistiche](#mini-guida-statistiche-e-filtri)**  
+6. In **Impostazioni**, attiva o regola le **notifiche push** sul telefono (ciclo lavoro e assenze) se usate Manodopera in campo. **[Impara qui: Notifiche](#mini-guida-notifiche-push)**
 
 ---
 
@@ -37,6 +38,8 @@ Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più sc
 | Statistiche e filtri | [Impara qui](#mini-guida-statistiche-e-filtri) |
 | Abbonamento e piani | [Impara qui](#abbonamento-e-piani) |
 | Tony (assistente in chat) | [Impara qui](#tony-lassistente-in-chat) |
+| Notifiche push (telefono) | [Impara qui](#mini-guida-notifiche-push) |
+| Installare l’app (PWA) | [Impara qui](#mini-guida-installare-lapp-pwa) |
 
 ---
 
@@ -144,7 +147,7 @@ Se il tuo unico ruolo è **operaio** o **caposquadra**, la dashboard mostra in g
 
 **Solo con i moduli giusti (accenno):** le **tariffe orarie per tipo operaio** compaiono in Impostazioni **solo se il modulo Manodopera è attivo**. I **coefficienti di morfologia** (maggiorazioni per tipo di terreno rispetto alla pianura, usati nelle tariffe Conto terzi) compaiono **solo se il modulo Conto terzi è attivo**. Non entrano nel dettaglio in questa guida Core: quando attivate quei moduli, usate la documentazione dedicata a **Manodopera** e **Conto terzi**.
 
-**Per tutti gli utenti** sulla stessa pagina trovate anche **Impostazioni account personale** (nome, cognome, telefono) e **Cambio password**.
+**Per tutti gli utenti** sulla stessa pagina trovate anche **Impostazioni account personale** (nome, cognome, telefono), **Cambio password** e la scheda **Notifiche** (push sul telefono: ciclo lavoro, assenze, eventuale WhatsApp di escalation — vedi [mini-guida notifiche push](#mini-guida-notifiche-push)). Il **telefono** nel box Account serve anche se attivate WhatsApp per le assenze.
 
 Quando torni in **Terreni**, nel modulo del singolo terreno potrai collegare il campo al podere giusto dal menu dedicato (se non compare nulla, torna in Impostazioni e verifica di aver salvato il podere).
 
@@ -261,6 +264,48 @@ Nella pagina **Statistiche** puoi leggere totali e grafici basati su ciò che av
 Poi usa **Applica filtri** per aggiornare numeri e grafici. **Reset** riparte dall’impostazione larga (tutto incluso, secondo le etichette che vedi tu).
 
 Se cambiate filtro e non succede nulla, controlla di aver premuto **Applica filtri** dopo aver scelto le opzioni.
+
+---
+
+## Mini-guida: notifiche push
+
+Le **notifiche push** arrivano sul **telefono o browser** anche quando non avete la chat di Tony aperta. Servono soprattutto al **ciclo lavoro** e alle **assenze** (modulo Manodopera). I **promemoria di Tony in dashboard** (scorte, scadenze, guasti, meteo…) restano **in app**: non sono la stessa cosa delle push.
+
+### Dove si configurano
+
+1. Aprite **Impostazioni** (ingranaggio in alto).  
+2. Nella scheda **Notifiche** (visibile a **tutti i ruoli**):  
+   - **Notifiche push (ciclo lavoro)** — on/off e **fascia oraria** (default tipico **05:00–21:00**, fuso Europe/Rome).  
+   - **Reminder conferme mancanti** — dopo quante ore avvisare il caposquadra se qualcuno non ha confermato una comunicazione (default **6**).  
+   - **Notifiche push (assenze oggi)** — on/off dedicato alle assenze.  
+   - **WhatsApp (escalation assenze)** — opzionale e **spento** di default: un solo messaggio dopo circa **10 minuti utili** in fascia WhatsApp se non aprite la push; serve il **telefono** compilato nell’account.  
+3. Salvate con **Salva preferenze notifiche**.
+
+Alla prima attivazione il browser può chiedere il **permesso** di mostrare notifiche: va **consentito**, altrimenti le push non partono su quel dispositivo.
+
+### Cosa può arrivare (ciclo lavoro)
+
+| Evento | Chi tipicamente | Cosa fare al tocco |
+|--------|-----------------|--------------------|
+| Nuova **comunicazione** di squadra | Operaio / caposquadra destinatario | Apre la **versione mobile**, scheda comunicazioni sul lavoro |
+| **Nuovo lavoro** assegnato | Caposquadra o operaio assegnatario | Apre la versione mobile sul lavoro |
+| **Conferme mancanti** | Caposquadra mittente | Torna alle comunicazioni del lavoro |
+| **Ore da validare** | Caposquadra | Versione mobile, validazione ore (può raggruppare più segnalazioni nella giornata) |
+| Lavoro **da approvare** / **sospeso** | Manager / amministratore | Apre **Gestione lavori** |
+| **Assenza oggi** | Caposquadra + manager | Capo: versione mobile; manager: Gestione lavori (sostituto) |
+
+Fuori dalla fascia oraria le urgenze restano in coda e partono quando la finestra riparte. Senza permesso browser, senza push attive, o senza chiave push configurata sull’installazione, gli eventi possono comunque essere registrati ma **non** vedrete la notifica sul dispositivo.
+
+### Differenza con Tony
+
+- **Tony** (chat / briefing dashboard): consigli e risposte **dentro** l’app.  
+- **Push**: avvisi **sul dispositivo** per urgenze operative, con link diretto alla schermata utile.
+
+---
+
+## Mini-guida: installare l’app (PWA)
+
+Su alcuni browser (Chrome/Edge) in **login** o **registrazione da invito** può comparire un invito a **installare** GFV come app. Su iPhone spesso si usa **Aggiungi a Home** dal menu di Safari. Non è obbligatorio: l’app funziona anche solo nel browser. L’installazione aiuta le **notifiche push** e l’apertura rapida, ma dipende dal dispositivo e dai permessi.
 
 ---
 

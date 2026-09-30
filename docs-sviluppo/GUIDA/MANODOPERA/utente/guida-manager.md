@@ -256,7 +256,7 @@ Dalla stessa lista puoi **eliminare** un lavoro (conferma in schermata). L’eli
 
 È la **foto della giornata** della manodopera: per ogni operaio attivo vedi se è **libero**, **impegnato** (su quale lavoro), **assente**, **prestato** ad altro lavoro o **sostituto**. C’è anche la vista **per lavoro** (chi era previsto in squadra, chi manca, chi sostituisce).
 
-**Solo consultazione:** da qui non assegni sostituti né modifichi i lavori. Per le sostituzioni resti in **Gestione lavori** (assenze / standby / shortlist).
+**Solo consultazione:** da qui non assegni sostituti né modifichi i lavori. Per le sostituzioni resti in **Gestione lavori** (assenze / standby / shortlist). Con **notifiche push** attive, un’**assenza oggi** può avvisarti sul telefono (e il caposquadra in parallelo); opzionale escalation **WhatsApp** se configurata in Impostazioni. Anche **lavoro da approvare** e **lavoro sospeso** possono arrivare come push al manager.
 
 ### Come entrarci
 

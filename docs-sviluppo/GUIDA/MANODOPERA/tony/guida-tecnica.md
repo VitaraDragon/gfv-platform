@@ -58,6 +58,10 @@ Alias: **segnatura ore** / **segnare ore**, **validazione ore** / **validare ore
 - Flag: `zonaLavorataDuePunti` in `core/config/feature-flags.js` — **`enabledAlways: true`** (promossa; non dipende più dallo switch Prova/Pubblicata).
 - Delete lavoro manager: `core/services/lavoro-delete-cascade.js` (+ utils) da `openEliminaModal` in `gestione-lavori-events.js` — cascata su ore, zone, comunicazioni, ecc.
 
+## Notifiche push (ciclo lavoro / assenze)
+
+Eventi Manodopera-centrici in `notification-catalog.js` (vedi anche `CORE/tony/guida-tecnica.md` § Notifiche push): comunicazione, lavoro assegnato, conferme in ritardo, ore da validare, lavoro da approvare/sospeso, assenza oggi. Prefs in Impostazioni; FCM da field-workspace / dashboard. WhatsApp solo escalation assenza.
+
 ## Guide utente per ruolo
 
 - `MANODOPERA/utente/guida.md` (indice), `guida-manager.md`, `guida-caposquadra.md`, `guida-operaio.md`.

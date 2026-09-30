@@ -47,7 +47,7 @@ Con **Indietro** / **Avanti** in basso o i **puntini**:
 ### In alto nella schermata
 
 - Passaggio alla **versione desktop** (browser su schermo grande), se compare tra le opzioni.  
-- Accesso alle **impostazioni account** dal menu, se previsto.
+- Accesso alle **impostazioni account** dal menu, se previsto (lì anche **Notifiche** push: nuovo lavoro, comunicazioni di squadra).
 
 ---
 

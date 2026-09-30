@@ -115,7 +115,8 @@ Nella scheda **Comunicazioni** trovi il modulo **Comunicazioni squadra**: non è
 2. Imposta **Data** e **Orario** (es. orario di ritrovo o inizio attività).  
 3. Scrivi il **Messaggio** in modo chiaro e operativo (cosa fare, dove, in che ordine).  
 4. Tocca **Invia comunicazione**.  
-5. Sotto, in **Comunicazioni inviate**, vedi gli ultimi messaggi inviati da questa schermata; può comparire anche un riepilogo delle **conferme ricezione** rispetto ai destinatari previsti dal sistema.
+5. Sotto, in **Comunicazioni inviate**, vedi gli ultimi messaggi inviati da questa schermata; può comparire anche un riepilogo delle **conferme ricezione** rispetto ai destinatari previsti dal sistema.  
+6. Se avete le **notifiche push** attive (Impostazioni → **Notifiche**), i destinatari possono ricevere un avviso sul telefono; se qualcuno non conferma entro il tempo impostato, puoi ricevere un reminder **conferme mancanti**. Anche le **ore da validare** e le **assenze di oggi** possono arrivare come push (fascia oraria configurabile).
 
 ### Suggerimenti
 

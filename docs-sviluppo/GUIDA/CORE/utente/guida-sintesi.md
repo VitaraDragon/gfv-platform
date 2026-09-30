@@ -4,7 +4,7 @@ Testo breve: stesso linguaggio della guida utente. Usalo per rispondere a «come
 
 ## Prima di tutto
 
-1. **Impostazioni** (in alto): nome e dati azienda (anche P. IVA / CF se vi servono); **logo** opzionale (utile per preventivi Conto terzi); **poderi** se servono; **liste personalizzate** (tipi lavoro / colture) per manager; **tariffa proprietario** per i costi dal Diario senza Manodopera; **tariffe operai** e **morfologia** solo con moduli **Manodopera** / **Conto terzi** attivi; account e **password** per tutti.
+1. **Impostazioni** (in alto): nome e dati azienda (anche P. IVA / CF se vi servono); **logo** opzionale (utile per preventivi Conto terzi); **poderi** se servono; **liste personalizzate** (tipi lavoro / colture) per manager; **tariffa proprietario** per i costi dal Diario senza Manodopera; **tariffe operai** e **morfologia** solo con moduli **Manodopera** / **Conto terzi** attivi; account e **password** per tutti; scheda **Notifiche** (push ciclo lavoro + assenze, fascia oraria, eventuale WhatsApp escalation assenze — distinto dai promemoria Tony in app).
 2. **Dashboard manager/amministratore** (ordine tipico dall’alto): pulsante **Moduli** (elenco a tendina con icona + titolo + descrizione — **modo principale** per Vigneto, Magazzino, ecc.); sezione **Meteo sede** (solo piano Base); panoramica con **tre sezioni** (**Richiede attenzione** / **Per te oggi** / **Accessi rapidi**); sezione **I miei accessi** (5 scorciatoie, Configura); sezioni **Scadenze amministrazione** e **In arrivo**. **Riquadri modulo in fondo pagina** (🍇 Vigneto, ecc. sotto le scadenze): **solo** con moduli attivi **senza** Manodopera; **con Manodopera** non compaiono — usare **Moduli**. Non confonderli con le tre sezioni della panoramica.
 3. **Terreni**: nuovo terreno o modifica da lista; confini con **Traccia confini**, clic sugli angoli; **chiudi** toccando il primo punto o con doppio tap; **Togli ultimo** se sbagli; i campi già salvati si vedono e il vertice si aggancia al bordo; **Cancella** per rifare; **Salva terreno**. Con moduli **Vigneto** / **Frutteto** attivi: in lista, **grappolo**/**mela** → anagrafica vigneti/frutteti **già collegata a quel terreno** (non la dashboard del modulo; da lì link alla dashboard vigneto/frutteto).
 4. **Diario attività**: registra cosa succede in campo (data, terreno, tipo lavoro, orari, pause, note). Opzionale: flag GPS approssimativo (non certificato).
@@ -28,3 +28,5 @@ Dashboard e voci dipendono da **ruolo**, **piano** e **moduli attivi**. Operaio/
 ## Tony con solo app base / piano Base senza automazioni
 
 Spiega dove sono le funzioni e i termini in schermata; con **Base** può suggerire moduli utili; **non** inventare schermate o automazioni senza modulo **Tony** attivo e ruolo compatibile.
+
+**PWA:** su login/invito può comparire “Installa”; su iOS spesso Aggiungi a Home. Opzionale; utile con le push.

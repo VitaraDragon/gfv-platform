@@ -31,3 +31,5 @@ Ingresso **fotocamera in chat** (non un menu magazzino). Stesso gesto di sempre:
 ## Conferme
 
 Risposte esplicite dell’utente dopo domande di Tony; non rubare «sì» al briefing se intervista meteo/lavoro in corso.
+
+**Push telefono** (ciclo lavoro / assenze): preferenze in Impostazioni → Notifiche; non sono il briefing Tony in-app. Dettaglio guida Core.
