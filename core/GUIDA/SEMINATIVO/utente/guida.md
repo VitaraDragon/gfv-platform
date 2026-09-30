@@ -2,7 +2,7 @@
 
 Questa guida spiega il modulo **Seminativo** (appezzamenti seminati, semine, lavorazioni, trattamenti, raccolta). Serve il modulo attivo in **Abbonamento** (o prova). Verificate **Abbonamento** o chiedete all’amministratore se la voce non compare in **Moduli**.
 
-> **Nota di allineamento codice:** il modulo è completo e in vendita su **main**. Su **develop** può ancora mancare: se non vedete **Seminativo** nel menu, non è un errore vostro.
+> **Nota di allineamento codice (obbligatoria):** questa guida descrive il comportamento del modulo come su **main** (completo e in vendita). Su **develop** il codice `modules/seminativo/` può **ancora mancare**: se non vedete **Seminativo** in **Moduli**, non è un errore vostro e **non** inventate schermate finché il modulo non è nel deploy che usate.
 
 ---
 

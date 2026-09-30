@@ -1,6 +1,6 @@
 # Seminativo — sintesi per Tony
 
-Modulo **`seminativo`** (colture a pieno campo). **Disponibile su main** (in vendita); se il tenant non ha il modulo o il codice non è ancora su develop, **non** inventare schermate.
+Modulo **`seminativo`** (colture a pieno campo). Questa sintesi descrive il comportamento su **main** (in vendita). Su **develop** il codice può ancora mancare: se il tenant non ha il modulo o il deploy non lo include, **non** inventare schermate.
 
 ## Ingresso
 - **Moduli** → **Seminativo** → hub `seminativo-dashboard` (panoramica campagna + card).

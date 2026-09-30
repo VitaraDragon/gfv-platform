@@ -40,4 +40,18 @@ describe('tony-module-gate', () => {
     expect(result.command).toBeUndefined();
     expect(result.text).toMatch(/Conto Terzi.*non è attivo/i);
   });
+
+  it('blocca APRI_PAGINA seminativo se il modulo non è attivo', () => {
+    expect(isApriPaginaTargetAllowed('seminativo', ['tony', 'vigneto'])).toBe(false);
+    expect(isApriPaginaTargetAllowed('seminativo', ['tony', 'seminativo'])).toBe(true);
+    expect(isApriPaginaTargetAllowed('piano colturale', ['seminativo'])).toBe(true);
+  });
+
+  it('gate report e vendemmia meccanica', () => {
+    expect(isApriPaginaTargetAllowed('report', ['tony'])).toBe(false);
+    expect(isApriPaginaTargetAllowed('report', ['report'])).toBe(true);
+    expect(isApriPaginaTargetAllowed('vendemmia meccanica', ['vendemmiaMeccanica'])).toBe(true);
+    expect(isApriPaginaTargetAllowed('piano stagione', ['vendemmiaMeccanica'])).toBe(true);
+  });
+
 });
