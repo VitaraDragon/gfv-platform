@@ -1,51 +1,67 @@
 # Tony — guida tecnica modulo Seminativo
 
-Modulo tenant: **`seminativo`** in `tenants.modules` / catalogo `AVAILABLE_MODULES` (su **main**; verificare presenza codice su develop).
+Modulo tenant: tipicamente `seminativo` (minuscolo; verificare `tenant.modules`).
 
-## Path (relativi a `modules/seminativo/views/`)
+## Path standalone (relativi a `modules/seminativo/views/`)
 
-| Pagina | File | pageType / note |
-|--------|------|-----------------|
-| Hub / dashboard | `seminativo-dashboard-standalone.html` | hub cards da `config/seminativo-hub.js` |
-| Anagrafica | `seminativi-standalone.html` | `seminativi` |
-| Piano colturale | `piano-colturale-standalone.html` | `piano_colturale_seminativo` |
-| Semina | `semina-standalone.html` | `semina_seminativo` |
-| Lavorazioni | `lavorazioni-standalone.html` | `lavorazioni_seminativo` |
-| Trattamenti | `trattamenti-standalone.html` | `trattamenti_seminativo` |
-| Concimazioni | `concimazioni-standalone.html` | `concimazioni_seminativo` |
-| Raccolta | `raccolta-standalone.html` | `raccolta_seminativo` |
-| Statistiche | `seminativo-statistiche-standalone.html` | `statistiche_seminativo` |
+| Pagina | File |
+|--------|------|
+| Dashboard seminativo | `seminativo-dashboard-standalone.html` |
+| Anagrafica appezzamenti (campagne) | `seminativi-standalone.html` |
+| Piano colturale | `piano-colturale-standalone.html` |
+| Semina | `semina-standalone.html` |
+| Lavorazioni terreno | `lavorazioni-standalone.html` |
+| Trattamenti | `trattamenti-standalone.html` |
+| Concimazioni | `concimazioni-standalone.html` |
+| Raccolta / mietitura | `raccolta-standalone.html` |
+| Statistiche | `seminativo-statistiche-standalone.html` |
 
-Config hub + target Tony: `modules/seminativo/config/seminativo-hub.js` (`SEMINATIVO_HUB_CARDS`, `tonyTarget`). Context liste: `js/seminativo-page-context.js` (`publishSeminativoTableData`).
+## Collezioni Firestore
 
-## Collezioni (tenant)
+- `tenants/{tenantId}/seminativi` — anagrafica campagne (terreno + coltura + varietà + anno)
+- `tenants/{tenantId}/semineSeminativo` — eventi di semina
+- `tenants/{tenantId}/trattamentiSeminativo` — dati prodotto su lavoro o diario (trattamenti)
+- `tenants/{tenantId}/raccolteSeminativo` — quintali su lavoro o diario (raccolte/mietitura)
 
-`seminativi`, `semineSeminativo`, `trattamentiSeminativo`, `raccolteSeminativo` (vedi costanti in hub config).
+## pageType / liste Tony
 
-## Navigazione
+Dove esposto `window.currentTableData` ed emesso `table-data-ready`, Tony può leggere liste come utente (verificare pagina per pagina se presente). Esempi di `pageType` dove probabilmente mappati:
 
-Target da hub: `seminativi`, `piano colturale`, `semina seminativo`, `lavorazioni/trattamenti/concimazioni/raccolta/statistiche seminativo`. Esclusi dal parallelo vigneto: potatura, pianifica impianto, calcolo materiali (`SEMINATIVO_EXCLUDED_FROM_VIGNETO`).
+- `seminativi` — anagrafica appezzamenti/campagne
+- `piano_colturale_seminativo` — piano colturale
+- `semina_seminativo` — semine
+- `lavorazioni_seminativo` — lavorazioni terreno
+- `trattamenti_seminativo` — trattamenti
+- `concimazioni_seminativo` — concimazioni
+- `raccolta_seminativo` — raccolte/mietitura
+- `statistiche_seminativo` — statistiche
 
-## Guide utente / sintesi
+Verificare in `core/config/tony-form-mapping.js` e `functions/index.js` se presenti mapping per form e comandi `FILTER_TABLE`.
 
-- `SEMINATIVO/utente/guida.md`, `guida-sintesi.md`
-- Runtime: path in `GUIDA_LOAD_ENTRIES` + `guida_sintesi_seminativo` in `tony-service.js`.
+## Terreni (core) → modulo
 
-## Page-map / tony-nav (allineamento)
+- `core/terreni-standalone.html`: icona **grano** (🌾) → `modules/seminativo/views/seminativi-standalone.html?terrenoId=…` (anagrafica campagne per quel terreno).
 
-| Target APRI_PAGINA | Path | Note |
-|--------------------|------|------|
-| `seminativo` | `modules/seminativo/views/seminativo-dashboard-standalone.html` | hub; quick-reply «portami al seminativo» |
-| `seminativi` | `…/seminativi-standalone.html` | anagrafica |
-| `piano colturale` | `…/piano-colturale-standalone.html` | |
-| `semina seminativo` | `…/semina-standalone.html` | |
-| `lavorazioni seminativo` | `…/lavorazioni-standalone.html` | |
-| `trattamenti seminativo` | `…/trattamenti-standalone.html` | |
-| `concimazioni seminativo` / `concimazione seminativo` | `…/concimazioni-standalone.html` | |
-| `raccolta seminativo` | `…/raccolta-standalone.html` | |
-| `statistiche seminativo` / `seminativo statistiche` | `…/seminativo-statistiche-standalone.html` | |
+## Navigazione intent
 
-Registrati in: `core/config/tony-routes.json`, `core/js/tony/engine.js` (`TONY_PAGE_MAP`), `functions/tony-module-gate.js` + `core/config/tony-module-gate.js` (gate `seminativo`), `functions/tony-nav-quick-reply.js`. Sintesi runtime: `guida_sintesi_seminativo` in `tony-service.js`.
+Target utili: `seminativo`, `seminativi`, `anagrafica appezzamenti`, `piano colturale`, `semina seminativo`, `lavorazioni seminativo`, `trattamenti seminativo`, `concimazioni seminativo`, `raccolta seminativo`, `statistiche seminativo` — allineare a `functions/index.js` / mappa `core/js/tony/engine.js` (procedura utente: **Dashboard Seminativo**, non dashboard vigneto/frutteto).
 
-**Branch:** i path puntano a codice presente su **main**; su develop tip la cartella `modules/seminativo/` può mancare — Tony non deve inventare pagine se il modulo non è attivo o i file non sono nel deploy.
+## Riassunto Tony
 
+- **`SEMINATIVO/utente/guida-sintesi.md`** → campo `guida_sintesi_seminativo` in `tony-service.js` (dedup primo turno come Core / Parco / Vigneto / Frutteto / Magazzino / Manodopera / Conto Terzi / Meteo).
+
+## Hub e configurazione
+
+- `modules/seminativo/config/seminativo-hub.js`: `SEMINATIVO_HUB_CARDS` definisce le card della dashboard (id, title, description, icon, href, tonyTarget, pageType).
+- Colori modulo: `SEMINATIVO_ACCENT = '#C9A227'`, `SEMINATIVO_ACCENT_DARK = '#8D6E00'` (giallo).
+
+## Differenza da vigneto/frutteto
+
+- **Campagna annuale**: ogni record anagrafica = terreno + coltura + varietà + anno (no impianto permanente pluriennale).
+- **Rotazione**: piano colturale propone la coltura successiva per lo stesso terreno nell'anno futuro.
+- **Registri**: stessa logica di trattamenti/concimazioni (lavoro → completamento nel modulo), ma riferiti a campagna annuale, non a impianto permanente.
+- **Resa**: resa prevista in anagrafica (qli/ha stimati); resa effettiva calcolata dalle raccolte registrate (statistiche).
+
+## Permessi
+
+Verificare su singole pagine (`seminativo-statistiche-standalone.html` può restringere a Manager/Amministratore; anagrafica e registri probabilmente più permissivi).

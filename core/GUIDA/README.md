@@ -17,9 +17,7 @@ Documentazione divisa per **ambito** e per **pubblico**:
 | `MANODOPERA/` | Manodopera: guide utente per ruolo (`guida-manager`, `guida-caposquadra`, `guida-operaio`) + indice; versione mobile campo; pagine admin |
 | `CONTO_TERZI/` | Conto Terzi: clienti esterni, terreni clienti, mappa, tariffe, preventivi (bozza–invio–accettazione–pianifica lavoro), legame con Gestione lavori e Diario |
 | `METEO/` | Meteo sede (piano Base) e modulo Meteo (mappa campi, alert, previsioni per terreno; legame dashboard, Terreni, Tony briefing) |
-| `SEMINATIVO/` | Seminativo (campagne, semina, lavorazioni, trattamenti, raccolta; codice completo su **main**) |
-| `REPORT/` | Report/Bilancio (hub per area; Terreni e Vigneto MVP; altre aree in sviluppo) |
-| `VENDEMMIA_MECCANICA/` | Vendemmia meccanica CT (piano stagione, calcolatore, tariffe, bilancio) |
+| `SEMINATIVO/` | Seminativo: campagne annuali (terreno + coltura + varietà + anno), semina, lavorazioni terreno, trattamenti, concimazioni, raccolta/mietitura, piano colturale, statistiche |
 | `TONY/` | Modulo Tony (Tony Avanzato): assistente in chat, widget, voce, differenza tra guida e automazioni, piani, profilo campo, briefing dashboard |
 | `INTERSEZIONI/` | Flussi che attraversano più moduli |
 | Altri ambiti | Da compilare modulo per modulo dove manca ancora una cartella `GUIDA/<MODULO>/` |
@@ -30,7 +28,7 @@ La fonte di verità resta il **codice**. Questa cartella va aggiornata quando ca
 
 ## Tony
 
-In runtime, `core/services/tony-service.js` concatena in ordine: **`CORE/utente/guida.md`**, **`CORE/tony/guida-tecnica.md`**, **`TONY/utente/guida.md`** (modulo Tony — uso assistente), **`TONY/tony/guida-tecnica.md`**, poi **intersezioni**, poi altri moduli in **`GUIDA/`** ( **`PARCO_MACCHINE`**, **`VIGNETO`**, **`FRUTTETO`**, **`SEMINATIVO`**, **`MAGAZZINO`**, **`MANODOPERA`**, **`CONTO_TERZI`**, **`METEO`**, **`REPORT`**, **`VENDEMMIA_MECCANICA`**: `utente` + `tony` — il loader runtime `tony-service.js` va aggiornato per includere i nuovi path), infine **legacy** `guida-app/moduli/`. **Riassunti:** `guida_sintesi` (Core), `guida_sintesi_parco_macchine`, `guida_sintesi_vigneto`, `guida_sintesi_frutteto`, `guida_sintesi_magazzino`, `guida_sintesi_manodopera`, `guida_sintesi_conto_terzi`, **`guida_sintesi_meteo`**, **`guida_sintesi_tony`** (modulo Tony) — dedup primo turno vs `guida_app` (vedi `tony-service.js`).
+In runtime, `core/services/tony-service.js` concatena in ordine: **`CORE/utente/guida.md`**, **`CORE/tony/guida-tecnica.md`**, **`TONY/utente/guida.md`** (modulo Tony — uso assistente), **`TONY/tony/guida-tecnica.md`**, poi **intersezioni**, poi altri moduli in **`GUIDA/`** ( **`PARCO_MACCHINE`**, **`VIGNETO`**, **`FRUTTETO`**, **`MAGAZZINO`**, **`MANODOPERA`**, **`CONTO_TERZI`**, **`METEO`**, **`SEMINATIVO`**: `utente` + `tony`), infine **legacy** `guida-app/moduli/`. **Riassunti:** `guida_sintesi` (Core), `guida_sintesi_parco_macchine`, `guida_sintesi_vigneto`, `guida_sintesi_frutteto`, `guida_sintesi_magazzino`, `guida_sintesi_manodopera`, `guida_sintesi_conto_terzi`, **`guida_sintesi_meteo`**, **`guida_sintesi_seminativo`**, **`guida_sintesi_tony`** (modulo Tony) — dedup primo turno vs `guida_app` (vedi `tony-service.js`).
 
 ## Deploy
 
