@@ -50,6 +50,11 @@ Legacy (deprecato in UX utente): `createManagerSection`, card affitti standalone
 | Utenti | `admin/gestisci-utenti-standalone.html` |
 | Impostazioni | `admin/impostazioni-standalone.html` (header) |
 
+## Inviti (registrazione da link)
+
+- Lookup token **solo** via Cloud Function callable **`getInvitoPubblico`** (`functions/invito-pubblico.js`); client: `core/services/invito-service-standalone.js` (`fetchInvitoByToken`).
+- Nessuna query Firestore pubblica sugli inviti (rules chiuse); risposta allowlist sanitizzata. Accettazione resta sul flusso `registrazione-invito-standalone.html`.
+
 `gestione-lavori-standalone.html`, `segnatura-ore-standalone.html`, `validazione-ore-standalone.html`, workspace campo: **perimetro Manodopera** / ruoli operativi — non Core-only per la guida utente; restano in guida `MANODOPERA` / `lavori-attivita` legacy.
 
 ---

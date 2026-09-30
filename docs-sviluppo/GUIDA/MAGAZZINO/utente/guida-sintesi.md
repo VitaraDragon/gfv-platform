@@ -11,7 +11,7 @@ Modulo **Magazzino** attivo sull'azienda. Linguaggio allineato alla guida utente
 - **Tracciabilità consumi**: consultazione con filtri (categoria, terreno, vista raggruppata o dettaglio); dipende da movimenti e scarichi registrati; aggiornare i filtri prima di leggere i totali.
 - **Tracciabilità consumi**: consultazione con filtri (categoria, terreno, vista raggruppata o dettaglio); dipende da movimenti e scarichi registrati; aggiornare i filtri prima di leggere i totali.
 - **Sotto scorta**: giacenza sotto la soglia impostata; verificare movimenti e anagrafica.
-- **Vigneto / Frutteto**: scarico magazzino da trattamenti o concimazioni quando abilitato e prodotto in anagrafica.
+- **Vigneto / Frutteto**: scarico magazzino da trattamenti o concimazioni quando Magazzino è accessibile (pagato o **prova**) e prodotto in anagrafica.
 - **Tony**: su **Prodotti** e **Movimenti** può spesso leggere l’**elenco tabellare** come lo vedi tu; **foto bolla/fattura** dalla chat (fotocamera) → revisione → magazzino. Su **Tracciabilità consumi** vale lo stesso per la tabella dedicata; altrove preferire **passi procedurali** dalla guida lunga.
 
 Senza modulo **non** dare istruzioni come se il magazzino esistesse nell'azienda.

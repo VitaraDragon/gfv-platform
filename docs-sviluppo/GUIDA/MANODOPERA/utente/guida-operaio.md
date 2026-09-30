@@ -111,8 +111,11 @@ Sotto il modulo ore trovi il riquadro **Dettaglio lavoro operativo**, già **cen
 
 ### Zone sulla mappa
 
-- Segui i pulsanti e le istruzioni in schermata (aggiungi tratto, salva, ecc.).  
-- Se non sei sicuro del tipo di tracciamento (**manuale** vs **meccanizzato**), **chiedi conferma in campo** a chi coordina il gruppo prima di salvare: i dati influiscono su superfici e report.
+- Segui i pulsanti e le istruzioni in schermata (aggiungi zona, salva, ecc.).  
+- **Modo predefinito (a due punti):** con il **perimetro del terreno** già in **Terreni**, tocchi **inizio** e **fine** sul campo; la zona segue i **bordi** tra i due punti (non la diagonale). Puoi spostare i punti dopo.  
+- **Disegno a mano:** se manca il perimetro o ti viene chiesto di tracciare il percorso a più tocchi.  
+- Se compare un campo **larghezza** (macchina/attrezzo), serve al calcolo della superficie: **chiedi conferma in campo** a chi coordina se non sei sicuro del valore.  
+- I dati influiscono su superfici e report: meglio un dubbio in più che un tratto sbagliato.
 
 ### Completamento incarico
 

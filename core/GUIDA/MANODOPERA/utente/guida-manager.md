@@ -240,6 +240,10 @@ Per vedere **chi è libero, impegnato, assente o spostato** in un giorno (senza 
 3. Correggi i campi necessari (assegnazione, date, stato, note).  
 4. Salva e verifica che il caposquadra/operaio veda subito il cambiamento nel proprio flusso.
 
+### Eliminare un lavoro
+
+Dalla stessa lista puoi **eliminare** un lavoro (conferma in schermata). L’eliminazione rimuove anche i dati collegati al lavoro (ore, zone lavorate, comunicazioni collegate, ecc.): usala solo se il lavoro non deve restare in storico.
+
 ### Chiusura lavoro e controlli finali
 
 1. Quando il caposquadra invia il lavoro in **completato da approvare**, apri il dettaglio e verifica ore, note e tracciamento.  
@@ -372,7 +376,7 @@ Nella **Dashboard**, la sezione **Vista Mappa Aziendale** mostra i **terreni** c
 Oltre ai poligoni dei campi, la stessa area offre strumenti extra:
 
 1. **Filtri Podere e Coltura** (menu a tendina sopra la mappa): restringono quali terreni considerare sulla mappa. Dopo aver scelto, la visualizzazione si aggiorna (come da etichette in pagina).  
-2. Pulsante **Zone Lavorate**: mostra o nasconde sulla mappa le **superfici / segmenti** registrati come zone lavorate sui lavori (overlay verde in legenda). Serve a vedere dove si è già operato rispetto ai terreni.  
+2. Pulsante **Zone Lavorate**: mostra o nasconde sulla mappa le **superfici / segmenti** registrati come zone lavorate sui lavori (overlay verde in legenda). Serve a vedere dove si è già operato rispetto ai terreni. In campo le zone si tracciano di solito con **due punti** sul perimetro del terreno (oppure disegno a mano).  
 3. Pulsante **Indicatori Lavori**: mostra o nasconde i **marcatori** dei lavori sulla mappa. In **legenda** trovi il significato delle icone per lo **stato di avanzamento** rispetto alle tempistiche previste, in genere:  
    - **In ritardo**  
    - **In tempo**  

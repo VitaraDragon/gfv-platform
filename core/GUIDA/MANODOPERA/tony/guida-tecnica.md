@@ -51,6 +51,13 @@ Alias: **segnatura ore** / **segnare ore**, **validazione ore** / **validare ore
 - **Segnatura ore:** `ora-modal`, mapping **ora**; su versione mobile form inline `quick-hours-form` / contesto `field-workspace-ore-form` in mapping.
 - **Lavori:** `lavoro-form` / checklist (assegnazioni squadra/autonomo).
 
+## Zone lavorate (dettaglio lavoro)
+
+- UI: `admin/lavori-caposquadra-standalone.html` (iframe da field-workspace).
+- Motore **due punti** (default se terreno ha poligono): `core/js/zona-lavorata-slice.js` (`slicePolygonBetweenPoints`); modalità `zonaDrawMode` `slice` | `manual`.
+- Flag: `zonaLavorataDuePunti` in `core/config/feature-flags.js` — **`enabledAlways: true`** (promossa; non dipende più dallo switch Prova/Pubblicata).
+- Delete lavoro manager: `core/services/lavoro-delete-cascade.js` (+ utils) da `openEliminaModal` in `gestione-lavori-events.js` — cascata su ore, zone, comunicazioni, ecc.
+
 ## Guide utente per ruolo
 
 - `MANODOPERA/utente/guida.md` (indice), `guida-manager.md`, `guida-caposquadra.md`, `guida-operaio.md`.

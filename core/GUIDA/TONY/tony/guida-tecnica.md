@@ -66,3 +66,10 @@ Canone: `window.currentTableData`, evento `table-data-ready`, merge `setContext(
 ## Navigazione Manodopera
 
 `engine.js`: `manodopera` / `home manodopera` → `modules/manodopera/views/manodopera-home-standalone.html` (allineato guida MANODOPERA).
+
+## Navigazione APRI_PAGINA / quick-reply
+
+- Config: `functions/tony-nav-quick-reply.js` (+ gate moduli). Verbi anche `riportami` / `torna`.
+- **Dashboard** = solo home ERP `core/dashboard-standalone.html` (`pageType` `dashboard`): le `*-dashboard-standalone` di modulo (meteo, vigneto, …) **non** contano come già sulla dashboard.
+- Target **meteo**: `meteo_dashboard` / `meteo-dashboard-standalone` — «apri meteo» naviga al modulo; domanda previsioni in dashboard resta quick-reply meteo senza aprire pagine sbagliate (`meteo-dashboard-quick-reply-utils.js`, `isTonyMainDashboardPath` in `engine.js`).
+

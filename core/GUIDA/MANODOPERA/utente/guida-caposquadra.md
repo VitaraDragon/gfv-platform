@@ -181,6 +181,9 @@ Nella scheda **Ore**, sotto il modulo ore, trovi il riquadro **Dettaglio lavoro 
 ### Zone lavorate e mappa
 
 - Il tracciamento avviene con i pulsanti che trovi nel dettaglio (aggiungi zona, salva, ecc., come da etichette in schermata).  
+- **Modo predefinito (a due punti):** se il **terreno ha già i confini** disegnati in **Terreni**, tocchi **inizio** e **fine** sul campo: la zona segue i **bordi del terreno** tra le due stazioni (non la diagonale). Puoi trascinare i due punti per ritoccare; vicino al confine i punti si agganciano da soli.  
+- **Disegno a mano:** alternativa se manca il perimetro del terreno o se preferisci tracciare il percorso punto per punto (poi **Chiudi segmento** se serve un poligono).  
+- Per operazioni con macchina/attrezzo può comparire la **larghezza** (serve al calcolo superficie): non confonderla con il modo di disegno.  
 - Salva le zone man mano che completate i pezzi di campo: servono al progresso reale e spesso sono **obbligatorie** prima di poter chiudere il lavoro.
 
 ### Completamento e approvazione manager

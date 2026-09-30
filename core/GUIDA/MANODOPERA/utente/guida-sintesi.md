@@ -13,7 +13,8 @@ Modulo **Manodopera** attivo nell’**abbonamento**. Linguaggio utente: **versio
 
 - **Manager / amministratore:** versione desktop; **home Manodopera** + pagine admin; solo lui **gestione squadre**; **gestione operai**, **compensi**, **validazione ore** globale, **statistiche manodopera**, **gestione lavori**, **impegni giornalieri**, eventuale **Segnatura ore** desktop.  
 - **Caposquadra:** **versione mobile** — schede Lavoro (squadra, **valida ore** sul lavoro), Comunicazioni, Ore, Statistiche; **non** gestisce composizione squadre.  
-- **Operaio:** **versione mobile** — Lavoro, Ore, Statistiche; **non** Diario manageriale; **non** valida ore altrui; ore da **Segna ore**; dettaglio lavoro in iframe.
+- **Operaio:** **versione mobile** — Lavoro, Ore, Statistiche; **non** Diario manageriale; **non** valida ore altrui; ore da **Segna ore**; dettaglio lavoro in iframe.  
+- **Zone lavorate** (dettaglio lavoro): di default **due punti** inizio/fine sul perimetro del terreno (se confini già in Terreni); altrimenti **disegno a mano**. Larghezza macchina = calcolo superficie, non modo di disegno.
 
 ## Tony / dati
 
