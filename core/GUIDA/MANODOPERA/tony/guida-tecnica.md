@@ -58,6 +58,24 @@ Alias: **segnatura ore** / **segnare ore**, **validazione ore** / **validare ore
 - Flag: `zonaLavorataDuePunti` in `core/config/feature-flags.js` — **`enabledAlways: true`** (promossa; non dipende più dallo switch Prova/Pubblicata).
 - Delete lavoro manager: `core/services/lavoro-delete-cascade.js` (+ utils) da `openEliminaModal` in `gestione-lavori-events.js` — cascata su ore, zone, comunicazioni, ecc.
 
+
+
+## Assenze e sostituzioni
+
+| Pezzo | Path |
+|-------|------|
+| UI manager | `core/admin/js/gestione-lavori-assenze-ui.js` (+ modali in `gestione-lavori-standalone.html`) |
+| Standby assenza | `core/services/lavoro-standby-assenza-service.js` |
+| Assegna sostituto / prestito | `core/services/lavoro-sostituzione-assenza-service.js` |
+| Shortlist | `manodopera-sostituti-shortlist-logic.js` / `-service.js`; policy `manodopera-sostituzione-policy-config.js` |
+| Roster giorno | `manodopera-roster-giorno-logic.js`; impegni `manodopera-impegni-giorno-*.js` |
+| Campo | `field-workspace` — `segnalaAssenza`, banner `lavoro-sostituto-banner`; context `lavoro-sostituto-context.js` |
+| Config tipi assenza | `core/config/manodopera-assenze-config.js` |
+| Tony giorno | `functions/tony-manodopera-giorno-context.js` (roster + shortlist materializzata; «chi è libero / candidati» senza ricalcolo client inventato) |
+| Push | `assenza_turno` in `notification-catalog.js` → Gestione lavori / field-workspace |
+
+Flusso: segnalazione → conferma manager → `in_standby` se sotto minimo → shortlist (max ~4, skill + prossimità terreno/podere) → sostituto o prestito (`manodoperaPrestata` su origine). Anagrafica squadra globale **non** riscritta dal prestito.
+
 ## Notifiche push (ciclo lavoro / assenze)
 
 Eventi Manodopera-centrici in `notification-catalog.js` (vedi anche `CORE/tony/guida-tecnica.md` § Notifiche push): comunicazione, lavoro assegnato, conferme in ritardo, ore da validare, lavoro da approvare/sospeso, assenza oggi. Prefs in Impostazioni; FCM da field-workspace / dashboard. WhatsApp solo escalation assenza.

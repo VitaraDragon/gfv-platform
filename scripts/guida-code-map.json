@@ -486,6 +486,62 @@
         "MANODOPERA"
       ],
       "label": "Email transazionali Resend"
+    },
+    {
+      "prefix": "core/services/lavoro-sostituzione-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Sostituzione / prestito assenza"
+    },
+    {
+      "prefix": "core/services/lavoro-standby-assenza",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Standby per assenza"
+    },
+    {
+      "prefix": "core/services/manodopera-sostituti-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Shortlist sostituti"
+    },
+    {
+      "prefix": "core/services/manodopera-assenze-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Assenze manodopera"
+    },
+    {
+      "prefix": "core/admin/js/gestione-lavori-assenze-ui.js",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "UI assenze Gestione lavori"
+    },
+    {
+      "prefix": "core/config/manodopera-sostituzione-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Policy sostituzione"
+    },
+    {
+      "prefix": "core/config/manodopera-assenze-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Config tipi assenza"
+    },
+    {
+      "includes": "sostituto",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Contesto sostituto campo"
     }
   ]
 }

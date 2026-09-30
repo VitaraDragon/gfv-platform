@@ -102,6 +102,7 @@ Ruoli: principalmente manager/amministratore.
 3. Controlla **Impegni giornalieri** (semaforo rosso/giallo, KPI allarmi).
 4. **Mappa** aziendale: layer **Allarmi** (pin ! sul terreno del lavoro) → link a Gestione lavori.
 5. Tony Avanzato: «chi è libero?», «candidati sostituto» — legge shortlist/contesto giorno, non ricalcola.
+6. Dettaglio UX manager/capo/operaio: `GUIDA/MANODOPERA/utente/guida-manager.md` § assenze/standby/sostituzioni (+ guide capo/operaio).
 
 ### 2.6 Bolla o fattura magazzino (foto / PDF con Tony)
 

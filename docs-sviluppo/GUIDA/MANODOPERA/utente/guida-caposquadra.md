@@ -28,6 +28,7 @@ Questa guida è solo per il **caposquadra**: ciò che puoi fare dalla **versione
 | Selezionare il lavoro corrente | [Impara qui](#mini-guida-selezionare-il-lavoro-corrente) |
 | La mia squadra e contatti | [Impara qui](#mini-guida-la-mia-squadra-contatti) |
 | Comunicazioni alla squadra | [Impara qui](#mini-guida-comunicazioni-alla-squadra) |
+| Segnala assenza e sostituti | [Impara qui](#mini-guida-segnala-assenza-e-sostituti) |
 | Segnare le proprie ore | [Impara qui](#mini-guida-segnare-le-proprie-ore) |
 | Validare le ore degli operai | [Impara qui](#mini-guida-validare-le-ore-degli-operai) |
 | Dettaglio lavoro, zone lavorate e completamento | [Impara qui](#mini-guida-dettaglio-lavoro-zone-lavorate-e-completamento) |
@@ -163,6 +164,22 @@ Sempre nella scheda **Lavoro**, nel blocco **Valida ore**, vedi le registrazioni
 
 - Qui validi le ore **del team sul singolo lavoro**.  
 - Il **manager** ha comunque le viste complete e la **validazione globale** dove previsto dall’installazione: non sono la stessa cosa.
+
+---
+
+## Mini-guida segnala assenza e sostituti
+
+### Segnala assenza
+
+1. Nella **versione mobile**, sul lavoro del giorno, può comparire **Segnala assenza**.  
+2. Indica **chi** manca e il **giorno** (e nota se richiesta).  
+3. Invia: il **manager** riceve l’avviso (anche in push se attive). Il lavoro passa in **standby** dopo la **conferma del manager**, non automaticamente al tuo invio.
+
+### Quando c’è un sostituto
+
+- Può comparire un avviso **Sostituzione attiva** (chi è assente e chi sostituisce).  
+- Valida le **ore del sostituto** in **Valida ore** come per gli altri; il sostituto le registra da **Segna ore**.  
+- Non assegni tu il sostituto: lo fa il manager da **Gestione lavori**.
 
 ---
 

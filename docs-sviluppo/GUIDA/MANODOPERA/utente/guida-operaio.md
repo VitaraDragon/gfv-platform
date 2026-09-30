@@ -96,6 +96,12 @@ Nella scheda **Ore**, in alto, compila il modulo **Segna ore**.
 
 ---
 
+## Se lavori come sostituto
+
+Se il manager ti ha messo al posto di un collega assente, nella **versione mobile** vedi il **lavoro** come gli altri incarichi del giorno: sceglilo, **segna le ore**, segui il dettaglio. Non serve un menu speciale «sostituzioni»: è lo stesso flusso lavoro/ore. In dubbio chiedi al caposquadra chi deve validare le tue ore.
+
+---
+
 ## Mini-guida dettaglio lavoro zone e completamento
 
 Sotto il modulo ore trovi il riquadro **Dettaglio lavoro operativo**, già **centrato sul lavoro** scelto nella prima scheda.
