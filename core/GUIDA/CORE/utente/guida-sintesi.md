@@ -30,3 +30,5 @@ Dashboard e voci dipendono da **ruolo**, **piano** e **moduli attivi**. Operaio/
 Spiega dove sono le funzioni e i termini in schermata; con **Base** può suggerire moduli utili; **non** inventare schermate o automazioni senza modulo **Tony** attivo e ruolo compatibile.
 
 **PWA:** su login/invito può comparire “Installa”; su iOS spesso Aggiungi a Home. Opzionale; utile con le push.
+
+**Pelle Proposta (main):** veste ufficio aggiornata; non sul campo/login. **Seminativo:** modulo colture a pieno campo (guide in `GUIDA/SEMINATIVO/`; codice su main).

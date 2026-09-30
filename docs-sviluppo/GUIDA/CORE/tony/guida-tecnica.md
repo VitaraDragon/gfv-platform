@@ -8,7 +8,7 @@ Fonti codice prioritarie: [`core/config/subscription-plans.js`](../../../../core
 
 ## Moduli (id `AVAILABLE_MODULES`)
 
-`manodopera`, `parcoMacchine`, `contoTerzi`, `vigneto`, `frutteto`, `oliveto` (non disponibile), `magazzino`, `tony` (Tony Avanzato operativo), `report`, `meteo`, `vendemmiaMeccanica`.
+`manodopera`, `parcoMacchine`, `contoTerzi`, `vigneto`, `frutteto`, `seminativo` (completo su **main**), `oliveto` (non disponibile), `magazzino`, `tony` (Tony Avanzato operativo), `report`, `meteo`, `vendemmiaMeccanica`.
 
 Accesso effettivo = moduli pagati **+** trial attivi (`module-access-resolver.js`, `MODULE_TRIAL_DAYS = 30`, un trial attivo alla volta). Senza id attivo (pagato o trial), le relative card/azioni non devono essere documentate come disponibili nell’esperienza Core-only.
 
@@ -137,3 +137,7 @@ Eventi catalogo (abilitati): `comunicazione_destinatario`, `lavoro_assegnato`, `
 ## Email transazionali
 
 Callable / helper `functions/email-resend.js` (Resend, mittente piattaforma): usate per **inviti** e **preventivi** (e flussi correlati), non per le push. Dettaglio UX in guide Manodopera (inviti) e Conto terzi (invio preventivo).
+
+## Pelle Proposta (UI ufficio)
+
+Su **main** (flag `uiPelleProposta` in `feature-flags.js`, `enabledAlways: true`): shell/carta/menu moduli sulle pagine ufficio (`core/js/ui-pelle.js`, `ui-pelle-state.js`, `ui-pelle-icons.js`, CSS `ui-pelle-proposta.css`). Spenta su campo (`field-workspace`), login, e dove `data-gfv-pelle-host="0"`. Lo switch Prova/Pubblicata in dashboard (allowlist Sabbie Gialle) non spegne più questa pelle una volta promossa. Su develop senza questi file la pelle può non comparire: non descriverla come obbligatoria finché il codice non è sul branch.

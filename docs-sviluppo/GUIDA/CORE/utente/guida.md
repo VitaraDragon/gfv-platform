@@ -40,6 +40,7 @@ Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più sc
 | Tony (assistente in chat) | [Impara qui](#tony-lassistente-in-chat) |
 | Notifiche push (telefono) | [Impara qui](#mini-guida-notifiche-push) |
 | Installare l’app (PWA) | [Impara qui](#mini-guida-installare-lapp-pwa) |
+| Aspetto pagine ufficio (pelle) | [Impara qui](#aspetto-pagine-ufficio-pelle-proposta) |
 
 ---
 
@@ -309,6 +310,12 @@ Su alcuni browser (Chrome/Edge) in **login** o **registrazione da invito** può 
 
 ---
 
+## Aspetto pagine ufficio (pelle Proposta)
+
+Su alcune installazioni (in particolare dopo la promozione su **main**) le pagine **ufficio** usano una veste grafica aggiornata (**pelle Proposta**): menu moduli e schede più leggibili anche sul telefono. Non cambia i dati né i permessi. Sul **campo** (versione mobile) e sul **login** resta l’aspetto precedente. Se non la vedete, l’installazione non ha ancora quel codice oppure è disattivata di proposito.
+
+---
+
 ## Abbonamento e piani
 
 Nella pagina **Abbonamento** (menu **Moduli** o tile dedicata) vedi il **piano corrente** e i **moduli** che potete attivare.
@@ -324,7 +331,7 @@ Nella pagina **Abbonamento** (menu **Moduli** o tile dedicata) vedi il **piano c
 
 - Terreni e attività **senza i limiti** del gratuito (secondo quanto indicato in pagina Abbonamento).
 - **Tony Guida**: assistente in chat per **orientarvi** (dove andare, cosa significa un’etichetta, passi da fare). Su questo piano Tony può anche suggerire **moduli utili** per la vostra azienda, in modo non invadente.
-- I **moduli verticali** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Vendemmia meccanica, Report, …) si **attivano a parte**, ciascuno con il suo prezzo (o in prova 30 giorni, un modulo alla volta): ogni modulo aggiunge voci al menu **Moduli** e nuove pagine.
+- I **moduli verticali** (Vigneto, Frutteto, **Seminativo**, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Vendemmia meccanica, Report, …) si **attivano a parte**, ciascuno con il suo prezzo (o in prova 30 giorni, un modulo alla volta): ogni modulo aggiunge voci al menu **Moduli** e nuove pagine.
 - Il **modulo Tony Avanzato** (se lo attivate) aggiunge **automazioni**: aprire pagine, compilare schede, filtrare elenchi, **fotografare bolle e fatture** (Tony legge le cifre; voi confermate e i dati scendono in magazzino). È **distinto** da Tony Guida incluso nel Base: potete usare la guida senza acquistare le automazioni.
 
 ### Cosa fare in pratica

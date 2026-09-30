@@ -6,6 +6,7 @@
     "MAGAZZINO",
     "VIGNETO",
     "FRUTTETO",
+    "SEMINATIVO",
     "CONTO_TERZI",
     "PARCO_MACCHINE",
     "METEO",
@@ -441,6 +442,50 @@
         "MANODOPERA"
       ],
       "label": "Avvio registrazione FCM"
+    },
+    {
+      "prefix": "modules/seminativo/",
+      "modules": [
+        "SEMINATIVO"
+      ],
+      "label": "Modulo seminativo"
+    },
+    {
+      "prefix": "core/js/ui-pelle",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Pelle Proposta UI"
+    },
+    {
+      "prefix": "core/styles/ui-pelle-proposta.css",
+      "modules": [
+        "CORE"
+      ],
+      "label": "CSS pelle Proposta"
+    },
+    {
+      "includes": "uiPelleProposta",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Flag pelle Proposta"
+    },
+    {
+      "prefix": "core/js/pwa-install-banner.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Banner install PWA"
+    },
+    {
+      "prefix": "functions/email-resend.js",
+      "modules": [
+        "CORE",
+        "CONTO_TERZI",
+        "MANODOPERA"
+      ],
+      "label": "Email transazionali Resend"
     }
   ]
 }
