@@ -15,6 +15,7 @@ Con Manodopera attivo la dashboard **non** elenca più tutte le funzioni in gran
 2. Organizzare **squadre** e **anagrafica operai** prima di assegnare i lavori. **[Impara qui](#mini-guida-gestione-squadre)** · **[Impara qui](#mini-guida-gestione-operai)**  
 3. Usare **Amministrazione** (da **Moduli**) per utenti, abbonamento e voci amministrative trasversali. **[Impara qui](#mini-guida-pagina-amministrazione)**  
 4. Creare e seguire i **lavori** (assegnazioni, stati, date). **[Impara qui](#mini-guida-gestione-lavori)**  
+4b. Quando manca qualcuno in campo: **assenze**, **standby** e **sostituti** (o prestito da altro lavoro). **[Impara qui](#mini-guida-assenze-standby-e-sostituzioni)**  
 5. Controllare e **accettare le ore** (validazione). **[Impara qui](#mini-guida-validazione-ore-accettazione)**  
 6. Tenere d’occhio **statistiche** e **compensi** quando servono a bilanci e paghe. **[Impara qui](#mini-guida-statistiche-manodopera)** · **[Impara qui](#mini-guida-compensi-operai)**  
 7. Gestire **guasti** sui mezzi se avete il modulo **Parco Macchine**. **[Impara qui](#mini-guida-guasti-e-mezzi)**  
@@ -32,6 +33,7 @@ Con Manodopera attivo la dashboard **non** elenca più tutte le funzioni in gran
 | Gestione squadre | [Impara qui](#mini-guida-gestione-squadre) |
 | Gestione operai | [Impara qui](#mini-guida-gestione-operai) |
 | Gestione lavori | [Impara qui](#mini-guida-gestione-lavori) |
+| Assenze, standby e sostituzioni | [Impara qui](#mini-guida-assenze-standby-e-sostituzioni) |
 | Impegni giornalieri | [Impara qui](#mini-guida-impegni-giornalieri) |
 | Validazione ore (accettazione) | [Impara qui](#mini-guida-validazione-ore-accettazione) |
 | Segnatura ore da ufficio (facoltativo) | [Impara qui](#mini-guida-segnatura-ore-da-ufficio) |
@@ -184,6 +186,14 @@ Qui curi le **schede operai** (dati anagrafici, tipo contratto, scadenze dove il
 3. Compila i campi richiesti (nome, recapiti, date, tipo contratto, ecc. secondo la tua schermata).  
 4. **Salva**.
 
+### Scheda competenze (skill)
+
+Nella stessa area **Gestione operai** potete aprire la **Scheda competenze** di un operaio:
+
+1. Indicate le **skill dichiarate** (competenze note in assunzione o da esperienza).  
+2. Le **stelline calcolate** si aggiornano da sole in base alle **ore validate** (finestra tipica ultimi 12 mesi); c’è anche un’azione per **ricalcolare** le stelline in batch se prevista.  
+3. Servono soprattutto quando scegliete un **sostituto**: la shortlist preferisce chi ha le competenze richieste dal lavoro.
+
 ### Collegamento con il resto
 
 - I **telefoni** e le **email** che il caposquadra usa dalla versione mobile per «chiama / email» dipendono da dati **corretti** qui e dal profilo utente: tienili allineati.  
@@ -240,6 +250,10 @@ Per vedere **chi è libero, impegnato, assente o spostato** in un giorno (senza 
 3. Correggi i campi necessari (assegnazione, date, stato, note).  
 4. Salva e verifica che il caposquadra/operaio veda subito il cambiamento nel proprio flusso.
 
+### Eliminare un lavoro
+
+Dalla stessa lista puoi **eliminare** un lavoro (conferma in schermata). L’eliminazione va **a cascata**: toglie anche i dati collegati (ore, zone lavorate, comunicazioni collegate, ecc.). Usala solo se il lavoro non deve restare in storico.
+
 ### Chiusura lavoro e controlli finali
 
 1. Quando il caposquadra invia il lavoro in **completato da approvare**, apri il dettaglio e verifica ore, note e tracciamento.  
@@ -248,11 +262,44 @@ Per vedere **chi è libero, impegnato, assente o spostato** in un giorno (senza 
 
 ---
 
+## Mini-guida assenze, standby e sostituzioni
+
+Quando un operaio **non c’è** sul lavoro di oggi, l’app vi aiuta a tenere il lavoro in piedi senza cambiare a mano tutta la squadra anagrafica.
+
+### Chi fa cosa
+
+- **Caposquadra** (versione mobile): può **Segnala assenza** sul lavoro corrente — avvisa voi manager; il lavoro passa in **standby** dopo la **vostra conferma** (non subito da solo).  
+- **Manager / amministratore** (Gestione lavori): confermate l’assenza, mettete o confermate lo **standby**, poi **scegliete il sostituto**.  
+- **Operaio sostituto**: compare sul lavoro (e in **Impegni giornalieri** come sostituto); segna le ore come di consueto; il caposquadra le valida.
+
+### Passi tipici da Gestione lavori
+
+1. Aprite **Home Manodopera** → **Gestione lavori** (o partite dalla **notifica push** «Assenza oggi» / alert in dashboard).  
+2. Individuate il lavoro e l’assenza: potete aprire **Standby assenza** / **Conferma e standby** se il caposquadra ha già segnalato.  
+3. Se l’equipaggio scende sotto il minimo previsto, il lavoro resta in **standby** finché non c’è un sostituto (o non ripristinate la situazione).  
+4. Usate **Scegli sostituto**: l’app vi propone una **shortlist** (di solito pochi candidati) tenendo conto di disponibilità, competenze dove previste e **vicinanza al terreno/podere** del lavoro — non del GPS del telefono.  
+5. Potete anche prendere qualcuno già su un altro lavoro (**prestito**): quel lavoro di origine può avere un «buco» / standby di prestito per la giornata; non modifica la composizione fissa della squadra in anagrafica.  
+6. Eccezione: da **Impegni giornalieri** potete solo **vedere** la foto del giorno; l’assegnazione vera resta in Gestione lavori (eventuale scelta manuale dal roster del giorno se la schermata lo offre).
+
+### Dopo la sostituzione
+
+- Controllate **Impegni giornalieri** (libero / impegnato / assente / prestato / sostituto) e, se usate la mappa, il layer **Allarmi**.  
+- **Semaforo / pin allarmi:** in genere **rosso** = urgenza (es. standby assenza **senza** sostituto, o equipaggio sotto minimo senza sostituto); **giallo** = attenzione (es. ancora incompleto ma c’è già un sostituto, o «buco» da prestito). Verde/assenza allarme = situazione sotto controllo.  
+- In campo il caposquadra può vedere un avviso di **sostituzione attiva** (chi manca e chi sostituisce).  
+- Le **push** di assenza (e l’eventuale WhatsApp di escalation) si regolano in **Impostazioni → Notifiche**.
+
+### Cosa non fare
+
+- Non usare Impegni giornalieri come posto dove «assegnare» il sostituto: è in **sola lettura**.  
+- Non confondere **standby per assenza** con la **sospensione** ordinaria del lavoro o con l’eliminazione del lavoro.
+
+---
+
 ## Mini-guida impegni giornalieri
 
 È la **foto della giornata** della manodopera: per ogni operaio attivo vedi se è **libero**, **impegnato** (su quale lavoro), **assente**, **prestato** ad altro lavoro o **sostituto**. C’è anche la vista **per lavoro** (chi era previsto in squadra, chi manca, chi sostituisce).
 
-**Solo consultazione:** da qui non assegni sostituti né modifichi i lavori. Per le sostituzioni resti in **Gestione lavori** (assenze / standby / shortlist).
+**Solo consultazione:** da qui non assegni sostituti né modifichi i lavori. Per le sostituzioni vai in **Gestione lavori** — passo passo in [Assenze, standby e sostituzioni](#mini-guida-assenze-standby-e-sostituzioni). Con **notifiche push** attive, un’**assenza oggi** può avvisarti sul telefono (e il caposquadra in parallelo); opzionale escalation **WhatsApp** se configurata in Impostazioni.
 
 ### Come entrarci
 
@@ -372,7 +419,7 @@ Nella **Dashboard**, la sezione **Vista Mappa Aziendale** mostra i **terreni** c
 Oltre ai poligoni dei campi, la stessa area offre strumenti extra:
 
 1. **Filtri Podere e Coltura** (menu a tendina sopra la mappa): restringono quali terreni considerare sulla mappa. Dopo aver scelto, la visualizzazione si aggiorna (come da etichette in pagina).  
-2. Pulsante **Zone Lavorate**: mostra o nasconde sulla mappa le **superfici / segmenti** registrati come zone lavorate sui lavori (overlay verde in legenda). Serve a vedere dove si è già operato rispetto ai terreni.  
+2. Pulsante **Zone Lavorate**: mostra o nasconde sulla mappa le **superfici / segmenti** registrati come zone lavorate sui lavori (overlay verde in legenda). Serve a vedere dove si è già operato rispetto ai terreni. In campo le zone si tracciano di solito con **due punti** sul perimetro del terreno (oppure disegno a mano).  
 3. Pulsante **Indicatori Lavori**: mostra o nasconde i **marcatori** dei lavori sulla mappa. In **legenda** trovi il significato delle icone per lo **stato di avanzamento** rispetto alle tempistiche previste, in genere:  
    - **In ritardo**  
    - **In tempo**  

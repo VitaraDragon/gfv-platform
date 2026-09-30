@@ -174,7 +174,7 @@ Le pagine **Trattamenti**, **Concimazioni** e **Potatura** servono a **completar
 4. **Superficie trattata (ha)** — obbligatoria: valore manuale, opzione **tutto il terreno** da anagrafe **Terreni** se disponibile, oppure **Traccia** per disegnare il poligono sulla mappa (se il poligono è solo nel lavoro, la mappa può essere in sola lettura: modificate da **Gestione lavori**).
 5. **Prodotti:** **Aggiungi prodotto**; **dosaggio per ettaro**, **unità**, **quantità**, **costo**; **totale costo prodotti**. Se i dosaggi risultano **anomali** rispetto ai controlli dell’app, al **Salva** può comparire una **conferma** esplicita.
 6. **Operatore** (obbligatorio), costi mano/macchina facoltativi, **giorni di carenza** (spesso suggeriti dai prodotti), **note**, **copertura del terreno**, eventuale **prosecuzione** su trattamento precedente nello stesso vigneto.
-7. **Magazzino:** se il modulo è attivo, può comparire **Registra scarico in magazzino**; deselezionatela se non volete movimentare le giacenze.
+7. **Magazzino:** se il modulo è attivo (abbonamento **o** prova), può comparire **Registra scarico in magazzino**; deselezionatela se non volete movimentare le giacenze.
 8. **Salva** / **Annulla**.
 
 ### Concimazioni: passo per passo

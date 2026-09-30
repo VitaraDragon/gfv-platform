@@ -115,7 +115,7 @@ Un prodotto è spesso considerato **sotto scorta** quando la **giacenza** scende
 
 ## Collegamento con Vigneto e Frutteto
 
-Quando completate un **trattamento** o una **concimazione** in campo e avete spuntato (se previsto) la registrazione dello **scarico in magazzino**, l'app può creare o proporre il **movimento di uscita** collegato.
+Quando completate un **trattamento** o una **concimazione** in campo e avete spuntato (se previsto) la registrazione dello **scarico in magazzino**, l'app può creare o proporre il **movimento di uscita** collegato. Vale anche se Magazzino è in **prova** (trial) e non ancora in abbonamento a pagamento, purché l'accesso al modulo risulti attivo.
 
 - I prodotti devono esistere in **anagrafica** con la stessa unità di misura che usate in campo.
 - Se lo scarico non compare, verificate permessi, magazzino attivo e che il prodotto sia selezionabile dal registro.

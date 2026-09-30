@@ -24,6 +24,11 @@ Target utili: `conto terzi`, `clienti`, `preventivi`, `tariffe`, `terreni client
 
 Dove esposto `window.currentTableData` / `table-data-ready`, usare solo summary e items per risposte su liste visibili.
 
+## Preventivi — numero e accettazione
+
+- Numero: `PREV-{anno}-{seq}` padded (`preventivo-lock-utils.js`); allocazione seq atomica sul tenant (`preventivoSeqByYear`) + create preventivo.
+- Accettazione cliente / manager: in **transazione** (stato ammissibile bozza/inviato, non scaduto) — evita doppie accettazioni concorrenti (`modules/conto-terzi/services/preventivi-service.js`, CF correlate in `functions/index.js` se esposte).
+
 ## Terreni clienti — disegno confini (Fase 1b)
 
 Stesso motore dei Terreni aziendali: `core/js/terreni-maps.js` + `terreni-draw-helpers.js`. Vicini = terreni **già salvati del cliente** selezionato (non i campi aziendali). Tony non disegna; spiega gli stessi gesti (chiusura sul primo punto / doppio tap / Togli ultimo / aggancio). `pageType` lista: `terreniClienti`.

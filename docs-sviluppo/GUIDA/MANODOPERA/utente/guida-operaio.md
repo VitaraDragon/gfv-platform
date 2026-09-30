@@ -47,7 +47,7 @@ Con **Indietro** / **Avanti** in basso o i **puntini**:
 ### In alto nella schermata
 
 - Passaggio alla **versione desktop** (browser su schermo grande), se compare tra le opzioni.  
-- Accesso alle **impostazioni account** dal menu, se previsto.
+- Accesso alle **impostazioni account** dal menu, se previsto (lì anche **Notifiche** push: nuovo lavoro, comunicazioni di squadra).
 
 ---
 
@@ -96,6 +96,22 @@ Nella scheda **Ore**, in alto, compila il modulo **Segna ore**.
 
 ---
 
+## Comunicazioni del caposquadra
+
+Anche senza la scheda **Comunicazioni** (riservata al caposquadra), sul lavoro possono arrivarti **messaggi operativi** da confermare.
+
+1. Apri il lavoro del giorno nella **versione mobile**.  
+2. Se c’è un messaggio in attesa, usa **Conferma ricezione** (o equivalente).  
+3. Così il caposquadra sa che l’hai letto; se non confermi, lui può ricevere un reminder (e, se attive, le **notifiche push**).
+
+---
+
+## Se lavori come sostituto
+
+Se il manager ti ha messo al posto di un collega assente, nella **versione mobile** vedi il **lavoro** come gli altri incarichi del giorno: sceglilo, **segna le ore**, segui il dettaglio. Non serve un menu speciale «sostituzioni»: è lo stesso flusso lavoro/ore. In dubbio chiedi al caposquadra chi deve validare le tue ore.
+
+---
+
 ## Mini-guida dettaglio lavoro zone e completamento
 
 Sotto il modulo ore trovi il riquadro **Dettaglio lavoro operativo**, già **centrato sul lavoro** scelto nella prima scheda.
@@ -111,8 +127,11 @@ Sotto il modulo ore trovi il riquadro **Dettaglio lavoro operativo**, già **cen
 
 ### Zone sulla mappa
 
-- Segui i pulsanti e le istruzioni in schermata (aggiungi tratto, salva, ecc.).  
-- Se non sei sicuro del tipo di tracciamento (**manuale** vs **meccanizzato**), **chiedi conferma in campo** a chi coordina il gruppo prima di salvare: i dati influiscono su superfici e report.
+- Segui i pulsanti e le istruzioni in schermata (aggiungi zona, salva, ecc.).  
+- **Modo predefinito (a due punti):** con il **perimetro del terreno** già in **Terreni**, tocchi **inizio** e **fine** sul campo; la zona segue i **bordi** tra i due punti (non la diagonale). Puoi spostare i punti dopo.  
+- **Disegno a mano:** se manca il perimetro o ti viene chiesto di tracciare il percorso a più tocchi.  
+- Se compare un campo **larghezza** (macchina/attrezzo), serve al calcolo della superficie: **chiedi conferma in campo** a chi coordina se non sei sicuro del valore.  
+- I dati influiscono su superfici e report: meglio un dubbio in più che un tratto sbagliato.
 
 ### Completamento incarico
 

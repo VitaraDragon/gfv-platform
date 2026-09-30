@@ -8,7 +8,7 @@ Fonti codice prioritarie: [`core/config/subscription-plans.js`](../../../../core
 
 ## Moduli (id `AVAILABLE_MODULES`)
 
-`manodopera`, `parcoMacchine`, `contoTerzi`, `vigneto`, `frutteto`, `oliveto` (non disponibile), `magazzino`, `tony` (Tony Avanzato operativo), `report`, `meteo`, `vendemmiaMeccanica`.
+`manodopera`, `parcoMacchine`, `contoTerzi`, `vigneto`, `frutteto`, `seminativo` (completo su **main**), `oliveto` (non disponibile), `magazzino`, `tony` (Tony Avanzato operativo), `report`, `meteo`, `vendemmiaMeccanica`.
 
 Accesso effettivo = moduli pagati **+** trial attivi (`module-access-resolver.js`, `MODULE_TRIAL_DAYS = 30`, un trial attivo alla volta). Senza id attivo (pagato o trial), le relative card/azioni non devono essere documentate come disponibili nell’esperienza Core-only.
 
@@ -49,6 +49,11 @@ Legacy (deprecato in UX utente): `createManagerSection`, card affitti standalone
 | Amministrazione hub | `admin/amministrazione-standalone.html` |
 | Utenti | `admin/gestisci-utenti-standalone.html` |
 | Impostazioni | `admin/impostazioni-standalone.html` (header) |
+
+## Inviti (registrazione da link)
+
+- Lookup token **solo** via Cloud Function callable **`getInvitoPubblico`** (`functions/invito-pubblico.js`); client: `core/services/invito-service-standalone.js` (`fetchInvitoByToken`).
+- Nessuna query Firestore pubblica sugli inviti (rules chiuse); risposta allowlist sanitizzata. Accettazione resta sul flusso `registrazione-invito-standalone.html`.
 
 `gestione-lavori-standalone.html`, `segnatura-ore-standalone.html`, `validazione-ore-standalone.html`, workspace campo: **perimetro Manodopera** / ruoli operativi — non Core-only per la guida utente; restano in guida `MANODOPERA` / `lavori-attivita` legacy.
 
@@ -107,3 +112,44 @@ Pagine core tipiche: `terreni`, `attivita`. Con moduli attivi molte altre liste 
 - Hub attenzione e scadenze condividono snapshot `dashboard-counts-snapshot.js` (incl. `prezziInAttesa`).
 - Nuove tile o voci menu Moduli: documentare sotto `GUIDA/<MODULO>/utente` e `tony`; aggiornare `MODULE_CATALOG` in `dashboard-hub.js` se serve pin/accessi rapidi.
 - Ogni nuova card dashboard modulare: documentare sotto `GUIDA/<MODULO>/utente` e `tony`, non sotto Core (salvo panoramica trasversale qui).
+
+## Notifiche push (FCM)
+
+Distinte dai segnali **Tony in-app** (`tony-proactive-signals.js` / briefing dashboard).
+
+| Pezzo | Path |
+|-------|------|
+| Catalogo eventi + default prefs + deep link | `core/config/notification-catalog.js` (mirror CF `functions/lib/` via `scripts/sync-notification-modules.cjs`) |
+| Policy finestra oraria / coalesce / WA | `core/services/notification-policy.js` |
+| Prefs utente `users/{uid}.notificationPrefs` | `core/services/notification-prefs-service.js` — UI `admin/impostazioni-standalone.html` scheda **Notifiche** |
+| Registrazione token FCM | `core/js/notification-fcm-client.js` (`startNotificationFcm` / `Background`) — dashboard, impostazioni, field-workspace |
+| SW push + click → deep link | `service-worker.js` (`push`, `notificationclick`) |
+| Mark seen assenza | `core/services/notification-events-client.js` |
+| Dispatch CF | `functions/notification-dispatch.js` — trigger create/write su comunicazioni, lavori, oreOperai, assenze; schedule `processNotificationQueue` |
+
+Eventi catalogo (abilitati): `comunicazione_destinatario`, `lavoro_assegnato`, `conferme_in_ritardo`, `ore_da_validare` (coalesce giorno), `lavoro_completato_da_approvare`, `lavoro_sospeso`, `assenza_turno` (escalation WhatsApp opzionale). Prefs default: `pushEnabled` true, finestra `05:00–21:00` `Europe/Rome`, `confermaTimeoutHours` 6, `assenzaPushEnabled` true, `whatsappEnabled` false. Token in `notificationPrefs.fcmTokens` (max 5). Senza `vapidKey` in firebase-config: no token, eventi Firestore comunque creabili.
+
+## PWA
+
+- Banner install: `core/js/pwa-install-banner.js` (pagine auth; `beforeinstallprompt` / hint iOS).
+- Service worker root: `service-worker.js` (cache + handler `push` / `notificationclick`). Registrazione anche da `notification-fcm-client.js` e dashboard (non localhost).
+
+## Email transazionali
+
+Callable / helper `functions/email-resend.js` (Resend, mittente piattaforma): usate per **inviti** e **preventivi** (e flussi correlati), non per le push. Dettaglio UX in guide Manodopera (inviti) e Conto terzi (invio preventivo).
+
+## Pelle Proposta (solo sotto al cofano — non in guida utente)
+
+Implementazione UI ufficio su **main**: flag `uiPelleProposta` (`feature-flags.js`, `enabledAlways: true`); `core/js/ui-pelle.js`, `ui-pelle-state.js`, `ui-pelle-icons.js`, CSS `ui-pelle-proposta.css`. Spenta su campo (`field-workspace`), login, e `data-gfv-pelle-host="0"`. **Non** spiegare all’utente skin/tema: i flussi prodotto restano gli stessi. Su develop il codice può mancare.
+
+## Auth / sessione
+
+| Pagina | Path |
+|--------|------|
+| Login | `core/auth/login-standalone.html` (`sendPasswordResetEmail` → reset) |
+| Reset password | `core/auth/reset-password-standalone.html` |
+| Registrazione nuova azienda | `core/auth/registrazione-standalone.html` |
+| Registrazione da invito | `core/auth/registrazione-invito-standalone.html` + CF `getInvitoPubblico` |
+
+Multi-azienda: selezione tenant in sessione (cambia azienda). Non spiegare all’utente Firebase Auth oltre «email/password / link invito / reset».
+
