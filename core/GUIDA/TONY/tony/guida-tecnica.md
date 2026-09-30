@@ -13,7 +13,7 @@
 | Motore navigazione / alias pagine | `core/js/tony/engine.js` |
 | Modello Gemini / guida concatenata / sintesi | `core/services/tony-service.js` (`GUIDA_LOAD_ENTRIES`, `init`, `_getContextForPrompt`) |
 | Voce / TTS client | `core/js/tony/voice.js`, `core/js/tony/stream-tts-chunk.js` (`speakTextInSentenceChunks`) |
-| Istruzioni cloud + Context Builder | `functions/index.js` (`tonyAsk`, `SYSTEM_INSTRUCTION_BASE` / `ADVANCED`, `buildContextAzienda`, `getTonyAudio`) |
+| Istruzioni cloud + Context Builder / TTS | `functions/index.js` (`tonyAsk`, `SYSTEM_INSTRUCTION_BASE` / `ADVANCED`, `buildContextAzienda`, `getTonyAudio`); helper TTS `functions/tony-tts-provider.js` |
 | Consigliere moduli | `functions/tony-module-recommendations.js`, `functions/config/tony-module-recommendations.json` (+ mirror `core/config/`) — `azienda.consigliModuli`, `tryTonyModuleAdvisorQuickReply`, `TONY_MODULE_RECOMMENDATION_RULES` |
 | Mapping form | `core/config/tony-form-mapping.js`, `core/js/tony-form-injector.js` |
 | Briefing dashboard | `core/dashboard-standalone.html` (`checkGlobalStatus`, `tonyDashboardBriefingVoiceAllowed`, `tonyDashboardDeliverBriefing`); `core/js/dashboard-tony-briefing-text.js`; `core/js/tony/meteo-dashboard-quick-reply-utils.js` |
@@ -33,7 +33,10 @@ Consigliere: `skipModuleIds` include `tony`; segnali gated se modulo disattivato
 
 ## TTS
 
-- CF `getTonyAudio`: voce default Chirp 3 HD; `speakingRate` default ~1.05 (env `TONY_TTS_SPEAKING_RATE`).
+- CF `getTonyAudio` (`functions/index.js` + `functions/tony-tts-provider.js`): stesso contratto client (MP3 base64; può includere `provider`).
+- Default: **ElevenLabs** Flash (voce `5zD2eYSLIo8c2zkowMfP`) se c’è secret `ELEVENLABS_API_KEY`.
+- Fallback / rollback: senza chiave, `TONY_TTS_PROVIDER=google` (o `chirp`), o errore ElevenLabs → Google Chirp 3 `it-IT-Chirp3-HD-Charon`.
+- Env utili: `TONY_TTS_PROVIDER`, `TONY_TTS_ELEVEN_VOICE`, `TONY_TTS_VOICE`, `TONY_TTS_SPEAKING_RATE`, `TONY_TTS_ELEVEN_MODEL`.
 - Client: chunking frasi su risposte complete; cache/dedup prefetch↔speak in `voice.js`.
 
 ## Intervista lavoro / ore (client)
