@@ -12,4 +12,4 @@ Card «soon» (frutteto, magazzino, manodopera, contoTerzi, sintesi, economici):
 
 Catalog dashboard: `MODULE_CATALOG.report` in `dashboard-hub.js`.
 
-Guide: `REPORT/utente/guida.md`, `guida-sintesi.md`. Aggiungere a `GUIDA_LOAD_ENTRIES` / sintesi Tony quando si vuole il load automatico in runtime.
+Guide: `REPORT/utente/guida.md`, `guida-sintesi.md`. Caricate da `tony-service.js` (`GUIDA_LOAD_ENTRIES` + `guida_sintesi_*`).

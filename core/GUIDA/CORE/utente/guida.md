@@ -37,6 +37,7 @@ Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più sc
 | La mappa aziendale | [Impara qui](#mini-guida-la-mappa-in-dashboard) |
 | Statistiche e filtri | [Impara qui](#mini-guida-statistiche-e-filtri) |
 | Abbonamento e piani | [Impara qui](#abbonamento-e-piani) |
+| Accedere, password e più aziende | [Impara qui](#mini-guida-accedere-password-e-aziende) |
 | Tony (assistente in chat) | [Impara qui](#tony-lassistente-in-chat) |
 | Notifiche push (telefono) | [Impara qui](#mini-guida-notifiche-push) |
 | Installare l’app (PWA) | [Impara qui](#mini-guida-installare-lapp-pwa) |
@@ -44,6 +45,8 @@ Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più sc
 ---
 
 ## Entrare e lavorare sulla giusta azienda
+
+Vedi anche la [mini-guida accesso](#mini-guida-accedere-password-e-aziende).
 
 - Accedi con **email e password**.
 - L’app lavora sempre su **un’azienda alla volta**. Se partecipi a più aziende, usa l’opzione per **cambiare azienda** prima di cercare dati o inserire informazioni.
@@ -306,6 +309,25 @@ Fuori dalla fascia oraria le urgenze restano in coda e partono quando la finestr
 ## Mini-guida: installare l’app (PWA)
 
 Su alcuni browser (Chrome/Edge) in **login** o **registrazione da invito** può comparire un invito a **installare** GFV come app. Su iPhone spesso si usa **Aggiungi a Home** dal menu di Safari. Non è obbligatorio: l’app funziona anche solo nel browser. L’installazione aiuta le **notifiche push** e l’apertura rapida, ma dipende dal dispositivo e dai permessi.
+
+---
+
+## Mini-guida: accedere, password e aziende
+
+### Login
+1. Aprite la pagina di **accesso** dell’app.  
+2. Inserite **email** e **password** dell’account.  
+3. Se non ricordate la password: link **Password dimenticata?** → inserite l’email → ricevete le istruzioni per reimpostarla (controllate anche lo spam).
+
+### Nuova azienda vs invito
+- **Registrazione** (nuovo account + nuova azienda): usatela solo se state creando l’azienda da zero.  
+- Se vi hanno **invitato** per email: aprite il **link nell’invito** (non la registrazione generica) e completate i dati richiesti. Dettaglio inviti/ruoli nella guida **Manodopera** (manager).
+
+### Più aziende
+Se il vostro utente appartiene a più aziende, scegliete quella giusta con **cambia azienda** (o voce equivalente) **prima** di cercare dati. Lavorate sempre su **un’azienda alla volta**.
+
+### Account in Impostazioni
+Da loggati, in **Impostazioni**: nome/cognome/telefono, **Cambio password**, **Notifiche**.
 
 ---
 

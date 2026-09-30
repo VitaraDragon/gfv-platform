@@ -71,6 +71,8 @@ Alias: **segnatura ore** / **segnare ore**, **validazione ore** / **validare ore
 | Roster giorno | `manodopera-roster-giorno-logic.js`; impegni `manodopera-impegni-giorno-*.js` |
 | Campo | `field-workspace` — `segnalaAssenza`, banner `lavoro-sostituto-banner`; context `lavoro-sostituto-context.js` |
 | Config tipi assenza | `core/config/manodopera-assenze-config.js` |
+| Skill / stelle | `manodopera-skills-config.js`; UI scheda in `gestione-operai-standalone.html` |
+| Semaforo severità | `manodopera-problema-severita-logic.js` (rosso/giallo) |
 | Tony giorno | `functions/tony-manodopera-giorno-context.js` (roster + shortlist materializzata; «chi è libero / candidati» senza ricalcolo client inventato) |
 | Push | `assenza_turno` in `notification-catalog.js` → Gestione lavori / field-workspace |
 

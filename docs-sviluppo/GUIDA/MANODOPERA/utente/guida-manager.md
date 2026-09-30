@@ -186,6 +186,14 @@ Qui curi le **schede operai** (dati anagrafici, tipo contratto, scadenze dove il
 3. Compila i campi richiesti (nome, recapiti, date, tipo contratto, ecc. secondo la tua schermata).  
 4. **Salva**.
 
+### Scheda competenze (skill)
+
+Nella stessa area **Gestione operai** potete aprire la **Scheda competenze** di un operaio:
+
+1. Indicate le **skill dichiarate** (competenze note in assunzione o da esperienza).  
+2. Le **stelline calcolate** si aggiornano da sole in base alle **ore validate** (finestra tipica ultimi 12 mesi); c’è anche un’azione per **ricalcolare** le stelline in batch se prevista.  
+3. Servono soprattutto quando scegliete un **sostituto**: la shortlist preferisce chi ha le competenze richieste dal lavoro.
+
 ### Collegamento con il resto
 
 - I **telefoni** e le **email** che il caposquadra usa dalla versione mobile per «chiama / email» dipendono da dati **corretti** qui e dal profilo utente: tienili allineati.  
@@ -244,7 +252,7 @@ Per vedere **chi è libero, impegnato, assente o spostato** in un giorno (senza 
 
 ### Eliminare un lavoro
 
-Dalla stessa lista puoi **eliminare** un lavoro (conferma in schermata). L’eliminazione rimuove anche i dati collegati al lavoro (ore, zone lavorate, comunicazioni collegate, ecc.): usala solo se il lavoro non deve restare in storico.
+Dalla stessa lista puoi **eliminare** un lavoro (conferma in schermata). L’eliminazione va **a cascata**: toglie anche i dati collegati (ore, zone lavorate, comunicazioni collegate, ecc.). Usala solo se il lavoro non deve restare in storico.
 
 ### Chiusura lavoro e controlli finali
 
@@ -276,6 +284,7 @@ Quando un operaio **non c’è** sul lavoro di oggi, l’app vi aiuta a tenere i
 ### Dopo la sostituzione
 
 - Controllate **Impegni giornalieri** (libero / impegnato / assente / prestato / sostituto) e, se usate la mappa, il layer **Allarmi**.  
+- **Semaforo / pin allarmi:** in genere **rosso** = urgenza (es. standby assenza **senza** sostituto, o equipaggio sotto minimo senza sostituto); **giallo** = attenzione (es. ancora incompleto ma c’è già un sostituto, o «buco» da prestito). Verde/assenza allarme = situazione sotto controllo.  
 - In campo il caposquadra può vedere un avviso di **sostituzione attiva** (chi manca e chi sostituisce).  
 - Le **push** di assenza (e l’eventuale WhatsApp di escalation) si regolano in **Impostazioni → Notifiche**.
 

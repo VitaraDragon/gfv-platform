@@ -542,6 +542,35 @@
         "MANODOPERA"
       ],
       "label": "Contesto sostituto campo"
+    },
+    {
+      "includes": "login-standalone",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Login / password reset entry"
+    },
+    {
+      "includes": "reset-password",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Reset password"
+    },
+    {
+      "includes": "registrazione-invito",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Registrazione da invito"
+    },
+    {
+      "includes": "manodopera-skills",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Skill / scheda competenze operai"
     }
   ]
 }

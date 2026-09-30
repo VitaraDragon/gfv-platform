@@ -29,4 +29,4 @@ Target da hub: `seminativi`, `piano colturale`, `semina seminativo`, `lavorazion
 ## Guide utente / sintesi
 
 - `SEMINATIVO/utente/guida.md`, `guida-sintesi.md`
-- **Wire Tony runtime:** aggiungere path a `GUIDA_LOAD_ENTRIES` + fetch `guida_sintesi_seminativo` in `tony-service.js` quando il modulo è sul branch di deploy (oggi le sintesi Seminativo esistono in GUIDA ma possono non essere ancora nel loader).
+- Runtime: path in `GUIDA_LOAD_ENTRIES` + `guida_sintesi_seminativo` in `tony-service.js`.

@@ -96,6 +96,16 @@ Nella scheda **Ore**, in alto, compila il modulo **Segna ore**.
 
 ---
 
+## Comunicazioni del caposquadra
+
+Anche senza la scheda **Comunicazioni** (riservata al caposquadra), sul lavoro possono arrivarti **messaggi operativi** da confermare.
+
+1. Apri il lavoro del giorno nella **versione mobile**.  
+2. Se c’è un messaggio in attesa, usa **Conferma ricezione** (o equivalente).  
+3. Così il caposquadra sa che l’hai letto; se non confermi, lui può ricevere un reminder (e, se attive, le **notifiche push**).
+
+---
+
 ## Se lavori come sostituto
 
 Se il manager ti ha messo al posto di un collega assente, nella **versione mobile** vedi il **lavoro** come gli altri incarichi del giorno: sceglilo, **segna le ore**, segui il dettaglio. Non serve un menu speciale «sostituzioni»: è lo stesso flusso lavoro/ore. In dubbio chiedi al caposquadra chi deve validare le tue ore.

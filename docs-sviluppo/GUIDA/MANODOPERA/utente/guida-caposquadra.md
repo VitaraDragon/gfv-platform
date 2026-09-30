@@ -181,6 +181,9 @@ Sempre nella scheda **Lavoro**, nel blocco **Valida ore**, vedi le registrazioni
 - Valida le **ore del sostituto** in **Valida ore** come per gli altri; il sostituto le registra da **Segna ore**.  
 - Non assegni tu il sostituto: lo fa il manager da **Gestione lavori**.
 
+
+**Nota manager/mappa:** sul desktop il manager vede allarmi **rosso/giallo** (senza/con sostituto). In campo tu vedi soprattutto l’avviso di sostituzione attiva, non il semaforo della mappa.
+
 ---
 
 ## Mini-guida dettaglio lavoro zone lavorate e completamento

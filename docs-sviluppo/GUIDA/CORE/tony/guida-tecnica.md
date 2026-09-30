@@ -141,3 +141,15 @@ Callable / helper `functions/email-resend.js` (Resend, mittente piattaforma): us
 ## Pelle Proposta (solo sotto al cofano — non in guida utente)
 
 Implementazione UI ufficio su **main**: flag `uiPelleProposta` (`feature-flags.js`, `enabledAlways: true`); `core/js/ui-pelle.js`, `ui-pelle-state.js`, `ui-pelle-icons.js`, CSS `ui-pelle-proposta.css`. Spenta su campo (`field-workspace`), login, e `data-gfv-pelle-host="0"`. **Non** spiegare all’utente skin/tema: i flussi prodotto restano gli stessi. Su develop il codice può mancare.
+
+## Auth / sessione
+
+| Pagina | Path |
+|--------|------|
+| Login | `core/auth/login-standalone.html` (`sendPasswordResetEmail` → reset) |
+| Reset password | `core/auth/reset-password-standalone.html` |
+| Registrazione nuova azienda | `core/auth/registrazione-standalone.html` |
+| Registrazione da invito | `core/auth/registrazione-invito-standalone.html` + CF `getInvitoPubblico` |
+
+Multi-azienda: selezione tenant in sessione (cambia azienda). Non spiegare all’utente Firebase Auth oltre «email/password / link invito / reset».
+

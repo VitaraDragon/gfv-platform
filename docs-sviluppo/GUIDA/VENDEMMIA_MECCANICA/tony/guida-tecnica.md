@@ -13,4 +13,4 @@ Modulo: **`vendemmiaMeccanica`**. Auth pagina: `modules/vendemmia-meccanica/js/v
 
 Intersezioni: Conto terzi (clienti, terreni, preventivi, lavori). Vedi `INTERSEZIONI/tony/intersezioni.md` § 2.7.
 
-Guide: `VENDEMMIA_MECCANICA/utente/guida.md`, `guida-sintesi.md`. Wire `GUIDA_LOAD_ENTRIES` / sintesi quando si vuole load Tony automatico.
+Guide: `VENDEMMIA_MECCANICA/utente/guida.md`, `guida-sintesi.md`. Caricate da `tony-service.js` (`GUIDA_LOAD_ENTRIES` + `guida_sintesi_*`).

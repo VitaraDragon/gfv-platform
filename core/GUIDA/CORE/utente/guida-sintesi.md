@@ -32,3 +32,5 @@ Spiega dove sono le funzioni e i termini in schermata; con **Base** può suggeri
 **PWA:** su login/invito può comparire “Installa”; su iOS spesso Aggiungi a Home. Opzionale; utile con le push.
 
 **Seminativo:** modulo colture a pieno campo (guide in `GUIDA/SEMINATIVO/`; codice completo su main).
+
+**Accesso:** email/password; **Password dimenticata?** dal login; invito via link email (non registrazione generica); **cambia azienda** se siete su più tenant.
