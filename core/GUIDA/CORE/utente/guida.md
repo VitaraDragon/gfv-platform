@@ -40,7 +40,6 @@ Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più sc
 | Tony (assistente in chat) | [Impara qui](#tony-lassistente-in-chat) |
 | Notifiche push (telefono) | [Impara qui](#mini-guida-notifiche-push) |
 | Installare l’app (PWA) | [Impara qui](#mini-guida-installare-lapp-pwa) |
-| Aspetto pagine ufficio (pelle) | [Impara qui](#aspetto-pagine-ufficio-pelle-proposta) |
 
 ---
 
@@ -307,12 +306,6 @@ Fuori dalla fascia oraria le urgenze restano in coda e partono quando la finestr
 ## Mini-guida: installare l’app (PWA)
 
 Su alcuni browser (Chrome/Edge) in **login** o **registrazione da invito** può comparire un invito a **installare** GFV come app. Su iPhone spesso si usa **Aggiungi a Home** dal menu di Safari. Non è obbligatorio: l’app funziona anche solo nel browser. L’installazione aiuta le **notifiche push** e l’apertura rapida, ma dipende dal dispositivo e dai permessi.
-
----
-
-## Aspetto pagine ufficio (pelle Proposta)
-
-Su alcune installazioni (in particolare dopo la promozione su **main**) le pagine **ufficio** usano una veste grafica aggiornata (**pelle Proposta**): menu moduli e schede più leggibili anche sul telefono. Non cambia i dati né i permessi. Sul **campo** (versione mobile) e sul **login** resta l’aspetto precedente. Se non la vedete, l’installazione non ha ancora quel codice oppure è disattivata di proposito.
 
 ---
 

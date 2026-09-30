@@ -138,6 +138,6 @@ Eventi catalogo (abilitati): `comunicazione_destinatario`, `lavoro_assegnato`, `
 
 Callable / helper `functions/email-resend.js` (Resend, mittente piattaforma): usate per **inviti** e **preventivi** (e flussi correlati), non per le push. Dettaglio UX in guide Manodopera (inviti) e Conto terzi (invio preventivo).
 
-## Pelle Proposta (UI ufficio)
+## Pelle Proposta (solo sotto al cofano — non in guida utente)
 
-Su **main** (flag `uiPelleProposta` in `feature-flags.js`, `enabledAlways: true`): shell/carta/menu moduli sulle pagine ufficio (`core/js/ui-pelle.js`, `ui-pelle-state.js`, `ui-pelle-icons.js`, CSS `ui-pelle-proposta.css`). Spenta su campo (`field-workspace`), login, e dove `data-gfv-pelle-host="0"`. Lo switch Prova/Pubblicata in dashboard (allowlist Sabbie Gialle) non spegne più questa pelle una volta promossa. Su develop senza questi file la pelle può non comparire: non descriverla come obbligatoria finché il codice non è sul branch.
+Implementazione UI ufficio su **main**: flag `uiPelleProposta` (`feature-flags.js`, `enabledAlways: true`); `core/js/ui-pelle.js`, `ui-pelle-state.js`, `ui-pelle-icons.js`, CSS `ui-pelle-proposta.css`. Spenta su campo (`field-workspace`), login, e `data-gfv-pelle-host="0"`. **Non** spiegare all’utente skin/tema: i flussi prodotto restano gli stessi. Su develop il codice può mancare.
