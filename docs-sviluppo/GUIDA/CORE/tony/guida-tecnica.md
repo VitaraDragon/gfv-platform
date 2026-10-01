@@ -65,6 +65,10 @@ Legacy (deprecato in UX utente): `createManagerSection`, card affitti standalone
 - `base`: terreni/attività illimitati; moduli pay-per-use (`calculateTotalPrice`, `canActivateModule`) + stesso trial; **Tony Guida** (widget + `tonyAsk`); consigli moduli (`tony-module-recommendations.js`, solo Base, non Free/Avanzato).
 - Modulo `tony` in `AVAILABLE_MODULES`: **Tony Avanzato** (automazioni), separato da Tony Guida del Base.
 
+### Billing backend (Stripe)
+
+Cloud Functions **`functions/stripe-billing.js`** + **`functions/stripe-webhooks.js`** gestiscono sottoscrizioni e pagamenti per la pagina **Abbonamento**. UX utente descritta in `GUIDA/CORE/utente/guida.md` sezione Abbonamento; dettagli tecnici integrazione Stripe in quei CF.
+
 ---
 
 ## Tony: comportamento atteso Core-only / Base

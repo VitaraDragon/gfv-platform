@@ -286,6 +286,10 @@ Non serve un altro rituale: resti in **chat**, icona **fotocamera** accanto al m
 - **Bolla** spesso senza prezzo: va bene; completi quando arriva la **fattura**.  
 - Prodotti non in anagrafica: Tony può crearne uno **minimo**; poi lo completi in **Anagrafica prodotti**.
 
+### Foto dalla galleria (iPhone/iPad)
+
+Se scegli una foto dalla **galleria** invece di scattare in-app, e Tony risponde che **non riesce a leggere** il formato (es. «formato HEIC»), il browser potrebbe non supportare quel formato immagine. **Soluzione**: scatta una **nuova foto** direttamente in-app, oppure converti/salva l'immagine come **JPEG** dal telefono e riprova.
+
 ### Esempio
 
 In cortile ricevi una bolla. Apri Tony → fotocamera → scatto → **Acquisizione terminata** → controlli le quantità → **Registra dati**. In magazzino la merce è caricata; i prezzi arriveranno con la fattura.
@@ -303,7 +307,7 @@ In cortile ricevi una bolla. Apri Tony → fotocamera → scatto → **Acquisizi
 | **Briefing** assente | Serve ruolo **manager/admin**; messaggio proattivo solo con **Tony Avanzato**; su **mobile** controlla la **chat** (può aprirsi da sola). |
 | **Voce** assente o microfono muto | Permessi browser; altoparlante; su mobile spesso solo **testo**; aspetta fine messaggio; prova a **scrivere**. |
 | Intervista lavoro **si ferma** | Ripeti l’ultima risposta; specifica terreno/lavoro con nome **completo**; conferma con «sì» esplicito. |
-| **Fotocamera** assente o acquisizione fallita | Servono **Tony Avanzato** + **Magazzino** e ruolo manager/admin. Rifai la foto: un foglio, luce uniforme, testo leggibile. |
+| **Fotocamera** assente o acquisizione fallita | Servono **Tony Avanzato** + **Magazzino** e ruolo manager/admin. Rifai la foto: un foglio, luce uniforme, testo leggibile. Se selezioni foto dalla galleria e ottieni errore su formato (HEIC), **scatta in-app** o converte a JPEG. |
 | Risposta **generica** | Riformula con **contesto** («sono nella lista preventivi, …») o una richiesta alla volta. |
 
 ---
