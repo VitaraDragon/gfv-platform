@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Lavorazioni" data-gfv-module="seminativo">
+<head>
+<script>try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
+<script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Lavorazioni terreno — Seminativo - GFV Platform</title>
+    <link rel="manifest" href="../../../manifest.json">
+    <meta name="theme-color" content="#C9A227">
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <link rel="stylesheet" href="seminativo-standalone.css">
+</head>
+<body data-seminativo-page="lavorazioni" data-page-type="lavorazioni_seminativo">
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🚜 Lavorazioni terreno — Seminativo</h1>
+                <p>Arature ed erpicature dei terreni seminativo, lette dal diario. Con Manodopera compaiono anche i lavori.</p>
+            </div>
+            <div class="header-actions">
+                <a id="link-diario" class="btn btn-primary" href="../../../core/attivita-standalone.html">Registra nel diario</a>
+                <a id="link-nuovo-lavoro" class="btn btn-primary" href="../../../core/admin/gestione-lavori-standalone.html" hidden>Nuovo lavoro</a>
+                <a href="seminativo-dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <div class="filters">
+                <div class="filter-group">
+                    <label for="filter-terreno">Terreno</label>
+                    <select id="filter-terreno">
+                        <option value="">Tutti i terreni</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-tipo">Tipo</label>
+                    <select id="filter-tipo">
+                        <option value="">Tutti i tipi</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-origine">Origine</label>
+                    <select id="filter-origine">
+                        <option value="">Tutte</option>
+                        <option value="diario">Diario</option>
+                        <option value="lavoro">Lavoro</option>
+                    </select>
+                </div>
+                <div class="filter-group">
+                    <label for="filter-ricerca">Ricerca</label>
+                    <input type="search" id="filter-ricerca" placeholder="Tipo, terreno, data…">
+                </div>
+                <div class="filter-group">
+                    <label>&nbsp;</label>
+                    <button type="button" id="btn-reset-filtri" class="btn btn-secondary">Pulisci filtri</button>
+                </div>
+            </div>
+
+            <div class="table-container table-responsive" data-gfv-pelle-list>
+                <div id="loading" class="loading">Caricamento lavorazioni...</div>
+                <div id="empty-state" class="empty-state" style="display: none;">
+                    <h3>Nessuna lavorazione trovata</h3>
+                    <p>Registra un’aratura o un’erpicatura nel diario. Se hai Manodopera, creala come lavoro sul terreno seminativo.</p>
+                </div>
+                <table id="lavorazioni-table" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Terreno</th>
+                            <th>Tipo</th>
+                            <th>Campagna</th>
+                            <th>Origine</th>
+                            <th>Azioni</th>
+                        </tr>
+                    </thead>
+                    <tbody id="lavorazioni-table-body"></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
+    <script type="module">
+        import { initLavorazioniPage } from '../js/lavorazioni-page.js';
+        initLavorazioniPage();
+    </script>
+</body>
+</html>
