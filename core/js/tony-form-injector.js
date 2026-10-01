@@ -4851,6 +4851,34 @@
           fd['tipo-lavoro'] = resolveValuePreventivo('tipo-lavoro', fd['tipo-lavoro'], context);
           tipoNome = fd['tipo-lavoro'];
         }
+      } else if (fd['cliente-id'] && !hasTerrenoHint && fd['coltura']) {
+        /** Cliente + coltura senza terreno: pre-inietto cliente, poi verifica disambiguazione coltura */
+        log('preventivo: pre-inietto cliente + coltura, verifica terreni ambigui per coltura');
+        setFieldValue('cliente-id', fd['cliente-id'], preMapCliente, context);
+        await delay(PREVENTIVO_POST_CLIENTE_MS);
+        await awaitPreventivoTerreniFetchDone(15000);
+        await waitForPreventivoTerrenoSelectHydrated(12000);
+        ps = window.preventivoState;
+        window.lavoriState.terreniList = (ps && ps.terreni) || [];
+        /** Prova a risolvere terreno usando coltura come hint */
+        var colturaHint = String(fd['coltura'] || '').trim();
+        if (colturaHint && ps && Array.isArray(ps.terreni) && ps.terreni.length > 1) {
+          var resolvedFromColtura = resolveTerrenoIdForPreventivo(colturaHint, ps.terreni);
+          if (resolvedFromColtura === '') {
+            /** Ambiguità rilevata, flag già impostato da resolveTerrenoIdForPreventivo */
+            log('preventivo: coltura ambigua "' + colturaHint + '", disambiguazione necessaria');
+          } else if (resolvedFromColtura && resolvedFromColtura !== colturaHint) {
+            /** Univoco: imposta terreno-id risolto */
+            fd['terreno-id'] = resolvedFromColtura;
+            log('preventivo: coltura "' + colturaHint + '" → terreno univoco ' + resolvedFromColtura);
+          }
+        }
+        skipClienteInLoop = true;
+        upgradePreventivoLavorazioneFilari(fd);
+        if (fd['tipo-lavoro']) {
+          fd['tipo-lavoro'] = resolveValuePreventivo('tipo-lavoro', fd['tipo-lavoro'], context);
+          tipoNome = fd['tipo-lavoro'];
+        }
       }
       if (tipoNome) {
         var fdDerive = Object.assign({}, fd);
