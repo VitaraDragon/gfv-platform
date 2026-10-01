@@ -59,6 +59,12 @@ Promessa: 📷 in chat → revisione → cascata magazzino. **Non** insegnare XM
 
 Gate: modulo `magazzino` + `tony` + manager/admin; piano non Free. Callable `tonyExtractDocument` (timeout 180 s). Decisioni §20.34–20.36.
 
+### HEIC / HEIF (foto iPhone da galleria)
+
+- `document-capture.js`: helper `isHeicLikeDocumentFile` / `convertRasterFileToJpeg` — tenta decodifica HEIC via `<img>` browser, canvas→JPEG 2048 px. Su Safari/iOS spesso funziona; **Chrome desktop** può non supportare HEIC nativo → decode fail.
+- Errore decodifica: mostra stringa «Non riesco a leggere questa foto (formato HEIC). Scatta una nuova foto oppure salvala come JPEG e riprova.»
+- Scatto in-app: sempre JPEG/PNG dal file picker nativo; problema raro. **Galleria** iPhone può caricare HEIC originale.
+
 ## Contesto page / tabelle
 
 Canone: `window.currentTableData`, evento `table-data-ready`, merge `setContext('page', …)`.

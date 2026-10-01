@@ -26,7 +26,7 @@ Client-side su Gestione lavori / ore: `__tonyLavoroCreationFlow`, segna ore senz
 
 ## Foto bolla / fattura (Avanzato + Magazzino)
 
-Ingresso **fotocamera in chat** (non un menu magazzino). Stesso gesto di sempre: scatto → revisione → **Registra dati** → movimenti. Tony legge i numeri in **due passate** (trascrizione cifra-per-cifra, poi campi). Conferma umana obbligatoria. Dettaglio in guida lunga TONY; Magazzino: **Archivio documenti**, prezzi in attesa.
+Ingresso **fotocamera in chat** (non un menu magazzino). Stesso gesto di sempre: scatto → revisione → **Registra dati** → movimenti. Tony legge i numeri in **due passate** (trascrizione cifra-per-cifra, poi campi). Conferma umana obbligatoria. **Foto galleria HEIC** su iPhone: se Tony non legge, scatta in-app o converti a JPEG. Dettaglio in guida lunga TONY; Magazzino: **Archivio documenti**, prezzi in attesa.
 
 ## Conferme
 

@@ -571,6 +571,64 @@
         "MANODOPERA"
       ],
       "label": "Skill / scheda competenze operai"
+    },
+    {
+      "prefix": "core/services/lavoro-delete-cascade",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Delete lavoro a cascata"
+    },
+    {
+      "prefix": "functions/tony-tts-provider.js",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Provider TTS ElevenLabs/Google"
+    },
+    {
+      "prefix": "functions/invito-pubblico.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "CF lookup invito pubblico"
+    },
+    {
+      "prefix": "functions/stripe-billing.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Stripe billing CF"
+    },
+    {
+      "prefix": "functions/stripe-webhooks.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Stripe webhooks CF"
+    },
+    {
+      "prefix": "functions/module-trial.js",
+      "modules": [
+        "CORE",
+        "MAGAZZINO"
+      ],
+      "label": "Trial moduli 30gg"
+    },
+    {
+      "includes": "giacenza-utils",
+      "modules": [
+        "MAGAZZINO"
+      ],
+      "label": "Giacenza atomica increment"
+    },
+    {
+      "includes": "visual-viewport",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Viewport mobile chat Tony"
     }
   ]
 }
