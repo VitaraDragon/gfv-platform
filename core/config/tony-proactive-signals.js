@@ -33,6 +33,7 @@ export const TONY_PROACTIVE_HUBS = {
   magazzino: { id: 'magazzino', label: 'Magazzino', requireTonyAdvanced: true },
   vendemmia: { id: 'vendemmia', label: 'Vendemmia', requireTonyAdvanced: true },
   frutteto: { id: 'frutteto', label: 'Frutteto', requireTonyAdvanced: true },
+  seminativo: { id: 'seminativo', label: 'Seminativo', requireTonyAdvanced: true },
   parcoMacchine: { id: 'parcoMacchine', label: 'Parco macchine', requireTonyAdvanced: true },
   contoTerzi: { id: 'contoTerzi', label: 'Conto terzi', requireTonyAdvanced: true },
 };

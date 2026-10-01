@@ -19,6 +19,7 @@ describe('TONY_PAGE_MAP — impegni giornalieri', () => {
 
   it('ha label e gate modulo manodopera (mirror CF)', () => {
     expect(TONY_PAGE_MAP['impegni giornalieri']).toContain('impegni-giornalieri-standalone');
+    expect(TONY_PAGE_MAP.seminativo).toContain('seminativo-dashboard-standalone');
     expect(TONY_LABEL_MAP['impegni giornalieri']).toBe('Impegni giornalieri');
     expect(TONY_LABEL_MAP['impegni giorno']).toBe('Impegni giornalieri');
     expect(getRequiredModuleForTarget('impegni giornalieri')).toBe('manodopera');

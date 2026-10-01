@@ -308,7 +308,7 @@ export const BUNDLES = [
     id: 'gfv-completo',
     name: 'GFV Completo',
     modules: ALL_AVAILABLE_MODULE_IDS,
-    price: 30, // singoli €35 → risparmio €5 (~14%)
+    price: 30, // singoli €40 con il seminativo → risparmio €10
     isComplete: true,
     description: 'Tutti i moduli disponibili: colture, manodopera, conto terzi, magazzino, meteo, report e Tony Avanzato',
     suggestedFor: ALL_AVAILABLE_MODULE_IDS,

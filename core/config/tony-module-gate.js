@@ -12,7 +12,10 @@ const MODULE_LABELS = {
   vigneto: 'Vigneto',
   frutteto: 'Frutteto',
   seminativo: 'Seminativo',
+<<<<<<< HEAD
   report: 'Report',
+=======
+>>>>>>> origin/main
   meteo: 'Meteo'
 };
 
@@ -68,6 +71,7 @@ const TARGET_REQUIRES_MODULE = {
   'raccolta seminativo': 'seminativo',
   'statistiche seminativo': 'seminativo',
   'seminativo statistiche': 'seminativo',
+<<<<<<< HEAD
   report: 'report',
   'report terreni': 'report',
   'report vigneto': 'report',
@@ -80,6 +84,8 @@ const TARGET_REQUIRES_MODULE = {
   'calcoli salvati': 'vendemmiaMeccanica',
   'tariffe vm': 'vendemmiaMeccanica',
   'bilancio vm': 'vendemmiaMeccanica',
+=======
+>>>>>>> origin/main
   meteo: 'meteo'
 };
 
