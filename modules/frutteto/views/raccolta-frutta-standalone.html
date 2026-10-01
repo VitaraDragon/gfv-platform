@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+<script>try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Raccolta Frutta - GFV Platform</title>
     <link rel="manifest" href="../../../manifest.json">
     <meta name="theme-color" content="#FF6F00">
@@ -36,10 +38,13 @@
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            flex-wrap: wrap;
+            align-items: flex-start;
+            flex-wrap: nowrap;
             gap: 20px;
+            text-align: left;
         }
+
+        .header > div:first-child { flex: 1 1 auto; min-width: 0; }
 
         .header h1 {
             font-size: 28px;
@@ -56,6 +61,9 @@
             gap: 10px;
             flex-wrap: wrap;
             justify-content: flex-end;
+            flex-shrink: 0;
+            margin-left: auto;
+            align-self: flex-start;
         }
 
         .btn {

@@ -48,6 +48,15 @@ describe('feature-flags', () => {
     expect(isPreviewModeEnabled({ preview: true }, 'altro', 'Cantina')).toBe(true);
   });
 
+  test('pelle Proposta solo con preview, spenta su Pubblicata', () => {
+    const key = FEATURE_FLAG_KEYS.UI_PELLE_PROPOSTA;
+    expect(isFeatureEnabled(key, { preview: true }, 'sabbie_gialle', 'Sabbie Gialle')).toBe(true);
+    expect(isFeatureEnabled(key, undefined, 'sabbie_gialle', 'Sabbie Gialle')).toBe(true);
+    expect(isFeatureEnabled(key, { preview: false }, 'sabbie_gialle', 'Sabbie Gialle')).toBe(false);
+    expect(isFeatureEnabled(key, undefined, 'altro', 'Cantina Rossi')).toBe(false);
+    expect(isFeatureEnabled(key, { preview: true }, 'altro', 'Cantina Rossi')).toBe(true);
+  });
+
   test('zona a due punti è pubblicata: accesa anche senza preview', () => {
     const key = FEATURE_FLAG_KEYS.ZONA_LAVORATA_DUE_PUNTI;
     expect(isFeatureEnabled(key, undefined, 'sabbie_gialle')).toBe(true);

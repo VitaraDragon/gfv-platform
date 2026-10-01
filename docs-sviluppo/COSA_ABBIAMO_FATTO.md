@@ -1,10 +1,250 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-26 — voce Tony ElevenLabs in getTonyAudio.**
+**Ultimo aggiornamento documentazione: 2026-10-01 — Fix Tony preventivo disambiguazione terreno.**
 
-## 2026-09-26 — Tony TTS: voce ElevenLabs (nonno Tony)
+## 2026-10-01 — Fix Tony preventivo disambiguazione terreno
 
-`getTonyAudio` può sintetizzare con **ElevenLabs Flash** (voce salvata `5zD2eYSLIo8c2zkowMfP`) invece di Chirp 3 Charon. Stesso contratto client (MP3 base64). Default ElevenLabs se c’è `ELEVENLABS_API_KEY`, altrimenti Google. Rollback: `TONY_TTS_PROVIDER=google`. Helper `functions/tony-tts-provider.js`. **Fix 500 produzione:** `speed` non va in root (422 ElevenLabs → `INTERNAL`); body con `language_code: it` e speed in `voice_settings`; se ElevenLabs fallisce (chiave/voce/rete) fallback Chirp così Tony non resta muto. Test `tests/tony-tts-provider.test.js`. Deploy: `firebase functions:secrets:set ELEVENLABS_API_KEY` poi `firebase deploy --only functions:getTonyAudio`.
+Risolto il timeout del test E2E T-FLOW-014. Quando Tony riceve cliente + coltura senza terreno-id nel preventivo, ora rileva se la coltura corrisponde a più terreni e chiede la disambiguazione. Prima il controllo scattava solo con terreno-id esplicito. Il flusso multi-turn preventivo ora funziona: inject iniziale → domanda terreno → risoluzione → save locale.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — Seminativo in vendita.**
+
+## 2026-09-27 — Seminativo in vendita
+
+Il modulo è acquistabile come Vigneto e Frutteto: 3 € al mese. Tolto il badge Prossimamente. Il bundle completo lo include insieme agli altri moduli disponibili.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — piano colturale Seminativo.**
+
+## 2026-09-27 — Piano colturale Seminativo
+
+Il piano legge la coltura in campo e propone la successiva: genere diverso e ruolo complementare (dopo il grano, mais, soia, girasole o favino). La conferma salva la campagna successiva in anagrafica, stato pianificato. Non certifica la PAC.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — hub Seminativo con raccolte e lavori.**
+
+## 2026-09-27 — Elenchi hub Seminativo
+
+Sotto le card l’hub mostra le raccolte recenti della campagna e i lavori a pieno campo già completati, più le attività del diario. Filari e vendemmia restano fuori. Senza Manodopera restano solo le attività del diario.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — hub Seminativo con i numeri della campagna.**
+
+## 2026-09-27 — Hub Seminativo
+
+La panoramica dell’hub mostra campagne aperte, ettari, semine e raccolte della campagna agricola corrente. Le campagne chiuse non entrano nel conteggio. Il piano colturale resta l’unica card ancora da fare. Il modulo non è in vendita.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — costo campagna allineato alle statistiche.**
+
+## 2026-09-27 — Costo campagna Seminativo
+
+Il totale in anagrafica è lo stesso delle statistiche: manodopera e macchine del periodo, più il costo prodotti di trattamenti e concimazioni. Manodopera e macchine già contate sul lavoro o sul diario non si sommano una seconda volta dal documento del trattamento.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — statistiche Seminativo per campagna.**
+
+## 2026-09-27 — Statistiche Seminativo
+
+La pagina legge, senza un archivio nuovo, quintali delle mietiture, resa effettiva (quintali / ettari di campagna) e costi di manodopera, macchine e prodotti. La resa prevista dell’anagrafica resta un numero a parte. Niente gradazione o acidità.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — raccolta Seminativo sulla campagna.**
+
+## 2026-09-27 — Raccolta / mietitura Seminativo
+
+La pagina legge lavori e diario di categoria Raccolta a pieno campo, sulla campagna. Si completano quintali, superficie e destinazione; manodopera e macchina arrivano dal lavoro o dal diario, come in vendemmia. La vendemmia e le lavorazioni sulla fila restano fuori. Collezione `raccolteSeminativo`. La prima mietitura salvata porta la campagna a raccolto. Regole `raccolteSeminativo` pubblicate su Firestore il 2026-09-27.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — concimazioni Seminativo sullo stesso schema dei trattamenti.**
+
+## 2026-09-27 — Concimazioni Seminativo
+
+La pagina legge lavori e diario di categoria Concimazione a pieno campo, sulla campagna. Completa con lo stesso `form-trattamento` e la stessa collezione `trattamentiSeminativo` già pubblicata. Le concimazioni sulla fila restano fuori, come le lavorazioni tra i filari.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — trattamenti Seminativo sullo schema del vigneto.**
+
+## 2026-09-27 — Trattamenti Seminativo sullo schema del vigneto
+
+Il completamento usa lo stesso form del vigneto (`form-trattamento`): righe prodotto dall’anagrafica, dose per ettaro, quantità e costo calcolati, manodopera e macchina precompilate dal lavoro o dal diario, avviso se la dose esce dal range, scarico magazzino se il modulo è attivo. Resta la differenza di modulo: la riga è legata alla campagna seminativo, non a un vigneto. Regole `trattamentiSeminativo` pubblicate su Firestore il 2026-09-27.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — pagina Trattamenti del Seminativo.**
+
+## 2026-09-27 — Trattamenti Seminativo
+
+La pagina elenca lavori e attività di diario con categoria Trattamenti, sul terreno di una campagna. Come nel vigneto si completa prodotto, dose, carenza e costo; il lavoro resta nel diario o in gestione lavori. Collezione `trattamentiSeminativo`. Regole Firestore nel repo, da pubblicare a parte.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — anagrafica Seminativo allineata ai pulsanti spese del vigneto.**
+
+## 2026-09-27 — Pulsanti spese in anagrafica Seminativo
+
+La lista campagne mette «Costo Totale Anno (€)» prima dello stato, poi la colonna «Dettaglio Spese» (📊 Dettaglio) e infine Azioni (✏️ Modifica, 🗑️ Elimina), come l’anagrafica vigneto.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — costo campagna in anagrafica Seminativo.**
+
+## 2026-09-27 — Costo campagna in anagrafica Seminativo
+
+La lista campagne mostra il costo del periodo agricolo (1 settembre – 31 agosto): lavori completati e attività dirette del diario sul terreno, manodopera e macchine, come il dettaglio spese del vigneto. Il pulsante Dettaglio apre le due tabelle. I prodotti di trattamenti e concimazioni restano fuori finché quelle pagine non ci sono.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — pulsante Dashboard delle pagine Seminativo.**
+
+## 2026-09-27 — Dashboard delle pagine Seminativo
+
+Nelle sottopagine il pulsante torna all’hub del modulo (`seminativo-dashboard-standalone.html`), come in vigneto e frutteto. Dall’hub si esce con «Dashboard Principale».
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — lavorazioni Seminativo dal diario e dai lavori.**
+
+## 2026-09-27 — Lavorazioni terreno Seminativo
+
+La pagina legge il diario (`attivita`) e, se il tenant ha Manodopera, i lavori. Solo terreni seminativo e tipi di campo aperto (sottocategoria Generale: Aratura, Erpicatura, …). Restano fuori «tra le file» e «sulla fila». Non c’è una collezione dedicata né un form locale: si registra dal diario o da gestione lavori. Tony: FILTER_TABLE su `lavorazioni_seminativo` (terreno, tipo, origine, ricerca); per registrare usa APRI_PAGINA, non un modal.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — pulsante Modifica visibile in elenco Seminativo.**
+
+## 2026-09-27 — Modifica in elenco Seminativo
+
+Il pulsante Modifica usava lo stile bianco dell’intestazione e spariva sul fondo chiaro della lista. In elenco è oro scuro. Il clic vale anche sulla scheda telefono, non solo sulla riga della tabella.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — regole Firestore seminativi e semine in produzione.**
+
+## 2026-09-27 — Regole Firestore seminativi e semine pubblicate
+
+`firebase deploy --only firestore:rules` sul progetto `gfv-platform`. Lettura per chi appartiene al tenant; creazione, modifica e cancellazione solo manager o admin. Collezioni: `seminativi` e `semineSeminativo`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — terreni Seminativo collegati all’anagrafica aziendale.**
+
+## 2026-09-27 — Terreni Seminativo dall’anagrafica aziendale
+
+Il menu terreno di campagna e semina legge `getAllTerreni()`, come vigneto e frutteto. Il terreno azienda salva il nome coltura (`Grano`, `Mais`, …), non sempre la categoria: il filtro ora riconosce quel nome (catalogo Seminativo) e l’id categoria. Vite, prato e ortive restano fuori.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — pagina Semina del modulo Seminativo.**
+
+## 2026-09-27 — Semina collegata alla campagna
+
+Registro su `tenants/{id}/semineSeminativo`: campagna già creata, data, varietà (elenco della coltura) e dose. La prima semina porta la campagna da pianificato a seminato; se si elimina l’ultima e lo stato è ancora seminato, torna a pianificato. Tony: `SEMINATIVO_SEMINA_FORM_MAP` e FILTER_TABLE su `semina_seminativo`. Regole Firestore pubblicate il 2026-09-27.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — varietà Seminativo per coltura.**
+
+## 2026-09-27 — Anagrafica Seminativo: varietà da elenco della coltura
+
+Il campo varietà non è più testo libero. Ogni coltura della categoria Seminativo ha un elenco (Grano → Bologna, Riso → Carnaroli, …). Il menu si aggiorna con la coltura. Il pulsante «+» salva una varietà in più solo nel browser. Tony la compila come select dal mapping, senza un `if` di pagina.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — card Abbonamento Seminativo con pulsante Apri.**
+
+## 2026-09-27 — Abbonamento: Apri hub Seminativo senza metterlo in vendita
+
+La card resta `available: false` e badge Prossimamente. `previewHref` nel catalogo moduli mostra «Apri» verso l’hub, senza prova gratuita né checkout Stripe.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-26 — anagrafica campagne Seminativo (lista + form).**
+
+## 2026-09-26 — Anagrafica campagne Seminativo
+
+Prima pagina reale del modulo: CRUD campagne su `tenants/{id}/seminativi` (terreno + campagna + coltura/varietà), non un impianto permanente.
+
+**Cosa c’è**
+- Lista + modal `#seminativo-campagna-form` con filtri terreno/campagna/coltura/stato/ricerca.
+- Terreni solo categoria Seminativo; unicità terreno+campagna nel servizio.
+- Tony: `SEMINATIVO_CAMPAGNA_FORM_MAP`, `FILTER_KEY_MAP.seminativi`, FILTER_TABLE in CF, inject generico da mapping (niente `if` di pagina).
+- `firestore.rules` su `/seminativi`. Card hub anagrafica non è più placeholder.
+
+Test: `tests/seminativo-anagrafica.test.js`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-26 — scheletro modulo Seminativo (hub + sottocategorie).**
+
+## 2026-09-26 — Scheletro modulo Seminativo
+
+Primo passo del modulo coltura **Seminativo**, stesso stile hub di Vigneto/Frutteto ma **senza** potatura, pianifica impianto e calcolo materiali (non sono un impianto permanente).
+
+**Cosa c’è**
+- Hub `modules/seminativo/views/seminativo-dashboard-standalone.html` + 8 sottopagine placeholder (anagrafica campagne, piano colturale, semina, lavorazioni, trattamenti, concimazioni, raccolta/mietitura, statistiche).
+- Anagrafica **per campagna** (`SeminativoCampagna`: terreno + campagna + coltura/varietà), collezione prevista `tenants/{id}/seminativi`.
+- Wiring: `MODULE_CATALOG`, card dashboard, quick bar, pelle (`#C9A227`), rotte Tony, gate moduli, nav «portami al seminativo».
+- Abbonamento: voce `seminativo` **Prossimamente** (`available: false`), come Oliveto. Per vederlo in dashboard aggiungere `seminativo` a `tenant.modules`.
+- Perimetro: solo categoria coltura Seminativo (non prato, non ortive). CRUD e KPI reali: fasi successive.
+
+Test: `tests/seminativo-module-skeleton.test.js`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-26 — pelle Proposta, resoconto intero dal 22 settembre.**
+
+## Pelle Proposta — resoconto dal 22 al 26 settembre 2026
+
+La pelle carta delle pagine ufficio. Non è una fase Tony: il Master Plan non cambia. Registro: `TONY_DECISIONI_E_REQUISITI.md` §26.
+
+**Dove sta il codice.** Su `main` ci sono solo i primi due passi, già online (PR #66 e #67): la pelle si accendeva con **Prova** e al cambio pagina non tornava più quella vecchia per un attimo. Tutto il resto — pelle sempre accesa, Meteo, Statistiche manodopera, Abbonamento nell’ingranaggio, layout telefono, barra senza scritte — è sul branch `cursor/pelle-proposta-effettiva`, pull request #68, **non ancora su `main`**. Lo smartphone legge `main`, quindi lì quei cambiamenti non si vedono finché #68 non viene promossa. In locale e nell’emulatore del PC si vedono subito.
+
+**Come è adesso, a fine lavoro**
+
+- Pagine ufficio: carta, subito, senza lo switch **Prova**. Lo switch non riporta la pelle vecchia.
+- Fuori: login, registrazione, reset password, workspace di campo, pagine di prova e di sviluppo.
+- Barra: graffetta a sinistra, cartina al centro, ingranaggio a destra. Nessuna scritta, né su PC né sul telefono (niente «Proposta · Home», niente «Tocca per i moduli»).
+- Graffetta: elenco dei moduli di lavoro. Il Diario non compare se Manodopera è attivo.
+- Ingranaggio: Impostazioni, Abbonamento, Guide, Logout. «Azienda» solo se ci sono almeno due aziende, subito prima di Logout.
+- Cartina: apre la mappa aziendale, senza un secondo menu. Sulla mappa resta la stessa barra; sotto, «Mappa in caricamento» finché arrivano le tessere.
+- Con la pelle, dall’header di pagina spariscono Impostazioni, Guide, Cambia azienda, Mappa e Logout: stanno nella barra.
+- Titolo a sinistra, pulsanti di movimento in alto a destra. Se la descrizione è lunga, il testo si restringe e i pulsanti restano sulla stessa riga.
+- «← Dashboard» in Impostazioni torna alla home principale.
+- Liste: schede sul telefono, tabella sul PC.
+- Sotto i 480 pixel le card delle statistiche stanno una sotto l’altra; fino a 768 pixel sono due per riga. I menu lasciano lo spazio del notch e della barra dei gesti (Android e iPhone). La striscia di stato del telefono è scura, come la barra.
+- I due menu scorrono in 0,18 secondi: sul PC la graffetta da sinistra e l’ingranaggio da destra; sul telefono entrambi scendono dall’alto. Il cambio pagina è una dissolvenza della stessa durata, non un giro da quaderno. Se il sistema chiede meno movimenti, il cambio è immediato.
+
+**In ordine, dall’inizio**
+
+1. **22 settembre — pelle affiancata, spenta di default.** Carta, header basso, menu moduli a scomparsa, schede sul telefono e tabella sul PC. Flag `uiPelleProposta` con `enabledAlways: false`: si vedeva solo con **Prova**. Calcolo materiali aperto dal Frutteto restava carta, con l’accento arancio. Campo e login fuori.
+2. **23 settembre — barra e header.** Su PC la graffetta diventa solo icona (la scritta «Moduli» copriva la chat). La cartina in alto al centro apre la mappa. L’ingranaggio tiene Impostazioni, Guide e Logout; «Azienda» solo con almeno due tenant. Diario nascosto nel menu se Manodopera è attivo. Pulsanti di movimento in alto a destra su: Diario, lavori in corso e completati; home Conto terzi, Frutteto e Vigneto; statistiche Frutteto, Vigneto e aziendali; trattamenti, concimazioni e potatura (Vigneto e Frutteto); Raccolta frutta; Tracciabilità consumi; Archivio documenti; Impegni giornalieri; Abbonamento.
+3. **23 settembre — prima promozione.** PR #66 su `main`. Sul telefono la pelle c’era solo con **Prova**.
+4. **25 settembre — graffetta anche sul telefono.** Al posto di «Tocca per i moduli» compare l’icona, come cartina e ingranaggio. In quel momento in barra restava ancora «Proposta · Home»: è stata tolta il 26.
+5. **25 settembre — movimento.** L’ingranaggio scorre come la graffetta (0,18 s). Il cambio pagina è una dissolvenza di 0,18 s. Sulla mappa la barra resta e le tessere compaiono quando sono pronte.
+6. **25 settembre — niente più flash della pelle vecchia, se la sessione l’aveva già.** Uno script in testa alle pagine ufficio ridisegna la Proposta subito, così al cambio pagina non ricompare quella di prima. Promosso su `main` con la PR #67. In quella versione lo script partiva solo se la sessione aveva già acceso la pelle.
+7. **25 settembre — la Proposta diventa la pelle delle pagine ufficio.** `uiPelleProposta` passa a `enabledAlways: true` e lo script in testa la disegna sempre, anche al primo arrivo. Lo switch **Prova** non la spegne. Rollback: `git revert`, non il tap su Pubblicata. Tag locale `ui-pre-pelle-20260922` sul commit di `main` prima della pelle, non pushato. Questa voce e le successive non sono su `main`.
+8. **25–26 settembre — Meteo.** Via il gradiente azzurro e il font vecchio: header carta, come le altre. Poi gli stessi margini (blocco centrato, largo al massimo 1400 pixel): la graffetta non copre più la spiegazione del modulo.
+9. **26 settembre — Statistiche manodopera.** I numeri erano bianchi sulla carta e non si leggevano. Ora sono scuri. «Media ore/giorno» del report ore operai non usa più lo stesso identificatore di quella in Statistiche ore, e non la sovrascrive.
+10. **26 settembre — Abbonamento.** Esce dall’elenco moduli e sta nell’ingranaggio, dopo Impostazioni e prima delle Guide.
+11. **26 settembre — telefono.** La barra tiene le tre icone in riga, senza sovrapporsi. Card a una o due colonne secondo la larghezza. `viewport-fit=cover` sulle pagine ufficio, così notch e barra dei gesti non coprono il menu. Poi tolta ogni scritta dalla barra nera.
+
+I moduli accesi o spenti dell’azienda non fanno parte di questo lavoro: la pelle non li cambia.
+
+## Promozione su main — piani decisi da telefono e Higgsfield (2026-09-21)
+
+- **Cosa:** cherry-pick da `develop` (`09d0ecb` / PR #62) su branch da `main`. Piani campo/offline/lancio/agenti erranti, valutazione 12/09, copione Linea B, fogli video, registro Tony §24–§25.
+- **Perché:** da cellulare si riprendono solo i file che sono su `main`. CI develop verde su PR #62.
+- Doc: questa voce. Master Plan: nessuna fase cambiata.
 
 ## Allineamento — piani dal telefono in locale + ordine Higgsfield (2026-09-21)
 
@@ -12,6 +252,18 @@
 - **Perché:** lavoro PC e telefono non condividevano gli stessi file; i piani restavano solo su PR bozza.
 - **Non toccato:** codice app; PR #26 (estrazione documenti) è implementazione, non portata.
 - Doc: questa voce, `da-fare/README.md`, `INDICE_DOCUMENTAZIONE.md`. Master Plan: nessuna fase cambiata.
+
+## Promozione su main — Tony nav dashboard / meteo / reminder (2026-09-21)
+
+- **Cosa:** cherry-pick da `develop` (`22781a4` / PR #60) su branch da `main`. Nav Tony: destinazione nominata, home ERP vs dashboard di modulo, «portami al meteo» ≠ previsioni.
+- **Perché:** `main` e `develop` hanno storie parallele (promozioni a cherry-pick). CI develop verde su PR #60. CF `tonyAsk`/`tonyAskStream` già deployate.
+- Doc: questa voce. Master Plan: nessuna fase cambiata.
+
+## Promozione su main — bootstrap unico standalone (2026-09-20)
+
+- **Cosa:** cherry-pick da `develop` (`7af8178` / PR #58) su branch da `main`. Bootstrap unico sulle pagine standalone; `increment`/`runTransaction` di magazzino e preventivi restano; lista lavori paint-first.
+- **Perché:** `main` e `develop` hanno storie parallele (promozioni a cherry-pick). CI develop verde: [35530137514](https://github.com/VitaraDragon/gfv-platform/actions/runs/35530137514).
+- Doc: questa voce. Master Plan: nessuna fase cambiata.
 
 ## Fix Tony — dalla dashboard «portami al meteo» non legge più le previsioni (2026-09-21)
 
@@ -113,7 +365,6 @@
 - **Test:** `tests/simulator-standalone-page.test.js`.
 - **Resto aperto:** pagine di prova dello snellimento.
 - Doc: questa voce, `STATO_ATTUALE.md` §8. Master Plan: nessuna fase cambiata.
-
 ## Fix CI — Tony FAB assente (2026-09-19)
 
 - **Perché:** `main.js` in commit importava da `engine.js` (`normalizeItalianSttTranscript` e affini) e `tony-form-save-local.js` (`tryInterceptLavoroSaveBeforeCf`) export rimasti fuori. Il modulo crashava all’import: FAB assente, E2E mock 0/17.

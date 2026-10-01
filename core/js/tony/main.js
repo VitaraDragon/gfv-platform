@@ -3332,7 +3332,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             }
                             break;
                         }
-                        var targetModalId = (data.formId === 'lavoro-form' || data.formId === 'lavoro-modal') ? 'lavoro-modal' : (data.formId === 'attivita-form' ? 'attivita-modal' : (data.formId === 'prodotto-form' ? 'prodotto-modal' : (data.formId === 'movimento-form' ? 'movimento-modal' : (data.formId === 'terreno-form' ? 'terreno-modal' : (data.formId === 'zona-form' ? 'zona-modal' : (data.formId === 'ora-form' ? 'ora-modal' : null))))));
+                        var mappedInject = (typeof TONY_FORM_MAPPING !== 'undefined' && TONY_FORM_MAPPING.getFormMap)
+                            ? TONY_FORM_MAPPING.getFormMap(data.formId)
+                            : null;
+                        var targetModalId = (mappedInject && mappedInject.modalId)
+                            ? mappedInject.modalId
+                            : ((data.formId === 'lavoro-form' || data.formId === 'lavoro-modal') ? 'lavoro-modal' : (data.formId === 'attivita-form' ? 'attivita-modal' : (data.formId === 'prodotto-form' ? 'prodotto-modal' : (data.formId === 'movimento-form' ? 'movimento-modal' : (data.formId === 'terreno-form' ? 'terreno-modal' : (data.formId === 'zona-form' ? 'zona-modal' : (data.formId === 'ora-form' ? 'ora-modal' : null)))))));
                         var modalEl = targetModalId ? document.getElementById(targetModalId) : null;
                         var isModalOpen = modalEl && modalEl.classList.contains('active');
                         if (data.formId === 'terreno-form' && !document.getElementById('terreno-form')) {
@@ -4042,6 +4047,13 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 break;
                             }
                             tryInjectTrattamento(0);
+                        } else if (mappedInject && window.TonyFormInjector && typeof window.TonyFormInjector.injectForm === 'function') {
+                            tonyDebugLog('[Tony] INJECT_FORM_DATA: form mappato', data.formId);
+                            window.TonyFormInjector.injectForm(data.formData, mappedInject, ctx).then(function(ok) {
+                                window.__tonyInjectionInProgress = false;
+                                if (ok) tonyDebugLog('[Tony] Form mappato iniettato:', data.formId);
+                                else console.warn('[Tony] Iniezione form mappato fallita:', data.formId);
+                            });
                         } else {
                             window.__tonyInjectionInProgress = false;
                             console.warn('[Tony] INJECT_FORM_DATA: formId non supportato:', data.formId);
@@ -4287,6 +4299,18 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     tonyDebugLog('[Tony] Inizializzo modal Segna ora (dropdown lavori)');
                                     window.openSegnaOraModal(null);
                                     enqueueTonyCommand({ type: '_WAIT_MODAL_READY' }, { source: 'post-open-ora', delayMs: 900 });
+                                }
+                            } else {
+                                var openMap = (typeof TONY_FORM_MAPPING !== 'undefined' && TONY_FORM_MAPPING.getFormMap)
+                                    ? TONY_FORM_MAPPING.getFormMap(resolvedId)
+                                    : null;
+                                if (openMap && openMap.openFn && typeof window[openMap.openFn] === 'function') {
+                                    try {
+                                        window[openMap.openFn](null);
+                                        enqueueTonyCommand({ type: '_WAIT_MODAL_READY' }, { source: 'post-open-mapped', delayMs: 600 });
+                                    } catch (eOpenMapped) {
+                                        console.warn('[Tony] openFn mapping fallito:', openMap.openFn, eOpenMapped);
+                                    }
                                 }
                             }
                             // Supporto fields: INJECT_FORM_DATA atomico per attivita/lavoro/magazzino (evita perdita compilazione)
@@ -5126,7 +5150,15 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             concimazioni_vigneto: { vigneto: 'filter-vigneto', anno: 'filter-anno' },
                             concimazioni_frutteto: { frutteto: 'filter-frutteto', anno: 'filter-anno' },
                             tracciabilita_consumi: { categoria: 'filter-categoria', terreno: 'filter-terreno', vista: 'filter-vista' },
-                            vendemmia: { vigneto: 'filter-vigneto', varieta: 'filter-varieta', anno: 'filter-anno' }
+                            vendemmia: { vigneto: 'filter-vigneto', varieta: 'filter-varieta', anno: 'filter-anno' },
+                            seminativi: { terreno: 'filter-terreno', campagna: 'filter-campagna', coltura: 'filter-coltura', stato: 'filter-stato', ricerca: 'filter-ricerca' },
+                            semina_seminativo: { campagna: 'filter-campagna', ricerca: 'filter-ricerca' },
+                            lavorazioni_seminativo: { terreno: 'filter-terreno', tipo: 'filter-tipo', origine: 'filter-origine', ricerca: 'filter-ricerca' },
+                            trattamenti_seminativo: { terreno: 'filter-terreno', campagna: 'filter-campagna', ricerca: 'filter-ricerca' },
+                            concimazioni_seminativo: { terreno: 'filter-terreno', campagna: 'filter-campagna', ricerca: 'filter-ricerca' },
+                            raccolta_seminativo: { terreno: 'filter-terreno', campagna: 'filter-campagna', ricerca: 'filter-ricerca' },
+                            statistiche_seminativo: { terreno: 'filter-terreno', campagna: 'filter-campagna' },
+                            piano_colturale_seminativo: { terreno: 'filter-terreno', ricerca: 'filter-ricerca' }
                         };
                         var keyToId = FILTER_KEY_MAP[pageType] || FILTER_KEY_MAP.terreni;
                         var isAttivita = pageType === 'attivita';
@@ -5177,7 +5209,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         }
 
                         if (params.filterType === 'reset' || params.reset === true) {
-                            var resetSel = (pageType === 'attivita' || pageType === 'clienti' || pageType === 'preventivi' || pageType === 'tariffe' || pageType === 'terreniClienti' || pageType === 'prodotti' || pageType === 'movimenti' || pageType === 'concimazioni_vigneto' || pageType === 'concimazioni_frutteto' || pageType === 'tracciabilita_consumi' || pageType === 'vendemmia' || pageType === 'piano-stagione-vm') ? 'select[id^="filter-"], input[id^="filter-"]' : 'select[id^="filter-"]';
+                            var resetSel = (pageType === 'attivita' || pageType === 'clienti' || pageType === 'preventivi' || pageType === 'tariffe' || pageType === 'terreniClienti' || pageType === 'prodotti' || pageType === 'movimenti' || pageType === 'concimazioni_vigneto' || pageType === 'concimazioni_frutteto' || pageType === 'tracciabilita_consumi' || pageType === 'vendemmia' || pageType === 'piano-stagione-vm' || pageType === 'seminativi' || pageType === 'semina_seminativo' || pageType === 'lavorazioni_seminativo' || pageType === 'trattamenti_seminativo' || pageType === 'concimazioni_seminativo' || pageType === 'raccolta_seminativo' || pageType === 'statistiche_seminativo' || pageType === 'piano_colturale_seminativo') ? 'select[id^="filter-"], input[id^="filter-"]' : 'select[id^="filter-"]';
                             document.querySelectorAll(resetSel).forEach(function(el) {
                                 el.value = '';
                                 try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (e) {}
@@ -5214,7 +5246,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                             el.appendChild(opt);
                                         }
                                     }
-                                    var matchByText = (isAttivita && (key === 'terreno' || key === 'origine')) || (pageType === 'lavori' && (key === 'terreno' || key === 'caposquadra' || key === 'operaio' || key === 'tipoLavoro')) || (pageType === 'preventivi' && (key === 'cliente' || key === 'categoriaLavoro' || key === 'categoriaColtura')) || (pageType === 'terreniClienti' && key === 'cliente') || (pageType === 'piano-stagione-vm' && key === 'cliente') || (pageType === 'movimenti' && key === 'prodotto') || (pageType === 'prodotti' && key === 'categoria') || (pageType === 'concimazioni_vigneto' && key === 'vigneto') || (pageType === 'concimazioni_frutteto' && key === 'frutteto') || (pageType === 'tracciabilita_consumi' && (key === 'categoria' || key === 'terreno')) || (pageType === 'vendemmia' && (key === 'varieta' || key === 'vigneto'));
+                                    var matchByText = (isAttivita && (key === 'terreno' || key === 'origine')) || (pageType === 'lavori' && (key === 'terreno' || key === 'caposquadra' || key === 'operaio' || key === 'tipoLavoro')) || (pageType === 'preventivi' && (key === 'cliente' || key === 'categoriaLavoro' || key === 'categoriaColtura')) || (pageType === 'terreniClienti' && key === 'cliente') || (pageType === 'piano-stagione-vm' && key === 'cliente') || (pageType === 'movimenti' && key === 'prodotto') || (pageType === 'prodotti' && key === 'categoria') || (pageType === 'concimazioni_vigneto' && key === 'vigneto') || (pageType === 'concimazioni_frutteto' && key === 'frutteto') || (pageType === 'tracciabilita_consumi' && (key === 'categoria' || key === 'terreno')) || (pageType === 'vendemmia' && (key === 'varieta' || key === 'vigneto')) || (pageType === 'seminativi' && (key === 'terreno' || key === 'coltura' || key === 'stato' || key === 'campagna')) || (pageType === 'semina_seminativo' && (key === 'campagna' || key === 'ricerca')) || (pageType === 'lavorazioni_seminativo' && (key === 'terreno' || key === 'tipo' || key === 'origine' || key === 'ricerca')) || (pageType === 'trattamenti_seminativo' && (key === 'terreno' || key === 'campagna' || key === 'ricerca')) || (pageType === 'concimazioni_seminativo' && (key === 'terreno' || key === 'campagna' || key === 'ricerca')) || (pageType === 'raccolta_seminativo' && (key === 'terreno' || key === 'campagna' || key === 'ricerca')) || (pageType === 'statistiche_seminativo' && (key === 'terreno' || key === 'campagna')) || (pageType === 'piano_colturale_seminativo' && (key === 'terreno' || key === 'ricerca'));
                                     var paramVal = params[key];
                                     if (pageType === 'prodotti' && key === 'categoria' && realId === 'filter-categoria') {
                                         paramVal = normalizeTonyProdottiCategoriaValue(paramVal);
@@ -5256,7 +5288,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 var realId = keyToId[filterType] || ('filter-' + filterType);
                                 var el = document.getElementById(realId);
                                 if (el && (el.tagName === 'SELECT' || 'value' in el)) {
-                                    var matchByTextRetro = (pageType === 'attivita' && (filterType === 'terreno' || filterType === 'origine')) || (pageType === 'lavori' && (filterType === 'terreno' || filterType === 'caposquadra' || filterType === 'operaio' || filterType === 'tipoLavoro')) || (pageType === 'preventivi' && (filterType === 'cliente' || filterType === 'categoriaLavoro' || filterType === 'categoriaColtura')) || (pageType === 'terreniClienti' && filterType === 'cliente') || (pageType === 'piano-stagione-vm' && (filterType === 'cliente' || filterType === 'stato')) || (pageType === 'movimenti' && (filterType === 'prodotto' || filterType === 'tipo')) || (pageType === 'prodotti' && filterType === 'categoria') || (pageType === 'concimazioni_vigneto' && filterType === 'vigneto') || (pageType === 'concimazioni_frutteto' && filterType === 'frutteto') || (pageType === 'tracciabilita_consumi' && (filterType === 'categoria' || filterType === 'terreno')) || (pageType === 'vendemmia' && (filterType === 'varieta' || filterType === 'vigneto' || filterType === 'anno'));
+                                    var matchByTextRetro = (pageType === 'attivita' && (filterType === 'terreno' || filterType === 'origine')) || (pageType === 'lavori' && (filterType === 'terreno' || filterType === 'caposquadra' || filterType === 'operaio' || filterType === 'tipoLavoro')) || (pageType === 'preventivi' && (filterType === 'cliente' || filterType === 'categoriaLavoro' || filterType === 'categoriaColtura')) || (pageType === 'terreniClienti' && filterType === 'cliente') || (pageType === 'piano-stagione-vm' && (filterType === 'cliente' || filterType === 'stato')) || (pageType === 'movimenti' && (filterType === 'prodotto' || filterType === 'tipo')) || (pageType === 'prodotti' && filterType === 'categoria') || (pageType === 'concimazioni_vigneto' && filterType === 'vigneto') || (pageType === 'concimazioni_frutteto' && filterType === 'frutteto') || (pageType === 'tracciabilita_consumi' && (filterType === 'categoria' || filterType === 'terreno')) || (pageType === 'vendemmia' && (filterType === 'varieta' || filterType === 'vigneto' || filterType === 'anno')) || (pageType === 'seminativi' && (filterType === 'terreno' || filterType === 'coltura' || filterType === 'stato' || filterType === 'campagna')) || (pageType === 'semina_seminativo' && (filterType === 'campagna' || filterType === 'ricerca')) || (pageType === 'lavorazioni_seminativo' && (filterType === 'terreno' || filterType === 'tipo' || filterType === 'origine' || filterType === 'ricerca')) || (pageType === 'trattamenti_seminativo' && (filterType === 'terreno' || filterType === 'campagna' || filterType === 'ricerca')) || (pageType === 'concimazioni_seminativo' && (filterType === 'terreno' || filterType === 'campagna' || filterType === 'ricerca')) || (pageType === 'raccolta_seminativo' && (filterType === 'terreno' || filterType === 'campagna' || filterType === 'ricerca')) || (pageType === 'statistiche_seminativo' && (filterType === 'terreno' || filterType === 'campagna')) || (pageType === 'piano_colturale_seminativo' && (filterType === 'terreno' || filterType === 'ricerca'));
                                     var retroVal = value;
                                     if (pageType === 'prodotti' && filterType === 'categoria' && el.id === 'filter-categoria') {
                                         retroVal = normalizeTonyProdottiCategoriaValue(retroVal);

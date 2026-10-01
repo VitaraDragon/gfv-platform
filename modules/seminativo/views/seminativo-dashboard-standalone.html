@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Seminativo" data-gfv-module="seminativo">
+<head>
+<script>try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
+<script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Dashboard Seminativo - GFV Platform</title>
+    <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
+    <link rel="stylesheet" href="seminativo-standalone.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div>
+                <h1>🌾 Seminativo</h1>
+                <p>Campagne, semina, lavorazioni e raccolta.</p>
+            </div>
+            <div class="header-actions">
+                <a href="../../../core/dashboard-standalone.html" class="btn btn-secondary">← Dashboard Principale</a>
+            </div>
+        </div>
+
+        <div class="content">
+            <h2 id="panoramica-title">Panoramica</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-campagne">—</div>
+                    <div class="stat-label">Campagne aperte</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-ettari">—</div>
+                    <div class="stat-label">Ettari aperti</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-semine">—</div>
+                    <div class="stat-label">Semine</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="stat-raccolte">—</div>
+                    <div class="stat-label">Raccolte</div>
+                </div>
+            </div>
+
+            <h2>Azioni rapide</h2>
+            <div class="quick-actions" id="seminativo-hub-cards"></div>
+
+            <div class="section hub-list">
+                <h2>Raccolte recenti</h2>
+                <div class="table-container">
+                    <table id="table-raccolte">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Terreno</th>
+                                <th>Quantità (Qli)</th>
+                                <th>Resa (Qli/Ha)</th>
+                                <th>Costo Totale (€)</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="6" class="loading">Caricamento raccolte...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="section hub-list">
+                <h2>Lavori seminativo</h2>
+                <div class="table-container">
+                    <table id="table-lavori">
+                        <thead>
+                            <tr>
+                                <th>Data</th>
+                                <th>Terreno</th>
+                                <th>Tipo Lavoro</th>
+                                <th>Stato</th>
+                                <th>Azioni</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td colspan="5" class="loading">Caricamento lavori...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
+    <script type="module">
+        import { resolvePath } from '../../../core/js/gfv-path.js';
+        import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+        import { publishSeminativoTableData, placeholderTableData } from '../js/seminativo-page-context.js';
+        import { renderSeminativoHubCards, refreshSeminativoHub } from '../js/seminativo-hub-page.js';
+
+        function syncTonyModules(modules) {
+            if (typeof window.syncTonyModules === 'function') {
+                window.syncTonyModules(modules);
+            } else if (window.setTonyContext) {
+                window.setTonyContext({ moduli_attivi: modules });
+            } else {
+                window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules } }));
+            }
+        }
+
+        renderSeminativoHubCards();
+        publishSeminativoTableData(placeholderTableData(
+            'seminativo_hub',
+            'Caricamento dati in corso...'
+        ));
+
+        try {
+            await window.GFVStandaloneReady;
+        } catch (err) {
+            console.error('[seminativo-dashboard] Bootstrap failed:', err);
+            throw err;
+        }
+
+        const firebaseServiceModule = await import(resolvePath('../../../core/services/firebase-service.js'));
+        const tenantServiceModule = await import(resolvePath('../../../core/services/tenant-service.js'));
+        const { getAuthInstance, onAuthStateChanged } = firebaseServiceModule;
+        const { getCurrentTenantId, getCurrentTenant, initializeTenantService } = tenantServiceModule;
+
+        const auth = getAuthInstance();
+        initializeTenantService();
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
+            if (!user) {
+                window.location.href = await loginPageUrl(resolvePath('../../../core/auth/login-standalone.html'));
+                return;
+            }
+            if (!getCurrentTenantId()) {
+                console.warn('[seminativo-dashboard] Tenant non disponibile');
+                return;
+            }
+            const tenant = await getCurrentTenant().catch(() => null);
+            const modules = Array.isArray(tenant?.modules) ? tenant.modules.slice() : [];
+            if (!modules.some((m) => String(m || '').toLowerCase() === 'seminativo')) modules.push('seminativo');
+            if (!modules.some((m) => String(m || '').toLowerCase() === 'tony')) modules.push('tony');
+            syncTonyModules(modules);
+            try {
+                const includeLavori = modules.some((item) => String(item || '').toLowerCase() === 'manodopera');
+                await refreshSeminativoHub({ includeLavori });
+            } catch (err) {
+                console.error('[seminativo-dashboard] Panoramica non disponibile:', err);
+            }
+        });
+    </script>
+</body>
+</html>

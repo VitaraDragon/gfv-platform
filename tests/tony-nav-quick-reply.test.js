@@ -269,6 +269,25 @@ describe('tryTonyNavQuickReply — altri casi', () => {
     expect(hit.command).toBeNull();
   });
 
+  it('portami al seminativo → hub se il modulo è attivo', () => {
+    expect(resolveNavTarget('portami al seminativo')).toBe('seminativo');
+    const blocked = tryTonyNavQuickReply({
+      message: 'portami al seminativo',
+      ctx: ctxBase,
+    });
+    expect(blocked.id).toBe('nav_module_blocked');
+    const hit = tryTonyNavQuickReply({
+      message: 'portami al seminativo',
+      ctx: {
+        moduli_attivi: ['tony', 'seminativo'],
+        dashboard: { moduli_attivi: ['tony', 'seminativo'] },
+      },
+    });
+    expect(hit).not.toBeNull();
+    expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'seminativo' });
+    expect(hit.text).toMatch(/seminativo/i);
+  });
+
   it('crea lavoro non intercettato come nav', () => {
     const hit = tryTonyNavQuickReply({
       message: 'crea un lavoro di trinciatura per luca',

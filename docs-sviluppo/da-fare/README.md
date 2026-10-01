@@ -1,6 +1,6 @@
 # Documentazione da fare
 
-**Aggiornato:** 2026-09-21
+**Aggiornato:** 2026-09-23
 
 Specifiche e proposte **non ancora implementate** (o solo in parte) ma **ancora compatibili** con la direzione del progetto (`tony/MASTER_PLAN.md`, `ARCHITETTURA_MODULI_E_INTERAZIONI.md`).
 
@@ -18,6 +18,7 @@ Vedi anche **`DOBBIAMO_ANCORA_FARE.md`** (root `docs-sviluppo/`) per sicurezza, 
 | `tony/` | Sostituzione manodopera / equipaggio su lavori (design; **vista impegni giornalieri ✅ 2026-07-24** — restano roster completo, Context Builder shortlist, …). **Agenti erranti / auto-correzione** (design 2026-09-14): `PIANO_AGENTI_ERRANTI_AUTO_CORREZIONE_TONY.md` |
 | `manodopera/` | **Campo mobile unico + lingue operaio/caposquadra** (deciso, non implementato — 2026-09-19): `PIANO_CAMPO_MOBILE_MULTILINGUA.md`. Registro Tony §24 |
 | `dashboard/` | **Telefono manager** (bozza aperta — 2026-09-19): `PIANO_MOBILE_MANAGER.md`. Non mescolare col piano campo. Registro Tony §25 |
+| `ui/` | **Pelle Proposta** (Fetata 0–1 in codice, look non definitivo — aggiornato 2026-09-23: menu, mappa, logout, header): `PIANO_PELLE_PROPOSTA_SU_APP.md`. Flag Prova/Pubblicata. Registro Tony §26 |
 | `offline/` | **Campo senza segnale** (perimetro chiuso, codice no — 2026-09-14): `PIANO_OFFLINE_CAMPO.md` |
 | `lancio/` | **Lancio legale e produzione** (2026-09-08): `PIANO_LANCIO_LEGALE_E_PRODUZIONE.md` — Iubenda, Stripe live, checkbox privacy |
 | `notifiche/` | Push ciclo lavoro (spec 2026-08-25) + linea guida assenze/WhatsApp (2026-07-29). Catalogo: `core/config/notification-catalog.js` |

@@ -537,6 +537,97 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     }
   };
 
+  const SEMINATIVO_CAMPAGNA_FORM_MAP = {
+    formId: 'seminativo-campagna-form',
+    modalId: 'seminativo-campagna-modal',
+    openFn: 'openSeminativoCampagnaModal',
+    injectionOrder: [
+      'campagna-terreno',
+      'campagna-anno',
+      'campagna-coltura',
+      'campagna-varieta',
+      'campagna-superficie',
+      'campagna-resa-prevista',
+      'campagna-data-semina',
+      'campagna-data-raccolta',
+      'campagna-stato',
+      'campagna-note'
+    ],
+    fields: {
+      'campagna-terreno': { type: 'select', resolve: 'by_name', lookup: 'terreni', required: true, description: 'Terreno seminativo (nome come in anagrafica)' },
+      'campagna-anno': { type: 'text', resolve: 'as_is', required: true, description: 'Campagna agricola (es. 2026/2027 o 2026)' },
+      'campagna-coltura': { type: 'select', resolve: 'by_name', lookup: 'colture', required: true, description: 'Coltura della categoria Seminativo (Grano, Mais, Orzo…)' },
+      'campagna-varieta': { type: 'select', resolve: 'as_is', description: 'Varietà dell\'elenco della coltura scelta (es. Grano → Bologna, Riso → Carnaroli). Opzionale.' },
+      'campagna-superficie': { type: 'number', resolve: 'as_is', description: 'Superficie in ettari' },
+      'campagna-resa-prevista': { type: 'number', resolve: 'as_is', description: 'Resa prevista in quintali/ha' },
+      'campagna-data-semina': { type: 'date', resolve: 'as_is', description: 'Data semina prevista YYYY-MM-DD' },
+      'campagna-data-raccolta': { type: 'date', resolve: 'as_is', description: 'Data raccolta prevista YYYY-MM-DD' },
+      'campagna-stato': { type: 'select', resolve: 'as_is', description: 'pianificato | seminato | in_ciclo | raccolto | chiuso' },
+      'campagna-note': { type: 'text', resolve: 'as_is', description: 'Note' }
+    },
+    tonyInterviewFieldIds: [
+      'campagna-terreno',
+      'campagna-anno',
+      'campagna-coltura'
+    ]
+  };
+
+  const SYSTEM_INSTRUCTION_SEMINATIVO_CAMPAGNA = `Ruolo: compilazione «Nuova campagna seminativo». Chiavi: campagna-terreno (nome terreno categoria Seminativo), campagna-anno (es. 2026/2027), campagna-coltura (Grano, Mais…), campagna-varieta (nome nell'elenco della coltura: Grano → Bologna o Svevo, Riso → Carnaroli; va scelta dopo la coltura), campagna-superficie (ha), campagna-resa-prevista (q/ha), campagna-data-semina / campagna-data-raccolta (YYYY-MM-DD), campagna-stato (pianificato, seminato, in_ciclo, raccolto, chiuso), campagna-note. Apri il modal prima di INJECT se chiuso. Un terreno ha una sola campagna per anno.`;
+
+  const SEMINATIVO_SEMINA_FORM_MAP = {
+    formId: 'seminativo-semina-form',
+    modalId: 'seminativo-semina-modal',
+    openFn: 'openSeminativoSeminaModal',
+    injectionOrder: [
+      'semina-campagna',
+      'semina-data',
+      'semina-varieta',
+      'semina-dose',
+      'semina-unita',
+      'semina-note'
+    ],
+    fields: {
+      'semina-campagna': { type: 'select', resolve: 'as_is', required: true, description: 'Campagna esistente: id oppure testo opzione (coltura · anno · terreno)' },
+      'semina-data': { type: 'date', resolve: 'as_is', required: true, description: 'Data semina effettiva YYYY-MM-DD' },
+      'semina-varieta': { type: 'select', resolve: 'as_is', description: 'Varietà dell\'elenco della coltura della campagna (dopo semina-campagna)' },
+      'semina-dose': { type: 'number', resolve: 'as_is', description: 'Dose seme (numero)' },
+      'semina-unita': { type: 'select', resolve: 'as_is', description: 'kg/ha oppure kg' },
+      'semina-note': { type: 'text', resolve: 'as_is', description: 'Note' }
+    },
+    tonyInterviewFieldIds: ['semina-campagna', 'semina-data']
+  };
+
+  const SYSTEM_INSTRUCTION_SEMINATIVO_SEMINA = `Ruolo: compilazione «Nuova semina» su una campagna seminativo già creata. Chiavi: semina-campagna (id campagna o testo «Coltura · anno · terreno»), semina-data (YYYY-MM-DD), semina-varieta (elenco della coltura, dopo la campagna), semina-dose (numero), semina-unita (kg/ha o kg), semina-note. Apri il modal prima di INJECT se chiuso. Non creare qui la campagna: se manca, vai all'anagrafica. La prima semina porta la campagna da pianificato a seminato.`;
+
+  const SYSTEM_INSTRUCTION_SEMINATIVO_TRATTAMENTO = `Ruolo: completare un trattamento seminativo già nato da un lavoro o da un'attività di categoria Trattamenti. Stesso form del vigneto e del frutteto: formId **form-trattamento**, modal **modal-trattamento**. Non inventare la riga: se il modal è chiuso, chiedi di premere Completa sulla riga, oppure APRI_PAGINA verso il diario o gestione lavori. **Primario**: trattamento-prodotti = [{ "prodotto", "dosaggio": kg/ha }, …]. Quantità = dosaggio × ha. Non sovrascrivere costo manodopera e costo macchina se già precompilati dal lavoro o dal diario. Checkbox trattamento-superficie-anagrafe e trattamento-registra-scarico-magazzino solo dopo conferma. La differenza di modulo è il legame alla campagna seminativo, non un secondo schema di campi.`;
+
+  const SEMINATIVO_TRATTAMENTO_FORM_MAP = TRATTAMENTO_CAMPO_FORM_MAP;
+
+  const SEMINATIVO_RACCOLTA_FORM_MAP = {
+    formId: 'form-raccolta',
+    modalId: 'modal-raccolta',
+    openFn: 'openSeminativoRaccoltaModal',
+    injectionOrder: [
+      'raccolta-quantita',
+      'raccolta-superficie',
+      'raccolta-destinazione',
+      'raccolta-note'
+    ],
+    fields: {
+      'raccolta-varieta': { type: 'text', resolve: 'as_is', description: 'Varietà della campagna, in sola lettura' },
+      'raccolta-quantita': { type: 'number', resolve: 'as_is', required: true, description: 'Quantità raccolta in quintali' },
+      'raccolta-superficie': { type: 'number', resolve: 'as_is', required: true, description: 'Superficie raccolta in ettari' },
+      'raccolta-superficie-anagrafe': { type: 'checkbox', resolve: 'as_is', description: 'Usa la superficie da anagrafe terreni. Solo dopo conferma.' },
+      'raccolta-destinazione': { type: 'select', resolve: 'as_is', required: true, description: 'vendita | stoccaggio | uso_aziendale' },
+      'raccolta-costo-mano': { type: 'number', resolve: 'as_is', description: 'Costo manodopera già precompilato dal lavoro o dal diario' },
+      'raccolta-costo-macchina': { type: 'number', resolve: 'as_is', description: 'Costo macchina già precompilato dal lavoro o dal diario' },
+      'raccolta-note': { type: 'text', resolve: 'as_is', description: 'Note' }
+    },
+    tonyInterviewFieldIds: ['raccolta-quantita', 'raccolta-destinazione']
+  };
+
+  const SYSTEM_INSTRUCTION_SEMINATIVO_RACCOLTA = `Ruolo: completare una mietitura seminativo già nata da un lavoro o da un'attività di categoria Raccolta a pieno campo. FormId **form-raccolta**, modal **modal-raccolta**. Non inventare la riga e non usare la vendemmia del vigneto. Se il modal è chiuso, chiedi di premere Completa sulla riga. Chiavi: raccolta-quantita (quintali), raccolta-superficie (ha), raccolta-destinazione (vendita, stoccaggio, uso_aziendale). Non sovrascrivere costo manodopera e costo macchina se già precompilati. La varietà resta quella della campagna. La prima raccolta salvata porta la campagna a raccolto.`;
+
   const mapping = {
     'attivita-modal': ATTIVITA_FORM_MAP,
     attivita: ATTIVITA_FORM_MAP,
@@ -558,11 +649,22 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     'form-trattamento': TRATTAMENTO_CAMPO_FORM_MAP,
     'trattamento-concimazione-form': TRATTAMENTO_CAMPO_FORM_MAP,
     'modal-trattamento': TRATTAMENTO_CAMPO_FORM_MAP,
+    trattamenti_seminativo: TRATTAMENTO_CAMPO_FORM_MAP,
+    concimazioni_seminativo: TRATTAMENTO_CAMPO_FORM_MAP,
+    'form-raccolta': SEMINATIVO_RACCOLTA_FORM_MAP,
+    'modal-raccolta': SEMINATIVO_RACCOLTA_FORM_MAP,
+    raccolta_seminativo: SEMINATIVO_RACCOLTA_FORM_MAP,
     'zona-form': ZONA_SEGMENTO_FORM_MAP,
     zona: ZONA_SEGMENTO_FORM_MAP,
     'ora-form': SEGNA_ORE_FORM_MAP,
     'segna-ora': SEGNA_ORE_FORM_MAP,
-    'field-workspace-ore-form': FIELD_WORKSPACE_ORE_FORM_MAP
+    'field-workspace-ore-form': FIELD_WORKSPACE_ORE_FORM_MAP,
+    'seminativo-campagna-form': SEMINATIVO_CAMPAGNA_FORM_MAP,
+    'seminativo-campagna-modal': SEMINATIVO_CAMPAGNA_FORM_MAP,
+    seminativi: SEMINATIVO_CAMPAGNA_FORM_MAP,
+    'seminativo-semina-form': SEMINATIVO_SEMINA_FORM_MAP,
+    'seminativo-semina-modal': SEMINATIVO_SEMINA_FORM_MAP,
+    semina_seminativo: SEMINATIVO_SEMINA_FORM_MAP
   };
 
   const schemas = {
@@ -585,7 +687,18 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     'trattamento-concimazione-form': SYSTEM_INSTRUCTION_TRATTAMENTO_CAMPO,
     'zona-form': SYSTEM_INSTRUCTION_ZONA_SEGMENTO,
     'ora-form': SYSTEM_INSTRUCTION_SEGNA_ORE,
-    'field-workspace-ore-form': SYSTEM_INSTRUCTION_SEGNA_ORE + ' Su workspace mobile il form è inline (schermata Segna ore), non aprire segnatura-ore-standalone.'
+    'field-workspace-ore-form': SYSTEM_INSTRUCTION_SEGNA_ORE + ' Su workspace mobile il form è inline (schermata Segna ore), non aprire segnatura-ore-standalone.',
+    'seminativo-campagna-form': SYSTEM_INSTRUCTION_SEMINATIVO_CAMPAGNA,
+    'seminativo-semina-form': SYSTEM_INSTRUCTION_SEMINATIVO_SEMINA,
+    'seminativo-semina-modal': SYSTEM_INSTRUCTION_SEMINATIVO_SEMINA,
+    semina_seminativo: SYSTEM_INSTRUCTION_SEMINATIVO_SEMINA,
+    trattamenti_seminativo: SYSTEM_INSTRUCTION_SEMINATIVO_TRATTAMENTO,
+    concimazioni_seminativo: SYSTEM_INSTRUCTION_SEMINATIVO_TRATTAMENTO,
+    'form-raccolta': SYSTEM_INSTRUCTION_SEMINATIVO_RACCOLTA,
+    'modal-raccolta': SYSTEM_INSTRUCTION_SEMINATIVO_RACCOLTA,
+    raccolta_seminativo: SYSTEM_INSTRUCTION_SEMINATIVO_RACCOLTA,
+    'seminativo-campagna-modal': SYSTEM_INSTRUCTION_SEMINATIVO_CAMPAGNA,
+    seminativi: SYSTEM_INSTRUCTION_SEMINATIVO_CAMPAGNA
   };
 
   /** Allineato a core/config/trattamenti-lavoro-defaults.js */
@@ -633,6 +746,14 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
     SYSTEM_INSTRUCTION_ZONA_SEGMENTO,
     SEGNA_ORE_FORM_MAP,
     FIELD_WORKSPACE_ORE_FORM_MAP,
-    SYSTEM_INSTRUCTION_SEGNA_ORE
+    SYSTEM_INSTRUCTION_SEGNA_ORE,
+    SEMINATIVO_CAMPAGNA_FORM_MAP,
+    SYSTEM_INSTRUCTION_SEMINATIVO_CAMPAGNA,
+    SEMINATIVO_SEMINA_FORM_MAP,
+    SYSTEM_INSTRUCTION_SEMINATIVO_SEMINA,
+    SEMINATIVO_TRATTAMENTO_FORM_MAP,
+    SYSTEM_INSTRUCTION_SEMINATIVO_TRATTAMENTO,
+    SEMINATIVO_RACCOLTA_FORM_MAP,
+    SYSTEM_INSTRUCTION_SEMINATIVO_RACCOLTA
   };
 })(typeof window !== 'undefined' ? window : globalThis);

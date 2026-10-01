@@ -29,6 +29,12 @@ describe('tony-module-gate', () => {
     expect(isApriPaginaTargetAllowed('terreni', ['tony'])).toBe(true);
   });
 
+  it('blocca APRI_PAGINA seminativo se il modulo non è attivo', () => {
+    expect(isApriPaginaTargetAllowed('seminativo', ['tony', 'vigneto'])).toBe(false);
+    expect(isApriPaginaTargetAllowed('seminativo', ['tony', 'seminativo'])).toBe(true);
+    expect(isApriPaginaTargetAllowed('piano colturale', ['seminativo'])).toBe(true);
+  });
+
   it('sanitizza comando navigazione modulo inattivo', () => {
     const result = sanitizeTonyResultForModules(
       {

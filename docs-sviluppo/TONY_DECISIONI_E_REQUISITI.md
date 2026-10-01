@@ -1,7 +1,7 @@
 # Tony – Inventario decisioni e requisiti
 
 **Data estrazione**: 2026-03-08  
-**Ultimo aggiornamento**: 2026-09-21 (bozza telefono manager §25; piano campo §24; lazy-load widget §3.10; flag prova tenant §22.7 / §23; zona lavorata due punti §11.7 / §22; push S5 assenze + WhatsApp §15.8)
+**Ultimo aggiornamento**: 2026-09-27 (hub Seminativo panoramica §27.1; anagrafica campagne Seminativo §27.3; scheletro modulo Seminativo §27; pelle Proposta in prova §26; bozza telefono manager §25; piano campo §24; lazy-load widget §3.10; flag prova tenant §22.7 / §23; zona lavorata due punti §11.7 / §22; push S5 assenze + WhatsApp §15.8)
 **Obiettivo**: Raccogliere in un unico documento ogni decisione di prodotto, requisito e vincolo trovato nei documenti Tony, per evitare perdite durante il consolidamento.
 
 **Stati**: `implementato` | `in corso` | `parziale` | `pianificato` | `non implementato` | `abbandonato` | `da verificare`
@@ -147,7 +147,7 @@
 
 | # | Decisione | Fonte | Stato | Note |
 |---|-----------|-------|-------|------|
-| 10.1 | TTS cloud (`getTonyAudio`): default **ElevenLabs** voce `5zD2eYSLIo8c2zkowMfP` (Flash) se c’è `ELEVENLABS_API_KEY`; rollback **`TONY_TTS_PROVIDER=google`** → Chirp 3 Charon | HANDOFF_TTS_CHIRP3, functions | implementato | 2026-09-26 |
+| 10.1 | TTS cloud (getTonyAudio), voce **it-IT-Chirp3-HD-Charon** (Chirp 3 HD; rollback env `it-IT-Wavenet-D`) | HANDOFF_TTS_CHIRP3, functions | implementato | 2026-06-13 |
 | 10.2 | askStream per streaming risposta | TONY_DA_IMPLEMENTARE | implementato | |
 | 10.3 | Pulizia testo per TTS (no markdown, emoji, JSON) | TONY_DA_IMPLEMENTARE | implementato | |
 | 10.4 | Modalità continua, barge-in, congedo vocale | TONY_FUNZIONI | implementato | |
@@ -701,6 +701,52 @@ Non è il piano campo (§24). Due home restano volute (campo vs ufficio); non du
 | 25.4 | Manager/admin restano in dashboard, non nel workspace campo | prodotto 2026-09-19 | **deciso** | `shouldUseFieldMobileWorkspace` |
 | 25.5 | Non promettere tutto l’ERP in tasca (preventivi pesanti, compensi, report, anagrafiche) | prodotto 2026-09-19 | **deciso** (principio) | Telefono = vedere e sbloccare |
 | 25.6 | Quali liste a card, quali 4–6 azioni home, form da accorciare, ordine vs piano campo | prodotto 2026-09-19 | **da decidere** | Checklist Q1–Q8 nel piano §8 |
+
+---
+
+## 26. Pelle UI «Proposta» sull’app (2026-09-22, aggiornato 2026-09-26)
+
+**Stato codice:** la Proposta è la pelle delle pagine ufficio sul branch `cursor/pelle-proposta-effettiva` (PR #68, non ancora su `main`). Su `main` restano PR #66 (pelle dietro **Prova**) e PR #67 (niente flash della pelle vecchia, graffetta sul telefono, scorrimento menu, dissolvenza). Lo smartphone legge `main`. Piano: `docs-sviluppo/da-fare/ui/PIANO_PELLE_PROPOSTA_SU_APP.md`. Resoconto: `COSA_ABBIAMO_FATTO.md` (voce 22–26 settembre 2026).  
+Non è il piano telefono manager (§25) e non è il piano campo (§24). Fetata 2–4 no. Nessuna fase del Master Plan è cambiata.
+
+| # | Decisione | Fonte | Stato | Note |
+|---|-----------|-------|-------|------|
+| 26.1 | Lo stile di prima restava affiancato finché il PO non confermava la pelle | prodotto 2026-09-22 | **superato** il 2026-09-25 | Vedi §26.2. Senza `data-pelle="proposta"` le pagine restano com’erano |
+| 26.2 | La pelle Proposta è quella delle pagine ufficio (`enabledAlways`). Lo switch Prova non la spegne più | prodotto 2026-09-22, aggiornato 2026-09-25 | **implementato** (non su `main`) | Campo, login e registrazione restano fuori. Rollback: `git revert` |
+| 26.3 | Rollback: `git revert` su `main`. Il tap **Pubblicata** non spegne più la pelle | prodotto 2026-09-22, aggiornato 2026-09-25 | **parziale** | Tag locale `ui-pre-pelle-20260922` sul commit di `main` prima della pelle, non pushato. Il telefono ha #67, non #68 |
+| 26.4 | Telefono: catalogo in sheet (si chiude dopo la scelta). PC: menu a sinistra a scomparsa. La barra nera non ha scritte: solo graffetta, cartina e ingranaggio. Le statistiche seguono 1 colonna sotto 480 px e 2 fino a 768. Notch e barra gesti via `viewport-fit=cover` | prodotto 2026-09-22, aggiornato 2026-09-26 | **parziale** | «Proposta · Home» e «Tocca per i moduli» coprivano la barra. Campo e login no |
+| 26.5 | Liste: schede su telefono, tabella su desktop. Reminder Tony 1 riga (§15.5) | prodotto 2026-09-21 | **parziale** | Ogni `.table-responsive` ufficio. Home: 1 riga, expand max 5 |
+| 26.6 | Workspace campo fuori scope. Niente seconda app, niente `if (formId)` nel core | prodotto 2026-09-22 | **implementato** (vincolo) | Host solo con `data-gfv-pelle-host`; campo non incluso |
+| 26.7 | Cartina in alto al centro: apre subito la mappa aziendale, senza un secondo menu. Con Proposta la pagina tiene la stessa barra, senza scritte, e la mappa compare quando le tessere sono pronte | prodotto 2026-09-23, aggiornato 2026-09-26 | **parziale** | Solo con Proposta. Link `mappa-aziendale-standalone.html` |
+| 26.8 | Ingranaggio in alto a destra: Impostazioni, Abbonamento, Guide, Logout. «Azienda» solo se ci sono almeno due tenant, prima del Logout. Abbonamento non sta nell’elenco moduli | prodotto 2026-09-23, aggiornato 2026-09-26 | **parziale** | Con Proposta spariscono dall’header di pagina Impostazioni, Guide, Cambia azienda, Mappa e Logout |
+| 26.9 | Diario nel menu moduli non compare se Manodopera è attivo | prodotto 2026-09-23 | **parziale** | Stessa regola della dashboard normale |
+| 26.10 | «← Dashboard» in Impostazioni torna alla home principale, non all’hub Manodopera | prodotto 2026-09-23 | **parziale** | Solo quella pagina. Il resto degli admin non cambia |
+| 26.11 | Pulsanti di movimento in alto a destra nell’header, titolo a sinistra. Con una descrizione lunga il testo si restringe e i pulsanti restano sulla stessa riga | prodotto 2026-09-23 | **parziale** | Vale anche con Pubblicata. Pagine in `COSA_ABBIAMO_FATTO.md` (resoconto 22–26 settembre) |
+| 26.12 | Menu e cambio pagina: scorrimento 0,18 s (graffetta da sinistra, ingranaggio da destra; sul telefono entrambi dall’alto). Dissolvenza al cambio pagina, non un giro da quaderno. Meno movimento se il sistema lo chiede | prodotto 2026-09-25 | **implementato** su `main` (#67) | Lo script in testa alle pagine evita il flash della pelle vecchia |
+| 26.13 | Meteo usa la stessa carta e gli stessi margini delle altre pagine ufficio (blocco centrato, max 1400 px). Niente gradiente azzurro | prodotto 2026-09-25, aggiornato 2026-09-26 | **implementato** (non su `main`) | La graffetta non copre la spiegazione |
+| 26.14 | Statistiche manodopera: numeri scuri sulla carta. «Media ore/giorno» del report e quella delle ore sono due valori distinti | prodotto 2026-09-26 | **implementato** (non su `main`) | Prima il testo restava bianco e i due campi condividevano l’id |
+
+---
+
+## 27. Modulo Seminativo — scheletro hub (2026-09-26)
+
+Stesso ingresso di Vigneto/Frutteto (hub + card), dedicato alle colture erbacee. Non è un clone dell’impianto permanente.
+
+| # | Decisione | Fonte | Stato | Note |
+|---|-----------|-------|-------|------|
+| 27.1 | **Hub + sottocategorie**: anagrafica campagne, piano colturale/rotazioni, semina, lavorazioni terreno, trattamenti, concimazioni, raccolta/mietitura, statistiche. Panoramica sulla campagna agricola corrente, più raccolte recenti e lavori a pieno campo | prodotto 2026-09-26, aggiornato 2026-09-27 | **implementato** | Config `modules/seminativo/config/seminativo-hub.js`. Numeri e due elenchi hub |
+| 27.2 | **Niente** potatura, pianifica impianto, calcolo materiali | prodotto 2026-09-26 | **implementato** (vincolo) | Il seminativo non è un impianto a filari |
+| 27.3 | **Anagrafica per campagna**: un record terreno + campagna + coltura/varietà (non documento permanente come vigneto). Varietà da elenco della coltura scelta, con aggiunta locale. In lista: costo del periodo agricolo (lavori completati + diario + costo prodotti di trattamenti e concimazioni). Stesso totale delle statistiche | prodotto 2026-09-26, aggiornato 2026-09-27 | **implementato** | Lista+form `seminativi-standalone.html`; `varieta-seminativo-service.js`; unicità terreno+campagna; `SeminativoSpese` |
+| 27.4 | **Perimetro colture**: solo categoria Seminativo (non prato, non ortive). Il terreno è quello aziendale: si riconosce dal nome coltura salvato (come il vigneto con «vite») o dall’id categoria | prodotto 2026-09-26, aggiornato 2026-09-27 | **implementato** | `isTerrenoSeminativo` + `listTerreniSeminativo` su `getAllTerreni()` |
+| 27.5 | **Pay-per-use** come le altre colture, 3 €/mese come Vigneto e Frutteto. In vendita dal 2026-09-27 | prodotto 2026-09-26, aggiornato 2026-09-27 | **implementato** | `subscription-plans.js` `available: true`. Prova 30 giorni in `module-trial.js` |
+| 27.6 | Tony: config (rotte, gate, PAGE_MAP, form mapping, FILTER_TABLE), niente `if` per pagina singola nel core | MASTER_PLAN §4 | **parziale** | Nav + form campagna/semina + `FILTER_KEY_MAP` seminativi, semina e lavorazioni (lista, senza form) |
+| 27.7 | **Semina**: evento su campagna esistente (data, varietà, dose). Prima semina: stato campagna `pianificato` → `seminato` | prodotto 2026-09-27 | **implementato** | `semineSeminativo`; lista+form `semina-standalone.html`. Regole `seminativi` e `semineSeminativo` deployate 2026-09-27 |
+| 27.8 | **Lavorazioni terreno**: stesse fonti di vigneto e frutteto (diario; lavori se c’è Manodopera). Solo campo aperto, non tra le file / sulla fila | prodotto 2026-09-27 | **implementato** | Lista `lavorazioni-standalone.html` su `attivita` + `lavori`. Tipi catalogo sottocategoria Generale. Nessuna collezione dedicata |
+| 27.9 | **Trattamenti**: stessa fonte e stesso schema del vigneto (prodotti, dose per ettaro, costi da lavoro o diario, avvisi, scarico magazzino). Differenza: la riga è sulla campagna seminativo | prodotto 2026-09-27 | **implementato** | `form-trattamento` in `trattamenti-standalone.html`; collezione `trattamentiSeminativo`. Regole pubblicate il 2026-09-27 |
+| 27.10 | **Concimazioni**: stesso schema dei trattamenti seminativo. Solo categoria Concimazione a pieno campo, non sulla fila | prodotto 2026-09-27 | **implementato** | `concimazioni-standalone.html` riusa `form-trattamento` e `trattamentiSeminativo` |
+| 27.11 | **Raccolta / mietitura**: stessa fonte di vendemmia (diario e, con Manodopera, lavori) e stessi numeri (quintali, ettari, resa, costi). Solo categoria Raccolta a pieno campo. Destinazione: vendita, stoccaggio, uso aziendale. La prima mietitura salvata porta la campagna a raccolto | prodotto 2026-09-27 | **implementato** | `raccolta-standalone.html`; collezione `raccolteSeminativo`. Regole pubblicate il 2026-09-27 |
+| 27.12 | **Statistiche**: sola lettura sulla campagna. Resa effettiva = quintali raccolti / ettari di campagna. La resa prevista dell’anagrafica non viene sovrascritta. Costi = manodopera e macchine del periodo più costo prodotti di trattamenti e concimazioni | prodotto 2026-09-27 | **implementato** | `seminativo-statistiche-standalone.html`. Nessuna collezione nuova |
+| 27.13 | **Piano colturale**: proposta dalla coltura in campo. Genere diverso e ruolo complementare (dopo un cereale a paglia: mais, soia, girasole, favino). La conferma crea o aggiorna la campagna successiva in stato pianificato. Non è un controllo PAC | prodotto 2026-09-27 | **implementato** | `piano-colturale-standalone.html`; `SeminativoRotazione`. Stessa collezione `seminativi` |
 
 ---
 

@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+<script>try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Impegni giornalieri - GFV Platform</title>
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <link rel="stylesheet" href="../../../core/styles/manodopera-semaforo.css">
@@ -32,12 +34,14 @@
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
             gap: 16px;
+            text-align: left;
         }
+        .header > div:first-child { flex: 1 1 auto; min-width: 0; }
         .header h1 { font-size: 28px; margin-bottom: 6px; }
         .header p { font-size: 15px; opacity: 0.92; max-width: 560px; }
-        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+        .header-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; flex-shrink: 0; margin-left: auto; align-self: flex-start; }
         .btn {
             padding: 10px 18px;
             border: none;

@@ -528,6 +528,30 @@ service cloud.firestore {
       allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
+    // Collection: seminativi (Modulo Seminativo — campagne, non impianto permanente)
+    match /tenants/{tenantId}/seminativi/{campagnaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Collection: semineSeminativo (eventi di semina collegati a una campagna)
+    match /tenants/{tenantId}/semineSeminativo/{seminaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Collection: trattamentiSeminativo (prodotto e dose su un lavoro o un'attività di diario)
+    match /tenants/{tenantId}/trattamentiSeminativo/{trattamentoId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
+    // Collection: raccolteSeminativo (quintali di mietitura su un lavoro o un'attività di diario)
+    match /tenants/{tenantId}/raccolteSeminativo/{raccoltaId} {
+      allow read: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+    }
+
     // Collection: raccolteFrutta (raccolte frutta standalone, non sotto frutteti)
     match /tenants/{tenantId}/raccolteFrutta/{raccoltaId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);

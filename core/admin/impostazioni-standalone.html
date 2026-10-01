@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+<script>try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
+
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Impostazioni - GFV Platform</title>
     <link rel="stylesheet" href="../styles/responsive-standalone.css">
     <style>
@@ -323,7 +325,7 @@
                 <h1>⚙️ Impostazioni</h1>
                 <p style="opacity: 0.9; margin-top: 5px;">Configura azienda e account</p>
             </div>
-            <a href="../../modules/manodopera/views/manodopera-home-standalone.html" id="dashboard-link" class="btn btn-secondary">← Dashboard</a>
+            <a href="../dashboard-standalone.html" id="dashboard-link" class="btn btn-secondary">← Dashboard</a>
         </div>
 
         <div class="content">
@@ -947,7 +949,7 @@
                                 const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
                                 hasManodoperaModule = modules.includes('manodopera');
                                 hasContoTerziModule = modules.includes('contoTerzi');
-                                wireManagerHomeLink('dashboard-link', hasManodoperaModule);
+                                wireManagerHomeLink('dashboard-link', false);
                                 
                                 // Inizializza context Tony: moduli + ruoli (guard profilo campo / manager)
                                 var nomeTonyImp = `${currentUserData.nome || ''} ${currentUserData.cognome || ''}`.trim() || (user && user.email) || '';
