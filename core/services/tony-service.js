@@ -61,6 +61,12 @@ const GUIDA_LOAD_ENTRIES = [
   { path: 'CONTO_TERZI/tony/guida-tecnica.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
   { path: 'METEO/utente/guida.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
   { path: 'METEO/tony/guida-tecnica.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'SEMINATIVO/utente/guida.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'SEMINATIVO/tony/guida-tecnica.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'REPORT/utente/guida.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'REPORT/tony/guida-tecnica.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'VENDEMMIA_MECCANICA/utente/guida.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
+  { path: 'VENDEMMIA_MECCANICA/tony/guida-tecnica.md', bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/'] },
   { path: 'moduli/terreni.md', bases: ['../guida-app/', '../../docs-sviluppo/guida-app/'] },
   { path: 'moduli/lavori-attivita.md', bases: ['../guida-app/', '../../docs-sviluppo/guida-app/'] }
 ];
@@ -246,6 +252,51 @@ async function loadGuidaSintesiTony() {
   return fetchGuidaMarkdownPart(scriptBase, GUIDA_SINTESI_TONY_ENTRY);
 }
 
+/** Riassunto modulo Seminativo (fetch da SEMINATIVO/utente/guida-sintesi.md). */
+const GUIDA_SINTESI_SEMINATIVO_ENTRY = {
+  path: 'SEMINATIVO/utente/guida-sintesi.md',
+  bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/']
+};
+
+const GUIDA_SINTESI_SEMINATIVO_FALLBACK = `
+Seminativo (sintesi): modulo seminativo (pieno campo). Hub Moduli → Seminativo: anagrafica appezzamenti, piano colturale, semina, lavorazioni, trattamenti, concimazioni, raccolta, statistiche. Senza modulo o codice assente: non inventare schermate. Target tipici seminativi / piano colturale / semina seminativo.
+`.trim();
+
+async function loadGuidaSintesiSeminativo() {
+  const scriptBase = new URL(import.meta.url);
+  return fetchGuidaMarkdownPart(scriptBase, GUIDA_SINTESI_SEMINATIVO_ENTRY);
+}
+
+/** Riassunto modulo Report (fetch da REPORT/utente/guida-sintesi.md). */
+const GUIDA_SINTESI_REPORT_ENTRY = {
+  path: 'REPORT/utente/guida-sintesi.md',
+  bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/']
+};
+
+const GUIDA_SINTESI_REPORT_FALLBACK = `
+Report (sintesi): modulo report. Hub Moduli → Report: card Terreni operativa; Vigneto se modulo vigneto; altre card spesso «in sviluppo». Senza modulo: blocco e Abbonamento. Non inventare bilanci non implementati.
+`.trim();
+
+async function loadGuidaSintesiReport() {
+  const scriptBase = new URL(import.meta.url);
+  return fetchGuidaMarkdownPart(scriptBase, GUIDA_SINTESI_REPORT_ENTRY);
+}
+
+/** Riassunto Vendemmia meccanica (fetch da VENDEMMIA_MECCANICA/utente/guida-sintesi.md). */
+const GUIDA_SINTESI_VENDEMMIA_MECCANICA_ENTRY = {
+  path: 'VENDEMMIA_MECCANICA/utente/guida-sintesi.md',
+  bases: ['../GUIDA/', '../../docs-sviluppo/GUIDA/']
+};
+
+const GUIDA_SINTESI_VENDEMMIA_MECCANICA_FALLBACK = `
+Vendemmia meccanica (sintesi): modulo vendemmiaMeccanica, tipico conto terzi. Hub: piano stagione, calcolatore, calcoli salvati, tariffe VM, bilancio servizio. Senza modulo non inventare flussi.
+`.trim();
+
+async function loadGuidaSintesiVendemmiaMeccanica() {
+  const scriptBase = new URL(import.meta.url);
+  return fetchGuidaMarkdownPart(scriptBase, GUIDA_SINTESI_VENDEMMIA_MECCANICA_ENTRY);
+}
+
 const SYSTEM_INSTRUCTION_BASE = `Ruolo: Tony, Capocantiere GFV Platform. Sei un collega che parla con un amico, non un software.
 
 TONO E VOCABOLARIO:
@@ -272,11 +323,11 @@ Regole operative:
 2. Info mancanti? Indica il modulo corretto.
 3. Domande "Come fare": Spiega passi -> Chiedi "Aprire pagina?" -> Includi { "action": "APRI_PAGINA" } SOLO dopo conferma utente ("sì", "apri").
 4. Richieste esplicite ("Vai a..."): Includi subito { "action": "APRI_PAGINA", "params": {"target": "..."} }.
-5. Navigazione: usa target dalla mappa. Target disponibili: dashboard, terreni, attivita, lavori, segnatura ore, segnare ore, validazione ore, validare ore, lavori caposquadra, i miei lavori, statistiche, statistiche manodopera, statistiche ore, gestisci utenti, utenti, gestione squadre, squadre, gestione operai, operai, compensi operai, compensi, gestione macchine, macchine, magazzino, prodotti, movimenti, meteo, previsioni meteo, vigneto, vigneti, statistiche vigneto, vendemmia, potatura vigneto, trattamenti vigneto, calcolo materiali, calcolo materiali frutteto, pianificazione impianto, pianificazione impianto frutteto, impianto, frutteto, frutteti, statistiche frutteto, raccolta frutta, potatura frutteto, trattamenti frutteto, conto terzi, clienti, preventivi, tariffe, terreni clienti, mappa clienti, report, amministrazione, guasti, abbonamento, impostazioni, diario. Regole: (a) dashboard/manager → dashboard; (b) segnare ore: se moduli_attivi include manodopera → segnatura ore; altrimenti → attivita (Diario Attività); (c) validare ore → validazione ore; (d) statistiche manodopera/ore (con Manodopera) → statistiche manodopera; (e) calcolo materiali vigneto → calcolo materiali; calcolo materiali frutteto → calcolo materiali frutteto; (f) vendemmia/potatura/trattamenti: specifica vigneto o frutteto se ambiguo; **pianifica nuovo impianto / calcolo materiali**: strumento condiviso tra moduli coltura; usa **page.pagePath** (o titolo pagina): se contiene vigneto → Dashboard Vigneto e target pianificazione impianto / calcolo materiali; se contiene frutteto → Dashboard Frutteto e target pianificazione impianto frutteto / calcolo materiali frutteto; se non è chiaro, una frase generica sullo strumento condiviso e chiedi vigneto o frutteto. Non applicare la checklist dell'altro modulo. (g) SE segnare ore / registrare ore: esegui SUBITO OPEN_MODAL (attivita-modal o ora-modal) e poi chiedi i dati. Non chiedere prima i dati e poi aprire; apri il modal subito, poi chiedi terreno, data, ecc.; (h) meteo / previsioni: target **meteo** solo se modulo meteo attivo; altrimenti spiega **Meteo sede** in dashboard (piano Base) e Impostazioni sede.
+5. Navigazione: usa target dalla mappa. Target disponibili: dashboard, terreni, attivita, lavori, segnatura ore, segnare ore, validazione ore, validare ore, lavori caposquadra, i miei lavori, statistiche, statistiche manodopera, statistiche ore, gestisci utenti, utenti, gestione squadre, squadre, gestione operai, operai, compensi operai, compensi, gestione macchine, macchine, magazzino, prodotti, movimenti, meteo, previsioni meteo, vigneto, vigneti, statistiche vigneto, vendemmia, potatura vigneto, trattamenti vigneto, calcolo materiali, calcolo materiali frutteto, pianificazione impianto, pianificazione impianto frutteto, impianto, frutteto, frutteti, statistiche frutteto, raccolta frutta, potatura frutteto, trattamenti frutteto, conto terzi, clienti, preventivi, tariffe, terreni clienti, mappa clienti, report, seminativo, seminativi, piano colturale, vendemmia meccanica, piano stagione, tariffe vm, amministrazione, guasti, abbonamento, impostazioni, diario. Regole: (a) dashboard/manager → dashboard; (b) segnare ore: se moduli_attivi include manodopera → segnatura ore; altrimenti → attivita (Diario Attività); (c) validare ore → validazione ore; (d) statistiche manodopera/ore (con Manodopera) → statistiche manodopera; (e) calcolo materiali vigneto → calcolo materiali; calcolo materiali frutteto → calcolo materiali frutteto; (f) vendemmia/potatura/trattamenti: specifica vigneto o frutteto se ambiguo; **pianifica nuovo impianto / calcolo materiali**: strumento condiviso tra moduli coltura; usa **page.pagePath** (o titolo pagina): se contiene vigneto → Dashboard Vigneto e target pianificazione impianto / calcolo materiali; se contiene frutteto → Dashboard Frutteto e target pianificazione impianto frutteto / calcolo materiali frutteto; se non è chiaro, una frase generica sullo strumento condiviso e chiedi vigneto o frutteto. Non applicare la checklist dell'altro modulo. (g) SE segnare ore / registrare ore: esegui SUBITO OPEN_MODAL (attivita-modal o ora-modal) e poi chiedi i dati. Non chiedere prima i dati e poi aprire; apri il modal subito, poi chiedi terreno, data, ecc.; (h) meteo / previsioni: target **meteo** solo se modulo meteo attivo; altrimenti spiega **Meteo sede** in dashboard (piano Base) e Impostazioni sede.
 6. Altre azioni (SEGNA_ORE, GUASTO): Conferma + JSON azione.
 7. MEMORIA VOCALE: Se l'utente risponde con poche parole (es. "Sì", "Vai", "Ok apri"), guarda l'ultimo messaggio che hai scritto per capire a cosa si riferisce e agisci di conseguenza.
 8. DATI IN TABELLA: Se il contesto include page.currentTableData o page.tableDataSummary, usa SOLO quelli per rispondere a domande sui dati visibili (es. "Cosa scade?", "Quali trattori ci sono?", "Ci sono guasti aperti?"). Rispondi in base a summary e/o items; non inventare dati. Se tableDataSummary è "Caricamento dati in corso..." rispondi: "Sto ancora leggendo i dati della lista, dammi un attimo di pazienza." Se tableDataSummary è "Dati non disponibili" o mancano page.currentTableData e page.tableDataSummary, NON dire "Non ho le competenze": rispondi invece: "In questa pagina non vedo dati in tabella, riprova tra un secondo o controlla se la lista è vuota."
-9. Guida "come fare": nel JSON usa context.guida_sintesi per il **Core** (app base), context.guida_sintesi_parco_macchine per **Parco Macchine** (mezzi, scadenze, guasti), context.guida_sintesi_vigneto per **Vigneto**, context.guida_sintesi_frutteto per **Frutteto**, context.guida_sintesi_magazzino per **Magazzino**, context.guida_sintesi_manodopera per **Manodopera**, context.guida_sintesi_conto_terzi per **Conto Terzi**, context.guida_sintesi_meteo per **Meteo** (sede vs modulo, mappa campi) e context.guida_sintesi_tony per **come funziona Tony** (widget, piani, Tony Guida vs Avanzato, voce, profilo campo, briefing) se presenti; per **pianificazione impianto / calcolo materiali** privilegia la sintesi del modulo coerente con **page.pagePath** (vigneto vs frutteto) e non mischiare le due se il path è chiaro; su **/magazzino/** privilegia **guida_sintesi_magazzino** per anagrafica, movimenti e tracciabilità; su pagine **manodopera** (path con segnatura-ore, validazione-ore, gestione-operai, gestione-squadre, compensi-operai, statistiche-manodopera, lavori-caposquadra, field-workspace, ecc.) privilegia **guida_sintesi_manodopera** per segnatura, validazione, squadre, operai e compensi; su **/conto-terzi/** privilegia **guida_sintesi_conto_terzi** per clienti, terreni clienti, tariffe, preventivi e flusso pianifica lavoro; su **/meteo/** o **pageType meteo_dashboard** privilegia **guida_sintesi_meteo** e **page.currentTableData** (campi, pop, alert); se l'utente chiede cos'è Tony o cosa può fare **in generale** privilegia **guida_sintesi_tony**; integra con moduli attivi nel tenant e pagina corrente; non inventare schermate assenti. La guida lunga context.guida_app è nel contesto completo soprattutto al primo messaggio quando caricata da file.
+9. Guida "come fare": nel JSON usa context.guida_sintesi per il **Core** (app base), context.guida_sintesi_parco_macchine per **Parco Macchine** (mezzi, scadenze, guasti), context.guida_sintesi_vigneto per **Vigneto**, context.guida_sintesi_frutteto per **Frutteto**, context.guida_sintesi_magazzino per **Magazzino**, context.guida_sintesi_manodopera per **Manodopera**, context.guida_sintesi_conto_terzi per **Conto Terzi**, context.guida_sintesi_meteo per **Meteo** (sede vs modulo, mappa campi), context.guida_sintesi_seminativo per **Seminativo**, context.guida_sintesi_report per **Report**, context.guida_sintesi_vendemmia_meccanica per **Vendemmia meccanica** e context.guida_sintesi_tony per **come funziona Tony** (widget, piani, Tony Guida vs Avanzato, voce, profilo campo, briefing) se presenti; per **pianificazione impianto / calcolo materiali** privilegia la sintesi del modulo coerente con **page.pagePath** (vigneto vs frutteto) e non mischiare le due se il path è chiaro; su **/magazzino/** privilegia **guida_sintesi_magazzino** per anagrafica, movimenti e tracciabilità; su pagine **manodopera** (path con segnatura-ore, validazione-ore, gestione-operai, gestione-squadre, compensi-operai, statistiche-manodopera, lavori-caposquadra, field-workspace, ecc.) privilegia **guida_sintesi_manodopera** per segnatura, validazione, squadre, operai e compensi; su **/conto-terzi/** privilegia **guida_sintesi_conto_terzi** per clienti, terreni clienti, tariffe, preventivi e flusso pianifica lavoro; su **/meteo/** o **pageType meteo_dashboard** privilegia **guida_sintesi_meteo** e **page.currentTableData** (campi, pop, alert); su **/seminativo/** privilegia **guida_sintesi_seminativo**; su **/report/** privilegia **guida_sintesi_report**; su **/vendemmia-meccanica/** o path vm- privilegia **guida_sintesi_vendemmia_meccanica**; se l'utente chiede cos'è Tony o cosa può fare **in generale** privilegia **guida_sintesi_tony**; integra con moduli attivi nel tenant e pagina corrente; non inventare schermate assenti. La guida lunga context.guida_app è nel contesto completo soprattutto al primo messaggio quando caricata da file.
 
 **[CONTESTO_AZIENDALE]**
 {CONTESTO_PLACEHOLDER}
@@ -457,6 +508,9 @@ class TonyService {
     this.context.guida_sintesi_manodopera = GUIDA_SINTESI_MANODOPERA_FALLBACK;
     this.context.guida_sintesi_conto_terzi = GUIDA_SINTESI_CONTO_TERZI_FALLBACK;
     this.context.guida_sintesi_meteo = GUIDA_SINTESI_METEO_FALLBACK;
+    this.context.guida_sintesi_seminativo = GUIDA_SINTESI_SEMINATIVO_FALLBACK;
+    this.context.guida_sintesi_report = GUIDA_SINTESI_REPORT_FALLBACK;
+    this.context.guida_sintesi_vendemmia_meccanica = GUIDA_SINTESI_VENDEMMIA_MECCANICA_FALLBACK;
     this.context.guida_sintesi_tony = GUIDA_SINTESI_TONY_FALLBACK;
     this._initPromise = (async () => {
       try {
@@ -570,6 +624,47 @@ class TonyService {
       } catch (_) {
         this.context.guida_sintesi_meteo = GUIDA_SINTESI_METEO_FALLBACK;
       }
+
+      try {
+        const sintesiSeminativoRaw = await loadGuidaSintesiSeminativo();
+        const sintesiSeminativo =
+          sintesiSeminativoRaw && String(sintesiSeminativoRaw).trim().length > 60
+            ? String(sintesiSeminativoRaw).trim()
+            : GUIDA_SINTESI_SEMINATIVO_FALLBACK;
+        this.context.guida_sintesi_seminativo = sintesiSeminativo;
+        if (sintesiSeminativoRaw && String(sintesiSeminativoRaw).trim().length > 60) {
+          console.log('[Tony] Guida sintesi Seminativo caricata.');
+        }
+      } catch (_) {
+        this.context.guida_sintesi_seminativo = GUIDA_SINTESI_SEMINATIVO_FALLBACK;
+      }
+      try {
+        const sintesiReportRaw = await loadGuidaSintesiReport();
+        const sintesiReport =
+          sintesiReportRaw && String(sintesiReportRaw).trim().length > 60
+            ? String(sintesiReportRaw).trim()
+            : GUIDA_SINTESI_REPORT_FALLBACK;
+        this.context.guida_sintesi_report = sintesiReport;
+        if (sintesiReportRaw && String(sintesiReportRaw).trim().length > 60) {
+          console.log('[Tony] Guida sintesi Report caricata.');
+        }
+      } catch (_) {
+        this.context.guida_sintesi_report = GUIDA_SINTESI_REPORT_FALLBACK;
+      }
+      try {
+        const sintesiVmRaw = await loadGuidaSintesiVendemmiaMeccanica();
+        const sintesiVm =
+          sintesiVmRaw && String(sintesiVmRaw).trim().length > 60
+            ? String(sintesiVmRaw).trim()
+            : GUIDA_SINTESI_VENDEMMIA_MECCANICA_FALLBACK;
+        this.context.guida_sintesi_vendemmia_meccanica = sintesiVm;
+        if (sintesiVmRaw && String(sintesiVmRaw).trim().length > 60) {
+          console.log('[Tony] Guida sintesi Vendemmia meccanica caricata.');
+        }
+      } catch (_) {
+        this.context.guida_sintesi_vendemmia_meccanica = GUIDA_SINTESI_VENDEMMIA_MECCANICA_FALLBACK;
+      }
+
       try {
         const sintesiTonyRaw = await loadGuidaSintesiTony();
         const sintesiTony =
@@ -659,6 +754,9 @@ class TonyService {
       'guida_sintesi_manodopera',
       'guida_sintesi_conto_terzi',
       'guida_sintesi_meteo',
+      'guida_sintesi_seminativo',
+      'guida_sintesi_report',
+      'guida_sintesi_vendemmia_meccanica',
       'guida_sintesi_tony'
     ];
     const out = {};

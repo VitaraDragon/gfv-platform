@@ -295,4 +295,50 @@ describe('tryTonyNavQuickReply — altri casi', () => {
     });
     expect(hit).toBeNull();
   });
+
+  it('portami al seminativo → hub se il modulo è attivo', () => {
+    expect(resolveNavTarget('portami al seminativo')).toBe('seminativo');
+    const blocked = tryTonyNavQuickReply({
+      message: 'portami al seminativo',
+      ctx: { moduli_attivi: ['tony'], dashboard: { moduli_attivi: ['tony'] } },
+    });
+    expect(blocked.id).toBe('nav_module_blocked');
+    const hit = tryTonyNavQuickReply({
+      message: 'portami al seminativo',
+      ctx: {
+        moduli_attivi: ['tony', 'seminativo'],
+        dashboard: { moduli_attivi: ['tony', 'seminativo'] },
+      },
+    });
+    expect(hit).not.toBeNull();
+    expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'seminativo' });
+    expect(hit.text).toMatch(/seminativo/i);
+  });
+
+  it('portami alla vendemmia meccanica → hub se modulo attivo', () => {
+    expect(resolveNavTarget('portami alla vendemmia meccanica')).toBe('vendemmia meccanica');
+    const hit = tryTonyNavQuickReply({
+      message: 'portami alla vendemmia meccanica',
+      ctx: {
+        moduli_attivi: ['tony', 'vendemmiaMeccanica'],
+        dashboard: { moduli_attivi: ['tony', 'vendemmiaMeccanica'] },
+      },
+    });
+    expect(hit).not.toBeNull();
+    expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'vendemmia meccanica' });
+  });
+
+  it('portami al report → hub se modulo attivo', () => {
+    expect(resolveNavTarget('portami al report')).toBe('report');
+    const hit = tryTonyNavQuickReply({
+      message: 'apri report',
+      ctx: {
+        moduli_attivi: ['tony', 'report'],
+        dashboard: { moduli_attivi: ['tony', 'report'] },
+      },
+    });
+    expect(hit).not.toBeNull();
+    expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'report' });
+  });
+
 });

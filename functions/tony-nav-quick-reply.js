@@ -52,6 +52,8 @@ const NAV_TARGET_RULES = [
   { target: "vigneto", patterns: [/\bvignet/i, /\buva\b/i] },
   { target: "frutteto", patterns: [/\bfruttet/i] },
   { target: "seminativo", patterns: [/\bseminativ/i] },
+  { target: "vendemmia meccanica", patterns: [/\bvendemmia\s+meccan/i, /\bvendemmia\s+meccanizz/i] },
+  { target: "report", patterns: [/\breport\b/i, /\breport\s+terren/i, /\bbilancio\s+(aziend|report)/i] },
 ];
 
 /** Target APRI_PAGINA ammessi per profilo campo (allineato a field-role-guard client). */
@@ -104,6 +106,8 @@ const NAV_TEXT_BY_TARGET = {
   vigneto: "Ti porto al vigneto.",
   frutteto: "Ti porto al frutteto.",
   seminativo: "Ti porto al seminativo.",
+  "vendemmia meccanica": "Ti porto alla vendemmia meccanica.",
+  report: "Ti porto ai report.",
   comunicazioni: "Ti porto alle comunicazioni.",
   "comunicazioni squadra": "Ti porto alle comunicazioni.",
   "comunicazioni caposquadra": "Ti porto alle comunicazioni.",
@@ -164,6 +168,18 @@ function isAlreadyOnTargetPage(ctx, target) {
     return true;
   }
   if (t === "meteo" && (pageType === "meteo_dashboard" || path.includes("meteo-dashboard-standalone"))) {
+    return true;
+  }
+  if (t === "seminativo" && (path.includes("seminativo-dashboard") || path.includes("/seminativo/views/seminativo-dashboard"))) {
+    return true;
+  }
+  if (t === "report" && (path.includes("report-dashboard") || path.includes("/report/views/report-dashboard"))) {
+    return true;
+  }
+  if (
+    (t === "vendemmia meccanica" || t === "vm home") &&
+    (path.includes("vm-home") || path.includes("/vendemmia-meccanica/views/vm-home"))
+  ) {
     return true;
   }
   if (

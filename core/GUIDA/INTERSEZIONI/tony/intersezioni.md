@@ -56,7 +56,7 @@ Quando indichi **dove andare** in chat o in guida, usa sempre il linguaggio dell
 - **Conto terzi ↔ Lavori:** preventivo accettato → lavoro da pianificare → **Gestione lavori** (Manodopera) → ore e **Diario** filtrato conto terzi.
 - **Parco Macchine ↔ Diario/Lavori:** trattore, attrezzo, ore macchina opzionali nel **Diario** (e flussi Manodopera se attivo).
 - **Core/Abbonamento ↔ Moduli:** i flussi esistono solo se i moduli necessari sono attivi (**Moduli** → **Abbonamento**).
-- **Report ↔ tutti i moduli:** aggrega dati operativi (ingresso da **Moduli** se modulo Report attivo).
+- **Report ↔ tutti i moduli:** aggrega dati operativi (ingresso da **Moduli** se modulo Report attivo). Path tipici: `modules/report/views/report-dashboard-standalone.html`, `report-standalone.html`, `report-terreni-standalone.html`. Guide dedicate: `GUIDA/REPORT/`. Molte card hub sono ancora «in sviluppo»; Terreni e Vigneto MVP sono le aree operative.
 
 ---
 
@@ -102,6 +102,7 @@ Ruoli: principalmente manager/amministratore.
 3. Controlla **Impegni giornalieri** (semaforo rosso/giallo, KPI allarmi).
 4. **Mappa** aziendale: layer **Allarmi** (pin ! sul terreno del lavoro) → link a Gestione lavori.
 5. Tony Avanzato: «chi è libero?», «candidati sostituto» — legge shortlist/contesto giorno, non ricalcola.
+6. Dettaglio UX manager/capo/operaio: `GUIDA/MANODOPERA/utente/guida-manager.md` § assenze/standby/sostituzioni (+ guide capo/operaio).
 
 ### 2.6 Bolla o fattura magazzino (foto / PDF con Tony)
 
@@ -114,6 +115,8 @@ Ruoli: principalmente manager/amministratore.
 L’ingresso resta lo **scatto**, non un file fiscale da cercare. Dettaglio: guida **Tony** (foto bolla o fattura) e guida **Magazzino**.
 
 ### 2.7 Vendemmia meccanica ↔ lavori / Conto terzi
+
+Path tipici (standalone): hub `modules/vendemmia-meccanica/views/vm-home-standalone.html`; piano stagione, calcolatore, tariffe VM, bilancio, calcoli salvati sotto la stessa cartella `views/`. Guide dedicate: `GUIDA/VENDEMMIA_MECCANICA/`. Per i flussi che creano lavori usare anche Conto terzi / Manodopera.
 
 1. Modulo **Vendemmia meccanica** attivo (+ spesso Conto terzi per clienti).
 2. **Piano stagione** / home VM → terreni in piano; **calcolatore** compenso; sync con **lavori** Manodopera quando il lavoro è di tipo VM.
@@ -190,3 +193,14 @@ Punto chiave: la stessa funzione può comportarsi in modo diverso in base al ruo
 - «Ho registrato trattamento, come verifico lo scarico?»: **Moduli** → **Magazzino** → **Tracciabilità consumi** (e **Movimenti**); ricordare che la riga trattamento nasce da lavoro/Diario con categoria corretta.
 - «Devo passare dal vigneto al magazzino»: non usare Terreni/grappolo per il riepilogo; **Moduli** → **Vigneto** per dashboard, **Moduli** → **Magazzino** per giacenze.
 - «Apri manodopera e validazione ore» / «apri impegni giornalieri»: intent valido per Avanzato; operaio/caposquadra → solo flussi mobile pertinenti al ruolo.
+
+## Notifiche push ↔ Manodopera / Core
+
+- Preferenze e permesso browser: **Impostazioni** (Core) → scheda **Notifiche**.
+- Payload e destinatari: catalogo `notification-catalog.js`; trigger CF su comunicazioni / lavori / ore / assenze (Manodopera).
+- Deep link tipici: **field-workspace** (campo) o **gestione-lavori** (manager). WhatsApp solo escalation **assenza**, se abilitato.
+- Tony in-app (briefing / chat) **≠** push dispositivo.
+
+## Seminativo ↔ Terreni / Diario / Magazzino / Manodopera
+
+Modulo **`seminativo`** (guide in `GUIDA/SEMINATIVO/`; codice completo su **main**). Hub campagne → anagrafica su terreni; operazioni da Diario o lavori Manodopera; scarico magazzino su trattamenti/concimazioni se Magazzino accessibile.

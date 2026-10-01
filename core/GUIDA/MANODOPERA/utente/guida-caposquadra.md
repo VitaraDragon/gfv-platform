@@ -28,6 +28,7 @@ Questa guida è solo per il **caposquadra**: ciò che puoi fare dalla **versione
 | Selezionare il lavoro corrente | [Impara qui](#mini-guida-selezionare-il-lavoro-corrente) |
 | La mia squadra e contatti | [Impara qui](#mini-guida-la-mia-squadra-contatti) |
 | Comunicazioni alla squadra | [Impara qui](#mini-guida-comunicazioni-alla-squadra) |
+| Segnala assenza e sostituti | [Impara qui](#mini-guida-segnala-assenza-e-sostituti) |
 | Segnare le proprie ore | [Impara qui](#mini-guida-segnare-le-proprie-ore) |
 | Validare le ore degli operai | [Impara qui](#mini-guida-validare-le-ore-degli-operai) |
 | Dettaglio lavoro, zone lavorate e completamento | [Impara qui](#mini-guida-dettaglio-lavoro-zone-lavorate-e-completamento) |
@@ -115,7 +116,8 @@ Nella scheda **Comunicazioni** trovi il modulo **Comunicazioni squadra**: non è
 2. Imposta **Data** e **Orario** (es. orario di ritrovo o inizio attività).  
 3. Scrivi il **Messaggio** in modo chiaro e operativo (cosa fare, dove, in che ordine).  
 4. Tocca **Invia comunicazione**.  
-5. Sotto, in **Comunicazioni inviate**, vedi gli ultimi messaggi inviati da questa schermata; può comparire anche un riepilogo delle **conferme ricezione** rispetto ai destinatari previsti dal sistema.
+5. Sotto, in **Comunicazioni inviate**, vedi gli ultimi messaggi inviati da questa schermata; può comparire anche un riepilogo delle **conferme ricezione** rispetto ai destinatari previsti dal sistema.  
+6. Se avete le **notifiche push** attive (Impostazioni → **Notifiche**), i destinatari possono ricevere un avviso sul telefono; se qualcuno non conferma entro il tempo impostato, puoi ricevere un reminder **conferme mancanti**. Anche le **ore da validare** e le **assenze di oggi** possono arrivare come push (fascia oraria configurabile).
 
 ### Suggerimenti
 
@@ -165,6 +167,25 @@ Sempre nella scheda **Lavoro**, nel blocco **Valida ore**, vedi le registrazioni
 
 ---
 
+## Mini-guida segnala assenza e sostituti
+
+### Segnala assenza
+
+1. Nella **versione mobile**, sul lavoro del giorno, può comparire **Segnala assenza**.  
+2. Indica **chi** manca e il **giorno** (e nota se richiesta).  
+3. Invia: il **manager** riceve l’avviso (anche in push se attive). Il lavoro passa in **standby** dopo la **conferma del manager**, non automaticamente al tuo invio.
+
+### Quando c’è un sostituto
+
+- Può comparire un avviso **Sostituzione attiva** (chi è assente e chi sostituisce).  
+- Valida le **ore del sostituto** in **Valida ore** come per gli altri; il sostituto le registra da **Segna ore**.  
+- Non assegni tu il sostituto: lo fa il manager da **Gestione lavori**.
+
+
+**Nota manager/mappa:** sul desktop il manager vede allarmi **rosso/giallo** (senza/con sostituto). In campo tu vedi soprattutto l’avviso di sostituzione attiva, non il semaforo della mappa.
+
+---
+
 ## Mini-guida dettaglio lavoro zone lavorate e completamento
 
 Nella scheda **Ore**, sotto il modulo ore, trovi il riquadro **Dettaglio lavoro operativo**: è la stessa funzione della schermata **I miei lavori**, già **centrata sul lavoro** che hai selezionato nella prima scheda.
@@ -181,6 +202,9 @@ Nella scheda **Ore**, sotto il modulo ore, trovi il riquadro **Dettaglio lavoro 
 ### Zone lavorate e mappa
 
 - Il tracciamento avviene con i pulsanti che trovi nel dettaglio (aggiungi zona, salva, ecc., come da etichette in schermata).  
+- **Modo predefinito (a due punti):** se il **terreno ha già i confini** disegnati in **Terreni**, tocchi **inizio** e **fine** sul campo: la zona segue i **bordi del terreno** tra le due stazioni (non la diagonale). Puoi trascinare i due punti per ritoccare; vicino al confine i punti si agganciano da soli.  
+- **Disegno a mano:** alternativa se manca il perimetro del terreno o se preferisci tracciare il percorso punto per punto (poi **Chiudi segmento** se serve un poligono).  
+- Per operazioni con macchina/attrezzo può comparire la **larghezza** (serve al calcolo superficie): non confonderla con il modo di disegno.  
 - Salva le zone man mano che completate i pezzi di campo: servono al progresso reale e spesso sono **obbligatorie** prima di poter chiudere il lavoro.
 
 ### Completamento e approvazione manager

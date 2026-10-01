@@ -6,6 +6,7 @@
     "MAGAZZINO",
     "VIGNETO",
     "FRUTTETO",
+    "SEMINATIVO",
     "CONTO_TERZI",
     "PARCO_MACCHINE",
     "METEO",
@@ -16,258 +17,560 @@
   "rules": [
     {
       "prefix": "core/js/tony/tony-segna-ora",
-      "modules": ["TONY", "MANODOPERA"],
+      "modules": [
+        "TONY",
+        "MANODOPERA"
+      ],
       "label": "Motore segna ore Tony (mobile + desktop)"
     },
     {
       "prefix": "core/js/tony/",
-      "modules": ["TONY"],
+      "modules": [
+        "TONY"
+      ],
       "label": "Widget e motore Tony"
     },
     {
       "includes": "segnatura-ore",
-      "modules": ["MANODOPERA"],
+      "modules": [
+        "MANODOPERA"
+      ],
       "label": "Pagina segnatura ore"
     },
     {
       "includes": "field-workspace",
-      "modules": ["MANODOPERA"],
+      "modules": [
+        "MANODOPERA"
+      ],
       "label": "Workspace mobile campo"
     },
     {
       "prefix": "core/config/tony-form-mapping.js",
-      "modules": ["TONY"],
+      "modules": [
+        "TONY"
+      ],
       "label": "Treasure Map form Tony"
     },
     {
       "prefix": "core/js/tony-form-injector.js",
-      "modules": ["TONY"],
+      "modules": [
+        "TONY"
+      ],
       "label": "Inject form Tony"
     },
     {
       "prefix": "core/js/tony-form-save-local.js",
-      "modules": ["TONY"],
+      "modules": [
+        "TONY"
+      ],
       "label": "Save locale form Tony"
     },
     {
       "prefix": "core/js/gfv-tony-loader.js",
-      "modules": ["TONY", "CORE"],
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
       "label": "Loader widget Tony"
     },
     {
       "prefix": "core/services/tony-service.js",
-      "modules": ["TONY", "CORE"],
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
       "label": "Runtime guida/sintesi Tony"
     },
     {
       "prefix": "functions/index.js",
-      "modules": ["TONY", "INTERSEZIONI"],
+      "modules": [
+        "TONY",
+        "INTERSEZIONI"
+      ],
       "label": "Cloud Functions Tony / subagent"
     },
     {
       "prefix": "functions/tony/",
-      "modules": ["TONY"],
+      "modules": [
+        "TONY"
+      ],
       "label": "Moduli cloud Tony"
     },
     {
       "prefix": "core/mobile/",
-      "modules": ["MANODOPERA"],
+      "modules": [
+        "MANODOPERA"
+      ],
       "label": "Workspace mobile operaio/caposquadra"
     },
     {
       "prefix": "core/segnatura-ore",
-      "modules": ["MANODOPERA"],
+      "modules": [
+        "MANODOPERA"
+      ],
       "label": "Segnatura ore desktop"
     },
     {
       "prefix": "core/admin/gestione-lavori",
-      "modules": ["MANODOPERA"],
+      "modules": [
+        "MANODOPERA"
+      ],
       "label": "Gestione lavori manager"
     },
     {
       "prefix": "core/admin/gestione-squadre",
-      "modules": ["MANODOPERA"],
+      "modules": [
+        "MANODOPERA"
+      ],
       "label": "Squadre"
     },
     {
       "prefix": "core/admin/gestione-operai",
-      "modules": ["MANODOPERA"],
+      "modules": [
+        "MANODOPERA"
+      ],
       "label": "Operai"
     },
     {
       "prefix": "core/admin/validazione-ore",
-      "modules": ["MANODOPERA"],
+      "modules": [
+        "MANODOPERA"
+      ],
       "label": "Validazione ore"
     },
     {
       "prefix": "core/admin/lavori-caposquadra",
-      "modules": ["MANODOPERA"],
+      "modules": [
+        "MANODOPERA"
+      ],
       "label": "Lavori caposquadra"
     },
     {
       "prefix": "core/admin/statistiche-manodopera",
-      "modules": ["MANODOPERA"],
+      "modules": [
+        "MANODOPERA"
+      ],
       "label": "Statistiche manodopera admin"
     },
     {
       "prefix": "core/admin/compensi-operai",
-      "modules": ["MANODOPERA"],
+      "modules": [
+        "MANODOPERA"
+      ],
       "label": "Compensi operai"
     },
     {
       "prefix": "core/statistiche-standalone",
-      "modules": ["MANODOPERA"],
+      "modules": [
+        "MANODOPERA"
+      ],
       "label": "Statistiche lavoratore"
     },
     {
       "prefix": "modules/manodopera/",
-      "modules": ["MANODOPERA"],
+      "modules": [
+        "MANODOPERA"
+      ],
       "label": "Modulo manodopera"
     },
     {
       "prefix": "modules/magazzino/",
-      "modules": ["MAGAZZINO"],
+      "modules": [
+        "MAGAZZINO"
+      ],
       "label": "Modulo magazzino"
     },
     {
       "prefix": "modules/vigneto/",
-      "modules": ["VIGNETO"],
+      "modules": [
+        "VIGNETO"
+      ],
       "label": "Modulo vigneto"
     },
     {
       "prefix": "modules/vendemmia-meccanica/",
-      "modules": ["VIGNETO"],
+      "modules": [
+        "VIGNETO"
+      ],
       "label": "Vendemmia meccanica (collegata vigneto)"
     },
     {
       "prefix": "modules/frutteto/",
-      "modules": ["FRUTTETO"],
+      "modules": [
+        "FRUTTETO"
+      ],
       "label": "Modulo frutteto"
     },
     {
       "prefix": "modules/conto-terzi/",
-      "modules": ["CONTO_TERZI"],
+      "modules": [
+        "CONTO_TERZI"
+      ],
       "label": "Modulo conto terzi"
     },
     {
       "prefix": "modules/parco-macchine/",
-      "modules": ["PARCO_MACCHINE"],
+      "modules": [
+        "PARCO_MACCHINE"
+      ],
       "label": "Parco macchine"
     },
     {
       "prefix": "modules/macchine/",
-      "modules": ["PARCO_MACCHINE"],
+      "modules": [
+        "PARCO_MACCHINE"
+      ],
       "label": "Flotta / attrezzi / guasti"
     },
     {
       "prefix": "modules/meteo/",
-      "modules": ["METEO"],
+      "modules": [
+        "METEO"
+      ],
       "label": "Modulo meteo"
     },
     {
       "prefix": "modules/vendemmia-meccanica/",
-      "modules": ["VENDEMMIA_MECCANICA"],
+      "modules": [
+        "VENDEMMIA_MECCANICA"
+      ],
       "label": "Vendemmia meccanica"
     },
     {
       "prefix": "modules/report/",
-      "modules": ["REPORT"],
+      "modules": [
+        "REPORT"
+      ],
       "label": "Modulo report"
     },
     {
       "includes": "document-capture",
-      "modules": ["TONY", "MAGAZZINO"],
+      "modules": [
+        "TONY",
+        "MAGAZZINO"
+      ],
       "label": "Acquisizione foto bolla/fattura Tony"
     },
     {
       "includes": "tony-extract-document",
-      "modules": ["TONY", "MAGAZZINO"],
+      "modules": [
+        "TONY",
+        "MAGAZZINO"
+      ],
       "label": "Estrazione documenti CF"
     },
     {
       "includes": "tony-fatturapa",
-      "modules": ["TONY", "MAGAZZINO"],
+      "modules": [
+        "TONY",
+        "MAGAZZINO"
+      ],
       "label": "Parser FatturaPA extra silenzioso"
     },
     {
       "includes": "document-archive",
-      "modules": ["MAGAZZINO", "TONY"],
+      "modules": [
+        "MAGAZZINO",
+        "TONY"
+      ],
       "label": "Tony Occhi archivio documenti"
     },
     {
       "includes": "documenti-acquisiti",
-      "modules": ["MAGAZZINO", "TONY"],
+      "modules": [
+        "MAGAZZINO",
+        "TONY"
+      ],
       "label": "Archivio documenti magazzino"
     },
     {
       "includes": "manodopera-problema-severita",
-      "modules": ["MANODOPERA"],
+      "modules": [
+        "MANODOPERA"
+      ],
       "label": "Semaforo allarmi manodopera"
     },
     {
       "includes": "impegni-giornalieri",
-      "modules": ["MANODOPERA"],
+      "modules": [
+        "MANODOPERA"
+      ],
       "label": "Impegni giornalieri"
     },
     {
       "prefix": "core/dashboard",
-      "modules": ["CORE"],
+      "modules": [
+        "CORE"
+      ],
       "label": "Dashboard"
     },
     {
       "prefix": "core/admin/gestisci-utenti",
-      "modules": ["CORE", "MANODOPERA"],
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
       "label": "Utenti e inviti"
     },
     {
       "prefix": "core/admin/impostazioni",
-      "modules": ["CORE"],
+      "modules": [
+        "CORE"
+      ],
       "label": "Impostazioni azienda"
     },
     {
       "prefix": "core/terreni",
-      "modules": ["CORE"],
+      "modules": [
+        "CORE"
+      ],
       "label": "Terreni anagrafica"
     },
     {
       "prefix": "core/js/terreni-maps.js",
-      "modules": ["CORE", "CONTO_TERZI"],
+      "modules": [
+        "CORE",
+        "CONTO_TERZI"
+      ],
       "label": "Disegno confini mappa Terreni (anche clienti CT)"
     },
     {
       "prefix": "core/js/terreni-draw-helpers.js",
-      "modules": ["CORE", "CONTO_TERZI"],
+      "modules": [
+        "CORE",
+        "CONTO_TERZI"
+      ],
       "label": "Helper disegno confini 1b"
     },
     {
       "prefix": "core/mappa-",
-      "modules": ["CORE"],
+      "modules": [
+        "CORE"
+      ],
       "label": "Mappe azienda"
     },
     {
       "prefix": "landing/",
-      "modules": ["CORE"],
+      "modules": [
+        "CORE"
+      ],
       "label": "Landing / marketing"
     },
     {
       "prefix": "documentazione-utente/",
-      "modules": ["CORE"],
+      "modules": [
+        "CORE"
+      ],
       "label": "Indice guide HTML utente"
     },
     {
       "includes": "currentTableData",
-      "modules": ["TONY", "INTERSEZIONI"],
+      "modules": [
+        "TONY",
+        "INTERSEZIONI"
+      ],
       "label": "Pattern liste Tony (cross-modulo)"
     },
     {
       "includes": "tony-form-mapping",
-      "modules": ["TONY"],
+      "modules": [
+        "TONY"
+      ],
       "label": "Config form Tony"
     },
     {
       "includes": "SUBAGENT_",
-      "modules": ["TONY", "INTERSEZIONI"],
+      "modules": [
+        "TONY",
+        "INTERSEZIONI"
+      ],
       "label": "Subagent cloud per modulo"
+    },
+    {
+      "prefix": "core/js/notification-fcm-client.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Client FCM push"
+    },
+    {
+      "prefix": "core/config/notification-catalog.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Catalogo eventi push"
+    },
+    {
+      "prefix": "core/services/notification-",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Prefs / policy / eventi notifiche"
+    },
+    {
+      "prefix": "functions/notification-dispatch.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA",
+        "INTERSEZIONI"
+      ],
+      "label": "CF dispatch FCM"
+    },
+    {
+      "prefix": "functions/lib/notification-",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Mirror moduli notifiche CF"
+    },
+    {
+      "includes": "notificationPrefs",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Preferenze push utente"
+    },
+    {
+      "includes": "startNotificationFcm",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Avvio registrazione FCM"
+    },
+    {
+      "prefix": "modules/seminativo/",
+      "modules": [
+        "SEMINATIVO"
+      ],
+      "label": "Modulo seminativo"
+    },
+    {
+      "prefix": "core/js/ui-pelle",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Pelle Proposta UI"
+    },
+    {
+      "prefix": "core/styles/ui-pelle-proposta.css",
+      "modules": [
+        "CORE"
+      ],
+      "label": "CSS pelle Proposta"
+    },
+    {
+      "includes": "uiPelleProposta",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Flag pelle Proposta"
+    },
+    {
+      "prefix": "core/js/pwa-install-banner.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Banner install PWA"
+    },
+    {
+      "prefix": "functions/email-resend.js",
+      "modules": [
+        "CORE",
+        "CONTO_TERZI",
+        "MANODOPERA"
+      ],
+      "label": "Email transazionali Resend"
+    },
+    {
+      "prefix": "core/services/lavoro-sostituzione-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Sostituzione / prestito assenza"
+    },
+    {
+      "prefix": "core/services/lavoro-standby-assenza",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Standby per assenza"
+    },
+    {
+      "prefix": "core/services/manodopera-sostituti-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Shortlist sostituti"
+    },
+    {
+      "prefix": "core/services/manodopera-assenze-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Assenze manodopera"
+    },
+    {
+      "prefix": "core/admin/js/gestione-lavori-assenze-ui.js",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "UI assenze Gestione lavori"
+    },
+    {
+      "prefix": "core/config/manodopera-sostituzione-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Policy sostituzione"
+    },
+    {
+      "prefix": "core/config/manodopera-assenze-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Config tipi assenza"
+    },
+    {
+      "includes": "sostituto",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Contesto sostituto campo"
+    },
+    {
+      "includes": "login-standalone",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Login / password reset entry"
+    },
+    {
+      "includes": "reset-password",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Reset password"
+    },
+    {
+      "includes": "registrazione-invito",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Registrazione da invito"
+    },
+    {
+      "includes": "manodopera-skills",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Skill / scheda competenze operai"
     }
   ]
 }

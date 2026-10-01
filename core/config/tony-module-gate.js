@@ -12,6 +12,7 @@ const MODULE_LABELS = {
   vigneto: 'Vigneto',
   frutteto: 'Frutteto',
   seminativo: 'Seminativo',
+  report: 'Report',
   meteo: 'Meteo'
 };
 
@@ -67,6 +68,18 @@ const TARGET_REQUIRES_MODULE = {
   'raccolta seminativo': 'seminativo',
   'statistiche seminativo': 'seminativo',
   'seminativo statistiche': 'seminativo',
+  report: 'report',
+  'report terreni': 'report',
+  'report vigneto': 'report',
+  'vm home': 'vendemmiaMeccanica',
+  'piano stagione': 'vendemmiaMeccanica',
+  'piano stagione vm': 'vendemmiaMeccanica',
+  calcolatore: 'vendemmiaMeccanica',
+  'calcolatore vendemmia meccanica': 'vendemmiaMeccanica',
+  'calcolatore vendemmia': 'vendemmiaMeccanica',
+  'calcoli salvati': 'vendemmiaMeccanica',
+  'tariffe vm': 'vendemmiaMeccanica',
+  'bilancio vm': 'vendemmiaMeccanica',
   meteo: 'meteo'
 };
 

@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-09-27 — Seminativo in vendita.**
+**Ultimo aggiornamento documentazione: 2026-10-01 — Fix Tony preventivo disambiguazione terreno.**
+
+## 2026-10-01 — Fix Tony preventivo disambiguazione terreno
+
+Risolto il timeout del test E2E T-FLOW-014. Quando Tony riceve cliente + coltura senza terreno-id nel preventivo, ora rileva se la coltura corrisponde a più terreni e chiede la disambiguazione. Prima il controllo scattava solo con terreno-id esplicito. Il flusso multi-turn preventivo ora funziona: inject iniziale → domanda terreno → risoluzione → save locale.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-09-27 — Seminativo in vendita.**
 
 ## 2026-09-27 — Seminativo in vendita
 

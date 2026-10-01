@@ -12,7 +12,8 @@ Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più sc
 2. Se sei **manager** o **amministratore**, orientati sulla **dashboard** (panoramica, menu Moduli, scorciatoie). **[Impara qui: Dashboard manager](#mini-guida-dashboard-per-manager-e-amministratore)**  
 3. Poi **Terreni** (scheda completa e confini sulla mappa). **[Impara qui: Terreni](#mini-guida-aggiungere-o-modificare-un-terreno)**  
 4. Poi **Diario attività** per le giornate in campo. **[Impara qui: Diario](#mini-guida-compilare-il-diario-attivita)**  
-5. Usa la **mappa** e **Statistiche** per il quadro d’insieme e i grafici filtrati. **[Impara qui: Mappa](#mini-guida-la-mappa-in-dashboard)** · **[Impara qui: Statistiche](#mini-guida-statistiche-e-filtri)**
+5. Usa la **mappa** e **Statistiche** per il quadro d’insieme e i grafici filtrati. **[Impara qui: Mappa](#mini-guida-la-mappa-in-dashboard)** · **[Impara qui: Statistiche](#mini-guida-statistiche-e-filtri)**  
+6. In **Impostazioni**, attiva o regola le **notifiche push** sul telefono (ciclo lavoro e assenze) se usate Manodopera in campo. **[Impara qui: Notifiche](#mini-guida-notifiche-push)**
 
 ---
 
@@ -36,11 +37,16 @@ Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più sc
 | La mappa aziendale | [Impara qui](#mini-guida-la-mappa-in-dashboard) |
 | Statistiche e filtri | [Impara qui](#mini-guida-statistiche-e-filtri) |
 | Abbonamento e piani | [Impara qui](#abbonamento-e-piani) |
+| Accedere, password e più aziende | [Impara qui](#mini-guida-accedere-password-e-aziende) |
 | Tony (assistente in chat) | [Impara qui](#tony-lassistente-in-chat) |
+| Notifiche push (telefono) | [Impara qui](#mini-guida-notifiche-push) |
+| Installare l’app (PWA) | [Impara qui](#mini-guida-installare-lapp-pwa) |
 
 ---
 
 ## Entrare e lavorare sulla giusta azienda
+
+Vedi anche la [mini-guida accesso](#mini-guida-accedere-password-e-aziende).
 
 - Accedi con **email e password**.
 - L’app lavora sempre su **un’azienda alla volta**. Se partecipi a più aziende, usa l’opzione per **cambiare azienda** prima di cercare dati o inserire informazioni.
@@ -144,7 +150,7 @@ Se il tuo unico ruolo è **operaio** o **caposquadra**, la dashboard mostra in g
 
 **Solo con i moduli giusti (accenno):** le **tariffe orarie per tipo operaio** compaiono in Impostazioni **solo se il modulo Manodopera è attivo**. I **coefficienti di morfologia** (maggiorazioni per tipo di terreno rispetto alla pianura, usati nelle tariffe Conto terzi) compaiono **solo se il modulo Conto terzi è attivo**. Non entrano nel dettaglio in questa guida Core: quando attivate quei moduli, usate la documentazione dedicata a **Manodopera** e **Conto terzi**.
 
-**Per tutti gli utenti** sulla stessa pagina trovate anche **Impostazioni account personale** (nome, cognome, telefono) e **Cambio password**.
+**Per tutti gli utenti** sulla stessa pagina trovate anche **Impostazioni account personale** (nome, cognome, telefono), **Cambio password** e la scheda **Notifiche** (push sul telefono: ciclo lavoro, assenze, eventuale WhatsApp di escalation — vedi [mini-guida notifiche push](#mini-guida-notifiche-push)). Il **telefono** nel box Account serve anche se attivate WhatsApp per le assenze.
 
 Quando torni in **Terreni**, nel modulo del singolo terreno potrai collegare il campo al podere giusto dal menu dedicato (se non compare nulla, torna in Impostazioni e verifica di aver salvato il podere).
 
@@ -264,6 +270,67 @@ Se cambiate filtro e non succede nulla, controlla di aver premuto **Applica filt
 
 ---
 
+## Mini-guida: notifiche push
+
+Le **notifiche push** arrivano sul **telefono o browser** anche quando non avete la chat di Tony aperta. Servono soprattutto al **ciclo lavoro** e alle **assenze** (modulo Manodopera). I **promemoria di Tony in dashboard** (scorte, scadenze, guasti, meteo…) restano **in app**: non sono la stessa cosa delle push.
+
+### Dove si configurano
+
+1. Aprite **Impostazioni** (ingranaggio in alto).  
+2. Nella scheda **Notifiche** (visibile a **tutti i ruoli**):  
+   - **Notifiche push (ciclo lavoro)** — on/off e **fascia oraria** (default tipico **05:00–21:00**, fuso Europe/Rome).  
+   - **Reminder conferme mancanti** — dopo quante ore avvisare il caposquadra se qualcuno non ha confermato una comunicazione (default **6**).  
+   - **Notifiche push (assenze oggi)** — on/off dedicato alle assenze.  
+   - **WhatsApp (escalation assenze)** — opzionale e **spento** di default: un solo messaggio dopo circa **10 minuti utili** in fascia WhatsApp se non aprite la push; serve il **telefono** compilato nell’account.  
+3. Salvate con **Salva preferenze notifiche**.
+
+Alla prima attivazione il browser può chiedere il **permesso** di mostrare notifiche: va **consentito**, altrimenti le push non partono su quel dispositivo.
+
+### Cosa può arrivare (ciclo lavoro)
+
+| Evento | Chi tipicamente | Cosa fare al tocco |
+|--------|-----------------|--------------------|
+| Nuova **comunicazione** di squadra | Operaio / caposquadra destinatario | Apre la **versione mobile**, scheda comunicazioni sul lavoro |
+| **Nuovo lavoro** assegnato | Caposquadra o operaio assegnatario | Apre la versione mobile sul lavoro |
+| **Conferme mancanti** | Caposquadra mittente | Torna alle comunicazioni del lavoro |
+| **Ore da validare** | Caposquadra | Versione mobile, validazione ore (può raggruppare più segnalazioni nella giornata) |
+| Lavoro **da approvare** / **sospeso** | Manager / amministratore | Apre **Gestione lavori** |
+| **Assenza oggi** | Caposquadra + manager | Capo: versione mobile; manager: Gestione lavori (sostituto) |
+
+Fuori dalla fascia oraria le urgenze restano in coda e partono quando la finestra riparte. Senza permesso browser, senza push attive, o senza chiave push configurata sull’installazione, gli eventi possono comunque essere registrati ma **non** vedrete la notifica sul dispositivo.
+
+### Differenza con Tony
+
+- **Tony** (chat / briefing dashboard): consigli e risposte **dentro** l’app.  
+- **Push**: avvisi **sul dispositivo** per urgenze operative, con link diretto alla schermata utile.
+
+---
+
+## Mini-guida: installare l’app (PWA)
+
+Su alcuni browser (Chrome/Edge) in **login** o **registrazione da invito** può comparire un invito a **installare** GFV come app. Su iPhone spesso si usa **Aggiungi a Home** dal menu di Safari. Non è obbligatorio: l’app funziona anche solo nel browser. L’installazione aiuta le **notifiche push** e l’apertura rapida, ma dipende dal dispositivo e dai permessi.
+
+---
+
+## Mini-guida: accedere, password e aziende
+
+### Login
+1. Aprite la pagina di **accesso** dell’app.  
+2. Inserite **email** e **password** dell’account.  
+3. Se non ricordate la password: link **Password dimenticata?** → inserite l’email → ricevete le istruzioni per reimpostarla (controllate anche lo spam).
+
+### Nuova azienda vs invito
+- **Registrazione** (nuovo account + nuova azienda): usatela solo se state creando l’azienda da zero.  
+- Se vi hanno **invitato** per email: aprite il **link nell’invito** (non la registrazione generica) e completate i dati richiesti. Dettaglio inviti/ruoli nella guida **Manodopera** (manager).
+
+### Più aziende
+Se il vostro utente appartiene a più aziende, scegliete quella giusta con **cambia azienda** (o voce equivalente) **prima** di cercare dati. Lavorate sempre su **un’azienda alla volta**.
+
+### Account in Impostazioni
+Da loggati, in **Impostazioni**: nome/cognome/telefono, **Cambio password**, **Notifiche**.
+
+---
+
 ## Abbonamento e piani
 
 Nella pagina **Abbonamento** (menu **Moduli** o tile dedicata) vedi il **piano corrente** e i **moduli** che potete attivare.
@@ -279,7 +346,7 @@ Nella pagina **Abbonamento** (menu **Moduli** o tile dedicata) vedi il **piano c
 
 - Terreni e attività **senza i limiti** del gratuito (secondo quanto indicato in pagina Abbonamento).
 - **Tony Guida**: assistente in chat per **orientarvi** (dove andare, cosa significa un’etichetta, passi da fare). Su questo piano Tony può anche suggerire **moduli utili** per la vostra azienda, in modo non invadente.
-- I **moduli verticali** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Vendemmia meccanica, Report, …) si **attivano a parte**, ciascuno con il suo prezzo (o in prova 30 giorni, un modulo alla volta): ogni modulo aggiunge voci al menu **Moduli** e nuove pagine.
+- I **moduli verticali** (Vigneto, Frutteto, **Seminativo**, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Vendemmia meccanica, Report, …) si **attivano a parte**, ciascuno con il suo prezzo (o in prova 30 giorni, un modulo alla volta): ogni modulo aggiunge voci al menu **Moduli** e nuove pagine.
 - Il **modulo Tony Avanzato** (se lo attivate) aggiunge **automazioni**: aprire pagine, compilare schede, filtrare elenchi, **fotografare bolle e fatture** (Tony legge le cifre; voi confermate e i dati scendono in magazzino). È **distinto** da Tony Guida incluso nel Base: potete usare la guida senza acquistare le automazioni.
 
 ### Cosa fare in pratica

@@ -120,7 +120,7 @@ Le pagine **Trattamenti**, **Concimazioni** e **Potatura** servono a **completar
 7. **Costo manodopera** e **Costo macchina:** facoltativi se non già coperti dal lavoro.
 8. **Giorni di carenza:** spesso precompilati col massimo ricavabile dai prodotti; controllate sempre con le **etichette** e la normativa.
 9. **Note**, **Copertura del terreno** (tutto / parziale / non specificato) e, se serve, **Questo intervento prosegue un trattamento non completato** con scelta del **trattamento precedente** nello stesso frutteto (tracciabilità e magazzino).
-10. **Magazzino:** se il modulo è attivo e i prodotti sono collegati all’anagrafica, può comparire la spunta **Registra scarico in magazzino**: deselezionatela se non volete movimentare le giacenze.
+10. **Magazzino:** se il modulo è attivo (abbonamento **o** prova) e i prodotti sono collegati all’anagrafica, può comparire la spunta **Registra scarico in magazzino**: deselezionatela se non volete movimentare le giacenze.
 11. **Salva** per registrare; **Annulla** chiude senza salvare.
 
 ### Concimazioni: passo per passo

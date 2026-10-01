@@ -223,6 +223,10 @@ Dopo il login, sulla **dashboard** (manager o amministratore), il sistema può c
 - **guasti** aperti (se attivo),  
 - **meteo** e suggerimenti operativi (se avete il modulo **Meteo** e Tony Avanzato).
 
+### Notifiche push (non sono Tony)
+
+Le **notifiche push** sul telefono (ciclo lavoro, assenze) si configurano in **Impostazioni → Notifiche** e sono documentate nella guida **Core**. **Non** confonderle con il **briefing** o i messaggi di Tony in chat: Tony parla **dentro** l’app; la push arriva sul dispositivo anche a schermo spento (se il browser/OS lo permette).
+
 ### Voce vs chat
 
 | Situazione | Comportamento |

@@ -421,6 +421,30 @@
       "module": "report"
     },
     {
+      "target": "calcolatore vendemmia meccanica",
+      "path": "modules/vendemmia-meccanica/views/calcolatore-standalone.html",
+      "label": "Calcolatore",
+      "module": "vendemmia-meccanica"
+    },
+    {
+      "target": "piano stagione vm",
+      "path": "modules/vendemmia-meccanica/views/piano-stagione-standalone.html",
+      "label": "Piano Stagione",
+      "module": "vendemmia-meccanica"
+    },
+    {
+      "target": "vendemmia meccanizzata",
+      "path": "modules/vendemmia-meccanica/views/vm-home-standalone.html",
+      "label": "Vendemmia Meccanica",
+      "module": "vendemmia-meccanica"
+    },
+    {
+      "target": "vendemmia meccanica",
+      "path": "modules/vendemmia-meccanica/views/vm-home-standalone.html",
+      "label": "Vendemmia Meccanica",
+      "module": "vendemmia-meccanica"
+    },
+    {
       "target": "bilancio vm",
       "path": "modules/vendemmia-meccanica/views/bilancio-vm-standalone.html",
       "label": "Bilancio Vm",

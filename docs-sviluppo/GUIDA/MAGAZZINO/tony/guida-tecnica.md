@@ -34,6 +34,11 @@ Ingresso 📷 chat (`document-capture.js`), non la lista archivio. CF `tonyExtra
 
 - **`MAGAZZINO/utente/guida-sintesi.md`** → campo `guida_sintesi_magazzino` in `tony-service.js` (dedup primo turno come Core / Parco / Vigneto / Frutteto).
 
+## Giacenza e accessi
+
+- Aggiornamento giacenza movimenti: atomico con `FieldValue.increment` (`modules/magazzino/services/giacenza-utils.js` / `movimenti-service.js`) — evita race su carichi/scarichi concorrenti.
+- Accesso modulo = pagato **o** trial attivo (`hasModuleAccessFromTenant` / `module-access-resolver.js`). Scarico da trattamenti/concimazioni (Vigneto/Frutteto) usa lo stesso gate: funziona anche con Magazzino **in prova**, non solo se già in abbonamento pagato (`trattamento-scarico-magazzino-service.js`).
+
 ## Permessi
 
 Di solito Manager/Amministratore per modifiche sensibili; verificare su installazioni con ruoli custom.
