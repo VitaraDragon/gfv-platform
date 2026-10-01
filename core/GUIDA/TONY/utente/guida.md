@@ -307,7 +307,7 @@ In cortile ricevi una bolla. Apri Tony → fotocamera → scatto → **Acquisizi
 | **Briefing** assente | Serve ruolo **manager/admin**; messaggio proattivo solo con **Tony Avanzato**; su **mobile** controlla la **chat** (può aprirsi da sola). |
 | **Voce** assente o microfono muto | Permessi browser; altoparlante; su mobile spesso solo **testo**; aspetta fine messaggio; prova a **scrivere**. |
 | Intervista lavoro **si ferma** | Ripeti l’ultima risposta; specifica terreno/lavoro con nome **completo**; conferma con «sì» esplicito. |
-| **Fotocamera** assente o acquisizione fallita | Servono **Tony Avanzato** + **Magazzino** e ruolo manager/admin. Rifai la foto: un foglio, luce uniforme, testo leggibile. Se selezioni foto dalla galleria e ottieni errore su formato (HEIC), **scatta in-app** o converte a JPEG. |
+| **Fotocamera** assente o acquisizione fallita | Servono **Tony Avanzato** + **Magazzino** e ruolo manager/admin. Rifai la foto: un foglio, luce uniforme, testo leggibile. Se selezioni foto dalla galleria e ottieni errore su formato (HEIC), **scatta in-app** o converti a JPEG. |
 | Risposta **generica** | Riformula con **contesto** («sono nella lista preventivi, …») o una richiesta alla volta. |
 
 ---
