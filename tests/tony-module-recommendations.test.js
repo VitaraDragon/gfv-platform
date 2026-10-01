@@ -216,7 +216,7 @@ describe('tony-module-recommendations', () => {
     expect(out).not.toBeNull();
     expect(out.id).toBe('module_add_advisor');
     expect(out.text).toMatch(/GFV Completo/i);
-    expect(out.text).toMatch(/10 euro al mese/i);
+    expect(out.text).toMatch(/7 euro al mese/i);
     expect(out.text.length).toBeLessThan(900);
   });
 
