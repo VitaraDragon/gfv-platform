@@ -315,6 +315,12 @@
                 };
                 document.getElementById('mov-quantita').oninput = checkGiacenzaAlert;
                 document.getElementById('movimento-form').onsubmit = saveMovimento;
+                try {
+                    const tipoQ = new URLSearchParams(window.location.search).get('tipo');
+                    if (tipoQ === 'entrata' || tipoQ === 'uscita') {
+                        document.getElementById('filter-tipo').value = tipoQ;
+                    }
+                } catch (eTipo) { /* ignore */ }
                 document.getElementById('filter-tipo').onchange = renderMovimenti;
                 document.getElementById('filter-prodotto').onchange = renderMovimenti;
                 const chkPrezzo = document.getElementById('filter-prezzo-attesa');

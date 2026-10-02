@@ -37,6 +37,8 @@ describe('parseProdottoCreationFromText', () => {
 
   it('normalizza concime → fertilizzanti', () => {
     expect(normalizeProdottoCategoriaFromText('concime npk')).toBe('fertilizzanti');
+    expect(normalizeProdottoCategoriaFromText('gasolio agricolo')).toBe('carburante');
+    expect(normalizeProdottoCategoriaFromText('adblue')).toBe('carburante');
     expect(normalizeProdottoUnitaFromText('10 kg')).toBe('kg');
   });
 });

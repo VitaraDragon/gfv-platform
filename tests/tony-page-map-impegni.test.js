@@ -25,6 +25,18 @@ describe('TONY_PAGE_MAP — impegni giornalieri', () => {
     expect(getRequiredModuleForTarget('impegni giornalieri')).toBe('manodopera');
     expect(getRequiredModuleForTarget('impegni giorno')).toBe('manodopera');
   });
+
+  it('risolve carburante all\'hub Magazzino', () => {
+    expect(resolveTarget('carburante')).toBe('carburante');
+    expect(resolveTarget('hub carburante')).toBe('hub carburante');
+    expect(resolveTarget('gasolio')).toBe('gasolio');
+    expect(getUrlForTarget('carburante', '/core/dashboard-standalone.html')).toMatch(
+      /modules\/magazzino\/views\/carburante-home-standalone\.html$/
+    );
+    expect(TONY_LABEL_MAP.carburante).toBe('Carburante');
+    expect(getRequiredModuleForTarget('carburante')).toBe('magazzino');
+    expect(getRequiredModuleForTarget('gasolio')).toBe('magazzino');
+  });
 });
 
 describe('home ERP vs dashboard di modulo', () => {

@@ -5135,7 +5135,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                         }
                         var pathStr = (window.location.pathname || '');
                         var pageType = (window.currentTableData && window.currentTableData.pageType) ||
-                            (pathStr.indexOf('piano-stagione') !== -1 ? 'piano-stagione-vm' : pathStr.indexOf('terreni-clienti') !== -1 ? 'terreniClienti' : pathStr.indexOf('tracciabilita-consumi') !== -1 ? 'tracciabilita_consumi' : pathStr.indexOf('vendemmia-standalone') !== -1 ? 'vendemmia' : (pathStr.indexOf('modules/vigneto') !== -1 || pathStr.indexOf('/vigneto/') !== -1) && pathStr.indexOf('concimazioni') !== -1 ? 'concimazioni_vigneto' : (pathStr.indexOf('modules/frutteto') !== -1 || pathStr.indexOf('/frutteto/') !== -1) && pathStr.indexOf('concimazioni') !== -1 ? 'concimazioni_frutteto' : pathStr.indexOf('clienti') !== -1 ? 'clienti' : pathStr.indexOf('preventivi') !== -1 ? 'preventivi' : pathStr.indexOf('tariffe') !== -1 ? 'tariffe' : pathStr.indexOf('prodotti') !== -1 ? 'prodotti' : pathStr.indexOf('movimenti') !== -1 ? 'movimenti' : pathStr.indexOf('attivita') !== -1 ? 'attivita' : (pathStr.indexOf('gestione-lavori') !== -1 || pathStr.indexOf('lavori') !== -1) ? 'lavori' : 'terreni');
+                            (pathStr.indexOf('piano-stagione') !== -1 ? 'piano-stagione-vm' : pathStr.indexOf('terreni-clienti') !== -1 ? 'terreniClienti' : pathStr.indexOf('tracciabilita-consumi') !== -1 ? 'tracciabilita_consumi' : pathStr.indexOf('carburante-home') !== -1 ? 'carburante_hub' : pathStr.indexOf('vendemmia-standalone') !== -1 ? 'vendemmia' : (pathStr.indexOf('modules/vigneto') !== -1 || pathStr.indexOf('/vigneto/') !== -1) && pathStr.indexOf('concimazioni') !== -1 ? 'concimazioni_vigneto' : (pathStr.indexOf('modules/frutteto') !== -1 || pathStr.indexOf('/frutteto/') !== -1) && pathStr.indexOf('concimazioni') !== -1 ? 'concimazioni_frutteto' : pathStr.indexOf('clienti') !== -1 ? 'clienti' : pathStr.indexOf('preventivi') !== -1 ? 'preventivi' : pathStr.indexOf('tariffe') !== -1 ? 'tariffe' : pathStr.indexOf('prodotti') !== -1 ? 'prodotti' : pathStr.indexOf('movimenti') !== -1 ? 'movimenti' : pathStr.indexOf('attivita') !== -1 ? 'attivita' : (pathStr.indexOf('gestione-lavori') !== -1 || pathStr.indexOf('lavori') !== -1) ? 'lavori' : 'terreni');
                         var FILTER_KEY_MAP = {
                             attivita: { terreno: 'filter-terreno', tipoLavoro: 'filter-tipo-lavoro', coltura: 'filter-coltura', origine: 'filter-origine', dataDa: 'filter-data-da', dataA: 'filter-data-a', data: 'filter-data-da', ricerca: 'filter-ricerca' },
                             terreni: { podere: 'filter-podere', possesso: 'filter-tipo-possesso', alert: 'filter-alert', coltura: 'filter-coltura', categoria: 'filter-categoria' },
@@ -5158,7 +5158,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             concimazioni_seminativo: { terreno: 'filter-terreno', campagna: 'filter-campagna', ricerca: 'filter-ricerca' },
                             raccolta_seminativo: { terreno: 'filter-terreno', campagna: 'filter-campagna', ricerca: 'filter-ricerca' },
                             statistiche_seminativo: { terreno: 'filter-terreno', campagna: 'filter-campagna' },
-                            piano_colturale_seminativo: { terreno: 'filter-terreno', ricerca: 'filter-ricerca' }
+                            piano_colturale_seminativo: { terreno: 'filter-terreno', ricerca: 'filter-ricerca' },
+                            carburante_hub: {}
                         };
                         var keyToId = FILTER_KEY_MAP[pageType] || FILTER_KEY_MAP.terreni;
                         var isAttivita = pageType === 'attivita';
@@ -5175,9 +5176,15 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 pesticida: 'fitofarmaci', pesticidi: 'fitofarmaci',
                                 'materiale impianto': 'materiale_impianto', materiale_impianto: 'materiale_impianto',
                                 impianto: 'materiale_impianto', ricambi: 'ricambi', ricambio: 'ricambi',
-                                sementi: 'sementi', seme: 'sementi', altro: 'altro'
+                                sementi: 'sementi', seme: 'sementi',
+                                carburante: 'carburante', carburanti: 'carburante',
+                                gasolio: 'carburante', diesel: 'carburante', benzina: 'carburante',
+                                adblue: 'carburante', 'ad blue': 'carburante',
+                                altro: 'altro'
                             };
                             if (aliases[s]) return aliases[s];
+                            if (s.indexOf('carbur') >= 0 || s.indexOf('gasolio') >= 0 || s.indexOf('diesel') >= 0
+                                || s.indexOf('benzina') >= 0 || s.indexOf('adblue') >= 0) return 'carburante';
                             if (s.indexOf('fertil') >= 0 || s.indexOf('concim') >= 0) return 'fertilizzanti';
                             if (s.indexOf('fitofarm') >= 0 || s === 'fito' || s.indexOf('pestic') >= 0) return 'fitofarmaci';
                             if (s.indexOf('ricamb') >= 0) return 'ricambi';
