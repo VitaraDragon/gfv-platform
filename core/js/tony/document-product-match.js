@@ -11,6 +11,7 @@ const CATEGORIA_KEYWORDS = [
   { id: 'sementi', keywords: ['seme', 'sementi', 'rootstock', 'portinnesto', 'barbatella', 'piantina'] },
   { id: 'materiale_impianto', keywords: ['palo', 'tutore', 'filo', 'tubo', 'irrigaz', 'valvola', 'raccordo', 'clip', 'aggrappatoio'] },
   { id: 'ricambi', keywords: ['ricambio', 'filtro', 'cinghia', 'candela', 'olio motore', 'pastiglia', 'guarnizione'] },
+  { id: 'carburante', keywords: ['gasolio', 'diesel', 'benzina', 'adblue', 'ad blue', 'carburante', 'carburanti'] },
 ];
 
 const VALID_CATEGORIA_IDS = CATEGORIE_PRODOTTO.map(function (c) { return c.id; });

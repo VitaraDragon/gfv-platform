@@ -28,7 +28,7 @@ Target utili: `magazzino` (home), `prodotti`, `movimenti`, alias **tracciabilit�
 
 ## Acquisizione documenti (foto → magazzino)
 
-Ingresso 📷 chat (`document-capture.js`), non la lista archivio. CF `tonyExtractDocument`: due passate Gemini sui numeri; XML FatturaPA solo extra se il file è già quello. Save: `document-register.js` (bolla / fattura / scontrino). Originali: Storage + `documentiAcquisiti`. Vedi `GUIDA/TONY/tony/guida-tecnica.md` (stesso flusso).
+Ingresso 📷 chat (`document-capture.js`), non la lista archivio. CF `tonyExtractDocument`: due passate Gemini sui numeri; XML FatturaPA solo extra se il file è già quello. Save: `document-register.js` (bolla / fattura / scontrino). Originali: Storage + `documentiAcquisiti`. Vedi `GUIDA/TONY/tony/guida-tecnica.md` (stesso flusso, incluso HEIC/HEIF handling foto galleria iPhone).
 
 ## Riassunto Tony
 

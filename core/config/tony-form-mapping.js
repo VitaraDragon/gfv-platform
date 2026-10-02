@@ -298,7 +298,7 @@ REGOLE:
     fields: {
       'prodotto-codice': { type: 'text', resolve: 'as_is', description: 'Codice interno opzionale' },
       'prodotto-nome': { type: 'text', resolve: 'as_is', description: 'Nome prodotto (obbligatorio in salvataggio)' },
-      'prodotto-categoria': { type: 'select', resolve: 'as_is', description: 'fitofarmaci|fertilizzanti|materiale_impianto|ricambi|sementi|altro' },
+      'prodotto-categoria': { type: 'select', resolve: 'as_is', description: 'fitofarmaci|fertilizzanti|materiale_impianto|ricambi|sementi|carburante|altro' },
       'prodotto-unita': { type: 'select', resolve: 'as_is', description: 'kg|L|pezzi|m|m2|confezione|sacchi|altro' },
       'prodotto-scorta-minima': { type: 'number', resolve: 'as_is', description: 'Scorta minima' },
       'prodotto-prezzo': { type: 'number', resolve: 'as_is', description: 'Prezzo unitario €' },
@@ -316,9 +316,11 @@ REGOLE:
     /** Campi opzionali da chiedere se ancora vuoti (i required HTML sono gestiti da requiredEmpty). */
     tonyInterviewFieldIds: ['mov-confezione', 'mov-prezzo', 'mov-note', 'mov-lavoro', 'mov-attivita'],
     injectionOrder: [
+      'mov-origine-carburante',
       'mov-prodotto',
       'mov-data',
       'mov-tipo',
+      'mov-macchina',
       'mov-quantita',
       'mov-confezione',
       'mov-prezzo',
@@ -327,9 +329,11 @@ REGOLE:
       'mov-attivita'
     ],
     fields: {
-      'mov-prodotto': { type: 'select', resolve: 'by_name', description: 'Prodotto: nome o id Firestore (da elenco o da azienda.prodotti)' },
+      'mov-origine-carburante': { type: 'text', resolve: 'as_is', description: 'carico_cisterna | pieno | vuoto. Non è un tipo movimento.' },
+      'mov-prodotto': { type: 'select', resolve: 'by_name', description: 'Prodotto: nome o id Firestore (da elenco o da azienda.prodotti). Sul carburante il dropdown è solo categoria carburante.' },
       'mov-data': { type: 'date', resolve: 'as_is', description: 'Data movimento YYYY-MM-DD' },
       'mov-tipo': { type: 'select', resolve: 'as_is', description: 'entrata | uscita' },
+      'mov-macchina': { type: 'select', resolve: 'by_name', description: 'Mezzo del pieno (nome o id). Obbligatorio se mov-origine-carburante è pieno. Stessa disambiguazione nomi dei trattori: un solo match, altrimenti chiedere.' },
       'mov-quantita': { type: 'number', resolve: 'as_is', description: 'Quantità (positiva)' },
       'mov-confezione': { type: 'text', resolve: 'as_is', description: 'Testo confezione opzionale' },
       'mov-prezzo': { type: 'number', resolve: 'as_is', description: 'Prezzo unitario € (tipico entrata)' },
@@ -409,6 +413,7 @@ REGOLE:
   const SYSTEM_INSTRUCTION_MAGAZZINO_FORMS = `Form Magazzino (id DOM = chiavi in fields / INJECT_FORM_DATA):
 - Prodotto: formId "prodotto-form", OPEN_MODAL "prodotto-modal". Campi: prodotto-nome (obbligatorio), prodotto-categoria, prodotto-unita, prodotto-scorta-minima, prodotto-prezzo, prodotto-dosaggio-min/max, prodotto-giorni-carenza (solo fitofarmaci), prodotto-note, prodotto-codice. Il contesto form include interviewEmpty: **i giorni di carenza servono solo se prodotto-categoria è fitofarmaci**; per ogni altra categoria non esistono giorni di carenza — non chiedere e non usare SET_FIELD su prodotto-giorni-carenza salvo richiesta esplicita dell'utente. Altrimenti domande su categoria, unità, scorta, prezzo, dosaggi. Non solo il nome.
 - Movimento: formId "movimento-form", OPEN_MODAL "movimento-modal". Campi: mov-prodotto (nome prodotto o id, obbligatorio), mov-data, mov-tipo (entrata|uscita), mov-quantita (obbligatori insieme agli altri required), mov-confezione, mov-prezzo (entrata), mov-note, mov-lavoro, mov-attivita (opzionali). interviewEmpty per i campi opzionali ancora vuoti.
+- Carburante, stesso form: «è arrivato il gasolio, N litri» → mov-tipo entrata, mov-prodotto gasolio|benzina|adblue, mov-quantita, mov-origine-carburante carico_cisterna. «ho fatto il pieno al NOME, N litri» → mov-tipo uscita, mov-quantita, mov-macchina (nome mezzo), mov-origine-carburante pieno. mov-macchina obbligatorio sul pieno: un solo trattore che combacia si compila, più match si chiede l'elenco. Non creare una seconda uscita per i litri del lavoro.
 Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrispondente; dopo iniezione il client può chiedere conferma salvataggio (SAVE_ACTIVITY) se tutti i required sono ok. Da altra pagina: OPEN_MODAL + fields o APRI_PAGINA target "prodotti"/"movimenti" con fields.`;
 
   /** Mappa form Terreno (aggiungi terreno) */

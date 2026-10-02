@@ -15,6 +15,23 @@ const ctxBase = {
 };
 
 describe('tryTonyNavQuickReply', () => {
+  it('portami al carburante → hub (non magazzino generico)', () => {
+    expect(resolveNavTarget('portami al carburante')).toBe('carburante');
+    expect(resolveNavTarget('apri gasolio')).toBe('carburante');
+    const hit = tryTonyNavQuickReply({
+      message: 'portami al carburante',
+      ctx: ctxBase,
+    });
+    expect(hit).not.toBeNull();
+    expect(hit.command).toEqual({ type: 'APRI_PAGINA', target: 'carburante' });
+    expect(hit.text).toMatch(/carburante/i);
+    const blocked = tryTonyNavQuickReply({
+      message: 'portami al carburante',
+      ctx: { moduli_attivi: ['tony'], dashboard: { moduli_attivi: ['tony'] } },
+    });
+    expect(blocked.id).toBe('nav_module_blocked');
+  });
+
   it('portami a magazzino → APRI_PAGINA magazzino (non ore)', () => {
     const hit = tryTonyNavQuickReply({
       message: 'portami a magazzino',

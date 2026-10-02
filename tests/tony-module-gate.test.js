@@ -29,6 +29,12 @@ describe('tony-module-gate', () => {
     expect(isApriPaginaTargetAllowed('terreni', ['tony'])).toBe(true);
   });
 
+  it('carburante richiede modulo magazzino', () => {
+    expect(isApriPaginaTargetAllowed('carburante', ['tony'])).toBe(false);
+    expect(isApriPaginaTargetAllowed('carburante', ['tony', 'magazzino'])).toBe(true);
+    expect(isApriPaginaTargetAllowed('hub carburante', ['magazzino'])).toBe(true);
+  });
+
   it('blocca APRI_PAGINA seminativo se il modulo non è attivo', () => {
     expect(isApriPaginaTargetAllowed('seminativo', ['tony', 'vigneto'])).toBe(false);
     expect(isApriPaginaTargetAllowed('seminativo', ['tony', 'seminativo'])).toBe(true);
