@@ -175,7 +175,7 @@ Non modifica assert dei test; non tocca altri T-DIRTY.
 
 ## 2026-10-02 — Carburante Fase 2: carico cisterna e pieno mezzo
 
-Carico e pieno usano lo stesso movimento di magazzino. La card Carico apre un'entrata solo sui prodotti carburante (`origineCarburante=carico_cisterna`). La card Pieno apre un'uscita con il mezzo obbligatorio; senza Parco Macchine resta disabilitata. La giacenza si aggiorna una sola volta con l'incremento già esistente. Tony riconosce «è arrivato il gasolio, 800 litri» e «ho fatto il pieno al T5, 80 litri». Nelle sottopagine (scorta, carico, pieno, prodotti, consumi) il pulsante è «← Dashboard carburante» e torna all’hub, non alla home Magazzino. In hub la scorta è una card per prodotto (gasolio, benzina, AdBlue non si sommano). Le quote sui lavori restano Fase 3.
+Carico e pieno usano lo stesso movimento di magazzino. La card Carico apre un'entrata solo sui prodotti carburante (`origineCarburante=carico_cisterna`). La card Pieno apre un'uscita con il mezzo obbligatorio; senza Parco Macchine resta disabilitata. La giacenza si aggiorna una sola volta con l'incremento già esistente. Tony riconosce «è arrivato il gasolio, 800 litri» e «ho fatto il pieno al T5, 80 litri». Nelle sottopagine (scorta, carico, pieno, prodotti, consumi) il pulsante è «← Dashboard carburante» e torna all’hub, non alla home Magazzino. In hub la scorta è una card per prodotto (gasolio, benzina, AdBlue non si sommano). In versione mobile, operaio e caposquadra vedono la scheda Pieno solo se il lavoro assegnato ha un mezzo: litri, carburante, mezzo, lavoro e chi ha registrato, sulla stessa uscita di magazzino. Le quote sui lavori restano Fase 3.
 
 ---
 
