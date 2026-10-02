@@ -8,6 +8,7 @@ import {
   matchMezzoByName,
   carburanteMovimentoSearchFromDraft,
   dashboardLinkForCategoria,
+  righeScortaCarburante,
 } from '../modules/magazzino/lib/carburante-movimento.js';
 
 describe('validateMovimentoCarburante', () => {
@@ -81,6 +82,29 @@ describe('filtro lista e mezzo', () => {
       .toBe('categoria=carburante&tipo=entrata');
     expect(carburanteMovimentoSearchFromDraft({ 'mov-origine-carburante': 'pieno' }))
       .toContain('pieno=1');
+  });
+});
+
+describe('scorta per prodotto', () => {
+  it('non somma gasolio e AdBlue', () => {
+    const rows = righeScortaCarburante([
+      { id: 'g', nome: 'Gasolio agricolo', categoria: 'carburante', giacenza: 800, unitaMisura: 'L' },
+      { id: 'a', nome: 'AdBlue', categoria: 'carburante', giacenza: 40, unitaMisura: 'L' },
+      { id: 'f', nome: 'Rame', categoria: 'fitofarmaci', giacenza: 12 },
+      { id: 'x', nome: 'Vecchio gasolio', categoria: 'carburante', giacenza: 5, attivo: false },
+    ]);
+    expect(rows.map((r) => r.nome)).toEqual(['AdBlue', 'Gasolio agricolo']);
+    expect(rows.map((r) => r.giacenza)).toEqual([40, 800]);
+    expect(rows.reduce((s, r) => s + r.giacenza, 0)).toBe(840);
+  });
+
+  it('segna sotto scorta sul singolo prodotto', () => {
+    const rows = righeScortaCarburante([
+      { id: 'b', nome: 'Benzina', categoria: 'carburante', giacenza: 8, scortaMinima: 20 },
+      { id: 'g', nome: 'Gasolio', categoria: 'carburante', giacenza: 500, scortaMinima: 100 },
+    ]);
+    expect(rows.find((r) => r.nome === 'Benzina').sottoScorta).toBe(true);
+    expect(rows.find((r) => r.nome === 'Gasolio').sottoScorta).toBe(false);
   });
 });
 
