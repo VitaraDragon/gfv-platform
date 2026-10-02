@@ -1715,7 +1715,8 @@
           "quale mezzo/chiede disambiguazione"
         ],
         "avoidAsserts": [
-          "pieno su mezzo ignoto senza chiedere"
+          "pieno su mezzo ignoto senza chiedere",
+          "carico cisterna prima di disambiguare mezzo"
         ]
       },
       "persona": "manager",
@@ -1741,7 +1742,10 @@
           ]
         ],
         "responseMustNotMatch": [
-          "sessione scaduta"
+          "sessione scaduta",
+          "quanti litri",
+          "carico cisterna",
+          "carico di gasolio"
         ]
       }
     },
