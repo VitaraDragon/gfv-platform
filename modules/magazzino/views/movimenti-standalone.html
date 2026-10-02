@@ -112,7 +112,8 @@
             </div>
             <div class="header-actions">
                 <button class="btn btn-primary" id="btn-nuovo-movimento">➕ Nuovo Movimento</button>
-                <a href="magazzino-home-standalone.html" class="btn btn-secondary">← Dashboard</a>
+                <a id="link-dashboard-sezione" href="magazzino-home-standalone.html" class="btn btn-secondary">← Dashboard</a>
+                <script src="../js/dashboard-sezione-link.js"></script>
             </div>
         </div>
 
@@ -360,11 +361,7 @@
                 if (fuelQInit.categoria === 'carburante') {
                     document.getElementById('filter-origine-group').style.display = '';
                     if (origineSel && fuelQInit.origineFiltro) origineSel.value = fuelQInit.origineFiltro;
-                    const back = document.querySelector('.header-actions a.btn-secondary');
-                    if (back) {
-                        back.href = 'carburante-home-standalone.html';
-                        back.textContent = '← Carburante';
-                    }
+                    if (window.GFVSyncDashboardSezione) window.GFVSyncDashboardSezione('carburante');
                     const h1 = document.querySelector('.header h1');
                     if (h1) {
                         h1.textContent = fuelQInit.origineForm === 'pieno'
@@ -376,6 +373,7 @@
                 const btnClearFuel = document.getElementById('btn-clear-carburante-filter');
                 if (btnClearFuel) btnClearFuel.onclick = function () {
                     clearCarburanteFilterFromUrl();
+                    if (window.GFVSyncDashboardSezione) window.GFVSyncDashboardSezione('');
                     fuelFormOpened = true;
                     document.getElementById('filter-origine-group').style.display = 'none';
                     if (origineSel) origineSel.value = '';

@@ -191,3 +191,21 @@ export function matchMezzoByName(list, hint) {
   if (contains.length > 1) return { status: 'ambiguous', match: null, matches: contains };
   return { status: 'none', match: null, matches: [] };
 }
+
+/** Destinazione del pulsante in testata sulle sottopagine Magazzino. */
+export var DASHBOARD_MAGAZZINO_HREF = 'magazzino-home-standalone.html';
+export var DASHBOARD_MAGAZZINO_LABEL = '← Dashboard';
+export var DASHBOARD_CARBURANTE_HREF = 'carburante-home-standalone.html';
+export var DASHBOARD_CARBURANTE_LABEL = '← Dashboard carburante';
+
+/**
+ * Sottosezione aperta con ?categoria=carburante: si torna all'hub Carburante.
+ * @param {string|null|undefined} categoria
+ * @returns {{ href: string, label: string }}
+ */
+export function dashboardLinkForCategoria(categoria) {
+  if (categoria === 'carburante') {
+    return { href: DASHBOARD_CARBURANTE_HREF, label: DASHBOARD_CARBURANTE_LABEL };
+  }
+  return { href: DASHBOARD_MAGAZZINO_HREF, label: DASHBOARD_MAGAZZINO_LABEL };
+}

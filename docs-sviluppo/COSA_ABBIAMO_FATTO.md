@@ -4,7 +4,7 @@
 
 ## 2026-10-02 — Carburante Fase 2: carico cisterna e pieno mezzo
 
-Carico e pieno usano lo stesso movimento di magazzino. La card Carico apre un'entrata solo sui prodotti carburante (`origineCarburante=carico_cisterna`). La card Pieno apre un'uscita con il mezzo obbligatorio; senza Parco Macchine resta disabilitata. La giacenza si aggiorna una sola volta con l'incremento già esistente. Tony riconosce «è arrivato il gasolio, 800 litri» e «ho fatto il pieno al T5, 80 litri». Le quote sui lavori restano Fase 3.
+Carico e pieno usano lo stesso movimento di magazzino. La card Carico apre un'entrata solo sui prodotti carburante (`origineCarburante=carico_cisterna`). La card Pieno apre un'uscita con il mezzo obbligatorio; senza Parco Macchine resta disabilitata. La giacenza si aggiorna una sola volta con l'incremento già esistente. Tony riconosce «è arrivato il gasolio, 800 litri» e «ho fatto il pieno al T5, 80 litri». Nelle sottopagine (scorta, carico, pieno, prodotti, consumi) il pulsante è «← Dashboard carburante» e torna all’hub, non alla home Magazzino. Le quote sui lavori restano Fase 3.
 
 ---
 
