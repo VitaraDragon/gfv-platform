@@ -300,7 +300,8 @@ Niente prompt lungo hardcoded «se l’utente parla di gasolio fai X» se si pu�
 - Card **Carico**: registrare arrivo in cisterna
 - Card **Pieni e consumi**: rifornimenti dei mezzi; in Fase 3 anche L/h coppie
 - Card **Prodotti**: anagrafica solo categoria carburante
-- Link indietro: home Magazzino, non dashboard ERP (stesso pattern hub Manodopera)
+- Link indietro dell’hub: home Magazzino, non dashboard ERP (stesso pattern hub Manodopera)
+- Link indietro delle sottopagine (Scorta, Carico, Pieno, Prodotti, elenco consumi): **← Dashboard carburante**, verso l’hub. Così si torna alle card senza ripassare dalla home Magazzino. Se si toglie il filtro categoria, il pulsante torna alla home Magazzino.
 
 KPI in testa: litri totali (somma giacenze prodotti `carburante` in L), n. sotto scorta, ultimo carico.
 
@@ -358,6 +359,7 @@ Non aggiornare `DOBBIAMO_ANCORA_FARE.md`, `RIEPILOGO_CURRENTTABLEDATA_PER_MODULO
 | 2026-10-02 | Prima stesura. Modulo Magazzino, card Carburante, categoria `carburante`, due verità, apprendimento solo da finestre pulite, no L/h attrezzo, no chiave terreno. |
 | 2026-10-02 | Fase 0–1 implementate: categoria, hub, rotte/gate/nav Tony, match Occhi. |
 | 2026-10-02 | Fase 2: carico cisterna e pieno mezzo sullo stesso movimento-form. Giacenza solo da increment. |
+| 2026-10-02 | Sottopagine carburante: pulsante «← Dashboard carburante» verso l’hub, non verso la home Magazzino. |
 | 2026-10-02 | Handoff agente §12: branch, cosa è in codice, prossimo passo Fase 2, come vedere in locale. |
 
 ---

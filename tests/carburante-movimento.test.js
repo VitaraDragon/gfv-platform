@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 import { describe, it, expect } from 'vitest';
 import {
   validateMovimentoCarburante,
@@ -5,6 +7,7 @@ import {
   movimentoMatchesCarburanteFiltro,
   matchMezzoByName,
   carburanteMovimentoSearchFromDraft,
+  dashboardLinkForCategoria,
 } from '../modules/magazzino/lib/carburante-movimento.js';
 
 describe('validateMovimentoCarburante', () => {
@@ -78,5 +81,28 @@ describe('filtro lista e mezzo', () => {
       .toBe('categoria=carburante&tipo=entrata');
     expect(carburanteMovimentoSearchFromDraft({ 'mov-origine-carburante': 'pieno' }))
       .toContain('pieno=1');
+  });
+});
+
+describe('dashboard sottopagine carburante', () => {
+  it('con categoria carburante torna all’hub, altrimenti al magazzino', () => {
+    expect(dashboardLinkForCategoria('carburante')).toEqual({
+      href: 'carburante-home-standalone.html',
+      label: '← Dashboard carburante',
+    });
+    expect(dashboardLinkForCategoria('').href).toBe('magazzino-home-standalone.html');
+    expect(dashboardLinkForCategoria('fitofarmaco').label).toBe('← Dashboard');
+  });
+
+  it('il link in pagina usa le stesse stringhe e sta sulle sottopagine', () => {
+    const link = dashboardLinkForCategoria('carburante');
+    const src = readFileSync(fileURLToPath(new URL('../modules/magazzino/js/dashboard-sezione-link.js', import.meta.url)), 'utf8');
+    expect(src).toContain(link.href);
+    expect(src).toContain(link.label);
+    for (const page of ['movimenti-standalone.html', 'prodotti-standalone.html', 'tracciabilita-consumi-standalone.html']) {
+      const html = readFileSync(fileURLToPath(new URL('../modules/magazzino/views/' + page, import.meta.url)), 'utf8');
+      expect(html).toContain('id="link-dashboard-sezione"');
+      expect(html).toContain('dashboard-sezione-link.js');
+    }
   });
 });
