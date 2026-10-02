@@ -49,6 +49,7 @@
         .stat-card:hover { transform: translateY(-5px); box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
         .stat-value { font-size: 32px; font-weight: bold; color: #2E7D32; margin-bottom: 10px; }
         .stat-label { font-size: 14px; color: #666; }
+        #stat-scorte { display: contents; }
         .stat-card.alert-card {
             background: linear-gradient(135deg, #fff3cd 0%, #ffc107 100%);
             border-color: #ffc107;
@@ -135,9 +136,11 @@
 
             <h2>Panoramica</h2>
             <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-value" id="stat-litri">-</div>
-                    <div class="stat-label">Litri in cisterna</div>
+                <div id="stat-scorte">
+                    <div class="stat-card">
+                        <div class="stat-value">-</div>
+                        <div class="stat-label">Scorta per prodotto</div>
+                    </div>
                 </div>
                 <a href="movimenti-standalone.html?categoria=carburante" class="stat-card" style="text-decoration: none; color: inherit;">
                     <div class="stat-value" id="stat-movimenti">-</div>
@@ -179,7 +182,8 @@
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
         import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, query, orderBy, limit, getDoc, doc } from '../../../core/services/firebase-service.js';
-        import { showAlert } from '../../../core/js/gfv-page-utils.js';
+        import { showAlert, escapeHtml } from '../../../core/js/gfv-page-utils.js';
+        import { formatGiacenzaCarburante, righeScortaCarburante } from '../lib/carburante-movimento.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import { hasModuleAccessFromTenant } from '../../../core/utils/module-access-resolver.js';
 
@@ -275,12 +279,18 @@
             return String(p.categoria || '') === 'carburante';
         }
 
-        function isSottoScorta(p) {
-            if (p.attivo === false) return false;
-            const sm = p.scortaMinima != null ? Number(p.scortaMinima) : NaN;
-            if (!Number.isFinite(sm) || sm <= 0) return false;
-            const g = p.giacenza != null ? Number(p.giacenza) : null;
-            return g == null || !Number.isFinite(g) || g < sm;
+        function renderScorteCards(rows) {
+            const host = document.getElementById('stat-scorte');
+            if (!host) return;
+            if (!rows.length) {
+                host.innerHTML = '<div class="stat-card"><div class="stat-value">0</div><div class="stat-label">Nessun carburante in anagrafica</div></div>';
+                return;
+            }
+            host.innerHTML = rows.map(function (r) {
+                const cls = r.sottoScorta ? 'stat-card alert-card' : 'stat-card';
+                const valore = formatGiacenzaCarburante(r.giacenza) + ' ' + (r.unitaMisura || 'L');
+                return '<div class="' + cls + '"><div class="stat-value">' + escapeHtml(valore) + '</div><div class="stat-label">' + escapeHtml(r.nome) + '</div></div>';
+            }).join('');
         }
 
         async function loadStats() {
@@ -289,12 +299,8 @@
                 const prodottiSnap = await getDocs(collection(db, 'tenants', currentTenantId, 'prodotti'));
                 const prodotti = prodottiSnap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
                 const carburanti = prodotti.filter(isCarburante);
-                const attivi = carburanti.filter((p) => p.attivo !== false);
-                const litri = attivi.reduce((sum, p) => {
-                    const g = p.giacenza != null ? Number(p.giacenza) : 0;
-                    return sum + (Number.isFinite(g) ? g : 0);
-                }, 0);
-                const sotto = attivi.filter(isSottoScorta);
+                const rows = righeScortaCarburante(prodotti);
+                const sotto = rows.filter((r) => r.sottoScorta);
 
                 const ids = new Set(carburanti.map((p) => p.id));
                 const trentaGiorniFa = new Date();
@@ -312,37 +318,36 @@
                     return date >= trentaGiorniFa;
                 });
 
-                document.getElementById('stat-litri').textContent = Number.isInteger(litri) ? String(litri) : litri.toFixed(1);
+                renderScorteCards(rows);
                 document.getElementById('stat-movimenti').textContent = String(movimentiRecenti.length);
                 document.getElementById('stat-sotto-scorta').textContent = String(sotto.length);
                 if (sotto.length > 0) {
                     document.getElementById('alert-sotto-scorta').style.display = 'block';
                     document.getElementById('alert-sotto-scorta-list').textContent =
-                        sotto.map((p) => p.nome || p.codice || p.id).join(', ');
+                        sotto.map((p) => p.nome).join(', ');
                 }
 
                 const parts = [];
-                parts.push(attivi.length ? (attivi.length + ' prodotti carburante.') : 'Nessun prodotto carburante in anagrafica.');
-                parts.push('Giacenza ' + (Number.isInteger(litri) ? litri : litri.toFixed(1)) + ' L.');
+                if (!rows.length) parts.push('Nessun prodotto carburante in anagrafica.');
+                else rows.forEach((r) => parts.push(r.nome + ' ' + formatGiacenzaCarburante(r.giacenza) + ' ' + r.unitaMisura + '.'));
                 if (sotto.length) parts.push(sotto.length + ' sotto scorta.');
                 window.currentTableData = {
                     pageType: 'carburante_hub',
                     summary: parts.join(' '),
-                    items: attivi.map((p) => ({
-                        id: p.id,
-                        nome: p.nome || '-',
-                        codice: p.codice || '',
+                    items: rows.map((r) => ({
+                        id: r.id,
+                        nome: r.nome,
                         categoria: 'carburante',
-                        giacenza: p.giacenza != null ? p.giacenza : 0,
-                        unitaMisura: p.unitaMisura || 'L',
-                        scortaMinima: p.scortaMinima != null ? p.scortaMinima : '-',
-                        sottoScorta: isSottoScorta(p)
+                        giacenza: r.giacenza,
+                        unitaMisura: r.unitaMisura,
+                        scortaMinima: r.scortaMinima != null ? r.scortaMinima : '-',
+                        sottoScorta: r.sottoScorta
                     }))
                 };
                 pushTonyHubContext();
             } catch (err) {
                 console.warn('Errore statistiche carburante:', err);
-                document.getElementById('stat-litri').textContent = '0';
+                renderScorteCards([]);
                 document.getElementById('stat-movimenti').textContent = '0';
                 document.getElementById('stat-sotto-scorta').textContent = '0';
                 window.currentTableData = {

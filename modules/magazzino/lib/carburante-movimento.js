@@ -209,3 +209,40 @@ export function dashboardLinkForCategoria(categoria) {
   }
   return { href: DASHBOARD_MAGAZZINO_HREF, label: DASHBOARD_MAGAZZINO_LABEL };
 }
+
+/**
+ * @param {number} n
+ * @returns {string}
+ */
+export function formatGiacenzaCarburante(n) {
+  if (!Number.isFinite(n)) return '0';
+  return Number.isInteger(n) ? String(n) : n.toFixed(1);
+}
+
+/**
+ * Gasolio, benzina e AdBlue restano conteggi separati. Niente somma unica.
+ * @param {Array<object>|null|undefined} prodotti
+ * @returns {Array<{ id: string, nome: string, giacenza: number, unitaMisura: string, sottoScorta: boolean, scortaMinima: number|null }>}
+ */
+export function righeScortaCarburante(prodotti) {
+  return (prodotti || [])
+    .filter(function (p) { return p && String(p.categoria || '') === 'carburante' && p.attivo !== false; })
+    .map(function (p) {
+      var g = p.giacenza != null ? Number(p.giacenza) : 0;
+      var sm = p.scortaMinima != null ? Number(p.scortaMinima) : NaN;
+      var giacenza = Number.isFinite(g) ? g : 0;
+      var soglia = Number.isFinite(sm) && sm > 0;
+      var sotto = soglia && (p.giacenza == null || !Number.isFinite(Number(p.giacenza)) || Number(p.giacenza) < sm);
+      return {
+        id: p.id || '',
+        nome: p.nome || p.codice || p.id || 'Carburante',
+        giacenza: giacenza,
+        unitaMisura: p.unitaMisura ? String(p.unitaMisura) : 'L',
+        sottoScorta: sotto,
+        scortaMinima: soglia ? sm : null
+      };
+    })
+    .sort(function (a, b) {
+      return String(a.nome).localeCompare(String(b.nome), 'it') || String(a.id).localeCompare(String(b.id));
+    });
+}

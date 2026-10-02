@@ -230,7 +230,7 @@ File tipici (elenco da verificare, non copiare alla cieca):
 
 ### Fase 1 — Hub Carburante
 
-**Done:** dalla home Magazzino la card **Carburante** apre `carburante-home-standalone.html` (nome da confermare, stesso folder `modules/magazzino/views/`). KPI: litri prodotti categoria carburante, sotto scorta, movimenti 30 gg filtrati. Card interne: Scorta (prodotti `?categoria=carburante`), Carico (movimenti preimpostati, v. Fase 2), Consumi/tracciabilità `?categoria=carburante`, Prodotti filtrati.
+**Done:** dalla home Magazzino la card **Carburante** apre `carburante-home-standalone.html` (nome da confermare, stesso folder `modules/magazzino/views/`). KPI: una card di giacenza per ogni prodotto carburante (niente somma unica), sotto scorta, movimenti 30 gg filtrati. Card interne: Scorta (prodotti `?categoria=carburante`), Carico (movimenti preimpostati, v. Fase 2), Consumi/tracciabilità `?categoria=carburante`, Prodotti filtrati.
 
 Canone: placeholder `pageType: 'carburante_hub'`, merge `setContext('page')`, evento `table-data-ready`.
 
@@ -303,7 +303,7 @@ Niente prompt lungo hardcoded «se l’utente parla di gasolio fai X» se si pu�
 - Link indietro dell’hub: home Magazzino, non dashboard ERP (stesso pattern hub Manodopera)
 - Link indietro delle sottopagine (Scorta, Carico, Pieno, Prodotti, elenco consumi): **← Dashboard carburante**, verso l’hub. Così si torna alle card senza ripassare dalla home Magazzino. Se si toglie il filtro categoria, il pulsante torna alla home Magazzino.
 
-KPI in testa: litri totali (somma giacenze prodotti `carburante` in L), n. sotto scorta, ultimo carico.
+KPI in testa: una card per prodotto carburante (gasolio, benzina, AdBlue restano conteggi separati, niente somma unica), n. sotto scorta, movimenti 30 gg.
 
 ---
 
@@ -360,6 +360,7 @@ Non aggiornare `DOBBIAMO_ANCORA_FARE.md`, `RIEPILOGO_CURRENTTABLEDATA_PER_MODULO
 | 2026-10-02 | Fase 0–1 implementate: categoria, hub, rotte/gate/nav Tony, match Occhi. |
 | 2026-10-02 | Fase 2: carico cisterna e pieno mezzo sullo stesso movimento-form. Giacenza solo da increment. |
 | 2026-10-02 | Sottopagine carburante: pulsante «← Dashboard carburante» verso l’hub, non verso la home Magazzino. |
+| 2026-10-02 | Hub: scorta per prodotto, non un unico totale «litri in cisterna». |
 | 2026-10-02 | Handoff agente §12: branch, cosa è in codice, prossimo passo Fase 2, come vedere in locale. |
 
 ---
