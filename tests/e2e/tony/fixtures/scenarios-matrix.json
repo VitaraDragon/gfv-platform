@@ -15,8 +15,13 @@
       "description": "Login manager → dashboard → widget Tony visibile (Tony Avanzato attivo)",
       "contract": {
         "invariant": "Dopo login sim, widget Tony visibile e Tony Avanzato attivo",
-        "primaryAsserts": ["widgetVisible", "tonyAdvancedActive"],
-        "avoidAsserts": ["responseMustMatch testo esatto"]
+        "primaryAsserts": [
+          "widgetVisible",
+          "tonyAdvancedActive"
+        ],
+        "avoidAsserts": [
+          "responseMustMatch testo esatto"
+        ]
       },
       "persona": "manager",
       "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1",
@@ -37,20 +42,31 @@
       "description": "Nav quick reply — portami alle tariffe",
       "contract": {
         "invariant": "Nav catalogata tariffe → usedGemini false + URL tariffe",
-        "primaryAsserts": ["usedGemini false", "navigation.urlIncludes tariffe"],
-        "avoidAsserts": ["responseMustMatch frase esatta"]
+        "primaryAsserts": [
+          "usedGemini false",
+          "navigation.urlIncludes tariffe"
+        ],
+        "avoidAsserts": [
+          "responseMustMatch frase esatta"
+        ]
       },
       "persona": "manager",
       "templateIncludes": "conto-terzi",
       "startUrl": "/modules/conto-terzi/views/tariffe-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerContoTerzi",
-      "messages": ["portami alle tariffe"],
+      "messages": [
+        "portami alle tariffe"
+      ],
       "mockCf": true,
       "expect": {
         "latencyMsMax": 800,
         "usedGemini": false,
-        "responseMustMatch": ["tariff"],
-        "navigation": { "urlIncludes": "tariffe-standalone" }
+        "responseMustMatch": [
+          "tariff"
+        ],
+        "navigation": {
+          "urlIncludes": "tariffe-standalone"
+        }
       }
     },
     {
@@ -62,19 +78,32 @@
       "description": "Live CF — quante tariffe attive ho? (binario A quick reply)",
       "contract": {
         "invariant": "Domanda analitica tariffe → risposta coerente con dati seed (no sessione scaduta)",
-        "primaryAsserts": ["responseMustMatchGroups o gruppi semantici", "responseMustNotMatch errori auth"],
-        "avoidAsserts": ["testo byte-identico Gemini"]
+        "primaryAsserts": [
+          "responseMustMatchGroups o gruppi semantici",
+          "responseMustNotMatch errori auth"
+        ],
+        "avoidAsserts": [
+          "testo byte-identico Gemini"
+        ]
       },
       "persona": "manager",
       "templateIncludes": "conto-terzi",
       "startUrl": "/modules/conto-terzi/views/tariffe-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
       "login": "loginAsManagerContoTerzi",
-      "messages": ["quante tariffe attive ho?"],
+      "messages": [
+        "quante tariffe attive ho?"
+      ],
       "mockCf": false,
       "expect": {
         "latencyMsMax": 3000,
-        "responseMustMatch": ["tariff", "attiv"],
-        "responseMustNotMatch": ["non ho", "sessione scaduta"]
+        "responseMustMatch": [
+          "tariff",
+          "attiv"
+        ],
+        "responseMustNotMatch": [
+          "non ho",
+          "sessione scaduta"
+        ]
       }
     },
     {
@@ -86,23 +115,84 @@
       "description": "Live CF — domanda multi-dominio meteo+scorte (multi_block quick o Gemini T4)",
       "contract": {
         "invariant": "Domanda multi-dominio → almeno un blocco semantico (meteo OR scorte)",
-        "primaryAsserts": ["responseMustMatchGroupsMin >= 1"],
-        "avoidAsserts": ["tutti i gruppi obbligatori simultanei"]
+        "primaryAsserts": [
+          "responseMustMatchGroupsMin >= 1"
+        ],
+        "avoidAsserts": [
+          "tutti i gruppi obbligatori simultanei"
+        ]
       },
       "persona": "manager",
       "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
       "login": "loginAsManagerFromDevPage",
-      "messages": ["domani trattamento, ho scorte di concime basse e che meteo c'è?"],
+      "messages": [
+        "domani trattamento, ho scorte di concime basse e che meteo c'è?"
+      ],
       "mockCf": false,
       "expect": {
         "latencyMsMax": 12000,
         "replyTimeoutMs": 60000,
         "responseMustMatchGroupsMin": 1,
         "responseMustMatchGroups": [
-          ["meteo", "tempo", "pioggia", "prevision", "previsioni", "gradi", "nuvol", "vento", "domani", "sole", "sereno", "copert", "clima", "temperatur", "rovesci", "umid", "condizion", "atmosfer", "cielo", "maltempo", "trattament", "modulo meteo", "non attivo", "non e attivo"],
-          ["scort", "scorte", "concime", "giacenz", "magazzin", "sotto", "prodot", "bass", "basse", "esaur", "riforn", "quantit", "stock", "fertil", "soglia", "riord", "livell", "disponibil", "insufficient", "mancan", "nutrient", "riepilogo", "paraffin", "olio", "riguardo alle scort"]
+          [
+            "meteo",
+            "tempo",
+            "pioggia",
+            "prevision",
+            "previsioni",
+            "gradi",
+            "nuvol",
+            "vento",
+            "domani",
+            "sole",
+            "sereno",
+            "copert",
+            "clima",
+            "temperatur",
+            "rovesci",
+            "umid",
+            "condizion",
+            "atmosfer",
+            "cielo",
+            "maltempo",
+            "trattament",
+            "modulo meteo",
+            "non attivo",
+            "non e attivo"
+          ],
+          [
+            "scort",
+            "scorte",
+            "concime",
+            "giacenz",
+            "magazzin",
+            "sotto",
+            "prodot",
+            "bass",
+            "basse",
+            "esaur",
+            "riforn",
+            "quantit",
+            "stock",
+            "fertil",
+            "soglia",
+            "riord",
+            "livell",
+            "disponibil",
+            "insufficient",
+            "mancan",
+            "nutrient",
+            "riepilogo",
+            "paraffin",
+            "olio",
+            "riguardo alle scort"
+          ]
         ],
-        "responseMustNotMatch": ["sessione scaduta", "piano free", "non ho accesso"]
+        "responseMustNotMatch": [
+          "sessione scaduta",
+          "piano free",
+          "non ho accesso"
+        ]
       }
     },
     {
@@ -114,21 +204,34 @@
       "description": "Live CF — nav quick reply portami alle tariffe (binario B)",
       "contract": {
         "invariant": "Nav live tariffe → URL tariffe + risposta coerente",
-        "primaryAsserts": ["navigation.urlIncludes", "responseMustNotMatch sessione scaduta"],
-        "avoidAsserts": ["usedGemini false obbligatorio su live"]
+        "primaryAsserts": [
+          "navigation.urlIncludes",
+          "responseMustNotMatch sessione scaduta"
+        ],
+        "avoidAsserts": [
+          "usedGemini false obbligatorio su live"
+        ]
       },
       "persona": "manager",
       "templateIncludes": "conto-terzi",
       "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
       "login": "loginAsManagerContoTerzi",
-      "messages": ["portami alle tariffe"],
+      "messages": [
+        "portami alle tariffe"
+      ],
       "mockCf": false,
       "expect": {
         "latencyMsMax": 3000,
         "replyTimeoutMs": 45000,
-        "responseMustMatch": ["tariff"],
-        "navigation": { "urlIncludes": "tariffe-standalone" },
-        "responseMustNotMatch": ["sessione scaduta"]
+        "responseMustMatch": [
+          "tariff"
+        ],
+        "navigation": {
+          "urlIncludes": "tariffe-standalone"
+        },
+        "responseMustNotMatch": [
+          "sessione scaduta"
+        ]
       }
     },
     {
@@ -140,19 +243,30 @@
       "description": "RIASSUNTO su lista lavori con seed",
       "contract": {
         "invariant": "Su lista lavori con seed → RIASSUNTO locale senza Gemini",
-        "primaryAsserts": ["commands RIASSUNTO", "usedGemini false"],
-        "avoidAsserts": ["testo riassunto esatto"]
+        "primaryAsserts": [
+          "commands RIASSUNTO",
+          "usedGemini false"
+        ],
+        "avoidAsserts": [
+          "testo riassunto esatto"
+        ]
       },
       "persona": "manager",
       "startUrl": "/core/admin/gestione-lavori-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerManodopera",
-      "messages": ["sintesi tabella lavori"],
+      "messages": [
+        "sintesi tabella lavori"
+      ],
       "mockCf": true,
       "expect": {
         "latencyMsMax": 1200,
         "usedGemini": false,
-        "responseMustMatch": ["lavor"],
-        "commands": ["RIASSUNTO"]
+        "responseMustMatch": [
+          "lavor"
+        ],
+        "commands": [
+          "RIASSUNTO"
+        ]
       }
     },
     {
@@ -164,17 +278,27 @@
       "description": "Orari workspace — typo STT-like (client recovery 0 CF)",
       "contract": {
         "invariant": "Typo orario STT-like → ore inject HH:MM senza chiamate CF",
-        "primaryAsserts": ["injectedFields ora-inizio/ora-fine", "cfCallsMax 0"],
-        "avoidAsserts": ["testo risposta Tony esatto"]
+        "primaryAsserts": [
+          "injectedFields ora-inizio/ora-fine",
+          "cfCallsMax 0"
+        ],
+        "avoidAsserts": [
+          "testo risposta Tony esatto"
+        ]
       },
       "persona": "operaio",
       "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsOperaioFromDevPage",
-      "messages": ["daklle 6 aslle 18"],
+      "messages": [
+        "daklle 6 aslle 18"
+      ],
       "mockCf": false,
       "expect": {
         "clientRecovery": true,
-        "injectedFields": ["ora-inizio", "ora-fine"],
+        "injectedFields": [
+          "ora-inizio",
+          "ora-fine"
+        ],
         "cfCallsMax": 0,
         "latencyMsMax": 2500
       }
@@ -188,17 +312,25 @@
       "description": "Orari workspace — «dalle 6 al 18» (variante «al»)",
       "contract": {
         "invariant": "Variante «al» → stesso contratto T-TYPO-001",
-        "primaryAsserts": ["injectedFields", "cfCallsMax 0"],
+        "primaryAsserts": [
+          "injectedFields",
+          "cfCallsMax 0"
+        ],
         "avoidAsserts": []
       },
       "persona": "operaio",
       "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsOperaioFromDevPage",
-      "messages": ["dalle 6 al 18"],
+      "messages": [
+        "dalle 6 al 18"
+      ],
       "mockCf": false,
       "expect": {
         "clientRecovery": true,
-        "injectedFields": ["ora-inizio", "ora-fine"],
+        "injectedFields": [
+          "ora-inizio",
+          "ora-fine"
+        ],
         "cfCallsMax": 0
       }
     },
@@ -211,13 +343,17 @@
       "description": "Conferma «ok salva» dopo intervista ore — save locale 0 CF",
       "contract": {
         "invariant": "Conferma ok salva → save locale senza CF",
-        "primaryAsserts": ["cfCallsMax 0"],
+        "primaryAsserts": [
+          "cfCallsMax 0"
+        ],
         "avoidAsserts": []
       },
       "persona": "operaio",
       "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsOperaioFromDevPage",
-      "messages": ["ok salva"],
+      "messages": [
+        "ok salva"
+      ],
       "mockCf": false,
       "expect": {
         "clientRecovery": true,
@@ -233,17 +369,28 @@
       "description": "Operaio — APRI_PAGINA gestione utenti bloccato",
       "contract": {
         "invariant": "Operaio → nav gestione utenti bloccata, URL invariato",
-        "primaryAsserts": ["navigation.mustNotChange", "rifiuto esplicito"],
-        "avoidAsserts": ["testo scusa esatto"]
+        "primaryAsserts": [
+          "navigation.mustNotChange",
+          "rifiuto esplicito"
+        ],
+        "avoidAsserts": [
+          "testo scusa esatto"
+        ]
       },
       "persona": "operaio",
       "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsOperaioFromDevPage",
-      "messages": ["apri gestione utenti"],
+      "messages": [
+        "apri gestione utenti"
+      ],
       "mockCf": true,
       "expect": {
-        "navigation": { "mustNotChange": true },
-        "responseMustMatch": ["non posso"]
+        "navigation": {
+          "mustNotChange": true
+        },
+        "responseMustMatch": [
+          "non posso"
+        ]
       }
     },
     {
@@ -255,19 +402,31 @@
       "description": "Manager piano Free — navigazione Tony bloccata",
       "contract": {
         "invariant": "Piano Free → nav bloccata con messaggio piano/abbonamento",
-        "primaryAsserts": ["navigation.mustNotChange", "usedGemini false"],
+        "primaryAsserts": [
+          "navigation.mustNotChange",
+          "usedGemini false"
+        ],
         "avoidAsserts": []
       },
       "persona": "manager",
       "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerFromDevPage",
-      "messages": ["portami alle tariffe"],
+      "messages": [
+        "portami alle tariffe"
+      ],
       "mockCf": false,
       "expect": {
         "usedGemini": false,
-        "responseMustMatch": ["piano free", "abbonament"],
-        "responseMustNotMatch": ["sessione scaduta"],
-        "navigation": { "mustNotChange": true }
+        "responseMustMatch": [
+          "piano free",
+          "abbonament"
+        ],
+        "responseMustNotMatch": [
+          "sessione scaduta"
+        ],
+        "navigation": {
+          "mustNotChange": true
+        }
       }
     },
     {
@@ -279,17 +438,25 @@
       "description": "Operaio — validazione ore bloccata (solo caposquadra)",
       "contract": {
         "invariant": "Operaio → validazione ore vietata",
-        "primaryAsserts": ["commandsMustNot APRI_PAGINA:validazione-ore"],
+        "primaryAsserts": [
+          "commandsMustNot APRI_PAGINA:validazione-ore"
+        ],
         "avoidAsserts": []
       },
       "persona": "operaio",
       "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsOperaioFromDevPage",
-      "messages": ["apri validazione ore"],
+      "messages": [
+        "apri validazione ore"
+      ],
       "mockCf": false,
       "expect": {
-        "navigation": { "mustNotChange": true },
-        "commandsMustNot": ["APRI_PAGINA:validazione-ore"]
+        "navigation": {
+          "mustNotChange": true
+        },
+        "commandsMustNot": [
+          "APRI_PAGINA:validazione-ore"
+        ]
       }
     },
     {
@@ -301,17 +468,26 @@
       "description": "Trattamento su terreno inesistente — chiarimento o rifiuto",
       "contract": {
         "invariant": "Terreno inesistente → nessun inject, chiarimento/rifiuto",
-        "primaryAsserts": ["commandsMustNot INJECT_FORM_DATA"],
+        "primaryAsserts": [
+          "commandsMustNot INJECT_FORM_DATA"
+        ],
         "avoidAsserts": []
       },
       "persona": "manager",
       "startUrl": "/modules/vigneto/views/trattamenti-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerFromDevPage",
-      "messages": ["registra trattamento sul terreno XYZ999"],
+      "messages": [
+        "registra trattamento sul terreno XYZ999"
+      ],
       "mockCf": true,
       "expect": {
-        "responseMustMatch": ["terren", "non trov"],
-        "commandsMustNot": ["INJECT_FORM_DATA"]
+        "responseMustMatch": [
+          "terren",
+          "non trov"
+        ],
+        "commandsMustNot": [
+          "INJECT_FORM_DATA"
+        ]
       }
     },
     {
@@ -323,16 +499,25 @@
       "description": "Crea lavoro entity-first (pattern 3b-C6)",
       "contract": {
         "invariant": "Messaggio entity-first → campi terreno e tipo-lavoro inject non vuoti",
-        "primaryAsserts": ["injectedFields terreno, tipo-lavoro"],
-        "avoidAsserts": ["valori esatti terreno/tipo"]
+        "primaryAsserts": [
+          "injectedFields terreno, tipo-lavoro"
+        ],
+        "avoidAsserts": [
+          "valori esatti terreno/tipo"
+        ]
       },
       "persona": "manager",
       "startUrl": "/core/admin/gestione-lavori-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerManodopera",
-      "messages": ["crea lavoro potatura vigneto nord domani"],
+      "messages": [
+        "crea lavoro potatura vigneto nord domani"
+      ],
       "mockCf": true,
       "expect": {
-        "injectedFields": ["terreno", "tipo-lavoro"]
+        "injectedFields": [
+          "terreno",
+          "tipo-lavoro"
+        ]
       }
     },
     {
@@ -344,8 +529,13 @@
       "description": "Preventivo multi-step — disamb. terreno + save locale + lista (3b-C14)",
       "contract": {
         "invariant": "Flusso preventivo multi-turn → save locale 0 CF + riga in lista",
-        "primaryAsserts": ["cfCallsMax 0", "riga preventivo in lista"],
-        "avoidAsserts": ["nomi terreno hardcoded"]
+        "primaryAsserts": [
+          "cfCallsMax 0",
+          "riga preventivo in lista"
+        ],
+        "avoidAsserts": [
+          "nomi terreno hardcoded"
+        ]
       },
       "persona": "manager",
       "templateIncludes": "conto-terzi",
@@ -367,8 +557,13 @@
       "description": "Preventivo live CF — crea + disamb terreno via Tony → save locale → lista (3b-C14 tier 3)",
       "contract": {
         "invariant": "Preventivo live → almeno 1 turno CF, save locale, nessun errore auth/piano",
-        "primaryAsserts": ["minCfTurns >= 1", "saveCfCallsMax 0"],
-        "avoidAsserts": ["wording Gemini esatto"]
+        "primaryAsserts": [
+          "minCfTurns >= 1",
+          "saveCfCallsMax 0"
+        ],
+        "avoidAsserts": [
+          "wording Gemini esatto"
+        ]
       },
       "persona": "manager",
       "templateIncludes": "conto-terzi",
@@ -381,7 +576,10 @@
         "minCfTurns": 1,
         "saveCfCallsMax": 0,
         "latencyMsMax": 15000,
-        "responseMustNotMatch": ["sessione scaduta", "piano free"]
+        "responseMustNotMatch": [
+          "sessione scaduta",
+          "piano free"
+        ]
       }
     },
     {
@@ -393,8 +591,13 @@
       "description": "Cross-page lavoro — terreni ambigui + operaio + save (3b-C13)",
       "contract": {
         "invariant": "Discovery ambiguità seed → intervista → save → riga lavori (0 CF)",
-        "primaryAsserts": ["cfCallsMax 0", "riga in gestione lavori"],
-        "avoidAsserts": ["nomi terreno/operaio fissi"]
+        "primaryAsserts": [
+          "cfCallsMax 0",
+          "riga in gestione lavori"
+        ],
+        "avoidAsserts": [
+          "nomi terreno/operaio fissi"
+        ]
       },
       "requiresSeedProfile": "viticola-conto-terzi-manodopera",
       "persona": "manager",
@@ -416,18 +619,31 @@
       "description": "Segna ore workspace — intervista + save locale + validazione manager (3b-C21)",
       "contract": {
         "invariant": "Intervista ore → inject HH:MM → save locale → riga ore in validazione",
-        "primaryAsserts": ["injectedFields ore", "cfCallsMax 0", "riga ore visibile"],
+        "primaryAsserts": [
+          "injectedFields ore",
+          "cfCallsMax 0",
+          "riga ore visibile"
+        ],
         "avoidAsserts": []
       },
       "persona": "operaio",
       "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsOperaioFromDevPage",
-      "messages": ["segniamo le ore", "8", "17", "0", "ok"],
+      "messages": [
+        "segniamo le ore",
+        "8",
+        "17",
+        "0",
+        "ok"
+      ],
       "mockCf": false,
       "expect": {
         "clientRecovery": true,
         "cfCallsMax": 0,
-        "injectedFields": ["ora-inizio", "ora-fine"]
+        "injectedFields": [
+          "ora-inizio",
+          "ora-fine"
+        ]
       }
     },
     {
@@ -439,18 +655,28 @@
       "description": "Segna ore desktop segnatura-ore — one-shot fascia+pausa + save locale + validazione (3b-C22)",
       "contract": {
         "invariant": "Frase unica orari+pausa → inject #ora-form → save locale → riga ore in validazione",
-        "primaryAsserts": ["injectedFields ora-inizio/ora-fine", "cfCallsMax 0", "riga ore visibile"],
+        "primaryAsserts": [
+          "injectedFields ora-inizio/ora-fine",
+          "cfCallsMax 0",
+          "riga ore visibile"
+        ],
         "avoidAsserts": []
       },
       "persona": "caposquadra",
       "startUrl": "/core/segnatura-ore-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsCapoFromDevPage",
-      "messages": ["dalle 8 alle 17 con 0 minuti di pausa", "ok"],
+      "messages": [
+        "dalle 8 alle 17 con 0 minuti di pausa",
+        "ok"
+      ],
       "mockCf": false,
       "expect": {
         "clientRecovery": true,
         "cfCallsMax": 0,
-        "injectedFields": ["ora-inizio", "ora-fine"]
+        "injectedFields": [
+          "ora-inizio",
+          "ora-fine"
+        ]
       }
     },
     {
@@ -462,7 +688,10 @@
       "description": "Save prodotto magazzino dopo inject completo (3b-C15)",
       "contract": {
         "invariant": "Inject prodotto completo → save locale → riga in anagrafica",
-        "primaryAsserts": ["cfCallsMax 0", "riga prodotto in lista"],
+        "primaryAsserts": [
+          "cfCallsMax 0",
+          "riga prodotto in lista"
+        ],
         "avoidAsserts": []
       },
       "persona": "manager",
@@ -484,13 +713,19 @@
       "description": "Movimento entrata client-side + save + riga lista (3b-C16)",
       "contract": {
         "invariant": "Entrata magazzino → save locale → riga in lista",
-        "primaryAsserts": ["cfCallsMax 0", "riga movimento"],
+        "primaryAsserts": [
+          "cfCallsMax 0",
+          "riga movimento"
+        ],
         "avoidAsserts": []
       },
       "persona": "manager",
       "startUrl": "/modules/magazzino/views/movimenti-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerFromDevPage",
-      "messages": ["crea entrata rame 10 unità", "salva"],
+      "messages": [
+        "crea entrata rame 10 unità",
+        "salva"
+      ],
       "mockCf": false,
       "expect": {
         "cfCallsMax": 0,
@@ -506,13 +741,19 @@
       "description": "Movimento uscita client-side + save + lista (3b-C17)",
       "contract": {
         "invariant": "Uscita magazzino → save locale → riga movimenti",
-        "primaryAsserts": ["cfCallsMax 0", "riga movimento"],
+        "primaryAsserts": [
+          "cfCallsMax 0",
+          "riga movimento"
+        ],
         "avoidAsserts": []
       },
       "persona": "manager",
       "startUrl": "/modules/magazzino/views/movimenti-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerFromDevPage",
-      "messages": ["registra uscita rame 5 litri", "salva"],
+      "messages": [
+        "registra uscita rame 5 litri",
+        "salva"
+      ],
       "mockCf": false,
       "expect": {
         "cfCallsMax": 0,
@@ -528,7 +769,10 @@
       "description": "Creazione prodotto client-side + save + lista (3b-C18)",
       "contract": {
         "invariant": "Creazione prodotto → save locale → riga in anagrafica",
-        "primaryAsserts": ["cfCallsMax 0", "riga producto"],
+        "primaryAsserts": [
+          "cfCallsMax 0",
+          "riga producto"
+        ],
         "avoidAsserts": []
       },
       "persona": "manager",
@@ -550,13 +794,19 @@
       "description": "Cross-page movimento entrata dashboard → save + lista (3b-C19)",
       "contract": {
         "invariant": "Cross-page entrata magazzino → save → riga movimenti",
-        "primaryAsserts": ["cfCallsMax 0", "nav movimenti", "riga lista"],
+        "primaryAsserts": [
+          "cfCallsMax 0",
+          "nav movimenti",
+          "riga lista"
+        ],
         "avoidAsserts": []
       },
       "persona": "manager",
       "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsManagerFromDevPage",
-      "messages": ["crea entrata rame 10 unità"],
+      "messages": [
+        "crea entrata rame 10 unità"
+      ],
       "mockCf": false,
       "expect": {
         "cfCallsMax": 0,
@@ -565,427 +815,712 @@
     },
     {
       "id": "T-DIRTY-001",
-      "status": "draft",
+      "status": "ready",
       "mode": "explore",
       "tier": 3,
       "category": "typo",
       "description": "Typo — quantità rame botte 3",
       "contract": {
         "invariant": "Typo grezzo su scorta/botte → chiarimento o lettura scorta, senza inventare litri",
-        "primaryAsserts": ["responseMustNotMatch numeri inventati se chiede chiarimento", "nessun crash"],
-        "avoidAsserts": ["litri esatti senza fonte seed"]
+        "primaryAsserts": [
+          "responseMustNotMatch numeri inventati se chiede chiarimento",
+          "nessun crash"
+        ],
+        "avoidAsserts": [
+          "litri esatti senza fonte seed"
+        ]
       },
       "persona": "manager",
       "requiresSeedProfile": "viticola-conto-terzi-manodopera",
       "startUrl": "/modules/magazzino/views/prodotti-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
       "login": "loginAsManagerFromDevPage",
-      "messages": ["qunati litri rame nn nela botte 3??"],
+      "messages": [
+        "qunati litri rame nn nela botte 3??"
+      ],
       "mockCf": false,
       "expect": {
         "replyTimeoutMs": 60000,
         "latencyMsMax": 15000,
         "responseMustMatchGroupsMin": 1,
         "responseMustMatchGroups": [
-          ["rame", "botte", "litr", "scort", "magazzin", "quantit", "prodot", "chiar", "quale", "non ho capito", "intendi"]
+          [
+            "rame",
+            "botte",
+            "litr",
+            "scort",
+            "magazzin",
+            "quantit",
+            "prodot",
+            "chiar",
+            "quale",
+            "non ho capito",
+            "intendi"
+          ]
         ],
-        "responseMustNotMatch": ["sessione scaduta", "piano free"],
-        "commandsMustNot": ["INJECT_FORM_DATA"]
+        "responseMustNotMatch": [
+          "sessione scaduta",
+          "piano free"
+        ],
+        "commandsMustNot": [
+          "INJECT_FORM_DATA"
+        ]
       }
     },
     {
       "id": "T-DIRTY-002",
-      "status": "draft",
+      "status": "ready",
       "mode": "explore",
       "tier": 3,
       "category": "concept",
       "description": "Dialetto — potatura/pampini su riga",
       "contract": {
         "invariant": "Dialetto potatura → intent lavorazione/potatura + chiede zona/riga se manca",
-        "primaryAsserts": ["semantica potatura/lavorazione", "no fitosanitario automatico"],
-        "avoidAsserts": ["frase dialettale esatta in risposta"]
+        "primaryAsserts": [
+          "semantica potatura/lavorazione",
+          "no fitosanitario automatico"
+        ],
+        "avoidAsserts": [
+          "frase dialettale esatta in risposta"
+        ]
       },
       "persona": "manager",
       "requiresSeedProfile": "viticola-conto-terzi-manodopera",
       "startUrl": "/modules/vigneto/views/potatura-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
       "login": "loginAsManagerFromDevPage",
-      "messages": ["mo i taji i pampini na sta riga qua o no?"],
+      "messages": [
+        "mo i taji i pampini na sta riga qua o no?"
+      ],
       "mockCf": false,
       "expect": {
         "replyTimeoutMs": 60000,
         "latencyMsMax": 15000,
         "responseMustMatchGroupsMin": 1,
         "responseMustMatchGroups": [
-          ["potatur", "pampin", "foglie", "riga", "filar", "lavor", "zona", "quale", "conferm"]
+          [
+            "potatur",
+            "pampin",
+            "foglie",
+            "riga",
+            "filar",
+            "lavor",
+            "zona",
+            "quale",
+            "conferm"
+          ]
         ],
-        "responseMustNotMatch": ["sessione scaduta", "rame", "fitofarmac"]
+        "responseMustNotMatch": [
+          "sessione scaduta",
+          "rame",
+          "fitofarmac"
+        ]
       }
     },
     {
       "id": "T-DIRTY-003",
-      "status": "draft",
+      "status": "ready",
       "mode": "explore",
       "tier": 3,
       "category": "multi_turn",
       "description": "Frase spezzata — ripresa trattamento campo basso",
       "contract": {
         "invariant": "Frammenti ieri+prodotto+zona → ripresa contesto o conferma prodotto/zona",
-        "primaryAsserts": ["lega zona o tempo", "chiede conferma se ambiguo"],
+        "primaryAsserts": [
+          "lega zona o tempo",
+          "chiede conferma se ambiguo"
+        ],
         "avoidAsserts": []
       },
       "persona": "manager",
       "requiresSeedProfile": "viticola-conto-terzi-manodopera",
       "startUrl": "/modules/vigneto/views/trattamenti-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
       "login": "loginAsManagerFromDevPage",
-      "messages": ["eh… il solfato… quello… ieri… campo basso"],
+      "messages": [
+        "eh… il solfato… quello… ieri… campo basso"
+      ],
       "mockCf": false,
       "expect": {
         "replyTimeoutMs": 60000,
         "latencyMsMax": 15000,
         "responseMustMatchGroupsMin": 1,
         "responseMustMatchGroups": [
-          ["solfato", "trattament", "ieri", "campo", "basso", "zona", "conferm", "prodotto", "riprend"]
+          [
+            "solfato",
+            "trattament",
+            "ieri",
+            "campo",
+            "basso",
+            "zona",
+            "conferm",
+            "prodotto",
+            "riprend"
+          ]
         ],
-        "responseMustNotMatch": ["sessione scaduta"],
-        "commandsMustNot": ["INJECT_FORM_DATA"]
+        "responseMustNotMatch": [
+          "sessione scaduta"
+        ],
+        "commandsMustNot": [
+          "INJECT_FORM_DATA"
+        ]
       }
     },
     {
       "id": "T-DIRTY-004",
-      "status": "draft",
+      "status": "ready",
       "mode": "explore",
       "tier": 3,
       "category": "concept",
       "description": "Ambiguità — «fatto il rame» = trattamento non lavorazione",
       "contract": {
         "invariant": "«rame sulla 12» → trattamento fitosanitario, non aratura",
-        "primaryAsserts": ["trattamento/rame", "zona 12"],
-        "avoidAsserts": ["lavorazione suolo"]
+        "primaryAsserts": [
+          "trattamento/rame",
+          "zona 12"
+        ],
+        "avoidAsserts": [
+          "lavorazione suolo"
+        ]
       },
       "persona": "manager",
       "requiresSeedProfile": "viticola-conto-terzi-manodopera",
       "startUrl": "/modules/vigneto/views/trattamenti-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
       "login": "loginAsManagerFromDevPage",
-      "messages": ["fatto il rame sulla 12 stamattina"],
+      "messages": [
+        "fatto il rame sulla 12 stamattina"
+      ],
       "mockCf": false,
       "expect": {
         "replyTimeoutMs": 60000,
         "latencyMsMax": 15000,
         "responseMustMatchGroupsMin": 1,
         "responseMustMatchGroups": [
-          ["rame", "trattament", "fitosan", "12", "parcella", "zona", "registr"]
+          [
+            "rame",
+            "trattament",
+            "fitosan",
+            "12",
+            "parcella",
+            "zona",
+            "registr"
+          ]
         ],
-        "responseMustNotMatch": ["aratur", "lavorazione del suolo", "sessione scaduta"]
+        "responseMustNotMatch": [
+          "aratur",
+          "lavorazione del suolo",
+          "sessione scaduta"
+        ]
       }
     },
     {
       "id": "T-DIRTY-005",
-      "status": "draft",
+      "status": "ready",
       "mode": "explore",
       "tier": 3,
       "category": "concept",
       "description": "Ambiguità inversa — lavorato col trattore = meccanica",
       "contract": {
         "invariant": "Lavorato col trattore sulla 12 → lavorazione meccanica, non spray",
-        "primaryAsserts": ["lavorazione/trattore"],
-        "avoidAsserts": ["prodotto fitosanitario obbligatorio"]
+        "primaryAsserts": [
+          "lavorazione/trattore"
+        ],
+        "avoidAsserts": [
+          "prodotto fitosanitario obbligatorio"
+        ]
       },
       "persona": "manager",
       "requiresSeedProfile": "viticola-conto-terzi-manodopera",
       "startUrl": "/core/attivita-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
       "login": "loginAsManagerFromDevPage",
-      "messages": ["stamattina ho lavorato la 12 col trattore"],
+      "messages": [
+        "stamattina ho lavorato la 12 col trattore"
+      ],
       "mockCf": false,
       "expect": {
         "replyTimeoutMs": 60000,
         "latencyMsMax": 15000,
         "responseMustMatchGroupsMin": 1,
         "responseMustMatchGroups": [
-          ["lavor", "trattore", "12", "meccan", "attivita", "terreno", "registr"]
+          [
+            "lavor",
+            "trattore",
+            "12",
+            "meccan",
+            "attivita",
+            "terreno",
+            "registr"
+          ]
         ],
-        "responseMustNotMatch": ["quale prodotto", "dose rame", "sessione scaduta"]
+        "responseMustNotMatch": [
+          "quale prodotto",
+          "dose rame",
+          "sessione scaduta"
+        ]
       }
     },
     {
       "id": "T-DIRTY-006",
-      "status": "draft",
+      "status": "ready",
       "mode": "explore",
       "tier": 3,
       "category": "multi_turn",
       "description": "Intent misto — scarico magazzino + assegnazione a Marco",
       "contract": {
         "invariant": "Taniche glifosate + dale a marco → gestisce entrambi o conferma esplicita quantità+operatore",
-        "primaryAsserts": ["magazzino/glifosate", "marco/assegnazione o conferma"],
+        "primaryAsserts": [
+          "magazzino/glifosate",
+          "marco/assegnazione o conferma"
+        ],
         "avoidAsserts": []
       },
       "persona": "manager",
       "requiresSeedProfile": "viticola-conto-terzi-manodopera",
       "startUrl": "/modules/magazzino/views/movimenti-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
       "login": "loginAsManagerManodopera",
-      "messages": ["togli 2 taniche glifosate e dalle a marco pe sta settimana"],
+      "messages": [
+        "togli 2 taniche glifosate e dalle a marco pe sta settimana"
+      ],
       "mockCf": false,
       "expect": {
         "replyTimeoutMs": 90000,
         "latencyMsMax": 20000,
         "responseMustMatchGroupsMin": 1,
         "responseMustMatchGroups": [
-          ["glifosat", "tanich", "magazzin", "uscita", "scaric", "2"],
-          ["marco", "operat", "assegn", "settimana", "conferm", "lavor"]
+          [
+            "glifosat",
+            "tanich",
+            "magazzin",
+            "uscita",
+            "scaric",
+            "2"
+          ],
+          [
+            "marco",
+            "operat",
+            "assegn",
+            "settimana",
+            "conferm",
+            "lavor"
+          ]
         ],
-        "responseMustNotMatch": ["sessione scaduta"]
+        "responseMustNotMatch": [
+          "sessione scaduta"
+        ]
       }
     },
     {
       "id": "T-DIRTY-007",
-      "status": "draft",
+      "status": "ready",
       "mode": "explore",
       "tier": 3,
       "category": "multi_turn",
       "description": "Ripresa — continua fila 4 verso il fosso",
       "contract": {
         "invariant": "«continua da dove avevo lasciato» → ripresa ultima attività o chiede cosa riprendere",
-        "primaryAsserts": ["fila 4 / ripresa"],
+        "primaryAsserts": [
+          "fila 4 / ripresa"
+        ],
         "avoidAsserts": []
       },
       "persona": "manager",
       "requiresSeedProfile": "viticola-conto-terzi-manodopera",
       "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
       "login": "loginAsManagerFromDevPage",
-      "messages": ["continua da dove avevo lasciato sulla fila 4 verso il fosso"],
+      "messages": [
+        "continua da dove avevo lasciato sulla fila 4 verso il fosso"
+      ],
       "mockCf": false,
       "expect": {
         "replyTimeoutMs": 60000,
         "latencyMsMax": 15000,
         "responseMustMatchGroupsMin": 1,
         "responseMustMatchGroups": [
-          ["fila", "4", "riprend", "continua", "ultima", "attivita", "lavor", "fosso", "cosa", "quale"]
+          [
+            "fila",
+            "4",
+            "riprend",
+            "continua",
+            "ultima",
+            "attivita",
+            "lavor",
+            "fosso",
+            "cosa",
+            "quale"
+          ]
         ],
-        "responseMustNotMatch": ["sessione scaduta"]
+        "responseMustNotMatch": [
+          "sessione scaduta"
+        ]
       }
     },
     {
       "id": "T-DIRTY-008",
-      "status": "draft",
+      "status": "ready",
       "mode": "explore",
       "tier": 3,
       "category": "concept",
       "description": "Scadenze — quando rifare zolfo sul pinot",
       "contract": {
         "invariant": "Intervallo/carenza zolfo → usa dati o chiede; non inventa giorni senza fonte",
-        "primaryAsserts": ["zolfo/carenza/intervallo o richiesta dati"],
-        "avoidAsserts": ["data precisa inventata"]
+        "primaryAsserts": [
+          "zolfo/carenza/intervallo o richiesta dati"
+        ],
+        "avoidAsserts": [
+          "data precisa inventata"
+        ]
       },
       "persona": "manager",
       "requiresSeedProfile": "viticola-conto-terzi-manodopera",
       "startUrl": "/modules/vigneto/views/trattamenti-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
       "login": "loginAsManagerFromDevPage",
-      "messages": ["entro quando devo rifare lo zolfo sul pinot? settimana scorsa era al limite"],
+      "messages": [
+        "entro quando devo rifare lo zolfo sul pinot? settimana scorsa era al limite"
+      ],
       "mockCf": false,
       "expect": {
         "replyTimeoutMs": 60000,
         "latencyMsMax": 15000,
         "responseMustMatchGroupsMin": 1,
         "responseMustMatchGroups": [
-          ["zolfo", "carenza", "intervallo", "giorn", "pinot", "trattament", "quando", "data", "non ho", "dimmi", "ultimo"]
+          [
+            "zolfo",
+            "carenza",
+            "intervallo",
+            "giorn",
+            "pinot",
+            "trattament",
+            "quando",
+            "data",
+            "non ho",
+            "dimmi",
+            "ultimo"
+          ]
         ],
-        "responseMustNotMatch": ["sessione scaduta"]
+        "responseMustNotMatch": [
+          "sessione scaduta"
+        ]
       }
     },
     {
       "id": "T-DIRTY-009",
-      "status": "draft",
+      "status": "ready",
       "mode": "explore",
       "tier": 3,
       "category": "typo",
       "description": "Typo — disponibilità scorta rame",
       "contract": {
         "invariant": "Typo scorte rame → controlla magazzino o chiede formulato",
-        "primaryAsserts": ["rame/scorte"],
-        "avoidAsserts": ["sì/no a caso"]
+        "primaryAsserts": [
+          "rame/scorte"
+        ],
+        "avoidAsserts": [
+          "sì/no a caso"
+        ]
       },
       "persona": "manager",
       "requiresSeedProfile": "viticola-conto-terzi-manodopera",
       "startUrl": "/modules/magazzino/views/prodotti-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
       "login": "loginAsManagerFromDevPage",
-      "messages": ["ce nne ancora dil rame? qusi finito"],
+      "messages": [
+        "ce nne ancora dil rame? qusi finito"
+      ],
       "mockCf": false,
       "expect": {
         "replyTimeoutMs": 60000,
         "latencyMsMax": 15000,
         "responseMustMatchGroupsMin": 1,
         "responseMustMatchGroups": [
-          ["rame", "scort", "magazzin", "disponib", "giacenz", "prodot", "formul", "quantit"]
+          [
+            "rame",
+            "scort",
+            "magazzin",
+            "disponib",
+            "giacenz",
+            "prodot",
+            "formul",
+            "quantit"
+          ]
         ],
-        "responseMustNotMatch": ["sessione scaduta"]
+        "responseMustNotMatch": [
+          "sessione scaduta"
+        ]
       }
     },
     {
       "id": "T-DIRTY-010",
-      "status": "draft",
+      "status": "ready",
       "mode": "explore",
       "tier": 3,
       "category": "concept",
       "description": "Regionale spezzata — conferma trattamento senza assumere prodotto",
       "contract": {
         "invariant": "Frammenti ambigui → chiede conferma prodotto/zona, non assume SKU",
-        "primaryAsserts": ["chiede conferma"],
-        "avoidAsserts": ["prodotto preciso senza chiedere"]
+        "primaryAsserts": [
+          "chiede conferma"
+        ],
+        "avoidAsserts": [
+          "prodotto preciso senza chiedere"
+        ]
       },
       "persona": "manager",
       "requiresSeedProfile": "viticola-conto-terzi-manodopera",
       "startUrl": "/modules/vigneto/views/trattamenti-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
       "login": "loginAsManagerFromDevPage",
-      "messages": ["uagliò… ieri a sera… quella roba bianca… sui filari alti… ok?"],
+      "messages": [
+        "uagliò… ieri a sera… quella roba bianca… sui filari alti… ok?"
+      ],
       "mockCf": false,
       "expect": {
         "replyTimeoutMs": 60000,
         "latencyMsMax": 15000,
         "responseMustMatchGroupsMin": 1,
         "responseMustMatchGroups": [
-          ["prodotto", "cosa", "quale", "zolfo", "calce", "bianc", "filar", "conferm", "intendi", "ieri"]
+          [
+            "prodotto",
+            "cosa",
+            "quale",
+            "zolfo",
+            "calce",
+            "bianc",
+            "filar",
+            "conferm",
+            "intendi",
+            "ieri"
+          ]
         ],
-        "responseMustNotMatch": ["sessione scaduta"],
-        "commandsMustNot": ["INJECT_FORM_DATA"]
+        "responseMustNotMatch": [
+          "sessione scaduta"
+        ],
+        "commandsMustNot": [
+          "INJECT_FORM_DATA"
+        ]
       }
     },
     {
       "id": "T-DIRTY-011",
-      "status": "draft",
+      "status": "ready",
       "mode": "explore",
       "tier": 3,
       "category": "multi_turn",
       "description": "Assegnazione + scadenza — Luca entro venerdì filari sotto la strada",
       "contract": {
         "invariant": "Task a Luca con deadline venerdì + zona",
-        "primaryAsserts": ["luca", "venerdì/scadenza", "filari/zona"],
+        "primaryAsserts": [
+          "luca",
+          "venerdì/scadenza",
+          "filari/zona"
+        ],
         "avoidAsserts": []
       },
       "persona": "manager",
       "requiresSeedProfile": "viticola-conto-terzi-manodopera",
       "startUrl": "/core/admin/gestione-lavori-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
       "login": "loginAsManagerManodopera",
-      "messages": ["digli a luca che entro venerdi deve finire i filari sotto la strada"],
+      "messages": [
+        "digli a luca che entro venerdi deve finire i filari sotto la strada"
+      ],
       "mockCf": false,
       "expect": {
         "replyTimeoutMs": 90000,
         "latencyMsMax": 20000,
         "responseMustMatchGroupsMin": 1,
         "responseMustMatchGroups": [
-          ["luca", "venerd", "filar", "strada", "lavor", "assegn", "scadenz", "compito", "entro"]
+          [
+            "luca",
+            "venerd",
+            "filar",
+            "strada",
+            "lavor",
+            "assegn",
+            "scadenz",
+            "compito",
+            "entro"
+          ]
         ],
-        "responseMustNotMatch": ["sessione scaduta"]
+        "responseMustNotMatch": [
+          "sessione scaduta"
+        ]
       }
     },
     {
       "id": "T-DIRTY-012",
-      "status": "draft",
+      "status": "ready",
       "mode": "explore",
       "tier": 3,
       "category": "multi_turn",
       "description": "Misto — scorta cabrio + applicazione zone 7 e 8",
       "contract": {
         "invariant": "Verifica scorta cabrio e collega a zone 7–8; se insufficiente lo dice",
-        "primaryAsserts": ["cabrio/scorta", "zona 7/8"],
+        "primaryAsserts": [
+          "cabrio/scorta",
+          "zona 7/8"
+        ],
         "avoidAsserts": []
       },
       "persona": "manager",
       "requiresSeedProfile": "viticola-conto-terzi-manodopera",
       "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
       "login": "loginAsManagerFromDevPage",
-      "messages": ["usa quel che resta in magazzino di cabrio e falle sulla 7 e 8"],
+      "messages": [
+        "usa quel che resta in magazzino di cabrio e falle sulla 7 e 8"
+      ],
       "mockCf": false,
       "expect": {
         "replyTimeoutMs": 90000,
         "latencyMsMax": 20000,
         "responseMustMatchGroupsMin": 1,
         "responseMustMatchGroups": [
-          ["cabrio", "magazzin", "scort", "resta", "disponib"],
-          ["7", "8", "zona", "trattament", "applic"]
+          [
+            "cabrio",
+            "magazzin",
+            "scort",
+            "resta",
+            "disponib"
+          ],
+          [
+            "7",
+            "8",
+            "zona",
+            "trattament",
+            "applic"
+          ]
         ],
-        "responseMustNotMatch": ["sessione scaduta"]
+        "responseMustNotMatch": [
+          "sessione scaduta"
+        ]
       }
     },
     {
       "id": "T-DIRTY-013",
-      "status": "draft",
+      "status": "ready",
       "mode": "explore",
       "tier": 3,
       "category": "concept",
       "description": "Autocorrezione — «trattato» ma intende falciato erba",
       "contract": {
         "invariant": "Correzione utente → sfalcio/lavorazione, non fitosanitario",
-        "primaryAsserts": ["sfalcio/erba/falci"],
-        "avoidAsserts": ["fitosanitario"]
+        "primaryAsserts": [
+          "sfalcio/erba/falci"
+        ],
+        "avoidAsserts": [
+          "fitosanitario"
+        ]
       },
       "persona": "manager",
       "requiresSeedProfile": "viticola-conto-terzi-manodopera",
       "startUrl": "/core/attivita-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
       "login": "loginAsManagerFromDevPage",
-      "messages": ["ho trattato i vigneti ma intendo ho falciato l'erba sotto"],
+      "messages": [
+        "ho trattato i vigneti ma intendo ho falciato l'erba sotto"
+      ],
       "mockCf": false,
       "expect": {
         "replyTimeoutMs": 60000,
         "latencyMsMax": 15000,
         "responseMustMatchGroupsMin": 1,
         "responseMustMatchGroups": [
-          ["falci", "sfalci", "erba", "lavor", "sotto", "vigneto"]
+          [
+            "falci",
+            "sfalci",
+            "erba",
+            "lavor",
+            "sotto",
+            "vigneto"
+          ]
         ],
-        "responseMustNotMatch": ["fitofarmac", "principio attivo", "sessione scaduta"]
+        "responseMustNotMatch": [
+          "fitofarmac",
+          "principio attivo",
+          "sessione scaduta"
+        ]
       }
     },
     {
       "id": "T-DIRTY-014",
-      "status": "draft",
+      "status": "ready",
       "mode": "explore",
       "tier": 3,
       "category": "multi_turn",
       "description": "Ripresa + typo — giro trattamenti ieri + parcella nord-estt",
       "contract": {
         "invariant": "Riprende piano ieri e aggiunge nord-est; non piano nuovo scollegato",
-        "primaryAsserts": ["ripresa/ieri", "nord-est"],
+        "primaryAsserts": [
+          "ripresa/ieri",
+          "nord-est"
+        ],
         "avoidAsserts": []
       },
       "persona": "manager",
       "requiresSeedProfile": "viticola-conto-terzi-manodopera",
       "startUrl": "/modules/vigneto/views/trattamenti-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
       "login": "loginAsManagerFromDevPage",
-      "messages": ["riprendi il giro trattamenti di ieri, mancava la parcella nord-estt"],
+      "messages": [
+        "riprendi il giro trattamenti di ieri, mancava la parcella nord-estt"
+      ],
       "mockCf": false,
       "expect": {
         "replyTimeoutMs": 60000,
         "latencyMsMax": 15000,
         "responseMustMatchGroupsMin": 1,
         "responseMustMatchGroups": [
-          ["riprend", "ieri", "trattament", "nord", "est", "parcella", "mancav", "giro"]
+          [
+            "riprend",
+            "ieri",
+            "trattament",
+            "nord",
+            "est",
+            "parcella",
+            "mancav",
+            "giro"
+          ]
         ],
-        "responseMustNotMatch": ["sessione scaduta"]
+        "responseMustNotMatch": [
+          "sessione scaduta"
+        ]
       }
     },
     {
       "id": "T-DIRTY-015",
-      "status": "draft",
+      "status": "ready",
       "mode": "explore",
       "tier": 3,
       "category": "concept",
       "description": "Dialetto scadenze — tempi di carenza rame parcella 3",
       "contract": {
         "invariant": "Carenza rame zona 3 → usa dati trattamento/etichetta o chiede data ultimo spray",
-        "primaryAsserts": ["carenza/rame/3"],
-        "avoidAsserts": ["risposta a sentimento senza dati"]
+        "primaryAsserts": [
+          "carenza/rame/3"
+        ],
+        "avoidAsserts": [
+          "risposta a sentimento senza dati"
+        ]
       },
       "persona": "manager",
       "requiresSeedProfile": "viticola-conto-terzi-manodopera",
       "startUrl": "/modules/vigneto/views/trattamenti-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
       "login": "loginAsManagerFromDevPage",
-      "messages": ["ma i tempi de carenza del rame nela 3 so già passati o aggio da aspettà?"],
+      "messages": [
+        "ma i tempi de carenza del rame nela 3 so già passati o aggio da aspettà?"
+      ],
       "mockCf": false,
       "expect": {
         "replyTimeoutMs": 60000,
         "latencyMsMax": 15000,
         "responseMustMatchGroupsMin": 1,
         "responseMustMatchGroups": [
-          ["carenza", "rame", "3", "giorn", "passat", "aspett", "ultimo", "trattament", "data"]
+          [
+            "carenza",
+            "rame",
+            "3",
+            "giorn",
+            "passat",
+            "aspett",
+            "ultimo",
+            "trattament",
+            "data"
+          ]
         ],
-        "responseMustNotMatch": ["sessione scaduta"]
+        "responseMustNotMatch": [
+          "sessione scaduta"
+        ]
       }
     }
   ]
