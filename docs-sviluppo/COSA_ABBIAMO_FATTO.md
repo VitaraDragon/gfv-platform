@@ -1,6 +1,21 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-01 — Fix Tony preventivo disambiguazione terreno.**
+**Ultimo aggiornamento documentazione: 2026-10-02 — Fix T-DIRTY-007 + T-FLOW-013 (PR #84).**
+
+## 2026-10-02 — Fix T-DIRTY-007 + T-FLOW-013: resume ripresa + gate seed timing
+
+**T-DIRTY-007 (prompt regression):** Risolto test E2E fallito post-PR #81. Quando l'utente dice «continua da dove avevo lasciato sulla fila 4 verso il fosso», Tony ora conferma esplicitamente i dettagli di location nel text della risposta invece di rispondere solo «Ti porto al diario.» Modifiche in `SYSTEM_INSTRUCTION_ADVANCED` (`functions/index.js`):
+- Regola RIPRESA CONTESTO (1314) rafforzata: obbliga a ripetere dettagli location/zona (fila, fosso, riga, parcella) quando presenti nel messaggio.
+- Regola APERTURA MODAL ATTIVITÀ (1359): aggiunta eccezione per rispettare regola ripresa con location.
+- Esempio aggiunto: «continua dalla fila 4 verso il fosso» → text «Ok, continuo dalla fila 4 verso il fosso. Cosa devo riprendere esattamente?»
+
+**T-FLOW-013 (gate seed inadequacy):** Risolto gate mock 16/17 FAIL con taxonomy T1_SEED_INADEQUATE «Discovery: nessun tipo lavoro nel tenant». Root cause: race condition tra caricamento pagina gestione lavori e discovery test — il seed crea correttamente tipi lavoro via `seedAppCatalog`, ma `waitForLavoriStateReady()` non attendeva che `tipiLavoroList` fosse popolato. Fix in `tests/e2e/tony/helpers/tony-lavoro-flow-discover.js`: ora attende `tipiLavoro.length >= 1` prima di lanciare discovery. Gate passa consistentemente.
+
+Non modifica assert dei test; non tocca altri T-DIRTY.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-01 — Fix Tony preventivo disambiguazione terreno.**
 
 ## 2026-10-01 — Fix Tony preventivo disambiguazione terreno
 
