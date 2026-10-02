@@ -3,6 +3,7 @@
  * Un'uscita su movimentiMagazzino e un solo increment negativo della giacenza.
  */
 const admin = require("firebase-admin");
+const { FieldValue, Timestamp } = require("firebase-admin/firestore");
 const { HttpsError } = require("firebase-functions/v2/https");
 const { validaPienoCampo } = require("./lib/registra-pieno-campo-core");
 
@@ -114,7 +115,7 @@ async function handleRegistraPienoCampo(request) {
     }
     const movRef = db.collection("tenants").doc(tenantId).collection("movimentiMagazzino").doc();
     createdId = movRef.id;
-    const now = admin.firestore.Timestamp.now();
+    const now = Timestamp.now();
     tx.set(movRef, {
       prodottoId,
       data: now,
@@ -127,19 +128,20 @@ async function handleRegistraPienoCampo(request) {
       userId: request.auth.uid,
       macchinaId,
       origineCarburante: "pieno",
-      createdAt: admin.firestore.FieldValue.serverTimestamp(),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      createdAt: FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp()
     });
     tx.update(prodottoRef, {
-      giacenza: admin.firestore.FieldValue.increment(-quantita),
-      updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      giacenza: FieldValue.increment(-quantita),
+      updatedAt: FieldValue.serverTimestamp()
     });
   });
   } catch (err) {
     if (err && err.gfvCode) {
       throw new HttpsError(err.gfvCode, err.message);
     }
-    throw err;
+    console.error("[registraPienoCampo]", err);
+    throw new HttpsError("internal", (err && err.message) ? err.message : "Errore registrazione pieno.");
   }
 
   return { movimentoId: createdId };
