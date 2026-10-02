@@ -562,6 +562,431 @@
         "cfCallsMax": 0,
         "usedGemini": false
       }
+    },
+    {
+      "id": "T-DIRTY-001",
+      "status": "draft",
+      "mode": "explore",
+      "tier": 3,
+      "category": "typo",
+      "description": "Typo — quantità rame botte 3",
+      "contract": {
+        "invariant": "Typo grezzo su scorta/botte → chiarimento o lettura scorta, senza inventare litri",
+        "primaryAsserts": ["responseMustNotMatch numeri inventati se chiede chiarimento", "nessun crash"],
+        "avoidAsserts": ["litri esatti senza fonte seed"]
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "viticola-conto-terzi-manodopera",
+      "startUrl": "/modules/magazzino/views/prodotti-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["qunati litri rame nn nela botte 3??"],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          ["rame", "botte", "litr", "scort", "magazzin", "quantit", "prodot", "chiar", "quale", "non ho capito", "intendi"]
+        ],
+        "responseMustNotMatch": ["sessione scaduta", "piano free"],
+        "commandsMustNot": ["INJECT_FORM_DATA"]
+      }
+    },
+    {
+      "id": "T-DIRTY-002",
+      "status": "draft",
+      "mode": "explore",
+      "tier": 3,
+      "category": "concept",
+      "description": "Dialetto — potatura/pampini su riga",
+      "contract": {
+        "invariant": "Dialetto potatura → intent lavorazione/potatura + chiede zona/riga se manca",
+        "primaryAsserts": ["semantica potatura/lavorazione", "no fitosanitario automatico"],
+        "avoidAsserts": ["frase dialettale esatta in risposta"]
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "viticola-conto-terzi-manodopera",
+      "startUrl": "/modules/vigneto/views/potatura-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["mo i taji i pampini na sta riga qua o no?"],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          ["potatur", "pampin", "foglie", "riga", "filar", "lavor", "zona", "quale", "conferm"]
+        ],
+        "responseMustNotMatch": ["sessione scaduta", "rame", "fitofarmac"]
+      }
+    },
+    {
+      "id": "T-DIRTY-003",
+      "status": "draft",
+      "mode": "explore",
+      "tier": 3,
+      "category": "multi_turn",
+      "description": "Frase spezzata — ripresa trattamento campo basso",
+      "contract": {
+        "invariant": "Frammenti ieri+prodotto+zona → ripresa contesto o conferma prodotto/zona",
+        "primaryAsserts": ["lega zona o tempo", "chiede conferma se ambiguo"],
+        "avoidAsserts": []
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "viticola-conto-terzi-manodopera",
+      "startUrl": "/modules/vigneto/views/trattamenti-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["eh… il solfato… quello… ieri… campo basso"],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          ["solfato", "trattament", "ieri", "campo", "basso", "zona", "conferm", "prodotto", "riprend"]
+        ],
+        "responseMustNotMatch": ["sessione scaduta"],
+        "commandsMustNot": ["INJECT_FORM_DATA"]
+      }
+    },
+    {
+      "id": "T-DIRTY-004",
+      "status": "draft",
+      "mode": "explore",
+      "tier": 3,
+      "category": "concept",
+      "description": "Ambiguità — «fatto il rame» = trattamento non lavorazione",
+      "contract": {
+        "invariant": "«rame sulla 12» → trattamento fitosanitario, non aratura",
+        "primaryAsserts": ["trattamento/rame", "zona 12"],
+        "avoidAsserts": ["lavorazione suolo"]
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "viticola-conto-terzi-manodopera",
+      "startUrl": "/modules/vigneto/views/trattamenti-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["fatto il rame sulla 12 stamattina"],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          ["rame", "trattament", "fitosan", "12", "parcella", "zona", "registr"]
+        ],
+        "responseMustNotMatch": ["aratur", "lavorazione del suolo", "sessione scaduta"]
+      }
+    },
+    {
+      "id": "T-DIRTY-005",
+      "status": "draft",
+      "mode": "explore",
+      "tier": 3,
+      "category": "concept",
+      "description": "Ambiguità inversa — lavorato col trattore = meccanica",
+      "contract": {
+        "invariant": "Lavorato col trattore sulla 12 → lavorazione meccanica, non spray",
+        "primaryAsserts": ["lavorazione/trattore"],
+        "avoidAsserts": ["prodotto fitosanitario obbligatorio"]
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "viticola-conto-terzi-manodopera",
+      "startUrl": "/core/attivita-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["stamattina ho lavorato la 12 col trattore"],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          ["lavor", "trattore", "12", "meccan", "attivita", "terreno", "registr"]
+        ],
+        "responseMustNotMatch": ["quale prodotto", "dose rame", "sessione scaduta"]
+      }
+    },
+    {
+      "id": "T-DIRTY-006",
+      "status": "draft",
+      "mode": "explore",
+      "tier": 3,
+      "category": "multi_turn",
+      "description": "Intent misto — scarico magazzino + assegnazione a Marco",
+      "contract": {
+        "invariant": "Taniche glifosate + dale a marco → gestisce entrambi o conferma esplicita quantità+operatore",
+        "primaryAsserts": ["magazzino/glifosate", "marco/assegnazione o conferma"],
+        "avoidAsserts": []
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "viticola-conto-terzi-manodopera",
+      "startUrl": "/modules/magazzino/views/movimenti-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerManodopera",
+      "messages": ["togli 2 taniche glifosate e dalle a marco pe sta settimana"],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 90000,
+        "latencyMsMax": 20000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          ["glifosat", "tanich", "magazzin", "uscita", "scaric", "2"],
+          ["marco", "operat", "assegn", "settimana", "conferm", "lavor"]
+        ],
+        "responseMustNotMatch": ["sessione scaduta"]
+      }
+    },
+    {
+      "id": "T-DIRTY-007",
+      "status": "draft",
+      "mode": "explore",
+      "tier": 3,
+      "category": "multi_turn",
+      "description": "Ripresa — continua fila 4 verso il fosso",
+      "contract": {
+        "invariant": "«continua da dove avevo lasciato» → ripresa ultima attività o chiede cosa riprendere",
+        "primaryAsserts": ["fila 4 / ripresa"],
+        "avoidAsserts": []
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "viticola-conto-terzi-manodopera",
+      "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["continua da dove avevo lasciato sulla fila 4 verso il fosso"],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          ["fila", "4", "riprend", "continua", "ultima", "attivita", "lavor", "fosso", "cosa", "quale"]
+        ],
+        "responseMustNotMatch": ["sessione scaduta"]
+      }
+    },
+    {
+      "id": "T-DIRTY-008",
+      "status": "draft",
+      "mode": "explore",
+      "tier": 3,
+      "category": "concept",
+      "description": "Scadenze — quando rifare zolfo sul pinot",
+      "contract": {
+        "invariant": "Intervallo/carenza zolfo → usa dati o chiede; non inventa giorni senza fonte",
+        "primaryAsserts": ["zolfo/carenza/intervallo o richiesta dati"],
+        "avoidAsserts": ["data precisa inventata"]
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "viticola-conto-terzi-manodopera",
+      "startUrl": "/modules/vigneto/views/trattamenti-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["entro quando devo rifare lo zolfo sul pinot? settimana scorsa era al limite"],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          ["zolfo", "carenza", "intervallo", "giorn", "pinot", "trattament", "quando", "data", "non ho", "dimmi", "ultimo"]
+        ],
+        "responseMustNotMatch": ["sessione scaduta"]
+      }
+    },
+    {
+      "id": "T-DIRTY-009",
+      "status": "draft",
+      "mode": "explore",
+      "tier": 3,
+      "category": "typo",
+      "description": "Typo — disponibilità scorta rame",
+      "contract": {
+        "invariant": "Typo scorte rame → controlla magazzino o chiede formulato",
+        "primaryAsserts": ["rame/scorte"],
+        "avoidAsserts": ["sì/no a caso"]
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "viticola-conto-terzi-manodopera",
+      "startUrl": "/modules/magazzino/views/prodotti-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["ce nne ancora dil rame? qusi finito"],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          ["rame", "scort", "magazzin", "disponib", "giacenz", "prodot", "formul", "quantit"]
+        ],
+        "responseMustNotMatch": ["sessione scaduta"]
+      }
+    },
+    {
+      "id": "T-DIRTY-010",
+      "status": "draft",
+      "mode": "explore",
+      "tier": 3,
+      "category": "concept",
+      "description": "Regionale spezzata — conferma trattamento senza assumere prodotto",
+      "contract": {
+        "invariant": "Frammenti ambigui → chiede conferma prodotto/zona, non assume SKU",
+        "primaryAsserts": ["chiede conferma"],
+        "avoidAsserts": ["prodotto preciso senza chiedere"]
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "viticola-conto-terzi-manodopera",
+      "startUrl": "/modules/vigneto/views/trattamenti-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["uagliò… ieri a sera… quella roba bianca… sui filari alti… ok?"],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          ["prodotto", "cosa", "quale", "zolfo", "calce", "bianc", "filar", "conferm", "intendi", "ieri"]
+        ],
+        "responseMustNotMatch": ["sessione scaduta"],
+        "commandsMustNot": ["INJECT_FORM_DATA"]
+      }
+    },
+    {
+      "id": "T-DIRTY-011",
+      "status": "draft",
+      "mode": "explore",
+      "tier": 3,
+      "category": "multi_turn",
+      "description": "Assegnazione + scadenza — Luca entro venerdì filari sotto la strada",
+      "contract": {
+        "invariant": "Task a Luca con deadline venerdì + zona",
+        "primaryAsserts": ["luca", "venerdì/scadenza", "filari/zona"],
+        "avoidAsserts": []
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "viticola-conto-terzi-manodopera",
+      "startUrl": "/core/admin/gestione-lavori-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerManodopera",
+      "messages": ["digli a luca che entro venerdi deve finire i filari sotto la strada"],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 90000,
+        "latencyMsMax": 20000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          ["luca", "venerd", "filar", "strada", "lavor", "assegn", "scadenz", "compito", "entro"]
+        ],
+        "responseMustNotMatch": ["sessione scaduta"]
+      }
+    },
+    {
+      "id": "T-DIRTY-012",
+      "status": "draft",
+      "mode": "explore",
+      "tier": 3,
+      "category": "multi_turn",
+      "description": "Misto — scorta cabrio + applicazione zone 7 e 8",
+      "contract": {
+        "invariant": "Verifica scorta cabrio e collega a zone 7–8; se insufficiente lo dice",
+        "primaryAsserts": ["cabrio/scorta", "zona 7/8"],
+        "avoidAsserts": []
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "viticola-conto-terzi-manodopera",
+      "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["usa quel che resta in magazzino di cabrio e falle sulla 7 e 8"],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 90000,
+        "latencyMsMax": 20000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          ["cabrio", "magazzin", "scort", "resta", "disponib"],
+          ["7", "8", "zona", "trattament", "applic"]
+        ],
+        "responseMustNotMatch": ["sessione scaduta"]
+      }
+    },
+    {
+      "id": "T-DIRTY-013",
+      "status": "draft",
+      "mode": "explore",
+      "tier": 3,
+      "category": "concept",
+      "description": "Autocorrezione — «trattato» ma intende falciato erba",
+      "contract": {
+        "invariant": "Correzione utente → sfalcio/lavorazione, non fitosanitario",
+        "primaryAsserts": ["sfalcio/erba/falci"],
+        "avoidAsserts": ["fitosanitario"]
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "viticola-conto-terzi-manodopera",
+      "startUrl": "/core/attivita-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["ho trattato i vigneti ma intendo ho falciato l'erba sotto"],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          ["falci", "sfalci", "erba", "lavor", "sotto", "vigneto"]
+        ],
+        "responseMustNotMatch": ["fitofarmac", "principio attivo", "sessione scaduta"]
+      }
+    },
+    {
+      "id": "T-DIRTY-014",
+      "status": "draft",
+      "mode": "explore",
+      "tier": 3,
+      "category": "multi_turn",
+      "description": "Ripresa + typo — giro trattamenti ieri + parcella nord-estt",
+      "contract": {
+        "invariant": "Riprende piano ieri e aggiunge nord-est; non piano nuovo scollegato",
+        "primaryAsserts": ["ripresa/ieri", "nord-est"],
+        "avoidAsserts": []
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "viticola-conto-terzi-manodopera",
+      "startUrl": "/modules/vigneto/views/trattamenti-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["riprendi il giro trattamenti di ieri, mancava la parcella nord-estt"],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          ["riprend", "ieri", "trattament", "nord", "est", "parcella", "mancav", "giro"]
+        ],
+        "responseMustNotMatch": ["sessione scaduta"]
+      }
+    },
+    {
+      "id": "T-DIRTY-015",
+      "status": "draft",
+      "mode": "explore",
+      "tier": 3,
+      "category": "concept",
+      "description": "Dialetto scadenze — tempi di carenza rame parcella 3",
+      "contract": {
+        "invariant": "Carenza rame zona 3 → usa dati trattamento/etichetta o chiede data ultimo spray",
+        "primaryAsserts": ["carenza/rame/3"],
+        "avoidAsserts": ["risposta a sentimento senza dati"]
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "viticola-conto-terzi-manodopera",
+      "startUrl": "/modules/vigneto/views/trattamenti-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["ma i tempi de carenza del rame nela 3 so già passati o aggio da aspettà?"],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          ["carenza", "rame", "3", "giorn", "passat", "aspett", "ultimo", "trattament", "data"]
+        ],
+        "responseMustNotMatch": ["sessione scaduta"]
+      }
     }
   ]
 }
