@@ -14,7 +14,7 @@ export class Prodotto extends Base {
    * @param {string} data.id - ID prodotto
    * @param {string} data.codice - Codice interno (opzionale)
    * @param {string} data.nome - Nome prodotto (obbligatorio)
-   * @param {string} data.categoria - Categoria: fitofarmaci, fertilizzanti, materiale_impianto, ricambi, sementi, altro
+   * @param {string} data.categoria - Categoria: fitofarmaci, fertilizzanti, materiale_impianto, ricambi, sementi, carburante, altro
    * @param {string} data.unitaMisura - Unità di misura: kg, L, pezzi, m, m2, confezione, sacchi, altro
    * @param {number} data.scortaMinima - Scorta minima per alert (opzionale, default 0)
    * @param {number} data.prezzoUnitario - Prezzo medio ponderato (€/unità) dalle entrate fatturate dell'anno (sola lettura in UI)

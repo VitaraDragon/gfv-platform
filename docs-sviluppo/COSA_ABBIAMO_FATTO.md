@@ -1,6 +1,30 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-01 — Fix Tony preventivo disambiguazione terreno.**
+**Ultimo aggiornamento documentazione: 2026-10-02 — Carburante Fase 2 (carico cisterna e pieno).**
+
+## 2026-10-02 — Carburante Fase 2: carico cisterna e pieno mezzo
+
+Carico e pieno usano lo stesso movimento di magazzino. La card Carico apre un'entrata solo sui prodotti carburante (`origineCarburante=carico_cisterna`). La card Pieno apre un'uscita con il mezzo obbligatorio; senza Parco Macchine resta disabilitata. La giacenza si aggiorna una sola volta con l'incremento già esistente. Tony riconosce «è arrivato il gasolio, 800 litri» e «ho fatto il pieno al T5, 80 litri». Le quote sui lavori restano Fase 3.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-02 — Carburante Fase 0–1 (categoria + hub).**
+
+## 2026-10-02 — Carburante in Magazzino (Fase 0–1)
+
+Categoria prodotto `carburante` (non Altro): anagrafica, filtri, sinonimi Tony/Occhi (gasolio, diesel, benzina, AdBlue), nessun dosaggio/carenza. Home Magazzino ha la card **Carburante** che apre l’hub (`carburante-home-standalone.html`): scorta, carico (entrate), pieni/consumi, prodotti filtrati. Tony: «portami al carburante» / gasolio → hub, gate modulo magazzino. Carico/pieno dedicati e apprendimento coppia restano Fase 2–3. Piano: `docs-sviluppo/da-fare/magazzino/PIANO_CARBURANTE.md`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-02 — Piano Carburante Magazzino (design).**
+
+## 2026-10-02 — Piano Carburante in Magazzino (design)
+
+Scritta la guida di sviluppo per tracciare il carburante senza un modulo nuovo. Vive in Prodotti e Magazzino: categoria `carburante`, card/hub Carburante, carico cisterna e pieni sullo stesso registro movimenti. I consumi per operazione si imparano dalle giornate pulite (coppia trattore+attrezzo) e restano in standby in quelle miste. Niente L/h sull’attrezzo e niente apprendimento per singolo terreno. Codice ancora da fare. Piano: `docs-sviluppo/da-fare/magazzino/PIANO_CARBURANTE.md`. Decisioni: `TONY_DECISIONI_E_REQUISITI.md` §28.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-01 — Fix Tony preventivo disambiguazione terreno.**
 
 ## 2026-10-01 — Fix Tony preventivo disambiguazione terreno
 

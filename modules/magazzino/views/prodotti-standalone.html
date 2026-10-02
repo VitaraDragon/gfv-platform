@@ -114,6 +114,7 @@
                         <option value="materiale_impianto">Materiale impianto</option>
                         <option value="ricambi">Ricambi</option>
                         <option value="sementi">Sementi</option>
+                        <option value="carburante">Carburante</option>
                         <option value="altro">Altro</option>
                     </select>
                 </div>
@@ -174,6 +175,7 @@
                             <option value="materiale_impianto">Materiale impianto</option>
                             <option value="ricambi">Ricambi</option>
                             <option value="sementi">Sementi</option>
+                            <option value="carburante">Carburante</option>
                             <option value="altro">Altro</option>
                         </select>
                     </div>
@@ -298,6 +300,12 @@
                 document.getElementById('btn-annulla-modal').onclick = closeModal;
                 document.getElementById('btn-reset-filtri').onclick = resetFilters;
                 document.getElementById('filter-attivo').onchange = renderProdotti;
+                try {
+                    const catQ = new URLSearchParams(window.location.search).get('categoria');
+                    if (catQ && document.querySelector('#filter-categoria option[value="' + catQ + '"]')) {
+                        document.getElementById('filter-categoria').value = catQ;
+                    }
+                } catch (eCat) { /* ignore */ }
                 document.getElementById('filter-categoria').onchange = renderProdotti;
                 document.getElementById('filter-da-completare').onchange = renderProdotti;
                 document.getElementById('filter-search').oninput = renderProdotti;

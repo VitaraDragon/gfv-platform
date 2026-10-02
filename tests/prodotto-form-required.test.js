@@ -30,6 +30,12 @@ describe('prodotto-form-required', () => {
     expect(getProdottoDosaggioCarenzaRequiredFieldIds('altro')).toEqual([]);
   });
 
+  it('carburante non richiede dosaggio né carenza', () => {
+    expect(prodottoCategoriaRichiedeDosaggio('carburante')).toBe(false);
+    expect(prodottoCategoriaRichiedeGiorniCarenza('carburante')).toBe(false);
+    expect(getProdottoDosaggioCarenzaRequiredFieldIds('carburante')).toEqual([]);
+  });
+
   it('draft fitofarmaci incompleto senza dosaggio/carenza', () => {
     const missing = getProdottoDosaggioCarenzaMissingFromDraft({
       'prodotto-categoria': 'fitofarmaci',

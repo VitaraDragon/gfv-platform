@@ -5,7 +5,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Prodotti e Magazzino - GFV Platform</title>
+    <title>Carburante - Prodotti e Magazzino - GFV Platform</title>
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -31,7 +31,6 @@
         }
         .header h1 { font-size: 36px; margin-bottom: 10px; }
         .header p { font-size: 18px; opacity: 0.9; }
-        .header-actions { margin-top: 0; }
         .content { background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .stats-grid {
             display: grid;
@@ -79,6 +78,11 @@
             transform: translateY(-5px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
+        .action-card.is-disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
         .action-icon { font-size: 48px; margin-bottom: 15px; }
         .action-title { font-size: 18px; font-weight: bold; color: #2E7D32; margin-bottom: 10px; }
         .action-description { font-size: 14px; color: #666; }
@@ -105,20 +109,18 @@
             border: 1px solid #ffc107;
         }
         .alert a { color: #856404; font-weight: bold; }
-        .loading { text-align: center; padding: 40px; color: #666; }
         h2 { color: #2E7D32; margin-bottom: 20px; }
-        /* Responsive: ../../../core/styles/responsive-standalone.css */
     </style>
 </head>
 <body>
     <div class="container">
         <div class="header">
             <div>
-                <h1>📦 Prodotti e Magazzino</h1>
-                <p>Anagrafica prodotti, giacenze e movimenti</p>
+                <h1>⛽ Carburante</h1>
+                <p>Scorta cisterna, carichi e pieni</p>
             </div>
             <div class="header-actions">
-                <a href="../../../core/dashboard-standalone.html" class="btn btn-secondary">← Dashboard Principale</a>
+                <a href="magazzino-home-standalone.html" class="btn btn-secondary">← Magazzino</a>
             </div>
         </div>
 
@@ -126,68 +128,84 @@
             <div id="alert-container"></div>
 
             <div id="alert-sotto-scorta" class="alert alert-warning" style="display: none;">
-                <strong>⚠️ Prodotti sotto scorta minima:</strong>
+                <strong>⚠️ Carburante sotto scorta minima:</strong>
                 <span id="alert-sotto-scorta-list"></span>
-                <a href="prodotti-standalone.html" id="alert-link-prodotti">Vai ad Anagrafica prodotti</a>
+                <a href="prodotti-standalone.html?categoria=carburante">Vai ai prodotti carburante</a>
             </div>
 
             <h2>Panoramica</h2>
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-value" id="stat-prodotti">-</div>
-                    <div class="stat-label">Prodotti attivi</div>
+                    <div class="stat-value" id="stat-litri">-</div>
+                    <div class="stat-label">Litri in cisterna</div>
                 </div>
-                <a href="movimenti-standalone.html" class="stat-card" style="text-decoration: none; color: inherit;">
+                <a href="movimenti-standalone.html?categoria=carburante" class="stat-card" style="text-decoration: none; color: inherit;">
                     <div class="stat-value" id="stat-movimenti">-</div>
-                    <div class="stat-label">Movimenti (ultimi 30 gg)</div>
+                    <div class="stat-label">Movimenti carburante (30 gg)</div>
                 </a>
                 <div class="stat-card alert-card" id="stat-sotto-scorta-card">
                     <div class="stat-value" id="stat-sotto-scorta">0</div>
-                    <div class="stat-label">Sotto scorta minima</div>
+                    <div class="stat-label">Sotto scorta</div>
                 </div>
             </div>
 
-            <h2 style="margin-top: 40px;">Azioni Rapide</h2>
+            <h2 style="margin-top: 40px;">Azioni</h2>
             <div class="quick-actions">
-                <a href="carburante-home-standalone.html" class="action-card">
-                    <span class="action-icon">⛽</span>
-                    <span class="action-title">Carburante</span>
-                    <span class="action-description">Scorta cisterna, carichi e pieni (gasolio, benzina, AdBlue)</span>
-                </a>
-                <a href="prodotti-standalone.html" class="action-card">
+                <a href="prodotti-standalone.html?categoria=carburante" class="action-card">
                     <span class="action-icon">📋</span>
-                    <span class="action-title">Anagrafica Prodotti</span>
-                    <span class="action-description">Gestisci prodotti, categorie e scorte minime</span>
+                    <span class="action-title">Scorta</span>
+                    <span class="action-description">Giacenza e soglie di gasolio, benzina, AdBlue</span>
                 </a>
-                <a href="movimenti-standalone.html" class="action-card">
-                    <span class="action-icon">📥</span>
-                    <span class="action-title">Movimenti</span>
-                    <span class="action-description">Registra entrate e uscite di magazzino</span>
+                <a href="movimenti-standalone.html?categoria=carburante&tipo=entrata" class="action-card" id="card-carico">
+                    <span class="action-icon">➕</span>
+                    <span class="action-title">Carico</span>
+                    <span class="action-description">Arrivo in cisterna: entrata sul prodotto carburante</span>
                 </a>
-                <a href="tracciabilita-consumi-standalone.html" class="action-card">
-                    <span class="action-icon">🔍</span>
-                    <span class="action-title">Tracciabilità consumi</span>
-                    <span class="action-description">Consulta le uscite per categoria prodotto (sola lettura)</span>
+                <a href="movimenti-standalone.html?categoria=carburante&tipo=uscita&pieno=1" class="action-card" id="card-pieno">
+                    <span class="action-icon">🚛</span>
+                    <span class="action-title">Pieno</span>
+                    <span class="action-description">Uscita dalla cisterna sul mezzo</span>
                 </a>
-                <a href="documenti-acquisiti-standalone.html" class="action-card">
-                    <span class="action-icon">📄</span>
-                    <span class="action-title">Archivio documenti</span>
-                    <span class="action-description">Originali bolla/fattura/scontrino acquisiti con Tony (foto/PDF)</span>
+                <a href="prodotti-standalone.html?categoria=carburante" class="action-card">
+                    <span class="action-icon">⛽</span>
+                    <span class="action-title">Prodotti</span>
+                    <span class="action-description">Anagrafica solo famiglia carburante</span>
                 </a>
             </div>
+            <p style="margin-top: 16px;"><a href="tracciabilita-consumi-standalone.html?categoria=carburante">Elenco consumi carburante</a></p>
         </div>
     </div>
 
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
-        import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, query, where, orderBy, limit, Timestamp, getDoc, doc } from '../../../core/services/firebase-service.js';
+        import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, query, orderBy, limit, getDoc, doc } from '../../../core/services/firebase-service.js';
         import { showAlert } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+        import { hasModuleAccessFromTenant } from '../../../core/utils/module-access-resolver.js';
+
+        window.currentTableData = {
+            pageType: 'carburante_hub',
+            summary: 'Caricamento dati in corso...',
+            items: []
+        };
+
+        function pushTonyHubContext() {
+            var page = (window.Tony && window.Tony.context && window.Tony.context.page) || {};
+            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                window.Tony.setContext('page', Object.assign({}, page, {
+                    tableDataSummary: window.currentTableData.summary,
+                    currentTableData: window.currentTableData
+                }));
+            }
+            window.dispatchEvent(new CustomEvent('table-data-ready', {
+                detail: { currentTableData: window.currentTableData }
+            }));
+        }
 
         try {
             await window.GFVStandaloneReady;
         } catch (err) {
-            console.error('[magazzino-home] Bootstrap failed:', err);
+            console.error('[carburante-home] Bootstrap failed:', err);
             throw err;
         }
         const auth = getAuthInstance();
@@ -223,9 +241,18 @@
                 try {
                     const userRoles = Array.isArray(userData.ruoli) ? userData.ruoli : [];
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
-                    const modules = tenantDoc.exists()
-                        ? (Array.isArray(tenantDoc.data().modules) ? tenantDoc.data().modules : [])
-                        : ['magazzino'];
+                    const tenantData = tenantDoc.exists() ? tenantDoc.data() : { modules: ['magazzino'] };
+                    const modules = Array.isArray(tenantData.modules) ? tenantData.modules : ['magazzino'];
+                    const cardPieno = document.getElementById('card-pieno');
+                    if (cardPieno && !hasModuleAccessFromTenant(tenantData, 'parcoMacchine')) {
+                        cardPieno.removeAttribute('href');
+                        cardPieno.classList.add('is-disabled');
+                        cardPieno.setAttribute('aria-disabled', 'true');
+                        const descPieno = cardPieno.querySelector('.action-description');
+                        if (descPieno) {
+                            descPieno.textContent = 'Serve il Parco Macchine per registrare il pieno. Il carico cisterna resta disponibile.';
+                        }
+                    }
                     if (window.Tony && typeof window.Tony.initContextWithModules === 'function') {
                         window.Tony.initContextWithModules(modules, {
                             tenantId: currentTenantId,
@@ -235,41 +262,8 @@
                             }
                         });
                     }
-                    const { runTonyProactiveHubBriefing } = await import('../../../core/js/tony-proactive-hub-briefing.js');
-                    const { countProdottiDaCompletare } = await import('../../../core/js/tony/document-prodotto-reminder.js');
-                    const { countMovimentiPrezzoInAttesa } = await import('../../../core/js/tony/document-register.js');
-                    const prodottiRef = collection(db, 'tenants', currentTenantId, 'prodotti');
-                    const prodottiSnap = await getDocs(prodottiRef);
-                    const rows = prodottiSnap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
-                    const sottoScorta = rows.filter((p) => {
-                        if (p.attivo === false) return false;
-                        const sm = p.scortaMinima != null ? Number(p.scortaMinima) : NaN;
-                        if (!Number.isFinite(sm) || sm <= 0) return false;
-                        const g = p.giacenza != null ? Number(p.giacenza) : null;
-                        return g == null || !Number.isFinite(g) || g < sm;
-                    }).length;
-                    let prezziInAttesa = 0;
-                    try {
-                        const movSnap = await getDocs(collection(db, 'tenants', currentTenantId, 'movimentiMagazzino'));
-                        const movRows = movSnap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
-                        prezziInAttesa = countMovimentiPrezzoInAttesa(movRows);
-                    } catch (eMov) {
-                        console.warn('[Tony] conteggio prezziInAttesa:', eMov);
-                    }
-                    runTonyProactiveHubBriefing({
-                        hubId: 'magazzino',
-                        tenantId: currentTenantId,
-                        roles: userRoles,
-                        availableModules: modules.includes('magazzino') ? modules : modules.concat(['magazzino']),
-                        counts: {
-                            sottoScorta: sottoScorta,
-                            prodottiDaCompletare: countProdottiDaCompletare(rows),
-                            prezziInAttesa: prezziInAttesa,
-                        },
-                        speak: true,
-                    });
                 } catch (eHub) {
-                    console.warn('[Tony] hub briefing magazzino:', eHub);
+                    console.warn('[Tony] init hub carburante:', eHub);
                 }
             } catch (e) {
                 console.error(e);
@@ -277,61 +271,90 @@
             }
         });
 
+        function isCarburante(p) {
+            return String(p.categoria || '') === 'carburante';
+        }
+
+        function isSottoScorta(p) {
+            if (p.attivo === false) return false;
+            const sm = p.scortaMinima != null ? Number(p.scortaMinima) : NaN;
+            if (!Number.isFinite(sm) || sm <= 0) return false;
+            const g = p.giacenza != null ? Number(p.giacenza) : null;
+            return g == null || !Number.isFinite(g) || g < sm;
+        }
+
         async function loadStats() {
             if (!currentTenantId) return;
             try {
-                const prodottiRef = collection(db, 'tenants', currentTenantId, 'prodotti');
-                const prodottiSnap = await getDocs(prodottiRef);
-                const prodottiAttivi = prodottiSnap.docs.filter(d => d.data().attivo !== false);
-                document.getElementById('stat-prodotti').textContent = prodottiAttivi.length;
+                const prodottiSnap = await getDocs(collection(db, 'tenants', currentTenantId, 'prodotti'));
+                const prodotti = prodottiSnap.docs.map((d) => Object.assign({ id: d.id }, d.data()));
+                const carburanti = prodotti.filter(isCarburante);
+                const attivi = carburanti.filter((p) => p.attivo !== false);
+                const litri = attivi.reduce((sum, p) => {
+                    const g = p.giacenza != null ? Number(p.giacenza) : 0;
+                    return sum + (Number.isFinite(g) ? g : 0);
+                }, 0);
+                const sotto = attivi.filter(isSottoScorta);
 
+                const ids = new Set(carburanti.map((p) => p.id));
                 const trentaGiorniFa = new Date();
                 trentaGiorniFa.setDate(trentaGiorniFa.getDate() - 30);
-                const movimentiRef = collection(db, 'tenants', currentTenantId, 'movimentiMagazzino');
-                const q = query(movimentiRef, orderBy('data', 'desc'), limit(500));
-                const movSnap = await getDocs(q);
-                const movimentiRecenti = movSnap.docs.filter(d => {
-                    const data = d.data().data;
+                const movSnap = await getDocs(query(
+                    collection(db, 'tenants', currentTenantId, 'movimentiMagazzino'),
+                    orderBy('data', 'desc'),
+                    limit(500)
+                ));
+                const movimentiRecenti = movSnap.docs.filter((d) => {
+                    const row = d.data();
+                    if (ids.size && !ids.has(row.prodottoId)) return false;
+                    const data = row.data;
                     const date = data && (data.toDate ? data.toDate() : new Date(data));
                     return date >= trentaGiorniFa;
                 });
-                document.getElementById('stat-movimenti').textContent = movimentiRecenti.length;
 
-                const sottoScorta = prodottiAttivi.filter(d => {
-                    const g = d.data().giacenza;
-                    const sm = d.data().scortaMinima;
-                    return sm != null && sm > 0 && (g == null || g < sm);
-                });
-                document.getElementById('stat-sotto-scorta').textContent = sottoScorta.length;
-                if (sottoScorta.length > 0) {
+                document.getElementById('stat-litri').textContent = Number.isInteger(litri) ? String(litri) : litri.toFixed(1);
+                document.getElementById('stat-movimenti').textContent = String(movimentiRecenti.length);
+                document.getElementById('stat-sotto-scorta').textContent = String(sotto.length);
+                if (sotto.length > 0) {
                     document.getElementById('alert-sotto-scorta').style.display = 'block';
                     document.getElementById('alert-sotto-scorta-list').textContent =
-                        sottoScorta.map(d => d.data().nome || d.data().codice || d.id).join(', ');
+                        sotto.map((p) => p.nome || p.codice || p.id).join(', ');
                 }
+
+                const parts = [];
+                parts.push(attivi.length ? (attivi.length + ' prodotti carburante.') : 'Nessun prodotto carburante in anagrafica.');
+                parts.push('Giacenza ' + (Number.isInteger(litri) ? litri : litri.toFixed(1)) + ' L.');
+                if (sotto.length) parts.push(sotto.length + ' sotto scorta.');
+                window.currentTableData = {
+                    pageType: 'carburante_hub',
+                    summary: parts.join(' '),
+                    items: attivi.map((p) => ({
+                        id: p.id,
+                        nome: p.nome || '-',
+                        codice: p.codice || '',
+                        categoria: 'carburante',
+                        giacenza: p.giacenza != null ? p.giacenza : 0,
+                        unitaMisura: p.unitaMisura || 'L',
+                        scortaMinima: p.scortaMinima != null ? p.scortaMinima : '-',
+                        sottoScorta: isSottoScorta(p)
+                    }))
+                };
+                pushTonyHubContext();
             } catch (err) {
-                console.warn('Errore statistiche magazzino:', err);
-                document.getElementById('stat-prodotti').textContent = '0';
+                console.warn('Errore statistiche carburante:', err);
+                document.getElementById('stat-litri').textContent = '0';
                 document.getElementById('stat-movimenti').textContent = '0';
                 document.getElementById('stat-sotto-scorta').textContent = '0';
+                window.currentTableData = {
+                    pageType: 'carburante_hub',
+                    summary: 'Errore caricamento dati carburante.',
+                    items: []
+                };
+                pushTonyHubContext();
             }
         }
 
-    </script>
-    <script>
-    (function syncTonyPageMagazzinoHome() {
-      function run() {
-        if (!window.Tony || typeof window.Tony.setContext !== 'function') {
-          setTimeout(syncTonyPageMagazzinoHome, 250);
-          return;
-        }
-        var p = (window.location.pathname || '').replace(/\\/g, '/');
-        window.Tony.setContext('page', Object.assign({}, window.Tony.context && window.Tony.context.page || {}, {
-          pagePath: p,
-          pageTitle: document.title || 'Magazzino'
-        }));
-      }
-      setTimeout(run, 400);
-    })();
+        pushTonyHubContext();
     </script>
 </body>
 </html>

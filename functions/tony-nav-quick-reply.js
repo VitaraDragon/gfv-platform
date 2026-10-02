@@ -26,6 +26,7 @@ const NAV_TARGET_RULES = [
   { target: "tariffe", patterns: [/\btariff/i] },
   { target: "preventivi", patterns: [/\bpreventiv/i] },
   { target: "clienti", patterns: [/\bclienti\b/i] },
+  { target: "carburante", patterns: [/\bcarburant/i, /\bgasolio\b/i, /\bdiesel\b/i, /\bbenzina\b/i, /\badblue\b/i, /\bad\s+blue\b/i] },
   { target: "movimenti", patterns: [/\bmoviment/i] },
   { target: "prodotti", patterns: [/\bprodott/i, /\banagrafica\s+prodott/i] },
   { target: "magazzino", patterns: [/\bmagazzin/i, /\bscort/i] },
@@ -95,6 +96,10 @@ const NAV_TEXT_BY_TARGET = {
   prodotti: "Ti porto all'anagrafica prodotti.",
   movimenti: "Ti porto ai movimenti di magazzino.",
   magazzino: "Ti porto al magazzino.",
+  carburante: "Ti porto al carburante.",
+  "hub carburante": "Ti porto al carburante.",
+  "home carburante": "Ti porto al carburante.",
+  gasolio: "Ti porto al carburante.",
   clienti: "Ti porto all'elenco clienti.",
   preventivi: "Ti porto ai preventivi.",
   "nuovo preventivo": "Ti porto al nuovo preventivo.",
@@ -171,6 +176,12 @@ function isAlreadyOnTargetPage(ctx, target) {
     return true;
   }
   if (t === "seminativo" && (path.includes("seminativo-dashboard") || path.includes("/seminativo/views/seminativo-dashboard"))) {
+    return true;
+  }
+  if (
+    (t === "carburante" || t === "hub carburante" || t === "home carburante" || t === "gasolio") &&
+    (pageType === "carburante_hub" || path.includes("carburante-home"))
+  ) {
     return true;
   }
   if (t === "report" && (path.includes("report-dashboard") || path.includes("/report/views/report-dashboard"))) {
