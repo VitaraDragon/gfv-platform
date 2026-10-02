@@ -199,6 +199,19 @@ export var DASHBOARD_CARBURANTE_HREF = 'carburante-home-standalone.html';
 export var DASHBOARD_CARBURANTE_LABEL = '← Dashboard carburante';
 
 /**
+ * Il pieno in campo serve solo se il lavoro ha un mezzo (il trattore si rifornisce).
+ * Solo attrezzo, o nessun mezzo (potatura a mano): niente scheda.
+ * @param {{ macchinaId?: string|null, stato?: string|null }|null|undefined} lavoro
+ * @returns {boolean}
+ */
+export function lavoroRichiedeRifornimento(lavoro) {
+  if (!lavoro) return false;
+  var stato = String(lavoro.stato || '').toLowerCase();
+  if (stato === 'completato' || stato === 'annullato') return false;
+  return String(lavoro.macchinaId || '').trim().length > 0;
+}
+
+/**
  * Sottosezione aperta con ?categoria=carburante: si torna all'hub Carburante.
  * @param {string|null|undefined} categoria
  * @returns {{ href: string, label: string }}

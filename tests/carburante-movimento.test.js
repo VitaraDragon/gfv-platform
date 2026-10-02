@@ -9,6 +9,7 @@ import {
   carburanteMovimentoSearchFromDraft,
   dashboardLinkForCategoria,
   righeScortaCarburante,
+  lavoroRichiedeRifornimento,
 } from '../modules/magazzino/lib/carburante-movimento.js';
 
 describe('validateMovimentoCarburante', () => {
@@ -82,6 +83,15 @@ describe('filtro lista e mezzo', () => {
       .toBe('categoria=carburante&tipo=entrata');
     expect(carburanteMovimentoSearchFromDraft({ 'mov-origine-carburante': 'pieno' }))
       .toContain('pieno=1');
+  });
+});
+
+describe('pieno in campo', () => {
+  it('compare solo se il lavoro ha un mezzo ancora aperto', () => {
+    expect(lavoroRichiedeRifornimento({ macchinaId: 't5', stato: 'assegnato' })).toBe(true);
+    expect(lavoroRichiedeRifornimento({ attrezzoId: 'forbici', stato: 'assegnato' })).toBe(false);
+    expect(lavoroRichiedeRifornimento({ macchinaId: 't5', stato: 'completato' })).toBe(false);
+    expect(lavoroRichiedeRifornimento(null)).toBe(false);
   });
 });
 

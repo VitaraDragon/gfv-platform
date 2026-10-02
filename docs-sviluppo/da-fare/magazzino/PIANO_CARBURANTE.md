@@ -252,6 +252,8 @@ Campi form: riusare `movimento-form` + query (`?categoria=carburante&tipo=entrat
 
 Tony: «è arrivato il gasolio, 800 litri» → OPEN_MODAL/inject movimento entrata filtrato; «ho fatto il pieno al T5, 80 litri» → uscita + macchina (disamb. mezzi già esistente sul lavoro, riusare pattern nomi trattore).
 
+**Pieno in campo (operaio e caposquadra):** la scheda nella versione mobile compare solo se il lavoro selezionato ha `macchinaId` (trinciatura con trattore). Potatura a mano, o solo attrezzo, non la mostra. Il salvataggio è la stessa uscita `origineCarburante=pieno` (litri, mezzo del lavoro, `lavoroId`, `userId`, data). Non è la quota litri del lavoro (Fase 3). Lo scrive la callable `registraPienoCampo`, perché le regole magazzino restano del manager: un solo `increment` negativo sulla giacenza.
+
 Test: unit su validazione pieno; canary emulator giacenza (carico + pieno, niente doppio scarico). Allineare a `tests/services/giacenza-increment.test.js`.
 
 ### Fase 3 — Apprendimento e ripartizione
@@ -361,6 +363,7 @@ Non aggiornare `DOBBIAMO_ANCORA_FARE.md`, `RIEPILOGO_CURRENTTABLEDATA_PER_MODULO
 | 2026-10-02 | Fase 2: carico cisterna e pieno mezzo sullo stesso movimento-form. Giacenza solo da increment. |
 | 2026-10-02 | Sottopagine carburante: pulsante «← Dashboard carburante» verso l’hub, non verso la home Magazzino. |
 | 2026-10-02 | Hub: scorta per prodotto, non un unico totale «litri in cisterna». |
+| 2026-10-02 | Pieno in campo: scheda mobile solo se il lavoro ha un mezzo. Stessa uscita di magazzino, callable. |
 | 2026-10-02 | Handoff agente §12: branch, cosa è in codice, prossimo passo Fase 2, come vedere in locale. |
 
 ---

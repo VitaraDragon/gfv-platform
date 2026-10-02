@@ -762,6 +762,7 @@ Design concordato. **Fase 0–2 in codice** (categoria, hub, carico cisterna e p
 | 28.4 | Apprendimento L/h sulla **coppia** `(macchinaId, attrezzoId)`. Giornata pulita impara; giornata mista non impara, ripartisce solo se i tassi ci sono già. Niente L/h sull’attrezzo. L/h trattore solo di massima | prodotto 2026-10-02 | **da fare** | All’inizio le operazioni miste restano senza litri |
 | 28.5 | Non si impara per `terrenoId`. Report litri sul campo = quota del lavoro. Eventuale raffinamento futuro: `tipoCampo` (pianura/collina/montagna). Fuori v1 | prodotto 2026-10-02 | **da fare** (vincolo) | Stessa morfologia di meteo/tariffe, non in v1 |
 | 28.6 | Tony: rotte/gate/sinonimi/FILTER_TABLE, niente `if` pagina carburante nel core. Reminder sotto scorta = segnali Magazzino già esistenti | MASTER_PLAN §4, §15.6 | **parziale** | Nav hub + intent locale carico/pieno su `movimento-form` (2026-10-02). Domande «quanto è rimasto» = Fase 4 |
+| 28.7 | Il pieno in campo lo registra chi parte col mezzo (operaio o caposquadra), solo se il lavoro assegnato ha `macchinaId`. Stessa uscita di magazzino, non una quota sul lavoro | prodotto 2026-10-02 | **implementato** | Scheda mobile + callable `registraPienoCampo`. Senza mezzo la scheda non c’è |
 
 ---
 

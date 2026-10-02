@@ -52,6 +52,7 @@ import {
     comunicazioneRiferisceLavoroInesistente
 } from '../../services/lavoro-delete-cascade.js';
 import { isOraDelCaposquadraSuLavoroSquadra } from '../../services/manodopera-ore-validazione-scope.js';
+import { syncPienoCampoSection } from './pieno-campo-ui.js';
 
 const {
     normalizeRoles,
@@ -692,6 +693,12 @@ async function refreshSquadraConSostituto() {
 }
 
 function syncLavoroOperativoEmbeds() {
+    syncPienoCampoSection({
+        db: getDb(),
+        tenantId: currentTenantId,
+        selectedWork,
+        getSelectedWork: () => selectedWork
+    }).catch((err) => console.warn('[FIELD-WORKSPACE] pieno', err));
     updateLavoriDetailEmbed();
     if (userIsCaposquadra) {
         loadPendingHoursForSelectedWork().catch(() => {});

@@ -4711,6 +4711,12 @@ const {
   processNotificationQueue,
 } = require("./notification-dispatch");
 
+const { handleRegistraPienoCampo } = require("./registra-pieno-campo");
+exports.registraPienoCampo = onCall(
+  { region: "europe-west1" },
+  handleRegistraPienoCampo
+);
+
 exports.onComunicazioneCreated = onComunicazioneCreated;
 exports.onLavoroWritten = onLavoroWritten;
 exports.onOreOperaiCreated = onOreOperaiCreated;
