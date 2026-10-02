@@ -8,11 +8,16 @@ import { dirname, join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import {
   matchSegnaOraTimeRangeFromBlob,
+  normalizeTonyTextWhitespace,
 } from '../../core/js/tony/engine.js';
 import {
   isTonySaveConfirmText,
   tryInterceptQuickHoursSaveBeforeCf,
 } from '../../core/js/tony-form-save-local.js';
+import {
+  extractProdottoNomeFromText,
+  normalizeProdottoUnitaFromText,
+} from '../../core/js/tony-prodotto-create-local.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const matrixPath = join(__dirname, '../e2e/tony/fixtures/scenarios-matrix.json');
@@ -73,6 +78,25 @@ const TYPO_VITEST = {
     expect(saved).toBe(true);
     delete globalThis.window;
     delete globalThis.document;
+  },
+  'T-DIRTY-001'() {
+    const input = 'qunati litri rame nn nela botte 3??';
+    const normalized = normalizeTonyTextWhitespace(input);
+    expect(normalized).toBeTruthy();
+    expect(normalized.toLowerCase()).toContain('rame');
+    expect(normalized.toLowerCase()).toContain('litri');
+    const unita = normalizeProdottoUnitaFromText(input);
+    expect(unita).toBe('L');
+    const prodottoNome = extractProdottoNomeFromText('crea prodotto rame');
+    expect(prodottoNome).toBe('rame');
+  },
+  'T-DIRTY-009'() {
+    const input = 'ce nne ancora dil rame? qusi finito';
+    const normalized = normalizeTonyTextWhitespace(input);
+    expect(normalized).toBeTruthy();
+    expect(normalized.toLowerCase()).toContain('rame');
+    const prodottoCheck = extractProdottoNomeFromText('prodotto rame');
+    expect(prodottoCheck).toBe('rame');
   },
 };
 
