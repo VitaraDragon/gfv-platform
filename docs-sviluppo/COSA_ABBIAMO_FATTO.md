@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-01 — Fix Tony preventivo disambiguazione terreno.**
+**Ultimo aggiornamento documentazione: 2026-10-02 — Piano Carburante Magazzino (design).**
+
+## 2026-10-02 — Piano Carburante in Magazzino (design)
+
+Scritta la guida di sviluppo per tracciare il carburante senza un modulo nuovo. Vive in Prodotti e Magazzino: categoria `carburante`, card/hub Carburante, carico cisterna e pieni sullo stesso registro movimenti. I consumi per operazione si imparano dalle giornate pulite (coppia trattore+attrezzo) e restano in standby in quelle miste. Niente L/h sull’attrezzo e niente apprendimento per singolo terreno. Codice ancora da fare. Piano: `docs-sviluppo/da-fare/magazzino/PIANO_CARBURANTE.md`. Decisioni: `TONY_DECISIONI_E_REQUISITI.md` §28.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-01 — Fix Tony preventivo disambiguazione terreno.**
 
 ## 2026-10-01 — Fix Tony preventivo disambiguazione terreno
 

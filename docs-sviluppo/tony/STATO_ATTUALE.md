@@ -201,6 +201,7 @@
 | Proattività §15.6 reminder multi-modulo (catalogo + follow-up + hub) | — | ✅ **2026-07-20/21** — v1 + **`prezziInAttesa`**; build `2026-07-21b` |
 | Memoria storica (confronti anno/anno) | Bassa | |
 | Flusso campioni GPS (mappa multipunto raccolta/profilazione) | Media | Mini-spec definita in `TONY_DECISIONI_E_REQUISITI.md` §18; implementazione rimandata a fase 2 dedicata |
+| **Carburante in Magazzino** | Media | Design 2026-10-02, **non in codice**. Categoria + hub + carico/pieni + apprendimento coppia. Guida: `docs-sviluppo/da-fare/magazzino/PIANO_CARBURANTE.md`. Decisioni: `TONY_DECISIONI_E_REQUISITI.md` §28 |
 | **Tony E2E live tier 3 — suite + gate p95** | — | **4/4 + gate p95** verificati locale (2026-07-07) e **CI GitHub** (2026-07-08); push CI tier 2 **17/17** (2026-07-11, PR #5 merge); streak gate `consecutiveRunsToFail: 3` — monitorare history artifact |
 
 ### 7.1 Tony + Simulatore E2E (track M-T0…M-T6)
