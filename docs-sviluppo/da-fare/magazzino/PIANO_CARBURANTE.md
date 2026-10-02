@@ -357,3 +357,18 @@ Non aggiornare `DOBBIAMO_ANCORA_FARE.md`, `RIEPILOGO_CURRENTTABLEDATA_PER_MODULO
 |------|------|
 | 2026-10-02 | Prima stesura. Modulo Magazzino, card Carburante, categoria `carburante`, due verità, apprendimento solo da finestre pulite, no L/h attrezzo, no chiave terreno. |
 | 2026-10-02 | Fase 0–1 implementate: categoria, hub, rotte/gate/nav Tony, match Occhi. |
+| 2026-10-02 | Handoff agente §12: branch, cosa è in codice, prossimo passo Fase 2, come vedere in locale. |
+
+---
+
+## 12. Handoff per l’agente successivo (2026-10-02)
+
+**Branch:** `cursor/carburante-piano-898d` (PR verso `develop`, non `main`).  
+**Head:** `8dae312` *feat(magazzino): categoria e hub Carburante (Fase 0–1)*; prima `6c34774` *docs: piano Carburante*.  
+**Vedere in locale:** checkout di quel branch. `main` / GitHub Pages **non** hanno questo lavoro. `develop` non è pubblicato.
+
+**Fatto:** Fase 0 (categoria `carburante` + sinonimi Tony/Occhi + test) e Fase 1 (card + hub + rotte).  
+**Prossimo:** Fase 2 — carico cisterna e pieno mezzo sullo stesso `movimento-form` + query; `macchinaId` sul pieno; giacenza solo da increment. **Non** saltare a Fase 3.
+
+**Prompt completo da incollare:** vedi messaggio utente / conversazione 2026-10-02 «prompt handoff agente carburante». Decisioni bloccate: §1 di questo file e `TONY_DECISIONI_E_REQUISITI.md` §28.
+| 2026-10-02 | Handoff agente §12: branch, cosa è in codice, prossimo passo Fase 2, come vedere in locale. |
