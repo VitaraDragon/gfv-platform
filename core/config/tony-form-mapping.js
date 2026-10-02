@@ -298,7 +298,7 @@ REGOLE:
     fields: {
       'prodotto-codice': { type: 'text', resolve: 'as_is', description: 'Codice interno opzionale' },
       'prodotto-nome': { type: 'text', resolve: 'as_is', description: 'Nome prodotto (obbligatorio in salvataggio)' },
-      'prodotto-categoria': { type: 'select', resolve: 'as_is', description: 'fitofarmaci|fertilizzanti|materiale_impianto|ricambi|sementi|altro' },
+      'prodotto-categoria': { type: 'select', resolve: 'as_is', description: 'fitofarmaci|fertilizzanti|materiale_impianto|ricambi|sementi|carburante|altro' },
       'prodotto-unita': { type: 'select', resolve: 'as_is', description: 'kg|L|pezzi|m|m2|confezione|sacchi|altro' },
       'prodotto-scorta-minima': { type: 'number', resolve: 'as_is', description: 'Scorta minima' },
       'prodotto-prezzo': { type: 'number', resolve: 'as_is', description: 'Prezzo unitario €' },

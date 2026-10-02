@@ -23,6 +23,13 @@ var CATEGORIA_STEMS = {
   ricambio: 'ricambi',
   materiale_impianto: 'materiale_impianto',
   'materiale impianto': 'materiale_impianto',
+  carburante: 'carburante',
+  carburanti: 'carburante',
+  gasolio: 'carburante',
+  diesel: 'carburante',
+  benzina: 'carburante',
+  adblue: 'carburante',
+  'ad blue': 'carburante',
   altro: 'altro',
 };
 

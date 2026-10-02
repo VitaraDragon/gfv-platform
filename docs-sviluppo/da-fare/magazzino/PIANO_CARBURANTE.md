@@ -1,6 +1,6 @@
 # Piano (design): Carburante in Magazzino
 
-**Stato:** design concordato, **non implementato** (2026-10-02).  
+**Stato:** design concordato; **Fase 0–1 in codice** (2026-10-02). Fase 2–3 da fare.  
 **Tipo:** guida di sviluppo per agenti e sviluppatori.  
 **Per chi:** chi implementa categoria, hub, carico cisterna, pieni per mezzo, apprendimento consumi coppia.  
 **Path canonico:** `docs-sviluppo/da-fare/magazzino/PIANO_CARBURANTE.md`  
@@ -338,15 +338,15 @@ Non aggiornare `DOBBIAMO_ANCORA_FARE.md`, `RIEPILOGO_CURRENTTABLEDATA_PER_MODULO
 
 | Area | Stato | Note |
 |------|-------|------|
-| Categoria `carburante` | ❌ | Fase 0 |
-| Hub card Carburante | ❌ | Fase 1 |
+| Categoria `carburante` | ✅ | Fase 0 (2026-10-02) |
+| Hub card Carburante | ✅ | Fase 1 (2026-10-02) |
 | Carico cisterna UX | ❌ | Fase 2 |
 | Pieno con `macchinaId` | ❌ | Fase 2 |
 | `consumoMedioLitroOra` trattore | ❌ | Fase 3 (anagrafica) |
 | Apprendimento coppia | ❌ | Fase 3 |
 | Ripartizione giornate miste | ❌ | Fase 3 |
 | Quote per lavoro / report terreno | ❌ | Fase 3 (terreno solo denormalizzato) |
-| Tony nav + Occhi keywords | ❌ | Fase 0 parziale (keywords) / Fase 1 nav / Fase 4 domande |
+| Tony nav + Occhi keywords | ⏳ | Nav + keywords + stem ✅ (2026-10-02). Domande «quanto è rimasto» = Fase 4 |
 | Raffinamento `tipoCampo` | ❌ fuori v1 | D14 |
 
 ---
@@ -356,3 +356,4 @@ Non aggiornare `DOBBIAMO_ANCORA_FARE.md`, `RIEPILOGO_CURRENTTABLEDATA_PER_MODULO
 | Data | Nota |
 |------|------|
 | 2026-10-02 | Prima stesura. Modulo Magazzino, card Carburante, categoria `carburante`, due verità, apprendimento solo da finestre pulite, no L/h attrezzo, no chiave terreno. |
+| 2026-10-02 | Fase 0–1 implementate: categoria, hub, rotte/gate/nav Tony, match Occhi. |

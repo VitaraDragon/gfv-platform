@@ -171,6 +171,14 @@ Non modifica assert dei test; non tocca altri T-DIRTY.
 
 ---
 
+**Ultimo aggiornamento precedente: 2026-10-02 — Carburante Fase 0–1 (categoria + hub).**
+
+## 2026-10-02 — Carburante in Magazzino (Fase 0–1)
+
+Categoria prodotto `carburante` (non Altro): anagrafica, filtri, sinonimi Tony/Occhi (gasolio, diesel, benzina, AdBlue), nessun dosaggio/carenza. Home Magazzino ha la card **Carburante** che apre l’hub (`carburante-home-standalone.html`): scorta, carico (entrate), pieni/consumi, prodotti filtrati. Tony: «portami al carburante» / gasolio → hub, gate modulo magazzino. Carico/pieno dedicati e apprendimento coppia restano Fase 2–3. Piano: `docs-sviluppo/da-fare/magazzino/PIANO_CARBURANTE.md`.
+
+---
+
 **Ultimo aggiornamento precedente: 2026-10-02 — Piano Carburante Magazzino (design).**
 
 ## 2026-10-02 — Piano Carburante in Magazzino (design)

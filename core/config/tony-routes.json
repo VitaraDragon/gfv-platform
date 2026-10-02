@@ -361,6 +361,12 @@
       "module": "magazzino"
     },
     {
+      "target": "carburante",
+      "path": "modules/magazzino/views/carburante-home-standalone.html",
+      "label": "Carburante",
+      "module": "magazzino"
+    },
+    {
       "target": "movimenti",
       "path": "modules/magazzino/views/movimenti-standalone.html",
       "label": "Movimenti",
