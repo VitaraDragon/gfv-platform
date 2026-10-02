@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-02 — Carburante Fase 0–1 (categoria + hub).**
+**Ultimo aggiornamento documentazione: 2026-10-02 — Carburante Fase 2 (carico cisterna e pieno).**
+
+## 2026-10-02 — Carburante Fase 2: carico cisterna e pieno mezzo
+
+Carico e pieno usano lo stesso movimento di magazzino. La card Carico apre un'entrata solo sui prodotti carburante (`origineCarburante=carico_cisterna`). La card Pieno apre un'uscita con il mezzo obbligatorio; senza Parco Macchine resta disabilitata. La giacenza si aggiorna una sola volta con l'incremento già esistente. Tony riconosce «è arrivato il gasolio, 800 litri» e «ho fatto il pieno al T5, 80 litri». Le quote sui lavori restano Fase 3.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-02 — Carburante Fase 0–1 (categoria + hub).**
 
 ## 2026-10-02 — Carburante in Magazzino (Fase 0–1)
 

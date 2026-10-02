@@ -752,16 +752,16 @@ Stesso ingresso di Vigneto/Frutteto (hub + card), dedicato alle colture erbacee.
 
 ## 28. Carburante in Magazzino (2026-10-02)
 
-Design concordato. **Fase 0–1 in codice** (categoria + hub + nav). Guida: `docs-sviluppo/da-fare/magazzino/PIANO_CARBURANTE.md`.
+Design concordato. **Fase 0–2 in codice** (categoria, hub, carico cisterna e pieno). Guida: `docs-sviluppo/da-fare/magazzino/PIANO_CARBURANTE.md`.
 
 | # | Decisione | Fonte | Stato | Note |
 |---|-----------|-------|-------|------|
-| 28.1 | Vive in **Prodotti e Magazzino**. Niente modulo Carburante. Niente giacenza nel Parco Macchine | prodotto 2026-10-02 | **parziale** | Hub e categoria nel modulo magazzino; carico/pieno ancora da fare |
-| 28.2 | Categoria prodotto **`carburante`** (non `altro`). UI hub **Carburante** (non Gasolio): scorta, carico cisterna, pieni, prodotti della famiglia | prodotto 2026-10-02 | **parziale** | Categoria + card home + `carburante-home-standalone.html` (2026-10-02). Prefill carico/pieno = Fase 2 |
-| 28.3 | Carico cisterna = entrata. Pieno mezzo = uscita con `macchinaId`. Quote litri per lavoro **non** sono movimenti (no doppio scarico) | prodotto 2026-10-02 | **da fare** | Due verità: cisterna misurata, consumo operazione allocato |
+| 28.1 | Vive in **Prodotti e Magazzino**. Niente modulo Carburante. Niente giacenza nel Parco Macchine | prodotto 2026-10-02 | **implementato** | Hub, categoria, carico e pieno restano nel modulo magazzino sullo stesso registro movimenti |
+| 28.2 | Categoria prodotto **`carburante`** (non `altro`). UI hub **Carburante** (non Gasolio): scorta, carico cisterna, pieni, prodotti della famiglia | prodotto 2026-10-02 | **implementato** | Card Carico e Pieno aprono `movimento-form` filtrato (2026-10-02). Senza Parco Macchine il pieno è disabilitato |
+| 28.3 | Carico cisterna = entrata. Pieno mezzo = uscita con `macchinaId`. Quote litri per lavoro **non** sono movimenti (no doppio scarico) | prodotto 2026-10-02 | **parziale** | Carico e pieno sul movimento, giacenza solo da increment (2026-10-02). Le quote per lavoro restano Fase 3 e non scaricano di nuovo |
 | 28.4 | Apprendimento L/h sulla **coppia** `(macchinaId, attrezzoId)`. Giornata pulita impara; giornata mista non impara, ripartisce solo se i tassi ci sono già. Niente L/h sull’attrezzo. L/h trattore solo di massima | prodotto 2026-10-02 | **da fare** | All’inizio le operazioni miste restano senza litri |
 | 28.5 | Non si impara per `terrenoId`. Report litri sul campo = quota del lavoro. Eventuale raffinamento futuro: `tipoCampo` (pianura/collina/montagna). Fuori v1 | prodotto 2026-10-02 | **da fare** (vincolo) | Stessa morfologia di meteo/tariffe, non in v1 |
-| 28.6 | Tony: rotte/gate/sinonimi/FILTER_TABLE, niente `if` pagina carburante nel core. Reminder sotto scorta = segnali Magazzino già esistenti | MASTER_PLAN §4, §15.6 | **parziale** | Nav `carburante` / gasolio, gate magazzino, stem Occhi, FILTER_TABLE value `carburante` (2026-10-02) |
+| 28.6 | Tony: rotte/gate/sinonimi/FILTER_TABLE, niente `if` pagina carburante nel core. Reminder sotto scorta = segnali Magazzino già esistenti | MASTER_PLAN §4, §15.6 | **parziale** | Nav hub + intent locale carico/pieno su `movimento-form` (2026-10-02). Domande «quanto è rimasto» = Fase 4 |
 
 ---
 

@@ -7,6 +7,7 @@
 import { Base } from '../../../core/models/Base.js';
 import { timestampToDate } from '../../../core/services/firebase-service.js';
 import { dateToTimestamp } from '../../../core/services/firebase-service.js';
+import { validateMovimentoCarburante } from '../lib/carburante-movimento.js';
 
 export class MovimentoMagazzino extends Base {
   /**
@@ -26,6 +27,8 @@ export class MovimentoMagazzino extends Base {
    * @param {'vigneto'|'frutteto'|null} [data.origineTrattamentoModulo] - Scarico generato da trattamento coltura
    * @param {string|null} [data.origineTrattamentoColturaId] - vignetoId / fruttetoId
    * @param {string|null} [data.origineTrattamentoId] - ID documento trattamento nella sub-collection
+   * @param {string|null} [data.macchinaId] - Mezzo del pieno (uscita carburante)
+   * @param {'carico_cisterna'|'pieno'|null} [data.origineCarburante] - Gesto UX, senza un nuovo tipo movimento
    */
   constructor(data = {}) {
     super(data);
@@ -55,6 +58,10 @@ export class MovimentoMagazzino extends Base {
     this.documentoAcquisitoId = data.documentoAcquisitoId || null;
     /** Tony Occhi — id sessione fattura che ha aggiornato il prezzo */
     this.documentoFatturaId = data.documentoFatturaId || null;
+    /** Pieno mezzo: id in `macchine`. Assente sui movimenti non carburante. */
+    this.macchinaId = data.macchinaId ? String(data.macchinaId).trim() : null;
+    /** carico_cisterna | pieno | null. Non è un tipo movimento. */
+    this.origineCarburante = data.origineCarburante || null;
   }
 
   /**
@@ -84,6 +91,14 @@ export class MovimentoMagazzino extends Base {
     if (this.tipo === 'entrata' && this.prezzoUnitario !== null && this.prezzoUnitario < 0) {
       errors.push('Prezzo unitario non può essere negativo');
     }
+
+    const carburante = validateMovimentoCarburante({
+      tipo: this.tipo,
+      origineCarburante: this.origineCarburante,
+      macchinaId: this.macchinaId
+    });
+    if (!carburante.valid) errors.push.apply(errors, carburante.errors);
+    this.origineCarburante = carburante.origineCarburante;
 
     return {
       valid: errors.length === 0,

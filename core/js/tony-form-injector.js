@@ -2759,6 +2759,21 @@
         });
         if (partialMov) resolved = partialMov.value;
       }
+    } else if (fieldId === 'mov-macchina' && valStr) {
+      var mezziOpts = opts.filter(function (o) { return o.value; }).map(function (o) {
+        return { id: o.value, nome: o.text || '' };
+      });
+      var apiMezzo = (typeof window !== 'undefined' && window.GFVCarburanteMovimento) || null;
+      var pickedMezzo = apiMezzo && typeof apiMezzo.matchMezzoByName === 'function'
+        ? apiMezzo.matchMezzoByName(mezziOpts, valStr)
+        : null;
+      if (pickedMezzo && pickedMezzo.status === 'unique' && pickedMezzo.match) {
+        resolved = pickedMezzo.match.id;
+      } else if (/^[a-zA-Z0-9_-]{15,}$/.test(valStr) && opts.some(function (o) { return o.value === valStr; })) {
+        resolved = valStr;
+      } else {
+        resolved = '';
+      }
     } else if ((fieldId === 'lavoro-trattore' || fieldId === 'lavoro-attrezzo') && valStr && window.lavoriState) {
       var macList = fieldId === 'lavoro-trattore'
         ? (window.lavoriState.trattoriList || [])
@@ -3477,6 +3492,11 @@
       }
       if (formId === 'movimento-form' && fieldId === 'mov-prodotto') {
         await waitForSelectOptions('mov-prodotto', 2, 12000);
+      }
+      if (formId === 'movimento-form' && fieldId === 'mov-macchina') {
+        var macGroup = document.getElementById('macchina-group');
+        if (macGroup) macGroup.style.display = 'block';
+        await waitForSelectOptions('mov-macchina', 2, 8000);
       }
       if (formId === 'movimento-form' && (fieldId === 'mov-lavoro' || fieldId === 'mov-attivita')) {
         await waitForSelectOptions(fieldId, 2, 8000);

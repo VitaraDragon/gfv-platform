@@ -122,6 +122,10 @@
                 <span id="alert-documento-filter-text"></span>
                 <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-documento-filter">Mostra tutti i movimenti</button>
             </div>
+            <div id="alert-carburante-filter" class="alert-doc-filter" role="status">
+                <span id="alert-carburante-filter-text"></span>
+                <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-carburante-filter">Mostra tutti i movimenti</button>
+            </div>
             <div class="filters">
                 <div class="filter-group">
                     <label>Tipo</label>
@@ -129,6 +133,14 @@
                         <option value="">Tutti</option>
                         <option value="entrata">Entrata</option>
                         <option value="uscita">Uscita</option>
+                    </select>
+                </div>
+                <div class="filter-group" id="filter-origine-group" style="display: none;">
+                    <label for="filter-origine">Origine carburante</label>
+                    <select id="filter-origine">
+                        <option value="">Tutte</option>
+                        <option value="carico_cisterna">Carico cisterna</option>
+                        <option value="pieno">Pieno mezzo</option>
                     </select>
                 </div>
                 <div class="filter-group">
@@ -182,6 +194,13 @@
                         <option value="uscita">➖ Uscita</option>
                     </select>
                 </div>
+                <input type="hidden" id="mov-origine-carburante" value="">
+                <div class="form-group" id="macchina-group" style="display: none;">
+                    <label for="mov-macchina">Mezzo *</label>
+                    <select id="mov-macchina">
+                        <option value="">Seleziona mezzo</option>
+                    </select>
+                </div>
                 <div class="form-group">
                     <label for="mov-quantita" id="label-mov-quantita">Quantità *</label>
                     <input type="number" id="mov-quantita" required min="0" step="0.01" placeholder="Es. 10">
@@ -210,6 +229,7 @@
                         <option value="">Nessuna</option>
                     </select>
                 </div>
+                <div id="hint-carburante" class="alert alert-warning" style="display: none;"></div>
                 <div id="alert-giacenza" class="alert alert-warning" style="display: none;">
                     La giacenza diventerà negativa. Lo scarico è comunque permesso.
                 </div>
@@ -230,6 +250,11 @@
         import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, getDoc, doc, addDoc, updateDoc, deleteDoc, query, orderBy, where, serverTimestamp, Timestamp, increment } from '../../../core/services/firebase-service.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import { escapeHtml, showAlert } from '../../../core/js/gfv-page-utils.js';
+        import { hasModuleAccessFromTenant } from '../../../core/utils/module-access-resolver.js';
+        import { MovimentoMagazzino } from '../models/MovimentoMagazzino.js';
+        import * as CarburanteMovimento from '../lib/carburante-movimento.js';
+
+        window.GFVCarburanteMovimento = CarburanteMovimento;
 
         try {
             await window.GFVStandaloneReady;
@@ -247,7 +272,10 @@
         let movimenti = [];
         let lavori = [];
         let attivita = [];
+        let mezziPieno = [];
+        let hasParcoMacchine = false;
         let editingMovimentoId = null;
+        let fuelFormOpened = false;
         /** @type {Set<string>} */
         const selectedMovimentoIds = new Set();
 
@@ -300,6 +328,9 @@
                 document.getElementById('btn-close-modal').onclick = closeModal;
                 document.getElementById('btn-annulla-modal').onclick = closeModal;
                 document.getElementById('mov-tipo').onchange = function() {
+                    var origineLock = (document.getElementById('mov-origine-carburante').value || '');
+                    if (origineLock === 'carico_cisterna' && this.value !== 'entrata') this.value = 'entrata';
+                    if (origineLock === 'pieno' && this.value !== 'uscita') this.value = 'uscita';
                     document.getElementById('prezzo-group').style.display = document.getElementById('mov-tipo').value === 'entrata' ? 'block' : 'none';
                     if (document.getElementById('mov-tipo').value !== 'entrata') {
                         document.getElementById('mov-prezzo').value = '';
@@ -308,6 +339,9 @@
                     }
                     checkGiacenzaAlert();
                 };
+                document.getElementById('mov-origine-carburante').addEventListener('change', function () {
+                    applyCarburanteFormMode(this.value);
+                });
                 document.getElementById('mov-prodotto').onchange = function() {
                     updateQuantitaLabel();
                     suggestMovPrezzoInDom(prodotti);
@@ -321,6 +355,33 @@
                         document.getElementById('filter-tipo').value = tipoQ;
                     }
                 } catch (eTipo) { /* ignore */ }
+                const fuelQInit = CarburanteMovimento.parseCarburanteMovimentoQuery(window.location.search);
+                const origineSel = document.getElementById('filter-origine');
+                if (fuelQInit.categoria === 'carburante') {
+                    document.getElementById('filter-origine-group').style.display = '';
+                    if (origineSel && fuelQInit.origineFiltro) origineSel.value = fuelQInit.origineFiltro;
+                    const back = document.querySelector('.header-actions a.btn-secondary');
+                    if (back) {
+                        back.href = 'carburante-home-standalone.html';
+                        back.textContent = '← Carburante';
+                    }
+                    const h1 = document.querySelector('.header h1');
+                    if (h1) {
+                        h1.textContent = fuelQInit.origineForm === 'pieno'
+                            ? '⛽ Pieno mezzo'
+                            : (fuelQInit.origineForm === 'carico_cisterna' ? '⛽ Carico cisterna' : '⛽ Movimenti carburante');
+                    }
+                }
+                if (origineSel) origineSel.onchange = renderMovimenti;
+                const btnClearFuel = document.getElementById('btn-clear-carburante-filter');
+                if (btnClearFuel) btnClearFuel.onclick = function () {
+                    clearCarburanteFilterFromUrl();
+                    fuelFormOpened = true;
+                    document.getElementById('filter-origine-group').style.display = 'none';
+                    if (origineSel) origineSel.value = '';
+                    fillProdottoSelects(false);
+                    renderMovimenti();
+                };
                 document.getElementById('filter-tipo').onchange = renderMovimenti;
                 document.getElementById('filter-prodotto').onchange = renderMovimenti;
                 const chkPrezzo = document.getElementById('filter-prezzo-attesa');
@@ -331,7 +392,15 @@
                 await loadProdotti();
                 await loadLavori();
                 await loadAttivita();
+                try {
+                    const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                    hasParcoMacchine = tenantDoc.exists() && hasModuleAccessFromTenant(tenantDoc.data(), 'parcoMacchine');
+                } catch (eMod) {
+                    hasParcoMacchine = false;
+                }
+                if (hasParcoMacchine) await loadMezziPieno();
                 await loadMovimenti();
+                maybeOpenFuelForm();
             } catch (e) {
                 console.error(e);
                 showAlert('Errore caricamento', 'error');
@@ -347,17 +416,159 @@
                 const data = d.data();
                 if (data.attivo !== false) prodotti.push({ id: d.id, ...data });
             });
+            fillProdottoSelects(false);
+            window.__gfvMagazzinoProdotti = prodotti;
+        }
+
+        function fuelQuery() {
+            return CarburanteMovimento.parseCarburanteMovimentoQuery(window.location.search);
+        }
+
+        function prodottiCarburante() {
+            return prodotti.filter(function (p) { return CarburanteMovimento.isProdottoCarburante(p); });
+        }
+
+        function optionProdotto(p) {
+            const nome = (p.nome || p.codice || p.id);
+            const um = p.unitaMisura || '-';
+            const pu = p.prezzoUnitario != null && Number.isFinite(Number(p.prezzoUnitario)) ? String(p.prezzoUnitario) : '';
+            const dataPrezzo = pu ? ` data-prezzo-unitario="${pu.replace(/"/g, '&quot;')}"` : '';
+            return `<option value="${p.id}"${dataPrezzo}>${nome} (${um})</option>`;
+        }
+
+        function fillProdottoSelects(soloCarburante) {
             const selProdotto = document.getElementById('mov-prodotto');
             const selFilter = document.getElementById('filter-prodotto');
-            selProdotto.innerHTML = '<option value="">Seleziona prodotto</option>' + prodotti.map(p => {
-                const nome = (p.nome || p.codice || p.id);
-                const um = p.unitaMisura || '-';
-                const pu = p.prezzoUnitario != null && Number.isFinite(Number(p.prezzoUnitario)) ? String(p.prezzoUnitario) : '';
-                const dataPrezzo = pu ? ` data-prezzo-unitario="${pu.replace(/"/g, '&quot;')}"` : '';
-                return `<option value="${p.id}"${dataPrezzo}>${nome} (${um})</option>`;
+            const prev = selProdotto ? selProdotto.value : '';
+            const prevFilter = selFilter ? selFilter.value : '';
+            const formList = soloCarburante ? prodottiCarburante() : prodotti;
+            const filterList = fuelQuery().categoria === 'carburante' ? prodottiCarburante() : prodotti;
+            if (selProdotto) {
+                selProdotto.innerHTML = '<option value="">Seleziona prodotto</option>' + formList.map(optionProdotto).join('');
+                if (prev && formList.some(function (p) { return p.id === prev; })) selProdotto.value = prev;
+                else if (soloCarburante && formList.length === 1) selProdotto.value = formList[0].id;
+            }
+            if (selFilter) {
+                selFilter.innerHTML = '<option value="">Tutti</option>' + filterList.map(function (p) {
+                    return `<option value="${p.id}">${(p.nome || p.codice || p.id)}</option>`;
+                }).join('');
+                if (prevFilter && filterList.some(function (p) { return p.id === prevFilter; })) selFilter.value = prevFilter;
+            }
+        }
+
+        function fillMacchinaSelect() {
+            const sel = document.getElementById('mov-macchina');
+            if (!sel) return;
+            const prev = sel.value;
+            const opts = mezziPieno.map(function (m) {
+                const tipo = String(m.tipoMacchina || m.tipo || '').toLowerCase();
+                const extra = tipo && tipo !== 'trattore' ? ' (' + tipo + ')' : '';
+                return `<option value="${m.id}">${escapeHtml(m.nome || m.id)}${extra}</option>`;
             }).join('');
-            selFilter.innerHTML = '<option value="">Tutti</option>' + prodotti.map(p => `<option value="${p.id}">${(p.nome || p.codice || p.id)}</option>`).join('');
-            window.__gfvMagazzinoProdotti = prodotti;
+            sel.innerHTML = '<option value="">Seleziona mezzo</option>' + opts;
+            if (prev && mezziPieno.some(function (m) { return m.id === prev; })) sel.value = prev;
+        }
+
+        function isMezzoRifornibile(m) {
+            const tipo = String(m.tipoMacchina || m.tipo || '').toLowerCase();
+            if (tipo === 'attrezzo') return false;
+            if (String(m.stato || '').toLowerCase() === 'dismesso') return false;
+            return true;
+        }
+
+        async function loadMezziPieno() {
+            if (!currentTenantId || !hasParcoMacchine) {
+                mezziPieno = [];
+                fillMacchinaSelect();
+                return;
+            }
+            try {
+                const snapshot = await getDocs(collection(db, 'tenants', currentTenantId, 'macchine'));
+                mezziPieno = [];
+                snapshot.forEach(function (d) {
+                    const row = Object.assign({ id: d.id }, d.data());
+                    if (isMezzoRifornibile(row)) mezziPieno.push(row);
+                });
+                mezziPieno.sort(function (a, b) {
+                    return String(a.nome || '').localeCompare(String(b.nome || ''), 'it');
+                });
+                fillMacchinaSelect();
+            } catch (err) {
+                console.warn('Mezzi non caricati:', err);
+                mezziPieno = [];
+                fillMacchinaSelect();
+            }
+        }
+
+        function applyCarburanteFormMode(origine) {
+            const norm = CarburanteMovimento.normalizeOrigineCarburante(origine);
+            const hidden = document.getElementById('mov-origine-carburante');
+            if (hidden && hidden.value !== (norm || '')) hidden.value = norm || '';
+            const fuel = norm === 'carico_cisterna' || norm === 'pieno';
+            fillProdottoSelects(fuel);
+            const tipoEl = document.getElementById('mov-tipo');
+            const macGroup = document.getElementById('macchina-group');
+            const macSel = document.getElementById('mov-macchina');
+            const hint = document.getElementById('hint-carburante');
+            const prezzoGroup = document.getElementById('prezzo-group');
+            if (norm === 'carico_cisterna' && tipoEl) tipoEl.value = 'entrata';
+            if (norm === 'pieno' && tipoEl) tipoEl.value = 'uscita';
+            if (macGroup && macSel) {
+                if (norm === 'pieno') {
+                    macGroup.style.display = 'block';
+                    macSel.required = true;
+                } else {
+                    macGroup.style.display = 'none';
+                    macSel.required = false;
+                    macSel.value = '';
+                }
+            }
+            if (prezzoGroup && tipoEl) prezzoGroup.style.display = tipoEl.value === 'entrata' ? 'block' : 'none';
+            if (hint) {
+                if (norm === 'carico_cisterna') {
+                    hint.style.display = 'block';
+                    hint.textContent = 'Carico cisterna: entrata sulla giacenza del carburante.';
+                } else if (norm === 'pieno') {
+                    hint.style.display = 'block';
+                    hint.textContent = 'Pieno mezzo: uscita dalla cisterna. I litri sui lavori non sono un secondo scarico.';
+                } else {
+                    hint.style.display = 'none';
+                    hint.textContent = '';
+                }
+            }
+            updateQuantitaLabel();
+        }
+
+        function hasTonyPendingMovimento() {
+            try {
+                const raw = sessionStorage.getItem('tony_pending_intent');
+                if (!raw) return false;
+                const pending = JSON.parse(raw);
+                return !!(pending && (pending.modalId === 'movimento-modal' || pending.magazzinoLocalIntent));
+            } catch (_) {
+                return false;
+            }
+        }
+
+        function maybeOpenFuelForm() {
+            if (fuelFormOpened) return;
+            const q = fuelQuery();
+            if (!q.apriForm) return;
+            fuelFormOpened = true;
+            if (q.origineForm === 'pieno' && !hasParcoMacchine) {
+                showAlert('Il pieno richiede il Parco Macchine. Il carico cisterna resta disponibile.', 'error');
+                return;
+            }
+            if (hasTonyPendingMovimento()) return;
+            openModal();
+        }
+
+        function clearCarburanteFilterFromUrl() {
+            try {
+                const url = new URL(window.location.href);
+                ['categoria', 'pieno', 'origine', 'origineCarburante'].forEach(function (k) { url.searchParams.delete(k); });
+                window.history.replaceState({}, '', url.pathname + (url.search || '') + (url.hash || ''));
+            } catch (_) { /* ignore */ }
         }
 
         async function loadLavori() {
@@ -464,12 +675,22 @@
         function filterMovimenti() {
             const tipo = document.getElementById('filter-tipo').value;
             const prodottoId = document.getElementById('filter-prodotto').value;
+            const origineSel = document.getElementById('filter-origine');
+            const origine = origineSel && document.getElementById('filter-origine-group').style.display !== 'none'
+                ? (origineSel.value || '')
+                : '';
             const docId = documentoFilterFromQuery();
             const soloPrezzoAttesa = !!(document.getElementById('filter-prezzo-attesa') &&
                 document.getElementById('filter-prezzo-attesa').checked);
+            const qFuel = fuelQuery();
             return movimenti.filter(m => {
-                if (tipo && m.tipo !== tipo) return false;
-                if (prodottoId && m.prodottoId !== prodottoId) return false;
+                const prodotto = prodotti.find(function (p) { return p.id === m.prodottoId; });
+                if (!CarburanteMovimento.movimentoMatchesCarburanteFiltro(m, prodotto, {
+                    categoria: qFuel.categoria,
+                    tipo: tipo || null,
+                    prodottoId: prodottoId || null,
+                    origineCarburante: origine || null
+                })) return false;
                 if (docId) {
                     const linked = m.documentoAcquisitoId === docId || m.documentoFatturaId === docId;
                     if (!linked) return false;
@@ -485,6 +706,29 @@
         function getProdottoNome(id) {
             const p = prodotti.find(x => x.id === id);
             return p ? (p.nome || p.codice || id) : id;
+        }
+
+        function getMacchinaNome(id) {
+            if (!id) return '-';
+            const m = mezziPieno.find(function (x) { return x.id === id; });
+            return m ? (m.nome || m.id) : id;
+        }
+
+        function updateCarburanteFilterBanner(filteredCount) {
+            const banner = document.getElementById('alert-carburante-filter');
+            const textEl = document.getElementById('alert-carburante-filter-text');
+            if (!banner || !textEl) return;
+            const q = fuelQuery();
+            if (q.categoria !== 'carburante') {
+                banner.classList.remove('visible');
+                textEl.textContent = '';
+                return;
+            }
+            const gesto = q.origineForm === 'pieno'
+                ? 'Pieno mezzo'
+                : (q.origineForm === 'carico_cisterna' ? 'Carico cisterna' : 'Carburante');
+            textEl.innerHTML = '<strong>' + gesto + '</strong>: in elenco i movimenti dei prodotti carburante (<strong>' + filteredCount + '</strong>).';
+            banner.classList.add('visible');
         }
 
         function getProdottoUnita(id) {
@@ -524,14 +768,22 @@
                     prodotto: getProdottoNome(m.prodottoId),
                     tipo: m.tipo === 'entrata' ? 'carico' : 'scarico',
                     quantita: Number(m.quantita),
-                    operatore: (m.operatore || m.createdBy || '-')
+                    operatore: (m.operatore || m.createdBy || '-'),
+                    origineCarburante: m.origineCarburante || null,
+                    macchina: getMacchinaNome(m.macchinaId)
                 }))
             };
             if (window.Tony && typeof window.Tony.setContext === 'function') {
+                var qFuelCtx = fuelQuery();
                 window.Tony.setContext('page', Object.assign({}, window.Tony.context && window.Tony.context.page || {}, {
                     pageType: 'movimenti',
                     tableDataSummary: window.currentTableData.summary,
-                    currentTableData: window.currentTableData
+                    currentTableData: window.currentTableData,
+                    carburante: qFuelCtx.categoria === 'carburante' ? {
+                        categoria: 'carburante',
+                        origineForm: qFuelCtx.origineForm,
+                        pieno: qFuelCtx.origineForm === 'pieno'
+                    } : null
                 }));
             }
             try { window.dispatchEvent(new CustomEvent('table-data-ready', { detail: { currentTableData: window.currentTableData } })); } catch (e) {}
@@ -541,6 +793,7 @@
                 ? (filtered.length + ' di ' + movimenti.length + ' movimenti (filtro documento)')
                 : (filtered.length + ' movimenti');
             updateDocumentoFilterBanner(filtered.length);
+            updateCarburanteFilterBanner(filtered.length);
             const container = document.getElementById('movimenti-container');
             Array.from(selectedMovimentoIds).forEach(function (id) {
                 if (!movimenti.some(function (m) { return m.id === id; })) selectedMovimentoIds.delete(id);
@@ -568,11 +821,12 @@
                 return;
             }
             const allVisibleSelected = filtered.every(function (m) { return selectedMovimentoIds.has(m.id); });
+            const showMezzo = fuelQuery().categoria === 'carburante';
             container.innerHTML = `
                 <table class="movimenti-table">
                     <thead><tr>
                         <th class="col-check"><input type="checkbox" id="check-select-all" title="Seleziona tutti i movimenti visibili" ${allVisibleSelected ? 'checked' : ''}></th>
-                        <th>Data</th><th>Prodotto</th><th>Tipo</th><th>Quantità</th><th>Confezione</th><th>Prezzo unit. (€)</th><th>Prezzo tot. (€)</th><th>Lavoro</th><th>Attività</th><th>Note</th><th>Azioni</th>
+                        <th>Data</th><th>Prodotto</th><th>Tipo</th><th>Quantità</th>${showMezzo ? '<th>Mezzo</th>' : ''}<th>Confezione</th><th>Prezzo unit. (€)</th><th>Prezzo tot. (€)</th><th>Lavoro</th><th>Attività</th><th>Note</th><th>Azioni</th>
                     </tr></thead>
                     <tbody>
                         ${filtered.map(m => `
@@ -580,8 +834,9 @@
                                 <td class="col-check"><input type="checkbox" class="mov-row-check" data-id="${m.id}"${selectedMovimentoIds.has(m.id) ? ' checked' : ''}></td>
                                 <td>${formatData(m.data)}</td>
                                 <td>${escapeHtml(getProdottoNome(m.prodottoId))}</td>
-                                <td><span class="badge-${m.tipo === 'entrata' ? 'entrata' : 'uscita'}">${m.tipo === 'entrata' ? '➕ Entrata' : '➖ Uscita'}</span></td>
+                                <td><span class="badge-${m.tipo === 'entrata' ? 'entrata' : 'uscita'}">${m.origineCarburante === 'pieno' ? 'Pieno' : (m.origineCarburante === 'carico_cisterna' ? 'Carico cisterna' : (m.tipo === 'entrata' ? '➕ Entrata' : '➖ Uscita'))}</span></td>
                                 <td>${Number(m.quantita)} ${escapeHtml(getProdottoUnita(m.prodottoId) || '')}</td>
+                                ${showMezzo ? `<td>${escapeHtml(getMacchinaNome(m.macchinaId))}</td>` : ''}
                                 <td>${escapeHtml((m.confezione || '').substring(0, 25))}${(m.confezione || '').length > 25 ? '...' : ''}</td>
                                 <td>${formatPrezzoCell(m.prezzoUnitario)}</td>
                                 <td>${formatPrezzoTotaleCell(m.prezzoUnitario, m.quantita)}</td>
@@ -682,6 +937,10 @@
             document.getElementById('mov-note').value = m.note || '';
             document.getElementById('mov-lavoro').value = m.lavoroId || '';
             document.getElementById('mov-attivita').value = m.attivitaId || '';
+            document.getElementById('mov-origine-carburante').value = m.origineCarburante || '';
+            applyCarburanteFormMode(m.origineCarburante || '');
+            document.getElementById('mov-macchina').value = m.macchinaId || '';
+            document.getElementById('mov-prodotto').value = m.prodottoId || '';
             document.getElementById('prezzo-group').style.display = (m.tipo || 'entrata') === 'entrata' ? 'block' : 'none';
             document.getElementById('alert-giacenza').style.display = 'none';
             updateQuantitaLabel();
@@ -782,14 +1041,17 @@
 
         function openModal() {
             editingMovimentoId = null;
-            document.getElementById('modal-title').textContent = 'Nuovo Movimento';
+            const q = fuelQuery();
+            const titolo = q.origineForm === 'pieno'
+                ? 'Pieno mezzo'
+                : (q.origineForm === 'carico_cisterna' ? 'Carico cisterna' : 'Nuovo Movimento');
+            document.getElementById('modal-title').textContent = titolo;
             document.getElementById('movimento-form').reset();
             document.getElementById('mov-data').value = new Date().toISOString().slice(0, 10);
-            document.getElementById('prezzo-group').style.display = document.getElementById('mov-tipo').value === 'entrata' ? 'block' : 'none';
             document.getElementById('alert-giacenza').style.display = 'none';
-            document.getElementById('label-mov-quantita').textContent = 'Quantità *';
             document.getElementById('mov-lavoro').value = '';
             document.getElementById('mov-attivita').value = '';
+            applyCarburanteFormMode(q.origineForm || '');
             document.getElementById('movimento-modal').classList.add('active');
         }
 
@@ -808,8 +1070,35 @@
             const note = (document.getElementById('mov-note').value || '').trim();
             const lavoroId = (document.getElementById('mov-lavoro').value || '').trim() || null;
             const attivitaId = (document.getElementById('mov-attivita').value || '').trim() || null;
+            const origineRaw = (document.getElementById('mov-origine-carburante').value || '').trim() || null;
+            const macchinaId = (document.getElementById('mov-macchina').value || '').trim() || null;
             if (!prodottoId || !dataVal || !tipo || !quantita || quantita <= 0) {
                 showAlert('Compila tutti i campi obbligatori e una quantità positiva.', 'error');
+                return;
+            }
+            const modello = new MovimentoMagazzino({
+                prodottoId,
+                data: new Date(dataVal + 'T12:00:00'),
+                tipo,
+                quantita,
+                prezzoUnitario: tipo === 'entrata' ? prezzoUnitario : null,
+                origineCarburante: origineRaw,
+                macchinaId: origineRaw === 'pieno' ? macchinaId : null
+            });
+            const validation = modello.validate();
+            if (!validation.valid) {
+                showAlert(validation.errors[0] || 'Dati movimento non validi.', 'error');
+                return;
+            }
+            if (modello.origineCarburante) {
+                const prodScelto = prodotti.find(function (p) { return p.id === prodottoId; });
+                if (!CarburanteMovimento.isProdottoCarburante(prodScelto)) {
+                    showAlert('Scegli un prodotto della categoria carburante.', 'error');
+                    return;
+                }
+            }
+            if (modello.origineCarburante === 'pieno' && !hasParcoMacchine) {
+                showAlert('Il pieno richiede il Parco Macchine. Il carico cisterna resta disponibile.', 'error');
                 return;
             }
             try {
@@ -823,6 +1112,8 @@
                     note,
                     lavoroId,
                     attivitaId,
+                    macchinaId: modello.macchinaId,
+                    origineCarburante: modello.origineCarburante,
                     userId: auth.currentUser?.uid || null,
                     updatedAt: serverTimestamp()
                 };

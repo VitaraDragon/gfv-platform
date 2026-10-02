@@ -5,6 +5,9 @@
  */
 
 import { isTonySaveConfirmText, isTonySaveDenyText } from './tony-form-save-local.js';
+import { carburanteMovimentoSearchFromDraft } from '../../modules/magazzino/lib/carburante-movimento.js';
+
+var FUEL_WORD_RE = /\b(gasolio|diesel|benzina|ad\s*blue|adblue|carburante)\b/i;
 
 /**
  * @returns {boolean}
@@ -79,12 +82,102 @@ export function extractMovimentoProdottoFromText(text) {
 }
 
 /**
+ * «è arrivato il gasolio» — carico cisterna, non un pieno.
+ * @param {string} text
+ * @returns {boolean}
+ */
+export function isCarburanteArrivoIntent(text) {
+  var t = String(text || '');
+  if (isPienoMezzoIntent(t)) return false;
+  if (!FUEL_WORD_RE.test(t)) return false;
+  return /\b(arrivat[oa]|consegnat[oa]|ricevut[oa]|carico\s+cisterna|in\s+cisterna)\b/i.test(t)
+    || (/\b(carico|entrata)\b/i.test(t) && FUEL_WORD_RE.test(t));
+}
+
+/**
+ * «ho fatto il pieno al T5».
+ * @param {string} text
+ * @returns {boolean}
+ */
+export function isPienoMezzoIntent(text) {
+  var t = String(text || '');
+  if (/\b(ho fatto il pieno|fatto il pieno|fare il pieno)\b/i.test(t)) return true;
+  if (/\bpieno\b/i.test(t) && /\b(litri?|\bal\b|\balla\b|\btrattore\b|\bmezzo\b)\b/i.test(t)) return true;
+  return false;
+}
+
+/**
+ * @param {string} text
+ * @returns {string|null}
+ */
+export function extractFuelWord(text) {
+  var m = String(text || '').match(FUEL_WORD_RE);
+  if (!m) return null;
+  return m[1].replace(/\s+/g, '').toLowerCase();
+}
+
+/**
+ * Nome mezzo dopo «al / sul / trattore». Non prende la parola carburante.
+ * @param {string} text
+ * @returns {string|null}
+ */
+export function extractMacchinaHint(text) {
+  var t = String(text || '');
+  var m = t.match(/\b(?:al|alla|allo|sul|sulla)\s+(?:trattore\s+|mezzo\s+)?([^,.;]+?)(?=\s*,|\s+\d|\s+litri|\s+litro|\s+\bl\b|$)/i);
+  if (!m) {
+    m = t.match(/\btrattore\s+([^,.;]+?)(?=\s*,|\s+\d|\s+litri|\s+litro|$)/i);
+  }
+  if (!m) return null;
+  var name = String(m[1] || '').trim();
+  if (!name || /^(gasolio|diesel|benzina|adblue|ad\s*blue|carburante|litri|litro)$/i.test(name)) return null;
+  return name;
+}
+
+/**
+ * @param {string} text
+ * @returns {Record<string, string>|null}
+ */
+function parseCarburanteMovimentoFromText(text) {
+  var t = String(text || '').trim();
+  if (!t) return null;
+  /** @type {Record<string, string>} */
+  var formData = {};
+  var qtyM = t.match(/(\d+(?:[.,]\d+)?)\s*(?:litri|litro|\bl\b)/i);
+  if (qtyM) formData['mov-quantita'] = qtyM[1].replace(',', '.');
+  else {
+    var nums = t.match(/\d+(?:[.,]\d+)?/g);
+    if (nums && nums.length) formData['mov-quantita'] = nums[nums.length - 1].replace(',', '.');
+  }
+  var dt = parseMovimentoDateFromText(t);
+  if (dt) formData['mov-data'] = dt;
+
+  if (isPienoMezzoIntent(t)) {
+    formData['mov-tipo'] = 'uscita';
+    formData['mov-origine-carburante'] = 'pieno';
+    var mac = extractMacchinaHint(t);
+    if (mac) formData['mov-macchina'] = mac;
+    var fuelPieno = extractFuelWord(t);
+    if (fuelPieno && fuelPieno !== 'carburante') formData['mov-prodotto'] = fuelPieno;
+    return formData;
+  }
+
+  formData['mov-tipo'] = 'entrata';
+  formData['mov-origine-carburante'] = 'carico_cisterna';
+  var fuel = extractFuelWord(t);
+  if (fuel) formData['mov-prodotto'] = fuel;
+  return Object.keys(formData).length ? formData : null;
+}
+
+/**
  * @param {string} text
  * @returns {Record<string, string>|null}
  */
 export function parseMovimentoCreationFromText(text) {
   var t = String(text || '').trim();
   if (!t) return null;
+  if (isPienoMezzoIntent(t) || isCarburanteArrivoIntent(t)) {
+    return parseCarburanteMovimentoFromText(t);
+  }
   /** @type {Record<string, string>} */
   var formData = {};
 
@@ -110,6 +203,7 @@ export function parseMovimentoCreationFromText(text) {
 export function isMovimentoCreationIntent(text) {
   var t = String(text || '').trim();
   if (!t) return false;
+  if (isPienoMezzoIntent(t) || isCarburanteArrivoIntent(t)) return true;
   if (/^(crea|nuovo|registra|aggiungi|fammi)\s+(?:un[a]?\s+)?(?:movimento|entrata|uscita|carico|scarico)\b/i.test(t)) {
     return true;
   }
@@ -132,7 +226,19 @@ export function getMovimentoDraftRequiredMissing(draft) {
   if (!draft || !draft['mov-tipo']) missing.push('mov-tipo');
   if (!draft || !draft['mov-quantita']) missing.push('mov-quantita');
   if (!draft || !draft['mov-data']) missing.push('mov-data');
+  if (draft && draft['mov-origine-carburante'] === 'pieno' && !draft['mov-macchina']) missing.push('mov-macchina');
   return missing;
+}
+
+/**
+ * Apre il form anche se il pieno non ha ancora il prodotto (lo chiede il dropdown carburante).
+ * @param {Record<string, string>|null|undefined} draft
+ * @returns {boolean}
+ */
+export function canOpenMovimentoDraft(draft) {
+  if (isMovimentoDraftComplete(draft)) return true;
+  if (!draft || draft['mov-origine-carburante'] !== 'pieno') return false;
+  return !!(draft['mov-tipo'] && draft['mov-quantita'] && draft['mov-data'] && draft['mov-macchina']);
 }
 
 /**
@@ -203,7 +309,7 @@ export function storeMovimentoCrossPageIntent(target, draft, text) {
 export function executeMovimentoCreateLocal(formData, handlers, opts) {
   handlers = handlers || {};
   opts = opts || {};
-  if (!formData || !isMovimentoDraftComplete(formData)) return false;
+  if (!formData || !canOpenMovimentoDraft(formData)) return false;
   if (!formData['mov-data']) formData['mov-data'] = todayIsoDateLocal();
 
   if (typeof console !== 'undefined' && console.log) {
@@ -265,29 +371,33 @@ export function tryInterceptMovimentoCreateBeforeCf(text, handlers) {
   if (!draft) return { handled: false };
 
   var complete = isMovimentoDraftComplete(draft);
+  var openable = canOpenMovimentoDraft(draft);
   var confirm = isTonySaveConfirmText(t);
   var dateOnly = !!parseMovimentoDateFromText(t) && !creationIntent && !confirm;
 
   if (!isOnMovimentiPage()) {
-    if ((creationIntent && complete) || (dateOnly && complete)) {
+    if ((creationIntent && openable) || (dateOnly && openable)) {
       if (typeof handlers.clearEarlyTyping === 'function') handlers.clearEarlyTyping();
       if (typeof handlers.appendMessage === 'function') {
-        handlers.appendMessage('Ti porto ai movimenti magazzino.', 'tony');
+        handlers.appendMessage(messageAperturaMovimento(draft, true), 'tony');
       }
       storeMovimentoCrossPageIntent('movimenti', draft, t);
       var urlCross = typeof handlers.getUrlForTarget === 'function' ? handlers.getUrlForTarget('movimenti') : null;
       if (urlCross) {
-        window.location.href = urlCross + (urlCross.indexOf('?') >= 0 ? '&' : '?') + 'tnyNotify=movimenti';
+        var hrefCross = urlCross + (urlCross.indexOf('?') >= 0 ? '&' : '?') + 'tnyNotify=movimenti';
+        var fuelQ = carburanteMovimentoSearchFromDraft(draft);
+        if (fuelQ) hrefCross += '&' + fuelQ;
+        window.location.href = hrefCross;
       }
       return { handled: true, opened: false, navigating: true };
     }
     return { handled: false };
   }
 
-  if (creationIntent && complete) {
+  if (creationIntent && openable) {
     if (typeof handlers.clearEarlyTyping === 'function') handlers.clearEarlyTyping();
     if (typeof handlers.appendMessage === 'function') {
-      handlers.appendMessage('Apro il form movimento e compilo i dati.', 'tony');
+      handlers.appendMessage(messageAperturaMovimento(draft, false), 'tony');
     }
     executeMovimentoCreateLocal(draft, handlers, { logSuffix: 'intent completo' });
     return { handled: true, opened: true };
@@ -311,12 +421,14 @@ export function tryInterceptMovimentoCreateBeforeCf(text, handlers) {
     return { handled: true, opened: true };
   }
 
-  if (creationIntent && !complete) {
+  if (creationIntent && !openable) {
     if (typeof handlers.clearEarlyTyping === 'function') handlers.clearEarlyTyping();
     var miss = getMovimentoDraftRequiredMissing(draft);
-    var ask = miss.indexOf('mov-data') >= 0
-      ? 'Quale data vuoi per il movimento? (es. oggi)'
-      : 'Mi mancano ancora alcuni dati per aprire il form movimento.';
+    var ask = miss.indexOf('mov-macchina') >= 0
+      ? 'A quale mezzo hai fatto il pieno?'
+      : (miss.indexOf('mov-data') >= 0
+        ? 'Quale data vuoi per il movimento? (es. oggi)'
+        : 'Mi mancano ancora alcuni dati per aprire il form movimento.');
     if (typeof handlers.appendMessage === 'function') handlers.appendMessage(ask, 'tony');
     return { handled: true, opened: false };
   }
@@ -345,6 +457,22 @@ export function tryRecoverMovimentoCfFakeSave(cfText, handlers) {
     logSuffix: 'recovery fake CF',
   });
   return true;
+}
+
+/**
+ * @param {Record<string, string>|null|undefined} draft
+ * @param {boolean} crossPage
+ * @returns {string}
+ */
+function messageAperturaMovimento(draft, crossPage) {
+  var origine = draft && draft['mov-origine-carburante'];
+  if (origine === 'carico_cisterna') {
+    return crossPage ? 'Ti porto al carico cisterna.' : 'Apro il carico cisterna e compilo i dati.';
+  }
+  if (origine === 'pieno') {
+    return crossPage ? 'Ti porto al pieno.' : 'Apro il pieno e compilo i dati.';
+  }
+  return crossPage ? 'Ti porto ai movimenti magazzino.' : 'Apro il form movimento e compilo i dati.';
 }
 
 if (typeof window !== 'undefined') {

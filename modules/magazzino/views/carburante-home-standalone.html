@@ -78,6 +78,11 @@
             transform: translateY(-5px);
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
+        .action-card.is-disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
         .action-icon { font-size: 48px; margin-bottom: 15px; }
         .action-title { font-size: 18px; font-weight: bold; color: #2E7D32; margin-bottom: 10px; }
         .action-description { font-size: 14px; color: #666; }
@@ -134,7 +139,7 @@
                     <div class="stat-value" id="stat-litri">-</div>
                     <div class="stat-label">Litri in cisterna</div>
                 </div>
-                <a href="movimenti-standalone.html?tipo=entrata" class="stat-card" style="text-decoration: none; color: inherit;">
+                <a href="movimenti-standalone.html?categoria=carburante" class="stat-card" style="text-decoration: none; color: inherit;">
                     <div class="stat-value" id="stat-movimenti">-</div>
                     <div class="stat-label">Movimenti carburante (30 gg)</div>
                 </a>
@@ -151,15 +156,15 @@
                     <span class="action-title">Scorta</span>
                     <span class="action-description">Giacenza e soglie di gasolio, benzina, AdBlue</span>
                 </a>
-                <a href="movimenti-standalone.html?tipo=entrata" class="action-card">
+                <a href="movimenti-standalone.html?categoria=carburante&tipo=entrata" class="action-card" id="card-carico">
                     <span class="action-icon">➕</span>
                     <span class="action-title">Carico</span>
-                    <span class="action-description">Registra l'arrivo in cisterna (entrata magazzino)</span>
+                    <span class="action-description">Arrivo in cisterna: entrata sul prodotto carburante</span>
                 </a>
-                <a href="tracciabilita-consumi-standalone.html?categoria=carburante" class="action-card">
-                    <span class="action-icon">🔍</span>
-                    <span class="action-title">Pieni e consumi</span>
-                    <span class="action-description">Uscite e usi per categoria carburante</span>
+                <a href="movimenti-standalone.html?categoria=carburante&tipo=uscita&pieno=1" class="action-card" id="card-pieno">
+                    <span class="action-icon">🚛</span>
+                    <span class="action-title">Pieno</span>
+                    <span class="action-description">Uscita dalla cisterna sul mezzo</span>
                 </a>
                 <a href="prodotti-standalone.html?categoria=carburante" class="action-card">
                     <span class="action-icon">⛽</span>
@@ -167,6 +172,7 @@
                     <span class="action-description">Anagrafica solo famiglia carburante</span>
                 </a>
             </div>
+            <p style="margin-top: 16px;"><a href="tracciabilita-consumi-standalone.html?categoria=carburante">Elenco consumi carburante</a></p>
         </div>
     </div>
 
@@ -175,6 +181,7 @@
         import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, query, orderBy, limit, getDoc, doc } from '../../../core/services/firebase-service.js';
         import { showAlert } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+        import { hasModuleAccessFromTenant } from '../../../core/utils/module-access-resolver.js';
 
         window.currentTableData = {
             pageType: 'carburante_hub',
@@ -234,9 +241,18 @@
                 try {
                     const userRoles = Array.isArray(userData.ruoli) ? userData.ruoli : [];
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
-                    const modules = tenantDoc.exists()
-                        ? (Array.isArray(tenantDoc.data().modules) ? tenantDoc.data().modules : [])
-                        : ['magazzino'];
+                    const tenantData = tenantDoc.exists() ? tenantDoc.data() : { modules: ['magazzino'] };
+                    const modules = Array.isArray(tenantData.modules) ? tenantData.modules : ['magazzino'];
+                    const cardPieno = document.getElementById('card-pieno');
+                    if (cardPieno && !hasModuleAccessFromTenant(tenantData, 'parcoMacchine')) {
+                        cardPieno.removeAttribute('href');
+                        cardPieno.classList.add('is-disabled');
+                        cardPieno.setAttribute('aria-disabled', 'true');
+                        const descPieno = cardPieno.querySelector('.action-description');
+                        if (descPieno) {
+                            descPieno.textContent = 'Serve il Parco Macchine per registrare il pieno. Il carico cisterna resta disponibile.';
+                        }
+                    }
                     if (window.Tony && typeof window.Tony.initContextWithModules === 'function') {
                         window.Tony.initContextWithModules(modules, {
                             tenantId: currentTenantId,

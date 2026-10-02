@@ -1,6 +1,6 @@
 # Piano (design): Carburante in Magazzino
 
-**Stato:** design concordato; **Fase 0–1 in codice** (2026-10-02). Fase 2–3 da fare.  
+**Stato:** design concordato; **Fase 0–2 in codice** (2026-10-02). Fase 3 da fare.  
 **Tipo:** guida di sviluppo per agenti e sviluppatori.  
 **Per chi:** chi implementa categoria, hub, carico cisterna, pieni per mezzo, apprendimento consumi coppia.  
 **Path canonico:** `docs-sviluppo/da-fare/magazzino/PIANO_CARBURANTE.md`  
@@ -340,8 +340,8 @@ Non aggiornare `DOBBIAMO_ANCORA_FARE.md`, `RIEPILOGO_CURRENTTABLEDATA_PER_MODULO
 |------|-------|------|
 | Categoria `carburante` | ✅ | Fase 0 (2026-10-02) |
 | Hub card Carburante | ✅ | Fase 1 (2026-10-02) |
-| Carico cisterna UX | ❌ | Fase 2 |
-| Pieno con `macchinaId` | ❌ | Fase 2 |
+| Carico cisterna UX | ✅ | Fase 2 (2026-10-02): `?categoria=carburante&tipo=entrata`, origine `carico_cisterna` |
+| Pieno con `macchinaId` | ✅ | Fase 2 (2026-10-02): `?tipo=uscita&pieno=1`, mezzo obbligatorio, gate Parco Macchine |
 | `consumoMedioLitroOra` trattore | ❌ | Fase 3 (anagrafica) |
 | Apprendimento coppia | ❌ | Fase 3 |
 | Ripartizione giornate miste | ❌ | Fase 3 |
@@ -357,6 +357,7 @@ Non aggiornare `DOBBIAMO_ANCORA_FARE.md`, `RIEPILOGO_CURRENTTABLEDATA_PER_MODULO
 |------|------|
 | 2026-10-02 | Prima stesura. Modulo Magazzino, card Carburante, categoria `carburante`, due verità, apprendimento solo da finestre pulite, no L/h attrezzo, no chiave terreno. |
 | 2026-10-02 | Fase 0–1 implementate: categoria, hub, rotte/gate/nav Tony, match Occhi. |
+| 2026-10-02 | Fase 2: carico cisterna e pieno mezzo sullo stesso movimento-form. Giacenza solo da increment. |
 | 2026-10-02 | Handoff agente §12: branch, cosa è in codice, prossimo passo Fase 2, come vedere in locale. |
 
 ---
@@ -367,8 +368,7 @@ Non aggiornare `DOBBIAMO_ANCORA_FARE.md`, `RIEPILOGO_CURRENTTABLEDATA_PER_MODULO
 **Head:** `8dae312` *feat(magazzino): categoria e hub Carburante (Fase 0–1)*; prima `6c34774` *docs: piano Carburante*.  
 **Vedere in locale:** checkout di quel branch. `main` / GitHub Pages **non** hanno questo lavoro. `develop` non è pubblicato.
 
-**Fatto:** Fase 0 (categoria `carburante` + sinonimi Tony/Occhi + test) e Fase 1 (card + hub + rotte).  
-**Prossimo:** Fase 2 — carico cisterna e pieno mezzo sullo stesso `movimento-form` + query; `macchinaId` sul pieno; giacenza solo da increment. **Non** saltare a Fase 3.
+**Fatto:** Fase 0 (categoria), Fase 1 (hub e nav), Fase 2 (carico cisterna e pieno mezzo sullo stesso `movimento-form`, `macchinaId` obbligatorio sul pieno, giacenza solo da increment).  
+**Prossimo:** Fase 3 — servizio puro `carburante-finestra.js` + `carburante-consumi-service.js` (giornata pulita impara, mista ripartisce o standby). **Non** saltare alle domande Tony della Fase 4.
 
 **Prompt completo da incollare:** vedi messaggio utente / conversazione 2026-10-02 «prompt handoff agente carburante». Decisioni bloccate: §1 di questo file e `TONY_DECISIONI_E_REQUISITI.md` §28.
-| 2026-10-02 | Handoff agente §12: branch, cosa è in codice, prossimo passo Fase 2, come vedere in locale. |
