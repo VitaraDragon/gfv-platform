@@ -505,10 +505,14 @@ export async function loginAsManagerContoTerzi(page, options = {}) {
 /** Login manager su tenant con manodopera (gestione lavori / validazione ore). */
 export async function loginAsManagerManodopera(page, options = {}) {
   const pickOptions = {
-    templateIncludes: 'manodopera',
     preferTemplateId: DEFAULT_VITICOLA_E2E_TEMPLATE,
     ...options,
   };
+  // Only filter by templateIncludes when no preferTemplateId is explicitly set
+  // (e.g. from scenario.requiresSeedProfile); otherwise lab-trimestre-full would be filtered out
+  if (!options.preferTemplateId) {
+    pickOptions.templateIncludes = 'manodopera';
+  }
   return loginAsManagerFromDevPage(page, pickOptions);
 }
 
