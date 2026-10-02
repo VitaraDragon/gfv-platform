@@ -35,6 +35,7 @@
     "sim:run:demo-max": "node simulator/run-demo-max.js",
     "sim:run:sostituzioni-lab": "node simulator/run-sostituzioni-lab.js",
     "sim:run:mese-aziende": "node simulator/run-mese-aziende.js",
+    "sim:run:trimestre": "node simulator/orchestrator.js --template=lab-trimestre-full --verbose",
     "sim:run:verbose": "node simulator/orchestrator.js --verbose",
     "sim:setup": "node simulator/orchestrator.js --setup-only",
     "sim:inspect": "node simulator/inspect-tenant.js",

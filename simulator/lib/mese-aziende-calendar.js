@@ -68,3 +68,28 @@ export function isScenarioMeseTemplate(template) {
     template?.manodopera?.scenarioMese
   );
 }
+
+/** Lab di un trimestre: vendemmia e raccolta concentrate nei mesi di stagione. */
+export function isScenarioTrimestreTemplate(template) {
+  return !!(template?.scenarioTrimestre || template?.attivita?.scenarioTrimestre);
+}
+
+/**
+ * Come il mese, ma ad agosto/settembre la raccolta e la vendemmia sostituiscono
+ * parte del ciclo ordinario. Le date sono YYYY-MM-DD.
+ * @param {number} dayIndex
+ * @param {string} dateIso
+ * @param {string[]} [tipiFallback]
+ * @param {{ fruttetoOnly?: boolean, isFruitTerreno?: boolean }} [opts]
+ */
+export function tipoLavoroPerGiornoTrimestre(dayIndex, dateIso, tipiFallback = PATTERN_MESE, opts = {}) {
+  const month = Number(String(dateIso || '').slice(5, 7));
+  const fruit = !!(opts.fruttetoOnly || opts.isFruitTerreno);
+  if (fruit && (month === 8 || month === 9) && dayIndex % 3 === 0) {
+    return 'Raccolta';
+  }
+  if (!fruit && month === 9 && dayIndex % 2 === 0) {
+    return dayIndex % 4 === 0 ? 'Vendemmia Meccanica' : 'Vendemmia Manuale';
+  }
+  return tipoLavoroPerGiornoMese(dayIndex, tipiFallback, opts);
+}

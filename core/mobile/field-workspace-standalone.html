@@ -56,6 +56,21 @@
                         <small id="gps-suggestion" class="hint-text"></small>
                         <div id="lavoro-sostituto-banner" class="inline-sostituto-banner" hidden></div>
                     </div>
+                    <section id="inline-pieno-section" class="inline-team-section" hidden>
+                        <h3 class="inline-team-title">⛽ Pieno</h3>
+                        <p class="inline-team-subtitle">Segna i litri prima di partire. Vale per il mezzo di questo lavoro, non per una lavorazione a mano.</p>
+                        <form id="pieno-campo-form" class="gfv-card-inner">
+                            <p id="pieno-mezzo-label" class="hint-text"></p>
+                            <label for="pieno-prodotto" class="label-inline">Carburante</label>
+                            <select id="pieno-prodotto" class="field-input" required>
+                                <option value="">Caricamento...</option>
+                            </select>
+                            <label for="pieno-litri" class="label-inline">Litri</label>
+                            <input id="pieno-litri" class="field-input" type="number" min="0.1" step="0.1" inputmode="decimal" required>
+                            <button type="submit" class="field-mobile-btn primary">Registra pieno</button>
+                            <small id="pieno-status" class="hint-text"></small>
+                        </form>
+                    </section>
                     <section id="inline-team-section" class="inline-team-section" hidden>
                         <h3 class="inline-team-title">👥 La mia squadra</h3>
                         <p class="inline-team-subtitle">Tocca un nome per chiamare o inviare email.</p>

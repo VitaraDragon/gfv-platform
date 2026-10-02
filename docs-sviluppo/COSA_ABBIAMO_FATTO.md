@@ -1,6 +1,32 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-02 — Fix T-DIRTY-007 + T-FLOW-013 (PR #84).**
+**Ultimo aggiornamento documentazione: 2026-10-02 — Scenario simulatore trimestre (carburante incluso).**
+
+## 2026-10-02 — Scenario simulatore di tre mesi, con il carburante di main
+
+`develop` non aveva le pagine carburante già presenti su `main` (hub, carico cisterna, pieno mezzo). Quelle pagine sono state portate nel working tree così il simulatore locale le mostra come la PWA. Il seed non usa più un prodotto «altro»: i movimenti sono categoria `carburante`, origine `carico_cisterna` o `pieno`, con `macchinaId` sul pieno.
+
+**Come rifarlo**
+
+- Emulatori: `npm run sim:emulators`. Sito: `npm start`.
+- Seed: `npm run sim:run:trimestre` (template `lab-trimestre-full`, fase `simulator/phases/10-simulate-trimestre.js`).
+- Entrata: `core/dev/simulator-dev-standalone.html?emulator=1`, prima card, password `SimGFV2026!`.
+- Hub carburante: `modules/magazzino/views/carburante-home-standalone.html?emulator=1`.
+
+**Cosa copre (~66 giorni lavorativi, 3 luglio–2 ottobre 2026)**
+
+- Vigneto e frutteto (diario, vendemmie e raccolte da completare), seminativo (campagne 2025/2026 raccolte e 2026/2027 in corso), vendemmia meccanica sui terreni clienti.
+- Manodopera: ore, comunicazioni, assenza malattia con standby, più ferie, permesso, infortunio, non presenza, ingiustificata e altro.
+- Parco: guasti aperti e risolti, scadenze.
+- Carburante: gasolio, benzina e AdBlue separati; carichi cisterna e pieni mezzo. Benzina e AdBlue restano sotto scorta.
+
+L’ultima azienda seedata in questo ambiente è **Tenuta Marini** (`sim_tenuta_marini_727414`). Un nuovo `sim:run:trimestre` ne crea un’altra in cima al manifest. I dati vivono sull’emulatore locale, non sulla PWA pubblica.
+
+Le Cloud Function del pieno in campo (`functions/registra-pieno-campo.js`) restano su `main`: questo branch ha l’interfaccia magazzino e il seed, non quel callable.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-02 — Fix T-DIRTY-007 + T-FLOW-013 (PR #84).**
 
 ## 2026-10-02 — Fix T-DIRTY-007 + T-FLOW-013: resume ripresa + gate seed timing
 

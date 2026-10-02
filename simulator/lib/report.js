@@ -64,6 +64,22 @@ export function formatSuccessReport(result) {
       `  assenza malattia: ${result.counts.assenzeMalattiaSegnalate ?? 0} segnalate, ${result.counts.assenzeMalattiaConfermate} confermate, ${result.counts.lavoriStandbyAssenza ?? 0} lavori in standby`
     );
   }
+  if (result.counts.campagneSeminativo) {
+    lines.push(
+      `  seminativo: ${result.counts.terreniSeminativo} appezzamenti, ${result.counts.campagneSeminativo} campagne, ${result.counts.semineSeminativo} semine, ${result.counts.attivitaSeminativo} attività, ${result.counts.trattamentiSeminativo} trattamenti/concimazioni, ${result.counts.raccolteSeminativo} mietiture`
+    );
+  }
+  if (result.counts.movimentiCarburante) {
+    lines.push(
+      `  carburante: ${result.counts.carichiCisterna} carichi cisterna, ${result.counts.pieniMezzo} pieni mezzo`
+    );
+  }
+  if (result.counts.terreniVmInPiano) {
+    lines.push(`  vendemmia meccanica: ${result.counts.terreniVmInPiano} terreni clienti in piano 2026`);
+  }
+  if (result.counts.assenzeTrimestre) {
+    lines.push(`  assenze trimestre (oltre la malattia): ${result.counts.assenzeTrimestre}`);
+  }
   if (result.counts.clienti != null) {
     lines.push(
       `  conto terzi: ${result.counts.clienti} clienti, ${result.counts.poderiClienti} poderi, ${result.counts.terreniClienti} terreni clienti`

@@ -9,7 +9,9 @@ import { addTenantDocument } from '../lib/firestore-write.js';
 import { isFruttetoTemplate } from '../lib/load-template.js';
 import {
   isScenarioMeseTemplate,
-  tipoLavoroPerGiornoMese
+  isScenarioTrimestreTemplate,
+  tipoLavoroPerGiornoMese,
+  tipoLavoroPerGiornoTrimestre
 } from '../lib/mese-aziende-calendar.js';
 import { harvestDayIndexForTemplate, isColturaFrutteto } from '../lib/mixed-colture-utils.js';
 import { requireSimTenantId, getSimProfile } from '../lib/sim-context.js';
@@ -58,11 +60,14 @@ export async function runSimulateAttivita(assets) {
     const pauseMinuti = attCfg.pauseMinuti ?? 30;
     const oreNette = calcolaOreNette(orarioInizio, orarioFine, pauseMinuti);
 
-    const tipoLavoro = i === harvestDayIndex
-      ? (isFruitTerreno || fruttetoOnly ? 'Raccolta' : 'Vendemmia Manuale')
-      : isScenarioMeseTemplate(template)
-        ? tipoLavoroPerGiornoMese(i, tipiLavoro, { fruttetoOnly, isFruitTerreno })
-        : tipiLavoro[i % tipiLavoro.length];
+    const tipoOpts = { fruttetoOnly, isFruitTerreno };
+    const tipoLavoro = isScenarioTrimestreTemplate(template)
+      ? tipoLavoroPerGiornoTrimestre(i, dates[i], tipiLavoro, tipoOpts)
+      : i === harvestDayIndex
+        ? (isFruitTerreno || fruttetoOnly ? 'Raccolta' : 'Vendemmia Manuale')
+        : isScenarioMeseTemplate(template)
+          ? tipoLavoroPerGiornoMese(i, tipiLavoro, tipoOpts)
+          : tipiLavoro[i % tipiLavoro.length];
 
     const colturaDefault = fruttetoOnly ? (attCfg.coltura || 'Melo') : (attCfg.coltura || 'Vite da Vino');
     const coltura = isFruitTerreno ? (terreno.coltura || 'Melo') : colturaDefault;

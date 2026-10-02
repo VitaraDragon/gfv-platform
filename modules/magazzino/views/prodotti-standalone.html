@@ -90,7 +90,8 @@
             <div class="header-actions">
                 <button class="btn btn-primary" id="btn-nuovo-prodotto">➕ Nuovo Prodotto</button>
                 <button type="button" class="btn btn-primary" id="btn-ricalcola-prezzi-medi" title="Ricalcola media ponderata dalle entrate con prezzo nei movimenti">↻ Aggiorna prezzi medi</button>
-                <a href="magazzino-home-standalone.html" class="btn btn-secondary">← Dashboard</a>
+                <a id="link-dashboard-sezione" href="magazzino-home-standalone.html" class="btn btn-secondary">← Dashboard</a>
+                <script src="../js/dashboard-sezione-link.js"></script>
             </div>
         </div>
 
@@ -114,6 +115,7 @@
                         <option value="materiale_impianto">Materiale impianto</option>
                         <option value="ricambi">Ricambi</option>
                         <option value="sementi">Sementi</option>
+                        <option value="carburante">Carburante</option>
                         <option value="altro">Altro</option>
                     </select>
                 </div>
@@ -174,6 +176,7 @@
                             <option value="materiale_impianto">Materiale impianto</option>
                             <option value="ricambi">Ricambi</option>
                             <option value="sementi">Sementi</option>
+                            <option value="carburante">Carburante</option>
                             <option value="altro">Altro</option>
                         </select>
                     </div>
@@ -298,7 +301,19 @@
                 document.getElementById('btn-annulla-modal').onclick = closeModal;
                 document.getElementById('btn-reset-filtri').onclick = resetFilters;
                 document.getElementById('filter-attivo').onchange = renderProdotti;
-                document.getElementById('filter-categoria').onchange = renderProdotti;
+                try {
+                    const catQ = new URLSearchParams(window.location.search).get('categoria');
+                    if (catQ && document.querySelector('#filter-categoria option[value="' + catQ + '"]')) {
+                        document.getElementById('filter-categoria').value = catQ;
+                    }
+                } catch (eCat) { /* ignore */ }
+                if (window.GFVSyncDashboardSezione) {
+                    window.GFVSyncDashboardSezione(document.getElementById('filter-categoria').value);
+                }
+                document.getElementById('filter-categoria').onchange = function () {
+                    if (window.GFVSyncDashboardSezione) window.GFVSyncDashboardSezione(this.value);
+                    renderProdotti();
+                };
                 document.getElementById('filter-da-completare').onchange = renderProdotti;
                 document.getElementById('filter-search').oninput = renderProdotti;
                 document.getElementById('prodotto-form').onsubmit = saveProdotto;
@@ -424,6 +439,7 @@
             document.getElementById('filter-categoria').value = '';
             document.getElementById('filter-da-completare').value = '';
             document.getElementById('filter-search').value = '';
+            if (window.GFVSyncDashboardSezione) window.GFVSyncDashboardSezione('');
             renderProdotti();
         }
 

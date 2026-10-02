@@ -80,7 +80,8 @@
                 <p>Consultazione in sola lettura delle uscite da magazzino, filtrabili per categoria prodotto. In vista raggruppata, interventi nello <strong>stesso giorno</strong> con stessa miscela e stessi dati operativi possono essere mostrati insieme se riguardano <strong>appezzamenti diversi</strong>. Interventi in <strong>giorni diversi</strong> (es. ripetizione dopo 15 giorni) restano in blocchi separati. Il flag &quot;prosegue precedente&quot; indica solo un collegamento tra registri, non unifica due trattamenti in un unico documento.</p>
             </div>
             <div>
-                <a href="magazzino-home-standalone.html" class="btn btn-secondary">← Dashboard</a>
+                <a id="link-dashboard-sezione" href="magazzino-home-standalone.html" class="btn btn-secondary">← Dashboard</a>
+                <script src="../js/dashboard-sezione-link.js"></script>
             </div>
         </div>
 
@@ -1183,6 +1184,7 @@
                         if (v) url.searchParams.set('categoria', v);
                         else url.searchParams.delete('categoria');
                         window.history.replaceState({}, '', url);
+                        if (window.GFVSyncDashboardSezione) window.GFVSyncDashboardSezione(v);
                     } catch (e) { /* ignore */ }
                     await renderTabella();
                 };
