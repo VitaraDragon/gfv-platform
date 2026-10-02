@@ -1,6 +1,20 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-01 — Fix Tony preventivo disambiguazione terreno.**
+**Ultimo aggiornamento documentazione: 2026-10-02 — Fix T-DIRTY-007 ripresa attività con dettagli location.**
+
+## 2026-10-02 — Fix T-DIRTY-007: ripresa attività con conferma esplicita location
+
+Risolto test E2E T-DIRTY-007 (regressione post-PR #81). Quando l'utente dice «continua da dove avevo lasciato sulla fila 4 verso il fosso», Tony ora conferma esplicitamente i dettagli di location nel text della risposta invece di rispondere solo «Ti porto al diario.» Modifiche in `SYSTEM_INSTRUCTION_ADVANCED` (`functions/index.js`):
+
+- Regola RIPRESA CONTESTO (1314) rafforzata: obbliga a ripetere dettagli location/zona (fila, fosso, riga, parcella) quando presenti nel messaggio.
+- Regola APERTURA MODAL ATTIVITÀ (1359): aggiunta eccezione per rispettare regola ripresa con location.
+- Esempio aggiunto: «continua dalla fila 4 verso il fosso» → text «Ok, continuo dalla fila 4 verso il fosso. Cosa devo riprendere esattamente?»
+
+Il test T-DIRTY-007 expect groups (fila/4/riprend/continua/fosso/attivita) ora soddisfatto. Non modifica altri T-DIRTY né assert esistenti.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-01 — Fix Tony preventivo disambiguazione terreno.**
 
 ## 2026-10-01 — Fix Tony preventivo disambiguazione terreno
 
