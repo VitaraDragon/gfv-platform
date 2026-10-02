@@ -456,7 +456,7 @@ export async function waitForDashboardDeadlinesLoaded(page) {
 /**
  * Apre la pagina dev, sceglie tenant da manifest, Entra come manager.
  * @param {import('@playwright/test').Page} page
- * @param {{ preferSeedComplete?: boolean, templateIncludes?: string }} [options]
+ * @param {{ preferSeedComplete?: boolean, templateIncludes?: string, preferTemplateId?: string }} [options]
  *   templateIncludes — es. `conto-terzi` per scenario #7; manodopera in #8
  */
 export async function loginAsManagerFromDevPage(page, options = {}) {
@@ -504,11 +504,12 @@ export async function loginAsManagerContoTerzi(page, options = {}) {
 
 /** Login manager su tenant con manodopera (gestione lavori / validazione ore). */
 export async function loginAsManagerManodopera(page, options = {}) {
-  return loginAsManagerFromDevPage(page, {
-    ...options,
+  const pickOptions = {
     templateIncludes: 'manodopera',
     preferTemplateId: DEFAULT_VITICOLA_E2E_TEMPLATE,
-  });
+    ...options,
+  };
+  return loginAsManagerFromDevPage(page, pickOptions);
 }
 
 async function waitForMezziTableLoaded(page, { urlPattern, h1Fragment, minRows }) {
