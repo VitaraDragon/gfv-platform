@@ -750,4 +750,19 @@ Stesso ingresso di Vigneto/Frutteto (hub + card), dedicato alle colture erbacee.
 
 ---
 
+## 28. Carburante in Magazzino (2026-10-02)
+
+Design concordato, **non implementato**. Guida agenti: `docs-sviluppo/da-fare/magazzino/PIANO_CARBURANTE.md`.
+
+| # | Decisione | Fonte | Stato | Note |
+|---|-----------|-------|-------|------|
+| 28.1 | Vive in **Prodotti e Magazzino**. Niente modulo Carburante. Niente giacenza nel Parco Macchine | prodotto 2026-10-02 | **da fare** | Stesso registro `movimentiMagazzino` |
+| 28.2 | Categoria prodotto **`carburante`** (non `altro`). UI hub **Carburante** (non Gasolio): scorta, carico cisterna, pieni, prodotti della famiglia | prodotto 2026-10-02 | **da fare** | Gasolio, benzina, AdBlue nella stessa card |
+| 28.3 | Carico cisterna = entrata. Pieno mezzo = uscita con `macchinaId`. Quote litri per lavoro **non** sono movimenti (no doppio scarico) | prodotto 2026-10-02 | **da fare** | Due verità: cisterna misurata, consumo operazione allocato |
+| 28.4 | Apprendimento L/h sulla **coppia** `(macchinaId, attrezzoId)`. Giornata pulita impara; giornata mista non impara, ripartisce solo se i tassi ci sono già. Niente L/h sull’attrezzo. L/h trattore solo di massima | prodotto 2026-10-02 | **da fare** | All’inizio le operazioni miste restano senza litri |
+| 28.5 | Non si impara per `terrenoId`. Report litri sul campo = quota del lavoro. Eventuale raffinamento futuro: `tipoCampo` (pianura/collina/montagna). Fuori v1 | prodotto 2026-10-02 | **da fare** (vincolo) | Stessa morfologia di meteo/tariffe, non in v1 |
+| 28.6 | Tony: rotte/gate/sinonimi/FILTER_TABLE, niente `if` pagina carburante nel core. Reminder sotto scorta = segnali Magazzino già esistenti | MASTER_PLAN §4, §15.6 | **da fare** | Keywords Occhi gasolio/diesel/benzina/adblue |
+
+---
+
 *Inventario creato per la Fase 1 del consolidamento documentazione Tony. Da revisionare prima di procedere con il consolidamento.*
