@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-02 — Carburante Fase 2 (carico cisterna e pieno).**
+**Ultimo aggiornamento documentazione: 2026-10-03 — Trattamenti vigneto e frutteto: script di pagina nel file del modulo.**
+
+## 2026-10-03 — Trattamenti vigneto e frutteto: comportamento fuori dall’HTML
+
+Le pagine trattamenti di vigneto e frutteto seguono lo stesso schema del seminativo: l’HTML in `views/` resta la struttura, il comportamento sta in `modules/vigneto/js/trattamenti-page.js` e `modules/frutteto/js/trattamenti-page.js`. I due moduli restano separati. Gli import dinamici via `resolvePath` restano relativi all’URL della pagina. Il caricamento di Google Maps è rimasto nell’HTML.
+
+Prova sul simulatore (emulatore, Sangiovese 2026) della pagina vigneto: lista, filtri, modifica e salvataggio nota, riga prodotto, mappa in consultazione, elimina e completa. Il salvataggio ricalcola il costo con manodopera e macchina già presenti nel form.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-02 — Carburante Fase 2 (carico cisterna e pieno).**
 
 ## 2026-10-02 — Carburante Fase 2: carico cisterna e pieno mezzo
 
