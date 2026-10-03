@@ -35,6 +35,7 @@ Con **Manodopera** attivo il controller **non** monta `createManagerSection` sot
 - Iframe dettaglio lavoro: `../admin/lavori-caposquadra-standalone.html?ws=classic&focusLavoroId=<id>&embed=mobile`.
 - Comunicazioni caposquadra: collection `comunicazioni` con `destinatari`, `lavoroId`, `messaggio`, `data`, `orario`, `source: 'mobile_field_workspace'`.
 - Ore inline: subcollection `lavori/{lavoroId}/oreOperai`, stato tipico **`da_validare`** dopo salvataggio operaio.
+- **Pieno in campo** (⛽): scheda compare nella slide **Ore** sotto il form **Segna ore**, solo se `lavoroRichiedeRifornimento(lavoro)` (lavoro ha `macchinaId`, non solo attrezzo) + Magazzino attivo (gate `hasModuleAccessFromTenant`) + prodotti carburante in anagrafica. UI in `core/mobile/js/pieno-campo-ui.js` (bind form, load prodotti categoria `carburante`, label mezzo). Cloud Function `registraPienoCampo` (`functions/registra-pieno-campo.js` + core in `functions/lib/registra-pieno-campo-core.js`): tenant, lavoroId, prodottoId, quantità, data → crea movimento uscita con `origineCarburante: 'pieno'` + `macchinaId` dal lavoro; giacenza prodotto carburante **diminuisce** (atomico `increment`). Vedi anche `GUIDA/MAGAZZINO/tony/guida-tecnica.md` § Form Tony (carburante).
 
 ## Target motore (`core/js/tony/engine.js`)
 

@@ -7,6 +7,7 @@ Modulo tenant: tipicamente `magazzino` (minuscolo; verificare `tenant.modules`).
 | Pagina | File |
 |--------|------|
 | Home magazzino | `magazzino-home-standalone.html` |
+| Hub carburante | `carburante-home-standalone.html` |
 | Anagrafica prodotti | `prodotti-standalone.html` |
 | Movimenti | `movimenti-standalone.html` |
 | Tracciabilità consumi | `tracciabilita-consumi-standalone.html` |
@@ -16,15 +17,18 @@ Modulo tenant: tipicamente `magazzino` (minuscolo; verificare `tenant.modules`).
 
 - **`prodotti`** — `prodotti-standalone.html`: `window.currentTableData`, evento `table-data-ready` con `detail.currentTableData`.
 - **`movimenti`** — `movimenti-standalone.html`: stesso canone.
+- **`carburante_hub`** — `carburante-home-standalone.html`: lista scorte per prodotto (gasolio, benzina, AdBlue), con `sottoScorta` per ogni prodotto; evento `table-data-ready`.
 - **`tracciabilita_consumi`** — `tracciabilita-consumi-standalone.html`: items + opz. `consumiAggregates`; filtri **categoria**, **terreno**, **vista**, **reset**; vedi istruzioni **FILTER_TABLE** in `functions/index.js` (Tony avanzato).
 
 ## Navigazione intent
 
-Target utili: `magazzino` (home), `prodotti`, `movimenti`, alias **tracciabilità consumi** / **tracciabilita consumi** / **consumi magazzino** → `tracciabilita-consumi-standalone.html`. Allineare a `functions/index.js` / `core/js/tony/engine.js`.
+Target utili: `magazzino` (home), `carburante` (hub carburante), `prodotti`, `movimenti`, alias **tracciabilità consumi** / **tracciabilita consumi** / **consumi magazzino** → `tracciabilita-consumi-standalone.html`. Allineare a `functions/index.js` / `core/js/tony/engine.js`.
 
 ## Form Tony (Tony avanzato)
 
 - **`prodotto-form`** / **`movimento-form`**: mapping in `core/config/tony-form-mapping.js`, injector in `core/js/tony-form-injector.js`; comandi **INJECT_FORM_DATA**, **OPEN_MODAL** `prodotto-modal` / `movimento-modal`; regole magazzino in `functions/index.js` (SAVE solo su conferma esplicita).
+- **Carburante (movimenti)**: categoria `carburante`, origine `carico_cisterna` (entrata) o `pieno` (uscita + `macchinaId`). Validazione: `modules/magazzino/lib/carburante-movimento.js` (`validateMovimentoCarburante`, `parseCarburanteMovimentoQuery`). Query da hub: `?categoria=carburante&tipo=entrata` (carico) o `?categoria=carburante&tipo=uscita&pieno=1` (pieno).
+- **Pieno in campo (versione mobile)**: `core/mobile/js/pieno-campo-ui.js` (scheda in field-workspace solo se `lavoroRichiedeRifornimento(lavoro)` — mezzo presente, non solo attrezzo). Cloud Function `registraPienoCampo` (`functions/registra-pieno-campo.js` + core in `functions/lib/registra-pieno-campo-core.js`): tenant, lavoroId, prodotto carburante, quantità, data → crea movimento uscita con origine `pieno` + `macchinaId` dal lavoro.
 
 ## Acquisizione documenti (foto → magazzino)
 
