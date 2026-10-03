@@ -8,11 +8,16 @@ import { dirname, join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import {
   matchSegnaOraTimeRangeFromBlob,
+  normalizeTonyTextWhitespace,
 } from '../../core/js/tony/engine.js';
 import {
   isTonySaveConfirmText,
   tryInterceptQuickHoursSaveBeforeCf,
 } from '../../core/js/tony-form-save-local.js';
+import {
+  extractProdottoNomeFromText,
+  normalizeProdottoUnitaFromText,
+} from '../../core/js/tony-prodotto-create-local.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const matrixPath = join(__dirname, '../e2e/tony/fixtures/scenarios-matrix.json');
@@ -73,6 +78,56 @@ const TYPO_VITEST = {
     expect(saved).toBe(true);
     delete globalThis.window;
     delete globalThis.document;
+  },
+  'T-DIRTY-001'() {
+    // "qunati litri rame nn nela botte 3??" — typo quantità rame botte
+    const msg = 'qunati litri rame nn nela botte 3??';
+    const normalized = normalizeTonyTextWhitespace(msg);
+    expect(normalized).toBeTruthy();
+    expect(normalized.toLowerCase()).toContain('rame');
+    expect(normalized.toLowerCase()).toContain('litri');
+    const unita = normalizeProdottoUnitaFromText('litri');
+    expect(unita).toBe('L');
+  },
+  'T-DIRTY-009'() {
+    // "ce nne ancora dil rame? qusi finito" — typo disponibilità scorta rame
+    const msg = 'ce nne ancora dil rame? qusi finito';
+    const normalized = normalizeTonyTextWhitespace(msg);
+    expect(normalized).toBeTruthy();
+    expect(normalized.toLowerCase()).toContain('rame');
+    // Test che il parsing non crasha su typo pesante
+    const nome = extractProdottoNomeFromText('crea prodotto rame');
+    expect(nome).toBe('rame');
+  },
+  'T-TRIM-DIRTY-001'() {
+    // "qarica 300 litri gasolio nela cisterna plis" — typo carico cisterna gasolio
+    const msg = 'qarica 300 litri gasolio nela cisterna plis';
+    const normalized = normalizeTonyTextWhitespace(msg);
+    expect(normalized).toBeTruthy();
+    expect(normalized.toLowerCase()).toContain('gasolio');
+    expect(normalized.toLowerCase()).toContain('litri');
+    const unita = normalizeProdottoUnitaFromText('litri');
+    expect(unita).toBe('L');
+  },
+  'T-TRIM-DIRTY-003'() {
+    // "ce nne ancora dil adblue? qusi finito" — typo scorta AdBlue
+    const msg = 'ce nne ancora dil adblue? qusi finito';
+    const normalized = normalizeTonyTextWhitespace(msg);
+    expect(normalized).toBeTruthy();
+    expect(normalized.toLowerCase()).toContain('adblue');
+    // Test che il parsing non crasha su typo pesante
+    const nome = extractProdottoNomeFromText('crea prodotto adblue');
+    expect(nome).toBe('adblue');
+  },
+  'T-TRIM-DIRTY-009'() {
+    // "pieno benzina sul pickup qusi 40 litri" — typo pieno benzina pickup
+    const msg = 'pieno benzina sul pickup qusi 40 litri';
+    const normalized = normalizeTonyTextWhitespace(msg);
+    expect(normalized).toBeTruthy();
+    expect(normalized.toLowerCase()).toContain('benzina');
+    expect(normalized.toLowerCase()).toContain('litri');
+    const unita = normalizeProdottoUnitaFromText('litri');
+    expect(unita).toBe('L');
   },
 };
 
