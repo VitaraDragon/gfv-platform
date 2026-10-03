@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-02 — Trattamenti vigneto e frutteto: script di pagina nel file del modulo.**
+**Ultimo aggiornamento documentazione: 2026-10-03 — Trattamenti vigneto e frutteto: meccanica condivisa.**
+
+## 2026-10-03 — Trattamenti vigneto e frutteto: helper comune
+
+La meccanica delle due pagine (lista, filtri, righe prodotto, salvataggio, mappa) sta in `shared/js/trattamenti-coltura-page.js`. Ogni modulo passa i propri servizi, gli id del form e i testi. Vigneto e frutteto restano separati. Il vigneto continua ad attendere il tenant fino a un secondo; il frutteto no. L’etichetta in lista usa varietà per il vigneto e specie, varietà o nome per il frutteto.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-02 — Trattamenti vigneto e frutteto: script di pagina nel file del modulo.**
 
 ## 2026-10-02 — Trattamenti vigneto e frutteto: comportamento fuori dall’HTML
 
