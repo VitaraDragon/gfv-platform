@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-03 — Concimazioni frutteto: script di pagina nel file del modulo.**
+**Ultimo aggiornamento documentazione: 2026-10-03 — Potatura vigneto: script di pagina nel file del modulo.**
+
+## 2026-10-03 — Potatura vigneto: comportamento fuori dall’HTML
+
+La pagina potatura del vigneto segue lo stesso schema dei trattamenti: l’HTML in `views/` resta la struttura, il comportamento sta in `modules/vigneto/js/potatura-page.js`. Il frutteto non è stato toccato. Gli import dinamici via `resolvePath` restano relativi all’URL della pagina. Il caricamento di Google Maps è rimasto nell’HTML.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-03 — Concimazioni frutteto: script di pagina nel file del modulo.**
 
 ## 2026-10-03 — Concimazioni frutteto: comportamento fuori dall’HTML
 
