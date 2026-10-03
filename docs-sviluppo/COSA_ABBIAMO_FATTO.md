@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-03 — Potatura frutteto: script di pagina nel file del modulo.**
+**Ultimo aggiornamento documentazione: 2026-10-03 — Raccolta frutteto: script di pagina nel file del modulo.**
+
+## 2026-10-03 — Raccolta frutteto: comportamento fuori dall’HTML
+
+La pagina raccolta del frutteto segue lo stesso schema dei trattamenti: l’HTML in `views/` resta la struttura, il comportamento sta in `modules/frutteto/js/raccolta-page.js`. Il vigneto non è stato toccato. Gli import statici sono relativi al file del modulo; quelli dinamici via `resolvePath` restano relativi all’URL della pagina. Il caricamento di Google Maps è rimasto nell’HTML.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-03 — Potatura frutteto: script di pagina nel file del modulo.**
 
 ## 2026-10-03 — Potatura frutteto: comportamento fuori dall’HTML
 
