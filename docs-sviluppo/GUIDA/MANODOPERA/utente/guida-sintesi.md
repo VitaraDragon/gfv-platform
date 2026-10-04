@@ -19,6 +19,7 @@ Modulo **Manodopera** attivo nell’**abbonamento**. Linguaggio utente: **versio
 - **Operaio:** **versione mobile** — Lavoro, Ore, Statistiche; **non** Diario manageriale; **non** valida ore altrui; ore da **Segna ore**; dettaglio lavoro in iframe.  
 - **Zone lavorate** (dettaglio lavoro): di default **due punti** inizio/fine sul perimetro del terreno (se confini già in Terreni); altrimenti **disegno a mano**. Larghezza macchina = calcolo superficie, non modo di disegno.  
 - **Push** (Impostazioni → Notifiche): comunicazioni, lavoro assegnato, conferme mancanti, ore da validare, lavoro da approvare/sospeso, assenza oggi; distinto dai promemoria Tony in app. WhatsApp solo escalation assenza (opzionale).
+- **Pieno in campo** (versione mobile operaio/caposquadra): scheda **⛽ Pieno** compare nella scheda **Ore** sotto il form **Segna ore**, solo se lavoro ha **mezzo** (trattore, non solo attrezzo) + Magazzino attivo + prodotti carburante in anagrafica. Registra pieno direttamente dal telefono: scegli carburante (gasolio/benzina), litri, data opzionale → **Registra pieno** → movimento uscita magazzino con origine `pieno` + `macchinaId` dal lavoro; giacenza prodotto carburante **diminuisce**. Se non compare: lavoro senza mezzo, niente Magazzino attivo, o niente prodotti carburante in anagrafica.
 
 ## Tony / dati
 

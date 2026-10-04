@@ -16,6 +16,17 @@ Modulo tenant: tipicamente `vigneto` (minuscolo; verificare `tenant.modules`).
 | Pianifica impianto | `pianifica-impianto-standalone.html` (query `coltura=vigneto` dai link dashboard) |
 | Calcolo materiali | `calcolo-materiali-standalone.html` |
 
+
+
+## Page JS (dopo extract in modulo)
+
+Logica pagina e wiring Tony (`currentTableData` / form) vivono in `modules/vigneto/js/` (non più in shared monolitico per queste viste):
+
+- `trattamenti-page.js`
+- `concimazioni-page.js`
+- `potatura-page.js`
+
+Trattamenti vigneto/frutteto condividono meccanica in `shared/js/trattamenti-coltura-page.js`.
 ## pageType / Tony liste
 
 - **`vendemmia`** — `vendemmia-standalone.html` aggiorna `window.currentTableData` ed emette `table-data-ready`.

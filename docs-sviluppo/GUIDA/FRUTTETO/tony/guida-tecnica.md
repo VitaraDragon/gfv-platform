@@ -14,6 +14,17 @@ Modulo tenant: tipicamente `frutteto` (minuscolo; verificare `tenant.modules`).
 | Concimazioni | `concimazioni-standalone.html` |
 | Statistiche | `frutteto-statistiche-standalone.html` |
 
+
+
+## Page JS (dopo extract in modulo)
+
+Logica pagina e wiring Tony (`currentTableData` / form) vivono in `modules/frutteto/js/` (non più in shared monolitico per queste viste):
+
+- `trattamenti-page.js`
+- `concimazioni-page.js`
+- `potatura-page.js`
+
+Trattamenti vigneto/frutteto condividono meccanica in `shared/js/trattamenti-coltura-page.js`.
 ## Pianificazione e calcolo materiali (condivisi con Vigneto)
 
 - `../../vigneto/views/pianifica-impianto-standalone.html?coltura=frutteto`
