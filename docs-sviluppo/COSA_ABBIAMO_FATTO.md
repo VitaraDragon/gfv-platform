@@ -8,6 +8,14 @@ La pagina raccolta del frutteto segue lo stesso schema dei trattamenti: l’HTML
 
 ---
 
+**Ultimo aggiornamento precedente: 2026-10-03 — Vendemmia vigneto: script di pagina nel file del modulo.**
+
+## 2026-10-03 — Vendemmia vigneto: comportamento fuori dall’HTML
+
+La pagina vendemmia del vigneto segue lo stesso schema dei trattamenti: l’HTML in `views/` resta la struttura, il comportamento sta in `modules/vigneto/js/vendemmia-page.js`. Il frutteto non è stato toccato. Gli import statici sono relativi al file del modulo; quelli dinamici via `resolvePath` restano relativi all’URL della pagina. Il caricamento di Google Maps è rimasto nell’HTML.
+
+---
+
 **Ultimo aggiornamento precedente: 2026-10-03 — Potatura frutteto: script di pagina nel file del modulo.**
 
 ## 2026-10-03 — Potatura frutteto: comportamento fuori dall’HTML
