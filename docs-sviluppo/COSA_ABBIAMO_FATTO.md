@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-03 — Potatura frutteto: script di pagina nel file del modulo.**
+**Ultimo aggiornamento documentazione: 2026-10-04 — Anagrafica vigneti: script di pagina nel file del modulo.**
+
+## 2026-10-04 — Anagrafica vigneti: comportamento fuori dall’HTML
+
+La pagina anagrafica dei vigneti segue lo stesso schema dei trattamenti: l’HTML in `views/` resta la struttura, il comportamento sta in `modules/vigneto/js/vigneti-page.js`. Il frutteto non è stato toccato. Gli import statici sono relativi al file del modulo; quelli dinamici via `resolvePath` restano relativi all’URL della pagina.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-03 — Potatura frutteto: script di pagina nel file del modulo.**
 
 ## 2026-10-03 — Potatura frutteto: comportamento fuori dall’HTML
 
