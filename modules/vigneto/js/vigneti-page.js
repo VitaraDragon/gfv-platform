@@ -1,0 +1,1169 @@
+/**
+ * Pagina Anagrafica vigneti.
+ * L'HTML in views/ resta la struttura; qui c'è il comportamento.
+ * Gli import dinamici via resolvePath restano relativi all'URL della pagina.
+ * @module modules/vigneto/js/vigneti-page
+ */
+
+import { resolvePath } from '../../../core/js/gfv-path.js';
+import { getAllVigneti, createVigneto, updateVigneto, deleteVigneto } from '../services/vigneti-service.js';
+
+try {
+    await window.GFVStandaloneReady;
+} catch (err) {
+    console.error('[vigneti] Bootstrap failed:', err);
+    throw err;
+}
+import { getFormeAllevamentoList } from '../config/forme-allevamento.js';
+
+// Import servizio ricalcolo spese
+let ricalcolaSpeseVignetoAnno = null;
+let lavoriVignetoServiceLoaded = false;
+
+// Carica servizio in modo asincrono per gestire errori
+import('../services/lavori-vigneto-service.js').then(module => {
+    ricalcolaSpeseVignetoAnno = module.ricalcolaSpeseVignetoAnno;
+    lavoriVignetoServiceLoaded = true;
+}).catch(error => {
+    console.error('[VIGNETI] Errore import lavori-vigneto-service:', error);
+});
+
+// Import dinamici dei servizi core con risoluzione percorsi per GitHub Pages
+const terreniServiceModule = await import(resolvePath('../../../core/services/terreni-service.js'));
+const firebaseServiceModule = await import(resolvePath('../../../core/services/firebase-service.js'));
+const tenantServiceModule = await import(resolvePath('../../../core/services/tenant-service.js'));
+const authServiceModule = await import(resolvePath('../../../core/services/auth-service.js'));
+
+const { getAllTerreni } = terreniServiceModule;
+const { getAuthInstance, getDb, onAuthStateChanged, getDoc, doc, collection, getDocs } = firebaseServiceModule;
+const { resolveAuthUser, loginPageUrl } = await import('../../../core/js/simulator-standalone-page.js');
+const { getCurrentTenantId, getCurrentTenant, initializeTenantService } = tenantServiceModule;
+const { initializeAuthService } = authServiceModule;
+
+// Inizializzazione
+let vigneti = [];
+let allVigneti = []; // Tutti i vigneti (senza filtri)
+let terreni = [];
+let currentEditingId = null;
+
+// Liste predefinite
+const VARIETA_PREDEFINITE = [
+    // Varietà italiane rosse
+    'Sangiovese', 'Nebbiolo', 'Barbera', 'Montepulciano', 'Primitivo', 'Nero d\'Avola',
+    'Aglianico', 'Corvina', 'Negroamaro', 'Dolcetto', 'Cannonau', 'Ciliegiolo',
+    'Lagrein', 'Teroldego', 'Refosco', 'Raboso', 'Schiava', 'Marzemino',
+    // Varietà italiane bianche
+    'Trebbiano', 'Pinot Grigio', 'Chardonnay', 'Sauvignon Blanc', 'Vermentino',
+    'Fiano', 'Grechetto', 'Garganega', 'Cortese', 'Verdicchio', 'Pecorino',
+    'Falanghina', 'Glera', 'Moscato', 'Malvasia', 'Gewürztraminer', 'Riesling',
+    // Varietà internazionali
+    'Cabernet Sauvignon', 'Merlot', 'Syrah', 'Pinot Noir', 'Cabernet Franc',
+    'Grenache', 'Tempranillo', 'Zinfandel', 'Malbec', 'Carménère', 'Viognier',
+    'Sémillon', 'Chenin Blanc', 'Albariño', 'Pinot Bianco', 'Müller-Thurgau'
+];
+
+const PORTAINNESTO_PREDEFINITI = [
+    '1103P', 'SO4', '140Ru', '110R', 'Kober 5BB', '420A', '41B', '3309C',
+    '101-14', '161-49', 'Riparia Gloire', 'MGT 101-14', 'MGT 161-49',
+    'MGT 3309C', 'MGT 420A', 'MGT 5BB', 'MGT 1103P', 'MGT 110R',
+    'Selvatico', 'Franco di piede', 'Rupestris du Lot', 'Berlandieri x Riparia'
+];
+
+// Usa lista centralizzata da config/forme-allevamento.js
+// FORME_ALLEVAMENTO_PREDEFINITE è ora ottenuta da getFormeAllevamentoList()
+
+const TIPI_PALO_PREDEFINITI = [
+    'Cemento', 'Cemento armato', 'Ferro', 'Acciaio', 'Acciaio zincato',
+    'Ferro zincato a caldo', 'Ferro zincato a freddo',
+    'Legno', 'Legno trattato', 'Plastica', 'Fibra di vetro', 'PVC',
+    'Bambù', 'Alluminio', 'Misto cemento-ferro'
+];
+
+// Carica valori personalizzati da localStorage
+function loadCustomValues() {
+    return {
+        varieta: JSON.parse(localStorage.getItem('vigneto_varieta_custom') || '[]'),
+        portainnesto: JSON.parse(localStorage.getItem('vigneto_portainnesto_custom') || '[]'),
+        formaAllevamento: JSON.parse(localStorage.getItem('vigneto_forma_allevamento_custom') || '[]'),
+        tipoPalo: JSON.parse(localStorage.getItem('vigneto_tipo_palo_custom') || '[]')
+    };
+}
+
+// Salva valori personalizzati in localStorage
+function saveCustomValue(type, value) {
+    const key = `vigneto_${type}_custom`;
+    const current = JSON.parse(localStorage.getItem(key) || '[]');
+    if (!current.includes(value)) {
+        current.push(value);
+        localStorage.setItem(key, JSON.stringify(current));
+    }
+}
+
+// Popola dropdown
+function populateDropdown(selectId, predefiniti, customKey) {
+    const select = document.getElementById(selectId);
+    if (!select) return;
+    
+    const custom = loadCustomValues();
+    const customValues = custom[customKey] || [];
+    const allValues = [...predefiniti, ...customValues].sort();
+    
+    // Mantieni solo la prima opzione (placeholder)
+    const firstOption = select.querySelector('option');
+    select.innerHTML = '';
+    if (firstOption) {
+        select.appendChild(firstOption);
+    }
+    
+    allValues.forEach(value => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = value;
+        select.appendChild(option);
+    });
+}
+
+// Funzioni per aprire modali
+window.openAddVarietaModal = function() {
+    document.getElementById('add-varieta-modal').classList.add('active');
+    setTimeout(() => document.getElementById('new-varieta').focus(), 100);
+};
+
+window.openAddPortainnestoModal = function() {
+    document.getElementById('add-portainnesto-modal').classList.add('active');
+    setTimeout(() => document.getElementById('new-portainnesto').focus(), 100);
+};
+
+window.openAddFormaAllevamentoModal = function() {
+    document.getElementById('add-forma-allevamento-modal').classList.add('active');
+    setTimeout(() => document.getElementById('new-forma-allevamento').focus(), 100);
+};
+
+window.openAddTipoPaloModal = function() {
+    document.getElementById('add-tipo-palo-modal').classList.add('active');
+    setTimeout(() => document.getElementById('new-tipo-palo').focus(), 100);
+};
+
+// Funzioni per chiudere modali
+window.closeAddModal = function(modalId) {
+    document.getElementById(modalId).classList.remove('active');
+    const form = document.querySelector(`#${modalId} form`);
+    if (form) form.reset();
+};
+
+// Funzioni per aggiungere nuovi valori
+window.addNewVarieta = function(e) {
+    e.preventDefault();
+    const value = document.getElementById('new-varieta').value.trim();
+    if (value) {
+        saveCustomValue('varieta', value);
+        populateDropdown('varieta', VARIETA_PREDEFINITE, 'varieta');
+        document.getElementById('varieta').value = value;
+        closeAddModal('add-varieta-modal');
+    }
+};
+
+window.addNewPortainnesto = function(e) {
+    e.preventDefault();
+    const value = document.getElementById('new-portainnesto').value.trim();
+    if (value) {
+        saveCustomValue('portainnesto', value);
+        populateDropdown('portainnesto', PORTAINNESTO_PREDEFINITI, 'portainnesto');
+        document.getElementById('portainnesto').value = value;
+        closeAddModal('add-portainnesto-modal');
+    }
+};
+
+window.addNewFormaAllevamento = function(e) {
+    e.preventDefault();
+    const value = document.getElementById('new-forma-allevamento').value.trim();
+    if (value) {
+        saveCustomValue('formaAllevamento', value);
+        populateDropdown('formaAllevamento', getFormeAllevamentoList(), 'formaAllevamento');
+        document.getElementById('formaAllevamento').value = value;
+        closeAddModal('add-forma-allevamento-modal');
+    }
+};
+
+window.addNewTipoPalo = function(e) {
+    e.preventDefault();
+    const value = document.getElementById('new-tipo-palo').value.trim();
+    if (value) {
+        saveCustomValue('tipoPalo', value);
+        populateDropdown('tipoPalo', TIPI_PALO_PREDEFINITI, 'tipoPalo');
+        document.getElementById('tipoPalo').value = value;
+        closeAddModal('add-tipo-palo-modal');
+    }
+};
+
+async function init() {
+    try {
+        const auth = getAuthInstance();
+        const db = getDb();
+        
+        // 2. Inizializza servizi
+        initializeAuthService();
+        initializeTenantService();
+        
+        // 3. Verifica autenticazione con onAuthStateChanged
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
+            if (!user) {
+                window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
+                return;
+            }
+            
+            try {
+                // Carica dati utente
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                if (!userDoc.exists()) {
+                    window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
+                    return;
+                }
+                
+                const userData = userDoc.data();
+                
+                // 4. Verifica che il modulo vigneto sia attivo
+                const tenantId = getCurrentTenantId();
+                
+                if (tenantId) {
+                    const tenant = await getCurrentTenant();
+                    const modules = Array.isArray(tenant?.modules) ? tenant.modules : [];
+                    
+                    // Inizializza context Tony con i moduli attivi usando helper
+                    if (window.Tony && window.Tony.initContextWithModules) {
+                        window.Tony.initContextWithModules(modules);
+                    } else {
+                        // Fallback se helper non disponibile (retry manuale)
+                        var initTonyContext = function(retries) {
+                            retries = retries || 0;
+                            if (window.Tony && typeof window.Tony.setContext === 'function') {
+                                window.Tony.setContext('dashboard', {
+                                    info_azienda: { moduli_attivi: modules },
+                                    moduli_attivi: modules
+                                });
+                                console.log('[Vigneti] Context Tony inizializzato con moduli:', modules);
+                            } else if (retries < 10) {
+                                setTimeout(function() { initTonyContext(retries + 1); }, 500);
+                            }
+                        };
+                        initTonyContext();
+                    }
+                    
+                    if (!modules.includes('vigneto')) {
+                        alert('Il modulo Vigneto non è attivo. Attivalo dalla pagina Abbonamento.');
+                        window.location.href = '../../../core/admin/abbonamento-standalone.html';
+                        return;
+                    }
+                }
+
+                // 5. Carica dati
+                await loadTerreni();
+                
+                // Popola dropdown con liste predefinite
+                populateDropdown('varieta', VARIETA_PREDEFINITE, 'varieta');
+                populateDropdown('portainnesto', PORTAINNESTO_PREDEFINITI, 'portainnesto');
+                populateDropdown('formaAllevamento', getFormeAllevamentoList(), 'formaAllevamento');
+                populateDropdown('tipoPalo', TIPI_PALO_PREDEFINITI, 'tipoPalo');
+                
+                await loadVigneti();
+                
+                // Ricalcolo automatico delle spese in background (non blocca l'interfaccia)
+                ricalcolaSpeseAutomatico();
+                
+                // Gestione parametri URL: apri modal se terrenoId o vignetoId presente
+                const urlParams = new URLSearchParams(window.location.search);
+                const terrenoIdParam = urlParams.get('terrenoId');
+                const vignetoIdParam = urlParams.get('vignetoId');
+                
+                if (vignetoIdParam) {
+                    // Apri modal modifica vigneto esistente
+                    const vigneto = vigneti.find(v => v.id === vignetoIdParam);
+                    if (vigneto) {
+                        editVigneto(vignetoIdParam);
+                    }
+                } else if (terrenoIdParam) {
+                    // Verifica se esiste già un vigneto per questo terreno
+                    const vignetoEsistente = vigneti.find(v => v.terrenoId === terrenoIdParam);
+                    if (vignetoEsistente) {
+                        // Apri modal modifica vigneto esistente
+                        editVigneto(vignetoEsistente.id);
+                    } else {
+                        // Apri modal creazione nuovo vigneto con terreno pre-selezionato
+                        document.getElementById('vigneto-modal').classList.add('active');
+                        document.getElementById('vigneto-id').value = '';
+                        currentEditingId = null;
+                        
+                        // Pre-seleziona terreno
+                        const terrenoSelect = document.getElementById('terrenoId');
+                        if (terrenoSelect) {
+                            terrenoSelect.value = terrenoIdParam;
+                            // Trigger evento change per precompilare superficie
+                            terrenoSelect.dispatchEvent(new Event('change'));
+                        }
+                    }
+                }
+            } catch (error) {
+                console.error('[VIGNETI] Errore in onAuthStateChanged:', error);
+                console.error('[VIGNETI] Stack:', error.stack);
+                alert('Errore nel caricamento dei dati: ' + error.message);
+            }
+        });
+    } catch (error) {
+        console.error('[VIGNETI] Errore inizializzazione:', error);
+        console.error('[VIGNETI] Stack:', error.stack);
+        alert('Errore nel caricamento dei dati: ' + error.message);
+    }
+}
+
+async function loadTerreni() {
+    try {
+        terreni = await getAllTerreni();
+        const terrenoSelect = document.getElementById('terrenoId');
+        const filterTerreno = document.getElementById('filter-terreno');
+        
+        // Filtra solo terreni con coltura "Vite"
+        const terreniVite = terreni.filter(t => t.coltura && t.coltura.toLowerCase().includes('vite'));
+        
+        terrenoSelect.innerHTML = '<option value="">Seleziona terreno</option>';
+        filterTerreno.innerHTML = '<option value="">Tutti i terreni</option>';
+        
+        terreniVite.forEach(terreno => {
+            const option = `<option value="${terreno.id}">${terreno.nome}</option>`;
+            terrenoSelect.innerHTML += option;
+            filterTerreno.innerHTML += option;
+        });
+    } catch (error) {
+        console.error('Errore caricamento terreni:', error);
+    }
+}
+
+async function loadVigneti() {
+    try {
+        document.getElementById('loading').style.display = 'block';
+        document.getElementById('vigneti-table').style.display = 'none';
+        document.getElementById('empty-state').style.display = 'none';
+
+
+        allVigneti = await getAllVigneti();
+        // Popola filtro varietà con tutte le varietà disponibili
+        const varietaSet = new Set(allVigneti.map(v => v.varieta).filter(Boolean));
+        const filterVarieta = document.getElementById('filter-varieta');
+        if (filterVarieta) {
+            filterVarieta.innerHTML = '<option value="">Tutte le varietà</option>';
+            varietaSet.forEach(varieta => {
+                filterVarieta.innerHTML += `<option value="${varieta}">${varieta}</option>`;
+            });
+        }
+        // Applica filtri (o mostra tutti se nessun filtro attivo)
+        applyFilters();
+    } catch (error) {
+        console.error('Errore caricamento vigneti:', error);
+        alert('Errore nel caricamento dei vigneti: ' + error.message);
+    } finally {
+        document.getElementById('loading').style.display = 'none';
+    }
+}
+
+function checkRetrocompatibilita() {
+    // Filtra terreni con coltura che contiene "vite" (case insensitive)
+    const terreniVite = terreni.filter(t => {
+        const coltura = (t.coltura || '').toLowerCase();
+        return coltura.includes('vite') || coltura.includes('vigneto');
+    });
+    
+    if (terreniVite.length > 0) {
+        const message = terreniVite.length === 1 
+            ? `Hai 1 terreno con coltura "Vite". Vuoi creare l'anagrafica vigneto per completare i dati tecnici?`
+            : `Hai ${terreniVite.length} terreni con coltura "Vite". Vuoi creare l'anagrafica vigneti per completare i dati tecnici?`;
+        
+        document.getElementById('retrocompatibilita-message').textContent = message;
+        document.getElementById('retrocompatibilita-banner').style.display = 'block';
+        
+        // Nascondi empty-state quando mostri il banner
+        document.getElementById('empty-state').style.display = 'none';
+    } else {
+        document.getElementById('retrocompatibilita-banner').style.display = 'none';
+    }
+}
+
+function renderVigneti() {
+    const tbody = document.getElementById('vigneti-tbody');
+    tbody.innerHTML = '';
+
+    if (vigneti.length === 0) {
+        // Controlla retrocompatibilità: terreni con coltura "Vite"
+        checkRetrocompatibilita();
+        // Mostra empty-state solo se non ci sono terreni con vite
+        if (document.getElementById('retrocompatibilita-banner').style.display === 'none') {
+            document.getElementById('empty-state').style.display = 'block';
+        }
+        return;
+    }
+    
+    // Nascondi banner retrocompatibilità se ci sono vigneti
+    document.getElementById('retrocompatibilita-banner').style.display = 'none';
+
+    document.getElementById('vigneti-table').style.display = 'table';
+
+    vigneti.forEach(vigneto => {
+        const terreno = terreni.find(t => t.id === vigneto.terrenoId);
+        const row = `
+            <tr>
+                <td><strong>${vigneto.varieta || '-'}</strong></td>
+                <td>${terreno ? terreno.nome : '-'}</td>
+                <td>${vigneto.superficieEttari ? vigneto.superficieEttari.toFixed(2) : '-'}</td>
+                <td>${vigneto.annataImpianto || '-'}</td>
+                <td>${vigneto.produzioneTotaleAnno ? vigneto.produzioneTotaleAnno.toFixed(2) : '0.00'}</td>
+                <td>${vigneto.resaMediaQliHa ? vigneto.resaMediaQliHa.toFixed(2) : '-'}</td>
+                <td>${vigneto.costoTotaleAnno ? vigneto.costoTotaleAnno.toFixed(2) : '0.00'}</td>
+                <td>
+                    <span class="badge ${getStatoBadgeClass(vigneto.statoImpianto)}">
+                        ${getStatoLabel(vigneto.statoImpianto)}
+                    </span>
+                </td>
+                <td>
+                    <button class="btn btn-sm btn-secondary" onclick="showDettaglioSpese('${vigneto.id}', '${vigneto.varieta || 'Vigneto'}')" title="Vedi dettaglio spese">
+                        📊 Dettaglio
+                    </button>
+                </td>
+                <td class="actions-cell">
+                    <button class="btn btn-sm btn-primary" onclick="editVigneto('${vigneto.id}')">✏️ Modifica</button>
+                    <button class="btn btn-sm btn-danger" onclick="deleteVignetoConfirm('${vigneto.id}')">🗑️ Elimina</button>
+                </td>
+            </tr>
+        `;
+        tbody.innerHTML += row;
+    });
+}
+
+function getStatoBadgeClass(stato) {
+    const classes = {
+        'attivo': 'badge-success',
+        'in_riposo': 'badge-warning',
+        'da_rimuovere': 'badge-danger'
+    };
+    return classes[stato] || 'badge-secondary';
+}
+
+function getStatoLabel(stato) {
+    const labels = {
+        'attivo': 'Attivo',
+        'in_riposo': 'In riposo',
+        'da_rimuovere': 'Da rimuovere'
+    };
+    return labels[stato] || stato;
+}
+
+window.openCreateModal = function() {
+    currentEditingId = null;
+    document.getElementById('modal-title').textContent = 'Nuovo Vigneto';
+    document.getElementById('vigneto-form').reset();
+    document.getElementById('vigneto-id').value = '';
+    
+    // Reset flag auto-filled per tipo impianto
+    const tipoImpiantoSelect = document.getElementById('tipoImpianto');
+    if (tipoImpiantoSelect) {
+        tipoImpiantoSelect.dataset.autoFilled = 'false';
+    }
+    
+    // Ripopola dropdown quando si apre il modal
+    populateDropdown('varieta', VARIETA_PREDEFINITE, 'varieta');
+    populateDropdown('portainnesto', PORTAINNESTO_PREDEFINITI, 'portainnesto');
+    populateDropdown('formaAllevamento', getFormeAllevamentoList(), 'formaAllevamento');
+    populateDropdown('tipoPalo', TIPI_PALO_PREDEFINITI, 'tipoPalo');
+    
+    document.getElementById('vigneto-modal').classList.add('active');
+};
+
+window.closeModal = function() {
+    document.getElementById('vigneto-modal').classList.remove('active');
+    currentEditingId = null;
+};
+
+window.editVigneto = async function(vignetoId) {
+    try {
+        const vigneto = vigneti.find(v => v.id === vignetoId);
+        if (!vigneto) return;
+
+        currentEditingId = vignetoId;
+        document.getElementById('modal-title').textContent = 'Modifica Vigneto';
+        document.getElementById('vigneto-id').value = vignetoId;
+
+        // Ripopola dropdown prima di impostare i valori
+        populateDropdown('varieta', VARIETA_PREDEFINITE, 'varieta');
+        populateDropdown('portainnesto', PORTAINNESTO_PREDEFINITI, 'portainnesto');
+        populateDropdown('formaAllevamento', getFormeAllevamentoList(), 'formaAllevamento');
+        populateDropdown('tipoPalo', TIPI_PALO_PREDEFINITI, 'tipoPalo');
+
+        // Popola form
+        document.getElementById('terrenoId').value = vigneto.terrenoId || '';
+        document.getElementById('varieta').value = vigneto.varieta || '';
+        document.getElementById('annataImpianto').value = vigneto.annataImpianto || '';
+        document.getElementById('portainnesto').value = vigneto.portainnesto || '';
+        document.getElementById('formaAllevamento').value = vigneto.formaAllevamento || '';
+        document.getElementById('superficieEttari').value = vigneto.superficieEttari || '';
+        document.getElementById('distanzaFile').value = vigneto.distanzaFile || '';
+        document.getElementById('distanzaUnita').value = vigneto.distanzaUnita || '';
+        document.getElementById('tipoPalo').value = vigneto.tipoPalo || '';
+        document.getElementById('destinazioneUva').value = vigneto.destinazioneUva || '';
+        document.getElementById('orientamentoFilari').value = vigneto.orientamentoFilari || '';
+        document.getElementById('cantina').value = vigneto.cantina || '';
+        document.getElementById('note').value = vigneto.note || '';
+        
+        // Imposta tipo impianto se presente (non precompilato automaticamente in modifica)
+        const tipoImpiantoSelect = document.getElementById('tipoImpianto');
+        if (vigneto.tipoImpianto) {
+            tipoImpiantoSelect.value = vigneto.tipoImpianto;
+            tipoImpiantoSelect.dataset.autoFilled = 'false'; // Valore salvato, non auto-filled
+        } else {
+            tipoImpiantoSelect.value = '';
+            tipoImpiantoSelect.dataset.autoFilled = 'false';
+        }
+        
+        // Calcola densità dopo aver impostato distanze (e tipo impianto se non presente)
+        setTimeout(() => {
+            calcolaDensita();
+            // Se non c'era tipo impianto salvato, viene precompilato automaticamente
+            if (!vigneto.tipoImpianto) {
+                tipoImpiantoSelect.dataset.autoFilled = 'true';
+            }
+        }, 100);
+
+        document.getElementById('vigneto-modal').classList.add('active');
+    } catch (error) {
+        console.error('Errore modifica vigneto:', error);
+        alert('Errore nel caricamento del vigneto: ' + error.message);
+    }
+};
+
+window.deleteVignetoConfirm = function(vignetoId) {
+    if (confirm('Sei sicuro di voler eliminare questo vigneto?')) {
+        deleteVignetoAction(vignetoId);
+    }
+};
+
+async function deleteVignetoAction(vignetoId) {
+    try {
+        await deleteVigneto(vignetoId);
+        await loadVigneti();
+        alert('Vigneto eliminato con successo');
+    } catch (error) {
+        console.error('Errore eliminazione vigneto:', error);
+        alert('Errore nell\'eliminazione: ' + error.message);
+    }
+}
+
+window.applyFilters = function() {
+    const filterTerreno = document.getElementById('filter-terreno')?.value || '';
+    const filterVarieta = document.getElementById('filter-varieta')?.value || '';
+    const filterStato = document.getElementById('filter-stato')?.value || '';
+    
+    // Filtra vigneti
+    vigneti = allVigneti.filter(vigneto => {
+        // Filtro terreno
+        if (filterTerreno && vigneto.terrenoId !== filterTerreno) {
+            return false;
+        }
+        
+        // Filtro varietà
+        if (filterVarieta && vigneto.varieta !== filterVarieta) {
+            return false;
+        }
+        
+        // Filtro stato
+        if (filterStato && vigneto.statoImpianto !== filterStato) {
+            return false;
+        }
+        
+        return true;
+    });
+    
+    // Renderizza vigneti filtrati
+    renderVigneti();
+};
+
+window.resetFilters = function() {
+    document.getElementById('filter-terreno').value = '';
+    document.getElementById('filter-varieta').value = '';
+    document.getElementById('filter-stato').value = '';
+    applyFilters();
+};
+
+// Funzione per ricalcolo automatico in background (senza alert, senza bloccare UI)
+async function ricalcolaSpeseAutomatico() {
+    try {
+        // Verifica che il servizio sia caricato
+        if (!lavoriVignetoServiceLoaded || !ricalcolaSpeseVignetoAnno) {
+            return;
+        }
+
+        const annoCorrente = new Date().getFullYear();
+        const vignetiList = await getAllVigneti();
+        
+        if (vignetiList.length === 0) {
+            return;
+        }
+        
+        // Ricalcola in background senza bloccare l'interfaccia
+        // Non mostriamo alert o messaggi per non disturbare l'utente
+        let completati = 0;
+        let errori = 0;
+
+        for (const vigneto of vignetiList) {
+            try {
+                await ricalcolaSpeseVignetoAnno(vigneto.id, annoCorrente);
+                completati++;
+            } catch (error) {
+                console.error(`[VIGNETI] Errore ricalcolo automatico vigneto ${vigneto.id}:`, error);
+                errori++;
+            }
+        }
+        
+        // Ricarica la lista solo se ci sono stati aggiornamenti
+        if (completati > 0) {
+            // Ricarica in modo silenzioso (senza mostrare loading)
+            await loadVigneti();
+        }
+    } catch (error) {
+        console.error('[VIGNETI] Errore ricalcolo automatico spese:', error);
+        // Non mostriamo alert per non disturbare l'utente
+    }
+}
+
+// Funzione per ricalcolare le spese di tutti i vigneti (manuale, con conferma)
+window.ricalcolaSpeseTuttiVigneti = async function(event) {
+    if (!lavoriVignetoServiceLoaded || !ricalcolaSpeseVignetoAnno) {
+        alert('Servizio ricalcolo spese non ancora caricato. Attendi qualche secondo e riprova.');
+        console.error('[VIGNETI] Servizio non disponibile');
+        return;
+    }
+    
+    if (!confirm('Vuoi ricalcolare le spese di tutti i vigneti basandoti sui lavori completati?\n\nQuesta operazione potrebbe richiedere alcuni secondi.')) {
+        return;
+    }
+
+    try {
+        const annoCorrente = new Date().getFullYear();
+        const vignetiList = await getAllVigneti();
+        
+        if (vignetiList.length === 0) {
+            alert('Nessun vigneto trovato');
+            return;
+        }
+
+        // Mostra indicatore di caricamento
+        const loadingMsg = `Ricalcolo in corso... (0/${vignetiList.length})`;
+        const originalBtn = event?.target || document.querySelector('button[onclick*="ricalcolaSpeseTuttiVigneti"]');
+        if (!originalBtn) {
+            console.error('[VIGNETI] Pulsante non trovato!');
+            alert('Errore: pulsante non trovato');
+            return;
+        }
+        
+        const originalText = originalBtn.textContent;
+        originalBtn.disabled = true;
+        originalBtn.textContent = loadingMsg;
+
+        let completati = 0;
+        let errori = 0;
+
+        // Ricalcola ogni vigneto
+        for (const vigneto of vignetiList) {
+            try {
+                await ricalcolaSpeseVignetoAnno(vigneto.id, annoCorrente);
+                completati++;
+                originalBtn.textContent = `Ricalcolo in corso... (${completati}/${vignetiList.length})`;
+            } catch (error) {
+                console.error(`[VIGNETI] Errore ricalcolo vigneto ${vigneto.id}:`, error);
+                errori++;
+            }
+        }
+
+        // Ripristina pulsante
+        originalBtn.disabled = false;
+        originalBtn.textContent = originalText;
+
+        // Mostra risultato
+        if (errori === 0) {
+            alert(`✅ Ricalcolo completato con successo!\n\n${completati} vigneti aggiornati per l'anno ${annoCorrente}.`);
+        } else {
+            alert(`⚠️ Ricalcolo completato con alcuni errori.\n\n✅ ${completati} vigneti aggiornati\n❌ ${errori} errori`);
+        }
+
+        // Ricarica la lista per mostrare i dati aggiornati
+        await loadVigneti();
+    } catch (error) {
+        console.error('[VIGNETI] Errore ricalcolo spese:', error);
+        console.error('[VIGNETI] Stack:', error.stack);
+        alert('Errore durante il ricalcolo: ' + error.message);
+        
+        // Ripristina pulsante in caso di errore
+        const originalBtn = event?.target || document.querySelector('button[onclick*="ricalcolaSpeseTuttiVigneti"]');
+        if (originalBtn) {
+            originalBtn.disabled = false;
+            originalBtn.textContent = '🔄 Ricalcola Spese';
+        }
+    }
+};
+
+// Gestione form
+document.getElementById('vigneto-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    try {
+        const formData = {
+            terrenoId: document.getElementById('terrenoId').value,
+            varieta: document.getElementById('varieta').value,
+            annataImpianto: parseInt(document.getElementById('annataImpianto').value),
+            portainnesto: document.getElementById('portainnesto').value || null,
+            formaAllevamento: document.getElementById('formaAllevamento').value,
+            densita: parseFloat(document.getElementById('densita').value),
+            superficieEttari: parseFloat(document.getElementById('superficieEttari').value),
+            distanzaFile: parseFloat(document.getElementById('distanzaFile').value),
+            distanzaUnita: parseFloat(document.getElementById('distanzaUnita').value),
+            tipoPalo: document.getElementById('tipoPalo').value,
+            destinazioneUva: document.getElementById('destinazioneUva').value,
+            tipoImpianto: document.getElementById('tipoImpianto').value || null,
+            orientamentoFilari: document.getElementById('orientamentoFilari').value || null,
+            cantina: document.getElementById('cantina').value || null,
+            note: document.getElementById('note').value || ''
+        };
+
+        if (currentEditingId) {
+            await updateVigneto(currentEditingId, formData);
+            alert('Vigneto aggiornato con successo');
+        } else {
+            await createVigneto(formData);
+            alert('Vigneto creato con successo');
+        }
+
+        closeModal();
+        await loadVigneti();
+    } catch (error) {
+        console.error('Errore salvataggio vigneto:', error);
+        alert('Errore nel salvataggio: ' + error.message);
+    }
+});
+
+// Chiudi modal cliccando fuori
+document.getElementById('vigneto-modal').addEventListener('click', (e) => {
+    if (e.target.id === 'vigneto-modal') {
+        closeModal();
+    }
+});
+
+// Chiudi modali aggiungi valori cliccando fuori
+['add-varieta-modal', 'add-portainnesto-modal', 'add-forma-allevamento-modal', 'add-tipo-palo-modal'].forEach(modalId => {
+    const modal = document.getElementById(modalId);
+    if (modal) {
+        modal.addEventListener('click', (e) => {
+            if (e.target.id === modalId || e.target.classList.contains('modal')) {
+                closeAddModal(modalId);
+            }
+        });
+    }
+});
+
+// Calcolo automatico densità ceppi e tipo impianto
+function calcolaDensita() {
+    const distanzaFile = parseFloat(document.getElementById('distanzaFile').value);
+    const distanzaCeppi = parseFloat(document.getElementById('distanzaUnita').value);
+    const densitaInput = document.getElementById('densita');
+    const tipoImpiantoSelect = document.getElementById('tipoImpianto');
+    
+    if (distanzaFile > 0 && distanzaCeppi > 0) {
+        // Formula: 10.000 m² (1 ettaro) / (distanza file × distanza ceppi)
+        const densita = 10000 / (distanzaFile * distanzaCeppi);
+        const densitaArrotondata = Math.round(densita * 100) / 100; // Arrotonda a 2 decimali
+        densitaInput.value = densitaArrotondata;
+        
+        // Precompila tipo impianto in base alla densità
+        if (tipoImpiantoSelect) {
+            // Salva il valore precedente per verificare se era stato selezionato manualmente
+            const valorePrecedente = tipoImpiantoSelect.value;
+            
+            // Determina tipo impianto in base alla densità
+            let nuovoTipoImpianto = '';
+            if (densitaArrotondata < 3000) {
+                nuovoTipoImpianto = 'tradizionale';
+            } else if (densitaArrotondata >= 3000 && densitaArrotondata <= 6000) {
+                nuovoTipoImpianto = 'intensivo';
+            } else if (densitaArrotondata > 6000) {
+                nuovoTipoImpianto = 'superintensivo';
+            }
+            
+            // Aggiorna solo se:
+            // 1. Non c'era un valore precedente (prima volta)
+            // 2. Il valore precedente era stato precompilato automaticamente (autoFilled)
+            // 3. Il nuovo valore è diverso e coerente con la densità
+            if (!valorePrecedente || tipoImpiantoSelect.dataset.autoFilled === 'true') {
+                tipoImpiantoSelect.value = nuovoTipoImpianto;
+                tipoImpiantoSelect.dataset.autoFilled = 'true';
+            } else if (nuovoTipoImpianto && nuovoTipoImpianto !== valorePrecedente) {
+                // Se il valore manuale non corrisponde alla densità, aggiorna comunque
+                // ma segna come auto-filled per permettere override futuro
+                tipoImpiantoSelect.value = nuovoTipoImpianto;
+                tipoImpiantoSelect.dataset.autoFilled = 'true';
+            }
+        }
+    } else {
+        densitaInput.value = '';
+        // Se le distanze non sono valide, resetta tipo impianto solo se era stato precompilato automaticamente
+        if (tipoImpiantoSelect && tipoImpiantoSelect.dataset.autoFilled === 'true') {
+            tipoImpiantoSelect.value = '';
+            tipoImpiantoSelect.dataset.autoFilled = 'false';
+        }
+    }
+}
+
+// Listener per calcolo automatico densità
+document.getElementById('distanzaFile').addEventListener('input', calcolaDensita);
+document.getElementById('distanzaUnita').addEventListener('input', calcolaDensita);
+
+// Listener per tipo impianto: se modificato manualmente, non sovrascrivere più
+document.getElementById('tipoImpianto').addEventListener('change', function() {
+    if (this.value) {
+        // Se l'utente seleziona manualmente, segna come non auto-filled
+        this.dataset.autoFilled = 'false';
+    }
+});
+
+// Listener per caricare superficie dal terreno selezionato
+document.getElementById('terrenoId').addEventListener('change', function() {
+    const terrenoId = this.value;
+    const superficieInput = document.getElementById('superficieEttari');
+    
+    if (terrenoId) {
+        const terreno = terreni.find(t => t.id === terrenoId);
+        if (terreno) {
+            // Se il terreno ha una superficie, la inseriamo automaticamente
+            if (terreno.superficie && terreno.superficie > 0) {
+                superficieInput.value = parseFloat(terreno.superficie).toFixed(2);
+            } else {
+                // Se non c'è superficie, svuota il campo per permettere inserimento manuale
+                superficieInput.value = '';
+            }
+        }
+    } else {
+        // Se nessun terreno selezionato, svuota il campo
+        superficieInput.value = '';
+    }
+});
+
+// Listener per pulsanti retrocompatibilità
+document.getElementById('crea-vigneti-da-terreni-btn').addEventListener('click', () => {
+    // Apri il modal per creare il primo vigneto
+    document.getElementById('vigneto-form').reset();
+    currentEditingId = null;
+    document.getElementById('vigneto-modal').classList.add('active');
+});
+
+document.getElementById('ignora-suggerimento-btn').addEventListener('click', () => {
+    document.getElementById('retrocompatibilita-banner').style.display = 'none';
+    document.getElementById('empty-state').style.display = 'block';
+});
+
+// Variabile globale per memorizzare vignetoId corrente nel modal dettaglio
+let currentDettaglioVignetoId = null;
+
+// Funzione per mostrare modal dettaglio spese
+window.showDettaglioSpese = function(vignetoId, vignetoNome) {
+    currentDettaglioVignetoId = vignetoId;
+    document.getElementById('dettaglio-spese-title').textContent = `📊 Dettaglio Spese - ${vignetoNome}`;
+    
+    // Popola dropdown anno (ultimi 5 anni + anno corrente)
+    const annoSelect = document.getElementById('dettaglio-spese-anno');
+    const annoCorrente = new Date().getFullYear();
+    annoSelect.innerHTML = '';
+    for (let i = 0; i < 6; i++) {
+        const anno = annoCorrente - i;
+        const option = document.createElement('option');
+        option.value = anno;
+        option.textContent = anno;
+        if (i === 0) option.selected = true;
+        annoSelect.appendChild(option);
+    }
+    
+    // Mostra modal e carica dettagli
+    document.getElementById('dettaglio-spese-modal').classList.add('active');
+    loadDettaglioSpese();
+};
+
+// Funzione per chiudere modal dettaglio spese
+window.closeDettaglioSpeseModal = function() {
+    document.getElementById('dettaglio-spese-modal').classList.remove('active');
+    currentDettaglioVignetoId = null;
+};
+
+// Funzione per caricare e mostrare dettagli spese
+window.loadDettaglioSpese = async function() {
+    if (!currentDettaglioVignetoId) return;
+    
+    const anno = parseInt(document.getElementById('dettaglio-spese-anno').value);
+    const loadingDiv = document.getElementById('dettaglio-spese-loading');
+    const bodyDiv = document.getElementById('dettaglio-spese-body');
+    
+    loadingDiv.style.display = 'block';
+    bodyDiv.style.display = 'none';
+    
+    try {
+        const { getDettaglioSpeseVignetoAnno } = await import('../services/lavori-vigneto-service.js');
+        const dettaglio = await getDettaglioSpeseVignetoAnno(currentDettaglioVignetoId, anno);
+        
+        // Renderizza dettagli
+        renderDettaglioSpese(dettaglio);
+        
+        loadingDiv.style.display = 'none';
+        bodyDiv.style.display = 'block';
+    } catch (error) {
+        console.error('[VIGNETI] Errore caricamento dettaglio spese:', error);
+        loadingDiv.innerHTML = `<div style="color: red; padding: 20px;">Errore nel caricamento dei dettagli: ${error.message}</div>`;
+    }
+};
+
+// Cambio anno: ricarica automaticamente i dettagli spese (senza dover cliccare "Aggiorna")
+document.getElementById('dettaglio-spese-anno').addEventListener('change', function() {
+    if (currentDettaglioVignetoId) loadDettaglioSpese();
+});
+
+// Funzione per renderizzare i dettagli spese
+function renderDettaglioSpese(dettaglio) {
+    const bodyDiv = document.getElementById('dettaglio-spese-body');
+    
+    // Calcola totali manodopera per sotto-categoria (dinamico, basato sulle categorie trovate)
+    const manodoperaTotale = dettaglio.totaliPerCategoria.speseManodoperaAnno || 0;
+    
+    // Estrai tutte le sotto-categorie manodopera dinamicamente
+    const sottoCategorieManodopera = [];
+    Object.keys(dettaglio.totaliPerCategoria).forEach(key => {
+      if (key.startsWith('manodopera') && !key.endsWith('_nome') && key !== 'speseManodoperaAnno') {
+        const valore = dettaglio.totaliPerCategoria[key] || 0;
+        if (valore > 0) {
+          const nomeCategoria = dettaglio.totaliPerCategoria[`${key}_nome`] || key.replace('manodopera', '').replace(/([A-Z])/g, ' $1').trim();
+          sottoCategorieManodopera.push({
+            chiave: key,
+            nome: nomeCategoria,
+            valore: valore
+          });
+        }
+      }
+    });
+    
+    // Ordina per valore decrescente
+    sottoCategorieManodopera.sort((a, b) => b.valore - a.valore);
+    
+    let html = `<div style="margin-bottom: 30px;">
+        <h3 style="color: #6A1B9A; margin-bottom: 15px;">Riepilogo Anno ${dettaglio.anno}</h3>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-bottom: 20px;">
+            <div style="background: linear-gradient(135deg, #6A1B9A 0%, #4A148C 100%); color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">Totale Generale</div>
+                <div style="font-size: 28px; font-weight: bold;">€ ${dettaglio.totaleGenerale.toFixed(2)}</div>
+            </div>
+        </div>
+    </div>`;
+    
+    // Sezione Manodopera (macro-categoria con sotto-categorie dinamiche)
+    html += `<div style="margin-bottom: 30px;">
+        <h4 style="color: #4A148C; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+            <span>👥</span>
+            <span>Manodopera</span>
+            <span style="font-size: 14px; font-weight: normal; color: #666;">(Totale: € ${manodoperaTotale.toFixed(2)})</span>
+        </h4>
+        <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; border-left: 4px solid #28a745; margin-bottom: 15px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">`;
+    
+    // Colori per categorie (mappa per categoria comune)
+    const coloriCategorie = {
+        'Potatura': { bordo: '#ffc107', testo: '#856404' },
+        'Raccolta': { bordo: '#dc3545', testo: '#721c24' },
+        'Vendemmia': { bordo: '#dc3545', testo: '#721c24' },
+        'Trattamenti': { bordo: '#17a2b8', testo: '#0c5460' },
+        'Lavorazione del Terreno': { bordo: '#6c757d', testo: '#383d41' },
+        'Gestione del Verde': { bordo: '#28a745', testo: '#155724' },
+        'Diserbo': { bordo: '#20c997', testo: '#0c5460' },
+        'Semina e Piantagione': { bordo: '#fd7e14', testo: '#856404' },
+        'Trasporto': { bordo: '#6f42c1', testo: '#383d41' },
+        'Manutenzione': { bordo: '#e83e8c', testo: '#721c24' }
+    };
+    
+    // Sotto-categorie manodopera (dinamiche, basate sulle categorie trovate)
+    if (sottoCategorieManodopera.length > 0) {
+        sottoCategorieManodopera.forEach(categoria => {
+            const colori = coloriCategorie[categoria.nome] || { bordo: '#6c757d', testo: '#383d41' };
+            html += `<div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid ${colori.bordo};">
+                <div style="font-size: 11px; color: #666; margin-bottom: 3px;">${categoria.nome}</div>
+                <div style="font-size: 18px; font-weight: bold; color: ${colori.testo};">€ ${categoria.valore.toFixed(2)}</div>
+            </div>`;
+        });
+    } else {
+        html += `<div style="background: white; padding: 12px; border-radius: 6px; border-left: 3px solid #6c757d;">
+            <div style="font-size: 11px; color: #666; margin-bottom: 3px;">Nessuna attività registrata</div>
+            <div style="font-size: 14px; color: #999;">€ 0.00</div>
+        </div>`;
+    }
+    
+    html += `</div></div></div>`;
+    
+    // Sezione Macchine
+    const macchineTotale = dettaglio.totaliPerCategoria.speseMacchineAnno || 0;
+    if (macchineTotale > 0) {
+        html += `<div style="margin-bottom: 30px;">
+            <h4 style="color: #4A148C; margin-bottom: 15px; display: flex; align-items: center; gap: 10px;">
+                <span>🚜</span>
+                <span>Macchine</span>
+            </h4>
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #6c757d;">
+                <div style="font-size: 20px; font-weight: bold; color: #383d41;">€ ${macchineTotale.toFixed(2)}</div>
+            </div>
+        </div>`;
+    }
+    
+    // Sezione Lavori Completati
+    if (dettaglio.lavoriCompletati.length > 0) {
+        html += `<div style="margin-bottom: 30px;">
+            <h4 style="color: #4A148C; margin-bottom: 15px;">✅ Lavori Completati (${dettaglio.lavoriCompletati.length})</h4>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden;">
+                    <thead>
+                        <tr style="background: #6A1B9A; color: white;">
+                            <th style="padding: 12px; text-align: left;">Data</th>
+                            <th style="padding: 12px; text-align: left;">Nome Lavoro</th>
+                            <th style="padding: 12px; text-align: left;">Tipo</th>
+                            <th style="padding: 12px; text-align: left;">Categoria</th>
+                            <th style="padding: 12px; text-align: right;">Costo Manodopera</th>
+                            <th style="padding: 12px; text-align: right;">Costo Macchine</th>
+                            <th style="padding: 12px; text-align: right;">Totale</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+        
+        dettaglio.lavoriCompletati.forEach(lavoro => {
+            const categoriaNome = lavoro.categoriaNome || lavoro.categoria || '-';
+            html += `<tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 10px;">${lavoro.dataInizio || '-'}</td>
+                <td style="padding: 10px;"><strong>${lavoro.nome}</strong></td>
+                <td style="padding: 10px;">${lavoro.tipoLavoro}</td>
+                <td style="padding: 10px;"><span style="background: #e9ecef; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${categoriaNome}</span></td>
+                <td style="padding: 10px; text-align: right;">€ ${lavoro.costoManodopera.toFixed(2)}</td>
+                <td style="padding: 10px; text-align: right;">€ ${lavoro.costoMacchine.toFixed(2)}</td>
+                <td style="padding: 10px; text-align: right; font-weight: bold;">€ ${lavoro.costoTotale.toFixed(2)}</td>
+            </tr>`;
+        });
+        
+        html += `</tbody></table></div></div>`;
+    }
+    
+    // Sezione Attività Dirette
+    if (dettaglio.attivitaDirette.length > 0) {
+        html += `<div style="margin-bottom: 30px;">
+            <h4 style="color: #4A148C; margin-bottom: 15px;">📝 Attività Dirette del Diario (${dettaglio.attivitaDirette.length})</h4>
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden;">
+                    <thead>
+                        <tr style="background: #6A1B9A; color: white;">
+                            <th style="padding: 12px; text-align: left;">Data</th>
+                            <th style="padding: 12px; text-align: left;">Tipo Lavoro</th>
+                            <th style="padding: 12px; text-align: left;">Categoria</th>
+                            <th style="padding: 12px; text-align: right;">Ore</th>
+                            <th style="padding: 12px; text-align: right;">Costo Manodopera</th>
+                            <th style="padding: 12px; text-align: right;">Costo Macchine</th>
+                            <th style="padding: 12px; text-align: right;">Totale</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+        dettaglio.attivitaDirette.forEach(attivita => {
+            const costoMacchine = attivita.costoMacchine || 0;
+            const totale = (attivita.costoManodopera || 0) + costoMacchine;
+            const categoriaNome = attivita.categoriaNome || attivita.categoria || '-';
+            html += `<tr style="border-bottom: 1px solid #eee;">
+                <td style="padding: 10px;">${attivita.data}</td>
+                <td style="padding: 10px;">${attivita.tipoLavoro}</td>
+                <td style="padding: 10px;"><span style="background: #e9ecef; padding: 4px 8px; border-radius: 4px; font-size: 12px;">${categoriaNome}</span></td>
+                <td style="padding: 10px; text-align: right;">${attivita.oreNette.toFixed(2)} h</td>
+                <td style="padding: 10px; text-align: right;">€ ${attivita.costoManodopera.toFixed(2)}</td>
+                <td style="padding: 10px; text-align: right;">€ ${costoMacchine.toFixed(2)}</td>
+                <td style="padding: 10px; text-align: right; font-weight: bold;">€ ${totale.toFixed(2)}</td>
+            </tr>`;
+        });
+        
+        html += `</tbody></table></div></div>`;
+    }
+    
+    // Sezione Spese Manuali (Cantina e Altro) - solo se presenti
+    if ((dettaglio.totaliPerCategoria.speseCantinaAnno || 0) > 0 || (dettaglio.totaliPerCategoria.speseAltroAnno || 0) > 0) {
+        html += `<div style="margin-bottom: 30px;">
+            <h4 style="color: #4A148C; margin-bottom: 15px;">💰 Spese Manuali</h4>
+            <div style="background: #fff3cd; padding: 15px; border-radius: 8px; border-left: 4px solid #ffc107;">
+                <p style="margin: 0; color: #856404; font-size: 14px;">
+                    <strong>Nota:</strong> Queste spese sono inserite manualmente nel vigneto e non provengono da lavori o attività del diario.
+                </p>
+            </div>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px; margin-top: 15px;">
+                ${(dettaglio.totaliPerCategoria.speseCantinaAnno || 0) > 0 ? `
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #9c27b0;">
+                    <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Cantina</div>
+                    <div style="font-size: 20px; font-weight: bold;">€ ${dettaglio.totaliPerCategoria.speseCantinaAnno.toFixed(2)}</div>
+                </div>
+                ` : ''}
+                ${(dettaglio.totaliPerCategoria.speseAltroAnno || 0) > 0 ? `
+                <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #6c757d;">
+                    <div style="font-size: 12px; color: #666; margin-bottom: 5px;">Altro</div>
+                    <div style="font-size: 20px; font-weight: bold;">€ ${dettaglio.totaliPerCategoria.speseAltroAnno.toFixed(2)}</div>
+                </div>
+                ` : ''}
+            </div>
+        </div>`;
+    }
+    
+    // Sezione Totali per Categoria (macro-categorie)
+    html += `<div style="margin-bottom: 30px;">
+        <h4 style="color: #4A148C; margin-bottom: 15px;">📊 Totali per Categoria</h4>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 15px;">
+            <div style="background: linear-gradient(135deg, #28a745 0%, #20c997 100%); color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">👥 Manodopera</div>
+                <div style="font-size: 24px; font-weight: bold;">€ ${manodoperaTotale.toFixed(2)}</div>
+                <div style="font-size: 11px; opacity: 0.8; margin-top: 5px; line-height: 1.6;">
+                    ${sottoCategorieManodopera.map(cat => `${cat.nome}: €${cat.valore.toFixed(2)}`).join(' • ')}
+                </div>
+            </div>
+            <div style="background: linear-gradient(135deg, #0056b3 0%, #007bff 100%); color: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <div style="font-size: 12px; opacity: 0.9; margin-bottom: 5px;">🚜 Macchine</div>
+                <div style="font-size: 24px; font-weight: bold;">€ ${(dettaglio.totaliPerCategoria.speseMacchineAnno || 0).toFixed(2)}</div>
+            </div>
+            ${(dettaglio.totaliPerCategoria.speseProdottiAnno || 0) > 0 ? `
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #17a2b8;">
+                <div style="font-size: 12px; color: #666; margin-bottom: 5px;">🧪 Prodotti</div>
+                <div style="font-size: 20px; font-weight: bold;">€ ${dettaglio.totaliPerCategoria.speseProdottiAnno.toFixed(2)}</div>
+            </div>
+            ` : ''}
+            ${(dettaglio.totaliPerCategoria.speseCantinaAnno || 0) > 0 ? `
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #9c27b0;">
+                <div style="font-size: 12px; color: #666; margin-bottom: 5px;">🍷 Cantina</div>
+                <div style="font-size: 20px; font-weight: bold;">€ ${dettaglio.totaliPerCategoria.speseCantinaAnno.toFixed(2)}</div>
+            </div>
+            ` : ''}
+            ${(dettaglio.totaliPerCategoria.speseAltroAnno || 0) > 0 ? `
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #6c757d;">
+                <div style="font-size: 12px; color: #666; margin-bottom: 5px;">📦 Altro</div>
+                <div style="font-size: 20px; font-weight: bold;">€ ${dettaglio.totaliPerCategoria.speseAltroAnno.toFixed(2)}</div>
+            </div>
+            ` : ''}
+        </div>
+    </div>`;
+    
+    // Messaggio se non ci sono dati
+    if (dettaglio.lavoriCompletati.length === 0 && dettaglio.attivitaDirette.length === 0) {
+        html = `<div style="text-align: center; padding: 40px; color: #666;">
+            <div style="font-size: 48px; margin-bottom: 20px;">📊</div>
+            <h3>Nessun dato disponibile</h3>
+            <p>Non ci sono lavori completati o attività dirette per l'anno ${dettaglio.anno}</p>
+        </div>`;
+    }
+    
+    bodyDiv.innerHTML = html;
+}
+
+// Inizializza al caricamento
+init();
