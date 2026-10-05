@@ -24,6 +24,7 @@ import {
   tonyGetExecutedCommands,
   tonyGetLastReplyText,
   tonySendMessage,
+  tonySendMessageCrossPage,
   tonyWaitForReply,
   waitForTonyReady,
   waitForTonyReadyWithRetry,
@@ -31,6 +32,63 @@ import {
 } from '../helpers/tony-widget.js';
 
 const DEFAULT_START = '/core/dashboard-standalone.html';
+
+/**
+ * L'override deve vincere su un setContext tardivo del tenant (che ha Manodopera).
+ * @param {import('playwright-core').Page} page
+ * @param {string[]} mods
+ */
+async function applyModuliAttiviOverride(page, mods) {
+  await page.evaluate((list) => {
+    const modsNow = list.slice();
+    window.__gfvModuliAttiviE2eOverride = modsNow.slice();
+    try { sessionStorage.setItem('tony_moduli_attivi', JSON.stringify(modsNow)); } catch (e) { /* ignore */ }
+    window.__gfvModuliAttivi = modsNow.slice();
+    const tenant = window.__gfvTenantData;
+    if (tenant && typeof tenant === 'object') {
+      if (Array.isArray(tenant.modules)) {
+        tenant.modules.splice(0, tenant.modules.length, ...modsNow);
+      } else {
+        tenant.modules = modsNow.slice();
+      }
+    }
+    const tony = window.Tony;
+    const dash = (tony && tony.context && tony.context.dashboard) || {};
+    const info = Object.assign({}, dash.info_azienda || {}, { moduli_attivi: modsNow.slice() });
+    if (tony && typeof tony.setContext === 'function') {
+      tony.setContext('dashboard', Object.assign({}, dash, {
+        moduli_attivi: modsNow.slice(),
+        info_azienda: info
+      }));
+    } else if (tony && tony.context) {
+      tony.context.dashboard = Object.assign({}, dash, {
+        moduli_attivi: modsNow.slice(),
+        info_azienda: info
+      });
+    }
+    if (tony && tony.context) tony.context.moduli_attivi = modsNow.slice();
+    if (typeof window.setTonyContext === 'function') {
+      window.setTonyContext({ moduli_attivi: modsNow.slice() });
+    }
+  }, mods);
+}
+
+/**
+ * @param {import('playwright-core').Page} page
+ * @param {import('@playwright/test').Expect} expect
+ * @param {string[]} mods
+ */
+async function assertOverrideManodoperaOff(page, expect, mods) {
+  const wantsOff = !mods.some((m) => String(m).toLowerCase() === 'manodopera');
+  if (!wantsOff) return;
+  const has = await page.evaluate(() => {
+    if (typeof window.__tonyModuliAttiviIncludeManodopera === 'function') {
+      return window.__tonyModuliAttiviIncludeManodopera();
+    }
+    return null;
+  });
+  expect(has, 'hasManodopera sullo stesso path del client prima del send').toBe(false);
+}
 
 /**
  * @param {import('playwright-core').Page} page
@@ -131,6 +189,13 @@ export async function runMatrixScenario(page, expect, scenario) {
     );
   }
 
+  await page.evaluate(() => {
+    try { delete window.__gfvModuliAttiviE2eOverride; } catch (e) { /* ignore */ }
+  });
+  if (Array.isArray(scenario.moduliAttiviOverride)) {
+    await applyModuliAttiviOverride(page, scenario.moduliAttiviOverride);
+  }
+
   const urlBefore = page.url();
   const messages = Array.isArray(scenario.messages) ? scenario.messages : [];
   const turnExpects = Array.isArray(scenario.turnExpects) ? scenario.turnExpects : [];
@@ -139,6 +204,39 @@ export async function runMatrixScenario(page, expect, scenario) {
   if (messages.length === 0 && scenario.expect) {
     await openTonyPanel(page);
     await assertScenarioExpect(page, expect, scenario, { urlBefore });
+    return;
+  }
+
+  if (scenario.expect?.navigation?.immediate && messages.length) {
+    await page.addInitScript(() => {
+      window.tonyDashboardBriefingFired = true;
+      window.tonyMeteoBriefingFired = true;
+    });
+    const urlPart = String(scenario.expect.navigation.urlIncludes || '');
+    const navPattern = new RegExp(urlPart.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    for (let turnIndex = 0; turnIndex < messages.length; turnIndex++) {
+      if (Array.isArray(scenario.moduliAttiviOverride)) {
+        await applyModuliAttiviOverride(page, scenario.moduliAttiviOverride);
+        await assertOverrideManodoperaOff(page, expect, scenario.moduliAttiviOverride);
+      }
+      try {
+        await tonySendMessageCrossPage(page, messages[turnIndex], { navUrlPattern: navPattern });
+      } catch (err) {
+        if (!navPattern.test(page.url())) throw err;
+      }
+    }
+    await waitForTonyReady(page);
+    await openTonyPanel(page);
+    await page.waitForFunction(
+      () => {
+        const nodes = document.querySelectorAll('#tony-messages .tony-msg.tony');
+        return Array.from(nodes).some((node) => /porto/i.test(node.textContent || ''));
+      },
+      null,
+      { timeout: 20_000 }
+    );
+    const reply = await tonyGetLastReplyText(page);
+    await assertScenarioExpect(page, expect, scenario, { urlBefore, lastReply: reply });
     return;
   }
 

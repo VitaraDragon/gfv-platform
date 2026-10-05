@@ -108,6 +108,9 @@ export function hasActiveModule(moduliAttivi, moduleId) {
 
 export function getModuliAttiviFromTonyContext() {
   try {
+    if (typeof window !== 'undefined' && Array.isArray(window.__gfvModuliAttiviE2eOverride)) {
+      return window.__gfvModuliAttiviE2eOverride;
+    }
     var ctx = window.Tony && window.Tony.context;
     if (!ctx) {
       if (window.__gfvTenantData && Array.isArray(window.__gfvTenantData.modules)) {
