@@ -23,7 +23,7 @@
 
 **Carburante (2026-10-02, Fase 2):** stesso `movimento-form`. «È arrivato il gasolio, N litri» apre l'entrata `carico_cisterna`. «Ho fatto il pieno al T5, N litri» apre l'uscita con `mov-macchina` (un solo match, altrimenti si chiede). Le quote sui lavori non sono movimenti.
 
-**Lavoro fatto in campo (2026-10-05):** «o' fatto la vigna», «ho fatto la vigna», «ho finito il lavoro in vigna» non restano sulla pagina. Senza Manodopera: Diario. Con Manodopera: Gestione lavori, e la frase non dice Diario. Il comando parte subito (`APRI_PAGINA`), senza salvare e senza inventare appezzamento o tipo di lavoro. Se il modello manda ancora `OPEN_MODAL` attività con Manodopera attiva, il client apre Gestione lavori invece di ignorare il comando.
+**Lavoro fatto in campo (2026-10-05):** «o' fatto la vigna», «ho fatto la vigna», «ho finito il lavoro in vigna» non restano sulla pagina, solo se il messaggio corrente è proprio quella frase. Senza Manodopera: Diario. Con Manodopera: Gestione lavori, e la frase non dice Diario. Il comando parte subito (`APRI_PAGINA`), senza salvare e senza inventare appezzamento o tipo di lavoro. «quello grande» e un `OPEN_MODAL` attività su un altro turno non vengono riscritti. La lista moduli effettiva (anche l’override dello scenario) è la stessa per la scelta della pagina e per il gate.
 
 ---
 

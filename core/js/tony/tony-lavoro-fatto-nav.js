@@ -5,13 +5,14 @@
  * @module core/js/tony/tony-lavoro-fatto-nav
  */
 
+/** Frase intera, non un pezzo di un turno più lungo («… stamani», «quello grande»). */
 const LAVORO_FATTO_PATTERNS = [
-  /\b(?:ho|o')\s+fatto\s+la\s+vigna\b/,
-  /\bo\s+fatto\s+la\s+vigna\b/,
-  /\b(?:ho|o')\s+fatto\s+(?:il\s+)?lavoro\s+in\s+vigna\b/,
-  /\bfatto\s+(?:il\s+)?lavoro\s+in\s+vigna\b/,
-  /\b(?:ho|o')\s+finito(?:\s+il\s+lavoro)?\s+in\s+vigna\b/,
-  /\b(?:ho|o')\s+finito\s+la\s+vigna\b/
+  /^(?:ho|o')\s+fatto\s+la\s+vigna[.!?]?$/,
+  /^o\s+fatto\s+la\s+vigna[.!?]?$/,
+  /^(?:ho|o')\s+fatto\s+(?:il\s+)?lavoro\s+in\s+vigna[.!?]?$/,
+  /^fatto\s+(?:il\s+)?lavoro\s+in\s+vigna[.!?]?$/,
+  /^(?:ho|o')\s+finito(?:\s+il\s+lavoro)?\s+in\s+vigna[.!?]?$/,
+  /^(?:ho|o')\s+finito\s+la\s+vigna[.!?]?$/
 ];
 
 const DIARIO_TO_LAVORO_FIELDS = {
@@ -90,8 +91,9 @@ export function mapDiarioFieldsToLavoro(fields) {
 }
 
 /**
- * Se Manodopera è attiva e il testo promette il Diario per un lavoro già fatto
- * (o per OPEN_MODAL attività), la frase deve parlare di Gestione lavori.
+ * Riscrive «ti porto al diario» in Gestione lavori solo se il messaggio
+ * corrente è proprio un lavoro fatto in vigna. Un OPEN_MODAL attività
+ * su un altro turno (anfora, solo nome campo) non basta.
  * @param {string} speech
  * @param {string} userText
  * @param {object|null|undefined} command
@@ -102,11 +104,8 @@ export function mapDiarioFieldsToLavoro(fields) {
 export function alignLavoroFattoSpeech(speech, userText, command, hasManodopera, isFieldProfile) {
   const original = speech == null ? '' : String(speech);
   if (!hasManodopera || isFieldProfile) return original;
+  if (!isLavoroFattoInCampo(userText)) return original;
   if (!/\bdiario\b/i.test(original)) return original;
   if (!/\b(porto|andiamo|apro)\b/i.test(original)) return original;
-  const cmdType = command && String(command.type || '').toUpperCase();
-  const cmdId = command && String(command.id || command.target || '');
-  const attivitaModal = cmdType === 'OPEN_MODAL' && /attivita/i.test(cmdId);
-  if (!attivitaModal && !isLavoroFattoInCampo(userText)) return original;
   return 'Ti porto alla gestione lavori.';
 }

@@ -34,6 +34,63 @@ import {
 const DEFAULT_START = '/core/dashboard-standalone.html';
 
 /**
+ * L'override deve vincere su un setContext tardivo del tenant (che ha Manodopera).
+ * @param {import('playwright-core').Page} page
+ * @param {string[]} mods
+ */
+async function applyModuliAttiviOverride(page, mods) {
+  await page.evaluate((list) => {
+    const modsNow = list.slice();
+    window.__gfvModuliAttiviE2eOverride = modsNow.slice();
+    try { sessionStorage.setItem('tony_moduli_attivi', JSON.stringify(modsNow)); } catch (e) { /* ignore */ }
+    window.__gfvModuliAttivi = modsNow.slice();
+    const tenant = window.__gfvTenantData;
+    if (tenant && typeof tenant === 'object') {
+      if (Array.isArray(tenant.modules)) {
+        tenant.modules.splice(0, tenant.modules.length, ...modsNow);
+      } else {
+        tenant.modules = modsNow.slice();
+      }
+    }
+    const tony = window.Tony;
+    const dash = (tony && tony.context && tony.context.dashboard) || {};
+    const info = Object.assign({}, dash.info_azienda || {}, { moduli_attivi: modsNow.slice() });
+    if (tony && typeof tony.setContext === 'function') {
+      tony.setContext('dashboard', Object.assign({}, dash, {
+        moduli_attivi: modsNow.slice(),
+        info_azienda: info
+      }));
+    } else if (tony && tony.context) {
+      tony.context.dashboard = Object.assign({}, dash, {
+        moduli_attivi: modsNow.slice(),
+        info_azienda: info
+      });
+    }
+    if (tony && tony.context) tony.context.moduli_attivi = modsNow.slice();
+    if (typeof window.setTonyContext === 'function') {
+      window.setTonyContext({ moduli_attivi: modsNow.slice() });
+    }
+  }, mods);
+}
+
+/**
+ * @param {import('playwright-core').Page} page
+ * @param {import('@playwright/test').Expect} expect
+ * @param {string[]} mods
+ */
+async function assertOverrideManodoperaOff(page, expect, mods) {
+  const wantsOff = !mods.some((m) => String(m).toLowerCase() === 'manodopera');
+  if (!wantsOff) return;
+  const has = await page.evaluate(() => {
+    if (typeof window.__tonyModuliAttiviIncludeManodopera === 'function') {
+      return window.__tonyModuliAttiviIncludeManodopera();
+    }
+    return null;
+  });
+  expect(has, 'hasManodopera sullo stesso path del client prima del send').toBe(false);
+}
+
+/**
  * @param {import('playwright-core').Page} page
  * @param {import('@playwright/test').Expect} expect
  * @param {object} scenario
@@ -132,26 +189,11 @@ export async function runMatrixScenario(page, expect, scenario) {
     );
   }
 
+  await page.evaluate(() => {
+    try { delete window.__gfvModuliAttiviE2eOverride; } catch (e) { /* ignore */ }
+  });
   if (Array.isArray(scenario.moduliAttiviOverride)) {
-    await page.evaluate((mods) => {
-      const list = mods.slice();
-      try { sessionStorage.setItem('tony_moduli_attivi', JSON.stringify(list)); } catch (e) { /* ignore */ }
-      window.__gfvModuliAttivi = list;
-      if (window.__gfvTenantData && typeof window.__gfvTenantData === 'object') {
-        window.__gfvTenantData.modules = list.slice();
-      }
-      const tony = window.Tony;
-      const dash = (tony && tony.context && tony.context.dashboard) || {};
-      if (Array.isArray(dash.moduli_attivi)) {
-        dash.moduli_attivi.splice(0, dash.moduli_attivi.length, ...list);
-      } else if (tony && tony.context) {
-        tony.context.dashboard = Object.assign({}, dash, { moduli_attivi: list });
-      }
-      if (dash.info_azienda && typeof dash.info_azienda === 'object') {
-        dash.info_azienda.moduli_attivi = list.slice();
-      }
-      if (tony && tony.context) tony.context.moduli_attivi = list.slice();
-    }, scenario.moduliAttiviOverride);
+    await applyModuliAttiviOverride(page, scenario.moduliAttiviOverride);
   }
 
   const urlBefore = page.url();
@@ -173,6 +215,10 @@ export async function runMatrixScenario(page, expect, scenario) {
     const urlPart = String(scenario.expect.navigation.urlIncludes || '');
     const navPattern = new RegExp(urlPart.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
     for (let turnIndex = 0; turnIndex < messages.length; turnIndex++) {
+      if (Array.isArray(scenario.moduliAttiviOverride)) {
+        await applyModuliAttiviOverride(page, scenario.moduliAttiviOverride);
+        await assertOverrideManodoperaOff(page, expect, scenario.moduliAttiviOverride);
+      }
       try {
         await tonySendMessageCrossPage(page, messages[turnIndex], { navUrlPattern: navPattern });
       } catch (err) {

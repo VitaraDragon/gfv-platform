@@ -6,6 +6,8 @@
 
 «o' fatto la vigna» (e le frasi equivalenti) prometteva il Diario e restava sulla pagina di partenza: con Manodopera attiva il client scartava il comando. Ora la navigazione parte subito. Senza Manodopera si apre il Diario; con Manodopera si apre Gestione lavori e il testo non indica il Diario. Non si inventano appezzamento o tipo di lavoro, e non si salva da soli. Scenari gate `T-LAVORO-FATTO-001/002/003`. Nessun deploy di Cloud Functions.
 
+L’intercept vale solo se il messaggio corrente è per intero quella frase: «quello grande», «la vigna» da sola e «o' fatto la vigna stamani» restano al turno di contesto. La lista moduli dello scenario (senza Manodopera) è quella che leggono il gate e la scelta Diario, anche se il tenant arriva dopo.
+
 ---
 
 **Ultimo aggiornamento precedente: 2026-10-05 — Gate Manodopera / Diario su menu e ingressi.**

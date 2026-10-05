@@ -415,8 +415,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
     /** True se il tenant ha modulo Manodopera (Segna ore vs Diario attività). */
     function tonyModuliAttiviIncludeManodopera() {
         try {
-            var ctx = window.Tony && window.Tony.context;
-            var mods = ctx && (ctx.dashboard && ctx.dashboard.moduli_attivi || ctx.moduli_attivi || (ctx.info_azienda && ctx.info_azienda.moduli_attivi));
+            var mods = getModuliAttiviFromTonyContext();
+            if (!Array.isArray(mods) || mods.length === 0) {
+                if (Array.isArray(window.__gfvModuliAttivi) && window.__gfvModuliAttivi.length) {
+                    mods = window.__gfvModuliAttivi;
+                }
+            }
             if (!Array.isArray(mods) || mods.length === 0) {
                 try {
                     var st = sessionStorage.getItem('tony_moduli_attivi');
@@ -427,6 +431,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             return mods.some(function (m) { return String(m).toLowerCase() === 'manodopera'; });
         } catch (e) { return false; }
     }
+    try { window.__tonyModuliAttiviIncludeManodopera = tonyModuliAttiviIncludeManodopera; } catch (eManHook) { /* ignore */ }
 
     /** Mappa campi diario (attivita-*) su form Segna ora (ora-*) quando la CF emette ancora attivita-modal. */
     function tonyMapAttivitaFieldsToSegnaOra(fields) {

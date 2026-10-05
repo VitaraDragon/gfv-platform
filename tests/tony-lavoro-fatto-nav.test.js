@@ -9,6 +9,7 @@ import {
   mapDiarioFieldsToLavoro,
   alignLavoroFattoSpeech
 } from '../core/js/tony/tony-lavoro-fatto-nav.js';
+import { getModuliAttiviFromTonyContext } from '../core/config/tony-module-gate.js';
 
 describe('lavoro fatto in campo — destinazione', () => {
   test('dialetto e frasi equivalenti sono lo stesso intento', () => {
@@ -62,6 +63,48 @@ describe('lavoro fatto in campo — destinazione', () => {
     );
     expect(speech.toLowerCase()).toContain('gestione lavori');
     expect(speech.toLowerCase()).not.toContain('diario');
+  });
+
+  test('anfora e solo il nome del campo non sono un lavoro fatto', () => {
+    expect(isLavoroFattoInCampo('quello grande')).toBe(false);
+    expect(isLavoroFattoInCampo('la vigna')).toBe(false);
+    expect(isLavoroFattoInCampo("o' fatto la vigna stamani")).toBe(false);
+    expect(resolveLavoroFattoNav('quello grande', { hasManodopera: true })).toBe(null);
+    expect(resolveLavoroFattoNav('la vigna', { hasManodopera: false })).toBe(null);
+  });
+
+  test('un OPEN_MODAL attività su «quello grande» non diventa Gestione lavori', () => {
+    const speech = alignLavoroFattoSpeech(
+      'Ti porto al diario.',
+      'quello grande',
+      { type: 'OPEN_MODAL', id: 'attivita-modal' },
+      true,
+      false
+    );
+    expect(speech).toBe('Ti porto al diario.');
+    expect(speech.toLowerCase()).not.toContain('gestione lavori');
+  });
+
+  test('override senza Manodopera vince sul contesto tenant', () => {
+    const prev = globalThis.window;
+    globalThis.window = {
+      __gfvModuliAttiviE2eOverride: ['tony', 'vigneto', 'meteo', 'contoTerzi', 'magazzino', 'parcoMacchine'],
+      __gfvModuliAttivi: ['tony', 'manodopera'],
+      __gfvTenantData: { modules: ['tony', 'manodopera'] },
+      Tony: { context: { dashboard: { moduli_attivi: ['tony', 'manodopera'] } } }
+    };
+    try {
+      const mods = getModuliAttiviFromTonyContext();
+      expect(mods.some((m) => String(m).toLowerCase() === 'manodopera')).toBe(false);
+      const nav = resolveLavoroFattoNav("o' fatto la vigna", {
+        hasManodopera: mods.some((m) => String(m).toLowerCase() === 'manodopera')
+      });
+      expect(nav.target).toBe('attivita');
+      expect(nav.text.toLowerCase()).toContain('diario');
+    } finally {
+      if (prev === undefined) delete globalThis.window;
+      else globalThis.window = prev;
+    }
   });
 
   test('«portami al diario» resta il Diario', () => {
