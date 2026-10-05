@@ -20,9 +20,12 @@ Modulo tenant: tipicamente `frutteto` (minuscolo; verificare `tenant.modules`).
 
 Logica pagina e wiring Tony (`currentTableData` / form) vivono in `modules/frutteto/js/` (non più in shared monolitico per queste viste):
 
+- `raccolta-page.js` (raccolta frutta)
 - `trattamenti-page.js`
 - `concimazioni-page.js`
 - `potatura-page.js`
+
+Le view in `modules/frutteto/views/` restano struttura HTML (dove serve, Google Maps resta nell'HTML) e caricano il JS con `<script type="module" src="../js/<pagina>-page.js">`. Anagrafica frutteti e dashboard frutteto: ancora logica nella view su develop (extract anagrafica in PR aperta).
 
 Trattamenti vigneto/frutteto condividono meccanica in `shared/js/trattamenti-coltura-page.js`.
 ## Pianificazione e calcolo materiali (condivisi con Vigneto)
@@ -32,9 +35,9 @@ Trattamenti vigneto/frutteto condividono meccanica in `shared/js/trattamenti-col
 
 ## pageType / liste Tony
 
-- **`concimazioni_frutteto`** — `concimazioni-standalone.html` aggiorna `window.currentTableData` ed emette `table-data-ready`.
+- **`concimazioni_frutteto`** — `modules/frutteto/js/concimazioni-page.js` (caricato da `concimazioni-standalone.html`, che imposta solo il placeholder) aggiorna `window.currentTableData` ed emette `table-data-ready`.
 
-Altre pagine frutteto possono non esporre ancora `currentTableData` per Tony.
+Altre pagine frutteto (inclusa raccolta, `raccolta-page.js`) non espongono ancora `currentTableData` per Tony.
 
 ## Terreni (core) → modulo
 

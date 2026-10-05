@@ -22,15 +22,19 @@ Modulo tenant: tipicamente `vigneto` (minuscolo; verificare `tenant.modules`).
 
 Logica pagina e wiring Tony (`currentTableData` / form) vivono in `modules/vigneto/js/` (non più in shared monolitico per queste viste):
 
+- `vigneti-page.js` (anagrafica vigneti)
+- `vendemmia-page.js`
 - `trattamenti-page.js`
 - `concimazioni-page.js`
 - `potatura-page.js`
 
+Le view in `modules/vigneto/views/` restano struttura HTML (dove serve, Google Maps resta nell'HTML) e caricano il JS con `<script type="module" src="../js/<pagina>-page.js">`. Dashboard vigneto: ancora logica nella view (extract in PR aperta, non su develop).
+
 Trattamenti vigneto/frutteto condividono meccanica in `shared/js/trattamenti-coltura-page.js`.
 ## pageType / Tony liste
 
-- **`vendemmia`** — `vendemmia-standalone.html` aggiorna `window.currentTableData` ed emette `table-data-ready`.
-- **`concimazioni_vigneto`** — `concimazioni-standalone.html` (placeholder coerente canone liste).
+- **`vendemmia`** — `modules/vigneto/js/vendemmia-page.js` (caricato da `vendemmia-standalone.html`) aggiorna `window.currentTableData` ed emette `table-data-ready`.
+- **`concimazioni_vigneto`** — `modules/vigneto/js/concimazioni-page.js` imposta il placeholder e poi aggiorna `window.currentTableData` (canone liste).
 
 Altre pagine vigneto possono non esporre ancora `currentTableData`: non presumere items tabella su trattamenti/potatura/statistiche salvo implementazione futura.
 
