@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-05 — Cloud Functions su Node.js 24.**
+**Ultimo aggiornamento documentazione: 2026-10-05 — Gate Manodopera / Diario su menu e ingressi.**
+
+## 2026-10-05 — Gate Manodopera / Diario
+
+Senza Manodopera, Gestione lavori non compare nel menu e la pagina non è operativa: i lavori già salvati restano. Con Manodopera, il Diario è solo storico (niente nuova attività) e i link Conto Terzi, Vendemmia meccanica e «Registra nel diario» aprono Gestione lavori oppure si nascondono. Nessuna migrazione dati e nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-05 — Cloud Functions su Node.js 24.**
 
 ## 2026-10-05 — Cloud Functions: Node.js 24
 

@@ -60,13 +60,14 @@ export const PELLE_PATH_MODULES = [
 
 /**
  * Voci shell. `catalogId` legge etichetta e href da MODULE_CATALOG.
- * Home, Gestione lavori e Impostazioni non sono moduli a pagamento.
+ * Home e Impostazioni non sono moduli a pagamento.
+ * Gestione lavori segue Manodopera (`requireManodopera`): senza modulo non sta nel menu.
  * `optional` si nasconde se `moduliAttivi` è già noto e non contiene l'id.
  */
 export const PELLE_SHELL_ORDER = [
   { id: 'home', label: 'Home', hint: 'Tony e oggi', href: 'dashboard-standalone.html' },
   { catalogId: 'terreni', hint: 'Anagrafica e mappa' },
-  { id: 'lavori', label: 'Gestione lavori', hint: 'Lista e dettaglio', href: 'admin/gestione-lavori-standalone.html' },
+  { id: 'lavori', label: 'Gestione lavori', hint: 'Lista e dettaglio', href: 'admin/gestione-lavori-standalone.html', requireManodopera: true },
   { catalogId: 'vigneto', hint: 'Anagrafica e vendemmia', optional: true },
   { catalogId: 'frutteto', hint: 'Anagrafica e raccolta', optional: true },
   { catalogId: 'seminativo', hint: 'Campagne e raccolta', optional: true },
@@ -204,6 +205,7 @@ export function visibleShellEntries(catalog, moduliAttivi, order) {
       return;
     }
     if (!item.href || !item.label) return;
+    if (item.requireManodopera && active && active.indexOf('manodopera') < 0) return;
     out.push({
       id: item.id,
       label: item.label,

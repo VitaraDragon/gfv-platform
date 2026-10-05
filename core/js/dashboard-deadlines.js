@@ -439,8 +439,8 @@ export async function loadInArrivoWidget(dependencies, tenantId, opts) {
     try {
         const items = await fetchInArrivoItems(tenantId, opts, dependencies, opts.countsSnapshot);
         const mods = Array.isArray(opts.availableModules) ? opts.availableModules : [];
-        let footerHref = 'admin/gestione-lavori-standalone.html';
-        let footerLabel = 'Gestione lavori →';
+        let footerHref = 'attivita-standalone.html';
+        let footerLabel = 'Diario attività →';
         if (mods.includes('parcoMacchine')) {
             footerHref = '../modules/macchine/views/scadenze-list-standalone.html';
             footerLabel = 'Scadenze e manutenzioni mezzi →';

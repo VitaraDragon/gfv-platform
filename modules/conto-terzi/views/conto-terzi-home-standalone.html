@@ -205,11 +205,11 @@
                     <div class="stat-value" id="stat-clienti">-</div>
                     <div class="stat-label">Clienti Attivi</div>
                 </div>
-                <a href="../../../core/attivita-standalone.html?contoTerzi=true&stato=in_corso" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;" title="Clicca per vedere i lavori in corso">
+                <a data-gfv-registro="in_corso" href="../../../core/attivita-standalone.html?contoTerzi=true&stato=in_corso" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer;" title="Clicca per vedere i lavori in corso">
                     <div class="stat-value" id="stat-lavori">-</div>
                     <div class="stat-label">Lavori in Corso</div>
                 </a>
-                <a href="../../../core/attivita-standalone.html?contoTerzi=true&stato=completato" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer; background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border: 2px solid #4CAF50;" title="Clicca per vedere i lavori completati">
+                <a data-gfv-registro="completato" href="../../../core/attivita-standalone.html?contoTerzi=true&stato=completato" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer; background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border: 2px solid #4CAF50;" title="Clicca per vedere i lavori completati">
                     <div class="stat-value" id="stat-lavori-completati" style="color: #2E7D32;">-</div>
                     <div class="stat-label" style="color: #2E7D32;">✅ Lavori Completati</div>
                 </a>
@@ -221,7 +221,7 @@
                     <div class="stat-value" id="stat-terreni">-</div>
                     <div class="stat-label">Terreni Clienti</div>
                 </div>
-                <a href="../../../core/admin/gestione-lavori-standalone.html?stato=da_pianificare" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer; background: linear-gradient(135deg, #fff3cd 0%, #ffc107 100%); border: 2px solid #ffc107;" title="Clicca per vedere i lavori da pianificare">
+                <a data-gfv-registro="da_pianificare" href="../../../core/admin/gestione-lavori-standalone.html?stato=da_pianificare" class="stat-card" style="text-decoration: none; color: inherit; cursor: pointer; background: linear-gradient(135deg, #fff3cd 0%, #ffc107 100%); border: 2px solid #ffc107;" title="Clicca per vedere i lavori da pianificare">
                     <div class="stat-value" id="stat-lavori-da-pianificare" style="color: #856404;">-</div>
                     <div class="stat-label" style="color: #856404;">📝 Da Pianificare</div>
                 </a>
@@ -267,17 +267,17 @@
                     <span class="action-title" style="color: #6A1B9A;">Vendemmia Meccanica</span>
                     <span class="action-description" style="color: #666;">Piano stagione, calcolo compenso e bilancio servizio CT</span>
                 </a>
-                <a href="../../../core/admin/gestione-lavori-standalone.html?stato=da_pianificare" class="action-card">
+                <a data-gfv-registro="da_pianificare" href="../../../core/admin/gestione-lavori-standalone.html?stato=da_pianificare" class="action-card">
                     <span class="action-icon">📝</span>
                     <span class="action-title">Lavori da Pianificare</span>
                     <span class="action-description">Completa la pianificazione dei lavori creati da preventivi</span>
                 </a>
-                <a href="../../../core/attivita-standalone.html?contoTerzi=true&stato=in_corso" class="action-card" style="background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); border: 2px solid #1976D2;">
+                <a data-gfv-registro="in_corso" href="../../../core/attivita-standalone.html?contoTerzi=true&stato=in_corso" class="action-card" style="background: linear-gradient(135deg, #E3F2FD 0%, #BBDEFB 100%); border: 2px solid #1976D2;">
                     <span class="action-icon">🔄</span>
                     <span class="action-title" style="color: #1976D2;">Lavori in Corso</span>
                     <span class="action-description" style="color: #666;">Segna ore e macchine per lavori conto terzi</span>
                 </a>
-                <a href="../../../core/attivita-standalone.html?contoTerzi=true&stato=completato" class="action-card" style="background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border: 2px solid #4CAF50;">
+                <a data-gfv-registro="completato" href="../../../core/attivita-standalone.html?contoTerzi=true&stato=completato" class="action-card" style="background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%); border: 2px solid #4CAF50;">
                     <span class="action-icon">✅</span>
                     <span class="action-title" style="color: #2E7D32;">Lavori Completati</span>
                     <span class="action-description" style="color: #666;">Visualizza storico lavori conto terzi completati</span>
@@ -292,6 +292,7 @@
         import { setCurrentTenantId } from '../../../core/services/tenant-service.js';
         import { showAlert } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+        import { applyRegistroLavoriLinks, tenantHasManodopera } from '../../../core/config/manodopera-diario-gate.js';
 
         try {
             await window.GFVStandaloneReady;
@@ -338,6 +339,9 @@
                         try {
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                             const modules = tenantDoc.exists() ? (tenantDoc.data().modules || []) : [];
+                            const hasManodopera = tenantHasManodopera(modules);
+                            applyRegistroLavoriLinks(document, hasManodopera);
+                            document.body.dataset.gfvRegistro = hasManodopera ? 'lavori' : 'diario';
                             const vmCard = document.getElementById('card-vendemmia-meccanica');
                             if (vmCard && modules.includes('vendemmiaMeccanica')) {
                                 vmCard.style.display = '';
