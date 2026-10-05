@@ -8,6 +8,54 @@ La pagina di pianificazione del nuovo impianto segue lo stesso schema dei tratta
 
 ---
 
+**Ultimo aggiornamento precedente: 2026-10-05 — Calcolo materiali vigneto: script di pagina nel file del modulo.**
+
+## 2026-10-05 — Calcolo materiali vigneto: comportamento fuori dall’HTML
+
+La pagina calcolo materiali del vigneto segue lo stesso schema dei trattamenti: l’HTML in `views/` resta la struttura, il comportamento sta in `modules/vigneto/js/calcolo-materiali-page.js`. Il frutteto non è stato toccato. Lo script del tema e jsPDF restano nell’HTML. Gli import statici sono relativi al file del modulo; quelli dinamici via `resolvePath` restano relativi all’URL della pagina.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-05 — Statistiche frutteto: script di pagina nel file del modulo.**
+
+## 2026-10-05 — Statistiche frutteto: comportamento fuori dall’HTML
+
+La pagina statistiche del frutteto segue lo stesso schema dei trattamenti: l’HTML in `views/` resta la struttura, il comportamento sta in `modules/frutteto/js/frutteto-statistiche-page.js`. Il vigneto non è stato toccato. Chart.js resta nell’HTML. Gli import statici sono relativi al file del modulo; quelli dinamici via `resolvePath` restano relativi all’URL della pagina.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-05 — Statistiche vigneto: script di pagina nel file del modulo.**
+
+## 2026-10-05 — Statistiche vigneto: comportamento fuori dall’HTML
+
+La pagina statistiche del vigneto segue lo stesso schema dei trattamenti: l’HTML in `views/` resta la struttura, il comportamento sta in `modules/vigneto/js/vigneto-statistiche-page.js`. Il frutteto non è stato toccato. Chart.js resta nell’HTML. Gli import statici sono relativi al file del modulo; quelli dinamici via `resolvePath` restano relativi all’URL della pagina.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-05 — Dashboard frutteto: script di pagina nel file del modulo.**
+
+## 2026-10-05 — Dashboard frutteto: comportamento fuori dall’HTML
+
+La dashboard del frutteto segue lo stesso schema dei trattamenti: l’HTML in `views/` resta la struttura, il comportamento sta in `modules/frutteto/js/frutteto-dashboard-page.js`. Il vigneto non è stato toccato. Non ha un loader di Google Maps. Gli import statici sono relativi al file del modulo; quelli dinamici via `resolvePath` restano relativi all’URL della pagina.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-05 — Dashboard vigneto: script di pagina nel file del modulo.**
+
+## 2026-10-05 — Dashboard vigneto: comportamento fuori dall’HTML
+
+La dashboard del vigneto segue lo stesso schema dei trattamenti: l’HTML in `views/` resta la struttura, il comportamento sta in `modules/vigneto/js/vigneto-dashboard-page.js`. Il frutteto non è stato toccato. Non ha un loader di Google Maps. Gli import statici sono relativi al file del modulo; quelli dinamici via `resolvePath` restano relativi all’URL della pagina.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-05 — Anagrafica frutteto: script di pagina nel file del modulo.**
+
+## 2026-10-05 — Anagrafica frutteto: comportamento fuori dall’HTML
+
+La pagina anagrafica dei frutteti segue lo stesso schema dei trattamenti: l’HTML in `views/` resta la struttura, il comportamento sta in `modules/frutteto/js/frutteti-page.js`. Il vigneto non è stato toccato. Non ha un loader di Google Maps. Gli import statici sono relativi al file del modulo; quelli dinamici via `resolvePath` restano relativi all’URL della pagina.
+
+---
+
 **Ultimo aggiornamento precedente: 2026-10-04 — Anagrafica vigneti: script di pagina nel file del modulo.**
 
 ## 2026-10-04 — Anagrafica vigneti: comportamento fuori dall’HTML
