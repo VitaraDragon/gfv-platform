@@ -3,7 +3,7 @@
  * @module tests/e2e/tony/scenarios/run-matrix-scenario
  */
 
-import { assertScenarioExpect, assertTurnExpect } from '../helpers/assert-scenario-expect.mjs';
+import { assertScenarioExpect, assertTurnExpect, waitForScenarioFormFields } from '../helpers/assert-scenario-expect.mjs';
 import { simE2ePause } from '../../sim/helpers/sim-e2e-timeouts.mjs';
 import { activateTonyMockCf, installTonyMockCf } from '../helpers/tony-mock-cf.js';
 import {
@@ -159,6 +159,7 @@ export async function runMatrixScenario(page, expect, scenario) {
     await captureTonyScenarioPerf(page, lastPerf);
     if (turnExpects[turnIndex]) {
       assertTurnExpect(expect, reply, turnExpects[turnIndex]);
+      await waitForScenarioFormFields(page, turnExpects[turnIndex]);
     }
     if (scenario.id === 'T-DENY-001') {
       await page.waitForFunction(

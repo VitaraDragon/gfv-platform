@@ -198,6 +198,10 @@ export async function assertScenarioExpect(page, expect, scenario, ctx = {}) {
     }
   }
 
+  if (exp.formFieldEquals || exp.formFieldIncludes || exp.injectPayloadEquals) {
+    await waitForScenarioFormFields(page, exp);
+  }
+
   if (exp.navigation) {
     const urlNow = page.url();
     if (exp.navigation.urlIncludes) {
@@ -217,6 +221,54 @@ export async function assertScenarioExpect(page, expect, scenario, ctx = {}) {
  * @param {string} reply
  * @param {object} [turnExpect]
  */
+/**
+ * Attende che il form movimento (o l'ultimo inject) abbia i valori del turno.
+ * `formFieldEquals` è uguaglianza sul value DOM. `formFieldIncludes` è sottostringa.
+ * `injectPayloadEquals` legge `window.__tonyMagazzinoLastInject.formData`.
+ * @param {import('playwright-core').Page} page
+ * @param {object} [spec]
+ */
+export async function waitForScenarioFormFields(page, spec) {
+  if (!spec) return;
+  const equals = spec.formFieldEquals || null;
+  const includes = spec.formFieldIncludes || null;
+  const payload = spec.injectPayloadEquals || null;
+  if (!equals && !includes && !payload) return;
+  await page.waitForFunction(
+    ({ eq, inc, pay }) => {
+      function read(id) {
+        const el = document.getElementById(id);
+        if (!el) return '';
+        return el.value != null ? String(el.value) : '';
+      }
+      if (eq) {
+        const keys = Object.keys(eq);
+        for (let i = 0; i < keys.length; i++) {
+          if (read(keys[i]) !== String(eq[keys[i]])) return false;
+        }
+      }
+      if (inc) {
+        const keys = Object.keys(inc);
+        for (let i = 0; i < keys.length; i++) {
+          if (read(keys[i]).toLowerCase().indexOf(String(inc[keys[i]]).toLowerCase()) < 0) return false;
+        }
+      }
+      if (pay) {
+        const inj = window.__tonyMagazzinoLastInject;
+        const fd = inj && inj.formData;
+        if (!fd) return false;
+        const keys = Object.keys(pay);
+        for (let i = 0; i < keys.length; i++) {
+          if (String(fd[keys[i]] == null ? '' : fd[keys[i]]) !== String(pay[keys[i]])) return false;
+        }
+      }
+      return true;
+    },
+    { eq: equals, inc: includes, pay: payload },
+    { timeout: 20000 }
+  );
+}
+
 export function assertTurnExpect(expect, reply, turnExpect) {
   if (!turnExpect) return;
   const low = String(reply || '').toLowerCase();

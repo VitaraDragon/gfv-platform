@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-05 — Cambio lavoro: campo e ore non passano al turno dopo.**
+**Ultimo aggiornamento documentazione: 2026-10-05 — Pieno dopo carico: la quantità è quella del messaggio, non della cisterna.**
+
+## 2026-10-05 — Pieno in campo dopo un carico cisterna
+
+Se il form del carico è già aperto e l’utente dice un pieno (o il contrario, o passa a un’attività), Tony non riusa quantità, tipo, prodotto e mezzo del gesto precedente. Il pieno in campo riparte con i litri detti in quel messaggio, il mezzo e l’appezzamento se citati. Il prompt ha la stessa regola; le Cloud Functions non sono state pubblicate. Scenario gate `T-FUEL-SWITCH-001`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-05 — Cambio lavoro: campo e ore non passano al turno dopo.**
 
 ## 2026-10-05 — Cambio lavoro: niente campo e ore del turno precedente
 

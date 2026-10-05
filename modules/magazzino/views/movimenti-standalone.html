@@ -511,6 +511,9 @@
             const prezzoGroup = document.getElementById('prezzo-group');
             if (norm === 'carico_cisterna' && tipoEl) tipoEl.value = 'entrata';
             if (norm === 'pieno' && tipoEl) tipoEl.value = 'uscita';
+            const titleEl = document.getElementById('modal-title');
+            if (titleEl && !editingMovimentoId && norm === 'pieno') titleEl.textContent = 'Pieno mezzo';
+            if (titleEl && !editingMovimentoId && norm === 'carico_cisterna') titleEl.textContent = 'Carico cisterna';
             if (macGroup && macSel) {
                 if (norm === 'pieno') {
                     macGroup.style.display = 'block';
