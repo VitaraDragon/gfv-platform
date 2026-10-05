@@ -57,6 +57,10 @@ export var TONY_PAGE_MAP = {
     'impegni giorno': 'modules/manodopera/views/impegni-giornalieri-standalone.html',
     'magazzino': 'modules/magazzino/views/magazzino-home-standalone.html',
     'scorte': 'modules/magazzino/views/magazzino-home-standalone.html',
+    'carburante': 'modules/magazzino/views/carburante-home-standalone.html',
+    'hub carburante': 'modules/magazzino/views/carburante-home-standalone.html',
+    'home carburante': 'modules/magazzino/views/carburante-home-standalone.html',
+    'gasolio': 'modules/magazzino/views/carburante-home-standalone.html',
     'prodotti': 'modules/magazzino/views/prodotti-standalone.html', 'anagrafica prodotti': 'modules/magazzino/views/prodotti-standalone.html',
     'movimenti': 'modules/magazzino/views/movimenti-standalone.html', 'movimenti magazzino': 'modules/magazzino/views/movimenti-standalone.html',
     'tracciabilità consumi': 'modules/magazzino/views/tracciabilita-consumi-standalone.html',
@@ -168,7 +172,9 @@ export var TONY_LABEL_MAP = {
     'manodopera': 'Manodopera',
     'impegni giornalieri': 'Impegni giornalieri',
     'impegni giorno': 'Impegni giornalieri',
-    'magazzino': 'Magazzino', 'scorte': 'Magazzino', 'prodotti': 'Prodotti', 'anagrafica prodotti': 'Prodotti',
+    'magazzino': 'Magazzino', 'scorte': 'Magazzino',
+    'carburante': 'Carburante', 'hub carburante': 'Carburante', 'home carburante': 'Carburante', 'gasolio': 'Carburante',
+    'prodotti': 'Prodotti', 'anagrafica prodotti': 'Prodotti',
     'movimenti': 'Movimenti', 'movimenti magazzino': 'Movimenti',
     'vigneto': 'Vigneto', 'uva': 'Vigneto', 'vigneti': 'Vigneti',
     'statistiche vigneto': 'Statistiche Vigneto', 'vigneto statistiche': 'Statistiche Vigneto',
@@ -221,6 +227,7 @@ export function resolveTarget(raw) {
         'pianificazione impianto vigneto': 'pianificazione impianto', 'impianto vigneto': 'pianificazione impianto',
         'pianificazione impianto frutteto': 'pianificazione impianto frutteto', 'impianto frutteto': 'pianificazione impianto frutteto',
         'home vigneto': 'vigneto', 'home frutteto': 'frutteto', 'home magazzino': 'magazzino',
+        'hub carburante': 'carburante', 'home carburante': 'carburante', 'dashboard carburante': 'carburante',
         'home seminativo': 'seminativo', 'dashboard seminativo': 'seminativo',
         'anagrafica seminativo': 'seminativi', 'hub seminativo': 'seminativo',
         'home vendemmia meccanica': 'vendemmia meccanica', 'hub vendemmia meccanica': 'vendemmia meccanica',
@@ -277,7 +284,7 @@ export function isTonyMainDashboardNavRequest(text) {
     if (!/\b(apri|portami|riportami|torna|vai\s+a|vai\s+al|vai\s+alla|vai\s+alle|vai\s+ai|mandami|mostrami\s+la\s+pagina|naviga)\b/i.test(m)) {
         return false;
     }
-    var hasModuleHub = /\b(manodopera|magazzino|meteo|vigneto|frutteto|macchine|conto\s+terzi|campo)\b/i.test(m);
+    var hasModuleHub = /\b(manodopera|magazzino|carburante|gasolio|meteo|vigneto|frutteto|macchine|conto\s+terzi|campo)\b/i.test(m);
     if ((/\bpagina\s+principale\b/i.test(m) || /\bhome\b/i.test(m)) && !hasModuleHub) return true;
     if (/\bdashboard\b/i.test(m) && !hasModuleHub) return true;
     return false;

@@ -60,6 +60,8 @@ describe('document-product-match', () => {
   it('suggestCategoriaForRiga e stub prodotto', () => {
     expect(suggestCategoriaForRiga('Fungicida rame').categoria).toBe('fitofarmaci');
     expect(suggestCategoriaForRiga('Concime NPK').categoria).toBe('fertilizzanti');
+    expect(suggestCategoriaForRiga('GASOLIO AGRICOLO').categoria).toBe('carburante');
+    expect(suggestCategoriaForRiga('AdBlue 10 L').categoria).toBe('carburante');
     expect(mapUnitaOcrToGfv('kg')).toBe('kg');
     var stub = buildProdottoStubFromRiga({ descrizione: 'Viti plastiche', unita: 'pz', categoriaSuggerita: 'materiale_impianto' });
     expect(stub.daCompletare).toBe(true);

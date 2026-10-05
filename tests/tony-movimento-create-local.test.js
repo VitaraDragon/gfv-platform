@@ -184,6 +184,72 @@ describe('tryInterceptMovimentoCreateBeforeCf', () => {
   });
 });
 
+describe('carburante carico e pieno', () => {
+  let commands;
+
+  beforeEach(() => {
+    global.window = global.window || {};
+    global.document = {
+      getElementById: (id) => {
+        if (id === 'movimento-modal') {
+          return { id: 'movimento-modal', classList: { contains: () => false } };
+        }
+        return null;
+      },
+    };
+    window.location = { pathname: '/modules/magazzino/views/movimenti-standalone.html' };
+    window.__tonyMovimentoPendingDraft = null;
+    commands = [];
+  });
+
+  it('è arrivato il gasolio, 800 litri → entrata carico cisterna', () => {
+    const res = tryInterceptMovimentoCreateBeforeCf('è arrivato il gasolio, 800 litri', {
+      appendMessage: () => {},
+      processTonyCommand: (c) => commands.push(c),
+      clearEarlyTyping: () => {},
+    });
+    expect(res.handled).toBe(true);
+    expect(res.opened).toBe(true);
+    expect(commands[0].fields['mov-tipo']).toBe('entrata');
+    expect(commands[0].fields['mov-prodotto']).toBe('gasolio');
+    expect(commands[0].fields['mov-quantita']).toBe('800');
+    expect(commands[0].fields['mov-origine-carburante']).toBe('carico_cisterna');
+  });
+
+  it('ho fatto il pieno al T5, 80 litri → uscita e mezzo, anche senza prodotto', () => {
+    const res = tryInterceptMovimentoCreateBeforeCf('ho fatto il pieno al T5, 80 litri', {
+      appendMessage: () => {},
+      processTonyCommand: (c) => commands.push(c),
+      clearEarlyTyping: () => {},
+    });
+    expect(res.handled).toBe(true);
+    expect(res.opened).toBe(true);
+    expect(commands[0].fields['mov-tipo']).toBe('uscita');
+    expect(commands[0].fields['mov-quantita']).toBe('80');
+    expect(commands[0].fields['mov-macchina']).toBe('T5');
+    expect(commands[0].fields['mov-origine-carburante']).toBe('pieno');
+    expect(commands[0].fields['mov-prodotto']).toBeUndefined();
+  });
+
+  it('naviga al form filtrato se non sei sui movimenti', () => {
+    global.sessionStorage = {
+      _data: {},
+      setItem(k, v) { this._data[k] = v; },
+      getItem(k) { return this._data[k] || null; },
+      removeItem(k) { delete this._data[k]; },
+    };
+    window.location = { pathname: '/core/dashboard-standalone.html', href: '' };
+    const res = tryInterceptMovimentoCreateBeforeCf('è arrivato il gasolio, 800 litri', {
+      appendMessage: () => {},
+      getUrlForTarget: () => '/modules/magazzino/views/movimenti-standalone.html',
+      clearEarlyTyping: () => {},
+    });
+    expect(res.navigating).toBe(true);
+    expect(window.location.href).toContain('categoria=carburante');
+    expect(window.location.href).toContain('tipo=entrata');
+  });
+});
+
 describe('tryRecoverMovimentoCfFakeSave', () => {
   beforeEach(() => {
     global.window = global.window || {};
