@@ -24,6 +24,8 @@ npm run sim:run -- --template="${TEMPLATE}"
 npm run sim:verify:e2e-seed
 npm run sim:run -- --template=frutteto-solo-titolare
 GFV_SIM_E2E_TEMPLATE=frutteto-solo-titolare npm run sim:verify:e2e-seed
+npm run sim:run -- --template=solo-titolare-viticola
+GFV_SIM_E2E_TEMPLATE=solo-titolare-viticola npm run sim:verify:e2e-seed
 npm run sim:run -- --template=mista-viticola-frutteto-conto-terzi-manodopera
 GFV_SIM_E2E_TEMPLATE=mista-viticola-frutteto-conto-terzi-manodopera npm run sim:verify:e2e-seed
 npm run sim:e2e:gate

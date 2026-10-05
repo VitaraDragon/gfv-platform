@@ -165,6 +165,7 @@ export async function initDashboardPanoramaHub(options) {
 
         pins.forEach((id) => {
             if (!MODULE_CATALOG[id] || seen.has(id)) return;
+            if (hasManodopera && id === 'diarioAttivita') return;
             seen.add(id);
             chips.push({ id, kind: 'pin' });
         });
@@ -172,6 +173,7 @@ export async function initDashboardPanoramaHub(options) {
         recent.forEach((entry) => {
             const id = entry && entry.id;
             if (!id || !MODULE_CATALOG[id] || seen.has(id)) return;
+            if (hasManodopera && id === 'diarioAttivita') return;
             seen.add(id);
             chips.push({ id, kind: 'recent' });
         });
@@ -301,7 +303,6 @@ export async function initDashboardPanoramaHub(options) {
         if (!todayList) return;
         const rows = [
             { text: 'Mappa satellitare terreni e lavori', href: 'mappa-aziendale-standalone.html' },
-            { text: 'Diario attività in campo', href: 'attivita-standalone.html' },
             {
                 text: hasManodopera ? 'Statistiche manodopera, ore e superficie' : 'Statistiche e indicatori aziendali',
                 href: resolveModuleHref('statistiche', hasManodopera)
@@ -313,6 +314,7 @@ export async function initDashboardPanoramaHub(options) {
                 href: resolveModuleHref('manodopera', hasManodopera)
             });
         } else {
+            rows.push({ text: 'Diario attività in campo', href: 'attivita-standalone.html' });
             rows.push({ text: 'Anagrafica e confini dei terreni', href: 'terreni-standalone.html' });
         }
         todayList.innerHTML = rows.map((r) => (
