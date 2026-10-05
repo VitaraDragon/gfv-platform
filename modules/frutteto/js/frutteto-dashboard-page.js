@@ -1,0 +1,333 @@
+/**
+ * Pagina Dashboard frutteto.
+ * L'HTML in views/ resta la struttura; qui c'è il comportamento.
+ * Gli import dinamici via resolvePath restano relativi all'URL della pagina.
+ * @module modules/frutteto/js/frutteto-dashboard-page
+ */
+
+import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
+import { resolvePath } from '../../../core/js/gfv-path.js';
+import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+
+try {
+    await window.GFVStandaloneReady;
+} catch (err) {
+    console.error('[frutteto-dashboard] Bootstrap failed:', err);
+    throw err;
+}
+
+const firebaseServiceModule = await import(resolvePath('../../../core/services/firebase-service.js'));
+const tenantServiceModule = await import(resolvePath('../../../core/services/tenant-service.js'));
+const { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, query, where } = firebaseServiceModule;
+const { getCurrentTenantId, getCurrentTenant, initializeTenantService } = tenantServiceModule;
+
+let db = null;
+let tenantId = null;
+
+function formatDate(d) {
+    if (!d) return '-';
+    const s = formatDateLikeToItalianLongLocal(d);
+    return s || '-';
+}
+
+async function initDashboard() {
+    try {
+        const filtroFrutteto = document.getElementById('filtro-frutteto');
+        const filtroAnno = document.getElementById('filtro-anno');
+
+        // Import servizi statistiche frutteto
+        const { getStatisticheFrutteto, getRaccolteRecenti, getLavoriFrutteto } = await import('../services/frutteto-statistiche-service.js');
+        const { getAllFrutteti } = await import('../services/frutteti-service.js');
+
+        const frutteti = await getAllFrutteti();
+        frutteti.forEach(f => {
+            const opt = document.createElement('option');
+            opt.value = f.id;
+            opt.textContent = f.specie || f.varieta || f.nome || 'Frutteto senza nome';
+            filtroFrutteto.appendChild(opt);
+        });
+
+        // Popola dropdown anni (ultimi 5 anni + anno corrente)
+        const annoCorrente = new Date().getFullYear();
+        filtroAnno.innerHTML = '';
+        for (let i = 0; i < 5; i++) {
+            const anno = annoCorrente - i;
+            const opt = document.createElement('option');
+            opt.value = String(anno);
+            opt.textContent = anno;
+            if (i === 0) {
+                opt.selected = true;
+            }
+            filtroAnno.appendChild(opt);
+        }
+
+        let currentFruttetoId = null;
+        let currentAnno = annoCorrente;
+
+        async function aggiornaDashboard() {
+            currentFruttetoId = filtroFrutteto.value || null;
+            currentAnno = filtroAnno.value ? parseInt(filtroAnno.value, 10) : annoCorrente;
+
+            // Carica statistiche aggregate
+            const statistiche = await getStatisticheFrutteto(currentFruttetoId, currentAnno);
+
+            // Aggiorna card statistiche
+            const statProduzioneEl = document.getElementById('stat-produzione');
+            const statProduzioneSubEl = document.getElementById('stat-produzione-subtitle');
+            const statResaEl = document.getElementById('stat-resa');
+            const statResaSubEl = document.getElementById('stat-resa-subtitle');
+            const statSpeseEl = document.getElementById('stat-spese-raccolta');
+            const statSpeseSubEl = document.getElementById('stat-spese-subtitle');
+            const statNumFruttetiEl = document.getElementById('stat-numero-frutteti');
+            const statNumRaccolteEl = document.getElementById('stat-numero-raccolte');
+
+            statProduzioneEl.textContent = statistiche.produzioneTotaleKg > 0 
+                ? statistiche.produzioneTotaleKg.toLocaleString('it-IT', { maximumFractionDigits: 0 })
+                : '-';
+            
+            statResaEl.textContent = statistiche.resaMediaKgHa > 0 
+                ? statistiche.resaMediaKgHa.toLocaleString('it-IT', { maximumFractionDigits: 1 })
+                : '-';
+            
+            statSpeseEl.textContent = statistiche.speseTotaleAnno > 0 
+                ? statistiche.speseTotaleAnno.toLocaleString('it-IT', { style: 'currency', currency: 'EUR' })
+                : '-';
+            
+            statNumFruttetiEl.textContent = String(statistiche.numeroFrutteti);
+            statNumRaccolteEl.textContent = String(statistiche.numeroRaccolte);
+
+            // Sottotitoli statistiche
+            if (statistiche.produzionePerMese && Object.keys(statistiche.produzionePerMese).length > 0) {
+                const mesi = Object.keys(statistiche.produzionePerMese).sort();
+                const ultimoMese = mesi[mesi.length - 1];
+                const produzioneUltimoMese = statistiche.produzionePerMese[ultimoMese];
+                statProduzioneSubEl.textContent = `Ultimo mese: ${produzioneUltimoMese.toFixed(0)} kg`;
+            } else {
+                statProduzioneSubEl.textContent = currentAnno ? `Anno ${currentAnno}` : '';
+            }
+
+            if (statistiche.resaPerSpecie && Object.keys(statistiche.resaPerSpecie).length > 0) {
+                const specie = Object.keys(statistiche.resaPerSpecie);
+                if (specie.length === 1) {
+                    statResaSubEl.textContent = specie[0];
+                } else {
+                    statResaSubEl.textContent = `${specie.length} specie`;
+                }
+            } else {
+                statResaSubEl.textContent = '';
+            }
+
+            if (statistiche.spesePerMese && Object.keys(statistiche.spesePerMese).length > 0) {
+                const mesi = Object.keys(statistiche.spesePerMese).sort();
+                const ultimoMese = mesi[mesi.length - 1];
+                const speseUltimoMese = statistiche.spesePerMese[ultimoMese];
+                statSpeseSubEl.textContent = `Ultimo mese: ${speseUltimoMese.toFixed(2)} €`;
+            } else {
+                statSpeseSubEl.textContent = '';
+            }
+
+            // Carica raccolte recenti
+            await loadRaccolteRecenti(currentFruttetoId, currentAnno);
+            
+            // Carica lavori frutteto
+            await loadLavoriFrutteto(currentFruttetoId, currentAnno);
+        }
+
+        async function loadRaccolteRecenti(fruttetoId, anno) {
+            try {
+                const raccolte = await getRaccolteRecenti(fruttetoId, anno, 10);
+                
+                const loadingEl = document.getElementById('raccolte-loading');
+                const emptyEl = document.getElementById('raccolte-empty');
+                const tableContainer = document.getElementById('raccolte-table-container');
+                const tbody = document.getElementById('raccolte-tbody');
+
+                loadingEl.style.display = 'none';
+                tbody.innerHTML = '';
+
+                if (raccolte.length === 0) {
+                    emptyEl.style.display = 'block';
+                    tableContainer.style.display = 'none';
+                    return;
+                }
+
+                emptyEl.style.display = 'none';
+                tableContainer.style.display = 'block';
+
+                raccolte.forEach(r => {
+                    const tr = document.createElement('tr');
+                    const dataRaccolta = r.data instanceof Date ? r.data : (r.data?.toDate ? r.data.toDate() : new Date(r.data));
+                    const resa = r.resaKgHa || (r.quantitaKg && r.superficieHa ? r.quantitaKg / r.superficieHa : null);
+                    tr.innerHTML = `
+                        <td>${formatDate(dataRaccolta)}</td>
+                        <td>${r.fruttetoNome || '-'}</td>
+                        <td>${r.specie || '-'}</td>
+                        <td>${(r.quantitaKg || 0).toLocaleString('it-IT', { maximumFractionDigits: 0 })}</td>
+                        <td>${resa ? resa.toLocaleString('it-IT', { maximumFractionDigits: 1 }) : '-'}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (error) {
+                console.error('[FRUTTETO DASHBOARD] Errore caricamento raccolte:', error);
+                const loadingEl = document.getElementById('raccolte-loading');
+                const tbody = document.getElementById('raccolte-tbody');
+                loadingEl.style.display = 'none';
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-state">Errore caricamento raccolte</td></tr>';
+            }
+        }
+
+        async function loadLavoriFrutteto(fruttetoId, anno) {
+            try {
+                const lavoriCompletati = await getLavoriFrutteto(fruttetoId, anno, 'completato', 10);
+                
+                const tbody = document.querySelector('#table-lavori tbody');
+                tbody.innerHTML = '';
+                
+                if (lavoriCompletati.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="5" class="empty-state">
+                                <div class="empty-state-icon">📋</div>
+                                <div>Nessun lavoro completato trovato per i filtri selezionati</div>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                lavoriCompletati.forEach(lavoro => {
+                    const dataVal = lavoro.dataInizio || lavoro.data;
+                    const dataFormattata = dataVal
+                        ? (formatDateLikeToItalianLongLocal(dataVal) || (lavoro.data || '-'))
+                        : (lavoro.data || '-');
+                    const statoFormattato = lavoro.stato === 'completato' ? '✅ Completato' : lavoro.stato;
+                    const isDiario = lavoro.source === 'diario';
+                    const dettaglioCell = isDiario 
+                        ? '<span class="badge-diario" title="Attività registrata dal Diario">Da diario</span>' 
+                        : `<a href="../../../core/admin/gestione-lavori-standalone.html?lavoroId=${lavoro.id}" class="btn-link">Dettaglio</a>`;
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td>${dataFormattata}</td>
+                        <td>${lavoro.fruttetoNome || 'Frutteto'}</td>
+                        <td>${lavoro.tipoLavoro || 'N/A'}</td>
+                        <td>${statoFormattato}</td>
+                        <td>${dettaglioCell}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+            } catch (error) {
+                console.error('[FRUTTETO DASHBOARD] Errore caricamento lavori:', error);
+                const tbody = document.querySelector('#table-lavori tbody');
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="empty-state">
+                            <div>Errore caricamento lavori</div>
+                        </td>
+                    </tr>
+                `;
+            }
+        }
+
+        filtroFrutteto.addEventListener('change', aggiornaDashboard);
+        filtroAnno.addEventListener('change', aggiornaDashboard);
+
+        await aggiornaDashboard();
+    } catch (error) {
+        console.error('[FRUTTETO DASHBOARD] Errore inizializzazione:', error);
+        if (typeof window.gfvShowAlert === 'function') {
+            window.gfvShowAlert('Errore: impossibile caricare i dati del frutteto.', 'error');
+        } else {
+            const alertContainer = document.getElementById('alert-container');
+            if (alertContainer) {
+                alertContainer.innerHTML = `
+                <div class="alert alert-error">
+                    <strong>Errore:</strong> impossibile caricare i dati del frutteto.
+                </div>
+            `;
+            }
+        }
+    }
+}
+
+async function init() {
+    try {
+        const auth = getAuthInstance();
+        db = getDb();
+
+        initializeTenantService();
+
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) user = await resolveAuthUser(auth);
+            if (!user) {
+                window.location.href = await loginPageUrl(resolvePath('../../../core/auth/login-standalone.html'));
+                return;
+            }
+
+            const id = getCurrentTenantId();
+            if (!id) {
+                console.warn('[FRUTTETO DASHBOARD] Tenant non disponibile');
+                return;
+            }
+
+            tenantId = id;
+            // Per la dashboard frutteto non blocchiamo l'accesso anche se il modulo non risulta attivo,
+            // per evitare di creare confusione se l'anagrafica frutteti è già utilizzabile.
+            // Usiamo solo un warning in console.
+            const tenant = await getCurrentTenant().catch(() => null);
+            var modules = Array.isArray(tenant?.modules) ? tenant.modules.slice() : [];
+            // Forzatura: siamo nella dashboard Frutteto, quindi frutteto (e almeno tony) devono essere presenti
+            var hasFrutteto = modules.some(function(m) { return (m || '').toString().toLowerCase() === 'frutteto'; });
+            var hasTony = modules.some(function(m) { return (m || '').toString().toLowerCase() === 'tony'; });
+            if (!hasFrutteto) modules.push('frutteto');
+            if (!hasTony) modules.push('tony');
+            
+            // Sincronizza moduli attivi con Tony (helper unico per tutte le pagine standalone; retry se widget non ancora pronto)
+            if (typeof window.syncTonyModules === 'function') {
+                window.syncTonyModules(modules);
+            } else if (window.setTonyContext) {
+                window.setTonyContext({ moduli_attivi: modules });
+            } else {
+                window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: modules } }));
+            }
+            
+            if (!modules.some(function(m) { return (m || '').toString().toLowerCase() === 'frutteto'; })) {
+                console.warn('[FRUTTETO DASHBOARD] Modulo frutteto non risulta attivo nel tenant, ma procedo comunque a mostrare la dashboard.');
+            }
+
+            await initDashboard();
+
+            // §15.6 hub entry Frutteto — raccolte incomplete anno corrente
+            try {
+                const { getRaccolte } = await import('../services/raccolta-frutta-service.js');
+                const { getAllFrutteti } = await import('../services/frutteti-service.js');
+                const { runTonyProactiveHubBriefing } = await import('../../../core/js/tony-proactive-hub-briefing.js');
+                const { countRaccolteIncomplete } = await import('../../../core/config/tony-proactive-signals.js');
+                const { getDoc, doc } = await import('../../../core/services/firebase-service.js');
+                const fruttetiList = await getAllFrutteti();
+                const anno = new Date().getFullYear();
+                const lists = await Promise.all(
+                    (fruttetiList || []).map((f) => getRaccolte(f.id, { anno: anno }).catch(() => []))
+                );
+                const tutte = lists.reduce((acc, arr) => acc.concat(arr || []), []);
+                const incomplete = countRaccolteIncomplete(tutte);
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                const userData = userDoc.exists() ? userDoc.data() : {};
+                const ruoli = Array.isArray(userData.ruoli) ? userData.ruoli : ['manager'];
+                runTonyProactiveHubBriefing({
+                    hubId: 'frutteto',
+                    tenantId: tenantId,
+                    roles: ruoli,
+                    availableModules: modules,
+                    counts: { raccolteIncomplete: incomplete },
+                    speak: true,
+                });
+            } catch (eHub) {
+                console.warn('[Tony] hub briefing frutteto:', eHub);
+            }
+        });
+    } catch (error) {
+        console.error('[FRUTTETO DASHBOARD] Errore init:', error);
+    }
+}
+
+init();
