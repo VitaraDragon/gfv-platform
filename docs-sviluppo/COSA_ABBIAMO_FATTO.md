@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-05 — Calcolo materiali vigneto: script di pagina nel file del modulo.**
+**Ultimo aggiornamento documentazione: 2026-10-05 — Pianificazione impianto vigneto: script di pagina nel file del modulo.**
+
+## 2026-10-05 — Pianificazione impianto vigneto: comportamento fuori dall’HTML
+
+La pagina di pianificazione del nuovo impianto segue lo stesso schema dei trattamenti: l’HTML in `views/` resta la struttura, il comportamento sta in `modules/vigneto/js/pianifica-impianto-page.js`. Il frutteto non è stato toccato. Il tema da `?coltura=` e il caricamento di Google Maps sono rimasti nell’HTML. Gli import statici sono relativi al file del modulo; quelli dinamici via `resolvePath` restano relativi all’URL della pagina.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-05 — Calcolo materiali vigneto: script di pagina nel file del modulo.**
 
 ## 2026-10-05 — Calcolo materiali vigneto: comportamento fuori dall’HTML
 
