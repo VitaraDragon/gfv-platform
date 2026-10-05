@@ -29,7 +29,7 @@ Questa guida è solo per il **caposquadra**: ciò che puoi fare dalla **versione
 | La mia squadra e contatti | [Impara qui](#mini-guida-la-mia-squadra-contatti) |
 | Comunicazioni alla squadra | [Impara qui](#mini-guida-comunicazioni-alla-squadra) |
 | Segnala assenza e sostituti | [Impara qui](#mini-guida-segnala-assenza-e-sostituti) |
-| Segnare le proprie ore | [Impara qui](#mini-guida-segnare-le-proprie-ore) |
+| Segnare le proprie ore (+ Pieno in campo) | [Impara qui](#mini-guida-segnare-le-proprie-ore) |
 | Validare le ore degli operai | [Impara qui](#mini-guida-validare-le-ore-degli-operai) |
 | Dettaglio lavoro, zone lavorate e completamento | [Impara qui](#mini-guida-dettaglio-lavoro-zone-lavorate-e-completamento) |
 | Statistiche personali | [Impara qui](#mini-guida-statistiche-personali) |
