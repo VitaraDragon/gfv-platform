@@ -1,0 +1,1074 @@
+/**
+ * Pagina Statistiche vigneto.
+ * L'HTML in views/ resta la struttura; qui c'è il comportamento.
+ * Gli import dinamici via resolvePath restano relativi all'URL della pagina.
+ * @module modules/vigneto/js/vigneto-statistiche-page
+ */
+
+import { showAlert } from '../../../core/js/gfv-page-utils.js';
+import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+
+try {
+    await window.GFVStandaloneReady;
+} catch (err) {
+    console.error('[vigneto-statistiche] Bootstrap failed:', err);
+    throw err;
+}
+
+const { getAuthInstance, getDb, onAuthStateChanged, getDoc, doc } = await import('../../../core/services/firebase-service.js');
+const { getCurrentTenantId, getCurrentTenant, initializeTenantService } = await import('../../../core/services/tenant-service.js');
+
+const auth = getAuthInstance();
+const db = getDb();
+initializeTenantService();
+
+let currentUser = null;
+let currentTenantId = null;
+let currentVignetoId = null;
+let currentAnno = null;
+let charts = {}; // Oggetto per memorizzare i grafici
+let debounceTimer = null; // Timer per debounce filtri
+const CACHE_TTL = 5 * 60 * 1000; // 5 minuti in millisecondi
+const CACHE_PREFIX = 'vigneto_stats_'; // Prefisso per chiavi cache
+
+// Verifica autenticazione
+onAuthStateChanged(auth, async (user) => {
+    if (!user) user = await resolveAuthUser(auth);
+    if (user) {
+        currentUser = user;
+        try {
+            const userDoc = await getDoc(doc(db, 'users', user.uid));
+            if (userDoc.exists()) {
+                const userData = userDoc.data();
+                
+                // Verifica permessi (solo Manager o Amministratore)
+                const ruoli = userData.ruoli || [];
+                const isManager = ruoli.some(r => {
+                    const roleLower = r.toLowerCase();
+                    return roleLower.includes('manager') || roleLower.includes('amministratore');
+                });
+
+                if (!isManager) {
+                    showAlert('Non hai i permessi per accedere a questa pagina', 'error');
+                    setTimeout(() => {
+                        window.location.href = '../../../core/dashboard-standalone.html';
+                    }, 2000);
+                    return;
+                }
+
+                // Verifica accesso modulo vigneto
+                let tenantId = getCurrentTenantId();
+                
+                if (!tenantId && userData.tenantId) {
+                    tenantId = userData.tenantId;
+                }
+                
+                if (!tenantId) {
+                    for (let i = 0; i < 10; i++) {
+                        await new Promise(resolve => setTimeout(resolve, 100));
+                        tenantId = getCurrentTenantId();
+                        if (tenantId) break;
+                    }
+                }
+                
+                currentTenantId = tenantId;
+                
+                if (tenantId) {
+                    const tenant = await getCurrentTenant();
+                    
+                    if (!tenant) {
+                        showAlert('Errore: tenant non trovato', 'error');
+                        setTimeout(() => {
+                            window.location.href = '../../../core/dashboard-standalone.html';
+                        }, 2000);
+                        return;
+                    }
+                    
+                    const modules = tenant.modules || [];
+                    const hasVignetoModule = modules.some(m => m && m.toLowerCase() === 'vigneto');
+                    
+                    if (!hasVignetoModule) {
+                        showAlert('Il modulo Vigneto non è attivo. Attivalo dalla pagina Abbonamento.', 'error');
+                        setTimeout(() => {
+                            window.location.href = '../../../core/admin/abbonamento-standalone.html';
+                        }, 3000);
+                        return;
+                    }
+                } else {
+                    showAlert('Nessun tenant disponibile', 'error');
+                    setTimeout(() => {
+                        window.location.href = '../../../core/dashboard-standalone.html';
+                    }, 2000);
+                    return;
+                }
+
+                // Inizializza filtri
+                await initFilters();
+                
+                // Carica grafici iniziali
+                await loadCharts();
+                
+                // Esponi funzione invalidazione cache globalmente
+                window.invalidateVignetoStatsCache = invalidateCache;
+                
+                // Invalida cache quando la pagina diventa visibile (dati potrebbero essere cambiati)
+                document.addEventListener('visibilitychange', () => {
+                    if (!document.hidden) {
+                        // Invalida cache quando si torna alla pagina (dati potrebbero essere cambiati)
+                        // Nota: potremmo anche usare un timestamp più intelligente, ma per ora invalidiamo
+                        invalidateCache();
+                    }
+                });
+            } else {
+                window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
+            }
+        } catch (error) {
+            showAlert('Errore caricamento dati: ' + error.message, 'error');
+        }
+    } else {
+        window.location.href = await loginPageUrl('../../../core/auth/login-standalone.html');
+    }
+});
+
+// Inizializza filtri
+async function initFilters() {
+    try {
+        // Popola dropdown vigneti
+        const { getAllVigneti } = await import('../services/vigneti-service.js');
+        const vigneti = await getAllVigneti();
+        
+        const vignetoSelect = document.getElementById('filtro-vigneto');
+        vignetoSelect.innerHTML = '<option value="">Tutti i vigneti</option>';
+        
+        vigneti.forEach(vigneto => {
+            const option = document.createElement('option');
+            option.value = vigneto.id;
+            option.textContent = vigneto.varieta || 'Vigneto';
+            vignetoSelect.appendChild(option);
+        });
+        
+        // Popola dropdown anni (ultimi 10 anni)
+        const annoSelect = document.getElementById('filtro-anno');
+        const annoCorrente = new Date().getFullYear();
+        annoSelect.innerHTML = '';
+        
+        for (let i = 0; i < 10; i++) {
+            const anno = annoCorrente - i;
+            const option = document.createElement('option');
+            option.value = anno;
+            option.textContent = anno;
+            if (i === 0) option.selected = true;
+            annoSelect.appendChild(option);
+        }
+        
+        currentAnno = annoCorrente;
+        
+        // Event listeners per filtri con debounce
+        vignetoSelect.addEventListener('change', (e) => {
+            currentVignetoId = e.target.value || null;
+            debouncedLoadCharts();
+        });
+        
+        annoSelect.addEventListener('change', (e) => {
+            currentAnno = parseInt(e.target.value);
+            debouncedLoadCharts();
+        });
+    } catch (error) {
+        showAlert('Errore caricamento filtri: ' + error.message, 'error');
+    }
+}
+
+// Funzione debounce per filtri
+function debouncedLoadCharts() {
+    if (debounceTimer) {
+        clearTimeout(debounceTimer);
+    }
+    debounceTimer = setTimeout(() => {
+        loadCharts();
+    }, 400); // 400ms di attesa dopo ultimo cambio
+}
+
+// Funzioni per gestione cache
+function getCacheKey(vignetoId, anno, dataType) {
+    return `${CACHE_PREFIX}${vignetoId || 'all'}_${anno}_${dataType}`;
+}
+
+function getCachedData(key) {
+    try {
+        const cached = sessionStorage.getItem(key);
+        if (!cached) return null;
+        
+        const { data, timestamp } = JSON.parse(cached);
+        const now = Date.now();
+        
+        // Verifica se la cache è ancora valida
+        if (now - timestamp > CACHE_TTL) {
+            sessionStorage.removeItem(key);
+            return null;
+        }
+        
+        return data;
+    } catch (error) {
+        return null;
+    }
+}
+
+function setCachedData(key, data) {
+    try {
+        const cacheEntry = {
+            data: data,
+            timestamp: Date.now()
+        };
+        sessionStorage.setItem(key, JSON.stringify(cacheEntry));
+    } catch (error) {
+        // Se sessionStorage è pieno, ignora (non critico)
+    }
+}
+
+function invalidateCache() {
+    try {
+        const keys = Object.keys(sessionStorage);
+        keys.forEach(key => {
+            if (key.startsWith(CACHE_PREFIX)) {
+                sessionStorage.removeItem(key);
+            }
+        });
+    } catch (error) {
+        // Ignora errori
+    }
+}
+
+// Carica tutti i grafici con cache e loading progressivo
+async function loadCharts() {
+    try {
+        // Mostra loading iniziale
+        showLoadingState();
+        
+        const { 
+            getStatisticheVigneto,
+            getProduzioneTemporale,
+            getQualitaUva,
+            getCostiTemporale
+        } = await import('../services/vigneto-statistiche-service.js');
+        
+        // Genera chiavi cache
+        const cacheKeyStats = getCacheKey(currentVignetoId, currentAnno, 'stats');
+        const cacheKeyProduzione = getCacheKey(currentVignetoId, currentAnno, 'produzione');
+        const cacheKeyQualita = getCacheKey(currentVignetoId, currentAnno, 'qualita');
+        const cacheKeyCosti = getCacheKey(currentVignetoId, currentAnno, 'costi');
+        
+        // Prova a recuperare dalla cache
+        let stats = getCachedData(cacheKeyStats);
+        let produzioneTemporale = getCachedData(cacheKeyProduzione);
+        let qualitaUva = getCachedData(cacheKeyQualita);
+        let costiTemporale = getCachedData(cacheKeyCosti);
+        
+        // Carica dati mancanti in parallelo
+        const promises = [];
+        
+        if (!stats) {
+            promises.push(
+                getStatisticheVigneto(currentVignetoId, currentAnno)
+                    .then(data => {
+                        stats = data;
+                        setCachedData(cacheKeyStats, data);
+                        return 'stats';
+                    })
+                    .catch(err => {
+                        throw err;
+                    })
+            );
+        }
+        
+        if (!produzioneTemporale) {
+            promises.push(
+                getProduzioneTemporale(currentVignetoId, 3)
+                    .then(data => {
+                        produzioneTemporale = data;
+                        setCachedData(cacheKeyProduzione, data);
+                        return 'produzione';
+                    })
+                    .catch(err => {
+                        throw err;
+                    })
+            );
+        }
+        
+        if (!qualitaUva) {
+            promises.push(
+                getQualitaUva(currentVignetoId, currentAnno)
+                    .then(data => {
+                        qualitaUva = data;
+                        setCachedData(cacheKeyQualita, data);
+                        return 'qualita';
+                    })
+                    .catch(err => {
+                        throw err;
+                    })
+            );
+        }
+        
+        if (!costiTemporale) {
+            promises.push(
+                getCostiTemporale(currentVignetoId, 3)
+                    .then(data => {
+                        costiTemporale = data;
+                        setCachedData(cacheKeyCosti, data);
+                        return 'costi';
+                    })
+                    .catch(err => {
+                        throw err;
+                    })
+            );
+        }
+        
+        // Attendi caricamento dati mancanti
+        if (promises.length > 0) {
+            await Promise.all(promises);
+        }
+        
+        // Aggiorna grafici progressivamente (mostra quelli pronti subito)
+        try {
+            if (produzioneTemporale) {
+                updateChartProduzioneTempo(produzioneTemporale);
+            }
+        } catch (err) {
+            // Ignora errori di rendering grafici
+        }
+        
+        try {
+            if (stats) {
+                updateChartResaVarieta(stats.resaPerVarieta);
+                updateChartProduzioneMensile(stats.produzionePerMese, currentAnno);
+                updateChartSpeseCategoria(stats);
+                updateChartSpeseMensili(stats.spesePerMese, currentAnno);
+            }
+        } catch (err) {
+            // Ignora errori di rendering grafici
+        }
+        
+        try {
+            if (qualitaUva) {
+                updateChartGradazione(qualitaUva);
+                updateChartAcidita(qualitaUva);
+                updateChartPH(qualitaUva);
+            }
+        } catch (err) {
+            // Ignora errori di rendering grafici
+        }
+        
+        try {
+            if (costiTemporale) {
+                updateChartCostiTempo(costiTemporale);
+            }
+        } catch (err) {
+            // Ignora errori di rendering grafici
+        }
+        
+    } catch (error) {
+        showAlert('Errore caricamento grafici: ' + error.message, 'error');
+    }
+}
+
+// Mostra stato di loading
+function showLoadingState() {
+    const chartCards = document.querySelectorAll('.chart-card');
+    chartCards.forEach(card => {
+        const container = card.querySelector('.chart-container');
+        if (container && !container.querySelector('canvas')) {
+            container.innerHTML = '<div class="loading">Caricamento...</div>';
+        }
+    });
+}
+
+// Funzioni helper per gestire canvas - VERSIONE SEMPLIFICATA E SICURA
+function ensureCanvas(chartId, icon, message) {
+    // Mapping diretto chartId -> posizione nell'HTML (basato sull'ordine dei chart-card)
+    const chartOrder = [
+        'chart-produzione-tempo',
+        'chart-resa-varieta', 
+        'chart-produzione-mensile',
+        'chart-gradazione',
+        'chart-acidita',
+        'chart-ph',
+        'chart-costi-tempo',
+        'chart-spese-categoria',
+        'chart-spese-mensili'
+    ];
+    
+    const index = chartOrder.indexOf(chartId);
+    if (index < 0) {
+        return null;
+    }
+    
+    // Trova il container usando l'indice (metodo affidabile)
+    const chartCards = document.querySelectorAll('.chart-card');
+    if (index >= chartCards.length) {
+        return null;
+    }
+    
+    const card = chartCards[index];
+    const container = card.querySelector('.chart-container');
+    
+    if (!container) {
+        return null;
+    }
+    
+    // Distruggi grafico esistente se presente
+    const existingChartKey = Object.keys(charts).find(key => {
+        const chart = charts[key];
+        return chart && chart.canvas && chart.canvas.id === chartId;
+    });
+    
+    if (existingChartKey && charts[existingChartKey]) {
+        try {
+            charts[existingChartKey].destroy();
+        } catch (e) {
+            // Ignora errori di distruzione
+        }
+        delete charts[existingChartKey];
+    }
+    
+    // Verifica se esiste già un canvas con questo ID
+    let canvas = document.getElementById(chartId);
+    
+    // Se il canvas esiste ma non è nel container corretto, rimuovilo
+    if (canvas && !container.contains(canvas)) {
+        canvas.remove();
+        canvas = null;
+    }
+    
+    // Se il container contiene empty-state o loading, puliscilo
+    if (container.innerHTML.includes('empty-state') || 
+        container.innerHTML.includes('loading') ||
+        container.innerHTML.includes('Caricamento')) {
+        container.innerHTML = '';
+    }
+    
+    // Crea canvas se non esiste
+    if (!canvas || canvas.tagName !== 'CANVAS') {
+        container.innerHTML = `<canvas id="${chartId}"></canvas>`;
+        canvas = document.getElementById(chartId);
+        if (!canvas) {
+            return null;
+        }
+    }
+    
+    return canvas;
+}
+
+// Funzioni per aggiornare i grafici
+function updateChartProduzioneTempo(data) {
+    // Distruggi grafico esistente PRIMA di cercare il canvas
+    if (charts.produzioneTempo) {
+        try {
+            charts.produzioneTempo.destroy();
+        } catch (e) {
+            // Ignora errori
+        }
+        charts.produzioneTempo = null;
+    }
+    
+    const canvas = ensureCanvas('chart-produzione-tempo', '📊', 'Nessun dato disponibile');
+    if (!canvas) {
+        return;
+    }
+    
+    if (!data || data.anni.length === 0 || (data.produzione && data.produzione.every(v => v === 0))) {
+        canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato disponibile</p></div>';
+        return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    
+    
+    charts.produzioneTempo = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: data.anni.map(a => a.toString()),
+            datasets: [{
+                label: 'Produzione (Qli)',
+                data: data.produzione,
+                borderColor: '#6A1B9A',
+                backgroundColor: 'rgba(106, 27, 154, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toFixed(0) + ' Qli';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateChartResaVarieta(data) {
+    // Distruggi grafico esistente PRIMA
+    if (charts.resaVarieta) {
+        try {
+            charts.resaVarieta.destroy();
+        } catch (e) {
+            // Ignora errori
+        }
+        charts.resaVarieta = null;
+    }
+    
+    const canvas = ensureCanvas('chart-resa-varieta', '🍇', 'Nessun dato disponibile');
+    if (!canvas) {
+        return;
+    }
+    
+    if (!data || typeof data !== 'object') {
+        canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🍇</div><p>Nessun dato disponibile</p></div>';
+        return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    
+    const varieta = Object.keys(data);
+    if (varieta.length === 0) {
+        canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🍇</div><p>Nessun dato disponibile</p></div>';
+        charts.resaVarieta = null;
+        return;
+    }
+    
+    
+    charts.resaVarieta = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: varieta,
+            datasets: [{
+                label: 'Resa (Qli/Ha)',
+                data: varieta.map(v => data[v].resaQliHa || 0),
+                backgroundColor: '#6A1B9A',
+                borderColor: '#4A148C',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toFixed(1) + ' Qli/Ha';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateChartProduzioneMensile(data, anno) {
+    // Distruggi grafico esistente PRIMA
+    if (charts.produzioneMensile) {
+        try {
+            charts.produzioneMensile.destroy();
+        } catch (e) {
+            // Ignora errori
+        }
+        charts.produzioneMensile = null;
+    }
+    
+    const canvas = ensureCanvas('chart-produzione-mensile', '📅', 'Nessun dato disponibile');
+    if (!canvas) return;
+    
+    const mesi = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+    const datiMensili = [];
+    
+    for (let i = 1; i <= 12; i++) {
+        const meseKey = `${anno}-${String(i).padStart(2, '0')}`;
+        datiMensili.push(data[meseKey] || 0);
+    }
+    
+    if (datiMensili.every(v => v === 0)) {
+        canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📅</div><p>Nessun dato disponibile</p></div>';
+        return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    
+    charts.produzioneMensile = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: mesi,
+            datasets: [{
+                label: 'Produzione (Qli)',
+                data: datiMensili,
+                backgroundColor: '#6A1B9A',
+                borderColor: '#4A148C',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toFixed(0) + ' Qli';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateChartGradazione(data) {
+    // Distruggi grafico esistente PRIMA
+    if (charts.gradazione) {
+        try {
+            charts.gradazione.destroy();
+        } catch (e) {
+            // Ignora errori
+        }
+        charts.gradazione = null;
+    }
+    
+    const canvas = ensureCanvas('chart-gradazione', '🍷', 'Nessun dato disponibile');
+    if (!canvas) return;
+    
+    if (!data || typeof data !== 'object') {
+        canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🍷</div><p>Nessun dato disponibile</p></div>';
+        return;
+    }
+    
+    const varieta = Object.keys(data).filter(v => data[v] && data[v].gradazioneMedia !== null);
+    if (varieta.length === 0) {
+        canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🍷</div><p>Nessun dato disponibile</p></div>';
+        return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    
+    charts.gradazione = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: varieta,
+            datasets: [{
+                label: 'Gradazione (°Brix)',
+                data: varieta.map(v => data[v].gradazioneMedia),
+                backgroundColor: '#9C27B0',
+                borderColor: '#7B1FA2',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toFixed(1) + ' °Brix';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateChartAcidita(data) {
+    // Distruggi grafico esistente PRIMA
+    if (charts.acidita) {
+        try {
+            charts.acidita.destroy();
+        } catch (e) {
+            // Ignora errori
+        }
+        charts.acidita = null;
+    }
+    
+    const canvas = ensureCanvas('chart-acidita', '🧪', 'Nessun dato disponibile');
+    if (!canvas) return;
+    
+    if (!data || typeof data !== 'object') {
+        canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🧪</div><p>Nessun dato disponibile</p></div>';
+        return;
+    }
+    
+    const varieta = Object.keys(data).filter(v => data[v] && data[v].aciditaMedia !== null);
+    if (varieta.length === 0) {
+        canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">🧪</div><p>Nessun dato disponibile</p></div>';
+        return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    
+    charts.acidita = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: varieta,
+            datasets: [{
+                label: 'Acidità (g/L)',
+                data: varieta.map(v => data[v].aciditaMedia),
+                backgroundColor: '#E91E63',
+                borderColor: '#C2185B',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toFixed(2) + ' g/L';
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateChartPH(data) {
+    // Distruggi grafico esistente PRIMA
+    if (charts.ph) {
+        try {
+            charts.ph.destroy();
+        } catch (e) {
+            // Ignora errori
+        }
+        charts.ph = null;
+    }
+    
+    const canvas = ensureCanvas('chart-ph', '⚗️', 'Nessun dato disponibile');
+    if (!canvas) return;
+    
+    if (!data || typeof data !== 'object') {
+        canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚗️</div><p>Nessun dato disponibile</p></div>';
+        return;
+    }
+    
+    const varieta = Object.keys(data).filter(v => data[v] && data[v].pHMedio !== null);
+    if (varieta.length === 0) {
+        canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚗️</div><p>Nessun dato disponibile</p></div>';
+        return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    
+    charts.ph = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: varieta,
+            datasets: [{
+                label: 'pH',
+                data: varieta.map(v => data[v].pHMedio),
+                backgroundColor: '#00BCD4',
+                borderColor: '#0097A7',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: false,
+                    ticks: {
+                        callback: function(value) {
+                            return value.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateChartCostiTempo(data) {
+    // Distruggi grafico esistente PRIMA
+    if (charts.costiTempo) {
+        try {
+            charts.costiTempo.destroy();
+        } catch (e) {
+            // Ignora errori
+        }
+        charts.costiTempo = null;
+    }
+    
+    const canvas = ensureCanvas('chart-costi-tempo', '💰', 'Nessun dato disponibile');
+    if (!canvas) {
+        return;
+    }
+    
+    if (!data || !data.anni || data.anni.length === 0) {
+        canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💰</div><p>Nessun dato disponibile</p></div>';
+        return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Verifica se ci sono dati non zero in qualsiasi categoria
+    const hasData = (data.totale && data.totale.some(v => v > 0)) ||
+                   (data.manodopera && data.manodopera.some(v => v > 0)) ||
+                   (data.macchine && data.macchine.some(v => v > 0)) ||
+                   (data.prodotti && data.prodotti.some(v => v > 0)) ||
+                   (data.cantina && data.cantina.some(v => v > 0)) ||
+                   (data.altro && data.altro.some(v => v > 0));
+    
+    if (!hasData) {
+        canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💰</div><p>Nessun dato disponibile</p></div>';
+        return;
+    }
+    
+    try {
+        const chartConfig = {
+            type: 'line',
+            data: {
+                labels: data.anni.map(a => a.toString()),
+                datasets: [
+                    {
+                        label: 'Manodopera',
+                        data: data.manodopera,
+                    borderColor: '#2E8B57',
+                    backgroundColor: 'rgba(46, 139, 87, 0.1)',
+                    tension: 0.4,
+                    fill: false
+                },
+                {
+                    label: 'Macchine',
+                    data: data.macchine,
+                    borderColor: '#007bff',
+                    backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                    tension: 0.4,
+                    fill: false
+                },
+                {
+                    label: 'Prodotti',
+                    data: data.prodotti,
+                    borderColor: '#ffc107',
+                    backgroundColor: 'rgba(255, 193, 7, 0.1)',
+                    tension: 0.4,
+                    fill: false
+                },
+                {
+                    label: 'Cantina',
+                    data: data.cantina,
+                    borderColor: '#dc3545',
+                    backgroundColor: 'rgba(220, 53, 69, 0.1)',
+                    tension: 0.4,
+                    fill: false
+                },
+                {
+                    label: 'Altro',
+                    data: data.altro,
+                    borderColor: '#6c757d',
+                    backgroundColor: 'rgba(108, 117, 125, 0.1)',
+                    tension: 0.4,
+                    fill: false
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '€' + value.toFixed(0);
+                        }
+                    }
+                }
+            }
+        }
+    };
+    
+    charts.costiTempo = new Chart(ctx, chartConfig);
+    } catch (error) {
+        canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💰</div><p>Errore nel caricamento del grafico</p></div>';
+    }
+}
+
+function updateChartSpeseCategoria(stats) {
+    // Distruggi grafico esistente PRIMA
+    if (charts.speseCategoria) {
+        try {
+            charts.speseCategoria.destroy();
+        } catch (e) {
+            // Ignora errori
+        }
+        charts.speseCategoria = null;
+    }
+    
+    const canvas = ensureCanvas('chart-spese-categoria', '💳', 'Nessun dato disponibile');
+    if (!canvas) return;
+    
+    if (!stats || typeof stats !== 'object') {
+        canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💳</div><p>Nessun dato disponibile</p></div>';
+        return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    
+    // Calcola spese totali per categoria (dall'anno corrente)
+    // Nota: per ora usiamo solo spese vendemmia, in futuro possiamo estendere
+    const speseVendemmia = stats.speseVendemmiaAnno || 0;
+    
+    if (speseVendemmia === 0) {
+        canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">💳</div><p>Nessun dato disponibile</p></div>';
+        return;
+    }
+    
+    // Per ora mostriamo solo spese vendemmia, in futuro possiamo aggiungere altre categorie
+    charts.speseCategoria = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Spese Vendemmia'],
+            datasets: [{
+                data: [speseVendemmia],
+                backgroundColor: ['#6A1B9A'],
+                borderColor: '#fff',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'bottom'
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(context) {
+                            return context.label + ': €' + context.parsed.toFixed(2);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateChartSpeseMensili(data, anno) {
+    // Distruggi grafico esistente PRIMA
+    if (charts.speseMensili) {
+        try {
+            charts.speseMensili.destroy();
+        } catch (e) {
+            // Ignora errori
+        }
+        charts.speseMensili = null;
+    }
+    
+    const canvas = ensureCanvas('chart-spese-mensili', '📊', 'Nessun dato disponibile');
+    if (!canvas) return;
+    
+    if (!data || typeof data !== 'object') {
+        canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato disponibile</p></div>';
+        return;
+    }
+    
+    const mesi = ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+    const datiMensili = [];
+    
+    for (let i = 1; i <= 12; i++) {
+        const meseKey = `${anno}-${String(i).padStart(2, '0')}`;
+        datiMensili.push(data[meseKey] || 0);
+    }
+    
+    if (datiMensili.every(v => v === 0)) {
+        canvas.parentElement.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📊</div><p>Nessun dato disponibile</p></div>';
+        return;
+    }
+    
+    const ctx = canvas.getContext('2d');
+    
+    charts.speseMensili = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: mesi,
+            datasets: [{
+                label: 'Spese Vendemmia (€)',
+                data: datiMensili,
+                borderColor: '#6A1B9A',
+                backgroundColor: 'rgba(106, 27, 154, 0.1)',
+                tension: 0.4,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: true,
+                    position: 'top'
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        callback: function(value) {
+                            return '€' + value.toFixed(0);
+                        }
+                    }
+                }
+            }
+        }
+    });
+}
