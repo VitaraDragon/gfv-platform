@@ -20,24 +20,30 @@ Modulo tenant: tipicamente `frutteto` (minuscolo; verificare `tenant.modules`).
 
 Logica pagina e wiring Tony (`currentTableData` / form) vivono in `modules/frutteto/js/` (non più in shared monolitico per queste viste):
 
+- `frutteti-page.js` (anagrafica frutteti)
+- `frutteto-dashboard-page.js` (dashboard frutteto)
+- `frutteto-statistiche-page.js` (statistiche)
 - `raccolta-page.js` (raccolta frutta)
 - `trattamenti-page.js`
 - `concimazioni-page.js`
 - `potatura-page.js`
 
-Le view in `modules/frutteto/views/` restano struttura HTML (dove serve, Google Maps resta nell'HTML) e caricano il JS con `<script type="module" src="../js/<pagina>-page.js">`. Anagrafica frutteti e dashboard frutteto: ancora logica nella view su develop (extract anagrafica in PR aperta).
+Le view in `modules/frutteto/views/` restano struttura HTML (dove serve, Google Maps resta nell'HTML) e caricano il JS con `<script type="module" src="../js/<pagina>-page.js">`.
 
 Trattamenti vigneto/frutteto condividono meccanica in `shared/js/trattamenti-coltura-page.js`.
+
 ## Pianificazione e calcolo materiali (condivisi con Vigneto)
 
-- `../../vigneto/views/pianifica-impianto-standalone.html?coltura=frutteto`
-- `../../vigneto/views/calcolo-materiali-standalone.html?coltura=frutteto`
+Il JS sta nel modulo vigneto; la view frutteto lo carica con `?coltura=frutteto`:
+
+- `../../vigneto/views/pianifica-impianto-standalone.html?coltura=frutteto` — `modules/vigneto/js/pianifica-impianto-page.js`
+- `../../vigneto/views/calcolo-materiali-standalone.html?coltura=frutteto` — `modules/vigneto/js/calcolo-materiali-page.js`
 
 ## pageType / liste Tony
 
 - **`concimazioni_frutteto`** — `modules/frutteto/js/concimazioni-page.js` (caricato da `concimazioni-standalone.html`, che imposta solo il placeholder) aggiorna `window.currentTableData` ed emette `table-data-ready`.
 
-Altre pagine frutteto (inclusa raccolta, `raccolta-page.js`) non espongono ancora `currentTableData` per Tony.
+Anagrafica, dashboard, statistiche e raccolta non espongono ancora `currentTableData` per Tony.
 
 ## Terreni (core) → modulo
 

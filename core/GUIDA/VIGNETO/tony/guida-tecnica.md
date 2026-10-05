@@ -27,16 +27,21 @@ Logica pagina e wiring Tony (`currentTableData` / form) vivono in `modules/vigne
 - `trattamenti-page.js`
 - `concimazioni-page.js`
 - `potatura-page.js`
+- `vigneto-dashboard-page.js` (dashboard vigneto)
+- `vigneto-statistiche-page.js` (statistiche)
+- `calcolo-materiali-page.js` (calcolo materiali; stesso file per il frutteto con `?coltura=frutteto`)
+- `pianifica-impianto-page.js` (pianificazione impianto; stesso file per il frutteto con `?coltura=frutteto`)
 
-Le view in `modules/vigneto/views/` restano struttura HTML (dove serve, Google Maps resta nell'HTML) e caricano il JS con `<script type="module" src="../js/<pagina>-page.js">`. Dashboard vigneto: ancora logica nella view (extract in PR aperta, non su develop).
+Le view in `modules/vigneto/views/` restano struttura HTML (dove serve, Google Maps resta nell'HTML) e caricano il JS con `<script type="module" src="../js/<pagina>-page.js">`.
 
 Trattamenti vigneto/frutteto condividono meccanica in `shared/js/trattamenti-coltura-page.js`.
+
 ## pageType / Tony liste
 
 - **`vendemmia`** — `modules/vigneto/js/vendemmia-page.js` (caricato da `vendemmia-standalone.html`) aggiorna `window.currentTableData` ed emette `table-data-ready`.
 - **`concimazioni_vigneto`** — `modules/vigneto/js/concimazioni-page.js` imposta il placeholder e poi aggiorna `window.currentTableData` (canone liste).
 
-Altre pagine vigneto possono non esporre ancora `currentTableData`: non presumere items tabella su trattamenti/potatura/statistiche salvo implementazione futura.
+Dashboard, statistiche, calcolo materiali e pianificazione impianto non espongono ancora `currentTableData`: non presumere items tabella su quelle viste, né su trattamenti/potatura.
 
 ## Contesto dashboard principale
 
