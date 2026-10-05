@@ -66,6 +66,14 @@ function resolveLatencyBudget(scenario, expectBlock) {
  * @param {object} scenario
  * @param {{ urlBefore?: string }} [ctx]
  */
+async function readTonyBubblesText(page) {
+  return page.evaluate(() =>
+    Array.from(document.querySelectorAll('#tony-messages .tony-msg.tony, #tony-messages .tony-msg.error'))
+      .map((node) => node.textContent || '')
+      .join('\n')
+  );
+}
+
 export async function assertScenarioExpect(page, expect, scenario, ctx = {}) {
   const exp = scenario.expect || {};
 
@@ -202,6 +210,19 @@ export async function assertScenarioExpect(page, expect, scenario, ctx = {}) {
     await waitForScenarioFormFields(page, exp);
   }
 
+  if (Array.isArray(exp.bubblesMustMatch) && exp.bubblesMustMatch.length) {
+    const blob = (await readTonyBubblesText(page)).toLowerCase();
+    for (const fragment of exp.bubblesMustMatch) {
+      expect(blob, `le bolle Tony devono contenere «${fragment}»`).toContain(String(fragment).toLowerCase());
+    }
+  }
+  if (Array.isArray(exp.bubblesMustNotMatch) && exp.bubblesMustNotMatch.length) {
+    const blob = (await readTonyBubblesText(page)).toLowerCase();
+    for (const fragment of exp.bubblesMustNotMatch) {
+      expect(blob, `nessuna bolla Tony deve contenere «${fragment}»`).not.toContain(String(fragment).toLowerCase());
+    }
+  }
+
   if (exp.navigation) {
     const urlNow = page.url();
     if (exp.navigation.urlIncludes) {
@@ -211,6 +232,11 @@ export async function assertScenarioExpect(page, expect, scenario, ctx = {}) {
       const beforePath = new URL(ctx.urlBefore).pathname;
       const nowPath = new URL(urlNow).pathname;
       expect(nowPath).toBe(beforePath);
+    }
+    if (exp.navigation.mustChange && ctx.urlBefore) {
+      const beforePath = new URL(ctx.urlBefore).pathname;
+      const nowPath = new URL(urlNow).pathname;
+      expect(nowPath).not.toBe(beforePath);
     }
   }
 }
