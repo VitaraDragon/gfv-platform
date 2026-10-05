@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-05 — Statistiche vigneto: script di pagina nel file del modulo.**
+**Ultimo aggiornamento documentazione: 2026-10-05 — Statistiche frutteto: script di pagina nel file del modulo.**
+
+## 2026-10-05 — Statistiche frutteto: comportamento fuori dall’HTML
+
+La pagina statistiche del frutteto segue lo stesso schema dei trattamenti: l’HTML in `views/` resta la struttura, il comportamento sta in `modules/frutteto/js/frutteto-statistiche-page.js`. Il vigneto non è stato toccato. Chart.js resta nell’HTML. Gli import statici sono relativi al file del modulo; quelli dinamici via `resolvePath` restano relativi all’URL della pagina.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-05 — Statistiche vigneto: script di pagina nel file del modulo.**
 
 ## 2026-10-05 — Statistiche vigneto: comportamento fuori dall’HTML
 
