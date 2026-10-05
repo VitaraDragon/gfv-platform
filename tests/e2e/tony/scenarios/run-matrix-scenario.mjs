@@ -24,6 +24,7 @@ import {
   tonyGetExecutedCommands,
   tonyGetLastReplyText,
   tonySendMessage,
+  tonySendMessageCrossPage,
   tonyWaitForReply,
   waitForTonyReady,
   waitForTonyReadyWithRetry,
@@ -131,6 +132,28 @@ export async function runMatrixScenario(page, expect, scenario) {
     );
   }
 
+  if (Array.isArray(scenario.moduliAttiviOverride)) {
+    await page.evaluate((mods) => {
+      const list = mods.slice();
+      try { sessionStorage.setItem('tony_moduli_attivi', JSON.stringify(list)); } catch (e) { /* ignore */ }
+      window.__gfvModuliAttivi = list;
+      if (window.__gfvTenantData && typeof window.__gfvTenantData === 'object') {
+        window.__gfvTenantData.modules = list.slice();
+      }
+      const tony = window.Tony;
+      const dash = (tony && tony.context && tony.context.dashboard) || {};
+      if (Array.isArray(dash.moduli_attivi)) {
+        dash.moduli_attivi.splice(0, dash.moduli_attivi.length, ...list);
+      } else if (tony && tony.context) {
+        tony.context.dashboard = Object.assign({}, dash, { moduli_attivi: list });
+      }
+      if (dash.info_azienda && typeof dash.info_azienda === 'object') {
+        dash.info_azienda.moduli_attivi = list.slice();
+      }
+      if (tony && tony.context) tony.context.moduli_attivi = list.slice();
+    }, scenario.moduliAttiviOverride);
+  }
+
   const urlBefore = page.url();
   const messages = Array.isArray(scenario.messages) ? scenario.messages : [];
   const turnExpects = Array.isArray(scenario.turnExpects) ? scenario.turnExpects : [];
@@ -139,6 +162,35 @@ export async function runMatrixScenario(page, expect, scenario) {
   if (messages.length === 0 && scenario.expect) {
     await openTonyPanel(page);
     await assertScenarioExpect(page, expect, scenario, { urlBefore });
+    return;
+  }
+
+  if (scenario.expect?.navigation?.immediate && messages.length) {
+    await page.addInitScript(() => {
+      window.tonyDashboardBriefingFired = true;
+      window.tonyMeteoBriefingFired = true;
+    });
+    const urlPart = String(scenario.expect.navigation.urlIncludes || '');
+    const navPattern = new RegExp(urlPart.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    for (let turnIndex = 0; turnIndex < messages.length; turnIndex++) {
+      try {
+        await tonySendMessageCrossPage(page, messages[turnIndex], { navUrlPattern: navPattern });
+      } catch (err) {
+        if (!navPattern.test(page.url())) throw err;
+      }
+    }
+    await waitForTonyReady(page);
+    await openTonyPanel(page);
+    await page.waitForFunction(
+      () => {
+        const nodes = document.querySelectorAll('#tony-messages .tony-msg.tony');
+        return Array.from(nodes).some((node) => /porto/i.test(node.textContent || ''));
+      },
+      null,
+      { timeout: 20_000 }
+    );
+    const reply = await tonyGetLastReplyText(page);
+    await assertScenarioExpect(page, expect, scenario, { urlBefore, lastReply: reply });
     return;
   }
 

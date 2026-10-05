@@ -2129,6 +2129,91 @@
         },
         "navigation": { "urlIncludes": "pieno=1" }
       }
+    },
+    {
+      "id": "T-LAVORO-FATTO-001",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "nav",
+      "description": "Manodopera spenta: «o' fatto la vigna» dalla dashboard apre il Diario e cambia pagina",
+      "contract": {
+        "invariant": "Senza Manodopera la frase esegue APRI_PAGINA verso il Diario; la route prima e dopo è diversa",
+        "primaryAsserts": ["url attivita-standalone", "testo diario", "pathname diversa"],
+        "avoidAsserts": ["gestione lavori come destinazione", "salvataggio automatico"]
+      },
+      "persona": "manager",
+      "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerFromDevPage",
+      "moduliAttiviOverride": ["tony", "vigneto", "meteo", "contoTerzi", "magazzino", "parcoMacchine"],
+      "messages": ["o' fatto la vigna"],
+      "mockCf": true,
+      "expect": {
+        "usedGemini": false,
+        "bubblesMustMatch": ["porto", "diario"],
+        "bubblesMustNotMatch": ["gestione lavori"],
+        "navigation": {
+          "immediate": true,
+          "urlIncludes": "attivita-standalone",
+          "mustChange": true
+        }
+      }
+    },
+    {
+      "id": "T-LAVORO-FATTO-002",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "nav",
+      "description": "Manodopera attiva: «o' fatto la vigna» dalla dashboard apre Gestione lavori, senza promettere il Diario",
+      "contract": {
+        "invariant": "Con Manodopera la frase esegue APRI_PAGINA verso Gestione lavori; il testo non indica il Diario; la route cambia",
+        "primaryAsserts": ["url gestione-lavori", "testo lavori", "pathname diversa"],
+        "avoidAsserts": ["diario come destinazione", "salvataggio automatico"]
+      },
+      "persona": "manager",
+      "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["o' fatto la vigna"],
+      "mockCf": true,
+      "expect": {
+        "usedGemini": false,
+        "bubblesMustMatch": ["porto", "lavori"],
+        "bubblesMustNotMatch": ["diario"],
+        "navigation": {
+          "immediate": true,
+          "urlIncludes": "gestione-lavori-standalone",
+          "mustChange": true
+        }
+      }
+    },
+    {
+      "id": "T-LAVORO-FATTO-003",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "nav",
+      "description": "Manodopera attiva: «ho finito il lavoro in vigna» dalla home Vigneto apre Gestione lavori",
+      "contract": {
+        "invariant": "Stesso comando da una pagina diversa dalla dashboard: route diversa, Gestione lavori, niente Diario",
+        "primaryAsserts": ["url gestione-lavori", "testo lavori", "pathname diversa"],
+        "avoidAsserts": ["diario come destinazione"]
+      },
+      "persona": "manager",
+      "startUrl": "/modules/vigneto/views/vigneto-dashboard-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["ho finito il lavoro in vigna"],
+      "mockCf": true,
+      "expect": {
+        "usedGemini": false,
+        "bubblesMustMatch": ["porto", "lavori"],
+        "bubblesMustNotMatch": ["diario"],
+        "navigation": {
+          "immediate": true,
+          "urlIncludes": "gestione-lavori-standalone",
+          "mustChange": true
+        }
+      }
     }
   ]
 }
