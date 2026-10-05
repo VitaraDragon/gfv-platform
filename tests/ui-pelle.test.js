@@ -82,7 +82,7 @@ describe('ui-pelle stato', () => {
     const ids = entries.map((e) => e.id);
     expect(ids[0]).toBe('home');
     expect(ids).toContain('frutteto');
-    expect(ids).toContain('lavori');
+    expect(ids).not.toContain('lavori');
     expect(ids).toContain('impostazioni');
     expect(moduleMenuEntries(entries).map((e) => e.id)).not.toContain('impostazioni');
     expect(moduleMenuEntries(entries).map((e) => e.id)).not.toContain('abbonamento');
@@ -102,6 +102,7 @@ describe('ui-pelle stato', () => {
     const stats = entries.find((e) => e.id === 'statistiche');
     expect(stats.href).toBe('admin/statistiche-manodopera-standalone.html');
     expect(entries.map((e) => e.id)).not.toContain('diarioAttivita');
+    expect(entries.map((e) => e.id)).toContain('lavori');
   });
 
   test('home: al massimo 6 azioni, il catalogo non è la home', () => {
