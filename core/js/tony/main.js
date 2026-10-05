@@ -7,6 +7,7 @@ import { tonyDebugLog } from './debug.js';
 import { injectWidget } from './ui.js';
 import { initTonyVoice } from './voice.js';
 import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, isTonyMainDashboardPath, isTonyMainDashboardNavRequest, isTonyMeteoModulePath, cleanTextFromJsonResidue, normalizeTonyTextWhitespace, applyItalianVoiceQuestionPunctuation, normalizeItalianSttTranscript, collapseDuplicateVoiceTranscript, scoreItalianSttLexicon, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts, matchSegnaOraIncompleteDallePausaFromBlob, normalizeSegnaOraSttBlob, isSegnaOraUntrustedPartialStart, repairSegnaOraVoiceTranscript } from './engine.js';
+import { resolveLavoroFattoNav, mapDiarioFieldsToLavoro, alignLavoroFattoSpeech } from './tony-lavoro-fatto-nav.js';
 import { hasActiveModule, getModuliAttiviFromTonyContext, isApriPaginaTargetAllowed, tonyNotifyModuleInactive } from '../../config/tony-module-gate.js';
 import { getTonyGuidaOnboardingFromWindow, tonyGuidaOnboardingWelcomeMessage } from '../../config/tony-guida-onboarding.js';
 import {
@@ -414,8 +415,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
     /** True se il tenant ha modulo Manodopera (Segna ore vs Diario attività). */
     function tonyModuliAttiviIncludeManodopera() {
         try {
-            var ctx = window.Tony && window.Tony.context;
-            var mods = ctx && (ctx.dashboard && ctx.dashboard.moduli_attivi || ctx.moduli_attivi || (ctx.info_azienda && ctx.info_azienda.moduli_attivi));
+            var mods = getModuliAttiviFromTonyContext();
+            if (!Array.isArray(mods) || mods.length === 0) {
+                if (Array.isArray(window.__gfvModuliAttivi) && window.__gfvModuliAttivi.length) {
+                    mods = window.__gfvModuliAttivi;
+                }
+            }
             if (!Array.isArray(mods) || mods.length === 0) {
                 try {
                     var st = sessionStorage.getItem('tony_moduli_attivi');
@@ -426,6 +431,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             return mods.some(function (m) { return String(m).toLowerCase() === 'manodopera'; });
         } catch (e) { return false; }
     }
+    try { window.__tonyModuliAttiviIncludeManodopera = tonyModuliAttiviIncludeManodopera; } catch (eManHook) { /* ignore */ }
 
     /** Mappa campi diario (attivita-*) su form Segna ora (ora-*) quando la CF emette ancora attivita-modal. */
     function tonyMapAttivitaFieldsToSegnaOra(fields) {
@@ -713,7 +719,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
     }
 
     /** Target che aprono slide del workspace campo: niente dialog «Aprire la pagina…?». */
-    function tonyShouldSkipApriPaginaConfirm(rawTarget) {
+    function tonyShouldSkipApriPaginaConfirm(rawTarget, extra) {
+        if (extra && extra._tonySkipConfirm) return true;
         try {
             var r = String(resolveTarget(rawTarget) || rawTarget || '').toLowerCase().trim();
             if (!r) return false;
@@ -4165,7 +4172,14 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                     _pendingFields = tonyResolveOraLavoroForQuickHours(_pendingFields, tonyBuildSegnaOraUserBlobLastNUserTurns(6));
                                 }
                                 if (_man && !_fpAtt) {
-                                    tonyDebugLog('[Tony] OPEN_MODAL attivita-modal ignorato: manodopera attivo, profilo manager (né diario né Segna ore)');
+                                    var _lavFields = mapDiarioFieldsToLavoro(_pendingFields);
+                                    tonyDebugLog('[Tony] OPEN_MODAL attivita-modal: manodopera attivo, apro Gestione lavori');
+                                    window.Tony.triggerAction('APRI_PAGINA', {
+                                        target: 'gestione lavori',
+                                        _tonyPendingModal: 'lavoro-modal',
+                                        _tonyPendingFields: _lavFields,
+                                        _tonySkipConfirm: true
+                                    });
                                     break;
                                 }
                                 var _attNavTarget = _fpAtt ? 'workspace campo' : 'attivita';
@@ -4174,7 +4188,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 window.Tony.triggerAction('APRI_PAGINA', {
                                     target: _attNavTarget,
                                     _tonyPendingModal: _pendModal,
-                                    _tonyPendingFields: _pendingFields && typeof _pendingFields === 'object' && Object.keys(_pendingFields).length > 0 ? _pendingFields : null
+                                    _tonyPendingFields: _pendingFields && typeof _pendingFields === 'object' && Object.keys(_pendingFields).length > 0 ? _pendingFields : null,
+                                    _tonySkipConfirm: true
                                 });
                                 break;
                             }
@@ -5106,7 +5121,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 } catch (e) {}
                                 window.location.href = urlWithNotify;
                             };
-                            if (tonyShouldSkipApriPaginaConfirm(target)) {
+                            if (tonyShouldSkipApriPaginaConfirm(target, data)) {
                                 runApriPaginaNavPc();
                             } else {
                                 window.showTonyConfirmDialog('Aprire la pagina "' + label + '"?').then(function(ok) {
@@ -6952,6 +6967,46 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 return;
             }
 
+            // «o' fatto la vigna» / equivalenti: naviga subito. Manodopera off → Diario, on → Gestione lavori.
+            if (!opts.proactive && !getTonyFieldProfileFromContext()) {
+                var lavoroFattoNav = resolveLavoroFattoNav(text, { hasManodopera: tonyModuliAttiviIncludeManodopera() });
+                var registroGiaAperto = (function() {
+                    function aperto(id) {
+                        var el = document.getElementById(id);
+                        return !!(el && el.classList.contains('active'));
+                    }
+                    return aperto('attivita-modal') || aperto('lavoro-modal');
+                })();
+                if (lavoroFattoNav && !registroGiaAperto) {
+                    if (tonyEarlyTypingTimer) { clearTimeout(tonyEarlyTypingTimer); tonyEarlyTypingTimer = null; }
+                    try { if (typeof removeTyping === 'function') removeTyping(); } catch (eRmFatto) { /* ignore */ }
+                    var fattoPath = (window.location.pathname || '').toLowerCase();
+                    var fattoTarget = String(lavoroFattoNav.target || '').toLowerCase();
+                    var giaSullaDestinazione = (fattoTarget === 'attivita' && fattoPath.indexOf('attivita-standalone') >= 0) ||
+                        ((fattoTarget === 'gestione lavori' || fattoTarget === 'lavori') && fattoPath.indexOf('gestione-lavori') >= 0);
+                    try { tonyPushLocalChatTurn(text, lavoroFattoNav.text, { skipUserPush: true }); } catch (eFattoHist) { /* ignore */ }
+                    try {
+                        if (typeof appendMessage === 'function') appendMessage(lavoroFattoNav.text, 'tony');
+                        if (window.Tony && typeof window.Tony.speak === 'function') window.Tony.speak(lavoroFattoNav.text);
+                        if (typeof saveTonyState === 'function') saveTonyState();
+                    } catch (eFattoSpeak) { /* ignore */ }
+                    tonyE2eFinishLocalInterceptTurn();
+                    if (giaSullaDestinazione) {
+                        processTonyCommand({ type: 'OPEN_MODAL', id: lavoroFattoNav.pendingModal });
+                    } else {
+                        processTonyCommand({
+                            type: 'APRI_PAGINA',
+                            target: lavoroFattoNav.target,
+                            _tonyPendingModal: lavoroFattoNav.pendingModal,
+                            _tonySkipConfirm: true
+                        });
+                    }
+                    if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    _isSendingMessage = false;
+                    return;
+                }
+            }
+
             // Profilo campo: tutte le slide workspace in locale (0 CF) — evita Gemini «sei già su segna ore».
             if (!opts.proactive && getTonyFieldProfileFromContext()) {
                 var fieldNavMsg = String(text || '').toLowerCase();
@@ -8234,6 +8289,13 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 
                 var finalSpeech = parsedData.text || (typeof rawData === 'string' ? rawData : 'Ok');
                 finalSpeech = (typeof cleanTextFromJsonResidue === 'function' ? cleanTextFromJsonResidue(finalSpeech) : (finalSpeech || 'Ok').trim()) || 'Ok';
+                finalSpeech = alignLavoroFattoSpeech(
+                    finalSpeech,
+                    text,
+                    commandToExecute,
+                    tonyModuliAttiviIncludeManodopera(),
+                    !!getTonyFieldProfileFromContext()
+                );
                 var cmdForSaveNorm = commandToExecute && commandToExecute.type ? String(commandToExecute.type).toUpperCase() : '';
                 if (cmdForSaveNorm === 'SAVE_ACTIVITY' && finalSpeech && /attivit/i.test(finalSpeech)) {
                     var pathSave = (window.location.pathname || '').toLowerCase();
@@ -9697,7 +9759,7 @@ window.addEventListener('tony-module-updated', function(e) {
                                 } catch (e) {}
                                 window.location.href = urlWithNotify;
                             };
-                            if (tonyShouldSkipApriPaginaConfirm(rawTarget)) {
+                            if (tonyShouldSkipApriPaginaConfirm(rawTarget, actualParams)) {
                                 runApriPaginaNavOn();
                             } else {
                                 window.showTonyConfirmDialog('Aprire la pagina "' + label + '"?').then(function(ok) {
