@@ -1,10 +1,18 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-05 — Pieno dopo carico: la quantità è quella del messaggio, non della cisterna.**
+**Ultimo aggiornamento documentazione: 2026-10-05 — Cloud Functions su Node.js 24.**
+
+## 2026-10-05 — Cloud Functions: Node.js 24
+
+Node.js 20 va in pensione il 30 ottobre 2026. Le funzioni usano Node.js 24, supportato fino al 30 aprile 2028, e sono state ridistribuite tutte su `gfv-platform`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-05 — Pieno dopo carico: la quantità è quella del messaggio, non della cisterna.**
 
 ## 2026-10-05 — Pieno in campo dopo un carico cisterna
 
-Se il form del carico è già aperto e l’utente dice un pieno (o il contrario, o passa a un’attività), Tony non riusa quantità, tipo, prodotto e mezzo del gesto precedente. Il pieno in campo riparte con i litri detti in quel messaggio, il mezzo e l’appezzamento se citati. Il prompt ha la stessa regola; le Cloud Functions non sono state pubblicate. Scenario gate `T-FUEL-SWITCH-001`.
+Se il form del carico è già aperto e l’utente dice un pieno (o il contrario, o passa a un’attività), Tony non riusa quantità, tipo, prodotto e mezzo del gesto precedente. Il pieno in campo riparte con i litri detti in quel messaggio, il mezzo e l’appezzamento se citati. Il prompt ha la stessa regola. `tonyAsk` e `tonyAskStream` sono state pubblicate il 2026-10-05. Scenario gate `T-FUEL-SWITCH-001`.
 
 ---
 
