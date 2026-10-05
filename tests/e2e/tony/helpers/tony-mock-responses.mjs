@@ -84,5 +84,21 @@ export function buildMockCfBundle(scenario) {
     return bundle;
   }
 
+  if (id === 'T-CHAT-JSON-001') {
+    bundle.staticResponses['quello grande'] = {
+      text: '{"text":"Prendo quello grande.","command":{"type":"OPEN_MODAL","id":"attiv',
+      command: null,
+    };
+    return bundle;
+  }
+
+  if (id === 'T-CHAT-JSON-002') {
+    bundle.staticResponses['con la mietitrebbia del vicino'] = {
+      text: 'Uso la mietitrebbia del vicino. INJECT_FORM_DATA attivita-form {"attivita-note":"vicino"',
+      command: null,
+    };
+    return bundle;
+  }
+
   return bundle;
 }

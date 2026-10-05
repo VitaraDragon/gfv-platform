@@ -116,6 +116,18 @@ export async function assertScenarioExpect(page, expect, scenario, ctx = {}) {
     }
   }
 
+  if (Array.isArray(exp.chatMustNotMatch) && exp.chatMustNotMatch.length) {
+    const allChat = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('#tony-messages .tony-msg.tony, #tony-messages .tony-msg.error'))
+        .map((node) => node.textContent || '')
+        .join('\n')
+        .toLowerCase()
+    );
+    for (const fragment of exp.chatMustNotMatch) {
+      expect(allChat, `chat non deve contenere «${fragment}»`).not.toContain(String(fragment).toLowerCase());
+    }
+  }
+
   if (Array.isArray(exp.responseMustMatchGroups) && exp.responseMustMatchGroups.length) {
     const low = reply.toLowerCase();
     let matched = 0;

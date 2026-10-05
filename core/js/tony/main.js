@@ -5584,6 +5584,22 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
     var _initialPlanGate = resolvePlanForWidgetGate();
     var uiApi = injectWidget(scriptBase);
     var appendMessage = uiApi.appendMessage, removeTyping = uiApi.removeTyping, showMessageInChat = uiApi.showMessageInChat;
+    function tonyChatTextForBubble(text, type) {
+        if ((type || 'tony') !== 'tony') return text;
+        return cleanTextFromJsonResidue(text == null ? '' : String(text));
+    }
+    var appendMessageRaw = appendMessage;
+    appendMessage = function(text, type) {
+        var out = tonyChatTextForBubble(text, type);
+        if ((type || 'tony') === 'tony' && !String(out || '').trim()) return;
+        appendMessageRaw(out, type);
+    };
+    var showMessageInChatRaw = showMessageInChat;
+    showMessageInChat = function(text, type) {
+        var out = tonyChatTextForBubble(text, type);
+        if ((type || 'tony') === 'tony' && !String(out || '').trim()) return;
+        showMessageInChatRaw(out, type);
+    };
     if (_tonyE2eMode) {
         var appendMessageBase = appendMessage;
         appendMessage = function(text, type) {
@@ -5668,8 +5684,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
 
     if (sendBtn) {
         function nascondiJsonDaStreaming(testo) {
-            var t = testo.replace(/\{[\s\S]*?\}/g, '');
-            return t.replace(/\{[^}]*$/, '');
+            return cleanTextFromJsonResidue(testo || '');
         }
 
         /**
@@ -8318,7 +8333,9 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 function doDisplay(txt) {
                     var out = (txt != null && String(txt).trim()) ? String(txt).trim() : finalSpeech;
                     out = (out != null && String(out).trim()) ? String(out).trim() : '';
+                    out = cleanTextFromJsonResidue(out);
                     out = tonyEnsureSegnaOraAssistantVisible(out) || out;
+                    out = cleanTextFromJsonResidue(out);
                     if (!out) return;
                     tonyReplyShownThisTurn = true;
                     window.__tonyLastCfAssistantText = out;
