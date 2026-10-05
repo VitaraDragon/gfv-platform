@@ -1522,6 +1522,469 @@
           "sessione scaduta"
         ]
       }
+    },
+    {
+      "id": "T-TRIM-DIRTY-001",
+      "status": "ready",
+      "mode": "explore",
+      "tier": 3,
+      "category": "typo",
+      "description": "Typo — carico cisterna gasolio litri",
+      "contract": {
+        "invariant": "Typo grezzo carico cisterna gasolio → capisce ~300 L o chiede conferma; non inventa altro prodotto",
+        "primaryAsserts": [
+          "responseMustMatchGroupsMin >= 1",
+          "no crash"
+        ],
+        "avoidAsserts": [
+          "numero inventato senza fonte"
+        ]
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "lab-trimestre-full",
+      "startUrl": "/modules/magazzino/views/carburante-home-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": [
+        "qarica 300 litri gasolio nela cisterna plis"
+      ],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          [
+            "caric",
+            "cisterna",
+            "gasolio",
+            "300",
+            "litri",
+            "conferm",
+            "registr",
+            "magazzin"
+          ]
+        ],
+        "responseMustNotMatch": [
+          "sessione scaduta",
+          "piano free"
+        ]
+      }
+    },
+    {
+      "id": "T-TRIM-DIRTY-002",
+      "status": "ready",
+      "mode": "explore",
+      "tier": 3,
+      "category": "concept",
+      "description": "Dialetto — pieno gasolio al trattore",
+      "contract": {
+        "invariant": "Dialetto pieno gasolio trattore → propone/registra pieno mezzo o chiede quale; non cisterna",
+        "primaryAsserts": [
+          "pieno/gasolio/trattore o mezzo",
+          "no cisterna"
+        ],
+        "avoidAsserts": []
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "lab-trimestre-full",
+      "startUrl": "/modules/magazzino/views/carburante-home-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": [
+        "fai er pieno de gasolio ar trattore grosso"
+      ],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          [
+            "pieno",
+            "gasolio",
+            "trattore",
+            "mezzo",
+            "quale",
+            "conferm"
+          ]
+        ],
+        "responseMustNotMatch": [
+          "sessione scaduta",
+          "cisterna"
+        ]
+      }
+    },
+    {
+      "id": "T-TRIM-DIRTY-003",
+      "status": "ready",
+      "mode": "explore",
+      "tier": 3,
+      "category": "typo",
+      "description": "Typo — scorta AdBlue",
+      "contract": {
+        "invariant": "Typo scorta AdBlue → legge scorta o chiede; non confonde con gasolio",
+        "primaryAsserts": [
+          "adblue/scorta"
+        ],
+        "avoidAsserts": [
+          "gasolio invece di adblue"
+        ]
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "lab-trimestre-full",
+      "startUrl": "/modules/magazzino/views/carburante-home-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": [
+        "ce nne ancora dil adblue? qusi finito"
+      ],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          [
+            "adblue",
+            "scort",
+            "magazzin",
+            "giacenz",
+            "finit",
+            "livell"
+          ]
+        ],
+        "responseMustNotMatch": [
+          "sessione scaduta",
+          "gasolio"
+        ]
+      }
+    },
+    {
+      "id": "T-TRIM-DIRTY-004",
+      "status": "ready",
+      "mode": "explore",
+      "tier": 3,
+      "category": "fragment",
+      "description": "Frammenti — carico ieri cisterna",
+      "contract": {
+        "invariant": "Frammenti ieri/cisterna/gasolio/300 → lega carico cisterna o chiede conferma; non benzina",
+        "primaryAsserts": [
+          "carico/cisterna/gasolio"
+        ],
+        "avoidAsserts": [
+          "benzina invece di gasolio"
+        ]
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "lab-trimestre-full",
+      "startUrl": "/modules/magazzino/views/carburante-home-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": [
+        "eh… ieri… la cisterna… gasolio… trecento e qualcosa…"
+      ],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          [
+            "caric",
+            "cisterna",
+            "gasolio",
+            "ieri",
+            "300",
+            "conferm",
+            "litri"
+          ]
+        ],
+        "responseMustNotMatch": [
+          "sessione scaduta",
+          "benzina"
+        ]
+      }
+    },
+    {
+      "id": "T-TRIM-DIRTY-005",
+      "status": "ready",
+      "mode": "explore",
+      "tier": 3,
+      "category": "ambiguous",
+      "description": "Ambiguità mezzo — pieno sul giallo",
+      "contract": {
+        "invariant": "Mezzo ambiguo 'giallo' → chiede quale mezzo o elenca candidati; non assume a caso",
+        "primaryAsserts": [
+          "quale mezzo/chiede disambiguazione"
+        ],
+        "avoidAsserts": [
+          "pieno su mezzo ignoto senza chiedere",
+          "carico cisterna prima di disambiguare mezzo"
+        ]
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "lab-trimestre-full",
+      "startUrl": "/modules/magazzino/views/carburante-home-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": [
+        "pieno gasolio stamattina sul quello giallo"
+      ],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          [
+            "quale",
+            "mezzo",
+            "trattore",
+            "giallo",
+            "pieno",
+            "conferm"
+          ]
+        ],
+        "responseMustNotMatch": [
+          "sessione scaduta",
+          "quanti litri",
+          "carico cisterna",
+          "carico di gasolio"
+        ]
+      }
+    },
+    {
+      "id": "T-TRIM-DIRTY-006",
+      "status": "ready",
+      "mode": "explore",
+      "tier": 3,
+      "category": "query",
+      "description": "Scorta gasolio magazzino",
+      "contract": {
+        "invariant": "Domanda scorta gasolio → riporta giacenza da seed o apre scorte; non inventa litri",
+        "primaryAsserts": [
+          "giacenza/scorta gasolio"
+        ],
+        "avoidAsserts": [
+          "litri inventati senza fonte"
+        ]
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "lab-trimestre-full",
+      "startUrl": "/modules/magazzino/views/carburante-home-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": [
+        "quanto gasolio ce resta in magazzino / cisterna?"
+      ],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          [
+            "gasolio",
+            "scort",
+            "magazzin",
+            "cisterna",
+            "giacenz",
+            "litri",
+            "resta"
+          ]
+        ],
+        "responseMustNotMatch": [
+          "sessione scaduta"
+        ]
+      }
+    },
+    {
+      "id": "T-TRIM-DIRTY-007",
+      "status": "ready",
+      "mode": "explore",
+      "tier": 3,
+      "category": "concept",
+      "description": "Dialetto — potatura squadra ferma",
+      "contract": {
+        "invariant": "Dialetto potatura squadra in standby → collega a lavoro/potatura o chiede; non trattamento chimico",
+        "primaryAsserts": [
+          "potatura/lavoro/squadra/assenza"
+        ],
+        "avoidAsserts": [
+          "fitosanitario"
+        ]
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "lab-trimestre-full",
+      "startUrl": "/core/admin/gestione-lavori-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerManodopera",
+      "messages": [
+        "digli a la squadra de fini la potatura che era ferma pe assenza"
+      ],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          [
+            "potatur",
+            "squadra",
+            "ferma",
+            "assenza",
+            "lavor",
+            "riprend",
+            "fini"
+          ]
+        ],
+        "responseMustNotMatch": [
+          "sessione scaduta",
+          "trattament",
+          "fitofarmac"
+        ]
+      }
+    },
+    {
+      "id": "T-TRIM-DIRTY-008",
+      "status": "ready",
+      "mode": "explore",
+      "tier": 3,
+      "category": "fragment",
+      "description": "Frammenti — mietitura grano",
+      "contract": {
+        "invariant": "Frammenti mietitura/grano → interpreta raccolta/mietitura grano e chiede appezzamento; NON trattore come prima domanda né spray fitosanitario",
+        "primaryAsserts": [
+          "responseMustMatchGroupsMin >= 1",
+          "responseMustNotMatch spray/fitosanitario"
+        ],
+        "avoidAsserts": [
+          "trattore come prima domanda",
+          "marca/mezzo prima di conferma tipo lavoro"
+        ]
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "lab-trimestre-full",
+      "startUrl": "/core/attivita-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": [
+        "stamattina… grano… mietitura… campo grande… fatto"
+      ],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          [
+            "grano",
+            "mietit",
+            "raccolt",
+            "campo",
+            "appezzament",
+            "terren",
+            "quale"
+          ],
+          [
+            "grano",
+            "mietit",
+            "raccolt",
+            "conferm",
+            "registr"
+          ]
+        ],
+        "responseMustNotMatch": [
+          "sessione scaduta",
+          "spray",
+          "fitosanitari",
+          "trattament",
+          "quale trattore"
+        ]
+      }
+    },
+    {
+      "id": "T-TRIM-DIRTY-009",
+      "status": "ready",
+      "mode": "explore",
+      "tier": 3,
+      "category": "typo",
+      "description": "Typo — pieno benzina pickup",
+      "contract": {
+        "invariant": "Typo pieno benzina pickup ~40 L → conferma mezzo e benzina; non gasolio",
+        "primaryAsserts": [
+          "pieno/benzina/pickup o furgone"
+        ],
+        "avoidAsserts": [
+          "gasolio invece di benzina"
+        ]
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "lab-trimestre-full",
+      "startUrl": "/modules/magazzino/views/carburante-home-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": [
+        "pieno benzina sul pickup qusi 40 litri"
+      ],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          [
+            "pieno",
+            "benzina",
+            "pickup",
+            "furgone",
+            "40",
+            "litri",
+            "conferm"
+          ]
+        ],
+        "responseMustNotMatch": [
+          "sessione scaduta",
+          "gasolio"
+        ]
+      }
+    },
+    {
+      "id": "T-TRIM-DIRTY-010",
+      "status": "ready",
+      "mode": "explore",
+      "tier": 3,
+      "category": "correction",
+      "description": "Autocorrezione — trattato ma intende pieno/carico",
+      "contract": {
+        "invariant": "Autocorrezione trattato→carico → privilegia carico cisterna gasolio; non trattamento fitosanitario",
+        "primaryAsserts": [
+          "carico/cisterna/gasolio"
+        ],
+        "avoidAsserts": [
+          "fitosanitario/spray"
+        ]
+      },
+      "persona": "manager",
+      "requiresSeedProfile": "lab-trimestre-full",
+      "startUrl": "/modules/magazzino/views/carburante-home-standalone.html?emulator=1&tonyE2e=1&tonyE2eLive=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": [
+        "ho trattato la cisterna col gasolio ma intendo ho fatto il carico"
+      ],
+      "mockCf": false,
+      "expect": {
+        "replyTimeoutMs": 60000,
+        "latencyMsMax": 15000,
+        "responseMustMatchGroupsMin": 1,
+        "responseMustMatchGroups": [
+          [
+            "caric",
+            "cisterna",
+            "gasolio",
+            "conferm",
+            "registr"
+          ]
+        ],
+        "responseMustNotMatch": [
+          "sessione scaduta",
+          "trattament",
+          "fitosanitari",
+          "spray"
+        ]
+      }
     }
   ]
 }

@@ -44,7 +44,12 @@ export async function runMatrixScenario(page, expect, scenario) {
     await installTonyMockCf(page, { scenario });
   }
 
-  await runTonySimLogin(page, loginName);
+  const loginOptions = {};
+  if (scenario.requiresSeedProfile) {
+    loginOptions.preferTemplateId = scenario.requiresSeedProfile;
+  }
+
+  await runTonySimLogin(page, loginName, loginOptions);
   await captureTonyTenantSnapshot(page);
 
   const startPath = scenario.startUrl?.split('?')[0] || DEFAULT_START;
