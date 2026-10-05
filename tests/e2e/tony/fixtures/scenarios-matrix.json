@@ -1985,6 +1985,54 @@
           "spray"
         ]
       }
+    },
+    {
+      "id": "T-CHAT-JSON-001",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "display",
+      "description": "Chat: «quello grande» non mostra JSON troncato né OPEN_MODAL",
+      "contract": {
+        "invariant": "La bolla mostra solo la frase di Tony. OPEN_MODAL resta interno.",
+        "primaryAsserts": ["responseMustMatch frase", "chatMustNotMatch JSON e OPEN_MODAL"],
+        "avoidAsserts": ["testo byte-identico oltre la frase"]
+      },
+      "persona": "manager",
+      "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["quello grande"],
+      "mockCf": true,
+      "expect": {
+        "usedGemini": false,
+        "responseMustMatch": ["quello grande"],
+        "responseMustNotMatch": ["open_modal", "\"command\"", "{\"text\"", "attivita-modal"],
+        "chatMustNotMatch": ["open_modal", "\"command\"", "{\"text\"", "attivita-modal", "inject_form_data"]
+      }
+    },
+    {
+      "id": "T-CHAT-JSON-002",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "display",
+      "description": "Chat: «con la mietitrebbia del vicino» non mostra INJECT_FORM_DATA",
+      "contract": {
+        "invariant": "La bolla mostra solo la frase di Tony. INJECT_FORM_DATA attivita-form resta interno.",
+        "primaryAsserts": ["responseMustMatch frase", "chatMustNotMatch INJECT_FORM_DATA"],
+        "avoidAsserts": ["payload formData in chat"]
+      },
+      "persona": "manager",
+      "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["con la mietitrebbia del vicino"],
+      "mockCf": true,
+      "expect": {
+        "usedGemini": false,
+        "responseMustMatch": ["mietitrebbia del vicino"],
+        "responseMustNotMatch": ["inject_form_data", "attivita-form", "\"command\"", "{\"text\""],
+        "chatMustNotMatch": ["inject_form_data", "attivita-form", "open_modal", "\"command\"", "{\"text\""]
+      }
     }
   ]
 }

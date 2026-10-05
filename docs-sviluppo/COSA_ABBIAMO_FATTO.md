@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-05 — Pianificazione impianto vigneto: script di pagina nel file del modulo.**
+**Ultimo aggiornamento documentazione: 2026-10-05 — Chat Tony: solo la frase, i comandi restano interni.**
+
+## 2026-10-05 — Chat Tony: niente JSON grezzo né comandi troncati
+
+Dopo la promozione delle regole di raccolta, in chat compariva il payload del modello (`{"text":…,"command":{"type":"OPEN_MODAL"…` e `INJECT_FORM_DATA attivita-form…`). La frase si estrae anche se il JSON è troncato; OPEN_MODAL e INJECT_FORM_DATA restano comandi del client e non vengono stampati. Scenari gate `T-CHAT-JSON-001` («quello grande») e `T-CHAT-JSON-002` («con la mietitrebbia del vicino»). Nessun deploy delle Cloud Functions in questo cambio.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-05 — Pianificazione impianto vigneto: script di pagina nel file del modulo.**
 
 ## 2026-10-05 — Pianificazione impianto vigneto: comportamento fuori dall’HTML
 

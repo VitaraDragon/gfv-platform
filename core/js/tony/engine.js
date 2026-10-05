@@ -347,7 +347,10 @@ function stripLeakedTonyCommandJsonFromText(t) {
                 }
             }
         }
-        if (depth !== 0) break;
+        if (depth !== 0) {
+            // JSON troncato: il payload non è chiudibile, non va in chat.
+            return out.slice(0, start).replace(/\s+$/g, '').trim();
+        }
         var before = out.slice(0, start).replace(/\s+$/g, '');
         var after = out.slice(j).replace(/^\s*[.,:;]\s*/g, '');
         out = (before + (before.length && after.length ? ' ' : '') + after).replace(/\s{2,}/g, ' ').trim();
@@ -587,12 +590,155 @@ export function scoreItalianSttLexicon(t) {
     return score;
 }
 
+var TONY_CHAT_COMMAND_TOKEN =
+    'OPEN_MODAL|INJECT_FORM_DATA|SET_FIELD|APRI_PAGINA|SAVE_ACTIVITY|FILTER_TABLE|QUICK_SAVE|CLICK_BUTTON|SUBMIT_FORM|SUM_COLUMN|SAVE_FAULT';
+
+/**
+ * True se la stringa sembra un envelope di comando (anche troncato), non una frase.
+ * @param {string} s
+ * @returns {boolean}
+ */
+function looksLikeTonyCommandPayload(s) {
+    if (!s) return false;
+    if (/\{\s*["']?(?:text|replyText|command|commands|action|type|formData)\b/i.test(s)) return true;
+    if (new RegExp('\\b(?:' + TONY_CHAT_COMMAND_TOKEN + ')\\b').test(s)) return true;
+    return false;
+}
+
+/**
+ * Valore di un campo stringa JSON, anche se l'oggetto è troncato dopo la chiusura della stringa.
+ * @param {string} raw
+ * @param {string} fieldName
+ * @returns {string}
+ */
+function extractQuotedJsonField(raw, fieldName) {
+    var re = new RegExp('["\']' + fieldName + '["\']\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)', 'i');
+    var m = String(raw || '').match(re);
+    if (!m) return '';
+    return m[1]
+        .replace(/\\n/g, ' ')
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '\\')
+        .trim();
+}
+
+/**
+ * Toglie dalla frase visibile la coda comando (token o JSON troncato).
+ * @param {string} t
+ * @returns {string}
+ */
+function stripBareTonyCommandTail(t) {
+    if (!t) return '';
+    var out = String(t);
+    out = out.replace(new RegExp('\\s*\\b(?:' + TONY_CHAT_COMMAND_TOKEN + ')\\b[\\s\\S]*$', 'i'), '');
+    out = out.replace(/\{\s*["']?(?:text|replyText|command|commands|action|type|formData|params)["']?[\s\S]*$/i, '');
+    out = out.replace(/\b(?:attivita-form|lavoro-form|preventivo-form|prodotto-form|movimento-form|form-trattamento|field-workspace-ore-form|quick-hours-form|attivita-modal|lavoro-modal|preventivo-modal|prodotto-modal|movimento-modal|terreno-modal)\b/gi, '');
+    return out.trim();
+}
+
+/**
+ * Frase da mostrare in chat. I comandi restano fuori, anche se il JSON è troncato.
+ * @param {string} s
+ * @returns {string}
+ */
+export function sanitizeTonyVisibleChatText(s) {
+    if (s == null || typeof s !== 'string') return '';
+    var t = s.trim();
+    if (looksLikeTonyCommandPayload(t)) {
+        var speech = extractQuotedJsonField(t, 'text') || extractQuotedJsonField(t, 'replyText');
+        if (speech) t = speech;
+    }
+    t = stripBareTonyCommandTail(t);
+    return t.trim();
+}
+
+/**
+ * Se il testo è un JSON di comando completo (o quasi), ricava il comando eseguibile.
+ * Un id/formId troncato (senza virgoletta di chiusura) non diventa un comando.
+ * @param {string} raw
+ * @returns {object|null}
+ */
+function recoverTonyCommandFromLeakedText(raw) {
+    var s = String(raw || '');
+    var parsed = null;
+    var start = s.indexOf('{');
+    if (start >= 0) {
+        var jsonStr = s.slice(start);
+        var quotes = 0;
+        var esc = false;
+        for (var i = 0; i < jsonStr.length; i++) {
+            var ch = jsonStr[i];
+            if (esc) { esc = false; continue; }
+            if (ch === '\\') { esc = true; continue; }
+            if (ch === '"') quotes++;
+        }
+        if (quotes % 2 === 0) {
+            var open = (jsonStr.match(/\{/g) || []).length;
+            var close = (jsonStr.match(/\}/g) || []).length;
+            if (open > close && open - close <= 8) jsonStr += '}'.repeat(open - close);
+            try {
+                var obj = JSON.parse(jsonStr);
+                if (obj && typeof obj === 'object') parsed = obj;
+            } catch (_) { /* payload troncato */ }
+        }
+    }
+    if (parsed) {
+        if (parsed.command && typeof parsed.command === 'object') return normalizeTonyCommand(parsed.command);
+        if (parsed.type) return normalizeTonyCommand(parsed);
+        if (parsed.action) {
+            var action = String(parsed.action);
+            var fd = parsed.formData && typeof parsed.formData === 'object' ? parsed.formData : null;
+            var formId = parsed.formId || null;
+            if (!formId && fd) {
+                var keys = Object.keys(fd);
+                if (keys.some(function (k) { return k.indexOf('lavoro-') === 0; })) formId = 'lavoro-form';
+                else if (keys.some(function (k) { return k.indexOf('attivita-') === 0; })) formId = 'attivita-form';
+            }
+            return normalizeTonyCommand({
+                action: action,
+                type: action,
+                id: parsed.modalId || parsed.id,
+                modalId: parsed.modalId,
+                formId: formId,
+                formData: fd,
+                target: parsed.target || (parsed.params && parsed.params.target),
+                params: parsed.params,
+                fields: parsed.formData
+            });
+        }
+    }
+    var typeM = s.match(/["']type["']\s*:\s*["']([A-Za-z0-9_]+)["']/);
+    var actionM = s.match(/["']action["']\s*:\s*["']([A-Za-z0-9_]+)["']/);
+    var idM = s.match(/["'](?:id|modalId)["']\s*:\s*["']([^"']+)["']/);
+    var formM = s.match(/["']formId["']\s*:\s*["']([^"']+)["']/);
+    var targetM = s.match(/["']target["']\s*:\s*["']([^"']+)["']/);
+    if (typeM) {
+        var type = String(typeM[1]).toUpperCase();
+        if (type === 'OPEN_MODAL' && !idM) return null;
+        if (type === 'INJECT_FORM_DATA' && !formM) return null;
+        if (type === 'APRI_PAGINA' && !targetM) return null;
+        return normalizeTonyCommand({
+            type: type,
+            id: idM ? idM[1] : undefined,
+            formId: formM ? formM[1] : undefined,
+            target: targetM ? targetM[1] : undefined
+        });
+    }
+    if (actionM && String(actionM[1]).toLowerCase() === 'open_modal' && idM) {
+        return normalizeTonyCommand({ type: 'OPEN_MODAL', id: idM[1] });
+    }
+    if (actionM && /^(fill_form|inject|inject_form_data)$/i.test(actionM[1]) && formM) {
+        return normalizeTonyCommand({ type: 'INJECT_FORM_DATA', formId: formM[1] });
+    }
+    return null;
+}
+
 /**
  * Rimuove residui JSON dal testo (graffe, virgolette, virgole finali) per display e TTS.
  */
 export function cleanTextFromJsonResidue(s) {
     if (s == null || typeof s !== 'string') return '';
-    var t = s.trim();
+    var t = sanitizeTonyVisibleChatText(s);
     t = stripLeakedTonyCommandJsonFromText(t);
     t = stripLeakedTonyCommandsArrayTail(t);
     t = t.replace(/\s*[}\]]+\s*$/g, '').trim();
@@ -754,8 +900,13 @@ export function stripTonyMarkdownJsonBlocks(text) {
  * @returns {{ text: string, command: object|null }}
  */
 export function resolveTonyUserVisibleText(text, command) {
+    var raw = String(text || '');
     var cmd = normalizeTonyCommand(command);
-    var t = stripTonyMarkdownJsonBlocks(text || '');
+    if (!cmd) {
+        var recovered = recoverTonyCommandFromLeakedText(raw);
+        if (recovered) cmd = recovered;
+    }
+    var t = stripTonyMarkdownJsonBlocks(raw);
     if (t && /\{[\s\S]*"(?:action|command|type)"\s*:/i.test(t)) {
         var ex = extractTonyResponseFromString(t);
         if (ex) {
