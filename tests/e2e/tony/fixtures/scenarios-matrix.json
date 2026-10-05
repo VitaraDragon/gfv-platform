@@ -1025,6 +1025,64 @@
           "spray"
         ]
       }
+    },
+    {
+      "id": "T-FUEL-SWITCH-001",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "display",
+      "description": "Dopo un carico cisterna da 2000, il pieno in campo usa 150 e non riusa il form",
+      "contract": {
+        "invariant": "Quantità del pieno = 150, tipo uscita, origine pieno. Niente 2000 del carico.",
+        "primaryAsserts": ["mov-quantita 150", "mov-tipo uscita", "mov-origine-carburante pieno"],
+        "avoidAsserts": ["salvataggio automatico", "litri inventati"]
+      },
+      "persona": "manager",
+      "startUrl": "/modules/magazzino/views/movimenti-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": [
+        "è arrivato il carico cisterna, 2000 litri di gasolio",
+        "ho fatto il pieno in campo alla mietitrebbia, 150 litri, campo del grano"
+      ],
+      "mockCf": true,
+      "turnExpects": [
+        {
+          "responseMustMatch": ["carico"],
+          "responseMustNotMatch": ["pieno"],
+          "formFieldEquals": {
+            "mov-quantita": "2000",
+            "mov-tipo": "entrata",
+            "mov-origine-carburante": "carico_cisterna"
+          }
+        },
+        {
+          "responseMustMatch": ["pieno"],
+          "responseMustNotMatch": ["2000"],
+          "formFieldEquals": {
+            "mov-quantita": "150",
+            "mov-tipo": "uscita",
+            "mov-origine-carburante": "pieno"
+          },
+          "formFieldIncludes": { "mov-note": "grano" },
+          "injectPayloadEquals": {
+            "mov-quantita": "150",
+            "mov-macchina": "mietitrebbia",
+            "mov-origine-carburante": "pieno"
+          }
+        }
+      ],
+      "expect": {
+        "usedGemini": false,
+        "responseMustMatch": ["pieno"],
+        "responseMustNotMatch": ["2000"],
+        "formFieldEquals": {
+          "mov-quantita": "150",
+          "mov-tipo": "uscita",
+          "mov-origine-carburante": "pieno"
+        },
+        "navigation": { "urlIncludes": "pieno=1" }
+      }
     }
   ]
 }
