@@ -102,6 +102,7 @@ export function isCarburanteArrivoIntent(text) {
 export function isPienoMezzoIntent(text) {
   var t = String(text || '');
   if (/\b(ho fatto il pieno|fatto il pieno|fare il pieno)\b/i.test(t)) return true;
+  if (/\bpieno\s+in\s+campo\b/i.test(t)) return true;
   if (/\bpieno\b/i.test(t) && /\b(litri?|\bal\b|\balla\b|\btrattore\b|\bmezzo\b)\b/i.test(t)) return true;
   return false;
 }
@@ -129,8 +130,25 @@ export function extractMacchinaHint(text) {
   }
   if (!m) return null;
   var name = String(m[1] || '').trim();
-  if (!name || /^(gasolio|diesel|benzina|adblue|ad\s*blue|carburante|litri|litro)$/i.test(name)) return null;
+  if (!name || /^(gasolio|diesel|benzina|adblue|ad\s*blue|carburante|litri|litro|campo)$/i.test(name)) return null;
   return name;
+}
+
+/**
+ * «campo del grano» / «nel campo nord». «pieno in campo» da solo non è un appezzamento.
+ * @param {string} text
+ * @returns {string|null}
+ */
+export function extractCampoHint(text) {
+  var t = String(text || '');
+  var m = t.match(/\bcampo\s+((?:del|dello|della|dei|degli|delle)\s+[^,.;]+)/i);
+  if (m) return 'Campo ' + m[1].replace(/\s+/g, ' ').trim();
+  m = t.match(/\b(?:nel|sul)\s+campo\s+([^,.;]+)/i);
+  if (!m) return null;
+  var name = m[1].replace(/\s+/g, ' ').trim();
+  if (!name || /^(alla|allo|al|del|dello|della)$/i.test(name)) return null;
+  if (/^(?:del|dello|della|dei|degli|delle)\b/i.test(name)) return 'Campo ' + name;
+  return 'Campo ' + name.charAt(0).toUpperCase() + name.slice(1);
 }
 
 /**
@@ -156,6 +174,8 @@ function parseCarburanteMovimentoFromText(text) {
     formData['mov-origine-carburante'] = 'pieno';
     var mac = extractMacchinaHint(t);
     if (mac) formData['mov-macchina'] = mac;
+    var campo = extractCampoHint(t);
+    if (campo) formData['mov-note'] = campo;
     var fuelPieno = extractFuelWord(t);
     if (fuelPieno && fuelPieno !== 'carburante') formData['mov-prodotto'] = fuelPieno;
     return formData;
@@ -250,6 +270,112 @@ export function isMovimentoDraftComplete(draft) {
 }
 
 /**
+ * Carico cisterna e pieno non sono lo stesso gesto: quantità, tipo, prodotto e mezzo non si ereditano.
+ * @param {Record<string, string>|null|undefined} previous
+ * @param {Record<string, string>|null|undefined} next
+ * @returns {boolean}
+ */
+export function movimentoGestureChanged(previous, next) {
+  if (!previous || !next) return false;
+  var prevOrig = String(previous['mov-origine-carburante'] || '');
+  var nextOrig = String(next['mov-origine-carburante'] || '');
+  if (prevOrig && nextOrig && prevOrig !== nextOrig) return true;
+  var prevTipo = String(previous['mov-tipo'] || '');
+  var nextTipo = String(next['mov-tipo'] || '');
+  if (prevTipo && nextTipo && prevTipo !== nextTipo) return true;
+  return false;
+}
+
+/**
+ * Merge inject magazzino. Se il gesto cambia, restano solo i campi del messaggio nuovo (la data si tiene).
+ * @param {Record<string, string>|null|undefined} lastFormData
+ * @param {Record<string, string>|null|undefined} nextFormData
+ * @returns {Record<string, string>}
+ */
+export function mergeMagazzinoInject(lastFormData, nextFormData) {
+  var last = lastFormData && typeof lastFormData === 'object' ? lastFormData : {};
+  var next = nextFormData && typeof nextFormData === 'object' ? nextFormData : {};
+  if (!movimentoGestureChanged(last, next)) return Object.assign({}, last, next);
+  /** @type {Record<string, string>} */
+  var out = {};
+  Object.keys(next).forEach(function (k) {
+    if (next[k] != null && String(next[k]).trim() !== '') out[k] = next[k];
+  });
+  if (!out['mov-data'] && last['mov-data']) out['mov-data'] = last['mov-data'];
+  return out;
+}
+
+/**
+ * Azzera in DOM i campi del gesto precedente che il payload nuovo non riporta.
+ * @param {Record<string, string>|null|undefined} previous
+ * @param {Record<string, string>|null|undefined} next
+ */
+export function clearStaleMovimentoDom(previous, next) {
+  if (typeof document === 'undefined' || typeof document.getElementById !== 'function') return;
+  if (!movimentoGestureChanged(previous, next)) return;
+  ['mov-quantita', 'mov-prodotto', 'mov-macchina', 'mov-prezzo', 'mov-note'].forEach(function (id) {
+    if (next && next[id] != null && String(next[id]).trim() !== '') return;
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+}
+
+/**
+ * Allinea URL e titolo pagina al gesto corrente, così «Nuovo movimento» non riapre il carico.
+ * @param {Record<string, string>|null|undefined} draft
+ */
+export function syncCarburantePageMode(draft) {
+  if (typeof window === 'undefined' || !draft) return;
+  var q = carburanteMovimentoSearchFromDraft(draft);
+  if (q) {
+    try {
+      var base = window.location && window.location.href;
+      if (base && /^https?:/i.test(String(base)) && window.history && typeof window.history.replaceState === 'function') {
+        var url = new URL(String(base));
+        var incoming = new URLSearchParams(q);
+        incoming.forEach(function (v, k) { url.searchParams.set(k, v); });
+        if (draft['mov-origine-carburante'] === 'carico_cisterna') url.searchParams.delete('pieno');
+        window.history.replaceState({}, '', url.pathname + url.search + url.hash);
+      }
+    } catch (_) { /* ignore */ }
+  }
+  if (typeof document === 'undefined' || typeof document.querySelector !== 'function') return;
+  var origine = draft['mov-origine-carburante'];
+  var h1 = document.querySelector('.header h1');
+  if (h1 && origine === 'pieno') h1.textContent = '⛽ Pieno mezzo';
+  else if (h1 && origine === 'carico_cisterna') h1.textContent = '⛽ Carico cisterna';
+}
+
+/**
+ * Butta inject/pending del movimento. Se il modal è aperto lo chiude vuoto.
+ */
+export function clearMovimentoGestureState() {
+  if (typeof window !== 'undefined') {
+    window.__tonyMovimentoIgnoreInjectBefore = Date.now();
+    window.__tonyMagazzinoLastInject = null;
+    window.__tonyMovimentoPendingDraft = null;
+    window.__tonyMovimentoSaveAfterInject = false;
+  }
+  if (typeof sessionStorage !== 'undefined') {
+    try {
+      sessionStorage.removeItem('tony_pending_movimento_local_intent');
+      var raw = sessionStorage.getItem('tony_pending_intent');
+      if (raw && String(raw).indexOf('movimento') >= 0) sessionStorage.removeItem('tony_pending_intent');
+    } catch (_) { /* ignore */ }
+  }
+  if (typeof document === 'undefined' || typeof document.getElementById !== 'function') return;
+  var modal = document.getElementById('movimento-modal');
+  if (!modal || !modal.classList || !modal.classList.contains('active')) return;
+  var form = document.getElementById('movimento-form');
+  if (form && typeof form.reset === 'function') form.reset();
+  ['mov-quantita', 'mov-prodotto', 'mov-macchina', 'mov-prezzo', 'mov-note', 'mov-origine-carburante'].forEach(function (id) {
+    var el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  modal.classList.remove('active');
+}
+
+/**
  * @param {Record<string, string>|null|undefined} draft
  * @param {string} text
  * @returns {Record<string, string>}
@@ -309,8 +435,15 @@ export function storeMovimentoCrossPageIntent(target, draft, text) {
 export function executeMovimentoCreateLocal(formData, handlers, opts) {
   handlers = handlers || {};
   opts = opts || {};
-  if (!formData || !canOpenMovimentoDraft(formData)) return false;
+  var forceOpen = !!opts.forceOpen && !!(formData && formData['mov-tipo'] && formData['mov-quantita']);
+  if (!formData || (!canOpenMovimentoDraft(formData) && !forceOpen)) return false;
   if (!formData['mov-data']) formData['mov-data'] = todayIsoDateLocal();
+
+  if (typeof window !== 'undefined') {
+    window.__tonyMovimentoIgnoreInjectBefore = Date.now();
+    window.__tonyMagazzinoLastInject = null;
+  }
+  syncCarburantePageMode(formData);
 
   if (typeof console !== 'undefined' && console.log) {
     var sfx = opts.logSuffix ? ' (' + opts.logSuffix + ')' : '';
@@ -339,22 +472,67 @@ export function executeMovimentoCreateLocal(formData, handlers, opts) {
 }
 
 /**
+ * Form già aperto: un carico o un pieno nuovo non continua il draft precedente.
  * @param {string} text
- * @param {{
- *   appendMessage?: Function,
- *   processTonyCommand?: Function,
- *   clearEarlyTyping?: Function,
- *   onAfterOpen?: Function,
- * }} handlers
+ * @param {{ appendMessage?: Function, processTonyCommand?: Function, clearEarlyTyping?: Function, onAfterOpen?: Function }} handlers
  * @returns {{ handled: boolean, opened?: boolean }}
  */
+function replaceOpenMovimentoWithNewIntent(text, handlers) {
+  var draft = mergeMovimentoDraft(null, text);
+  if (!draft) return { handled: false };
+  if (!draft['mov-data']) draft['mov-data'] = todayIsoDateLocal();
+  window.__tonyMovimentoPendingDraft = draft;
+  window.__tonyMagazzinoLastInject = null;
+  window.__tonyMovimentoIgnoreInjectBefore = Date.now();
+
+  var hasQty = !!draft['mov-quantita'];
+  var openable = canOpenMovimentoDraft(draft) || !!(hasQty && draft['mov-tipo'] && draft['mov-origine-carburante']);
+  if (typeof handlers.clearEarlyTyping === 'function') handlers.clearEarlyTyping();
+
+  if (!openable) {
+    if (typeof document !== 'undefined' && typeof document.getElementById === 'function') {
+      ['mov-quantita', 'mov-prodotto', 'mov-macchina', 'mov-prezzo', 'mov-note'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.value = draft[id] != null && String(draft[id]).trim() !== '' ? String(draft[id]) : '';
+      });
+      if (draft['mov-tipo']) {
+        var tipoEl = document.getElementById('mov-tipo');
+        if (tipoEl) tipoEl.value = draft['mov-tipo'];
+      }
+      if (draft['mov-origine-carburante']) {
+        var origEl = document.getElementById('mov-origine-carburante');
+        if (origEl) origEl.value = draft['mov-origine-carburante'];
+      }
+    }
+    syncCarburantePageMode(draft);
+    var ask = !hasQty
+      ? 'Quanti litri sono?'
+      : 'A quale mezzo hai fatto il pieno?';
+    if (typeof handlers.appendMessage === 'function') handlers.appendMessage(ask, 'tony');
+    return { handled: true, opened: false };
+  }
+
+  var msg = messageAperturaMovimento(draft, false);
+  if (draft['mov-origine-carburante'] === 'pieno' && !draft['mov-macchina']) {
+    msg = 'Registro ' + draft['mov-quantita'] + ' litri sul pieno. A quale mezzo?';
+  }
+  if (typeof handlers.appendMessage === 'function') handlers.appendMessage(msg, 'tony');
+  executeMovimentoCreateLocal(draft, handlers, { forceOpen: true, logSuffix: 'cambio gesto' });
+  return { handled: true, opened: true };
+}
+
 export function tryInterceptMovimentoCreateBeforeCf(text, handlers) {
   handlers = handlers || {};
   if (typeof window === 'undefined') return { handled: false };
-  if (isMovimentoModalOpen()) return { handled: false };
 
   var t = String(text || '').trim();
   if (!t) return { handled: false };
+
+  if (isMovimentoModalOpen()) {
+    if (!isMovimentoCreationIntent(t)) return { handled: false };
+    return replaceOpenMovimentoWithNewIntent(t, handlers);
+  }
 
   var draft = window.__tonyMovimentoPendingDraft || null;
   var creationIntent = isMovimentoCreationIntent(t);
@@ -486,5 +664,8 @@ if (typeof window !== 'undefined') {
     tryInterceptMovimentoCreateBeforeCf: tryInterceptMovimentoCreateBeforeCf,
     tryRecoverMovimentoCfFakeSave: tryRecoverMovimentoCfFakeSave,
     executeMovimentoCreateLocal: executeMovimentoCreateLocal,
+    mergeMagazzinoInject: mergeMagazzinoInject,
+    clearMovimentoGestureState: clearMovimentoGestureState,
+    extractCampoHint: extractCampoHint,
   };
 }

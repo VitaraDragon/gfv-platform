@@ -3,7 +3,7 @@
  * @module tests/e2e/tony/scenarios/run-matrix-scenario
  */
 
-import { assertScenarioExpect } from '../helpers/assert-scenario-expect.mjs';
+import { assertScenarioExpect, assertTurnExpect, waitForScenarioFormFields } from '../helpers/assert-scenario-expect.mjs';
 import { simE2ePause } from '../../sim/helpers/sim-e2e-timeouts.mjs';
 import { activateTonyMockCf, installTonyMockCf } from '../helpers/tony-mock-cf.js';
 import {
@@ -133,6 +133,7 @@ export async function runMatrixScenario(page, expect, scenario) {
 
   const urlBefore = page.url();
   const messages = Array.isArray(scenario.messages) ? scenario.messages : [];
+  const turnExpects = Array.isArray(scenario.turnExpects) ? scenario.turnExpects : [];
   let turnCtx = {};
 
   if (messages.length === 0 && scenario.expect) {
@@ -141,7 +142,8 @@ export async function runMatrixScenario(page, expect, scenario) {
     return;
   }
 
-  for (const msg of messages) {
+  for (let turnIndex = 0; turnIndex < messages.length; turnIndex++) {
+    const msg = messages[turnIndex];
     if (scenario.id === 'T-DENY-002') {
       await applyTonyFreePlanForE2e(page);
     }
@@ -155,6 +157,10 @@ export async function runMatrixScenario(page, expect, scenario) {
     };
     await captureTonyScenarioReply(page, reply);
     await captureTonyScenarioPerf(page, lastPerf);
+    if (turnExpects[turnIndex]) {
+      assertTurnExpect(expect, reply, turnExpects[turnIndex]);
+      await waitForScenarioFormFields(page, turnExpects[turnIndex]);
+    }
     if (scenario.id === 'T-DENY-001') {
       await page.waitForFunction(
         () => {

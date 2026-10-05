@@ -50,6 +50,9 @@ import {
 import {
     tryInterceptMovimentoCreateBeforeCf,
     tryRecoverMovimentoCfFakeSave,
+    mergeMagazzinoInject,
+    clearStaleMovimentoDom,
+    clearMovimentoGestureState,
 } from '../tony-movimento-create-local.js';
 import {
     tryInterceptProdottoCreateBeforeCf,
@@ -2222,6 +2225,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         if (!command || !command.type) return;
         options = options || {};
 
+        command._queuedAt = Date.now();
         var entry = {
             command: command,
             source: options.source || 'unknown',
@@ -3236,10 +3240,19 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             d.formData = alt;
                         }
                     })(data);
+                    if (data.formId === 'attivita-form' || data.formId === 'lavoro-form' || data.formId === 'attivita-modal' || data.formId === 'lavoro-modal') {
+                        clearMovimentoGestureState();
+                    }
+                    if (data.formId === 'movimento-form' && window.__tonyMovimentoIgnoreInjectBefore && data._queuedAt && data._queuedAt < window.__tonyMovimentoIgnoreInjectBefore) {
+                        tonyDebugLog('[Tony] INJECT movimento scartato: appartiene al gesto precedente');
+                        break;
+                    }
                     if ((data.formId === 'prodotto-form' || data.formId === 'movimento-form') && data.formData && typeof data.formData === 'object') {
                         var lastMagInj = window.__tonyMagazzinoLastInject;
-                        if (lastMagInj && lastMagInj.formId === data.formId && (Date.now() - lastMagInj.t) < 15000 && lastMagInj.formData && typeof lastMagInj.formData === 'object') {
-                            data.formData = Object.assign({}, lastMagInj.formData, data.formData);
+                        var prevMagData = (lastMagInj && lastMagInj.formData && typeof lastMagInj.formData === 'object') ? lastMagInj.formData : null;
+                        if (lastMagInj && lastMagInj.formId === data.formId && (Date.now() - lastMagInj.t) < 15000 && prevMagData) {
+                            data.formData = mergeMagazzinoInject(prevMagData, data.formData);
+                            if (data.formId === 'movimento-form') clearStaleMovimentoDom(prevMagData, data.formData);
                             tonyDebugLog('[Tony] INJECT_FORM_DATA magazzino: merge con inject precedente (<15s)');
                         }
                         window.__tonyMagazzinoLastInject = { formId: data.formId, formData: Object.assign({}, data.formData), t: Date.now() };
@@ -4066,6 +4079,9 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                 case 'OPEN_MODAL':
                     tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Caso OPEN_MODAL');
                     var modalId = data.id || data.target;
+                    if (modalId === 'attivita-modal' || modalId === 'lavoro-modal' || modalId === 'attivita-form' || modalId === 'lavoro-form') {
+                        clearMovimentoGestureState();
+                    }
                     tonyDebugLog('[DEBUG CURSOR] processTonyCommand: modalId originale:', modalId);
                     
                     if (modalId && isTonyOpenModalBlockedForFieldProfile(modalId)) {
@@ -4474,6 +4490,10 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     break;
 
                 case 'SET_FIELD':
+                    if (data._queuedAt && window.__tonyMovimentoIgnoreInjectBefore && data._queuedAt < window.__tonyMovimentoIgnoreInjectBefore && String(data.field || '').indexOf('mov-') === 0) {
+                        tonyDebugLog('[Tony] SET_FIELD movimento scartato: gesto precedente');
+                        break;
+                    }
                     tonyDebugLog('[DEBUG CURSOR] processTonyCommand: Caso SET_FIELD');
                     var fieldId = data.field || data.id;
                     var value = data.value;
@@ -7236,6 +7256,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     },
                 });
                 if (movCreateIntercept.handled) {
+                    tonyE2eFinishLocalInterceptTurn();
                     if (opts.fromVoice) isWaitingForTonyResponse = false;
                     return;
                 }
