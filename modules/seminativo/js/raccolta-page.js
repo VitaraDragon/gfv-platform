@@ -15,6 +15,7 @@ import {
   RACCOLTA_DESTINAZIONE_LABELS,
   resaQliHa
 } from '../models/SeminativoRaccolta.js';
+import { applyDiarioVsLavoroCta } from '../../../core/config/manodopera-diario-gate.js';
 
 const DIARIO_HREF = '../../../core/attivita-standalone.html';
 const LAVORI_HREF = '../../../core/admin/gestione-lavori-standalone.html';
@@ -180,8 +181,7 @@ function populateFilters() {
     label: getTerrenoLabel(t.id)
   })), 'Tutti i terreni');
   fillSelect(document.getElementById('filter-campagna'), campagne, 'Tutte le campagne');
-  const linkLavoro = document.getElementById('link-nuovo-lavoro');
-  if (linkLavoro) linkLavoro.hidden = !hasManodopera;
+  applyDiarioVsLavoroCta(document, hasManodopera);
 }
 
 function superficieDefault(row) {

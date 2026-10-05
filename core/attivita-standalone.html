@@ -738,7 +738,12 @@
             <div id="alert-container"></div>
 
             <div class="actions-bar">
-                <button class="btn btn-success" onclick="openAttivitaModal()">➕ Aggiungi Attività</button>
+                <p id="diario-sola-lettura" hidden style="margin: 0 0 12px 0; color: #5D4037;">
+                    Con Manodopera attiva questo diario è lo storico. Le giornate nuove si registrano in
+                    <a href="admin/gestione-lavori-standalone.html">Gestione lavori</a>.
+                    Le attività già salvate restano in elenco.
+                </p>
+                <button id="btn-aggiungi-attivita" class="btn btn-success" onclick="openAttivitaModal()">➕ Aggiungi Attività</button>
                 
                 <div class="filters">
                     <div class="filter-group">
@@ -1565,6 +1570,15 @@
                         hasParcoMacchineModule = availableModules.includes('parcoMacchine');
                         hasManodoperaModule = availableModules.includes('manodopera');
                         hasContoTerziModule = availableModules.includes('contoTerzi');
+                        const addBtn = document.getElementById('btn-aggiungi-attivita');
+                        const solaLettura = document.getElementById('diario-sola-lettura');
+                        if (hasManodoperaModule) {
+                            if (addBtn) addBtn.hidden = true;
+                            if (solaLettura) solaLettura.hidden = false;
+                            document.body.dataset.gfvDiario = 'storico';
+                        } else {
+                            document.body.dataset.gfvDiario = 'editabile';
+                        }
                         
                         // Inizializza context Tony con i moduli attivi usando helper
                         if (window.Tony && window.Tony.initContextWithModules) {
@@ -2629,6 +2643,10 @@
 
         // Apri modal attività - wrapper
         window.openAttivitaModal = async function(attivitaId = null) {
+            if (hasManodoperaModule) {
+                showAlert('Con Manodopera attiva le attività nuove si registrano in Gestione lavori. Qui resta lo storico.', 'info');
+                return;
+            }
             await openAttivitaModalModule({
                 attivitaId,
                 setCurrentAttivitaId: (id) => { currentAttivitaId = id; },
@@ -3038,6 +3056,10 @@
 
         // Conferma eliminazione attività - wrapper
         window.confirmDeleteAttivita = async function(attivitaId) {
+            if (hasManodoperaModule) {
+                showAlert('Con Manodopera attiva il diario è solo storico: le attività già salvate non si cancellano da qui.', 'info');
+                return;
+            }
             await confirmDeleteAttivitaModule(
                 attivitaId,
                 currentTenantId,

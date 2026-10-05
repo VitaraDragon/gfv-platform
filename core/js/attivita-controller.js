@@ -1748,8 +1748,8 @@ export async function renderAttivita(params) {
                     </div>
                     ` : ''}
                     <div class="col-azioni" data-label="Azioni">
-                        <button onclick="editAttivita('${att.id}')" class="btn-edit-small" title="Modifica">✏️</button>
-                        <button onclick="confirmDeleteAttivita('${att.id}')" class="btn-delete-small" title="Elimina">🗑️</button>
+                        ${hasManodoperaModule ? '' : `<button onclick="editAttivita('${att.id}')" class="btn-edit-small" title="Modifica">✏️</button>
+                        <button onclick="confirmDeleteAttivita('${att.id}')" class="btn-delete-small" title="Elimina">🗑️</button>`}
                     </div>
                 </div>
                 `;

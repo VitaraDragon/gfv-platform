@@ -697,6 +697,16 @@
             color: #666;
         }
 
+        body.gestione-lavori-bloccata #crea-lavoro-button,
+        body.gestione-lavori-bloccata #impegni-giorno-link,
+        body.gestione-lavori-bloccata #stats-container,
+        body.gestione-lavori-bloccata .section-header,
+        body.gestione-lavori-bloccata .filters,
+        body.gestione-lavori-bloccata #lavori-container,
+        body.gestione-lavori-bloccata #assenze-segnalate-banner {
+            display: none !important;
+        }
+
         /* Responsive: regole comuni in ../styles/responsive-standalone.css */
     </style>
     <script>
@@ -757,6 +767,13 @@
 
         <div class="content">
             <div id="alert-container"></div>
+            <div id="gestione-lavori-gate" hidden class="empty-state" style="padding: 40px;">
+                <div class="empty-state-icon">⚠️</div>
+                <h2>Modulo Manodopera non attivo</h2>
+                <p>Gestione lavori si apre solo con il modulo Manodopera. I lavori già salvati restano in archivio e non vengono cancellati.</p>
+                <p style="margin-top: 12px;">Senza Manodopera le giornate in campo si registrano nel Diario attività.</p>
+                <p style="margin-top: 16px;"><a href="../dashboard-standalone.html">Torna alla dashboard</a></p>
+            </div>
             <div id="assenze-segnalate-banner" hidden></div>
             
             <!-- Card Statistiche -->
@@ -1803,6 +1820,7 @@
         let categorieAttrezziList = [];
         let hasParcoMacchineModule = false;
         let hasManodoperaModule = false;
+        let gestioneLavoriModuloNoto = false;
         let hasContoTerziModule = false;
         let hasVendemmiaMeccanicaModule = false;
         let categorieLavoriPrincipali = [];
@@ -3303,6 +3321,7 @@
                             if (tenantDoc.exists()) {
                                 const tenantData = tenantDoc.data();
                                 const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                                gestioneLavoriModuloNoto = true;
                                 hasManodoperaModule = modules.includes('manodopera');
                                 hasParcoMacchineModule = modules.includes('parcoMacchine');
                                 hasContoTerziModule = modules.includes('contoTerzi');
@@ -3358,6 +3377,13 @@
                         macchineSection.style.display = hasParcoMacchineModule ? 'block' : 'none';
                     }
 
+                    if (gestioneLavoriModuloNoto && !hasManodoperaModule) {
+                        document.body.classList.add('gestione-lavori-bloccata');
+                        const gate = document.getElementById('gestione-lavori-gate');
+                        if (gate) gate.hidden = false;
+                        return;
+                    }
+
                     // Nascondi/mostra funzionalità Manodopera in base al modulo attivo
                     setupManodoperaVisibilityModule(hasManodoperaModule);
                     wireManagerHomeLink('dashboard-link', hasManodoperaModule);
@@ -3407,6 +3433,10 @@
                         } else {
                             console.warn('⚠️ Elemento filter-stato non trovato');
                         }
+                    }
+                    if (contoTerziFromUrl === 'true' && hasManodoperaModule) {
+                        const filterTipoEl = document.getElementById('filter-tipo');
+                        if (filterTipoEl) filterTipoEl.value = 'conto_terzi';
                     }
                     
                     // Se c'è il parametro lavoroId nell'URL, apri automaticamente il modal dettaglio

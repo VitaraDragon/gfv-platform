@@ -278,7 +278,7 @@
                     <span class="action-title">Preventivi CT</span>
                     <span class="action-description">Preventivi lavori conto terzi</span>
                 </a>
-                <a href="../../../core/attivita-standalone.html?contoTerzi=true" class="action-card">
+                <a data-gfv-registro="conto_terzi" href="../../../core/attivita-standalone.html?contoTerzi=true" class="action-card">
                     <span class="action-icon">🔄</span>
                     <span class="action-title">Lavori CT</span>
                     <span class="action-description">Attività e lavori su terreni clienti</span>
@@ -290,6 +290,7 @@
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module">
         import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
+        import { applyRegistroLavoriLinks, tenantHasManodopera } from '../../../core/config/manodopera-diario-gate.js';
         import { initVmPageAuth, showVmAlert } from '../js/vm-page-auth.js';
         import { getPianoStagioneRows } from '../services/piano-stagione-service.js';
         import { summarizePianoStagione } from '../services/piano-stagione-kpi.js';
@@ -339,7 +340,10 @@
         }
 
         try {
-            await initVmPageAuth();
+            const auth = await initVmPageAuth();
+            const hasManodopera = tenantHasManodopera(auth && auth.modules);
+            applyRegistroLavoriLinks(document, hasManodopera);
+            document.body.dataset.gfvRegistro = hasManodopera ? 'lavori' : 'diario';
             const anno = getAnnoStagioneCorrente();
             document.getElementById('anno-stagione-label').textContent = '(' + anno + ')';
             await loadHubKpi(anno);

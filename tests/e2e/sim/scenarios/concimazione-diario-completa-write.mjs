@@ -9,7 +9,7 @@ import {
   gotoAttivitaList,
   gotoConcimazioniList,
   gotoMovimentiList,
-  loginAsManagerManodopera,
+  loginAsManagerFromDevPage,
   waitForConcimazioniListLoaded,
 } from '../helpers/sim-login.js';
 
@@ -423,7 +423,8 @@ export async function runConcimazioneDiarioCompletaWriteAssertions(page, expect)
   expect.configure({ timeout: 90_000 });
   page.setDefaultTimeout(90_000);
 
-  await loginAsManagerManodopera(page);
+  // Diario editabile solo senza Manodopera. Stesse assert, tenant viticolo senza il modulo.
+  await loginAsManagerFromDevPage(page, { preferTemplateId: 'solo-titolare-viticola' });
 
   await gotoConcimazioniList(page);
 

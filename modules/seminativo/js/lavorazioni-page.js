@@ -7,6 +7,7 @@ import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 import { publishSeminativoTableData } from './seminativo-page-context.js';
 import { listLavorazioniCollegate } from '../services/lavorazioni-service.js';
+import { applyDiarioVsLavoroCta } from '../../../core/config/manodopera-diario-gate.js';
 
 const PAGE_TYPE = 'lavorazioni_seminativo';
 const DIARIO_HREF = '../../../core/attivita-standalone.html';
@@ -91,8 +92,7 @@ function populateFilters() {
     const lavoroOpt = origine.querySelector('option[value="lavoro"]');
     if (lavoroOpt) lavoroOpt.hidden = !hasManodopera;
   }
-  const linkLavoro = document.getElementById('link-nuovo-lavoro');
-  if (linkLavoro) linkLavoro.hidden = !hasManodopera;
+  applyDiarioVsLavoroCta(document, hasManodopera);
 }
 
 function buildTableData(rows) {

@@ -337,6 +337,7 @@ export const QUICK_BAR_CATALOG = {
         desc: 'Attività conto terzi in corso',
         icon: '🔄',
         href: 'attivita-standalone.html?contoTerzi=true&stato=in_corso',
+        hrefWhenManodopera: 'admin/gestione-lavori-standalone.html?contoTerzi=true&stato=in_corso',
         modules: ['contoTerzi'],
         requireManodopera: false,
         section: 'contoTerzi'
@@ -346,6 +347,7 @@ export const QUICK_BAR_CATALOG = {
         desc: 'Attività conto terzi completate',
         icon: '✅',
         href: 'attivita-standalone.html?contoTerzi=true&stato=completato',
+        hrefWhenManodopera: 'admin/gestione-lavori-standalone.html?contoTerzi=true&stato=completato',
         modules: ['contoTerzi'],
         requireManodopera: false,
         section: 'contoTerzi'
@@ -779,12 +781,13 @@ function buildBarHTML(slots, ctx, esc) {
             return;
         }
         const m = QUICK_BAR_CATALOG[routeId];
+        const href = ctx && ctx.hasManodopera && m.hrefWhenManodopera ? m.hrefWhenManodopera : m.href;
         const badgeAttr = m.badge ? ` data-badge-type="${escapeAttr(m.badge)}"` : '';
         const badge = m.badge
             ? `<span class="dashboard-quick-bar-badge" hidden>0</span>`
             : '';
         html += `
-            <a href="${escapeAttr(m.href)}" class="action-card dashboard-quick-bar-slot"${badgeAttr} data-slot-index="${idx}" data-route-id="${escapeAttr(routeId)}">
+            <a href="${escapeAttr(href)}" class="action-card dashboard-quick-bar-slot"${badgeAttr} data-slot-index="${idx}" data-route-id="${escapeAttr(routeId)}">
                 ${badge}
                 <span class="action-icon" aria-hidden="true">${m.icon}</span>
                 <span class="action-title">${esc(m.label)}</span>
