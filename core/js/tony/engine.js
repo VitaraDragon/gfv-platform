@@ -893,6 +893,162 @@ export function stripTonyMarkdownJsonBlocks(text) {
         .trim();
 }
 
+var TONY_HARVEST_JOB_RE = /\b(mietut\w*|mietit\w*|mietere|trebbiat\w*|trebbi\w*)\b/i;
+var TONY_PLACE_TOKEN_RE = /\b(oliveto|uliveto|ulivi|vigna|vigneto|grano|orzo|mais|frumento)\b/gi;
+var TONY_CAMPO_DEL_RE = /\bcampo\s+del\s+([a-zàèéìòù]+)/gi;
+var TONY_HOURS_RE = /(?:\d+(?:[.,]\d+)?|un|una|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)\s+ore\b/i;
+var TONY_REPLY_PLACE_RE = /(?:\b(?:sull|nell|sul|nel|sulla|nella|allo|alla|al|del|della|di|in)\b['’]?\s*)?((?:oliveto|uliveto|vigna|vigneto)\b(?:\s+del\s+[a-zàèéìòù']+)?|campo\s+del\s+[a-zàèéìòù']+)/gi;
+var TONY_REPLY_HOURS_RE = /\s*,?\s*(?:\bper\s+)?(?:\d+(?:[.,]\d+)?|un|una|due|tre|quattro|cinque|sei|sette|otto|nove|dieci)\s+ore\b/gi;
+
+function tonyNormSlot(s) {
+    return String(s || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/['’]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function tonyHistoryTurnText(entry) {
+    if (!entry) return '';
+    if (typeof entry.text === 'string') return entry.text;
+    if (entry.parts && entry.parts[0] && entry.parts[0].text) return String(entry.parts[0].text);
+    return '';
+}
+
+function tonyUserMentionsHours(msg) {
+    var s = String(msg || '');
+    if (TONY_HOURS_RE.test(s)) return true;
+    return /\banzi\s+(?:un|una|due|tre|quattro|cinque|sei|sette|otto|nove|dieci|\d+)/i.test(s);
+}
+
+function tonyExtractPlaceTokens(msg) {
+    var out = [];
+    var s = String(msg || '');
+    var m;
+    var cropRe = new RegExp(TONY_PLACE_TOKEN_RE.source, 'gi');
+    while ((m = cropRe.exec(s))) out.push(tonyNormSlot(m[1]));
+    var campoRe = new RegExp(TONY_CAMPO_DEL_RE.source, 'gi');
+    while ((m = campoRe.exec(s))) out.push(tonyNormSlot(m[1]));
+    return out;
+}
+
+function tonyPlacePhraseAllowed(phrase, allowed) {
+    var n = tonyNormSlot(phrase);
+    if (!n || !allowed || allowed.size === 0) return false;
+    var tokens = Array.from(allowed);
+    for (var i = 0; i < tokens.length; i++) {
+        if (n.indexOf(tokens[i]) >= 0) return true;
+    }
+    return false;
+}
+
+/**
+ * Stato del lavoro aperto: dopo «mietuto» campo e ore del turno prima non sono più validi
+ * finché l'utente non li ridice per questo lavoro.
+ * @param {Array<{role?: string, text?: string, parts?: Array<{text?: string}>}>} history
+ * @param {string} [currentUserText]
+ */
+export function analyzeTonyJobSlots(history, currentUserText) {
+    var users = [];
+    var list = Array.isArray(history) ? history : [];
+    for (var i = 0; i < list.length; i++) {
+        var entry = list[i];
+        var role = entry && entry.role ? String(entry.role) : '';
+        if (role !== 'user') continue;
+        var said = tonyHistoryTurnText(entry).trim();
+        if (said) users.push(said);
+    }
+    var cur = String(currentUserText || '').trim();
+    if (cur && (users.length === 0 || users[users.length - 1] !== cur)) users.push(cur);
+
+    var job = null;
+    var allowed = new Set();
+    var hours = false;
+    for (var u = 0; u < users.length; u++) {
+        var msg = users[u];
+        if (TONY_HARVEST_JOB_RE.test(msg) && job !== 'harvest') {
+            job = 'harvest';
+            allowed = new Set();
+            hours = false;
+        }
+        var tokens = tonyExtractPlaceTokens(msg);
+        for (var t = 0; t < tokens.length; t++) allowed.add(tokens[t]);
+        if (tonyUserMentionsHours(msg)) hours = true;
+    }
+    return { job: job, allowed: allowed, hours: hours };
+}
+
+function tonyTidySlotText(s) {
+    return String(s || '')
+        .replace(/\s{2,}/g, ' ')
+        .replace(/\s+([,.!?])/g, '$1')
+        .replace(/([.!?])\s*[.!?]+/g, '$1')
+        .replace(/\s+(['’])/g, '$1')
+        .trim();
+}
+
+function tonyScrubNamedPlaceFields(bag, allowed) {
+    if (!bag || typeof bag !== 'object') return bag;
+    var fd = Object.assign({}, bag);
+    ['attivita-terreno', 'lavoro-terreno'].forEach(function (key) {
+        if (fd[key] == null) return;
+        var value = String(fd[key]);
+        if (!/oliveto|uliveto|vigna|vigneto|grano|orzo|mais|frumento|campo\s+del/i.test(value)) return;
+        if (!tonyPlacePhraseAllowed(value, allowed)) delete fd[key];
+    });
+    return fd;
+}
+
+/**
+ * Toglie dal testo e dal comando campo e ore di un lavoro precedente.
+ * Vale solo nel filo della mietitura: i turni prima (oliveto, correzione ore) restano intatti.
+ * @param {string} replyText
+ * @param {object|null} command
+ * @param {Array} history
+ * @param {string} [currentUserText]
+ * @returns {{ text: string, command: object|null }}
+ */
+export function dropStaleJobCarryover(replyText, command, history, currentUserText) {
+    var slots = analyzeTonyJobSlots(history, currentUserText);
+    var cmd = command && typeof command === 'object' ? Object.assign({}, command) : null;
+    if (slots.job !== 'harvest') {
+        return { text: String(replyText || '').trim(), command: cmd };
+    }
+    var text = String(replyText || '');
+    text = text.replace(new RegExp(TONY_REPLY_PLACE_RE.source, 'gi'), function (full, phrase) {
+        return tonyPlacePhraseAllowed(phrase, slots.allowed) ? full : '';
+    });
+    if (!slots.hours) {
+        TONY_REPLY_HOURS_RE.lastIndex = 0;
+        text = text.replace(TONY_REPLY_HOURS_RE, '');
+    }
+    text = tonyTidySlotText(text);
+    if (slots.allowed.size === 0 && text && !/appezzament|quale\s+campo|quale\s+terren/i.test(text)) {
+        text = text.replace(/[.!?]*\s*$/, '');
+        text = tonyTidySlotText(text + '. Su quale appezzamento?');
+    }
+    if (!text) text = 'Ok, segno la mietitura. Su quale appezzamento?';
+
+    if (cmd) {
+        if (!slots.hours) {
+            ['formData', 'fields'].forEach(function (bagName) {
+                if (!cmd[bagName]) return;
+                var fd = Object.assign({}, cmd[bagName]);
+                delete fd['attivita-ore'];
+                delete fd['attivita-ore-macchina'];
+                delete fd['attivita-orario-inizio'];
+                delete fd['attivita-orario-fine'];
+                cmd[bagName] = fd;
+            });
+        }
+        if (cmd.formData) cmd.formData = tonyScrubNamedPlaceFields(cmd.formData, slots.allowed);
+        if (cmd.fields) cmd.fields = tonyScrubNamedPlaceFields(cmd.fields, slots.allowed);
+    }
+    return { text: text, command: cmd };
+}
+
 /**
  * Testo utente + comando eseguibile: estrae JSON residuo nel testo, pulisce display.
  * @param {string} [text]
