@@ -210,3 +210,30 @@ export async function assertScenarioExpect(page, expect, scenario, ctx = {}) {
     }
   }
 }
+
+/**
+ * Assert sul singolo turno (catene multi-messaggio). Non sostituisce `expect` finale.
+ * @param {import('@playwright/test').Expect} expect
+ * @param {string} reply
+ * @param {object} [turnExpect]
+ */
+export function assertTurnExpect(expect, reply, turnExpect) {
+  if (!turnExpect) return;
+  const low = String(reply || '').toLowerCase();
+  if (Array.isArray(turnExpect.responseMustMatch)) {
+    for (const fragment of turnExpect.responseMustMatch) {
+      expect(low, `turno deve contenere «${fragment}»`).toContain(String(fragment).toLowerCase());
+    }
+  }
+  if (Array.isArray(turnExpect.responseMustMatchAny) && turnExpect.responseMustMatchAny.length) {
+    const hit = turnExpect.responseMustMatchAny.some((fragment) =>
+      low.includes(String(fragment).toLowerCase())
+    );
+    expect(hit, `turno deve contenere uno di: ${turnExpect.responseMustMatchAny.join(', ')}`).toBe(true);
+  }
+  if (Array.isArray(turnExpect.responseMustNotMatch)) {
+    for (const fragment of turnExpect.responseMustNotMatch) {
+      expect(low, `turno non deve contenere «${fragment}»`).not.toContain(String(fragment).toLowerCase());
+    }
+  }
+}

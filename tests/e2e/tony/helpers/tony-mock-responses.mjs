@@ -100,5 +100,33 @@ export function buildMockCfBundle(scenario) {
     return bundle;
   }
 
+  if (id === 'T-TURN-SLOT-001') {
+    bundle.staticResponses["o' fatto la vigna stamani"] = {
+      text: 'Ok, registro sulla Vigna.',
+      command: null,
+    };
+    bundle.staticResponses["non la vigna, l'oliveto"] = {
+      text: "Ok, registro sull'Oliveto del poggio.",
+      command: null,
+    };
+    bundle.staticResponses['due ore. anzi tre'] = {
+      text: "Ok, registro tre ore sull'Oliveto del poggio.",
+      command: null,
+    };
+    bundle.staticResponses.mietuto = {
+      text: "Ok, segno la raccolta sull'Oliveto del poggio.",
+      command: null,
+    };
+    bundle.staticResponses['il grano'] = {
+      text: 'Ok, mietitura nel Campo del grano.',
+      command: null,
+    };
+    bundle.staticResponses['quello grande'] = {
+      text: 'Ok, registro la mietitura del grano nel Campo del grano per tre ore.',
+      command: null,
+    };
+    return bundle;
+  }
+
   return bundle;
 }

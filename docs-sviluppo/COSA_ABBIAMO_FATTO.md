@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-05 — Chat Tony: solo la frase, i comandi restano interni.**
+**Ultimo aggiornamento documentazione: 2026-10-05 — Cambio lavoro: campo e ore non passano al turno dopo.**
+
+## 2026-10-05 — Cambio lavoro: niente campo e ore del turno precedente
+
+Se in chat si passa da un lavoro a un altro (oliveto, poi «mietuto» / grano), Tony non conferma più l’appezzamento né le ore del turno prima. Le ore restano solo se l’utente le ha dette per quel lavoro; se manca il campo, chiede l’appezzamento. Il filtro è nel motore condiviso del client. Nel prompt c’è la stessa regola, senza deploy delle Cloud Functions. Scenario gate `T-TURN-SLOT-001`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-05 — Chat Tony: solo la frase, i comandi restano interni.**
 
 ## 2026-10-05 — Chat Tony: niente JSON grezzo né comandi troncati
 

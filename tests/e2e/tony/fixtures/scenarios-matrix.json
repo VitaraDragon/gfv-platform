@@ -2033,6 +2033,44 @@
         "responseMustNotMatch": ["inject_form_data", "attivita-form", "\"command\"", "{\"text\""],
         "chatMustNotMatch": ["inject_form_data", "attivita-form", "open_modal", "\"command\"", "{\"text\""]
       }
+    },
+    {
+      "id": "T-TURN-SLOT-001",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "display",
+      "description": "Cambio lavoro: mietuto non riusa oliveto né le tre ore",
+      "contract": {
+        "invariant": "Dopo «mietuto» niente oliveto. Dopo «quello grande» niente tre ore del turno prima.",
+        "primaryAsserts": ["turnExpects su mietuto e quello grande"],
+        "avoidAsserts": ["testo byte-identico della conferma"]
+      },
+      "persona": "manager",
+      "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": [
+        "o' fatto la vigna stamani",
+        "no aspetta, non la vigna, l'oliveto",
+        "due ore. anzi tre",
+        "mietuto",
+        "il grano",
+        "quello grande"
+      ],
+      "mockCf": true,
+      "turnExpects": [
+        { "responseMustMatch": ["vigna"] },
+        { "responseMustMatch": ["oliveto"], "responseMustNotMatch": ["tre ore"] },
+        { "responseMustMatch": ["tre ore", "oliveto"] },
+        { "responseMustNotMatch": ["oliveto", "tre ore"], "responseMustMatchAny": ["appezzament", "mietit", "raccolt"] },
+        { "responseMustMatch": ["grano"], "responseMustNotMatch": ["oliveto", "tre ore"] },
+        { "responseMustMatch": ["grano"], "responseMustNotMatch": ["tre ore", "oliveto", "3 ore"] }
+      ],
+      "expect": {
+        "usedGemini": false,
+        "responseMustMatch": ["grano"],
+        "responseMustNotMatch": ["tre ore", "oliveto", "3 ore"]
+      }
     }
   ]
 }
