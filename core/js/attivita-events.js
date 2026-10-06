@@ -11,6 +11,7 @@
 // Questo modulo assume che db, auth, currentTenantId siano disponibili globalmente
 
 import { Timestamp } from '../services/firebase-service.js';
+import { dateLikeToLocalCalendarIso } from './date-format-it.js';
 import {
     getCurrentPositionGeo,
     buildPosizioneRilevamentoFirestore,
@@ -345,10 +346,11 @@ export function toggleFormRapido(lavoroId) {
             btn.textContent = '➕ Aggiungi Attività';
             // Reset form
             form.reset();
-            const today = new Date().toISOString().split('T')[0];
+            const today = dateLikeToLocalCalendarIso(new Date());
             const dataInput = document.getElementById(`rapido-data-${lavoroId}`);
             if (dataInput) {
                 dataInput.value = today;
+                dataInput.max = today;
             }
         }
     }
@@ -778,9 +780,13 @@ export async function openAttivitaModal(params) {
         title.textContent = 'Aggiungi Attività';
         // NON resettare il form qui - viene fatto all'inizio della funzione
         // form.reset() resetta anche i dropdown che abbiamo appena popolato!
-        // Imposta data di default a oggi
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('attivita-data').value = today;
+        // Oggi locale: il max del Diario blocca solo i giorni futuri, non la mattina dopo mezzanotte.
+        const today = dateLikeToLocalCalendarIso(new Date());
+        const dataInputNuova = document.getElementById('attivita-data');
+        if (dataInputNuova) {
+            dataInputNuova.max = today;
+            dataInputNuova.value = today;
+        }
         document.getElementById('attivita-pause').value = 0;
         
         // Popola struttura gerarchica (sempre attiva) - NON resettare, solo popolare
@@ -1769,8 +1775,12 @@ export async function salvaAttivitaRapida({
         
         // Reset form
         document.getElementById(`form-rapido-${lavoroId}`).reset();
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById(`rapido-data-${lavoroId}`).value = today;
+        const today = dateLikeToLocalCalendarIso(new Date());
+        const rapidoDataInput = document.getElementById(`rapido-data-${lavoroId}`);
+        if (rapidoDataInput) {
+            rapidoDataInput.max = today;
+            rapidoDataInput.value = today;
+        }
         toggleFormRapido(lavoroId); // Chiudi form
         
         // Ricarica attività e lavori

@@ -16,14 +16,14 @@ const WRITE_DURATA = '3';
  * @param {import('playwright-core').Page} page
  * @param {string} marker
  */
-function lavoriRowsWithMarker(page, marker) {
+export function lavoriRowsWithMarker(page, marker) {
   return page.locator('#lavori-container .lavori-table tbody tr').filter({ hasText: marker });
 }
 
 /**
  * @param {import('playwright-core').Page} page
  */
-async function clearLavoriFilters(page) {
+export async function clearLavoriFilters(page) {
   const btn = page.getByRole('button', { name: /Pulisci Filtri/i });
   if (await btn.isVisible()) {
     await btn.click();
@@ -37,7 +37,7 @@ async function clearLavoriFilters(page) {
 /**
  * @param {import('playwright-core').Page} page
  */
-async function openNewLavoroModal(page) {
+export async function openNewLavoroModal(page) {
   await page.locator('#crea-lavoro-button').click();
   await page.locator('#lavoro-modal.active').waitFor({ timeout: 30_000 });
   await page.waitForFunction(() => {
@@ -132,7 +132,7 @@ async function pickTipoLavoroInModal(page) {
  * @param {{ nome: string, note: string }} opts
  * @returns {Promise<{ terrenoNome: string, caposquadraNome: string, tipoLavoro: string }>}
  */
-async function fillAndSubmitNewLavoro(page, { nome, note }) {
+export async function fillAndSubmitNewLavoro(page, { nome, note }) {
   await page.locator('#lavoro-nome').fill(nome);
 
   const terrenoSelect = page.locator('#lavoro-terreno');
@@ -179,7 +179,7 @@ async function fillAndSubmitNewLavoro(page, { nome, note }) {
         (tr) => (tr.textContent || '').includes(marker)
       );
     },
-    E2E_LAVORO_WRITE_NOME,
+    nome,
     { timeout: 90_000 }
   );
 

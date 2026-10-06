@@ -50,6 +50,13 @@ const OVERRIDES = {
   'concimazione-frutteto-completa-write': {
     requiresSeedProfile: 'frutteto-solo-titolare',
   },
+  'gestione-lavori-data-edit': {
+    contract: {
+      invariant: 'Edit lavoro con data a mezzanotte locale (Europe/Rome) → campo = giorno salvato, non D−1; il salvataggio non sposta il giorno',
+      primaryAsserts: ['input data inizio = 2026-09-29', 'dopo save la riga e il campo restano 29 settembre'],
+      avoidAsserts: ['toISOString come giorno del campo'],
+    },
+  },
   'manodopera-migrazione': {
     mode: 'gate',
     category: 'integration',

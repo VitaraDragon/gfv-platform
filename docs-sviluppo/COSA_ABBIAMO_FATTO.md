@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-06 — Cascata Diario categoria → tipo lavoro.**
+**Ultimo aggiornamento documentazione: 2026-10-06 — Data inizio lavoro in modifica, giorno locale.**
+
+## 2026-10-06 — Gestione lavori: data inizio in modifica senza −1 giorno UTC
+
+In modifica, la data di inizio usava `toISOString()` e, con un orario a mezzanotte locale (Italia), il campo mostrava il giorno prima. Salvare così com’era spostava la data indietro. Ora il campo legge il giorno di calendario locale, come elenco e dettagli. Il Diario allinea `max` e il valore «oggi» degli input data allo stesso giorno locale: i futuri restano bloccati e il passato resta senza un nuovo limite. Nessuna modifica a `firestore.rules` e nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-06 — Cascata Diario categoria → tipo lavoro.**
 
 ## 2026-10-06 — Diario: cascata categoria → sottocategoria → tipo lavoro
 
