@@ -36,6 +36,9 @@ Questa guida è solo per l’**operaio**. La schermata che userai quasi sempre �
 
 La **versione mobile** è la schermata principale per registrare il lavoro in campo dall’app.
 
+**Diario attività:** con Manodopera attivo **non** compare nel menu (come per tutti). Registri tutto da **Lavoro**, **Ore** e **Statistiche**. Non c’è una voce Diario in sola lettura; un link diretto, se lo raggiungi, mostra al massimo lo **storico**, senza creare.
+
+
 ### Le tre schede
 
 Con **Indietro** / **Avanti** in basso o i **puntini**:

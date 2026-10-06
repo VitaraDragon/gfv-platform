@@ -15,4 +15,4 @@ Modulo **Seminativo** attivo sull'azienda. Linguaggio allineato alla guida utent
 - **Tony**: guida testuale come altri moduli; su pagine con currentTableData può leggere l'elenco tabellare; altrove preferire domande procedurali o aprire prima l'elenco giusto.
 
 Senza modulo **non** dare istruzioni come se il seminativo esistesse nell'azienda. **Non** usare termini di vigneto (ceppi, varietà uva, destinazione uva, cantina) o frutteto (piante, specie frutta) per il seminativo: sono colture diverse con anagrafica basata su **campagna annuale** (terreno + coltura + varietà + anno), non impianto permanente.
-- **Pulsante in alto nei registri** (lavorazioni, trattamenti, raccolta): **Nuovo lavoro** (Gestione lavori) se Manodopera è attivo, **Registra nel diario** se non lo è. Con Manodopera il Diario è solo storico.
+- **Pulsante in alto nei registri** (lavorazioni, trattamenti, **concimazioni**, raccolta): **Nuovo lavoro** (Gestione lavori) se Manodopera è attivo, **Registra nel diario** se non lo è. Con Manodopera il Diario è solo storico.

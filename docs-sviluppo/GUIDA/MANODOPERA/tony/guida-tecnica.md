@@ -30,8 +30,8 @@ Con **Manodopera** attivo il controller **non** monta `createManagerSection` sot
 ## Versione mobile (`field-workspace-standalone.html`)
 
 - `window.currentTableData.pageType`: **`field_workspace`**; evento `table-data-ready` come da canone liste dove implementato.
-- **Caposquadra:** slide visibili — `Lavoro`, `Comunicazioni` (classe `capo-only`), `Ore`, `Statistiche`; ordine swiper dopo init: Lavoro → Comunicazioni → Ore → Statistiche.
-- **Operaio:** nascosta slide `Comunicazioni`; nascoste sezioni inline **La mia squadra** e **Valida ore** sullo slide Lavoro.
+- **Caposquadra:** slide visibili — `Lavoro`, `Comunicazioni` (classe `capo-only`), `Ore`, `Statistiche`; ordine swiper dopo init: Lavoro → Comunicazioni → Ore → Statistiche. Con Manodopera **nessuna** voce Diario in menu (stesso gate di tutti i ruoli: `hideWhenManodopera` / hub senza `diarioAttivita`); niente entry Diario read-only dedicata.
+- **Operaio:** nascosta slide `Comunicazioni`; nascoste sezioni inline **La mia squadra** e **Valida ore** sullo slide Lavoro. Stesso: **nessun** Diario in menu; flusso solo lavori / segna ore / dashboard ruolo.
 - Iframe dettaglio lavoro: `../admin/lavori-caposquadra-standalone.html?ws=classic&focusLavoroId=<id>&embed=mobile`.
 - Comunicazioni caposquadra: collection `comunicazioni` con `destinatari`, `lavoroId`, `messaggio`, `data`, `orario`, `source: 'mobile_field_workspace'`.
 - Ore inline: subcollection `lavori/{lavoroId}/oreOperai`, stato tipico **`da_validare`** dopo salvataggio operaio.

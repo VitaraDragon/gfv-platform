@@ -205,7 +205,7 @@ Nella stessa area **Gestione operai** potete aprire la **Scheda competenze** di 
 
 È il cuore operativo: qui definisci **cosa** si fa, **dove** (terreno), **chi** (squadra o operaio autonomo), **quando** e in che **stato** è il lavoro.
 
-**E il Diario attività?** Con Manodopera attivo le giornate nuove si registrano **solo qui**. Il **Diario attività** resta come **storico**: vedi le attività salvate prima, ma non ne aggiungi di nuove e non le modifichi o elimini. Anche i collegamenti **Lavori in corso / completati** del Conto Terzi e **Lavori CT** della Vendemmia meccanica aprono Gestione lavori.
+**E il Diario attività?** Con Manodopera attivo le giornate nuove si registrano **solo qui**. Il **Diario attività** **non** compare nel menu (né in Per te oggi / Accessi rapidi): resta raggiungibile solo come **storico** via link diretto; vedi le attività salvate prima, ma non ne aggiungi di nuove e non le modifichi o elimini. Anche i collegamenti **Lavori in corso / completati** del Conto Terzi e **Lavori CT** della Vendemmia meccanica aprono Gestione lavori.
 
 ### Passi tipici per un nuovo lavoro
 

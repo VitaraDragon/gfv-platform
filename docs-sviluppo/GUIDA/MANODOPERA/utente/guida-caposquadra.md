@@ -42,6 +42,9 @@ Questa guida è solo per il **caposquadra**: ciò che puoi fare dalla **versione
 
 La **versione mobile** è la schermata principale quando lavori in campo dall’app (menu e testi possono variare leggermente tra versioni, ma il flusso è questo).
 
+**Diario attività:** con Manodopera attivo **non** compare nel menu (come per tutti). Usi i **lavori**, la **segna ore** e le schede del tuo ruolo. Non c’è una voce Diario in sola lettura dedicata a te; se apri un link diretto al Diario, al massimo vedi lo **storico**, senza creare attività.
+
+
 ### Cosa vedi in alto
 
 - **Icona telefono / computer**: puoi passare alla **versione desktop** se ti serve il browser completo su schermo grande (a volte il sistema ti reindirizza in base al ruolo: è normale).  

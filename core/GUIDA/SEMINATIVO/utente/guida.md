@@ -151,7 +151,7 @@ Le pagine **Lavorazioni**, **Trattamenti** e **Concimazioni** servono a **comple
 
 ### Concimazioni: passo per passo
 
-Flusso **identico** alla pagina Trattamenti (stessa struttura di elenco, mappa e tabella prodotti), ma le righe provengono da lavori/attività con categoria **Concimazione** e i prodotti sono i **concimi** gestiti in anagrafica come tale.
+Flusso **identico** alla pagina Trattamenti (stessa struttura di elenco, mappa e tabella prodotti), ma le righe provengono da lavori/attività con categoria **Concimazione** e i prodotti sono i **concimi** gestiti in anagrafica come tale. Anche qui il pulsante in alto è **Nuovo lavoro** con Manodopera e **Registra nel diario** senza.
 
 1. Filtri **Campagna/Terreno** e **Anno**, poi **Azioni** sulla riga da completare.
 2. Superficie (manuale, **tutto il terreno** da anagrafe, o **Traccia** su mappa) come per i trattamenti.

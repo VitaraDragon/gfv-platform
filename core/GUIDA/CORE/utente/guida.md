@@ -110,8 +110,8 @@ Il pulsante **Moduli** (con un **numero** accanto, es. «Moduli 8») è il modo 
 2. Si apre un **elenco a tendina** con voci cliccabili: ogni riga ha un’**icona** (es. 🍇), un **titolo** (es. **Vigneto**) e una **breve descrizione**.
 3. Tocca la voce che ti serve: si apre quella pagina e il menu si chiude.
 
-Nell’elenco trovi sempre almeno **Terreni**, **Diario attività**, **Statistiche**, **Abbonamento**; poi ogni **modulo attivo** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Report, …).  
-Con **Manodopera** attivo compaiono anche **Amministrazione** e **Statistiche manodopera**; il **Diario attività** resta raggiungibile ma si apre come **storico** (vedi [mini-guida Diario](#mini-guida-compilare-il-diario-attivita)).
+Nell’elenco trovi sempre almeno **Terreni**, **Statistiche**, **Abbonamento**; **senza Manodopera** anche **Diario attività**; poi ogni **modulo attivo** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Report, …).  
+Con **Manodopera** attivo compaiono anche **Amministrazione** e **Statistiche manodopera**; il **Diario attività** **non** compare nel menu (né in **Per te oggi** / **Accessi rapidi**): le giornate nuove vanno in **Gestione lavori**. Un link diretto al Diario, se raggiunto, mostra solo lo **storico** (vedi [mini-guida Diario](#mini-guida-compilare-il-diario-attivita)).
 
 **Non serve cercare altro** se hai Manodopera: Vigneto, Magazzino e gli altri moduli sono **solo** in questo elenco (o in **Per te oggi** / **I miei accessi** / **Accessi rapidi**). Scorrendo la dashboard **non** troverai altre righe «Vigneto» o «Magazzino» fuori dal menu — ed è normale.
 
@@ -220,7 +220,7 @@ Se la mappa non si carica, compare un avviso: in quel caso serve una configurazi
 **Diario o Gestione lavori? Dipende da Manodopera.**
 
 - **Senza Manodopera:** il Diario è il posto dove registrate le giornate in campo (passi qui sotto). La pagina **Gestione lavori** non si usa: se la aprite compare l’avviso «Modulo Manodopera non attivo». Eventuali lavori salvati in passato **restano in archivio**, non vengono cancellati.
-- **Con Manodopera:** il Diario diventa lo **storico**. Vedete le attività già salvate, ma **non** c’è più **Aggiungi attività** e dalle righe non si modifica né si elimina; un avviso in alto vi rimanda a **Gestione lavori**, dove si registrano le giornate nuove (guida **Manodopera**).
+- **Con Manodopera:** il Diario **esce dal menu** e resta solo come **storico** (link diretto o segnalibro). Vedete le attività già salvate, ma **non** c’è più **Aggiungi attività** e dalle righe non si modifica né si elimina; un avviso in alto vi rimanda a **Gestione lavori**, dove si registrano le giornate nuove (guida **Manodopera**). Vale per **tutti** i ruoli, incluso caposquadra e operaio.
 
 **Passi:**
 
