@@ -877,6 +877,12 @@
             <div id="lavori-container" class="table-responsive" data-tour-section="lavori-list" data-gfv-pelle-list>
                 <div class="loading">Caricamento lavori...</div>
             </div>
+
+            <section id="attivita-precedenti-section" hidden style="margin-top: 24px;">
+                <h3 style="margin-bottom: 6px;">Attività precedenti</h3>
+                <p style="color: #555; margin-bottom: 10px;">Queste attività del Diario non sono state convertite in lavori. Restano in sola lettura: niente è stato cancellato.</p>
+                <div id="attivita-precedenti-list"></div>
+            </section>
         </div>
     </div>
 
@@ -1693,6 +1699,8 @@
             confermaSegnalazioneStandby,
             openAssenzaFromDeepLink
         } from './js/gestione-lavori-assenze-ui.js';
+
+        import { elencoAttivitaSolaLettura } from '../services/manodopera-migrazione-service.js';
 
         import {
             initGestioneLavoriSostitutiUi,
@@ -2767,6 +2775,41 @@
             );
             if (lavoriState.hasManodoperaModule) {
                 await refreshAssenzeSegnalateBanner();
+                await renderAttivitaPrecedenti();
+            }
+        }
+
+        async function renderAttivitaPrecedenti() {
+            const section = document.getElementById('attivita-precedenti-section');
+            const list = document.getElementById('attivita-precedenti-list');
+            if (!section || !list) return;
+            const tenantId = currentTenantId || lavoriState.currentTenantId;
+            if (!tenantId) {
+                section.hidden = true;
+                return;
+            }
+            try {
+                const rows = await elencoAttivitaSolaLettura(tenantId);
+                if (!rows.length) {
+                    section.hidden = true;
+                    list.innerHTML = '';
+                    return;
+                }
+                section.hidden = false;
+                list.innerHTML = '<ul style="list-style:none;padding:0;margin:0;">' + rows.map(function(row) {
+                    const data = escapeHtmlUtil(row.data || '');
+                    const tipo = escapeHtmlUtil(row.tipoLavoro || '—');
+                    const terreno = escapeHtmlUtil(row.terrenoNome || '');
+                    const motivo = escapeHtmlUtil(row.migrazioneSolaLetturaMotivo || '');
+                    return '<li class="attivita-precedente-row" style="padding:8px 0;border-bottom:1px solid #eee;">'
+                        + '<strong>' + data + '</strong> · ' + tipo
+                        + (terreno ? ' · ' + terreno : '')
+                        + (motivo ? ' <span style="color:#856404;">(' + motivo + ')</span>' : '')
+                        + '</li>';
+                }).join('') + '</ul>';
+            } catch (err) {
+                console.warn('[attivita-precedenti]', err);
+                section.hidden = true;
             }
         }
 
