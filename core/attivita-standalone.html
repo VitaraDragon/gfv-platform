@@ -1310,6 +1310,7 @@
         } from './js/attivita-maps.js';
 
         import { filterTipiLavoroByCategoria } from './js/lavoro-cascade-filters.js';
+        import { dateLikeToLocalCalendarIso } from './js/date-format-it.js';
 
         try {
             await window.GFVStandaloneReady;
@@ -1558,9 +1559,11 @@
                 console.error('Errore caricamento utente:', error);
             }
 
-            // Imposta max date a oggi
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('attivita-data').max = today;
+            // Max = oggi di calendario locale (niente toISOString UTC: dopo mezzanotte a Roma il max resterebbe ieri).
+            // Nessun min: il passato del Diario resta illimitato.
+            const today = dateLikeToLocalCalendarIso(new Date());
+            const attivitaDataInput = document.getElementById('attivita-data');
+            if (attivitaDataInput) attivitaDataInput.max = today;
 
             // Verifica moduli attivi
             try {
