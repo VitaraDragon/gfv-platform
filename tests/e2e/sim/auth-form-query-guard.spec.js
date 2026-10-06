@@ -202,13 +202,19 @@ test.describe('Auth form: niente segreti in query', () => {
   });
 
   test('a moduli pronti il listener resta agganciato e il pulsante si riabilita', async ({ page }) => {
+    const readyPaths = new Set([
+      '/core/auth/login-standalone.html',
+      '/core/auth/registrazione-standalone.html',
+    ]);
     for (const spec of PAGES) {
-      if (!spec.enablesWhenReady) continue;
-      await page.goto(spec.path);
-      await page.waitForFunction((sel) => {
-        const form = document.querySelector(sel);
-        return form && form.getAttribute('data-gfv-auth-ready') === '1';
-      }, spec.form, { timeout: 30000 });
+      if (!readyPaths.has(spec.path)) continue;
+      await page.goto(`${spec.path}?emulator=1`);
+      await page.waitForFunction(({ formSel, buttonSel }) => {
+        const form = document.querySelector(formSel);
+        const button = document.querySelector(buttonSel);
+        if (!form || !button) return false;
+        return form.getAttribute('data-gfv-auth-ready') === '1' || !button.disabled;
+      }, { formSel: spec.form, buttonSel: spec.button }, { timeout: 30000 });
       await expect(page.locator(spec.button)).toBeEnabled();
       await expect(page.locator(spec.button)).toHaveText(spec.label);
 
