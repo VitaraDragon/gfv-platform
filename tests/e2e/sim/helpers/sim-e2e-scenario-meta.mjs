@@ -50,6 +50,16 @@ const OVERRIDES = {
   'concimazione-frutteto-completa-write': {
     requiresSeedProfile: 'frutteto-solo-titolare',
   },
+  'manodopera-migrazione': {
+    mode: 'gate',
+    category: 'integration',
+    requiresSeedProfile: 'frutteto-solo-titolare',
+    contract: {
+      invariant: 'Off → on → off copia Diario e lavori senza cancellare e senza duplicare',
+      primaryAsserts: ['toast conteggi', 'avviso lavori aperti', 'storico ancora presente'],
+      avoidAsserts: ['conteggio righe seed fisso'],
+    },
+  },
 };
 
 /**

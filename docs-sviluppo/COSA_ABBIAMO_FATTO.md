@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-05 — «o' fatto la vigna» naviga davvero.**
+**Ultimo aggiornamento documentazione: 2026-10-06 — Migrazione dati Manodopera all’on/off.**
+
+## 2026-10-06 — Migrazione dati Manodopera (Diario ↔ lavori)
+
+Quando Manodopera entra o esce dai moduli effettivi del tenant, i dati si copiano una volta sola: dal Diario ai lavori in attivazione, dai lavori allo storico del Diario in disattivazione. Non si cancella nulla (attività, lavori, operai, squadre). Una seconda accensione non duplica. In disattivazione, se ci sono lavori aperti, si chiede conferma prima di proseguire. I casi non mappabili (Altro, conto terzi incompleto, campi vuoti) restano in sola lettura nella sezione «Attività precedenti». Le date più vecchie di un anno passano da una validazione di migrazione, perché `Lavoro.validate` le rifiuterebbe. Nessuna modifica a `firestore.rules` e nessun deploy di Cloud Functions: dopo Stripe la copia parte al ricarico dell’abbonamento.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-05 — «o' fatto la vigna» naviga davvero.**
 
 ## 2026-10-05 — Lavoro fatto in campo: Tony cambia pagina
 
