@@ -1645,6 +1645,8 @@
             loadDettaglioOre as loadDettaglioOreModule
         } from './js/gestione-lavori-controller.js';
 
+        import { resolveLavoroCascadeParents } from '../js/lavoro-cascade-filters.js';
+
         import {
             showAlert as showAlertUtil,
             escapeHtml as escapeHtmlUtil,
@@ -1952,7 +1954,19 @@
 
         // Wrapper per populateCategoriaLavoroDropdown
         function populateCategoriaLavoroDropdownWrapper(selectedValue = null) {
-            populateCategoriaLavoroDropdownModule(lavoriState.categorieLavoriPrincipali, selectedValue);
+            const resolved = selectedValue
+                ? resolveLavoroCascadeParents(
+                    selectedValue,
+                    null,
+                    lavoriState.categorieLavoriPrincipali,
+                    lavoriState.sottocategorieLavoriMap
+                )
+                : { categoriaPrincipaleId: null, sottocategoriaId: null };
+            const parentId = selectedValue ? resolved.categoriaPrincipaleId : null;
+            populateCategoriaLavoroDropdownModule(lavoriState.categorieLavoriPrincipali, parentId);
+            if (parentId) {
+                populateSottocategorieLavoroWrapper(parentId, resolved.sottocategoriaId);
+            }
         }
 
         // Wrapper per populateSottocategorieLavoro

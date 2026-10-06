@@ -1309,6 +1309,8 @@
             closeMappaZoneModal as closeMappaZoneModalModule
         } from './js/attivita-maps.js';
 
+        import { filterTipiLavoroByCategoria } from './js/lavoro-cascade-filters.js';
+
         try {
             await window.GFVStandaloneReady;
         } catch (err) {
@@ -2096,6 +2098,17 @@
 
         // Carica tipi lavoro (filtrati per categoria se specificata) - wrapper
         async function loadTipiLavoro(categoriaId = null) {
+            if (categoriaId && Array.isArray(tipiLavoroList) && tipiLavoroList.length) {
+                const filtered = filterTipiLavoroByCategoria(
+                    categoriaId,
+                    tipiLavoroList,
+                    categorieLavoriPrincipali,
+                    sottocategorieLavoriMap
+                );
+                if (filtered.length) {
+                    populateTipoLavoroDropdown(categoriaId, null, filtered, categorieLavoriPrincipali);
+                }
+            }
             await loadTipiLavoroModule({
                 currentTenantId,
                 categoriaId,
@@ -2669,7 +2682,7 @@
                 updateColtureDropdownAttivita: updateColtureDropdownAttivitaModule,
                 populateTrattoriDropdown: populateTrattoriDropdown, // Usa il wrapper, non il modulo
                 populateAttrezziDropdown: populateAttrezziDropdown, // Usa il wrapper, non il modulo
-                setupCategoriaLavoroHandler: setupCategoriaLavoroHandlerModule,
+                setupCategoriaLavoroHandler: setupCategoriaLavoroHandler,
                 updateOreNette,
                 updateOreMacchinaDisplay,
                 isContoTerziMode
@@ -2768,26 +2781,15 @@
             if (categoriaId && loadTipiLavoro) {
                 console.log('[ATTIVITA] Terreno cambiato, ricarico tipi lavoro per applicare filtro vendemmia');
                 await loadTipiLavoro(categoriaId);
-                
-                // Ripristina il tipo lavoro se era già selezionato e ancora disponibile nel dropdown
-                if (currentTipoLavoroValue || currentTipoLavoroText) {
-                    setTimeout(() => {
-                        const tipoLavoroSelectAfter = document.getElementById('attivita-tipo-lavoro-gerarchico');
-                        if (tipoLavoroSelectAfter) {
-                            if (currentTipoLavoroValue && Array.from(tipoLavoroSelectAfter.options).some(opt => opt.value === currentTipoLavoroValue)) {
-                                tipoLavoroSelectAfter.value = currentTipoLavoroValue;
-                                console.log('[ATTIVITA] Tipo lavoro ripristinato dopo cambio terreno:', currentTipoLavoroValue);
-                                tipoLavoroSelectAfter.dispatchEvent(new Event('change', { bubbles: true }));
-                            } else if (currentTipoLavoroText) {
-                                const opt = Array.from(tipoLavoroSelectAfter.options).find(o => o.text.trim() === (currentTipoLavoroText || '').trim());
-                                if (opt) {
-                                    tipoLavoroSelectAfter.value = opt.value;
-                                    console.log('[ATTIVITA] Tipo lavoro ripristinato dopo cambio terreno (per testo):', currentTipoLavoroText);
-                                    tipoLavoroSelectAfter.dispatchEvent(new Event('change', { bubbles: true }));
-                                }
-                            }
-                        }
-                    }, 100);
+
+                const tipoLavoroSelectAfter = document.getElementById('attivita-tipo-lavoro-gerarchico');
+                if (tipoLavoroSelectAfter && (currentTipoLavoroValue || currentTipoLavoroText)) {
+                    if (currentTipoLavoroValue && Array.from(tipoLavoroSelectAfter.options).some(opt => opt.value === currentTipoLavoroValue)) {
+                        tipoLavoroSelectAfter.value = currentTipoLavoroValue;
+                    } else if (currentTipoLavoroText) {
+                        const opt = Array.from(tipoLavoroSelectAfter.options).find(o => (o.text || '').trim() === (currentTipoLavoroText || '').trim());
+                        if (opt) tipoLavoroSelectAfter.value = opt.value;
+                    }
                 }
             }
             
