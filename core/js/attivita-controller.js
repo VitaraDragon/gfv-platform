@@ -12,6 +12,7 @@
 
 import {
     dateLikeToIsoDateString,
+    dateLikeToLocalCalendarIso,
     formatIsoDateToItalianLong,
     formatDateLikeToItalianLongLocal,
     formatDateLikeToItalianLongWeekday
@@ -182,7 +183,7 @@ export async function generaVoceDiarioContoTerzi(
         const dataCompletamento = lavoroData.approvatoIl?.toDate 
             ? lavoroData.approvatoIl.toDate() 
             : new Date();
-        const dataAttivita = dataCompletamento.toISOString().split('T')[0];
+        const dataAttivita = dateLikeToLocalCalendarIso(dataCompletamento);
 
         // Usa orari dalla attività se disponibili, altrimenti default
         const orarioInizio = orariOpzionali?.orarioInizio || '08:00';
@@ -1823,8 +1824,8 @@ export async function renderAttivita(params) {
         });
     }
     
-    // Imposta data di default a oggi per tutti i form rapidi
-    const today = new Date().toISOString().split('T')[0];
+    // Oggi di calendario locale: toISOString() è UTC e, dopo mezzanotte a Roma, max bloccherebbe il giorno corrente.
+    const today = dateLikeToLocalCalendarIso(new Date());
     const lavoriInCorso = isContoTerziMode ? lavoriList.filter(l => l.stato === 'in_corso') : [];
     lavoriInCorso.forEach(lavoro => {
         const dataInput = document.getElementById(`rapido-data-${lavoro.id}`);
