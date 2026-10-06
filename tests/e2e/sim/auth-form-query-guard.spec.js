@@ -212,8 +212,14 @@ test.describe('Auth form: niente segreti in query', () => {
       await expect(page.locator(spec.button)).toBeEnabled();
       await expect(page.locator(spec.button)).toHaveText(spec.label);
 
-      const heard = await page.evaluate((formSel) => {
+      const heard = await page.evaluate(({ formSel, fields }) => {
         const form = document.querySelector(formSel);
+        fields.forEach(([sel, value]) => {
+          const el = form.querySelector(sel);
+          if (!el) return;
+          el.disabled = false;
+          el.value = value;
+        });
         return new Promise((resolve) => {
           form.addEventListener('submit', (e) => {
             e.preventDefault();
@@ -227,7 +233,7 @@ test.describe('Auth form: niente segreti in query', () => {
           }
           setTimeout(() => resolve('not-fired'), 400);
         });
-      }, spec.form);
+      }, { formSel: spec.form, fields: spec.fields });
       expect(heard).toBe('fired');
       assertClean(page.url());
     }
