@@ -75,7 +75,7 @@ jobs:
         run: npm ci
 
       - name: Import relativi (core/, modules/, shared/) + handler functions/index.js
-        run: npx vitest run tests/relative-imports-resolve.test.js tests/functions-index-handlers-defined.test.js
+        run: npx vitest run tests/relative-imports-resolve.test.js tests/functions-index-handlers-defined.test.js tests/auth-form-query-guard.test.js
 
   simulator-emulator:
     name: sim:test (Auth + Firestore emulator)
