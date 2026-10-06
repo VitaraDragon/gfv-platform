@@ -24,6 +24,8 @@ import {
 
 import { filterAttrezziDropdownCompatibili } from '../../js/macchine-cv-compat.js';
 import {
+    allCategorieFlat,
+    buildLavoroCategorieIndex,
     filterTipiLavoroByCategoria,
     getSottocategorieForParent,
     resolvePreserveCascadeSelection,
@@ -515,37 +517,19 @@ export async function loadCategorieLavori(currentTenantId, db, categorieLavoriPr
         
         // Carica tutte le categorie
         const snapshot = await getDocs(query(categorieRef, orderBy('ordine', 'asc')));
-        categorieLavoriPrincipali.length = 0; // Pulisci array
-        sottocategorieLavoriMap.clear(); // Pulisci map
-        
-        snapshot.forEach(doc => {
-            const catData = { id: doc.id, ...doc.data() };
-
-            // Escludi categorie di test (contengono "test" nel nome)
+        const tutteCategorie = [];
+        snapshot.forEach((docSnap) => {
+            const catData = { id: docSnap.id, ...docSnap.data() };
             const nomeCategoria = (catData.nome || '').toLowerCase();
-            if (nomeCategoria.includes('test')) {
-                return; // Salta questa categoria
-            }
+            if (nomeCategoria.includes('test')) return;
+            tutteCategorie.push(catData);
+        });
 
-            // Filtra solo categorie applicabili a lavori
-            if (catData.applicabileA === 'lavori' || catData.applicabileA === 'entrambi') {
-                if (!catData.parentId) {
-                    // Categoria principale
-                    categorieLavoriPrincipali.push(catData);
-                } else {
-                    // Sottocategoria
-                    if (!sottocategorieLavoriMap.has(catData.parentId)) {
-                        sottocategorieLavoriMap.set(catData.parentId, []);
-                    }
-                    sottocategorieLavoriMap.get(catData.parentId).push(catData);
-                }
-            }
-        });
-        
-        // Ordina sottocategorie per ordine
-        sottocategorieLavoriMap.forEach((sottocat, parentId) => {
-            sottocat.sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
-        });
+        const indexed = buildLavoroCategorieIndex(tutteCategorie);
+        categorieLavoriPrincipali.length = 0;
+        indexed.principali.forEach((cat) => categorieLavoriPrincipali.push(cat));
+        sottocategorieLavoriMap.clear();
+        indexed.map.forEach((list, parentId) => sottocategorieLavoriMap.set(parentId, list));
         
         if (populateCategoriaLavoroDropdown) populateCategoriaLavoroDropdown();
     } catch (error) {
@@ -1639,7 +1623,7 @@ export function populateTipoLavoroDropdown(
     console.log('[GESTIONE-LAVORI] populateTipoLavoroDropdown - categoriaId:', categoriaId, 'terrenoId:', terrenoId);
     
     // Verifica se categoria è RACCOLTA (può essere categoria principale o sottocategoria)
-    const categoriaTrovata = [...categorieLavoriPrincipali, ...Array.from(sottocategorieLavoriMap.values()).flat()].find(c => c.id === categoriaId);
+    const categoriaTrovata = allCategorieFlat(categorieLavoriPrincipali, sottocategorieLavoriMap).find(c => c.id === categoriaId);
     const categoriaNome = categoriaTrovata ? (categoriaTrovata.nome || '').toLowerCase() : '';
     const categoriaParent = categoriaTrovata && categoriaTrovata.parentId 
         ? categorieLavoriPrincipali.find(c => c.id === categoriaTrovata.parentId)
@@ -1688,7 +1672,7 @@ export function populateTipoLavoroDropdown(
     if (!tipiFiltrati) {
         // Fallback: filtra dalla lista completa (per retrocompatibilità)
         // Verifica se categoriaId è una sottocategoria o categoria principale
-        const categoriaTrovata = [...categorieLavoriPrincipali, ...Array.from(sottocategorieLavoriMap.values()).flat()].find(c => c.id === categoriaId);
+        const categoriaTrovata = allCategorieFlat(categorieLavoriPrincipali, sottocategorieLavoriMap).find(c => c.id === categoriaId);
         
         if (categoriaTrovata && categoriaTrovata.parentId) {
             // È una sottocategoria: cerca per sottocategoriaId O categoriaId
@@ -1709,7 +1693,7 @@ export function populateTipoLavoroDropdown(
     // e cerca anche nelle sue sottocategorie
     if (tipiFiltrati.length === 0) {
         // Verifica se categoriaId è una sottocategoria
-        const categoriaTrovata = [...categorieLavoriPrincipali, ...Array.from(sottocategorieLavoriMap.values()).flat()].find(c => c.id === categoriaId);
+        const categoriaTrovata = allCategorieFlat(categorieLavoriPrincipali, sottocategorieLavoriMap).find(c => c.id === categoriaId);
         
         if (categoriaTrovata && categoriaTrovata.parentId) {
             // È una sottocategoria: cerca anche per categoriaId (per retrocompatibilità)
@@ -1722,7 +1706,7 @@ export function populateTipoLavoroDropdown(
             );
         } else {
             // È una categoria principale: cerca nelle sottocategorie
-            const sottocat = sottocategorieLavoriMap.get(categoriaId);
+            const sottocat = getSottocategorieForParent(categoriaId, sottocategorieLavoriMap);
             if (sottocat && sottocat.length > 0) {
                 // Cerca tipi lavoro associati alle sottocategorie
                 const sottocatIds = sottocat.map(sc => sc.id);
@@ -1737,7 +1721,7 @@ export function populateTipoLavoroDropdown(
     
     // Fallback: se categoria = Lavorazione del Terreno / sottocategoria = Generale,
     // aggiungi i tipi predefiniti mancanti (senza scrivere su Firestore)
-    const tutteSottocategorie = Array.from(sottocategorieLavoriMap.values()).flat();
+    const tutteSottocategorie = allCategorieFlat([], sottocategorieLavoriMap);
     const sottocategoriaObj = tutteSottocategorie.find(sc => sc.id === categoriaId);
     if (sottocategoriaObj && (sottocategoriaObj.nome || '').toLowerCase() === 'generale') {
         const categoriaParent = categorieLavoriPrincipali.find(cat => cat.id === sottocategoriaObj.parentId);
@@ -1771,10 +1755,10 @@ export function populateTipoLavoroDropdown(
         if (tipiFiltrati.length === 0) {
             console.log('[GESTIONE-LAVORI] Nessun tipo vendemmia trovato, aggiungo predefiniti');
             // Trova la sottocategoria corretta per aggiungere i tipi predefiniti
-            const sottocatManuale = Array.from(sottocategorieLavoriMap.values()).flat().find(sc => 
+            const sottocatManuale = allCategorieFlat([], sottocategorieLavoriMap).find(sc => 
                 sc.codice === 'raccolta_manuale' || sc.nome?.toLowerCase().includes('manuale')
             );
-            const sottocatMeccanica = Array.from(sottocategorieLavoriMap.values()).flat().find(sc => 
+            const sottocatMeccanica = allCategorieFlat([], sottocategorieLavoriMap).find(sc => 
                 sc.codice === 'raccolta_meccanica' || sc.nome?.toLowerCase().includes('meccanica')
             );
             

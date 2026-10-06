@@ -22,6 +22,8 @@ import {
     extractColtureUnicheFromTerreni,
     filterTipiLavoroByCategoria,
     filterTipiLavoroVendemmia,
+    allCategorieFlat,
+    buildLavoroCategorieIndex,
     getSottocategorieForParent,
     isCategoriaRaccolta,
     resolvePreserveCascadeSelection,
@@ -1128,7 +1130,7 @@ export function populateTipoLavoroDropdown(
     let tipiFiltrati = tipiLavoroFiltratiParam;
     
     // Verifica se categoria è RACCOLTA (per filtro vendemmia)
-    const categoriaTrovata = [...categorieLavoriPrincipali, ...Array.from(sottocategorieLavoriMap.values()).flat()].find(c => c.id === categoriaId);
+    const categoriaTrovata = allCategorieFlat(categorieLavoriPrincipali, sottocategorieLavoriMap).find(c => c.id === categoriaId);
     const categoriaNome = categoriaTrovata ? (categoriaTrovata.nome || '').toLowerCase() : '';
     const categoriaParent = categoriaTrovata && categoriaTrovata.parentId 
         ? categorieLavoriPrincipali.find(c => c.id === categoriaTrovata.parentId)
@@ -1172,7 +1174,7 @@ export function populateTipoLavoroDropdown(
         // Se non ci sono tipi per questa categoria specifica, verifica se è una categoria principale
         // e cerca anche nelle sue sottocategorie
         if (tipiFiltrati.length === 0) {
-            const sottocat = sottocategorieLavoriMap.get(categoriaId);
+            const sottocat = getSottocategorieForParent(categoriaId, sottocategorieLavoriMap);
             if (sottocat && sottocat.length > 0) {
                 // Cerca tipi lavoro associati alle sottocategorie
                 const sottocatIds = sottocat.map(sc => sc.id);
@@ -1195,10 +1197,11 @@ export function populateTipoLavoroDropdown(
         // Se non ci sono tipi vendemmia nella lista, aggiungi i predefiniti
         if (tipiFiltrati.length === 0) {
             console.log('[ATTIVITA-CONTROLLER] Nessun tipo vendemmia trovato, aggiungo predefiniti');
-            const sottocatManuale = Array.from(sottocategorieLavoriMap.values()).flat().find(sc => 
+            const tutteSottocategorie = allCategorieFlat([], sottocategorieLavoriMap);
+            const sottocatManuale = tutteSottocategorie.find(sc => 
                 sc.codice === 'raccolta_manuale' || sc.nome?.toLowerCase().includes('manuale')
             );
-            const sottocatMeccanica = Array.from(sottocategorieLavoriMap.values()).flat().find(sc => 
+            const sottocatMeccanica = tutteSottocategorie.find(sc => 
                 sc.codice === 'raccolta_meccanica' || sc.nome?.toLowerCase().includes('meccanica')
             );
             
@@ -2549,34 +2552,18 @@ export async function loadCategorieLavori(params) {
         const isFileProtocol = window.location.protocol === 'file:';
         let categorieLavoriPrincipali = [];
         let sottocategorieLavoriMap = new Map();
+        const tutteCategorie = [];
         
         if (isFileProtocol) {
             // Fallback per ambiente file://
             const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
             const snapshot = await getDocs(query(categorieRef, orderBy('ordine', 'asc')));
             
-            snapshot.forEach(doc => {
-                const catData = { id: doc.id, ...doc.data() };
-                
-                // Escludi categorie di test (contengono "test" nel nome)
+            snapshot.forEach(docSnap => {
+                const catData = { id: docSnap.id, ...docSnap.data() };
                 const nomeCategoria = (catData.nome || '').toLowerCase();
-                if (nomeCategoria.includes('test')) {
-                    return; // Salta questa categoria
-                }
-                
-                // Filtra solo categorie applicabili a lavori
-                if (catData.applicabileA === 'lavori' || catData.applicabileA === 'entrambi') {
-                    if (!catData.parentId) {
-                        // Categoria principale
-                        categorieLavoriPrincipali.push(catData);
-                    } else {
-                        // Sottocategoria
-                        if (!sottocategorieLavoriMap.has(catData.parentId)) {
-                            sottocategorieLavoriMap.set(catData.parentId, []);
-                        }
-                        sottocategorieLavoriMap.get(catData.parentId).push(catData);
-                    }
-                }
+                if (nomeCategoria.includes('test')) return;
+                tutteCategorie.push(catData);
             });
         } else {
             // Usa servizio centralizzato
@@ -2600,38 +2587,20 @@ export async function loadCategorieLavori(params) {
             
             const { getAllCategorie } = await import('../services/categorie-service.js');
             const categorie = await getAllCategorie({
-                applicabileA: 'lavori',
                 orderBy: 'ordine',
                 orderDirection: 'asc'
             });
             
             categorie.forEach(catData => {
-                // Escludi categorie di test (contengono "test" nel nome)
                 const nomeCategoria = (catData.nome || '').toLowerCase();
-                if (nomeCategoria.includes('test')) {
-                    return; // Salta questa categoria
-                }
-                
-                // Filtra solo categorie applicabili a lavori (già filtrato dal servizio, ma manteniamo controllo)
-                if (catData.applicabileA === 'lavori' || catData.applicabileA === 'entrambi') {
-                    if (!catData.parentId) {
-                        // Categoria principale
-                        categorieLavoriPrincipali.push(catData);
-                    } else {
-                        // Sottocategoria
-                        if (!sottocategorieLavoriMap.has(catData.parentId)) {
-                            sottocategorieLavoriMap.set(catData.parentId, []);
-                        }
-                        sottocategorieLavoriMap.get(catData.parentId).push(catData);
-                    }
-                }
+                if (nomeCategoria.includes('test')) return;
+                tutteCategorie.push(catData);
             });
         }
-        
-        // Ordina sottocategorie per ordine
-        sottocategorieLavoriMap.forEach((sottocat, parentId) => {
-            sottocat.sort((a, b) => (a.ordine || 0) - (b.ordine || 0));
-        });
+
+        const indexed = buildLavoroCategorieIndex(tutteCategorie);
+        categorieLavoriPrincipali = indexed.principali;
+        sottocategorieLavoriMap = indexed.map;
         
         // Aggiorna variabili globali PRIMA di chiamare i callback
         if (updateCategorieLavoriPrincipali) {
