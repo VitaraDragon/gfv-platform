@@ -13,6 +13,7 @@ import {
     resetLavoroFormContoTerziLock
 } from './gestione-lavori-utils.js';
 import { listedSelectValue } from '../../js/lavoro-cascade-filters.js';
+import { dateLikeToLocalCalendarIso } from '../../js/date-format-it.js';
 
 // ============================================
 // FUNZIONI SETUP HANDLERS
@@ -712,12 +713,11 @@ export async function openModificaModal(
     if (lavoroStatoSelect) lavoroStatoSelect.value = lavoro.stato || 'assegnato';
     if (lavoroDurataInput) lavoroDurataInput.value = lavoro.durataPrevista || '';
     
-    // Formatta data per input date
+    // Giorno di calendario locale (Europe/Rome). toISOString() è UTC e,
+    // con un Timestamp a mezzanotte locale, sposta il campo di un giorno indietro.
     if (lavoro.dataInizio && lavoroDataInizioInput) {
-        const dataInizio = lavoro.dataInizio instanceof Date 
-            ? lavoro.dataInizio 
-            : new Date(lavoro.dataInizio);
-        lavoroDataInizioInput.value = dataInizio.toISOString().split('T')[0];
+        const isoLocale = dateLikeToLocalCalendarIso(lavoro.dataInizio);
+        if (isoLocale) lavoroDataInizioInput.value = isoLocale;
     }
     
     // Assegnazione manodopera (autonomo / squadra)
@@ -1430,7 +1430,7 @@ export async function generaVoceDiarioContoTerzi(
         const dataCompletamento = lavoroData.approvatoIl?.toDate 
             ? lavoroData.approvatoIl.toDate() 
             : new Date();
-        const dataAttivita = dataCompletamento.toISOString().split('T')[0];
+        const dataAttivita = dateLikeToLocalCalendarIso(dataCompletamento);
 
         // Usa orari dalla attività se disponibili, altrimenti default
         const orarioInizio = orariOpzionali?.orarioInizio || '08:00';
