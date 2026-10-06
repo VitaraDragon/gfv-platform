@@ -1,13 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildLavoroCategorieIndex,
   coltureDisponibiliPerCategoria,
   extractColtureUnicheFromTerreni,
   filterTipiLavoroByCategoria,
   filterTipiLavoroVendemmia,
   getSottocategorieForParent,
   isCategoriaRaccolta,
+  listedSelectValue,
   resolvePreserveCascadeSelection,
   resolveCascadeFilterCategoriaId,
+  resolveLavoroCascadeParents,
   terrenoHaColturaVite,
 } from '../core/js/lavoro-cascade-filters.js';
 
@@ -149,5 +152,60 @@ describe('cascade raccolta + vite → vendemmia', () => {
   it('resolveCascadeFilterCategoriaId — preferisce sottocategoria', () => {
     expect(resolveCascadeFilterCategoriaId('sub-file', 'cat-lav-terreno')).toBe('sub-file');
     expect(resolveCascadeFilterCategoriaId('', 'cat-lav-terreno')).toBe('cat-lav-terreno');
+  });
+});
+
+describe('cascade diario — indice categorie e valore select', () => {
+  it('figlio senza applicabileA e parentId salvato come codice resta sotto il padre', () => {
+    const indexed = buildLavoroCategorieIndex([
+      { id: 'id-lav', codice: 'lavorazione_terreno', nome: 'Lavorazione del Terreno', applicabileA: 'entrambi', ordine: 1 },
+      { id: 'id-gen', codice: 'lavorazione_terreno_generale', nome: 'Generale', parentId: 'lavorazione_terreno', ordine: 1 },
+      { id: 'id-colt', codice: 'vite', nome: 'Vite', applicabileA: 'colture' },
+    ]);
+    expect(indexed.principali.map((c) => c.id)).toEqual(['id-lav']);
+    expect(getSottocategorieForParent('id-lav', indexed.map).map((s) => s.nome)).toEqual(['Generale']);
+  });
+
+  it('tipo con categoriaId = id sottocategoria compare dopo la categoria principale', () => {
+    const indexed = buildLavoroCategorieIndex([
+      { id: 'id-lav', codice: 'lavorazione_terreno', nome: 'Lavorazione del Terreno', applicabileA: 'lavori' },
+      { id: 'id-gen', codice: 'lavorazione_terreno_generale', nome: 'Generale', parentCodice: 'lavorazione_terreno', applicabileA: 'entrambi' },
+    ]);
+    const tipi = filterTipiLavoroByCategoria(
+      'id-lav',
+      [{ id: 't1', nome: 'Erpicatura', categoriaId: 'id-gen' }],
+      indexed.principali,
+      indexed.map
+    );
+    expect(tipi.map((t) => t.nome)).toEqual(['Erpicatura']);
+    const subs = getSottocategorieForParent('id-lav', indexed.map);
+    expect(subs.map((s) => s.id)).toEqual(['id-gen']);
+  });
+
+  it('resolveLavoroCascadeParents risale dal figlio al padre', () => {
+    const resolved = resolveLavoroCascadeParents('sub-file', null, CATEGORIE, SOTTOCAT_MAP);
+    expect(resolved).toEqual({
+      categoriaPrincipaleId: 'cat-lav-terreno',
+      sottocategoriaId: 'sub-file',
+    });
+  });
+
+  it('listedSelectValue ignora il placeholder', () => {
+    expect(listedSelectValue({
+      selectedIndex: 0,
+      options: [{ value: '' }, { value: 'id-gen' }],
+    })).toBe('');
+    expect(listedSelectValue({
+      selectedIndex: 1,
+      options: [{ value: '' }, { value: 'id-gen' }],
+    })).toBe('id-gen');
+  });
+
+  it('mappa semplice (non Map) restituisce i figli', () => {
+    const plain = { 'cat-lav-terreno': SOTTOCAT_MAP.get('cat-lav-terreno') };
+    expect(getSottocategorieForParent('cat-lav-terreno', plain).map((s) => s.id)).toEqual([
+      'sub-generale',
+      'sub-file',
+    ]);
   });
 });

@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-06 — Migrazione dati Manodopera all’on/off.**
+**Ultimo aggiornamento documentazione: 2026-10-06 — Cascata Diario categoria → tipo lavoro.**
+
+## 2026-10-06 — Diario: cascata categoria → sottocategoria → tipo lavoro
+
+Con Manodopera spento, nel Diario la scelta della categoria non apriva sottocategoria e tipo lavoro, e il salvataggio rispondeva «Il tipo lavoro è obbligatorio». La cascata si agganciava una sola volta: se il modale partiva prima dei callback, i menu restavano vuoti. Ora l’aggancio aspetta i callback veri e, a ogni cambio categoria, riempie sottocategoria e tipi collegati (anche se il padre è salvato come codice o il tipo punta alla sottocategoria). In modifica di un lavoro, la categoria principale non resta sul placeholder quando il tipo è legato a una sottocategoria. Le attività già salvate non si toccano. Nessuna modifica a `firestore.rules` e nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-06 — Migrazione dati Manodopera all’on/off.**
 
 ## 2026-10-06 — Migrazione dati Manodopera (Diario ↔ lavori)
 

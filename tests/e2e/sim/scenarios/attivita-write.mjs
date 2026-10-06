@@ -201,7 +201,10 @@ async function fillAndSubmitNewAttivita(page, { note }) {
     const form = document.getElementById('attivita-form');
     if (form) form.setAttribute('novalidate', 'novalidate');
     const tipoGroup = document.getElementById('attivita-tipo-lavoro-gerarchico-group');
-    if (tipoGroup) tipoGroup.style.display = 'block';
+    const tipo = document.getElementById('attivita-tipo-lavoro-gerarchico');
+    if (!tipoGroup || tipoGroup.style.display === 'none' || !tipo || !tipo.value) {
+      throw new Error('Tipo lavoro non selezionabile dopo la cascata categoria');
+    }
     ['attivita-cliente', 'attivita-lavoro', 'attivita-ora-inizio-ct', 'attivita-ora-fine-ct'].forEach((id) => {
       document.getElementById(id)?.removeAttribute('required');
     });

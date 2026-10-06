@@ -12,6 +12,7 @@ import {
     applyLavoroFormContoTerziDaPianificareLock,
     resetLavoroFormContoTerziLock
 } from './gestione-lavori-utils.js';
+import { listedSelectValue } from '../../js/lavoro-cascade-filters.js';
 
 // ============================================
 // FUNZIONI SETUP HANDLERS
@@ -104,47 +105,60 @@ export function setupTipoAssegnazioneHandlers(hasManodoperaModule) {
  * @param {Function} populateSottocategorieLavoroCallback - Callback per popolare sottocategorie
  * @param {Function} loadTipiLavoroCallback - Callback per caricare tipi lavoro
  */
-let lavoriCascadeHandlersBound = false;
+function restoreLavoroTipoSelection(currentTipoValue, currentTipoText) {
+    const tipoSelect = document.getElementById('lavoro-tipo-lavoro');
+    if (!tipoSelect) return;
+    if (currentTipoValue && Array.from(tipoSelect.options).some((opt) => opt.value === currentTipoValue)) {
+        tipoSelect.value = currentTipoValue;
+        return;
+    }
+    if (currentTipoText) {
+        const search = currentTipoText.trim().toLowerCase();
+        const opt = Array.from(tipoSelect.options).find(
+            (o) => (o.text || '').trim().toLowerCase() === search
+        );
+        if (opt) tipoSelect.value = opt.value;
+    }
+}
 
-function restoreLavoroTipoAfterReload(currentTipoValue, currentTipoText) {
-    if (!currentTipoValue && !currentTipoText) return;
-    setTimeout(() => {
-        const tipoSelect = document.getElementById('lavoro-tipo-lavoro');
-        if (!tipoSelect) return;
-        if (currentTipoValue && Array.from(tipoSelect.options).some((opt) => opt.value === currentTipoValue)) {
-            tipoSelect.value = currentTipoValue;
-            return;
-        }
-        if (currentTipoText) {
-            const search = currentTipoText.trim().toLowerCase();
-            const opt = Array.from(tipoSelect.options).find(
-                (o) => (o.text || '').trim().toLowerCase() === search
-            );
-            if (opt) tipoSelect.value = opt.value;
-        }
-    }, 100);
+function afterLavoroTipiReload(pending, restore) {
+    if (pending && typeof pending.then === 'function') {
+        pending.then(restore).catch((error) => {
+            console.error('[GESTIONE-LAVORI] Ricarico tipi lavoro non riuscito:', error);
+        });
+        return;
+    }
+    restore();
 }
 
 export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback, loadTipiLavoroCallback) {
-    if (lavoriCascadeHandlersBound) return;
-    lavoriCascadeHandlersBound = true;
-
+    const form = document.getElementById('lavoro-form');
     const categoriaPrincipaleSelect = document.getElementById('lavoro-categoria-principale');
     const sottocategoriaSelect = document.getElementById('lavoro-sottocategoria');
-    const terrenoSelect = document.getElementById('lavoro-terreno');
-    
-    if (categoriaPrincipaleSelect) {
-        categoriaPrincipaleSelect.addEventListener('change', function() {
-            const categoriaPrincipaleId = this.value;
+    if (!form || !categoriaPrincipaleSelect || !sottocategoriaSelect) return;
+    if (typeof populateSottocategorieLavoroCallback !== 'function' || typeof loadTipiLavoroCallback !== 'function') {
+        return;
+    }
+
+    form.__lavoriCascadePopulate = populateSottocategorieLavoroCallback;
+    form.__lavoriCascadeLoad = loadTipiLavoroCallback;
+    if (form.dataset.lavoriCascadeBound === '1') return;
+    form.dataset.lavoriCascadeBound = '1';
+
+    form.addEventListener('change', function (event) {
+        const target = event.target;
+        if (!target || !target.id) return;
+        const populate = form.__lavoriCascadePopulate;
+        const load = form.__lavoriCascadeLoad;
+        if (typeof populate !== 'function' || typeof load !== 'function') return;
+
+        if (target.id === 'lavoro-categoria-principale') {
+            const categoriaPrincipaleId = listedSelectValue(target);
             if (categoriaPrincipaleId) {
-                const preserveSub = sottocategoriaSelect ? sottocategoriaSelect.value : null;
-                if (populateSottocategorieLavoroCallback) {
-                    populateSottocategorieLavoroCallback(categoriaPrincipaleId, preserveSub);
-                }
-                if (loadTipiLavoroCallback) {
-                    const filterId = (document.getElementById('lavoro-sottocategoria')?.value) || categoriaPrincipaleId;
-                    loadTipiLavoroCallback(filterId);
-                }
+                const preserveSub = listedSelectValue(sottocategoriaSelect);
+                populate(categoriaPrincipaleId, preserveSub || null);
+                const filterId = listedSelectValue(document.getElementById('lavoro-sottocategoria')) || categoriaPrincipaleId;
+                load(filterId);
             } else {
                 const sottocategoriaGroup = document.getElementById('lavoro-sottocategoria-group');
                 const tipoLavoroGroup = document.getElementById('tipo-lavoro-group');
@@ -153,42 +167,39 @@ export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback
                 if (tipoLavoroGroup) tipoLavoroGroup.style.display = 'none';
                 if (tipoLavoroSelect) tipoLavoroSelect.value = '';
             }
-        });
-    }
-    
-    if (sottocategoriaSelect) {
-        sottocategoriaSelect.addEventListener('change', function() {
-            const sottocategoriaId = this.value;
-            const categoriaPrincipaleId = document.getElementById('lavoro-categoria-principale')?.value;
+            return;
+        }
+
+        if (target.id === 'lavoro-sottocategoria') {
+            const sottocategoriaId = listedSelectValue(target);
+            const categoriaPrincipaleId = listedSelectValue(document.getElementById('lavoro-categoria-principale'));
             const tipoSelect = document.getElementById('lavoro-tipo-lavoro');
             const currentTipoValue = tipoSelect ? tipoSelect.value : null;
             const currentTipoText = tipoSelect && tipoSelect.selectedIndex >= 0
                 ? tipoSelect.options[tipoSelect.selectedIndex]?.text
                 : null;
-            
             const categoriaId = sottocategoriaId || categoriaPrincipaleId;
-            if (categoriaId && loadTipiLavoroCallback) {
-                loadTipiLavoroCallback(categoriaId);
-                restoreLavoroTipoAfterReload(currentTipoValue, currentTipoText);
-            }
+            if (!categoriaId) return;
+            afterLavoroTipiReload(load(categoriaId), () => {
+                restoreLavoroTipoSelection(currentTipoValue, currentTipoText);
+            });
+            return;
+        }
+
+        if (target.id !== 'lavoro-terreno') return;
+        const categoriaPrincipaleId = listedSelectValue(document.getElementById('lavoro-categoria-principale'));
+        const sottocategoriaId = listedSelectValue(document.getElementById('lavoro-sottocategoria'));
+        const categoriaId = sottocategoriaId || categoriaPrincipaleId;
+        if (!categoriaId) return;
+        const tipoSelect = document.getElementById('lavoro-tipo-lavoro');
+        const currentTipoValue = tipoSelect ? tipoSelect.value : null;
+        const currentTipoText = tipoSelect && tipoSelect.selectedIndex >= 0
+            ? tipoSelect.options[tipoSelect.selectedIndex]?.text
+            : null;
+        afterLavoroTipiReload(load(categoriaId), () => {
+            restoreLavoroTipoSelection(currentTipoValue, currentTipoText);
         });
-    }
-    
-    // Handler per cambio terreno: ricarica tipi lavoro se categoria RACCOLTA è già selezionata
-    if (terrenoSelect) {
-        terrenoSelect.addEventListener('change', function() {
-            const terrenoId = this.value;
-            const categoriaPrincipaleId = document.getElementById('lavoro-categoria-principale')?.value;
-            const sottocategoriaId = document.getElementById('lavoro-sottocategoria')?.value;
-            
-            // Se categoria è già selezionata, ricarica i tipi lavoro (per applicare filtro vendemmia)
-            const categoriaId = sottocategoriaId || categoriaPrincipaleId;
-            if (categoriaId && loadTipiLavoroCallback) {
-                console.log('[GESTIONE-LAVORI] Terreno cambiato, ricarico tipi lavoro per applicare filtro vendemmia');
-                loadTipiLavoroCallback(categoriaId);
-            }
-        });
-    }
+    });
 }
 
 /**
