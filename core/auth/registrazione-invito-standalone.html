@@ -1,9 +1,12 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
+<meta charset="UTF-8">
+<meta name="referrer" content="origin">
+<script>(function(){try{var secret={email:1,password:1,"password-confirm":1,"confirm-password":1};var params=new URLSearchParams(location.search);var keys=[];params.forEach(function(_v,key){keys.push(key);});var dirty=false;for(var i=0;i<keys.length;i++){var low=String(keys[i]).toLowerCase();if(!secret[low])continue;params.delete(keys[i]);dirty=true;if(low!=="email")window.__gfvScrubbedPassword=1;}if(!dirty)return;var qs=params.toString();history.replaceState(null,"",location.pathname+(qs?"?"+qs:"")+location.hash);}catch(e){}})();</script>
+<script src="auth-form-guard.js"></script>
 <script>try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
 
-    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Registrazione - GFV Platform</title>
     <link rel="manifest" href="../../manifest.json">
@@ -282,7 +285,7 @@
             <span id="invite-name"></span>
         </div>
 
-        <form id="register-form" style="display: none;">
+        <form id="register-form" method="post" onsubmit="return false" style="display: none;">
             <div class="form-group">
                 <label for="email">Email</label>
                 <input 
@@ -363,8 +366,8 @@
                 <div class="error-message" id="password-confirm-error"></div>
             </div>
 
-            <button type="submit" class="register-button" id="register-button">
-                Completa Registrazione
+            <button type="submit" class="register-button" id="register-button" disabled data-ready-label="Completa Registrazione">
+                Caricamento…
             </button>
         </form>
     </div>
@@ -912,6 +915,7 @@
                 showError(errorMessage);
             }
         });
+        if (window.gfvMarkAuthFormReady) window.gfvMarkAuthFormReady(registerForm, registerButton);
 
         // Validazione form
         function validateForm() {
