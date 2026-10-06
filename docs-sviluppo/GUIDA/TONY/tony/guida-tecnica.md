@@ -43,6 +43,12 @@ Consigliere: `skipModuleIds` include `tony`; segnali gated se modulo disattivato
 
 - `main.js`: `__tonyLavoroCreationFlow`, intercept «crea lavoro», segna ore senza orari; 0 CF sui turni intervista dove implementato.
 - Conferme salvataggio form prima di nuova intervista.
+- **Lavoro fatto in campo** (`core/js/tony/tony-lavoro-fatto-nav.js`): `isLavoroFattoInCampo` riconosce solo la **frase intera** («ho/o' fatto la vigna», «ho finito in vigna», «fatto il lavoro in vigna»); escluse frasi con carburante/pieno/carico, preventivo, «nuovo lavoro». `resolveLavoroFattoNav` → senza Manodopera `attivita` + `attivita-modal` («Ti porto al diario.»), con Manodopera `gestione lavori` + `lavoro-modal`. In `main.js` intercept prima della CF, non su profilo campo (`getTonyFieldProfileFromContext`) né con `attivita-modal`/`lavoro-modal` già aperti; `mapDiarioFieldsToLavoro` copia solo campi già presenti (attivita-* → lavoro-*); `alignLavoroFattoSpeech` riscrive «ti porto al diario» in Gestione lavori con Manodopera. Gate moduli in `core/config/tony-module-gate.js`.
+- **Slot turno** (`engine.js`: `analyzeTonyJobSlots`, `dropStaleJobCarryover`): un lavoro nuovo non eredita terreno e ore del turno precedente se l’utente non li ripete (scenario T-TURN-SLOT-001).
+
+## Testo visibile in chat
+
+`engine.js`: `sanitizeTonyVisibleChatText`, `resolveTonyUserVisibleText`, `stripLeakedTonyCommandJsonFromText`, `cleanTextFromJsonResidue` — la bolla mostra solo la frase; il JSON comandi (`OPEN_MODAL`, `INJECT_FORM_DATA`, …) resta interno anche se la risposta arriva troncata.
 
 ## Acquisizione documenti (foto / PDF)
 

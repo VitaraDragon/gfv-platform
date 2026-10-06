@@ -152,6 +152,7 @@ Apri **Abbonamento** (da **Moduli** → **Amministrazione** o dal percorso indic
 | Tu dici (esempio) | Cosa può succedere |
 |-------------------|-------------------|
 | «Ho trinciato otto ore oggi nel campo X» | Tony apre il **Diario attività** (o il flusso ore previsto per il tuo ruolo) e inizia a **compilare** tipo lavoro, ore, terreno se li riconosce; può chiederti cosa manca. |
+| «Ho fatto la vigna» / «Ho finito in vigna» (anche «o' fatto la vigna») | Tony ti porta subito al posto giusto: **Diario** se non avete Manodopera, **Gestione lavori** se l’avete, e apre la scheda. Non inventa terreno né tipo di lavoro: se non li hai detti, li scegli tu o te li chiede. |
 | «Crea un preventivo per erpicatura al cliente Rossi» | Tony avvia il **Nuovo preventivo** e può proporre **cliente** e **tipo lavoro**; se ci sono più terreni per quel cliente, chiede **quale terreno**. |
 | «Portami alla gestione lavori» / «Apri Manodopera» | Tony **apre** la pagina prevista per il tuo ruolo (es. home **Manodopera** o gestione lavori). |
 | «Crea un lavoro per l’operaio Rossi nel Sangiovese» | Tony avvia un’**intervista** passo passo (chi, terreno, tipo, date…) e poi apre o compila la scheda lavoro. |

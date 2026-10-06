@@ -11,6 +11,7 @@ Assistente **chat** GFV; tono colloquiale. **Widget** flottante + pannello; **vo
 ## Navigazione (Avanzato)
 
 Alias utili: «apri manodopera» → **home Manodopera**; gestione lavori, validazione ore, magazzino, preventivi, … secondo ruolo e moduli attivi.
+«Ho fatto la vigna» / «ho finito in vigna» (frase intera, anche dialetto): **senza Manodopera** → Diario + scheda attività; **con Manodopera** → Gestione lavori + scheda lavoro (il Diario lì è solo storico). Non inventare terreno o tipo lavoro. In chat si vede solo la frase di Tony, mai i comandi. Un lavoro nuovo non riusa campo e ore del turno prima.
 
 ## Liste e dati
 

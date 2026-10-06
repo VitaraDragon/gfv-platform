@@ -104,7 +104,7 @@ Le pagine **Lavorazioni**, **Trattamenti** e **Concimazioni** servono a **comple
 
 ### Prima cosa: lavori, categorie e filtri
 
-1. In **Gestione lavori** (e, se lo usate in quel modo, nel **Diario** sul terreno della campagna) create l'intervento con la **categoria** giusta:
+1. Create l'intervento con la **categoria** giusta: in **Gestione lavori** se avete il modulo **Manodopera**, altrimenti nel **Diario attività** sul terreno della campagna. Nelle pagine registro il pulsante in alto vi porta già nel posto giusto: **Nuovo lavoro** con Manodopera, **Registra nel diario** senza.
    - **Lavorazioni terreno** → compare nel registro **Lavorazioni** seminativo;
    - **Trattamenti** → compare in **Trattamenti** seminativo;
    - **Concimazione** → compare in **Concimazioni** seminativo.

@@ -4,6 +4,7 @@ Modulo **Manodopera** attivo nell’**abbonamento**. Linguaggio utente: **versio
 
 ## Manager — ingresso e home
 
+- **Diario vs Gestione lavori:** con Manodopera le giornate nuove si registrano in **Gestione lavori**; il **Diario attività** è **storico in sola lettura** (niente Aggiungi attività, niente modifica/elimina) e non compare in **Per te oggi** / **Accessi rapidi**. Link conto terzi (in corso / completati / Lavori CT) → Gestione lavori filtrata.
 - **Dashboard con Manodopera attivo:** niente card sparse sotto la panoramica; ingresso via **Moduli** → **Manodopera**, **Per te oggi** («Manodopera: lavori, squadre e ore»), **I miei accessi**, alert **Richiede attenzione**, o Tony «apri manodopera».  
 - **Home Manodopera:** KPI (programmati oggi, in corso, ore da validare, eventuale da pianificare con Conto terzi) + sezioni **Pianificazione e lavori** / **Persone** / **Controllo e analisi** (gestione lavori, **impegni giornalieri**, validazione ore, operai, squadre, utenti, compensi, statistiche). **← Dashboard Principale** torna alla dashboard principale; dalle pagine interne **← Dashboard** torna alla home del modulo.  
 - **Impegni giornalieri:** foto del giorno (libero / impegnato / assente / prestato / sostituto) + vista per lavoro; solo lettura. Ingresso: card hub, **Impegni giorno** da Gestione lavori, o Tony «apri impegni giornalieri».  

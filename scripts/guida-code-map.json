@@ -16,6 +16,27 @@
   ],
   "rules": [
     {
+      "prefix": "core/config/manodopera-diario-gate.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA",
+        "CONTO_TERZI",
+        "SEMINATIVO",
+        "VENDEMMIA_MECCANICA",
+        "INTERSEZIONI"
+      ],
+      "label": "Gate Manodopera ↔ Diario (Diario storico, Gestione lavori solo con Manodopera)"
+    },
+    {
+      "prefix": "core/js/tony/tony-lavoro-fatto-nav.js",
+      "modules": [
+        "TONY",
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Tony «ho fatto la vigna» → Diario o Gestione lavori"
+    },
+    {
       "prefix": "core/js/tony/tony-segna-ora",
       "modules": [
         "TONY",

@@ -55,6 +55,14 @@ Legacy (deprecato in UX utente): `createManagerSection`, card affitti standalone
 - Lookup token **solo** via Cloud Function callable **`getInvitoPubblico`** (`functions/invito-pubblico.js`); client: `core/services/invito-service-standalone.js` (`fetchInvitoByToken`).
 - Nessuna query Firestore pubblica sugli inviti (rules chiuse); risposta allowlist sanitizzata. Accettazione resta sul flusso `registrazione-invito-standalone.html`.
 
+## Gate Manodopera ↔ Diario
+
+- Helper: `core/config/manodopera-diario-gate.js` — `tenantHasManodopera(modules)`, `registroLavoriHref({ hasManodopera, stato, from })`, `applyRegistroLavoriLinks(root, hasManodopera)` (riscrive i link `data-gfv-registro` = `in_corso` / `completato` / `da_pianificare` / `conto_terzi`), `applyDiarioVsLavoroCta(root, hasManodopera)` (`#link-diario` vs `#link-nuovo-lavoro`).
+- **Manodopera spenta:** `attivita-standalone.html` editabile (`body[data-gfv-diario="editabile"]`); `admin/gestione-lavori-standalone.html` aggiunge `body.gestione-lavori-bloccata` e mostra `#gestione-lavori-gate` («Modulo Manodopera non attivo»); link `da_pianificare` nascosti; registri conto terzi → Diario `?contoTerzi=true&stato=…`.
+- **Manodopera accesa:** Diario = storico (`data-gfv-diario="storico"`, `#diario-sola-lettura` visibile, `#btn-aggiungi-attivita` nascosto, niente modifica/elimina in `attivita-controller.js`; `openAttivitaModal` / `confirmDeleteAttivita` mostrano alert info). Link conto terzi → `gestione-lavori-standalone.html?contoTerzi=true&stato=…` (filtro tipo `conto_terzi`).
+- Dashboard: `dashboard-hub.js` toglie `diarioAttivita` da pin/recenti e da **Per te oggi** con Manodopera (senza Manodopera: Diario + Terreni); `dashboard-quick-bar.js` usa `hrefWhenManodopera` per le voci conto terzi; `dashboard-deadlines.js` footer **In arrivo** di default → Diario (Parco Macchine → scadenze mezzi); shell `ui-pelle-state.js` voce **Gestione lavori** con `requireManodopera`.
+- Pagine che applicano il gate: home Conto Terzi, hub Vendemmia Meccanica (Lavori CT), Seminativo lavorazioni/trattamenti/raccolta. Tony: `core/js/tony/tony-lavoro-fatto-nav.js` (vedi guida tecnica TONY).
+
 `gestione-lavori-standalone.html`, `segnatura-ore-standalone.html`, `validazione-ore-standalone.html`, workspace campo: **perimetro Manodopera** / ruoli operativi — non Core-only per la guida utente; restano in guida `MANODOPERA` / `lavori-attivita` legacy.
 
 ---

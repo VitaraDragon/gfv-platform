@@ -60,7 +60,7 @@ Il dettaglio dei campi dipende dalla vostra versione: restano le etichette in sc
 
 ## Collegamento Conto terzi
 
-Clienti e terreni arrivano tipicamente dall’anagrafica **Conto terzi**. Preventivi e lavori CT possono essere aperti dalle scorciatoie dell’hub. Senza Conto terzi alcune scorciatoie non ha senso usarle.
+Clienti e terreni arrivano tipicamente dall’anagrafica **Conto terzi**. Preventivi e lavori CT possono essere aperti dalle scorciatoie dell’hub: **Lavori CT** apre **Gestione lavori** se avete Manodopera, altrimenti il **Diario attività** filtrato sul conto terzi. Senza Conto terzi alcune scorciatoie non ha senso usarle.
 
 ---
 

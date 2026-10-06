@@ -55,11 +55,11 @@ Il modulo va **attivato sull’abbonamento** dell’azienda. Se non trovi **Cont
 Di solito vedi **numeri** utili a colpo d’occhio, ad esempio:
 
 - **Clienti attivi**  
-- **Lavori in corso** (cliccabile: apre il **Diario attività** con filtro sui lavori conto terzi in corso)  
+- **Lavori in corso** (cliccabile: apre l’elenco dei lavori conto terzi in corso — in **Gestione lavori** se avete **Manodopera**, altrimenti nel **Diario attività**)  
 - **Lavori completati** (stesso tipo di collegamento, stato completato)  
 - **Preventivi aperti**  
 - **Terreni clienti** registrati  
-- **Da pianificare** (collegamento verso la **Gestione lavori** con i lavori ancora da pianificare completamente)
+- **Da pianificare** (collegamento verso la **Gestione lavori** con i lavori ancora da pianificare completamente; compare **solo con Manodopera** attivo)
 
 ### Azioni rapide
 
@@ -271,7 +271,7 @@ Pagina **Preventivi**: elenco di tutti i preventivi con **filtri** (cliente, sta
 1. **Bozza**: puoi **modificare** il preventivo; quando è pronto usa **Invia** (icona email o pulsante equivalente) per passare a **Inviato**.  
 2. **Inviato**: attendi l’accettazione del cliente sul link; oppure, se la tua procedura interna lo prevede, usa in lista le azioni **Accetta** o **Rifiuta** come **manager**.  
 3. **Accettato** (email o manager): compare il pulsante **Pianifica** (o etichetta simile): servirà per creare il **lavoro** collegato (vedi sezione successiva).  
-4. **Pianificato**: il flusso commerciale-operativo è avanzato; il lavoro va seguito in **Gestione lavori** e in **Diario attività**.
+4. **Pianificato**: il flusso commerciale-operativo è avanzato; il lavoro va seguito in **Gestione lavori** (con Manodopera) oppure nel **Diario attività** (senza Manodopera).
 
 ### Accettazione da parte del cliente
 
@@ -302,12 +302,18 @@ Una volta pianificato correttamente, il lavoro compare nei flussi operativi (ver
 
 Dalla **home Conto Terzi** puoi aprire:
 
-- **Lavori in corso** — porta al **Diario attività** con filtro sui lavori conto terzi **in corso**: da qui si seguono ore, registrazioni e avanzamento.  
-- **Lavori completati** — stesso Diario con filtro sui **completati** per storico e verifiche.
+- **Lavori in corso** — elenco dei lavori conto terzi **in corso**: da qui si seguono ore, registrazioni e avanzamento.  
+- **Lavori completati** — stesso elenco filtrato sui **completati**, per storico e verifiche.
 
-### Cosa fai nel Diario
+Dove ti porta il collegamento dipende dal modulo **Manodopera**:
 
-- Registri **attività** e **ore** legate ai lavori conto terzi come per i lavori interni, rispettando i campi richiesti in schermata.  
+- **Con Manodopera:** si apre **Gestione lavori**, già filtrata sui lavori conto terzi e sullo stato scelto. Le giornate nuove si registrano lì; il Diario resta solo come storico.
+- **Senza Manodopera:** si apre il **Diario attività** filtrato sul conto terzi; la voce **Da pianificare** non compare.
+
+### Cosa fai nell’elenco
+
+- **Senza Manodopera:** nel Diario registri **attività** e **ore** legate ai lavori conto terzi come per i lavori interni, rispettando i campi richiesti in schermata.  
+- **Con Manodopera:** apri il lavoro in **Gestione lavori** e segui assegnazioni, ore e avanzamento come per gli altri lavori.  
 - Il collegamento al **cliente** resta visibile sul **lavoro** e nelle viste dove l’app lo mostra.
 
 ### Chiusura lato commerciale
