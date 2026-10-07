@@ -1282,7 +1282,7 @@
 
                 <div class="form-group">
                     <label for="lavoro-stato">Stato</label>
-                    <select id="lavoro-stato">
+                    <select id="lavoro-stato" onchange="syncLavoroSospensioneFields()">
                         <option value="da_pianificare">📝 Da Pianificare</option>
                         <option value="assegnato">Assegnato</option>
                         <option value="in_corso">In corso</option>
@@ -1290,6 +1290,22 @@
                         <option value="completato">Completato</option>
                         <option value="annullato">Annullato</option>
                     </select>
+                </div>
+
+                <div id="lavoro-sospensione-group" class="form-group" style="display: none;">
+                    <label for="lavoro-sospensione-motivo">Motivo sospensione *</label>
+                    <select id="lavoro-sospensione-motivo">
+                        <option value="">-- Seleziona --</option>
+                        <option value="maltempo">Maltempo</option>
+                        <option value="guasto">Guasto</option>
+                        <option value="altro">Altro</option>
+                    </select>
+                    <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                        Sospensione operativa (maltempo, guasto o altro). Non è lo standby per assenza del personale.
+                        Se scegli Altro, la nota è obbligatoria.
+                    </small>
+                    <label for="lavoro-sospensione-note" style="margin-top: 10px;">Note motivo</label>
+                    <textarea id="lavoro-sospensione-note" placeholder="Facoltative per maltempo e guasto. Obbligatorie se il motivo è Altro."></textarea>
                 </div>
 
                 <!-- Sezione Macchine (solo se modulo Parco Macchine attivo) -->
@@ -1357,6 +1373,44 @@
             <div style="display: flex; gap: 10px; margin-top: 20px;">
                 <button type="button" class="btn btn-primary" style="flex: 1;" id="ripresa-conferma-btn" onclick="confermaRipresaLavoro()">Crea ripresa</button>
                 <button type="button" class="btn btn-secondary" onclick="closeRipresaLavoroModal()">Annulla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal sospensione operativa (distinta da Standby assenza) -->
+    <div id="sospendi-rinvia-modal" class="modal">
+        <div class="modal-content" style="max-width: 480px;">
+            <div class="modal-header">
+                <h3>Sospendi / Rinvia</h3>
+                <button type="button" class="close-btn" onclick="closeSospendiRinviaModal()">&times;</button>
+            </div>
+            <p style="margin-bottom: 12px; color: #555; font-size: 14px;">
+                Sospensione operativa del lavoro (maltempo, guasto o altro). Non mette il lavoro in standby per assenza del personale.
+                Se indichi una data di ripresa, dopo la sospensione viene creato subito il lavoro collegato.
+            </p>
+            <div class="form-group">
+                <label for="sospendi-rinvia-motivo">Motivo *</label>
+                <select id="sospendi-rinvia-motivo">
+                    <option value="">-- Seleziona --</option>
+                    <option value="maltempo">Maltempo</option>
+                    <option value="guasto">Guasto</option>
+                    <option value="altro">Altro</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="sospendi-rinvia-note">Note motivo</label>
+                <textarea id="sospendi-rinvia-note" placeholder="Facoltative per maltempo e guasto. Obbligatorie se il motivo è Altro."></textarea>
+            </div>
+            <div class="form-group">
+                <label for="sospendi-rinvia-data">Data ripresa</label>
+                <input type="date" id="sospendi-rinvia-data" oninput="syncSospendiRinviaConfermaLabel()" />
+                <small style="color: #666; font-size: 12px; margin-top: 5px; display: block;">
+                    Facoltativa. Se la lasci vuota il lavoro resta sospeso e puoi creare la ripresa dopo, dalla riga.
+                </small>
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button type="button" class="btn btn-primary" style="flex: 1;" id="sospendi-rinvia-conferma-btn" onclick="confermaSospendiRinviaLavoro()">Sospendi</button>
+                <button type="button" class="btn btn-secondary" onclick="closeSospendiRinviaModal()">Annulla</button>
             </div>
         </div>
     </div>
@@ -1688,7 +1742,8 @@
             handleSalvaCategoriaLavoro as handleSalvaCategoriaLavoroModule,
             openTipoLavoroModal as openTipoLavoroModalModule,
             closeTipoLavoroModal as closeTipoLavoroModalModule,
-            handleSalvaTipoLavoro as handleSalvaTipoLavoroModule
+            handleSalvaTipoLavoro as handleSalvaTipoLavoroModule,
+            syncLavoroSospensioneFields as syncLavoroSospensioneFieldsModule
         } from './js/gestione-lavori-events.js';
 
         import {
@@ -3001,6 +3056,24 @@
             if (m) m.classList.add('active');
         }
 
+        async function afterRipresaCreata(nuovoId) {
+            requestAnimationFrame(async () => {
+                const row = document.getElementById('lavoro-row-' + nuovoId);
+                if (row) {
+                    row.classList.add('gfv-lavoro-row-highlight');
+                    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    setTimeout(() => row.classList.remove('gfv-lavoro-row-highlight'), 5000);
+                }
+                try {
+                    await openModificaModalWrapper(nuovoId);
+                    showAlertUtil('Ripresa creata: verifica operaio e macchine, poi salva.', 'success');
+                } catch (modalErr) {
+                    console.warn('[Gestione Lavori] Apertura modifica ripresa:', modalErr);
+                    showAlertUtil('Lavoro di ripresa creato. Apri Modifica per assegnare operaio e macchine.', 'success');
+                }
+            });
+        }
+
         async function confermaRipresaLavoro() {
             const lavoroId = ripresaLavoroPendingId;
             const input = document.getElementById('ripresa-data-inizio');
@@ -3021,21 +3094,7 @@
                 });
                 closeRipresaLavoroModal();
                 await loadLavoriWrapper();
-                requestAnimationFrame(async () => {
-                    const row = document.getElementById('lavoro-row-' + nuovoId);
-                    if (row) {
-                        row.classList.add('gfv-lavoro-row-highlight');
-                        row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                        setTimeout(() => row.classList.remove('gfv-lavoro-row-highlight'), 5000);
-                    }
-                    try {
-                        await openModificaModalWrapper(nuovoId);
-                        showAlertUtil('Ripresa creata: verifica operaio e macchine, poi salva.', 'success');
-                    } catch (modalErr) {
-                        console.warn('[Gestione Lavori] Apertura modifica ripresa:', modalErr);
-                        showAlertUtil('Lavoro di ripresa creato. Apri Modifica per assegnare operaio e macchine.', 'success');
-                    }
-                });
+                await afterRipresaCreata(nuovoId);
             } catch (e) {
                 console.error('[Gestione Lavori] creaLavoroRipresa:', e);
                 showAlertUtil(e.message || 'Errore', 'error');
@@ -3044,6 +3103,112 @@
 
         function creaLavoroRipresaWrapper(lavoroId) {
             openRipresaLavoroModal(lavoroId);
+        }
+
+        let sospendiRinviaPendingId = null;
+
+        function syncSospendiRinviaConfermaLabel() {
+            const btn = document.getElementById('sospendi-rinvia-conferma-btn');
+            const data = document.getElementById('sospendi-rinvia-data')?.value;
+            if (!btn) return;
+            btn.textContent = data ? 'Sospendi e crea ripresa' : 'Sospendi';
+        }
+
+        function closeSospendiRinviaModal() {
+            const m = document.getElementById('sospendi-rinvia-modal');
+            if (m) m.classList.remove('active');
+            sospendiRinviaPendingId = null;
+            const btn = document.getElementById('sospendi-rinvia-conferma-btn');
+            if (btn) {
+                btn.disabled = false;
+                btn.textContent = 'Sospendi';
+            }
+        }
+
+        function openSospendiRinviaModal(lavoroId) {
+            sospendiRinviaPendingId = lavoroId;
+            const motivo = document.getElementById('sospendi-rinvia-motivo');
+            const note = document.getElementById('sospendi-rinvia-note');
+            const data = document.getElementById('sospendi-rinvia-data');
+            if (motivo) motivo.value = '';
+            if (note) note.value = '';
+            if (data) {
+                const today = new Date();
+                const minD = new Date(today);
+                minD.setFullYear(minD.getFullYear() - 1);
+                data.min = formatDateInputLocal(minD);
+                data.removeAttribute('max');
+                data.value = '';
+            }
+            syncSospendiRinviaConfermaLabel();
+            const btn = document.getElementById('sospendi-rinvia-conferma-btn');
+            if (btn) btn.disabled = false;
+            const m = document.getElementById('sospendi-rinvia-modal');
+            if (m) m.classList.add('active');
+        }
+
+        async function confermaSospendiRinviaLavoro() {
+            const lavoroId = sospendiRinviaPendingId;
+            const motivo = document.getElementById('sospendi-rinvia-motivo')?.value || '';
+            const note = document.getElementById('sospendi-rinvia-note')?.value || '';
+            const dataVal = (document.getElementById('sospendi-rinvia-data')?.value || '').trim();
+            const { validateSospensioneInput } = await import('../services/lavoro-sospensione.js');
+            const check = validateSospensioneInput(motivo, note);
+            if (!lavoroId) {
+                showAlertUtil('Lavoro non selezionato.', 'error');
+                return;
+            }
+            if (!check.ok) {
+                showAlertUtil(check.error, 'error');
+                return;
+            }
+            const btn = document.getElementById('sospendi-rinvia-conferma-btn');
+            if (btn) btn.disabled = true;
+            let suspended = false;
+            try {
+                const tid = currentTenantId || lavoriState.currentTenantId;
+                const { setCurrentTenantId } = await import('../services/tenant-service.js');
+                if (tid) setCurrentTenantId(tid);
+                const udata = currentUserData
+                    ? { ...currentUserData, id: currentUserData.id || currentUserData.uid }
+                    : undefined;
+                if (udata) {
+                    const { setCurrentUserDataCache } = await import('../services/auth-service.js');
+                    setCurrentUserDataCache(udata);
+                }
+                const { sospendiLavoro, creaLavoroRipresa } = await import('../services/lavori-service.js');
+                await sospendiLavoro(lavoroId, check.causa, {
+                    tenantId: tid,
+                    userData: udata,
+                    lavoriList: lavoriState.lavoriList
+                });
+                suspended = true;
+                let nuovoId = null;
+                if (dataVal) {
+                    nuovoId = await creaLavoroRipresa(lavoroId, {
+                        tenantId: tid,
+                        userData: udata,
+                        dataInizio: dataVal
+                    });
+                }
+                closeSospendiRinviaModal();
+                await loadLavoriWrapper();
+                if (nuovoId) {
+                    await afterRipresaCreata(nuovoId);
+                } else {
+                    showAlertUtil('Lavoro sospeso. Quando vuoi, usa «Crea ripresa» sulla riga.', 'success');
+                }
+            } catch (e) {
+                console.error('[Gestione Lavori] sospendi/rinvia:', e);
+                if (suspended) {
+                    showAlertUtil(`${e.message || 'Errore'} Il lavoro è sospeso: puoi creare la ripresa dalla riga.`, 'error');
+                    closeSospendiRinviaModal();
+                    try { await loadLavoriWrapper(); } catch (reloadErr) { /* lista già aggiornabile dopo */ }
+                } else {
+                    showAlertUtil(e.message || 'Errore', 'error');
+                    if (btn) btn.disabled = false;
+                }
+            }
         }
 
         async function approvaLavoroWrapper(lavoroId) {
@@ -3289,6 +3454,11 @@
         window.creaLavoroRipresa = creaLavoroRipresaWrapper;
         window.closeRipresaLavoroModal = closeRipresaLavoroModal;
         window.confermaRipresaLavoro = confermaRipresaLavoro;
+        window.openSospendiRinviaModal = openSospendiRinviaModal;
+        window.closeSospendiRinviaModal = closeSospendiRinviaModal;
+        window.confermaSospendiRinviaLavoro = confermaSospendiRinviaLavoro;
+        window.syncSospendiRinviaConfermaLabel = syncSospendiRinviaConfermaLabel;
+        window.syncLavoroSospensioneFields = syncLavoroSospensioneFieldsModule;
         window.rifiutaLavoro = rifiutaLavoroWrapper;
         window.openEliminaModal = openEliminaModalWrapper;
         // Nota: editLavoro e deleteLavoro sono alias di openModificaModal e openEliminaModal
