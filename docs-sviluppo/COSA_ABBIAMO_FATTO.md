@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-07 — Plurali nelle scritte (squadre, terreni, giorni, zone).**
+**Ultimo aggiornamento documentazione: 2026-10-07 — Gestione lavori, Sospendi / Rinvia del manager.**
+
+## 2026-10-07 — Gestione lavori: il manager sospende con causa (non è lo standby)
+
+In Gestione lavori il manager ha l’azione di riga «Sospendi / Rinvia»: motivo obbligatorio (maltempo, guasto, altro con nota) e data di ripresa facoltativa. Il lavoro passa a `sospeso` con `sospensioneCausa` e `sospensioneIl`, le macchine si liberano, e se c’è la data nasce subito la ripresa. È la stessa sospensione operativa del Caposquadra, distinta da «Standby assenza» (`in_standby`). Anche Modifica, quando lo stato diventa Sospeso, scrive la causa. Nessuna modifica a `firestore.rules` e nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-07 — Plurali nelle scritte (squadre, terreni, giorni, zone).**
 
 ## 2026-10-07 — Scritte: plurali senza la lettera in più
 
