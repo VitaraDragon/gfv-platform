@@ -11,7 +11,7 @@ Modulo in **`dashboard.moduli_attivi`** (chiave tipica `manodopera`). In contest
 | Versione mobile campo | `mobile/field-workspace-standalone.html` |
 | Segnatura ore (desktop) | `segnatura-ore-standalone.html` |
 | Validazione ore | `admin/validazione-ore-standalone.html` |
-| Gestione lavori | `admin/gestione-lavori-standalone.html` (senza Manodopera: gate `#gestione-lavori-gate`, pagina bloccata; vedi CORE § Gate Manodopera ↔ Diario, `core/config/manodopera-diario-gate.js`) |
+| Gestione lavori | `admin/gestione-lavori-standalone.html` (senza Manodopera: gate `#gestione-lavori-gate`, pagina bloccata; vedi CORE § Gate Manodopera ↔ Diario, `core/config/manodopera-diario-gate.js`; con Manodopera sezione `#attivita-precedenti-section` «Attività precedenti» = attività Diario non migrate, sola lettura, da `elencoAttivitaSolaLettura` — vedi CORE § Migrazione dati all’on/off Manodopera) |
 | I miei lavori (dettaglio / zone) | `admin/lavori-caposquadra-standalone.html` |
 | Statistiche manodopera (manager) | `admin/statistiche-manodopera-standalone.html` |
 | Gestione squadre | `admin/gestione-squadre-standalone.html` |

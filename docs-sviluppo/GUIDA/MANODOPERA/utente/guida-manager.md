@@ -207,6 +207,13 @@ Nella stessa area **Gestione operai** potete aprire la **Scheda competenze** di 
 
 **E il Diario attività?** Con Manodopera attivo le giornate nuove si registrano **solo qui**. Il **Diario attività** **non** compare nel menu (né in Per te oggi / Accessi rapidi): resta raggiungibile solo come **storico** via link diretto; vedi le attività salvate prima, ma non ne aggiungi di nuove e non le modifichi o elimini. Anche i collegamenti **Lavori in corso / completati** del Conto Terzi e **Lavori CT** della Vendemmia meccanica aprono Gestione lavori.
 
+**Cosa succede allo storico quando attivi o spegni Manodopera.** Il cambio si fa da **Abbonamento**; i dati si copiano una volta sola e **nulla viene cancellato** (attività, lavori, operai, squadre):
+
+1. **All’attivazione** le attività del Diario diventano lavori in questa pagina: quelle chiuse come **completati**, quella di oggi ancora aperta come **in corso**.
+2. Le attività che non si possono trasformare in lavoro (tipo «Altro», conto terzi incompleto, campi mancanti) compaiono in fondo alla lista, nella sezione **Attività precedenti**, in sola lettura con il motivo tra parentesi.
+3. **Allo spegnimento**, se hai lavori non ancora completati o annullati, compare «Hai N lavori ancora aperti: chiudili o li vedrai solo in storico.»: **Annulla** per chiuderli prima, **Continua** per procedere. I lavori tornano nel Diario come storico.
+4. A fine copia leggi «Migrazione dati: N creati, M già collegati, K in sola lettura.» Se la copia non si completa, riapri **Abbonamento**: riparte senza doppioni.
+
 ### Passi tipici per un nuovo lavoro
 
 1. **Home Manodopera** → **Gestione lavori** (sezione **Pianificazione e lavori**), oppure **Moduli** → **Manodopera** → **Gestione lavori**. Puoi anche partire da un alert in **Richiede attenzione** sulla dashboard.  

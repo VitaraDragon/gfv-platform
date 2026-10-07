@@ -28,6 +28,58 @@
       "label": "Gate Manodopera ↔ Diario (Diario storico, Gestione lavori solo con Manodopera)"
     },
     {
+      "prefix": "core/services/manodopera-migrazione-",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Migrazione dati Diario ↔ lavori all’on/off Manodopera"
+    },
+    {
+      "prefix": "core/js/lavoro-cascade-filters.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Cascata categoria → sottocategoria → tipo lavoro (Diario, Gestione lavori)"
+    },
+    {
+      "prefix": "core/js/attivita-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Diario attività (controller/eventi)"
+    },
+    {
+      "prefix": "core/attivita-standalone.html",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Diario attività"
+    },
+    {
+      "prefix": "core/admin/abbonamento",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Abbonamento, moduli e migrazione Manodopera"
+    },
+    {
+      "prefix": "core/services/tenant-service.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Tenant: moduli attivi"
+    },
+    {
+      "prefix": "core/auth/",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Accesso, registrazione e reset password"
+    },
+    {
       "prefix": "core/js/tony/tony-lavoro-fatto-nav.js",
       "modules": [
         "TONY",

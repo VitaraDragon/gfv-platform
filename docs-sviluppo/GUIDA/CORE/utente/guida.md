@@ -219,8 +219,14 @@ Se la mappa non si carica, compare un avviso: in quel caso serve una configurazi
 
 **Diario o Gestione lavori? Dipende da Manodopera.**
 
-- **Senza Manodopera:** il Diario è il posto dove registrate le giornate in campo (passi qui sotto). La pagina **Gestione lavori** non si usa: se la aprite compare l’avviso «Modulo Manodopera non attivo». Eventuali lavori salvati in passato **restano in archivio**, non vengono cancellati.
+- **Senza Manodopera:** il Diario è il posto dove registrate le giornate in campo (passi qui sotto). La pagina **Gestione lavori** non si usa: se la aprite compare l’avviso «Modulo Manodopera non attivo». Se avevate Manodopera e l’avete spenta, i lavori registrati fino a quel momento ricompaiono nel Diario come attività (vedi sotto).
 - **Con Manodopera:** il Diario **esce dal menu** e resta solo come **storico** (link diretto o segnalibro). Vedete le attività già salvate, ma **non** c’è più **Aggiungi attività** e dalle righe non si modifica né si elimina; un avviso in alto vi rimanda a **Gestione lavori**, dove si registrano le giornate nuove (guida **Manodopera**). Vale per **tutti** i ruoli, incluso caposquadra e operaio.
+
+**Quando attivate o spegnete Manodopera, lo storico vi segue.** Il passaggio si fa da **Abbonamento** e i dati si copiano **una volta sola**, senza cancellare nulla:
+
+- **Attivate Manodopera:** le attività del Diario diventano **lavori** in **Gestione lavori** (chiusi come completati; quella di oggi non ancora chiusa resta in corso). Le righe che non si possono trasformare in un lavoro (tipo «Altro», conto terzi incompleto, campi mancanti) restano visibili in fondo a Gestione lavori, nella sezione **Attività precedenti**, in sola lettura.
+- **Spegnete Manodopera:** i lavori tornano nel **Diario** come storico. Se ci sono lavori ancora aperti, prima di procedere compare l’avviso «Hai N lavori ancora aperti: chiudili o li vedrai solo in storico.»: scegliete **Annulla** per chiuderli prima, oppure **Continua**.
+- A fine copia compare un messaggio del tipo «Migrazione dati: N creati, M già collegati, K in sola lettura.» Se invece leggete «Migrazione dati Manodopera non completata. Puoi riprovare.», riaprite **Abbonamento**: la copia riparte senza creare doppioni. Se avete pagato il modulo online, la copia parte quando tornate sulla pagina **Abbonamento**.
 
 **Passi:**
 
@@ -228,7 +234,7 @@ Se la mappa non si carica, compare un avviso: in quel caso serve una configurazi
 2. Avvia una **nuova attività** dal pulsante previsto nella pagina: si apre il modulo.
 3. **Data:** giorno in cui è stato fatto l’intervento.
 4. **Terreno:** sceglilo dall’elenco (solo terreni già creati in Terreni).
-5. **Tipo di lavoro** e **coltura:** con solo app base di solito hai due elenco affiancati «semplici». Scegli il tipo di lavoro più vicino a ciò che avete fatto e la coltura coerente con il terreno.
+5. **Tipo di lavoro** e **coltura**, nell’ordine delle etichette: prima la **Categoria principale lavoro** (es. potatura, trattamenti); se la categoria ne ha, compare la **Sottocategoria** (facoltativa, es. manuale o meccanica); poi il **Tipo lavoro specifico**, che elenca solo i tipi di quella categoria. Infine **Categoria coltura** e **Coltura**, di solito già precompilate dal terreno scelto. Se il tipo che cercate non c’è, potete aggiungerlo con **➕ Nuovo** accanto all’elenco.
 6. **Orari:** ora di inizio obbligatoria; ora di fine se hai finito il turno (aiuta anche il calcolo delle ore).
 7. **Pause (minuti):** indica le pause effettive; le **ore nette** si aggiornano in base a orari e pause.
 8. **Note:** cosa avete fatto, condizioni, nome del turno, ecc.
@@ -359,6 +365,7 @@ Nella pagina **Abbonamento** (menu **Moduli** o tile dedicata) vedi il **piano c
 - Avvicinati ai limiti del Free → valuta il passaggio a **Base** (oppure prova un modulo per 30 giorni).
 - In Abbonamento → **prova 30 giorni** o attiva a pagamento **solo i moduli** che vi servono.
 - Alla **disattivazione** un modulo smette subito di funzionare; se era già pagato potete spesso **riattivarlo** fino alla data già coperta (dettaglio in pagina).
+- Se attivate o spegnete **Manodopera**, lo storico passa da Diario a Gestione lavori (o viceversa) senza perdere nulla; con lavori ancora aperti vi viene chiesta una conferma. **[Impara qui: Diario](#mini-guida-compilare-il-diario-attivita)**
 - Per capire Tony (chat, voce, differenza Guida/Avanzato, documenti foto/PDF) apri la **guida modulo Tony** dalla raccolta Guide.
 
 **Non devi capire nulla di tecnologia:** pensa al piano come al “pacchetto servizi” della tua azienda e ai moduli come optionali à la carte.
