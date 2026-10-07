@@ -1,6 +1,22 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-07 — Mappa sede in Impostazioni, init senza TDZ.**
+**Ultimo aggiornamento documentazione: 2026-10-07 — Plurali nelle scritte (squadre, terreni, giorni, zone).**
+
+## 2026-10-07 — Scritte: plurali senza la lettera in più
+
+Alcuni contatori attaccavano la desinenza alla parola intera («squadrae», «terrenoi», «giornoi», «lavoratae», «rigae»). Ora il singolare e il plurale sono due forme intere: squadra/squadre, terreno/terreni, urgente/urgenti, giorno/giorni, zona lavorata/zone lavorate, riga/righe. Nessuna modifica a `firestore.rules` e nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-07 — Voce Tony: 1 si dice un o uno.**
+
+## 2026-10-07 — Voce Tony: il numero 1 non è sempre «uno»
+
+In voce, la cifra 1 veniva letta sempre «uno» («uno trattore», «uno ettaro»). Prima della sintesi, Tony sceglie la forma dalla parola che segue: «un trattore», «uno studente», «una macchina», «un'ora». Da solo o prima di una preposizione resta «uno» («ne ho uno», «da uno a cinque»). L’una per l’orario («dalle uno» → «dall'una») e «primo» davanti al mese. «1 kg» / «1 ha» si sentono al singolare («un chilogrammo», «un ettaro»). In chat il numero resta in cifra. Nessuna modifica a `firestore.rules` e nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-07 — Mappa sede in Impostazioni, init senza TDZ.**
 
 ## 2026-10-07 — Impostazioni: mappa sede senza ReferenceError all’apertura
 

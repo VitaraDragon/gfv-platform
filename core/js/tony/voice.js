@@ -193,6 +193,227 @@ var getTonyAudioCallablePromise = null;
         return s;
     }
 
+    /** Parole che seguono un 1 pronominale: «da 1 a 5», «1 su 3», «ne ho 1». */
+    var TTS_ONE_FOLLOWERS = {
+        a: 1, ad: 1, al: 1, allo: 1, alla: 1, ai: 1, agli: 1, alle: 1,
+        di: 1, del: 1, dello: 1, della: 1, dei: 1, degli: 1, delle: 1,
+        da: 1, dal: 1, dallo: 1, dalla: 1, dai: 1, dagli: 1, dalle: 1,
+        in: 1, nel: 1, nello: 1, nella: 1, nei: 1, negli: 1, nelle: 1,
+        con: 1, su: 1, sul: 1, sullo: 1, sulla: 1, sui: 1, sugli: 1, sulle: 1,
+        per: 1, tra: 1, fra: 1, e: 1, ed: 1, o: 1, od: 1, ma: 1, che: 1, se: 1,
+        non: 1, piu: 1, 'più': 1, meno: 1, circa: 1, verso: 1, fino: 1, oltre: 1,
+        dopo: 1, prima: 1, anche: 1, gia: 1, 'già': 1, ancora: 1, quasi: 1,
+        proprio: 1, poi: 1, quindi: 1, oppure: 1, mentre: 1, quando: 1, dove: 1,
+        come: 1, perche: 1, 'perché': 1, contro: 1, senza: 1, sopra: 1, sotto: 1,
+        durante: 1
+    };
+
+    var TTS_ONE_NUMBER_WORDS = {
+        zero: 1, due: 1, tre: 1, quattro: 1, cinque: 1, sei: 1, sette: 1, otto: 1, nove: 1,
+        dieci: 1, undici: 1, dodici: 1, tredici: 1, quattordici: 1, quindici: 1, sedici: 1,
+        diciassette: 1, diciotto: 1, diciannove: 1, venti: 1, trenta: 1, quaranta: 1,
+        cinquanta: 1, sessanta: 1, settanta: 1, ottanta: 1, novanta: 1, cento: 1, mille: 1, mila: 1
+    };
+
+    var TTS_ONE_MONTHS = {
+        gennaio: 1, febbraio: 1, marzo: 1, aprile: 1, maggio: 1, giugno: 1,
+        luglio: 1, agosto: 1, settembre: 1, ottobre: 1, novembre: 1, dicembre: 1
+    };
+
+    /** Maschili in -a (non «una problema»). */
+    var TTS_ONE_MASC_A = {
+        problema: 1, sistema: 1, programma: 1, clima: 1, tema: 1, schema: 1,
+        diploma: 1, poema: 1, panorama: 1, dramma: 1, fantasma: 1, cinema: 1,
+        aroma: 1, teorema: 1, dilemma: 1, trauma: 1, pigiama: 1, delta: 1,
+        coma: 1, karma: 1, sosia: 1, gorilla: 1, cobra: 1, boa: 1
+    };
+
+    /** Femminili che non finiscono in -a. */
+    var TTS_ONE_FEM = {
+        voce: 1, rete: 1, superficie: 1, specie: 1, serie: 1, analisi: 1,
+        crisi: 1, sintesi: 1, ipotesi: 1, tesi: 1, mano: 1, auto: 1, moto: 1,
+        foto: 1, radio: 1, notte: 1, chiave: 1, gente: 1, arte: 1, parte: 1,
+        nave: 1, classe: 1, torre: 1, valle: 1, carne: 1, pelle: 1, fonte: 1,
+        sorte: 1, luce: 1, pace: 1, croce: 1, neve: 1, fede: 1, legge: 1,
+        macchine: 1, squadre: 1, giornate: 1, bolle: 1, fatture: 1, note: 1,
+        schede: 1, pagine: 1, righe: 1, aziende: 1
+    };
+
+    var TTS_ONE_CLOCK_NEXT = {
+        di: 1, del: 1, dello: 1, della: 1, dei: 1, degli: 1, delle: 1,
+        in: 1, nel: 1, nello: 1, nella: 1, nei: 1, negli: 1, nelle: 1,
+        punto: 1, passate: 1, circa: 1, e: 1, ed: 1, alle: 1, dalle: 1, le: 1, ore: 1,
+        meno: 1, quarto: 1, mezza: 1, mezzo: 1, mattina: 1, pomeriggio: 1,
+        sera: 1, notte: 1, preciso: 1, precisa: 1, spaccate: 1
+    };
+
+    var TTS_ONE_UNIT_SINGULAR = {
+        'chilometri orari': 'chilometro orario',
+        'metri cubi': 'metro cubo',
+        'metri quadri': 'metro quadro',
+        quintali: 'quintale',
+        ettolitri: 'ettolitro',
+        millilitri: 'millilitro',
+        chilogrammi: 'chilogrammo',
+        ettari: 'ettaro',
+        litri: 'litro',
+        grammi: 'grammo'
+    };
+
+    function ttsFirstWord(tail) {
+        var m = String(tail || '').match(/^\s*[,;:.!?)»"'\]]*([0-9A-Za-zÀ-ÿ']+)/);
+        return m ? m[1] : '';
+    }
+
+    function ttsRestAfterFirstWord(tail) {
+        var m = String(tail || '').match(/^\s*[,;:.!?)»"'\]]*([0-9A-Za-zÀ-ÿ']+)([\s\S]*)$/);
+        return m ? m[2] : '';
+    }
+
+    function ttsGenderOf(word) {
+        var w = String(word || '').toLowerCase();
+        if (!w) return null;
+        if (TTS_ONE_MASC_A[w]) return 'm';
+        if (TTS_ONE_FEM[w]) return 'f';
+        if (/(?:zione|sione|gione|trice|zioni|sioni|gioni|trici)$/i.test(w)) return 'f';
+        if (/[àù]$/i.test(w)) return 'f';
+        if (/a$/i.test(w)) return 'f';
+        if (/o$/i.test(w)) return 'm';
+        return null;
+    }
+
+    function ttsNeedsUnoOnset(word) {
+        return /^(?:s[^aeiouàèéìòù]|z|gn|ps|pn|x|y|i[aeiouàèéìòù])/i.test(word);
+    }
+
+    function ttsVowelSound(word) {
+        return /^(?:h)?[aeiouàèéìòù]/i.test(word);
+    }
+
+    /**
+     * Forma parlata del cardinale 1 davanti alla coda (parola successiva).
+     * @param {string} tail
+     * @returns {'un'|'uno'|'una'|'un\''|'primo'}
+     */
+    function italianOneForm(tail) {
+        if (/^\s*[.)](?:\s|$)/.test(tail)) {
+            var afterList = tail.replace(/^\s*[.)]\s*/, '');
+            var listNext = ttsFirstWord(afterList);
+            if (!listNext || /^[A-ZÀ-Ý]/.test(listNext)) return 'uno';
+        }
+        var word = ttsFirstWord(tail);
+        if (!word) return 'uno';
+        var low = word.toLowerCase();
+        if (TTS_ONE_MONTHS[low]) return 'primo';
+        if (/^\d/.test(word) || TTS_ONE_NUMBER_WORDS[low] || TTS_ONE_FOLLOWERS[low]) return 'uno';
+        if (low === 'solo' || low === 'soltanto') {
+            var secondOnly = ttsFirstWord(ttsRestAfterFirstWord(tail));
+            var secondLow = secondOnly.toLowerCase();
+            if (!secondOnly || /^\d/.test(secondOnly) || TTS_ONE_FOLLOWERS[secondLow] || TTS_ONE_NUMBER_WORDS[secondLow]) {
+                return 'uno';
+            }
+        }
+        var gender = ttsGenderOf(low);
+        if (!gender) {
+            var second = ttsFirstWord(ttsRestAfterFirstWord(tail));
+            var secLow = second.toLowerCase();
+            if (second && !TTS_ONE_FOLLOWERS[secLow] && !TTS_ONE_NUMBER_WORDS[secLow] && !/^\d/.test(second) && !TTS_ONE_MONTHS[secLow]) {
+                gender = ttsGenderOf(secLow);
+            }
+        }
+        if (gender === 'f') {
+            var pluralish = /i$/i.test(low);
+            if (!pluralish && ttsVowelSound(low)) return "un'";
+            return 'una';
+        }
+        if (ttsNeedsUnoOnset(low)) return 'uno';
+        return 'un';
+    }
+
+    function shapeSpokenOne(form, token, sentenceStart) {
+        if (token && token !== '1' && token === token.toUpperCase()) return form.toUpperCase();
+        var cap = sentenceStart || (token && token !== '1' && token.charAt(0) !== token.charAt(0).toLowerCase());
+        if (!cap) return form;
+        return form.charAt(0).toUpperCase() + form.slice(1);
+    }
+
+    function isTtsSentenceStart(full, offset) {
+        var before = String(full || '').slice(0, offset).replace(/\s+$/, '');
+        return before.length === 0 || /[.!?]$/.test(before);
+    }
+
+    function singularizeSpokenMeasure(unitChunk) {
+        var key = String(unitChunk || '').replace(/^\s+/, '').replace(/\s+/g, ' ').toLowerCase();
+        return TTS_ONE_UNIT_SINGULAR[key] || '';
+    }
+
+    function isClockTail(after) {
+        var word = ttsFirstWord(after);
+        if (!word) return true;
+        if (/^\d/.test(word)) return true;
+        return !!TTS_ONE_CLOCK_NEXT[word.toLowerCase()];
+    }
+
+    /**
+     * «alle 1» / «dalle 1» / «le 1» → all'una / dall'una / l'una, se non segue un nome.
+     * @param {string} testo
+     * @returns {string}
+     */
+    function rewriteItalianOneOClock(testo) {
+        if (!testo || typeof testo !== 'string') return testo;
+        return testo.replace(/\b(alle|dalle|le|ore)\s+1(?!\d)(?![.,]\d)(?![:/%°ºª])/gi, function(full, prep, offset, str) {
+            var after = str.slice(offset + full.length);
+            if (!isClockTail(after)) return full;
+            var low = prep.toLowerCase();
+            var repl = low === 'alle' ? "all'una"
+                : low === 'dalle' ? "dall'una"
+                : low === 'le' ? "l'una"
+                : 'ore una';
+            if (prep.charAt(0) !== prep.charAt(0).toLowerCase()) {
+                repl = repl.charAt(0).toUpperCase() + repl.slice(1);
+            }
+            return repl;
+        });
+    }
+
+    /**
+     * Cifra 1 (e «uno» già scritto) → un / uno / una / un' / primo, in base alla parola che segue.
+     * Il 1 isolato: il TTS italiano lo legge sempre «uno» («uno trattore»).
+     * @param {string} testo
+     * @returns {string}
+     */
+    function normalizeItalianCardinalOneForTTS(testo) {
+        if (!testo || typeof testo !== 'string') return testo;
+        var s = rewriteItalianOneOClock(testo);
+        var unitAlt = 'chilometri\\s+orari|metri\\s+cubi|metri\\s+quadri|quintali|ettolitri|millilitri|chilogrammi|ettari|litri|grammi';
+        var re = new RegExp(
+            "(^|[^0-9A-Za-zÀ-ÿ'’])(1|uno)(?![0-9A-Za-zÀ-ÿ])(?:\\s+(?:" + unitAlt + '))?',
+            'gi'
+        );
+        s = s.replace(re, function(match, prefix, token, offset, full) {
+            var tokenEnd = offset + String(prefix || '').length + String(token || '').length;
+            var unitChunk = full.slice(tokenEnd, offset + match.length);
+            var tail = full.slice(tokenEnd);
+            if (/^1$/i.test(token)) {
+                if (/^[.,]\d/.test(tail)) return match;
+                if (/^[:/%°ºª]/.test(tail)) return match;
+                if (/^\s*\//.test(tail)) return match;
+                if (/^[-–—]\d/.test(tail) || /^\s*[-–—]\s*\d/.test(tail)) return match;
+            }
+            var singular = singularizeSpokenMeasure(unitChunk);
+            var form = singular
+                ? italianOneForm(' ' + singular)
+                : italianOneForm(tail);
+            if (!singular && token.toLowerCase() === 'uno' && form === 'uno') return match;
+            var shaped = shapeSpokenOne(form, token, isTtsSentenceStart(full, offset));
+            return prefix + shaped + (singular ? ' ' + singular : '');
+        });
+        s = s.replace(/([Uu])n'\s+/g, function(_m, u) {
+            return u === 'U' ? "Un'" : "un'";
+        });
+        return s;
+    }
+
     function pulisciTestoPerVoce(testo) {
         if (!testo || typeof testo !== 'string') return '';
         var t = testo;
@@ -211,6 +432,7 @@ var getTonyAudioCallablePromise = null;
         t = expandSpokenUnitsForItalianTTS(t);
         t = normalizeItalianContractionsForTTS(t);
         t = normalizeTonyTextWhitespace(t);
+        t = normalizeItalianCardinalOneForTTS(t);
         return t;
     }
 
@@ -537,4 +759,4 @@ export function initTonyVoice(options) {
     };
 }
 
-export { expandSpokenUnitsForItalianTTS, normalizeTemperaturesForItalianTTS, normalizeItalianContractionsForTTS, pulisciTestoPerVoce };
+export { expandSpokenUnitsForItalianTTS, normalizeTemperaturesForItalianTTS, normalizeItalianContractionsForTTS, normalizeItalianCardinalOneForTTS, pulisciTestoPerVoce };

@@ -252,7 +252,7 @@ export async function mostraMappaZonaLavorata(params) {
             } else {
                 infoContainer.innerHTML = `
                     <div style="color: #2E7D32;">
-                        ✅ <strong>${zoneTrovate.length}</strong> ${zoneTrovate.length === 1 ? 'zona' : 'zone'} lavorata${zoneTrovate.length === 1 ? '' : 'e'} 
+                        ✅ <strong>${zoneTrovate.length}</strong> ${zoneTrovate.length === 1 ? 'zona lavorata' : 'zone lavorate'} 
                         per un totale di <strong>${superficieTotale.toFixed(2)} ha</strong>
                     </div>
                 `;
