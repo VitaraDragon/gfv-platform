@@ -9,6 +9,8 @@ Benvenuto. Questa guida spiega come usare il **modulo Manodopera** di GFV: ore i
 Serve a organizzare il **lavoro in campo** con ruoli chiari: chi pianifica e configura (**manager** o **amministratore**), chi coordina la squadra (**caposquadra**), chi esegue (**operaio**).  
 Quando il modulo è **attivo per la vostra azienda**, compaiono le funzioni dedicate (versione mobile per chi è in campo, pagine di gestione per l’ufficio). Se non è attivo, molte di queste voci **non esistono** nel menu: in quel caso va attivato il modulo (di solito da **Abbonamento** o da chi gestisce il contratto).
 
+**Diario e Gestione lavori.** Con Manodopera attivo le giornate nuove si registrano in **Gestione lavori**; il **Diario attività** resta solo **storico in sola lettura** (via link, fuori dal menu). All’**attivazione** o allo **spegnimento** da **Abbonamento** i dati si copiano una volta sola (allo spegnimento i lavori tornano nel Diario come **attività modificabili**). Dettaglio nella guida **Manager** e nella guida **Core** sul Diario.
+
 ---
 
 ## Scegli la parte che ti riguarda

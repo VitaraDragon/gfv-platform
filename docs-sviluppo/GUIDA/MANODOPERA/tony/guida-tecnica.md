@@ -19,6 +19,10 @@ Modulo in **`dashboard.moduli_attivi`** (chiave tipica `manodopera`). In contest
 | Compensi operai | `admin/compensi-operai-standalone.html` |
 | Statistiche lavoratore (embed mobile) | `mobile/statistiche-lavoratore-standalone.html` |
 
+## On/off e migrazione dati (#133)
+
+Dettaglio tecnico in **CORE** § Gate Manodopera ↔ Diario / Migrazione. Trigger **solo** da pagina Abbonamento (`allineaManodoperaUi` al load / post-Stripe / cambio moduli); se Manodopera scade o viene revocato senza aprire Abbonamento, nessuna copia finché non si apre. Spegnimento: lavori → attività Diario **editabili**. Motivi «Attività precedenti»: in guida utente etichette leggibili («Tipo Altro», «Conto terzi incompleto», «Campi obbligatori mancanti»); in UI possono ancora comparire i codici `tipo-altro` / `ct-incompleto` / `campi-vuoti` (coda prodotto). Auto-migrazione altrove = backlog prodotto.
+
 Navigazione admin → hub: `core/config/manodopera-hub-nav.js` (`wireManagerHomeLink`, label **← Dashboard**; hub modulo → home app: **← Dashboard Principale**).
 
 Dashboard ingresso hub: `MODULE_CATALOG.manodopera` in `dashboard-hub.js`; tile `createManodoperaCard()` in `dashboard-sections.js` (menu **Moduli**, variant `manodopera`); **Per te oggi** → href hub; quick bar `manodoperaHome` in `dashboard-quick-bar.js`.
