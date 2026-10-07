@@ -36,6 +36,7 @@ import {
     resolvePrevistiOperaioIds
 } from '../../services/manodopera-sostituti-shortlist-logic.js';
 import { toGiornoKey } from '../../config/manodopera-assenze-config.js';
+import { isLavoroStatoSospendibile } from '../../services/lavoro-sospensione.js';
 import {
     resolveLavoroManodoperaSeverita,
     renderSemaforoHtml
@@ -2299,6 +2300,7 @@ export async function renderLavori(
                         <button class="btn btn-info btn-sm" onclick="openDettaglioModal('${lavoro.id}')">👁️ Dettagli</button>
                         ${renderCalcolatoreVmLink(lavoro)}
                         <button class="btn btn-info btn-sm" onclick="openModificaModal('${lavoro.id}')">✏️ Modifica</button>
+                        ${isLavoroStatoSospendibile(lavoro.stato) ? `<button type="button" class="btn btn-secondary btn-sm" onclick="openSospendiRinviaModal('${lavoro.id}')" title="Sospensione operativa (maltempo, guasto o altro). Non è un'assenza del personale.">⏳ Sospendi / Rinvia</button>` : ''}
                         ${hasManodoperaModule && lavoro.stato === 'in_standby' ? `<button type="button" class="btn btn-success btn-sm" onclick="openSostitutoAssenzaModal('${lavoro.id}')" title="Scegli sostituto dalla shortlist">👤 Assegna sostituto</button><button type="button" class="btn btn-primary btn-sm" onclick="openStandbyAssenzaModal('${lavoro.id}')" title="Ripristina senza sostituto">▶️ Ripristina</button>` : ''}
                         ${hasManodoperaModule && lavoro.stato !== 'completato' && lavoro.stato !== 'annullato' && lavoro.stato !== 'sospeso' && lavoro.stato !== 'in_standby' ? `<button type="button" class="btn btn-warning btn-sm" onclick="openStandbyAssenzaModal('${lavoro.id}')" title="Assenza operaio: metti il lavoro in standby">⏸️ Standby assenza</button>` : ''}
                         ${lavoro.stato === 'sospeso' ? `<button type="button" class="btn btn-primary btn-sm" onclick="creaLavoroRipresa('${lavoro.id}')" title="Nuovo lavoro collegato per completare dopo la sospensione">🔁 Crea ripresa</button>` : ''}

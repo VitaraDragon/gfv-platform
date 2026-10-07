@@ -14,6 +14,10 @@ import {
 } from './gestione-lavori-utils.js';
 import { listedSelectValue } from '../../js/lavoro-cascade-filters.js';
 import { dateLikeToLocalCalendarIso } from '../../js/date-format-it.js';
+import {
+    parseSospensioneCausa,
+    sospensioneFieldsForModificaSave
+} from '../../services/lavoro-sospensione.js';
 
 // ============================================
 // FUNZIONI SETUP HANDLERS
@@ -418,6 +422,36 @@ export function clearFilters(lavoriList, filteredLavoriList, hasManodoperaModule
 // FUNZIONI MODAL LAVORO
 // ============================================
 
+/** Mostra motivo/nota solo quando lo stato del form è Sospeso. */
+export function syncLavoroSospensioneFields() {
+    const stato = document.getElementById('lavoro-stato')?.value;
+    const group = document.getElementById('lavoro-sospensione-group');
+    if (!group) return;
+    group.style.display = stato === 'sospeso' ? 'block' : 'none';
+}
+
+/** Svuota motivo e nota (creazione, o lavoro non sospeso). */
+export function clearSospensioneForm() {
+    const motivo = document.getElementById('lavoro-sospensione-motivo');
+    const note = document.getElementById('lavoro-sospensione-note');
+    if (motivo) motivo.value = '';
+    if (note) note.value = '';
+    syncLavoroSospensioneFields();
+}
+
+/**
+ * Prefill dal valore già salvato in sospensioneCausa.
+ * @param {string} causa
+ */
+export function applySospensioneCausaToForm(causa) {
+    const parsed = parseSospensioneCausa(causa);
+    const motivo = document.getElementById('lavoro-sospensione-motivo');
+    const note = document.getElementById('lavoro-sospensione-note');
+    if (motivo) motivo.value = parsed.motivo || '';
+    if (note) note.value = parsed.note || '';
+    syncLavoroSospensioneFields();
+}
+
 /**
  * Apre modal per creare nuovo lavoro
  * @param {Object} state - State object con { currentLavoroId }
@@ -524,6 +558,8 @@ export async function openCreaModal(
         setupTipoAssegnazioneHandlersCallback();
     }
     
+    clearSospensioneForm();
+
     const lavoroModal = document.getElementById('lavoro-modal');
     if (lavoroModal) lavoroModal.classList.add('active');
 }
@@ -711,6 +747,11 @@ export async function openModificaModal(
     if (lavoroNomeInput) lavoroNomeInput.value = lavoro.nome || '';
     if (lavoroNoteInput) lavoroNoteInput.value = lavoro.note || '';
     if (lavoroStatoSelect) lavoroStatoSelect.value = lavoro.stato || 'assegnato';
+    if ((lavoro.stato || '') === 'sospeso') {
+        applySospensioneCausaToForm(lavoro.sospensioneCausa);
+    } else {
+        clearSospensioneForm();
+    }
     if (lavoroDurataInput) lavoroDurataInput.value = lavoro.durataPrevista || '';
     
     // Giorno di calendario locale (Europe/Rome). toISOString() è UTC e,
@@ -1732,6 +1773,19 @@ export async function handleSalvaLavoro(
             nuovoStato = 'assegnato';
             showAlert('Pianificazione completata! Il lavoro è stato assegnato.', 'success');
         }
+
+        const sospensionePlan = sospensioneFieldsForModificaSave({
+            nuovoStato,
+            statoPrecedente: lavoroOriginale?.stato || null,
+            motivo: document.getElementById('lavoro-sospensione-motivo')?.value || '',
+            note: document.getElementById('lavoro-sospensione-note')?.value || '',
+            sospensioneCausaEsistente: lavoroOriginale?.sospensioneCausa || '',
+            hasSospensioneIl: !!lavoroOriginale?.sospensioneIl
+        });
+        if (!sospensionePlan.ok) {
+            showAlert(sospensionePlan.error, 'error');
+            return;
+        }
         
         // Leggi pianificazioneId se presente (per lavori di tipo Impianto)
         const pianificazioneId = document.getElementById('lavoro-pianificazione-impianto')?.value || null;
@@ -1752,6 +1806,13 @@ export async function handleSalvaLavoro(
             aggiornatoIl: serverTimestamp(),
             pianificazioneId: pianificazioneId || null // Collegamento a pianificazione impianto
         };
+
+        if (sospensionePlan.fields) {
+            lavoroData.sospensioneCausa = sospensionePlan.fields.sospensioneCausa;
+            if (sospensionePlan.fields.writeSospensioneIl) {
+                lavoroData.sospensioneIl = serverTimestamp();
+            }
+        }
         
         // Assegnazione flessibile: O caposquadra O operaio (non entrambi) - solo se Manodopera attivo
         if (state.hasManodoperaModule) {
@@ -1811,7 +1872,7 @@ export async function handleSalvaLavoro(
                 }
             }
             
-            const statiCheLiberanoMacchine = ['completato', 'completato_da_approvare', 'annullato', 'sospeso', 'in_standby'];
+            const statiCheLiberanoMacchine = ['completato', 'completato_da_approvare', 'annullato', 'in_standby'];
             const statiCheRiservanoMacchine = ['assegnato', 'in_corso', 'da_pianificare'];
             const lavoroRiservaMacchine = statiCheRiservanoMacchine.includes(nuovoStato);
 
@@ -1823,13 +1884,27 @@ export async function handleSalvaLavoro(
                 if (updateMacchinaStatoCallback) await updateMacchinaStatoCallback(attrezzoId, 'in_uso');
             }
 
-            // Libera macchine se lavoro chiuso, sospeso o in standby
+            // Libera macchine se lavoro chiuso o in standby assenza
             if (statiCheLiberanoMacchine.includes(nuovoStato)) {
                 if (macchinaId && updateMacchinaStatoCallback) {
                     await updateMacchinaStatoCallback(macchinaId, 'disponibile');
                 }
                 if (attrezzoId && updateMacchinaStatoCallback) {
                     await updateMacchinaStatoCallback(attrezzoId, 'disponibile');
+                }
+            }
+
+            // Sospeso operativo: stessa liberazione di sospendiLavoro / Capo
+            // (non libera una macchina ancora in uso su un altro lavoro in corso).
+            if (nuovoStato === 'sospeso' && (macchinaId || attrezzoId)) {
+                try {
+                    const { liberaMacchineDaLavoro } = await import('../../services/lavoro-macchine-lifecycle.js');
+                    await liberaMacchineDaLavoro(
+                        { id: state.currentLavoroId || null, macchinaId, attrezzoId },
+                        { tenantId: currentTenantId, lavoriList: state.lavoriList }
+                    );
+                } catch (liberaErr) {
+                    console.warn('[GESTIONE-LAVORI] Liberazione macchine dopo sospensione:', liberaErr);
                 }
             }
         }
