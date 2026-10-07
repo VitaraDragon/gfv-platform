@@ -806,6 +806,12 @@
                 }, 100);
             });
         }
+
+        // Prima del callback Maps: la API può invocarlo durante gli await successivi (TDZ sul let).
+        let sedeMap = null;
+        let sedeMarker = null;
+        let pendingSedeCoordinate = null;
+        let sedeMapInitAttempts = 0;
         
         // Carica Google Maps API se disponibile
         try {
@@ -867,10 +873,6 @@
         let poderiList = [];
         let podereMap = null;
         let podereMarker = null;
-        let sedeMap = null;
-        let sedeMarker = null;
-        let pendingSedeCoordinate = null;
-        let sedeMapInitAttempts = 0;
         let logoFileToUpload = null;
         
         // Liste predefinite

@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-06 — Data inizio lavoro in modifica, giorno locale.**
+**Ultimo aggiornamento documentazione: 2026-10-07 — Mappa sede in Impostazioni, init senza TDZ.**
+
+## 2026-10-07 — Impostazioni: mappa sede senza ReferenceError all’apertura
+
+Aprendo la mappa sede, la console segnalava `Cannot access 'sedeMapInitAttempts' before initialization`. Il callback di Google Maps azzerava il contatore prima che il `let` nello stesso modulo fosse eseguito (gli await successivi lasciano il tempo al callback di partire). Lo stato della mappa sede è dichiarato prima di registrare il callback. Cerca indirizzo, pin e salvataggio restano gli stessi. Nessuna modifica a `firestore.rules` e nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-06 — Data inizio lavoro in modifica, giorno locale.**
 
 ## 2026-10-06 — Gestione lavori: data inizio in modifica senza −1 giorno UTC
 
