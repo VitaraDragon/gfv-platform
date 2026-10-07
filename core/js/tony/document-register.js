@@ -952,9 +952,9 @@ export function assessDocumentExtractionSafety(estrazione, opts) {
       severity: 'warn',
       message:
         lowConfIdx.length +
-        ' riga' +
-        (lowConfIdx.length === 1 ? '' : 'e') +
-        ' con lettura incerta (evidenziate in giallo) — rivedile prima di registrare.',
+        (lowConfIdx.length === 1
+          ? ' riga con lettura incerta (evidenziata in giallo) — rivedila prima di registrare.'
+          : ' righe con lettura incerta (evidenziate in giallo) — rivedile prima di registrare.'),
       rowIndex: lowConfIdx[0],
     });
   }
