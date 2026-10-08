@@ -276,7 +276,7 @@ export async function loadAffittiInScadenza(dependencies) {
                 <div style="text-align: center; padding: 15px; color: #28a745;">
                     <p style="font-size: 14px; margin-bottom: 8px;">✅ Tutti in regola</p>
                     <p style="font-size: 12px; color: #666;">
-                        ${affitti.length} terreno${affitti.length !== 1 ? 'i' : ''} in affitto
+                        ${affitti.length} ${affitti.length === 1 ? 'terreno' : 'terreni'} in affitto
                     </p>
                     <a href="terreni-standalone.html" style="display: inline-block; margin-top: 10px; color: #2E8B57; text-decoration: underline; font-size: 12px;">
                         → Vai a Terreni
@@ -289,7 +289,7 @@ export async function loadAffittiInScadenza(dependencies) {
         let html = `
             <div style="margin-bottom: 10px;">
                 <p style="color: #666; font-size: 12px; margin-bottom: 8px;">
-                    <strong>${affittiUrgenti.length}</strong> urgente${affittiUrgenti.length !== 1 ? 'i' : ''}
+                    <strong>${affittiUrgenti.length}</strong> ${affittiUrgenti.length === 1 ? 'urgente' : 'urgenti'}
                     ${affitti.length > affittiUrgenti.length ? `(${affitti.length} totali)` : ''}
                 </p>
             </div>

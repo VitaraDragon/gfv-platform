@@ -1,6 +1,22 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-07 — Gestione lavori, Sospendi / Rinvia del manager.**
+**Ultimo aggiornamento documentazione: 2026-10-07 — Plurali nelle scritte (squadre, terreni, giorni, zone).**
+
+## 2026-10-07 — Scritte: plurali senza la lettera in più
+
+Alcuni contatori attaccavano la desinenza alla parola intera («squadrae», «terrenoi», «giornoi», «lavoratae», «rigae»). Ora il singolare e il plurale sono due forme intere: squadra/squadre, terreno/terreni, urgente/urgenti, giorno/giorni, zona lavorata/zone lavorate, riga/righe. Nessuna modifica a `firestore.rules` e nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-07 — Voce Tony: 1 si dice un o uno.**
+
+## 2026-10-07 — Voce Tony: il numero 1 non è sempre «uno»
+
+In voce, la cifra 1 veniva letta sempre «uno» («uno trattore», «uno ettaro»). Prima della sintesi, Tony sceglie la forma dalla parola che segue: «un trattore», «uno studente», «una macchina», «un'ora». Da solo o prima di una preposizione resta «uno» («ne ho uno», «da uno a cinque»). L’una per l’orario («dalle uno» → «dall'una») e «primo» davanti al mese. «1 kg» / «1 ha» si sentono al singolare («un chilogrammo», «un ettaro»). In chat il numero resta in cifra. Nessuna modifica a `firestore.rules` e nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-07 — Gestione lavori, Sospendi / Rinvia del manager.**
 
 ## 2026-10-07 — Gestione lavori: il manager sospende con causa (non è lo standby)
 
@@ -2025,8 +2041,6 @@ Queste prove sono state eseguite **solo in locale** (emulator + http-server + Pl
 | **Ancora fuori** | Roster completo; Tony/Context Builder su shortlist; pool riserve; drag&drop. *(Vista impegni: vedi voce 2026-07-24.)* |
 | **Canary E2E** | `npm run manodopera:sostituzione-canary` — capo (field-workspace segnala) + manager (standby → shortlist → assegna). Fix collaterale: campi `equipaggioGiorno` / `manodoperaPrestata` / priorità su modello `Lavoro` (altrimenti `updateLavoro` li scartava). |
 | **Fix elenco lavori capo** | 2026-07-22: lavori di squadra creati dal manager non comparivano al capo (dual-role trattato come solo operaio; filtro «Segna ore» 14gg; slice finestra applicato per errore al capo). Fix: `resolveFieldWorkspaceLavoriRoleFlags` + merge fetch capo/operaio + elenco capo senza slice/taglio 14gg. |
-
-
 
 ## Tony Occhi / Magazzino — chiusura blocco 2026-07-21 (riepilogo)
 
@@ -4287,7 +4301,6 @@ npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose   # stac
 
 **Cleanup:** `npm run sim:cleanup` (opz. `--keep N`, `--dry-run`).
 
-
 **Test automatico:** `npm run sim:test` (run completo + inspect seed v2, cleanup tenant di test); `npm run sim:test:vitest` (vitest, skip se emulator assente).
 
 **Cleanup:** `npm run sim:cleanup` elimina tenant `sim_*` del manifest da Firestore/Auth emulator; `--keep N` mantiene le ultime N aziende.
@@ -4866,7 +4879,6 @@ Sessione di hardening **modalità continua**, **TTS stream**, **congedo vocale**
 - Test: `tests/tony-stream-tts-chunk.test.js` (6), canary voice aggiornato
 
 **File:** `stream-tts-chunk.js`, `main.js`, `voice.js` (prefetch esposto). Piano: `PIANO_AUDIO_PIPELINE_BARGEIN.md` §7.
-
 
 ## Documentazione — SETUP_ALTRO_PC_CURSOR (2026-06-07)
 
@@ -10744,7 +10756,6 @@ Risolvere i problemi del sistema multi-tenant dopo l'implementazione iniziale:
 ✅ **COMPLETATO** (2026-01-12)
 
 Il sistema multi-tenant è ora completamente funzionante. Gli utenti possono appartenere a più tenant con ruoli diversi, e lo switch tra tenant funziona correttamente con isolamento completo dei dati e delle viste dashboard.
-
 
 ## 2026-03-26 - Tony preventivo da qualsiasi pagina: fix coercion cross-page
 
