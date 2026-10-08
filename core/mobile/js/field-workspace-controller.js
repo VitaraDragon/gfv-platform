@@ -542,7 +542,8 @@ function syncTonyFieldWorkspaceTableData() {
                 label: w.label,
                 nome: raw.nome || '',
                 stato: raw.stato || '',
-                tipoLavoro: raw.tipoLavoro || ''
+                tipoLavoro: raw.tipoLavoro || '',
+                dataInizio: raw.dataInizio || raw.data || raw.dataLavoro || raw.dataInizioGiorno || ''
             };
         });
         var summary = 'Workspace mobile campo: ' + items.length + ' lavori in elenco. Ruolo: ' + ruolo + '.';

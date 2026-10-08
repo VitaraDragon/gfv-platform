@@ -3,6 +3,9 @@ import {
   risolviLavoroDaTesto,
   messaggioSceltaLavoroOre,
   risolviValoreSelectLavoro,
+  eDiOggi,
+  testoRiepilogoHaLavoro,
+  unisciAvvisoSovrapposizioneELavoro,
 } from '../core/js/tony/tony-ora-lavoro-match.js';
 
 const OGGI = '2026-10-08';
@@ -57,6 +60,86 @@ describe('risolviLavoroDaTesto', () => {
     expect(esito.stato).toBe('nessuno');
     expect(esito.lavoro).toBeNull();
     expect(esito.nominato).toBe(false);
+  });
+
+  const FRASE_RITEST = 'segnami dalle 17:00 alle 17:30 oggi sul ripristino pali, nessuna pausa';
+
+  function listaRitest(dataSecondo, dataQuarto) {
+    return [
+      { id: 'tr', nome: 'Trinciatura Vigna di Sant\'Albino (ripresa)', dataInizio: '2026-10-13' },
+      { id: 'grazie', nome: 'Ripristino pali Grazie (ripresa)', dataInizio: dataSecondo },
+      { id: 'man', nome: 'Manutenzione', dataInizio: '2026-10-09' },
+      { id: 'oggi', nome: 'Ripristino pali', dataInizio: dataQuarto },
+    ];
+  }
+
+  it('a parità di nome sceglie il Ripristino di oggi, mai la Trinciatura', () => {
+    const esito = risolviLavoroDaTesto(FRASE_RITEST, listaRitest('2026-10-10', OGGI), { oggiIso: OGGI });
+    expect(esito.stato).toBe('unico');
+    expect(esito.lavoro.id).toBe('oggi');
+    expect(esito.lavoro.id).not.toBe('tr');
+  });
+
+  it('due Ripristino pali entrambi di oggi restano ambigui', () => {
+    const due = [
+      { id: 'a', nome: 'Ripristino pali Grazie (ripresa)', dataInizio: OGGI },
+      { id: 'b', nome: 'Ripristino pali', dataInizio: OGGI },
+    ];
+    const esito = risolviLavoroDaTesto(FRASE_RITEST, due, { oggiIso: OGGI });
+    expect(esito.stato).toBe('ambiguo');
+    expect(esito.lavoro).toBeNull();
+    expect(esito.candidati.map((l) => l.id).sort()).toEqual(['a', 'b']);
+  });
+
+  it('due Ripristino pali nessuno di oggi: ambiguo, mai il primo della lista', () => {
+    const esito = risolviLavoroDaTesto(FRASE_RITEST, listaRitest('2026-10-10', '2026-10-13'), { oggiIso: OGGI });
+    expect(esito.stato).toBe('ambiguo');
+    expect(esito.lavoro).toBeNull();
+    expect(esito.candidati.map((l) => l.id)).not.toContain('tr');
+    expect(esito.candidati.map((l) => l.id).sort()).toEqual(['grazie', 'oggi']);
+  });
+
+  it('due Ripristino pali senza data non contano come oggi', () => {
+    const due = [
+      { id: 'a', nome: 'Ripristino pali Grazie (ripresa)' },
+      { id: 'b', nome: 'Ripristino pali' },
+    ];
+    const esito = risolviLavoroDaTesto('sul ripristino pali', due, { oggiIso: OGGI });
+    expect(esito.stato).toBe('ambiguo');
+    expect(esito.lavoro).toBeNull();
+    expect(eDiOggi(due[0], OGGI)).toBe(false);
+    expect(eDiOggi(due[1], OGGI)).toBe(false);
+  });
+
+  it('senza lavori di oggi il messaggio elenca i disponibili', () => {
+    const lavori = [
+      { id: 'a', nome: 'Potatura domani', dataInizio: '2026-10-09' },
+    ];
+    const esito = risolviLavoroDaTesto('sul raccolto delle olive', lavori, { oggiIso: OGGI });
+    expect(messaggioSceltaLavoroOre(esito)).toMatch(/I lavori disponibili sono/);
+    expect(messaggioSceltaLavoroOre(esito)).not.toMatch(/I lavori di oggi sono/);
+  });
+
+  it('Tutto pronto senza il nome del lavoro non è accettabile', () => {
+    const testo = 'Tutto pronto: dalle 17:00 alle 17:30, pausa 0 min. Vuoi salvare?';
+    expect(testoRiepilogoHaLavoro(testo, '')).toBe(false);
+    expect(testoRiepilogoHaLavoro(testo, 'Ripristino pali')).toBe(false);
+    expect(testoRiepilogoHaLavoro('Tutto pronto: Ripristino pali, dalle 17:00 alle 17:30.', 'Ripristino pali')).toBe(true);
+    expect(testoRiepilogoHaLavoro('Quanti minuti di pausa?', 'Ripristino pali')).toBe(true);
+  });
+
+  it('la sovrapposizione chiede anche il lavoro se non è uno solo', () => {
+    const avviso = 'Dalle 10:00 alle 11:00 ti sovrapponi al turno 09:00–12:00 su «altro». Il primo orario libero di 1 ora è dalle 12:00 alle 13:00. Va bene?';
+    const esito = {
+      stato: 'ambiguo',
+      candidati: [
+        { id: 'a', nome: 'Ripristino pali Grazie (ripresa)' },
+        { id: 'b', nome: 'Ripristino pali' },
+      ],
+    };
+    const msg = unisciAvvisoSovrapposizioneELavoro(avviso, esito);
+    expect(msg).toMatch(/Va bene\?/);
+    expect(msg).toMatch(/E su quale lavoro: Ripristino pali Grazie \(ripresa\) o Ripristino pali\?/);
   });
 
   it('il select non ripiega sulla prima opzione', () => {

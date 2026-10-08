@@ -1,6 +1,20 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-08 — Tony segna l’ora sul lavoro nominato.**
+**Ultimo aggiornamento documentazione: 2026-10-08 — Tony, due lavori uguali e quello di oggi.**
+
+## 2026-10-08 — Ore: con due lavori dallo stesso nome Tony sceglie quello di oggi
+
+Se dici un nome che sta su due lavori, Tony prende quello di oggi. Se nessuno è di oggi, o lo sono tutti e due, chiede quale. Non apre più il modulo sul primo lavoro della lista.
+
+«Tutto pronto» dice sempre il nome del lavoro, anche quando la frase arriva dal modello. Se l’orario è già occupato, il modulo non resta sul lavoro sbagliato: se il lavoro non è uno solo, Tony chiede quale insieme all’avviso.
+
+Accanto alla data del modulo c’è il giorno in italiano, per esempio «giovedì 08/10/2026». Il valore salvato resta la data normale.
+
+Non cambia `firestore.rules`. Non c’è nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-08 — Tony segna l’ora sul lavoro nominato.**
 
 ## 2026-10-08 — Ore: Tony salva sul lavoro detto, avvisa prima della pausa, la traccia tiene le validazioni
 

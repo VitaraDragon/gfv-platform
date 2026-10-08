@@ -49,7 +49,7 @@ Alias: **segnatura ore** / **segnare ore**, **validazione ore** / **validare ore
 
 ## Form Tony (avanzato)
 
-- **Segnatura ore:** `ora-modal`, mapping **ora**; su versione mobile form inline `quick-hours-form` / contesto `field-workspace-ore-form` in mapping.
+- **Segnatura ore:** `ora-modal`, mapping **ora**; su versione mobile form inline `quick-hours-form` / contesto `field-workspace-ore-form` in mapping. Scelta lavoro: `risolviLavoroDaTesto` in `core/js/tony/tony-ora-lavoro-match.js` (a parità di punteggio vince il lavoro di oggi; senza data non conta come oggi). Il modal si apre solo se il lavoro è univoco. «Tutto pronto» senza nome, anche se arriva dal modello, viene riscritto in `doDisplay`. Etichetta sola lettura `#ora-data-it` (gg/mm/aaaa con giorno); `#ora-data` resta `type=date` e il valore salvato resta ISO.
 - **Lavori:** `lavoro-form` / checklist (assegnazioni squadra/autonomo).
 
 ## Zone lavorate (dettaglio lavoro)
