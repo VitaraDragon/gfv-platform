@@ -22,12 +22,19 @@ import {
     buildSegnaOreMissingFieldsMessage,
     ensureSegnaOreUiVisible,
     resolveOrOpenSegnaOreTarget,
+    getSegnaOreDomFieldIds,
     SEGNA_ORE_ASK_FALLBACK,
     extractSegnaOrePauseMinutesFromUserBlob,
     userBlobMentionsSegnaOrePause,
     clearSpuriousQuickHoursAutofill,
     filtraCampiMezzoNonNominati,
+    utenteHaNominatoMezziSegnaOra,
 } from './tony-segna-ora-local-engine.js';
+import {
+    risolviLavoroDaTesto,
+    messaggioSceltaLavoroOre,
+    nomeLavoroVisibile,
+} from './tony-ora-lavoro-match.js';
 import {
     formReadyForTonySave,
     magazzinoFormReadyForTonySave,
@@ -534,63 +541,19 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
             }
         } catch (e1f) {}
         try {
-            if (!out['ora-lavoro'] && window.currentTableData && Array.isArray(window.currentTableData.items) && window.currentTableData.items.length === 1) {
-                var it = window.currentTableData.items[0];
-                if (it && it.id) out['ora-lavoro'] = it.id;
+            if (!out['ora-lavoro']) {
+                var selPagina = document.getElementById('ora-lavoro') || document.getElementById('selected-work');
+                if (selPagina && String(selPagina.value || '').trim()) out['ora-lavoro'] = String(selPagina.value).trim();
             }
         } catch (e2) {}
         try {
-            if (!out['ora-lavoro'] && window.currentTableData && window.currentTableData.pageType === 'segnatura_ore' &&
-                Array.isArray(window.currentTableData.lavoriItems) && window.currentTableData.lavoriItems.length >= 1) {
-                var itSeg = window.currentTableData.lavoriItems[0];
-                if (itSeg && itSeg.id) out['ora-lavoro'] = itSeg.id;
-            }
-        } catch (e2c) {}
-        try {
-            if (!out['ora-lavoro'] && window.parent && window.parent !== window && window.parent.currentTableData && Array.isArray(window.parent.currentTableData.items) && window.parent.currentTableData.items.length === 1) {
-                var itp = window.parent.currentTableData.items[0];
-                if (itp && itp.id) out['ora-lavoro'] = itp.id;
+            if (!out['ora-lavoro'] && window.parent && window.parent !== window && window.parent.document) {
+                var selParent = window.parent.document.getElementById('ora-lavoro') || window.parent.document.getElementById('selected-work');
+                if (selParent && String(selParent.value || '').trim()) out['ora-lavoro'] = String(selParent.value).trim();
             }
         } catch (e2b) {}
         return out;
     }
-
-    var TONY_ORA_LAVORO_USER_MATCH_STOP = {
-        segnare: 1,
-        segniamo: 1,
-        registare: 1,
-        registrare: 1,
-        oggi: 1,
-        ieri: 1,
-        ore: 1,
-        orario: 1,
-        orari: 1,
-        lavoro: 1,
-        lavori: 1,
-        nelle: 1,
-        nella: 1,
-        nello: 1,
-        negli: 1,
-        delle: 1,
-        della: 1,
-        minuti: 1,
-        pausa: 1,
-        inizio: 1,
-        fine: 1,
-        dalle: 1,
-        alle: 1,
-        confermo: 1,
-        certo: 1,
-        perfetto: 1,
-        quanti: 1,
-        vuoi: 1,
-        quando: 1,
-        dopo: 1,
-        prima: 1,
-        turno: 1,
-        vuole: 1,
-        indicami: 1
-    };
 
     /** Items lavori campo per abbinare il nome nel messaggio utente a ora-lavoro (evita solo il lavoro già selezionato in UI). */
     function tonyGetFieldWorkspaceTableItemsForOraLavoroMatch() {
@@ -618,53 +581,81 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         return [];
     }
 
-    /**
-     * Se il messaggio (solo utente) contiene parole che matchano label/nome/tipo di un solo lavoro in elenco, restituisce il suo id.
-     */
-    function tonyMatchOraLavoroIdFromUserBlob(userBlob) {
-        if (!userBlob || typeof userBlob !== 'string') return null;
-        var items = tonyGetFieldWorkspaceTableItemsForOraLavoroMatch();
-        if (!items || items.length < 1) return null;
-        var lower = userBlob.toLowerCase();
-        var tokens = lower.split(/[^a-zàèéìòù0-9]+/i).filter(function (t) {
-            if (!t || t.length < 4) return false;
-            if (TONY_ORA_LAVORO_USER_MATCH_STOP[t]) return false;
-            return true;
-        });
-        if (!tokens.length) return null;
-        var matches = [];
-        for (var j = 0; j < items.length; j++) {
-            var it = items[j];
-            if (!it || !it.id) continue;
-            var hay = (String(it.label || '') + ' ' + String(it.nome || '') + ' ' + String(it.tipoLavoro || '')).toLowerCase();
-            var bestLen = 0;
-            for (var k = 0; k < tokens.length; k++) {
-                var tok = tokens[k];
-                if (hay.indexOf(tok) >= 0 && tok.length > bestLen) bestLen = tok.length;
-            }
-            if (bestLen > 0) matches.push({ id: String(it.id), score: bestLen });
+    function tonyOggiIsoLocale() {
+        var d = new Date();
+        function p(n) { return (n < 10 ? '0' : '') + n; }
+        return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+    }
+
+    function tonyFinestreSegnaOre() {
+        var wins = [window];
+        try {
+            if (window.parent && window.parent !== window) wins.push(window.parent);
+        } catch (eW) { /* cross-origin */ }
+        return wins;
+    }
+
+    /** Lavori su cui abbinare il nome detto: prima il field workspace, poi la segnatura desktop. */
+    function tonyElencoLavoriPerMatchOra() {
+        var field = tonyGetFieldWorkspaceTableItemsForOraLavoroMatch();
+        if (field && field.length) return field;
+        var wins = tonyFinestreSegnaOre();
+        for (var i = 0; i < wins.length; i++) {
+            var w = wins[i];
+            try {
+                if (w && typeof w.gfvSegnaturaOreLavoriPerTony === 'function') {
+                    var list = w.gfvSegnaturaOreLavoriPerTony();
+                    if (list && list.length) return list;
+                }
+            } catch (eList) { /* ignore */ }
         }
-        if (matches.length === 0) return null;
-        matches.sort(function (a, b) {
-            return b.score - a.score;
-        });
-        if (matches.length >= 2 && matches[0].score === matches[1].score && matches[0].id !== matches[1].id) return null;
-        return matches[0].id;
+        for (var j = 0; j < wins.length; j++) {
+            try {
+                var doc = wins[j] && wins[j].document;
+                var sel = doc && doc.getElementById('ora-lavoro');
+                if (!sel || !sel.options || sel.options.length < 2) continue;
+                var daSelect = [];
+                for (var k = 0; k < sel.options.length; k++) {
+                    var opt = sel.options[k];
+                    if (!opt || !String(opt.value || '').trim()) continue;
+                    daSelect.push({ id: String(opt.value), nome: opt.text || '' });
+                }
+                if (daSelect.length) return daSelect;
+            } catch (eSel) { /* ignore */ }
+        }
+        return [];
+    }
+
+    function tonyRisolviLavoroDalTesto(userBlob) {
+        return risolviLavoroDaTesto(userBlob || '', tonyElencoLavoriPerMatchOra(), { oggiIso: tonyOggiIsoLocale() });
+    }
+
+    function tonyDettaglioLavoroSegnaOre(lavoroId) {
+        var id = String(lavoroId || '');
+        var list = tonyElencoLavoriPerMatchOra();
+        for (var i = 0; i < list.length; i++) {
+            if (list[i] && String(list[i].id) === id) return list[i];
+        }
+        return null;
     }
 
     /**
-     * Risolve ora-lavoro: prima nome lavoro nel messaggio utente (se flusso segna ore), altrimenti contesto pagina / select.
+     * Il testo dell'utente vince sul valore mandato dal modello.
+     * Se il testo non nomina un lavoro, resta quello già scelto nella pagina.
      */
     function tonyResolveOraLavoroForQuickHours(fields, userBlob) {
         var out = fields && typeof fields === 'object' ? Object.assign({}, fields) : {};
         var ub = userBlob != null ? String(userBlob) : '';
-        if (ub && tonyUserMessageSuggestsSegnaOre(ub)) {
-            var mid = tonyMatchOraLavoroIdFromUserBlob(ub);
-            if (mid) {
-                out['ora-lavoro'] = mid;
-                return out;
-            }
+        var esito = ub ? tonyRisolviLavoroDalTesto(ub) : null;
+        if (esito && esito.stato === 'unico' && esito.lavoro && esito.lavoro.id) {
+            out['ora-lavoro'] = String(esito.lavoro.id);
+            return out;
         }
+        if (esito && (esito.stato === 'ambiguo' || (esito.stato === 'nessuno' && esito.nominato))) {
+            delete out['ora-lavoro'];
+            return out;
+        }
+        delete out['ora-lavoro'];
         return tonyTryOraLavoroFromPageContext(out);
     }
 
@@ -2143,17 +2134,148 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         })).catch(function() { return null; });
     }
 
+    function tonyImpostaLavoroSelezionato(target, lavoroId) {
+        if (!target || !target.doc || !lavoroId) return;
+        var ids = getSegnaOreDomFieldIds(target.formKind);
+        var sel = target.doc.getElementById(ids.lavoro);
+        if (!sel && ids.lavoroAlt) sel = target.doc.getElementById(ids.lavoroAlt);
+        if (!sel) return;
+        var id = String(lavoroId);
+        var has = Array.from(sel.options || []).some(function(o) { return String(o.value || '') === id; });
+        if (!has || String(sel.value || '') === id) return;
+        sel.value = id;
+        try { sel.dispatchEvent(new Event('change', { bubbles: true })); } catch (eSet) { /* ignore */ }
+        if (typeof target.window.gfvSegnaturaOreRefreshMacchineFromSelect === 'function') {
+            try { target.window.gfvSegnaturaOreRefreshMacchineFromSelect(); } catch (eRf) { /* ignore */ }
+        }
+    }
+
+    function tonyNomiMezziDalForm(target) {
+        if (!target || !target.doc) return { macchinaNome: '', attrezzoNome: '' };
+        function testo(id) {
+            var el = target.doc.getElementById(id);
+            if (!el || !String(el.value || '').trim()) return '';
+            var opt = el.selectedOptions && el.selectedOptions[0];
+            var t = opt ? String(opt.text || '').trim() : '';
+            if (!t || /nessun/i.test(t)) return '';
+            return t;
+        }
+        return { macchinaNome: testo('ora-macchina'), attrezzoNome: testo('ora-attrezzo') };
+    }
+
+    function tonyOpzioniRiepilogoSegnaOre(target, state, userBlob) {
+        var lavoroId = state && state.lavoroVal ? String(state.lavoroVal) : '';
+        var det = lavoroId ? tonyDettaglioLavoroSegnaOre(lavoroId) : null;
+        var nome = det ? nomeLavoroVisibile(det) : '';
+        if (!nome && target && target.doc && state && state.lavoroVal) {
+            var ids = getSegnaOreDomFieldIds(target.formKind);
+            var sel = target.doc.getElementById(ids.lavoro);
+            if (sel && sel.selectedOptions && sel.selectedOptions[0]) {
+                nome = String(sel.selectedOptions[0].text || '').trim();
+            }
+        }
+        var mezzi = { macchinaNome: det && det.macchinaNome ? det.macchinaNome : '', attrezzoNome: det && det.attrezzoNome ? det.attrezzoNome : '' };
+        if (utenteHaNominatoMezziSegnaOra(userBlob || '')) {
+            var dalForm = tonyNomiMezziDalForm(target);
+            if (dalForm.macchinaNome) mezzi.macchinaNome = dalForm.macchinaNome;
+            if (dalForm.attrezzoNome) mezzi.attrezzoNome = dalForm.attrezzoNome;
+        }
+        return {
+            lavoroNome: nome,
+            macchinaNome: mezzi.macchinaNome || '',
+            attrezzoNome: mezzi.attrezzoNome || ''
+        };
+    }
+
+    function tonyMemorizzaRiepilogoSegnaOre(state, optsRiepilogo) {
+        try {
+            window.__tonySegnaOreRiepilogo = {
+                lavoroId: state && state.lavoroVal ? String(state.lavoroVal) : '',
+                lavoroNome: (optsRiepilogo && optsRiepilogo.lavoroNome) || '',
+                inizio: state && state.startVal ? state.startVal : '',
+                fine: state && state.endVal ? state.endVal : '',
+                pausa: state && state.pauseVal !== '' && state.pauseVal != null ? String(state.pauseVal) : '0'
+            };
+        } catch (eMem) { /* ignore */ }
+    }
+
+    function tonyMessaggioFattoSegnaOre() {
+        var riep = window.__tonySegnaOreRiepilogo || {};
+        var nome = riep.lavoroNome || 'questo lavoro';
+        var fascia = (riep.inizio && riep.fine) ? (' (' + riep.inizio + '–' + riep.fine + ')') : '';
+        return 'Fatto: ora segnata su ' + nome + fascia + '.';
+    }
+
     /**
-     * Prima di «Tutto pronto» controlla se l'orario è già occupato.
+     * Appena ci sono data, inizio e fine controlla la sovrapposizione, anche se manca la pausa.
+     * Il lavoro si chiede prima, se il testo non ne indica uno solo.
      * @returns {Promise<string>}
      */
     function tonyMessaggioSegnaOre(target, state, opts) {
-        var msg = buildSegnaOreMissingFieldsMessage(state, opts || {});
-        if (!/^Tutto pronto/i.test(msg)) return Promise.resolve(msg);
-        return tonyControllaSovrapposizioneTarget(target, state).then(function(check) {
-            if (check && check.conflitti && check.conflitti.length && check.messaggio) return check.messaggio;
+        opts = opts || {};
+        var ub = '';
+        try { ub = tonyBuildSegnaOraUserBlobLastNUserTurns(6); } catch (eUb) { ub = ''; }
+        var esito = ub ? tonyRisolviLavoroDalTesto(ub) : null;
+        var domanda = messaggioSceltaLavoroOre(esito);
+        if (domanda) return Promise.resolve(domanda);
+        if (esito && esito.stato === 'unico' && esito.lavoro && state) {
+            tonyImpostaLavoroSelezionato(target, esito.lavoro.id);
+            var riletto = target ? readSegnaOreDomState(target) : null;
+            if (riletto) state = riletto;
+            state.lavoroVal = String(esito.lavoro.id);
+            state.lavoroNome = nomeLavoroVisibile(esito.lavoro);
+        } else if (state && !state.lavoroVal) {
+            var candidati = (esito && esito.candidati) || tonyElencoLavoriPerMatchOra();
+            var nomi = [];
+            for (var i = 0; i < candidati.length && nomi.length < 8; i++) {
+                var n = nomeLavoroVisibile(candidati[i]);
+                if (n) nomi.push(n);
+            }
+            if (nomi.length) return Promise.resolve('Su quale lavoro? I lavori di oggi sono: ' + nomi.join(', ') + '.');
+            return Promise.resolve('Su quale lavoro segno le ore?');
+        }
+        var optsMsg = Object.assign({}, opts, tonyOpzioniRiepilogoSegnaOre(target, state, ub));
+        function messaggioSeLibero() {
+            var msg = buildSegnaOreMissingFieldsMessage(state, optsMsg);
+            if (/^Tutto pronto/i.test(msg)) tonyMemorizzaRiepilogoSegnaOre(state, optsMsg);
             return msg;
-        });
+        }
+        if (state && state.dateVal && state.startVal && state.endVal) {
+            return tonyControllaSovrapposizioneTarget(target, state).then(function(check) {
+                if (check && check.conflitti && check.conflitti.length && check.messaggio) return check.messaggio;
+                return messaggioSeLibero();
+            });
+        }
+        return Promise.resolve(messaggioSeLibero());
+    }
+
+    /**
+     * Se il select è vuoto, mette l'id del riepilogo. Se è un altro lavoro, non salva.
+     * @returns {{ state: object|null, blocco: string }}
+     */
+    function tonyAllineaLavoroRiepilogoNelForm(target, state) {
+        var riep = window.__tonySegnaOreRiepilogo;
+        if (!riep || !riep.lavoroId || !target || !target.doc) return { state: state, blocco: '' };
+        var ids = getSegnaOreDomFieldIds(target.formKind);
+        var sel = target.doc.getElementById(ids.lavoro);
+        if (!sel && ids.lavoroAlt) sel = target.doc.getElementById(ids.lavoroAlt);
+        var attuale = state && state.lavoroVal ? String(state.lavoroVal) : '';
+        if (!attuale && sel) {
+            var has = Array.from(sel.options || []).some(function(o) { return String(o.value || '') === String(riep.lavoroId); });
+            if (has) {
+                sel.value = String(riep.lavoroId);
+                try { sel.dispatchEvent(new Event('change', { bubbles: true })); } catch (eCh) { /* ignore */ }
+                if (typeof target.window.gfvSegnaturaOreRefreshMacchineFromSelect === 'function') {
+                    try { target.window.gfvSegnaturaOreRefreshMacchineFromSelect(); } catch (eRf) { /* ignore */ }
+                }
+                state = readSegnaOreDomState(target) || state;
+                attuale = state && state.lavoroVal ? String(state.lavoroVal) : '';
+            }
+        }
+        if (String(attuale) !== String(riep.lavoroId)) {
+            return { state: state, blocco: 'Il lavoro nel modulo non è quello che mi hai detto. Lo correggo?' };
+        }
+        return { state: state, blocco: '' };
     }
 
     /** Il «sì» dopo il riepilogo con la pausa conferma anche la pausa mostrata. */
@@ -2184,7 +2306,14 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         function runSubmitAfterMs(ms) {
             setTimeout(function() {
                 tonyAckPauseSeRiepilogoConfermato();
+                if (target.window && target.window.__gfvOreSalvataggioInCorso) return;
                 var state = readSegnaOreDomState(target);
+                var allineato = tonyAllineaLavoroRiepilogoNelForm(target, state);
+                state = allineato.state;
+                if (allineato.blocco) {
+                    if (typeof showMessageInChat === 'function') showMessageInChat(allineato.blocco, 'tony');
+                    return;
+                }
                 if (!state || !state.dateVal || !state.startVal || !state.endVal) {
                     if (typeof showMessageInChat === 'function') {
                         showMessageInChat('Indica data, orario inizio e fine (es. «dalle 7 alle 18») così compilo e salvo.', 'error');
@@ -2217,30 +2346,35 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                     if (btn) btn.click();
                 }
                 setTimeout(function () {
+                    function scrivi(testo, tipo) {
+                        if (typeof showMessageInChat === 'function' && testo) showMessageInChat(testo, tipo || 'tony');
+                    }
+                    function azzeraIntervista() {
+                        try {
+                            window.__tonyQuickHoursPauseAckAt = 0;
+                            window.__tonySegnaOraLocalInterviewAt = 0;
+                        } catch (eReset) { /* ignore */ }
+                    }
                     if (formKind === 'quick-hours') {
                         var statusEl = target.doc.getElementById('hours-save-status');
                         var statusTxt = statusEl ? String(statusEl.textContent || '').trim() : '';
                         if (/^Ore salvate:/i.test(statusTxt)) {
-                            if (typeof showMessageInChat === 'function') showMessageInChat(statusTxt, 'tony');
-                            try {
-                                window.__tonyQuickHoursPauseAckAt = 0;
-                                window.__tonySegnaOraLocalInterviewAt = 0;
-                            } catch (eReset) { /* ignore */ }
-                        } else if (/^Errore salvataggio:/i.test(statusTxt) && typeof showMessageInChat === 'function') {
-                            showMessageInChat(statusTxt, 'error');
+                            scrivi(tonyMessaggioFattoSegnaOre(), 'tony');
+                            azzeraIntervista();
+                        } else if (/^Errore salvataggio:/i.test(statusTxt)) {
+                            scrivi(statusTxt, 'error');
+                        } else {
+                            scrivi('Non vedo la conferma del salvataggio. Controlla le ore del giorno.', 'tony');
                         }
                     } else {
                         var toasts = target.doc.querySelectorAll('#gfv-standalone-toast-layer .alert, #alert-container .alert-success');
                         var saved = Array.from(toasts).some(function(t) {
                             return /Ora segnata con successo/i.test(t.textContent || '');
                         });
-                        if (saved && typeof showMessageInChat === 'function') {
-                            showMessageInChat('Ora segnata con successo.', 'tony');
-                            try {
-                                window.__tonyQuickHoursPauseAckAt = 0;
-                                window.__tonySegnaOraLocalInterviewAt = 0;
-                            } catch (eReset2) { /* ignore */ }
-                        } else if (typeof showMessageInChat === 'function') {
+                        if (saved) {
+                            scrivi(tonyMessaggioFattoSegnaOre(), 'tony');
+                            azzeraIntervista();
+                        } else {
                             var errToast = Array.from(toasts).find(function(t) {
                                 var cls = t.className || '';
                                 var txt = String(t.textContent || '').trim();
@@ -2255,7 +2389,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             var testoErrore = errToast
                                 ? String(errToast.textContent || '').trim()
                                 : overlapTxt;
-                            if (testoErrore) showMessageInChat(testoErrore, 'error');
+                            scrivi(testoErrore || 'Non vedo la conferma del salvataggio. Controlla l\'elenco delle ore.', testoErrore ? 'error' : 'tony');
                         }
                     }
                 }, formKind === 'quick-hours' ? 1200 : 2000);

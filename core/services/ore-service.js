@@ -22,6 +22,8 @@ import {
   buildVoceStorico,
   aggiungiVoceStorico,
   snapshotCampiOra,
+  assicuraVoceValidazione,
+  assicuraVoceRifiuto,
   pianoRettificaOreMacchina,
   oreMacchinaDaSalvare,
   deveRichiedereRefreshSkill
@@ -651,6 +653,7 @@ export async function modificaOraPropria(db, tenantId, user, lavoroId, oraId, pa
     note: norm.note,
     stato: 'da_validare'
   };
+  const storicoConRifiuto = assicuraVoceRifiuto(ora.storicoModifiche, ora);
   const update = {
     data: Timestamp.fromDate(norm.giorno),
     orarioInizio: norm.orarioInizio,
@@ -668,7 +671,7 @@ export async function modificaOraPropria(db, tenantId, user, lavoroId, oraId, pa
     modificatoDa: userId,
     modificatoIl: serverTimestamp(),
     storicoModifiche: aggiungiVoceStorico(
-      ora.storicoModifiche,
+      storicoConRifiuto,
       voceStorico('modifica', userId, '', ora, dopo, Timestamp)
     )
   };
@@ -752,7 +755,7 @@ async function chiediRefreshSkill(tenantId, operaioId, userId, isManager) {
 export async function validaOraContesto(db, tenantId, user, lavoroId, oraId) {
   const { userId, isCaposquadra, isManager } = richiediContesto(db, tenantId, user);
   if (!lavoroId || !oraId) throw new Error('ID lavoro e ora obbligatori');
-  const { doc, getDoc, updateDoc, serverTimestamp } = await firebaseOre();
+  const { doc, getDoc, updateDoc, Timestamp } = await firebaseOre();
   const lavoro = await leggiLavoro(db, doc, getDoc, tenantId, lavoroId);
   const ora = await leggiOra(db, doc, getDoc, tenantId, lavoroId, oraId);
   if (ora.stato !== 'da_validare') throw new Error('Questa ora è già stata validata o rifiutata');
@@ -764,12 +767,25 @@ export async function validaOraContesto(db, tenantId, user, lavoroId, oraId) {
     isManager
   });
   const macchina = await contabilizzaAllaValidazione(tenantId, ora);
+  const ilValidazione = Timestamp.now();
+  const dopoValidazione = { ...snapshotCampiOra(ora), stato: 'validate' };
   const update = {
     stato: 'validate',
     validatoDa: userId,
-    validatoIl: serverTimestamp(),
+    validatoIl: ilValidazione,
     rifiutatoDa: null,
-    motivoRifiuto: null
+    motivoRifiuto: null,
+    storicoModifiche: aggiungiVoceStorico(
+      ora.storicoModifiche,
+      buildVoceStorico({
+        azione: 'validazione',
+        da: userId,
+        il: ilValidazione,
+        motivo: '',
+        prima: ora,
+        dopo: dopoValidazione
+      })
+    )
   };
   if (macchina.contabilizzate) update.oreMacchinaContabilizzate = macchina.contabilizzate;
   await updateDoc(ora.ref, update);
@@ -938,12 +954,13 @@ async function togliValidazioneConRettifica(db, tenantId, user, lavoroId, oraId,
     azzera = true;
   }
   const dopo = { ...snapshotCampiOra(ora), stato: patchStato.stato };
+  const storicoConValidazione = assicuraVoceValidazione(ora.storicoModifiche, ora);
   const update = {
     ...patchStato,
     modificatoDa: userId,
     modificatoIl: serverTimestamp(),
     storicoModifiche: aggiungiVoceStorico(
-      ora.storicoModifiche,
+      storicoConValidazione,
       voceStorico(azioneStorico, userId, motivoTesto, ora, dopo, Timestamp)
     )
   };
