@@ -88,11 +88,14 @@ Nella scheda **Ore**, in alto, compila il modulo **Segna ore**.
 4. **Note** — utili ma facoltative (es. “solo mattina”, “interruzione per pioggia”).  
 5. Tocca **Salva ore lavorate**.
 
+Sotto il modulo c’è **Le tue ore del giorno**: i turni di quel giorno, con lavoro, orario, pausa, ore nette e stato. Due turni non possono coprirsi; toccarsi al cambio orario va bene (finisci alle 12:00 e riparti alle 12:00).
+
 ### Dopo il salvataggio
 
 - Può comparire un messaggio di conferma o uno **stato** sulla registrazione: leggi ciò che dice la tua schermata.  
 - Se dopo il salvataggio il modulo si **svuota**, è normale: puoi inserire un altro giorno o turno.  
-- Per **correggere** un errore dopo il salvataggio, segui la procedura che ti indicano in azienda (a volte serve un contatto con l’ufficio).
+- Finché la riga è **in attesa** o **rifiutata** puoi **modificarla** o **eliminarla** dal riquadro del giorno. Il lavoro non si cambia: per un altro lavoro elimina e segna di nuovo. Una riga **rifiutata**, dopo la modifica, torna in attesa.  
+- Su una riga **validata** non puoi fare nulla: chiedi al caposquadra, oppure al manager se il lavoro è autonomo.
 
 ---
 

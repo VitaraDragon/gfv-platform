@@ -48,6 +48,13 @@ export async function runGestioneLavoriDataEditAssertions(page, expect) {
       nome: E2E_LAVORO_DATA_NOME,
       note: E2E_LAVORO_DATA_NOTE,
     });
+    await page.waitForFunction(
+      (marker) => Array.from(document.querySelectorAll('#lavori-container .lavori-table tbody tr')).some(
+        (tr) => (tr.textContent || '').includes(marker)
+      ),
+      E2E_LAVORO_DATA_NOME,
+      { timeout: 30_000 }
+    );
     await clearLavoriFilters(page);
     markerRows = lavoriRowsWithMarker(page, E2E_LAVORO_DATA_NOME);
   }

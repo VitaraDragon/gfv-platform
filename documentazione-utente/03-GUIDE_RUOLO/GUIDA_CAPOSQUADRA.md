@@ -177,10 +177,10 @@ Gli operai riceveranno la comunicazione nella loro dashboard.
    - **Ore Totali**: Ore calcolate
    - **Note**: Note aggiunte dall'operaio
 4. Scegli azione:
-   - **Approva**: Approva l'ora
-   - **Rifiuta**: Rifiuta l'ora (aggiungi motivo)
-5. Aggiungi note se necessario
-6. Conferma
+   - **Valida**: approva subito, senza una seconda conferma
+   - **Rifiuta**: rifiuta l’ora (motivo obbligatorio)
+   - **Correggi**: sistema orari, pausa, note o ore macchina prima di validare (motivo breve obbligatorio)
+5. Se più righe vanno bene insieme, usa **Valida selezionate** o **Valida tutte**: in quel caso c’è una sola conferma. Se alcune righe si sovrappongono, la conferma lo dice.
 
 ### Rifiutare Ore
 
@@ -193,9 +193,20 @@ Se rifiuti un'ora:
 ### Approvare Multiple Ore
 
 1. Vai su **Validazione Ore**
-2. Seleziona multiple ore (checkbox)
-3. Clicca **Approva Selezionate**
-4. Conferma
+2. Seleziona le ore (checkbox) e clicca **Valida selezionate**, oppure **Valida tutte**
+3. Conferma una volta sola
+
+### Dopo la validazione
+
+Nella sezione **Ore validate (ultimi 30 giorni)** vedi le ore già approvate dei tuoi operai (non le tue). Su una riga validata puoi:
+
+- **Correggi**: cambi orari, pausa, note o ore macchina; la riga resta validata
+- **Annulla validazione**: torna in attesa
+- **Rifiuta / togli**: la segni come rifiutata, con motivo. Non si cancella: resta la traccia
+
+Ogni azione chiede un motivo breve. Le tue ore le corregge il manager.
+
+Nella versione mobile, sotto **Valida ore**, ogni riga mostra la pausa e un avviso se si sovrappone a un altro turno dello stesso operaio.
 
 ## 📊 Statistiche Squadra
 

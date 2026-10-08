@@ -422,7 +422,7 @@
       "persona": "operaio",
       "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsOperaioFromDevPage",
-      "messages": ["segniamo le ore", "8", "17", "0", "ok"],
+      "messages": ["segniamo le ore", "13", "17", "0", "ok"],
       "mockCf": false,
       "expect": {
         "clientRecovery": true,
@@ -445,7 +445,10 @@
       "persona": "caposquadra",
       "startUrl": "/core/segnatura-ore-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsCapoFromDevPage",
-      "messages": ["dalle 8 alle 17 con 0 minuti di pausa", "ok"],
+      "messages": [
+        "dalle 13 alle 17 con 0 minuti di pausa",
+        "ok"
+      ],
       "mockCf": false,
       "expect": {
         "clientRecovery": true,

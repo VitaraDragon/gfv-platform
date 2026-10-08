@@ -4,7 +4,7 @@
  * @module core/js/dashboard-data
  */
 
-import { query, where } from '../services/firebase-service.js';
+import { query, where, doc, getDoc } from '../services/firebase-service.js';
 import { isTipoFlotta } from '../../modules/parco-macchine/lib/macchine-tipo-utils.js';
 import {
     confermeIncludesUser,
@@ -1604,9 +1604,11 @@ export async function loadStatisticheOreOperaio(userData, dependencies) {
                     const ora = oraDoc.data();
                     const oreNette = ora.oreNette || 0;
                     const stato = ora.stato || 'da_validare';
-                    
                     const oreMinuti = Math.round(oreNette * 60);
-                    totaleOreMinuti += oreMinuti;
+
+                    if (stato !== 'rifiutate') {
+                        totaleOreMinuti += oreMinuti;
+                    }
                     
                     if (stato === 'validate') {
                         oreValidate += oreMinuti;
@@ -1624,7 +1626,9 @@ export async function loadStatisticheOreOperaio(userData, dependencies) {
                         data: dataOra,
                         oreNette: oreNette,
                         stato: stato,
-                        note: ora.note || ''
+                        note: ora.note || '',
+                        validatoDa: ora.validatoDa || '',
+                        validatoIl: ora.validatoIl || null
                     });
                 });
             } catch (error) {
@@ -1647,6 +1651,22 @@ export async function loadStatisticheOreOperaio(userData, dependencies) {
         document.getElementById('stat-stato-operaio').textContent = statoLabel;
         
         oreRecenti.sort((a, b) => b.data - a.data);
+        const ultime = oreRecenti.slice(0, 5);
+        const nomiValidatori = new Map();
+        for (const ora of ultime) {
+            const uid = ora.validatoDa;
+            if (!uid || nomiValidatori.has(uid) || ora.stato !== 'validate') continue;
+            try {
+                const userDoc = await getDoc(doc(db, 'users', uid));
+                if (userDoc.exists()) {
+                    const u = userDoc.data();
+                    const nome = `${u.nome || ''} ${u.cognome || ''}`.trim() || u.email || '';
+                    if (nome) nomiValidatori.set(uid, nome);
+                }
+            } catch (error) {
+                console.warn('Nome validatore non letto', uid, error);
+            }
+        }
         
         const container = document.getElementById('mie-ore-operaio-section');
         if (!container) return;
@@ -1687,7 +1707,7 @@ export async function loadStatisticheOreOperaio(userData, dependencies) {
             <ul class="recent-items">
         `;
         
-        oreRecenti.slice(0, 5).forEach(ora => {
+        ultime.forEach(ora => {
             const dataFormatted = formatDateLikeToItalianLongLocal(ora.data);
             const oreFormatted = Math.floor(ora.oreNette) + 'h ' + Math.round((ora.oreNette % 1) * 60) + 'min';
             const statoBadge = {
@@ -1695,13 +1715,21 @@ export async function loadStatisticheOreOperaio(userData, dependencies) {
                 'da_validare': '<span style="background: #ff9800; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">⏳ Da validare</span>',
                 'rifiutate': '<span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">❌ Rifiutate</span>'
             }[ora.stato] || '';
+            let traccia = '';
+            if (ora.stato === 'validate' && (ora.validatoDa || ora.validatoIl)) {
+                const chi = nomiValidatori.get(ora.validatoDa) || '';
+                const quando = formatDateLikeToItalianLongLocal(ora.validatoIl);
+                if (chi && quando) traccia = ` · validata da ${escapeHtml(chi)} il ${quando}`;
+                else if (quando) traccia = ` · validata il ${quando}`;
+                else if (chi) traccia = ` · validata da ${escapeHtml(chi)}`;
+            }
             
             html += `
                 <li class="recent-item">
                     <div>
                         <div class="recent-item-title">${escapeHtml(ora.lavoroNome)} ${statoBadge}</div>
                         <div class="recent-item-description">
-                            ${dataFormatted} • ${oreFormatted}${ora.note ? ' • ' + escapeHtml(ora.note) : ''}
+                            ${dataFormatted} • ${oreFormatted}${traccia}${ora.note ? ' • ' + escapeHtml(ora.note) : ''}
                         </div>
                     </div>
                 </li>
