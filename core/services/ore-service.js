@@ -23,7 +23,8 @@ import {
   aggiungiVoceStorico,
   snapshotCampiOra,
   pianoRettificaOreMacchina,
-  oreMacchinaDaSalvare
+  oreMacchinaDaSalvare,
+  deveRichiedereRefreshSkill
 } from './ore-operai-logic.js';
 
 /**
@@ -733,11 +734,11 @@ async function contabilizzaAllaValidazione(tenantId, oraData) {
   }
 }
 
-async function chiediRefreshSkill(tenantId, operaioId, userId) {
-  if (!operaioId) return;
+async function chiediRefreshSkill(tenantId, operaioId, userId, isManager) {
+  if (!deveRichiedereRefreshSkill(isManager) || !operaioId) return;
   try {
-    const { requestSkillCalcolateRefresh } = await import('./profilo-manodopera-skill-auto-refresh.js');
-    requestSkillCalcolateRefresh(tenantId, operaioId, userId);
+    const { chiediRefreshSkillOreValidate } = await import('./ore-skill-refresh-client.js');
+    await chiediRefreshSkillOreValidate({ tenantId, operaioId, userId, isManager: true });
   } catch (error) {
     console.warn('Refresh skill non eseguito:', error);
   }
@@ -772,7 +773,7 @@ export async function validaOraContesto(db, tenantId, user, lavoroId, oraId) {
   };
   if (macchina.contabilizzate) update.oreMacchinaContabilizzate = macchina.contabilizzate;
   await updateDoc(ora.ref, update);
-  await chiediRefreshSkill(tenantId, ora.operaioId, userId);
+  await chiediRefreshSkill(tenantId, ora.operaioId, userId, isManager);
   return { avvisi: macchina.avviso ? [macchina.avviso] : [] };
 }
 
@@ -896,6 +897,9 @@ export async function correggiOra(db, tenantId, user, lavoroId, oraId, patch, mo
     update.oreMacchinaContabilizzate = prossimoCont;
   }
   await updateDoc(ora.ref, update);
+  if (ora.stato === 'validate') {
+    await chiediRefreshSkill(tenantId, ora.operaioId, userId, isManager);
+  }
   return { avvisi };
 }
 
@@ -945,6 +949,7 @@ async function togliValidazioneConRettifica(db, tenantId, user, lavoroId, oraId,
   };
   if (azzera) update.oreMacchinaContabilizzate = null;
   await updateDoc(ora.ref, update);
+  await chiediRefreshSkill(tenantId, ora.operaioId, userId, isManager);
   return { avvisi };
 }
 

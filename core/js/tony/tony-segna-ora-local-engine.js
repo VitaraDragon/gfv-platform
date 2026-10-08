@@ -189,7 +189,7 @@ export function listSegnaOreMissingRequired(state, opts) {
   if (!state.dateVal) missing.push('data');
   if (!state.startVal) missing.push('orario di inizio');
   if (!state.endVal) missing.push('orario di fine');
-  var pauseKnown = state.pauseVal !== '' || !!opts.pauseAcknowledged;
+  var pauseKnown = segnaOrePauseConfermata(state, opts);
   if (state.startVal && state.endVal && !pauseKnown) missing.push('minuti di pausa');
   return missing;
 }
@@ -223,6 +223,23 @@ export function buildSegnaOreMissingFieldsMessage(state, opts) {
     return 'Mi manca: ' + one + '.';
   }
   return 'Mi servono: ' + missing.join(', ') + '. Esempio: «dalle 7 alle 18, pausa 30».';
+}
+
+/**
+ * La pausa 0 del form è il valore iniziale. Vale come detta solo se l'utente l'ha confermata
+ * o se il numero è diverso da zero.
+ * @param {ReturnType<typeof readSegnaOreDomState>|null} state
+ * @param {{ pauseAcknowledged?: boolean }} [opts]
+ * @returns {boolean}
+ */
+export function segnaOrePauseConfermata(state, opts) {
+  opts = opts || {};
+  if (opts.pauseAcknowledged) return true;
+  if (!state || state.pauseVal === '' || state.pauseVal == null) return false;
+  var n = parseInt(String(state.pauseVal), 10);
+  if (!Number.isFinite(n)) return false;
+  if (n === 0) return false;
+  return true;
 }
 
 export function extractSegnaOrePauseMinutesFromUserBlob(userBlob) {
@@ -266,9 +283,51 @@ export function userBlobMentionsSegnaOrePause(userBlob) {
 export function userBlobAcknowledgesZeroPause(userBlob) {
   var ub = String(userBlob || '').trim();
   if (!ub) return false;
+  if (extractSegnaOrePauseMinutesFromUserBlob(ub) === 0) return true;
   if (/^\s*(\d{1,3})\s*$/.test(ub)) return parseInt(ub, 10) === 0;
   if (/^\s*(nessuna|nessun|niente|nulla)\s*$/i.test(ub)) return true;
   return /nessun[ao]?\s+pausa|senza\s+pausa|no\s+pausa|zero\s+pausa|non\s+ho\s+fatto\s+pausa/i.test(ub);
+}
+
+var CAMPI_MEZZO_SEGNA_ORA = [
+  'ora-macchina',
+  'ora-attrezzo',
+  'ora-ore-macchina',
+  'attivita-macchina',
+  'attivita-attrezzo',
+  'attivita-ore-macchina',
+];
+
+/**
+ * True se nei turni di questa segnatura l'utente ha nominato macchina o attrezzo.
+ * @param {string} userBlob
+ * @param {object} [formData]
+ * @returns {boolean}
+ */
+export function utenteHaNominatoMezziSegnaOra(userBlob, formData) {
+  var blob = String(userBlob || '').toLowerCase();
+  if (/\b(macchin[ae]|trattor[ei]|attrezzo|attrezzi|rimorchio|rimorchi)\b/i.test(blob)) return true;
+  var fd = formData || {};
+  var vals = [fd['ora-macchina'], fd['ora-attrezzo'], fd['attivita-macchina'], fd['attivita-attrezzo']];
+  for (var i = 0; i < vals.length; i++) {
+    var v = String(vals[i] || '').trim().toLowerCase();
+    if (v.length >= 3 && blob.indexOf(v) >= 0) return true;
+  }
+  return false;
+}
+
+/**
+ * Scarta macchina e attrezzo se l'utente non li ha nominati in questa segnatura.
+ * Dopo l'iniezione del lavoro, la pagina mette i mezzi del lavoro scelto.
+ * @param {object} formData
+ * @param {string} userBlob
+ * @returns {object}
+ */
+export function filtraCampiMezzoNonNominati(formData, userBlob) {
+  var fd = Object.assign({}, formData || {});
+  if (utenteHaNominatoMezziSegnaOra(userBlob, fd)) return fd;
+  CAMPI_MEZZO_SEGNA_ORA.forEach(function (k) { delete fd[k]; });
+  return fd;
 }
 
 /**
@@ -408,5 +467,8 @@ if (typeof window !== 'undefined') {
     userBlobAcknowledgesZeroPause,
     extractSegnaOrePauseMinutesFromUserBlob,
     userBlobMentionsSegnaOrePause,
+    segnaOrePauseConfermata,
+    filtraCampiMezzoNonNominati,
+    utenteHaNominatoMezziSegnaOra,
   };
 }

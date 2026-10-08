@@ -12,12 +12,12 @@ function ensureToastLayer() {
         layer.id = TOAST_LAYER_ID;
         layer.setAttribute('role', 'status');
         layer.setAttribute('aria-live', 'polite');
-        document.body.appendChild(layer);
     }
+    document.body.appendChild(layer);
     return layer;
 }
 
-function renderStandaloneAlert(message, type = 'success', durationMs = 5000) {
+function renderStandaloneAlert(message, type = 'success', durationMs = 6000) {
     const container = ensureToastLayer();
     const alert = document.createElement('div');
     alert.className = `alert alert-${type}`;
@@ -35,7 +35,7 @@ function renderStandaloneAlert(message, type = 'success', durationMs = 5000) {
  * @param {string} type - success | error | warning | info
  * @param {number} durationMs
  */
-export function showStandaloneAlert(message, type = 'success', durationMs = 5000) {
+export function showStandaloneAlert(message, type = 'success', durationMs = 6000) {
     const globalAlert =
         typeof window !== 'undefined' && typeof window.gfvShowAlert === 'function'
             ? window.gfvShowAlert

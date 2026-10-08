@@ -198,7 +198,7 @@ Se rifiuti un'ora:
 
 ### Dopo la validazione
 
-Nella sezione **Ore validate (ultimi 30 giorni)** vedi le ore già approvate dei tuoi operai (non le tue). Su una riga validata puoi:
+Negli **ultimi 30 giorni** vedi le ore già approvate e quelle rifiutate dei tuoi operai (non le tue), con chi, quando e il motivo. I contatori seguono lo stesso elenco. Su una riga validata puoi:
 
 - **Correggi**: cambi orari, pausa, note o ore macchina; la riga resta validata
 - **Annulla validazione**: torna in attesa
@@ -206,7 +206,7 @@ Nella sezione **Ore validate (ultimi 30 giorni)** vedi le ore già approvate dei
 
 Ogni azione chiede un motivo breve. Le tue ore le corregge il manager.
 
-Nella versione mobile, sotto **Valida ore**, ogni riga mostra la pausa e un avviso se si sovrappone a un altro turno dello stesso operaio.
+Nella versione mobile, sotto **Valida ore**, ogni riga mostra la pausa, la nota, la macchina se c’è, e un avviso se si sovrappone a un altro turno dello stesso operaio. Se il motivo del rifiuto manca, resta l’avviso «Scrivi il motivo: è obbligatorio.». Le stelline delle competenze, dopo una tua validazione, si aggiornano quando agisce il manager.
 
 ## 📊 Statistiche Squadra
 
