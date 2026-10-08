@@ -10,7 +10,10 @@ import {
   aggiungiVoceStorico,
   buildVoceStorico,
   pianoRettificaOreMacchina,
-  calcolaOreNette
+  calcolaOreNette,
+  creaErroreSovrapposizione,
+  testoErroreSalvataggioOre,
+  oreMacchinaDaSalvare
 } from '../../core/services/ore-operai-logic.js';
 
 const lavoroSquadra = { caposquadraId: 'capo1', operaioId: null };
@@ -296,8 +299,15 @@ describe('pianoRettificaOreMacchina', () => {
     expect(piano.prossimoContabilizzate).toBeNull();
   });
 
-  it('senza oreMacchinaContabilizzate non tocca la macchina', () => {
+  it('senza mezzo e senza contabilizzate non avvisa', () => {
     const piano = pianoRettificaOreMacchina(null, 'annulla');
+    expect(piano.operazioni).toEqual([]);
+    expect(piano.avviso).toBe('');
+    expect(piano.azzeraCampo).toBe(false);
+  });
+
+  it('senza contabilizzate ma con macchina avvisa e non tocca il contatore', () => {
+    const piano = pianoRettificaOreMacchina(null, 'annulla', null, { macchinaId: 'mac1' });
     expect(piano.operazioni).toEqual([]);
     expect(piano.avviso).toMatch(/verificare a mano/);
     expect(piano.azzeraCampo).toBe(false);
@@ -307,5 +317,35 @@ describe('pianoRettificaOreMacchina', () => {
     });
     expect(senzaOre.operazioni).toEqual([]);
     expect(senzaOre.avviso).toMatch(/verificare a mano/);
+  });
+});
+
+describe('testo errore salvataggio sovrapposizione', () => {
+  it('il prefisso Errore salvataggio è quello che Tony riconosce', () => {
+    const err = creaErroreSovrapposizione([
+      { orarioInizio: '07:30', orarioFine: '12:00' }
+    ]);
+    expect(err.code).toBe('ORE_SOVRAPPOSTE');
+    const testo = testoErroreSalvataggioOre(err);
+    expect(testo.startsWith('Errore salvataggio: ')).toBe(true);
+    expect(/^Errore salvataggio:/i.test(testo)).toBe(true);
+    expect(testo).toMatch(/07:30/);
+  });
+});
+
+describe('ore macchina di default', () => {
+  it('con macchina e campo vuoto salva le ore nette', () => {
+    expect(oreMacchinaDaSalvare({ macchinaId: 'mac1', oreMacchina: '' }, 4)).toBe(4);
+    expect(oreMacchinaDaSalvare({ attrezzoId: 'att1', oreMacchina: null }, 3.5)).toBe(3.5);
+  });
+
+  it('senza macchina né attrezzo lascia il campo vuoto', () => {
+    expect(oreMacchinaDaSalvare({ oreMacchina: 8 }, 4)).toBe(null);
+    expect(oreMacchinaDaSalvare({}, 4)).toBe(null);
+  });
+
+  it('un valore numerico esplicito resta quello indicato', () => {
+    expect(oreMacchinaDaSalvare({ macchinaId: 'mac1', oreMacchina: 2 }, 4)).toBe(2);
+    expect(oreMacchinaDaSalvare({ macchinaId: 'mac1', oreMacchina: 0 }, 4)).toBe(0);
   });
 });

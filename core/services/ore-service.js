@@ -22,7 +22,8 @@ import {
   buildVoceStorico,
   aggiungiVoceStorico,
   snapshotCampiOra,
-  pianoRettificaOreMacchina
+  pianoRettificaOreMacchina,
+  oreMacchinaDaSalvare
 } from './ore-operai-logic.js';
 
 /**
@@ -530,19 +531,20 @@ function normalizzaPayloadOra(oraData) {
   if (err) throw new Error(err);
   const giorno = dataMezzanotteLocale(oraData.data);
   if (!giorno || Number.isNaN(giorno.getTime())) throw new Error('Data obbligatoria');
+  const macchinaId = oraData.macchinaId || null;
+  const attrezzoId = oraData.attrezzoId || null;
+  const oreNette = calcolaOreNettePura(orarioInizio, orarioFine, pauseMinuti);
   return {
     orarioInizio,
     orarioFine,
     pauseMinuti,
-    oreNette: calcolaOreNettePura(orarioInizio, orarioFine, pauseMinuti),
+    oreNette,
     note: (oraData.note || '').trim(),
     giorno,
     giornoKey: chiaveGiornoOra(giorno),
-    macchinaId: oraData.macchinaId || null,
-    attrezzoId: oraData.attrezzoId || null,
-    oreMacchina: oraData.oreMacchina != null && oraData.oreMacchina !== ''
-      ? Number(oraData.oreMacchina)
-      : null,
+    macchinaId,
+    attrezzoId,
+    oreMacchina: oreMacchinaDaSalvare({ macchinaId, attrezzoId, oreMacchina: oraData.oreMacchina }, oreNette),
     posizioneRilevamento: oraData.posizioneRilevamento || null
   };
 }
@@ -845,8 +847,12 @@ export async function correggiOra(db, tenantId, user, lavoroId, oraId, patch, mo
     const prossimo = (norm.macchinaId || norm.attrezzoId)
       ? { macchinaId: norm.macchinaId, attrezzoId: norm.attrezzoId, ore: oreDesiderate }
       : null;
-    const piano = pianoRettificaOreMacchina(ora.oreMacchinaContabilizzate, 'correzione', prossimo);
-    if (piano.avviso) {
+    const haMezzo = Boolean(
+      ora.macchinaId || ora.attrezzoId || norm.macchinaId || norm.attrezzoId
+      || (ora.oreMacchinaContabilizzate && (ora.oreMacchinaContabilizzate.macchinaId || ora.oreMacchinaContabilizzate.attrezzoId))
+    );
+    const piano = pianoRettificaOreMacchina(ora.oreMacchinaContabilizzate, 'correzione', prossimo, ora);
+    if (piano.avviso && haMezzo) {
       avvisi.push(piano.avviso);
     } else if (piano.operazioni.length) {
       const esito = await applicaDeltaMacchine(tenantId, piano.operazioni);
@@ -908,10 +914,17 @@ async function togliValidazioneConRettifica(db, tenantId, user, lavoroId, oraId,
     throw new Error('Non puoi rifiutare questa ora');
   }
   if (ora.stato !== 'validate') throw new Error('Questa ora non è validata');
-  const piano = pianoRettificaOreMacchina(ora.oreMacchinaContabilizzate, azioneStorico === 'annulla_validazione' ? 'annulla' : 'rifiuto');
+  const piano = pianoRettificaOreMacchina(
+    ora.oreMacchinaContabilizzate,
+    azioneStorico === 'annulla_validazione' ? 'annulla' : 'rifiuto',
+    null,
+    ora
+  );
   const avvisi = [];
   let azzera = false;
-  if (piano.avviso) {
+  const cont = ora.oreMacchinaContabilizzate || {};
+  const haMezzo = Boolean(ora.macchinaId || ora.attrezzoId || cont.macchinaId || cont.attrezzoId);
+  if (piano.avviso && haMezzo) {
     avvisi.push(piano.avviso);
   } else if (piano.operazioni.length) {
     const esito = await applicaDeltaMacchine(tenantId, piano.operazioni);

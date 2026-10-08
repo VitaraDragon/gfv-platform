@@ -10,6 +10,8 @@ Il caposquadra, sulle ore dei suoi operai, e il manager, su tutte le ore dell’
 
 È cambiato `firestore.rules` sul blocco delle ore. Il deploy delle regole va fatto a mano, con `npm run deploy:rules`, solo dopo che questa versione è online e verificata. Non c’è nessun deploy di Cloud Functions. Le righe doppie del 6 e 7 ottobre, e quelle dell’operaio Paolo, si sistemano dall’interfaccia (caposquadra e manager), non con uno script.
 
+Tony dice in chat quando il salvataggio fallisce per sovrapposizione, anche da computer. Se c’è una macchina e le ore macchina sono vuote, si salvano le ore nette; senza macchina il campo resta vuoto e non compare l’avviso «da verificare a mano». Dal telefono il rifiuto chiede il motivo e resta nello storico. Gli scenari Tony di segnatura usano la fascia 13:00–17:00, libera rispetto al turno di seed 07:30–12:00.
+
 ---
 
 **Ultimo aggiornamento precedente: 2026-10-07 — Plurali nelle scritte (squadre, terreni, giorni, zone).**

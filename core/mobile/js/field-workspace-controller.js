@@ -21,16 +21,19 @@ import {
     modificaOraPropria,
     eliminaOraPropria,
     caricaOreUtenteGiorno,
-    validaOraContesto
+    validaOraContesto,
+    rifiutaOraContesto
 } from '../../services/ore-service.js';
 import {
     permessiOra,
     formattaOreMinuti,
     sommaOreNette,
     chiaveGiornoOra,
+    dataMezzanotteLocale,
     trovaSovrapposizioni,
     etichettaStatoOra,
-    formattaGiornoBreve
+    formattaGiornoBreve,
+    testoErroreSalvataggioOre
 } from '../../services/ore-operai-logic.js';
 
 import {
@@ -966,6 +969,19 @@ function renderAllPendingHours() {
     pendingHoursAllListEl.innerHTML = currentAllPendingHours.map((row) => renderPendingHourRowHtml(row, true)).join('');
 }
 
+async function caricaOreGiornoLavoro(oreRef, giornoKey) {
+    const inizio = dataMezzanotteLocale(giornoKey);
+    if (!inizio) return [];
+    const fine = new Date(inizio.getTime());
+    fine.setDate(fine.getDate() + 1);
+    const snap = await getDocs(query(
+        oreRef,
+        where('data', '>=', Timestamp.fromDate(inizio)),
+        where('data', '<', Timestamp.fromDate(fine))
+    ));
+    return snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() }));
+}
+
 async function loadAllPendingHoursForCapo() {
     if (!pendingHoursAllListEl || !currentTenantId || !currentUser || !userIsCaposquadra) return;
     pendingHoursAllListEl.innerHTML = '<div class="empty-state-inline">Caricamento ore da validare...</div>';
@@ -980,22 +996,16 @@ async function loadAllPendingHoursForCapo() {
         const userNameCache = new Map();
         for (const lav of works) {
             const oreRef = collection(getDb(), `tenants/${currentTenantId}/lavori/${lav.id}/oreOperai`);
-            const snap = await getDocs(oreRef);
+            const snap = await getDocs(query(oreRef, where('stato', '==', 'da_validare')));
             const lavoroData = {
                 caposquadraId: lav.caposquadraId || lav.raw?.caposquadraId || userId,
                 operaioId: lav.operaioId || lav.raw?.operaioId || null
             };
+            const giorni = new Set();
             for (const docSnap of snap.docs) {
                 const data = docSnap.data();
-                if (data.stato === 'rifiutate') continue;
-                const base = {
-                    id: docSnap.id,
-                    lavoroId: lav.id,
-                    lavoroNome: lav.nome || 'Lavoro',
-                    ...data
-                };
-                compagne.push(base);
-                if (data.stato !== 'da_validare') continue;
+                const giorno = chiaveGiornoOra(data.data);
+                if (giorno) giorni.add(giorno);
                 if (isOraDelCaposquadraSuLavoroSquadra(data, lavoroData)) continue;
                 let operaioNome = '';
                 if (data.operaioId) {
@@ -1016,6 +1026,19 @@ async function loadAllPendingHoursForCapo() {
                     lavoroNome: lav.nome || 'Lavoro',
                     ...data,
                     operaioNome
+                });
+            }
+            const visti = new Set();
+            for (const giorno of giorni) {
+                const delGiorno = await caricaOreGiornoLavoro(oreRef, giorno);
+                delGiorno.forEach((data) => {
+                    if (data.stato === 'rifiutate' || visti.has(data.id)) return;
+                    visti.add(data.id);
+                    compagne.push({
+                        ...data,
+                        lavoroId: lav.id,
+                        lavoroNome: lav.nome || 'Lavoro'
+                    });
                 });
             }
         }
@@ -1085,7 +1108,6 @@ async function updateHourValidationStatus(hourId, status, lavoroIdOpt) {
         console.warn('[FIELD-WORKSPACE] Le ore del caposquadra sono validate dal manager');
         return;
     }
-    const hourRef = doc(getDb(), `tenants/${currentTenantId}/lavori/${lavoroId}/oreOperai`, hourId);
     if (status === 'validate') {
         const esito = await validaOraContesto(getDb(), currentTenantId, {
             id: currentUser.uid,
@@ -1096,11 +1118,15 @@ async function updateHourValidationStatus(hourId, status, lavoroIdOpt) {
             showAlert(esito.avvisi[0], 'warning');
         }
     } else {
-        await updateDoc(hourRef, {
-            stato: 'rifiutate',
-            rifiutatoDa: currentUser.uid,
-            rifiutatoIl: serverTimestamp()
-        });
+        if (!motivo || !String(motivo).trim()) {
+            showAlert('Motivo rifiuto obbligatorio', 'warning');
+            return;
+        }
+        await rifiutaOraContesto(getDb(), currentTenantId, {
+            id: currentUser.uid,
+            uid: currentUser.uid,
+            ruoli: (currentUserData && currentUserData.ruoli) || []
+        }, lavoroId, hourId, String(motivo).trim());
     }
 }
 
@@ -1555,8 +1581,9 @@ function nascondiSovrapposizioneOre() {
 
 function mostraSovrapposizioneOre(error) {
     const msg = (error && error.message) || 'Queste ore si sovrappongono a un altro turno.';
+    const testoStato = testoErroreSalvataggioOre(error);
     if (hoursStatusEl) {
-        hoursStatusEl.textContent = msg;
+        hoursStatusEl.textContent = testoStato;
         hoursStatusEl.style.color = '#b91c1c';
     }
     showAlert(msg, 'error');

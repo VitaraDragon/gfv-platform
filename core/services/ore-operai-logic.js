@@ -151,6 +151,32 @@ export function creaErroreSovrapposizione(conflitti) {
 }
 
 /**
+ * Testo in #hours-save-status. Tony riconosce il prefisso "Errore salvataggio:".
+ * @param {{ message?: string }|null} error
+ * @returns {string}
+ */
+export function testoErroreSalvataggioOre(error) {
+  const msg = (error && error.message) || 'Queste ore si sovrappongono a un altro turno.';
+  return `Errore salvataggio: ${msg}`;
+}
+
+/**
+ * Ore macchina da scrivere sulla riga.
+ * Con mezzo e campo vuoto si usano le ore nette. Senza mezzo il campo resta vuoto.
+ * @param {{ macchinaId?: string|null, attrezzoId?: string|null, oreMacchina?: number|string|null }} oraData
+ * @param {number} oreNette
+ * @returns {number|null}
+ */
+export function oreMacchinaDaSalvare(oraData, oreNette) {
+  const haMezzo = Boolean(oraData && (oraData.macchinaId || oraData.attrezzoId));
+  if (!haMezzo) return null;
+  const raw = oraData.oreMacchina;
+  if (raw == null || raw === '') return oreNette;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : oreNette;
+}
+
+/**
  * Il validatore (R4) non è lo smistamento della coda.
  * Il manager può correggere qualunque riga del tenant.
  * Il caposquadra solo le ore dei suoi operai sui propri lavori di squadra.
@@ -357,12 +383,17 @@ function oreSuId(cont, id) {
  * @param {{ macchinaId?: string|null, attrezzoId?: string|null, ore?: number }|null} [prossimo]
  * @returns {{ operazioni: Array<{id: string, delta: number}>, avviso: string, azzeraCampo: boolean, prossimoContabilizzate: object|null }}
  */
-export function pianoRettificaOreMacchina(contabilizzate, azione, prossimo = null) {
+function rigaHaMezzo(riga) {
+  return Boolean(riga && (riga.macchinaId || riga.attrezzoId));
+}
+
+export function pianoRettificaOreMacchina(contabilizzate, azione, prossimo = null, riga = null) {
   const prima = normalizzaContabilizzate(contabilizzate);
   if (!prima) {
+    const haMezzo = rigaHaMezzo(riga) || rigaHaMezzo(contabilizzate) || rigaHaMezzo(prossimo);
     return {
       operazioni: [],
-      avviso: 'ore macchina da verificare a mano',
+      avviso: haMezzo ? 'ore macchina da verificare a mano' : '',
       azzeraCampo: false,
       prossimoContabilizzate: null
     };
