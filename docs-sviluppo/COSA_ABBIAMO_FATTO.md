@@ -12,6 +12,8 @@ Il caposquadra, sulle ore dei suoi operai, e il manager, su tutte le ore dell’
 
 Tony dice in chat quando il salvataggio fallisce per sovrapposizione, anche da computer. Se c’è una macchina e le ore macchina sono vuote, si salvano le ore nette; senza macchina il campo resta vuoto e non compare l’avviso «da verificare a mano». Dal telefono il rifiuto chiede il motivo e resta nello storico. Gli scenari Tony di segnatura usano la fascia 13:00–17:00, libera rispetto al turno di seed 07:30–12:00.
 
+Dal telefono il pulsante «Rifiuta» del caposquadra chiede il motivo prima di salvare: se manca, avvisa e non tocca la riga; se il rifiuto riesce, la riga esce dalla coda e compare «Ora rifiutata». Un errore in quel passaggio non resta più solo in console.
+
 ---
 
 **Ultimo aggiornamento precedente: 2026-10-07 — Plurali nelle scritte (squadre, terreni, giorni, zone).**

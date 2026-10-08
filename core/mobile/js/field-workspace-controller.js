@@ -1098,15 +1098,15 @@ async function loadPendingHoursForSelectedWork() {
     }
 }
 
-async function updateHourValidationStatus(hourId, status, lavoroIdOpt) {
+async function updateHourValidationStatus(hourId, status, lavoroIdOpt, motivo = '') {
     const lavoroId = lavoroIdOpt || selectedWork?.id;
-    if (!lavoroId || !currentTenantId || !currentUser || !hourId) return;
+    if (!lavoroId || !currentTenantId || !currentUser || !hourId) return false;
     const pendingRow = currentPendingHours.find((r) => r.id === hourId)
         || currentAllPendingHours.find((r) => r.id === hourId);
     const capoUserId = primaryManodoperaUserId(currentUser, currentUserData);
     if (pendingRow && String(pendingRow.operaioId) === String(capoUserId)) {
         console.warn('[FIELD-WORKSPACE] Le ore del caposquadra sono validate dal manager');
-        return;
+        return false;
     }
     if (status === 'validate') {
         const esito = await validaOraContesto(getDb(), currentTenantId, {
@@ -1117,17 +1117,19 @@ async function updateHourValidationStatus(hourId, status, lavoroIdOpt) {
         if (esito && esito.avvisi && esito.avvisi.length) {
             showAlert(esito.avvisi[0], 'warning');
         }
-    } else {
-        if (!motivo || !String(motivo).trim()) {
-            showAlert('Motivo rifiuto obbligatorio', 'warning');
-            return;
-        }
-        await rifiutaOraContesto(getDb(), currentTenantId, {
-            id: currentUser.uid,
-            uid: currentUser.uid,
-            ruoli: (currentUserData && currentUserData.ruoli) || []
-        }, lavoroId, hourId, String(motivo).trim());
+        return true;
     }
+    const motivoPulito = String(motivo || '').trim();
+    if (!motivoPulito) {
+        showAlert('Motivo rifiuto obbligatorio', 'warning');
+        return false;
+    }
+    await rifiutaOraContesto(getDb(), currentTenantId, {
+        id: currentUser.uid,
+        uid: currentUser.uid,
+        ruoli: (currentUserData && currentUserData.ruoli) || []
+    }, lavoroId, hourId, motivoPulito);
+    return true;
 }
 
 async function resolveDestinatariIdsForSend() {
@@ -1919,12 +1921,19 @@ function bindInlineSectionsActions() {
             if (approveId) {
                 await updateHourValidationStatus(approveId, 'validate', lavoroId);
             } else if (rejectId) {
-                await updateHourValidationStatus(rejectId, 'rifiutate', lavoroId);
+                const motivo = window.prompt('Motivo del rifiuto (obbligatorio):');
+                if (!motivo || !String(motivo).trim()) {
+                    showAlert('Motivo rifiuto obbligatorio', 'warning');
+                    return;
+                }
+                const rifiutata = await updateHourValidationStatus(rejectId, 'rifiutate', lavoroId, motivo.trim());
+                if (rifiutata) showAlert('Ora rifiutata', 'success');
             }
             await loadPendingHoursForSelectedWork();
             await loadAllPendingHoursForCapo();
         } catch (error) {
             console.error('[FIELD-WORKSPACE] Errore aggiornamento validazione ore:', error);
+            showAlert((error && error.message) || 'Errore aggiornamento ore', 'error');
         }
     };
     if (pendingHoursListEl) pendingHoursListEl.addEventListener('click', onPendingHoursClick);
