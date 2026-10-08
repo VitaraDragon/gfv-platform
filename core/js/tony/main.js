@@ -896,6 +896,12 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         return String(prefix + ' ' + parts.join(' ')).trim();
     }
 
+    try {
+        window.__tonyBuildSegnaOraUserBlob = function () {
+            return tonyBuildSegnaOraUserBlobLastNUserTurns(8);
+        };
+    } catch (eBlobHook) { /* ignore */ }
+
     /** Ultimi N messaggi utente (array cronologico), opzionale turno corrente in coda se non già presente. */
     function tonyGetSegnaOraUserTurnTexts(maxTurns, optExtraUserText) {
         var n = maxTurns && maxTurns > 0 ? maxTurns : 6;
@@ -4038,6 +4044,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                             tonyDebugLog('[Tony] INJECT_FORM_DATA: ora-form / workspace mobile ore');
                             var formDataOra = tonySanitizeCfWorkspaceOraFormData(data.formData);
                             formDataOra = tonyResolveOraLavoroForQuickHours(formDataOra, tonyBuildSegnaOraUserBlobLastNUserTurns(6));
+                            formDataOra = filtraCampiMezzoNonNominati(formDataOra, tonyBuildSegnaOraUserBlobLastNUserTurns(8));
                             if (!document.getElementById('ora-form') && !tonyResolveQuickHoursWindow()) {
                                 if (getTonyFieldProfileFromContext() && tonyModuliAttiviIncludeManodopera() && window.Tony && typeof window.Tony.triggerAction === 'function') {
                                     var fdNav = (formDataOra && typeof formDataOra === 'object') ? Object.assign({}, formDataOra) : {};

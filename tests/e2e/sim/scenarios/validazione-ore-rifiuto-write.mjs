@@ -1,6 +1,7 @@
 /**
  * E2E write — il manager rifiuta una riga in coda dalla pagina Validazione ore.
- * Fascia 19:00–19:45: non incrocia il seed 07:30–12:00 né gli altri write ore.
+ * Fascia 22:00–22:45: libera rispetto al seed 07:30–12:00 e agli altri write
+ * (14–16, 16–17:30 poi cancellata, 19–20 lasciata da validare da ore-modifica-annullo, 20:30–21:30).
  * @module tests/e2e/sim/scenarios/validazione-ore-rifiuto-write
  */
 
@@ -12,8 +13,8 @@ import {
 } from '../helpers/sim-login.js';
 
 export const E2E_ORE_RIFIUTO_VALIDAZIONE_NOTE = 'GFV_SIM_E2E_RIFIUTO_VALIDAZIONE';
-const ORA_START = '19:00';
-const ORA_END = '19:45';
+const ORA_START = '22:00';
+const ORA_END = '22:45';
 const MOTIVO = 'Orario da rifare';
 
 /**
@@ -69,9 +70,16 @@ async function fillAndSubmitQuickHours(page) {
     if (typeof window.gfvFieldWorkspaceRecalcHours === 'function') {
       window.gfvFieldWorkspaceRecalcHours();
     }
+    const status = document.getElementById('hours-save-status');
+    if (status) status.textContent = '';
   });
 
   await page.locator('#quick-hours-form button[type="submit"]').click();
+  const overlap = page.locator('#ore-sovrapposizione-msg');
+  if (await overlap.isVisible()) {
+    const testo = ((await overlap.textContent()) || '').trim();
+    throw new Error('orario del test già occupato: ' + testo);
+  }
   await page.locator('#hours-save-status').filter({ hasText: /Ore salvate:/i }).waitFor({
     timeout: 45_000,
   });

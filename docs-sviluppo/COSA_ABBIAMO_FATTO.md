@@ -6,7 +6,7 @@
 
 L’operaio, dopo aver segnato un’ora, legge «Ora segnata con successo!» e se la valida il caposquadra o il manager. Sulle proprie ore vede chi ha validato, corretto, annullato o rifiutato, con data, ora e motivo. Se l’ora è rifiutata, il motivo non resta solo un’etichetta.
 
-Tony, prima di chiedere di salvare, controlla se quell’orario è già occupato e propone un altro. Lo ricontrolla anche al «sì». Se dici «pausa 0» o «nessuna pausa», non te la chiede di nuovo. Macchina e attrezzo restano quelli del lavoro scelto, a meno che tu non li nomini.
+Tony, prima di chiedere di salvare, controlla se quell’orario è già occupato e propone un altro. Lo ricontrolla anche al «sì». Se dici «pausa 0» o «nessuna pausa», non te la chiede di nuovo. Macchina e attrezzo restano quelli del lavoro scelto, a meno che tu non li nomini. Tony non mette macchina e attrezzo della riga prima anche quando la compilazione arriva dal modello. Il test e2e del rifiuto usa una fascia libera.
 
 Il caposquadra, nella lista da validare sul telefono, vede la nota e la macchina. Il motivo del rifiuto, se manca, resta visibile. Dopo il rifiuto compare «Ora rifiutata». Le stelline delle competenze, dopo una sua validazione, si aggiornano quando agisce il manager, oppure dal ricalcolo in Gestione operai.
 

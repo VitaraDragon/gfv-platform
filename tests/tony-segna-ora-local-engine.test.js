@@ -123,4 +123,20 @@ describe('tony-segna-ora-local-engine', () => {
     expect(tenuti['ora-macchina']).toBe('Landini');
     expect(tenuti['ora-attrezzo']).toBe('rimorchio');
   });
+
+  it('filtraCampiMezzoNonNominati scarta Landini e Rimorchio se il modello li copia e l’utente non li nomina', () => {
+    var daModello = {
+      'ora-lavoro': 'potatura',
+      'ora-macchina': 'Landini',
+      'ora-attrezzo': 'Rimorchio',
+    };
+    var senza = filtraCampiMezzoNonNominati(daModello, 'segna le ore dalle 10 alle 11 sul lavoro potatura');
+    expect(senza['ora-lavoro']).toBe('potatura');
+    expect(senza['ora-macchina']).toBeUndefined();
+    expect(senza['ora-attrezzo']).toBeUndefined();
+
+    var conLandini = filtraCampiMezzoNonNominati(daModello, 'segna le ore dalle 10 alle 11 sul lavoro potatura col Landini');
+    expect(conLandini['ora-macchina']).toBe('Landini');
+    expect(conLandini['ora-attrezzo']).toBe('Rimorchio');
+  });
 });
