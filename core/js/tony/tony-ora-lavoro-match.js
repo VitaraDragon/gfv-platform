@@ -58,6 +58,44 @@ export const TONY_ORA_LAVORO_USER_MATCH_STOP = {
   bene: 1
 };
 
+function distanzaAlMassimoUno(a, b) {
+  if (a === b) return true;
+  const la = a.length;
+  const lb = b.length;
+  if (Math.abs(la - lb) > 1) return false;
+  let i = 0;
+  let j = 0;
+  let usate = 0;
+  while (i < la && j < lb) {
+    if (a[i] === b[j]) {
+      i += 1;
+      j += 1;
+      continue;
+    }
+    usate += 1;
+    if (usate > 1) return false;
+    if (la > lb) i += 1;
+    else if (lb > la) j += 1;
+    else {
+      i += 1;
+      j += 1;
+    }
+  }
+  if (i < la || j < lb) usate += 1;
+  return usate <= 1;
+}
+
+function tokenERefusoDiStop(token) {
+  const chiavi = Object.keys(TONY_ORA_LAVORO_USER_MATCH_STOP);
+  for (let i = 0; i < chiavi.length; i += 1) {
+    const stop = chiavi[i];
+    if (stop.length < 4) continue;
+    if (Math.abs(stop.length - token.length) > 1) continue;
+    if (distanzaAlMassimoUno(token, stop)) return true;
+  }
+  return false;
+}
+
 /**
  * @param {string} testo
  * @returns {string[]}
@@ -68,6 +106,7 @@ export function tokenLavoroSignificativi(testo) {
     if (!t || t.length < 4) return false;
     if (/^\d+$/.test(t)) return false;
     if (TONY_ORA_LAVORO_USER_MATCH_STOP[t]) return false;
+    if (tokenERefusoDiStop(t)) return false;
     return true;
   });
 }

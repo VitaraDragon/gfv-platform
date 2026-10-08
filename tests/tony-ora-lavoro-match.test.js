@@ -142,6 +142,12 @@ describe('risolviLavoroDaTesto', () => {
     expect(msg).toMatch(/E su quale lavoro: Ripristino pali Grazie \(ripresa\) o Ripristino pali\?/);
   });
 
+  it('il refuso «daklle / aslle» non è un nome di lavoro', () => {
+    const esito = risolviLavoroDaTesto('daklle 6 aslle 18', lista, { oggiIso: OGGI });
+    expect(esito.stato).toBe('nessuno');
+    expect(esito.nominato).toBe(false);
+  });
+
   it('il select non ripiega sulla prima opzione', () => {
     const opzioni = [
       { value: '', text: 'Seleziona lavoro...' },
