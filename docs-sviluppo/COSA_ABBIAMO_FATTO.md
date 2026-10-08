@@ -1,6 +1,22 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-07 — Plurali nelle scritte (squadre, terreni, giorni, zone).**
+**Ultimo aggiornamento documentazione: 2026-10-08 — Ore: modifica, sovrapposizioni, correzione dopo validazione.**
+
+## 2026-10-08 — Ore: si possono correggere, e due turni nello stesso orario non si salvano
+
+L’operaio e il caposquadra possono cambiare o eliminare le proprie ore finché sono in attesa o rifiutate. Un’ora già validata resta bloccata per chi l’ha segnata: la scritta dice di chiedere al caposquadra, oppure al manager se il lavoro è autonomo o se la riga è del caposquadra. Due turni della stessa persona nello stesso giorno non si salvano se gli orari si incrociano; se si toccano solo al cambio ora, vanno bene. In Segna ore (computer e telefono) compare il riquadro delle ore di quel giorno.
+
+Il caposquadra, sulle ore dei suoi operai, e il manager, su tutte le ore dell’azienda, possono correggere una riga già validata, rimetterla in attesa o rifiutarla con un motivo. La riga non si cancella. Il singolo «Valida» non chiede più conferma; «Valida selezionate» e «Valida tutte» ne chiedono una sola. I contatori in alto sono in ore, con il numero di righe sotto. C’è anche la pausa e un avviso se due turni si sovrappongono.
+
+È cambiato `firestore.rules` sul blocco delle ore. Il deploy delle regole va fatto a mano, con `npm run deploy:rules`, solo dopo che questa versione è online e verificata. Non c’è nessun deploy di Cloud Functions. Le righe doppie del 6 e 7 ottobre, e quelle dell’operaio Paolo, si sistemano dall’interfaccia (caposquadra e manager), non con uno script.
+
+Tony dice in chat quando il salvataggio fallisce per sovrapposizione, anche da computer. Se c’è una macchina e le ore macchina sono vuote, si salvano le ore nette; senza macchina il campo resta vuoto e non compare l’avviso «da verificare a mano». Dal telefono il rifiuto chiede il motivo e resta nello storico. Gli scenari Tony di segnatura usano la fascia 13:00–17:00, libera rispetto al turno di seed 07:30–12:00.
+
+Dal telefono il pulsante «Rifiuta» del caposquadra chiede il motivo prima di salvare: se manca, avvisa e non tocca la riga; se il rifiuto riesce, la riga esce dalla coda e compare «Ora rifiutata». Un errore in quel passaggio non resta più solo in console.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-07 — Plurali nelle scritte (squadre, terreni, giorni, zone).**
 
 ## 2026-10-07 — Scritte: plurali senza la lettera in più
 

@@ -565,9 +565,59 @@ service cloud.firestore {
     }
 
     // Subcollection: oreOperai (sotto lavori)
+    // Deploy di questo blocco: lo fa Pier a mano con npm run deploy:rules,
+    // solo dopo che la nuova interfaccia (modifica, sovrapposizioni, correzione) è online e verificata.
+    // Non deployare insieme a questo commit. Nessun deploy di Cloud Functions.
+    // Il controllo di sovrapposizione NON sta nelle Rules: non possono leggere le altre righe del giorno.
+    // Il seed del simulatore scrive lavori.caposquadraId = uid Auth del caposquadra (fase 06/07):
+    // la condizione caposquadraId == request.auth.uid coincide con gli e2e.
     match /tenants/{tenantId}/lavori/{lavoroId}/oreOperai/{oraId} {
+      function oreChiaviProprietarioOk() {
+        return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          'data', 'orarioInizio', 'orarioFine', 'pauseMinuti', 'oreNette', 'note',
+          'macchinaId', 'attrezzoId', 'oreMacchina', 'posizioneRilevamento',
+          'stato', 'rifiutatoDa', 'rifiutatoIl', 'motivoRifiuto',
+          'modificatoDa', 'modificatoIl', 'storicoModifiche'
+        ]);
+      }
+
+      function caposquadraPuoAggiornareOraOperaio() {
+        let lavoro = get(/databases/$(database)/documents/tenants/$(tenantId)/lavori/$(lavoroId)).data;
+        return isCaposquadra(tenantId)
+          && lavoro.keys().hasAny(['caposquadraId'])
+          && lavoro.caposquadraId == request.auth.uid
+          && resource.data.operaioId != request.auth.uid
+          && (!lavoro.keys().hasAny(['operaioId']) || lavoro.operaioId == null || lavoro.operaioId == '');
+      }
+
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId);
+
+      allow create: if isAuthenticated() && belongsToTenant(tenantId)
+        && request.resource.data.operaioId == request.auth.uid
+        && request.resource.data.stato == 'da_validare'
+        && request.resource.data.lavoroId == lavoroId;
+
+      allow update: if isAuthenticated() && belongsToTenant(tenantId)
+        && request.resource.data.get('operaioId', '') == resource.data.get('operaioId', '')
+        && request.resource.data.get('lavoroId', '') == resource.data.get('lavoroId', '')
+        && (
+          (
+            resource.data.operaioId == request.auth.uid
+            && (resource.data.stato == 'da_validare' || resource.data.stato == 'rifiutate')
+            && request.resource.data.stato == 'da_validare'
+            && oreChiaviProprietarioOk()
+          )
+          || isManagerOrAdmin(tenantId)
+          || caposquadraPuoAggiornareOraOperaio()
+        );
+
+      allow delete: if isAuthenticated() && belongsToTenant(tenantId) && (
+        (
+          resource.data.operaioId == request.auth.uid
+          && (resource.data.stato == 'da_validare' || resource.data.stato == 'rifiutate')
+        )
+        || isManagerOrAdmin(tenantId)
+      );
     }
 
     // Subcollection: zoneLavorate (sotto lavori)

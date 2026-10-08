@@ -325,9 +325,9 @@ Le ore che gli operatori registrano (versione mobile o altri canali previsti) po
 
 1. **Home Manodopera** → **Validazione ore**, oppure alert **Ore da validare** in **Richiede attenzione** sulla dashboard.  
 2. Imposta i **filtri** se la pagina li offre (periodo, persona, lavoro, stato).  
-3. Per ogni riga in attesa leggi **data**, **orari**, **ore nette**, **lavoro**, **operaio**.  
-4. Usa **Approva** o **Rifiuta** (o etichette equivalenti).  
-5. Se rifiuti, è utile avere un canale esterno (messaggio, telefono) per spiegare cosa correggere.
+3. Per ogni riga in attesa leggi **data**, **orari**, **pausa**, **ore nette**, **lavoro**, **operaio**. I numeri in alto sono in ore, con il numero di righe sotto. Un avviso segnala i turni che si sovrappongono.  
+4. **Valida** approva subito. **Valida selezionate** e **Valida tutte** chiedono una conferma sola. **Rifiuta** chiede il motivo.  
+5. Su una riga già validata (ultimi 30 giorni, filtri per operaio e lavoro) puoi **Correggere**, **Annullare la validazione** o **Rifiutare / togliere**. Ogni azione chiede un motivo breve. La riga non si cancella: rifiutarla lascia la traccia. Vale anche per le ore degli operai di squadra.
 
 ### Perché conta
 

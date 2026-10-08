@@ -2162,6 +2162,22 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
                                 window.__tonyQuickHoursPauseAckAt = 0;
                                 window.__tonySegnaOraLocalInterviewAt = 0;
                             } catch (eReset2) { /* ignore */ }
+                        } else if (typeof showMessageInChat === 'function') {
+                            var errToast = Array.from(toasts).find(function(t) {
+                                var cls = t.className || '';
+                                var txt = String(t.textContent || '').trim();
+                                if (/Ora segnata con successo/i.test(txt)) return false;
+                                return /alert-error|alert-danger|alert-warning/.test(cls) && txt;
+                            });
+                            var overlap = target.doc.getElementById('ore-sovrapposizione-msg');
+                            var overlapTxt = '';
+                            if (overlap && overlap.style.display !== 'none' && !overlap.hidden) {
+                                overlapTxt = String(overlap.textContent || '').trim();
+                            }
+                            var testoErrore = errToast
+                                ? String(errToast.textContent || '').trim()
+                                : overlapTxt;
+                            if (testoErrore) showMessageInChat(testoErrore, 'error');
                         }
                     }
                 }, formKind === 'quick-hours' ? 1200 : 2000);
