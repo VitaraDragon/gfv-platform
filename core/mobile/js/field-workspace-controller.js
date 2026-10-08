@@ -15,6 +15,23 @@ import {
 } from '../../services/firebase-service.js';
 import { resolveAuthUserWithRetry, loginPageUrl, waitForStandaloneReady } from '../../js/simulator-standalone-page.js';
 import { formatOreNette } from '../../js/attivita-utils.js';
+import { showAlert } from '../../js/gfv-page-utils.js';
+import {
+    salvaNuovaOra,
+    modificaOraPropria,
+    eliminaOraPropria,
+    caricaOreUtenteGiorno,
+    validaOraContesto
+} from '../../services/ore-service.js';
+import {
+    permessiOra,
+    formattaOreMinuti,
+    sommaOreNette,
+    chiaveGiornoOra,
+    trovaSovrapposizioni,
+    etichettaStatoOra,
+    formattaGiornoBreve
+} from '../../services/ore-operai-logic.js';
 
 import {
     fetchLavoriDocumentsForFieldUser,
@@ -73,6 +90,9 @@ const quickStatusEl = document.getElementById('quick-comm-status');
 const refreshWorksBtnEl = document.getElementById('btn-refresh-works');
 const quickHoursFormEl = document.getElementById('quick-hours-form');
 const hoursStatusEl = document.getElementById('hours-save-status');
+const oreGiornoBoxEl = document.getElementById('ore-giorno-riepilogo');
+const oreSovrapposizioneEl = document.getElementById('ore-sovrapposizione-msg');
+const oreAnnullaModificaEl = document.getElementById('ore-annulla-modifica');
 const hoursValueEl = document.getElementById('ora-net-hours');
 const oraDataEl = document.getElementById('ora-data');
 const oraStartEl = document.getElementById('ora-start');
@@ -126,6 +146,10 @@ let userIsCaposquadra = false;
 let lastSquadMembers = [];
 let lastSquadLabel = 'Squadra';
 let userIsOperaio = false;
+let editingOraId = '';
+let editingOraLavoroId = '';
+let oreGiornoRows = [];
+let oreCompagneCapo = [];
 let currentPendingHours = [];
 let currentAllPendingHours = [];
 let pullTouchStartY = 0;
@@ -903,10 +927,19 @@ function renderPendingHourRowHtml(row, showLavoro) {
     const who = escapeHtmlUnsafe(row.operaioNome || row.operaioId || 'Operaio');
     const ore = Number(row.oreNette || 0).toFixed(2);
     const time = `${escapeHtmlUnsafe(row.orarioInizio || '--:--')} - ${escapeHtmlUnsafe(row.orarioFine || '--:--')}`;
+    const pausa = `pausa ${Number(row.pauseMinuti) || 0} min`;
     const lavoroLine = showLavoro && row.lavoroNome
         ? `<div class="inline-item-sub" style="font-weight:600;color:#2E8B57;">${escapeHtmlUnsafe(row.lavoroNome)}</div>`
         : '';
     const lavAttr = row.lavoroId ? ` data-lavoro-id="${escapeHtmlUnsafe(row.lavoroId)}"` : '';
+    const hits = trovaSovrapposizioni(
+        { ...row, data: row.data, operaioId: row.operaioId },
+        oreCompagneCapo,
+        { escludiId: row.id }
+    );
+    const warn = hits.length
+        ? `<div class="inline-item-sub">⚠️ Si sovrappone a ${escapeHtmlUnsafe(hits[0].orarioInizio || '')}–${escapeHtmlUnsafe(hits[0].orarioFine || '')}${hits[0].lavoroNome ? ` (${escapeHtmlUnsafe(hits[0].lavoroNome)})` : ''}</div>`
+        : '';
     return `
         <div class="inline-item">
             <div class="inline-item-head">
@@ -914,7 +947,8 @@ function renderPendingHourRowHtml(row, showLavoro) {
                 <div class="inline-item-sub">${formatDateShort(row.data) || 'Data non indicata'}</div>
             </div>
             ${lavoroLine}
-            <div class="inline-item-sub">${time} • ${ore} h</div>
+            <div class="inline-item-sub">${time} • ${pausa} • ${ore} h</div>
+            ${warn}
             <div class="inline-item-actions">
                 <button type="button" class="mini-btn approve" data-approve-hour-id="${escapeHtmlUnsafe(row.id)}"${lavAttr}>✅ Approva</button>
                 <button type="button" class="mini-btn reject" data-reject-hour-id="${escapeHtmlUnsafe(row.id)}"${lavAttr}>❌ Rifiuta</button>
@@ -942,16 +976,26 @@ async function loadAllPendingHoursForCapo() {
             isOperaio: false
         });
         const rows = [];
+        const compagne = [];
         const userNameCache = new Map();
         for (const lav of works) {
             const oreRef = collection(getDb(), `tenants/${currentTenantId}/lavori/${lav.id}/oreOperai`);
-            const snap = await getDocs(query(oreRef, where('stato', '==', 'da_validare')));
+            const snap = await getDocs(oreRef);
             const lavoroData = {
                 caposquadraId: lav.caposquadraId || lav.raw?.caposquadraId || userId,
                 operaioId: lav.operaioId || lav.raw?.operaioId || null
             };
             for (const docSnap of snap.docs) {
                 const data = docSnap.data();
+                if (data.stato === 'rifiutate') continue;
+                const base = {
+                    id: docSnap.id,
+                    lavoroId: lav.id,
+                    lavoroNome: lav.nome || 'Lavoro',
+                    ...data
+                };
+                compagne.push(base);
+                if (data.stato !== 'da_validare') continue;
                 if (isOraDelCaposquadraSuLavoroSquadra(data, lavoroData)) continue;
                 let operaioNome = '';
                 if (data.operaioId) {
@@ -975,6 +1019,7 @@ async function loadAllPendingHoursForCapo() {
                 });
             }
         }
+        oreCompagneCapo = compagne;
         rows.sort((a, b) => {
             const ad = (a.creatoIl && a.creatoIl.toDate) ? a.creatoIl.toDate().getTime() : 0;
             const bd = (b.creatoIl && b.creatoIl.toDate) ? b.creatoIl.toDate().getTime() : 0;
@@ -1042,16 +1087,13 @@ async function updateHourValidationStatus(hourId, status, lavoroIdOpt) {
     }
     const hourRef = doc(getDb(), `tenants/${currentTenantId}/lavori/${lavoroId}/oreOperai`, hourId);
     if (status === 'validate') {
-        await updateDoc(hourRef, {
-            stato: 'validate',
-            validatoDa: currentUser.uid,
-            validatoIl: serverTimestamp(),
-            rifiutatoDa: null
-        });
-        const operaioId = pendingRow?.operaioId;
-        if (operaioId) {
-            const { requestSkillCalcolateRefresh } = await import('../../services/profilo-manodopera-skill-auto-refresh.js');
-            requestSkillCalcolateRefresh(currentTenantId, operaioId, currentUser.uid);
+        const esito = await validaOraContesto(getDb(), currentTenantId, {
+            id: currentUser.uid,
+            uid: currentUser.uid,
+            ruoli: (currentUserData && currentUserData.ruoli) || []
+        }, lavoroId, hourId);
+        if (esito && esito.avvisi && esito.avvisi.length) {
+            showAlert(esito.avvisi[0], 'warning');
         }
     } else {
         await updateDoc(hourRef, {
@@ -1472,9 +1514,159 @@ window.gfvFieldWorkspaceGetSelectedLavoroId = function () {
     }
 };
 
+function utenteWorkspace() {
+    return {
+        id: currentUser.uid,
+        uid: currentUser.uid,
+        ruoli: (currentUserData && currentUserData.ruoli) || [],
+        nome: currentUserData && currentUserData.nome,
+        cognome: currentUserData && currentUserData.cognome
+    };
+}
+
+function lavoroPerPermessi(lavoroId) {
+    const found = (cachedWorks || []).find((w) => w.id === lavoroId);
+    const raw = (found && found.raw) || found || {};
+    return {
+        id: lavoroId,
+        nome: (found && (found.label || found.nome)) || raw.nome || '',
+        caposquadraId: raw.caposquadraId || null,
+        operaioId: raw.operaioId || null
+    };
+}
+
+function setOreSubmitMode(modifica) {
+    const btn = quickHoursFormEl && quickHoursFormEl.querySelector('button[type="submit"]');
+    if (btn) btn.textContent = modifica ? 'Salva modifiche' : 'Salva ore lavorate';
+    if (oreAnnullaModificaEl) oreAnnullaModificaEl.hidden = !modifica;
+}
+
+function resetModificaOra() {
+    editingOraId = '';
+    editingOraLavoroId = '';
+    setOreSubmitMode(false);
+}
+
+function nascondiSovrapposizioneOre() {
+    if (!oreSovrapposizioneEl) return;
+    oreSovrapposizioneEl.hidden = true;
+    oreSovrapposizioneEl.innerHTML = '';
+}
+
+function mostraSovrapposizioneOre(error) {
+    const msg = (error && error.message) || 'Queste ore si sovrappongono a un altro turno.';
+    if (hoursStatusEl) {
+        hoursStatusEl.textContent = msg;
+        hoursStatusEl.style.color = '#b91c1c';
+    }
+    showAlert(msg, 'error');
+    if (!oreSovrapposizioneEl) return;
+    const conflitto = error && error.conflitti && error.conflitti[0];
+    let bottone = '';
+    if (conflitto) {
+        const perm = permessiOra({
+            ora: conflitto,
+            lavoro: lavoroPerPermessi(conflitto.lavoroId),
+            userId: currentUser.uid,
+            isCaposquadra: userIsCaposquadra,
+            isManager: false
+        });
+        if (perm.puoModificare) {
+            bottone = ` <button type="button" class="field-mobile-btn" data-modifica-ora="${escapeHtmlUnsafe(conflitto.id)}" data-lavoro-id="${escapeHtmlUnsafe(conflitto.lavoroId || '')}">Modifica quella riga</button>`;
+        }
+    }
+    oreSovrapposizioneEl.innerHTML = `${escapeHtmlUnsafe(msg)}${bottone}`;
+    oreSovrapposizioneEl.hidden = false;
+}
+
+async function aggiornaRiquadroOreGiorno() {
+    if (!oreGiornoBoxEl || !currentTenantId || !currentUser) return;
+    const giorno = (oraDataEl && oraDataEl.value) ? oraDataEl.value : getTodayIsoDate();
+    oreGiornoBoxEl.setAttribute('data-state', 'loading');
+    try {
+        const righe = await caricaOreUtenteGiorno(getDb(), currentTenantId, currentUser.uid, giorno, utenteWorkspace());
+        oreGiornoRows = righe;
+        const label = formattaGiornoBreve(giorno) || giorno;
+        const lavoroId = selectedWork && selectedWork.id;
+        if (!righe.length) {
+            oreGiornoBoxEl.innerHTML = `<strong>Le tue ore del ${escapeHtmlUnsafe(label)}</strong><div class="inline-item-sub">Nessuna ora segnata in questo giorno.</div>`;
+            oreGiornoBoxEl.setAttribute('data-state', 'ready');
+            return;
+        }
+        const voci = righe.map((ora) => {
+            const evidenza = lavoroId && ora.lavoroId === lavoroId;
+            const perm = permessiOra({
+                ora,
+                lavoro: lavoroPerPermessi(ora.lavoroId),
+                userId: currentUser.uid,
+                isCaposquadra: userIsCaposquadra,
+                isManager: false
+            });
+            let azioni = '';
+            if (perm.puoModificare) {
+                azioni += `<button type="button" data-modifica-ora="${escapeHtmlUnsafe(ora.id)}" data-lavoro-id="${escapeHtmlUnsafe(ora.lavoroId || '')}">✏️</button> `;
+            }
+            if (perm.puoEliminare) {
+                azioni += `<button type="button" data-elimina-ora="${escapeHtmlUnsafe(ora.id)}" data-lavoro-id="${escapeHtmlUnsafe(ora.lavoroId || '')}">🗑️</button>`;
+            }
+            if (!perm.puoModificare && ora.stato === 'validate') {
+                azioni = `<span title="${escapeHtmlUnsafe(perm.motivoBlocco)}">🔒</span>`;
+            }
+            return `<div style="padding:6px 0;${evidenza ? 'background:#e7f6ec;border-radius:6px;padding:6px;' : ''}">
+                <div>${escapeHtmlUnsafe(ora.lavoroNome || 'Lavoro')} · ${escapeHtmlUnsafe(ora.orarioInizio || '')}–${escapeHtmlUnsafe(ora.orarioFine || '')} · pausa ${Number(ora.pauseMinuti) || 0} min · ${formattaOreMinuti(ora.oreNette || 0)} · ${escapeHtmlUnsafe(etichettaStatoOra(ora.stato))}</div>
+                <div>${azioni}</div>
+            </div>`;
+        }).join('');
+        const totale = sommaOreNette(righe.filter((r) => r.stato !== 'rifiutate'));
+        oreGiornoBoxEl.innerHTML = `<strong>Le tue ore del ${escapeHtmlUnsafe(label)}</strong>${voci}<div style="margin-top:6px;"><strong>Totale del giorno: ${formattaOreMinuti(totale)}</strong></div>`;
+        oreGiornoBoxEl.setAttribute('data-state', 'ready');
+    } catch (error) {
+        console.error('[FIELD-WORKSPACE] Riquadro ore giorno:', error);
+        oreGiornoBoxEl.textContent = 'Non riesco a leggere le ore di questo giorno.';
+        oreGiornoBoxEl.setAttribute('data-state', 'ready');
+    }
+}
+
+async function avviaModificaOraGiorno(oraId, lavoroId) {
+    const ora = oreGiornoRows.find((r) => r.id === oraId && (!lavoroId || r.lavoroId === lavoroId));
+    if (!ora) return;
+    if (lavoroId && (!selectedWork || selectedWork.id !== lavoroId)) {
+        await selectLavoroByIdOrLabelForTony(lavoroId);
+    }
+    editingOraId = ora.id;
+    editingOraLavoroId = ora.lavoroId;
+    if (oraDataEl) oraDataEl.value = chiaveGiornoOra(ora.data);
+    if (oraStartEl) oraStartEl.value = ora.orarioInizio || '';
+    if (oraEndEl) oraEndEl.value = ora.orarioFine || '';
+    if (oraBreakEl) oraBreakEl.value = String(ora.pauseMinuti || 0);
+    if (oraNoteEl) oraNoteEl.value = ora.note || '';
+    calculateNetHours();
+    setOreSubmitMode(true);
+    nascondiSovrapposizioneOre();
+    if (quickHoursFormEl && typeof quickHoursFormEl.scrollIntoView === 'function') {
+        quickHoursFormEl.scrollIntoView({ block: 'nearest' });
+    }
+}
+
+async function eliminaOraGiorno(oraId, lavoroId) {
+    if (!confirm('Eliminare questa ora?')) return;
+    try {
+        await eliminaOraPropria(getDb(), currentTenantId, utenteWorkspace(), lavoroId, oraId);
+        showAlert('Ora eliminata', 'success');
+        if (editingOraId === oraId) {
+            resetModificaOra();
+            resetQuickHoursFormFieldsForNextEntry();
+        }
+        await aggiornaRiquadroOreGiorno();
+    } catch (error) {
+        showAlert(error.message || 'Errore eliminazione', 'error');
+    }
+}
+
 async function saveQuickHours(event) {
     event.preventDefault();
     if (!hoursStatusEl) return;
+    nascondiSovrapposizioneOre();
     if (!selectedWork || !currentTenantId || !currentUser) {
         hoursStatusEl.textContent = 'Seleziona prima un lavoro.';
         hoursStatusEl.style.color = '#b91c1c';
@@ -1501,36 +1693,46 @@ async function saveQuickHours(event) {
     }
 
     try {
-        const [y, m, d] = dateIso.split('-').map(Number);
-        if (!Number.isFinite(y) || !Number.isFinite(m) || !Number.isFinite(d)) {
-            hoursStatusEl.textContent = 'Data non valida.';
-            hoursStatusEl.style.color = '#b91c1c';
-            return;
-        }
-        const nowDate = new Date(y, m - 1, d);
         const pauseMin = Math.max(0, parseInt((oraBreakEl && oraBreakEl.value) || '0', 10) || 0);
-        const oraData = {
-            operaioId: currentUser.uid,
-            lavoroId: selectedWork.id,
-            terrenoId: selectedWork.raw?.terrenoId || null,
-            data: Timestamp.fromDate(nowDate),
+        const patch = {
+            data: dateIso,
             orarioInizio: start,
             orarioFine: end,
             pauseMinuti: pauseMin,
-            oreNette: netHours,
-            note: (oraNoteEl && oraNoteEl.value) ? oraNoteEl.value.trim() : '',
-            stato: 'da_validare',
-            creatoIl: serverTimestamp()
+            note: (oraNoteEl && oraNoteEl.value) ? oraNoteEl.value.trim() : ''
         };
-        const oraRef = collection(getDb(), `tenants/${currentTenantId}/lavori/${selectedWork.id}/oreOperai`);
-        await addDoc(oraRef, oraData);
+        if (editingOraId) {
+            await modificaOraPropria(
+                getDb(),
+                currentTenantId,
+                utenteWorkspace(),
+                editingOraLavoroId || selectedWork.id,
+                editingOraId,
+                patch
+            );
+        } else {
+            await salvaNuovaOra(getDb(), currentTenantId, utenteWorkspace(), {
+                ...patch,
+                lavoroId: selectedWork.id,
+                terrenoId: selectedWork.raw?.terrenoId || null,
+                operaioId: currentUser.uid
+            });
+        }
         hoursStatusEl.textContent = `Ore salvate: ${formatOreNette(netHours)}. Puoi registrare un altro turno.`;
         hoursStatusEl.style.color = '#166534';
+        showAlert(hoursStatusEl.textContent, 'success');
+        resetModificaOra();
         resetQuickHoursFormFieldsForNextEntry();
+        await aggiornaRiquadroOreGiorno();
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore salvataggio ore:', error);
+        if (error && error.code === 'ORE_SOVRAPPOSTE') {
+            mostraSovrapposizioneOre(error);
+            return;
+        }
         hoursStatusEl.textContent = `Errore salvataggio: ${error.message}`;
         hoursStatusEl.style.color = '#b91c1c';
+        showAlert(hoursStatusEl.textContent, 'error');
     }
 }
 
@@ -1550,6 +1752,7 @@ function bindWorkSelection() {
             // ignore
         }
         syncTonyFieldWorkspaceTableData();
+        aggiornaRiquadroOreGiorno().catch(() => {});
     };
     if (selectedWorkEl) {
         selectedWorkEl.addEventListener('change', (e) => onChange(e.target.value));
@@ -1788,6 +1991,26 @@ function bindToolbar() {
     if (oraStartEl) oraStartEl.addEventListener('input', calculateNetHours);
     if (oraEndEl) oraEndEl.addEventListener('input', calculateNetHours);
     if (oraBreakEl) oraBreakEl.addEventListener('input', calculateNetHours);
+    if (oraDataEl) oraDataEl.addEventListener('change', () => aggiornaRiquadroOreGiorno().catch(() => {}));
+    if (oreAnnullaModificaEl) {
+        oreAnnullaModificaEl.addEventListener('click', () => {
+            resetModificaOra();
+            resetQuickHoursFormFieldsForNextEntry();
+            nascondiSovrapposizioneOre();
+            aggiornaRiquadroOreGiorno().catch(() => {});
+        });
+    }
+    const onOreGiornoClick = async (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const modificaId = target.getAttribute('data-modifica-ora');
+        const eliminaId = target.getAttribute('data-elimina-ora');
+        const lavoroId = target.getAttribute('data-lavoro-id') || '';
+        if (modificaId) await avviaModificaOraGiorno(modificaId, lavoroId);
+        else if (eliminaId) await eliminaOraGiorno(eliminaId, lavoroId);
+    };
+    if (oreGiornoBoxEl) oreGiornoBoxEl.addEventListener('click', onOreGiornoClick);
+    if (oreSovrapposizioneEl) oreSovrapposizioneEl.addEventListener('click', onOreGiornoClick);
 }
 
 function roleListHas(roles, names) {
@@ -1992,6 +2215,7 @@ async function initFieldWorkspace() {
                 const dateInput = document.getElementById('quick-comm-date');
                 if (dateInput) dateInput.value = getTodayIsoDate();
                 if (oraDataEl) oraDataEl.value = getTodayIsoDate();
+                aggiornaRiquadroOreGiorno().catch(() => {});
 
                 fieldWorkspaceInitializedForUid = user.uid;
                 setStatus('Workspace mobile attivo.');

@@ -661,7 +661,11 @@ export async function waitForValidazioneOreLoaded(page) {
     if (container.querySelector('.loading')) return false;
     if (/Caricamento ore/i.test(container.textContent || '')) return false;
     const stat = document.getElementById('stat-da-validare');
-    const pending = stat ? parseInt(stat.textContent, 10) : 0;
+    if (!stat) return false;
+    const raw = stat.getAttribute('data-righe');
+    const pending = raw != null && raw !== ''
+      ? parseInt(raw, 10)
+      : parseInt(stat.textContent, 10);
     return pending >= 2 && container.querySelectorAll('.ore-table tbody tr').length >= 2;
   }, { timeout: 90_000 });
 }

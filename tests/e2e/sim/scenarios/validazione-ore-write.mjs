@@ -125,14 +125,14 @@ async function validateAllMarkerRows(page) {
     const validaBtn = row.getByRole('button', { name: '✅ Valida' });
     if (!(await validaBtn.isVisible())) return;
 
-    const validateBefore = parseInt(await page.locator('#stat-validate').textContent(), 10);
+    const validateBefore = parseInt(await page.locator('#stat-validate').getAttribute('data-righe'), 10);
 
     await validaBtn.click();
 
     await page.waitForFunction(
       (before) => {
         const el = document.getElementById('stat-validate');
-        const n = el ? parseInt(el.textContent, 10) : 0;
+        const n = el ? parseInt(el.getAttribute('data-righe') || '', 10) : 0;
         return n > before;
       },
       validateBefore,
@@ -179,6 +179,6 @@ export async function runValidazioneOreWriteAssertions(page, expect) {
 
   expect(await validazioneRowWithMarker(page).count()).toBe(0);
 
-  const validateCount = parseInt(await page.locator('#stat-validate').textContent(), 10);
+  const validateCount = parseInt(await page.locator('#stat-validate').getAttribute('data-righe'), 10);
   expect(validateCount).toBeGreaterThanOrEqual(1);
 }

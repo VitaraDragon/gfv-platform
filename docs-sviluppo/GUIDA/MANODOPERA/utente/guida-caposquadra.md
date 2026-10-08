@@ -139,9 +139,11 @@ Nella scheda **Ore**, in alto, c’è il modulo **Segna ore** per registrare **i
 5. Opzionale: **Note** sul turno.  
 6. Tocca **Salva ore lavorate**.
 
+Sotto il modulo vedi **Le tue ore del giorno**. Due turni dello stesso giorno non possono coprirsi. Finché la tua riga è in attesa o rifiutata puoi modificarla o eliminarla. Una volta validata la corregge il manager.
+
 ### Cosa succede dopo
 
-- Le regole della tua azienda (e il flusso dati) decidono se l’ora va direttamente in contabilità ore o passa da stati diversi; in molti casi le ore possono essere riviste lato ufficio o dal manager dalla versione completa per computer.  
+- Le tue ore le valida il **manager**, non tu.  
 - Dopo un salvataggio riuscito il modulo può **ripulire** orari e note per facilitare l’inserimento del giorno successivo.
 
 ---
@@ -153,7 +155,7 @@ Sempre nella scheda **Lavoro**, nel blocco **Valida ore**, vedi le registrazioni
 ### Passi
 
 1. Assicurati di aver scelto il **lavoro giusto** nel menu in alto nella scheda **Lavoro**.  
-2. Scorri l’elenco sotto **Valida ore**: compaiono le righe in **attesa di validazione** per quel lavoro (nome operaio, data, fascia oraria, ore nette).  
+2. Scorri l’elenco sotto **Valida ore**: compaiono le righe in **attesa di validazione** per quel lavoro (nome operaio, data, fascia oraria, pausa, ore nette). Un avviso segnala se il turno si sovrappone a un altro dello stesso operaio.  
 3. Per ogni riga usa **Approva** oppure **Rifiuta** in base a ciò che è successo davvero in campo.  
 4. Se non compare nessuna riga:
    - non ci sono ore in stato «da validare» per quel lavoro, oppure  
@@ -162,8 +164,9 @@ Sempre nella scheda **Lavoro**, nel blocco **Valida ore**, vedi le registrazioni
 
 ### Ruolo del caposquadra
 
-- Qui validi le ore **del team sul singolo lavoro**.  
-- Il **manager** ha comunque le viste complete e la **validazione globale** dove previsto dall’installazione: non sono la stessa cosa.
+- Qui validi le ore **del team sul singolo lavoro**. Le tue ore le valida il manager.  
+- Il **manager** ha comunque le viste complete e la **validazione globale** dove previsto dall’installazione: non sono la stessa cosa.  
+- Da computer, in **Validazione ore**, puoi anche **correggere**, **annullare** o **rifiutare** un’ora già validata dei tuoi operai: serve un motivo breve. La riga non si cancella.
 
 ---
 

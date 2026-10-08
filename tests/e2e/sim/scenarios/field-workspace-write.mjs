@@ -94,6 +94,8 @@ async function fillAndSubmitQuickHours(page, { note }) {
   await page.locator('#ora-note').fill(note);
 
   await page.evaluate(() => {
+    const status = document.getElementById('hours-save-status');
+    if (status) status.textContent = '';
     if (typeof window.gfvFieldWorkspaceRecalcHours === 'function') {
       window.gfvFieldWorkspaceRecalcHours();
     }
@@ -161,6 +163,6 @@ export async function runFieldWorkspaceOreWriteAssertions(page, expect) {
   const row = markerRows.first();
   await expect(row).toContainText(E2E_ORE_MOBILE_WRITE_NOTE);
   await expect(row).toContainText(`${ORA_START} - ${ORA_END}`);
-  await expect(row.locator('td').nth(5)).toContainText('2h');
+  await expect(row.locator('td.col-ore-nette')).toContainText('2h');
   await expect(row.getByRole('button', { name: '✅ Valida' })).toBeVisible();
 }

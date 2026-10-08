@@ -1,6 +1,18 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-07 — Plurali nelle scritte (squadre, terreni, giorni, zone).**
+**Ultimo aggiornamento documentazione: 2026-10-08 — Ore: modifica, sovrapposizioni, correzione dopo validazione.**
+
+## 2026-10-08 — Ore: si possono correggere, e due turni nello stesso orario non si salvano
+
+L’operaio e il caposquadra possono cambiare o eliminare le proprie ore finché sono in attesa o rifiutate. Un’ora già validata resta bloccata per chi l’ha segnata: la scritta dice di chiedere al caposquadra, oppure al manager se il lavoro è autonomo o se la riga è del caposquadra. Due turni della stessa persona nello stesso giorno non si salvano se gli orari si incrociano; se si toccano solo al cambio ora, vanno bene. In Segna ore (computer e telefono) compare il riquadro delle ore di quel giorno.
+
+Il caposquadra, sulle ore dei suoi operai, e il manager, su tutte le ore dell’azienda, possono correggere una riga già validata, rimetterla in attesa o rifiutarla con un motivo. La riga non si cancella. Il singolo «Valida» non chiede più conferma; «Valida selezionate» e «Valida tutte» ne chiedono una sola. I contatori in alto sono in ore, con il numero di righe sotto. C’è anche la pausa e un avviso se due turni si sovrappongono.
+
+È cambiato `firestore.rules` sul blocco delle ore. Il deploy delle regole va fatto a mano, con `npm run deploy:rules`, solo dopo che questa versione è online e verificata. Non c’è nessun deploy di Cloud Functions. Le righe doppie del 6 e 7 ottobre, e quelle dell’operaio Paolo, si sistemano dall’interfaccia (caposquadra e manager), non con uno script.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-07 — Plurali nelle scritte (squadre, terreni, giorni, zone).**
 
 ## 2026-10-07 — Scritte: plurali senza la lettera in più
 

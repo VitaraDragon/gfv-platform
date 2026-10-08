@@ -79,6 +79,10 @@ Quando finisci un lavoro:
    - **Note**: Note aggiuntive (opzionale)
 4. Clicca **Salva**
 
+Sopra il salvataggio vedi **Le tue ore del giorno**: tutti i turni di quel giorno, su tutti i lavori, con orario, pausa, ore nette e stato. Il turno del lavoro scelto è evidenziato, in fondo c’è il totale.
+
+Due turni dello stesso giorno non possono coprirsi. Se finisci alle 12:00 puoi iniziare un altro turno alle 12:00. Se gli orari si incrociano, il salvataggio si ferma e indica il turno già presente.
+
 **Suggerimento**: Segna le ore alla fine della giornata per avere dati precisi.
 
 ### Calcolo Automatico Ore
@@ -90,13 +94,16 @@ Il sistema calcola automaticamente:
 
 ### Modificare Ore Già Segnate
 
-1. Vai su **Le Mie Ore**
-2. Trova l'ora da modificare
-3. Clicca **Modifica**
-4. Modifica i campi necessari
-5. Clicca **Salva**
+Finché l’ora è **in attesa** o **rifiutata** puoi cambiarla o eliminarla, anche dopo qualche giorno. Puoi cambiare data, orari, pausa, note e macchina. Il lavoro resta quello: per un lavoro diverso elimina la riga e segnane una nuova.
 
-**Nota**: Puoi modificare solo ore non ancora validate. Se l'ora è stata rifiutata, puoi modificarla e rispedirla.
+1. Vai su **Le Mie Ore** (computer) oppure apri il riquadro del giorno nella versione mobile
+2. Sulla riga clicca **Modifica**
+3. Sistema i campi e clicca **Salva modifiche**
+4. Per toglierla, clicca **Elimina** e conferma
+
+Se l’ora era stata rifiutata, dopo la modifica torna in attesa e il motivo del rifiuto sparisce.
+
+Su un’ora già **validata** non puoi fare nulla. La riga mostra «Validata — per correggerla chiedi al caposquadra» (oppure «al manager», se il lavoro è autonomo o se la riga è del caposquadra).
 
 ### Stati Ore
 
@@ -242,9 +249,9 @@ La dashboard mostra:
 - Controlla che il lavoro sia per oggi
 
 ### Le mie ore sono state rifiutate
-- Controlla il motivo del rifiuto
-- Modifica l'ora se necessario
-- Risalva l'ora
+- Controlla il motivo del rifiuto, visibile sulla riga
+- Modifica l’ora: torna in attesa da sola
+- Se gli orari si sovrappongono a un altro turno, cambia fascia oppure modifica quell’altra riga
 
 ### Non ricevo comunicazioni
 - Verifica che il caposquadra abbia inviato comunicazioni
