@@ -623,7 +623,13 @@ service cloud.firestore {
     // Subcollection: zoneLavorate (sotto lavori)
     match /tenants/{tenantId}/lavori/{lavoroId}/zoneLavorate/{zonaId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create, update: if isAuthenticated() && belongsToTenant(tenantId);
+      // Delete: solo il proprietario (operaioId o caposquadraId) o manager/admin possono eliminare
+      allow delete: if isAuthenticated() && belongsToTenant(tenantId) && (
+        resource.data.operaioId == request.auth.uid ||
+        resource.data.caposquadraId == request.auth.uid ||
+        isManagerOrAdmin(tenantId)
+      );
     }
 
     // Subcollection: manutenzioni (sotto macchine)
