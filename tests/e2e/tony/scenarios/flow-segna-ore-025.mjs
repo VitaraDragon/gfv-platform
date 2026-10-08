@@ -71,6 +71,21 @@ export async function runFlowSegnaOre025(page, expect, scenario) {
   expect(prima.lastReply || '').toMatch(/Tutto pronto/i);
   expect(prima.lastReply || '').toContain(secondo.nome);
 
+  if (lavori[0] && lavori[0].id && lavori[0].id !== secondo.id) {
+    const select = await page.evaluate(() => {
+      const modal = document.getElementById('ora-modal');
+      if (!modal || !modal.classList.contains('active')) return null;
+      const sel = document.getElementById('ora-lavoro');
+      if (!sel) return null;
+      const first = Array.from(sel.options || []).find((o) => o.value);
+      return { value: String(sel.value || ''), first: first ? String(first.value) : '' };
+    });
+    if (select) {
+      expect(select.value).toBe(secondo.id);
+      expect(select.value).not.toBe(select.first);
+    }
+  }
+
   const conferma = await tonyRunMultiTurn(page, ['sì'], {
     afterTurn: async (_p, _msg, ctx) => {
       replies.push(ctx.lastReply || '');

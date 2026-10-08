@@ -572,6 +572,59 @@
       }
     },
     {
+      "id": "T-FLOW-027",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Segna ore desktop: due Ripristino pali, Tony sceglie quello di oggi e non la Trinciatura in testa. Fascia 22:40-23:10 libera rispetto al seed e a 025/026.",
+      "contract": {
+        "invariant": "Form chiuso, nome omonimo: la risposta non cita la Trinciatura e, se è Tutto pronto, nomina il Ripristino di oggi",
+        "primaryAsserts": [
+          "niente Trinciatura",
+          "Tutto pronto con il nome oppure Su quale lavoro",
+          "ora-lavoro non è il primo",
+          "cfCallsMax 0"
+        ],
+        "avoidAsserts": []
+      },
+      "persona": "caposquadra",
+      "startUrl": "/core/segnatura-ore-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsCapoFromDevPage",
+      "messages": [],
+      "mockCf": false,
+      "expect": {
+        "clientRecovery": true,
+        "cfCallsMax": 0
+      }
+    },
+    {
+      "id": "T-FLOW-028",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Segna ore desktop: il modello finto dice Tutto pronto senza il nome e inietta il primo lavoro. Tony non mostra quel testo e non lascia il form sulla Trinciatura.",
+      "contract": {
+        "invariant": "Risposta del modello senza nome lavoro: in chat c'è il nome oppure la domanda, il select non è la Trinciatura",
+        "primaryAsserts": [
+          "niente testo Tutto pronto senza nome",
+          "ora-lavoro non è il primo lavoro"
+        ],
+        "avoidAsserts": [
+          "cfCallsMax 0"
+        ]
+      },
+      "persona": "caposquadra",
+      "startUrl": "/core/segnatura-ore-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsCapoFromDevPage",
+      "messages": [],
+      "mockCf": true,
+      "expect": {
+        "clientRecovery": true
+      }
+    },
+    {
       "id": "T-FLOW-015",
       "status": "ready",
       "mode": "gate",

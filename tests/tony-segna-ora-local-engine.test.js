@@ -60,8 +60,9 @@ describe('tony-segna-ora-local-engine', () => {
       startVal: '07:00',
       endVal: '18:00',
       pauseVal: '0',
-    }, { requireLavoro: false, pauseAcknowledged: true });
+    }, { requireLavoro: false, pauseAcknowledged: true, lavoroNome: 'Ripristino pali' });
     expect(msg).toMatch(/salvare/i);
+    expect(msg).toMatch(/Ripristino pali/);
   });
 
   it('buildSegnaOreMissingFieldsMessage — il riepilogo dice il lavoro', () => {
@@ -80,6 +81,18 @@ describe('tony-segna-ora-local-engine', () => {
     });
     expect(msg).toMatch(/Tutto pronto: Ripristino pali, dalle 17:00 alle 17:30, pausa 0 min, Fiat 880 DT e Berti/);
     expect(msg).toMatch(/Vuoi salvare/);
+  });
+
+  it('senza nome del lavoro non dice Tutto pronto', () => {
+    var msg = buildSegnaOreMissingFieldsMessage({
+      lavoroVal: 'abc',
+      dateVal: '2026-10-08',
+      startVal: '17:00',
+      endVal: '17:30',
+      pauseVal: '0',
+    }, { pauseAcknowledged: true, lavoroNome: '' });
+    expect(msg).not.toMatch(/Tutto pronto/i);
+    expect(msg).toMatch(/Su quale lavoro/);
   });
 
   it('userBlobAcknowledgesZeroPause', () => {

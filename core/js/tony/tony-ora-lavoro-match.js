@@ -58,6 +58,44 @@ export const TONY_ORA_LAVORO_USER_MATCH_STOP = {
   bene: 1
 };
 
+function distanzaAlMassimoUno(a, b) {
+  if (a === b) return true;
+  const la = a.length;
+  const lb = b.length;
+  if (Math.abs(la - lb) > 1) return false;
+  let i = 0;
+  let j = 0;
+  let usate = 0;
+  while (i < la && j < lb) {
+    if (a[i] === b[j]) {
+      i += 1;
+      j += 1;
+      continue;
+    }
+    usate += 1;
+    if (usate > 1) return false;
+    if (la > lb) i += 1;
+    else if (lb > la) j += 1;
+    else {
+      i += 1;
+      j += 1;
+    }
+  }
+  if (i < la || j < lb) usate += 1;
+  return usate <= 1;
+}
+
+function tokenERefusoDiStop(token) {
+  const chiavi = Object.keys(TONY_ORA_LAVORO_USER_MATCH_STOP);
+  for (let i = 0; i < chiavi.length; i += 1) {
+    const stop = chiavi[i];
+    if (stop.length < 4) continue;
+    if (Math.abs(stop.length - token.length) > 1) continue;
+    if (distanzaAlMassimoUno(token, stop)) return true;
+  }
+  return false;
+}
+
 /**
  * @param {string} testo
  * @returns {string[]}
@@ -68,6 +106,7 @@ export function tokenLavoroSignificativi(testo) {
     if (!t || t.length < 4) return false;
     if (/^\d+$/.test(t)) return false;
     if (TONY_ORA_LAVORO_USER_MATCH_STOP[t]) return false;
+    if (tokenERefusoDiStop(t)) return false;
     return true;
   });
 }
@@ -91,9 +130,29 @@ function testoConfrontoLavoro(lavoro) {
   return `${lavoro.nome || ''} ${lavoro.label || ''} ${lavoro.tipoLavoro || ''} ${testoAlias(lavoro)}`.toLowerCase();
 }
 
-function giornoDelLavoro(lavoro) {
+/**
+ * Giorno del lavoro (YYYY-MM-DD). Senza data restituisce stringa vuota.
+ * Nomi accettati: dataInizio, data, dataLavoro, dataInizioGiorno.
+ * @param {object|null|undefined} lavoro
+ * @returns {string}
+ */
+export function giornoDelLavoro(lavoro) {
   if (!lavoro) return '';
-  return chiaveGiornoOra(lavoro.dataInizio || lavoro.data || lavoro.dataLavoro || '') || '';
+  const raw = lavoro.dataInizio || lavoro.data || lavoro.dataLavoro || lavoro.dataInizioGiorno || '';
+  return chiaveGiornoOra(raw) || '';
+}
+
+/**
+ * True solo se la data c'è ed è oggi. Senza data non è «oggi».
+ * @param {object|null|undefined} lavoro
+ * @param {string} oggiIso
+ * @returns {boolean}
+ */
+export function eDiOggi(lavoro, oggiIso) {
+  if (!oggiIso) return false;
+  const giorno = giornoDelLavoro(lavoro);
+  if (!giorno) return false;
+  return giorno === oggiIso;
 }
 
 function dataDiversaDaOggi(lavoro, oggiIso) {
@@ -113,7 +172,39 @@ function punteggioLavoro(tokens, lavoro) {
 }
 
 function lavoriDiOggi(list, oggiIso) {
-  return list.filter((lavoro) => !dataDiversaDaOggi(lavoro, oggiIso));
+  return list.filter((lavoro) => eDiOggi(lavoro, oggiIso));
+}
+
+function esitoNessuno(list, oggiIso, nominato) {
+  const diOggi = lavoriDiOggi(list, oggiIso);
+  if (diOggi.length) {
+    return { stato: 'nessuno', lavoro: null, candidati: diOggi, nominato: nominato, fonteElenco: 'oggi' };
+  }
+  return { stato: 'nessuno', lavoro: null, candidati: list, nominato: nominato, fonteElenco: 'disponibili' };
+}
+
+function esitoUnico(riga) {
+  return {
+    stato: 'unico',
+    lavoro: riga.lavoro,
+    candidati: [riga.lavoro],
+    nominato: true
+  };
+}
+
+function esitoAmbiguo(righe) {
+  return {
+    stato: 'ambiguo',
+    lavoro: null,
+    candidati: righe.map((riga) => riga.lavoro),
+    nominato: true
+  };
+}
+
+function esitoDaTesta(righe) {
+  const ids = new Set(righe.map((riga) => String(riga.lavoro.id)));
+  if (ids.size >= 2) return esitoAmbiguo(righe);
+  return esitoUnico(righe[0]);
 }
 
 /**
@@ -128,10 +219,9 @@ export function risolviLavoroDaTesto(testoUtente, lavori, opts) {
   const oggiIso = opts && opts.oggiIso ? String(opts.oggiIso) : '';
   const list = (Array.isArray(lavori) ? lavori : []).filter((lavoro) => lavoro && lavoro.id);
   const tokens = tokenLavoroSignificativi(testoUtente);
-  const diOggi = lavoriDiOggi(list, oggiIso);
 
   if (!tokens.length) {
-    return { stato: 'nessuno', lavoro: null, candidati: diOggi, nominato: false };
+    return esitoNessuno(list, oggiIso, false);
   }
 
   const conPunteggio = list
@@ -139,40 +229,35 @@ export function risolviLavoroDaTesto(testoUtente, lavori, opts) {
     .filter((riga) => riga.score > 0);
 
   if (!conPunteggio.length) {
-    return { stato: 'nessuno', lavoro: null, candidati: diOggi, nominato: true };
+    return esitoNessuno(list, oggiIso, true);
   }
 
   conPunteggio.sort((a, b) => b.score - a.score);
   const meglio = conPunteggio[0].score;
-  let inTesta = conPunteggio.filter((riga) => riga.score === meglio);
+  const inTesta = conPunteggio.filter((riga) => riga.score === meglio);
 
-  const vincitoreFuoriOggi = inTesta.length === 1 && dataDiversaDaOggi(inTesta[0].lavoro, oggiIso);
-  if (vincitoreFuoriOggi && conPunteggio.length > 1) {
-    const soloOggi = conPunteggio.filter((riga) => !dataDiversaDaOggi(riga.lavoro, oggiIso));
-    if (!soloOggi.length) {
-      return { stato: 'nessuno', lavoro: null, candidati: diOggi, nominato: true };
+  if (inTesta.length === 1) {
+    const vincitore = inTesta[0];
+    const soloAbbinamento = conPunteggio.length === 1;
+    if (eDiOggi(vincitore.lavoro, oggiIso) || soloAbbinamento) {
+      return esitoUnico(vincitore);
     }
-    soloOggi.sort((a, b) => b.score - a.score);
-    const meglioOggi = soloOggi[0].score;
-    inTesta = soloOggi.filter((riga) => riga.score === meglioOggi);
+    const soloOggi = conPunteggio.filter((riga) => eDiOggi(riga.lavoro, oggiIso));
+    if (soloOggi.length) {
+      soloOggi.sort((a, b) => b.score - a.score);
+      const meglioOggi = soloOggi[0].score;
+      return esitoDaTesta(soloOggi.filter((riga) => riga.score === meglioOggi));
+    }
+    if (dataDiversaDaOggi(vincitore.lavoro, oggiIso)) {
+      return esitoNessuno(list, oggiIso, true);
+    }
+    return esitoUnico(vincitore);
   }
 
-  const ids = new Set(inTesta.map((riga) => String(riga.lavoro.id)));
-  if (ids.size >= 2) {
-    return {
-      stato: 'ambiguo',
-      lavoro: null,
-      candidati: inTesta.map((riga) => riga.lavoro),
-      nominato: true
-    };
-  }
-
-  return {
-    stato: 'unico',
-    lavoro: inTesta[0].lavoro,
-    candidati: [inTesta[0].lavoro],
-    nominato: true
-  };
+  const diOggiTesta = inTesta.filter((riga) => eDiOggi(riga.lavoro, oggiIso));
+  if (diOggiTesta.length === 1) return esitoUnico(diOggiTesta[0]);
+  if (diOggiTesta.length >= 2) return esitoAmbiguo(diOggiTesta);
+  return esitoAmbiguo(inTesta);
 }
 
 /**
@@ -189,9 +274,75 @@ export function messaggioSceltaLavoroOre(esito) {
   }
   if (esito.stato === 'nessuno' && esito.nominato) {
     const elenco = nomi.length ? nomi.slice(0, 8).join(', ') : 'nessuno';
-    return `Non trovo un lavoro con quel nome. I lavori di oggi sono: ${elenco}.`;
+    const titolo = esito.fonteElenco === 'disponibili' ? 'I lavori disponibili sono' : 'I lavori di oggi sono';
+    return `Non trovo un lavoro con quel nome. ${titolo}: ${elenco}.`;
   }
   return '';
+}
+
+/**
+ * Aggiunge l'avviso di sovrapposizione alla domanda sul lavoro.
+ * @param {string} avviso
+ * @param {{ stato?: string, candidati?: object[] }|null} esito
+ * @returns {string}
+ */
+export function unisciAvvisoSovrapposizioneELavoro(avviso, esito) {
+  const base = String(avviso || '').trim();
+  if (!esito || esito.stato === 'unico') return base;
+  const nomi = (esito.candidati || []).map(nomeLavoroVisibile).filter(Boolean).slice(0, 6);
+  let coda = 'E su quale lavoro?';
+  if (esito.stato === 'ambiguo' && nomi.length === 2) {
+    coda = `E su quale lavoro: ${nomi[0]} o ${nomi[1]}?`;
+  } else if (esito.stato === 'ambiguo' && nomi.length > 2) {
+    coda = `E su quale lavoro: ${nomi.join(', ')}?`;
+  } else if (nomi.length) {
+    coda = `E su quale lavoro: ${nomi.join(', ')}?`;
+  }
+  if (!base) return coda;
+  return `${base} ${coda}`;
+}
+
+/**
+ * «Tutto pronto» del modello è accettabile solo se contiene il nome del lavoro.
+ * Un testo che non è un riepilogo resta com'è.
+ * @param {string} testo
+ * @param {string} nomeLavoro
+ * @returns {boolean}
+ */
+export function testoRiepilogoHaLavoro(testo, nomeLavoro) {
+  const t = String(testo || '');
+  if (!/tutto\s+pronto/i.test(t)) return true;
+  const nome = String(nomeLavoro || '').trim();
+  if (nome.length < 2) return false;
+  return t.toLowerCase().indexOf(nome.toLowerCase()) >= 0;
+}
+
+/**
+ * Opzioni del select arricchite con la data presa dall'elenco, a parità di id.
+ * @param {{ value?: string, text?: string }[]} opzioni
+ * @param {object[]} lavoriDatati
+ * @returns {object[]}
+ */
+export function arricchisciLavoriDaOpzioni(opzioni, lavoriDatati) {
+  const byId = new Map();
+  (Array.isArray(lavoriDatati) ? lavoriDatati : []).forEach((lavoro) => {
+    if (lavoro && lavoro.id) byId.set(String(lavoro.id), lavoro);
+  });
+  return (Array.isArray(opzioni) ? opzioni : [])
+    .filter((o) => o && String(o.value || '').trim())
+    .map((o) => {
+      const id = String(o.value);
+      const src = byId.get(id) || {};
+      return {
+        id,
+        nome: (o.text || src.nome || src.label || '').trim(),
+        label: (o.text || src.label || src.nome || '').trim(),
+        tipoLavoro: src.tipoLavoro || '',
+        dataInizio: giornoDelLavoro(src),
+        macchinaNome: src.macchinaNome || '',
+        attrezzoNome: src.attrezzoNome || ''
+      };
+    });
 }
 
 /**
@@ -200,16 +351,20 @@ export function messaggioSceltaLavoroOre(esito) {
  *
  * @param {string} valore
  * @param {{ value?: string, text?: string }[]} opzioni
+ * @param {{ lavori?: object[], oggiIso?: string }} [optsMatch]
  * @returns {string|null}
  */
-export function risolviValoreSelectLavoro(valore, opzioni) {
+export function risolviValoreSelectLavoro(valore, opzioni, optsMatch) {
   const valStr = String(valore || '').trim();
   if (!valStr) return null;
   const opts = (Array.isArray(opzioni) ? opzioni : []).filter((o) => o && String(o.value || '').trim());
   const perId = opts.find((o) => String(o.value) === valStr);
   if (perId) return String(perId.value);
-  const lavori = opts.map((o) => ({ id: String(o.value), nome: o.text || '' }));
-  const esito = risolviLavoroDaTesto(valStr, lavori, {});
+  const extra = optsMatch && Array.isArray(optsMatch.lavori) ? optsMatch.lavori : [];
+  const lavori = extra.length
+    ? arricchisciLavoriDaOpzioni(opts, extra)
+    : opts.map((o) => ({ id: String(o.value), nome: o.text || '' }));
+  const esito = risolviLavoroDaTesto(valStr, lavori, { oggiIso: optsMatch && optsMatch.oggiIso ? optsMatch.oggiIso : '' });
   if (esito.stato === 'unico' && esito.lavoro) return String(esito.lavoro.id);
   const search = valStr.toLowerCase();
   const perTesto = opts.filter((o) => {
@@ -225,6 +380,11 @@ if (typeof window !== 'undefined') {
     risolviLavoroDaTesto,
     risolviValoreSelectLavoro,
     messaggioSceltaLavoroOre,
-    nomeLavoroVisibile
+    nomeLavoroVisibile,
+    eDiOggi,
+    giornoDelLavoro,
+    testoRiepilogoHaLavoro,
+    unisciAvvisoSovrapposizioneELavoro,
+    arricchisciLavoriDaOpzioni
   };
 }
