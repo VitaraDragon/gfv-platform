@@ -107,9 +107,9 @@ Su un’ora già **validata** non puoi fare nulla. La riga mostra «Validata —
 
 ### Stati Ore
 
-- **Da Validare**: Ora segnata, in attesa di validazione caposquadra
-- **Validate**: Ora approvata dal caposquadra, conteggiata nelle statistiche
-- **Rifiutate**: Ora rifiutata dal caposquadra, controlla motivo
+- **Da Validare**: Ora segnata, in attesa. La valida il caposquadra, oppure il manager se il lavoro è autonomo
+- **Validate**: Ora approvata, con data e ora di chi l’ha validata
+- **Rifiutate**: chi l’ha rifiutata, quando e il motivo
 
 ## 📢 Comunicazioni
 

@@ -155,7 +155,7 @@ Sempre nella scheda **Lavoro**, nel blocco **Valida ore**, vedi le registrazioni
 ### Passi
 
 1. Assicurati di aver scelto il **lavoro giusto** nel menu in alto nella scheda **Lavoro**.  
-2. Scorri l’elenco sotto **Valida ore**: compaiono le righe in **attesa di validazione** per quel lavoro (nome operaio, data, fascia oraria, pausa, ore nette). Un avviso segnala se il turno si sovrappone a un altro dello stesso operaio.  
+2. Scorri l’elenco sotto **Valida ore**: compaiono le righe in **attesa di validazione** per quel lavoro (nome operaio, data, fascia oraria, pausa, ore nette, nota e, se c’è, la macchina). Un avviso segnala se il turno si sovrappone a un altro dello stesso operaio.  
 3. Per ogni riga usa **Approva** oppure **Rifiuta** in base a ciò che è successo davvero in campo.  
 4. Se non compare nessuna riga:
    - non ci sono ore in stato «da validare» per quel lavoro, oppure  
@@ -166,7 +166,7 @@ Sempre nella scheda **Lavoro**, nel blocco **Valida ore**, vedi le registrazioni
 
 - Qui validi le ore **del team sul singolo lavoro**. Le tue ore le valida il manager.  
 - Il **manager** ha comunque le viste complete e la **validazione globale** dove previsto dall’installazione: non sono la stessa cosa.  
-- Da computer, in **Validazione ore**, puoi anche **correggere**, **annullare** o **rifiutare** un’ora già validata dei tuoi operai: serve un motivo breve. La riga non si cancella.
+- Da computer, in **Validazione ore**, i contatori **Validate** e **Rifiutate** sono gli ultimi 30 giorni, le stesse righe della lista. Puoi vedere anche le rifiutate, con chi, quando e il motivo. Puoi **correggere**, **annullare** o **rifiutare** un’ora già validata dei tuoi operai: serve un motivo breve. Se manca, la pagina lo dice. La riga non si cancella. Dopo il rifiuto leggi «Ora rifiutata». Le stelline delle competenze, dopo una tua validazione, si aggiornano quando agisce il manager, oppure dal ricalcolo in Gestione operai.
 
 ---
 

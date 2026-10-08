@@ -30,6 +30,11 @@ import {
     formatDateLikeToItalianLongWeekday
 } from './date-format-it.js';
 import { contaOreManagerDaValidareSuLavoro, isOraDelCaposquadraSuLavoroSquadra } from '../services/manodopera-ore-validazione-scope.js';
+import {
+    formatTracciaOra,
+    chiValidaOra,
+    testoAttesaValidazione
+} from '../services/ore-operai-logic.js';
 
 // ============================================
 // UTILITY FUNCTIONS
@@ -1619,16 +1624,26 @@ export async function loadStatisticheOreOperaio(userData, dependencies) {
                     }
                     
                     const dataOra = ora.data?.toDate ? ora.data.toDate() : new Date(ora.data);
+                    const lavoroData = lavoroDoc.data() || {};
                     oreRecenti.push({
                         id: oraDoc.id,
                         lavoroId: lavoroId,
-                        lavoroNome: lavoroDoc.data().nome || 'Lavoro',
+                        lavoroNome: lavoroData.nome || 'Lavoro',
+                        lavoro: {
+                            caposquadraId: lavoroData.caposquadraId || null,
+                            operaioId: lavoroData.operaioId || null
+                        },
                         data: dataOra,
                         oreNette: oreNette,
                         stato: stato,
                         note: ora.note || '',
+                        operaioId: ora.operaioId || operaioId,
                         validatoDa: ora.validatoDa || '',
-                        validatoIl: ora.validatoIl || null
+                        validatoIl: ora.validatoIl || null,
+                        rifiutatoDa: ora.rifiutatoDa || '',
+                        rifiutatoIl: ora.rifiutatoIl || null,
+                        motivoRifiuto: ora.motivoRifiuto || '',
+                        storicoModifiche: ora.storicoModifiche || []
                     });
                 });
             } catch (error) {
@@ -1654,8 +1669,11 @@ export async function loadStatisticheOreOperaio(userData, dependencies) {
         const ultime = oreRecenti.slice(0, 5);
         const nomiValidatori = new Map();
         for (const ora of ultime) {
-            const uid = ora.validatoDa;
-            if (!uid || nomiValidatori.has(uid) || ora.stato !== 'validate') continue;
+            const ids = [ora.validatoDa, ora.rifiutatoDa]
+                .concat((ora.storicoModifiche || []).map((v) => v && v.da))
+                .filter(Boolean);
+            for (const uid of ids) {
+            if (!uid || nomiValidatori.has(uid)) continue;
             try {
                 const userDoc = await getDoc(doc(db, 'users', uid));
                 if (userDoc.exists()) {
@@ -1665,6 +1683,7 @@ export async function loadStatisticheOreOperaio(userData, dependencies) {
                 }
             } catch (error) {
                 console.warn('Nome validatore non letto', uid, error);
+            }
             }
         }
         
@@ -1715,14 +1734,11 @@ export async function loadStatisticheOreOperaio(userData, dependencies) {
                 'da_validare': '<span style="background: #ff9800; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">⏳ Da validare</span>',
                 'rifiutate': '<span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">❌ Rifiutate</span>'
             }[ora.stato] || '';
-            let traccia = '';
-            if (ora.stato === 'validate' && (ora.validatoDa || ora.validatoIl)) {
-                const chi = nomiValidatori.get(ora.validatoDa) || '';
-                const quando = formatDateLikeToItalianLongLocal(ora.validatoIl);
-                if (chi && quando) traccia = ` · validata da ${escapeHtml(chi)} il ${quando}`;
-                else if (quando) traccia = ` · validata il ${quando}`;
-                else if (chi) traccia = ` · validata da ${escapeHtml(chi)}`;
-            }
+            const nomeDi = (uid) => nomiValidatori.get(uid) || '';
+            const tracciaTesto = ora.stato === 'da_validare'
+                ? testoAttesaValidazione(chiValidaOra({ ora, lavoro: ora.lavoro }))
+                : formatTracciaOra(ora, nomeDi);
+            const traccia = tracciaTesto ? ` · ${escapeHtml(tracciaTesto)}` : '';
             
             html += `
                 <li class="recent-item">

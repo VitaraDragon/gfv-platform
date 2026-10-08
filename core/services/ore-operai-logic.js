@@ -12,7 +12,8 @@ import { dateLikeToLocalCalendarIso } from '../js/date-format-it.js';
 import {
   isLavoroSquadra,
   isLavoroAutonomo,
-  isOraDelCaposquadraSuLavoroSquadra
+  isOraDelCaposquadraSuLavoroSquadra,
+  oreVisibileInCodaValidazione
 } from './manodopera-ore-validazione-scope.js';
 
 const TIME_RE = /^(\d{1,2}):(\d{2})$/;
@@ -140,6 +141,66 @@ export function messaggioSovrapposizione(conflitti) {
 }
 
 /**
+ * Messaggio di Tony prima del salvataggio: orario occupato e un'alternativa.
+ * @param {{ orarioInizio?: string, orarioFine?: string, inizio?: string, fine?: string }} nuova
+ * @param {object[]} conflitti
+ * @returns {string}
+ */
+export function messaggioSovrapposizioneTony(nuova, conflitti) {
+  const c = Array.isArray(conflitti) && conflitti[0];
+  if (!c) return '';
+  const ini = (nuova && (nuova.orarioInizio || nuova.inizio)) || '';
+  const fin = (nuova && (nuova.orarioFine || nuova.fine)) || '';
+  const nome = c.lavoroNome || 'un lavoro';
+  const esempio = c.orarioFine
+    ? ` Dimmi un altro orario: per esempio dalle ${c.orarioFine}.`
+    : ' Dimmi un altro orario.';
+  return `Dalle ${ini} alle ${fin} si sovrappone al turno già segnato dalle ${c.orarioInizio || ''} alle ${c.orarioFine || ''} (lavoro ${nome}).${esempio}`;
+}
+
+/**
+ * Chi deve validare la riga. Stesse regole della coda, senza cambiarle.
+ * @param {{ ora?: object, lavoro?: object }} args
+ * @returns {'caposquadra'|'manager'}
+ */
+export function chiValidaOra(args) {
+  const ora = args && args.ora;
+  const lavoro = args && args.lavoro;
+  if (isLavoroAutonomo(lavoro)) return 'manager';
+  if (isOraDelCaposquadraSuLavoroSquadra(ora, lavoro)) return 'manager';
+  return 'caposquadra';
+}
+
+/**
+ * Toast dopo il salvataggio. Inizia sempre con «Ora segnata con successo!».
+ * @param {'caposquadra'|'manager'} chi
+ * @returns {string}
+ */
+export function messaggioOraSegnataConSuccesso(chi) {
+  const chiTesto = chi === 'manager' ? 'il manager' : 'il caposquadra';
+  return `Ora segnata con successo! In attesa — la valida ${chiTesto}.`;
+}
+
+/**
+ * Scritta sulle righe ancora in attesa.
+ * @param {'caposquadra'|'manager'} chi
+ * @returns {string}
+ */
+export function testoAttesaValidazione(chi) {
+  const chiTesto = chi === 'manager' ? 'il manager' : 'il caposquadra';
+  return `In attesa — la valida ${chiTesto}`;
+}
+
+/**
+ * Il ricalcolo delle stelline scrive profiliManodopera: lo possono fare solo manager e amministratore.
+ * @param {boolean} isManager
+ * @returns {boolean}
+ */
+export function deveRichiedereRefreshSkill(isManager) {
+  return Boolean(isManager);
+}
+
+/**
  * @param {object[]} conflitti
  * @returns {Error & { code: string, conflitti: object[] }}
  */
@@ -242,6 +303,89 @@ export function oraVisibileInArchivioValidate(args) {
   const { ora, lavoro, userId, isCaposquadra, isManager } = args || {};
   if (String(ora && ora.stato || '') !== 'validate') return false;
   return isValidatoreOre({ ora, lavoro, userId, isCaposquadra, isManager });
+}
+
+/**
+ * Stesso scope dell'archivio validate, anche per le rifiutate.
+ * @param {{ ora: object, lavoro: object, userId: string, isCaposquadra: boolean, isManager: boolean }} args
+ * @returns {boolean}
+ */
+export function oraVisibileInArchivio(args) {
+  const { ora, lavoro, userId, isCaposquadra, isManager } = args || {};
+  const stato = String(ora && ora.stato || '');
+  if (stato !== 'validate' && stato !== 'rifiutate') return false;
+  return isValidatoreOre({ ora, lavoro, userId, isCaposquadra, isManager });
+}
+
+/**
+ * Giorno di calendario dentro gli ultimi N giorni, oggi compreso.
+ * @param {*} dataLike
+ * @param {number} [giorni]
+ * @param {Date} [oggi]
+ * @returns {boolean}
+ */
+export function giornoEntroUltimiGiorni(dataLike, giorni = 30, oggi = new Date()) {
+  const key = chiaveGiornoOra(dataLike);
+  if (!key) return false;
+  const limite = new Date(oggi.getTime());
+  limite.setHours(0, 0, 0, 0);
+  limite.setDate(limite.getDate() - Number(giorni || 30));
+  const limiteKey = chiaveGiornoOra(limite);
+  return Boolean(limiteKey) && key >= limiteKey;
+}
+
+/**
+ * Contatori della pagina Validazione ore.
+ * «Da validare» è la coda di chi guarda.
+ * «Validate» e «Rifiutate» sono le stesse righe e lo stesso periodo della lista archivio.
+ *
+ * @param {object[]} righe ogni riga è l'ora, oppure { ora, lavoro, lavoroId }
+ * @param {{ userId?: string, isCaposquadra?: boolean, isManager?: boolean, giorni?: number, oggi?: Date, filtroOperaioId?: string, filtroLavoroId?: string }} [opts]
+ * @returns {{ daValidare: object[], validate: object[], rifiutate: object[], periodoEtichetta: string }}
+ */
+export function calcolaContatoriOreValidazione(righe, opts = {}) {
+  const {
+    userId = '',
+    isCaposquadra = false,
+    isManager = false,
+    giorni = 30,
+    oggi = new Date(),
+    filtroOperaioId = '',
+    filtroLavoroId = ''
+  } = opts || {};
+  const daValidare = [];
+  const validate = [];
+  const rifiutate = [];
+  const list = Array.isArray(righe) ? righe : [];
+  for (const row of list) {
+    if (!row) continue;
+    const ora = row.ora || row;
+    const lavoro = row.lavoro || row.lavoroData || {};
+    if (String(ora.stato || '') === 'da_validare' && oreVisibileInCodaValidazione({
+      oraData: ora,
+      lavoroData: lavoro,
+      userId,
+      isCaposquadra,
+      isManager
+    })) {
+      daValidare.push(row);
+    }
+    const stato = String(ora.stato || '');
+    if (stato !== 'validate' && stato !== 'rifiutate') continue;
+    if (!giornoEntroUltimiGiorni(ora.data, giorni, oggi)) continue;
+    if (!oraVisibileInArchivio({ ora, lavoro, userId, isCaposquadra, isManager })) continue;
+    if (filtroOperaioId && String(ora.operaioId || '') !== String(filtroOperaioId)) continue;
+    const lavoroId = row.lavoroId || ora.lavoroId || '';
+    if (filtroLavoroId && String(lavoroId) !== String(filtroLavoroId)) continue;
+    if (stato === 'validate') validate.push(row);
+    else rifiutate.push(row);
+  }
+  return {
+    daValidare,
+    validate,
+    rifiutate,
+    periodoEtichetta: `ultimi ${giorni} giorni`
+  };
 }
 
 /**
@@ -436,34 +580,134 @@ export function pianoRettificaOreMacchina(contabilizzate, azione, prossimo = nul
 }
 
 /**
- * Testo "Validata da X il gg/mm" e, se c'è, "Corretta da Y il gg/mm (motivo)".
+ * Timestamp Firestore, Date, secondi {seconds} o stringa → Date locale.
+ * @param {*} val
+ * @returns {Date|null}
+ */
+export function istanteTraccia(val) {
+  if (val == null || val === '') return null;
+  if (typeof val === 'object' && typeof val.toDate === 'function') {
+    try {
+      const d = val.toDate();
+      return Number.isNaN(d.getTime()) ? null : d;
+    } catch (e) {
+      return null;
+    }
+  }
+  if (typeof val === 'object' && val.seconds != null) {
+    const ms = Number(val.seconds) * 1000 + Math.floor(Number(val.nanoseconds || 0) / 1e6);
+    const d = new Date(ms);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  if (val instanceof Date) return Number.isNaN(val.getTime()) ? null : val;
+  if (typeof val === 'number' && Number.isFinite(val)) {
+    const d = new Date(val);
+    return Number.isNaN(d.getTime()) ? null : d;
+  }
+  const s = String(val).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+    const [y, m, d] = s.split('-').map((n) => parseInt(n, 10));
+    return new Date(y, m - 1, d, 0, 0, 0, 0);
+  }
+  const parsed = new Date(s);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+/**
+ * gg/mm/aaaa hh:mm in ora locale.
+ * @param {*} val
+ * @returns {string}
+ */
+export function formattaDataOraTraccia(val) {
+  const d = istanteTraccia(val);
+  if (!d) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+function testoVoceTraccia(azione, chi, quando, motivo) {
+  const nome = chi ? ` da ${chi}` : '';
+  const data = quando ? ` il ${quando}` : '';
+  const mot = motivo ? ` — ${motivo}` : '';
+  if (azione === 'validazione') return `Validata${nome}${data}`;
+  if (azione === 'modifica') return `Modificata${nome}${data}`;
+  if (azione === 'correzione') return `Corretta${nome}${data}${mot}`;
+  if (azione === 'annulla_validazione') return `Validazione annullata${nome}${data}${mot}`;
+  if (azione === 'rifiuto') return `Rifiutata${nome}${data}${mot}`;
+  return '';
+}
+
+const AZIONI_TRACCIA = new Set(['modifica', 'correzione', 'annulla_validazione', 'rifiuto']);
+
+/**
+ * Elenco ordinato per data: validazione, storico, rifiuto attuale se manca nello storico.
+ * @param {object} ora
+ * @param {(uid: string) => string} [nomeDi]
+ * @returns {string[]}
+ */
+export function vociTracciaOra(ora, nomeDi) {
+  if (!ora) return [];
+  const nome = typeof nomeDi === 'function' ? nomeDi : () => '';
+  const eventi = [];
+  const spinge = (azione, da, il, motivo) => {
+    const quando = formattaDataOraTraccia(il);
+    const chi = da ? (nome(da) || '') : '';
+    const motivoTesto = motivo ? String(motivo).trim() : '';
+    const testo = testoVoceTraccia(azione, chi, quando, motivoTesto);
+    if (!testo) return;
+    const t = istanteTraccia(il);
+    eventi.push({ t: t ? t.getTime() : 0, testo });
+  };
+
+  if (ora.validatoDa || ora.validatoIl) {
+    spinge('validazione', ora.validatoDa, ora.validatoIl, '');
+  }
+
+  const storico = Array.isArray(ora.storicoModifiche) ? ora.storicoModifiche : [];
+  let haRifiutoStorico = false;
+  storico.forEach((voce) => {
+    if (!voce || !AZIONI_TRACCIA.has(voce.azione)) return;
+    if (voce.azione === 'rifiuto') haRifiutoStorico = true;
+    spinge(voce.azione, voce.da, voce.il, voce.motivo);
+  });
+
+  const haCampiRifiuto = Boolean(ora.rifiutatoDa || ora.rifiutatoIl || ora.motivoRifiuto);
+  if (!haRifiutoStorico && haCampiRifiuto) {
+    spinge('rifiuto', ora.rifiutatoDa, ora.rifiutatoIl, ora.motivoRifiuto);
+  }
+
+  eventi.sort((a, b) => a.t - b.t);
+  const visti = new Set();
+  const out = [];
+  eventi.forEach((evento) => {
+    if (visti.has(evento.testo)) return;
+    visti.add(evento.testo);
+    out.push(evento.testo);
+  });
+  return out;
+}
+
+/**
+ * Traccia completa in una riga. Data e ora locali.
  * @param {object} ora
  * @param {(uid: string) => string} [nomeDi]
  * @returns {string}
  */
 export function formatTracciaOra(ora, nomeDi) {
-  if (!ora) return '';
-  const nome = typeof nomeDi === 'function' ? nomeDi : () => '';
-  const parts = [];
-  if (ora.stato === 'validate' && (ora.validatoDa || ora.validatoIl)) {
-    const chi = nome(ora.validatoDa) || '';
-    const quando = formattaGiornoBreve(ora.validatoIl);
-    if (chi && quando) parts.push(`Validata da ${chi} il ${quando}`);
-    else if (quando) parts.push(`Validata il ${quando}`);
-    else if (chi) parts.push(`Validata da ${chi}`);
-  }
-  const storico = Array.isArray(ora.storicoModifiche) ? ora.storicoModifiche : [];
-  const correzioni = storico.filter((v) => v && v.azione === 'correzione');
-  const last = correzioni.length ? correzioni[correzioni.length - 1] : null;
-  if (last) {
-    const chi = nome(last.da) || '';
-    const quando = formattaGiornoBreve(last.il);
-    const motivo = last.motivo ? ` (${last.motivo})` : '';
-    if (chi && quando) parts.push(`Corretta da ${chi} il ${quando}${motivo}`);
-    else if (quando) parts.push(`Corretta il ${quando}${motivo}`);
-    else if (chi) parts.push(`Corretta da ${chi}${motivo}`);
-  }
-  return parts.join(' · ');
+  return vociTracciaOra(ora, nomeDi).join(' · ');
+}
+
+/**
+ * Versione corta per la tabella, con il testo intero se serve «mostra tutto».
+ * @param {string[]} voci
+ * @param {number} [max]
+ * @returns {{ full: string, breve: string, tronca: boolean }}
+ */
+export function riassuntoTraccia(voci, max = 90) {
+  const full = (Array.isArray(voci) ? voci : []).join(' · ');
+  const limite = Number(max) > 20 ? Number(max) : 90;
+  if (full.length <= limite) return { full, breve: full, tronca: false };
+  return { full, breve: `${full.slice(0, limite - 1).trim()}…`, tronca: true };
 }
 
 /**

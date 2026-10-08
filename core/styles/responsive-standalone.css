@@ -230,7 +230,7 @@ body {
     top: 16px;
     left: 50%;
     transform: translateX(-50%);
-    z-index: 11050;
+    z-index: 20000;
     width: min(520px, calc(100vw - 32px));
     pointer-events: none;
     display: flex;

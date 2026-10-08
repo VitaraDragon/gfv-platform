@@ -406,6 +406,7 @@
                 <div class="section-header">
                     <h2>Le Mie Ore</h2>
                 </div>
+                <div id="ore-giorno-pagina" data-state="idle" style="display:none; margin: 0 0 12px 0; padding: 12px; background: #f4faf6; border: 1px solid #cfe6d6; border-radius: 8px;"></div>
                 <div id="ore-container">
                     <div class="loading">Caricamento ore...</div>
                 </div>
@@ -541,8 +542,13 @@
             sommaOreNette,
             chiaveGiornoOra,
             trovaSovrapposizioni,
-            formatTracciaOra,
-            etichettaStatoOra
+            vociTracciaOra,
+            riassuntoTraccia,
+            etichettaStatoOra,
+            messaggioSovrapposizioneTony,
+            chiValidaOra,
+            messaggioOraSegnataConSuccesso,
+            testoAttesaValidazione
         } from './services/ore-operai-logic.js';
 
         try {
@@ -1001,10 +1007,13 @@
         // Carica ore dell'operaio
         async function loadOre() {
             const container = document.getElementById('ore-container');
-            container.innerHTML = '<div class="loading">Caricamento ore...</div>';
+            if (oreList.length) {
+                renderOre();
+            } else {
+                container.innerHTML = '<div class="loading">Caricamento ore...</div>';
+            }
 
             try {
-                oreList = [];
                 const userId = currentUserData.id || currentUserData.uid;
                 const isOperaioOre = currentUserData.ruoli && currentUserData.ruoli.includes('operaio');
                 const isCaposquadraOre = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
@@ -1013,17 +1022,16 @@
                     isOperaio: !!isOperaioOre
                 }, currentUserData || null);
 
-                for (const lav of lavoriVisibili) {
-                    const lavoroId = lav.id;
-                    const lavoroData = lav;
-                    const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'oreOperai');
-                    // Carica ore dell'utente corrente (operaio o caposquadra)
-                    const oreQuery = query(oreRef, where('operaioId', '==', userId));
-                    const oreSnapshot = await getDocs(oreQuery);
-                    
+                const snaps = await Promise.all(lavoriVisibili.map(async (lav) => {
+                    const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lav.id, 'oreOperai');
+                    const oreSnapshot = await getDocs(query(oreRef, where('operaioId', '==', userId)));
+                    return { lav, oreSnapshot };
+                }));
+
+                const raccolte = [];
+                snaps.forEach(({ lav, oreSnapshot }) => {
                     oreSnapshot.forEach(oraDoc => {
                         const data = oraDoc.data();
-                        // Converti Timestamp in Date
                         if (data.data && data.data.toDate) {
                             data.data = data.data.toDate();
                         }
@@ -1033,14 +1041,15 @@
                         if (data.validatoIl && data.validatoIl.toDate) {
                             data.validatoIl = data.validatoIl.toDate();
                         }
-                        oreList.push({
+                        raccolte.push({
                             id: oraDoc.id,
-                            lavoroId: lavoroId,
-                            lavoroNome: lavoroData.nome || 'N/A',
+                            lavoroId: lav.id,
+                            lavoroNome: lav.nome || 'N/A',
                             ...data
                         });
                     });
-                }
+                });
+                oreList = raccolte;
                 
                 // Ordina per data (più recenti prima)
                 oreList.sort((a, b) => {
@@ -1053,6 +1062,7 @@
                 await ensureNomiTraccia(oreListRawForTony);
                 oreList = applyTonyFilterOreSegnatura(oreListRawForTony);
                 renderOre();
+                aggiornaRiquadroOreGiorno().catch(() => {});
             } catch (error) {
                 console.error('Errore caricamento ore:', error);
                 container.innerHTML = '<div class="empty-state">Errore caricamento ore</div>';
@@ -1143,10 +1153,7 @@
                     isCaposquadra: flags.isCaposquadra,
                     isManager: flags.isManager
                 });
-                const traccia = formatTracciaOra(ora, nomeDaCache);
-                const motivoRifiuto = ora.stato === 'rifiutate' && ora.motivoRifiuto
-                    ? `<div style="font-size:12px;color:#842029;margin-top:4px;">Motivo: ${escapeHtml(ora.motivoRifiuto)}</div>`
-                    : '';
+                const tracciaHtml = htmlTracciaRiga(ora);
                 let azioni = '';
                 if (perm.puoModificare) {
                     azioni += `<button type="button" class="btn btn-secondary btn-sm" data-modifica-ora="${escapeHtml(ora.id)}" data-lavoro-id="${escapeHtml(ora.lavoroId)}">✏️ Modifica</button> `;
@@ -1166,7 +1173,7 @@
                         <td>${Number(ora.pauseMinuti) || 0} min</td>
                         <td><strong>${oreFormattate}</strong></td>
                         ${hasParcoMacchineModule ? `<td style="font-size: 12px;">${macchinaInfo}</td>` : ''}
-                        <td><span class="stato-badge ${statoBadge}">${statoLabel}</span>${traccia ? `<div style="font-size:12px;color:#555;margin-top:4px;">${escapeHtml(traccia)}</div>` : ''}${motivoRifiuto}</td>
+                        <td><span class="stato-badge ${statoBadge}">${statoLabel}</span>${tracciaHtml ? `<div style="font-size:12px;color:#555;margin-top:4px;">${tracciaHtml}</div>` : ''}</td>
                         <td>${escapeHtml(ora.note || '-')}${formatPosizioneRilevamentoCompactHtml(ora.posizioneRilevamento) || ''}</td>
                         <td>${azioni}</td>
                     </tr>
@@ -1228,6 +1235,48 @@
             }
             return '';
         }
+
+        let tracciaSeqSegnatura = 0;
+        function htmlTracciaRiga(ora) {
+            const voci = vociTracciaOra(ora, nomeDaCache);
+            if (!voci.length) {
+                if (ora.stato === 'da_validare') {
+                    return escapeHtml(testoAttesaValidazione(chiValidaOra({
+                        ora,
+                        lavoro: lavoroDiOra(ora.lavoroId)
+                    })));
+                }
+                return '';
+            }
+            const r = riassuntoTraccia(voci, 110);
+            if (!r.tronca) return escapeHtml(r.full);
+            tracciaSeqSegnatura += 1;
+            const id = `traccia-segnatura-${tracciaSeqSegnatura}`;
+            return `${escapeHtml(r.breve)} <button type="button" class="btn-link-traccia" data-traccia-toggle="${id}">mostra tutto</button><span id="${id}" hidden>${escapeHtml(r.full)}</span>`;
+        }
+
+        window.gfvOreIdInModifica = function() {
+            const hid = document.getElementById('ora-id-modifica');
+            return hid ? String(hid.value || '').trim() : '';
+        };
+
+        window.gfvOreControllaSovrapposizione = async function(args) {
+            const data = args && args.data;
+            const orarioInizio = args && args.orarioInizio;
+            const orarioFine = args && args.orarioFine;
+            const userId = currentUserData && (currentUserData.id || currentUserData.uid);
+            if (!userId || !currentTenantId || !data || !orarioInizio || !orarioFine) {
+                return { conflitti: [], messaggio: '' };
+            }
+            const esistenti = await caricaOreUtenteGiorno(db, currentTenantId, userId, data, utenteOreCorrente());
+            const nuova = { data, orarioInizio, orarioFine, operaioId: userId };
+            const escludiId = (args && args.escludiId) || window.gfvOreIdInModifica();
+            const conflitti = trovaSovrapposizioni(nuova, esistenti, { escludiId });
+            return {
+                conflitti,
+                messaggio: conflitti.length ? messaggioSovrapposizioneTony(nuova, conflitti) : ''
+            };
+        };
 
         let nomiUtentiOre = new Map();
         let oreGiornoCache = [];
@@ -1396,55 +1445,66 @@
             box.style.display = 'block';
         }
 
+        function htmlRiquadroOreGiorno(giorno, righe, lavoroId) {
+            const dataLabel = formatDateLikeToItalianLongLocal(giorno) || giorno;
+            const userId = currentUserData.id || currentUserData.uid;
+            const flags = flagRuoliOre();
+            if (!righe.length) {
+                return `<strong>Le tue ore del ${escapeHtml(dataLabel)}</strong><p style="margin:8px 0 0;color:#666;">Nessuna ora segnata in questo giorno.</p>`;
+            }
+            const voci = righe.map((ora) => {
+                const evidenza = lavoroId && ora.lavoroId === lavoroId;
+                const perm = permessiOra({
+                    ora,
+                    lavoro: lavoroDiOra(ora.lavoroId),
+                    userId,
+                    isCaposquadra: flags.isCaposquadra,
+                    isManager: flags.isManager
+                });
+                return `<div style="padding:6px 8px;margin-top:6px;border-radius:6px;${evidenza ? 'background:#e7f6ec;border:1px solid #8fceaa;' : ''}">
+                    <strong>${escapeHtml(ora.lavoroNome || 'Lavoro')}</strong>
+                    ${ora.orarioInizio || ''}–${ora.orarioFine || ''}
+                    · pausa ${Number(ora.pauseMinuti) || 0} min
+                    · ${formattaOre(ora.oreNette || 0)}
+                    · ${escapeHtml(etichettaStatoOra(ora.stato))}
+                    ${perm.motivoBlocco ? `<span title="${escapeHtml(perm.motivoBlocco)}"> 🔒</span>` : ''}
+                </div>`;
+            }).join('');
+            const totale = sommaOreNette(righe.filter((r) => r.stato !== 'rifiutate'));
+            return `<strong>Le tue ore del ${escapeHtml(dataLabel)}</strong>${voci}<div style="margin-top:8px;"><strong>Totale del giorno: ${formattaOre(totale)}</strong></div>`;
+        }
+
         async function aggiornaRiquadroOreGiorno() {
             const box = document.getElementById('ore-giorno-riepilogo');
-            if (!box || !currentTenantId || !currentUserData) return;
-            const giorno = document.getElementById('ora-data').value;
-            const lavoroId = document.getElementById('ora-lavoro').value;
-            if (!giorno) {
-                box.style.display = 'none';
-                box.setAttribute('data-state', 'idle');
-                return;
-            }
-            box.style.display = 'block';
-            box.setAttribute('data-state', 'loading');
-            box.textContent = 'Caricamento ore del giorno...';
+            const boxPagina = document.getElementById('ore-giorno-pagina');
+            if (!currentTenantId || !currentUserData) return;
+            const giornoScelto = document.getElementById('ora-data') ? document.getElementById('ora-data').value : '';
+            const giorno = giornoScelto || oggiLocaleIso();
+            const lavoroId = document.getElementById('ora-lavoro') ? document.getElementById('ora-lavoro').value : '';
+            const targets = [box, boxPagina].filter(Boolean);
+            if (!targets.length || !giorno) return;
+            targets.forEach((el) => {
+                el.style.display = 'block';
+                el.setAttribute('data-state', 'loading');
+                if (!el.getAttribute('data-pronto')) el.textContent = 'Caricamento ore del giorno...';
+            });
             try {
                 const userId = currentUserData.id || currentUserData.uid;
                 const righe = await caricaOreUtenteGiorno(db, currentTenantId, userId, giorno, utenteOreCorrente());
                 oreGiornoCache = righe;
-                const dataLabel = formatDateLikeToItalianLongLocal(giorno) || giorno;
-                const flags = flagRuoliOre();
-                if (!righe.length) {
-                    box.innerHTML = `<strong>Le tue ore del ${escapeHtml(dataLabel)}</strong><p style="margin:8px 0 0;color:#666;">Nessuna ora segnata in questo giorno.</p>`;
-                    box.setAttribute('data-state', 'ready');
-                    return;
-                }
-                const voci = righe.map((ora) => {
-                    const evidenza = lavoroId && ora.lavoroId === lavoroId;
-                    const perm = permessiOra({
-                        ora,
-                        lavoro: lavoroDiOra(ora.lavoroId),
-                        userId,
-                        isCaposquadra: flags.isCaposquadra,
-                        isManager: flags.isManager
-                    });
-                    return `<div style="padding:6px 8px;margin-top:6px;border-radius:6px;${evidenza ? 'background:#e7f6ec;border:1px solid #8fceaa;' : ''}">
-                        <strong>${escapeHtml(ora.lavoroNome || 'Lavoro')}</strong>
-                        ${ora.orarioInizio || ''}–${ora.orarioFine || ''}
-                        · pausa ${Number(ora.pauseMinuti) || 0} min
-                        · ${formattaOre(ora.oreNette || 0)}
-                        · ${escapeHtml(etichettaStatoOra(ora.stato))}
-                        ${perm.motivoBlocco ? `<span title="${escapeHtml(perm.motivoBlocco)}"> 🔒</span>` : ''}
-                    </div>`;
-                }).join('');
-                const totale = sommaOreNette(righe.filter((r) => r.stato !== 'rifiutate'));
-                box.innerHTML = `<strong>Le tue ore del ${escapeHtml(dataLabel)}</strong>${voci}<div style="margin-top:8px;"><strong>Totale del giorno: ${formattaOre(totale)}</strong></div>`;
-                box.setAttribute('data-state', 'ready');
+                const html = htmlRiquadroOreGiorno(giorno, righe, lavoroId);
+                targets.forEach((el) => {
+                    el.innerHTML = html;
+                    el.setAttribute('data-state', 'ready');
+                    el.setAttribute('data-pronto', '1');
+                });
+                return;
             } catch (error) {
                 console.error('Riquadro ore del giorno:', error);
-                box.textContent = 'Non riesco a leggere le ore di questo giorno.';
-                box.setAttribute('data-state', 'ready');
+                targets.forEach((el) => {
+                    el.textContent = 'Non riesco a leggere le ore di questo giorno.';
+                    el.setAttribute('data-state', 'ready');
+                });
             }
         }
 
@@ -1548,6 +1608,7 @@
             const ids = new Set();
             (righe || []).forEach((ora) => {
                 if (ora.validatoDa) ids.add(String(ora.validatoDa));
+                if (ora.rifiutatoDa) ids.add(String(ora.rifiutatoDa));
                 (ora.storicoModifiche || []).forEach((v) => {
                     if (v && v.da) ids.add(String(v.da));
                 });
@@ -1613,7 +1674,19 @@
             await aggiornaRiquadroOreGiorno();
         }
 
+        function toggleTraccia(event) {
+            const btn = event.target.closest('[data-traccia-toggle]');
+            if (!btn) return false;
+            const full = document.getElementById(btn.getAttribute('data-traccia-toggle'));
+            if (!full) return true;
+            const aperto = !full.hidden;
+            full.hidden = aperto;
+            btn.textContent = aperto ? 'mostra tutto' : 'mostra meno';
+            return true;
+        }
+
         async function onAzioneOraClick(event) {
+            if (toggleTraccia(event)) return;
             const btn = event.target.closest('[data-modifica-ora], [data-elimina-ora]');
             if (!btn) return;
             const oraId = btn.getAttribute('data-modifica-ora') || btn.getAttribute('data-elimina-ora');
@@ -1670,7 +1743,6 @@
 
             try {
                 const userId = currentUserData.id || currentUserData.uid;
-                const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
                 const macchinaId = hasParcoMacchineModule ? (document.getElementById('ora-macchina').value || null) : null;
                 const attrezzoId = hasParcoMacchineModule ? (document.getElementById('ora-attrezzo').value || null) : null;
                 const oreMacchinaInput = hasParcoMacchineModule ? document.getElementById('ora-ore-macchina').value : '';
@@ -1712,10 +1784,11 @@
                         lavoroId,
                         terrenoId: lavoroDoc.data().terrenoId || null
                     });
-                    const messaggio = isCaposquadra
-                        ? 'Ora segnata con successo! In attesa di validazione dal manager.'
-                        : 'Ora segnata con successo! In attesa di validazione dal caposquadra.';
-                    showAlert(messaggio, 'success');
+                    const chi = chiValidaOra({
+                        ora: { operaioId: userId },
+                        lavoro: lavoroDoc.data()
+                    });
+                    showAlert(messaggioOraSegnataConSuccesso(chi), 'success', 8000);
                 }
                 closeOraModal();
                 await loadOre();
