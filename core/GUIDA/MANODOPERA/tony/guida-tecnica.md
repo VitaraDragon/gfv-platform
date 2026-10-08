@@ -65,6 +65,19 @@ Alias: **segnatura ore** / **segnare ore**, **validazione ore** / **validare ore
 
 
 
+## Sospensione operativa e ripresa
+
+| Pezzo | Path |
+|-------|------|
+| Regole pure | `core/services/lavoro-sospensione.js` — `STATI_LAVORO_SOSPENDIBILI` (`assegnato` / `in_corso` / `attivo`), `validateSospensioneInput`, `formatSospensioneCausa` («Maltempo», «Guasto», «Maltempo: nota», «Altro: nota»), `parseSospensioneCausa` (testo libero → motivo `altro`), `buildSospendiLavoroPatch`, `sospensioneFieldsForModificaSave` |
+| Service | `lavori-service.js` `sospendiLavoro(lavoroId, causa, { tenantId, userData, lavoriList })`: patch parziale `stato: 'sospeso'`, `sospensioneCausa`, `sospensioneIl`, `aggiornatoIl` (nessun campo `standby*`); permessi manager/amministratore, caposquadra del lavoro squadra, operaio del lavoro autonomo; poi `liberaMacchineDaLavoro` |
+| UI manager | riga lista (`gestione-lavori-controller.js`): **⏳ Sospendi / Rinvia** se stato sospendibile → modal `#sospendi-rinvia-modal` (`#sospendi-rinvia-motivo`, `-note`, `-data`; bottone «Sospendi» / «Sospendi e crea ripresa») in `gestione-lavori-standalone.html`; con data chiama `creaLavoroRipresa` e `afterRipresaCreata` (highlight + apre Modifica). Modal Modifica: `#lavoro-sospensione-group` visibile con stato `sospeso` (`syncLavoroSospensioneFields`, prefill `applySospensioneCausaToForm` in `gestione-lavori-events.js`); `handleSalvaLavoro` usa `sospensioneFieldsForModificaSave` e libera macchine via `liberaMacchineDaLavoro` |
+| Ripresa | stato `sospeso` → **🔁 Crea ripresa** (modal «Data inizio ripresa»); nuovo lavoro con `ripresaDaLavoroId`; in `lavori-caposquadra-standalone.html` legenda `#ripresa-storico-hint` + segmenti pre-ripresa |
+| Campo | `lavori-caposquadra-standalone.html` `sospendiLavoroDaCaposquadra` (prompt testo libero, scrive `sospensioneCausa`); badge «Lavoro sospeso» + causa |
+| Test | `tests/services/lavoro-sospensione.test.js`, scenario `tests/e2e/sim/scenarios/gestione-lavori-sospendi-rinvia.mjs` |
+
+`sospeso` ≠ `in_standby` (assenza, § sotto): non usare l’uno per l’altro in risposte o filtri. In Modifica `sospeso` non è più tra gli stati che liberano macchine «in blocco»: la liberazione passa da `liberaMacchineDaLavoro` (non libera un mezzo ancora in uso su un altro lavoro in corso).
+
 ## Assenze e sostituzioni
 
 | Pezzo | Path |

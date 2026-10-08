@@ -38,6 +38,7 @@ Consigliere: `skipModuleIds` include `tony`; segnali gated se modulo disattivato
 - Fallback / rollback: senza chiave, `TONY_TTS_PROVIDER=google` (o `chirp`), o errore ElevenLabs → Google Chirp 3 `it-IT-Chirp3-HD-Charon`.
 - Env utili: `TONY_TTS_PROVIDER`, `TONY_TTS_ELEVEN_VOICE`, `TONY_TTS_VOICE`, `TONY_TTS_SPEAKING_RATE`, `TONY_TTS_ELEVEN_MODEL`.
 - Client: chunking frasi su risposte complete; cache/dedup prefetch↔speak in `voice.js`.
+- Cifra **1** parlata (`normalizeItalianCardinalOneForTTS` in `voice.js`, #147/#148): letta **un / uno / una / un’** secondo la parola che segue (genere, s impura/gn/z/ps, maschili in -a tipo «problema», femminili non in -a tipo «macchine»); resta «uno» davanti a preposizioni/numeri («da 1 a 5», «1 su 3») e su decimali, ore «1:30», frazioni, intervalli; davanti a un mese → «primo» («1 ottobre»); «alle/dalle/le 1» → «all’una / dall’una / l’una»; unità al singolare («1 ettaro», «1 litro»). Ultimo passo di `pulisciTestoPerVoce` (dopo espansione unità e contrazioni). Test `tests/tony-voice-italian-tts.test.js`. Contatori UI senza desinenza attaccata («1 squadra» / «2 squadre», «1 riga … evidenziata»).
 
 ## Intervista lavoro / ore (client)
 

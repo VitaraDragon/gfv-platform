@@ -583,6 +583,13 @@
       "label": "Standby per assenza"
     },
     {
+      "prefix": "core/services/lavoro-sospensione",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Sospensione operativa (Sospendi / Rinvia) e ripresa"
+    },
+    {
       "prefix": "core/services/manodopera-sostituti-",
       "modules": [
         "MANODOPERA"

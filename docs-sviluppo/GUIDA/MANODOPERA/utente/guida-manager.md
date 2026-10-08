@@ -256,8 +256,23 @@ Per vedere **chi è libero, impegnato, assente o spostato** in un giorno (senza 
 
 1. In **Gestione Lavori** trova la riga con filtri per periodo, terreno o stato.  
 2. Apri **Modifica**.  
-3. Correggi i campi necessari (assegnazione, date, stato, note).  
+3. Correggi i campi necessari (assegnazione, date, stato, note). Se porti lo stato su **Sospeso**, indica anche il motivo (vedi sotto).  
 4. Salva e verifica che il caposquadra/operaio veda subito il cambiamento nel proprio flusso.
+
+### Sospendere o rinviare un lavoro (maltempo, guasto, altro)
+
+Se un lavoro **assegnato** o **in corso** si deve fermare per un motivo operativo, sulla sua riga in **Gestione lavori** usa **⏳ Sospendi / Rinvia**. Non è lo **standby per assenza** (vedi [mini-guida assenze](#mini-guida-assenze-standby-e-sostituzioni)): qui il lavoro si ferma per una causa esterna, non perché manca qualcuno della squadra.
+
+1. Scegli il **Motivo**: **Maltempo**, **Guasto** o **Altro**.  
+2. **Note motivo**: facoltative per maltempo e guasto, **obbligatorie** se scegli **Altro**.  
+3. **Data ripresa** (facoltativa):  
+   - se la indichi, il pulsante diventa **Sospendi e crea ripresa**: il lavoro passa in **Sospeso** e l’app crea subito il **lavoro di ripresa** collegato, lo evidenzia in lista e ne apre la **Modifica** per controllare operaio e macchine prima di salvare;  
+   - se la lasci vuota, premi **Sospendi**: il lavoro resta **Sospeso** e la ripresa la crei quando vuoi con **🔁 Crea ripresa** sulla riga.  
+4. Macchine e attrezzi del lavoro sospeso tornano **disponibili**, salvo che siano ancora impegnati su un altro lavoro in corso.
+
+Puoi sospendere anche da **Modifica**: se porti lo **Stato** su **Sospeso** compaiono **Motivo sospensione** e **Note motivo**, da compilare prima di salvare (stesse regole). Se il lavoro era già sospeso trovi il motivo salvato e puoi correggerlo.
+
+Anche il **caposquadra** (o l’operaio sul proprio lavoro autonomo) può sospendere dal dettaglio lavoro in versione mobile scrivendo il motivo: in **Modifica** quel testo compare come motivo **Altro** con la nota. La **ripresa** la crei sempre tu da Gestione lavori; nel lavoro di ripresa il caposquadra vede sulla mappa anche le zone già fatte prima della sospensione.
 
 ### Eliminare un lavoro
 
@@ -300,7 +315,7 @@ Quando un operaio **non c’è** sul lavoro di oggi, l’app vi aiuta a tenere i
 ### Cosa non fare
 
 - Non usare Impegni giornalieri come posto dove «assegnare» il sostituto: è in **sola lettura**.  
-- Non confondere **standby per assenza** con la **sospensione** ordinaria del lavoro o con l’eliminazione del lavoro.
+- Non confondere **standby per assenza** con la **sospensione** del lavoro (**Sospendi / Rinvia** per maltempo, guasto o altro: vedi [Sospendere o rinviare un lavoro](#sospendere-o-rinviare-un-lavoro-maltempo-guasto-altro)) o con l’eliminazione del lavoro.
 
 ---
 

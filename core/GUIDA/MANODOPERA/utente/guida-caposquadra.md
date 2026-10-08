@@ -199,7 +199,7 @@ Nella scheda **Ore**, sotto il modulo ore, trovi il riquadro **Dettaglio lavoro 
 2. Nel riquadro puoi in genere:
    - leggere **stato del lavoro**, percentuali di avanzamento, eventuali **ordini o note** del manager;  
    - aprire il flusso per **tracciare le zone lavorate** sulla mappa (segmenti e superfici sul terreno assegnato);  
-   - vedere eventuali azioni di **sospensione** o **ripresa** se il caso è gestito così dall’app.  
+   - **⏸️ Sospendi lavoro** se il lavoro (assegnato o in corso) si deve fermare per meteo, guasto o altro: l’app ti chiede il **motivo**, il lavoro passa in **Sospeso** e il riquadro mostra «Lavoro sospeso» con il motivo. Il **lavoro di ripresa** lo crea poi il manager; quando lo apri, sulla mappa vedi in arancione le zone già fatte prima della sospensione e in verde quelle nuove.  
 3. Se sul telefono lo spazio è stretto, usa il link **Apri in finestra intera**: si apre la **stessa schermata** nel browser a tutto schermo, sempre sul lavoro corrente.
 
 ### Zone lavorate e mappa
