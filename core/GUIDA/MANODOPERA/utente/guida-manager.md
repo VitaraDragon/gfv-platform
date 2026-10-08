@@ -325,9 +325,9 @@ Le ore che gli operatori registrano (versione mobile o altri canali previsti) po
 
 1. **Home Manodopera** → **Validazione ore**, oppure alert **Ore da validare** in **Richiede attenzione** sulla dashboard.  
 2. Imposta i **filtri** se la pagina li offre (periodo, persona, lavoro, stato).  
-3. Per ogni riga in attesa leggi **data**, **orari**, **pausa**, **ore nette**, **lavoro**, **operaio**. I numeri in alto sono in ore, con il numero di righe sotto. Un avviso segnala i turni che si sovrappongono.  
-4. **Valida** approva subito. **Valida selezionate** e **Valida tutte** chiedono una conferma sola. **Rifiuta** chiede il motivo.  
-5. Su una riga già validata (ultimi 30 giorni, filtri per operaio e lavoro) puoi **Correggere**, **Annullare la validazione** o **Rifiutare / togliere**. Ogni azione chiede un motivo breve. La riga non si cancella: rifiutarla lascia la traccia. Vale anche per le ore degli operai di squadra.
+3. Per ogni riga in attesa leggi **data**, **orari**, **pausa**, **ore nette**, **lavoro**, **operaio**. I numeri in alto sono in ore, con il numero di righe sotto. **Da validare** è la tua coda. **Validate** e **Rifiutate** contano le stesse righe degli ultimi 30 giorni e lo scrivono sotto. Un avviso segnala i turni che si sovrappongono.  
+4. **Valida** approva subito. **Valida selezionate** e **Valida tutte** chiedono una conferma sola. **Rifiuta** chiede il motivo. Se il motivo è vuoto, compare «Scrivi il motivo: è obbligatorio.» e il campo resta in evidenza. Dopo il rifiuto leggi «Ora rifiutata».  
+5. Negli ultimi 30 giorni (filtri per operaio, lavoro e stato) vedi le ore validate e quelle rifiutate, con chi ha fatto l’azione, data, ora e motivo. Se la storia è lunga, **mostra tutto**. Puoi **Correggere**, **Annullare la validazione** o **Rifiutare / togliere**. Ogni azione chiede un motivo breve. La riga non si cancella. Vale anche per le ore degli operai di squadra.
 
 ### Perché conta
 

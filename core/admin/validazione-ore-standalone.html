@@ -286,6 +286,18 @@
             border: 1px solid #f5c6cb;
         }
 
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        .motivo-errore {
+            color: #b91c1c;
+            margin: 6px 0 0;
+            font-size: 14px;
+        }
+
         .loading {
             text-align: center;
             padding: 40px;
@@ -334,7 +346,8 @@
             cursor: not-allowed;
         }
 
-        .stat-righe {
+        .stat-righe,
+        .stat-periodo {
             display: block;
             margin-top: 4px;
             font-size: 13px;
@@ -400,7 +413,7 @@
             </div>
 
             <div class="section-header" style="margin-top: 28px;">
-                <h2>Ore validate (ultimi 30 giorni)</h2>
+                <h2>Ore degli ultimi 30 giorni</h2>
             </div>
             <div style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 12px;">
                 <label>Operaio
@@ -408,6 +421,13 @@
                 </label>
                 <label>Lavoro
                     <select id="filtro-validate-lavoro"><option value="">Tutti</option></select>
+                </label>
+                <label>Stato
+                    <select id="filtro-validate-stato">
+                        <option value="">Tutte</option>
+                        <option value="validate">Validate</option>
+                        <option value="rifiutate">Rifiutate</option>
+                    </select>
                 </label>
             </div>
             <div id="ore-validate-container" class="table-responsive">
@@ -423,7 +443,7 @@
                 <h3>Rifiuta Ora</h3>
                 <button class="close-btn" onclick="closeRifiutaModal()">&times;</button>
             </div>
-            <form id="rifiuta-form" onsubmit="handleRifiutaOra(event)">
+            <form id="rifiuta-form" novalidate onsubmit="handleRifiutaOra(event)">
                 <input type="hidden" id="rifiuta-lavoro-id">
                 <input type="hidden" id="rifiuta-ora-id">
                 
@@ -431,7 +451,8 @@
                 
                 <div class="form-group">
                     <label for="rifiuta-motivo">Motivo Rifiuto *</label>
-                    <textarea id="rifiuta-motivo" required placeholder="Spiega il motivo del rifiuto..."></textarea>
+                    <textarea id="rifiuta-motivo" placeholder="Spiega il motivo del rifiuto..."></textarea>
+                    <p id="rifiuta-motivo-errore" class="motivo-errore" hidden>Scrivi il motivo: è obbligatorio.</p>
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
@@ -448,7 +469,7 @@
                 <h3>Correggi ora</h3>
                 <button class="close-btn" type="button" onclick="closeCorreggiModal()">&times;</button>
             </div>
-            <form id="correggi-form" onsubmit="handleCorreggiOra(event)">
+            <form id="correggi-form" novalidate onsubmit="handleCorreggiOra(event)">
                 <input type="hidden" id="correggi-lavoro-id">
                 <input type="hidden" id="correggi-ora-id">
                 <div class="ora-details" id="correggi-ora-details"></div>
@@ -474,7 +495,8 @@
                 </div>
                 <div class="form-group">
                     <label for="correggi-motivo">Motivo *</label>
-                    <textarea id="correggi-motivo" required placeholder="Perché correggi questa ora?"></textarea>
+                    <textarea id="correggi-motivo" placeholder="Perché correggi questa ora?"></textarea>
+                    <p id="correggi-motivo-errore" class="motivo-errore" hidden>Scrivi il motivo: è obbligatorio.</p>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button type="submit" class="btn btn-success" style="flex: 1;">Salva correzione</button>
@@ -490,14 +512,15 @@
                 <h3 id="azione-ore-titolo">Motivo</h3>
                 <button class="close-btn" type="button" onclick="closeAzioneOreModal()">&times;</button>
             </div>
-            <form id="azione-ore-form" onsubmit="handleAzioneOre(event)">
+            <form id="azione-ore-form" novalidate onsubmit="handleAzioneOre(event)">
                 <input type="hidden" id="azione-ore-tipo">
                 <input type="hidden" id="azione-ore-lavoro-id">
                 <input type="hidden" id="azione-ore-ora-id">
                 <div class="ora-details" id="azione-ore-details"></div>
                 <div class="form-group">
                     <label for="azione-ore-motivo">Motivo *</label>
-                    <textarea id="azione-ore-motivo" required placeholder="Motivo breve"></textarea>
+                    <textarea id="azione-ore-motivo" placeholder="Motivo breve"></textarea>
+                    <p id="azione-ore-motivo-errore" class="motivo-errore" hidden>Scrivi il motivo: è obbligatorio.</p>
                 </div>
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button type="submit" class="btn btn-danger" style="flex: 1;" id="azione-ore-conferma">Conferma</button>
@@ -553,8 +576,9 @@
             chiaveGiornoOra,
             trovaSovrapposizioni,
             contaRigheConSovrapposizione,
-            formatTracciaOra,
-            oraVisibileInArchivioValidate
+            vociTracciaOra,
+            riassuntoTraccia,
+            calcolaContatoriOreValidazione
         } from '../services/ore-operai-logic.js';
 
         // Import service unificato macchine (solo se modulo attivo)
@@ -596,6 +620,7 @@
         let currentTenantId = null;
         let oreDaValidare = [];
         let oreValidateArchivio = [];
+        let oreTutteRighe = [];
         let oreTuttePerSovrapposizione = [];
         let operaiMap = new Map();
 
@@ -616,14 +641,67 @@
             };
         }
 
-        function setStatOre(id, righe) {
+        function setStatOre(id, righe, periodo) {
             const el = document.getElementById(id);
             if (!el) return;
             const lista = Array.isArray(righe) ? righe : [];
             el.setAttribute('data-righe', String(lista.length));
             const ore = formattaOreMinuti(sommaOreNette(lista));
             const parola = lista.length === 1 ? 'riga' : 'righe';
-            el.innerHTML = `${ore}<small class="stat-righe">(${lista.length} ${parola})</small>`;
+            const periodoHtml = periodo
+                ? `<small class="stat-periodo">${escapeHtml(periodo)}</small>`
+                : '';
+            el.innerHTML = `${ore}<small class="stat-righe">(${lista.length} ${parola})</small>${periodoHtml}`;
+        }
+
+        function mostraErroreMotivo(fieldId) {
+            const field = document.getElementById(fieldId);
+            const msg = document.getElementById(`${fieldId}-errore`);
+            if (msg) msg.hidden = false;
+            showAlert('Scrivi il motivo: è obbligatorio.', 'error', 8000);
+            if (field) field.focus();
+        }
+
+        function pulisciErroreMotivo(fieldId) {
+            const msg = document.getElementById(`${fieldId}-errore`);
+            if (msg) msg.hidden = true;
+        }
+
+        let tracciaSeqValidazione = 0;
+        function htmlTracciaValidazione(ora) {
+            const voci = vociTracciaOra(ora, nomeUtenteOra);
+            if (!voci.length) return ora.stato === 'da_validare' ? 'In attesa' : '';
+            const r = riassuntoTraccia(voci, 90);
+            if (!r.tronca) return escapeHtml(r.full);
+            tracciaSeqValidazione += 1;
+            const id = `traccia-val-${tracciaSeqValidazione}`;
+            return `${escapeHtml(r.breve)} <button type="button" class="btn-link-traccia" data-traccia-toggle="${id}">mostra tutto</button><span id="${id}" hidden>${escapeHtml(r.full)}</span>`;
+        }
+
+        function aggiornaContatoriValidazione() {
+            const flags = flagValidazione();
+            const op = document.getElementById('filtro-validate-operaio');
+            const lav = document.getElementById('filtro-validate-lavoro');
+            const filtrati = calcolaContatoriOreValidazione(oreTutteRighe, {
+                userId: flags.userId,
+                isCaposquadra: flags.isCaposquadra,
+                isManager: flags.isManager,
+                filtroOperaioId: op ? op.value : '',
+                filtroLavoroId: lav ? lav.value : ''
+            });
+            setStatOre('stat-da-validare', filtrati.daValidare);
+            setStatOre('stat-validate', filtrati.validate, filtrati.periodoEtichetta);
+            setStatOre('stat-rifiutate', filtrati.rifiutate, filtrati.periodoEtichetta);
+        }
+
+        function onToggleTraccia(event) {
+            const btn = event.target.closest('[data-traccia-toggle]');
+            if (!btn) return;
+            const full = document.getElementById(btn.getAttribute('data-traccia-toggle'));
+            if (!full) return;
+            const aperto = !full.hidden;
+            full.hidden = aperto;
+            btn.textContent = aperto ? 'mostra tutto' : 'mostra meno';
         }
 
         function nomeUtenteOra(uid) {
@@ -801,11 +879,8 @@
                     db, collection, getDocs, query, where
                 });
 
-                oreDaValidare = [];
-                oreValidateArchivio = [];
                 oreTuttePerSovrapposizione = [];
-                const validateInCoda = [];
-                const rifiutateInCoda = [];
+                oreTutteRighe = [];
                 const flags = flagValidazione();
 
                 forEachOraInBundle(bundle, function (ctx) {
@@ -815,39 +890,23 @@
                         lavoroId: ctx.lavoroId,
                         lavoroNome: ctx.lavoroData.nome || 'N/A',
                         tipoLavoro: isLavoroAutonomo(ctx.lavoroData) ? 'autonomo' : 'squadra',
+                        lavoro: {
+                            caposquadraId: ctx.lavoroData.caposquadraId || null,
+                            operaioId: ctx.lavoroData.operaioId || null
+                        },
                         ...data
                     };
-                    const scope = {
-                        oraData: data,
-                        lavoroData: ctx.lavoroData,
-                        userId: flags.userId,
-                        isCaposquadra: flags.isCaposquadra,
-                        isManager: flags.isManager
-                    };
+                    oreTutteRighe.push(record);
                     if (data.stato !== 'rifiutate') oreTuttePerSovrapposizione.push(record);
-                    if (!oreVisibileInCodaValidazione(scope)) {
-                        if (oraVisibileInArchivioValidate({
-                            ora: data,
-                            lavoro: ctx.lavoroData,
-                            userId: flags.userId,
-                            isCaposquadra: flags.isCaposquadra,
-                            isManager: flags.isManager
-                        }) && giornoEntroUltimi30(data.data)) {
-                            oreValidateArchivio.push(record);
-                        }
-                        return;
-                    }
-
-                    const stato = data.stato;
-                    if (stato === 'da_validare') {
-                        oreDaValidare.push(record);
-                    } else if (stato === 'validate') {
-                        validateInCoda.push(record);
-                        if (giornoEntroUltimi30(data.data)) oreValidateArchivio.push(record);
-                    } else if (stato === 'rifiutate') {
-                        rifiutateInCoda.push(record);
-                    }
                 });
+
+                const contatori = calcolaContatoriOreValidazione(oreTutteRighe, {
+                    userId: flags.userId,
+                    isCaposquadra: flags.isCaposquadra,
+                    isManager: flags.isManager
+                });
+                oreDaValidare = contatori.daValidare;
+                oreValidateArchivio = contatori.validate.concat(contatori.rifiutate);
 
                 oreDaValidare.sort((a, b) => {
                     const dateA = a.creatoIl instanceof Date ? a.creatoIl : new Date(a.creatoIl);
@@ -855,14 +914,11 @@
                     return dateA - dateB;
                 });
 
-                const idsNomi = []
-                    .concat(oreDaValidare, validateInCoda, rifiutateInCoda, oreValidateArchivio)
-                    .flatMap((o) => [o.operaioId, o.validatoDa].concat((o.storicoModifiche || []).map((v) => v && v.da)));
+                const idsNomi = oreTutteRighe
+                    .flatMap((o) => [o.operaioId, o.validatoDa, o.rifiutatoDa].concat((o.storicoModifiche || []).map((v) => v && v.da)));
                 await ensureSegnalatoriInMap(idsNomi);
 
-                setStatOre('stat-da-validare', oreDaValidare);
-                setStatOre('stat-validate', validateInCoda);
-                setStatOre('stat-rifiutate', rifiutateInCoda);
+                aggiornaContatoriValidazione();
                 renderOre();
                 renderOreValidate();
                 popolaFiltriValidate();
@@ -936,11 +992,11 @@
                 const warn = hits.length
                     ? `<div class="sovrapposizione-badge">⚠️ Si sovrappone a ${escapeHtml(hits[0].orarioInizio || '')}–${escapeHtml(hits[0].orarioFine || '')}${hits[0].lavoroNome ? ` (${escapeHtml(hits[0].lavoroNome)})` : ''}</div>`
                     : '';
-                const traccia = formatTracciaOra(ora, nomeUtenteOra);
+                const traccia = htmlTracciaValidazione(ora);
                 const flags = flagValidazione();
                 const perm = permessiOra({
                     ora,
-                    lavoro: { id: ora.lavoroId, caposquadraId: flags.userId, operaioId: ora.tipoLavoro === 'autonomo' ? ora.operaioId : null },
+                    lavoro: ora.lavoro || { id: ora.lavoroId, caposquadraId: flags.userId, operaioId: ora.tipoLavoro === 'autonomo' ? ora.operaioId : null },
                     userId: flags.userId,
                     isCaposquadra: flags.isCaposquadra,
                     isManager: flags.isManager
@@ -961,7 +1017,7 @@
                         <td>${Number(ora.pauseMinuti) || 0} min</td>
                         <td class="col-ore-nette"><strong>${oreFormattate}</strong></td>
                         <td>${escapeHtml(ora.note || '-')}${formatPosizioneRilevamentoCompactHtml(ora.posizioneRilevamento) || ''}</td>
-                        <td>${traccia ? escapeHtml(traccia) : 'In attesa'}</td>
+                        <td>${traccia || 'In attesa'}</td>
                         <td>
                             <div class="action-buttons">
                                 <button class="btn btn-success btn-sm" onclick="validaOra('${ora.lavoroId}', '${ora.id}')">✅ Valida</button>
@@ -1043,15 +1099,16 @@
             const motivo = document.getElementById('rifiuta-motivo').value.trim();
             
             if (!motivo) {
-                showAlert('Inserisci il motivo del rifiuto', 'error');
+                mostraErroreMotivo('rifiuta-motivo');
                 return;
             }
+            pulisciErroreMotivo('rifiuta-motivo');
             
             try {
                 await rifiutaOraContesto(db, currentTenantId, utenteValidazione(), lavoroId, oraId, motivo);
-                showAlert('Ora rifiutata con successo', 'success');
                 closeRifiutaModal();
                 await loadOreDaValidare();
+                showAlert('Ora rifiutata', 'success', 8000);
             } catch (error) {
                 console.error('Errore rifiuto ora:', error);
                 showAlert(`Errore: ${error.message}`, 'error');
@@ -1173,9 +1230,11 @@
         function oreFiltrateArchivio() {
             const op = document.getElementById('filtro-validate-operaio').value;
             const lav = document.getElementById('filtro-validate-lavoro').value;
+            const stato = document.getElementById('filtro-validate-stato').value;
             return oreValidateArchivio.filter((o) => {
                 if (op && String(o.operaioId) !== op) return false;
                 if (lav && String(o.lavoroId) !== lav) return false;
+                if (stato && String(o.stato) !== stato) return false;
                 return true;
             });
         }
@@ -1203,7 +1262,7 @@
             if (!container) return;
             const righe = oreFiltrateArchivio();
             if (!righe.length) {
-                container.innerHTML = '<div class="empty-state"><p>Nessuna ora validata negli ultimi 30 giorni</p></div>';
+                container.innerHTML = '<div class="empty-state"><p>Nessuna ora in questo elenco negli ultimi 30 giorni</p></div>';
                 return;
             }
             const flags = flagValidazione();
@@ -1213,12 +1272,12 @@
             righe.forEach((ora) => {
                 const perm = permessiOra({
                     ora,
-                    lavoro: { caposquadraId: flags.isManager ? 'x' : flags.userId, operaioId: ora.tipoLavoro === 'autonomo' ? ora.operaioId : null },
+                    lavoro: ora.lavoro || { caposquadraId: flags.isManager ? 'x' : flags.userId, operaioId: ora.tipoLavoro === 'autonomo' ? ora.operaioId : null },
                     userId: flags.userId,
                     isCaposquadra: flags.isCaposquadra,
                     isManager: flags.isManager
                 });
-                const traccia = formatTracciaOra(ora, nomeUtenteOra);
+                const traccia = htmlTracciaValidazione(ora);
                 html += `<tr>
                     <td>${formatDateLikeToItalianLongLocal(ora.data) || ''}</td>
                     <td>${escapeHtml(nomeUtenteOra(ora.operaioId) || 'N/A')}</td>
@@ -1227,7 +1286,7 @@
                     <td>${Number(ora.pauseMinuti) || 0} min</td>
                     <td><strong>${formattaOre(ora.oreNette || 0)}</strong></td>
                     <td>${escapeHtml(ora.note || '')}</td>
-                    <td>${escapeHtml(traccia || 'Validata')}</td>
+                    <td>${traccia || 'Validata'}</td>
                     <td>
                         ${perm.puoCorreggere ? `<button type="button" class="btn btn-secondary btn-sm" onclick="openCorreggiModal('${ora.lavoroId}', '${ora.id}', true)">Correggi</button>` : ''}
                         ${perm.puoAnnullareValidazione ? `<button type="button" class="btn btn-secondary btn-sm" onclick="openAzioneOre('annulla', '${ora.lavoroId}', '${ora.id}')">Annulla validazione</button>` : ''}
@@ -1239,8 +1298,15 @@
             container.innerHTML = html;
         }
 
-        document.getElementById('filtro-validate-operaio').addEventListener('change', renderOreValidate);
-        document.getElementById('filtro-validate-lavoro').addEventListener('change', renderOreValidate);
+        function onFiltriArchivioChange() {
+            aggiornaContatoriValidazione();
+            renderOreValidate();
+        }
+        document.getElementById('filtro-validate-operaio').addEventListener('change', onFiltriArchivioChange);
+        document.getElementById('filtro-validate-lavoro').addEventListener('change', onFiltriArchivioChange);
+        document.getElementById('filtro-validate-stato').addEventListener('change', renderOreValidate);
+        document.getElementById('ore-container').addEventListener('click', onToggleTraccia);
+        document.getElementById('ore-validate-container').addEventListener('click', onToggleTraccia);
 
         function trovaOraNota(lavoroId, oraId, archivio) {
             const lista = archivio ? oreValidateArchivio : oreDaValidare.concat(oreValidateArchivio);
@@ -1275,9 +1341,10 @@
             const oraId = document.getElementById('correggi-ora-id').value;
             const motivo = document.getElementById('correggi-motivo').value.trim();
             if (!motivo) {
-                showAlert('Inserisci il motivo', 'error');
+                mostraErroreMotivo('correggi-motivo');
                 return;
             }
+            pulisciErroreMotivo('correggi-motivo');
             const oreMacchinaRaw = document.getElementById('correggi-ore-macchina').value;
             const patch = {
                 orarioInizio: document.getElementById('correggi-inizio').value,
@@ -1323,17 +1390,18 @@
             const oraId = document.getElementById('azione-ore-ora-id').value;
             const motivo = document.getElementById('azione-ore-motivo').value.trim();
             if (!motivo) {
-                showAlert('Inserisci il motivo', 'error');
+                mostraErroreMotivo('azione-ore-motivo');
                 return;
             }
+            pulisciErroreMotivo('azione-ore-motivo');
             try {
                 const esito = tipo === 'annulla'
                     ? await annullaValidazioneOra(db, currentTenantId, utenteValidazione(), lavoroId, oraId, motivo)
                     : await rifiutaOraValidata(db, currentTenantId, utenteValidazione(), lavoroId, oraId, motivo);
                 mostraAvvisiMacchina(esito);
-                showAlert(tipo === 'annulla' ? 'Validazione annullata' : 'Ora rifiutata', 'success');
                 closeAzioneOreModal();
                 await loadOreDaValidare();
+                showAlert(tipo === 'annulla' ? 'Validazione annullata' : 'Ora rifiutata', 'success', 8000);
             } catch (error) {
                 console.error(error);
                 showAlert(`Errore: ${error.message}`, 'error');

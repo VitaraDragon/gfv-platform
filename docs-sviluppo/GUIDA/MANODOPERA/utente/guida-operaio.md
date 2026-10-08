@@ -92,10 +92,12 @@ Sotto il modulo c’è **Le tue ore del giorno**: i turni di quel giorno, con la
 
 ### Dopo il salvataggio
 
-- Può comparire un messaggio di conferma o uno **stato** sulla registrazione: leggi ciò che dice la tua schermata.  
+- Il messaggio inizia con **Ora segnata con successo!** e dice se la valida il caposquadra o il manager.  
 - Se dopo il salvataggio il modulo si **svuota**, è normale: puoi inserire un altro giorno o turno.  
 - Finché la riga è **in attesa** o **rifiutata** puoi **modificarla** o **eliminarla** dal riquadro del giorno. Il lavoro non si cambia: per un altro lavoro elimina e segna di nuovo. Una riga **rifiutata**, dopo la modifica, torna in attesa.  
+- Su una riga **in attesa** leggi chi la deve validare. Su una riga **rifiutata** leggi chi l’ha rifiutata, quando e il motivo. Sulle righe validate, corrette o annullate c’è la stessa storia, con data e ora.
 - Su una riga **validata** non puoi fare nulla: chiedi al caposquadra, oppure al manager se il lavoro è autonomo.
+- Se chiedi a Tony di segnare le ore e l’orario è già occupato, te lo dice prima di salvare e ti chiede un altro orario. Se dici «pausa 0» o «nessuna pausa», non te la chiede di nuovo. Macchina e attrezzo sono quelli del lavoro, a meno che tu non li nomini.
 
 ---
 

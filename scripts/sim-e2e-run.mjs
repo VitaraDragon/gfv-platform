@@ -97,6 +97,7 @@ import {
 } from '../tests/e2e/sim/scenarios/field-workspace.mjs';
 import { runFieldWorkspaceOreWriteAssertions } from '../tests/e2e/sim/scenarios/field-workspace-write.mjs';
 import { runValidazioneOreWriteAssertions } from '../tests/e2e/sim/scenarios/validazione-ore-write.mjs';
+import { runValidazioneOreRifiutoAssertions } from '../tests/e2e/sim/scenarios/validazione-ore-rifiuto-write.mjs';
 import { runTerreniWriteAssertions } from '../tests/e2e/sim/scenarios/terreni-write.mjs';
 import { runGuastiWriteAssertions } from '../tests/e2e/sim/scenarios/guasti-write.mjs';
 import { runTerreniClientiWriteAssertions } from '../tests/e2e/sim/scenarios/terreni-clienti-write.mjs';
@@ -550,6 +551,12 @@ const SCENARIOS = [
     name: 'validazione-ore-write',
     run: async (page) => {
       await runValidazioneOreWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'validazione-ore-rifiuto-write',
+    run: async (page) => {
+      await runValidazioneOreRifiutoAssertions(page, expect);
     },
   },
   {

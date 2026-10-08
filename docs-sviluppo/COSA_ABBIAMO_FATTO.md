@@ -1,6 +1,22 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-08 — Ore: modifica, sovrapposizioni, correzione dopo validazione.**
+**Ultimo aggiornamento documentazione: 2026-10-08 — Ore: ritest Uso Reale, Tony e traccia.**
+
+## 2026-10-08 — Ore: Tony avvisa se l’orario è occupato, e la storia della riga si legge tutta
+
+L’operaio, dopo aver segnato un’ora, legge «Ora segnata con successo!» e se la valida il caposquadra o il manager. Sulle proprie ore vede chi ha validato, corretto, annullato o rifiutato, con data, ora e motivo. Se l’ora è rifiutata, il motivo non resta solo un’etichetta.
+
+Tony, prima di chiedere di salvare, controlla se quell’orario è già occupato e propone un altro. Lo ricontrolla anche al «sì». Se dici «pausa 0» o «nessuna pausa», non te la chiede di nuovo. Macchina e attrezzo restano quelli del lavoro scelto, a meno che tu non li nomini. Tony non mette macchina e attrezzo della riga prima anche quando la compilazione arriva dal modello. Il test e2e del rifiuto usa una fascia libera.
+
+Il caposquadra, nella lista da validare sul telefono, vede la nota e la macchina. Il motivo del rifiuto, se manca, resta visibile. Dopo il rifiuto compare «Ora rifiutata». Le stelline delle competenze, dopo una sua validazione, si aggiornano quando agisce il manager, oppure dal ricalcolo in Gestione operai.
+
+Il manager, in Validazione ore, ha gli stessi numeri della lista: «Da validare» è la sua coda, «Validate» e «Rifiutate» sono gli ultimi 30 giorni. Può filtrare le rifiutate e leggere chi, quando e perché. Se il motivo è vuoto, la pagina lo dice in rosso e con l’avviso. Lo stesso vale per il caposquadra sul suo elenco.
+
+Non cambia `firestore.rules`. Non c’è nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-08 — Ore: modifica, sovrapposizioni, correzione dopo validazione.**
 
 ## 2026-10-08 — Ore: si possono correggere, e due turni nello stesso orario non si salvano
 

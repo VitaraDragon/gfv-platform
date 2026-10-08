@@ -7212,7 +7212,22 @@
       } else if (useLavoroForm) {
         out.injected = await injectLavoroForm(extracted.formData, context);
       } else if (useOraForm) {
-        out.injected = await injectSegnaOraForm(extracted.formData, context);
+        var fdOraModello = extracted.formData;
+        var engineMezzi = window.TonySegnaOraLocalEngine;
+        if (engineMezzi && typeof engineMezzi.filtraCampiMezzoNonNominati === 'function') {
+          var blobMezzi = '';
+          try {
+            if (typeof window.__tonyBuildSegnaOraUserBlob === 'function') {
+              blobMezzi = String(window.__tonyBuildSegnaOraUserBlob() || '');
+            } else if (window.__tonyLastUserMessage) {
+              blobMezzi = String(window.__tonyLastUserMessage);
+            } else {
+              blobMezzi = String(sessionStorage.getItem('tony_last_user_message') || '');
+            }
+          } catch (eBlobMezzi) { blobMezzi = ''; }
+          fdOraModello = engineMezzi.filtraCampiMezzoNonNominati(fdOraModello, blobMezzi);
+        }
+        out.injected = await injectSegnaOraForm(fdOraModello, context);
       } else {
         out.injected = await injectAttivitaForm(extracted.formData, context);
       }
