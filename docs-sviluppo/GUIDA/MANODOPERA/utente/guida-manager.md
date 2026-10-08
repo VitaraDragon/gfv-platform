@@ -301,7 +301,7 @@ Quando un operaio **non c’è** sul lavoro di oggi, l’app vi aiuta a tenere i
 1. Aprite **Home Manodopera** → **Gestione lavori** (o partite dalla **notifica push** «Assenza oggi» / alert in dashboard).  
 2. Individuate il lavoro e l’assenza: potete aprire **Standby assenza** / **Conferma e standby** se il caposquadra ha già segnalato.  
 3. Se l’equipaggio scende sotto il minimo previsto, il lavoro resta in **standby** finché non c’è un sostituto (o non ripristinate la situazione).  
-4. Usate **Scegli sostituto**: l’app vi propone una **shortlist** (di solito pochi candidati) tenendo conto di disponibilità, competenze dove previste e **vicinanza al terreno/podere** del lavoro — non del GPS del telefono.  
+4. Usate **👤 Assegna sostituto** sulla riga del lavoro: l’app vi propone una **shortlist** (di solito pochi candidati) tenendo conto di disponibilità, competenze dove previste e **vicinanza al terreno/podere** del lavoro — non del GPS del telefono.  
 5. Potete anche prendere qualcuno già su un altro lavoro (**prestito**): quel lavoro di origine può avere un «buco» / standby di prestito per la giornata; non modifica la composizione fissa della squadra in anagrafica.  
 6. Eccezione: da **Impegni giornalieri** potete solo **vedere** la foto del giorno; l’assegnazione vera resta in Gestione lavori (eventuale scelta manuale dal roster del giorno se la schermata lo offre).
 

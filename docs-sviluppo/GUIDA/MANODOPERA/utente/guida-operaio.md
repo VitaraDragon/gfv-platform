@@ -125,7 +125,8 @@ Sotto il modulo ore trovi il riquadro **Dettaglio lavoro operativo**, già **cen
 2. Nel dettaglio puoi in genere:
    - leggere **stato**, percentuali e **testi operativi** sull’incarico;  
    - **tracciare le zone lavorate** sulla mappa quando il tipo di incarico lo richiede;  
-   - vedere se il lavoro risulta **sospeso** o da **riprendere**, se l’app lo mostra.  
+   - vedere se il lavoro risulta **sospeso** o da **riprendere**, se l’app lo mostra;  
+   - **⏸️ Sospendi lavoro** se l’incarico è **solo tuo** e devi fermarti (vedi [Sospendere un incarico solo tuo](#sospendere-un-incarico-solo-tuo)).  
 3. Se sul telefono è scomodo, usa **Apri in finestra intera** per la stessa schermata a tutto schermo nel browser.
 
 ### Zone sulla mappa
@@ -196,6 +197,17 @@ Serve quando l’azienda ha il modulo **Parco Macchine** attivo e ti compare la 
 
 - Il flusso è lo stesso: **versione mobile**, scelta lavoro, **ore**, **dettaglio** con zone se richiesto.  
 - Per dubbi su cosa fare sull’incarico, usa i canali che l’azienda ti ha indicato.
+
+### Sospendere un incarico solo tuo
+
+Se lavori **da solo** su un incarico e devi fermarti per meteo, guasto o altro motivo, puoi sospenderlo tu.
+
+1. Scegli il lavoro nella scheda **Lavoro**, apri la scheda **Ore** e nel **dettaglio lavoro** (o nella schermata **I miei lavori**) tocca **⏸️ Sospendi lavoro**. Si può fare solo se il lavoro è **assegnato** o **in corso**.  
+2. Scrivi il **motivo** a parole tue (testo libero, es. «pioggia», «trattore fermo») e conferma.  
+3. Il lavoro passa in **Sospeso**: nel dettaglio compare «Lavoro sospeso» con il tuo motivo e su quel lavoro non segni più zone.  
+4. Per ripartire non devi fare nulla: il manager crea il **lavoro di ripresa**, che ti compare tra i **Lavori assegnati** con lo stesso nome e «(ripresa)». Lo scegli e continui come sempre; sulla mappa vedi in arancione le zone già fatte prima della sospensione e in verde quelle nuove.
+
+La sospensione funziona solo sugli incarichi **solo tuoi**: su quelli di gruppo avvisa il **caposquadra**, che può sospendere il lavoro. Se invece sei **tu** a non poter lavorare (malattia, ferie, permesso), non sospendere: avvisa il caposquadra o il manager, che registrano l’**assenza**.
 
 ---
 
