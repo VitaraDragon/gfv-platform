@@ -345,16 +345,20 @@ export function tryInterceptQuickHoursSaveBeforeCf(text, handlers) {
     var onlyLavoroMissing = reqEmpty.length === 1 && reqEmpty[0] === 'ora-lavoro';
     if (onlyLavoroMissing) {
       try {
+        var riepLav = window.__tonySegnaOreRiepilogo;
+        var idVoluto = riepLav && riepLav.lavoroId ? String(riepLav.lavoroId) : '';
         var targetLav = resolveSegnaOreTargetWindow();
-        if (targetLav && targetLav.doc) {
+        if (idVoluto && targetLav && targetLav.doc) {
           var lavoroEl = getSegnaOreLavoroElement(targetLav.doc, targetLav.formKind);
           if (lavoroEl && lavoroEl.tagName === 'SELECT' && !String(lavoroEl.value || '').trim()) {
-            for (var oi = 0; oi < lavoroEl.options.length; oi++) {
-              var opt = lavoroEl.options[oi];
-              if (opt && String(opt.value || '').trim()) {
-                lavoroEl.value = opt.value;
-                lavoroEl.dispatchEvent(new Event('change', { bubbles: true }));
-                break;
+            var haOpzione = Array.from(lavoroEl.options || []).some(function (opt) {
+              return opt && String(opt.value || '') === idVoluto;
+            });
+            if (haOpzione) {
+              lavoroEl.value = idVoluto;
+              lavoroEl.dispatchEvent(new Event('change', { bubbles: true }));
+              if (typeof targetLav.window.gfvSegnaturaOreRefreshMacchineFromSelect === 'function') {
+                targetLav.window.gfvSegnaturaOreRefreshMacchineFromSelect();
               }
             }
           }

@@ -15,11 +15,15 @@ import {
   testoErroreSalvataggioOre,
   oreMacchinaDaSalvare,
   messaggioSovrapposizioneTony,
+  primoOrarioLiberoDopo,
+  esitoControlloSovrapposizione,
   chiValidaOra,
   messaggioOraSegnataConSuccesso,
   testoAttesaValidazione,
+  etichettaStatoAttualeOra,
   deveRichiedereRefreshSkill,
   vociTracciaOra,
+  assicuraVoceValidazione,
   formatTracciaOra,
   formattaDataOraTraccia,
   calcolaContatoriOreValidazione
@@ -395,9 +399,72 @@ describe('messaggio sovrapposizione per Tony', () => {
       [{ orarioInizio: '08:00', orarioFine: '12:00', lavoroNome: 'Potatura' }]
     );
     expect(testo).toMatch(/10:00/);
-    expect(testo).toMatch(/si sovrappone/);
+    expect(testo).toMatch(/sovrappon/i);
     expect(testo).toMatch(/08:00/);
-    expect(testo).toMatch(/dalle 12:00/);
+    expect(testo).toMatch(/«Potatura»/);
+    expect(testo).toMatch(/dalle 12:00 alle 13:00/);
+  });
+
+  it('con due blocchi di fila non propone un orario ancora occupato', () => {
+    const testo = messaggioSovrapposizioneTony(
+      { orarioInizio: '10:00', orarioFine: '11:00' },
+      [{ orarioInizio: '08:00', orarioFine: '12:00', lavoroNome: 'Potatura' }],
+      {
+        righeGiorno: [
+          { orarioInizio: '08:00', orarioFine: '12:00', stato: 'validate' },
+          { orarioInizio: '12:00', orarioFine: '13:00', stato: 'da_validare' }
+        ]
+      }
+    );
+    expect(testo).toMatch(/dalle 13:00 alle 14:00/);
+    expect(testo).not.toMatch(/dalle 12:00 alle 13:00/);
+  });
+
+  it('senza buco libero non propone un orario', () => {
+    const testo = messaggioSovrapposizioneTony(
+      { orarioInizio: '10:00', orarioFine: '11:00' },
+      [{ orarioInizio: '08:00', orarioFine: '23:30', lavoroNome: 'Potatura' }],
+      { alternativa: null }
+    );
+    expect(testo).toMatch(/Dimmi un altro orario/);
+    expect(testo).not.toMatch(/Il primo orario libero/);
+  });
+});
+
+describe('primo orario libero', () => {
+  it('turni 08–12 e 12–13, richiesta 10–11: propone 13:00–14:00', () => {
+    const alt = primoOrarioLiberoDopo([
+      { id: 'a', orarioInizio: '08:00', orarioFine: '12:00', stato: 'validate' },
+      { id: 'b', orarioInizio: '12:00', orarioFine: '13:00', stato: 'da_validare' }
+    ], 10 * 60, 60);
+    expect(alt).toEqual({ inizio: '13:00', fine: '14:00' });
+  });
+
+  it('ignora la riga rifiutata', () => {
+    const alt = primoOrarioLiberoDopo([
+      { id: 'a', orarioInizio: '08:00', orarioFine: '12:00', stato: 'validate' },
+      { id: 'b', orarioInizio: '12:00', orarioFine: '14:00', stato: 'rifiutate' }
+    ], 10 * 60, 60);
+    expect(alt).toEqual({ inizio: '12:00', fine: '13:00' });
+  });
+
+  it('se non c’è spazio restituisce null', () => {
+    const alt = primoOrarioLiberoDopo([
+      { orarioInizio: '08:00', orarioFine: '23:30', stato: 'da_validare' }
+    ], 10 * 60, 60);
+    expect(alt).toBeNull();
+  });
+
+  it('le pagine ricevono l’alternativa già calcolata', () => {
+    const esito = esitoControlloSovrapposizione(
+      { data: '2026-10-08', orarioInizio: '10:00', orarioFine: '11:00', operaioId: 'op' },
+      [
+        { id: 'a', data: '2026-10-08', operaioId: 'op', orarioInizio: '08:00', orarioFine: '12:00', stato: 'validate', lavoroNome: 'Potatura' },
+        { id: 'b', data: '2026-10-08', operaioId: 'op', orarioInizio: '12:00', orarioFine: '13:00', stato: 'da_validare', lavoroNome: 'Altro' }
+      ]
+    );
+    expect(esito.alternativa).toEqual({ inizio: '13:00', fine: '14:00' });
+    expect(esito.messaggio).toMatch(/13:00/);
   });
 });
 
@@ -454,6 +521,61 @@ describe('traccia della riga', () => {
       ]
     }, nomeDi);
     expect(voci).toEqual(['Modificata da Luca il 08/10/2026 14:05']);
+  });
+
+  it('dopo annullo e nuova validazione resta anche la prima', () => {
+    const v1 = new Date(2026, 9, 8, 9, 0);
+    const corr = new Date(2026, 9, 8, 10, 0);
+    const ann = new Date(2026, 9, 8, 11, 0);
+    const v2 = new Date(2026, 9, 8, 12, 0);
+    const voci = vociTracciaOra({
+      validatoDa: 'mgr',
+      validatoIl: v2,
+      storicoModifiche: [
+        { azione: 'validazione', da: 'mgr', il: v1 },
+        { azione: 'correzione', da: 'mgr', il: corr, motivo: 'orario errato' },
+        { azione: 'annulla_validazione', da: 'mgr', il: ann, motivo: 'da rifare' },
+        { azione: 'validazione', da: 'mgr', il: v2 }
+      ]
+    }, nomeDi);
+    expect(voci).toHaveLength(4);
+    expect(voci[0]).toBe('Validata da Anna il 08/10/2026 09:00');
+    expect(voci[1]).toBe('Corretta da Anna il 08/10/2026 10:00 — orario errato');
+    expect(voci[2]).toBe('Validazione annullata da Anna il 08/10/2026 11:00 — da rifare');
+    expect(voci[3]).toBe('Validata da Anna il 08/10/2026 12:00');
+  });
+
+  it('riga vecchia senza voce validazione nello storico', () => {
+    const ora = {
+      validatoDa: 'mgr',
+      validatoIl: new Date(2026, 9, 8, 9, 0),
+      stato: 'validate',
+      storicoModifiche: [
+        { azione: 'correzione', da: 'mgr', il: new Date(2026, 9, 8, 10, 15), motivo: 'orario errato' }
+      ]
+    };
+    const storico = assicuraVoceValidazione(ora.storicoModifiche, ora);
+    expect(storico.some((v) => v.azione === 'validazione' && v.da === 'mgr')).toBe(true);
+    const voci = vociTracciaOra({ ...ora, storicoModifiche: storico }, nomeDi);
+    expect(voci[0]).toBe('Validata da Anna il 08/10/2026 09:00');
+    expect(voci[1]).toMatch(/^Corretta/);
+    expect(voci.filter((v) => v.startsWith('Validata'))).toHaveLength(1);
+  });
+
+  it('una riga tornata in attesa non si chiama più rifiutata', () => {
+    expect(etichettaStatoAttualeOra({ stato: 'da_validare' }, 'caposquadra'))
+      .toBe('Da validare — la valida il caposquadra');
+    expect(etichettaStatoAttualeOra({ stato: 'da_validare' }, 'manager'))
+      .toBe('Da validare — la valida il manager');
+    const voci = vociTracciaOra({
+      stato: 'da_validare',
+      storicoModifiche: [
+        { azione: 'rifiuto', da: 'mgr', il: new Date(2026, 9, 8, 9, 0), motivo: 'orario sbagliato' },
+        { azione: 'modifica', da: 'op', il: new Date(2026, 9, 8, 10, 0), motivo: '' }
+      ]
+    }, nomeDi);
+    expect(voci[0]).toMatch(/^Rifiutata da Anna/);
+    expect(voci[1]).toMatch(/^Modificata da Luca/);
   });
 });
 

@@ -33,7 +33,7 @@ import { contaOreManagerDaValidareSuLavoro, isOraDelCaposquadraSuLavoroSquadra }
 import {
     formatTracciaOra,
     chiValidaOra,
-    testoAttesaValidazione
+    etichettaStatoAttualeOra
 } from '../services/ore-operai-logic.js';
 
 // ============================================
@@ -1735,10 +1735,11 @@ export async function loadStatisticheOreOperaio(userData, dependencies) {
                 'rifiutate': '<span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">❌ Rifiutate</span>'
             }[ora.stato] || '';
             const nomeDi = (uid) => nomiValidatori.get(uid) || '';
-            const tracciaTesto = ora.stato === 'da_validare'
-                ? testoAttesaValidazione(chiValidaOra({ ora, lavoro: ora.lavoro }))
-                : formatTracciaOra(ora, nomeDi);
-            const traccia = tracciaTesto ? ` · ${escapeHtml(tracciaTesto)}` : '';
+            const chiRiga = chiValidaOra({ ora, lavoro: ora.lavoro });
+            const statoAttuale = ora.stato === 'da_validare' ? etichettaStatoAttualeOra(ora, chiRiga) : '';
+            const tracciaTesto = formatTracciaOra(ora, nomeDi);
+            const pezziRiga = [statoAttuale, tracciaTesto].filter(Boolean);
+            const traccia = pezziRiga.length ? ` · ${escapeHtml(pezziRiga.join(' · '))}` : '';
             
             html += `
                 <li class="recent-item">

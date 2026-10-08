@@ -47,12 +47,21 @@ export async function runFlowSegnaOre023(page, expect, scenario) {
   await goToSegnaOreSlide(page);
   await page.locator('#quick-hours-form').waitFor({ state: 'visible', timeout: 30_000 });
 
-  const result = await tonyRunMultiTurn(page, messages);
+  const replies = [];
+  const result = await tonyRunMultiTurn(page, messages, {
+    afterTurn: async (_page, _msg, ctx) => {
+      replies.push(ctx.lastReply || '');
+    },
+  });
   assertZeroCfAcrossTurns(expect, result.perfTurns, {
     cfCallsMax: scenario.expect?.cfCallsMax ?? 0,
   });
 
-  expect(result.lastReply || '').toMatch(/sovrappone/i);
+  const idxAvviso = replies.findIndex((r) => /sovrappon/i.test(r));
+  expect(idxAvviso, `risposte: ${replies.join(' | ')}`).toBeGreaterThanOrEqual(0);
+  for (let i = 0; i < idxAvviso; i += 1) {
+    expect(replies[i]).not.toMatch(/minuti di pausa/i);
+  }
   const status = await page.locator('#hours-save-status').textContent();
   expect(status || '').not.toMatch(/Ore salvate:/i);
 }

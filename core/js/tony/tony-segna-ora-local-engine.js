@@ -200,16 +200,28 @@ export function listSegnaOreMissingRequired(state, opts) {
  * @param {{ pauseAcknowledged?: boolean, requireLavoro?: boolean }} [opts]
  * @returns {string}
  */
+function testoMezziRiepilogo(opts) {
+  var mac = String((opts && opts.macchinaNome) || '').trim();
+  var att = String((opts && opts.attrezzoNome) || '').trim();
+  if (mac && att) return ', ' + mac + ' e ' + att;
+  if (mac) return ', ' + mac;
+  if (att) return ', ' + att;
+  return '';
+}
+
 export function buildSegnaOreMissingFieldsMessage(state, opts) {
   opts = opts || {};
   var missing = listSegnaOreMissingRequired(state, opts);
   if (missing.length === 0) {
-    var recap = '';
+    var nome = String((opts && opts.lavoroNome) || (state && state.lavoroNome) || '').trim();
+    var recap = nome;
     if (state && state.startVal && state.endVal) {
-      recap = 'dalle ' + state.startVal + ' alle ' + state.endVal;
+      var fascia = 'dalle ' + state.startVal + ' alle ' + state.endVal;
       var pauseN = state.pauseVal !== '' ? parseInt(state.pauseVal, 10) : 0;
-      recap += ', pausa ' + (Number.isFinite(pauseN) ? pauseN : 0) + ' min';
+      fascia += ', pausa ' + (Number.isFinite(pauseN) ? pauseN : 0) + ' min';
+      recap = recap ? (recap + ', ' + fascia) : fascia;
     }
+    recap += testoMezziRiepilogo(opts);
     return 'Tutto pronto' + (recap ? ': ' + recap : ' nel form') + '. Vuoi salvare? Scrivi «sì» o «salva».';
   }
   if (missing.length === 1) {
