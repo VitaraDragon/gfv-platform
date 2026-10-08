@@ -18,9 +18,9 @@ import {
 import { withTonyE2eQuery } from './tony-sim-context.js';
 
 export const TONY_E2E_ORE_NOTE = 'GFV_SIM_TONY_E2E_ORE';
-export const TONY_E2E_ORA_START = '08:00';
+export const TONY_E2E_ORA_START = '13:00';
 export const TONY_E2E_ORA_END = '17:00';
-export const TONY_E2E_NET_HOURS = '9h';
+export const TONY_E2E_NET_HOURS = '4h';
 
 export const TONY_E2E_MOVIMENTO_NOTE = 'GFV_SIM_TONY_E2E_MOVIMENTO';
 export const TONY_E2E_MOVIMENTO_NOTE_USCITA = 'GFV_SIM_TONY_E2E_USCITA';
@@ -251,7 +251,7 @@ export async function assertOrePendingInValidazione(page, expect, opts = {}) {
   await expect(row).toBeVisible();
   await expect(row).toContainText(note);
   await expect(row).toContainText(`${oraStart} - ${oraEnd}`);
-  await expect(row.locator('td').nth(5)).toContainText(netHours);
+  await expect(row.locator('td.col-ore-nette')).toContainText(netHours);
   await expect(row.getByRole('button', { name: '✅ Valida' })).toBeVisible();
 }
 

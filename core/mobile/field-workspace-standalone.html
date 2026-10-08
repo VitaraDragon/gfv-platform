@@ -210,9 +210,12 @@
                         </div>
                         <label for="ora-note" class="label-inline">Note (opzionale)</label>
                         <textarea id="ora-note" class="field-input" rows="3" placeholder="Note turno"></textarea>
+                        <button type="button" id="ore-annulla-modifica" class="field-mobile-btn" hidden>Annulla modifica</button>
                         <button type="submit" class="field-mobile-btn primary">Salva ore lavorate</button>
                         <small id="hours-save-status" class="hint-text"></small>
                     </form>
+                    <div id="ore-giorno-riepilogo" data-state="idle" class="gfv-card-inner" style="margin-top:12px;"></div>
+                    <div id="ore-sovrapposizione-msg" hidden style="margin-top:8px;padding:10px;background:#fff3cd;border-radius:8px;"></div>
                     <section class="inline-team-section">
                         <h3 class="inline-team-title">📌 Dettaglio lavoro operativo</h3>
                         <p class="inline-team-subtitle">Ordini manager, stato tabella di marcia, traccia zone e sospensione lavoro.</p>

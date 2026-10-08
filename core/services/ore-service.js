@@ -9,7 +9,22 @@ import {
   getCurrentTenantId 
 } from './tenant-service.js';
 import { getCurrentUserData } from './auth-service.js';
-import { isOraDelCaposquadraSuLavoroSquadra } from './manodopera-ore-validazione-scope.js';
+import { isOraDelCaposquadraSuLavoroSquadra, assertUtentePuoValidareOra } from './manodopera-ore-validazione-scope.js';
+import {
+  calcolaOreNette as calcolaOreNettePura,
+  formattaOreMinuti,
+  chiaveGiornoOra,
+  dataMezzanotteLocale,
+  trovaSovrapposizioni,
+  creaErroreSovrapposizione,
+  permessiOra,
+  validaIntervalloOra,
+  buildVoceStorico,
+  aggiungiVoceStorico,
+  snapshotCampiOra,
+  pianoRettificaOreMacchina,
+  oreMacchinaDaSalvare
+} from './ore-operai-logic.js';
 
 /**
  * Ottieni tutte le ore di un lavoro
@@ -271,24 +286,7 @@ export async function getOreOperaio(operaioId, options = {}) {
  * @returns {number} Ore nette (in ore decimali, es. 8.5 = 8h 30min)
  */
 export function calcolaOreNette(orarioInizio, orarioFine, pauseMinuti) {
-  if (!orarioInizio || !orarioFine) {
-    return 0;
-  }
-  
-  const [inizioOre, inizioMinuti] = orarioInizio.split(':').map(Number);
-  const [fineOre, fineMinuti] = orarioFine.split(':').map(Number);
-  
-  const inizioMinutiTotali = inizioOre * 60 + inizioMinuti;
-  const fineMinutiTotali = fineOre * 60 + fineMinuti;
-  
-  const minutiLavoro = fineMinutiTotali - inizioMinutiTotali;
-  const minutiNetti = minutiLavoro - pauseMinuti;
-  
-  if (minutiNetti < 0) {
-    return 0;
-  }
-  
-  return minutiNetti / 60; // Converti in ore decimali
+  return calcolaOreNettePura(orarioInizio, orarioFine, pauseMinuti);
 }
 
 /**
@@ -297,18 +295,7 @@ export function calcolaOreNette(orarioInizio, orarioFine, pauseMinuti) {
  * @returns {string} Ore formattate
  */
 export function formattaOre(oreDecimali) {
-  if (!oreDecimali || oreDecimali <= 0) {
-    return '0h';
-  }
-  
-  const ore = Math.floor(oreDecimali);
-  const minuti = Math.round((oreDecimali - ore) * 60);
-  
-  if (minuti === 0) {
-    return `${ore}h`;
-  }
-  
-  return `${ore}h ${minuti}min`;
+  return formattaOreMinuti(oreDecimali);
 }
 
 /**
@@ -449,152 +436,565 @@ export async function createOra(lavoroId, oraData) {
   }
 }
 
+function uidUtente(user) {
+  return String((user && (user.id || user.uid)) || '');
+}
+
+function ruoliUtente(user) {
+  const ruoli = Array.isArray(user && user.ruoli) ? user.ruoli : [];
+  return {
+    isCaposquadra: ruoli.includes('caposquadra'),
+    isManager: ruoli.includes('manager') || ruoli.includes('amministratore'),
+    isOperaio: ruoli.includes('operaio')
+  };
+}
+
+function richiediContesto(db, tenantId, user) {
+  if (!db) throw new Error('Firebase non inizializzato');
+  if (!tenantId) throw new Error('Nessun tenant corrente disponibile');
+  const userId = uidUtente(user);
+  if (!userId) throw new Error('Utente non autenticato');
+  return { userId, ...ruoliUtente(user) };
+}
+
+async function firebaseOre() {
+  return import('./firebase-service.js');
+}
+
+async function leggiLavoro(db, docFn, getDocFn, tenantId, lavoroId) {
+  const snap = await getDocFn(docFn(db, 'tenants', tenantId, 'lavori', lavoroId));
+  if (!snap.exists()) throw new Error('Lavoro non trovato');
+  return { id: snap.id, ...snap.data() };
+}
+
+async function leggiOra(db, docFn, getDocFn, tenantId, lavoroId, oraId) {
+  const snap = await getDocFn(docFn(db, 'tenants', tenantId, 'lavori', lavoroId, 'oreOperai', oraId));
+  if (!snap.exists()) throw new Error('Ora non trovata');
+  return { id: snap.id, ref: snap.ref, ...snap.data() };
+}
+
 /**
- * Valida un'ora lavorata (Caposquadra)
- * @param {string} lavoroId - ID lavoro
- * @param {string} oraId - ID ora
- * @returns {Promise<void>}
+ * Ore dell'utente in un giorno, su tutti i lavori visibili.
+ * Nessun indice composito: filtro del giorno lato client.
+ * Il controllo di sovrapposizione è solo lato client: Firestore Rules non può interrogare altre righe.
+ *
+ * @param {object} db
+ * @param {string} tenantId
+ * @param {string} userId
+ * @param {string} giornoKey YYYY-MM-DD
+ * @param {object} userData
+ * @returns {Promise<object[]>}
  */
-export async function validaOra(lavoroId, oraId) {
-  try {
-    const tenantId = getCurrentTenantId();
-    if (!tenantId) {
-      throw new Error('Nessun tenant corrente disponibile');
-    }
-    
-    const user = getCurrentUserData();
-    if (!user) {
-      throw new Error('Utente non autenticato');
-    }
-    
-    // Verifica permessi: solo caposquadra può validare
-    if (!user.ruoli || !user.ruoli.includes('caposquadra')) {
-      throw new Error('Solo i caposquadra possono validare le ore');
-    }
-    
-    if (!lavoroId || !oraId) {
-      throw new Error('ID lavoro e ora obbligatori');
-    }
-    
-    // Import dinamico
-    const { getDb, doc, getDoc, updateDoc, serverTimestamp } = await import('./firebase-service.js');
-    const db = getDb();
-    if (!db) throw new Error('Firebase non inizializzato');
-    
-    // Verifica che il lavoro esista e sia assegnato al caposquadra
-    const lavoroDoc = await getDoc(doc(db, 'tenants', tenantId, 'lavori', lavoroId));
-    if (!lavoroDoc.exists()) {
-      throw new Error('Lavoro non trovato');
-    }
-    
-    const lavoroData = lavoroDoc.data();
-    if (lavoroData.caposquadraId !== user.id) {
-      throw new Error('Non sei il caposquadra assegnato a questo lavoro');
-    }
-    
-    // Verifica che l'ora esista e sia in stato "da_validare"
-    const oraDoc = await getDoc(doc(db, 'tenants', tenantId, 'lavori', lavoroId, 'oreOperai', oraId));
-    if (!oraDoc.exists()) {
-      throw new Error('Ora non trovata');
-    }
-    
-    const oraData = oraDoc.data();
-    if (oraData.stato !== 'da_validare') {
-      throw new Error('Questa ora è già stata validata o rifiutata');
-    }
-    
-    // Aggiorna stato
-    const operaioId = oraData.operaioId;
+export async function caricaOreUtenteGiorno(db, tenantId, userId, giornoKey, userData) {
+  const tutte = await caricaOreUtente(db, tenantId, userId, userData);
+  const giorno = chiaveGiornoOra(giornoKey);
+  return tutte.filter((row) => chiaveGiornoOra(row.data) === giorno);
+}
 
-    await updateDoc(oraDoc.ref, {
-      stato: 'validate',
-      validatoDa: user.id,
-      validatoIl: serverTimestamp(),
-      rifiutatoDa: null,
-      motivoRifiuto: null
+/**
+ * Tutte le ore dell'utente sui lavori visibili (per il riquadro del giorno e le sovrapposizioni).
+ */
+export async function caricaOreUtente(db, tenantId, userId, userData) {
+  if (!db || !tenantId || !userId) return [];
+  const { collection, getDocs, query, where } = await firebaseOre();
+  const {
+    fetchLavoriDocumentsForFieldUser,
+    resolveSegnaturaOreRoleFlags,
+    resolveFieldWorkspaceLavoriRoleFlags
+  } = await import('./manodopera-lavori-scope.js');
+  const flags = ruoliUtente(userData);
+  const roleFlags = flags.isCaposquadra
+    ? resolveFieldWorkspaceLavoriRoleFlags(userData || { ruoli: ['caposquadra'] })
+    : resolveSegnaturaOreRoleFlags(userData || {});
+  const lavori = await fetchLavoriDocumentsForFieldUser(db, tenantId, userId, roleFlags, userData || null);
+  const ore = [];
+  for (const lav of lavori) {
+    const oreRef = collection(db, 'tenants', tenantId, 'lavori', lav.id, 'oreOperai');
+    const snap = await getDocs(query(oreRef, where('operaioId', '==', userId)));
+    snap.forEach((oraDoc) => {
+      ore.push({
+        id: oraDoc.id,
+        lavoroId: lav.id,
+        lavoroNome: lav.nome || 'N/A',
+        ...oraDoc.data()
+      });
     });
+  }
+  return ore;
+}
 
-    if (operaioId) {
-      const { requestSkillCalcolateRefresh } = await import('./profilo-manodopera-skill-auto-refresh.js');
-      requestSkillCalcolateRefresh(tenantId, operaioId, user.id);
+function normalizzaPayloadOra(oraData) {
+  const pauseMinuti = Number(oraData && oraData.pauseMinuti) || 0;
+  const orarioInizio = oraData && oraData.orarioInizio;
+  const orarioFine = oraData && oraData.orarioFine;
+  const err = validaIntervalloOra(orarioInizio, orarioFine, pauseMinuti);
+  if (err) throw new Error(err);
+  const giorno = dataMezzanotteLocale(oraData.data);
+  if (!giorno || Number.isNaN(giorno.getTime())) throw new Error('Data obbligatoria');
+  const macchinaId = oraData.macchinaId || null;
+  const attrezzoId = oraData.attrezzoId || null;
+  const oreNette = calcolaOreNettePura(orarioInizio, orarioFine, pauseMinuti);
+  return {
+    orarioInizio,
+    orarioFine,
+    pauseMinuti,
+    oreNette,
+    note: (oraData.note || '').trim(),
+    giorno,
+    giornoKey: chiaveGiornoOra(giorno),
+    macchinaId,
+    attrezzoId,
+    oreMacchina: oreMacchinaDaSalvare({ macchinaId, attrezzoId, oreMacchina: oraData.oreMacchina }, oreNette),
+    posizioneRilevamento: oraData.posizioneRilevamento || null
+  };
+}
+
+async function assertNessunaSovrapposizione(db, tenantId, user, userId, candidata, escludiId) {
+  const esistenti = await caricaOreUtente(db, tenantId, userId, user);
+  const conflitti = trovaSovrapposizioni(candidata, esistenti, { escludiId });
+  if (conflitti.length) throw creaErroreSovrapposizione(conflitti);
+}
+
+/**
+ * Nuova riga dell'utente. Blocca se si sovrappone (R2).
+ * La data è la mezzanotte locale del giorno scelto.
+ * @returns {Promise<string>} id documento
+ */
+export async function salvaNuovaOra(db, tenantId, user, oraData) {
+  const { userId } = richiediContesto(db, tenantId, user);
+  if (!oraData || !oraData.lavoroId) throw new Error('ID lavoro obbligatorio');
+  if (oraData.operaioId && String(oraData.operaioId) !== userId) {
+    throw new Error('Puoi segnare solo le tue ore');
+  }
+  const norm = normalizzaPayloadOra(oraData);
+  const { collection, addDoc, doc, getDoc, Timestamp, serverTimestamp } = await firebaseOre();
+  const lavoro = await leggiLavoro(db, doc, getDoc, tenantId, oraData.lavoroId);
+  const candidata = {
+    operaioId: userId,
+    data: norm.giornoKey,
+    orarioInizio: norm.orarioInizio,
+    orarioFine: norm.orarioFine,
+    stato: 'da_validare'
+  };
+  await assertNessunaSovrapposizione(db, tenantId, user, userId, candidata);
+  const payload = {
+    operaioId: userId,
+    lavoroId: oraData.lavoroId,
+    terrenoId: oraData.terrenoId || lavoro.terrenoId || null,
+    data: Timestamp.fromDate(norm.giorno),
+    orarioInizio: norm.orarioInizio,
+    orarioFine: norm.orarioFine,
+    pauseMinuti: norm.pauseMinuti,
+    oreNette: norm.oreNette,
+    note: norm.note,
+    stato: 'da_validare',
+    creatoIl: serverTimestamp()
+  };
+  if (norm.posizioneRilevamento) payload.posizioneRilevamento = norm.posizioneRilevamento;
+  if (norm.macchinaId) payload.macchinaId = norm.macchinaId;
+  if (norm.attrezzoId) payload.attrezzoId = norm.attrezzoId;
+  if (norm.oreMacchina != null && Number.isFinite(norm.oreMacchina)) payload.oreMacchina = norm.oreMacchina;
+  const oraRef = collection(db, 'tenants', tenantId, 'lavori', oraData.lavoroId, 'oreOperai');
+  const created = await addDoc(oraRef, payload);
+  return created.id;
+}
+
+function voceStorico(azione, userId, motivo, prima, dopo, Timestamp) {
+  return buildVoceStorico({
+    azione,
+    da: userId,
+    il: Timestamp.now(),
+    motivo: motivo || '',
+    prima,
+    dopo
+  });
+}
+
+/**
+ * Modifica della propria riga da_validare o rifiutate. Il lavoro non cambia.
+ * Una riga rifiutata torna in attesa.
+ */
+export async function modificaOraPropria(db, tenantId, user, lavoroId, oraId, patch) {
+  const { userId, isCaposquadra, isManager } = richiediContesto(db, tenantId, user);
+  const { doc, getDoc, updateDoc, Timestamp, serverTimestamp } = await firebaseOre();
+  const lavoro = await leggiLavoro(db, doc, getDoc, tenantId, lavoroId);
+  const ora = await leggiOra(db, doc, getDoc, tenantId, lavoroId, oraId);
+  const perm = permessiOra({ ora, lavoro, userId, isCaposquadra, isManager });
+  if (!perm.puoModificare) {
+    throw new Error(perm.motivoBlocco || 'Non puoi modificare questa ora');
+  }
+  const unito = {
+    data: patch && patch.data != null ? patch.data : ora.data,
+    orarioInizio: patch && patch.orarioInizio != null ? patch.orarioInizio : ora.orarioInizio,
+    orarioFine: patch && patch.orarioFine != null ? patch.orarioFine : ora.orarioFine,
+    pauseMinuti: patch && patch.pauseMinuti != null ? patch.pauseMinuti : ora.pauseMinuti,
+    note: patch && patch.note != null ? patch.note : (ora.note || ''),
+    macchinaId: patch && Object.prototype.hasOwnProperty.call(patch, 'macchinaId') ? patch.macchinaId : ora.macchinaId,
+    attrezzoId: patch && Object.prototype.hasOwnProperty.call(patch, 'attrezzoId') ? patch.attrezzoId : ora.attrezzoId,
+    oreMacchina: patch && Object.prototype.hasOwnProperty.call(patch, 'oreMacchina') ? patch.oreMacchina : ora.oreMacchina,
+    posizioneRilevamento: patch && patch.posizioneRilevamento ? patch.posizioneRilevamento : null
+  };
+  const norm = normalizzaPayloadOra(unito);
+  await assertNessunaSovrapposizione(db, tenantId, user, userId, {
+    operaioId: userId,
+    data: norm.giornoKey,
+    orarioInizio: norm.orarioInizio,
+    orarioFine: norm.orarioFine
+  }, oraId);
+  const dopo = {
+    data: norm.giornoKey,
+    orarioInizio: norm.orarioInizio,
+    orarioFine: norm.orarioFine,
+    pauseMinuti: norm.pauseMinuti,
+    oreNette: norm.oreNette,
+    note: norm.note,
+    stato: 'da_validare'
+  };
+  const update = {
+    data: Timestamp.fromDate(norm.giorno),
+    orarioInizio: norm.orarioInizio,
+    orarioFine: norm.orarioFine,
+    pauseMinuti: norm.pauseMinuti,
+    oreNette: norm.oreNette,
+    note: norm.note,
+    macchinaId: norm.macchinaId,
+    attrezzoId: norm.attrezzoId,
+    oreMacchina: norm.oreMacchina != null && Number.isFinite(norm.oreMacchina) ? norm.oreMacchina : null,
+    stato: 'da_validare',
+    rifiutatoDa: null,
+    rifiutatoIl: null,
+    motivoRifiuto: null,
+    modificatoDa: userId,
+    modificatoIl: serverTimestamp(),
+    storicoModifiche: aggiungiVoceStorico(
+      ora.storicoModifiche,
+      voceStorico('modifica', userId, '', ora, dopo, Timestamp)
+    )
+  };
+  if (norm.posizioneRilevamento) update.posizioneRilevamento = norm.posizioneRilevamento;
+  await updateDoc(ora.ref, update);
+}
+
+/** Cancellazione fisica: solo il proprietario, su righe non validate. */
+export async function eliminaOraPropria(db, tenantId, user, lavoroId, oraId) {
+  const { userId, isCaposquadra, isManager } = richiediContesto(db, tenantId, user);
+  const { doc, getDoc, deleteDoc } = await firebaseOre();
+  const lavoro = await leggiLavoro(db, doc, getDoc, tenantId, lavoroId);
+  const ora = await leggiOra(db, doc, getDoc, tenantId, lavoroId, oraId);
+  const perm = permessiOra({ ora, lavoro, userId, isCaposquadra, isManager });
+  if (!perm.puoEliminare) {
+    throw new Error(perm.motivoBlocco || 'Non puoi eliminare questa ora');
+  }
+  await deleteDoc(ora.ref);
+}
+
+async function applicaDeltaMacchine(tenantId, operazioni) {
+  if (!operazioni || !operazioni.length) return { ok: true, avviso: '' };
+  const { incrementDocumentField } = await firebaseOre();
+  try {
+    for (const op of operazioni) {
+      await incrementDocumentField('macchine', op.id, 'oreAttuali', op.delta, tenantId);
     }
+    return { ok: true, avviso: '' };
   } catch (error) {
-    console.error('Errore validazione ora:', error);
-    throw new Error(`Errore validazione ora: ${error.message}`);
+    console.error('Rettifica ore macchina non applicata (le ore della riga restano aggiornate):', error);
+    return { ok: false, avviso: 'ore macchina da verificare a mano' };
+  }
+}
+
+async function contabilizzaAllaValidazione(tenantId, oraData) {
+  const macchinaId = oraData.macchinaId || null;
+  const attrezzoId = oraData.attrezzoId || null;
+  const ore = Number(oraData.oreMacchina != null ? oraData.oreMacchina : oraData.oreNette) || 0;
+  if ((!macchinaId && !attrezzoId) || ore <= 0) return { contabilizzate: null, avviso: '' };
+  try {
+    const service = await import('../../modules/parco-macchine/services/macchine-utilizzo-service.js');
+    const result = await service.aggiornaOreMacchinaDaUtilizzo({
+      macchinaId,
+      attrezzoId,
+      oreMacchina: ore,
+      tenantId
+    });
+    if (result && result.error) {
+      console.error('Aggiornamento ore macchina in validazione non riuscito:', result.error);
+      return { contabilizzate: null, avviso: 'ore macchina da verificare a mano' };
+    }
+    const cont = { ore };
+    if (result && result.macchinaAggiornata && macchinaId) cont.macchinaId = macchinaId;
+    if (result && result.attrezzoAggiornato && attrezzoId) cont.attrezzoId = attrezzoId;
+    if (!cont.macchinaId && !cont.attrezzoId) {
+      console.warn('Ore macchina non aggiornate in validazione', { macchinaId, attrezzoId });
+      return { contabilizzate: null, avviso: '' };
+    }
+    return { contabilizzate: cont, avviso: '' };
+  } catch (error) {
+    console.error('Aggiornamento ore macchina in validazione non riuscito:', error);
+    return { contabilizzate: null, avviso: 'ore macchina da verificare a mano' };
+  }
+}
+
+async function chiediRefreshSkill(tenantId, operaioId, userId) {
+  if (!operaioId) return;
+  try {
+    const { requestSkillCalcolateRefresh } = await import('./profilo-manodopera-skill-auto-refresh.js');
+    requestSkillCalcolateRefresh(tenantId, operaioId, userId);
+  } catch (error) {
+    console.warn('Refresh skill non eseguito:', error);
   }
 }
 
 /**
- * Rifiuta un'ora lavorata (Caposquadra)
- * @param {string} lavoroId - ID lavoro
- * @param {string} oraId - ID ora
- * @param {string} motivoRifiuto - Motivo del rifiuto (obbligatorio)
+ * Valida una riga in coda. Permessi: assertUtentePuoValidareOra (capo o manager, come la coda).
+ * Se le ore macchina vengono davvero aggiunte, salva oreMacchinaContabilizzate.
+ * @returns {Promise<{ avvisi: string[] }>}
+ */
+export async function validaOraContesto(db, tenantId, user, lavoroId, oraId) {
+  const { userId, isCaposquadra, isManager } = richiediContesto(db, tenantId, user);
+  if (!lavoroId || !oraId) throw new Error('ID lavoro e ora obbligatori');
+  const { doc, getDoc, updateDoc, serverTimestamp } = await firebaseOre();
+  const lavoro = await leggiLavoro(db, doc, getDoc, tenantId, lavoroId);
+  const ora = await leggiOra(db, doc, getDoc, tenantId, lavoroId, oraId);
+  if (ora.stato !== 'da_validare') throw new Error('Questa ora è già stata validata o rifiutata');
+  assertUtentePuoValidareOra({
+    oraData: ora,
+    lavoroData: lavoro,
+    userId,
+    isCaposquadra,
+    isManager
+  });
+  const macchina = await contabilizzaAllaValidazione(tenantId, ora);
+  const update = {
+    stato: 'validate',
+    validatoDa: userId,
+    validatoIl: serverTimestamp(),
+    rifiutatoDa: null,
+    motivoRifiuto: null
+  };
+  if (macchina.contabilizzate) update.oreMacchinaContabilizzate = macchina.contabilizzate;
+  await updateDoc(ora.ref, update);
+  await chiediRefreshSkill(tenantId, ora.operaioId, userId);
+  return { avvisi: macchina.avviso ? [macchina.avviso] : [] };
+}
+
+/**
+ * Rifiuto di una riga ancora in coda (non toglie ore macchina: non erano state sommate).
+ */
+export async function rifiutaOraContesto(db, tenantId, user, lavoroId, oraId, motivoRifiuto) {
+  const { userId, isCaposquadra, isManager } = richiediContesto(db, tenantId, user);
+  const motivo = String(motivoRifiuto || '').trim();
+  if (!motivo) throw new Error('Motivo rifiuto obbligatorio');
+  if (!lavoroId || !oraId) throw new Error('ID lavoro e ora obbligatori');
+  const { doc, getDoc, updateDoc, serverTimestamp, Timestamp } = await firebaseOre();
+  const lavoro = await leggiLavoro(db, doc, getDoc, tenantId, lavoroId);
+  const ora = await leggiOra(db, doc, getDoc, tenantId, lavoroId, oraId);
+  if (ora.stato !== 'da_validare') throw new Error('Questa ora è già stata validata o rifiutata');
+  assertUtentePuoValidareOra({
+    oraData: ora,
+    lavoroData: lavoro,
+    userId,
+    isCaposquadra,
+    isManager
+  });
+  const dopo = { ...snapshotCampiOra(ora), stato: 'rifiutate' };
+  await updateDoc(ora.ref, {
+    stato: 'rifiutate',
+    rifiutatoDa: userId,
+    rifiutatoIl: serverTimestamp(),
+    motivoRifiuto: motivo,
+    validatoDa: null,
+    validatoIl: null,
+    modificatoDa: userId,
+    modificatoIl: serverTimestamp(),
+    storicoModifiche: aggiungiVoceStorico(
+      ora.storicoModifiche,
+      voceStorico('rifiuto', userId, motivo, ora, dopo, Timestamp)
+    )
+  });
+}
+
+/**
+ * Correzione del validatore: la riga resta nello stato in cui è.
+ * Sulle validate si applica solo la differenza delle ore macchina.
+ * @returns {Promise<{ avvisi: string[] }>}
+ */
+export async function correggiOra(db, tenantId, user, lavoroId, oraId, patch, motivo) {
+  const { userId, isCaposquadra, isManager } = richiediContesto(db, tenantId, user);
+  const motivoTesto = String(motivo || '').trim();
+  if (!motivoTesto) throw new Error('Motivo obbligatorio');
+  const { doc, getDoc, updateDoc, serverTimestamp, Timestamp } = await firebaseOre();
+  const lavoro = await leggiLavoro(db, doc, getDoc, tenantId, lavoroId);
+  const ora = await leggiOra(db, doc, getDoc, tenantId, lavoroId, oraId);
+  const perm = permessiOra({ ora, lavoro, userId, isCaposquadra, isManager });
+  if (!perm.puoCorreggere) throw new Error('Non puoi correggere questa ora');
+  const unito = {
+    data: ora.data,
+    orarioInizio: patch && patch.orarioInizio != null ? patch.orarioInizio : ora.orarioInizio,
+    orarioFine: patch && patch.orarioFine != null ? patch.orarioFine : ora.orarioFine,
+    pauseMinuti: patch && patch.pauseMinuti != null ? patch.pauseMinuti : ora.pauseMinuti,
+    note: patch && patch.note != null ? patch.note : (ora.note || ''),
+    macchinaId: patch && Object.prototype.hasOwnProperty.call(patch, 'macchinaId') ? patch.macchinaId : (ora.macchinaId || null),
+    attrezzoId: patch && Object.prototype.hasOwnProperty.call(patch, 'attrezzoId') ? patch.attrezzoId : (ora.attrezzoId || null),
+    oreMacchina: patch && Object.prototype.hasOwnProperty.call(patch, 'oreMacchina') ? patch.oreMacchina : ora.oreMacchina
+  };
+  const norm = normalizzaPayloadOra(unito);
+  const avvisi = [];
+  let prossimoCont = ora.oreMacchinaContabilizzate || null;
+  let aggiornaContabilizzate = false;
+  if (ora.stato === 'validate') {
+    const oreDesiderate = norm.oreMacchina != null && Number.isFinite(norm.oreMacchina)
+      ? norm.oreMacchina
+      : norm.oreNette;
+    const prossimo = (norm.macchinaId || norm.attrezzoId)
+      ? { macchinaId: norm.macchinaId, attrezzoId: norm.attrezzoId, ore: oreDesiderate }
+      : null;
+    const haMezzo = Boolean(
+      ora.macchinaId || ora.attrezzoId || norm.macchinaId || norm.attrezzoId
+      || (ora.oreMacchinaContabilizzate && (ora.oreMacchinaContabilizzate.macchinaId || ora.oreMacchinaContabilizzate.attrezzoId))
+    );
+    const piano = pianoRettificaOreMacchina(ora.oreMacchinaContabilizzate, 'correzione', prossimo, ora);
+    if (piano.avviso && haMezzo) {
+      avvisi.push(piano.avviso);
+    } else if (piano.operazioni.length) {
+      const esito = await applicaDeltaMacchine(tenantId, piano.operazioni);
+      if (!esito.ok) {
+        avvisi.push(esito.avviso);
+      } else {
+        prossimoCont = piano.prossimoContabilizzate;
+        aggiornaContabilizzate = true;
+      }
+    } else {
+      prossimoCont = piano.prossimoContabilizzate;
+      aggiornaContabilizzate = true;
+    }
+  }
+  const dopo = {
+    data: chiaveGiornoOra(ora.data),
+    orarioInizio: norm.orarioInizio,
+    orarioFine: norm.orarioFine,
+    pauseMinuti: norm.pauseMinuti,
+    oreNette: norm.oreNette,
+    note: norm.note,
+    stato: ora.stato
+  };
+  const update = {
+    orarioInizio: norm.orarioInizio,
+    orarioFine: norm.orarioFine,
+    pauseMinuti: norm.pauseMinuti,
+    oreNette: norm.oreNette,
+    note: norm.note,
+    macchinaId: norm.macchinaId,
+    attrezzoId: norm.attrezzoId,
+    oreMacchina: norm.oreMacchina != null && Number.isFinite(norm.oreMacchina) ? norm.oreMacchina : null,
+    modificatoDa: userId,
+    modificatoIl: serverTimestamp(),
+    storicoModifiche: aggiungiVoceStorico(
+      ora.storicoModifiche,
+      voceStorico('correzione', userId, motivoTesto, ora, dopo, Timestamp)
+    )
+  };
+  if (aggiornaContabilizzate) {
+    update.oreMacchinaContabilizzate = prossimoCont;
+  }
+  await updateDoc(ora.ref, update);
+  return { avvisi };
+}
+
+async function togliValidazioneConRettifica(db, tenantId, user, lavoroId, oraId, motivo, azioneStorico, patchStato) {
+  const { userId, isCaposquadra, isManager } = richiediContesto(db, tenantId, user);
+  const motivoTesto = String(motivo || '').trim();
+  if (!motivoTesto) throw new Error('Motivo obbligatorio');
+  const { doc, getDoc, updateDoc, serverTimestamp, Timestamp } = await firebaseOre();
+  const lavoro = await leggiLavoro(db, doc, getDoc, tenantId, lavoroId);
+  const ora = await leggiOra(db, doc, getDoc, tenantId, lavoroId, oraId);
+  const perm = permessiOra({ ora, lavoro, userId, isCaposquadra, isManager });
+  if (azioneStorico === 'annulla_validazione' && !perm.puoAnnullareValidazione) {
+    throw new Error('Non puoi annullare la validazione di questa ora');
+  }
+  if (azioneStorico === 'rifiuto' && !perm.puoRifiutare) {
+    throw new Error('Non puoi rifiutare questa ora');
+  }
+  if (ora.stato !== 'validate') throw new Error('Questa ora non è validata');
+  const piano = pianoRettificaOreMacchina(
+    ora.oreMacchinaContabilizzate,
+    azioneStorico === 'annulla_validazione' ? 'annulla' : 'rifiuto',
+    null,
+    ora
+  );
+  const avvisi = [];
+  let azzera = false;
+  const cont = ora.oreMacchinaContabilizzate || {};
+  const haMezzo = Boolean(ora.macchinaId || ora.attrezzoId || cont.macchinaId || cont.attrezzoId);
+  if (piano.avviso && haMezzo) {
+    avvisi.push(piano.avviso);
+  } else if (piano.operazioni.length) {
+    const esito = await applicaDeltaMacchine(tenantId, piano.operazioni);
+    if (esito.ok) azzera = true;
+    else avvisi.push(esito.avviso);
+  } else if (piano.azzeraCampo) {
+    azzera = true;
+  }
+  const dopo = { ...snapshotCampiOra(ora), stato: patchStato.stato };
+  const update = {
+    ...patchStato,
+    modificatoDa: userId,
+    modificatoIl: serverTimestamp(),
+    storicoModifiche: aggiungiVoceStorico(
+      ora.storicoModifiche,
+      voceStorico(azioneStorico, userId, motivoTesto, ora, dopo, Timestamp)
+    )
+  };
+  if (azzera) update.oreMacchinaContabilizzate = null;
+  await updateDoc(ora.ref, update);
+  return { avvisi };
+}
+
+/** La riga torna da_validare e si azzerano validatoDa e validatoIl. */
+export async function annullaValidazioneOra(db, tenantId, user, lavoroId, oraId, motivo) {
+  return togliValidazioneConRettifica(db, tenantId, user, lavoroId, oraId, motivo, 'annulla_validazione', {
+    stato: 'da_validare',
+    validatoDa: null,
+    validatoIl: null
+  });
+}
+
+/** Togliere una riga validata: rifiuto con motivo, senza cancellazione fisica. */
+export async function rifiutaOraValidata(db, tenantId, user, lavoroId, oraId, motivo) {
+  const { serverTimestamp } = await firebaseOre();
+  return togliValidazioneConRettifica(db, tenantId, user, lavoroId, oraId, motivo, 'rifiuto', {
+    stato: 'rifiutate',
+    rifiutatoDa: uidUtente(user),
+    rifiutatoIl: serverTimestamp(),
+    motivoRifiuto: String(motivo || '').trim(),
+    validatoDa: null,
+    validatoIl: null
+  });
+}
+
+/**
+ * Valida un'ora lavorata (caposquadra assegnato o manager, come la coda).
+ * @param {string} lavoroId
+ * @param {string} oraId
+ * @returns {Promise<{ avvisi: string[] }>}
+ */
+export async function validaOra(lavoroId, oraId) {
+  const tenantId = getCurrentTenantId();
+  const user = getCurrentUserData();
+  const { getDb } = await firebaseOre();
+  return validaOraContesto(getDb(), tenantId, user, lavoroId, oraId);
+}
+
+/**
+ * Rifiuta un'ora ancora da validare.
+ * @param {string} lavoroId
+ * @param {string} oraId
+ * @param {string} motivoRifiuto
  * @returns {Promise<void>}
  */
 export async function rifiutaOra(lavoroId, oraId, motivoRifiuto) {
-  try {
-    const tenantId = getCurrentTenantId();
-    if (!tenantId) {
-      throw new Error('Nessun tenant corrente disponibile');
-    }
-    
-    const user = getCurrentUserData();
-    if (!user) {
-      throw new Error('Utente non autenticato');
-    }
-    
-    // Verifica permessi: solo caposquadra può rifiutare
-    if (!user.ruoli || !user.ruoli.includes('caposquadra')) {
-      throw new Error('Solo i caposquadra possono rifiutare le ore');
-    }
-    
-    if (!lavoroId || !oraId) {
-      throw new Error('ID lavoro e ora obbligatori');
-    }
-    
-    if (!motivoRifiuto || motivoRifiuto.trim().length === 0) {
-      throw new Error('Motivo rifiuto obbligatorio');
-    }
-    
-    // Import dinamico
-    const { getDb, doc, getDoc, updateDoc, serverTimestamp } = await import('./firebase-service.js');
-    const db = getDb();
-    if (!db) throw new Error('Firebase non inizializzato');
-    
-    // Verifica che il lavoro esista e sia assegnato al caposquadra
-    const lavoroDoc = await getDoc(doc(db, 'tenants', tenantId, 'lavori', lavoroId));
-    if (!lavoroDoc.exists()) {
-      throw new Error('Lavoro non trovato');
-    }
-    
-    const lavoroData = lavoroDoc.data();
-    if (lavoroData.caposquadraId !== user.id) {
-      throw new Error('Non sei il caposquadra assegnato a questo lavoro');
-    }
-    
-    // Verifica che l'ora esista e sia in stato "da_validare"
-    const oraDoc = await getDoc(doc(db, 'tenants', tenantId, 'lavori', lavoroId, 'oreOperai', oraId));
-    if (!oraDoc.exists()) {
-      throw new Error('Ora non trovata');
-    }
-    
-    const oraData = oraDoc.data();
-    if (oraData.stato !== 'da_validare') {
-      throw new Error('Questa ora è già stata validata o rifiutata');
-    }
-    
-    // Aggiorna stato
-    await updateDoc(oraDoc.ref, {
-      stato: 'rifiutate',
-      rifiutatoDa: user.id,
-      motivoRifiuto: motivoRifiuto.trim(),
-      validatoDa: null,
-      validatoIl: null
-    });
-  } catch (error) {
-    console.error('Errore rifiuto ora:', error);
-    throw new Error(`Errore rifiuto ora: ${error.message}`);
-  }
+  const tenantId = getCurrentTenantId();
+  const user = getCurrentUserData();
+  const { getDb } = await firebaseOre();
+  await rifiutaOraContesto(getDb(), tenantId, user, lavoroId, oraId, motivoRifiuto);
 }
 
 // Export default
@@ -606,6 +1006,16 @@ export default {
   formattaOre,
   createOra,
   validaOra,
-  rifiutaOra
+  rifiutaOra,
+  caricaOreUtenteGiorno,
+  caricaOreUtente,
+  salvaNuovaOra,
+  modificaOraPropria,
+  eliminaOraPropria,
+  validaOraContesto,
+  rifiutaOraContesto,
+  correggiOra,
+  annullaValidazioneOra,
+  rifiutaOraValidata
 };
 

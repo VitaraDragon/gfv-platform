@@ -21,7 +21,7 @@ import {
 } from '../helpers/tony-sim-context.js';
 import { waitForTonyReady } from '../helpers/tony-widget.js';
 
-const DEFAULT_MESSAGES = ['segniamo le ore', '8', '17', '0', 'ok'];
+const DEFAULT_MESSAGES = ['segniamo le ore', '13', '17', '0', 'ok'];
 
 /**
  * @param {import('playwright-core').Page} page

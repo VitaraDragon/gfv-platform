@@ -21,7 +21,7 @@ import { waitForTonyReady } from '../helpers/tony-widget.js';
 
 const DESKTOP_NOTE = `${TONY_E2E_ORE_NOTE}_DESK`;
 const DEFAULT_MESSAGES = [
-  'dalle 8 alle 17 con 0 minuti di pausa',
+    'dalle 13 alle 17 con 0 minuti di pausa',
   'ok',
 ];
 
