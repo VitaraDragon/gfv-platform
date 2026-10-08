@@ -53,7 +53,15 @@ export async function activateTonyMockCf(page, scenario) {
       for (var i = 0; i < keys.length; i++) {
         var key = keys[i];
         if (text.indexOf(String(key).toLowerCase()) >= 0) {
-          return staticMap[key];
+          var hit = staticMap[key];
+          try {
+            hit = JSON.parse(JSON.stringify(hit));
+            var fd = hit && hit.command && hit.command.formData;
+            if (fd && fd['ora-lavoro'] === '__E2E_FIRST_LAVORO__') {
+              fd['ora-lavoro'] = window.__tonyE2eFirstLavoroId || '';
+            }
+          } catch (eClone) { /* usa l'originale */ }
+          return hit;
         }
       }
 

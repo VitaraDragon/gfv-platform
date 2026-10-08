@@ -86,6 +86,16 @@ export async function runFlowSegnaOre026(page, expect, scenario) {
   } else {
     expect(result.lastReply || '').toMatch(/Non trovo un lavoro|Su quale lavoro/i);
   }
+  expect(result.lastReply || '').not.toMatch(/Tutto pronto/i);
+
+  const modal = await page.evaluate(() => {
+    const el = document.getElementById('ora-modal');
+    const aperto = !!(el && el.classList.contains('active'));
+    const sel = document.getElementById('ora-lavoro');
+    const vuoto = !sel || !String(sel.value || '').trim();
+    return { aperto, vuoto };
+  });
+  expect(modal.aperto === false || modal.vuoto).toBe(true);
 
   const salvata = await page.evaluate(() => {
     const items = (window.currentTableData && window.currentTableData.items) || [];

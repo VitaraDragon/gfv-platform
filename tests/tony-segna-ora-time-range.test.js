@@ -32,6 +32,15 @@ describe('matchSegnaOraTimeRangeFromBlob', () => {
     });
   });
 
+  it('la frase del ritest «ripristino pali, nessuna pausa» è una fascia riconosciuta', () => {
+    expect(toTimes(matchSegnaOraTimeRangeFromBlob(
+      'segnami dalle 17:00 alle 17:30 oggi sul ripristino pali, nessuna pausa'
+    ))).toEqual({
+      start: '17:00',
+      end: '17:30',
+    });
+  });
+
   it('ore tonde restano valide anche se coincidono con ora di sistema (CI ~07:00 UTC)', () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date(Date.UTC(2026, 6, 25, 7, 2, 0)));
