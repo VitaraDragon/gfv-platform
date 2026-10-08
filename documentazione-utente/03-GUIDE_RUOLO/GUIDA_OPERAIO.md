@@ -81,7 +81,7 @@ Quando finisci un lavoro:
 
 Sopra il salvataggio vedi **Le tue ore del giorno**: tutti i turni di quel giorno, su tutti i lavori, con orario, pausa, ore nette e stato. Il turno del lavoro scelto è evidenziato, in fondo c’è il totale.
 
-Due turni dello stesso giorno non possono coprirsi. Se finisci alle 12:00 puoi iniziare un altro turno alle 12:00. Se gli orari si incrociano, il salvataggio si ferma e indica il turno già presente.
+Due turni dello stesso giorno non possono coprirsi. Se finisci alle 12:00 puoi iniziare un altro turno alle 12:00. Se gli orari si incrociano, il salvataggio si ferma e indica il turno già presente. Se chiedi a Tony di segnare le ore, nel riepilogo c’è il nome del lavoro. Se l’orario è occupato te lo dice prima di chiedere la pausa, e ti propone il primo buco libero. Dopo il «sì» conferma su quale lavoro ha segnato l’ora.
 
 **Suggerimento**: Segna le ore alla fine della giornata per avere dati precisi.
 
@@ -101,7 +101,7 @@ Finché l’ora è **in attesa** o **rifiutata** puoi cambiarla o eliminarla, an
 3. Sistema i campi e clicca **Salva modifiche**
 4. Per toglierla, clicca **Elimina** e conferma
 
-Se l’ora era stata rifiutata, dopo la modifica torna in attesa e il motivo del rifiuto sparisce.
+Se l’ora era stata rifiutata, dopo la modifica torna «Da validare». Il motivo del rifiuto non decide più lo stato: resta nella storia della riga, insieme alla modifica.
 
 Su un’ora già **validata** non puoi fare nulla. La riga mostra «Validata — per correggerla chiedi al caposquadra» (oppure «al manager», se il lavoro è autonomo o se la riga è del caposquadra).
 

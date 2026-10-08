@@ -464,7 +464,7 @@
       "category": "multi_turn",
       "description": "Segna ore: orario sovrapposto al turno gia segnato, Tony non salva",
       "contract": {
-        "invariant": "10-11 dentro il seed 07:30-12:00: Tony dice che e occupato e non salva",
+        "invariant": "10-11 dentro il seed 07:30-12:00: Tony avvisa della sovrapposizione prima di chiedere la pausa e non salva",
         "primaryAsserts": [
           "risposta sovrappone",
           "nessun Ore salvate",
@@ -513,6 +513,58 @@
         "pausa 0",
         "sì"
       ],
+      "mockCf": false,
+      "expect": {
+        "clientRecovery": true,
+        "cfCallsMax": 0
+      }
+    },
+    {
+      "id": "T-FLOW-025",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Segna ore desktop: il lavoro nominato, non il primo della lista. Fascia 22:00-22:30 libera rispetto al seed 07:30-12:00 e agli scenari 13-17 e 18-19.",
+      "contract": {
+        "invariant": "Form chiuso, secondo lavoro nominato: la riga salvata ha quel lavoroId e Tony risponde dopo il si",
+        "primaryAsserts": [
+          "lavoroId del lavoro nominato",
+          "risposta Fatto dopo il si",
+          "cfCallsMax 0"
+        ],
+        "avoidAsserts": []
+      },
+      "persona": "caposquadra",
+      "startUrl": "/core/segnatura-ore-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsCapoFromDevPage",
+      "messages": [],
+      "mockCf": false,
+      "expect": {
+        "clientRecovery": true,
+        "cfCallsMax": 0
+      }
+    },
+    {
+      "id": "T-FLOW-026",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Segna ore desktop: nome che corrisponde a due lavori, nessuna riga salvata.",
+      "contract": {
+        "invariant": "Nome ambiguo: Tony chiede su quale lavoro e non salva",
+        "primaryAsserts": [
+          "risposta Su quale lavoro",
+          "nessuna riga 22:10",
+          "cfCallsMax 0"
+        ],
+        "avoidAsserts": []
+      },
+      "persona": "caposquadra",
+      "startUrl": "/core/segnatura-ore-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsCapoFromDevPage",
+      "messages": [],
       "mockCf": false,
       "expect": {
         "clientRecovery": true,

@@ -541,14 +541,13 @@
             formattaOreMinuti,
             sommaOreNette,
             chiaveGiornoOra,
-            trovaSovrapposizioni,
             vociTracciaOra,
             riassuntoTraccia,
-            etichettaStatoOra,
-            messaggioSovrapposizioneTony,
+            esitoControlloSovrapposizione,
+            etichettaStatoAttualeOra,
+            formatTracciaOra,
             chiValidaOra,
-            messaggioOraSegnataConSuccesso,
-            testoAttesaValidazione
+            messaggioOraSegnataConSuccesso
         } from './services/ore-operai-logic.js';
 
         try {
@@ -1130,10 +1129,10 @@
                 const statoBadge = ora.stato === 'da_validare' ? 'stato-da_validare' :
                                   ora.stato === 'validate' ? 'stato-validate' :
                                   'stato-rifiutate';
-                
-                const statoLabel = ora.stato === 'da_validare' ? '⏳ Da validare' :
-                                  ora.stato === 'validate' ? '✅ Validata' :
-                                  '❌ Rifiutata';
+                const chiStato = chiValidaOra({ ora, lavoro: lavoroDiOra(ora.lavoroId) });
+                const statoLabel = ora.stato === 'da_validare'
+                    ? etichettaStatoAttualeOra(ora, chiStato)
+                    : (ora.stato === 'validate' ? '✅ Validata' : '❌ Rifiutata');
 
                 let macchinaInfo = '-';
                 if (hasParcoMacchineModule && (ora.macchinaId || ora.attrezzoId)) {
@@ -1239,15 +1238,7 @@
         let tracciaSeqSegnatura = 0;
         function htmlTracciaRiga(ora) {
             const voci = vociTracciaOra(ora, nomeDaCache);
-            if (!voci.length) {
-                if (ora.stato === 'da_validare') {
-                    return escapeHtml(testoAttesaValidazione(chiValidaOra({
-                        ora,
-                        lavoro: lavoroDiOra(ora.lavoroId)
-                    })));
-                }
-                return '';
-            }
+            if (!voci.length) return '';
             const r = riassuntoTraccia(voci, 110);
             if (!r.tronca) return escapeHtml(r.full);
             tracciaSeqSegnatura += 1;
@@ -1271,11 +1262,29 @@
             const esistenti = await caricaOreUtenteGiorno(db, currentTenantId, userId, data, utenteOreCorrente());
             const nuova = { data, orarioInizio, orarioFine, operaioId: userId };
             const escludiId = (args && args.escludiId) || window.gfvOreIdInModifica();
-            const conflitti = trovaSovrapposizioni(nuova, esistenti, { escludiId });
-            return {
-                conflitti,
-                messaggio: conflitti.length ? messaggioSovrapposizioneTony(nuova, conflitti) : ''
-            };
+            return esitoControlloSovrapposizione(nuova, esistenti, { escludiId });
+        };
+
+        window.gfvSegnaturaOreLavoriPerTony = function() {
+            const list = (lavoriListSegnabili && lavoriListSegnabili.length) ? lavoriListSegnabili : [];
+            return list.map((lavoro) => {
+                const mac = lavoro.macchinaId && macchineList
+                    ? macchineList.find((m) => m.id === lavoro.macchinaId)
+                    : null;
+                const att = lavoro.attrezzoId && macchineList
+                    ? macchineList.find((m) => m.id === lavoro.attrezzoId)
+                    : null;
+                return {
+                    id: lavoro.id,
+                    nome: lavoro.nome || '',
+                    tipoLavoro: lavoro.tipoLavoro || '',
+                    dataInizio: chiaveGiornoOra(lavoro.dataInizio) || '',
+                    macchinaId: lavoro.macchinaId || null,
+                    attrezzoId: lavoro.attrezzoId || null,
+                    macchinaNome: mac ? (mac.nome || '') : '',
+                    attrezzoNome: att ? (att.nome || '') : ''
+                };
+            });
         };
 
         let nomiUtentiOre = new Map();
@@ -1461,13 +1470,16 @@
                     isCaposquadra: flags.isCaposquadra,
                     isManager: flags.isManager
                 });
+                const chiRiga = chiValidaOra({ ora, lavoro: lavoroDiOra(ora.lavoroId) });
+                const tracciaGiorno = formatTracciaOra(ora, nomeDaCache);
                 return `<div style="padding:6px 8px;margin-top:6px;border-radius:6px;${evidenza ? 'background:#e7f6ec;border:1px solid #8fceaa;' : ''}">
                     <strong>${escapeHtml(ora.lavoroNome || 'Lavoro')}</strong>
                     ${ora.orarioInizio || ''}–${ora.orarioFine || ''}
                     · pausa ${Number(ora.pauseMinuti) || 0} min
                     · ${formattaOre(ora.oreNette || 0)}
-                    · ${escapeHtml(etichettaStatoOra(ora.stato))}
+                    · ${escapeHtml(etichettaStatoAttualeOra(ora, chiRiga))}
                     ${perm.motivoBlocco ? `<span title="${escapeHtml(perm.motivoBlocco)}"> 🔒</span>` : ''}
+                    ${tracciaGiorno ? `<div style="font-size:12px;color:#555;margin-top:4px;">${escapeHtml(tracciaGiorno)}</div>` : ''}
                 </div>`;
             }).join('');
             const totale = sommaOreNette(righe.filter((r) => r.stato !== 'rifiutate'));
@@ -1716,8 +1728,10 @@
             if (select) select.disabled = false;
         };
 
+        let salvataggioOraInCorso = false;
         window.handleSalvaOra = async function(event) {
             event.preventDefault();
+            if (salvataggioOraInCorso || window.__gfvOreSalvataggioInCorso) return;
             nascondiSovrapposizione();
 
             const lavoroId = document.getElementById('ora-lavoro').value;
@@ -1739,6 +1753,15 @@
             if (!orarioInizio || !orarioFine) {
                 showAlert('Inserisci orario inizio e fine', 'error');
                 return;
+            }
+
+            const btnSalva = document.getElementById('ora-salva-btn');
+            const testoBtnSalva = btnSalva ? btnSalva.textContent : 'Salva Ora';
+            salvataggioOraInCorso = true;
+            window.__gfvOreSalvataggioInCorso = true;
+            if (btnSalva) {
+                btnSalva.disabled = true;
+                btnSalva.textContent = 'Salvataggio…';
             }
 
             try {
@@ -1800,6 +1823,14 @@
                     return;
                 }
                 showAlert(`Errore: ${error.message}`, 'error');
+            } finally {
+                salvataggioOraInCorso = false;
+                window.__gfvOreSalvataggioInCorso = false;
+                const btnFine = document.getElementById('ora-salva-btn');
+                if (btnFine) {
+                    btnFine.disabled = false;
+                    if (btnFine.textContent === 'Salvataggio…') btnFine.textContent = testoBtnSalva;
+                }
             }
         };
 

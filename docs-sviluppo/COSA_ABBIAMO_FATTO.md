@@ -1,6 +1,22 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-08 — Ore: ritest Uso Reale, Tony e traccia.**
+**Ultimo aggiornamento documentazione: 2026-10-08 — Tony segna l’ora sul lavoro nominato.**
+
+## 2026-10-08 — Ore: Tony salva sul lavoro detto, avvisa prima della pausa, la traccia tiene le validazioni
+
+Tony, quando gli chiedi di segnare le ore, usa il lavoro che nomini. Lo scrive nel riepilogo, con gli orari e la pausa. Non prende più il primo della lista. Se il nome corrisponde a due lavori, chiede quale. Dopo il «sì» conferma in chat su quale lavoro ha segnato l’ora.
+
+Se l’orario è già occupato, te lo dice appena ha inizio e fine, prima di chiedere la pausa, e propone il primo buco davvero libero. Se non c’è, chiede un altro orario.
+
+La storia della riga tiene tutte le validazioni: anche dopo un annullo e una nuova validazione, la prima «Validata» resta. Una riga rifiutata e poi modificata torna «Da validare»; il rifiuto resta nella storia, non come stato attuale. Il pulsante Salva, su computer e telefono, mostra «Salvataggio…» e non accetta un secondo invio finché non ha finito.
+
+Il pulsante Esci nel workspace del telefono non c’è ancora: non c’era un modo già pronto da riusare.
+
+Non cambia `firestore.rules`. Non c’è nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-08 — Ore: ritest Uso Reale, Tony e traccia.**
 
 ## 2026-10-08 — Ore: Tony avvisa se l’orario è occupato, e la storia della riga si legge tutta
 

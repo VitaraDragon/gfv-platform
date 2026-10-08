@@ -141,21 +141,141 @@ export function messaggioSovrapposizione(conflitti) {
 }
 
 /**
- * Messaggio di Tony prima del salvataggio: orario occupato e un'alternativa.
- * @param {{ orarioInizio?: string, orarioFine?: string, inizio?: string, fine?: string }} nuova
- * @param {object[]} conflitti
+ * Minuti da mezzanotte → HH:MM.
+ * @param {number} minuti
  * @returns {string}
  */
-export function messaggioSovrapposizioneTony(nuova, conflitti) {
+export function minutiAOrario(minuti) {
+  const n = Number(minuti);
+  if (!Number.isFinite(n) || n < 0) return '';
+  const h = Math.floor(n / 60);
+  const m = n % 60;
+  if (h > 23) return '';
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+/**
+ * Quanto dura l'intervallo, in italiano semplice.
+ * @param {number} minuti
+ * @returns {string}
+ */
+export function testoDurataMinuti(minuti) {
+  const n = Number(minuti);
+  if (!Number.isFinite(n) || n <= 0) return '';
+  if (n % 60 === 0) {
+    const ore = n / 60;
+    if (ore === 1) return '1 ora';
+    return `${ore} ore`;
+  }
+  if (n > 60) {
+    const ore = Math.floor(n / 60);
+    const rest = n % 60;
+    const oreTxt = ore === 1 ? '1 ora' : `${ore} ore`;
+    return `${oreTxt} e ${rest} minuti`;
+  }
+  return `${n} minuti`;
+}
+
+/**
+ * Primo intervallo libero della stessa durata, saltando i blocchi occupati uno dopo l'altro.
+ * Le righe rifiutate non occupano. Entro le 23:59. Se non c'è spazio, null.
+ *
+ * @param {object[]} righeGiorno
+ * @param {number} inizioMin
+ * @param {number} durataMin
+ * @param {{ escludiId?: string }} [opts]
+ * @returns {{ inizio: string, fine: string }|null}
+ */
+export function primoOrarioLiberoDopo(righeGiorno, inizioMin, durataMin, opts = {}) {
+  const inizio = Number(inizioMin);
+  const durata = Number(durataMin);
+  const limite = (23 * 60) + 59;
+  if (!Number.isFinite(inizio) || !Number.isFinite(durata) || durata <= 0) return null;
+  if (inizio < 0 || inizio >= limite) return null;
+  const escludiId = opts && opts.escludiId != null ? String(opts.escludiId) : '';
+  const blocchi = (Array.isArray(righeGiorno) ? righeGiorno : [])
+    .filter((row) => row && String(row.stato || '') !== 'rifiutate')
+    .filter((row) => !escludiId || String(row.id || '') !== escludiId)
+    .map((row) => ({
+      a: orarioAMinuti(row.orarioInizio || row.inizio),
+      b: orarioAMinuti(row.orarioFine || row.fine)
+    }))
+    .filter((b) => Number.isFinite(b.a) && Number.isFinite(b.b) && b.b > b.a)
+    .sort((x, y) => x.a - y.a);
+
+  let cursor = inizio;
+  let guard = 0;
+  while (cursor + durata <= limite && guard < 200) {
+    guard += 1;
+    let ostacoloFine = null;
+    for (const blocco of blocchi) {
+      if (cursor < blocco.b && blocco.a < cursor + durata) {
+        if (ostacoloFine == null || blocco.b > ostacoloFine) ostacoloFine = blocco.b;
+      }
+    }
+    if (ostacoloFine == null) {
+      const fineTxt = minutiAOrario(cursor + durata);
+      const iniTxt = minutiAOrario(cursor);
+      if (!iniTxt || !fineTxt) return null;
+      return { inizio: iniTxt, fine: fineTxt };
+    }
+    if (ostacoloFine <= cursor) return null;
+    cursor = ostacoloFine;
+  }
+  return null;
+}
+
+/**
+ * Messaggio di Tony prima del salvataggio: orario occupato e il primo buco davvero libero.
+ * @param {{ orarioInizio?: string, orarioFine?: string, inizio?: string, fine?: string }} nuova
+ * @param {object[]} conflitti
+ * @param {{ alternativa?: { inizio: string, fine: string }|null, righeGiorno?: object[], escludiId?: string }} [opts]
+ * @returns {string}
+ */
+export function messaggioSovrapposizioneTony(nuova, conflitti, opts = {}) {
   const c = Array.isArray(conflitti) && conflitti[0];
   if (!c) return '';
   const ini = (nuova && (nuova.orarioInizio || nuova.inizio)) || '';
   const fin = (nuova && (nuova.orarioFine || nuova.fine)) || '';
   const nome = c.lavoroNome || 'un lavoro';
-  const esempio = c.orarioFine
-    ? ` Dimmi un altro orario: per esempio dalle ${c.orarioFine}.`
-    : ' Dimmi un altro orario.';
-  return `Dalle ${ini} alle ${fin} si sovrappone al turno già segnato dalle ${c.orarioInizio || ''} alle ${c.orarioFine || ''} (lavoro ${nome}).${esempio}`;
+  const base = `Dalle ${ini} alle ${fin} ti sovrapponi al turno ${c.orarioInizio || ''}–${c.orarioFine || ''} su «${nome}».`;
+  let alternativa = opts && Object.prototype.hasOwnProperty.call(opts, 'alternativa')
+    ? opts.alternativa
+    : undefined;
+  if (alternativa === undefined) {
+    const iniMin = orarioAMinuti(ini);
+    const finMin = orarioAMinuti(fin);
+    const righe = (opts && opts.righeGiorno) || conflitti;
+    alternativa = primoOrarioLiberoDopo(righe, iniMin, finMin - iniMin, { escludiId: opts && opts.escludiId });
+  }
+  if (!alternativa || !alternativa.inizio || !alternativa.fine) {
+    return `${base} Dimmi un altro orario.`;
+  }
+  const quanto = testoDurataMinuti(orarioAMinuti(fin) - orarioAMinuti(ini)) || 'questo turno';
+  return `${base} Il primo orario libero di ${quanto} è dalle ${alternativa.inizio} alle ${alternativa.fine}. Va bene?`;
+}
+
+/**
+ * Controllo usato dalle pagine: conflitti, alternativa libera, messaggio.
+ * La logica non va duplicata tra segnatura desktop e workspace.
+ *
+ * @param {object} nuova
+ * @param {object[]} esistenti
+ * @param {{ escludiId?: string }} [opts]
+ * @returns {{ conflitti: object[], alternativa: { inizio: string, fine: string }|null, messaggio: string }}
+ */
+export function esitoControlloSovrapposizione(nuova, esistenti, opts = {}) {
+  const escludiId = opts && opts.escludiId;
+  const conflitti = trovaSovrapposizioni(nuova, esistenti, { escludiId });
+  if (!conflitti.length) return { conflitti, alternativa: null, messaggio: '' };
+  const iniMin = orarioAMinuti(nuova && (nuova.orarioInizio || nuova.inizio));
+  const finMin = orarioAMinuti(nuova && (nuova.orarioFine || nuova.fine));
+  const alternativa = primoOrarioLiberoDopo(esistenti, iniMin, finMin - iniMin, { escludiId });
+  return {
+    conflitti,
+    alternativa,
+    messaggio: messaggioSovrapposizioneTony(nuova, conflitti, { alternativa })
+  };
 }
 
 /**
@@ -637,10 +757,93 @@ function testoVoceTraccia(azione, chi, quando, motivo) {
   return '';
 }
 
-const AZIONI_TRACCIA = new Set(['modifica', 'correzione', 'annulla_validazione', 'rifiuto']);
+const AZIONI_TRACCIA = new Set(['validazione', 'modifica', 'correzione', 'annulla_validazione', 'rifiuto']);
 
 /**
- * Elenco ordinato per data: validazione, storico, rifiuto attuale se manca nello storico.
+ * Stesso autore e stesso minuto: la validazione corrente è già nello storico.
+ * @param {*} a
+ * @param {*} b
+ * @returns {boolean}
+ */
+export function stessoMinutoTraccia(a, b) {
+  const da = istanteTraccia(a);
+  const db = istanteTraccia(b);
+  if (!da || !db) return false;
+  return Math.floor(da.getTime() / 60000) === Math.floor(db.getTime() / 60000);
+}
+
+function storicoHaVoce(storico, azione, da, il) {
+  return (Array.isArray(storico) ? storico : []).some((voce) => {
+    if (!voce || voce.azione !== azione) return false;
+    if (String(voce.da || '') !== String(da || '')) return false;
+    if (!il && !voce.il) return true;
+    return stessoMinutoTraccia(voce.il, il);
+  });
+}
+
+/**
+ * Se la validazione attuale non è già nello storico, la aggiunge.
+ * Serve alle righe vecchie, prima di azzerare validatoDa e validatoIl.
+ * @param {object[]|null|undefined} storico
+ * @param {object} ora
+ * @returns {object[]}
+ */
+export function assicuraVoceValidazione(storico, ora) {
+  const list = Array.isArray(storico) ? storico.slice() : [];
+  if (!ora || (!ora.validatoDa && !ora.validatoIl)) return list;
+  if (storicoHaVoce(list, 'validazione', ora.validatoDa, ora.validatoIl)) return list;
+  return aggiungiVoceStorico(list, buildVoceStorico({
+    azione: 'validazione',
+    da: ora.validatoDa || '',
+    il: ora.validatoIl != null ? ora.validatoIl : null,
+    motivo: '',
+    prima: ora,
+    dopo: { ...snapshotCampiOra(ora), stato: 'validate' }
+  }));
+}
+
+/**
+ * Se il rifiuto attuale non è già nello storico, lo sposta lì.
+ * I campi rifiutatoDa / rifiutatoIl / motivoRifiuto non decidono più l'etichetta.
+ * @param {object[]|null|undefined} storico
+ * @param {object} ora
+ * @returns {object[]}
+ */
+export function assicuraVoceRifiuto(storico, ora) {
+  const list = Array.isArray(storico) ? storico.slice() : [];
+  if (!ora || (!ora.rifiutatoDa && !ora.rifiutatoIl && !ora.motivoRifiuto)) return list;
+  if (storicoHaVoce(list, 'rifiuto', ora.rifiutatoDa, ora.rifiutatoIl)) return list;
+  return aggiungiVoceStorico(list, buildVoceStorico({
+    azione: 'rifiuto',
+    da: ora.rifiutatoDa || '',
+    il: ora.rifiutatoIl != null ? ora.rifiutatoIl : null,
+    motivo: ora.motivoRifiuto || '',
+    prima: ora,
+    dopo: { ...snapshotCampiOra(ora), stato: 'rifiutate' }
+  }));
+}
+
+/**
+ * Etichetta dello stato attuale. Una riga tornata in attesa non resta «rifiutata».
+ * @param {object} ora
+ * @param {'caposquadra'|'manager'} [chi]
+ * @returns {string}
+ */
+export function etichettaStatoAttualeOra(ora, chi) {
+  if (!ora) return '';
+  if (ora.stato === 'da_validare') {
+    const chiTesto = chi === 'manager' ? 'il manager' : 'il caposquadra';
+    return `Da validare — la valida ${chiTesto}`;
+  }
+  if (ora.stato === 'validate') return 'Validata';
+  if (ora.stato === 'rifiutate') return 'Rifiutata';
+  return etichettaStatoOra(ora.stato);
+}
+
+/**
+ * Elenco ordinato per data. Tutte le voci dello storico, validazioni comprese.
+ * La validazione corrente si aggiunge solo se non è già nello storico (stesso autore, stesso minuto).
+ * Due voci con lo stesso testo ma in momenti diversi restano tutte e due.
  * @param {object} ora
  * @param {(uid: string) => string} [nomeDi]
  * @returns {string[]}
@@ -656,12 +859,8 @@ export function vociTracciaOra(ora, nomeDi) {
     const testo = testoVoceTraccia(azione, chi, quando, motivoTesto);
     if (!testo) return;
     const t = istanteTraccia(il);
-    eventi.push({ t: t ? t.getTime() : 0, testo });
+    eventi.push({ t: t ? t.getTime() : 0, minuto: t ? Math.floor(t.getTime() / 60000) : 0, testo });
   };
-
-  if (ora.validatoDa || ora.validatoIl) {
-    spinge('validazione', ora.validatoDa, ora.validatoIl, '');
-  }
 
   const storico = Array.isArray(ora.storicoModifiche) ? ora.storicoModifiche : [];
   let haRifiutoStorico = false;
@@ -670,6 +869,11 @@ export function vociTracciaOra(ora, nomeDi) {
     if (voce.azione === 'rifiuto') haRifiutoStorico = true;
     spinge(voce.azione, voce.da, voce.il, voce.motivo);
   });
+
+  const giaValidazione = storicoHaVoce(storico, 'validazione', ora.validatoDa, ora.validatoIl);
+  if ((ora.validatoDa || ora.validatoIl) && !giaValidazione) {
+    spinge('validazione', ora.validatoDa, ora.validatoIl, '');
+  }
 
   const haCampiRifiuto = Boolean(ora.rifiutatoDa || ora.rifiutatoIl || ora.motivoRifiuto);
   if (!haRifiutoStorico && haCampiRifiuto) {
@@ -680,8 +884,9 @@ export function vociTracciaOra(ora, nomeDi) {
   const visti = new Set();
   const out = [];
   eventi.forEach((evento) => {
-    if (visti.has(evento.testo)) return;
-    visti.add(evento.testo);
+    const chiave = `${evento.testo}\n${evento.minuto}`;
+    if (visti.has(chiave)) return;
+    visti.add(chiave);
     out.push(evento.testo);
   });
   return out;

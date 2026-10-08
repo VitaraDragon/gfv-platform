@@ -64,6 +64,24 @@ describe('tony-segna-ora-local-engine', () => {
     expect(msg).toMatch(/salvare/i);
   });
 
+  it('buildSegnaOreMissingFieldsMessage — il riepilogo dice il lavoro', () => {
+    var msg = buildSegnaOreMissingFieldsMessage({
+      lavoroVal: 'rip',
+      dateVal: '2026-10-08',
+      startVal: '17:00',
+      endVal: '17:30',
+      pauseVal: '0',
+    }, {
+      requireLavoro: true,
+      pauseAcknowledged: true,
+      lavoroNome: 'Ripristino pali',
+      macchinaNome: 'Fiat 880 DT',
+      attrezzoNome: 'Berti',
+    });
+    expect(msg).toMatch(/Tutto pronto: Ripristino pali, dalle 17:00 alle 17:30, pausa 0 min, Fiat 880 DT e Berti/);
+    expect(msg).toMatch(/Vuoi salvare/);
+  });
+
   it('userBlobAcknowledgesZeroPause', () => {
     expect(userBlobAcknowledgesZeroPause('0')).toBe(true);
     expect(userBlobAcknowledgesZeroPause('nessuna pausa')).toBe(true);
