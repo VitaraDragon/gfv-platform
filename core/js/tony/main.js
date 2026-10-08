@@ -763,7 +763,8 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         }
         if (decisione && decisione.stato !== 'unico') {
             delete out['ora-lavoro'];
-            tonyTogliOrariDaCampi(out);
+            var haNominato = decisione.esito && (decisione.esito.stato === 'ambiguo' || decisione.esito.nominato);
+            if (haNominato) tonyTogliOrariDaCampi(out);
             return out;
         }
         delete out['ora-lavoro'];
