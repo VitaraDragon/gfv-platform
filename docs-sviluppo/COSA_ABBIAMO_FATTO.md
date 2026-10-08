@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-08 — Ore: ritest Uso Reale, Tony e traccia.**
+**Ultimo aggiornamento documentazione: 2026-10-08 — Regole zone lavorate allineate a main.**
+
+## 2026-10-08 — Regole: le zone lavorate le cancella solo chi le ha tracciate
+
+Su `develop` il blocco `zoneLavorate` di `firestore.rules` permetteva a qualsiasi membro dell’azienda di cancellare una zona. Ora è uguale a `main` (regola della PR #80): tutti i membri possono creare e modificare, ma cancella solo chi l’ha tracciata (`operaioId` o `caposquadraId`) oppure il manager o l’amministratore. Così un deploy delle regole fatto da `develop` non riapre più questa cancellazione.
+
+Nessun altro blocco cambia, `oreOperai` compreso. Questa PR non fa nessun deploy: online le regole sono già quelle di `main`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-08 — Ore: ritest Uso Reale, Tony e traccia.**
 
 ## 2026-10-08 — Ore: Tony avvisa se l’orario è occupato, e la storia della riga si legge tutta
 
