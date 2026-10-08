@@ -31,10 +31,11 @@ import {
     chiaveGiornoOra,
     dataMezzanotteLocale,
     trovaSovrapposizioni,
-    etichettaStatoOra,
+    etichettaStatoAttualeOra,
+    formatTracciaOra,
     formattaGiornoBreve,
     testoErroreSalvataggioOre,
-    messaggioSovrapposizioneTony,
+    esitoControlloSovrapposizione,
     chiValidaOra,
     messaggioOraSegnataConSuccesso
 } from '../../services/ore-operai-logic.js';
@@ -1569,11 +1570,7 @@ window.gfvOreControllaSovrapposizione = async function(args) {
     const esistenti = await caricaOreUtenteGiorno(getDb(), currentTenantId, userId, data, utenteWorkspace());
     const nuova = { data, orarioInizio, orarioFine, operaioId: userId };
     const escludiId = (args && args.escludiId) || window.gfvOreIdInModifica();
-    const conflitti = trovaSovrapposizioni(nuova, esistenti, { escludiId });
-    return {
-        conflitti,
-        messaggio: conflitti.length ? messaggioSovrapposizioneTony(nuova, conflitti) : ''
-    };
+    return esitoControlloSovrapposizione(nuova, esistenti, { escludiId });
 };
 
 function utenteWorkspace() {
@@ -1675,8 +1672,11 @@ async function aggiornaRiquadroOreGiorno() {
             if (!perm.puoModificare && ora.stato === 'validate') {
                 azioni = `<span title="${escapeHtmlUnsafe(perm.motivoBlocco)}">🔒</span>`;
             }
+            const chiRiga = chiValidaOra({ ora, lavoro: lavoroPerPermessi(ora.lavoroId) });
+            const tracciaGiorno = formatTracciaOra(ora, () => '');
             return `<div style="padding:6px 0;${evidenza ? 'background:#e7f6ec;border-radius:6px;padding:6px;' : ''}">
-                <div>${escapeHtmlUnsafe(ora.lavoroNome || 'Lavoro')} · ${escapeHtmlUnsafe(ora.orarioInizio || '')}–${escapeHtmlUnsafe(ora.orarioFine || '')} · pausa ${Number(ora.pauseMinuti) || 0} min · ${formattaOreMinuti(ora.oreNette || 0)} · ${escapeHtmlUnsafe(etichettaStatoOra(ora.stato))}</div>
+                <div>${escapeHtmlUnsafe(ora.lavoroNome || 'Lavoro')} · ${escapeHtmlUnsafe(ora.orarioInizio || '')}–${escapeHtmlUnsafe(ora.orarioFine || '')} · pausa ${Number(ora.pauseMinuti) || 0} min · ${formattaOreMinuti(ora.oreNette || 0)} · ${escapeHtmlUnsafe(etichettaStatoAttualeOra(ora, chiRiga))}</div>
+                ${tracciaGiorno ? `<div class="inline-item-sub">${escapeHtmlUnsafe(tracciaGiorno)}</div>` : ''}
                 <div>${azioni}</div>
             </div>`;
         }).join('');
@@ -1726,8 +1726,11 @@ async function eliminaOraGiorno(oraId, lavoroId) {
     }
 }
 
+let salvataggioOreInCorso = false;
+
 async function saveQuickHours(event) {
     event.preventDefault();
+    if (salvataggioOreInCorso || window.__gfvOreSalvataggioInCorso) return;
     if (!hoursStatusEl) return;
     nascondiSovrapposizioneOre();
     if (!selectedWork || !currentTenantId || !currentUser) {
@@ -1753,6 +1756,15 @@ async function saveQuickHours(event) {
         hoursStatusEl.textContent = 'Le ore nette devono essere maggiori di 0.';
         hoursStatusEl.style.color = '#b91c1c';
         return;
+    }
+
+    const btnSalvaOre = quickHoursFormEl && quickHoursFormEl.querySelector('button[type="submit"]');
+    const testoBtnSalvaOre = btnSalvaOre ? btnSalvaOre.textContent : 'Salva ore lavorate';
+    salvataggioOreInCorso = true;
+    window.__gfvOreSalvataggioInCorso = true;
+    if (btnSalvaOre) {
+        btnSalvaOre.disabled = true;
+        btnSalvaOre.textContent = 'Salvataggio…';
     }
 
     try {
@@ -1804,6 +1816,13 @@ async function saveQuickHours(event) {
         hoursStatusEl.textContent = `Errore salvataggio: ${error.message}`;
         hoursStatusEl.style.color = '#b91c1c';
         showAlert(hoursStatusEl.textContent, 'error');
+    } finally {
+        salvataggioOreInCorso = false;
+        window.__gfvOreSalvataggioInCorso = false;
+        if (btnSalvaOre) {
+            btnSalvaOre.disabled = false;
+            if (btnSalvaOre.textContent === 'Salvataggio…') btnSalvaOre.textContent = testoBtnSalvaOre;
+        }
     }
 }
 
