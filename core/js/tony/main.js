@@ -1461,10 +1461,14 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         if (typeof handlers.appendTyping === 'function') handlers.appendTyping();
         Promise.resolve(tonyAttendiElencoLavoriMatch()).then(function() {
             var decIntent = tonyDecidiLavoroSegnaOre(ub);
-            if (decIntent.stato !== 'unico') {
+            var intentSenzaNome = decIntent.esito && decIntent.esito.stato === 'nessuno' && !decIntent.esito.nominato;
+            if (decIntent.stato !== 'unico' && !intentSenzaNome) {
                 if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
                 tonyFinishSegnaOreLocalIntercept(ub, decIntent.domanda || 'Su quale lavoro segno le ore?', handlers);
                 return null;
+            }
+            if (decIntent.stato !== 'unico') {
+                return resolveOrOpenSegnaOreTarget();
             }
             if (typeof window.openSegnaOraModal === 'function' && decIntent.lavoro && decIntent.lavoro.id) {
                 try { window.__tonySegnaOreModalApertoDaTony = true; } catch (eFlagI) { /* ignore */ }
@@ -1534,11 +1538,15 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         Promise.resolve(tonyAttendiElencoLavoriMatch()).then(function() {
             var decTurno = tonyDecidiLavoroSegnaOre(ub);
             if (decTurno.stato !== 'unico') {
-                return tonyMessaggioLavoroOSovrapposizione(ub, decTurno).then(function(msgNo) {
-                    if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
-                    tonyFinishSegnaOreLocalIntercept(ub, msgNo, handlers);
-                    tonyDebugLog('[Tony] Segna ore: lavoro non univoco, non apro il form.');
-                });
+                var senzaNome = decTurno.esito && decTurno.esito.stato === 'nessuno' && !decTurno.esito.nominato;
+                if (!senzaNome) {
+                    return tonyMessaggioLavoroOSovrapposizione(ub, decTurno).then(function(msgNo) {
+                        if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
+                        tonyFinishSegnaOreLocalIntercept(ub, msgNo, handlers);
+                        tonyDebugLog('[Tony] Segna ore: lavoro non univoco, non apro il form.');
+                    });
+                }
+                return resolveOrOpenSegnaOreTarget();
             }
             var apri = Promise.resolve();
             if (typeof window.openSegnaOraModal === 'function' && decTurno.lavoro && decTurno.lavoro.id) {
@@ -2500,10 +2508,7 @@ if (typeof window !== 'undefined') window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUIL
         if (state && state.dateVal && state.startVal && state.endVal) {
             return tonyControllaSovrapposizioneTarget(target, state).then(function(check) {
                 var avviso = tonyMessaggioSovrapposizione(check, { stato: 'unico' });
-                if (avviso) {
-                    tonySvuotaOrariSegnaOre(target);
-                    return avviso;
-                }
+                if (avviso) return avviso;
                 try { window.__tonySegnaOrePropostaLibera = null; } catch (eClr) { /* ignore */ }
                 return messaggioSeLibero();
             });
