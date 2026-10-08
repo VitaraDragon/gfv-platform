@@ -564,6 +564,42 @@ export function formattaGiornoBreve(val) {
   return `${d}/${m}`;
 }
 
+const GIORNI_SETTIMANA_IT = [
+  'domenica',
+  'lunedì',
+  'martedì',
+  'mercoledì',
+  'giovedì',
+  'venerdì',
+  'sabato'
+];
+
+/**
+ * @param {*} val
+ * @returns {string} gg/mm/aaaa
+ */
+export function formattaDataItaliana(val) {
+  const iso = chiaveGiornoOra(val);
+  if (!iso) return '';
+  const [y, m, d] = iso.split('-');
+  if (!y || !m || !d) return '';
+  return `${d}/${m}/${y}`;
+}
+
+/**
+ * @param {*} val
+ * @returns {string} es. «giovedì 08/10/2026»
+ */
+export function formattaDataItalianaConGiorno(val) {
+  const iso = chiaveGiornoOra(val);
+  if (!iso) return '';
+  const [ys, ms, ds] = iso.split('-');
+  const dt = new Date(Number(ys), Number(ms) - 1, Number(ds), 12, 0, 0);
+  if (isNaN(dt.getTime())) return formattaDataItaliana(iso);
+  const giorno = GIORNI_SETTIMANA_IT[dt.getDay()] || '';
+  return `${giorno} ${ds}/${ms}/${ys}`.trim();
+}
+
 export function snapshotCampiOra(ora) {
   if (!ora || typeof ora !== 'object') {
     return {

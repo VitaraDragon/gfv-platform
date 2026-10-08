@@ -232,6 +232,11 @@
             margin-bottom: 20px;
         }
 
+        #ora-data-it {
+            margin: 4px 0 0;
+            font-size: 0.9rem;
+            color: #3d4a3e;
+        }
         .form-group label {
             display: block;
             margin-bottom: 5px;
@@ -432,6 +437,7 @@
                 <div class="form-group">
                     <label for="ora-data">Data Lavoro *</label>
                     <input type="date" id="ora-data" required max="">
+                    <p id="ora-data-it" class="form-hint" aria-live="polite"></p>
                 </div>
 
                 <div class="form-row">
@@ -547,7 +553,8 @@
             etichettaStatoAttualeOra,
             formatTracciaOra,
             chiValidaOra,
-            messaggioOraSegnataConSuccesso
+            messaggioOraSegnataConSuccesso,
+            formattaDataItalianaConGiorno
         } from './services/ore-operai-logic.js';
 
         try {
@@ -1520,6 +1527,14 @@
             }
         }
 
+        function aggiornaEtichettaDataOra() {
+            const el = document.getElementById('ora-data-it');
+            const input = document.getElementById('ora-data');
+            if (!el) return;
+            const testo = input && input.value ? formattaDataItalianaConGiorno(input.value) : '';
+            el.textContent = testo || '';
+        }
+
         function bindSegnaturaOreFormOnce() {
             if (segnaturaOreListenersBound) return;
             segnaturaOreListenersBound = true;
@@ -1540,7 +1555,10 @@
                     aggiornaRiquadroOreGiorno();
                 });
             }
-            if (data) data.addEventListener('change', () => aggiornaRiquadroOreGiorno());
+            if (data) data.addEventListener('change', () => {
+                aggiornaEtichettaDataOra();
+                aggiornaRiquadroOreGiorno();
+            });
             if (macchina) {
                 macchina.addEventListener('change', function () {
                     populateMacchineDropdown(this.value, null);
@@ -1592,6 +1610,7 @@
             popolaSelectLavoro(lavoroId || '');
             document.getElementById('ora-data').value = oggiLocaleIso();
             document.getElementById('ora-data').max = oggiLocaleIso();
+            aggiornaEtichettaDataOra();
 
             const macchineSezione = document.getElementById('macchine-sezione');
             if (hasParcoMacchineModule && macchineSezione) {
@@ -1667,6 +1686,7 @@
             document.getElementById('ora-id-modifica').value = ora.id;
             document.getElementById('ora-data').value = chiaveGiornoOra(ora.data);
             document.getElementById('ora-data').max = oggiLocaleIso();
+            aggiornaEtichettaDataOra();
             document.getElementById('ora-inizio').value = ora.orarioInizio || '';
             document.getElementById('ora-fine').value = ora.orarioFine || '';
             document.getElementById('ora-pause').value = String(ora.pauseMinuti || 0);

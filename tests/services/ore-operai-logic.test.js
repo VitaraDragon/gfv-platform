@@ -26,7 +26,9 @@ import {
   assicuraVoceValidazione,
   formatTracciaOra,
   formattaDataOraTraccia,
-  calcolaContatoriOreValidazione
+  calcolaContatoriOreValidazione,
+  formattaDataItaliana,
+  formattaDataItalianaConGiorno
 } from '../../core/services/ore-operai-logic.js';
 
 const lavoroSquadra = { caposquadraId: 'capo1', operaioId: null };
@@ -637,6 +639,14 @@ describe('contatori validazione ore', () => {
     });
     expect(out.daValidare.map((r) => r.id)).toEqual(['coda']);
     expect(out.validate.map((r) => r.id)).toEqual(['val-a']);
+  });
+});
+
+describe('data in italiano', () => {
+  it('mostra il giorno e la data gg/mm/aaaa', () => {
+    expect(formattaDataItaliana('2026-10-08')).toBe('08/10/2026');
+    expect(formattaDataItalianaConGiorno('2026-10-08')).toBe('giovedì 08/10/2026');
+    expect(formattaDataItaliana('')).toBe('');
   });
 });
 

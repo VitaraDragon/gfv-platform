@@ -214,6 +214,10 @@ export function buildSegnaOreMissingFieldsMessage(state, opts) {
   var missing = listSegnaOreMissingRequired(state, opts);
   if (missing.length === 0) {
     var nome = String((opts && opts.lavoroNome) || (state && state.lavoroNome) || '').trim();
+    if (!nome) {
+      var domanda = String((opts && opts.domandaLavoro) || '').trim();
+      return domanda || 'Su quale lavoro segno le ore?';
+    }
     var recap = nome;
     if (state && state.startVal && state.endVal) {
       var fascia = 'dalle ' + state.startVal + ' alle ' + state.endVal;

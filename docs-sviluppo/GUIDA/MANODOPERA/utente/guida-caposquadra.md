@@ -128,7 +128,7 @@ Nella scheda **Comunicazioni** trovi il modulo **Comunicazioni squadra**: non è
 
 ## Mini-guida segnare le proprie ore
 
-Nella scheda **Ore**, in alto, c’è il modulo **Segna ore** per registrare **il tuo turno** (sei un utente come gli altri dal punto di vista delle ore).
+Nella scheda **Ore**, in alto, c’è il modulo **Segna ore** per registrare **il tuo turno** (sei un utente come gli altri dal punto di vista delle ore). Se lo chiedi a Tony e due lavori hanno lo stesso nome, prende quello di oggi oppure chiede quale. Non apre il modulo sul primo della lista. Il riepilogo dice sempre il nome del lavoro. Accanto alla data c’è il giorno in italiano, per esempio «giovedì 08/10/2026».
 
 ### Passi
 
