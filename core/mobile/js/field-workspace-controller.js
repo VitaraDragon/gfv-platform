@@ -33,7 +33,10 @@ import {
     trovaSovrapposizioni,
     etichettaStatoOra,
     formattaGiornoBreve,
-    testoErroreSalvataggioOre
+    testoErroreSalvataggioOre,
+    messaggioSovrapposizioneTony,
+    chiValidaOra,
+    messaggioOraSegnataConSuccesso
 } from '../../services/ore-operai-logic.js';
 
 import {
@@ -931,6 +934,13 @@ function renderPendingHourRowHtml(row, showLavoro) {
     const ore = Number(row.oreNette || 0).toFixed(2);
     const time = `${escapeHtmlUnsafe(row.orarioInizio || '--:--')} - ${escapeHtmlUnsafe(row.orarioFine || '--:--')}`;
     const pausa = `pausa ${Number(row.pauseMinuti) || 0} min`;
+    const notaRaw = String(row.note || '').replace(/\s+/g, ' ').trim();
+    const nota = notaRaw.length > 120 ? `${notaRaw.slice(0, 119).trim()}…` : notaRaw;
+    const notaHtml = nota ? `<div class="inline-item-sub">${escapeHtmlUnsafe(nota)}</div>` : '';
+    const macchinaNome = row.macchinaNome || row.nomeMacchina || '';
+    const macchinaHtml = macchinaNome
+        ? `<div class="inline-item-sub">Macchina: ${escapeHtmlUnsafe(macchinaNome)}</div>`
+        : (row.macchinaId ? '<div class="inline-item-sub">Con macchina</div>' : '');
     const lavoroLine = showLavoro && row.lavoroNome
         ? `<div class="inline-item-sub" style="font-weight:600;color:#2E8B57;">${escapeHtmlUnsafe(row.lavoroNome)}</div>`
         : '';
@@ -951,6 +961,8 @@ function renderPendingHourRowHtml(row, showLavoro) {
             </div>
             ${lavoroLine}
             <div class="inline-item-sub">${time} • ${pausa} • ${ore} h</div>
+            ${notaHtml}
+            ${macchinaHtml}
             ${warn}
             <div class="inline-item-actions">
                 <button type="button" class="mini-btn approve" data-approve-hour-id="${escapeHtmlUnsafe(row.id)}"${lavAttr}>✅ Approva</button>
@@ -1542,6 +1554,28 @@ window.gfvFieldWorkspaceGetSelectedLavoroId = function () {
     }
 };
 
+window.gfvOreIdInModifica = function() {
+    return editingOraId ? String(editingOraId) : '';
+};
+
+window.gfvOreControllaSovrapposizione = async function(args) {
+    const data = args && args.data;
+    const orarioInizio = args && args.orarioInizio;
+    const orarioFine = args && args.orarioFine;
+    const userId = currentUser && currentUser.uid;
+    if (!userId || !currentTenantId || !data || !orarioInizio || !orarioFine) {
+        return { conflitti: [], messaggio: '' };
+    }
+    const esistenti = await caricaOreUtenteGiorno(getDb(), currentTenantId, userId, data, utenteWorkspace());
+    const nuova = { data, orarioInizio, orarioFine, operaioId: userId };
+    const escludiId = (args && args.escludiId) || window.gfvOreIdInModifica();
+    const conflitti = trovaSovrapposizioni(nuova, esistenti, { escludiId });
+    return {
+        conflitti,
+        messaggio: conflitti.length ? messaggioSovrapposizioneTony(nuova, conflitti) : ''
+    };
+};
+
 function utenteWorkspace() {
     return {
         id: currentUser.uid,
@@ -1749,7 +1783,15 @@ async function saveQuickHours(event) {
         }
         hoursStatusEl.textContent = `Ore salvate: ${formatOreNette(netHours)}. Puoi registrare un altro turno.`;
         hoursStatusEl.style.color = '#166534';
-        showAlert(hoursStatusEl.textContent, 'success');
+        if (!editingOraId) {
+            const chi = chiValidaOra({
+                ora: { operaioId: currentUser.uid },
+                lavoro: lavoroPerPermessi(selectedWork.id)
+            });
+            showAlert(messaggioOraSegnataConSuccesso(chi), 'success', 8000);
+        } else {
+            showAlert('Ora aggiornata', 'success', 8000);
+        }
         resetModificaOra();
         resetQuickHoursFormFieldsForNextEntry();
         await aggiornaRiquadroOreGiorno();
@@ -1922,12 +1964,12 @@ function bindInlineSectionsActions() {
                 await updateHourValidationStatus(approveId, 'validate', lavoroId);
             } else if (rejectId) {
                 const motivo = window.prompt('Motivo del rifiuto (obbligatorio):');
-                if (!motivo || !String(motivo).trim()) {
-                    showAlert('Motivo rifiuto obbligatorio', 'warning');
+                if (motivo == null || !String(motivo).trim()) {
+                    showAlert('Scrivi il motivo: è obbligatorio.', 'error', 8000);
                     return;
                 }
                 const rifiutata = await updateHourValidationStatus(rejectId, 'rifiutate', lavoroId, motivo.trim());
-                if (rifiutata) showAlert('Ora rifiutata', 'success');
+                if (rifiutata) showAlert('Ora rifiutata', 'success', 8000);
             }
             await loadPendingHoursForSelectedWork();
             await loadAllPendingHoursForCapo();

@@ -14,14 +14,14 @@
             layer.id = TOAST_LAYER_ID;
             layer.setAttribute('role', 'status');
             layer.setAttribute('aria-live', 'polite');
-            document.body.appendChild(layer);
         }
+        document.body.appendChild(layer);
         return layer;
     }
 
     function showStandaloneAlert(message, type, durationMs) {
         type = type || 'success';
-        durationMs = durationMs == null ? 5000 : durationMs;
+        durationMs = durationMs == null ? 6000 : durationMs;
         var container = ensureToastLayer();
         var alert = document.createElement('div');
         alert.className = 'alert alert-' + type;

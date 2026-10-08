@@ -680,6 +680,69 @@
       }
     },
     {
+      "id": "T-FLOW-023",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Segna ore: orario sovrapposto al turno gia segnato, Tony non salva",
+      "contract": {
+        "invariant": "10-11 dentro il seed 07:30-12:00: Tony dice che e occupato e non salva",
+        "primaryAsserts": [
+          "risposta sovrappone",
+          "nessun Ore salvate",
+          "cfCallsMax 0"
+        ],
+        "avoidAsserts": []
+      },
+      "persona": "operaio",
+      "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsOperaioFromDevPage",
+      "messages": [
+        "segniamo le ore",
+        "10",
+        "11",
+        "pausa 0"
+      ],
+      "mockCf": false,
+      "expect": {
+        "clientRecovery": true,
+        "cfCallsMax": 0
+      }
+    },
+    {
+      "id": "T-FLOW-024",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Segna ore: pausa 0 poi si salva senza richiedere di nuovo la pausa",
+      "contract": {
+        "invariant": "pausa 0 confermata, poi si: salva senza chiedere ancora i minuti di pausa",
+        "primaryAsserts": [
+          "Ore salvate",
+          "niente richiesta pausa dopo il si",
+          "cfCallsMax 0"
+        ],
+        "avoidAsserts": []
+      },
+      "persona": "operaio",
+      "startUrl": "/core/mobile/field-workspace-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsOperaioFromDevPage",
+      "messages": [
+        "segniamo le ore",
+        "18",
+        "19",
+        "pausa 0",
+        "sì"
+      ],
+      "mockCf": false,
+      "expect": {
+        "clientRecovery": true,
+        "cfCallsMax": 0
+      }
+    },
+    {
       "id": "T-FLOW-015",
       "status": "ready",
       "mode": "gate",
