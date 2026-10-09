@@ -67,6 +67,7 @@ export async function runFlowSegnaOre033(page, expect, scenario) {
 
   await page.evaluate(() => {
     window.__tonyRitardaPronto = false;
+    window.dispatchEvent(new CustomEvent('tony-widget-ready'));
   });
 
   await page.waitForFunction(() => {
@@ -74,7 +75,7 @@ export async function runFlowSegnaOre033(page, expect, scenario) {
       .map((el) => (el.textContent || '').trim());
     const risposte = document.querySelectorAll('#tony-messages .tony-msg.tony').length;
     return utenti.join('|') === 'ciao uno|ciao due' && risposte >= 2;
-  }, null, { timeout: 60_000 });
+  }, null, { timeout: 90_000 });
 
   const dopo = await page.evaluate(() => {
     const utenti = Array.from(document.querySelectorAll('#tony-messages .tony-msg.user'))

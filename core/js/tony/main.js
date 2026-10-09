@@ -7344,7 +7344,7 @@ if (typeof window !== 'undefined') {
 
         function restoreTonyState() {
             if (window.__tonyChatRipristinata) return;
-            if (!window.Tony) return;
+            if (!window.Tony || !messagesEl) return;
             window.__tonyChatRipristinata = true;
             try { window.__tonySegnaOreRiepilogo = null; } catch (eRiep0) { /* ignore */ }
             try {
@@ -7468,8 +7468,13 @@ if (typeof window !== 'undefined') {
                         window.__tonyInvioInAttesa = step.coda;
                         if (!step.voce || !String(step.voce.text || '').trim()) continue;
                         var prima = contaRisposteTony();
+                        var primaLunghezza = window.__tonyInvioInAttesa.length;
                         var optsCoda = Object.assign({}, step.voce.opts || {}, { _dallaCoda: true });
                         sendMessage(step.voce.text, optsCoda);
+                        if (window.__tonyInvioInAttesa && window.__tonyInvioInAttesa.length > primaLunghezza) {
+                            await new Promise(function (r) { setTimeout(r, 400); });
+                            continue;
+                        }
                         await attendiRispostaCodaTony(prima);
                     }
                     if (!window.__tonyInvioInAttesa || !window.__tonyInvioInAttesa.length) {
@@ -7724,6 +7729,16 @@ if (typeof window !== 'undefined') {
             opts = opts || {};
             var isRealCfTurn = !opts.proactive && !opts._displayOnly;
             if (isRealCfTurn && _isSendingMessage && !opts.fromVoice) {
+                if (opts._dallaCoda) {
+                    var optsOccupato = Object.assign({}, opts);
+                    delete optsOccupato._dallaCoda;
+                    window.__tonyInvioInAttesa = accodaInvio(
+                        [{ text: (overrideText != null ? String(overrideText) : (inputEl && inputEl.value) || '').trim(), opts: optsOccupato, ts: Date.now() }].concat(window.__tonyInvioInAttesa || []),
+                        null,
+                        5
+                    );
+                    avviaControlloCodaTony();
+                }
                 console.warn('[Tony] sendMessage ignorato: richiesta già in corso (anti-flood).');
                 return;
             }

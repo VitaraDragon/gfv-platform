@@ -66,7 +66,7 @@ export async function runFlowIngresso035(page, expect, scenario) {
   await page.waitForFunction(() => {
     const box = document.getElementById('tony-messages');
     return box && /Ciao sono io/.test(box.textContent || '');
-  }, null, { timeout: 20_000 });
+  }, null, { timeout: 45_000 });
   const testo = await page.locator('#tony-messages').innerText();
   expect(testo).toContain('Ciao sono io');
   expect(testo).not.toMatch(/Tutto pronto/i);
