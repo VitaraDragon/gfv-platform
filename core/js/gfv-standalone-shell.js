@@ -5,6 +5,9 @@
 (function () {
     'use strict';
 
+    if (window.__gfvStandaloneShellRan) return;
+    window.__gfvStandaloneShellRan = true;
+
     var scriptEl = document.currentScript;
     if (!scriptEl || !scriptEl.src) return;
 
@@ -16,6 +19,9 @@
         document.head.appendChild(s);
     }
 
-    loadScript('standalone-alert-global.js');
-    loadScript('gfv-tony-loader.js?v=2026-10-09a');
+    if (!document.querySelector('script[src*="standalone-alert-global.js"]')) {
+        loadScript('standalone-alert-global.js');
+    }
+    if (window.__gfvTonyLoaderBuild || document.querySelector('script[src*="gfv-tony-loader.js"]')) return;
+    loadScript('gfv-tony-loader.js?v=2026-10-09c');
 })();

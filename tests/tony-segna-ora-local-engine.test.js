@@ -78,8 +78,9 @@ describe('tony-segna-ora-local-engine', () => {
       lavoroNome: 'Ripristino pali',
       macchinaNome: 'Fiat 880 DT',
       attrezzoNome: 'Berti',
+      oggiIso: '2026-10-09',
     });
-    expect(msg).toMatch(/Tutto pronto: Ripristino pali, dalle 17:00 alle 17:30, pausa 0 min, Fiat 880 DT e Berti/);
+    expect(msg).toMatch(/Tutto pronto: Ripristino pali, ieri 08\/10, dalle 17:00 alle 17:30, pausa 0 min, Fiat 880 DT e Berti/);
     expect(msg).toMatch(/Vuoi salvare/);
   });
 

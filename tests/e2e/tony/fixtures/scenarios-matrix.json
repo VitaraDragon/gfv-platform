@@ -651,6 +651,32 @@
       }
     },
     {
+      "id": "T-FLOW-030",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Segna ore: «oggi» non tiene la data del turno prima. Dopo Annulla un sì non salva. Fascia 05:00-05:30.",
+      "contract": {
+        "invariant": "Ogni richiesta ha la sua data. Annulla azzera la conferma.",
+        "primaryAsserts": [
+          "passo A niente Tutto pronto",
+          "ora-data è oggi",
+          "Tutto pronto con nome e oggi",
+          "dopo Annulla nessuna riga 05:00"
+        ],
+        "avoidAsserts": []
+      },
+      "persona": "caposquadra",
+      "startUrl": "/core/segnatura-ore-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsCapoFromDevPage",
+      "messages": [],
+      "mockCf": false,
+      "expect": {
+        "clientRecovery": true
+      }
+    },
+    {
       "id": "T-FLOW-015",
       "status": "ready",
       "mode": "gate",
