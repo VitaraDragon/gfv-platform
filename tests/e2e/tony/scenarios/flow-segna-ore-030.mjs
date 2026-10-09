@@ -92,8 +92,19 @@ export async function runFlowSegnaOre030(page, expect, scenario) {
 
     await installTonyMockCf(page, { scenario });
     await apriSegnatura(page);
+    await page.waitForFunction((id) => {
+      const list = typeof window.gfvSegnaturaOreLavoriPerTony === 'function'
+        ? window.gfvSegnaturaOreLavoriPerTony()
+        : [];
+      return Array.isArray(list) && list.some((l) => String(l.id) === id);
+    }, seminati.attivoId, { timeout: 60_000 });
     await page.evaluate(() => {
       window.__GFV_TONY_E2E_SKIP_SEGNA_ORE_LOCAL = true;
+      if (typeof window.openSegnaOraModal === 'function') return window.openSegnaOraModal();
+    });
+    await page.evaluate(() => {
+      const el = document.getElementById('ora-data');
+      if (el) el.value = '2000-01-01';
     });
     await activateTonyMockCf(page, scenario);
     const dalModello = await tonyRunMultiTurn(page, [fraseB]);
