@@ -4,7 +4,7 @@
  * @module core/js/tony/tony-segna-ora-local-engine
  */
 
-import { riepilogoSegnaOreAmmesso } from './tony-ora-lavoro-match.js?v=2026-10-09a';
+import { riepilogoSegnaOreAmmesso } from './tony-ora-lavoro-match.js?v=2026-10-09b';
 
 /** Messaggio di fallback quando mancano più campi obbligatori. */
 export const SEGNA_ORE_ASK_FALLBACK =

@@ -1,6 +1,20 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-09 — Tony, lavori sospesi e «Tutto pronto» con il nome.**
+**Ultimo aggiornamento documentazione: 2026-10-09 — Tony, un solo build dopo il deploy.**
+
+## 2026-10-09 — Tony: un solo loader, e i file senza versione non restano vecchi
+
+Dopo un deploy, Segna ore poteva tenere due loader insieme: quello nuovo e quello del 17 settembre. Il widget nuovo non partiva, quindi in console non compariva «[Tony] Client build».
+
+Il loader si iniettava due volte (bootstrap tenant e shell standalone) e non si fermava se c’era già. Shell, bootstrap e firebase-service non hanno `?v=`: GitHub Pages li tiene in cache HTTP per 10 minuti, e il service worker glieli restituiva così. La shell vecchia rimetteva il loader vecchio.
+
+Ora il secondo loader esce subito, la shell usa lo stesso `?v=` del loader (`2026-10-09b`) e il service worker rivalida i file della stessa origine. Prima che Firebase sia pronto, il recupero tenant non chiama più l’auth.
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-09 — Tony, lavori sospesi e «Tutto pronto» con il nome.**
 
 ## 2026-10-09 — Ore: niente «Tutto pronto» senza il lavoro, e niente ore nuove su un sospeso
 

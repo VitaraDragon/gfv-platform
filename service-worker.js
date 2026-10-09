@@ -89,10 +89,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Stesso origin: Network First + cache (vedi commento sotto)
+  // Stesso origin: Network First. cache:'no-cache' rivalida (304 se invariato)
+  // e non riusa la copia HTTP max-age=600 di GitHub Pages sui file senza ?v=.
   try {
     event.respondWith(
-      fetch(event.request)
+      fetch(event.request, { cache: 'no-cache' })
         .then((response) => {
           // Solo cache risposte valide e con Content-Type supportato
           if (response.status === 200 && response.type === 'basic') {

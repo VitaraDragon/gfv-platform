@@ -7,7 +7,12 @@
 (function () {
     'use strict';
 
-    var TONY_LOADER_QUERY = '2026-10-09a';
+    var TONY_LOADER_QUERY = '2026-10-09b';
+    if (window.__gfvTonyLoaderBuild) {
+        if (window.__gfvTonyLoaderBuild !== TONY_LOADER_QUERY) console.warn('[Tony] loader doppio ignorato', TONY_LOADER_QUERY, 'già attivo', window.__gfvTonyLoaderBuild);
+        return;
+    }
+    window.__gfvTonyLoaderBuild = TONY_LOADER_QUERY;
 
     /** iOS «Aggiungi a Home»: senza questi meta (iOS < 16.4) la PWA non è standalone
      *  e Web Speech resta muta. Iniettiamo su ogni pagina che carica Tony.
@@ -193,7 +198,7 @@
         var base = resolveCoreBase();
         var sep = (base && !base.endsWith('/')) ? '/' : '';
         var s = document.createElement('script');
-        s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js';
+        s.src = (base ? base + sep : '') + 'js/gfv-standalone-shell.js?v=' + TONY_LOADER_QUERY;
         document.body.appendChild(s);
     }
 
@@ -274,25 +279,33 @@
         if (window.__gfvSubscriptionPlanId && window.__gfvModuliAttivi) return;
 
         var attempts = 0;
+        var idleTicks = 0;
         var maxAttempts = 150;
         var cached = null;
 
         function tryResolve(fb, ts) {
-            if (!fb.getAuthInstance || !fb.getDocumentData) return;
-            var auth = fb.getAuthInstance();
-            if (!auth || !auth.currentUser) return;
-            var tid = ts.getCurrentTenantId && ts.getCurrentTenantId();
-            var p = tid
-                ? ts.getCurrentTenant()
-                : fb.getDocumentData('users', auth.currentUser.uid).then(function (userData) {
-                    if (!userData || !userData.tenantId) return null;
-                    ts.setCurrentTenantId(userData.tenantId);
-                    return ts.getCurrentTenant();
-                });
-            Promise.resolve(p).catch(function () { /* retry */ });
+            try {
+                if (!fb.getAuthInstance || !fb.getDocumentData) return;
+                var auth = fb.getAuthInstance();
+                if (!auth || !auth.currentUser) return;
+                var tid = ts.getCurrentTenantId && ts.getCurrentTenantId();
+                var p = tid
+                    ? ts.getCurrentTenant()
+                    : fb.getDocumentData('users', auth.currentUser.uid).then(function (userData) {
+                        if (!userData || !userData.tenantId) return null;
+                        ts.setCurrentTenantId(userData.tenantId);
+                        return ts.getCurrentTenant();
+                    });
+                Promise.resolve(p).catch(function () { /* retry */ });
+            } catch (e) { return; }
         }
 
         var timer = setInterval(function () {
+            if (!window.__firebaseReady) {
+                idleTicks += 1;
+                if (idleTicks >= maxAttempts) clearInterval(timer);
+                return;
+            }
             attempts += 1;
             if (window.__gfvSubscriptionPlanId && window.__gfvModuliAttivi) {
                 clearInterval(timer);

@@ -67,9 +67,13 @@ import { ensureStandaloneReadyPlaceholder, settleStandaloneReady } from './stand
     return null;
   }
 
-  /** Carica shell standalone (alert toast + Tony gated) */
+  /** Carica shell standalone (alert toast + Tony gated). Stesso ?v= del loader Tony. */
   function loadStandaloneShell() {
-    return loadScript(new URL('gfv-standalone-shell.js', import.meta.url).href);
+    if (window.__gfvStandaloneShellRequested || document.querySelector('script[src*="gfv-standalone-shell"]')) {
+      return Promise.resolve();
+    }
+    window.__gfvStandaloneShellRequested = true;
+    return loadScript(new URL('gfv-standalone-shell.js?v=2026-10-09b', import.meta.url).href);
   }
 
   ensureStandaloneReadyPlaceholder();
