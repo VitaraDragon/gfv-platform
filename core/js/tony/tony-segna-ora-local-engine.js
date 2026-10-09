@@ -4,7 +4,7 @@
  * @module core/js/tony/tony-segna-ora-local-engine
  */
 
-import { etichettaDataRiepilogoOre, riepilogoSegnaOreAmmesso } from './tony-ora-lavoro-match.js?v=2026-10-09c';
+import { etichettaDataRiepilogoOre, riepilogoSegnaOreAmmesso } from './tony-ora-lavoro-match.js?v=2026-10-09d';
 
 /** Messaggio di fallback quando mancano più campi obbligatori. */
 export const SEGNA_ORE_ASK_FALLBACK =
@@ -468,6 +468,140 @@ function delayMs(ms) {
   return new Promise(function(resolve) { setTimeout(resolve, ms); });
 }
 
+function testiEvento(v) {
+  if (Array.isArray(v)) return v.map(function(x) { return String(x || '').trim(); }).filter(Boolean);
+  if (v) return [String(v).trim()];
+  return [];
+}
+
+function eTestoErroreSalvataggio(t) {
+  return /errore salvataggio:|^errore:|ORE_SOVRAPPOSTE|già occupato|si sovrappongono|ti sovrapponi/i.test(String(t || ''));
+}
+
+/**
+ * Esito del salvataggio: prima l'evento, poi il toast o lo stato, altrimenti sconosciuto.
+ * @param {{ evento?: object|null, toastTesti?: string[]|string, statusTesto?: string }} [input]
+ * @returns {{ esito: 'ok_in_attesa'|'ok_validata'|'errore'|'sconosciuto', messaggio: string, codice: string, chiValida: 'caposquadra'|'manager'|null }}
+ */
+export function interpretaEsitoSalvataggioOra(input) {
+  var evento = input && input.evento;
+  if (evento && evento.ok === false) {
+    return {
+      esito: 'errore',
+      messaggio: String(evento.messaggio || 'Errore salvataggio.'),
+      codice: String(evento.codice || ''),
+      chiValida: null
+    };
+  }
+  if (evento && evento.ok === true) {
+    var validata = evento.stato === 'validata';
+    var chiEv = evento.chiValida === 'manager' ? 'manager' : 'caposquadra';
+    return {
+      esito: validata ? 'ok_validata' : 'ok_in_attesa',
+      messaggio: '',
+      codice: '',
+      chiValida: validata ? null : chiEv
+    };
+  }
+  var toasts = testiEvento(input && input.toastTesti);
+  var status = String((input && input.statusTesto) || '').trim();
+  var errori = toasts.filter(eTestoErroreSalvataggio);
+  if (/^Errore salvataggio:/i.test(status)) errori.push(status);
+  if (errori.length) {
+    return {
+      esito: 'errore',
+      messaggio: errori[0],
+      codice: /ORE_SOVRAPPOSTE/i.test(errori[0]) ? 'ORE_SOVRAPPOSTE' : '',
+      chiValida: null
+    };
+  }
+  for (var i = 0; i < toasts.length; i++) {
+    var t = toasts[i];
+    if (/Ora aggiornata/i.test(t)) {
+      return { esito: 'ok_validata', messaggio: '', codice: '', chiValida: null };
+    }
+    if (/Ora segnata con successo/i.test(t)) {
+      if (!/in attesa/i.test(t)) {
+        return { esito: 'ok_validata', messaggio: '', codice: '', chiValida: null };
+      }
+      return {
+        esito: 'ok_in_attesa',
+        messaggio: '',
+        codice: '',
+        chiValida: /il manager/i.test(t) ? 'manager' : 'caposquadra'
+      };
+    }
+  }
+  if (/^Ore salvate:/i.test(status)) {
+    return { esito: 'ok_in_attesa', messaggio: '', codice: '', chiValida: null };
+  }
+  return { esito: 'sconosciuto', messaggio: '', codice: '', chiValida: null };
+}
+
+/**
+ * Frase di Tony dopo il salvataggio.
+ * @param {{ esito?: string, lavoroNome?: string, dataIso?: string, oggiIso?: string, inizio?: string, fine?: string, chiValida?: string|null, messaggioErrore?: string }} [input]
+ * @returns {string}
+ */
+export function messaggioConfermaSalvataggioOra(input) {
+  input = input || {};
+  if (input.esito === 'errore') {
+    var err = String(input.messaggioErrore || '').trim();
+    return err || 'Non sono riuscito a salvare queste ore.';
+  }
+  if (input.esito === 'sconosciuto') {
+    return 'Non riesco a controllare il salvataggio. Guarda l\'elenco delle ore.';
+  }
+  var nome = String(input.lavoroNome || '').trim() || 'questo lavoro';
+  var dataTxt = etichettaDataRiepilogoOre(input.dataIso, input.oggiIso || '');
+  var inizio = String(input.inizio || '').trim();
+  var fine = String(input.fine || '').trim();
+  var frase = 'Fatto: ho segnato ' + nome;
+  if (dataTxt) frase += ', ' + dataTxt;
+  if (inizio && fine) frase += ', dalle ' + inizio + ' alle ' + fine;
+  frase += '.';
+  if (input.esito === 'ok_in_attesa') {
+    var chi = input.chiValida === 'manager' ? 'il manager' : 'il caposquadra';
+    frase += ' Ora la valida ' + chi + '.';
+  }
+  return frase;
+}
+
+function testoTurnoChat(m) {
+  if (!m) return '';
+  if (m.parts && m.parts[0] && m.parts[0].text) return String(m.parts[0].text);
+  if (m.text) return String(m.text);
+  return '';
+}
+
+/**
+ * Una chat ripristinata può mostrare «Vuoi salvare?» senza una conferma in memoria.
+ * In quel caso la domanda è scaduta: si aggiunge una frase in coda.
+ * @param {Array<object>|null} chatHistory
+ * @param {boolean} inAttesa
+ * @returns {{ scaduto: boolean, history: Array<object> }}
+ */
+export function riepilogoRipristinatoScaduto(chatHistory, inAttesa) {
+  var history = Array.isArray(chatHistory) ? chatHistory.slice() : [];
+  if (inAttesa) return { scaduto: false, history: history };
+  var idx = -1;
+  for (var i = history.length - 1; i >= 0; i--) {
+    if (history[i] && history[i].role === 'user') continue;
+    idx = i;
+    break;
+  }
+  if (idx < 0) return { scaduto: false, history: history };
+  var txt = testoTurnoChat(history[idx]);
+  if (/Questa richiesta è scaduta/i.test(txt)) return { scaduto: true, history: history };
+  var domanda = /Vuoi salvare\?/i.test(txt) || /scrivi\s+[«"]s[iì][»"]\s+o\s+[«"]salva[»"]/i.test(txt);
+  if (!domanda) return { scaduto: false, history: history };
+  history.push({
+    role: 'model',
+    parts: [{ text: 'Questa richiesta è scaduta. Dimmi di nuovo giorno, orario e lavoro.' }]
+  });
+  return { scaduto: true, history: history };
+}
+
 /**
  * Compat: finestra che contiene un form segna ore (mobile o desktop).
  * @returns {Window|null}
@@ -496,5 +630,8 @@ if (typeof window !== 'undefined') {
     segnaOrePauseConfermata,
     filtraCampiMezzoNonNominati,
     utenteHaNominatoMezziSegnaOra,
+    interpretaEsitoSalvataggioOra,
+    messaggioConfermaSalvataggioOra,
+    riepilogoRipristinatoScaduto,
   };
 }

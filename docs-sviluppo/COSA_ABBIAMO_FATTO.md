@@ -1,6 +1,20 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-09 — Tony, ogni richiesta di ore ha la sua data.**
+**Ultimo aggiornamento documentazione: 2026-10-09 — Tony conferma il salvataggio delle ore.**
+
+## 2026-10-09 — Tony conferma il salvataggio quando l'ora è salvata
+
+Tony dice «Fatto» quando l'ora è salvata, anche se è in attesa del caposquadra.
+
+Se il salvataggio fallisce, dice il motivo vero.
+
+Una domanda vecchia «Vuoi salvare?» non resta aperta.
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-09 — Tony, ogni richiesta di ore ha la sua data.**
 
 ## 2026-10-09 — Ore: la data è quella di questa richiesta, e dopo Annulla un «sì» non salva
 
