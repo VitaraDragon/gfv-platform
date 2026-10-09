@@ -1758,6 +1758,16 @@ async function eliminaOraGiorno(oraId, lavoroId) {
 
 let salvataggioOreInCorso = false;
 
+function emettiEsitoOra(nome, detail) {
+    const ev = new CustomEvent(nome, { detail });
+    window.dispatchEvent(ev);
+    try {
+        if (window.parent && window.parent !== window) {
+            window.parent.dispatchEvent(new CustomEvent(nome, { detail }));
+        }
+    } catch (eEv) { /* ignore */ }
+}
+
 async function saveQuickHours(event) {
     event.preventDefault();
     if (salvataggioOreInCorso || window.__gfvOreSalvataggioInCorso) return;
@@ -1806,6 +1816,7 @@ async function saveQuickHours(event) {
             pauseMinuti: pauseMin,
             note: (oraNoteEl && oraNoteEl.value) ? oraNoteEl.value.trim() : ''
         };
+        let idSalvata = editingOraId || '';
         if (editingOraId) {
             await modificaOraPropria(
                 getDb(),
@@ -1816,13 +1827,29 @@ async function saveQuickHours(event) {
                 patch
             );
         } else {
-            await salvaNuovaOra(getDb(), currentTenantId, utenteWorkspace(), {
+            idSalvata = await salvaNuovaOra(getDb(), currentTenantId, utenteWorkspace(), {
                 ...patch,
                 lavoroId: selectedWork.id,
                 terrenoId: selectedWork.raw?.terrenoId || null,
                 operaioId: currentUser.uid
             });
         }
+        const chiOre = chiValidaOra({
+            ora: { operaioId: currentUser.uid },
+            lavoro: lavoroPerPermessi(selectedWork.id)
+        });
+        emettiEsitoOra('gfv-ora-salvata', {
+            ok: true,
+            id: idSalvata || '',
+            lavoroId: editingOraLavoroId || selectedWork.id,
+            lavoroNome: selectedWork.label || '',
+            data: dateIso,
+            inizio: start,
+            fine: end,
+            pausa: pauseMin,
+            stato: 'in_attesa',
+            chiValida: chiOre
+        });
         hoursStatusEl.textContent = `Ore salvate: ${formatOreNette(netHours)}. Puoi registrare un altro turno.`;
         hoursStatusEl.style.color = '#166534';
         if (!editingOraId) {
@@ -1840,11 +1867,21 @@ async function saveQuickHours(event) {
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore salvataggio ore:', error);
         if (error && error.code === 'ORE_SOVRAPPOSTE') {
+            emettiEsitoOra('gfv-ora-salvataggio-errore', {
+                ok: false,
+                codice: 'ORE_SOVRAPPOSTE',
+                messaggio: error.message || ''
+            });
             mostraSovrapposizioneOre(error);
             return;
         }
         hoursStatusEl.textContent = `Errore salvataggio: ${error.message}`;
         hoursStatusEl.style.color = '#b91c1c';
+        emettiEsitoOra('gfv-ora-salvataggio-errore', {
+            ok: false,
+            codice: (error && error.code) || '',
+            messaggio: hoursStatusEl.textContent
+        });
         showAlert(hoursStatusEl.textContent, 'error');
     } finally {
         salvataggioOreInCorso = false;

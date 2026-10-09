@@ -175,3 +175,41 @@ export async function seminaLavoroData030(tenantId) {
   });
   return { sospesoId, attivoId, nomeSospeso, nomeAttivo };
 }
+
+export const MARKER_LAVORO_CONFERMA = 'T-FLOW-031';
+
+export async function pulisciLavoroConferma031(tenantId) {
+  if (!tenantId) return;
+  const { db } = initEmulatorAdmin();
+  const snap = await db.collection(`tenants/${tenantId}/lavori`)
+    .where('gfvTonyE2eMarker', '==', MARKER_LAVORO_CONFERMA)
+    .get();
+  await Promise.all(snap.docs.map((d) => d.ref.delete()));
+}
+
+/**
+ * Solo T-FLOW-031. Fascia di prova 06:00–06:30: non tocca il seed 07:30–12:00,
+ * gli scenari 13–17 e 18–19, né 025–030 (05:00, 22:00–23:45).
+ * @param {string} tenantId
+ */
+export async function seminaLavoroConferma031(tenantId) {
+  if (!tenantId) throw new Error('T-FLOW-031: tenant mancante');
+  const { db } = initEmulatorAdmin();
+  await pulisciLavoroConferma031(tenantId);
+  const esistenti = await db.collection(`tenants/${tenantId}/lavori`).limit(40).get();
+  const sample = esistenti.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .find((d) => d.caposquadraId && !d.operaioId && d.gfvTonyE2eMarker !== MARKER_LAVORO_CONFERMA);
+  if (!sample) throw new Error('T-FLOW-031: nessun lavoro del caposquadra da cui copiare l\'assegnazione');
+  const nomeAttivo = 'Manutenzione attrezzi e2e031';
+  const attivoId = await addTenantDocument(db, tenantId, 'lavori', {
+    caposquadraId: sample.caposquadraId,
+    terrenoId: sample.terrenoId || null,
+    gfvTonyE2eMarker: MARKER_LAVORO_CONFERMA,
+    tipoLavoro: 'Manutenzione',
+    nome: nomeAttivo,
+    stato: 'assegnato',
+    dataInizio: isoOffset(0),
+  });
+  return { attivoId, nomeAttivo };
+}

@@ -29,7 +29,10 @@ import {
     clearSpuriousQuickHoursAutofill,
     filtraCampiMezzoNonNominati,
     utenteHaNominatoMezziSegnaOra,
-} from './tony-segna-ora-local-engine.js?v=2026-10-09c';
+    interpretaEsitoSalvataggioOra,
+    messaggioConfermaSalvataggioOra,
+    riepilogoRipristinatoScaduto,
+} from './tony-segna-ora-local-engine.js?v=2026-10-09d';
 import { formattaDataItaliana } from '../../services/ore-operai-logic.js';
 import {
     risolviLavoroDaTesto,
@@ -46,7 +49,7 @@ import {
     etichettaDataRiepilogoOre,
     inserisciDataNelRiepilogo,
     eRichiestaOreNuova,
-} from './tony-ora-lavoro-match.js?v=2026-10-09c';
+} from './tony-ora-lavoro-match.js?v=2026-10-09d';
 import {
     formReadyForTonySave,
     magazzinoFormReadyForTonySave,
@@ -93,7 +96,7 @@ import { initTonyDocumentCapture } from './document-capture.js';
 import { chooseSttEngine, createRecorderSpeechRecognition, isIosLikeDevice, isStandaloneDisplayMode } from './voice-recorder-stt.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-    export const TONY_CLIENT_BUILD = '2026-10-09c';
+    export const TONY_CLIENT_BUILD = '2026-10-09d';
 if (typeof window !== 'undefined') {
     window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
     if (typeof console !== 'undefined' && console.log) console.log('[Tony] Client build', TONY_CLIENT_BUILD);
@@ -2020,6 +2023,8 @@ if (typeof window !== 'undefined') {
     try {
         window.__tonySegnaOreAnnulla = tonyAzzeraSegnaOreInAttesa;
         window.addEventListener('pagehide', function () {
+            // La conferma in attesa non si ripristina dopo un cambio pagina: vive solo in memoria.
+            // La chat può tornare da sessionStorage, ma senza riepilogo una domanda «Vuoi salvare?» è scaduta.
             tonyAzzeraSegnaOreInAttesa('pagehide');
         });
     } catch (eHookAnn) { /* ignore */ }
@@ -2785,6 +2790,89 @@ if (typeof window !== 'undefined') {
         } catch (eAck) { /* ignore */ }
     }
 
+    function tonyLeggiToastSalvataggio(doc) {
+        if (!doc || !doc.querySelectorAll) return [];
+        var nodes = doc.querySelectorAll('#gfv-standalone-toast-layer .alert, #alert-container .alert, #alert-container .alert-success');
+        return Array.from(nodes).map(function(t) { return String(t.textContent || '').trim(); }).filter(Boolean);
+    }
+
+    /**
+     * Aspetta gfv-ora-salvata o gfv-ora-salvataggio-errore. Il toast è solo il ripiego.
+     */
+    function tonyAttendiEsitoSalvataggioOra(target, timeoutMs) {
+        return new Promise(function(resolve) {
+            var chiuso = false;
+            var wins = [];
+            function aggiungi(w) {
+                if (!w || wins.indexOf(w) >= 0) return;
+                wins.push(w);
+            }
+            aggiungi(typeof window !== 'undefined' ? window : null);
+            try { if (window.parent && window.parent !== window) aggiungi(window.parent); } catch (eP) { /* ignore */ }
+            if (target && target.window) aggiungi(target.window);
+            function fine(payload) {
+                if (chiuso) return;
+                chiuso = true;
+                wins.forEach(function(w) {
+                    try { w.removeEventListener('gfv-ora-salvata', onOk); } catch (e1) { /* ignore */ }
+                    try { w.removeEventListener('gfv-ora-salvataggio-errore', onErr); } catch (e2) { /* ignore */ }
+                });
+                clearTimeout(timer);
+                resolve(payload);
+            }
+            function snapshot() {
+                return window.__tonySegnaOreRiepilogo || window.__tonySegnaOreUltimoRiepilogo || null;
+            }
+            function onOk(ev) {
+                fine({ evento: ev && ev.detail, riepilogo: snapshot(), timeout: false });
+            }
+            function onErr(ev) {
+                fine({ evento: ev && ev.detail, riepilogo: snapshot(), timeout: false });
+            }
+            wins.forEach(function(w) {
+                w.addEventListener('gfv-ora-salvata', onOk);
+                w.addEventListener('gfv-ora-salvataggio-errore', onErr);
+            });
+            var timer = setTimeout(function() {
+                var doc = target && target.doc;
+                var statusEl = doc && doc.getElementById('hours-save-status');
+                fine({
+                    evento: null,
+                    riepilogo: snapshot(),
+                    timeout: true,
+                    toastTesti: tonyLeggiToastSalvataggio(doc),
+                    statusTesto: statusEl ? String(statusEl.textContent || '').trim() : ''
+                });
+            }, timeoutMs || 15000);
+        });
+    }
+
+    function tonyScriviConfermaSalvataggio(ris) {
+        var letto = interpretaEsitoSalvataggioOra({
+            evento: ris && ris.evento,
+            toastTesti: (ris && ris.toastTesti) || [],
+            statusTesto: (ris && ris.statusTesto) || ''
+        });
+        var riep = (ris && ris.riepilogo) || window.__tonySegnaOreUltimoRiepilogo || {};
+        var ev = (ris && ris.evento) || {};
+        var msg = messaggioConfermaSalvataggioOra({
+            esito: letto.esito,
+            lavoroNome: ev.lavoroNome || riep.lavoroNome,
+            dataIso: ev.data || riep.data,
+            oggiIso: tonyOggiIsoLocale(),
+            inizio: ev.inizio || riep.inizio,
+            fine: ev.fine || riep.fine,
+            chiValida: letto.chiValida || ev.chiValida || null,
+            messaggioErrore: letto.messaggio
+        });
+        if (typeof showMessageInChat === 'function' && msg) {
+            showMessageInChat(msg, letto.esito === 'errore' ? 'error' : 'tony');
+        }
+        if (letto.esito === 'ok_in_attesa' || letto.esito === 'ok_validata') {
+            tonyAzzeraSegnaOreInAttesa('salvato');
+        }
+    }
+
     /**
      * Comando modello "salva" su workspace mobile: prima compila da chat, poi submit su #quick-hours-form.
      * Stesso flusso dati della segnatura desktop (ora-*), DOM diverso — niente duplicazione mapping iniettivo.
@@ -2862,6 +2950,7 @@ if (typeof window !== 'undefined') {
                     }
                     return;
                 }
+                var attesaEsito = tonyAttendiEsitoSalvataggioOra(target, 15000);
                 try {
                     form.requestSubmit();
                     tonyDebugLog('[Tony] SALVA: submit su ' + (formKind === 'quick-hours' ? 'quick-hours-form' : 'ora-form'));
@@ -2869,51 +2958,7 @@ if (typeof window !== 'undefined') {
                     var btn = form.querySelector('button[type="submit"]');
                     if (btn) btn.click();
                 }
-                setTimeout(function () {
-                    function scrivi(testo, tipo) {
-                        if (typeof showMessageInChat === 'function' && testo) showMessageInChat(testo, tipo || 'tony');
-                    }
-                    function azzeraIntervista() {
-                        tonyAzzeraSegnaOreInAttesa('salvato');
-                    }
-                    if (formKind === 'quick-hours') {
-                        var statusEl = target.doc.getElementById('hours-save-status');
-                        var statusTxt = statusEl ? String(statusEl.textContent || '').trim() : '';
-                        if (/^Ore salvate:/i.test(statusTxt)) {
-                            scrivi(tonyMessaggioFattoSegnaOre(), 'tony');
-                            azzeraIntervista();
-                        } else if (/^Errore salvataggio:/i.test(statusTxt)) {
-                            scrivi(statusTxt, 'error');
-                        } else {
-                            scrivi('Non vedo la conferma del salvataggio. Controlla le ore del giorno.', 'tony');
-                        }
-                    } else {
-                        var toasts = target.doc.querySelectorAll('#gfv-standalone-toast-layer .alert, #alert-container .alert-success');
-                        var saved = Array.from(toasts).some(function(t) {
-                            return /Ora segnata con successo/i.test(t.textContent || '');
-                        });
-                        if (saved) {
-                            scrivi(tonyMessaggioFattoSegnaOre(), 'tony');
-                            azzeraIntervista();
-                        } else {
-                            var errToast = Array.from(toasts).find(function(t) {
-                                var cls = t.className || '';
-                                var txt = String(t.textContent || '').trim();
-                                if (/Ora segnata con successo/i.test(txt)) return false;
-                                return /alert-error|alert-danger|alert-warning/.test(cls) && txt;
-                            });
-                            var overlap = target.doc.getElementById('ore-sovrapposizione-msg');
-                            var overlapTxt = '';
-                            if (overlap && overlap.style.display !== 'none' && !overlap.hidden) {
-                                overlapTxt = String(overlap.textContent || '').trim();
-                            }
-                            var testoErrore = errToast
-                                ? String(errToast.textContent || '').trim()
-                                : overlapTxt;
-                            scrivi(testoErrore || 'Non vedo la conferma del salvataggio. Controlla l\'elenco delle ore.', testoErrore ? 'error' : 'tony');
-                        }
-                    }
-                }, formKind === 'quick-hours' ? 1200 : 2000);
+                attesaEsito.then(tonyScriviConfermaSalvataggio);
                 });
             }, ms);
         }
@@ -7330,6 +7375,11 @@ if (typeof window !== 'undefined') {
                         }
                         deduped.push(dm);
                     }
+                    window.Tony.chatHistory = deduped;
+                    var inAttesaOre = false;
+                    try { inAttesaOre = !!window.__tonySegnaOreRiepilogo; } catch (eAtt) { inAttesaOre = false; }
+                    var chatOre = riepilogoRipristinatoScaduto(deduped, inAttesaOre);
+                    deduped = chatOre.history || deduped;
                     window.Tony.chatHistory = deduped;
                     while (messagesEl.firstChild) messagesEl.removeChild(messagesEl.firstChild);
                     for (var i = 0; i < deduped.length; i++) {
