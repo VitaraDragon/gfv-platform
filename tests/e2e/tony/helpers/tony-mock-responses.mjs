@@ -128,5 +128,30 @@ export function buildMockCfBundle(scenario) {
     return bundle;
   }
 
+  if (id === 'T-FLOW-028') {
+    bundle.staticResponses['ripristino pali'] = {
+      text: 'Tutto pronto: dalle 17:00 alle 17:30, pausa 0 min. Vuoi salvare?',
+      command: {
+        type: 'INJECT_FORM_DATA',
+        formId: 'ora-form',
+        formData: {
+          'ora-lavoro': '__E2E_FIRST_LAVORO__',
+          'ora-inizio': '17:00',
+          'ora-fine': '17:30',
+          'ora-pause': '0',
+        },
+      },
+    };
+    return bundle;
+  }
+
+  if (id === 'T-FLOW-029') {
+    bundle.staticResponses['ripristino pali'] = {
+      text: 'Tutto pronto: dalle 17:00 alle 17:30, pausa 0 min. Vuoi salvare? Scrivi «sì» o «salva».',
+      command: null,
+    };
+    return bundle;
+  }
+
   return bundle;
 }

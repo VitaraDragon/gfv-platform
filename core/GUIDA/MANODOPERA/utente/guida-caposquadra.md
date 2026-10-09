@@ -131,7 +131,7 @@ Nella scheda **Comunicazioni** trovi il modulo **Comunicazioni squadra**: non è
 
 ## Mini-guida segnare le proprie ore
 
-Nella scheda **Ore**, in alto, c’è il modulo **Segna ore** per registrare **il tuo turno** (sei un utente come gli altri dal punto di vista delle ore).
+Nella scheda **Ore**, in alto, c’è il modulo **Segna ore** per registrare **il tuo turno** (sei un utente come gli altri dal punto di vista delle ore). Se lo chiedi a Tony e due lavori hanno lo stesso nome, prende quello di oggi oppure chiede quale. Non apre il modulo sul primo della lista. Il riepilogo dice sempre il nome del lavoro. Accanto alla data c’è il giorno in italiano, per esempio «giovedì 08/10/2026». Su un lavoro sospeso non si segnano ore nuove: Tony lo dice e, se c’è, indica la ripresa. In elenco il lavoro sospeso ha il badge Sospeso.
 
 ### Passi
 
@@ -142,9 +142,11 @@ Nella scheda **Ore**, in alto, c’è il modulo **Segna ore** per registrare **i
 5. Opzionale: **Note** sul turno.  
 6. Tocca **Salva ore lavorate**.
 
+Sotto il modulo vedi **Le tue ore del giorno**. Due turni dello stesso giorno non possono coprirsi. Finché la tua riga è in attesa o rifiutata puoi modificarla o eliminarla. Una volta validata la corregge il manager.
+
 ### Cosa succede dopo
 
-- Le regole della tua azienda (e il flusso dati) decidono se l’ora va direttamente in contabilità ore o passa da stati diversi; in molti casi le ore possono essere riviste lato ufficio o dal manager dalla versione completa per computer.  
+- Le tue ore le valida il **manager**, non tu.  
 - Dopo un salvataggio riuscito il modulo può **ripulire** orari e note per facilitare l’inserimento del giorno successivo.
 
 ---
@@ -156,7 +158,7 @@ Sempre nella scheda **Lavoro**, nel blocco **Valida ore**, vedi le registrazioni
 ### Passi
 
 1. Assicurati di aver scelto il **lavoro giusto** nel menu in alto nella scheda **Lavoro**.  
-2. Scorri l’elenco sotto **Valida ore**: compaiono le righe in **attesa di validazione** per quel lavoro (nome operaio, data, fascia oraria, ore nette).  
+2. Scorri l’elenco sotto **Valida ore**: compaiono le righe in **attesa di validazione** per quel lavoro (nome operaio, data, fascia oraria, pausa, ore nette, nota e, se c’è, la macchina). Un avviso segnala se il turno si sovrappone a un altro dello stesso operaio.  
 3. Per ogni riga usa **Approva** oppure **Rifiuta** in base a ciò che è successo davvero in campo.  
 4. Se non compare nessuna riga:
    - non ci sono ore in stato «da validare» per quel lavoro, oppure  
@@ -165,8 +167,9 @@ Sempre nella scheda **Lavoro**, nel blocco **Valida ore**, vedi le registrazioni
 
 ### Ruolo del caposquadra
 
-- Qui validi le ore **del team sul singolo lavoro**.  
-- Il **manager** ha comunque le viste complete e la **validazione globale** dove previsto dall’installazione: non sono la stessa cosa.
+- Qui validi le ore **del team sul singolo lavoro**. Le tue ore le valida il manager.  
+- Il **manager** ha comunque le viste complete e la **validazione globale** dove previsto dall’installazione: non sono la stessa cosa.  
+- Da computer, in **Validazione ore**, i contatori **Validate** e **Rifiutate** sono gli ultimi 30 giorni, le stesse righe della lista. Puoi vedere anche le rifiutate, con chi, quando e il motivo. Puoi **correggere**, **annullare** o **rifiutare** un’ora già validata dei tuoi operai: serve un motivo breve. Se manca, la pagina lo dice. La riga non si cancella. Dopo il rifiuto leggi «Ora rifiutata». Le stelline delle competenze, dopo una tua validazione, si aggiornano quando agisce il manager, oppure dal ricalcolo in Gestione operai.
 
 ---
 

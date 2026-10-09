@@ -416,7 +416,7 @@ export function aggiornaInfoZone(dataSelezionata, zoneFiltrate, state) {
         const totaleSuperficie = state.allZoneLavorate ? state.allZoneLavorate.reduce((sum, z) => sum + (z.superficieHa || 0), 0) : 0;
         const numGiorni = state.dateDisponibili ? state.dateDisponibili.length : 0;
         infoZoneFiltrate.innerHTML = `
-            <span style="color: #2E7D32;">✅ Visualizzate <strong>${totaleZone}</strong> zone lavorate in <strong>${numGiorni}</strong> giorno${numGiorni !== 1 ? 'i' : ''} 
+            <span style="color: #2E7D32;">✅ Visualizzate <strong>${totaleZone}</strong> zone lavorate in <strong>${numGiorni}</strong> ${numGiorni === 1 ? 'giorno' : 'giorni'} 
             (totale: <strong>${totaleSuperficie.toFixed(2)} ha</strong>)</span>
         `;
     } else {

@@ -476,14 +476,22 @@ export async function addModuleToTenant(tenantId, moduleName) {
     if (!tenant) {
       throw new Error('Tenant non trovato');
     }
-    
-    const modules = tenant.modules || [];
+
+    const prima = await manodoperaEffettiva(tenant);
+    const modules = Array.isArray(tenant.modules) ? [...tenant.modules] : [];
+    const dopoPrevisto = await manodoperaEffettiva({ ...tenant, modules: modules.includes(moduleName) ? modules : [...modules, moduleName] });
+    if (prima !== dopoPrevisto) assertTenantCorrentePerMigrazione(tenantId);
     if (!modules.includes(moduleName)) {
       modules.push(moduleName);
       await updateTenant(tenantId, { modules });
     }
+    const dopo = await manodoperaEffettiva({ ...tenant, modules });
+    if (prima !== dopo) {
+      await allineaManodoperaDopoScrittura(tenantId, dopo, { previousEffective: prima });
+    }
   } catch (error) {
     console.error('Errore aggiunta modulo:', error);
+    if (error && error.code === 'MANODOPERA_TENANT') throw error;
     throw new Error(`Errore aggiunta modulo: ${error.message}`);
   }
 }
@@ -494,19 +502,58 @@ export async function addModuleToTenant(tenantId, moduleName) {
  * @param {string} moduleName - Nome del modulo da rimuovere
  * @returns {Promise<void>}
  */
-export async function removeModuleFromTenant(tenantId, moduleName) {
+export async function removeModuleFromTenant(tenantId, moduleName, options = {}) {
   try {
     const tenant = await getDocumentData('tenants', tenantId);
     if (!tenant) {
       throw new Error('Tenant non trovato');
     }
-    
+
+    const prima = await manodoperaEffettiva(tenant);
     const modules = (tenant.modules || []).filter(m => m !== moduleName);
+    const dopo = await manodoperaEffettiva({ ...tenant, modules });
+    if (prima !== dopo) assertTenantCorrentePerMigrazione(tenantId);
+    if (prima && !dopo) {
+      const { contaLavoriApertiTenant, messaggioLavoriAperti } = await import('./manodopera-migrazione-service.js');
+      const aperti = await contaLavoriApertiTenant(tenantId);
+      if (aperti > 0 && options.confermaLavoriAperti !== true) {
+        const err = new Error(messaggioLavoriAperti(aperti));
+        err.code = 'MANODOPERA_LAVORI_APERTI';
+        err.lavoriAperti = aperti;
+        throw err;
+      }
+    }
     await updateTenant(tenantId, { modules });
+    if (prima !== dopo) {
+      await allineaManodoperaDopoScrittura(tenantId, dopo, {
+        previousEffective: prima,
+        confermaLavoriAperti: true
+      });
+    }
   } catch (error) {
     console.error('Errore rimozione modulo:', error);
+    if (error && (error.code === 'MANODOPERA_LAVORI_APERTI' || error.code === 'MANODOPERA_TENANT')) throw error;
     throw new Error(`Errore rimozione modulo: ${error.message}`);
   }
+}
+
+function assertTenantCorrentePerMigrazione(tenantId) {
+  const current = getCurrentTenantId();
+  if (!current || current !== tenantId) {
+    const err = new Error('Migrazione consentita solo per il tenant corrente');
+    err.code = 'MANODOPERA_TENANT';
+    throw err;
+  }
+}
+
+async function manodoperaEffettiva(tenant) {
+  const { resolveEffectiveModules } = await import('../utils/module-access-resolver.js');
+  return resolveEffectiveModules(tenant).includes('manodopera');
+}
+
+async function allineaManodoperaDopoScrittura(tenantId, manodoperaAttiva, options) {
+  const { allineaDatiManodopera } = await import('./manodopera-migrazione-service.js');
+  return allineaDatiManodopera(tenantId, manodoperaAttiva, options);
 }
 
 /**

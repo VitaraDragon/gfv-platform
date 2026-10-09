@@ -1,6 +1,146 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-05 — «o' fatto la vigna» naviga davvero.**
+**Ultimo aggiornamento documentazione: 2026-10-09 — Tony, lavori sospesi e «Tutto pronto» con il nome.**
+
+## 2026-10-09 — Ore: niente «Tutto pronto» senza il lavoro, e niente ore nuove su un sospeso
+
+«Tutto pronto» ha sempre il nome del lavoro, da qualunque parte arrivi la risposta: chat, voce o testo del modello.
+
+Sui lavori sospesi non si segnano ore nuove. Tony lo dice e propone la ripresa, se c’è. Il badge del lavoro sospeso dice «Sospeso».
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-08 — Tony, due lavori uguali e quello di oggi.**
+
+## 2026-10-08 — Ore: con due lavori dallo stesso nome Tony sceglie quello di oggi
+
+Se dici un nome che sta su due lavori, Tony prende quello di oggi. Se nessuno è di oggi, o lo sono tutti e due, chiede quale. Non apre più il modulo sul primo lavoro della lista.
+
+«Tutto pronto» dice sempre il nome del lavoro, anche quando la frase arriva dal modello. Se l’orario è già occupato, il modulo non resta sul lavoro sbagliato: se il lavoro non è uno solo, Tony chiede quale insieme all’avviso.
+
+Accanto alla data del modulo c’è il giorno in italiano, per esempio «giovedì 08/10/2026». Il valore salvato resta la data normale.
+
+Non cambia `firestore.rules`. Non c’è nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-08 — Tony segna l’ora sul lavoro nominato.**
+
+## 2026-10-08 — Ore: Tony salva sul lavoro detto, avvisa prima della pausa, la traccia tiene le validazioni
+
+Tony, quando gli chiedi di segnare le ore, usa il lavoro che nomini. Lo scrive nel riepilogo, con gli orari e la pausa. Non prende più il primo della lista. Se il nome corrisponde a due lavori, chiede quale. Dopo il «sì» conferma in chat su quale lavoro ha segnato l’ora.
+
+Se l’orario è già occupato, te lo dice appena ha inizio e fine, prima di chiedere la pausa, e propone il primo buco davvero libero. Se non c’è, chiede un altro orario.
+
+La storia della riga tiene tutte le validazioni: anche dopo un annullo e una nuova validazione, la prima «Validata» resta. Una riga rifiutata e poi modificata torna «Da validare»; il rifiuto resta nella storia, non come stato attuale. Il pulsante Salva, su computer e telefono, mostra «Salvataggio…» e non accetta un secondo invio finché non ha finito.
+
+Il pulsante Esci nel workspace del telefono non c’è ancora: non c’era un modo già pronto da riusare.
+
+Non cambia `firestore.rules`. Non c’è nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-08 — Regole zone lavorate allineate a main.**
+
+## 2026-10-08 — Regole: le zone lavorate le cancella solo chi le ha tracciate
+
+Su `develop` il blocco `zoneLavorate` di `firestore.rules` permetteva a qualsiasi membro dell’azienda di cancellare una zona. Ora è uguale a `main` (regola della PR #80): tutti i membri possono creare e modificare, ma cancella solo chi l’ha tracciata (`operaioId` o `caposquadraId`) oppure il manager o l’amministratore. Così un deploy delle regole fatto da `develop` non riapre più questa cancellazione.
+
+Nessun altro blocco cambia, `oreOperai` compreso. Questa PR non fa nessun deploy: online le regole sono già quelle di `main`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-08 — Ore: ritest Uso Reale, Tony e traccia.**
+
+## 2026-10-08 — Ore: Tony avvisa se l’orario è occupato, e la storia della riga si legge tutta
+
+L’operaio, dopo aver segnato un’ora, legge «Ora segnata con successo!» e se la valida il caposquadra o il manager. Sulle proprie ore vede chi ha validato, corretto, annullato o rifiutato, con data, ora e motivo. Se l’ora è rifiutata, il motivo non resta solo un’etichetta.
+
+Tony, prima di chiedere di salvare, controlla se quell’orario è già occupato e propone un altro. Lo ricontrolla anche al «sì». Se dici «pausa 0» o «nessuna pausa», non te la chiede di nuovo. Macchina e attrezzo restano quelli del lavoro scelto, a meno che tu non li nomini. Tony non mette macchina e attrezzo della riga prima anche quando la compilazione arriva dal modello. Il test e2e del rifiuto usa una fascia libera.
+
+Il caposquadra, nella lista da validare sul telefono, vede la nota e la macchina. Il motivo del rifiuto, se manca, resta visibile. Dopo il rifiuto compare «Ora rifiutata». Le stelline delle competenze, dopo una sua validazione, si aggiornano quando agisce il manager, oppure dal ricalcolo in Gestione operai.
+
+Il manager, in Validazione ore, ha gli stessi numeri della lista: «Da validare» è la sua coda, «Validate» e «Rifiutate» sono gli ultimi 30 giorni. Può filtrare le rifiutate e leggere chi, quando e perché. Se il motivo è vuoto, la pagina lo dice in rosso e con l’avviso. Lo stesso vale per il caposquadra sul suo elenco.
+
+Non cambia `firestore.rules`. Non c’è nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-08 — Ore: modifica, sovrapposizioni, correzione dopo validazione.**
+
+## 2026-10-08 — Ore: si possono correggere, e due turni nello stesso orario non si salvano
+
+L’operaio e il caposquadra possono cambiare o eliminare le proprie ore finché sono in attesa o rifiutate. Un’ora già validata resta bloccata per chi l’ha segnata: la scritta dice di chiedere al caposquadra, oppure al manager se il lavoro è autonomo o se la riga è del caposquadra. Due turni della stessa persona nello stesso giorno non si salvano se gli orari si incrociano; se si toccano solo al cambio ora, vanno bene. In Segna ore (computer e telefono) compare il riquadro delle ore di quel giorno.
+
+Il caposquadra, sulle ore dei suoi operai, e il manager, su tutte le ore dell’azienda, possono correggere una riga già validata, rimetterla in attesa o rifiutarla con un motivo. La riga non si cancella. Il singolo «Valida» non chiede più conferma; «Valida selezionate» e «Valida tutte» ne chiedono una sola. I contatori in alto sono in ore, con il numero di righe sotto. C’è anche la pausa e un avviso se due turni si sovrappongono.
+
+È cambiato `firestore.rules` sul blocco delle ore. Il deploy delle regole va fatto a mano, con `npm run deploy:rules`, solo dopo che questa versione è online e verificata. Non c’è nessun deploy di Cloud Functions. Le righe doppie del 6 e 7 ottobre, e quelle dell’operaio Paolo, si sistemano dall’interfaccia (caposquadra e manager), non con uno script.
+
+Tony dice in chat quando il salvataggio fallisce per sovrapposizione, anche da computer. Se c’è una macchina e le ore macchina sono vuote, si salvano le ore nette; senza macchina il campo resta vuoto e non compare l’avviso «da verificare a mano». Dal telefono il rifiuto chiede il motivo e resta nello storico. Gli scenari Tony di segnatura usano la fascia 13:00–17:00, libera rispetto al turno di seed 07:30–12:00.
+
+Dal telefono il pulsante «Rifiuta» del caposquadra chiede il motivo prima di salvare: se manca, avvisa e non tocca la riga; se il rifiuto riesce, la riga esce dalla coda e compare «Ora rifiutata». Un errore in quel passaggio non resta più solo in console.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-07 — Plurali nelle scritte (squadre, terreni, giorni, zone).**
+
+## 2026-10-07 — Scritte: plurali senza la lettera in più
+
+Alcuni contatori attaccavano la desinenza alla parola intera («squadrae», «terrenoi», «giornoi», «lavoratae», «rigae»). Ora il singolare e il plurale sono due forme intere: squadra/squadre, terreno/terreni, urgente/urgenti, giorno/giorni, zona lavorata/zone lavorate, riga/righe. Nessuna modifica a `firestore.rules` e nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-07 — Voce Tony: 1 si dice un o uno.**
+
+## 2026-10-07 — Voce Tony: il numero 1 non è sempre «uno»
+
+In voce, la cifra 1 veniva letta sempre «uno» («uno trattore», «uno ettaro»). Prima della sintesi, Tony sceglie la forma dalla parola che segue: «un trattore», «uno studente», «una macchina», «un'ora». Da solo o prima di una preposizione resta «uno» («ne ho uno», «da uno a cinque»). L’una per l’orario («dalle uno» → «dall'una») e «primo» davanti al mese. «1 kg» / «1 ha» si sentono al singolare («un chilogrammo», «un ettaro»). In chat il numero resta in cifra. Nessuna modifica a `firestore.rules` e nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-07 — Gestione lavori, Sospendi / Rinvia del manager.**
+
+## 2026-10-07 — Gestione lavori: il manager sospende con causa (non è lo standby)
+
+In Gestione lavori il manager ha l’azione di riga «Sospendi / Rinvia»: motivo obbligatorio (maltempo, guasto, altro con nota) e data di ripresa facoltativa. Il lavoro passa a `sospeso` con `sospensioneCausa` e `sospensioneIl`, le macchine si liberano, e se c’è la data nasce subito la ripresa. È la stessa sospensione operativa del Caposquadra, distinta da «Standby assenza» (`in_standby`). Anche Modifica, quando lo stato diventa Sospeso, scrive la causa. Nessuna modifica a `firestore.rules` e nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-07 — Mappa sede in Impostazioni, init senza TDZ.**
+
+## 2026-10-07 — Impostazioni: mappa sede senza ReferenceError all’apertura
+
+Aprendo la mappa sede, la console segnalava `Cannot access 'sedeMapInitAttempts' before initialization`. Il callback di Google Maps azzerava il contatore prima che il `let` nello stesso modulo fosse eseguito (gli await successivi lasciano il tempo al callback di partire). Lo stato della mappa sede è dichiarato prima di registrare il callback. Cerca indirizzo, pin e salvataggio restano gli stessi. Nessuna modifica a `firestore.rules` e nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-06 — Data inizio lavoro in modifica, giorno locale.**
+
+## 2026-10-06 — Gestione lavori: data inizio in modifica senza −1 giorno UTC
+
+In modifica, la data di inizio usava `toISOString()` e, con un orario a mezzanotte locale (Italia), il campo mostrava il giorno prima. Salvare così com’era spostava la data indietro. Ora il campo legge il giorno di calendario locale, come elenco e dettagli. Il Diario allinea `max` e il valore «oggi» degli input data allo stesso giorno locale: i futuri restano bloccati e il passato resta senza un nuovo limite. Nessuna modifica a `firestore.rules` e nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-06 — Cascata Diario categoria → tipo lavoro.**
+
+## 2026-10-06 — Diario: cascata categoria → sottocategoria → tipo lavoro
+
+Con Manodopera spento, nel Diario la scelta della categoria non apriva sottocategoria e tipo lavoro, e il salvataggio rispondeva «Il tipo lavoro è obbligatorio». La cascata si agganciava una sola volta: se il modale partiva prima dei callback, i menu restavano vuoti. Ora l’aggancio aspetta i callback veri e, a ogni cambio categoria, riempie sottocategoria e tipi collegati (anche se il padre è salvato come codice o il tipo punta alla sottocategoria). In modifica di un lavoro, la categoria principale non resta sul placeholder quando il tipo è legato a una sottocategoria. Le attività già salvate non si toccano. Nessuna modifica a `firestore.rules` e nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-06 — Migrazione dati Manodopera all’on/off.**
+
+## 2026-10-06 — Migrazione dati Manodopera (Diario ↔ lavori)
+
+Quando Manodopera entra o esce dai moduli effettivi del tenant, i dati si copiano una volta sola: dal Diario ai lavori in attivazione, dai lavori allo storico del Diario in disattivazione. Non si cancella nulla (attività, lavori, operai, squadre). Una seconda accensione non duplica. In disattivazione, se ci sono lavori aperti, si chiede conferma prima di proseguire. I casi non mappabili (Altro, conto terzi incompleto, campi vuoti) restano in sola lettura nella sezione «Attività precedenti». Le date più vecchie di un anno passano da una validazione di migrazione, perché `Lavoro.validate` le rifiuterebbe. Nessuna modifica a `firestore.rules` e nessun deploy di Cloud Functions: dopo Stripe la copia parte al ricarico dell’abbonamento.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-05 — «o' fatto la vigna» naviga davvero.**
 
 ## 2026-10-05 — Lavoro fatto in campo: Tony cambia pagina
 
@@ -1985,8 +2125,6 @@ Queste prove sono state eseguite **solo in locale** (emulator + http-server + Pl
 | **Ancora fuori** | Roster completo; Tony/Context Builder su shortlist; pool riserve; drag&drop. *(Vista impegni: vedi voce 2026-07-24.)* |
 | **Canary E2E** | `npm run manodopera:sostituzione-canary` — capo (field-workspace segnala) + manager (standby → shortlist → assegna). Fix collaterale: campi `equipaggioGiorno` / `manodoperaPrestata` / priorità su modello `Lavoro` (altrimenti `updateLavoro` li scartava). |
 | **Fix elenco lavori capo** | 2026-07-22: lavori di squadra creati dal manager non comparivano al capo (dual-role trattato come solo operaio; filtro «Segna ore» 14gg; slice finestra applicato per errore al capo). Fix: `resolveFieldWorkspaceLavoriRoleFlags` + merge fetch capo/operaio + elenco capo senza slice/taglio 14gg. |
-
-
 
 ## Tony Occhi / Magazzino — chiusura blocco 2026-07-21 (riepilogo)
 
@@ -4247,7 +4385,6 @@ npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose   # stac
 
 **Cleanup:** `npm run sim:cleanup` (opz. `--keep N`, `--dry-run`).
 
-
 **Test automatico:** `npm run sim:test` (run completo + inspect seed v2, cleanup tenant di test); `npm run sim:test:vitest` (vitest, skip se emulator assente).
 
 **Cleanup:** `npm run sim:cleanup` elimina tenant `sim_*` del manifest da Firestore/Auth emulator; `--keep N` mantiene le ultime N aziende.
@@ -4826,7 +4963,6 @@ Sessione di hardening **modalità continua**, **TTS stream**, **congedo vocale**
 - Test: `tests/tony-stream-tts-chunk.test.js` (6), canary voice aggiornato
 
 **File:** `stream-tts-chunk.js`, `main.js`, `voice.js` (prefetch esposto). Piano: `PIANO_AUDIO_PIPELINE_BARGEIN.md` §7.
-
 
 ## Documentazione — SETUP_ALTRO_PC_CURSOR (2026-06-07)
 
@@ -10704,7 +10840,6 @@ Risolvere i problemi del sistema multi-tenant dopo l'implementazione iniziale:
 ✅ **COMPLETATO** (2026-01-12)
 
 Il sistema multi-tenant è ora completamente funzionante. Gli utenti possono appartenere a più tenant con ruoli diversi, e lo switch tra tenant funziona correttamente con isolamento completo dei dati e delle viste dashboard.
-
 
 ## 2026-03-26 - Tony preventivo da qualsiasi pagina: fix coercion cross-page
 

@@ -2794,7 +2794,38 @@
         });
         if (partialMac) resolved = partialMac.value;
       }
-    } else if ((fieldId === 'ora-lavoro' || fieldId === 'ora-macchina' || fieldId === 'ora-attrezzo') && valStr) {
+    } else if (fieldId === 'ora-lavoro' && valStr) {
+      var apiLavoro = (typeof window !== 'undefined' && window.TonyOraLavoroMatch) || null;
+      var pickedLavoro = null;
+      if (apiLavoro && typeof apiLavoro.risolviValoreSelectLavoro === 'function') {
+        var lavoriDatatiOra = [];
+        var oggiIsoOra = '';
+        try {
+          if (typeof window.gfvSegnaturaOreLavoriPerTony === 'function') {
+            lavoriDatatiOra = window.gfvSegnaturaOreLavoriPerTony() || [];
+          }
+        } catch (eLavDat) { lavoriDatatiOra = []; }
+        try {
+          var oggiD = new Date();
+          function padOggi(n) { return (n < 10 ? '0' : '') + n; }
+          oggiIsoOra = oggiD.getFullYear() + '-' + padOggi(oggiD.getMonth() + 1) + '-' + padOggi(oggiD.getDate());
+        } catch (eOggi) { oggiIsoOra = ''; }
+        pickedLavoro = apiLavoro.risolviValoreSelectLavoro(valStr, opts.map(function (o) {
+          return { value: o.value, text: o.text || '' };
+        }), { lavori: lavoriDatatiOra, oggiIso: oggiIsoOra });
+      } else if (opts.some(function (o) { return (o.value || '') === valStr; })) {
+        pickedLavoro = valStr;
+      } else {
+        var searchOraExact = valStr.toLowerCase();
+        var hitsOra = opts.filter(function (o) {
+          if (!o.value) return false;
+          var t = (o.text || '').toLowerCase();
+          return t === searchOraExact || t.indexOf(searchOraExact) >= 0;
+        });
+        pickedLavoro = hitsOra.length === 1 ? hitsOra[0].value : null;
+      }
+      resolved = pickedLavoro || '';
+    } else if ((fieldId === 'ora-macchina' || fieldId === 'ora-attrezzo') && valStr) {
       var searchOra = valStr.toLowerCase().trim();
       if (/^[a-zA-Z0-9_-]{15,}$/.test(valStr) && opts.some(function (o) { return (o.value || '') === valStr; })) {
         resolved = valStr;
@@ -2802,10 +2833,10 @@
         var partialOra = opts.find(function (o) {
           if (!o.value) return false;
           var t = (o.text || '').toLowerCase();
-          var fw = (t.split(/\s+/)[0] || '').trim();
-          return t === searchOra || t.indexOf(searchOra) >= 0 || searchOra.indexOf(fw) >= 0 || (fw && searchOra.indexOf(fw) >= 0);
+          return t === searchOra || t.indexOf(searchOra) >= 0;
         });
         if (partialOra) resolved = partialOra.value;
+        else resolved = '';
       }
     } else if ((fieldId === 'lavoro-operaio' || fieldId === 'lavoro-caposquadra') && valStr && window.lavoriState) {
       var searchStr = valStr.toLowerCase();
@@ -2839,6 +2870,10 @@
           if (partialSub) resolved = partialSub.value;
         }
       }
+    }
+    if ((fieldId === 'ora-lavoro' || fieldId === 'ora-macchina' || fieldId === 'ora-attrezzo') && !String(resolved || '').trim()) {
+      log('Campo SELECT ' + fieldId + ': nessun valore univoco, select non modificato');
+      return false;
     }
     if (String(el.value || '') === String(resolved || '')) {
       log('Campo SELECT ' + fieldId + ' già impostato a "' + resolved + '" (skip change)');
@@ -4609,10 +4644,16 @@
       return false;
     }
     var oraModal = document.getElementById('ora-modal');
+    var lavoroIdInject = formData['ora-lavoro'] != null ? String(formData['ora-lavoro']).trim() : '';
     if (!oraModal || !oraModal.classList.contains('active')) {
+      if (!lavoroIdInject) {
+        log('injectSegnaOraForm: lavoro non univoco, non apro il modal');
+        return false;
+      }
       if (typeof window.openSegnaOraModal === 'function') {
         log('injectSegnaOraForm: apro modal Segna ora (Tony desktop)');
-        await window.openSegnaOraModal(null);
+        try { window.__tonySegnaOreModalApertoDaTony = true; } catch (eFlagInj) { /* ignore */ }
+        await window.openSegnaOraModal(lavoroIdInject);
         await delay(500);
         oraModal = document.getElementById('ora-modal');
       }
@@ -4621,10 +4662,20 @@
         return false;
       }
     }
+    var selGia = document.getElementById('ora-lavoro');
+    var selValGia = selGia ? String(selGia.value || '').trim() : '';
+    if (selValGia && lavoroIdInject && selValGia !== lavoroIdInject) {
+      delete formData['ora-inizio'];
+      delete formData['ora-fine'];
+    }
+    if (selValGia && !lavoroIdInject) {
+      delete formData['ora-inizio'];
+      delete formData['ora-fine'];
+    }
     var sel0 = document.getElementById('ora-lavoro');
     if (sel0 && sel0.options.length <= 1 && typeof window.openSegnaOraModal === 'function') {
       log('injectSegnaOraForm: popolo dropdown lavori via openSegnaOraModal');
-      await window.openSegnaOraModal(null);
+      await window.openSegnaOraModal(lavoroIdInject || null);
       await delay(500);
     }
     function resolveOra(fieldId, value) {
@@ -4637,25 +4688,29 @@
       resolver: resolveOra,
       delays: { 'ora-lavoro': 400, 'ora-macchina': 450, 'ora-attrezzo': 400 }
     };
-    var orderFirst = ['ora-lavoro', 'ora-data', 'ora-inizio', 'ora-fine', 'ora-pause', 'ora-note', 'ora-includi-posizione'];
+    var orderRest = ['ora-data', 'ora-inizio', 'ora-fine', 'ora-pause', 'ora-note', 'ora-includi-posizione'];
     var orderMac = ['ora-macchina', 'ora-attrezzo', 'ora-ore-macchina'];
     var fd = Object.assign({}, formData);
-    var ok1 = await injectForm(fd, Object.assign({}, baseConfig, { injectionOrder: orderFirst }), context);
-    if (!ok1) return false;
+    if (fd['ora-lavoro'] != null && String(fd['ora-lavoro']).trim() !== '') {
+      var okLav = await injectForm({ 'ora-lavoro': fd['ora-lavoro'] }, Object.assign({}, baseConfig, { injectionOrder: ['ora-lavoro'] }), context);
+      if (!okLav) return false;
+    }
     if (typeof window.gfvSegnaturaOreRefreshMacchineFromSelect === 'function') {
-      await delay(450);
       try {
         window.gfvSegnaturaOreRefreshMacchineFromSelect();
       } catch (eMac) {
         log('injectSegnaOraForm: refresh macchine: ' + (eMac && eMac.message));
       }
-      await delay(500);
-      var hasMac = fd['ora-macchina'] != null && String(fd['ora-macchina']).trim() !== '';
-      var hasAtt = fd['ora-attrezzo'] != null && String(fd['ora-attrezzo']).trim() !== '';
-      var hasOreM = fd['ora-ore-macchina'] != null && String(fd['ora-ore-macchina']).trim() !== '';
-      if (hasMac || hasAtt || hasOreM) {
-        await injectForm(fd, Object.assign({}, baseConfig, { injectionOrder: orderMac }), context);
-      }
+      await delay(400);
+    }
+    var ok1 = await injectForm(fd, Object.assign({}, baseConfig, { injectionOrder: orderRest }), context);
+    if (!ok1) return false;
+    var hasMac = fd['ora-macchina'] != null && String(fd['ora-macchina']).trim() !== '';
+    var hasAtt = fd['ora-attrezzo'] != null && String(fd['ora-attrezzo']).trim() !== '';
+    var hasOreM = fd['ora-ore-macchina'] != null && String(fd['ora-ore-macchina']).trim() !== '';
+    if (hasMac || hasAtt || hasOreM) {
+      await delay(200);
+      await injectForm(fd, Object.assign({}, baseConfig, { injectionOrder: orderMac }), context);
     }
     try {
       if (typeof window.gfvCalcolaOreNetteSegnatura === 'function') {
@@ -7212,7 +7267,22 @@
       } else if (useLavoroForm) {
         out.injected = await injectLavoroForm(extracted.formData, context);
       } else if (useOraForm) {
-        out.injected = await injectSegnaOraForm(extracted.formData, context);
+        var fdOraModello = extracted.formData;
+        var engineMezzi = window.TonySegnaOraLocalEngine;
+        if (engineMezzi && typeof engineMezzi.filtraCampiMezzoNonNominati === 'function') {
+          var blobMezzi = '';
+          try {
+            if (typeof window.__tonyBuildSegnaOraUserBlob === 'function') {
+              blobMezzi = String(window.__tonyBuildSegnaOraUserBlob() || '');
+            } else if (window.__tonyLastUserMessage) {
+              blobMezzi = String(window.__tonyLastUserMessage);
+            } else {
+              blobMezzi = String(sessionStorage.getItem('tony_last_user_message') || '');
+            }
+          } catch (eBlobMezzi) { blobMezzi = ''; }
+          fdOraModello = engineMezzi.filtraCampiMezzoNonNominati(fdOraModello, blobMezzi);
+        }
+        out.injected = await injectSegnaOraForm(fdOraModello, context);
       } else {
         out.injected = await injectAttivitaForm(extracted.formData, context);
       }

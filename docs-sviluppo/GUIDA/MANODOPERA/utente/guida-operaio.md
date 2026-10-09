@@ -91,11 +91,16 @@ Nella scheda **Ore**, in alto, compila il modulo **Segna ore**.
 4. **Note** — utili ma facoltative (es. “solo mattina”, “interruzione per pioggia”).  
 5. Tocca **Salva ore lavorate**.
 
+Sotto il modulo c’è **Le tue ore del giorno**: i turni di quel giorno, con lavoro, orario, pausa, ore nette e stato. Due turni non possono coprirsi; toccarsi al cambio orario va bene (finisci alle 12:00 e riparti alle 12:00).
+
 ### Dopo il salvataggio
 
-- Può comparire un messaggio di conferma o uno **stato** sulla registrazione: leggi ciò che dice la tua schermata.  
+- Il messaggio inizia con **Ora segnata con successo!** e dice se la valida il caposquadra o il manager.  
 - Se dopo il salvataggio il modulo si **svuota**, è normale: puoi inserire un altro giorno o turno.  
-- Per **correggere** un errore dopo il salvataggio, segui la procedura che ti indicano in azienda (a volte serve un contatto con l’ufficio).
+- Finché la riga è **in attesa** o **rifiutata** puoi **modificarla** o **eliminarla** dal riquadro del giorno. Il lavoro non si cambia: per un altro lavoro elimina e segna di nuovo. Una riga **rifiutata**, dopo la modifica, torna in attesa.  
+- Su una riga **in attesa** leggi «Da validare — la valida il caposquadra» (o il manager). Se era stata rifiutata e poi l’hai modificata, lo stato è di nuovo quello: sotto resta la storia, con il rifiuto e la modifica. Su una riga ancora **rifiutata** leggi chi l’ha rifiutata, quando e il motivo. Sulle righe validate, corrette o annullate c’è la stessa storia, con data e ora, anche se la validazione è stata annullata e rifatta.
+- Su una riga **validata** non puoi fare nulla: chiedi al caposquadra, oppure al manager se il lavoro è autonomo.
+- Se chiedi a Tony di segnare le ore, nel riepilogo c’è il nome del lavoro, gli orari e la pausa. Se due lavori hanno lo stesso nome, prende quello di oggi; se non è chiaro, chiede quale e non apre il modulo sul primo della lista. Se l’orario è già occupato te lo dice subito, prima di chiedere la pausa, e ti propone il primo buco libero. Se dici «pausa 0» o «nessuna pausa», non te la chiede di nuovo. Macchina e attrezzo sono quelli del lavoro, a meno che tu non li nomini. Dopo il «sì» Tony conferma su quale lavoro ha segnato l’ora. Accanto alla data del modulo c’è il giorno in italiano, per esempio «giovedì 08/10/2026». Su un lavoro sospeso non si segnano ore nuove: Tony lo dice e, se c’è, indica la ripresa. In elenco il lavoro sospeso ha il badge Sospeso.
 
 ---
 
@@ -204,7 +209,7 @@ Se lavori **da solo** su un incarico e devi fermarti per meteo, guasto o altro m
 
 1. Scegli il lavoro nella scheda **Lavoro**, apri la scheda **Ore** e nel **dettaglio lavoro** (o nella schermata **I miei lavori**) tocca **⏸️ Sospendi lavoro**. Si può fare solo se il lavoro è **assegnato** o **in corso**.  
 2. Scrivi il **motivo** a parole tue (testo libero, es. «pioggia», «trattore fermo») e conferma.  
-3. Il lavoro passa in **Sospeso**: nel dettaglio compare «Lavoro sospeso» con il tuo motivo e su quel lavoro non segni più zone.  
+3. Il lavoro passa in **Sospeso**: nel dettaglio compare «Lavoro sospeso» con il tuo motivo e su quel lavoro non segni più zone né ore nuove.  
 4. Per ripartire non devi fare nulla: il manager crea il **lavoro di ripresa**, che ti compare tra i **Lavori assegnati** con lo stesso nome e «(ripresa)». Lo scegli e continui come sempre; sulla mappa vedi in arancione le zone già fatte prima della sospensione e in verde quelle nuove.
 
 La sospensione funziona solo sugli incarichi **solo tuoi**: su quelli di gruppo avvisa il **caposquadra**, che può sospendere il lavoro. Se invece sei **tu** a non poter lavorare (malattia, ferie, permesso), non sospendere: avvisa il caposquadra o il manager, che registrano l’**assenza**.

@@ -349,9 +349,9 @@ Le ore che gli operatori registrano (versione mobile o altri canali previsti) po
 
 1. **Home Manodopera** → **Validazione ore**, oppure alert **Ore da validare** in **Richiede attenzione** sulla dashboard.  
 2. Imposta i **filtri** se la pagina li offre (periodo, persona, lavoro, stato).  
-3. Per ogni riga in attesa leggi **data**, **orari**, **ore nette**, **lavoro**, **operaio**.  
-4. Usa **Approva** o **Rifiuta** (o etichette equivalenti).  
-5. Se rifiuti, è utile avere un canale esterno (messaggio, telefono) per spiegare cosa correggere.
+3. Per ogni riga in attesa leggi **data**, **orari**, **pausa**, **ore nette**, **lavoro**, **operaio**. I numeri in alto sono in ore, con il numero di righe sotto. **Da validare** è la tua coda. **Validate** e **Rifiutate** contano le stesse righe degli ultimi 30 giorni e lo scrivono sotto. Un avviso segnala i turni che si sovrappongono.  
+4. **Valida** approva subito. **Valida selezionate** e **Valida tutte** chiedono una conferma sola. **Rifiuta** chiede il motivo. Se il motivo è vuoto, compare «Scrivi il motivo: è obbligatorio.» e il campo resta in evidenza. Dopo il rifiuto leggi «Ora rifiutata».  
+5. Negli ultimi 30 giorni (filtri per operaio, lavoro e stato) vedi le ore validate e quelle rifiutate, con chi ha fatto l’azione, data, ora e motivo. Se la storia è lunga, **mostra tutto**. Puoi **Correggere**, **Annullare la validazione** o **Rifiutare / togliere**. Ogni azione chiede un motivo breve. La riga non si cancella. Vale anche per le ore degli operai di squadra.
 
 ### Perché conta
 
@@ -368,7 +368,7 @@ Oltre alla versione mobile in campo, esiste una pagina **Segnatura ore** per dig
 1. Chiedi a **Tony** «apri segnatura ore» (serve **Tony Avanzato**), oppure  
 2. Usa un segnalibro o un link che l’ufficio ha già salvato, se lo usate spesso.
 
-Il flusso **quotidiano** degli operatori resta la **versione mobile**: questa pagina non sostituisce il loro percorso, lo integra dove serve a te.
+Il flusso **quotidiano** degli operatori resta la **versione mobile**: questa pagina non sostituisce il loro percorso, lo integra dove serve a te. Su un lavoro sospeso non si segnano ore nuove, né dal menu né con Tony: Tony lo dice e indica la ripresa, se c’è. In elenco il badge è **Sospeso**. «Tutto pronto» dice sempre il nome del lavoro.
 
 ---
 

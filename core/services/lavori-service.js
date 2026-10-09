@@ -27,6 +27,7 @@ import {
   collectLiveLavoroIdSet,
   LAVORO_HAS_RIPRESE_FIGLIE
 } from './lavoro-delete-cascade.js';
+import { buildSospendiLavoroPatch, isLavoroStatoSospendibile } from './lavoro-sospensione.js';
 
 export {
   countRelatedLavoroData,
@@ -422,28 +423,63 @@ export async function getNumeroLavoriCaposquadra(caposquadraId, stato = null) {
 }
 
 /**
- * Sospende un lavoro in corso o assegnato (caposquadra/operaio tramite updateLavoro).
+ * True se l'utente può sospendere questo lavoro (stessi ruoli di updateLavoro).
+ * @param {{ id?: string, uid?: string, ruoli?: string[] }|null|undefined} user
+ * @param {{ caposquadraId?: string|null, operaioId?: string|null }} lavoro
+ * @returns {boolean}
+ */
+function puoSospendereLavoro(user, lavoro) {
+  const ruoli = user?.ruoli || [];
+  const userId = user?.id || user?.uid;
+  if (!userId) return false;
+  if (ruoli.includes('manager') || ruoli.includes('amministratore')) return true;
+  if (ruoli.includes('caposquadra') && lavoro.caposquadraId === userId && !lavoro.operaioId) return true;
+  if (ruoli.includes('operaio') && lavoro.operaioId === userId && !lavoro.caposquadraId) return true;
+  return false;
+}
+
+/**
+ * Sospende un lavoro assegnato, in corso o attivo.
+ * Patch parziale (stato, sospensioneCausa, sospensioneIl, aggiornatoIl):
+ * non riscrive il documento e non tocca i campi standby assenza.
+ * Stati: assegnato | in_corso | attivo (come il Caposquadra). `attivo` è
+ * ammesso qui; il Capo continua a scrivere da solo via updateDoc.
  * @param {string} lavoroId
- * @param {string} [causa]
+ * @param {string} [causa] Testo già pronto (es. "Maltempo" o "Altro: …")
+ * @param {{ tenantId?: string, userData?: Object, lavoriList?: Array }} [options]
  */
 export async function sospendiLavoro(lavoroId, causa = '', options = {}) {
   const tenantId = options.tenantId ?? getCurrentTenantId();
-  const lavoro = await getLavoro(lavoroId);
+  if (!tenantId) throw new Error('Nessun tenant corrente disponibile');
+  const built = buildSospendiLavoroPatch(causa);
+  if (!built.ok) throw new Error(built.error);
+
+  const lavoro = await getDocumentData(COLLECTION_NAME, lavoroId, tenantId);
   if (!lavoro) throw new Error('Lavoro non trovato');
-  if (!['in_corso', 'assegnato'].includes(lavoro.stato)) {
-    throw new Error('Solo lavori assegnati o in corso possono essere sospesi');
+  if (!isLavoroStatoSospendibile(lavoro.stato)) {
+    throw new Error('Solo lavori assegnati, in corso o attivi possono essere sospesi');
   }
-  await updateLavoro(lavoroId, {
-    stato: 'sospeso',
-    sospensioneCausa: (causa || '').trim(),
-    sospensioneIl: new Date()
-  });
-  if (tenantId && (lavoro.macchinaId || lavoro.attrezzoId)) {
-    const { liberaMacchineDaLavoro } = await import('./lavoro-macchine-lifecycle.js');
-    await liberaMacchineDaLavoro(
-      { id: lavoroId, macchinaId: lavoro.macchinaId, attrezzoId: lavoro.attrezzoId },
-      { tenantId, lavoriList: options.lavoriList }
-    );
+  const user = options.userData ?? getCurrentUserData();
+  if (!puoSospendereLavoro(user, lavoro)) {
+    throw new Error('Non hai i permessi per sospendere questo lavoro');
+  }
+
+  await updateDocument(COLLECTION_NAME, lavoroId, {
+    ...built.patch,
+    sospensioneIl: serverTimestamp(),
+    aggiornatoIl: serverTimestamp()
+  }, tenantId);
+
+  if (lavoro.macchinaId || lavoro.attrezzoId) {
+    try {
+      const { liberaMacchineDaLavoro } = await import('./lavoro-macchine-lifecycle.js');
+      await liberaMacchineDaLavoro(
+        { id: lavoroId, macchinaId: lavoro.macchinaId, attrezzoId: lavoro.attrezzoId },
+        { tenantId, lavoriList: options.lavoriList }
+      );
+    } catch (liberaErr) {
+      console.warn('[lavori-service] Liberazione macchine dopo sospensione:', liberaErr);
+    }
   }
 }
 

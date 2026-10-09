@@ -99,6 +99,22 @@ La tua dashboard mostra:
 - Segna direttamente le proprie ore
 - Il manager valida le ore
 
+### Ore: correzione dopo la validazione
+
+In **Validazione ore** i contatori in alto sono in ore (sotto, tra parentesi, il numero di righe). La coda mostra anche la pausa e un avviso se due turni dello stesso operaio si sovrappongono.
+
+Il singolo **Valida** non chiede conferma. **Valida selezionate** e **Valida tutte** chiedono una conferma sola.
+
+Sotto la coda ci sono le ore degli **ultimi 30 giorni**, validate e rifiutate, filtrabili per operaio, lavoro e stato. I contatori **Validate** e **Rifiutate** contano quelle stesse righe. **Da validare** resta la tua coda. Su ogni riga si legge chi ha validato, corretto, annullato o rifiutato, con data, ora e motivo. Su ogni riga:
+
+- **Correggi** (anche sulla coda, prima di validare): orari, pausa, note, ore macchina; la riga validata resta validata
+- **Annulla validazione**: torna in attesa
+- **Rifiuta / togli**: passa a rifiutata con motivo, senza cancellarla
+
+Serve sempre un motivo breve. Se manca, compare «Scrivi il motivo: è obbligatorio.». Dopo il rifiuto leggi «Ora rifiutata». Una riga validata non si elimina: toglierla significa rifiutarla, così resta traccia di chi e quando.
+
+Le ore macchina già contate sul mezzo si aggiornano con la correzione. Se la riga è vecchia e non ha il conteggio salvato, il mezzo non si tocca e compare l’avviso di verificare a mano.
+
 ### Stati Lavoro
 
 - **Pianificato**: Creato ma non ancora iniziato

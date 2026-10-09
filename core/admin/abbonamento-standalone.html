@@ -682,6 +682,11 @@
         </div>
     </div>
 
+    <div id="manodopera-migrazione-spinner" hidden style="position:fixed;inset:0;background:rgba(255,255,255,.72);z-index:1200;align-items:center;justify-content:center;">
+        <div style="background:#fff;border:1px solid #ddd;border-radius:8px;padding:18px 22px;box-shadow:0 8px 24px rgba(0,0,0,.08);">
+            Migrazione dati Manodopera in corso…
+        </div>
+    </div>
     <div id="abbonamento-confirm-overlay" class="abbonamento-confirm-overlay variant-default" aria-hidden="true">
         <div class="abbonamento-confirm-dialog" role="dialog" aria-modal="true" aria-labelledby="abbonamento-confirm-title">
             <div class="abbonamento-confirm-header">
@@ -748,6 +753,15 @@
             isModuleOnTrial,
             formatTrialEndDate
         } from '../utils/module-access-resolver.js';
+        import {
+            allineaDatiManodopera,
+            contaLavoriApertiTenant,
+            messaggioLavoriAperti
+        } from '../services/manodopera-migrazione-service.js';
+        import {
+            formatToastMigrazione,
+            SOGLIA_SPINNER_MIGRAZIONE
+        } from '../services/manodopera-migrazione-logic.js';
 
         const app = getAppInstance();
         const auth = getAuthInstance();
@@ -763,6 +777,8 @@
         let effectiveModules = [];
         let trialModuleIds = [];
         let activeBundles = [];
+        let moduliOsservatiInPagina = null;
+        let disattivazioneConfermata = false;
 
         function refreshModuleAccessFromTenant() {
             if (!currentTenantData) {
@@ -854,6 +870,107 @@
             try {
                 window.dispatchEvent(new CustomEvent('tony-module-updated', { detail: { modules: effectiveModules } }));
             } catch (e) {}
+        }
+
+        function manodoperaDopoRevoca(addonId, addonType) {
+            let modules = paidModules.slice();
+            let bundles = activeBundles.slice();
+            if (addonType === 'bundle') {
+                bundles = bundles.filter(function(id) { return id !== addonId; });
+                const bundle = BUNDLES.find(function(b) { return b.id === addonId; });
+                const still = new Set();
+                bundles.forEach(function(id) {
+                    const altro = BUNDLES.find(function(b) { return b.id === id; });
+                    if (altro && Array.isArray(altro.modules)) {
+                        altro.modules.forEach(function(modId) { still.add(modId); });
+                    }
+                });
+                if (bundle && Array.isArray(bundle.modules)) {
+                    modules = modules.filter(function(modId) {
+                        return !bundle.modules.includes(modId) || still.has(modId);
+                    });
+                }
+            } else {
+                modules = modules.filter(function(id) { return id !== addonId; });
+            }
+            return resolveEffectiveModules(Object.assign({}, currentTenantData, {
+                modules: modules,
+                activeBundles: bundles
+            })).includes('manodopera');
+        }
+
+        async function preparaDisattivazioneManodopera(nextHasManodopera) {
+            const before = effectiveModules.includes('manodopera');
+            if (!before || nextHasManodopera) return true;
+            const aperti = await contaLavoriApertiTenant(currentTenantId);
+            if (aperti > 0) {
+                const ok = await showConfirmDialog({
+                    title: 'Lavori ancora aperti',
+                    icon: '⚠️',
+                    variant: 'danger',
+                    confirmLabel: 'Continua',
+                    cancelLabel: 'Annulla',
+                    bodyHtml: '<p class="confirm-lead">' + escapeConfirmHtml(messaggioLavoriAperti(aperti)) + '</p>'
+                });
+                if (!ok) return false;
+            }
+            disattivazioneConfermata = true;
+            return true;
+        }
+
+        function mostraSpinnerMigrazione(on) {
+            const el = document.getElementById('manodopera-migrazione-spinner');
+            if (!el) return;
+            el.hidden = !on;
+            el.style.display = on ? 'flex' : 'none';
+        }
+
+        async function allineaManodoperaUi() {
+            if (!currentTenantId) return;
+            const now = effectiveModules.includes('manodopera');
+            const previous = moduliOsservatiInPagina;
+            let spinnerOn = false;
+            const onBeforeWrite = function(info) {
+                if (info && info.documenti >= SOGLIA_SPINNER_MIGRAZIONE) {
+                    spinnerOn = true;
+                    mostraSpinnerMigrazione(true);
+                }
+            };
+            try {
+                let report = await allineaDatiManodopera(currentTenantId, now, {
+                    previousEffective: previous === null ? undefined : previous,
+                    confermaLavoriAperti: disattivazioneConfermata === true,
+                    onBeforeWrite: onBeforeWrite
+                });
+                if (report && report.needsConfirm) {
+                    const ok = await showConfirmDialog({
+                        title: 'Lavori ancora aperti',
+                        icon: '⚠️',
+                        variant: 'danger',
+                        confirmLabel: 'Continua',
+                        cancelLabel: 'Annulla',
+                        bodyHtml: '<p class="confirm-lead">' + escapeConfirmHtml(report.messaggio || messaggioLavoriAperti(report.lavoriAperti)) + '</p>'
+                    });
+                    if (!ok) return;
+                    report = await allineaDatiManodopera(currentTenantId, now, {
+                        previousEffective: true,
+                        confermaLavoriAperti: true,
+                        onBeforeWrite: onBeforeWrite
+                    });
+                }
+                const toast = formatToastMigrazione(report);
+                if (toast) {
+                    showAlert(toast, report && report.errori > 0 ? 'error' : 'success', 12000);
+                }
+                const allineato = report && !report.needsConfirm && (report.errori || 0) === 0;
+                if (allineato) moduliOsservatiInPagina = now;
+            } catch (err) {
+                console.error('[manodopera-migrazione]', err);
+                showAlert('Migrazione dati Manodopera non completata. Puoi riprovare.', 'error');
+            } finally {
+                disattivazioneConfermata = false;
+                if (spinnerOn) mostraSpinnerMigrazione(false);
+            }
         }
 
         function billingPriceHtml(monthly, options = {}) {
@@ -1097,6 +1214,7 @@
                 
                 // Aggiorna UI piano corrente con dati reali
                 updateCurrentPlanUI(planConfig, currentTenantData);
+                await allineaManodoperaUi();
             } catch (error) {
                 console.error('Errore caricamento tenant:', error);
                 showAlert('Errore caricamento dati tenant: ' + error.message, 'error');
@@ -1714,7 +1832,11 @@
             try {
                 // Applica piano e moduli (nessuna limitazione)
                 const modulesToApply = selectedModules;
-                
+                const nextHasManodopera = resolveEffectiveModules(Object.assign({}, currentTenantData, {
+                    modules: modulesToApply
+                })).includes('manodopera');
+                if (!(await preparaDisattivazioneManodopera(nextHasManodopera))) return;
+
                 const newExpiryDate = new Date();
                 newExpiryDate.setMonth(newExpiryDate.getMonth() + 1);
                 
@@ -1742,6 +1864,7 @@
                 currentTenantData.modules = modulesToApply;
                 currentTenantData.activeBundles = bundlesToKeep;
                 refreshModuleAccessFromTenant();
+                await allineaManodoperaUi();
                 
                 // Ricalcola e aggiorna UI
                 updateCurrentPlanUI(planConfig, currentTenantData);
@@ -1799,6 +1922,7 @@
                     '</ul>'
             });
             if (!confirmed) return;
+            if (!(await preparaDisattivazioneManodopera(manodoperaDopoRevoca(bundleId, 'bundle')))) return;
             
             try {
                 const cancelFn = getHttpsCallable('cancelStripeAddon');
@@ -2082,6 +2206,7 @@
                     '<div class="confirm-policy">' + escapeConfirmHtml(deactivationPolicyMessage(previewDate)) + '</div>'
             });
             if (!confirmed) return;
+            if (!(await preparaDisattivazioneManodopera(manodoperaDopoRevoca(moduleId, 'module')))) return;
 
             try {
                 const cancelFn = getHttpsCallable('cancelStripeAddon');
@@ -2390,6 +2515,12 @@
                     return bundle.modules.every(modId => modulesToKeep.includes(modId));
                 });
                 
+                const nextHasManodopera = resolveEffectiveModules(Object.assign({}, currentTenantData, {
+                    modules: modulesToKeep,
+                    activeBundles: bundlesToKeep
+                })).includes('manodopera');
+                if (!(await preparaDisattivazioneManodopera(nextHasManodopera))) return;
+
                 // Aggiorna Firestore
                 const updates = {
                     plan: planId,
@@ -2412,6 +2543,7 @@
                 currentTenantData.activeBundles = bundlesToKeep;
                 currentTenantData.expiryDate = Timestamp.fromDate(newExpiryDate);
                 refreshModuleAccessFromTenant();
+                await allineaManodoperaUi();
                 
                 // Ricalcola e aggiorna UI
                 updateCurrentPlanUI(newPlanConfig, currentTenantData);

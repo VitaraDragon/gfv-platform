@@ -6,6 +6,7 @@ import {
   userBlobAcknowledgesZeroPause,
   extractSegnaOrePauseMinutesFromUserBlob,
   getSegnaOreDomFieldIds,
+  filtraCampiMezzoNonNominati,
 } from '../core/js/tony/tony-segna-ora-local-engine.js';
 
 describe('tony-segna-ora-local-engine', () => {
@@ -59,8 +60,39 @@ describe('tony-segna-ora-local-engine', () => {
       startVal: '07:00',
       endVal: '18:00',
       pauseVal: '0',
-    }, { requireLavoro: false, pauseAcknowledged: true });
+    }, { requireLavoro: false, pauseAcknowledged: true, lavoroNome: 'Ripristino pali' });
     expect(msg).toMatch(/salvare/i);
+    expect(msg).toMatch(/Ripristino pali/);
+  });
+
+  it('buildSegnaOreMissingFieldsMessage — il riepilogo dice il lavoro', () => {
+    var msg = buildSegnaOreMissingFieldsMessage({
+      lavoroVal: 'rip',
+      dateVal: '2026-10-08',
+      startVal: '17:00',
+      endVal: '17:30',
+      pauseVal: '0',
+    }, {
+      requireLavoro: true,
+      pauseAcknowledged: true,
+      lavoroNome: 'Ripristino pali',
+      macchinaNome: 'Fiat 880 DT',
+      attrezzoNome: 'Berti',
+    });
+    expect(msg).toMatch(/Tutto pronto: Ripristino pali, dalle 17:00 alle 17:30, pausa 0 min, Fiat 880 DT e Berti/);
+    expect(msg).toMatch(/Vuoi salvare/);
+  });
+
+  it('senza nome del lavoro non dice Tutto pronto', () => {
+    var msg = buildSegnaOreMissingFieldsMessage({
+      lavoroVal: 'abc',
+      dateVal: '2026-10-08',
+      startVal: '17:00',
+      endVal: '17:30',
+      pauseVal: '0',
+    }, { pauseAcknowledged: true, lavoroNome: '' });
+    expect(msg).not.toMatch(/Tutto pronto/i);
+    expect(msg).toMatch(/Su quale lavoro/);
   });
 
   it('userBlobAcknowledgesZeroPause', () => {
@@ -78,5 +110,64 @@ describe('tony-segna-ora-local-engine', () => {
   it('getSegnaOreDomFieldIds — mobile vs desktop', () => {
     expect(getSegnaOreDomFieldIds('quick-hours').start).toBe('ora-start');
     expect(getSegnaOreDomFieldIds('ora-modal').start).toBe('ora-inizio');
+  });
+
+  it('la pausa 0 del form non conta finché non è confermata', () => {
+    var missing = listSegnaOreMissingRequired({
+      lavoroVal: 'abc',
+      dateVal: '2026-10-08',
+      startVal: '10:00',
+      endVal: '11:00',
+      pauseVal: '0',
+    }, { requireLavoro: false });
+    expect(missing).toEqual(['minuti di pausa']);
+    var ok = listSegnaOreMissingRequired({
+      lavoroVal: 'abc',
+      dateVal: '2026-10-08',
+      startVal: '10:00',
+      endVal: '11:00',
+      pauseVal: '0',
+    }, { requireLavoro: false, pauseAcknowledged: true });
+    expect(ok).toEqual([]);
+  });
+
+  it('userBlobAcknowledgesZeroPause riconosce pausa 0 nella frase', () => {
+    expect(userBlobAcknowledgesZeroPause('dalle 10 alle 11 pausa 0')).toBe(true);
+    expect(userBlobAcknowledgesZeroPause('pausa 0')).toBe(true);
+    expect(userBlobAcknowledgesZeroPause('senza pausa')).toBe(true);
+  });
+
+  it('filtraCampiMezzoNonNominati scarta i mezzi non detti e tiene quelli nominati', () => {
+    var conMezzi = {
+      'ora-lavoro': 'lav1',
+      'ora-macchina': 'Landini',
+      'ora-attrezzo': 'rimorchio',
+      'ora-ore-macchina': '2',
+    };
+    var scartati = filtraCampiMezzoNonNominati(conMezzi, 'dalle 10 alle 11 pausa 0');
+    expect(scartati['ora-lavoro']).toBe('lav1');
+    expect(scartati['ora-macchina']).toBeUndefined();
+    expect(scartati['ora-attrezzo']).toBeUndefined();
+    expect(scartati['ora-ore-macchina']).toBeUndefined();
+
+    var tenuti = filtraCampiMezzoNonNominati(conMezzi, 'uso il trattore Landini');
+    expect(tenuti['ora-macchina']).toBe('Landini');
+    expect(tenuti['ora-attrezzo']).toBe('rimorchio');
+  });
+
+  it('filtraCampiMezzoNonNominati scarta Landini e Rimorchio se il modello li copia e l’utente non li nomina', () => {
+    var daModello = {
+      'ora-lavoro': 'potatura',
+      'ora-macchina': 'Landini',
+      'ora-attrezzo': 'Rimorchio',
+    };
+    var senza = filtraCampiMezzoNonNominati(daModello, 'segna le ore dalle 10 alle 11 sul lavoro potatura');
+    expect(senza['ora-lavoro']).toBe('potatura');
+    expect(senza['ora-macchina']).toBeUndefined();
+    expect(senza['ora-attrezzo']).toBeUndefined();
+
+    var conLandini = filtraCampiMezzoNonNominati(daModello, 'segna le ore dalle 10 alle 11 sul lavoro potatura col Landini');
+    expect(conLandini['ora-macchina']).toBe('Landini');
+    expect(conLandini['ora-attrezzo']).toBe('Rimorchio');
   });
 });

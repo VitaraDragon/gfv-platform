@@ -97,6 +97,14 @@
       "label": "Motore segna ore Tony (mobile + desktop)"
     },
     {
+      "prefix": "core/js/tony/tony-ora-lavoro-match",
+      "modules": [
+        "TONY",
+        "MANODOPERA"
+      ],
+      "label": "Tony: scelta del lavoro nominato quando segni le ore"
+    },
+    {
       "prefix": "core/js/tony/",
       "modules": [
         "TONY"
@@ -602,6 +610,27 @@
         "MANODOPERA"
       ],
       "label": "Assenze manodopera"
+    },
+    {
+      "prefix": "core/services/ore-operai-logic",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Ore operai: modifica, sovrapposizioni, correzione e storia dopo validazione"
+    },
+    {
+      "prefix": "core/services/manodopera-lavori-scope",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Lavori segnabili per ore (esclusi i sospesi)"
+    },
+    {
+      "prefix": "core/services/ore-service",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Servizio ore operai (salvataggio, validazione, rifiuto)"
     },
     {
       "prefix": "core/admin/js/gestione-lavori-assenze-ui.js",

@@ -4,7 +4,7 @@
  * @module core/js/dashboard-data
  */
 
-import { query, where } from '../services/firebase-service.js';
+import { query, where, doc, getDoc } from '../services/firebase-service.js';
 import { isTipoFlotta } from '../../modules/parco-macchine/lib/macchine-tipo-utils.js';
 import {
     confermeIncludesUser,
@@ -30,6 +30,11 @@ import {
     formatDateLikeToItalianLongWeekday
 } from './date-format-it.js';
 import { contaOreManagerDaValidareSuLavoro, isOraDelCaposquadraSuLavoroSquadra } from '../services/manodopera-ore-validazione-scope.js';
+import {
+    formatTracciaOra,
+    chiValidaOra,
+    etichettaStatoAttualeOra
+} from '../services/ore-operai-logic.js';
 
 // ============================================
 // UTILITY FUNCTIONS
@@ -276,7 +281,7 @@ export async function loadAffittiInScadenza(dependencies) {
                 <div style="text-align: center; padding: 15px; color: #28a745;">
                     <p style="font-size: 14px; margin-bottom: 8px;">✅ Tutti in regola</p>
                     <p style="font-size: 12px; color: #666;">
-                        ${affitti.length} terreno${affitti.length !== 1 ? 'i' : ''} in affitto
+                        ${affitti.length} ${affitti.length === 1 ? 'terreno' : 'terreni'} in affitto
                     </p>
                     <a href="terreni-standalone.html" style="display: inline-block; margin-top: 10px; color: #2E8B57; text-decoration: underline; font-size: 12px;">
                         → Vai a Terreni
@@ -289,7 +294,7 @@ export async function loadAffittiInScadenza(dependencies) {
         let html = `
             <div style="margin-bottom: 10px;">
                 <p style="color: #666; font-size: 12px; margin-bottom: 8px;">
-                    <strong>${affittiUrgenti.length}</strong> urgente${affittiUrgenti.length !== 1 ? 'i' : ''}
+                    <strong>${affittiUrgenti.length}</strong> ${affittiUrgenti.length === 1 ? 'urgente' : 'urgenti'}
                     ${affitti.length > affittiUrgenti.length ? `(${affitti.length} totali)` : ''}
                 </p>
             </div>
@@ -1604,9 +1609,11 @@ export async function loadStatisticheOreOperaio(userData, dependencies) {
                     const ora = oraDoc.data();
                     const oreNette = ora.oreNette || 0;
                     const stato = ora.stato || 'da_validare';
-                    
                     const oreMinuti = Math.round(oreNette * 60);
-                    totaleOreMinuti += oreMinuti;
+
+                    if (stato !== 'rifiutate') {
+                        totaleOreMinuti += oreMinuti;
+                    }
                     
                     if (stato === 'validate') {
                         oreValidate += oreMinuti;
@@ -1617,14 +1624,26 @@ export async function loadStatisticheOreOperaio(userData, dependencies) {
                     }
                     
                     const dataOra = ora.data?.toDate ? ora.data.toDate() : new Date(ora.data);
+                    const lavoroData = lavoroDoc.data() || {};
                     oreRecenti.push({
                         id: oraDoc.id,
                         lavoroId: lavoroId,
-                        lavoroNome: lavoroDoc.data().nome || 'Lavoro',
+                        lavoroNome: lavoroData.nome || 'Lavoro',
+                        lavoro: {
+                            caposquadraId: lavoroData.caposquadraId || null,
+                            operaioId: lavoroData.operaioId || null
+                        },
                         data: dataOra,
                         oreNette: oreNette,
                         stato: stato,
-                        note: ora.note || ''
+                        note: ora.note || '',
+                        operaioId: ora.operaioId || operaioId,
+                        validatoDa: ora.validatoDa || '',
+                        validatoIl: ora.validatoIl || null,
+                        rifiutatoDa: ora.rifiutatoDa || '',
+                        rifiutatoIl: ora.rifiutatoIl || null,
+                        motivoRifiuto: ora.motivoRifiuto || '',
+                        storicoModifiche: ora.storicoModifiche || []
                     });
                 });
             } catch (error) {
@@ -1647,6 +1666,26 @@ export async function loadStatisticheOreOperaio(userData, dependencies) {
         document.getElementById('stat-stato-operaio').textContent = statoLabel;
         
         oreRecenti.sort((a, b) => b.data - a.data);
+        const ultime = oreRecenti.slice(0, 5);
+        const nomiValidatori = new Map();
+        for (const ora of ultime) {
+            const ids = [ora.validatoDa, ora.rifiutatoDa]
+                .concat((ora.storicoModifiche || []).map((v) => v && v.da))
+                .filter(Boolean);
+            for (const uid of ids) {
+            if (!uid || nomiValidatori.has(uid)) continue;
+            try {
+                const userDoc = await getDoc(doc(db, 'users', uid));
+                if (userDoc.exists()) {
+                    const u = userDoc.data();
+                    const nome = `${u.nome || ''} ${u.cognome || ''}`.trim() || u.email || '';
+                    if (nome) nomiValidatori.set(uid, nome);
+                }
+            } catch (error) {
+                console.warn('Nome validatore non letto', uid, error);
+            }
+            }
+        }
         
         const container = document.getElementById('mie-ore-operaio-section');
         if (!container) return;
@@ -1687,7 +1726,7 @@ export async function loadStatisticheOreOperaio(userData, dependencies) {
             <ul class="recent-items">
         `;
         
-        oreRecenti.slice(0, 5).forEach(ora => {
+        ultime.forEach(ora => {
             const dataFormatted = formatDateLikeToItalianLongLocal(ora.data);
             const oreFormatted = Math.floor(ora.oreNette) + 'h ' + Math.round((ora.oreNette % 1) * 60) + 'min';
             const statoBadge = {
@@ -1695,13 +1734,19 @@ export async function loadStatisticheOreOperaio(userData, dependencies) {
                 'da_validare': '<span style="background: #ff9800; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">⏳ Da validare</span>',
                 'rifiutate': '<span style="background: #f44336; color: white; padding: 4px 8px; border-radius: 4px; font-size: 11px;">❌ Rifiutate</span>'
             }[ora.stato] || '';
+            const nomeDi = (uid) => nomiValidatori.get(uid) || '';
+            const chiRiga = chiValidaOra({ ora, lavoro: ora.lavoro });
+            const statoAttuale = ora.stato === 'da_validare' ? etichettaStatoAttualeOra(ora, chiRiga) : '';
+            const tracciaTesto = formatTracciaOra(ora, nomeDi);
+            const pezziRiga = [statoAttuale, tracciaTesto].filter(Boolean);
+            const traccia = pezziRiga.length ? ` · ${escapeHtml(pezziRiga.join(' · '))}` : '';
             
             html += `
                 <li class="recent-item">
                     <div>
                         <div class="recent-item-title">${escapeHtml(ora.lavoroNome)} ${statoBadge}</div>
                         <div class="recent-item-description">
-                            ${dataFormatted} • ${oreFormatted}${ora.note ? ' • ' + escapeHtml(ora.note) : ''}
+                            ${dataFormatted} • ${oreFormatted}${traccia}${ora.note ? ' • ' + escapeHtml(ora.note) : ''}
                         </div>
                     </div>
                 </li>

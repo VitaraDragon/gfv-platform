@@ -752,7 +752,7 @@
             `;
 
             container.innerHTML = html;
-            countEl.textContent = `${squadreList.length} squadra${squadreList.length !== 1 ? 'e' : ''}`;
+            countEl.textContent = `${squadreList.length} ${squadreList.length === 1 ? 'squadra' : 'squadre'}`;
         }
 
         // Carica lista caposquadra disponibili

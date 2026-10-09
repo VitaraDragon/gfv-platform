@@ -28,6 +28,13 @@ import { runFlowProdotto015 } from '../tests/e2e/tony/scenarios/flow-prodotto-01
 import { runFlowProdotto018 } from '../tests/e2e/tony/scenarios/flow-prodotto-018.mjs';
 import { runFlowSegnaOre021 } from '../tests/e2e/tony/scenarios/flow-segna-ore-021.mjs';
 import { runFlowSegnaOre022 } from '../tests/e2e/tony/scenarios/flow-segna-ore-022.mjs';
+import { runFlowSegnaOre023 } from '../tests/e2e/tony/scenarios/flow-segna-ore-023.mjs';
+import { runFlowSegnaOre024 } from '../tests/e2e/tony/scenarios/flow-segna-ore-024.mjs';
+import { runFlowSegnaOre025 } from '../tests/e2e/tony/scenarios/flow-segna-ore-025.mjs';
+import { runFlowSegnaOre026 } from '../tests/e2e/tony/scenarios/flow-segna-ore-026.mjs';
+import { runFlowSegnaOre027 } from '../tests/e2e/tony/scenarios/flow-segna-ore-027.mjs';
+import { runFlowSegnaOre028 } from '../tests/e2e/tony/scenarios/flow-segna-ore-028.mjs';
+import { runFlowSegnaOre029 } from '../tests/e2e/tony/scenarios/flow-segna-ore-029.mjs';
 import { runMatrixScenario } from '../tests/e2e/tony/scenarios/run-matrix-scenario.mjs';
 import { runWidgetSmokeAssertions } from '../tests/e2e/tony/scenarios/widget-smoke.mjs';
 import {
@@ -234,6 +241,13 @@ const SCENARIO_RUNNERS = {
   'T-SMOKE-001': runWidgetSmokeAssertions,
   'T-FLOW-021': runFlowSegnaOre021,
   'T-FLOW-022': runFlowSegnaOre022,
+  'T-FLOW-023': runFlowSegnaOre023,
+  'T-FLOW-024': runFlowSegnaOre024,
+  'T-FLOW-025': runFlowSegnaOre025,
+  'T-FLOW-026': runFlowSegnaOre026,
+  'T-FLOW-027': runFlowSegnaOre027,
+  'T-FLOW-028': runFlowSegnaOre028,
+  'T-FLOW-029': runFlowSegnaOre029,
   'T-FLOW-016': runFlowMovimento016,
   'T-FLOW-017': runFlowMovimento017,
   'T-FLOW-019': runFlowMovimento019,

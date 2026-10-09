@@ -79,6 +79,10 @@ Quando finisci un lavoro:
    - **Note**: Note aggiuntive (opzionale)
 4. Clicca **Salva**
 
+Sopra il salvataggio vedi **Le tue ore del giorno**: tutti i turni di quel giorno, su tutti i lavori, con orario, pausa, ore nette e stato. Il turno del lavoro scelto è evidenziato, in fondo c’è il totale.
+
+Due turni dello stesso giorno non possono coprirsi. Se finisci alle 12:00 puoi iniziare un altro turno alle 12:00. Se gli orari si incrociano, il salvataggio si ferma e indica il turno già presente. Se chiedi a Tony di segnare le ore, nel riepilogo c’è il nome del lavoro. Se due lavori hanno lo stesso nome, prende quello di oggi; se non è chiaro, chiede quale e non apre il modulo sul primo della lista. Se l’orario è occupato te lo dice prima di chiedere la pausa, e ti propone il primo buco libero. Dopo il «sì» conferma su quale lavoro ha segnato l’ora. Accanto alla data c’è il giorno in italiano, per esempio «giovedì 08/10/2026». Su un lavoro sospeso non si segnano ore nuove: Tony lo dice e, se c’è, indica la ripresa. In elenco il lavoro sospeso ha il badge Sospeso.
+
 **Suggerimento**: Segna le ore alla fine della giornata per avere dati precisi.
 
 ### Calcolo Automatico Ore
@@ -90,19 +94,22 @@ Il sistema calcola automaticamente:
 
 ### Modificare Ore Già Segnate
 
-1. Vai su **Le Mie Ore**
-2. Trova l'ora da modificare
-3. Clicca **Modifica**
-4. Modifica i campi necessari
-5. Clicca **Salva**
+Finché l’ora è **in attesa** o **rifiutata** puoi cambiarla o eliminarla, anche dopo qualche giorno. Puoi cambiare data, orari, pausa, note e macchina. Il lavoro resta quello: per un lavoro diverso elimina la riga e segnane una nuova.
 
-**Nota**: Puoi modificare solo ore non ancora validate. Se l'ora è stata rifiutata, puoi modificarla e rispedirla.
+1. Vai su **Le Mie Ore** (computer) oppure apri il riquadro del giorno nella versione mobile
+2. Sulla riga clicca **Modifica**
+3. Sistema i campi e clicca **Salva modifiche**
+4. Per toglierla, clicca **Elimina** e conferma
+
+Se l’ora era stata rifiutata, dopo la modifica torna «Da validare». Il motivo del rifiuto non decide più lo stato: resta nella storia della riga, insieme alla modifica.
+
+Su un’ora già **validata** non puoi fare nulla. La riga mostra «Validata — per correggerla chiedi al caposquadra» (oppure «al manager», se il lavoro è autonomo o se la riga è del caposquadra).
 
 ### Stati Ore
 
-- **Da Validare**: Ora segnata, in attesa di validazione caposquadra
-- **Validate**: Ora approvata dal caposquadra, conteggiata nelle statistiche
-- **Rifiutate**: Ora rifiutata dal caposquadra, controlla motivo
+- **Da Validare**: Ora segnata, in attesa. La valida il caposquadra, oppure il manager se il lavoro è autonomo
+- **Validate**: Ora approvata, con data e ora di chi l’ha validata
+- **Rifiutate**: chi l’ha rifiutata, quando e il motivo
 
 ## 📢 Comunicazioni
 
@@ -242,9 +249,9 @@ La dashboard mostra:
 - Controlla che il lavoro sia per oggi
 
 ### Le mie ore sono state rifiutate
-- Controlla il motivo del rifiuto
-- Modifica l'ora se necessario
-- Risalva l'ora
+- Controlla il motivo del rifiuto, visibile sulla riga
+- Modifica l’ora: torna in attesa da sola
+- Se gli orari si sovrappongono a un altro turno, cambia fascia oppure modifica quell’altra riga
 
 ### Non ricevo comunicazioni
 - Verifica che il caposquadra abbia inviato comunicazioni

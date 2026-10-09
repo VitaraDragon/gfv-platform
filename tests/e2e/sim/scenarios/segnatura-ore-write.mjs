@@ -1,6 +1,7 @@
 /**
  * E2E write — caposquadra segna ore da segnatura-ore-standalone (desktop).
- * Idempotente: marker note + orari 09:00–11:00; verifica in validazione ore manager.
+ * Idempotente: marker note; fascia 12:00–14:00 (il seed di oggi è 07:30–12:00, il bordo è libero).
+ * Verifica in validazione ore manager.
  * @module tests/e2e/sim/scenarios/segnatura-ore-write
  */
 
@@ -13,8 +14,8 @@ import {
 
 export const E2E_SEGNATURA_ORE_WRITE_NOTE = 'GFV_SIM_E2E_WRITE_ORE_CAPO';
 
-const ORA_START = '09:00';
-const ORA_END = '11:00';
+const ORA_START = '12:00';
+const ORA_END = '14:00';
 
 /**
  * @param {import('playwright-core').Page} page

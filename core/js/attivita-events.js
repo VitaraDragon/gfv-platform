@@ -11,11 +11,13 @@
 // Questo modulo assume che db, auth, currentTenantId siano disponibili globalmente
 
 import { Timestamp } from '../services/firebase-service.js';
+import { dateLikeToLocalCalendarIso } from './date-format-it.js';
 import {
     getCurrentPositionGeo,
     buildPosizioneRilevamentoFirestore,
     geolocationErrorMessage
 } from './geo-capture.js';
+import { listedSelectValue } from './lavoro-cascade-filters.js';
 
 // ============================================
 // FUNZIONI FILTRI
@@ -344,10 +346,11 @@ export function toggleFormRapido(lavoroId) {
             btn.textContent = '➕ Aggiungi Attività';
             // Reset form
             form.reset();
-            const today = new Date().toISOString().split('T')[0];
+            const today = dateLikeToLocalCalendarIso(new Date());
             const dataInput = document.getElementById(`rapido-data-${lavoroId}`);
             if (dataInput) {
                 dataInput.value = today;
+                dataInput.max = today;
             }
         }
     }
@@ -358,54 +361,65 @@ export function toggleFormRapido(lavoroId) {
  * @param {Function} populateSottocategorieLavoroCallback - Callback per popolare sottocategorie
  * @param {Function} loadTipiLavoroCallback - Callback per caricare tipi lavoro
  */
-let attivitaCascadeHandlersBound = false;
+function restoreTipoLavoroSelection(currentTipoLavoroValue, currentTipoLavoroText) {
+    const tipoLavoroSelectAfter = document.getElementById('attivita-tipo-lavoro-gerarchico');
+    if (!tipoLavoroSelectAfter) return;
+    if (currentTipoLavoroValue) {
+        const optionByValue = Array.from(tipoLavoroSelectAfter.options).find(
+            (opt) => opt.value === currentTipoLavoroValue
+        );
+        if (optionByValue) {
+            tipoLavoroSelectAfter.value = currentTipoLavoroValue;
+            return;
+        }
+    }
+    if (currentTipoLavoroText) {
+        const search = currentTipoLavoroText.trim().toLowerCase();
+        const optionByText = Array.from(tipoLavoroSelectAfter.options).find(
+            (opt) => (opt.text || '').trim().toLowerCase() === search
+        );
+        if (optionByText) tipoLavoroSelectAfter.value = optionByText.value;
+    }
+}
 
-function restoreTipoLavoroAfterReload(currentTipoLavoroValue, currentTipoLavoroText) {
-    if (!currentTipoLavoroValue && !currentTipoLavoroText) return;
-    setTimeout(() => {
-        const tipoLavoroSelectAfter = document.getElementById('attivita-tipo-lavoro-gerarchico');
-        if (!tipoLavoroSelectAfter) return;
-        if (currentTipoLavoroValue) {
-            const optionByValue = Array.from(tipoLavoroSelectAfter.options).find(
-                (opt) => opt.value === currentTipoLavoroValue
-            );
-            if (optionByValue) {
-                tipoLavoroSelectAfter.value = currentTipoLavoroValue;
-                return;
-            }
-        }
-        if (currentTipoLavoroText) {
-            const search = currentTipoLavoroText.trim().toLowerCase();
-            const optionByText = Array.from(tipoLavoroSelectAfter.options).find(
-                (opt) => (opt.text || '').trim().toLowerCase() === search
-            );
-            if (optionByText) {
-                tipoLavoroSelectAfter.value = optionByText.value;
-            }
-        }
-    }, 100);
+function afterTipiLavoroReload(pending, restore) {
+    if (pending && typeof pending.then === 'function') {
+        pending.then(restore).catch((error) => {
+            console.error('[ATTIVITA-EVENTS] Ricarico tipi lavoro non riuscito:', error);
+        });
+        return;
+    }
+    restore();
 }
 
 export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback, loadTipiLavoroCallback) {
-    if (attivitaCascadeHandlersBound) return;
-    attivitaCascadeHandlersBound = true;
-
+    const form = document.getElementById('attivita-form');
     const categoriaPrincipaleSelect = document.getElementById('attivita-categoria-principale');
     const sottocategoriaSelect = document.getElementById('attivita-sottocategoria');
-    
-    if (categoriaPrincipaleSelect) {
-        categoriaPrincipaleSelect.addEventListener('change', function() {
-            const categoriaPrincipaleId = this.value;
+    if (!form || !categoriaPrincipaleSelect || !sottocategoriaSelect) return;
+    if (typeof populateSottocategorieLavoroCallback !== 'function' || typeof loadTipiLavoroCallback !== 'function') {
+        return;
+    }
+
+    form.__attivitaCascadePopulate = populateSottocategorieLavoroCallback;
+    form.__attivitaCascadeLoad = loadTipiLavoroCallback;
+    if (form.dataset.attivitaCascadeBound === '1') return;
+    form.dataset.attivitaCascadeBound = '1';
+
+    form.addEventListener('change', function (event) {
+        const target = event.target;
+        if (!target || !target.id) return;
+        const populate = form.__attivitaCascadePopulate;
+        const load = form.__attivitaCascadeLoad;
+        if (typeof populate !== 'function' || typeof load !== 'function') return;
+
+        if (target.id === 'attivita-categoria-principale') {
+            const categoriaPrincipaleId = listedSelectValue(target);
             if (categoriaPrincipaleId) {
-                const preserveSub = sottocategoriaSelect ? sottocategoriaSelect.value : null;
-                if (populateSottocategorieLavoroCallback) {
-                    populateSottocategorieLavoroCallback(categoriaPrincipaleId, preserveSub);
-                }
-                if (loadTipiLavoroCallback) {
-                    console.log('[ATTIVITA-EVENTS] Categoria principale cambiata, ricarico tipi lavoro per applicare filtro vendemmia se necessario');
-                    const filterId = (document.getElementById('attivita-sottocategoria')?.value) || categoriaPrincipaleId;
-                    loadTipiLavoroCallback(filterId);
-                }
+                const preserveSub = listedSelectValue(sottocategoriaSelect);
+                populate(categoriaPrincipaleId, preserveSub || null);
+                const filterId = listedSelectValue(document.getElementById('attivita-sottocategoria')) || categoriaPrincipaleId;
+                load(filterId);
             } else {
                 const sottocategoriaGroup = document.getElementById('attivita-sottocategoria-group');
                 const tipoLavoroGroup = document.getElementById('attivita-tipo-lavoro-gerarchico-group');
@@ -414,33 +428,24 @@ export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback
                 const tipoLavoroSelect = document.getElementById('attivita-tipo-lavoro-gerarchico');
                 if (tipoLavoroSelect) tipoLavoroSelect.value = '';
             }
+            return;
+        }
+
+        if (target.id !== 'attivita-sottocategoria') return;
+
+        const sottocategoriaId = listedSelectValue(target);
+        const categoriaPrincipaleId = listedSelectValue(document.getElementById('attivita-categoria-principale'));
+        const tipoLavoroSelect = document.getElementById('attivita-tipo-lavoro-gerarchico');
+        const currentTipoLavoroValue = tipoLavoroSelect ? tipoLavoroSelect.value : null;
+        const currentTipoLavoroText = tipoLavoroSelect && tipoLavoroSelect.selectedIndex >= 0
+            ? tipoLavoroSelect.options[tipoLavoroSelect.selectedIndex]?.text
+            : null;
+        const categoriaId = sottocategoriaId || categoriaPrincipaleId;
+        if (!categoriaId) return;
+        afterTipiLavoroReload(load(categoriaId), () => {
+            restoreTipoLavoroSelection(currentTipoLavoroValue, currentTipoLavoroText);
         });
-    }
-    
-    if (sottocategoriaSelect) {
-        sottocategoriaSelect.addEventListener('change', function() {
-            const sottocategoriaId = this.value;
-            const categoriaPrincipaleId = document.getElementById('attivita-categoria-principale')?.value;
-            
-            // Salva il valore corrente del tipo lavoro prima di ricaricare
-            const tipoLavoroSelect = document.getElementById('attivita-tipo-lavoro-gerarchico');
-            const currentTipoLavoroValue = tipoLavoroSelect ? tipoLavoroSelect.value : null;
-            const currentTipoLavoroText = tipoLavoroSelect && tipoLavoroSelect.selectedIndex >= 0 
-                ? tipoLavoroSelect.options[tipoLavoroSelect.selectedIndex]?.text 
-                : null;
-            
-            // Usa sottocategoria se selezionata, altrimenti categoria principale
-            const categoriaId = sottocategoriaId || categoriaPrincipaleId;
-            if (categoriaId && loadTipiLavoroCallback) {
-                console.log('[ATTIVITA-EVENTS] Sottocategoria cambiata, ricarico tipi lavoro per applicare filtro vendemmia se necessario');
-                console.log('[ATTIVITA-EVENTS] Valore tipo lavoro corrente da preservare:', currentTipoLavoroValue, currentTipoLavoroText);
-                
-                // Chiama il callback per ricaricare i tipi lavoro
-                loadTipiLavoroCallback(categoriaId);
-                restoreTipoLavoroAfterReload(currentTipoLavoroValue, currentTipoLavoroText);
-            }
-        });
-    }
+    });
 }
 
 // ============================================
@@ -775,9 +780,13 @@ export async function openAttivitaModal(params) {
         title.textContent = 'Aggiungi Attività';
         // NON resettare il form qui - viene fatto all'inizio della funzione
         // form.reset() resetta anche i dropdown che abbiamo appena popolato!
-        // Imposta data di default a oggi
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById('attivita-data').value = today;
+        // Oggi locale: il max del Diario blocca solo i giorni futuri, non la mattina dopo mezzanotte.
+        const today = dateLikeToLocalCalendarIso(new Date());
+        const dataInputNuova = document.getElementById('attivita-data');
+        if (dataInputNuova) {
+            dataInputNuova.max = today;
+            dataInputNuova.value = today;
+        }
         document.getElementById('attivita-pause').value = 0;
         
         // Popola struttura gerarchica (sempre attiva) - NON resettare, solo popolare
@@ -922,6 +931,12 @@ export async function handleSaveAttivita(params) {
         const tipoPiatto = document.getElementById('attivita-tipo-lavoro');
         const colturaPiatto = document.getElementById('attivita-coltura');
         tipoLavoro = (tipoGerarchico && tipoGerarchico.value) || (tipoPiatto && tipoPiatto.value) || '';
+        if (!tipoLavoro && tipoGerarchico && tipoGerarchico.selectedIndex > 0) {
+            const opt = tipoGerarchico.options[tipoGerarchico.selectedIndex];
+            const text = (opt && opt.textContent ? opt.textContent : '').trim();
+            if (opt && opt.value) tipoLavoro = opt.value;
+            else if (text && !text.startsWith('--')) tipoLavoro = text;
+        }
         coltura = (colturaGerarchica && colturaGerarchica.value) || (colturaPiatto && colturaPiatto.value) || '';
         orarioInizio = document.getElementById('attivita-orario-inizio').value;
         orarioFine = document.getElementById('attivita-orario-fine').value;
@@ -1760,8 +1775,12 @@ export async function salvaAttivitaRapida({
         
         // Reset form
         document.getElementById(`form-rapido-${lavoroId}`).reset();
-        const today = new Date().toISOString().split('T')[0];
-        document.getElementById(`rapido-data-${lavoroId}`).value = today;
+        const today = dateLikeToLocalCalendarIso(new Date());
+        const rapidoDataInput = document.getElementById(`rapido-data-${lavoroId}`);
+        if (rapidoDataInput) {
+            rapidoDataInput.max = today;
+            rapidoDataInput.value = today;
+        }
         toggleFormRapido(lavoroId); // Chiudi form
         
         // Ricarica attività e lavori
