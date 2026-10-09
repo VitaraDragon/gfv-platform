@@ -10,6 +10,7 @@ import {
   interpretaEsitoSalvataggioOra,
   messaggioConfermaSalvataggioOra,
   riepilogoRipristinatoScaduto,
+  togliConfermeSalvataggioVecchie,
 } from '../core/js/tony/tony-segna-ora-local-engine.js';
 
 describe('tony-segna-ora-local-engine', () => {
@@ -270,5 +271,18 @@ describe('tony-segna-ora-local-engine', () => {
     ], false).scaduto).toBe(false);
     const dueVolte = riepilogoRipristinatoScaduto(scaduto.history, false);
     expect(dueVolte.history).toHaveLength(3);
+  });
+
+  it('toglie dalla chat salvata Tutto pronto, il sì e la nota scaduta', () => {
+    const history = [
+      { role: 'user', parts: [{ text: 'Ciao' }] },
+      { role: 'model', parts: [{ text: 'Tutto pronto: Manutenzione, oggi 09/10. Vuoi salvare? Scrivi «sì» o «salva».' }] },
+      { role: 'user', parts: [{ text: 'sì' }] },
+      { role: 'model', parts: [{ text: 'Questa richiesta è scaduta. Dimmi di nuovo giorno, orario e lavoro.' }] },
+      { role: 'model', parts: [{ text: 'Sono qui.' }] },
+    ];
+    const pulita = togliConfermeSalvataggioVecchie(history);
+    expect(pulita.map((m) => m.parts[0].text)).toEqual(['Ciao', 'Sono qui.']);
+    expect(history).toHaveLength(5);
   });
 });

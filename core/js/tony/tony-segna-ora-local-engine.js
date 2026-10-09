@@ -4,7 +4,7 @@
  * @module core/js/tony/tony-segna-ora-local-engine
  */
 
-import { etichettaDataRiepilogoOre, riepilogoSegnaOreAmmesso } from './tony-ora-lavoro-match.js?v=2026-10-09d';
+import { etichettaDataRiepilogoOre, riepilogoSegnaOreAmmesso } from './tony-ora-lavoro-match.js?v=2026-10-09e';
 
 /** Messaggio di fallback quando mancano più campi obbligatori. */
 export const SEGNA_ORE_ASK_FALLBACK =
@@ -602,6 +602,41 @@ export function riepilogoRipristinatoScaduto(chatHistory, inAttesa) {
   return { scaduto: true, history: history };
 }
 
+function eDomandaTuttoPronto(txt) {
+  return /tutto pronto/i.test(txt) && /vuoi salvare\?/i.test(txt);
+}
+
+function eNotaRichiestaScaduta(txt) {
+  return /questa richiesta è scaduta/i.test(txt);
+}
+
+function eRispostaSiSalva(txt) {
+  return /^\s*(s[iì]|ok|salva|confermo|va\s*bene|procedi)(\s|$|[,.!])/i.test(String(txt || ''));
+}
+
+/**
+ * Toglie dalla chat salvata le conferme di un salvataggio già chiuso:
+ * «Tutto pronto … Vuoi salvare?», il «sì» subito dopo, e «Questa richiesta è scaduta…».
+ * @param {Array<object>|null|undefined} history
+ * @returns {Array<object>}
+ */
+export function togliConfermeSalvataggioVecchie(history) {
+  const list = Array.isArray(history) ? history : [];
+  const out = [];
+  for (let i = 0; i < list.length; i++) {
+    const m = list[i];
+    const txt = testoTurnoChat(m);
+    if (eNotaRichiestaScaduta(txt)) continue;
+    if (eDomandaTuttoPronto(txt)) {
+      const next = list[i + 1];
+      if (next && next.role === 'user' && eRispostaSiSalva(testoTurnoChat(next))) i += 1;
+      continue;
+    }
+    out.push(m);
+  }
+  return out;
+}
+
 /**
  * Compat: finestra che contiene un form segna ore (mobile o desktop).
  * @returns {Window|null}
@@ -633,5 +668,6 @@ if (typeof window !== 'undefined') {
     interpretaEsitoSalvataggioOra,
     messaggioConfermaSalvataggioOra,
     riepilogoRipristinatoScaduto,
+    togliConfermeSalvataggioVecchie,
   };
 }
