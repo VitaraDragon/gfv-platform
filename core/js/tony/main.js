@@ -31,8 +31,14 @@ import {
     utenteHaNominatoMezziSegnaOra,
     interpretaEsitoSalvataggioOra,
     messaggioConfermaSalvataggioOra,
-    riepilogoRipristinatoScaduto,
-} from './tony-segna-ora-local-engine.js?v=2026-10-09d';
+    togliConfermeSalvataggioVecchie,
+} from './tony-segna-ora-local-engine.js?v=2026-10-09e';
+import {
+    accodaInvio,
+    prossimoDaInviare,
+    scadutoInAttesa,
+    unisciCronologiaChat,
+} from './tony-invio-coda.js?v=2026-10-09e';
 import { formattaDataItaliana } from '../../services/ore-operai-logic.js';
 import {
     risolviLavoroDaTesto,
@@ -49,7 +55,7 @@ import {
     etichettaDataRiepilogoOre,
     inserisciDataNelRiepilogo,
     eRichiestaOreNuova,
-} from './tony-ora-lavoro-match.js?v=2026-10-09d';
+} from './tony-ora-lavoro-match.js?v=2026-10-09e';
 import {
     formReadyForTonySave,
     magazzinoFormReadyForTonySave,
@@ -96,7 +102,7 @@ import { initTonyDocumentCapture } from './document-capture.js';
 import { chooseSttEngine, createRecorderSpeechRecognition, isIosLikeDevice, isStandaloneDisplayMode } from './voice-recorder-stt.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-    export const TONY_CLIENT_BUILD = '2026-10-09d';
+    export const TONY_CLIENT_BUILD = '2026-10-09e';
 if (typeof window !== 'undefined') {
     window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
     if (typeof console !== 'undefined' && console.log) console.log('[Tony] Client build', TONY_CLIENT_BUILD);
@@ -7319,7 +7325,9 @@ if (typeof window !== 'undefined') {
 
         function saveTonyState() {
             try {
-                var chatHistory = (window.Tony && window.Tony.chatHistory) ? window.Tony.chatHistory : [];
+                var chatHistory = togliConfermeSalvataggioVecchie(
+                    (window.Tony && window.Tony.chatHistory) ? window.Tony.chatHistory : []
+                );
                 var state = {
                     uid: tonySessionOwnerUid(),
                     chatHistory: chatHistory,
@@ -7335,6 +7343,10 @@ if (typeof window !== 'undefined') {
         }
 
         function restoreTonyState() {
+            if (window.__tonyChatRipristinata) return;
+            if (!window.Tony || !messagesEl) return;
+            window.__tonyChatRipristinata = true;
+            try { window.__tonySegnaOreRiepilogo = null; } catch (eRiep0) { /* ignore */ }
             try {
                 var savedModuli = sessionStorage.getItem(TONY_MODULI_STORAGE_KEY);
                 if (savedModuli && window.Tony && typeof window.Tony.setContext === 'function') {
@@ -7375,13 +7387,12 @@ if (typeof window !== 'undefined') {
                         }
                         deduped.push(dm);
                     }
+                    deduped = togliConfermeSalvataggioVecchie(deduped);
+                    var corrente = Array.isArray(window.Tony.chatHistory) ? window.Tony.chatHistory.slice() : [];
+                    deduped = unisciCronologiaChat(corrente, deduped);
                     window.Tony.chatHistory = deduped;
-                    var inAttesaOre = false;
-                    try { inAttesaOre = !!window.__tonySegnaOreRiepilogo; } catch (eAtt) { inAttesaOre = false; }
-                    var chatOre = riepilogoRipristinatoScaduto(deduped, inAttesaOre);
-                    deduped = chatOre.history || deduped;
-                    window.Tony.chatHistory = deduped;
-                    while (messagesEl.firstChild) messagesEl.removeChild(messagesEl.firstChild);
+                    var statoPreparazione = document.getElementById('tony-stato-preparazione');
+                    while (messagesEl && messagesEl.firstChild) messagesEl.removeChild(messagesEl.firstChild);
                     for (var i = 0; i < deduped.length; i++) {
                         var m = deduped[i];
                         var txt = (m.parts && m.parts[0]) ? m.parts[0].text : '';
@@ -7389,10 +7400,122 @@ if (typeof window !== 'undefined') {
                         var role = m.role === 'user' ? 'user' : 'tony';
                         appendMessage(txt, role);
                     }
+                    if (statoPreparazione && messagesEl) messagesEl.appendChild(statoPreparazione);
                 }
 
                 /* Modalità vocale continua: non ripristinare al reload (serve tap mic = gesto utente). */
             } catch (e) { console.warn('[Tony] restoreTonyState:', e); }
+        }
+
+        function tonyWidgetPronto() {
+            if (window.__tonyRitardaPronto) return false;
+            return !!(window.Tony && typeof window.Tony.isReady === 'function' && window.Tony.isReady());
+        }
+
+        function mostraStatoPreparazioneTony() {
+            if (!messagesEl || document.getElementById('tony-stato-preparazione')) return;
+            var div = document.createElement('div');
+            div.id = 'tony-stato-preparazione';
+            div.className = 'tony-msg tony-stato';
+            div.setAttribute('role', 'status');
+            div.textContent = 'Sto preparando Tony…';
+            messagesEl.appendChild(div);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function togliStatoPreparazioneTony() {
+            var el = document.getElementById('tony-stato-preparazione');
+            if (el && el.parentNode) el.parentNode.removeChild(el);
+        }
+
+        function contaRisposteTony() {
+            if (!messagesEl) return 0;
+            return messagesEl.querySelectorAll('.tony-msg.tony, .tony-msg.error').length;
+        }
+
+        function attendiRispostaCodaTony(prima) {
+            return new Promise(function (resolve) {
+                var start = Date.now();
+                function tick() {
+                    var busy = _isSendingMessage || isWaitingForTonyResponse;
+                    var typing = messagesEl && messagesEl.querySelector('.tony-msg.typing');
+                    if (contaRisposteTony() > prima && !busy && !typing) {
+                        resolve();
+                        return;
+                    }
+                    if (Date.now() - start > 45000) {
+                        resolve();
+                        return;
+                    }
+                    setTimeout(tick, 60);
+                }
+                setTimeout(tick, 40);
+            });
+        }
+
+        var _tonyCodaTimer = null;
+        var _tonySvuotaPromessa = null;
+
+        function svuotaCodaInvioTony() {
+            if (_tonySvuotaPromessa) return _tonySvuotaPromessa;
+            if (!tonyWidgetPronto()) return Promise.resolve();
+            _tonySvuotaPromessa = (async function () {
+                try {
+                    if (!window.__tonyChatRipristinata) restoreTonyState();
+                    while (window.__tonyInvioInAttesa && window.__tonyInvioInAttesa.length) {
+                        if (!tonyWidgetPronto()) break;
+                        var step = prossimoDaInviare(window.__tonyInvioInAttesa);
+                        window.__tonyInvioInAttesa = step.coda;
+                        if (!step.voce || !String(step.voce.text || '').trim()) continue;
+                        var prima = contaRisposteTony();
+                        var primaLunghezza = window.__tonyInvioInAttesa.length;
+                        var optsCoda = Object.assign({}, step.voce.opts || {}, { _dallaCoda: true });
+                        sendMessage(step.voce.text, optsCoda);
+                        if (window.__tonyInvioInAttesa && window.__tonyInvioInAttesa.length > primaLunghezza) {
+                            await new Promise(function (r) { setTimeout(r, 400); });
+                            continue;
+                        }
+                        await attendiRispostaCodaTony(prima);
+                    }
+                    if (!window.__tonyInvioInAttesa || !window.__tonyInvioInAttesa.length) {
+                        togliStatoPreparazioneTony();
+                    }
+                } finally {
+                    _tonySvuotaPromessa = null;
+                    if (tonyWidgetPronto() && window.__tonyInvioInAttesa && window.__tonyInvioInAttesa.length) {
+                        svuotaCodaInvioTony();
+                    }
+                }
+            })();
+            return _tonySvuotaPromessa;
+        }
+
+        function avviaControlloCodaTony() {
+            if (_tonyCodaTimer) return;
+            _tonyCodaTimer = setInterval(function () {
+                var coda = window.__tonyInvioInAttesa || [];
+                if (!coda.length) {
+                    clearInterval(_tonyCodaTimer);
+                    _tonyCodaTimer = null;
+                    return;
+                }
+                if (tonyWidgetPronto()) {
+                    clearInterval(_tonyCodaTimer);
+                    _tonyCodaTimer = null;
+                    svuotaCodaInvioTony();
+                    return;
+                }
+                var primo = coda[0];
+                if (primo && scadutoInAttesa(primo.ts, Date.now(), 20000)) {
+                    clearInterval(_tonyCodaTimer);
+                    _tonyCodaTimer = null;
+                    var ultimo = coda[coda.length - 1];
+                    window.__tonyInvioInAttesa = [];
+                    togliStatoPreparazioneTony();
+                    appendMessage('Tony non è disponibile in questo momento. Riprova tra poco.', 'error');
+                    if (inputEl && ultimo && ultimo.text) inputEl.value = ultimo.text;
+                }
+            }, 300);
         }
 
         function checkFarewellIntent(text) {
@@ -7606,6 +7729,16 @@ if (typeof window !== 'undefined') {
             opts = opts || {};
             var isRealCfTurn = !opts.proactive && !opts._displayOnly;
             if (isRealCfTurn && _isSendingMessage && !opts.fromVoice) {
+                if (opts._dallaCoda) {
+                    var optsOccupato = Object.assign({}, opts);
+                    delete optsOccupato._dallaCoda;
+                    window.__tonyInvioInAttesa = accodaInvio(
+                        [{ text: (overrideText != null ? String(overrideText) : (inputEl && inputEl.value) || '').trim(), opts: optsOccupato, ts: Date.now() }].concat(window.__tonyInvioInAttesa || []),
+                        null,
+                        5
+                    );
+                    avviaControlloCodaTony();
+                }
                 console.warn('[Tony] sendMessage ignorato: richiesta già in corso (anti-flood).');
                 return;
             }
@@ -7686,9 +7819,28 @@ if (typeof window !== 'undefined') {
                 if (typeof stopListeningRef === 'function') stopListeningRef();
                 tonyDebugLog('[Tony] Voice turn avviato (build ' + (window.__TONY_CLIENT_BUILD || '?') + '):', text.slice(0, 80));
             }
-            if (!window.Tony || !window.Tony.isReady()) {
+            if (!opts.proactive && !opts._dallaCoda && !tonyWidgetPronto()) {
                 releaseVoiceTurnFromIntercept();
-                appendMessage('Tony non è ancora pronto. Attendi qualche secondo e riprova.', 'error');
+                window.__tonyInvioInAttesa = accodaInvio(window.__tonyInvioInAttesa || [], {
+                    text: text,
+                    opts: opts || {},
+                    ts: Date.now()
+                }, 5);
+                mostraStatoPreparazioneTony();
+                avviaControlloCodaTony();
+                return;
+            }
+            if (!tonyWidgetPronto()) {
+                releaseVoiceTurnFromIntercept();
+                if (opts._dallaCoda) {
+                    var optsRimesse = Object.assign({}, opts);
+                    delete optsRimesse._dallaCoda;
+                    window.__tonyInvioInAttesa = accodaInvio(
+                        [{ text: text, opts: optsRimesse, ts: Date.now() }].concat(window.__tonyInvioInAttesa || []),
+                        null,
+                        5
+                    );
+                }
                 return;
             }
             if (window.__tonyFreemiumBlocked || window.__GFV_TONY_E2E_FORCE_FREEMIUM) {
@@ -9678,6 +9830,9 @@ if (typeof window !== 'undefined') {
         }
 
         if (uiApi && uiApi.setSendHandler) uiApi.setSendHandler(function() { sendMessage(); });
+        window.addEventListener('tony-widget-ready', function () {
+            try { svuotaCodaInvioTony(); } catch (eCodaReady) { /* ignore */ }
+        });
         /** Attende che finisca il turno CF così il messaggio proattivo non viene scartato da _isSendingMessage. */
         function tonySendProactiveWhenUnlocked(text, maxAttempts) {
             maxAttempts = typeof maxAttempts === 'number' ? maxAttempts : 24;
@@ -10296,6 +10451,7 @@ if (typeof window !== 'undefined') {
                 if (app) {
                     var Tony = (await import('../../services/tony-service.js')).Tony;
                     window.Tony = Tony;
+                    if (typeof restoreTonyState === 'function') restoreTonyState();
                     Tony.speak = function(text) { if (typeof window.__tonySayGreeting === 'function') window.__tonySayGreeting(text); };
                     await Tony.init(app);
                     Tony.setContext('session', {
@@ -10488,7 +10644,7 @@ if (typeof window !== 'undefined') {
                     
                     function logProntoIfNeeded() {
                         if (_tonyProntoLogged) return;
-                        if (!window.Tony || typeof window.Tony.isReady !== 'function' || !window.Tony.isReady()) return;
+                        if (!tonyWidgetPronto()) return;
                         if (typeof window.__tonyDisplayProactive !== 'function') return;
                         _tonyProntoLogged = true;
                         tonyDebugLog('[Tony] Pronto (widget standalone). Modulo avanzato:', isTonyAdvancedActive ? 'ATTIVO' : 'NON ATTIVO', 'build:', window.__TONY_CLIENT_BUILD || '?');
@@ -10699,7 +10855,8 @@ window.addEventListener('tony-module-updated', function(e) {
                     // Pronto: dopo init Tony + API proattiva widget (evento) o fallback
                     logProntoIfNeeded();
                     setTimeout(function() { logProntoIfNeeded(); }, 2500);
-                    if (typeof window.__tonyRestoreSession === 'function') window.__tonyRestoreSession();
+                    if (!window.__tonyChatRipristinata && typeof window.__tonyRestoreSession === 'function') window.__tonyRestoreSession();
+                    try { svuotaCodaInvioTony(); } catch (eCoda) { /* ignore */ }
                     (function checkTnyNotifyGreeting() {
                         var params = new URLSearchParams(window.location.search);
                         var tny = params.get('tnyNotify');

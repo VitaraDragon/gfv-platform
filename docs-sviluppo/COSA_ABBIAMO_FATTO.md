@@ -1,6 +1,22 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-09 — Tony conferma il salvataggio delle ore.**
+**Ultimo aggiornamento documentazione: 2026-10-09 — Tony in coda, riepilogo ore, ingresso dopo il login.**
+
+## 2026-10-09 — Messaggi a Tony, riepilogo ore e ingresso dopo il login
+
+I messaggi scritti a Tony prima che sia pronto restano in coda e partono da soli.
+
+Il riepilogo del giorno si aggiorna subito quando salvi o elimini un turno.
+
+L'ingresso dopo il login è una sola decisione. Se i lavori non si caricano, compare «Riprova».
+
+Le conferme vecchie non tornano nella chat.
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-09 — Tony conferma il salvataggio delle ore.**
 
 ## 2026-10-09 — Tony conferma il salvataggio quando l'ora è salvata
 

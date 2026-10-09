@@ -928,6 +928,84 @@
       }
     },
     {
+      "id": "T-FLOW-033",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Due messaggi prima che Tony sia pronto restano in coda e partono in ordine.",
+      "contract": {
+        "invariant": "Nessun messaggio si perde se Tony non è ancora pronto.",
+        "primaryAsserts": [
+          "niente avviso non pronto",
+          "due messaggi in ordine",
+          "una risposta ciascuno",
+          "campo vuoto"
+        ],
+        "avoidAsserts": [
+          "non è ancora pronto"
+        ]
+      },
+      "persona": "caposquadra",
+      "startUrl": "/core/segnatura-ore-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsCapoFromDevPage",
+      "messages": [],
+      "mockCf": true,
+      "expect": {
+        "clientRecovery": true
+      }
+    },
+    {
+      "id": "T-FLOW-034",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Il riepilogo del giorno si aggiorna subito quando si elimina una riga. Fascia 04:20-04:50.",
+      "contract": {
+        "invariant": "Il totale in pagina non resta quello vecchio durante la rilettura.",
+        "primaryAsserts": [
+          "riga 04:20 visibile",
+          "dopo elimina la fascia sparisce entro 300 ms",
+          "a fine rilettura resta assente"
+        ],
+        "avoidAsserts": []
+      },
+      "persona": "caposquadra",
+      "startUrl": "/core/segnatura-ore-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsCapoFromDevPage",
+      "messages": [],
+      "mockCf": false,
+      "expect": {
+        "clientRecovery": true
+      }
+    },
+    {
+      "id": "T-FLOW-035",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Dopo il login l'operaio va una volta nell'area di lavoro. Se i lavori non rispondono compare Riprova. Le conferme vecchie non tornano in chat.",
+      "contract": {
+        "invariant": "Un solo ingresso, un limite sul caricamento lavori, niente conferme vecchie.",
+        "primaryAsserts": [
+          "un solo ingresso workspace",
+          "messaggio lavori e Riprova",
+          "chat senza Tutto pronto e senza scaduta"
+        ],
+        "avoidAsserts": []
+      },
+      "persona": "operaio",
+      "startUrl": "/core/dashboard-standalone.html?emulator=1",
+      "login": "loginAsOperaioFromDevPage",
+      "messages": [],
+      "mockCf": false,
+      "expect": {
+        "clientRecovery": true
+      }
+    },
+    {
       "id": "T-FLOW-015",
       "status": "ready",
       "mode": "gate",

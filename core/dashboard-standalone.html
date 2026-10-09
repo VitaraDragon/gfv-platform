@@ -93,17 +93,18 @@
       alertScript.src = (base ? base + sep : '') + 'js/standalone-alert-global.js';
       document.head.appendChild(alertScript);
       var tonyLoader = document.createElement('script');
-      tonyLoader.src = (base ? base + sep : '') + 'js/gfv-tony-loader.js?v=2026-10-09d';
+      tonyLoader.src = (base ? base + sep : '') + 'js/gfv-tony-loader.js?v=2026-10-09e';
       document.head.appendChild(tonyLoader);
     })();
     </script>
 
     <script src="js/dashboard-utils.js"></script>
     <script src="js/dashboard-sections.js"></script>
-    <script type="module" src="js/standalone-bootstrap.js" data-config-base=""></script>
+    <script type="module" src="js/standalone-bootstrap.js?v=2026-10-09e" data-config-base=""></script>
     <script type="module">
         import { formatDateTimeItalianReadable } from './js/date-format-it.js';
         import { resolveAuthUser, loginPageUrl } from './js/simulator-standalone-page.js';
+        import { spiegaIngressoDopoLogin, CHIAVE_RIMBALZI_INGRESSO } from './js/tony/tony-ingresso-login.js?v=2026-10-09e';
         const { 
             roleNames, 
             normalizeRole, 
@@ -113,7 +114,6 @@
             hasAnyRole, 
             hasOnlyCoreModules, 
             hasManodoperaModule,
-            shouldUseFieldMobileWorkspace,
             getFieldWorkspacePreference,
             setFieldWorkspacePreference
         } = window.GFVDashboardUtils;
@@ -274,6 +274,15 @@
             try {
                 const params = new URLSearchParams(window.location.search || '');
                 const pref = params.get('ws');
+                const unaVolta = params.get('una_volta') === '1';
+                if (unaVolta) {
+                    params.delete('ws');
+                    params.delete('una_volta');
+                    const next = params.toString();
+                    const cleanUrl = `${window.location.pathname}${next ? `?${next}` : ''}${window.location.hash || ''}`;
+                    window.history.replaceState({}, '', cleanUrl);
+                    return;
+                }
                 if (pref === 'classic' || pref === 'mobile' || pref === 'auto') {
                     setFieldWorkspacePreference(pref);
                     params.delete('ws');
@@ -286,13 +295,54 @@
             }
         }
 
-        function redirectToFieldWorkspaceIfNeeded(userData, availableModules) {
-            if (!shouldUseFieldMobileWorkspace(userData, availableModules)) {
-                return false;
+        function leggiRimbalziIngresso() {
+            try {
+                return Number(sessionStorage.getItem(CHIAVE_RIMBALZI_INGRESSO) || '0') || 0;
+            } catch (error) {
+                return 0;
             }
-            const target = './mobile/field-workspace-standalone.html';
-            window.location.href = target;
-            return true;
+        }
+
+        function mostraErroreIngressoDashboard() {
+            const box = document.getElementById('dashboard-content');
+            if (!box) return;
+            box.innerHTML = '<div id="gfv-ingresso-errore" role="alert" class="loading">Non riesco ad aprire la tua area. Riprova</div>';
+            const btn = document.createElement('button');
+            btn.id = 'btn-riprova-ingresso';
+            btn.type = 'button';
+            btn.textContent = 'Riprova';
+            btn.addEventListener('click', () => {
+                try { sessionStorage.removeItem(CHIAVE_RIMBALZI_INGRESSO); } catch (error) { /* ignore */ }
+                window.__gfvRedirectWorkspaceDeciso = false;
+                window.location.href = './dashboard-standalone.html';
+            });
+            box.appendChild(btn);
+        }
+
+        function applicaIngressoDopoLogin(userData, availableModules) {
+            if (window.__gfvRedirectWorkspaceDeciso) {
+                return window.__gfvIngressoScelta || 'dashboard';
+            }
+            window.__gfvRedirectWorkspaceDeciso = true;
+            const input = {
+                ruoli: (userData && userData.ruoli) || [],
+                moduli: availableModules || [],
+                preferenza: getFieldWorkspacePreference(),
+                rimbalzi: leggiRimbalziIngresso()
+            };
+            const spiegato = spiegaIngressoDopoLogin(input);
+            window.__gfvIngressoScelta = spiegato.scelta;
+            console.log('[workspace] ingresso: ' + spiegato.scelta + ', motivo ' + spiegato.motivo);
+            if (spiegato.scelta === 'workspace') {
+                const box = document.getElementById('dashboard-content');
+                if (box) {
+                    box.innerHTML = '<div class="loading" id="gfv-apertura-lavoro">Apro il tuo lavoro…</div>';
+                }
+                window.location.href = './mobile/field-workspace-standalone.html';
+            } else if (spiegato.scelta === 'errore') {
+                mostraErroreIngressoDashboard();
+            }
+            return spiegato.scelta;
         }
 
         applyWorkspacePreferenceFromUrl();
@@ -1318,12 +1368,10 @@
                             });
                             window.__gfvSubscriptionPlanId = planNormalized;
                             try { window.dispatchEvent(new CustomEvent('gfv-subscription-plan', { detail: { planId: planNormalized } })); } catch (eP) {}
+                            const ingressoNuovo = applicaIngressoDopoLogin(userDataNormalized, availableModules);
+                            if (ingressoNuovo !== 'dashboard') return;
+
                             await mountPreviewSwitch(tenantDataSnapshot, currentTenantId, normalizedRoles);
-                            
-                            // Routing mobile per ruoli campo (operaio/caposquadra)
-                            if (redirectToFieldWorkspaceIfNeeded(userDataNormalized, availableModules)) {
-                                return;
-                            }
 
                             // Renderizza dashboard
                             await renderDashboard(userDataNormalized, availableModules);
@@ -1423,6 +1471,9 @@
                     });
                     window.__gfvSubscriptionPlanId = planNormalized;
                     try { window.dispatchEvent(new CustomEvent('gfv-subscription-plan', { detail: { planId: planNormalized } })); } catch (eP) {}
+                    const ingresso = applicaIngressoDopoLogin(userDataNormalized, availableModules);
+                    if (ingresso !== 'dashboard') return;
+
                     await mountPreviewSwitch(tenantDataSnapshot, currentTenantId, normalizedRoles);
                     
                     // La visibilità del link "Invita Collaboratore" viene gestita in renderDashboard
@@ -1430,11 +1481,6 @@
                     
                     // Gestione switch tenant (multi-tenant)
                     await dashboardPerfAsync('auth.tenantSwitch', () => setupTenantSwitch(user.uid, userDataNormalized));
-                    
-                    // Routing mobile per ruoli campo (operaio/caposquadra)
-                    if (redirectToFieldWorkspaceIfNeeded(userDataNormalized, availableModules)) {
-                        return;
-                    }
 
                     // Renderizza dashboard con moduli
                     await renderDashboard(userDataNormalized, availableModules);
