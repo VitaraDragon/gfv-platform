@@ -1,6 +1,22 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-09 — Il riepilogo delle ore si aggiorna subito.**
+**Ultimo aggiornamento documentazione: 2026-10-09 — Ingresso dopo il login, caricamento lavori, nome del lavoro.**
+
+## 2026-10-09 — Ingresso dopo il login, caricamento lavori e nome del lavoro
+
+Dopo il login la scelta è una sola. Se apri l’area di lavoro non vedi un lampo della dashboard.
+
+La dashboard classica si ricorda solo se la scegli tu. Un errore temporaneo non te la blocca.
+
+«Caricamento lavori…» ha un limite. Se i lavori non arrivano, compare «Riprova».
+
+Se nomini un lavoro già finito, Tony non propone un lavoro sospeso che non c’entra. Dice «Non trovo un lavoro attivo con questo nome».
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-09 — Il riepilogo delle ore si aggiorna subito.**
 
 ## 2026-10-09 — Il riepilogo del giorno si aggiorna subito, e le conferme vecchie non tornano in chat
 

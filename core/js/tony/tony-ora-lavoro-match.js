@@ -171,6 +171,47 @@ function punteggioLavoro(tokens, lavoro) {
   return score;
 }
 
+function testoNomeLabel(lavoro) {
+  return `${(lavoro && lavoro.nome) || ''} ${(lavoro && lavoro.label) || ''}`.toLowerCase();
+}
+
+/**
+ * Quota di parole significative del testo presenti nel lavoro, da 0 a 1.
+ * Una parola conta se compare nel nome, nell'etichetta, nel tipo o negli alias.
+ * @param {string[]} tokens
+ * @param {object|null|undefined} lavoro
+ * @returns {number}
+ */
+export function copertura(tokens, lavoro) {
+  const lista = (Array.isArray(tokens) ? tokens : []).filter(Boolean);
+  if (!lista.length || !lavoro) return 0;
+  const hay = testoConfrontoLavoro(lavoro);
+  let trovate = 0;
+  for (let i = 0; i < lista.length; i += 1) {
+    if (hay.indexOf(lista[i]) >= 0) trovate += 1;
+  }
+  return trovate / lista.length;
+}
+
+/**
+ * L'abbinamento è ragionevole solo se il testo copre davvero il lavoro.
+ * Con due o più parole serve almeno metà (copertura ≥ 0,5): una sola parola
+ * in comune, per esempio «manutenzione» nel tipo, non basta.
+ * Con una sola parola, quella deve avere almeno 6 lettere ed essere nel nome
+ * o nell'etichetta, non solo nel tipo di lavoro.
+ * @param {string[]} tokens
+ * @param {object|null|undefined} lavoro
+ * @returns {boolean}
+ */
+export function abbinamentoRagionevole(tokens, lavoro) {
+  const lista = (Array.isArray(tokens) ? tokens : []).filter(Boolean);
+  if (!lista.length || !lavoro) return false;
+  if (lista.length >= 2) return copertura(lista, lavoro) >= 0.5;
+  const tok = lista[0];
+  if (tok.length < 6) return false;
+  return testoNomeLabel(lavoro).indexOf(tok) >= 0;
+}
+
 function lavoriDiOggi(list, oggiIso) {
   return list.filter((lavoro) => eDiOggi(lavoro, oggiIso));
 }
@@ -472,9 +513,14 @@ function risolviTraSegnabili(testoUtente, list, oggiIso) {
     return esitoNessuno(list, oggiIso, false);
   }
 
-  const conPunteggio = list
+  let conPunteggio = list
     .map((lavoro) => ({ lavoro, score: punteggioLavoro(tokens, lavoro) }))
     .filter((riga) => riga.score > 0);
+
+  // Con due o più parole un solo token debole non basta a dire «unico».
+  if (tokens.length >= 2) {
+    conPunteggio = conPunteggio.filter((riga) => abbinamentoRagionevole(tokens, riga.lavoro));
+  }
 
   if (!conPunteggio.length) {
     return esitoNessuno(list, oggiIso, true);
@@ -531,7 +577,8 @@ function esitoSospeso(sospeso, candidati) {
 
 /**
  * Ricava il lavoro dal testo. Mai la prima voce della lista.
- * Il match è sui lavori segnabili. Un sospeso di oggi, o l'unico con quel nome, non viene scelto in silenzio.
+ * Il match è sui lavori segnabili. Un sospeso si propone solo se l'abbinamento è ragionevole.
+ * Con due o più parole, anche un segnabile serve un abbinamento ragionevole.
  *
  * @param {string} testoUtente
  * @param {object[]} lavori
@@ -555,7 +602,7 @@ export function risolviLavoroDaTesto(testoUtente, lavori, opts) {
   const meglioSegnabile = conPunteggioSegnabili.reduce((max, riga) => Math.max(max, riga.score), 0);
   const conPunteggioSospesi = sospesi
     .map((lavoro) => ({ lavoro, score: punteggioLavoro(tokens, lavoro) }))
-    .filter((riga) => riga.score > 0);
+    .filter((riga) => riga.score > 0 && abbinamentoRagionevole(tokens, riga.lavoro));
   if (!conPunteggioSospesi.length) return esitoSegnabili;
 
   conPunteggioSospesi.sort((a, b) => b.score - a.score);
@@ -604,7 +651,7 @@ export function messaggioSceltaLavoroOre(esito) {
   if (esito.stato === 'nessuno' && esito.nominato) {
     const elenco = nomi.length ? nomi.slice(0, 8).join(', ') : 'nessuno';
     const titolo = esito.fonteElenco === 'disponibili' ? 'I lavori disponibili sono' : 'I lavori di oggi sono';
-    return `Non trovo un lavoro con quel nome. ${titolo}: ${elenco}.`;
+    return `Non trovo un lavoro attivo con questo nome. ${titolo}: ${elenco}.`;
   }
   return '';
 }
@@ -713,6 +760,8 @@ export function risolviValoreSelectLavoro(valore, opzioni, optsMatch) {
 if (typeof window !== 'undefined') {
   window.TonyOraLavoroMatch = {
     risolviLavoroDaTesto,
+    copertura,
+    abbinamentoRagionevole,
     risolviValoreSelectLavoro,
     messaggioSceltaLavoroOre,
     nomeLavoroVisibile,
