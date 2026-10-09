@@ -122,7 +122,10 @@ export function isLavoroInDropdownSegnaOre(lavoro, oggi = new Date(), opts = {})
     oggiNorm.setHours(0, 0, 0, 0);
     const maxFutureDays = opts.maxFutureDays != null ? opts.maxFutureDays : 14;
 
-    if (stato === 'in_corso' || stato === 'sospeso') return true;
+    // Sospeso: resta in lista, ma non si segnano ore nuove (si usa la ripresa).
+    if (stato === 'sospeso') return false;
+
+    if (stato === 'in_corso') return true;
 
     const di = parseLavoroDataInizio(lavoro && lavoro.dataInizio);
 

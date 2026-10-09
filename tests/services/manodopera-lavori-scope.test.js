@@ -50,8 +50,8 @@ describe('isLavoroVisibileOperaioCampo', () => {
 describe('isLavoroInDropdownSegnaOre', () => {
     const oggi = new Date(2026, 4, 17);
 
-    it('esclude da_pianificare senza data ma mantiene sospeso', () => {
-        expect(isLavoroInDropdownSegnaOre({ stato: 'sospeso' }, oggi)).toBe(true);
+    it('esclude da_pianificare senza data e i sospesi', () => {
+        expect(isLavoroInDropdownSegnaOre({ stato: 'sospeso' }, oggi)).toBe(false);
         expect(isLavoroInDropdownSegnaOre({ stato: 'da_pianificare' }, oggi)).toBe(false);
     });
 
@@ -90,7 +90,11 @@ describe('isLavoroInDropdownSegnaOre', () => {
     });
 
     it('isLavoroSegnabileOperaio allineato al dropdown', () => {
-        expect(isLavoroSegnabileOperaio({ stato: 'sospeso' }, oggi)).toBe(true);
+        expect(isLavoroSegnabileOperaio({ stato: 'sospeso' }, oggi)).toBe(false);
+        expect(isLavoroSegnabileOperaio({
+            stato: 'assegnato',
+            ripresaDaLavoroId: 'sosp1',
+        }, oggi)).toBe(true);
         expect(isLavoroSegnabileOperaio({ stato: 'in_standby' }, oggi)).toBe(false);
     });
 });

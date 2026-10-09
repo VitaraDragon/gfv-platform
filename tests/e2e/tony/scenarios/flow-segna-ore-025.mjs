@@ -12,6 +12,7 @@ import {
   runTonySimLogin,
 } from '../helpers/tony-sim-context.js';
 import { waitForTonyReady } from '../helpers/tony-widget.js';
+import { assertSeTuttoProntoHaNome } from '../helpers/segna-ore-assert.mjs';
 
 /**
  * @param {import('playwright-core').Page} page
@@ -69,7 +70,7 @@ export async function runFlowSegnaOre025(page, expect, scenario) {
     },
   });
   expect(prima.lastReply || '').toMatch(/Tutto pronto/i);
-  expect(prima.lastReply || '').toContain(secondo.nome);
+  assertSeTuttoProntoHaNome(expect, prima.lastReply, secondo.nome);
 
   if (lavori[0] && lavori[0].id && lavori[0].id !== secondo.id) {
     const select = await page.evaluate(() => {

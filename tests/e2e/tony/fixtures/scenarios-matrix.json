@@ -848,6 +848,32 @@
       }
     },
     {
+      "id": "T-FLOW-029",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Segna ore desktop: il Ripristino di oggi è sospeso. Tony non dice Tutto pronto e non apre il form. La fascia 23:15-23:45 non tocca il seed né 025/026/027.",
+      "contract": {
+        "invariant": "Lavoro sospeso nominato: niente Tutto pronto, niente riga salvata, anche se il modello finto manda il riepilogo senza nome",
+        "primaryAsserts": [
+          "niente Tutto pronto",
+          "testo sospeso o Su quale lavoro",
+          "modal chiuso o ora-lavoro vuoto",
+          "nessuna riga 23:15"
+        ],
+        "avoidAsserts": []
+      },
+      "persona": "caposquadra",
+      "startUrl": "/core/segnatura-ore-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsCapoFromDevPage",
+      "messages": [],
+      "mockCf": true,
+      "expect": {
+        "clientRecovery": true
+      }
+    },
+    {
       "id": "T-FLOW-015",
       "status": "ready",
       "mode": "gate",
