@@ -2496,7 +2496,8 @@ if (typeof window !== 'undefined') {
                 fd['ora-data'] = risoltaData.iso;
                 tonyMemorizzaDataRichiesta(risoltaData);
             }
-            fd = tonyResolveOraLavoroForQuickHours(fd, recentUb);
+            var testoLavoro = (userText && eRichiestaOreNuova(userText)) ? userText : recentUb;
+            fd = tonyResolveOraLavoroForQuickHours(fd, testoLavoro);
             return Promise.resolve(tonyInjectSegnaOreFields(fd, qhWin)).then(function (ok) {
                 if (ok) {
                     tonyDebugLog('[Tony] Segna ore: compilazione da chat / ultimo messaggio utente (sessionStorage).');
@@ -2800,7 +2801,22 @@ if (typeof window !== 'undefined') {
                 tonyAckPauseSeRiepilogoConfermato();
                 if (target.window && target.window.__gfvOreSalvataggioInCorso) return;
                 var stateGate = readSegnaOreDomState(target);
-                if (!window.__tonySegnaOreRiepilogo || (formKind === 'ora-modal' && (!stateGate || !stateGate.modalActive))) {
+                var modalDesktop = formKind === 'ora-modal';
+                var modalAperto = !!(stateGate && stateGate.modalActive);
+                if (modalDesktop && !modalAperto) {
+                    if (typeof showMessageInChat === 'function') {
+                        showMessageInChat('Non c\'è niente da salvare. Dimmi giorno, orario e lavoro.', 'tony');
+                    }
+                    return;
+                }
+                if (!window.__tonySegnaOreRiepilogo && modalDesktop && modalAperto &&
+                    stateGate.dateVal && stateGate.startVal && stateGate.endVal && stateGate.lavoroVal) {
+                    tonyMemorizzaRiepilogoSegnaOre(stateGate, Object.assign(
+                        { oggiIso: tonyOggiIsoLocale() },
+                        tonyOpzioniRiepilogoSegnaOre(target, stateGate, tonyGetLastUserMessage())
+                    ));
+                }
+                if (!window.__tonySegnaOreRiepilogo) {
                     if (typeof showMessageInChat === 'function') {
                         showMessageInChat('Non c\'è niente da salvare. Dimmi giorno, orario e lavoro.', 'tony');
                     }
