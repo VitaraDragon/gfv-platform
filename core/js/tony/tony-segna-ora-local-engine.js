@@ -4,7 +4,7 @@
  * @module core/js/tony/tony-segna-ora-local-engine
  */
 
-import { etichettaDataRiepilogoOre, riepilogoSegnaOreAmmesso } from './tony-ora-lavoro-match.js?v=2026-10-09d';
+import { etichettaDataRiepilogoOre, riepilogoSegnaOreAmmesso } from './tony-ora-lavoro-match.js?v=2026-10-09e';
 
 /** Messaggio di fallback quando mancano più campi obbligatori. */
 export const SEGNA_ORE_ASK_FALLBACK =
@@ -576,13 +576,13 @@ function testoTurnoChat(m) {
 
 /**
  * Una chat ripristinata può mostrare «Vuoi salvare?» senza una conferma in memoria.
- * In quel caso la domanda è scaduta: si aggiunge una frase in coda.
+ * Segnala che la domanda è scaduta, senza scrivere nulla nella history.
  * @param {Array<object>|null} chatHistory
  * @param {boolean} inAttesa
  * @returns {{ scaduto: boolean, history: Array<object> }}
  */
 export function riepilogoRipristinatoScaduto(chatHistory, inAttesa) {
-  var history = Array.isArray(chatHistory) ? chatHistory.slice() : [];
+  var history = Array.isArray(chatHistory) ? chatHistory : [];
   if (inAttesa) return { scaduto: false, history: history };
   var idx = -1;
   for (var i = history.length - 1; i >= 0; i--) {
@@ -594,12 +594,46 @@ export function riepilogoRipristinatoScaduto(chatHistory, inAttesa) {
   var txt = testoTurnoChat(history[idx]);
   if (/Questa richiesta è scaduta/i.test(txt)) return { scaduto: true, history: history };
   var domanda = /Vuoi salvare\?/i.test(txt) || /scrivi\s+[«"]s[iì][»"]\s+o\s+[«"]salva[»"]/i.test(txt);
-  if (!domanda) return { scaduto: false, history: history };
-  history.push({
-    role: 'model',
-    parts: [{ text: 'Questa richiesta è scaduta. Dimmi di nuovo giorno, orario e lavoro.' }]
-  });
-  return { scaduto: true, history: history };
+  return { scaduto: !!domanda, history: history };
+}
+
+function eTurnoConfermaDaTogliere(m) {
+  if (!m || m.role === 'user') return false;
+  var txt = testoTurnoChat(m);
+  if (/questa richiesta è scaduta/i.test(txt)) return true;
+  if (/vuoi salvare\?/i.test(txt)) return true;
+  if (/scrivi\s+[«"“]s[iì][»"”]\s+o\s+[«"“]salva[»"”]/i.test(txt)) return true;
+  return false;
+}
+
+function eConfermaUtenteSubito(m) {
+  if (!m || m.role !== 'user') return false;
+  return /^(s[iì]|salva|ok|confermo)[\s.!?…]*$/i.test(testoTurnoChat(m).trim());
+}
+
+/**
+ * Toglie dalla history le conferme di un salvataggio già chiuso:
+ * il turno di Tony con «Vuoi salvare?» o «Scrivi «sì» o «salva»»,
+ * la nota «Questa richiesta è scaduta…»,
+ * e il «sì» / «si» / «salva» / «ok» / «confermo» subito dopo.
+ * Il resto resta nello stesso ordine. Se non c'è niente da togliere, restituisce lo stesso array.
+ * @param {Array<object>|null|undefined} history
+ * @returns {Array<object>}
+ */
+export function togliConfermeSalvataggioVecchie(history) {
+  var list = Array.isArray(history) ? history : [];
+  var out = [];
+  var removed = false;
+  for (var i = 0; i < list.length; i++) {
+    var m = list[i];
+    if (eTurnoConfermaDaTogliere(m)) {
+      removed = true;
+      if (eConfermaUtenteSubito(list[i + 1])) i += 1;
+      continue;
+    }
+    out.push(m);
+  }
+  return removed ? out : list;
 }
 
 /**
@@ -633,5 +667,6 @@ if (typeof window !== 'undefined') {
     interpretaEsitoSalvataggioOra,
     messaggioConfermaSalvataggioOra,
     riepilogoRipristinatoScaduto,
+    togliConfermeSalvataggioVecchie,
   };
 }
