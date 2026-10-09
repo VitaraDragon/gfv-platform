@@ -6,6 +6,8 @@ import {
   eDiOggi,
   testoRiepilogoHaLavoro,
   unisciAvvisoSovrapposizioneELavoro,
+  riepilogoSegnaOreAmmesso,
+  lavoroDaSceltaUi,
 } from '../core/js/tony/tony-ora-lavoro-match.js';
 
 const OGGI = '2026-10-08';
@@ -146,6 +148,89 @@ describe('risolviLavoroDaTesto', () => {
     const esito = risolviLavoroDaTesto('daklle 6 aslle 18', lista, { oggiIso: OGGI });
     expect(esito.stato).toBe('nessuno');
     expect(esito.nominato).toBe(false);
+  });
+
+  function listaRitestSospesi() {
+    return [
+      { id: 'tr-rip', nome: 'Trinciatura vigna (ripresa)', tipoLavoro: 'Trinciatura', dataInizio: '2026-10-13', stato: 'assegnato', ripresaDaLavoroId: 'tr-sosp' },
+      { id: 'rip-rip', nome: 'Ripristino pali Grazie (ripresa)', dataInizio: '2026-10-10', stato: 'assegnato', ripresaDaLavoroId: 'rip-sosp' },
+      { id: 'man', nome: 'Manutenzione attrezzi', dataInizio: '2026-10-09', stato: 'assegnato' },
+      { id: 'rip-sosp', nome: 'Ripristino pali', dataInizio: '2026-10-08', stato: 'sospeso' },
+      { id: 'tr-sosp', nome: 'Trinciatura vigna', dataInizio: '2026-10-07', stato: 'sospeso' },
+    ];
+  }
+
+  it('«sul ripristino pali» con il sospeso di oggi non è unico e propone la ripresa', () => {
+    const esito = risolviLavoroDaTesto(FRASE_RITEST, listaRitestSospesi(), { oggiIso: OGGI });
+    expect(esito.stato).toBe('sospeso');
+    expect(esito.lavoro).toBeNull();
+    expect(esito.lavoroSospeso.id).toBe('rip-sosp');
+    expect((esito.candidati || []).map((l) => l.id)).not.toContain('tr-rip');
+    expect((esito.candidati || [])[0].id).toBe('rip-rip');
+    const msg = messaggioSceltaLavoroOre(esito);
+    expect(msg).toMatch(/sospeso/i);
+    expect(msg).toMatch(/Ripristino pali \(08\/10\)/);
+    expect(msg).toMatch(/Ripristino pali Grazie \(ripresa\)/);
+    expect(msg).not.toMatch(/Tutto pronto/i);
+    expect(msg).not.toMatch(/Trinciatura/i);
+  });
+
+  it('«sul ripristino pali grazie» sceglie la ripresa nominata', () => {
+    const esito = risolviLavoroDaTesto('segnami dalle 17:00 alle 17:30 oggi sul ripristino pali grazie, nessuna pausa', listaRitestSospesi(), { oggiIso: OGGI });
+    expect(esito.stato).toBe('unico');
+    expect(esito.lavoro.id).toBe('rip-rip');
+  });
+
+  it('due Ripristino pali segnabili, uno di oggi: unico su quello di oggi', () => {
+    const due = [
+      { id: 'altro', nome: 'Ripristino pali Grazie (ripresa)', dataInizio: '2026-10-10', stato: 'assegnato' },
+      { id: 'oggi', nome: 'Ripristino pali', dataInizio: OGGI, stato: 'assegnato' },
+    ];
+    const esito = risolviLavoroDaTesto(FRASE_RITEST, due, { oggiIso: OGGI });
+    expect(esito.stato).toBe('unico');
+    expect(esito.lavoro.id).toBe('oggi');
+  });
+
+  it('sospeso senza ripresa e senza altri abbinamenti chiede su quale lavoro', () => {
+    const solo = [
+      { id: 's', nome: 'Ripristino pali', dataInizio: '2026-10-07', stato: 'sospeso' },
+      { id: 'm', nome: 'Manutenzione attrezzi', dataInizio: '2026-10-09', stato: 'assegnato' },
+    ];
+    const esito = risolviLavoroDaTesto('sul ripristino pali', solo, { oggiIso: OGGI });
+    expect(esito.stato).toBe('sospeso');
+    expect(esito.candidati).toEqual([]);
+    expect(messaggioSceltaLavoroOre(esito)).toMatch(/Su quale lavoro segno le ore\?/);
+    expect(messaggioSceltaLavoroOre(esito)).toMatch(/sospeso/i);
+  });
+
+  it('il filtro sostituisce Tutto pronto senza nome e lascia quello con il nome', () => {
+    const testoRitest = 'Tutto pronto: dalle 17:00 alle 17:30, pausa 0 min. Vuoi salvare? Scrivi «sì» o «salva».';
+    const senza = riepilogoSegnaOreAmmesso({
+      esito: { stato: 'sospeso', lavoro: null },
+      nomeLavoro: '',
+      testo: testoRitest,
+      domanda: 'Su quale lavoro segno le ore?',
+    });
+    expect(senza.ammesso).toBe(false);
+    expect(senza.testo).toBe('Su quale lavoro segno le ore?');
+    expect(senza.testo).not.toMatch(/Tutto pronto/i);
+    const conNome = 'Tutto pronto: Ripristino pali, dalle 17:00 alle 17:30, pausa 0 min, Fiat e Berti. Vuoi salvare? Scrivi «sì» o «salva».';
+    const con = riepilogoSegnaOreAmmesso({
+      esito: { stato: 'unico', lavoro: { id: 'rip', nome: 'Ripristino pali' } },
+      nomeLavoro: 'Ripristino pali',
+      testo: conNome,
+      domanda: 'Su quale lavoro segno le ore?',
+    });
+    expect(con.ammesso).toBe(true);
+    expect(con.testo).toBe(conNome);
+  });
+
+  it('la scelta in pagina senza nome non è un lavoro unico', () => {
+    expect(lavoroDaSceltaUi('abc', null, '')).toBeNull();
+    expect(lavoroDaSceltaUi('abc', { id: 'abc', nome: '' }, 'Seleziona lavoro...')).toBeNull();
+    const ok = lavoroDaSceltaUi('abc', null, 'Ripristino pali');
+    expect(ok.id).toBe('abc');
+    expect(ok.nome).toBe('Ripristino pali');
   });
 
   it('il select non ripiega sulla prima opzione', () => {

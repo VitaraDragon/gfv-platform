@@ -9,6 +9,8 @@ import { initEmulatorAdmin } from '../../../../simulator/lib/emulator-context.js
 import { addTenantDocument } from '../../../../simulator/lib/firestore-write.js';
 
 export const MARKER_LAVORI_RITEST = 'T-FLOW-027';
+/** Solo T-FLOW-029: un sospeso di oggi e la sua ripresa. Non riusa il marker di 027. */
+export const MARKER_LAVORO_SOSPESO = 'T-FLOW-029';
 
 function isoOffset(days) {
   const d = new Date();
@@ -77,4 +79,51 @@ export async function seminaLavoriRitest(tenantId) {
   });
 
   return { trId, oggiId, altroId, nomeTr, nomeOggi, nomeAltro };
+}
+
+export async function pulisciLavoroSospeso029(tenantId) {
+  if (!tenantId) return;
+  const { db } = initEmulatorAdmin();
+  const snap = await db.collection(`tenants/${tenantId}/lavori`)
+    .where('gfvTonyE2eMarker', '==', MARKER_LAVORO_SOSPESO)
+    .get();
+  await Promise.all(snap.docs.map((d) => d.ref.delete()));
+}
+
+/**
+ * Un «Ripristino pali» di oggi sospeso e la ripresa (altra data).
+ * Il seed condiviso non ha questa coppia: non si toccano i lavori degli altri scenari.
+ * @param {string} tenantId
+ */
+export async function seminaLavoroSospeso029(tenantId) {
+  const { db } = initEmulatorAdmin();
+  await pulisciLavoroSospeso029(tenantId);
+  const esistenti = await db.collection(`tenants/${tenantId}/lavori`).limit(40).get();
+  const sample = esistenti.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .find((d) => d.caposquadraId && !d.operaioId && d.gfvTonyE2eMarker !== MARKER_LAVORO_SOSPESO);
+  if (!sample) throw new Error('T-FLOW-029: nessun lavoro del caposquadra da cui copiare l\'assegnazione');
+
+  const base = {
+    caposquadraId: sample.caposquadraId,
+    terrenoId: sample.terrenoId || null,
+    gfvTonyE2eMarker: MARKER_LAVORO_SOSPESO,
+    tipoLavoro: 'Manutenzione',
+  };
+  const nomeSospeso = 'Ripristino pali e2e029';
+  const nomeRipresa = 'Ripristino pali Grazie e2e029';
+  const sospesoId = await addTenantDocument(db, tenantId, 'lavori', {
+    ...base,
+    nome: nomeSospeso,
+    stato: 'sospeso',
+    dataInizio: isoOffset(0),
+  });
+  const ripresaId = await addTenantDocument(db, tenantId, 'lavori', {
+    ...base,
+    nome: nomeRipresa,
+    stato: 'assegnato',
+    dataInizio: isoOffset(2),
+    ripresaDaLavoroId: sospesoId,
+  });
+  return { sospesoId, ripresaId, nomeSospeso, nomeRipresa };
 }
