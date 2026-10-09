@@ -1,6 +1,18 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-09 — Tony conferma il salvataggio delle ore.**
+**Ultimo aggiornamento documentazione: 2026-10-09 — Il riepilogo delle ore si aggiorna subito.**
+
+## 2026-10-09 — Il riepilogo del giorno si aggiorna subito, e le conferme vecchie non tornano in chat
+
+Dopo aver eliminato o salvato una riga, il riepilogo del giorno in alto cambia subito. Non resta fermo sui minuti di prima mentre la pagina rilegge.
+
+Se ricarichi, una vecchia domanda «Vuoi salvare?» e la frase «Questa richiesta è scaduta» non tornano in chat.
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-09 — Tony conferma il salvataggio delle ore.**
 
 ## 2026-10-09 — Tony conferma il salvataggio quando l'ora è salvata
 

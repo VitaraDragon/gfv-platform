@@ -31,8 +31,8 @@ import {
     utenteHaNominatoMezziSegnaOra,
     interpretaEsitoSalvataggioOra,
     messaggioConfermaSalvataggioOra,
-    riepilogoRipristinatoScaduto,
-} from './tony-segna-ora-local-engine.js?v=2026-10-09d';
+    togliConfermeSalvataggioVecchie,
+} from './tony-segna-ora-local-engine.js?v=2026-10-09e';
 import { formattaDataItaliana } from '../../services/ore-operai-logic.js';
 import {
     risolviLavoroDaTesto,
@@ -49,7 +49,7 @@ import {
     etichettaDataRiepilogoOre,
     inserisciDataNelRiepilogo,
     eRichiestaOreNuova,
-} from './tony-ora-lavoro-match.js?v=2026-10-09d';
+} from './tony-ora-lavoro-match.js?v=2026-10-09e';
 import {
     formReadyForTonySave,
     magazzinoFormReadyForTonySave,
@@ -96,7 +96,7 @@ import { initTonyDocumentCapture } from './document-capture.js';
 import { chooseSttEngine, createRecorderSpeechRecognition, isIosLikeDevice, isStandaloneDisplayMode } from './voice-recorder-stt.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-    export const TONY_CLIENT_BUILD = '2026-10-09d';
+    export const TONY_CLIENT_BUILD = '2026-10-09e';
 if (typeof window !== 'undefined') {
     window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
     if (typeof console !== 'undefined' && console.log) console.log('[Tony] Client build', TONY_CLIENT_BUILD);
@@ -7319,7 +7319,9 @@ if (typeof window !== 'undefined') {
 
         function saveTonyState() {
             try {
-                var chatHistory = (window.Tony && window.Tony.chatHistory) ? window.Tony.chatHistory : [];
+                var chatHistory = togliConfermeSalvataggioVecchie(
+                    (window.Tony && window.Tony.chatHistory) ? window.Tony.chatHistory : []
+                );
                 var state = {
                     uid: tonySessionOwnerUid(),
                     chatHistory: chatHistory,
@@ -7375,11 +7377,7 @@ if (typeof window !== 'undefined') {
                         }
                         deduped.push(dm);
                     }
-                    window.Tony.chatHistory = deduped;
-                    var inAttesaOre = false;
-                    try { inAttesaOre = !!window.__tonySegnaOreRiepilogo; } catch (eAtt) { inAttesaOre = false; }
-                    var chatOre = riepilogoRipristinatoScaduto(deduped, inAttesaOre);
-                    deduped = chatOre.history || deduped;
+                    deduped = togliConfermeSalvataggioVecchie(deduped);
                     window.Tony.chatHistory = deduped;
                     while (messagesEl.firstChild) messagesEl.removeChild(messagesEl.firstChild);
                     for (var i = 0; i < deduped.length; i++) {
