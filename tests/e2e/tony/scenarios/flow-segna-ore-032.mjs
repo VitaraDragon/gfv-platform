@@ -37,6 +37,10 @@ async function semina(tenantId) {
     .find((d) => d.caposquadraId && !d.operaioId && d.gfvTonyE2eMarker !== MARKER);
   if (!sample) throw new Error('T-FLOW-032: nessun lavoro del caposquadra');
   const nome = 'Controllo siepe e2e032';
+  const oggi = new Date();
+  oggi.setHours(12, 0, 0, 0);
+  const p = (n) => String(n).padStart(2, '0');
+  const dataInizio = `${oggi.getFullYear()}-${p(oggi.getMonth() + 1)}-${p(oggi.getDate())}`;
   const attivoId = await addTenantDocument(db, tenantId, 'lavori', {
     caposquadraId: sample.caposquadraId,
     terrenoId: sample.terrenoId || null,
@@ -44,7 +48,7 @@ async function semina(tenantId) {
     tipoLavoro: 'Manutenzione',
     nome,
     stato: 'assegnato',
-    dataInizio: new Date().toISOString().slice(0, 10),
+    dataInizio,
   });
   return { attivoId, nome };
 }
@@ -67,8 +71,10 @@ export async function runFlowSegnaOre032(page, expect, scenario) {
     await gotoTonyE2ePage(page, START);
     await bootstrapTonyWidgetOnStandalonePage(page);
     await page.waitForFunction((id) => {
-      const sel = document.getElementById('ora-lavoro');
-      return sel && Array.from(sel.options).some((o) => o.value === id);
+      const list = typeof window.gfvSegnaturaOreLavoriPerTony === 'function'
+        ? window.gfvSegnaturaOreLavoriPerTony()
+        : [];
+      return Array.isArray(list) && list.some((l) => String(l.id) === id);
     }, seminati.attivoId, { timeout: 60_000 });
 
     await page.evaluate((id) => window.openSegnaOraModal(id), seminati.attivoId);
