@@ -677,6 +677,34 @@
       }
     },
     {
+      "id": "T-FLOW-031",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Segna ore: Tony conferma quando l'ora è salvata, anche se la scrittura supera i 2 secondi. Se l'orario è già occupato dice il motivo. Fascia 06:00-06:30.",
+      "contract": {
+        "invariant": "Il sì aspetta il segnale del salvataggio. Niente falso «non vedo la conferma».",
+        "primaryAsserts": [
+          "Tutto pronto con nome e oggi",
+          "Fatto con lavoro data fascia",
+          "riga da_validare",
+          "sovrapposizione con il messaggio vero"
+        ],
+        "avoidAsserts": [
+          "Non vedo la conferma"
+        ]
+      },
+      "persona": "caposquadra",
+      "startUrl": "/core/segnatura-ore-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsCapoFromDevPage",
+      "messages": [],
+      "mockCf": false,
+      "expect": {
+        "clientRecovery": true
+      }
+    },
+    {
       "id": "T-FLOW-015",
       "status": "ready",
       "mode": "gate",

@@ -1768,6 +1768,24 @@
             }
         }
 
+        function emettiEsitoOra(nome, detail) {
+            const ev = new CustomEvent(nome, { detail: detail });
+            window.dispatchEvent(ev);
+            try {
+                if (window.parent && window.parent !== window) {
+                    window.parent.dispatchEvent(new CustomEvent(nome, { detail: detail }));
+                }
+            } catch (eEv) { /* ignore */ }
+        }
+
+        function nomeLavoroOraSelezionato() {
+            const sel = document.getElementById('ora-lavoro');
+            const opt = sel && sel.selectedOptions && sel.selectedOptions[0];
+            const t = opt ? String(opt.textContent || '').trim() : '';
+            if (!t || /seleziona/i.test(t)) return '';
+            return t;
+        }
+
         window.closeOraModal = function(opts) {
             opts = opts || {};
             document.getElementById('ora-modal').classList.remove('active');
@@ -1861,11 +1879,28 @@
 
                 if (oraId) {
                     await modificaOraPropria(db, currentTenantId, utenteOreCorrente(), lavoroId, oraId, patch);
+                    const lavoroMod = (lavoriList || []).find((l) => l && l.id === lavoroId);
+                    const chiMod = chiValidaOra({
+                        ora: { operaioId: userId },
+                        lavoro: lavoroMod || {}
+                    });
+                    emettiEsitoOra('gfv-ora-salvata', {
+                        ok: true,
+                        id: oraId,
+                        lavoroId,
+                        lavoroNome: nomeLavoroOraSelezionato(),
+                        data,
+                        inizio: orarioInizio,
+                        fine: orarioFine,
+                        pausa: pauseMinuti,
+                        stato: 'in_attesa',
+                        chiValida: chiMod
+                    });
                     showAlert('Ora aggiornata', 'success');
                 } else {
                     const lavoroDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId));
                     if (!lavoroDoc.exists()) throw new Error('Lavoro non trovato');
-                    await salvaNuovaOra(db, currentTenantId, utenteOreCorrente(), {
+                    const idNuova = await salvaNuovaOra(db, currentTenantId, utenteOreCorrente(), {
                         ...patch,
                         operaioId: userId,
                         lavoroId,
@@ -1875,6 +1910,18 @@
                         ora: { operaioId: userId },
                         lavoro: lavoroDoc.data()
                     });
+                    emettiEsitoOra('gfv-ora-salvata', {
+                        ok: true,
+                        id: idNuova,
+                        lavoroId,
+                        lavoroNome: nomeLavoroOraSelezionato(),
+                        data,
+                        inizio: orarioInizio,
+                        fine: orarioFine,
+                        pausa: pauseMinuti,
+                        stato: 'in_attesa',
+                        chiValida: chi
+                    });
                     showAlert(messaggioOraSegnataConSuccesso(chi), 'success', 8000);
                 }
                 closeOraModal();
@@ -1882,10 +1929,20 @@
             } catch (error) {
                 console.error('Errore salvataggio ora:', error);
                 if (error && error.code === 'ORE_SOVRAPPOSTE') {
+                    emettiEsitoOra('gfv-ora-salvataggio-errore', {
+                        ok: false,
+                        codice: 'ORE_SOVRAPPOSTE',
+                        messaggio: error.message || ''
+                    });
                     mostraSovrapposizione(error);
                     showAlert(error.message, 'error');
                     return;
                 }
+                emettiEsitoOra('gfv-ora-salvataggio-errore', {
+                    ok: false,
+                    codice: (error && error.code) || '',
+                    messaggio: `Errore: ${error.message || ''}`
+                });
                 showAlert(`Errore: ${error.message}`, 'error');
             } finally {
                 salvataggioOraInCorso = false;
