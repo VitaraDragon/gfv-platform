@@ -5,6 +5,10 @@
     margin: 0;
 }
 
+.ore-giorno-loading {
+    opacity: 0.55;
+}
+
 .field-mobile-header {
     position: sticky;
     top: 0;

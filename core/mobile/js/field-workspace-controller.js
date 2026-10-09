@@ -18,6 +18,10 @@ import { formatOreNette } from '../../js/attivita-utils.js';
 import { showAlert } from '../../js/gfv-page-utils.js';
 import { eLavoroSospeso } from '../../js/tony/tony-ora-lavoro-match.js';
 import {
+    righeGiornoDopoEliminazione,
+    righeGiornoDopoSalvataggio
+} from '../../js/tony/tony-riepilogo-giorno.js?v=2026-10-09e';
+import {
     salvaNuovaOra,
     modificaOraPropria,
     eliminaOraPropria,
@@ -38,7 +42,8 @@ import {
     testoErroreSalvataggioOre,
     esitoControlloSovrapposizione,
     chiValidaOra,
-    messaggioOraSegnataConSuccesso
+    messaggioOraSegnataConSuccesso,
+    calcolaOreNette
 } from '../../services/ore-operai-logic.js';
 
 import {
@@ -1669,21 +1674,16 @@ function mostraSovrapposizioneOre(error) {
     oreSovrapposizioneEl.hidden = false;
 }
 
-async function aggiornaRiquadroOreGiorno() {
-    if (!oreGiornoBoxEl || !currentTenantId || !currentUser) return;
-    const giorno = (oraDataEl && oraDataEl.value) ? oraDataEl.value : getTodayIsoDate();
-    oreGiornoBoxEl.setAttribute('data-state', 'loading');
-    try {
-        const righe = await caricaOreUtenteGiorno(getDb(), currentTenantId, currentUser.uid, giorno, utenteWorkspace());
-        oreGiornoRows = righe;
-        const label = formattaGiornoBreve(giorno) || giorno;
-        const lavoroId = selectedWork && selectedWork.id;
-        if (!righe.length) {
-            oreGiornoBoxEl.innerHTML = `<strong>Le tue ore del ${escapeHtmlUnsafe(label)}</strong><div class="inline-item-sub">Nessuna ora segnata in questo giorno.</div>`;
-            oreGiornoBoxEl.setAttribute('data-state', 'ready');
-            return;
-        }
-        const voci = righe.map((ora) => {
+function dipingiOreGiorno(righe, stato, giornoForzato) {
+    if (!oreGiornoBoxEl) return;
+    const giorno = giornoForzato || ((oraDataEl && oraDataEl.value) ? oraDataEl.value : getTodayIsoDate());
+    const label = formattaGiornoBreve(giorno) || giorno;
+    const lavoroId = selectedWork && selectedWork.id;
+    const list = Array.isArray(righe) ? righe : [];
+    if (!list.length) {
+        oreGiornoBoxEl.innerHTML = `<strong>Le tue ore del ${escapeHtmlUnsafe(label)}</strong><div class="inline-item-sub">Nessuna ora segnata in questo giorno.</div>`;
+    } else {
+        const voci = list.map((ora) => {
             const evidenza = lavoroId && ora.lavoroId === lavoroId;
             const perm = permessiOra({
                 ora,
@@ -1710,14 +1710,59 @@ async function aggiornaRiquadroOreGiorno() {
                 <div>${azioni}</div>
             </div>`;
         }).join('');
-        const totale = sommaOreNette(righe.filter((r) => r.stato !== 'rifiutate'));
+        const totale = sommaOreNette(list.filter((r) => r.stato !== 'rifiutate'));
         oreGiornoBoxEl.innerHTML = `<strong>Le tue ore del ${escapeHtmlUnsafe(label)}</strong>${voci}<div style="margin-top:6px;"><strong>Totale del giorno: ${formattaOreMinuti(totale)}</strong></div>`;
-        oreGiornoBoxEl.setAttribute('data-state', 'ready');
-    } catch (error) {
-        console.error('[FIELD-WORKSPACE] Riquadro ore giorno:', error);
-        oreGiornoBoxEl.textContent = 'Non riesco a leggere le ore di questo giorno.';
-        oreGiornoBoxEl.setAttribute('data-state', 'ready');
     }
+    const loading = stato === 'loading';
+    oreGiornoBoxEl.setAttribute('data-state', stato || 'ready');
+    oreGiornoBoxEl.setAttribute('data-pronto', '1');
+    oreGiornoBoxEl.classList.toggle('ore-giorno-loading', loading);
+}
+
+async function attendiRitardoLetturaOre() {
+    const ms = Number(window.__gfvRitardaLetturaOreMs) || 0;
+    if (ms > 0) await new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+let letturaOreSeq = 0;
+
+async function aggiornaRiquadroOreGiorno() {
+    if (!oreGiornoBoxEl || !currentTenantId || !currentUser) return false;
+    const giorno = (oraDataEl && oraDataEl.value) ? oraDataEl.value : getTodayIsoDate();
+    const seq = ++letturaOreSeq;
+    oreGiornoBoxEl.setAttribute('data-state', 'loading');
+    oreGiornoBoxEl.classList.add('ore-giorno-loading');
+    if (!oreGiornoBoxEl.getAttribute('data-pronto')) {
+        oreGiornoBoxEl.textContent = 'Caricamento ore del giorno...';
+    }
+    try {
+        await attendiRitardoLetturaOre();
+        if (seq !== letturaOreSeq) return true;
+        const righe = await caricaOreUtenteGiorno(getDb(), currentTenantId, currentUser.uid, giorno, utenteWorkspace());
+        if (seq !== letturaOreSeq) return true;
+        oreGiornoRows = righe;
+        dipingiOreGiorno(righe, 'ready', giorno);
+        return true;
+    } catch (error) {
+        if (seq !== letturaOreSeq) return true;
+        console.error('[FIELD-WORKSPACE] Riquadro ore giorno:', error);
+        if (!oreGiornoBoxEl.getAttribute('data-pronto')) {
+            oreGiornoBoxEl.textContent = 'Non riesco a leggere le ore di questo giorno.';
+            oreGiornoBoxEl.setAttribute('data-state', 'ready');
+        } else {
+            oreGiornoBoxEl.setAttribute('data-state', 'ready');
+        }
+        oreGiornoBoxEl.classList.remove('ore-giorno-loading');
+        return false;
+    }
+}
+
+async function riallineaRiquadroOreGiorno(precedente, giorno) {
+    const ok = await aggiornaRiquadroOreGiorno();
+    if (ok) return;
+    oreGiornoRows = precedente;
+    dipingiOreGiorno(precedente, 'ready', giorno);
+    showAlert('Non riesco a rileggere le ore. Mostro di nuovo il riepilogo di prima.', 'warning');
 }
 
 async function avviaModificaOraGiorno(oraId, lavoroId) {
@@ -1750,7 +1795,12 @@ async function eliminaOraGiorno(oraId, lavoroId) {
             resetModificaOra();
             resetQuickHoursFormFieldsForNextEntry();
         }
-        await aggiornaRiquadroOreGiorno();
+        const precedenteOre = oreGiornoRows.slice();
+        const giornoOre = (oraDataEl && oraDataEl.value) ? oraDataEl.value : getTodayIsoDate();
+        const dopoElimina = righeGiornoDopoEliminazione(oreGiornoRows, oraId);
+        oreGiornoRows = dopoElimina;
+        dipingiOreGiorno(dopoElimina, 'loading', giornoOre);
+        await riallineaRiquadroOreGiorno(precedenteOre, giornoOre);
     } catch (error) {
         showAlert(error.message || 'Errore eliminazione', 'error');
     }
@@ -1861,9 +1911,25 @@ async function saveQuickHours(event) {
         } else {
             showAlert('Ora aggiornata', 'success', 8000);
         }
+        const precedenteOre = oreGiornoRows.slice();
+        const lavoroIdSalvato = editingOraLavoroId || selectedWork.id;
+        const rigaSalvata = {
+            id: idSalvata,
+            lavoroId: lavoroIdSalvato,
+            lavoroNome: selectedWork.label || '',
+            orarioInizio: start,
+            orarioFine: end,
+            pauseMinuti: pauseMin,
+            oreNette: calcolaOreNette(start, end, pauseMin),
+            stato: 'da_validare',
+            data: dateIso
+        };
+        const dopoSalva = righeGiornoDopoSalvataggio(oreGiornoRows, rigaSalvata);
+        oreGiornoRows = dopoSalva;
+        dipingiOreGiorno(dopoSalva, 'loading', dateIso);
         resetModificaOra();
         resetQuickHoursFormFieldsForNextEntry();
-        await aggiornaRiquadroOreGiorno();
+        await riallineaRiquadroOreGiorno(precedenteOre, dateIso);
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore salvataggio ore:', error);
         if (error && error.code === 'ORE_SOVRAPPOSTE') {

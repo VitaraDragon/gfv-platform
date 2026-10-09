@@ -705,6 +705,31 @@
       }
     },
     {
+      "id": "T-FLOW-032",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Segna ore: il riepilogo del giorno si aggiorna subito dopo l'eliminazione, anche se la rilettura è lenta. Fascia 03:40-04:10, seed solo di questo scenario.",
+      "contract": {
+        "invariant": "Dopo elimina, il riquadro del giorno perde la fascia prima che finisca la rilettura.",
+        "primaryAsserts": [
+          "riepilogo con 03:40 dopo il salvataggio",
+          "03:40 sparisce entro un secondo con rilettura rallentata",
+          "a fine rilettura la fascia non c'è"
+        ],
+        "avoidAsserts": []
+      },
+      "persona": "caposquadra",
+      "startUrl": "/core/segnatura-ore-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsCapoFromDevPage",
+      "messages": [],
+      "mockCf": false,
+      "expect": {
+        "clientRecovery": true
+      }
+    },
+    {
       "id": "T-FLOW-015",
       "status": "ready",
       "mode": "gate",

@@ -10,6 +10,7 @@ import {
   interpretaEsitoSalvataggioOra,
   messaggioConfermaSalvataggioOra,
   riepilogoRipristinatoScaduto,
+  togliConfermeSalvataggioVecchie,
 } from '../core/js/tony/tony-segna-ora-local-engine.js';
 
 describe('tony-segna-ora-local-engine', () => {
@@ -262,13 +263,38 @@ describe('tony-segna-ora-local-engine', () => {
     ];
     const scaduto = riepilogoRipristinatoScaduto(history, false);
     expect(scaduto.scaduto).toBe(true);
-    expect(scaduto.history).toHaveLength(3);
-    expect(scaduto.history[2].parts[0].text).toMatch(/scaduta/);
+    expect(scaduto.history).toBe(history);
+    expect(scaduto.history).toHaveLength(2);
+    expect(scaduto.history.map((m) => m.parts[0].text).join(' ')).not.toMatch(/scaduta/);
     expect(riepilogoRipristinatoScaduto(history, true).scaduto).toBe(false);
     expect(riepilogoRipristinatoScaduto([
       { role: 'model', parts: [{ text: 'Ciao.' }] },
     ], false).scaduto).toBe(false);
     const dueVolte = riepilogoRipristinatoScaduto(scaduto.history, false);
-    expect(dueVolte.history).toHaveLength(3);
+    expect(dueVolte.history).toHaveLength(2);
+    expect(dueVolte.scaduto).toBe(true);
+  });
+
+  it('toglie dalla chat salvata Tutto pronto, il sì e la nota scaduta', () => {
+    const history = [
+      { role: 'user', parts: [{ text: 'Ciao' }] },
+      { role: 'model', parts: [{ text: 'Tutto pronto: Manutenzione, oggi 09/10. Vuoi salvare? Scrivi «sì» o «salva».' }] },
+      { role: 'user', parts: [{ text: 'sì' }] },
+      { role: 'model', parts: [{ text: 'Questa richiesta è scaduta. Dimmi di nuovo giorno, orario e lavoro.' }] },
+      { role: 'user', parts: [{ text: 'quanto ho fatto oggi?' }] },
+      { role: 'model', parts: [{ text: 'Sono qui.' }] },
+    ];
+    const pulita = togliConfermeSalvataggioVecchie(history);
+    expect(pulita.map((m) => m.parts[0].text)).toEqual([
+      'Ciao',
+      'quanto ho fatto oggi?',
+      'Sono qui.',
+    ]);
+    expect(history).toHaveLength(6);
+    const ferma = [
+      { role: 'user', parts: [{ text: 'Ciao' }] },
+      { role: 'model', parts: [{ text: 'Sono qui.' }] },
+    ];
+    expect(togliConfermeSalvataggioVecchie(ferma)).toBe(ferma);
   });
 });
