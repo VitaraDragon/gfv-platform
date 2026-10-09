@@ -1,6 +1,18 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-08 — Tony, due lavori uguali e quello di oggi.**
+**Ultimo aggiornamento documentazione: 2026-10-09 — Tony, lavori sospesi e «Tutto pronto» con il nome.**
+
+## 2026-10-09 — Ore: niente «Tutto pronto» senza il lavoro, e niente ore nuove su un sospeso
+
+«Tutto pronto» ha sempre il nome del lavoro, da qualunque parte arrivi la risposta: chat, voce o testo del modello.
+
+Sui lavori sospesi non si segnano ore nuove. Tony lo dice e propone la ripresa, se c’è. Il badge del lavoro sospeso dice «Sospeso».
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-08 — Tony, due lavori uguali e quello di oggi.**
 
 ## 2026-10-08 — Ore: con due lavori dallo stesso nome Tony sceglie quello di oggi
 

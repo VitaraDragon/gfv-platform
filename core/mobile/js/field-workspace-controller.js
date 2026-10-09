@@ -16,6 +16,7 @@ import {
 import { resolveAuthUserWithRetry, loginPageUrl, waitForStandaloneReady } from '../../js/simulator-standalone-page.js';
 import { formatOreNette } from '../../js/attivita-utils.js';
 import { showAlert } from '../../js/gfv-page-utils.js';
+import { eLavoroSospeso } from '../../js/tony/tony-ora-lavoro-match.js';
 import {
     salvaNuovaOra,
     modificaOraPropria,
@@ -147,6 +148,7 @@ let currentTenantId = null;
 let activeSlides = [];
 let currentSlideIndex = 0;
 let cachedWorks = [];
+let cachedWorksForTony = [];
 let fieldWorkspaceInitializedForUid = null;
 let selectedWork = null;
 let userIsCaposquadra = false;
@@ -534,16 +536,19 @@ function populateWorkSelectors(works) {
 function syncTonyFieldWorkspaceTableData() {
     try {
         var ruolo = userIsCaposquadra ? 'caposquadra' : 'operaio';
-        var list = Array.isArray(cachedWorks) ? cachedWorks : [];
+        var list = (Array.isArray(cachedWorksForTony) && cachedWorksForTony.length)
+            ? cachedWorksForTony
+            : (Array.isArray(cachedWorks) ? cachedWorks : []);
         var items = list.map(function (w) {
             var raw = w.raw || {};
             return {
                 id: w.id,
                 label: w.label,
-                nome: raw.nome || '',
+                nome: raw.nome || w.label || '',
                 stato: raw.stato || '',
                 tipoLavoro: raw.tipoLavoro || '',
-                dataInizio: raw.dataInizio || raw.data || raw.dataLavoro || raw.dataInizioGiorno || ''
+                dataInizio: raw.dataInizio || raw.data || raw.dataLavoro || raw.dataInizioGiorno || '',
+                ripresaDaLavoroId: raw.ripresaDaLavoroId || ''
             };
         });
         var summary = 'Workspace mobile campo: ' + items.length + ' lavori in elenco. Ruolo: ' + ruolo + '.';
@@ -614,8 +619,10 @@ async function loadWorksForSelection() {
         const eligible = rawList.filter((w) =>
             userIsCaposquadra ? isLavoroVisibileOperaioCampo(w) : isLavoroSegnabileOperaio(w)
         );
+        const perMenu = eligible.filter((w) => !eLavoroSospeso(w));
+        const sospesiTony = rawList.filter((w) => eLavoroSospeso(w) && isLavoroVisibileOperaioCampo(w));
 
-        let narrowed = eligible;
+        let narrowed = perMenu;
         // Finestra ridotta SOLO per operaio (sliceOperaioLavoriWindow è vietata per caposquadra).
         if (!userIsCaposquadra && narrowed.length > 12) {
             narrowed = sliceOperaioLavoriWindow(narrowed, {
@@ -631,7 +638,16 @@ async function loadWorksForSelection() {
         }));
 
         works.sort((a, b) => a.label.localeCompare(b.label, 'it'));
+        const giaNelMenu = new Set(works.map((w) => w.id));
+        const extraSospesi = sospesiTony
+            .filter((work) => !giaNelMenu.has(work.id))
+            .map((work) => ({
+                id: work.id,
+                label: normalizeWorkLabel(work),
+                raw: work
+            }));
         cachedWorks = works;
+        cachedWorksForTony = works.concat(extraSospesi);
         populateWorkSelectors(works);
         pickGpsSuggestion(works);
         const chosenFromUi = (selectedWorkEl && selectedWorkEl.value) || '';

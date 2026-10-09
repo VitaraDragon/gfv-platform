@@ -101,5 +101,13 @@ export function buildMockCfBundle(scenario) {
     return bundle;
   }
 
+  if (id === 'T-FLOW-029') {
+    bundle.staticResponses['ripristino pali'] = {
+      text: 'Tutto pronto: dalle 17:00 alle 17:30, pausa 0 min. Vuoi salvare? Scrivi «sì» o «salva».',
+      command: null,
+    };
+    return bundle;
+  }
+
   return bundle;
 }
