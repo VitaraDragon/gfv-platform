@@ -32,7 +32,7 @@ import {
     interpretaEsitoSalvataggioOra,
     messaggioConfermaSalvataggioOra,
     togliConfermeSalvataggioVecchie,
-} from './tony-segna-ora-local-engine.js?v=2026-10-09e';
+} from './tony-segna-ora-local-engine.js?v=2026-10-09f';
 import { formattaDataItaliana } from '../../services/ore-operai-logic.js';
 import {
     risolviLavoroDaTesto,
@@ -49,7 +49,7 @@ import {
     etichettaDataRiepilogoOre,
     inserisciDataNelRiepilogo,
     eRichiestaOreNuova,
-} from './tony-ora-lavoro-match.js?v=2026-10-09e';
+} from './tony-ora-lavoro-match.js?v=2026-10-09f';
 import {
     formReadyForTonySave,
     magazzinoFormReadyForTonySave,
@@ -96,7 +96,7 @@ import { initTonyDocumentCapture } from './document-capture.js';
 import { chooseSttEngine, createRecorderSpeechRecognition, isIosLikeDevice, isStandaloneDisplayMode } from './voice-recorder-stt.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-    export const TONY_CLIENT_BUILD = '2026-10-09e';
+    export const TONY_CLIENT_BUILD = '2026-10-09f';
 if (typeof window !== 'undefined') {
     window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
     if (typeof console !== 'undefined' && console.log) console.log('[Tony] Client build', TONY_CLIENT_BUILD);
