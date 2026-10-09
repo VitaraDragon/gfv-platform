@@ -4,7 +4,7 @@
  * @module core/js/tony/tony-segna-ora-local-engine
  */
 
-import { riepilogoSegnaOreAmmesso } from './tony-ora-lavoro-match.js?v=2026-10-09b';
+import { etichettaDataRiepilogoOre, riepilogoSegnaOreAmmesso } from './tony-ora-lavoro-match.js?v=2026-10-09c';
 
 /** Messaggio di fallback quando mancano più campi obbligatori. */
 export const SEGNA_ORE_ASK_FALLBACK =
@@ -218,7 +218,9 @@ export function buildSegnaOreMissingFieldsMessage(state, opts) {
     var nome = String((opts && opts.lavoroNome) || (state && state.lavoroNome) || '').trim();
     var domanda = String((opts && opts.domandaLavoro) || '').trim() || 'Su quale lavoro segno le ore?';
     if (!nome) return domanda;
+    var dataTxt = etichettaDataRiepilogoOre(state && state.dateVal, (opts && opts.oggiIso) || '');
     var recap = nome;
+    if (dataTxt) recap += ', ' + dataTxt;
     if (state && state.startVal && state.endVal) {
       var fascia = 'dalle ' + state.startVal + ' alle ' + state.endVal;
       var pauseN = state.pauseVal !== '' ? parseInt(state.pauseVal, 10) : 0;
@@ -231,7 +233,8 @@ export function buildSegnaOreMissingFieldsMessage(state, opts) {
       esito: { stato: 'unico', lavoro: { nome: nome } },
       nomeLavoro: nome,
       testo: testoPronto,
-      domanda: domanda
+      domanda: domanda,
+      dataTesto: dataTxt
     });
     return filtro.testo;
   }

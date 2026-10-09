@@ -344,7 +344,7 @@ Oltre alla versione mobile in campo, esiste una pagina **Segnatura ore** per dig
 1. Chiedi a **Tony** «apri segnatura ore» (serve **Tony Avanzato**), oppure  
 2. Usa un segnalibro o un link che l’ufficio ha già salvato, se lo usate spesso.
 
-Il flusso **quotidiano** degli operatori resta la **versione mobile**: questa pagina non sostituisce il loro percorso, lo integra dove serve a te. Su un lavoro sospeso non si segnano ore nuove, né dal menu né con Tony: Tony lo dice e indica la ripresa, se c’è. In elenco il badge è **Sospeso**. «Tutto pronto» dice sempre il nome del lavoro.
+Il flusso **quotidiano** degli operatori resta la **versione mobile**: questa pagina non sostituisce il loro percorso, lo integra dove serve a te. Su un lavoro sospeso non si segnano ore nuove, né dal menu né con Tony: Tony lo dice e indica la ripresa, se c’è. In elenco il badge è **Sospeso**. «Tutto pronto» dice sempre il nome del lavoro e il giorno. Se non dici la data, è oggi. Dopo Annulla, un «sì» non salva.
 
 ---
 

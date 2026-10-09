@@ -1768,11 +1768,28 @@
             }
         }
 
-        window.closeOraModal = function() {
+        window.closeOraModal = function(opts) {
+            opts = opts || {};
             document.getElementById('ora-modal').classList.remove('active');
             impostaModalOraModo(false);
             const select = document.getElementById('ora-lavoro');
             if (select) select.disabled = false;
+            if (opts.daTony) return;
+            const form = document.getElementById('ora-form');
+            if (form) form.reset();
+            const data = document.getElementById('ora-data');
+            if (data) {
+                data.value = oggiLocaleIso();
+                data.max = oggiLocaleIso();
+            }
+            const pause = document.getElementById('ora-pause');
+            if (pause && !pause.value) pause.value = '0';
+            aggiornaEtichettaDataOra();
+            let hook = window.__tonySegnaOreAnnulla;
+            if (typeof hook !== 'function') {
+                try { hook = window.parent && window.parent.__tonySegnaOreAnnulla; } catch (eHook) { hook = null; }
+            }
+            if (typeof hook === 'function') hook('annulla');
         };
 
         let salvataggioOraInCorso = false;

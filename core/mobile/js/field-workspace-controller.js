@@ -345,11 +345,21 @@ function maybeLoadEmbedsForSlide(slideTitle) {
     }
 }
 
+function avvisaTonySeEsceDalleOre(prevTitle, nextTitle) {
+    const prima = String(prevTitle || '').trim().toLowerCase();
+    const dopo = String(nextTitle || '').trim().toLowerCase();
+    if (prima === 'ore' && dopo !== 'ore' && typeof window.__tonySegnaOreAnnulla === 'function') {
+        window.__tonySegnaOreAnnulla('cambio-pagina');
+    }
+}
+
 function goToSlide(index) {
     const bounded = Math.max(0, Math.min(index, activeSlides.length - 1));
     const slide = activeSlides[bounded];
     if (!slide || !swiperEl) return;
+    const titoloPrima = activeSlides[currentSlideIndex]?.dataset?.slideTitle;
     currentSlideIndex = bounded;
+    avvisaTonySeEsceDalleOre(titoloPrima, slide.dataset.slideTitle);
     swiperEl.scrollTo({ left: slide.offsetLeft, behavior: 'smooth' });
     renderDots();
     updateNavButtons();
@@ -397,7 +407,10 @@ function syncSlideFromScroll() {
         }
     });
     if (bestIdx !== currentSlideIndex) {
+        const titoloPrima = activeSlides[currentSlideIndex]?.dataset?.slideTitle;
+        const titoloDopo = activeSlides[bestIdx]?.dataset?.slideTitle;
         currentSlideIndex = bestIdx;
+        avvisaTonySeEsceDalleOre(titoloPrima, titoloDopo);
         renderDots();
         updateNavButtons();
         maybeLoadEmbedsForSlide(activeSlides[bestIdx]?.dataset?.slideTitle);
@@ -2112,6 +2125,7 @@ function bindToolbar() {
             resetQuickHoursFormFieldsForNextEntry();
             nascondiSovrapposizioneOre();
             aggiornaRiquadroOreGiorno().catch(() => {});
+            if (typeof window.__tonySegnaOreAnnulla === 'function') window.__tonySegnaOreAnnulla('annulla');
         });
     }
     const onOreGiornoClick = async (event) => {
