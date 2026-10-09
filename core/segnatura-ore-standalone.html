@@ -20,6 +20,10 @@
             color: #333;
         }
 
+        .ore-giorno-loading {
+            opacity: 0.55;
+        }
+
         .container {
             max-width: 1200px;
             margin: 0 auto;
@@ -559,8 +563,13 @@
             formatTracciaOra,
             chiValidaOra,
             messaggioOraSegnataConSuccesso,
-            formattaDataItalianaConGiorno
+            formattaDataItalianaConGiorno,
+            calcolaOreNette as oreNetteDaOrari
         } from './services/ore-operai-logic.js';
+        import {
+            righeGiornoDopoEliminazione,
+            righeGiornoDopoSalvataggio
+        } from './js/tony/tony-riepilogo-giorno.js?v=2026-10-09e';
 
         try {
             await window.GFVStandaloneReady;
@@ -1515,38 +1524,87 @@
             return `<strong>Le tue ore del ${escapeHtml(dataLabel)}</strong>${voci}<div style="margin-top:8px;"><strong>Totale del giorno: ${formattaOre(totale)}</strong></div>`;
         }
 
-        async function aggiornaRiquadroOreGiorno() {
-            const box = document.getElementById('ore-giorno-riepilogo');
-            const boxPagina = document.getElementById('ore-giorno-pagina');
-            if (!currentTenantId || !currentUserData) return;
-            const giornoScelto = document.getElementById('ora-data') ? document.getElementById('ora-data').value : '';
-            const giorno = giornoScelto || oggiLocaleIso();
+        function targetsRiquadroOre() {
+            return [
+                document.getElementById('ore-giorno-riepilogo'),
+                document.getElementById('ore-giorno-pagina')
+            ].filter(Boolean);
+        }
+
+        function giornoRiquadroOre(forzato) {
+            if (forzato) return forzato;
+            const scelto = document.getElementById('ora-data') ? document.getElementById('ora-data').value : '';
+            return scelto || oggiLocaleIso();
+        }
+
+        function disegnaRiquadroOreMemoria(righe, stato, giornoForzato) {
+            const giorno = giornoRiquadroOre(giornoForzato);
             const lavoroId = document.getElementById('ora-lavoro') ? document.getElementById('ora-lavoro').value : '';
-            const targets = [box, boxPagina].filter(Boolean);
-            if (!targets.length || !giorno) return;
+            const html = htmlRiquadroOreGiorno(giorno, righe || [], lavoroId);
+            const loading = stato === 'loading';
+            targetsRiquadroOre().forEach((el) => {
+                el.style.display = 'block';
+                el.innerHTML = html;
+                el.setAttribute('data-state', stato || 'ready');
+                el.setAttribute('data-pronto', '1');
+                el.classList.toggle('ore-giorno-loading', loading);
+            });
+        }
+
+        async function attendiRitardoLetturaOre() {
+            const ms = Number(window.__gfvRitardaLetturaOreMs) || 0;
+            if (ms > 0) await new Promise((resolve) => setTimeout(resolve, ms));
+        }
+
+        let letturaOreSeq = 0;
+
+        async function aggiornaRiquadroOreGiorno() {
+            if (!currentTenantId || !currentUserData) return false;
+            const giorno = giornoRiquadroOre();
+            const targets = targetsRiquadroOre();
+            if (!targets.length || !giorno) return false;
+            const seq = ++letturaOreSeq;
             targets.forEach((el) => {
                 el.style.display = 'block';
                 el.setAttribute('data-state', 'loading');
+                el.classList.add('ore-giorno-loading');
                 if (!el.getAttribute('data-pronto')) el.textContent = 'Caricamento ore del giorno...';
             });
             try {
+                await attendiRitardoLetturaOre();
+                if (seq !== letturaOreSeq) return true;
                 const userId = currentUserData.id || currentUserData.uid;
                 const righe = await caricaOreUtenteGiorno(db, currentTenantId, userId, giorno, utenteOreCorrente());
+                if (seq !== letturaOreSeq) return true;
                 oreGiornoCache = righe;
-                const html = htmlRiquadroOreGiorno(giorno, righe, lavoroId);
-                targets.forEach((el) => {
-                    el.innerHTML = html;
-                    el.setAttribute('data-state', 'ready');
-                    el.setAttribute('data-pronto', '1');
-                });
-                return;
+                disegnaRiquadroOreMemoria(righe, 'ready', giorno);
+                return true;
             } catch (error) {
+                if (seq !== letturaOreSeq) return true;
                 console.error('Riquadro ore del giorno:', error);
-                targets.forEach((el) => {
-                    el.textContent = 'Non riesco a leggere le ore di questo giorno.';
-                    el.setAttribute('data-state', 'ready');
-                });
+                const giaPronto = targets.some((el) => el.getAttribute('data-pronto'));
+                if (!giaPronto) {
+                    targets.forEach((el) => {
+                        el.textContent = 'Non riesco a leggere le ore di questo giorno.';
+                        el.setAttribute('data-state', 'ready');
+                        el.classList.remove('ore-giorno-loading');
+                    });
+                } else {
+                    targets.forEach((el) => {
+                        el.setAttribute('data-state', 'ready');
+                        el.classList.remove('ore-giorno-loading');
+                    });
+                }
+                return false;
             }
+        }
+
+        async function riallineaRiquadroOreGiorno(precedente, giorno) {
+            const ok = await aggiornaRiquadroOreGiorno();
+            if (ok) return;
+            oreGiornoCache = precedente;
+            disegnaRiquadroOreMemoria(precedente, 'ready', giorno);
+            showAlert('Non riesco a rileggere le ore. Mostro di nuovo il riepilogo di prima.', 'warning');
         }
 
         function aggiornaEtichettaDataOra() {
@@ -1758,10 +1816,13 @@
             try {
                 await eliminaOraPropria(db, currentTenantId, utenteOreCorrente(), lavoroId, oraId);
                 showAlert('Ora eliminata', 'success');
+                const precedenteOre = oreGiornoCache.slice();
+                const giornoOre = giornoRiquadroOre();
+                const dopoElimina = righeGiornoDopoEliminazione(oreGiornoCache, oraId);
+                oreGiornoCache = dopoElimina;
+                disegnaRiquadroOreMemoria(dopoElimina, 'loading', giornoOre);
                 await loadOre();
-                if (document.getElementById('ora-modal').classList.contains('active')) {
-                    await aggiornaRiquadroOreGiorno();
-                }
+                await riallineaRiquadroOreGiorno(precedenteOre, giornoOre);
             } catch (error) {
                 console.error(error);
                 showAlert(error.message || 'Errore eliminazione', 'error');
@@ -1877,6 +1938,7 @@
                 };
                 if (posizioneRilevamento) patch.posizioneRilevamento = posizioneRilevamento;
 
+                let idSalvata = oraId || '';
                 if (oraId) {
                     await modificaOraPropria(db, currentTenantId, utenteOreCorrente(), lavoroId, oraId, patch);
                     const lavoroMod = (lavoriList || []).find((l) => l && l.id === lavoroId);
@@ -1900,7 +1962,7 @@
                 } else {
                     const lavoroDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId));
                     if (!lavoroDoc.exists()) throw new Error('Lavoro non trovato');
-                    const idNuova = await salvaNuovaOra(db, currentTenantId, utenteOreCorrente(), {
+                    idSalvata = await salvaNuovaOra(db, currentTenantId, utenteOreCorrente(), {
                         ...patch,
                         operaioId: userId,
                         lavoroId,
@@ -1912,7 +1974,7 @@
                     });
                     emettiEsitoOra('gfv-ora-salvata', {
                         ok: true,
-                        id: idNuova,
+                        id: idSalvata,
                         lavoroId,
                         lavoroNome: nomeLavoroOraSelezionato(),
                         data,
@@ -1924,8 +1986,24 @@
                     });
                     showAlert(messaggioOraSegnataConSuccesso(chi), 'success', 8000);
                 }
+                const precedenteOre = oreGiornoCache.slice();
+                const rigaSalvata = {
+                    id: idSalvata,
+                    lavoroId,
+                    lavoroNome: nomeLavoroOraSelezionato(),
+                    orarioInizio,
+                    orarioFine,
+                    pauseMinuti,
+                    oreNette: oreNetteDaOrari(orarioInizio, orarioFine, pauseMinuti),
+                    stato: 'da_validare',
+                    data
+                };
+                const dopoSalva = righeGiornoDopoSalvataggio(oreGiornoCache, rigaSalvata);
+                oreGiornoCache = dopoSalva;
+                disegnaRiquadroOreMemoria(dopoSalva, 'loading', data);
                 closeOraModal();
                 await loadOre();
+                await riallineaRiquadroOreGiorno(precedenteOre, data);
             } catch (error) {
                 console.error('Errore salvataggio ora:', error);
                 if (error && error.code === 'ORE_SOVRAPPOSTE') {
