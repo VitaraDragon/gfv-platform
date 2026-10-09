@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   risolviLavoroDaTesto,
   messaggioSceltaLavoroOre,
+  copertura,
+  abbinamentoRagionevole,
   risolviValoreSelectLavoro,
   eDiOggi,
   testoRiepilogoHaLavoro,
@@ -296,5 +298,84 @@ describe('risolviLavoroDaTesto', () => {
     expect(risolviValoreSelectLavoro('rip', opzioni)).toBe('rip');
     expect(risolviValoreSelectLavoro('qualcosa che non c\'è', opzioni)).toBeNull();
     expect(risolviValoreSelectLavoro('ripristino pali', opzioni)).toBe('rip');
+  });
+});
+
+describe('abbinamento ragionevole (2026-10-09)', () => {
+  const OGGI_MATCH = '2026-10-09';
+
+  it('un lavoro nominato assente e un sospeso non pertinente non vengono proposti', () => {
+    const lavori = [
+      {
+        id: 'tr',
+        nome: 'Trinciatura Vigna di Sant\'Albino (ripresa)',
+        tipoLavoro: 'manutenzione',
+        stato: 'sospeso',
+        dataInizio: '2026-10-07',
+      },
+      {
+        id: 'pot',
+        nome: 'Potatura verde',
+        tipoLavoro: 'Potatura',
+        stato: 'assegnato',
+        dataInizio: OGGI_MATCH,
+      },
+    ];
+    const esito = risolviLavoroDaTesto('manutenzione attrezzi potatura', lavori, { oggiIso: OGGI_MATCH });
+    expect(esito.stato).toBe('nessuno');
+    expect(esito.nominato).toBe(true);
+    expect(esito.lavoro).toBeNull();
+    expect(esito.lavoroSospeso).toBeUndefined();
+    expect(esito.candidati.map((l) => l.id)).toEqual(['pot']);
+    const msg = messaggioSceltaLavoroOre(esito);
+    expect(msg).toMatch(/Non trovo un lavoro attivo con questo nome/);
+    expect(msg).toMatch(/Potatura verde/);
+    expect(msg).toMatch(/I lavori di oggi sono/);
+    expect(msg).not.toMatch(/sospeso/i);
+    expect(msg).not.toMatch(/Trinciatura/);
+    expect(copertura(['manutenzione', 'attrezzi', 'potatura'], lavori[0])).toBeCloseTo(1 / 3);
+    expect(abbinamentoRagionevole(['manutenzione', 'attrezzi', 'potatura'], lavori[0])).toBe(false);
+  });
+
+  it('un sospeso nominato con almeno due parole nel nome resta sospeso', () => {
+    const lavori = [
+      {
+        id: 'tr',
+        nome: 'Trinciatura Vigna di Sant\'Albino (ripresa)',
+        stato: 'sospeso',
+        dataInizio: '2026-10-07',
+      },
+      {
+        id: 'pot',
+        nome: 'Potatura verde',
+        stato: 'assegnato',
+        dataInizio: OGGI_MATCH,
+      },
+    ];
+    const esito = risolviLavoroDaTesto('sulla trinciatura vigna', lavori, { oggiIso: OGGI_MATCH });
+    expect(esito.stato).toBe('sospeso');
+    expect(esito.lavoroSospeso.id).toBe('tr');
+    const msg = messaggioSceltaLavoroOre(esito);
+    expect(msg).toMatch(/è sospeso/);
+    expect(msg).toMatch(/Trinciatura/);
+  });
+
+  it('un token debole su un segnabile, con tre parole, non è unico', () => {
+    const lavori = [
+      {
+        id: 'm',
+        nome: 'Controllo serre',
+        tipoLavoro: 'manutenzione',
+        stato: 'assegnato',
+        dataInizio: OGGI_MATCH,
+      },
+    ];
+    const tokens = ['manutenzione', 'attrezzi', 'potatura'];
+    expect(abbinamentoRagionevole(tokens, lavori[0])).toBe(false);
+    const esito = risolviLavoroDaTesto('manutenzione attrezzi potatura', lavori, { oggiIso: OGGI_MATCH });
+    expect(esito.stato).not.toBe('unico');
+    expect(esito.stato).toBe('nessuno');
+    expect(esito.nominato).toBe(true);
+    expect(messaggioSceltaLavoroOre(esito)).toMatch(/Non trovo un lavoro attivo/);
   });
 });

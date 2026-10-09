@@ -17,10 +17,12 @@ import { resolveAuthUserWithRetry, loginPageUrl, waitForStandaloneReady } from '
 import { formatOreNette } from '../../js/attivita-utils.js';
 import { showAlert } from '../../js/gfv-page-utils.js';
 import { eLavoroSospeso } from '../../js/tony/tony-ora-lavoro-match.js';
+import { CHIAVE_RIMBALZI_INGRESSO } from '../../js/tony/tony-ingresso-login.js?v=2026-10-09f';
+import { conTimeout, prossimaAttesaRiprova } from '../../js/tony/tony-attesa-riprova.js?v=2026-10-09f';
 import {
     righeGiornoDopoEliminazione,
     righeGiornoDopoSalvataggio
-} from '../../js/tony/tony-riepilogo-giorno.js?v=2026-10-09e';
+} from '../../js/tony/tony-riepilogo-giorno.js?v=2026-10-09f';
 import {
     salvaNuovaOra,
     modificaOraPropria,
@@ -612,25 +614,100 @@ function normalizeWorkLabel(work) {
     return `${nome}${terreno ? ` - ${terreno}` : ''}`;
 }
 
-async function loadWorksForSelection() {
-    if (!currentTenantId || !currentUser) return;
+let lavoriCaricamentoGenerazione = 0;
+let lavoriAttesaTimer = null;
+
+function annullaAttesaLavori() {
+    if (lavoriAttesaTimer) {
+        clearTimeout(lavoriAttesaTimer);
+        lavoriAttesaTimer = null;
+    }
+}
+
+function attendiMsLavori(ms) {
+    annullaAttesaLavori();
+    return new Promise((resolve) => {
+        lavoriAttesaTimer = setTimeout(() => {
+            lavoriAttesaTimer = null;
+            resolve();
+        }, ms);
+    });
+}
+
+function scriviCaricamentoLavori() {
     if (selectedWorkEl) {
         selectedWorkEl.innerHTML = '<option value="">Caricamento lavori...</option>';
     }
+}
+
+function togliPulsanteRiprovaLavori() {
+    const btn = document.getElementById('btn-retry-lavori');
+    if (btn) btn.remove();
+}
+
+function mostraLavoriNonCaricati() {
+    annullaAttesaLavori();
+    if (selectedWorkEl) {
+        selectedWorkEl.innerHTML = '<option value="">Non riesco a caricare i lavori. Riprova.</option>';
+    }
+    if (gpsSuggestionEl) {
+        gpsSuggestionEl.textContent = '';
+    }
+    if (!selectedWorkEl || document.getElementById('btn-retry-lavori')) return;
+    const btn = document.createElement('button');
+    btn.id = 'btn-retry-lavori';
+    btn.type = 'button';
+    btn.textContent = 'Riprova';
+    btn.addEventListener('click', () => {
+        loadWorksForSelection().catch(() => {});
+    });
+    selectedWorkEl.insertAdjacentElement('afterend', btn);
     try {
+        if (!window.currentTableData) window.currentTableData = { pageType: 'field_workspace', summary: '', items: [] };
+        window.currentTableData.pageType = 'field_workspace';
+        window.currentTableData.summary = 'Workspace campo: non riesco a caricare i lavori.';
+        window.currentTableData.items = [];
+        window.dispatchEvent(new CustomEvent('table-data-ready', { detail: { currentTableData: window.currentTableData } }));
+    } catch (eTab) { /* ignore */ }
+}
+
+async function attendiContestoLavori(token) {
+    const scadenza = Date.now() + 8000;
+    while (!currentTenantId || !currentUser) {
+        if (token !== lavoriCaricamentoGenerazione) return false;
+        const resta = scadenza - Date.now();
+        if (resta <= 0) return false;
+        await attendiMsLavori(Math.min(200, resta));
+    }
+    return token === lavoriCaricamentoGenerazione;
+}
+
+async function loadWorksForSelection(tentativo) {
+    const giro = tentativo || 1;
+    const token = ++lavoriCaricamentoGenerazione;
+    annullaAttesaLavori();
+    togliPulsanteRiprovaLavori();
+    scriviCaricamentoLavori();
+    try {
+        const pronto = await attendiContestoLavori(token);
+        if (token !== lavoriCaricamentoGenerazione) return;
+        if (!pronto || !currentTenantId || !currentUser) {
+            throw new Error('contesto lavori non pronto');
+        }
         const userId = (currentUserData && (currentUserData.id || currentUserData.uid)) || currentUser.uid;
         // Capo (anche dual-role): priorità lavori di squadra assegnati dal manager — non usare
         // resolveSegnaturaOreRoleFlags (che preferisce operaio e nasconde i lavori capo).
         const roleFlags = userIsCaposquadra
             ? resolveFieldWorkspaceLavoriRoleFlags(currentUserData || { ruoli: ['caposquadra'] })
             : resolveSegnaturaOreRoleFlags(currentUserData || {});
-        const rawList = await fetchLavoriDocumentsForFieldUser(
+        const rawList = await conTimeout(fetchLavoriDocumentsForFieldUser(
             getDb(),
             currentTenantId,
             userId,
             roleFlags,
             currentUserData || null
-        );
+        ), 15000);
+        if (token !== lavoriCaricamentoGenerazione) return;
 
         // Capo: elenco operativo completo (no taglio «max 14 giorni futuri» del dropdown Segna ore).
         // Operaio: resta il filtro segnabile ore.
@@ -680,21 +757,17 @@ async function loadWorksForSelection() {
         }
         syncLavoroOperativoEmbeds();
         syncTonyFieldWorkspaceTableData();
+        annullaAttesaLavori();
     } catch (error) {
+        if (token !== lavoriCaricamentoGenerazione) return;
         console.error('[FIELD-WORKSPACE] Errore caricamento lavori:', error);
-        if (selectedWorkEl) {
-            selectedWorkEl.innerHTML = '<option value="">Errore caricamento lavori</option>';
+        const attesa = prossimaAttesaRiprova(giro);
+        if (attesa > 0) {
+            await attendiMsLavori(attesa);
+            if (token !== lavoriCaricamentoGenerazione) return;
+            return loadWorksForSelection(giro + 1);
         }
-        if (gpsSuggestionEl) {
-            gpsSuggestionEl.textContent = 'Errore nel recupero lavori.';
-        }
-        try {
-            if (!window.currentTableData) window.currentTableData = { pageType: 'field_workspace', summary: '', items: [] };
-            window.currentTableData.pageType = 'field_workspace';
-            window.currentTableData.summary = 'Workspace campo: errore caricamento lavori.';
-            window.currentTableData.items = [];
-            window.dispatchEvent(new CustomEvent('table-data-ready', { detail: { currentTableData: window.currentTableData } }));
-        } catch (e2) { /* ignore */ }
+        mostraLavoriNonCaricati();
     }
 }
 
@@ -2264,6 +2337,29 @@ function applyUrlPreference() {
     setModeButtonsState('mobile');
 }
 
+function leggiRimbalziIngresso() {
+    try {
+        return Number(sessionStorage.getItem(CHIAVE_RIMBALZI_INGRESSO) || '0') || 0;
+    } catch (error) {
+        return 0;
+    }
+}
+
+function aumentaRimbalzoIngresso() {
+    const n = leggiRimbalziIngresso() + 1;
+    try { sessionStorage.setItem(CHIAVE_RIMBALZI_INGRESSO, String(n)); } catch (error) { /* ignore */ }
+    return n;
+}
+
+function azzeraRimbalziIngresso() {
+    try { sessionStorage.removeItem(CHIAVE_RIMBALZI_INGRESSO); } catch (error) { /* ignore */ }
+}
+
+function rimandaDashboardTemporanea() {
+    aumentaRimbalzoIngresso();
+    window.location.href = '../dashboard-standalone.html?ws=classic&una_volta=1';
+}
+
 async function initFieldWorkspace() {
     setStatus('Caricamento workspace mobile...');
     readBootParamsFromUrl();
@@ -2289,7 +2385,7 @@ async function initFieldWorkspace() {
             try {
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 if (!userDoc.exists()) {
-                    window.location.href = '../dashboard-standalone.html?ws=classic';
+                    rimandaDashboardTemporanea();
                     return;
                 }
 
@@ -2344,14 +2440,15 @@ async function initFieldWorkspace() {
                     : roleListHas(normalizedRoles, ['operaio', 'caposquadra']);
 
                 if (isManagerOrAdmin || !isFieldRole) {
-                    window.location.href = '../dashboard-standalone.html?ws=classic';
+                    rimandaDashboardTemporanea();
                     return;
                 }
 
                 if (!availableModules.includes('manodopera')) {
-                    window.location.href = '../dashboard-standalone.html?ws=classic';
+                    rimandaDashboardTemporanea();
                     return;
                 }
+                azzeraRimbalziIngresso();
 
                 try {
                     const { startNotificationFcmBackground } = await import('../../js/notification-fcm-client.js');
