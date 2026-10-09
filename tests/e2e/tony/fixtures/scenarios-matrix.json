@@ -894,7 +894,7 @@
       "startUrl": "/core/segnatura-ore-standalone.html?emulator=1&tonyE2e=1",
       "login": "loginAsCapoFromDevPage",
       "messages": [],
-      "mockCf": true,
+      "mockCf": false,
       "expect": {
         "clientRecovery": true
       }

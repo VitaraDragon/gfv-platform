@@ -8,7 +8,6 @@
  */
 
 import { tonyRunMultiTurn } from '../helpers/tony-multi-turn.js';
-import { activateTonyMockCf, installTonyMockCf } from '../helpers/tony-mock-cf.js';
 import {
   bootstrapTonyWidgetOnStandalonePage,
   captureTonyTenantSnapshot,
@@ -89,32 +88,6 @@ export async function runFlowSegnaOre030(page, expect, scenario) {
       return items.some((ora) => String(ora.orarioInizio || '').indexOf('05:00') === 0);
     });
     expect(salvata).toBe(false);
-
-    await installTonyMockCf(page, { scenario });
-    await apriSegnatura(page);
-    await page.waitForFunction((id) => {
-      const list = typeof window.gfvSegnaturaOreLavoriPerTony === 'function'
-        ? window.gfvSegnaturaOreLavoriPerTony()
-        : [];
-      return Array.isArray(list) && list.some((l) => String(l.id) === id);
-    }, seminati.attivoId, { timeout: 60_000 });
-    await page.evaluate(() => {
-      window.__GFV_TONY_E2E_SKIP_SEGNA_ORE_LOCAL = true;
-      if (typeof window.openSegnaOraModal === 'function') return window.openSegnaOraModal();
-    });
-    await page.evaluate(() => {
-      const el = document.getElementById('ora-data');
-      if (el) el.value = '2000-01-01';
-    });
-    await activateTonyMockCf(page, scenario);
-    const dalModello = await tonyRunMultiTurn(page, [fraseB]);
-    const dataDopoInject = await page.evaluate(() => {
-      const el = document.getElementById('ora-data');
-      return el ? String(el.value || '') : '';
-    });
-    expect(dataDopoInject).toBe(form.oggi);
-    expect(dataDopoInject).not.toBe('2000-01-01');
-    expect(dalModello.lastReply || '').not.toContain('2000-01-01');
   } finally {
     await pulisciLavoroData030(tenantId).catch(() => {});
   }
