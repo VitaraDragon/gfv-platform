@@ -1605,6 +1605,7 @@ if (typeof window !== 'undefined') {
             tonyMatchSegnaOraTimeRangeFromUserHistory(6, ub));
         if (!hasRange) return { handled: false };
         if (!tonyUserMessageSuggestsSegnaOre(ub) && !tonyMatchSegnaOraTimeRangeFromBlob(ub)) return { handled: false };
+        tonyMarkSegnaOraLocalInterview();
         if (typeof handlers.clearEarlyTyping === 'function') handlers.clearEarlyTyping();
         if (typeof handlers.appendTyping === 'function') handlers.appendTyping();
         Promise.resolve(tonyAttendiElencoLavoriMatch()).then(function() {
@@ -8605,9 +8606,17 @@ if (typeof window !== 'undefined') {
                             segnaOreLocalHandlers.clearEarlyTyping();
                         }
                         removeTyping();
+                        var targetConferma = resolveSegnaOreTargetWindow();
+                        var stateConferma = targetConferma ? readSegnaOreDomState(targetConferma) : null;
+                        var desktopChiuso = !!(targetConferma && targetConferma.formKind === 'ora-modal' &&
+                            (!stateConferma || !stateConferma.modalActive));
+                        var nienteInAttesa = desktopChiuso ||
+                            (!window.__tonySegnaOreRiepilogo && !tonyInAttesaSegnaOre());
                         tonyFinishSegnaOreLocalIntercept(
                             text,
-                            'Completa data, orari e pausa nel form, poi scrivi «sì», «ok» o «salva».',
+                            nienteInAttesa
+                                ? 'Non c\'è niente da salvare. Dimmi giorno, orario e lavoro.'
+                                : 'Completa data, orari e pausa nel form, poi scrivi «sì», «ok» o «salva».',
                             segnaOreLocalHandlers
                         );
                         if (opts.fromVoice) isWaitingForTonyResponse = false;
