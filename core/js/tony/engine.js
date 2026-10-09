@@ -1141,10 +1141,11 @@ export function isSegnaOraUntrustedClockTime(h, mi, opts) {
     if (!Number.isFinite(h) || !Number.isFinite(mi)) return true;
     // Orari tipici di lavoro: mai spurio per coincidenza con l'orologio di sistema.
     if (mi === 0 || mi === 30) return false;
+    // Fascia dalle-alle esplicita: minuti liberi (es. «dalle 7:15 alle 18») sono legittimi,
+    // anche se coincidono con l'orologio del runner.
+    if (opts.explicitWorkRange) return false;
     var now = new Date();
     if (h === now.getHours() && Math.abs(mi - now.getMinutes()) <= 3) return true;
-    // Fascia dalle-alle esplicita: minuti liberi (es. «dalle 7:15 alle 18») sono legittimi.
-    if (opts.explicitWorkRange) return false;
     // Minuti “strani” fuori fascia esplicita: tipico artefatto STT.
     return true;
 }
