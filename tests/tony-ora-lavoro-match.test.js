@@ -8,6 +8,8 @@ import {
   unisciAvvisoSovrapposizioneELavoro,
   riepilogoSegnaOreAmmesso,
   lavoroDaSceltaUi,
+  risolviDataSegnaOre,
+  etichettaDataRiepilogoOre,
 } from '../core/js/tony/tony-ora-lavoro-match.js';
 
 const OGGI = '2026-10-08';
@@ -214,15 +216,67 @@ describe('risolviLavoroDaTesto', () => {
     expect(senza.ammesso).toBe(false);
     expect(senza.testo).toBe('Su quale lavoro segno le ore?');
     expect(senza.testo).not.toMatch(/Tutto pronto/i);
-    const conNome = 'Tutto pronto: Ripristino pali, dalle 17:00 alle 17:30, pausa 0 min, Fiat e Berti. Vuoi salvare? Scrivi «sì» o «salva».';
+    const conNomeSenzaData = 'Tutto pronto: Ripristino pali, dalle 17:00 alle 17:30, pausa 0 min, Fiat e Berti. Vuoi salvare? Scrivi «sì» o «salva».';
+    const senzaData = riepilogoSegnaOreAmmesso({
+      esito: { stato: 'unico', lavoro: { id: 'rip', nome: 'Ripristino pali' } },
+      nomeLavoro: 'Ripristino pali',
+      testo: conNomeSenzaData,
+      domanda: 'Su quale lavoro segno le ore?',
+    });
+    expect(senzaData.ammesso).toBe(false);
+    expect(senzaData.testo).toBe('Su quale lavoro segno le ore?');
+    const conData = 'Tutto pronto: Ripristino pali, oggi 08/10, dalle 17:00 alle 17:30, pausa 0 min, Fiat e Berti. Vuoi salvare? Scrivi «sì» o «salva».';
     const con = riepilogoSegnaOreAmmesso({
       esito: { stato: 'unico', lavoro: { id: 'rip', nome: 'Ripristino pali' } },
       nomeLavoro: 'Ripristino pali',
-      testo: conNome,
+      testo: conData,
       domanda: 'Su quale lavoro segno le ore?',
     });
     expect(con.ammesso).toBe(true);
-    expect(con.testo).toBe(conNome);
+    expect(con.testo).toBe(conData);
+    const riscritto = riepilogoSegnaOreAmmesso({
+      esito: { stato: 'unico', lavoro: { id: 'rip', nome: 'Ripristino pali' } },
+      nomeLavoro: 'Ripristino pali',
+      testo: conNomeSenzaData,
+      dataTesto: 'oggi 09/10',
+      domanda: 'Su quale lavoro segno le ore?',
+    });
+    expect(riscritto.ammesso).toBe(true);
+    expect(riscritto.testo).toContain('oggi 09/10');
+    expect(riscritto.testo).toContain('Ripristino pali');
+  });
+
+  it('ogni richiesta ha la sua data e il riepilogo la dice', () => {
+    const oggi = '2026-10-09';
+    const ieriPoiOggi = risolviDataSegnaOre({
+      testoNuovo: 'segnami dalle 06:00 alle 06:30 oggi sulla manutenzione',
+      turniPrecedenti: ['segnami ieri sul ripristino pali'],
+      oggiIso: oggi,
+    });
+    expect(ieriPoiOggi).toEqual({ iso: '2026-10-09', fonte: 'esplicita' });
+
+    const senzaData = risolviDataSegnaOre({
+      testoNuovo: 'segnami dalle 6 alle 6:30 sulla manutenzione',
+      turniPrecedenti: ['ieri'],
+      oggiIso: oggi,
+    });
+    expect(senzaData).toEqual({ iso: '2026-10-09', fonte: 'oggi_default' });
+
+    const pausa = risolviDataSegnaOre({
+      testoNuovo: '30',
+      turniPrecedenti: ['segnami dalle 7 alle 12 ieri'],
+      oggiIso: oggi,
+      inAttesaDi: { tipo: 'pausa' },
+    });
+    expect(pausa).toEqual({ iso: '2026-10-08', fonte: 'continua' });
+
+    expect(risolviDataSegnaOre({ testoNuovo: '07/10', oggiIso: oggi }).iso).toBe('2026-10-07');
+    expect(risolviDataSegnaOre({ testoNuovo: '15/10', oggiIso: oggi }).iso).toBe(oggi);
+    expect(risolviDataSegnaOre({ testoNuovo: '15/10', oggiIso: oggi }).iso).not.toBe('2026-10-15');
+
+    expect(etichettaDataRiepilogoOre('2026-10-09', oggi)).toBe('oggi 09/10');
+    expect(etichettaDataRiepilogoOre('2026-10-08', oggi)).toBe('ieri 08/10');
+    expect(etichettaDataRiepilogoOre('2026-10-07', oggi)).toBe('il 07/10');
   });
 
   it('la scelta in pagina senza nome non è un lavoro unico', () => {

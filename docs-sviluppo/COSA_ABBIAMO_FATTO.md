@@ -1,6 +1,20 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-09 — Tony, un solo build dopo il deploy.**
+**Ultimo aggiornamento documentazione: 2026-10-09 — Tony, ogni richiesta di ore ha la sua data.**
+
+## 2026-10-09 — Ore: la data è quella di questa richiesta, e dopo Annulla un «sì» non salva
+
+Ogni richiesta di ore usa la sua data. Se non dici niente, è oggi: Tony non tiene la data del messaggio prima.
+
+«Tutto pronto» dice anche la data.
+
+Dopo Annulla un «sì» non salva più.
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-09 — Tony, un solo build dopo il deploy.**
 
 ## 2026-10-09 — Tony: un solo loader, e i file senza versione non restano vecchi
 

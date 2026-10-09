@@ -130,7 +130,7 @@ export function buildMockCfBundle(scenario) {
 
   if (id === 'T-FLOW-028') {
     bundle.staticResponses['ripristino pali'] = {
-      text: 'Tutto pronto: dalle 17:00 alle 17:30, pausa 0 min. Vuoi salvare?',
+      text: 'Tutto pronto: dalle 17:00 alle 17:30, oggi 09/10, pausa 0 min. Vuoi salvare?',
       command: {
         type: 'INJECT_FORM_DATA',
         formId: 'ora-form',
@@ -147,8 +147,25 @@ export function buildMockCfBundle(scenario) {
 
   if (id === 'T-FLOW-029') {
     bundle.staticResponses['ripristino pali'] = {
-      text: 'Tutto pronto: dalle 17:00 alle 17:30, pausa 0 min. Vuoi salvare? Scrivi «sì» o «salva».',
+      text: 'Tutto pronto: dalle 17:00 alle 17:30, oggi 09/10, pausa 0 min. Vuoi salvare? Scrivi «sì» o «salva».',
       command: null,
+    };
+    return bundle;
+  }
+
+  if (id === 'T-FLOW-030') {
+    bundle.staticResponses['manutenzione attrezzi'] = {
+      text: 'Tutto pronto: Manutenzione attrezzi, ieri 08/10, dalle 05:00 alle 05:30, pausa 0 min. Vuoi salvare?',
+      command: {
+        type: 'INJECT_FORM_DATA',
+        formId: 'ora-form',
+        formData: {
+          'ora-data': '2000-01-01',
+          'ora-inizio': '05:00',
+          'ora-fine': '05:30',
+          'ora-pause': '0',
+        },
+      },
     };
     return bundle;
   }
