@@ -7,6 +7,9 @@ import {
   extractSegnaOrePauseMinutesFromUserBlob,
   getSegnaOreDomFieldIds,
   filtraCampiMezzoNonNominati,
+  interpretaEsitoSalvataggioOra,
+  messaggioConfermaSalvataggioOra,
+  riepilogoRipristinatoScaduto,
 } from '../core/js/tony/tony-segna-ora-local-engine.js';
 
 describe('tony-segna-ora-local-engine', () => {
@@ -170,5 +173,102 @@ describe('tony-segna-ora-local-engine', () => {
     var conLandini = filtraCampiMezzoNonNominati(daModello, 'segna le ore dalle 10 alle 11 sul lavoro potatura col Landini');
     expect(conLandini['ora-macchina']).toBe('Landini');
     expect(conLandini['ora-attrezzo']).toBe('Rimorchio');
+  });
+
+  it('interpretaEsitoSalvataggioOra distingue successo, errore e silenzio', () => {
+    const attesa = interpretaEsitoSalvataggioOra({
+      evento: { ok: true, stato: 'in_attesa', chiValida: 'caposquadra' },
+    });
+    expect(attesa.esito).toBe('ok_in_attesa');
+
+    const validata = interpretaEsitoSalvataggioOra({
+      evento: { ok: true, stato: 'validata' },
+    });
+    expect(validata.esito).toBe('ok_validata');
+
+    const toastCapo = interpretaEsitoSalvataggioOra({
+      toastTesti: ['Ora segnata con successo! In attesa — la valida il caposquadra.'],
+    });
+    expect(toastCapo.esito).toBe('ok_in_attesa');
+    expect(toastCapo.chiValida).toBe('caposquadra');
+
+    const toastManager = interpretaEsitoSalvataggioOra({
+      toastTesti: ['Ora segnata con successo! In attesa — la valida il manager.'],
+    });
+    expect(toastManager.esito).toMatch(/^ok/);
+    expect(toastManager.chiValida).toBe('manager');
+
+    const sovrapposta = interpretaEsitoSalvataggioOra({
+      evento: {
+        ok: false,
+        codice: 'ORE_SOVRAPPOSTE',
+        messaggio: 'Ti sovrapponi a 06:00–06:30 su «Manutenzione» (in attesa).',
+      },
+    });
+    expect(sovrapposta.esito).toBe('errore');
+    expect(sovrapposta.messaggio).toMatch(/sovrappon/i);
+
+    expect(interpretaEsitoSalvataggioOra({}).esito).toBe('sconosciuto');
+
+    const oreSalvate = interpretaEsitoSalvataggioOra({
+      statusTesto: 'Ore salvate: 0,5. Puoi registrare un altro turno.',
+    });
+    expect(oreSalvate.esito).toMatch(/^ok/);
+
+    const erroreStato = interpretaEsitoSalvataggioOra({
+      statusTesto: 'Errore salvataggio: rete assente',
+    });
+    expect(erroreStato.esito).toBe('errore');
+    expect(erroreStato.messaggio).toMatch(/rete assente/);
+  });
+
+  it('messaggioConfermaSalvataggioOra dice il fatto, l’errore vero o il dubbio', () => {
+    const base = {
+      lavoroNome: 'Manutenzione attrezzi',
+      dataIso: '2026-10-09',
+      oggiIso: '2026-10-09',
+      inizio: '06:00',
+      fine: '06:30',
+    };
+    const inAttesa = messaggioConfermaSalvataggioOra({
+      ...base,
+      esito: 'ok_in_attesa',
+      chiValida: 'caposquadra',
+    });
+    expect(inAttesa).toBe(
+      'Fatto: ho segnato Manutenzione attrezzi, oggi 09/10, dalle 06:00 alle 06:30. Ora la valida il caposquadra.'
+    );
+
+    const giaValida = messaggioConfermaSalvataggioOra({ ...base, esito: 'ok_validata' });
+    expect(giaValida).toBe('Fatto: ho segnato Manutenzione attrezzi, oggi 09/10, dalle 06:00 alle 06:30.');
+    expect(giaValida).not.toMatch(/la valida/);
+
+    const errore = messaggioConfermaSalvataggioOra({
+      esito: 'errore',
+      messaggioErrore: 'Ti sovrapponi a 06:00–06:30 su «Manutenzione» (in attesa).',
+    });
+    expect(errore).toMatch(/sovrappon/);
+    expect(errore).not.toMatch(/Non vedo la conferma/);
+
+    expect(messaggioConfermaSalvataggioOra({ esito: 'sconosciuto' })).toBe(
+      'Non riesco a controllare il salvataggio. Guarda l\'elenco delle ore.'
+    );
+  });
+
+  it('riepilogoRipristinatoScaduto chiude la domanda vecchia se non c’è conferma in memoria', () => {
+    const history = [
+      { role: 'user', parts: [{ text: 'segnami dalle 6 alle 6:30 oggi' }] },
+      { role: 'model', parts: [{ text: 'Tutto pronto: Manutenzione, oggi 09/10. Vuoi salvare? Scrivi «sì» o «salva».' }] },
+    ];
+    const scaduto = riepilogoRipristinatoScaduto(history, false);
+    expect(scaduto.scaduto).toBe(true);
+    expect(scaduto.history).toHaveLength(3);
+    expect(scaduto.history[2].parts[0].text).toMatch(/scaduta/);
+    expect(riepilogoRipristinatoScaduto(history, true).scaduto).toBe(false);
+    expect(riepilogoRipristinatoScaduto([
+      { role: 'model', parts: [{ text: 'Ciao.' }] },
+    ], false).scaduto).toBe(false);
+    const dueVolte = riepilogoRipristinatoScaduto(scaduto.history, false);
+    expect(dueVolte.history).toHaveLength(3);
   });
 });
