@@ -289,9 +289,160 @@ export function lavoroDaSceltaUi(id, dettaglio, nomeOption) {
   return base;
 }
 
+function pad2Data(n) {
+  return String(n).padStart(2, '0');
+}
+
+function isoDaParti(anno, mese, giorno) {
+  const y = Number(anno);
+  const m = Number(mese);
+  const d = Number(giorno);
+  if (!y || m < 1 || m > 12 || d < 1 || d > 31) return '';
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return '';
+  return `${y}-${pad2Data(m)}-${pad2Data(d)}`;
+}
+
+function isoPiuGiorni(iso, giorni) {
+  const m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (!m) return '';
+  const dt = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  dt.setUTCDate(dt.getUTCDate() + giorni);
+  return `${dt.getUTCFullYear()}-${pad2Data(dt.getUTCMonth() + 1)}-${pad2Data(dt.getUTCDate())}`;
+}
+
+function tokenDataInIso(token, oggiIso) {
+  const t = String(token || '').trim().toLowerCase();
+  const oggi = String(oggiIso || '');
+  if (!oggi) return '';
+  if (t === 'oggi') return oggi;
+  if (t === 'ieri') return isoPiuGiorni(oggi, -1);
+  if (/altro\s+ieri/.test(t)) return isoPiuGiorni(oggi, -2);
+  const iso = t.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (iso) return isoDaParti(iso[1], iso[2], iso[3]);
+  const piena = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (piena) return isoDaParti(piena[3], piena[2], piena[1]);
+  const breve = t.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (breve) return isoDaParti(oggi.slice(0, 4), breve[2], breve[1]);
+  return '';
+}
+
 /**
- * «Tutto pronto» esce solo se il lavoro è unico e il testo contiene il nome.
- * @param {{ esito?: { stato?: string, lavoro?: object|null }|null, nomeLavoro?: string, testo?: string, domanda?: string }} input
+ * Ultima data detta nel testo, mai nel futuro rispetto a oggi.
+ * @param {string} testo
+ * @param {string} oggiIso
+ * @returns {string}
+ */
+export function ultimaDataEsplicitaNelTesto(testo, oggiIso) {
+  const s = String(testo || '');
+  const oggi = String(oggiIso || '');
+  const re = /l['’]?\s*altro\s+ieri|\baltro\s+ieri\b|\bieri\b|\boggi\b|\b\d{4}-\d{2}-\d{2}\b|\b\d{1,2}\/\d{1,2}\/\d{4}\b|\b\d{1,2}\/\d{1,2}\b/gi;
+  let ultima = '';
+  let m;
+  while ((m = re.exec(s))) {
+    const iso = tokenDataInIso(m[0], oggi);
+    if (!iso) continue;
+    if (oggi && iso > oggi) continue;
+    ultima = iso;
+  }
+  return ultima;
+}
+
+/**
+ * Richiesta nuova: «segnami…» oppure fascia e lavoro insieme.
+ * «30», «sì» e i refusi di orario da soli non lo sono.
+ * @param {string} testo
+ * @returns {boolean}
+ */
+export function eRichiestaOreNuova(testo) {
+  const t = String(testo || '');
+  const segna = /\bsegn\w*/i.test(t);
+  const fascia = /\bd[a-z]{0,4}l+e\s+\d{1,2}\b/i.test(t) && /\ba[sxz]{0,2}l+e\s+\d{1,2}\b/i.test(t);
+  const lavoro = /\b(sul|sulla|sullo|sui)\b/i.test(t);
+  if (segna && (fascia || lavoro)) return true;
+  if (fascia && lavoro) return true;
+  return false;
+}
+
+function dataDaiTurniPrecedenti(turni, oggiIso) {
+  const list = Array.isArray(turni) ? turni : [];
+  for (let i = list.length - 1; i >= 0; i--) {
+    const iso = ultimaDataEsplicitaNelTesto(list[i], oggiIso);
+    if (iso) return iso;
+  }
+  return '';
+}
+
+/**
+ * Data di questa richiesta. Non unisce i turni in un solo testo.
+ * @param {{ testoNuovo?: string, turniPrecedenti?: string[], oggiIso?: string, inAttesaDi?: { dataIso?: string, tipo?: string }|boolean|null }} input
+ * @returns {{ iso: string, fonte: 'esplicita'|'oggi_default'|'continua' }}
+ */
+export function risolviDataSegnaOre(input) {
+  const testo = String((input && input.testoNuovo) || '');
+  const oggi = String((input && input.oggiIso) || '');
+  const esplicita = ultimaDataEsplicitaNelTesto(testo, oggi);
+  if (esplicita) return { iso: esplicita, fonte: 'esplicita' };
+  const attesa = input && input.inAttesaDi;
+  if (attesa && !eRichiestaOreNuova(testo)) {
+    let iso = '';
+    if (typeof attesa === 'object' && attesa.dataIso) iso = String(attesa.dataIso);
+    if (!iso) iso = dataDaiTurniPrecedenti(input && input.turniPrecedenti, oggi);
+    if (iso && (!oggi || iso <= oggi)) return { iso, fonte: 'continua' };
+    if (oggi) return { iso: oggi, fonte: 'continua' };
+  }
+  return { iso: oggi, fonte: 'oggi_default' };
+}
+
+/**
+ * Come dirla nel riepilogo: «oggi 09/10», «ieri 08/10», altrimenti «il 07/10».
+ * @param {string} iso
+ * @param {string} oggiIso
+ * @returns {string}
+ */
+export function etichettaDataRiepilogoOre(iso, oggiIso) {
+  const giorno = formattaGiornoBreve(iso);
+  if (!giorno) return '';
+  const chiave = chiaveGiornoOra(iso);
+  const oggi = chiaveGiornoOra(oggiIso);
+  if (chiave && oggi && chiave === oggi) return `oggi ${giorno}`;
+  const ieri = isoPiuGiorni(oggi, -1);
+  if (chiave && ieri && chiave === ieri) return `ieri ${giorno}`;
+  return `il ${giorno}`;
+}
+
+/**
+ * @param {string} testo
+ * @returns {boolean}
+ */
+export function testoRiepilogoHaData(testo) {
+  const t = String(testo || '');
+  return /\b(?:oggi|ieri)\s+\d{1,2}\/\d{1,2}\b/i.test(t) || /\bil\s+\d{1,2}\/\d{1,2}\b/i.test(t);
+}
+
+/**
+ * Inserisce la data nel riepilogo, se manca.
+ * @param {string} testo
+ * @param {string} dataTesto
+ * @returns {string}
+ */
+export function inserisciDataNelRiepilogo(testo, dataTesto) {
+  const t = String(testo || '');
+  const data = String(dataTesto || '').trim();
+  if (!/tutto\s+pronto/i.test(t) || !data || testoRiepilogoHaData(t)) return t;
+  const conFascia = t.replace(/^(Tutto pronto:\s*)(.+?)(,\s*dalle\s+)/i, function (_full, testa, nome, dalle) {
+    return testa + nome + ', ' + data + dalle;
+  });
+  if (conFascia !== t) return conFascia;
+  return t.replace(/^(Tutto pronto:\s*)/i, function (_full, testa) {
+    return testa + data + ', ';
+  });
+}
+
+/**
+ * «Tutto pronto» esce solo se il lavoro è unico, il testo ha il nome e ha la data.
+ * Se manca la data ma ci viene passata, il testo viene riscritto.
+ * @param {{ esito?: { stato?: string, lavoro?: object|null }|null, nomeLavoro?: string, testo?: string, domanda?: string, dataTesto?: string, dataIso?: string, oggiIso?: string }} input
  * @returns {{ ammesso: boolean, testo: string }}
  */
 export function riepilogoSegnaOreAmmesso(input) {
@@ -301,9 +452,16 @@ export function riepilogoSegnaOreAmmesso(input) {
   const domanda = String((input && input.domanda) || '').trim() || 'Su quale lavoro segno le ore?';
   if (!/tutto\s+pronto/i.test(testo)) return { ammesso: true, testo };
   const unico = !!(esito && esito.stato === 'unico' && esito.lavoro);
-  if (unico && nome.length >= 2 && testoRiepilogoHaLavoro(testo, nome)) {
-    return { ammesso: true, testo };
+  let dataTesto = String((input && input.dataTesto) || '').trim();
+  if (!dataTesto && input && input.dataIso) {
+    dataTesto = etichettaDataRiepilogoOre(input.dataIso, (input && input.oggiIso) || input.dataIso);
   }
+  let testoOut = testo;
+  if (dataTesto && !testoRiepilogoHaData(testoOut)) {
+    testoOut = inserisciDataNelRiepilogo(testoOut, dataTesto);
+  }
+  const haNome = unico && nome.length >= 2 && testoRiepilogoHaLavoro(testoOut, nome);
+  if (haNome && testoRiepilogoHaData(testoOut)) return { ammesso: true, testo: testoOut };
   return { ammesso: false, testo: domanda };
 }
 
@@ -567,6 +725,11 @@ if (typeof window !== 'undefined') {
     normalizzaLavoroMatchOra,
     unisciLavoriSegnabiliESospesi,
     lavoroDaSceltaUi,
-    riepilogoSegnaOreAmmesso
+    riepilogoSegnaOreAmmesso,
+    risolviDataSegnaOre,
+    etichettaDataRiepilogoOre,
+    testoRiepilogoHaData,
+    inserisciDataNelRiepilogo,
+    eRichiestaOreNuova
   };
 }

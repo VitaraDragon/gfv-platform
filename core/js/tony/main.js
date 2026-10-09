@@ -29,7 +29,7 @@ import {
     clearSpuriousQuickHoursAutofill,
     filtraCampiMezzoNonNominati,
     utenteHaNominatoMezziSegnaOra,
-} from './tony-segna-ora-local-engine.js?v=2026-10-09b';
+} from './tony-segna-ora-local-engine.js?v=2026-10-09c';
 import { formattaDataItaliana } from '../../services/ore-operai-logic.js';
 import {
     risolviLavoroDaTesto,
@@ -42,7 +42,11 @@ import {
     unisciLavoriSegnabiliESospesi,
     lavoroDaSceltaUi,
     riepilogoSegnaOreAmmesso,
-} from './tony-ora-lavoro-match.js?v=2026-10-09b';
+    risolviDataSegnaOre,
+    etichettaDataRiepilogoOre,
+    inserisciDataNelRiepilogo,
+    eRichiestaOreNuova,
+} from './tony-ora-lavoro-match.js?v=2026-10-09c';
 import {
     formReadyForTonySave,
     magazzinoFormReadyForTonySave,
@@ -89,7 +93,7 @@ import { initTonyDocumentCapture } from './document-capture.js';
 import { chooseSttEngine, createRecorderSpeechRecognition, isIosLikeDevice, isStandaloneDisplayMode } from './voice-recorder-stt.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-    export const TONY_CLIENT_BUILD = '2026-10-09b';
+    export const TONY_CLIENT_BUILD = '2026-10-09c';
 if (typeof window !== 'undefined') {
     window.__TONY_CLIENT_BUILD = TONY_CLIENT_BUILD;
     if (typeof console !== 'undefined' && console.log) console.log('[Tony] Client build', TONY_CLIENT_BUILD);
@@ -1402,6 +1406,13 @@ if (typeof window !== 'undefined') {
         var pu = tonyExtractPauseMinutesFromUserBlob(ub);
         if (pu != null) fd['ora-pause'] = String(pu);
         else if (/nessun[ao]?\s+pausa|senza\s+pausa|no\s+pausa|zero\s+pausa|non\s+ho\s+fatto\s+pausa/i.test(ub)) fd['ora-pause'] = '0';
+        delete fd['ora-data'];
+        delete fd['attivita-data'];
+        var risoltaCf = tonyDataDelTurnoCorrente(lastU || '');
+        if (risoltaCf && risoltaCf.iso) {
+            fd['ora-data'] = risoltaCf.iso;
+            tonyMemorizzaDataRichiesta(risoltaCf);
+        }
         delete fd['ora-note'];
         delete fd['attivita-note'];
         var nu = tonyExtractQuickHoursNoteFromUserBlob(ub);
@@ -1594,6 +1605,7 @@ if (typeof window !== 'undefined') {
             tonyMatchSegnaOraTimeRangeFromUserHistory(6, ub));
         if (!hasRange) return { handled: false };
         if (!tonyUserMessageSuggestsSegnaOre(ub) && !tonyMatchSegnaOraTimeRangeFromBlob(ub)) return { handled: false };
+        tonyMarkSegnaOraLocalInterview();
         if (typeof handlers.clearEarlyTyping === 'function') handlers.clearEarlyTyping();
         if (typeof handlers.appendTyping === 'function') handlers.appendTyping();
         Promise.resolve(tonyAttendiElencoLavoriMatch()).then(function() {
@@ -1629,6 +1641,8 @@ if (typeof window !== 'undefined') {
                 skipSavePrompt: true
             })).then(function(ok) {
                 if (typeof handlers.removeTyping === 'function') handlers.removeTyping();
+                var risoltaTurno = tonyDataDelTurnoCorrente(ub);
+                tonyApplicaDataNelTarget(target, risoltaTurno);
                 if (!ok) return;
                 var state = readSegnaOreDomState(target);
                 var recentUb = tonyBuildSegnaOraUserBlobLastNUserTurns(6, ub);
@@ -1638,6 +1652,7 @@ if (typeof window !== 'undefined') {
                 var formReady = !!(quickHoursFormReadyForTonySave({ userBlob: ub }) ||
                     (state && state.startVal && state.endVal && pauseInMsg));
                 if (formReady && tonyUserBlobImpliesSegnaOreSaveIntent(ub)) {
+                    tonyMemorizzaRiepilogoSegnaOre(state, Object.assign({ oggiIso: tonyOggiIsoLocale() }, tonyOpzioniRiepilogoSegnaOre(target, state, ub)));
                     tonyFinishSegnaOreLocalIntercept(ub, 'Ok, salvo le ore.', handlers);
                     tonySalvaQuickHoursWorkspace({ skipRecover: true });
                     tonyDebugLog('[Tony] Segna ore: inject+salva in un turno (senza tonyAsk / senza doppia conferma).');
@@ -1907,21 +1922,107 @@ if (typeof window !== 'undefined') {
         return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
     }
 
-    /** Ricava YYYY-MM-DD da chat (oggi/ieri o data già in formato ISO nel testo). */
+    /**
+     * Involucro: solo il testo passato, mai i turni precedenti uniti.
+     * @returns {string|null}
+     */
     function tonyGuessOraDataIsoFromBlob(blob) {
-        if (!blob || typeof blob !== 'string') return null;
-        if (/\bieri\b/i.test(blob)) {
-            var d0 = new Date();
-            d0.setDate(d0.getDate() - 1);
-            return tonyLocalDateToIsoYmd(d0);
-        }
-        if (/\boggi\b/i.test(blob)) {
-            return tonyLocalDateToIsoYmd(new Date());
-        }
-        var iso = blob.match(/\b(\d{4}-\d{2}-\d{2})\b/);
-        if (iso) return iso[1];
-        return null;
+        var r = risolviDataSegnaOre({
+            testoNuovo: String(blob || ''),
+            turniPrecedenti: [],
+            oggiIso: tonyOggiIsoLocale(),
+            inAttesaDi: null
+        });
+        if (!r || r.fonte !== 'esplicita') return null;
+        return r.iso || null;
     }
+
+    function tonyInAttesaSegnaOre() {
+        var riep = null;
+        var data = '';
+        var interview = false;
+        var saveAsk = false;
+        var pauseAsk = false;
+        try { riep = window.__tonySegnaOreRiepilogo; } catch (eR) { riep = null; }
+        try { data = String((riep && riep.data) || window.__tonySegnaOreDataRichiesta || ''); } catch (eD) { data = ''; }
+        try {
+            interview = !!(window.__tonySegnaOraLocalInterviewAt &&
+                (Date.now() - window.__tonySegnaOraLocalInterviewAt) < TONY_SEGNA_ORE_LOCAL_INTERVIEW_MS);
+        } catch (eI) { interview = false; }
+        try {
+            saveAsk = !!(window.__tonyQuickHoursCfAskedSaveAt &&
+                (Date.now() - window.__tonyQuickHoursCfAskedSaveAt) < TONY_SEGNA_ORE_LOCAL_INTERVIEW_MS);
+        } catch (eS) { saveAsk = false; }
+        try {
+            pauseAsk = !!(window.__tonyQuickHoursCfAskedPauseAt &&
+                (Date.now() - window.__tonyQuickHoursCfAskedPauseAt) < TONY_SEGNA_ORE_LOCAL_INTERVIEW_MS);
+        } catch (eP) { pauseAsk = false; }
+        if (!(riep || interview || saveAsk || pauseAsk)) return null;
+        return { dataIso: data, tipo: riep ? 'salva' : (pauseAsk ? 'pausa' : 'intervista') };
+    }
+
+    function tonyMemorizzaDataRichiesta(risolta) {
+        if (!risolta || !risolta.iso) return;
+        try {
+            if (risolta.fonte === 'continua' && window.__tonySegnaOreDataRichiesta) return;
+            window.__tonySegnaOreDataRichiesta = risolta.iso;
+        } catch (eMemD) { /* ignore */ }
+    }
+
+    function tonyDataDelTurnoCorrente(testo) {
+        var testoNuovo = testo != null ? String(testo) : '';
+        if (!testoNuovo) testoNuovo = String(tonyGetLastUserMessage() || '');
+        var precedenti = [];
+        try {
+            var tutti = tonyGetSegnaOraUserTurnTexts(6, null);
+            if (tutti.length && tutti[tutti.length - 1] === testoNuovo) precedenti = tutti.slice(0, -1);
+            else precedenti = tutti;
+        } catch (eTurni) { precedenti = []; }
+        return risolviDataSegnaOre({
+            testoNuovo: testoNuovo,
+            turniPrecedenti: precedenti,
+            oggiIso: tonyOggiIsoLocale(),
+            inAttesaDi: tonyInAttesaSegnaOre()
+        });
+    }
+
+    function tonyApplicaDataNelTarget(target, risolta) {
+        if (!target || !target.doc || !risolta || !risolta.iso) return;
+        tonyMemorizzaDataRichiesta(risolta);
+        var ids = getSegnaOreDomFieldIds(target.formKind);
+        var el = target.doc.getElementById(ids.data);
+        if (!el) return;
+        el.value = risolta.iso;
+        if (el.max && risolta.iso > el.max) el.max = tonyOggiIsoLocale();
+        try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (eIn) { /* ignore */ }
+        try { el.dispatchEvent(new Event('change', { bubbles: true })); } catch (eCh) { /* ignore */ }
+    }
+
+    /**
+     * Annulla, chiusura e cambio pagina: il «sì» non salva più.
+     * La proposta di orario libero resta: la sovrapposizione chiude il form e chiede conferma su un'altra fascia.
+     */
+    function tonyAzzeraSegnaOreInAttesa(motivo) {
+        try {
+            if (window.__tonySegnaOreRiepilogo) {
+                window.__tonySegnaOreUltimoRiepilogo = window.__tonySegnaOreRiepilogo;
+            }
+            window.__tonySegnaOreRiepilogo = null;
+            window.__tonyQuickHoursCfAskedSaveAt = 0;
+            window.__tonySegnaOraLocalInterviewAt = 0;
+            window.__tonyQuickHoursPauseAckAt = 0;
+            window.__tonyQuickHoursCfAskedPauseAt = 0;
+            window.__tonySegnaOreDataRichiesta = '';
+            window.__tonySegnaOreAnnullaMotivo = motivo || '';
+        } catch (eAz) { /* ignore */ }
+    }
+
+    try {
+        window.__tonySegnaOreAnnulla = tonyAzzeraSegnaOreInAttesa;
+        window.addEventListener('pagehide', function () {
+            tonyAzzeraSegnaOreInAttesa('pagehide');
+        });
+    } catch (eHookAnn) { /* ignore */ }
 
     /** Pagina o contesto tabella tipici di operaio/caposquadra sul workspace mobile. */
     function tonyIsCampoLikeWorkspaceForTony() {
@@ -2029,6 +2130,9 @@ if (typeof window !== 'undefined') {
         if (!tonyGuardiaRiepilogoSegnaOreAttiva()) return t;
         var ub = '';
         try { ub = tonyBuildSegnaOraUserBlobLastNUserTurns(6); } catch (eUb) { ub = ''; }
+        var ultimoUscita = '';
+        try { ultimoUscita = String(tonyGetLastUserMessage() || ''); } catch (eUlt) { ultimoUscita = ''; }
+        if (ultimoUscita && eRichiestaOreNuova(ultimoUscita)) ub = ultimoUscita;
         var dec = null;
         try { dec = tonyDecidiLavoroSegnaOre(ub); } catch (eDec) { dec = null; }
         var esito = dec && dec.esito ? dec.esito : null;
@@ -2044,11 +2148,22 @@ if (typeof window !== 'undefined') {
         if (dec && dec.stato === 'unico' && nome && testoRiepilogoHaLavoro(t, nome)) {
             esito = { stato: 'unico', lavoro: dec.lavoro };
         }
+        var dataUscita = tonyDataDelTurnoCorrente(ultimoUscita);
+        var dataLabel = '';
+        try {
+            var targetData = resolveSegnaOreTargetWindow();
+            var stateData = targetData ? readSegnaOreDomState(targetData) : null;
+            var isoLabel = (stateData && stateData.dateVal) || (dataUscita && dataUscita.iso) || '';
+            dataLabel = etichettaDataRiepilogoOre(isoLabel, tonyOggiIsoLocale());
+        } catch (eDataLbl) { dataLabel = ''; }
+        if (nome && dataLabel) t = inserisciDataNelRiepilogo(t, dataLabel);
         var filtro = riepilogoSegnaOreAmmesso({
             esito: esito,
             nomeLavoro: nome,
             testo: t,
-            domanda: domanda
+            domanda: domanda,
+            dataTesto: dataLabel,
+            oggiIso: tonyOggiIsoLocale()
         });
         return filtro.testo;
     }
@@ -2376,9 +2491,14 @@ if (typeof window !== 'undefined') {
             if (noteTxt && String(noteTxt).trim()) fd['ora-note'] = String(noteTxt).trim();
             var hasPayload = Object.keys(fd).length > 0;
             if (!hasPayload) return Promise.resolve(false);
-            var guessedDate = tonyGuessOraDataIsoFromBlob(recentUb);
-            if (guessedDate && (fd['ora-data'] == null || String(fd['ora-data']).trim() === '')) fd['ora-data'] = guessedDate;
-            fd = tonyResolveOraLavoroForQuickHours(fd, recentUb);
+            var testoData = userText || tonyGetLastUserMessage();
+            var risoltaData = tonyDataDelTurnoCorrente(testoData);
+            if (risoltaData && risoltaData.iso) {
+                fd['ora-data'] = risoltaData.iso;
+                tonyMemorizzaDataRichiesta(risoltaData);
+            }
+            var testoLavoro = (userText && eRichiestaOreNuova(userText)) ? userText : recentUb;
+            fd = tonyResolveOraLavoroForQuickHours(fd, testoLavoro);
             return Promise.resolve(tonyInjectSegnaOreFields(fd, qhWin)).then(function (ok) {
                 if (ok) {
                     tonyDebugLog('[Tony] Segna ore: compilazione da chat / ultimo messaggio utente (sessionStorage).');
@@ -2456,7 +2576,13 @@ if (typeof window !== 'undefined') {
         if (!m) return Promise.resolve(null);
         var fd = {};
         tonyApplySegnaOraTimeRangeMatchToFields(fd, m);
-        var data = tonyGuessOraDataIsoFromBlob(ub) || tonyOggiIsoLocale();
+        var risoltaSov = risolviDataSegnaOre({
+            testoNuovo: ub,
+            turniPrecedenti: [],
+            oggiIso: tonyOggiIsoLocale(),
+            inAttesaDi: tonyInAttesaSegnaOre()
+        });
+        var data = (risoltaSov && risoltaSov.iso) || tonyOggiIsoLocale();
         if (!fd['ora-inizio'] || !fd['ora-fine'] || typeof window.gfvOreControllaSovrapposizione !== 'function') {
             return Promise.resolve(null);
         }
@@ -2533,6 +2659,7 @@ if (typeof window !== 'undefined') {
             window.__tonySegnaOreRiepilogo = {
                 lavoroId: state && state.lavoroVal ? String(state.lavoroVal) : '',
                 lavoroNome: (optsRiepilogo && optsRiepilogo.lavoroNome) || '',
+                data: state && state.dateVal ? String(state.dateVal) : '',
                 inizio: state && state.startVal ? state.startVal : '',
                 fine: state && state.endVal ? state.endVal : '',
                 pausa: state && state.pauseVal !== '' && state.pauseVal != null ? String(state.pauseVal) : '0'
@@ -2541,7 +2668,7 @@ if (typeof window !== 'undefined') {
     }
 
     function tonyMessaggioFattoSegnaOre() {
-        var riep = window.__tonySegnaOreRiepilogo || {};
+        var riep = window.__tonySegnaOreRiepilogo || window.__tonySegnaOreUltimoRiepilogo || {};
         var nome = riep.lavoroNome || 'questo lavoro';
         var fascia = (riep.inizio && riep.fine) ? (' (' + riep.inizio + '–' + riep.fine + ')') : '';
         return 'Fatto: ora segnata su ' + nome + fascia + '.';
@@ -2555,7 +2682,12 @@ if (typeof window !== 'undefined') {
     function tonyMessaggioSegnaOre(target, state, opts) {
         opts = opts || {};
         var ub = '';
-        try { ub = tonyBuildSegnaOraUserBlobLastNUserTurns(6); } catch (eUb) { ub = ''; }
+        var ultimoMsg = '';
+        try { ultimoMsg = String(tonyGetLastUserMessage() || ''); } catch (eUltMsg) { ultimoMsg = ''; }
+        if (ultimoMsg && eRichiestaOreNuova(ultimoMsg)) ub = ultimoMsg;
+        else {
+            try { ub = tonyBuildSegnaOraUserBlobLastNUserTurns(6); } catch (eUb) { ub = ''; }
+        }
         var decisione = ub ? tonyDecidiLavoroSegnaOre(ub) : null;
         var esito = decisione && decisione.esito ? decisione.esito : (ub ? tonyRisolviLavoroDalTesto(ub) : null);
         var domanda = decisione && decisione.stato !== 'unico' ? (decisione.domanda || messaggioSceltaLavoroOre(esito)) : '';
@@ -2566,7 +2698,7 @@ if (typeof window !== 'undefined') {
                     if (conLavoro) {
                         tonySvuotaOrariSegnaOre(target);
                         if (window.__tonySegnaOreModalApertoDaTony && target && target.window && typeof target.window.closeOraModal === 'function') {
-                            try { target.window.closeOraModal(); } catch (eClose) { /* ignore */ }
+                            try { target.window.closeOraModal({ daTony: true }); } catch (eClose) { /* ignore */ }
                         }
                         return conLavoro;
                     }
@@ -2591,7 +2723,7 @@ if (typeof window !== 'undefined') {
             }
             return Promise.resolve('Su quale lavoro segno le ore?');
         }
-        var optsMsg = Object.assign({}, opts, tonyOpzioniRiepilogoSegnaOre(target, state, ub));
+        var optsMsg = Object.assign({ oggiIso: tonyOggiIsoLocale() }, opts, tonyOpzioniRiepilogoSegnaOre(target, state, ub));
         function messaggioSeLibero() {
             var msg = buildSegnaOreMissingFieldsMessage(state, optsMsg);
             if (/^Tutto pronto/i.test(msg)) tonyMemorizzaRiepilogoSegnaOre(state, optsMsg);
@@ -2634,6 +2766,9 @@ if (typeof window !== 'undefined') {
         if (String(attuale) !== String(riep.lavoroId)) {
             return { state: state, blocco: 'Il lavoro nel modulo non è quello che mi hai detto. Lo correggo?' };
         }
+        if (riep.data && state && state.dateVal && String(state.dateVal) !== String(riep.data)) {
+            return { state: state, blocco: 'La data nel modulo non è quella che mi hai detto. La correggo?' };
+        }
         return { state: state, blocco: '' };
     }
 
@@ -2666,6 +2801,28 @@ if (typeof window !== 'undefined') {
             setTimeout(function() {
                 tonyAckPauseSeRiepilogoConfermato();
                 if (target.window && target.window.__gfvOreSalvataggioInCorso) return;
+                var stateGate = readSegnaOreDomState(target);
+                var modalDesktop = formKind === 'ora-modal';
+                var modalAperto = !!(stateGate && stateGate.modalActive);
+                if (modalDesktop && !modalAperto) {
+                    if (typeof showMessageInChat === 'function') {
+                        showMessageInChat('Non c\'è niente da salvare. Dimmi giorno, orario e lavoro.', 'tony');
+                    }
+                    return;
+                }
+                if (!window.__tonySegnaOreRiepilogo && modalDesktop && modalAperto &&
+                    stateGate.dateVal && stateGate.startVal && stateGate.endVal && stateGate.lavoroVal) {
+                    tonyMemorizzaRiepilogoSegnaOre(stateGate, Object.assign(
+                        { oggiIso: tonyOggiIsoLocale() },
+                        tonyOpzioniRiepilogoSegnaOre(target, stateGate, tonyGetLastUserMessage())
+                    ));
+                }
+                if (!window.__tonySegnaOreRiepilogo) {
+                    if (typeof showMessageInChat === 'function') {
+                        showMessageInChat('Non c\'è niente da salvare. Dimmi giorno, orario e lavoro.', 'tony');
+                    }
+                    return;
+                }
                 var decSalva = tonyDecidiLavoroSegnaOre(tonyBuildSegnaOraUserBlobLastNUserTurns(6));
                 if (decSalva.stato !== 'unico' || !decSalva.lavoro || !decSalva.lavoro.id) {
                     if (typeof showMessageInChat === 'function') {
@@ -2717,10 +2874,7 @@ if (typeof window !== 'undefined') {
                         if (typeof showMessageInChat === 'function' && testo) showMessageInChat(testo, tipo || 'tony');
                     }
                     function azzeraIntervista() {
-                        try {
-                            window.__tonyQuickHoursPauseAckAt = 0;
-                            window.__tonySegnaOraLocalInterviewAt = 0;
-                        } catch (eReset) { /* ignore */ }
+                        tonyAzzeraSegnaOreInAttesa('salvato');
                     }
                     if (formKind === 'quick-hours') {
                         var statusEl = target.doc.getElementById('hours-save-status');
@@ -7552,6 +7706,8 @@ if (typeof window !== 'undefined') {
                         }
                         scriviOra(idsProp.start, propostaLibera.inizio);
                         scriviOra(idsProp.end, propostaLibera.fine);
+                        var modalProp = targetProp.doc.getElementById('ora-modal');
+                        if (modalProp) modalProp.classList.add('active');
                         var stateProp = readSegnaOreDomState(targetProp);
                         Promise.resolve(tonyMessaggioSegnaOre(targetProp, stateProp, { pauseAcknowledged: true })).then(function(msgProp) {
                             tonyFinishSegnaOreLocalIntercept(text, msgProp, {
@@ -8447,9 +8603,17 @@ if (typeof window !== 'undefined') {
                             segnaOreLocalHandlers.clearEarlyTyping();
                         }
                         removeTyping();
+                        var targetConferma = resolveSegnaOreTargetWindow();
+                        var stateConferma = targetConferma ? readSegnaOreDomState(targetConferma) : null;
+                        var desktopChiuso = !!(targetConferma && targetConferma.formKind === 'ora-modal' &&
+                            (!stateConferma || !stateConferma.modalActive));
+                        var nienteInAttesa = desktopChiuso ||
+                            (!window.__tonySegnaOreRiepilogo && !tonyInAttesaSegnaOre());
                         tonyFinishSegnaOreLocalIntercept(
                             text,
-                            'Completa data, orari e pausa nel form, poi scrivi «sì», «ok» o «salva».',
+                            nienteInAttesa
+                                ? 'Non c\'è niente da salvare. Dimmi giorno, orario e lavoro.'
+                                : 'Completa data, orari e pausa nel form, poi scrivi «sì», «ok» o «salva».',
                             segnaOreLocalHandlers
                         );
                         if (opts.fromVoice) isWaitingForTonyResponse = false;

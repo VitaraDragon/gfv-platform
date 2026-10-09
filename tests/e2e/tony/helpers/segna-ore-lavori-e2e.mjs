@@ -127,3 +127,51 @@ export async function seminaLavoroSospeso029(tenantId) {
   });
   return { sospesoId, ripresaId, nomeSospeso, nomeRipresa };
 }
+
+export const MARKER_LAVORO_DATA = 'T-FLOW-030';
+
+export async function pulisciLavoroData030(tenantId) {
+  if (!tenantId) return;
+  const { db } = initEmulatorAdmin();
+  const snap = await db.collection(`tenants/${tenantId}/lavori`)
+    .where('gfvTonyE2eMarker', '==', MARKER_LAVORO_DATA)
+    .get();
+  await Promise.all(snap.docs.map((d) => d.ref.delete()));
+}
+
+/**
+ * Solo T-FLOW-030. Non riusa il seed condiviso né il marker di 029:
+ * serve un sospeso e una manutenzione attiva nello stesso elenco.
+ * @param {string} tenantId
+ */
+export async function seminaLavoroData030(tenantId) {
+  if (!tenantId) throw new Error('T-FLOW-030: tenant mancante');
+  const { db } = initEmulatorAdmin();
+  await pulisciLavoroData030(tenantId);
+  const esistenti = await db.collection(`tenants/${tenantId}/lavori`).limit(40).get();
+  const sample = esistenti.docs
+    .map((d) => ({ id: d.id, ...d.data() }))
+    .find((d) => d.caposquadraId && !d.operaioId && d.gfvTonyE2eMarker !== MARKER_LAVORO_DATA);
+  if (!sample) throw new Error('T-FLOW-030: nessun lavoro del caposquadra da cui copiare l\'assegnazione');
+  const base = {
+    caposquadraId: sample.caposquadraId,
+    terrenoId: sample.terrenoId || null,
+    gfvTonyE2eMarker: MARKER_LAVORO_DATA,
+    tipoLavoro: 'Manutenzione',
+  };
+  const nomeSospeso = 'Ripristino pali e2e030';
+  const nomeAttivo = 'Manutenzione attrezzi e2e030';
+  const sospesoId = await addTenantDocument(db, tenantId, 'lavori', {
+    ...base,
+    nome: nomeSospeso,
+    stato: 'sospeso',
+    dataInizio: isoOffset(-1),
+  });
+  const attivoId = await addTenantDocument(db, tenantId, 'lavori', {
+    ...base,
+    nome: nomeAttivo,
+    stato: 'assegnato',
+    dataInizio: isoOffset(0),
+  });
+  return { sospesoId, attivoId, nomeSospeso, nomeAttivo };
+}
