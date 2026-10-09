@@ -4,7 +4,7 @@
  * @module core/js/tony/tony-ora-lavoro-match
  */
 
-import { chiaveGiornoOra } from '../../services/ore-operai-logic.js';
+import { chiaveGiornoOra, formattaGiornoBreve } from '../../services/ore-operai-logic.js';
 
 /**
  * Parole che non identificano un lavoro.
@@ -208,16 +208,106 @@ function esitoDaTesta(righe) {
 }
 
 /**
- * Ricava il lavoro dal testo. Mai la prima voce della lista.
- *
- * @param {string} testoUtente
- * @param {object[]} lavori
- * @param {{ oggiIso?: string }} [opts]
- * @returns {{ stato: 'unico'|'ambiguo'|'nessuno', lavoro: object|null, candidati: object[], nominato: boolean }}
+ * Lavoro sospeso: visibile in lista, non si segnano ore nuove.
+ * @param {object|null|undefined} lavoro
+ * @returns {boolean}
  */
-export function risolviLavoroDaTesto(testoUtente, lavori, opts) {
-  const oggiIso = opts && opts.oggiIso ? String(opts.oggiIso) : '';
-  const list = (Array.isArray(lavori) ? lavori : []).filter((lavoro) => lavoro && lavoro.id);
+export function eLavoroSospeso(lavoro) {
+  return String((lavoro && lavoro.stato) || '').toLowerCase() === 'sospeso';
+}
+
+function unicoConQuelNome(lavoro, tutti) {
+  const nome = nomeLavoroVisibile(lavoro).toLowerCase();
+  if (nome.length < 2) return false;
+  const uguali = (tutti || []).filter((altro) => nomeLavoroVisibile(altro).toLowerCase() === nome);
+  return uguali.length === 1;
+}
+
+/**
+ * Allinea i campi che le pagine chiamano in modi diversi (label, statoLavoro, ripresaId).
+ * @param {object|null|undefined} lavoro
+ * @returns {object|null}
+ */
+export function normalizzaLavoroMatchOra(lavoro) {
+  if (!lavoro || lavoro.id == null || String(lavoro.id).trim() === '') return null;
+  const statoRaw = lavoro.stato || lavoro.statoLavoro || lavoro.status || '';
+  const ripresa = lavoro.ripresaDaLavoroId || lavoro.ripresaId || '';
+  const nome = nomeLavoroVisibile(lavoro);
+  return {
+    id: String(lavoro.id),
+    nome,
+    label: String(lavoro.label || lavoro.nome || '').trim(),
+    tipoLavoro: lavoro.tipoLavoro || '',
+    dataInizio: giornoDelLavoro(lavoro),
+    stato: String(statoRaw || '').toLowerCase(),
+    ripresaDaLavoroId: ripresa ? String(ripresa) : '',
+    macchinaId: lavoro.macchinaId || null,
+    attrezzoId: lavoro.attrezzoId || null,
+    macchinaNome: lavoro.macchinaNome || '',
+    attrezzoNome: lavoro.attrezzoNome || '',
+    alias: lavoro.alias || ''
+  };
+}
+
+/**
+ * I sospesi restano nell'elenco per Tony, senza duplicare un id già segnabile.
+ * @param {object[]} segnabili
+ * @param {object[]} sospesi
+ * @returns {object[]}
+ */
+export function unisciLavoriSegnabiliESospesi(segnabili, sospesi) {
+  const byId = new Map();
+  (Array.isArray(segnabili) ? segnabili : []).forEach((lavoro) => {
+    const n = normalizzaLavoroMatchOra(lavoro);
+    if (!n || eLavoroSospeso(n)) return;
+    byId.set(n.id, n);
+  });
+  (Array.isArray(sospesi) ? sospesi : []).forEach((lavoro) => {
+    const n = normalizzaLavoroMatchOra(lavoro);
+    if (!n) return;
+    n.stato = 'sospeso';
+    byId.set(n.id, n);
+  });
+  return Array.from(byId.values());
+}
+
+/**
+ * Il lavoro scelto in pagina è unico solo se ha un nome visibile.
+ * @param {string} id
+ * @param {object|null|undefined} dettaglio
+ * @param {string} nomeOption
+ * @returns {object|null}
+ */
+export function lavoroDaSceltaUi(id, dettaglio, nomeOption) {
+  const idOk = String(id || '').trim();
+  if (!idOk) return null;
+  const nome = (dettaglio && nomeLavoroVisibile(dettaglio)) || String(nomeOption || '').trim();
+  if (!nome || /^seleziona\b/i.test(nome)) return null;
+  const base = dettaglio && typeof dettaglio === 'object' ? { ...dettaglio } : {};
+  base.id = idOk;
+  if (!nomeLavoroVisibile(base)) base.nome = nome;
+  return base;
+}
+
+/**
+ * «Tutto pronto» esce solo se il lavoro è unico e il testo contiene il nome.
+ * @param {{ esito?: { stato?: string, lavoro?: object|null }|null, nomeLavoro?: string, testo?: string, domanda?: string }} input
+ * @returns {{ ammesso: boolean, testo: string }}
+ */
+export function riepilogoSegnaOreAmmesso(input) {
+  const testo = String((input && input.testo) || '');
+  const nome = String((input && input.nomeLavoro) || '').trim();
+  const esito = input && input.esito;
+  const domanda = String((input && input.domanda) || '').trim() || 'Su quale lavoro segno le ore?';
+  if (!/tutto\s+pronto/i.test(testo)) return { ammesso: true, testo };
+  const unico = !!(esito && esito.stato === 'unico' && esito.lavoro);
+  if (unico && nome.length >= 2 && testoRiepilogoHaLavoro(testo, nome)) {
+    return { ammesso: true, testo };
+  }
+  return { ammesso: false, testo: domanda };
+}
+
+function risolviTraSegnabili(testoUtente, list, oggiIso) {
   const tokens = tokenLavoroSignificativi(testoUtente);
 
   if (!tokens.length) {
@@ -260,13 +350,94 @@ export function risolviLavoroDaTesto(testoUtente, lavori, opts) {
   return esitoAmbiguo(inTesta);
 }
 
+function candidatiSegnabiliDelSospeso(sospeso, conPunteggio) {
+  const id = String(sospeso && sospeso.id || '');
+  const abbinati = conPunteggio
+    .slice()
+    .sort((a, b) => b.score - a.score)
+    .map((riga) => riga.lavoro);
+  const collegati = abbinati.filter((lavoro) => String(lavoro.ripresaDaLavoroId || '') === id);
+  const altri = abbinati.filter((lavoro) => String(lavoro.ripresaDaLavoroId || '') !== id);
+  return collegati.concat(altri);
+}
+
+function esitoSospeso(sospeso, candidati) {
+  return {
+    stato: 'sospeso',
+    lavoro: null,
+    lavoroSospeso: sospeso,
+    candidati: candidati || [],
+    nominato: true
+  };
+}
+
+/**
+ * Ricava il lavoro dal testo. Mai la prima voce della lista.
+ * Il match è sui lavori segnabili. Un sospeso di oggi, o l'unico con quel nome, non viene scelto in silenzio.
+ *
+ * @param {string} testoUtente
+ * @param {object[]} lavori
+ * @param {{ oggiIso?: string }} [opts]
+ * @returns {{ stato: 'unico'|'ambiguo'|'nessuno'|'sospeso', lavoro: object|null, lavoroSospeso?: object|null, candidati: object[], nominato: boolean }}
+ */
+export function risolviLavoroDaTesto(testoUtente, lavori, opts) {
+  const oggiIso = opts && opts.oggiIso ? String(opts.oggiIso) : '';
+  const list = (Array.isArray(lavori) ? lavori : [])
+    .map((lavoro) => normalizzaLavoroMatchOra(lavoro) || (lavoro && lavoro.id ? lavoro : null))
+    .filter((lavoro) => lavoro && lavoro.id);
+  const segnabili = list.filter((lavoro) => !eLavoroSospeso(lavoro));
+  const sospesi = list.filter((lavoro) => eLavoroSospeso(lavoro));
+  const esitoSegnabili = risolviTraSegnabili(testoUtente, segnabili, oggiIso);
+  const tokens = tokenLavoroSignificativi(testoUtente);
+  if (!tokens.length || !sospesi.length) return esitoSegnabili;
+
+  const conPunteggioSegnabili = segnabili
+    .map((lavoro) => ({ lavoro, score: punteggioLavoro(tokens, lavoro) }))
+    .filter((riga) => riga.score > 0);
+  const meglioSegnabile = conPunteggioSegnabili.reduce((max, riga) => Math.max(max, riga.score), 0);
+  const conPunteggioSospesi = sospesi
+    .map((lavoro) => ({ lavoro, score: punteggioLavoro(tokens, lavoro) }))
+    .filter((riga) => riga.score > 0);
+  if (!conPunteggioSospesi.length) return esitoSegnabili;
+
+  conPunteggioSospesi.sort((a, b) => b.score - a.score);
+  const meglioSospeso = conPunteggioSospesi[0].score;
+  if (meglioSospeso < meglioSegnabile) return esitoSegnabili;
+
+  const inTesta = conPunteggioSospesi.filter((riga) => riga.score === meglioSospeso);
+  const diOggi = inTesta.filter((riga) => eDiOggi(riga.lavoro, oggiIso));
+  let scelto = null;
+  if (diOggi.length === 1) scelto = diOggi[0].lavoro;
+  else if (diOggi.length === 0 && inTesta.length === 1 && unicoConQuelNome(inTesta[0].lavoro, list)) {
+    scelto = inTesta[0].lavoro;
+  }
+  if (!scelto) return esitoSegnabili;
+
+  return esitoSospeso(scelto, candidatiSegnabiliDelSospeso(scelto, conPunteggioSegnabili));
+}
+
 /**
  * Domanda quando il lavoro non è uno solo. Stringa vuota se non serve chiedere.
  * @param {{ stato?: string, nominato?: boolean, candidati?: object[] }|null} esito
  * @returns {string}
  */
+function etichettaLavoroConGiorno(lavoro) {
+  const nome = nomeLavoroVisibile(lavoro);
+  const giorno = formattaGiornoBreve(giornoDelLavoro(lavoro));
+  if (nome && giorno) return `${nome} (${giorno})`;
+  return nome;
+}
+
 export function messaggioSceltaLavoroOre(esito) {
   if (!esito) return '';
+  if (esito.stato === 'sospeso' && esito.lavoroSospeso) {
+    const chi = etichettaLavoroConGiorno(esito.lavoroSospeso) || 'Questo lavoro';
+    const nomi = (esito.candidati || []).map(nomeLavoroVisibile).filter(Boolean).slice(0, 6);
+    if (nomi.length) {
+      return `${chi} è sospeso: non ci segno ore. Ho trovato: ${nomi.join(', ')}. Dimmi il nome.`;
+    }
+    return `${chi} è sospeso: non ci segno ore. Su quale lavoro segno le ore?`;
+  }
   const nomi = (esito.candidati || []).map(nomeLavoroVisibile).filter(Boolean);
   if (esito.stato === 'ambiguo') {
     const elenco = nomi.slice(0, 6).join(', ');
@@ -289,6 +460,12 @@ export function messaggioSceltaLavoroOre(esito) {
 export function unisciAvvisoSovrapposizioneELavoro(avviso, esito) {
   const base = String(avviso || '').trim();
   if (!esito || esito.stato === 'unico') return base;
+  if (esito.stato === 'sospeso') {
+    const nota = messaggioSceltaLavoroOre(esito);
+    if (!base) return nota;
+    if (!nota) return base;
+    return `${base} ${nota}`;
+  }
   const nomi = (esito.candidati || []).map(nomeLavoroVisibile).filter(Boolean).slice(0, 6);
   let coda = 'E su quale lavoro?';
   if (esito.stato === 'ambiguo' && nomi.length === 2) {
@@ -385,6 +562,11 @@ if (typeof window !== 'undefined') {
     giornoDelLavoro,
     testoRiepilogoHaLavoro,
     unisciAvvisoSovrapposizioneELavoro,
-    arricchisciLavoriDaOpzioni
+    arricchisciLavoriDaOpzioni,
+    eLavoroSospeso,
+    normalizzaLavoroMatchOra,
+    unisciLavoriSegnabiliESospesi,
+    lavoroDaSceltaUi,
+    riepilogoSegnaOreAmmesso
   };
 }

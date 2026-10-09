@@ -4,6 +4,8 @@
  * @module core/js/tony/tony-segna-ora-local-engine
  */
 
+import { riepilogoSegnaOreAmmesso } from './tony-ora-lavoro-match.js?v=2026-10-09a';
+
 /** Messaggio di fallback quando mancano più campi obbligatori. */
 export const SEGNA_ORE_ASK_FALLBACK =
   'Mi servono orario di inizio, orario di fine e minuti di pausa (es. dalle 7 alle 18, pausa 30).';
@@ -214,10 +216,8 @@ export function buildSegnaOreMissingFieldsMessage(state, opts) {
   var missing = listSegnaOreMissingRequired(state, opts);
   if (missing.length === 0) {
     var nome = String((opts && opts.lavoroNome) || (state && state.lavoroNome) || '').trim();
-    if (!nome) {
-      var domanda = String((opts && opts.domandaLavoro) || '').trim();
-      return domanda || 'Su quale lavoro segno le ore?';
-    }
+    var domanda = String((opts && opts.domandaLavoro) || '').trim() || 'Su quale lavoro segno le ore?';
+    if (!nome) return domanda;
     var recap = nome;
     if (state && state.startVal && state.endVal) {
       var fascia = 'dalle ' + state.startVal + ' alle ' + state.endVal;
@@ -226,7 +226,14 @@ export function buildSegnaOreMissingFieldsMessage(state, opts) {
       recap = recap ? (recap + ', ' + fascia) : fascia;
     }
     recap += testoMezziRiepilogo(opts);
-    return 'Tutto pronto' + (recap ? ': ' + recap : ' nel form') + '. Vuoi salvare? Scrivi «sì» o «salva».';
+    var testoPronto = 'Tutto pronto' + (recap ? ': ' + recap : '') + '. Vuoi salvare? Scrivi «sì» o «salva».';
+    var filtro = riepilogoSegnaOreAmmesso({
+      esito: { stato: 'unico', lavoro: { nome: nome } },
+      nomeLavoro: nome,
+      testo: testoPronto,
+      domanda: domanda
+    });
+    return filtro.testo;
   }
   if (missing.length === 1) {
     var one = missing[0];

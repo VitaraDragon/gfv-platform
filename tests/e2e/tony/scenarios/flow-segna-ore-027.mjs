@@ -14,6 +14,7 @@ import {
   runTonySimLogin,
 } from '../helpers/tony-sim-context.js';
 import { waitForTonyReady } from '../helpers/tony-widget.js';
+import { assertSeTuttoProntoHaNome } from '../helpers/segna-ore-assert.mjs';
 import {
   leggiTenantIdSegnatura,
   pulisciLavoriRitest,
@@ -79,7 +80,7 @@ export async function runFlowSegnaOre027(page, expect, scenario) {
     const tuttoPronto = /Tutto pronto/i.test(reply);
     const chiede = /Su quale lavoro/i.test(reply);
     expect(tuttoPronto || chiede).toBe(true);
-    if (tuttoPronto) expect(reply).toContain(seminati.nomeOggi);
+    assertSeTuttoProntoHaNome(expect, reply, seminati.nomeOggi);
 
     const select = await page.evaluate(() => {
       const modal = document.getElementById('ora-modal');

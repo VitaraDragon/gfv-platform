@@ -177,6 +177,11 @@
             color: #388e3c;
         }
 
+        .badge-sospeso {
+            background: #fff8e1;
+            color: #8d6e00;
+        }
+
         .modal {
             display: none;
             position: fixed;
@@ -573,6 +578,7 @@
             isLavoroSegnabileOperaio,
             resolveSegnaturaOreRoleFlags
         } from './services/manodopera-lavori-scope.js';
+        import { eLavoroSospeso } from './js/tony/tony-ora-lavoro-match.js';
 
         const app = getAppInstance();
         const auth = getAuthInstance();
@@ -928,10 +934,12 @@
                     
                     const statoBadge = lavoro.stato === 'assegnato' ? 'badge-assegnato' :
                                       lavoro.stato === 'in_corso' ? 'badge-in_corso' :
+                                      lavoro.stato === 'sospeso' ? 'badge-sospeso' :
                                       'badge-completato';
                     
                     const statoLabel = lavoro.stato === 'assegnato' ? 'Assegnato' :
                                       lavoro.stato === 'in_corso' ? 'In corso' :
+                                      lavoro.stato === 'sospeso' ? 'Sospeso' :
                                       'Completato';
 
                     html += `
@@ -995,6 +1003,11 @@
 
         // Seleziona lavoro
         window.selectLavoro = function(lavoroId) {
+            const lav = (lavoriList || []).find((l) => l.id === lavoroId);
+            if (eLavoroSospeso(lav)) {
+                showAlert('Questo lavoro è sospeso: non ci segno ore nuove. Usa la ripresa.', 'warning');
+                return;
+            }
             // Rimuovi selezione precedente
             document.querySelectorAll('.lavoro-card').forEach(card => {
                 card.classList.remove('selected');
@@ -1272,26 +1285,35 @@
             return esitoControlloSovrapposizione(nuova, esistenti, { escludiId });
         };
 
+        function mappaLavoroPerTony(lavoro, forzaSospeso) {
+            const mac = lavoro.macchinaId && macchineList
+                ? macchineList.find((m) => m.id === lavoro.macchinaId)
+                : null;
+            const att = lavoro.attrezzoId && macchineList
+                ? macchineList.find((m) => m.id === lavoro.attrezzoId)
+                : null;
+            return {
+                id: lavoro.id,
+                nome: lavoro.nome || '',
+                tipoLavoro: lavoro.tipoLavoro || '',
+                dataInizio: chiaveGiornoOra(lavoro.dataInizio) || '',
+                stato: forzaSospeso ? 'sospeso' : (lavoro.stato || ''),
+                ripresaDaLavoroId: lavoro.ripresaDaLavoroId || '',
+                macchinaId: lavoro.macchinaId || null,
+                attrezzoId: lavoro.attrezzoId || null,
+                macchinaNome: mac ? (mac.nome || '') : '',
+                attrezzoNome: att ? (att.nome || '') : ''
+            };
+        }
+
         window.gfvSegnaturaOreLavoriPerTony = function() {
             const list = (lavoriListSegnabili && lavoriListSegnabili.length) ? lavoriListSegnabili : [];
-            return list.map((lavoro) => {
-                const mac = lavoro.macchinaId && macchineList
-                    ? macchineList.find((m) => m.id === lavoro.macchinaId)
-                    : null;
-                const att = lavoro.attrezzoId && macchineList
-                    ? macchineList.find((m) => m.id === lavoro.attrezzoId)
-                    : null;
-                return {
-                    id: lavoro.id,
-                    nome: lavoro.nome || '',
-                    tipoLavoro: lavoro.tipoLavoro || '',
-                    dataInizio: chiaveGiornoOra(lavoro.dataInizio) || '',
-                    macchinaId: lavoro.macchinaId || null,
-                    attrezzoId: lavoro.attrezzoId || null,
-                    macchinaNome: mac ? (mac.nome || '') : '',
-                    attrezzoNome: att ? (att.nome || '') : ''
-                };
-            });
+            return list.map((lavoro) => mappaLavoroPerTony(lavoro, false));
+        };
+
+        window.gfvSegnaturaOreLavoriSospesiPerTony = function() {
+            const list = (lavoriList || []).filter((lavoro) => eLavoroSospeso(lavoro));
+            return list.map((lavoro) => mappaLavoroPerTony(lavoro, true));
         };
 
         let nomiUtentiOre = new Map();
@@ -1601,6 +1623,11 @@
         }
 
         window.openSegnaOraModal = async function(lavoroId = null) {
+            const lavNuovo = lavoroId ? (lavoriList || []).find((l) => l.id === lavoroId) : null;
+            if (eLavoroSospeso(lavNuovo)) {
+                showAlert('Questo lavoro è sospeso: non ci segno ore nuove. Usa la ripresa.', 'warning');
+                return;
+            }
             document.getElementById('ora-form').reset();
             document.getElementById('ora-id-modifica').value = '';
             document.getElementById('ora-pause').value = '0';

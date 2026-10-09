@@ -81,7 +81,7 @@ Quando finisci un lavoro:
 
 Sopra il salvataggio vedi **Le tue ore del giorno**: tutti i turni di quel giorno, su tutti i lavori, con orario, pausa, ore nette e stato. Il turno del lavoro scelto è evidenziato, in fondo c’è il totale.
 
-Due turni dello stesso giorno non possono coprirsi. Se finisci alle 12:00 puoi iniziare un altro turno alle 12:00. Se gli orari si incrociano, il salvataggio si ferma e indica il turno già presente. Se chiedi a Tony di segnare le ore, nel riepilogo c’è il nome del lavoro. Se due lavori hanno lo stesso nome, prende quello di oggi; se non è chiaro, chiede quale e non apre il modulo sul primo della lista. Se l’orario è occupato te lo dice prima di chiedere la pausa, e ti propone il primo buco libero. Dopo il «sì» conferma su quale lavoro ha segnato l’ora. Accanto alla data c’è il giorno in italiano, per esempio «giovedì 08/10/2026».
+Due turni dello stesso giorno non possono coprirsi. Se finisci alle 12:00 puoi iniziare un altro turno alle 12:00. Se gli orari si incrociano, il salvataggio si ferma e indica il turno già presente. Se chiedi a Tony di segnare le ore, nel riepilogo c’è il nome del lavoro. Se due lavori hanno lo stesso nome, prende quello di oggi; se non è chiaro, chiede quale e non apre il modulo sul primo della lista. Se l’orario è occupato te lo dice prima di chiedere la pausa, e ti propone il primo buco libero. Dopo il «sì» conferma su quale lavoro ha segnato l’ora. Accanto alla data c’è il giorno in italiano, per esempio «giovedì 08/10/2026». Su un lavoro sospeso non si segnano ore nuove: Tony lo dice e, se c’è, indica la ripresa. In elenco il lavoro sospeso ha il badge Sospeso.
 
 **Suggerimento**: Segna le ore alla fine della giornata per avere dati precisi.
 
