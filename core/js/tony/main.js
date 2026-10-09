@@ -8429,7 +8429,8 @@ if (typeof window !== 'undefined') {
                     }
                     return;
                 }
-                if (!opts.proactive && tonyResolveQuickHoursWindow() && tonyIsCampoLikeWorkspaceForTony() &&
+                if (!opts.proactive && !tonyE2eSaltaMotoreLocaleSegnaOre() &&
+                    tonyResolveQuickHoursWindow() && tonyIsCampoLikeWorkspaceForTony() &&
                     tonyMessageIsFieldWorkspaceSegnaOreTurn(text)) {
                     _isSendingMessage = false;
                     tonyDebugLog('[Tony] Segna ore workspace: percorso locale (CF non usata).');

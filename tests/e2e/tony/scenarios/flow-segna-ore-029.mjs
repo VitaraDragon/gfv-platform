@@ -66,6 +66,9 @@ export async function runFlowSegnaOre029(page, expect, scenario) {
       return Array.isArray(sospesi) && sospesi.some((l) => String(l.id) === id);
     }, seminati.sospesoId, { timeout: 60_000 });
 
+    await page.evaluate(() => {
+      window.__GFV_TONY_E2E_SKIP_SEGNA_ORE_LOCAL = false;
+    });
     const modalAperto = await page.locator('#ora-modal.active').count();
     expect(modalAperto).toBe(0);
 
