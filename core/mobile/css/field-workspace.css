@@ -134,6 +134,24 @@
     text-decoration: none;
 }
 
+/* display:block sopra vince sullo stile del browser per [hidden]. */
+.field-options-link[hidden],
+button.field-options-link[hidden] {
+    display: none !important;
+}
+
+.field-options-note {
+    margin: 0;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: #4b5563;
+}
+
+.field-options-menu[data-pronto="0"] .field-options-link:not(#field-logout-button) {
+    pointer-events: none;
+    opacity: 0.45;
+}
+
 button.field-options-link {
     width: 100%;
     border: 0;
@@ -307,6 +325,20 @@ button.field-options-link {
     border: 0;
     flex: 1;
     min-height: 68vh;
+}
+
+.stats-embed-fallback {
+    margin: 12px;
+    padding: 14px;
+    border-radius: 10px;
+    background: #fff7ed;
+    color: #9a3412;
+    text-align: center;
+}
+
+.stats-embed-fallback p {
+    margin: 0 0 10px;
+    font-size: 14px;
 }
 .frame-lavori-detail {
     min-height: 52vh;

@@ -31,14 +31,83 @@ export function ritornoWorkspaceCampoDaGuasti(ruoli, ruoloSingolo) {
     return n.includes('operaio') || n.includes('caposquadra');
 }
 
-export function hrefRitornoSegnalazioneGuasti(ruoli, ruoloSingolo) {
-    return ritornoWorkspaceCampoDaGuasti(ruoli, ruoloSingolo)
-        ? '../mobile/field-workspace-standalone.html'
-        : '../dashboard-standalone.html';
+/**
+ * Provenienza della pagina guasti.
+ * `field` o `mobile` = aperta dal workspace. Vuoto = desktop / nessun from.
+ * @param {string} [da]
+ * @returns {'field'|'mobile'|''}
+ */
+export function normalizzaProvenienzaGuasti(da) {
+    const v = String(da || '').toLowerCase().trim();
+    if (v === 'field' || v === 'mobile') return v;
+    return '';
 }
 
-export function etichettaRitornoSegnalazioneGuasti(ruoli, ruoloSingolo) {
-    return ritornoWorkspaceCampoDaGuasti(ruoli, ruoloSingolo) ? '← Campo' : '← Dashboard';
+/**
+ * La provenienza vince sul ruolo.
+ * Dal workspace si torna al campo solo se il profilo è campo puro (niente loop).
+ * Senza provenienza si torna sempre in dashboard.
+ * @returns {{ href: string, etichetta: string }}
+ */
+export function ritornoSegnalazioneGuasti(ruoli, ruoloSingolo, da) {
+    const dalCampo = normalizzaProvenienzaGuasti(da) !== '';
+    const versoCampo = dalCampo && ritornoWorkspaceCampoDaGuasti(ruoli, ruoloSingolo);
+    return versoCampo
+        ? { href: '../mobile/field-workspace-standalone.html', etichetta: '← Campo' }
+        : { href: '../dashboard-standalone.html', etichetta: '← Dashboard' };
+}
+
+export function hrefRitornoSegnalazioneGuasti(ruoli, ruoloSingolo, da) {
+    return ritornoSegnalazioneGuasti(ruoli, ruoloSingolo, da).href;
+}
+
+export function etichettaRitornoSegnalazioneGuasti(ruoli, ruoloSingolo, da) {
+    return ritornoSegnalazioneGuasti(ruoli, ruoloSingolo, da).etichetta;
+}
+
+/** Prima opzione della select Trattore quando l'elenco è vuoto o c'è scelta. */
+export function testoOpzioneTrattore(numeroTrattori) {
+    return Number(numeroTrattori) > 0 ? '-- Seleziona trattore --' : 'Nessun trattore disponibile';
+}
+
+/**
+ * Sospensione del lavoro dopo un guasto grave.
+ * Manager/admin: sì. Caposquadra: solo il proprio lavoro. Operaio: no.
+ */
+export function deveTentareSospensioneLavoroGuasto({ ruoli, ruoloSingolo, uid, lavoro } = {}) {
+    const n = normalizzaRuoliGuasti(ruoli, ruoloSingolo);
+    if (n.includes('manager') || n.includes('amministratore')) return true;
+    if (!n.includes('caposquadra')) return false;
+    if (!lavoro || !uid) return false;
+    return String(lavoro.caposquadraId || '') === String(uid);
+}
+
+const AVVISO_SECONDARIA_GUASTO = 'Non ho potuto aggiornare lo stato della macchina/il lavoro: avvisa il tuo responsabile.';
+
+/**
+ * Esito dopo le scritture della segnalazione.
+ * La scrittura su `guasti` è essenziale. Macchina e lavoro sono secondarie.
+ * @param {{ scritturaPrincipaleOk?: boolean, secondarie?: Array<{ nome?: string, ok?: boolean, errore?: string }> }} input
+ * @returns {{ chiudi: boolean, successo: boolean, avvisi: string[], errore: string|null }}
+ */
+export function esitoSegnalazioneGuasto({ scritturaPrincipaleOk, secondarie } = {}) {
+    const list = Array.isArray(secondarie) ? secondarie : [];
+    if (!scritturaPrincipaleOk) {
+        const conErrore = list.find((s) => s && s.errore);
+        return {
+            chiudi: false,
+            successo: false,
+            avvisi: [],
+            errore: (conErrore && conErrore.errore) || 'Errore segnalazione'
+        };
+    }
+    const fallite = list.filter((s) => s && s.ok === false);
+    return {
+        chiudi: true,
+        successo: true,
+        avvisi: fallite.length ? [AVVISO_SECONDARIA_GUASTO] : [],
+        errore: null
+    };
 }
 
 /**

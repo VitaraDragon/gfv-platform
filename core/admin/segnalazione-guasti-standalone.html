@@ -586,14 +586,28 @@
             hrefRitornoSegnalazioneGuasti,
             etichettaRitornoSegnalazioneGuasti,
             primoTenantIdUtente,
-            normalizzaRuoliGuasti
+            normalizzaRuoliGuasti,
+            testoOpzioneTrattore,
+            deveTentareSospensioneLavoroGuasto,
+            esitoSegnalazioneGuasto
         } from '../js/field-guasti-access.js';
+        import { buildSospendiLavoroPatch } from '../services/lavoro-sospensione.js';
+
+        function provenienzaGuastiPagina() {
+            try {
+                const q = new URLSearchParams(window.location.search || '');
+                if (q.get('from') === 'field') return 'field';
+                if (q.get('embed') === 'mobile') return 'mobile';
+            } catch (e) { /* ignore */ }
+            return '';
+        }
 
         function applicaRitornoGuasti(ruoli, ruoloSingolo) {
             const link = document.getElementById('guasti-back-link');
             if (!link) return;
-            link.href = hrefRitornoSegnalazioneGuasti(ruoli, ruoloSingolo);
-            link.textContent = etichettaRitornoSegnalazioneGuasti(ruoli, ruoloSingolo);
+            const da = provenienzaGuastiPagina();
+            link.href = hrefRitornoSegnalazioneGuasti(ruoli, ruoloSingolo, da);
+            link.textContent = etichettaRitornoSegnalazioneGuasti(ruoli, ruoloSingolo, da);
         }
 
         async function initApp() {
@@ -614,6 +628,8 @@
 
             let currentUser = null;
             let currentTenantId = null;
+            let ruoliUtenteGuasti = [];
+            let ruoloSingoloGuasti = null;
             let macchineList = [];
             let lavoriList = [];
             let terreniMap = new Map(); // Mappa terreni per lookup rapido
@@ -635,6 +651,8 @@
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
                         currentTenantId = primoTenantIdUtente(userData);
+                        ruoliUtenteGuasti = userData.ruoli;
+                        ruoloSingoloGuasti = userData.ruolo;
                         applicaRitornoGuasti(userData.ruoli, userData.ruolo);
                         
                         // Imposta tenantId nel tenant-service per i servizi
@@ -657,7 +675,7 @@
                         if (!puoAprireSegnalazioneGuasti(userData.ruoli, userData.ruolo)) {
                             showAlert('Questa pagina è disponibile per operaio e caposquadra.', 'error');
                             setTimeout(() => {
-                                window.location.href = hrefRitornoSegnalazioneGuasti(userData.ruoli, userData.ruolo);
+                                window.location.href = hrefRitornoSegnalazioneGuasti(userData.ruoli, userData.ruolo, provenienzaGuastiPagina());
                             }, 3000);
                             return;
                         }
@@ -693,7 +711,7 @@
                                     if (!hasParcoMacchine) {
                                         showAlert('Questa pagina è disponibile solo con il modulo Parco Macchine attivo.', 'error');
                                         setTimeout(() => {
-                                            window.location.href = hrefRitornoSegnalazioneGuasti(userData.ruoli, userData.ruolo);
+                                            window.location.href = hrefRitornoSegnalazioneGuasti(userData.ruoli, userData.ruolo, provenienzaGuastiPagina());
                                         }, 3000);
                                         return;
                                     }
@@ -724,6 +742,17 @@
             });
 
             // Carica macchine
+            function aggiornaTestoSelectTrattore(select) {
+                if (!select) return;
+                let n = 0;
+                for (let i = 0; i < select.options.length; i++) {
+                    if (select.options[i].value) n += 1;
+                }
+                const vuota = select.querySelector('option[value=""]');
+                if (vuota) vuota.textContent = testoOpzioneTrattore(n);
+                console.info('[segnalazione-guasti] macchine lette:', macchineList.length, 'trattori in elenco:', n);
+            }
+
             async function loadMacchine() {
                 try {
                     if (!currentTenantId) return;
@@ -745,9 +774,9 @@
                         macchineList = [];
                         snapshot.forEach(doc => {
                             const data = doc.data();
-                            if (data.stato !== 'dismesso') {
+                            if (String(data.stato || '').toLowerCase() !== 'dismesso') {
                                 macchineList.push({ id: doc.id, ...data });
-                                const tipoMacchina = data.tipoMacchina || data.tipo || '';
+                                const tipoMacchina = String(data.tipoMacchina || data.tipo || '').toLowerCase().trim();
                                 
                                 if (tipoMacchina === 'trattore') {
                                     const option = document.createElement('option');
@@ -785,7 +814,7 @@
                             });
                             
                             // Filtra lato client: solo macchine non dismesse
-                            macchine = macchine.filter(m => m.stato !== 'dismesso');
+                            macchine = macchine.filter(m => String(m.stato || '').toLowerCase() !== 'dismesso');
                             
                             // Converti in formato compatibile con codice esistente
                             macchineList = macchine.map(m => ({
@@ -802,7 +831,7 @@
                             
                             // Popola dropdown
                             macchineList.forEach(macchina => {
-                                const tipoMacchina = macchina.tipoMacchina || macchina.tipo || '';
+                                const tipoMacchina = String(macchina.tipoMacchina || macchina.tipo || '').toLowerCase().trim();
                                 
                                 if (tipoMacchina === 'trattore') {
                                     const option = document.createElement('option');
@@ -824,9 +853,9 @@
                             macchineList = [];
                             snapshot.forEach(doc => {
                                 const data = doc.data();
-                                if (data.stato !== 'dismesso') {
+                                if (String(data.stato || '').toLowerCase() !== 'dismesso') {
                                     macchineList.push({ id: doc.id, ...data });
-                                    const tipoMacchina = data.tipoMacchina || data.tipo || '';
+                                    const tipoMacchina = String(data.tipoMacchina || data.tipo || '').toLowerCase().trim();
                                     
                                     if (tipoMacchina === 'trattore') {
                                         const option = document.createElement('option');
@@ -843,6 +872,7 @@
                             });
                         }
                     }
+                    aggiornaTestoSelectTrattore(macchinaSelect);
                 } catch (error) {
                     console.error('Errore caricamento macchine:', error);
                     showAlert('Errore caricamento macchine', 'error');
@@ -1817,6 +1847,8 @@
                     }
                 }
 
+                const submitBtn = e.submitter || document.querySelector('#segnala-guasto-form button[type="submit"]');
+                if (submitBtn) submitBtn.disabled = true;
                 try {
                     const guastoData = {
                         tipoGuasto, // 'macchina' | 'generico'
@@ -1875,76 +1907,119 @@
                         guastoData.coordinateProblema = coordinateProblema;
                     }
 
-                    await addDoc(collection(db, `tenants/${currentTenantId}/guasti`), guastoData);
-
-                    // Aggiorna stato macchine SOLO se è un guasto macchina
-                    if (tipoGuasto === 'macchina') {
-                        // Aggiorna stato trattore solo se il guasto è del trattore o di entrambi
-                        if (macchinaId && (componenteGuasto === 'trattore' || componenteGuasto === 'entrambi')) {
-                            const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, macchinaId);
-                            const macchinaDoc = await getDoc(macchinaRef);
-                            if (macchinaDoc.exists()) {
-                                let nuovoStato = 'guasto';
-                                if (gravita === 'non-grave') {
-                                    nuovoStato = 'guasto-lavoro-in-corso';
-                                }
-                                await updateDoc(macchinaRef, {
-                                    stato: nuovoStato
-                                });
-                            }
-                        }
-
-                        // Aggiorna stato attrezzo solo se il guasto è dell'attrezzo o di entrambi
-                        if (attrezzoId && (componenteGuasto === 'attrezzo' || componenteGuasto === 'entrambi')) {
-                            const attrezzoRef = doc(db, `tenants/${currentTenantId}/macchine`, attrezzoId);
-                            const attrezzoDoc = await getDoc(attrezzoRef);
-                            if (attrezzoDoc.exists()) {
-                                let nuovoStato = 'guasto';
-                                if (gravita === 'non-grave') {
-                                    nuovoStato = 'guasto-lavoro-in-corso';
-                                }
-                                await updateDoc(attrezzoRef, {
-                                    stato: nuovoStato
-                                });
-                            }
-                        }
-                    }
-
-                    // Se guasto grave e c'è un lavoro associato, sospendi lavoro
-                    if (gravita === 'grave' && lavoroId) {
-                        const lavoroRef = doc(db, `tenants/${currentTenantId}/lavori`, lavoroId);
-                        const motivoSospensione = tipoGuasto === 'macchina' 
-                            ? 'Guasto macchina grave' 
-                            : 'Segnalazione grave';
-                        await updateDoc(lavoroRef, {
-                            stato: 'sospeso',
-                            motivoSospensione
+                    let scritturaPrincipaleOk = false;
+                    const secondarie = [];
+                    try {
+                        await addDoc(collection(db, `tenants/${currentTenantId}/guasti`), guastoData);
+                        scritturaPrincipaleOk = true;
+                    } catch (error) {
+                        console.error('Errore segnalazione guasto:', error);
+                        secondarie.push({
+                            nome: 'principale',
+                            ok: false,
+                            errore: error && error.message ? error.message : String(error)
                         });
                     }
 
-                    showAlert('Segnalazione inviata con successo!', 'success');
-                    document.getElementById('segnala-guasto-form').reset();
-                    // Reset tipo a macchina
-                    document.getElementById('tipo-macchina').checked = true;
-                    // Reset mappa
-                    coordinateProblema = null;
-                    posizioneRilevamento = null;
-                    updateGpsStatus();
-                    if (problemaMarker) {
-                        problemaMarker.setMap(null);
-                        problemaMarker = null;
+                    if (scritturaPrincipaleOk && tipoGuasto === 'macchina') {
+                        const nuovoStatoMacchina = gravita === 'non-grave' ? 'guasto-lavoro-in-corso' : 'guasto';
+                        if (macchinaId && (componenteGuasto === 'trattore' || componenteGuasto === 'entrambi')) {
+                            try {
+                                const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, macchinaId);
+                                const macchinaDoc = await getDoc(macchinaRef);
+                                if (macchinaDoc.exists()) {
+                                    await updateDoc(macchinaRef, { stato: nuovoStatoMacchina });
+                                }
+                            } catch (error) {
+                                console.warn('[segnalazione-guasti] stato macchina:', error);
+                                secondarie.push({
+                                    nome: 'macchina',
+                                    ok: false,
+                                    errore: error && error.message ? error.message : String(error)
+                                });
+                            }
+                        }
+                        if (attrezzoId && (componenteGuasto === 'attrezzo' || componenteGuasto === 'entrambi')) {
+                            try {
+                                const attrezzoRef = doc(db, `tenants/${currentTenantId}/macchine`, attrezzoId);
+                                const attrezzoDoc = await getDoc(attrezzoRef);
+                                if (attrezzoDoc.exists()) {
+                                    await updateDoc(attrezzoRef, { stato: nuovoStatoMacchina });
+                                }
+                            } catch (error) {
+                                console.warn('[segnalazione-guasti] stato attrezzo:', error);
+                                secondarie.push({
+                                    nome: 'attrezzo',
+                                    ok: false,
+                                    errore: error && error.message ? error.message : String(error)
+                                });
+                            }
+                        }
                     }
-                    if (terrenoPolygon) {
-                        terrenoPolygon.setMap(null);
-                        terrenoPolygon = null;
+
+                    if (scritturaPrincipaleOk && gravita === 'grave' && lavoroId) {
+                        const causaSospensione = tipoGuasto === 'macchina'
+                            ? 'Guasto macchina grave'
+                            : 'Segnalazione grave';
+                        try {
+                            const lavoroRef = doc(db, `tenants/${currentTenantId}/lavori`, lavoroId);
+                            const lavoroSnap = await getDoc(lavoroRef);
+                            const lavoro = lavoroSnap.exists() ? { id: lavoroSnap.id, ...lavoroSnap.data() } : null;
+                            const puoSospendere = !!lavoro && deveTentareSospensioneLavoroGuasto({
+                                ruoli: ruoliUtenteGuasti,
+                                ruoloSingolo: ruoloSingoloGuasti,
+                                uid: currentUser.uid,
+                                lavoro
+                            });
+                            if (!puoSospendere) {
+                                secondarie.push({ nome: 'lavoro', ok: false, errore: 'non-tentata' });
+                            } else {
+                                const built = buildSospendiLavoroPatch(causaSospensione);
+                                if (!built.ok) throw new Error(built.error || 'Sospensione non valida');
+                                await updateDoc(lavoroRef, built.patch);
+                            }
+                        } catch (error) {
+                            console.warn('[segnalazione-guasti] sospensione lavoro:', error);
+                            secondarie.push({
+                                nome: 'lavoro',
+                                ok: false,
+                                errore: error && error.message ? error.message : String(error)
+                            });
+                        }
                     }
-                    if (problemaMap) {
-                        problemaMap = null;
+
+                    const esito = esitoSegnalazioneGuasto({ scritturaPrincipaleOk, secondarie });
+                    if (esito.errore) {
+                        showAlert('Errore segnalazione: ' + esito.errore, 'error');
                     }
-                    setupTipoGuastoToggle();
+                    if (esito.successo) {
+                        showAlert('Segnalazione inviata.', 'success');
+                    }
+                    esito.avvisi.forEach((avviso) => showAlert(avviso, 'warning'));
+                    if (esito.chiudi) {
+                        document.getElementById('segnala-guasto-form').reset();
+                        document.getElementById('tipo-macchina').checked = true;
+                        coordinateProblema = null;
+                        posizioneRilevamento = null;
+                        updateGpsStatus();
+                        if (problemaMarker) {
+                            problemaMarker.setMap(null);
+                            problemaMarker = null;
+                        }
+                        if (terrenoPolygon) {
+                            terrenoPolygon.setMap(null);
+                            terrenoPolygon = null;
+                        }
+                        if (problemaMap) {
+                            problemaMap = null;
+                        }
+                        setupTipoGuastoToggle();
+                    }
                 } catch (error) {
                     console.error('Errore segnalazione guasto:', error);
-                    showAlert('Errore segnalazione: ' + error.message, 'error');
+                    showAlert('Errore segnalazione: ' + (error && error.message ? error.message : error), 'error');
+                } finally {
+                    if (submitBtn) submitBtn.disabled = false;
                 }
             });
 
