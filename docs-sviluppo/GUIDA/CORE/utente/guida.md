@@ -11,7 +11,7 @@ Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più sc
 1. **Imposta prima i dati dell’azienda** (nome, recapiti, eventuale logo, tariffa proprietario o liste personalizzate se vi servono) e, se usate i **poderi**, createli prima di riempire i terreni: così nei moduli troverete già i nomi giusti nei menu. **[Impara qui: Impostazioni](#prima-cosa-dati-aziendali-e-poderi)**  
 2. Se sei **manager** o **amministratore**, orientati sulla **dashboard** (panoramica, menu Moduli, scorciatoie). **[Impara qui: Dashboard manager](#mini-guida-dashboard-per-manager-e-amministratore)**  
 3. Poi **Terreni** (scheda completa e confini sulla mappa). **[Impara qui: Terreni](#mini-guida-aggiungere-o-modificare-un-terreno)**  
-4. Poi **Diario attività** per le giornate in campo. **[Impara qui: Diario](#mini-guida-compilare-il-diario-attivita)**  
+4. Poi **Diario attività** per le giornate in campo, se **non** avete il modulo **Manodopera**. Con Manodopera le giornate nuove si registrano in **Gestione lavori** e il Diario resta come **storico** da consultare. **[Impara qui: Diario](#mini-guida-compilare-il-diario-attivita)**  
 5. Usa la **mappa** e **Statistiche** per il quadro d’insieme e i grafici filtrati. **[Impara qui: Mappa](#mini-guida-la-mappa-in-dashboard)** · **[Impara qui: Statistiche](#mini-guida-statistiche-e-filtri)**  
 6. In **Impostazioni**, attiva o regola le **notifiche push** sul telefono (ciclo lavoro e assenze) se usate Manodopera in campo. **[Impara qui: Notifiche](#mini-guida-notifiche-push)**
 
@@ -83,8 +83,8 @@ Oltre al titolo dell’azienda, di solito trovi:
 Subito sotto il pulsante **Moduli** (e il meteo, se attivo), la **panoramica** è divisa in **tre sezioni** affiancate:
 
 1. **Richiede attenzione** — elenco automatico di situazioni da controllare (es. prodotti sotto scorta, guasti o scadenze mezzi, affitti in scadenza, ore da validare, lavori da pianificare). Ogni voce è **cliccabile** e ti porta alla schermata giusta. Se tutto è a posto, compare un messaggio di conferma.
-2. **Per te oggi** — collegamenti fissi verso mappa, diario, statistiche e, se avete Manodopera, l’area lavori/squadre/ore.
-3. **Accessi rapidi** — moduli che hai **fissato con la stella** (☆/★) o usato di recente **su questo dispositivo**. Per fissare un modulo: apri il menu **Moduli** (vedi sotto) e usa la stella accanto alla voce che ti serve spesso.
+2. **Per te oggi** — collegamenti fissi verso mappa e statistiche. **Senza Manodopera** trovi anche **Diario attività** e **Terreni**; **con Manodopera** trovi l’area lavori/squadre/ore e il Diario **non** compare qui (le giornate nuove passano da Gestione lavori).
+3. **Accessi rapidi** — moduli che hai **fissato con la stella** (☆/★) o usato di recente **su questo dispositivo** (con Manodopera attivo il **Diario attività** non compare qui nemmeno se l’avevi fissato). Per fissare un modulo: apri il menu **Moduli** (vedi sotto) e usa la stella accanto alla voce che ti serve spesso.
 
 ### **I miei accessi**
 
@@ -110,8 +110,8 @@ Il pulsante **Moduli** (con un **numero** accanto, es. «Moduli 8») è il modo 
 2. Si apre un **elenco a tendina** con voci cliccabili: ogni riga ha un’**icona** (es. 🍇), un **titolo** (es. **Vigneto**) e una **breve descrizione**.
 3. Tocca la voce che ti serve: si apre quella pagina e il menu si chiude.
 
-Nell’elenco trovi sempre almeno **Terreni**, **Diario attività**, **Statistiche**, **Abbonamento**; poi ogni **modulo attivo** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Report, …).  
-Con **Manodopera** attivo compaiono anche **Amministrazione** e **Statistiche manodopera**.
+Nell’elenco trovi sempre almeno **Terreni**, **Statistiche**, **Abbonamento**; **senza Manodopera** anche **Diario attività**; poi ogni **modulo attivo** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Report, …).  
+Con **Manodopera** attivo compaiono anche **Amministrazione** e **Statistiche manodopera**; il **Diario attività** **non** compare nel menu (né in **Per te oggi** / **Accessi rapidi**): le giornate nuove vanno in **Gestione lavori**. Un link diretto al Diario, se raggiunto, mostra solo lo **storico** (vedi [mini-guida Diario](#mini-guida-compilare-il-diario-attivita)).
 
 **Non serve cercare altro** se hai Manodopera: Vigneto, Magazzino e gli altri moduli sono **solo** in questo elenco (o in **Per te oggi** / **I miei accessi** / **Accessi rapidi**). Scorrendo la dashboard **non** troverai altre righe «Vigneto» o «Magazzino» fuori dal menu — ed è normale.
 
@@ -132,6 +132,8 @@ Se l’abbonamento non include moduli extra (vigneto, manodopera, magazzino, …
 ### Caposquadra e operaio
 
 Se il tuo unico ruolo è **operaio** o **caposquadra**, la dashboard mostra in genere la **versione mobile** o sezioni dedicate al campo, non questa panoramica da ufficio. Senza **modulo Manodopera** attivo può comparire un avviso che invita ad attivarlo.
+
+Con **Manodopera** attivo, dopo il login l’operaio e il caposquadra vanno **direttamente** alla versione mobile («Apro il tuo lavoro…»), senza vedere prima la dashboard. Se hanno scelto loro la versione desktop, l’app se lo ricorda; per tornare alla mobile c’è **📱 Workspace Mobile** nelle **Azioni rapide**. Se l’area non si apre, la dashboard mostra «Non riesco ad aprire la tua area. Riprova» con il pulsante **Riprova**. Manager e amministratore restano sempre sulla dashboard.
 
 ---
 
@@ -217,13 +219,24 @@ Se la mappa non si carica, compare un avviso: in quel caso serve una configurazi
 
 **Quando usarla:** ogni volta che vuoi **documentare un intervento** in campo con il solo app base (senza il modulo strutturato sui «lavori»).
 
+**Diario o Gestione lavori? Dipende da Manodopera.**
+
+- **Senza Manodopera:** il Diario è il posto dove registrate le giornate in campo (passi qui sotto). La pagina **Gestione lavori** non si usa: se la aprite compare l’avviso «Modulo Manodopera non attivo». Se avevate Manodopera e l’avete spenta, i lavori registrati fino a quel momento ricompaiono nel Diario come attività (vedi sotto).
+- **Con Manodopera:** il Diario **esce dal menu** e resta solo come **storico** (link diretto o segnalibro). Vedete le attività già salvate, ma **non** c’è più **Aggiungi attività** e dalle righe non si modifica né si elimina; un avviso in alto vi rimanda a **Gestione lavori**, dove si registrano le giornate nuove (guida **Manodopera**). Vale per **tutti** i ruoli, incluso caposquadra e operaio.
+
+**Quando attivate o spegnete Manodopera, i dati vi seguono.** La copia parte **solo** aprendo (o ricaricando) la pagina **Abbonamento**: dopo un pagamento online quando Abbonamento si ricarica; se il modulo scade o viene tolto **senza** aprire Abbonamento, la migrazione **non** parte finché non aprite quella pagina (poi toast e, se i documenti sono tanti, uno spinner). I dati si copiano **una volta sola**, senza cancellare nulla:
+
+- **Attivate Manodopera:** le attività del Diario diventano **lavori** in **Gestione lavori** (chiusi come completati; quella di oggi non ancora chiusa resta in corso). Le righe che non si possono trasformare in un lavoro restano in fondo a Gestione lavori, sezione **Attività precedenti**, in sola lettura, con motivo leggibile tra parentesi: «Tipo Altro», «Conto terzi incompleto», «Campi obbligatori mancanti».
+- **Spegnete Manodopera:** i lavori tornano nel **Diario** come **attività modificabili** (non restano bloccati come storico). Se ci sono lavori ancora aperti, prima di procedere compare l’avviso «Hai N lavori ancora aperti: chiudili o li vedrai solo in storico.»: scegliete **Annulla** per chiuderli prima, oppure **Continua**.
+- A fine copia compare un messaggio del tipo «Migrazione dati: N creati, M già collegati, K in sola lettura.» Se invece leggete «Migrazione dati Manodopera non completata. Puoi riprovare.», riaprite **Abbonamento**: la copia riparte senza creare doppioni.
+
 **Passi:**
 
 1. Apri **Diario attività** dalla dashboard.
 2. Avvia una **nuova attività** dal pulsante previsto nella pagina: si apre il modulo.
 3. **Data:** giorno in cui è stato fatto l’intervento.
 4. **Terreno:** sceglilo dall’elenco (solo terreni già creati in Terreni).
-5. **Tipo di lavoro** e **coltura:** con solo app base di solito hai due elenco affiancati «semplici». Scegli il tipo di lavoro più vicino a ciò che avete fatto e la coltura coerente con il terreno.
+5. **Tipo di lavoro** e **coltura**, nell’ordine delle etichette: prima la **Categoria principale lavoro** (es. potatura, trattamenti); se la categoria ne ha, compare la **Sottocategoria** (facoltativa, es. manuale o meccanica); poi il **Tipo lavoro specifico**, che elenca solo i tipi di quella categoria. Infine **Categoria coltura** e **Coltura**, di solito già precompilate dal terreno scelto. Se il tipo che cercate non c’è, potete aggiungerlo con **➕ Nuovo** accanto all’elenco.
 6. **Orari:** ora di inizio obbligatoria; ora di fine se hai finito il turno (aiuta anche il calcolo delle ore).
 7. **Pause (minuti):** indica le pause effettive; le **ore nette** si aggiornano in base a orari e pause.
 8. **Note:** cosa avete fatto, condizioni, nome del turno, ecc.
@@ -354,6 +367,7 @@ Nella pagina **Abbonamento** (menu **Moduli** o tile dedicata) vedi il **piano c
 - Avvicinati ai limiti del Free → valuta il passaggio a **Base** (oppure prova un modulo per 30 giorni).
 - In Abbonamento → **prova 30 giorni** o attiva a pagamento **solo i moduli** che vi servono.
 - Alla **disattivazione** un modulo smette subito di funzionare; se era già pagato potete spesso **riattivarlo** fino alla data già coperta (dettaglio in pagina).
+- Se attivate o spegnete **Manodopera**, aprendo **Abbonamento** i dati passano da Diario a Gestione lavori (o, allo spegnimento, tornano nel Diario come **attività modificabili**) senza perdere nulla; con lavori ancora aperti vi viene chiesta una conferma. **[Impara qui: Diario](#mini-guida-compilare-il-diario-attivita)**
 - Per capire Tony (chat, voce, differenza Guida/Avanzato, documenti foto/PDF) apri la **guida modulo Tony** dalla raccolta Guide.
 
 **Non devi capire nulla di tecnologia:** pensa al piano come al “pacchetto servizi” della tua azienda e ai moduli come optionali à la carte.

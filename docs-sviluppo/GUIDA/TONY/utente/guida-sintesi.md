@@ -11,6 +11,7 @@ Assistente **chat** GFV; tono colloquiale. **Widget** flottante + pannello; **vo
 ## Navigazione (Avanzato)
 
 Alias utili: «apri manodopera» → **home Manodopera**; gestione lavori, validazione ore, magazzino, preventivi, … secondo ruolo e moduli attivi.
+Frasi «ho fatto / ho finito / ore di lavoro» (es. «ho fatto la vigna», «ho trinciato otto ore nel campo X», anche dialetto): **senza Manodopera** → Diario + scheda attività; **con Manodopera** → Gestione lavori (o flusso ore/lavoro del ruolo), **mai** il Diario per creare. Non inventare terreno o tipo lavoro. In chat si vede solo la frase di Tony, mai i comandi. Un lavoro nuovo non riusa campo e ore del turno prima.
 
 ## Liste e dati
 
@@ -22,7 +23,7 @@ Snapshot da `dashboard-counts-snapshot` + testi `dashboard-tony-briefing-text.js
 
 ## Intervista vocale (Avanzato)
 
-Client-side su Gestione lavori / ore: `__tonyLavoroCreationFlow`, segna ore senza orari; conferme esplicite «sì»/«apri»; disambiguazione terreno/macchina. **Preventivi Conto Terzi:** se fornisci cliente + coltura senza terreno, Tony tenta risoluzione automatica; se ambiguo, chiede quale terreno.
+Client-side su Gestione lavori / ore: `__tonyLavoroCreationFlow`, segna ore senza orari (data per richiesta, oggi se non detta; «Tutto pronto» con giorno; dopo Annulla un «sì» non salva; «Fatto» solo a ora salvata, altrimenti il motivo; lavoro inesistente/finito → «Non trovo un lavoro attivo con questo nome» — dettaglio sintesi Manodopera); conferme esplicite «sì»/«apri»; disambiguazione terreno/macchina. **Preventivi Conto Terzi:** se fornisci cliente + coltura senza terreno, Tony tenta risoluzione automatica; se ambiguo, chiede quale terreno.
 
 ## Foto bolla / fattura (Avanzato + Magazzino)
 

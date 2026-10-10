@@ -16,12 +16,157 @@
   ],
   "rules": [
     {
+      "prefix": "core/config/manodopera-diario-gate.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA",
+        "CONTO_TERZI",
+        "SEMINATIVO",
+        "VENDEMMIA_MECCANICA",
+        "INTERSEZIONI"
+      ],
+      "label": "Gate Manodopera ↔ Diario (Diario storico, Gestione lavori solo con Manodopera)"
+    },
+    {
+      "prefix": "core/services/manodopera-migrazione-",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Migrazione dati Diario ↔ lavori all’on/off Manodopera"
+    },
+    {
+      "prefix": "core/js/lavoro-cascade-filters.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Cascata categoria → sottocategoria → tipo lavoro (Diario, Gestione lavori)"
+    },
+    {
+      "prefix": "core/js/attivita-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Diario attività (controller/eventi)"
+    },
+    {
+      "prefix": "core/attivita-standalone.html",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Diario attività"
+    },
+    {
+      "prefix": "core/admin/abbonamento",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Abbonamento, moduli e migrazione Manodopera"
+    },
+    {
+      "prefix": "core/services/tenant-service.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Tenant: moduli attivi"
+    },
+    {
+      "prefix": "core/auth/",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Accesso, registrazione e reset password"
+    },
+    {
+      "prefix": "core/js/tony/tony-lavoro-fatto-nav.js",
+      "modules": [
+        "TONY",
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Tony «ho fatto la vigna» → Diario o Gestione lavori"
+    },
+    {
       "prefix": "core/js/tony/tony-segna-ora",
       "modules": [
         "TONY",
         "MANODOPERA"
       ],
       "label": "Motore segna ore Tony (mobile + desktop)"
+    },
+    {
+      "prefix": "core/js/tony/tony-ora-lavoro-match",
+      "modules": [
+        "TONY",
+        "MANODOPERA"
+      ],
+      "label": "Tony: scelta del lavoro nominato quando segni le ore"
+    },
+    {
+      "prefix": "core/js/tony/tony-riepilogo-giorno",
+      "modules": [
+        "TONY",
+        "MANODOPERA"
+      ],
+      "label": "Tony: riepilogo ore del giorno aggiornato subito dopo salva/elimina"
+    },
+    {
+      "prefix": "core/js/tony/tony-ingresso-login",
+      "modules": [
+        "TONY",
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Ingresso dopo il login: workspace campo o dashboard, decisione unica"
+    },
+    {
+      "prefix": "core/js/tony/tony-attesa-riprova",
+      "modules": [
+        "TONY",
+        "MANODOPERA"
+      ],
+      "label": "Attese con limite e Riprova (caricamento lavori workspace campo)"
+    },
+    {
+      "prefix": "core/js/gfv-standalone-head-bootstrap.js",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Bootstrap head pagine standalone (build ?v= Tony)"
+    },
+    {
+      "prefix": "core/js/gfv-standalone-shell.js",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Shell standalone (stesso build del loader Tony)"
+    },
+    {
+      "prefix": "core/js/gfv-tony-tenant-bootstrap.js",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Bootstrap tenant/piano per Tony"
+    },
+    {
+      "prefix": "core/js/standalone-bootstrap.js",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Bootstrap comune pagine standalone"
+    },
+    {
+      "prefix": "core/js/tony-widget-standalone.js",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Widget Tony standalone"
     },
     {
       "prefix": "core/js/tony/",
@@ -510,6 +655,13 @@
       "label": "Standby per assenza"
     },
     {
+      "prefix": "core/services/lavoro-sospensione",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Sospensione operativa (Sospendi / Rinvia) e ripresa"
+    },
+    {
       "prefix": "core/services/manodopera-sostituti-",
       "modules": [
         "MANODOPERA"
@@ -522,6 +674,27 @@
         "MANODOPERA"
       ],
       "label": "Assenze manodopera"
+    },
+    {
+      "prefix": "core/services/ore-operai-logic",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Ore operai: modifica, sovrapposizioni, correzione e storia dopo validazione"
+    },
+    {
+      "prefix": "core/services/manodopera-lavori-scope",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Lavori segnabili per ore (esclusi i sospesi)"
+    },
+    {
+      "prefix": "core/services/ore-service",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Servizio ore operai (salvataggio, validazione, rifiuto)"
     },
     {
       "prefix": "core/admin/js/gestione-lavori-assenze-ui.js",

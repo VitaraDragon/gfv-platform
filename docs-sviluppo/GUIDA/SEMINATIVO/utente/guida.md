@@ -104,7 +104,7 @@ Le pagine **Lavorazioni**, **Trattamenti** e **Concimazioni** servono a **comple
 
 ### Prima cosa: lavori, categorie e filtri
 
-1. In **Gestione lavori** (e, se lo usate in quel modo, nel **Diario** sul terreno della campagna) create l'intervento con la **categoria** giusta:
+1. Create l'intervento con la **categoria** giusta: in **Gestione lavori** se avete il modulo **Manodopera**, altrimenti nel **Diario attività** sul terreno della campagna. Nelle pagine registro il pulsante in alto vi porta già nel posto giusto: **Nuovo lavoro** con Manodopera, **Registra nel diario** senza.
    - **Lavorazioni terreno** → compare nel registro **Lavorazioni** seminativo;
    - **Trattamenti** → compare in **Trattamenti** seminativo;
    - **Concimazione** → compare in **Concimazioni** seminativo.
@@ -151,7 +151,7 @@ Le pagine **Lavorazioni**, **Trattamenti** e **Concimazioni** servono a **comple
 
 ### Concimazioni: passo per passo
 
-Flusso **identico** alla pagina Trattamenti (stessa struttura di elenco, mappa e tabella prodotti), ma le righe provengono da lavori/attività con categoria **Concimazione** e i prodotti sono i **concimi** gestiti in anagrafica come tale.
+Flusso **identico** alla pagina Trattamenti (stessa struttura di elenco, mappa e tabella prodotti), ma le righe provengono da lavori/attività con categoria **Concimazione** e i prodotti sono i **concimi** gestiti in anagrafica come tale. Anche qui il pulsante in alto è **Nuovo lavoro** con Manodopera e **Registra nel diario** senza.
 
 1. Filtri **Campagna/Terreno** e **Anno**, poi **Azioni** sulla riga da completare.
 2. Superficie (manuale, **tutto il terreno** da anagrafe, o **Traccia** su mappa) come per i trattamenti.

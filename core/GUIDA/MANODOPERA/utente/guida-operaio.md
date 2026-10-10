@@ -36,11 +36,16 @@ Questa guida è solo per l’**operaio**. La schermata che userai quasi sempre �
 
 La **versione mobile** è la schermata principale per registrare il lavoro in campo dall’app.
 
+**Dopo il login** l’app ti porta direttamente qui: per un attimo leggi «Apro il tuo lavoro…», senza vedere prima la dashboard. Se in passato hai scelto tu la **versione desktop**, l’app se lo ricorda e ti riporta lì (vedi sotto). Se l’area non si apre, compare «Non riesco ad aprire la tua area. Riprova»: tocca **Riprova**.
+
+**Diario attività:** con Manodopera attivo **non** compare nel menu (come per tutti). Registri tutto da **Lavoro**, **Ore** e **Statistiche**. Non c’è una voce Diario in sola lettura; un link diretto, se lo raggiungi, mostra al massimo lo **storico**, senza creare.
+
+
 ### Le tre schede
 
 Con **Indietro** / **Avanti** in basso o i **puntini**:
 
-1. **Lavoro** — menu **Lavori assegnati** per scegliere l’incarico del giorno.  
+1. **Lavoro** — menu **Lavori assegnati** per scegliere l’incarico del giorno. Mentre carica leggi «Caricamento lavori...»; se i lavori non arrivano, l’app riprova da sola una volta e poi mostra «Non riesco a caricare i lavori. Riprova.» con il pulsante **Riprova**.  
 2. **Ore** — modulo **Segna ore** e sotto il **dettaglio del lavoro** (la schermata **I miei lavori** incorporata qui per comodità).  
 3. **Statistiche** — riepilogo delle **tue** ore.
 
@@ -97,7 +102,7 @@ Sotto il modulo c’è **Le tue ore del giorno**: i turni di quel giorno, con la
 - Finché la riga è **in attesa** o **rifiutata** puoi **modificarla** o **eliminarla** dal riquadro del giorno. Il lavoro non si cambia: per un altro lavoro elimina e segna di nuovo. Una riga **rifiutata**, dopo la modifica, torna in attesa.  
 - Su una riga **in attesa** leggi «Da validare — la valida il caposquadra» (o il manager). Se era stata rifiutata e poi l’hai modificata, lo stato è di nuovo quello: sotto resta la storia, con il rifiuto e la modifica. Su una riga ancora **rifiutata** leggi chi l’ha rifiutata, quando e il motivo. Sulle righe validate, corrette o annullate c’è la stessa storia, con data e ora, anche se la validazione è stata annullata e rifatta.
 - Su una riga **validata** non puoi fare nulla: chiedi al caposquadra, oppure al manager se il lavoro è autonomo.
-- Se chiedi a Tony di segnare le ore, nel riepilogo c’è il nome del lavoro, gli orari e la pausa. Se due lavori hanno lo stesso nome, prende quello di oggi; se non è chiaro, chiede quale e non apre il modulo sul primo della lista. Se l’orario è già occupato te lo dice subito, prima di chiedere la pausa, e ti propone il primo buco libero. Se dici «pausa 0» o «nessuna pausa», non te la chiede di nuovo. Macchina e attrezzo sono quelli del lavoro, a meno che tu non li nomini. Dopo il «sì» Tony conferma su quale lavoro ha segnato l’ora. Accanto alla data del modulo c’è il giorno in italiano, per esempio «giovedì 08/10/2026». Su un lavoro sospeso non si segnano ore nuove: Tony lo dice e, se c’è, indica la ripresa. In elenco il lavoro sospeso ha il badge Sospeso. «Tutto pronto» dice anche il giorno, per esempio «oggi 09/10». Se non dici la data, Tony usa oggi e non tiene quella del messaggio prima. Dopo Annulla, un «sì» non salva. Tony dice «Fatto» quando l'ora è salvata, anche se è in attesa del caposquadra. Se il salvataggio fallisce, dice il motivo. Una domanda vecchia «Vuoi salvare?» non resta aperta. Il riepilogo del giorno si aggiorna subito dopo il salvataggio o l'eliminazione. Dopo un ricarico, quella domanda e la frase «Questa richiesta è scaduta» non tornano in chat.
+- Se chiedi a Tony di segnare le ore, nel riepilogo c’è il nome del lavoro, gli orari e la pausa. Se due lavori hanno lo stesso nome, prende quello di oggi; se non è chiaro, chiede quale e non apre il modulo sul primo della lista. Se l’orario è già occupato te lo dice subito, prima di chiedere la pausa, e ti propone il primo buco libero. Se dici «pausa 0» o «nessuna pausa», non te la chiede di nuovo. Macchina e attrezzo sono quelli del lavoro, a meno che tu non li nomini. Dopo il «sì» Tony conferma su quale lavoro ha segnato l’ora. Accanto alla data del modulo c’è il giorno in italiano, per esempio «giovedì 08/10/2026». Su un lavoro sospeso non si segnano ore nuove: Tony lo dice e, se c’è, indica la ripresa. In elenco il lavoro sospeso ha il badge Sospeso. «Tutto pronto» dice anche il giorno, per esempio «oggi 09/10». Se non dici la data, Tony usa oggi e non tiene quella del messaggio prima. Dopo Annulla, un «sì» non salva. Tony dice «Fatto» quando l'ora è salvata, anche se è in attesa del caposquadra. Se il salvataggio fallisce, dice il motivo. Una domanda vecchia «Vuoi salvare?» non resta aperta. Il riepilogo del giorno si aggiorna subito dopo il salvataggio o l'eliminazione. Dopo un ricarico, quella domanda e la frase «Questa richiesta è scaduta» non tornano in chat. Se nomini un lavoro che non c’è o è già finito, Tony dice «Non trovo un lavoro attivo con questo nome» ed elenca quelli su cui puoi segnare; non ti propone un lavoro sospeso che non c’entra con quello che hai detto.
 
 ---
 
@@ -127,7 +132,8 @@ Sotto il modulo ore trovi il riquadro **Dettaglio lavoro operativo**, già **cen
 2. Nel dettaglio puoi in genere:
    - leggere **stato**, percentuali e **testi operativi** sull’incarico;  
    - **tracciare le zone lavorate** sulla mappa quando il tipo di incarico lo richiede;  
-   - vedere se il lavoro risulta **sospeso** o da **riprendere**, se l’app lo mostra.  
+   - vedere se il lavoro risulta **sospeso** o da **riprendere**, se l’app lo mostra;  
+   - **⏸️ Sospendi lavoro** se l’incarico è **solo tuo** e devi fermarti (vedi [Sospendere un incarico solo tuo](#sospendere-un-incarico-solo-tuo)).  
 3. Se sul telefono è scomodo, usa **Apri in finestra intera** per la stessa schermata a tutto schermo nel browser.
 
 ### Zone sulla mappa
@@ -199,6 +205,17 @@ Serve quando l’azienda ha il modulo **Parco Macchine** attivo e ti compare la 
 - Il flusso è lo stesso: **versione mobile**, scelta lavoro, **ore**, **dettaglio** con zone se richiesto.  
 - Per dubbi su cosa fare sull’incarico, usa i canali che l’azienda ti ha indicato.
 
+### Sospendere un incarico solo tuo
+
+Se lavori **da solo** su un incarico e devi fermarti per meteo, guasto o altro motivo, puoi sospenderlo tu.
+
+1. Scegli il lavoro nella scheda **Lavoro**, apri la scheda **Ore** e nel **dettaglio lavoro** (o nella schermata **I miei lavori**) tocca **⏸️ Sospendi lavoro**. Si può fare solo se il lavoro è **assegnato** o **in corso**.  
+2. Scrivi il **motivo** a parole tue (testo libero, es. «pioggia», «trattore fermo») e conferma.  
+3. Il lavoro passa in **Sospeso**: nel dettaglio compare «Lavoro sospeso» con il tuo motivo e su quel lavoro non segni più zone né ore nuove.  
+4. Per ripartire non devi fare nulla: il manager crea il **lavoro di ripresa**, che ti compare tra i **Lavori assegnati** con lo stesso nome e «(ripresa)». Lo scegli e continui come sempre; sulla mappa vedi in arancione le zone già fatte prima della sospensione e in verde quelle nuove.
+
+La sospensione funziona solo sugli incarichi **solo tuoi**: su quelli di gruppo avvisa il **caposquadra**, che può sospendere il lavoro. Se invece sei **tu** a non poter lavorare (malattia, ferie, permesso), non sospendere: avvisa il caposquadra o il manager, che registrano l’**assenza**.
+
 ---
 
 ## Mini-guida versione desktop opzionale
@@ -206,6 +223,7 @@ Serve quando l’azienda ha il modulo **Parco Macchine** attivo e ti compare la 
 In alto puoi vedere **Versione mobile** e **Versione desktop**.
 
 - Se passi alla desktop, puoi avere una **dashboard** con più schede e collegamenti: usa quelli che ti servono per il tuo lavoro (es. segnalazioni da browser).  
+- La scelta della desktop resta finché non la cambi tu: al login successivo riapre la dashboard. Per tornare alla mobile tocca **📱 Workspace Mobile** nelle **Azioni rapide** della dashboard. Se l’app ti manda alla dashboard da sola per un errore momentaneo, la scelta non viene salvata.  
 - Per la giornata sul campo resta comoda la **mobile**.
 
 ---
@@ -218,6 +236,8 @@ In alto puoi vedere **Versione mobile** e **Versione desktop**.
 | Non trovo un lavoro che ti aspetti | Elenco ridotto se hai molti incarichi; chiedi in ufficio se serve sbloccare la vista. |
 | Ore in **attesa** o stato poco chiaro | Leggi i messaggi in app; per dubbi chiedi in ufficio. |
 | **Dettaglio lavoro** non carica | Connessione debole; riprova o **Apri in finestra intera**. |
+| «Non riesco a caricare i lavori. Riprova.» | Tocca **Riprova** con una connessione migliore; se resta, chiedi in ufficio. |
+| Dopo il login: «Non riesco ad aprire la tua area. Riprova» | Tocca **Riprova**; se resta, chiedi in ufficio di controllare il tuo ruolo e il modulo Manodopera. |
 | Non capisco la **mappa delle zone** | Chiedi una dimostrazione in campo a chi coordina il gruppo. |
 | **GPS** non funziona | Attiva permesso posizione; riprova all’aperto; completa ubicazione e dettagli a mano. |
 | Non trovi **Segnalazione guasti** | Modulo non attivo o voce non nel tuo menu: chiedi in ufficio come segnalare. |

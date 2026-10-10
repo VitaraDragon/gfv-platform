@@ -60,6 +60,7 @@ Target utili: `seminativo`, `seminativi`, `anagrafica appezzamenti`, `piano colt
 - **Campagna annuale**: ogni record anagrafica = terreno + coltura + varietà + anno (no impianto permanente pluriennale).
 - **Rotazione**: piano colturale propone la coltura successiva per lo stesso terreno nell'anno futuro.
 - **Registri**: stessa logica di trattamenti/concimazioni (lavoro → completamento nel modulo), ma riferiti a campagna annuale, non a impianto permanente.
+- **CTA Diario vs lavoro:** `applyDiarioVsLavoroCta` in `lavorazioni-page.js`, `trattamenti-page.js` (anche **Concimazioni** via `initConcimazioniPage`) e `raccolta-page.js` — con Manodopera mostra **Nuovo lavoro**, senza **Registra nel diario**.
 - **Resa**: resa prevista in anagrafica (qli/ha stimati); resa effettiva calcolata dalle raccolte registrate (statistiche).
 
 ## Permessi

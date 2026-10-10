@@ -38,11 +38,21 @@ Consigliere: `skipModuleIds` include `tony`; segnali gated se modulo disattivato
 - Fallback / rollback: senza chiave, `TONY_TTS_PROVIDER=google` (o `chirp`), o errore ElevenLabs → Google Chirp 3 `it-IT-Chirp3-HD-Charon`.
 - Env utili: `TONY_TTS_PROVIDER`, `TONY_TTS_ELEVEN_VOICE`, `TONY_TTS_VOICE`, `TONY_TTS_SPEAKING_RATE`, `TONY_TTS_ELEVEN_MODEL`.
 - Client: chunking frasi su risposte complete; cache/dedup prefetch↔speak in `voice.js`.
+- Cifra **1** parlata (`normalizeItalianCardinalOneForTTS` in `voice.js`, #147/#148): letta **un / uno / una / un’** secondo la parola che segue (genere, s impura/gn/z/ps, maschili in -a tipo «problema», femminili non in -a tipo «macchine»); resta «uno» davanti a preposizioni/numeri («da 1 a 5», «1 su 3») e su decimali, ore «1:30», frazioni, intervalli; davanti a un mese → «primo» («1 ottobre»); «alle/dalle/le 1» → «all’una / dall’una / l’una»; unità al singolare («1 ettaro», «1 litro»). Ultimo passo di `pulisciTestoPerVoce` (dopo espansione unità e contrazioni). Test `tests/tony-voice-italian-tts.test.js`. Contatori UI senza desinenza attaccata («1 squadra» / «2 squadre», «1 riga … evidenziata»).
 
 ## Intervista lavoro / ore (client)
 
 - `main.js`: `__tonyLavoroCreationFlow`, intercept «crea lavoro», segna ore senza orari; 0 CF sui turni intervista dove implementato.
 - Conferme salvataggio form prima di nuova intervista.
+- **Segna ore** (#162 #164 #167 #169, dettaglio in `GUIDA/MANODOPERA/tony/guida-tecnica.md` § Form Tony): data per richiesta `risolviDataSegnaOre` (oggi se non detta), «Tutto pronto» con giorno; Annulla / cambio pagina / `pagehide` → `tonyAzzeraSegnaOreInAttesa` (un «sì» dopo non salva); «Fatto» solo su `gfv-ora-salvata` (attesa max 15 s, `interpretaEsitoSalvataggioOra` / `messaggioConfermaSalvataggioOra`), motivo su `gfv-ora-salvataggio-errore`; `togliConfermeSalvataggioVecchie` pulisce la history salvata/ripristinata; riepilogo giorno `tony-riepilogo-giorno.js`; match lavoro `abbinamentoRagionevole` («Non trovo un lavoro attivo con questo nome»).
+- **Lavoro fatto in campo** (regola prodotto): ogni frase «ho fatto / ho finito / ore di lavoro» → **senza Manodopera** Diario, **con Manodopera** Gestione lavori (o flusso ore/lavoro del ruolo), **mai** Diario in creazione. Helper `core/js/tony/tony-lavoro-fatto-nav.js`: `isLavoroFattoInCampo` riconosce oggi la **frase intera** vigna («ho/o' fatto la vigna», «ho finito in vigna», «fatto il lavoro in vigna»); escluse carburante/pieno/carico, preventivo, «nuovo lavoro». `resolveLavoroFattoNav` → senza Manodopera `attivita` + `attivita-modal` («Ti porto al diario.»), con Manodopera `gestione lavori` + `lavoro-modal`. Altre frasi «ore/lavoro fatto» (es. «ho trinciato otto ore…») seguono la stessa destinazione via navigazione/intervista. In `main.js` intercept prima della CF, non su profilo campo (`getTonyFieldProfileFromContext`) né con `attivita-modal`/`lavoro-modal` già aperti; `mapDiarioFieldsToLavoro` copia solo campi già presenti (attivita-* → lavoro-*); `alignLavoroFattoSpeech` riscrive «ti porto al diario» in Gestione lavori con Manodopera. Gate moduli in `core/config/tony-module-gate.js`.
+- **Slot turno** (`engine.js`: `analyzeTonyJobSlots`, `dropStaleJobCarryover`): un lavoro nuovo non eredita terreno e ore del turno precedente se l’utente non li ripete (scenario T-TURN-SLOT-001).
+
+**Build client (#161):** un solo loader per pagina (`window.__gfvTonyLoaderBuild` in `gfv-tony-loader.js`; un secondo loader con build diversa viene ignorato), la shell `gfv-standalone-shell.js` riceve lo stesso `?v=`; `service-worker.js` rivalida i file same-origin, così dopo un deploy non resta un mix di file vecchi e nuovi. Nessun effetto visibile in guida utente.
+
+## Testo visibile in chat
+
+`engine.js`: `sanitizeTonyVisibleChatText`, `resolveTonyUserVisibleText`, `stripLeakedTonyCommandJsonFromText`, `cleanTextFromJsonResidue` — la bolla mostra solo la frase; il JSON comandi (`OPEN_MODAL`, `INJECT_FORM_DATA`, …) resta interno anche se la risposta arriva troncata.
 
 ## Acquisizione documenti (foto / PDF)
 

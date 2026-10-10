@@ -42,9 +42,14 @@ Questa guida è solo per il **caposquadra**: ciò che puoi fare dalla **versione
 
 La **versione mobile** è la schermata principale quando lavori in campo dall’app (menu e testi possono variare leggermente tra versioni, ma il flusso è questo).
 
+**Dopo il login** l’app ti porta direttamente qui: per un attimo leggi «Apro il tuo lavoro…», senza vedere prima la dashboard (a meno che tu non abbia scelto la versione desktop). Se l’area non si apre, compare «Non riesco ad aprire la tua area. Riprova»: tocca **Riprova**. Nel menu **Lavori assegnati**, se i lavori non arrivano, l’app riprova da sola una volta e poi mostra «Non riesco a caricare i lavori. Riprova.» con il pulsante **Riprova**.
+
+**Diario attività:** con Manodopera attivo **non** compare nel menu (come per tutti). Usi i **lavori**, la **segna ore** e le schede del tuo ruolo. Non c’è una voce Diario in sola lettura dedicata a te; se apri un link diretto al Diario, al massimo vedi lo **storico**, senza creare attività.
+
+
 ### Cosa vedi in alto
 
-- **Icona telefono / computer**: puoi passare alla **versione desktop** se ti serve il browser completo su schermo grande (a volte il sistema ti reindirizza in base al ruolo: è normale).  
+- **Icona telefono / computer**: puoi passare alla **versione desktop** se ti serve il browser completo su schermo grande. La scelta resta finché non la cambi tu: al login successivo riapre la dashboard; per tornare alla mobile tocca **📱 Workspace Mobile** nelle **Azioni rapide** della dashboard.  
 - Il tuo **nome** e il ruolo (es. caposquadra).  
 - **Impostazioni** (ingranaggio): accesso rapido alle **impostazioni account** se presente nel menu.  
 - Una riga di **stato** sotto la barra (caricamento, messaggi brevi).
@@ -128,7 +133,7 @@ Nella scheda **Comunicazioni** trovi il modulo **Comunicazioni squadra**: non è
 
 ## Mini-guida segnare le proprie ore
 
-Nella scheda **Ore**, in alto, c’è il modulo **Segna ore** per registrare **il tuo turno** (sei un utente come gli altri dal punto di vista delle ore). Se lo chiedi a Tony e due lavori hanno lo stesso nome, prende quello di oggi oppure chiede quale. Non apre il modulo sul primo della lista. Il riepilogo dice sempre il nome del lavoro. Accanto alla data c’è il giorno in italiano, per esempio «giovedì 08/10/2026». Su un lavoro sospeso non si segnano ore nuove: Tony lo dice e, se c’è, indica la ripresa. In elenco il lavoro sospeso ha il badge Sospeso. «Tutto pronto» dice anche il giorno, per esempio «oggi 09/10». Se non dici la data, Tony usa oggi e non tiene quella del messaggio prima. Dopo Annulla, un «sì» non salva. Tony dice «Fatto» quando l'ora è salvata, anche se è in attesa del caposquadra. Se il salvataggio fallisce, dice il motivo. Una domanda vecchia «Vuoi salvare?» non resta aperta. Il riepilogo del giorno si aggiorna subito dopo il salvataggio o l'eliminazione. Dopo un ricarico, quella domanda e la frase «Questa richiesta è scaduta» non tornano in chat.
+Nella scheda **Ore**, in alto, c’è il modulo **Segna ore** per registrare **il tuo turno** (sei un utente come gli altri dal punto di vista delle ore). Se lo chiedi a Tony e due lavori hanno lo stesso nome, prende quello di oggi oppure chiede quale. Non apre il modulo sul primo della lista. Il riepilogo dice sempre il nome del lavoro. Accanto alla data c’è il giorno in italiano, per esempio «giovedì 08/10/2026». Su un lavoro sospeso non si segnano ore nuove: Tony lo dice e, se c’è, indica la ripresa. In elenco il lavoro sospeso ha il badge Sospeso. «Tutto pronto» dice anche il giorno, per esempio «oggi 09/10». Se non dici la data, Tony usa oggi e non tiene quella del messaggio prima. Dopo Annulla, un «sì» non salva. Tony dice «Fatto» quando l'ora è salvata, anche se è in attesa del caposquadra. Se il salvataggio fallisce, dice il motivo. Una domanda vecchia «Vuoi salvare?» non resta aperta. Il riepilogo del giorno si aggiorna subito dopo il salvataggio o l'eliminazione. Dopo un ricarico, quella domanda e la frase «Questa richiesta è scaduta» non tornano in chat. Se nomini un lavoro che non c’è o è già finito, Tony dice «Non trovo un lavoro attivo con questo nome» ed elenca quelli su cui puoi segnare; non ti propone un lavoro sospeso che non c’entra con quello che hai detto.
 
 ### Passi
 
@@ -178,6 +183,8 @@ Sempre nella scheda **Lavoro**, nel blocco **Valida ore**, vedi le registrazioni
 2. Indica **chi** manca e il **giorno** (e nota se richiesta).  
 3. Invia: il **manager** riceve l’avviso (anche in push se attive). Il lavoro passa in **standby** dopo la **conferma del manager**, non automaticamente al tuo invio.
 
+Lo standby per assenza non è una sospensione: se il lavoro si ferma per **meteo, guasto** o un altro motivo che non riguarda le persone, usa **⏸️ Sospendi lavoro** dal dettaglio lavoro (vedi [Dettaglio lavoro, zone lavorate e completamento](#mini-guida-dettaglio-lavoro-zone-lavorate-e-completamento)).
+
 ### Quando c’è un sostituto
 
 - Può comparire un avviso **Sostituzione attiva** (chi è assente e chi sostituisce).  
@@ -199,7 +206,8 @@ Nella scheda **Ore**, sotto il modulo ore, trovi il riquadro **Dettaglio lavoro 
 2. Nel riquadro puoi in genere:
    - leggere **stato del lavoro**, percentuali di avanzamento, eventuali **ordini o note** del manager;  
    - aprire il flusso per **tracciare le zone lavorate** sulla mappa (segmenti e superfici sul terreno assegnato);  
-   - vedere eventuali azioni di **sospensione** o **ripresa** se il caso è gestito così dall’app.  
+   - **⏸️ Sospendi lavoro** se il lavoro (assegnato o in corso) si deve fermare per meteo, guasto o altro: l’app ti chiede il **motivo** e lo scrivi **a parole tue** (testo libero, es. «pioggia», «trattore fermo»: non c’è un elenco da cui scegliere). Il lavoro passa in **Sospeso** e il riquadro mostra «Lavoro sospeso» con il tuo motivo; il manager lo ritrova nel lavoro come motivo **Altro** con il tuo testo. Il **lavoro di ripresa** lo crea poi il manager; quando lo apri, sulla mappa vedi in arancione le zone già fatte prima della sospensione e in verde quelle nuove.  
+   - Se il lavoro si ferma perché **manca qualcuno** della squadra, non usare Sospendi lavoro: usa **Segnala assenza** (vedi [Segnala assenza e sostituti](#mini-guida-segnala-assenza-e-sostituti)).  
 3. Se sul telefono lo spazio è stretto, usa il link **Apri in finestra intera**: si apre la **stessa schermata** nel browser a tutto schermo, sempre sul lavoro corrente.
 
 ### Zone lavorate e mappa
@@ -294,6 +302,8 @@ Se colleghi la segnalazione a un **lavoro** e scegli **grave**, l’app può **s
 | **La mia squadra** vuota o errore | Squadra non collegata al tuo utente in **Gestione squadre** (intervento manager). |
 | Non posso **validare ore** | Verifica il **lavoro selezionato**; senza righe in attesa non c’è nulla da validare. |
 | **Dettaglio lavoro** non carica | Connessione debole; riprova o usa **Apri in finestra intera**. |
+| «Non riesco a caricare i lavori. Riprova.» | Tocca **Riprova** con una connessione migliore; se resta, chiedi al manager. |
+| Dopo il login: «Non riesco ad aprire la tua area. Riprova» | Tocca **Riprova**; se resta, chiedi al manager di controllare il tuo ruolo e il modulo Manodopera. |
 | Non posso **completare** il lavoro | Spesso mancano **zone lavorate** o **ore** richieste; leggi il messaggio in schermata. |
 | **GPS** non prende la posizione | Permesso negato al browser; GPS spento sul telefono; riprova all’aperto; usa ubicazione scritta + mappa se disponibile. |
 | Non trovo **Segnalazione guasti** | Modulo Parco Macchine non attivo, oppure il tuo ruolo non include l’accesso: chiedi al manager o fai segnalare un operaio. |

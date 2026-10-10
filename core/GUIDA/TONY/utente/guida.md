@@ -53,7 +53,7 @@ Tony è il **capocantiere digitale** dell’app: parla in modo **semplice e dire
 
 ### Le «anime» in linguaggio utente
 
-1. **Operativo** — «Ho potato sei ore nel Sangiovese» → Tony può aiutarti ad aprire il **Diario** o la **segna ore** e a compilare, dove previsto, senza rifare tutti i clic a mano (serve **Tony Avanzato**).  
+1. **Operativo** — «Ho potato sei ore nel Sangiovese» / «ho trinciato otto ore nel campo X» → con **Manodopera** Tony ti porta a **Gestione lavori** (o al flusso ore/segna ore del tuo ruolo); **senza Manodopera** al **Diario**. Dove previsto, può anche **compilare** i campi (serve **Tony Avanzato**).  
 2. **Navigatore** — «Portami ai preventivi» o «Apri Manodopera» → con Tony Avanzato Tony può **aprire la pagina** giusta (se il modulo c’è e il tuo ruolo lo consente).  
 3. **Consulente sui dati** — «Quanti terreni in affitto?» o «Cosa c’è in questa lista?» → Tony usa i **dati** che l’app gli passa (elenchi visibili, riepiloghi, dati azienda per i manager), senza inventare numeri.  
 4. **Consigliere moduli** (solo **piano Base**, **Tony Guida**) — «Quali moduli mi servono?» → Tony suggerisce **uno o due moduli** in base a terreni, colture e uso reale dell’app; ti indica **Abbonamento** per attivarli. **Non** promuove Tony Avanzato e **non** interrompe le domande su una lista già aperta.
@@ -151,7 +151,8 @@ Apri **Abbonamento** (da **Moduli** → **Amministrazione** o dal percorso indic
 
 | Tu dici (esempio) | Cosa può succedere |
 |-------------------|-------------------|
-| «Ho trinciato otto ore oggi nel campo X» | Tony apre il **Diario attività** (o il flusso ore previsto per il tuo ruolo) e inizia a **compilare** tipo lavoro, ore, terreno se li riconosce; può chiederti cosa manca. |
+| «Ho trinciato otto ore oggi nel campo X» / «Ho potato sei ore nel Sangiovese» | Stessa regola di ogni frase «ho fatto / ho finito / ore di lavoro»: **senza Manodopera** → **Diario attività** (+ scheda); **con Manodopera** → **Gestione lavori** (o segna ore / lavoro del tuo ruolo), **non** il Diario. Compila tipo lavoro, ore, terreno se li riconosce; può chiederti cosa manca. |
+| «Ho fatto la vigna» / «Ho finito in vigna» (anche «o' fatto la vigna») | Stesso percorso: **Diario** senza Manodopera, **Gestione lavori** con Manodopera, e apre la scheda. Non inventa terreno né tipo di lavoro: se non li hai detti, li scegli tu o te li chiede. |
 | «Crea un preventivo per erpicatura al cliente Rossi» | Tony avvia il **Nuovo preventivo** e può proporre **cliente** e **tipo lavoro**; se ci sono più terreni per quel cliente, chiede **quale terreno**. |
 | «Portami alla gestione lavori» / «Apri Manodopera» | Tony **apre** la pagina prevista per il tuo ruolo (es. home **Manodopera** o gestione lavori). |
 | «Crea un lavoro per l’operaio Rossi nel Sangiovese» | Tony avvia un’**intervista** passo passo (chi, terreno, tipo, date…) e poi apre o compila la scheda lavoro. |
