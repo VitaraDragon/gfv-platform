@@ -6,8 +6,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Le tue statistiche - GFV</title>
+    <script>try{if(localStorage.getItem('gfv_demo_cloud_session')==='1'){localStorage.removeItem('gfv_firebase_emulator');}else if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1'){localStorage.setItem('gfv_firebase_emulator','1');}}catch(e){}</script>
     <link rel="stylesheet" href="../styles/responsive-standalone.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -362,7 +362,15 @@
             if (boxT) boxT.style.display = filtered.length ? 'block' : 'none';
             if (boxMez) boxMez.style.display = oreConMezzo.length ? 'block' : 'none';
 
-            if (filtered.length) {
+            if (filtered.length && ctxM && ctxT) {
+                try {
+                    await loadChartJs();
+                } catch (chartErr) {
+                    console.warn('[statistiche-lavoratore] grafici:', chartErr);
+                }
+            }
+
+            if (filtered.length && window.Chart && ctxM && ctxT) {
                 chartMese = new Chart(ctxM, {
                     type: 'bar',
                     data: {
@@ -418,7 +426,7 @@
                 });
             }
 
-            if (oreConMezzo.length && ctxMez) {
+            if (oreConMezzo.length && ctxMez && window.Chart) {
                 const ids = [];
                 oreConMezzo.forEach((ora) => {
                     const lav = lavMap.get(ora.lavoroId);
@@ -469,12 +477,41 @@
             }
         }
 
+        function avvisaStatsPronte() {
+            try {
+                window.parent.postMessage({ type: 'gfv-stats-ready' }, window.location.origin);
+            } catch (e) { /* ignore */ }
+        }
+
+        function avvisaStatsFallite() {
+            try {
+                window.parent.postMessage({ type: 'gfv-stats-failed' }, window.location.origin);
+            } catch (e) { /* ignore */ }
+        }
+
+        function loadChartJs() {
+            if (window.Chart) return Promise.resolve(window.Chart);
+            return new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+                s.async = true;
+                s.onload = () => resolve(window.Chart);
+                s.onerror = () => reject(new Error('Grafici non disponibili'));
+                document.head.appendChild(s);
+            });
+        }
+
         async function boot() {
             try {
                 await window.GFVStandaloneReady;
             } catch (err) {
                 console.error('[statistiche-lavoratore] Bootstrap failed:', err);
-                throw err;
+                const body = document.getElementById('main-body');
+                if (body) {
+                    body.innerHTML = '<div class="err">Non riesco a caricare le statistiche. Riprova.</div>';
+                }
+                avvisaStatsFallite();
+                return;
             }
             const auth = getAuthInstance();
             const db = getDb();
@@ -531,9 +568,11 @@
                         ? `${userData.nome} ${userData.cognome}`.trim()
                         : (userData.email || user.uid);
                     renderMain(user.uid, name);
+                    avvisaStatsPronte();
                 } catch (e) {
                     console.error(e);
-                    document.getElementById('main-body').innerHTML = `<div class="err">${e.message || e}</div>`;
+                    document.getElementById('main-body').innerHTML = `<div class="err">Non riesco a caricare le statistiche. Riprova.</div>`;
+                    avvisaStatsFallite();
                 }
             });
         }

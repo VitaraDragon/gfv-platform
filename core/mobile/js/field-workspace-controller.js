@@ -17,6 +17,11 @@ import {
 import { resolveAuthUserWithRetry, loginPageUrl, waitForStandaloneReady } from '../../js/simulator-standalone-page.js';
 import { formatOreNette } from '../../js/attivita-utils.js';
 import { showAlert } from '../../js/gfv-page-utils.js';
+import {
+    voceCambiaAziendaVisibile,
+    vociMenuCampo,
+    menuCampoAbilitato,
+} from './field-menu-visibility.js';
 import { eLavoroSospeso } from '../../js/tony/tony-ora-lavoro-match.js';
 import { CHIAVE_RIMBALZI_INGRESSO } from '../../js/tony/tony-ingresso-login.js?v=2026-10-09g';
 import { conTimeout, prossimaAttesaRiprova } from '../../js/tony/tony-attesa-riprova.js?v=2026-10-09g';
@@ -166,6 +171,11 @@ let userIsCaposquadra = false;
 let lastSquadMembers = [];
 let lastSquadLabel = 'Squadra';
 let userIsOperaio = false;
+let workspacePronto = false;
+let menuRuoliCampo = [];
+let menuModuliCampo = [];
+let menuNumeroAziende = 0;
+let statsEmbedTimer = null;
 let editingOraId = '';
 let editingOraLavoroId = '';
 let oreGiornoRows = [];
@@ -340,10 +350,59 @@ function updateNavButtons() {
     }
 }
 
+function annullaTimerStatistiche() {
+    if (statsEmbedTimer) {
+        clearTimeout(statsEmbedTimer);
+        statsEmbedTimer = null;
+    }
+}
+
+function mostraFallbackStatistiche() {
+    const box = document.getElementById('stats-embed-fallback');
+    if (box) box.hidden = false;
+}
+
+function nascondiFallbackStatistiche() {
+    const box = document.getElementById('stats-embed-fallback');
+    if (box) box.hidden = true;
+}
+
 function ensureStatsEmbedLoaded() {
     if (!statsEmbedFrameEl || statsEmbedFrameEl.dataset.loaded === '1') return;
-    statsEmbedFrameEl.src = 'statistiche-lavoratore-standalone.html';
     statsEmbedFrameEl.dataset.loaded = '1';
+    delete statsEmbedFrameEl.dataset.ready;
+    nascondiFallbackStatistiche();
+    annullaTimerStatistiche();
+    const riprova = statsEmbedFrameEl.dataset.retry || '';
+    const extra = riprova ? `&riprova=${encodeURIComponent(riprova)}` : '';
+    statsEmbedFrameEl.src = `statistiche-lavoratore-standalone.html?embed=mobile${extra}`;
+    statsEmbedTimer = setTimeout(() => {
+        statsEmbedTimer = null;
+        if (!statsEmbedFrameEl || statsEmbedFrameEl.dataset.ready === '1') return;
+        mostraFallbackStatistiche();
+    }, 15000);
+}
+
+function ricaricaStatistiche() {
+    if (!statsEmbedFrameEl) return;
+    delete statsEmbedFrameEl.dataset.loaded;
+    delete statsEmbedFrameEl.dataset.ready;
+    statsEmbedFrameEl.dataset.retry = String(Date.now());
+    ensureStatsEmbedLoaded();
+}
+
+function onMessaggioStatistiche(event) {
+    if (event.origin !== window.location.origin) return;
+    if (!statsEmbedFrameEl || event.source !== statsEmbedFrameEl.contentWindow) return;
+    const tipo = event.data && event.data.type;
+    if (tipo === 'gfv-stats-ready') {
+        statsEmbedFrameEl.dataset.ready = '1';
+        annullaTimerStatistiche();
+        nascondiFallbackStatistiche();
+    } else if (tipo === 'gfv-stats-failed') {
+        annullaTimerStatistiche();
+        mostraFallbackStatistiche();
+    }
 }
 
 function maybeLoadEmbedsForSlide(slideTitle) {
@@ -2245,10 +2304,38 @@ function bindPullToRefresh() {
     }, { passive: true });
 }
 
-function syncSegnalaGuastoMenu(availableModules) {
-    if (!fieldSegnalaGuastoLinkEl) return;
-    const mods = Array.isArray(availableModules) ? availableModules : [];
-    fieldSegnalaGuastoLinkEl.hidden = !mods.includes('parcoMacchine');
+function aggiornaVociMenuCampo() {
+    const voci = vociMenuCampo({
+        ruoli: menuRuoliCampo,
+        moduli: menuModuliCampo,
+        numeroAziende: menuNumeroAziende,
+    });
+    if (fieldValidazioneOreLinkEl) {
+        fieldValidazioneOreLinkEl.hidden = !voci.validazioneOre;
+    }
+    if (fieldSegnalaGuastoLinkEl) {
+        fieldSegnalaGuastoLinkEl.hidden = !voci.segnalaGuasto;
+    }
+    if (fieldSwitchTenantButtonEl) {
+        fieldSwitchTenantButtonEl.hidden = !voceCambiaAziendaVisibile(menuNumeroAziende);
+    }
+}
+
+function applicaStatoMenuCampo(pronto) {
+    workspacePronto = pronto === true;
+    const abilitato = menuCampoAbilitato(workspacePronto);
+    if (optionsMenuEl) optionsMenuEl.dataset.pronto = abilitato ? '1' : '0';
+    const preparing = document.getElementById('field-options-preparing');
+    if (preparing) preparing.hidden = abilitato;
+    if (!optionsMenuEl) return;
+    optionsMenuEl.querySelectorAll('.field-options-link').forEach((el) => {
+        if (el.id === 'field-logout-button') {
+            el.removeAttribute('aria-disabled');
+            return;
+        }
+        if (abilitato) el.removeAttribute('aria-disabled');
+        else el.setAttribute('aria-disabled', 'true');
+    });
 }
 
 async function logoutFieldWorkspace() {
@@ -2281,12 +2368,14 @@ async function setupFieldTenantSwitch(userId) {
     try {
         const { getUserTenants } = await import('../../services/tenant-service.js');
         const tenants = await getUserTenants(userId);
-        if (!Array.isArray(tenants) || tenants.length < 2) {
-            fieldSwitchTenantButtonEl.hidden = true;
+        menuNumeroAziende = Array.isArray(tenants) ? tenants.length : 0;
+        aggiornaVociMenuCampo();
+        if (!voceCambiaAziendaVisibile(menuNumeroAziende)) {
+            fieldSwitchTenantButtonEl.onclick = null;
             return;
         }
-        fieldSwitchTenantButtonEl.hidden = false;
         fieldSwitchTenantButtonEl.onclick = async () => {
+            if (!menuCampoAbilitato(workspacePronto)) return;
             try {
                 const { showTenantSelector, handleTenantSelection } = await import('../../services/tenant-selection-service.js');
                 await showTenantSelector(tenants, async (tenantId) => {
@@ -2305,7 +2394,9 @@ async function setupFieldTenantSwitch(userId) {
         };
     } catch (error) {
         console.warn('[FIELD-WORKSPACE] setup cambio azienda:', error);
-        fieldSwitchTenantButtonEl.hidden = true;
+        menuNumeroAziende = 0;
+        aggiornaVociMenuCampo();
+        fieldSwitchTenantButtonEl.onclick = null;
     }
 }
 
@@ -2341,6 +2432,16 @@ function bindToolbar() {
             event.stopPropagation();
             optionsMenuEl.hidden = !optionsMenuEl.hidden;
         });
+        optionsMenuEl.addEventListener('click', (event) => {
+            const target = event.target instanceof Element
+                ? event.target.closest('.field-options-link')
+                : null;
+            if (!target || target.id === 'field-logout-button') return;
+            if (!menuCampoAbilitato(workspacePronto)) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        });
         document.addEventListener('click', (event) => {
             if (!optionsMenuEl.hidden) {
                 const target = event.target;
@@ -2350,6 +2451,13 @@ function bindToolbar() {
                     optionsMenuEl.hidden = true;
                 }
             }
+        });
+    }
+
+    const btnRetryStatistiche = document.getElementById('btn-retry-statistiche');
+    if (btnRetryStatistiche) {
+        btnRetryStatistiche.addEventListener('click', () => {
+            ricaricaStatistiche();
         });
     }
 
@@ -2436,6 +2544,7 @@ function rimandaDashboardTemporanea() {
 
 async function initFieldWorkspace() {
     setStatus('Caricamento workspace mobile...');
+    applicaStatoMenuCampo(false);
     readBootParamsFromUrl();
     applyUrlPreference();
     bindToolbar();
@@ -2554,11 +2663,11 @@ async function initFieldWorkspace() {
                 setupSlidesForRole(isCaposquadra);
                 // Ordine caposquadra richiesto:
                 // Seleziona lavoro (+ squadra inline) -> Comunicazioni -> Segna ore -> I miei lavori -> Statistiche
-                if (fieldValidazioneOreLinkEl) {
-                    fieldValidazioneOreLinkEl.hidden = !isCaposquadra;
-                }
-                syncSegnalaGuastoMenu(availableModules);
-                setupFieldTenantSwitch(user.uid).catch(() => {});
+                menuRuoliCampo = normalizedRoles;
+                menuModuliCampo = availableModules;
+                aggiornaVociMenuCampo();
+                await setupFieldTenantSwitch(user.uid);
+                applicaStatoMenuCampo(true);
                 if (isCaposquadra || isOperaio) {
                     const order = isCaposquadra
                         ? ['Lavoro', 'Comunicazioni', 'Valida ore', 'Ore', 'Statistiche']
@@ -2633,5 +2742,7 @@ async function initFieldWorkspace() {
         setStatus(`Errore avvio: ${error.message}`, true);
     }
 }
+
+window.addEventListener('message', onMessaggioStatistiche);
 
 initFieldWorkspace();
