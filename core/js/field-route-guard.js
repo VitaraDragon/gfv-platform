@@ -9,6 +9,7 @@
 import {
   guardiaRottaCampo,
   indizioRuoliCampo,
+  paginaStrumentoDev,
   urlWorkspaceDaPercorso,
   CHIAVE_INGRESSO_ULTIMO,
   CHIAVE_RIMBALZI_INGRESSO,
@@ -37,6 +38,10 @@ export function avviaGuardiaRottaCampo() {
   if (typeof window === 'undefined' || !window.location) return 'consenti';
   const path = window.location.pathname || '';
   if (/dashboard-standalone/i.test(path)) return 'dashboard';
+  if (paginaStrumentoDev(path)) {
+    rivelaPaginaDesktop();
+    return 'consenti';
+  }
   let ultimo = '';
   let ruoli = [];
   let rimbalzi = 0;

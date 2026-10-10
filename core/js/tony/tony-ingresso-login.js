@@ -104,6 +104,17 @@ export function percorsoConsentitoAlCampo(pathname) {
 }
 
 /**
+ * Il simulatore sceglie la persona. Non è una pagina desktop del profilo campo
+ * e non va rimandato al workspace, altrimenti non si può più cambiare utente.
+ * @param {string} pathname
+ * @returns {boolean}
+ */
+export function paginaStrumentoDev(pathname) {
+  const p = normalizzaPercorso(pathname);
+  return p.indexOf('/core/dev/') >= 0 || p.indexOf('simulator-dev') >= 0;
+}
+
+/**
  * @param {{ ruoli?: string[], moduli?: string[], pathname?: string }} [input]
  * @returns {{ azione: 'consenti'|'workspace' }}
  */

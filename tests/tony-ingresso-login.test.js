@@ -4,6 +4,7 @@ import {
   scegliIngresso,
   eProfiloCampo,
   percorsoConsentitoAlCampo,
+  paginaStrumentoDev,
   guardiaRottaCampo,
   indizioRuoliCampo,
   urlWorkspaceDaPercorso,
@@ -181,6 +182,14 @@ describe('percorsoConsentitoAlCampo', () => {
     desktop.forEach((p) => {
       expect(percorsoConsentitoAlCampo(p), p).toBe(false);
     });
+  });
+});
+
+describe('paginaStrumentoDev', () => {
+  it('il simulatore non è una pagina da rimandare al workspace', () => {
+    expect(paginaStrumentoDev('/core/dev/simulator-dev-standalone.html')).toBe(true);
+    expect(paginaStrumentoDev('/core/terreni-standalone.html')).toBe(false);
+    expect(paginaStrumentoDev('/core/dashboard-standalone.html')).toBe(false);
   });
 });
 
