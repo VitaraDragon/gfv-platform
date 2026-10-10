@@ -153,6 +153,18 @@ export function buildMockCfBundle(scenario) {
     return bundle;
   }
 
+  if (id === 'T-FLOW-036') {
+    bundle.staticResponses['messaggio coda alfa'] = {
+      text: 'Ho letto il primo.',
+      command: null,
+    };
+    bundle.staticResponses['messaggio coda beta'] = {
+      text: 'Ho letto il secondo.',
+      command: null,
+    };
+    return bundle;
+  }
+
   if (id === 'T-FLOW-030') {
     bundle.staticResponses['manutenzione attrezzi'] = {
       text: 'Tutto pronto: Manutenzione attrezzi, ieri 08/10, dalle 05:00 alle 05:30, pausa 0 min. Vuoi salvare?',

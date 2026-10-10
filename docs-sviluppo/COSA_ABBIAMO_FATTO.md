@@ -1,6 +1,22 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-09 — Ingresso dopo il login, caricamento lavori, nome del lavoro.**
+**Ultimo aggiornamento documentazione: 2026-10-09 — Messaggi in attesa se Tony non è pronto.**
+
+## 2026-10-09 — I messaggi scritti prima che Tony sia pronto non si perdono
+
+Se scrivi a Tony prima che sia pronto, il testo resta in attesa e parte da solo, uno alla volta.
+
+Se dopo 45 secondi non è ancora pronto, l’ultimo testo torna nel campo.
+
+Il ripristino della chat non cancella più il messaggio appena scritto.
+
+Interruttore: `TONY_QUEUE_ENABLED` in `core/js/tony/main.js`. Con `false` si torna al comportamento di prima.
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-09 — Ingresso dopo il login, caricamento lavori, nome del lavoro.**
 
 ## 2026-10-09 — Ingresso dopo il login, caricamento lavori e nome del lavoro
 
