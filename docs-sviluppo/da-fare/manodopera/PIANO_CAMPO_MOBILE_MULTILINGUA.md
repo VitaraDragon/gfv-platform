@@ -1,6 +1,6 @@
 # Piano: versione campo unica (mobile) + lingue per operai e caposquadra
 
-**Stato:** deciso, **non implementato** (2026-09-19)  
+**Stato:** deciso. **Parziale** al 2026-10-10: guasti, logout e cambio azienda sono nel workspace mobile. Home unica (D5, niente toggle) ancora no.  
 **Per chi:** ogni agente o sviluppatore che tocca **manodopera campo**, workspace mobile, login operai, comunicazioni squadra, segnalazione guasti, push verso il telefono, Tony profilo campo.  
 **Fonte decisioni:** conversazione product owner 2026-09-19 (traduzione app → perimetro campo → desktop sì/no).  
 **Registro decisioni:** `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md` §24.
@@ -94,7 +94,7 @@ La desktop **non** aggiunge un mestiere. «La mia squadra» in dashboard apre `g
 | `core/admin/lavori-caposquadra-standalone.html` | Dettaglio lavoro, zone (due tocchi), completamento. **Iframe** in slide Ore (`embed=mobile`) + link «Apri in finestra intera» |
 | `core/admin/validazione-ore-standalone.html` | Validazione completa / filtri. Link dalla slide Valida ore e dal menu ⚙️ |
 | `core/admin/impostazioni-standalone.html` | Account, password, preferenze push |
-| `core/admin/segnalazione-guasti-standalone.html` | Form `#segnala-guasto-form` (macchina o generica, GPS, gravità, lavoro). **Oggi assente dalla mobile** — buco D7 |
+| `core/admin/segnalazione-guasti-standalone.html` | Form `#segnala-guasto-form`. Dal 2026-10-10 è un compito del workspace: voce ⚙️ «Segnala guasto» se `parcoMacchine`, per operaio e caposquadra. Ritorno al workspace |
 | `core/mobile/statistiche-lavoratore-standalone.html` | Iframe slide Statistiche |
 | `core/segnatura-ore-standalone.html` | Duplicato del form ore mobile — **non** è la home; dopo D5 non va più proposto come ingresso |
 
@@ -429,7 +429,7 @@ Fino alla Fase 3 il punto 3 può essere «legge la cornice in rumeno e il messag
 | Fase | Stato |
 |------|--------|
 | 0 Documento | **fatto** 2026-09-19 |
-| 1 Home unica + guasti in mobile | pianificato |
+| 1 Home unica + guasti in mobile | **parziale** 2026-10-10 (guasti, logout, cambio azienda; toggle e ingresso desktop ancora presenti) |
 | 2 Cornice IT/RO/EN | pianificato |
 | 3 Traduci comunicazioni | pianificato |
 | 4 Push nella lingua destinatario | pianificato |
