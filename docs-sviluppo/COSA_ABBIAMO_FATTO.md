@@ -1,6 +1,24 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-10 — Il seed di prova include anche sabato e domenica.**
+**Ultimo aggiornamento documentazione: 2026-10-10 — Segnalazione guasti e logout nel workspace di campo.**
+
+## 2026-10-10 — Il campo segnala un guasto dal telefono, ed esce dal menu
+
+Operaio e caposquadra trovano «Segnala guasto» nel menu ⚙️ del workspace, solo se l’azienda ha il Parco Macchine. Si apre lo stesso modulo di prima (macchina o segnalazione generica, gravità, GPS, lavoro). Il caposquadra senza ruolo operaio non viene più rimandato alla dashboard. Il pulsante in alto torna al workspace.
+
+«Esci» nello stesso menu segna l’utente offline e chiude la sessione, come il logout della dashboard. Se la persona ha almeno due aziende, compare «Cambia azienda».
+
+Tony può aprire quella pagina. Non compila i campi. L’elenco guasti dell’ufficio, per questi profili, non si apre.
+
+Il toggle 🖥️ per tornare alla dashboard è ancora lì: si toglie nel passo successivo.
+
+Le guide operaio/caposquadra dicono ancora che i guasti stanno «dalla dashboard in versione completa». Vanno aggiornate a parte: il caposquadra-only ora può segnalare, il logout di campo è «Esci».
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-10 — Il seed di prova include anche sabato e domenica.**
 
 ## 2026-10-10 — Il seed di prova copre tutti i giorni, weekend compreso
 

@@ -340,9 +340,21 @@
                 <p>Segnala guasti alle macchine e gestisci le risoluzioni</p>
             </div>
             <div class="header-actions">
-                <a href="../dashboard-standalone.html" class="btn btn-primary">← Dashboard</a>
+                <a id="guasti-back-link" href="../dashboard-standalone.html" class="btn btn-primary">← Dashboard</a>
             </div>
         </div>
+        <script>
+            (function () {
+                try {
+                    var q = new URLSearchParams(window.location.search || '');
+                    if (q.get('from') !== 'field' && q.get('embed') !== 'mobile') return;
+                    var link = document.getElementById('guasti-back-link');
+                    if (!link) return;
+                    link.href = '../mobile/field-workspace-standalone.html';
+                    link.textContent = '← Campo';
+                } catch (e) { /* ignore */ }
+            })();
+        </script>
 
         <div id="alert-container"></div>
 
@@ -569,6 +581,20 @@
         import { getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, orderBy, serverTimestamp, onSnapshot } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
+        import {
+            puoAprireSegnalazioneGuasti,
+            hrefRitornoSegnalazioneGuasti,
+            etichettaRitornoSegnalazioneGuasti,
+            primoTenantIdUtente,
+            normalizzaRuoliGuasti
+        } from '../js/field-guasti-access.js';
+
+        function applicaRitornoGuasti(ruoli, ruoloSingolo) {
+            const link = document.getElementById('guasti-back-link');
+            if (!link) return;
+            link.href = hrefRitornoSegnalazioneGuasti(ruoli, ruoloSingolo);
+            link.textContent = etichettaRitornoSegnalazioneGuasti(ruoli, ruoloSingolo);
+        }
 
         async function initApp() {
             const { awaitFirebaseEmulatorConnect, awaitAuthStateReady } = await import('../services/firebase-service.js');
@@ -608,7 +634,8 @@
                     const userDoc = await getDoc(doc(db, 'users', user.uid));
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
-                        currentTenantId = userData.tenantId;
+                        currentTenantId = primoTenantIdUtente(userData);
+                        applicaRitornoGuasti(userData.ruoli, userData.ruolo);
                         
                         // Imposta tenantId nel tenant-service per i servizi
                         try {
@@ -626,12 +653,11 @@
                             console.warn('Impossibile impostare Firebase instances nel servizio:', error);
                         }
                         
-                        // Verifica ruolo operaio
-                        const ruoli = userData.ruoli || [];
-                        if (!ruoli.includes('operaio')) {
-                            showAlert('Questa pagina è disponibile solo per operai.', 'error');
+                        // Operaio o caposquadra (anche capo-only). Il manager resta sull'elenco ufficio.
+                        if (!puoAprireSegnalazioneGuasti(userData.ruoli, userData.ruolo)) {
+                            showAlert('Questa pagina è disponibile per operaio e caposquadra.', 'error');
                             setTimeout(() => {
-                                window.location.href = '../dashboard-standalone.html';
+                                window.location.href = hrefRitornoSegnalazioneGuasti(userData.ruoli, userData.ruolo);
                             }, 3000);
                             return;
                         }
@@ -667,7 +693,7 @@
                                     if (!hasParcoMacchine) {
                                         showAlert('Questa pagina è disponibile solo con il modulo Parco Macchine attivo.', 'error');
                                         setTimeout(() => {
-                                            window.location.href = '../dashboard-standalone.html';
+                                            window.location.href = hrefRitornoSegnalazioneGuasti(userData.ruoli, userData.ruolo);
                                         }, 3000);
                                         return;
                                     }
@@ -865,7 +891,7 @@
                         console.warn('Errore caricamento dati utente:', e);
                     }
                     const userData = userDoc?.exists() ? userDoc.data() : null;
-                    const isCaposquadra = userData?.ruolo === 'caposquadra' || (userData?.ruoli && userData.ruoli.includes('caposquadra'));
+                    const isCaposquadra = normalizzaRuoliGuasti(userData?.ruoli, userData?.ruolo).includes('caposquadra');
 
                     // Trova il caposquadra dell'operaio (se è operaio)
                     let caposquadraId = null;

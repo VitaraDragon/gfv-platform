@@ -62,6 +62,10 @@ describe('tony-field-role-guard', () => {
       expect(isRawTonyApriPaginaAllowed('comunicazioni')).toBe(true);
       expect(isRawTonyApriPaginaAllowed('comunicazioni del caposquadra')).toBe(true);
       expect(isRawTonyApriPaginaAllowed('segnatura ore')).toBe(true);
+      expect(isRawTonyApriPaginaAllowed('segnala guasto')).toBe(true);
+      expect(getUrlForTarget(remapTonyApriPaginaTargetForFieldProfile('elenco guasti'))).toMatch(
+        /segnalazione-guasti-standalone\.html/
+      );
     });
 
     it('remap «statistiche» desktop → slide mobile lavoratore', () => {
@@ -112,6 +116,15 @@ describe('tony-field-role-guard', () => {
 
     it('blocca ancora gestione utenti', () => {
       expect(isRawTonyApriPaginaAllowed('gestisci utenti')).toBe(false);
+    });
+
+    it('apre la segnalazione guasti e non l’elenco manager', () => {
+      expect(remapTonyApriPaginaTargetForFieldProfile('guasti')).toBe('segnalazione guasti');
+      expect(remapTonyApriPaginaTargetForFieldProfile('segnala guasto')).toBe('segnalazione guasti');
+      expect(isRawTonyApriPaginaAllowed('segnala guasto')).toBe(true);
+      expect(isRawTonyApriPaginaAllowed('segnalazione guasti')).toBe(true);
+      expect(getUrlForTarget('segnalazione guasti')).toMatch(/segnalazione-guasti-standalone\.html/);
+      expect(getUrlForTarget('guasti')).toMatch(/guasti-list-standalone\.html/);
     });
   });
 

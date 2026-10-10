@@ -11,7 +11,8 @@ import {
     query,
     where,
     serverTimestamp,
-    Timestamp
+    Timestamp,
+    signOut
 } from '../../services/firebase-service.js';
 import { resolveAuthUserWithRetry, loginPageUrl, waitForStandaloneReady } from '../../js/simulator-standalone-page.js';
 import { formatOreNette } from '../../js/attivita-utils.js';
@@ -130,6 +131,9 @@ const pendingHoursListEl = document.getElementById('pending-hours-list');
 const pendingHoursAllListEl = document.getElementById('pending-hours-all-list');
 const btnRefreshPendingHoursEl = document.getElementById('btn-refresh-pending-hours');
 const fieldValidazioneOreLinkEl = document.getElementById('field-validazione-ore-link');
+const fieldSegnalaGuastoLinkEl = document.getElementById('field-segnala-guasto-link');
+const fieldSwitchTenantButtonEl = document.getElementById('field-switch-tenant-button');
+const fieldLogoutButtonEl = document.getElementById('field-logout-button');
 const sentCommunicationsListEl = document.getElementById('sent-communications-list');
 const receivedCommunicationsListEl = document.getElementById('received-communications-list');
 const sentCommunicationsHistoryEl = document.getElementById('sent-communications-history');
@@ -2241,6 +2245,70 @@ function bindPullToRefresh() {
     }, { passive: true });
 }
 
+function syncSegnalaGuastoMenu(availableModules) {
+    if (!fieldSegnalaGuastoLinkEl) return;
+    const mods = Array.isArray(availableModules) ? availableModules : [];
+    fieldSegnalaGuastoLinkEl.hidden = !mods.includes('parcoMacchine');
+}
+
+async function logoutFieldWorkspace() {
+    try {
+        const auth = getAuthInstance();
+        const user = auth && auth.currentUser;
+        if (user) {
+            try {
+                await updateDoc(doc(getDb(), 'users', user.uid), { isOnline: false });
+            } catch (error) {
+                console.warn('[FIELD-WORKSPACE] stato offline prima del logout:', error);
+            }
+        }
+        try {
+            sessionStorage.removeItem('gfv_expected_user_id');
+            sessionStorage.removeItem('gfv_user_just_registered');
+        } catch (error) {
+            /* ignore */
+        }
+        await signOut(auth);
+        window.location.href = await loginPageUrl('../auth/login-standalone.html');
+    } catch (error) {
+        console.error('[FIELD-WORKSPACE] Errore logout:', error);
+        showAlert('Errore durante il logout', 'error');
+    }
+}
+
+async function setupFieldTenantSwitch(userId) {
+    if (!fieldSwitchTenantButtonEl || !userId) return;
+    try {
+        const { getUserTenants } = await import('../../services/tenant-service.js');
+        const tenants = await getUserTenants(userId);
+        if (!Array.isArray(tenants) || tenants.length < 2) {
+            fieldSwitchTenantButtonEl.hidden = true;
+            return;
+        }
+        fieldSwitchTenantButtonEl.hidden = false;
+        fieldSwitchTenantButtonEl.onclick = async () => {
+            try {
+                const { showTenantSelector, handleTenantSelection } = await import('../../services/tenant-selection-service.js');
+                await showTenantSelector(tenants, async (tenantId) => {
+                    try {
+                        await handleTenantSelection(tenantId);
+                        window.location.reload();
+                    } catch (error) {
+                        console.error('[FIELD-WORKSPACE] cambio azienda:', error);
+                        showAlert('Errore durante il cambio azienda. Riprova.', 'error');
+                    }
+                });
+            } catch (error) {
+                console.error('[FIELD-WORKSPACE] selettore azienda:', error);
+                showAlert('Errore durante il cambio azienda. Riprova.', 'error');
+            }
+        };
+    } catch (error) {
+        console.warn('[FIELD-WORKSPACE] setup cambio azienda:', error);
+        fieldSwitchTenantButtonEl.hidden = true;
+    }
+}
+
 function bindToolbar() {
     const setPref = (value) => {
         const fn = fieldWorkspaceUtils().setFieldWorkspacePreference || setFieldWorkspacePreference;
@@ -2259,6 +2327,12 @@ function bindToolbar() {
             setPref('auto');
             setModeButtonsState('mobile');
             setStatus('Versione mobile attiva.');
+        });
+    }
+
+    if (fieldLogoutButtonEl) {
+        fieldLogoutButtonEl.addEventListener('click', () => {
+            logoutFieldWorkspace().catch(() => {});
         });
     }
 
@@ -2483,6 +2557,8 @@ async function initFieldWorkspace() {
                 if (fieldValidazioneOreLinkEl) {
                     fieldValidazioneOreLinkEl.hidden = !isCaposquadra;
                 }
+                syncSegnalaGuastoMenu(availableModules);
+                setupFieldTenantSwitch(user.uid).catch(() => {});
                 if (isCaposquadra || isOperaio) {
                     const order = isCaposquadra
                         ? ['Lavoro', 'Comunicazioni', 'Valida ore', 'Ore', 'Statistiche']
