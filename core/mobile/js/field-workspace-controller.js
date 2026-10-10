@@ -17,12 +17,12 @@ import { resolveAuthUserWithRetry, loginPageUrl, waitForStandaloneReady } from '
 import { formatOreNette } from '../../js/attivita-utils.js';
 import { showAlert } from '../../js/gfv-page-utils.js';
 import { eLavoroSospeso } from '../../js/tony/tony-ora-lavoro-match.js';
-import { CHIAVE_RIMBALZI_INGRESSO } from '../../js/tony/tony-ingresso-login.js?v=2026-10-09f';
-import { conTimeout, prossimaAttesaRiprova } from '../../js/tony/tony-attesa-riprova.js?v=2026-10-09f';
+import { CHIAVE_RIMBALZI_INGRESSO } from '../../js/tony/tony-ingresso-login.js?v=2026-10-09g';
+import { conTimeout, prossimaAttesaRiprova } from '../../js/tony/tony-attesa-riprova.js?v=2026-10-09g';
 import {
     righeGiornoDopoEliminazione,
     righeGiornoDopoSalvataggio
-} from '../../js/tony/tony-riepilogo-giorno.js?v=2026-10-09f';
+} from '../../js/tony/tony-riepilogo-giorno.js?v=2026-10-09g';
 import {
     salvaNuovaOra,
     modificaOraPropria,

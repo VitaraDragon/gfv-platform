@@ -1,6 +1,36 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-09 — Ingresso dopo il login, caricamento lavori, nome del lavoro.**
+**Ultimo aggiornamento documentazione: 2026-10-10 — Il seed di prova include anche sabato e domenica.**
+
+## 2026-10-10 — Il seed di prova copre tutti i giorni, weekend compreso
+
+In campagna si lavora anche sabato e domenica. L’app non vietava già quei giorni.
+
+Il calendario del simulatore, invece, saltava il weekend. Di sabato «oggi» restava senza il turno 07:30–12:00 e Tony non poteva avvisare della sovrapposizione.
+
+Ora il seed scrive ore e turni anche di sabato e domenica. Uno scenario che usa «oggi» funziona qualunque giorno parta la CI.
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-09 — Messaggi in attesa se Tony non è pronto.**
+
+## 2026-10-09 — I messaggi scritti prima che Tony sia pronto non si perdono
+
+Se scrivi a Tony prima che sia pronto, il testo resta in attesa e parte da solo, uno alla volta. Il secondo parte solo dopo la risposta del primo.
+
+Se dopo 45 secondi non è ancora pronto, l’ultimo testo torna nel campo.
+
+Il ripristino della chat non cancella più il messaggio appena scritto.
+
+Interruttore: `TONY_QUEUE_ENABLED` in `core/js/tony/main.js`. Con `false` si torna al comportamento di prima.
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-09 — Ingresso dopo il login, caricamento lavori, nome del lavoro.**
 
 ## 2026-10-09 — Ingresso dopo il login, caricamento lavori e nome del lavoro
 
