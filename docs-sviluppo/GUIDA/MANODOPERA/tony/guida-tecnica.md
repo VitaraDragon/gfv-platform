@@ -54,7 +54,7 @@ Alias: **segnatura ore** / **segnare ore**, **validazione ore** / **validare ore
 
 ## Messaggi prima che Tony sia pronto
 
-Se scrivi prima che Tony sia pronto, il testo non si perde. Resta in attesa (al massimo 3) e parte da solo appena è pronto, uno alla volta. Sotto compare «In attesa che Tony sia pronto…». Se dopo 45 secondi non è pronto, l’ultimo testo torna nel campo e Tony dice «Tony non è pronto. Riprova tra poco.». Il ripristino della chat non cancella un messaggio già scritto. Interruttore: `TONY_QUEUE_ENABLED` in `core/js/tony/main.js`. Logica in `core/js/tony/tony-invio-coda.js`.
+Se scrivi prima che Tony sia pronto, il testo non si perde. Resta in attesa (al massimo 3) e parte da solo appena è pronto, uno alla volta. Il successivo parte solo dopo la risposta del precedente. Sotto compare «In attesa che Tony sia pronto…». Se dopo 45 secondi non è pronto, l’ultimo testo torna nel campo e Tony dice «Tony non è pronto. Riprova tra poco.». Il ripristino della chat non cancella un messaggio già scritto. Interruttore: `TONY_QUEUE_ENABLED` in `core/js/tony/main.js`. Logica in `core/js/tony/tony-invio-coda.js`.
 
 ## Zone lavorate (dettaglio lavoro)
 

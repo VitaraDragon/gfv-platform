@@ -112,10 +112,12 @@ export async function runFlowCodaPronta036(page, expect, scenario) {
   });
   const iPrimo = dopo.tony.findIndex((t) => t.indexOf('Ho letto il primo') >= 0);
   const iSecondo = dopo.tony.findIndex((t) => t.indexOf('Ho letto il secondo') >= 0);
-  expect(iPrimo).toBeGreaterThanOrEqual(0);
-  expect(iSecondo).toBeGreaterThan(iPrimo);
-  expect(dopo.utenti.indexOf('messaggio coda alfa')).toBeGreaterThanOrEqual(0);
-  expect(dopo.utenti.indexOf('messaggio coda beta')).toBeGreaterThan(dopo.utenti.indexOf('messaggio coda alfa'));
+  const ordineTony = dopo.tony.join(' | ');
+  const ordineUtenti = dopo.utenti.join(' | ');
+  expect(iPrimo, ordineTony).toBeGreaterThanOrEqual(0);
+  expect(iSecondo, ordineTony).toBeGreaterThan(iPrimo);
+  expect(dopo.utenti.indexOf('messaggio coda alfa'), ordineUtenti).toBeGreaterThanOrEqual(0);
+  expect(dopo.utenti.indexOf('messaggio coda beta'), ordineUtenti).toBeGreaterThan(dopo.utenti.indexOf('messaggio coda alfa'));
   expect(dopo.chat).not.toContain('ancora occupato');
   expect(dopo.chat).not.toContain('non è ancora pronto');
 }

@@ -18,7 +18,7 @@ Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
 
 ## 2026-10-09 — I messaggi scritti prima che Tony sia pronto non si perdono
 
-Se scrivi a Tony prima che sia pronto, il testo resta in attesa e parte da solo, uno alla volta.
+Se scrivi a Tony prima che sia pronto, il testo resta in attesa e parte da solo, uno alla volta. Il secondo parte solo dopo la risposta del primo.
 
 Se dopo 45 secondi non è ancora pronto, l’ultimo testo torna nel campo.
 

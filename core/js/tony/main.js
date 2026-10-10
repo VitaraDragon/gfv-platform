@@ -7617,6 +7617,8 @@ if (typeof window !== 'undefined') {
         var _timerScadenzaCodaInvio = null;
         var _codaInvioInstallata = false;
         var _svuotaCodaInCorso = false;
+        var _codaTurnoInCorso = false;
+        var _codaRispostaInArrivo = false;
 
         function statoCodaInvio() {
             var typing = false;
@@ -7699,9 +7701,16 @@ if (typeof window !== 'undefined') {
             if (inputEl && testo) inputEl.value = testo;
         }
 
+        function chiudiTurnoCodaInvio() {
+            _codaRispostaInArrivo = false;
+            if (!_codaTurnoInCorso) return;
+            _codaTurnoInCorso = false;
+            svuotaCodaInvioTony();
+        }
+
         function svuotaCodaInvioTony() {
             if (!TONY_QUEUE_ENABLED) return;
-            if (_svuotaCodaInCorso) return;
+            if (_codaTurnoInCorso || _svuotaCodaInCorso) return;
             _svuotaCodaInCorso = true;
             var inviato = false;
             try {
@@ -7714,16 +7723,16 @@ if (typeof window !== 'undefined') {
                     if (riga) riga.remove();
                     annullaTimerScadenzaCoda();
                 }
+                _codaTurnoInCorso = true;
+                _codaRispostaInArrivo = false;
                 inviato = true;
                 sendMessage(esito.voce.text, { _dallaCoda: true });
             } finally {
                 _svuotaCodaInCorso = false;
             }
-            if (inviato && !_isSendingMessage && !isWaitingForTonyResponse) {
-                var ancoraTyping = false;
-                try { ancoraTyping = !!(messagesEl && messagesEl.querySelector('.tony-msg.typing')); } catch (eAt) { ancoraTyping = false; }
-                if (!ancoraTyping) svuotaCodaInvioTony();
-            }
+            if (!inviato || _codaRispostaInArrivo || _isSendingMessage) return;
+            _codaTurnoInCorso = false;
+            svuotaCodaInvioTony();
         }
 
         function installaCodaInvioTony() {
@@ -8417,6 +8426,9 @@ if (typeof window !== 'undefined') {
                     window.__tonyLavoroCreationTurnBusy = false;
                     _isSendingMessage = false;
                     if (opts.fromVoice) isWaitingForTonyResponse = false;
+                    if (TONY_QUEUE_ENABLED) {
+                        try { chiudiTurnoCodaInvio(); } catch (eCodaLav) { /* ignore */ }
+                    }
                 });
                 return;
             }
@@ -8445,6 +8457,9 @@ if (typeof window !== 'undefined') {
                     }).finally(function () {
                         window.__tonyLavoroCreationTurnBusy = false;
                         _isSendingMessage = false;
+                        if (TONY_QUEUE_ENABLED) {
+                            try { chiudiTurnoCodaInvio(); } catch (eCodaIv) { /* ignore */ }
+                        }
                     });
                     return;
             }
@@ -9606,7 +9621,7 @@ if (typeof window !== 'undefined') {
                 if (micBtn) micBtn.disabled = false;
                 inputEl.focus();
                 if (TONY_QUEUE_ENABLED) {
-                    try { svuotaCodaInvioTony(); } catch (eCodaFine) { /* ignore */ }
+                    try { chiudiTurnoCodaInvio(); } catch (eCodaFine) { /* ignore */ }
                 }
             }
 
@@ -9751,6 +9766,9 @@ if (typeof window !== 'undefined') {
                 inputEl.disabled = false;
                 var micUnlock = document.getElementById('tony-mic');
                 if (micUnlock) micUnlock.disabled = false;
+                if (TONY_QUEUE_ENABLED) {
+                    try { chiudiTurnoCodaInvio(); } catch (eCodaLocale) { /* ignore */ }
+                }
             }
 
             function tonyFinalizeSendToCf() {
@@ -9789,6 +9807,7 @@ if (typeof window !== 'undefined') {
             }
 
             if (!opts.proactive && !opts._displayOnly) {
+                _codaRispostaInArrivo = true;
                 import('./meteo-dashboard-quick-reply.js').then(function(meteoMod) {
                     if (!meteoMod.isTonyDashboardPagePath || !meteoMod.isTonyDashboardPagePath()) {
                         tonyFinalizeSendToCf();
