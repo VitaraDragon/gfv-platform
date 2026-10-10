@@ -73,7 +73,7 @@ import { ensureStandaloneReadyPlaceholder, settleStandaloneReady } from './stand
       return Promise.resolve();
     }
     window.__gfvStandaloneShellRequested = true;
-    return loadScript(new URL('gfv-standalone-shell.js?v=2026-10-09f', import.meta.url).href);
+    return loadScript(new URL('gfv-standalone-shell.js?v=2026-10-09g', import.meta.url).href);
   }
 
   ensureStandaloneReadyPlaceholder();
