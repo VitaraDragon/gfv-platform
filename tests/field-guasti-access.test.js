@@ -8,6 +8,7 @@ import {
     testoOpzioneTrattore,
     deveTentareSospensioneLavoroGuasto,
     esitoSegnalazioneGuasto,
+    testoConfermaSegnalazione,
 } from '../core/js/field-guasti-access.js';
 import {
     voceCambiaAziendaVisibile,
@@ -119,6 +120,22 @@ describe('esitoSegnalazioneGuasto', () => {
     });
 });
 
+describe('testoConfermaSegnalazione', () => {
+    it('dal campo torna da solo; con avviso resta e offre il pulsante', () => {
+        expect(testoConfermaSegnalazione({ dalCampo: true, haAvvisi: false })).toEqual({
+            titolo: 'Segnalazione inviata. Grazie.',
+            dettaglio: 'Torno al workspace…',
+            tornaAutomatico: true,
+            mostraTornaWorkspace: false,
+        });
+        const conAvviso = testoConfermaSegnalazione({ dalCampo: true, haAvvisi: true });
+        expect(conAvviso.tornaAutomatico).toBe(false);
+        expect(conAvviso.mostraTornaWorkspace).toBe(true);
+        expect(testoConfermaSegnalazione({ dalCampo: false, haAvvisi: false }).dettaglio)
+            .toContain('I Miei Guasti Segnalati');
+    });
+});
+
 describe('menu campo', () => {
     it('voceCambiaAziendaVisibile solo da due aziende', () => {
         expect(voceCambiaAziendaVisibile(0)).toBe(false);
@@ -163,9 +180,20 @@ describe('menu campo', () => {
         expect(ritornoValidazioneOre({ ruoli: ['operaio'] }).etichetta).toBe('← Campo');
         expect(ritornoValidazioneOre({ da: 'field', ruoli: ['manager', 'caposquadra'] })).toEqual({
             etichetta: '← Dashboard',
-            href: '../../modules/manodopera/views/manodopera-home-standalone.html',
+            href: '../dashboard-standalone.html',
         });
-        expect(ritornoValidazioneOre({ ruoli: ['manager'] }).etichetta).toBe('← Dashboard');
+        expect(ritornoValidazioneOre({ ruoli: ['manager'] })).toEqual({
+            etichetta: '← Dashboard',
+            href: '../dashboard-standalone.html',
+        });
+        expect(ritornoValidazioneOre({ da: 'field', ruoli: ['manager'] }).href).toBe('../dashboard-standalone.html');
+        expect(ritornoValidazioneOre({ ruoli: ['caposquadra'] })).toEqual({
+            etichetta: '← Campo',
+            href: '../mobile/field-workspace-standalone.html',
+        });
+        expect(ritornoValidazioneOre({ da: 'field', ruoli: ['operaio'] }).etichetta).toBe('← Campo');
+        expect(ritornoValidazioneOre({ ruoloSingolo: 'caposquadra' }).etichetta).toBe('← Campo');
+        expect(ritornoValidazioneOre({ da: 'field', ruoli: ['amministratore', 'caposquadra'] }).etichetta).toBe('← Dashboard');
     });
 
     it('menuCampoAbilitato', () => {

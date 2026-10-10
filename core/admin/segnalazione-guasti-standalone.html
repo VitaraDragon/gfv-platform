@@ -237,27 +237,61 @@
             gap: 10px;
         }
 
-        .alert {
+        #alert-container .alert {
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
             display: none;
         }
 
-        .alert-success {
+        #alert-container .alert-success {
             background: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
         }
 
-        .alert-error {
+        #alert-container .alert-error {
             background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
 
-        .alert.show {
+        #alert-container .alert-warning,
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        #alert-container .alert.show {
             display: block;
+        }
+
+        .banner-segnalazione {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 30000;
+            padding: 16px 20px;
+            background: #d4edda;
+            color: #155724;
+            border-bottom: 3px solid #c3e6cb;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .banner-segnalazione.con-avviso {
+            background: #fff3cd;
+            color: #856404;
+            border-bottom-color: #ffeaa7;
+        }
+
+        .banner-segnalazione p {
+            margin: 6px 0 0;
+        }
+
+        .banner-segnalazione button {
+            margin-top: 10px;
         }
 
         .empty-state {
@@ -579,7 +613,7 @@
         }
 
         import { getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
-        import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, orderBy, serverTimestamp, onSnapshot } from '../services/firebase-service.js';
+        import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, orderBy, serverTimestamp, onSnapshot, deleteField } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
         import {
             puoAprireSegnalazioneGuasti,
@@ -589,9 +623,18 @@
             normalizzaRuoliGuasti,
             testoOpzioneTrattore,
             deveTentareSospensioneLavoroGuasto,
-            esitoSegnalazioneGuasto
+            esitoSegnalazioneGuasto,
+            testoConfermaSegnalazione,
+            ritornoWorkspaceCampoDaGuasti
         } from '../js/field-guasti-access.js';
         import { buildSospendiLavoroPatch } from '../services/lavoro-sospensione.js';
+        import {
+            esitoRipresaDopoGuasto,
+            buildRiprendiLavoroPatch,
+            patchRipresaPerFirestore,
+            testoToastRipresa
+        } from '../services/lavoro-ripresa-guasto.js';
+        import { macchinaSelezionabile, suffissoMacchinaNonSelezionabile } from '../js/macchina-selezionabile.js';
 
         function provenienzaGuastiPagina() {
             try {
@@ -600,6 +643,40 @@
                 if (q.get('embed') === 'mobile') return 'mobile';
             } catch (e) { /* ignore */ }
             return '';
+        }
+
+        function mostraBannerSegnalazione(testo) {
+            let banner = document.getElementById('banner-segnalazione');
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'banner-segnalazione';
+                banner.setAttribute('role', 'status');
+                document.body.appendChild(banner);
+            }
+            banner.className = 'banner-segnalazione' + (testo.mostraTornaWorkspace ? ' con-avviso' : '');
+            banner.textContent = '';
+            const titolo = document.createElement('strong');
+            titolo.textContent = testo.titolo;
+            const dettaglio = document.createElement('p');
+            dettaglio.textContent = testo.dettaglio;
+            banner.appendChild(titolo);
+            banner.appendChild(dettaglio);
+            if (testo.mostraTornaWorkspace) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-primary';
+                btn.textContent = 'Torna al workspace';
+                btn.addEventListener('click', () => {
+                    window.location.href = '../mobile/field-workspace-standalone.html';
+                });
+                banner.appendChild(btn);
+            }
+            window.scrollTo(0, 0);
+            if (testo.tornaAutomatico) {
+                setTimeout(() => {
+                    window.location.href = '../mobile/field-workspace-standalone.html';
+                }, 2000);
+            }
         }
 
         function applicaRitornoGuasti(ruoli, ruoloSingolo) {
@@ -632,6 +709,7 @@
             let ruoloSingoloGuasti = null;
             let macchineList = [];
             let lavoriList = [];
+            let guastiMiei = [];
             let terreniMap = new Map(); // Mappa terreni per lookup rapido
             let guastiUnsubscribe = null;
             
@@ -647,7 +725,9 @@
                 if (!user) user = await resolveAuthUser(auth);
                 if (user) {
                     currentUser = user;
+                    const tUtente0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
                     const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    console.info('[segnalazione-guasti] lettura utente ms', Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - tUtente0));
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
                         currentTenantId = primoTenantIdUtente(userData);
@@ -680,10 +760,15 @@
                             return;
                         }
 
-                        // Verifica modulo Parco Macchine
+                        const tMacchine = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                        const caricoMacchine = loadMacchine();
+
+                        // Verifica modulo Parco Macchine (in parallelo con le macchine)
                         if (currentTenantId) {
                             try {
+                                const tTenant = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
                                 const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                                console.info('[segnalazione-guasti] lettura tenant ms', Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - tTenant));
                                 if (tenantDoc.exists()) {
                                     const tenantData = tenantDoc.data();
                                     const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
@@ -727,11 +812,13 @@
                         setupMapsButton();
                         setupGpsCaptureButton();
 
-                        // Carica macchine, terreni e lavori in parallelo dove possibile
+                        // Macchine già partite appena noto il tenant. Terreni e lavori a seguire.
                         await Promise.all([
-                            loadMacchine(),
+                            caricoMacchine,
                             loadTerreni(),
                         ]);
+                        const tFineMacchine = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                        console.info('[segnalazione-guasti] macchine pronte ms', Math.round(tFineMacchine - tMacchine));
                         await new Promise(resolve => setTimeout(resolve, 100));
                         await loadLavori();
                         await setupGuastiRealtime();
@@ -753,6 +840,36 @@
                 console.info('[segnalazione-guasti] macchine lette:', macchineList.length, 'trattori in elenco:', n);
             }
 
+            function guastoApertoSuMacchina(macchinaId) {
+                if (!macchinaId || !Array.isArray(guastiMiei)) return false;
+                return guastiMiei.some((g) => {
+                    if (!g) return false;
+                    const stato = String(g.stato || '').toLowerCase();
+                    if (stato === 'risolto' || stato === 'riparato' || stato === 'chiuso') return false;
+                    return g.macchinaId === macchinaId || g.attrezzoId === macchinaId;
+                });
+            }
+
+            function aggiungiOpzioneMezzo(select, macchina, emoji, nomeFallback) {
+                if (!select || !macchina) return;
+                const esito = macchinaSelezionabile(macchina, {
+                    contesto: 'nuovo-guasto',
+                    guastoAperto: guastoApertoSuMacchina(macchina.id)
+                });
+                if (esito.motivo === 'dismesso') return;
+                const option = document.createElement('option');
+                option.value = macchina.id;
+                option.textContent = `${emoji} ${macchina.nome || nomeFallback}${suffissoMacchinaNonSelezionabile(esito)}`;
+                option.disabled = !esito.ok;
+                select.appendChild(option);
+            }
+
+            function popolaOpzionePerTipo(macchina, macchinaSelect, attrezzoSelect) {
+                const tipoMacchina = String(macchina.tipoMacchina || macchina.tipo || '').toLowerCase().trim();
+                if (tipoMacchina === 'trattore') aggiungiOpzioneMezzo(macchinaSelect, macchina, '🚜', 'Trattore senza nome');
+                else if (tipoMacchina === 'attrezzo') aggiungiOpzioneMezzo(attrezzoSelect, macchina, '⚙️', 'Attrezzo senza nome');
+            }
+
             async function loadMacchine() {
                 try {
                     if (!currentTenantId) return;
@@ -763,8 +880,8 @@
                     
                     if (!macchinaSelect || !attrezzoSelect) return;
                     
-                    macchinaSelect.innerHTML = '<option value="">-- Seleziona trattore --</option>';
-                    attrezzoSelect.innerHTML = '<option value="">-- Nessun attrezzo --</option>';
+                    macchinaSelect.innerHTML = '<option value="">Carico le macchine…</option>';
+                    attrezzoSelect.innerHTML = '<option value="">Carico le macchine…</option>';
 
                     if (isFileProtocol) {
                         // Fallback per ambiente file://
@@ -776,19 +893,7 @@
                             const data = doc.data();
                             if (String(data.stato || '').toLowerCase() !== 'dismesso') {
                                 macchineList.push({ id: doc.id, ...data });
-                                const tipoMacchina = String(data.tipoMacchina || data.tipo || '').toLowerCase().trim();
-                                
-                                if (tipoMacchina === 'trattore') {
-                                    const option = document.createElement('option');
-                                    option.value = doc.id;
-                                    option.textContent = `🚜 ${data.nome || 'Trattore senza nome'}`;
-                                    macchinaSelect.appendChild(option);
-                                } else if (tipoMacchina === 'attrezzo') {
-                                    const option = document.createElement('option');
-                                    option.value = doc.id;
-                                    option.textContent = `⚙️ ${data.nome || 'Attrezzo senza nome'}`;
-                                    attrezzoSelect.appendChild(option);
-                                }
+                                popolaOpzionePerTipo({ id: doc.id, ...data }, macchinaSelect, attrezzoSelect);
                             }
                         });
                     } else {
@@ -806,12 +911,14 @@
                             
                             // Usa servizio centralizzato
                             const { getAllMacchine } = await import('../../modules/parco-macchine/services/macchine-service.js');
+                            const tGetMacchine = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
                             let macchine = await getAllMacchine({
                                 // Non usiamo soloAttive per evitare problemi con indice Firestore
                                 // Filtriamo lato client invece
                                 orderBy: 'nome',
                                 orderDirection: 'asc'
                             });
+                            console.info('[segnalazione-guasti] getAllMacchine ms', Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - tGetMacchine));
                             
                             // Filtra lato client: solo macchine non dismesse
                             macchine = macchine.filter(m => String(m.stato || '').toLowerCase() !== 'dismesso');
@@ -831,19 +938,7 @@
                             
                             // Popola dropdown
                             macchineList.forEach(macchina => {
-                                const tipoMacchina = String(macchina.tipoMacchina || macchina.tipo || '').toLowerCase().trim();
-                                
-                                if (tipoMacchina === 'trattore') {
-                                    const option = document.createElement('option');
-                                    option.value = macchina.id;
-                                    option.textContent = `🚜 ${macchina.nome || 'Trattore senza nome'}`;
-                                    macchinaSelect.appendChild(option);
-                                } else if (tipoMacchina === 'attrezzo') {
-                                    const option = document.createElement('option');
-                                    option.value = macchina.id;
-                                    option.textContent = `⚙️ ${macchina.nome || 'Attrezzo senza nome'}`;
-                                    attrezzoSelect.appendChild(option);
-                                }
+                                popolaOpzionePerTipo(macchina, macchinaSelect, attrezzoSelect);
                             });
                         } catch (error) {
                             console.error('Errore caricamento macchine dal servizio:', error);
@@ -855,19 +950,7 @@
                                 const data = doc.data();
                                 if (String(data.stato || '').toLowerCase() !== 'dismesso') {
                                     macchineList.push({ id: doc.id, ...data });
-                                    const tipoMacchina = String(data.tipoMacchina || data.tipo || '').toLowerCase().trim();
-                                    
-                                    if (tipoMacchina === 'trattore') {
-                                        const option = document.createElement('option');
-                                        option.value = doc.id;
-                                        option.textContent = `🚜 ${data.nome || 'Trattore senza nome'}`;
-                                        macchinaSelect.appendChild(option);
-                                    } else if (tipoMacchina === 'attrezzo') {
-                                        const option = document.createElement('option');
-                                        option.value = doc.id;
-                                        option.textContent = `⚙️ ${data.nome || 'Attrezzo senza nome'}`;
-                                        attrezzoSelect.appendChild(option);
-                                    }
+                                    popolaOpzionePerTipo({ id: doc.id, ...data }, macchinaSelect, attrezzoSelect);
                                 }
                             });
                         }
@@ -1619,6 +1702,16 @@
                                         : new Date(b.data().segnalatoIl || 0);
                                     return dateB - dateA; // Più recente prima
                                 });
+                            guastiMiei = filtered.map((d) => ({ id: d.id, ...d.data() }));
+                            ['guasto-macchina', 'guasto-attrezzo'].forEach((idSel) => {
+                                const select = document.getElementById(idSel);
+                                if (!select) return;
+                                Array.from(select.options).forEach((opt) => {
+                                    if (!opt.value || !guastoApertoSuMacchina(opt.value)) return;
+                                    opt.disabled = true;
+                                    if (opt.textContent.indexOf('già in guasto') < 0) opt.textContent += ' (già in guasto)';
+                                });
+                            });
                             
                             renderGuasti({ docs: filtered });
                         },
@@ -1993,7 +2086,12 @@
                         showAlert('Errore segnalazione: ' + esito.errore, 'error');
                     }
                     if (esito.successo) {
-                        showAlert('Segnalazione inviata.', 'success');
+                        const dalCampo = provenienzaGuastiPagina() === 'field'
+                            && ritornoWorkspaceCampoDaGuasti(ruoliUtenteGuasti, ruoloSingoloGuasti);
+                        mostraBannerSegnalazione(testoConfermaSegnalazione({
+                            dalCampo,
+                            haAvvisi: esito.avvisi.length > 0
+                        }));
                     }
                     esito.avvisi.forEach((avviso) => showAlert(avviso, 'warning'));
                     if (esito.chiudi) {
@@ -2114,21 +2212,29 @@
                         }
                     }
 
-                    // Se c'era un lavoro sospeso, riattivalo (il manager dovrà confermare)
+                    // Se il lavoro è sospeso per questo guasto e non ce ne sono altri aperti, riprendi.
                     if (guastoData.lavoroId) {
-                        const lavoroRef = doc(db, `tenants/${currentTenantId}/lavori`, guastoData.lavoroId);
-                        const lavoroDoc = await getDoc(lavoroRef);
-                        if (lavoroDoc.exists()) {
-                            const lavoroData = lavoroDoc.data();
-                            const motivoSospensione = tipoGuasto === 'macchina' 
-                                ? 'Guasto macchina grave' 
-                                : 'Segnalazione grave';
-                            if (lavoroData.stato === 'sospeso' && lavoroData.motivoSospensione === motivoSospensione) {
-                                // Non riattiviamo automaticamente, il manager deve decidere
-                                await updateDoc(lavoroRef, {
-                                    motivoSospensione: `${tipoGuasto === 'macchina' ? 'Guasto' : 'Segnalazione'} risolto - In attesa riattivazione Manager`
+                        try {
+                            const lavoroRef = doc(db, `tenants/${currentTenantId}/lavori`, guastoData.lavoroId);
+                            const lavoroDoc = await getDoc(lavoroRef);
+                            if (lavoroDoc.exists()) {
+                                const lavoro = { id: lavoroDoc.id, ...lavoroDoc.data() };
+                                const esitoRipresa = esitoRipresaDopoGuasto({
+                                    lavoro,
+                                    guasti: guastiMiei.map((g) => (g.id === guastoId ? { ...g, stato: 'risolto' } : g)),
+                                    guastoId
                                 });
+                                if (esitoRipresa.riprendi) {
+                                    const patch = buildRiprendiLavoroPatch(lavoro, new Date());
+                                    await updateDoc(lavoroRef, patchRipresaPerFirestore(patch, deleteField));
+                                    showAlert(testoToastRipresa(lavoro.nome, { ripreso: true }), 'success');
+                                } else if (esitoRipresa.motivo === 'altro-guasto') {
+                                    showAlert(testoToastRipresa(lavoro.nome, { altroGuasto: true }), 'warning');
+                                }
                             }
+                        } catch (ripresaErr) {
+                            console.warn('[segnalazione-guasti] ripresa lavoro:', ripresaErr);
+                            showAlert(testoToastRipresa('', { fallita: true }), 'warning');
                         }
                     }
 

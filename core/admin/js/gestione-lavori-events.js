@@ -18,6 +18,10 @@ import {
     parseSospensioneCausa,
     sospensioneFieldsForModificaSave
 } from '../../services/lavoro-sospensione.js';
+import {
+    erroreSalvataggioStato,
+    statoPerSelectModifica
+} from '../../services/lavoro-ripresa-guasto.js';
 
 // ============================================
 // FUNZIONI SETUP HANDLERS
@@ -422,6 +426,24 @@ export function clearFilters(lavoriList, filteredLavoriList, hasManodoperaModule
 // FUNZIONI MODAL LAVORO
 // ============================================
 
+/** Imposta la select Stato. `attivo` diventa In corso. Uno stato sconosciuto resta visibile e blocca il salvataggio. */
+export function applicaStatoModificaInSelect(select, stato) {
+    if (!select) return;
+    const vecchia = select.querySelector('option[data-stato-non-valido="1"]');
+    if (vecchia) vecchia.remove();
+    const mapped = statoPerSelectModifica(stato);
+    if (mapped.nonValido) {
+        const opt = document.createElement('option');
+        opt.value = '__non_valido__';
+        opt.dataset.statoNonValido = '1';
+        opt.textContent = mapped.etichettaExtra;
+        select.appendChild(opt);
+        select.value = '__non_valido__';
+        return;
+    }
+    select.value = mapped.valore || 'assegnato';
+}
+
 /** Mostra motivo/nota solo quando lo stato del form è Sospeso. */
 export function syncLavoroSospensioneFields() {
     const stato = document.getElementById('lavoro-stato')?.value;
@@ -746,7 +768,7 @@ export async function openModificaModal(
     if (lavoroIdInput) lavoroIdInput.value = lavoroId;
     if (lavoroNomeInput) lavoroNomeInput.value = lavoro.nome || '';
     if (lavoroNoteInput) lavoroNoteInput.value = lavoro.note || '';
-    if (lavoroStatoSelect) lavoroStatoSelect.value = lavoro.stato || 'assegnato';
+    applicaStatoModificaInSelect(lavoroStatoSelect, lavoro.stato);
     if ((lavoro.stato || '') === 'sospeso') {
         applySospensioneCausaToForm(lavoro.sospensioneCausa);
     } else {
@@ -1658,7 +1680,47 @@ export async function handleSalvaLavoro(
     generaVoceDiarioContoTerziCallback
 ) {
     event.preventDefault();
-    
+    const submitBtn = (event && event.submitter) || document.querySelector('#lavoro-form button[type="submit"]');
+    if (submitBtn) submitBtn.disabled = true;
+    try {
+    await salvaLavoroCorpo(
+        state,
+        updateState,
+        currentTenantId,
+        db,
+        currentUserData,
+        closeLavoroModalCallback,
+        loadLavoriCallback,
+        loadStatisticsCallback,
+        loadTrattoriCallback,
+        loadAttrezziCallback,
+        updateMacchinaStatoCallback,
+        generaVoceDiarioContoTerziCallback
+    );
+    } catch (error) {
+        console.error('Errore salvataggio lavoro:', error);
+        const motivo = (error && error.message) ? error.message : 'Non sono riuscito a salvare il lavoro.';
+        console.warn('[GESTIONE-LAVORI] salvataggio interrotto:', motivo);
+        showAlert(`Errore: ${motivo}`, 'error');
+    } finally {
+        if (submitBtn) submitBtn.disabled = false;
+    }
+}
+
+async function salvaLavoroCorpo(
+    state,
+    updateState,
+    currentTenantId,
+    db,
+    currentUserData,
+    closeLavoroModalCallback,
+    loadLavoriCallback,
+    loadStatisticsCallback,
+    loadTrattoriCallback,
+    loadAttrezziCallback,
+    updateMacchinaStatoCallback,
+    generaVoceDiarioContoTerziCallback
+) {
     const nome = document.getElementById('lavoro-nome').value.trim();
     let terrenoId = document.getElementById('lavoro-terreno').value;
     if (!terrenoId && state.currentLavoroId && state.lavoriList) {
@@ -1678,7 +1740,16 @@ export async function handleSalvaLavoro(
     const categoriaLavoroId = sottocategoriaId || categoriaPrincipaleId;
     const durataPrevista = parseInt(document.getElementById('lavoro-durata').value);
     const statoSelect = document.getElementById('lavoro-stato');
-    let stato = state.hasManodoperaModule ? (statoSelect?.value || 'assegnato') : 'in_corso';
+    let stato = 'in_corso';
+    if (state.hasManodoperaModule) {
+        const erroreStato = erroreSalvataggioStato(statoSelect?.value || '');
+        if (erroreStato) {
+            console.warn('[GESTIONE-LAVORI] salvataggio interrotto:', erroreStato);
+            showAlert(erroreStato, 'error');
+            return;
+        }
+        stato = statoSelect.value;
+    }
     const note = document.getElementById('lavoro-note').value.trim();
     
     // Determina tipo assegnazione (solo se Manodopera attivo)
@@ -1753,7 +1824,7 @@ export async function handleSalvaLavoro(
     }
     
     try {
-        const { Timestamp, serverTimestamp, doc, collection, addDoc, updateDoc, getDoc } = await import('../../services/firebase-service.js');
+        const { Timestamp, serverTimestamp, doc, collection, addDoc, updateDoc, getDoc, deleteField } = await import('../../services/firebase-service.js');
         
         // Se il lavoro era "da_pianificare" e ora ha tutti i campi necessari, passa automaticamente a "assegnato"
         const lavoroOriginale = state.currentLavoroId ? state.lavoriList.find(l => l.id === state.currentLavoroId) : null;
@@ -1807,7 +1878,10 @@ export async function handleSalvaLavoro(
             pianificazioneId: pianificazioneId || null // Collegamento a pianificazione impianto
         };
 
-        if (sospensionePlan.fields) {
+        if (sospensionePlan.fields && sospensionePlan.fields.clearSospensione) {
+            lavoroData.sospensioneCausa = deleteField();
+            lavoroData.sospensioneIl = deleteField();
+        } else if (sospensionePlan.fields) {
             lavoroData.sospensioneCausa = sospensionePlan.fields.sospensioneCausa;
             if (sospensionePlan.fields.writeSospensioneIl) {
                 lavoroData.sospensioneIl = serverTimestamp();
@@ -2225,6 +2299,8 @@ export async function handleSalvaLavoro(
         if (loadStatisticsCallback) await loadStatisticsCallback();
     } catch (error) {
         console.error('Errore salvataggio lavoro:', error);
-        showAlert(`Errore: ${error.message}`, 'error');
+        const motivo = (error && error.message) ? error.message : 'Non sono riuscito a salvare il lavoro.';
+        console.warn('[GESTIONE-LAVORI] salvataggio interrotto:', motivo);
+        showAlert(`Errore: ${motivo}`, 'error');
     }
 }

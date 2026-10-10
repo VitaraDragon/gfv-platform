@@ -1,6 +1,22 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-10 — Menu campo: voci giuste, guasto che non resta bloccato.**
+**Ultimo aggiornamento documentazione: 2026-10-10 — Il lavoro riparte quando il guasto è risolto.**
+
+## 2026-10-10 — Guasto risolto, lavoro ripreso
+
+Se un guasto grave aveva fermato un lavoro, «Segna risolto» in Officina e guasti lo rimette in marcia. Lo stato torna «In corso» se il lavoro era già avanti, altrimenti «Assegnato». Non resta più la parola grezza «attivo». Se ci sono altri guasti aperti sullo stesso lavoro, resta sospeso e il messaggio lo dice. Se la ripresa non riesce, il guasto resta risolto e compare «Riprendi lavoro».
+
+Dopo «Segnala» si legge «Segnalazione inviata. Grazie.» Dal telefono si torna al workspace. Se un aggiornamento della macchina o del lavoro non è permesso, l’avviso resta in vista e il ritorno automatico non parte.
+
+Una macchina già in guasto non si può riselezionare per un guasto nuovo né per un lavoro nuovo. La Mietitrebbia, se in anagrafica è un trattore, resta tra i trattori: non c’è un tipo a parte.
+
+Le ore dell’operaio si leggono insieme, non una dopo l’altra. Le statistiche dicono «Carico le tue ore…» mentre aspettano. In Validazione ore, «← Campo» torna al workspace e «← Dashboard» torna alla dashboard.
+
+Il menu mostra «Cambia azienda» solo con più aziende e «Validazione ore» solo al caposquadra. Il pulsante indietro dei guasti dipende da dove arrivi. La segnalazione non resta bloccata se un aggiornamento secondario non è permesso. Il menu aspetta che il workspace sia pronto. Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-10 — Menu campo: voci giuste, guasto che non resta bloccato.**
 
 ## 2026-10-10 — Il menu del campo mostra solo quello che ti spetta, e la segnalazione guasto non resta aperta
 

@@ -104,6 +104,14 @@ describe('sospensione operativa vs standby assenza', () => {
       note: 'pioggia',
     });
     expect(aperto).toEqual({ ok: true, fields: null });
+
+    const ripreso = sospensioneFieldsForModificaSave({
+      nuovoStato: 'in_corso',
+      statoPrecedente: 'sospeso',
+      sospensioneCausaEsistente: 'Guasto macchina grave',
+      hasSospensioneIl: true,
+    });
+    expect(ripreso).toEqual({ ok: true, fields: { clearSospensione: true } });
   });
 
   it('Modifica: lavoro già sospeso non ricalcola sospensioneIl e tiene il testo del Capo', () => {

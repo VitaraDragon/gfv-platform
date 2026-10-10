@@ -182,7 +182,8 @@ Serve quando l’azienda ha il modulo **Parco Macchine** attivo e ti compare la 
 
 ### Dopo l’invio
 
-- La segnalazione segue lo stato mostrato in elenco (**in attesa**, ecc.).  
+- La segnalazione segue lo stato mostrato in elenco (**in attesa**, ecc.).
+- Subito dopo l’invio leggi **Segnalazione inviata. Grazie.** Dal telefono torni al workspace. Se qualcosa sulla macchina o sul lavoro non si aggiorna, l’avviso resta e non ti porta via da solo.  
 - Dove previsto dall’interfaccia, puoi registrare **note di risoluzione** (e talvolta **costo** ricambi) sulle **tue** segnalazioni quando il problema è stato sistemato: segui le etichette in schermata.
 
 ---

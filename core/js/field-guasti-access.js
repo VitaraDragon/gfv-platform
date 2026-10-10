@@ -111,6 +111,23 @@ export function esitoSegnalazioneGuasto({ scritturaPrincipaleOk, secondarie } = 
 }
 
 /**
+ * Testo del banner dopo un invio riuscito.
+ * Dal profilo campo si torna al workspace. Se un aggiornamento secondario
+ * è fallito, niente ritorno automatico: l’utente deve poter leggere l’avviso.
+ * @param {{ dalCampo?: boolean, haAvvisi?: boolean }} input
+ */
+export function testoConfermaSegnalazione({ dalCampo, haAvvisi } = {}) {
+  return {
+    titolo: 'Segnalazione inviata. Grazie.',
+    dettaglio: haAvvisi
+      ? 'Non ho potuto aggiornare lo stato della macchina o del lavoro: avvisa il tuo responsabile.'
+      : (dalCampo ? 'Torno al workspace…' : 'La trovi in «I Miei Guasti Segnalati».'),
+    tornaAutomatico: !!dalCampo && !haAvvisi,
+    mostraTornaWorkspace: !!dalCampo && !!haAvvisi
+  };
+}
+
+/**
  * tenantId sul documento utente, altrimenti la membership attiva.
  * Stesso ordine di resolveCurrentTenantId in dashboard-standalone.html.
  */

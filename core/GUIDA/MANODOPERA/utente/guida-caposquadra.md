@@ -274,7 +274,8 @@ Se colleghi la segnalazione a un **lavoro** e scegli **grave**, l’app può **s
 
 ### Dopo l’invio
 
-- La segnalazione risulta di solito **in attesa** finché il manager non decide.  
+- La segnalazione risulta di solito **in attesa** finché il manager non decide.
+- Subito dopo l’invio leggi **Segnalazione inviata. Grazie.** Dal telefono torni al workspace. Quando il responsabile segna il guasto risolto, il lavoro fermo riparte.  
 - Il mezzo può risultare **in stato guasto** secondo le regole dell’app; per i non gravi a volte il mezzo resta utilizzabile con cautela finché non si interviene.
 
 ### Come si “risolve” un guasto (ruoli)
