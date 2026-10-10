@@ -379,8 +379,25 @@
                 <a href="../../modules/manodopera/views/manodopera-home-standalone.html" id="dashboard-link" class="btn btn-secondary">← Dashboard</a>
             </div>
         </div>
+        <script>
+            (function () {
+                try {
+                    var q = new URLSearchParams(window.location.search || '');
+                    if (q.get('from') !== 'field') return;
+                    var link = document.getElementById('dashboard-link');
+                    if (!link) return;
+                    link.href = '../mobile/field-workspace-standalone.html';
+                    link.textContent = '← Campo';
+                } catch (e) { /* ignore */ }
+            })();
+        </script>
 
-        <div class="content">
+        <div id="validazione-permesso-negato" hidden style="margin: 16px; padding: 16px; background: #fff; border-radius: 8px;">
+            <p style="margin: 0 0 12px;">Non hai i permessi per questa pagina.</p>
+            <a id="validazione-ritorno-negato" class="btn btn-secondary" href="../../modules/manodopera/views/manodopera-home-standalone.html">← Dashboard</a>
+        </div>
+
+        <div class="content" id="validazione-contenuto" hidden>
             <div id="alert-container"></div>
             
             <div class="stats-grid">
@@ -536,6 +553,7 @@
         import { formatPosizioneRilevamentoCompactHtml } from '../js/geo-capture.js';
         import { showAlert } from '../js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../js/simulator-standalone-page.js';
+        import { ritornoValidazioneOre } from '../mobile/js/field-menu-visibility.js';
 
         try {
             await window.GFVStandaloneReady;
@@ -754,14 +772,33 @@
                     // Verifica permessi (caposquadra O manager/amministratore)
                     const isCaposquadra = currentUserData.ruoli && currentUserData.ruoli.includes('caposquadra');
                     const isManager = currentUserData.ruoli && (currentUserData.ruoli.includes('manager') || currentUserData.ruoli.includes('amministratore'));
+                    const daValidazione = new URLSearchParams(window.location.search || '').get('from') === 'field' ? 'field' : '';
+                    const ritornoOre = ritornoValidazioneOre({
+                        da: daValidazione,
+                        ruoli: currentUserData.ruoli,
+                        ruoloSingolo: currentUserData.ruolo
+                    });
+                    const linkDash = document.getElementById('dashboard-link');
+                    if (linkDash) {
+                        linkDash.href = ritornoOre.href;
+                        linkDash.textContent = ritornoOre.etichetta;
+                    }
                     
                     if (!isCaposquadra && !isManager) {
-                        showAlert('Non hai i permessi per accedere a questa pagina', 'error');
-                        setTimeout(() => {
-                            window.location.href = '../dashboard-standalone.html';
-                        }, 2000);
+                        const contenuto = document.getElementById('validazione-contenuto');
+                        if (contenuto) contenuto.hidden = true;
+                        const negato = document.getElementById('validazione-permesso-negato');
+                        const linkNegato = document.getElementById('validazione-ritorno-negato');
+                        if (linkNegato) {
+                            linkNegato.href = ritornoOre.href;
+                            linkNegato.textContent = ritornoOre.etichetta;
+                        }
+                        if (negato) negato.hidden = false;
                         return;
                     }
+
+                    const contenutoOk = document.getElementById('validazione-contenuto');
+                    if (contenutoOk) contenutoOk.hidden = false;
 
                     // Verifica se modulo Manodopera è attivo
                     let hasManodoperaModule = false;

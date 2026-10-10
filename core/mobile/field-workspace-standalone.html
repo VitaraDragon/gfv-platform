@@ -28,12 +28,13 @@
             </div>
             <div class="field-options-wrap">
                 <button class="field-icon-toggle" id="btn-open-options" type="button" aria-label="Opzioni" title="Opzioni">⚙️</button>
-                <div class="field-options-menu" id="field-options-menu" hidden>
-                    <a id="field-documentation-guide-link" href="../../documentazione-utente/guida-manodopera-utente.html?ruolo=operaio&amp;soloRuolo=1" class="field-options-link" target="_blank" rel="opener">Guida Manodopera</a>
-                    <a id="field-validazione-ore-link" href="../admin/validazione-ore-standalone.html" class="field-options-link" hidden>Validazione ore (schermo intero)</a>
-                    <a id="field-segnala-guasto-link" href="../admin/segnalazione-guasti-standalone.html?from=field" class="field-options-link" hidden>Segnala guasto</a>
-                    <a href="../admin/impostazioni-standalone.html" class="field-options-link">Impostazioni account</a>
-                    <button type="button" id="field-switch-tenant-button" class="field-options-link" hidden>Cambia azienda</button>
+                <div class="field-options-menu" id="field-options-menu" hidden data-pronto="0">
+                    <p id="field-options-preparing" class="field-options-note">Sto preparando il workspace…</p>
+                    <a id="field-documentation-guide-link" href="../../documentazione-utente/guida-manodopera-utente.html?ruolo=operaio&amp;soloRuolo=1" class="field-options-link" target="_blank" rel="opener" aria-disabled="true">Guida Manodopera</a>
+                    <a id="field-validazione-ore-link" href="../admin/validazione-ore-standalone.html?from=field" class="field-options-link" hidden aria-disabled="true">Validazione ore (schermo intero)</a>
+                    <a id="field-segnala-guasto-link" href="../admin/segnalazione-guasti-standalone.html?from=field" class="field-options-link" hidden aria-disabled="true">Segnala guasto</a>
+                    <a href="../admin/impostazioni-standalone.html" class="field-options-link" aria-disabled="true">Impostazioni account</a>
+                    <button type="button" id="field-switch-tenant-button" class="field-options-link" hidden aria-disabled="true">Cambia azienda</button>
                     <button type="button" id="field-logout-button" class="field-options-link">Esci</button>
                 </div>
             </div>
@@ -238,7 +239,11 @@
                     </div>
                 </div>
                 <div class="slide-body slide-body-brand slide-body-iframe-tall">
-                    <iframe id="stats-embed-frame" class="slide-frame frame-summary" title="Le tue statistiche" loading="lazy"></iframe>
+                    <div id="stats-embed-fallback" class="stats-embed-fallback" hidden>
+                        <p>Non riesco a caricare le statistiche. Riprova.</p>
+                        <button type="button" id="btn-retry-statistiche" class="field-mobile-btn">Riprova</button>
+                    </div>
+                    <iframe id="stats-embed-frame" class="slide-frame frame-summary" title="Le tue statistiche"></iframe>
                 </div>
             </article>
         </section>

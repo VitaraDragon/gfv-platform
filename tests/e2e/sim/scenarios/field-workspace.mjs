@@ -46,6 +46,15 @@ export async function runOperaioFieldWorkspaceAssertions(page, expect) {
   await expect(receivedComm).toBeAttached();
   const commText = (await receivedComm.textContent()) || '';
   expect(commText).not.toMatch(/Caricamento comunicazioni/i);
+
+  await page.locator('#btn-open-options').click();
+  await expect(page.locator('#field-options-menu')).toBeVisible();
+  const displayNascosto = await page.evaluate(() => ({
+    validazione: getComputedStyle(document.getElementById('field-validazione-ore-link')).display,
+    cambia: getComputedStyle(document.getElementById('field-switch-tenant-button')).display,
+  }));
+  expect(displayNascosto.validazione).toBe('none');
+  expect(displayNascosto.cambia).toBe('none');
 }
 
 /** Assert workspace caricato per ruolo caposquadra (+ sezioni capo). */

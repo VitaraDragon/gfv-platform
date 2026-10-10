@@ -1,6 +1,18 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-10 — Segnalazione guasti e logout nel workspace di campo.**
+**Ultimo aggiornamento documentazione: 2026-10-10 — Menu campo: voci giuste, guasto che non resta bloccato.**
+
+## 2026-10-10 — Il menu del campo mostra solo quello che ti spetta, e la segnalazione guasto non resta aperta
+
+Nel menu ⚙️ «Cambia azienda» compare solo se hai più di un’azienda. «Validazione ore» compare solo per il caposquadra. Finché il workspace sta ancora partendo, le voci restano ferme e si può solo uscire.
+
+Il pulsante indietro della segnalazione guasti dipende da dove arrivi: dal telefono torna al campo, dalla dashboard torna alla dashboard.
+
+Se il guasto è stato salvato ma un aggiornamento della macchina o del lavoro non è permesso, vedi la conferma e il form si chiude. Un avviso chiede di avvisare il responsabile. Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-10 — Segnalazione guasti e logout nel workspace di campo.**
 
 ## 2026-10-10 — Il campo segnala un guasto dal telefono, ed esce dal menu
 
