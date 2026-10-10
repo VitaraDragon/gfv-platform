@@ -192,6 +192,14 @@ describe('menu campo', () => {
             href: '../mobile/field-workspace-standalone.html',
         });
         expect(ritornoValidazioneOre({ da: 'field', ruoli: ['operaio'] }).etichetta).toBe('← Campo');
+        expect(ritornoValidazioneOre({ da: 'field' })).toEqual({
+            etichetta: '← Campo',
+            href: '../mobile/field-workspace-standalone.html',
+        });
+        expect(ritornoValidazioneOre({ da: 'field', ruoli: [] })).toEqual({
+            etichetta: '← Campo',
+            href: '../mobile/field-workspace-standalone.html',
+        });
         expect(ritornoValidazioneOre({ ruoloSingolo: 'caposquadra' }).etichetta).toBe('← Campo');
         expect(ritornoValidazioneOre({ da: 'field', ruoli: ['amministratore', 'caposquadra'] }).etichetta).toBe('← Dashboard');
     });

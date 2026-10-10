@@ -803,6 +803,7 @@
         import { onAuthStateChanged } from '../services/firebase-service.js';
         import { resolveAuthUser, loginPageUrl } from '../js/simulator-standalone-page.js';
         import { fetchLavoriDocumentsForFieldUser, sliceOperaioLavoriWindow } from '../services/manodopera-lavori-scope.js';
+        import { hrefElencoLavoriCampo } from '../mobile/js/field-lavori-embed.js';
         import {
             isLavoroVendemmiaMeccanica,
             countZoneLavorateSameDay,
@@ -1563,7 +1564,7 @@
                                 <p>Lavoro non trovato o non assegnato a te</p>
                                 <p style="font-size: 14px; margin-top: 10px;">Verifica la selezione nel workspace mobile o apri l'elenco completo.</p>
                                 <p style="margin-top: 16px;">
-                                    <a class="btn btn-primary" href="lavori-caposquadra-standalone.html?ws=classic">Vedi tutti i lavori</a>
+                                    <a class="btn btn-primary" href="${hrefElencoLavoriCampo({ inIframe: isEmbedMobile })}">Vedi tutti i lavori</a>
                                 </p>
                             </div>
                         `;
@@ -1666,7 +1667,7 @@
                 html += `
                     <div class="focus-lavoro-banner" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border: 1px solid #a5d6a7; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">
                         <div style="font-size: 14px; color: #1b5e20;"><strong>Vista lavoro attivo</strong> — dettaglio del solo incarico selezionato.</div>
-                        <a class="btn btn-secondary" href="lavori-caposquadra-standalone.html?ws=classic" style="font-size: 13px;">Mostra tutti i lavori</a>
+                        <a class="btn btn-secondary" href="${hrefElencoLavoriCampo({ inIframe: isEmbedMobile })}" style="font-size: 13px;">Mostra tutti i lavori</a>
                     </div>
                 `;
             }
@@ -1995,7 +1996,7 @@
                     gfvMapTraceLog('impossibile salvare return URL parent', String(e));
                 }
                 const next = new URL(window.location.href);
-                next.searchParams.set('ws', 'classic');
+                next.searchParams.delete('ws');
                 next.searchParams.set('embed', 'mobile');
                 next.searchParams.set('focusLavoroId', lavoroId);
                 next.searchParams.set('traceLavoroId', lavoroId);
