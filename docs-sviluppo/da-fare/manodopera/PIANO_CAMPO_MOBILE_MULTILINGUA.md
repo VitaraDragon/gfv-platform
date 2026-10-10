@@ -1,6 +1,6 @@
 # Piano: versione campo unica (mobile) + lingue per operai e caposquadra
 
-**Stato:** deciso. **Parziale** al 2026-10-10: guasti, logout e cambio azienda sono nel workspace mobile. Home unica (D5, niente toggle) ancora no.  
+**Stato:** deciso. **D5 e D8 attuati** al 2026-10-10 (step b): il profilo campo ha una sola casa, il workspace, anche da PC. Niente toggle desktop. Manager e manager+capo restano in dashboard. Le lingue (fasi 2–5) restano da fare.  
 **Per chi:** ogni agente o sviluppatore che tocca **manodopera campo**, workspace mobile, login operai, comunicazioni squadra, segnalazione guasti, push verso il telefono, Tony profilo campo.  
 **Fonte decisioni:** conversazione product owner 2026-09-19 (traduzione app → perimetro campo → desktop sì/no).  
 **Registro decisioni:** `docs-sviluppo/TONY_DECISIONI_E_REQUISITI.md` §24.
@@ -82,7 +82,7 @@ Tony profilo campo (`field-role-guard.js`): whitelist `workspace campo`, comunic
 | Ingresso | Cosa succede |
 |----------|----------------|
 | Default | `shouldUseFieldMobileWorkspace` → mobile anche da PC (`pref !== 'classic'`) |
-| Toggle 🖥️ in header mobile | `setFieldWorkspacePreference('classic')` → `dashboard-standalone.html?ws=classic` |
+| Toggle 🖥️ in header mobile | **chiuso nello step b (2026-10-10).** Il profilo campo non salva più `classic` e non va in dashboard. Manager e manager+capo restano in dashboard |
 | Dashboard classica capo/operaio | Sezioni in `dashboard-sections.js`: card duplicate (Workspace, Segna ore, I miei lavori, Valida ore, Gestione squadre, Guasti) |
 
 La desktop **non** aggiunge un mestiere. «La mia squadra» in dashboard apre `gestione-squadre-standalone.html` in **sola lettura**; in mobile i contatti (chiama/mail) sono già nella scheda Lavoro. Il capo **non** crea/modifica squadre (è del manager).
@@ -429,7 +429,7 @@ Fino alla Fase 3 il punto 3 può essere «legge la cornice in rumeno e il messag
 | Fase | Stato |
 |------|--------|
 | 0 Documento | **fatto** 2026-09-19 |
-| 1 Home unica + guasti in mobile | **parziale** 2026-10-10 (guasti, logout, cambio azienda; toggle e ingresso desktop ancora presenti) |
+| 1 Home unica + guasti in mobile | **fatto** 2026-10-10 (step b: niente toggle, niente ingresso desktop per il profilo campo, «Apro il tuo lavoro…», indirizzo desktop digitato a mano → workspace). Guasti, logout e cambio azienda erano già nello step a) |
 | 2 Cornice IT/RO/EN | pianificato |
 | 3 Traduci comunicazioni | pianificato |
 | 4 Push nella lingua destinatario | pianificato |

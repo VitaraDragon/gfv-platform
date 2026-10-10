@@ -10,6 +10,7 @@
  */
 
 import { ensureStandaloneReadyPlaceholder, settleStandaloneReady } from './standalone-ready.js';
+import { avviaGuardiaRottaCampo } from './field-route-guard.js';
 
 (function bootstrap() {
   const step = (name) => `[standalone-bootstrap] ${name}`;
@@ -80,6 +81,9 @@ import { ensureStandaloneReadyPlaceholder, settleStandaloneReady } from './stand
   const promise = new Promise((resolve, reject) => {
     (async () => {
       try {
+        try {
+          if (avviaGuardiaRottaCampo() === 'workspace') return;
+        } catch (guardErr) { /* la pagina resta usabile */ }
         // 1) Contesto: data-config-base → GFV_CONFIG_BASE (per config-loader)
         const dataBase = getConfigBaseFromScript();
         if (dataBase !== undefined) {

@@ -26,7 +26,7 @@ Profilo campo = ruoli solo operaio e/o caposquadra, modulo manodopera, senza man
 | Guida | op+capo | menu dashboard | ⚙️ «Guida Manodopera» | OK |
 | Tony | op+capo | widget dashboard | stesso widget (`standalone-bootstrap.js` + contesto profilo campo) | OK. Whitelist `segnalazione guasti`: apre la pagina, non compila il form. «Elenco guasti» del manager non si apre |
 | Cambio tenant (se ≥2) | op+capo | `#switch-tenant-button` se `getUserTenants` > 1 | ⚙️ «Cambia azienda», stesso `showTenantSelector`. Nascosto anche nello stile (non solo con l’attributo hidden) se c’è un solo tenant. Il conteggio si aspetta prima di mostrarla | OK. Nascosto se c’è un solo tenant |
-| Toggle desktop/mobile | op+capo | — | `#btn-mode-mobile` / `#btn-mode-desktop` | ancora presente. Fuori da questo step: si toglie nello step b) |
+| Toggle desktop/mobile | op+capo | — | rimosso nello step b) | il profilo campo non ha più 🖥️ né 📱. `?ws=classic` non è una casa. Un indirizzo desktop digitato a mano torna al workspace |
 
 ## Decisioni chiuse senza fermarsi
 
@@ -44,6 +44,6 @@ Profilo campo = ruoli solo operaio e/o caposquadra, modulo manodopera, senza man
 
 ## Note guide (non riscritte in questo step)
 
-- `core/GUIDA/MANODOPERA/tony/guida-tecnica.md` e `documentazione-utente/guida-manodopera-utente.html` dicono ancora che i guasti si trovano dalla dashboard in versione completa (la guida apre la dashboard con `ws=classic`).
+- La guida aperta dal menu campo non manda più l’operaio o il caposquadra alla dashboard con `ws=classic`.
 - Il caposquadra-only ora può segnalare, se l’azienda ha Parco Macchine.
-- Il logout di campo è «Esci» nel menu ⚙️. Il toggle 🖥️ resta fino allo step b).
+- Il logout di campo è «Esci» nel menu ⚙️. Il toggle 🖥️ è stato tolto nello step b).
