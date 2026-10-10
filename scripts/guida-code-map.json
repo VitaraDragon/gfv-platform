@@ -105,6 +105,70 @@
       "label": "Tony: scelta del lavoro nominato quando segni le ore"
     },
     {
+      "prefix": "core/js/tony/tony-riepilogo-giorno",
+      "modules": [
+        "TONY",
+        "MANODOPERA"
+      ],
+      "label": "Tony: riepilogo ore del giorno aggiornato subito dopo salva/elimina"
+    },
+    {
+      "prefix": "core/js/tony/tony-ingresso-login",
+      "modules": [
+        "TONY",
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Ingresso dopo il login: workspace campo o dashboard, decisione unica"
+    },
+    {
+      "prefix": "core/js/tony/tony-attesa-riprova",
+      "modules": [
+        "TONY",
+        "MANODOPERA"
+      ],
+      "label": "Attese con limite e Riprova (caricamento lavori workspace campo)"
+    },
+    {
+      "prefix": "core/js/gfv-standalone-head-bootstrap.js",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Bootstrap head pagine standalone (build ?v= Tony)"
+    },
+    {
+      "prefix": "core/js/gfv-standalone-shell.js",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Shell standalone (stesso build del loader Tony)"
+    },
+    {
+      "prefix": "core/js/gfv-tony-tenant-bootstrap.js",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Bootstrap tenant/piano per Tony"
+    },
+    {
+      "prefix": "core/js/standalone-bootstrap.js",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Bootstrap comune pagine standalone"
+    },
+    {
+      "prefix": "core/js/tony-widget-standalone.js",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Widget Tony standalone"
+    },
+    {
       "prefix": "core/js/tony/",
       "modules": [
         "TONY"

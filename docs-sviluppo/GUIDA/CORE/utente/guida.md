@@ -133,6 +133,8 @@ Se l’abbonamento non include moduli extra (vigneto, manodopera, magazzino, …
 
 Se il tuo unico ruolo è **operaio** o **caposquadra**, la dashboard mostra in genere la **versione mobile** o sezioni dedicate al campo, non questa panoramica da ufficio. Senza **modulo Manodopera** attivo può comparire un avviso che invita ad attivarlo.
 
+Con **Manodopera** attivo, dopo il login l’operaio e il caposquadra vanno **direttamente** alla versione mobile («Apro il tuo lavoro…»), senza vedere prima la dashboard. Se hanno scelto loro la versione desktop, l’app se lo ricorda; per tornare alla mobile c’è **📱 Workspace Mobile** nelle **Azioni rapide**. Se l’area non si apre, la dashboard mostra «Non riesco ad aprire la tua area. Riprova» con il pulsante **Riprova**. Manager e amministratore restano sempre sulla dashboard.
+
 ---
 
 ## Prima cosa: dati aziendali e poderi

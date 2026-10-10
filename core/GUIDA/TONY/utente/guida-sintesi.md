@@ -23,7 +23,7 @@ Snapshot da `dashboard-counts-snapshot` + testi `dashboard-tony-briefing-text.js
 
 ## Intervista vocale (Avanzato)
 
-Client-side su Gestione lavori / ore: `__tonyLavoroCreationFlow`, segna ore senza orari; conferme esplicite «sì»/«apri»; disambiguazione terreno/macchina. **Preventivi Conto Terzi:** se fornisci cliente + coltura senza terreno, Tony tenta risoluzione automatica; se ambiguo, chiede quale terreno.
+Client-side su Gestione lavori / ore: `__tonyLavoroCreationFlow`, segna ore senza orari (data per richiesta, oggi se non detta; «Tutto pronto» con giorno; dopo Annulla un «sì» non salva; «Fatto» solo a ora salvata, altrimenti il motivo; lavoro inesistente/finito → «Non trovo un lavoro attivo con questo nome» — dettaglio sintesi Manodopera); conferme esplicite «sì»/«apri»; disambiguazione terreno/macchina. **Preventivi Conto Terzi:** se fornisci cliente + coltura senza terreno, Tony tenta risoluzione automatica; se ambiguo, chiede quale terreno.
 
 ## Foto bolla / fattura (Avanzato + Magazzino)
 

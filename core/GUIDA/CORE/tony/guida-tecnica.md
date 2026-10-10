@@ -31,6 +31,7 @@ Layout **panoramica** (manager/admin, non solo operaio/caposquadra):
 - Manager/admin **con** Manodopera: stesso blocco panoramica (variant menu `manodopera`); **non** monta `createManagerSection` sotto.
 - Manager **con** moduli avanzati **senza** Manodopera: panoramica **+** tile modulo in `container` (`createVignetoCard`, `createMagazzinoCard`, …).
 - Operaio/caposquadra soli: `createCoreBaseSection` o sezioni ruolo; messaggio se Manodopera assente.
+- Ingresso dopo il login (#169): prima di disegnare, `applicaIngressoDopoLogin` → `spiegaIngressoDopoLogin` (`core/js/tony/tony-ingresso-login.js`) decide una volta sola workspace / dashboard / errore; `?ws=classic&una_volta=1` non salva la preferenza. Dettaglio in `GUIDA/MANODOPERA/tony/guida-tecnica.md` § Versione mobile.
 - Header: **Invita collaboratore** se `hasManodopera` + manager/admin; **Mappa** se manager/admin.
 
 Legacy (deprecato in UX utente): `createManagerSection`, card affitti standalone — sostituiti da hub/scadenze dove possibile.

@@ -23,7 +23,7 @@ Apri il riquadro, scegli la voce; se ci sono due livelli (es. categoria coltura 
 
 ## Ruoli e moduli
 
-Dashboard e voci dipendono da **ruolo**, **piano** e **moduli attivi**. Operaio/caposquadra: versione mobile o sezioni campo, non panoramica ufficio. Senza modulo Manodopera: niente squadre/lavori strutturati — non è un errore.
+Dashboard e voci dipendono da **ruolo**, **piano** e **moduli attivi**. Operaio/caposquadra: versione mobile o sezioni campo, non panoramica ufficio. Con Manodopera, dopo il login vanno subito alla versione mobile («Apro il tuo lavoro…»); la desktop resta solo se scelta da loro (ritorno: **📱 Workspace Mobile**); errore: «Non riesco ad aprire la tua area. Riprova». Senza modulo Manodopera: niente squadre/lavori strutturati — non è un errore.
 
 ## Tony con solo app base / piano Base senza automazioni
 
