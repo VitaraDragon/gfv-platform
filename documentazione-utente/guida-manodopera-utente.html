@@ -389,9 +389,13 @@
         });
     }
     if (soloRuolo && dashboardLink) {
-        var dash = dashboardHref + (dashboardHref.indexOf('?') >= 0 ? '&' : '?') + 'ws=classic';
-        dashboardLink.href = dash;
-        dashboardLink.removeAttribute('hidden');
+        var ruoloCampo = q === 'operaio' || q === 'caposquadra' || initial === 'guida-operaio.md' || initial === 'guida-caposquadra.md';
+        if (ruoloCampo && q !== 'manager') {
+            dashboardLink.hidden = true;
+        } else {
+            dashboardLink.href = dashboardHref;
+            dashboardLink.removeAttribute('hidden');
+        }
     }
 
     var subEl = document.querySelector('.doc-header .sub');

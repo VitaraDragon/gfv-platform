@@ -23,7 +23,7 @@ import {
     menuCampoAbilitato,
 } from './field-menu-visibility.js';
 import { eLavoroSospeso } from '../../js/tony/tony-ora-lavoro-match.js';
-import { CHIAVE_RIMBALZI_INGRESSO } from '../../js/tony/tony-ingresso-login.js?v=2026-10-09g';
+import { CHIAVE_RIMBALZI_INGRESSO, scriviIndizioIngresso, pulisciIndizioIngresso } from '../../js/tony/tony-ingresso-login.js?v=2026-10-09g';
 import { conTimeout, prossimaAttesaRiprova } from '../../js/tony/tony-attesa-riprova.js?v=2026-10-09g';
 import {
     righeGiornoDopoEliminazione,
@@ -94,8 +94,7 @@ import { syncPienoCampoSection } from './pieno-campo-ui.js';
 
 const {
     normalizeRoles,
-    hasAnyRole,
-    setFieldWorkspacePreference
+    hasAnyRole
 } = window.GFVDashboardUtils || {};
 
 const statusEl = document.getElementById('field-mobile-status');
@@ -150,8 +149,6 @@ const operaioContactNameEl = document.getElementById('operaio-contact-name');
 const operaioContactSubEl = document.getElementById('operaio-contact-sub');
 const operaioContactCallEl = document.getElementById('operaio-contact-call');
 const operaioContactMailEl = document.getElementById('operaio-contact-mail');
-const btnModeMobileEl = document.getElementById('btn-mode-mobile');
-const btnModeDesktopEl = document.getElementById('btn-mode-desktop');
 const btnOpenOptionsEl = document.getElementById('btn-open-options');
 const optionsMenuEl = document.getElementById('field-options-menu');
 const fieldToolbarUserEl = document.getElementById('field-toolbar-user');
@@ -257,19 +254,6 @@ function updateFieldHeaderUser(displayName, roles) {
     fieldToolbarUserEl.hidden = false;
 }
 
-function getWorkspacePreferenceFromUrl() {
-    try {
-        const params = new URLSearchParams(window.location.search || '');
-        const ws = params.get('ws');
-        if (ws === 'classic' || ws === 'mobile' || ws === 'auto') {
-            return ws;
-        }
-    } catch (error) {
-        // ignore
-    }
-    return null;
-}
-
 function readBootParamsFromUrl() {
     try {
         const params = new URLSearchParams(window.location.search || '');
@@ -289,9 +273,11 @@ function getTodayIsoDate() {
     return `${y}-${m}-${day}`;
 }
 
-function setModeButtonsState(mode) {
-    if (btnModeMobileEl) btnModeMobileEl.classList.toggle('active', mode === 'mobile' || mode === 'auto');
-    if (btnModeDesktopEl) btnModeDesktopEl.classList.toggle('active', mode === 'classic');
+function pulisciPreferenzaClassicCampo() {
+    try {
+        const key = (window.GFVDashboardUtils && window.GFVDashboardUtils.FIELD_WORKSPACE_PREF_KEY) || 'gfv_field_workspace_pref';
+        if (localStorage.getItem(key) === 'classic') localStorage.removeItem(key);
+    } catch (error) { /* ignore */ }
 }
 
 async function resolveCurrentTenantId(userData) {
@@ -2368,6 +2354,7 @@ async function logoutFieldWorkspace() {
         } catch (error) {
             /* ignore */
         }
+        pulisciIndizioIngresso();
         await signOut(auth);
         window.location.href = await loginPageUrl('../auth/login-standalone.html');
     } catch (error) {
@@ -2414,26 +2401,6 @@ async function setupFieldTenantSwitch(userId) {
 }
 
 function bindToolbar() {
-    const setPref = (value) => {
-        const fn = fieldWorkspaceUtils().setFieldWorkspacePreference || setFieldWorkspacePreference;
-        if (typeof fn === 'function') fn(value);
-    };
-    if (btnModeDesktopEl) {
-        btnModeDesktopEl.addEventListener('click', () => {
-            setPref('classic');
-            setModeButtonsState('classic');
-            window.location.href = '../dashboard-standalone.html?ws=classic';
-        });
-    }
-
-    if (btnModeMobileEl) {
-        btnModeMobileEl.addEventListener('click', () => {
-            setPref('auto');
-            setModeButtonsState('mobile');
-            setStatus('Versione mobile attiva.');
-        });
-    }
-
     if (fieldLogoutButtonEl) {
         fieldLogoutButtonEl.addEventListener('click', () => {
             logoutFieldWorkspace().catch(() => {});
@@ -2521,17 +2488,6 @@ function fieldWorkspaceUtils() {
     return window.GFVDashboardUtils || {};
 }
 
-function applyUrlPreference() {
-    const pref = getWorkspacePreferenceFromUrl();
-    const setPref = fieldWorkspaceUtils().setFieldWorkspacePreference || setFieldWorkspacePreference;
-    if (pref && typeof setPref === 'function') {
-        setPref(pref);
-        setModeButtonsState(pref);
-        return;
-    }
-    setModeButtonsState('mobile');
-}
-
 function leggiRimbalziIngresso() {
     try {
         return Number(sessionStorage.getItem(CHIAVE_RIMBALZI_INGRESSO) || '0') || 0;
@@ -2550,16 +2506,29 @@ function azzeraRimbalziIngresso() {
     try { sessionStorage.removeItem(CHIAVE_RIMBALZI_INGRESSO); } catch (error) { /* ignore */ }
 }
 
+function mostraErroreAvvioWorkspace(messaggio) {
+    setStatus(messaggio || 'Non riesco ad aprire la tua area. Riprova', true);
+    if (document.getElementById('btn-riprova-ingresso')) return;
+    const btn = document.createElement('button');
+    btn.id = 'btn-riprova-ingresso';
+    btn.type = 'button';
+    btn.textContent = 'Riprova';
+    btn.addEventListener('click', () => {
+        try { sessionStorage.removeItem(CHIAVE_RIMBALZI_INGRESSO); } catch (error) { /* ignore */ }
+        window.location.reload();
+    });
+    if (statusEl && statusEl.parentNode) statusEl.parentNode.appendChild(btn);
+}
+
 function rimandaDashboardTemporanea() {
     aumentaRimbalzoIngresso();
-    window.location.href = '../dashboard-standalone.html?ws=classic&una_volta=1';
+    window.location.href = '../dashboard-standalone.html?una_volta=1';
 }
 
 async function initFieldWorkspace() {
     setStatus('Caricamento workspace mobile...');
     applicaStatoMenuCampo(false);
     readBootParamsFromUrl();
-    applyUrlPreference();
     bindToolbar();
     bindOperaioModal();
     bindInlineSectionsActions();
@@ -2644,7 +2613,15 @@ async function initFieldWorkspace() {
                     rimandaDashboardTemporanea();
                     return;
                 }
+                pulisciPreferenzaClassicCampo();
+                scriviIndizioIngresso('workspace');
                 azzeraRimbalziIngresso();
+                try {
+                    const deciso = Number(sessionStorage.getItem('gfv_ingresso_deciso_at') || '0');
+                    if (deciso) {
+                        console.log('[ingresso] dalla decisione all\'apertura del workspace: ' + (Date.now() - deciso) + ' ms');
+                    }
+                } catch (error) { /* ignore */ }
 
                 try {
                     const { startNotificationFcmBackground } = await import('../../js/notification-fcm-client.js');
@@ -2747,12 +2724,12 @@ async function initFieldWorkspace() {
                 setStatus('Workspace mobile attivo.');
             } catch (error) {
                 console.error('[FIELD-WORKSPACE] Errore inizializzazione utente:', error);
-                setStatus(`Errore caricamento: ${error.message}`, true);
+                mostraErroreAvvioWorkspace('Non riesco ad aprire la tua area. Riprova');
             }
         });
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore avvio:', error);
-        setStatus(`Errore avvio: ${error.message}`, true);
+        mostraErroreAvvioWorkspace('Non riesco ad aprire la tua area. Riprova');
     }
 }
 
