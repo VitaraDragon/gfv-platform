@@ -38,6 +38,7 @@ import { runFlowSegnaOre029 } from '../tests/e2e/tony/scenarios/flow-segna-ore-0
 import { runFlowSegnaOre030 } from '../tests/e2e/tony/scenarios/flow-segna-ore-030.mjs';
 import { runFlowSegnaOre031 } from '../tests/e2e/tony/scenarios/flow-segna-ore-031.mjs';
 import { runFlowSegnaOre032 } from '../tests/e2e/tony/scenarios/flow-segna-ore-032.mjs';
+import { runFlowCodaPronta036 } from '../tests/e2e/tony/scenarios/flow-coda-pronta-036.mjs';
 import { runMatrixScenario } from '../tests/e2e/tony/scenarios/run-matrix-scenario.mjs';
 import { runWidgetSmokeAssertions } from '../tests/e2e/tony/scenarios/widget-smoke.mjs';
 import {
@@ -254,6 +255,7 @@ const SCENARIO_RUNNERS = {
   'T-FLOW-030': runFlowSegnaOre030,
   'T-FLOW-031': runFlowSegnaOre031,
   'T-FLOW-032': runFlowSegnaOre032,
+  'T-FLOW-036': runFlowCodaPronta036,
   'T-FLOW-016': runFlowMovimento016,
   'T-FLOW-017': runFlowMovimento017,
   'T-FLOW-019': runFlowMovimento019,

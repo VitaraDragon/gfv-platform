@@ -1444,6 +1444,35 @@
           "mustChange": true
         }
       }
+    },
+    {
+      "id": "T-FLOW-036",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "display",
+      "description": "Due messaggi prima che Tony sia pronto restano in attesa e partono in ordine",
+      "contract": {
+        "invariant": "Prima del pronto compare la riga di attesa, il campo si svuota, nessun messaggio perso. Al pronto partono uno dopo l'altro.",
+        "primaryAsserts": [
+          "riga In attesa che Tony sia pronto",
+          "due risposte in ordine"
+        ],
+        "avoidAsserts": [
+          "non è ancora pronto",
+          "ancora occupato"
+        ]
+      },
+      "persona": "manager",
+      "startUrl": "/core/dashboard-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsManagerFromDevPage",
+      "messages": ["messaggio coda alfa", "messaggio coda beta"],
+      "mockCf": true,
+      "expect": {
+        "usedGemini": false,
+        "responseMustMatch": ["Ho letto il secondo"],
+        "responseMustNotMatch": ["non è ancora pronto", "ancora occupato"]
+      }
     }
   ]
 }
