@@ -44,7 +44,7 @@ Il **caposquadra** non crea le squadre da zero: le configuri **tu** in **Gestion
 
 - **Azienda**: il profilo aziendale che state usando nell’app dopo il login.  
 - **Versione mobile**: schermata semplificata sul **telefono** per operaio e caposquadra (lavoro scelto, ore, messaggi, mappa dove serve).  
-- **Versione desktop**: uso da **computer** con menu **Moduli** e **home Manodopera** per il manager; per caposquadra/operaio può comparire anche il passaggio alla vista completa del browser.
+- **Versione desktop**: uso da **computer** con menu **Moduli** e **home Manodopera** per il manager. Operaio e caposquadra restano sulla schermata del lavoro, anche dal computer: non c’è un passaggio alla dashboard.
 
 ---
 

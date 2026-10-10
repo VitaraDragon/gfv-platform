@@ -172,19 +172,15 @@ window.GFVDashboardUtils.setFieldWorkspacePreference = function setFieldWorkspac
  * @returns {boolean}
  */
 window.GFVDashboardUtils.shouldUseFieldMobileWorkspace = function shouldUseFieldMobileWorkspace(userData, availableModules = []) {
-    if (!userData) return false;
-    const hasManodopera = window.GFVDashboardUtils.hasManodoperaModule(availableModules);
-    if (!hasManodopera) return false;
-
-    const hasManagerRole = window.GFVDashboardUtils.hasAnyRole(userData, ['manager', 'amministratore']);
-    if (hasManagerRole) return false;
-
-    const hasFieldRole = window.GFVDashboardUtils.hasAnyRole(userData, ['operaio', 'caposquadra']);
-    if (!hasFieldRole) return false;
-
-    // Operaio / caposquadra: stesso ingresso su mobile e desktop (workspace campo), salvo opt-out esplicito.
+    const scegli = window.__gfvScegliIngresso;
+    if (typeof scegli !== 'function') return false;
     const pref = window.GFVDashboardUtils.getFieldWorkspacePreference();
-    if (pref === 'classic') return false;
-    return true;
+    const esito = scegli({
+        ruoli: (userData && userData.ruoli) || [],
+        moduli: availableModules || [],
+        preferenza: pref,
+        rimbalzi: 0
+    });
+    return esito.scelta === 'workspace';
 }
 

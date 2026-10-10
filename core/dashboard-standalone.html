@@ -1,7 +1,21 @@
 <!DOCTYPE html>
 <html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Home" data-gfv-module="home" data-gfv-pelle-surface="home">
 <head>
-<script>try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
+    <script>
+    (function () {
+      try { sessionStorage.setItem('gfv_ingresso_t0', String(Date.now())); } catch (e) {}
+      var ultimo = '';
+      try { ultimo = localStorage.getItem('gfv_ingresso_ultimo') || ''; } catch (e2) {}
+      if (ultimo === 'dashboard') return;
+      document.documentElement.setAttribute('data-ingresso', 'attesa');
+    })();
+    </script>
+    <style>
+      #gfv-apertura-lavoro { display: none; margin: 0; padding: 24px; font: 16px/1.4 system-ui, sans-serif; color: #1a1a1a; }
+      html[data-ingresso="attesa"] #gfv-apertura-lavoro { display: block; }
+      html[data-ingresso="attesa"] .dashboard-container { display: none !important; }
+    </style>
 
     <script>
     (function () {
@@ -28,6 +42,7 @@
     <link rel="stylesheet" href="styles/responsive-standalone.css">
 </head>
 <body>
+    <div id="gfv-apertura-lavoro">Apro il tuo lavoro…</div>
     <div class="dashboard-container">
         <div class="dashboard-header">
             <div>
@@ -104,7 +119,7 @@
     <script type="module">
         import { formatDateTimeItalianReadable } from './js/date-format-it.js';
         import { resolveAuthUser, loginPageUrl } from './js/simulator-standalone-page.js';
-        import { spiegaIngressoDopoLogin, CHIAVE_RIMBALZI_INGRESSO } from './js/tony/tony-ingresso-login.js?v=2026-10-09g';
+        import { spiegaIngressoDopoLogin, scriviIndizioIngresso, pulisciIndizioIngresso, CHIAVE_RIMBALZI_INGRESSO } from './js/tony/tony-ingresso-login.js?v=2026-10-09g';
         const { 
             roleNames, 
             normalizeRole, 
@@ -270,7 +285,9 @@
         // Variabili per cleanup listener real-time
         let manutenzioniUnsubscribe = null;
 
-        function applyWorkspacePreferenceFromUrl() {
+        let preferenzaWsInUrl = null;
+
+        function memorizzaPreferenzaUrlSenzaSalvare() {
             try {
                 const params = new URLSearchParams(window.location.search || '');
                 const unaVolta = params.get('una_volta') === '1';
@@ -284,15 +301,31 @@
                 }
                 const pref = params.get('ws');
                 if (pref === 'classic' || pref === 'mobile' || pref === 'auto') {
-                    setFieldWorkspacePreference(pref);
+                    preferenzaWsInUrl = pref;
                     params.delete('ws');
                     const next = params.toString();
                     const cleanUrl = `${window.location.pathname}${next ? `?${next}` : ''}${window.location.hash || ''}`;
                     window.history.replaceState({}, '', cleanUrl);
                 }
             } catch (error) {
-                console.warn('Impossibile applicare preferenza workspace da URL:', error);
+                console.warn('Impossibile leggere preferenza workspace da URL:', error);
             }
+        }
+
+        function pulisciPreferenzaClassicCampo() {
+            try {
+                const key = window.GFVDashboardUtils.FIELD_WORKSPACE_PREF_KEY;
+                if (localStorage.getItem(key) === 'classic') localStorage.removeItem(key);
+            } catch (error) { /* ignore */ }
+        }
+
+        function logTempoIngresso(fase) {
+            try {
+                const t0 = Number(sessionStorage.getItem('gfv_ingresso_t0') || '0');
+                if (!t0) return;
+                console.log('[ingresso] ' + fase + ': ' + (Date.now() - t0) + ' ms dal caricamento della dashboard');
+                if (fase === 'decisione') sessionStorage.setItem('gfv_ingresso_deciso_at', String(Date.now()));
+            } catch (error) { /* ignore */ }
         }
 
         function leggiRimbalziIngresso() {
@@ -329,27 +362,35 @@
                 return window.__gfvIngressoScelta || 'dashboard';
             }
             window.__gfvRedirectWorkspaceDeciso = true;
+            const preferenza = preferenzaWsInUrl || getFieldWorkspacePreference();
             const spiegato = spiegaIngressoDopoLogin({
                 ruoli: (userData && userData.ruoli) || [],
                 moduli: availableModules || [],
-                preferenza: getFieldWorkspacePreference(),
+                preferenza: preferenza,
                 rimbalzi: leggiRimbalziIngresso()
             });
             window.__gfvIngressoScelta = spiegato.scelta;
+            logTempoIngresso('decisione');
             console.log('[workspace] ingresso: ' + spiegato.scelta + ', motivo ' + spiegato.motivo);
             if (spiegato.scelta === 'workspace') {
-                const box = document.getElementById('dashboard-content');
-                if (box) {
-                    box.innerHTML = '<div class="loading" id="gfv-apertura-lavoro">Apro il tuo lavoro…</div>';
-                }
+                pulisciPreferenzaClassicCampo();
+                scriviIndizioIngresso('workspace');
+                document.documentElement.setAttribute('data-ingresso', 'attesa');
                 window.location.href = './mobile/field-workspace-standalone.html';
             } else if (spiegato.scelta === 'errore') {
+                document.documentElement.removeAttribute('data-ingresso');
                 mostraErroreIngressoDashboard();
+            } else {
+                if (spiegato.motivo === 'manager' && preferenzaWsInUrl) {
+                    setFieldWorkspacePreference(preferenzaWsInUrl);
+                }
+                scriviIndizioIngresso('dashboard');
+                document.documentElement.removeAttribute('data-ingresso');
             }
             return spiegato.scelta;
         }
 
-        applyWorkspacePreferenceFromUrl();
+        memorizzaPreferenzaUrlSenzaSalvare();
 
         // ============================================
         // FUNZIONI SETUP REAL-TIME
@@ -1327,15 +1368,14 @@
                             // Ottieni tenant corrente e ruoli filtrati per questo tenant
                             const { getUserRolesForTenant } = await import('./services/tenant-service.js');
                             const currentTenantId = await dashboardPerfAsync('auth.resolveTenant', () => resolveCurrentTenantId(userData));
-                            
-                            // Ottieni ruoli per il tenant corrente (non tutti i ruoli)
-                            let rolesForCurrentTenant = [];
-                            if (currentTenantId) {
-                                rolesForCurrentTenant = await dashboardPerfAsync('auth.tenantRoles', () =>
-                                    getUserRolesForTenant(currentTenantId, user.uid));
-                            }
-                            
-                            // Se non ci sono ruoli per il tenant corrente, usa ruoli deprecati come fallback
+                            const rolesPromise = currentTenantId
+                                ? dashboardPerfAsync('auth.tenantRoles', () => getUserRolesForTenant(currentTenantId, user.uid))
+                                : Promise.resolve([]);
+                            const tenantDocPromise = currentTenantId
+                                ? dashboardPerfAsync('auth.tenantDoc', () => getDoc(doc(db, 'tenants', currentTenantId)))
+                                : Promise.resolve(null);
+                            const [rolesRaw, tenantDoc] = await Promise.all([rolesPromise, tenantDocPromise]);
+                            let rolesForCurrentTenant = Array.isArray(rolesRaw) ? rolesRaw : [];
                             if (rolesForCurrentTenant.length === 0) {
                                 rolesForCurrentTenant = userData.ruoli || [];
                             }
@@ -1345,21 +1385,16 @@
                             const userDataNormalized = {
                                 ...userData,
                                 ruoli: normalizedRoles,
-                                tenantId: currentTenantId // Usa tenant corrente invece di deprecato
+                                tenantId: currentTenantId
                             };
                             
-                            // Carica moduli disponibili dal tenant CORRENTE (non deprecato)
                             let availableModules = [];
                             let tenantDataSnapshot = null;
-                            if (currentTenantId) {
+                            if (tenantDoc && tenantDoc.exists()) {
                                 try {
-                                    const tenantDoc = await dashboardPerfAsync('auth.tenantDoc', () =>
-                                        getDoc(doc(db, 'tenants', currentTenantId)));
-                                    if (tenantDoc.exists()) {
-                                        tenantDataSnapshot = tenantDoc.data();
-                                        const { resolveEffectiveModules } = await import('./utils/module-access-resolver.js');
-                                        availableModules = resolveEffectiveModules(tenantDataSnapshot);
-                                    }
+                                    tenantDataSnapshot = tenantDoc.data();
+                                    const { resolveEffectiveModules } = await import('./utils/module-access-resolver.js');
+                                    availableModules = resolveEffectiveModules(tenantDataSnapshot);
                                 } catch (e) {
                                     console.warn('Errore caricamento moduli tenant:', e);
                                 }
@@ -1390,18 +1425,16 @@
                     // Se arriviamo qui, significa che il documento esiste
                     const userData = userDoc.data();
                     
-                    // Ottieni tenant corrente e ruoli filtrati per questo tenant
                     const { getUserRolesForTenant } = await import('./services/tenant-service.js');
                     const currentTenantId = await dashboardPerfAsync('auth.resolveTenant', () => resolveCurrentTenantId(userData));
-                    
-                    // Ottieni ruoli per il tenant corrente (non tutti i ruoli)
-                    let rolesForCurrentTenant = [];
-                    if (currentTenantId) {
-                        rolesForCurrentTenant = await dashboardPerfAsync('auth.tenantRoles', () =>
-                            getUserRolesForTenant(currentTenantId, user.uid));
-                    }
-                    
-                    // Se non ci sono ruoli per il tenant corrente, usa ruoli deprecati come fallback
+                    const rolesPromise = currentTenantId
+                        ? dashboardPerfAsync('auth.tenantRoles', () => getUserRolesForTenant(currentTenantId, user.uid))
+                        : Promise.resolve([]);
+                    const tenantDocPromise = currentTenantId
+                        ? dashboardPerfAsync('auth.tenantDoc', () => getDoc(doc(db, 'tenants', currentTenantId)))
+                        : Promise.resolve(null);
+                    const [rolesRaw, tenantDoc] = await Promise.all([rolesPromise, tenantDocPromise]);
+                    let rolesForCurrentTenant = Array.isArray(rolesRaw) ? rolesRaw : [];
                     if (rolesForCurrentTenant.length === 0) {
                         rolesForCurrentTenant = userData.ruoli || [];
                     }
@@ -1411,58 +1444,16 @@
                     const userDataNormalized = {
                         ...userData,
                         ruoli: normalizedRoles,
-                        tenantId: currentTenantId // Usa tenant corrente invece di deprecato
+                        tenantId: currentTenantId
                     };
                     
-                    // Aggiorna info utente nell'header
-                    document.getElementById('user-info').textContent = 
-                        `${userData.nome || ''} ${userData.cognome || ''}`.trim() || user.email;
-                    
-                    const rolesHTML = normalizedRoles.map(role => 
-                        `<span class="role-badge">${roleNames[role] || role}</span>`
-                    ).join(' ');
-                    document.getElementById('user-roles').innerHTML = rolesHTML || '<span class="role-badge">Nessun ruolo</span>';
-                    
-                    // Aggiorna ultimo accesso
-                    try {
-                        await updateDoc(userDocRef, {
-                            ultimoAccesso: serverTimestamp(),
-                            isOnline: true,
-                            lastSeen: serverTimestamp()
-                        });
-                    } catch (error) {
-                        console.warn('Errore aggiornamento ultimo accesso:', error);
-                    }
-                    
-                    // Aggiorna stato online ogni 30 secondi
-                    if (window.gfvOnlineInterval) {
-                        clearInterval(window.gfvOnlineInterval);
-                    }
-                    window.gfvOnlineInterval = setInterval(async () => {
-                        try {
-                            const currentUser = auth.currentUser;
-                            if (currentUser) {
-                                await updateDoc(doc(db, 'users', currentUser.uid), {
-                                    lastSeen: serverTimestamp()
-                                });
-                            }
-                        } catch (error) {
-                            console.warn('Errore aggiornamento stato online:', error);
-                        }
-                    }, 30000);
-                    
-                    // Carica moduli disponibili dal tenant CORRENTE (non deprecato)
                     let availableModules = [];
                     let tenantDataSnapshot = null;
-                    if (currentTenantId) {
+                    if (tenantDoc && tenantDoc.exists()) {
                         try {
-                            const tenantDoc = await dashboardPerfAsync('auth.tenantDoc', () =>
-                                getDoc(doc(db, 'tenants', currentTenantId)));
-                            if (tenantDoc.exists()) {
-                                tenantDataSnapshot = tenantDoc.data();
-                                const { resolveEffectiveModules } = await import('./utils/module-access-resolver.js');
-                                availableModules = resolveEffectiveModules(tenantDataSnapshot);
-                            }
+                            tenantDataSnapshot = tenantDoc.data();
+                            const { resolveEffectiveModules } = await import('./utils/module-access-resolver.js');
+                            availableModules = resolveEffectiveModules(tenantDataSnapshot);
                         } catch (error) {
                             console.warn('Errore caricamento moduli tenant:', error);
                         }
@@ -1478,6 +1469,40 @@
                     const ingresso = applicaIngressoDopoLogin(userDataNormalized, availableModules);
                     if (ingresso !== 'dashboard') return;
 
+                    document.getElementById('user-info').textContent = 
+                        `${userData.nome || ''} ${userData.cognome || ''}`.trim() || user.email;
+                    
+                    const rolesHTML = normalizedRoles.map(role => 
+                        `<span class="role-badge">${roleNames[role] || role}</span>`
+                    ).join(' ');
+                    document.getElementById('user-roles').innerHTML = rolesHTML || '<span class="role-badge">Nessun ruolo</span>';
+                    
+                    try {
+                        await updateDoc(userDocRef, {
+                            ultimoAccesso: serverTimestamp(),
+                            isOnline: true,
+                            lastSeen: serverTimestamp()
+                        });
+                    } catch (error) {
+                        console.warn('Errore aggiornamento ultimo accesso:', error);
+                    }
+                    
+                    if (window.gfvOnlineInterval) {
+                        clearInterval(window.gfvOnlineInterval);
+                    }
+                    window.gfvOnlineInterval = setInterval(async () => {
+                        try {
+                            const currentUser = auth.currentUser;
+                            if (currentUser) {
+                                await updateDoc(doc(db, 'users', currentUser.uid), {
+                                    lastSeen: serverTimestamp()
+                                });
+                            }
+                        } catch (error) {
+                            console.warn('Errore aggiornamento stato online:', error);
+                        }
+                    }, 30000);
+
                     await mountPreviewSwitch(tenantDataSnapshot, currentTenantId, normalizedRoles);
                     
                     // La visibilità del link "Invita Collaboratore" viene gestita in renderDashboard
@@ -1492,6 +1517,7 @@
                 }
             } catch (error) {
                 console.error('Errore caricamento dati utente:', error);
+                document.documentElement.removeAttribute('data-ingresso');
                 document.getElementById('user-info').textContent = 
                     `Utente: ${user.email}`;
                 document.getElementById('user-roles').innerHTML = 
@@ -1599,6 +1625,7 @@
                 // Rimuovi anche il flag di sessione
                 sessionStorage.removeItem('gfv_expected_user_id');
                 sessionStorage.removeItem('gfv_user_just_registered');
+                pulisciIndizioIngresso();
                 await signOut(auth);
                 window.location.href = await loginPageUrl('./auth/login-standalone.html');
             } catch (error) {
