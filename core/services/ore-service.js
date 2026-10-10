@@ -225,21 +225,22 @@ export async function getOreOperaio(operaioId, options = {}) {
       isOperaio: isOperaio || !isCaposquadra
     });
 
-    const oreOperaio = [];
     const { stato = null } = options;
+    const { eseguiConLimite } = await import('./esegui-con-limite.js');
 
-    for (const lav of lavoriVisibili) {
+    const blocchiOre = await eseguiConLimite(lavoriVisibili, 6, async (lav) => {
       const lavoroId = lav.id;
       const lavoroDocData = lav;
       const oreRef = collection(db, 'tenants', tenantId, 'lavori', lavoroId, 'oreOperai');
-      
+
       let oreQuery = query(oreRef, where('operaioId', '==', operaioId));
       if (stato) {
         oreQuery = query(oreRef, where('operaioId', '==', operaioId), where('stato', '==', stato));
       }
-      
+
       const oreSnapshot = await getDocs(oreQuery);
-      
+      const delLavoro = [];
+
       oreSnapshot.forEach(oraDoc => {
         const data = oraDoc.data();
         // Converti Timestamp in Date
@@ -252,14 +253,16 @@ export async function getOreOperaio(operaioId, options = {}) {
         if (data.validatoIl && data.validatoIl.toDate) {
           data.validatoIl = data.validatoIl.toDate();
         }
-        oreOperaio.push({
+        delLavoro.push({
           id: oraDoc.id,
           lavoroId: lavoroId,
           lavoroNome: lavoroDocData.nome || 'N/A',
           ...data
         });
       });
-    }
+      return delLavoro;
+    });
+    const oreOperaio = blocchiOre.flat();
     
     // Ordina per data (più recenti prima)
     oreOperaio.sort((a, b) => {

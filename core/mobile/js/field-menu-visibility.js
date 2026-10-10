@@ -6,7 +6,7 @@
 import { normalizzaRuoliGuasti, ritornoWorkspaceCampoDaGuasti } from '../../js/field-guasti-access.js';
 
 const HREF_CAMPO = '../mobile/field-workspace-standalone.html';
-const HREF_VALIDAZIONE_DASHBOARD = '../../modules/manodopera/views/manodopera-home-standalone.html';
+const HREF_VALIDAZIONE_DASHBOARD = '../dashboard-standalone.html';
 
 /** «Cambia azienda» solo con almeno due aziende. Conteggio ignoto = nascosta. */
 export function voceCambiaAziendaVisibile(numeroAziende) {
@@ -30,8 +30,10 @@ export function vociMenuCampo({ ruoli, moduli, numeroAziende } = {}) {
 
 /**
  * Pulsante in alto della validazione ore.
- * Campo se il profilo è campo puro, oppure se arrivi dal workspace e non sei manager/admin.
- * Il manager, anche con from=field, torna in dashboard: il workspace lo rimanderebbe indietro.
+ * Il profilo campo (operaio o caposquadra, senza manager) torna al workspace:
+ * la dashboard lo rimanderebbe lì, e l’etichetta deve dire Campo.
+ * Il manager, anche con il ruolo di capo e anche se arriva dal workspace,
+ * torna alla dashboard vera. Il workspace lo rimanderebbe indietro.
  * @param {{ da?: string, ruoli?: string[], ruoloSingolo?: string }} input
  * @returns {{ etichetta: string, href: string }}
  */

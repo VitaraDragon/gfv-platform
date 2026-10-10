@@ -118,6 +118,12 @@ export function buildSospendiLavoroPatch(causa, now = new Date()) {
  */
 export function sospensioneFieldsForModificaSave(input = {}) {
   if (input.nuovoStato !== 'sospeso') {
+    const avevaSospensione = input.statoPrecedente === 'sospeso'
+      || String(input.sospensioneCausaEsistente || '').trim().length > 0
+      || !!input.hasSospensioneIl;
+    if (avevaSospensione) {
+      return { ok: true, fields: { clearSospensione: true } };
+    }
     return { ok: true, fields: null };
   }
 

@@ -49,7 +49,8 @@ export function getStatoFormattato(stato) {
         'sospeso': '⏸️ Sospeso',
         'completato': '✅ Completato',
         'completato_da_approvare': '⏳ In attesa approvazione',
-        'annullato': '❌ Annullato'
+        'annullato': '❌ Annullato',
+        'attivo': '🔄 In corso'
     };
     return stati[stato] || stato;
 }
