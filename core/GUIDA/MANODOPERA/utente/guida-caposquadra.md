@@ -199,7 +199,7 @@ Nella scheda **Ore**, sotto il modulo ore, trovi il riquadro **Dettaglio lavoro 
    - leggere **stato del lavoro**, percentuali di avanzamento, eventuali **ordini o note** del manager;  
    - aprire il flusso per **tracciare le zone lavorate** sulla mappa (segmenti e superfici sul terreno assegnato);  
    - vedere eventuali azioni di **sospensione** o **ripresa** se il caso è gestito così dall’app.  
-3. Se sul telefono lo spazio è stretto, usa il link **Apri in finestra intera**: si apre la **stessa schermata** nel browser a tutto schermo, sempre sul lavoro corrente.
+3. Se sul telefono lo spazio è stretto, tocca **Ingrandisci**: il dettaglio occupa quasi tutto lo schermo, sempre sul lavoro corrente. **Riduci** torna alla scheda.
 
 ### Zone lavorate e mappa
 
@@ -293,7 +293,7 @@ Se colleghi la segnalazione a un **lavoro** e scegli **grave**, l’app può **s
 | **Lavori assegnati** vuoti | Assegnazioni lato manager o stato del lavoro non compatibile; contatta l’ufficio. |
 | **La mia squadra** vuota o errore | Squadra non collegata al tuo utente in **Gestione squadre** (intervento manager). |
 | Non posso **validare ore** | Verifica il **lavoro selezionato**; senza righe in attesa non c’è nulla da validare. |
-| **Dettaglio lavoro** non carica | Connessione debole; riprova o usa **Apri in finestra intera**. |
+| **Dettaglio lavoro** non carica | Connessione debole; riprova o tocca **Ingrandisci**. |
 | Non posso **completare** il lavoro | Spesso mancano **zone lavorate** o **ore** richieste; leggi il messaggio in schermata. |
 | **GPS** non prende la posizione | Permesso negato al browser; GPS spento sul telefono; riprova all’aperto; usa ubicazione scritta + mappa se disponibile. |
 | Non trovo **Segnalazione guasti** | Modulo Parco Macchine non attivo, oppure il tuo ruolo non include l’accesso: chiedi al manager o fai segnalare un operaio. |

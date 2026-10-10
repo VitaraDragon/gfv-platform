@@ -347,6 +347,25 @@ button.field-options-link {
     border: 1px solid #e5e7eb;
     border-radius: 10px;
 }
+.field-lavori-detail-wrap.ingrandito {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    background: #fff;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+.field-lavori-detail-wrap.ingrandito .frame-lavori-detail {
+    height: calc(100dvh - 72px);
+    min-height: 0;
+    flex: 1;
+}
+.ore-giorno-non-disponibile {
+    font-size: 12px;
+    color: #4b5563;
+}
 .frame-team { min-height: 680px; }
 
 .work-select-card,
@@ -604,6 +623,8 @@ button.field-options-link {
     font-size: 13px;
     font-weight: 600;
     text-decoration: none;
+    cursor: pointer;
+    font-family: inherit;
 }
 
 .field-bottom-nav {

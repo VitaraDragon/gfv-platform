@@ -22,6 +22,12 @@ import {
     vociMenuCampo,
     menuCampoAbilitato,
 } from './field-menu-visibility.js';
+import { urlDettaglioLavoroIncorporato } from './field-lavori-embed.js';
+import {
+    creaSegnalatoreRiquadroOre,
+    esitoRiquadroOreSuErrore,
+    testoRiquadroOreNonDisponibile
+} from './field-ore-riquadro.js';
 import { eLavoroSospeso } from '../../js/tony/tony-ora-lavoro-match.js';
 import { CHIAVE_RIMBALZI_INGRESSO, scriviIndizioIngresso, pulisciIndizioIngresso } from '../../js/tony/tony-ingresso-login.js?v=2026-10-09g';
 import { conTimeout, prossimaAttesaRiprova } from '../../js/tony/tony-attesa-riprova.js?v=2026-10-09g';
@@ -121,7 +127,10 @@ const oraBreakEl = document.getElementById('ora-break');
 const oraNoteEl = document.getElementById('ora-note');
 const lavoriDetailFrameEl = document.getElementById('lavori-detail-frame');
 const statsEmbedFrameEl = document.getElementById('stats-embed-frame');
-const lavoriFullDetailLinkEl = document.getElementById('lavori-full-detail-link');
+const btnIngrandisciLavoroEl = document.getElementById('btn-ingrandisci-lavoro');
+const segnalaRiquadroOreNonLeggibile = creaSegnalatoreRiquadroOre((messaggio, passo, codice) => {
+    console.warn(messaggio, passo, codice);
+});
 const squadListEl = document.getElementById('squad-members-list');
 const inlineTeamSectionEl = document.getElementById('inline-team-section');
 const inlineValidateHoursSectionEl = document.getElementById('inline-validate-hours-section');
@@ -834,22 +843,28 @@ async function loadWorksForSelection(tentativo) {
 }
 
 function updateLavoriDetailEmbed(loadIframe = false) {
-    if (!lavoriDetailFrameEl || !lavoriFullDetailLinkEl) return;
-    const base = '../admin/lavori-caposquadra-standalone.html?ws=classic&v=20260904c';
+    if (!lavoriDetailFrameEl) return;
     if (!selectedWork) {
         lavoriDetailFrameEl.removeAttribute('src');
         lavoriDetailFrameEl.removeAttribute('data-embed-loaded');
-        lavoriFullDetailLinkEl.href = base;
         return;
     }
-    const fullUrl = `${base}&focusLavoroId=${encodeURIComponent(selectedWork.id)}`;
-    lavoriFullDetailLinkEl.href = fullUrl;
     const activeTitle = activeSlides[currentSlideIndex]?.dataset?.slideTitle;
     if (!loadIframe && activeTitle !== 'Ore') return;
-    const compactUrl = `${fullUrl}&embed=mobile`;
+    const compactUrl = urlDettaglioLavoroIncorporato({ lavoroId: selectedWork.id });
     if (lavoriDetailFrameEl.dataset.embedLoaded === selectedWork.id) return;
     lavoriDetailFrameEl.src = compactUrl;
     lavoriDetailFrameEl.dataset.embedLoaded = selectedWork.id;
+}
+
+function toggleIngrandisciLavoro() {
+    const wrap = document.getElementById('field-lavori-detail-wrap');
+    const btn = document.getElementById('btn-ingrandisci-lavoro');
+    if (!wrap || !btn) return;
+    const acceso = !wrap.classList.contains('ingrandito');
+    wrap.classList.toggle('ingrandito', acceso);
+    btn.textContent = acceso ? 'Riduci' : 'Ingrandisci';
+    btn.setAttribute('aria-pressed', acceso ? 'true' : 'false');
 }
 
 async function refreshLavoroSostitutoBanner() {
@@ -1861,8 +1876,18 @@ async function attendiRitardoLetturaOre() {
 
 let letturaOreSeq = 0;
 
+function dipingiRiquadroOreNonDisponibile(giorno) {
+    if (!oreGiornoBoxEl) return;
+    const label = formattaGiornoBreve(giorno) || giorno;
+    const testo = testoRiquadroOreNonDisponibile(label);
+    oreGiornoBoxEl.innerHTML = `<span class="ore-giorno-non-disponibile">${escapeHtmlUnsafe(testo)}</span>`;
+    oreGiornoBoxEl.setAttribute('data-state', 'ready');
+    oreGiornoBoxEl.setAttribute('data-pronto', '1');
+    oreGiornoBoxEl.classList.remove('ore-giorno-loading');
+}
+
 async function aggiornaRiquadroOreGiorno() {
-    if (!oreGiornoBoxEl || !currentTenantId || !currentUser) return false;
+    if (!oreGiornoBoxEl || !currentTenantId || !currentUser) return { ok: false, codice: '' };
     const giorno = (oraDataEl && oraDataEl.value) ? oraDataEl.value : getTodayIsoDate();
     const seq = ++letturaOreSeq;
     oreGiornoBoxEl.setAttribute('data-state', 'loading');
@@ -1872,32 +1897,33 @@ async function aggiornaRiquadroOreGiorno() {
     }
     try {
         await attendiRitardoLetturaOre();
-        if (seq !== letturaOreSeq) return true;
+        if (seq !== letturaOreSeq) return { ok: true, codice: '' };
         const righe = await caricaOreUtenteGiorno(getDb(), currentTenantId, currentUser.uid, giorno, utenteWorkspace());
-        if (seq !== letturaOreSeq) return true;
+        if (seq !== letturaOreSeq) return { ok: true, codice: '' };
         oreGiornoRows = righe;
         dipingiOreGiorno(righe, 'ready', giorno);
-        return true;
+        return { ok: true, codice: '' };
     } catch (error) {
-        if (seq !== letturaOreSeq) return true;
-        console.error('[FIELD-WORKSPACE] Riquadro ore giorno:', error);
-        if (!oreGiornoBoxEl.getAttribute('data-pronto')) {
-            oreGiornoBoxEl.textContent = 'Non riesco a leggere le ore di questo giorno.';
-            oreGiornoBoxEl.setAttribute('data-state', 'ready');
-        } else {
-            oreGiornoBoxEl.setAttribute('data-state', 'ready');
-        }
-        oreGiornoBoxEl.classList.remove('ore-giorno-loading');
-        return false;
+        if (seq !== letturaOreSeq) return { ok: true, codice: '' };
+        const codice = error && error.code ? String(error.code) : '';
+        const passo = error && error.passoLetturaOre ? String(error.passoLetturaOre) : 'ore';
+        segnalaRiquadroOreNonLeggibile(passo, codice);
+        dipingiRiquadroOreNonDisponibile(giorno);
+        return { ok: false, codice };
     }
 }
 
 async function riallineaRiquadroOreGiorno(precedente, giorno) {
-    const ok = await aggiornaRiquadroOreGiorno();
-    if (ok) return;
+    const esito = await aggiornaRiquadroOreGiorno();
+    if (!esito || esito.ok) return;
+    const vista = esitoRiquadroOreSuErrore({
+        codice: esito.codice,
+        etichettaGiorno: formattaGiornoBreve(giorno) || giorno,
+        dopoSalvataggio: true
+    });
     oreGiornoRows = precedente;
     dipingiOreGiorno(precedente, 'ready', giorno);
-    showAlert('Non riesco a rileggere le ore. Mostro di nuovo il riepilogo di prima.', 'warning');
+    if (vista.avviso) showAlert(vista.avviso, 'warning');
 }
 
 async function avviaModificaOraGiorno(oraId, lavoroId) {
@@ -2202,6 +2228,9 @@ function bindOperaioModal() {
 }
 
 function bindInlineSectionsActions() {
+    if (btnIngrandisciLavoroEl) {
+        btnIngrandisciLavoroEl.addEventListener('click', toggleIngrandisciLavoro);
+    }
     if (receivedCommunicationsListEl) {
         receivedCommunicationsListEl.addEventListener('click', async (event) => {
             const target = event.target;

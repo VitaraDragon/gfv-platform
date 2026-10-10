@@ -128,7 +128,7 @@ Sotto il modulo ore trovi il riquadro **Dettaglio lavoro operativo**, già **cen
    - leggere **stato**, percentuali e **testi operativi** sull’incarico;  
    - **tracciare le zone lavorate** sulla mappa quando il tipo di incarico lo richiede;  
    - vedere se il lavoro risulta **sospeso** o da **riprendere**, se l’app lo mostra.  
-3. Se sul telefono è scomodo, usa **Apri in finestra intera** per la stessa schermata a tutto schermo nel browser.
+3. Se sul telefono è scomodo, tocca **Ingrandisci** per la stessa schermata a quasi tutto schermo. **Riduci** torna alla scheda.
 
 ### Zone sulla mappa
 
@@ -217,7 +217,7 @@ Se apri a mano un indirizzo dell’ufficio (terreni, magazzino, elenchi), l’ap
 | **Lavori assegnati** vuoti | Contatta l’ufficio per un incarico assegnabile. |
 | Non trovo un lavoro che ti aspetti | Elenco ridotto se hai molti incarichi; chiedi in ufficio se serve sbloccare la vista. |
 | Ore in **attesa** o stato poco chiaro | Leggi i messaggi in app; per dubbi chiedi in ufficio. |
-| **Dettaglio lavoro** non carica | Connessione debole; riprova o **Apri in finestra intera**. |
+| **Dettaglio lavoro** non carica | Connessione debole; riprova o tocca **Ingrandisci**. |
 | Non capisco la **mappa delle zone** | Chiedi una dimostrazione in campo a chi coordina il gruppo. |
 | **GPS** non funziona | Attiva permesso posizione; riprova all’aperto; completa ubicazione e dettagli a mano. |
 | Non trovi **Segnalazione guasti** | Modulo non attivo o voce non nel tuo menu: chiedi in ufficio come segnalare. |

@@ -2,19 +2,46 @@
 <html lang="it" data-gfv-pelle-host="1" data-gfv-pelle-place="Home" data-gfv-module="home" data-gfv-pelle-surface="home">
 <head>
 <script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
+    <script src="js/ingresso-attesa.js"></script>
     <script>
     (function () {
       try { sessionStorage.setItem('gfv_ingresso_t0', String(Date.now())); } catch (e) {}
+      try { sessionStorage.setItem('gfv_ingresso_perf0', String(performance.now())); } catch (e1) {}
       var ultimo = '';
       try { ultimo = localStorage.getItem('gfv_ingresso_ultimo') || ''; } catch (e2) {}
-      if (ultimo === 'dashboard') return;
-      document.documentElement.setAttribute('data-ingresso', 'attesa');
+      var ruoli = [];
+      try {
+        var raw = sessionStorage.getItem('gfv_tony_utente_ruoli');
+        ruoli = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(ruoli)) ruoli = [];
+      } catch (e3) { ruoli = []; }
+      var mostra = true;
+      try {
+        if (typeof window.gfvDevoMostrareAttesa === 'function') {
+          mostra = window.gfvDevoMostrareAttesa({ ultimo: ultimo, ruoliSessione: ruoli });
+        }
+      } catch (e4) { mostra = true; }
+      if (mostra) document.documentElement.setAttribute('data-ingresso', 'attesa');
     })();
     </script>
     <style>
       #gfv-apertura-lavoro { display: none; margin: 0; padding: 24px; font: 16px/1.4 system-ui, sans-serif; color: #1a1a1a; }
-      html[data-ingresso="attesa"] #gfv-apertura-lavoro { display: block; }
+      html[data-ingresso="attesa"] #gfv-apertura-lavoro {
+        display: block;
+        position: fixed;
+        inset: 0;
+        background: #fff;
+        z-index: 2147483000;
+      }
       html[data-ingresso="attesa"] .dashboard-container { display: none !important; }
+      html[data-ingresso="attesa"] #gfv-pelle-shell,
+      html[data-ingresso="attesa"] .gfv-pelle-backdrop,
+      html[data-ingresso="attesa"] .gfv-pelle-lab,
+      html[data-ingresso="attesa"] #tony-fab,
+      html[data-ingresso="attesa"] #tony-panel,
+      html[data-ingresso="attesa"] #tony-confirm-overlay,
+      html[data-ingresso="attesa"] #tony-doc-review-overlay,
+      html[data-ingresso="attesa"] #gfv-standalone-toast-layer { display: none !important; }
     </style>
 
     <script>
@@ -322,10 +349,27 @@
         function logTempoIngresso(fase) {
             try {
                 const t0 = Number(sessionStorage.getItem('gfv_ingresso_t0') || '0');
-                if (!t0) return;
-                console.log('[ingresso] ' + fase + ': ' + (Date.now() - t0) + ' ms dal caricamento della dashboard');
+                const p0 = Number(sessionStorage.getItem('gfv_ingresso_perf0') || '0');
+                if (!t0 && !p0) return;
+                const dalCaricamento = t0 ? (Date.now() - t0) : 0;
+                const dalPerf = p0 ? Math.round(performance.now() - p0) : dalCaricamento;
+                console.log('[ingresso] ' + fase + ': ' + dalPerf + ' ms (performance.now) dal caricamento della dashboard');
                 if (fase === 'decisione') sessionStorage.setItem('gfv_ingresso_deciso_at', String(Date.now()));
             } catch (error) { /* ignore */ }
+        }
+
+        function liberaAttesaSeRuoliDashboard(userData) {
+            let tid = '';
+            try { tid = sessionStorage.getItem('gfv_current_tenant_id') || ''; } catch (error) { /* ignore */ }
+            if (!tid && userData && userData.tenantId) tid = String(userData.tenantId);
+            const ruoli = (typeof window.gfvRuoliDalDocumentoUtente === 'function')
+                ? window.gfvRuoliDalDocumentoUtente(userData, tid)
+                : ((userData && userData.ruoli) || []);
+            logTempoIngresso('ruoli');
+            if (typeof window.gfvRuoloRestaInDashboard === 'function' && window.gfvRuoloRestaInDashboard(ruoli)) {
+                scriviIndizioIngresso('dashboard');
+                document.documentElement.removeAttribute('data-ingresso');
+            }
         }
 
         function leggiRimbalziIngresso() {
@@ -1364,6 +1408,7 @@
                             
                             // Se il documento esiste ora, continua con il flusso normale
                             const userData = retryUserDoc.data();
+                            liberaAttesaSeRuoliDashboard(userData);
                             
                             // Ottieni tenant corrente e ruoli filtrati per questo tenant
                             const { getUserRolesForTenant } = await import('./services/tenant-service.js');
@@ -1424,6 +1469,7 @@
                 } else {
                     // Se arriviamo qui, significa che il documento esiste
                     const userData = userDoc.data();
+                    liberaAttesaSeRuoliDashboard(userData);
                     
                     const { getUserRolesForTenant } = await import('./services/tenant-service.js');
                     const currentTenantId = await dashboardPerfAsync('auth.resolveTenant', () => resolveCurrentTenantId(userData));
