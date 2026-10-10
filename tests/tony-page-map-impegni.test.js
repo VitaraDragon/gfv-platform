@@ -36,6 +36,8 @@ describe('TONY_PAGE_MAP — impegni giornalieri', () => {
     expect(TONY_LABEL_MAP.carburante).toBe('Carburante');
     expect(getRequiredModuleForTarget('carburante')).toBe('magazzino');
     expect(getRequiredModuleForTarget('gasolio')).toBe('magazzino');
+    expect(getRequiredModuleForTarget('segnala guasto')).toBe('parcoMacchine');
+    expect(getRequiredModuleForTarget('segnalazione guasti')).toBe('parcoMacchine');
   });
 });
 
