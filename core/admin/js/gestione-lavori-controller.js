@@ -23,6 +23,7 @@ import {
 } from '../../js/date-format-it.js';
 
 import { filterAttrezziDropdownCompatibili } from '../../js/macchine-cv-compat.js';
+import { macchinaSelezionabile, suffissoMacchinaNonSelezionabile } from '../../js/macchina-selezionabile.js';
 import {
     allCategorieFlat,
     buildLavoroCategorieIndex,
@@ -1509,7 +1510,13 @@ export function populateTrattoriDropdown(trattoriList, selectedMacchinaId = null
         const stato = trattore.stato === 'disponibile' ? '✅' : trattore.stato === 'in_uso' ? '🔄' : '⚠️';
         option.textContent = `${stato} ${nome}${cavalli}`;
         const isCurrent = selectedMacchinaId && String(trattore.id) === String(selectedMacchinaId);
-        option.disabled = !isCurrent && (trattore.stato === 'in_uso' || trattore.stato === 'in_manutenzione' || trattore.stato === 'guasto');
+        const sel = macchinaSelezionabile(trattore, {
+            contesto: 'nuovo-lavoro',
+            giaAssegnataAlLavoro: !!isCurrent
+        });
+        const inUso = String(trattore.stato || '').toLowerCase().replace(/_/g, '-') === 'in-uso';
+        option.disabled = !isCurrent && (!sel.ok || inUso);
+        option.textContent += suffissoMacchinaNonSelezionabile(sel);
         select.appendChild(option);
     });
 
@@ -2392,6 +2399,13 @@ export function populateAttrezziDropdown(trattoreId, trattoriList, attrezziList,
     }
     
     let attrezziCompatibili = filterAttrezziDropdownCompatibili(trattore, attrezziList);
+    attrezziCompatibili = attrezziCompatibili.filter((attrezzo) => {
+        const isCurrent = selectedAttrezzoId && String(attrezzo.id) === String(selectedAttrezzoId);
+        return macchinaSelezionabile(attrezzo, {
+            contesto: 'nuovo-lavoro',
+            giaAssegnataAlLavoro: !!isCurrent
+        }).ok;
+    });
     if (selectedAttrezzoId) {
         const assigned = attrezziList.find((a) => String(a.id) === String(selectedAttrezzoId));
         if (assigned && !attrezziCompatibili.some((a) => String(a.id) === String(selectedAttrezzoId))) {

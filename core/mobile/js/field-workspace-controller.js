@@ -350,6 +350,16 @@ function updateNavButtons() {
     }
 }
 
+function nascondiAvanzamentoStatistiche() {
+    const el = document.getElementById('stats-avanzamento');
+    if (el) el.hidden = true;
+}
+
+function mostraAvanzamentoStatistiche() {
+    const el = document.getElementById('stats-avanzamento');
+    if (el) el.hidden = false;
+}
+
 function annullaTimerStatistiche() {
     if (statsEmbedTimer) {
         clearTimeout(statsEmbedTimer);
@@ -360,6 +370,7 @@ function annullaTimerStatistiche() {
 function mostraFallbackStatistiche() {
     const box = document.getElementById('stats-embed-fallback');
     if (box) box.hidden = false;
+    nascondiAvanzamentoStatistiche();
 }
 
 function nascondiFallbackStatistiche() {
@@ -372,6 +383,7 @@ function ensureStatsEmbedLoaded() {
     statsEmbedFrameEl.dataset.loaded = '1';
     delete statsEmbedFrameEl.dataset.ready;
     nascondiFallbackStatistiche();
+    mostraAvanzamentoStatistiche();
     annullaTimerStatistiche();
     const riprova = statsEmbedFrameEl.dataset.retry || '';
     const extra = riprova ? `&riprova=${encodeURIComponent(riprova)}` : '';
@@ -399,6 +411,7 @@ function onMessaggioStatistiche(event) {
         statsEmbedFrameEl.dataset.ready = '1';
         annullaTimerStatistiche();
         nascondiFallbackStatistiche();
+        nascondiAvanzamentoStatistiche();
     } else if (tipo === 'gfv-stats-failed') {
         annullaTimerStatistiche();
         mostraFallbackStatistiche();

@@ -96,8 +96,8 @@
             <h1>📊 Le tue statistiche</h1>
             <p>Solo ore e lavori collegati al tuo account (manodopera)</p>
         </div>
-        <div class="body" id="main-body">
-            <div class="loading" id="loading-el">Caricamento…</div>
+            <div class="body" id="main-body">
+            <div class="loading" id="loading-el">Carico le tue ore…</div>
         </div>
     </div>
 
@@ -201,6 +201,7 @@
                     <div class="metric"><strong id="m-ore-mezzo">—</strong><span>Ore su incarichi con mezzo</span></div>
                     <div class="metric"><strong id="m-lav-mezzo">—</strong><span>Incarichi con mezzo (nel periodo)</span></div>
                 </div>
+                <p class="empty" id="stat-avanzamento" style="margin-bottom: 10px;">Carico le tue ore…</p>
                 <p class="empty" id="stat-empty" style="display: none; margin-bottom: 10px;">Nessuna ora nel periodo selezionato.</p>
                 <div class="chart-box" id="box-mese">
                     <h3>Ore per mese</h3>
@@ -307,6 +308,8 @@
             const { tipoMap, lavMap } = await loadLavoriDetailMap(db, tenantId, filtered.map((o) => o.lavoroId));
 
             const totOre = filtered.reduce((s, o) => s + (parseFloat(o.oreNette) || 0), 0);
+            const avanzamento = document.getElementById('stat-avanzamento');
+            if (avanzamento) avanzamento.style.display = 'none';
             document.getElementById('m-ore').textContent = totOre.toFixed(2).replace('.', ',');
             document.getElementById('m-n').textContent = String(filtered.length);
             const emptyEl = document.getElementById('stat-empty');
