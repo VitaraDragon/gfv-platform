@@ -500,6 +500,12 @@ export async function caricaOreUtenteGiorno(db, tenantId, userId, giornoKey, use
 /**
  * Tutte le ore dell'utente sui lavori visibili (per il riquadro del giorno e le sovrapposizioni).
  */
+function etichettaPassoLetturaOre(error, passo) {
+  if (!error || typeof error !== 'object' || error.passoLetturaOre) return error;
+  try { error.passoLetturaOre = passo; } catch (ignora) { /* ignore */ }
+  return error;
+}
+
 export async function caricaOreUtente(db, tenantId, userId, userData) {
   if (!db || !tenantId || !userId) return [];
   const { collection, getDocs, query, where } = await firebaseOre();
@@ -512,21 +518,27 @@ export async function caricaOreUtente(db, tenantId, userId, userData) {
   const roleFlags = flags.isCaposquadra
     ? resolveFieldWorkspaceLavoriRoleFlags(userData || { ruoli: ['caposquadra'] })
     : resolveSegnaturaOreRoleFlags(userData || {});
-  const lavori = await fetchLavoriDocumentsForFieldUser(db, tenantId, userId, roleFlags, userData || null);
-  const ore = [];
-  for (const lav of lavori) {
-    const oreRef = collection(db, 'tenants', tenantId, 'lavori', lav.id, 'oreOperai');
-    const snap = await getDocs(query(oreRef, where('operaioId', '==', userId)));
-    snap.forEach((oraDoc) => {
-      ore.push({
-        id: oraDoc.id,
-        lavoroId: lav.id,
-        lavoroNome: lav.nome || 'N/A',
-        ...oraDoc.data()
+  let passo = 'lavori';
+  try {
+    const lavori = await fetchLavoriDocumentsForFieldUser(db, tenantId, userId, roleFlags, userData || null);
+    const ore = [];
+    for (const lav of lavori) {
+      passo = `oreOperai:${lav.id}`;
+      const oreRef = collection(db, 'tenants', tenantId, 'lavori', lav.id, 'oreOperai');
+      const snap = await getDocs(query(oreRef, where('operaioId', '==', userId)));
+      snap.forEach((oraDoc) => {
+        ore.push({
+          id: oraDoc.id,
+          lavoroId: lav.id,
+          lavoroNome: lav.nome || 'N/A',
+          ...oraDoc.data()
+        });
       });
-    });
+    }
+    return ore;
+  } catch (error) {
+    throw etichettaPassoLetturaOre(error, passo);
   }
-  return ore;
 }
 
 function normalizzaPayloadOra(oraData) {

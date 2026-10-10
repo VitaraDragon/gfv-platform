@@ -181,7 +181,7 @@
                         </div>
                         <div class="work-actions" style="margin-top: 12px;">
                             <button type="button" id="btn-refresh-pending-hours" class="field-mobile-btn">Aggiorna elenco</button>
-                            <a href="../admin/validazione-ore-standalone.html?from=field" class="field-link-btn" target="_blank" rel="noopener">Apri validazione completa</a>
+                            <a href="../admin/validazione-ore-standalone.html?from=field" class="field-link-btn">Apri validazione completa</a>
                         </div>
                     </section>
                 </div>
@@ -219,9 +219,11 @@
                     <section class="inline-team-section">
                         <h3 class="inline-team-title">📌 Dettaglio lavoro operativo</h3>
                         <p class="inline-team-subtitle">Ordini manager, stato tabella di marcia, traccia zone e sospensione lavoro.</p>
-                        <iframe id="lavori-detail-frame" class="slide-frame frame-lavori-detail" title="Dettaglio lavoro" loading="lazy"></iframe>
-                        <div class="work-actions">
-                            <a id="lavori-full-detail-link" href="../admin/lavori-caposquadra-standalone.html?ws=classic&v=20260904c" class="field-link-btn" target="_blank" rel="noopener">Apri in finestra intera</a>
+                        <div id="field-lavori-detail-wrap" class="field-lavori-detail-wrap">
+                            <iframe id="lavori-detail-frame" class="slide-frame frame-lavori-detail" title="Dettaglio lavoro" loading="lazy"></iframe>
+                            <div class="work-actions">
+                                <button type="button" id="btn-ingrandisci-lavoro" class="field-link-btn" aria-pressed="false">Ingrandisci</button>
+                            </div>
                         </div>
                     </section>
                 </div>

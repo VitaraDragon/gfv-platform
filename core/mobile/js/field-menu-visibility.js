@@ -32,6 +32,7 @@ export function vociMenuCampo({ ruoli, moduli, numeroAziende } = {}) {
  * Pulsante in alto della validazione ore.
  * Il profilo campo (operaio o caposquadra, senza manager) torna al workspace:
  * la dashboard lo rimanderebbe lì, e l’etichetta deve dire Campo.
+ * Con from=field il ritorno è il workspace anche se manca l’indizio gfv_ingresso_ultimo.
  * Il manager, anche con il ruolo di capo e anche se arriva dal workspace,
  * torna alla dashboard vera. Il workspace lo rimanderebbe indietro.
  * @param {{ da?: string, ruoli?: string[], ruoloSingolo?: string }} input
