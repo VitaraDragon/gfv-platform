@@ -874,6 +874,85 @@
       }
     },
     {
+      "id": "T-FLOW-030",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Segna ore: «oggi» non tiene la data del turno prima. Dopo Annulla un sì non salva. Fascia 05:00-05:30.",
+      "contract": {
+        "invariant": "Ogni richiesta ha la sua data. Annulla azzera la conferma.",
+        "primaryAsserts": [
+          "passo A niente Tutto pronto",
+          "ora-data è oggi",
+          "Tutto pronto con nome e oggi",
+          "dopo Annulla nessuna riga 05:00"
+        ],
+        "avoidAsserts": []
+      },
+      "persona": "caposquadra",
+      "startUrl": "/core/segnatura-ore-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsCapoFromDevPage",
+      "messages": [],
+      "mockCf": false,
+      "expect": {
+        "clientRecovery": true
+      }
+    },
+    {
+      "id": "T-FLOW-031",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Segna ore: Tony conferma quando l'ora è salvata, anche se la scrittura supera i 2 secondi. Se l'orario è già occupato dice il motivo. Fascia 06:00-06:30.",
+      "contract": {
+        "invariant": "Il sì aspetta il segnale del salvataggio. Niente falso «non vedo la conferma».",
+        "primaryAsserts": [
+          "Tutto pronto con nome e oggi",
+          "Fatto con lavoro data fascia",
+          "riga da_validare",
+          "sovrapposizione con il messaggio vero"
+        ],
+        "avoidAsserts": [
+          "Non vedo la conferma"
+        ]
+      },
+      "persona": "caposquadra",
+      "startUrl": "/core/segnatura-ore-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsCapoFromDevPage",
+      "messages": [],
+      "mockCf": false,
+      "expect": {
+        "clientRecovery": true
+      }
+    },
+    {
+      "id": "T-FLOW-032",
+      "status": "ready",
+      "mode": "gate",
+      "tier": 2,
+      "category": "multi_turn",
+      "description": "Segna ore: il riepilogo del giorno si aggiorna subito dopo l'eliminazione, anche se la rilettura è lenta. Fascia 03:40-04:10, seed solo di questo scenario.",
+      "contract": {
+        "invariant": "Dopo elimina, il riquadro del giorno perde la fascia prima che finisca la rilettura.",
+        "primaryAsserts": [
+          "riepilogo con 03:40 dopo il salvataggio",
+          "03:40 sparisce entro un secondo con rilettura rallentata",
+          "a fine rilettura la fascia non c'è"
+        ],
+        "avoidAsserts": []
+      },
+      "persona": "caposquadra",
+      "startUrl": "/core/segnatura-ore-standalone.html?emulator=1&tonyE2e=1",
+      "login": "loginAsCapoFromDevPage",
+      "messages": [],
+      "mockCf": false,
+      "expect": {
+        "clientRecovery": true
+      }
+    },
+    {
       "id": "T-FLOW-015",
       "status": "ready",
       "mode": "gate",

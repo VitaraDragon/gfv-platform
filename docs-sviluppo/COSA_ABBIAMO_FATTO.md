@@ -1,6 +1,76 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-09 — Tony, lavori sospesi e «Tutto pronto» con il nome.**
+**Ultimo aggiornamento documentazione: 2026-10-09 — Ingresso dopo il login, caricamento lavori, nome del lavoro.**
+
+## 2026-10-09 — Ingresso dopo il login, caricamento lavori e nome del lavoro
+
+Dopo il login la scelta è una sola. Se apri l’area di lavoro non vedi un lampo della dashboard.
+
+La dashboard classica si ricorda solo se la scegli tu. Un errore temporaneo non te la blocca.
+
+«Caricamento lavori…» ha un limite. Se i lavori non arrivano, compare «Riprova».
+
+Se nomini un lavoro già finito, Tony non propone un lavoro sospeso che non c’entra. Dice «Non trovo un lavoro attivo con questo nome».
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-09 — Il riepilogo delle ore si aggiorna subito.**
+
+## 2026-10-09 — Il riepilogo del giorno si aggiorna subito, e le conferme vecchie non tornano in chat
+
+Dopo aver eliminato o salvato una riga, il riepilogo del giorno in alto cambia subito. Non resta fermo sui minuti di prima mentre la pagina rilegge.
+
+Se ricarichi, una vecchia domanda «Vuoi salvare?» e la frase «Questa richiesta è scaduta» non tornano in chat.
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-09 — Tony conferma il salvataggio delle ore.**
+
+## 2026-10-09 — Tony conferma il salvataggio quando l'ora è salvata
+
+Tony dice «Fatto» quando l'ora è salvata, anche se è in attesa del caposquadra.
+
+Se il salvataggio fallisce, dice il motivo vero.
+
+Una domanda vecchia «Vuoi salvare?» non resta aperta.
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-09 — Tony, ogni richiesta di ore ha la sua data.**
+
+## 2026-10-09 — Ore: la data è quella di questa richiesta, e dopo Annulla un «sì» non salva
+
+Ogni richiesta di ore usa la sua data. Se non dici niente, è oggi: Tony non tiene la data del messaggio prima.
+
+«Tutto pronto» dice anche la data.
+
+Dopo Annulla un «sì» non salva più.
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-09 — Tony, un solo build dopo il deploy.**
+
+## 2026-10-09 — Tony: un solo loader, e i file senza versione non restano vecchi
+
+Dopo un deploy, Segna ore poteva tenere due loader insieme: quello nuovo e quello del 17 settembre. Il widget nuovo non partiva, quindi in console non compariva «[Tony] Client build».
+
+Il loader si iniettava due volte (bootstrap tenant e shell standalone) e non si fermava se c’era già. Shell, bootstrap e firebase-service non hanno `?v=`: GitHub Pages li tiene in cache HTTP per 10 minuti, e il service worker glieli restituiva così. La shell vecchia rimetteva il loader vecchio.
+
+Ora il secondo loader esce subito, la shell usa lo stesso `?v=` del loader (`2026-10-09b`) e il service worker rivalida i file della stessa origine. Prima che Firebase sia pronto, il recupero tenant non chiama più l’auth.
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-09 — Tony, lavori sospesi e «Tutto pronto» con il nome.**
 
 ## 2026-10-09 — Ore: niente «Tutto pronto» senza il lavoro, e niente ore nuove su un sospeso
 
