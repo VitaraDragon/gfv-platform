@@ -116,7 +116,7 @@
     position: absolute;
     right: 0;
     top: 44px;
-    min-width: 170px;
+    min-width: 220px;
     border-radius: 10px;
     background: #fff;
     border: 1px solid #d1d5db;
@@ -132,6 +132,15 @@
     font-weight: 600;
     color: #1f2937;
     text-decoration: none;
+}
+
+button.field-options-link {
+    width: 100%;
+    border: 0;
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
 }
 
 .field-options-link:hover {
