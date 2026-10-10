@@ -1,6 +1,18 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-10 — Il lavoro riparte quando il guasto è risolto.**
+**Ultimo aggiornamento documentazione: 2026-10-10 — Il profilo campo ha una sola casa.**
+
+## 2026-10-10 — Operaio e caposquadra restano nel workspace
+
+Chi ha solo i ruoli operaio e/o caposquadra, con il modulo Manodopera, entra sempre nella schermata del lavoro, anche dal computer. Non c’è più il pulsante per la versione desktop. Manager e chi è manager oltre che capo restano sulla dashboard dell’ufficio, come prima.
+
+Dopo il login, al posto delle schede della dashboard, si legge «Apro il tuo lavoro…». Se si digita a mano l’indirizzo di una pagina dell’ufficio, si torna al workspace, senza il messaggio «non hai i permessi».
+
+L’audit delle regole Firestore è solo un documento. Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-10 — Il lavoro riparte quando il guasto è risolto.**
 
 ## 2026-10-10 — Guasto risolto, lavoro ripreso
 

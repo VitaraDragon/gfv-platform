@@ -220,6 +220,10 @@ export async function signIn(email, password) {
  */
 export async function signOutUser() {
   try {
+    try {
+      const { pulisciIndizioIngresso } = await import('../js/tony/tony-ingresso-login.js');
+      pulisciIndizioIngresso();
+    } catch (e) { /* indizio non disponibile */ }
     const auth = getAuthInstance();
     await signOut(auth);
     currentUserData = null;

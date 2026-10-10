@@ -27,7 +27,7 @@ Questa guida è solo per l’**operaio**. La schermata che userai quasi sempre �
 | Statistiche personali | [Impara qui](#mini-guida-statistiche-personali) |
 | Guasti: segnalazione, GPS e risoluzione | [Impara qui](#mini-guida-guasti-segnalazione-gps-e-risoluzione) |
 | Lavoro in autonomo e con incarichi di gruppo | [Impara qui](#mini-guida-lavoro-in-autonomo-e-con-incarichi-di-gruppo) |
-| Versione desktop opzionale | [Impara qui](#mini-guida-versione-desktop-opzionale) |
+| Una sola schermata, anche dal computer | [Impara qui](#mini-guida-una-sola-schermata-anche-dal-computer) |
 | Se qualcosa non funziona | [Impara qui](#se-qualcosa-non-funziona) |
 
 ---
@@ -46,8 +46,8 @@ Con **Indietro** / **Avanti** in basso o i **puntini**:
 
 ### In alto nella schermata
 
-- Passaggio alla **versione desktop** (browser su schermo grande), se compare tra le opzioni.  
-- Accesso alle **impostazioni account** dal menu, se previsto (lì anche **Notifiche** push: nuovo lavoro, comunicazioni di squadra).
+- Il menu **ingranaggio**: **Guida**, **Segnala guasto** se l’azienda ha il parco macchine, **Impostazioni**, **Esci**. **Cambia azienda** compare solo se ne hai più di una.  
+- Accesso alle **impostazioni account** da quel menu (lì anche **Notifiche** push: nuovo lavoro, comunicazioni di squadra).
 
 ---
 
@@ -202,12 +202,11 @@ Serve quando l’azienda ha il modulo **Parco Macchine** attivo e ti compare la 
 
 ---
 
-## Mini-guida versione desktop opzionale
+## Mini-guida una sola schermata, anche dal computer
 
-In alto puoi vedere **Versione mobile** e **Versione desktop**.
+La schermata del lavoro è la stessa sul telefono e sul computer. Non c’è un pulsante per passare a una dashboard con i menu dei moduli.
 
-- Se passi alla desktop, puoi avere una **dashboard** con più schede e collegamenti: usa quelli che ti servono per il tuo lavoro (es. segnalazioni da browser).  
-- Per la giornata sul campo resta comoda la **mobile**.
+Se apri a mano un indirizzo dell’ufficio (terreni, magazzino, elenchi), l’app ti riporta al tuo lavoro.
 
 ---
 

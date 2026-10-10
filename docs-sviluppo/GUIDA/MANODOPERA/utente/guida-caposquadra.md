@@ -44,9 +44,8 @@ La **versione mobile** è la schermata principale quando lavori in campo dall’
 
 ### Cosa vedi in alto
 
-- **Icona telefono / computer**: puoi passare alla **versione desktop** se ti serve il browser completo su schermo grande (a volte il sistema ti reindirizza in base al ruolo: è normale).  
-- Il tuo **nome** e il ruolo (es. caposquadra).  
-- **Impostazioni** (ingranaggio): accesso rapido alle **impostazioni account** se presente nel menu.  
+- Il tuo **nome** e il ruolo (es. caposquadra). La schermata è la stessa sul telefono e sul computer: non c’è un passaggio alla dashboard dell’ufficio.  
+- **Impostazioni** (ingranaggio): Guida, Segnala guasto se c’è il parco macchine, Validazione ore, Impostazioni account, Esci. Cambia azienda solo se ne hai più di una.  
 - Una riga di **stato** sotto la barra (caricamento, messaggi brevi).
 
 ### Le quattro schede del caposquadra (ordine dell’app)
