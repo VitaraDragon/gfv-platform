@@ -1,6 +1,18 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-10 — Il profilo campo ha una sola casa.**
+**Ultimo aggiornamento documentazione: 2026-10-10 — Il campo non apre più una finestra a parte.**
+
+## 2026-10-10 — Campo: niente finestra intera, niente lampo del menu, ore silenziose
+
+Dal workspace non c’è più «Apri in finestra intera». Al suo posto, **Ingrandisci** / **Riduci** allarga il dettaglio del lavoro dentro la stessa scheda. «Apri validazione completa» si apre nella stessa scheda: «← Campo» torna al workspace.
+
+Dopo il login, il menu della dashboard («Scegli un modulo», Home, Gestione lavori, Terreni) non compare nemmeno per un istante mentre si legge «Apro il tuo lavoro…». Chi è manager, anche con i dati del sito cancellati, non resta su quella frase per tutto il caricamento: la dashboard compare appena si conoscono i ruoli.
+
+Se le ore del giorno non si possono leggere, il riquadro resta una riga piccola e neutra («non disponibili ora»), senza errore rosso in console. Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-10 — Il profilo campo ha una sola casa.**
 
 ## 2026-10-10 — Operaio e caposquadra restano nel workspace
 

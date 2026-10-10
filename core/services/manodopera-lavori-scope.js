@@ -31,7 +31,8 @@ export async function resolveCaposquadraIdsForOperaio(db, tenantId, operaioUserI
         });
         return Array.from(capoIds);
     } catch (e) {
-        console.warn('[manodopera-lavori-scope] resolveCaposquadraIdsForOperaio:', e);
+        try { if (e && typeof e === 'object') e.passoLetturaOre = 'squadre'; } catch (ignora) { /* ignore */ }
+        console.warn('[manodopera-lavori-scope] resolveCaposquadraIdsForOperaio:', 'squadre', e && e.code ? e.code : '', e);
         return [];
     }
 }
