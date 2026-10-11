@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-11 — Invito e ri-accettazione pronti, ancora spenti.**
+**Ultimo aggiornamento documentazione: 2026-10-11 — Lingua del campo, primo pezzo.**
+
+## 2026-10-11 — Workspace campo: scelta della lingua (passo 1)
+
+Nel menu ⚙️ del telefono si può scegliere Italiano, Română o English. Con italiano la pagina resta uguale a prima. Le altre due lingue traducono menu, pulsanti Indietro/Avanti e i titoli delle schede: sono una bozza da rivedere da un madrelingua. La scelta resta sul telefono (memoria locale), non sul profilo. I messaggi, gli errori e le liste restano in italiano: arrivano al passo successivo. Login escluso.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-11 — Invito e ri-accettazione pronti, ancora spenti.**
 
 ## 2026-10-11 — Invito e ri-accettazione, flag spento
 

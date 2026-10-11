@@ -102,6 +102,13 @@ import {
 } from '../../services/lavoro-delete-cascade.js';
 import { isOraDelCaposquadraSuLavoroSquadra } from '../../services/manodopera-ore-validazione-scope.js';
 import { syncPienoCampoSection } from './pieno-campo-ui.js';
+import { applicaLingua } from './field-ui-i18n-dom.js';
+import {
+    t,
+    leggiLinguaCampo,
+    salvaLinguaCampo,
+    normalizzaLingua
+} from '../../services/field-ui-i18n.js';
 
 const {
     normalizeRoles,
@@ -243,13 +250,46 @@ function updateFieldDocumentationGuideLink() {
     a.href = `../../documentazione-utente/guida-manodopera-utente.html?${qs.toString()}`;
 }
 
+function storageCampo() {
+    try {
+        return localStorage;
+    } catch (error) {
+        return null;
+    }
+}
+
+function linguaCorrente() {
+    return leggiLinguaCampo(storageCampo());
+}
+
+function aggiornaPulsantiLingua(lang) {
+    if (!optionsMenuEl) return;
+    const lingua = normalizzaLingua(lang);
+    optionsMenuEl.querySelectorAll('[data-field-lang]').forEach((btn) => {
+        btn.setAttribute('aria-pressed', btn.getAttribute('data-field-lang') === lingua ? 'true' : 'false');
+    });
+}
+
+function impostaLinguaCampo(lang) {
+    const lingua = salvaLinguaCampo(lang, storageCampo());
+    applicaLingua(lingua);
+    aggiornaPulsantiLingua(lingua);
+    updateNavButtons();
+    if (currentUserData) {
+        const displayName = `${currentUserData.nome || ''} ${currentUserData.cognome || ''}`.trim()
+            || (currentUser && currentUser.email) || '';
+        updateFieldHeaderUser(displayName, currentUserData.ruoli);
+    }
+}
+
 function formatRoleLabelsItalian(roles) {
     if (!Array.isArray(roles) || roles.length === 0) return '';
+    const lingua = linguaCorrente();
     const map = {
-        operaio: 'Operaio',
-        caposquadra: 'Caposquadra',
-        manager: 'Manager',
-        amministratore: 'Amministratore'
+        operaio: t('ruolo.operaio', lingua),
+        caposquadra: t('ruolo.caposquadra', lingua),
+        manager: t('ruolo.manager', lingua),
+        amministratore: t('ruolo.amministratore', lingua)
     };
     return roles.map((r) => {
         const key = String(r || '').toLowerCase();
@@ -262,10 +302,10 @@ function formatRoleLabelsItalian(roles) {
 
 function updateFieldHeaderUser(displayName, roles) {
     if (!fieldToolbarUserEl || !fieldToolbarUserNameEl || !fieldToolbarUserRolesEl) return;
-    const name = (displayName || '').trim() || 'Account';
+    const name = (displayName || '').trim() || t('ruolo.account', linguaCorrente());
     fieldToolbarUserNameEl.textContent = name;
     const rolesText = formatRoleLabelsItalian(roles);
-    fieldToolbarUserRolesEl.textContent = rolesText || 'Utente campo';
+    fieldToolbarUserRolesEl.textContent = rolesText || t('ruolo.fieldUser', linguaCorrente());
     fieldToolbarUserEl.hidden = false;
 }
 
@@ -347,7 +387,7 @@ function updateNavButtons() {
     if (btnPrevEl) btnPrevEl.disabled = currentSlideIndex <= 0;
     if (btnNextEl) {
         const isLast = currentSlideIndex >= activeSlides.length - 1;
-        btnNextEl.textContent = isLast ? 'Fine' : 'Avanti';
+        btnNextEl.textContent = isLast ? t('nav.done', linguaCorrente()) : t('nav.next', linguaCorrente());
     }
 }
 
@@ -2438,7 +2478,7 @@ function applicaStatoMenuCampo(pronto) {
     if (preparing) preparing.hidden = abilitato;
     if (!optionsMenuEl) return;
     optionsMenuEl.querySelectorAll('.field-options-link').forEach((el) => {
-        if (el.id === 'field-logout-button') {
+        if (el.id === 'field-logout-button' || el.hasAttribute('data-field-lang')) {
             el.removeAttribute('aria-disabled');
             return;
         }
@@ -2511,6 +2551,14 @@ async function setupFieldTenantSwitch(userId) {
 }
 
 function bindToolbar() {
+    if (optionsMenuEl) {
+        optionsMenuEl.querySelectorAll('[data-field-lang]').forEach((btn) => {
+            btn.addEventListener('click', (event) => {
+                event.preventDefault();
+                impostaLinguaCampo(btn.getAttribute('data-field-lang'));
+            });
+        });
+    }
     if (fieldLogoutButtonEl) {
         fieldLogoutButtonEl.addEventListener('click', () => {
             logoutFieldWorkspace().catch(() => {});
@@ -2526,7 +2574,7 @@ function bindToolbar() {
             const target = event.target instanceof Element
                 ? event.target.closest('.field-options-link')
                 : null;
-            if (!target || target.id === 'field-logout-button') return;
+            if (!target || target.id === 'field-logout-button' || target.hasAttribute('data-field-lang')) return;
             if (!menuCampoAbilitato(workspacePronto)) {
                 event.preventDefault();
                 event.stopPropagation();
@@ -2640,6 +2688,9 @@ function rimandaDashboardTemporanea() {
 }
 
 async function initFieldWorkspace() {
+    const linguaAvvio = leggiLinguaCampo(storageCampo());
+    applicaLingua(linguaAvvio);
+    aggiornaPulsantiLingua(linguaAvvio);
     setStatus('Caricamento workspace mobile...');
     applicaStatoMenuCampo(false);
     readBootParamsFromUrl();
