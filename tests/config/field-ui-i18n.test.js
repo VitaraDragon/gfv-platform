@@ -97,6 +97,8 @@ describe('field-ui-i18n catalogo', () => {
         expect(FIELD_UI_STRINGS['nav.next'].it).toBe('Avanti');
         expect(FIELD_UI_STRINGS['menu.guide'].it).toBe('Guida Manodopera');
         expect(FIELD_UI_STRINGS['slide.lavoro.title'].it).toBe('Seleziona lavoro');
+        expect(FIELD_UI_STRINGS['squad.sent'].it).toBe('Segnalazione inviata al manager.');
+        expect(FIELD_UI_STRINGS['status.refreshed'].it).toBe('Dati aggiornati.');
     });
 
     it('controller, helper UI e HTML usano solo chiavi del catalogo', () => {
