@@ -42,8 +42,16 @@ describe('isLavoroVisibileOperaioCampo', () => {
         expect(isLavoroVisibileOperaioCampo({ stato: 'in_corso' }, oggi)).toBe(true);
     });
 
-    it('esclude completato', () => {
+    it('esclude completato anche con data di completamento', () => {
         expect(isLavoroVisibileOperaioCampo({ stato: 'completato' }, oggi)).toBe(false);
+        expect(isLavoroVisibileOperaioCampo({
+            stato: 'completato',
+            completatoIl: oggi
+        }, oggi)).toBe(false);
+        expect(isLavoroVisibileOperaioCampo({
+            stato: 'completato_da_approvare',
+            completatoIl: oggi
+        }, oggi)).toBe(false);
     });
 });
 
@@ -97,6 +105,34 @@ describe('isLavoroInDropdownSegnaOre', () => {
         }, oggi)).toBe(true);
         expect(isLavoroSegnabileOperaio({ stato: 'in_standby' }, oggi)).toBe(false);
     });
+
+    it('completato senza completatoIl resta fuori dal dropdown', () => {
+        expect(isLavoroInDropdownSegnaOre({ stato: 'completato' }, oggi)).toBe(false);
+        expect(isLavoroInDropdownSegnaOre({ stato: 'completato_da_approvare' }, oggi)).toBe(false);
+        expect(isLavoroSegnabileOperaio({ stato: 'completato' }, oggi)).toBe(false);
+    });
+
+    it('completato negli ultimi 7 giorni resta nel dropdown', () => {
+        expect(isLavoroInDropdownSegnaOre({
+            stato: 'completato',
+            completatoIl: new Date(2026, 4, 17)
+        }, oggi)).toBe(true);
+        expect(isLavoroInDropdownSegnaOre({
+            stato: 'completato_da_approvare',
+            completatoIl: new Date(2026, 4, 10)
+        }, oggi)).toBe(true);
+    });
+
+    it('completato da 8 giorni resta fuori dal dropdown', () => {
+        expect(isLavoroInDropdownSegnaOre({
+            stato: 'completato',
+            completatoIl: new Date(2026, 4, 9)
+        }, oggi)).toBe(false);
+        expect(isLavoroSegnabileOperaio({
+            stato: 'completato_da_approvare',
+            completatoIl: new Date(2026, 4, 9)
+        }, oggi)).toBe(false);
+    });
 });
 
 describe('getLavoroDataFinePrevista', () => {
@@ -128,6 +164,23 @@ describe('sliceOperaioLavoriWindow', () => {
         ];
         const slice = sliceOperaioLavoriWindow(works, { maxNeighbors: 0 });
         expect(slice.map((w) => w.id)).toEqual(['ripresa']);
+    });
+
+    it('tiene un completato in finestra senza spostare il focus dal lavoro in corso', () => {
+        const works = [
+            { id: 'chiuso', stato: 'completato', completatoIl: new Date(), dataInizio: new Date(2020, 1, 1) },
+            { id: 'vecchioChiuso', stato: 'completato', completatoIl: new Date(2020, 0, 2), dataInizio: new Date(2019, 0, 1) },
+            { id: 'a', stato: 'assegnato', dataInizio: new Date(2024, 0, 1) },
+            { id: 'b', stato: 'assegnato', dataInizio: new Date(2024, 6, 1) },
+            { id: 'c', stato: 'assegnato', dataInizio: new Date(2025, 0, 1) },
+            { id: 'focus', stato: 'in_corso', dataInizio: new Date(2026, 9, 11) },
+            { id: 'd', stato: 'assegnato', dataInizio: new Date(2026, 9, 12) },
+        ];
+        const ids = sliceOperaioLavoriWindow(works, { maxNeighbors: 1 }).map((w) => w.id);
+        expect(ids).toContain('chiuso');
+        expect(ids).toContain('focus');
+        expect(ids).toContain('d');
+        expect(ids).not.toContain('vecchioChiuso');
     });
 });
 

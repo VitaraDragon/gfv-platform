@@ -894,7 +894,7 @@
                     }
                     row.isCompletatoRecente = isCompletatoRecente;
                     tuttiFiltrati.push(row);
-                    if (!isCompletatoRecente && isLavoroSegnabileOperaio(data, oggi)) {
+                    if (isLavoroSegnabileOperaio(data, oggi)) {
                         segnabili.push(row);
                     }
                 });
