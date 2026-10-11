@@ -70,7 +70,10 @@ describe('invito-pubblico — token e sanitize', () => {
     expect(out.email).toBe('a@b.c');
     expect(out.secretInterno).toBeUndefined();
     expect(out.noteAdmin).toBeUndefined();
+    expect(out.aziendaNome).toBe('');
+    expect(out.cellulare).toBe('333');
     expect(Object.keys(out).sort()).toEqual([
+      'aziendaNome',
       'cellulare',
       'cognome',
       'email',
@@ -150,6 +153,48 @@ describe('handleGetInvitoPubblico', () => {
     expect(res.invito.id).toBe('ok1');
     expect(res.invito.email).toBe('ada@gfv.test');
     expect(res.invito.leak).toBeUndefined();
+    expect(res.invito.aziendaNome).toBe('');
+    expect(res.invito.cellulare).toBe('');
+  });
+
+  it('aggiunge aziendaNome letto dal tenant e lascia il cellulare', async () => {
+    const future = new Date('2027-01-01T00:00:00.000Z');
+    const invito = fakeDoc('ok1', {
+      stato: 'invitato',
+      token: LONG_TOKEN,
+      email: 'ada@gfv.test',
+      nome: 'Ada',
+      cognome: 'L',
+      ruoli: ['operaio'],
+      tenantId: 't1',
+      scadeIl: future,
+      cellulare: '333',
+    });
+    const db = {
+      collection(name) {
+        if (name === 'tenants') {
+          return {
+            doc(id) {
+              return {
+                get: async () => (id === 't1'
+                  ? { exists: true, data: () => ({ nome: 'Vigna Rossi' }) }
+                  : { exists: false, data: () => ({}) }),
+              };
+            },
+          };
+        }
+        return {
+          where: () => ({
+            limit: () => ({
+              get: async () => ({ empty: false, docs: [invito] }),
+            }),
+          }),
+        };
+      },
+    };
+    const res = await handleGetInvitoPubblico(db, LONG_TOKEN, new Date('2026-09-18'));
+    expect(res.invito.aziendaNome).toBe('Vigna Rossi');
+    expect(res.invito.cellulare).toBe('333');
   });
 });
 

@@ -270,6 +270,22 @@
 
     <script src="../js/dashboard-utils.js"></script>
     <script type="module" src="../js/standalone-bootstrap.js" data-config-base="../"></script>
+    <script type="module">
+        try {
+            const config = await import('../config/accettazione-legale-config.js');
+            if (config.ACCETTAZIONE_LEGALE_ATTIVA === true) {
+                const legale = await import('../services/accettazione-legale.js');
+                if (legale.validaConfigLegale(config, true).ok) {
+                    const gate = await import('../js/accettazione-legale-gate.js');
+                    await gate.avviaDaFirebase({ config: config });
+                } else {
+                    console.warn('[accettazione-legale] config non valida, ingresso invariato');
+                }
+            }
+        } catch (error) {
+            console.warn('[accettazione-legale] ingresso invariato');
+        }
+    </script>
     <script type="module" src="./js/field-workspace-controller.js"></script>
 </body>
 </html>
