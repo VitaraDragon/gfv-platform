@@ -40,7 +40,6 @@ import {
     modificaOraPropria,
     eliminaOraPropria,
     caricaOreUtenteGiorno,
-    testoIntestazioneOreDelGiorno,
     validaOraContesto,
     rifiutaOraContesto
 } from '../../services/ore-service.js';
@@ -101,7 +100,7 @@ import {
     comunicazioneRiferisceLavoroInesistente
 } from '../../services/lavoro-delete-cascade.js';
 import { isOraDelCaposquadraSuLavoroSquadra } from '../../services/manodopera-ore-validazione-scope.js';
-import { syncPienoCampoSection } from './pieno-campo-ui.js';
+import { syncPienoCampoSection, testoSegnapostoPieno } from './pieno-campo-ui.js';
 import { applicaLingua } from './field-ui-i18n-dom.js';
 import {
     t,
@@ -189,6 +188,23 @@ let selectedWork = null;
 let userIsCaposquadra = false;
 let lastSquadMembers = [];
 let lastSquadLabel = 'Squadra';
+let lastSquadMeta = null;
+let lastSquadDisegnati = [];
+
+function etichettaSquadraBase() {
+    if (!lastSquadMeta) return t('squad.fallbackName', linguaCorrente());
+    if (lastSquadMeta.count <= 1) return lastSquadMeta.nome || t('squad.fallbackName', linguaCorrente());
+    return t('squad.many', linguaCorrente(), { n: lastSquadMeta.count });
+}
+
+function etichettaSquadraVisibile() {
+    const base = etichettaSquadraBase();
+    const raw = selectedWork && selectedWork.raw;
+    if (raw && lavoroHaSostitutoAttivo(raw)) {
+        return t('squad.withSubstitute', linguaCorrente(), { label: base });
+    }
+    return base;
+}
 let userIsOperaio = false;
 let workspacePronto = false;
 let menuRuoliCampo = [];
@@ -279,6 +295,36 @@ function impostaLinguaCampo(lang) {
         const displayName = `${currentUserData.nome || ''} ${currentUserData.cognome || ''}`.trim()
             || (currentUser && currentUser.email) || '';
         updateFieldHeaderUser(displayName, currentUserData.ruoli);
+    }
+    ridisegnaTestiInMemoria();
+}
+
+function ridisegnaTestiInMemoria() {
+    const retry = document.getElementById('btn-retry-lavori');
+    if (retry) retry.textContent = t('lavoro.retry', linguaCorrente());
+    const wrap = document.getElementById('field-lavori-detail-wrap');
+    const ingrandisci = document.getElementById('btn-ingrandisci-lavoro');
+    if (ingrandisci && wrap && wrap.classList.contains('ingrandito')) {
+        ingrandisci.textContent = t('lavoro.shrink', linguaCorrente());
+    }
+    if (cachedWorks.length) {
+        populateWorkSelectors(cachedWorks);
+        pickGpsSuggestion(cachedWorks);
+    }
+    if (lastSquadDisegnati.length || lastSquadMembers.length) {
+        const disegnati = lastSquadDisegnati.length ? lastSquadDisegnati : lastSquadMembers;
+        renderSquadList(etichettaSquadraVisibile(), disegnati);
+        populateAssenzaSegnalaOperaiSelect(lastSquadMembers);
+    }
+    renderPendingHours();
+    renderAllPendingHours();
+    if (oreGiornoBoxEl && oreGiornoBoxEl.getAttribute('data-pronto') === '1' && oreGiornoBoxEl.getAttribute('data-state') !== 'loading') {
+        dipingiOreGiorno(oreGiornoRows, 'ready');
+    }
+    setOreSubmitMode(Boolean(editingOraId));
+    const pienoSel = document.getElementById('pieno-prodotto');
+    if (pienoSel && pienoSel.options[0] && !pienoSel.options[0].value) {
+        pienoSel.options[0].textContent = testoSegnapostoPieno(pienoSel.dataset.pienoPlaceholder || 'pieno.loading');
     }
 }
 
@@ -646,7 +692,7 @@ function bindSwiperNavigation() {
 }
 
 function populateWorkSelectors(works) {
-    const options = ['<option value="">Seleziona lavoro</option>']
+    const options = ['<option value="">' + escapeHtmlUnsafe(t('lavoro.pick', linguaCorrente())) + '</option>']
         .concat(works.map((work) => `<option value="${work.id}">${work.label}</option>`))
         .join('');
     if (selectedWorkEl) {
@@ -717,12 +763,12 @@ function syncTonyFieldWorkspaceTableData() {
 function pickGpsSuggestion(works) {
     if (!gpsSuggestionEl) return;
     if (!works.length) {
-        gpsSuggestionEl.textContent = 'Nessun suggerimento GPS disponibile.';
+        gpsSuggestionEl.textContent = t('lavoro.gpsNone', linguaCorrente());
         return;
     }
     // Suggerimento semplice: il primo lavoro attivo (placeholder per futura distanza reale).
     const first = works[0];
-    gpsSuggestionEl.textContent = `Suggerimento: ${first.label} (proposta rapida, conferma manualmente).`;
+    gpsSuggestionEl.textContent = t('lavoro.gpsHint', linguaCorrente(), { label: first.label });
 }
 
 function normalizeWorkLabel(work) {
@@ -751,7 +797,7 @@ function attendiMsLavori(ms) {
 
 function scriviCaricamentoLavori() {
     if (selectedWorkEl) {
-        selectedWorkEl.innerHTML = '<option value="">Caricamento lavori...</option>';
+        selectedWorkEl.innerHTML = '<option value="">' + escapeHtmlUnsafe(t('lavoro.loading', linguaCorrente())) + '</option>';
     }
 }
 
@@ -763,7 +809,7 @@ function togliPulsanteRiprovaLavori() {
 function mostraLavoriNonCaricati() {
     annullaAttesaLavori();
     if (selectedWorkEl) {
-        selectedWorkEl.innerHTML = '<option value="">Non riesco a caricare i lavori. Riprova.</option>';
+        selectedWorkEl.innerHTML = '<option value="">' + escapeHtmlUnsafe(t('lavoro.loadError', linguaCorrente())) + '</option>';
     }
     if (gpsSuggestionEl) {
         gpsSuggestionEl.textContent = '';
@@ -772,7 +818,7 @@ function mostraLavoriNonCaricati() {
     const btn = document.createElement('button');
     btn.id = 'btn-retry-lavori';
     btn.type = 'button';
-    btn.textContent = 'Riprova';
+    btn.textContent = t('lavoro.retry', linguaCorrente());
     btn.addEventListener('click', () => {
         loadWorksForSelection().catch(() => {});
     });
@@ -911,7 +957,7 @@ function toggleIngrandisciLavoro() {
     if (!wrap || !btn) return;
     const acceso = !wrap.classList.contains('ingrandito');
     wrap.classList.toggle('ingrandito', acceso);
-    btn.textContent = acceso ? 'Riduci' : 'Ingrandisci';
+    btn.textContent = acceso ? t('lavoro.shrink', linguaCorrente()) : t('lavoro.expand', linguaCorrente());
     btn.setAttribute('aria-pressed', acceso ? 'true' : 'false');
 }
 
@@ -926,11 +972,13 @@ async function refreshLavoroSostitutoBanner() {
     try {
         const info = await resolveAssenzaSostitutoDisplay(getDb(), raw);
         lavoroSostitutoBannerEl.hidden = false;
+        const assente = info.assenteNome || '—';
+        const sostituto = info.sostitutoNome || info.sostitutoId;
         lavoroSostitutoBannerEl.innerHTML = `
-            <strong>👤 Sostituzione attiva</strong><br>
-            <span style="font-size:13px;">Assente: ${escapeHtmlUnsafe(info.assenteNome || '—')} · 
-            <strong>Sostituto: ${escapeHtmlUnsafe(info.sostitutoNome || info.sostitutoId)}</strong></span><br>
-            <span style="font-size:12px;">Valida le sue ore in «Valida ore» sotto; il sostituto le segna da Segna ore.</span>
+            <strong>👤 ${escapeHtmlUnsafe(t('lavoro.subActive', linguaCorrente()))}</strong><br>
+            <span style="font-size:13px;">${escapeHtmlUnsafe(t('lavoro.absentLine', linguaCorrente(), { name: assente }))} · 
+            <strong>${escapeHtmlUnsafe(t('lavoro.substituteLine', linguaCorrente(), { name: sostituto }))}</strong></span><br>
+            <span style="font-size:12px;">${escapeHtmlUnsafe(t('lavoro.subHint', linguaCorrente()))}</span>
         `;
     } catch (e) {
         console.warn('[FIELD-WORKSPACE] banner sostituto:', e);
@@ -941,7 +989,7 @@ async function refreshLavoroSostitutoBanner() {
 async function refreshSquadraConSostituto() {
     if (!userIsCaposquadra || !squadListEl || !lastSquadMembers.length) return;
     let members = lastSquadMembers.slice();
-    let label = lastSquadLabel;
+    let label = etichettaSquadraBase();
     const raw = selectedWork?.raw;
     if (raw && lavoroHaSostitutoAttivo(raw)) {
         const info = await resolveAssenzaSostitutoDisplay(getDb(), raw);
@@ -951,8 +999,9 @@ async function refreshSquadraConSostituto() {
                 members.push({ id: info.sostitutoId, ...udoc.data(), _isSostituto: true });
             }
         }
-        label = `${lastSquadLabel} · sostituto in campo`;
+        label = t('squad.withSubstitute', linguaCorrente(), { label: etichettaSquadraBase() });
     }
+    lastSquadDisegnati = members;
     renderSquadList(label, members);
 }
 
@@ -977,7 +1026,7 @@ function formatDateShort(dateLike) {
     if (!dateLike) return '';
     const d = dateLike.toDate ? dateLike.toDate() : new Date(dateLike);
     if (Number.isNaN(d.getTime())) return '';
-    return d.toLocaleDateString('it-IT');
+    return d.toLocaleDateString(localeCampo());
 }
 
 function escapeHtmlUnsafe(raw) {
@@ -989,6 +1038,17 @@ function escapeHtmlUnsafe(raw) {
         .replace(/'/g, '&#39;');
 }
 
+function vuoto(testo) {
+    return '<div class="empty-state-inline">' + escapeHtmlUnsafe(testo) + '</div>';
+}
+
+function localeCampo() {
+    const lang = linguaCorrente();
+    if (lang === 'ro') return 'ro-RO';
+    if (lang === 'en') return 'en-GB';
+    return 'it-IT';
+}
+
 function renderSquadList(squadLabel, members) {
     if (!squadListEl) return;
     squadListEl.innerHTML = '';
@@ -998,7 +1058,9 @@ function renderSquadList(squadLabel, members) {
     squadListEl.appendChild(sub);
     members.forEach((m) => {
         const fullName = `${m.nome || ''} ${m.cognome || ''}`.trim() || m.email || m.id;
-        const label = m._isSostituto ? `${fullName} (sostituto)` : fullName;
+        const label = m._isSostituto
+            ? t('squad.substituteTag', linguaCorrente(), { name: fullName })
+            : fullName;
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'squad-member-row';
@@ -1015,7 +1077,7 @@ function openOperaioContactModal(userRow, displayName) {
     const cell = String(userRow.cellulare || userRow.telefono || userRow.cell || '').trim();
     operaioContactNameEl.textContent = displayName;
     const subParts = [email, cell].filter(Boolean);
-    operaioContactSubEl.textContent = subParts.length ? subParts.join(' · ') : 'Contatti non disponibili in anagrafica.';
+    operaioContactSubEl.textContent = subParts.length ? subParts.join(' · ') : t('squad.noContacts', linguaCorrente());
 
     const telCompact = cell.replace(/[\s()-]/g, '');
     if (operaioContactCallEl) {
@@ -1051,7 +1113,7 @@ function populateAssenzaSegnalaOperaiSelect(members) {
     if (!assenzaSegnalaOperaioEl) return;
     const list = members || lastSquadMembers || [];
     assenzaSegnalaOperaioEl.innerHTML =
-        '<option value="">-- Seleziona --</option>' +
+        '<option value="">' + escapeHtmlUnsafe(t('squad.pick', linguaCorrente())) + '</option>' +
         list
             .map((m) => {
                 const id = m.id || m.uid;
@@ -1070,11 +1132,11 @@ async function submitSegnalaAssenza(event) {
     const nota = document.getElementById('assenza-segnala-nota')?.value || '';
     const segnalatoDa = currentUserData?.id || currentUser.uid;
     if (!operaioId) {
-        if (assenzaSegnalaStatusEl) assenzaSegnalaStatusEl.textContent = 'Seleziona un operaio.';
+        if (assenzaSegnalaStatusEl) assenzaSegnalaStatusEl.textContent = t('squad.pickWorker', linguaCorrente());
         return;
     }
     try {
-        if (assenzaSegnalaStatusEl) assenzaSegnalaStatusEl.textContent = 'Invio...';
+        if (assenzaSegnalaStatusEl) assenzaSegnalaStatusEl.textContent = t('squad.sending', linguaCorrente());
         await segnalaAssenza({
             operaioId,
             tipo,
@@ -1084,21 +1146,21 @@ async function submitSegnalaAssenza(event) {
             segnalatoDa
         }, currentTenantId);
         if (assenzaSegnalaStatusEl) {
-            assenzaSegnalaStatusEl.textContent = 'Segnalazione inviata al manager.';
+            assenzaSegnalaStatusEl.textContent = t('squad.sent', linguaCorrente());
         }
         if (segnalaAssenzaFormEl) segnalaAssenzaFormEl.reset();
         if (assenzaSegnalaGiornoEl) assenzaSegnalaGiornoEl.value = toGiornoKey(new Date());
     } catch (error) {
         console.error('[FIELD-WORKSPACE] segnala assenza:', error);
         if (assenzaSegnalaStatusEl) {
-            assenzaSegnalaStatusEl.textContent = error.message || 'Errore invio segnalazione.';
+            assenzaSegnalaStatusEl.textContent = error.message || t('squad.sendError', linguaCorrente());
         }
     }
 }
 
 async function loadSquadMembersForCapo() {
     if (!squadListEl || !currentTenantId || !currentUser) return;
-    squadListEl.innerHTML = '<div class="empty-state-inline">Caricamento squadra...</div>';
+    squadListEl.innerHTML = vuoto(t('squad.loading', linguaCorrente()));
     try {
         const squadreRef = collection(getDb(), `tenants/${currentTenantId}/squadre`);
         let snapshot = await getDocs(query(squadreRef, where('caposquadraId', '==', currentUser.uid)));
@@ -1107,7 +1169,10 @@ async function loadSquadMembersForCapo() {
             snapshot = await getDocs(query(squadreRef, where('caposquadraId', '==', altId)));
         }
         if (snapshot.empty) {
-            squadListEl.innerHTML = '<div class="empty-state-inline">Nessuna squadra assegnata.</div>';
+            lastSquadMeta = null;
+            lastSquadDisegnati = [];
+            lastSquadMembers = [];
+            squadListEl.innerHTML = vuoto(t('squad.none', linguaCorrente()));
             return;
         }
         const squadDocs = [];
@@ -1121,12 +1186,16 @@ async function loadSquadMembersForCapo() {
                 if (oid) operaioIdSet.add(oid);
             });
         });
-        const squadLabel = squadDocs.length === 1
-            ? (squadDocs[0].nome || 'Squadra')
-            : `${squadDocs.length} squadre · membri unici`;
+        lastSquadMeta = {
+            nome: squadDocs.length === 1 ? String(squadDocs[0].nome || '') : '',
+            count: squadDocs.length
+        };
+        const squadLabel = etichettaSquadraBase();
         lastSquadLabel = squadLabel;
         if (operaioIdSet.size === 0) {
-            squadListEl.innerHTML = '<div class="empty-state-inline">Nessun operaio in squadra.</div>';
+            lastSquadDisegnati = [];
+            lastSquadMembers = [];
+            squadListEl.innerHTML = vuoto(t('squad.noWorkers', linguaCorrente()));
             return;
         }
         const members = [];
@@ -1142,39 +1211,40 @@ async function loadSquadMembersForCapo() {
             return na.localeCompare(nb, 'it');
         });
         lastSquadMembers = members;
+        lastSquadDisegnati = members;
         renderSquadList(squadLabel, members);
         populateAssenzaSegnalaOperaiSelect(members);
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore caricamento squadra:', error);
-        squadListEl.innerHTML = '<div class="empty-state-inline">Errore caricamento squadra.</div>';
+        squadListEl.innerHTML = vuoto(t('squad.error', linguaCorrente()));
     }
 }
 
 function renderPendingHours() {
     if (!pendingHoursListEl) return;
     if (!selectedWork) {
-        pendingHoursListEl.innerHTML = '<div class="empty-state-inline">Seleziona un lavoro per vedere le ore da validare.</div>';
+        pendingHoursListEl.innerHTML = vuoto(t('valida.pickWork', linguaCorrente()));
         return;
     }
     if (!currentPendingHours.length) {
-        pendingHoursListEl.innerHTML = '<div class="empty-state-inline">Nessuna ora in attesa di validazione.</div>';
+        pendingHoursListEl.innerHTML = vuoto(t('valida.none', linguaCorrente()));
         return;
     }
     pendingHoursListEl.innerHTML = currentPendingHours.map((row) => renderPendingHourRowHtml(row, false)).join('');
 }
 
 function renderPendingHourRowHtml(row, showLavoro) {
-    const who = escapeHtmlUnsafe(row.operaioNome || row.operaioId || 'Operaio');
+    const who = escapeHtmlUnsafe(row.operaioNome || row.operaioId || t('ruolo.operaio', linguaCorrente()));
     const ore = Number(row.oreNette || 0).toFixed(2);
     const time = `${escapeHtmlUnsafe(row.orarioInizio || '--:--')} - ${escapeHtmlUnsafe(row.orarioFine || '--:--')}`;
-    const pausa = `pausa ${Number(row.pauseMinuti) || 0} min`;
+    const pausa = escapeHtmlUnsafe(t('valida.pauseMin', linguaCorrente(), { n: Number(row.pauseMinuti) || 0 }));
     const notaRaw = String(row.note || '').replace(/\s+/g, ' ').trim();
     const nota = notaRaw.length > 120 ? `${notaRaw.slice(0, 119).trim()}…` : notaRaw;
     const notaHtml = nota ? `<div class="inline-item-sub">${escapeHtmlUnsafe(nota)}</div>` : '';
     const macchinaNome = row.macchinaNome || row.nomeMacchina || '';
     const macchinaHtml = macchinaNome
-        ? `<div class="inline-item-sub">Macchina: ${escapeHtmlUnsafe(macchinaNome)}</div>`
-        : (row.macchinaId ? '<div class="inline-item-sub">Con macchina</div>' : '');
+        ? `<div class="inline-item-sub">${escapeHtmlUnsafe(t('valida.machineLine', linguaCorrente(), { name: macchinaNome }))}</div>`
+        : (row.macchinaId ? '<div class="inline-item-sub">' + escapeHtmlUnsafe(t('valida.withMachine', linguaCorrente())) + '</div>' : '');
     const lavoroLine = showLavoro && row.lavoroNome
         ? `<div class="inline-item-sub" style="font-weight:600;color:#2E8B57;">${escapeHtmlUnsafe(row.lavoroNome)}</div>`
         : '';
@@ -1185,13 +1255,22 @@ function renderPendingHourRowHtml(row, showLavoro) {
         { escludiId: row.id }
     );
     const warn = hits.length
-        ? `<div class="inline-item-sub">⚠️ Si sovrappone a ${escapeHtmlUnsafe(hits[0].orarioInizio || '')}–${escapeHtmlUnsafe(hits[0].orarioFine || '')}${hits[0].lavoroNome ? ` (${escapeHtmlUnsafe(hits[0].lavoroNome)})` : ''}</div>`
+        ? `<div class="inline-item-sub">${escapeHtmlUnsafe(hits[0].lavoroNome
+            ? t('valida.overlapWork', linguaCorrente(), {
+                start: hits[0].orarioInizio || '',
+                end: hits[0].orarioFine || '',
+                work: hits[0].lavoroNome
+            })
+            : t('valida.overlap', linguaCorrente(), {
+                start: hits[0].orarioInizio || '',
+                end: hits[0].orarioFine || ''
+            }))}</div>`
         : '';
     return `
         <div class="inline-item">
             <div class="inline-item-head">
                 <div class="inline-item-title">${who}</div>
-                <div class="inline-item-sub">${formatDateShort(row.data) || 'Data non indicata'}</div>
+                <div class="inline-item-sub">${formatDateShort(row.data) || escapeHtmlUnsafe(t('valida.dateMissing', linguaCorrente()))}</div>
             </div>
             ${lavoroLine}
             <div class="inline-item-sub">${time} • ${pausa} • ${ore} h</div>
@@ -1199,8 +1278,8 @@ function renderPendingHourRowHtml(row, showLavoro) {
             ${macchinaHtml}
             ${warn}
             <div class="inline-item-actions">
-                <button type="button" class="mini-btn approve" data-approve-hour-id="${escapeHtmlUnsafe(row.id)}"${lavAttr}>✅ Approva</button>
-                <button type="button" class="mini-btn reject" data-reject-hour-id="${escapeHtmlUnsafe(row.id)}"${lavAttr}>❌ Rifiuta</button>
+                <button type="button" class="mini-btn approve" data-approve-hour-id="${escapeHtmlUnsafe(row.id)}"${lavAttr}>${escapeHtmlUnsafe(t('valida.approve', linguaCorrente()))}</button>
+                <button type="button" class="mini-btn reject" data-reject-hour-id="${escapeHtmlUnsafe(row.id)}"${lavAttr}>${escapeHtmlUnsafe(t('valida.reject', linguaCorrente()))}</button>
             </div>
         </div>
     `;
@@ -1209,7 +1288,7 @@ function renderPendingHourRowHtml(row, showLavoro) {
 function renderAllPendingHours() {
     if (!pendingHoursAllListEl) return;
     if (!currentAllPendingHours.length) {
-        pendingHoursAllListEl.innerHTML = '<div class="empty-state-inline">Nessuna ora in attesa di validazione.</div>';
+        pendingHoursAllListEl.innerHTML = vuoto(t('valida.none', linguaCorrente()));
         return;
     }
     pendingHoursAllListEl.innerHTML = currentAllPendingHours.map((row) => renderPendingHourRowHtml(row, true)).join('');
@@ -1230,7 +1309,7 @@ async function caricaOreGiornoLavoro(oreRef, giornoKey) {
 
 async function loadAllPendingHoursForCapo() {
     if (!pendingHoursAllListEl || !currentTenantId || !currentUser || !userIsCaposquadra) return;
-    pendingHoursAllListEl.innerHTML = '<div class="empty-state-inline">Caricamento ore da validare...</div>';
+    pendingHoursAllListEl.innerHTML = vuoto(t('valida.loading', linguaCorrente()));
     try {
         const userId = primaryManodoperaUserId(currentUser, currentUserData);
         const works = await fetchLavoriDocumentsForFieldUser(getDb(), currentTenantId, userId, {
@@ -1269,7 +1348,7 @@ async function loadAllPendingHoursForCapo() {
                 rows.push({
                     id: docSnap.id,
                     lavoroId: lav.id,
-                    lavoroNome: lav.nome || 'Lavoro',
+                    lavoroNome: lav.nome || t('ore.workFallback', linguaCorrente()),
                     ...data,
                     operaioNome
                 });
@@ -1298,7 +1377,7 @@ async function loadAllPendingHoursForCapo() {
         renderAllPendingHours();
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore caricamento ore da validare (tutti i lavori):', error);
-        pendingHoursAllListEl.innerHTML = '<div class="empty-state-inline">Errore caricamento ore da validare.</div>';
+        pendingHoursAllListEl.innerHTML = vuoto(t('valida.error', linguaCorrente()));
     }
 }
 
@@ -1308,7 +1387,7 @@ async function loadPendingHoursForSelectedWork() {
         renderPendingHours();
         return;
     }
-    pendingHoursListEl.innerHTML = '<div class="empty-state-inline">Caricamento ore da validare...</div>';
+    pendingHoursListEl.innerHTML = vuoto(t('valida.loading', linguaCorrente()));
     try {
         const oreRef = collection(getDb(), `tenants/${currentTenantId}/lavori/${selectedWork.id}/oreOperai`);
         const snap = await getDocs(query(oreRef, where('stato', '==', 'da_validare')));
@@ -1340,7 +1419,7 @@ async function loadPendingHoursForSelectedWork() {
         renderPendingHours();
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore ore da validare:', error);
-        pendingHoursListEl.innerHTML = '<div class="empty-state-inline">Errore caricamento ore da validare.</div>';
+        pendingHoursListEl.innerHTML = vuoto(t('valida.error', linguaCorrente()));
     }
 }
 
@@ -1367,7 +1446,7 @@ async function updateHourValidationStatus(hourId, status, lavoroIdOpt, motivo = 
     }
     const motivoPulito = String(motivo || '').trim();
     if (!motivoPulito) {
-        showAlert('Motivo rifiuto obbligatorio', 'warning');
+        showAlert(t('valida.reasonRequired', linguaCorrente()), 'warning');
         return false;
     }
     await rifiutaOraContesto(getDb(), currentTenantId, {
@@ -1447,11 +1526,11 @@ function renderReceivedCommunicationCard(row, { readOnly = false } = {}) {
     const luogo = formatComunicazioneLuogo(row);
     const testo = formatComunicazioneTesto(row);
     const dataLabel = row.dataCom
-        ? row.dataCom.toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long' })
+        ? row.dataCom.toLocaleDateString(localeCampo(), { weekday: 'long', day: 'numeric', month: 'long' })
         : '-';
     const confermaBtn = row.haConfermato || readOnly
-        ? '<span class="inline-item-badge">✅ Confermato</span>'
-        : `<button type="button" class="field-mobile-btn primary" data-confirm-comm-id="${escapeHtmlUnsafe(row.id)}" style="margin-top:8px;">Conferma ricezione</button>`;
+        ? '<span class="inline-item-badge">' + escapeHtmlUnsafe(t('comm.confirmedBadge', linguaCorrente())) + '</span>'
+        : `<button type="button" class="field-mobile-btn primary" data-confirm-comm-id="${escapeHtmlUnsafe(row.id)}" style="margin-top:8px;">${escapeHtmlUnsafe(t('comm.confirmBtn', linguaCorrente()))}</button>`;
     return `
         <div class="inline-item" style="border-left: 3px solid ${row.haConfermato ? '#28a745' : '#ffc107'};">
             <div class="inline-item-head">
@@ -1459,7 +1538,7 @@ function renderReceivedCommunicationCard(row, { readOnly = false } = {}) {
                 <div class="inline-item-sub">${escapeHtmlUnsafe(row.orario || '--:--')} • ${escapeHtmlUnsafe(dataLabel)}</div>
             </div>
             ${testo ? `<div class="inline-item-sub">${escapeHtmlUnsafe(testo)}</div>` : ''}
-            <div class="inline-item-sub">Da: ${escapeHtmlUnsafe(row.caposquadraNome || 'Caposquadra')}</div>
+            <div class="inline-item-sub">${escapeHtmlUnsafe(t('comm.fromLine', linguaCorrente(), { name: row.caposquadraNome || t('ruolo.caposquadra', linguaCorrente()) }))}</div>
             ${confermaBtn}
         </div>
     `;
@@ -1474,8 +1553,8 @@ function setCommunicationsHistoryToggle(toggleEl, historyEl, count, expanded) {
     }
     toggleEl.hidden = false;
     toggleEl.textContent = expanded
-        ? 'Nascondi comunicazioni precedenti'
-        : `Vedi comunicazioni precedenti (${count})`;
+        ? t('comm.hidePrevious', linguaCorrente())
+        : t('comm.previousCount', linguaCorrente(), { count: count });
     historyEl.hidden = !expanded;
 }
 
@@ -1514,7 +1593,7 @@ async function ensureOperaioNamesForCommunications(rows) {
 function renderSentCommunicationReceiptsHtml(row, nameByUserId) {
     const receiptRows = buildComunicazioneConfermeRicezioneRows(row, nameByUserId);
     if (!receiptRows.length) {
-        return '<div class="inline-item-sub" style="margin-top:6px;">Nessun destinatario registrato su questo invio.</div>';
+        return '<div class="inline-item-sub" style="margin-top:6px;">' + escapeHtmlUnsafe(t('comm.noRecipients', linguaCorrente())) + '</div>';
     }
     const pending = countConfermePendentiInvio(row);
     const confermeCount = receiptRows.filter((r) => r.confermato).length;
@@ -1523,13 +1602,13 @@ function renderSentCommunicationReceiptsHtml(row, nameByUserId) {
         <li class="comm-receipt-row ${r.confermato ? 'is-ok' : 'is-wait'}">
             <span class="comm-receipt-mark" aria-hidden="true">${r.confermato ? '👍' : '⏳'}</span>
             <span class="comm-receipt-name">${escapeHtmlUnsafe(r.nome)}</span>
-            <span class="comm-receipt-state">${r.confermato ? 'Confermato' : 'In attesa'}</span>
+            <span class="comm-receipt-state">${r.confermato ? escapeHtmlUnsafe(t('comm.confirmed', linguaCorrente())) : escapeHtmlUnsafe(t('comm.waiting', linguaCorrente()))}</span>
         </li>
     `).join('');
     return `
         <details class="comm-receipts" ${pending > 0 ? 'open' : ''}>
             <summary class="comm-receipts-summary">
-                Chi ha confermato
+                ${escapeHtmlUnsafe(t('comm.whoConfirmed', linguaCorrente()))}
                 <span class="inline-item-badge" style="margin-left:6px;">${confermeCount}/${destCount}</span>
             </summary>
             <ul class="comm-receipt-list">${items}</ul>
@@ -1542,7 +1621,7 @@ function renderSentCommunicationCard(row, { readOnly = false, nameByUserId = nul
     const confermeCount = Array.isArray(row.conferme) ? row.conferme.length : 0;
     const pending = countConfermePendentiInvio(row);
     const badge = pending > 0
-        ? `<span class="inline-item-badge" style="background:#fef3c7;color:#92400e;">⏳ ${pending} in attesa</span>`
+        ? `<span class="inline-item-badge" style="background:#fef3c7;color:#92400e;">${escapeHtmlUnsafe(t('comm.pendingBadge', linguaCorrente(), { n: pending }))}</span>`
         : `<span class="inline-item-badge">👍 ${confermeCount}/${destCount || '0'}</span>`;
     const statoLabel = row.stato && row.stato !== 'attiva'
         ? `<span class="inline-item-badge">${escapeHtmlUnsafe(String(row.stato))}</span>`
@@ -1554,12 +1633,12 @@ function renderSentCommunicationCard(row, { readOnly = false, nameByUserId = nul
     return `
         <div class="inline-item"${readOnly ? ' style="opacity:0.92;"' : ''}>
             <div class="inline-item-head">
-                <div class="inline-item-title">${escapeHtmlUnsafe(row.lavoroNome || 'Lavoro')}</div>
+                <div class="inline-item-title">${escapeHtmlUnsafe(row.lavoroNome || t('ore.workFallback', linguaCorrente()))}</div>
                 <div class="inline-item-sub">${escapeHtmlUnsafe(row.orario || '--:--')} • ${formatDateShort(row.data) || '-'}</div>
             </div>
             <div class="inline-item-sub">${escapeHtmlUnsafe((row.messaggio || '').slice(0, 120))}</div>
             <div class="inline-item-head" style="margin-top: 6px; margin-bottom: 0;">
-                <div class="inline-item-sub">Conferme ricezione</div>
+                <div class="inline-item-sub">${escapeHtmlUnsafe(t('comm.receiptsTitle', linguaCorrente()))}</div>
                 ${statoLabel || badge}
             </div>
             ${receiptsHtml}
@@ -1569,7 +1648,7 @@ function renderSentCommunicationCard(row, { readOnly = false, nameByUserId = nul
 
 async function loadReceivedCommunications() {
     if (!receivedCommunicationsListEl || !currentTenantId || !currentUser) return;
-    receivedCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Caricamento comunicazioni...</div>';
+    receivedCommunicationsListEl.innerHTML = vuoto(t('comm.loading', linguaCorrente()));
     if (receivedCommunicationsHistoryEl) receivedCommunicationsHistoryEl.innerHTML = '';
     setCommunicationsHistoryToggle(
         toggleReceivedCommunicationsHistoryEl,
@@ -1581,7 +1660,7 @@ async function loadReceivedCommunications() {
         const rows = await filterComunicazioniWithExistingLavoro(await fetchReceivedCommunicationRows());
         const { pending, history } = partitionComunicazioniRicevuteOperaio(rows);
         if (!pending.length && !history.length) {
-            receivedCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Nessuna comunicazione dal caposquadra negli ultimi 60 giorni.</div>';
+            receivedCommunicationsListEl.innerHTML = vuoto(t('comm.noneRecent', linguaCorrente()));
             return;
         }
         // Mostra TUTTO in lista principale (da confermare + già lette): lo storico collassabile restava invisibile su mobile/Tony.
@@ -1603,7 +1682,7 @@ async function loadReceivedCommunications() {
         );
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore comunicazioni ricevute:', error);
-        receivedCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Errore caricamento comunicazioni.</div>';
+        receivedCommunicationsListEl.innerHTML = vuoto(t('comm.loadError', linguaCorrente()));
     }
 }
 
@@ -1616,7 +1695,7 @@ async function confirmReceivedCommunication(communicationId) {
         const comm = commDoc.data();
         const conferme = Array.isArray(comm.conferme) ? comm.conferme.slice() : [];
         if (confermeIncludesUser(conferme, currentUser, currentUserData)) {
-            setStatus('Hai già confermato questa comunicazione.');
+            setStatus(t('comm.already', linguaCorrente()));
             return;
         }
         conferme.push({
@@ -1624,11 +1703,11 @@ async function confirmReceivedCommunication(communicationId) {
             timestamp: Timestamp.now()
         });
         await updateDoc(commRef, { conferme });
-        setStatus('Conferma inviata al caposquadra.');
+        setStatus(t('comm.confirmSent', linguaCorrente()));
         await loadReceivedCommunications();
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore conferma comunicazione:', error);
-        setStatus(`Errore conferma: ${error.message}`, true);
+        setStatus(t('comm.confirmError', linguaCorrente(), { message: error.message }), true);
     }
 }
 
@@ -1663,7 +1742,7 @@ async function filterComunicazioniWithExistingLavoro(rows) {
 
 async function loadSentCommunications() {
     if (!sentCommunicationsListEl || !currentTenantId || !currentUser) return;
-    sentCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Caricamento comunicazioni inviate...</div>';
+    sentCommunicationsListEl.innerHTML = vuoto(t('comm.loadingSent', linguaCorrente()));
     if (sentCommunicationsHistoryEl) sentCommunicationsHistoryEl.innerHTML = '';
     setCommunicationsHistoryToggle(
         toggleSentCommunicationsHistoryEl,
@@ -1685,7 +1764,7 @@ async function loadSentCommunications() {
         const visibiliEvidenza = inEvidenza.filter((row) => !comunicazioneRiferisceLavoroInesistente(row, liveLavoroIds));
         const visibiliStorico = storico.filter((row) => !comunicazioneRiferisceLavoroInesistente(row, liveLavoroIds));
         if (!visibiliEvidenza.length && !visibiliStorico.length) {
-            sentCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Nessuna comunicazione inviata.</div>';
+            sentCommunicationsListEl.innerHTML = vuoto(t('comm.noneSent', linguaCorrente()));
             return;
         }
         const nameByUserId = await ensureOperaioNamesForCommunications([...visibiliEvidenza, ...visibiliStorico]);
@@ -1693,7 +1772,7 @@ async function loadSentCommunications() {
             sentCommunicationsHistoryExpanded = true;
         }
         if (!visibiliEvidenza.length) {
-            sentCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Nessun invio in evidenza.</div>';
+            sentCommunicationsListEl.innerHTML = vuoto(t('comm.noneHighlight', linguaCorrente()));
         } else {
             sentCommunicationsListEl.innerHTML = visibiliEvidenza
                 .map((row) => renderSentCommunicationCard(row, { nameByUserId }))
@@ -1712,7 +1791,7 @@ async function loadSentCommunications() {
         );
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore comunicazioni inviate:', error);
-        sentCommunicationsListEl.innerHTML = '<div class="empty-state-inline">Errore caricamento comunicazioni.</div>';
+        sentCommunicationsListEl.innerHTML = vuoto(t('comm.loadError', linguaCorrente()));
     }
 }
 
@@ -1726,10 +1805,10 @@ async function refreshWorkspaceData() {
         if (quickStatusEl) {
             const n = await resolveDestinatariIdsForSend();
             if (n.length > 0) {
-                quickStatusEl.textContent = `Squadra pronta: il messaggio arriverà a ${n.length} operai.`;
+                quickStatusEl.textContent = t('squad.ready', linguaCorrente(), { n: n.length });
                 quickStatusEl.style.color = '#166534';
             } else {
-                quickStatusEl.textContent = 'Nessun operaio in squadra: configura Gestione squadre prima di inviare.';
+                quickStatusEl.textContent = t('squad.configure', linguaCorrente());
                 quickStatusEl.style.color = '#b91c1c';
             }
         }
@@ -1829,7 +1908,7 @@ function lavoroPerPermessi(lavoroId) {
 
 function setOreSubmitMode(modifica) {
     const btn = quickHoursFormEl && quickHoursFormEl.querySelector('button[type="submit"]');
-    if (btn) btn.textContent = modifica ? 'Salva modifiche' : 'Salva ore lavorate';
+    if (btn) btn.textContent = modifica ? t('ore.saveEdit', linguaCorrente()) : t('ore.submit', linguaCorrente());
     if (oreAnnullaModificaEl) oreAnnullaModificaEl.hidden = !modifica;
 }
 
@@ -1846,7 +1925,7 @@ function nascondiSovrapposizioneOre() {
 }
 
 function mostraSovrapposizioneOre(error) {
-    const msg = (error && error.message) || 'Queste ore si sovrappongono a un altro turno.';
+    const msg = (error && error.message) || t('ore.overlapFallback', linguaCorrente());
     const testoStato = testoErroreSalvataggioOre(error);
     if (hoursStatusEl) {
         hoursStatusEl.textContent = testoStato;
@@ -1865,7 +1944,7 @@ function mostraSovrapposizioneOre(error) {
             isManager: false
         });
         if (perm.puoModificare) {
-            bottone = ` <button type="button" class="field-mobile-btn" data-modifica-ora="${escapeHtmlUnsafe(conflitto.id)}" data-lavoro-id="${escapeHtmlUnsafe(conflitto.lavoroId || '')}">Modifica quella riga</button>`;
+            bottone = ` <button type="button" class="field-mobile-btn" data-modifica-ora="${escapeHtmlUnsafe(conflitto.id)}" data-lavoro-id="${escapeHtmlUnsafe(conflitto.lavoroId || '')}">${escapeHtmlUnsafe(t('ore.editRow', linguaCorrente()))}</button>`;
         }
     }
     oreSovrapposizioneEl.innerHTML = `${escapeHtmlUnsafe(msg)}${bottone}`;
@@ -1879,7 +1958,7 @@ function dipingiOreGiorno(righe, stato, giornoForzato) {
     const lavoroId = selectedWork && selectedWork.id;
     const list = Array.isArray(righe) ? righe : [];
     if (!list.length) {
-        oreGiornoBoxEl.innerHTML = `<strong>Le tue ore del ${escapeHtmlUnsafe(label)}</strong><div class="inline-item-sub">Nessuna ora segnata in questo giorno.</div>`;
+        oreGiornoBoxEl.innerHTML = `<strong>${escapeHtmlUnsafe(t('ore.dayTitle', linguaCorrente(), { giorno: label }))}</strong><div class="inline-item-sub">${escapeHtmlUnsafe(t('ore.dayEmpty', linguaCorrente()))}</div>`;
     } else {
         const voci = list.map((ora) => {
             const evidenza = lavoroId && ora.lavoroId === lavoroId;
@@ -1903,13 +1982,13 @@ function dipingiOreGiorno(righe, stato, giornoForzato) {
             const chiRiga = chiValidaOra({ ora, lavoro: lavoroPerPermessi(ora.lavoroId) });
             const tracciaGiorno = formatTracciaOra(ora, () => '');
             return `<div style="padding:6px 0;${evidenza ? 'background:#e7f6ec;border-radius:6px;padding:6px;' : ''}">
-                <div>${escapeHtmlUnsafe(ora.lavoroNome || 'Lavoro')} · ${escapeHtmlUnsafe(ora.orarioInizio || '')}–${escapeHtmlUnsafe(ora.orarioFine || '')} · pausa ${Number(ora.pauseMinuti) || 0} min · ${formattaOreMinuti(ora.oreNette || 0)} · ${escapeHtmlUnsafe(etichettaStatoAttualeOra(ora, chiRiga))}</div>
+                <div>${escapeHtmlUnsafe(ora.lavoroNome || t('ore.workFallback', linguaCorrente()))} · ${escapeHtmlUnsafe(ora.orarioInizio || '')}–${escapeHtmlUnsafe(ora.orarioFine || '')} · ${escapeHtmlUnsafe(t('valida.pauseMin', linguaCorrente(), { n: Number(ora.pauseMinuti) || 0 }))} · ${formattaOreMinuti(ora.oreNette || 0)} · ${escapeHtmlUnsafe(etichettaStatoAttualeOra(ora, chiRiga))}</div>
                 ${tracciaGiorno ? `<div class="inline-item-sub">${escapeHtmlUnsafe(tracciaGiorno)}</div>` : ''}
                 <div>${azioni}</div>
             </div>`;
         }).join('');
         const totale = sommaOreNette(list.filter((r) => r.stato !== 'rifiutate'));
-        oreGiornoBoxEl.innerHTML = `<strong>Le tue ore del ${escapeHtmlUnsafe(label)}</strong>${voci}<div style="margin-top:6px;"><strong>Totale del giorno: ${formattaOreMinuti(totale)}</strong></div>`;
+        oreGiornoBoxEl.innerHTML = `<strong>${escapeHtmlUnsafe(t('ore.dayTitle', linguaCorrente(), { giorno: label }))}</strong>${voci}<div style="margin-top:6px;"><strong>${escapeHtmlUnsafe(t('ore.dayTotal', linguaCorrente(), { ore: formattaOreMinuti(totale) }))}</strong></div>`;
     }
     const loading = stato === 'loading';
     oreGiornoBoxEl.setAttribute('data-state', stato || 'ready');
@@ -1937,7 +2016,7 @@ function dipingiRiquadroOreNonDisponibile(giorno) {
 function aggiornaSoloIntestazioneOreGiorno(giorno) {
     if (!oreGiornoBoxEl || !oreGiornoBoxEl.getAttribute('data-pronto')) return;
     const label = formattaGiornoBreve(giorno) || giorno;
-    const testo = testoIntestazioneOreDelGiorno(label);
+    const testo = t('ore.dayTitle', linguaCorrente(), { giorno: label });
     const strong = oreGiornoBoxEl.querySelector('strong');
     if (strong) strong.textContent = testo;
 }
@@ -1979,7 +2058,7 @@ async function aggiornaRiquadroOreGiorno() {
     oreGiornoBoxEl.setAttribute('data-state', 'loading');
     oreGiornoBoxEl.classList.add('ore-giorno-loading');
     if (!oreGiornoBoxEl.getAttribute('data-pronto')) {
-        oreGiornoBoxEl.textContent = 'Caricamento ore del giorno...';
+        oreGiornoBoxEl.textContent = t('ore.loadingDay', linguaCorrente());
     }
     try {
         await attendiRitardoLetturaOre();
@@ -2036,10 +2115,10 @@ async function avviaModificaOraGiorno(oraId, lavoroId) {
 }
 
 async function eliminaOraGiorno(oraId, lavoroId) {
-    if (!confirm('Eliminare questa ora?')) return;
+    if (!confirm(t('ore.deleteConfirm', linguaCorrente()))) return;
     try {
         await eliminaOraPropria(getDb(), currentTenantId, utenteWorkspace(), lavoroId, oraId);
-        showAlert('Ora eliminata', 'success');
+        showAlert(t('ore.deleted', linguaCorrente()), 'success');
         if (editingOraId === oraId) {
             resetModificaOra();
             resetQuickHoursFormFieldsForNextEntry();
@@ -2051,7 +2130,7 @@ async function eliminaOraGiorno(oraId, lavoroId) {
         dipingiOreGiorno(dopoElimina, 'loading', giornoOre);
         await riallineaRiquadroOreGiorno(precedenteOre, giornoOre);
     } catch (error) {
-        showAlert(error.message || 'Errore eliminazione', 'error');
+        showAlert(error.message || t('ore.deleteError', linguaCorrente()), 'error');
     }
 }
 
@@ -2093,7 +2172,7 @@ async function saveQuickHours(event) {
     if (!hoursStatusEl) return;
     nascondiSovrapposizioneOre();
     if (!selectedWork || !currentTenantId || !currentUser) {
-        hoursStatusEl.textContent = 'Seleziona prima un lavoro.';
+        hoursStatusEl.textContent = t('ore.needWork', linguaCorrente());
         hoursStatusEl.style.color = '#b91c1c';
         return;
     }
@@ -2101,18 +2180,18 @@ async function saveQuickHours(event) {
     const start = oraStartEl ? oraStartEl.value : '';
     const end = oraEndEl ? oraEndEl.value : '';
     if (!dateIso) {
-        hoursStatusEl.textContent = 'Inserisci la data del lavoro.';
+        hoursStatusEl.textContent = t('ore.needDate', linguaCorrente());
         hoursStatusEl.style.color = '#b91c1c';
         return;
     }
     if (!start || !end) {
-        hoursStatusEl.textContent = 'Inserisci orario inizio e fine.';
+        hoursStatusEl.textContent = t('ore.needTimes', linguaCorrente());
         hoursStatusEl.style.color = '#b91c1c';
         return;
     }
     const netHours = calculateNetHours();
     if (netHours <= 0) {
-        hoursStatusEl.textContent = 'Le ore nette devono essere maggiori di 0.';
+        hoursStatusEl.textContent = t('ore.needPositive', linguaCorrente());
         hoursStatusEl.style.color = '#b91c1c';
         return;
     }
@@ -2125,19 +2204,19 @@ async function saveQuickHours(event) {
             giorno: dateIso
         });
         if (!esitoOre.ok) {
-            hoursStatusEl.textContent = esitoOre.motivo || 'Questo lavoro non è selezionabile per le ore.';
+            hoursStatusEl.textContent = esitoOre.motivo || t('ore.notSelectable', linguaCorrente());
             hoursStatusEl.style.color = '#b91c1c';
             return;
         }
     }
 
     const btnSalvaOre = quickHoursFormEl && quickHoursFormEl.querySelector('button[type="submit"]');
-    const testoBtnSalvaOre = btnSalvaOre ? btnSalvaOre.textContent : 'Salva ore lavorate';
+    const testoBtnSalvaOre = btnSalvaOre ? btnSalvaOre.textContent : t('ore.submit', linguaCorrente());
     salvataggioOreInCorso = true;
     window.__gfvOreSalvataggioInCorso = true;
     if (btnSalvaOre) {
         btnSalvaOre.disabled = true;
-        btnSalvaOre.textContent = 'Salvataggio…';
+        btnSalvaOre.textContent = t('ore.saving', linguaCorrente());
     }
 
     try {
@@ -2183,7 +2262,7 @@ async function saveQuickHours(event) {
             stato: 'in_attesa',
             chiValida: chiOre
         });
-        hoursStatusEl.textContent = `Ore salvate: ${formatOreNette(netHours)}. Puoi registrare un altro turno.`;
+        hoursStatusEl.textContent = t('ore.saved', linguaCorrente(), { ore: formatOreNette(netHours) });
         hoursStatusEl.style.color = '#166534';
         if (!editingOraId) {
             const chi = chiValidaOra({
@@ -2192,7 +2271,7 @@ async function saveQuickHours(event) {
             });
             showAlert(messaggioOraSegnataConSuccesso(chi), 'success', 8000);
         } else {
-            showAlert('Ora aggiornata', 'success', 8000);
+            showAlert(t('ore.updated', linguaCorrente()), 'success', 8000);
         }
         const precedenteOre = oreGiornoRows.slice();
         const lavoroIdSalvato = editingOraLavoroId || selectedWork.id;
@@ -2224,7 +2303,7 @@ async function saveQuickHours(event) {
             mostraSovrapposizioneOre(error);
             return;
         }
-        hoursStatusEl.textContent = `Errore salvataggio: ${error.message}`;
+        hoursStatusEl.textContent = t('ore.saveError', linguaCorrente(), { message: error.message });
         hoursStatusEl.style.color = '#b91c1c';
         emettiEsitoOra('gfv-ora-salvataggio-errore', {
             ok: false,
@@ -2235,7 +2314,7 @@ async function saveQuickHours(event) {
     }     finally {
         salvataggioOreInCorso = false;
         window.__gfvOreSalvataggioInCorso = false;
-        if (btnSalvaOre && btnSalvaOre.textContent === 'Salvataggio…') btnSalvaOre.textContent = testoBtnSalvaOre;
+        if (btnSalvaOre && btnSalvaOre.textContent === t('ore.saving', linguaCorrente())) btnSalvaOre.textContent = testoBtnSalvaOre;
         aggiornaAvvisoFinestraOre();
     }
 }
@@ -2268,7 +2347,7 @@ function bindWorkSelection() {
     if (refreshWorksBtnEl) {
         refreshWorksBtnEl.addEventListener('click', async () => {
             await refreshWorkspaceData();
-            setStatus('Elenco lavori aggiornato.');
+            setStatus(t('lavoro.worksUpdated', linguaCorrente()));
         });
     }
 }
@@ -2277,7 +2356,7 @@ async function sendQuickCommunication(event) {
     event.preventDefault();
     if (!quickStatusEl) return;
     if (!currentTenantId || !currentUser) {
-        quickStatusEl.textContent = 'Sessione non pronta.';
+        quickStatusEl.textContent = t('comm.session', linguaCorrente());
         quickStatusEl.style.color = '#b91c1c';
         return;
     }
@@ -2288,7 +2367,7 @@ async function sendQuickCommunication(event) {
     const message = (document.getElementById('quick-comm-message')?.value || '').trim();
 
     if (!workId || !message) {
-        quickStatusEl.textContent = 'Seleziona lavoro e inserisci un messaggio.';
+        quickStatusEl.textContent = t('comm.needWorkMessage', linguaCorrente());
         quickStatusEl.style.color = '#b91c1c';
         return;
     }
@@ -2296,7 +2375,7 @@ async function sendQuickCommunication(event) {
     const selected = cachedWorks.find((w) => w.id === workId);
     const destinatari = await resolveDestinatariIdsForSend();
     if (!destinatari.length) {
-        quickStatusEl.textContent = 'Nessun operaio in squadra da avvisare. In Gestione squadre assegna operai al tuo profilo caposquadra.';
+        quickStatusEl.textContent = t('squad.noneToNotify', linguaCorrente());
         quickStatusEl.style.color = '#b91c1c';
         return;
     }
@@ -2318,14 +2397,14 @@ async function sendQuickCommunication(event) {
             createdAt: serverTimestamp(),
             source: 'mobile_field_workspace'
         });
-        quickStatusEl.textContent = `Comunicazione inviata a ${destinatari.length} operai.`;
+        quickStatusEl.textContent = t('comm.sentCount', linguaCorrente(), { n: destinatari.length });
         quickStatusEl.style.color = '#166534';
         const msgInput = document.getElementById('quick-comm-message');
         if (msgInput) msgInput.value = '';
         await loadSentCommunications();
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore invio comunicazione:', error);
-        quickStatusEl.textContent = `Errore invio: ${error.message}`;
+        quickStatusEl.textContent = t('comm.sendError', linguaCorrente(), { message: error.message });
         quickStatusEl.style.color = '#b91c1c';
     }
 }
@@ -2400,19 +2479,19 @@ function bindInlineSectionsActions() {
             if (approveId) {
                 await updateHourValidationStatus(approveId, 'validate', lavoroId);
             } else if (rejectId) {
-                const motivo = window.prompt('Motivo del rifiuto (obbligatorio):');
+                const motivo = window.prompt(t('valida.reasonPrompt', linguaCorrente()));
                 if (motivo == null || !String(motivo).trim()) {
-                    showAlert('Scrivi il motivo: è obbligatorio.', 'error', 8000);
+                    showAlert(t('valida.reasonAlert', linguaCorrente()), 'error', 8000);
                     return;
                 }
                 const rifiutata = await updateHourValidationStatus(rejectId, 'rifiutate', lavoroId, motivo.trim());
-                if (rifiutata) showAlert('Ora rifiutata', 'success', 8000);
+                if (rifiutata) showAlert(t('valida.rejected', linguaCorrente()), 'success', 8000);
             }
             await loadPendingHoursForSelectedWork();
             await loadAllPendingHoursForCapo();
         } catch (error) {
             console.error('[FIELD-WORKSPACE] Errore aggiornamento validazione ore:', error);
-            showAlert((error && error.message) || 'Errore aggiornamento ore', 'error');
+            showAlert((error && error.message) || t('valida.updateError', linguaCorrente()), 'error');
         }
     };
     if (pendingHoursListEl) pendingHoursListEl.addEventListener('click', onPendingHoursClick);
@@ -2441,13 +2520,13 @@ function bindPullToRefresh() {
         const onFirstSlide = currentSlideIndex === 0;
         const pageOnTop = (window.scrollY || document.documentElement.scrollTop || 0) <= 4;
         if (onFirstSlide && pageOnTop && deltaY > 80 && deltaX < 45) {
-            setStatus('Aggiornamento dati...');
+            setStatus(t('status.refreshing', linguaCorrente()));
             try {
                 await refreshWorkspaceData();
-                setStatus('Dati aggiornati.');
+                setStatus(t('status.refreshed', linguaCorrente()));
             } catch (error) {
                 console.error('[FIELD-WORKSPACE] Errore pull-to-refresh:', error);
-                setStatus('Errore aggiornamento dati.', true);
+                setStatus(t('status.refreshError', linguaCorrente()), true);
             }
         }
     }, { passive: true });
@@ -2509,7 +2588,7 @@ async function logoutFieldWorkspace() {
         window.location.href = await loginPageUrl('../auth/login-standalone.html');
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore logout:', error);
-        showAlert('Errore durante il logout', 'error');
+        showAlert(t('status.logoutError', linguaCorrente()), 'error');
     }
 }
 
@@ -2534,12 +2613,12 @@ async function setupFieldTenantSwitch(userId) {
                         window.location.reload();
                     } catch (error) {
                         console.error('[FIELD-WORKSPACE] cambio azienda:', error);
-                        showAlert('Errore durante il cambio azienda. Riprova.', 'error');
+                        showAlert(t('status.tenantError', linguaCorrente()), 'error');
                     }
                 });
             } catch (error) {
                 console.error('[FIELD-WORKSPACE] selettore azienda:', error);
-                showAlert('Errore durante il cambio azienda. Riprova.', 'error');
+                showAlert(t('status.tenantError', linguaCorrente()), 'error');
             }
         };
     } catch (error) {
@@ -2669,12 +2748,12 @@ function azzeraRimbalziIngresso() {
 }
 
 function mostraErroreAvvioWorkspace(messaggio) {
-    setStatus(messaggio || 'Non riesco ad aprire la tua area. Riprova', true);
+    setStatus(messaggio || t('status.openError', linguaCorrente()), true);
     if (document.getElementById('btn-riprova-ingresso')) return;
     const btn = document.createElement('button');
     btn.id = 'btn-riprova-ingresso';
     btn.type = 'button';
-    btn.textContent = 'Riprova';
+    btn.textContent = t('lavoro.retry', linguaCorrente());
     btn.addEventListener('click', () => {
         try { sessionStorage.removeItem(CHIAVE_RIMBALZI_INGRESSO); } catch (error) { /* ignore */ }
         window.location.reload();
@@ -2691,7 +2770,7 @@ async function initFieldWorkspace() {
     const linguaAvvio = leggiLinguaCampo(storageCampo());
     applicaLingua(linguaAvvio);
     aggiornaPulsantiLingua(linguaAvvio);
-    setStatus('Caricamento workspace mobile...');
+    setStatus(t('status.loading', linguaCorrente()));
     applicaStatoMenuCampo(false);
     readBootParamsFromUrl();
     bindToolbar();
@@ -2886,15 +2965,15 @@ async function initFieldWorkspace() {
                 aggiornaRiquadroOreGiorno().catch(() => {});
 
                 fieldWorkspaceInitializedForUid = user.uid;
-                setStatus('Workspace mobile attivo.');
+                setStatus(t('status.ready', linguaCorrente()));
             } catch (error) {
                 console.error('[FIELD-WORKSPACE] Errore inizializzazione utente:', error);
-                mostraErroreAvvioWorkspace('Non riesco ad aprire la tua area. Riprova');
+                mostraErroreAvvioWorkspace(t('status.openError', linguaCorrente()));
             }
         });
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore avvio:', error);
-        mostraErroreAvvioWorkspace('Non riesco ad aprire la tua area. Riprova');
+        mostraErroreAvvioWorkspace(t('status.openError', linguaCorrente()));
     }
 }
 

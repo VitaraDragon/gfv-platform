@@ -6,6 +6,22 @@ import { lavoroRichiedeRifornimento } from '../../../modules/magazzino/lib/carbu
 import { hasModuleAccessFromTenant } from '../../utils/module-access-resolver.js';
 import { getDoc, doc, getDocs, collection, getAppInstance } from '../../services/firebase-service.js';
 import { shouldUseFirebaseEmulator } from '../../js/firebase-emulator-dev.js';
+import { t, leggiLinguaCampo } from '../../services/field-ui-i18n.js';
+
+function linguaPieno() {
+    try {
+        return leggiLinguaCampo(typeof localStorage !== 'undefined' ? localStorage : null);
+    } catch (error) {
+        return 'it';
+    }
+}
+
+export function testoSegnapostoPieno(chiave) {
+    const lang = linguaPieno();
+    if (chiave === 'pieno.none') return t('pieno.none', lang);
+    if (chiave === 'pieno.loading') return t('pieno.loading', lang);
+    return t('pieno.choose', lang);
+}
 
 let bound = false;
 let tenantCacheId = '';
@@ -23,7 +39,8 @@ async function loadCarburanti(db, tenantId) {
     const sel = document.getElementById('pieno-prodotto');
     if (!sel) return;
     if (productsTenantId === tenantId && sel.options.length > 1) return;
-    sel.innerHTML = '<option value="">Caricamento...</option>';
+    sel.dataset.pienoPlaceholder = 'pieno.loading';
+    sel.innerHTML = '<option value="">' + escapeText(testoSegnapostoPieno('pieno.loading')) + '</option>';
     const snap = await getDocs(collection(db, 'tenants', tenantId, 'prodotti'));
     const rows = [];
     snap.forEach((d) => {
@@ -33,11 +50,13 @@ async function loadCarburanti(db, tenantId) {
     });
     rows.sort((a, b) => a.nome.localeCompare(b.nome, 'it'));
     if (!rows.length) {
-        sel.innerHTML = '<option value="">Nessun carburante in anagrafica</option>';
+        sel.dataset.pienoPlaceholder = 'pieno.none';
+        sel.innerHTML = '<option value="">' + escapeText(testoSegnapostoPieno('pieno.none')) + '</option>';
         productsTenantId = tenantId;
         return;
     }
-    sel.innerHTML = '<option value="">Scegli il carburante</option>' + rows.map((r) => {
+    sel.dataset.pienoPlaceholder = 'pieno.choose';
+    sel.innerHTML = '<option value="">' + escapeText(testoSegnapostoPieno('pieno.choose')) + '</option>' + rows.map((r) => {
         return '<option value="' + escapeText(r.id) + '">' + escapeText(r.nome) + '</option>';
     }).join('');
     productsTenantId = tenantId;
@@ -45,17 +64,17 @@ async function loadCarburanti(db, tenantId) {
 
 async function mezzoLabel(db, tenantId, lavoro) {
     const nome = lavoro.macchinaNome || lavoro.trattoreNome;
-    if (nome) return 'Mezzo: ' + nome;
+    if (nome) return t('pieno.vehicle', linguaPieno(), { name: nome });
     const id = String(lavoro.macchinaId || '').trim();
-    if (!id) return 'Mezzo del lavoro';
+    if (!id) return t('pieno.vehicleFallback', linguaPieno());
     try {
         const snap = await getDoc(doc(db, 'tenants', tenantId, 'macchine', id));
         if (snap.exists()) {
             const data = snap.data() || {};
-            return 'Mezzo: ' + (data.nome || data.targa || id);
+            return t('pieno.vehicle', linguaPieno(), { name: data.nome || data.targa || id });
         }
     } catch (e) { /* il nome resta l'id */ }
-    return 'Mezzo: ' + id;
+    return t('pieno.vehicle', linguaPieno(), { name: id });
 }
 
 async function callRegistraPienoCampo(payload) {
@@ -81,16 +100,16 @@ function bindForm(ctx) {
         const work = ctx.getSelectedWork ? ctx.getSelectedWork() : ctx.selectedWork;
         const lavoro = work && work.raw;
         if (!lavoroRichiedeRifornimento(lavoro)) {
-            if (status) status.textContent = 'Questo lavoro non ha un mezzo da rifornire.';
+            if (status) status.textContent = t('pieno.noVehicle', linguaPieno());
             return;
         }
         const prodottoId = (document.getElementById('pieno-prodotto') || {}).value || '';
         const quantita = Number((document.getElementById('pieno-litri') || {}).value);
         if (!prodottoId || !Number.isFinite(quantita) || quantita <= 0) {
-            if (status) status.textContent = 'Scegli il carburante e indica i litri.';
+            if (status) status.textContent = t('pieno.needFields', linguaPieno());
             return;
         }
-        if (status) status.textContent = 'Registro il pieno...';
+        if (status) status.textContent = t('pieno.saving', linguaPieno());
         try {
             await callRegistraPienoCampo({
                 tenantId: ctx.tenantId,
@@ -98,12 +117,16 @@ function bindForm(ctx) {
                 prodottoId,
                 quantita
             });
-            if (status) status.textContent = 'Pieno registrato. La cisterna è aggiornata.';
+            if (status) status.textContent = t('pieno.saved', linguaPieno());
             const litri = document.getElementById('pieno-litri');
             if (litri) litri.value = '';
         } catch (error) {
-            const message = (error && (error.message || error.details)) || 'Errore registrazione pieno.';
-            if (status) status.textContent = String(message).replace(/^Firebase:\s*/i, '');
+            const raw = error && (error.message || error.details);
+            if (status) {
+                status.textContent = raw
+                    ? String(raw).replace(/^Firebase:\s*/i, '')
+                    : t('pieno.saveError', linguaPieno());
+            }
         }
     });
 }
