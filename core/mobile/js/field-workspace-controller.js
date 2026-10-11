@@ -40,6 +40,7 @@ import {
     modificaOraPropria,
     eliminaOraPropria,
     caricaOreUtenteGiorno,
+    testoIntestazioneOreDelGiorno,
     validaOraContesto,
     rifiutaOraContesto
 } from '../../services/ore-service.js';
@@ -125,6 +126,7 @@ const oreSovrapposizioneEl = document.getElementById('ore-sovrapposizione-msg');
 const oreAnnullaModificaEl = document.getElementById('ore-annulla-modifica');
 const hoursValueEl = document.getElementById('ora-net-hours');
 const oraDataEl = document.getElementById('ora-data');
+const oraFuoriFinestraEl = document.getElementById('ora-fuori-finestra');
 const oraStartEl = document.getElementById('ora-start');
 const oraEndEl = document.getElementById('ora-end');
 const oraBreakEl = document.getElementById('ora-break');
@@ -1892,9 +1894,47 @@ function dipingiRiquadroOreNonDisponibile(giorno) {
     oreGiornoBoxEl.classList.remove('ore-giorno-loading');
 }
 
+function aggiornaSoloIntestazioneOreGiorno(giorno) {
+    if (!oreGiornoBoxEl || !oreGiornoBoxEl.getAttribute('data-pronto')) return;
+    const label = formattaGiornoBreve(giorno) || giorno;
+    const testo = testoIntestazioneOreDelGiorno(label);
+    const strong = oreGiornoBoxEl.querySelector('strong');
+    if (strong) strong.textContent = testo;
+}
+
+function esitoFinestraOreCompletate(lavoro, giorno) {
+    if (!lavoro || !giorno) return { ok: true, motivo: '' };
+    const stato = lavoro.stato;
+    if (stato !== 'completato' && stato !== 'completato_da_approvare') return { ok: true, motivo: '' };
+    return lavoroSelezionabilePerOre({
+        lavoro,
+        ruolo: ruoloCampoPerOre(),
+        oggi: new Date(),
+        giorno
+    });
+}
+
+function aggiornaAvvisoFinestraOre() {
+    if (!oraFuoriFinestraEl) return;
+    const btn = quickHoursFormEl && quickHoursFormEl.querySelector('button[type="submit"]');
+    if (salvataggioOreInCorso || window.__gfvOreSalvataggioInCorso) return;
+    const giorno = oraDataEl && oraDataEl.value ? oraDataEl.value.trim() : '';
+    const esito = esitoFinestraOreCompletate(lavoroRawSelezionatoPerOre(), giorno);
+    if (!esito.ok) {
+        oraFuoriFinestraEl.textContent = esito.motivo || '';
+        oraFuoriFinestraEl.hidden = false;
+        if (btn) btn.disabled = true;
+        return;
+    }
+    oraFuoriFinestraEl.hidden = true;
+    oraFuoriFinestraEl.textContent = '';
+    if (btn) btn.disabled = false;
+}
+
 async function aggiornaRiquadroOreGiorno() {
     if (!oreGiornoBoxEl || !currentTenantId || !currentUser) return { ok: false, codice: '' };
     const giorno = (oraDataEl && oraDataEl.value) ? oraDataEl.value : getTodayIsoDate();
+    aggiornaSoloIntestazioneOreGiorno(giorno);
     const seq = ++letturaOreSeq;
     oreGiornoBoxEl.setAttribute('data-state', 'loading');
     oreGiornoBoxEl.classList.add('ore-giorno-loading');
@@ -1946,6 +1986,8 @@ async function avviaModificaOraGiorno(oraId, lavoroId) {
     if (oraBreakEl) oraBreakEl.value = String(ora.pauseMinuti || 0);
     if (oraNoteEl) oraNoteEl.value = ora.note || '';
     calculateNetHours();
+    aggiornaAvvisoFinestraOre();
+    aggiornaRiquadroOreGiorno().catch(() => {});
     setOreSubmitMode(true);
     nascondiSovrapposizioneOre();
     if (quickHoursFormEl && typeof quickHoursFormEl.scrollIntoView === 'function') {
@@ -2150,13 +2192,11 @@ async function saveQuickHours(event) {
             messaggio: hoursStatusEl.textContent
         });
         showAlert(hoursStatusEl.textContent, 'error');
-    } finally {
+    }     finally {
         salvataggioOreInCorso = false;
         window.__gfvOreSalvataggioInCorso = false;
-        if (btnSalvaOre) {
-            btnSalvaOre.disabled = false;
-            if (btnSalvaOre.textContent === 'Salvataggio…') btnSalvaOre.textContent = testoBtnSalvaOre;
-        }
+        if (btnSalvaOre && btnSalvaOre.textContent === 'Salvataggio…') btnSalvaOre.textContent = testoBtnSalvaOre;
+        aggiornaAvvisoFinestraOre();
     }
 }
 
@@ -2176,6 +2216,7 @@ function bindWorkSelection() {
             // ignore
         }
         syncTonyFieldWorkspaceTableData();
+        aggiornaAvvisoFinestraOre();
         aggiornaRiquadroOreGiorno().catch(() => {});
     };
     if (selectedWorkEl) {
@@ -2525,12 +2566,16 @@ function bindToolbar() {
     if (oraStartEl) oraStartEl.addEventListener('input', calculateNetHours);
     if (oraEndEl) oraEndEl.addEventListener('input', calculateNetHours);
     if (oraBreakEl) oraBreakEl.addEventListener('input', calculateNetHours);
-    if (oraDataEl) oraDataEl.addEventListener('change', () => aggiornaRiquadroOreGiorno().catch(() => {}));
+    if (oraDataEl) oraDataEl.addEventListener('change', () => {
+        aggiornaAvvisoFinestraOre();
+        aggiornaRiquadroOreGiorno().catch(() => {});
+    });
     if (oreAnnullaModificaEl) {
         oreAnnullaModificaEl.addEventListener('click', () => {
             resetModificaOra();
             resetQuickHoursFormFieldsForNextEntry();
             nascondiSovrapposizioneOre();
+            aggiornaAvvisoFinestraOre();
             aggiornaRiquadroOreGiorno().catch(() => {});
             if (typeof window.__tonySegnaOreAnnulla === 'function') window.__tonySegnaOreAnnulla('annulla');
         });
