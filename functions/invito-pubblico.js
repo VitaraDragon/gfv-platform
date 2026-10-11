@@ -73,7 +73,21 @@ function sanitizeInvitoForPublic(id, data) {
     token: typeof src.token === "string" ? src.token : "",
     inviatoDa: typeof src.inviatoDa === "string" ? src.inviatoDa : "",
     cellulare: typeof src.cellulare === "string" ? src.cellulare : "",
+    aziendaNome: typeof src.aziendaNome === "string" ? src.aziendaNome : "",
   };
+}
+
+async function leggiNomeAzienda(db, tenantId) {
+  if (!db || typeof tenantId !== "string" || !tenantId) return "";
+  try {
+    const snap = await db.collection("tenants").doc(tenantId).get();
+    if (!snap || !snap.exists) return "";
+    const data = snap.data() || {};
+    return typeof data.nome === "string" ? data.nome : "";
+  } catch (err) {
+    console.error("[getInvitoPubblico] nome azienda");
+    return "";
+  }
 }
 
 function isInvitoScaduto(scadeIl, now = new Date()) {
@@ -120,9 +134,10 @@ async function handleGetInvitoPubblico(db, token, now = new Date()) {
       "Token scaduto. Contatta l'amministratore per un nuovo invito."
     );
   }
+  const aziendaNome = await leggiNomeAzienda(db, found.data && found.data.tenantId);
   return {
     ok: true,
-    invito: sanitizeInvitoForPublic(found.id, found.data),
+    invito: sanitizeInvitoForPublic(found.id, Object.assign({}, found.data, { aziendaNome: aziendaNome })),
   };
 }
 

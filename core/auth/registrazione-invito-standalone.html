@@ -390,7 +390,7 @@
             throw err;
         }
 
-        import { getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
+        import { getAppInstance, getAuthInstance, getDb, getHttpsCallable } from '../services/firebase-service.js';
         import { collection, query, where, getDocs, doc, setDoc, updateDoc, getDoc, serverTimestamp } from '../services/firebase-service.js';
         import { onAuthStateChanged, signOut } from '../services/firebase-service.js';
         import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
@@ -425,6 +425,73 @@
         const inviteInfo = document.getElementById('invite-info');
 
         let inviteData = null;
+        let accettazioneLegaleAttiva = false;
+        let accettazioneConfig = null;
+
+        function montaCasellaPresaVisione(aziendaNome) {
+            if (document.getElementById('accettazione-presa-visione')) return;
+            const nome = (typeof aziendaNome === 'string' && aziendaNome.trim()) ? aziendaNome.trim() : 'la tua azienda';
+            const url = accettazioneConfig.DOCUMENTI_LEGALI['informativa-lavoratori'].url;
+            const blocco = document.createElement('div');
+            blocco.className = 'form-group';
+            blocco.id = 'accettazione-legale-blocco';
+            const label = document.createElement('label');
+            label.style.fontWeight = '400';
+            const input = document.createElement('input');
+            input.type = 'checkbox';
+            input.id = 'accettazione-presa-visione';
+            input.style.cssText = 'width:auto;padding:0;border:0;margin:0 8px 0 0;vertical-align:middle;';
+            label.appendChild(input);
+            label.appendChild(document.createTextNode('Ho letto l\''));
+            const link = document.createElement('a');
+            link.href = url;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.textContent = 'informativa sul trattamento dei miei dati come lavoratore di ' + nome;
+            label.appendChild(link);
+            label.appendChild(document.createTextNode('.'));
+            blocco.appendChild(label);
+            const errore = document.createElement('div');
+            errore.className = 'error-message';
+            errore.id = 'accettazione-presa-visione-error';
+            blocco.appendChild(errore);
+            registerButton.parentNode.insertBefore(blocco, registerButton);
+        }
+
+        async function registraPresaVisioneSeAttiva() {
+            if (!accettazioneLegaleAttiva || !accettazioneConfig || !inviteData) return;
+            const modulo = await import('../services/accettazione-legale.js');
+            const ruoli = Array.isArray(inviteData.ruoli) ? inviteData.ruoli : [];
+            const ruolo = ['operaio', 'caposquadra', 'manager'].find((voce) => ruoli.indexOf(voce) >= 0);
+            if (!ruolo || !inviteData.tenantId) {
+                throw new Error('Presa visione non registrata.');
+            }
+            const payload = modulo.costruisciPayloadAccettazione({
+                canale: 'invito',
+                tenantId: inviteData.tenantId,
+                ruolo: ruolo,
+                documenti: ['informativa-lavoratori'],
+                config: accettazioneConfig
+            });
+            const registra = getHttpsCallable('registraAccettazioniLegali');
+            await registra(Object.assign({ azione: 'registra' }, payload));
+        }
+
+        try {
+            const configLegale = await import('../config/accettazione-legale-config.js');
+            if (configLegale.ACCETTAZIONE_LEGALE_ATTIVA === true) {
+                const moduloLegale = await import('../services/accettazione-legale.js');
+                const esitoLegale = moduloLegale.validaConfigLegale(configLegale, true);
+                if (esitoLegale.ok) {
+                    accettazioneLegaleAttiva = true;
+                    accettazioneConfig = configLegale;
+                } else {
+                    console.warn('[accettazione-legale] config non valida, invito invariato');
+                }
+            }
+        } catch (errLegale) {
+            console.warn('[accettazione-legale] config non caricata');
+        }
 
         // Leggi token da URL PRIMA di tutto
         const urlParams = new URLSearchParams(window.location.search);
@@ -604,6 +671,10 @@
                     }
                 }
                 
+                if (accettazioneLegaleAttiva) {
+                    montaCasellaPresaVisione(inviteData && inviteData.aziendaNome);
+                }
+
                 // Mostra form
                 registerForm.style.display = 'block';
                 
@@ -755,6 +826,7 @@
                         });
                     }
                     
+                    await registraPresaVisioneSeAttiva();
                     hideLoading();
                     successMessage.textContent = `✅ Aggiunto a ${userData._newTenantId || 'nuova azienda'} con successo! Reindirizzamento alla dashboard...`;
                     successMessage.classList.add('show');
@@ -776,6 +848,7 @@
                     sessionStorage.setItem('gfv_user_just_registered', 'true');
                     sessionStorage.setItem('gfv_registered_user_id', auth.currentUser.uid);
                     
+                    await registraPresaVisioneSeAttiva();
                     hideLoading();
                     successMessage.textContent = '✅ Registrazione completata con successo! Reindirizzamento alla dashboard...';
                     successMessage.classList.add('show');
@@ -857,6 +930,7 @@
                             });
                         }
                         
+                        await registraPresaVisioneSeAttiva();
                         hideLoading();
                         successMessage.textContent = `✅ Aggiunto a ${invito.tenantId || 'nuova azienda'} con successo! Reindirizzamento alla dashboard...`;
                         successMessage.classList.add('show');
@@ -955,6 +1029,14 @@
                     isValid = false;
                 } else if (password !== passwordConfirm) {
                     showFieldError('password-confirm', 'Le password non corrispondono');
+                    isValid = false;
+                }
+            }
+
+            if (accettazioneLegaleAttiva) {
+                const presa = document.getElementById('accettazione-presa-visione');
+                if (!presa || presa.checked !== true) {
+                    showFieldError('accettazione-presa-visione', 'Spunta la casella per continuare.');
                     isValid = false;
                 }
             }
