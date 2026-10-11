@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-11 — Testo della coda ore e ore in ritardo.**
+**Ultimo aggiornamento documentazione: 2026-10-11 — Base accettazione legale, spenta.**
+
+## 2026-10-11 — Accettazione legale preparata, ancora spenta
+
+Preparata la base per l'accettazione legale, spenta. Il flag resta false: registrazione e invito si comportano come oggi. Nessuna casella, nessuna chiamata, nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-11 — Testo della coda ore e ore in ritardo.**
 
 ## 2026-10-11 — Coda del manager e ore dopo il completamento
 
