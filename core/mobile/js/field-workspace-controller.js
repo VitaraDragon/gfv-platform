@@ -69,6 +69,10 @@ import {
     resolveFieldWorkspaceLavoriRoleFlags,
     sliceOperaioLavoriWindow,
 } from '../../services/manodopera-lavori-scope.js';
+import {
+    lavoroSelezionabilePerOre,
+    componiEtichettaLavoroOre
+} from '../../services/ore-lavoro-selezionabile.js';
 import { fetchOperaioIdsForCaposquadraSquadre } from '../../services/comunicazioni-squadra-service.js';
 import { segnalaAssenza } from '../../services/manodopera-assenze-service.js';
 import { toGiornoKey } from '../../config/manodopera-assenze-config.js';
@@ -680,9 +684,7 @@ function pickGpsSuggestion(works) {
 }
 
 function normalizeWorkLabel(work) {
-    const nome = work.nome || work.tipoLavoro || work.titolo || 'Lavoro';
-    const terreno = work.terrenoNome || work.terreno || '';
-    return `${nome}${terreno ? ` - ${terreno}` : ''}`;
+    return componiEtichettaLavoroOre(work);
 }
 
 let lavoriCaricamentoGenerazione = 0;
@@ -782,9 +784,13 @@ async function loadWorksForSelection(tentativo) {
 
         // Capo: elenco operativo completo (no taglio «max 14 giorni futuri» del dropdown Segna ore).
         // Operaio: resta il filtro segnabile ore.
-        const eligible = rawList.filter((w) =>
-            userIsCaposquadra ? isLavoroVisibileOperaioCampo(w) : isLavoroSegnabileOperaio(w)
-        );
+        const eligible = rawList.filter((w) => {
+            if (!userIsCaposquadra) return isLavoroSegnabileOperaio(w);
+            if (isLavoroVisibileOperaioCampo(w)) return true;
+            const stato = (w && w.stato) || '';
+            if (stato !== 'completato' && stato !== 'completato_da_approvare') return false;
+            return lavoroSelezionabilePerOre({ lavoro: w, ruolo: 'caposquadra' }).ok;
+        });
         const perMenu = eligible.filter((w) => !eLavoroSospeso(w));
         const sospesiTony = rawList.filter((w) => eLavoroSospeso(w) && isLavoroVisibileOperaioCampo(w));
 
@@ -1979,6 +1985,26 @@ function emettiEsitoOra(nome, detail) {
     } catch (eEv) { /* ignore */ }
 }
 
+function ruoloCampoPerOre() {
+    const ruoli = Array.isArray(currentUserData && currentUserData.ruoli)
+        ? currentUserData.ruoli.map((r) => String(r || '').toLowerCase().trim())
+        : [];
+    if (ruoli.includes('manager')) return 'manager';
+    if (userIsCaposquadra || ruoli.includes('caposquadra')) return 'caposquadra';
+    return 'operaio';
+}
+
+function lavoroRawSelezionatoPerOre() {
+    const idModifica = editingOraId ? (editingOraLavoroId || '') : '';
+    if (selectedWork && selectedWork.raw && (!idModifica || selectedWork.id === idModifica)) {
+        return selectedWork.raw;
+    }
+    const id = idModifica || (selectedWork && selectedWork.id) || '';
+    const found = Array.isArray(cachedWorks) ? cachedWorks.find((w) => w.id === id) : null;
+    if (found && found.raw) return found.raw;
+    return (selectedWork && selectedWork.raw) || null;
+}
+
 async function saveQuickHours(event) {
     event.preventDefault();
     if (salvataggioOreInCorso || window.__gfvOreSalvataggioInCorso) return;
@@ -2007,6 +2033,20 @@ async function saveQuickHours(event) {
         hoursStatusEl.textContent = 'Le ore nette devono essere maggiori di 0.';
         hoursStatusEl.style.color = '#b91c1c';
         return;
+    }
+    const lavoroOre = lavoroRawSelezionatoPerOre();
+    if (lavoroOre) {
+        const esitoOre = lavoroSelezionabilePerOre({
+            lavoro: lavoroOre,
+            ruolo: ruoloCampoPerOre(),
+            oggi: new Date(),
+            giorno: dateIso
+        });
+        if (!esitoOre.ok) {
+            hoursStatusEl.textContent = esitoOre.motivo || 'Questo lavoro non è selezionabile per le ore.';
+            hoursStatusEl.style.color = '#b91c1c';
+            return;
+        }
     }
 
     const btnSalvaOre = quickHoursFormEl && quickHoursFormEl.querySelector('button[type="submit"]');
