@@ -458,6 +458,7 @@
                     <label for="ora-data">Data Lavoro *</label>
                     <input type="date" id="ora-data" required max="">
                     <p id="ora-data-it" class="form-hint" aria-live="polite"></p>
+                    <p id="ora-fuori-finestra" class="form-hint" hidden style="color:#b91c1c;margin-top:6px;" aria-live="polite"></p>
                 </div>
 
                 <div class="form-row">
@@ -560,8 +561,10 @@
             salvaNuovaOra,
             modificaOraPropria,
             eliminaOraPropria,
-            caricaOreUtenteGiorno
+            caricaOreUtenteGiorno,
+            testoIntestazioneOreDelGiorno
         } from './services/ore-service.js';
+        import { lavoroSelezionabilePerOre } from './services/ore-lavoro-selezionabile.js';
         import {
             permessiOra,
             formattaOreMinuti,
@@ -1569,9 +1572,71 @@
 
         let letturaOreSeq = 0;
 
+        function aggiornaSoloIntestazioneOreGiorno(giorno) {
+            const label = formatDateLikeToItalianLongLocal(giorno) || giorno;
+            const testo = testoIntestazioneOreDelGiorno(label);
+            targetsRiquadroOre().forEach((el) => {
+                if (!el.getAttribute('data-pronto')) return;
+                const strong = el.querySelector('strong');
+                if (strong) strong.textContent = testo;
+            });
+        }
+
+        function ruoloSelezioneOre() {
+            const flags = flagRuoliOre();
+            if (flags.isManager) return 'manager';
+            if (flags.isCaposquadra) return 'caposquadra';
+            const ruoli = (currentUserData && currentUserData.ruoli) || [];
+            if (ruoli.includes('operaio')) return 'operaio';
+            return '';
+        }
+
+        function lavoroGiaCaricatoPerOre(lavoroId) {
+            const lists = [lavoriListSegnabili, lavoriListSegnabiliRaw, lavoriList, lavoriListRawForTony];
+            for (const list of lists) {
+                const found = (list || []).find((l) => l && l.id === lavoroId && l.stato);
+                if (found) return found;
+            }
+            return null;
+        }
+
+        function esitoFinestraOreCompletate(lavoro, giorno) {
+            if (!lavoro || !giorno) return { ok: true, motivo: '' };
+            const stato = lavoro.stato;
+            if (stato !== 'completato' && stato !== 'completato_da_approvare') return { ok: true, motivo: '' };
+            const ruolo = ruoloSelezioneOre();
+            if (!ruolo) return { ok: true, motivo: '' };
+            return lavoroSelezionabilePerOre({
+                lavoro,
+                ruolo,
+                oggi: new Date(),
+                giorno
+            });
+        }
+
+        function aggiornaAvvisoFinestraOre() {
+            const avviso = document.getElementById('ora-fuori-finestra');
+            const btn = document.getElementById('ora-salva-btn');
+            if (!avviso) return;
+            if (salvataggioOraInCorso || window.__gfvOreSalvataggioInCorso) return;
+            const data = document.getElementById('ora-data');
+            const lavoroId = document.getElementById('ora-lavoro') ? document.getElementById('ora-lavoro').value : '';
+            const esito = esitoFinestraOreCompletate(lavoroId ? lavoroGiaCaricatoPerOre(lavoroId) : null, data && data.value);
+            if (!esito.ok) {
+                avviso.textContent = esito.motivo || '';
+                avviso.hidden = false;
+                if (btn) btn.disabled = true;
+                return;
+            }
+            avviso.hidden = true;
+            avviso.textContent = '';
+            if (btn) btn.disabled = false;
+        }
+
         async function aggiornaRiquadroOreGiorno() {
             if (!currentTenantId || !currentUserData) return false;
             const giorno = giornoRiquadroOre();
+            aggiornaSoloIntestazioneOreGiorno(giorno);
             const targets = targetsRiquadroOre();
             if (!targets.length || !giorno) return false;
             const seq = ++letturaOreSeq;
@@ -1643,11 +1708,13 @@
                     if (typeof window.gfvSegnaturaOreRefreshMacchineFromSelect === 'function') {
                         window.gfvSegnaturaOreRefreshMacchineFromSelect();
                     }
+                    aggiornaAvvisoFinestraOre();
                     aggiornaRiquadroOreGiorno();
                 });
             }
             if (data) data.addEventListener('change', () => {
                 aggiornaEtichettaDataOra();
+                aggiornaAvvisoFinestraOre();
                 aggiornaRiquadroOreGiorno();
             });
             if (macchina) {
@@ -1707,6 +1774,7 @@
             document.getElementById('ora-data').value = oggiLocaleIso();
             document.getElementById('ora-data').max = oggiLocaleIso();
             aggiornaEtichettaDataOra();
+            aggiornaAvvisoFinestraOre();
 
             const macchineSezione = document.getElementById('macchine-sezione');
             if (hasParcoMacchineModule && macchineSezione) {
@@ -1798,6 +1866,7 @@
                 macchineSezione.style.display = 'none';
             }
             calcolaOreNette();
+            aggiornaAvvisoFinestraOre();
             document.getElementById('ora-modal').classList.add('active');
             await aggiornaRiquadroOreGiorno();
         }
@@ -1864,7 +1933,10 @@
             impostaModalOraModo(false);
             const select = document.getElementById('ora-lavoro');
             if (select) select.disabled = false;
-            if (opts.daTony) return;
+            if (opts.daTony) {
+                aggiornaAvvisoFinestraOre();
+                return;
+            }
             const form = document.getElementById('ora-form');
             if (form) form.reset();
             const data = document.getElementById('ora-data');
@@ -1875,6 +1947,7 @@
             const pause = document.getElementById('ora-pause');
             if (pause && !pause.value) pause.value = '0';
             aggiornaEtichettaDataOra();
+            aggiornaAvvisoFinestraOre();
             let hook = window.__tonySegnaOreAnnulla;
             if (typeof hook !== 'function') {
                 try { hook = window.parent && window.parent.__tonySegnaOreAnnulla; } catch (eHook) { hook = null; }
@@ -1906,6 +1979,13 @@
             }
             if (!orarioInizio || !orarioFine) {
                 showAlert('Inserisci orario inizio e fine', 'error');
+                return;
+            }
+
+            const lavoroLocale = lavoroGiaCaricatoPerOre(lavoroId);
+            const esitoLocale = esitoFinestraOreCompletate(lavoroLocale, data);
+            if (!esitoLocale.ok) {
+                showAlert(esitoLocale.motivo, 'error');
                 return;
             }
 
@@ -1973,6 +2053,11 @@
                 } else {
                     const lavoroDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId));
                     if (!lavoroDoc.exists()) throw new Error('Lavoro non trovato');
+                    const esitoDoc = esitoFinestraOreCompletate({ id: lavoroDoc.id, ...lavoroDoc.data() }, data);
+                    if (!esitoDoc.ok) {
+                        showAlert(esitoDoc.motivo, 'error');
+                        return;
+                    }
                     idSalvata = await salvaNuovaOra(db, currentTenantId, utenteOreCorrente(), {
                         ...patch,
                         operaioId: userId,
@@ -2037,10 +2122,8 @@
                 salvataggioOraInCorso = false;
                 window.__gfvOreSalvataggioInCorso = false;
                 const btnFine = document.getElementById('ora-salva-btn');
-                if (btnFine) {
-                    btnFine.disabled = false;
-                    if (btnFine.textContent === 'Salvataggio…') btnFine.textContent = testoBtnSalva;
-                }
+                if (btnFine && btnFine.textContent === 'Salvataggio…') btnFine.textContent = testoBtnSalva;
+                aggiornaAvvisoFinestraOre();
             }
         };
 

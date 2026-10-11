@@ -1,6 +1,16 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-11 — I lavori chiusi restano selezionabili per le ore.**
+**Ultimo aggiornamento documentazione: 2026-10-11 — Testo della coda ore e ore in ritardo.**
+
+## 2026-10-11 — Coda del manager e ore dopo il completamento
+
+Se il manager non ha ore da validare lui, la pagina non dice più che sono state tutte validate. Dice «Nessuna ora da validare da te». Se restano ore degli operai sui lavori di squadra, aggiunge «N ore in attesa dei capisquadra». Il caposquadra legge il testo di prima. Chi valida cosa non è cambiato.
+
+Un lavoro completato, o in attesa di approvazione, non accetta più ore fuori dalla finestra di 7 giorni nemmeno da desktop: il form avvisa subito, disattiva Salva, e il servizio rifiuta il salvataggio. Sul telefono il controllo c’era già. Cambiando la data, «Le tue ore del…» segue subito il giorno scelto, senza aspettare la lettura. Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-11 — I lavori chiusi restano selezionabili per le ore.**
 
 ## 2026-10-11 — Ore su un lavoro completato o in attesa
 
