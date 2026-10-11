@@ -8,6 +8,10 @@ import {
     collectOperaioIdsFromSquadraOperai
 } from './comunicazioni-squadra-service.js';
 import { resolveManodoperaUserIds } from './comunicazioni-squadra-utils.js';
+import {
+    lavoroSelezionabilePerOre,
+    impostaDelegaDropdownSegnaOre
+} from './ore-lavoro-selezionabile.js';
 
 /**
  * @param {import('firebase/firestore').Firestore} db
@@ -81,7 +85,7 @@ export function isLavoroVisibileOperaioCampo(lavoro, oggi = new Date()) {
     return false;
 }
 
-/** Solo lavori su cui l'operaio può ancora segnare ore (no completati). */
+/** Lavori su cui si possono ancora segnare ore (inclusi i completati nella finestra). */
 export function isLavoroSegnabileOperaio(lavoro, oggi = new Date()) {
     return isLavoroInDropdownSegnaOre(lavoro, oggi);
 }
@@ -102,16 +106,22 @@ export function getLavoroDataFinePrevista(lavoro) {
 }
 
 /**
- * Lavori ammessi nel dropdown «Segna ore»: attivi/imminenti, no sospesi/completati/fuori finestra.
- * @param {{ stato?: string, dataInizio?: *, durataPrevista?: number }} lavoro
+ * Lavori ammessi nel dropdown «Segna ore»: attivi/imminenti, sospesi esclusi,
+ * completati solo nella finestra ore (menu).
+ * @param {{ stato?: string, dataInizio?: *, durataPrevista?: number, completatoIl?: * }} lavoro
  * @param {Date} [oggi]
- * @param {{ maxFutureDays?: number }} [opts]
+ * @param {{ maxFutureDays?: number, ruolo?: string }} [opts]
  */
 export function isLavoroInDropdownSegnaOre(lavoro, oggi = new Date(), opts = {}) {
     const stato = (lavoro && lavoro.stato) || 'assegnato';
-    if (stato === 'completato' || stato === 'annullato' || stato === 'completato_da_approvare') {
-        return false;
+    if (stato === 'completato' || stato === 'completato_da_approvare') {
+        return lavoroSelezionabilePerOre({
+            lavoro,
+            ruolo: (opts && opts.ruolo) || 'operaio',
+            oggi
+        }).ok;
     }
+    if (stato === 'annullato') return false;
     if (stato === 'in_standby') return false;
 
     // Ripresa da sospensione: sempre segnabile finché assegnato/in corso (date originali non devono escluderla)
@@ -381,6 +391,12 @@ export function sliceOperaioLavoriWindow(works, opts = {}) {
     works.forEach((w) => {
         if (w.ripresaDaLavoroId) mustKeepIds.add(w.id);
         if ((w.stato || '') === 'in_corso') mustKeepIds.add(w.id);
+        const statoW = (w && w.stato) || '';
+        if (statoW === 'completato' || statoW === 'completato_da_approvare') {
+            if (lavoroSelezionabilePerOre({ lavoro: w, ruolo: 'operaio' }).ok) {
+                mustKeepIds.add(w.id);
+            }
+        }
     });
 
     if (mustKeepIds.size <= sliced.length) return sliced;
@@ -389,3 +405,5 @@ export function sliceOperaioLavoriWindow(works, opts = {}) {
     merged.sort((a, b) => getTime(a) - getTime(b));
     return merged;
 }
+
+impostaDelegaDropdownSegnaOre(isLavoroInDropdownSegnaOre);
