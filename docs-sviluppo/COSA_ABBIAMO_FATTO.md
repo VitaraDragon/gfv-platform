@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-10 — Il campo non apre più una finestra a parte.**
+**Ultimo aggiornamento documentazione: 2026-10-11 — I lavori chiusi restano selezionabili per le ore.**
+
+## 2026-10-11 — Ore su un lavoro completato o in attesa
+
+Un lavoro completato, o in attesa di approvazione, resta nel menu «Lavori assegnati» per 7 giorni. In elenco si legge «completato» o «in attesa approvazione». Operaio, caposquadra e manager possono segnare le proprie ore dei giorni in cui il lavoro era ancora aperto, non i giorni dopo la chiusura. I lavori sospesi restano fuori dal menu, come prima. Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-10 — Il campo non apre più una finestra a parte.**
 
 ## 2026-10-10 — Campo: niente finestra intera, niente lampo del menu, ore silenziose
 
