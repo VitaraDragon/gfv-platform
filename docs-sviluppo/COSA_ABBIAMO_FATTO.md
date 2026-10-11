@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-11 — Caselle di registrazione pronte, ancora spente.**
+**Ultimo aggiornamento documentazione: 2026-10-11 — Invito e ri-accettazione pronti, ancora spenti.**
+
+## 2026-10-11 — Invito e ri-accettazione, flag spento
+
+L'invito può mostrare una casella di presa visione dell'informativa lavoratori, con il nome dell'azienda. All'ingresso, dashboard e workspace di campo possono chiedere di nuovo i documenti se la versione è cambiata. Il flag resta false: nessuna casella, nessuna chiamata. `getInvitoPubblico` nel codice legge anche il nome azienda; non è deployata. Il cellulare dell'invito resta com'è. Nessuna modifica a `firestore.rules`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-11 — Caselle di registrazione pronte, ancora spente.**
 
 ## 2026-10-11 — Registrazione: caselle legali pronte, flag spento
 
