@@ -2,10 +2,19 @@
  * Testo e avviso del riquadro ore quando la lettura non riesce.
  * La pagina dipinge solo questo risultato.
  */
+import { t, leggiLinguaCampo } from '../../services/field-ui-i18n.js';
+
+function linguaRiquadro() {
+  try {
+    return leggiLinguaCampo(typeof localStorage !== 'undefined' ? localStorage : null);
+  } catch (error) {
+    return 'it';
+  }
+}
 
 export function testoRiquadroOreNonDisponibile(etichettaGiorno) {
   const giorno = String(etichettaGiorno || '').trim();
-  return 'Le tue ore del ' + giorno + ': non disponibili ora.';
+  return t('ore.boxUnavailable', linguaRiquadro(), { giorno: giorno });
 }
 
 /**
@@ -19,7 +28,7 @@ export function esitoRiquadroOreSuErrore({ codice, etichettaGiorno, dopoSalvatag
     testo: testoRiquadroOreNonDisponibile(etichettaGiorno),
     dataState: 'ready',
     avviso: dopo && !permesso
-      ? 'Non riesco a rileggere le ore. Mostro di nuovo il riepilogo di prima.'
+      ? t('ore.boxReread', linguaRiquadro())
       : '',
     mantieniPrecedente: dopo
   };

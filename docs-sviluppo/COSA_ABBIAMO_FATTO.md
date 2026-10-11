@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-11 — Lingua del campo, primo pezzo.**
+**Ultimo aggiornamento documentazione: 2026-10-11 — Lingua del campo, cornice del workspace.**
+
+## 2026-10-11 — Workspace campo: testi rimasti (passo 2)
+
+Nel telefono, con italiano la pagina resta uguale a prima. Română e English traducono anche gli stati, gli elenchi e i form che la pagina disegna da sola (ore, messaggi, squadra, pieno). Sono una bozza da rivedere da un madrelingua. Se si cambia lingua, i messaggi già aperti non vengono riletti dal server: si ridisegna solo quello che è già in memoria. Il login resta in italiano. La scelta resta sul telefono, non sul profilo.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-11 — Lingua del campo, primo pezzo.**
 
 ## 2026-10-11 — Workspace campo: scelta della lingua (passo 1)
 

@@ -56,7 +56,7 @@
                     <div class="work-select-card gfv-card-inner">
                         <label for="selected-work" class="label-inline" data-i18n="lavoro.assigned">Lavori assegnati</label>
                         <select id="selected-work" class="field-input">
-                            <option value="">Caricamento lavori...</option>
+                            <option value="" data-i18n="lavoro.loading">Caricamento lavori...</option>
                         </select>
                         <small id="gps-suggestion" class="hint-text"></small>
                         <div id="lavoro-sostituto-banner" class="inline-sostituto-banner" hidden></div>
@@ -68,7 +68,7 @@
                             <p id="pieno-mezzo-label" class="hint-text"></p>
                             <label for="pieno-prodotto" class="label-inline" data-i18n="pieno.fuel">Carburante</label>
                             <select id="pieno-prodotto" class="field-input" required>
-                                <option value="">Caricamento...</option>
+                                <option value="" data-i18n="pieno.loading">Caricamento...</option>
                             </select>
                             <label for="pieno-litri" class="label-inline" data-i18n="pieno.liters">Litri</label>
                             <input id="pieno-litri" class="field-input" type="number" min="0.1" step="0.1" inputmode="decimal" required>
@@ -77,17 +77,17 @@
                         </form>
                     </section>
                     <section id="inline-team-section" class="inline-team-section" hidden>
-                        <h3 class="inline-team-title">👥 La mia squadra</h3>
-                        <p class="inline-team-subtitle">Tocca un nome per chiamare o inviare email.</p>
+                        <h3 class="inline-team-title" data-i18n="squad.title">👥 La mia squadra</h3>
+                        <p class="inline-team-subtitle" data-i18n="squad.sub">Tocca un nome per chiamare o inviare email.</p>
                         <div id="squad-members-list" class="squad-members-list">
-                            <div class="empty-state-inline" id="squad-members-placeholder">Caricamento squadra...</div>
+                            <div class="empty-state-inline" id="squad-members-placeholder" data-i18n="squad.loading">Caricamento squadra...</div>
                         </div>
                     </section>
                     <section id="inline-validate-hours-section" class="inline-team-section" hidden>
-                        <h3 class="inline-team-title">🕒 Valida ore</h3>
-                        <p class="inline-team-subtitle">Conferma o rifiuta le ore in attesa per il lavoro selezionato.</p>
+                        <h3 class="inline-team-title" data-i18n="valida.inlineTitle">🕒 Valida ore</h3>
+                        <p class="inline-team-subtitle" data-i18n="valida.inlineSub">Conferma o rifiuta le ore in attesa per il lavoro selezionato.</p>
                         <div id="pending-hours-list" class="inline-list-card">
-                            <div class="empty-state-inline">Seleziona un lavoro per vedere le ore da validare.</div>
+                            <div class="empty-state-inline" data-i18n="valida.pickWork">Seleziona un lavoro per vedere le ore da validare.</div>
                         </div>
                     </section>
                     <section id="inline-segnala-assenza-section" class="inline-team-section" hidden>
@@ -98,10 +98,10 @@
                             <select id="assenza-segnala-operaio" class="field-input" required></select>
                             <label for="assenza-segnala-tipo" class="label-inline" data-i18n="assenza.type">Tipo</label>
                             <select id="assenza-segnala-tipo" class="field-input">
-                                <option value="malattia">Malattia</option>
-                                <option value="ferie">Ferie</option>
-                                <option value="permesso">Permesso</option>
-                                <option value="altro">Altro</option>
+                                <option value="malattia" data-i18n="assenza.sick">Malattia</option>
+                                <option value="ferie" data-i18n="assenza.holiday">Ferie</option>
+                                <option value="permesso" data-i18n="assenza.leave">Permesso</option>
+                                <option value="altro" data-i18n="assenza.other">Altro</option>
                             </select>
                             <label for="assenza-segnala-giorno" class="label-inline" data-i18n="assenza.day">Giorno</label>
                             <input id="assenza-segnala-giorno" class="field-input" type="date" required>
@@ -123,10 +123,10 @@
                 </div>
                 <div class="slide-body slide-body-brand">
                     <section class="inline-team-section">
-                        <h3 class="inline-team-title">📬 Messaggi dal caposquadra</h3>
-                        <p class="inline-team-subtitle">Da confermare e già letti, dal più recente.</p>
+                        <h3 class="inline-team-title" data-i18n="comm.inboxTitle">📬 Messaggi dal caposquadra</h3>
+                        <p class="inline-team-subtitle" data-i18n="comm.inboxSub">Da confermare e già letti, dal più recente.</p>
                         <div id="received-communications-list" class="inline-list-card">
-                            <div class="empty-state-inline">Caricamento comunicazioni...</div>
+                            <div class="empty-state-inline" data-i18n="comm.loading">Caricamento comunicazioni...</div>
                         </div>
                         <button type="button" id="toggle-received-communications-history" class="communications-history-toggle" hidden>
                             Solo messaggi già confermati
@@ -157,10 +157,10 @@
                         <small id="quick-comm-status" class="hint-text"></small>
                     </form>
                     <section class="inline-team-section">
-                        <h3 class="inline-team-title">📨 In evidenza</h3>
-                        <p class="inline-team-subtitle">Invii con conferme in attesa o recenti.</p>
+                        <h3 class="inline-team-title" data-i18n="comm.highlightTitle">📨 In evidenza</h3>
+                        <p class="inline-team-subtitle" data-i18n="comm.highlightSub">Invii con conferme in attesa o recenti.</p>
                         <div id="sent-communications-list" class="inline-list-card">
-                            <div class="empty-state-inline">Nessuna comunicazione inviata.</div>
+                            <div class="empty-state-inline" data-i18n="comm.noneSent">Nessuna comunicazione inviata.</div>
                         </div>
                         <button type="button" id="toggle-sent-communications-history" class="communications-history-toggle" hidden>
                             Vedi comunicazioni precedenti
@@ -179,14 +179,14 @@
                 </div>
                 <div class="slide-body slide-body-brand">
                     <section class="inline-team-section">
-                        <h3 class="inline-team-title">🕒 In attesa di validazione</h3>
-                        <p class="inline-team-subtitle">Tutti i tuoi lavori di squadra. Per filtri avanzati apri la validazione completa.</p>
+                        <h3 class="inline-team-title" data-i18n="valida.waitingTitle">🕒 In attesa di validazione</h3>
+                        <p class="inline-team-subtitle" data-i18n="valida.waitingSub">Tutti i tuoi lavori di squadra. Per filtri avanzati apri la validazione completa.</p>
                         <div id="pending-hours-all-list" class="inline-list-card">
-                            <div class="empty-state-inline">Caricamento ore da validare...</div>
+                            <div class="empty-state-inline" data-i18n="valida.loading">Caricamento ore da validare...</div>
                         </div>
                         <div class="work-actions" style="margin-top: 12px;">
-                            <button type="button" id="btn-refresh-pending-hours" class="field-mobile-btn">Aggiorna elenco</button>
-                            <a href="../admin/validazione-ore-standalone.html?from=field" class="field-link-btn">Apri validazione completa</a>
+                            <button type="button" id="btn-refresh-pending-hours" class="field-mobile-btn" data-i18n="valida.refresh">Aggiorna elenco</button>
+                            <a href="../admin/validazione-ore-standalone.html?from=field" class="field-link-btn" data-i18n="valida.openFull">Apri validazione completa</a>
                         </div>
                     </section>
                 </div>
@@ -223,12 +223,12 @@
                     <div id="ore-giorno-riepilogo" data-state="idle" class="gfv-card-inner" style="margin-top:12px;"></div>
                     <div id="ore-sovrapposizione-msg" hidden style="margin-top:8px;padding:10px;background:#fff3cd;border-radius:8px;"></div>
                     <section class="inline-team-section">
-                        <h3 class="inline-team-title">📌 Dettaglio lavoro operativo</h3>
-                        <p class="inline-team-subtitle">Ordini manager, stato tabella di marcia, traccia zone e sospensione lavoro.</p>
+                        <h3 class="inline-team-title" data-i18n="ore.detailTitle">📌 Dettaglio lavoro operativo</h3>
+                        <p class="inline-team-subtitle" data-i18n="ore.detailSub">Ordini manager, stato tabella di marcia, traccia zone e sospensione lavoro.</p>
                         <div id="field-lavori-detail-wrap" class="field-lavori-detail-wrap">
                             <iframe id="lavori-detail-frame" class="slide-frame frame-lavori-detail" title="Dettaglio lavoro" loading="lazy"></iframe>
                             <div class="work-actions">
-                                <button type="button" id="btn-ingrandisci-lavoro" class="field-link-btn" aria-pressed="false">Ingrandisci</button>
+                                <button type="button" id="btn-ingrandisci-lavoro" class="field-link-btn" aria-pressed="false" data-i18n="lavoro.expand">Ingrandisci</button>
                             </div>
                         </div>
                     </section>
@@ -244,10 +244,10 @@
                 </div>
                 <div class="slide-body slide-body-brand slide-body-iframe-tall">
                     <div id="stats-embed-fallback" class="stats-embed-fallback" hidden>
-                        <p>Non riesco a caricare le statistiche. Riprova.</p>
-                        <button type="button" id="btn-retry-statistiche" class="field-mobile-btn">Riprova</button>
+                        <p data-i18n="stats.fail">Non riesco a caricare le statistiche. Riprova.</p>
+                        <button type="button" id="btn-retry-statistiche" class="field-mobile-btn" data-i18n="lavoro.retry">Riprova</button>
                     </div>
-                    <p id="stats-avanzamento" class="inline-team-subtitle">Carico le tue ore…</p>
+                    <p id="stats-avanzamento" class="inline-team-subtitle" data-i18n="stats.loading">Carico le tue ore…</p>
                     <iframe id="stats-embed-frame" class="slide-frame frame-summary" title="Le tue statistiche"></iframe>
                 </div>
             </article>
@@ -263,12 +263,12 @@
     <div id="operaio-contact-modal" class="field-modal" hidden aria-hidden="true">
         <div class="field-modal-backdrop" data-close-modal tabindex="-1"></div>
         <div class="field-modal-panel" role="dialog" aria-modal="true" aria-labelledby="operaio-contact-name">
-            <button type="button" class="field-modal-close" data-close-modal aria-label="Chiudi">&times;</button>
+            <button type="button" class="field-modal-close" data-close-modal aria-label="Chiudi" data-i18n-aria="contact.close">&times;</button>
             <h3 id="operaio-contact-name" class="field-modal-title"></h3>
             <p id="operaio-contact-sub" class="field-modal-sub"></p>
             <div class="field-modal-actions">
-                <a id="operaio-contact-call" class="field-icon-action phone" href="#" title="Chiama" aria-label="Chiama">📞 Chiama</a>
-                <a id="operaio-contact-mail" class="field-icon-action mail" href="#" title="Email" aria-label="Invia email">✉️ Email</a>
+                <a id="operaio-contact-call" class="field-icon-action phone" href="#" title="Chiama" aria-label="Chiama" data-i18n="contact.callLabel" data-i18n-title="contact.call" data-i18n-aria="contact.call">📞 Chiama</a>
+                <a id="operaio-contact-mail" class="field-icon-action mail" href="#" title="Email" aria-label="Invia email" data-i18n="contact.mailLabel" data-i18n-title="contact.mailTitle" data-i18n-aria="contact.mailAria">✉️ Email</a>
             </div>
         </div>
     </div>
