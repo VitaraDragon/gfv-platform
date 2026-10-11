@@ -66,3 +66,58 @@ export function contaOreManagerDaValidareSuLavoro(lavoroData, oreRecords) {
     }
     return n;
 }
+
+/**
+ * Quante ore da_validare sono in elenco ma non nella coda di chi guarda.
+ * Le già validate o rifiutate non contano. Una riga già visibile non si conta due volte.
+ * @param {object[]|undefined|null} righe
+ * @param {object[]|undefined|null} visibili
+ * @returns {number}
+ */
+function contaOreDaValidareNonVisibili(righe, visibili) {
+    const tutte = Array.isArray(righe) ? righe : [];
+    const viste = Array.isArray(visibili) ? visibili : [];
+    const visteId = new Set();
+    const visteRef = new Set();
+    for (const riga of viste) {
+        if (!riga || typeof riga !== 'object') continue;
+        visteRef.add(riga);
+        if (riga.id != null && riga.id !== '') visteId.add(String(riga.id));
+    }
+    let n = 0;
+    for (const riga of tutte) {
+        if (!riga || riga.stato !== 'da_validare') continue;
+        if (visteRef.has(riga)) continue;
+        if (riga.id != null && riga.id !== '' && visteId.has(String(riga.id))) continue;
+        n += 1;
+    }
+    return n;
+}
+
+/**
+ * Testo della coda vuota. Non cambia chi vede le ore.
+ * Il manager senza coda propria vede le ore degli operai ancora dal caposquadra.
+ * Caposquadra e gli altri ruoli tengono il testo di prima.
+ * @param {{ isManager?: boolean, isCaposquadra?: boolean, righe?: object[], visibili?: object[] }} [args]
+ * @returns {{ titolo: string, dettaglio: string, inAttesaCapisquadra: string }}
+ */
+export function testoCodaValidazioneVuota(args) {
+    const { isManager = false, isCaposquadra = false, righe, visibili } = args || {};
+    const titolo = 'Nessuna ora da validare';
+    if (!(isManager && !isCaposquadra)) {
+        return {
+            titolo,
+            dettaglio: 'Tutte le ore sono state validate o rifiutate',
+            inAttesaCapisquadra: ''
+        };
+    }
+    const n = contaOreDaValidareNonVisibili(righe, visibili);
+    let inAttesaCapisquadra = '';
+    if (n === 1) inAttesaCapisquadra = '1 ora in attesa dei capisquadra';
+    else if (n > 1) inAttesaCapisquadra = `${n} ore in attesa dei capisquadra`;
+    return {
+        titolo,
+        dettaglio: 'Nessuna ora da validare da te',
+        inAttesaCapisquadra
+    };
+}
