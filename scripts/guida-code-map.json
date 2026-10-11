@@ -138,6 +138,60 @@
       "label": "Bootstrap head pagine standalone (build ?v= Tony)"
     },
     {
+      "prefix": "core/js/field-route-guard",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Profilo campo: indirizzi dell'ufficio aperti a mano tornano al workspace"
+    },
+    {
+      "prefix": "core/js/field-guasti-access",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Workspace campo: voce Segnala guasto per caposquadra e operaio"
+    },
+    {
+      "prefix": "core/js/macchina-selezionabile",
+      "modules": [
+        "PARCO_MACCHINE",
+        "MANODOPERA"
+      ],
+      "label": "Segnalazione guasti: quali macchine si possono scegliere"
+    },
+    {
+      "prefix": "core/services/lavoro-ripresa-guasto",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Guasto risolto: il lavoro sospeso riparte (in corso o assegnato)"
+    },
+    {
+      "prefix": "core/services/esegui-con-limite",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Operazioni con tempo massimo (segnalazione guasto non resta bloccata)"
+    },
+    {
+      "prefix": "core/admin/segnalazione-guasti-standalone",
+      "modules": [
+        "PARCO_MACCHINE",
+        "MANODOPERA"
+      ],
+      "label": "Pagina Segnala guasto (campo e ufficio)"
+    },
+    {
+      "prefix": "core/js/tony/tony-invio-coda",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Tony: messaggi inviati prima che sia pronto restano in attesa"
+    },
+    {
       "prefix": "core/js/gfv-standalone-shell.js",
       "modules": [
         "TONY",

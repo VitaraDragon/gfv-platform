@@ -27,7 +27,7 @@ Questa guida è solo per l’**operaio**. La schermata che userai quasi sempre �
 | Statistiche personali | [Impara qui](#mini-guida-statistiche-personali) |
 | Guasti: segnalazione, GPS e risoluzione | [Impara qui](#mini-guida-guasti-segnalazione-gps-e-risoluzione) |
 | Lavoro in autonomo e con incarichi di gruppo | [Impara qui](#mini-guida-lavoro-in-autonomo-e-con-incarichi-di-gruppo) |
-| Versione desktop opzionale | [Impara qui](#mini-guida-versione-desktop-opzionale) |
+| Una sola schermata, anche dal computer | [Impara qui](#mini-guida-una-sola-schermata-anche-dal-computer) |
 | Se qualcosa non funziona | [Impara qui](#se-qualcosa-non-funziona) |
 
 ---
@@ -36,9 +36,9 @@ Questa guida è solo per l’**operaio**. La schermata che userai quasi sempre �
 
 La **versione mobile** è la schermata principale per registrare il lavoro in campo dall’app.
 
-**Dopo il login** l’app ti porta direttamente qui: per un attimo leggi «Apro il tuo lavoro…», senza vedere prima la dashboard. Se in passato hai scelto tu la **versione desktop**, l’app se lo ricorda e ti riporta lì (vedi sotto). Se l’area non si apre, compare «Non riesco ad aprire la tua area. Riprova»: tocca **Riprova**.
+**Dopo il login** l’app ti porta direttamente qui: per un attimo leggi «Apro il tuo lavoro…», senza vedere prima la dashboard, sia dal telefono sia dal computer. Se l’area non si apre, compare «Non riesco ad aprire la tua area. Riprova»: tocca **Riprova**.
 
-**Diario attività:** con Manodopera attivo **non** compare nel menu (come per tutti). Registri tutto da **Lavoro**, **Ore** e **Statistiche**. Non c’è una voce Diario in sola lettura; un link diretto, se lo raggiungi, mostra al massimo lo **storico**, senza creare.
+**Diario attività:** con Manodopera attivo **non** compare nel menu (come per tutti). Registri tutto da **Lavoro**, **Ore** e **Statistiche**. Non c’è una voce Diario; se apri a mano un indirizzo del Diario, l’app ti riporta al tuo lavoro.
 
 
 ### Le tre schede
@@ -51,8 +51,8 @@ Con **Indietro** / **Avanti** in basso o i **puntini**:
 
 ### In alto nella schermata
 
-- Passaggio alla **versione desktop** (browser su schermo grande), se compare tra le opzioni.  
-- Accesso alle **impostazioni account** dal menu, se previsto (lì anche **Notifiche** push: nuovo lavoro, comunicazioni di squadra).
+- Il menu **ingranaggio**: **Guida**, **Segnala guasto** se l’azienda ha il parco macchine, **Impostazioni**, **Esci**. **Cambia azienda** compare solo se ne hai più di una.  
+- Accesso alle **impostazioni account** da quel menu (lì anche **Notifiche** push: nuovo lavoro, comunicazioni di squadra).
 
 ---
 
@@ -134,7 +134,7 @@ Sotto il modulo ore trovi il riquadro **Dettaglio lavoro operativo**, già **cen
    - **tracciare le zone lavorate** sulla mappa quando il tipo di incarico lo richiede;  
    - vedere se il lavoro risulta **sospeso** o da **riprendere**, se l’app lo mostra;  
    - **⏸️ Sospendi lavoro** se l’incarico è **solo tuo** e devi fermarti (vedi [Sospendere un incarico solo tuo](#sospendere-un-incarico-solo-tuo)).  
-3. Se sul telefono è scomodo, usa **Apri in finestra intera** per la stessa schermata a tutto schermo nel browser.
+3. Se sul telefono è scomodo, tocca **Ingrandisci** per la stessa schermata a quasi tutto schermo. **Riduci** torna alla scheda.
 
 ### Zone sulla mappa
 
@@ -166,7 +166,7 @@ Serve per controllare di aver registrato tutti i turni della settimana.
 
 ## Mini-guida guasti segnalazione GPS e risoluzione
 
-Serve quando l’azienda ha il modulo **Parco Macchine** attivo e ti compare la voce per **Segnalazione guasti** (di solito dalla **dashboard** in versione completa del browser).
+Serve quando l’azienda ha il modulo **Parco Macchine** attivo e nel menu **ingranaggio** del workspace ti compare **Segnala guasto** (sia dal telefono sia dal computer). Puoi segnare come guasta la macchina o l’attrezzo che stai usando.
 
 ### Cosa compilare (panoramica)
 
@@ -188,7 +188,8 @@ Serve quando l’azienda ha il modulo **Parco Macchine** attivo e ti compare la 
 
 ### Dopo l’invio
 
-- La segnalazione segue lo stato mostrato in elenco (**in attesa**, ecc.).  
+- La segnalazione segue lo stato mostrato in elenco (**in attesa**, ecc.).
+- Subito dopo l’invio leggi **Segnalazione inviata. Grazie.** Dal telefono torni al workspace. Se qualcosa sulla macchina o sul lavoro non si aggiorna, l’avviso resta e non ti porta via da solo.  
 - Dove previsto dall’interfaccia, puoi registrare **note di risoluzione** (e talvolta **costo** ricambi) sulle **tue** segnalazioni quando il problema è stato sistemato: segui le etichette in schermata.
 
 ---
@@ -218,13 +219,11 @@ La sospensione funziona solo sugli incarichi **solo tuoi**: su quelli di gruppo 
 
 ---
 
-## Mini-guida versione desktop opzionale
+## Mini-guida una sola schermata, anche dal computer
 
-In alto puoi vedere **Versione mobile** e **Versione desktop**.
+La schermata del lavoro è la stessa sul telefono e sul computer. Non c’è un pulsante per passare a una dashboard con i menu dei moduli.
 
-- Se passi alla desktop, puoi avere una **dashboard** con più schede e collegamenti: usa quelli che ti servono per il tuo lavoro (es. segnalazioni da browser).  
-- La scelta della desktop resta finché non la cambi tu: al login successivo riapre la dashboard. Per tornare alla mobile tocca **📱 Workspace Mobile** nelle **Azioni rapide** della dashboard. Se l’app ti manda alla dashboard da sola per un errore momentaneo, la scelta non viene salvata.  
-- Per la giornata sul campo resta comoda la **mobile**.
+Se apri a mano un indirizzo dell’ufficio (terreni, magazzino, elenchi), l’app ti riporta al tuo lavoro.
 
 ---
 
@@ -235,7 +234,7 @@ In alto puoi vedere **Versione mobile** e **Versione desktop**.
 | **Lavori assegnati** vuoti | Contatta l’ufficio per un incarico assegnabile. |
 | Non trovo un lavoro che ti aspetti | Elenco ridotto se hai molti incarichi; chiedi in ufficio se serve sbloccare la vista. |
 | Ore in **attesa** o stato poco chiaro | Leggi i messaggi in app; per dubbi chiedi in ufficio. |
-| **Dettaglio lavoro** non carica | Connessione debole; riprova o **Apri in finestra intera**. |
+| **Dettaglio lavoro** non carica | Connessione debole; riprova o tocca **Ingrandisci**. |
 | «Non riesco a caricare i lavori. Riprova.» | Tocca **Riprova** con una connessione migliore; se resta, chiedi in ufficio. |
 | Dopo il login: «Non riesco ad aprire la tua area. Riprova» | Tocca **Riprova**; se resta, chiedi in ufficio di controllare il tuo ruolo e il modulo Manodopera. |
 | Non capisco la **mappa delle zone** | Chiedi una dimostrazione in campo a chi coordina il gruppo. |

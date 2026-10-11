@@ -452,13 +452,18 @@ service cloud.firestore {
     match /tenants/{tenantId}/macchine/{macchinaId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
       allow create, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
-      // Manager: pieno controllo. Caposquadra/operaio: solo liberazione (sospensione lavoro / meteo).
+      // Manager: pieno controllo. Caposquadra/operaio: solo chiavi stato e updatedAt,
+      // e solo liberazione oppure segnalazione guasto.
       allow update: if isAuthenticated() && belongsToTenant(tenantId) && (
         isManagerOrAdmin(tenantId) ||
         (
           (isCaposquadra(tenantId) || hasRole('operaio', tenantId)) &&
           request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stato', 'updatedAt']) &&
-          request.resource.data.stato == 'disponibile'
+          (
+            request.resource.data.stato == 'disponibile' ||
+            request.resource.data.stato == 'guasto' ||
+            request.resource.data.stato == 'guasto-lavoro-in-corso'
+          )
         )
       );
     }

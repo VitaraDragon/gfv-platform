@@ -28,6 +28,7 @@ import {
   setDoc,
   Timestamp,
   serverTimestamp,
+  deleteField,
   writeBatch,
   increment,
   runTransaction
@@ -58,6 +59,7 @@ export {
   setDoc,
   Timestamp,
   serverTimestamp,
+  deleteField,
   writeBatch,
   increment,
   runTransaction

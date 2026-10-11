@@ -11,18 +11,30 @@ import {
     query,
     where,
     serverTimestamp,
-    Timestamp
+    Timestamp,
+    signOut
 } from '../../services/firebase-service.js';
 import { resolveAuthUserWithRetry, loginPageUrl, waitForStandaloneReady } from '../../js/simulator-standalone-page.js';
 import { formatOreNette } from '../../js/attivita-utils.js';
 import { showAlert } from '../../js/gfv-page-utils.js';
+import {
+    voceCambiaAziendaVisibile,
+    vociMenuCampo,
+    menuCampoAbilitato,
+} from './field-menu-visibility.js';
+import { urlDettaglioLavoroIncorporato } from './field-lavori-embed.js';
+import {
+    creaSegnalatoreRiquadroOre,
+    esitoRiquadroOreSuErrore,
+    testoRiquadroOreNonDisponibile
+} from './field-ore-riquadro.js';
 import { eLavoroSospeso } from '../../js/tony/tony-ora-lavoro-match.js';
-import { CHIAVE_RIMBALZI_INGRESSO } from '../../js/tony/tony-ingresso-login.js?v=2026-10-09f';
-import { conTimeout, prossimaAttesaRiprova } from '../../js/tony/tony-attesa-riprova.js?v=2026-10-09f';
+import { CHIAVE_RIMBALZI_INGRESSO, scriviIndizioIngresso, pulisciIndizioIngresso } from '../../js/tony/tony-ingresso-login.js?v=2026-10-09g';
+import { conTimeout, prossimaAttesaRiprova } from '../../js/tony/tony-attesa-riprova.js?v=2026-10-09g';
 import {
     righeGiornoDopoEliminazione,
     righeGiornoDopoSalvataggio
-} from '../../js/tony/tony-riepilogo-giorno.js?v=2026-10-09f';
+} from '../../js/tony/tony-riepilogo-giorno.js?v=2026-10-09g';
 import {
     salvaNuovaOra,
     modificaOraPropria,
@@ -88,8 +100,7 @@ import { syncPienoCampoSection } from './pieno-campo-ui.js';
 
 const {
     normalizeRoles,
-    hasAnyRole,
-    setFieldWorkspacePreference
+    hasAnyRole
 } = window.GFVDashboardUtils || {};
 
 const statusEl = document.getElementById('field-mobile-status');
@@ -116,7 +127,10 @@ const oraBreakEl = document.getElementById('ora-break');
 const oraNoteEl = document.getElementById('ora-note');
 const lavoriDetailFrameEl = document.getElementById('lavori-detail-frame');
 const statsEmbedFrameEl = document.getElementById('stats-embed-frame');
-const lavoriFullDetailLinkEl = document.getElementById('lavori-full-detail-link');
+const btnIngrandisciLavoroEl = document.getElementById('btn-ingrandisci-lavoro');
+const segnalaRiquadroOreNonLeggibile = creaSegnalatoreRiquadroOre((messaggio, passo, codice) => {
+    console.warn(messaggio, passo, codice);
+});
 const squadListEl = document.getElementById('squad-members-list');
 const inlineTeamSectionEl = document.getElementById('inline-team-section');
 const inlineValidateHoursSectionEl = document.getElementById('inline-validate-hours-section');
@@ -130,6 +144,9 @@ const pendingHoursListEl = document.getElementById('pending-hours-list');
 const pendingHoursAllListEl = document.getElementById('pending-hours-all-list');
 const btnRefreshPendingHoursEl = document.getElementById('btn-refresh-pending-hours');
 const fieldValidazioneOreLinkEl = document.getElementById('field-validazione-ore-link');
+const fieldSegnalaGuastoLinkEl = document.getElementById('field-segnala-guasto-link');
+const fieldSwitchTenantButtonEl = document.getElementById('field-switch-tenant-button');
+const fieldLogoutButtonEl = document.getElementById('field-logout-button');
 const sentCommunicationsListEl = document.getElementById('sent-communications-list');
 const receivedCommunicationsListEl = document.getElementById('received-communications-list');
 const sentCommunicationsHistoryEl = document.getElementById('sent-communications-history');
@@ -141,8 +158,6 @@ const operaioContactNameEl = document.getElementById('operaio-contact-name');
 const operaioContactSubEl = document.getElementById('operaio-contact-sub');
 const operaioContactCallEl = document.getElementById('operaio-contact-call');
 const operaioContactMailEl = document.getElementById('operaio-contact-mail');
-const btnModeMobileEl = document.getElementById('btn-mode-mobile');
-const btnModeDesktopEl = document.getElementById('btn-mode-desktop');
 const btnOpenOptionsEl = document.getElementById('btn-open-options');
 const optionsMenuEl = document.getElementById('field-options-menu');
 const fieldToolbarUserEl = document.getElementById('field-toolbar-user');
@@ -162,6 +177,11 @@ let userIsCaposquadra = false;
 let lastSquadMembers = [];
 let lastSquadLabel = 'Squadra';
 let userIsOperaio = false;
+let workspacePronto = false;
+let menuRuoliCampo = [];
+let menuModuliCampo = [];
+let menuNumeroAziende = 0;
+let statsEmbedTimer = null;
 let editingOraId = '';
 let editingOraLavoroId = '';
 let oreGiornoRows = [];
@@ -243,19 +263,6 @@ function updateFieldHeaderUser(displayName, roles) {
     fieldToolbarUserEl.hidden = false;
 }
 
-function getWorkspacePreferenceFromUrl() {
-    try {
-        const params = new URLSearchParams(window.location.search || '');
-        const ws = params.get('ws');
-        if (ws === 'classic' || ws === 'mobile' || ws === 'auto') {
-            return ws;
-        }
-    } catch (error) {
-        // ignore
-    }
-    return null;
-}
-
 function readBootParamsFromUrl() {
     try {
         const params = new URLSearchParams(window.location.search || '');
@@ -275,9 +282,11 @@ function getTodayIsoDate() {
     return `${y}-${m}-${day}`;
 }
 
-function setModeButtonsState(mode) {
-    if (btnModeMobileEl) btnModeMobileEl.classList.toggle('active', mode === 'mobile' || mode === 'auto');
-    if (btnModeDesktopEl) btnModeDesktopEl.classList.toggle('active', mode === 'classic');
+function pulisciPreferenzaClassicCampo() {
+    try {
+        const key = (window.GFVDashboardUtils && window.GFVDashboardUtils.FIELD_WORKSPACE_PREF_KEY) || 'gfv_field_workspace_pref';
+        if (localStorage.getItem(key) === 'classic') localStorage.removeItem(key);
+    } catch (error) { /* ignore */ }
 }
 
 async function resolveCurrentTenantId(userData) {
@@ -336,10 +345,72 @@ function updateNavButtons() {
     }
 }
 
+function nascondiAvanzamentoStatistiche() {
+    const el = document.getElementById('stats-avanzamento');
+    if (el) el.hidden = true;
+}
+
+function mostraAvanzamentoStatistiche() {
+    const el = document.getElementById('stats-avanzamento');
+    if (el) el.hidden = false;
+}
+
+function annullaTimerStatistiche() {
+    if (statsEmbedTimer) {
+        clearTimeout(statsEmbedTimer);
+        statsEmbedTimer = null;
+    }
+}
+
+function mostraFallbackStatistiche() {
+    const box = document.getElementById('stats-embed-fallback');
+    if (box) box.hidden = false;
+    nascondiAvanzamentoStatistiche();
+}
+
+function nascondiFallbackStatistiche() {
+    const box = document.getElementById('stats-embed-fallback');
+    if (box) box.hidden = true;
+}
+
 function ensureStatsEmbedLoaded() {
     if (!statsEmbedFrameEl || statsEmbedFrameEl.dataset.loaded === '1') return;
-    statsEmbedFrameEl.src = 'statistiche-lavoratore-standalone.html';
     statsEmbedFrameEl.dataset.loaded = '1';
+    delete statsEmbedFrameEl.dataset.ready;
+    nascondiFallbackStatistiche();
+    mostraAvanzamentoStatistiche();
+    annullaTimerStatistiche();
+    const riprova = statsEmbedFrameEl.dataset.retry || '';
+    const extra = riprova ? `&riprova=${encodeURIComponent(riprova)}` : '';
+    statsEmbedFrameEl.src = `statistiche-lavoratore-standalone.html?embed=mobile${extra}`;
+    statsEmbedTimer = setTimeout(() => {
+        statsEmbedTimer = null;
+        if (!statsEmbedFrameEl || statsEmbedFrameEl.dataset.ready === '1') return;
+        mostraFallbackStatistiche();
+    }, 15000);
+}
+
+function ricaricaStatistiche() {
+    if (!statsEmbedFrameEl) return;
+    delete statsEmbedFrameEl.dataset.loaded;
+    delete statsEmbedFrameEl.dataset.ready;
+    statsEmbedFrameEl.dataset.retry = String(Date.now());
+    ensureStatsEmbedLoaded();
+}
+
+function onMessaggioStatistiche(event) {
+    if (event.origin !== window.location.origin) return;
+    if (!statsEmbedFrameEl || event.source !== statsEmbedFrameEl.contentWindow) return;
+    const tipo = event.data && event.data.type;
+    if (tipo === 'gfv-stats-ready') {
+        statsEmbedFrameEl.dataset.ready = '1';
+        annullaTimerStatistiche();
+        nascondiFallbackStatistiche();
+        nascondiAvanzamentoStatistiche();
+    } else if (tipo === 'gfv-stats-failed') {
+        annullaTimerStatistiche();
+        mostraFallbackStatistiche();
+    }
 }
 
 function maybeLoadEmbedsForSlide(slideTitle) {
@@ -772,22 +843,28 @@ async function loadWorksForSelection(tentativo) {
 }
 
 function updateLavoriDetailEmbed(loadIframe = false) {
-    if (!lavoriDetailFrameEl || !lavoriFullDetailLinkEl) return;
-    const base = '../admin/lavori-caposquadra-standalone.html?ws=classic&v=20260904c';
+    if (!lavoriDetailFrameEl) return;
     if (!selectedWork) {
         lavoriDetailFrameEl.removeAttribute('src');
         lavoriDetailFrameEl.removeAttribute('data-embed-loaded');
-        lavoriFullDetailLinkEl.href = base;
         return;
     }
-    const fullUrl = `${base}&focusLavoroId=${encodeURIComponent(selectedWork.id)}`;
-    lavoriFullDetailLinkEl.href = fullUrl;
     const activeTitle = activeSlides[currentSlideIndex]?.dataset?.slideTitle;
     if (!loadIframe && activeTitle !== 'Ore') return;
-    const compactUrl = `${fullUrl}&embed=mobile`;
+    const compactUrl = urlDettaglioLavoroIncorporato({ lavoroId: selectedWork.id });
     if (lavoriDetailFrameEl.dataset.embedLoaded === selectedWork.id) return;
     lavoriDetailFrameEl.src = compactUrl;
     lavoriDetailFrameEl.dataset.embedLoaded = selectedWork.id;
+}
+
+function toggleIngrandisciLavoro() {
+    const wrap = document.getElementById('field-lavori-detail-wrap');
+    const btn = document.getElementById('btn-ingrandisci-lavoro');
+    if (!wrap || !btn) return;
+    const acceso = !wrap.classList.contains('ingrandito');
+    wrap.classList.toggle('ingrandito', acceso);
+    btn.textContent = acceso ? 'Riduci' : 'Ingrandisci';
+    btn.setAttribute('aria-pressed', acceso ? 'true' : 'false');
 }
 
 async function refreshLavoroSostitutoBanner() {
@@ -1799,8 +1876,18 @@ async function attendiRitardoLetturaOre() {
 
 let letturaOreSeq = 0;
 
+function dipingiRiquadroOreNonDisponibile(giorno) {
+    if (!oreGiornoBoxEl) return;
+    const label = formattaGiornoBreve(giorno) || giorno;
+    const testo = testoRiquadroOreNonDisponibile(label);
+    oreGiornoBoxEl.innerHTML = `<span class="ore-giorno-non-disponibile">${escapeHtmlUnsafe(testo)}</span>`;
+    oreGiornoBoxEl.setAttribute('data-state', 'ready');
+    oreGiornoBoxEl.setAttribute('data-pronto', '1');
+    oreGiornoBoxEl.classList.remove('ore-giorno-loading');
+}
+
 async function aggiornaRiquadroOreGiorno() {
-    if (!oreGiornoBoxEl || !currentTenantId || !currentUser) return false;
+    if (!oreGiornoBoxEl || !currentTenantId || !currentUser) return { ok: false, codice: '' };
     const giorno = (oraDataEl && oraDataEl.value) ? oraDataEl.value : getTodayIsoDate();
     const seq = ++letturaOreSeq;
     oreGiornoBoxEl.setAttribute('data-state', 'loading');
@@ -1810,32 +1897,33 @@ async function aggiornaRiquadroOreGiorno() {
     }
     try {
         await attendiRitardoLetturaOre();
-        if (seq !== letturaOreSeq) return true;
+        if (seq !== letturaOreSeq) return { ok: true, codice: '' };
         const righe = await caricaOreUtenteGiorno(getDb(), currentTenantId, currentUser.uid, giorno, utenteWorkspace());
-        if (seq !== letturaOreSeq) return true;
+        if (seq !== letturaOreSeq) return { ok: true, codice: '' };
         oreGiornoRows = righe;
         dipingiOreGiorno(righe, 'ready', giorno);
-        return true;
+        return { ok: true, codice: '' };
     } catch (error) {
-        if (seq !== letturaOreSeq) return true;
-        console.error('[FIELD-WORKSPACE] Riquadro ore giorno:', error);
-        if (!oreGiornoBoxEl.getAttribute('data-pronto')) {
-            oreGiornoBoxEl.textContent = 'Non riesco a leggere le ore di questo giorno.';
-            oreGiornoBoxEl.setAttribute('data-state', 'ready');
-        } else {
-            oreGiornoBoxEl.setAttribute('data-state', 'ready');
-        }
-        oreGiornoBoxEl.classList.remove('ore-giorno-loading');
-        return false;
+        if (seq !== letturaOreSeq) return { ok: true, codice: '' };
+        const codice = error && error.code ? String(error.code) : '';
+        const passo = error && error.passoLetturaOre ? String(error.passoLetturaOre) : 'ore';
+        segnalaRiquadroOreNonLeggibile(passo, codice);
+        dipingiRiquadroOreNonDisponibile(giorno);
+        return { ok: false, codice };
     }
 }
 
 async function riallineaRiquadroOreGiorno(precedente, giorno) {
-    const ok = await aggiornaRiquadroOreGiorno();
-    if (ok) return;
+    const esito = await aggiornaRiquadroOreGiorno();
+    if (!esito || esito.ok) return;
+    const vista = esitoRiquadroOreSuErrore({
+        codice: esito.codice,
+        etichettaGiorno: formattaGiornoBreve(giorno) || giorno,
+        dopoSalvataggio: true
+    });
     oreGiornoRows = precedente;
     dipingiOreGiorno(precedente, 'ready', giorno);
-    showAlert('Non riesco a rileggere le ore. Mostro di nuovo il riepilogo di prima.', 'warning');
+    if (vista.avviso) showAlert(vista.avviso, 'warning');
 }
 
 async function avviaModificaOraGiorno(oraId, lavoroId) {
@@ -2140,6 +2228,9 @@ function bindOperaioModal() {
 }
 
 function bindInlineSectionsActions() {
+    if (btnIngrandisciLavoroEl) {
+        btnIngrandisciLavoroEl.addEventListener('click', toggleIngrandisciLavoro);
+    }
     if (receivedCommunicationsListEl) {
         receivedCommunicationsListEl.addEventListener('click', async (event) => {
             const target = event.target;
@@ -2241,24 +2332,107 @@ function bindPullToRefresh() {
     }, { passive: true });
 }
 
-function bindToolbar() {
-    const setPref = (value) => {
-        const fn = fieldWorkspaceUtils().setFieldWorkspacePreference || setFieldWorkspacePreference;
-        if (typeof fn === 'function') fn(value);
-    };
-    if (btnModeDesktopEl) {
-        btnModeDesktopEl.addEventListener('click', () => {
-            setPref('classic');
-            setModeButtonsState('classic');
-            window.location.href = '../dashboard-standalone.html?ws=classic';
-        });
+function aggiornaVociMenuCampo() {
+    const voci = vociMenuCampo({
+        ruoli: menuRuoliCampo,
+        moduli: menuModuliCampo,
+        numeroAziende: menuNumeroAziende,
+    });
+    if (fieldValidazioneOreLinkEl) {
+        fieldValidazioneOreLinkEl.hidden = !voci.validazioneOre;
     }
+    if (fieldSegnalaGuastoLinkEl) {
+        fieldSegnalaGuastoLinkEl.hidden = !voci.segnalaGuasto;
+    }
+    if (fieldSwitchTenantButtonEl) {
+        fieldSwitchTenantButtonEl.hidden = !voceCambiaAziendaVisibile(menuNumeroAziende);
+    }
+}
 
-    if (btnModeMobileEl) {
-        btnModeMobileEl.addEventListener('click', () => {
-            setPref('auto');
-            setModeButtonsState('mobile');
-            setStatus('Versione mobile attiva.');
+function applicaStatoMenuCampo(pronto) {
+    workspacePronto = pronto === true;
+    const abilitato = menuCampoAbilitato(workspacePronto);
+    if (optionsMenuEl) optionsMenuEl.dataset.pronto = abilitato ? '1' : '0';
+    const preparing = document.getElementById('field-options-preparing');
+    if (preparing) preparing.hidden = abilitato;
+    if (!optionsMenuEl) return;
+    optionsMenuEl.querySelectorAll('.field-options-link').forEach((el) => {
+        if (el.id === 'field-logout-button') {
+            el.removeAttribute('aria-disabled');
+            return;
+        }
+        if (abilitato) el.removeAttribute('aria-disabled');
+        else el.setAttribute('aria-disabled', 'true');
+    });
+}
+
+async function logoutFieldWorkspace() {
+    try {
+        const auth = getAuthInstance();
+        const user = auth && auth.currentUser;
+        if (user) {
+            try {
+                await updateDoc(doc(getDb(), 'users', user.uid), { isOnline: false });
+            } catch (error) {
+                console.warn('[FIELD-WORKSPACE] stato offline prima del logout:', error);
+            }
+        }
+        try {
+            sessionStorage.removeItem('gfv_expected_user_id');
+            sessionStorage.removeItem('gfv_user_just_registered');
+        } catch (error) {
+            /* ignore */
+        }
+        pulisciIndizioIngresso();
+        await signOut(auth);
+        window.location.href = await loginPageUrl('../auth/login-standalone.html');
+    } catch (error) {
+        console.error('[FIELD-WORKSPACE] Errore logout:', error);
+        showAlert('Errore durante il logout', 'error');
+    }
+}
+
+async function setupFieldTenantSwitch(userId) {
+    if (!fieldSwitchTenantButtonEl || !userId) return;
+    try {
+        const { getUserTenants } = await import('../../services/tenant-service.js');
+        const tenants = await getUserTenants(userId);
+        menuNumeroAziende = Array.isArray(tenants) ? tenants.length : 0;
+        aggiornaVociMenuCampo();
+        if (!voceCambiaAziendaVisibile(menuNumeroAziende)) {
+            fieldSwitchTenantButtonEl.onclick = null;
+            return;
+        }
+        fieldSwitchTenantButtonEl.onclick = async () => {
+            if (!menuCampoAbilitato(workspacePronto)) return;
+            try {
+                const { showTenantSelector, handleTenantSelection } = await import('../../services/tenant-selection-service.js');
+                await showTenantSelector(tenants, async (tenantId) => {
+                    try {
+                        await handleTenantSelection(tenantId);
+                        window.location.reload();
+                    } catch (error) {
+                        console.error('[FIELD-WORKSPACE] cambio azienda:', error);
+                        showAlert('Errore durante il cambio azienda. Riprova.', 'error');
+                    }
+                });
+            } catch (error) {
+                console.error('[FIELD-WORKSPACE] selettore azienda:', error);
+                showAlert('Errore durante il cambio azienda. Riprova.', 'error');
+            }
+        };
+    } catch (error) {
+        console.warn('[FIELD-WORKSPACE] setup cambio azienda:', error);
+        menuNumeroAziende = 0;
+        aggiornaVociMenuCampo();
+        fieldSwitchTenantButtonEl.onclick = null;
+    }
+}
+
+function bindToolbar() {
+    if (fieldLogoutButtonEl) {
+        fieldLogoutButtonEl.addEventListener('click', () => {
+            logoutFieldWorkspace().catch(() => {});
         });
     }
 
@@ -2266,6 +2440,16 @@ function bindToolbar() {
         btnOpenOptionsEl.addEventListener('click', (event) => {
             event.stopPropagation();
             optionsMenuEl.hidden = !optionsMenuEl.hidden;
+        });
+        optionsMenuEl.addEventListener('click', (event) => {
+            const target = event.target instanceof Element
+                ? event.target.closest('.field-options-link')
+                : null;
+            if (!target || target.id === 'field-logout-button') return;
+            if (!menuCampoAbilitato(workspacePronto)) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
         });
         document.addEventListener('click', (event) => {
             if (!optionsMenuEl.hidden) {
@@ -2276,6 +2460,13 @@ function bindToolbar() {
                     optionsMenuEl.hidden = true;
                 }
             }
+        });
+    }
+
+    const btnRetryStatistiche = document.getElementById('btn-retry-statistiche');
+    if (btnRetryStatistiche) {
+        btnRetryStatistiche.addEventListener('click', () => {
+            ricaricaStatistiche();
         });
     }
 
@@ -2326,17 +2517,6 @@ function fieldWorkspaceUtils() {
     return window.GFVDashboardUtils || {};
 }
 
-function applyUrlPreference() {
-    const pref = getWorkspacePreferenceFromUrl();
-    const setPref = fieldWorkspaceUtils().setFieldWorkspacePreference || setFieldWorkspacePreference;
-    if (pref && typeof setPref === 'function') {
-        setPref(pref);
-        setModeButtonsState(pref);
-        return;
-    }
-    setModeButtonsState('mobile');
-}
-
 function leggiRimbalziIngresso() {
     try {
         return Number(sessionStorage.getItem(CHIAVE_RIMBALZI_INGRESSO) || '0') || 0;
@@ -2355,15 +2535,29 @@ function azzeraRimbalziIngresso() {
     try { sessionStorage.removeItem(CHIAVE_RIMBALZI_INGRESSO); } catch (error) { /* ignore */ }
 }
 
+function mostraErroreAvvioWorkspace(messaggio) {
+    setStatus(messaggio || 'Non riesco ad aprire la tua area. Riprova', true);
+    if (document.getElementById('btn-riprova-ingresso')) return;
+    const btn = document.createElement('button');
+    btn.id = 'btn-riprova-ingresso';
+    btn.type = 'button';
+    btn.textContent = 'Riprova';
+    btn.addEventListener('click', () => {
+        try { sessionStorage.removeItem(CHIAVE_RIMBALZI_INGRESSO); } catch (error) { /* ignore */ }
+        window.location.reload();
+    });
+    if (statusEl && statusEl.parentNode) statusEl.parentNode.appendChild(btn);
+}
+
 function rimandaDashboardTemporanea() {
     aumentaRimbalzoIngresso();
-    window.location.href = '../dashboard-standalone.html?ws=classic&una_volta=1';
+    window.location.href = '../dashboard-standalone.html?una_volta=1';
 }
 
 async function initFieldWorkspace() {
     setStatus('Caricamento workspace mobile...');
+    applicaStatoMenuCampo(false);
     readBootParamsFromUrl();
-    applyUrlPreference();
     bindToolbar();
     bindOperaioModal();
     bindInlineSectionsActions();
@@ -2448,7 +2642,15 @@ async function initFieldWorkspace() {
                     rimandaDashboardTemporanea();
                     return;
                 }
+                pulisciPreferenzaClassicCampo();
+                scriviIndizioIngresso('workspace');
                 azzeraRimbalziIngresso();
+                try {
+                    const deciso = Number(sessionStorage.getItem('gfv_ingresso_deciso_at') || '0');
+                    if (deciso) {
+                        console.log('[ingresso] dalla decisione all\'apertura del workspace: ' + (Date.now() - deciso) + ' ms');
+                    }
+                } catch (error) { /* ignore */ }
 
                 try {
                     const { startNotificationFcmBackground } = await import('../../js/notification-fcm-client.js');
@@ -2480,9 +2682,11 @@ async function initFieldWorkspace() {
                 setupSlidesForRole(isCaposquadra);
                 // Ordine caposquadra richiesto:
                 // Seleziona lavoro (+ squadra inline) -> Comunicazioni -> Segna ore -> I miei lavori -> Statistiche
-                if (fieldValidazioneOreLinkEl) {
-                    fieldValidazioneOreLinkEl.hidden = !isCaposquadra;
-                }
+                menuRuoliCampo = normalizedRoles;
+                menuModuliCampo = availableModules;
+                aggiornaVociMenuCampo();
+                await setupFieldTenantSwitch(user.uid);
+                applicaStatoMenuCampo(true);
                 if (isCaposquadra || isOperaio) {
                     const order = isCaposquadra
                         ? ['Lavoro', 'Comunicazioni', 'Valida ore', 'Ore', 'Statistiche']
@@ -2549,13 +2753,15 @@ async function initFieldWorkspace() {
                 setStatus('Workspace mobile attivo.');
             } catch (error) {
                 console.error('[FIELD-WORKSPACE] Errore inizializzazione utente:', error);
-                setStatus(`Errore caricamento: ${error.message}`, true);
+                mostraErroreAvvioWorkspace('Non riesco ad aprire la tua area. Riprova');
             }
         });
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore avvio:', error);
-        setStatus(`Errore avvio: ${error.message}`, true);
+        mostraErroreAvvioWorkspace('Non riesco ad aprire la tua area. Riprova');
     }
 }
+
+window.addEventListener('message', onMessaggioStatistiche);
 
 initFieldWorkspace();

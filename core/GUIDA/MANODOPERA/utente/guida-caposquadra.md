@@ -42,16 +42,15 @@ Questa guida è solo per il **caposquadra**: ciò che puoi fare dalla **versione
 
 La **versione mobile** è la schermata principale quando lavori in campo dall’app (menu e testi possono variare leggermente tra versioni, ma il flusso è questo).
 
-**Dopo il login** l’app ti porta direttamente qui: per un attimo leggi «Apro il tuo lavoro…», senza vedere prima la dashboard (a meno che tu non abbia scelto la versione desktop). Se l’area non si apre, compare «Non riesco ad aprire la tua area. Riprova»: tocca **Riprova**. Nel menu **Lavori assegnati**, se i lavori non arrivano, l’app riprova da sola una volta e poi mostra «Non riesco a caricare i lavori. Riprova.» con il pulsante **Riprova**.
+**Dopo il login** l’app ti porta direttamente qui: per un attimo leggi «Apro il tuo lavoro…», senza vedere prima la dashboard, sia dal telefono sia dal computer. Se l’area non si apre, compare «Non riesco ad aprire la tua area. Riprova»: tocca **Riprova**. Nel menu **Lavori assegnati**, se i lavori non arrivano, l’app riprova da sola una volta e poi mostra «Non riesco a caricare i lavori. Riprova.» con il pulsante **Riprova**.
 
-**Diario attività:** con Manodopera attivo **non** compare nel menu (come per tutti). Usi i **lavori**, la **segna ore** e le schede del tuo ruolo. Non c’è una voce Diario in sola lettura dedicata a te; se apri un link diretto al Diario, al massimo vedi lo **storico**, senza creare attività.
+**Diario attività:** con Manodopera attivo **non** compare nel menu (come per tutti). Usi i **lavori**, la **segna ore** e le schede del tuo ruolo. Non c’è una voce Diario dedicata a te; se apri a mano un indirizzo del Diario, l’app ti riporta al tuo lavoro.
 
 
 ### Cosa vedi in alto
 
-- **Icona telefono / computer**: puoi passare alla **versione desktop** se ti serve il browser completo su schermo grande. La scelta resta finché non la cambi tu: al login successivo riapre la dashboard; per tornare alla mobile tocca **📱 Workspace Mobile** nelle **Azioni rapide** della dashboard.  
-- Il tuo **nome** e il ruolo (es. caposquadra).  
-- **Impostazioni** (ingranaggio): accesso rapido alle **impostazioni account** se presente nel menu.  
+- Il tuo **nome** e il ruolo (es. caposquadra). La schermata è la stessa sul telefono e sul computer: non c’è un passaggio alla dashboard dell’ufficio.  
+- **Impostazioni** (ingranaggio): Guida, Segnala guasto se c’è il parco macchine, Validazione ore, Impostazioni account, Esci. Cambia azienda solo se ne hai più di una.  
 - Una riga di **stato** sotto la barra (caricamento, messaggi brevi).
 
 ### Le quattro schede del caposquadra (ordine dell’app)
@@ -208,7 +207,7 @@ Nella scheda **Ore**, sotto il modulo ore, trovi il riquadro **Dettaglio lavoro 
    - aprire il flusso per **tracciare le zone lavorate** sulla mappa (segmenti e superfici sul terreno assegnato);  
    - **⏸️ Sospendi lavoro** se il lavoro (assegnato o in corso) si deve fermare per meteo, guasto o altro: l’app ti chiede il **motivo** e lo scrivi **a parole tue** (testo libero, es. «pioggia», «trattore fermo»: non c’è un elenco da cui scegliere). Il lavoro passa in **Sospeso** e il riquadro mostra «Lavoro sospeso» con il tuo motivo; il manager lo ritrova nel lavoro come motivo **Altro** con il tuo testo. Il **lavoro di ripresa** lo crea poi il manager; quando lo apri, sulla mappa vedi in arancione le zone già fatte prima della sospensione e in verde quelle nuove.  
    - Se il lavoro si ferma perché **manca qualcuno** della squadra, non usare Sospendi lavoro: usa **Segnala assenza** (vedi [Segnala assenza e sostituti](#mini-guida-segnala-assenza-e-sostituti)).  
-3. Se sul telefono lo spazio è stretto, usa il link **Apri in finestra intera**: si apre la **stessa schermata** nel browser a tutto schermo, sempre sul lavoro corrente.
+3. Se sul telefono lo spazio è stretto, tocca **Ingrandisci**: il dettaglio occupa quasi tutto lo schermo, sempre sul lavoro corrente. **Riduci** torna alla scheda.
 
 ### Zone lavorate e mappa
 
@@ -243,11 +242,9 @@ Serve quando hai il modulo **Parco Macchine** attivo per l’azienda. Senza quel
 
 ### Chi può inviare la segnalazione dall’app
 
-Nella configurazione tipica dell’app, la schermata dedicata all’**invio** di una nuova segnalazione è accessibile agli utenti con ruolo **operaio** sul profilo.
+Se l’azienda ha il modulo **Parco Macchine**, la segnalazione la invii tu dal menu **ingranaggio** del workspace → **Segnala guasto**, sia dal telefono sia dal computer. Puoi segnare come guasta una macchina o un attrezzo anche se sei solo caposquadra.
 
-- Se il tuo account ha **anche** il ruolo operaio (accanto a caposquadra), puoi compilare il modulo come un operaio.  
-- Se il tuo account è **solo** caposquadra e non vedi la voce, non è un errore: fai **segnalare** un membro della squadra dalla schermata prevista, oppure **telefona / scrivi** al manager e coordina il lavoro mentre il guasto è aperto.  
-- Chiedi sempre all’azienda qual è il **percorso abilitato** per il tuo ruolo (dashboard versione completa, menu Parco Macchine, ecc.).
+- Se la voce **Segnala guasto** non c’è nel menu, il modulo Parco Macchine non è attivo: **telefona / scrivi** al manager e coordina il lavoro mentre il guasto è aperto.
 
 ### Prima di compilare: gravità e sicurezza
 
@@ -258,7 +255,7 @@ Se colleghi la segnalazione a un **lavoro** e scegli **grave**, l’app può **s
 
 ### Segnalazione guasto a macchina o attrezzo
 
-1. Apri la schermata **Segnalazione guasti** (o equivalente nel tuo menu), se disponibile per il tuo profilo.  
+1. Dal menu **ingranaggio** del workspace tocca **Segnala guasto**.  
 2. Scegli il tipo **Guasto macchina / attrezzo**.  
 3. Seleziona **trattore** e, se serve, **attrezzo** dalla lista (spesso sono quelli legati al lavoro se il sistema li precompila).  
 4. Indica il **componente** interessato (trattore, attrezzo o entrambi).  
@@ -282,7 +279,8 @@ Se colleghi la segnalazione a un **lavoro** e scegli **grave**, l’app può **s
 
 ### Dopo l’invio
 
-- La segnalazione risulta di solito **in attesa** finché il manager non decide.  
+- La segnalazione risulta di solito **in attesa** finché il manager non decide.
+- Subito dopo l’invio leggi **Segnalazione inviata. Grazie.** Dal telefono torni al workspace. Quando il responsabile segna il guasto risolto, il lavoro fermo riparte.  
 - Il mezzo può risultare **in stato guasto** secondo le regole dell’app; per i non gravi a volte il mezzo resta utilizzabile con cautela finché non si interviene.
 
 ### Come si “risolve” un guasto (ruoli)
@@ -301,11 +299,11 @@ Se colleghi la segnalazione a un **lavoro** e scegli **grave**, l’app può **s
 | **Lavori assegnati** vuoti | Assegnazioni lato manager o stato del lavoro non compatibile; contatta l’ufficio. |
 | **La mia squadra** vuota o errore | Squadra non collegata al tuo utente in **Gestione squadre** (intervento manager). |
 | Non posso **validare ore** | Verifica il **lavoro selezionato**; senza righe in attesa non c’è nulla da validare. |
-| **Dettaglio lavoro** non carica | Connessione debole; riprova o usa **Apri in finestra intera**. |
+| **Dettaglio lavoro** non carica | Connessione debole; riprova o tocca **Ingrandisci**. |
 | «Non riesco a caricare i lavori. Riprova.» | Tocca **Riprova** con una connessione migliore; se resta, chiedi al manager. |
 | Dopo il login: «Non riesco ad aprire la tua area. Riprova» | Tocca **Riprova**; se resta, chiedi al manager di controllare il tuo ruolo e il modulo Manodopera. |
 | Non posso **completare** il lavoro | Spesso mancano **zone lavorate** o **ore** richieste; leggi il messaggio in schermata. |
 | **GPS** non prende la posizione | Permesso negato al browser; GPS spento sul telefono; riprova all’aperto; usa ubicazione scritta + mappa se disponibile. |
-| Non trovo **Segnalazione guasti** | Modulo Parco Macchine non attivo, oppure il tuo ruolo non include l’accesso: chiedi al manager o fai segnalare un operaio. |
+| Non trovo **Segnala guasto** nel menu ingranaggio | Il modulo Parco Macchine non è attivo: avvisa il manager per telefono o per messaggio. |
 
 Per le funzioni generali dell’app (account, terreni, dashboard), consulta anche la **guida Core** nella documentazione utente.

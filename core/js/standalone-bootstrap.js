@@ -10,6 +10,7 @@
  */
 
 import { ensureStandaloneReadyPlaceholder, settleStandaloneReady } from './standalone-ready.js';
+import { avviaGuardiaRottaCampo } from './field-route-guard.js';
 
 (function bootstrap() {
   const step = (name) => `[standalone-bootstrap] ${name}`;
@@ -73,13 +74,16 @@ import { ensureStandaloneReadyPlaceholder, settleStandaloneReady } from './stand
       return Promise.resolve();
     }
     window.__gfvStandaloneShellRequested = true;
-    return loadScript(new URL('gfv-standalone-shell.js?v=2026-10-09f', import.meta.url).href);
+    return loadScript(new URL('gfv-standalone-shell.js?v=2026-10-09g', import.meta.url).href);
   }
 
   ensureStandaloneReadyPlaceholder();
   const promise = new Promise((resolve, reject) => {
     (async () => {
       try {
+        try {
+          if (avviaGuardiaRottaCampo() === 'workspace') return;
+        } catch (guardErr) { /* la pagina resta usabile */ }
         // 1) Contesto: data-config-base → GFV_CONFIG_BASE (per config-loader)
         const dataBase = getConfigBaseFromScript();
         if (dataBase !== undefined) {

@@ -200,11 +200,11 @@ Pagina **Officina & Guasti** (dal hub). Vedete le **segnalazioni** con gravità,
 
 **Stato della riga guasto:** tipicamente **Aperto** (o in attesa), **Sospeso**, **Risolto** — così capite cosa è ancora da lavorare.
 
-**Segna risolto:** sui guasti ancora aperti compare un pulsante per **chiudere** la segnalazione. Vi chiederà eventuali **note di risoluzione**, poi salvate. In alcuni casi, quando il guasto è legato a una **macchina**, l’app può **ripristinare lo stato del mezzo** (es. torna disponibile) se era impostato come guasto.
+**Segna risolto:** sui guasti ancora aperti compare un pulsante per **chiudere** la segnalazione. Vi chiederà eventuali **note di risoluzione**, poi salvate. In alcuni casi, quando il guasto è legato a una **macchina**, l’app può **ripristinare lo stato del mezzo** (es. torna disponibile) se era impostato come guasto. Se il guasto era **grave** e aveva fermato un lavoro, quel lavoro riparte da solo (in corso se era già iniziato, altrimenti assegnato); se sullo stesso lavoro c’è ancora un altro guasto aperto, resta sospeso. Se la ripresa non riesce, accanto al guasto risolto compare **Riprendi lavoro**.
 
 ### Nuova segnalazione (da campo o ufficio)
 
-Dal pulsante **Segnala guasto** (in elenco guasti) si apre la pagina di **segnalazione**. Compilate i campi che vi chiede la schermata: **mezzo** (se applicabile), **gravità**, **descrizione** del problema, ecc., poi **inviate / salvate** secondo il pulsante mostrato. Il modulo può includere anche **GPS opzionale** per ricordare il punto (precisione non certificata).
+Dal pulsante **Segnala guasto** (in elenco guasti) si apre la pagina di **segnalazione**. Compilate i campi che vi chiede la schermata: **mezzo** (se applicabile), **gravità**, **descrizione** del problema, ecc., poi **inviate / salvate** secondo il pulsante mostrato. Il modulo può includere anche **GPS opzionale** per ricordare il punto (precisione non certificata). Caposquadra e operai segnalano dal menu **ingranaggio** del loro workspace → **Segnala guasto**, e possono segnare come guasta una macchina o un attrezzo; dopo l’invio leggono **Segnalazione inviata. Grazie.**
 
 ---
 

@@ -1,13 +1,13 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<script>try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Le tue statistiche - GFV</title>
+    <script>try{if(localStorage.getItem('gfv_demo_cloud_session')==='1'){localStorage.removeItem('gfv_firebase_emulator');}else if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1'){localStorage.setItem('gfv_firebase_emulator','1');}}catch(e){}</script>
     <link rel="stylesheet" href="../styles/responsive-standalone.css">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <style>
         * { box-sizing: border-box; }
         body {
@@ -96,8 +96,8 @@
             <h1>📊 Le tue statistiche</h1>
             <p>Solo ore e lavori collegati al tuo account (manodopera)</p>
         </div>
-        <div class="body" id="main-body">
-            <div class="loading" id="loading-el">Caricamento…</div>
+            <div class="body" id="main-body">
+            <div class="loading" id="loading-el">Carico le tue ore…</div>
         </div>
     </div>
 
@@ -201,6 +201,7 @@
                     <div class="metric"><strong id="m-ore-mezzo">—</strong><span>Ore su incarichi con mezzo</span></div>
                     <div class="metric"><strong id="m-lav-mezzo">—</strong><span>Incarichi con mezzo (nel periodo)</span></div>
                 </div>
+                <p class="empty" id="stat-avanzamento" style="margin-bottom: 10px;">Carico le tue ore…</p>
                 <p class="empty" id="stat-empty" style="display: none; margin-bottom: 10px;">Nessuna ora nel periodo selezionato.</p>
                 <div class="chart-box" id="box-mese">
                     <h3>Ore per mese</h3>
@@ -307,6 +308,8 @@
             const { tipoMap, lavMap } = await loadLavoriDetailMap(db, tenantId, filtered.map((o) => o.lavoroId));
 
             const totOre = filtered.reduce((s, o) => s + (parseFloat(o.oreNette) || 0), 0);
+            const avanzamento = document.getElementById('stat-avanzamento');
+            if (avanzamento) avanzamento.style.display = 'none';
             document.getElementById('m-ore').textContent = totOre.toFixed(2).replace('.', ',');
             document.getElementById('m-n').textContent = String(filtered.length);
             const emptyEl = document.getElementById('stat-empty');
@@ -362,7 +365,15 @@
             if (boxT) boxT.style.display = filtered.length ? 'block' : 'none';
             if (boxMez) boxMez.style.display = oreConMezzo.length ? 'block' : 'none';
 
-            if (filtered.length) {
+            if (filtered.length && ctxM && ctxT) {
+                try {
+                    await loadChartJs();
+                } catch (chartErr) {
+                    console.warn('[statistiche-lavoratore] grafici:', chartErr);
+                }
+            }
+
+            if (filtered.length && window.Chart && ctxM && ctxT) {
                 chartMese = new Chart(ctxM, {
                     type: 'bar',
                     data: {
@@ -418,7 +429,7 @@
                 });
             }
 
-            if (oreConMezzo.length && ctxMez) {
+            if (oreConMezzo.length && ctxMez && window.Chart) {
                 const ids = [];
                 oreConMezzo.forEach((ora) => {
                     const lav = lavMap.get(ora.lavoroId);
@@ -469,12 +480,41 @@
             }
         }
 
+        function avvisaStatsPronte() {
+            try {
+                window.parent.postMessage({ type: 'gfv-stats-ready' }, window.location.origin);
+            } catch (e) { /* ignore */ }
+        }
+
+        function avvisaStatsFallite() {
+            try {
+                window.parent.postMessage({ type: 'gfv-stats-failed' }, window.location.origin);
+            } catch (e) { /* ignore */ }
+        }
+
+        function loadChartJs() {
+            if (window.Chart) return Promise.resolve(window.Chart);
+            return new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js';
+                s.async = true;
+                s.onload = () => resolve(window.Chart);
+                s.onerror = () => reject(new Error('Grafici non disponibili'));
+                document.head.appendChild(s);
+            });
+        }
+
         async function boot() {
             try {
                 await window.GFVStandaloneReady;
             } catch (err) {
                 console.error('[statistiche-lavoratore] Bootstrap failed:', err);
-                throw err;
+                const body = document.getElementById('main-body');
+                if (body) {
+                    body.innerHTML = '<div class="err">Non riesco a caricare le statistiche. Riprova.</div>';
+                }
+                avvisaStatsFallite();
+                return;
             }
             const auth = getAuthInstance();
             const db = getDb();
@@ -488,7 +528,7 @@
                 try {
                     const userDoc = await getDoc(doc(db, 'users', user.uid));
                     if (!userDoc.exists()) {
-                        window.location.href = '../dashboard-standalone.html?ws=classic';
+                        window.location.href = 'field-workspace-standalone.html';
                         return;
                     }
                     const userData = userDoc.data();
@@ -518,11 +558,11 @@
                         : false;
 
                     if (isManagerOrAdmin || !isFieldRole) {
-                        window.location.href = '../dashboard-standalone.html?ws=classic';
+                        window.location.href = 'field-workspace-standalone.html';
                         return;
                     }
                     if (!availableModules.includes('manodopera')) {
-                        window.location.href = '../dashboard-standalone.html?ws=classic';
+                        window.location.href = 'field-workspace-standalone.html';
                         return;
                     }
 
@@ -531,9 +571,11 @@
                         ? `${userData.nome} ${userData.cognome}`.trim()
                         : (userData.email || user.uid);
                     renderMain(user.uid, name);
+                    avvisaStatsPronte();
                 } catch (e) {
                     console.error(e);
-                    document.getElementById('main-body').innerHTML = `<div class="err">${e.message || e}</div>`;
+                    document.getElementById('main-body').innerHTML = `<div class="err">Non riesco a caricare le statistiche. Riprova.</div>`;
+                    avvisaStatsFallite();
                 }
             });
         }

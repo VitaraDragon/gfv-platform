@@ -424,7 +424,7 @@ La **manodopera** non è il modulo officina: i **guasti** su trattori e attrezzi
 3. Il punto chiave del manager è la decisione operativa:
    - **guasto non grave**: puoi approvare la continuazione del lavoro;
    - **guasto grave**: puoi sospendere il lavoro finché non è risolto.  
-4. Dopo la risoluzione tecnica, verifica che il lavoro sia allineato alla decisione manageriale (ripartenza o ulteriore stop).
+4. Quando segni **risolto** un guasto grave che aveva sospeso un lavoro, il lavoro riparte da solo: torna **in corso** se era già stato fatto qualcosa, altrimenti **assegnato**. Se sullo stesso lavoro c’è ancora un altro guasto aperto, resta sospeso e l’app te lo dice. Se la ripresa non riesce, l’app ti chiede di riprendere il lavoro da **Gestione lavori**; nell’elenco guasti, accanto al guasto risolto, compare anche il pulsante **Riprendi lavoro**.
 
 ### Buona pratica organizzativa
 

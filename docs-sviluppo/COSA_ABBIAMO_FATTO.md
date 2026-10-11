@@ -1,6 +1,106 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-09 — Ingresso dopo il login, caricamento lavori, nome del lavoro.**
+**Ultimo aggiornamento documentazione: 2026-10-10 — Il campo non apre più una finestra a parte.**
+
+## 2026-10-10 — Campo: niente finestra intera, niente lampo del menu, ore silenziose
+
+Dal workspace non c’è più «Apri in finestra intera». Al suo posto, **Ingrandisci** / **Riduci** allarga il dettaglio del lavoro dentro la stessa scheda. «Apri validazione completa» si apre nella stessa scheda: «← Campo» torna al workspace.
+
+Dopo il login, il menu della dashboard («Scegli un modulo», Home, Gestione lavori, Terreni) non compare nemmeno per un istante mentre si legge «Apro il tuo lavoro…». Chi è manager, anche con i dati del sito cancellati, non resta su quella frase per tutto il caricamento: la dashboard compare appena si conoscono i ruoli.
+
+Se le ore del giorno non si possono leggere, il riquadro resta una riga piccola e neutra («non disponibili ora»), senza errore rosso in console. Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-10 — Il profilo campo ha una sola casa.**
+
+## 2026-10-10 — Operaio e caposquadra restano nel workspace
+
+Chi ha solo i ruoli operaio e/o caposquadra, con il modulo Manodopera, entra sempre nella schermata del lavoro, anche dal computer. Non c’è più il pulsante per la versione desktop. Manager e chi è manager oltre che capo restano sulla dashboard dell’ufficio, come prima.
+
+Dopo il login, al posto delle schede della dashboard, si legge «Apro il tuo lavoro…». Se si digita a mano l’indirizzo di una pagina dell’ufficio, si torna al workspace, senza il messaggio «non hai i permessi».
+
+L’audit delle regole Firestore è solo un documento. Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-10 — Il lavoro riparte quando il guasto è risolto.**
+
+## 2026-10-10 — Guasto risolto, lavoro ripreso
+
+Se un guasto grave aveva fermato un lavoro, «Segna risolto» in Officina e guasti lo rimette in marcia. Lo stato torna «In corso» se il lavoro era già avanti, altrimenti «Assegnato». Non resta più la parola grezza «attivo». Se ci sono altri guasti aperti sullo stesso lavoro, resta sospeso e il messaggio lo dice. Se la ripresa non riesce, il guasto resta risolto e compare «Riprendi lavoro».
+
+Dopo «Segnala» si legge «Segnalazione inviata. Grazie.» Dal telefono si torna al workspace. Se un aggiornamento della macchina o del lavoro non è permesso, l’avviso resta in vista e il ritorno automatico non parte.
+
+Una macchina già in guasto non si può riselezionare per un guasto nuovo né per un lavoro nuovo. La Mietitrebbia, se in anagrafica è un trattore, resta tra i trattori: non c’è un tipo a parte.
+
+Le ore dell’operaio si leggono insieme, non una dopo l’altra. Le statistiche dicono «Carico le tue ore…» mentre aspettano. In Validazione ore, «← Campo» torna al workspace e «← Dashboard» torna alla dashboard.
+
+Il menu mostra «Cambia azienda» solo con più aziende e «Validazione ore» solo al caposquadra. Il pulsante indietro dei guasti dipende da dove arrivi. La segnalazione non resta bloccata se un aggiornamento secondario non è permesso. Il menu aspetta che il workspace sia pronto. Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-10 — Menu campo: voci giuste, guasto che non resta bloccato.**
+
+## 2026-10-10 — Il menu del campo mostra solo quello che ti spetta, e la segnalazione guasto non resta aperta
+
+Nel menu ⚙️ «Cambia azienda» compare solo se hai più di un’azienda. «Validazione ore» compare solo per il caposquadra. Finché il workspace sta ancora partendo, le voci restano ferme e si può solo uscire.
+
+Il pulsante indietro della segnalazione guasti dipende da dove arrivi: dal telefono torna al campo, dalla dashboard torna alla dashboard.
+
+Se il guasto è stato salvato ma un aggiornamento della macchina o del lavoro non è permesso, vedi la conferma e il form si chiude. Un avviso chiede di avvisare il responsabile. Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-10 — Segnalazione guasti e logout nel workspace di campo.**
+
+## 2026-10-10 — Il campo segnala un guasto dal telefono, ed esce dal menu
+
+Operaio e caposquadra trovano «Segnala guasto» nel menu ⚙️ del workspace, solo se l’azienda ha il Parco Macchine. Si apre lo stesso modulo di prima (macchina o segnalazione generica, gravità, GPS, lavoro). Il caposquadra senza ruolo operaio non viene più rimandato alla dashboard. Il pulsante in alto torna al workspace.
+
+«Esci» nello stesso menu segna l’utente offline e chiude la sessione, come il logout della dashboard. Se la persona ha almeno due aziende, compare «Cambia azienda».
+
+Tony può aprire quella pagina. Non compila i campi. L’elenco guasti dell’ufficio, per questi profili, non si apre.
+
+Il toggle 🖥️ per tornare alla dashboard è ancora lì: si toglie nel passo successivo.
+
+Le guide operaio/caposquadra dicono ancora che i guasti stanno «dalla dashboard in versione completa». Vanno aggiornate a parte: il caposquadra-only ora può segnalare, il logout di campo è «Esci».
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-10 — Il seed di prova include anche sabato e domenica.**
+
+## 2026-10-10 — Il seed di prova copre tutti i giorni, weekend compreso
+
+In campagna si lavora anche sabato e domenica. L’app non vietava già quei giorni.
+
+Il calendario del simulatore, invece, saltava il weekend. Di sabato «oggi» restava senza il turno 07:30–12:00 e Tony non poteva avvisare della sovrapposizione.
+
+Ora il seed scrive ore e turni anche di sabato e domenica. Uno scenario che usa «oggi» funziona qualunque giorno parta la CI.
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-09 — Messaggi in attesa se Tony non è pronto.**
+
+## 2026-10-09 — I messaggi scritti prima che Tony sia pronto non si perdono
+
+Se scrivi a Tony prima che sia pronto, il testo resta in attesa e parte da solo, uno alla volta. Il secondo parte solo dopo la risposta del primo.
+
+Se dopo 45 secondi non è ancora pronto, l’ultimo testo torna nel campo.
+
+Il ripristino della chat non cancella più il messaggio appena scritto.
+
+Interruttore: `TONY_QUEUE_ENABLED` in `core/js/tony/main.js`. Con `false` si torna al comportamento di prima.
+
+Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-09 — Ingresso dopo il login, caricamento lavori, nome del lavoro.**
 
 ## 2026-10-09 — Ingresso dopo il login, caricamento lavori e nome del lavoro
 

@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<script>try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -237,27 +237,61 @@
             gap: 10px;
         }
 
-        .alert {
+        #alert-container .alert {
             padding: 15px;
             border-radius: 8px;
             margin-bottom: 20px;
             display: none;
         }
 
-        .alert-success {
+        #alert-container .alert-success {
             background: #d4edda;
             color: #155724;
             border: 1px solid #c3e6cb;
         }
 
-        .alert-error {
+        #alert-container .alert-error {
             background: #f8d7da;
             color: #721c24;
             border: 1px solid #f5c6cb;
         }
 
-        .alert.show {
+        #alert-container .alert-warning,
+        .alert-warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        #alert-container .alert.show {
             display: block;
+        }
+
+        .banner-segnalazione {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 30000;
+            padding: 16px 20px;
+            background: #d4edda;
+            color: #155724;
+            border-bottom: 3px solid #c3e6cb;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+        }
+
+        .banner-segnalazione.con-avviso {
+            background: #fff3cd;
+            color: #856404;
+            border-bottom-color: #ffeaa7;
+        }
+
+        .banner-segnalazione p {
+            margin: 6px 0 0;
+        }
+
+        .banner-segnalazione button {
+            margin-top: 10px;
         }
 
         .empty-state {
@@ -340,9 +374,23 @@
                 <p>Segnala guasti alle macchine e gestisci le risoluzioni</p>
             </div>
             <div class="header-actions">
-                <a href="../dashboard-standalone.html" class="btn btn-primary">← Dashboard</a>
+                <a id="guasti-back-link" href="../dashboard-standalone.html" class="btn btn-primary">← Dashboard</a>
             </div>
         </div>
+        <script>
+            (function () {
+                try {
+                    var q = new URLSearchParams(window.location.search || '');
+                    var ultimo = '';
+                    try { ultimo = localStorage.getItem('gfv_ingresso_ultimo') || ''; } catch (err) {}
+                    if (q.get('from') !== 'field' && q.get('embed') !== 'mobile' && ultimo !== 'workspace') return;
+                    var link = document.getElementById('guasti-back-link');
+                    if (!link) return;
+                    link.href = '../mobile/field-workspace-standalone.html';
+                    link.textContent = '← Campo';
+                } catch (e) { /* ignore */ }
+            })();
+        </script>
 
         <div id="alert-container"></div>
 
@@ -567,8 +615,79 @@
         }
 
         import { getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
-        import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, orderBy, serverTimestamp, onSnapshot } from '../services/firebase-service.js';
+        import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, orderBy, serverTimestamp, onSnapshot, deleteField } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
+        import {
+            puoAprireSegnalazioneGuasti,
+            hrefRitornoSegnalazioneGuasti,
+            etichettaRitornoSegnalazioneGuasti,
+            primoTenantIdUtente,
+            normalizzaRuoliGuasti,
+            testoOpzioneTrattore,
+            deveTentareSospensioneLavoroGuasto,
+            esitoSegnalazioneGuasto,
+            testoConfermaSegnalazione,
+            ritornoWorkspaceCampoDaGuasti
+        } from '../js/field-guasti-access.js';
+        import { buildSospendiLavoroPatch } from '../services/lavoro-sospensione.js';
+        import {
+            esitoRipresaDopoGuasto,
+            buildRiprendiLavoroPatch,
+            patchRipresaPerFirestore,
+            testoToastRipresa
+        } from '../services/lavoro-ripresa-guasto.js';
+        import { macchinaSelezionabile, suffissoMacchinaNonSelezionabile } from '../js/macchina-selezionabile.js';
+
+        function provenienzaGuastiPagina() {
+            try {
+                const q = new URLSearchParams(window.location.search || '');
+                if (q.get('from') === 'field') return 'field';
+                if (q.get('embed') === 'mobile') return 'mobile';
+            } catch (e) { /* ignore */ }
+            return '';
+        }
+
+        function mostraBannerSegnalazione(testo) {
+            let banner = document.getElementById('banner-segnalazione');
+            if (!banner) {
+                banner = document.createElement('div');
+                banner.id = 'banner-segnalazione';
+                banner.setAttribute('role', 'status');
+                document.body.appendChild(banner);
+            }
+            banner.className = 'banner-segnalazione' + (testo.mostraTornaWorkspace ? ' con-avviso' : '');
+            banner.textContent = '';
+            const titolo = document.createElement('strong');
+            titolo.textContent = testo.titolo;
+            const dettaglio = document.createElement('p');
+            dettaglio.textContent = testo.dettaglio;
+            banner.appendChild(titolo);
+            banner.appendChild(dettaglio);
+            if (testo.mostraTornaWorkspace) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'btn btn-primary';
+                btn.textContent = 'Torna al workspace';
+                btn.addEventListener('click', () => {
+                    window.location.href = '../mobile/field-workspace-standalone.html';
+                });
+                banner.appendChild(btn);
+            }
+            window.scrollTo(0, 0);
+            if (testo.tornaAutomatico) {
+                setTimeout(() => {
+                    window.location.href = '../mobile/field-workspace-standalone.html';
+                }, 2000);
+            }
+        }
+
+        function applicaRitornoGuasti(ruoli, ruoloSingolo) {
+            const link = document.getElementById('guasti-back-link');
+            if (!link) return;
+            const da = provenienzaGuastiPagina();
+            link.href = hrefRitornoSegnalazioneGuasti(ruoli, ruoloSingolo, da);
+            link.textContent = etichettaRitornoSegnalazioneGuasti(ruoli, ruoloSingolo, da);
+        }
 
         async function initApp() {
             const { awaitFirebaseEmulatorConnect, awaitAuthStateReady } = await import('../services/firebase-service.js');
@@ -588,8 +707,11 @@
 
             let currentUser = null;
             let currentTenantId = null;
+            let ruoliUtenteGuasti = [];
+            let ruoloSingoloGuasti = null;
             let macchineList = [];
             let lavoriList = [];
+            let guastiMiei = [];
             let terreniMap = new Map(); // Mappa terreni per lookup rapido
             let guastiUnsubscribe = null;
             
@@ -605,10 +727,15 @@
                 if (!user) user = await resolveAuthUser(auth);
                 if (user) {
                     currentUser = user;
+                    const tUtente0 = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
                     const userDoc = await getDoc(doc(db, 'users', user.uid));
+                    console.info('[segnalazione-guasti] lettura utente ms', Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - tUtente0));
                     if (userDoc.exists()) {
                         const userData = userDoc.data();
-                        currentTenantId = userData.tenantId;
+                        currentTenantId = primoTenantIdUtente(userData);
+                        ruoliUtenteGuasti = userData.ruoli;
+                        ruoloSingoloGuasti = userData.ruolo;
+                        applicaRitornoGuasti(userData.ruoli, userData.ruolo);
                         
                         // Imposta tenantId nel tenant-service per i servizi
                         try {
@@ -626,20 +753,24 @@
                             console.warn('Impossibile impostare Firebase instances nel servizio:', error);
                         }
                         
-                        // Verifica ruolo operaio
-                        const ruoli = userData.ruoli || [];
-                        if (!ruoli.includes('operaio')) {
-                            showAlert('Questa pagina è disponibile solo per operai.', 'error');
+                        // Operaio o caposquadra (anche capo-only). Il manager resta sull'elenco ufficio.
+                        if (!puoAprireSegnalazioneGuasti(userData.ruoli, userData.ruolo)) {
+                            showAlert('Questa pagina è disponibile per operaio e caposquadra.', 'error');
                             setTimeout(() => {
-                                window.location.href = '../dashboard-standalone.html';
+                                window.location.href = hrefRitornoSegnalazioneGuasti(userData.ruoli, userData.ruolo, provenienzaGuastiPagina());
                             }, 3000);
                             return;
                         }
 
-                        // Verifica modulo Parco Macchine
+                        const tMacchine = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                        const caricoMacchine = loadMacchine();
+
+                        // Verifica modulo Parco Macchine (in parallelo con le macchine)
                         if (currentTenantId) {
                             try {
+                                const tTenant = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
                                 const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                                console.info('[segnalazione-guasti] lettura tenant ms', Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - tTenant));
                                 if (tenantDoc.exists()) {
                                     const tenantData = tenantDoc.data();
                                     const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
@@ -667,7 +798,7 @@
                                     if (!hasParcoMacchine) {
                                         showAlert('Questa pagina è disponibile solo con il modulo Parco Macchine attivo.', 'error');
                                         setTimeout(() => {
-                                            window.location.href = '../dashboard-standalone.html';
+                                            window.location.href = hrefRitornoSegnalazioneGuasti(userData.ruoli, userData.ruolo, provenienzaGuastiPagina());
                                         }, 3000);
                                         return;
                                     }
@@ -683,11 +814,13 @@
                         setupMapsButton();
                         setupGpsCaptureButton();
 
-                        // Carica macchine, terreni e lavori in parallelo dove possibile
+                        // Macchine già partite appena noto il tenant. Terreni e lavori a seguire.
                         await Promise.all([
-                            loadMacchine(),
+                            caricoMacchine,
                             loadTerreni(),
                         ]);
+                        const tFineMacchine = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
+                        console.info('[segnalazione-guasti] macchine pronte ms', Math.round(tFineMacchine - tMacchine));
                         await new Promise(resolve => setTimeout(resolve, 100));
                         await loadLavori();
                         await setupGuastiRealtime();
@@ -698,6 +831,47 @@
             });
 
             // Carica macchine
+            function aggiornaTestoSelectTrattore(select) {
+                if (!select) return;
+                let n = 0;
+                for (let i = 0; i < select.options.length; i++) {
+                    if (select.options[i].value) n += 1;
+                }
+                const vuota = select.querySelector('option[value=""]');
+                if (vuota) vuota.textContent = testoOpzioneTrattore(n);
+                console.info('[segnalazione-guasti] macchine lette:', macchineList.length, 'trattori in elenco:', n);
+            }
+
+            function guastoApertoSuMacchina(macchinaId) {
+                if (!macchinaId || !Array.isArray(guastiMiei)) return false;
+                return guastiMiei.some((g) => {
+                    if (!g) return false;
+                    const stato = String(g.stato || '').toLowerCase();
+                    if (stato === 'risolto' || stato === 'riparato' || stato === 'chiuso') return false;
+                    return g.macchinaId === macchinaId || g.attrezzoId === macchinaId;
+                });
+            }
+
+            function aggiungiOpzioneMezzo(select, macchina, emoji, nomeFallback) {
+                if (!select || !macchina) return;
+                const esito = macchinaSelezionabile(macchina, {
+                    contesto: 'nuovo-guasto',
+                    guastoAperto: guastoApertoSuMacchina(macchina.id)
+                });
+                if (esito.motivo === 'dismesso') return;
+                const option = document.createElement('option');
+                option.value = macchina.id;
+                option.textContent = `${emoji} ${macchina.nome || nomeFallback}${suffissoMacchinaNonSelezionabile(esito)}`;
+                option.disabled = !esito.ok;
+                select.appendChild(option);
+            }
+
+            function popolaOpzionePerTipo(macchina, macchinaSelect, attrezzoSelect) {
+                const tipoMacchina = String(macchina.tipoMacchina || macchina.tipo || '').toLowerCase().trim();
+                if (tipoMacchina === 'trattore') aggiungiOpzioneMezzo(macchinaSelect, macchina, '🚜', 'Trattore senza nome');
+                else if (tipoMacchina === 'attrezzo') aggiungiOpzioneMezzo(attrezzoSelect, macchina, '⚙️', 'Attrezzo senza nome');
+            }
+
             async function loadMacchine() {
                 try {
                     if (!currentTenantId) return;
@@ -708,8 +882,8 @@
                     
                     if (!macchinaSelect || !attrezzoSelect) return;
                     
-                    macchinaSelect.innerHTML = '<option value="">-- Seleziona trattore --</option>';
-                    attrezzoSelect.innerHTML = '<option value="">-- Nessun attrezzo --</option>';
+                    macchinaSelect.innerHTML = '<option value="">Carico le macchine…</option>';
+                    attrezzoSelect.innerHTML = '<option value="">Carico le macchine…</option>';
 
                     if (isFileProtocol) {
                         // Fallback per ambiente file://
@@ -719,21 +893,9 @@
                         macchineList = [];
                         snapshot.forEach(doc => {
                             const data = doc.data();
-                            if (data.stato !== 'dismesso') {
+                            if (String(data.stato || '').toLowerCase() !== 'dismesso') {
                                 macchineList.push({ id: doc.id, ...data });
-                                const tipoMacchina = data.tipoMacchina || data.tipo || '';
-                                
-                                if (tipoMacchina === 'trattore') {
-                                    const option = document.createElement('option');
-                                    option.value = doc.id;
-                                    option.textContent = `🚜 ${data.nome || 'Trattore senza nome'}`;
-                                    macchinaSelect.appendChild(option);
-                                } else if (tipoMacchina === 'attrezzo') {
-                                    const option = document.createElement('option');
-                                    option.value = doc.id;
-                                    option.textContent = `⚙️ ${data.nome || 'Attrezzo senza nome'}`;
-                                    attrezzoSelect.appendChild(option);
-                                }
+                                popolaOpzionePerTipo({ id: doc.id, ...data }, macchinaSelect, attrezzoSelect);
                             }
                         });
                     } else {
@@ -751,15 +913,17 @@
                             
                             // Usa servizio centralizzato
                             const { getAllMacchine } = await import('../../modules/parco-macchine/services/macchine-service.js');
+                            const tGetMacchine = (typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now();
                             let macchine = await getAllMacchine({
                                 // Non usiamo soloAttive per evitare problemi con indice Firestore
                                 // Filtriamo lato client invece
                                 orderBy: 'nome',
                                 orderDirection: 'asc'
                             });
+                            console.info('[segnalazione-guasti] getAllMacchine ms', Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - tGetMacchine));
                             
                             // Filtra lato client: solo macchine non dismesse
-                            macchine = macchine.filter(m => m.stato !== 'dismesso');
+                            macchine = macchine.filter(m => String(m.stato || '').toLowerCase() !== 'dismesso');
                             
                             // Converti in formato compatibile con codice esistente
                             macchineList = macchine.map(m => ({
@@ -776,19 +940,7 @@
                             
                             // Popola dropdown
                             macchineList.forEach(macchina => {
-                                const tipoMacchina = macchina.tipoMacchina || macchina.tipo || '';
-                                
-                                if (tipoMacchina === 'trattore') {
-                                    const option = document.createElement('option');
-                                    option.value = macchina.id;
-                                    option.textContent = `🚜 ${macchina.nome || 'Trattore senza nome'}`;
-                                    macchinaSelect.appendChild(option);
-                                } else if (tipoMacchina === 'attrezzo') {
-                                    const option = document.createElement('option');
-                                    option.value = macchina.id;
-                                    option.textContent = `⚙️ ${macchina.nome || 'Attrezzo senza nome'}`;
-                                    attrezzoSelect.appendChild(option);
-                                }
+                                popolaOpzionePerTipo(macchina, macchinaSelect, attrezzoSelect);
                             });
                         } catch (error) {
                             console.error('Errore caricamento macchine dal servizio:', error);
@@ -798,25 +950,14 @@
                             macchineList = [];
                             snapshot.forEach(doc => {
                                 const data = doc.data();
-                                if (data.stato !== 'dismesso') {
+                                if (String(data.stato || '').toLowerCase() !== 'dismesso') {
                                     macchineList.push({ id: doc.id, ...data });
-                                    const tipoMacchina = data.tipoMacchina || data.tipo || '';
-                                    
-                                    if (tipoMacchina === 'trattore') {
-                                        const option = document.createElement('option');
-                                        option.value = doc.id;
-                                        option.textContent = `🚜 ${data.nome || 'Trattore senza nome'}`;
-                                        macchinaSelect.appendChild(option);
-                                    } else if (tipoMacchina === 'attrezzo') {
-                                        const option = document.createElement('option');
-                                        option.value = doc.id;
-                                        option.textContent = `⚙️ ${data.nome || 'Attrezzo senza nome'}`;
-                                        attrezzoSelect.appendChild(option);
-                                    }
+                                    popolaOpzionePerTipo({ id: doc.id, ...data }, macchinaSelect, attrezzoSelect);
                                 }
                             });
                         }
                     }
+                    aggiornaTestoSelectTrattore(macchinaSelect);
                 } catch (error) {
                     console.error('Errore caricamento macchine:', error);
                     showAlert('Errore caricamento macchine', 'error');
@@ -865,7 +1006,7 @@
                         console.warn('Errore caricamento dati utente:', e);
                     }
                     const userData = userDoc?.exists() ? userDoc.data() : null;
-                    const isCaposquadra = userData?.ruolo === 'caposquadra' || (userData?.ruoli && userData.ruoli.includes('caposquadra'));
+                    const isCaposquadra = normalizzaRuoliGuasti(userData?.ruoli, userData?.ruolo).includes('caposquadra');
 
                     // Trova il caposquadra dell'operaio (se è operaio)
                     let caposquadraId = null;
@@ -1563,6 +1704,16 @@
                                         : new Date(b.data().segnalatoIl || 0);
                                     return dateB - dateA; // Più recente prima
                                 });
+                            guastiMiei = filtered.map((d) => ({ id: d.id, ...d.data() }));
+                            ['guasto-macchina', 'guasto-attrezzo'].forEach((idSel) => {
+                                const select = document.getElementById(idSel);
+                                if (!select) return;
+                                Array.from(select.options).forEach((opt) => {
+                                    if (!opt.value || !guastoApertoSuMacchina(opt.value)) return;
+                                    opt.disabled = true;
+                                    if (opt.textContent.indexOf('già in guasto') < 0) opt.textContent += ' (già in guasto)';
+                                });
+                            });
                             
                             renderGuasti({ docs: filtered });
                         },
@@ -1791,6 +1942,8 @@
                     }
                 }
 
+                const submitBtn = e.submitter || document.querySelector('#segnala-guasto-form button[type="submit"]');
+                if (submitBtn) submitBtn.disabled = true;
                 try {
                     const guastoData = {
                         tipoGuasto, // 'macchina' | 'generico'
@@ -1849,76 +2002,124 @@
                         guastoData.coordinateProblema = coordinateProblema;
                     }
 
-                    await addDoc(collection(db, `tenants/${currentTenantId}/guasti`), guastoData);
-
-                    // Aggiorna stato macchine SOLO se è un guasto macchina
-                    if (tipoGuasto === 'macchina') {
-                        // Aggiorna stato trattore solo se il guasto è del trattore o di entrambi
-                        if (macchinaId && (componenteGuasto === 'trattore' || componenteGuasto === 'entrambi')) {
-                            const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, macchinaId);
-                            const macchinaDoc = await getDoc(macchinaRef);
-                            if (macchinaDoc.exists()) {
-                                let nuovoStato = 'guasto';
-                                if (gravita === 'non-grave') {
-                                    nuovoStato = 'guasto-lavoro-in-corso';
-                                }
-                                await updateDoc(macchinaRef, {
-                                    stato: nuovoStato
-                                });
-                            }
-                        }
-
-                        // Aggiorna stato attrezzo solo se il guasto è dell'attrezzo o di entrambi
-                        if (attrezzoId && (componenteGuasto === 'attrezzo' || componenteGuasto === 'entrambi')) {
-                            const attrezzoRef = doc(db, `tenants/${currentTenantId}/macchine`, attrezzoId);
-                            const attrezzoDoc = await getDoc(attrezzoRef);
-                            if (attrezzoDoc.exists()) {
-                                let nuovoStato = 'guasto';
-                                if (gravita === 'non-grave') {
-                                    nuovoStato = 'guasto-lavoro-in-corso';
-                                }
-                                await updateDoc(attrezzoRef, {
-                                    stato: nuovoStato
-                                });
-                            }
-                        }
-                    }
-
-                    // Se guasto grave e c'è un lavoro associato, sospendi lavoro
-                    if (gravita === 'grave' && lavoroId) {
-                        const lavoroRef = doc(db, `tenants/${currentTenantId}/lavori`, lavoroId);
-                        const motivoSospensione = tipoGuasto === 'macchina' 
-                            ? 'Guasto macchina grave' 
-                            : 'Segnalazione grave';
-                        await updateDoc(lavoroRef, {
-                            stato: 'sospeso',
-                            motivoSospensione
+                    let scritturaPrincipaleOk = false;
+                    const secondarie = [];
+                    try {
+                        await addDoc(collection(db, `tenants/${currentTenantId}/guasti`), guastoData);
+                        scritturaPrincipaleOk = true;
+                    } catch (error) {
+                        console.error('Errore segnalazione guasto:', error);
+                        secondarie.push({
+                            nome: 'principale',
+                            ok: false,
+                            errore: error && error.message ? error.message : String(error)
                         });
                     }
 
-                    showAlert('Segnalazione inviata con successo!', 'success');
-                    document.getElementById('segnala-guasto-form').reset();
-                    // Reset tipo a macchina
-                    document.getElementById('tipo-macchina').checked = true;
-                    // Reset mappa
-                    coordinateProblema = null;
-                    posizioneRilevamento = null;
-                    updateGpsStatus();
-                    if (problemaMarker) {
-                        problemaMarker.setMap(null);
-                        problemaMarker = null;
+                    if (scritturaPrincipaleOk && tipoGuasto === 'macchina') {
+                        const nuovoStatoMacchina = gravita === 'non-grave' ? 'guasto-lavoro-in-corso' : 'guasto';
+                        if (macchinaId && (componenteGuasto === 'trattore' || componenteGuasto === 'entrambi')) {
+                            try {
+                                const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, macchinaId);
+                                const macchinaDoc = await getDoc(macchinaRef);
+                                if (macchinaDoc.exists()) {
+                                    await updateDoc(macchinaRef, { stato: nuovoStatoMacchina });
+                                }
+                            } catch (error) {
+                                console.warn('[segnalazione-guasti] stato macchina:', error);
+                                secondarie.push({
+                                    nome: 'macchina',
+                                    ok: false,
+                                    errore: error && error.message ? error.message : String(error)
+                                });
+                            }
+                        }
+                        if (attrezzoId && (componenteGuasto === 'attrezzo' || componenteGuasto === 'entrambi')) {
+                            try {
+                                const attrezzoRef = doc(db, `tenants/${currentTenantId}/macchine`, attrezzoId);
+                                const attrezzoDoc = await getDoc(attrezzoRef);
+                                if (attrezzoDoc.exists()) {
+                                    await updateDoc(attrezzoRef, { stato: nuovoStatoMacchina });
+                                }
+                            } catch (error) {
+                                console.warn('[segnalazione-guasti] stato attrezzo:', error);
+                                secondarie.push({
+                                    nome: 'attrezzo',
+                                    ok: false,
+                                    errore: error && error.message ? error.message : String(error)
+                                });
+                            }
+                        }
                     }
-                    if (terrenoPolygon) {
-                        terrenoPolygon.setMap(null);
-                        terrenoPolygon = null;
+
+                    if (scritturaPrincipaleOk && gravita === 'grave' && lavoroId) {
+                        const causaSospensione = tipoGuasto === 'macchina'
+                            ? 'Guasto macchina grave'
+                            : 'Segnalazione grave';
+                        try {
+                            const lavoroRef = doc(db, `tenants/${currentTenantId}/lavori`, lavoroId);
+                            const lavoroSnap = await getDoc(lavoroRef);
+                            const lavoro = lavoroSnap.exists() ? { id: lavoroSnap.id, ...lavoroSnap.data() } : null;
+                            const puoSospendere = !!lavoro && deveTentareSospensioneLavoroGuasto({
+                                ruoli: ruoliUtenteGuasti,
+                                ruoloSingolo: ruoloSingoloGuasti,
+                                uid: currentUser.uid,
+                                lavoro
+                            });
+                            if (!puoSospendere) {
+                                secondarie.push({ nome: 'lavoro', ok: false, errore: 'non-tentata' });
+                            } else {
+                                const built = buildSospendiLavoroPatch(causaSospensione);
+                                if (!built.ok) throw new Error(built.error || 'Sospensione non valida');
+                                await updateDoc(lavoroRef, built.patch);
+                            }
+                        } catch (error) {
+                            console.warn('[segnalazione-guasti] sospensione lavoro:', error);
+                            secondarie.push({
+                                nome: 'lavoro',
+                                ok: false,
+                                errore: error && error.message ? error.message : String(error)
+                            });
+                        }
                     }
-                    if (problemaMap) {
-                        problemaMap = null;
+
+                    const esito = esitoSegnalazioneGuasto({ scritturaPrincipaleOk, secondarie });
+                    if (esito.errore) {
+                        showAlert('Errore segnalazione: ' + esito.errore, 'error');
                     }
-                    setupTipoGuastoToggle();
+                    if (esito.successo) {
+                        const dalCampo = provenienzaGuastiPagina() === 'field'
+                            && ritornoWorkspaceCampoDaGuasti(ruoliUtenteGuasti, ruoloSingoloGuasti);
+                        mostraBannerSegnalazione(testoConfermaSegnalazione({
+                            dalCampo,
+                            haAvvisi: esito.avvisi.length > 0
+                        }));
+                    }
+                    esito.avvisi.forEach((avviso) => showAlert(avviso, 'warning'));
+                    if (esito.chiudi) {
+                        document.getElementById('segnala-guasto-form').reset();
+                        document.getElementById('tipo-macchina').checked = true;
+                        coordinateProblema = null;
+                        posizioneRilevamento = null;
+                        updateGpsStatus();
+                        if (problemaMarker) {
+                            problemaMarker.setMap(null);
+                            problemaMarker = null;
+                        }
+                        if (terrenoPolygon) {
+                            terrenoPolygon.setMap(null);
+                            terrenoPolygon = null;
+                        }
+                        if (problemaMap) {
+                            problemaMap = null;
+                        }
+                        setupTipoGuastoToggle();
+                    }
                 } catch (error) {
                     console.error('Errore segnalazione guasto:', error);
-                    showAlert('Errore segnalazione: ' + error.message, 'error');
+                    showAlert('Errore segnalazione: ' + (error && error.message ? error.message : error), 'error');
+                } finally {
+                    if (submitBtn) submitBtn.disabled = false;
                 }
             });
 
@@ -2013,21 +2214,29 @@
                         }
                     }
 
-                    // Se c'era un lavoro sospeso, riattivalo (il manager dovrà confermare)
+                    // Se il lavoro è sospeso per questo guasto e non ce ne sono altri aperti, riprendi.
                     if (guastoData.lavoroId) {
-                        const lavoroRef = doc(db, `tenants/${currentTenantId}/lavori`, guastoData.lavoroId);
-                        const lavoroDoc = await getDoc(lavoroRef);
-                        if (lavoroDoc.exists()) {
-                            const lavoroData = lavoroDoc.data();
-                            const motivoSospensione = tipoGuasto === 'macchina' 
-                                ? 'Guasto macchina grave' 
-                                : 'Segnalazione grave';
-                            if (lavoroData.stato === 'sospeso' && lavoroData.motivoSospensione === motivoSospensione) {
-                                // Non riattiviamo automaticamente, il manager deve decidere
-                                await updateDoc(lavoroRef, {
-                                    motivoSospensione: `${tipoGuasto === 'macchina' ? 'Guasto' : 'Segnalazione'} risolto - In attesa riattivazione Manager`
+                        try {
+                            const lavoroRef = doc(db, `tenants/${currentTenantId}/lavori`, guastoData.lavoroId);
+                            const lavoroDoc = await getDoc(lavoroRef);
+                            if (lavoroDoc.exists()) {
+                                const lavoro = { id: lavoroDoc.id, ...lavoroDoc.data() };
+                                const esitoRipresa = esitoRipresaDopoGuasto({
+                                    lavoro,
+                                    guasti: guastiMiei.map((g) => (g.id === guastoId ? { ...g, stato: 'risolto' } : g)),
+                                    guastoId
                                 });
+                                if (esitoRipresa.riprendi) {
+                                    const patch = buildRiprendiLavoroPatch(lavoro, new Date());
+                                    await updateDoc(lavoroRef, patchRipresaPerFirestore(patch, deleteField));
+                                    showAlert(testoToastRipresa(lavoro.nome, { ripreso: true }), 'success');
+                                } else if (esitoRipresa.motivo === 'altro-guasto') {
+                                    showAlert(testoToastRipresa(lavoro.nome, { altroGuasto: true }), 'warning');
+                                }
                             }
+                        } catch (ripresaErr) {
+                            console.warn('[segnalazione-guasti] ripresa lavoro:', ripresaErr);
+                            showAlert(testoToastRipresa('', { fallita: true }), 'warning');
                         }
                     }
 

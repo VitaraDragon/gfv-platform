@@ -669,7 +669,7 @@ Helper: `core/js/zona-lavorata-slice.js`. Test: `tests/zona-lavorata-slice.test.
 
 ## 24. Campo — home mobile unica + lingue operaio/caposquadra (2026-09-19)
 
-**Stato codice:** **pianificato** (nessun implementato in questo registro). Piano esecutivo: `docs-sviluppo/da-fare/manodopera/PIANO_CAMPO_MOBILE_MULTILINGUA.md`.
+**Stato codice:** **parziale** (2026-10-10). Segnalazione guasti e logout sono nel workspace mobile. La home unica (niente toggle, ingresso sempre mobile) è ancora da fare. Piano: `docs-sviluppo/da-fare/manodopera/PIANO_CAMPO_MOBILE_MULTILINGUA.md`. Inventario: `docs-sviluppo/da-fare/manodopera/INVENTARIO_CAMPO_DESKTOP_VS_MOBILE.md`.
 
 Non è internazionalizzazione dell’ERP. È semplificare il telefono in campo in Italia (squadre miste, vendemmia). Master Plan §3: priorità operaio/caposquadra.
 
@@ -679,8 +679,8 @@ Non è internazionalizzazione dell’ERP. È semplificare il telefono in campo i
 | 24.2 | Multilinguismo **solo profilo campo** (operaio / caposquadra, no manager/admin) | prodotto 2026-09-19 | **pianificato** | Home `field-workspace-standalone.html` |
 | 24.3 | Lingue MVP: **`it` + `ro` + `en`**. Francese, albanese, arabo, punjabi **dopo** richiesta tenant | prodotto 2026-09-19 | **pianificato** | Selettore: bandiere + nome nativo, anche al **login** |
 | 24.4 | Due strati: catalogo **cornice** + pulsante **Traduci** sul testo delle comunicazioni (Gemini). Nomi lavori/terreni/persone non tradotti | prodotto 2026-09-19 | **pianificato** | Capo può scrivere in italiano; operaio legge nella sua lingua |
-| 24.5 | Home campo **solo mobile** anche da PC; togliere toggle 🖥️. Pagine sotto (zone, validazione, impostazioni, guasti) restano **compiti**, non seconda app | prodotto 2026-09-19 | **pianificato** | `shouldUseFieldMobileWorkspace` senza opt-out `classic` per solo campo |
-| 24.6 | **Segnalazione guasti** in mobile se `parcoMacchine` (anche caposquadra-only, così non dipende dalla dashboard) | prodotto 2026-09-19 | **pianificato** | Oggi la guida manda alla desktop |
+| 24.5 | Home campo **solo mobile** anche da PC; togliere toggle 🖥️. Pagine sotto (zone, validazione, impostazioni, guasti) restano **compiti**, non seconda app | prodotto 2026-09-19 | **parziale** | Guasti aperti dal menu ⚙️ come compito (2026-10-10). Il toggle 🖥️ e l’opt-out `classic` restano fino allo step successivo |
+| 24.6 | **Segnalazione guasti** in mobile se `parcoMacchine` (anche caposquadra-only, così non dipende dalla dashboard) | prodotto 2026-09-19 | **implementato** | Voce ⚙️ «Segnala guasto». Stesso form. Ritorno al workspace per il profilo campo. Tony apre la pagina, non compila i campi |
 | 24.7 | Preferenza `users/{uid}.preferredLanguage` + `localStorage` pre-login. Catalogo `field-ui-i18n.js`, no framework su 75 HTML | prodotto 2026-09-19 | **pianificato** | Test completezza chiavi IT/RO/EN |
 | 24.8 | Tony voce/STT/TTS in altre lingue **fuori MVP**; `APRI_PAGINA` campo resta sulle slide (già §5.5). Nuovo target whitelist se si aggiunge guasti | prodotto 2026-09-19 | **pianificato** | Non aprire Gestione Lavori / dashboard |
 | 24.9 | Manager o admin (anche con ruolo capo/operaio) **resta** in dashboard italiano | prodotto 2026-09-19 | **pianificato** | Invariato rispetto a `shouldUseFieldMobileWorkspace` |

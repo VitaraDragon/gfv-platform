@@ -76,6 +76,8 @@ Di solito trovi un **pulsante flottante** (icona / bolla) sul bordo dello scherm
 2. Scrivi una **frase chiara** (meglio una richiesta alla volta).  
 3. Leggi la risposta: spesso Tony conclude con una **domanda** («Vuoi che apra…?») o un **passo successivo**.
 
+Se scrivi appena aperta la pagina, quando Tony non è ancora pronto, il messaggio non si perde: resta in chat con la scritta «In attesa che Tony sia pronto…» e parte da solo appena Tony è pronto. Se ne scrivi più di uno, partono uno alla volta, nell’ordine. Se Tony non si prepara in tempo leggi «Tony non è pronto. Riprova tra poco.»: riscrivi il messaggio dopo qualche secondo.
+
 ### Voce (TTS e microfono)
 
 Su molte pagine Tony può **leggere ad alta voce** le risposte (sintesi vocale): dipende dal browser e dalle autorizzazioni audio. Le risposte lunghe vengono lette **a frasi**, così la voce parte prima.

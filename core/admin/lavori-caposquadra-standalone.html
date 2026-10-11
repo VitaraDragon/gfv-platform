@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<script>try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -88,7 +88,8 @@
             font-size: 13px;
         }
 
-        body.embed-mobile a[href*="dashboard-standalone.html"] {
+        body.embed-mobile a[href*="dashboard-standalone.html"],
+        body.embed-mobile a.lavori-ritorno {
             display: none !important;
         }
         /* Tony resta sul parent (field-workspace): niente secondo FAB nell'iframe */
@@ -802,6 +803,7 @@
         import { onAuthStateChanged } from '../services/firebase-service.js';
         import { resolveAuthUser, loginPageUrl } from '../js/simulator-standalone-page.js';
         import { fetchLavoriDocumentsForFieldUser, sliceOperaioLavoriWindow } from '../services/manodopera-lavori-scope.js';
+        import { hrefElencoLavoriCampo } from '../mobile/js/field-lavori-embed.js';
         import {
             isLavoroVendemmiaMeccanica,
             countZoneLavorateSameDay,
@@ -1562,7 +1564,7 @@
                                 <p>Lavoro non trovato o non assegnato a te</p>
                                 <p style="font-size: 14px; margin-top: 10px;">Verifica la selezione nel workspace mobile o apri l'elenco completo.</p>
                                 <p style="margin-top: 16px;">
-                                    <a class="btn btn-primary" href="lavori-caposquadra-standalone.html?ws=classic">Vedi tutti i lavori</a>
+                                    <a class="btn btn-primary" href="${hrefElencoLavoriCampo({ inIframe: isEmbedMobile })}">Vedi tutti i lavori</a>
                                 </p>
                             </div>
                         `;
@@ -1665,7 +1667,7 @@
                 html += `
                     <div class="focus-lavoro-banner" style="background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%); border: 1px solid #a5d6a7; border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px;">
                         <div style="font-size: 14px; color: #1b5e20;"><strong>Vista lavoro attivo</strong> — dettaglio del solo incarico selezionato.</div>
-                        <a class="btn btn-secondary" href="lavori-caposquadra-standalone.html?ws=classic" style="font-size: 13px;">Mostra tutti i lavori</a>
+                        <a class="btn btn-secondary" href="${hrefElencoLavoriCampo({ inIframe: isEmbedMobile })}" style="font-size: 13px;">Mostra tutti i lavori</a>
                     </div>
                 `;
             }
@@ -1795,7 +1797,7 @@
                                 ${parzialeVm ? '<p style="font-size:12px;color:#666;margin:8px 0 0;">Vendemmia meccanica: puoi chiudere al manager anche sotto il 90% se non riesci a finire tutto il campo.</p>' : ''}
                             ` : ''}
                             
-                            <a href="../dashboard-standalone.html" class="btn btn-secondary">← Dashboard</a>
+                            <a href="${(function(){try{var u=localStorage.getItem('gfv_ingresso_ultimo');var ruoli=(currentUserData&&currentUserData.ruoli)||[];var low=ruoli.map(function(r){return String(r).toLowerCase()});var manager=low.indexOf('manager')>=0||low.indexOf('amministratore')>=0;var campo=low.indexOf('operaio')>=0||low.indexOf('caposquadra')>=0;if(u==='workspace'||(!manager&&campo))return '../mobile/field-workspace-standalone.html';}catch(e){}return '../dashboard-standalone.html';})()}" class="btn btn-secondary lavori-ritorno">${(function(){try{var u=localStorage.getItem('gfv_ingresso_ultimo');var ruoli=(currentUserData&&currentUserData.ruoli)||[];var low=ruoli.map(function(r){return String(r).toLowerCase()});var manager=low.indexOf('manager')>=0||low.indexOf('amministratore')>=0;var campo=low.indexOf('operaio')>=0||low.indexOf('caposquadra')>=0;if(u==='workspace'||(!manager&&campo))return '← Campo';}catch(e){}return '← Dashboard';})()}</a>
                         </div>
                     </div>
                 `;
@@ -1994,7 +1996,7 @@
                     gfvMapTraceLog('impossibile salvare return URL parent', String(e));
                 }
                 const next = new URL(window.location.href);
-                next.searchParams.set('ws', 'classic');
+                next.searchParams.delete('ws');
                 next.searchParams.set('embed', 'mobile');
                 next.searchParams.set('focusLavoroId', lavoroId);
                 next.searchParams.set('traceLavoroId', lavoroId);

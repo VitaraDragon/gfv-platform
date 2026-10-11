@@ -116,7 +116,7 @@
     position: absolute;
     right: 0;
     top: 44px;
-    min-width: 170px;
+    min-width: 220px;
     border-radius: 10px;
     background: #fff;
     border: 1px solid #d1d5db;
@@ -132,6 +132,33 @@
     font-weight: 600;
     color: #1f2937;
     text-decoration: none;
+}
+
+/* display:block sopra vince sullo stile del browser per [hidden]. */
+.field-options-link[hidden],
+button.field-options-link[hidden] {
+    display: none !important;
+}
+
+.field-options-note {
+    margin: 0;
+    padding: 10px 12px;
+    font-size: 13px;
+    color: #4b5563;
+}
+
+.field-options-menu[data-pronto="0"] .field-options-link:not(#field-logout-button) {
+    pointer-events: none;
+    opacity: 0.45;
+}
+
+button.field-options-link {
+    width: 100%;
+    border: 0;
+    background: #fff;
+    text-align: left;
+    cursor: pointer;
+    font-family: inherit;
 }
 
 .field-options-link:hover {
@@ -299,12 +326,45 @@
     flex: 1;
     min-height: 68vh;
 }
+
+.stats-embed-fallback {
+    margin: 12px;
+    padding: 14px;
+    border-radius: 10px;
+    background: #fff7ed;
+    color: #9a3412;
+    text-align: center;
+}
+
+.stats-embed-fallback p {
+    margin: 0 0 10px;
+    font-size: 14px;
+}
 .frame-lavori-detail {
     min-height: 52vh;
     height: 52vh;
     width: 100%;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
+}
+.field-lavori-detail-wrap.ingrandito {
+    position: fixed;
+    inset: 0;
+    z-index: 80;
+    background: #fff;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+}
+.field-lavori-detail-wrap.ingrandito .frame-lavori-detail {
+    height: calc(100dvh - 72px);
+    min-height: 0;
+    flex: 1;
+}
+.ore-giorno-non-disponibile {
+    font-size: 12px;
+    color: #4b5563;
 }
 .frame-team { min-height: 680px; }
 
@@ -563,6 +623,8 @@
     font-size: 13px;
     font-weight: 600;
     text-decoration: none;
+    cursor: pointer;
+    font-family: inherit;
 }
 
 .field-bottom-nav {

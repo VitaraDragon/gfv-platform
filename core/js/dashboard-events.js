@@ -70,6 +70,7 @@ export async function handleLogout(auth, db, cleanupCallbacks = {}) {
         sessionStorage.removeItem('gfv_user_just_registered');
         sessionStorage.removeItem('tony_session_state');
         sessionStorage.removeItem('gfv_tony_utente_ruoli');
+        try { localStorage.removeItem('gfv_ingresso_ultimo'); } catch (e) { /* ignore */ }
         
         await signOut(auth);
         window.location.href = './auth/login-standalone.html';

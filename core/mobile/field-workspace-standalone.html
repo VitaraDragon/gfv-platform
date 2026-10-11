@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<script>try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}</script>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -18,20 +18,20 @@
     </script>
     <header class="field-mobile-header">
         <div class="field-mobile-toolbar compact">
-            <div class="field-toolbar-left" aria-hidden="true">
-                <button class="field-icon-toggle active" id="btn-mode-mobile" type="button" aria-label="Versione mobile" title="Versione mobile">📱</button>
-                <button class="field-icon-toggle" id="btn-mode-desktop" type="button" aria-label="Versione desktop" title="Versione desktop">🖥️</button>
-            </div>
             <div class="field-toolbar-user" id="field-toolbar-user" hidden>
                 <span class="field-toolbar-user-name" id="field-toolbar-user-name"></span>
                 <span class="field-toolbar-user-roles" id="field-toolbar-user-roles"></span>
             </div>
             <div class="field-options-wrap">
                 <button class="field-icon-toggle" id="btn-open-options" type="button" aria-label="Opzioni" title="Opzioni">⚙️</button>
-                <div class="field-options-menu" id="field-options-menu" hidden>
-                    <a id="field-documentation-guide-link" href="../../documentazione-utente/guida-manodopera-utente.html?ruolo=operaio&amp;soloRuolo=1" class="field-options-link" target="_blank" rel="opener">Guida Manodopera</a>
-                    <a id="field-validazione-ore-link" href="../admin/validazione-ore-standalone.html" class="field-options-link" hidden>Validazione ore (schermo intero)</a>
-                    <a href="../admin/impostazioni-standalone.html" class="field-options-link">Impostazioni account</a>
+                <div class="field-options-menu" id="field-options-menu" hidden data-pronto="0">
+                    <p id="field-options-preparing" class="field-options-note">Sto preparando il workspace…</p>
+                    <a id="field-documentation-guide-link" href="../../documentazione-utente/guida-manodopera-utente.html?ruolo=operaio&amp;soloRuolo=1" class="field-options-link" target="_blank" rel="opener" aria-disabled="true">Guida Manodopera</a>
+                    <a id="field-validazione-ore-link" href="../admin/validazione-ore-standalone.html?from=field" class="field-options-link" hidden aria-disabled="true">Validazione ore (schermo intero)</a>
+                    <a id="field-segnala-guasto-link" href="../admin/segnalazione-guasti-standalone.html?from=field" class="field-options-link" hidden aria-disabled="true">Segnala guasto</a>
+                    <a href="../admin/impostazioni-standalone.html" class="field-options-link" aria-disabled="true">Impostazioni account</a>
+                    <button type="button" id="field-switch-tenant-button" class="field-options-link" hidden aria-disabled="true">Cambia azienda</button>
+                    <button type="button" id="field-logout-button" class="field-options-link">Esci</button>
                 </div>
             </div>
         </div>
@@ -181,7 +181,7 @@
                         </div>
                         <div class="work-actions" style="margin-top: 12px;">
                             <button type="button" id="btn-refresh-pending-hours" class="field-mobile-btn">Aggiorna elenco</button>
-                            <a href="../admin/validazione-ore-standalone.html" class="field-link-btn" target="_blank" rel="noopener">Apri validazione completa</a>
+                            <a href="../admin/validazione-ore-standalone.html?from=field" class="field-link-btn">Apri validazione completa</a>
                         </div>
                     </section>
                 </div>
@@ -219,9 +219,11 @@
                     <section class="inline-team-section">
                         <h3 class="inline-team-title">📌 Dettaglio lavoro operativo</h3>
                         <p class="inline-team-subtitle">Ordini manager, stato tabella di marcia, traccia zone e sospensione lavoro.</p>
-                        <iframe id="lavori-detail-frame" class="slide-frame frame-lavori-detail" title="Dettaglio lavoro" loading="lazy"></iframe>
-                        <div class="work-actions">
-                            <a id="lavori-full-detail-link" href="../admin/lavori-caposquadra-standalone.html?ws=classic&v=20260904c" class="field-link-btn" target="_blank" rel="noopener">Apri in finestra intera</a>
+                        <div id="field-lavori-detail-wrap" class="field-lavori-detail-wrap">
+                            <iframe id="lavori-detail-frame" class="slide-frame frame-lavori-detail" title="Dettaglio lavoro" loading="lazy"></iframe>
+                            <div class="work-actions">
+                                <button type="button" id="btn-ingrandisci-lavoro" class="field-link-btn" aria-pressed="false">Ingrandisci</button>
+                            </div>
                         </div>
                     </section>
                 </div>
@@ -235,7 +237,12 @@
                     </div>
                 </div>
                 <div class="slide-body slide-body-brand slide-body-iframe-tall">
-                    <iframe id="stats-embed-frame" class="slide-frame frame-summary" title="Le tue statistiche" loading="lazy"></iframe>
+                    <div id="stats-embed-fallback" class="stats-embed-fallback" hidden>
+                        <p>Non riesco a caricare le statistiche. Riprova.</p>
+                        <button type="button" id="btn-retry-statistiche" class="field-mobile-btn">Riprova</button>
+                    </div>
+                    <p id="stats-avanzamento" class="inline-team-subtitle">Carico le tue ore…</p>
+                    <iframe id="stats-embed-frame" class="slide-frame frame-summary" title="Le tue statistiche"></iframe>
                 </div>
             </article>
         </section>

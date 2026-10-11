@@ -11,7 +11,7 @@ import { resolveTarget } from './engine.js';
  * (es. atterraggio su Statistiche desktop per errore di nav).
  */
 var FIELD_SESSION_ROLE_PATH_RE =
-    /field-workspace|segnatura-ore|lavori-caposquadra|validazione-ore|statistiche-lavoratore|statistiche-standalone|\/statistiche|impostazioni-standalone|impostazioni/;
+    /field-workspace|segnatura-ore|lavori-caposquadra|validazione-ore|statistiche-lavoratore|statistiche-standalone|\/statistiche|impostazioni-standalone|impostazioni|segnalazione-guasti/;
 
 /**
  * @returns {'operaio'|'caposquadra'|null}
@@ -72,7 +72,8 @@ var ALLOW_OPERAIO = {
     'statistiche lavoratore': true,
     'statistiche campo': true,
     'lavoro campo': true,
-    impostazioni: true
+    impostazioni: true,
+    'segnalazione guasti': true
 };
 
 var ALLOW_CAPOSQUADRA = Object.assign({}, ALLOW_OPERAIO, {
@@ -93,6 +94,16 @@ export function remapTonyApriPaginaTargetForFieldProfile(rawOrResolved) {
     if (r === 'statistiche') return 'statistiche lavoratore';
     // «lavori» / Gestione Lavori manager → slide Lavoro del workspace mobile.
     if (r === 'lavori' || r === 'gestione lavori') return 'lavoro campo';
+    // Elenco guasti del manager → stesso form di segnalazione, senza inject.
+    if (
+        r === 'guasti' ||
+        r === 'gestione guasti' ||
+        r === 'elenco guasti' ||
+        r === 'segnala guasto' ||
+        r === 'segnalazione guasto'
+    ) {
+        return 'segnalazione guasti';
+    }
     return rawOrResolved;
 }
 
