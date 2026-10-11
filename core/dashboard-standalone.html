@@ -401,6 +401,27 @@
             box.appendChild(btn);
         }
 
+        async function attendiAccettazioneLegaleSeServe(userData, aziendaNome) {
+            try {
+                const config = await import('./config/accettazione-legale-config.js');
+                if (config.ACCETTAZIONE_LEGALE_ATTIVA !== true) return;
+                const legale = await import('./services/accettazione-legale.js');
+                if (!legale.validaConfigLegale(config, true).ok) {
+                    console.warn('[accettazione-legale] config non valida, ingresso invariato');
+                    return;
+                }
+                const gate = await import('./js/accettazione-legale-gate.js');
+                await gate.avviaDaFirebase({
+                    ruoli: (userData && userData.ruoli) || [],
+                    tenantId: userData && userData.tenantId,
+                    aziendaNome: typeof aziendaNome === 'string' ? aziendaNome : '',
+                    config: config
+                });
+            } catch (error) {
+                console.warn('[accettazione-legale] ingresso invariato');
+            }
+        }
+
         function applicaIngressoDopoLogin(userData, availableModules) {
             if (window.__gfvRedirectWorkspaceDeciso) {
                 return window.__gfvIngressoScelta || 'dashboard';
@@ -1452,6 +1473,7 @@
                             });
                             window.__gfvSubscriptionPlanId = planNormalized;
                             try { window.dispatchEvent(new CustomEvent('gfv-subscription-plan', { detail: { planId: planNormalized } })); } catch (eP) {}
+                            await attendiAccettazioneLegaleSeServe(userDataNormalized, tenantDataSnapshot && tenantDataSnapshot.nome);
                             const ingressoNuovo = applicaIngressoDopoLogin(userDataNormalized, availableModules);
                             if (ingressoNuovo !== 'dashboard') return;
 
@@ -1512,6 +1534,7 @@
                     });
                     window.__gfvSubscriptionPlanId = planNormalized;
                     try { window.dispatchEvent(new CustomEvent('gfv-subscription-plan', { detail: { planId: planNormalized } })); } catch (eP) {}
+                    await attendiAccettazioneLegaleSeServe(userDataNormalized, tenantDataSnapshot && tenantDataSnapshot.nome);
                     const ingresso = applicaIngressoDopoLogin(userDataNormalized, availableModules);
                     if (ingresso !== 'dashboard') return;
 
