@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-11 — Base accettazione legale, spenta.**
+**Ultimo aggiornamento documentazione: 2026-10-11 — Caselle di registrazione pronte, ancora spente.**
+
+## 2026-10-11 — Registrazione: caselle legali pronte, flag spento
+
+La registrazione può mostrare due caselle (termini e privacy, poi il DPA) e un link Cookie, e registrarle dopo la creazione dell'account. Il flag resta false: la pagina è identica a prima, nessuna casella e nessuna chiamata. La function è nel codice e non è deployata. Nessuna modifica a `firestore.rules`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-11 — Base accettazione legale, spenta.**
 
 ## 2026-10-11 — Accettazione legale preparata, ancora spenta
 

@@ -322,7 +322,7 @@
             throw err;
         }
 
-        import { getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
+        import { getAppInstance, getAuthInstance, getDb, getHttpsCallable } from '../services/firebase-service.js';
         import { doc, setDoc, getDoc, updateDoc, collection, addDoc, serverTimestamp, deleteDoc } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
         import { createUserWithEmailAndPassword, deleteUser } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
@@ -356,6 +356,90 @@
         }
         if (!registerButton || !loadingOverlay) {
             console.error('❌ ERRORE CRITICO: Pulsante o overlay non trovati!');
+        }
+
+        let accettazioneLegaleAttiva = false;
+        let accettazioneConfig = null;
+
+        function aggiungiLinkDocumento(parent, testo, url) {
+            const link = document.createElement('a');
+            link.href = url;
+            link.target = '_blank';
+            link.rel = 'noopener';
+            link.textContent = testo;
+            parent.appendChild(link);
+        }
+
+        function montaCaselleAccettazione(config) {
+            const documenti = config.DOCUMENTI_LEGALI;
+            const blocco = document.createElement('div');
+            blocco.className = 'form-group';
+            blocco.id = 'accettazione-legale-blocco';
+
+            const prima = document.createElement('label');
+            prima.style.fontWeight = '400';
+            const casellaTermini = document.createElement('input');
+            casellaTermini.type = 'checkbox';
+            casellaTermini.id = 'accettazione-termini';
+            casellaTermini.style.cssText = 'width:auto;padding:0;border:0;margin:0 8px 0 0;vertical-align:middle;';
+            prima.appendChild(casellaTermini);
+            prima.appendChild(document.createTextNode('Ho letto e accetto i '));
+            aggiungiLinkDocumento(prima, 'Termini di servizio', documenti['termini-b2b'].url);
+            prima.appendChild(document.createTextNode(' e ho letto l\''));
+            aggiungiLinkDocumento(prima, 'Informativa privacy', documenti.privacy.url);
+            prima.appendChild(document.createTextNode(' di GFV.'));
+            blocco.appendChild(prima);
+            const erroreTermini = document.createElement('div');
+            erroreTermini.className = 'error-message';
+            erroreTermini.id = 'accettazione-termini-error';
+            blocco.appendChild(erroreTermini);
+
+            const seconda = document.createElement('label');
+            seconda.style.fontWeight = '400';
+            seconda.style.marginTop = '12px';
+            const casellaDpa = document.createElement('input');
+            casellaDpa.type = 'checkbox';
+            casellaDpa.id = 'accettazione-dpa';
+            casellaDpa.style.cssText = 'width:auto;padding:0;border:0;margin:0 8px 0 0;vertical-align:middle;';
+            seconda.appendChild(casellaDpa);
+            seconda.appendChild(document.createTextNode('Accetto il '));
+            aggiungiLinkDocumento(seconda, 'DPA', documenti.dpa.url);
+            seconda.appendChild(document.createTextNode(': per i dati dei lavoratori e dei clienti della mia azienda io sono titolare e GFV è responsabile. Dichiaro di poter accettare per conto dell\'azienda.'));
+            blocco.appendChild(seconda);
+            const erroreDpa = document.createElement('div');
+            erroreDpa.className = 'error-message';
+            erroreDpa.id = 'accettazione-dpa-error';
+            blocco.appendChild(erroreDpa);
+
+            if (typeof config.COOKIE_URL === 'string' && config.COOKIE_URL.indexOf('https://') === 0) {
+                const cookie = document.createElement('a');
+                cookie.href = config.COOKIE_URL;
+                cookie.target = '_blank';
+                cookie.rel = 'noopener';
+                cookie.textContent = 'Cookie';
+                cookie.style.display = 'inline-block';
+                cookie.style.marginTop = '8px';
+                blocco.appendChild(cookie);
+            }
+
+            registerButton.parentNode.insertBefore(blocco, registerButton);
+        }
+
+        try {
+            const configLegale = await import('../config/accettazione-legale-config.js');
+            if (configLegale.ACCETTAZIONE_LEGALE_ATTIVA === true) {
+                const moduloLegale = await import('../services/accettazione-legale.js');
+                const esitoLegale = moduloLegale.validaConfigLegale(configLegale, true);
+                if (esitoLegale.ok) {
+                    accettazioneLegaleAttiva = true;
+                    accettazioneConfig = configLegale;
+                    montaCaselleAccettazione(configLegale);
+                } else {
+                    console.warn('[accettazione-legale] config non valida, registrazione invariata');
+                }
+            }
+        } catch (errLegale) {
+            console.warn('[accettazione-legale] config non caricata');
         }
 
         // Verifica se già autenticato
@@ -476,6 +560,19 @@
             if (!aziendaNomeInput.value.trim()) {
                 showError('azienda-nome', 'Nome azienda obbligatorio');
                 isValid = false;
+            }
+
+            if (accettazioneLegaleAttiva) {
+                const casellaTermini = document.getElementById('accettazione-termini');
+                const casellaDpa = document.getElementById('accettazione-dpa');
+                if (!casellaTermini || casellaTermini.checked !== true) {
+                    showError('accettazione-termini', 'Spunta la casella per continuare.');
+                    isValid = false;
+                }
+                if (!casellaDpa || casellaDpa.checked !== true) {
+                    showError('accettazione-dpa', 'Spunta la casella per continuare.');
+                    isValid = false;
+                }
             }
 
             return isValid;
@@ -657,6 +754,19 @@ ruoliSalvati = savedData2.ruoli;
                 if (!savedData.tenantId) {
                     console.error('❌ ERRORE: TenantId ancora non salvato dopo retry!');
                     throw new Error('Impossibile salvare il tenantId. Controlla la console per dettagli.');
+                }
+
+                if (accettazioneLegaleAttiva) {
+                    const moduloLegale = await import('../services/accettazione-legale.js');
+                    const payloadLegale = moduloLegale.costruisciPayloadAccettazione({
+                        canale: 'registrazione',
+                        tenantId: tenantId,
+                        ruolo: 'amministratore',
+                        documenti: ['termini-b2b', 'privacy', 'dpa'],
+                        config: accettazioneConfig
+                    });
+                    const registraAccettazioni = getHttpsCallable('registraAccettazioniLegali');
+                    await registraAccettazioni(Object.assign({ azione: 'registra' }, payloadLegale));
                 }
 
 // Successo!
