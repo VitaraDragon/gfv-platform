@@ -3,6 +3,7 @@
 <head>
 <script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname)){var gfvUltimoPelle="";try{gfvUltimoPelle=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(gfvEp){}if(gfvUltimoPelle!=="workspace")document.documentElement.setAttribute("data-pelle","proposta")}}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
 
+    <script>try{if(new URLSearchParams(location.search).get("embed")==="1")document.documentElement.setAttribute("data-guasto-embed","1")}catch(e){}</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Segnalazione Guasti - GFV Platform</title>
@@ -357,6 +358,9 @@
             color: #333;
         }
 
+        html[data-guasto-embed="1"] .header { display: none; }
+        html[data-guasto-embed="1"] .container { padding: 8px 8px 32px; }
+
         .gps-capture-box {
             background: #f8f9fa;
             border: 1px solid #dfe3e8;
@@ -398,7 +402,7 @@
         <div class="content">
             <h2 class="section-title">Segnala Nuovo Guasto / Segnalazione</h2>
             <form id="segnala-guasto-form">
-                <div class="form-group">
+                <div class="form-group" id="scelta-tipo-guasto">
                     <label>Tipo di segnalazione *</label>
                     <div class="radio-group">
                         <div class="radio-option">
@@ -482,6 +486,8 @@
                         <select id="guasto-tipo-problema" required>
                             <option value="">-- Seleziona tipo --</option>
                             <option value="Frana">Frana</option>
+                            <option value="Albero caduto">Albero caduto</option>
+                            <option value="Palo rotto">Palo rotto</option>
                             <option value="Voragine">Voragine</option>
                             <option value="Danno infrastruttura">Danno infrastruttura</option>
                             <option value="Problema filare">Problema filare</option>
@@ -627,7 +633,8 @@
             deveTentareSospensioneLavoroGuasto,
             esitoSegnalazioneGuasto,
             testoConfermaSegnalazione,
-            ritornoWorkspaceCampoDaGuasti
+            ritornoWorkspaceCampoDaGuasti,
+            vistaSegnalazionePerModuli
         } from '../js/field-guasti-access.js';
         import { buildSospendiLavoroPatch } from '../services/lavoro-sospensione.js';
         import {
@@ -637,6 +644,29 @@
             testoToastRipresa
         } from '../services/lavoro-ripresa-guasto.js';
         import { macchinaSelezionabile, suffissoMacchinaNonSelezionabile } from '../js/macchina-selezionabile.js';
+
+        let mostraMacchinaSegnalazione = true;
+
+        function segnalazioneIncorporata() {
+            try {
+                return new URLSearchParams(window.location.search || '').get('embed') === '1';
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function applicaVistaSegnalazione(modules) {
+            const vista = vistaSegnalazionePerModuli(modules);
+            mostraMacchinaSegnalazione = vista.mostraMacchina;
+            const scelta = document.getElementById('scelta-tipo-guasto');
+            if (scelta) scelta.hidden = !vista.mostraMacchina;
+            const tipoMacchina = document.getElementById('tipo-macchina');
+            const tipoGenerico = document.getElementById('tipo-generico');
+            if (vista.tipoIniziale === 'generico' && tipoGenerico) {
+                tipoGenerico.checked = true;
+                if (tipoMacchina) tipoMacchina.checked = false;
+            }
+        }
 
         function provenienzaGuastiPagina() {
             try {
@@ -774,8 +804,7 @@
                                 if (tenantDoc.exists()) {
                                     const tenantData = tenantDoc.data();
                                     const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
-                                    const hasParcoMacchine = modules.includes('parcoMacchine');
-                                    
+
                                     // Inizializza context Tony con i moduli attivi usando helper
                                     if (window.Tony && window.Tony.initContextWithModules) {
                                         window.Tony.initContextWithModules(modules);
@@ -795,13 +824,7 @@
                                         initTonyContext();
                                     }
                                     
-                                    if (!hasParcoMacchine) {
-                                        showAlert('Questa pagina è disponibile solo con il modulo Parco Macchine attivo.', 'error');
-                                        setTimeout(() => {
-                                            window.location.href = hrefRitornoSegnalazioneGuasti(userData.ruoli, userData.ruolo, provenienzaGuastiPagina());
-                                        }, 3000);
-                                        return;
-                                    }
+                                    applicaVistaSegnalazione(modules);
                                 }
                             } catch (error) {
                                 console.warn('Errore verifica modulo:', error);
@@ -2092,13 +2115,18 @@
                             && ritornoWorkspaceCampoDaGuasti(ruoliUtenteGuasti, ruoloSingoloGuasti);
                         mostraBannerSegnalazione(testoConfermaSegnalazione({
                             dalCampo,
-                            haAvvisi: esito.avvisi.length > 0
+                            haAvvisi: esito.avvisi.length > 0,
+                            incorporata: segnalazioneIncorporata()
                         }));
                     }
                     esito.avvisi.forEach((avviso) => showAlert(avviso, 'warning'));
                     if (esito.chiudi) {
                         document.getElementById('segnala-guasto-form').reset();
-                        document.getElementById('tipo-macchina').checked = true;
+                        if (mostraMacchinaSegnalazione) {
+                            document.getElementById('tipo-macchina').checked = true;
+                        } else {
+                            document.getElementById('tipo-generico').checked = true;
+                        }
                         coordinateProblema = null;
                         posizioneRilevamento = null;
                         updateGpsStatus();

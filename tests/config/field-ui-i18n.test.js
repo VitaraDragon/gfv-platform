@@ -40,7 +40,7 @@ describe('field-ui-i18n catalogo', () => {
 
     it('ogni chiave ha it, ro, en e sq, senza stringhe vuote', () => {
         expect(FIELD_UI_LANGS).toEqual(['it', 'ro', 'en', 'sq']);
-        expect(chiavi.length).toBe(201);
+        expect(chiavi.length).toBe(203);
         chiavi.forEach((key) => {
             const entry = FIELD_UI_STRINGS[key];
             FIELD_UI_LANGS.forEach((lang) => {
@@ -148,7 +148,7 @@ describe('field-ui-i18n catalogo', () => {
         expect(dinamiche).toEqual([]);
     });
 
-    it('data-slide-title del workspace resta sui cinque valori attuali', () => {
+    it('data-slide-title del workspace: Guasto dopo Ore e prima di Statistiche', () => {
         const html = leggi('core/mobile/field-workspace-standalone.html');
         const titoli = [];
         const re = /data-slide-title="([^"]+)"/g;
@@ -160,6 +160,7 @@ describe('field-ui-i18n catalogo', () => {
             'Comunicazioni',
             'Valida ore',
             'Ore',
+            'Guasto',
             'Statistiche'
         ]);
     });

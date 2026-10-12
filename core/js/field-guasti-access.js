@@ -15,6 +15,21 @@ export function normalizzaRuoliGuasti(ruoli, ruoloSingolo) {
         .filter(Boolean);
 }
 
+/**
+ * La segnalazione generica (frana, albero, palo) non dipende dal Parco Macchine.
+ * Il guasto a trattore o attrezzo sì.
+ * @param {string[]|undefined} modules
+ * @returns {{ mostraMacchina: boolean, tipoIniziale: 'macchina'|'generico' }}
+ */
+export function vistaSegnalazionePerModuli(modules) {
+    const list = Array.isArray(modules) ? modules : [];
+    const parco = list.indexOf('parcoMacchine') >= 0;
+    return {
+        mostraMacchina: parco,
+        tipoIniziale: parco ? 'macchina' : 'generico'
+    };
+}
+
 /** Operaio o caposquadra, anche se ha anche manager/admin. */
 export function puoAprireSegnalazioneGuasti(ruoli, ruoloSingolo) {
     const n = normalizzaRuoliGuasti(ruoli, ruoloSingolo);
@@ -116,14 +131,15 @@ export function esitoSegnalazioneGuasto({ scritturaPrincipaleOk, secondarie } = 
  * è fallito, niente ritorno automatico: l’utente deve poter leggere l’avviso.
  * @param {{ dalCampo?: boolean, haAvvisi?: boolean }} input
  */
-export function testoConfermaSegnalazione({ dalCampo, haAvvisi } = {}) {
+export function testoConfermaSegnalazione({ dalCampo, haAvvisi, incorporata } = {}) {
+  const esceDalCampo = !!dalCampo && !haAvvisi && !incorporata;
   return {
     titolo: 'Segnalazione inviata. Grazie.',
     dettaglio: haAvvisi
       ? 'Non ho potuto aggiornare lo stato della macchina o del lavoro: avvisa il tuo responsabile.'
-      : (dalCampo ? 'Torno al workspace…' : 'La trovi in «I Miei Guasti Segnalati».'),
-    tornaAutomatico: !!dalCampo && !haAvvisi,
-    mostraTornaWorkspace: !!dalCampo && !!haAvvisi
+      : (esceDalCampo ? 'Torno al workspace…' : 'La trovi in «I Miei Guasti Segnalati».'),
+    tornaAutomatico: esceDalCampo,
+    mostraTornaWorkspace: !!dalCampo && !!haAvvisi && !incorporata
   };
 }
 
