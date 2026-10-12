@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-12 — Albanese nel workspace di campo.**
+**Ultimo aggiornamento documentazione: 2026-10-12 — Menu campo senza validazione e guasti, niente barra moduli.**
+
+## 2026-10-12 — Operaio e caposquadra: menu e barra moduli
+
+Nel menu ⚙️ del workspace non ci sono più «Validazione ore (schermo intero)» e «Segnala guasto». Restano guida, impostazioni account, cambio azienda (se ce n’è più di una) ed esci. La validazione sul telefono resta la scheda del caposquadra. La barra nera con graffetta, mappa e ingranaggio non si monta per chi è entrato nel workspace, né per un operaio o caposquadra senza ruolo manager. Il manager, anche se è pure caposquadra, la tiene. Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-12 — Albanese nel workspace di campo.**
 
 ## 2026-10-12 — Workspace campo: albanese e voce Lingua
 
