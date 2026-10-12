@@ -7,6 +7,7 @@ import {
   computePelleState,
   isFieldWorkspacePath,
   isPelleSkippedPath,
+  nascondiShellPerProfiloCampo,
   moduleFromPath,
   moduleFromLocation,
   visibleShellEntries,
@@ -63,6 +64,11 @@ describe('ui-pelle stato', () => {
     expect(isPelleSkippedPath('/core/mobile/field-workspace-standalone.html')).toBe(true);
     expect(isPelleSkippedPath('/core/auth/login-standalone.html')).toBe(true);
     expect(isPelleSkippedPath('/modules/magazzino/views/magazzino-home-standalone.html')).toBe(false);
+    expect(nascondiShellPerProfiloCampo({ ultimo: 'workspace', ruoli: ['manager'] })).toBe(true);
+    expect(nascondiShellPerProfiloCampo({ ultimo: 'dashboard', ruoli: ['operaio'] })).toBe(false);
+    expect(nascondiShellPerProfiloCampo({ ultimo: '', ruoli: ['caposquadra'] })).toBe(true);
+    expect(nascondiShellPerProfiloCampo({ ultimo: '', ruoli: ['manager', 'caposquadra'] })).toBe(false);
+    expect(nascondiShellPerProfiloCampo({ ultimo: '', ruoli: [] })).toBe(false);
     expect(moduleFromPath('/modules/magazzino/views/magazzino-home-standalone.html')).toBe('magazzino');
     expect(moduleFromPath('/modules/vigneto/views/vigneto-dashboard-standalone.html')).toBe('vigneto');
     expect(moduleFromPath('/core/dashboard-standalone.html')).toBe('home');

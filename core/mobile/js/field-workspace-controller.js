@@ -19,7 +19,6 @@ import { formatOreNette } from '../../js/attivita-utils.js';
 import { showAlert } from '../../js/gfv-page-utils.js';
 import {
     voceCambiaAziendaVisibile,
-    vociMenuCampo,
     menuCampoAbilitato,
 } from './field-menu-visibility.js';
 import { urlDettaglioLavoroIncorporato } from './field-lavori-embed.js';
@@ -156,8 +155,6 @@ const lavoroSostitutoBannerEl = document.getElementById('lavoro-sostituto-banner
 const pendingHoursListEl = document.getElementById('pending-hours-list');
 const pendingHoursAllListEl = document.getElementById('pending-hours-all-list');
 const btnRefreshPendingHoursEl = document.getElementById('btn-refresh-pending-hours');
-const fieldValidazioneOreLinkEl = document.getElementById('field-validazione-ore-link');
-const fieldSegnalaGuastoLinkEl = document.getElementById('field-segnala-guasto-link');
 const fieldSwitchTenantButtonEl = document.getElementById('field-switch-tenant-button');
 const fieldLogoutButtonEl = document.getElementById('field-logout-button');
 const sentCommunicationsListEl = document.getElementById('sent-communications-list');
@@ -208,8 +205,6 @@ function etichettaSquadraVisibile() {
 }
 let userIsOperaio = false;
 let workspacePronto = false;
-let menuRuoliCampo = [];
-let menuModuliCampo = [];
 let menuNumeroAziende = 0;
 let statsEmbedTimer = null;
 let editingOraId = '';
@@ -2582,17 +2577,6 @@ function bindPullToRefresh() {
 }
 
 function aggiornaVociMenuCampo() {
-    const voci = vociMenuCampo({
-        ruoli: menuRuoliCampo,
-        moduli: menuModuliCampo,
-        numeroAziende: menuNumeroAziende,
-    });
-    if (fieldValidazioneOreLinkEl) {
-        fieldValidazioneOreLinkEl.hidden = !voci.validazioneOre;
-    }
-    if (fieldSegnalaGuastoLinkEl) {
-        fieldSegnalaGuastoLinkEl.hidden = !voci.segnalaGuasto;
-    }
     if (fieldSwitchTenantButtonEl) {
         fieldSwitchTenantButtonEl.hidden = !voceCambiaAziendaVisibile(menuNumeroAziende);
     }
@@ -2960,8 +2944,6 @@ async function initFieldWorkspace() {
                 setupSlidesForRole(isCaposquadra);
                 // Ordine caposquadra richiesto:
                 // Seleziona lavoro (+ squadra inline) -> Comunicazioni -> Segna ore -> I miei lavori -> Statistiche
-                menuRuoliCampo = normalizedRoles;
-                menuModuliCampo = availableModules;
                 aggiornaVociMenuCampo();
                 await setupFieldTenantSwitch(user.uid);
                 applicaStatoMenuCampo(true);
