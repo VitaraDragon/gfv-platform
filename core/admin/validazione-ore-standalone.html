@@ -573,7 +573,8 @@
         import {
             oreVisibileInCodaValidazione,
             assertUtentePuoValidareOra,
-            isLavoroAutonomo
+            isLavoroAutonomo,
+            testoCodaValidazioneVuota
         } from '../services/manodopera-ore-validazione-scope.js';
         import {
             getManodoperaDisplayNameFromMap,
@@ -999,11 +1000,22 @@
             const container = document.getElementById('ore-container');
 
             if (oreDaValidare.length === 0) {
+                const flagsCoda = flagValidazione();
+                const testoCoda = testoCodaValidazioneVuota({
+                    isManager: flagsCoda.isManager,
+                    isCaposquadra: flagsCoda.isCaposquadra,
+                    righe: oreTutteRighe,
+                    visibili: oreDaValidare
+                });
+                const rigaAttesa = testoCoda.inAttesaCapisquadra
+                    ? `<p style="font-size: 14px; margin-top: 10px;">${escapeHtml(testoCoda.inAttesaCapisquadra)}</p>`
+                    : '';
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="empty-state-icon">✅</div>
-                        <p>Nessuna ora da validare</p>
-                        <p style="font-size: 14px; margin-top: 10px;">Tutte le ore sono state validate o rifiutate</p>
+                        <p>${escapeHtml(testoCoda.titolo)}</p>
+                        <p style="font-size: 14px; margin-top: 10px;">${escapeHtml(testoCoda.dettaglio)}</p>
+                        ${rigaAttesa}
                     </div>
                 `;
                 return;

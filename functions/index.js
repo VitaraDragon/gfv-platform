@@ -4728,6 +4728,12 @@ exports.registraPienoCampo = onCall(
   handleRegistraPienoCampo
 );
 
+const { handleRegistraAccettazioniLegali } = require("./accettazione-legale");
+exports.registraAccettazioniLegali = onCall(
+  { region: "europe-west1" },
+  handleRegistraAccettazioniLegali
+);
+
 exports.onComunicazioneCreated = onComunicazioneCreated;
 exports.onLavoroWritten = onLavoroWritten;
 exports.onOreOperaiCreated = onOreOperaiCreated;

@@ -1,6 +1,64 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-10 — Il campo non apre più una finestra a parte.**
+**Ultimo aggiornamento documentazione: 2026-10-11 — Lingua del campo, cornice del workspace.**
+
+## 2026-10-11 — Workspace campo: testi rimasti (passo 2)
+
+Nel telefono, con italiano la pagina resta uguale a prima. Română e English traducono anche gli stati, gli elenchi e i form che la pagina disegna da sola (ore, messaggi, squadra, pieno). Sono una bozza da rivedere da un madrelingua. Se si cambia lingua, i messaggi già aperti non vengono riletti dal server: si ridisegna solo quello che è già in memoria. Il login resta in italiano. La scelta resta sul telefono, non sul profilo.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-11 — Lingua del campo, primo pezzo.**
+
+## 2026-10-11 — Workspace campo: scelta della lingua (passo 1)
+
+Nel menu ⚙️ del telefono si può scegliere Italiano, Română o English. Con italiano la pagina resta uguale a prima. Le altre due lingue traducono menu, pulsanti Indietro/Avanti e i titoli delle schede: sono una bozza da rivedere da un madrelingua. La scelta resta sul telefono (memoria locale), non sul profilo. I messaggi, gli errori e le liste restano in italiano: arrivano al passo successivo. Login escluso.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-11 — Invito e ri-accettazione pronti, ancora spenti.**
+
+## 2026-10-11 — Invito e ri-accettazione, flag spento
+
+L'invito può mostrare una casella di presa visione dell'informativa lavoratori, con il nome dell'azienda. All'ingresso, dashboard e workspace di campo possono chiedere di nuovo i documenti se la versione è cambiata. Il flag resta false: nessuna casella, nessuna chiamata. `getInvitoPubblico` nel codice legge anche il nome azienda; non è deployata. Il cellulare dell'invito resta com'è. Nessuna modifica a `firestore.rules`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-11 — Caselle di registrazione pronte, ancora spente.**
+
+## 2026-10-11 — Registrazione: caselle legali pronte, flag spento
+
+La registrazione può mostrare due caselle (termini e privacy, poi il DPA) e un link Cookie, e registrarle dopo la creazione dell'account. Il flag resta false: la pagina è identica a prima, nessuna casella e nessuna chiamata. La function è nel codice e non è deployata. Nessuna modifica a `firestore.rules`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-11 — Base accettazione legale, spenta.**
+
+## 2026-10-11 — Accettazione legale preparata, ancora spenta
+
+Preparata la base per l'accettazione legale, spenta. Il flag resta false: registrazione e invito si comportano come oggi. Nessuna casella, nessuna chiamata, nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-11 — Testo della coda ore e ore in ritardo.**
+
+## 2026-10-11 — Coda del manager e ore dopo il completamento
+
+Se il manager non ha ore da validare lui, la pagina non dice più che sono state tutte validate. Dice «Nessuna ora da validare da te». Se restano ore degli operai sui lavori di squadra, aggiunge «N ore in attesa dei capisquadra». Il caposquadra legge il testo di prima. Chi valida cosa non è cambiato.
+
+Un lavoro completato, o in attesa di approvazione, non accetta più ore fuori dalla finestra di 7 giorni nemmeno da desktop: il form avvisa subito, disattiva Salva, e il servizio rifiuta il salvataggio. Sul telefono il controllo c’era già. Cambiando la data, «Le tue ore del…» segue subito il giorno scelto, senza aspettare la lettura. Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-11 — I lavori chiusi restano selezionabili per le ore.**
+
+## 2026-10-11 — Ore su un lavoro completato o in attesa
+
+Un lavoro completato, o in attesa di approvazione, resta nel menu «Lavori assegnati» per 7 giorni. In elenco si legge «completato» o «in attesa approvazione». Operaio, caposquadra e manager possono segnare le proprie ore dei giorni in cui il lavoro era ancora aperto, non i giorni dopo la chiusura. I lavori sospesi restano fuori dal menu, come prima. Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-10 — Il campo non apre più una finestra a parte.**
 
 ## 2026-10-10 — Campo: niente finestra intera, niente lampo del menu, ore silenziose
 

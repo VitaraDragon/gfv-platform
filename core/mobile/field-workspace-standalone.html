@@ -5,7 +5,7 @@
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Versione mobile — GFV</title>
+    <title data-i18n="page.title">Versione mobile — GFV</title>
     <script>try{if(localStorage.getItem('gfv_demo_cloud_session')==='1'){localStorage.removeItem('gfv_firebase_emulator');}else if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1'){localStorage.setItem('gfv_firebase_emulator','1');}}catch(e){}</script>
     <link rel="manifest" href="../../manifest.json">
     <meta name="theme-color" content="#2E8B57">
@@ -23,15 +23,20 @@
                 <span class="field-toolbar-user-roles" id="field-toolbar-user-roles"></span>
             </div>
             <div class="field-options-wrap">
-                <button class="field-icon-toggle" id="btn-open-options" type="button" aria-label="Opzioni" title="Opzioni">⚙️</button>
+                <button class="field-icon-toggle" id="btn-open-options" type="button" aria-label="Opzioni" title="Opzioni" data-i18n-aria="menu.options" data-i18n-title="menu.options">⚙️</button>
                 <div class="field-options-menu" id="field-options-menu" hidden data-pronto="0">
-                    <p id="field-options-preparing" class="field-options-note">Sto preparando il workspace…</p>
-                    <a id="field-documentation-guide-link" href="../../documentazione-utente/guida-manodopera-utente.html?ruolo=operaio&amp;soloRuolo=1" class="field-options-link" target="_blank" rel="opener" aria-disabled="true">Guida Manodopera</a>
-                    <a id="field-validazione-ore-link" href="../admin/validazione-ore-standalone.html?from=field" class="field-options-link" hidden aria-disabled="true">Validazione ore (schermo intero)</a>
-                    <a id="field-segnala-guasto-link" href="../admin/segnalazione-guasti-standalone.html?from=field" class="field-options-link" hidden aria-disabled="true">Segnala guasto</a>
-                    <a href="../admin/impostazioni-standalone.html" class="field-options-link" aria-disabled="true">Impostazioni account</a>
-                    <button type="button" id="field-switch-tenant-button" class="field-options-link" hidden aria-disabled="true">Cambia azienda</button>
-                    <button type="button" id="field-logout-button" class="field-options-link">Esci</button>
+                    <div id="field-lang-switch" style="display:flex;">
+                        <button type="button" class="field-options-link" data-field-lang="it" aria-pressed="true" style="flex:1;width:auto;text-align:center;pointer-events:auto;opacity:1;">Italiano</button>
+                        <button type="button" class="field-options-link" data-field-lang="ro" aria-pressed="false" style="flex:1;width:auto;text-align:center;pointer-events:auto;opacity:1;">Română</button>
+                        <button type="button" class="field-options-link" data-field-lang="en" aria-pressed="false" style="flex:1;width:auto;text-align:center;pointer-events:auto;opacity:1;">English</button>
+                    </div>
+                    <p id="field-options-preparing" class="field-options-note" data-i18n="menu.preparing">Sto preparando il workspace…</p>
+                    <a id="field-documentation-guide-link" href="../../documentazione-utente/guida-manodopera-utente.html?ruolo=operaio&amp;soloRuolo=1" class="field-options-link" target="_blank" rel="opener" aria-disabled="true" data-i18n="menu.guide">Guida Manodopera</a>
+                    <a id="field-validazione-ore-link" href="../admin/validazione-ore-standalone.html?from=field" class="field-options-link" hidden aria-disabled="true" data-i18n="menu.validation">Validazione ore (schermo intero)</a>
+                    <a id="field-segnala-guasto-link" href="../admin/segnalazione-guasti-standalone.html?from=field" class="field-options-link" hidden aria-disabled="true" data-i18n="menu.fault">Segnala guasto</a>
+                    <a href="../admin/impostazioni-standalone.html" class="field-options-link" aria-disabled="true" data-i18n="menu.account">Impostazioni account</a>
+                    <button type="button" id="field-switch-tenant-button" class="field-options-link" hidden aria-disabled="true" data-i18n="menu.switchTenant">Cambia azienda</button>
+                    <button type="button" id="field-logout-button" class="field-options-link" data-i18n="menu.logout">Esci</button>
                 </div>
             </div>
         </div>
@@ -43,66 +48,66 @@
             <article class="field-slide" data-slide-title="Lavoro">
                 <div class="slide-head slide-head-brand">
                     <div class="slide-head-text">
-                        <h2>Seleziona lavoro</h2>
-                        <p>Scegli il lavoro corrente, poi scorri a sinistra per il flusso operativo.</p>
+                        <h2 data-i18n="slide.lavoro.title">Seleziona lavoro</h2>
+                        <p data-i18n="slide.lavoro.sub">Scegli il lavoro corrente, poi scorri a sinistra per il flusso operativo.</p>
                     </div>
                 </div>
                 <div class="slide-body slide-body-brand">
                     <div class="work-select-card gfv-card-inner">
-                        <label for="selected-work" class="label-inline">Lavori assegnati</label>
+                        <label for="selected-work" class="label-inline" data-i18n="lavoro.assigned">Lavori assegnati</label>
                         <select id="selected-work" class="field-input">
-                            <option value="">Caricamento lavori...</option>
+                            <option value="" data-i18n="lavoro.loading">Caricamento lavori...</option>
                         </select>
                         <small id="gps-suggestion" class="hint-text"></small>
                         <div id="lavoro-sostituto-banner" class="inline-sostituto-banner" hidden></div>
                     </div>
                     <section id="inline-pieno-section" class="inline-team-section" hidden>
-                        <h3 class="inline-team-title">⛽ Pieno</h3>
-                        <p class="inline-team-subtitle">Segna i litri prima di partire. Vale per il mezzo di questo lavoro, non per una lavorazione a mano.</p>
+                        <h3 class="inline-team-title" data-i18n="pieno.title">⛽ Pieno</h3>
+                        <p class="inline-team-subtitle" data-i18n="pieno.sub">Segna i litri prima di partire. Vale per il mezzo di questo lavoro, non per una lavorazione a mano.</p>
                         <form id="pieno-campo-form" class="gfv-card-inner">
                             <p id="pieno-mezzo-label" class="hint-text"></p>
-                            <label for="pieno-prodotto" class="label-inline">Carburante</label>
+                            <label for="pieno-prodotto" class="label-inline" data-i18n="pieno.fuel">Carburante</label>
                             <select id="pieno-prodotto" class="field-input" required>
-                                <option value="">Caricamento...</option>
+                                <option value="" data-i18n="pieno.loading">Caricamento...</option>
                             </select>
-                            <label for="pieno-litri" class="label-inline">Litri</label>
+                            <label for="pieno-litri" class="label-inline" data-i18n="pieno.liters">Litri</label>
                             <input id="pieno-litri" class="field-input" type="number" min="0.1" step="0.1" inputmode="decimal" required>
-                            <button type="submit" class="field-mobile-btn primary">Registra pieno</button>
+                            <button type="submit" class="field-mobile-btn primary" data-i18n="pieno.submit">Registra pieno</button>
                             <small id="pieno-status" class="hint-text"></small>
                         </form>
                     </section>
                     <section id="inline-team-section" class="inline-team-section" hidden>
-                        <h3 class="inline-team-title">👥 La mia squadra</h3>
-                        <p class="inline-team-subtitle">Tocca un nome per chiamare o inviare email.</p>
+                        <h3 class="inline-team-title" data-i18n="squad.title">👥 La mia squadra</h3>
+                        <p class="inline-team-subtitle" data-i18n="squad.sub">Tocca un nome per chiamare o inviare email.</p>
                         <div id="squad-members-list" class="squad-members-list">
-                            <div class="empty-state-inline" id="squad-members-placeholder">Caricamento squadra...</div>
+                            <div class="empty-state-inline" id="squad-members-placeholder" data-i18n="squad.loading">Caricamento squadra...</div>
                         </div>
                     </section>
                     <section id="inline-validate-hours-section" class="inline-team-section" hidden>
-                        <h3 class="inline-team-title">🕒 Valida ore</h3>
-                        <p class="inline-team-subtitle">Conferma o rifiuta le ore in attesa per il lavoro selezionato.</p>
+                        <h3 class="inline-team-title" data-i18n="valida.inlineTitle">🕒 Valida ore</h3>
+                        <p class="inline-team-subtitle" data-i18n="valida.inlineSub">Conferma o rifiuta le ore in attesa per il lavoro selezionato.</p>
                         <div id="pending-hours-list" class="inline-list-card">
-                            <div class="empty-state-inline">Seleziona un lavoro per vedere le ore da validare.</div>
+                            <div class="empty-state-inline" data-i18n="valida.pickWork">Seleziona un lavoro per vedere le ore da validare.</div>
                         </div>
                     </section>
                     <section id="inline-segnala-assenza-section" class="inline-team-section" hidden>
-                        <h3 class="inline-team-title">🚫 Segnala assenza</h3>
-                        <p class="inline-team-subtitle">Avvisa il manager: il lavoro passa in standby dopo la conferma.</p>
+                        <h3 class="inline-team-title" data-i18n="assenza.title">🚫 Segnala assenza</h3>
+                        <p class="inline-team-subtitle" data-i18n="assenza.sub">Avvisa il manager: il lavoro passa in standby dopo la conferma.</p>
                         <form id="segnala-assenza-form" class="gfv-card-inner">
-                            <label for="assenza-segnala-operaio" class="label-inline">Operaio</label>
+                            <label for="assenza-segnala-operaio" class="label-inline" data-i18n="assenza.worker">Operaio</label>
                             <select id="assenza-segnala-operaio" class="field-input" required></select>
-                            <label for="assenza-segnala-tipo" class="label-inline">Tipo</label>
+                            <label for="assenza-segnala-tipo" class="label-inline" data-i18n="assenza.type">Tipo</label>
                             <select id="assenza-segnala-tipo" class="field-input">
-                                <option value="malattia">Malattia</option>
-                                <option value="ferie">Ferie</option>
-                                <option value="permesso">Permesso</option>
-                                <option value="altro">Altro</option>
+                                <option value="malattia" data-i18n="assenza.sick">Malattia</option>
+                                <option value="ferie" data-i18n="assenza.holiday">Ferie</option>
+                                <option value="permesso" data-i18n="assenza.leave">Permesso</option>
+                                <option value="altro" data-i18n="assenza.other">Altro</option>
                             </select>
-                            <label for="assenza-segnala-giorno" class="label-inline">Giorno</label>
+                            <label for="assenza-segnala-giorno" class="label-inline" data-i18n="assenza.day">Giorno</label>
                             <input id="assenza-segnala-giorno" class="field-input" type="date" required>
-                            <label for="assenza-segnala-nota" class="label-inline">Nota</label>
-                            <textarea id="assenza-segnala-nota" class="field-input" rows="2" placeholder="Es. febbre"></textarea>
-                            <button type="submit" class="field-mobile-btn primary">Invia segnalazione</button>
+                            <label for="assenza-segnala-nota" class="label-inline" data-i18n="assenza.note">Nota</label>
+                            <textarea id="assenza-segnala-nota" class="field-input" rows="2" placeholder="Es. febbre" data-i18n-placeholder="assenza.placeholder"></textarea>
+                            <button type="submit" class="field-mobile-btn primary" data-i18n="assenza.submit">Invia segnalazione</button>
                             <small id="assenza-segnala-status" class="hint-text"></small>
                         </form>
                     </section>
@@ -112,16 +117,16 @@
             <article class="field-slide operaio-only" data-slide-title="Comunicazioni" hidden>
                 <div class="slide-head slide-head-brand">
                     <div class="slide-head-text">
-                        <h2>📣 Comunicazioni</h2>
-                        <p>Messaggi dal caposquadra per il tuo turno.</p>
+                        <h2 data-i18n="slide.commIn.title">📣 Comunicazioni</h2>
+                        <p data-i18n="slide.commIn.sub">Messaggi dal caposquadra per il tuo turno.</p>
                     </div>
                 </div>
                 <div class="slide-body slide-body-brand">
                     <section class="inline-team-section">
-                        <h3 class="inline-team-title">📬 Messaggi dal caposquadra</h3>
-                        <p class="inline-team-subtitle">Da confermare e già letti, dal più recente.</p>
+                        <h3 class="inline-team-title" data-i18n="comm.inboxTitle">📬 Messaggi dal caposquadra</h3>
+                        <p class="inline-team-subtitle" data-i18n="comm.inboxSub">Da confermare e già letti, dal più recente.</p>
                         <div id="received-communications-list" class="inline-list-card">
-                            <div class="empty-state-inline">Caricamento comunicazioni...</div>
+                            <div class="empty-state-inline" data-i18n="comm.loading">Caricamento comunicazioni...</div>
                         </div>
                         <button type="button" id="toggle-received-communications-history" class="communications-history-toggle" hidden>
                             Solo messaggi già confermati
@@ -134,28 +139,28 @@
             <article class="field-slide capo-only" data-slide-title="Comunicazioni" hidden>
                 <div class="slide-head slide-head-brand">
                     <div class="slide-head-text">
-                        <h2>📣 Comunicazioni squadra</h2>
-                        <p>Messaggio operativo rapido alla squadra.</p>
+                        <h2 data-i18n="slide.commOut.title">📣 Comunicazioni squadra</h2>
+                        <p data-i18n="slide.commOut.sub">Messaggio operativo rapido alla squadra.</p>
                     </div>
                 </div>
                 <div class="slide-body slide-body-brand">
                     <form id="quick-communication-form" class="quick-comm-form gfv-card-inner">
-                        <label for="quick-work-select" class="label-inline">Lavoro</label>
+                        <label for="quick-work-select" class="label-inline" data-i18n="comm.work">Lavoro</label>
                         <select id="quick-work-select" class="field-input"></select>
-                        <label for="quick-comm-date" class="label-inline">Data</label>
+                        <label for="quick-comm-date" class="label-inline" data-i18n="comm.date">Data</label>
                         <input id="quick-comm-date" class="field-input" type="date">
-                        <label for="quick-comm-time" class="label-inline">Orario</label>
+                        <label for="quick-comm-time" class="label-inline" data-i18n="comm.time">Orario</label>
                         <input id="quick-comm-time" class="field-input" type="time" value="07:00">
-                        <label for="quick-comm-message" class="label-inline">Messaggio</label>
-                        <textarea id="quick-comm-message" class="field-input" rows="4" placeholder="Es. iniziamo dal lato nord, priorità al filare 4"></textarea>
-                        <button type="submit" class="field-mobile-btn primary">Invia comunicazione</button>
+                        <label for="quick-comm-message" class="label-inline" data-i18n="comm.message">Messaggio</label>
+                        <textarea id="quick-comm-message" class="field-input" rows="4" placeholder="Es. iniziamo dal lato nord, priorità al filare 4" data-i18n-placeholder="comm.placeholder"></textarea>
+                        <button type="submit" class="field-mobile-btn primary" data-i18n="comm.submit">Invia comunicazione</button>
                         <small id="quick-comm-status" class="hint-text"></small>
                     </form>
                     <section class="inline-team-section">
-                        <h3 class="inline-team-title">📨 In evidenza</h3>
-                        <p class="inline-team-subtitle">Invii con conferme in attesa o recenti.</p>
+                        <h3 class="inline-team-title" data-i18n="comm.highlightTitle">📨 In evidenza</h3>
+                        <p class="inline-team-subtitle" data-i18n="comm.highlightSub">Invii con conferme in attesa o recenti.</p>
                         <div id="sent-communications-list" class="inline-list-card">
-                            <div class="empty-state-inline">Nessuna comunicazione inviata.</div>
+                            <div class="empty-state-inline" data-i18n="comm.noneSent">Nessuna comunicazione inviata.</div>
                         </div>
                         <button type="button" id="toggle-sent-communications-history" class="communications-history-toggle" hidden>
                             Vedi comunicazioni precedenti
@@ -168,20 +173,20 @@
             <article class="field-slide capo-only" data-slide-title="Valida ore" hidden>
                 <div class="slide-head slide-head-brand">
                     <div class="slide-head-text">
-                        <h2>✅ Valida ore</h2>
-                        <p>Approva o rifiuta le ore segnate dagli operai della squadra.</p>
+                        <h2 data-i18n="slide.valida.title">✅ Valida ore</h2>
+                        <p data-i18n="slide.valida.sub">Approva o rifiuta le ore segnate dagli operai della squadra.</p>
                     </div>
                 </div>
                 <div class="slide-body slide-body-brand">
                     <section class="inline-team-section">
-                        <h3 class="inline-team-title">🕒 In attesa di validazione</h3>
-                        <p class="inline-team-subtitle">Tutti i tuoi lavori di squadra. Per filtri avanzati apri la validazione completa.</p>
+                        <h3 class="inline-team-title" data-i18n="valida.waitingTitle">🕒 In attesa di validazione</h3>
+                        <p class="inline-team-subtitle" data-i18n="valida.waitingSub">Tutti i tuoi lavori di squadra. Per filtri avanzati apri la validazione completa.</p>
                         <div id="pending-hours-all-list" class="inline-list-card">
-                            <div class="empty-state-inline">Caricamento ore da validare...</div>
+                            <div class="empty-state-inline" data-i18n="valida.loading">Caricamento ore da validare...</div>
                         </div>
                         <div class="work-actions" style="margin-top: 12px;">
-                            <button type="button" id="btn-refresh-pending-hours" class="field-mobile-btn">Aggiorna elenco</button>
-                            <a href="../admin/validazione-ore-standalone.html?from=field" class="field-link-btn">Apri validazione completa</a>
+                            <button type="button" id="btn-refresh-pending-hours" class="field-mobile-btn" data-i18n="valida.refresh">Aggiorna elenco</button>
+                            <a href="../admin/validazione-ore-standalone.html?from=field" class="field-link-btn" data-i18n="valida.openFull">Apri validazione completa</a>
                         </div>
                     </section>
                 </div>
@@ -190,39 +195,40 @@
             <article class="field-slide" data-slide-title="Ore">
                 <div class="slide-head slide-head-brand">
                     <div class="slide-head-text">
-                        <h2>⏱️ Segna ore</h2>
-                        <p>Le ore vengono calcolate automaticamente dagli orari impostati.</p>
+                        <h2 data-i18n="slide.ore.title">⏱️ Segna ore</h2>
+                        <p data-i18n="slide.ore.sub">Le ore vengono calcolate automaticamente dagli orari impostati.</p>
                     </div>
                 </div>
                 <div class="slide-body slide-body-brand">
                     <form id="quick-hours-form" class="quick-comm-form gfv-card-inner">
-                        <label for="ora-data" class="label-inline">Data lavoro</label>
+                        <label for="ora-data" class="label-inline" data-i18n="ore.date">Data lavoro</label>
                         <input id="ora-data" class="field-input" type="date" required>
-                        <label for="ora-start" class="label-inline">Orario inizio</label>
+                        <p id="ora-fuori-finestra" class="hint-text" hidden style="color:#b91c1c;margin:4px 0 8px;"></p>
+                        <label for="ora-start" class="label-inline" data-i18n="ore.start">Orario inizio</label>
                         <input id="ora-start" class="field-input" type="time" required>
-                        <label for="ora-end" class="label-inline">Orario fine</label>
+                        <label for="ora-end" class="label-inline" data-i18n="ore.end">Orario fine</label>
                         <input id="ora-end" class="field-input" type="time" required>
-                        <label for="ora-break" class="label-inline">Pausa (minuti)</label>
+                        <label for="ora-break" class="label-inline" data-i18n="ore.break">Pausa (minuti)</label>
                         <input id="ora-break" class="field-input" type="number" min="0" step="1" value="0">
                         <div class="hours-highlight">
-                            <span>Ore nette calcolate</span>
+                            <span data-i18n="ore.net">Ore nette calcolate</span>
                             <strong id="ora-net-hours">0.00</strong>
                         </div>
-                        <label for="ora-note" class="label-inline">Note (opzionale)</label>
-                        <textarea id="ora-note" class="field-input" rows="3" placeholder="Note turno"></textarea>
-                        <button type="button" id="ore-annulla-modifica" class="field-mobile-btn" hidden>Annulla modifica</button>
-                        <button type="submit" class="field-mobile-btn primary">Salva ore lavorate</button>
+                        <label for="ora-note" class="label-inline" data-i18n="ore.note">Note (opzionale)</label>
+                        <textarea id="ora-note" class="field-input" rows="3" placeholder="Note turno" data-i18n-placeholder="ore.notePlaceholder"></textarea>
+                        <button type="button" id="ore-annulla-modifica" class="field-mobile-btn" hidden data-i18n="ore.cancel">Annulla modifica</button>
+                        <button type="submit" class="field-mobile-btn primary" data-i18n="ore.submit">Salva ore lavorate</button>
                         <small id="hours-save-status" class="hint-text"></small>
                     </form>
                     <div id="ore-giorno-riepilogo" data-state="idle" class="gfv-card-inner" style="margin-top:12px;"></div>
                     <div id="ore-sovrapposizione-msg" hidden style="margin-top:8px;padding:10px;background:#fff3cd;border-radius:8px;"></div>
                     <section class="inline-team-section">
-                        <h3 class="inline-team-title">📌 Dettaglio lavoro operativo</h3>
-                        <p class="inline-team-subtitle">Ordini manager, stato tabella di marcia, traccia zone e sospensione lavoro.</p>
+                        <h3 class="inline-team-title" data-i18n="ore.detailTitle">📌 Dettaglio lavoro operativo</h3>
+                        <p class="inline-team-subtitle" data-i18n="ore.detailSub">Ordini manager, stato tabella di marcia, traccia zone e sospensione lavoro.</p>
                         <div id="field-lavori-detail-wrap" class="field-lavori-detail-wrap">
                             <iframe id="lavori-detail-frame" class="slide-frame frame-lavori-detail" title="Dettaglio lavoro" loading="lazy"></iframe>
                             <div class="work-actions">
-                                <button type="button" id="btn-ingrandisci-lavoro" class="field-link-btn" aria-pressed="false">Ingrandisci</button>
+                                <button type="button" id="btn-ingrandisci-lavoro" class="field-link-btn" aria-pressed="false" data-i18n="lavoro.expand">Ingrandisci</button>
                             </div>
                         </div>
                     </section>
@@ -232,43 +238,59 @@
             <article class="field-slide" data-slide-title="Statistiche">
                 <div class="slide-head slide-head-brand">
                     <div class="slide-head-text">
-                        <h2>📊 Statistiche</h2>
-                        <p>Le tue ore e la ripartizione sui tipi di lavoro (solo account manodopera).</p>
+                        <h2 data-i18n="slide.stats.title">📊 Statistiche</h2>
+                        <p data-i18n="slide.stats.sub">Le tue ore e la ripartizione sui tipi di lavoro (solo account manodopera).</p>
                     </div>
                 </div>
                 <div class="slide-body slide-body-brand slide-body-iframe-tall">
                     <div id="stats-embed-fallback" class="stats-embed-fallback" hidden>
-                        <p>Non riesco a caricare le statistiche. Riprova.</p>
-                        <button type="button" id="btn-retry-statistiche" class="field-mobile-btn">Riprova</button>
+                        <p data-i18n="stats.fail">Non riesco a caricare le statistiche. Riprova.</p>
+                        <button type="button" id="btn-retry-statistiche" class="field-mobile-btn" data-i18n="lavoro.retry">Riprova</button>
                     </div>
-                    <p id="stats-avanzamento" class="inline-team-subtitle">Carico le tue ore…</p>
+                    <p id="stats-avanzamento" class="inline-team-subtitle" data-i18n="stats.loading">Carico le tue ore…</p>
                     <iframe id="stats-embed-frame" class="slide-frame frame-summary" title="Le tue statistiche"></iframe>
                 </div>
             </article>
         </section>
 
         <nav class="field-bottom-nav">
-            <button id="btn-prev-slide" class="field-mobile-btn" type="button">Indietro</button>
+            <button id="btn-prev-slide" class="field-mobile-btn" type="button" data-i18n="nav.back">Indietro</button>
             <div id="slide-dots" class="slide-dots"></div>
-            <button id="btn-next-slide" class="field-mobile-btn primary" type="button">Avanti</button>
+            <button id="btn-next-slide" class="field-mobile-btn primary" type="button" data-i18n="nav.next">Avanti</button>
         </nav>
     </main>
 
     <div id="operaio-contact-modal" class="field-modal" hidden aria-hidden="true">
         <div class="field-modal-backdrop" data-close-modal tabindex="-1"></div>
         <div class="field-modal-panel" role="dialog" aria-modal="true" aria-labelledby="operaio-contact-name">
-            <button type="button" class="field-modal-close" data-close-modal aria-label="Chiudi">&times;</button>
+            <button type="button" class="field-modal-close" data-close-modal aria-label="Chiudi" data-i18n-aria="contact.close">&times;</button>
             <h3 id="operaio-contact-name" class="field-modal-title"></h3>
             <p id="operaio-contact-sub" class="field-modal-sub"></p>
             <div class="field-modal-actions">
-                <a id="operaio-contact-call" class="field-icon-action phone" href="#" title="Chiama" aria-label="Chiama">📞 Chiama</a>
-                <a id="operaio-contact-mail" class="field-icon-action mail" href="#" title="Email" aria-label="Invia email">✉️ Email</a>
+                <a id="operaio-contact-call" class="field-icon-action phone" href="#" title="Chiama" aria-label="Chiama" data-i18n="contact.callLabel" data-i18n-title="contact.call" data-i18n-aria="contact.call">📞 Chiama</a>
+                <a id="operaio-contact-mail" class="field-icon-action mail" href="#" title="Email" aria-label="Invia email" data-i18n="contact.mailLabel" data-i18n-title="contact.mailTitle" data-i18n-aria="contact.mailAria">✉️ Email</a>
             </div>
         </div>
     </div>
 
     <script src="../js/dashboard-utils.js"></script>
     <script type="module" src="../js/standalone-bootstrap.js" data-config-base="../"></script>
+    <script type="module">
+        try {
+            const config = await import('../config/accettazione-legale-config.js');
+            if (config.ACCETTAZIONE_LEGALE_ATTIVA === true) {
+                const legale = await import('../services/accettazione-legale.js');
+                if (legale.validaConfigLegale(config, true).ok) {
+                    const gate = await import('../js/accettazione-legale-gate.js');
+                    await gate.avviaDaFirebase({ config: config });
+                } else {
+                    console.warn('[accettazione-legale] config non valida, ingresso invariato');
+                }
+            }
+        } catch (error) {
+            console.warn('[accettazione-legale] ingresso invariato');
+        }
+    </script>
     <script type="module" src="./js/field-workspace-controller.js"></script>
 </body>
 </html>

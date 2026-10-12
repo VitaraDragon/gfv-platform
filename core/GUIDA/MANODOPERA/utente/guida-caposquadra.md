@@ -134,6 +134,8 @@ Nella scheda **Comunicazioni** trovi il modulo **Comunicazioni squadra**: non è
 
 Nella scheda **Ore**, in alto, c’è il modulo **Segna ore** per registrare **il tuo turno** (sei un utente come gli altri dal punto di vista delle ore). Se lo chiedi a Tony e due lavori hanno lo stesso nome, prende quello di oggi oppure chiede quale. Non apre il modulo sul primo della lista. Il riepilogo dice sempre il nome del lavoro. Accanto alla data c’è il giorno in italiano, per esempio «giovedì 08/10/2026». Su un lavoro sospeso non si segnano ore nuove: Tony lo dice e, se c’è, indica la ripresa. In elenco il lavoro sospeso ha il badge Sospeso. «Tutto pronto» dice anche il giorno, per esempio «oggi 09/10». Se non dici la data, Tony usa oggi e non tiene quella del messaggio prima. Dopo Annulla, un «sì» non salva. Tony dice «Fatto» quando l'ora è salvata, anche se è in attesa del caposquadra. Se il salvataggio fallisce, dice il motivo. Una domanda vecchia «Vuoi salvare?» non resta aperta. Il riepilogo del giorno si aggiorna subito dopo il salvataggio o l'eliminazione. Dopo un ricarico, quella domanda e la frase «Questa richiesta è scaduta» non tornano in chat. Se nomini un lavoro che non c’è o è già finito, Tony dice «Non trovo un lavoro attivo con questo nome» ed elenca quelli su cui puoi segnare; non ti propone un lavoro sospeso che non c’entra con quello che hai detto.
 
+Un lavoro **completato** o **in attesa di approvazione** resta in **Lavori assegnati** per **7 giorni**, con la scritta «completato» o «in attesa approvazione». Segni solo le **tue** ore, e solo per i giorni in cui il lavoro era ancora aperto.
+
 ### Passi
 
 1. Compila **Data lavoro**.  

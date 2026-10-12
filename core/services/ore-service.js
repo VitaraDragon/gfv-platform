@@ -10,6 +10,7 @@ import {
 } from './tenant-service.js';
 import { getCurrentUserData } from './auth-service.js';
 import { isOraDelCaposquadraSuLavoroSquadra, assertUtentePuoValidareOra } from './manodopera-ore-validazione-scope.js';
+import { lavoroSelezionabilePerOre } from './ore-lavoro-selezionabile.js';
 import {
   calcolaOreNette as calcolaOreNettePura,
   formattaOreMinuti,
@@ -463,6 +464,45 @@ function richiediContesto(db, tenantId, user) {
   return { userId, ...ruoliUtente(user) };
 }
 
+function ruoloPerSelezioneOre(user) {
+  const ruoli = ruoliUtente(user);
+  if (ruoli.isManager) return 'manager';
+  if (ruoli.isCaposquadra) return 'caposquadra';
+  if (ruoli.isOperaio) return 'operaio';
+  return '';
+}
+
+/**
+ * Intestazione del riquadro ore. L'etichetta del giorno la prepara la pagina
+ * (breve sul campo, lunga in ufficio).
+ * @param {string} [etichetta]
+ * @returns {string}
+ */
+export function testoIntestazioneOreDelGiorno(etichetta) {
+  return `Le tue ore del ${etichetta == null ? '' : String(etichetta)}`;
+}
+
+/**
+ * Su un lavoro chiuso, il giorno deve stare nella finestra già usata dal menu.
+ * Senza un ruolo noto non blocca. Gli altri stati restano come oggi.
+ * @param {object} lavoro
+ * @param {object} user
+ * @param {string} giornoKey
+ */
+export function assertGiornoOreAmmesso(lavoro, user, giornoKey) {
+  const stato = lavoro && lavoro.stato;
+  if (stato !== 'completato' && stato !== 'completato_da_approvare') return;
+  const ruolo = ruoloPerSelezioneOre(user);
+  if (!ruolo) return;
+  const esito = lavoroSelezionabilePerOre({
+    lavoro,
+    ruolo,
+    oggi: new Date(),
+    giorno: giornoKey
+  });
+  if (!esito.ok) throw new Error(esito.motivo);
+}
+
 async function firebaseOre() {
   return import('./firebase-service.js');
 }
@@ -587,6 +627,7 @@ export async function salvaNuovaOra(db, tenantId, user, oraData) {
   const norm = normalizzaPayloadOra(oraData);
   const { collection, addDoc, doc, getDoc, Timestamp, serverTimestamp } = await firebaseOre();
   const lavoro = await leggiLavoro(db, doc, getDoc, tenantId, oraData.lavoroId);
+  assertGiornoOreAmmesso(lavoro, user, norm.giornoKey);
   const candidata = {
     operaioId: userId,
     data: norm.giornoKey,
@@ -652,7 +693,11 @@ export async function modificaOraPropria(db, tenantId, user, lavoroId, oraId, pa
     oreMacchina: patch && Object.prototype.hasOwnProperty.call(patch, 'oreMacchina') ? patch.oreMacchina : ora.oreMacchina,
     posizioneRilevamento: patch && patch.posizioneRilevamento ? patch.posizioneRilevamento : null
   };
+  const giornoPrima = chiaveGiornoOra(ora.data);
   const norm = normalizzaPayloadOra(unito);
+  if (norm.giornoKey && norm.giornoKey !== giornoPrima) {
+    assertGiornoOreAmmesso(lavoro, user, norm.giornoKey);
+  }
   await assertNessunaSovrapposizione(db, tenantId, user, userId, {
     operaioId: userId,
     data: norm.giornoKey,

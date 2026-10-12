@@ -61,12 +61,12 @@ Con **Indietro** / **Avanti** in basso o i **puntini**:
 ### Passi
 
 1. Apri la scheda **Lavoro**.  
-2. Nel menu **Lavori assegnati** scegli l’incarico su cui stai lavorando **adesso**.  
+2. Nel menu **Lavori assegnati** scegli l’incarico su cui stai lavorando **adesso**. Un lavoro **completato** o **in attesa di approvazione** resta in elenco per **7 giorni** (scritta «completato» o «in attesa approvazione»): puoi segnare le ore dei giorni in cui era ancora aperto, non i giorni dopo la chiusura.  
 3. Se la lista è vuota: **contatta l’ufficio** per un incarico assegnabile.
 
 ### Elenco “corto” quando hai molti lavori
 
-Se hai **molti incarichi** aperti, l’app può mostrarti nel menu solo un **sottoinsieme** di lavori vicini a quello “in corso” o a quello che hai selezionato di recente.
+Se hai **molti incarichi** aperti, l’app può mostrarti nel menu solo un **sottoinsieme** di lavori vicini a quello “in corso” o a quello che hai selezionato di recente. Un lavoro chiuso da pochi giorni resta comunque in elenco.
 
 - Se **non vedi** un incarico che ti aspetti, prova a cambiare selezione o ad aggiornare; se ancora manca, **chiedi in ufficio**.
 

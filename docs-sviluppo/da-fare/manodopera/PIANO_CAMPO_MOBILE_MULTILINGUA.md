@@ -430,7 +430,7 @@ Fino alla Fase 3 il punto 3 può essere «legge la cornice in rumeno e il messag
 |------|--------|
 | 0 Documento | **fatto** 2026-09-19 |
 | 1 Home unica + guasti in mobile | **fatto** 2026-10-10 (step b: niente toggle, niente ingresso desktop per il profilo campo, «Apro il tuo lavoro…», indirizzo desktop digitato a mano → workspace). Guasti, logout e cambio azienda erano già nello step a) |
-| 2 Cornice IT/RO/EN | pianificato |
+| 2 Cornice IT/RO/EN | cornice workspace fatta, login escluso |
 | 3 Traduci comunicazioni | pianificato |
 | 4 Push nella lingua destinatario | pianificato |
 | 5 Opzionali (FR, guide, Tony voce) | non in scope finché non richiesti |
