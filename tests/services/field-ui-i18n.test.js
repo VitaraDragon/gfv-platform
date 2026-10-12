@@ -21,12 +21,26 @@ function memoria(iniziale) {
 }
 
 describe('field-ui-i18n helper', () => {
-    it('normalizza solo it, ro, en', () => {
+    it('normalizza solo it, ro, en e sq', () => {
         expect(normalizzaLingua('fr')).toBe('it');
+        expect(normalizzaLingua(undefined)).toBe('it');
         expect(normalizzaLingua('EN')).toBe('en');
         expect(normalizzaLingua(' ro ')).toBe('ro');
+        expect(normalizzaLingua('SQ')).toBe('sq');
         expect(normalizzaLingua('')).toBe('it');
         expect(normalizzaLingua(null)).toBe('it');
+    });
+
+    it('sq restituisce l’albanese e, se manca, torna all’italiano', () => {
+        expect(t('menu.logout', 'sq')).toBe('Dilni');
+        expect(t('menu.lingua', 'sq')).toBe('Gjuha');
+        const salvato = FIELD_UI_STRINGS['menu.logout'].sq;
+        delete FIELD_UI_STRINGS['menu.logout'].sq;
+        try {
+            expect(t('menu.logout', 'sq')).toBe('Esci');
+        } finally {
+            FIELD_UI_STRINGS['menu.logout'].sq = salvato;
+        }
     });
 
     it('lingua sconosciuta e chiave assente in rumeno tornano all\'italiano', () => {
@@ -50,7 +64,8 @@ describe('field-ui-i18n helper', () => {
         FIELD_UI_STRINGS['toast.prova'] = {
             it: 'Inviati {n} di {count}',
             ro: 'Trimise {n} din {count}',
-            en: 'Sent {n} of {count}'
+            en: 'Sent {n} of {count}',
+            sq: 'U dërguan {n} nga {count}'
         };
         try {
             expect(t('toast.prova', 'en', { n: 2, count: 5 })).toBe('Sent 2 of 5');

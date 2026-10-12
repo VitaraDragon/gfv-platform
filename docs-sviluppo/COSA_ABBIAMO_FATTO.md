@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-11 — Lingua del campo, cornice del workspace.**
+**Ultimo aggiornamento documentazione: 2026-10-12 — Albanese nel workspace di campo.**
+
+## 2026-10-12 — Workspace campo: albanese e voce Lingua
+
+Nel menu ⚙️ c’è una voce Lingua. Si apre un elenco con Italiano, Română, English e Shqip. Con italiano la pagina resta uguale a prima. L’albanese è una bozza da rivedere da un madrelingua. La scelta resta sul telefono, non sul profilo. Arabo e punjabi restano fuori.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-11 — Lingua del campo, cornice del workspace.**
 
 ## 2026-10-11 — Workspace campo: testi rimasti (passo 2)
 
