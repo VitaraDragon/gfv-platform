@@ -12,7 +12,7 @@ export const FIELD_LANG_STORAGE_KEY = 'gfv_field_lang';
 
 /**
  * @param {unknown} v
- * @returns {'it'|'ro'|'en'|'sq'}
+ * @returns {'it'|'ro'|'en'|'sq'|'fr'}
  */
 export function normalizzaLingua(v) {
     const s = String(v == null ? '' : v).trim().toLowerCase();
@@ -51,7 +51,7 @@ export function t(key, lang, params) {
 
 /**
  * @param {{ getItem?: (k: string) => string|null }|null|undefined} storage
- * @returns {'it'|'ro'|'en'|'sq'}
+ * @returns {'it'|'ro'|'en'|'sq'|'fr'}
  */
 export function leggiLinguaCampo(storage) {
     try {
@@ -65,7 +65,7 @@ export function leggiLinguaCampo(storage) {
 /**
  * @param {string} lang
  * @param {{ setItem?: (k: string, v: string) => void }|null|undefined} storage
- * @returns {'it'|'ro'|'en'|'sq'}
+ * @returns {'it'|'ro'|'en'|'sq'|'fr'}
  */
 export function salvaLinguaCampo(lang, storage) {
     const lingua = normalizzaLingua(lang);

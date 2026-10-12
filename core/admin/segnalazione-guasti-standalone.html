@@ -374,8 +374,8 @@
     <div class="container">
         <div class="header">
             <div>
-                <h1>🔧 Segnalazione Guasti</h1>
-                <p>Segnala guasti alle macchine e gestisci le risoluzioni</p>
+                <h1 data-i18n="guasto.pageTitle">🔧 Segnalazione Guasti</h1>
+                <p data-i18n="guasto.pageSub">Segnala guasti alle macchine e gestisci le risoluzioni</p>
             </div>
             <div class="header-actions">
                 <a id="guasti-back-link" href="../dashboard-standalone.html" class="btn btn-primary">← Dashboard</a>
@@ -400,165 +400,159 @@
 
         <!-- Sezione Segnala Nuovo Guasto -->
         <div class="content">
-            <h2 class="section-title">Segnala Nuovo Guasto / Segnalazione</h2>
+            <h2 class="section-title" data-i18n="guasto.formTitle">Segnala Nuovo Guasto / Segnalazione</h2>
             <form id="segnala-guasto-form">
                 <div class="form-group" id="scelta-tipo-guasto">
-                    <label>Tipo di segnalazione *</label>
+                    <label data-i18n="guasto.kindLabel">Tipo di segnalazione *</label>
                     <div class="radio-group">
                         <div class="radio-option">
                             <input type="radio" id="tipo-macchina" name="tipoGuasto" value="macchina" required checked>
-                            <label for="tipo-macchina">🔧 Guasto Macchina/Attrezzo</label>
+                            <label for="tipo-macchina" data-i18n="guasto.kindMachine">🔧 Guasto Macchina/Attrezzo</label>
                         </div>
                         <div class="radio-option">
                             <input type="radio" id="tipo-generico" name="tipoGuasto" value="generico" required>
-                            <label for="tipo-generico">🌍 Segnalazione Generica</label>
+                            <label for="tipo-generico" data-i18n="guasto.kindGeneric">🌍 Segnalazione Generica</label>
                         </div>
                     </div>
-                    <small>Scegli se segnalare un guasto a macchina/attrezzo o una segnalazione generica (frane, voragini, problemi infrastrutturali, ecc.)</small>
+                    <small data-i18n="guasto.kindHint">Scegli se segnalare un guasto a macchina/attrezzo o una segnalazione generica (frane, voragini, problemi infrastrutturali, ecc.)</small>
                 </div>
 
                 <!-- Sezione Guasto Macchina -->
                 <div id="sezione-macchina">
                     <div class="form-group">
-                        <label for="guasto-macchina">Trattore (Macchina) *</label>
+                        <label for="guasto-macchina" data-i18n="guasto.tractor">Trattore (Macchina) *</label>
                         <select id="guasto-macchina" required>
-                            <option value="">-- Seleziona trattore --</option>
+                            <option value="" data-i18n="guasto.pickTractor">-- Seleziona trattore --</option>
                         </select>
-                        <small>Seleziona il trattore con il guasto (pre-selezionato se assegnato al lavoro)</small>
+                        <small data-i18n="guasto.tractorHint">Seleziona il trattore con il guasto (pre-selezionato se assegnato al lavoro)</small>
                     </div>
 
                     <div class="form-group">
-                        <label for="guasto-attrezzo">Attrezzo (Opzionale)</label>
+                        <label for="guasto-attrezzo" data-i18n="guasto.tool">Attrezzo (Opzionale)</label>
                         <select id="guasto-attrezzo">
-                            <option value="">-- Nessun attrezzo --</option>
+                            <option value="" data-i18n="guasto.noTool">-- Nessun attrezzo --</option>
                         </select>
-                        <small>Seleziona l'attrezzo con il guasto (pre-selezionato se assegnato al lavoro)</small>
+                        <small data-i18n="guasto.toolHint">Seleziona l'attrezzo con il guasto (pre-selezionato se assegnato al lavoro)</small>
                     </div>
 
                     <div class="form-group">
-                        <label for="guasto-componente">Componente con guasto *</label>
+                        <label for="guasto-componente" data-i18n="guasto.part">Componente con guasto *</label>
                         <select id="guasto-componente" required>
-                            <option value="">-- Seleziona componente --</option>
-                            <option value="trattore">Trattore</option>
-                            <option value="attrezzo">Attrezzo</option>
-                            <option value="entrambi">Entrambi</option>
+                            <option value="" data-i18n="guasto.pickPart">-- Seleziona componente --</option>
+                            <option value="trattore" data-i18n="guasto.partTractor">Trattore</option>
+                            <option value="attrezzo" data-i18n="guasto.partTool">Attrezzo</option>
+                            <option value="entrambi" data-i18n="guasto.partBoth">Entrambi</option>
                         </select>
-                        <small>Specifica quale componente ha il guasto</small>
+                        <small data-i18n="guasto.partHint">Specifica quale componente ha il guasto</small>
                     </div>
                 </div>
 
                 <!-- Sezione Segnalazione Generica -->
                 <div id="sezione-generico" style="display: none;">
                     <div class="form-group">
-                        <label for="guasto-ubicazione">Ubicazione *</label>
+                        <label for="guasto-ubicazione" data-i18n="guasto.place">Ubicazione *</label>
                         <div style="display: flex; gap: 8px; align-items: center;">
-                            <input type="text" id="guasto-ubicazione" placeholder="Es: Podere Nord, filare 12" required style="flex: 1;">
-                            <button type="button" id="btn-apri-maps" class="btn btn-secondary" style="padding: 10px 15px; min-width: auto;" title="Apri in Google Maps">
+                            <input type="text" id="guasto-ubicazione" data-i18n-placeholder="guasto.placePh" placeholder="Es: Podere Nord, filare 12" required style="flex: 1;">
+                            <button type="button" id="btn-apri-maps" class="btn btn-secondary" style="padding: 10px 15px; min-width: auto;" data-i18n-title="guasto.mapsTitle" title="Apri in Google Maps">
                                 🗺️
                             </button>
                         </div>
-                        <small>Indica dove si trova il problema (terreno, podere, filare, ecc.). Clicca l'icona per aprire Google Maps.</small>
+                        <small data-i18n="guasto.placeHint">Indica dove si trova il problema (terreno, podere, filare, ecc.). Clicca l'icona per aprire Google Maps.</small>
                     </div>
 
                     <div class="form-group">
-                        <label>📍 Localizza il problema sulla mappa</label>
+                        <label data-i18n="guasto.mapLabel">📍 Localizza il problema sulla mappa</label>
                         <div style="background: #e3f2fd; padding: 10px; border-radius: 6px; margin-bottom: 10px; border-left: 4px solid #2196F3;">
-                            <strong style="color: #1976D2;">💡 Come usare:</strong>
+                            <strong style="color: #1976D2;" data-i18n="guasto.mapHow">💡 Come usare:</strong>
                             <div style="margin-top: 5px; font-size: 13px; color: #1565C0;">
-                                1. Clicca sulla mappa nel punto esatto dove si trova il problema<br>
-                                2. Apparirà un marker rosso 🎯 che puoi trascinare per precisione<br>
-                                3. I confini del terreno sono mostrati in rosso
+                                <div data-i18n="guasto.mapStep1">1. Clicca sulla mappa nel punto esatto dove si trova il problema</div>
+                                <div data-i18n="guasto.mapStep2">2. Apparirà un marker rosso 🎯 che puoi trascinare per precisione</div>
+                                <div data-i18n="guasto.mapStep3">3. I confini del terreno sono mostrati in rosso</div>
                             </div>
                         </div>
                         <div id="map-container" style="width: 100%; height: 400px; border: 2px solid #2196F3; border-radius: 8px; margin-top: 10px; position: relative; background: #f5f5f5; cursor: crosshair;">
                             <div style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #666; text-align: center; z-index: 1;">
                                 <div style="margin-bottom: 10px;">🗺️</div>
-                                <div>Caricamento mappa...</div>
+                                <div data-i18n="guasto.mapLoading">Caricamento mappa...</div>
                             </div>
                         </div>
                         <small id="map-status" style="display: block; margin-top: 8px; color: #666;">
-                            <span id="marker-status">Clicca sulla mappa per posizionare il marker</span>
+                            <span id="marker-status" data-i18n="guasto.mapClick">Clicca sulla mappa per posizionare il marker</span>
                         </small>
                     </div>
 
                     <div class="form-group">
-                        <label for="guasto-tipo-problema">Tipo di problema *</label>
+                        <label for="guasto-tipo-problema" data-i18n="guasto.problemType">Tipo di problema *</label>
                         <select id="guasto-tipo-problema" required>
-                            <option value="">-- Seleziona tipo --</option>
-                            <option value="Frana">Frana</option>
-                            <option value="Albero caduto">Albero caduto</option>
-                            <option value="Palo rotto">Palo rotto</option>
-                            <option value="Voragine">Voragine</option>
-                            <option value="Danno infrastruttura">Danno infrastruttura</option>
-                            <option value="Problema filare">Problema filare</option>
-                            <option value="Danno recinzione">Danno recinzione</option>
-                            <option value="Problema irrigazione">Problema irrigazione</option>
-                            <option value="Altro">Altro</option>
+                            <option value="" data-i18n="guasto.pickType">-- Seleziona tipo --</option>
+                            <option value="Frana" data-i18n="guasto.typeLandslide">Frana</option>
+                            <option value="Albero caduto" data-i18n="guasto.typeTree">Albero caduto</option>
+                            <option value="Palo rotto" data-i18n="guasto.typePole">Palo rotto</option>
+                            <option value="Voragine" data-i18n="guasto.typeHole">Voragine</option>
+                            <option value="Danno infrastruttura" data-i18n="guasto.typeInfra">Danno infrastruttura</option>
+                            <option value="Problema filare" data-i18n="guasto.typeRow">Problema filare</option>
+                            <option value="Danno recinzione" data-i18n="guasto.typeFence">Danno recinzione</option>
+                            <option value="Problema irrigazione" data-i18n="guasto.typeWater">Problema irrigazione</option>
+                            <option value="Altro" data-i18n="guasto.typeOther">Altro</option>
                         </select>
-                        <small>Seleziona il tipo di problema riscontrato</small>
+                        <small data-i18n="guasto.typeHint">Seleziona il tipo di problema riscontrato</small>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label>Gravità del guasto *</label>
+                    <label data-i18n="guasto.severity">Gravità del guasto *</label>
                     <div class="radio-group">
                         <div class="radio-option">
                             <input type="radio" id="gravita-non-grave" name="gravita" value="non-grave" required>
-                            <label for="gravita-non-grave">Non grave - Posso finire il lavoro</label>
+                            <label for="gravita-non-grave" data-i18n="guasto.mild">Non grave - Posso finire il lavoro</label>
                         </div>
                         <div class="radio-option">
                             <input type="radio" id="gravita-grave" name="gravita" value="grave" required>
-                            <label for="gravita-grave">Grave - Sospendere subito</label>
+                            <label for="gravita-grave" data-i18n="guasto.severe">Grave - Sospendere subito</label>
                         </div>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="guasto-dettagli">Dettagli del guasto / segnalazione *</label>
-                    <textarea id="guasto-dettagli" required placeholder="Descrivi il problema riscontrato..."></textarea>
-                    <small>Fornisci tutti i dettagli utili per la risoluzione</small>
+                    <label for="guasto-dettagli" data-i18n="guasto.details">Dettagli del guasto / segnalazione *</label>
+                    <textarea id="guasto-dettagli" required data-i18n-placeholder="guasto.detailsPh" placeholder="Descrivi il problema riscontrato..."></textarea>
+                    <small data-i18n="guasto.detailsHint">Fornisci tutti i dettagli utili per la risoluzione</small>
                 </div>
 
                 <div class="form-group">
-                    <label for="guasto-lavoro">Lavoro corrente (opzionale)</label>
+                    <label for="guasto-lavoro" data-i18n="guasto.job">Lavoro corrente (opzionale)</label>
                     <select id="guasto-lavoro">
-                        <option value="">-- Nessun lavoro associato --</option>
+                        <option value="" data-i18n="guasto.noJob">-- Nessun lavoro associato --</option>
                     </select>
-                    <small>Se stai lavorando su un lavoro specifico, selezionalo</small>
+                    <small data-i18n="guasto.jobHint">Se stai lavorando su un lavoro specifico, selezionalo</small>
                 </div>
 
                 <div class="form-group">
-                    <label>Posizione (opzionale)</label>
+                        <label data-i18n="guasto.position">Posizione (opzionale)</label>
                     <div class="gps-capture-box">
                         <label style="display: flex; align-items: flex-start; gap: 8px; font-weight: 500;">
                             <input type="checkbox" id="guasto-includi-posizione" style="width: auto; margin-top: 3px;">
-                            <span>Includi posizione approssimativa con questa segnalazione</span>
+                            <span data-i18n="guasto.includePos">Includi posizione approssimativa con questa segnalazione</span>
                         </label>
                         <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px;">
-                            <button type="button" id="btn-gps-posizione" class="btn btn-secondary" style="padding: 8px 12px;">
-                                📍 Segnala qui (GPS)
-                            </button>
+                            <button type="button" id="btn-gps-posizione" class="btn btn-secondary" style="padding: 8px 12px;" data-i18n="guasto.gpsBtn">📍 Segnala qui (GPS)</button>
                         </div>
-                        <small id="gps-status" style="margin-top: 8px;">
-                            Nessuna posizione acquisita.
-                        </small>
-                        <small>
-                            Precisione GPS indicativa (± metri), non certificata.
-                        </small>
+                        <small id="gps-status" style="margin-top: 8px;" data-i18n="guasto.gpsNone">Nessuna posizione acquisita.</small>
+                        <small data-i18n="guasto.gpsHint">Precisione GPS indicativa (± metri), non certificata.</small>
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-danger">🚨 Segnala</button>
+                <button type="submit" class="btn btn-danger" data-i18n="guasto.submit">🚨 Segnala</button>
             </form>
         </div>
 
         <!-- Sezione Guasti Attivi -->
         <div class="content">
-            <h2 class="section-title">I Miei Guasti Segnalati</h2>
+            <h2 class="section-title" data-i18n="guasto.listTitle">I Miei Guasti Segnalati</h2>
             <div id="guasti-list" class="guasti-list">
                 <div class="empty-state">
                     <div class="empty-state-icon">⏳</div>
-                    <p>Caricamento guasti...</p>
+                    <p data-i18n="guasto.listLoading">Caricamento guasti...</p>
                 </div>
             </div>
         </div>
@@ -568,27 +562,27 @@
     <div id="risolvi-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3>Risolvi Guasto</h3>
+                <h3 data-i18n="guasto.resolveTitle">Risolvi Guasto</h3>
                 <button class="close-modal" onclick="closeRisolviModal()">&times;</button>
             </div>
             <form id="risolvi-guasto-form">
                 <input type="hidden" id="risolvi-guasto-id">
                 
                 <div class="form-group">
-                    <label for="risolvi-note">Note di risoluzione *</label>
-                    <textarea id="risolvi-note" required placeholder="Descrivi come hai risolto il problema..."></textarea>
-                    <small>Es: "Sostituito filtro olio", "Riparato tubo idraulico"</small>
+                    <label for="risolvi-note" data-i18n="guasto.resolveNotes">Note di risoluzione *</label>
+                    <textarea id="risolvi-note" required data-i18n-placeholder="guasto.resolveNotesPh" placeholder="Descrivi come hai risolto il problema..."></textarea>
+                    <small data-i18n="guasto.resolveNotesHint">Es: "Sostituito filtro olio", "Riparato tubo idraulico"</small>
                 </div>
 
                 <div class="form-group">
-                    <label for="risolvi-costo">Costo riparazione (€) - Opzionale</label>
+                    <label for="risolvi-costo" data-i18n="guasto.resolveCost">Costo riparazione (€) - Opzionale</label>
                     <input type="number" id="risolvi-costo" step="0.01" min="0" placeholder="0.00">
-                    <small>Inserisci il costo se hai acquistato pezzi di ricambio</small>
+                    <small data-i18n="guasto.resolveCostHint">Inserisci il costo se hai acquistato pezzi di ricambio</small>
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
-                    <button type="submit" class="btn btn-success">✅ Conferma Risoluzione</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeRisolviModal()">Annulla</button>
+                    <button type="submit" class="btn btn-success" data-i18n="guasto.resolveSubmit">✅ Conferma Risoluzione</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeRisolviModal()" data-i18n="guasto.resolveCancel">Annulla</button>
                 </div>
             </form>
         </div>
@@ -626,10 +620,8 @@
         import {
             puoAprireSegnalazioneGuasti,
             hrefRitornoSegnalazioneGuasti,
-            etichettaRitornoSegnalazioneGuasti,
             primoTenantIdUtente,
             normalizzaRuoliGuasti,
-            testoOpzioneTrattore,
             deveTentareSospensioneLavoroGuasto,
             esitoSegnalazioneGuasto,
             testoConfermaSegnalazione,
@@ -644,8 +636,66 @@
             testoToastRipresa
         } from '../services/lavoro-ripresa-guasto.js';
         import { macchinaSelezionabile, suffissoMacchinaNonSelezionabile } from '../js/macchina-selezionabile.js';
+        import { t, leggiLinguaCampo } from '../services/field-ui-i18n.js';
+        import { applicaLingua } from '../mobile/js/field-ui-i18n-dom.js';
 
         let mostraMacchinaSegnalazione = true;
+        let ultimoSnapshotGuasti = null;
+
+        function linguaGuasto() {
+            try {
+                return leggiLinguaCampo(window.localStorage);
+            } catch (error) {
+                return 'it';
+            }
+        }
+
+        function suffissoVisibile(raw) {
+            if (raw === ' (già in guasto)') return t('guasto.already', linguaGuasto());
+            if (raw === ' (in manutenzione)') return t('guasto.maintenance', linguaGuasto());
+            if (raw === ' (dismesso)') return t('guasto.retired', linguaGuasto());
+            return raw || '';
+        }
+
+        function etichettaTipoProblema(valore) {
+            const lang = linguaGuasto();
+            if (valore === 'Frana') return t('guasto.typeLandslide', lang);
+            if (valore === 'Albero caduto') return t('guasto.typeTree', lang);
+            if (valore === 'Palo rotto') return t('guasto.typePole', lang);
+            if (valore === 'Voragine') return t('guasto.typeHole', lang);
+            if (valore === 'Danno infrastruttura') return t('guasto.typeInfra', lang);
+            if (valore === 'Problema filare') return t('guasto.typeRow', lang);
+            if (valore === 'Danno recinzione') return t('guasto.typeFence', lang);
+            if (valore === 'Problema irrigazione') return t('guasto.typeWater', lang);
+            if (valore === 'Altro') return t('guasto.typeOther', lang);
+            if (!valore) return t('guasto.fallbackReport', lang);
+            return valore;
+        }
+
+        function boxMappa(chiave, colore) {
+            const box = document.createElement('div');
+            box.style.cssText = 'display:flex;align-items:center;justify-content:center;height:100%;text-align:center;padding:12px;color:' + colore + ';';
+            if (chiave === 'guasto.mapNoKey') box.textContent = t('guasto.mapNoKey', linguaGuasto());
+            else if (chiave === 'guasto.mapLoadingGoogle') box.textContent = t('guasto.mapLoadingGoogle', linguaGuasto());
+            else if (chiave === 'guasto.mapTimeout') box.textContent = t('guasto.mapTimeout', linguaGuasto());
+            else if (chiave === 'guasto.mapInitError') box.textContent = t('guasto.mapInitError', linguaGuasto());
+            else if (chiave === 'guasto.mapLoadError') box.textContent = t('guasto.mapLoadError', linguaGuasto());
+            else if (chiave === 'guasto.mapUnavailable') box.textContent = t('guasto.mapUnavailable', linguaGuasto());
+            else if (chiave === 'guasto.mapIncomplete') box.textContent = t('guasto.mapIncomplete', linguaGuasto());
+            return box;
+        }
+
+        let rinfrescaTestiGuasto = function () {
+            applicaLingua(linguaGuasto());
+        };
+
+        applicaLingua(linguaGuasto());
+
+        window.addEventListener('message', (event) => {
+            if (event.origin !== window.location.origin) return;
+            if (!event.data || event.data.type !== 'gfv-field-lang') return;
+            rinfrescaTestiGuasto();
+        });
 
         function segnalazioneIncorporata() {
             try {
@@ -697,7 +747,7 @@
                 const btn = document.createElement('button');
                 btn.type = 'button';
                 btn.className = 'btn btn-primary';
-                btn.textContent = 'Torna al workspace';
+                btn.textContent = t('guasto.backWorkspace', linguaGuasto());
                 btn.addEventListener('click', () => {
                     window.location.href = '../mobile/field-workspace-standalone.html';
                 });
@@ -716,7 +766,10 @@
             if (!link) return;
             const da = provenienzaGuastiPagina();
             link.href = hrefRitornoSegnalazioneGuasti(ruoli, ruoloSingolo, da);
-            link.textContent = etichettaRitornoSegnalazioneGuasti(ruoli, ruoloSingolo, da);
+            const versoCampo = String(link.getAttribute('href') || '').indexOf('field-workspace') !== -1;
+            link.textContent = versoCampo
+                ? t('guasto.backField', linguaGuasto())
+                : t('guasto.backDashboard', linguaGuasto());
         }
 
         async function initApp() {
@@ -785,7 +838,7 @@
                         
                         // Operaio o caposquadra (anche capo-only). Il manager resta sull'elenco ufficio.
                         if (!puoAprireSegnalazioneGuasti(userData.ruoli, userData.ruolo)) {
-                            showAlert('Questa pagina è disponibile per operaio e caposquadra.', 'error');
+                            showAlert(t('guasto.onlyField', linguaGuasto()), 'error');
                             setTimeout(() => {
                                 window.location.href = hrefRitornoSegnalazioneGuasti(userData.ruoli, userData.ruolo, provenienzaGuastiPagina());
                             }, 3000);
@@ -861,7 +914,11 @@
                     if (select.options[i].value) n += 1;
                 }
                 const vuota = select.querySelector('option[value=""]');
-                if (vuota) vuota.textContent = testoOpzioneTrattore(n);
+                if (vuota) {
+                    vuota.textContent = n > 0
+                        ? t('guasto.pickTractor', linguaGuasto())
+                        : t('guasto.noTractor', linguaGuasto());
+                }
                 console.info('[segnalazione-guasti] macchine lette:', macchineList.length, 'trattori in elenco:', n);
             }
 
@@ -884,15 +941,19 @@
                 if (esito.motivo === 'dismesso') return;
                 const option = document.createElement('option');
                 option.value = macchina.id;
-                option.textContent = `${emoji} ${macchina.nome || nomeFallback}${suffissoMacchinaNonSelezionabile(esito)}`;
+                const suffisso = suffissoMacchinaNonSelezionabile(esito);
+                option.dataset.etichettaBase = `${emoji} ${macchina.nome || nomeFallback}`;
+                option.dataset.suffisso = suffisso;
+                if (suffisso === ' (già in guasto)') option.dataset.giaGuasto = '1';
+                option.textContent = option.dataset.etichettaBase + suffissoVisibile(suffisso);
                 option.disabled = !esito.ok;
                 select.appendChild(option);
             }
 
             function popolaOpzionePerTipo(macchina, macchinaSelect, attrezzoSelect) {
                 const tipoMacchina = String(macchina.tipoMacchina || macchina.tipo || '').toLowerCase().trim();
-                if (tipoMacchina === 'trattore') aggiungiOpzioneMezzo(macchinaSelect, macchina, '🚜', 'Trattore senza nome');
-                else if (tipoMacchina === 'attrezzo') aggiungiOpzioneMezzo(attrezzoSelect, macchina, '⚙️', 'Attrezzo senza nome');
+                if (tipoMacchina === 'trattore') aggiungiOpzioneMezzo(macchinaSelect, macchina, '🚜', t('guasto.unnamedTractor', linguaGuasto()));
+                else if (tipoMacchina === 'attrezzo') aggiungiOpzioneMezzo(attrezzoSelect, macchina, '⚙️', t('guasto.unnamedTool', linguaGuasto()));
             }
 
             async function loadMacchine() {
@@ -905,8 +966,8 @@
                     
                     if (!macchinaSelect || !attrezzoSelect) return;
                     
-                    macchinaSelect.innerHTML = '<option value="">Carico le macchine…</option>';
-                    attrezzoSelect.innerHTML = '<option value="">Carico le macchine…</option>';
+                    macchinaSelect.innerHTML = '<option value="">' + t('guasto.loadingMachines', linguaGuasto()) + '</option>';
+                    attrezzoSelect.innerHTML = '<option value="">' + t('guasto.loadingMachines', linguaGuasto()) + '</option>';
 
                     if (isFileProtocol) {
                         // Fallback per ambiente file://
@@ -983,7 +1044,7 @@
                     aggiornaTestoSelectTrattore(macchinaSelect);
                 } catch (error) {
                     console.error('Errore caricamento macchine:', error);
-                    showAlert('Errore caricamento macchine', 'error');
+                    showAlert(t('guasto.loadMachinesError', linguaGuasto()), 'error');
                 }
             }
 
@@ -1016,7 +1077,7 @@
                     const lavoroSelect = document.getElementById('guasto-lavoro');
                     if (!lavoroSelect) return;
                     
-                    lavoroSelect.innerHTML = '<option value="">-- Nessun lavoro associato --</option>';
+                    lavoroSelect.innerHTML = '<option value="">' + t('guasto.noJob', linguaGuasto()) + '</option>';
 
                     let lavoroAttivoPiuRecente = null;
                     let dataLavoroPiuRecente = null;
@@ -1201,15 +1262,21 @@
                 const gpsStatus = document.getElementById('gps-status');
                 if (!gpsStatus) return;
                 if (!posizioneRilevamento || typeof posizioneRilevamento.lat !== 'number' || typeof posizioneRilevamento.lng !== 'number') {
-                    gpsStatus.textContent = 'Nessuna posizione acquisita.';
+                    gpsStatus.textContent = t('guasto.gpsNone', linguaGuasto());
                     gpsStatus.style.color = '#666';
                     return;
                 }
                 const acc = posizioneRilevamento.accuracyMeters != null
                     ? ` (±${Math.round(posizioneRilevamento.accuracyMeters)} m)`
                     : '';
-                const source = posizioneRilevamento.source === 'map' ? 'mappa' : 'GPS';
-                gpsStatus.textContent = `Posizione pronta (${source}): ${posizioneRilevamento.lat.toFixed(6)}, ${posizioneRilevamento.lng.toFixed(6)}${acc}`;
+                const source = posizioneRilevamento.source === 'map'
+                    ? t('guasto.sourceMap', linguaGuasto())
+                    : t('guasto.sourceGps', linguaGuasto());
+                gpsStatus.textContent = t('guasto.gpsReady', linguaGuasto(), {
+                    source,
+                    coords: `${posizioneRilevamento.lat.toFixed(6)}, ${posizioneRilevamento.lng.toFixed(6)}`,
+                    acc
+                });
                 gpsStatus.style.color = '#2e7d32';
             }
 
@@ -1241,14 +1308,16 @@
 
                 const markerStatus = document.getElementById('marker-status');
                 if (markerStatus) {
-                    markerStatus.innerHTML = `✅ Marker posizionato! Coordinate: ${lat.toFixed(6)}, ${lng.toFixed(6)} - <strong>Trascina il marker per precisione</strong>`;
+                    markerStatus.textContent = t('guasto.markerPlaced', linguaGuasto(), {
+                        coords: `${lat.toFixed(6)}, ${lng.toFixed(6)}`
+                    });
                     markerStatus.style.color = '#28a745';
                 }
 
                 problemaMarker.addListener('dragstart', () => {
                     const markerStatusEl = document.getElementById('marker-status');
                     if (markerStatusEl) {
-                        markerStatusEl.innerHTML = '🔄 Trascinando marker...';
+                        markerStatusEl.textContent = t('guasto.markerDrag', linguaGuasto());
                         markerStatusEl.style.color = '#ffc107';
                     }
                 });
@@ -1281,7 +1350,8 @@
                 btn.addEventListener('click', async () => {
                     try {
                         btn.disabled = true;
-                        btn.textContent = '⌛ Rilevamento...';
+                        btn.dataset.busy = '1';
+                        btn.textContent = t('guasto.gpsBusy', linguaGuasto());
                         const pos = await getCurrentPositionGeo();
                         setProblemaPosition(pos.lat, pos.lng, {
                             accuracyMeters: pos.accuracyMeters,
@@ -1295,7 +1365,8 @@
                         showAlert(geolocationErrorMessage(err), 'error');
                     } finally {
                         btn.disabled = false;
-                        btn.textContent = '📍 Segnala qui (GPS)';
+                        btn.dataset.busy = '0';
+                        btn.textContent = t('guasto.gpsBtn', linguaGuasto());
                     }
                 });
             }
@@ -1426,13 +1497,13 @@
 
                 const apiKey = window.GOOGLE_MAPS_API_KEY;
                 if (!apiKey || apiKey === 'YOUR_GOOGLE_MAPS_API_KEY_HERE') {
-                    mapContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d32f2f;">Google Maps API key non configurata</div>';
+                    mapContainer.replaceChildren(boxMappa('guasto.mapNoKey', '#d32f2f'));
                     return;
                 }
 
                 // Carica Google Maps API se non già caricata
                 if (typeof google === 'undefined' || !google.maps) {
-                    mapContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #666;">Caricamento Google Maps...</div>';
+                    mapContainer.replaceChildren(boxMappa('guasto.mapLoadingGoogle', '#666'));
                     
                     return new Promise((resolve) => {
                         // Verifica se lo script è già stato aggiunto
@@ -1451,7 +1522,7 @@
                             setTimeout(() => {
                                 clearInterval(checkInterval);
                                 if (typeof google === 'undefined' || !google.maps || !google.maps.Map) {
-                                    mapContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d32f2f;">Timeout caricamento Google Maps</div>';
+                                    mapContainer.replaceChildren(boxMappa('guasto.mapTimeout', '#d32f2f'));
                                 } else {
                                     // Prova comunque se è parzialmente caricato
                                     setTimeout(() => {
@@ -1471,7 +1542,7 @@
                                     initProblemaMapImplementation();
                                     resolve();
                                 } else {
-                                    mapContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d32f2f;">Errore inizializzazione Google Maps</div>';
+                                    mapContainer.replaceChildren(boxMappa('guasto.mapInitError', '#d32f2f'));
                                     resolve();
                                 }
                             }, 200);
@@ -1483,12 +1554,12 @@
                         script.defer = true;
                         
                         script.onerror = () => {
-                            mapContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d32f2f;">Errore caricamento Google Maps</div>';
+                            mapContainer.replaceChildren(boxMappa('guasto.mapLoadError', '#d32f2f'));
                             resolve();
                         };
                         
                         script.onerror = () => {
-                            mapContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d32f2f;">Errore caricamento Google Maps</div>';
+                            mapContainer.replaceChildren(boxMappa('guasto.mapLoadError', '#d32f2f'));
                             resolve();
                         };
                         
@@ -1520,7 +1591,7 @@
 
                 // Verifica che Google Maps sia completamente caricato
                 if (typeof google === 'undefined' || !google.maps || !google.maps.Map || !google.maps.MapTypeId) {
-                    mapContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d32f2f;">Google Maps non disponibile. Attendi qualche secondo e riprova.</div>';
+                    mapContainer.replaceChildren(boxMappa('guasto.mapUnavailable', '#d32f2f'));
                     return;
                 }
 
@@ -1553,7 +1624,7 @@
 
                 // Verifica che Google Maps sia completamente inizializzato
                 if (!google.maps.Map || !google.maps.MapTypeId || !google.maps.Marker || !google.maps.Polygon) {
-                    mapContainer.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #d32f2f;">Google Maps non completamente caricato. Attendi qualche secondo.</div>';
+                    mapContainer.replaceChildren(boxMappa('guasto.mapIncomplete', '#d32f2f'));
                     return;
                 }
 
@@ -1683,7 +1754,7 @@
                         if (ubicazione) {
                             mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(ubicazione)}`;
                         } else {
-                            showAlert('Inserisci prima un\'ubicazione', 'error');
+                            showAlert(t('guasto.needPlace', linguaGuasto()), 'error');
                             return;
                         }
                     }
@@ -1734,7 +1805,11 @@
                                 Array.from(select.options).forEach((opt) => {
                                     if (!opt.value || !guastoApertoSuMacchina(opt.value)) return;
                                     opt.disabled = true;
-                                    if (opt.textContent.indexOf('già in guasto') < 0) opt.textContent += ' (già in guasto)';
+                                    if (opt.dataset.giaGuasto === '1') return;
+                                    opt.dataset.giaGuasto = '1';
+                                    if (!opt.dataset.etichettaBase) opt.dataset.etichettaBase = opt.textContent;
+                                    opt.dataset.suffisso = ' (già in guasto)';
+                                    opt.textContent = opt.dataset.etichettaBase + t('guasto.already', linguaGuasto());
                                 });
                             });
                             
@@ -1756,11 +1831,12 @@
             function renderGuasti(snapshot) {
                 const container = document.getElementById('guasti-list');
                 
+                ultimoSnapshotGuasti = snapshot;
                 if (snapshot.docs.length === 0) {
                     container.innerHTML = `
                         <div class="empty-state">
                             <div class="empty-state-icon">✅</div>
-                            <p>Nessun guasto segnalato</p>
+                            <p>${t('guasto.listEmpty', linguaGuasto())}</p>
                         </div>
                     `;
                     return;
@@ -1778,11 +1854,11 @@
                     if (tipoGuasto === 'generico') {
                         // Segnalazione generica
                         tipoIcon = '🌍';
-                        tipoBadge = '<span class="guasto-badge" style="background: #17a2b8; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">🌍 Generico</span>';
-                        titolo = `${guasto.tipoProblema || 'Segnalazione'} - ${guasto.ubicazione || 'Ubicazione non specificata'}`;
+                        tipoBadge = '<span class="guasto-badge" style="background: #17a2b8; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">' + t('guasto.badgeGeneric', linguaGuasto()) + '</span>';
+                        titolo = `${etichettaTipoProblema(guasto.tipoProblema)} - ${guasto.ubicazione || t('guasto.placeMissing', linguaGuasto())}`;
                     } else {
                         // Guasto macchina (logica esistente)
-                        tipoBadge = '<span class="guasto-badge" style="background: #6c757d; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">🔧 Macchina</span>';
+                        tipoBadge = '<span class="guasto-badge" style="background: #6c757d; color: white; padding: 4px 12px; border-radius: 12px; font-size: 12px; font-weight: 600;">' + t('guasto.badgeMachine', linguaGuasto()) + '</span>';
                         const componenteGuasto = guasto.componenteGuasto || 'trattore'; // Default per retrocompatibilità
                         let macchinaNome = '';
                         
@@ -1840,27 +1916,28 @@
                         }
                         
                         if (!macchinaNome) {
-                            macchinaNome = 'Macchina non trovata';
+                            macchinaNome = t('guasto.machineMissing', linguaGuasto());
                         }
                         titolo = macchinaNome;
                     }
 
                     const stato = guasto.stato || 'in-attesa';
-                    const gravitaBadge = guasto.gravita === 'grave' 
-                        ? '<span class="guasto-badge badge-grave">🔴 Grave</span>'
-                        : '<span class="guasto-badge badge-non-grave">🟡 Non grave</span>';
+                    const gravitaBadge = guasto.gravita === 'grave'
+                        ? '<span class="guasto-badge badge-grave">' + t('guasto.badgeSevere', linguaGuasto()) + '</span>'
+                        : '<span class="guasto-badge badge-non-grave">' + t('guasto.badgeMild', linguaGuasto()) + '</span>';
 
                     const statoBadge = stato === 'risolto'
-                        ? '<span class="guasto-badge badge-risolto">✅ Risolto</span>'
-                        : '<span class="guasto-badge badge-in-attesa">⏳ In attesa</span>';
+                        ? '<span class="guasto-badge badge-risolto">' + t('guasto.badgeDone', linguaGuasto()) + '</span>'
+                        : '<span class="guasto-badge badge-in-attesa">' + t('guasto.badgeWait', linguaGuasto()) + '</span>';
 
                     const dataSegnalazione = formatDateTimeItalianReadable(guasto.segnalatoIl);
                     // Mostra posizione solo se esplicitamente inclusa dall'utente (checkbox)
                     const pos = guasto.posizioneRilevamento || null;
-                    const posSource = (pos && pos.source === 'map') ? 'MAPPA' : 'GPS';
-                    const posSourceColor = posSource === 'MAPPA' ? '#1976D2' : '#2E7D32';
+                    const daMappa = !!(pos && pos.source === 'map');
+                    const posSource = daMappa ? t('guasto.badgeMap', linguaGuasto()) : t('guasto.badgeGps', linguaGuasto());
+                    const posSourceColor = daMappa ? '#1976D2' : '#2E7D32';
                     const posHtml = (pos && typeof pos.lat === 'number' && typeof pos.lng === 'number')
-                        ? `<div><strong>Posizione:</strong> <a href="https://www.google.com/maps?q=${pos.lat},${pos.lng}" target="_blank" rel="noopener">${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}</a>${pos.accuracyMeters ? ` (±${Math.round(pos.accuracyMeters)} m)` : ''} <span style="display:inline-block;margin-left:6px;padding:2px 6px;border-radius:10px;font-size:11px;background:${posSourceColor};color:#fff;font-weight:600;">${posSource}</span></div>`
+                        ? `<div><strong>${t('guasto.posLabel', linguaGuasto())}</strong> <a href="https://www.google.com/maps?q=${pos.lat},${pos.lng}" target="_blank" rel="noopener">${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}</a>${pos.accuracyMeters ? ` (±${Math.round(pos.accuracyMeters)} m)` : ''} <span style="display:inline-block;margin-left:6px;padding:2px 6px;border-radius:10px;font-size:11px;background:${posSourceColor};color:#fff;font-weight:600;">${posSource}</span></div>`
                         : '';
 
                     html += `
@@ -1875,32 +1952,32 @@
                             </div>
                             <div class="guasto-details">
                                 ${tipoGuasto === 'generico' ? `
-                                    <div><strong>Ubicazione:</strong> ${guasto.ubicazione || '-'}</div>
-                                    <div><strong>Tipo problema:</strong> ${guasto.tipoProblema || '-'}</div>
+                                    <div><strong>${t('guasto.placeLabel', linguaGuasto())}</strong> ${guasto.ubicazione || '-'}</div>
+                                    <div><strong>${t('guasto.problemLabel', linguaGuasto())}</strong> ${guasto.tipoProblema ? etichettaTipoProblema(guasto.tipoProblema) : '-'}</div>
                                 ` : ''}
                                 ${posHtml}
-                                <div><strong>Dettagli:</strong> ${guasto.dettagli || '-'}</div>
-                                <div><strong>Segnalato il:</strong> ${dataSegnalazione}</div>
+                                <div><strong>${t('guasto.detailsLabel', linguaGuasto())}</strong> ${guasto.dettagli || '-'}</div>
+                                <div><strong>${t('guasto.reportedLabel', linguaGuasto())}</strong> ${dataSegnalazione}</div>
                                 ${guasto.stato === 'risolto' ? `
-                                    <div><strong>Risolto il:</strong> ${guasto.risoltoIl?.toDate ? formatDateTimeItalianReadable(guasto.risoltoIl) : '—'}</div>
-                                    <div><strong>Note risoluzione:</strong> ${guasto.noteRisoluzione || '-'}</div>
-                                    ${guasto.costoRiparazione ? `<div><strong>Costo riparazione:</strong> €${guasto.costoRiparazione.toFixed(2)}</div>` : ''}
+                                    <div><strong>${t('guasto.resolvedLabel', linguaGuasto())}</strong> ${guasto.risoltoIl?.toDate ? formatDateTimeItalianReadable(guasto.risoltoIl) : '—'}</div>
+                                    <div><strong>${t('guasto.notesLabel', linguaGuasto())}</strong> ${guasto.noteRisoluzione || '-'}</div>
+                                    ${guasto.costoRiparazione ? `<div><strong>${t('guasto.costLabel', linguaGuasto())}</strong> €${guasto.costoRiparazione.toFixed(2)}</div>` : ''}
                                 ` : ''}
                                 ${guasto.stato === 'approvato-continuazione' ? `
                                     <div style="color: #856404; font-weight: 600; margin-top: 10px;">
-                                        ✅ Continuazione approvata - Puoi continuare a lavorare
+                                        ${t('guasto.approvedContinue', linguaGuasto())}
                                     </div>
                                 ` : ''}
                                 ${guasto.stato === 'sospeso' ? `
                                     <div style="color: #dc3545; font-weight: 600; margin-top: 10px;">
-                                        ⛔ Lavoro sospeso dal Manager
+                                        ${t('guasto.suspended', linguaGuasto())}
                                     </div>
                                 ` : ''}
                             </div>
                             ${stato !== 'risolto' ? `
                                 <div class="guasto-actions">
                                     <button class="btn btn-success" onclick="openRisolviModal('${guasto.id}')">
-                                        ✅ Risolvi ${tipoGuasto === 'generico' ? 'Segnalazione' : 'Guasto'}
+                                        ${tipoGuasto === 'generico' ? t('guasto.resolveReport', linguaGuasto()) : t('guasto.resolveBtn', linguaGuasto())}
                                     </button>
                                 </div>
                             ` : ''}
@@ -1928,27 +2005,27 @@
 
                 // Validazione base
                 if (!tipoGuasto || !gravita || !dettagli) {
-                    showAlert('Compila tutti i campi obbligatori', 'error');
+                    showAlert(t('guasto.needFields', linguaGuasto()), 'error');
                     return;
                 }
 
                 // Validazione guasto macchina
                 if (tipoGuasto === 'macchina') {
                     if (!componenteGuasto) {
-                        showAlert('Seleziona il componente con il guasto', 'error');
+                        showAlert(t('guasto.needPart', linguaGuasto()), 'error');
                         return;
                     }
                     // Validazione componente vs selezione macchina/attrezzo
                     if (componenteGuasto === 'trattore' && !macchinaId) {
-                        showAlert('Devi selezionare un trattore se il guasto è del trattore', 'error');
+                        showAlert(t('guasto.needTractor', linguaGuasto()), 'error');
                         return;
                     }
                     if (componenteGuasto === 'attrezzo' && !attrezzoId) {
-                        showAlert('Devi selezionare un attrezzo se il guasto è dell\'attrezzo', 'error');
+                        showAlert(t('guasto.needTool', linguaGuasto()), 'error');
                         return;
                     }
                     if (componenteGuasto === 'entrambi' && (!macchinaId || !attrezzoId)) {
-                        showAlert('Devi selezionare sia trattore che attrezzo se il guasto è di entrambi', 'error');
+                        showAlert(t('guasto.needBoth', linguaGuasto()), 'error');
                         return;
                     }
                 }
@@ -1956,11 +2033,11 @@
                 // Validazione segnalazione generica
                 if (tipoGuasto === 'generico') {
                     if (!ubicazione) {
-                        showAlert('Inserisci l\'ubicazione del problema', 'error');
+                        showAlert(t('guasto.needLocation', linguaGuasto()), 'error');
                         return;
                     }
                     if (!tipoProblema) {
-                        showAlert('Seleziona il tipo di problema', 'error');
+                        showAlert(t('guasto.needProblem', linguaGuasto()), 'error');
                         return;
                     }
                 }
@@ -2108,18 +2185,31 @@
 
                     const esito = esitoSegnalazioneGuasto({ scritturaPrincipaleOk, secondarie });
                     if (esito.errore) {
-                        showAlert('Errore segnalazione: ' + esito.errore, 'error');
+                        showAlert(t('guasto.errorPrefix', linguaGuasto(), { message: esito.errore }), 'error');
                     }
                     if (esito.successo) {
                         const dalCampo = provenienzaGuastiPagina() === 'field'
                             && ritornoWorkspaceCampoDaGuasti(ruoliUtenteGuasti, ruoloSingoloGuasti);
-                        mostraBannerSegnalazione(testoConfermaSegnalazione({
+                        const base = testoConfermaSegnalazione({
                             dalCampo,
                             haAvvisi: esito.avvisi.length > 0,
                             incorporata: segnalazioneIncorporata()
-                        }));
+                        });
+                        const lang = linguaGuasto();
+                        mostraBannerSegnalazione({
+                            ...base,
+                            titolo: t('guasto.sentTitle', lang),
+                            dettaglio: esito.avvisi.length
+                                ? t('guasto.sentWarn', lang)
+                                : (base.tornaAutomatico ? t('guasto.sentLeaving', lang) : t('guasto.sentDetail', lang))
+                        });
                     }
-                    esito.avvisi.forEach((avviso) => showAlert(avviso, 'warning'));
+                    esito.avvisi.forEach((avviso) => {
+                        const testo = avviso === 'Non ho potuto aggiornare lo stato della macchina/il lavoro: avvisa il tuo responsabile.'
+                            ? t('guasto.secondaryWarn', linguaGuasto())
+                            : avviso;
+                        showAlert(testo, 'warning');
+                    });
                     if (esito.chiudi) {
                         document.getElementById('segnala-guasto-form').reset();
                         if (mostraMacchinaSegnalazione) {
@@ -2145,7 +2235,9 @@
                     }
                 } catch (error) {
                     console.error('Errore segnalazione guasto:', error);
-                    showAlert('Errore segnalazione: ' + (error && error.message ? error.message : error), 'error');
+                    showAlert(t('guasto.errorPrefix', linguaGuasto(), {
+                        message: error && error.message ? error.message : error
+                    }), 'error');
                 } finally {
                     if (submitBtn) submitBtn.disabled = false;
                 }
@@ -2171,7 +2263,7 @@
                 const costoRiparazione = parseFloat(document.getElementById('risolvi-costo').value) || null;
 
                 if (!noteRisoluzione) {
-                    showAlert('Inserisci le note di risoluzione', 'error');
+                    showAlert(t('guasto.resolveNeedNotes', linguaGuasto()), 'error');
                     return;
                 }
 
@@ -2268,14 +2360,14 @@
                         }
                     }
 
-                    const messaggio = tipoGuasto === 'macchina' 
-                        ? 'Guasto risolto con successo! La macchina è ora disponibile.' 
-                        : 'Segnalazione risolta con successo!';
+                    const messaggio = tipoGuasto === 'macchina'
+                        ? t('guasto.resolvedMachine', linguaGuasto())
+                        : t('guasto.resolvedGeneric', linguaGuasto());
                     showAlert(messaggio, 'success');
                     closeRisolviModal();
                 } catch (error) {
                     console.error('Errore risoluzione guasto:', error);
-                    showAlert('Errore risoluzione guasto: ' + error.message, 'error');
+                    showAlert(t('guasto.resolveError', linguaGuasto(), { message: error.message }), 'error');
                 }
             });
 
@@ -2285,6 +2377,28 @@
                     closeRisolviModal();
                 }
             });
+
+            rinfrescaTestiGuasto = function () {
+                applicaLingua(linguaGuasto());
+                applicaRitornoGuasti(ruoliUtenteGuasti, ruoloSingoloGuasti);
+                aggiornaTestoSelectTrattore(document.getElementById('guasto-macchina'));
+                const attrezzoVuoto = document.querySelector('#guasto-attrezzo option[value=""]');
+                if (attrezzoVuoto) attrezzoVuoto.textContent = t('guasto.noTool', linguaGuasto());
+                ['guasto-macchina', 'guasto-attrezzo'].forEach((idSel) => {
+                    const select = document.getElementById(idSel);
+                    if (!select) return;
+                    Array.from(select.options).forEach((opt) => {
+                        if (!opt.dataset.etichettaBase) return;
+                        opt.textContent = opt.dataset.etichettaBase + suffissoVisibile(opt.dataset.suffisso || '');
+                    });
+                });
+                const lavoroVuoto = document.querySelector('#guasto-lavoro option[value=""]');
+                if (lavoroVuoto) lavoroVuoto.textContent = t('guasto.noJob', linguaGuasto());
+                const gpsBtn = document.getElementById('btn-gps-posizione');
+                if (gpsBtn && gpsBtn.dataset.busy !== '1') gpsBtn.textContent = t('guasto.gpsBtn', linguaGuasto());
+                updateGpsStatus();
+                if (ultimoSnapshotGuasti) renderGuasti(ultimoSnapshotGuasti);
+            };
 
         }
 
