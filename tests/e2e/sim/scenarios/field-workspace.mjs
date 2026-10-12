@@ -50,10 +50,12 @@ export async function runOperaioFieldWorkspaceAssertions(page, expect) {
   await page.locator('#btn-open-options').click();
   await expect(page.locator('#field-options-menu')).toBeVisible();
   const displayNascosto = await page.evaluate(() => ({
-    validazione: getComputedStyle(document.getElementById('field-validazione-ore-link')).display,
+    validazione: document.getElementById('field-validazione-ore-link'),
+    guasto: document.getElementById('field-segnala-guasto-link'),
     cambia: getComputedStyle(document.getElementById('field-switch-tenant-button')).display,
   }));
-  expect(displayNascosto.validazione).toBe('none');
+  expect(displayNascosto.validazione).toBeNull();
+  expect(displayNascosto.guasto).toBeNull();
   expect(displayNascosto.cambia).toBe('none');
 }
 

@@ -144,7 +144,7 @@ describe('menu campo', () => {
         expect(voceCambiaAziendaVisibile(null)).toBe(false);
     });
 
-    it('vociMenuCampo: operaio, capo, operaio+capo, manager', () => {
+    it('vociMenuCampo: niente validazione né guasto, cambia azienda da due', () => {
         expect(vociMenuCampo({ ruoli: ['operaio'], moduli: ['manodopera'], numeroAziende: 1 })).toEqual({
             validazioneOre: false,
             segnalaGuasto: false,
@@ -155,21 +155,20 @@ describe('menu campo', () => {
             moduli: ['manodopera', 'parcoMacchine'],
             numeroAziende: 2,
         })).toEqual({
-            validazioneOre: true,
-            segnalaGuasto: true,
+            validazioneOre: false,
+            segnalaGuasto: false,
             cambiaAzienda: true,
         });
         expect(vociMenuCampo({
             ruoli: ['operaio', 'caposquadra'],
             moduli: ['parcoMacchine'],
             numeroAziende: 1,
-        }).validazioneOre).toBe(true);
+        }).validazioneOre).toBe(false);
         expect(vociMenuCampo({
             ruoli: ['manager', 'operaio'],
             moduli: ['parcoMacchine'],
             numeroAziende: 2,
-        }).validazioneOre).toBe(false);
-        expect(vociMenuCampo({ ruoli: ['operaio'], moduli: [], numeroAziende: 3 }).segnalaGuasto).toBe(false);
+        }).segnalaGuasto).toBe(false);
     });
 
     it('ritornoValidazioneOre', () => {
