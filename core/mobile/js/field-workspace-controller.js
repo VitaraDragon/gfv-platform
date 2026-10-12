@@ -2955,15 +2955,14 @@ async function initFieldWorkspace() {
                     inlineSegnalaAssenzaSectionEl.hidden = !isCaposquadra;
                 }
                 setupSlidesForRole(isCaposquadra);
-                // Ordine caposquadra richiesto:
-                // Seleziona lavoro (+ squadra inline) -> Comunicazioni -> Segna ore -> I miei lavori -> Statistiche
+                // Ordine: Lavoro, Comunicazioni, (Valida ore se capo), Segna ore, Guasto, Statistiche.
                 aggiornaVociMenuCampo();
                 await setupFieldTenantSwitch(user.uid);
                 applicaStatoMenuCampo(true);
                 if (isCaposquadra || isOperaio) {
                     const order = isCaposquadra
-                        ? ['Lavoro', 'Comunicazioni', 'Valida ore', 'Ore', 'Statistiche']
-                        : ['Lavoro', 'Comunicazioni', 'Ore', 'Statistiche'];
+                        ? ['Lavoro', 'Comunicazioni', 'Valida ore', 'Ore', 'Guasto', 'Statistiche']
+                        : ['Lavoro', 'Comunicazioni', 'Ore', 'Guasto', 'Statistiche'];
                     activeSlides.sort((a, b) => order.indexOf(a.dataset.slideTitle) - order.indexOf(b.dataset.slideTitle));
                     activeSlides.forEach((slide) => swiperEl.appendChild(slide));
                 }
