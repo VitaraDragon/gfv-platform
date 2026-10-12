@@ -51,8 +51,16 @@ Con **Indietro** / **Avanti** in basso o i **puntini**:
 
 ### In alto nella schermata
 
-- Il menu **ingranaggio**: **Guida**, **Segnala guasto** se l’azienda ha il parco macchine, **Impostazioni**, **Esci**. **Cambia azienda** compare solo se ne hai più di una.  
+- Il menu **ingranaggio**: in cima i tre pulsanti della lingua (**Italiano**, **Română**, **English**), poi **Guida**, **Segnala guasto** se l’azienda ha il parco macchine, **Impostazioni**, **Esci**. **Cambia azienda** compare solo se ne hai più di una.  
 - Accesso alle **impostazioni account** da quel menu (lì anche **Notifiche** push: nuovo lavoro, comunicazioni di squadra).
+
+### Cambiare la lingua della schermata
+
+1. Tocca l’**ingranaggio** in alto.  
+2. In cima al menu tocca **Italiano**, **Română** o **English**.  
+3. La schermata cambia subito: menu, schede, pulsanti, messaggi in alto, elenchi e stati dei lavori seguono la lingua scelta.
+
+Con **Italiano** la schermata è quella di sempre. La scelta resta su quel telefono (o computer): la ritrovi alla prossima apertura, anche dopo essere uscito. Restano in italiano la pagina di accesso, il **dettaglio del lavoro**, le **statistiche**, le pagine che apri dal menu (Guida, Segnala guasto, Impostazioni) e **Tony**.
 
 ---
 
@@ -236,6 +244,8 @@ Se apri a mano un indirizzo dell’ufficio (terreni, magazzino, elenchi), l’ap
 | Ore in **attesa** o stato poco chiaro | Leggi i messaggi in app; per dubbi chiedi in ufficio. |
 | **Dettaglio lavoro** non carica | Connessione debole; riprova o tocca **Ingrandisci**. |
 | «Non riesco a caricare i lavori. Riprova.» | Tocca **Riprova** con una connessione migliore; se resta, chiedi in ufficio. |
+| «Il lavoro è stato completato il …: le ore si possono segnare fino a 7 giorni dopo il completamento e per i giorni lavorati.» | Sono passati più di 7 giorni dalla chiusura del lavoro: chiedi al caposquadra o al manager. |
+| La schermata è in rumeno o in inglese | Ingranaggio in alto → **Italiano**. |
 | Dopo il login: «Non riesco ad aprire la tua area. Riprova» | Tocca **Riprova**; se resta, chiedi in ufficio di controllare il tuo ruolo e il modulo Manodopera. |
 | Non capisco la **mappa delle zone** | Chiedi una dimostrazione in campo a chi coordina il gruppo. |
 | **GPS** non funziona | Attiva permesso posizione; riprova all’aperto; completa ubicazione e dettagli a mano. |

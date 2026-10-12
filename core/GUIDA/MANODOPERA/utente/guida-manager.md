@@ -353,6 +353,10 @@ Le ore che gli operatori registrano (versione mobile o altri canali previsti) po
 4. **Valida** approva subito. **Valida selezionate** e **Valida tutte** chiedono una conferma sola. **Rifiuta** chiede il motivo. Se il motivo è vuoto, compare «Scrivi il motivo: è obbligatorio.» e il campo resta in evidenza. Dopo il rifiuto leggi «Ora rifiutata».  
 5. Negli ultimi 30 giorni (filtri per operaio, lavoro e stato) vedi le ore validate e quelle rifiutate, con chi ha fatto l’azione, data, ora e motivo. Se la storia è lunga, **mostra tutto**. Puoi **Correggere**, **Annullare la validazione** o **Rifiutare / togliere**. Ogni azione chiede un motivo breve. La riga non si cancella. Vale anche per le ore degli operai di squadra.
 
+**Chi trovi nella tua coda:** le ore dei lavori **autonomi** e quelle segnate dai **capisquadra** sui lavori di squadra. Le ore degli operai di squadra le valida prima il **caposquadra** del lavoro.
+
+**Coda vuota:** leggi «Nessuna ora da validare» e sotto «Nessuna ora da validare da te». Se ci sono ore degli operai che aspettano ancora il caposquadra, compare anche «1 ora in attesa dei capisquadra» oppure «N ore in attesa dei capisquadra» (per esempio «3 ore in attesa dei capisquadra»): non tocca a te, ma sai che in campo c’è ancora qualcosa da validare.
+
 ### Perché conta
 
 Senza validazione le **statistiche** e i **compensi** possono restare incompleti o provvisori. Il **caposquadra** può validare le ore dei membri della squadra sul singolo lavoro dalla versione mobile; il manager ha comunque la vista **complessiva** qui.
@@ -369,6 +373,8 @@ Oltre alla versione mobile in campo, esiste una pagina **Segnatura ore** per dig
 2. Usa un segnalibro o un link che l’ufficio ha già salvato, se lo usate spesso.
 
 Il flusso **quotidiano** degli operatori resta la **versione mobile**: questa pagina non sostituisce il loro percorso, lo integra dove serve a te. Su un lavoro sospeso non si segnano ore nuove, né dal menu né con Tony: Tony lo dice e indica la ripresa, se c’è. In elenco il badge è **Sospeso**. «Tutto pronto» dice sempre il nome del lavoro e il giorno. Se non dici la data, è oggi. Dopo Annulla, un «sì» non salva. Tony dice «Fatto» quando l'ora è salvata, anche se è in attesa del caposquadra. Se il salvataggio fallisce, dice il motivo. Una domanda vecchia «Vuoi salvare?» non resta aperta. Il riepilogo del giorno si aggiorna subito dopo il salvataggio o l'eliminazione. Dopo un ricarico, quella domanda e la frase «Questa richiesta è scaduta» non tornano in chat. Se nomini un lavoro che non c’è o è già finito, Tony dice «Non trovo un lavoro attivo con questo nome» ed elenca quelli segnabili; non propone un lavoro sospeso che non c’entra.
+
+**Lavoro già chiuso:** un lavoro **completato** o **in attesa di approvazione** resta segnabile per **7 giorni** dopo il completamento, anche da questa pagina, ma solo per le **tue** ore e per i giorni in cui il lavoro era ancora aperto. Se scegli un giorno fuori da questa finestra, sotto la data compare in rosso, per esempio, «Il lavoro è stato completato il GG/MM: le ore si possono segnare fino a 7 giorni dopo il completamento e per i giorni lavorati. Chiedi al caposquadra o al manager.» e **Salva Ora** resta spento finché non cambi data o lavoro.
 
 ---
 

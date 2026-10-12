@@ -50,8 +50,12 @@ La **versione mobile** è la schermata principale quando lavori in campo dall’
 ### Cosa vedi in alto
 
 - Il tuo **nome** e il ruolo (es. caposquadra). La schermata è la stessa sul telefono e sul computer: non c’è un passaggio alla dashboard dell’ufficio.  
-- **Impostazioni** (ingranaggio): Guida, Segnala guasto se c’è il parco macchine, Validazione ore, Impostazioni account, Esci. Cambia azienda solo se ne hai più di una.  
+- **Impostazioni** (ingranaggio): in cima i tre pulsanti della lingua (**Italiano**, **Română**, **English**), poi Guida, Segnala guasto se c’è il parco macchine, Validazione ore, Impostazioni account, Esci. Cambia azienda solo se ne hai più di una.  
 - Una riga di **stato** sotto la barra (caricamento, messaggi brevi).
+
+### Cambiare la lingua della schermata
+
+Tocca l’**ingranaggio** e, in cima al menu, **Italiano**, **Română** o **English**. La schermata cambia subito: menu, schede, pulsanti, messaggi in alto, elenchi e stati dei lavori seguono la lingua scelta. Con **Italiano** la schermata è quella di sempre. La scelta resta su quel telefono (o computer), anche dopo essere uscito. Restano in italiano la pagina di accesso, il **dettaglio del lavoro**, le **statistiche**, le pagine che apri dal menu (Guida, Validazione ore, Segnala guasto, Impostazioni) e **Tony**. Utile se in squadra c’è chi legge meglio il rumeno o l’inglese: ognuno sceglie sul proprio telefono.
 
 ### Le quattro schede del caposquadra (ordine dell’app)
 
@@ -172,7 +176,7 @@ Sempre nella scheda **Lavoro**, nel blocco **Valida ore**, vedi le registrazioni
 
 - Qui validi le ore **del team sul singolo lavoro**. Le tue ore le valida il manager.  
 - Il **manager** ha comunque le viste complete e la **validazione globale** dove previsto dall’installazione: non sono la stessa cosa.  
-- Da computer, in **Validazione ore**, i contatori **Validate** e **Rifiutate** sono gli ultimi 30 giorni, le stesse righe della lista. Puoi vedere anche le rifiutate, con chi, quando e il motivo. Puoi **correggere**, **annullare** o **rifiutare** un’ora già validata dei tuoi operai: serve un motivo breve. Se manca, la pagina lo dice. La riga non si cancella. Dopo il rifiuto leggi «Ora rifiutata». Le stelline delle competenze, dopo una tua validazione, si aggiornano quando agisce il manager, oppure dal ricalcolo in Gestione operai.
+- Da computer, in **Validazione ore**, i contatori **Validate** e **Rifiutate** sono gli ultimi 30 giorni, le stesse righe della lista. Puoi vedere anche le rifiutate, con chi, quando e il motivo. Puoi **correggere**, **annullare** o **rifiutare** un’ora già validata dei tuoi operai: serve un motivo breve. Se manca, la pagina lo dice. La riga non si cancella. Dopo il rifiuto leggi «Ora rifiutata». Le stelline delle competenze, dopo una tua validazione, si aggiornano quando agisce il manager, oppure dal ricalcolo in Gestione operai. Quando non hai più ore da validare leggi «Nessuna ora da validare» e sotto «Tutte le ore sono state validate o rifiutate».
 
 ---
 
@@ -303,6 +307,8 @@ Se colleghi la segnalazione a un **lavoro** e scegli **grave**, l’app può **s
 | Non posso **validare ore** | Verifica il **lavoro selezionato**; senza righe in attesa non c’è nulla da validare. |
 | **Dettaglio lavoro** non carica | Connessione debole; riprova o tocca **Ingrandisci**. |
 | «Non riesco a caricare i lavori. Riprova.» | Tocca **Riprova** con una connessione migliore; se resta, chiedi al manager. |
+| «Il lavoro è stato completato il …: le ore si possono segnare fino a 7 giorni dopo il completamento e per i giorni lavorati.» | Sono passati più di 7 giorni dalla chiusura: chiedi al manager. |
+| La schermata è in rumeno o in inglese | Ingranaggio in alto → **Italiano**. |
 | Dopo il login: «Non riesco ad aprire la tua area. Riprova» | Tocca **Riprova**; se resta, chiedi al manager di controllare il tuo ruolo e il modulo Manodopera. |
 | Non posso **completare** il lavoro | Spesso mancano **zone lavorate** o **ore** richieste; leggi il messaggio in schermata. |
 | **GPS** non prende la posizione | Permesso negato al browser; GPS spento sul telefono; riprova all’aperto; usa ubicazione scritta + mappa se disponibile. |

@@ -902,6 +902,76 @@
         "MAGAZZINO"
       ],
       "label": "Core pieno in campo"
+    },
+    {
+      "prefix": "core/services/ore-lavoro-selezionabile",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Ore selezionabili su lavoro chiuso (finestra 7 giorni)"
+    },
+    {
+      "prefix": "core/services/manodopera-ore-validazione-scope",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Coda validazione ore (chi valida cosa, testo coda vuota)"
+    },
+    {
+      "prefix": "core/services/field-ui-i18n",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Lingua workspace campo (it/ro/en)"
+    },
+    {
+      "prefix": "core/config/field-ui-i18n",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Stringhe i18n workspace campo"
+    },
+    {
+      "prefix": "core/mobile/js/field-ui-i18n-dom",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Applica lingua al DOM del workspace campo"
+    },
+    {
+      "prefix": "core/config/accettazione-legale-config",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Accettazione legale (flag, documenti e versioni)"
+    },
+    {
+      "prefix": "core/services/accettazione-legale",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Accettazione legale (regole pure)"
+    },
+    {
+      "prefix": "core/js/accettazione-legale-gate",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Accettazione legale (gate ri-accettazione al primo ingresso)"
+    },
+    {
+      "prefix": "functions/accettazione-legale",
+      "modules": [
+        "CORE"
+      ],
+      "label": "CF registraAccettazioniLegali"
+    },
+    {
+      "prefix": "functions/lib/accettazione-legale-core",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Core accettazione legale (validazione payload)"
     }
   ]
 }

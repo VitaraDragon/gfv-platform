@@ -168,3 +168,7 @@ Implementazione UI ufficio su **main**: flag `uiPelleProposta` (`feature-flags.j
 
 Multi-azienda: selezione tenant in sessione (cambia azienda). Non spiegare all’utente Firebase Auth oltre «email/password / link invito / reset».
 
+## Accettazione documenti legali (preparata, flag spento — non in guida utente)
+
+#190/#192/#194: caselle di accettazione in registrazione e presa visione nell’invito, ri-accettazione al primo ingresso. **Flag spento:** `ACCETTAZIONE_LEGALE_ATTIVA = false` in `core/config/accettazione-legale-config.js` (`DOCUMENTI_LEGALI` con URL/versioni vuote, da compilare prima di accendere). Regole pure `core/services/accettazione-legale.js`; gate `core/js/accettazione-legale-gate.js` (importato solo con flag acceso; spento non chiama la rete e non disegna nulla); callable `registraAccettazioniLegali` in `functions/accettazione-legale.js` + `functions/lib/accettazione-legale-core.js` (collection `accettazioniLegali`, solo Admin SDK). Oggi registrazione e invito restano come prima: **non** descrivere all’utente caselle o documenti legali.
+
