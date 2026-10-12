@@ -341,6 +341,17 @@ function impostaLinguaCampo(lang) {
         updateFieldHeaderUser(displayName, currentUserData.ruoli);
     }
     ridisegnaTestiInMemoria();
+    avvisaIframeGuasto(lingua);
+}
+
+function avvisaIframeGuasto(lingua) {
+    const frame = document.getElementById('guasto-embed-frame');
+    if (!frame || !frame.contentWindow) return;
+    try {
+        frame.contentWindow.postMessage({ type: 'gfv-field-lang', lang: lingua }, window.location.origin);
+    } catch (error) {
+        /* iframe non ancora pronto */
+    }
 }
 
 function ridisegnaTestiInMemoria() {
@@ -1103,6 +1114,7 @@ function localeCampo() {
     if (lang === 'ro') return 'ro-RO';
     if (lang === 'en') return 'en-GB';
     if (lang === 'sq') return 'sq-AL';
+    if (lang === 'fr') return 'fr-FR';
     return 'it-IT';
 }
 

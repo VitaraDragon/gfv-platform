@@ -21,8 +21,9 @@ function memoria(iniziale) {
 }
 
 describe('field-ui-i18n helper', () => {
-    it('normalizza solo it, ro, en e sq', () => {
-        expect(normalizzaLingua('fr')).toBe('it');
+    it('normalizza solo it, ro, en, sq e fr', () => {
+        expect(normalizzaLingua('fr')).toBe('fr');
+        expect(normalizzaLingua('de')).toBe('it');
         expect(normalizzaLingua(undefined)).toBe('it');
         expect(normalizzaLingua('EN')).toBe('en');
         expect(normalizzaLingua(' ro ')).toBe('ro');
@@ -65,7 +66,8 @@ describe('field-ui-i18n helper', () => {
             it: 'Inviati {n} di {count}',
             ro: 'Trimise {n} din {count}',
             en: 'Sent {n} of {count}',
-            sq: 'U dërguan {n} nga {count}'
+            sq: 'U dërguan {n} nga {count}',
+            fr: 'Envoyés {n} sur {count}'
         };
         try {
             expect(t('toast.prova', 'en', { n: 2, count: 5 })).toBe('Sent 2 of 5');
@@ -78,8 +80,10 @@ describe('field-ui-i18n helper', () => {
     });
 
     it('legge e scrive su storage finto; valore sporco o storage che lancia → it', () => {
-        const store = memoria({ [FIELD_LANG_STORAGE_KEY]: 'fr' });
+        const store = memoria({ [FIELD_LANG_STORAGE_KEY]: 'de' });
         expect(leggiLinguaCampo(store)).toBe('it');
+        expect(salvaLinguaCampo('fr', store)).toBe('fr');
+        expect(leggiLinguaCampo(store)).toBe('fr');
         expect(salvaLinguaCampo('en', store)).toBe('en');
         expect(store.dump[FIELD_LANG_STORAGE_KEY]).toBe('en');
         expect(leggiLinguaCampo(store)).toBe('en');
