@@ -23,14 +23,14 @@ Non è internazionalizzazione dell’ERP. Non è aprire Francia/UK. È **semplif
 |---|-----------|--------|
 | D1 | **Non** tradurre tutta l’app (dashboard, terreni, magazzino, abbonamento, guide complete, Tony ERP) | Costo enorme, mercato ufficiale = PMI agricole italiane, GTM ancora in Italia |
 | D2 | Il multilinguismo è **solo per il profilo campo** (operaio / caposquadra) | Loro usano il telefono; l’ufficio resta in italiano |
-| D3 | Lingue MVP: **italiano + rumeno + inglese**. Francese **non** in MVP | Rumeno = manodopera agricola più frequente in Italia; EN = lingua franca; FR è terziario |
+| D3 | Decisione Pier 12 ott 2026: albanese (sq) aggiunto al workspace campo (bozza da rivedere da un madrelingua); arabo e punjabi restano fuori (RTL). Francese non in MVP | Rumeno, inglese e albanese per la manodopera; FR è terziario |
 | D4 | Due strati: **cornice** (pulsanti/errori/login) **e** **contenuto operativo** (traduci il messaggio). Il secondo vale di più | Un bottone «Save hours» non basta se l’ordine di lavoro resta in italiano |
 | D5 | Home unica = **versione mobile** (`field-workspace-standalone.html`) anche da PC. Togliere (o nascondere) il toggle 🖥️ | La desktop classica è un secondo ingresso alle stesse cose + confusione |
 | D6 | **Non cancellare** le pagine sotto (dettaglio lavoro/zone, validazione completa, impostazioni, segnalazione guasti) | Restano **compiti** (iframe / link a tutto schermo), non una seconda home |
 | D7 | Portare **segnalazione guasti** nella mobile: è l’unico buco che oggi giustifica ancora la desktop | Dopo D5 l’operaio non deve più passare da dashboard per un guasto |
 | D8 | Account **manager o amministratore** (anche se ha anche capo/operaio) resta sulla **dashboard ufficio** | `shouldUseFieldMobileWorkspace` già esclude manager/admin |
 | D9 | Tony vocale / STT / TTS in altre lingue = **fase successiva**, non MVP | Voce e «segna ore» sono agganciati a `it-IT` (Chirp 3, punteggiatura, parsing date) |
-| D10 | Arabo / albanese / punjabi = **dopo**, se i tenant lo chiedono | Quattro lingue subito = troppa manutenzione |
+| D10 | Decisione Pier 12 ott 2026: albanese (sq) aggiunto al workspace campo (bozza da rivedere da un madrelingua); arabo e punjabi restano fuori (RTL) | Arabo e punjabi chiedono il testo da destra a sinistra |
 | D11 | Il caposquadra può restare in italiano: deve soprattutto far **capire i messaggi** alla squadra | Non obbligarlo a scrivere in rumeno |
 | D12 | Niente framework i18n su 75 HTML. Catalogo **solo campo** + preferenza utente | Stesso principio: configurazione > codice, perimetro stretto |
 
@@ -412,7 +412,7 @@ Fino alla Fase 3 il punto 3 può essere «legge la cornice in rumeno e il messag
 
 - [ ] Ho letto questo file e §24 di `TONY_DECISIONI_E_REQUISITI.md`.
 - [ ] Non sto traducendo l’ERP / landing / Tony voce (D1, D9).
-- [ ] Lingue toccate ⊆ `{it, ro, en}` (D3).
+- [ ] Decisione Pier 12 ott 2026: albanese (sq) aggiunto al workspace campo (bozza da rivedere da un madrelingua); arabo e punjabi restano fuori (RTL). Lingue toccate ⊆ `{it, ro, en, sq}`.
 - [ ] Catalogo centralizzato, nessuna stringa nuova hardcoded in una sola lingua.
 - [ ] Manager/admin non finiscono sul workspace (D8).
 - [ ] Non ho cancellato `lavori-caposquadra` / validazione / impostazioni / guasti (D6).

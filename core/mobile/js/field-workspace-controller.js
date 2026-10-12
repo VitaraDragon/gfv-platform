@@ -106,7 +106,8 @@ import {
     t,
     leggiLinguaCampo,
     salvaLinguaCampo,
-    normalizzaLingua
+    normalizzaLingua,
+    FIELD_UI_LANG_OPTIONS
 } from '../../services/field-ui-i18n.js';
 
 const {
@@ -278,11 +279,58 @@ function linguaCorrente() {
     return leggiLinguaCampo(storageCampo());
 }
 
+function disegnaElencoLingue() {
+    const list = document.getElementById('field-lang-list');
+    if (!list || list.dataset.pronto === '1') return;
+    list.dataset.pronto = '1';
+    FIELD_UI_LANG_OPTIONS.forEach((voce) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.setAttribute('data-field-lang', voce.code);
+        btn.style.cssText = 'display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:12px 16px;font-size:18px;text-align:left;border:0;border-radius:8px;background:transparent;cursor:pointer;';
+        const flag = document.createElement('span');
+        flag.textContent = voce.flag;
+        flag.setAttribute('aria-hidden', 'true');
+        const name = document.createElement('span');
+        name.textContent = voce.name;
+        const mark = document.createElement('span');
+        mark.className = 'field-lang-check';
+        mark.style.marginLeft = 'auto';
+        btn.append(flag, name, mark);
+        btn.addEventListener('click', () => {
+            impostaLinguaCampo(voce.code);
+            chiudiDialogoLingua();
+        });
+        list.appendChild(btn);
+    });
+    aggiornaPulsantiLingua(linguaCorrente());
+}
+
+function apriDialogoLingua() {
+    const dlg = document.getElementById('field-lang-dialog');
+    if (!dlg) return;
+    disegnaElencoLingue();
+    aggiornaPulsantiLingua(linguaCorrente());
+    dlg.hidden = false;
+    dlg.style.display = 'flex';
+}
+
+function chiudiDialogoLingua() {
+    const dlg = document.getElementById('field-lang-dialog');
+    if (!dlg) return;
+    dlg.hidden = true;
+    dlg.style.display = '';
+}
+
 function aggiornaPulsantiLingua(lang) {
-    if (!optionsMenuEl) return;
+    const list = document.getElementById('field-lang-list');
+    if (!list) return;
     const lingua = normalizzaLingua(lang);
-    optionsMenuEl.querySelectorAll('[data-field-lang]').forEach((btn) => {
-        btn.setAttribute('aria-pressed', btn.getAttribute('data-field-lang') === lingua ? 'true' : 'false');
+    list.querySelectorAll('[data-field-lang]').forEach((btn) => {
+        const attivo = btn.getAttribute('data-field-lang') === lingua;
+        btn.setAttribute('aria-pressed', attivo ? 'true' : 'false');
+        const mark = btn.querySelector('.field-lang-check');
+        if (mark) mark.textContent = attivo ? '✓' : '';
     });
 }
 
@@ -1046,6 +1094,7 @@ function localeCampo() {
     const lang = linguaCorrente();
     if (lang === 'ro') return 'ro-RO';
     if (lang === 'en') return 'en-GB';
+    if (lang === 'sq') return 'sq-AL';
     return 'it-IT';
 }
 
@@ -2557,7 +2606,7 @@ function applicaStatoMenuCampo(pronto) {
     if (preparing) preparing.hidden = abilitato;
     if (!optionsMenuEl) return;
     optionsMenuEl.querySelectorAll('.field-options-link').forEach((el) => {
-        if (el.id === 'field-logout-button' || el.hasAttribute('data-field-lang')) {
+        if (el.id === 'field-logout-button' || el.id === 'field-lang-open') {
             el.removeAttribute('aria-disabled');
             return;
         }
@@ -2630,12 +2679,26 @@ async function setupFieldTenantSwitch(userId) {
 }
 
 function bindToolbar() {
-    if (optionsMenuEl) {
-        optionsMenuEl.querySelectorAll('[data-field-lang]').forEach((btn) => {
-            btn.addEventListener('click', (event) => {
-                event.preventDefault();
-                impostaLinguaCampo(btn.getAttribute('data-field-lang'));
-            });
+    const langOpenEl = document.getElementById('field-lang-open');
+    const langDialogEl = document.getElementById('field-lang-dialog');
+    disegnaElencoLingue();
+    if (langOpenEl) {
+        langOpenEl.addEventListener('click', (event) => {
+            event.preventDefault();
+            apriDialogoLingua();
+        });
+    }
+    if (langDialogEl) {
+        langDialogEl.addEventListener('click', (event) => {
+            event.stopPropagation();
+            if (event.target === langDialogEl) chiudiDialogoLingua();
+        });
+        const langCloseEl = langDialogEl.querySelector('[data-field-lang-close]');
+        if (langCloseEl) {
+            langCloseEl.addEventListener('click', () => chiudiDialogoLingua());
+        }
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !langDialogEl.hidden) chiudiDialogoLingua();
         });
     }
     if (fieldLogoutButtonEl) {
@@ -2653,7 +2716,7 @@ function bindToolbar() {
             const target = event.target instanceof Element
                 ? event.target.closest('.field-options-link')
                 : null;
-            if (!target || target.id === 'field-logout-button' || target.hasAttribute('data-field-lang')) return;
+            if (!target || target.id === 'field-logout-button' || target.id === 'field-lang-open') return;
             if (!menuCampoAbilitato(workspacePronto)) {
                 event.preventDefault();
                 event.stopPropagation();
