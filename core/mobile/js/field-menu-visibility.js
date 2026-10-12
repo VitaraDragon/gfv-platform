@@ -15,15 +15,16 @@ export function voceCambiaAziendaVisibile(numeroAziende) {
 }
 
 /**
+ * Il menu ⚙️ del campo non apre più la validazione a schermo intero né la segnalazione guasti.
+ * Quelle schermate restano nel workspace (schede), non nell’ingranaggio.
+ * Ruoli e moduli non cambiano questa scelta: il menu è solo del profilo campo.
  * @param {{ ruoli?: string[], moduli?: string[], numeroAziende?: number }} input
  * @returns {{ validazioneOre: boolean, segnalaGuasto: boolean, cambiaAzienda: boolean }}
  */
-export function vociMenuCampo({ ruoli, moduli, numeroAziende } = {}) {
-    const n = normalizzaRuoliGuasti(ruoli);
-    const mods = Array.isArray(moduli) ? moduli : [];
+export function vociMenuCampo({ numeroAziende } = {}) {
     return {
-        validazioneOre: n.includes('caposquadra'),
-        segnalaGuasto: mods.includes('parcoMacchine'),
+        validazioneOre: false,
+        segnalaGuasto: false,
         cambiaAzienda: voceCambiaAziendaVisibile(numeroAziende)
     };
 }

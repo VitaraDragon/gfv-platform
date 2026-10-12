@@ -128,6 +128,26 @@ export function isFieldWorkspacePath(pathname) {
 }
 
 /**
+ * Operaio e caposquadra non vedono la barra moduli (graffetta, mappa, ingranaggio).
+ * L’ultimo ingresso «workspace» basta. «dashboard» lascia la barra: è il manager,
+ * anche se sullo stesso account c’è il ruolo caposquadra.
+ * Senza ingresso, contano i ruoli in sessione. Il manager o l’amministratore tengono la barra.
+ * @param {{ ultimo?: string, ruoli?: string[] }} [input]
+ * @returns {boolean}
+ */
+export function nascondiShellPerProfiloCampo(input) {
+  const src = input || {};
+  const ultimo = String(src.ultimo || '');
+  if (ultimo === 'dashboard') return false;
+  if (ultimo === 'workspace') return true;
+  const ruoli = Array.isArray(src.ruoli) ? src.ruoli : [];
+  const low = ruoli.map((r) => String(r || '').toLowerCase());
+  const manager = low.indexOf('manager') >= 0 || low.indexOf('amministratore') >= 0;
+  const campo = low.indexOf('operaio') >= 0 || low.indexOf('caposquadra') >= 0;
+  return !manager && campo;
+}
+
+/**
  * @param {string} pathname
  * @returns {boolean}
  */
