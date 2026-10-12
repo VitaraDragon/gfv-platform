@@ -144,6 +144,16 @@ export const FIELD_UI_STRINGS = {
         ro: 'Orele se calculează automat din orarele setate.',
         en: 'Hours are calculated automatically from the times you set.'
     , sq: 'Orët llogariten vetë nga oraret që vendosni.'},
+    'slide.guasto.title': {
+        it: '⚠️ Segnala un problema',
+        ro: '⚠️ Semnalează o problemă',
+        en: '⚠️ Report a problem'
+    , sq: '⚠️ Sinjalizo një problem'},
+    'slide.guasto.sub': {
+        it: 'Una macchina, oppure un pericolo sul terreno: frana, albero, palo.',
+        ro: 'O mașină, sau un pericol pe teren: alunecare, copac, stâlp.',
+        en: 'A machine, or a hazard on the ground: landslide, tree, pole.'
+    , sq: 'Një makinë, ose një rrezik në tokë: rrëshqitje, pemë, shtyllë.'},
     'slide.stats.title': {
         it: '📊 Statistiche',
         ro: '📊 Statistici',

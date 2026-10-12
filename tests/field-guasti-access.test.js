@@ -9,6 +9,7 @@ import {
     deveTentareSospensioneLavoroGuasto,
     esitoSegnalazioneGuasto,
     testoConfermaSegnalazione,
+    vistaSegnalazionePerModuli,
 } from '../core/js/field-guasti-access.js';
 import {
     voceCambiaAziendaVisibile,
@@ -120,6 +121,27 @@ describe('esitoSegnalazioneGuasto', () => {
     });
 });
 
+describe('vistaSegnalazionePerModuli', () => {
+    it('senza parco macchine resta solo la segnalazione generica', () => {
+        expect(vistaSegnalazionePerModuli(['manodopera'])).toEqual({
+            mostraMacchina: false,
+            tipoIniziale: 'generico',
+        });
+        expect(vistaSegnalazionePerModuli([])).toEqual({
+            mostraMacchina: false,
+            tipoIniziale: 'generico',
+        });
+        expect(vistaSegnalazionePerModuli(undefined).mostraMacchina).toBe(false);
+    });
+
+    it('con parco macchine il guasto alla macchina resta la scelta iniziale', () => {
+        expect(vistaSegnalazionePerModuli(['manodopera', 'parcoMacchine'])).toEqual({
+            mostraMacchina: true,
+            tipoIniziale: 'macchina',
+        });
+    });
+});
+
 describe('testoConfermaSegnalazione', () => {
     it('dal campo torna da solo; con avviso resta e offre il pulsante', () => {
         expect(testoConfermaSegnalazione({ dalCampo: true, haAvvisi: false })).toEqual({
@@ -133,6 +155,9 @@ describe('testoConfermaSegnalazione', () => {
         expect(conAvviso.mostraTornaWorkspace).toBe(true);
         expect(testoConfermaSegnalazione({ dalCampo: false, haAvvisi: false }).dettaglio)
             .toContain('I Miei Guasti Segnalati');
+        const nellaScheda = testoConfermaSegnalazione({ dalCampo: true, haAvvisi: false, incorporata: true });
+        expect(nellaScheda.tornaAutomatico).toBe(false);
+        expect(nellaScheda.mostraTornaWorkspace).toBe(false);
     });
 });
 

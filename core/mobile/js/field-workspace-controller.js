@@ -139,6 +139,7 @@ const oraBreakEl = document.getElementById('ora-break');
 const oraNoteEl = document.getElementById('ora-note');
 const lavoriDetailFrameEl = document.getElementById('lavori-detail-frame');
 const statsEmbedFrameEl = document.getElementById('stats-embed-frame');
+const guastoEmbedFrameEl = document.getElementById('guasto-embed-frame');
 const btnIngrandisciLavoroEl = document.getElementById('btn-ingrandisci-lavoro');
 const segnalaRiquadroOreNonLeggibile = creaSegnalatoreRiquadroOre((messaggio, passo, codice) => {
     console.warn(messaggio, passo, codice);
@@ -548,10 +549,19 @@ function onMessaggioStatistiche(event) {
     }
 }
 
+function ensureGuastoEmbedLoaded() {
+    if (!guastoEmbedFrameEl || guastoEmbedFrameEl.dataset.loaded === '1') return;
+    guastoEmbedFrameEl.dataset.loaded = '1';
+    guastoEmbedFrameEl.src = '../admin/segnalazione-guasti-standalone.html?from=field&embed=1';
+}
+
 function maybeLoadEmbedsForSlide(slideTitle) {
     const title = String(slideTitle || '').trim();
     if (title === 'Statistiche') {
         ensureStatsEmbedLoaded();
+    }
+    if (title === 'Guasto') {
+        ensureGuastoEmbedLoaded();
     }
     if (title === 'Ore') {
         updateLavoriDetailEmbed(true);
@@ -601,6 +611,9 @@ function findSlideIndexByToken(token) {
         }
         if (normalized === 'statistiche' || normalized === 'statistiche-lavoratore' || normalized === 'statistiche lavoratore') {
             return title === 'statistiche';
+        }
+        if (normalized === 'guasto' || normalized === 'segnala-guasto' || normalized === 'segnalazione-guasti' || normalized === 'segnalazione guasti') {
+            return title === 'guasto';
         }
         return title === normalized;
     });

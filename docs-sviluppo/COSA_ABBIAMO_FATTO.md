@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-12 — Menu campo senza validazione e guasti, niente barra moduli.**
+**Ultimo aggiornamento documentazione: 2026-10-12 — Scheda guasto nel workspace, anche senza Parco Macchine.**
+
+## 2026-10-12 — Scheda per segnalare un problema, dopo Segna ore
+
+Nel workspace, per operaio e caposquadra, dopo Segna ore e prima di Statistiche c’è «Segnala un problema». È lo stesso form di prima. Senza Parco Macchine si vede solo la segnalazione generica (frana, albero caduto, palo rotto, e gli altri pericoli sul terreno). Con il modulo resta anche il guasto a macchina o attrezzo. Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-12 — Menu campo senza validazione e guasti, niente barra moduli.**
 
 ## 2026-10-12 — Operaio e caposquadra: menu e barra moduli
 
