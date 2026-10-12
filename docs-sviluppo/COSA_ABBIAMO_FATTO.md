@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-12 — Scheda guasto nel workspace, anche senza Parco Macchine.**
+**Ultimo aggiornamento documentazione: 2026-10-12 — Francese e traduzione della scheda guasti.**
+
+## 2026-10-12 — Francese e scheda guasti tradotta
+
+Nel workspace di campo, dal menu Lingua, si può scegliere anche il francese. La scheda «Segnala un problema» traduce il form (tipo, macchina, pericolo sul terreno, gravità, GPS, invio e l’elenco dei guasti già caricati). I nomi di macchine, lavori e i testi scritti dall’utente restano come sono. Il francese, come rumeno, inglese e albanese, è una bozza da rivedere da un madrelingua. La lingua resta solo sul telefono (`gfv_field_lang`). Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-12 — Scheda guasto nel workspace, anche senza Parco Macchine.**
 
 ## 2026-10-12 — Scheda per segnalare un problema, dopo Segna ore
 
