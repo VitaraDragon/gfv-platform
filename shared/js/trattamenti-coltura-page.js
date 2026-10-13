@@ -16,7 +16,8 @@ import {
     registroToXml,
     righeExportRegistro,
     unisciConfermaSpecie,
-    valutaCancellazioneRegistro
+    valutaCancellazioneRegistro,
+    rangeDoseAvviso
 } from './registro-trattamenti.js';
 import {
     attaccaLetturaScheda,
@@ -29,7 +30,7 @@ import {
     scriviAcquaNelForm,
     scriviEsitoScheda
 } from './registro-trattamenti-form.js';
-import { leggiSchedaRegistroTrattamento } from './registro-trattamenti-scheda-client.js';
+import { chiediRiletturaScheda, leggiRigheSchedaProdotto, leggiSchedaRegistroTrattamento } from './registro-trattamenti-scheda-client.js';
 
 export async function mountTrattamentiColturaPage(cfg) {
     try {
@@ -328,6 +329,8 @@ function renderProdottiTrattamento(rows, prodottiAnagrafica) {
             return row && row.prodottoId ? listProdottiAnagrafica.find((p) => p.id === row.prodottoId) : null;
         },
         leggiScheda: leggiSchedaRegistroTrattamento,
+        leggiRighe: (anag) => leggiRigheSchedaProdotto(anag && anag.id),
+        chiediRilettura: (anag) => chiediRiletturaScheda(anag && anag.id),
         utente: () => utenteRegistroNome,
         salvaSuProdotto: salvaConfermaProdotto,
         onConferma: (idx, registro) => {
@@ -377,10 +380,11 @@ function validaDosaggiProdotti(rowsProdotti) {
         const prod = listProdottiAnagrafica.find(p => p.id === r.prodottoId);
         if (!prod) continue;
         const nome = (r.prodotto || prod.nome || prod.codice || '').trim() || 'Prodotto';
-        if (prod.dosaggioMax != null && r.dosaggio > prod.dosaggioMax) {
+        const range = rangeDoseAvviso(r, prod);
+        if (range.max != null && r.dosaggio > range.max) {
             return { valid: false, message: 'Dosaggio superiore al consigliato per ' + nome + '.' };
         }
-        if (prod.dosaggioMin != null && r.dosaggio < prod.dosaggioMin) {
+        if (range.min != null && r.dosaggio < range.min) {
             return { valid: false, message: 'Dosaggio inferiore al consigliato per ' + nome + '.' };
         }
     }

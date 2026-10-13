@@ -237,6 +237,12 @@ service cloud.firestore {
     match /tenants/{tenantId}/prodotti/{prodottoId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
       allow create, update, delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
+
+      // Righe di coltura della scheda. Le scrive solo la Cloud Function.
+      match /schedaImpieghi/{rigaId} {
+        allow read: if isAuthenticated() && belongsToTenant(tenantId);
+        allow write: if false;
+      }
     }
 
     // Collection: movimentiMagazzino (modulo Prodotti e Magazzino)

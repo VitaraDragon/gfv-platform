@@ -3,10 +3,10 @@
 - Titolo: Registro trattamenti GFV — impostazione
 - Settore: Ricerca
 - Data: 3 ottobre 2026
-- Aggiornato: 13 ottobre 2026 (decisioni su export, avvisi e miscela)
+- Aggiornato: 13 ottobre 2026, sera (passi 1–5 nel codice, non pubblicati)
 - Autore: Coord Ricerca
 
-Documento per chi deve modificare il prodotto. L’impostazione del 3 ottobre resta valida. Le decisioni del 13 ottobre, più sotto, la completano e sono quelle da seguire se un punto diverge. Copia di lavoro nel repo: `docs-sviluppo/da-fare/vigneto/PIANO_REGISTRO_TRATTAMENTI.md`. Il codice si scrive solo quando Pier lo chiede in modo esplicito.
+Documento per chi deve modificare il prodotto. L’impostazione del 3 ottobre resta valida. Le decisioni del 13 ottobre mattina la completano. Se un punto diverge, comanda il paragrafo «Decisioni del 13 ottobre 2026, pomeriggio», e per nome e semaforo il paragrafo «Già in codice il 13 ottobre 2026, sera». La lettura sta in anagrafica, in background. I passi 1, 2, 3, 4 e 5 del pomeriggio sono nel repo e non sono pubblicati. La coda non è online e «Leggi scheda» resta.
 
 ## Cosa è, e cosa non è
 
@@ -207,7 +207,7 @@ Il filtro della scheda usa la specie del campo. Se manca, non si indovina.
 
 - Frutteto: c’è `specie` (melo, pesco, pero) in `modules/frutteto/models/Frutteto.js`.
 - Seminativo: c’è `colturaNome` sulla campagna.
-- Vigneto: ci sono varietà e destinazione uva (`vino`, `vendita_uva`, `misto`) in `modules/vigneto/models/Vigneto.js`. Non c’è una specie già uguale alle voci della scheda («uva da vino», «uva da tavola»). Con destinazione `misto`, o se il valore non si mappa, non si propone nulla.
+- Vigneto: ci sono varietà e destinazione uva (`vino`, `vendita_uva`, `misto`) in `modules/vigneto/models/Vigneto.js`. Non c’è una specie già uguale alle voci della banca. Con destinazione `misto`, o se il valore non si mappa, non si propone nulla. I nomi usati dopo la lettura del 13 ottobre sera sono `vite da vino` e `vite da tavola`.
 
 La corrispondenza fra i nostri valori e le colture della scheda sta in una configurazione unica, non ricopiata in tre pagine.
 
@@ -228,6 +228,8 @@ La corrispondenza fra i nostri valori e le colture della scheda sta in una confi
 - La macchina non ha la capacità della botte (`modules/parco-macchine/models/Macchina.js`). Sul trattamento il collegamento all’attrezzo c’è già (`macchinaId`).
 
 ### Come si legge la scheda, senza database nostro
+
+Il pomeriggio sposta questa lettura in anagrafica e la fa per tutte le colture del prodotto. Il paragrafo qui sotto descrive il codice del mattino.
 
 La chiamata agli open data del Ministero della Salute e alla scheda pubblica non sta nel browser. Sta in una Cloud Function: riceve prodotto e specie, restituisce solo le righe di quella specie, non salva l’archivio. Motivo pratico: il browser non può leggere quei siti in modo affidabile, e il file ministeriale è settimanale.
 
@@ -259,6 +261,96 @@ Le scritte nuove viste sul telefono di campo passano dal catalogo multilingua (`
 8. Testo in interfaccia: privato, conferma dell’azienda, niente invio SIAN.
 9. Conservazione: niente cancellazione silenziosa dei trattamenti confermati prima dei tre anni; allineare anche frutteto e seminativo, e non togliere in silenzio i movimenti di magazzino.
 10. Stringhe del campo nel catalogo multilingua. Campi compilati da Tony nel mapping dei form.
+
+### Già in codice il 13 ottobre 2026, mattina
+
+Il paragrafo «Dove sta il codice oggi» è la fotografia di prima di quel codice. Non usarla come elenco di cose ancora da scrivere.
+
+Sono già nel repo, su vigneto, frutteto e seminativo: numero di registrazione e principio attivo sul prodotto, conferma di riga, mappa specie, capacità botte, miscela prevista sul lavoro e nel workspace di campo, avvisi non bloccanti, export CSV e XML, testi del registro privato, conservazione tre anni, stringhe di campo e mapping Tony. La funzione `leggiSchedaRegistroTrattamento` (europe-west1) è pubblicata. Legge solo il CSV settimanale del Ministero: nome, numero, principio attivo. Non apre la banca SIAN e non scarica l’etichetta. Senza quelle righe risponde `schedaImpieghi: non_letta` e non inventa avversità, carenza o dosi. Il pulsante «Leggi scheda» sta oggi sul completamento del trattamento ed è manuale. Il pomeriggio lo sposta.
+
+### Decisioni del 13 ottobre 2026, pomeriggio
+
+Concordate dopo aver aperto la scheda pubblica di SIVANTO PRIME, numero 16273, sulla banca `https://www.sian.it/mimfFitoPub/`, e dopo aver letto etichette reali (Aliette: vite e peronospora, 1,5–2,5 kg/ha, dose bassa negli stadi precoci e dose alta a vegetazione piena; scheda tecnica Envita SC: 0,5–0,7 L/ha in pre-fioritura, 0,7–1 in fioritura, 1 L/ha dopo la fioritura).
+
+#### Quando parte la lettura
+
+Parte la prima volta che il prodotto entra in anagrafica: scritto a mano, oppure letto da un documento. Un carico successivo dello stesso prodotto non la rifà.
+
+Basta il nome per cercarlo. Se il Ministero ha più registrazioni con quel nome, l’azienda sceglie quella giusta. Da lì conta il numero di registrazione.
+
+Il salvataggio del prodotto non aspetta il Ministero. La lettura gira sul server, dopo. In anagrafica si vede «lettura in corso», poi le righe, oppure «da riprovare» se il sito non risponde. Il prodotto resta in magazzino e la lettura si riprova da sola. L’utente non resta sulla pagina ad aspettare.
+
+Se nel frattempo si crea un lavoro, prodotto e dose si possono scrivere a mano. Il menu di avversità e dosi arriva quando la scheda di quel prodotto è pronta. Fino ad allora si dice che il controllo sul numero massimo e sull’intervallo non si può fare.
+
+#### Cosa si legge, e da dove
+
+Tre fonti pubbliche, per quel solo prodotto. Non si copia il sito del Ministero.
+
+1. Open data del Ministero della Salute, dataset fitosanitari, licenza IODL, file settimanale. Danno nome, numero di registrazione, principio attivo e stato. Non danno gli impieghi.
+2. Banca pubblica SIAN, `https://www.sian.it/mimfFitoPub/`. Per quel numero, tutte le colture della scheda. Su ogni coltura: carenza in pieno campo, carenza in serra, elenco avversità. Le colture sono su più pagine: la lettura le scorre tutte. Verificato il 13 ottobre su SIVANTO PRIME: la prima pagina va da agrumi a olivo; la pagina dell’avversità elenca i nomi e non le dosi.
+3. Etichetta autorizzata dello stesso numero, scaricata dalla stessa banca. Lì stanno dose per ettaro, dose per ettolitro, numero massimo di impieghi, intervallo, e le epoche in cui questi numeri cambiano. È testo, non una tabella fissa. Si propone ciò che si riesce a leggere. Quello che l’etichetta non struttura non si inventa.
+
+#### Cosa si archivia
+
+Sulla scheda di quel prodotto, tutte le colture scritte sulla sua etichetta, pieno campo e serra, e ogni epoca in cui la dose, l’avversità, la carenza, il numero massimo o l’intervallo cambiano. Se l’etichetta ha un solo numero per tutta la stagione, resta una riga. Se dà un intervallo (1,5–2,5 kg/ha), la riga ha minimo e massimo. Fonte e data di lettura restano.
+
+Le epoche non sono i mesi e non sono uno stadio BBCH da compilare. Sono le finestre già scritte sull’etichetta: pre-fioritura, fioritura, dopo la fioritura, trattamento precoce o tardivo, vegetazione piena. Righe separate, così in conferma si sceglie quella giusta.
+
+Questo non è un archivio nazionale. Sono i prodotti che l’azienda ha in anagrafica. Le righe non stanno nei campi del documento prodotto: `getAllProdotti` scarica l’intero documento, e l’elenco magazzino deve restare nome, giacenza e numero. Le righe stanno in una sottocollezione del prodotto, caricata quando si apre quel prodotto o quando lo si sceglie nel lavoro. Non si allega il PDF dell’etichetta al documento prodotto.
+
+La conferma di oggi, `confermeSpecie` per sola specie, non basta più: la stessa coltura può avere più epoche e più avversità. La chiave della conferma è coltura della scheda, epoca e avversità. La volta dopo si ripropone quella conferma.
+
+I nomi coltura della banca SIAN sono quelli della scheda. Il 13 ottobre, sulla seconda pagina di SIVANTO PRIME, la vite non è una riga sola: ci sono `VITE`, `VITE DA VINO` e `VITE DA TAVOLA`. `UVA SPINA` è un’altra coltura. Il vino del campo va su `VITE DA VINO`, l’uva da tavola su `VITE DA TAVOLA`. La riga `VITE` da sola non si assegna. Il nome deve coincidere per intero: un pezzo di nome non basta. Se il campo non si mappa, non si propone nulla.
+
+#### Al lavoro
+
+La specie del terreno sceglie la coltura. La data del lavoro sceglie l’epoca. Si propone un menu di avversità di quella riga, con la dose minima e massima ammesse. Se l’etichetta ha un solo numero, minimo e massimo coincidono. L’azienda conferma. La riga di serra non si propone su un pieno campo.
+
+Se nello stesso momento restano più finestre, o un intervallo, la scelta resta all’azienda. Non si decide da soli «estate, quindi 2 kg/ha».
+
+L’avviso su numero massimo e intervallo usa la riga confermata, come già deciso al mattino. Senza conferma, si dice che il controllo non si può fare. L’avviso dose già in anagrafica (minimo e massimo scritti a mano) resta finché la riga della scheda non c’è. Non lo si sostituisce con un numero inventato.
+
+#### La scheda invecchia
+
+La scheda salvata è la foto di quel giorno. Autorizzazione, dose, epoca e carenza possono cambiare dopo mesi. Ogni sei mesi, al massimo, si rilegge. Il file settimanale degli open data è il controllo leggero: numero, stato, data di variazione. L’etichetta si rilegge per intero solo se quel controllo vede un cambiamento, oppure allo scadere dei sei mesi. Se si crea un lavoro e la foto di quel prodotto è più vecchia, si aggiorna quel solo prodotto prima di proporre la dose.
+
+L’aggiornamento cambia la proposta. I trattamenti già registrati tengono la dose, la carenza e l’avversità confermate quel giorno.
+
+La rilettura gira dietro, un prodotto alla volta, e non tiene ferma la pagina del magazzino. La prima lettura di un prodotto può durare decine di secondi: è il sito pubblico, non il peso dei dati. Per SIVANTO, nome e scheda impieghi, il 13 ottobre ci sono voluti circa venti secondi, senza ancora tutte le pagine e senza l’etichetta.
+
+#### Peso
+
+Decine di prodotti all’anno non riempiono il database. Il rallentamento arriva solo se le righe di coltura viaggiano con l’elenco magazzino. Non metterle lì.
+
+#### Ordine del pomeriggio, quando si scrive il codice
+
+1. Stato di lettura sul prodotto (`in corso`, `pronta`, `da riprovare`) e sottocollezione delle righe, fuori dal documento che carica l’elenco.
+2. Lettura sul server, dopo il salvataggio, senza bloccare l’utente: open data, poi tutte le pagine impieghi SIAN di quel numero, poi etichetta. Stessi helper per i tre moduli.
+3. Menu sul lavoro: avversità e dose minima e massima della coltura del terreno e dell’epoca della data. Conferma per coltura, epoca e avversità.
+4. Controllo leggero settimanale e rilettura completa al cambiamento o entro sei mesi. I trattamenti già salvati non si riscrivono.
+5. Allineare la mappa specie ai nomi coltura della banca SIAN, dopo aver letto la pagina della vite. Fino ad allora, se il nome non si mappa, non proporre.
+
+### Già in codice il 13 ottobre 2026, sera
+
+I passi 1, 2, 3, 4 e 5 sono nel repo e non sono pubblicati. L’utente non preme nulla per far partire la lettura. «Leggi scheda» sul completamento del trattamento resta finché la coda non è pubblicata: è ancora l’unico modo online per leggere nome e numero.
+
+Nel repo, non pubblicati:
+
+- Sul fitofarmaco: `letturaSchedaStato` (`in_corso`, `pronta`, `da_riprovare`), motivo e data. Il salvataggio anagrafica non riscrive questi campi, né numero, principio, fonte e data di lettura, né lo stato amministrativo e la data di revoca o scadenza usati dal controllo settimanale.
+- Sottocollezione `tenants/{tenantId}/prodotti/{prodottoId}/schedaImpieghi`. Le righe non stanno nel documento dell’elenco. In `firestore.rules` il browser può leggerle e non scriverle. La regola non è pubblicata. Indici di gruppo in `firestore.indexes.json`, non pubblicati.
+- `onProdottoSchedaScritto`: al salvataggio di un fitofarmaco nuovo, o se cambia il nome, mette «in corso» e, se il nome cambia, toglie numero e righe vecchie. Non aspetta il Ministero. La coda include anche i fitofarmaci già in anagrafica, uno alla volta.
+- Un nome è un numero. Folpan e Folpan Gold non si scambiano. Se il nome ne tocca più di uno, non si sceglie e la lettura resta da riprovare.
+- `leggiSchedeRegistroInCoda`: ogni cinque minuti, un solo prodotto. Prima quelli «in corso», poi quelli senza stato, poi «da riprovare» se sono passate almeno sei ore. Open data, poi le pagine coltura della banca SIAN (carenza in pieno campo e in serra), poi l’etichetta se il testo si legge. La dose si scrive solo se il testo la lega a quella coltura. Un intervallo (1,5–2,5 kg/ha) resta minimo e massimo. Due epoche con due numeri restano due righe.
+- Per ogni coltura si apre l’elenco avversità della banca. Il nome si salva senza la classe (da «Insetti-ALEURODE…» resta «ALEURODE…»). Se per una coltura l’elenco non arriva, la scheda non diventa «pronta» e il semaforo non va al verde. Non si inventa il nome.
+- In elenco, accanto al nome, c’è il semaforo già usato altrove: verde scheda letta, giallo in corso o in attesa, rosso non letta. Il rosso non è un pulsante. Il verde arriva solo con i nomi delle avversità.
+- Menu sul lavoro, stesso riquadro per vigneto, frutteto e seminativo. Se la scheda è pronta, propone le avversità della coltura del campo, con dose minima e massima. Se ci sono più finestre, restano tutte: la data non sceglie la dose. La riga di serra non compare in pieno campo. La conferma si salva per coltura, epoca e avversità, e la volta dopo si ripropone.
+- Rilettura nella stessa coda. Una volta a settimana confronta numero, stato amministrativo e data di revoca o di scadenza. Nel file del Ministero non c’è una colonna «data di variazione»: si usano decorrenza o decreto di revoca, altrimenti la scadenza dell’autorizzazione. Se sono gli stessi e la foto ha meno di sei mesi, le righe restano. Se uno di quei dati cambia, o sono passati sei mesi, rilegge impieghi ed etichetta. I trattamenti già salvati non si riscrivono. Se si apre un lavoro e la foto ha più di sei mesi, quel prodotto passa avanti e la dose non si propone finché la scheda non è aggiornata.
+
+La mappa specie (passo 5) usa i nomi letti quella sera. Destinazione `vino` → `vite da vino`, `vendita_uva` → `vite da tavola`, `misto` non si mappa. Melo, pero e susino coincidono già con `MELO`, `PERO` e `SUSINO`. Su quella scheda c’è anche `CILIEGIO DOLCE`: non si mappa il ciliegio dell’anagrafica su quel nome, perché la banca può separare dolce e acido e l’acido non era su questa pagina. Poi si pubblica la coda e si toglie «Leggi scheda».
+
+#### Ancora fuori
+
+Quaderno di campagna come nome in interfaccia. Archivio impieghi di tutti i prodotti d’Italia. PDF dell’etichetta dentro il documento prodotto. Attesa dell’utente sulla lettura. Dose o avversità inventate. Riga di serra su un pieno campo. Riscrittura dei trattamenti già confermati quando la scheda si aggiorna. Gemini come fonte. Fitogest. Stadio BBCH obbligatorio.
 
 ### Fuori da questo lavoro
 

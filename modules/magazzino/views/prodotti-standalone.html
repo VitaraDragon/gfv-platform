@@ -7,6 +7,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Anagrafica Prodotti - Prodotti e Magazzino - GFV Platform</title>
+    <link rel="stylesheet" href="../../../core/styles/manodopera-semaforo.css">
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <link rel="stylesheet" href="../../../core/styles/list-views.css">
     <style>
@@ -268,6 +269,7 @@
             prodottoCategoriaRichiedeGiorniCarenza,
         } from '../../../core/js/prodotto-form-required.js';
         import { escapeHtml, showAlert } from '../../../core/js/gfv-page-utils.js';
+        import { htmlSemaforoLetturaScheda } from '../../../shared/js/registro-trattamenti.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 
         try {
@@ -571,7 +573,7 @@
                             return `<tr>
                                 <td class="col-check"><input type="checkbox" class="prod-row-check" data-id="${p.id}"${checked}></td>
                                 <td>${escapeHtml(p.codice || '-')}</td>
-                                <td>${escapeHtml(p.nome || '-')}</td>
+                                <td>${htmlSemaforoLetturaScheda(p)}${escapeHtml(p.nome || '-')}</td>
                                 <td>${escapeHtml(p.categoria || '-')}</td>
                                 <td>${escapeHtml(p.unitaMisura || '-')}</td>
                                 <td>${formatNum(p.giacenza)}</td>
@@ -853,10 +855,6 @@
                 dosaggioMin,
                 dosaggioMax,
                 giorniCarenza: giorniCarenzaVal ? parseInt(giorniCarenzaVal, 10) : null,
-                numeroRegistrazione: (document.getElementById('prodotto-numero-registrazione')?.value || '').trim() || null,
-                principioAttivo: (document.getElementById('prodotto-principio-attivo')?.value || '').trim() || null,
-                fonteScheda: (document.getElementById('prodotto-fonte-scheda')?.value || '').trim() || null,
-                dataLetturaScheda: (document.getElementById('prodotto-data-lettura')?.value || '').trim() || null,
                 note: (document.getElementById('prodotto-note').value || '').trim(),
                 attivo: true
             };

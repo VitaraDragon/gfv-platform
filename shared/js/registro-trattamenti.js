@@ -58,7 +58,94 @@ export function campiConfermaRiga(raw = {}) {
     giorniMinimiTraPassaggi: numeroFinito(raw.giorniMinimiTraPassaggi),
     dosePerEttaroScheda: numeroFinito(raw.dosePerEttaroScheda),
     dosePerEttolitroScheda: numeroFinito(raw.dosePerEttolitroScheda),
-    giorniCarenzaConfermata: numeroFinito(raw.giorniCarenzaConfermata)
+    giorniCarenzaConfermata: numeroFinito(raw.giorniCarenzaConfermata),
+    epoca: raw.epoca != null && String(raw.epoca).trim() ? String(raw.epoca).trim() : null,
+    doseMinHa: numeroFinito(raw.doseMinHa),
+    doseMaxHa: numeroFinito(raw.doseMaxHa),
+    doseMinHl: numeroFinito(raw.doseMinHl),
+    doseMaxHl: numeroFinito(raw.doseMaxHl),
+    unitaDose: raw.unitaDose != null && String(raw.unitaDose).trim() ? String(raw.unitaDose).trim() : null
+  };
+}
+
+function slugConferma(value) {
+  return String(value || '').trim().toLowerCase().replace(/\s+/g, '_');
+}
+
+/** Chiave di conferma: coltura della scheda, epoca e avversità. */
+export function chiaveConfermaScheda(riga = {}) {
+  const coltura = (riga.riferimentoRiga && riga.riferimentoRiga.colturaScheda) || riga.colturaScheda || '';
+  const avversita = riga.avversita || '';
+  if (!String(coltura).trim() || !String(avversita).trim()) return '';
+  return [slugConferma(coltura), slugConferma(riga.epoca), slugConferma(avversita)].join('__');
+}
+
+function testoBassoScheda(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function colturaMenuCoincide(richiesta, alias, colturaRiga) {
+  const nome = testoBassoScheda(colturaRiga);
+  if (!nome) return false;
+  const chiavi = [testoBassoScheda(richiesta), ...(alias || []).map(testoBassoScheda)].filter(Boolean);
+  return chiavi.some((k) => nome === k);
+}
+
+function rigaMenuSerra(row) {
+  return /serra/.test([row && row.colturaScheda, row && row.avversita, row && row.epoca].map(testoBassoScheda).join(' '));
+}
+
+/**
+ * Voci del menu sul lavoro. La specie sceglie la coltura.
+ * Se restano più epoche, restano tutte: la data non sceglie la dose.
+ * In pieno campo non entra la riga di serra.
+ */
+export function vociMenuScheda(input = {}) {
+  const specie = String(input.specie || '').trim();
+  if (!specie) return [];
+  const chiedeSerra = /serra/.test(testoBassoScheda(specie));
+  const conferme = input.conferme && typeof input.conferme === 'object' ? input.conferme : {};
+  const voci = (Array.isArray(input.righe) ? input.righe : []).filter((row) => {
+    if (!row || !String(row.avversita || '').trim()) return false;
+    if (!chiedeSerra && (row.pienoCampo === false || rigaMenuSerra(row))) return false;
+    return colturaMenuCoincide(specie, input.alias, row.colturaScheda);
+  }).map((row) => {
+    const voce = {
+      colturaScheda: String(row.colturaScheda || '').trim(),
+      epoca: row.epoca ? String(row.epoca).trim() : null,
+      avversita: String(row.avversita).trim(),
+      pienoCampo: row.pienoCampo !== false,
+      giorniCarenza: numeroFinito(row.giorniCarenza),
+      doseMinHa: numeroFinito(row.doseMinHa),
+      doseMaxHa: numeroFinito(row.doseMaxHa),
+      doseMinHl: numeroFinito(row.doseMinHl),
+      doseMaxHl: numeroFinito(row.doseMaxHl),
+      unitaDose: row.unitaDose ? String(row.unitaDose).trim() : null,
+      impieghiMassimiAnno: numeroFinito(row.impieghiMassimiAnno),
+      giorniMinimiTraPassaggi: numeroFinito(row.giorniMinimiTraPassaggi)
+    };
+    voce.giaConfermata = !!conferme[chiaveConfermaScheda(voce)];
+    return voce;
+  });
+  voci.sort((a, b) => Number(b.giaConfermata) - Number(a.giaConfermata));
+  return voci;
+}
+
+export function piuFinestreInMenu(voci) {
+  const epoche = new Set((voci || []).map((voce) => voce.epoca || ''));
+  return epoche.size > 1;
+}
+
+/** Con la riga di scheda confermata, minimo e massimo sono quelli. Altrimenti restano quelli scritti in anagrafica. */
+export function rangeDoseAvviso(row, anagrafica) {
+  const minScheda = numeroFinito(row && row.doseMinHa);
+  const maxScheda = numeroFinito(row && row.doseMaxHa);
+  if (rigaHaConferma(row) && (minScheda != null || maxScheda != null)) {
+    return { min: minScheda, max: maxScheda };
+  }
+  return {
+    min: numeroFinito(anagrafica && anagrafica.dosaggioMin),
+    max: numeroFinito(anagrafica && anagrafica.dosaggioMax)
   };
 }
 
@@ -395,11 +482,14 @@ export function aziendaDaTenant(tenant = {}) {
 }
 
 export function unisciConfermaSpecie(prodotto, specie, riga) {
-  const slug = String(specie || '').trim().toLowerCase().replace(/\s+/g, '_');
+  const slug = slugConferma(specie);
   const conferme = prodotto && prodotto.confermeSpecie && typeof prodotto.confermeSpecie === 'object'
     ? { ...prodotto.confermeSpecie }
     : {};
-  if (slug && riga && rigaHaConferma(riga)) conferme[slug] = { ...campiConfermaRiga(riga), specieUsata: specie };
+  const campi = { ...campiConfermaRiga(riga), specieUsata: specie || (riga && riga.specieUsata) || null };
+  if (slug && riga && rigaHaConferma(riga)) conferme[slug] = campi;
+  const chiave = chiaveConfermaScheda(campi);
+  if (chiave && riga && rigaHaConferma(riga)) conferme[chiave] = campi;
   return {
     numeroRegistrazione: (riga && riga.riferimentoRiga && riga.riferimentoRiga.numeroRegistrazione) || (prodotto && prodotto.numeroRegistrazione) || null,
     principioAttivo: (riga && riga.principioAttivo) || (prodotto && prodotto.principioAttivo) || null,
@@ -409,8 +499,62 @@ export function unisciConfermaSpecie(prodotto, specie, riga) {
   };
 }
 
+/** Stessa soglia della coda: sei mesi dopo l'ultima lettura completa. Senza data, la foto non si propone. */
+export function schedaOltreSeiMesi(iso, oraMs = Date.now()) {
+  const t = Date.parse(iso || '');
+  if (!Number.isFinite(t)) return true;
+  const limite = new Date(t);
+  limite.setUTCMonth(limite.getUTCMonth() + 6);
+  return Number(oraMs) >= limite.getTime();
+}
+
+export function schedaDaRileggere(prodotto, oraMs = Date.now()) {
+  if (!prodotto || prodotto.letturaSchedaStato !== 'pronta') return false;
+  return schedaOltreSeiMesi(prodotto.letturaSchedaCompletaAt, oraMs);
+}
+
+export function testoStatoLetturaScheda(prodotto) {
+  if (!prodotto || String(prodotto.categoria || '').toLowerCase() !== 'fitofarmaci') return '';
+  if (prodotto.letturaSchedaStato === 'in_corso') return 'Lettura in corso';
+  if (prodotto.letturaSchedaStato === 'pronta') return 'Scheda letta';
+  if (prodotto.letturaSchedaStato === 'da_riprovare') {
+    if (prodotto.letturaSchedaMotivo === 'nome_non_univoco') {
+      return 'Da riprovare: il nome non corrisponde a una sola registrazione';
+    }
+    if (prodotto.letturaSchedaMotivo === 'non_trovato') {
+      return 'Da riprovare: nome non trovato negli open data';
+    }
+    return 'Da riprovare';
+  }
+  return 'In attesa di lettura';
+}
+
+function escAttrSemaforo(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;');
+}
+
+/** Pallino accanto al nome. Verde scheda letta, giallo in lettura, rosso non letta. Nessun pulsante. */
+export function htmlSemaforoLetturaScheda(prodotto) {
+  const titolo = testoStatoLetturaScheda(prodotto);
+  if (!titolo) return '';
+  let colore = 'yellow';
+  if (prodotto.letturaSchedaStato === 'pronta') colore = 'green';
+  else if (prodotto.letturaSchedaStato === 'da_riprovare') colore = 'red';
+  const t = escAttrSemaforo(titolo);
+  return '<span class="gfv-semaforo gfv-semaforo--' + colore + '" title="' + t + '" role="img" aria-label="' + t + '"></span>';
+}
+
 export function confermaSpecieSalvata(prodotto, specie) {
   if (!prodotto || !prodotto.confermeSpecie || !specie) return null;
-  const slug = String(specie).trim().toLowerCase().replace(/\s+/g, '_');
+  const slug = slugConferma(specie);
   return prodotto.confermeSpecie[slug] || null;
+}
+
+export function confermaSchedaSalvata(prodotto, riga) {
+  const chiave = chiaveConfermaScheda(riga || {});
+  if (!chiave || !prodotto || !prodotto.confermeSpecie) return null;
+  return prodotto.confermeSpecie[chiave] || null;
 }

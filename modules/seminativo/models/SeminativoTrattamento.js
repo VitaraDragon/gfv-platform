@@ -233,10 +233,13 @@ export function avvisoDosaggioProdotti(prodotti, anagrafica) {
     if (!prod) return;
     const nome = String(row.prodotto || prod.nome || prod.codice || 'Prodotto').trim();
     const dose = Number(row.dosaggio);
-    if (prod.dosaggioMax != null && dose > Number(prod.dosaggioMax)) {
+    const daScheda = (row.confermatoIl || row.avversita) && (row.doseMinHa != null || row.doseMaxHa != null);
+    const max = daScheda ? (row.doseMaxHa != null ? Number(row.doseMaxHa) : null) : (prod.dosaggioMax != null ? Number(prod.dosaggioMax) : null);
+    const min = daScheda ? (row.doseMinHa != null ? Number(row.doseMinHa) : null) : (prod.dosaggioMin != null ? Number(prod.dosaggioMin) : null);
+    if (max != null && !Number.isNaN(max) && dose > max) {
       messaggi.push('Dosaggio superiore al consigliato per ' + nome);
     }
-    if (prod.dosaggioMin != null && dose < Number(prod.dosaggioMin)) {
+    if (min != null && !Number.isNaN(min) && dose < min) {
       messaggi.push('Dosaggio inferiore al consigliato per ' + nome);
     }
   });
