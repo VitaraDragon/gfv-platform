@@ -16,6 +16,7 @@ mountTrattamentiColturaPage({
     listExport: 'getAllVigneti',
     perMethod: 'getLavoriAttivitaTrattamentiPerVigneto',
     tuttiMethod: 'getLavoriAttivitaTrattamentiTuttiVigneti',
+    modulo: 'vigneto',
     idKey: 'vignetoId',
     nomeKey: 'vignetoNome',
     filterId: 'filter-vigneto',

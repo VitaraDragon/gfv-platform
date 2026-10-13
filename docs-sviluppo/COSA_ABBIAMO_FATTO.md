@@ -1,6 +1,18 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-12 — Francese e traduzione della scheda guasti.**
+**Ultimo aggiornamento documentazione: 2026-10-13 — Registro trattamenti in codice.**
+
+## 2026-10-13 — Registro privato dei trattamenti
+
+Vigneto, frutteto e seminativo usano lo stesso registro di compilazione. Sul prodotto restano numero di registrazione, principio attivo, fonte e data di lettura, compilati dalla conferma. La lettura è la funzione `leggiSchedaRegistroTrattamento`: è nel repo e non è deployata. Se la scheda impieghi non si legge, non si inventano avversità e carenza. La specie del campo filtra le righe; se manca o non è mappata, non si propone nulla. Sull’attrezzo con botte c’è la capacità in quintali. Sul lavoro di trattamento c’è la miscela prevista, visibile nel workspace di campo. Gli avvisi su impieghi, intervallo e diluizione lasciano salvare. L’export CSV o XML resta dell’azienda. Un trattamento confermato da meno di tre anni chiede l’export prima della cancellazione. I movimenti di magazzino collegati restano. Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+## 2026-10-13 — Piano del registro trattamenti
+
+Il piano è in `docs-sviluppo/da-fare/vigneto/PIANO_REGISTRO_TRATTAMENTI.md`. Il codice è quello della voce sopra.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-12 — Francese e traduzione della scheda guasti.**
 
 ## 2026-10-12 — Francese e scheda guasti tradotta
 

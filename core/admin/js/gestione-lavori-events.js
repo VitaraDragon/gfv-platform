@@ -23,6 +23,97 @@ import {
     statoPerSelectModifica
 } from '../../services/lavoro-ripresa-guasto.js';
 
+async function caricaProdottiMiscela() {
+    const { aggiornaSezioneMiscelaLavoro, riempiSelectProdottiMiscela } = await import('../../../shared/js/registro-trattamenti-lavoro.js');
+    aggiornaSezioneMiscelaLavoro();
+    const section = document.getElementById('lavoro-miscela-section');
+    if (!section || section.style.display === 'none') return;
+    const terrenoId = document.getElementById('lavoro-terreno')?.value || '';
+    let specie = null;
+    try {
+        const { contestoRegistroTerreno } = await import('../../../shared/js/registro-trattamenti-passaggi.js');
+        const ctx = await contestoRegistroTerreno(terrenoId);
+        specie = ctx && ctx.specie;
+    } catch (err) {
+        console.warn('[GESTIONE-LAVORI] specie registro', err);
+    }
+    try {
+        const { getAllProdotti } = await import('../../../modules/magazzino/services/prodotti-service.js');
+        const prodotti = await getAllProdotti({ soloAttivi: true }) || [];
+        await riempiSelectProdottiMiscela(prodotti, specie);
+    } catch (err) {
+        console.warn('[GESTIONE-LAVORI] prodotti miscela', err);
+    }
+}
+
+async function preparaMiscelaNelForm(miscela) {
+    const { installaMiscelaLavoro, scriviMiscelaNelForm, testoAnteprimaMiscela } = await import('../../../shared/js/registro-trattamenti-lavoro.js');
+    installaMiscelaLavoro();
+    await caricaProdottiMiscela();
+    scriviMiscelaNelForm(miscela);
+    const anteprima = document.getElementById('lavoro-miscela-anteprima');
+    if (anteprima) anteprima.textContent = testoAnteprimaMiscela(miscela);
+}
+
+function installaMiscelaSulFormLavoro() {
+    const form = document.getElementById('lavoro-form');
+    import('../../../shared/js/registro-trattamenti-lavoro.js').then((mod) => {
+        mod.installaMiscelaLavoro();
+        if (!form || form.dataset.miscelaProdotti === '1') return;
+        form.dataset.miscelaProdotti = '1';
+        form.addEventListener('change', (e) => {
+            const id = e.target && e.target.id;
+            if (id === 'lavoro-tipo-lavoro' || id === 'lavoro-terreno') caricaProdottiMiscela();
+        });
+    }).catch((err) => console.warn('[GESTIONE-LAVORI] miscela', err));
+}
+
+async function miscelaPrevistaPerSalvataggio(state, terrenoId, dataInizio, tipoLavoro, attrezzoId) {
+    const { tipoLavoroETrattamento, componiMiscelaDalForm, avvisiMiscelaLavoro, testoAnteprimaMiscela } = await import('../../../shared/js/registro-trattamenti-lavoro.js');
+    const sel = document.getElementById('lavoro-tipo-lavoro');
+    const nomeTipo = sel && sel.selectedIndex >= 0 ? (sel.options[sel.selectedIndex].text || '') : '';
+    if (!tipoLavoroETrattamento(nomeTipo) && !tipoLavoroETrattamento(tipoLavoro)) {
+        return { annullato: false, miscela: null, avvisi: [] };
+    }
+    const terreno = (state.terreniList || []).find((t) => t.id === terrenoId);
+    const ettari = terreno && terreno.superficie != null ? Number(terreno.superficie) : null;
+    const attrezzo = (state.attrezziList || []).find((a) => a.id === attrezzoId) || null;
+    const miscela = componiMiscelaDalForm(Number.isFinite(ettari) ? ettari : null, attrezzo);
+    let precedenti = [];
+    let specie = null;
+    try {
+        const { contestoRegistroTerreno } = await import('../../../shared/js/registro-trattamenti-passaggi.js');
+        const ctx = await contestoRegistroTerreno(terrenoId);
+        precedenti = ctx && ctx.passaggi ? ctx.passaggi : [];
+        specie = ctx && ctx.specie;
+    } catch (err) {
+        console.warn('[GESTIONE-LAVORI] passaggi registro', err);
+    }
+    let prodotti = [];
+    try {
+        const { getAllProdotti } = await import('../../../modules/magazzino/services/prodotti-service.js');
+        prodotti = await getAllProdotti({ soloAttivi: true }) || [];
+    } catch (err) {
+        console.warn('[GESTIONE-LAVORI] prodotti miscela', err);
+    }
+    const avvisi = avvisiMiscelaLavoro({
+        miscela,
+        terrenoId,
+        data: dataInizio,
+        precedenti,
+        prodottiAnagrafica: prodotti,
+        specie
+    });
+    const anteprima = document.getElementById('lavoro-miscela-anteprima');
+    if (anteprima) anteprima.textContent = testoAnteprimaMiscela(miscela);
+    const avvisoEl = document.getElementById('lavoro-registro-avviso');
+    if (avvisoEl) avvisoEl.textContent = avvisi.join(' ');
+    if (avvisi.length && !window.confirm(avvisi.join('\n') + '\n\nSalvare comunque?')) {
+        return { annullato: true, miscela: null, avvisi };
+    }
+    return { annullato: false, miscela, avvisi };
+}
+
 // ============================================
 // FUNZIONI SETUP HANDLERS
 // ============================================
@@ -103,6 +194,7 @@ export function setupTipoAssegnazioneHandlers(hasManodoperaModule) {
             }
         });
         lavoroForm.dataset.tipoAssegnazioneHandlersSetup = 'true';
+        installaMiscelaSulFormLavoro();
     }
     
     // Inizializza visibilità senza cancellare valori già impostati (modifica lavoro)
@@ -581,6 +673,7 @@ export async function openCreaModal(
     }
     
     clearSospensioneForm();
+    preparaMiscelaNelForm(null);
 
     const lavoroModal = document.getElementById('lavoro-modal');
     if (lavoroModal) lavoroModal.classList.add('active');
@@ -818,6 +911,7 @@ export async function openModificaModal(
     
     // Aggiorna visibilità dropdown
     if (setupTipoAssegnazioneHandlersCallback) setupTipoAssegnazioneHandlersCallback();
+    preparaMiscelaNelForm(lavoro && lavoro.miscelaPrevista);
 
     applyLavoroFormContoTerziDaPianificareLock(lavoro);
     
@@ -1982,6 +2076,11 @@ async function salvaLavoroCorpo(
                 }
             }
         }
+
+        const miscelaSalvata = await miscelaPrevistaPerSalvataggio(state, terrenoId, dataInizio, tipoLavoro, lavoroData.attrezzoId || null);
+        if (miscelaSalvata.annullato) return;
+        lavoroData.miscelaPrevista = miscelaSalvata.miscela;
+        lavoroData.registroAvvisi = miscelaSalvata.avvisi;
         
         let nuovoLavoroId = state.currentLavoroId;
         let lavoroEraCompletato = false;

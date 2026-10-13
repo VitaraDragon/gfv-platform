@@ -4419,24 +4419,28 @@
             dosaggio = null;
           }
         }
+        var registroRiga = {};
+        ['principioAttivo', 'fonteScheda', 'dataLetturaScheda', 'avversita', 'specieUsata', 'riferimentoRiga', 'confermatoDa', 'confermatoIl', 'impieghiMassimiAnno', 'giorniMinimiTraPassaggi', 'dosePerEttaroScheda', 'dosePerEttolitroScheda', 'giorniCarenzaConfermata'].forEach(function (chiave) {
+          if (item[chiave] != null && item[chiave] !== '') registroRiga[chiave] = item[chiave];
+        });
         if (pid) {
-          rows.push({
+          rows.push(Object.assign({
             prodottoId: pid,
             prodotto: '',
             dosaggio: dosaggio == null || isNaN(dosaggio) ? null : dosaggio,
             unitaDosaggio: null,
             quantita: null,
             costo: 0
-          });
+          }, registroRiga));
         } else if (nome) {
-          rows.push({
+          rows.push(Object.assign({
             prodottoId: null,
             prodotto: nome,
             dosaggio: dosaggio == null || isNaN(dosaggio) ? null : dosaggio,
             unitaDosaggio: null,
             quantita: null,
             costo: 0
-          });
+          }, registroRiga));
         }
       });
     }
