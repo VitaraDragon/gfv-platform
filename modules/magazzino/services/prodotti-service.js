@@ -23,6 +23,30 @@ import {
 const COLLECTION_NAME = 'prodotti';
 const MOVIMENTI_COLLECTION = 'movimentiMagazzino';
 
+/** Li scrive solo la lettura sul server. Un salvataggio anagrafica non li rimette indietro. */
+const CAMPI_SCHEDA_SOLO_SERVER = [
+  'letturaSchedaStato',
+  'letturaSchedaMotivo',
+  'letturaSchedaAggiornataAt',
+  'letturaSchedaRichiestaAt',
+  'numeroRegistrazione',
+  'principioAttivo',
+  'fonteScheda',
+  'dataLetturaScheda',
+  'letturaSchedaCompletaAt',
+  'controlloSchedaAt',
+  'statoAmministrativoScheda',
+  'dataVariazioneScheda'
+];
+
+function senzaCampiSchedaServer(payload) {
+  const out = { ...payload };
+  CAMPI_SCHEDA_SOLO_SERVER.forEach((key) => {
+    delete out[key];
+  });
+  return out;
+}
+
 /**
  * Ottieni tutti i prodotti del tenant corrente
  * @param {Object} options - Opzioni di query
@@ -124,7 +148,7 @@ export async function createProdotto(prodottoData) {
       throw new Error(`Validazione fallita: ${validation.errors.join(', ')}`);
     }
 
-    const prodottoId = await createDocument(COLLECTION_NAME, prodotto.toFirestore(), tenantId);
+    const prodottoId = await createDocument(COLLECTION_NAME, senzaCampiSchedaServer(prodotto.toFirestore()), tenantId);
     return prodottoId;
   } catch (error) {
     console.error('Errore creazione prodotto:', error);
@@ -165,7 +189,7 @@ export async function updateProdotto(prodottoId, updates) {
     await updateDocument(
       COLLECTION_NAME,
       prodottoId,
-      omitGiacenzaFromAnagraficaPayload(prodottoEsistente.toFirestore()),
+      senzaCampiSchedaServer(omitGiacenzaFromAnagraficaPayload(prodottoEsistente.toFirestore())),
       tenantId
     );
   } catch (error) {

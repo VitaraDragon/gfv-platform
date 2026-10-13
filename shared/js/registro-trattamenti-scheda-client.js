@@ -17,3 +17,28 @@ export async function leggiSchedaRegistroTrattamento(payload) {
   const res = await call(payload || {});
   return res && res.data ? res.data : {};
 }
+
+/** Righe già lette in anagrafica. Non chiama il Ministero. */
+export async function leggiRigheSchedaProdotto(prodottoId) {
+  if (!prodottoId) return [];
+  const { getDb, collection, getDocs } = await import('../../core/services/firebase-service.js');
+  const { getCurrentTenantId } = await import('../../core/services/tenant-service.js');
+  const tenantId = getCurrentTenantId();
+  if (!tenantId) return [];
+  const snap = await getDocs(collection(getDb(), 'tenants', tenantId, 'prodotti', prodottoId, 'schedaImpieghi'));
+  return snap.docs.map((docSnap) => docSnap.data());
+}
+
+/** Mette questo prodotto in cima alla coda. Non riscrive i trattamenti già salvati. */
+export async function chiediRiletturaScheda(prodottoId) {
+  if (!prodottoId) return;
+  const { getDb, doc, updateDoc } = await import('../../core/services/firebase-service.js');
+  const { getCurrentTenantId } = await import('../../core/services/tenant-service.js');
+  const tenantId = getCurrentTenantId();
+  if (!tenantId) return;
+  await updateDoc(doc(getDb(), 'tenants', tenantId, 'prodotti', prodottoId), {
+    letturaSchedaStato: 'in_corso',
+    letturaSchedaMotivo: null,
+    letturaSchedaRichiestaAt: new Date().toISOString()
+  });
+}
