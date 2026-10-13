@@ -570,6 +570,7 @@ export function renderMacchine(macchineList, state, maybeAutoStartMacchineTourCa
             dettagliHTML = `
                 <div><strong>Categoria:</strong> ${escapeHtml(categoriaNome)}</div>
                 <div><strong>CV min:</strong> ${macchina.cavalliMinimiRichiesti || '-'}</div>
+                <div><strong>Botte (q):</strong> ${macchina.capacitaBotteQuintali != null ? macchina.capacitaBotteQuintali : '—'}</div>
                 ${trattoriCompatibili.length > 0 
                     ? `<div><small style="color: #28a745;">✅ ${trattoriCompatibili.length} trattore/i compatibile/i</small></div>`
                     : `<div><small style="color: #dc3545;">⚠️ Nessun trattore compatibile</small></div>`

@@ -52,6 +52,17 @@ export class Prodotto extends Base {
     this.dosaggioMin = dMin ?? (dCons != null ? dCons : null);
     this.dosaggioMax = dMax ?? (dCons != null ? dCons : null);
     this.giorniCarenza = data.giorniCarenza !== undefined && data.giorniCarenza !== '' ? parseInt(data.giorniCarenza, 10) : null;
+    this.numeroRegistrazione = data.numeroRegistrazione != null && String(data.numeroRegistrazione).trim()
+      ? String(data.numeroRegistrazione).trim()
+      : null;
+    this.principioAttivo = data.principioAttivo != null && String(data.principioAttivo).trim()
+      ? String(data.principioAttivo).trim()
+      : null;
+    this.fonteScheda = data.fonteScheda != null && String(data.fonteScheda).trim()
+      ? String(data.fonteScheda).trim()
+      : null;
+    this.dataLetturaScheda = data.dataLetturaScheda || null;
+    this.confermeSpecie = data.confermeSpecie && typeof data.confermeSpecie === 'object' ? data.confermeSpecie : {};
     this.note = data.note || '';
     this.attivo = data.attivo !== undefined ? !!data.attivo : true;
     /** Tony Occhi — anagrafica creata in automatico, da completare in magazzino */

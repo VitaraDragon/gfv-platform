@@ -62,6 +62,11 @@
                     <label for="cavalliMinimiRichiesti">Cavalli minimi richiesti (CV) *</label>
                     <input type="number" id="cavalliMinimiRichiesti" required min="1" max="1000" step="0.1" placeholder="es. 80">
                 </div>
+                <div class="form-group">
+                    <label for="capacitaBotteQuintali">Capacità botte (quintali)</label>
+                    <input type="number" id="capacitaBotteQuintali" min="0.01" step="0.01" placeholder="es. 4">
+                    <small>Solo se l'attrezzo ha un serbatoio. 1 quintale = 100 litri. Lascia vuoto su un aratro.</small>
+                </div>
                 <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
                     <button type="button" class="btn btn-secondary" id="btn-annulla">Annulla</button>
                     <button type="submit" class="btn btn-primary">Salva</button>
@@ -182,8 +187,14 @@
                     if (!nome || nome.length < 3) { showAlert('Nome almeno 3 caratteri', 'error'); return; }
                     if (!categoriaId) { showAlert('Seleziona una categoria', 'error'); return; }
                     if (!cavalliMinimiRichiesti || cavalliMinimiRichiesti <= 0) { showAlert('Cavalli minimi obbligatori', 'error'); return; }
+                    const capacitaRaw = document.getElementById('capacitaBotteQuintali').value;
+                    const capacitaBotteQuintali = capacitaRaw.trim() ? parseFloat(capacitaRaw) : null;
+                    if (capacitaBotteQuintali != null && (!Number.isFinite(capacitaBotteQuintali) || capacitaBotteQuintali <= 0)) {
+                        showAlert('La capacità della botte, se indicata, è in quintali e deve essere maggiore di zero', 'error');
+                        return;
+                    }
                     try {
-                        await createMacchina({ nome, tipoMacchina: 'attrezzo', categoriaId, cavalliMinimiRichiesti }, user.uid);
+                        await createMacchina({ nome, tipoMacchina: 'attrezzo', categoriaId, cavalliMinimiRichiesti, capacitaBotteQuintali }, user.uid);
                         showAlert('Attrezzatura aggiunta', 'success');
                         closeModal();
                         await loadData();

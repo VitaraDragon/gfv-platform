@@ -245,7 +245,7 @@ export async function updateTrattamento(vignetoId, trattamentoId, updates, optio
  * @param {string} trattamentoId - ID trattamento
  * @returns {Promise<void>}
  */
-export async function deleteTrattamento(vignetoId, trattamentoId) {
+export async function deleteTrattamento(vignetoId, trattamentoId, opzioni = {}) {
   try {
     const tenantId = getCurrentTenantId();
     if (!tenantId) {
@@ -257,9 +257,12 @@ export async function deleteTrattamento(vignetoId, trattamentoId) {
     }
 
     const existing = await getTrattamento(vignetoId, trattamentoId);
-    if (existing?.magazzinoMovimentoIds?.length) {
-      const { rimuoviMovimentiTrattamento } = await import('../../magazzino/services/trattamento-scarico-magazzino-service.js');
-      await rimuoviMovimentiTrattamento(existing.magazzinoMovimentoIds);
+    const { valutaCancellazioneRegistro } = await import('../../../shared/js/registro-trattamenti.js');
+    const verdict = valutaCancellazioneRegistro(existing, { exportConfermato: opzioni.exportConfermato === true });
+    if (!verdict.consentita) {
+      const err = new Error(verdict.messaggio);
+      err.code = 'REGISTRO_CONSERVAZIONE';
+      throw err;
     }
     
     const collectionPath = getTrattamentiPath(vignetoId);

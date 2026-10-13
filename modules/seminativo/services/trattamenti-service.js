@@ -145,13 +145,16 @@ export async function saveTrattamentoSeminativo(data, options = {}) {
   return createdId;
 }
 
-export async function deleteTrattamentoSeminativo(id) {
+export async function deleteTrattamentoSeminativo(id, opzioni = {}) {
   const tenantId = requireTenantId();
   if (!id) throw new Error('ID trattamento obbligatorio');
   const existing = await getDocumentData(COLLECTION_NAME, id, tenantId);
-  if (existing && Array.isArray(existing.magazzinoMovimentoIds) && existing.magazzinoMovimentoIds.length) {
-    const { rimuoviMovimentiTrattamento } = await import('../../magazzino/services/trattamento-scarico-magazzino-service.js');
-    await rimuoviMovimentiTrattamento(existing.magazzinoMovimentoIds);
+  const { valutaCancellazioneRegistro } = await import('../../../shared/js/registro-trattamenti.js');
+  const verdict = valutaCancellazioneRegistro(existing, { exportConfermato: opzioni.exportConfermato === true });
+  if (!verdict.consentita) {
+    const err = new Error(verdict.messaggio);
+    err.code = 'REGISTRO_CONSERVAZIONE';
+    throw err;
   }
   await deleteDocument(COLLECTION_NAME, id, tenantId);
 }

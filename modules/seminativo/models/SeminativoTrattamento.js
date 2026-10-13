@@ -6,6 +6,7 @@
  * @module modules/seminativo/models/SeminativoTrattamento
  */
 
+import { campiConfermaRiga, numeroFinito } from '../../../shared/js/registro-trattamenti.js';
 import { dataIsoLavorazione, isLavorazioneDiFilare } from './SeminativoLavorazione.js';
 import { intervalloCampagna } from './SeminativoSpese.js';
 import { TIPI_LAVORO_PREDEFINITI } from '../../../core/config/app-catalog-seed-data.js';
@@ -38,7 +39,11 @@ export class SeminativoTrattamento {
         dosaggio: row.dosaggio !== undefined && row.dosaggio !== '' ? parseFloat(row.dosaggio) : null,
         unitaDosaggio: row.unitaDosaggio || null,
         quantita: row.quantita !== undefined && row.quantita !== '' ? parseFloat(row.quantita) : null,
-        costo: row.costo !== undefined && row.costo !== '' ? parseFloat(row.costo) : 0
+        costo: row.costo !== undefined && row.costo !== '' ? parseFloat(row.costo) : 0,
+        principioAttivo: row.principioAttivo || null,
+        fonteScheda: row.fonteScheda || null,
+        dataLetturaScheda: row.dataLetturaScheda || null,
+        ...campiConfermaRiga(row)
       }));
     } else if (data.prodotto) {
       this.prodotti = [{
@@ -60,6 +65,9 @@ export class SeminativoTrattamento {
     this.giorniCarenza = data.giorniCarenza !== undefined && data.giorniCarenza !== null && data.giorniCarenza !== ''
       ? parseInt(data.giorniCarenza, 10)
       : null;
+    this.acquaEttolitriPerEttaro = numeroFinito(data.acquaEttolitriPerEttaro);
+    this.acquaEttolitriTotali = numeroFinito(data.acquaEttolitriTotali);
+    this.specieUsata = data.specieUsata || null;
     this.costoProdotto = this.prodotti.reduce((sum, row) => sum + (Number(row.costo) || 0), 0);
     this.costoManodopera = Number(data.costoManodopera) || 0;
     this.costoMacchina = Number(data.costoMacchina) || 0;
@@ -106,6 +114,9 @@ export class SeminativoTrattamento {
       superficieTrattata: this.superficieTrattata,
       superficieDaAnagrafeTerreno: this.superficieDaAnagrafeTerreno,
       giorniCarenza: this.giorniCarenza,
+      acquaEttolitriPerEttaro: this.acquaEttolitriPerEttaro,
+      acquaEttolitriTotali: this.acquaEttolitriTotali,
+      specieUsata: this.specieUsata,
       costoProdotto: this.costoProdotto,
       costoManodopera: this.costoManodopera,
       costoMacchina: this.costoMacchina,
