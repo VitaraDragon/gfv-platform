@@ -16,6 +16,7 @@ mountTrattamentiColturaPage({
     listExport: 'getAllFrutteti',
     perMethod: 'getLavoriAttivitaTrattamentiPerFrutteto',
     tuttiMethod: 'getLavoriAttivitaTrattamentiTuttiFrutteti',
+    modulo: 'frutteto',
     idKey: 'fruttetoId',
     nomeKey: 'fruttetoNome',
     filterId: 'filter-frutteto',

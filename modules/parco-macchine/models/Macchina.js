@@ -114,6 +114,9 @@ export class Macchina extends Base {
     this.cavalliMinimiRichiesti = data.cavalliMinimiRichiesti !== undefined 
       ? parseFloat(data.cavalliMinimiRichiesti) 
       : null;
+    this.capacitaBotteQuintali = data.capacitaBotteQuintali !== undefined && data.capacitaBotteQuintali !== null && data.capacitaBotteQuintali !== ''
+      ? parseFloat(data.capacitaBotteQuintali)
+      : null;
     
     this.creatoDa = data.creatoDa || null;
     
@@ -173,6 +176,10 @@ export class Macchina extends Base {
       } else if (this.cavalliMinimiRichiesti > 1000) {
         errors.push('I cavalli minimi richiesti non possono superare 1000 CV');
       }
+    }
+
+    if (this.capacitaBotteQuintali != null && (!Number.isFinite(this.capacitaBotteQuintali) || this.capacitaBotteQuintali <= 0)) {
+      errors.push('La capacità della botte, se indicata, è in quintali e deve essere maggiore di zero');
     }
     
     const statiValidi = ['disponibile', 'in_uso', 'in_manutenzione', 'guasto', 'dismesso'];

@@ -100,6 +100,7 @@ import {
 } from '../../services/lavoro-delete-cascade.js';
 import { isOraDelCaposquadraSuLavoroSquadra } from '../../services/manodopera-ore-validazione-scope.js';
 import { syncPienoCampoSection, testoSegnapostoPieno } from './pieno-campo-ui.js';
+import { htmlMiscelaCampo } from '../../../shared/js/registro-trattamenti-campo.js';
 import { applicaLingua } from './field-ui-i18n-dom.js';
 import {
     t,
@@ -1072,7 +1073,17 @@ async function refreshSquadraConSostituto() {
     renderSquadList(label, members);
 }
 
+function syncMiscelaCampo() {
+    const host = document.getElementById('miscela-lavoro-campo');
+    if (!host) return;
+    const miscela = selectedWork && selectedWork.raw ? selectedWork.raw.miscelaPrevista : null;
+    const html = htmlMiscelaCampo(miscela, (key, params) => t(key, linguaCorrente(), params));
+    host.innerHTML = html;
+    host.hidden = !html;
+}
+
 function syncLavoroOperativoEmbeds() {
+    syncMiscelaCampo();
     syncPienoCampoSection({
         db: getDb(),
         tenantId: currentTenantId,
