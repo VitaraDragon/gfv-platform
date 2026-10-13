@@ -52,6 +52,8 @@ export function setupFormDinamico(populateSottocategorieCallback, filterMacchine
         if (campoCategoria) campoCategoria.style.display = isAttrezzo ? 'block' : 'none';
         if (campoSottocategoria) campoSottocategoria.style.display = isAttrezzo ? 'block' : 'none';
         if (campoCavalliMinimi) campoCavalliMinimi.style.display = isAttrezzo ? 'block' : 'none';
+        const campoCapacitaBotte = document.getElementById('campo-capacita-botte-group');
+        if (campoCapacitaBotte) campoCapacitaBotte.style.display = isAttrezzo ? 'block' : 'none';
         if (campoFlottaSottotipo) campoFlottaSottotipo.style.display = isFlotta ? 'block' : 'none';
         if (scadenzeAmminGroup) scadenzeAmminGroup.style.display = (isTrattore || isFlotta) ? 'grid' : 'none';
         if (gruppoContatoreOre) gruppoContatoreOre.style.display = isFlotta ? 'none' : 'grid';
@@ -284,6 +286,8 @@ export async function openMacchinaModal(macchinaId, state, populateSottocategori
             
             const cavalliMinimiInput = document.getElementById('macchina-cavalli-minimi');
             if (cavalliMinimiInput) cavalliMinimiInput.value = macchina.cavalliMinimiRichiesti || '';
+            const capacitaBotteInput = document.getElementById('macchina-capacita-botte');
+            if (capacitaBotteInput) capacitaBotteInput.value = macchina.capacitaBotteQuintali != null ? macchina.capacitaBotteQuintali : '';
         }
         
         // Campi comuni
@@ -537,6 +541,7 @@ export async function handleSalvaMacchina(e, tenantId, userId, dependencies, sho
             macchinaData.categoriaId = null;
             macchinaData.categoriaFunzione = null;
             macchinaData.cavalliMinimiRichiesti = null;
+            macchinaData.capacitaBotteQuintali = null;
             macchinaData.kmIniziali = null;
             macchinaData.kmAttuali = null;
             macchinaData.kmProssimaManutenzione = null;
@@ -545,6 +550,13 @@ export async function handleSalvaMacchina(e, tenantId, userId, dependencies, sho
             macchinaData.categoriaFunzione = categoriaId; // Mantenuto per retrocompatibilità
             const cavalliMinimiInput = document.getElementById('macchina-cavalli-minimi');
             macchinaData.cavalliMinimiRichiesti = parseFloat(cavalliMinimiInput?.value);
+            const capacitaRaw = document.getElementById('macchina-capacita-botte')?.value;
+            const capacitaNum = capacitaRaw != null && String(capacitaRaw).trim() !== '' ? parseFloat(capacitaRaw) : null;
+            if (capacitaNum != null && (!Number.isFinite(capacitaNum) || capacitaNum <= 0)) {
+                if (showAlertCallback) showAlertCallback('La capacità della botte, se indicata, è in quintali e deve essere maggiore di zero', 'error');
+                return;
+            }
+            macchinaData.capacitaBotteQuintali = capacitaNum;
             macchinaData.cavalli = null;
             macchinaData.prossimaRevisione = null;
             macchinaData.prossimaAssicurazione = null;
@@ -556,6 +568,7 @@ export async function handleSalvaMacchina(e, tenantId, userId, dependencies, sho
             macchinaData.categoriaId = null;
             macchinaData.categoriaFunzione = null;
             macchinaData.cavalliMinimiRichiesti = null;
+            macchinaData.capacitaBotteQuintali = null;
             macchinaData.costoOra = null;
             macchinaData.oreIniziali = null;
             macchinaData.oreAttuali = null;

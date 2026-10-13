@@ -1345,6 +1345,43 @@
                     </div>
                 </div>
 
+                <div class="form-group" id="lavoro-miscela-section" style="display: none;">
+                    <label>Miscela prevista</label>
+                    <p id="lavoro-miscela-nota" style="color:#555;font-size:13px;"></p>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="lavoro-acqua-hl-ha">Acqua prevista (hl/ha)</label>
+                            <input type="number" id="lavoro-acqua-hl-ha" min="0" step="0.01" placeholder="Ettolitri per ettaro">
+                        </div>
+                        <div class="form-group">
+                            <label for="lavoro-acqua-hl-tot">Acqua prevista (hl totali)</label>
+                            <input type="number" id="lavoro-acqua-hl-tot" min="0" step="0.01" placeholder="Ettolitri sul campo">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="lavoro-miscela-prodotto">Prodotto</label>
+                            <select id="lavoro-miscela-prodotto">
+                                <option value="">— Nessun prodotto —</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="lavoro-miscela-nome">Nome se non è in magazzino</label>
+                            <input type="text" id="lavoro-miscela-nome" placeholder="Nome prodotto">
+                        </div>
+                        <div class="form-group">
+                            <label for="lavoro-miscela-dose-ha">Dose scelta (per ettaro)</label>
+                            <input type="number" id="lavoro-miscela-dose-ha" min="0" step="0.01" placeholder="kg o L per ha">
+                        </div>
+                    </div>
+                    <button type="button" class="btn btn-secondary" id="btn-miscela-aggiungi">Aggiungi prodotto</button>
+                    <table style="width:100%;margin-top:8px;">
+                        <tbody id="tbody-miscela-lavoro"></tbody>
+                    </table>
+                    <p id="lavoro-miscela-anteprima" style="white-space:pre-wrap;font-size:13px;"></p>
+                    <p id="lavoro-registro-avviso" style="color:#8a5a00;font-size:13px;"></p>
+                </div>
+
                 <div class="form-group">
                     <label for="lavoro-note">Note</label>
                     <textarea id="lavoro-note" placeholder="Note aggiuntive sul lavoro (opzionale)"></textarea>

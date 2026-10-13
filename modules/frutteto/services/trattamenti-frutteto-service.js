@@ -194,16 +194,19 @@ export async function updateTrattamento(fruttetoId, trattamentoId, updates, opti
   }
 }
 
-export async function deleteTrattamento(fruttetoId, trattamentoId) {
+export async function deleteTrattamento(fruttetoId, trattamentoId, opzioni = {}) {
   try {
     const tenantId = getCurrentTenantId();
     if (!tenantId) throw new Error('Nessun tenant corrente disponibile');
     if (!fruttetoId || !trattamentoId) throw new Error('ID frutteto e trattamento obbligatori');
 
     const existing = await getTrattamento(fruttetoId, trattamentoId);
-    if (existing?.magazzinoMovimentoIds?.length) {
-      const { rimuoviMovimentiTrattamento } = await import('../../magazzino/services/trattamento-scarico-magazzino-service.js');
-      await rimuoviMovimentiTrattamento(existing.magazzinoMovimentoIds);
+    const { valutaCancellazioneRegistro } = await import('../../../shared/js/registro-trattamenti.js');
+    const verdict = valutaCancellazioneRegistro(existing, { exportConfermato: opzioni.exportConfermato === true });
+    if (!verdict.consentita) {
+      const err = new Error(verdict.messaggio);
+      err.code = 'REGISTRO_CONSERVAZIONE';
+      throw err;
     }
 
     const collectionPath = getTrattamentiPath(fruttetoId);

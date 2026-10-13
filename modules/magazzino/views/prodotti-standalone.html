@@ -224,6 +224,26 @@
                         <span class="form-hint">Obbligatorio per fitofarmaci (es. 30).</span>
                     </div>
                 </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prodotto-numero-registrazione">Numero di registrazione</label>
+                        <input type="text" id="prodotto-numero-registrazione" readonly placeholder="Dalla scheda pubblica, dopo la conferma">
+                    </div>
+                    <div class="form-group">
+                        <label for="prodotto-principio-attivo">Principio attivo</label>
+                        <input type="text" id="prodotto-principio-attivo" readonly placeholder="Dalla scheda pubblica, dopo la conferma">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prodotto-fonte-scheda">Fonte</label>
+                        <input type="text" id="prodotto-fonte-scheda" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="prodotto-data-lettura">Data di lettura</label>
+                        <input type="text" id="prodotto-data-lettura" readonly>
+                    </div>
+                </div>
                 <div class="form-group">
                     <label for="prodotto-note">Note</label>
                     <textarea id="prodotto-note" placeholder="Note..."></textarea>
@@ -647,6 +667,14 @@
             document.getElementById('prodotto-dosaggio-min').value = p.dosaggioMin != null ? p.dosaggioMin : '';
             document.getElementById('prodotto-dosaggio-max').value = p.dosaggioMax != null ? p.dosaggioMax : '';
             document.getElementById('prodotto-giorni-carenza').value = p.giorniCarenza != null ? p.giorniCarenza : '';
+            const numReg = document.getElementById('prodotto-numero-registrazione');
+            const principio = document.getElementById('prodotto-principio-attivo');
+            const fonte = document.getElementById('prodotto-fonte-scheda');
+            const dataLettura = document.getElementById('prodotto-data-lettura');
+            if (numReg) numReg.value = p.numeroRegistrazione || '';
+            if (principio) principio.value = p.principioAttivo || '';
+            if (fonte) fonte.value = p.fonteScheda || '';
+            if (dataLettura) dataLettura.value = p.dataLetturaScheda || '';
             document.getElementById('prodotto-note').value = p.note || '';
             const banner = document.getElementById('prodotto-da-completare-banner');
             if (banner) banner.style.display = p.daCompletare === true ? 'block' : 'none';
@@ -772,6 +800,10 @@
             document.getElementById('prodotto-dosaggio-min').value = '';
             document.getElementById('prodotto-dosaggio-max').value = '';
             document.getElementById('prodotto-giorni-carenza').value = '';
+            ['prodotto-numero-registrazione', 'prodotto-principio-attivo', 'prodotto-fonte-scheda', 'prodotto-data-lettura'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
             document.getElementById('prodotto-modal').classList.add('active');
             syncProdottoDosaggioCarenzaRequiredDom();
         }
@@ -821,6 +853,10 @@
                 dosaggioMin,
                 dosaggioMax,
                 giorniCarenza: giorniCarenzaVal ? parseInt(giorniCarenzaVal, 10) : null,
+                numeroRegistrazione: (document.getElementById('prodotto-numero-registrazione')?.value || '').trim() || null,
+                principioAttivo: (document.getElementById('prodotto-principio-attivo')?.value || '').trim() || null,
+                fonteScheda: (document.getElementById('prodotto-fonte-scheda')?.value || '').trim() || null,
+                dataLetturaScheda: (document.getElementById('prodotto-data-lettura')?.value || '').trim() || null,
                 note: (document.getElementById('prodotto-note').value || '').trim(),
                 attivo: true
             };

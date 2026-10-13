@@ -353,5 +353,16 @@ export const FIELD_UI_STRINGS = {
     "guasto.markerPlaced": { it: "✅ Marker posizionato! Coordinate: {coords} - Trascina il marker per precisione", ro: "✅ Marker pus! Coordonate: {coords} - Trage markerul pentru precizie", en: "✅ Marker placed! Coordinates: {coords} - Drag the marker for precision", sq: "✅ Shenjuesi u vendos! Koordinatat: {coords} - Tërhiqeni shenjuesin për saktësi", fr: "✅ Marqueur placé ! Coordonnées : {coords} - Faites glisser le marqueur pour plus de précision" },
     "guasto.markerDrag": { it: "🔄 Trascinando marker...", ro: "🔄 Se trage markerul...", en: "🔄 Dragging marker...", sq: "🔄 Po tërhiqet shenjuesi...", fr: "🔄 Déplacement du marqueur..." },
     "guasto.badgeMap": { it: "MAPPA", ro: "HARTĂ", en: "MAP", sq: "HARTË", fr: "CARTE" },
-    "guasto.badgeGps": { it: "GPS", ro: "GPS", en: "GPS", sq: "GPS", fr: "GPS" }
+    "guasto.badgeGps": { it: "GPS", ro: "GPS", en: "GPS", sq: "GPS", fr: "GPS" },
+    "miscela.title": { it: "Miscela prevista", ro: "Amestec prevăzut", en: "Planned mixture", sq: "Përzierja e parashikuar", fr: "Mélange prévu" },
+    "miscela.product": { it: "Prodotto", ro: "Produs", en: "Product", sq: "Produkt", fr: "Produit" },
+    "miscela.doseHa": { it: "Dose/ha", ro: "Doză/ha", en: "Dose/ha", sq: "Doza/ha", fr: "Dose/ha" },
+    "miscela.qty": { it: "Quantità sul campo", ro: "Cantitate pe câmp", en: "Field quantity", sq: "Sasia në fushë", fr: "Quantité au champ" },
+    "miscela.doseHl": { it: "Dose/hl", ro: "Doză/hl", en: "Dose/hl", sq: "Doza/hl", fr: "Dose/hl" },
+    "miscela.noDoseHl": { it: "non confermata", ro: "neconfirmată", en: "not confirmed", sq: "e pakonfirmuar", fr: "non confirmée" },
+    "miscela.tankDose": { it: "Dose a botte piena", ro: "Doză la cisternă plină", en: "Full-tank dose", sq: "Doza e botës së plotë", fr: "Dose à cuve pleine" },
+    "miscela.waterHa": { it: "Acqua hl/ha", ro: "Apă hl/ha", en: "Water hl/ha", sq: "Ujë hl/ha", fr: "Eau hl/ha" },
+    "miscela.waterTot": { it: "Acqua hl totali", ro: "Apă hl total", en: "Total water hl", sq: "Ujë hl gjithsej", fr: "Eau hl au total" },
+    "miscela.tank": { it: "{nome}: {quintali} quintali, botti piene {botti}", ro: "{nome}: {quintali} chintale, cisterne pline {botti}", en: "{nome}: {quintali} quintals, full tanks {botti}", sq: "{nome}: {quintali} kuintalë, bote të plota {botti}", fr: "{nome} : {quintali} quintaux, cuves pleines {botti}" },
+    "miscela.lastTank": { it: "Ultima botte parziale, {hl} hl:", ro: "Ultima cisternă parțială, {hl} hl:", en: "Last partial tank, {hl} hl:", sq: "Bota e fundit e pjesshme, {hl} hl:", fr: "Dernière cuve partielle, {hl} hl :" }
 };
