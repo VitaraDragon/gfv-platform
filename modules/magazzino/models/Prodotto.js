@@ -63,6 +63,14 @@ export class Prodotto extends Base {
       : null;
     this.dataLetturaScheda = data.dataLetturaScheda || null;
     this.confermeSpecie = data.confermeSpecie && typeof data.confermeSpecie === 'object' ? data.confermeSpecie : {};
+    this.letturaSchedaStato = data.letturaSchedaStato || null;
+    this.letturaSchedaMotivo = data.letturaSchedaMotivo || null;
+    this.letturaSchedaAggiornataAt = data.letturaSchedaAggiornataAt || null;
+    this.letturaSchedaRichiestaAt = data.letturaSchedaRichiestaAt || null;
+    this.letturaSchedaCompletaAt = data.letturaSchedaCompletaAt || null;
+    this.controlloSchedaAt = data.controlloSchedaAt || null;
+    this.statoAmministrativoScheda = data.statoAmministrativoScheda || null;
+    this.dataVariazioneScheda = data.dataVariazioneScheda != null ? String(data.dataVariazioneScheda) : null;
     this.note = data.note || '';
     this.attivo = data.attivo !== undefined ? !!data.attivo : true;
     /** Tony Occhi — anagrafica creata in automatico, da completare in magazzino */

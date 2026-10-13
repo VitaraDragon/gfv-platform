@@ -10,7 +10,11 @@ import {
   confermaSpecieSalvata,
   rigaHaConferma,
   avvisiRegistrazione,
-  FONTE_OPEN_DATA_FITOSANITARI
+  FONTE_OPEN_DATA_FITOSANITARI,
+  vociMenuScheda,
+  piuFinestreInMenu,
+  unisciConfermaSpecie,
+  schedaDaRileggere
 } from './registro-trattamenti.js';
 
 function esc(value) {
@@ -107,6 +111,77 @@ export function scriviEsitoScheda(html) {
   el.innerHTML = html || '';
 }
 
+function numeroUguale(a, b) {
+  return a != null && b != null && Number(a) === Number(b);
+}
+
+function testoNumero(value) {
+  if (value == null || !Number.isFinite(Number(value))) return '';
+  return String(value).replace('.', ',');
+}
+
+function testoIntervallo(min, max) {
+  const a = testoNumero(min);
+  const b = testoNumero(max);
+  if (!a && !b) return '';
+  if (!a || !b || a === b) return a || b;
+  return a + '–' + b;
+}
+
+function testoDoseVoce(voce) {
+  const unita = voce.unitaDose ? ' ' + voce.unitaDose : '';
+  const ha = testoIntervallo(voce.doseMinHa, voce.doseMaxHa);
+  const hl = testoIntervallo(voce.doseMinHl, voce.doseMaxHl);
+  const parti = [];
+  if (ha) parti.push(ha + unita + '/ha');
+  if (hl) parti.push(hl + unita + '/hl');
+  return parti.join(', ');
+}
+
+function etichettaVoceMenu(voce) {
+  const parti = [voce.avversita];
+  if (voce.epoca) parti.push(voce.epoca);
+  const dose = testoDoseVoce(voce);
+  if (dose) parti.push(dose);
+  if (voce.giorniCarenza != null) parti.push('carenza ' + voce.giorniCarenza + ' giorni');
+  const testo = parti.join(' — ');
+  return voce.giaConfermata ? 'Conferma già data: ' + testo : testo;
+}
+
+function registroDaVoceMenu(voce, specie, anag, utente) {
+  const singolaHa = numeroUguale(voce.doseMinHa, voce.doseMaxHa) ? voce.doseMinHa : null;
+  const singolaHl = numeroUguale(voce.doseMinHl, voce.doseMaxHl) ? voce.doseMinHl : null;
+  const registro = {
+    ...campiConfermaRiga({
+      avversita: voce.avversita,
+      epoca: voce.epoca,
+      specieUsata: specie,
+      riferimentoRiga: {
+        nomeProdotto: (anag && anag.nome) || '',
+        numeroRegistrazione: (anag && anag.numeroRegistrazione) || '',
+        colturaScheda: voce.colturaScheda
+      },
+      confermatoDa: utente || null,
+      confermatoIl: new Date().toISOString(),
+      impieghiMassimiAnno: voce.impieghiMassimiAnno,
+      giorniMinimiTraPassaggi: voce.giorniMinimiTraPassaggi,
+      dosePerEttaroScheda: singolaHa,
+      dosePerEttolitroScheda: singolaHl,
+      giorniCarenzaConfermata: voce.giorniCarenza,
+      doseMinHa: voce.doseMinHa,
+      doseMaxHa: voce.doseMaxHa,
+      doseMinHl: voce.doseMinHl,
+      doseMaxHl: voce.doseMaxHl,
+      unitaDose: voce.unitaDose
+    }),
+    principioAttivo: anag && anag.principioAttivo ? String(anag.principioAttivo) : null,
+    fonteScheda: anag && anag.fonteScheda ? String(anag.fonteScheda) : null,
+    dataLetturaScheda: anag && anag.dataLetturaScheda ? anag.dataLetturaScheda : null
+  };
+  if (singolaHa != null) registro.dosaggio = singolaHa;
+  return registro;
+}
+
 function rigaConfermataDaScelta(scelta, specie, utente, fonte, dataLettura) {
   return campiConfermaRiga({
     avversita: scelta.avversita || null,
@@ -126,9 +201,88 @@ function rigaConfermataDaScelta(scelta, specie, utente, fonte, dataLettura) {
   });
 }
 
+function attaccaMenuScheda(opts, tbody) {
+  if (!opts.leggiRighe) return;
+  let ticket = 0;
+  const aggiorna = async (idx) => {
+    const mio = ++ticket;
+    const specie = opts.specie ? opts.specie() : null;
+    if (!specie) {
+      scriviEsitoScheda('');
+      return;
+    }
+    const anag = opts.prodotto ? opts.prodotto(idx) : null;
+    const fitofarmaco = anag && String(anag.categoria || '').toLowerCase() === 'fitofarmaci';
+    if (!anag || (!fitofarmaco && anag.letturaSchedaStato !== 'pronta')) {
+      if (mio === ticket) scriviEsitoScheda('');
+      return;
+    }
+    if (anag.letturaSchedaStato === 'pronta' && schedaDaRileggere(anag)) {
+      try {
+        if (opts.chiediRilettura) await opts.chiediRilettura(anag);
+        anag.letturaSchedaStato = 'in_corso';
+      } catch (err) { /* non propone la dose vecchia */ }
+      if (mio === ticket) {
+        scriviEsitoScheda('<p>La scheda ha più di sei mesi: la aggiorno prima di proporre la dose. Il controllo sul numero massimo e sull\'intervallo non si può fare finché non è aggiornata.</p>');
+      }
+      return;
+    }
+    if (anag.letturaSchedaStato !== 'pronta') {
+      if (mio === ticket) {
+        scriviEsitoScheda('<p>La scheda non è ancora letta: il controllo sul numero massimo e sull\'intervallo non si può fare.</p>');
+      }
+      return;
+    }
+    let righe = [];
+    try {
+      righe = await opts.leggiRighe(anag) || [];
+    } catch (err) {
+      if (mio === ticket) scriviEsitoScheda('<p>La scheda non si legge. Non invento avversità né dose.</p>');
+      return;
+    }
+    if (mio !== ticket) return;
+    const alias = opts.alias ? opts.alias() : [];
+    const voci = vociMenuScheda({ righe, specie, alias, conferme: anag.confermeSpecie });
+    if (!voci.length) {
+      scriviEsitoScheda('<p>Per questa specie la scheda non ha impieghi. Non propongo avversità né dose.</p>');
+      return;
+    }
+    const notaFinestre = piuFinestreInMenu(voci)
+      ? '<p>Più finestre in etichetta: scegli quella della data di questo lavoro.</p>'
+      : '';
+    scriviEsitoScheda(notaFinestre + '<ul style="list-style:none;padding:0;">'
+      + voci.map((voce, i) => '<li style="margin:6px 0;"><button type="button" class="btn btn-sm btn-primary" data-conferma-menu="' + i + '">Conferma</button> '
+        + esc(etichettaVoceMenu(voce)) + '</li>').join('')
+      + '</ul>');
+    const box = document.getElementById('registro-scheda-esito');
+    if (!box) return;
+    box.querySelectorAll('[data-conferma-menu]').forEach((b) => {
+      b.addEventListener('click', async () => {
+        const voce = voci[Number(b.getAttribute('data-conferma-menu'))];
+        if (!voce) return;
+        const utente = opts.utente ? opts.utente() : '';
+        const registro = registroDaVoceMenu(voce, specie, anag, utente);
+        const unito = unisciConfermaSpecie(anag, specie, registro);
+        anag.confermeSpecie = unito.confermeSpecie;
+        if (opts.onConferma) opts.onConferma(idx, registro);
+        if (opts.salvaSuProdotto && anag.id) {
+          try { await opts.salvaSuProdotto(anag, specie, registro); } catch (e) { /* la riga trattamento resta confermata in form */ }
+        }
+        scriviEsitoScheda('<p>Conferma registrata per ' + esc(voce.avversita) + (voce.epoca ? ' — ' + esc(voce.epoca) : '') + '. Si può salvare il trattamento.</p>');
+      });
+    });
+  };
+  tbody.querySelectorAll('.prodotto-select').forEach((sel) => {
+    sel.addEventListener('change', () => aggiorna(sel.getAttribute('data-idx')));
+  });
+  const primo = Array.from(tbody.querySelectorAll('.prodotto-select')).find((sel) => sel.value);
+  if (primo) aggiorna(primo.getAttribute('data-idx'));
+}
+
 export function attaccaLetturaScheda(opts) {
   const tbody = opts && opts.tbody;
   if (!tbody) return;
+  attaccaMenuScheda(opts, tbody);
   tbody.querySelectorAll('.btn-leggi-scheda').forEach((btn) => {
     btn.addEventListener('click', async () => {
       const tr = btn.closest('tr');
