@@ -4,10 +4,14 @@
  * @module core/config/registro-trattamenti-specie
  */
 
-/** Destinazione uva del vigneto → coltura della scheda. `misto` non si indovina. */
+/**
+ * Destinazione uva del vigneto → coltura della banca SIAN.
+ * Letto il 13 ottobre 2026 su SIVANTO PRIME, pagina 2: VITE, VITE DA VINO, VITE DA TAVOLA sono tre righe.
+ * `misto` e la riga generica VITE non si indovinano. UVA SPINA non è vite.
+ */
 export const MAPPA_DESTINAZIONE_VIGNETO = {
-  vino: 'uva da vino',
-  vendita_uva: 'uva da tavola',
+  vino: 'vite da vino',
+  vendita_uva: 'vite da tavola',
   misto: null
 };
 
@@ -76,8 +80,8 @@ export const MAPPA_COLTURA_SEMINATIVO = {
 /** Altri modi in cui la stessa coltura compare sulla scheda. */
 export const ALIAS_COLTURA_SCHEDA = {
   frumento: ['frumento', 'grano', 'grano tenero', 'grano duro'],
-  'uva da vino': ['uva da vino', 'vite da vino', 'vite'],
-  'uva da tavola': ['uva da tavola', 'vite da tavola'],
+  'vite da vino': ['vite da vino'],
+  'vite da tavola': ['vite da tavola'],
   actinidia: ['actinidia', 'kiwi'],
   clementine: ['clementine', 'clementino'],
   'erba medica': ['erba medica', 'medica']

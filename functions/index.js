@@ -4731,6 +4731,13 @@ exports.leggiSchedaRegistroTrattamento = onCall(
   handleLeggiSchedaRegistroTrattamento
 );
 
+const {
+  onProdottoSchedaScritto,
+  leggiSchedeRegistroInCoda
+} = require("./registro-trattamenti-lettura");
+exports.onProdottoSchedaScritto = onProdottoSchedaScritto;
+exports.leggiSchedeRegistroInCoda = leggiSchedeRegistroInCoda;
+
 const { handleRegistraAccettazioniLegali } = require("./accettazione-legale");
 exports.registraAccettazioniLegali = onCall(
   { region: "europe-west1" },

@@ -91,4 +91,7 @@ async function handleLeggiSchedaRegistroTrattamento(request) {
   return risposta;
 }
 
-module.exports = { handleLeggiSchedaRegistroTrattamento };
+module.exports = {
+  handleLeggiSchedaRegistroTrattamento,
+  csvFitosanitariCorrente: csvCorrente
+};
