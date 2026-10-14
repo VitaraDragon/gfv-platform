@@ -12,6 +12,7 @@ import {
   avvisiRegistrazione,
   FONTE_OPEN_DATA_FITOSANITARI,
   vociMenuScheda,
+  voceUnicaDaCompilare,
   piuFinestreInMenu,
   unisciConfermaSpecie,
   htmlAvvisoRevoca,
@@ -130,12 +131,13 @@ function testoIntervallo(min, max) {
 }
 
 function testoDoseVoce(voce) {
-  const unita = voce.unitaDose ? ' ' + voce.unitaDose : '';
   const ha = testoIntervallo(voce.doseMinHa, voce.doseMaxHa);
   const hl = testoIntervallo(voce.doseMinHl, voce.doseMaxHl);
+  const unitaHa = voce.unitaDoseHa || voce.unitaDose || '';
+  const unitaHl = voce.unitaDoseHl || voce.unitaDose || '';
   const parti = [];
-  if (ha) parti.push(ha + unita + '/ha');
-  if (hl) parti.push(hl + unita + '/hl');
+  if (ha) parti.push(ha + (unitaHa ? ' ' + unitaHa : '') + '/ha');
+  if (hl) parti.push(hl + (unitaHl ? ' ' + unitaHl : '') + '/hl');
   return parti.join(', ');
 }
 
@@ -173,7 +175,9 @@ function registroDaVoceMenu(voce, specie, anag, utente) {
       doseMaxHa: voce.doseMaxHa,
       doseMinHl: voce.doseMinHl,
       doseMaxHl: voce.doseMaxHl,
-      unitaDose: voce.unitaDose
+      unitaDose: voce.unitaDose,
+      unitaDoseHa: voce.unitaDoseHa,
+      unitaDoseHl: voce.unitaDoseHl
     }),
     principioAttivo: anag && anag.principioAttivo ? String(anag.principioAttivo) : null,
     fonteScheda: anag && anag.fonteScheda ? String(anag.fonteScheda) : null,
@@ -245,6 +249,31 @@ function attaccaMenuScheda(opts, tbody) {
       scriviEsitoScheda('<p>Per questa specie la scheda non ha impieghi. Non propongo avversità né dose.</p>');
       return;
     }
+    const applica = async (voce) => {
+      const utente = opts.utente ? opts.utente() : '';
+      const registro = registroDaVoceMenu(voce, specie, anag, utente);
+      const unito = unisciConfermaSpecie(anag, specie, registro);
+      anag.confermeSpecie = unito.confermeSpecie;
+      if (opts.onConferma) opts.onConferma(idx, registro);
+      if (opts.salvaSuProdotto && anag.id) {
+        try { await opts.salvaSuProdotto(anag, specie, registro); } catch (e) { /* la riga trattamento resta confermata in form */ }
+      }
+      return voce;
+    };
+    if (voci.length === 1 && voci[0].giaConfermata) {
+      scriviEsitoScheda(htmlNotaFontiEtichetta(anag)
+        + '<p>Per questa coltura la scheda ha una sola riga, già compilata. '
+        + esc(etichettaVoceMenu(voci[0])) + '</p>');
+      return;
+    }
+    const unica = voceUnicaDaCompilare(voci);
+    if (unica) {
+      await applica(unica);
+      scriviEsitoScheda(htmlNotaFontiEtichetta(anag)
+        + '<p>Per questa coltura la scheda ha una sola riga: avversità, carenza, numero massimo e intervallo sono compilati. La dose, dentro il minimo e il massimo, la sceglie l\'azienda. '
+        + esc(etichettaVoceMenu(unica)) + '</p>');
+      return;
+    }
     const notaFinestre = piuFinestreInMenu(voci)
       ? '<p>Più finestre in etichetta: scegli quella della data di questo lavoro.</p>'
       : '';
@@ -258,14 +287,7 @@ function attaccaMenuScheda(opts, tbody) {
       b.addEventListener('click', async () => {
         const voce = voci[Number(b.getAttribute('data-conferma-menu'))];
         if (!voce) return;
-        const utente = opts.utente ? opts.utente() : '';
-        const registro = registroDaVoceMenu(voce, specie, anag, utente);
-        const unito = unisciConfermaSpecie(anag, specie, registro);
-        anag.confermeSpecie = unito.confermeSpecie;
-        if (opts.onConferma) opts.onConferma(idx, registro);
-        if (opts.salvaSuProdotto && anag.id) {
-          try { await opts.salvaSuProdotto(anag, specie, registro); } catch (e) { /* la riga trattamento resta confermata in form */ }
-        }
+        await applica(voce);
         scriviEsitoScheda('<p>Conferma registrata per ' + esc(voce.avversita) + (voce.epoca ? ' — ' + esc(voce.epoca) : '') + '. Si può salvare il trattamento.</p>');
       });
     });

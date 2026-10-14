@@ -64,7 +64,9 @@ export function campiConfermaRiga(raw = {}) {
     doseMaxHa: numeroFinito(raw.doseMaxHa),
     doseMinHl: numeroFinito(raw.doseMinHl),
     doseMaxHl: numeroFinito(raw.doseMaxHl),
-    unitaDose: raw.unitaDose != null && String(raw.unitaDose).trim() ? String(raw.unitaDose).trim() : null
+    unitaDose: raw.unitaDose != null && String(raw.unitaDose).trim() ? String(raw.unitaDose).trim() : null,
+    unitaDoseHa: raw.unitaDoseHa != null && String(raw.unitaDoseHa).trim() ? String(raw.unitaDoseHa).trim() : null,
+    unitaDoseHl: raw.unitaDoseHl != null && String(raw.unitaDoseHl).trim() ? String(raw.unitaDoseHl).trim() : null
   };
 }
 
@@ -121,6 +123,8 @@ export function vociMenuScheda(input = {}) {
       doseMinHl: numeroFinito(row.doseMinHl),
       doseMaxHl: numeroFinito(row.doseMaxHl),
       unitaDose: row.unitaDose ? String(row.unitaDose).trim() : null,
+      unitaDoseHa: row.unitaDoseHa ? String(row.unitaDoseHa).trim() : null,
+      unitaDoseHl: row.unitaDoseHl ? String(row.unitaDoseHl).trim() : null,
       impieghiMassimiAnno: numeroFinito(row.impieghiMassimiAnno),
       giorniMinimiTraPassaggi: numeroFinito(row.giorniMinimiTraPassaggi)
     };
@@ -129,6 +133,13 @@ export function vociMenuScheda(input = {}) {
   });
   voci.sort((a, b) => Number(b.giaConfermata) - Number(a.giaConfermata));
   return voci;
+}
+
+/** Una sola riga per la coltura del campo: il registro la compila senza un'altra scelta. */
+export function voceUnicaDaCompilare(voci) {
+  if (!Array.isArray(voci) || voci.length !== 1) return null;
+  if (voci[0].giaConfermata) return null;
+  return voci[0];
 }
 
 export function piuFinestreInMenu(voci) {

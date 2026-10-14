@@ -7,8 +7,11 @@ const tls = require("tls");
 const admin = require("firebase-admin");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { defineSecret } = require("firebase-functions/params");
 const { csvFitosanitariCorrente } = require("./registro-trattamenti-scheda");
 const { testoDaPdf } = require("./lib/etichetta-pdf");
+const { leggiPagineEtichetta } = require("./lib/etichetta-gemini");
+const geminiApiKey = defineSecret("GEMINI_API_KEY");
 const {
   ATTESA_RIPROVA_MS,
   FONTE,
@@ -16,6 +19,7 @@ const {
   componiArchivioProdotto,
   controlloLeggeroScheda,
   eFitofarmaco,
+  esitoRispostaMinistero,
   idDocumentoEtichetta,
   normalizzaNomeProdotto,
   parsaCsvFitosanitari,
@@ -50,11 +54,14 @@ function parsaHttp(buffer) {
   const body = sep >= 0 ? raw.slice(sep + 4) : Buffer.alloc(0);
   const status = Number((head.match(/HTTP\/1\.\d (\d+)/) || [])[1] || 0);
   const tipo = ((head.match(/content-type:\s*([^\r\n]+)/i) || [])[1] || "").toLowerCase();
-  return { status, tipo, body, testo: body.toString("latin1") };
+  const cookie = (head.match(/set-cookie:\s*([^;\r]+)/i) || [])[1] || "";
+  return { status, tipo, cookie, body, testo: body.toString("latin1") };
 }
 
-function chiediMinistero(path, timeoutMs) {
-  if (/sian\.it/i.test(path)) return Promise.reject(new Error("sian_vietato"));
+function chiediMinistero(path, timeoutMs, opzioni) {
+  if (/sian\.it/i.test(path) || /sian\.it/i.test((opzioni && opzioni.body) || "")) return Promise.reject(new Error("sian_vietato"));
+  const metodo = opzioni && opzioni.body ? "POST" : "GET";
+  const corpo = opzioni && opzioni.body ? opzioni.body : "";
   return new Promise((resolve, reject) => {
     const sock = tls.connect({
       host: HOST,
@@ -68,15 +75,20 @@ function chiediMinistero(path, timeoutMs) {
     }, timeoutMs || TIMEOUT_MS);
     const chunks = [];
     sock.on("secureConnect", () => {
-      sock.write([
-        "GET " + path + " HTTP/1.1",
+      const linee = [
+        metodo + " " + path + " HTTP/1.1",
         "Host: " + HOST,
         "User-Agent: " + UA,
         "Accept: text/html,application/pdf,*/*",
-        "Connection: close",
-        "",
-        ""
-      ].join("\r\n"));
+        "Connection: close"
+      ];
+      if (opzioni && opzioni.cookie) linee.push("Cookie: " + opzioni.cookie);
+      if (corpo) {
+        linee.push("Content-Type: application/x-www-form-urlencoded");
+        linee.push("Content-Length: " + Buffer.byteLength(corpo));
+      }
+      linee.push("", corpo);
+      sock.write(linee.join("\r\n"));
     });
     sock.on("data", (chunk) => chunks.push(chunk));
     sock.on("error", (err) => {
@@ -90,12 +102,43 @@ function chiediMinistero(path, timeoutMs) {
   });
 }
 
+function corpoRicercaSostanza(nome) {
+  const campi = {
+    ACTION: "cercaProdotti",
+    FROM: "0",
+    TO: "49",
+    PROVENIENZA: "RICERCA",
+    NOME: "",
+    NOME_SOSTANZA: nome,
+    NUMERO_REGISTRAZIONE: "",
+    ATTIVITA: "",
+    INDICAZIONE_PERICOLO: "",
+    STATO_AMMINISTRATIVO: "",
+    DT_IN_REGISTRAZIONE: "",
+    DT_FN_REGISTRAZIONE: "",
+    DT_IN_SCADENZA: "",
+    DT_FN_SCADENZA: "",
+    PRODOTTO_IP: "",
+    PRODOTTO_PPO: "",
+    PRODOTTO_PFnPE: ""
+  };
+  return Object.entries(campi).map(([chiave, valore]) => chiave + "=" + encodeURIComponent(valore)).join("&");
+}
+
 async function cercaEtichettaPerSostanza(principio, numero, chiedi) {
-  const nome = encodeURIComponent(testo(principio).split(/[;,]/)[0].trim());
+  const nome = testo(principio).split(/[|;,]/)[0].trim();
   if (!nome) return { esito: "non_trovata" };
-  const res = await chiedi(BASE + "?ACTION=cercaSostanza&FROM=0&TO=49&PROVENIENZA=RICERCA&NOME_SOSTANZA=" + nome);
-  if (res.status === 403) return { esito: "bloccato" };
-  if (res.status !== 200) return { esito: "non_trovata" };
+  let res;
+  if (chiedi === chiediMinistero) {
+    const home = await chiediMinistero(BASE);
+    if (home.status === 403) return { esito: "bloccato" };
+    await pausa(PAUSA_MS);
+    res = await chiediMinistero(BASE, TIMEOUT_MS, { body: corpoRicercaSostanza(nome), cookie: home.cookie });
+  } else {
+    res = await chiedi(BASE + "?ACTION=cercaSostanza&FROM=0&TO=49&PROVENIENZA=RICERCA&NOME_SOSTANZA=" + encodeURIComponent(nome));
+  }
+  const esitoPagina = esitoRispostaMinistero(res.status, res.testo);
+  if (esitoPagina !== "ok") return { esito: esitoPagina };
   const riga = rigaEtichettaPerNumero(parsaElencoEtichetteMinistero(res.testo), numero);
   return riga ? { esito: "trovata", riga } : { esito: "non_trovata" };
 }
@@ -104,10 +147,41 @@ async function scaricaPdf(url, chiedi) {
   const path = String(url || "").replace("https://" + HOST, "");
   if (!path.startsWith("/fitosanitariws_new/EtichettaServlet")) return { esito: "non_pdf" };
   const res = await chiedi(path);
-  if (res.status === 403) return { esito: "bloccato" };
-  if (res.status !== 200 || !/pdf/.test(res.tipo)) return { esito: "non_pdf" };
+  const esitoPagina = esitoRispostaMinistero(res.status, res.testo);
+  if (esitoPagina !== "ok") return { esito: esitoPagina };
+  if (!/pdf/.test(res.tipo)) return { esito: "non_pdf" };
   const testoPdf = await testoDaPdf(res.body);
-  return { esito: "ok", testo: testoPdf };
+  return { esito: "ok", testo: testoPdf, pdf: res.body };
+}
+
+async function chiediGeminiEtichetta(prompt, pdfBuffer) {
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) {
+    const err = new Error("manca_chiave");
+    throw err;
+  }
+  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + apiKey, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      contents: [{
+        parts: [
+          { text: prompt },
+          { inlineData: { mimeType: "application/pdf", data: Buffer.from(pdfBuffer).toString("base64") } }
+        ]
+      }],
+      generationConfig: {
+        temperature: 0,
+        maxOutputTokens: 8192,
+        responseMimeType: "application/json"
+      }
+    })
+  });
+  if (!res.ok) throw new Error("gemini_" + res.status);
+  const data = await res.json();
+  const parts = data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
+  return Array.isArray(parts) ? parts.map((part) => part.text || "").join("") : "";
 }
 
 function refDiTenant(ref) {
@@ -219,6 +293,9 @@ async function leggiArchivioPubblico(input, dipendenze) {
   }
   const principio = bozza.principioAttivo;
   const trovata = await cercaEtichettaPerSostanza(principio, bozza.numeroRegistrazione, chiedi);
+  if (trovata.esito === "errore") {
+    return Object.assign({}, bozza, { stato: "da_riprovare", motivo: "scheda_non_letta", righe: [] });
+  }
   if (trovata.esito === "bloccato") {
     return Object.assign({}, bozza, { stato: "da_verificare", motivo: "sito_bloccato", righe: [] });
   }
@@ -227,6 +304,15 @@ async function leggiArchivioPubblico(input, dipendenze) {
   }
   await pausa(dipendenze.pausaMs == null ? PAUSA_MS : dipendenze.pausaMs);
   const file = await scaricaPdf(trovata.riga.urlEtichetta, chiedi);
+  if (file.esito === "errore") {
+    return Object.assign({}, bozza, {
+      stato: "da_riprovare",
+      motivo: "scheda_non_letta",
+      righe: [],
+      urlEtichetta: trovata.riga.urlEtichetta,
+      dataEtichetta: trovata.riga.dataEtichetta
+    });
+  }
   if (file.esito === "bloccato") {
     return Object.assign({}, bozza, {
       stato: "da_verificare",
@@ -245,12 +331,16 @@ async function leggiArchivioPubblico(input, dipendenze) {
       dataEtichetta: trovata.riga.dataEtichetta
     });
   }
+  const leggi = dipendenze.leggiPdf || ((pdf) => leggiPagineEtichetta(pdf, chiediGeminiEtichetta));
+  const letta = await leggi(file.pdf);
   return componiArchivioProdotto({
     nome: input.nome,
     numero: bozza.numeroRegistrazione,
     csv: scaricato.csv,
     urlCsv: scaricato.url,
-    testoEtichetta: file.testo,
+    righeLette: letta.righe || [],
+    statoLettura: letta.stato,
+    motivoLettura: letta.motivo,
     urlEtichetta: trovata.riga.urlEtichetta,
     dataEtichetta: trovata.riga.dataEtichetta,
     oraMs: Date.now()
@@ -284,7 +374,7 @@ async function elaboraProdotto(ref, dipendenze, modo) {
       numero: data.numeroRegistrazione
     }, dipendenze);
     await ref.set(patchDaEsito(esito), { merge: true });
-    if (esito.numeroRegistrazione && dipendenze.db) await scriviCache(dipendenze.db, esito);
+    if (esito.numeroRegistrazione && dipendenze.db && esito.stato !== "da_riprovare") await scriviCache(dipendenze.db, esito);
     await svuotaSchedaImpieghi(ref);
   } catch (err) {
     await ref.set({
@@ -384,9 +474,10 @@ const leggiSchedeRegistroInCoda = onSchedule(
     schedule: "every 5 minutes",
     region: REGION,
     timeZone: "Europe/Rome",
-    timeoutSeconds: 120,
-    memory: "512MiB",
-    maxInstances: 1
+    timeoutSeconds: 300,
+    memory: "1GiB",
+    maxInstances: 1,
+    secrets: [geminiApiKey]
   },
   handleLeggiSchedeRegistroInCoda
 );

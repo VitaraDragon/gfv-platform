@@ -3,10 +3,10 @@
 - Titolo: Registro trattamenti GFV — impostazione
 - Settore: Ricerca
 - Data: 3 ottobre 2026
-- Aggiornato: 14 ottobre 2026 (niente SIAN: open data e etichetta PDF del Ministero, non pubblicato)
+- Aggiornato: 14 ottobre 2026 (niente SIAN; l'etichetta la legge Gemini sul PDF, due volte; una riga entra solo se confermata. Non pubblicato. Il servlet del Ministero, nel pomeriggio, rispondeva con errore)
 - Autore: Coord Ricerca
 
-Documento per chi deve modificare il prodotto. L’impostazione del 3 ottobre resta valida. Le decisioni del 13 ottobre mattina la completano. Se un punto diverge, comanda il paragrafo «Decisioni del 13 ottobre 2026, pomeriggio», e per nome e semaforo il paragrafo «Già in codice il 13 ottobre 2026, sera». La lettura sta in anagrafica, in background. I passi 1, 2, 3, 4 e 5 del pomeriggio sono nel repo e non sono pubblicati. La coda non è online e «Leggi scheda» resta.
+Documento per chi deve modificare il prodotto. L’impostazione del 3 ottobre resta valida. Le decisioni del 13 ottobre mattina la completano. Se un punto diverge, comanda il paragrafo «Decisioni del 13 ottobre 2026, pomeriggio», e per nome e semaforo il paragrafo «Già in codice il 13 ottobre 2026, sera». Su come si legge l’etichetta comanda «Decisioni del 14 ottobre 2026». La lettura sta in anagrafica, in background. I passi 1, 2, 3, 4 e 5 del pomeriggio sono nel repo e non sono pubblicati. La coda non è online e «Leggi scheda» resta.
 
 ## Cosa è, e cosa non è
 
@@ -349,7 +349,31 @@ La mappa specie (passo 5) usa i nomi letti quella sera. Destinazione `vino` → 
 
 #### Ancora fuori
 
-Quaderno di campagna come nome in interfaccia. Archivio impieghi di tutti i prodotti d’Italia. PDF dell’etichetta dentro il documento prodotto. Attesa dell’utente sulla lettura. Dose o avversità inventate. Riga di serra su un pieno campo. Riscrittura dei trattamenti già confermati quando la scheda si aggiorna. Gemini come fonte. Fitogest. Stadio BBCH obbligatorio.
+Quaderno di campagna come nome in interfaccia. Archivio impieghi di tutti i prodotti d’Italia. PDF dell’etichetta dentro il documento prodotto. Attesa dell’utente sulla lettura. Dose o avversità inventate. Riga di serra su un pieno campo. Riscrittura dei trattamenti già confermati quando la scheda si aggiorna. Gemini come fonte dei numeri (dal 14 ottobre è il lettore del PDF, non la fonte). Fitogest. Stadio BBCH obbligatorio. Imparare a memoria i nomi dei prodotti in commercio.
+
+### Decisioni del 14 ottobre 2026
+
+La banca SIAN resta esclusa. Le fonti restano due: gli open data Fitosanitari (anagrafica, stato, scadenza, revoca) e il PDF dell’etichetta autorizzata. Gemini non è una terza fonte. Legge quel PDF e basta. Non si scarica l’archivio del Ministero. Non si ripubblica il PDF. L’archivio delle righe è uno solo, `etichetteFitofarmaci`, per numero di registrazione, condiviso fra le aziende. Non è un database per azienda. Il trattamento non richiama Gemini: prende la riga della coltura del terreno. Data, appezzamento, ettari, quantità usata, operatore e macchina restano i dati dell’app. La data non sceglie la dose e non sceglie l’epoca: se restano più finestre, restano in menu.
+
+#### Cosa si è provato
+
+1. Tre etichette feromone (Aomate Prays, Mister P 2024, Praystec 2024) per trovare l’indirizzo vero del PDF. Non è il numero di registrazione. Nella lista della sostanza attiva, la riga di quel numero ha `EtichettaServlet?id=` con un id opaco. Il sito manda un’intestazione TLS rotta: i client normali falliscono; la chiamata che funziona è TLS con i certificati di sistema e la risposta letta a mano.
+2. Nimrod, da un archivio di ditta e non dal Ministero, per vedere se da un’etichetta a più colture escono carenza, dose, massimo e intervallo. Sì, coltura per coltura, su quel formato. La serra si archivia quando il numero è diverso e non si offre in pieno campo.
+3. Cinque etichette multi-coltura (Switch, Score 25 EC, Delan 70 WG, Signum, Cabrio WG). Alla prima lettura, zero righe. Poi un lettore per tabella («Coltura / Patogeno», «Malattia», «Avversità») e per la frase «contro». Su quei cinque i dati uscivano.
+4. Altri undici PDF di ditta (Actlet, Zorvec, Back 100, Enervin Duo, Efficon, Eradicoat, Decis Evo, Basagran, Wing, Mobigo, Stratos Ultra), altri impaginati, tutti a zero righe all’inizio. I lettori sono stati allargati a «Parassita», «Fitofagi» e al diserbo quando la dose è legata alla coltura. Non è una lista di prodotti ammessi: è il formato. Un formato ancora diverso non propone la dose.
+5. Campione di undici etichette prese dal Ministero, diverse dalle precedenti: Teldor Plus, Affirm, Scala, Epik SL, Mildicut, Geoxe, Cantus, Vivando, Sercadis, Flint e Topas 2.5 WG. La ricerca per nome sostanza nell’indirizzo non filtra e restituisce l’elenco generale. Ha funzionato il modulo del sito, con tutti i campi e il cookie di sessione, una sostanza alla volta, solo la prima pagina. Il lettore a regole, su queste undici: sette senza nessuna riga (Teldor Plus, Affirm, Epik SL, Mildicut, Geoxe, Flint, Topas). Quattro con righe. Solo Cantus è uscito pulito (dose, massimo, intervallo). Scala ha messo sulla vite da tavola la dose della lattuga e ha perso zucchina e la seconda riga della fragola. Vivando ha letto le dosi e ha perso massimo, intervallo e carenza, e ha segnato come pieno campo melanzana e peperone che in etichetta sono in serra. Sercadis ha molte colture, e in alcune righe l’«avversità» è la coltura successiva (erba cipollina, cardo, altri ortaggi).
+
+#### Cosa si è deciso
+
+Imparare i nomi dei prodotti in commercio non si fa. In open data sono migliaia, le etichette cambiano, e il campione è caduto sul formato, non sul nome. Una regola di formato vale per tutti i prodotti scritti così. Non si legge il mercato in blocco.
+
+L’affidabilità che serve è quella delle righe archiviate. Il lettore a regole, su etichette mai viste, è basso proprio perché a volte scrive una riga come sicura ed è sbagliata. Dal 14 ottobre la coda non usa più quel lettore per scrivere la scheda. Il PDF va a Gemini, visto come documento, senza OCR, due volte. La seconda lettura non riceve i numeri della prima e deve ritrovarli sulla stessa coltura. La riga entra solo se le due letture coincidono e la citazione di quella coltura contiene l’avversità, la dose con l’unità e, se ci sono, la carenza, il massimo di interventi e l’intervallo, ed è chiaro a che cosa serve ciascun numero. Due dosi nella stessa citazione, un nome di coltura usato come avversità, o una serra non scritta in quella riga: quella coltura non si archivia e resta da verificare a mano. Il registro non compila una dose dubbia.
+
+La sera del 14 ottobre il sito è tornato e la prova è stata fatta. Dieci etichette nuove, diverse dalle undici del mattino: Luna Privilege, Banjo, Closer, Luna Sensation, Chorus, Teppeki, Revus Pro SC, Collis, Vertimec EC e Karate Zeon 1.5. Pergado D non era nella prima pagina della sua sostanza, e al suo posto è entrato Karate Zeon. Gemini ha letto ciascun PDF due volte. Nessuna riga è entrata in archivio. Cinque restano da verificare a mano perché l’estrazione è incerta: Luna Privilege, Banjo, Luna Sensation, Revus Pro SC, Collis. Cinque sono da riprovare perché la risposta non era utilizzabile: Closer, Chorus, Teppeki, Vertimec EC, Karate Zeon 1.5. Non è stata archiviata una dose. Le undici del mattino restano fuori dal repo e non sono state rilette da Gemini. Nel pomeriggio il servlet rispondeva «Si è verificato un errore durante l'operazione, prego riprovare più tardi».
+
+Se il Ministero mostra quella pagina di errore, non è «etichetta non trovata». La coda riprova più tardi e non salva in cache una scheda vuota. Un 403 resta «da verificare», per non insistere.
+
+In codice, non pubblicato. Alla pubblicazione `leggiSchedeRegistroInCoda` deve avere il secret `GEMINI_API_KEY`. «Leggi scheda» resta finché la coda non è online. I trattamenti già salvati non si riscrivono.
 
 ### Fuori da questo lavoro
 

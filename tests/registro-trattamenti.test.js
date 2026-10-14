@@ -19,6 +19,7 @@ import {
   righeExportRegistro,
   NOTA_PASSAGGIO_NON_REGISTRATO,
   vociMenuScheda,
+  voceUnicaDaCompilare,
   piuFinestreInMenu,
   chiaveConfermaScheda,
   unisciConfermaSpecie,
@@ -45,6 +46,8 @@ describe('specie della scheda', () => {
 
   it('mappa frutteto e seminativo, e lascia stare ciò che non conosce', () => {
     expect(colturaSchedaRegistro({ modulo: 'frutteto', specie: 'Melo' })).toBe('melo');
+    expect(colturaSchedaRegistro({ modulo: 'frutteto', specie: 'Olivo' })).toBe('olivo');
+    expect(colturaSchedaRegistro({ modulo: 'frutteto', specie: 'Limone' })).toBe('limone');
     expect(colturaSchedaRegistro({ modulo: 'frutteto', specie: 'Altro' })).toBeNull();
     expect(colturaSchedaRegistro({ modulo: 'seminativo', colturaNome: 'Grano' })).toBe('frumento');
     expect(colturaSchedaRegistro({ modulo: 'seminativo', colturaNome: 'Coltura inventata' })).toBeNull();
@@ -284,17 +287,30 @@ describe('lettura in anagrafica', () => {
     const chiara = 'Feromone per la lotta contro Prays oleae (Tignola dell\'olivo) su olivo. DOSI D\'APPLICAZIONE: Olivo: 0.5 - 2 aerosol/ha.';
     const righe = scheda.estraiRigheAffidabili(chiara);
     expect(righe.righe).toHaveLength(1);
-    expect(righe.righe[0].colturaScheda).toBe('Olivo');
+    expect(righe.righe[0].colturaScheda).toBe('olivo');
     expect(righe.righe[0].avversita).toBe("Tignola dell'olivo");
     expect(righe.righe[0].doseMinHa).toBe(0.5);
     expect(righe.righe[0].doseMaxHa).toBe(2);
     expect(righe.righe[0].unitaDose).toBe('aerosol');
     expect(righe.righe[0].affidabilita).toBe('alta');
     const doppia = scheda.estraiRigheAffidabili(
-      'Tignola dell\'ulivo e Tignola degli agrumi. Numero massimo di erogatori: 100-200 dispenser/ha. Da utilizzare su colture di olivo e limoni.'
+      'Tignola dell\'ulivo e Tignola degli agrumi. Numero massimo di erogatori: 100-200 dispenser/ha. Da utilizzare su colture di olivo e limoni. Testo di riempimento per superare gli ottanta caratteri richiesti dalla lettura dell\'etichetta.'
     );
-    expect(doppia.motivo).toBe('estrazione_incerta');
-    expect(doppia.righe).toEqual([]);
+    expect(doppia.righe.map((riga) => riga.colturaScheda)).toEqual(['olivo']);
+    expect(doppia.righe[0].avversita).toBe("Tignola dell'ulivo");
+    const spray = scheda.estraiRigheAffidabili(
+      'Vite da vino: Peronospora, dose 1,5-2 kg/ha, carenza 28 giorni, numero massimo di trattamenti: 3, intervallo minimo di 10 giorni. Melo: Ticchiolatura, dose 1-1,2 kg/ha, carenza 21 giorni. Testo lungo abbastanza da essere un\'etichetta vera e non un frammento corto.'
+    );
+    const vino = vociMenuScheda({ righe: spray.righe, specie: 'vite da vino', alias: aliasColturaScheda('vite da vino') });
+    const melo = vociMenuScheda({ righe: spray.righe, specie: 'melo', alias: aliasColturaScheda('melo') });
+    expect(vino).toHaveLength(1);
+    expect(vino[0].giorniCarenza).toBe(28);
+    expect(vino[0].impieghiMassimiAnno).toBe(3);
+    expect(vino[0].giorniMinimiTraPassaggi).toBe(10);
+    expect(melo[0].avversita).toBe('Ticchiolatura');
+    expect(melo[0].giorniCarenza).toBe(21);
+    expect(voceUnicaDaCompilare(vino)).toBe(vino[0]);
+    expect(voceUnicaDaCompilare(spray.righe)).toBeNull();
   });
 
   it('un prodotto revocato non propone avversità né dosi', () => {
@@ -497,25 +513,32 @@ describe('etichette reali del Ministero', () => {
       .toContain('Prodotto revocato/scaduto il 05/07/2024');
   });
 
-  it('legge tre etichette diverse e non inventa la dose se la coltura non è univoca', async () => {
+  it('legge tre etichette e tiene, per il campo, solo la coltura di quel terreno', async () => {
     const aomate = await testoDaPdf(fs.readFileSync(new URL('./fixtures/etichette/018577-aomate-prays.pdf', import.meta.url)));
     const mister = await testoDaPdf(fs.readFileSync(new URL('./fixtures/etichette/018592-mister-p-2024.pdf', import.meta.url)));
     const praystec = await testoDaPdf(fs.readFileSync(new URL('./fixtures/etichette/018651-praystec-2024.pdf', import.meta.url)));
     expect(aomate).toMatch(/AOMATE/i);
     expect(mister).toMatch(/MISTER P 2024/);
     expect(praystec).toMatch(/PRAYSTEC 2024/);
-    expect(scheda.estraiRigheAffidabili(aomate).righe).toEqual([]);
+    const righeAomate = scheda.estraiRigheAffidabili(aomate).righe;
+    expect(righeAomate.map((riga) => riga.colturaScheda).sort()).toEqual(['limone', 'olivo']);
+    expect(vociMenuScheda({ righe: righeAomate, specie: 'olivo', alias: aliasColturaScheda('olivo') }).map((voce) => voce.avversita)).toEqual(["Tignola dell'ulivo"]);
+    expect(vociMenuScheda({ righe: righeAomate, specie: 'limone', alias: aliasColturaScheda('limone') }).map((voce) => voce.avversita)).toEqual(['Tignola degli agrumi']);
+    expect(vociMenuScheda({ righe: righeAomate, specie: 'melo', alias: aliasColturaScheda('melo') })).toEqual([]);
+    expect(righeAomate.every((riga) => riga.impieghiMassimiAnno === 1 && riga.doseMinHa === 100 && riga.doseMaxHa === 200)).toBe(true);
     const rigaMister = scheda.estraiRigheAffidabili(mister).righe[0];
-    expect(rigaMister.colturaScheda).toBe('Olivo');
+    expect(rigaMister.colturaScheda).toBe('olivo');
     expect(rigaMister.avversita).toMatch(/Tignola dell'olivo/i);
     expect(rigaMister.doseMinHa).toBe(0.5);
     expect(rigaMister.doseMaxHa).toBe(2);
     expect(rigaMister.unitaDose).toBe('aerosol');
+    expect(rigaMister.impieghiMassimiAnno).toBe(1);
     const rigaPray = scheda.estraiRigheAffidabili(praystec).righe[0];
     expect(rigaPray.colturaScheda.toLowerCase()).toBe('olivo');
     expect(rigaPray.doseMinHa).toBe(100);
     expect(rigaPray.doseMaxHa).toBe(300);
     expect(rigaPray.unitaDose).toBe('diffusori');
+    expect(rigaPray.giorniCarenza).toBe(0);
     const nota = htmlNotaFontiEtichetta({
       dataEtichetta: '08/03/2024',
       urlEtichetta: 'https://www.fitosanitari.salute.gov.it/fitosanitariws_new/EtichettaServlet?id=42303'
@@ -524,5 +547,210 @@ describe('etichette reali del Ministero', () => {
     expect(nota).toContain('https://www.dati.gov.it/iodl/2.0/');
     expect(nota).toContain(AVVISO_ETICHETTA_AUTOMATICA);
     expect(nota).not.toMatch(/approva GFV|dose consigliata/i);
+  });
+});
+
+describe('etichetta con più colture', () => {
+  const testo = [
+    'EPOCHE DI APPLICAZIONE',
+    'Melo: contro Podosphaera leucotricha, intervenire in modo preventivo con 60- mL/hL di prodotto, ogni 10 giorni, dallo stadio di prefioritura fino a maturazione.',
+    'Vite da vino e da tavola: contro Uncinula necator, intervenire in modo preventivo con 100 mL/hL di prodotto, ogni 10 giorni, da inizio germogliamento a maturazione.',
+    'Pesco, Albicocco e Nettarino: contro Sphaerotheca pannosa, intervenire in modo preventivo con 100 mL/hL di prodotto, ogni 10 giorni, dallo stadio di piena fioritura fino a maturazione.',
+    'Melone, Cocomero e Zucca: contro Podosphaera fusca e Erysiphe cichoracearum, intervenire in modo preventivo, ogni 10 giorni, dallo stadio di 2 foglie vere fino a maturazione.',
+    'Pomodoro (ad esclusione di Pomodoro ciliegino), Melanzana e Peperone: contro Leveillula taurica, intervenire in modo preventivo, ogni 10-12 giorni, dallo stadio di 2 foglie vere fino a maturazione.',
+    'DOSAGGI E MODALITA DI IMPIEGO Coltura Dose (L/ha) N° massimo Applicazioni',
+    'Melo 0,9 4 Pesco, Albicocco e Nettarine 0,75–1 4 Vite da vino e da tavola 0,8–1,5 4',
+    'Melone, Cocomero, Zucca (in pieno campo e serra) 1 Pieno campo: 4 Serra: 3',
+    'Pomodoro (ad esclusione di Pomodoro ciliegino), Melanzana, Peperone (in pieno campo e serra) 1–2 4',
+    'N.B. Impiegare il dosaggio più elevato nel caso di forte pressione di malattia.',
+    'INTERVALLO TRA L\'ULTIMO TRATTAMENTO E LA RACCOLTA: 1 giorno per Melone, Cocomero, Zucca, 3 giorni per Pomodoro (ad esclusione di Pomodoro ciliegino), Peperone, Melanzana; 7 giorni per Pesco, Albicocco, Nettarine; 14 giorni per Melo, Vite da tavola e da vino.'
+  ].join(' ');
+
+  it('unisce epoca, tabella e carenza e lascia al campo la sua coltura', () => {
+    const righe = scheda.estraiRigheAffidabili(testo).righe;
+    const vino = vociMenuScheda({ righe, specie: 'vite da vino', alias: aliasColturaScheda('vite da vino') });
+    expect(vino).toHaveLength(1);
+    expect(vino[0].avversita).toBe('Uncinula necator');
+    expect(vino[0].doseMinHa).toBe(0.8);
+    expect(vino[0].doseMaxHa).toBe(1.5);
+    expect(vino[0].doseMinHl).toBe(100);
+    expect(vino[0].unitaDoseHa).toBe('l');
+    expect(vino[0].unitaDoseHl).toBe('ml');
+    expect(vino[0].impieghiMassimiAnno).toBe(4);
+    expect(vino[0].giorniMinimiTraPassaggi).toBe(10);
+    expect(vino[0].giorniCarenza).toBe(14);
+    expect(vociMenuScheda({ righe, specie: 'vite da tavola', alias: aliasColturaScheda('vite da tavola') })[0].doseMaxHa).toBe(1.5);
+    const melo = vociMenuScheda({ righe, specie: 'melo', alias: aliasColturaScheda('melo') })[0];
+    expect(melo.doseMinHa).toBe(0.9);
+    expect(melo.doseMaxHl).toBe(60);
+    expect(melo.giorniCarenza).toBe(14);
+    const pesco = vociMenuScheda({ righe, specie: 'pesco', alias: aliasColturaScheda('pesco') });
+    expect(pesco.map((voce) => voce.colturaScheda)).toEqual(['pesco']);
+    expect(pesco[0].giorniCarenza).toBe(7);
+    expect(righe.some((riga) => riga.colturaScheda === 'nettarine')).toBe(true);
+    expect(righe.some((riga) => /ciliegino/i.test(riga.colturaScheda))).toBe(false);
+    const melone = vociMenuScheda({ righe, specie: 'melone', alias: ['melone'] });
+    expect(melone.every((voce) => voce.pienoCampo !== false && voce.impieghiMassimiAnno === 4)).toBe(true);
+    expect(melone.map((voce) => voce.avversita).sort()).toEqual(['Erysiphe cichoracearum', 'Podosphaera fusca']);
+    expect(righe.find((riga) => riga.colturaScheda === 'melone' && riga.pienoCampo === false).impieghiMassimiAnno).toBe(3);
+  });
+});
+
+describe('etichette con tabella o frase', () => {
+  it('legge coltura, patogeno, dose e carenza di una tabella', () => {
+    const testo = [
+      'Modalità di impiego e dosi Coltura Patogeno dose grammi/ 100 litri dose in Kg per ettaro Modalità / epoca di applicazione',
+      'Pomodoro, melanzana (pieno campo) Muffa grigia: Botrytis cinerea 60-80 0,8 Effettuare un massimo di 3 trattamenti, intervenendo ad intervalli di 10-14 giorni.',
+      'Pero (pieno campo) Maculatura bruna: Stemphylium vesicarium 60-80 1 Effettuare un massimo di 3 trattamenti ad intervalli di 10 giorni.',
+      'Sospendere i trattamenti prima della raccolta: pero: 3 giorni; pomodoro e melanzana: 3 giorni ATTENZIONE'
+    ].join(' ');
+    const righe = scheda.estraiRigheAffidabili(testo).righe;
+    const pomodoro = righe.filter((riga) => riga.colturaScheda === 'pomodoro');
+    expect(pomodoro.map((riga) => riga.avversita)).toEqual(['Muffa grigia']);
+    expect(pomodoro[0].doseMinHl).toBe(60);
+    expect(pomodoro[0].doseMaxHl).toBe(80);
+    expect(pomodoro[0].unitaDoseHl).toBe('g');
+    expect(pomodoro[0].doseMinHa).toBe(0.8);
+    expect(pomodoro[0].unitaDoseHa).toBe('kg');
+    expect(pomodoro[0].impieghiMassimiAnno).toBe(3);
+    expect(pomodoro[0].giorniMinimiTraPassaggi).toBe(10);
+    expect(pomodoro[0].giorniCarenza).toBe(3);
+    const pero = righe.find((riga) => riga.colturaScheda === 'pero');
+    expect(pero.avversita).toBe('Maculatura bruna');
+    expect(pero.doseMaxHa).toBe(1);
+  });
+
+  it('legge la frase contro e il numero massimo che segue', () => {
+    const testo = "DOSI D'IMPIEGO Pomacee Melo - Contro ticchiolatura (Venturia inaequalis) e cancri rameali (Nectria galligena): 0,5-0,75 kg/ha (33-50 g/hl). Non superare i 6 trattamenti totali per anno. Eseguire i trattamenti ad intervalli di 5 giorni per la dose più bassa e ad intervalli di 7 giorni per la dose più alta. Sospendere i trattamenti 42 GIORNI prima della raccolta di mele. ATTENZIONE";
+    const righe = scheda.estraiRigheAffidabili(testo).righe;
+    expect(righe.map((riga) => riga.avversita).sort()).toEqual(['Cancri rameali', 'Ticchiolatura']);
+    expect(righe.every((riga) => riga.colturaScheda === 'melo' && riga.doseMinHa === 0.5 && riga.doseMaxHa === 0.75)).toBe(true);
+    expect(righe.every((riga) => riga.doseMinHl === 33 && riga.unitaDoseHl === 'g' && riga.impieghiMassimiAnno === 6)).toBe(true);
+    expect(righe.every((riga) => riga.giorniMinimiTraPassaggi === 5 && riga.giorniCarenza === 42)).toBe(true);
+  });
+
+  it('legge dose, intervallo e massimo sulla stessa riga e tiene la lebbra', () => {
+    const testo = 'Coltura Malattia Dose prodotto (kg/ha) Intervallo tra i trattamenti Numero massimo di trattamenti Olivo (olive da olio e da tavola) Occhio di pavone (Spilocaea oleagina) 0,5 21 gg 2 Lebbra (Colletotrichum spp.) Pero Ticchiolatura (Venturia pirina) 0,5 8 gg 3 Sospendere i trattamenti: 21 GIORNI prima della raccolta per pero; 100 GIORNI prima della raccolta per olivo. ATTENZIONE';
+    const righe = scheda.estraiRigheAffidabili(testo).righe;
+    const olivo = righe.filter((riga) => riga.colturaScheda === 'olivo');
+    expect(olivo.map((riga) => riga.avversita).sort()).toEqual(['Lebbra', 'Occhio di pavone']);
+    expect(olivo.every((riga) => riga.doseMinHa === 0.5 && riga.impieghiMassimiAnno === 2 && riga.giorniMinimiTraPassaggi === 21 && riga.giorniCarenza === 100)).toBe(true);
+    const pero = righe.find((riga) => riga.colturaScheda === 'pero');
+    expect(pero.avversita).toBe('Ticchiolatura');
+    expect(pero.giorniMinimiTraPassaggi).toBe(8);
+    expect(pero.impieghiMassimiAnno).toBe(3);
+    expect(pero.giorniCarenza).toBe(21);
+  });
+
+  it('separa 1 giorno da 3 giorni e non tiene un latino spezzato', () => {
+    const testo = [
+      'Coltura Patogeno dose grammi/ 100 litri dose in Kg per ettaro',
+      'Fagioli da granella (pieno campo) Sclerotinia, Antracnosi e muffa grigia Sclerotinia spp Colletotric hum spp Botrytis cinerea - 1 Effettuare un massimo di 2 trattamenti a cadenza di 10-14 giorni.',
+      'Kiwi Muffa grigia Botrytis cinerea 80 0,8 Massimo 2 trattamenti con un intervallo di 7 giorni.',
+      'Cetriolo e zucchino Peronospora 80 0,5',
+      'Pomodoro Peronospora 80 0,5',
+      'Sospendere i trattamenti: 1 GIORNO prima della raccolta per cetriolo e zucchino, 3 GIORNI prima della raccolta per pomodoro. ATTENZIONE'
+    ].join(' ');
+    const righe = scheda.estraiRigheAffidabili(testo).righe;
+    const fagioli = righe.filter((riga) => riga.colturaScheda === 'fagiolo');
+    expect(fagioli.map((riga) => riga.avversita).sort()).toEqual(['Antracnosi', 'Muffa grigia', 'Sclerotinia']);
+    expect(fagioli.every((riga) => riga.doseMinHa === 1 && riga.doseMinHl == null && riga.impieghiMassimiAnno === 2 && riga.giorniMinimiTraPassaggi === 10)).toBe(true);
+    const kiwi = righe.find((riga) => riga.colturaScheda === 'actinidia');
+    expect(kiwi.avversita).toBe('Muffa grigia');
+    expect(kiwi.doseMinHl).toBe(80);
+    expect(kiwi.doseMinHa).toBe(0.8);
+    expect(righe.find((riga) => riga.colturaScheda === 'cetriolo').giorniCarenza).toBe(1);
+    expect(righe.find((riga) => riga.colturaScheda === 'zucchino').giorniCarenza).toBe(1);
+    expect(righe.find((riga) => riga.colturaScheda === 'pomodoro').giorniCarenza).toBe(3);
+  });
+});
+
+describe('lettura Gemini dell\'etichetta', () => {
+  const { leggiPagineEtichetta } = require('../functions/lib/etichetta-gemini.js');
+  const citazione = 'Pesco Monilia laxa 0,4 kg/ha 40 g/hl massimo 3 trattamenti, intervallo di 7 giorni';
+  const proposta = {
+    coltura: 'Pesco',
+    avversita: 'Monilia laxa',
+    citazione,
+    pienoCampo: true,
+    doseMinHa: 0.4,
+    doseMaxHa: 0.4,
+    unitaHa: 'kg',
+    doseMinHl: 40,
+    doseMaxHl: 40,
+    unitaHl: 'g',
+    impieghiMassimiAnno: 3,
+    giorniMinimiTraPassaggi: 7
+  };
+
+  it('tiene la riga solo se le due letture coincidono e la citazione lega i numeri', async () => {
+    const esito = await leggiPagineEtichetta(Buffer.from('pdf'), async () => JSON.stringify({ righe: [proposta] }));
+    expect(esito.stato).toBe('pronta');
+    expect(esito.righe).toHaveLength(1);
+    expect(esito.righe[0].colturaScheda).toBe('pesco');
+    expect(esito.righe[0].doseMinHa).toBe(0.4);
+    expect(esito.righe[0].doseMinHl).toBe(40);
+    expect(esito.righe[0].impieghiMassimiAnno).toBe(3);
+    expect(esito.righe[0].giorniMinimiTraPassaggi).toBe(7);
+    expect(esito.righe[0].affidabilita).toBe('alta');
+  });
+
+  it('scarta la dose di un\'altra coltura, la serra non scritta e la lettura che non torna', async () => {
+    const doppia = Object.assign({}, proposta, {
+      citazione: 'Pesco Monilia laxa 0,4 kg/ha e 0,8 kg/ha'
+    });
+    const doppiaEsito = await leggiPagineEtichetta(Buffer.from('pdf'), async () => JSON.stringify({ righe: [doppia] }));
+    expect(doppiaEsito.righe).toEqual([]);
+    expect(doppiaEsito.motivo).toBe('estrazione_incerta');
+
+    const serra = Object.assign({}, proposta, { pienoCampo: true, citazione: 'Pesco in serra Monilia laxa 0,4 kg/ha 40 g/hl massimo 3 trattamenti, intervallo di 7 giorni' });
+    const serraEsito = await leggiPagineEtichetta(Buffer.from('pdf'), async () => JSON.stringify({ righe: [serra] }));
+    expect(serraEsito.righe).toEqual([]);
+
+    let turno = 0;
+    const diversa = await leggiPagineEtichetta(Buffer.from('pdf'), async () => {
+      turno += 1;
+      const riga = turno === 1 ? proposta : Object.assign({}, proposta, { doseMinHa: 0.8, doseMaxHa: 0.8, citazione: 'Pesco Monilia laxa 0,8 kg/ha 40 g/hl massimo 3 trattamenti, intervallo di 7 giorni' });
+      return JSON.stringify({ righe: [riga] });
+    });
+    expect(diversa.righe).toEqual([]);
+  });
+
+  it('non usa le regole sul testo se la lettura Gemini non ha righe', () => {
+    const csv = [
+      'num_registrazione;denominazione_prodotto;sostanze_attive;stato_amministrativo;data_scadenza_autorizzazione;data_decreto_revoca;data_decorrenza_revoca',
+      '12862;CANTUS;BOSCALID;Autorizzato;-;-;-'
+    ].join('\n');
+    const vuoto = scheda.componiArchivioProdotto({
+      csv,
+      nome: 'Cantus',
+      righeLette: [],
+      motivoLettura: 'estrazione_incerta',
+      testoEtichetta: 'Pesco: contro Monilia, dose 0,4 kg/ha.'
+    });
+    expect(vuoto.stato).toBe('da_verificare');
+    expect(vuoto.righe).toEqual([]);
+    const letta = scheda.componiArchivioProdotto({
+      csv,
+      nome: 'Cantus',
+      righeLette: [{
+        colturaScheda: 'pesco',
+        avversita: 'Monilia laxa',
+        pienoCampo: true,
+        doseMinHa: 0.4,
+        doseMaxHa: 0.4,
+        unitaDoseHa: 'kg',
+        affidabilita: 'alta'
+      }]
+    });
+    expect(letta.stato).toBe('pronta');
+    expect(letta.righe).toHaveLength(1);
+    expect(letta.righe[0].colturaScheda).toBe('pesco');
+  });
+
+  it('la pagina di errore del Ministero non conta come etichetta assente', () => {
+    expect(scheda.esitoRispostaMinistero(200, "Si e' verificato un errore durante l'operazione")).toBe('errore');
+    expect(scheda.esitoRispostaMinistero(403, '')).toBe('bloccato');
+    expect(scheda.esitoRispostaMinistero(200, '<td>018577</td>')).toBe('ok');
   });
 });
