@@ -14,7 +14,8 @@ import {
   vociMenuScheda,
   piuFinestreInMenu,
   unisciConfermaSpecie,
-  schedaDaRileggere
+  htmlAvvisoRevoca,
+  htmlNotaFontiEtichetta
 } from './registro-trattamenti.js';
 
 function esc(value) {
@@ -142,7 +143,7 @@ function etichettaVoceMenu(voce) {
   const parti = [voce.avversita];
   if (voce.epoca) parti.push(voce.epoca);
   const dose = testoDoseVoce(voce);
-  if (dose) parti.push(dose);
+  if (dose) parti.push('dose minima / massima da etichetta: ' + dose);
   if (voce.giorniCarenza != null) parti.push('carenza ' + voce.giorniCarenza + ' giorni');
   const testo = parti.join(' — ');
   return voce.giaConfermata ? 'Conferma già data: ' + testo : testo;
@@ -217,19 +218,16 @@ function attaccaMenuScheda(opts, tbody) {
       if (mio === ticket) scriviEsitoScheda('');
       return;
     }
-    if (anag.letturaSchedaStato === 'pronta' && schedaDaRileggere(anag)) {
-      try {
-        if (opts.chiediRilettura) await opts.chiediRilettura(anag);
-        anag.letturaSchedaStato = 'in_corso';
-      } catch (err) { /* non propone la dose vecchia */ }
-      if (mio === ticket) {
-        scriviEsitoScheda('<p>La scheda ha più di sei mesi: la aggiorno prima di proporre la dose. Il controllo sul numero massimo e sull\'intervallo non si può fare finché non è aggiornata.</p>');
-      }
+    if (anag.revocatoOScaduto) {
+      if (mio === ticket) scriviEsitoScheda(htmlAvvisoRevoca(anag) + htmlNotaFontiEtichetta(anag));
       return;
     }
     if (anag.letturaSchedaStato !== 'pronta') {
       if (mio === ticket) {
-        scriviEsitoScheda('<p>La scheda non è ancora letta: il controllo sul numero massimo e sull\'intervallo non si può fare.</p>');
+        const attesa = anag.letturaSchedaStato === 'da_verificare'
+          ? '<p>Da verificare a mano. Non propongo avversità né dose.</p>'
+          : '<p>La scheda non è ancora letta: il controllo sul numero massimo e sull\'intervallo non si può fare.</p>';
+        scriviEsitoScheda(htmlNotaFontiEtichetta(anag) + attesa);
       }
       return;
     }
@@ -250,7 +248,7 @@ function attaccaMenuScheda(opts, tbody) {
     const notaFinestre = piuFinestreInMenu(voci)
       ? '<p>Più finestre in etichetta: scegli quella della data di questo lavoro.</p>'
       : '';
-    scriviEsitoScheda(notaFinestre + '<ul style="list-style:none;padding:0;">'
+    scriviEsitoScheda(htmlNotaFontiEtichetta(anag) + notaFinestre + '<ul style="list-style:none;padding:0;">'
       + voci.map((voce, i) => '<li style="margin:6px 0;"><button type="button" class="btn btn-sm btn-primary" data-conferma-menu="' + i + '">Conferma</button> '
         + esc(etichettaVoceMenu(voce)) + '</li>').join('')
       + '</ul>');

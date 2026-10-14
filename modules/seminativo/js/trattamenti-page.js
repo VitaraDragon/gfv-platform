@@ -316,7 +316,7 @@ function renderProdottiTrattamento(rows) {
         return row && row.prodottoId ? listProdottiAnagrafica.find((item) => item.id === row.prodottoId) : null;
       },
       leggiScheda: leggiSchedaRegistroTrattamento,
-      leggiRighe: (anag) => leggiRigheSchedaProdotto(anag && anag.id),
+      leggiRighe: (anag) => leggiRigheSchedaProdotto(anag),
       chiediRilettura: (anag) => chiediRiletturaScheda(anag && anag.id),
       utente: () => utenteRegistroNome,
       salvaSuProdotto: salvaConfermaProdottoSeminativo,

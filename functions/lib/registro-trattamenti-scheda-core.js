@@ -224,6 +224,9 @@ function componiRispostaScheda(input = {}) {
 
 const ATTESA_RIPROVA_MS = 6 * 60 * 60 * 1000;
 const SETTIMANA_CONTROLLO_MS = 7 * 24 * 60 * 60 * 1000;
+const MESE_CONTROLLO_MS = 30 * 24 * 60 * 60 * 1000;
+const URL_IODL = "https://www.dati.gov.it/iodl/2.0/";
+const BASE_ETICHETTA = "https://www.fitosanitari.salute.gov.it/fitosanitariws_new/EtichettaServlet?id=";
 
 function normalizzaNomeProdotto(value) {
   return testo(value).toLowerCase().replace(/[^a-z0-9]+/g, " ").replace(/\s+/g, " ").trim();
@@ -268,65 +271,178 @@ function trovaRegistrazioneUnica(righe, nome, numero) {
   return { esito: "non_trovato", prodotto: null };
 }
 
-function carenzaCella(value) {
-  const t = testo(value);
-  if (!t || t === "-" || t === "—" || /non\s+richiest/i.test(t)) return null;
-  return numero(t);
+function numeroCanonico(value) {
+  const cifre = String(value == null ? "" : value).replace(/\D/g, "");
+  if (!cifre) return "";
+  return cifre.replace(/^0+/, "") || "0";
 }
 
-function nomeColturaCella(value) {
-  return testo(value).replace(/^(coltura|impiego)\s*-\s*/i, "");
+function idDocumentoEtichetta(value) {
+  const n = numeroCanonico(value);
+  return n ? n.padStart(6, "0") : "";
 }
 
-function parsaPaginaImpieghiSian(html) {
+function dataIsoDaItaliana(value) {
+  const m = String(value || "").match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if (!m) return "";
+  return m[3] + "-" + m[2] + "-" + m[1];
+}
+
+function dataPassata(value, oraMs) {
+  const iso = dataIsoDaItaliana(value);
+  if (!iso) return false;
+  return Date.parse(iso + "T00:00:00.000Z") <= Number(oraMs);
+}
+
+function avvisoRevocaOScadenza(row, oraMs) {
+  if (!row) return { si: false, data: "", testo: "" };
+  const stato = normalizza(row.stato || row.statoAmministrativoScheda);
+  const decorrenza = dataUtileOpenData(row.dataDecorrenzaRevoca);
+  const decreto = dataUtileOpenData(row.dataDecretoRevoca);
+  const scadenza = dataUtileOpenData(row.dataScadenzaAutorizzazione);
+  const ora = oraMs == null ? Date.now() : oraMs;
+  let data = "";
+  let si = false;
+  if (/revoc/.test(stato) || (decorrenza && dataPassata(decorrenza, ora))) {
+    si = true;
+    data = decorrenza || decreto || "";
+  } else if (/scadut/.test(stato) || (scadenza && dataPassata(scadenza, ora))) {
+    si = true;
+    data = scadenza || "";
+  }
+  if (!si) return { si: false, data: "", testo: "" };
+  return {
+    si: true,
+    data,
+    testo: "Prodotto revocato/scaduto" + (data ? " il " + data : "") + ": verifica i termini di vendita e di utilizzo nel decreto di revoca"
+  };
+}
+
+function parsaElencoEtichetteMinistero(html) {
   const testoHtml = String(html || "");
-  const pagine = Array.from(testoHtml.matchAll(/name="butPagina"[^>]*value="\s*(\d+)\s*"/gi))
-    .map((m) => Number(m[1]))
-    .filter((n) => Number.isFinite(n));
-  const righe = Array.from(testoHtml.matchAll(/<tr[\s\S]*?<\/tr>/gi)).map((m) => celleHtml(m[0]));
-  const colture = [];
-  righe.forEach((cells) => {
-    if (cells.length < 3) return;
-    if (/impiego/i.test(cells[0]) && /coltura/i.test(cells[0])) return;
-    const colturaScheda = nomeColturaCella(cells[0]);
-    if (!colturaScheda || /impiego/i.test(colturaScheda)) return;
-    colture.push({
-      colturaScheda,
-      giorniCarenza: carenzaCella(cells[1]),
-      giorniCarenzaSerra: carenzaCella(cells[2])
-    });
-  });
-  return { colture, pagine: Array.from(new Set(pagine)) };
-}
-
-function parsaElencoAvversita(html) {
-  const testoHtml = String(html || "");
-  if (/Impiego\s*-\s*Coltura/i.test(testoHtml)) return [];
-  const righe = Array.from(testoHtml.matchAll(/<tr[\s\S]*?<\/tr>/gi)).map((m) => celleHtml(m[0]));
-  const nomi = [];
-  righe.forEach((cells) => {
-    const cella = testo(cells[0]);
-    if (!cella || /classe\s+avvers/i.test(cella)) return;
-    const i = cella.indexOf("-");
-    if (i <= 0) return;
-    const nome = testo(cella.slice(i + 1));
-    if (nome) nomi.push(nome);
-  });
-  return nomi;
-}
-
-function coltureDaPagineImpieghi(pagine) {
-  const viste = new Set();
   const out = [];
-  (pagine || []).forEach((html) => {
-    parsaPaginaImpieghiSian(html).colture.forEach((c) => {
-      const k = normalizzaNomeProdotto(c.colturaScheda);
-      if (!k || viste.has(k)) return;
-      viste.add(k);
-      out.push(c);
+  const pezzi = testoHtml.split(/<tr\b/i).slice(1);
+  pezzi.forEach((pezzo) => {
+    const id = (pezzo.match(/EtichettaServlet\?id=(\d+)/i) || [])[1];
+    const celle = celleHtml("<tr>" + pezzo);
+    const numeroRegistrazione = (celle[0] || "").match(/\d{5,6}/);
+    if (!id || !numeroRegistrazione) return;
+    const dataEtichetta = (pezzo.match(/Etichetta\s+del\s+(\d{2}\/\d{2}\/\d{4})/i) || [])[1] || "";
+    const stato = celle.find((cella) => /autorizz|revoc|scadut|sospes/i.test(cella)) || "";
+    out.push({
+      numeroRegistrazione: numeroRegistrazione[0],
+      denominazione: testo(celle[1] || ""),
+      stato,
+      dataEtichetta,
+      idEtichetta: id,
+      urlEtichetta: BASE_ETICHETTA + id
     });
   });
   return out;
+}
+
+function rigaEtichettaPerNumero(righe, numero) {
+  const voluto = numeroCanonico(numero);
+  if (!voluto) return null;
+  return (righe || []).find((riga) => numeroCanonico(riga.numeroRegistrazione) === voluto) || null;
+}
+
+function dosiApplicazione(testoEtichetta) {
+  const t = String(testoEtichetta || "");
+  const out = [];
+  const re = /([A-Za-zÀ-ÿ][^:]{0,40}:\s*)?(\d+(?:[.,]\d+)?)\s*[–—-]\s*(\d+(?:[.,]\d+)?)\s*(?:(dispenser|erogatori|aerosol|diffusori)\s*)?\/\s*(ha|hl)/gi;
+  let match = re.exec(t);
+  while (match) {
+    const intorno = t.slice(Math.max(0, match.index - 24), match.index + match[0].length + 30);
+    const etichetta = testo(match[1] || "").replace(/:\s*$/, "");
+    if (/s\.a\./i.test(intorno) || /consigliat/i.test(intorno)) {
+      match = re.exec(t);
+      continue;
+    }
+    let unita = (match[4] || "").toLowerCase();
+    if (!unita && /diffusori per ettaro/i.test(etichetta)) unita = "diffusori";
+    const colturaGreta = /numero|massimo|dose|diffusori per ettaro/i.test(etichetta)
+      || !/^[A-Za-zÀ-ÿ][A-Za-zÀ-ÿ' ]{1,24}$/.test(etichetta);
+    const coltura = colturaGreta ? "" : etichetta;
+    if (unita) {
+      out.push({
+        min: numero(match[2]),
+        max: numero(match[3]),
+        unita,
+        per: match[5].toLowerCase(),
+        coltura,
+        at: match.index
+      });
+    }
+    match = re.exec(t);
+  }
+  return out.filter((dose) => dose.min != null && dose.max != null);
+}
+
+function avversitaItaliane(testoEtichetta) {
+  const re = /tignola dell['’]?\s*olivo|tignola dell['’]?\s*ulivo|tignola degli agrumi/gi;
+  const viste = new Set();
+  const out = [];
+  let match = re.exec(String(testoEtichetta || ""));
+  while (match) {
+    const nome = testo(match[0]).replace(/’/g, "'");
+    const chiave = normalizza(nome);
+    if (!viste.has(chiave)) {
+      viste.add(chiave);
+      out.push(nome);
+    }
+    match = re.exec(String(testoEtichetta || ""));
+  }
+  return out;
+}
+
+function colturaNelTitolo(testoEtichetta) {
+  const testa = String(testoEtichetta || "").slice(0, 700);
+  const match = testa.match(/\bsu\s+([A-Za-zÀ-ÿ]{4,24})\b/);
+  if (!match) return "";
+  const parola = testo(match[1]);
+  if (/^(una|uno|questo|campo|base)$/i.test(parola)) return "";
+  return parola;
+}
+
+function estraiRigheAffidabili(testoEtichetta) {
+  const t = String(testoEtichetta || "").replace(/\s+/g, " ").trim();
+  if (t.length < 80) return { righe: [], motivo: "testo_non_leggibile" };
+  const dosi = dosiApplicazione(t);
+  const avversita = avversitaItaliane(t);
+  if (dosi.length !== 1 || avversita.length !== 1) return { righe: [], motivo: "estrazione_incerta" };
+  const dose = dosi[0];
+  const vicine = t.slice(dose.at, dose.at + 220).match(/su colture di ([^.]{3,80})/i);
+  const elenco = vicine
+    ? vicine[1].split(/\s+e\s+/i).map((parte) => testo(parte)).filter(Boolean)
+    : [];
+  const colture = dose.coltura ? [dose.coltura] : (elenco.length ? elenco : []);
+  const scelta = colture.length ? colture : [colturaNelTitolo(t)].filter(Boolean);
+  if (scelta.length !== 1) return { righe: [], motivo: "estrazione_incerta" };
+  const coltura = scelta[0];
+  if (!normalizza(avversita[0]).includes(normalizza(coltura))) {
+    return { righe: [], motivo: "estrazione_incerta" };
+  }
+  const perHa = dose.per === "ha";
+  return {
+    motivo: null,
+    righe: [{
+      colturaScheda: coltura,
+      epoca: null,
+      avversita: avversita[0],
+      pienoCampo: true,
+      giorniCarenza: /tempo di carenza:\s*non necessario/i.test(t) ? 0 : null,
+      giorniCarenzaSerra: null,
+      doseMinHa: perHa ? dose.min : null,
+      doseMaxHa: perHa ? dose.max : null,
+      doseMinHl: perHa ? null : dose.min,
+      doseMaxHl: perHa ? null : dose.max,
+      unitaDose: dose.unita,
+      impieghiMassimiAnno: null,
+      giorniMinimiTraPassaggi: null,
+      affidabilita: "alta"
+    }]
+  };
 }
 
 function epocheNelTesto(frammento) {
@@ -506,45 +622,68 @@ function componiArchivioProdotto(input = {}) {
   const dataLettura = dataLetturaDaNomeFile(input.urlCsv) || input.dataLettura || null;
   const vuoto = {
     stato: "da_riprovare",
-    motivo: trovata.esito === "unica" ? "impieghi_non_letti" : (trovata.esito || "scheda_non_letta"),
+    motivo: trovata.esito === "unica" ? "estrazione_incerta" : (trovata.esito || "scheda_non_letta"),
     fonte: FONTE,
     dataLettura,
     numeroRegistrazione: null,
     principioAttivo: null,
-    righe: []
+    righe: [],
+    revocatoOScaduto: false,
+    dataRevocaOScadenza: "",
+    testoRevoca: ""
   };
   if (trovata.esito !== "unica") return vuoto;
-  const colture = coltureDaPagineImpieghi(input.pagineImpieghi || []);
-  const testoEtichetta = input.testoEtichetta || "";
-  const finestre = parsaTestoEtichetta(testoEtichetta);
-  const righe = componiRigheScheda(colture, testoEtichetta, finestre, input.avversitaPerColtura);
   const anag = {
     fonte: FONTE,
     dataLettura,
     numeroRegistrazione: trovata.prodotto.numeroRegistrazione || null,
     principioAttivo: trovata.prodotto.principioAttivo || null,
     statoAmministrativoScheda: testo(trovata.prodotto.stato),
-    dataVariazioneScheda: dataVariazioneOpenData(trovata.prodotto)
+    dataVariazioneScheda: dataVariazioneOpenData(trovata.prodotto),
+    urlEtichetta: input.urlEtichetta || null,
+    dataEtichetta: input.dataEtichetta || ""
   };
-  if (!righe.length) return { ...vuoto, ...anag, stato: "da_riprovare", motivo: "impieghi_non_letti", righe: [] };
-  if (righe.some((riga) => !testo(riga.avversita))) {
-    return { ...vuoto, ...anag, stato: "da_riprovare", motivo: "avversita_non_lette", righe: [] };
+  const revoca = avvisoRevocaOScadenza(trovata.prodotto, input.oraMs);
+  if (revoca.si) {
+    return {
+      ...vuoto,
+      ...anag,
+      stato: "da_verificare",
+      motivo: "revocato",
+      righe: [],
+      revocatoOScaduto: true,
+      dataRevocaOScadenza: revoca.data,
+      testoRevoca: revoca.testo
+    };
   }
-  return { ...anag, stato: "pronta", motivo: null, righe };
+  const letta = estraiRigheAffidabili(input.testoEtichetta || "");
+  if (!letta.righe.length) {
+    return { ...vuoto, ...anag, stato: "da_verificare", motivo: letta.motivo || "estrazione_incerta", righe: [] };
+  }
+  return { ...anag, stato: "pronta", motivo: null, righe: letta.righe, revocatoOScaduto: false, dataRevocaOScadenza: "", testoRevoca: "" };
 }
 
 function richiedeLetturaScheda(before, after) {
   if (!after || !eFitofarmaco(after) || !testo(after.nome)) return false;
   if (!before || !eFitofarmaco(before)) return true;
-  return normalizzaNomeProdotto(before.nome) !== normalizzaNomeProdotto(after.nome);
+  if (normalizzaNomeProdotto(before.nome) !== normalizzaNomeProdotto(after.nome)) return true;
+  if (testo(before.numeroRegistrazione) === testo(after.numeroRegistrazione)) return false;
+  return !(before.letturaSchedaStato === "in_corso" && after.letturaSchedaStato && after.letturaSchedaStato !== "in_corso");
+}
+
+function controlloMensileDovuto(iso, oraMs) {
+  const t = Date.parse(iso || "");
+  if (!Number.isFinite(t)) return true;
+  return Number(oraMs) - t >= MESE_CONTROLLO_MS;
 }
 
 function scegliProdottoInPagina(prodotti, oraMs, attesaMs) {
-  const fit = (prodotti || []).filter((p) => eFitofarmaco(p) && testo(p.nome));
+  const fit = (prodotti || []).filter((p) => eFitofarmaco(p) && testo(p.nome) && p.letturaSchedaStato);
   const inCorso = fit.find((p) => p.letturaSchedaStato === "in_corso");
-  if (inCorso) return inCorso;
-  const senza = fit.find((p) => !p.letturaSchedaStato);
-  if (senza) return senza;
+  if (inCorso) {
+    inCorso.modoLettura = "completa";
+    return inCorso;
+  }
   const soglia = Number(oraMs) - Number(attesaMs);
   const daRiprovare = fit.find((p) => {
     if (p.letturaSchedaStato !== "da_riprovare") return false;
@@ -555,22 +694,27 @@ function scegliProdottoInPagina(prodotti, oraMs, attesaMs) {
     daRiprovare.modoLettura = "completa";
     return daRiprovare;
   }
-  const pronta = fit.find((p) => {
-    if (p.letturaSchedaStato !== "pronta") return false;
-    return schedaOltreSeiMesi(p.letturaSchedaCompletaAt, oraMs) || controlloSettimanaleDovuto(p.controlloSchedaAt, oraMs);
+  const giaLetto = fit.find((p) => {
+    if (p.letturaSchedaStato !== "pronta" && p.letturaSchedaStato !== "da_verificare") return false;
+    if (p.letturaSchedaMotivo === "sito_bloccato") return controlloMensileDovuto(p.controlloSchedaAt, oraMs);
+    return controlloSettimanaleDovuto(p.controlloSchedaAt, oraMs);
   });
-  if (!pronta) return null;
-  pronta.modoLettura = schedaOltreSeiMesi(pronta.letturaSchedaCompletaAt, oraMs) ? "completa" : "leggera";
-  return pronta;
+  if (!giaLetto) return null;
+  const etichettaVecchia = controlloMensileDovuto(giaLetto.dataEtichettaLettaAt || giaLetto.letturaSchedaCompletaAt, oraMs);
+  giaLetto.modoLettura = etichettaVecchia && giaLetto.letturaSchedaMotivo !== "revocato" ? "completa" : "leggera";
+  return giaLetto;
 }
 
 module.exports = {
   FONTE,
+  URL_IODL,
   ATTESA_RIPROVA_MS,
   SETTIMANA_CONTROLLO_MS,
+  MESE_CONTROLLO_MS,
   dataVariazioneOpenData,
   schedaOltreSeiMesi,
   controlloSettimanaleDovuto,
+  controlloMensileDovuto,
   controlloLeggeroScheda,
   estraiUrlCsv,
   dataLetturaDaNomeFile,
@@ -582,9 +726,12 @@ module.exports = {
   normalizzaNomeProdotto,
   eFitofarmaco,
   trovaRegistrazioneUnica,
-  parsaPaginaImpieghiSian,
-  parsaElencoAvversita,
-  coltureDaPagineImpieghi,
+  numeroCanonico,
+  idDocumentoEtichetta,
+  avvisoRevocaOScadenza,
+  parsaElencoEtichetteMinistero,
+  rigaEtichettaPerNumero,
+  estraiRigheAffidabili,
   parsaTestoEtichetta,
   componiRigheScheda,
   componiArchivioProdotto,

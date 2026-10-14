@@ -1,215 +1,113 @@
 /**
- * Lettura della scheda in anagrafica, dopo il salvataggio.
- * Un fitofarmaco alla volta. Non copia l'archivio del Ministero: solo le righe di quel prodotto.
+ * Lettura etichetta su richiesta. Open data per anagrafica e revoca.
+ * Il PDF si scarica solo per il numero chiesto, dalla banca del Ministero.
+ * Nessuna chiamata a sian.it.
  */
+const tls = require("tls");
 const admin = require("firebase-admin");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { csvFitosanitariCorrente } = require("./registro-trattamenti-scheda");
+const { testoDaPdf } = require("./lib/etichetta-pdf");
 const {
   ATTESA_RIPROVA_MS,
-  SETTIMANA_CONTROLLO_MS,
   FONTE,
+  URL_IODL,
   componiArchivioProdotto,
   controlloLeggeroScheda,
-  idRigaScheda,
+  eFitofarmaco,
+  idDocumentoEtichetta,
   normalizzaNomeProdotto,
   parsaCsvFitosanitari,
-  parsaElencoAvversita,
-  parsaPaginaImpieghiSian,
+  parsaElencoEtichetteMinistero,
   richiedeLetturaScheda,
-  schedaOltreSeiMesi,
+  rigaEtichettaPerNumero,
   scegliProdottoInPagina,
-  trovaRegistrazioneUnica,
-  eFitofarmaco
+  trovaRegistrazioneUnica
 } = require("./lib/registro-trattamenti-scheda-core");
 
-const SIAN = "https://www.sian.it/mimfFitoPub";
+const HOST = "www.fitosanitari.salute.gov.it";
+const BASE = "/fitosanitariws_new/FitosanitariServlet";
+const UA = "GFV-Platform registro trattamenti (https://github.com/VitaraDragon/gfv-platform)";
+const PAUSA_MS = 2000;
+const TIMEOUT_MS = 20000;
+const CACHE = "etichetteFitofarmaci";
 const CURSORE = "sistema/registroSchedaCoda";
 const REGION = "europe-west1";
-const MAX_PAGINE = 15;
 
 function testo(value) {
   return String(value == null ? "" : value).replace(/\s+/g, " ").trim();
 }
 
-function creaJar() {
-  const map = new Map();
-  return {
-    header() {
-      return Array.from(map.entries()).map(([k, v]) => k + "=" + v).join("; ");
-    },
-    leggi(res) {
-      const liste = typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : [];
-      liste.forEach((line) => {
-        const part = String(line).split(";")[0];
-        const i = part.indexOf("=");
-        if (i > 0) map.set(part.slice(0, i).trim(), part.slice(i + 1).trim());
-      });
-    }
-  };
+function pausa(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function testoDaPdf(buffer) {
-  const raw = Buffer.isBuffer(buffer) ? buffer.toString("latin1") : "";
-  const pezzi = [];
-  const re = /\((?:\\\)|[^\\)]){3,}\)/g;
-  let match = re.exec(raw);
-  while (match) {
-    const inner = match[0].slice(1, -1).replace(/\\n/g, " ").replace(/\\([()\\])/g, "$1");
-    if (/[A-Za-zÀ-ÿ]/.test(inner)) pezzi.push(inner);
-    match = re.exec(raw);
-  }
-  return pezzi.join(" ").replace(/\s+/g, " ").trim();
+function parsaHttp(buffer) {
+  const raw = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer || "");
+  const sep = raw.indexOf("\r\n\r\n");
+  const head = (sep >= 0 ? raw.slice(0, sep) : raw).toString("latin1");
+  const body = sep >= 0 ? raw.slice(sep + 4) : Buffer.alloc(0);
+  const status = Number((head.match(/HTTP\/1\.\d (\d+)/) || [])[1] || 0);
+  const tipo = ((head.match(/content-type:\s*([^\r\n]+)/i) || [])[1] || "").toLowerCase();
+  return { status, tipo, body, testo: body.toString("latin1") };
 }
 
-async function chiedi(fetchImpl, jar, url, opts = {}) {
-  const headers = Object.assign({
-    "User-Agent": "GFV-Platform registro trattamenti",
-    Accept: "text/html,application/pdf,*/*"
-  }, opts.headers || {});
-  const cookie = jar.header();
-  if (cookie) headers.Cookie = cookie;
-  const res = await fetchImpl(url, {
-    method: opts.method || "GET",
-    headers,
-    body: opts.body || undefined,
-    redirect: "follow"
+function chiediMinistero(path, timeoutMs) {
+  if (/sian\.it/i.test(path)) return Promise.reject(new Error("sian_vietato"));
+  return new Promise((resolve, reject) => {
+    const sock = tls.connect({
+      host: HOST,
+      port: 443,
+      servername: HOST,
+      rejectUnauthorized: true
+    });
+    const timer = setTimeout(() => {
+      sock.destroy();
+      reject(new Error("timeout"));
+    }, timeoutMs || TIMEOUT_MS);
+    const chunks = [];
+    sock.on("secureConnect", () => {
+      sock.write([
+        "GET " + path + " HTTP/1.1",
+        "Host: " + HOST,
+        "User-Agent: " + UA,
+        "Accept: text/html,application/pdf,*/*",
+        "Connection: close",
+        "",
+        ""
+      ].join("\r\n"));
+    });
+    sock.on("data", (chunk) => chunks.push(chunk));
+    sock.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+    sock.on("end", () => {
+      clearTimeout(timer);
+      resolve(parsaHttp(Buffer.concat(chunks)));
+    });
   });
-  jar.leggi(res);
-  const tipo = String(res.headers.get("content-type") || "").toLowerCase();
-  if (tipo.includes("pdf") || opts.binario) {
-    const buf = Buffer.from(await res.arrayBuffer());
-    return { ok: res.ok, tipo, buf, testo: tipo.includes("pdf") ? testoDaPdf(buf) : "" };
-  }
-  return { ok: res.ok, tipo, testo: await res.text(), buf: null };
 }
 
-function postForm(body) {
-  return {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body
-  };
+async function cercaEtichettaPerSostanza(principio, numero, chiedi) {
+  const nome = encodeURIComponent(testo(principio).split(/[;,]/)[0].trim());
+  if (!nome) return { esito: "non_trovata" };
+  const res = await chiedi(BASE + "?ACTION=cercaSostanza&FROM=0&TO=49&PROVENIENZA=RICERCA&NOME_SOSTANZA=" + nome);
+  if (res.status === 403) return { esito: "bloccato" };
+  if (res.status !== 200) return { esito: "non_trovata" };
+  const riga = rigaEtichettaPerNumero(parsaElencoEtichetteMinistero(res.testo), numero);
+  return riga ? { esito: "trovata", riga } : { esito: "non_trovata" };
 }
 
-function corpoSenzaBottoni(html, bottone) {
-  const params = new URLSearchParams();
-  for (const match of String(html || "").matchAll(/<input([^>]*)>/gi)) {
-    const tag = match[1];
-    const name = (tag.match(/name="([^"]*)"/) || [])[1];
-    const type = ((tag.match(/type="([^"]*)"/) || [])[1] || "").toLowerCase();
-    if (!name || type === "submit") continue;
-    params.append(name, (tag.match(/value="([^"]*)"/) || [])[1] || "");
-  }
-  params.append(bottone, "1");
-  return params.toString();
-}
-
-function indiciAvversita(html) {
-  const trovati = new Set();
-  for (const match of String(html || "").matchAll(/name="avversita(\d+)"/gi)) {
-    trovati.add(Number(match[1]));
-  }
-  return Array.from(trovati).sort((a, b) => a - b);
-}
-
-function pagineBottone(html) {
-  return Array.from(String(html || "").matchAll(/name="butPagina"[^>]*value="\s*(\d+)\s*"/gi))
-    .map((match) => Number(match[1]))
-    .filter((n) => Number.isFinite(n));
-}
-
-async function avversitaDellaPagina(html, fetchImpl, jar) {
-  const colture = parsaPaginaImpieghiSian(html).colture;
-  const indici = indiciAvversita(html);
-  const mappa = {};
-  for (let i = 0; i < colture.length; i += 1) {
-    const nome = colture[i].colturaScheda;
-    const indice = indici[i];
-    if (indice == null) {
-      mappa[nome] = [];
-      continue;
-    }
-    const out = await chiedi(fetchImpl, jar, SIAN + "/gestioneImpieghi.do", postForm(
-      corpoSenzaBottoni(html, "avversita" + indice)
-    ));
-    const nomi = parsaElencoAvversita(out.testo);
-    const altre = pagineBottone(out.testo).filter((p) => p > 1).slice(0, 5);
-    for (let p = 0; p < altre.length; p += 1) {
-      const pagina = await chiedi(fetchImpl, jar, SIAN + "/gestioneAvversita.do", postForm("butPagina=" + altre[p]));
-      parsaElencoAvversita(pagina.testo).forEach((voce) => nomi.push(voce));
-    }
-    mappa[nome] = Array.from(new Set(nomi));
-    const torno = await chiedi(fetchImpl, jar, SIAN + "/impieghi.get");
-    if (!/Impiego\s*-\s*Coltura/i.test(torno.testo || "")) break;
-  }
-  return mappa;
-}
-
-async function leggiBancaSian(numero, fetchImpl) {
-  const jar = creaJar();
-  const n = encodeURIComponent(testo(numero));
-  if (!n) return { pagineImpieghi: [], testoEtichetta: "", avversitaPerColtura: {} };
-  await chiedi(fetchImpl, jar, SIAN + "/ricercaProdottoFito.get");
-  const cerca = await chiedi(fetchImpl, jar, SIAN + "/gestioneRicercaProdottiFito.do", postForm(
-    "ricerca.tipoRicerca=1&ricerca.descTipologia=Prodotti+Registrati&ricerca.numRegistro=" + n + "&ricercPerProdotto=Cerca"
-  ));
-  if (!cerca.testo || !/name="dettaglio0"|name="nreg"/.test(cerca.testo)) {
-    return { pagineImpieghi: [], testoEtichetta: "", avversitaPerColtura: {} };
-  }
-  await chiedi(fetchImpl, jar, SIAN + "/gestioneRicercaProdottiFito.do", postForm(
-    "ricerca.tipoRicerca=1&ricerca.numRegistro=" + n + "&nreg=" + n + "&dettaglio0="
-  ));
-  const prima = await chiedi(fetchImpl, jar, SIAN + "/impieghi.get");
-  const pagineImpieghi = [];
-  const avversitaPerColtura = {};
-  if (prima.testo && /Impiego\s*-\s*Coltura/i.test(prima.testo)) {
-    pagineImpieghi.push(prima.testo);
-    Object.assign(avversitaPerColtura, await avversitaDellaPagina(prima.testo, fetchImpl, jar));
-  }
-  const altre = parsaPaginaImpieghiSian(prima.testo).pagine.filter((p) => p > 1).slice(0, MAX_PAGINE - 1);
-  for (let i = 0; i < altre.length; i += 1) {
-    const pagina = await chiedi(fetchImpl, jar, SIAN + "/gestioneImpieghi.do", postForm("butPagina=" + altre[i]));
-    if (pagina.testo && /Impiego\s*-\s*Coltura/i.test(pagina.testo)) {
-      pagineImpieghi.push(pagina.testo);
-      Object.assign(avversitaPerColtura, await avversitaDellaPagina(pagina.testo, fetchImpl, jar));
-    }
-  }
-  let testoEtichetta = "";
-  try {
-    await chiedi(fetchImpl, jar, SIAN + "/storicoEtichette.get");
-    const file = await chiedi(fetchImpl, jar, SIAN + "/gestioneEtichette.do", postForm("scaricaEtichettaStorico=0"));
-    testoEtichetta = file.testo || "";
-  } catch (err) {
-    testoEtichetta = "";
-  }
-  return { pagineImpieghi, testoEtichetta, avversitaPerColtura };
-}
-
-async function leggiArchivioPubblico(input, dipendenze) {
-  const fetchImpl = dipendenze.fetch;
-  const scaricato = await dipendenze.csv();
-  if (!scaricato || !scaricato.csv) {
-    return componiArchivioProdotto({ nome: input.nome, numero: input.numero, csv: "" });
-  }
-  const bozza = componiArchivioProdotto({
-    nome: input.nome,
-    numero: input.numero,
-    csv: scaricato.csv,
-    urlCsv: scaricato.url
-  });
-  if (!bozza.numeroRegistrazione) return bozza;
-  const banca = await leggiBancaSian(bozza.numeroRegistrazione, fetchImpl);
-  return componiArchivioProdotto({
-    nome: input.nome,
-    numero: bozza.numeroRegistrazione,
-    csv: scaricato.csv,
-    urlCsv: scaricato.url,
-    pagineImpieghi: banca.pagineImpieghi,
-    testoEtichetta: banca.testoEtichetta,
-    avversitaPerColtura: banca.avversitaPerColtura
-  });
+async function scaricaPdf(url, chiedi) {
+  const path = String(url || "").replace("https://" + HOST, "");
+  if (!path.startsWith("/fitosanitariws_new/EtichettaServlet")) return { esito: "non_pdf" };
+  const res = await chiedi(path);
+  if (res.status === 403) return { esito: "bloccato" };
+  if (res.status !== 200 || !/pdf/.test(res.tipo)) return { esito: "non_pdf" };
+  const testoPdf = await testoDaPdf(res.body);
+  return { esito: "ok", testo: testoPdf };
 }
 
 function refDiTenant(ref) {
@@ -217,115 +115,7 @@ function refDiTenant(ref) {
   return parts.length === 4 && parts[0] === "tenants" && parts[2] === "prodotti";
 }
 
-async function scriviEsito(ref, esito) {
-  const patch = {
-    letturaSchedaStato: esito.stato,
-    letturaSchedaMotivo: esito.motivo || null,
-    letturaSchedaAggiornataAt: new Date().toISOString(),
-    fonteScheda: esito.fonte || FONTE
-  };
-  if (esito.numeroRegistrazione) patch.numeroRegistrazione = esito.numeroRegistrazione;
-  if (esito.principioAttivo) patch.principioAttivo = esito.principioAttivo;
-  if (esito.dataLettura) patch.dataLetturaScheda = esito.dataLettura;
-  if (esito.stato === "pronta") {
-    const ora = patch.letturaSchedaAggiornataAt;
-    patch.letturaSchedaCompletaAt = ora;
-    patch.controlloSchedaAt = ora;
-    patch.statoAmministrativoScheda = esito.statoAmministrativoScheda || null;
-    patch.dataVariazioneScheda = esito.dataVariazioneScheda || "";
-  }
-  await ref.set(patch, { merge: true });
-  if (esito.stato !== "pronta") return;
-  const col = ref.collection("schedaImpieghi");
-  const esistenti = await col.get();
-  let batch = ref.firestore.batch();
-  let n = 0;
-  const scarica = async () => {
-    if (!n) return;
-    await batch.commit();
-    batch = ref.firestore.batch();
-    n = 0;
-  };
-  for (let i = 0; i < esistenti.docs.length; i += 1) {
-    batch.delete(esistenti.docs[i].ref);
-    n += 1;
-    if (n >= 400) await scarica();
-  }
-  for (let i = 0; i < esito.righe.length; i += 1) {
-    const riga = esito.righe[i];
-    batch.set(col.doc(idRigaScheda(riga, i)), Object.assign({}, riga, {
-      fonte: esito.fonte || FONTE,
-      dataLettura: esito.dataLettura || null
-    }));
-    n += 1;
-    if (n >= 400) await scarica();
-  }
-  await scarica();
-}
-
-async function tieniSchedaInvariata(ref, impronta) {
-  const patch = { controlloSchedaAt: new Date().toISOString() };
-  if (impronta) {
-    patch.statoAmministrativoScheda = impronta.statoAmministrativoScheda || null;
-    patch.dataVariazioneScheda = impronta.dataVariazioneScheda || "";
-    if (impronta.numeroRegistrazione) patch.numeroRegistrazione = impronta.numeroRegistrazione;
-  }
-  await ref.set(patch, { merge: true });
-}
-
-async function leggiControlloLeggero(data, dipendenze) {
-  const scaricato = await dipendenze.csv();
-  if (!scaricato || !scaricato.csv) return { azione: "riprova" };
-  const righe = parsaCsvFitosanitari(scaricato.csv);
-  const trovata = trovaRegistrazioneUnica(righe, data.nome, data.numeroRegistrazione);
-  const riga = trovata.esito === "unica" ? trovata.prodotto : null;
-  const controllo = controlloLeggeroScheda(data, riga);
-  if (controllo.esito === "non_trovato" || controllo.esito === "cambiato") return { azione: "completa" };
-  if (schedaOltreSeiMesi(data.letturaSchedaCompletaAt, Date.now())) return { azione: "completa" };
-  return { azione: "tieni", impronta: controllo.impronta };
-}
-
-async function elaboraProdotto(ref, dipendenze, modo) {
-  const snap = await ref.get();
-  if (!snap.exists) return;
-  const data = snap.data() || {};
-  if (!eFitofarmaco(data) || !testo(data.nome)) return;
-  if (modo === "leggera") {
-    try {
-      const leggero = await leggiControlloLeggero(data, dipendenze);
-      if (leggero.azione === "tieni") {
-        await tieniSchedaInvariata(ref, leggero.impronta);
-        return;
-      }
-      if (leggero.azione === "riprova") {
-        const riprovaAlle = Date.now() - (SETTIMANA_CONTROLLO_MS - ATTESA_RIPROVA_MS);
-        await ref.set({ controlloSchedaAt: new Date(riprovaAlle).toISOString() }, { merge: true });
-        return;
-      }
-    } catch (err) {
-      return;
-    }
-  }
-  await ref.set({
-    letturaSchedaStato: "in_corso",
-    letturaSchedaMotivo: null
-  }, { merge: true });
-  try {
-    const esito = await leggiArchivioPubblico({
-      nome: data.nome,
-      numero: data.numeroRegistrazione
-    }, dipendenze);
-    await scriviEsito(ref, esito);
-  } catch (err) {
-    await ref.set({
-      letturaSchedaStato: "da_riprovare",
-      letturaSchedaMotivo: "scheda_non_letta",
-      letturaSchedaAggiornataAt: new Date().toISOString()
-    }, { merge: true });
-  }
-}
-
-async function svuotaRighe(ref) {
+async function svuotaSchedaImpieghi(ref) {
   const righe = await ref.collection("schedaImpieghi").get();
   if (righe.empty) return;
   let batch = ref.firestore.batch();
@@ -342,9 +132,172 @@ async function svuotaRighe(ref) {
   if (n) await batch.commit();
 }
 
+function patchDaEsito(esito) {
+  const ora = new Date().toISOString();
+  const patch = {
+    letturaSchedaStato: esito.stato,
+    letturaSchedaMotivo: esito.motivo || null,
+    letturaSchedaAggiornataAt: ora,
+    fonteScheda: esito.fonte || FONTE,
+    revocatoOScaduto: esito.revocatoOScaduto === true,
+    dataRevocaOScadenza: esito.dataRevocaOScadenza || "",
+    urlEtichetta: esito.urlEtichetta || null,
+    dataEtichetta: esito.dataEtichetta || ""
+  };
+  if (esito.numeroRegistrazione) patch.numeroRegistrazione = esito.numeroRegistrazione;
+  if (esito.principioAttivo) patch.principioAttivo = esito.principioAttivo;
+  if (esito.dataLettura) patch.dataLetturaScheda = esito.dataLettura;
+  if (esito.statoAmministrativoScheda) patch.statoAmministrativoScheda = esito.statoAmministrativoScheda;
+  if (esito.dataVariazioneScheda) patch.dataVariazioneScheda = esito.dataVariazioneScheda;
+  if (esito.stato === "pronta" || esito.motivo === "revocato") {
+    patch.letturaSchedaCompletaAt = ora;
+    patch.controlloSchedaAt = ora;
+    patch.dataEtichettaLettaAt = ora;
+  }
+  if (esito.motivo === "sito_bloccato") patch.controlloSchedaAt = ora;
+  return patch;
+}
+
+async function scriviCache(db, esito) {
+  const id = idDocumentoEtichetta(esito.numeroRegistrazione);
+  if (!id) return;
+  await db.collection(CACHE).doc(id).set({
+    numeroRegistrazione: esito.numeroRegistrazione,
+    denominazione: esito.denominazione || null,
+    principioAttivo: esito.principioAttivo || null,
+    statoAmministrativo: esito.statoAmministrativoScheda || null,
+    dataEtichetta: esito.dataEtichetta || "",
+    urlEtichetta: esito.urlEtichetta || null,
+    righe: esito.revocatoOScaduto ? [] : (esito.righe || []),
+    statoLettura: esito.stato,
+    motivo: esito.motivo || null,
+    revocatoOScaduto: esito.revocatoOScaduto === true,
+    dataRevocaOScadenza: esito.dataRevocaOScadenza || "",
+    testoRevoca: esito.testoRevoca || "",
+    fonteEtichetta: "etichetta autorizzata – Ministero della Salute",
+    fonteOpenData: FONTE,
+    urlIodl: URL_IODL,
+    lettaAt: new Date().toISOString()
+  });
+}
+
+async function cacheFresca(db, numero) {
+  const id = idDocumentoEtichetta(numero);
+  if (!id) return null;
+  const snap = await db.collection(CACHE).doc(id).get();
+  if (!snap.exists) return null;
+  const data = snap.data() || {};
+  const t = Date.parse(data.lettaAt || "");
+  if (!Number.isFinite(t) || Date.now() - t >= 30 * 24 * 60 * 60 * 1000) return null;
+  return data;
+}
+
+async function leggiArchivioPubblico(input, dipendenze) {
+  const chiedi = dipendenze.chiedi || chiediMinistero;
+  const scaricato = await dipendenze.csv();
+  if (!scaricato || !scaricato.csv) {
+    return componiArchivioProdotto({ nome: input.nome, numero: input.numero, csv: "" });
+  }
+  const bozza = componiArchivioProdotto({
+    nome: input.nome,
+    numero: input.numero,
+    csv: scaricato.csv,
+    urlCsv: scaricato.url,
+    oraMs: Date.now()
+  });
+  if (!bozza.numeroRegistrazione || bozza.motivo === "nome_non_univoco" || bozza.motivo === "non_trovato") return bozza;
+  if (bozza.revocatoOScaduto) return bozza;
+  const gia = dipendenze.cache ? await dipendenze.cache(bozza.numeroRegistrazione) : null;
+  if (gia && Array.isArray(gia.righe)) {
+    return Object.assign({}, bozza, {
+      stato: gia.statoLettura || "da_verificare",
+      motivo: gia.motivo || null,
+      righe: gia.righe || [],
+      urlEtichetta: gia.urlEtichetta || null,
+      dataEtichetta: gia.dataEtichetta || ""
+    });
+  }
+  const principio = bozza.principioAttivo;
+  const trovata = await cercaEtichettaPerSostanza(principio, bozza.numeroRegistrazione, chiedi);
+  if (trovata.esito === "bloccato") {
+    return Object.assign({}, bozza, { stato: "da_verificare", motivo: "sito_bloccato", righe: [] });
+  }
+  if (trovata.esito !== "trovata") {
+    return Object.assign({}, bozza, { stato: "da_verificare", motivo: "etichetta_non_trovata", righe: [] });
+  }
+  await pausa(dipendenze.pausaMs == null ? PAUSA_MS : dipendenze.pausaMs);
+  const file = await scaricaPdf(trovata.riga.urlEtichetta, chiedi);
+  if (file.esito === "bloccato") {
+    return Object.assign({}, bozza, {
+      stato: "da_verificare",
+      motivo: "sito_bloccato",
+      righe: [],
+      urlEtichetta: trovata.riga.urlEtichetta,
+      dataEtichetta: trovata.riga.dataEtichetta
+    });
+  }
+  if (file.esito !== "ok") {
+    return Object.assign({}, bozza, {
+      stato: "da_verificare",
+      motivo: "testo_non_leggibile",
+      righe: [],
+      urlEtichetta: trovata.riga.urlEtichetta,
+      dataEtichetta: trovata.riga.dataEtichetta
+    });
+  }
+  return componiArchivioProdotto({
+    nome: input.nome,
+    numero: bozza.numeroRegistrazione,
+    csv: scaricato.csv,
+    urlCsv: scaricato.url,
+    testoEtichetta: file.testo,
+    urlEtichetta: trovata.riga.urlEtichetta,
+    dataEtichetta: trovata.riga.dataEtichetta,
+    oraMs: Date.now()
+  });
+}
+
+async function elaboraProdotto(ref, dipendenze, modo) {
+  const snap = await ref.get();
+  if (!snap.exists) return;
+  const data = snap.data() || {};
+  if (!eFitofarmaco(data) || !testo(data.nome)) return;
+  if (modo === "leggera") {
+    try {
+      const scaricato = await dipendenze.csv();
+      const righe = scaricato && scaricato.csv ? parsaCsvFitosanitari(scaricato.csv) : [];
+      const trovata = trovaRegistrazioneUnica(righe, data.nome, data.numeroRegistrazione);
+      const riga = trovata.esito === "unica" ? trovata.prodotto : null;
+      const controllo = controlloLeggeroScheda(data, riga);
+      if (controllo.esito === "invariato") {
+        await ref.set({ controlloSchedaAt: new Date().toISOString() }, { merge: true });
+        return;
+      }
+    } catch (err) {
+      return;
+    }
+  }
+  await ref.set({ letturaSchedaStato: "in_corso", letturaSchedaMotivo: null }, { merge: true });
+  try {
+    const esito = await leggiArchivioPubblico({
+      nome: data.nome,
+      numero: data.numeroRegistrazione
+    }, dipendenze);
+    await ref.set(patchDaEsito(esito), { merge: true });
+    if (esito.numeroRegistrazione && dipendenze.db) await scriviCache(dipendenze.db, esito);
+    await svuotaSchedaImpieghi(ref);
+  } catch (err) {
+    await ref.set({
+      letturaSchedaStato: "da_riprovare",
+      letturaSchedaMotivo: "scheda_non_letta",
+      letturaSchedaAggiornataAt: new Date().toISOString()
+    }, { merge: true });
+  }
+}
+
 async function handleProdottoSchedaScritto(event) {
   if (!event.data.after.exists) {
-    if (event.data.before.exists) await svuotaRighe(event.data.before.ref);
+    if (event.data.before.exists) await svuotaSchedaImpieghi(event.data.before.ref);
     return;
   }
   const prima = event.data.before.exists ? event.data.before.data() : null;
@@ -357,13 +310,18 @@ async function handleProdottoSchedaScritto(event) {
     letturaSchedaRichiestaAt: new Date().toISOString()
   };
   const nomeCambiato = prima && normalizzaNomeProdotto(prima.nome) !== normalizzaNomeProdotto(dopo.nome);
-  if (nomeCambiato) {
-    patch.numeroRegistrazione = null;
+  const numeroCambiato = prima && testo(prima.numeroRegistrazione) !== testo(dopo.numeroRegistrazione);
+  if (nomeCambiato || numeroCambiato) {
     patch.principioAttivo = null;
     patch.fonteScheda = null;
     patch.dataLetturaScheda = null;
+    patch.urlEtichetta = null;
+    patch.dataEtichetta = "";
+    patch.revocatoOScaduto = false;
+    patch.dataRevocaOScadenza = "";
   }
-  if (nomeCambiato) await svuotaRighe(ref);
+  if (nomeCambiato) patch.numeroRegistrazione = null;
+  if (nomeCambiato || numeroCambiato) await svuotaSchedaImpieghi(ref);
   await ref.set(patch, { merge: true });
 }
 
@@ -402,7 +360,7 @@ async function prossimoDaLeggere(db) {
     await statoRef.set({ dopo: pagina.docs[pagina.docs.length - 1].ref.path });
     return null;
   }
-  return { ref: scelto.ref, modo: scelto.modoLettura || "completa" };
+  return { ref: scelto.ref, modo: scelto.modoLettura || "leggera" };
 }
 
 async function handleLeggiSchedeRegistroInCoda() {
@@ -410,8 +368,9 @@ async function handleLeggiSchedeRegistroInCoda() {
   const prossimo = await prossimoDaLeggere(db);
   if (!prossimo || !prossimo.ref) return;
   await elaboraProdotto(prossimo.ref, {
-    fetch,
-    csv: csvFitosanitariCorrente
+    csv: csvFitosanitariCorrente,
+    cache: (numero) => cacheFresca(db, numero),
+    db
   }, prossimo.modo);
 }
 
@@ -425,7 +384,7 @@ const leggiSchedeRegistroInCoda = onSchedule(
     schedule: "every 5 minutes",
     region: REGION,
     timeZone: "Europe/Rome",
-    timeoutSeconds: 300,
+    timeoutSeconds: 120,
     memory: "512MiB",
     maxInstances: 1
   },
@@ -435,8 +394,8 @@ const leggiSchedeRegistroInCoda = onSchedule(
 module.exports = {
   onProdottoSchedaScritto,
   leggiSchedeRegistroInCoda,
-  leggiBancaSian,
-  leggiArchivioPubblico,
   handleProdottoSchedaScritto,
+  leggiArchivioPubblico,
+  chiediMinistero,
   testoDaPdf
 };

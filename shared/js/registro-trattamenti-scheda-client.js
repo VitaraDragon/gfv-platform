@@ -18,15 +18,18 @@ export async function leggiSchedaRegistroTrattamento(payload) {
   return res && res.data ? res.data : {};
 }
 
-/** Righe già lette in anagrafica. Non chiama il Ministero. */
-export async function leggiRigheSchedaProdotto(prodottoId) {
-  if (!prodottoId) return [];
-  const { getDb, collection, getDocs } = await import('../../core/services/firebase-service.js');
-  const { getCurrentTenantId } = await import('../../core/services/tenant-service.js');
-  const tenantId = getCurrentTenantId();
-  if (!tenantId) return [];
-  const snap = await getDocs(collection(getDb(), 'tenants', tenantId, 'prodotti', prodottoId, 'schedaImpieghi'));
-  return snap.docs.map((docSnap) => docSnap.data());
+/** Righe della cache condivisa, per numero di registrazione. Non chiama il Ministero. */
+export async function leggiRigheSchedaProdotto(anag) {
+  const numero = anag && anag.numeroRegistrazione;
+  const cifre = String(numero || '').replace(/\D/g, '').replace(/^0+/, '');
+  if (!cifre) return [];
+  const id = cifre.padStart(6, '0');
+  const { getDb, doc, getDoc } = await import('../../core/services/firebase-service.js');
+  const snap = await getDoc(doc(getDb(), 'etichetteFitofarmaci', id));
+  if (!snap.exists()) return [];
+  const data = snap.data() || {};
+  if (data.revocatoOScaduto || data.statoLettura !== 'pronta') return [];
+  return Array.isArray(data.righe) ? data.righe : [];
 }
 
 /** Mette questo prodotto in cima alla coda. Non riscrive i trattamenti già salvati. */

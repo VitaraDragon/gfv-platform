@@ -1,0 +1,261 @@
+<table class="tabella01" summary="Descrizione tabella">
+		   <thead>
+			<tr>
+			  <th class="tabella01_th" scope="col">Risultato della Ricerca</th>
+			</tr>
+		  </thead>
+		  <tbody>
+			<tr>
+			  <td class="tabella01_cella_SX" scope="row"><b>Criteri di Ricerca</b><br>
+			 				<span style="margin-left:5%">Nome Prodotto: <B></B> <br></span>
+			 				<span style="margin-left:5%">Nome Sostanza Attiva: <B></B><br></span>
+							<span style="margin-left:5%">Categoria fitoiatrica: <B></B><br></span>
+							<!--< %if(flagCLP.equals("N")) {%>
+								<span style="margin-left:5%">Indicazione di pericolo: <B>< %=criteri.getDescrizioneIndicazionePericolo()%></B><br></span>
+							< %}%> -->
+							<span style="margin-left:5%">Numero di registrazione: <B></B><br></span>
+							<span style="margin-left:5%">Stato Amministrativo: <B></B><br></span>
+							<span style="margin-left:5%">Data Registrazione: Da <B></B> a	<B></B><br></span>
+							<span style="margin-left:5%">Data Scadenza: Da <B></B> a <B></B><br></span>
+							<span style="margin-left:5%">Prodotto IP: <B></B><br></span>
+							<span style="margin-left:5%">Prodotto PFnPO: <B></B><br></span>
+							<span style="margin-left:5%">Prodotto PFnPE: <B></B><br></span>
+							</td>
+			</tr>
+			
+		  </tbody>
+		 </table>
+							
+							<div id="printjustify" class="font_piccolo">
+								<p>E' possibile cliccare:<br>
+								<OL>
+									<LI>sulla <B>sostanza attiva</B> di un determinato prodotto per
+									accedere all'elenco dei prodotti equivalenti per sostanza attiva.
+									<!--< %if(flagCLP.equals("N")) {%>
+									<LI>sull' <B>indicazione di pericolo</B> di un determinato prodotto
+									per accedere all'elenco dei prodotti equivalenti per
+									pericolosit&agrave; (questa interrogazione potrebbe richiedere un
+									tempo di elaborazione elevato).
+									< %}%>-->
+									<LI>sull' <B>impresa</B> per accedere all'anagrafico della stessa.
+									<p>
+								</OL>
+
+								Nel caso siano presenti pi&ugrave; sostanze attive per uno stesso
+								prodotto, i loro nomi sono separati dal carattere "<b>;</b>"
+								Corrispondentemente, nella colonna CONTENUTO sono riportati tanti
+								valori quante sono le sostanze attive per quel prodotto. <br>
+								E' possibile visualizzare la corrispondenza tra le abbreviazioni del
+								campo <a href="FitosanitariServlet?ACTION=formulazioni">Formulazione</a>,
+								presenti nella tabella di dettaglio, e la descrizione completa del
+								loro significato.
+							</div>
+							<br/>
+							<br/>
+
+
+					
+
+				<table class="tabella01" summary="Tabella di dati">
+
+					<tr>
+						<th class="tabella01_th" scope="col" abbr="n. reg" width="25px">NUMERO REGISTRAZ.</th>
+						<th class="tabella01_th" scope="col" abbr="prodotto" width="50px">PRODOTTO</th>
+						<th class="tabella01_th" scope="col" abbr="impresa" width="40px">IMPRESA</th>
+						<th class="tabella01_th" scope="col" abbr="data reg" width="30px">DATA REGISTRAZ.</th>
+						<th class="tabella01_th" scope="col" abbr="scadenza" width="75px">SCADENZA AUTORIZZ.(*)</th>
+						<!--< %if(flagCLP.equals("N")) {%>
+							<th class="tabella01_th" scope="col" abbr="pericolo" width="150px">INDICAZIONE DI PERICOLO<br>(D.Lgs n.65 del 14/03/2003)</th>
+						< %} %> -->
+						<th class="tabella01_th" scope="col" abbr="attivita" width="40px">ATTIVITA'</th>
+						<th class="tabella01_th" scope="col" abbr="form" width="30px">FORM.</th>
+						<th class="tabella01_th" scope="col" abbr="attive" width="100px">SOSTANZE ATTIVE</th>
+						<th class="tabella01_th" scope="col" abbr="contenuto" width="100px">CONTENUTO per 100 g. di prodotto</th>
+						<th class="tabella01_th" scope="col" abbr="ip" width="20px">IP</th>
+						<th class="tabella01_th" scope="col" abbr="pro" width="20px">PFnPO</th>
+						<th class="tabella01_th" scope="col" abbr="pro" width="20px">PFnPE</th>
+						<th class="tabella01_th" scope="col" abbr="stato amm" width="40px">STATO AMMIN.</th>
+						
+						
+						<th class="tabella01_th" scope="col" abbr="etichetta CLP" width="100px">ETICHETTA<br>(Reg. (CE) n.1272/2008)</th>
+						
+					<tr>
+						<TD class="tabella01_cella_SX" scope="row">018577</TD>
+						<TD class="tabella01_cella_SX" scope="row">AOMATE PRAYS</TD>
+						<TD class="tabella01_cella_SX" scope="row"><a href="FitosanitariServlet?ACTION=cercaDitta&IDD=797">AO MIDORI BIOCONTROL S.L. </a>
+
+
+						</TD>
+						<TD class="tabella01_cella_SX" scope="row">05/02/2025</TD>
+						<TD class="tabella01_cella_SX" scope="row">30/08/2038</TD>
+						<!--< %if(flagCLP.equals("N")) {%>
+							<TD class="tabella01_cella_SX" scope="row">< %if (codIndPericolo != null && !codIndPericolo.equals("") && indPerico != null && !indPerico.equals("")) {%>
+							<a href="FitosanitariServlet?ACTION=cercaIndicazione&FROM=0&TO=49&PROVENIENZA=LISTA&IND=< %=codIndPericolo%>">< %=indPerico%></a>
+							< %}%> &nbsp;</TD>
+						< %}%>-->
+						<TD class="tabella01_cella_SX" scope="row">FEROMONE</TD>
+						<TD class="tabella01_cella_SX" scope="row">VP</TD>
+						<TD class="tabella01_cella_SX" scope="row">
+						<a
+							href="FitosanitariServlet?ACTION=cercaSostanza&FROM=0&TO=49&PROVENIENZA=LISTA&SOST=849,">(Z)-7-TETRADECENAL<BR></a>
+						 &nbsp;</TD>
+						<TD class="tabella01_cella_SX" scope="row">711.0 g/l<br></TD>
+						<TD class="tabella01_cella_SX" scope="row">NO</TD>
+						<TD class="tabella01_cella_SX" scope="row">NO</TD>
+						<TD class="tabella01_cella_SX" scope="row">NO</TD>
+						<TD class="tabella01_cella_SX" scope="row">Autorizzato con procedura zonale</TD>
+						
+						
+						<TD class="tabella01_cella_SX" scope="row"><a href="EtichettaServlet?id=44088"> Etichetta  del 05/02/2025</a></TD>
+						
+					<tr>
+						<TD class="tabella01_cella_SX" scope="row">018592</TD>
+						<TD class="tabella01_cella_SX" scope="row">MISTER P 2024</TD>
+						<TD class="tabella01_cella_SX" scope="row"><a href="FitosanitariServlet?ACTION=cercaDitta&IDD=518">CBC (EUROPE) S.R.L.</a>
+
+
+						</TD>
+						<TD class="tabella01_cella_SX" scope="row">08/03/2024</TD>
+						<TD class="tabella01_cella_SX" scope="row">05/07/2024</TD>
+						<!--< %if(flagCLP.equals("N")) {%>
+							<TD class="tabella01_cella_SX" scope="row">< %if (codIndPericolo != null && !codIndPericolo.equals("") && indPerico != null && !indPerico.equals("")) {%>
+							<a href="FitosanitariServlet?ACTION=cercaIndicazione&FROM=0&TO=49&PROVENIENZA=LISTA&IND=< %=codIndPericolo%>">< %=indPerico%></a>
+							< %}%> &nbsp;</TD>
+						< %}%>-->
+						<TD class="tabella01_cella_SX" scope="row">FEROMONE</TD>
+						<TD class="tabella01_cella_SX" scope="row">AE</TD>
+						<TD class="tabella01_cella_SX" scope="row">
+						<a
+							href="FitosanitariServlet?ACTION=cercaSostanza&FROM=0&TO=49&PROVENIENZA=LISTA&SOST=849,">(Z)-7-TETRADECENAL<BR></a>
+						 &nbsp;</TD>
+						<TD class="tabella01_cella_SX" scope="row">54.0 g<br></TD>
+						<TD class="tabella01_cella_SX" scope="row">NO</TD>
+						<TD class="tabella01_cella_SX" scope="row">NO</TD>
+						<TD class="tabella01_cella_SX" scope="row">NO</TD>
+						<TD class="tabella01_cella_SX" scope="row">Scaduto</TD>
+						
+						
+						<TD class="tabella01_cella_SX" scope="row"><a href="EtichettaServlet?id=42303"> Etichetta  del 08/03/2024</a></TD>
+						
+					<tr>
+						<TD class="tabella01_cella_SX" scope="row">018651</TD>
+						<TD class="tabella01_cella_SX" scope="row">PRAYSTEC 2024</TD>
+						<TD class="tabella01_cella_SX" scope="row"><a href="FitosanitariServlet?ACTION=cercaDitta&IDD=660">SEDQ - HEALTHY CROPS S.L.</a>
+
+
+						</TD>
+						<TD class="tabella01_cella_SX" scope="row">02/05/2024</TD>
+						<TD class="tabella01_cella_SX" scope="row">05/07/2024</TD>
+						<!--< %if(flagCLP.equals("N")) {%>
+							<TD class="tabella01_cella_SX" scope="row">< %if (codIndPericolo != null && !codIndPericolo.equals("") && indPerico != null && !indPerico.equals("")) {%>
+							<a href="FitosanitariServlet?ACTION=cercaIndicazione&FROM=0&TO=49&PROVENIENZA=LISTA&IND=< %=codIndPericolo%>">< %=indPerico%></a>
+							< %}%> &nbsp;</TD>
+						< %}%>-->
+						<TD class="tabella01_cella_SX" scope="row">FEROMONE</TD>
+						<TD class="tabella01_cella_SX" scope="row">VP</TD>
+						<TD class="tabella01_cella_SX" scope="row">
+						<a
+							href="FitosanitariServlet?ACTION=cercaSostanza&FROM=0&TO=49&PROVENIENZA=LISTA&SOST=849,">(Z)-7-TETRADECENAL<BR></a>
+						 &nbsp;</TD>
+						<TD class="tabella01_cella_SX" scope="row">150.0 mg<br></TD>
+						<TD class="tabella01_cella_SX" scope="row">NO</TD>
+						<TD class="tabella01_cella_SX" scope="row">NO</TD>
+						<TD class="tabella01_cella_SX" scope="row">NO</TD>
+						<TD class="tabella01_cella_SX" scope="row">Scaduto</TD>
+						
+						
+						<TD class="tabella01_cella_SX" scope="row"><a href="EtichettaServlet?id=42464"> Etichetta  del 02/05/2024</a></TD>
+						
+					<tr>
+						<TD class="tabella01_cella_SX" scope="row">019183</TD>
+						<TD class="tabella01_cella_SX" scope="row">MIRINGO PRAYS</TD>
+						<TD class="tabella01_cella_SX" scope="row"><a href="FitosanitariServlet?ACTION=cercaDitta&IDD=684">ASCENZA ITALIA S.R.L.</a>
+
+
+						</TD>
+						<TD class="tabella01_cella_SX" scope="row">29/12/2025</TD>
+						<TD class="tabella01_cella_SX" scope="row">30/08/2038</TD>
+						<!--< %if(flagCLP.equals("N")) {%>
+							<TD class="tabella01_cella_SX" scope="row">< %if (codIndPericolo != null && !codIndPericolo.equals("") && indPerico != null && !indPerico.equals("")) {%>
+							<a href="FitosanitariServlet?ACTION=cercaIndicazione&FROM=0&TO=49&PROVENIENZA=LISTA&IND=< %=codIndPericolo%>">< %=indPerico%></a>
+							< %}%> &nbsp;</TD>
+						< %}%>-->
+						<TD class="tabella01_cella_SX" scope="row">FEROMONE</TD>
+						<TD class="tabella01_cella_SX" scope="row">VP</TD>
+						<TD class="tabella01_cella_SX" scope="row">
+						<a
+							href="FitosanitariServlet?ACTION=cercaSostanza&FROM=0&TO=49&PROVENIENZA=LISTA&SOST=849,">(Z)-7-TETRADECENAL<BR></a>
+						 &nbsp;</TD>
+						<TD class="tabella01_cella_SX" scope="row">711.0 g/l<br></TD>
+						<TD class="tabella01_cella_SX" scope="row">NO</TD>
+						<TD class="tabella01_cella_SX" scope="row">NO</TD>
+						<TD class="tabella01_cella_SX" scope="row">NO</TD>
+						<TD class="tabella01_cella_SX" scope="row">Autorizzato Art. 10 D.P.R. 290/2001</TD>
+						
+						
+						<TD class="tabella01_cella_SX" scope="row"><a href="EtichettaServlet?id=45774"> Etichetta  del 29/12/2025</a></TD>
+						
+					<tr>
+						<TD class="tabella01_cella_SX" scope="row">019186</TD>
+						<TD class="tabella01_cella_SX" scope="row">PRAYSTEC SEDQ</TD>
+						<TD class="tabella01_cella_SX" scope="row"><a href="FitosanitariServlet?ACTION=cercaDitta&IDD=660">SEDQ - HEALTHY CROPS S.L.</a>
+
+
+						</TD>
+						<TD class="tabella01_cella_SX" scope="row">24/07/2026</TD>
+						<TD class="tabella01_cella_SX" scope="row">30/08/2038</TD>
+						<!--< %if(flagCLP.equals("N")) {%>
+							<TD class="tabella01_cella_SX" scope="row">< %if (codIndPericolo != null && !codIndPericolo.equals("") && indPerico != null && !indPerico.equals("")) {%>
+							<a href="FitosanitariServlet?ACTION=cercaIndicazione&FROM=0&TO=49&PROVENIENZA=LISTA&IND=< %=codIndPericolo%>">< %=indPerico%></a>
+							< %}%> &nbsp;</TD>
+						< %}%>-->
+						<TD class="tabella01_cella_SX" scope="row">FEROMONE</TD>
+						<TD class="tabella01_cella_SX" scope="row">VP</TD>
+						<TD class="tabella01_cella_SX" scope="row">
+						<a
+							href="FitosanitariServlet?ACTION=cercaSostanza&FROM=0&TO=49&PROVENIENZA=LISTA&SOST=849,">(Z)-7-TETRADECENAL<BR></a>
+						 &nbsp;</TD>
+						<TD class="tabella01_cella_SX" scope="row">150.0 mg<br></TD>
+						<TD class="tabella01_cella_SX" scope="row">NO</TD>
+						<TD class="tabella01_cella_SX" scope="row">NO</TD>
+						<TD class="tabella01_cella_SX" scope="row">NO</TD>
+						<TD class="tabella01_cella_SX" scope="row">Autorizzato in regime di Riconoscimento Reciproco</TD>
+						
+						
+						<TD class="tabella01_cella_SX" scope="row"><a href="EtichettaServlet?id=46706"> Etichetta  del 24/07/2026</a></TD>
+						
+						</tr>
+						<tr>
+						<TD class="tabella01_cella" scope="row" colspan=18>
+							
+							<< Precedente
+							
+							&nbsp;Pagina 1 di 1&nbsp;
+							
+							Successiva >>
+							
+						</TD>
+						</tr>
+						
+					<tr>
+						<td class="tabella01_cella_SX" scope="row" colspan=18>
+						<br>
+						<b>Legenda</b>
+						<br>
+						(*) per prodotti autorizzati dopo l'entrata in vigore D.L.vo
+						194/95<br>
+						<br>
+
+						<b>NUMERO REGISTRAZ.</b>: Numero registrazione<br>
+						<b>DATA REGISTRAZ.</b>: Data registrazione<br>
+						<b>SCADENZA AUTORIZZ.</b>: Scadenza autorizzazione<br>
+						<b>FORM.</b>: Formulazione<br>
+						<B>STATO AMMIN.</b>: Stato Amministrativo del prodotto<br>
+						</td>
+					</tr>
+					</table>
+
+					
+
+
+			</table>

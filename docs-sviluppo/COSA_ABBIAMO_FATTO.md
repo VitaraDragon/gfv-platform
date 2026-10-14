@@ -1,6 +1,10 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-13 — Registro, passi 1–5 nel codice, non ancora pubblicati.**
+**Ultimo aggiornamento documentazione: 2026-10-14 — Registro: niente SIAN, etichetta del Ministero solo su richiesta. Non pubblicato.**
+
+## 2026-10-14 — Registro: etichetta del Ministero, senza SIAN
+
+La lettura delle pagine `sian.it` è tolta. Restano due fonti: gli open data Fitosanitari (IODL 2.0) per anagrafica, stato, scadenza e revoca, e il PDF dell’etichetta autorizzata su `fitosanitari.salute.gov.it` (`EtichettaServlet?id=`). Il PDF si scarica solo quando un utente aggiunge quel fitofarmaco, o quando cambia il numero, e si riusa dalla raccolta `etichetteFitofarmaci/{numero}` se è già stato letto. Non si legge tutta la banca. Un prodotto alla volta, con pausa, e se il sito risponde 403 ci si ferma su «da verificare». Sotto la soglia di affidabilità non si propone la dose: si mostra il link e «da verificare a mano». Un prodotto revocato o scaduto ha un avviso rosso in anagrafica e sul lavoro, e non propone avversità né dosi. Le righe vecchie di `schedaImpieghi` si cancellano e non si riscrivono. Le funzioni, le regole e gli indici non sono pubblicati. «Leggi scheda» resta.
 
 ## 2026-10-13 — Registro: lettura in anagrafica, in coda
 

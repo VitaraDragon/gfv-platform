@@ -23,12 +23,17 @@ import {
   chiaveConfermaScheda,
   unisciConfermaSpecie,
   rangeDoseAvviso,
-  schedaOltreSeiMesi as schedaOltreSeiMesiClient,
-  schedaDaRileggere
+  schedaDaRileggere,
+  htmlAvvisoRevoca,
+  htmlNotaFontiEtichetta,
+  AVVISO_ETICHETTA_AUTOMATICA
 } from '../shared/js/registro-trattamenti.js';
+import fs from 'fs';
 
 const require = createRequire(import.meta.url);
 const scheda = require('../functions/lib/registro-trattamenti-scheda-core.js');
+const { testoDaPdf } = require('../functions/lib/etichetta-pdf.js');
+const lettura = fs.readFileSync(new URL('../functions/registro-trattamenti-lettura.js', import.meta.url), 'utf8');
 
 describe('specie della scheda', () => {
   it('mappa il vigneto e non indovina il misto', () => {
@@ -266,13 +271,6 @@ describe('lettura in anagrafica', () => {
     '100;FOLPAN 80 WDG;FOLPET;Autorizzato',
     '200;FOLPAN GOLD;FOLPET;Autorizzato'
   ].join('\n');
-  const pagina = `<table><tr><th>Impiego - Coltura</th><th>Tempo di Carenza</th><th>Tempo di Carenza in Serra</th></tr>
-    <tr><td>Coltura-AGRUMI</td><td>30</td><td></td></tr>
-    <tr><td>Coltura-VITE</td><td>14</td><td>-</td></tr>
-    <tr><td>Coltura-MELO</td><td>-</td><td>3</td></tr></table>
-    <input type="submit" name="butPagina" value=" 1 " />
-    <input type="submit" name="butPagina" value=" 2 " />`;
-  const avversita = { AGRUMI: ['Aleurode'], VITE: ['Peronospora'], MELO: ['Ticchiolatura'] };
 
   it('non scambia Folpan con Folpan Gold', () => {
     const righe = scheda.parsaCsvFitosanitari(csv);
@@ -282,80 +280,52 @@ describe('lettura in anagrafica', () => {
     expect(scheda.trovaRegistrazioneUnica(righe, 'Sivanto Prime').prodotto.numeroRegistrazione).toBe('16273');
   });
 
-  it('archivia le colture e non inventa la dose se l\'etichetta non la lega', () => {
-    const pagine = scheda.parsaPaginaImpieghiSian(pagina);
-    expect(pagine.pagine).toEqual([1, 2]);
-    expect(pagine.colture[0]).toEqual({ colturaScheda: 'AGRUMI', giorniCarenza: 30, giorniCarenzaSerra: null });
-    expect(pagine.colture[2].giorniCarenza).toBeNull();
-    expect(pagine.colture[2].giorniCarenzaSerra).toBe(3);
-    const archivio = scheda.componiArchivioProdotto({
-      csv,
-      nome: 'Sivanto Prime',
-      urlCsv: '/opendata/PROD_FTS_6_20261012.csv',
-      pagineImpieghi: [pagina],
-      avversitaPerColtura: avversita,
-      testoEtichetta: '0,5-0,7 L/ha in pre-fioritura, 1 L/ha dopo la fioritura'
-    });
-    expect(archivio.righe.map((r) => r.avversita)).toEqual(['Aleurode', 'Peronospora', 'Ticchiolatura']);
-    expect(archivio.stato).toBe('pronta');
-    expect(archivio.numeroRegistrazione).toBe('16273');
-    expect(archivio.righe.every((r) => r.doseMinHa == null)).toBe(true);
-    expect(archivio.righe.map((r) => r.colturaScheda)).toEqual(['AGRUMI', 'VITE', 'MELO']);
+  it('propone solo la dose che l\'etichetta lega a una coltura e a un\'avversità', () => {
+    const chiara = 'Feromone per la lotta contro Prays oleae (Tignola dell\'olivo) su olivo. DOSI D\'APPLICAZIONE: Olivo: 0.5 - 2 aerosol/ha.';
+    const righe = scheda.estraiRigheAffidabili(chiara);
+    expect(righe.righe).toHaveLength(1);
+    expect(righe.righe[0].colturaScheda).toBe('Olivo');
+    expect(righe.righe[0].avversita).toBe("Tignola dell'olivo");
+    expect(righe.righe[0].doseMinHa).toBe(0.5);
+    expect(righe.righe[0].doseMaxHa).toBe(2);
+    expect(righe.righe[0].unitaDose).toBe('aerosol');
+    expect(righe.righe[0].affidabilita).toBe('alta');
+    const doppia = scheda.estraiRigheAffidabili(
+      'Tignola dell\'ulivo e Tignola degli agrumi. Numero massimo di erogatori: 100-200 dispenser/ha. Da utilizzare su colture di olivo e limoni.'
+    );
+    expect(doppia.motivo).toBe('estrazione_incerta');
+    expect(doppia.righe).toEqual([]);
   });
 
-  it('attacca alla coltura solo la dose scritta vicino al suo nome', () => {
+  it('un prodotto revocato non propone avversità né dosi', () => {
+    const csv = [
+      'num_registrazione;denominazione_prodotto;sostanze_attive;stato_amministrativo;data_scadenza_autorizzazione;data_decreto_revoca;data_decorrenza_revoca',
+      '100;ALTRO;RAME;Revocato;-;01/03/2026;14/07/2026'
+    ].join('\n');
     const archivio = scheda.componiArchivioProdotto({
       csv,
-      nome: 'Sivanto Prime',
+      nome: 'Altro',
       urlCsv: '/opendata/PROD_FTS_6_20261012.csv',
-      pagineImpieghi: [pagina],
-      avversitaPerColtura: avversita,
-      testoEtichetta: 'VITE massimo 2 trattamenti, intervallo di 7 giorni. 1,5-2,5 kg/ha. Dose bassa negli stadi precoci e dose alta a vegetazione piena. MELO pre-fioritura 0,5-0,7 L/ha, dopo la fioritura 1 L/ha.'
+      testoEtichetta: 'Olivo: 1-2 l/ha. Tignola dell\'olivo.',
+      oraMs: Date.parse('2026-10-14T00:00:00.000Z')
     });
-    const vite = archivio.righe.filter((r) => r.colturaScheda === 'VITE');
-    const melo = archivio.righe.filter((r) => r.colturaScheda === 'MELO');
-    const agrumi = archivio.righe.find((r) => r.colturaScheda === 'AGRUMI');
-    expect(vite).toHaveLength(1);
-    expect(vite[0].doseMinHa).toBe(1.5);
-    expect(vite[0].doseMaxHa).toBe(2.5);
-    expect(vite[0].epoca).toBeNull();
-    expect(vite[0].impieghiMassimiAnno).toBe(2);
-    expect(vite[0].giorniMinimiTraPassaggi).toBe(7);
-    expect(melo.map((r) => r.epoca)).toEqual(['pre-fioritura', 'dopo la fioritura']);
-    expect(melo[1].doseMinHa).toBe(1);
-    expect(agrumi.doseMinHa).toBeNull();
-    expect(agrumi.giorniCarenza).toBe(30);
-    expect(melo.every((r) => r.avversita === 'Ticchiolatura')).toBe(true);
-  });
-
-  it('senza i nomi avversità non segna la scheda come letta', () => {
-    const html = `<table><tr><th>Classe avversità-Avversità</th></tr>
-      <tr><td>Insetti-ALEURODE SPINOSO DEGLI AGRUMI</td></tr>
-      <tr><td>Insetti-MOSCA BIANCA DEGLI AGRUMI</td></tr></table>`;
-    expect(scheda.parsaElencoAvversita(html)).toEqual([
-      'ALEURODE SPINOSO DEGLI AGRUMI',
-      'MOSCA BIANCA DEGLI AGRUMI'
-    ]);
-    expect(scheda.parsaElencoAvversita(pagina)).toEqual([]);
-    const senza = scheda.componiArchivioProdotto({
-      csv,
-      nome: 'Sivanto Prime',
-      urlCsv: '/opendata/PROD_FTS_6_20261012.csv',
-      pagineImpieghi: [pagina]
-    });
-    expect(senza.stato).toBe('da_riprovare');
-    expect(senza.motivo).toBe('avversita_non_lette');
-    expect(senza.numeroRegistrazione).toBe('16273');
-    expect(senza.righe).toEqual([]);
+    expect(archivio.revocatoOScaduto).toBe(true);
+    expect(archivio.dataRevocaOScadenza).toBe('14/07/2026');
+    expect(archivio.testoRevoca).toBe('Prodotto revocato/scaduto il 14/07/2026: verifica i termini di vendita e di utilizzo nel decreto di revoca');
+    expect(archivio.righe).toEqual([]);
+    expect(archivio.stato).toBe('da_verificare');
+    const html = htmlAvvisoRevoca({ revocatoOScaduto: true, dataRevocaOScadenza: '14/07/2026' });
+    expect(html).toContain('Prodotto revocato/scaduto il 14/07/2026');
+    expect(html).toContain('#9b1c1c');
   });
 
   it('un nome ambiguo o assente non diventa una scheda pronta', () => {
-    const ambiguo = scheda.componiArchivioProdotto({ csv, nome: 'Folpan', pagineImpieghi: [pagina] });
+    const ambiguo = scheda.componiArchivioProdotto({ csv, nome: 'Folpan' });
     expect(ambiguo.stato).toBe('da_riprovare');
     expect(ambiguo.motivo).toBe('nome_non_univoco');
     expect(ambiguo.righe).toEqual([]);
     expect(ambiguo.numeroRegistrazione).toBeNull();
-    const assente = scheda.componiArchivioProdotto({ csv, nome: 'Prodotto inesistente', pagineImpieghi: [pagina] });
+    const assente = scheda.componiArchivioProdotto({ csv, nome: 'Prodotto inesistente' });
     expect(assente.motivo).toBe('non_trovato');
   });
 
@@ -372,11 +342,13 @@ describe('lettura in anagrafica', () => {
     expect(scheda.richiedeLetturaScheda(null, { categoria: 'fertilizzanti', nome: 'Urea' })).toBe(false);
     const ora = Date.parse('2026-10-13T16:00:00.000Z');
     const scelto = scheda.scegliProdottoInPagina([
-      { id: 'a', categoria: 'fitofarmaci', nome: 'A', letturaSchedaStato: 'pronta' },
+      { id: 'a', categoria: 'fitofarmaci', nome: 'A', letturaSchedaStato: 'pronta', controlloSchedaAt: '2026-10-13T12:00:00.000Z', dataEtichettaLettaAt: '2026-10-13T12:00:00.000Z' },
       { id: 'b', categoria: 'fitofarmaci', nome: 'B', letturaSchedaStato: 'da_riprovare', letturaSchedaAggiornataAt: '2026-10-13T15:00:00.000Z' },
-      { id: 'c', categoria: 'fitofarmaci', nome: 'C' }
+      { id: 'c', categoria: 'fitofarmaci', nome: 'C' },
+      { id: 'd', categoria: 'fitofarmaci', nome: 'D', letturaSchedaStato: 'in_corso' }
     ], ora, scheda.ATTESA_RIPROVA_MS);
-    expect(scelto.id).toBe('c');
+    expect(scelto.id).toBe('d');
+    expect(scelto.modoLettura).toBe('completa');
     const diNuovo = scheda.scegliProdottoInPagina([
       { id: 'b', categoria: 'fitofarmaci', nome: 'B', letturaSchedaStato: 'da_riprovare', letturaSchedaAggiornataAt: '2026-10-13T08:00:00.000Z' }
     ], ora, scheda.ATTESA_RIPROVA_MS);
@@ -480,24 +452,17 @@ describe('rilettura della scheda', () => {
     expect(scheda.controlloLeggeroScheda({ numeroRegistrazione: '16273' }, sivanto).esito).toBe('invariato');
   });
 
-  it('ogni sei mesi rilegge tutto, ogni settimana solo il controllo leggero', () => {
-    const foto = '2026-04-13T00:00:00.000Z';
-    const prima = Date.parse('2026-10-12T23:00:00.000Z');
-    const dopo = Date.parse('2026-10-13T00:00:00.000Z');
-    expect(scheda.schedaOltreSeiMesi(foto, prima)).toBe(false);
-    expect(scheda.schedaOltreSeiMesi(foto, dopo)).toBe(true);
-    expect(schedaOltreSeiMesiClient(foto, prima)).toBe(false);
-    expect(schedaOltreSeiMesiClient(foto, dopo)).toBe(true);
-    expect(schedaDaRileggere({ letturaSchedaStato: 'pronta', letturaSchedaCompletaAt: foto }, dopo)).toBe(true);
-    expect(schedaDaRileggere({ letturaSchedaStato: 'in_corso', letturaSchedaCompletaAt: foto }, dopo)).toBe(false);
+  it('il controllo open data è settimanale, l\'etichetta al massimo una volta al mese', () => {
     const ora = Date.parse('2026-10-13T12:00:00.000Z');
+    expect(schedaDaRileggere({ letturaSchedaStato: 'pronta', letturaSchedaCompletaAt: '2026-04-13T00:00:00.000Z' }, ora)).toBe(false);
     const fresca = {
       id: 'a',
       categoria: 'fitofarmaci',
       nome: 'A',
       letturaSchedaStato: 'pronta',
       letturaSchedaCompletaAt: '2026-10-01T00:00:00.000Z',
-      controlloSchedaAt: '2026-10-12T00:00:00.000Z'
+      controlloSchedaAt: '2026-10-12T00:00:00.000Z',
+      dataEtichettaLettaAt: '2026-10-01T00:00:00.000Z'
     };
     expect(scheda.scegliProdottoInPagina([fresca], ora, scheda.ATTESA_RIPROVA_MS)).toBeNull();
     const daControllare = scheda.scegliProdottoInPagina([{
@@ -505,11 +470,59 @@ describe('rilettura della scheda', () => {
       controlloSchedaAt: '2026-10-01T00:00:00.000Z'
     }], ora, scheda.ATTESA_RIPROVA_MS);
     expect(daControllare.modoLettura).toBe('leggera');
-    const scaduta = scheda.scegliProdottoInPagina([{
+    const etichettaVecchia = scheda.scegliProdottoInPagina([{
       ...fresca,
-      letturaSchedaCompletaAt: foto,
-      controlloSchedaAt: '2026-10-12T00:00:00.000Z'
+      dataEtichettaLettaAt: '2026-09-01T00:00:00.000Z',
+      controlloSchedaAt: '2026-10-01T00:00:00.000Z'
     }], ora, scheda.ATTESA_RIPROVA_MS);
-    expect(scaduta.modoLettura).toBe('completa');
+    expect(etichettaVecchia.modoLettura).toBe('completa');
+    expect(lettura).not.toContain('https://www.sian.it');
+  });
+});
+
+describe('etichette reali del Ministero', () => {
+  const html = fs.readFileSync(new URL('./fixtures/etichette/elenco-sostanza-849.html', import.meta.url), 'utf8');
+
+  it('collega il numero di registrazione all\'indirizzo del PDF', () => {
+    const righe = scheda.parsaElencoEtichetteMinistero(html);
+    const aomate = scheda.rigaEtichettaPerNumero(righe, '018577');
+    const mister = scheda.rigaEtichettaPerNumero(righe, '18592');
+    const praystec = scheda.rigaEtichettaPerNumero(righe, '018651');
+    expect(aomate.urlEtichetta).toBe('https://www.fitosanitari.salute.gov.it/fitosanitariws_new/EtichettaServlet?id=44088');
+    expect(aomate.dataEtichetta).toBe('05/02/2025');
+    expect(mister.urlEtichetta).toBe('https://www.fitosanitari.salute.gov.it/fitosanitariws_new/EtichettaServlet?id=42303');
+    expect(praystec.urlEtichetta).toBe('https://www.fitosanitari.salute.gov.it/fitosanitariws_new/EtichettaServlet?id=42464');
+    expect(mister.stato).toMatch(/Scaduto/i);
+    expect(scheda.avvisoRevocaOScadenza({ stato: mister.stato, dataScadenzaAutorizzazione: '05/07/2024' }, Date.parse('2026-10-14T00:00:00.000Z')).testo)
+      .toContain('Prodotto revocato/scaduto il 05/07/2024');
+  });
+
+  it('legge tre etichette diverse e non inventa la dose se la coltura non è univoca', async () => {
+    const aomate = await testoDaPdf(fs.readFileSync(new URL('./fixtures/etichette/018577-aomate-prays.pdf', import.meta.url)));
+    const mister = await testoDaPdf(fs.readFileSync(new URL('./fixtures/etichette/018592-mister-p-2024.pdf', import.meta.url)));
+    const praystec = await testoDaPdf(fs.readFileSync(new URL('./fixtures/etichette/018651-praystec-2024.pdf', import.meta.url)));
+    expect(aomate).toMatch(/AOMATE/i);
+    expect(mister).toMatch(/MISTER P 2024/);
+    expect(praystec).toMatch(/PRAYSTEC 2024/);
+    expect(scheda.estraiRigheAffidabili(aomate).righe).toEqual([]);
+    const rigaMister = scheda.estraiRigheAffidabili(mister).righe[0];
+    expect(rigaMister.colturaScheda).toBe('Olivo');
+    expect(rigaMister.avversita).toMatch(/Tignola dell'olivo/i);
+    expect(rigaMister.doseMinHa).toBe(0.5);
+    expect(rigaMister.doseMaxHa).toBe(2);
+    expect(rigaMister.unitaDose).toBe('aerosol');
+    const rigaPray = scheda.estraiRigheAffidabili(praystec).righe[0];
+    expect(rigaPray.colturaScheda.toLowerCase()).toBe('olivo');
+    expect(rigaPray.doseMinHa).toBe(100);
+    expect(rigaPray.doseMaxHa).toBe(300);
+    expect(rigaPray.unitaDose).toBe('diffusori');
+    const nota = htmlNotaFontiEtichetta({
+      dataEtichetta: '08/03/2024',
+      urlEtichetta: 'https://www.fitosanitari.salute.gov.it/fitosanitariws_new/EtichettaServlet?id=42303'
+    });
+    expect(nota).toContain('Fonte: etichetta autorizzata del 08/03/2024 – Ministero della Salute');
+    expect(nota).toContain('https://www.dati.gov.it/iodl/2.0/');
+    expect(nota).toContain(AVVISO_ETICHETTA_AUTOMATICA);
+    expect(nota).not.toMatch(/approva GFV|dose consigliata/i);
   });
 });

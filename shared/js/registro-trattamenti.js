@@ -508,15 +508,19 @@ export function schedaOltreSeiMesi(iso, oraMs = Date.now()) {
   return Number(oraMs) >= limite.getTime();
 }
 
-export function schedaDaRileggere(prodotto, oraMs = Date.now()) {
-  if (!prodotto || prodotto.letturaSchedaStato !== 'pronta') return false;
-  return schedaOltreSeiMesi(prodotto.letturaSchedaCompletaAt, oraMs);
+/** Il ricontrollo dell'etichetta lo fa il server, al massimo una volta al mese. Aprire il lavoro non la riscarica. */
+export function schedaDaRileggere() {
+  return false;
 }
 
 export function testoStatoLetturaScheda(prodotto) {
   if (!prodotto || String(prodotto.categoria || '').toLowerCase() !== 'fitofarmaci') return '';
   if (prodotto.letturaSchedaStato === 'in_corso') return 'Lettura in corso';
   if (prodotto.letturaSchedaStato === 'pronta') return 'Scheda letta';
+  if (prodotto.letturaSchedaStato === 'da_verificare') {
+    if (prodotto.letturaSchedaMotivo === 'revocato') return 'Prodotto revocato o scaduto';
+    return 'Da verificare a mano';
+  }
   if (prodotto.letturaSchedaStato === 'da_riprovare') {
     if (prodotto.letturaSchedaMotivo === 'nome_non_univoco') {
       return 'Da riprovare: il nome non corrisponde a una sola registrazione';
@@ -542,9 +546,33 @@ export function htmlSemaforoLetturaScheda(prodotto) {
   if (!titolo) return '';
   let colore = 'yellow';
   if (prodotto.letturaSchedaStato === 'pronta') colore = 'green';
-  else if (prodotto.letturaSchedaStato === 'da_riprovare') colore = 'red';
+  else if (prodotto.letturaSchedaStato === 'da_riprovare' || prodotto.letturaSchedaStato === 'da_verificare') colore = 'red';
   const t = escAttrSemaforo(titolo);
   return '<span class="gfv-semaforo gfv-semaforo--' + colore + '" title="' + t + '" role="img" aria-label="' + t + '"></span>';
+}
+
+export const URL_IODL = 'https://www.dati.gov.it/iodl/2.0/';
+export const AVVISO_ETICHETTA_AUTOMATICA = 'Dati letti in automatico dall\'etichetta ufficiale: possono contenere errori o non essere aggiornati. Fa fede l\'etichetta. La scelta del prodotto e della dose spetta all\'azienda.';
+
+export function htmlAvvisoRevoca(prodotto) {
+  if (!prodotto || prodotto.revocatoOScaduto !== true) return '';
+  const data = prodotto.dataRevocaOScadenza ? ' il ' + prodotto.dataRevocaOScadenza : '';
+  const frase = 'Prodotto revocato/scaduto' + data + ': verifica i termini di vendita e di utilizzo nel decreto di revoca';
+  return '<p class="registro-avviso-revoca" style="color:#9b1c1c;font-weight:700;">' + escAttrSemaforo(frase) + '</p>';
+}
+
+export function htmlNotaFontiEtichetta(prodotto) {
+  const parti = [];
+  if (prodotto && (prodotto.urlEtichetta || prodotto.dataEtichetta)) {
+    const quando = prodotto.dataEtichetta ? ' del ' + prodotto.dataEtichetta : '';
+    const href = prodotto.urlEtichetta
+      ? ' <a href="' + escAttrSemaforo(prodotto.urlEtichetta) + '" target="_blank" rel="noopener">scheda ufficiale del prodotto</a>'
+      : '';
+    parti.push('<p>Fonte: etichetta autorizzata' + escAttrSemaforo(quando) + ' – Ministero della Salute' + href + '</p>');
+  }
+  parti.push('<p>Dati: Ministero della Salute, licenza IODL 2.0 <a href="' + URL_IODL + '" target="_blank" rel="noopener">' + URL_IODL + '</a></p>');
+  parti.push('<p>' + escAttrSemaforo(AVVISO_ETICHETTA_AUTOMATICA) + '</p>');
+  return parti.join('');
 }
 
 export function confermaSpecieSalvata(prodotto, specie) {

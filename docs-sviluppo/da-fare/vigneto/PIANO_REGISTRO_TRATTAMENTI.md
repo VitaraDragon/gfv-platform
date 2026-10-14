@@ -3,7 +3,7 @@
 - Titolo: Registro trattamenti GFV — impostazione
 - Settore: Ricerca
 - Data: 3 ottobre 2026
-- Aggiornato: 13 ottobre 2026, sera (passi 1–5 nel codice, non pubblicati)
+- Aggiornato: 14 ottobre 2026 (niente SIAN: open data e etichetta PDF del Ministero, non pubblicato)
 - Autore: Coord Ricerca
 
 Documento per chi deve modificare il prodotto. L’impostazione del 3 ottobre resta valida. Le decisioni del 13 ottobre mattina la completano. Se un punto diverge, comanda il paragrafo «Decisioni del 13 ottobre 2026, pomeriggio», e per nome e semaforo il paragrafo «Già in codice il 13 ottobre 2026, sera». La lettura sta in anagrafica, in background. I passi 1, 2, 3, 4 e 5 del pomeriggio sono nel repo e non sono pubblicati. La coda non è online e «Leggi scheda» resta.
@@ -270,7 +270,7 @@ Sono già nel repo, su vigneto, frutteto e seminativo: numero di registrazione e
 
 ### Decisioni del 13 ottobre 2026, pomeriggio
 
-Concordate dopo aver aperto la scheda pubblica di SIVANTO PRIME, numero 16273, sulla banca `https://www.sian.it/mimfFitoPub/`, e dopo aver letto etichette reali (Aliette: vite e peronospora, 1,5–2,5 kg/ha, dose bassa negli stadi precoci e dose alta a vegetazione piena; scheda tecnica Envita SC: 0,5–0,7 L/ha in pre-fioritura, 0,7–1 in fioritura, 1 L/ha dopo la fioritura).
+Concordate il 13 ottobre dopo aver letto etichette reali (Aliette: vite e peronospora, 1,5–2,5 kg/ha; Envita SC: 0,5–0,7 L/ha in pre-fioritura). La banca SIAN non è una fonte: dal 14 ottobre non si apre.
 
 #### Quando parte la lettura
 
@@ -284,11 +284,10 @@ Se nel frattempo si crea un lavoro, prodotto e dose si possono scrivere a mano. 
 
 #### Cosa si legge, e da dove
 
-Tre fonti pubbliche, per quel solo prodotto. Non si copia il sito del Ministero.
+Due fonti, per quel solo prodotto. Non si copia il sito del Ministero e non si apre `sian.it`.
 
-1. Open data del Ministero della Salute, dataset fitosanitari, licenza IODL, file settimanale. Danno nome, numero di registrazione, principio attivo e stato. Non danno gli impieghi.
-2. Banca pubblica SIAN, `https://www.sian.it/mimfFitoPub/`. Per quel numero, tutte le colture della scheda. Su ogni coltura: carenza in pieno campo, carenza in serra, elenco avversità. Le colture sono su più pagine: la lettura le scorre tutte. Verificato il 13 ottobre su SIVANTO PRIME: la prima pagina va da agrumi a olivo; la pagina dell’avversità elenca i nomi e non le dosi.
-3. Etichetta autorizzata dello stesso numero, scaricata dalla stessa banca. Lì stanno dose per ettaro, dose per ettolitro, numero massimo di impieghi, intervallo, e le epoche in cui questi numeri cambiano. È testo, non una tabella fissa. Si propone ciò che si riesce a leggere. Quello che l’etichetta non struttura non si inventa.
+1. Open data del Ministero della Salute, dataset fitosanitari, licenza IODL 2.0, file settimanale. Danno nome, numero di registrazione, principio attivo, stato, scadenza e revoca. Non danno gli impieghi.
+2. Etichetta autorizzata in PDF, dalla banca `https://www.fitosanitari.salute.gov.it/fitosanitariws_new/EtichettaServlet?id=`. L’id non è il numero di registrazione: si trova nella riga di quel numero, nella lista della sua sostanza attiva. Si scarica solo quel PDF, solo se un utente ha aggiunto il prodotto o ne ha cambiato il numero, e si riusa se è già in cache. Avversità, coltura e dose minima e massima si propongono solo se l’estrazione è affidabile. Altrimenti «da verificare a mano», con il link.
 
 #### Cosa si archivia
 
