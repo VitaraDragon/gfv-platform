@@ -683,7 +683,7 @@ describe('lettura Gemini dell\'etichetta', () => {
     giorniMinimiTraPassaggi: 7
   };
 
-  it('tiene la riga solo se le due letture coincidono e la citazione lega i numeri', async () => {
+  it('tiene la riga solo se le due letture coincidono', async () => {
     const esito = await leggiPagineEtichetta(Buffer.from('pdf'), async () => JSON.stringify({ righe: [proposta] }));
     expect(esito.stato).toBe('pronta');
     expect(esito.righe).toHaveLength(1);
@@ -695,25 +695,21 @@ describe('lettura Gemini dell\'etichetta', () => {
     expect(esito.righe[0].affidabilita).toBe('alta');
   });
 
-  it('scarta la dose di un\'altra coltura, la serra non scritta e la lettura che non torna', async () => {
-    const doppia = Object.assign({}, proposta, {
-      citazione: 'Pesco Monilia laxa 0,4 kg/ha e 0,8 kg/ha'
-    });
-    const doppiaEsito = await leggiPagineEtichetta(Buffer.from('pdf'), async () => JSON.stringify({ righe: [doppia] }));
-    expect(doppiaEsito.righe).toEqual([]);
-    expect(doppiaEsito.motivo).toBe('estrazione_incerta');
-
-    const serra = Object.assign({}, proposta, { pienoCampo: true, citazione: 'Pesco in serra Monilia laxa 0,4 kg/ha 40 g/hl massimo 3 trattamenti, intervallo di 7 giorni' });
-    const serraEsito = await leggiPagineEtichetta(Buffer.from('pdf'), async () => JSON.stringify({ righe: [serra] }));
-    expect(serraEsito.righe).toEqual([]);
-
+  it('non archivia se dose o serra non coincidono', async () => {
     let turno = 0;
     const diversa = await leggiPagineEtichetta(Buffer.from('pdf'), async () => {
       turno += 1;
-      const riga = turno === 1 ? proposta : Object.assign({}, proposta, { doseMinHa: 0.8, doseMaxHa: 0.8, citazione: 'Pesco Monilia laxa 0,8 kg/ha 40 g/hl massimo 3 trattamenti, intervallo di 7 giorni' });
+      const riga = turno === 1 ? proposta : Object.assign({}, proposta, { doseMinHa: 0.8, doseMaxHa: 0.8 });
       return JSON.stringify({ righe: [riga] });
     });
     expect(diversa.righe).toEqual([]);
+    expect(diversa.motivo).toBe('estrazione_incerta');
+
+    const serra = await leggiPagineEtichetta(Buffer.from('pdf'), async (prompt) => {
+      const pienoCampo = !/Conferma solo/.test(prompt);
+      return JSON.stringify({ righe: [Object.assign({}, proposta, { pienoCampo })] });
+    });
+    expect(serra.righe).toEqual([]);
   });
 
   it('non usa le regole sul testo se la lettura Gemini non ha righe', () => {

@@ -3,14 +3,15 @@
  * Il PDF si scarica solo per il numero chiesto, dalla banca del Ministero.
  * Nessuna chiamata a sian.it.
  */
-const tls = require("tls");
 const admin = require("firebase-admin");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
 const { defineSecret } = require("firebase-functions/params");
 const { csvFitosanitariCorrente } = require("./registro-trattamenti-scheda");
 const { testoDaPdf } = require("./lib/etichetta-pdf");
-const { leggiPagineEtichetta } = require("./lib/etichetta-gemini");
+const { leggiPagineEtichetta, chiediGeminiEtichetta } = require("./lib/etichetta-gemini");
+const { PAUSA_MS, chiediMinistero, cercaEtichettaPerSostanza, scaricaPdf } = require("./lib/etichetta-scarica");
+const { testo } = require("./lib/etichetta-util");
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 const {
   ATTESA_RIPROVA_MS,
@@ -19,169 +20,20 @@ const {
   componiArchivioProdotto,
   controlloLeggeroScheda,
   eFitofarmaco,
-  esitoRispostaMinistero,
   idDocumentoEtichetta,
   normalizzaNomeProdotto,
   parsaCsvFitosanitari,
-  parsaElencoEtichetteMinistero,
   richiedeLetturaScheda,
-  rigaEtichettaPerNumero,
   scegliProdottoInPagina,
   trovaRegistrazioneUnica
 } = require("./lib/registro-trattamenti-scheda-core");
 
-const HOST = "www.fitosanitari.salute.gov.it";
-const BASE = "/fitosanitariws_new/FitosanitariServlet";
-const UA = "GFV-Platform registro trattamenti (https://github.com/VitaraDragon/gfv-platform)";
-const PAUSA_MS = 2000;
-const TIMEOUT_MS = 20000;
 const CACHE = "etichetteFitofarmaci";
 const CURSORE = "sistema/registroSchedaCoda";
 const REGION = "europe-west1";
 
-function testo(value) {
-  return String(value == null ? "" : value).replace(/\s+/g, " ").trim();
-}
-
 function pausa(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-function parsaHttp(buffer) {
-  const raw = Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer || "");
-  const sep = raw.indexOf("\r\n\r\n");
-  const head = (sep >= 0 ? raw.slice(0, sep) : raw).toString("latin1");
-  const body = sep >= 0 ? raw.slice(sep + 4) : Buffer.alloc(0);
-  const status = Number((head.match(/HTTP\/1\.\d (\d+)/) || [])[1] || 0);
-  const tipo = ((head.match(/content-type:\s*([^\r\n]+)/i) || [])[1] || "").toLowerCase();
-  const cookie = (head.match(/set-cookie:\s*([^;\r]+)/i) || [])[1] || "";
-  return { status, tipo, cookie, body, testo: body.toString("latin1") };
-}
-
-function chiediMinistero(path, timeoutMs, opzioni) {
-  if (/sian\.it/i.test(path) || /sian\.it/i.test((opzioni && opzioni.body) || "")) return Promise.reject(new Error("sian_vietato"));
-  const metodo = opzioni && opzioni.body ? "POST" : "GET";
-  const corpo = opzioni && opzioni.body ? opzioni.body : "";
-  return new Promise((resolve, reject) => {
-    const sock = tls.connect({
-      host: HOST,
-      port: 443,
-      servername: HOST,
-      rejectUnauthorized: true
-    });
-    const timer = setTimeout(() => {
-      sock.destroy();
-      reject(new Error("timeout"));
-    }, timeoutMs || TIMEOUT_MS);
-    const chunks = [];
-    sock.on("secureConnect", () => {
-      const linee = [
-        metodo + " " + path + " HTTP/1.1",
-        "Host: " + HOST,
-        "User-Agent: " + UA,
-        "Accept: text/html,application/pdf,*/*",
-        "Connection: close"
-      ];
-      if (opzioni && opzioni.cookie) linee.push("Cookie: " + opzioni.cookie);
-      if (corpo) {
-        linee.push("Content-Type: application/x-www-form-urlencoded");
-        linee.push("Content-Length: " + Buffer.byteLength(corpo));
-      }
-      linee.push("", corpo);
-      sock.write(linee.join("\r\n"));
-    });
-    sock.on("data", (chunk) => chunks.push(chunk));
-    sock.on("error", (err) => {
-      clearTimeout(timer);
-      reject(err);
-    });
-    sock.on("end", () => {
-      clearTimeout(timer);
-      resolve(parsaHttp(Buffer.concat(chunks)));
-    });
-  });
-}
-
-function corpoRicercaSostanza(nome) {
-  const campi = {
-    ACTION: "cercaProdotti",
-    FROM: "0",
-    TO: "49",
-    PROVENIENZA: "RICERCA",
-    NOME: "",
-    NOME_SOSTANZA: nome,
-    NUMERO_REGISTRAZIONE: "",
-    ATTIVITA: "",
-    INDICAZIONE_PERICOLO: "",
-    STATO_AMMINISTRATIVO: "",
-    DT_IN_REGISTRAZIONE: "",
-    DT_FN_REGISTRAZIONE: "",
-    DT_IN_SCADENZA: "",
-    DT_FN_SCADENZA: "",
-    PRODOTTO_IP: "",
-    PRODOTTO_PPO: "",
-    PRODOTTO_PFnPE: ""
-  };
-  return Object.entries(campi).map(([chiave, valore]) => chiave + "=" + encodeURIComponent(valore)).join("&");
-}
-
-async function cercaEtichettaPerSostanza(principio, numero, chiedi) {
-  const nome = testo(principio).split(/[|;,]/)[0].trim();
-  if (!nome) return { esito: "non_trovata" };
-  let res;
-  if (chiedi === chiediMinistero) {
-    const home = await chiediMinistero(BASE);
-    if (home.status === 403) return { esito: "bloccato" };
-    await pausa(PAUSA_MS);
-    res = await chiediMinistero(BASE, TIMEOUT_MS, { body: corpoRicercaSostanza(nome), cookie: home.cookie });
-  } else {
-    res = await chiedi(BASE + "?ACTION=cercaSostanza&FROM=0&TO=49&PROVENIENZA=RICERCA&NOME_SOSTANZA=" + encodeURIComponent(nome));
-  }
-  const esitoPagina = esitoRispostaMinistero(res.status, res.testo);
-  if (esitoPagina !== "ok") return { esito: esitoPagina };
-  const riga = rigaEtichettaPerNumero(parsaElencoEtichetteMinistero(res.testo), numero);
-  return riga ? { esito: "trovata", riga } : { esito: "non_trovata" };
-}
-
-async function scaricaPdf(url, chiedi) {
-  const path = String(url || "").replace("https://" + HOST, "");
-  if (!path.startsWith("/fitosanitariws_new/EtichettaServlet")) return { esito: "non_pdf" };
-  const res = await chiedi(path);
-  const esitoPagina = esitoRispostaMinistero(res.status, res.testo);
-  if (esitoPagina !== "ok") return { esito: esitoPagina };
-  if (!/pdf/.test(res.tipo)) return { esito: "non_pdf" };
-  const testoPdf = await testoDaPdf(res.body);
-  return { esito: "ok", testo: testoPdf, pdf: res.body };
-}
-
-async function chiediGeminiEtichetta(prompt, pdfBuffer) {
-  const apiKey = process.env.GEMINI_API_KEY;
-  if (!apiKey) {
-    const err = new Error("manca_chiave");
-    throw err;
-  }
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-  const res = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + model + ":generateContent?key=" + apiKey, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{
-        parts: [
-          { text: prompt },
-          { inlineData: { mimeType: "application/pdf", data: Buffer.from(pdfBuffer).toString("base64") } }
-        ]
-      }],
-      generationConfig: {
-        temperature: 0,
-        maxOutputTokens: 8192,
-        responseMimeType: "application/json"
-      }
-    })
-  });
-  if (!res.ok) throw new Error("gemini_" + res.status);
-  const data = await res.json();
-  const parts = data && data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts;
-  return Array.isArray(parts) ? parts.map((part) => part.text || "").join("") : "";
 }
 
 function refDiTenant(ref) {

@@ -1,0 +1,5 @@
+{
+  "nome": "closer",
+  "testo": "{\n  \"righe\": [\n    {\n      \"coltura\": \"Pomodoro\",\n      \"avversita\": \"afide verde del pesco\",\n      \"citazione\": \"Contro afide verde del pesco (Myzus persicae), afide delle cucurbitacee (Aphis gossypii), afidone verde della patata (Macrosiphum euphorbiae) alla presenza delle prime forme giovanili eseguire 2 applicazioni tra il primo germoglio visibile e la maturazione dei frutti impiegando la dose di 200 ml/ha. In caso di forte pressione di infestazione, ripetere il trattamento se la popolazione cresce. L'intervallo minimo tra le due applicazioni dovrebbe essere di 7 giorni. Può essere utilizzato un quantitativo massimo di 400 ml di prodotto per anno.\",\n      \"pienoCampo\": false,\n      \"epoca\": null,\n      \"doseMinHa\": 200.0,\n      \"doseMaxHa\": 200.0,\n      \"unitaHa\": \"ml\",\n      \"doseMinHl\": null,\n      \"doseMaxHl\": null,\n      \"unitaHl\": null,\n      \"giorniCarenza\": null,\n      \"giorniCarenzaSerra\": 1,\n      \"impieghiMassimiAnno\": 2,\n      \"giorniMinimiTraPassaggi",
+  "finish": "MAX_TOKENS"
+}
