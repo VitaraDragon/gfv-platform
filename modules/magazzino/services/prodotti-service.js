@@ -36,7 +36,12 @@ const CAMPI_SCHEDA_SOLO_SERVER = [
   'letturaSchedaCompletaAt',
   'controlloSchedaAt',
   'statoAmministrativoScheda',
-  'dataVariazioneScheda'
+  'dataVariazioneScheda',
+  'revocatoOScaduto',
+  'dataRevocaOScadenza',
+  'urlEtichetta',
+  'dataEtichetta',
+  'dataEtichettaLettaAt'
 ];
 
 function senzaCampiSchedaServer(payload) {

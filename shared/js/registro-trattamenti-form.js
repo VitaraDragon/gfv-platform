@@ -12,9 +12,11 @@ import {
   avvisiRegistrazione,
   FONTE_OPEN_DATA_FITOSANITARI,
   vociMenuScheda,
+  voceUnicaDaCompilare,
   piuFinestreInMenu,
   unisciConfermaSpecie,
-  schedaDaRileggere
+  htmlAvvisoRevoca,
+  htmlNotaFontiEtichetta
 } from './registro-trattamenti.js';
 
 function esc(value) {
@@ -129,12 +131,13 @@ function testoIntervallo(min, max) {
 }
 
 function testoDoseVoce(voce) {
-  const unita = voce.unitaDose ? ' ' + voce.unitaDose : '';
   const ha = testoIntervallo(voce.doseMinHa, voce.doseMaxHa);
   const hl = testoIntervallo(voce.doseMinHl, voce.doseMaxHl);
+  const unitaHa = voce.unitaDoseHa || voce.unitaDose || '';
+  const unitaHl = voce.unitaDoseHl || voce.unitaDose || '';
   const parti = [];
-  if (ha) parti.push(ha + unita + '/ha');
-  if (hl) parti.push(hl + unita + '/hl');
+  if (ha) parti.push(ha + (unitaHa ? ' ' + unitaHa : '') + '/ha');
+  if (hl) parti.push(hl + (unitaHl ? ' ' + unitaHl : '') + '/hl');
   return parti.join(', ');
 }
 
@@ -142,7 +145,7 @@ function etichettaVoceMenu(voce) {
   const parti = [voce.avversita];
   if (voce.epoca) parti.push(voce.epoca);
   const dose = testoDoseVoce(voce);
-  if (dose) parti.push(dose);
+  if (dose) parti.push('dose minima / massima da etichetta: ' + dose);
   if (voce.giorniCarenza != null) parti.push('carenza ' + voce.giorniCarenza + ' giorni');
   const testo = parti.join(' — ');
   return voce.giaConfermata ? 'Conferma già data: ' + testo : testo;
@@ -172,7 +175,9 @@ function registroDaVoceMenu(voce, specie, anag, utente) {
       doseMaxHa: voce.doseMaxHa,
       doseMinHl: voce.doseMinHl,
       doseMaxHl: voce.doseMaxHl,
-      unitaDose: voce.unitaDose
+      unitaDose: voce.unitaDose,
+      unitaDoseHa: voce.unitaDoseHa,
+      unitaDoseHl: voce.unitaDoseHl
     }),
     principioAttivo: anag && anag.principioAttivo ? String(anag.principioAttivo) : null,
     fonteScheda: anag && anag.fonteScheda ? String(anag.fonteScheda) : null,
@@ -217,19 +222,16 @@ function attaccaMenuScheda(opts, tbody) {
       if (mio === ticket) scriviEsitoScheda('');
       return;
     }
-    if (anag.letturaSchedaStato === 'pronta' && schedaDaRileggere(anag)) {
-      try {
-        if (opts.chiediRilettura) await opts.chiediRilettura(anag);
-        anag.letturaSchedaStato = 'in_corso';
-      } catch (err) { /* non propone la dose vecchia */ }
-      if (mio === ticket) {
-        scriviEsitoScheda('<p>La scheda ha più di sei mesi: la aggiorno prima di proporre la dose. Il controllo sul numero massimo e sull\'intervallo non si può fare finché non è aggiornata.</p>');
-      }
+    if (anag.revocatoOScaduto) {
+      if (mio === ticket) scriviEsitoScheda(htmlAvvisoRevoca(anag) + htmlNotaFontiEtichetta(anag));
       return;
     }
     if (anag.letturaSchedaStato !== 'pronta') {
       if (mio === ticket) {
-        scriviEsitoScheda('<p>La scheda non è ancora letta: il controllo sul numero massimo e sull\'intervallo non si può fare.</p>');
+        const attesa = anag.letturaSchedaStato === 'da_verificare'
+          ? '<p>Da verificare a mano. Non propongo avversità né dose.</p>'
+          : '<p>La scheda non è ancora letta: il controllo sul numero massimo e sull\'intervallo non si può fare.</p>';
+        scriviEsitoScheda(htmlNotaFontiEtichetta(anag) + attesa);
       }
       return;
     }
@@ -247,10 +249,35 @@ function attaccaMenuScheda(opts, tbody) {
       scriviEsitoScheda('<p>Per questa specie la scheda non ha impieghi. Non propongo avversità né dose.</p>');
       return;
     }
+    const applica = async (voce) => {
+      const utente = opts.utente ? opts.utente() : '';
+      const registro = registroDaVoceMenu(voce, specie, anag, utente);
+      const unito = unisciConfermaSpecie(anag, specie, registro);
+      anag.confermeSpecie = unito.confermeSpecie;
+      if (opts.onConferma) opts.onConferma(idx, registro);
+      if (opts.salvaSuProdotto && anag.id) {
+        try { await opts.salvaSuProdotto(anag, specie, registro); } catch (e) { /* la riga trattamento resta confermata in form */ }
+      }
+      return voce;
+    };
+    if (voci.length === 1 && voci[0].giaConfermata) {
+      scriviEsitoScheda(htmlNotaFontiEtichetta(anag)
+        + '<p>Per questa coltura la scheda ha una sola riga, già compilata. '
+        + esc(etichettaVoceMenu(voci[0])) + '</p>');
+      return;
+    }
+    const unica = voceUnicaDaCompilare(voci);
+    if (unica) {
+      await applica(unica);
+      scriviEsitoScheda(htmlNotaFontiEtichetta(anag)
+        + '<p>Per questa coltura la scheda ha una sola riga: avversità, carenza, numero massimo e intervallo sono compilati. La dose, dentro il minimo e il massimo, la sceglie l\'azienda. '
+        + esc(etichettaVoceMenu(unica)) + '</p>');
+      return;
+    }
     const notaFinestre = piuFinestreInMenu(voci)
       ? '<p>Più finestre in etichetta: scegli quella della data di questo lavoro.</p>'
       : '';
-    scriviEsitoScheda(notaFinestre + '<ul style="list-style:none;padding:0;">'
+    scriviEsitoScheda(htmlNotaFontiEtichetta(anag) + notaFinestre + '<ul style="list-style:none;padding:0;">'
       + voci.map((voce, i) => '<li style="margin:6px 0;"><button type="button" class="btn btn-sm btn-primary" data-conferma-menu="' + i + '">Conferma</button> '
         + esc(etichettaVoceMenu(voce)) + '</li>').join('')
       + '</ul>');
@@ -260,14 +287,7 @@ function attaccaMenuScheda(opts, tbody) {
       b.addEventListener('click', async () => {
         const voce = voci[Number(b.getAttribute('data-conferma-menu'))];
         if (!voce) return;
-        const utente = opts.utente ? opts.utente() : '';
-        const registro = registroDaVoceMenu(voce, specie, anag, utente);
-        const unito = unisciConfermaSpecie(anag, specie, registro);
-        anag.confermeSpecie = unito.confermeSpecie;
-        if (opts.onConferma) opts.onConferma(idx, registro);
-        if (opts.salvaSuProdotto && anag.id) {
-          try { await opts.salvaSuProdotto(anag, specie, registro); } catch (e) { /* la riga trattamento resta confermata in form */ }
-        }
+        await applica(voce);
         scriviEsitoScheda('<p>Conferma registrata per ' + esc(voce.avversita) + (voce.epoca ? ' — ' + esc(voce.epoca) : '') + '. Si può salvare il trattamento.</p>');
       });
     });

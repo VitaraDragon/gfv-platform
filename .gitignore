@@ -66,6 +66,7 @@ firebase-service-account.json
 !simulator/config/*.json
 !simulator/manifest.example.json
 !tests/fixtures/*.json
+!tests/fixtures/etichette-gemini/*.json
 !scripts/guida-code-map.json
 !.cursor/environment.json
 

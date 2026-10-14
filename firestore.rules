@@ -687,6 +687,11 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys()
             .hasOnly(['status', 'seenAt', 'seenBy', 'updatedAt']);
     }
+    match /etichetteFitofarmaci/{numero} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+
   }
 }
 

@@ -5,8 +5,8 @@
  */
 
 /**
- * Destinazione uva del vigneto → coltura della banca SIAN.
- * Letto il 13 ottobre 2026 su SIVANTO PRIME, pagina 2: VITE, VITE DA VINO, VITE DA TAVOLA sono tre righe.
+ * Destinazione uva del vigneto → coltura dell'etichetta.
+ * Sull'etichetta di un prodotto per la vite, VITE, VITE DA VINO e VITE DA TAVOLA sono tre righe.
  * `misto` e la riga generica VITE non si indovinano. UVA SPINA non è vite.
  */
 export const MAPPA_DESTINAZIONE_VIGNETO = {
@@ -33,6 +33,7 @@ export const MAPPA_SPECIE_FRUTTETO = {
   Mandorlo: 'mandorlo',
   Arancio: 'arancio',
   Limone: 'limone',
+  Olivo: 'olivo',
   Mandarino: 'mandarino',
   Clementine: 'clementine',
   Kaki: 'kaki',
@@ -84,7 +85,9 @@ export const ALIAS_COLTURA_SCHEDA = {
   'vite da tavola': ['vite da tavola'],
   actinidia: ['actinidia', 'kiwi'],
   clementine: ['clementine', 'clementino'],
-  'erba medica': ['erba medica', 'medica']
+  'erba medica': ['erba medica', 'medica'],
+  olivo: ['olivo', 'ulivo', 'oliveto'],
+  limone: ['limone', 'limoni', 'limoneto']
 };
 
 function daMappa(mappa, valore) {
