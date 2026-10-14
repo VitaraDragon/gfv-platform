@@ -972,6 +972,62 @@
         "CORE"
       ],
       "label": "Core accettazione legale (validazione payload)"
+    },
+    {
+      "prefix": "shared/js/registro-trattamenti",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO",
+        "MAGAZZINO",
+        "MANODOPERA",
+        "INTERSEZIONI"
+      ],
+      "label": "Registro privato trattamenti: scheda pubblica, conferma riga, acqua, avvisi, export, miscela prevista (lavoro e campo)"
+    },
+    {
+      "prefix": "functions/registro-trattamenti",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO",
+        "MAGAZZINO"
+      ],
+      "label": "CF leggiSchedaRegistroTrattamento + lettura scheda in coda (onProdottoSchedaScritto, leggiSchedeRegistroInCoda)"
+    },
+    {
+      "prefix": "functions/lib/registro-trattamenti",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO",
+        "MAGAZZINO"
+      ],
+      "label": "Core lettura scheda fitofarmaci (open data, impieghi, avversità)"
+    },
+    {
+      "prefix": "core/config/registro-trattamenti-specie",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO"
+      ],
+      "label": "Specie GFV → coltura della scheda pubblica (vite da vino/tavola, frutteto, seminativo)"
+    },
+    {
+      "prefix": "core/mobile/js/field-menu-visibility",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Voci menu ⚙️ campo (niente Validazione ore / Segnala guasto, Cambia azienda)"
+    },
+    {
+      "prefix": "core/js/ui-pelle-state",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Barra moduli nascosta per profilo campo (nascondiShellPerProfiloCampo)"
     }
   ]
 }

@@ -224,7 +224,20 @@ Nella stessa area **Gestione operai** potete aprire la **Scheda competenze** di 
    - **Lavoro autonomo**: scegli l’**operaio** singolo.  
    Non assegnare caposquadra e operaio autonomo insieme se il form lo vieta: segui le etichette in pagina.  
 5. Campi opzionali: note, cliente conto terzi, macchina se serve al flusso.  
-6. **Salva**.
+6. Se il **tipo di lavoro** è un **trattamento**, prima delle note compare **Miscela prevista** (vedi sotto).  
+7. **Salva**.
+
+### Miscela prevista sui lavori di trattamento
+
+Serve a dire alla squadra cosa mettere in botte. La sezione compare solo quando il tipo di lavoro è un trattamento.
+
+1. Indica l’acqua: **Acqua prevista (hl/ha)** oppure **Acqua prevista (hl totali)** sul campo.  
+2. Scegli il **Prodotto** dal magazzino; se non c’è, scrivi il nome in **Nome se non è in magazzino**.  
+3. Scrivi la **Dose scelta (per ettaro)** e tocca **Aggiungi prodotto**. Ripeti per ogni prodotto della miscela.  
+4. Sotto leggi l’anteprima: quantità sul campo e, se l’attrezzo del lavoro ha la capacità della botte, botti piene, dose a botte piena e ultima botte parziale. La capacità della botte si indica sull’attrezzo in **Parco Macchine**.  
+5. Al **Salva** l’app può avvisare che un prodotto è già al numero massimo di impieghi nell’anno su quel campo, che l’ultimo passaggio è troppo vicino, oppure che la scheda del prodotto non è ancora confermata e il controllo non si può fare. Sono avvisi, non blocchi: la finestra chiede «Salvare comunque?»; **OK** salva, **Annulla** ti lascia correggere. Un trattamento fatto ieri e non ancora registrato non entra nel controllo.
+
+Operaio e caposquadra vedono la miscela nel riquadro **Miscela prevista** della scheda **Lavoro**, in campo. Il trattamento vero (dose usata, acqua usata, conferma della scheda) si completa poi nella pagina **Trattamenti** del modulo della coltura.
 
 ### Stati e avanzamento (come funziona davvero)
 

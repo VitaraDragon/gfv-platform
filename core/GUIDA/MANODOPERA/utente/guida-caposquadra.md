@@ -50,23 +50,26 @@ La **versione mobile** è la schermata principale quando lavori in campo dall’
 ### Cosa vedi in alto
 
 - Il tuo **nome** e il ruolo (es. caposquadra). La schermata è la stessa sul telefono e sul computer: non c’è un passaggio alla dashboard dell’ufficio.  
-- **Impostazioni** (ingranaggio): in cima i tre pulsanti della lingua (**Italiano**, **Română**, **English**), poi Guida, Segnala guasto se c’è il parco macchine, Validazione ore, Impostazioni account, Esci. Cambia azienda solo se ne hai più di una.  
+- **Impostazioni** (ingranaggio): **Lingua**, poi Guida, Impostazioni account, Esci. Cambia azienda solo se ne hai più di una. **Validazione ore** e **Segnala guasto** non sono più nel menu: le trovi nelle schede **✅ Valida ore** e **⚠️ Segnala un problema**.  
+- Non c’è la barra scura in alto con i moduli e la mappa dell’ufficio, nemmeno in **Impostazioni account**. Se sullo stesso account sei anche manager ed entri dalla dashboard, la barra resta.  
 - Una riga di **stato** sotto la barra (caricamento, messaggi brevi).
 
 ### Cambiare la lingua della schermata
 
-Tocca l’**ingranaggio** e, in cima al menu, **Italiano**, **Română** o **English**. La schermata cambia subito: menu, schede, pulsanti, messaggi in alto, elenchi e stati dei lavori seguono la lingua scelta. Con **Italiano** la schermata è quella di sempre. La scelta resta su quel telefono (o computer), anche dopo essere uscito. Restano in italiano la pagina di accesso, il **dettaglio del lavoro**, le **statistiche**, le pagine che apri dal menu (Guida, Validazione ore, Segnala guasto, Impostazioni) e **Tony**. Utile se in squadra c’è chi legge meglio il rumeno o l’inglese: ognuno sceglie sul proprio telefono.
+Tocca l’**ingranaggio** e poi **Lingua**: si apre l’elenco **Scegli la lingua** con **Italiano**, **Română**, **English**, **Shqip** (albanese) e **Français**, con la bandiera. La lingua in uso ha il segno ✓; **Chiudi** esce senza cambiare. Scelta una lingua, la schermata cambia subito: menu, schede, pulsanti, messaggi in alto, elenchi e stati dei lavori, il riquadro **Miscela prevista** e la scheda **Segnala un problema** seguono la lingua scelta. Con **Italiano** la schermata è quella di sempre. La scelta resta su quel telefono (o computer), anche dopo essere uscito. Restano in italiano la pagina di accesso, il **dettaglio del lavoro**, le **statistiche**, la validazione completa, le pagine che apri dal menu (Guida, Impostazioni) e **Tony**; nella scheda guasti i nomi di macchine e lavori e i testi scritti restano come sono. Le traduzioni sono una prima versione. Utile se in squadra c’è chi legge meglio un’altra lingua: ognuno sceglie sul proprio telefono.
 
-### Le quattro schede del caposquadra (ordine dell’app)
+### Le schede del caposquadra (ordine dell’app)
 
 Scorrendo in orizzontale, oppure con **Indietro** / **Avanti** in basso e i **puntini**:
 
-1. **Lavoro** — scelta lavoro, squadra, validazione ore.  
-2. **Comunicazioni** — messaggi operativi al gruppo.  
-3. **Ore** — modulo **Segna ore** e sotto il **dettaglio del lavoro** (stessa funzione della schermata **I miei lavori**, incorporata qui per comodità).  
-4. **Statistiche** — riepilogo delle tue ore nella scheda dedicata.
+1. **Lavoro** — scelta lavoro, squadra, validazione ore del lavoro scelto. Se il lavoro è un trattamento con la miscela preparata dall’ufficio, qui vedi anche il riquadro **Miscela prevista** (acqua, dose e quantità di ogni prodotto, botti piene e ultima botte parziale).  
+2. **Comunicazioni squadra** — messaggi operativi al gruppo.  
+3. **✅ Valida ore** — le ore in attesa su tutti i tuoi lavori di squadra, con **Aggiorna elenco** e **Apri validazione completa** per la pagina intera con i filtri.  
+4. **Ore** — modulo **Segna ore** e sotto il **dettaglio del lavoro** (stessa funzione della schermata **I miei lavori**, incorporata qui per comodità).  
+5. **⚠️ Segnala un problema** — guasto a una macchina o pericolo sul terreno.  
+6. **Statistiche** — riepilogo delle tue ore nella scheda dedicata.
 
-Gli **operai** non vedono la scheda **Comunicazioni**: è riservata al caposquadra.
+Gli **operai** hanno una scheda **Comunicazioni** dove leggono i tuoi messaggi; non hanno **Valida ore**.
 
 ---
 
@@ -176,7 +179,7 @@ Sempre nella scheda **Lavoro**, nel blocco **Valida ore**, vedi le registrazioni
 
 - Qui validi le ore **del team sul singolo lavoro**. Le tue ore le valida il manager.  
 - Il **manager** ha comunque le viste complete e la **validazione globale** dove previsto dall’installazione: non sono la stessa cosa.  
-- Da computer, in **Validazione ore**, i contatori **Validate** e **Rifiutate** sono gli ultimi 30 giorni, le stesse righe della lista. Puoi vedere anche le rifiutate, con chi, quando e il motivo. Puoi **correggere**, **annullare** o **rifiutare** un’ora già validata dei tuoi operai: serve un motivo breve. Se manca, la pagina lo dice. La riga non si cancella. Dopo il rifiuto leggi «Ora rifiutata». Le stelline delle competenze, dopo una tua validazione, si aggiornano quando agisce il manager, oppure dal ricalcolo in Gestione operai. Quando non hai più ore da validare leggi «Nessuna ora da validare» e sotto «Tutte le ore sono state validate o rifiutate».
+- Nella **validazione completa** (scheda **✅ Valida ore** → **Apri validazione completa**), i contatori **Validate** e **Rifiutate** sono gli ultimi 30 giorni, le stesse righe della lista. Puoi vedere anche le rifiutate, con chi, quando e il motivo. Puoi **correggere**, **annullare** o **rifiutare** un’ora già validata dei tuoi operai: serve un motivo breve. Se manca, la pagina lo dice. La riga non si cancella. Dopo il rifiuto leggi «Ora rifiutata». Le stelline delle competenze, dopo una tua validazione, si aggiornano quando agisce il manager, oppure dal ricalcolo in Gestione operai. Quando non hai più ore da validare leggi «Nessuna ora da validare» e sotto «Tutte le ore sono state validate o rifiutate».
 
 ---
 
@@ -244,13 +247,13 @@ Nell’ultima scheda **Statistiche** trovi il riepilogo delle **tue** ore e dell
 
 ## Mini-guida guasti segnalazione GPS e risoluzione
 
-Serve quando hai il modulo **Parco Macchine** attivo per l’azienda. Senza quel modulo molte voci sui guasti **non compaiono**.
+La segnalazione si fa dalla scheda **⚠️ Segnala un problema** del workspace, dopo **Ore** e prima di **Statistiche**, sia dal telefono sia dal computer. Nel menu **ingranaggio** la voce **Segnala guasto** non c’è più.
 
 ### Chi può inviare la segnalazione dall’app
 
-Se l’azienda ha il modulo **Parco Macchine**, la segnalazione la invii tu dal menu **ingranaggio** del workspace → **Segnala guasto**, sia dal telefono sia dal computer. Puoi segnare come guasta una macchina o un attrezzo anche se sei solo caposquadra.
-
-- Se la voce **Segnala guasto** non c’è nel menu, il modulo Parco Macchine non è attivo: **telefona / scrivi** al manager e coordina il lavoro mentre il guasto è aperto.
+- La **segnalazione generica** (frana, albero caduto, palo rotto…) c’è sempre, anche senza il modulo **Parco Macchine**: in quel caso la scheda parte già sulla segnalazione generica e la scelta della macchina non compare.  
+- Con **Parco Macchine** attivo puoi anche segnare come guasta una macchina o un attrezzo, anche se sei solo caposquadra.  
+- Se la scelta della macchina non c’è e il mezzo è rotto, **telefona / scrivi** al manager e coordina il lavoro mentre il guasto è aperto.
 
 ### Prima di compilare: gravità e sicurezza
 
@@ -261,7 +264,7 @@ Se colleghi la segnalazione a un **lavoro** e scegli **grave**, l’app può **s
 
 ### Segnalazione guasto a macchina o attrezzo
 
-1. Dal menu **ingranaggio** del workspace tocca **Segnala guasto**.  
+1. Vai alla scheda **⚠️ Segnala un problema** del workspace.  
 2. Scegli il tipo **Guasto macchina / attrezzo**.  
 3. Seleziona **trattore** e, se serve, **attrezzo** dalla lista (spesso sono quelli legati al lavoro se il sistema li precompila).  
 4. Indica il **componente** interessato (trattore, attrezzo o entrambi).  
@@ -286,7 +289,7 @@ Se colleghi la segnalazione a un **lavoro** e scegli **grave**, l’app può **s
 ### Dopo l’invio
 
 - La segnalazione risulta di solito **in attesa** finché il manager non decide.
-- Subito dopo l’invio leggi **Segnalazione inviata. Grazie.** Dal telefono torni al workspace. Quando il responsabile segna il guasto risolto, il lavoro fermo riparte.  
+- Subito dopo l’invio leggi **Segnalazione inviata. Grazie.** Resti nella scheda e trovi la segnalazione nell’elenco **I Miei Guasti Segnalati**, sotto il modulo. Quando il responsabile segna il guasto risolto, il lavoro fermo riparte.  
 - Il mezzo può risultare **in stato guasto** secondo le regole dell’app; per i non gravi a volte il mezzo resta utilizzabile con cautela finché non si interviene.
 
 ### Come si “risolve” un guasto (ruoli)
@@ -308,10 +311,11 @@ Se colleghi la segnalazione a un **lavoro** e scegli **grave**, l’app può **s
 | **Dettaglio lavoro** non carica | Connessione debole; riprova o tocca **Ingrandisci**. |
 | «Non riesco a caricare i lavori. Riprova.» | Tocca **Riprova** con una connessione migliore; se resta, chiedi al manager. |
 | «Il lavoro è stato completato il …: le ore si possono segnare fino a 7 giorni dopo il completamento e per i giorni lavorati.» | Sono passati più di 7 giorni dalla chiusura: chiedi al manager. |
-| La schermata è in rumeno o in inglese | Ingranaggio in alto → **Italiano**. |
+| La schermata è in un’altra lingua | Ingranaggio in alto → **Lingua** → **Italiano**. |
 | Dopo il login: «Non riesco ad aprire la tua area. Riprova» | Tocca **Riprova**; se resta, chiedi al manager di controllare il tuo ruolo e il modulo Manodopera. |
 | Non posso **completare** il lavoro | Spesso mancano **zone lavorate** o **ore** richieste; leggi il messaggio in schermata. |
 | **GPS** non prende la posizione | Permesso negato al browser; GPS spento sul telefono; riprova all’aperto; usa ubicazione scritta + mappa se disponibile. |
-| Non trovo **Segnala guasto** nel menu ingranaggio | Il modulo Parco Macchine non è attivo: avvisa il manager per telefono o per messaggio. |
+| Non trovo **Segnala guasto** nel menu ingranaggio | Non è più nel menu: scorri fino alla scheda **⚠️ Segnala un problema**. Se lì manca la scelta della macchina, il modulo Parco Macchine non è attivo: per un mezzo rotto avvisa il manager per telefono o per messaggio. |
+| Non trovo **Validazione ore** nel menu ingranaggio | È nella scheda **✅ Valida ore**; per la pagina intera tocca **Apri validazione completa**. |
 
 Per le funzioni generali dell’app (account, terreni, dashboard), consulta anche la **guida Core** nella documentazione utente.

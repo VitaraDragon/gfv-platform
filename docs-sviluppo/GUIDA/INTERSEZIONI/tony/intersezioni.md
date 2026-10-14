@@ -76,10 +76,10 @@ Ruoli: manager/amministratore per preventivi e pianificazione; caposquadra/opera
 
 ### 2.2 Trattamento/concimazione → scarico magazzino → tracciabilità
 
-1. Creare prima **lavoro** (**Gestione lavori** / **Manodopera**) o **attività Diario** sul terreno con categoria **Trattamenti** / **Concimazione** / **Potatura**.
-2. **Moduli** → **Vigneto** o **Frutteto** → pagina registro (**Trattamenti**, **Concimazioni**, **Potatura**) → riga in elenco → **Azioni** → completare prodotti, superficie, dosaggi.
-3. Se modulo **Magazzino** attivo: spuntare **Registra scarico in magazzino** (se previsto) al salvataggio.
-4. **Moduli** → **Magazzino** → **Movimenti** (verifica uscita) e **Tracciabilità consumi** (filtri prodotto/terreno).
+1. Creare prima **lavoro** (**Gestione lavori** / **Manodopera**) o **attività Diario** sul terreno con categoria **Trattamenti** / **Concimazione** / **Potatura**. Su un lavoro di **trattamento** il manager può indicare la **Miscela prevista** (acqua, prodotti, dose/ha); con la **capacità botte** sull’attrezzo (**Parco Macchine**) l’app calcola botti piene e ultima botte, e operaio/caposquadra la leggono nella scheda **Lavoro** in campo.
+2. **Moduli** → **Vigneto**, **Frutteto** o **Seminativo** → pagina registro (**Trattamenti**, **Concimazioni**, **Potatura**) → riga in elenco → **Azioni** → completare prodotti, superficie, dosaggi. Sui trattamenti: **registro privato** — confermare avversità, dose e carenza della scheda pubblica (**Leggi scheda** / **Conferma**), acqua usata, avvisi non bloccanti al Salva, **Esporta CSV / XML**. GFV non invia nulla al SIAN.
+3. Se modulo **Magazzino** attivo: spuntare **Registra scarico in magazzino** (se previsto) al salvataggio. I fitofarmaci in **Anagrafica prodotti** hanno il pallino di lettura scheda (giallo / verde / rosso) e conservano le conferme per coltura.
+4. **Moduli** → **Magazzino** → **Movimenti** (verifica uscita) e **Tracciabilità consumi** (filtri prodotto/terreno). Cancellare un trattamento confermato non toglie i movimenti di magazzino.
 
 Ruoli: principalmente manager/amministratore.
 

@@ -35,6 +35,12 @@ Target utili: `magazzino` (home), `carburante` (hub carburante), `prodotti`, `mo
 
 Ingresso 📷 chat (`document-capture.js`), non la lista archivio. CF `tonyExtractDocument`: due passate Gemini sui numeri; XML FatturaPA solo extra se il file è già quello. Save: `document-register.js` (bolla / fattura / scontrino). Originali: Storage + `documentiAcquisiti`. Vedi `GUIDA/TONY/tony/guida-tecnica.md` (stesso flusso, incluso HEIC/HEIF handling foto galleria iPhone).
 
+## Scheda pubblica fitofarmaci (#208/#210)
+
+- `prodotti-standalone.html`: semaforo `htmlSemaforoLetturaScheda` / `testoStatoLetturaScheda` (`shared/js/registro-trattamenti.js`, CSS `core/styles/manodopera-semaforo.css`) prima del nome, solo categoria `fitofarmaci`: `in_corso` / assente → giallo, `pronta` → verde, `da_riprovare` → rosso (`letturaSchedaMotivo` `nome_non_univoco` | `non_trovato`). Campi sola lettura `prodotto-numero-registrazione`, `prodotto-principio-attivo`, `prodotto-fonte-scheda`, `prodotto-data-lettura`.
+- `prodotti-service.js`: `CAMPI_SCHEDA_SOLO_SERVER` (`letturaSchedaStato`, `letturaSchedaMotivo`, `numeroRegistrazione`, `principioAttivo`, `fonteScheda`, `dataLetturaScheda`, `statoAmministrativoScheda`, …) tolti da create/update: li scrive solo il server. Modello `Prodotto.js` con i campi scheda e `confermeSpecie`.
+- Server (`functions/registro-trattamenti-lettura.js`): trigger `onProdottoSchedaScritto` (`tenants/{tenantId}/prodotti/{prodottoId}`) mette in coda; `leggiSchedeRegistroInCoda` ogni 5 minuti legge un fitofarmaco alla volta (open data CSV, pagina impieghi SIAN, avversità, etichetta), controllo leggero settimanale e rilettura oltre sei mesi o su `letturaSchedaRichiestaAt`. Regole e indici in `firestore.rules` / `firestore.indexes.json`. Al merge su develop non pubblicati su Firebase.
+
 ## Riassunto Tony
 
 - **`MAGAZZINO/utente/guida-sintesi.md`** → campo `guida_sintesi_magazzino` in `tony-service.js` (dedup primo turno come Core / Parco / Vigneto / Frutteto).

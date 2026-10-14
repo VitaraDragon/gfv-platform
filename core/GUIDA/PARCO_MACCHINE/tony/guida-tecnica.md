@@ -16,6 +16,10 @@
 
 Modello: `modules/parco-macchine/models/Macchina.js` (`isFlotta()`, `isManutenzioneInScadenza` / `isManutenzioneScaduta` con ramo km).
 
+## Capacità botte (#208)
+
+Attrezzi: campo facoltativo `capacitaBotteQuintali` (`Macchina.js`, validazione > 0, messaggio «La capacità della botte, se indicata, è in quintali e deve essere maggiore di zero»). Form: `#capacitaBotteQuintali` in `modules/macchine/views/attrezzi-list-standalone.html` (creazione rapida) e `#macchina-capacita-botte` (gruppo `#campo-capacita-botte-group`, visibile solo per `attrezzo`) in `core/admin/gestione-macchine-standalone.html`; dettaglio «Botte (q)». Usata da `componiMiscelaDalForm` in Gestione lavori per `miscelaPrevista` (botti piene, dose a botte piena, ultima botte).
+
 ## Pagine principali (standalone)
 
 Percorsi relativi tipici dalla root repo / hosting:
@@ -28,7 +32,7 @@ Percorsi relativi tipici dalla root repo / hosting:
 | Flotta | `modules/macchine/views/flotta-list-standalone.html` |
 | Scadenze | `modules/macchine/views/scadenze-list-standalone.html` |
 | Guasti / Officina | `modules/macchine/views/guasti-list-standalone.html` |
-| Nuova segnalazione guasto | `core/admin/segnalazione-guasti-standalone.html` (link da elenco guasti) |
+| Nuova segnalazione guasto | `core/admin/segnalazione-guasti-standalone.html` (link da elenco guasti; dal campo incorporata nella slide «⚠️ Segnala un problema» con `?from=field&embed=1`, generica anche senza questo modulo) |
 | Gestione macchine (anagrafica/manutenzioni) | `core/admin/gestione-macchine-standalone.html` |
 
 **Gestione macchine — form dinamico:** gruppi ore vs km (`gruppo-contatore-ore` / `gruppo-contatore-km`, `gruppo-manutenzione-ore` / `gruppo-manutenzione-km`); tipo **Mezzo aziendale** + sottotipo flotta; logica save in `core/admin/js/gestione-macchine-events.js`.

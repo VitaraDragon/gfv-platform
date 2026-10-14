@@ -155,7 +155,7 @@ Callable / helper `functions/email-resend.js` (Resend, mittente piattaforma): us
 
 ## Pelle Proposta (solo sotto al cofano — non in guida utente)
 
-Implementazione UI ufficio su **main**: flag `uiPelleProposta` (`feature-flags.js`, `enabledAlways: true`); `core/js/ui-pelle.js`, `ui-pelle-state.js`, `ui-pelle-icons.js`, CSS `ui-pelle-proposta.css`. Spenta su campo (`field-workspace`), login, e `data-gfv-pelle-host="0"`. **Non** spiegare all’utente skin/tema: i flussi prodotto restano gli stessi. Su develop il codice può mancare.
+Implementazione UI ufficio su **main**: flag `uiPelleProposta` (`feature-flags.js`, `enabledAlways: true`); `core/js/ui-pelle.js`, `ui-pelle-state.js`, `ui-pelle-icons.js`, CSS `ui-pelle-proposta.css`. Spenta su campo (`field-workspace`), login, e `data-gfv-pelle-host="0"`. Dal #202 spenta anche sulle pagine ufficio aperte da operaio/caposquadra (es. Impostazioni account): `nascondiShellPerProfiloCampo` in `ui-pelle-state.js` (ultimo ingresso `workspace` → niente barra; `dashboard` → barra, anche per un manager che è anche caposquadra; senza ingresso decidono i ruoli in sessione) e lo script inline in testa alle pagine non mette `data-pelle="proposta"` se `gfv_ingresso_ultimo` è `workspace`. **Non** spiegare all’utente skin/tema: i flussi prodotto restano gli stessi. Su develop il codice può mancare.
 
 ## Auth / sessione
 
