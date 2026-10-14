@@ -4728,6 +4728,19 @@ exports.registraPienoCampo = onCall(
   handleRegistraPienoCampo
 );
 
+const { handleLeggiSchedaRegistroTrattamento } = require("./registro-trattamenti-scheda");
+exports.leggiSchedaRegistroTrattamento = onCall(
+  { region: "europe-west1", timeoutSeconds: 60, memory: "512MiB" },
+  handleLeggiSchedaRegistroTrattamento
+);
+
+const {
+  onProdottoSchedaScritto,
+  leggiSchedeRegistroInCoda
+} = require("./registro-trattamenti-lettura");
+exports.onProdottoSchedaScritto = onProdottoSchedaScritto;
+exports.leggiSchedeRegistroInCoda = leggiSchedeRegistroInCoda;
+
 const { handleRegistraAccettazioniLegali } = require("./accettazione-legale");
 exports.registraAccettazioniLegali = onCall(
   { region: "europe-west1" },

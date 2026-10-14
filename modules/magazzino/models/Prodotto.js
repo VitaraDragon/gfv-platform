@@ -52,6 +52,25 @@ export class Prodotto extends Base {
     this.dosaggioMin = dMin ?? (dCons != null ? dCons : null);
     this.dosaggioMax = dMax ?? (dCons != null ? dCons : null);
     this.giorniCarenza = data.giorniCarenza !== undefined && data.giorniCarenza !== '' ? parseInt(data.giorniCarenza, 10) : null;
+    this.numeroRegistrazione = data.numeroRegistrazione != null && String(data.numeroRegistrazione).trim()
+      ? String(data.numeroRegistrazione).trim()
+      : null;
+    this.principioAttivo = data.principioAttivo != null && String(data.principioAttivo).trim()
+      ? String(data.principioAttivo).trim()
+      : null;
+    this.fonteScheda = data.fonteScheda != null && String(data.fonteScheda).trim()
+      ? String(data.fonteScheda).trim()
+      : null;
+    this.dataLetturaScheda = data.dataLetturaScheda || null;
+    this.confermeSpecie = data.confermeSpecie && typeof data.confermeSpecie === 'object' ? data.confermeSpecie : {};
+    this.letturaSchedaStato = data.letturaSchedaStato || null;
+    this.letturaSchedaMotivo = data.letturaSchedaMotivo || null;
+    this.letturaSchedaAggiornataAt = data.letturaSchedaAggiornataAt || null;
+    this.letturaSchedaRichiestaAt = data.letturaSchedaRichiestaAt || null;
+    this.letturaSchedaCompletaAt = data.letturaSchedaCompletaAt || null;
+    this.controlloSchedaAt = data.controlloSchedaAt || null;
+    this.statoAmministrativoScheda = data.statoAmministrativoScheda || null;
+    this.dataVariazioneScheda = data.dataVariazioneScheda != null ? String(data.dataVariazioneScheda) : null;
     this.note = data.note || '';
     this.attivo = data.attivo !== undefined ? !!data.attivo : true;
     /** Tony Occhi — anagrafica creata in automatico, da completare in magazzino */

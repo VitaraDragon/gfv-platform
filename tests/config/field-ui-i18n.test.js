@@ -1,12 +1,12 @@
 /**
- * Completezza del catalogo campo (step 1: testi fissi del markup).
- * BOZZA RO/EN: da rivedere da un madrelingua.
+ * Completezza del catalogo campo.
+ * BOZZA RO/EN/SQ/FR: da rivedere da un madrelingua.
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
-import { FIELD_UI_LANGS, FIELD_UI_STRINGS } from '../../core/config/field-ui-i18n.js';
+import { FIELD_UI_LANGS, FIELD_UI_LANG_OPTIONS, FIELD_UI_STRINGS } from '../../core/config/field-ui-i18n.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -38,9 +38,9 @@ function chiaviMarkup(src) {
 describe('field-ui-i18n catalogo', () => {
     const chiavi = Object.keys(FIELD_UI_STRINGS);
 
-    it('ogni chiave ha it, ro ed en, senza stringhe vuote', () => {
-        expect(FIELD_UI_LANGS).toEqual(['it', 'ro', 'en']);
-        expect(chiavi.length).toBeGreaterThan(0);
+    it('ogni chiave ha it, ro, en, sq e fr, senza stringhe vuote', () => {
+        expect(FIELD_UI_LANGS).toEqual(['it', 'ro', 'en', 'sq', 'fr']);
+        expect(chiavi.length).toBe(337);
         chiavi.forEach((key) => {
             const entry = FIELD_UI_STRINGS[key];
             FIELD_UI_LANGS.forEach((lang) => {
@@ -50,17 +50,21 @@ describe('field-ui-i18n catalogo', () => {
         });
     });
 
-    it('i segnaposto sono gli stessi in it, ro ed en', () => {
+    it('i segnaposto sono gli stessi in it, ro, en, sq e fr', () => {
         chiavi.forEach((key) => {
             const entry = FIELD_UI_STRINGS[key];
             const attesi = segnaposto(entry.it);
-            expect(segnaposto(entry.ro), key).toBe(attesi);
-            expect(segnaposto(entry.en), key).toBe(attesi);
+            FIELD_UI_LANGS.forEach((lang) => {
+                expect(segnaposto(entry[lang]), key + ' ' + lang).toBe(attesi);
+            });
         });
     });
 
     it('il markup italiano coincide con il catalogo it', () => {
-        const html = leggi('core/mobile/field-workspace-standalone.html');
+        const html = [
+            leggi('core/mobile/field-workspace-standalone.html'),
+            leggi('core/admin/segnalazione-guasti-standalone.html')
+        ].join('\n');
         const testi = [];
         const reTesto = /data-i18n="([^"]+)"[^>]*>([^<]*)</g;
         let m;
@@ -99,6 +103,33 @@ describe('field-ui-i18n catalogo', () => {
         expect(FIELD_UI_STRINGS['slide.lavoro.title'].it).toBe('Seleziona lavoro');
         expect(FIELD_UI_STRINGS['squad.sent'].it).toBe('Segnalazione inviata al manager.');
         expect(FIELD_UI_STRINGS['status.refreshed'].it).toBe('Dati aggiornati.');
+        expect(FIELD_UI_STRINGS['menu.lingua'].it).toBe('Lingua');
+        expect(FIELD_UI_STRINGS['lang.choose'].it).toBe('Scegli la lingua');
+        expect(FIELD_UI_STRINGS['lang.close'].it).toBe('Chiudi');
+    });
+
+    it('l’elenco lingue sta solo in configurazione e il menu ha una voce Lingua', () => {
+        expect(FIELD_UI_LANG_OPTIONS.map((voce) => voce.code)).toEqual(FIELD_UI_LANGS);
+        expect(FIELD_UI_LANG_OPTIONS).toEqual([
+            { code: 'it', flag: '🇮🇹', name: 'Italiano' },
+            { code: 'ro', flag: '🇷🇴', name: 'Română' },
+            { code: 'en', flag: '🇬🇧', name: 'English' },
+            { code: 'sq', flag: '🇦🇱', name: 'Shqip' },
+            { code: 'fr', flag: '🇫🇷', name: 'Français' }
+        ]);
+        const html = leggi('core/mobile/field-workspace-standalone.html');
+        expect(html).not.toContain('field-lang-switch');
+        expect(html).not.toContain('data-field-lang=');
+        expect(html).toContain('data-i18n="menu.lingua"');
+        expect(html).toContain('data-i18n="lang.choose"');
+        expect(html).toContain('data-i18n="lang.close"');
+        expect(html).toContain('role="dialog"');
+        const ctrl = leggi('core/mobile/js/field-workspace-controller.js');
+        expect(ctrl).toContain('FIELD_UI_LANG_OPTIONS');
+        expect(ctrl).toContain("return 'sq-AL'");
+        expect(ctrl).toContain("return 'fr-FR'");
+        expect(ctrl).not.toContain('Shqip');
+        expect(ctrl).not.toContain('Français');
     });
 
     it('controller, helper UI e HTML usano solo chiavi del catalogo', () => {
@@ -106,7 +137,9 @@ describe('field-ui-i18n catalogo', () => {
             ...chiaviChiamate(leggi('core/mobile/js/field-workspace-controller.js')),
             ...chiaviChiamate(leggi('core/mobile/js/pieno-campo-ui.js')),
             ...chiaviChiamate(leggi('core/mobile/js/field-ore-riquadro.js')),
-            ...chiaviMarkup(leggi('core/mobile/field-workspace-standalone.html'))
+            ...chiaviMarkup(leggi('core/mobile/field-workspace-standalone.html')),
+            ...chiaviChiamate(leggi('core/admin/segnalazione-guasti-standalone.html')),
+            ...chiaviMarkup(leggi('core/admin/segnalazione-guasti-standalone.html'))
         ];
         const sconosciute = usate.filter((key) => !FIELD_UI_STRINGS[key]);
         expect(sconosciute).toEqual([]);
@@ -117,13 +150,14 @@ describe('field-ui-i18n catalogo', () => {
         const src = [
             leggi('core/mobile/js/field-workspace-controller.js'),
             leggi('core/mobile/js/pieno-campo-ui.js'),
-            leggi('core/mobile/js/field-ore-riquadro.js')
+            leggi('core/mobile/js/field-ore-riquadro.js'),
+            leggi('core/admin/segnalazione-guasti-standalone.html')
         ].join('\n');
         const dinamiche = src.match(/\bt\(\s*[^'"\s)/]/g) || [];
         expect(dinamiche).toEqual([]);
     });
 
-    it('data-slide-title del workspace resta sui cinque valori attuali', () => {
+    it('data-slide-title del workspace: Guasto dopo Ore e prima di Statistiche', () => {
         const html = leggi('core/mobile/field-workspace-standalone.html');
         const titoli = [];
         const re = /data-slide-title="([^"]+)"/g;
@@ -135,6 +169,7 @@ describe('field-ui-i18n catalogo', () => {
             'Comunicazioni',
             'Valida ore',
             'Ore',
+            'Guasto',
             'Statistiche'
         ]);
     });

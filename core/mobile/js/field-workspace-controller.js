@@ -19,7 +19,6 @@ import { formatOreNette } from '../../js/attivita-utils.js';
 import { showAlert } from '../../js/gfv-page-utils.js';
 import {
     voceCambiaAziendaVisibile,
-    vociMenuCampo,
     menuCampoAbilitato,
 } from './field-menu-visibility.js';
 import { urlDettaglioLavoroIncorporato } from './field-lavori-embed.js';
@@ -101,12 +100,14 @@ import {
 } from '../../services/lavoro-delete-cascade.js';
 import { isOraDelCaposquadraSuLavoroSquadra } from '../../services/manodopera-ore-validazione-scope.js';
 import { syncPienoCampoSection, testoSegnapostoPieno } from './pieno-campo-ui.js';
+import { htmlMiscelaCampo } from '../../../shared/js/registro-trattamenti-campo.js';
 import { applicaLingua } from './field-ui-i18n-dom.js';
 import {
     t,
     leggiLinguaCampo,
     salvaLinguaCampo,
-    normalizzaLingua
+    normalizzaLingua,
+    FIELD_UI_LANG_OPTIONS
 } from '../../services/field-ui-i18n.js';
 
 const {
@@ -139,6 +140,7 @@ const oraBreakEl = document.getElementById('ora-break');
 const oraNoteEl = document.getElementById('ora-note');
 const lavoriDetailFrameEl = document.getElementById('lavori-detail-frame');
 const statsEmbedFrameEl = document.getElementById('stats-embed-frame');
+const guastoEmbedFrameEl = document.getElementById('guasto-embed-frame');
 const btnIngrandisciLavoroEl = document.getElementById('btn-ingrandisci-lavoro');
 const segnalaRiquadroOreNonLeggibile = creaSegnalatoreRiquadroOre((messaggio, passo, codice) => {
     console.warn(messaggio, passo, codice);
@@ -155,8 +157,6 @@ const lavoroSostitutoBannerEl = document.getElementById('lavoro-sostituto-banner
 const pendingHoursListEl = document.getElementById('pending-hours-list');
 const pendingHoursAllListEl = document.getElementById('pending-hours-all-list');
 const btnRefreshPendingHoursEl = document.getElementById('btn-refresh-pending-hours');
-const fieldValidazioneOreLinkEl = document.getElementById('field-validazione-ore-link');
-const fieldSegnalaGuastoLinkEl = document.getElementById('field-segnala-guasto-link');
 const fieldSwitchTenantButtonEl = document.getElementById('field-switch-tenant-button');
 const fieldLogoutButtonEl = document.getElementById('field-logout-button');
 const sentCommunicationsListEl = document.getElementById('sent-communications-list');
@@ -207,8 +207,6 @@ function etichettaSquadraVisibile() {
 }
 let userIsOperaio = false;
 let workspacePronto = false;
-let menuRuoliCampo = [];
-let menuModuliCampo = [];
 let menuNumeroAziende = 0;
 let statsEmbedTimer = null;
 let editingOraId = '';
@@ -278,11 +276,58 @@ function linguaCorrente() {
     return leggiLinguaCampo(storageCampo());
 }
 
+function disegnaElencoLingue() {
+    const list = document.getElementById('field-lang-list');
+    if (!list || list.dataset.pronto === '1') return;
+    list.dataset.pronto = '1';
+    FIELD_UI_LANG_OPTIONS.forEach((voce) => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.setAttribute('data-field-lang', voce.code);
+        btn.style.cssText = 'display:flex;align-items:center;gap:12px;width:100%;min-height:48px;padding:12px 16px;font-size:18px;text-align:left;border:0;border-radius:8px;background:transparent;cursor:pointer;';
+        const flag = document.createElement('span');
+        flag.textContent = voce.flag;
+        flag.setAttribute('aria-hidden', 'true');
+        const name = document.createElement('span');
+        name.textContent = voce.name;
+        const mark = document.createElement('span');
+        mark.className = 'field-lang-check';
+        mark.style.marginLeft = 'auto';
+        btn.append(flag, name, mark);
+        btn.addEventListener('click', () => {
+            impostaLinguaCampo(voce.code);
+            chiudiDialogoLingua();
+        });
+        list.appendChild(btn);
+    });
+    aggiornaPulsantiLingua(linguaCorrente());
+}
+
+function apriDialogoLingua() {
+    const dlg = document.getElementById('field-lang-dialog');
+    if (!dlg) return;
+    disegnaElencoLingue();
+    aggiornaPulsantiLingua(linguaCorrente());
+    dlg.hidden = false;
+    dlg.style.display = 'flex';
+}
+
+function chiudiDialogoLingua() {
+    const dlg = document.getElementById('field-lang-dialog');
+    if (!dlg) return;
+    dlg.hidden = true;
+    dlg.style.display = '';
+}
+
 function aggiornaPulsantiLingua(lang) {
-    if (!optionsMenuEl) return;
+    const list = document.getElementById('field-lang-list');
+    if (!list) return;
     const lingua = normalizzaLingua(lang);
-    optionsMenuEl.querySelectorAll('[data-field-lang]').forEach((btn) => {
-        btn.setAttribute('aria-pressed', btn.getAttribute('data-field-lang') === lingua ? 'true' : 'false');
+    list.querySelectorAll('[data-field-lang]').forEach((btn) => {
+        const attivo = btn.getAttribute('data-field-lang') === lingua;
+        btn.setAttribute('aria-pressed', attivo ? 'true' : 'false');
+        const mark = btn.querySelector('.field-lang-check');
+        if (mark) mark.textContent = attivo ? '✓' : '';
     });
 }
 
@@ -297,6 +342,17 @@ function impostaLinguaCampo(lang) {
         updateFieldHeaderUser(displayName, currentUserData.ruoli);
     }
     ridisegnaTestiInMemoria();
+    avvisaIframeGuasto(lingua);
+}
+
+function avvisaIframeGuasto(lingua) {
+    const frame = document.getElementById('guasto-embed-frame');
+    if (!frame || !frame.contentWindow) return;
+    try {
+        frame.contentWindow.postMessage({ type: 'gfv-field-lang', lang: lingua }, window.location.origin);
+    } catch (error) {
+        /* iframe non ancora pronto */
+    }
 }
 
 function ridisegnaTestiInMemoria() {
@@ -505,10 +561,19 @@ function onMessaggioStatistiche(event) {
     }
 }
 
+function ensureGuastoEmbedLoaded() {
+    if (!guastoEmbedFrameEl || guastoEmbedFrameEl.dataset.loaded === '1') return;
+    guastoEmbedFrameEl.dataset.loaded = '1';
+    guastoEmbedFrameEl.src = '../admin/segnalazione-guasti-standalone.html?from=field&embed=1';
+}
+
 function maybeLoadEmbedsForSlide(slideTitle) {
     const title = String(slideTitle || '').trim();
     if (title === 'Statistiche') {
         ensureStatsEmbedLoaded();
+    }
+    if (title === 'Guasto') {
+        ensureGuastoEmbedLoaded();
     }
     if (title === 'Ore') {
         updateLavoriDetailEmbed(true);
@@ -558,6 +623,9 @@ function findSlideIndexByToken(token) {
         }
         if (normalized === 'statistiche' || normalized === 'statistiche-lavoratore' || normalized === 'statistiche lavoratore') {
             return title === 'statistiche';
+        }
+        if (normalized === 'guasto' || normalized === 'segnala-guasto' || normalized === 'segnalazione-guasti' || normalized === 'segnalazione guasti') {
+            return title === 'guasto';
         }
         return title === normalized;
     });
@@ -1005,7 +1073,17 @@ async function refreshSquadraConSostituto() {
     renderSquadList(label, members);
 }
 
+function syncMiscelaCampo() {
+    const host = document.getElementById('miscela-lavoro-campo');
+    if (!host) return;
+    const miscela = selectedWork && selectedWork.raw ? selectedWork.raw.miscelaPrevista : null;
+    const html = htmlMiscelaCampo(miscela, (key, params) => t(key, linguaCorrente(), params));
+    host.innerHTML = html;
+    host.hidden = !html;
+}
+
 function syncLavoroOperativoEmbeds() {
+    syncMiscelaCampo();
     syncPienoCampoSection({
         db: getDb(),
         tenantId: currentTenantId,
@@ -1046,6 +1124,8 @@ function localeCampo() {
     const lang = linguaCorrente();
     if (lang === 'ro') return 'ro-RO';
     if (lang === 'en') return 'en-GB';
+    if (lang === 'sq') return 'sq-AL';
+    if (lang === 'fr') return 'fr-FR';
     return 'it-IT';
 }
 
@@ -2533,17 +2613,6 @@ function bindPullToRefresh() {
 }
 
 function aggiornaVociMenuCampo() {
-    const voci = vociMenuCampo({
-        ruoli: menuRuoliCampo,
-        moduli: menuModuliCampo,
-        numeroAziende: menuNumeroAziende,
-    });
-    if (fieldValidazioneOreLinkEl) {
-        fieldValidazioneOreLinkEl.hidden = !voci.validazioneOre;
-    }
-    if (fieldSegnalaGuastoLinkEl) {
-        fieldSegnalaGuastoLinkEl.hidden = !voci.segnalaGuasto;
-    }
     if (fieldSwitchTenantButtonEl) {
         fieldSwitchTenantButtonEl.hidden = !voceCambiaAziendaVisibile(menuNumeroAziende);
     }
@@ -2557,7 +2626,7 @@ function applicaStatoMenuCampo(pronto) {
     if (preparing) preparing.hidden = abilitato;
     if (!optionsMenuEl) return;
     optionsMenuEl.querySelectorAll('.field-options-link').forEach((el) => {
-        if (el.id === 'field-logout-button' || el.hasAttribute('data-field-lang')) {
+        if (el.id === 'field-logout-button' || el.id === 'field-lang-open') {
             el.removeAttribute('aria-disabled');
             return;
         }
@@ -2630,12 +2699,26 @@ async function setupFieldTenantSwitch(userId) {
 }
 
 function bindToolbar() {
-    if (optionsMenuEl) {
-        optionsMenuEl.querySelectorAll('[data-field-lang]').forEach((btn) => {
-            btn.addEventListener('click', (event) => {
-                event.preventDefault();
-                impostaLinguaCampo(btn.getAttribute('data-field-lang'));
-            });
+    const langOpenEl = document.getElementById('field-lang-open');
+    const langDialogEl = document.getElementById('field-lang-dialog');
+    disegnaElencoLingue();
+    if (langOpenEl) {
+        langOpenEl.addEventListener('click', (event) => {
+            event.preventDefault();
+            apriDialogoLingua();
+        });
+    }
+    if (langDialogEl) {
+        langDialogEl.addEventListener('click', (event) => {
+            event.stopPropagation();
+            if (event.target === langDialogEl) chiudiDialogoLingua();
+        });
+        const langCloseEl = langDialogEl.querySelector('[data-field-lang-close]');
+        if (langCloseEl) {
+            langCloseEl.addEventListener('click', () => chiudiDialogoLingua());
+        }
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && !langDialogEl.hidden) chiudiDialogoLingua();
         });
     }
     if (fieldLogoutButtonEl) {
@@ -2653,7 +2736,7 @@ function bindToolbar() {
             const target = event.target instanceof Element
                 ? event.target.closest('.field-options-link')
                 : null;
-            if (!target || target.id === 'field-logout-button' || target.hasAttribute('data-field-lang')) return;
+            if (!target || target.id === 'field-logout-button' || target.id === 'field-lang-open') return;
             if (!menuCampoAbilitato(workspacePronto)) {
                 event.preventDefault();
                 event.stopPropagation();
@@ -2895,17 +2978,14 @@ async function initFieldWorkspace() {
                     inlineSegnalaAssenzaSectionEl.hidden = !isCaposquadra;
                 }
                 setupSlidesForRole(isCaposquadra);
-                // Ordine caposquadra richiesto:
-                // Seleziona lavoro (+ squadra inline) -> Comunicazioni -> Segna ore -> I miei lavori -> Statistiche
-                menuRuoliCampo = normalizedRoles;
-                menuModuliCampo = availableModules;
+                // Ordine: Lavoro, Comunicazioni, (Valida ore se capo), Segna ore, Guasto, Statistiche.
                 aggiornaVociMenuCampo();
                 await setupFieldTenantSwitch(user.uid);
                 applicaStatoMenuCampo(true);
                 if (isCaposquadra || isOperaio) {
                     const order = isCaposquadra
-                        ? ['Lavoro', 'Comunicazioni', 'Valida ore', 'Ore', 'Statistiche']
-                        : ['Lavoro', 'Comunicazioni', 'Ore', 'Statistiche'];
+                        ? ['Lavoro', 'Comunicazioni', 'Valida ore', 'Ore', 'Guasto', 'Statistiche']
+                        : ['Lavoro', 'Comunicazioni', 'Ore', 'Guasto', 'Statistiche'];
                     activeSlides.sort((a, b) => order.indexOf(a.dataset.slideTitle) - order.indexOf(b.dataset.slideTitle));
                     activeSlides.forEach((slide) => swiperEl.appendChild(slide));
                 }

@@ -4,13 +4,15 @@
  * @module core/services/field-ui-i18n
  */
 
-import { FIELD_UI_LANGS, FIELD_UI_STRINGS } from '../config/field-ui-i18n.js';
+import { FIELD_UI_LANGS, FIELD_UI_LANG_OPTIONS, FIELD_UI_STRINGS } from '../config/field-ui-i18n.js';
+
+export { FIELD_UI_LANG_OPTIONS };
 
 export const FIELD_LANG_STORAGE_KEY = 'gfv_field_lang';
 
 /**
  * @param {unknown} v
- * @returns {'it'|'ro'|'en'}
+ * @returns {'it'|'ro'|'en'|'sq'|'fr'}
  */
 export function normalizzaLingua(v) {
     const s = String(v == null ? '' : v).trim().toLowerCase();
@@ -49,7 +51,7 @@ export function t(key, lang, params) {
 
 /**
  * @param {{ getItem?: (k: string) => string|null }|null|undefined} storage
- * @returns {'it'|'ro'|'en'}
+ * @returns {'it'|'ro'|'en'|'sq'|'fr'}
  */
 export function leggiLinguaCampo(storage) {
     try {
@@ -63,7 +65,7 @@ export function leggiLinguaCampo(storage) {
 /**
  * @param {string} lang
  * @param {{ setItem?: (k: string, v: string) => void }|null|undefined} storage
- * @returns {'it'|'ro'|'en'}
+ * @returns {'it'|'ro'|'en'|'sq'|'fr'}
  */
 export function salvaLinguaCampo(lang, storage) {
     const lingua = normalizzaLingua(lang);

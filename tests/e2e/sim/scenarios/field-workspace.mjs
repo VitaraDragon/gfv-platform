@@ -50,11 +50,20 @@ export async function runOperaioFieldWorkspaceAssertions(page, expect) {
   await page.locator('#btn-open-options').click();
   await expect(page.locator('#field-options-menu')).toBeVisible();
   const displayNascosto = await page.evaluate(() => ({
-    validazione: getComputedStyle(document.getElementById('field-validazione-ore-link')).display,
+    validazione: document.getElementById('field-validazione-ore-link'),
+    guasto: document.getElementById('field-segnala-guasto-link'),
     cambia: getComputedStyle(document.getElementById('field-switch-tenant-button')).display,
   }));
-  expect(displayNascosto.validazione).toBe('none');
+  expect(displayNascosto.validazione).toBeNull();
+  expect(displayNascosto.guasto).toBeNull();
   expect(displayNascosto.cambia).toBe('none');
+
+  const titoliOperaio = await page.evaluate(() => (
+    Array.from(document.querySelectorAll('.field-slide'))
+      .filter((slide) => !slide.hidden)
+      .map((slide) => slide.dataset.slideTitle)
+  ));
+  expect(titoliOperaio).toEqual(['Lavoro', 'Comunicazioni', 'Ore', 'Guasto', 'Statistiche']);
 }
 
 /** Assert workspace caricato per ruolo caposquadra (+ sezioni capo). */
@@ -92,6 +101,13 @@ export async function runCapoFieldWorkspaceAssertions(page, expect) {
   await expect(pendingAll).toBeAttached();
   const pendingText = (await pendingAll.textContent()) || '';
   expect(pendingText).not.toMatch(/Caricamento ore da validare/i);
+
+  const titoliCapo = await page.evaluate(() => (
+    Array.from(document.querySelectorAll('.field-slide'))
+      .filter((slide) => !slide.hidden)
+      .map((slide) => slide.dataset.slideTitle)
+  ));
+  expect(titoliCapo).toEqual(['Lavoro', 'Comunicazioni', 'Valida ore', 'Ore', 'Guasto', 'Statistiche']);
 }
 
 /** Scenario completo: operaio poi capo (login persona dedicato per sub-flow). */

@@ -1,6 +1,58 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-11 — Lingua del campo, cornice del workspace.**
+**Ultimo aggiornamento documentazione: 2026-10-13 — Registro, passi 1–5 nel codice, non ancora pubblicati.**
+
+## 2026-10-13 — Registro: lettura in anagrafica, in coda
+
+Un fitofarmaco nuovo, o rinominato, passa a «lettura in corso» senza aspettare il Ministero. La coda ne legge uno ogni cinque minuti, anche fra quelli già in anagrafica. In elenco, accanto al nome, c'è il semaforo: verde se la scheda è letta, giallo se la lettura è in corso o in attesa, rosso se non è letta. Il verde arriva solo se, per ogni coltura, c'è almeno un nome di avversità letto dalla banca. Non c'è un pulsante nuovo e non c'è una frase da seguire. «Leggi scheda» sul trattamento resta finché la coda non è pubblicata. Folpan e Folpan Gold restano due numeri: se il nome ne tocca più di uno, lo stato è «da riprovare» e non si sceglie. Le colture stanno nella sottocollezione `schedaImpieghi`, non nel documento che carica l'elenco. La dose si scrive solo se l'etichetta la lega a quella coltura. Sul lavoro, se la scheda è pronta, il menu propone le avversità della coltura del campo e la dose minima e massima. Più finestre restano in scelta. La conferma è per coltura, epoca e avversità. La stessa coda, una volta a settimana, confronta numero, stato amministrativo e data di revoca o di scadenza: nel file del Ministero non c'è una colonna «data di variazione». Rilegge la scheda intera solo se uno di quelli cambia, o comunque entro sei mesi. I trattamenti già salvati non si riscrivono. La vite in banca, letta su Sivanto Prime, è tre righe: il vino del campo va su «vite da vino», l’uva da tavola su «vite da tavola». La riga «VITE» da sola e l’uva spina non si propongono. Il nome deve coincidere per intero. Le funzioni `onProdottoSchedaScritto` e `leggiSchedeRegistroInCoda` sono nel codice e non sono pubblicate. Le regole permettono la lettura della sottocollezione e non la scrittura dal browser: non sono pubblicate.
+
+## 2026-10-13 — Registro: la scheda si legge in anagrafica
+
+Il piano `docs-sviluppo/da-fare/vigneto/PIANO_REGISTRO_TRATTAMENTI.md` ha le decisioni del pomeriggio. I passi 1, 2, 3, 4 e 5 sono il codice della voce sopra. La funzione `leggiSchedaRegistroTrattamento` è pubblicata e legge solo nome, numero e principio attivo.
+
+## 2026-10-13 — Registro privato dei trattamenti
+
+Vigneto, frutteto e seminativo usano lo stesso registro di compilazione. Sul prodotto restano numero di registrazione, principio attivo, fonte e data di lettura, compilati dalla conferma. La lettura è la funzione `leggiSchedaRegistroTrattamento`, pubblicata: oggi legge solo nome, numero e principio attivo. Se la scheda impieghi non si legge, non si inventano avversità e carenza. La specie del campo filtra le righe; se manca o non è mappata, non si propone nulla. Sull’attrezzo con botte c’è la capacità in quintali. Sul lavoro di trattamento c’è la miscela prevista, visibile nel workspace di campo. Gli avvisi su impieghi, intervallo e diluizione lasciano salvare. L’export CSV o XML resta dell’azienda. Un trattamento confermato da meno di tre anni chiede l’export prima della cancellazione. I movimenti di magazzino collegati restano. Nessuna modifica a `firestore.rules`. La funzione è stata pubblicata dopo, e legge solo l’anagrafica del prodotto.
+
+## 2026-10-13 — Piano del registro trattamenti
+
+Il piano è in `docs-sviluppo/da-fare/vigneto/PIANO_REGISTRO_TRATTAMENTI.md`. Il codice è quello della voce sopra.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-12 — Francese e traduzione della scheda guasti.**
+
+## 2026-10-12 — Francese e scheda guasti tradotta
+
+Nel workspace di campo, dal menu Lingua, si può scegliere anche il francese. La scheda «Segnala un problema» traduce il form (tipo, macchina, pericolo sul terreno, gravità, GPS, invio e l’elenco dei guasti già caricati). I nomi di macchine, lavori e i testi scritti dall’utente restano come sono. Il francese, come rumeno, inglese e albanese, è una bozza da rivedere da un madrelingua. La lingua resta solo sul telefono (`gfv_field_lang`). Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-12 — Scheda guasto nel workspace, anche senza Parco Macchine.**
+
+## 2026-10-12 — Scheda per segnalare un problema, dopo Segna ore
+
+Nel workspace, per operaio e caposquadra, dopo Segna ore e prima di Statistiche c’è «Segnala un problema». È lo stesso form di prima. Senza Parco Macchine si vede solo la segnalazione generica (frana, albero caduto, palo rotto, e gli altri pericoli sul terreno). Con il modulo resta anche il guasto a macchina o attrezzo. Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-12 — Menu campo senza validazione e guasti, niente barra moduli.**
+
+## 2026-10-12 — Operaio e caposquadra: menu e barra moduli
+
+Nel menu ⚙️ del workspace non ci sono più «Validazione ore (schermo intero)» e «Segnala guasto». Restano guida, impostazioni account, cambio azienda (se ce n’è più di una) ed esci. La validazione sul telefono resta la scheda del caposquadra. La barra nera con graffetta, mappa e ingranaggio non si monta per chi è entrato nel workspace, né per un operaio o caposquadra senza ruolo manager. Il manager, anche se è pure caposquadra, la tiene. Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-12 — Albanese nel workspace di campo.**
+
+## 2026-10-12 — Workspace campo: albanese e voce Lingua
+
+Nel menu ⚙️ c’è una voce Lingua. Si apre un elenco con Italiano, Română, English e Shqip. Con italiano la pagina resta uguale a prima. L’albanese è una bozza da rivedere da un madrelingua. La scelta resta sul telefono, non sul profilo. Arabo e punjabi restano fuori.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-11 — Lingua del campo, cornice del workspace.**
 
 ## 2026-10-11 — Workspace campo: testi rimasti (passo 2)
 

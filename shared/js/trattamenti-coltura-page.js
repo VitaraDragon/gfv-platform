@@ -9,6 +9,28 @@ import { formatDateLikeToItalianLongLocal } from '../../core/js/date-format-it.j
 import { showAlert } from '../../core/js/gfv-page-utils.js';
 import { resolvePath, getBasePath } from '../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../core/js/simulator-standalone-page.js';
+import { colturaSchedaRegistro, aliasColturaScheda } from '../../core/config/registro-trattamenti-specie.js';
+import {
+    aziendaDaTenant,
+    registroToCsv,
+    registroToXml,
+    righeExportRegistro,
+    unisciConfermaSpecie,
+    valutaCancellazioneRegistro,
+    rangeDoseAvviso
+} from './registro-trattamenti.js';
+import {
+    attaccaLetturaScheda,
+    bindAcquaCampi,
+    htmlMetaRegistro,
+    leggiAcquaDalForm,
+    leggiRegistroRiga,
+    messaggiAvvisoForm,
+    notaRegistroTesto,
+    scriviAcquaNelForm,
+    scriviEsitoScheda
+} from './registro-trattamenti-form.js';
+import { chiediRiletturaScheda, leggiRigheSchedaProdotto, leggiSchedaRegistroTrattamento } from './registro-trattamenti-scheda-client.js';
 
 export async function mountTrattamentiColturaPage(cfg) {
     try {
@@ -132,6 +154,7 @@ let isDrawingPolygonTrattamento = false;
 const SNAP_DISTANCE_METERS_TRATTAMENTO = 5;
 const VERTEX_SNAP_DISTANCE_METERS_TRATTAMENTO = 8;
 let listProdottiAnagrafica = [];
+let utenteRegistroNome = '';
 let hasMagazzinoModule = false;
 /** Superficie terreno (ha) da anagrafe, per checkbox "tutto il terreno" */
 let cachedTerrenoSuperficieHa = null;
@@ -249,6 +272,7 @@ function renderProdottiTrattamento(rows, prodottiAnagrafica) {
                     <option value="">— Seleziona o Altro —</option>${opts}
                 </select>
                 <input type="text" class="prodotto-nome-altro" data-idx="${idx}" placeholder="Nome se Altro" value="${isAltro ? (r.prodotto || '').replace(/"/g, '&quot;') : ''}" style="margin-top: 4px; width: 100%; max-width: 180px; display: ${isAltro ? 'block' : 'none'};">
+                ${htmlMetaRegistro(r)}
             </td>
             <td style="padding: 6px 8px;"><input type="number" class="prodotto-dosaggio" data-idx="${idx}" min="0" step="0.01" value="${(r.dosaggio != null && Number.isFinite(Number(r.dosaggio))) ? r.dosaggio : ''}" style="width: 65px; max-width: 75px; box-sizing: border-box;"></td>
             <td style="padding: 6px 8px;"><span class="prodotto-unita" data-idx="${idx}">${unita}</span></td>
@@ -290,6 +314,33 @@ function renderProdottiTrattamento(rows, prodottiAnagrafica) {
             renderProdottiTrattamento(currentRows.length ? currentRows : [{ prodottoId: null, prodotto: '', dosaggio: null, unitaDosaggio: null, quantita: null, costo: 0 }]);
         });
     });
+    attaccaLetturaScheda({
+        tbody,
+        specie: specieSchedaCorrente,
+        alias: () => aliasColturaScheda(specieSchedaCorrente() || ''),
+        nomeProdotto: (idx) => {
+            const rowsNow = getProdottiRowsFromTable();
+            const row = rowsNow[Number(idx)];
+            return row ? row.prodotto : '';
+        },
+        prodotto: (idx) => {
+            const rowsNow = getProdottiRowsFromTable();
+            const row = rowsNow[Number(idx)];
+            return row && row.prodottoId ? listProdottiAnagrafica.find((p) => p.id === row.prodottoId) : null;
+        },
+        leggiScheda: leggiSchedaRegistroTrattamento,
+        leggiRighe: (anag) => leggiRigheSchedaProdotto(anag && anag.id),
+        chiediRilettura: (anag) => chiediRiletturaScheda(anag && anag.id),
+        utente: () => utenteRegistroNome,
+        salvaSuProdotto: salvaConfermaProdotto,
+        onConferma: (idx, registro) => {
+            const rowsNow = getProdottiRowsFromTable();
+            const i = Number(idx);
+            if (!rowsNow[i]) return;
+            Object.assign(rowsNow[i], registro);
+            renderProdottiTrattamento(rowsNow);
+        }
+    });
     aggiornaTotaleCostoProdotti();
     aggiornaGiorniCarenzaDaProdotti();
 }
@@ -312,7 +363,8 @@ function getProdottiRowsFromTable() {
         const quantita = (dosaggio != null && superficie > 0) ? dosaggio * superficie : null;
         const prodAnag = listProdottiAnagrafica.find(p => p.id === prodottoId);
         const unitaDosaggio = prodAnag?.unitaMisura || null;
-        rows.push({ prodottoId: prodottoId || null, prodotto, dosaggio, unitaDosaggio, quantita, costo });
+        const registro = leggiRegistroRiga(tr);
+        rows.push({ prodottoId: prodottoId || null, prodotto, dosaggio, unitaDosaggio, quantita, costo, ...registro });
     });
     return rows;
 }
@@ -328,10 +380,11 @@ function validaDosaggiProdotti(rowsProdotti) {
         const prod = listProdottiAnagrafica.find(p => p.id === r.prodottoId);
         if (!prod) continue;
         const nome = (r.prodotto || prod.nome || prod.codice || '').trim() || 'Prodotto';
-        if (prod.dosaggioMax != null && r.dosaggio > prod.dosaggioMax) {
+        const range = rangeDoseAvviso(r, prod);
+        if (range.max != null && r.dosaggio > range.max) {
             return { valid: false, message: 'Dosaggio superiore al consigliato per ' + nome + '.' };
         }
-        if (prod.dosaggioMin != null && r.dosaggio < prod.dosaggioMin) {
+        if (range.min != null && r.dosaggio < range.min) {
             return { valid: false, message: 'Dosaggio inferiore al consigliato per ' + nome + '.' };
         }
     }
@@ -343,6 +396,100 @@ function validaDosaggiProdotti(rowsProdotti) {
  * @param {Object} row - Riga lista (row.trattamento.prodotti)
  * @returns {{ hasWarning: boolean, tooltip: string }}
  */
+function specieSchedaCorrente() {
+    const colturaId = document.getElementById(cfg.hiddenId)?.value || document.getElementById(cfg.selectId)?.value;
+    const record = colture.find((v) => v.id === colturaId);
+    if (!record) return null;
+    return colturaSchedaRegistro({
+        modulo: cfg.modulo,
+        destinazioneUva: record.destinazioneUva,
+        specie: record.specie,
+        colturaNome: record.colturaNome
+    });
+}
+
+function terrenoIdCorrente() {
+    const colturaId = document.getElementById(cfg.hiddenId)?.value || document.getElementById(cfg.selectId)?.value;
+    const record = colture.find((v) => v.id === colturaId);
+    return record && record.terrenoId ? record.terrenoId : null;
+}
+
+async function salvaConfermaProdotto(anag, specie, registro) {
+    if (!anag || !anag.id) return;
+    const { getDb, doc, updateDoc } = await import(resolvePath('../../../core/services/firebase-service.js'));
+    const { getCurrentTenantId } = await import(resolvePath('../../../core/services/tenant-service.js'));
+    const tenantId = getCurrentTenantId();
+    if (!tenantId) return;
+    const payload = unisciConfermaSpecie(anag, specie, registro);
+    await updateDoc(doc(getDb(), 'tenants', tenantId, 'prodotti', anag.id), payload);
+    Object.assign(anag, payload);
+}
+
+function passaggiDallaLista(escludiId) {
+    const terrenoId = terrenoIdCorrente();
+    return listRows.filter((row) => row.trattamento && row.trattamento.id !== escludiId).flatMap((row) => {
+        const t = row.trattamento;
+        return (t.prodotti || []).map((p) => ({
+            id: t.id,
+            data: t.data || row.data,
+            terrenoId: row.terrenoId || terrenoId,
+            prodottoId: p.prodottoId,
+            nome: p.prodotto
+        }));
+    });
+}
+
+async function esportaRegistro(formato) {
+    const { getDb, doc, getDoc } = await import(resolvePath('../../../core/services/firebase-service.js'));
+    const { getCurrentTenantId } = await import(resolvePath('../../../core/services/tenant-service.js'));
+    const tenantId = getCurrentTenantId();
+    let azienda = {};
+    if (tenantId) {
+        const snap = await getDoc(doc(getDb(), 'tenants', tenantId));
+        if (snap.exists()) azienda = aziendaDaTenant(snap.data() || {});
+    }
+    const interventi = listRows.filter((row) => row.trattamento).map((row) => {
+        const t = row.trattamento;
+        const record = colture.find((v) => v.id === row[cfg.idKey]);
+        const dataVal = t.data instanceof Date ? t.data : (t.data && t.data.toDate ? t.data.toDate() : new Date(t.data || row.data));
+        const iso = dataVal && !Number.isNaN(dataVal.getTime()) ? dataVal.toISOString().slice(0, 10) : '';
+        return {
+            ...azienda,
+            data: iso,
+            terreno: row.terrenoLabel || '',
+            coltura: specieSchedaDaRecord(record) || '',
+            varieta: record && record.varieta ? record.varieta : '',
+            ettari: t.superficieTrattata,
+            operatore: t.operatore || '',
+            macchina: t.macchinaId || '',
+            acquaEttolitriTotali: t.acquaEttolitriTotali,
+            acquaEttolitriPerEttaro: t.acquaEttolitriPerEttaro,
+            giorniCarenza: t.giorniCarenza,
+            specie: t.specieUsata || specieSchedaDaRecord(record) || '',
+            prodotti: t.prodotti || []
+        };
+    });
+    const righe = righeExportRegistro(interventi);
+    const testo = formato === 'xml' ? registroToXml(righe) : registroToCsv(righe);
+    const blob = new Blob([testo], { type: formato === 'xml' ? 'application/xml' : 'text/csv;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'registro-trattamenti.' + (formato === 'xml' ? 'xml' : 'csv');
+    a.click();
+    URL.revokeObjectURL(a.href);
+    showAlert('Export del registro privato scaricato. GFV non lo invia al SIAN.', 'success');
+}
+
+function specieSchedaDaRecord(record) {
+    if (!record) return null;
+    return colturaSchedaRegistro({
+        modulo: cfg.modulo,
+        destinazioneUva: record.destinazioneUva,
+        specie: record.specie,
+        colturaNome: record.colturaNome
+    });
+}
+
 function avvisoDosaggioTrattamento(row) {
     const t = row && row.trattamento;
     if (!t || !t.prodotti || !listProdottiAnagrafica.length) return { hasWarning: false, tooltip: '' };
@@ -355,6 +502,15 @@ function avvisoDosaggioTrattamento(row) {
         if (prod.dosaggioMax != null && p.dosaggio > prod.dosaggioMax) messaggi.push('Dosaggio superiore al consigliato per ' + nome);
         if (prod.dosaggioMin != null && p.dosaggio < prod.dosaggioMin) messaggi.push('Dosaggio inferiore al consigliato per ' + nome);
     }
+    const registro = messaggiAvvisoForm({
+        data: t.data || row.data,
+        terrenoId: row.terrenoId,
+        prodotti: t.prodotti,
+        ettolitriTotali: t.acquaEttolitriTotali,
+        precedenti: passaggiDallaLista(t.id),
+        escludiId: t.id
+    });
+    messaggi.push(...registro);
     return { hasWarning: messaggi.length > 0, tooltip: messaggi.join('; ') };
 }
 
@@ -396,11 +552,14 @@ function aggiornaGiorniCarenzaDaProdotti() {
     const rows = getProdottiRowsFromTable();
     let maxCarenza = null;
     rows.forEach(r => {
-        if (r.prodottoId) {
-            const p = listProdottiAnagrafica.find(pr => pr.id === r.prodottoId);
-            if (p && p.giorniCarenza != null && p.giorniCarenza > 0) {
-                if (maxCarenza == null || p.giorniCarenza > maxCarenza) maxCarenza = p.giorniCarenza;
-            }
+        if (r.giorniCarenzaConfermata != null && r.giorniCarenzaConfermata >= 0) {
+            if (maxCarenza == null || r.giorniCarenzaConfermata > maxCarenza) maxCarenza = r.giorniCarenzaConfermata;
+            return;
+        }
+        if (!r.prodottoId) return;
+        const p = listProdottiAnagrafica.find(pr => pr.id === r.prodottoId);
+        if (p && p.giorniCarenza != null && p.giorniCarenza > 0) {
+            if (maxCarenza == null || p.giorniCarenza > maxCarenza) maxCarenza = p.giorniCarenza;
         }
     });
     const inp = document.getElementById('trattamento-giorni-carenza');
@@ -1073,9 +1232,11 @@ async function openModalCompleta(idx) {
         document.getElementById('trattamento-costo-mano').value = t.costoManodopera ?? 0;
         document.getElementById('trattamento-costo-macchina').value = t.costoMacchina ?? 0;
         document.getElementById('trattamento-giorni-carenza').value = t.giorniCarenza ?? '';
+        scriviAcquaNelForm(t);
         document.getElementById('trattamento-note').value = t.note || '';
         setCondizioniMeteoOnForm(t.condizioniMeteo);
         document.getElementById('trattamento-copertura-terreno').value = t.coperturaTerreno || 'non_dichiarata';
+        scriviEsitoScheda('');
         let lavoroRipresaDa = null;
         if (row.lavoroId) {
             const { getLavoro } = await import(resolvePath('../../../core/services/lavori-service.js'));
@@ -1169,7 +1330,9 @@ async function openModalEditRow(idx) {
     document.getElementById('trattamento-costo-mano').value = t.costoManodopera ?? 0;
     document.getElementById('trattamento-costo-macchina').value = t.costoMacchina ?? 0;
     document.getElementById('trattamento-giorni-carenza').value = t.giorniCarenza ?? '';
+    scriviAcquaNelForm(t);
     document.getElementById('trattamento-note').value = t.note || '';
+    scriviEsitoScheda('');
     setCondizioniMeteoOnForm(t.condizioniMeteo);
     document.getElementById('trattamento-copertura-terreno').value = t.coperturaTerreno || 'non_dichiarata';
     let lavoroRipresaDaEd = null;
@@ -1316,6 +1479,18 @@ async function saveTrattamento(e) {
     if (!checkDosaggi.valid && !confirm('Attenzione: ' + checkDosaggi.message + ' Salvare comunque?')) {
         return;
     }
+    const acquaUsata = leggiAcquaDalForm();
+    const avvisiRegistro = messaggiAvvisoForm({
+        data: document.getElementById('trattamento-data').value,
+        terrenoId: terrenoIdCorrente(),
+        prodotti: rowsProdotti,
+        ettolitriTotali: acquaUsata.ettolitriTotali,
+        precedenti: passaggiDallaLista(id),
+        escludiId: id
+    });
+    if (avvisiRegistro.length && !confirm(avvisiRegistro.join('\n') + '\n\nSalvare comunque?')) {
+        return;
+    }
     const costoProdottoTotale = rowsProdotti.reduce((s, r) => s + (Number(r.costo) || 0), 0);
     const dataVal = document.getElementById('trattamento-data').value;
     const giorniCarenzaVal = document.getElementById('trattamento-giorni-carenza').value.trim();
@@ -1369,7 +1544,20 @@ async function saveTrattamento(e) {
             dosaggio: r.dosaggio,
             unitaDosaggio: r.unitaDosaggio || null,
             quantita: r.quantita,
-            costo: Number(r.costo) || 0
+            costo: Number(r.costo) || 0,
+            principioAttivo: r.principioAttivo || null,
+            fonteScheda: r.fonteScheda || null,
+            dataLetturaScheda: r.dataLetturaScheda || null,
+            avversita: r.avversita || null,
+            specieUsata: r.specieUsata || specieSchedaCorrente(),
+            riferimentoRiga: r.riferimentoRiga || null,
+            confermatoDa: r.confermatoDa || null,
+            confermatoIl: r.confermatoIl || null,
+            impieghiMassimiAnno: r.impieghiMassimiAnno,
+            giorniMinimiTraPassaggi: r.giorniMinimiTraPassaggi,
+            dosePerEttaroScheda: r.dosePerEttaroScheda,
+            dosePerEttolitroScheda: r.dosePerEttolitroScheda,
+            giorniCarenzaConfermata: r.giorniCarenzaConfermata
         })),
         costoProdotto: costoProdottoTotale,
         tipoTrattamento: tipoTrattamentoResolved,
@@ -1381,6 +1569,9 @@ async function saveTrattamento(e) {
         costoManodopera,
         costoMacchina,
         giorniCarenza: giorniCarenzaVal ? parseInt(giorniCarenzaVal, 10) : null,
+        acquaEttolitriPerEttaro: acquaUsata.ettolitriPerEttaro,
+        acquaEttolitriTotali: acquaUsata.ettolitriTotali,
+        specieUsata: specieSchedaCorrente(),
         parcella: null,
         note: document.getElementById('trattamento-note').value.trim() || null,
         condizioniMeteo: readCondizioniMeteoFromForm()
@@ -1442,10 +1633,14 @@ async function saveTrattamento(e) {
 async function deleteTrattamentoConfirmRow(idx) {
     const row = listRows[idx];
     if (!row || !row.trattamento) return;
-    if (!confirm('Eliminare i dati trattamento? Il lavoro/attività resterà; potrai completare di nuovo dalla lista.')) return;
+    const verdict = valutaCancellazioneRegistro(row.trattamento);
+    const domanda = verdict.messaggio + '\n\nEliminare i dati trattamento? Il lavoro o l\'attività resta.';
+    if (!verdict.consentita) {
+        if (!confirm(domanda + '\n\nConfermo di avere già esportato il registro.')) return;
+    } else if (!confirm(domanda)) return;
     try {
         const { deleteTrattamento } = await import(resolvePath(cfg.servicePath));
-        await deleteTrattamento(row[cfg.idKey], row.trattamento.id);
+        await deleteTrattamento(row[cfg.idKey], row.trattamento.id, { exportConfermato: !verdict.consentita });
         showAlert('Trattamento eliminato. La riga resta come "da completare".', 'success');
         await loadTrattamenti();
     } catch (err) {
@@ -1461,6 +1656,7 @@ async function init() {
     const { onAuthStateChanged } = firebaseService;
     onAuthStateChanged(auth, async (user) => {
         if (!user) user = await resolveAuthUser(auth);
+        if (user) utenteRegistroNome = user.displayName || user.email || user.uid || '';
         if (!user) {
             window.location.href = await loginPageUrl(resolvePath('../../../core/auth/login-standalone.html'));
             return;
@@ -1520,6 +1716,13 @@ async function init() {
                 return v && v.terrenoId ? v.terrenoId : null;
             }
         };
+        bindAcquaCampi();
+        const notaRegistro = document.getElementById('registro-nota');
+        if (notaRegistro) notaRegistro.textContent = notaRegistroTesto();
+        const btnCsv = document.getElementById('btn-export-registro-csv');
+        const btnXml = document.getElementById('btn-export-registro-xml');
+        if (btnCsv) btnCsv.addEventListener('click', () => esportaRegistro('csv'));
+        if (btnXml) btnXml.addEventListener('click', () => esportaRegistro('xml'));
         document.getElementById('btn-aggiungi-prodotto-trattamento').addEventListener('click', aggiungiRigaProdottoTrattamento);
         document.getElementById('trattamento-superficie').addEventListener('input', ricalcolaQuantitaCostoProdotti);
         document.getElementById(cfg.filterId).addEventListener('change', loadTrattamenti);

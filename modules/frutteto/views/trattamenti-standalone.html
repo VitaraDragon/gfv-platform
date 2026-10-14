@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname)){var gfvUltimoPelle="";try{gfvUltimoPelle=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(gfvEp){}if(gfvUltimoPelle!=="workspace")document.documentElement.setAttribute("data-pelle","proposta")}}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -76,9 +76,11 @@
         <header class="header">
             <div>
                 <h1>🧪 Trattamenti Frutteto</h1>
-                <p>I trattamenti fitosanitari provengono da lavori o attività con categoria <strong>Trattamenti</strong> (non concimazioni). Completa qui i dati aggiuntivi (prodotto, dosaggio, giorni carenza, costi). Dati base in sola lettura.</p>
+                <p>Registro privato di compilazione. I trattamenti arrivano da lavori o attività con categoria <strong>Trattamenti</strong> (non concimazioni). Qui si confermano prodotto, dose, avversità e carenza della scheda pubblica. GFV non invia nulla al SIAN né al fascicolo.</p>
             </div>
             <div class="header-actions">
+                <button type="button" class="btn btn-secondary" id="btn-export-registro-csv">Esporta CSV</button>
+                <button type="button" class="btn btn-secondary" id="btn-export-registro-xml">Esporta XML</button>
                 <a href="frutteto-dashboard-standalone.html" class="btn btn-primary">← Dashboard</a>
             </div>
         </header>
@@ -197,6 +199,7 @@
                         </table>
                     </div>
                     <p id="totale-costo-prodotti-trattamento" style="margin-top: 8px; font-weight: 600; color: #E65100;">Totale costo prodotti: 0 €</p>
+                    <div id="registro-scheda-esito" style="margin-top: 8px;"></div>
                 </div>
                 <div id="trattamento-operatore-group" class="form-group">
                     <label for="trattamento-operatore">Operatore *</label>
@@ -217,7 +220,18 @@
                 </div>
                 <div class="form-group">
                     <label for="trattamento-giorni-carenza">Giorni di carenza</label>
-                    <input type="number" id="trattamento-giorni-carenza" min="0" step="1" placeholder="Max dai prodotti (precompilato)">
+                    <input type="number" id="trattamento-giorni-carenza" min="0" step="1" placeholder="Dalla riga confermata, altrimenti dall'anagrafica">
+                    <p id="registro-nota" style="margin: 8px 0 0; color: #555; font-size: 13px;"></p>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="trattamento-acqua-hl-ha">Acqua usata (hl/ha)</label>
+                        <input type="number" id="trattamento-acqua-hl-ha" min="0" step="0.01" placeholder="Ettolitri per ettaro">
+                    </div>
+                    <div class="form-group">
+                        <label for="trattamento-acqua-hl-tot">Acqua usata (hl totali)</label>
+                        <input type="number" id="trattamento-acqua-hl-tot" min="0" step="0.01" placeholder="Ettolitri sul campo">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="trattamento-note">Note</label>

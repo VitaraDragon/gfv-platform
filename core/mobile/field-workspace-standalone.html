@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname)){var gfvUltimoPelle="";try{gfvUltimoPelle=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(gfvEp){}if(gfvUltimoPelle!=="workspace")document.documentElement.setAttribute("data-pelle","proposta")}}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
@@ -25,15 +25,9 @@
             <div class="field-options-wrap">
                 <button class="field-icon-toggle" id="btn-open-options" type="button" aria-label="Opzioni" title="Opzioni" data-i18n-aria="menu.options" data-i18n-title="menu.options">⚙️</button>
                 <div class="field-options-menu" id="field-options-menu" hidden data-pronto="0">
-                    <div id="field-lang-switch" style="display:flex;">
-                        <button type="button" class="field-options-link" data-field-lang="it" aria-pressed="true" style="flex:1;width:auto;text-align:center;pointer-events:auto;opacity:1;">Italiano</button>
-                        <button type="button" class="field-options-link" data-field-lang="ro" aria-pressed="false" style="flex:1;width:auto;text-align:center;pointer-events:auto;opacity:1;">Română</button>
-                        <button type="button" class="field-options-link" data-field-lang="en" aria-pressed="false" style="flex:1;width:auto;text-align:center;pointer-events:auto;opacity:1;">English</button>
-                    </div>
+                    <button type="button" id="field-lang-open" class="field-options-link" data-i18n="menu.lingua" style="pointer-events:auto;opacity:1;">Lingua</button>
                     <p id="field-options-preparing" class="field-options-note" data-i18n="menu.preparing">Sto preparando il workspace…</p>
                     <a id="field-documentation-guide-link" href="../../documentazione-utente/guida-manodopera-utente.html?ruolo=operaio&amp;soloRuolo=1" class="field-options-link" target="_blank" rel="opener" aria-disabled="true" data-i18n="menu.guide">Guida Manodopera</a>
-                    <a id="field-validazione-ore-link" href="../admin/validazione-ore-standalone.html?from=field" class="field-options-link" hidden aria-disabled="true" data-i18n="menu.validation">Validazione ore (schermo intero)</a>
-                    <a id="field-segnala-guasto-link" href="../admin/segnalazione-guasti-standalone.html?from=field" class="field-options-link" hidden aria-disabled="true" data-i18n="menu.fault">Segnala guasto</a>
                     <a href="../admin/impostazioni-standalone.html" class="field-options-link" aria-disabled="true" data-i18n="menu.account">Impostazioni account</a>
                     <button type="button" id="field-switch-tenant-button" class="field-options-link" hidden aria-disabled="true" data-i18n="menu.switchTenant">Cambia azienda</button>
                     <button type="button" id="field-logout-button" class="field-options-link" data-i18n="menu.logout">Esci</button>
@@ -42,6 +36,15 @@
         </div>
         <p class="field-mobile-note" id="field-mobile-status">Inizializzazione...</p>
     </header>
+    <div id="field-lang-dialog" role="dialog" aria-modal="true" aria-labelledby="field-lang-dialog-title" hidden style="position:fixed;inset:0;z-index:200;align-items:center;justify-content:center;background:rgba(0,0,0,.4);padding:16px;">
+        <div id="field-lang-panel" style="background:#fff;color:#1a1a1a;border-radius:12px;padding:8px 8px 12px;width:min(360px,100%);box-shadow:0 8px 28px rgba(0,0,0,.25);">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:4px 8px 8px;">
+                <strong id="field-lang-dialog-title" data-i18n="lang.choose">Scegli la lingua</strong>
+                <button type="button" data-field-lang-close data-i18n="lang.close" style="min-height:48px;min-width:48px;padding:8px 14px;font-size:16px;">Chiudi</button>
+            </div>
+            <div id="field-lang-list"></div>
+        </div>
+    </div>
 
     <main class="field-mobile-main">
         <section class="field-swiper" id="field-swiper">
@@ -61,6 +64,7 @@
                         <small id="gps-suggestion" class="hint-text"></small>
                         <div id="lavoro-sostituto-banner" class="inline-sostituto-banner" hidden></div>
                     </div>
+                    <div id="miscela-lavoro-campo" hidden></div>
                     <section id="inline-pieno-section" class="inline-team-section" hidden>
                         <h3 class="inline-team-title" data-i18n="pieno.title">⛽ Pieno</h3>
                         <p class="inline-team-subtitle" data-i18n="pieno.sub">Segna i litri prima di partire. Vale per il mezzo di questo lavoro, non per una lavorazione a mano.</p>
@@ -232,6 +236,18 @@
                             </div>
                         </div>
                     </section>
+                </div>
+            </article>
+
+            <article class="field-slide" data-slide-title="Guasto">
+                <div class="slide-head slide-head-brand">
+                    <div class="slide-head-text">
+                        <h2 data-i18n="slide.guasto.title">⚠️ Segnala un problema</h2>
+                        <p data-i18n="slide.guasto.sub">Una macchina, oppure un pericolo sul terreno: frana, albero, palo.</p>
+                    </div>
+                </div>
+                <div class="slide-body slide-body-brand slide-body-iframe-tall">
+                    <iframe id="guasto-embed-frame" class="slide-frame frame-summary" title="⚠️ Segnala un problema" data-i18n-title="slide.guasto.title"></iframe>
                 </div>
             </article>
 

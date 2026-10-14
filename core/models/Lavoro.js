@@ -148,6 +148,10 @@ export class Lavoro extends Base {
 
     /** Snapshot costi (opzionale, es. da aggregazioni) — usato come fallback in prefill registro trattamenti/concimazioni */
     this.costi = data.costi && typeof data.costi === 'object' ? data.costi : null;
+
+    /** Miscela prevista del trattamento: dosi, acqua, e botte se l'attrezzo ha i quintali. */
+    this.miscelaPrevista = data.miscelaPrevista && typeof data.miscelaPrevista === 'object' ? data.miscelaPrevista : null;
+    this.registroAvvisi = Array.isArray(data.registroAvvisi) ? data.registroAvvisi.map((v) => String(v)) : [];
     
     // Alias per compatibilità
     this.creatoIl = this.createdAt;

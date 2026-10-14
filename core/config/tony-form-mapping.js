@@ -143,6 +143,10 @@ REGOLE:
       'lavoro-trattore',
       'lavoro-attrezzo',
       'lavoro-operatore-macchina',
+      'lavoro-acqua-hl-ha',
+      'lavoro-acqua-hl-tot',
+      'lavoro-miscela-prodotto',
+      'lavoro-miscela-dose-ha',
       'lavoro-note'
     ],
     hierarchy: {
@@ -165,6 +169,10 @@ REGOLE:
       'lavoro-trattore': { type: 'select', resolve: 'by_name', description: 'Trattore (opzionale)' },
       'lavoro-attrezzo': { type: 'select', resolve: 'by_name', description: 'Attrezzo (opzionale)' },
       'lavoro-operatore-macchina': { type: 'select', resolve: 'by_name', description: 'Chi guida la macchina (se autonomo e macchina: usa operaio)' },
+      'lavoro-acqua-hl-ha': { type: 'number', resolve: 'as_is', description: 'Acqua prevista del trattamento, ettolitri per ettaro. Solo se il tipo è un trattamento.' },
+      'lavoro-acqua-hl-tot': { type: 'number', resolve: 'as_is', description: 'Acqua prevista del trattamento, ettolitri totali sul campo. Solo se il tipo è un trattamento.' },
+      'lavoro-miscela-prodotto': { type: 'select', resolve: 'by_name', description: 'Prodotto della miscela prevista. Solo se il tipo è un trattamento.' },
+      'lavoro-miscela-dose-ha': { type: 'number', resolve: 'as_is', description: 'Dose per ettaro scelta dal responsabile. Solo se il tipo è un trattamento.' },
       'lavoro-note': { type: 'text', resolve: 'as_is', description: 'Note' }
     }
   };
@@ -175,6 +183,7 @@ REGOLE:
 PREFISSO E MAPPING ID (OBBLIGATORIO):
 - Usa ESCLUSIVAMENTE il prefisso lavoro- per ogni campo (lavoro-terreno, lavoro-tipo-lavoro, lavoro-operaio, lavoro-categoria-principale, lavoro-sottocategoria).
 - NON usare MAI attivita-* nel modulo Lavori (attivita-tipo-lavoro-gerarchico, attivita-terreno, ecc.). Moduli distinti.
+- Se il tipo lavoro è un trattamento, chiedi prodotto, dose per ettaro e acqua (hl/ha oppure hl totali). Compila lavoro-miscela-prodotto, lavoro-miscela-dose-ha, lavoro-acqua-hl-ha e lavoro-acqua-hl-tot. Se la pagina mostra un avviso del registro, ripetilo e lascia salvare.
 - tipo-assegnazione: inviare esattamente così (senza prefisso).
 
 OBIETTIVO: Compilare TUTTI i campi obbligatori senza dimenticanze. Non saltare mai un campo required.
@@ -358,6 +367,8 @@ REGOLE:
     injectionOrder: [
       'trattamento-prodotti',
       'trattamento-superficie',
+      'trattamento-acqua-hl-ha',
+      'trattamento-acqua-hl-tot',
       'trattamento-condizioni-meteo',
       'trattamento-note',
       'trattamento-copertura-terreno',
@@ -372,6 +383,8 @@ REGOLE:
           '**dosaggio** = kg/ha. Se l’utente esprime dose **per ettaro** (o risponde a «per ettaro»), è già kg/ha. Se esprime **totale** sul campo (ql/kg totali), la cloud function può ricavare kg/ha = kg_totali/ha. Opzionale prodottoId.'
       },
       'trattamento-superficie': { type: 'number', resolve: 'as_is', description: 'Superficie trattata (ha)' },
+      'trattamento-acqua-hl-ha': { type: 'number', resolve: 'as_is', description: 'Acqua usata, ettolitri per ettaro' },
+      'trattamento-acqua-hl-tot': { type: 'number', resolve: 'as_is', description: 'Acqua usata, ettolitri totali sul campo' },
       'trattamento-condizioni-meteo': {
         type: 'select',
         resolve: 'as_is',
@@ -407,7 +420,8 @@ REGOLE:
 - **Dose per ettaro** (ql/ha, kg/ha, o risposta a «dosaggio per ettaro»): dosaggio = **ql×100** kg/ha — non confondere con kg_totali/ha.
 - **Superficie da anagrafe** / **scarico magazzino**: **trattamento-superficie-anagrafe**, **trattamento-registra-scarico-magazzino** — solo dopo **conferma utente** o richiesta esplicita; non insieme al solo dosaggio senza chiedere.
 - **Totale sul campo** (ql o kg totali): dosaggio = kg_totali / ha. **1 ql = 100 kg**.
-- Opzionali: trattamento-superficie, trattamento-note, trattamento-copertura-terreno (non_dichiarata|completa|parziale), **trattamento-condizioni-meteo** (sereno|nuvoloso|pioggia|vento forte — suggerimento meteo se modulo attivo, conferma utente). Checkbox: **trattamento-superficie-anagrafe**, **trattamento-prosegue-precedente**, **trattamento-registra-scarico-magazzino**.
+- Opzionali: trattamento-superficie, trattamento-note, trattamento-copertura-terreno (non_dichiarata|completa|parziale), **trattamento-condizioni-meteo** (sereno|nuvoloso|pioggia|vento forte — suggerimento meteo se modulo attivo, conferma utente), **trattamento-acqua-hl-ha** e **trattamento-acqua-hl-tot** (acqua usata). Checkbox: **trattamento-superficie-anagrafe**, **trattamento-prosegue-precedente**, **trattamento-registra-scarico-magazzino**.
+- Numero di registrazione, principio attivo, avversità e carenza della scheda li conferma l'azienda dalla lettura pubblica. Non chiederli a voce e non inventarli.
 - Non sovrascrivere costi manodopera/macchina se già precompilati da lavoro.`;
 
   const SYSTEM_INSTRUCTION_MAGAZZINO_FORMS = `Form Magazzino (id DOM = chiavi in fields / INJECT_FORM_DATA):

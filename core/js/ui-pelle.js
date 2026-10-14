@@ -13,6 +13,7 @@ import {
   computePelleState,
   isFieldWorkspacePath,
   isPelleSkippedPath,
+  nascondiShellPerProfiloCampo,
   moduleFromPath,
   moduleFromLocation,
   visibleShellEntries,
@@ -54,10 +55,25 @@ function escapeHtml(s) {
     .replace(/"/g, '&quot;');
 }
 
+function indizioPelleCampo() {
+  let ultimo = '';
+  let ruoli = [];
+  try {
+    ultimo = localStorage.getItem('gfv_ingresso_ultimo') || '';
+  } catch (e) { /* memoria non disponibile */ }
+  try {
+    const raw = sessionStorage.getItem('gfv_tony_utente_ruoli');
+    const parsed = raw ? JSON.parse(raw) : [];
+    if (Array.isArray(parsed)) ruoli = parsed;
+  } catch (e2) { /* sessione non disponibile */ }
+  return { ultimo, ruoli };
+}
+
 function pageHost() {
   if (document.documentElement.getAttribute('data-gfv-pelle-host') === '0') return false;
   const path = window.location && window.location.pathname;
   if (isFieldWorkspacePath(path) || isPelleSkippedPath(path)) return false;
+  if (nascondiShellPerProfiloCampo(indizioPelleCampo())) return false;
   return true;
 }
 

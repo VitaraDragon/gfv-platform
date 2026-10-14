@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname)){var gfvUltimoPelle="";try{gfvUltimoPelle=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(gfvEp){}if(gfvUltimoPelle!=="workspace")document.documentElement.setAttribute("data-pelle","proposta")}}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
 
     <script>try{if(/[?&]emulator=1/.test(location.search)||localStorage.getItem('gfv_firebase_emulator')==='1')localStorage.setItem('gfv_firebase_emulator','1');}catch(e){}</script>
     <meta charset="UTF-8">
@@ -61,6 +61,11 @@
                 <div class="form-group">
                     <label for="cavalliMinimiRichiesti">Cavalli minimi richiesti (CV) *</label>
                     <input type="number" id="cavalliMinimiRichiesti" required min="1" max="1000" step="0.1" placeholder="es. 80">
+                </div>
+                <div class="form-group">
+                    <label for="capacitaBotteQuintali">Capacità botte (quintali)</label>
+                    <input type="number" id="capacitaBotteQuintali" min="0.01" step="0.01" placeholder="es. 4">
+                    <small>Solo se l'attrezzo ha un serbatoio. 1 quintale = 100 litri. Lascia vuoto su un aratro.</small>
                 </div>
                 <div style="display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px;">
                     <button type="button" class="btn btn-secondary" id="btn-annulla">Annulla</button>
@@ -182,8 +187,14 @@
                     if (!nome || nome.length < 3) { showAlert('Nome almeno 3 caratteri', 'error'); return; }
                     if (!categoriaId) { showAlert('Seleziona una categoria', 'error'); return; }
                     if (!cavalliMinimiRichiesti || cavalliMinimiRichiesti <= 0) { showAlert('Cavalli minimi obbligatori', 'error'); return; }
+                    const capacitaRaw = document.getElementById('capacitaBotteQuintali').value;
+                    const capacitaBotteQuintali = capacitaRaw.trim() ? parseFloat(capacitaRaw) : null;
+                    if (capacitaBotteQuintali != null && (!Number.isFinite(capacitaBotteQuintali) || capacitaBotteQuintali <= 0)) {
+                        showAlert('La capacità della botte, se indicata, è in quintali e deve essere maggiore di zero', 'error');
+                        return;
+                    }
                     try {
-                        await createMacchina({ nome, tipoMacchina: 'attrezzo', categoriaId, cavalliMinimiRichiesti }, user.uid);
+                        await createMacchina({ nome, tipoMacchina: 'attrezzo', categoriaId, cavalliMinimiRichiesti, capacitaBotteQuintali }, user.uid);
                         showAlert('Attrezzatura aggiunta', 'success');
                         closeModal();
                         await loadData();

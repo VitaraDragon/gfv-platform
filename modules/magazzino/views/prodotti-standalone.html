@@ -2,11 +2,12 @@
 <!-- Prodotti standalone - build 2025-02-24 (verifica cache) -->
 <html lang="it">
 <head>
-<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname))document.documentElement.setAttribute("data-pelle","proposta")}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
+<script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname)){var gfvUltimoPelle="";try{gfvUltimoPelle=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(gfvEp){}if(gfvUltimoPelle!=="workspace")document.documentElement.setAttribute("data-pelle","proposta")}}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
 
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>Anagrafica Prodotti - Prodotti e Magazzino - GFV Platform</title>
+    <link rel="stylesheet" href="../../../core/styles/manodopera-semaforo.css">
     <link rel="stylesheet" href="../../../core/styles/responsive-standalone.css">
     <link rel="stylesheet" href="../../../core/styles/list-views.css">
     <style>
@@ -224,6 +225,26 @@
                         <span class="form-hint">Obbligatorio per fitofarmaci (es. 30).</span>
                     </div>
                 </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prodotto-numero-registrazione">Numero di registrazione</label>
+                        <input type="text" id="prodotto-numero-registrazione" readonly placeholder="Dalla scheda pubblica, dopo la conferma">
+                    </div>
+                    <div class="form-group">
+                        <label for="prodotto-principio-attivo">Principio attivo</label>
+                        <input type="text" id="prodotto-principio-attivo" readonly placeholder="Dalla scheda pubblica, dopo la conferma">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="prodotto-fonte-scheda">Fonte</label>
+                        <input type="text" id="prodotto-fonte-scheda" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label for="prodotto-data-lettura">Data di lettura</label>
+                        <input type="text" id="prodotto-data-lettura" readonly>
+                    </div>
+                </div>
                 <div class="form-group">
                     <label for="prodotto-note">Note</label>
                     <textarea id="prodotto-note" placeholder="Note..."></textarea>
@@ -248,6 +269,7 @@
             prodottoCategoriaRichiedeGiorniCarenza,
         } from '../../../core/js/prodotto-form-required.js';
         import { escapeHtml, showAlert } from '../../../core/js/gfv-page-utils.js';
+        import { htmlSemaforoLetturaScheda } from '../../../shared/js/registro-trattamenti.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 
         try {
@@ -551,7 +573,7 @@
                             return `<tr>
                                 <td class="col-check"><input type="checkbox" class="prod-row-check" data-id="${p.id}"${checked}></td>
                                 <td>${escapeHtml(p.codice || '-')}</td>
-                                <td>${escapeHtml(p.nome || '-')}</td>
+                                <td>${htmlSemaforoLetturaScheda(p)}${escapeHtml(p.nome || '-')}</td>
                                 <td>${escapeHtml(p.categoria || '-')}</td>
                                 <td>${escapeHtml(p.unitaMisura || '-')}</td>
                                 <td>${formatNum(p.giacenza)}</td>
@@ -647,6 +669,14 @@
             document.getElementById('prodotto-dosaggio-min').value = p.dosaggioMin != null ? p.dosaggioMin : '';
             document.getElementById('prodotto-dosaggio-max').value = p.dosaggioMax != null ? p.dosaggioMax : '';
             document.getElementById('prodotto-giorni-carenza').value = p.giorniCarenza != null ? p.giorniCarenza : '';
+            const numReg = document.getElementById('prodotto-numero-registrazione');
+            const principio = document.getElementById('prodotto-principio-attivo');
+            const fonte = document.getElementById('prodotto-fonte-scheda');
+            const dataLettura = document.getElementById('prodotto-data-lettura');
+            if (numReg) numReg.value = p.numeroRegistrazione || '';
+            if (principio) principio.value = p.principioAttivo || '';
+            if (fonte) fonte.value = p.fonteScheda || '';
+            if (dataLettura) dataLettura.value = p.dataLetturaScheda || '';
             document.getElementById('prodotto-note').value = p.note || '';
             const banner = document.getElementById('prodotto-da-completare-banner');
             if (banner) banner.style.display = p.daCompletare === true ? 'block' : 'none';
@@ -772,6 +802,10 @@
             document.getElementById('prodotto-dosaggio-min').value = '';
             document.getElementById('prodotto-dosaggio-max').value = '';
             document.getElementById('prodotto-giorni-carenza').value = '';
+            ['prodotto-numero-registrazione', 'prodotto-principio-attivo', 'prodotto-fonte-scheda', 'prodotto-data-lettura'].forEach((id) => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
             document.getElementById('prodotto-modal').classList.add('active');
             syncProdottoDosaggioCarenzaRequiredDom();
         }

@@ -13,6 +13,27 @@ import {
 } from '../services/trattamenti-service.js';
 import { avvisoDosaggioProdotti } from '../models/SeminativoTrattamento.js';
 import { applyDiarioVsLavoroCta } from '../../../core/config/manodopera-diario-gate.js';
+import { aliasColturaScheda, colturaSchedaRegistro } from '../../../core/config/registro-trattamenti-specie.js';
+import {
+  aziendaDaTenant,
+  registroToCsv,
+  registroToXml,
+  righeExportRegistro,
+  unisciConfermaSpecie,
+  valutaCancellazioneRegistro
+} from '../../../shared/js/registro-trattamenti.js';
+import {
+  attaccaLetturaScheda,
+  bindAcquaCampi,
+  htmlMetaRegistro,
+  leggiAcquaDalForm,
+  leggiRegistroRiga,
+  messaggiAvvisoForm,
+  notaRegistroTesto,
+  scriviAcquaNelForm,
+  scriviEsitoScheda
+} from '../../../shared/js/registro-trattamenti-form.js';
+import { chiediRiletturaScheda, leggiRigheSchedaProdotto, leggiSchedaRegistroTrattamento } from '../../../shared/js/registro-trattamenti-scheda-client.js';
 
 const DIARIO_HREF = '../../../core/attivita-standalone.html';
 const LAVORI_HREF = '../../../core/admin/gestione-lavori-standalone.html';
@@ -43,6 +64,7 @@ const REGISTRI = {
 };
 
 let registro = REGISTRI.trattamenti;
+let utenteRegistroNome = '';
 
 let terreni = [];
 let righe = [];
@@ -247,6 +269,7 @@ function renderProdottiTrattamento(rows) {
           <option value="">— Seleziona o Altro —</option>${opts}
         </select>
         <input type="text" class="prodotto-nome-altro" data-idx="${idx}" placeholder="Nome se Altro" value="${altro ? escapeHtml(row.prodotto) : ''}" style="margin-top:4px;display:${altro ? 'block' : 'none'};width:100%">
+        ${registro.categoria === 'trattamenti' ? htmlMetaRegistro(row) : ''}
       </td>
       <td><input type="number" class="prodotto-dosaggio" data-idx="${idx}" min="0" step="0.01" value="${dose != null ? dose : ''}" style="width:75px"></td>
       <td><span class="prodotto-unita">${escapeHtml(unita)}</span></td>
@@ -278,6 +301,34 @@ function renderProdottiTrattamento(rows) {
       renderProdottiTrattamento(current);
     });
   });
+  if (registro.categoria === 'trattamenti') {
+    attaccaLetturaScheda({
+      tbody,
+      specie: specieSchedaCorrente,
+      alias: () => aliasColturaScheda(specieSchedaCorrente() || ''),
+      nomeProdotto: (idx) => {
+        const rowsNow = getProdottiRowsFromTable();
+        return rowsNow[Number(idx)] ? rowsNow[Number(idx)].prodotto : '';
+      },
+      prodotto: (idx) => {
+        const rowsNow = getProdottiRowsFromTable();
+        const row = rowsNow[Number(idx)];
+        return row && row.prodottoId ? listProdottiAnagrafica.find((item) => item.id === row.prodottoId) : null;
+      },
+      leggiScheda: leggiSchedaRegistroTrattamento,
+      leggiRighe: (anag) => leggiRigheSchedaProdotto(anag && anag.id),
+      chiediRilettura: (anag) => chiediRiletturaScheda(anag && anag.id),
+      utente: () => utenteRegistroNome,
+      salvaSuProdotto: salvaConfermaProdottoSeminativo,
+      onConferma: (idx, pacchetto) => {
+        const rowsNow = getProdottiRowsFromTable();
+        const i = Number(idx);
+        if (!rowsNow[i]) return;
+        Object.assign(rowsNow[i], pacchetto);
+        renderProdottiTrattamento(rowsNow);
+      }
+    });
+  }
   aggiornaTotaleCostoProdotti();
   aggiornaGiorniCarenzaDaProdotti();
 }
@@ -305,7 +356,8 @@ function getProdottiRowsFromTable() {
       dosaggio,
       unitaDosaggio: anag ? anag.unitaMisura || null : null,
       quantita,
-      costo
+      costo,
+      ...leggiRegistroRiga(tr)
     };
   });
 }
@@ -347,13 +399,67 @@ function aggiornaTotaleCostoProdotti() {
 function aggiornaGiorniCarenzaDaProdotti() {
   let maxCarenza = null;
   getProdottiRowsFromTable().forEach((row) => {
+    const confermata = row.giorniCarenzaConfermata != null && row.giorniCarenzaConfermata !== ''
+      ? Number(row.giorniCarenzaConfermata) : null;
+    if (Number.isFinite(confermata) && confermata > (maxCarenza || 0)) maxCarenza = confermata;
     const prod = listProdottiAnagrafica.find((item) => item.id === row.prodottoId);
-    if (prod && prod.giorniCarenza != null && Number(prod.giorniCarenza) > (maxCarenza || 0)) {
+    if (confermata == null && prod && prod.giorniCarenza != null && Number(prod.giorniCarenza) > (maxCarenza || 0)) {
       maxCarenza = Number(prod.giorniCarenza);
     }
   });
   const input = document.getElementById('trattamento-giorni-carenza');
   if (input && maxCarenza != null) input.value = String(maxCarenza);
+}
+
+function specieSchedaCorrente() {
+  if (!editingRow || registro.categoria !== 'trattamenti') return null;
+  return colturaSchedaRegistro({ modulo: 'seminativo', colturaNome: editingRow.colturaNome });
+}
+
+async function salvaConfermaProdottoSeminativo(anag, specie, registroRiga) {
+  if (!anag || !anag.id) return;
+  const { getDb, doc, updateDoc } = await import(resolvePath('../../../core/services/firebase-service.js'));
+  const { getCurrentTenantId } = await import(resolvePath('../../../core/services/tenant-service.js'));
+  const tenantId = getCurrentTenantId();
+  if (!tenantId) return;
+  const payload = unisciConfermaSpecie(anag, specie, registroRiga);
+  await updateDoc(doc(getDb(), 'tenants', tenantId, 'prodotti', anag.id), payload);
+  Object.assign(anag, payload);
+}
+
+async function esportaRegistroSeminativo(formato) {
+  const { getCurrentTenant } = await import(resolvePath('../../../core/services/tenant-service.js'));
+  const tenant = await getCurrentTenant().catch(() => null);
+  const azienda = aziendaDaTenant(tenant || {});
+  const interventi = visible.filter((row) => row.trattamento).map((row) => {
+    const t = row.trattamento;
+    const dataVal = t.data instanceof Date ? t.data : (t.data && t.data.toDate ? t.data.toDate() : new Date(t.data || row.data));
+    const iso = dataVal && !Number.isNaN(dataVal.getTime()) ? dataVal.toISOString().slice(0, 10) : String(row.data || '');
+    const specie = colturaSchedaRegistro({ modulo: 'seminativo', colturaNome: row.colturaNome });
+    return {
+      ...azienda,
+      data: iso,
+      terreno: getTerrenoLabel(row.terrenoId),
+      coltura: specie || row.colturaNome || '',
+      ettari: t.superficieTrattata != null ? t.superficieTrattata : row.superficieEttari,
+      operatore: t.operatore || '',
+      macchina: t.macchinaId || '',
+      acquaEttolitriTotali: t.acquaEttolitriTotali,
+      acquaEttolitriPerEttaro: t.acquaEttolitriPerEttaro,
+      giorniCarenza: t.giorniCarenza,
+      specie: t.specieUsata || specie || '',
+      prodotti: t.prodotti || []
+    };
+  });
+  const righe = righeExportRegistro(interventi);
+  const testo = formato === 'xml' ? registroToXml(righe) : registroToCsv(righe);
+  const blob = new Blob([testo], { type: formato === 'xml' ? 'application/xml' : 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'registro-trattamenti.' + (formato === 'xml' ? 'xml' : 'csv');
+  a.click();
+  URL.revokeObjectURL(a.href);
+  alert('Export del registro privato scaricato. GFV non lo invia al SIAN.');
 }
 
 function validaDosaggiProdotti(rows) {
@@ -387,6 +493,8 @@ async function openModal(row) {
   if (copertura) copertura.value = trattamento && trattamento.coperturaTerreno ? trattamento.coperturaTerreno : 'non_dichiarata';
   const carenza = document.getElementById('trattamento-giorni-carenza');
   if (carenza) carenza.value = trattamento && trattamento.giorniCarenza != null ? trattamento.giorniCarenza : '';
+  scriviAcquaNelForm(trattamento);
+  scriviEsitoScheda('');
   const operatore = document.getElementById('trattamento-operatore');
   if (operatore) operatore.value = trattamento ? trattamento.operatore || '' : '';
   const operatoreGroup = document.getElementById('trattamento-operatore-group');
@@ -449,6 +557,18 @@ async function onSubmit(event) {
   }
   const checkDose = validaDosaggiProdotti(rowsProdotti);
   if (!checkDose.valid && !window.confirm('Attenzione: ' + checkDose.message + ' Salvare comunque?')) return;
+  const acquaUsata = registro.categoria === 'trattamenti' ? leggiAcquaDalForm() : { ettolitriPerEttaro: null, ettolitriTotali: null };
+  if (registro.categoria === 'trattamenti') {
+    const avvisiRegistro = messaggiAvvisoForm({
+      data: editingRow.data,
+      terrenoId: editingRow.terrenoId,
+      prodotti: rowsProdotti,
+      ettolitriTotali: acquaUsata.ettolitriTotali,
+      precedenti: passaggiSeminativo(editingRow.trattamento && editingRow.trattamento.id),
+      escludiId: editingRow.trattamento && editingRow.trattamento.id
+    });
+    if (avvisiRegistro.length && !window.confirm(avvisiRegistro.join('\n') + '\n\nSalvare comunque?')) return;
+  }
   const anagrafe = document.getElementById('trattamento-superficie-anagrafe');
   const usaAnagrafe = !!(anagrafe && anagrafe.checked);
   if (usaAnagrafe) applySuperficieAnagrafe();
@@ -473,6 +593,9 @@ async function onSubmit(event) {
       superficieTrattata: Number.isFinite(superficie) ? superficie : null,
       superficieDaAnagrafeTerreno: usaAnagrafe,
       giorniCarenza: document.getElementById('trattamento-giorni-carenza').value,
+      acquaEttolitriPerEttaro: acquaUsata.ettolitriPerEttaro,
+      acquaEttolitriTotali: acquaUsata.ettolitriTotali,
+      specieUsata: specieSchedaCorrente(),
       costoManodopera: document.getElementById('trattamento-costo-mano').value,
       costoMacchina: document.getElementById('trattamento-costo-macchina').value,
       note: document.getElementById('trattamento-note').value,
@@ -489,11 +612,30 @@ async function onSubmit(event) {
   }
 }
 
+function passaggiSeminativo(escludiId) {
+  return righe.filter((row) => row.trattamento && row.trattamento.id !== escludiId).flatMap((row) => {
+    const t = row.trattamento;
+    return (t.prodotti || []).map((p) => ({
+      id: t.id,
+      data: t.data || row.data,
+      terrenoId: row.terrenoId,
+      prodottoId: p.prodottoId,
+      nome: p.prodotto
+    }));
+  });
+}
+
 async function confirmDelete(index) {
   const row = visible[index];
   if (!row || !row.trattamento || !row.trattamento.id) return;
-  if (!window.confirm('Eliminare i dati prodotto di questo trattamento? Il lavoro o l\'attività nel diario restano.')) return;
-  await deleteTrattamentoSeminativo(row.trattamento.id);
+  const verdict = registro.categoria === 'trattamenti'
+    ? valutaCancellazioneRegistro(row.trattamento)
+    : { consentita: true, messaggio: 'I movimenti di magazzino collegati restano.' };
+  const domanda = verdict.messaggio + '\n\nEliminare i dati prodotto? Il lavoro o l\'attività nel diario restano.';
+  if (!verdict.consentita) {
+    if (!window.confirm(domanda + '\n\nConfermo di avere già esportato il registro.')) return;
+  } else if (!window.confirm(domanda)) return;
+  await deleteTrattamentoSeminativo(row.trattamento.id, { exportConfermato: !verdict.consentita });
   await loadRighe();
 }
 
@@ -545,6 +687,13 @@ function setupEventListeners() {
   if (closeBtn) closeBtn.addEventListener('click', closeModal);
   const cancelBtn = document.getElementById('cancel-btn');
   if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+  bindAcquaCampi();
+  const notaRegistro = document.getElementById('registro-nota');
+  if (notaRegistro) notaRegistro.textContent = notaRegistroTesto();
+  const btnCsv = document.getElementById('btn-export-registro-csv');
+  const btnXml = document.getElementById('btn-export-registro-xml');
+  if (btnCsv) btnCsv.addEventListener('click', () => esportaRegistroSeminativo('csv'));
+  if (btnXml) btnXml.addEventListener('click', () => esportaRegistroSeminativo('xml'));
   const addProdotto = document.getElementById('btn-aggiungi-prodotto-trattamento');
   if (addProdotto) {
     addProdotto.addEventListener('click', () => {
@@ -596,6 +745,7 @@ async function bootRegistro() {
   const auth = getAuthInstance();
   onAuthStateChanged(auth, async (user) => {
     if (!user) user = await resolveAuthUser(auth);
+    utenteRegistroNome = user ? (user.displayName || user.email || user.uid) : '';
     if (!user) {
       window.location.href = await loginPageUrl(resolvePath('../../../core/auth/login-standalone.html'));
       return;

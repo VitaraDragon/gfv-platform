@@ -6,6 +6,7 @@
  */
 
 import { Base } from '../../../core/models/Base.js';
+import { campiConfermaRiga, numeroFinito } from '../../../shared/js/registro-trattamenti.js';
 
 export class TrattamentoFrutteto extends Base {
   /**
@@ -28,7 +29,11 @@ export class TrattamentoFrutteto extends Base {
         dosaggio: r.dosaggio !== undefined && r.dosaggio !== '' ? parseFloat(r.dosaggio) : null,
         unitaDosaggio: r.unitaDosaggio || null,
         quantita: r.quantita !== undefined && r.quantita !== '' ? parseFloat(r.quantita) : null,
-        costo: r.costo !== undefined && r.costo !== '' ? parseFloat(r.costo) : null
+        costo: r.costo !== undefined && r.costo !== '' ? parseFloat(r.costo) : null,
+        principioAttivo: r.principioAttivo || null,
+        fonteScheda: r.fonteScheda || null,
+        dataLetturaScheda: r.dataLetturaScheda || null,
+        ...campiConfermaRiga(r)
       }));
     } else {
       const costoProdottoVal = data.costoProdotto !== undefined ? parseFloat(data.costoProdotto) : null;
@@ -60,6 +65,9 @@ export class TrattamentoFrutteto extends Base {
     this.costoTotale = data.costoTotale !== undefined ? parseFloat(data.costoTotale) : 0;
 
     this.giorniCarenza = data.giorniCarenza !== undefined ? parseInt(data.giorniCarenza) : null;
+    this.acquaEttolitriPerEttaro = numeroFinito(data.acquaEttolitriPerEttaro);
+    this.acquaEttolitriTotali = numeroFinito(data.acquaEttolitriTotali);
+    this.specieUsata = data.specieUsata || null;
     this.dataRaccoltaMinima = data.dataRaccoltaMinima || null;
 
     this.parcella = data.parcella || null;
