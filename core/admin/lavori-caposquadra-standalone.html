@@ -799,7 +799,7 @@
         import { formatDateLikeToItalianLongLocal } from '../js/date-format-it.js';
         import { escapeHtml, showAlert } from '../js/gfv-page-utils.js';
         import { getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
-        import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, orderBy, serverTimestamp, Timestamp } from '../services/firebase-service.js';
+        import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, Timestamp, deleteField } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
         import { resolveAuthUser, loginPageUrl } from '../js/simulator-standalone-page.js';
         import { fetchLavoriDocumentsForFieldUser, sliceOperaioLavoriWindow } from '../services/manodopera-lavori-scope.js';
@@ -3537,17 +3537,46 @@
                     const dopo = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lav.id));
                     data = dopo.exists() ? dopo.data() : data;
                 }
-                return esitoChiusuraZona(lav.id, data, true);
+                return Object.assign(esitoChiusuraZona(lav.id, data, true), { statoPrima: 'assegnato' });
             }
             const aperti = miei.filter((lav) => lav.stato === 'assegnato' || lav.stato === 'in_corso');
             const target = aperti.find((lav) => /squadra/i.test(lav.nome || '')) || aperti[0];
             if (!target) return { ok: false, reason: 'nessun_lavoro_aperto' };
+            const statoPrima = target.stato || 'assegnato';
             await scriviZonaCoperturaTerreno(target.id, nota);
             await aggiornaProgressiLavoro(target.id);
             await loadLavori();
             const dopo = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', target.id));
-            return esitoChiusuraZona(target.id, dopo.exists() ? dopo.data() : {}, false);
+            return Object.assign(esitoChiusuraZona(target.id, dopo.exists() ? dopo.data() : {}, false), { statoPrima: statoPrima });
         };
+
+    /**
+     * Rimuove la zona di prova e riapre il lavoro, così gli scenari successivi
+     * non vedono la tabella «in attesa di approvazione».
+     */
+    window.ripristinaLavoroProvaZona = async function(lavoroId, notaOpt, statoPrima) {
+        const nota = String(notaOpt || NOTA_ZONA_COPERTURA_SIM);
+        if (!currentTenantId || !lavoroId) return { ok: false, reason: 'no_session' };
+        const zoneSnap = await getDocs(collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'zoneLavorate'));
+        const daCancellare = [];
+        zoneSnap.forEach((zona) => {
+            if (String((zona.data() && zona.data().note) || '') === nota) daCancellare.push(zona.ref);
+        });
+        for (let i = 0; i < daCancellare.length; i += 1) {
+            await deleteDoc(daCancellare[i]);
+        }
+        const stato = statoPrima === 'in_corso' || statoPrima === 'assegnato' ? statoPrima : 'assegnato';
+        await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId), {
+            stato: stato,
+            completatoIl: deleteField(),
+            completatoDa: deleteField(),
+            percentualeCompletamentoTracciata: deleteField(),
+            completamentoParziale: deleteField(),
+            aggiornatoIl: serverTimestamp()
+        });
+        await aggiornaProgressiLavoro(lavoroId);
+        return { ok: true };
+    };
 
         // Funzioni helper per verificare dati obbligatori
         async function verificaOreSegnateLavoro(lavoroId, userId) {
