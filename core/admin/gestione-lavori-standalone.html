@@ -1009,7 +1009,7 @@
                 <h3 id="modal-title">Crea Nuovo Lavoro</h3>
                 <button class="close-btn" onclick="closeLavoroModal()">&times;</button>
             </div>
-            <form id="lavoro-form" onsubmit="handleSalvaLavoro(event)">
+            <form id="lavoro-form" onsubmit="handleSalvaLavoro(event)" novalidate>
                 <input type="hidden" id="lavoro-id">
                 
                 <div class="form-group">
@@ -1745,7 +1745,8 @@
             getStatoProgressoFormattato as getStatoProgressoFormattatoUtil,
             calcolaStatoProgresso as calcolaStatoProgressoUtil,
             applyContoTerziStyles as applyContoTerziStylesUtil,
-            updateDashboardLink as updateDashboardLinkUtil
+            updateDashboardLink as updateDashboardLinkUtil,
+            syncRequiredConVisibilita as syncRequiredConVisibilitaUtil
         } from './js/gestione-lavori-utils.js';
 
         import {
@@ -2386,6 +2387,7 @@
                     if (fruttetoFormGroup) fruttetoFormGroup.style.display = 'none';
                     setVignetoFormRequired(false);
                     setFruttetoFormRequired(false);
+                    syncRequiredConVisibilitaUtil(document.getElementById('lavoro-form'));
                 }
             });
             
@@ -2403,9 +2405,11 @@
                         if (fruttetoFormGroup) fruttetoFormGroup.style.display = 'none';
                         setVignetoFormRequired(false);
                         setFruttetoFormRequired(false);
+                        syncRequiredConVisibilitaUtil(document.getElementById('lavoro-form'));
                     }
                 });
             }
+            syncRequiredConVisibilitaUtil(document.getElementById('lavoro-form'));
         }
 
         // Liste predefinite per form vigneto (stesse dell'anagrafica vigneti)
@@ -2502,12 +2506,14 @@
             fieldIds.forEach(id => {
                 const el = document.getElementById(id);
                 if (!el) return;
+                el.setAttribute('data-required-orig', '1');
                 if (isRequired) {
                     el.setAttribute('required', '');
                 } else {
                     el.removeAttribute('required');
                 }
             });
+            syncRequiredConVisibilitaUtil(document.getElementById('lavoro-form'));
         }
 
         // Gestisce required per i campi del form frutteto (come per vigneto)
@@ -2525,9 +2531,11 @@
             fieldIds.forEach(id => {
                 const el = document.getElementById(id);
                 if (!el) return;
+                el.setAttribute('data-required-orig', '1');
                 if (isRequired) el.setAttribute('required', '');
                 else el.removeAttribute('required');
             });
+            syncRequiredConVisibilitaUtil(document.getElementById('lavoro-form'));
         }
 
         // Mostra e pre-compila il form corretto (vigneto o frutteto) in base a pianificazione.tipoColtura
@@ -2544,6 +2552,7 @@
             } else if (pianificazione.tipoColtura === 'frutteto') {
                 await precompilaFormFruttetoDaPianificazione(pianificazione);
             }
+            syncRequiredConVisibilitaUtil(document.getElementById('lavoro-form'));
         }
 
         // Pre-compila form vigneto da pianificazione (solo vigneto)
@@ -3800,8 +3809,9 @@
                     // Setup handler per tipo lavoro Impianto
                     setupTipoLavoroImpiantoHandler();
 
-                    // All'avvio, i campi dei form vigneto/frutteto non devono bloccare il submit
-                    // quando i blocco sono nascosti. Diventano required solo quando mostriamo il form corrispondente.
+                    // All'avvio i campi vigneto/frutteto sono nel DOM con required, ma i blocchi sono nascosti.
+                    // Prima si memorizza il marchio, poi si toglie required da ciò che non si vede.
+                    syncRequiredConVisibilitaUtil(document.getElementById('lavoro-form'));
                     setVignetoFormRequired(false);
                     setFruttetoFormRequired(false);
                     

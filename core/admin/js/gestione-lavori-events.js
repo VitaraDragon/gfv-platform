@@ -10,7 +10,10 @@
 import {
     showAlert,
     applyLavoroFormContoTerziDaPianificareLock,
-    resetLavoroFormContoTerziLock
+    resetLavoroFormContoTerziLock,
+    syncRequiredConVisibilita,
+    etichettaCampoLavoro,
+    primoCampoVisibileNonValido
 } from './gestione-lavori-utils.js';
 import { listedSelectValue } from '../../js/lavoro-cascade-filters.js';
 import { dateLikeToLocalCalendarIso } from '../../js/date-format-it.js';
@@ -122,13 +125,29 @@ async function miscelaPrevistaPerSalvataggio(state, terrenoId, dataInizio, tipoL
  * Setup handler per tipo assegnazione (squadra/autonomo)
  * @param {boolean} hasManodoperaModule - Se il modulo Manodopera è attivo
  */
+let salvaLavoroInCorso = false;
+
+function nascondiBlocchiImpiantoLavoro() {
+    ['vigneto-form-group', 'frutteto-form-group', 'pianificazione-impianto-group'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+    });
+}
+
 export function setupTipoAssegnazioneHandlers(hasManodoperaModule) {
-    // Se Manodopera non è attivo, non fare nulla (i campi sono già nascosti)
+    // Se Manodopera non è attivo, i campi restano nascosti e non obbligatori.
     if (!hasManodoperaModule) {
         const caposquadraSelect = document.getElementById('lavoro-caposquadra');
         const operaioSelect = document.getElementById('lavoro-operaio');
-        if (caposquadraSelect) caposquadraSelect.required = false;
-        if (operaioSelect) operaioSelect.required = false;
+        if (caposquadraSelect) {
+            caposquadraSelect.required = false;
+            caposquadraSelect.removeAttribute('data-required-orig');
+        }
+        if (operaioSelect) {
+            operaioSelect.required = false;
+            operaioSelect.removeAttribute('data-required-orig');
+        }
+        syncRequiredConVisibilita(document.getElementById('lavoro-form'));
         return;
     }
     
@@ -158,6 +177,7 @@ export function setupTipoAssegnazioneHandlers(hasManodoperaModule) {
         const currentOperaioSelect = document.getElementById('lavoro-operaio');
         
         if (!currentTipoSquadra || !currentTipoAutonomo) {
+            syncRequiredConVisibilita(lavoroForm);
             return;
         }
         
@@ -183,6 +203,7 @@ export function setupTipoAssegnazioneHandlers(hasManodoperaModule) {
                 currentOperaioSelect.required = true;
             }
         }
+        syncRequiredConVisibilita(lavoroForm);
     }
 
     // Usa event delegation sul form per intercettare i cambiamenti ai radio button
@@ -267,6 +288,7 @@ export function setupCategoriaLavoroHandler(populateSottocategorieLavoroCallback
                 if (sottocategoriaGroup) sottocategoriaGroup.style.display = 'none';
                 if (tipoLavoroGroup) tipoLavoroGroup.style.display = 'none';
                 if (tipoLavoroSelect) tipoLavoroSelect.value = '';
+                syncRequiredConVisibilita(form);
             }
             return;
         }
@@ -607,6 +629,7 @@ export async function openCreaModal(
     
     if (modalTitle) modalTitle.textContent = 'Crea Nuovo Lavoro';
     if (lavoroForm) lavoroForm.reset();
+    nascondiBlocchiImpiantoLavoro();
     if (lavoroIdInput) lavoroIdInput.value = '';
     if (lavoroStatoSelect) lavoroStatoSelect.value = hasManodoperaModule ? 'assegnato' : 'in_corso';
     
@@ -674,6 +697,7 @@ export async function openCreaModal(
     
     clearSospensioneForm();
     preparaMiscelaNelForm(null);
+    syncRequiredConVisibilita(lavoroForm);
 
     const lavoroModal = document.getElementById('lavoro-modal');
     if (lavoroModal) lavoroModal.classList.add('active');
@@ -687,8 +711,18 @@ export async function openCreaModal(
 export function closeLavoroModal(state, updateState) {
     const lavoroModal = document.getElementById('lavoro-modal');
     if (lavoroModal) lavoroModal.classList.remove('active');
-    resetLavoroFormContoTerziLock();
-    updateState({ currentLavoroId: null });
+    try {
+        resetLavoroFormContoTerziLock();
+    } catch (err) {
+        console.warn('[GESTIONE-LAVORI] reset lock alla chiusura modal:', err);
+    }
+    if (typeof updateState === 'function') {
+        try {
+            updateState({ currentLavoroId: null });
+        } catch (err) {
+            console.warn('[GESTIONE-LAVORI] updateState alla chiusura modal:', err);
+        }
+    }
 }
 
 /**
@@ -882,22 +916,33 @@ export async function openModificaModal(
     }
     
     if (populateTerrenoDropdownCallback) await populateTerrenoDropdownCallback(lavoro.terrenoId, lavoro.clienteId || null);
-    
-    // Popola categoria e tipo lavoro (se struttura gerarchica disponibile)
-    if (lavoro.tipoLavoro) {
-        // Cerca il tipo lavoro per nome per ottenere categoriaId
-        const tipoLavoroObj = tipiLavoroList.find(t => t.nome === lavoro.tipoLavoro);
-        if (tipoLavoroObj && tipoLavoroObj.categoriaId) {
-            if (populateCategoriaLavoroDropdownCallback) populateCategoriaLavoroDropdownCallback(tipoLavoroObj.categoriaId);
-            // Carica tipi lavoro per quella categoria e poi seleziona
-            if (loadTipiLavoroCallback) {
-                await loadTipiLavoroCallback(tipoLavoroObj.categoriaId);
-            }
-            if (populateTipoLavoroDropdownCallback) populateTipoLavoroDropdownCallback(tipoLavoroObj.categoriaId, lavoro.tipoLavoro);
-        } else {
-            // Fallback: usa lista piatta se tipo non trovato nella struttura gerarchica
-            if (populateCategoriaLavoroDropdownCallback) populateCategoriaLavoroDropdownCallback();
-            if (populateTipoLavoroDropdownCallback) populateTipoLavoroDropdownCallback(null, lavoro.tipoLavoro);
+
+    nascondiBlocchiImpiantoLavoro();
+
+    // Popola categoria e tipo lavoro dopo che le opzioni sono in memoria.
+    // Il match sul nome è tollerante: un tipo trovato non deve lasciare la categoria vuota.
+    const nomeTipoCercato = (lavoro.tipoLavoro || '').trim().toLowerCase();
+    const tipoLavoroObj = nomeTipoCercato
+        ? (tipiLavoroList || []).find((t) => (t.nome || '').trim().toLowerCase() === nomeTipoCercato)
+        : null;
+    const categoriaIdModifica = tipoLavoroObj && tipoLavoroObj.categoriaId
+        ? tipoLavoroObj.categoriaId
+        : null;
+
+    if (categoriaIdModifica) {
+        if (populateCategoriaLavoroDropdownCallback) populateCategoriaLavoroDropdownCallback(categoriaIdModifica);
+        if (loadTipiLavoroCallback) {
+            await loadTipiLavoroCallback(categoriaIdModifica);
+        }
+        if (populateTipoLavoroDropdownCallback) {
+            populateTipoLavoroDropdownCallback(categoriaIdModifica, lavoro.tipoLavoro);
+        }
+        if (populateCategoriaLavoroDropdownCallback) populateCategoriaLavoroDropdownCallback(categoriaIdModifica);
+    } else if (lavoro.tipoLavoro) {
+        if (populateCategoriaLavoroDropdownCallback) populateCategoriaLavoroDropdownCallback();
+        const categoriaCorrente = document.getElementById('lavoro-categoria-principale')?.value || null;
+        if (categoriaCorrente && populateTipoLavoroDropdownCallback) {
+            populateTipoLavoroDropdownCallback(categoriaCorrente, lavoro.tipoLavoro);
         }
     } else {
         if (populateCategoriaLavoroDropdownCallback) populateCategoriaLavoroDropdownCallback();
@@ -914,6 +959,7 @@ export async function openModificaModal(
     preparaMiscelaNelForm(lavoro && lavoro.miscelaPrevista);
 
     applyLavoroFormContoTerziDaPianificareLock(lavoro);
+    syncRequiredConVisibilita(document.getElementById('lavoro-form'));
     
     const lavoroModal = document.getElementById('lavoro-modal');
     if (lavoroModal) lavoroModal.classList.add('active');
@@ -926,6 +972,19 @@ export async function openModificaModal(
         setTimeout(() => {
             applyAssegnazioneFromLavoroCallback(lavoro);
             if (setupTipoAssegnazioneHandlersCallback) setupTipoAssegnazioneHandlersCallback();
+            const catSel = document.getElementById('lavoro-categoria-principale');
+            if (categoriaIdModifica && catSel && !catSel.value && populateCategoriaLavoroDropdownCallback) {
+                populateCategoriaLavoroDropdownCallback(categoriaIdModifica);
+            }
+            syncRequiredConVisibilita(document.getElementById('lavoro-form'));
+        }, 350);
+    } else {
+        setTimeout(() => {
+            const catSel = document.getElementById('lavoro-categoria-principale');
+            if (categoriaIdModifica && catSel && !catSel.value && populateCategoriaLavoroDropdownCallback) {
+                populateCategoriaLavoroDropdownCallback(categoriaIdModifica);
+            }
+            syncRequiredConVisibilita(document.getElementById('lavoro-form'));
         }, 350);
     }
 }
@@ -1773,7 +1832,21 @@ export async function handleSalvaLavoro(
     updateMacchinaStatoCallback,
     generaVoceDiarioContoTerziCallback
 ) {
-    event.preventDefault();
+    if (event && typeof event.preventDefault === 'function') event.preventDefault();
+    if (salvaLavoroInCorso) return;
+
+    const form = document.getElementById('lavoro-form');
+    syncRequiredConVisibilita(form);
+    if (form && typeof form.checkValidity === 'function' && !form.checkValidity()) {
+        const mancante = primoCampoVisibileNonValido(form);
+        showAlert(`Manca: ${etichettaCampoLavoro(mancante)}`, 'error');
+        if (mancante && typeof mancante.focus === 'function') {
+            try { mancante.focus(); } catch (err) { /* alert già mostrato */ }
+        }
+        return;
+    }
+
+    salvaLavoroInCorso = true;
     const submitBtn = (event && event.submitter) || document.querySelector('#lavoro-form button[type="submit"]');
     if (submitBtn) submitBtn.disabled = true;
     try {
@@ -1797,6 +1870,7 @@ export async function handleSalvaLavoro(
         console.warn('[GESTIONE-LAVORI] salvataggio interrotto:', motivo);
         showAlert(`Errore: ${motivo}`, 'error');
     } finally {
+        salvaLavoroInCorso = false;
         if (submitBtn) submitBtn.disabled = false;
     }
 }
@@ -1916,7 +1990,8 @@ async function salvaLavoroCorpo(
         showAlert('La durata deve essere di almeno 1 giorno', 'error');
         return;
     }
-    
+
+    let lavoroSalvato = false;
     try {
         const { Timestamp, serverTimestamp, doc, collection, addDoc, updateDoc, getDoc, deleteField } = await import('../../services/firebase-service.js');
         
@@ -2169,6 +2244,7 @@ async function salvaLavoroCorpo(
             lavoroData.aggiornatoIl = serverTimestamp();
             
             await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', state.currentLavoroId), lavoroData);
+            lavoroSalvato = true;
 
             const idxSalvato = state.lavoriList.findIndex((l) => l.id === state.currentLavoroId);
             if (idxSalvato >= 0) {
@@ -2219,6 +2295,7 @@ async function salvaLavoroCorpo(
             
             const nuovoLavoroRef = await addDoc(collection(db, 'tenants', currentTenantId, 'lavori'), lavoroData);
             nuovoLavoroId = nuovoLavoroRef.id;
+            lavoroSalvato = true;
             showAlert('Lavoro creato con successo!', 'success');
             
             // Se è un lavoro di tipo "Impianto Nuovo Vigneto" con pianificazione, crea anche il vigneto
@@ -2401,5 +2478,16 @@ async function salvaLavoroCorpo(
         const motivo = (error && error.message) ? error.message : 'Non sono riuscito a salvare il lavoro.';
         console.warn('[GESTIONE-LAVORI] salvataggio interrotto:', motivo);
         showAlert(`Errore: ${motivo}`, 'error');
+    } finally {
+        const modal = document.getElementById('lavoro-modal');
+        const ancoraAperto = modal && modal.classList.contains('active');
+        if (lavoroSalvato && ancoraAperto && typeof closeLavoroModalCallback === 'function') {
+            try {
+                closeLavoroModalCallback();
+            } catch (closeErr) {
+                console.error('[GESTIONE-LAVORI] chiusura modal dopo salvataggio:', closeErr);
+                modal.classList.remove('active');
+            }
+        }
     }
 }

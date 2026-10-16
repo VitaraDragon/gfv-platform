@@ -101,7 +101,10 @@ import { runValidazioneOreRifiutoAssertions } from '../tests/e2e/sim/scenarios/v
 import { runTerreniWriteAssertions } from '../tests/e2e/sim/scenarios/terreni-write.mjs';
 import { runGuastiWriteAssertions } from '../tests/e2e/sim/scenarios/guasti-write.mjs';
 import { runTerreniClientiWriteAssertions } from '../tests/e2e/sim/scenarios/terreni-clienti-write.mjs';
-import { runGestioneLavoriWriteAssertions } from '../tests/e2e/sim/scenarios/gestione-lavori-write.mjs';
+import {
+  runGestioneLavoriAutonomoSaveAssertions,
+  runGestioneLavoriWriteAssertions,
+} from '../tests/e2e/sim/scenarios/gestione-lavori-write.mjs';
 import { runPreventiviWriteAssertions } from '../tests/e2e/sim/scenarios/preventivi-write.mjs';
 import { runPreventiviAccettaWriteAssertions } from '../tests/e2e/sim/scenarios/preventivi-accetta-write.mjs';
 import { runClientiWriteAssertions } from '../tests/e2e/sim/scenarios/clienti-write.mjs';
@@ -565,6 +568,14 @@ const SCENARIOS = [
       await loginAsManagerManodopera(page);
       await gotoGestioneLavori(page);
       await runGestioneLavoriWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'gestione-lavori-autonomo-save',
+    run: async (page) => {
+      await loginAsManagerManodopera(page);
+      await gotoGestioneLavori(page);
+      await runGestioneLavoriAutonomoSaveAssertions(page, expect);
     },
   },
   {
