@@ -18,7 +18,8 @@ vi.mock('../../core/services/firebase-service.js', () => ({
 }));
 
 import { assertGiornoOreAmmesso, testoIntestazioneOreDelGiorno } from '../../core/services/ore-service.js';
-import { messaggioOreFuoriFinestra } from '../../core/services/ore-lavoro-selezionabile.js';
+import { messaggioOreFuoriFinestra } from '../../core/services/ore-lavoro-selezionabile.js?v=2026-10-16a';
+// Stesso ?v= del modulo in pagina, così il test e il runtime condividono una sola copia.
 
 function giornoShift(delta) {
     const d = new Date();

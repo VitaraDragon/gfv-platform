@@ -10,7 +10,7 @@ import {
 } from './tenant-service.js';
 import { getCurrentUserData } from './auth-service.js';
 import { isOraDelCaposquadraSuLavoroSquadra, assertUtentePuoValidareOra } from './manodopera-ore-validazione-scope.js';
-import { lavoroSelezionabilePerOre } from './ore-lavoro-selezionabile.js';
+import { lavoroSelezionabilePerOre } from './ore-lavoro-selezionabile.js?v=2026-10-16a';
 import {
   calcolaOreNette as calcolaOreNettePura,
   formattaOreMinuti,

@@ -83,6 +83,17 @@ function mezzanotteLocale(value) {
 }
 
 /**
+ * Data di completamento per la finestra ore.
+ * Se la chiusura al 100% non ha scritto completatoIl, si usa aggiornatoIl.
+ * @param {object} [lavoro]
+ * @returns {Date|null}
+ */
+export function dataCompletamentoLavoro(lavoro) {
+    if (!lavoro || typeof lavoro !== 'object') return null;
+    return dataDaValore(lavoro.completatoIl) || dataDaValore(lavoro.aggiornatoIl);
+}
+
+/**
  * @param {Date} a
  * @param {Date} b
  * @returns {number}
@@ -147,7 +158,8 @@ export function lavoroSelezionabilePerOre({ lavoro, ruolo, oggi = new Date(), gi
     }
 
     if (stato === 'completato' || stato === 'completato_da_approvare') {
-        const completato = mezzanotteLocale(lavoro.completatoIl);
+        const quandoCompletato = dataCompletamentoLavoro(lavoro);
+        const completato = mezzanotteLocale(quandoCompletato);
         if (!completato) {
             return esito(false, 'Manca la data di completamento: non si possono segnare ore. Chiedi al caposquadra o al manager.');
         }
@@ -156,18 +168,18 @@ export function lavoroSelezionabilePerOre({ lavoro, ruolo, oggi = new Date(), gi
         const fuoriFinestra = giorniDaCompletamento > FINESTRA_ORE_IN_RITARDO_GIORNI;
         const giornoRichiesto = giorno == null || (typeof giorno === 'string' && giorno.trim() === '');
         if (giornoRichiesto) {
-            if (fuoriFinestra) return esito(false, messaggioOreFuoriFinestra(lavoro.completatoIl));
+            if (fuoriFinestra) return esito(false, messaggioOreFuoriFinestra(quandoCompletato));
             return esito(true);
         }
 
         const giornoOre = mezzanotteLocale(giorno);
         if (!giornoOre) return esito(false, 'Inserisci una data valida.');
-        if (fuoriFinestra) return esito(false, messaggioOreFuoriFinestra(lavoro.completatoIl));
+        if (fuoriFinestra) return esito(false, messaggioOreFuoriFinestra(quandoCompletato));
         if (differenzaGiorni(giornoOre, oggiMezzo) > 0) {
             return esito(false, 'Non puoi segnare ore per un giorno futuro.');
         }
         if (differenzaGiorni(giornoOre, completato) > 0) {
-            const quando = formattaGiornoBreve(lavoro.completatoIl);
+            const quando = formattaGiornoBreve(quandoCompletato);
             return esito(false, `Il lavoro è stato completato il ${quando}: puoi segnare solo i giorni fino a quella data.`);
         }
         if (lavoro.dataInizio != null && lavoro.dataInizio !== '') {
