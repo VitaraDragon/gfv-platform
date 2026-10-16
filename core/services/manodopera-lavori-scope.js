@@ -11,7 +11,7 @@ import { resolveManodoperaUserIds } from './comunicazioni-squadra-utils.js';
 import {
     lavoroSelezionabilePerOre,
     impostaDelegaDropdownSegnaOre
-} from './ore-lavoro-selezionabile.js';
+} from './ore-lavoro-selezionabile.js?v=2026-10-16a';
 
 /**
  * @param {import('firebase/firestore').Firestore} db

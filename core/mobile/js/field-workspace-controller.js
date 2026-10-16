@@ -71,7 +71,7 @@ import {
 import {
     lavoroSelezionabilePerOre,
     componiEtichettaLavoroOre
-} from '../../services/ore-lavoro-selezionabile.js';
+} from '../../services/ore-lavoro-selezionabile.js?v=2026-10-16a';
 import { fetchOperaioIdsForCaposquadraSquadre } from '../../services/comunicazioni-squadra-service.js';
 import { segnalaAssenza } from '../../services/manodopera-assenze-service.js';
 import { toGiornoKey } from '../../config/manodopera-assenze-config.js';

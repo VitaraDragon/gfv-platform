@@ -26,8 +26,8 @@ const OVERRIDES = {
   'lavori-caposquadra-write': {
     requiresSeedProfile: 'viticola-conto-terzi-manodopera',
     contract: {
-      invariant: 'Caposquadra sospende/riprende lavoro da seed manodopera',
-      primaryAsserts: ['lavoro sospendibile presente', 'stato aggiornato in UI'],
+      invariant: 'Caposquadra sospende un lavoro; a zona 100% il lavoro va in approvazione e resta in Segna ore',
+      primaryAsserts: ['lavoro sospendibile presente', 'stato aggiornato in UI', 'completato_da_approvare con completatoIl', 'operaio vede il lavoro in Segna ore'],
       avoidAsserts: ['id lavoro hardcoded'],
     },
   },

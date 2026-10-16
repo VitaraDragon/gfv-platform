@@ -794,14 +794,15 @@
         </div>
     </div>
 
-    <script type="module" src="../js/standalone-bootstrap.js" data-config-base="../"></script>
+    <script type="module" src="../js/standalone-bootstrap.js?v=2026-10-16a" data-config-base="../"></script>
     <script type="module">
         import { formatDateLikeToItalianLongLocal } from '../js/date-format-it.js';
         import { escapeHtml, showAlert } from '../js/gfv-page-utils.js';
         import { getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
-        import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, orderBy, serverTimestamp, Timestamp } from '../services/firebase-service.js';
+        import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, Timestamp, deleteField } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
         import { resolveAuthUser, loginPageUrl } from '../js/simulator-standalone-page.js';
+        import { shouldUseFirebaseEmulator } from '../js/firebase-emulator-dev.js';
         import { fetchLavoriDocumentsForFieldUser, sliceOperaioLavoriWindow } from '../services/manodopera-lavori-scope.js';
         import { hrefElencoLavoriCampo } from '../mobile/js/field-lavori-embed.js';
         import {
@@ -3283,6 +3284,30 @@
             return minDistance;
         }
         
+        /**
+         * Stessa patch del pulsante «Segna come Completato» e della chiusura automatica al 100%.
+         * @param {number|string} percentuale
+         * @param {string} completatoDa
+         * @param {boolean} [parziale]
+         */
+        function campiChiusuraDaApprovare(percentuale, completatoDa, parziale) {
+            const patch = {
+                stato: 'completato_da_approvare',
+                percentualeCompletamentoTracciata: parseFloat(percentuale),
+                completatoDa: completatoDa,
+                completatoIl: serverTimestamp(),
+                aggiornatoIl: serverTimestamp()
+            };
+            if (parziale) {
+                patch.completamentoParziale = true;
+            }
+            return patch;
+        }
+
+        function statoChiusuraGiaRegistrata(stato) {
+            return stato === 'completato_da_approvare' || stato === 'completato';
+        }
+
         // Aggiorna progressi lavoro (calcolo automatico)
         async function aggiornaProgressiLavoro(lavoroId) {
             try {
@@ -3344,22 +3369,31 @@
                 // Aggiorna stato lavoro se completato
                 let nuovoStato = lavoro.stato;
                 const lavoroCompletato = percentualeCompletamento >= 100 && lavoro.stato !== 'completato';
-                if (lavoroCompletato) {
-                    nuovoStato = 'completato';
+                const percentualeArrotondata = Math.round(percentualeCompletamento * 10) / 10;
+                const passaInAttesa = lavoroCompletato && !statoChiusuraGiaRegistrata(lavoro.stato);
+                if (passaInAttesa) {
+                    nuovoStato = 'completato_da_approvare';
                 } else if (percentualeCompletamento > 0 && lavoro.stato === 'assegnato') {
                     nuovoStato = 'in_corso';
                 }
                 
                 // Aggiorna documento lavoro con progressi
-                await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId), {
+                const aggiornamentoProgressi = {
                     superficieTotaleLavorata: superficieTotaleLavorata,
                     superficieRimanente: superficieRimanente,
-                    percentualeCompletamento: Math.round(percentualeCompletamento * 10) / 10,
+                    percentualeCompletamento: percentualeArrotondata,
                     giorniEffettivi: giorniEffettivi,
                     statoProgresso: statoProgresso,
                     stato: nuovoStato,
                     aggiornatoIl: serverTimestamp()
-                });
+                };
+                if (passaInAttesa) {
+                    Object.assign(
+                        aggiornamentoProgressi,
+                        campiChiusuraDaApprovare(percentualeArrotondata, currentUserData && currentUserData.id)
+                    );
+                }
+                await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId), aggiornamentoProgressi);
                 
                 // Libera macchine se lavoro completato (verifica modulo Parco Macchine)
                 if (lavoroCompletato && lavoro.macchinaId) {
@@ -3417,6 +3451,152 @@
                 console.error('Errore aggiornamento progressi:', error);
                 // Non blocchiamo il salvataggio della zona se c'è un errore nel calcolo progressi
             }
+        }
+
+        const NOTA_ZONA_COPERTURA_SIM = 'GFV_SIM_E2E_ZONA_100';
+
+        /**
+         * I ganci di prova scrivono zone e stato. Restano sul simulatore/emulatore
+         * in locale. Su GitHub Pages non vengono esposti, nemmeno con ?emulator=1.
+         */
+        function provaZonaSoloSimulatore() {
+            try {
+                const host = String(window.location.hostname || '').toLowerCase();
+                if (host === 'github.io' || host.endsWith('.github.io')) return false;
+                if (host !== 'localhost' && host !== '127.0.0.1' && host !== '[::1]') return false;
+                if (localStorage.getItem('gfv_demo_cloud_session') === '1') return false;
+                return shouldUseFirebaseEmulator();
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function esitoChiusuraZona(id, data, giaPresente) {
+            return {
+                ok: data.stato === 'completato_da_approvare' && !!data.completatoIl && !!data.completatoDa,
+                id: id,
+                nome: data.nome || '',
+                stato: data.stato || null,
+                completatoIl: !!data.completatoIl,
+                completatoDa: data.completatoDa || null,
+                percentualeCompletamento: data.percentualeCompletamento ?? null,
+                percentualeCompletamentoTracciata: data.percentualeCompletamentoTracciata ?? null,
+                giaPresente: !!giaPresente
+            };
+        }
+
+        async function zonaHaNota(lavoroId, nota) {
+            const zoneSnap = await getDocs(collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'zoneLavorate'));
+            let trovata = false;
+            zoneSnap.forEach((zona) => {
+                if (String((zona.data() && zona.data().note) || '') === nota) trovata = true;
+            });
+            return trovata;
+        }
+
+        async function scriviZonaCoperturaTerreno(lavoroId, nota) {
+            const lavoroSnap = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId));
+            if (!lavoroSnap.exists()) return false;
+            const lavoro = lavoroSnap.data();
+            let superficie = 0;
+            if (lavoro.terrenoId) {
+                const terrenoSnap = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', lavoro.terrenoId));
+                if (terrenoSnap.exists()) superficie = Number(terrenoSnap.data().superficie) || 0;
+            }
+            const coordinate = [
+                { lat: 45.0, lng: 9.0 },
+                { lat: 45.05, lng: 9.0 },
+                { lat: 45.05, lng: 9.05 },
+                { lat: 45.0, lng: 9.05 },
+                { lat: 45.0, lng: 9.0 }
+            ];
+            const segmentoData = {
+                tipo: 'poligono',
+                data: Timestamp.fromDate(new Date()),
+                coordinate: coordinate,
+                lunghezzaMetri: 0,
+                larghezzaMetri: null,
+                superficieHa: Math.max(superficie, 1) + 1,
+                isChiuso: true,
+                modoTracciamento: 'segmento',
+                note: nota,
+                creatoIl: serverTimestamp()
+            };
+            if (currentUserData && currentUserData.id) {
+                segmentoData.caposquadraId = currentUserData.id;
+            }
+            await addDoc(
+                collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'zoneLavorate'),
+                segmentoData
+            );
+            return true;
+        }
+
+        /**
+         * Registra una zona che copre il terreno e ricalcola i progressi.
+         * Stesso addDoc + aggiornaProgressiLavoro del salvataggio sulla mappa:
+         * lo scenario E2E chiude al 100% senza disegnare il poligono a mano.
+         * Assente su Pages: solo localhost con emulatore o sessione simulatore.
+         */
+        if (provaZonaSoloSimulatore()) {
+        window.chiudiLavoroConZonaAlCento = async function(notaOpt) {
+            const nota = String(notaOpt || NOTA_ZONA_COPERTURA_SIM);
+            if (!currentTenantId || !currentUserData) return { ok: false, reason: 'no_session' };
+            const userId = currentUserData.id || currentUserData.uid;
+            if (!lavoriList.length) await loadLavori();
+            const miei = (lavoriList || []).filter((lav) => lav.caposquadraId === userId && !lav.operaioId);
+            for (let i = 0; i < miei.length; i += 1) {
+                const lav = miei[i];
+                if (!(await zonaHaNota(lav.id, nota))) continue;
+                const snap = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lav.id));
+                let data = snap.exists() ? snap.data() : {};
+                if (!statoChiusuraGiaRegistrata(data.stato)) {
+                    await aggiornaProgressiLavoro(lav.id);
+                    await loadLavori();
+                    const dopo = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lav.id));
+                    data = dopo.exists() ? dopo.data() : data;
+                }
+                return Object.assign(esitoChiusuraZona(lav.id, data, true), { statoPrima: 'assegnato' });
+            }
+            const aperti = miei.filter((lav) => lav.stato === 'assegnato' || lav.stato === 'in_corso');
+            const target = aperti.find((lav) => /squadra/i.test(lav.nome || '')) || aperti[0];
+            if (!target) return { ok: false, reason: 'nessun_lavoro_aperto' };
+            const statoPrima = target.stato || 'assegnato';
+            await scriviZonaCoperturaTerreno(target.id, nota);
+            await aggiornaProgressiLavoro(target.id);
+            await loadLavori();
+            const dopo = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', target.id));
+            return Object.assign(esitoChiusuraZona(target.id, dopo.exists() ? dopo.data() : {}, false), { statoPrima: statoPrima });
+        };
+
+    /**
+     * Rimuove la zona di prova e riapre il lavoro, così gli scenari successivi
+     * non vedono la tabella «in attesa di approvazione».
+     */
+    window.ripristinaLavoroProvaZona = async function(lavoroId, notaOpt, statoPrima) {
+        const nota = String(notaOpt || NOTA_ZONA_COPERTURA_SIM);
+        if (!currentTenantId || !lavoroId) return { ok: false, reason: 'no_session' };
+        const zoneSnap = await getDocs(collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'zoneLavorate'));
+        const daCancellare = [];
+        zoneSnap.forEach((zona) => {
+            if (String((zona.data() && zona.data().note) || '') === nota) daCancellare.push(zona.ref);
+        });
+        for (let i = 0; i < daCancellare.length; i += 1) {
+            await deleteDoc(daCancellare[i]);
+        }
+        // Le regole consentono al capo in_corso / completato / completato_da_approvare / sospeso.
+        // Il ritorno ad «assegnato» è negato, quindi la prova riapre sempre in_corso.
+        await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId), {
+            stato: 'in_corso',
+            completatoIl: deleteField(),
+            completatoDa: deleteField(),
+            percentualeCompletamentoTracciata: deleteField(),
+            completamentoParziale: deleteField(),
+            aggiornatoIl: serverTimestamp()
+        });
+        await aggiornaProgressiLavoro(lavoroId);
+        return { ok: true };
+        };
         }
 
         // Funzioni helper per verificare dati obbligatori
@@ -3648,16 +3828,7 @@
                 const lavoroRef = doc(db, 'tenants', currentTenantId, 'lavori', lavoroId);
 
                 // Aggiorna stato a "completato_da_approvare"
-                const patch = {
-                    stato: 'completato_da_approvare',
-                    percentualeCompletamentoTracciata: parseFloat(percentuale),
-                    completatoDa: currentUserData.id,
-                    completatoIl: serverTimestamp(),
-                    aggiornatoIl: serverTimestamp()
-                };
-                if (parziale) {
-                    patch.completamentoParziale = true;
-                }
+                const patch = campiChiusuraDaApprovare(percentuale, currentUserData.id, parziale);
                 await updateDoc(lavoroRef, patch);
 
                 showAlert('Lavoro segnato come completato! In attesa di approvazione del Manager.', 'success');
