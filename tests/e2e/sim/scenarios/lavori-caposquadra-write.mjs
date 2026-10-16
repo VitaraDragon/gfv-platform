@@ -5,10 +5,13 @@
  */
 
 import {
+  gotoSegnaturaOre,
   loginAsCapoForLavoriDesktop,
+  loginAsOperaioFromDevPage,
 } from '../helpers/sim-login.js';
 
 export const E2E_CAPO_SOSPENSIONE_CAUSA = 'GFV_SIM_E2E_CAPO_SOSPEND';
+export const E2E_ZONA_100_NOTA = 'GFV_SIM_E2E_ZONA_100';
 
 function cardWithSospendiButton(page) {
   return page.locator('#lavori-container .lavoro-card').filter({
@@ -105,4 +108,46 @@ export async function runLavoriCaposquadraWriteAssertions(page, expect) {
   const suspended = cardSospesoWithCausa(page);
   await expect(suspended.first()).toBeVisible({ timeout: 30_000 });
   await expect(suspended.first()).toContainText(/sospeso/i);
+}
+
+/**
+ * Zona che copre il terreno → completato_da_approvare con completatoIl,
+ * e l'operaio senza ore sul lavoro lo ritrova in Segna ore.
+ * @param {import('playwright-core').Page} page
+ * @param {typeof import('@playwright/test').expect} expect
+ */
+export async function runLavoroZonaAlCentoVisibileInSegnaOre(page, expect) {
+  expect.configure({ timeout: 180_000 });
+
+  await loginAsCapoForLavoriDesktop(page);
+  await page.waitForFunction(() => {
+    const container = document.getElementById('lavori-container');
+    return container && !container.querySelector('.loading');
+  }, { timeout: 45_000 });
+
+  const chiuso = await page.evaluate(async (nota) => {
+    if (typeof window.chiudiLavoroConZonaAlCento !== 'function') {
+      return { ok: false, reason: 'missing_fn' };
+    }
+    return window.chiudiLavoroConZonaAlCento(nota);
+  }, E2E_ZONA_100_NOTA);
+
+  expect(chiuso && chiuso.ok, JSON.stringify(chiuso || { reason: 'no_result' })).toBe(true);
+  expect(chiuso.stato).toBe('completato_da_approvare');
+  expect(chiuso.completatoIl).toBe(true);
+  expect(chiuso.completatoDa).toBeTruthy();
+
+  const card = page.locator('#lavori-container .lavoro-card').filter({ hasText: chiuso.nome }).first();
+  await expect(card).toBeVisible({ timeout: 30_000 });
+  await expect(card).toContainText(/In attesa approvazione/i);
+
+  await loginAsOperaioFromDevPage(page, { waitForWorkspace: false });
+  await gotoSegnaturaOre(page);
+
+  const cardOre = page.locator('#lavori-container .lavoro-card').filter({ hasText: chiuso.nome }).first();
+  await expect(cardOre).toBeVisible({ timeout: 60_000 });
+
+  await page.getByRole('button', { name: /Segna Nuova Ora/i }).click();
+  await page.locator('#ora-modal.active').waitFor({ state: 'visible', timeout: 30_000 });
+  await expect(page.locator(`#ora-lavoro option[value="${chiuso.id}"]`)).toHaveCount(1);
 }
