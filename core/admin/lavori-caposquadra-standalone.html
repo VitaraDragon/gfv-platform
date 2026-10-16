@@ -802,6 +802,7 @@
         import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, Timestamp, deleteField } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
         import { resolveAuthUser, loginPageUrl } from '../js/simulator-standalone-page.js';
+        import { shouldUseFirebaseEmulator } from '../js/firebase-emulator-dev.js';
         import { fetchLavoriDocumentsForFieldUser, sliceOperaioLavoriWindow } from '../services/manodopera-lavori-scope.js';
         import { hrefElencoLavoriCampo } from '../mobile/js/field-lavori-embed.js';
         import {
@@ -3454,6 +3455,22 @@
 
         const NOTA_ZONA_COPERTURA_SIM = 'GFV_SIM_E2E_ZONA_100';
 
+        /**
+         * I ganci di prova scrivono zone e stato. Restano sul simulatore/emulatore
+         * in locale. Su GitHub Pages non vengono esposti, nemmeno con ?emulator=1.
+         */
+        function provaZonaSoloSimulatore() {
+            try {
+                const host = String(window.location.hostname || '').toLowerCase();
+                if (host === 'github.io' || host.endsWith('.github.io')) return false;
+                if (host !== 'localhost' && host !== '127.0.0.1' && host !== '[::1]') return false;
+                if (localStorage.getItem('gfv_demo_cloud_session') === '1') return false;
+                return shouldUseFirebaseEmulator();
+            } catch (e) {
+                return false;
+            }
+        }
+
         function esitoChiusuraZona(id, data, giaPresente) {
             return {
                 ok: data.stato === 'completato_da_approvare' && !!data.completatoIl && !!data.completatoDa,
@@ -3519,7 +3536,9 @@
          * Registra una zona che copre il terreno e ricalcola i progressi.
          * Stesso addDoc + aggiornaProgressiLavoro del salvataggio sulla mappa:
          * lo scenario E2E chiude al 100% senza disegnare il poligono a mano.
+         * Assente su Pages: solo localhost con emulatore o sessione simulatore.
          */
+        if (provaZonaSoloSimulatore()) {
         window.chiudiLavoroConZonaAlCento = async function(notaOpt) {
             const nota = String(notaOpt || NOTA_ZONA_COPERTURA_SIM);
             if (!currentTenantId || !currentUserData) return { ok: false, reason: 'no_session' };
@@ -3577,7 +3596,8 @@
         });
         await aggiornaProgressiLavoro(lavoroId);
         return { ok: true };
-    };
+        };
+        }
 
         // Funzioni helper per verificare dati obbligatori
         async function verificaOreSegnateLavoro(lavoroId, userId) {
