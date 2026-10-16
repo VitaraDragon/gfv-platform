@@ -9,11 +9,13 @@ vi.mock('../../core/services/firebase-service.js', () => ({
 
 import {
     FINESTRA_ORE_IN_RITARDO_GIORNI,
+    dataCompletamentoLavoro,
     lavoroSelezionabilePerOre,
     messaggioOreFuoriFinestra,
     suffissoEtichettaLavoroOre,
     componiEtichettaLavoroOre,
-} from '../../core/services/ore-lavoro-selezionabile.js';
+} from '../../core/services/ore-lavoro-selezionabile.js?v=2026-10-16a';
+// Lo stesso ?v= degli import in pagina: se lo specifier cambia, Vitest carica due copie e la delega del menu ore resta sull'altra.
 import { isLavoroInDropdownSegnaOre } from '../../core/services/manodopera-lavori-scope.js';
 
 const OGGI = new Date(2026, 9, 11);
@@ -191,7 +193,7 @@ describe('lavoroSelezionabilePerOre — completato e in attesa', () => {
         }
     });
 
-    it('completatoIl assente o non valido non viene indovinato', () => {
+    it('completatoIl assente o non valido, senza aggiornatoIl, non viene indovinato', () => {
         for (const completatoIl of [null, undefined, '', 'non-una-data', {}, { toDate: () => new Date('x') }]) {
             const esito = lavoroSelezionabilePerOre({
                 lavoro: { stato: 'completato', completatoIl },
@@ -200,6 +202,80 @@ describe('lavoroSelezionabilePerOre — completato e in attesa', () => {
             });
             expect(esito.ok).toBe(false);
         }
+    });
+
+    it('chiusura senza completatoIl: aggiornatoIl di 2 giorni fa è in finestra, 10 giorni fa no', () => {
+        const dueGiorniFa = new Date(2026, 9, 9);
+        const dieciGiorniFa = new Date(2026, 9, 1);
+        const messaggioMancante = 'Manca la data di completamento: non si possono segnare ore. Chiedi al caposquadra o al manager.';
+        for (const stato of ['completato', 'completato_da_approvare']) {
+            const recente = {
+                stato,
+                aggiornatoIl: dueGiorniFa,
+                dataInizio: new Date(2026, 9, 1)
+            };
+            expect(lavoroSelezionabilePerOre({ lavoro: recente, ruolo: 'operaio', oggi: OGGI }).ok, `${stato} menu`).toBe(true);
+            expect(lavoroSelezionabilePerOre({
+                lavoro: recente,
+                ruolo: 'operaio',
+                oggi: OGGI,
+                giorno: '2026-10-09'
+            }).ok, `${stato} giorno`).toBe(true);
+            expect(lavoroSelezionabilePerOre({
+                lavoro: { stato, aggiornatoIl: ts(dueGiorniFa), dataInizio: new Date(2026, 9, 1) },
+                ruolo: 'manager',
+                oggi: OGGI
+            }).ok, `${stato} toDate`).toBe(true);
+
+            const vecchio = {
+                stato,
+                aggiornatoIl: dieciGiorniFa,
+                dataInizio: new Date(2026, 8, 1)
+            };
+            const menuVecchio = lavoroSelezionabilePerOre({ lavoro: vecchio, ruolo: 'caposquadra', oggi: OGGI });
+            const giornoVecchio = lavoroSelezionabilePerOre({
+                lavoro: vecchio,
+                ruolo: 'caposquadra',
+                oggi: OGGI,
+                giorno: '2026-10-01'
+            });
+            expect(menuVecchio.ok, `${stato} menu fuori`).toBe(false);
+            expect(giornoVecchio.ok, `${stato} giorno fuori`).toBe(false);
+            expect(menuVecchio.motivo).toBe(messaggioOreFuoriFinestra(dieciGiorniFa));
+            expect(giornoVecchio.motivo).toBe(messaggioOreFuoriFinestra(dieciGiorniFa));
+
+            const oltreRipiego = lavoroSelezionabilePerOre({
+                lavoro: recente,
+                ruolo: 'operaio',
+                oggi: OGGI,
+                giorno: '2026-10-10'
+            });
+            expect(oltreRipiego.ok, `${stato} dopo il ripiego`).toBe(false);
+            expect(oltreRipiego.motivo).toContain('09/10');
+
+            const senzaDate = lavoroSelezionabilePerOre({
+                lavoro: { stato },
+                ruolo: 'manager',
+                oggi: OGGI,
+                giorno: '2026-10-11'
+            });
+            expect(senzaDate.ok, `${stato} senza date`).toBe(false);
+            expect(senzaDate.motivo).toBe(messaggioMancante);
+            expect(dataCompletamentoLavoro({ stato })).toBeNull();
+        }
+    });
+
+    it('completatoIl resta la data anche se aggiornatoIl è più recente', () => {
+        const lavoro = {
+            stato: 'completato',
+            completatoIl: new Date(2026, 9, 1),
+            aggiornatoIl: new Date(2026, 9, 11),
+            dataInizio: new Date(2026, 8, 1)
+        };
+        const esito = lavoroSelezionabilePerOre({ lavoro, ruolo: 'operaio', oggi: OGGI });
+        expect(esito.ok).toBe(false);
+        expect(esito.motivo).toBe(messaggioOreFuoriFinestra(lavoro.completatoIl));
+        expect(dataCompletamentoLavoro(lavoro).getDate()).toBe(1);
     });
 
     it('senza dataInizio il giorno del completamento resta valido', () => {
