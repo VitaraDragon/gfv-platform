@@ -258,3 +258,84 @@ export async function runGestioneLavoriWriteAssertions(page, expect) {
     }
   }
 }
+
+/** Marker del lavoro autonomo: un solo Salva deve chiudere il modal, senza «not focusable». */
+export const E2E_LAVORO_WRITE_NOME_AUTONOMO = 'GFV SIM E2E WRITE LAVORO AUTONOMO';
+
+export const E2E_LAVORO_WRITE_NOTE_AUTONOMO = 'GFV_SIM_E2E_WRITE_LAVORO_AUTONOMO';
+
+/**
+ * Crea un lavoro autonomo e verifica chiusura modal + console pulita.
+ * @param {import('playwright-core').Page} page
+ * @param {typeof import('@playwright/test').expect} expect
+ */
+export async function runGestioneLavoriAutonomoSaveAssertions(page, expect) {
+  expect.configure({ timeout: 60_000 });
+
+  const focusableErrors = [];
+  page.on('console', (msg) => {
+    const text = msg.text() || '';
+    if (/is not focusable/i.test(text)) focusableErrors.push(text);
+  });
+
+  await page.waitForFunction(() => {
+    const container = document.getElementById('lavori-container');
+    return container && container.querySelectorAll('.lavori-table tbody tr').length >= 1;
+  }, { timeout: 45_000 });
+
+  await clearLavoriFilters(page);
+
+  let markerRows = lavoriRowsWithMarker(page, E2E_LAVORO_WRITE_NOME_AUTONOMO);
+  if ((await markerRows.count()) === 0) {
+    await openNewLavoroModal(page);
+    await page.locator('#lavoro-nome').fill(E2E_LAVORO_WRITE_NOME_AUTONOMO);
+    await page.locator('#lavoro-terreno').selectOption({ index: 1 });
+    await pickTipoLavoroInModal(page);
+    await page.locator('#tipo-autonomo').check();
+
+    await page.waitForFunction(() => {
+      const group = document.getElementById('operaio-group');
+      const sel = document.getElementById('lavoro-operaio');
+      const capo = document.getElementById('lavoro-caposquadra');
+      return group
+        && group.style.display !== 'none'
+        && sel
+        && sel.options.length > 1
+        && capo
+        && capo.required === false
+        && sel.required === true;
+    }, { timeout: 15_000 });
+
+    await page.locator('#lavoro-operaio').selectOption({ index: 1 });
+
+    const today = await page.evaluate(() => {
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    });
+    await page.locator('#lavoro-data-inizio').fill(today);
+    await page.locator('#lavoro-durata').fill(WRITE_DURATA);
+    await page.locator('#lavoro-stato').selectOption('assegnato');
+    await page.locator('#lavoro-note').fill(E2E_LAVORO_WRITE_NOTE_AUTONOMO);
+
+    await page.locator('#lavoro-form button[type="submit"]').click();
+
+    await page.waitForFunction(() => {
+      const modal = document.getElementById('lavoro-modal');
+      return modal && !modal.classList.contains('active');
+    }, { timeout: 90_000 });
+
+    await page.waitForFunction(
+      (marker) => Array.from(document.querySelectorAll('#lavori-container .lavori-table tbody tr')).some(
+        (tr) => (tr.textContent || '').includes(marker)
+      ),
+      E2E_LAVORO_WRITE_NOME_AUTONOMO,
+      { timeout: 45_000 }
+    );
+  }
+
+  await clearLavoriFilters(page);
+  markerRows = lavoriRowsWithMarker(page, E2E_LAVORO_WRITE_NOME_AUTONOMO);
+  await expect(markerRows.first()).toBeVisible();
+  await expect(page.locator('#lavoro-modal.active')).toHaveCount(0);
+  expect(focusableErrors).toEqual([]);
+}

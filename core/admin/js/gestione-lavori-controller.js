@@ -42,6 +42,7 @@ import {
     resolveLavoroManodoperaSeverita,
     renderSemaforoHtml
 } from '../../services/manodopera-problema-severita-logic.js';
+import { syncRequiredConVisibilita } from './gestione-lavori-utils.js';
 
 // ============================================
 // FUNZIONI HELPER
@@ -139,19 +140,24 @@ export function setupManodoperaVisibility(hasManodoperaModule) {
         operatoreMacchinaGroup.style.display = hasManodoperaModule ? 'block' : 'none';
     }
     
-    // Rimuovi attributi required dai campi assegnazione quando Manodopera non è attivo
-    const caposquadraSelect = document.getElementById('lavoro-caposquadra');
-    const operaioSelect = document.getElementById('lavoro-operaio');
+    // required di caposquadra/operaio lo decide updateVisibility (solo il campo visibile).
+    // Qui non assegnare required = hasManodoperaModule: il select nascosto resterebbe obbligatorio.
     const statoSelect = document.getElementById('lavoro-stato');
-    if (caposquadraSelect) {
-        caposquadraSelect.required = hasManodoperaModule;
+    if (!hasManodoperaModule) {
+        const caposquadraSelect = document.getElementById('lavoro-caposquadra');
+        const operaioSelect = document.getElementById('lavoro-operaio');
+        if (caposquadraSelect) {
+            caposquadraSelect.required = false;
+            caposquadraSelect.removeAttribute('data-required-orig');
+        }
+        if (operaioSelect) {
+            operaioSelect.required = false;
+            operaioSelect.removeAttribute('data-required-orig');
+        }
+        if (statoSelect) statoSelect.value = 'in_corso';
     }
-    if (operaioSelect) {
-        operaioSelect.required = hasManodoperaModule;
-    }
-    if (statoSelect && !hasManodoperaModule) {
-        statoSelect.value = 'in_corso';
-    }
+
+    syncRequiredConVisibilita(document.getElementById('lavoro-form'));
     
     // Rimuovi asterisco dai label quando Manodopera non è attivo
     const labelCaposquadra = document.getElementById('label-caposquadra');
@@ -1534,18 +1540,33 @@ export function populateTrattoriDropdown(trattoriList, selectedMacchinaId = null
 export function populateCategoriaLavoroDropdown(categorieLavoriPrincipali, selectedValue = null) {
     const select = document.getElementById('lavoro-categoria-principale');
     if (!select) return;
+
+    const previousValue = select.value || '';
+    const previousText = select.selectedIndex > 0
+        ? (select.options[select.selectedIndex]?.text || '')
+        : '';
     
     select.innerHTML = '<option value="">-- Seleziona categoria principale --</option>';
     
-    categorieLavoriPrincipali.forEach(categoria => {
+    (categorieLavoriPrincipali || []).forEach(categoria => {
         const option = document.createElement('option');
         option.value = categoria.id;
         option.textContent = categoria.nome;
-        if (selectedValue === categoria.id) {
-            option.selected = true;
-        }
         select.appendChild(option);
     });
+
+    const preferito = selectedValue || previousValue;
+    if (preferito && Array.from(select.options).some((opt) => opt.value === String(preferito))) {
+        select.value = String(preferito);
+        return;
+    }
+    if (previousText) {
+        const search = previousText.trim().toLowerCase();
+        const opt = Array.from(select.options).find(
+            (o) => o.value && (o.text || '').trim().toLowerCase() === search
+        );
+        if (opt) select.value = opt.value;
+    }
 }
 
 /**
@@ -1558,7 +1579,10 @@ export function populateSottocategorieLavoro(parentId, sottocategorieLavoriMap, 
     const sottocategoriaSelect = document.getElementById('lavoro-sottocategoria');
     const sottocategoriaGroup = document.getElementById('lavoro-sottocategoria-group');
     
-    if (!sottocategoriaSelect || !sottocategoriaGroup) return;
+    if (!sottocategoriaSelect || !sottocategoriaGroup) {
+        syncRequiredConVisibilita(document.getElementById('lavoro-form'));
+        return;
+    }
 
     const previousValue = sottocategoriaSelect.value || null;
     const sottocat = getSottocategorieForParent(parentId, sottocategorieLavoriMap);
@@ -1569,6 +1593,7 @@ export function populateSottocategorieLavoro(parentId, sottocategorieLavoriMap, 
     
     if (!parentId) {
         sottocategoriaGroup.style.display = 'none';
+        syncRequiredConVisibilita(document.getElementById('lavoro-form'));
         return;
     }
     
@@ -1586,6 +1611,7 @@ export function populateSottocategorieLavoro(parentId, sottocategorieLavoriMap, 
     } else {
         sottocategoriaGroup.style.display = 'none';
     }
+    syncRequiredConVisibilita(document.getElementById('lavoro-form'));
 }
 
 /**
@@ -1608,7 +1634,10 @@ export function populateTipoLavoroDropdown(
     const select = document.getElementById('lavoro-tipo-lavoro');
     const tipoLavoroGroup = document.getElementById('tipo-lavoro-group');
     
-    if (!select || !tipoLavoroGroup) return;
+    if (!select || !tipoLavoroGroup) {
+        syncRequiredConVisibilita(document.getElementById('lavoro-form'));
+        return;
+    }
 
     const previousTipo = select.value || null;
     
@@ -1616,6 +1645,7 @@ export function populateTipoLavoroDropdown(
     
     if (!categoriaId) {
         tipoLavoroGroup.style.display = 'none';
+        syncRequiredConVisibilita(document.getElementById('lavoro-form'));
         return;
     }
     
@@ -1794,6 +1824,7 @@ export function populateTipoLavoroDropdown(
         option.textContent = '-- Nessun tipo disponibile --';
         option.disabled = true;
         select.appendChild(option);
+        syncRequiredConVisibilita(document.getElementById('lavoro-form'));
         return;
     }
 
@@ -1815,6 +1846,7 @@ export function populateTipoLavoroDropdown(
         }
         select.appendChild(option);
     });
+    syncRequiredConVisibilita(document.getElementById('lavoro-form'));
 }
 
 /**
