@@ -3565,9 +3565,10 @@
         for (let i = 0; i < daCancellare.length; i += 1) {
             await deleteDoc(daCancellare[i]);
         }
-        const stato = statoPrima === 'in_corso' || statoPrima === 'assegnato' ? statoPrima : 'assegnato';
+        // Le regole consentono al capo in_corso / completato / completato_da_approvare / sospeso.
+        // Il ritorno ad «assegnato» è negato, quindi la prova riapre sempre in_corso.
         await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId), {
-            stato: stato,
+            stato: 'in_corso',
             completatoIl: deleteField(),
             completatoDa: deleteField(),
             percentualeCompletamentoTracciata: deleteField(),
