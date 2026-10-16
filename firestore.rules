@@ -445,13 +445,22 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
-    // Collection: guasti (Parco Macchine)
-    // NOTA: Usa controllo diretto invece di belongsToTenant per evitare problemi con onSnapshot
+    // Collection: guasti. Regola comunicazioni: chi segnala corregge/ritira finché il manager non decide.
     match /tenants/{tenantId}/guasti/{guastoId} {
-      allow read: if isAuthenticated() && 
-                     get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == tenantId;
-      allow create, update, delete: if isAuthenticated() && 
-                                       get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == tenantId;
+      allow read: if belongsToTenant(tenantId);
+      allow create: if belongsToTenant(tenantId)
+                    && request.resource.data.segnalatoDa == request.auth.uid
+                    && request.resource.data.stato == 'in-attesa';
+      allow update: if belongsToTenant(tenantId) && (
+        isManagerOrAdmin(tenantId) ||
+        ( resource.data.segnalatoDa == request.auth.uid
+          && (!('stato' in resource.data) || resource.data.stato == 'in-attesa')  // il manager non ha ancora deciso (assente = dato vecchio)
+          && request.resource.data.stato in ['in-attesa', 'annullato', 'risolto']
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+               'stato','dettagli','noteRisoluzione','risolto','risoltoDa','risoltoIl',
+               'annullatoDa','annullatoIl','storico','noteAggiuntive','updatedAt']) )
+      );
+      allow delete: if belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
     // Collection: macchine (Parco Macchine)
