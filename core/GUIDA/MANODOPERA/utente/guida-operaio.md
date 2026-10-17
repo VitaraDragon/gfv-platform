@@ -214,7 +214,7 @@ Si fa dalla scheda **⚠️ Segnala un problema** del workspace, dopo **Ore** e 
 
 - La segnalazione segue lo stato mostrato in elenco (**in attesa**, ecc.).
 - Subito dopo l’invio leggi **Segnalazione inviata. Grazie.** Resti nella scheda del workspace e trovi la segnalazione nell’elenco **I Miei Guasti Segnalati**, sotto il modulo. Se qualcosa sulla macchina o sul lavoro non si aggiorna, leggi l’avviso e avvisa il tuo responsabile.  
-- Dove previsto dall’interfaccia, puoi registrare **note di risoluzione** (e talvolta **costo** ricambi) sulle **tue** segnalazioni quando il problema è stato sistemato: segui le etichette in schermata.
+- Se il problema è stato sistemato, sulle **tue** segnalazioni puoi usare **Risolvi**: scrivi le **note di risoluzione** (obbligatorie) e, se vuoi, il **costo** della riparazione. Puoi farlo **solo finché la segnalazione è in attesa**, cioè prima che il manager decida. Dopo la sua decisione (continuazione approvata o lavoro sospeso) la chiude il manager. Una segnalazione non si cancella dal campo: solo il manager può eliminarla.
 
 ---
 

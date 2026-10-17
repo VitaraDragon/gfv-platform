@@ -230,6 +230,8 @@ Nella scheda **Ore**, sotto il modulo ore, trovi il riquadro **Dettaglio lavoro 
 
 Quando superficie tracciata, ore e altri controlli richiesti dall’app sono soddisfatti, puoi usare l’azione per **segnare il lavoro come completato** in attesa del manager: il lavoro passa nello stato **completato da approvare** (testo equivalente in interfaccia).
 
+Se le **zone** che salvi arrivano a coprire tutto il terreno (**100%**), il lavoro passa **da solo** in **completato da approvare**, con la data di quel giorno come data di completamento: non serve premere il pulsante e non diventa «completato» senza il manager. Da quel giorno tu e la squadra avete ancora **7 giorni** per segnare le ore dei giorni lavorati.
+
 - Il **manager** fa poi l’**approvazione finale** o il **rifiuto** con motivazione: se rifiuta, il lavoro torna operativo per correzioni o ulteriore tracciamento.  
 - Non è un errore se non vedi il pulsante di completamento: mancano ancora requisiti (zone, ore, soglia percentuale, ecc.): la schermata ti guida con messaggi.
 
@@ -294,7 +296,7 @@ Se colleghi la segnalazione a un **lavoro** e scegli **grave**, l’app può **s
 
 ### Come si “risolve” un guasto (ruoli)
 
-- **Tu in campo**: metti in sicurezza, coordini la squadra, eventualmente chiudi il cerchio **solo se** l’interfaccia ti mostra un’azione esplicita di **risoluzione** sulle **tue** segnalazioni (note di riparazione, costo ricambi): molte aziende lasciano questa conferma all’officina o al manager.  
+- **Tu in campo**: metti in sicurezza e coordini la squadra. Sulle **tue** segnalazioni puoi usare **Risolvi** (note di riparazione obbligatorie, costo facoltativo) **solo finché sono in attesa**, cioè finché il manager non ha deciso. Quando il manager ha già deciso (continuazione approvata o lavoro sospeso), la segnalazione la chiude lui. Una segnalazione non si cancella dal campo: solo il manager può eliminarla.  
 - **Manager** (schermata **Gestione guasti**): può **approvare la continuazione** del lavoro su guasti non gravi, **sospendere** il lavoro in caso grave, registrare la **risoluzione** con note e costi, **riaprire** un guasto se il problema torna.  
 - Finché il guasto è aperto, tieni allineata la squadra con **comunicazioni** e telefonate: la guida manager descrive il lato decisionale completo.
 

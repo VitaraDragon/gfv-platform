@@ -1028,6 +1028,29 @@
         "MANODOPERA"
       ],
       "label": "Barra moduli nascosta per profilo campo (nascondiShellPerProfiloCampo)"
+    },
+    {
+      "prefix": "tests/firestore-guasti-rules",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Regole guasti: chi segnala chiude/ritira solo finché in attesa; elimina solo il manager"
+    },
+    {
+      "prefix": "firestore.rules",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Regole Firestore (permessi per ruolo su ore, lavori, guasti): rileggere la sezione toccata"
+    },
+    {
+      "prefix": "tests/gestione-lavori-required-nascosti",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Form lavoro: campi obbligatori nascosti non bloccano il salvataggio"
     }
   ]
 }
