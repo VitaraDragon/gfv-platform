@@ -378,6 +378,7 @@ service cloud.firestore {
           request.resource.data.stato == 'completato' ||
           request.resource.data.stato == 'completato_da_approvare' ||
           request.resource.data.stato == 'sospeso' ||
+          (request.resource.data.stato == 'assegnato' && resource.data.stato == 'sospeso') ||
           request.resource.data.stato == resource.data.stato)) ||
         // Operaio: può segnare come completato lavori autonomi assegnati a lui
         // E può aggiornare progressi quando traccia zone lavorate
@@ -406,6 +407,7 @@ service cloud.firestore {
          (request.resource.data.stato == 'completato_da_approvare' ||
           request.resource.data.stato == 'in_corso' ||
           request.resource.data.stato == 'sospeso' ||
+          (request.resource.data.stato == 'assegnato' && resource.data.stato == 'sospeso') ||
           request.resource.data.stato == resource.data.stato))
       );
     }
@@ -477,7 +479,10 @@ service cloud.firestore {
           (
             request.resource.data.stato == 'disponibile' ||
             request.resource.data.stato == 'guasto' ||
-            request.resource.data.stato == 'guasto-lavoro-in-corso'
+            request.resource.data.stato == 'guasto-lavoro-in-corso' ||
+            // ripristino dopo annullo/chiusura del guasto: torna in uso solo se era fermo per guasto
+            (request.resource.data.stato == 'in_uso' &&
+             resource.data.stato in ['guasto', 'guasto-lavoro-in-corso'])
           )
         )
       );

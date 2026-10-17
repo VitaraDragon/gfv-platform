@@ -40,7 +40,7 @@ describe('field-ui-i18n catalogo', () => {
 
     it('ogni chiave ha it, ro, en, sq e fr, senza stringhe vuote', () => {
         expect(FIELD_UI_LANGS).toEqual(['it', 'ro', 'en', 'sq', 'fr']);
-        expect(chiavi.length).toBe(337);
+        expect(chiavi.length).toBe(365);
         chiavi.forEach((key) => {
             const entry = FIELD_UI_STRINGS[key];
             FIELD_UI_LANGS.forEach((lang) => {

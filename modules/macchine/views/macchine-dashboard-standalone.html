@@ -329,6 +329,7 @@
                 throw err;
             }
 
+            const { isGuastoAttivo } = await import('../../../core/services/guasto-stati.js');
             const firebaseService = await import('../../../core/services/firebase-service.js');
             const { getAuthInstance, getDb, getDoc, doc } = firebaseService;
             const { getCurrentTenantId, getCurrentTenant, setCurrentTenantId, initializeTenantService } = await import('../../../core/services/tenant-service.js');
@@ -369,7 +370,7 @@
                     dNorm.setHours(0, 0, 0, 0);
                     if (dNorm <= tra30) scadenzeCount++;
                 });
-                const guastiAperti = (guasti || []).filter(g => (g.stato || '').toLowerCase() !== 'risolto');
+                const guastiAperti = (guasti || []).filter(g => isGuastoAttivo(g && g.stato));
 
                 // Trattori: nome + ore
                 const trattoriValue = trattori.length;

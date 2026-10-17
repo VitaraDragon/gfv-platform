@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-17 — Segna ore, lavori assegnati sempre visibili.**
+**Ultimo aggiornamento documentazione: 2026-10-17 — Guasti: annulla segnalazione e risolto da me.**
+
+## 2026-10-17 — Guasti: annulla segnalazione e risolto da me
+
+Chi ha segnalato un guasto ancora in attesa può ritirarlo o chiuderlo da solo, con una nota. Il guasto non si cancella: resta «Annullato» o «Risolto», con lo storico. Macchina, attrezzo e lavoro tornano com’erano, se nessun altro guasto li tiene fermi. Il vecchio «Risolvi» non resta più visibile dopo la decisione del responsabile. Dalla lista Guasti, «Segna risolto» rimette a posto i mezzi davvero in guasto. Le rules dei guasti della #217 non cambiano. Caposquadra e operaio possono riportare un mezzo in uso solo se era fermo per guasto, e un lavoro sospeso ad assegnato. Nessun deploy: le rules si pubblicano dopo il promote su main.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-17 — Segna ore, lavori assegnati sempre visibili.**
 
 ## 2026-10-17 — Segna ore: i lavori aperti dell’operaio restano in tendina
 
