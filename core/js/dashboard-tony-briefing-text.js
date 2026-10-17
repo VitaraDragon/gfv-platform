@@ -4,7 +4,7 @@
  * @module core/js/dashboard-tony-briefing-text
  */
 
-const GUASTI_CHIUSI = ['risolto', 'riparato', 'chiuso'];
+import { STATI_GUASTO_CHIUSI } from '../services/guasto-stati.js';
 const TIPI_FLOTTA = ['automezzo', 'veicolo', 'furgone'];
 
 function isTipoFlottaBriefing(tipo) {
@@ -79,7 +79,7 @@ export function buildGuastiApertiBriefingFromGuasti(guastiDocsOrRows, macchineLi
         const g = row && typeof row.data === 'function' ? row.data() : row;
         if (!g) return;
         const stato = String(g.stato || '').toLowerCase();
-        if (GUASTI_CHIUSI.indexOf(stato) >= 0) return;
+        if (STATI_GUASTO_CHIUSI.indexOf(stato) >= 0) return;
         aperti.push(g);
     });
 

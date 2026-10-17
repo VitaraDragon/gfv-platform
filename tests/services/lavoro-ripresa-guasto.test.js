@@ -8,6 +8,7 @@ import {
   haAltriGuastiApertiStessoLavoro,
   esitoRipresaDopoGuasto,
   testoToastRipresa,
+  mostraRiprendiLavoro,
   statoPerSelectModifica,
   erroreSalvataggioStato
 } from '../../core/services/lavoro-ripresa-guasto.js';
@@ -104,6 +105,28 @@ describe('altri guasti aperti sullo stesso lavoro', () => {
     expect(esitoRipresaDopoGuasto({ lavoro, guasti, guastoId: 'g1' }).riprendi).toBe(false);
     expect(testoToastRipresa('Controllo ristagni', { altroGuasto: true }))
       .toBe('Guasto risolto. Il lavoro è ancora sospeso per un altro guasto.');
+  });
+
+  it('un guasto annullato non blocca la ripresa, uno in attesa sì', () => {
+    const lavoro = { id: 'L1', stato: 'sospeso', sospensioneCausa: 'Guasto macchina grave' };
+    const annullati = [
+      { id: 'g1', lavoroId: 'L1', stato: 'risolto' },
+      { id: 'g2', lavoroId: 'L1', stato: 'annullato' }
+    ];
+    expect(esitoRipresaDopoGuasto({ lavoro, guasti: annullati, guastoId: 'g1' }).riprendi).toBe(true);
+    const collega = [
+      { id: 'g1', lavoroId: 'L1', stato: 'annullato' },
+      { id: 'g2', lavoroId: 'L1', stato: 'in-attesa' }
+    ];
+    expect(haAltriGuastiApertiStessoLavoro(collega, 'L1', 'g1')).toBe(true);
+    expect(esitoRipresaDopoGuasto({ lavoro, guasti: collega, guastoId: 'g1' }).riprendi).toBe(false);
+  });
+
+  it('il pulsante Riprendi lavoro vale anche per un guasto annullato', () => {
+    const lavoro = { id: 'L1', stato: 'sospeso', sospensioneCausa: 'Segnalazione grave' };
+    expect(mostraRiprendiLavoro({ lavoroId: 'L1', stato: 'annullato' }, lavoro)).toBe(true);
+    expect(mostraRiprendiLavoro({ lavoroId: 'L1', stato: 'risolto' }, lavoro)).toBe(true);
+    expect(mostraRiprendiLavoro({ lavoroId: 'L1', stato: 'in-attesa' }, lavoro)).toBe(false);
   });
 
   it('riprende quando l’unico guasto del lavoro è quello appena chiuso', () => {

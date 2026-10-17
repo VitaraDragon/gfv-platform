@@ -11,6 +11,8 @@
  * @module core/services/lavoro-ripresa-guasto
  */
 
+import { isGuastoAttivo, isGuastoChiuso } from './guasto-stati.js';
+
 /** Marcatore testabile: la pagina lo sostituisce con deleteField(). */
 export const AZZERA_CAMPO = Object.freeze({ __delete: true });
 
@@ -103,8 +105,7 @@ export function patchRipresaPerFirestore(patch, deleteFieldFn) {
 }
 
 function guastoAncoraAperto(guasto) {
-  const stato = testo(guasto && guasto.stato).toLowerCase();
-  return stato !== 'risolto' && stato !== 'riparato' && stato !== 'chiuso';
+  return isGuastoAttivo(guasto && guasto.stato);
 }
 
 /**
@@ -161,7 +162,7 @@ export function testoToastRipresa(nomeLavoro, esito = {}) {
  */
 export function mostraRiprendiLavoro(guasto, lavoro) {
   if (!guasto || !testo(guasto.lavoroId)) return false;
-  if (testo(guasto.stato).toLowerCase() !== 'risolto') return false;
+  if (!isGuastoChiuso(guasto.stato)) return false;
   return lavoroSospesoDaGuasto(lavoro);
 }
 
