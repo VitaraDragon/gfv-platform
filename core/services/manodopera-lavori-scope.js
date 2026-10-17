@@ -63,7 +63,9 @@ export function parseLavoroDataInizio(dataInizio) {
  * @param {Date} [oggi]
  */
 export function isLavoroVisibileOperaioCampo(lavoro, oggi = new Date()) {
-    const stato = lavoro.stato || 'assegnato';
+    // «attivo» è lo stato scritto per errore alla chiusura di un guasto: vale come in corso.
+    let stato = lavoro.stato || 'assegnato';
+    if (stato === 'attivo') stato = 'in_corso';
     if (stato === 'completato' || stato === 'annullato' || stato === 'completato_da_approvare') {
         return false;
     }
@@ -113,7 +115,9 @@ export function getLavoroDataFinePrevista(lavoro) {
  * @param {{ maxFutureDays?: number, ruolo?: string }} [opts]
  */
 export function isLavoroInDropdownSegnaOre(lavoro, oggi = new Date(), opts = {}) {
-    const stato = (lavoro && lavoro.stato) || 'assegnato';
+    // Stesso alias di isLavoroVisibileOperaioCampo: i documenti vecchi con «attivo» restano segnabili.
+    let stato = (lavoro && lavoro.stato) || 'assegnato';
+    if (stato === 'attivo') stato = 'in_corso';
     if (stato === 'completato' || stato === 'completato_da_approvare') {
         return lavoroSelezionabilePerOre({
             lavoro,
