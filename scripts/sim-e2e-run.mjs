@@ -174,6 +174,7 @@ import {
 } from '../tests/e2e/sim/scenarios/manodopera-extended-read.mjs';
 import { runSegnaturaOreWriteAssertions } from '../tests/e2e/sim/scenarios/segnatura-ore-write.mjs';
 import { runGuastiResolveWriteAssertions } from '../tests/e2e/sim/scenarios/guasti-resolve-write.mjs';
+import { runGuastiAnnullaWriteAssertions } from '../tests/e2e/sim/scenarios/guasti-annulla-write.mjs';
 import { runGestioneMacchineWriteAssertions } from '../tests/e2e/sim/scenarios/gestione-macchine-write.mjs';
 import { runVendemmiaWriteAssertions } from '../tests/e2e/sim/scenarios/vendemmia-write.mjs';
 import { runVendemmiaAutoReadAssertions } from '../tests/e2e/sim/scenarios/vendemmia-auto-read.mjs';
@@ -664,6 +665,12 @@ const SCENARIOS = [
     name: 'guasti-resolve-write',
     run: async (page) => {
       await runGuastiResolveWriteAssertions(page, expect);
+    },
+  },
+  {
+    name: 'guasti-annulla-write',
+    run: async (page) => {
+      await runGuastiAnnullaWriteAssertions(page, expect);
     },
   },
   {
