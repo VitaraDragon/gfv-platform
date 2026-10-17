@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-13 — Registro, passi 1–5 nel codice, non ancora pubblicati.**
+**Ultimo aggiornamento documentazione: 2026-10-17 — Segna ore, lavori assegnati sempre visibili.**
+
+## 2026-10-17 — Segna ore: i lavori aperti dell’operaio restano in tendina
+
+Nella vista campo, se l’operaio ha più di 12 lavori segnabili, la tendina teneva il lavoro in evidenza, le riprese, i lavori in corso e i completati ancora segnabili. Un lavoro assegnato o sospeso spariva se non cadeva nei tre lavori prima e dopo quello in evidenza. È successo a Matteo con «Legatura tralci Vigna vecchia». Ora assegnato e sospeso restano sempre, insieme a quelli in corso. Un lavoro che parte fra più di 14 giorni resta fuori, come prima. Nessuna modifica a `firestore.rules`. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-13 — Registro, passi 1–5 nel codice, non ancora pubblicati.**
 
 ## 2026-10-13 — Registro: lettura in anagrafica, in coda
 
