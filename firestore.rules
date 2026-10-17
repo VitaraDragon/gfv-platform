@@ -457,7 +457,7 @@ service cloud.firestore {
           && (!('stato' in resource.data) || resource.data.stato == 'in-attesa')  // il manager non ha ancora deciso (assente = dato vecchio)
           && request.resource.data.stato in ['in-attesa', 'annullato', 'risolto']
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-               'stato','dettagli','noteRisoluzione','risolto','risoltoDa','risoltoIl',
+               'stato','dettagli','noteRisoluzione','costoRiparazione','risolto','risoltoDa','risoltoIl',
                'annullatoDa','annullatoIl','storico','noteAggiuntive','updatedAt']) )
       );
       allow delete: if belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);

@@ -180,6 +180,7 @@ beforeAll(async () => {
     ['g-lettura', { segnalatoDa: CAPO, stato: 'in-attesa', risolto: false, dettagli: 'lettura' }],
     ['g-annulla', { segnalatoDa: CAPO, stato: 'in-attesa', risolto: false, dettagli: 'da ritirare' }],
     ['g-risolvi', { segnalatoDa: LEGACY, stato: 'in-attesa', risolto: false, dettagli: 'da chiudere' }],
+    ['g-risolvi-costo', { segnalatoDa: CAPO, stato: 'in-attesa', risolto: false, dettagli: 'da chiudere col costo' }],
     ['g-vecchio-annulla', { segnalatoDa: CAPO, risolto: false, dettagli: 'senza stato' }],
     ['g-vecchio-risolvi', { segnalatoDa: CAPO, risolto: false, dettagli: 'senza stato' }],
     ['g-approvato', { segnalatoDa: CAPO, stato: 'approvato-continuazione', risolto: false }],
@@ -308,6 +309,18 @@ describe('guasti: chi segnala, finché il manager non decide', () => {
       risoltoDa: LEGACY,
       risoltoIl: '2026-10-16',
       noteRisoluzione: 'ripartito',
+    });
+    expect(res.status).toBeLessThan(400);
+  });
+
+  it('il segnalatore risolve il proprio guasto con il costo di riparazione', async () => {
+    const res = await aggiorna('g-risolvi-costo', CAPO, {
+      stato: 'risolto',
+      risolto: true,
+      risoltoDa: CAPO,
+      risoltoIl: '2026-10-16',
+      noteRisoluzione: 'filtro sostituito',
+      costoRiparazione: 42.5,
     });
     expect(res.status).toBeLessThan(400);
   });
