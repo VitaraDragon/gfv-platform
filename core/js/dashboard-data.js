@@ -24,7 +24,7 @@ import {
     parseLavoroDataInizio,
     resolveCaposquadraIdsForOperaio,
     resolveSegnaturaOreRoleFlags
-} from '../services/manodopera-lavori-scope.js';
+} from '../services/manodopera-lavori-scope.js?v=2026-10-17a';
 import {
     formatDateLikeToItalianLongLocal,
     formatDateLikeToItalianLongWeekday
