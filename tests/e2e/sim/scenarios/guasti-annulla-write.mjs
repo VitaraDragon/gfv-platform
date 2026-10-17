@@ -66,6 +66,42 @@ async function attendiStato(tenant, id, atteso) {
   throw new Error(`Macchina ${id}: atteso «${atteso}», letto «${ultimo}»`);
 }
 
+async function scriviStatoMacchina(tenant, id, stato) {
+  const url = new URL(`${FIRESTORE}/v1/projects/${PROJECT}/databases/(default)/documents/tenants/${tenant}/macchine/${id}`);
+  url.searchParams.append('updateMask.fieldPaths', 'stato');
+  const res = await fetch(url, {
+    method: 'PATCH',
+    headers: {
+      Authorization: 'Bearer owner',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ fields: { stato: { stringValue: stato } } }),
+  });
+  if (!res.ok) throw new Error(`Ripristino seed macchina ${id}: ${res.status}`);
+}
+
+async function cancellaGuastiMarker(tenant, marker) {
+  let pageToken = '';
+  do {
+    const url = new URL(`${FIRESTORE}/v1/projects/${PROJECT}/databases/(default)/documents/tenants/${tenant}/guasti`);
+    url.searchParams.set('pageSize', '100');
+    if (pageToken) url.searchParams.set('pageToken', pageToken);
+    const res = await fetch(url, { headers: { Authorization: 'Bearer owner' } });
+    if (!res.ok) return;
+    const body = await res.json();
+    const docs = Array.isArray(body.documents) ? body.documents : [];
+    for (let i = 0; i < docs.length; i += 1) {
+      const dettagli = docs[i].fields && docs[i].fields.dettagli && docs[i].fields.dettagli.stringValue;
+      if (!dettagli || dettagli.indexOf(marker) === -1) continue;
+      await fetch(`${FIRESTORE}/v1/${docs[i].name}`, {
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer owner' },
+      });
+    }
+    pageToken = body.nextPageToken || '';
+  } while (pageToken);
+}
+
 async function mezziLiberi(page) {
   return page.evaluate(() => {
     const ids = (sel) => Array.from(document.querySelectorAll(`${sel} option`))
@@ -115,6 +151,8 @@ export async function runGuastiAnnullaWriteAssertions(page, expect) {
   await expect(cardRisolto.getByRole('button', { name: /Risolto da me|Annulla segnalazione/i })).toHaveCount(0);
 
   const tenant = await tenantId(page);
+  const ripristini = [];
+  try {
   await page.locator('#tipo-macchina').check();
   await page.locator('#sezione-macchina').waitFor({ state: 'visible' });
   const liberi = await mezziLiberi(page);
@@ -124,6 +162,7 @@ export async function runGuastiAnnullaWriteAssertions(page, expect) {
     const trattoreId = liberi.trattori[0];
     const prima = await statoMacchina(tenant, trattoreId);
     if (prima === 'disponibile' || prima === 'in_uso') {
+      ripristini.push({ id: trattoreId, prima });
       await page.locator('#guasto-macchina').selectOption(trattoreId);
       await page.locator('#guasto-attrezzo').selectOption('');
       await page.locator('#guasto-componente').selectOption('trattore');
@@ -138,10 +177,6 @@ export async function runGuastiAnnullaWriteAssertions(page, expect) {
       await page.locator('#annulla-guasto-form button[type="submit"]').click();
       await expect(cardMacchina.locator('.badge-annullato')).toBeVisible();
       await attendiStato(tenant, trattoreId, prima);
-      await page.waitForFunction((mezzoId) => {
-        const opt = document.querySelector(`#guasto-macchina option[value="${mezzoId}"]`);
-        return opt && !opt.disabled;
-      }, trattoreId);
     } else {
       console.log(`[guasti-annulla] trattore ${trattoreId} è «${prima}»: salto il ripristino`);
     }
@@ -158,6 +193,7 @@ export async function runGuastiAnnullaWriteAssertions(page, expect) {
     const statiOk = (trattorePrima === 'disponibile' || trattorePrima === 'in_uso')
       && (attrezzoPrima === 'disponibile' || attrezzoPrima === 'in_uso');
     if (statiOk) {
+      ripristini.push({ id: trattoreId, prima: trattorePrima }, { id: attrezzoId, prima: attrezzoPrima });
       entrambi = { trattoreId, attrezzoId, trattorePrima, attrezzoPrima };
       await page.locator('#guasto-macchina').selectOption(trattoreId);
       await page.locator('#guasto-attrezzo').selectOption(attrezzoId);
@@ -200,5 +236,17 @@ export async function runGuastiAnnullaWriteAssertions(page, expect) {
     }, { timeout: 60_000 });
     await attendiStato(tenant, entrambi.trattoreId, entrambi.trattorePrima);
     await attendiStato(tenant, entrambi.attrezzoId, entrambi.attrezzoPrima);
+  }
+  } finally {
+    if (tenant) {
+      for (let i = 0; i < ripristini.length; i += 1) {
+        const item = ripristini[i];
+        const attuale = await statoMacchina(tenant, item.id);
+        if (attuale && attuale !== item.prima) {
+          await scriviStatoMacchina(tenant, item.id, item.prima);
+        }
+      }
+      await cancellaGuastiMarker(tenant, `${E2E_GUASTO_ANNULLA_MARKER} ${stamp}`);
+    }
   }
 }
