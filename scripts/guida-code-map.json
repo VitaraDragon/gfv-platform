@@ -16,12 +16,211 @@
   ],
   "rules": [
     {
+      "prefix": "core/config/manodopera-diario-gate.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA",
+        "CONTO_TERZI",
+        "SEMINATIVO",
+        "VENDEMMIA_MECCANICA",
+        "INTERSEZIONI"
+      ],
+      "label": "Gate Manodopera ↔ Diario (Diario storico, Gestione lavori solo con Manodopera)"
+    },
+    {
+      "prefix": "core/services/manodopera-migrazione-",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Migrazione dati Diario ↔ lavori all’on/off Manodopera"
+    },
+    {
+      "prefix": "core/js/lavoro-cascade-filters.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Cascata categoria → sottocategoria → tipo lavoro (Diario, Gestione lavori)"
+    },
+    {
+      "prefix": "core/js/attivita-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Diario attività (controller/eventi)"
+    },
+    {
+      "prefix": "core/attivita-standalone.html",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Diario attività"
+    },
+    {
+      "prefix": "core/admin/abbonamento",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Abbonamento, moduli e migrazione Manodopera"
+    },
+    {
+      "prefix": "core/services/tenant-service.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Tenant: moduli attivi"
+    },
+    {
+      "prefix": "core/auth/",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Accesso, registrazione e reset password"
+    },
+    {
+      "prefix": "core/js/tony/tony-lavoro-fatto-nav.js",
+      "modules": [
+        "TONY",
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Tony «ho fatto la vigna» → Diario o Gestione lavori"
+    },
+    {
       "prefix": "core/js/tony/tony-segna-ora",
       "modules": [
         "TONY",
         "MANODOPERA"
       ],
       "label": "Motore segna ore Tony (mobile + desktop)"
+    },
+    {
+      "prefix": "core/js/tony/tony-ora-lavoro-match",
+      "modules": [
+        "TONY",
+        "MANODOPERA"
+      ],
+      "label": "Tony: scelta del lavoro nominato quando segni le ore"
+    },
+    {
+      "prefix": "core/js/tony/tony-riepilogo-giorno",
+      "modules": [
+        "TONY",
+        "MANODOPERA"
+      ],
+      "label": "Tony: riepilogo ore del giorno aggiornato subito dopo salva/elimina"
+    },
+    {
+      "prefix": "core/js/tony/tony-ingresso-login",
+      "modules": [
+        "TONY",
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Ingresso dopo il login: workspace campo o dashboard, decisione unica"
+    },
+    {
+      "prefix": "core/js/tony/tony-attesa-riprova",
+      "modules": [
+        "TONY",
+        "MANODOPERA"
+      ],
+      "label": "Attese con limite e Riprova (caricamento lavori workspace campo)"
+    },
+    {
+      "prefix": "core/js/gfv-standalone-head-bootstrap.js",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Bootstrap head pagine standalone (build ?v= Tony)"
+    },
+    {
+      "prefix": "core/js/field-route-guard",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Profilo campo: indirizzi dell'ufficio aperti a mano tornano al workspace"
+    },
+    {
+      "prefix": "core/js/field-guasti-access",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Workspace campo: voce Segnala guasto per caposquadra e operaio"
+    },
+    {
+      "prefix": "core/js/macchina-selezionabile",
+      "modules": [
+        "PARCO_MACCHINE",
+        "MANODOPERA"
+      ],
+      "label": "Segnalazione guasti: quali macchine si possono scegliere"
+    },
+    {
+      "prefix": "core/services/lavoro-ripresa-guasto",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Guasto risolto: il lavoro sospeso riparte (in corso o assegnato)"
+    },
+    {
+      "prefix": "core/services/esegui-con-limite",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Operazioni con tempo massimo (segnalazione guasto non resta bloccata)"
+    },
+    {
+      "prefix": "core/admin/segnalazione-guasti-standalone",
+      "modules": [
+        "PARCO_MACCHINE",
+        "MANODOPERA"
+      ],
+      "label": "Pagina Segnala guasto (campo e ufficio)"
+    },
+    {
+      "prefix": "core/js/tony/tony-invio-coda",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Tony: messaggi inviati prima che sia pronto restano in attesa"
+    },
+    {
+      "prefix": "core/js/gfv-standalone-shell.js",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Shell standalone (stesso build del loader Tony)"
+    },
+    {
+      "prefix": "core/js/gfv-tony-tenant-bootstrap.js",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Bootstrap tenant/piano per Tony"
+    },
+    {
+      "prefix": "core/js/standalone-bootstrap.js",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Bootstrap comune pagine standalone"
+    },
+    {
+      "prefix": "core/js/tony-widget-standalone.js",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Widget Tony standalone"
     },
     {
       "prefix": "core/js/tony/",
@@ -510,6 +709,13 @@
       "label": "Standby per assenza"
     },
     {
+      "prefix": "core/services/lavoro-sospensione",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Sospensione operativa (Sospendi / Rinvia) e ripresa"
+    },
+    {
       "prefix": "core/services/manodopera-sostituti-",
       "modules": [
         "MANODOPERA"
@@ -522,6 +728,27 @@
         "MANODOPERA"
       ],
       "label": "Assenze manodopera"
+    },
+    {
+      "prefix": "core/services/ore-operai-logic",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Ore operai: modifica, sovrapposizioni, correzione e storia dopo validazione"
+    },
+    {
+      "prefix": "core/services/manodopera-lavori-scope",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Lavori segnabili per ore (esclusi i sospesi)"
+    },
+    {
+      "prefix": "core/services/ore-service",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Servizio ore operai (salvataggio, validazione, rifiuto)"
     },
     {
       "prefix": "core/admin/js/gestione-lavori-assenze-ui.js",
@@ -675,6 +902,155 @@
         "MAGAZZINO"
       ],
       "label": "Core pieno in campo"
+    },
+    {
+      "prefix": "core/services/ore-lavoro-selezionabile",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Ore selezionabili su lavoro chiuso (finestra 7 giorni)"
+    },
+    {
+      "prefix": "core/services/manodopera-ore-validazione-scope",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Coda validazione ore (chi valida cosa, testo coda vuota)"
+    },
+    {
+      "prefix": "core/services/field-ui-i18n",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Lingua workspace campo (it/ro/en)"
+    },
+    {
+      "prefix": "core/config/field-ui-i18n",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Stringhe i18n workspace campo"
+    },
+    {
+      "prefix": "core/mobile/js/field-ui-i18n-dom",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Applica lingua al DOM del workspace campo"
+    },
+    {
+      "prefix": "core/config/accettazione-legale-config",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Accettazione legale (flag, documenti e versioni)"
+    },
+    {
+      "prefix": "core/services/accettazione-legale",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Accettazione legale (regole pure)"
+    },
+    {
+      "prefix": "core/js/accettazione-legale-gate",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Accettazione legale (gate ri-accettazione al primo ingresso)"
+    },
+    {
+      "prefix": "functions/accettazione-legale",
+      "modules": [
+        "CORE"
+      ],
+      "label": "CF registraAccettazioniLegali"
+    },
+    {
+      "prefix": "functions/lib/accettazione-legale-core",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Core accettazione legale (validazione payload)"
+    },
+    {
+      "prefix": "shared/js/registro-trattamenti",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO",
+        "MAGAZZINO",
+        "MANODOPERA",
+        "INTERSEZIONI"
+      ],
+      "label": "Registro privato trattamenti: scheda pubblica, conferma riga, acqua, avvisi, export, miscela prevista (lavoro e campo)"
+    },
+    {
+      "prefix": "functions/registro-trattamenti",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO",
+        "MAGAZZINO"
+      ],
+      "label": "CF leggiSchedaRegistroTrattamento + lettura scheda in coda (onProdottoSchedaScritto, leggiSchedeRegistroInCoda)"
+    },
+    {
+      "prefix": "functions/lib/registro-trattamenti",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO",
+        "MAGAZZINO"
+      ],
+      "label": "Core lettura scheda fitofarmaci (open data, impieghi, avversità)"
+    },
+    {
+      "prefix": "core/config/registro-trattamenti-specie",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO"
+      ],
+      "label": "Specie GFV → coltura della scheda pubblica (vite da vino/tavola, frutteto, seminativo)"
+    },
+    {
+      "prefix": "core/mobile/js/field-menu-visibility",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Voci menu ⚙️ campo (niente Validazione ore / Segnala guasto, Cambia azienda)"
+    },
+    {
+      "prefix": "core/js/ui-pelle-state",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Barra moduli nascosta per profilo campo (nascondiShellPerProfiloCampo)"
+    },
+    {
+      "prefix": "tests/firestore-guasti-rules",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Regole guasti: chi segnala chiude/ritira solo finché in attesa; elimina solo il manager"
+    },
+    {
+      "prefix": "firestore.rules",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Regole Firestore (permessi per ruolo su ore, lavori, guasti): rileggere la sezione toccata"
+    },
+    {
+      "prefix": "tests/gestione-lavori-required-nascosti",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Form lavoro: campi obbligatori nascosti non bloccano il salvataggio"
     }
   ]
 }

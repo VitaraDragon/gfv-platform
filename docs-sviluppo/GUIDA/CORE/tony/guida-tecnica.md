@@ -31,6 +31,7 @@ Layout **panoramica** (manager/admin, non solo operaio/caposquadra):
 - Manager/admin **con** Manodopera: stesso blocco panoramica (variant menu `manodopera`); **non** monta `createManagerSection` sotto.
 - Manager **con** moduli avanzati **senza** Manodopera: panoramica **+** tile modulo in `container` (`createVignetoCard`, `createMagazzinoCard`, …).
 - Operaio/caposquadra soli: `createCoreBaseSection` o sezioni ruolo; messaggio se Manodopera assente.
+- Ingresso dopo il login (#169): prima di disegnare, `applicaIngressoDopoLogin` → `spiegaIngressoDopoLogin` (`core/js/tony/tony-ingresso-login.js`) decide una volta sola workspace / dashboard / errore; `?ws=classic&una_volta=1` non salva la preferenza. Dettaglio in `GUIDA/MANODOPERA/tony/guida-tecnica.md` § Versione mobile.
 - Header: **Invita collaboratore** se `hasManodopera` + manager/admin; **Mappa** se manager/admin.
 
 Legacy (deprecato in UX utente): `createManagerSection`, card affitti standalone — sostituiti da hub/scadenze dove possibile.
@@ -54,6 +55,16 @@ Legacy (deprecato in UX utente): `createManagerSection`, card affitti standalone
 
 - Lookup token **solo** via Cloud Function callable **`getInvitoPubblico`** (`functions/invito-pubblico.js`); client: `core/services/invito-service-standalone.js` (`fetchInvitoByToken`).
 - Nessuna query Firestore pubblica sugli inviti (rules chiuse); risposta allowlist sanitizzata. Accettazione resta sul flusso `registrazione-invito-standalone.html`.
+
+## Gate Manodopera ↔ Diario
+
+- Helper: `core/config/manodopera-diario-gate.js` — `tenantHasManodopera(modules)`, `registroLavoriHref({ hasManodopera, stato, from })`, `applyRegistroLavoriLinks(root, hasManodopera)` (riscrive i link `data-gfv-registro` = `in_corso` / `completato` / `da_pianificare` / `conto_terzi`), `applyDiarioVsLavoroCta(root, hasManodopera)` (`#link-diario` vs `#link-nuovo-lavoro`).
+- **Manodopera spenta:** `attivita-standalone.html` editabile (`body[data-gfv-diario="editabile"]`); `admin/gestione-lavori-standalone.html` aggiunge `body.gestione-lavori-bloccata` e mostra `#gestione-lavori-gate` («Modulo Manodopera non attivo»); link `da_pianificare` nascosti; registri conto terzi → Diario `?contoTerzi=true&stato=…`.
+- **Manodopera accesa:** Diario = storico (`data-gfv-diario="storico"`, `#diario-sola-lettura` visibile, `#btn-aggiungi-attivita` nascosto, niente modifica/elimina in `attivita-controller.js`; `openAttivitaModal` / `confirmDeleteAttivita` mostrano alert info). Link conto terzi → `gestione-lavori-standalone.html?contoTerzi=true&stato=…` (filtro tipo `conto_terzi`).
+- Dashboard: `dashboard-hub.js` toglie `diarioAttivita` da pin/recenti e da **Per te oggi** con Manodopera (senza Manodopera: Diario + Terreni); `dashboard-quick-bar.js` e shell `ui-pelle-state.js` usano `hideWhenManodopera` sulla voce Diario (fuori dal menu Moduli); `hrefWhenManodopera` per le voci conto terzi; `dashboard-deadlines.js` footer **In arrivo** di default → Diario (Parco Macchine → scadenze mezzi); shell voce **Gestione lavori** con `requireManodopera`.
+- **Migrazione dati all’on/off Manodopera (#133):** `core/services/manodopera-migrazione-service.js` (`allineaDatiManodopera`, `contaLavoriApertiTenant`, `elencoAttivitaSolaLettura`) + `manodopera-migrazione-logic.js` (`messaggioLavoriAperti`, `formatToastMigrazione`, `motivoSolaLetturaAttivita` → codici `tipo-altro` / `ct-incompleto` / `campi-vuoti`; in guida utente etichette «Tipo Altro» / «Conto terzi incompleto» / «Campi obbligatori mancanti» — UI può ancora mostrare i codici grezzi, da fare in coda prodotto). **Trigger solo pagina Abbonamento:** `admin/abbonamento-standalone.html` (`preparaDisattivazioneManodopera` con dialog «Lavori ancora aperti», `allineaManodoperaUi` al caricamento tenant e dopo cambio piano/moduli / ricarico post-Stripe; spinner sopra `SOGLIA_SPINNER_MIGRAZIONE` = 20 documenti) e `tenant-service.js` `addModuleToTenant` / `removeModuleFromTenant` (errore `MANODOPERA_LAVORI_APERTI` senza `confermaLavoriAperti`). Se il modulo scade o viene revocato **senza** aprire Abbonamento, la migrazione **non** parte finché non si apre quella pagina. Auto-migrazione altrove = backlog prodotto. Copia idempotente: attività → `lavori` (chiusa → `completato`, oggi senza fine → `in_corso`; validazione dedicata che accetta date oltre ~1 anno), lavori → attività Diario **editabili** (annullato con nota). Nessuna cancellazione; non mappabili in `#attivita-precedenti-section` di `gestione-lavori-standalone.html` (solo con Manodopera).
+- **Cascata tipo lavoro Diario (#136):** `attivita-standalone.html` usa sempre la struttura gerarchica `#attivita-categoria-principale` → `#attivita-sottocategoria` (gruppo visibile solo se la categoria ne ha) → `#attivita-tipo-lavoro-gerarchico`; aggancio in `core/js/attivita-events.js` / `attivita-controller.js` + `core/js/lavoro-cascade-filters.js` (padre salvato come codice o tipo legato a sottocategoria). Stessa logica in modifica lavoro (`admin/js/gestione-lavori-events.js`). Date input su giorno locale (#138).
+- Pagine che applicano il gate CTA: home Conto Terzi, hub Vendemmia Meccanica (Lavori CT), Seminativo lavorazioni/trattamenti/**concimazioni**/raccolta (`applyDiarioVsLavoroCta`). Tony: frasi lavoro fatto → `tony-lavoro-fatto-nav.js` (vedi guida tecnica TONY); con Manodopera destinazione Gestione lavori, non Diario.
 
 `gestione-lavori-standalone.html`, `segnatura-ore-standalone.html`, `validazione-ore-standalone.html`, workspace campo: **perimetro Manodopera** / ruoli operativi — non Core-only per la guida utente; restano in guida `MANODOPERA` / `lavori-attivita` legacy.
 
@@ -144,7 +155,7 @@ Callable / helper `functions/email-resend.js` (Resend, mittente piattaforma): us
 
 ## Pelle Proposta (solo sotto al cofano — non in guida utente)
 
-Implementazione UI ufficio su **main**: flag `uiPelleProposta` (`feature-flags.js`, `enabledAlways: true`); `core/js/ui-pelle.js`, `ui-pelle-state.js`, `ui-pelle-icons.js`, CSS `ui-pelle-proposta.css`. Spenta su campo (`field-workspace`), login, e `data-gfv-pelle-host="0"`. **Non** spiegare all’utente skin/tema: i flussi prodotto restano gli stessi. Su develop il codice può mancare.
+Implementazione UI ufficio su **main**: flag `uiPelleProposta` (`feature-flags.js`, `enabledAlways: true`); `core/js/ui-pelle.js`, `ui-pelle-state.js`, `ui-pelle-icons.js`, CSS `ui-pelle-proposta.css`. Spenta su campo (`field-workspace`), login, e `data-gfv-pelle-host="0"`. Dal #202 spenta anche sulle pagine ufficio aperte da operaio/caposquadra (es. Impostazioni account): `nascondiShellPerProfiloCampo` in `ui-pelle-state.js` (ultimo ingresso `workspace` → niente barra; `dashboard` → barra, anche per un manager che è anche caposquadra; senza ingresso decidono i ruoli in sessione) e lo script inline in testa alle pagine non mette `data-pelle="proposta"` se `gfv_ingresso_ultimo` è `workspace`. **Non** spiegare all’utente skin/tema: i flussi prodotto restano gli stessi. Su develop il codice può mancare.
 
 ## Auth / sessione
 
@@ -156,4 +167,8 @@ Implementazione UI ufficio su **main**: flag `uiPelleProposta` (`feature-flags.j
 | Registrazione da invito | `core/auth/registrazione-invito-standalone.html` + CF `getInvitoPubblico` |
 
 Multi-azienda: selezione tenant in sessione (cambia azienda). Non spiegare all’utente Firebase Auth oltre «email/password / link invito / reset».
+
+## Accettazione documenti legali (preparata, flag spento — non in guida utente)
+
+#190/#192/#194: caselle di accettazione in registrazione e presa visione nell’invito, ri-accettazione al primo ingresso. **Flag spento:** `ACCETTAZIONE_LEGALE_ATTIVA = false` in `core/config/accettazione-legale-config.js` (`DOCUMENTI_LEGALI` con URL/versioni vuote, da compilare prima di accendere). Regole pure `core/services/accettazione-legale.js`; gate `core/js/accettazione-legale-gate.js` (importato solo con flag acceso; spento non chiama la rete e non disegna nulla); callable `registraAccettazioniLegali` in `functions/accettazione-legale.js` + `functions/lib/accettazione-legale-core.js` (collection `accettazioniLegali`, solo Admin SDK). Oggi registrazione e invito restano come prima: **non** descrivere all’utente caselle o documenti legali.
 

@@ -205,6 +205,15 @@ Nella stessa area **Gestione operai** potete aprire la **Scheda competenze** di 
 
 È il cuore operativo: qui definisci **cosa** si fa, **dove** (terreno), **chi** (squadra o operaio autonomo), **quando** e in che **stato** è il lavoro.
 
+**E il Diario attività?** Con Manodopera attivo le giornate nuove si registrano **solo qui**. Il **Diario attività** **non** compare nel menu (né in Per te oggi / Accessi rapidi): resta raggiungibile solo come **storico** via link diretto; vedi le attività salvate prima, ma non ne aggiungi di nuove e non le modifichi o elimini. Anche i collegamenti **Lavori in corso / completati** del Conto Terzi e **Lavori CT** della Vendemmia meccanica aprono Gestione lavori.
+
+**Cosa succede ai dati quando attivi o spegni Manodopera.** La copia parte **solo** aprendo (o ricaricando) **Abbonamento** — anche dopo un pagamento online; se il modulo scade o viene tolto **senza** aprire Abbonamento, la migrazione **non** parte finché non apri quella pagina (toast e, se serve, spinner). I dati si copiano una volta sola e **nulla viene cancellato** (attività, lavori, operai, squadre):
+
+1. **All’attivazione** le attività del Diario diventano lavori in questa pagina: quelle chiuse come **completati**, quella di oggi ancora aperta come **in corso**.
+2. Le attività che non si possono trasformare in lavoro compaiono in fondo alla lista, sezione **Attività precedenti**, in sola lettura con motivo leggibile tra parentesi: «Tipo Altro», «Conto terzi incompleto», «Campi obbligatori mancanti».
+3. **Allo spegnimento**, se hai lavori non ancora completati o annullati, compare «Hai N lavori ancora aperti: chiudili o li vedrai solo in storico.»: **Annulla** per chiuderli prima, **Continua** per procedere. I lavori tornano nel Diario come **attività modificabili** (non restano bloccati come storico).
+4. A fine copia leggi «Migrazione dati: N creati, M già collegati, K in sola lettura.» Se la copia non si completa, riapri **Abbonamento**: riparte senza doppioni.
+
 ### Passi tipici per un nuovo lavoro
 
 1. **Home Manodopera** → **Gestione lavori** (sezione **Pianificazione e lavori**), oppure **Moduli** → **Manodopera** → **Gestione lavori**. Puoi anche partire da un alert in **Richiede attenzione** sulla dashboard.  
@@ -215,7 +224,20 @@ Nella stessa area **Gestione operai** potete aprire la **Scheda competenze** di 
    - **Lavoro autonomo**: scegli l’**operaio** singolo.  
    Non assegnare caposquadra e operaio autonomo insieme se il form lo vieta: segui le etichette in pagina.  
 5. Campi opzionali: note, cliente conto terzi, macchina se serve al flusso.  
-6. **Salva**.
+6. Se il **tipo di lavoro** è un **trattamento**, prima delle note compare **Miscela prevista** (vedi sotto).  
+7. **Salva**.
+
+### Miscela prevista sui lavori di trattamento
+
+Serve a dire alla squadra cosa mettere in botte. La sezione compare solo quando il tipo di lavoro è un trattamento.
+
+1. Indica l’acqua: **Acqua prevista (hl/ha)** oppure **Acqua prevista (hl totali)** sul campo.  
+2. Scegli il **Prodotto** dal magazzino; se non c’è, scrivi il nome in **Nome se non è in magazzino**.  
+3. Scrivi la **Dose scelta (per ettaro)** e tocca **Aggiungi prodotto**. Ripeti per ogni prodotto della miscela.  
+4. Sotto leggi l’anteprima: quantità sul campo e, se l’attrezzo del lavoro ha la capacità della botte, botti piene, dose a botte piena e ultima botte parziale. La capacità della botte si indica sull’attrezzo in **Parco Macchine**.  
+5. Al **Salva** l’app può avvisare che un prodotto è già al numero massimo di impieghi nell’anno su quel campo, che l’ultimo passaggio è troppo vicino, oppure che la scheda del prodotto non è ancora confermata e il controllo non si può fare. Sono avvisi, non blocchi: la finestra chiede «Salvare comunque?»; **OK** salva, **Annulla** ti lascia correggere. Un trattamento fatto ieri e non ancora registrato non entra nel controllo.
+
+Operaio e caposquadra vedono la miscela nel riquadro **Miscela prevista** della scheda **Lavoro**, in campo. Il trattamento vero (dose usata, acqua usata, conferma della scheda) si completa poi nella pagina **Trattamenti** del modulo della coltura.
 
 ### Stati e avanzamento (come funziona davvero)
 
@@ -247,8 +269,23 @@ Per vedere **chi è libero, impegnato, assente o spostato** in un giorno (senza 
 
 1. In **Gestione Lavori** trova la riga con filtri per periodo, terreno o stato.  
 2. Apri **Modifica**.  
-3. Correggi i campi necessari (assegnazione, date, stato, note).  
+3. Correggi i campi necessari (assegnazione, date, stato, note). Se porti lo stato su **Sospeso**, indica anche il motivo (vedi sotto).  
 4. Salva e verifica che il caposquadra/operaio veda subito il cambiamento nel proprio flusso.
+
+### Sospendere o rinviare un lavoro (maltempo, guasto, altro)
+
+Se un lavoro **assegnato** o **in corso** si deve fermare per un motivo operativo, sulla sua riga in **Gestione lavori** usa **⏳ Sospendi / Rinvia**. Non è lo **standby per assenza** (vedi [mini-guida assenze](#mini-guida-assenze-standby-e-sostituzioni)): qui il lavoro si ferma per una causa esterna, non perché manca qualcuno della squadra.
+
+1. Scegli il **Motivo**: **Maltempo**, **Guasto** o **Altro**.  
+2. **Note motivo**: facoltative per maltempo e guasto, **obbligatorie** se scegli **Altro**.  
+3. **Data ripresa** (facoltativa):  
+   - se la indichi, il pulsante diventa **Sospendi e crea ripresa**: il lavoro passa in **Sospeso** e l’app crea subito il **lavoro di ripresa** collegato, lo evidenzia in lista e ne apre la **Modifica** per controllare operaio e macchine prima di salvare;  
+   - se la lasci vuota, premi **Sospendi**: il lavoro resta **Sospeso** e la ripresa la crei quando vuoi con **🔁 Crea ripresa** sulla riga.  
+4. Macchine e attrezzi del lavoro sospeso tornano **disponibili**, salvo che siano ancora impegnati su un altro lavoro in corso.
+
+Puoi sospendere anche da **Modifica**: se porti lo **Stato** su **Sospeso** compaiono **Motivo sospensione** e **Note motivo**, da compilare prima di salvare (stesse regole). Se il lavoro era già sospeso trovi il motivo salvato e puoi correggerlo.
+
+Anche il **caposquadra** (o l’operaio sul proprio lavoro autonomo) può sospendere dal dettaglio lavoro in versione mobile scrivendo il motivo: in **Modifica** quel testo compare come motivo **Altro** con la nota. La **ripresa** la crei sempre tu da Gestione lavori; nel lavoro di ripresa il caposquadra vede sulla mappa anche le zone già fatte prima della sospensione.
 
 ### Eliminare un lavoro
 
@@ -277,7 +314,7 @@ Quando un operaio **non c’è** sul lavoro di oggi, l’app vi aiuta a tenere i
 1. Aprite **Home Manodopera** → **Gestione lavori** (o partite dalla **notifica push** «Assenza oggi» / alert in dashboard).  
 2. Individuate il lavoro e l’assenza: potete aprire **Standby assenza** / **Conferma e standby** se il caposquadra ha già segnalato.  
 3. Se l’equipaggio scende sotto il minimo previsto, il lavoro resta in **standby** finché non c’è un sostituto (o non ripristinate la situazione).  
-4. Usate **Scegli sostituto**: l’app vi propone una **shortlist** (di solito pochi candidati) tenendo conto di disponibilità, competenze dove previste e **vicinanza al terreno/podere** del lavoro — non del GPS del telefono.  
+4. Usate **👤 Assegna sostituto** sulla riga del lavoro: l’app vi propone una **shortlist** (di solito pochi candidati) tenendo conto di disponibilità, competenze dove previste e **vicinanza al terreno/podere** del lavoro — non del GPS del telefono.  
 5. Potete anche prendere qualcuno già su un altro lavoro (**prestito**): quel lavoro di origine può avere un «buco» / standby di prestito per la giornata; non modifica la composizione fissa della squadra in anagrafica.  
 6. Eccezione: da **Impegni giornalieri** potete solo **vedere** la foto del giorno; l’assegnazione vera resta in Gestione lavori (eventuale scelta manuale dal roster del giorno se la schermata lo offre).
 
@@ -291,7 +328,7 @@ Quando un operaio **non c’è** sul lavoro di oggi, l’app vi aiuta a tenere i
 ### Cosa non fare
 
 - Non usare Impegni giornalieri come posto dove «assegnare» il sostituto: è in **sola lettura**.  
-- Non confondere **standby per assenza** con la **sospensione** ordinaria del lavoro o con l’eliminazione del lavoro.
+- Non confondere **standby per assenza** con la **sospensione** del lavoro (**Sospendi / Rinvia** per maltempo, guasto o altro: vedi [Sospendere o rinviare un lavoro](#sospendere-o-rinviare-un-lavoro-maltempo-guasto-altro)) o con l’eliminazione del lavoro.
 
 ---
 
@@ -329,6 +366,10 @@ Le ore che gli operatori registrano (versione mobile o altri canali previsti) po
 4. **Valida** approva subito. **Valida selezionate** e **Valida tutte** chiedono una conferma sola. **Rifiuta** chiede il motivo. Se il motivo è vuoto, compare «Scrivi il motivo: è obbligatorio.» e il campo resta in evidenza. Dopo il rifiuto leggi «Ora rifiutata».  
 5. Negli ultimi 30 giorni (filtri per operaio, lavoro e stato) vedi le ore validate e quelle rifiutate, con chi ha fatto l’azione, data, ora e motivo. Se la storia è lunga, **mostra tutto**. Puoi **Correggere**, **Annullare la validazione** o **Rifiutare / togliere**. Ogni azione chiede un motivo breve. La riga non si cancella. Vale anche per le ore degli operai di squadra.
 
+**Chi trovi nella tua coda:** le ore dei lavori **autonomi** e quelle segnate dai **capisquadra** sui lavori di squadra. Le ore degli operai di squadra le valida prima il **caposquadra** del lavoro.
+
+**Coda vuota:** leggi «Nessuna ora da validare» e sotto «Nessuna ora da validare da te». Se ci sono ore degli operai che aspettano ancora il caposquadra, compare anche «1 ora in attesa dei capisquadra» oppure «N ore in attesa dei capisquadra» (per esempio «3 ore in attesa dei capisquadra»): non tocca a te, ma sai che in campo c’è ancora qualcosa da validare.
+
 ### Perché conta
 
 Senza validazione le **statistiche** e i **compensi** possono restare incompleti o provvisori. Il **caposquadra** può validare le ore dei membri della squadra sul singolo lavoro dalla versione mobile; il manager ha comunque la vista **complessiva** qui.
@@ -344,7 +385,9 @@ Oltre alla versione mobile in campo, esiste una pagina **Segnatura ore** per dig
 1. Chiedi a **Tony** «apri segnatura ore» (serve **Tony Avanzato**), oppure  
 2. Usa un segnalibro o un link che l’ufficio ha già salvato, se lo usate spesso.
 
-Il flusso **quotidiano** degli operatori resta la **versione mobile**: questa pagina non sostituisce il loro percorso, lo integra dove serve a te. Su un lavoro sospeso non si segnano ore nuove, né dal menu né con Tony: Tony lo dice e indica la ripresa, se c’è. In elenco il badge è **Sospeso**. «Tutto pronto» dice sempre il nome del lavoro e il giorno. Se non dici la data, è oggi. Dopo Annulla, un «sì» non salva. Tony dice «Fatto» quando l'ora è salvata, anche se è in attesa del caposquadra. Se il salvataggio fallisce, dice il motivo. Una domanda vecchia «Vuoi salvare?» non resta aperta. Il riepilogo del giorno si aggiorna subito dopo il salvataggio o l'eliminazione. Dopo un ricarico, quella domanda e la frase «Questa richiesta è scaduta» non tornano in chat.
+Il flusso **quotidiano** degli operatori resta la **versione mobile**: questa pagina non sostituisce il loro percorso, lo integra dove serve a te. Su un lavoro sospeso non si segnano ore nuove, né dal menu né con Tony: Tony lo dice e indica la ripresa, se c’è. In elenco il badge è **Sospeso**. «Tutto pronto» dice sempre il nome del lavoro e il giorno. Se non dici la data, è oggi. Dopo Annulla, un «sì» non salva. Tony dice «Fatto» quando l'ora è salvata, anche se è in attesa del caposquadra. Se il salvataggio fallisce, dice il motivo. Una domanda vecchia «Vuoi salvare?» non resta aperta. Il riepilogo del giorno si aggiorna subito dopo il salvataggio o l'eliminazione. Dopo un ricarico, quella domanda e la frase «Questa richiesta è scaduta» non tornano in chat. Se nomini un lavoro che non c’è o è già finito, Tony dice «Non trovo un lavoro attivo con questo nome» ed elenca quelli segnabili; non propone un lavoro sospeso che non c’entra.
+
+**Lavoro già chiuso:** un lavoro **completato** o **in attesa di approvazione** resta segnabile per **7 giorni** dopo il completamento, anche da questa pagina, ma solo per le **tue** ore e per i giorni in cui il lavoro era ancora aperto. Se scegli un giorno fuori da questa finestra, sotto la data compare in rosso, per esempio, «Il lavoro è stato completato il GG/MM: le ore si possono segnare fino a 7 giorni dopo il completamento e per i giorni lavorati. Chiedi al caposquadra o al manager.» e **Salva Ora** resta spento finché non cambi data o lavoro.
 
 ---
 
@@ -400,7 +443,7 @@ La **manodopera** non è il modulo officina: i **guasti** su trattori e attrezzi
 3. Il punto chiave del manager è la decisione operativa:
    - **guasto non grave**: puoi approvare la continuazione del lavoro;
    - **guasto grave**: puoi sospendere il lavoro finché non è risolto.  
-4. Dopo la risoluzione tecnica, verifica che il lavoro sia allineato alla decisione manageriale (ripartenza o ulteriore stop).
+4. Quando segni **risolto** un guasto grave che aveva sospeso un lavoro, il lavoro riparte da solo: torna **in corso** se era già stato fatto qualcosa, altrimenti **assegnato**. Se sullo stesso lavoro c’è ancora un altro guasto aperto, resta sospeso e l’app te lo dice. Se la ripresa non riesce, l’app ti chiede di riprendere il lavoro da **Gestione lavori**; nell’elenco guasti, accanto al guasto risolto, compare anche il pulsante **Riprendi lavoro**.
 
 ### Buona pratica organizzativa
 

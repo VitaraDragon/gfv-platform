@@ -58,7 +58,11 @@ Pagina **Anagrafica prodotti** (da home magazzino o menu).
 
 Di solito potete filtrare per **stato** (attivo / non attivo), **categoria** (es. fitofarmaci, fertilizzanti, sementi, altro, secondo come avete configurato l'azienda) e **ricerca testuale**. **Pulisci filtri** azzera le scelte.
 
-La tabella mostra nome, categoria, unità di misura, giacenza, soglia di scorta, prezzo dove previsto, stato.
+La tabella mostra nome, categoria, unità di misura, giacenza, soglia di scorta, prezzo dove previsto, stato. Accanto al nome dei **fitofarmaci** c’è un pallino colorato sulla lettura della scheda pubblica (passateci sopra per leggere lo stato):
+
+- **giallo** — «In attesa di lettura» oppure «Lettura in corso»;  
+- **verde** — «Scheda letta»: ogni coltura della scheda ha il nome dell’avversità;  
+- **rosso** — «Da riprovare», per esempio «il nome non corrisponde a una sola registrazione» o «nome non trovato negli open data». Controllate il nome del prodotto come è scritto in etichetta e salvate di nuovo.
 
 ### Nuovo prodotto
 
@@ -66,6 +70,10 @@ La tabella mostra nome, categoria, unità di misura, giacenza, soglia di scorta,
 2. Compilate i campi richiesti in schermata: di regola **nome**, **categoria**, **unità di misura**, **scorta minima** (soglia per gli avvisi), **prezzo** se lo usate in contabilità interna.
 3. Per i **fitofarmaci** possono comparire campi aggiuntivi (es. dosaggi, **giorni di carenza**): seguite le etichette e la normativa.
 4. **Salva** per registrare. **Annulla** chiude senza salvare.
+
+### Scheda pubblica dei fitofarmaci
+
+Dopo il **Salva** di un fitofarmaco l’app legge da sola, un prodotto alla volta, la scheda pubblica del Ministero della Salute (open data, colture, avversità, etichetta): non dovete aspettare sulla pagina, il pallino in elenco vi dice a che punto è. Quando la lettura è fatta, nel modulo del prodotto trovate in sola lettura **Numero di registrazione**, **Principio attivo**, **Fonte** e **Data di lettura**: non si scrivono a mano. Queste informazioni servono nella pagina **Trattamenti** di vigneto, frutteto e seminativo, dove confermate avversità, dose e carenza per la coltura del campo; la conferma resta sul prodotto per la volta dopo. Una scheda letta più di sei mesi fa viene riletta prima di proporre la dose.
 
 ### Modifica ed eliminazione
 

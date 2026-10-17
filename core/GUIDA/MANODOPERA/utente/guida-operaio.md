@@ -6,7 +6,7 @@ Questa guida è solo per l’**operaio**. La schermata che userai quasi sempre �
 
 ## Percorso consigliato
 
-1. Capire la **versione mobile** e le **tre schede** che hai a disposizione. **[Impara qui](#mini-guida-versione-mobile-e-navigazione-schede)**  
+1. Capire la **versione mobile** e le **schede** che hai a disposizione. **[Impara qui](#mini-guida-versione-mobile-e-navigazione-schede)**  
 2. **Scegliere il lavoro** corretto nel menu e sapere cosa succede se hai **molti incarichi** in elenco. **[Impara qui](#mini-guida-selezionare-il-lavoro-corrente)**  
 3. **Segnare le ore** del turno in modo chiaro. **[Impara qui](#mini-guida-segnare-le-proprie-ore)**  
 4. Usare il **dettaglio lavoro** sotto le ore: istruzioni sull’incarico, **zone sulla mappa**, azioni disponibili in schermata (avanzamento o completamento se compare). **[Impara qui](#mini-guida-dettaglio-lavoro-zone-e-completamento)**  
@@ -36,18 +36,44 @@ Questa guida è solo per l’**operaio**. La schermata che userai quasi sempre �
 
 La **versione mobile** è la schermata principale per registrare il lavoro in campo dall’app.
 
-### Le tre schede
+**Dopo il login** l’app ti porta direttamente qui: per un attimo leggi «Apro il tuo lavoro…», senza vedere prima la dashboard, sia dal telefono sia dal computer. Se l’area non si apre, compare «Non riesco ad aprire la tua area. Riprova»: tocca **Riprova**.
 
-Con **Indietro** / **Avanti** in basso o i **puntini**:
+**Diario attività:** con Manodopera attivo **non** compare nel menu (come per tutti). Registri tutto da **Lavoro**, **Ore** e **Statistiche**. Non c’è una voce Diario; se apri a mano un indirizzo del Diario, l’app ti riporta al tuo lavoro.
 
-1. **Lavoro** — menu **Lavori assegnati** per scegliere l’incarico del giorno.  
-2. **Ore** — modulo **Segna ore** e sotto il **dettaglio del lavoro** (la schermata **I miei lavori** incorporata qui per comodità).  
-3. **Statistiche** — riepilogo delle **tue** ore.
+
+### Le schede
+
+Con **Indietro** / **Avanti** in basso o i **puntini**, in quest’ordine:
+
+1. **Lavoro** — menu **Lavori assegnati** per scegliere l’incarico del giorno. Mentre carica leggi «Caricamento lavori...»; se i lavori non arrivano, l’app riprova da sola una volta e poi mostra «Non riesco a caricare i lavori. Riprova.» con il pulsante **Riprova**. Se il lavoro è un trattamento e l’ufficio ha preparato la miscela, qui sotto vedi anche il riquadro **Miscela prevista** (vedi sotto).  
+2. **Comunicazioni** — i **messaggi dal caposquadra** per il tuo turno.  
+3. **Ore** — modulo **Segna ore** e sotto il **dettaglio del lavoro** (la schermata **I miei lavori** incorporata qui per comodità).  
+4. **⚠️ Segnala un problema** — per un guasto a una macchina o un pericolo sul terreno (frana, albero, palo). Vedi la mini-guida guasti più sotto.  
+5. **Statistiche** — riepilogo delle **tue** ore.
+
+### Miscela prevista (lavori di trattamento)
+
+Quando l’ufficio crea un lavoro di **trattamento** e indica prodotti, dose e acqua, nella scheda **Lavoro**, dopo aver scelto quel lavoro, compare il riquadro **Miscela prevista**. Lo leggi prima di uscire a preparare la botte:
+
+- **Acqua hl/ha** e **Acqua hl totali** sul campo;  
+- per ogni prodotto: **Dose/ha**, **Quantità sul campo** e **Dose/hl** (se l’azienda non l’ha ancora confermata leggi «non confermata»);  
+- se l’attrezzo del lavoro ha una botte, anche quanti **quintali** tiene, quante **botti piene** servono, la **Dose a botte piena** e cosa mettere nell’**ultima botte parziale**.
+
+Se il riquadro non c’è, il lavoro non è un trattamento oppure l’ufficio non ha indicato la miscela: chiedi al caposquadra o in ufficio. Il riquadro segue la lingua che hai scelto; i nomi dei prodotti restano come li ha scritti l’ufficio.
 
 ### In alto nella schermata
 
-- Il menu **ingranaggio**: **Guida**, **Segnala guasto** se l’azienda ha il parco macchine, **Impostazioni**, **Esci**. **Cambia azienda** compare solo se ne hai più di una.  
+- Il menu **ingranaggio**: **Lingua**, poi **Guida**, **Impostazioni account**, **Esci**. **Cambia azienda** compare solo se ne hai più di una. La segnalazione dei guasti non è più nel menu: è la scheda **⚠️ Segnala un problema**.  
+- Non c’è la barra scura in alto con i moduli e la mappa dell’ufficio, nemmeno quando apri **Impostazioni account**: tutto il tuo lavoro passa dalle schede.  
 - Accesso alle **impostazioni account** da quel menu (lì anche **Notifiche** push: nuovo lavoro, comunicazioni di squadra).
+
+### Cambiare la lingua della schermata
+
+1. Tocca l’**ingranaggio** in alto.  
+2. Tocca **Lingua**: si apre l’elenco **Scegli la lingua** con **Italiano**, **Română**, **English**, **Shqip** (albanese) e **Français**, ognuna con la sua bandiera. La lingua in uso ha il segno ✓.  
+3. Tocca la lingua che vuoi: l’elenco si chiude e la schermata cambia subito. Menu, schede, pulsanti, messaggi in alto, elenchi e stati dei lavori, il riquadro **Miscela prevista** e la scheda **Segnala un problema** seguono la lingua scelta. Per uscire senza cambiare tocca **Chiudi**.
+
+Con **Italiano** la schermata è quella di sempre. La scelta resta su quel telefono (o computer): la ritrovi alla prossima apertura, anche dopo essere uscito. Restano in italiano la pagina di accesso, il **dettaglio del lavoro**, le **statistiche**, le pagine che apri dal menu (Guida, Impostazioni) e **Tony**. Nella scheda guasti i nomi di macchine e lavori e quello che scrivi tu restano come sono. Le traduzioni sono una prima versione: se una frase non è chiara, torna a **Italiano**.
 
 ---
 
@@ -97,13 +123,13 @@ Sotto il modulo c’è **Le tue ore del giorno**: i turni di quel giorno, con la
 - Finché la riga è **in attesa** o **rifiutata** puoi **modificarla** o **eliminarla** dal riquadro del giorno. Il lavoro non si cambia: per un altro lavoro elimina e segna di nuovo. Una riga **rifiutata**, dopo la modifica, torna in attesa.  
 - Su una riga **in attesa** leggi «Da validare — la valida il caposquadra» (o il manager). Se era stata rifiutata e poi l’hai modificata, lo stato è di nuovo quello: sotto resta la storia, con il rifiuto e la modifica. Su una riga ancora **rifiutata** leggi chi l’ha rifiutata, quando e il motivo. Sulle righe validate, corrette o annullate c’è la stessa storia, con data e ora, anche se la validazione è stata annullata e rifatta.
 - Su una riga **validata** non puoi fare nulla: chiedi al caposquadra, oppure al manager se il lavoro è autonomo.
-- Se chiedi a Tony di segnare le ore, nel riepilogo c’è il nome del lavoro, gli orari e la pausa. Se due lavori hanno lo stesso nome, prende quello di oggi; se non è chiaro, chiede quale e non apre il modulo sul primo della lista. Se l’orario è già occupato te lo dice subito, prima di chiedere la pausa, e ti propone il primo buco libero. Se dici «pausa 0» o «nessuna pausa», non te la chiede di nuovo. Macchina e attrezzo sono quelli del lavoro, a meno che tu non li nomini. Dopo il «sì» Tony conferma su quale lavoro ha segnato l’ora. Accanto alla data del modulo c’è il giorno in italiano, per esempio «giovedì 08/10/2026». Su un lavoro sospeso non si segnano ore nuove: Tony lo dice e, se c’è, indica la ripresa. In elenco il lavoro sospeso ha il badge Sospeso. «Tutto pronto» dice anche il giorno, per esempio «oggi 09/10». Se non dici la data, Tony usa oggi e non tiene quella del messaggio prima. Dopo Annulla, un «sì» non salva. Tony dice «Fatto» quando l'ora è salvata, anche se è in attesa del caposquadra. Se il salvataggio fallisce, dice il motivo. Una domanda vecchia «Vuoi salvare?» non resta aperta. Il riepilogo del giorno si aggiorna subito dopo il salvataggio o l'eliminazione. Dopo un ricarico, quella domanda e la frase «Questa richiesta è scaduta» non tornano in chat.
+- Se chiedi a Tony di segnare le ore, nel riepilogo c’è il nome del lavoro, gli orari e la pausa. Se due lavori hanno lo stesso nome, prende quello di oggi; se non è chiaro, chiede quale e non apre il modulo sul primo della lista. Se l’orario è già occupato te lo dice subito, prima di chiedere la pausa, e ti propone il primo buco libero. Se dici «pausa 0» o «nessuna pausa», non te la chiede di nuovo. Macchina e attrezzo sono quelli del lavoro, a meno che tu non li nomini. Dopo il «sì» Tony conferma su quale lavoro ha segnato l’ora. Accanto alla data del modulo c’è il giorno in italiano, per esempio «giovedì 08/10/2026». Su un lavoro sospeso non si segnano ore nuove: Tony lo dice e, se c’è, indica la ripresa. In elenco il lavoro sospeso ha il badge Sospeso. «Tutto pronto» dice anche il giorno, per esempio «oggi 09/10». Se non dici la data, Tony usa oggi e non tiene quella del messaggio prima. Dopo Annulla, un «sì» non salva. Tony dice «Fatto» quando l'ora è salvata, anche se è in attesa del caposquadra. Se il salvataggio fallisce, dice il motivo. Una domanda vecchia «Vuoi salvare?» non resta aperta. Il riepilogo del giorno si aggiorna subito dopo il salvataggio o l'eliminazione. Dopo un ricarico, quella domanda e la frase «Questa richiesta è scaduta» non tornano in chat. Se nomini un lavoro che non c’è o è già finito, Tony dice «Non trovo un lavoro attivo con questo nome» ed elenca quelli su cui puoi segnare; non ti propone un lavoro sospeso che non c’entra con quello che hai detto.
 
 ---
 
 ## Comunicazioni del caposquadra
 
-Anche senza la scheda **Comunicazioni** (riservata al caposquadra), sul lavoro possono arrivarti **messaggi operativi** da confermare.
+Nella scheda **Comunicazioni** leggi i **messaggi dal caposquadra** per il tuo turno. Sul lavoro possono arrivarti **messaggi operativi** da confermare.
 
 1. Apri il lavoro del giorno nella **versione mobile**.  
 2. Se c’è un messaggio in attesa, usa **Conferma ricezione** (o equivalente).  
@@ -127,7 +153,8 @@ Sotto il modulo ore trovi il riquadro **Dettaglio lavoro operativo**, già **cen
 2. Nel dettaglio puoi in genere:
    - leggere **stato**, percentuali e **testi operativi** sull’incarico;  
    - **tracciare le zone lavorate** sulla mappa quando il tipo di incarico lo richiede;  
-   - vedere se il lavoro risulta **sospeso** o da **riprendere**, se l’app lo mostra.  
+   - vedere se il lavoro risulta **sospeso** o da **riprendere**, se l’app lo mostra;  
+   - **⏸️ Sospendi lavoro** se l’incarico è **solo tuo** e devi fermarti (vedi [Sospendere un incarico solo tuo](#sospendere-un-incarico-solo-tuo)).  
 3. Se sul telefono è scomodo, tocca **Ingrandisci** per la stessa schermata a quasi tutto schermo. **Riduci** torna alla scheda.
 
 ### Zone sulla mappa
@@ -160,11 +187,14 @@ Serve per controllare di aver registrato tutti i turni della settimana.
 
 ## Mini-guida guasti segnalazione GPS e risoluzione
 
-Serve quando l’azienda ha il modulo **Parco Macchine** attivo e ti compare la voce per **Segnalazione guasti** (di solito dalla **dashboard** in versione completa del browser).
+Si fa dalla scheda **⚠️ Segnala un problema** del workspace, dopo **Ore** e prima di **Statistiche**, sia dal telefono sia dal computer. La voce **Segnala guasto** nel menu **ingranaggio** non c’è più.
+
+- La **segnalazione generica** (frana, albero caduto, palo rotto, danno a un filare…) c’è sempre, anche se l’azienda non ha il modulo **Parco Macchine**: in quel caso la scheda parte già sulla segnalazione generica e la scelta macchina non compare.  
+- Con **Parco Macchine** attivo puoi anche segnare come guasta la macchina o l’attrezzo che stai usando.
 
 ### Cosa compilare (panoramica)
 
-- **Tipo**: guasto a **macchina/attrezzo** oppure **segnalazione generica** (frana, voragine, danno a infrastrutture, problema a filare, ecc.).  
+- **Tipo**: guasto a **macchina/attrezzo** (solo con Parco Macchine) oppure **segnalazione generica** (frana, voragine, danno a infrastrutture, problema a filare, ecc.).  
 - Per la macchina: **trattore**, eventuale **attrezzo**, **componente** coinvolto (trattore, attrezzo o entrambi).  
 - Per la generica: **ubicazione** scritta, **tipo di problema**, e spesso una **mappa** dove tocchi il punto esatto del problema.  
 - **Gravità**:  
@@ -183,8 +213,8 @@ Serve quando l’azienda ha il modulo **Parco Macchine** attivo e ti compare la 
 ### Dopo l’invio
 
 - La segnalazione segue lo stato mostrato in elenco (**in attesa**, ecc.).
-- Subito dopo l’invio leggi **Segnalazione inviata. Grazie.** Dal telefono torni al workspace. Se qualcosa sulla macchina o sul lavoro non si aggiorna, l’avviso resta e non ti porta via da solo.  
-- Dove previsto dall’interfaccia, puoi registrare **note di risoluzione** (e talvolta **costo** ricambi) sulle **tue** segnalazioni quando il problema è stato sistemato: segui le etichette in schermata.
+- Subito dopo l’invio leggi **Segnalazione inviata. Grazie.** Resti nella scheda del workspace e trovi la segnalazione nell’elenco **I Miei Guasti Segnalati**, sotto il modulo. Se qualcosa sulla macchina o sul lavoro non si aggiorna, leggi l’avviso e avvisa il tuo responsabile.  
+- Se il problema è stato sistemato, sulle **tue** segnalazioni puoi usare **Risolvi**: scrivi le **note di risoluzione** (obbligatorie) e, se vuoi, il **costo** della riparazione. Puoi farlo **solo finché la segnalazione è in attesa**, cioè prima che il manager decida. Dopo la sua decisione (continuazione approvata o lavoro sospeso) la chiude il manager. Una segnalazione non si cancella dal campo: solo il manager può eliminarla.
 
 ---
 
@@ -199,6 +229,17 @@ Serve quando l’azienda ha il modulo **Parco Macchine** attivo e ti compare la 
 
 - Il flusso è lo stesso: **versione mobile**, scelta lavoro, **ore**, **dettaglio** con zone se richiesto.  
 - Per dubbi su cosa fare sull’incarico, usa i canali che l’azienda ti ha indicato.
+
+### Sospendere un incarico solo tuo
+
+Se lavori **da solo** su un incarico e devi fermarti per meteo, guasto o altro motivo, puoi sospenderlo tu.
+
+1. Scegli il lavoro nella scheda **Lavoro**, apri la scheda **Ore** e nel **dettaglio lavoro** (o nella schermata **I miei lavori**) tocca **⏸️ Sospendi lavoro**. Si può fare solo se il lavoro è **assegnato** o **in corso**.  
+2. Scrivi il **motivo** a parole tue (testo libero, es. «pioggia», «trattore fermo») e conferma.  
+3. Il lavoro passa in **Sospeso**: nel dettaglio compare «Lavoro sospeso» con il tuo motivo e su quel lavoro non segni più zone né ore nuove.  
+4. Per ripartire non devi fare nulla: il manager crea il **lavoro di ripresa**, che ti compare tra i **Lavori assegnati** con lo stesso nome e «(ripresa)». Lo scegli e continui come sempre; sulla mappa vedi in arancione le zone già fatte prima della sospensione e in verde quelle nuove.
+
+La sospensione funziona solo sugli incarichi **solo tuoi**: su quelli di gruppo avvisa il **caposquadra**, che può sospendere il lavoro. Se invece sei **tu** a non poter lavorare (malattia, ferie, permesso), non sospendere: avvisa il caposquadra o il manager, che registrano l’**assenza**.
 
 ---
 
@@ -218,8 +259,12 @@ Se apri a mano un indirizzo dell’ufficio (terreni, magazzino, elenchi), l’ap
 | Non trovo un lavoro che ti aspetti | Elenco ridotto se hai molti incarichi; chiedi in ufficio se serve sbloccare la vista. |
 | Ore in **attesa** o stato poco chiaro | Leggi i messaggi in app; per dubbi chiedi in ufficio. |
 | **Dettaglio lavoro** non carica | Connessione debole; riprova o tocca **Ingrandisci**. |
+| «Non riesco a caricare i lavori. Riprova.» | Tocca **Riprova** con una connessione migliore; se resta, chiedi in ufficio. |
+| «Il lavoro è stato completato il …: le ore si possono segnare fino a 7 giorni dopo il completamento e per i giorni lavorati.» | Sono passati più di 7 giorni dalla chiusura del lavoro: chiedi al caposquadra o al manager. |
+| La schermata è in un’altra lingua | Ingranaggio in alto → **Lingua** → **Italiano**. |
+| Dopo il login: «Non riesco ad aprire la tua area. Riprova» | Tocca **Riprova**; se resta, chiedi in ufficio di controllare il tuo ruolo e il modulo Manodopera. |
 | Non capisco la **mappa delle zone** | Chiedi una dimostrazione in campo a chi coordina il gruppo. |
 | **GPS** non funziona | Attiva permesso posizione; riprova all’aperto; completa ubicazione e dettagli a mano. |
-| Non trovi **Segnalazione guasti** | Modulo non attivo o voce non nel tuo menu: chiedi in ufficio come segnalare. |
+| Non trovi dove segnalare un guasto | Non è nel menu ingranaggio: scorri le schede fino a **⚠️ Segnala un problema**. Se manca la scelta della macchina, l’azienda non ha Parco Macchine: usa la segnalazione generica o chiama il responsabile. |
 
 Per le funzioni generali dell’app (account, terreni), consulta anche la **guida Core** nella documentazione utente.
