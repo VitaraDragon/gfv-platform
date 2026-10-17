@@ -390,7 +390,7 @@ export function sliceOperaioLavoriWindow(works, opts = {}) {
     if (focusLavoroId) mustKeepIds.add(focusLavoroId);
     works.forEach((w) => {
         if (w.ripresaDaLavoroId) mustKeepIds.add(w.id);
-        if ((w.stato || '') === 'in_corso') mustKeepIds.add(w.id);
+        if (['in_corso', 'assegnato', 'sospeso'].includes((w.stato || ''))) mustKeepIds.add(w.id);
         const statoW = (w && w.stato) || '';
         if (statoW === 'completato' || statoW === 'completato_da_approvare') {
             if (lavoroSelezionabilePerOre({ lavoro: w, ruolo: 'operaio' }).ok) {
