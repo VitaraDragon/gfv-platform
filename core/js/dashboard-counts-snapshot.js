@@ -3,7 +3,7 @@
  * @module core/js/dashboard-counts-snapshot
  */
 
-import { parseLavoroDataInizio } from '../services/manodopera-lavori-scope.js?v=2026-10-17a';
+import { parseLavoroDataInizio } from '../services/manodopera-lavori-scope.js?v=2026-10-17b';
 import {
     loadAffittiUrgentiCount,
     countOreDaValidareFromLavoriDocs,

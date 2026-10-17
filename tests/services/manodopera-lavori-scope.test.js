@@ -42,6 +42,13 @@ describe('isLavoroVisibileOperaioCampo', () => {
         expect(isLavoroVisibileOperaioCampo({ stato: 'in_corso' }, oggi)).toBe(true);
     });
 
+    it('lo stato legacy attivo è visibile in home e selezionabile in Segna ore', () => {
+        const lavoro = { stato: 'attivo', motivoSospensione: null };
+        expect(isLavoroVisibileOperaioCampo(lavoro, oggi)).toBe(true);
+        expect(isLavoroInDropdownSegnaOre(lavoro, oggi)).toBe(true);
+        expect(isLavoroSegnabileOperaio(lavoro, oggi)).toBe(true);
+    });
+
     it('esclude completato anche con data di completamento', () => {
         expect(isLavoroVisibileOperaioCampo({ stato: 'completato' }, oggi)).toBe(false);
         expect(isLavoroVisibileOperaioCampo({
