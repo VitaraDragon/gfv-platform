@@ -343,7 +343,7 @@
                         const decisione = statoRipristinoMezzo({
                             statoAttuale: mezzoSnap.data().stato,
                             statoPrima: mezzo.statoPrima,
-                            altroGuastoAttivoSulMezzo: altroGuastoAttivoSulMezzo(guastiList, mezzo.id, guastoId)
+                            altroGuastoAttivoSulMezzo: altroGuastoAttivoSulMezzo(guastiPerDecisione(guastoId), mezzo.id, guastoId)
                         });
                         if (!decisione.scrivi) continue;
                         await updateDoc(mezzoRef, { stato: decisione.stato, updatedAt: new Date() });
