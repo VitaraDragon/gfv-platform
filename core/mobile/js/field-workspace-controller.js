@@ -67,7 +67,7 @@ import {
     resolveSegnaturaOreRoleFlags,
     resolveFieldWorkspaceLavoriRoleFlags,
     sliceOperaioLavoriWindow,
-} from '../../services/manodopera-lavori-scope.js';
+} from '../../services/manodopera-lavori-scope.js?v=2026-10-17a';
 import {
     lavoroSelezionabilePerOre,
     componiEtichettaLavoroOre
