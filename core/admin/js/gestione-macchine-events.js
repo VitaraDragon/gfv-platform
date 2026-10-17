@@ -10,6 +10,7 @@
 import { showAlert, escapeHtml } from './gestione-macchine-utils.js';
 import { formatDateTimeItalianReadable } from '../../js/date-format-it.js';
 import { isTipoFlotta } from '../../../modules/parco-macchine/lib/macchine-tipo-utils.js';
+import { chiaveBadgeStatoGuasto } from '../../services/guasto-stati.js';
 
 function dateInputValue(val) {
     if (!val) return '';
@@ -879,16 +880,21 @@ export async function loadStoricoGuasti(macchinaId, tenantId, dependencies, stat
                 ? '<span style="background: #dc3545; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">🔴 Grave</span>'
                 : '<span style="background: #ffc107; color: #856404; padding: 2px 8px; border-radius: 12px; font-size: 11px;">🟡 Non grave</span>';
 
-            const statoBadge = guasto.stato === 'risolto'
+            const chiaveStato = chiaveBadgeStatoGuasto(guasto.stato);
+            const statoBadge = chiaveStato === 'risolto'
                 ? '<span style="background: #28a745; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">✅ Risolto</span>'
-                : guasto.stato === 'approvato-continuazione'
+                : chiaveStato === 'annullato'
+                ? '<span style="background: #757575; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">🚫 Annullato</span>'
+                : chiaveStato === 'approvato-continuazione'
                 ? '<span style="background: #17a2b8; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">✅ Continuazione approvata</span>'
-                : guasto.stato === 'sospeso'
+                : chiaveStato === 'sospeso'
                 ? '<span style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">⛔ Sospeso</span>'
-                : '<span style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">⏳ In attesa</span>';
+                : chiaveStato === 'in-attesa'
+                ? '<span style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">⏳ In attesa</span>'
+                : '<span style="background: #6c757d; color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">' + escapeHtml(String(guasto.stato || '')) + '</span>';
 
             html += `
-                <div style="background: white; padding: 12px; margin-bottom: 10px; border-left: 3px solid ${guasto.stato === 'risolto' ? '#28a745' : guasto.gravita === 'grave' ? '#dc3545' : '#ffc107'}; border-radius: 4px;">
+                <div style="background: white; padding: 12px; margin-bottom: 10px; border-left: 3px solid ${chiaveStato === 'risolto' ? '#28a745' : chiaveStato === 'annullato' ? '#757575' : guasto.gravita === 'grave' ? '#dc3545' : '#ffc107'}; border-radius: 4px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                         <div style="font-weight: 600; color: #333;">${escapeHtml(dataSegnalazione)}</div>
                         <div style="display: flex; gap: 6px; flex-wrap: wrap;">
@@ -903,7 +909,7 @@ export async function loadStoricoGuasti(macchinaId, tenantId, dependencies, stat
                     <div style="font-size: 13px; color: #333; margin-bottom: 6px;">
                         <strong>Dettagli:</strong> ${escapeHtml(guasto.dettagli || '-')}
                     </div>
-                    ${guasto.stato === 'risolto' ? `
+                    ${chiaveStato === 'risolto' ? `
                         <div style="font-size: 13px; color: #155724; margin-top: 8px; padding-top: 8px; border-top: 1px solid #c3e6cb;">
                             <div><strong>Risolto il:</strong> ${escapeHtml(dataRisoluzione || '-')}</div>
                             <div><strong>Risolto da:</strong> ${escapeHtml(risoltoDaNome || 'Sconosciuto')}</div>

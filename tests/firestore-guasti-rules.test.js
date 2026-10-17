@@ -191,6 +191,11 @@ beforeAll(async () => {
     ['g-del-capo', { segnalatoDa: CAPO, stato: 'in-attesa', risolto: false }],
     ['g-del-manager', { segnalatoDa: CAPO, stato: 'in-attesa', risolto: false }],
     ['g-gravita', { segnalatoDa: CAPO, stato: 'in-attesa', risolto: false, gravita: 'lieve' }],
+    ['g-annulla-storico', { segnalatoDa: CAPO, stato: 'in-attesa', risolto: false, dettagli: 'storico annullo' }],
+    ['g-risolto-storico', { segnalatoDa: CAPO, stato: 'in-attesa', risolto: false, dettagli: 'storico risolto' }],
+    ['g-nota-extra', { segnalatoDa: CAPO, stato: 'in-attesa', risolto: false }],
+    ['g-gia-annullato', { segnalatoDa: CAPO, stato: 'annullato', risolto: false }],
+    ['g-manager-storico', { segnalatoDa: CAPO, stato: 'in-attesa', risolto: false }],
   ];
   for (const [id, data] of guasti) {
     const res = await richiesta('PATCH', `tenants/${TENANT}/guasti/${id}`, { data });
@@ -395,5 +400,76 @@ describe('guasti: chi segnala, finché il manager non decide', () => {
     expect(res.status).toBeLessThan(400);
     const sparito = await richiesta('GET', `tenants/${TENANT}/guasti/g-del-manager`, { auth: MANAGER });
     expect(sparito.status).toBe(404);
+  });
+
+  it('crea un guasto con storico e stato della macchina prima del guasto', async () => {
+    const res = await crea('g-crea-storico', CAPO, {
+      segnalatoDa: CAPO,
+      stato: 'in-attesa',
+      statoMacchinaPrima: 'in_uso',
+      storico: [{ azione: 'segnalato', da: CAPO, il: '2026-10-17', nota: null }],
+    });
+    expect(res.status).toBeLessThan(400);
+  });
+
+  it('il segnalatore annulla con storico e updatedAt', async () => {
+    const res = await aggiorna('g-annulla-storico', CAPO, {
+      stato: 'annullato',
+      annullatoDa: CAPO,
+      annullatoIl: '2026-10-17',
+      storico: [{ azione: 'annullato', da: CAPO, il: '2026-10-17', nota: 'ritirata' }],
+      updatedAt: '2026-10-17',
+    });
+    expect(res.status).toBeLessThan(400);
+  });
+
+  it('Risolto da me con storico e costo di riparazione', async () => {
+    const res = await aggiorna('g-risolto-storico', CAPO, {
+      stato: 'risolto',
+      risolto: true,
+      risoltoDa: CAPO,
+      risoltoIl: '2026-10-17',
+      noteRisoluzione: 'messo a posto',
+      costoRiparazione: 12,
+      storico: [{ azione: 'risolto_da_segnalatore', da: CAPO, il: '2026-10-17', nota: 'messo a posto' }],
+      updatedAt: '2026-10-17',
+    });
+    expect(res.status).toBeLessThan(400);
+  });
+
+  it('nega l’annullo con una chiave fuori elenco', async () => {
+    const res = await aggiorna('g-nota-extra', CAPO, {
+      stato: 'annullato',
+      annullatoDa: CAPO,
+      annullatoIl: '2026-10-17',
+      notaAnnullamento: 'non ammessa',
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it('il segnalatore non aggiunge allo storico di un guasto approvato-continuazione', async () => {
+    const res = await aggiorna('g-approvato', CAPO, {
+      storico: [{ azione: 'annullato', da: CAPO, il: '2026-10-17', nota: null }],
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it('il segnalatore non modifica un guasto già annullato', async () => {
+    const res = await aggiorna('g-gia-annullato', CAPO, {
+      stato: 'risolto',
+      risolto: true,
+      storico: [{ azione: 'risolto_da_segnalatore', da: CAPO, il: '2026-10-17', nota: 'tardi' }],
+    });
+    expect(res.status).toBe(403);
+  });
+
+  it('il manager scrive chiuso_manager nello storico', async () => {
+    const res = await aggiorna('g-manager-storico', MANAGER, {
+      stato: 'risolto',
+      risolto: true,
+      storico: [{ azione: 'chiuso_manager', da: MANAGER, il: '2026-10-17', nota: 'chiuso in officina' }],
+      updatedAt: '2026-10-17',
+    });
+    expect(res.status).toBeLessThan(400);
   });
 });
