@@ -237,6 +237,11 @@
             color: white;
         }
 
+        .badge-annullato {
+            background: #757575;
+            color: white;
+        }
+
         .guasto-details {
             margin-top: 15px;
             color: #666;
@@ -451,6 +456,7 @@
                         <option value="approvato-continuazione">Approvato continuazione</option>
                         <option value="sospeso">Sospeso</option>
                         <option value="risolto">Risolto</option>
+                        <option value="annullato">Annullato</option>
                     </select>
                 </div>
                 <div class="filter-group">
@@ -563,6 +569,7 @@
         import { getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, updateDoc, query, where, orderBy, serverTimestamp, onSnapshot } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
+        import { isGuastoAttivo, isGuastoNonDeciso, chiaveBadgeStatoGuasto } from '../services/guasto-stati.js';
 
         async function initApp() {
             const app = getAppInstance();
@@ -862,9 +869,9 @@
 
             // Aggiorna statistiche
             function updateStats() {
-                const gravi = guastiList.filter(g => g.gravita === 'grave' && g.stato !== 'risolto').length;
-                const nonGravi = guastiList.filter(g => g.gravita === 'non-grave' && g.stato !== 'risolto').length;
-                const risolti = guastiList.filter(g => g.stato === 'risolto').length;
+                const gravi = guastiList.filter(g => g.gravita === 'grave' && isGuastoAttivo(g.stato)).length;
+                const nonGravi = guastiList.filter(g => g.gravita === 'non-grave' && isGuastoAttivo(g.stato)).length;
+                const risolti = guastiList.filter(g => chiaveBadgeStatoGuasto(g.stato) === 'risolto').length;
                 const totali = guastiList.length;
 
                 document.getElementById('stat-gravi').textContent = gravi;
@@ -883,7 +890,7 @@
                 let filtered = guastiList;
 
                 if (filterStato) {
-                    filtered = filtered.filter(g => g.stato === filterStato);
+                    filtered = filtered.filter(g => chiaveBadgeStatoGuasto(g.stato) === filterStato);
                 }
 
                 if (filterGravita) {
@@ -946,26 +953,31 @@
                     const dataSegnalazione = formatDateTimeItalianReadable(guasto.segnalatoIl);
 
                     const stato = guasto.stato || 'in-attesa';
+                    const chiaveStato = chiaveBadgeStatoGuasto(guasto.stato);
                     const gravitaBadge = guasto.gravita === 'grave' 
                         ? '<span class="badge badge-grave">🔴 Grave</span>'
                         : '<span class="badge badge-non-grave">🟡 Non grave</span>';
 
                     let statoBadge = '';
-                    if (stato === 'risolto') {
+                    if (chiaveStato === 'risolto') {
                         statoBadge = '<span class="badge badge-risolto">✅ Risolto</span>';
-                    } else if (stato === 'approvato-continuazione') {
+                    } else if (chiaveStato === 'annullato') {
+                        statoBadge = '<span class="badge badge-annullato">🚫 Annullato</span>';
+                    } else if (chiaveStato === 'approvato-continuazione') {
                         statoBadge = '<span class="badge badge-approvato">✅ Continuazione approvata</span>';
-                    } else if (stato === 'sospeso') {
+                    } else if (chiaveStato === 'sospeso') {
                         statoBadge = '<span class="badge badge-sospeso">⛔ Sospeso</span>';
-                    } else {
+                    } else if (chiaveStato === 'in-attesa') {
                         statoBadge = '<span class="badge badge-in-attesa">⏳ In attesa</span>';
+                    } else {
+                        statoBadge = '<span class="badge badge-in-attesa">' + String(guasto.stato || '') + '</span>';
                     }
 
                     const lavoro = guasto.lavoroId ? lavoriMap.get(guasto.lavoroId) : null;
                     const lavoroNome = lavoro ? lavoro.nome : null;
 
                     html += `
-                        <div class="guasto-item ${stato === 'risolto' ? 'risolto' : stato === 'approvato-continuazione' ? 'approvato' : stato === 'sospeso' ? 'sospeso' : ''}">
+                        <div class="guasto-item ${chiaveStato === 'risolto' ? 'risolto' : chiaveStato === 'annullato' ? 'annullato' : chiaveStato === 'approvato-continuazione' ? 'approvato' : chiaveStato === 'sospeso' ? 'sospeso' : ''}">
                             <div class="guasto-header">
                                 <div class="guasto-title">${tipoIcon} ${titolo}</div>
                                 <div class="guasto-badges">
@@ -1018,43 +1030,43 @@
                                 ` : ''}
                                 <div><strong>Dettagli:</strong> ${guasto.dettagli || '-'}</div>
                                 ${lavoroNome ? `<div><strong>Lavoro associato:</strong> ${lavoroNome}</div>` : ''}
-                                ${guasto.stato === 'risolto' ? `
+                                ${chiaveStato === 'risolto' ? `
                                     <div><strong>Risolto il:</strong> ${guasto.risoltoIl?.toDate ? formatDateTimeItalianReadable(guasto.risoltoIl) : '—'}</div>
                                     <div><strong>Risolto da:</strong> ${guasto.risoltoDa ? (usersMap.get(guasto.risoltoDa)?.nome || usersMap.get(guasto.risoltoDa)?.email || 'Sconosciuto') : 'Sconosciuto'}</div>
                                     <div><strong>Note risoluzione:</strong> ${guasto.noteRisoluzione || '-'}</div>
                                     ${guasto.costoRiparazione ? `<div><strong>Costo riparazione:</strong> €${guasto.costoRiparazione.toFixed(2)}</div>` : ''}
                                 ` : ''}
-                                ${guasto.stato === 'approvato-continuazione' ? `
+                                ${chiaveStato === 'approvato-continuazione' ? `
                                     <div style="color: #856404; font-weight: 600; margin-top: 10px;">
                                         ✅ Continuazione approvata - L'operaio può continuare a lavorare
                                     </div>
                                 ` : ''}
-                                ${guasto.stato === 'sospeso' ? `
+                                ${chiaveStato === 'sospeso' ? `
                                     <div style="color: #721c24; font-weight: 600; margin-top: 10px;">
                                         ⛔ Lavoro sospeso
                                     </div>
                                 ` : ''}
                             </div>
-                            ${stato !== 'risolto' ? `
+                            ${chiaveStato === 'annullato' ? '' : chiaveStato === 'risolto' ? `
                                 <div class="guasto-actions">
-                                    ${guasto.gravita === 'non-grave' && stato === 'in-attesa' ? `
+                                    <button class="btn btn-warning btn-sm" onclick="openRiapriModal('${guasto.id}')">
+                                        🔄 Riapri Guasto
+                                    </button>
+                                </div>
+                            ` : `
+                                <div class="guasto-actions">
+                                    ${guasto.gravita === 'non-grave' && isGuastoNonDeciso(guasto.stato) ? `
                                         <button class="btn btn-success btn-sm" onclick="approvaContinuazione('${guasto.id}')">
                                             ✅ Approva Continuazione
                                         </button>
                                     ` : ''}
-                                    ${stato !== 'sospeso' ? `
+                                    ${chiaveStato !== 'sospeso' ? `
                                         <button class="btn btn-danger btn-sm" onclick="sospendiLavoro('${guasto.id}')">
                                             ⛔ Sospendi Lavoro
                                         </button>
                                     ` : ''}
                                     <button class="btn btn-success btn-sm" onclick="openRisolviModal('${guasto.id}')">
                                         ✅ Risolvi Guasto
-                                    </button>
-                                </div>
-                            ` : `
-                                <div class="guasto-actions">
-                                    <button class="btn btn-warning btn-sm" onclick="openRiapriModal('${guasto.id}')">
-                                        🔄 Riapri Guasto
                                     </button>
                                 </div>
                             `}
