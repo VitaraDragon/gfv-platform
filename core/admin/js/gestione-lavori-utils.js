@@ -31,6 +31,132 @@ export function escapeHtml(text) {
     return div.innerHTML;
 }
 
+const TIPI_ESCLUSI_SYNC_REQUIRED = new Set([
+    'hidden', 'button', 'submit', 'reset', 'image', 'radio', 'checkbox', 'file'
+]);
+
+/**
+ * True se il campo è nel layout (nessun antenato con display:none / hidden).
+ * offsetParent non basta: in jsdom è spesso null anche per i campi visibili.
+ * @param {Element} el
+ * @returns {boolean}
+ */
+export function campoLavoroVisibile(el) {
+    if (!el || el.nodeType !== 1) return false;
+    let node = el;
+    while (node && node.nodeType === 1) {
+        if (node.hidden) return false;
+        if (node.style && node.style.display === 'none') return false;
+        const view = node.ownerDocument && node.ownerDocument.defaultView;
+        if (view && typeof view.getComputedStyle === 'function') {
+            try {
+                if (view.getComputedStyle(node).display === 'none') return false;
+            } catch (err) {
+                // nodo non attaccato al documento
+            }
+        }
+        node = node.parentElement;
+    }
+    // Nessun antenato nascosto: il campo è visibile.
+    // offsetParent === null da solo non basta (jsdom e position:fixed).
+    return true;
+}
+
+function campoSyncGestito(el) {
+    if (!el || !el.tagName) return false;
+    const tag = el.tagName;
+    if (tag !== 'INPUT' && tag !== 'SELECT' && tag !== 'TEXTAREA') return false;
+    const type = (el.type || '').toLowerCase();
+    return !TIPI_ESCLUSI_SYNC_REQUIRED.has(type);
+}
+
+function installaBloccoValidazioneNativa(form) {
+    if (!form || form.dataset.bloccoValidazioneNativa === '1') return;
+    form.dataset.bloccoValidazioneNativa = '1';
+    form.setAttribute('novalidate', 'novalidate');
+    form.addEventListener('invalid', (event) => {
+        event.preventDefault();
+    }, true);
+}
+
+/**
+ * required (e disabled, se serve a tenerlo fuori dalla validazione nativa)
+ * solo sui campi visibili che erano stati marcati obbligatori.
+ * Il marchio è data-required-orig="1", messo la prima volta che il campo è required.
+ * @param {HTMLFormElement|null} form
+ */
+export function syncRequiredConVisibilita(form) {
+    if (!form || typeof form.querySelectorAll !== 'function') return;
+    installaBloccoValidazioneNativa(form);
+    form.querySelectorAll('input, select, textarea').forEach((el) => {
+        if (!campoSyncGestito(el)) return;
+        if (el.required || el.hasAttribute('required')) {
+            el.setAttribute('data-required-orig', '1');
+        }
+        if (el.getAttribute('data-required-orig') !== '1') return;
+
+        if (campoLavoroVisibile(el)) {
+            el.required = true;
+            if (el.getAttribute('data-sync-disabled') === '1') {
+                el.disabled = false;
+                el.removeAttribute('data-sync-disabled');
+            }
+            return;
+        }
+
+        el.required = false;
+        el.removeAttribute('required');
+        if (!el.disabled) {
+            el.disabled = true;
+            el.setAttribute('data-sync-disabled', '1');
+        }
+    });
+}
+
+/**
+ * Etichetta leggibile del campo, senza l'asterisco di obbligatorietà.
+ * @param {Element|null} el
+ * @returns {string}
+ */
+export function etichettaCampoLavoro(el) {
+    if (!el) return 'campo obbligatorio';
+    const id = el.id;
+    if (id && el.ownerDocument) {
+        try {
+            const safe = typeof CSS !== 'undefined' && CSS.escape
+                ? CSS.escape(id)
+                : id.replace(/"/g, '\\"');
+            const label = el.ownerDocument.querySelector(`label[for="${safe}"]`);
+            if (label && label.textContent) {
+                const testo = label.textContent.replace(/\*/g, '').replace(/\s+/g, ' ').trim();
+                if (testo) return testo;
+            }
+        } catch (err) {
+            // id non usabile in un selettore
+        }
+    }
+    const aria = el.getAttribute && el.getAttribute('aria-label');
+    if (aria && aria.trim()) return aria.trim();
+    return 'campo obbligatorio';
+}
+
+/**
+ * Primo controllo visibile che non passa la validazione.
+ * I campi nascosti non contano: non devono bloccare il salvataggio.
+ * @param {HTMLFormElement|null} form
+ * @returns {Element|null}
+ */
+export function primoCampoVisibileNonValido(form) {
+    if (!form || typeof form.querySelectorAll !== 'function') return null;
+    const controls = form.querySelectorAll('input, select, textarea');
+    for (const el of controls) {
+        if (!campoSyncGestito(el) || el.disabled) continue;
+        if (!campoLavoroVisibile(el)) continue;
+        if (typeof el.checkValidity === 'function' && !el.checkValidity()) return el;
+    }
+    return null;
+}
+
 // ============================================
 // FUNZIONI UTILITY STATO LAVORO
 // ============================================

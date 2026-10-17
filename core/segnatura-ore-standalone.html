@@ -546,7 +546,7 @@
         </div>
     </div>
 
-    <script type="module" src="js/standalone-bootstrap.js" data-config-base=""></script>
+    <script type="module" src="js/standalone-bootstrap.js?v=2026-10-16a" data-config-base=""></script>
     <script type="module">
         import { formatDateLikeToItalianLongLocal } from './js/date-format-it.js';
         import {
@@ -564,7 +564,7 @@
             caricaOreUtenteGiorno,
             testoIntestazioneOreDelGiorno
         } from './services/ore-service.js';
-        import { lavoroSelezionabilePerOre } from './services/ore-lavoro-selezionabile.js';
+        import { dataCompletamentoLavoro, FINESTRA_ORE_IN_RITARDO_GIORNI, lavoroSelezionabilePerOre } from './services/ore-lavoro-selezionabile.js?v=2026-10-16a';
         import {
             permessiOra,
             formattaOreMinuti,
@@ -878,17 +878,17 @@
                 const fetched = await fetchLavoriDocumentsForFieldUser(db, currentTenantId, userId, roleFlags, currentUserData || null);
 
                 const dataLimite = new Date();
-                dataLimite.setDate(dataLimite.getDate() - 7);
+                dataLimite.setDate(dataLimite.getDate() - FINESTRA_ORE_IN_RITARDO_GIORNI);
                 const oggi = new Date();
 
                 const tuttiFiltrati = [];
                 const segnabili = [];
                 fetched.forEach((lav) => {
                     const data = lav;
+                    const quandoCompletato = dataCompletamentoLavoro(data);
                     const isCompletatoRecente = (data.stato === 'completato' || data.stato === 'completato_da_approvare') &&
-                        data.completatoIl &&
-                        data.completatoIl.toDate &&
-                        data.completatoIl.toDate() >= dataLimite;
+                        !!quandoCompletato &&
+                        quandoCompletato >= dataLimite;
                     if (!isLavoroVisibileOperaioCampo(data, oggi) && !isCompletatoRecente) return;
 
                     const row = { ...data };
@@ -995,10 +995,9 @@
                 lavoriCompletatiRecenti.forEach(lavoro => {
                     const dataInizio = formatDateLikeToItalianLongLocal(lavoro.dataInizio) || '';
                     
-                    const dataCompletamento = lavoro.completatoIl
-                        ? (formatDateLikeToItalianLongLocal(
-                            lavoro.completatoIl.toDate ? lavoro.completatoIl.toDate() : lavoro.completatoIl
-                          ) || 'N/A')
+                    const quandoCompletato = dataCompletamentoLavoro(lavoro);
+                    const dataCompletamento = quandoCompletato
+                        ? (formatDateLikeToItalianLongLocal(quandoCompletato) || 'N/A')
                         : 'N/A';
 
                     html += `
