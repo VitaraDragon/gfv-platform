@@ -741,7 +741,7 @@
       "modules": [
         "MANODOPERA"
       ],
-      "label": "Lavori segnabili per ore (esclusi i sospesi)"
+      "label": "Lavori visibili/segnabili per ore (esclusi i sospesi; «attivo» = in corso) e finestra elenco operaio (assegnati/in corso/sospesi sempre)"
     },
     {
       "prefix": "core/services/ore-service",
@@ -1035,7 +1035,7 @@
         "MANODOPERA",
         "PARCO_MACCHINE"
       ],
-      "label": "Regole guasti: chi segnala chiude/ritira solo finché in attesa; elimina solo il manager"
+      "label": "Regole guasti: chi segnala chiude (Risolto da me) o annulla solo finché in attesa; elimina solo il manager"
     },
     {
       "prefix": "firestore.rules",
@@ -1051,6 +1051,131 @@
         "MANODOPERA"
       ],
       "label": "Form lavoro: campi obbligatori nascosti non bloccano il salvataggio"
+    },
+    {
+      "prefix": "core/services/guasto-stati",
+      "modules": [
+        "PARCO_MACCHINE",
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Stati guasto: chiusi = risolto/annullato/riparato/chiuso; conteggi guasti aperti e badge (#221)"
+    },
+    {
+      "prefix": "core/services/guasto-ripristino",
+      "modules": [
+        "PARCO_MACCHINE",
+        "MANODOPERA"
+      ],
+      "label": "Guasto annullato o chiuso: il mezzo torna allo stato di prima (disponibile / in uso) (#221)"
+    },
+    {
+      "prefix": "core/services/guasto-storico",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Storico guasto e patch del segnalatore: Risolto da me / Annulla segnalazione (#221)"
+    },
+    {
+      "prefix": "core/admin/gestione-guasti-standalone",
+      "modules": [
+        "PARCO_MACCHINE",
+        "MANODOPERA"
+      ],
+      "label": "Gestione guasti manager: approva continuazione, sospendi, risolvi, riapri; filtro Annullato"
+    },
+    {
+      "prefix": "core/admin/js/gestione-macchine-events",
+      "modules": [
+        "PARCO_MACCHINE"
+      ],
+      "label": "Gestione macchine: salvataggio scheda e storico guasti del mezzo"
+    },
+    {
+      "prefix": "core/js/dashboard-tony-briefing-text",
+      "modules": [
+        "CORE",
+        "TONY",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Briefing Tony dashboard: guasti aperti e scadenze mezzi"
+    },
+    {
+      "prefix": "tests/services/guasto-",
+      "modules": [
+        "PARCO_MACCHINE",
+        "MANODOPERA"
+      ],
+      "label": "Test stati, storico e ripristino mezzi dei guasti"
+    },
+    {
+      "prefix": "tests/firestore-macchine-guasti-rules",
+      "modules": [
+        "PARCO_MACCHINE",
+        "MANODOPERA"
+      ],
+      "label": "Regole macchine: chi segnala rimette in uso solo un mezzo fermo per guasto"
+    },
+    {
+      "prefix": "tests/firestore-lavori-ripresa-rules",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Regole lavori: ripresa dopo guasto (sospeso → assegnato) per caposquadra/operaio"
+    },
+    {
+      "prefix": "tests/e2e/sim/guasti-annulla",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "E2E simulatore: Annulla segnalazione / Risolto da me"
+    },
+    {
+      "prefix": "tests/e2e/sim/scenarios/guasti-annulla",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Scenario E2E: Annulla segnalazione / Risolto da me"
+    },
+    {
+      "prefix": "tests/field-documentation-guide-link",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Link Guida dal menu campo: guida del proprio ruolo (caposquadra / operaio)"
+    },
+    {
+      "prefix": "tests/services/manodopera-lavori-scope",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test lavori visibili/segnabili e finestra elenco operaio"
+    },
+    {
+      "prefix": "tests/services/lavoro-ripresa-guasto",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Test ripresa lavoro dopo guasto chiuso o annullato"
+    },
+    {
+      "prefix": "tests/config/field-ui-i18n",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test testi tradotti del campo (lingue versione mobile, scheda guasti)"
+    },
+    {
+      "prefix": "service-worker.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Service worker PWA: versione cache dopo un rilascio (di solito nessun testo guida)"
     }
   ]
 }

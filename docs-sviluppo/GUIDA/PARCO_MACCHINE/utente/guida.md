@@ -168,7 +168,7 @@ Ogni riga è un mezzo. Troverete pulsanti del tipo **Modifica** e **Elimina** (i
 
 ### Storico guasti (sulla scheda)
 
-Per una macchina già salvata, in modifica può comparire uno **storico guasti** in basso: riepilogo delle segnalazioni legate a quel mezzo. Serve a tenere traccia di cosa è successo nel tempo.
+Per una macchina già salvata, in modifica può comparire uno **storico guasti** in basso: riepilogo delle segnalazioni legate a quel mezzo, ciascuna con il suo stato (**In attesa**, **Continuazione approvata**, **Sospeso**, **Risolto** o **🚫 Annullato** se chi l’aveva segnalata l’ha ritirata). Serve a tenere traccia di cosa è successo nel tempo.
 
 ---
 
@@ -201,13 +201,15 @@ Pagina **Officina & Guasti** (dal hub). Vedete le **segnalazioni** con gravità,
 
 **Filtro** in alto: **Solo aperti** (solo ciò che non è chiuso) oppure **Tutti**.
 
-**Stato della riga guasto:** tipicamente **Aperto** (o in attesa), **Sospeso**, **Risolto** — così capite cosa è ancora da lavorare.
+**Stato della riga guasto:** **Aperto** (in attesa della vostra decisione), **Continuazione approvata**, **Sospeso**, **Risolto** oppure **Annullato** (grigio: chi l’aveva segnalato l’ha ritirato finché era in attesa). Risolti e annullati sono chiusi: con **Solo aperti** non compaiono e non contano tra i guasti aperti della panoramica e di **Richiede attenzione**.
 
-**Segna risolto:** sui guasti ancora aperti compare un pulsante per **chiudere** la segnalazione. Vi chiederà eventuali **note di risoluzione**, poi salvate. In alcuni casi, quando il guasto è legato a una **macchina**, l’app può **ripristinare lo stato del mezzo** (es. torna disponibile) se era impostato come guasto. Se il guasto era **grave** e aveva fermato un lavoro, quel lavoro riparte da solo (in corso se era già iniziato, altrimenti assegnato); se sullo stesso lavoro c’è ancora un altro guasto aperto, resta sospeso. Se la ripresa non riesce, accanto al guasto risolto compare **Riprendi lavoro**.
+**Segna risolto:** su ogni guasto non ancora chiuso (aperto, con continuazione approvata o sospeso) compare un pulsante per **chiudere** la segnalazione. Vi chiederà eventuali **note di risoluzione**, poi salvate. Se il guasto riguarda una **macchina** o un **attrezzo**, il mezzo torna allo stato che aveva prima della segnalazione (**disponibile** o **in uso**), ma solo se è ancora segnato come guasto e non ha altri guasti aperti. Se lo stato del mezzo non si aggiorna leggete «Guasto risolto, ma non ho potuto aggiornare lo stato del mezzo: controllalo in Parco macchine.»; se nel frattempo qualcun altro l’ha già chiuso, «Questo guasto è già stato chiuso.». Se il guasto era **grave** e aveva fermato un lavoro, quel lavoro riparte da solo (in corso se era già iniziato, altrimenti assegnato); se sullo stesso lavoro c’è ancora un altro guasto aperto, resta sospeso. Se la ripresa non riesce, accanto al guasto risolto (o annullato) compare **Riprendi lavoro**.
+
+**Guasti chiusi da chi li ha segnalati:** finché un guasto è **in attesa**, chi l’ha segnalato può chiuderlo da solo con **Risolto da me** (lo vedete **Risolto**, con le sue note) o ritirarlo con **Annulla segnalazione** (lo vedete **Annullato**). In tutti e due i casi il mezzo torna come prima, con le stesse regole di **Segna risolto**. Dopo che avete deciso voi (continuazione approvata o lavoro sospeso), chi ha segnalato non può più chiuderlo né annullarlo.
 
 ### Nuova segnalazione (da campo o ufficio)
 
-Dal pulsante **Segnala guasto** (in elenco guasti) si apre la pagina di **segnalazione**. Operaio e caposquadra la trovano invece come scheda **⚠️ Segnala un problema** nel workspace di campo (non più nel menu ingranaggio). Compilate i campi che vi chiede la schermata: **mezzo** (se applicabile), **gravità**, **descrizione** del problema, ecc., poi **inviate / salvate** secondo il pulsante mostrato. Il modulo può includere anche **GPS opzionale** per ricordare il punto (precisione non certificata). Caposquadra e operai segnalano dal menu **ingranaggio** del loro workspace → **Segnala guasto**, e possono segnare come guasta una macchina o un attrezzo; dopo l’invio leggono **Segnalazione inviata. Grazie.**
+Dal pulsante **Segnala guasto** (in elenco guasti) si apre la pagina di **segnalazione**. Operaio e caposquadra la trovano invece come scheda **⚠️ Segnala un problema** nel workspace di campo (non più nel menu ingranaggio). Compilate i campi che vi chiede la schermata: **mezzo** (se applicabile), **gravità**, **descrizione** del problema, ecc., poi **inviate / salvate** secondo il pulsante mostrato. Il modulo può includere anche **GPS opzionale** per ricordare il punto (precisione non certificata). Caposquadra e operai possono segnare come guasta una macchina o un attrezzo dalla scheda **⚠️ Segnala un problema**; dopo l’invio leggono **Segnalazione inviata. Grazie.**
 
 ---
 

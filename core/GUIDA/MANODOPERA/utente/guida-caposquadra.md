@@ -50,7 +50,7 @@ La **versione mobile** è la schermata principale quando lavori in campo dall’
 ### Cosa vedi in alto
 
 - Il tuo **nome** e il ruolo (es. caposquadra). La schermata è la stessa sul telefono e sul computer: non c’è un passaggio alla dashboard dell’ufficio.  
-- **Impostazioni** (ingranaggio): **Lingua**, poi Guida, Impostazioni account, Esci. Cambia azienda solo se ne hai più di una. **Validazione ore** e **Segnala guasto** non sono più nel menu: le trovi nelle schede **✅ Valida ore** e **⚠️ Segnala un problema**.  
+- **Impostazioni** (ingranaggio): **Lingua**, poi Guida (apre questa guida del **caposquadra**, non quella dell’operaio), Impostazioni account, Esci. Cambia azienda solo se ne hai più di una. **Validazione ore** e **Segnala guasto** non sono più nel menu: le trovi nelle schede **✅ Valida ore** e **⚠️ Segnala un problema**.  
 - Non c’è la barra scura in alto con i moduli e la mappa dell’ufficio, nemmeno in **Impostazioni account**. Se sullo stesso account sei anche manager ed entri dalla dashboard, la barra resta.  
 - Una riga di **stato** sotto la barra (caricamento, messaggi brevi).
 
@@ -296,8 +296,12 @@ Se colleghi la segnalazione a un **lavoro** e scegli **grave**, l’app può **s
 
 ### Come si “risolve” un guasto (ruoli)
 
-- **Tu in campo**: metti in sicurezza e coordini la squadra. Sulle **tue** segnalazioni puoi usare **Risolvi** (note di riparazione obbligatorie, costo facoltativo) **solo finché sono in attesa**, cioè finché il manager non ha deciso. Quando il manager ha già deciso (continuazione approvata o lavoro sospeso), la segnalazione la chiude lui. Una segnalazione non si cancella dal campo: solo il manager può eliminarla.  
-- **Manager** (schermata **Gestione guasti**): può **approvare la continuazione** del lavoro su guasti non gravi, **sospendere** il lavoro in caso grave, registrare la **risoluzione** con note e costi, **riaprire** un guasto se il problema torna.  
+- **Tu in campo**: metti in sicurezza e coordini la squadra. Sulle **tue** segnalazioni, **solo finché sono in attesa** (il manager non ha ancora deciso), hai due pulsanti:
+  - **✅ Risolto da me**: note di riparazione obbligatorie, costo facoltativo, poi **✅ Conferma Risoluzione**. La segnalazione diventa **Risolto**.
+  - **🚫 Annulla segnalazione**: la ritiri (mandata per sbaglio, problema che non c’era). Motivo facoltativo, poi **Sì, annulla la segnalazione**. Resta in elenco con il badge **🚫 Annullato** e la data **Annullata il**; il manager vede che l’hai annullata.
+  - **Indietro** chiude la finestra senza cambiare nulla.
+  In tutti e due i casi macchina e attrezzo tornano come erano prima della segnalazione (disponibile o in uso), salvo un altro guasto aperto sullo stesso mezzo; il lavoro fermato da una segnalazione grave riparte, salvo un altro guasto aperto sullo stesso lavoro. **Storico**, quando compare sotto la segnalazione, mostra segnalazione, annullo o chiusura con le note. Quando il manager ha già deciso (continuazione approvata o lavoro sospeso), i pulsanti spariscono e la segnalazione la chiude lui; se decide mentre hai la finestra aperta, si chiude con l’avviso «Il responsabile ha già preso una decisione su questo guasto: non puoi più annullarlo o chiuderlo da qui.» Una segnalazione non si cancella dal campo: solo il manager può eliminarla.  
+- **Manager** (schermata **Gestione guasti**): può **approvare la continuazione** del lavoro su guasti non gravi, **sospendere** il lavoro in caso grave, registrare la **risoluzione** con note e costi, **riaprire** un guasto se il problema torna. Le segnalazioni che hai annullato le vede con il badge **Annullato**, senza pulsanti.  
 - Finché il guasto è aperto, tieni allineata la squadra con **comunicazioni** e telefonate: la guida manager descrive il lato decisionale completo.
 
 ---

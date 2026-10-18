@@ -87,7 +87,7 @@ Con **Italiano** la schermata è quella di sempre. La scelta resta su quel telef
 
 ### Elenco “corto” quando hai molti lavori
 
-Se hai **molti incarichi** aperti, l’app può mostrarti nel menu solo un **sottoinsieme** di lavori vicini a quello “in corso” o a quello che hai selezionato di recente. Un lavoro chiuso da pochi giorni resta comunque in elenco.
+Se hai **molti incarichi** aperti (più di una dozzina), l’app può accorciare il menu ai lavori vicini a quello “in corso” o a quello che hai selezionato di recente. I lavori **assegnati** a te, quelli **in corso** e quelli **sospesi** restano però **sempre** in elenco, anche se sono lontani da quello selezionato; resta anche un lavoro chiuso da pochi giorni. Possono restare fuori solo i lavori ancora **da pianificare**. Un lavoro ripreso dopo un guasto torna nell’elenco come lavoro in corso.
 
 - Se **non vedi** un incarico che ti aspetti, prova a cambiare selezione o ad aggiornare; se ancora manca, **chiedi in ufficio**.
 
@@ -214,7 +214,13 @@ Si fa dalla scheda **⚠️ Segnala un problema** del workspace, dopo **Ore** e 
 
 - La segnalazione segue lo stato mostrato in elenco (**in attesa**, ecc.).
 - Subito dopo l’invio leggi **Segnalazione inviata. Grazie.** Resti nella scheda del workspace e trovi la segnalazione nell’elenco **I Miei Guasti Segnalati**, sotto il modulo. Se qualcosa sulla macchina o sul lavoro non si aggiorna, leggi l’avviso e avvisa il tuo responsabile.  
-- Se il problema è stato sistemato, sulle **tue** segnalazioni puoi usare **Risolvi**: scrivi le **note di risoluzione** (obbligatorie) e, se vuoi, il **costo** della riparazione. Puoi farlo **solo finché la segnalazione è in attesa**, cioè prima che il manager decida. Dopo la sua decisione (continuazione approvata o lavoro sospeso) la chiude il manager. Una segnalazione non si cancella dal campo: solo il manager può eliminarla.
+- Finché una **tua** segnalazione è **in attesa** (il manager non ha ancora deciso), sotto la segnalazione trovi due pulsanti:
+  - **✅ Risolto da me**: il problema l’hai sistemato tu. Scrivi le **note di risoluzione** (obbligatorie) e, se vuoi, il **costo** della riparazione, poi tocca **✅ Conferma Risoluzione**. La segnalazione diventa **Risolto**.
+  - **🚫 Annulla segnalazione**: la ritiri, per esempio se l’hai mandata per sbaglio o il problema non c’era. Puoi scrivere un **motivo** (facoltativo), poi tocca **Sì, annulla la segnalazione**. Leggi «Segnalazione annullata.»: la segnalazione resta in elenco con il badge **🚫 Annullato** e la data **Annullata il**, e il responsabile vede che l’hai annullata.
+  - In tutte e due le finestre **Indietro** chiude senza cambiare nulla.
+- Dopo **Risolto da me** o **Annulla segnalazione**, macchina e attrezzo tornano come erano prima della segnalazione (per esempio **disponibile** o **in uso**). Restano fermi solo se sullo stesso mezzo c’è un altro guasto aperto, o se qualcuno ha già cambiato il loro stato. Se la segnalazione **grave** aveva fermato il lavoro, il lavoro riparte, a meno che sullo stesso lavoro ci sia un altro guasto aperto. Se qualcosa non si aggiorna, leggi l’avviso e avvisa il tuo responsabile.
+- Sotto la segnalazione può comparire **Storico**: toccalo per vedere quando la segnalazione è stata segnalata, annullata, risolta da te o chiusa dal responsabile, con le note.
+- Quando il manager ha già deciso (continuazione approvata o lavoro sospeso), i due pulsanti non ci sono più e la segnalazione la chiude lui. Se decide mentre hai una delle due finestre aperta, la finestra si chiude e leggi «Il responsabile ha già preso una decisione su questo guasto: non puoi più annullarlo o chiuderlo da qui.» Una segnalazione non si cancella dal campo: solo il manager può eliminarla.
 
 ---
 
