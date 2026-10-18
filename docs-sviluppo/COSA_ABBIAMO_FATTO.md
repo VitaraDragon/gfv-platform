@@ -1,6 +1,10 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-17 — Guasti: annulla segnalazione e risolto da me.**
+**Ultimo aggiornamento documentazione: 2026-10-18 — Guasti #222, follow-up.**
+
+## 2026-10-18 — Guasti #222, follow-up
+
+Dopo Annulla o «Risolto da me» il mezzo torna selezionabile, senza ricaricare la pagina. L’operaio di un lavoro di squadra, con un guasto grave, non vede più l’avviso di errore: il banner dice che il lavoro lo sospende il caposquadra o il manager. L’operaio di un lavoro autonomo può ancora sospenderlo. Il segnaposto dell’attrezzo torna «-- Nessun attrezzo --» a fine caricamento. Il repair delle riprese non avvisa più quando l’origine è già chiusa. `firestore.rules` non cambia e non c’è niente da pubblicare.
 
 ## 2026-10-17 — Guasti: annulla segnalazione e risolto da me
 

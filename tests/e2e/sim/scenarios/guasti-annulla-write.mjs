@@ -134,6 +134,21 @@ async function mezziLiberi(page) {
   });
 }
 
+async function statoLavoro(tenant, id) {
+  const url = `${FIRESTORE}/v1/projects/${PROJECT}/databases/(default)/documents/tenants/${tenant}/lavori/${id}`;
+  const res = await fetch(url, { headers: { Authorization: 'Bearer owner' } });
+  if (!res.ok) return null;
+  const body = await res.json();
+  return (body.fields && body.fields.stato && body.fields.stato.stringValue) || null;
+}
+
+async function attendiMezzoSelezionabile(page, expect, id) {
+  const opt = page.locator(`#guasto-macchina option[value="${id}"]`);
+  await expect.poll(async () => opt.evaluate((el) => (
+    el.disabled ? 'disabled' : (el.textContent || '')
+  )), { timeout: 20_000 }).not.toMatch(/disabled|già in guasto/);
+}
+
 /**
  * @param {import('playwright-core').Page} page
  * @param {typeof import('@playwright/test').expect} expect
@@ -153,7 +168,43 @@ export async function runGuastiAnnullaWriteAssertions(page, expect) {
   }
 
   await loginAsOperaioFromDevPage(page);
+  let macchinePronte = false;
+  const onConsoleMacchine = (msg) => {
+    if ((msg.text() || '').includes('[segnalazione-guasti] macchine pronte')) macchinePronte = true;
+  };
+  page.on('console', onConsoleMacchine);
   await gotoSegnalazioneGuasti(page);
+  await expect.poll(() => macchinePronte, { timeout: 60_000 }).toBe(true);
+  page.off('console', onConsoleMacchine);
+  await expect(page.locator('#guasto-attrezzo option[value=""]')).toHaveText('-- Nessun attrezzo --');
+
+  const tenantOperaio = await tenantId(page);
+  expect(tenantOperaio).toBeTruthy();
+  await page.waitForFunction(() => {
+    const sel = document.getElementById('guasto-lavoro');
+    if (!sel) return false;
+    return Array.from(sel.options).some((opt) => /\(Squadra\)/.test(opt.textContent || ''));
+  }, { timeout: 60_000 });
+  const lavoroSquadraId = await page.locator('#guasto-lavoro option').filter({ hasText: '(Squadra)' }).first().getAttribute('value');
+  expect(lavoroSquadraId).toBeTruthy();
+  const statoSquadraPrima = await statoLavoro(tenantOperaio, lavoroSquadraId);
+  expect(statoSquadraPrima).toBeTruthy();
+  const markerSquadra = `${E2E_GUASTO_ANNULLA_MARKER} SQUADRA ${stamp}`;
+  await selectGenerico(page);
+  await page.locator('#guasto-lavoro').selectOption(lavoroSquadraId);
+  await page.locator('#guasto-ubicazione').fill('Podere E2E Squadra');
+  await page.locator('#guasto-tipo-problema').selectOption('Altro');
+  await page.locator('#gravita-grave').check();
+  await page.locator('#guasto-dettagli').fill(markerSquadra);
+  await page.locator('#segnala-guasto-form button[type="submit"]').click();
+  await expect(page.locator('#banner-segnalazione')).toContainText('Il lavoro lo sospende il caposquadra o il manager');
+  await expect(page.locator('#banner-segnalazione')).not.toContainText('Non ho potuto aggiornare');
+  await expect(page.locator('#alert-container')).not.toContainText('Non ho potuto aggiornare');
+  await cardGuasto(page, markerSquadra).waitFor({ state: 'visible', timeout: 90_000 });
+  await expect.poll(
+    async () => statoLavoro(tenantOperaio, lavoroSquadraId),
+    { timeout: 8_000 }
+  ).toBe(statoSquadraPrima);
 
   await inviaGenerico(page, markerAnnulla);
   const cardAnnulla = cardGuasto(page, markerAnnulla);
@@ -225,6 +276,28 @@ export async function runGuastiAnnullaWriteAssertions(page, expect) {
     await page.locator('#annulla-guasto-form button[type="submit"]').click();
     await expect(cardMacchina.locator('.badge-annullato')).toBeVisible();
     await attendiStato(tenant, trattoreLibero.id, trattoreLibero.stato);
+    await attendiMezzoSelezionabile(page, expect, trattoreLibero.id);
+
+    const markerRisoltoMezzo = `${E2E_GUASTO_ANNULLA_MARKER} RISOLTO MEZZO ${stamp}`;
+    await page.locator('#tipo-macchina').check();
+    await page.locator('#sezione-macchina').waitFor({ state: 'visible' });
+    await page.locator('#guasto-macchina').selectOption(trattoreLibero.id);
+    await page.locator('#guasto-attrezzo').selectOption('');
+    await page.locator('#guasto-componente').selectOption('trattore');
+    await page.locator('#gravita-non-grave').check();
+    await page.locator('#guasto-dettagli').fill(markerRisoltoMezzo);
+    await page.locator('#segnala-guasto-form button[type="submit"]').click();
+    await cardGuasto(page, markerRisoltoMezzo).waitFor({ state: 'visible', timeout: 90_000 });
+    await attendiStato(tenant, trattoreLibero.id, 'guasto-lavoro-in-corso');
+    const cardRisoltoMezzo = cardGuasto(page, markerRisoltoMezzo);
+    await cardRisoltoMezzo.getByRole('button', { name: /Risolto da me/i }).click();
+    await page.locator('#risolvi-modal.show').waitFor({ state: 'visible' });
+    await ricordaId('#risolvi-guasto-id');
+    await page.locator('#risolvi-note').fill('Chiuso in campo, il mezzo torna selezionabile');
+    await page.locator('#risolvi-guasto-form button[type="submit"]').click();
+    await expect(cardRisoltoMezzo.locator('.badge-risolto')).toBeVisible();
+    await attendiStato(tenant, trattoreLibero.id, trattoreLibero.stato);
+    await attendiMezzoSelezionabile(page, expect, trattoreLibero.id);
   } else if (elencoOk) {
     console.log('[guasti-annulla] nessun trattore senza altri guasti: salto il ripristino della macchina');
   }
