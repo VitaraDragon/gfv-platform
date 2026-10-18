@@ -25,8 +25,11 @@ import { urlDettaglioLavoroIncorporato } from './field-lavori-embed.js';
 import {
     creaSegnalatoreRiquadroOre,
     esitoRiquadroOreSuErrore,
-    testoRiquadroOreNonDisponibile
-} from './field-ore-riquadro.js';
+    giornoRiquadroOre,
+    testoRiquadroOreNonDisponibile,
+    vistaOreGiornoInAttesa
+} from './field-ore-riquadro.js?v=2026-10-18a';
+import { scegliSuggerimentoRapido } from '../../js/field-suggerimento-lavoro.js?v=2026-10-18a';
 import { eLavoroSospeso } from '../../js/tony/tony-ora-lavoro-match.js';
 import { CHIAVE_RIMBALZI_INGRESSO, scriviIndizioIngresso, pulisciIndizioIngresso } from '../../js/tony/tony-ingresso-login.js?v=2026-10-09g';
 import { conTimeout, prossimaAttesaRiprova } from '../../js/tony/tony-attesa-riprova.js?v=2026-10-09g';
@@ -212,6 +215,7 @@ let statsEmbedTimer = null;
 let editingOraId = '';
 let editingOraLavoroId = '';
 let oreGiornoRows = [];
+let oreGiornoRowsGiorno = '';
 let oreCompagneCapo = [];
 let currentPendingHours = [];
 let currentAllPendingHours = [];
@@ -375,7 +379,7 @@ function ridisegnaTestiInMemoria() {
     renderPendingHours();
     renderAllPendingHours();
     if (oreGiornoBoxEl && oreGiornoBoxEl.getAttribute('data-pronto') === '1' && oreGiornoBoxEl.getAttribute('data-state') !== 'loading') {
-        dipingiOreGiorno(oreGiornoRows, 'ready');
+        dipingiOreGiorno(oreGiornoRows, 'ready', oreGiornoRowsGiorno);
     }
     setOreSubmitMode(Boolean(editingOraId));
     const pienoSel = document.getElementById('pieno-prodotto');
@@ -828,15 +832,24 @@ function syncTonyFieldWorkspaceTableData() {
     }
 }
 
+function idLavoroSelezionatoOSalvato() {
+    if (selectedWork && selectedWork.id) return selectedWork.id;
+    try {
+        if (selectedWorkEl && selectedWorkEl.value) return selectedWorkEl.value;
+    } catch (error) {
+        /* ignore */
+    }
+    return readSavedSelectedWorkId();
+}
+
 function pickGpsSuggestion(works) {
     if (!gpsSuggestionEl) return;
-    if (!works.length) {
+    const scelto = scegliSuggerimentoRapido(works, { selezionatoId: idLavoroSelezionatoOSalvato() });
+    if (!scelto || !scelto.label) {
         gpsSuggestionEl.textContent = t('lavoro.gpsNone', linguaCorrente());
         return;
     }
-    // Suggerimento semplice: il primo lavoro attivo (placeholder per futura distanza reale).
-    const first = works[0];
-    gpsSuggestionEl.textContent = t('lavoro.gpsHint', linguaCorrente(), { label: first.label });
+    gpsSuggestionEl.textContent = t('lavoro.gpsHint', linguaCorrente(), { label: scelto.label });
 }
 
 function normalizeWorkLabel(work) {
@@ -977,7 +990,6 @@ async function loadWorksForSelection(tentativo) {
         cachedWorks = works;
         cachedWorksForTony = works.concat(extraSospesi);
         populateWorkSelectors(works);
-        pickGpsSuggestion(works);
         const chosenFromUi = (selectedWorkEl && selectedWorkEl.value) || '';
         if (chosenFromUi) {
             const match = cachedWorks.find((w) => w.id === chosenFromUi);
@@ -988,6 +1000,7 @@ async function loadWorksForSelection(tentativo) {
             if (selectedWorkEl) selectedWorkEl.value = selectedWork.id;
             if (quickWorkSelectEl) quickWorkSelectEl.value = selectedWork.id;
         }
+        pickGpsSuggestion(works);
         syncLavoroOperativoEmbeds();
         syncTonyFieldWorkspaceTableData();
         annullaAttesaLavori();
@@ -1897,10 +1910,13 @@ async function refreshWorkspaceData() {
     }
 }
 
-/** Dopo salvataggio riuscito: svuota orari/note così Tony e l’utente possono segnare un’altra giornata senza valori “bloccati”. */
-function resetQuickHoursFormFieldsForNextEntry() {
-    const today = getTodayIsoDate();
-    if (oraDataEl) oraDataEl.value = today;
+/** Dopo salvataggio riuscito: svuota orari/note. La data resta sul giorno salvato se mantieniData. */
+function resetQuickHoursFormFieldsForNextEntry(opzioni) {
+    const mantieniData = Boolean(opzioni && opzioni.mantieniData);
+    if (!mantieniData) {
+        const today = getTodayIsoDate();
+        if (oraDataEl) oraDataEl.value = today;
+    }
     if (oraStartEl) oraStartEl.value = '';
     if (oraEndEl) oraEndEl.value = '';
     if (oraBreakEl) oraBreakEl.value = '0';
@@ -2093,12 +2109,22 @@ function dipingiRiquadroOreNonDisponibile(giorno) {
     oreGiornoBoxEl.classList.remove('ore-giorno-loading');
 }
 
-function aggiornaSoloIntestazioneOreGiorno(giorno) {
-    if (!oreGiornoBoxEl || !oreGiornoBoxEl.getAttribute('data-pronto')) return;
+function memorizzaOreGiorno(righe, giorno) {
+    oreGiornoRows = righe;
+    oreGiornoRowsGiorno = giorno || '';
+}
+
+function dipingiOreGiornoInCaricamento(giorno) {
+    if (!oreGiornoBoxEl) return;
     const label = formattaGiornoBreve(giorno) || giorno;
-    const testo = t('ore.dayTitle', linguaCorrente(), { giorno: label });
-    const strong = oreGiornoBoxEl.querySelector('strong');
-    if (strong) strong.textContent = testo;
+    const vista = vistaOreGiornoInAttesa(
+        t('ore.dayTitle', linguaCorrente(), { giorno: label }),
+        t('ore.loadingDay', linguaCorrente())
+    );
+    oreGiornoBoxEl.innerHTML = `<strong>${escapeHtmlUnsafe(vista.titolo)}</strong><div class="inline-item-sub">${escapeHtmlUnsafe(vista.corpo)}</div>`;
+    oreGiornoBoxEl.setAttribute('data-state', 'loading');
+    oreGiornoBoxEl.setAttribute('data-pronto', '1');
+    oreGiornoBoxEl.classList.add('ore-giorno-loading');
 }
 
 function esitoFinestraOreCompletate(lavoro, giorno) {
@@ -2130,22 +2156,21 @@ function aggiornaAvvisoFinestraOre() {
     if (btn) btn.disabled = false;
 }
 
-async function aggiornaRiquadroOreGiorno() {
+async function aggiornaRiquadroOreGiorno(giornoForzato) {
     if (!oreGiornoBoxEl || !currentTenantId || !currentUser) return { ok: false, codice: '' };
-    const giorno = (oraDataEl && oraDataEl.value) ? oraDataEl.value : getTodayIsoDate();
-    aggiornaSoloIntestazioneOreGiorno(giorno);
+    const giorno = giornoRiquadroOre(
+        giornoForzato,
+        oraDataEl && oraDataEl.value,
+        getTodayIsoDate()
+    );
     const seq = ++letturaOreSeq;
-    oreGiornoBoxEl.setAttribute('data-state', 'loading');
-    oreGiornoBoxEl.classList.add('ore-giorno-loading');
-    if (!oreGiornoBoxEl.getAttribute('data-pronto')) {
-        oreGiornoBoxEl.textContent = t('ore.loadingDay', linguaCorrente());
-    }
+    dipingiOreGiornoInCaricamento(giorno);
     try {
         await attendiRitardoLetturaOre();
         if (seq !== letturaOreSeq) return { ok: true, codice: '' };
         const righe = await caricaOreUtenteGiorno(getDb(), currentTenantId, currentUser.uid, giorno, utenteWorkspace());
         if (seq !== letturaOreSeq) return { ok: true, codice: '' };
-        oreGiornoRows = righe;
+        memorizzaOreGiorno(righe, giorno);
         dipingiOreGiorno(righe, 'ready', giorno);
         return { ok: true, codice: '' };
     } catch (error) {
@@ -2159,14 +2184,14 @@ async function aggiornaRiquadroOreGiorno() {
 }
 
 async function riallineaRiquadroOreGiorno(precedente, giorno) {
-    const esito = await aggiornaRiquadroOreGiorno();
+    const esito = await aggiornaRiquadroOreGiorno(giorno);
     if (!esito || esito.ok) return;
     const vista = esitoRiquadroOreSuErrore({
         codice: esito.codice,
         etichettaGiorno: formattaGiornoBreve(giorno) || giorno,
         dopoSalvataggio: true
     });
-    oreGiornoRows = precedente;
+    memorizzaOreGiorno(precedente, giorno);
     dipingiOreGiorno(precedente, 'ready', giorno);
     if (vista.avviso) showAlert(vista.avviso, 'warning');
 }
@@ -2206,7 +2231,7 @@ async function eliminaOraGiorno(oraId, lavoroId) {
         const precedenteOre = oreGiornoRows.slice();
         const giornoOre = (oraDataEl && oraDataEl.value) ? oraDataEl.value : getTodayIsoDate();
         const dopoElimina = righeGiornoDopoEliminazione(oreGiornoRows, oraId);
-        oreGiornoRows = dopoElimina;
+        memorizzaOreGiorno(dopoElimina, giornoOre);
         dipingiOreGiorno(dopoElimina, 'loading', giornoOre);
         await riallineaRiquadroOreGiorno(precedenteOre, giornoOre);
     } catch (error) {
@@ -2367,10 +2392,10 @@ async function saveQuickHours(event) {
             data: dateIso
         };
         const dopoSalva = righeGiornoDopoSalvataggio(oreGiornoRows, rigaSalvata);
-        oreGiornoRows = dopoSalva;
+        memorizzaOreGiorno(dopoSalva, dateIso);
         dipingiOreGiorno(dopoSalva, 'loading', dateIso);
         resetModificaOra();
-        resetQuickHoursFormFieldsForNextEntry();
+        resetQuickHoursFormFieldsForNextEntry({ mantieniData: true });
         await riallineaRiquadroOreGiorno(precedenteOre, dateIso);
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore salvataggio ore:', error);

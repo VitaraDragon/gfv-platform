@@ -22,6 +22,20 @@ async function todayIso(page) {
   });
 }
 
+async function yesterdayIso(page) {
+  return page.evaluate(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  });
+}
+
+function etichettaGiornoBreve(iso) {
+  const parti = String(iso || '').split('-');
+  if (parti.length < 3) return iso;
+  return `${parti[2]}/${parti[1]}`;
+}
+
 async function selectFirstWork(page) {
   const select = page.locator('#selected-work');
   await select.waitFor({ state: 'attached', timeout: 30_000 });
@@ -37,8 +51,8 @@ async function goToHours(page) {
   await page.locator('#quick-hours-form').waitFor({ state: 'attached', timeout: 30_000 });
 }
 
-async function saveHours(page, { start, end, note }) {
-  await page.locator('#ora-data').fill(await todayIso(page));
+async function saveHours(page, { start, end, note, date }) {
+  await page.locator('#ora-data').fill(date || await todayIso(page));
   await page.locator('#ora-start').fill(start);
   await page.locator('#ora-end').fill(end);
   await page.locator('#ora-break').fill('0');
@@ -65,6 +79,38 @@ export async function runOreModificaAnnulloAssertions(page, expect) {
   await gotoFieldWorkspace(page);
   await selectFirstWork(page);
   await goToHours(page);
+
+  const ieri = await yesterdayIso(page);
+  const oggi = await todayIso(page);
+  await saveHours(page, { start: '04:15', end: '04:45', note: 'GFV_SIM_E2E_ORE_IERI', date: ieri });
+  await page.locator('#ore-giorno-riepilogo[data-state="ready"]').waitFor();
+  await expect(page.locator('#ore-giorno-riepilogo')).toContainText(`Le tue ore del ${etichettaGiornoBreve(ieri)}`);
+  await expect(page.locator('#ore-giorno-riepilogo')).toContainText('04:15–04:45');
+  await expect(page.locator('#ora-data')).toHaveValue(ieri);
+  await expect(page.locator('#ora-start')).toHaveValue('');
+  await expect(page.locator('#ora-note')).toHaveValue('');
+
+  await page.evaluate(() => {
+    window.__gfvRitardaLetturaOreMs = 3000;
+  });
+  await page.locator('#ora-data').evaluate((el, value) => {
+    el.value = value;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }, oggi);
+  await page.locator('#ore-giorno-riepilogo[data-state="loading"]').waitFor({ timeout: 5_000 });
+  const duranteAttesa = await page.locator('#ore-giorno-riepilogo').evaluate((el) => el.textContent || '');
+  expect(duranteAttesa).toContain(`Le tue ore del ${etichettaGiornoBreve(oggi)}`);
+  expect(duranteAttesa).toContain('Caricamento ore del giorno');
+  expect(duranteAttesa).not.toContain('04:15');
+  await page.locator('#ore-giorno-riepilogo[data-state="ready"]').waitFor({ timeout: 15_000 });
+  const dopoCambio = await page.locator('#ore-giorno-riepilogo').evaluate((el) => el.textContent || '');
+  expect(dopoCambio).toContain(`Le tue ore del ${etichettaGiornoBreve(oggi)}`);
+  expect(dopoCambio).not.toContain('04:15');
+  await page.evaluate(() => {
+    window.__gfvRitardaLetturaOreMs = 0;
+  });
+
   await saveHours(page, { start: '16:00', end: '17:00', note: NOTE_EDIT });
   await page.locator('#ore-giorno-riepilogo[data-state="ready"]').waitFor();
   const riga = page.locator('#ore-giorno-riepilogo div').filter({ hasText: '16:00–17:00' }).first();
