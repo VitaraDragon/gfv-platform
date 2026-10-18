@@ -73,4 +73,20 @@ export async function runStatisticheManodoperaAssertions(page, expect) {
   const squadreTotali = page.locator('#stat-squadre-totali');
   await expect(squadreTotali).not.toHaveText('-');
   expect(parseInt(await squadreTotali.textContent(), 10)).toBeGreaterThanOrEqual(1);
+
+  const superficieLavorata = page.locator('#stat-superficie-lavorata');
+  await expect(superficieLavorata).not.toHaveText('-');
+
+  const superficieTotale = page.locator('#stat-superficie-totale');
+  await expect(superficieTotale).not.toHaveText('-');
+  const terreniCopertiHa = page.locator('#stat-terreni-coperti-ha');
+  await expect(terreniCopertiHa).not.toHaveText('-');
+  const copertiHa = Number.parseFloat((await terreniCopertiHa.textContent()) || '');
+  const totaleHa = Number.parseFloat((await superficieTotale.textContent()) || '');
+  expect(Number.isFinite(copertiHa)).toBe(true);
+  expect(Number.isFinite(totaleHa)).toBe(true);
+  expect(copertiHa).toBeLessThanOrEqual(totaleHa);
+
+  await expect(page.locator('#stat-terreni-coperti-dettaglio')).toContainText('%');
+  await expect(page.locator('#stat-percentuale-lavorata')).toHaveCount(0);
 }

@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-18 — Gestione lavori, modifica e crea.**
+**Ultimo aggiornamento documentazione: 2026-10-18 — Statistiche manodopera, terreni coperti.**
+
+## 2026-10-18 — Statistiche manodopera: somma passaggi e terreni coperti
+
+«Superficie lavorata» è la somma degli ettari di ogni passaggio, senza percentuale. «Terreni coperti» somma la superficie dei terreni che hanno almeno un lavoro non annullato con ettari registrati, e sotto indica quanti terreni sono e che quota sono del totale. Un lavoro annullato, o senza ettari registrati, non copre il terreno. Il periodo della pagina resta tutto lo storico. La card omonima della dashboard non cambia. `firestore.rules` non cambia. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-18 — Gestione lavori, modifica e crea.**
 
 ## 2026-10-18 — Gestione lavori: trattore in modifica, Salva, Crea
 
