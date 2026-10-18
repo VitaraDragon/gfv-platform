@@ -1,3 +1,6 @@
+/**
+ * @vitest-environment jsdom
+ */
 import { describe, expect, it, beforeEach } from 'vitest';
 import {
   ensureMacchinaOptionInSelect,
@@ -22,10 +25,10 @@ describe('gestione lavori — macchine form', () => {
   it('ensureMacchinaOptionInSelect aggiunge trattore assegnato assente dalla lista', () => {
     const select = setupSelect('lavoro-trattore');
     ensureMacchinaOptionInSelect(select, 't1', [], 'Trattore assegnato');
-    expect(select.value).toBe('');
+    expect(select.options.length).toBe(1);
+    expect(select.options[0].value).toBe('t1');
     select.value = 't1';
     expect(select.value).toBe('t1');
-    expect(select.options.length).toBe(1);
   });
 
   it('populateTrattoriDropdown seleziona trattore in_uso se è quello del lavoro', () => {

@@ -37,6 +37,8 @@ const TIPI_ESCLUSI_SYNC_REQUIRED = new Set([
 
 /**
  * True se il campo è nel layout (nessun antenato con display:none / hidden).
+ * Il modale lavori ha .modal { display:none } finché non è .active: syncRequired
+ * va chiamato dopo l'apertura, altrimenti anche i campi da compilare risultano nascosti.
  * offsetParent non basta: in jsdom è spesso null anche per i campi visibili.
  * @param {Element} el
  * @returns {boolean}

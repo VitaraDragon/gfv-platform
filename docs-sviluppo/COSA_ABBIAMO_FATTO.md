@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-18 — Uso reale 17/10, ore e proposta rapida.**
+**Ultimo aggiornamento documentazione: 2026-10-18 — Gestione lavori, modifica e crea.**
+
+## 2026-10-18 — Gestione lavori: trattore in modifica, Salva, Crea
+
+In modifica, cambiare trattore e salvare scrive il trattore nuovo. Se il campo è stato svuotato, il lavoro resta senza trattore. Se non è cambiato nulla, l’avviso dice che non c’è nulla da salvare. Salva si riabilita appena la scrittura è finita, anche se gli elenchi stanno ancora ricaricando, e un modale riaperto non viene chiuso dal salvataggio precedente. Se un salvataggio è ancora in corso, il secondo clic lo dice. Crea e Modifica aprono il modale prima di decidere quali campi sono obbligatori, così i campi visibili non restano grigi. Gli elenchi del modale partono insieme, con un limite di dieci secondi: se uno non arriva, si può comunque compilare. `firestore.rules` non cambia. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-18 — Uso reale 17/10, ore e proposta rapida.**
 
 ## 2026-10-18 — Campo: ore di ieri, totali allineati, proposta rapida
 
