@@ -114,6 +114,14 @@
             letter-spacing: 0.5px;
         }
 
+        .stat-dettaglio {
+            font-size: 13px;
+            line-height: 1.35;
+            margin: -2px 0 8px;
+            text-transform: none;
+            letter-spacing: 0;
+        }
+
         .empty-state {
             text-align: center;
             padding: 60px 20px;
@@ -212,15 +220,16 @@
                 <div class="stats-grid">
                     <div class="stat-card" style="background: linear-gradient(135deg, #28a745 0%, #1e7e34 100%); color: white;">
                         <div class="stat-value" id="stat-superficie-lavorata" style="color: white;">-</div>
-                        <div class="stat-label" style="color: rgba(255,255,255,0.9);">Superficie Lavorata (ha)</div>
+                        <div class="stat-label" style="color: rgba(255,255,255,0.9);">Superficie lavorata (somma passaggi) (ha)</div>
                     </div>
                     <div class="stat-card" style="background: linear-gradient(135deg, #007bff 0%, #0056b3 100%); color: white;">
                         <div class="stat-value" id="stat-superficie-totale" style="color: white;">-</div>
                         <div class="stat-label" style="color: rgba(255,255,255,0.9);">Superficie Totale Terreni (ha)</div>
                     </div>
                     <div class="stat-card" style="background: linear-gradient(135deg, #9c27b0 0%, #7b1fa2 100%); color: white;">
-                        <div class="stat-value" id="stat-percentuale-lavorata" style="color: white;">-</div>
-                        <div class="stat-label" style="color: rgba(255,255,255,0.9);">% Superficie Lavorata</div>
+                        <div class="stat-value" id="stat-terreni-coperti-ha" style="color: white;">-</div>
+                        <div class="stat-dettaglio" id="stat-terreni-coperti-dettaglio" style="color: rgba(255,255,255,0.9);">-</div>
+                        <div class="stat-label" style="color: rgba(255,255,255,0.9);">Terreni coperti (ha)</div>
                     </div>
                 </div>
             </div>
@@ -418,6 +427,7 @@
             forEachOraInBundle,
             fetchUsersByIds
         } from '../services/manodopera-lavori-ore-loader.js';
+        import { calcolaSuperficieStats } from '../services/statistiche-superficie.js?v=2026-10-18c';
 
         const app = getAppInstance();
         const auth = getAuthInstance();
@@ -1099,29 +1109,23 @@
             }
         }
 
-        // Statistiche superficie
+        // Statistiche superficie (tutto lo storico; esclusi solo gli annullati)
         function applySuperficieStats(lavoriDocs, terreniDocs) {
             try {
-                let superficieTotale = 0;
-                (terreniDocs || []).forEach(function (terrenoDoc) {
-                    superficieTotale += terrenoDoc.data().superficie || 0;
+                const lavori = (lavoriDocs || []).map(function (lavoroDoc) {
+                    return Object.assign({ id: lavoroDoc.id }, lavoroDoc.data() || {});
                 });
-
-                let superficieLavorata = 0;
-                (lavoriDocs || []).forEach(function (lavoroDoc) {
-                    const lavoro = lavoroDoc.data();
-                    if (lavoro.superficieTotaleLavorata) {
-                        superficieLavorata += lavoro.superficieTotaleLavorata;
-                    }
+                const terreni = (terreniDocs || []).map(function (terrenoDoc) {
+                    return Object.assign({ id: terrenoDoc.id }, terrenoDoc.data() || {});
                 });
+                const stats = calcolaSuperficieStats(lavori, terreni);
+                const parolaTerreni = stats.terreniCoperti === 1 ? 'terreno' : 'terreni';
 
-                const percentualeLavorata = superficieTotale > 0
-                    ? ((superficieLavorata / superficieTotale) * 100).toFixed(1)
-                    : 0;
-
-                document.getElementById('stat-superficie-lavorata').textContent = superficieLavorata.toFixed(2);
-                document.getElementById('stat-superficie-totale').textContent = superficieTotale.toFixed(2);
-                document.getElementById('stat-percentuale-lavorata').textContent = `${percentualeLavorata}%`;
+                document.getElementById('stat-superficie-lavorata').textContent = stats.sommaPassaggi.toFixed(2);
+                document.getElementById('stat-superficie-totale').textContent = stats.superficieTotale.toFixed(2);
+                document.getElementById('stat-terreni-coperti-ha').textContent = stats.superficieCoperta.toFixed(2);
+                document.getElementById('stat-terreni-coperti-dettaglio').textContent =
+                    stats.terreniCoperti + ' ' + parolaTerreni + ' · ' + stats.percentualeCoperta.toFixed(1) + '% della superficie';
             } catch (error) {
                 console.error('Errore statistiche superficie:', error);
             }
