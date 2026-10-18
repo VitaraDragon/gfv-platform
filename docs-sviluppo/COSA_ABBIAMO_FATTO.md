@@ -1,6 +1,10 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-18 — Guasti #222, follow-up.**
+**Ultimo aggiornamento documentazione: 2026-10-18 — Uso reale 17/10, ore e proposta rapida.**
+
+## 2026-10-18 — Campo: ore di ieri, totali allineati, proposta rapida
+
+Dopo aver salvato le ore di ieri, il riquadro resta su ieri e la data non torna a oggi. Cambiando giorno, durante il caricamento non restano le righe del giorno prima. In Validazione ore le tre etichette dei totali stanno sulla stessa riga, anche se «Ore da validare» non ha la riga del periodo. La proposta rapida non indica più un lavoro completato, in attesa, sospeso o annullato: prima il lavoro selezionato se è in corso o assegnato, poi un lavoro in corso, poi uno assegnato. `firestore.rules` non cambia. Nessun deploy di Cloud Functions.
 
 ## 2026-10-18 — Guasti #222, follow-up
 

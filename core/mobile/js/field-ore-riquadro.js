@@ -12,6 +12,35 @@ function linguaRiquadro() {
   }
 }
 
+/**
+ * Giorno da leggere: quello passato dal salvataggio, altrimenti il campo data, altrimenti oggi.
+ * @param {string} [giornoForzato]
+ * @param {string} [valoreCampo]
+ * @param {string} [oggi]
+ * @returns {string}
+ */
+export function giornoRiquadroOre(giornoForzato, valoreCampo, oggi) {
+  const forzato = String(giornoForzato || '').trim();
+  if (forzato) return forzato;
+  const campo = String(valoreCampo || '').trim();
+  if (campo) return campo;
+  return String(oggi || '').trim();
+}
+
+/**
+ * Cambio giorno: titolo nuovo e testo di attesa. Le righe del giorno prima non restano.
+ * @param {string} titolo
+ * @param {string} testoCaricamento
+ * @returns {{ titolo: string, corpo: string, righe: [] }}
+ */
+export function vistaOreGiornoInAttesa(titolo, testoCaricamento) {
+  return {
+    titolo: String(titolo || ''),
+    corpo: String(testoCaricamento || ''),
+    righe: []
+  };
+}
+
 export function testoRiquadroOreNonDisponibile(etichettaGiorno) {
   const giorno = String(etichettaGiorno || '').trim();
   return t('ore.boxUnavailable', linguaRiquadro(), { giorno: giorno });

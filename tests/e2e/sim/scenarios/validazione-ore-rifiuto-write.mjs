@@ -110,4 +110,14 @@ export async function runValidazioneOreRifiutoAssertions(page, expect) {
 
   await expect(page.locator('#gfv-standalone-toast-layer .alert').filter({ hasText: 'Ora rifiutata' })).toBeVisible();
   await expect(codaRowWithMarker(page)).toHaveCount(0);
+
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await expect(page.locator('#stat-da-validare')).not.toHaveAttribute('data-righe', '0');
+  await expect(page.locator('#stat-validate')).not.toHaveAttribute('data-righe', '0');
+  await expect(page.locator('#stat-rifiutate')).not.toHaveAttribute('data-righe', '0');
+  const tops = await page.locator('.stats-grid .stat-card > p').evaluateAll((nodi) => (
+    nodi.map((el) => el.getBoundingClientRect().top)
+  ));
+  expect(tops).toHaveLength(3);
+  expect(Math.max(...tops) - Math.min(...tops)).toBeLessThanOrEqual(1);
 }

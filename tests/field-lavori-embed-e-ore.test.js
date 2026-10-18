@@ -4,6 +4,8 @@ import {
   creaSegnalatoreRiquadroOre,
   esitoLetturaRiquadroOre,
   esitoRiquadroOreSuErrore,
+  giornoRiquadroOre,
+  vistaOreGiornoInAttesa,
 } from '../core/mobile/js/field-ore-riquadro.js';
 
 describe('url dettaglio lavoro incorporato', () => {
@@ -20,6 +22,24 @@ describe('url dettaglio lavoro incorporato', () => {
     expect(hrefElencoLavoriCampo({ inIframe: true })).toBe('lavori-caposquadra-standalone.html?embed=mobile');
     expect(hrefElencoLavoriCampo({ inIframe: false })).toBe('lavori-caposquadra-standalone.html');
     expect(hrefElencoLavoriCampo({ inIframe: true })).not.toContain('ws=classic');
+  });
+});
+
+describe('giorno del riquadro ore', () => {
+  it('il giorno del salvataggio vince sul campo data', () => {
+    expect(giornoRiquadroOre('2026-10-17', '2026-10-18', '2026-10-18')).toBe('2026-10-17');
+  });
+
+  it('senza giorno forzato usa il campo, poi oggi', () => {
+    expect(giornoRiquadroOre('', '2026-10-17', '2026-10-18')).toBe('2026-10-17');
+    expect(giornoRiquadroOre(undefined, '', '2026-10-18')).toBe('2026-10-18');
+  });
+
+  it('in attesa mostra il titolo nuovo e nessuna riga', () => {
+    const vista = vistaOreGiornoInAttesa('Le tue ore del 18/10', 'Caricamento ore del giorno...');
+    expect(vista.titolo).toBe('Le tue ore del 18/10');
+    expect(vista.corpo).toBe('Caricamento ore del giorno...');
+    expect(vista.righe).toEqual([]);
   });
 });
 
