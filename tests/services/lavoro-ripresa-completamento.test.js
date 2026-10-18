@@ -1,8 +1,32 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
+
+vi.mock('../../core/services/firebase-service.js', () => ({
+    createDocument: vi.fn(),
+    getDocumentData: vi.fn(),
+    updateDocument: vi.fn(),
+    deleteDocument: vi.fn(),
+    getCollectionData: vi.fn(),
+    serverTimestamp: vi.fn(),
+    doc: vi.fn(),
+    updateDoc: vi.fn(),
+    dateToTimestamp: vi.fn((value) => value),
+    timestampToDate: vi.fn((value) => value),
+    getAuthInstance: vi.fn(),
+    signOut: vi.fn(),
+    onAuthStateChanged: vi.fn(),
+    getCollection: vi.fn(),
+}));
+
+vi.mock('../../core/services/auth-service.js', () => ({
+    getCurrentUserData: vi.fn(),
+}));
+
+import { getDocumentData } from '../../core/services/firebase-service.js';
 import {
     shouldCompletaLavoroSospesoOrigineDaRipresa,
     normalizeLavoroFirestoreId,
-    resolveOrigineSospesoForRipresa
+    resolveOrigineSospesoForRipresa,
+    repairSospesiConRipresaGiaCompletata
 } from '../../core/services/lavori-service.js';
 
 describe('normalizeLavoroFirestoreId', () => {
@@ -63,5 +87,42 @@ describe('shouldCompletaLavoroSospesoOrigineDaRipresa', () => {
 
     it('false senza collegamento ripresa', () => {
         expect(shouldCompletaLavoroSospesoOrigineDaRipresa({}, 'sospeso')).toBe(false);
+    });
+});
+
+describe('repairSospesiConRipresaGiaCompletata', () => {
+    it("non avvisa se la ripresa e' completata e l'origine e' gia' chiusa", async () => {
+        getDocumentData.mockClear();
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const repaired = await repairSospesiConRipresaGiaCompletata([
+            { id: 'orig', stato: 'completato', nome: 'Potatura' },
+            { id: 'rip', stato: 'completato', ripresaDaLavoroId: 'orig', nome: 'Potatura (ripresa)' },
+        ], 'tenant-1');
+        expect(repaired).toEqual([]);
+        expect(getDocumentData).not.toHaveBeenCalled();
+        expect(warn).not.toHaveBeenCalled();
+        warn.mockRestore();
+    });
+
+    it("non avvisa se l'origine letta e' gia' completata", async () => {
+        getDocumentData.mockResolvedValue({ stato: 'completato' });
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        await repairSospesiConRipresaGiaCompletata([
+            { id: 'rip', stato: 'completato', ripresaDaLavoroId: 'orig-chiusa' },
+        ], 'tenant-1');
+        expect(warn).not.toHaveBeenCalled();
+        warn.mockRestore();
+    });
+
+    it("avvisa se la ripresa e' completata e l'origine manca", async () => {
+        getDocumentData.mockResolvedValue(null);
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        await repairSospesiConRipresaGiaCompletata([
+            { id: 'rip', stato: 'completato', ripresaDaLavoroId: 'mancante' },
+        ], 'tenant-1');
+        expect(warn).toHaveBeenCalled();
+        const testo = warn.mock.calls.map((call) => JSON.stringify(call)).join('\n');
+        expect(testo).toContain('origine_not_found');
+        warn.mockRestore();
     });
 });
