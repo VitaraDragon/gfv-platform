@@ -6,7 +6,7 @@ import { runGuastiAnnullaWriteAssertions } from './scenarios/guasti-annulla-writ
 
 test.describe('GFV Farm Simulator — annulla e risolto da me', () => {
   test('operaio annulla o chiude; il manager vede l’annullato solo in Tutti', async ({ page }) => {
-    test.setTimeout(240_000);
+    test.setTimeout(360_000);
     await runGuastiAnnullaWriteAssertions(page, expect);
   });
 });

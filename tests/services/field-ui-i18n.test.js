@@ -2,7 +2,7 @@
  * Helper lingua campo: fallback, parametri, storage finto.
  */
 import { describe, it, expect } from 'vitest';
-import { FIELD_UI_STRINGS } from '../../core/config/field-ui-i18n.js';
+import { FIELD_UI_STRINGS } from '../../core/config/field-ui-i18n.js?v=2026-10-18a';
 import {
     t,
     normalizzaLingua,

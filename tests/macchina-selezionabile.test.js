@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { macchinaSelezionabile, suffissoMacchinaNonSelezionabile } from '../core/js/macchina-selezionabile.js';
+import { aggiornaOpzioniDaGuasti, macchinaSelezionabile, suffissoMacchinaNonSelezionabile } from '../core/js/macchina-selezionabile.js';
 
 describe('macchinaSelezionabile', () => {
   const guasta = { id: 'm1', nome: 'Lamborghini', stato: 'guasto', tipoMacchina: 'trattore' };
@@ -38,5 +38,45 @@ describe('macchinaSelezionabile', () => {
     const esito = macchinaSelezionabile(libera, { contesto: 'nuovo-guasto', guastoAperto: true });
     expect(esito.ok).toBe(false);
     expect(suffissoMacchinaNonSelezionabile(esito)).toBe(' (già in guasto)');
+  });
+});
+
+describe('aggiornaOpzioniDaGuasti', () => {
+  const opzioneFerma = {
+    value: 'm5',
+    disabled: true,
+    textContent: '🚜 Fendt (già in guasto)',
+    dataset: { giaGuasto: '1', etichettaBase: '🚜 Fendt', suffisso: ' (già in guasto)' }
+  };
+
+  it('riabilita il mezzo se il guasto non è più aperto e lo stato lo permette', () => {
+    const out = aggiornaOpzioniDaGuasti([opzioneFerma], [], {
+      m5: { id: 'm5', nome: 'Fendt', stato: 'disponibile' }
+    });
+    expect(out[0].cambiata).toBe(true);
+    expect(out[0].disabled).toBe(false);
+    expect(out[0].giaGuasto).toBe('');
+    expect(out[0].suffisso).toBe('');
+    expect(out[0].textContent).toBe('🚜 Fendt');
+  });
+
+  it('non tocca il mezzo se un guasto del tenant è ancora aperto', () => {
+    const out = aggiornaOpzioniDaGuasti(
+      [opzioneFerma],
+      [{ stato: 'in-attesa', componenteGuasto: 'trattore', macchinaId: 'm5' }],
+      { m5: { id: 'm5', stato: 'disponibile' } }
+    );
+    expect(out[0].cambiata).toBe(false);
+    expect(out[0].disabled).toBe(true);
+    expect(out[0].suffisso).toBe(' (già in guasto)');
+  });
+
+  it('se lo stato è ancora guasto resta disabilitato', () => {
+    const out = aggiornaOpzioniDaGuasti([opzioneFerma], [{ stato: 'annullato', componenteGuasto: 'trattore', macchinaId: 'm5' }], {
+      m5: { id: 'm5', stato: 'guasto' }
+    });
+    expect(out[0].disabled).toBe(true);
+    expect(out[0].suffisso).toBe(' (già in guasto)');
+    expect(out[0].giaGuasto).toBe('1');
   });
 });

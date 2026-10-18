@@ -482,7 +482,7 @@ export async function loadLavori(currentTenantId, db, lavoriList, hasParcoMacchi
 
         void (async () => {
             try {
-                const { repairSospesiConRipresaGiaCompletata } = await import('../../services/lavori-service.js');
+                const { repairSospesiConRipresaGiaCompletata } = await import('../../services/lavori-service.js?v=2026-10-18a');
                 const repairedIds = await repairSospesiConRipresaGiaCompletata(lavoriList, currentTenantId, db);
                 if (repairedIds.length > 0) {
                     console.log('[GESTIONE-LAVORI] Allineati lavori sospesi con ripresa già completata:', repairedIds);
