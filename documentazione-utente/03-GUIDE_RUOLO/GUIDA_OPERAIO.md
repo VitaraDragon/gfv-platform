@@ -175,18 +175,20 @@ Cliccando su un'ora vedi:
 ### Segnalare Guasto Macchina
 
 1. Nella versione mobile apri la scheda **⚠️ Segnala un problema** (dopo **Ore**; non è nel menu ingranaggio)
-2. I campi sono pre-compilati automaticamente:
-   - **Trattore**: Trattore assegnato al lavoro corrente
-   - **Attrezzo**: Attrezzo assegnato al lavoro corrente
-   - **Lavoro**: Lavoro attivo più recente
-3. Compila:
-   - **Gravità**: 
-     - **Non Grave**: Macchina usabile, lavoro può continuare
-     - **Grave**: Macchina non usabile, lavoro sospeso
-   - **Dettagli Guasto**: Descrizione dettagliata del problema
-4. Tocca **🚨 Segnala**: leggi «Segnalazione inviata. Grazie.» e resti nella scheda
+2. Scegli il **Tipo di segnalazione**: **🔧 Guasto Macchina/Attrezzo** (solo con Parco Macchine) oppure **🌍 Segnalazione Generica** (frana, albero caduto, palo rotto, ecc.)
+3. L’app propone già il tuo lavoro aperto più recente in **Lavoro corrente** e, se quel lavoro li ha, il suo **Trattore** e **Attrezzo** (con il **Componente** di conseguenza; per la generica l’**Ubicazione** dal terreno del lavoro). Controlla e cambia se non è giusto
+4. Compila:
+   - Guasto macchina: **Trattore** e **Componente con guasto** (Trattore, Attrezzo o Entrambi; **Attrezzo** se serve)
+   - Segnalazione generica: **Ubicazione**, punto sulla **mappa** e **Tipo di problema**
+   - **Gravità**: **Non grave - Posso finire il lavoro** oppure **Grave - Sospendere subito**
+   - **Dettagli** del problema (obbligatori)
+   - Facoltativi: **Lavoro corrente**, **posizione GPS** (📍 Segnala qui (GPS))
+5. Tocca **🚨 Segnala**: leggi «Segnalazione inviata. Grazie.» e resti nella scheda
 
-**Nota**: Per guasti gravi, il lavoro viene automaticamente sospeso.
+**Cosa succede dopo l’invio**
+- La segnalazione resta **in attesa** e la trovi in **I Miei Guasti Segnalati**.
+- **Guasto a macchina/attrezzo:** il mezzo indicato dal **componente** passa in stato di guasto (con **Non grave** il lavoro può continuare, con **Grave** il mezzo risulta **Guasto**). Finché resta così non si può scegliere per un nuovo lavoro né per una nuova segnalazione: in elenco compare «(già in guasto)».
+- **Grave con un lavoro collegato:** il lavoro viene **sospeso** solo se segnala il **caposquadra** di quel lavoro (o il manager). Se segnala un operaio, il lavoro non cambia: dopo l’invio compare «Non ho potuto aggiornare lo stato della macchina o del lavoro: avvisa il tuo responsabile.» e la sospensione la decide il caposquadra o il manager.
 
 ### Visualizzare Guasti Segnalati
 

@@ -199,9 +199,10 @@ Si fa dalla scheda **⚠️ Segnala un problema** del workspace, dopo **Ore** e 
 - Per la generica: **ubicazione** scritta, **tipo di problema**, e spesso una **mappa** dove tocchi il punto esatto del problema.  
 - **Gravità**:  
   - **Non grave** — posso finire il lavoro (con cautela);  
-  - **Grave** — fermarsi e segnalare subito; con incarico collegato il sistema può mettere il lavoro in stato di **attesa** finché non viene gestita la situazione.  
+  - **Grave** — fermarsi e segnalare subito. La tua segnalazione **non** sospende da sola il lavoro: se hai collegato un lavoro, dopo l’invio leggi «Non ho potuto aggiornare lo stato della macchina o del lavoro: avvisa il tuo responsabile.». Avvisa il caposquadra o il responsabile: la sospensione la decidono loro.  
 - **Dettagli** — descrizione chiara del sintomo.  
-- Opzionale: **lavoro corrente** se stai operando su un incarico preciso.
+- Opzionale: **lavoro corrente** se stai operando su un incarico preciso. L’app propone già il tuo lavoro aperto più recente e, se ce li ha, il suo trattore e attrezzo: controlla e cambia se non è giusto.  
+- Con un guasto a macchina o attrezzo, il mezzo passa in stato di guasto e finché resta così non si può scegliere per un nuovo lavoro («(già in guasto)»).
 
 ### GPS e posizione
 

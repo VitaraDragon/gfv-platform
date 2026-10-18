@@ -262,7 +262,7 @@ La segnalazione si fa dalla scheda **⚠️ Segnala un problema** del workspace,
 - **Non grave — posso finire il lavoro**: il problema c’è ma puoi terminare la giornata in sicurezza con cautela.  
 - **Grave — sospendere subito**: pericolo immediato o blocco del mezzo; fermati, metti in sicurezza persone e mezzi, poi segnala.
 
-Se colleghi la segnalazione a un **lavoro** e scegli **grave**, l’app può **sospendere** quel lavoro finché il manager non gestisce la situazione.
+Se colleghi la segnalazione a un **lavoro di cui sei caposquadra** e scegli **grave**, l’app **sospende** quel lavoro (motivo «Guasto macchina grave» o «Segnalazione grave»). Se il lavoro non è della tua squadra, il lavoro non cambia e compare «Non ho potuto aggiornare lo stato della macchina o del lavoro: avvisa il tuo responsabile.». Con un guasto a macchina o attrezzo il mezzo passa in stato di guasto e non si può scegliere per un nuovo lavoro («(già in guasto)»). Se a segnalare grave è un tuo **operaio**, il lavoro **non** si sospende da solo: se serve, sospendilo tu con **⏸️ Sospendi lavoro**.
 
 ### Segnalazione guasto a macchina o attrezzo
 

@@ -91,13 +91,19 @@ Per aggiornare le ore:
 ### Operai/Capisquadra
 
 1. Nella versione mobile apri la scheda **⚠️ Segnala un problema** (dopo **Ore**; non è nel menu ingranaggio)
-2. Campi precompilati:
-   - Trattore/attrezzo dal lavoro in corso
-   - Lavoro associato
-3. Compila:
-   - Gravità (grave/non grave)
-   - Dettagli guasto
-4. Tocca **🚨 Segnala**
+2. Scegli **🔧 Guasto Macchina/Attrezzo** oppure **🌍 Segnalazione Generica**
+3. Proposti in automatico (da controllare): il lavoro aperto più recente in **Lavoro corrente** e, se quel lavoro li ha, il suo trattore e attrezzo con il **Componente**
+4. Compila:
+   - Trattore e **Componente con guasto** (Trattore, Attrezzo o Entrambi)
+   - **Gravità**: Non grave - Posso finire il lavoro / Grave - Sospendere subito
+   - **Dettagli** del problema
+   - Facoltativi: lavoro corrente, posizione GPS
+5. Tocca **🚨 Segnala**
+
+**Cosa succede dopo l’invio**
+- La segnalazione resta **in attesa** e la trovi in **I Miei Guasti Segnalati**.
+- **Guasto a macchina/attrezzo:** il mezzo indicato dal **componente** passa in stato di guasto (con **Non grave** il lavoro può continuare, con **Grave** il mezzo risulta **Guasto**). Finché resta così non si può scegliere per un nuovo lavoro né per una nuova segnalazione: in elenco compare «(già in guasto)».
+- **Grave con un lavoro collegato:** il lavoro viene **sospeso** solo se segnala il **caposquadra** di quel lavoro (o il manager). Se segnala un operaio, il lavoro non cambia: dopo l’invio compare «Non ho potuto aggiornare lo stato della macchina o del lavoro: avvisa il tuo responsabile.» e la sospensione la decide il caposquadra o il manager.
 
 Finché il guasto è in attesa, chi l’ha segnalato può chiuderlo con **Risolto da me** (il guasto si chiude subito; le sue note si vedono nello **storico guasti** della scheda del mezzo, non in **Officina & Guasti**) o ritirarlo con **Annulla segnalazione** (badge **Annullato**). Un guasto annullato non si riapre: se è stato un errore, si fa una nuova segnalazione.
 
