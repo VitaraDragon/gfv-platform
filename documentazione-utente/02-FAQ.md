@@ -167,14 +167,14 @@ Alcuni report hanno pulsante **Esporta Excel** (es. Compensi Operai).
 4. Salva
 
 ### Come segnalo un guasto?
-1. Vai su **Segnalazione Guasti** (Operaio)
+1. Nella versione mobile apri la scheda **⚠️ Segnala un problema** (Operaio e Caposquadra; non è nel menu ingranaggio)
 2. Seleziona trattore/attrezzo
 3. Indica gravità (grave/non grave)
 4. Aggiungi dettagli
-5. Invia
+5. Tocca **🚨 Segnala**
 
 ### Cosa succede dopo la segnalazione?
-Il manager vede il guasto in **Parco Macchine** → **Officina & Guasti** e lo chiude con **Segna risolto** quando il problema è sistemato. Finché il guasto è in attesa, chi l’ha segnalato può chiuderlo con **Risolto da me** (il guasto si chiude subito) o ritirarlo con **Annulla segnalazione**.
+Il manager vede il guasto in **Parco Macchine** → **Officina & Guasti** e lo chiude con **Segna risolto** quando il problema è sistemato. Finché il guasto è in attesa, chi l’ha segnalato può chiuderlo con **Risolto da me** (il guasto si chiude subito; le note si vedono nello storico guasti della scheda del mezzo) o ritirarlo con **Annulla segnalazione**.
 
 ### Ho annullato una segnalazione per errore
 Un guasto annullato non si riapre: fai una nuova segnalazione.

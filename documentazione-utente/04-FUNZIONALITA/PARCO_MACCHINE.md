@@ -17,7 +17,7 @@ Traccia trattori, attrezzi, manutenzioni e guasti integrando il modulo Parco Mac
 ## 🧭 Percorsi principali
 
 - Dashboard → **Gestione Macchine**
-- Dashboard → **Segnalazione Guasti** (per operai/capisquadra)
+- Versione mobile → scheda **⚠️ Segnala un problema** (per operai/capisquadra)
 - Gestione Lavori → assegnazione trattori/attrezzi
 
 ---
@@ -90,16 +90,16 @@ Per aggiornare le ore:
 
 ### Operai/Capisquadra
 
-1. Vai su **Segnalazione Guasti**
+1. Nella versione mobile apri la scheda **⚠️ Segnala un problema** (dopo **Ore**; non è nel menu ingranaggio)
 2. Campi precompilati:
    - Trattore/attrezzo dal lavoro in corso
    - Lavoro associato
 3. Compila:
    - Gravità (grave/non grave)
    - Dettagli guasto
-4. Invia
+4. Tocca **🚨 Segnala**
 
-Finché il guasto è in attesa, chi l’ha segnalato può chiuderlo con **Risolto da me** (il guasto si chiude subito) o ritirarlo con **Annulla segnalazione** (badge **Annullato**). Un guasto annullato non si riapre: se è stato un errore, si fa una nuova segnalazione.
+Finché il guasto è in attesa, chi l’ha segnalato può chiuderlo con **Risolto da me** (il guasto si chiude subito; le sue note si vedono nello **storico guasti** della scheda del mezzo, non in **Officina & Guasti**) o ritirarlo con **Annulla segnalazione** (badge **Annullato**). Un guasto annullato non si riapre: se è stato un errore, si fa una nuova segnalazione.
 
 ### Manager
 

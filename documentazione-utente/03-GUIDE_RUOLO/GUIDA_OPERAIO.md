@@ -174,7 +174,7 @@ Cliccando su un'ora vedi:
 
 ### Segnalare Guasto Macchina
 
-1. Vai su **Segnalazione Guasti**
+1. Nella versione mobile apri la scheda **⚠️ Segnala un problema** (dopo **Ore**; non è nel menu ingranaggio)
 2. I campi sono pre-compilati automaticamente:
    - **Trattore**: Trattore assegnato al lavoro corrente
    - **Attrezzo**: Attrezzo assegnato al lavoro corrente
@@ -184,14 +184,14 @@ Cliccando su un'ora vedi:
      - **Non Grave**: Macchina usabile, lavoro può continuare
      - **Grave**: Macchina non usabile, lavoro sospeso
    - **Dettagli Guasto**: Descrizione dettagliata del problema
-4. Clicca **Segnala Guasto**
+4. Tocca **🚨 Segnala**: leggi «Segnalazione inviata. Grazie.» e resti nella scheda
 
 **Nota**: Per guasti gravi, il lavoro viene automaticamente sospeso.
 
 ### Visualizzare Guasti Segnalati
 
-1. Vai su **Segnalazione Guasti**
-2. Visualizza lista guasti segnalati
+1. Nella scheda **⚠️ Segnala un problema**, sotto il modulo
+2. Trovi l’elenco **I Miei Guasti Segnalati**
 3. Per ogni guasto vedi:
    - **Macchina**: Trattore/attrezzo
    - **Gravità**: Grave / Non grave
