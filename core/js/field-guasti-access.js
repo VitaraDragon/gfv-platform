@@ -87,14 +87,18 @@ export function testoOpzioneTrattore(numeroTrattori) {
 
 /**
  * Sospensione del lavoro dopo un guasto grave.
- * Manager/admin: sì. Caposquadra: solo il proprio lavoro. Operaio: no.
+ * Manager/admin: sì. Caposquadra: solo il proprio lavoro.
+ * Operaio di un lavoro autonomo (operaioId = uid, senza caposquadra): sì.
+ * Operaio di squadra: no. Il lavoro lo sospendono il caposquadra o il manager.
  */
 export function deveTentareSospensioneLavoroGuasto({ ruoli, ruoloSingolo, uid, lavoro } = {}) {
     const n = normalizzaRuoliGuasti(ruoli, ruoloSingolo);
     if (n.includes('manager') || n.includes('amministratore')) return true;
-    if (!n.includes('caposquadra')) return false;
     if (!lavoro || !uid) return false;
-    return String(lavoro.caposquadraId || '') === String(uid);
+    const uidTesto = String(uid);
+    if (n.includes('caposquadra') && String(lavoro.caposquadraId || '') === uidTesto) return true;
+    const autonomo = String(lavoro.operaioId || '') === uidTesto && !lavoro.caposquadraId;
+    return n.includes('operaio') && autonomo;
 }
 
 const AVVISO_SECONDARIA_GUASTO = 'Non ho potuto aggiornare lo stato della macchina/il lavoro: avvisa il tuo responsabile.';
@@ -102,42 +106,57 @@ const AVVISO_SECONDARIA_GUASTO = 'Non ho potuto aggiornare lo stato della macchi
 /**
  * Esito dopo le scritture della segnalazione.
  * La scrittura su `guasti` è essenziale. Macchina e lavoro sono secondarie.
+ * `errore: 'non-tentata'` non è un fallimento: finisce in `info`.
  * @param {{ scritturaPrincipaleOk?: boolean, secondarie?: Array<{ nome?: string, ok?: boolean, errore?: string }> }} input
- * @returns {{ chiudi: boolean, successo: boolean, avvisi: string[], errore: string|null }}
+ * @returns {{ chiudi: boolean, successo: boolean, avvisi: string[], info: string[], errore: string|null }}
  */
 export function esitoSegnalazioneGuasto({ scritturaPrincipaleOk, secondarie } = {}) {
     const list = Array.isArray(secondarie) ? secondarie : [];
     if (!scritturaPrincipaleOk) {
-        const conErrore = list.find((s) => s && s.errore);
+        const conErrore = list.find((s) => s && s.errore && s.errore !== 'non-tentata');
         return {
             chiudi: false,
             successo: false,
             avvisi: [],
+            info: [],
             errore: (conErrore && conErrore.errore) || 'Errore segnalazione'
         };
     }
-    const fallite = list.filter((s) => s && s.ok === false);
+    const nonTentate = list.filter((s) => s && s.ok === false && s.errore === 'non-tentata');
+    const fallite = list.filter((s) => s && s.ok === false && s.errore !== 'non-tentata');
     return {
         chiudi: true,
         successo: true,
         avvisi: fallite.length ? [AVVISO_SECONDARIA_GUASTO] : [],
+        info: nonTentate.length ? ['sospensione-non-tentata'] : [],
         errore: null
     };
 }
+
+const TESTO_SOSPENSIONE_CAPO = 'Segnalazione inviata. Il lavoro lo sospende il caposquadra o il manager.';
 
 /**
  * Testo del banner dopo un invio riuscito.
  * Dal profilo campo si torna al workspace. Se un aggiornamento secondario
  * è fallito, niente ritorno automatico: l’utente deve poter leggere l’avviso.
- * @param {{ dalCampo?: boolean, haAvvisi?: boolean }} input
+ * Se la sospensione non è stata tentata (operaio di squadra), il banner è
+ * informativo e non è un avviso di errore.
+ * @param {{ dalCampo?: boolean, haAvvisi?: boolean, incorporata?: boolean, info?: string[] }} input
  */
-export function testoConfermaSegnalazione({ dalCampo, haAvvisi, incorporata } = {}) {
-  const esceDalCampo = !!dalCampo && !haAvvisi && !incorporata;
+export function testoConfermaSegnalazione({ dalCampo, haAvvisi, incorporata, info } = {}) {
+  const capoDecide = !haAvvisi && Array.isArray(info) && info.includes('sospensione-non-tentata');
+  const esceDalCampo = !!dalCampo && !haAvvisi && !incorporata && !capoDecide;
+  let dettaglio = 'La trovi in «I Miei Guasti Segnalati».';
+  if (haAvvisi) {
+    dettaglio = 'Non ho potuto aggiornare lo stato della macchina o del lavoro: avvisa il tuo responsabile.';
+  } else if (capoDecide) {
+    dettaglio = TESTO_SOSPENSIONE_CAPO;
+  } else if (esceDalCampo) {
+    dettaglio = 'Torno al workspace…';
+  }
   return {
     titolo: 'Segnalazione inviata. Grazie.',
-    dettaglio: haAvvisi
-      ? 'Non ho potuto aggiornare lo stato della macchina o del lavoro: avvisa il tuo responsabile.'
-      : (esceDalCampo ? 'Torno al workspace…' : 'La trovi in «I Miei Guasti Segnalati».'),
+    dettaglio,
     tornaAutomatico: esceDalCampo,
     mostraTornaWorkspace: !!dalCampo && !!haAvvisi && !incorporata
   };

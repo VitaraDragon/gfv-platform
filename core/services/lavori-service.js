@@ -649,8 +649,22 @@ export async function completaLavoroSospesoOrigineDaRipresa(ripresaLavoro, optio
   return { updated: true, origineId };
 }
 
+const STATI_ORIGINE_GIA_CHIUSA = new Set(['completato', 'completato_da_approvare', 'annullato']);
+
+function origineGiaChiusa(stato) {
+  return STATI_ORIGINE_GIA_CHIUSA.has(String(stato || ''));
+}
+
+/** Un'origine già chiusa è allineata: il repair non deve avvisare. */
+function repairSkipDaAvvisare(res) {
+  if (!res || res.updated || !res.reason) return false;
+  if (res.reason === 'origine_non_eligible' && origineGiaChiusa(res.origineStato)) return false;
+  return true;
+}
+
 /**
  * Ripara lavori sospesi il cui lavoro di ripresa risulta già completato (allineamento retroattivo).
+ * Se l'origine è già nell'elenco e chiusa, non richiama la chiusura.
  * @param {Array<{ id: string, stato?: string, ripresaDaLavoroId?: string|null }>} lavoriList
  * @param {string} tenantId
  * @returns {Promise<string[]>} ID lavori origine aggiornati
@@ -663,6 +677,9 @@ export async function repairSospesiConRipresaGiaCompletata(lavoriList, tenantId,
     if (!lav.ripresaDaLavoroId || lav.stato !== 'completato') continue;
 
     const origineResolved = resolveOrigineSospesoForRipresa(lav, byId);
+    if (origineResolved && origineResolved.data && origineGiaChiusa(origineResolved.data.stato)) {
+      continue;
+    }
     const res = await completaLavoroSospesoOrigineDaRipresa(lav, {
       tenantId,
       db,
@@ -679,7 +696,7 @@ export async function repairSospesiConRipresaGiaCompletata(lavoriList, tenantId,
         origine.percentualeCompletamento = 100;
         origine.completatoTramiteRipresaId = lav.id;
       }
-    } else if (!res.updated && res.reason) {
+    } else if (repairSkipDaAvvisare(res)) {
       console.warn('[lavori-service] repair ripresa→origine skip:', lav.id, res);
     }
   }
