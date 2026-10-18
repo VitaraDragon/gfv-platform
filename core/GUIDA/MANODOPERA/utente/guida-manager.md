@@ -417,13 +417,13 @@ La **manodopera** non è il modulo officina: i **guasti** su trattori e attrezzi
 
 ### Cosa trovi di solito sulla dashboard
 
-- Nella sezione **Richiede attenzione** può comparire un avviso sui **guasti aperti** con link verso l’**elenco guasti**.  
-- Da **Moduli** → **Parco Macchine** (se attivo) raggiungi mezzi e guasti.
+- Nella sezione **Richiede attenzione** può comparire un avviso sui **guasti aperti**: toccandolo apri la pagina **Officina & Guasti**.  
+- Da **Moduli** → **Parco Macchine** (se attivo) raggiungi mezzi e guasti: tra le **Azioni rapide** c’è **Officina & Guasti**.
 
 ### Passi generali (da adattare alle etichette in schermata)
 
-1. **Dashboard**: se in **Richiede attenzione** vedi avvisi sui guasti, apri il link indicato, oppure **Moduli** → **Parco Macchine** / voce **Guasti**.  
-2. Per una **nuova segnalazione** usa la pagina indicata dal modulo (spesso **Segnalazione guasti**), compilando **mezzo**, **descrizione**, **gravità** se richiesta.  
+1. **Dashboard**: se in **Richiede attenzione** vedi avvisi sui guasti, apri il link indicato, oppure **Moduli** → **Parco Macchine** → **Officina & Guasti**.  
+2. Per una **nuova segnalazione** usa **➕ Segnala guasto** in alto nella pagina **Officina & Guasti**, compilando **mezzo**, **descrizione**, **gravità** se richiesta.  
 3. Assegna il follow-up come fate di consueto in azienda (officina interna o esterna).
 
 ### Procedura pratica consigliata per aprire un guasto
@@ -438,13 +438,11 @@ La **manodopera** non è il modulo officina: i **guasti** su trattori e attrezzi
 
 ### Gestione manager dei guasti aperti
 
-1. Apri l’elenco guasti e ordina per **stato** o **priorita**.  
-2. Dai precedenza ai guasti che impattano lavori già pianificati.  
-3. Il punto chiave del manager è la decisione operativa:
-   - **guasto non grave**: puoi approvare la continuazione del lavoro;
-   - **guasto grave**: puoi sospendere il lavoro finché non è risolto.  
+1. Apri **Officina & Guasti**. Con il filtro **Stato** scegli **Solo aperti** o **Tutti**; per ogni guasto vedi mezzo o descrizione, gravità, data, stato e dettagli.  
+2. Dai precedenza ai guasti **gravi** e a quelli che impattano lavori già pianificati. Se devi fermare un lavoro per un guasto, usa **⏳ Sospendi / Rinvia** in **Gestione lavori** con motivo **Guasto** (vedi [Sospendere o rinviare un lavoro](#sospendere-o-rinviare-un-lavoro-maltempo-guasto-altro)).  
+3. Quando il problema è sistemato, chiudi il guasto da **Officina & Guasti**: sulla sua riga tocca **Segna risolto**, nella finestra **Segna come risolto** scrivi se vuoi le **note di risoluzione** (facoltative) e conferma con **Segna risolto**. Se nel frattempo qualcun altro l’ha già chiuso leggi «Questo guasto è già stato chiuso.». Un guasto chiuso non si riapre da qui: se il problema torna, serve una nuova segnalazione.  
 4. Quando segni **risolto** un guasto grave che aveva sospeso un lavoro, il lavoro riparte da solo: torna **in corso** se era già stato fatto qualcosa, altrimenti **assegnato**. Se sullo stesso lavoro c’è ancora un altro guasto aperto, resta sospeso e l’app te lo dice. Se la ripresa non riesce, l’app ti chiede di riprendere il lavoro da **Gestione lavori**; nell’elenco guasti, accanto al guasto risolto, compare anche il pulsante **Riprendi lavoro**. Con **Segna risolto** in **Officina & Guasti** il mezzo torna allo stato che aveva prima della segnalazione (**disponibile** o **in uso**), se è ancora segnato come guasto e non ha altri guasti aperti.
-5. Chi ha segnalato può, **finché il guasto è in attesa**, chiuderlo da solo con **Risolto da me** (con le sue note) oppure ritirarlo con **Annulla segnalazione** (motivo facoltativo). Nell’elenco lo vedi come **Risolto** oppure **Annullato** (grigio, senza pulsanti). Macchina e lavoro tornano come erano; se il lavoro restasse sospeso, accanto al guasto annullato compare **Riprendi lavoro**. I guasti annullati non contano più tra i **guasti aperti** (**Richiede attenzione**, panoramica **Parco Macchine**, riassunto di Tony) e con il filtro **Solo aperti** non compaiono. Quando hai già deciso tu (continuazione approvata o lavoro sospeso), chi ha segnalato non può più chiuderlo né annullarlo.
+5. Chi ha segnalato può, **finché il guasto è in attesa**, chiuderlo da solo con **Risolto da me** (il guasto si chiude subito) oppure ritirarlo con **Annulla segnalazione**. Nell’elenco lo vedi come **Risolto** oppure con il badge **Annullato** (grigio, senza pulsanti). Un guasto annullato non si riapre: se l’annullamento è stato un errore, chi aveva segnalato fa una nuova segnalazione. Macchina e lavoro tornano come erano; se il lavoro restasse sospeso, accanto al guasto annullato compare **Riprendi lavoro**. I guasti annullati non contano più tra i **guasti aperti** (**Richiede attenzione**, panoramica **Parco Macchine**, riassunto di Tony) e con il filtro **Solo aperti** non compaiono. Quando il guasto non è più in attesa (per esempio **Continuazione approvata** o **Sospeso**), chi ha segnalato non può più chiuderlo né annullarlo: lo chiudi tu con **Segna risolto**.
 
 ### Buona pratica organizzativa
 

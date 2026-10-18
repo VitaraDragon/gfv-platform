@@ -99,15 +99,15 @@ Per aggiornare le ore:
    - Dettagli guasto
 4. Invia
 
+Finché il guasto è in attesa, chi l’ha segnalato può chiuderlo con **Risolto da me** (il guasto si chiude subito) o ritirarlo con **Annulla segnalazione** (badge **Annullato**). Un guasto annullato non si riapre: se è stato un errore, si fa una nuova segnalazione.
+
 ### Manager
 
-1. Vai su **Gestione Guasti**
-2. Visualizza guasti aperti e storici
-3. Azioni disponibili:
-   - Approvare continuazione lavoro
-   - Sospendere lavoro
-   - Risolvere/Riaprire guasto
-   - Inserire costi/Note
+1. Vai su **Parco Macchine** → **Officina & Guasti**
+2. Filtro **Solo aperti** / **Tutti**
+3. Per chiudere un guasto: **Segna risolto** → note di risoluzione (facoltative) → **Segna risolto**. Il mezzo torna allo stato di prima
+4. I guasti ritirati da chi li ha segnalati compaiono con il badge **Annullato**, senza pulsanti
+5. Per fermare un lavoro: **Sospendi / Rinvia** in **Gestione Lavori**
 
 ---
 

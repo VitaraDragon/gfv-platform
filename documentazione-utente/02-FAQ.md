@@ -174,10 +174,10 @@ Alcuni report hanno pulsante **Esporta Excel** (es. Compensi Operai).
 5. Invia
 
 ### Cosa succede dopo la segnalazione?
-Il manager riceve la notifica e può:
-- Approvare continuazione lavoro (se non grave)
-- Sospendere lavoro
-- Risolvere guasto
+Il manager vede il guasto in **Parco Macchine** → **Officina & Guasti** e lo chiude con **Segna risolto** quando il problema è sistemato. Finché il guasto è in attesa, chi l’ha segnalato può chiuderlo con **Risolto da me** (il guasto si chiude subito) o ritirarlo con **Annulla segnalazione**.
+
+### Ho annullato una segnalazione per errore
+Un guasto annullato non si riapre: fai una nuova segnalazione.
 
 ## 💰 Compensi
 

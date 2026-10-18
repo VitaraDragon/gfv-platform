@@ -225,14 +225,13 @@ La dashboard mostra in tempo reale:
 
 ### Gestire Guasti
 
-1. Vai su **Gestione Guasti**
-2. Visualizza lista guasti (aperti e risolti)
-3. Filtra per stato, gravità, macchina
-4. Per ogni guasto:
-   - **Approva Continuazione**: Se non grave, permette continuazione lavoro
-   - **Sospendi Lavoro**: Sospende lavoro associato
-   - **Risolvi Guasto**: Marca guasto come risolto
-   - **Riapri**: Riapre guasto risolto
+1. Vai su **Moduli** → **Parco Macchine** → **Officina & Guasti** (oppure tocca l’avviso sui guasti in **Richiede attenzione**)
+2. Con il filtro **Stato** scegli **Solo aperti** o **Tutti**
+3. Per ogni guasto vedi mezzo o descrizione, gravità, data, stato e dettagli
+4. Per chiudere un guasto: **Segna risolto** → note di risoluzione (facoltative) → **Segna risolto**. Il mezzo torna allo stato di prima; se il guasto grave aveva fermato un lavoro, il lavoro riparte (se non riparte compare **Riprendi lavoro**)
+5. Se devi fermare un lavoro per un guasto, usa **Sospendi / Rinvia** in **Gestione Lavori** (motivo **Guasto**)
+
+Chi ha segnalato, finché il guasto è in attesa, può chiuderlo da solo con **Risolto da me** (il guasto si chiude subito) o ritirarlo con **Annulla segnalazione**: in elenco lo vedi con il badge **Annullato**. Un guasto annullato o chiuso non si riapre: se serve, chi ha segnalato fa una nuova segnalazione.
 
 ## 🗺️ Mappa Aziendale
 

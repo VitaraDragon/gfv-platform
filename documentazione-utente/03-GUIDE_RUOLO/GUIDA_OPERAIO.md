@@ -195,8 +195,9 @@ Cliccando su un'ora vedi:
 3. Per ogni guasto vedi:
    - **Macchina**: Trattore/attrezzo
    - **Gravità**: Grave / Non grave
-   - **Stato**: Aperto / Risolto
+   - **Stato**: In attesa / Risolto / Annullato (e altri stati se il guasto è già stato preso in carico)
    - **Data**: Data segnalazione
+4. Finché il guasto è in attesa puoi usare **Risolto da me** (il guasto si chiude subito) o **Annulla segnalazione** (badge **Annullato**). Un guasto annullato non si riapre: se l’hai annullato per errore, fai una nuova segnalazione.
 
 ## 📊 Statistiche Personali
 

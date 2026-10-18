@@ -1,6 +1,6 @@
 # Manodopera — Guida per il caposquadra
 
-Questa guida è solo per il **caposquadra**: ciò che puoi fare dalla **versione mobile campo** e dalla schermata **I miei lavori** nell’app, passo passo. Non trovi qui le funzioni del **manager** (gestione squadre, compensi globali, validazione ore su tutta l’azienda, gestione guasti completa, ecc.).
+Questa guida è solo per il **caposquadra**: ciò che puoi fare dalla **versione mobile campo** e dalla schermata **I miei lavori** nell’app, passo passo. Non trovi qui le funzioni del **manager** (gestione squadre, compensi globali, validazione ore su tutta l’azienda, chiusura dei guasti in officina, ecc.).
 
 **Manager** e **operai** hanno schermate e permessi diversi: nella **documentazione Manodopera online** usa le schede in alto (**Introduzione**, **Manager**, **Operaio**) per le guide dedicate a quei ruoli.
 
@@ -297,11 +297,11 @@ Se colleghi la segnalazione a un **lavoro** e scegli **grave**, l’app può **s
 ### Come si “risolve” un guasto (ruoli)
 
 - **Tu in campo**: metti in sicurezza e coordini la squadra. Sulle **tue** segnalazioni, **solo finché sono in attesa** (il manager non ha ancora deciso), hai due pulsanti:
-  - **✅ Risolto da me**: note di riparazione obbligatorie, costo facoltativo, poi **✅ Conferma Risoluzione**. La segnalazione diventa **Risolto**.
-  - **🚫 Annulla segnalazione**: la ritiri (mandata per sbaglio, problema che non c’era). Motivo facoltativo, poi **Sì, annulla la segnalazione**. Resta in elenco con il badge **🚫 Annullato** e la data **Annullata il**; il manager vede che l’hai annullata.
+  - **✅ Risolto da me**: note di riparazione obbligatorie, costo facoltativo, poi **✅ Conferma Risoluzione**. Il guasto si chiude subito e la segnalazione diventa **Risolto**.
+  - **🚫 Annulla segnalazione**: la ritiri (mandata per sbaglio, problema che non c’era). Motivo facoltativo, poi **Sì, annulla la segnalazione**. Resta in elenco con il badge **🚫 Annullato** e la data **Annullata il**; il manager la vede con il badge **Annullato**. Una segnalazione annullata non si riapre: se l’hai annullata per errore, fai una nuova segnalazione.
   - **Indietro** chiude la finestra senza cambiare nulla.
   In tutti e due i casi macchina e attrezzo tornano come erano prima della segnalazione (disponibile o in uso), salvo un altro guasto aperto sullo stesso mezzo; il lavoro fermato da una segnalazione grave riparte, salvo un altro guasto aperto sullo stesso lavoro. **Storico**, quando compare sotto la segnalazione, mostra segnalazione, annullo o chiusura con le note. Quando il manager ha già deciso (continuazione approvata o lavoro sospeso), i pulsanti spariscono e la segnalazione la chiude lui; se decide mentre hai la finestra aperta, si chiude con l’avviso «Il responsabile ha già preso una decisione su questo guasto: non puoi più annullarlo o chiuderlo da qui.» Una segnalazione non si cancella dal campo: solo il manager può eliminarla.  
-- **Manager** (schermata **Gestione guasti**): può **approvare la continuazione** del lavoro su guasti non gravi, **sospendere** il lavoro in caso grave, registrare la **risoluzione** con note e costi, **riaprire** un guasto se il problema torna. Le segnalazioni che hai annullato le vede con il badge **Annullato**, senza pulsanti.  
+- **Manager** (pagina **Officina & Guasti** del Parco Macchine): vede le segnalazioni e chiude il guasto con **Segna risolto**, con note facoltative; se serve fermare il lavoro, lo sospende da **Gestione lavori**. Le segnalazioni che hai annullato le vede con il badge **Annullato**, senza pulsanti. Se il problema torna dopo la chiusura, fai una nuova segnalazione.  
 - Finché il guasto è aperto, tieni allineata la squadra con **comunicazioni** e telefonate: la guida manager descrive il lato decisionale completo.
 
 ---

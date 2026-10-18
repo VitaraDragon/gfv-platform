@@ -1083,7 +1083,7 @@
         "PARCO_MACCHINE",
         "MANODOPERA"
       ],
-      "label": "Gestione guasti manager: approva continuazione, sospendi, risolvi, riapri; filtro Annullato"
+      "label": "Gestione guasti legacy (solo target Tony gestione guasti admin, logica vecchia): non descritta nelle guide utente; il manager chiude con Segna risolto in Officina & Guasti"
     },
     {
       "prefix": "core/admin/js/gestione-macchine-events",
