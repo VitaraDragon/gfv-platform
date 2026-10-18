@@ -63,7 +63,9 @@ export function parseLavoroDataInizio(dataInizio) {
  * @param {Date} [oggi]
  */
 export function isLavoroVisibileOperaioCampo(lavoro, oggi = new Date()) {
-    const stato = lavoro.stato || 'assegnato';
+    // «attivo» è lo stato scritto per errore alla chiusura di un guasto: vale come in corso.
+    let stato = lavoro.stato || 'assegnato';
+    if (stato === 'attivo') stato = 'in_corso';
     if (stato === 'completato' || stato === 'annullato' || stato === 'completato_da_approvare') {
         return false;
     }
@@ -113,7 +115,9 @@ export function getLavoroDataFinePrevista(lavoro) {
  * @param {{ maxFutureDays?: number, ruolo?: string }} [opts]
  */
 export function isLavoroInDropdownSegnaOre(lavoro, oggi = new Date(), opts = {}) {
-    const stato = (lavoro && lavoro.stato) || 'assegnato';
+    // Stesso alias di isLavoroVisibileOperaioCampo: i documenti vecchi con «attivo» restano segnabili.
+    let stato = (lavoro && lavoro.stato) || 'assegnato';
+    if (stato === 'attivo') stato = 'in_corso';
     if (stato === 'completato' || stato === 'completato_da_approvare') {
         return lavoroSelezionabilePerOre({
             lavoro,
@@ -390,7 +394,7 @@ export function sliceOperaioLavoriWindow(works, opts = {}) {
     if (focusLavoroId) mustKeepIds.add(focusLavoroId);
     works.forEach((w) => {
         if (w.ripresaDaLavoroId) mustKeepIds.add(w.id);
-        if ((w.stato || '') === 'in_corso') mustKeepIds.add(w.id);
+        if (['in_corso', 'assegnato', 'sospeso'].includes((w.stato || ''))) mustKeepIds.add(w.id);
         const statoW = (w && w.stato) || '';
         if (statoW === 'completato' || statoW === 'completato_da_approvare') {
             if (lavoroSelezionabilePerOre({ lavoro: w, ruolo: 'operaio' }).ok) {

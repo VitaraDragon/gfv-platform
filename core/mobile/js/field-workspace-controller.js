@@ -67,7 +67,7 @@ import {
     resolveSegnaturaOreRoleFlags,
     resolveFieldWorkspaceLavoriRoleFlags,
     sliceOperaioLavoriWindow,
-} from '../../services/manodopera-lavori-scope.js';
+} from '../../services/manodopera-lavori-scope.js?v=2026-10-17b';
 import {
     lavoroSelezionabilePerOre,
     componiEtichettaLavoroOre
@@ -2967,6 +2967,7 @@ async function initFieldWorkspace() {
                     ? hasAnyRoleFn({ ruoli: normalizedRoles }, ['operaio'])
                     : roleListHas(normalizedRoles, ['operaio']);
                 userIsCaposquadra = isCaposquadra;
+                updateFieldDocumentationGuideLink();
                 userIsOperaio = isOperaio;
                 if (inlineTeamSectionEl) {
                     inlineTeamSectionEl.hidden = !isCaposquadra;

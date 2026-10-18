@@ -42,6 +42,13 @@ describe('isLavoroVisibileOperaioCampo', () => {
         expect(isLavoroVisibileOperaioCampo({ stato: 'in_corso' }, oggi)).toBe(true);
     });
 
+    it('lo stato legacy attivo è visibile in home e selezionabile in Segna ore', () => {
+        const lavoro = { stato: 'attivo', motivoSospensione: null };
+        expect(isLavoroVisibileOperaioCampo(lavoro, oggi)).toBe(true);
+        expect(isLavoroInDropdownSegnaOre(lavoro, oggi)).toBe(true);
+        expect(isLavoroSegnabileOperaio(lavoro, oggi)).toBe(true);
+    });
+
     it('esclude completato anche con data di completamento', () => {
         expect(isLavoroVisibileOperaioCampo({ stato: 'completato' }, oggi)).toBe(false);
         expect(isLavoroVisibileOperaioCampo({
@@ -133,6 +140,13 @@ describe('isLavoroInDropdownSegnaOre', () => {
             completatoIl: new Date(2026, 4, 9)
         }, oggi)).toBe(false);
     });
+
+    it('esclude un assegnato che parte fra più di 14 giorni', () => {
+        expect(isLavoroInDropdownSegnaOre({
+            stato: 'assegnato',
+            dataInizio: new Date(2026, 5, 1)
+        }, oggi)).toBe(false);
+    });
 });
 
 describe('getLavoroDataFinePrevista', () => {
@@ -149,9 +163,9 @@ describe('getLavoroDataFinePrevista', () => {
 describe('sliceOperaioLavoriWindow', () => {
     it('preferisce il lavoro in_corso più recente, non il più vecchio', () => {
         const works = [
-            { id: 'old', stato: 'in_corso', dataInizio: new Date(2024, 2, 1) },
+            { id: 'old', stato: 'da_pianificare', dataInizio: new Date(2024, 2, 1) },
             { id: 'new', stato: 'in_corso', dataInizio: new Date(2026, 4, 16) },
-            { id: 'mid', stato: 'assegnato', dataInizio: new Date(2025, 0, 1) }
+            { id: 'mid', stato: 'da_pianificare', dataInizio: new Date(2025, 0, 1) }
         ];
         const slice = sliceOperaioLavoriWindow(works, { maxNeighbors: 0 });
         expect(slice.map((w) => w.id)).toEqual(['new']);
@@ -159,7 +173,7 @@ describe('sliceOperaioLavoriWindow', () => {
 
     it('prioritizza lavori di ripresa nel focus', () => {
         const works = [
-            { id: 'old', stato: 'in_corso', dataInizio: new Date(2026, 4, 10) },
+            { id: 'old', stato: 'da_pianificare', dataInizio: new Date(2026, 4, 10) },
             { id: 'ripresa', stato: 'assegnato', ripresaDaLavoroId: 'sosp1', dataInizio: new Date(2026, 4, 12) },
         ];
         const slice = sliceOperaioLavoriWindow(works, { maxNeighbors: 0 });
@@ -181,6 +195,70 @@ describe('sliceOperaioLavoriWindow', () => {
         expect(ids).toContain('focus');
         expect(ids).toContain('d');
         expect(ids).not.toContain('vecchioChiuso');
+    });
+
+    it('tiene l’assegnato che inizia domani insieme a 10 completati recenti e un lavoro in corso', () => {
+        const oggi = new Date();
+        oggi.setHours(12, 0, 0, 0);
+        const inizioCorso = new Date(oggi);
+        inizioCorso.setDate(inizioCorso.getDate() - 40);
+        const works = [
+            { id: 'corso', stato: 'in_corso', dataInizio: inizioCorso }
+        ];
+        for (let i = 0; i < 10; i++) {
+            const dataInizio = new Date(inizioCorso);
+            dataInizio.setDate(dataInizio.getDate() + 1 + i);
+            works.push({
+                id: 'chiuso' + i,
+                stato: 'completato',
+                completatoIl: oggi,
+                dataInizio
+            });
+        }
+        const domani = new Date(oggi);
+        domani.setDate(domani.getDate() + 1);
+        works.push({ id: 'legatura', stato: 'assegnato', dataInizio: domani });
+
+        const ids = sliceOperaioLavoriWindow(works, { maxNeighbors: 3 }).map((w) => w.id);
+        expect(ids).toContain('legatura');
+        expect(ids).toContain('corso');
+    });
+
+    it('tiene un assegnato che per data dista più di 3 posizioni dal lavoro in evidenza', () => {
+        const works = [
+            { id: 'focus', stato: 'in_corso', dataInizio: new Date(2026, 0, 1) },
+            { id: 'altro0', stato: 'da_pianificare', dataInizio: new Date(2026, 0, 2) },
+            { id: 'altro1', stato: 'da_pianificare', dataInizio: new Date(2026, 0, 3) },
+            { id: 'altro2', stato: 'da_pianificare', dataInizio: new Date(2026, 0, 4) },
+            { id: 'altro3', stato: 'da_pianificare', dataInizio: new Date(2026, 0, 5) },
+            { id: 'altro4', stato: 'da_pianificare', dataInizio: new Date(2026, 0, 6) },
+            { id: 'lontano', stato: 'assegnato', dataInizio: new Date(2026, 0, 10) },
+            { id: 'sospesoLontano', stato: 'sospeso', dataInizio: new Date(2026, 0, 11) }
+        ];
+        const ids = sliceOperaioLavoriWindow(works, { maxNeighbors: 3 }).map((w) => w.id);
+        expect(ids).toContain('focus');
+        expect(ids).toContain('lontano');
+        expect(ids).toContain('sospesoLontano');
+        expect(ids).not.toContain('altro3');
+    });
+
+    it('con 12 lavori o meno restituisce lo stesso elenco di oggi', () => {
+        const oggi = new Date();
+        oggi.setHours(12, 0, 0, 0);
+        const works = [];
+        for (let i = 0; i < 10; i++) {
+            works.push({
+                id: 'c' + i,
+                stato: 'completato',
+                completatoIl: oggi,
+                dataInizio: new Date(2026, 0, i + 1)
+            });
+        }
+        works.push({ id: 'corso', stato: 'in_corso', dataInizio: new Date(2026, 0, 15) });
+        works.push({ id: 'domani', stato: 'assegnato', dataInizio: new Date(2026, 0, 16) });
+
+        expect(sliceOperaioLavoriWindow(works, { maxNeighbors: 3 }).map((w) => w.id))
+            .toEqual(works.map((w) => w.id));
     });
 });
 

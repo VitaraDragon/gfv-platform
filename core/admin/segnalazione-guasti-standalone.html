@@ -178,6 +178,11 @@
             background: #d4edda;
         }
 
+        .guasto-item.annullato {
+            border-left-color: #757575;
+            background: #f1f3f5;
+        }
+
         .guasto-item.in-attesa {
             border-left-color: #ffc107;
             background: #fff3cd;
@@ -214,6 +219,21 @@
 
         .badge-risolto {
             background: #28a745;
+            color: white;
+        }
+
+        .badge-annullato {
+            background: #757575;
+            color: white;
+        }
+
+        .badge-approvato {
+            background: #17a2b8;
+            color: white;
+        }
+
+        .badge-sospeso {
+            background: #6f42c1;
             color: white;
         }
 
@@ -562,7 +582,7 @@
     <div id="risolvi-modal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 data-i18n="guasto.resolveTitle">Risolvi Guasto</h3>
+                <h3 data-i18n="guasto.resolveTitle">Risolto da me</h3>
                 <button class="close-modal" onclick="closeRisolviModal()">&times;</button>
             </div>
             <form id="risolvi-guasto-form">
@@ -582,7 +602,29 @@
 
                 <div style="display: flex; gap: 10px; margin-top: 20px;">
                     <button type="submit" class="btn btn-success" data-i18n="guasto.resolveSubmit">✅ Conferma Risoluzione</button>
-                    <button type="button" class="btn btn-secondary" onclick="closeRisolviModal()" data-i18n="guasto.resolveCancel">Annulla</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeRisolviModal()" data-i18n="guasto.resolveCancel">Indietro</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Annulla segnalazione -->
+    <div id="annulla-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 data-i18n="guasto.cancelTitle">Annulla segnalazione</h3>
+                <button class="close-modal" onclick="closeAnnullaModal()">&times;</button>
+            </div>
+            <form id="annulla-guasto-form">
+                <input type="hidden" id="annulla-guasto-id">
+                <p data-i18n="guasto.cancelBody">Vuoi ritirare questa segnalazione? Il responsabile vedrà che l'hai annullata. Macchina e lavoro tornano com'erano.</p>
+                <div class="form-group">
+                    <label for="annulla-motivo" data-i18n="guasto.cancelReason">Motivo (facoltativo)</label>
+                    <textarea id="annulla-motivo" data-i18n-placeholder="guasto.cancelReasonPh" placeholder="Perché la ritiri..."></textarea>
+                </div>
+                <div style="display: flex; gap: 10px; margin-top: 20px;">
+                    <button type="submit" class="btn btn-danger" data-i18n="guasto.cancelConfirm">Sì, annulla la segnalazione</button>
+                    <button type="button" class="btn btn-secondary" onclick="closeAnnullaModal()" data-i18n="guasto.resolveCancel">Indietro</button>
                 </div>
             </form>
         </div>
@@ -604,7 +646,7 @@
     <script type="module">
         import { formatDateTimeItalianReadable } from '../js/date-format-it.js';
         import { getCurrentPositionGeo, geolocationErrorMessage } from '../js/geo-capture.js';
-        import { showAlert } from '../js/gfv-page-utils.js';
+        import { showAlert, escapeHtml } from '../js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../js/simulator-standalone-page.js';
 
         try {
@@ -615,8 +657,22 @@
         }
 
         import { getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
-        import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, orderBy, serverTimestamp, onSnapshot, deleteField } from '../services/firebase-service.js';
+        import { collection, getDocs, doc, getDoc, addDoc, updateDoc, query, where, orderBy, serverTimestamp, onSnapshot, deleteField, runTransaction } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
+        import {
+            isGuastoAttivo,
+            isGuastoNonDeciso,
+            normalizzaStatoGuasto,
+            chiaveBadgeStatoGuasto
+        } from '../services/guasto-stati.js';
+        import { buildVoceStorico, buildAnnullaPatch, buildRisoltoDaMePatch } from '../services/guasto-storico.js';
+        import {
+            idMezziCoinvolti,
+            campiMezziPerCreazione,
+            mezziDaRipristinare,
+            statoRipristinoMezzo,
+            altroGuastoAttivoSulMezzo
+        } from '../services/guasto-ripristino.js';
         import {
             puoAprireSegnalazioneGuasti,
             hrefRitornoSegnalazioneGuasti,
@@ -795,6 +851,8 @@
             let macchineList = [];
             let lavoriList = [];
             let guastiMiei = [];
+            let guastiTenant = [];
+            let salvataggioGuastoInCorso = false;
             let terreniMap = new Map(); // Mappa terreni per lookup rapido
             let guastiUnsubscribe = null;
             
@@ -926,9 +984,8 @@
                 if (!macchinaId || !Array.isArray(guastiMiei)) return false;
                 return guastiMiei.some((g) => {
                     if (!g) return false;
-                    const stato = String(g.stato || '').toLowerCase();
-                    if (stato === 'risolto' || stato === 'riparato' || stato === 'chiuso') return false;
-                    return g.macchinaId === macchinaId || g.attrezzoId === macchinaId;
+                    if (!isGuastoAttivo(g.stato)) return false;
+                    return idMezziCoinvolti(g).includes(macchinaId);
                 });
             }
 
@@ -1784,6 +1841,7 @@
                         guastiRef,
                         (snapshot) => {
                             // Filtra per operaio corrente e ordina per data segnalazione
+                            guastiTenant = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
                             const filtered = snapshot.docs
                                 .filter(doc => {
                                     const data = doc.data();
@@ -1814,6 +1872,7 @@
                             });
                             
                             renderGuasti({ docs: filtered });
+                            chiudiModaliSeGiaDeciso();
                         },
                         (error) => {
                             // Solo logga se non è un errore di indice
@@ -1825,6 +1884,36 @@
                 } catch (error) {
                     console.error('Errore setup listener guasti:', error);
                 }
+            }
+
+            function etichettaAzioneStorico(azione) {
+                if (azione === 'segnalato') return t('guasto.actionReported', linguaGuasto());
+                if (azione === 'annullato') return t('guasto.actionCancelled', linguaGuasto());
+                if (azione === 'risolto_da_segnalatore') return t('guasto.actionResolvedSelf', linguaGuasto());
+                if (azione === 'chiuso_manager') return t('guasto.actionClosedManager', linguaGuasto());
+                return azione || '';
+            }
+
+            function htmlBadgeStatoGuasto(stato) {
+                const chiave = chiaveBadgeStatoGuasto(stato);
+                if (chiave === 'risolto') return '<span class="guasto-badge badge-risolto">' + t('guasto.badgeDone', linguaGuasto()) + '</span>';
+                if (chiave === 'annullato') return '<span class="guasto-badge badge-annullato">' + t('guasto.badgeCancelled', linguaGuasto()) + '</span>';
+                if (chiave === 'approvato-continuazione') return '<span class="guasto-badge badge-approvato">' + t('guasto.badgeApproved', linguaGuasto()) + '</span>';
+                if (chiave === 'sospeso') return '<span class="guasto-badge badge-sospeso">' + t('guasto.badgeSuspended', linguaGuasto()) + '</span>';
+                if (chiave === 'in-attesa') return '<span class="guasto-badge badge-in-attesa">' + t('guasto.badgeWait', linguaGuasto()) + '</span>';
+                return '<span class="guasto-badge">' + escapeHtml(String(stato == null ? '' : stato)) + '</span>';
+            }
+
+            function htmlStoricoGuasto(guasto) {
+                const voci = Array.isArray(guasto.storico) ? guasto.storico : [];
+                if (!voci.length) return '';
+                const righe = voci.map((voce) => {
+                    const quando = formatDateTimeItalianReadable(voce && voce.il);
+                    const azione = etichettaAzioneStorico(voce && voce.azione);
+                    const nota = voce && voce.nota ? ' — ' + escapeHtml(String(voce.nota)) : '';
+                    return '<div>' + escapeHtml(quando || '—') + ' · ' + escapeHtml(azione) + nota + '</div>';
+                }).join('');
+                return '<details class="guasto-storico"><summary>' + t('guasto.historyTitle', linguaGuasto()) + '</summary>' + righe + '</details>';
             }
 
             // Render guasti
@@ -1921,14 +2010,13 @@
                         titolo = macchinaNome;
                     }
 
-                    const stato = guasto.stato || 'in-attesa';
+                    const statoNorm = normalizzaStatoGuasto(guasto.stato);
+                    const chiaveStato = chiaveBadgeStatoGuasto(statoNorm);
                     const gravitaBadge = guasto.gravita === 'grave'
                         ? '<span class="guasto-badge badge-grave">' + t('guasto.badgeSevere', linguaGuasto()) + '</span>'
                         : '<span class="guasto-badge badge-non-grave">' + t('guasto.badgeMild', linguaGuasto()) + '</span>';
 
-                    const statoBadge = stato === 'risolto'
-                        ? '<span class="guasto-badge badge-risolto">' + t('guasto.badgeDone', linguaGuasto()) + '</span>'
-                        : '<span class="guasto-badge badge-in-attesa">' + t('guasto.badgeWait', linguaGuasto()) + '</span>';
+                    const statoBadge = htmlBadgeStatoGuasto(guasto.stato);
 
                     const dataSegnalazione = formatDateTimeItalianReadable(guasto.segnalatoIl);
                     // Mostra posizione solo se esplicitamente inclusa dall'utente (checkbox)
@@ -1939,9 +2027,16 @@
                     const posHtml = (pos && typeof pos.lat === 'number' && typeof pos.lng === 'number')
                         ? `<div><strong>${t('guasto.posLabel', linguaGuasto())}</strong> <a href="https://www.google.com/maps?q=${pos.lat},${pos.lng}" target="_blank" rel="noopener">${pos.lat.toFixed(6)}, ${pos.lng.toFixed(6)}</a>${pos.accuracyMeters ? ` (±${Math.round(pos.accuracyMeters)} m)` : ''} <span style="display:inline-block;margin-left:6px;padding:2px 6px;border-radius:10px;font-size:11px;background:${posSourceColor};color:#fff;font-weight:600;">${posSource}</span></div>`
                         : '';
+                    const classeItem = chiaveStato === 'risolto'
+                        ? 'risolto'
+                        : chiaveStato === 'annullato'
+                            ? 'annullato'
+                            : chiaveStato === 'approvato-continuazione'
+                                ? 'in-attesa'
+                                : '';
 
                     html += `
-                        <div class="guasto-item ${stato === 'risolto' ? 'risolto' : stato === 'approvato-continuazione' ? 'in-attesa' : ''}">
+                        <div class="guasto-item ${classeItem}">
                             <div class="guasto-header">
                                 <div class="guasto-title">${tipoIcon} ${titolo}</div>
                                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
@@ -1958,26 +2053,33 @@
                                 ${posHtml}
                                 <div><strong>${t('guasto.detailsLabel', linguaGuasto())}</strong> ${guasto.dettagli || '-'}</div>
                                 <div><strong>${t('guasto.reportedLabel', linguaGuasto())}</strong> ${dataSegnalazione}</div>
-                                ${guasto.stato === 'risolto' ? `
-                                    <div><strong>${t('guasto.resolvedLabel', linguaGuasto())}</strong> ${guasto.risoltoIl?.toDate ? formatDateTimeItalianReadable(guasto.risoltoIl) : '—'}</div>
+                                ${chiaveStato === 'risolto' ? `
+                                    <div><strong>${t('guasto.resolvedLabel', linguaGuasto())}</strong> ${formatDateTimeItalianReadable(guasto.risoltoIl) || '—'}</div>
                                     <div><strong>${t('guasto.notesLabel', linguaGuasto())}</strong> ${guasto.noteRisoluzione || '-'}</div>
-                                    ${guasto.costoRiparazione ? `<div><strong>${t('guasto.costLabel', linguaGuasto())}</strong> €${guasto.costoRiparazione.toFixed(2)}</div>` : ''}
+                                    ${guasto.costoRiparazione ? `<div><strong>${t('guasto.costLabel', linguaGuasto())}</strong> €${Number(guasto.costoRiparazione).toFixed(2)}</div>` : ''}
                                 ` : ''}
-                                ${guasto.stato === 'approvato-continuazione' ? `
+                                ${chiaveStato === 'annullato' ? `
+                                    <div><strong>${t('guasto.cancelledOn', linguaGuasto())}</strong> ${formatDateTimeItalianReadable(guasto.annullatoIl) || '—'}</div>
+                                ` : ''}
+                                ${chiaveStato === 'approvato-continuazione' ? `
                                     <div style="color: #856404; font-weight: 600; margin-top: 10px;">
                                         ${t('guasto.approvedContinue', linguaGuasto())}
                                     </div>
                                 ` : ''}
-                                ${guasto.stato === 'sospeso' ? `
+                                ${chiaveStato === 'sospeso' ? `
                                     <div style="color: #dc3545; font-weight: 600; margin-top: 10px;">
                                         ${t('guasto.suspended', linguaGuasto())}
                                     </div>
                                 ` : ''}
+                                ${htmlStoricoGuasto(guasto)}
                             </div>
-                            ${stato !== 'risolto' ? `
+                            ${isGuastoNonDeciso(guasto.stato) ? `
                                 <div class="guasto-actions">
                                     <button class="btn btn-success" onclick="openRisolviModal('${guasto.id}')">
                                         ${tipoGuasto === 'generico' ? t('guasto.resolveReport', linguaGuasto()) : t('guasto.resolveBtn', linguaGuasto())}
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="openAnnullaModal('${guasto.id}')">
+                                        ${t('guasto.cancelBtn', linguaGuasto())}
                                     </button>
                                 </div>
                             ` : ''}
@@ -2053,14 +2155,36 @@
                         segnalatoDa: currentUser.uid,
                         segnalatoIl: serverTimestamp(),
                         stato: 'in-attesa',
-                        risolto: false
+                        risolto: false,
+                        storico: [buildVoceStorico({
+                            azione: 'segnalato',
+                            uid: currentUser.uid,
+                            now: new Date(),
+                            nota: null
+                        })]
                     };
+                    let mezziInGuastoCreazione = [];
 
                     // Aggiungi campi specifici in base al tipo
                     if (tipoGuasto === 'macchina') {
-                        guastoData.macchinaId = macchinaId || null;
-                        guastoData.attrezzoId = attrezzoId;
+                        const campiMezzi = campiMezziPerCreazione({ componenteGuasto, macchinaId, attrezzoId });
+                        mezziInGuastoCreazione = campiMezzi.mezziInGuasto;
+                        guastoData.macchinaId = campiMezzi.macchinaId;
+                        guastoData.attrezzoId = campiMezzi.attrezzoId;
                         guastoData.componenteGuasto = componenteGuasto;
+                        const statoPrimaDi = (id) => {
+                            if (!id) return null;
+                            const mezzo = macchineList.find((m) => m && m.id === id);
+                            if (!mezzo || mezzo.stato == null) return null;
+                            const testo = String(mezzo.stato).trim();
+                            return testo || null;
+                        };
+                        if (campiMezzi.macchinaId && campiMezzi.mezziInGuasto.includes(campiMezzi.macchinaId)) {
+                            guastoData.statoMacchinaPrima = statoPrimaDi(campiMezzi.macchinaId);
+                        }
+                        if (campiMezzi.attrezzoId && campiMezzi.mezziInGuasto.includes(campiMezzi.attrezzoId)) {
+                            guastoData.statoAttrezzoPrima = statoPrimaDi(campiMezzi.attrezzoId);
+                        }
                     } else if (tipoGuasto === 'generico') {
                         guastoData.macchinaId = null;
                         guastoData.attrezzoId = null;
@@ -2118,33 +2242,18 @@
 
                     if (scritturaPrincipaleOk && tipoGuasto === 'macchina') {
                         const nuovoStatoMacchina = gravita === 'non-grave' ? 'guasto-lavoro-in-corso' : 'guasto';
-                        if (macchinaId && (componenteGuasto === 'trattore' || componenteGuasto === 'entrambi')) {
+                        for (let i = 0; i < mezziInGuastoCreazione.length; i += 1) {
+                            const mezzoId = mezziInGuastoCreazione[i];
                             try {
-                                const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, macchinaId);
-                                const macchinaDoc = await getDoc(macchinaRef);
-                                if (macchinaDoc.exists()) {
-                                    await updateDoc(macchinaRef, { stato: nuovoStatoMacchina });
+                                const mezzoRef = doc(db, `tenants/${currentTenantId}/macchine`, mezzoId);
+                                const mezzoDoc = await getDoc(mezzoRef);
+                                if (mezzoDoc.exists()) {
+                                    await updateDoc(mezzoRef, { stato: nuovoStatoMacchina });
                                 }
                             } catch (error) {
-                                console.warn('[segnalazione-guasti] stato macchina:', error);
+                                console.warn('[segnalazione-guasti] stato mezzo:', error);
                                 secondarie.push({
                                     nome: 'macchina',
-                                    ok: false,
-                                    errore: error && error.message ? error.message : String(error)
-                                });
-                            }
-                        }
-                        if (attrezzoId && (componenteGuasto === 'attrezzo' || componenteGuasto === 'entrambi')) {
-                            try {
-                                const attrezzoRef = doc(db, `tenants/${currentTenantId}/macchine`, attrezzoId);
-                                const attrezzoDoc = await getDoc(attrezzoRef);
-                                if (attrezzoDoc.exists()) {
-                                    await updateDoc(attrezzoRef, { stato: nuovoStatoMacchina });
-                                }
-                            } catch (error) {
-                                console.warn('[segnalazione-guasti] stato attrezzo:', error);
-                                secondarie.push({
-                                    nome: 'attrezzo',
                                     ok: false,
                                     errore: error && error.message ? error.message : String(error)
                                 });
@@ -2243,6 +2352,104 @@
                 }
             });
 
+            function chiudiModaliSeGiaDeciso() {
+                if (salvataggioGuastoInCorso) return;
+                const risolvi = document.getElementById('risolvi-modal');
+                const annulla = document.getElementById('annulla-modal');
+                const risolviAperto = !!(risolvi && risolvi.classList.contains('show'));
+                const annullaAperto = !!(annulla && annulla.classList.contains('show'));
+                if (!risolviAperto && !annullaAperto) return;
+                const id = risolviAperto
+                    ? document.getElementById('risolvi-guasto-id').value
+                    : document.getElementById('annulla-guasto-id').value;
+                const guasto = guastiMiei.find((g) => g && g.id === id);
+                if (guasto && isGuastoNonDeciso(guasto.stato)) return;
+                if (risolviAperto) closeRisolviModal();
+                if (annullaAperto) closeAnnullaModal();
+                showAlert(t('guasto.alreadyDecided', linguaGuasto()), 'warning');
+            }
+
+            async function aggiornaGuastoDelSegnalatore(guastoId, costruisciPatch) {
+                const guastoRef = doc(db, `tenants/${currentTenantId}/guasti`, guastoId);
+                let esito = 'ok';
+                let letto = null;
+                await runTransaction(db, async (tx) => {
+                    const snap = await tx.get(guastoRef);
+                    if (!snap.exists()) {
+                        esito = 'bloccato';
+                        return;
+                    }
+                    const data = snap.data() || {};
+                    if (data.segnalatoDa !== currentUser.uid || !isGuastoNonDeciso(data.stato)) {
+                        esito = 'bloccato';
+                        return;
+                    }
+                    const built = costruisciPatch(data);
+                    if (!built || built.ok === false) {
+                        esito = (built && built.errore) || 'nota';
+                        return;
+                    }
+                    letto = { id: snap.id, ...data };
+                    tx.update(guastoRef, built.patch);
+                });
+                return { esito, letto };
+            }
+
+            async function ripristinaDopoChiusura(guastoId, guastoData, nuovoStato) {
+                let fallita = false;
+                const tipoGuasto = (guastoData && guastoData.tipoGuasto) || 'macchina';
+                if (tipoGuasto !== 'generico') {
+                    const mezzi = mezziDaRipristinare(guastoData);
+                    for (let i = 0; i < mezzi.length; i += 1) {
+                        const mezzo = mezzi[i];
+                        try {
+                            const mezzoRef = doc(db, `tenants/${currentTenantId}/macchine`, mezzo.id);
+                            const mezzoSnap = await getDoc(mezzoRef);
+                            if (!mezzoSnap.exists()) continue;
+                            const decisione = statoRipristinoMezzo({
+                                statoAttuale: mezzoSnap.data().stato,
+                                statoPrima: mezzo.statoPrima,
+                                altroGuastoAttivoSulMezzo: altroGuastoAttivoSulMezzo(guastiTenant, mezzo.id, guastoId)
+                            });
+                            if (!decisione.scrivi) continue;
+                            await updateDoc(mezzoRef, { stato: decisione.stato, updatedAt: new Date() });
+                        } catch (err) {
+                            console.warn('[segnalazione-guasti] ripristino mezzo:', err);
+                            fallita = true;
+                        }
+                    }
+                }
+                if (guastoData && guastoData.lavoroId) {
+                    try {
+                        const lavoroRef = doc(db, `tenants/${currentTenantId}/lavori`, guastoData.lavoroId);
+                        const lavoroDoc = await getDoc(lavoroRef);
+                        if (lavoroDoc.exists()) {
+                            const lavoro = { id: lavoroDoc.id, ...lavoroDoc.data() };
+                            const guastiAggiornati = (Array.isArray(guastiTenant) ? guastiTenant : []).map((g) => (
+                                g.id === guastoId ? { ...g, stato: nuovoStato } : g
+                            ));
+                            const esitoRipresa = esitoRipresaDopoGuasto({
+                                lavoro,
+                                guasti: guastiAggiornati,
+                                guastoId
+                            });
+                            if (esitoRipresa.riprendi) {
+                                const patch = buildRiprendiLavoroPatch(lavoro, new Date());
+                                await updateDoc(lavoroRef, patchRipresaPerFirestore(patch, deleteField));
+                                showAlert(testoToastRipresa(lavoro.nome, { ripreso: true }), 'success');
+                            } else if (esitoRipresa.motivo === 'altro-guasto') {
+                                showAlert(testoToastRipresa(lavoro.nome, { altroGuasto: true }), 'warning');
+                            }
+                        }
+                    } catch (ripresaErr) {
+                        console.warn('[segnalazione-guasti] ripresa lavoro:', ripresaErr);
+                        fallita = true;
+                        showAlert(testoToastRipresa('', { fallita: true }), 'warning');
+                    }
+                }
+                if (fallita) showAlert(t('guasto.secondaryWarn', linguaGuasto()), 'warning');
+            }
+
             // Funzioni globali per modal
             window.openRisolviModal = function(guastoId) {
                 document.getElementById('risolvi-guasto-id').value = guastoId;
@@ -2254,113 +2461,51 @@
                 document.getElementById('risolvi-guasto-form').reset();
             };
 
-            // Gestione form risolvi guasto
+            window.openAnnullaModal = function(guastoId) {
+                document.getElementById('annulla-guasto-id').value = guastoId;
+                document.getElementById('annulla-motivo').value = '';
+                document.getElementById('annulla-modal').classList.add('show');
+            };
+
+            window.closeAnnullaModal = function() {
+                document.getElementById('annulla-modal').classList.remove('show');
+                document.getElementById('annulla-guasto-form').reset();
+            };
+
             document.getElementById('risolvi-guasto-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
-
+                const submitBtn = e.submitter || e.target.querySelector('button[type="submit"]');
                 const guastoId = document.getElementById('risolvi-guasto-id').value;
                 const noteRisoluzione = document.getElementById('risolvi-note').value.trim();
-                const costoRiparazione = parseFloat(document.getElementById('risolvi-costo').value) || null;
+                const costoInput = document.getElementById('risolvi-costo').value.trim();
+                const costo = costoInput === '' ? undefined : Number(costoInput);
 
                 if (!noteRisoluzione) {
                     showAlert(t('guasto.resolveNeedNotes', linguaGuasto()), 'error');
                     return;
                 }
-
+                if (submitBtn) submitBtn.disabled = true;
+                salvataggioGuastoInCorso = true;
                 try {
-                    const guastoRef = doc(db, `tenants/${currentTenantId}/guasti`, guastoId);
-                    const guastoDoc = await getDoc(guastoRef);
-                    
-                    if (!guastoDoc.exists()) {
-                        throw new Error('Guasto non trovato');
+                    const now = new Date();
+                    const risultato = await aggiornaGuastoDelSegnalatore(guastoId, (data) => buildRisoltoDaMePatch({
+                        uid: currentUser.uid,
+                        now,
+                        nota: noteRisoluzione,
+                        costo,
+                        storico: data.storico
+                    }));
+                    if (risultato.esito === 'bloccato') {
+                        closeRisolviModal();
+                        showAlert(t('guasto.alreadyDecided', linguaGuasto()), 'warning');
+                        return;
                     }
-
-                    const guastoData = guastoDoc.data();
-                    const tipoGuasto = guastoData.tipoGuasto || 'macchina'; // Default per retrocompatibilità
-                    const updateData = {
-                        stato: 'risolto',
-                        risolto: true,
-                        risoltoDa: currentUser.uid,
-                        risoltoIl: serverTimestamp(),
-                        noteRisoluzione
-                    };
-
-                    if (costoRiparazione !== null) {
-                        updateData.costoRiparazione = costoRiparazione;
+                    if (risultato.esito !== 'ok' || !risultato.letto) {
+                        showAlert(t('guasto.resolveNeedNotes', linguaGuasto()), 'error');
+                        return;
                     }
-
-                    await updateDoc(guastoRef, updateData);
-
-                    // Ripristina stato macchine SOLO se è un guasto macchina
-                    if (tipoGuasto === 'macchina') {
-                        const componenteGuasto = guastoData.componenteGuasto || 'trattore'; // Default per retrocompatibilità
-
-                        // Ripristina stato trattore solo se il guasto era del trattore o di entrambi
-                        if (guastoData.macchinaId && (componenteGuasto === 'trattore' || componenteGuasto === 'entrambi')) {
-                            const macchinaRef = doc(db, `tenants/${currentTenantId}/macchine`, guastoData.macchinaId);
-                            const macchinaDoc = await getDoc(macchinaRef);
-                            if (macchinaDoc.exists()) {
-                                const macchinaData = macchinaDoc.data();
-                                // Ripristina stato precedente o disponibile
-                                let nuovoStato = 'disponibile';
-                                if (macchinaData.stato === 'guasto-lavoro-in-corso') {
-                                    // Se era in uso prima del guasto, ripristina in uso
-                                    nuovoStato = 'in-uso';
-                                }
-
-                                await updateDoc(macchinaRef, {
-                                    stato: nuovoStato
-                                });
-                            }
-                        }
-
-                        // Ripristina stato attrezzo solo se il guasto era dell'attrezzo o di entrambi
-                        if (guastoData.attrezzoId && (componenteGuasto === 'attrezzo' || componenteGuasto === 'entrambi')) {
-                            const attrezzoRef = doc(db, `tenants/${currentTenantId}/macchine`, guastoData.attrezzoId);
-                            const attrezzoDoc = await getDoc(attrezzoRef);
-                            if (attrezzoDoc.exists()) {
-                                const attrezzoData = attrezzoDoc.data();
-                                // Ripristina stato precedente o disponibile
-                                let nuovoStato = 'disponibile';
-                                if (attrezzoData.stato === 'guasto-lavoro-in-corso') {
-                                    // Se era in uso prima del guasto, ripristina in uso
-                                    nuovoStato = 'in-uso';
-                                }
-
-                                await updateDoc(attrezzoRef, {
-                                    stato: nuovoStato
-                                });
-                            }
-                        }
-                    }
-
-                    // Se il lavoro è sospeso per questo guasto e non ce ne sono altri aperti, riprendi.
-                    if (guastoData.lavoroId) {
-                        try {
-                            const lavoroRef = doc(db, `tenants/${currentTenantId}/lavori`, guastoData.lavoroId);
-                            const lavoroDoc = await getDoc(lavoroRef);
-                            if (lavoroDoc.exists()) {
-                                const lavoro = { id: lavoroDoc.id, ...lavoroDoc.data() };
-                                const esitoRipresa = esitoRipresaDopoGuasto({
-                                    lavoro,
-                                    guasti: guastiMiei.map((g) => (g.id === guastoId ? { ...g, stato: 'risolto' } : g)),
-                                    guastoId
-                                });
-                                if (esitoRipresa.riprendi) {
-                                    const patch = buildRiprendiLavoroPatch(lavoro, new Date());
-                                    await updateDoc(lavoroRef, patchRipresaPerFirestore(patch, deleteField));
-                                    showAlert(testoToastRipresa(lavoro.nome, { ripreso: true }), 'success');
-                                } else if (esitoRipresa.motivo === 'altro-guasto') {
-                                    showAlert(testoToastRipresa(lavoro.nome, { altroGuasto: true }), 'warning');
-                                }
-                            }
-                        } catch (ripresaErr) {
-                            console.warn('[segnalazione-guasti] ripresa lavoro:', ripresaErr);
-                            showAlert(testoToastRipresa('', { fallita: true }), 'warning');
-                        }
-                    }
-
-                    const messaggio = tipoGuasto === 'macchina'
+                    await ripristinaDopoChiusura(guastoId, risultato.letto, 'risolto');
+                    const messaggio = (risultato.letto.tipoGuasto || 'macchina') === 'macchina'
                         ? t('guasto.resolvedMachine', linguaGuasto())
                         : t('guasto.resolvedGeneric', linguaGuasto());
                     showAlert(messaggio, 'success');
@@ -2368,14 +2513,52 @@
                 } catch (error) {
                     console.error('Errore risoluzione guasto:', error);
                     showAlert(t('guasto.resolveError', linguaGuasto(), { message: error.message }), 'error');
+                } finally {
+                    salvataggioGuastoInCorso = false;
+                    if (submitBtn) submitBtn.disabled = false;
                 }
             });
 
-            // Chiudi modal cliccando fuori
-            document.getElementById('risolvi-modal').addEventListener('click', (e) => {
-                if (e.target.id === 'risolvi-modal') {
-                    closeRisolviModal();
+            document.getElementById('annulla-guasto-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const submitBtn = e.submitter || e.target.querySelector('button[type="submit"]');
+                const guastoId = document.getElementById('annulla-guasto-id').value;
+                const nota = document.getElementById('annulla-motivo').value.trim();
+                if (submitBtn) submitBtn.disabled = true;
+                salvataggioGuastoInCorso = true;
+                try {
+                    const now = new Date();
+                    const risultato = await aggiornaGuastoDelSegnalatore(guastoId, (data) => ({
+                        ok: true,
+                        patch: buildAnnullaPatch({
+                            uid: currentUser.uid,
+                            now,
+                            nota,
+                            storico: data.storico
+                        })
+                    }));
+                    if (risultato.esito === 'bloccato' || !risultato.letto) {
+                        closeAnnullaModal();
+                        showAlert(t('guasto.alreadyDecided', linguaGuasto()), 'warning');
+                        return;
+                    }
+                    await ripristinaDopoChiusura(guastoId, risultato.letto, 'annullato');
+                    showAlert(t('guasto.cancelledOk', linguaGuasto()), 'success');
+                    closeAnnullaModal();
+                } catch (error) {
+                    console.error('Errore annullo guasto:', error);
+                    showAlert(t('guasto.resolveError', linguaGuasto(), { message: error.message }), 'error');
+                } finally {
+                    salvataggioGuastoInCorso = false;
+                    if (submitBtn) submitBtn.disabled = false;
                 }
+            });
+
+            document.getElementById('risolvi-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'risolvi-modal') closeRisolviModal();
+            });
+            document.getElementById('annulla-modal').addEventListener('click', (e) => {
+                if (e.target.id === 'annulla-modal') closeAnnullaModal();
             });
 
             rinfrescaTestiGuasto = function () {

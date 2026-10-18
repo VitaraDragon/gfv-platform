@@ -5,6 +5,7 @@
  */
 
 import { query, where, doc, getDoc } from '../services/firebase-service.js';
+import { isGuastoAttivo } from '../services/guasto-stati.js';
 import { isTipoFlotta } from '../../modules/parco-macchine/lib/macchine-tipo-utils.js';
 import {
     confermeIncludesUser,
@@ -24,7 +25,7 @@ import {
     parseLavoroDataInizio,
     resolveCaposquadraIdsForOperaio,
     resolveSegnaturaOreRoleFlags
-} from '../services/manodopera-lavori-scope.js';
+} from '../services/manodopera-lavori-scope.js?v=2026-10-17b';
 import {
     formatDateLikeToItalianLongLocal,
     formatDateLikeToItalianLongWeekday
@@ -2174,7 +2175,7 @@ export async function loadScadenzeUrgentiCount(tenantId, dependencies) {
 }
 
 /**
- * Conta guasti aperti (stato diverso da Risolto/Riparato/Chiuso)
+ * Conta guasti aperti (non risolti, annullati, riparati o chiusi)
  * @param {string} tenantId - ID tenant
  * @param {Object} dependencies - db, collection, getDocs
  * @returns {Promise<number>}
@@ -2187,8 +2188,7 @@ export async function loadGuastiApertiCount(tenantId, dependencies) {
         const snapshot = await getDocs(guastiRef);
         let count = 0;
         snapshot.forEach((d) => {
-            const s = (d.data().stato || '').toLowerCase();
-            if (s !== 'risolto' && s !== 'riparato' && s !== 'chiuso') count++;
+            if (isGuastoAttivo(d.data().stato)) count++;
         });
         return count;
     } catch (err) {

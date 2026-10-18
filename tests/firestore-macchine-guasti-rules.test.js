@@ -151,6 +151,7 @@ beforeAll(async () => {
     ['operaio-a', { tenantId: TENANT, ruoli: ['operaio'] }],
     ['capo-a', { tenantId: TENANT, ruoli: ['caposquadra'] }],
     ['operaio-b', { tenantId: ALTRO_TENANT, ruoli: ['operaio'] }],
+    ['manager-a', { tenantId: TENANT, ruoli: ['manager'] }],
   ];
   for (const [uid, data] of utenti) {
     const res = await scrivi(`users/${uid}`, data, 'owner');
@@ -166,6 +167,11 @@ beforeAll(async () => {
     'stato-negato',
     'campo-negato',
     'altro-tenant',
+    'op-ripristino-corso',
+    'capo-ripristino-guasto',
+    'op-ripristino-campo',
+    'op-ripristino-tenant',
+    'manager-ripristino',
   ];
   for (const id of macchine) {
     const res = await scrivi(
@@ -174,6 +180,17 @@ beforeAll(async () => {
       'owner'
     );
     if (res.status >= 400) throw new Error(`Seed macchina ${id}: ${res.status} ${res.body}`);
+  }
+
+  const statiIniziali = [
+    ['op-ripristino-corso', 'guasto-lavoro-in-corso'],
+    ['capo-ripristino-guasto', 'guasto'],
+    ['op-ripristino-campo', 'guasto'],
+    ['op-ripristino-tenant', 'guasto'],
+  ];
+  for (const [id, stato] of statiIniziali) {
+    const res = await scrivi(`tenants/${TENANT}/macchine/${id}`, { stato }, 'owner', ['stato']);
+    if (res.status >= 400) throw new Error(`Stato iniziale ${id}: ${res.status} ${res.body}`);
   }
 }, 90000);
 
@@ -237,5 +254,41 @@ describe('macchine: guasto per caposquadra e operaio', () => {
   it('un operaio di un altro tenant è negato', async () => {
     const res = await aggiornaStato('altro-tenant', 'operaio-b', 'guasto');
     expect(res.status).toBe(403);
+  });
+
+  it('l’operaio riporta in uso una macchina ferma per guasto non grave', async () => {
+    const res = await aggiornaStato('op-ripristino-corso', 'operaio-a', 'in_uso', {
+      updatedAt: '2026-10-17',
+    });
+    expect(res.status).toBeLessThan(400);
+  });
+
+  it('il caposquadra riporta in uso una macchina ferma per guasto grave', async () => {
+    const res = await aggiornaStato('capo-ripristino-guasto', 'capo-a', 'in_uso', {
+      updatedAt: '2026-10-17',
+    });
+    expect(res.status).toBeLessThan(400);
+  });
+
+  it('l’operaio non porta in uso una macchina disponibile', async () => {
+    const res = await aggiornaStato('op-disponibile', 'operaio-a', 'in_uso');
+    expect(res.status).toBe(403);
+  });
+
+  it('in uso insieme a un altro campo è negato', async () => {
+    const res = await aggiornaStato('op-ripristino-campo', 'operaio-a', 'in_uso', { nome: 'Altro nome' });
+    expect(res.status).toBe(403);
+  });
+
+  it('un operaio di un altro tenant non riporta in uso', async () => {
+    const res = await aggiornaStato('op-ripristino-tenant', 'operaio-b', 'in_uso');
+    expect(res.status).toBe(403);
+  });
+
+  it('il manager può portare in uso', async () => {
+    const res = await aggiornaStato('manager-ripristino', 'manager-a', 'in_uso', {
+      updatedAt: '2026-10-17',
+    });
+    expect(res.status).toBeLessThan(400);
   });
 });
