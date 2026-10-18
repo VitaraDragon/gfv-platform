@@ -164,6 +164,8 @@ export async function fillAndSubmitNewLavoro(page, { nome, note }) {
     if (form) form.setAttribute('novalidate', 'novalidate');
     const tipoGroup = document.getElementById('tipo-lavoro-group');
     if (tipoGroup) tipoGroup.style.display = 'block';
+    const btn = document.querySelector('#lavoro-form button[type="submit"]');
+    if (btn) btn.scrollIntoView({ block: 'center' });
   });
 
   await page.locator('#lavoro-form button[type="submit"]').click();

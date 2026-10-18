@@ -50,6 +50,15 @@ const OVERRIDES = {
   'concimazione-frutteto-completa-write': {
     requiresSeedProfile: 'frutteto-solo-titolare',
   },
+  'gestione-lavori-modale': {
+    category: 'write',
+    requiresSeedProfile: 'mista-viticola-frutteto-conto-terzi-manodopera',
+    contract: {
+      invariant: 'Modifica trattore su vigna resta dopo il reload; Crea non lascia i campi disabilitati',
+      primaryAsserts: ['trattore nuovo dopo reload', 'nome lavoro editabile appena il modale è attivo'],
+      avoidAsserts: ['attendere i 350 ms prima di leggere i required'],
+    },
+  },
   'gestione-lavori-data-edit': {
     contract: {
       invariant: 'Edit lavoro con data a mezzanotte locale (Europe/Rome) → campo = giorno salvato, non D−1; il salvataggio non sposta il giorno',
