@@ -1459,7 +1459,7 @@
                 <h3>Nuova Categoria Lavoro</h3>
                 <button class="close-btn" onclick="closeCategoriaLavoroModal()">&times;</button>
             </div>
-            <form id="categoria-lavoro-form" onsubmit="handleSalvaCategoriaLavoro(event)">
+            <form id="categoria-lavoro-form" onsubmit="handleSalvaCategoriaLavoro(event)" novalidate>
                 <div class="form-group">
                     <label for="categoria-lavoro-nome">Nome Categoria *</label>
                     <input type="text" id="categoria-lavoro-nome" required placeholder="es. Lavorazione del Terreno">
@@ -1486,7 +1486,7 @@
                 <h3>Nuovo Tipo Lavoro</h3>
                 <button class="close-btn" onclick="closeTipoLavoroModal()">&times;</button>
             </div>
-            <form id="tipo-lavoro-form" onsubmit="handleSalvaTipoLavoro(event)">
+            <form id="tipo-lavoro-form" onsubmit="handleSalvaTipoLavoro(event)" novalidate>
                 <div class="form-group">
                     <label for="tipo-lavoro-nome">Nome Tipo Lavoro *</label>
                     <input type="text" id="tipo-lavoro-nome" required placeholder="es. Aratura">
@@ -1521,7 +1521,7 @@
                 <h2>Aggiungi Nuova Varietà</h2>
                 <button class="close-btn" onclick="closeAddModal('add-varieta-modal')">&times;</button>
             </div>
-            <form onsubmit="addNewVarieta(event)">
+            <form onsubmit="addNewVarieta(event)" novalidate>
                 <div class="form-group">
                     <label for="new-varieta">Nome Varietà *</label>
                     <input type="text" id="new-varieta" required placeholder="es. Sangiovese">
@@ -1540,7 +1540,7 @@
                 <h2>Aggiungi Nuovo Portainnesto</h2>
                 <button class="close-btn" onclick="closeAddModal('add-portainnesto-modal')">&times;</button>
             </div>
-            <form onsubmit="addNewPortainnesto(event)">
+            <form onsubmit="addNewPortainnesto(event)" novalidate>
                 <div class="form-group">
                     <label for="new-portainnesto">Nome Portainnesto *</label>
                     <input type="text" id="new-portainnesto" required placeholder="es. 1103P">
@@ -1559,7 +1559,7 @@
                 <h2>Aggiungi Nuova Forma di Allevamento</h2>
                 <button class="close-btn" onclick="closeAddModal('add-forma-allevamento-modal')">&times;</button>
             </div>
-            <form onsubmit="addNewFormaAllevamento(event)">
+            <form onsubmit="addNewFormaAllevamento(event)" novalidate>
                 <div class="form-group">
                     <label for="new-forma-allevamento">Nome Forma di Allevamento *</label>
                     <input type="text" id="new-forma-allevamento" required placeholder="es. Guyot">
@@ -1578,7 +1578,7 @@
                 <h2>Aggiungi Nuovo Tipo Palo</h2>
                 <button class="close-btn" onclick="closeAddModal('add-tipo-palo-modal')">&times;</button>
             </div>
-            <form onsubmit="addNewTipoPalo(event)">
+            <form onsubmit="addNewTipoPalo(event)" novalidate>
                 <div class="form-group">
                     <label for="new-tipo-palo">Nome Tipo Palo *</label>
                     <input type="text" id="new-tipo-palo" required placeholder="es. Cemento">
@@ -1598,7 +1598,7 @@
                 <h2>Aggiungi Nuova Specie</h2>
                 <button class="close-btn" onclick="closeAddModal('add-frutteto-specie-modal')">&times;</button>
             </div>
-            <form onsubmit="addNewFruttetoSpecie(event)">
+            <form onsubmit="addNewFruttetoSpecie(event)" novalidate>
                 <div class="form-group">
                     <label for="new-frutteto-specie">Nome Specie *</label>
                     <input type="text" id="new-frutteto-specie" required placeholder="es. Melo">
@@ -1616,7 +1616,7 @@
                 <h2>Aggiungi Nuova Varietà</h2>
                 <button class="close-btn" onclick="closeAddModal('add-frutteto-varieta-modal')">&times;</button>
             </div>
-            <form onsubmit="addNewFruttetoVarieta(event)">
+            <form onsubmit="addNewFruttetoVarieta(event)" novalidate>
                 <div class="form-group">
                     <label for="new-frutteto-varieta">Nome Varietà *</label>
                     <input type="text" id="new-frutteto-varieta" required placeholder="es. Gala">
@@ -1634,7 +1634,7 @@
                 <h2>Aggiungi Nuova Forma di Allevamento</h2>
                 <button class="close-btn" onclick="closeAddModal('add-frutteto-forma-allevamento-modal')">&times;</button>
             </div>
-            <form onsubmit="addNewFruttetoFormaAllevamento(event)">
+            <form onsubmit="addNewFruttetoFormaAllevamento(event)" novalidate>
                 <div class="form-group">
                     <label for="new-frutteto-forma-allevamento">Nome Forma *</label>
                     <input type="text" id="new-frutteto-forma-allevamento" required placeholder="es. Fusetto">
@@ -1734,7 +1734,7 @@
             applyAssegnazioneToLavoroForm as applyAssegnazioneToLavoroFormModule,
             loadDettaglioOverview as loadDettaglioOverviewModule,
             loadDettaglioOre as loadDettaglioOreModule
-        } from './js/gestione-lavori-controller.js';
+        } from './js/gestione-lavori-controller.js?v=2026-10-18b';
 
         import { resolveLavoroCascadeParents } from '../js/lavoro-cascade-filters.js';
 
@@ -1747,7 +1747,7 @@
             applyContoTerziStyles as applyContoTerziStylesUtil,
             updateDashboardLink as updateDashboardLinkUtil,
             syncRequiredConVisibilita as syncRequiredConVisibilitaUtil
-        } from './js/gestione-lavori-utils.js';
+        } from './js/gestione-lavori-utils.js?v=2026-10-18b';
 
         import {
             loadDettaglioMap as loadDettaglioMapModule,
@@ -1782,7 +1782,7 @@
             closeTipoLavoroModal as closeTipoLavoroModalModule,
             handleSalvaTipoLavoro as handleSalvaTipoLavoroModule,
             syncLavoroSospensioneFields as syncLavoroSospensioneFieldsModule
-        } from './js/gestione-lavori-events.js';
+        } from './js/gestione-lavori-events.js?v=2026-10-18b';
 
         import {
             initGestioneLavoriAssenzeUi,
@@ -2040,9 +2040,13 @@
         }
 
         // Wrapper per populateTrattoriDropdown
-        function populateTrattoriDropdownWrapper(trattoriListParam = null, selectedMacchinaId = null) {
+        function populateTrattoriDropdownWrapper(trattoriListParam = null, selectedMacchinaId) {
             const trattoriDaUsare = trattoriListParam || lavoriState.trattoriList;
-            populateTrattoriDropdownModule(trattoriDaUsare, selectedMacchinaId);
+            if (selectedMacchinaId === undefined) {
+                populateTrattoriDropdownModule(trattoriDaUsare);
+            } else {
+                populateTrattoriDropdownModule(trattoriDaUsare, selectedMacchinaId);
+            }
         }
 
         // Wrapper per populateCategoriaLavoroDropdown
@@ -2198,6 +2202,14 @@
                 lavoriState.attrezziList
             );
             updateState({ attrezziList: lavoriState.attrezziList });
+            const trattoreSelect = document.getElementById('lavoro-trattore');
+            const attrezzoSelect = document.getElementById('lavoro-attrezzo');
+            if (trattoreSelect && attrezzoSelect && trattoreSelect.value) {
+                const attrezzoId = attrezzoSelect.dataset.userTouched === '1'
+                    ? (attrezzoSelect.dataset.gfvUserValue || null)
+                    : (attrezzoSelect.value || null);
+                populateAttrezziDropdownWrapper(trattoreSelect.value, attrezzoId);
+            }
         }
 
         // Wrapper per loadCategorieAttrezzi
@@ -2266,14 +2278,88 @@
             updateState({ lavoriList: lavoriState.lavoriList });
         }
 
-        // Wrapper per loadLavori
+        // Wrapper per loadLavori. Solo la lista: trattori, attrezzi e statistiche
+        // non si ricaricano di nuovo da qui (il salvataggio li chiedeva già per conto suo).
         async function loadLavoriWrapper() {
             await loadLavoriListOnly();
-            if (lavoriState.hasParcoMacchineModule) {
-                await loadTrattoriWrapper();
-                await loadAttrezziWrapper();
+        }
+
+        function conTimeoutCaricamentoModale(promise, etichetta) {
+            let timer;
+            const timeout = new Promise((_, reject) => {
+                timer = setTimeout(() => reject(new Error(etichetta)), 10000);
+            });
+            return Promise.race([
+                Promise.resolve(promise).finally(() => clearTimeout(timer)),
+                timeout
+            ]);
+        }
+
+        async function caricaListePerModaleLavoro(opzioni) {
+            const lavori = [];
+            if (opzioni.terreni) {
+                lavori.push(conTimeoutCaricamentoModale(
+                    loadTerreniWrapper(opzioni.terreniContoTerzi),
+                    'terreni'
+                ));
             }
-            await loadStatisticsWrapper();
+            if (lavoriState.hasManodoperaModule) {
+                lavori.push(conTimeoutCaricamentoModale(loadCaposquadraWrapper(), 'caposquadra'));
+                lavori.push(conTimeoutCaricamentoModale(loadOperaiWrapper(), 'operai'));
+                lavori.push(conTimeoutCaricamentoModale(loadSquadreWrapper(), 'squadre'));
+            }
+            if (lavoriState.hasParcoMacchineModule) {
+                lavori.push(conTimeoutCaricamentoModale(loadTrattoriWrapper(), 'trattori'));
+                lavori.push(conTimeoutCaricamentoModale(loadAttrezziWrapper(), 'attrezzi'));
+            }
+            const esiti = await Promise.allSettled(lavori);
+            if (esiti.some((esito) => esito.status === 'rejected')) {
+                console.warn('[GESTIONE-LAVORI] elenchi modale', esiti.filter((e) => e.status === 'rejected').map((e) => e.reason));
+                showAlertUtil('Alcuni elenchi non sono arrivati in tempo. Puoi comunque compilare il lavoro.', 'warning');
+            }
+        }
+
+        function registraOsservatoreModaleLavoro() {
+            const lavoroModal = document.getElementById('lavoro-modal');
+            if (!lavoroModal || lavoroModal.dataset.gfvOsservato === '1') return;
+            lavoroModal.dataset.gfvOsservato = '1';
+            let lastActiveState = false;
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((mutation) => {
+                    if (mutation.type !== 'attributes' || mutation.attributeName !== 'class') return;
+                    const isActive = lavoroModal.classList.contains('active');
+                    if (isActive && !lastActiveState) {
+                        setTimeout(() => {
+                            if (lavoriState.hasManodoperaModule) {
+                                setupTipoAssegnazioneHandlersWrapper();
+                            }
+                            const trattoreSelect = document.getElementById('lavoro-trattore');
+                            if (trattoreSelect && lavoriState.hasParcoMacchineModule) {
+                                setupMacchineHandlersWrapper(
+                                    populateAttrezziDropdownWrapper,
+                                    populateOperatoreMacchinaDropdownWrapper
+                                );
+                            }
+                            if (!lavoriState.currentLavoroId) return;
+                            const lavoroCorrente = lavoriState.lavoriList.find(
+                                (l) => l.id === lavoriState.currentLavoroId
+                            );
+                            if (!lavoroCorrente) return;
+                            if (lavoriState.hasManodoperaModule) {
+                                applyAssegnazioneFromLavoroWrapper(lavoroCorrente);
+                            }
+                            const trattore = document.getElementById('lavoro-trattore');
+                            const attrezzo = document.getElementById('lavoro-attrezzo');
+                            const toccato = trattore?.dataset.userTouched === '1' || attrezzo?.dataset.userTouched === '1';
+                            if (!toccato && lavoriState.hasParcoMacchineModule) {
+                                applyMacchineFromLavoroWrapper(lavoroCorrente);
+                            }
+                        }, 100);
+                    }
+                    lastActiveState = isActive;
+                });
+            });
+            observer.observe(lavoroModal, { attributes: true, attributeFilter: ['class'] });
         }
 
         // Wrapper per setupTipoAssegnazioneHandlers
@@ -2822,7 +2908,7 @@
         }
 
         // Wrapper per populateAttrezziDropdown
-        function populateAttrezziDropdownWrapper(trattoreId, selectedAttrezzoId = null) {
+        function populateAttrezziDropdownWrapper(trattoreId, selectedAttrezzoId) {
             populateAttrezziDropdownModule(
                 trattoreId,
                 lavoriState.trattoriList,
@@ -2940,25 +3026,9 @@
             const isContoTerziMode = contoTerziFromUrl === 'true' || 
                                     (statoFromUrl === 'da_pianificare' && lavoriState.hasContoTerziModule);
             
-            // Ricarica le liste necessarie prima di aprire il modal
-            // per assicurarsi che siano aggiornate
-            // IMPORTANTE: Ricarica i terreni per assicurarsi che siano corretti per la modalità corrente
-            await loadTerreniWrapper();
-            
-            if (lavoriState.hasManodoperaModule) {
-                await Promise.all([
-                    loadCaposquadraWrapper(),
-                    loadOperaiWrapper(),
-                    loadSquadreWrapper()
-                ]);
-            }
-            
-            if (lavoriState.hasParcoMacchineModule) {
-                await Promise.all([
-                    loadTrattoriWrapper(),
-                    loadAttrezziWrapper()
-                ]);
-            }
+            // Terreni, manodopera e macchine insieme. Ogni load ha 10 secondi:
+            // se uno non arriva, il modale si apre lo stesso.
+            await caricaListePerModaleLavoro({ terreni: true });
             
             await openCreaModalModule(
                 lavoriState,
@@ -2993,27 +3063,10 @@
                                     (statoFromUrl === 'da_pianificare' && lavoriState.hasContoTerziModule) ||
                                     isLavoroContoTerzi;
             
-            // IMPORTANTE: Ricarica i terreni clienti se il lavoro è conto terzi
-            if (isLavoroContoTerzi || isContoTerziMode) {
-                await loadTerreniWrapper(isLavoroContoTerzi || isContoTerziMode);
-            }
-            
-            // Ricarica le liste necessarie prima di aprire il modal
-            // per assicurarsi che siano aggiornate
-            if (lavoriState.hasManodoperaModule) {
-                await Promise.all([
-                    loadCaposquadraWrapper(),
-                    loadOperaiWrapper(),
-                    loadSquadreWrapper()
-                ]);
-            }
-            
-            if (lavoriState.hasParcoMacchineModule) {
-                await Promise.all([
-                    loadTrattoriWrapper(),
-                    loadAttrezziWrapper()
-                ]);
-            }
+            await caricaListePerModaleLavoro({
+                terreni: !!(isLavoroContoTerzi || isContoTerziMode),
+                terreniContoTerzi: isLavoroContoTerzi || isContoTerziMode
+            });
             
             await openModificaModalModule(
                 lavoroId,
@@ -3667,6 +3720,7 @@
                         setupTipoAssegnazioneHandlersWrapper();
                     }
                     setupCategoriaLavoroHandlerWrapper();
+                    registraOsservatoreModaleLavoro();
 
                     // Lista + roster subito. Catalogo/macchine/stats dopo il paint (su CI fresco le write saturano l'emulator).
                     const urlParams = new URLSearchParams(window.location.search);
@@ -3814,60 +3868,6 @@
                     syncRequiredConVisibilitaUtil(document.getElementById('lavoro-form'));
                     setVignetoFormRequired(false);
                     setFruttetoFormRequired(false);
-                    
-                    // Inizializza handler macchine se modulo attivo
-                    // NOTA: setupMacchineHandlers è gestito dagli event handlers nei moduli
-                    // Ma aggiungiamo anche un listener per quando il modal diventa attivo,
-                    // per gestire casi in cui il modal viene aperto in modo diverso
-                    if (lavoriState.hasParcoMacchineModule) {
-                        const lavoroModal = document.getElementById('lavoro-modal');
-                        if (lavoroModal) {
-                            // Usa MutationObserver per rilevare quando il modal diventa attivo
-                            let lastActiveState = false;
-                            const observer = new MutationObserver((mutations) => {
-                                mutations.forEach((mutation) => {
-                                    if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                                        const isActive = lavoroModal.classList.contains('active');
-                                        // Chiama setupMacchineHandlers e setupTipoAssegnazioneHandlers solo quando il modal diventa attivo (transizione da false a true)
-                                        if (isActive && !lastActiveState) {
-                                            // Usa setTimeout per assicurarsi che il DOM sia completamente pronto
-                                            setTimeout(() => {
-                                                // Configura handler tipo assegnazione (solo se Manodopera attivo)
-                                                if (lavoriState.hasManodoperaModule) {
-                                                    setupTipoAssegnazioneHandlersWrapper();
-                                                }
-                                                
-                                                // Configura handler macchine (solo se Parco Macchine attivo)
-                                                const trattoreSelect = document.getElementById('lavoro-trattore');
-                                                if (trattoreSelect) {
-                                                    setupMacchineHandlersWrapper(
-                                                        populateAttrezziDropdownWrapper,
-                                                        populateOperatoreMacchinaDropdownWrapper
-                                                    );
-                                                }
-                                                if (lavoriState.currentLavoroId) {
-                                                    const lavoroCorrente = lavoriState.lavoriList.find(
-                                                        (l) => l.id === lavoriState.currentLavoroId
-                                                    );
-                                                    if (lavoroCorrente) {
-                                                        if (lavoriState.hasManodoperaModule) {
-                                                            applyAssegnazioneFromLavoroWrapper(lavoroCorrente);
-                                                        }
-                                                        applyMacchineFromLavoroWrapper(lavoroCorrente);
-                                                    }
-                                                }
-                                            }, 100);
-                                        }
-                                        lastActiveState = isActive;
-                                    }
-                                });
-                            });
-                            observer.observe(lavoroModal, {
-                                attributes: true,
-                                attributeFilter: ['class']
-                            });
-                        }
-                    }
                     
                     // Carica statistiche
                     await loadStatisticsWrapper();
