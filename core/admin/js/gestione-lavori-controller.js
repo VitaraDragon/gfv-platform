@@ -1063,10 +1063,9 @@ export async function loadTrattori(currentTenantId, db, app, auth, trattoriList,
         trattoriList.length = 0; // Pulisci array
         trattoriList.push(...trattori);
         
-        // Popola dropdown passando direttamente l'array trattori
-        // Il callback verrà chiamato anche quando il modal si apre, ma qui assicuriamo che i dati siano disponibili
+        // Senza un id esplicito il dropdown terrebbe «nessun trattore» e cancellerebbe la scelta in modifica.
         if (populateTrattoriDropdown) {
-            populateTrattoriDropdown(trattoriList);
+            populateTrattoriDropdown(trattoriList, idMacchinaDaMantenere('lavoro-trattore', 'macchinaId'));
         }
     } catch (error) {
         console.error('Errore caricamento trattori:', error);
@@ -1114,6 +1113,16 @@ export async function loadAttrezzi(currentTenantId, db, app, auth, attrezziList)
         
         attrezziList.length = 0; // Pulisci array
         attrezziList.push(...attrezzi);
+        const trattoreId = idMacchinaDaMantenere('lavoro-trattore', 'macchinaId');
+        const attrezzoId = idMacchinaDaMantenere('lavoro-attrezzo', 'attrezzoId');
+        if (trattoreId && typeof document !== 'undefined' && document.getElementById('lavoro-attrezzo')) {
+            // Il ripopolamento vero è nel wrapper della pagina, che ha le liste e il nome categoria.
+            // Qui si annota l'id da non perdere se un reload azzera il select prima del wrapper.
+            const select = document.getElementById('lavoro-attrezzo');
+            if (select && attrezzoId && select.dataset.userTouched === '1') {
+                select.dataset.gfvUserValue = attrezzoId;
+            }
+        }
     } catch (error) {
         console.error('Errore caricamento attrezzi:', error);
         attrezziList.length = 0;
@@ -1492,10 +1501,39 @@ export function ensureMacchinaOptionInSelect(select, id, itemsList, fallbackLabe
  * @param {Array} trattoriList - Array trattori
  * @param {string|null} [selectedMacchinaId] - Trattore già assegnato al lavoro in modifica (sempre selezionabile)
  */
-export function populateTrattoriDropdown(trattoriList, selectedMacchinaId = null) {
+/**
+ * Id da rimettere nel select dopo un reload: la scelta dell'utente, altrimenti il valore
+ * ancora nel select, altrimenti la macchina del lavoro aperto.
+ * @param {string} selectId
+ * @param {string} campoLavoro
+ * @returns {string|null}
+ */
+function idMacchinaDaMantenere(selectId, campoLavoro) {
+    if (typeof document === 'undefined') return null;
+    const select = document.getElementById(selectId);
+    if (select && select.dataset.userTouched === '1') {
+        if (Object.prototype.hasOwnProperty.call(select.dataset, 'gfvUserValue')) {
+            return select.dataset.gfvUserValue || null;
+        }
+        return select.value || null;
+    }
+    if (select && select.value) return select.value;
+    const lavoroId = document.getElementById('lavoro-id')?.value || '';
+    const list = (typeof window !== 'undefined' && window.lavoriState && window.lavoriState.lavoriList) || [];
+    const lav = lavoroId ? list.find((l) => l.id === lavoroId) : null;
+    return (lav && lav[campoLavoro]) || null;
+}
+
+export function populateTrattoriDropdown(trattoriList, selectedMacchinaId) {
     const select = document.getElementById('lavoro-trattore');
     if (!select) {
         return;
+    }
+
+    // selectedId omesso: tieni il valore corrente se l'option c'è ancora.
+    // null esplicito non ripristina una scelta precedente.
+    if (selectedMacchinaId === undefined) {
+        selectedMacchinaId = select.value || null;
     }
     
     select.innerHTML = '<option value="">-- Nessun trattore --</option>';
@@ -2386,12 +2424,16 @@ export async function renderLavori(
  * @param {Function} getNomeCategoria - Funzione per ottenere nome categoria
  * @param {string|null} [selectedAttrezzoId] - Attrezzo già assegnato al lavoro (sempre incluso)
  */
-export function populateAttrezziDropdown(trattoreId, trattoriList, attrezziList, getNomeCategoria, selectedAttrezzoId = null) {
+export function populateAttrezziDropdown(trattoreId, trattoriList, attrezziList, getNomeCategoria, selectedAttrezzoId) {
     const select = document.getElementById('lavoro-attrezzo');
     const attrezzoGroup = document.getElementById('attrezzo-group');
     
     if (!select || !attrezzoGroup) {
         return;
+    }
+
+    if (selectedAttrezzoId === undefined) {
+        selectedAttrezzoId = select.value || null;
     }
     
     select.innerHTML = '<option value="">-- Nessun attrezzo --</option>';
@@ -2489,24 +2531,39 @@ export function populateAttrezziDropdown(trattoreId, trattoriList, attrezziList,
  */
 export function applyMacchineToLavoroForm(lavoro, trattoriList, attrezziList, getNomeCategoria, operaiList = []) {
     if (!lavoro) return;
-    const macchinaId = lavoro.macchinaId || null;
-    const attrezzoId = lavoro.attrezzoId || null;
+    const trattoreSelect = document.getElementById('lavoro-trattore');
+    const attrezzoSelect = document.getElementById('lavoro-attrezzo');
+    const trattoreToccato = trattoreSelect?.dataset.userTouched === '1';
+    const attrezzoToccato = attrezzoSelect?.dataset.userTouched === '1';
+    const macchinaId = trattoreToccato
+        ? (trattoreSelect.dataset.gfvUserValue || trattoreSelect.value || null)
+        : (lavoro.macchinaId || null);
+    const attrezzoId = attrezzoToccato
+        ? (attrezzoSelect.dataset.gfvUserValue || attrezzoSelect.value || null)
+        : (lavoro.attrezzoId || null);
     const operatoreMacchinaId = lavoro.operatoreMacchinaId || null;
 
-    populateTrattoriDropdown(trattoriList, macchinaId);
-
-    const attrezzoGroup = document.getElementById('attrezzo-group');
-    if (macchinaId) {
-        populateAttrezziDropdown(macchinaId, trattoriList, attrezziList, getNomeCategoria, attrezzoId);
-        if (attrezzoGroup) attrezzoGroup.style.display = 'block';
-    } else if (attrezzoGroup) {
-        attrezzoGroup.style.display = 'none';
+    if (!trattoreToccato) {
+        populateTrattoriDropdown(trattoriList, macchinaId);
     }
 
-    populateOperatoreMacchinaDropdown(operaiList);
+    const attrezzoGroup = document.getElementById('attrezzo-group');
+    if (!attrezzoToccato) {
+        if (macchinaId) {
+            populateAttrezziDropdown(macchinaId, trattoriList, attrezziList, getNomeCategoria, attrezzoId);
+            if (attrezzoGroup) attrezzoGroup.style.display = 'block';
+        } else if (attrezzoGroup) {
+            attrezzoGroup.style.display = 'none';
+        }
+    }
 
     const operatoreSelect = document.getElementById('lavoro-operatore-macchina');
-    if (operatoreMacchinaId && operatoreSelect) {
+    const operatoreToccato = operatoreSelect?.dataset.userTouched === '1';
+    if (!operatoreToccato) {
+        populateOperatoreMacchinaDropdown(operaiList);
+    }
+
+    if (!operatoreToccato && operatoreMacchinaId && operatoreSelect) {
         operatoreSelect.value = operatoreMacchinaId;
     }
 }

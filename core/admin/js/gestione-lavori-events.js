@@ -127,6 +127,143 @@ async function miscelaPrevistaPerSalvataggio(state, terrenoId, dataInizio, tipoL
  */
 let salvaLavoroInCorso = false;
 
+/** Sale a ogni apertura di Crea/Modifica. Le chiusure in coda non toccano un modale più nuovo. */
+let lavoroModalSessione = 0;
+
+export function salvaLavoroInCorsoAttivo() {
+    return salvaLavoroInCorso;
+}
+
+function nuovaSessioneModaleLavoro() {
+    lavoroModalSessione += 1;
+    return lavoroModalSessione;
+}
+
+function rilasciaSalvataggioLavoro() {
+    salvaLavoroInCorso = false;
+    const btn = document.querySelector('#lavoro-form button[type="submit"]');
+    if (btn) btn.disabled = false;
+}
+
+function azzeraToccoMacchineLavoro() {
+    ['lavoro-trattore', 'lavoro-attrezzo', 'lavoro-operatore-macchina'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        delete el.dataset.userTouched;
+        delete el.dataset.gfvUserValue;
+    });
+}
+
+/**
+ * Apre la sessione del modale e sblocca Salva.
+ * Va chiamato all'inizio di Crea e Modifica, prima dei caricamenti.
+ */
+function preparaAperturaModaleLavoro() {
+    nuovaSessioneModaleLavoro();
+    rilasciaSalvataggioLavoro();
+    azzeraToccoMacchineLavoro();
+    return lavoroModalSessione;
+}
+
+function chiudiModaleLavoroSeSessione(sessione, closeLavoroModalCallback) {
+    if (sessione !== lavoroModalSessione) return;
+    const modal = document.getElementById('lavoro-modal');
+    if (!modal || !modal.classList.contains('active')) return;
+    if (typeof closeLavoroModalCallback === 'function') {
+        try {
+            closeLavoroModalCallback();
+            return;
+        } catch (closeErr) {
+            console.error('[GESTIONE-LAVORI] chiusura modal dopo salvataggio:', closeErr);
+        }
+    }
+    modal.classList.remove('active');
+}
+
+function marcaToccoMacchina(el) {
+    if (!el) return;
+    el.dataset.userTouched = '1';
+    el.dataset.gfvUserValue = el.value || '';
+}
+
+/**
+ * Valore di trattore/attrezzo/operatore da scrivere.
+ * Se l'utente ha toccato il campo, vale la sua scelta (anche vuota): un reload che
+ * azzera il select non ripristina l'id originale. Altrimenti, select vuoto = originale.
+ * @param {string} selectId
+ * @param {string|null|undefined} originaleId
+ * @returns {string|null}
+ */
+function valoreMacchinaScelto(selectId, originaleId) {
+    const select = document.getElementById(selectId);
+    if (!select) return originaleId || null;
+    if (select.dataset.userTouched === '1') {
+        if (Object.prototype.hasOwnProperty.call(select.dataset, 'gfvUserValue')) {
+            return select.dataset.gfvUserValue || null;
+        }
+        return select.value || null;
+    }
+    return select.value || originaleId || null;
+}
+
+function campoSalvatoConfronto(valore) {
+    if (valore == null || valore === '') return null;
+    return String(valore);
+}
+
+function giornoSalvatoConfronto(valore) {
+    if (valore == null || valore === '') return null;
+    if (typeof valore === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(valore)) return valore;
+    return dateLikeToLocalCalendarIso(valore) || null;
+}
+
+/** True se il payload non cambia i campi che l'utente vede rispetto al lavoro aperto. */
+function lavoroSalvatoSenzaModifiche(originale, lavoroData, dataInizioIso) {
+    if (!originale) return false;
+    const campi = [
+        'nome', 'terrenoId', 'tipoLavoro', 'durataPrevista', 'stato', 'note',
+        'caposquadraId', 'operaioId', 'macchinaId', 'attrezzoId', 'operatoreMacchinaId',
+        'pianificazioneId'
+    ];
+    for (const campo of campi) {
+        if (campoSalvatoConfronto(originale[campo]) !== campoSalvatoConfronto(lavoroData[campo])) {
+            return false;
+        }
+    }
+    if (giornoSalvatoConfronto(originale.dataInizio) !== giornoSalvatoConfronto(dataInizioIso)) {
+        return false;
+    }
+    const miscelaPrima = JSON.stringify(originale.miscelaPrevista || null);
+    const miscelaDopo = JSON.stringify(lavoroData.miscelaPrevista || null);
+    return miscelaPrima === miscelaDopo;
+}
+
+function ricaricaLavoriSenzaAttendere(loadLavoriCallback, sessioneSalvataggio) {
+    if (typeof loadLavoriCallback !== 'function') return;
+    void (async () => {
+        try {
+            await loadLavoriCallback();
+        } catch (err) {
+            console.warn('[GESTIONE-LAVORI] ricarica lavori', err);
+        } finally {
+            // La lista può arrivare dopo che l'utente ha riaperto un altro lavoro.
+            chiudiModaleLavoroSeSessione(sessioneSalvataggio, null);
+        }
+    })();
+}
+
+/**
+ * Listener una sola volta. Non si clona il select: in Chrome il clone perde il value.
+ * @param {HTMLElement|null} el
+ * @param {string} tipo
+ * @param {Function} handler
+ */
+function ascoltaMacchinaUnaVolta(el, tipo, handler) {
+    if (!el || el.dataset.gfvBound === '1') return;
+    el.addEventListener(tipo, handler);
+    el.dataset.gfvBound = '1';
+}
+
 function nascondiBlocchiImpiantoLavoro() {
     ['vigneto-form-group', 'frutteto-form-group', 'pianificazione-impianto-group'].forEach((id) => {
         const el = document.getElementById(id);
@@ -342,31 +479,31 @@ export function setupMacchineHandlers(
     const operatoreMacchinaGroup = document.getElementById('operatore-macchina-group');
     
     if (trattoreSelect) {
-        // Rimuovi listener esistenti per evitare duplicati
-        const newTrattoreSelect = trattoreSelect.cloneNode(true);
-        trattoreSelect.parentNode.replaceChild(newTrattoreSelect, trattoreSelect);
-        
-        const handleTrattoreChange = function() {
+        trattoreSelect.__gfvPopulateAttrezzi = populateAttrezziDropdownCallback;
+        trattoreSelect.__gfvPopulateOperatore = populateOperatoreMacchinaDropdownCallback;
+        ascoltaMacchinaUnaVolta(trattoreSelect, 'change', function() {
+            marcaToccoMacchina(this);
             const trattoreId = this.value;
             const attrezzoSelectEl = document.getElementById('lavoro-attrezzo');
-            const preserveAttrezzoId = attrezzoSelectEl?.value || null;
-            
-            // Popola dropdown attrezzi compatibili (conserva attrezzo già selezionato in modifica)
-            if (populateAttrezziDropdownCallback && trattoreId) {
-                populateAttrezziDropdownCallback(trattoreId, preserveAttrezzoId);
+            const preserveAttrezzoId = attrezzoSelectEl?.dataset.userTouched === '1'
+                ? (attrezzoSelectEl.dataset.gfvUserValue || null)
+                : (attrezzoSelectEl?.value || null);
+            const popolaAttrezzi = this.__gfvPopulateAttrezzi;
+            const popolaOperatore = this.__gfvPopulateOperatore;
+
+            if (popolaAttrezzi && trattoreId) {
+                popolaAttrezzi(trattoreId, preserveAttrezzoId);
             }
-            
-            // Mostra/nascondi gruppo attrezzo
+
             if (attrezzoGroup) {
                 if (trattoreId) {
                     attrezzoGroup.style.display = 'block';
                 } else {
                     attrezzoGroup.style.display = 'none';
-                    if (attrezzoSelect) attrezzoSelect.value = '';
+                    if (attrezzoSelect && attrezzoSelect.dataset.userTouched !== '1') attrezzoSelect.value = '';
                 }
             }
-            
-            // Mostra/nascondi gruppo operatore macchina
+
             if (operatoreMacchinaGroup) {
                 if (trattoreId || (attrezzoSelect && attrezzoSelect.value)) {
                     operatoreMacchinaGroup.style.display = 'block';
@@ -374,84 +511,50 @@ export function setupMacchineHandlers(
                     operatoreMacchinaGroup.style.display = 'none';
                 }
             }
-            
-            // Aggiorna dropdown operatore macchina
-            if (populateOperatoreMacchinaDropdownCallback) {
-                populateOperatoreMacchinaDropdownCallback();
-            }
-        };
-        
-        newTrattoreSelect.addEventListener('change', handleTrattoreChange);
-        
-        // Se c'è già un trattore selezionato (modifica lavoro), ripopola attrezzi conservando la selezione
-        if (newTrattoreSelect.value) {
+
+            if (popolaOperatore) popolaOperatore();
+        });
+
+        if (trattoreSelect.value) {
             setTimeout(() => {
                 const attrezzoEl = document.getElementById('lavoro-attrezzo');
+                if (attrezzoEl?.dataset.userTouched === '1') return;
                 const preserveAttrezzoId = attrezzoEl?.value || null;
-                if (populateAttrezziDropdownCallback) {
-                    populateAttrezziDropdownCallback(newTrattoreSelect.value, preserveAttrezzoId);
-                }
-                if (preserveAttrezzoId && attrezzoEl) {
-                    attrezzoEl.value = preserveAttrezzoId;
-                }
-                if (operatoreMacchinaGroup && (newTrattoreSelect.value || preserveAttrezzoId)) {
+                const popolaAttrezzi = trattoreSelect.__gfvPopulateAttrezzi;
+                if (popolaAttrezzi) popolaAttrezzi(trattoreSelect.value, preserveAttrezzoId);
+                if (preserveAttrezzoId && attrezzoEl) attrezzoEl.value = preserveAttrezzoId;
+                if (operatoreMacchinaGroup && (trattoreSelect.value || preserveAttrezzoId)) {
                     operatoreMacchinaGroup.style.display = 'block';
                 }
-                if (populateOperatoreMacchinaDropdownCallback) {
-                    populateOperatoreMacchinaDropdownCallback();
-                }
+                if (trattoreSelect.__gfvPopulateOperatore) trattoreSelect.__gfvPopulateOperatore();
             }, 100);
         }
     }
-    
+
     if (attrezzoSelect) {
-        // Rimuovi listener esistenti per evitare duplicati
-        const newAttrezzoSelect = attrezzoSelect.cloneNode(true);
-        attrezzoSelect.parentNode.replaceChild(newAttrezzoSelect, attrezzoSelect);
-        
-        newAttrezzoSelect.addEventListener('change', function() {
-            // Mostra/nascondi gruppo operatore macchina
+        attrezzoSelect.__gfvPopulateOperatore = populateOperatoreMacchinaDropdownCallback;
+        ascoltaMacchinaUnaVolta(attrezzoSelect, 'change', function() {
+            marcaToccoMacchina(this);
             if (operatoreMacchinaGroup) {
                 const trattoreId = document.getElementById('lavoro-trattore')?.value;
-                if (trattoreId || this.value) {
-                    operatoreMacchinaGroup.style.display = 'block';
-                } else {
-                    operatoreMacchinaGroup.style.display = 'none';
-                }
+                operatoreMacchinaGroup.style.display = (trattoreId || this.value) ? 'block' : 'none';
             }
-            
-            // Aggiorna dropdown operatore macchina
-            if (populateOperatoreMacchinaDropdownCallback) {
-                populateOperatoreMacchinaDropdownCallback();
-            }
+            if (this.__gfvPopulateOperatore) this.__gfvPopulateOperatore();
         });
     }
-    
-    // Aggiorna operatore macchina quando cambia l'operaio responsabile
+
     if (operaioSelect) {
-        // Rimuovi listener esistenti per evitare duplicati
-        const newOperaioSelect = operaioSelect.cloneNode(true);
-        operaioSelect.parentNode.replaceChild(newOperaioSelect, operaioSelect);
-        
-        newOperaioSelect.addEventListener('change', function() {
-            if (populateOperatoreMacchinaDropdownCallback) {
-                populateOperatoreMacchinaDropdownCallback();
-            }
+        operaioSelect.__gfvPopulateOperatore = populateOperatoreMacchinaDropdownCallback;
+        ascoltaMacchinaUnaVolta(operaioSelect, 'change', function() {
+            if (this.__gfvPopulateOperatore) this.__gfvPopulateOperatore();
         });
     }
-    
-    // Aggiorna operatore macchina quando cambia tipo assegnazione
-    tipoAssegnazioneRadios.forEach(radio => {
-        // Rimuovi listener esistenti per evitare duplicati
-        const newRadio = radio.cloneNode(true);
-        radio.parentNode.replaceChild(newRadio, radio);
-        
-        newRadio.addEventListener('change', function() {
-            // Aspetta che setupTipoAssegnazioneHandlers aggiorni i dropdown
+
+    tipoAssegnazioneRadios.forEach((radio) => {
+        radio.__gfvPopulateOperatore = populateOperatoreMacchinaDropdownCallback;
+        ascoltaMacchinaUnaVolta(radio, 'change', function() {
             setTimeout(() => {
-                if (populateOperatoreMacchinaDropdownCallback) {
-                    populateOperatoreMacchinaDropdownCallback();
-                }
+                if (this.__gfvPopulateOperatore) this.__gfvPopulateOperatore();
             }, 100);
         });
     });
@@ -620,6 +723,7 @@ export async function openCreaModal(
     populateOperatoreMacchinaDropdownCallback,
     setupMacchineHandlersCallback
 ) {
+    const sessioneApertura = preparaAperturaModaleLavoro();
     resetLavoroFormContoTerziLock();
     updateState({ currentLavoroId: null });
     const modalTitle = document.getElementById('modal-title');
@@ -697,10 +801,15 @@ export async function openCreaModal(
     
     clearSospensioneForm();
     preparaMiscelaNelForm(null);
-    syncRequiredConVisibilita(lavoroForm);
 
+    // Prima si mostra il modale, poi si sincronizzano i required.
+    // campoLavoroVisibile risale gli antenati: con .modal { display:none } un sync
+    // fatto a modale chiuso disabilita anche i campi che l'utente deve compilare.
     const lavoroModal = document.getElementById('lavoro-modal');
     if (lavoroModal) lavoroModal.classList.add('active');
+    if (sessioneApertura === lavoroModalSessione) {
+        syncRequiredConVisibilita(lavoroForm);
+    }
 }
 
 /**
@@ -875,6 +984,7 @@ export async function openModificaModal(
     applyMacchineFromLavoroCallback,
     applyAssegnazioneFromLavoroCallback
 ) {
+    const sessioneApertura = preparaAperturaModaleLavoro();
     updateState({ currentLavoroId: lavoroId });
     const lavoro = lavoriList.find(l => l.id === lavoroId);
     
@@ -959,34 +1069,30 @@ export async function openModificaModal(
     preparaMiscelaNelForm(lavoro && lavoro.miscelaPrevista);
 
     applyLavoroFormContoTerziDaPianificareLock(lavoro);
-    syncRequiredConVisibilita(document.getElementById('lavoro-form'));
-    
+
+    // Stesso ordine di Crea: il modale è visibile prima del sync dei required.
     const lavoroModal = document.getElementById('lavoro-modal');
     if (lavoroModal) lavoroModal.classList.add('active');
-
-    // Dopo setupMacchineHandlers (MutationObserver + change trattore) riapplica macchine e assegnazione
-    if (hasParcoMacchineModule && applyMacchineFromLavoroCallback) {
-        setTimeout(() => applyMacchineFromLavoroCallback(lavoro), 350);
+    if (sessioneApertura === lavoroModalSessione) {
+        syncRequiredConVisibilita(document.getElementById('lavoro-form'));
     }
-    if (hasManodoperaModule && applyAssegnazioneFromLavoroCallback) {
-        setTimeout(() => {
+
+    // Il timer riapplica dal lavoro solo i campi che l'utente non ha ancora toccato.
+    setTimeout(() => {
+        if (sessioneApertura !== lavoroModalSessione) return;
+        if (hasParcoMacchineModule && applyMacchineFromLavoroCallback) {
+            applyMacchineFromLavoroCallback(lavoro);
+        }
+        if (hasManodoperaModule && applyAssegnazioneFromLavoroCallback) {
             applyAssegnazioneFromLavoroCallback(lavoro);
             if (setupTipoAssegnazioneHandlersCallback) setupTipoAssegnazioneHandlersCallback();
-            const catSel = document.getElementById('lavoro-categoria-principale');
-            if (categoriaIdModifica && catSel && !catSel.value && populateCategoriaLavoroDropdownCallback) {
-                populateCategoriaLavoroDropdownCallback(categoriaIdModifica);
-            }
-            syncRequiredConVisibilita(document.getElementById('lavoro-form'));
-        }, 350);
-    } else {
-        setTimeout(() => {
-            const catSel = document.getElementById('lavoro-categoria-principale');
-            if (categoriaIdModifica && catSel && !catSel.value && populateCategoriaLavoroDropdownCallback) {
-                populateCategoriaLavoroDropdownCallback(categoriaIdModifica);
-            }
-            syncRequiredConVisibilita(document.getElementById('lavoro-form'));
-        }, 350);
-    }
+        }
+        const catSel = document.getElementById('lavoro-categoria-principale');
+        if (categoriaIdModifica && catSel && !catSel.value && catSel.dataset.userTouched !== '1' && populateCategoriaLavoroDropdownCallback) {
+            populateCategoriaLavoroDropdownCallback(categoriaIdModifica);
+        }
+        syncRequiredConVisibilita(document.getElementById('lavoro-form'));
+    }, 350);
 }
 
 /**
@@ -1833,7 +1939,10 @@ export async function handleSalvaLavoro(
     generaVoceDiarioContoTerziCallback
 ) {
     if (event && typeof event.preventDefault === 'function') event.preventDefault();
-    if (salvaLavoroInCorso) return;
+    if (salvaLavoroInCorso) {
+        showAlert('Salvataggio precedente ancora in corso…', 'info');
+        return;
+    }
 
     const form = document.getElementById('lavoro-form');
     syncRequiredConVisibilita(form);
@@ -1849,6 +1958,7 @@ export async function handleSalvaLavoro(
     salvaLavoroInCorso = true;
     const submitBtn = (event && event.submitter) || document.querySelector('#lavoro-form button[type="submit"]');
     if (submitBtn) submitBtn.disabled = true;
+    const sessioneSalvataggio = lavoroModalSessione;
     try {
     await salvaLavoroCorpo(
         state,
@@ -1862,7 +1972,8 @@ export async function handleSalvaLavoro(
         loadTrattoriCallback,
         loadAttrezziCallback,
         updateMacchinaStatoCallback,
-        generaVoceDiarioContoTerziCallback
+        generaVoceDiarioContoTerziCallback,
+        sessioneSalvataggio
     );
     } catch (error) {
         console.error('Errore salvataggio lavoro:', error);
@@ -1870,12 +1981,11 @@ export async function handleSalvaLavoro(
         console.warn('[GESTIONE-LAVORI] salvataggio interrotto:', motivo);
         showAlert(`Errore: ${motivo}`, 'error');
     } finally {
-        salvaLavoroInCorso = false;
-        if (submitBtn) submitBtn.disabled = false;
+        rilasciaSalvataggioLavoro();
     }
 }
 
-async function salvaLavoroCorpo(
+export async function salvaLavoroCorpo(
     state,
     updateState,
     currentTenantId,
@@ -1887,19 +1997,21 @@ async function salvaLavoroCorpo(
     loadTrattoriCallback,
     loadAttrezziCallback,
     updateMacchinaStatoCallback,
-    generaVoceDiarioContoTerziCallback
+    generaVoceDiarioContoTerziCallback,
+    sessioneSalvataggio = lavoroModalSessione
 ) {
+    const lavoroIdSalvataggio = state.currentLavoroId || null;
     const nome = document.getElementById('lavoro-nome').value.trim();
     let terrenoId = document.getElementById('lavoro-terreno').value;
-    if (!terrenoId && state.currentLavoroId && state.lavoriList) {
-        const lavoroOrig = state.lavoriList.find((l) => l.id === state.currentLavoroId);
+    if (!terrenoId && lavoroIdSalvataggio && state.lavoriList) {
+        const lavoroOrig = state.lavoriList.find((l) => l.id === lavoroIdSalvataggio);
         if (lavoroOrig?.terrenoId) terrenoId = lavoroOrig.terrenoId;
     }
     const categoriaPrincipaleId = document.getElementById('lavoro-categoria-principale').value;
     const sottocategoriaId = document.getElementById('lavoro-sottocategoria').value;
     let tipoLavoro = document.getElementById('lavoro-tipo-lavoro').value.trim();
-    if (!tipoLavoro && state.currentLavoroId && state.lavoriList) {
-        const lavoroOrig = state.lavoriList.find((l) => l.id === state.currentLavoroId);
+    if (!tipoLavoro && lavoroIdSalvataggio && state.lavoriList) {
+        const lavoroOrig = state.lavoriList.find((l) => l.id === lavoroIdSalvataggio);
         if (lavoroOrig?.tipoLavoro) tipoLavoro = lavoroOrig.tipoLavoro;
     }
     const dataInizio = document.getElementById('lavoro-data-inizio').value;
@@ -1930,10 +2042,10 @@ async function salvaLavoroCorpo(
         caposquadraId = document.getElementById('lavoro-caposquadra')?.value || null;
         operaioId = document.getElementById('lavoro-operaio')?.value || null;
 
-        const lavoroOrigAssegnazione = state.currentLavoroId
-            ? state.lavoriList.find((l) => l.id === state.currentLavoroId)
+        const lavoroOrigAssegnazione = lavoroIdSalvataggio
+            ? state.lavoriList.find((l) => l.id === lavoroIdSalvataggio)
             : null;
-        if (state.currentLavoroId && lavoroOrigAssegnazione) {
+        if (lavoroIdSalvataggio && lavoroOrigAssegnazione) {
             if (tipoAssegnazione === 'autonomo' && !operaioId && lavoroOrigAssegnazione.operaioId) {
                 operaioId = lavoroOrigAssegnazione.operaioId;
             }
@@ -1991,12 +2103,23 @@ async function salvaLavoroCorpo(
         return;
     }
 
+    const lavoroOriginaleIniziale = lavoroIdSalvataggio
+        ? (state.lavoriList || []).find((l) => l.id === lavoroIdSalvataggio) || null
+        : null;
+    // I campi macchina si leggono ora: un await successivo può riaprire il modale e svuotare i select.
+    const macchineScelte = {
+        macchinaId: valoreMacchinaScelto('lavoro-trattore', lavoroOriginaleIniziale?.macchinaId),
+        attrezzoId: valoreMacchinaScelto('lavoro-attrezzo', lavoroOriginaleIniziale?.attrezzoId),
+        operatoreMacchinaId: valoreMacchinaScelto('lavoro-operatore-macchina', lavoroOriginaleIniziale?.operatoreMacchinaId),
+        operatoreToccato: document.getElementById('lavoro-operatore-macchina')?.dataset.userTouched === '1'
+    };
+
     let lavoroSalvato = false;
     try {
         const { Timestamp, serverTimestamp, doc, collection, addDoc, updateDoc, getDoc, deleteField } = await import('../../services/firebase-service.js');
         
         // Se il lavoro era "da_pianificare" e ora ha tutti i campi necessari, passa automaticamente a "assegnato"
-        const lavoroOriginale = state.currentLavoroId ? state.lavoriList.find(l => l.id === state.currentLavoroId) : null;
+        const lavoroOriginale = lavoroOriginaleIniziale;
         const eraDaPianificare = lavoroOriginale?.stato === 'da_pianificare';
         
         // Verifica se la pianificazione è completa
@@ -2072,28 +2195,14 @@ async function salvaLavoroCorpo(
             lavoroData.operaioId = null;
         }
         
-        // Campi macchine (solo se modulo Parco Macchine attivo)
+        // Campi macchine (solo se modulo Parco Macchine attivo).
+        // In modifica il fallback all'originale vale solo se l'utente non ha toccato il campo.
         if (state.hasParcoMacchineModule) {
-            let macchinaId = document.getElementById('lavoro-trattore')?.value || null;
-            let attrezzoId = document.getElementById('lavoro-attrezzo')?.value || null;
-            let operatoreMacchinaId = null;
-            
-            // Operatore macchina solo se Manodopera attivo
-            if (state.hasManodoperaModule) {
-                operatoreMacchinaId = document.getElementById('lavoro-operatore-macchina')?.value || null;
-                
-                // Se operatore macchina non specificato ma c'è un operaio responsabile, usa quello
-                if (!operatoreMacchinaId && tipoAssegnazione === 'autonomo' && operaioId) {
-                    operatoreMacchinaId = operaioId;
-                }
-            }
-
-            if (state.currentLavoroId && lavoroOriginale) {
-                if (!macchinaId && lavoroOriginale.macchinaId) macchinaId = lavoroOriginale.macchinaId;
-                if (!attrezzoId && lavoroOriginale.attrezzoId) attrezzoId = lavoroOriginale.attrezzoId;
-                if (!operatoreMacchinaId && lavoroOriginale.operatoreMacchinaId) {
-                    operatoreMacchinaId = lavoroOriginale.operatoreMacchinaId;
-                }
+            let macchinaId = macchineScelte.macchinaId;
+            let attrezzoId = macchineScelte.attrezzoId;
+            let operatoreMacchinaId = state.hasManodoperaModule ? macchineScelte.operatoreMacchinaId : null;
+            if (state.hasManodoperaModule && !operatoreMacchinaId && !macchineScelte.operatoreToccato && tipoAssegnazione === 'autonomo' && operaioId) {
+                operatoreMacchinaId = operaioId;
             }
             
             lavoroData.macchinaId = macchinaId || null;
@@ -2101,9 +2210,9 @@ async function salvaLavoroCorpo(
             lavoroData.operatoreMacchinaId = operatoreMacchinaId || null;
             
             // Gestisci stato macchine (aggiorna solo se macchina assegnata/rimossa)
-            if (state.currentLavoroId) {
+            if (lavoroIdSalvataggio) {
                 // Modifica: verifica se macchina è cambiata
-                const lavoroEsistente = state.lavoriList.find(l => l.id === state.currentLavoroId);
+                const lavoroEsistente = state.lavoriList.find(l => l.id === lavoroIdSalvataggio);
                 if (lavoroEsistente) {
                     // Libera macchina vecchia se cambiata
                     if (lavoroEsistente.macchinaId && lavoroEsistente.macchinaId !== macchinaId) {
@@ -2143,7 +2252,7 @@ async function salvaLavoroCorpo(
                 try {
                     const { liberaMacchineDaLavoro } = await import('../../services/lavoro-macchine-lifecycle.js');
                     await liberaMacchineDaLavoro(
-                        { id: state.currentLavoroId || null, macchinaId, attrezzoId },
+                        { id: lavoroIdSalvataggio || null, macchinaId, attrezzoId },
                         { tenantId: currentTenantId, lavoriList: state.lavoriList }
                     );
                 } catch (liberaErr) {
@@ -2156,15 +2265,32 @@ async function salvaLavoroCorpo(
         if (miscelaSalvata.annullato) return;
         lavoroData.miscelaPrevista = miscelaSalvata.miscela;
         lavoroData.registroAvvisi = miscelaSalvata.avvisi;
+
+        if (lavoroIdSalvataggio && lavoroSalvatoSenzaModifiche(lavoroOriginaleIniziale, lavoroData, dataInizio)) {
+            rilasciaSalvataggioLavoro();
+            showAlert('Nessuna modifica da salvare', 'info');
+            chiudiModaleLavoroSeSessione(sessioneSalvataggio, closeLavoroModalCallback);
+            return;
+        }
         
-        let nuovoLavoroId = state.currentLavoroId;
+        let nuovoLavoroId = lavoroIdSalvataggio;
         let lavoroEraCompletato = false;
         
-        if (state.currentLavoroId) {
+        if (lavoroIdSalvataggio) {
             // Modifica lavoro esistente
-            const lavoroOriginale = state.lavoriList.find(l => l.id === state.currentLavoroId);
+            const lavoroOriginale = state.lavoriList.find(l => l.id === lavoroIdSalvataggio);
             lavoroEraCompletato = lavoroOriginale?.stato === 'completato';
             
+            lavoroData.aggiornatoIl = serverTimestamp();
+            
+            await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroIdSalvataggio), lavoroData);
+            lavoroSalvato = true;
+            rilasciaSalvataggioLavoro();
+            showAlert('Lavoro modificato con successo!', 'success');
+            chiudiModaleLavoroSeSessione(sessioneSalvataggio, closeLavoroModalCallback);
+            ricaricaLavoriSenzaAttendere(loadLavoriCallback, sessioneSalvataggio);
+
+            void (async () => {
             // Gestione vendemmia collegata (se modulo vigneto attivo)
             try {
                 const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
@@ -2179,7 +2305,7 @@ async function salvaLavoroCorpo(
                         terrenoNuovoEVite = terrenoNuovo?.coltura?.toLowerCase().includes('vite') || false;
                     }
                     const { findVendemmiaByLavoroId, deleteVendemmia, updateVendemmia } = await import('../../../modules/vigneto/services/vendemmia-service.js');
-                    const vendemmiaCollegata = await findVendemmiaByLavoroId(state.currentLavoroId);
+                    const vendemmiaCollegata = await findVendemmiaByLavoroId(lavoroIdSalvataggio);
                     
                     if (vendemmiaCollegata) {
                         const tipoLavoroOriginale = lavoroOriginale?.tipoLavoro || '';
@@ -2213,26 +2339,26 @@ async function salvaLavoroCorpo(
                         else if (tipoLavoroNuovo.toLowerCase().includes('vendemmia') && terrenoNuovoEVite) {
                             console.log('[GESTIONE-LAVORI] Lavoro vendemmia modificato, sincronizzo vendemmia collegata (operai/macchine/data/ore)');
                             const { syncVendemmiaFromLavoro } = await import('../../../modules/vigneto/services/vendemmia-service.js');
-                            await syncVendemmiaFromLavoro(state.currentLavoroId);
+                            await syncVendemmiaFromLavoro(lavoroIdSalvataggio);
                             console.log('[GESTIONE-LAVORI] ✓ Sync vendemmia completato');
                         }
                     }
                     const { findPotaturaByLavoroId, deletePotatura, syncPotaturaFromLavoro } = await import('../../../modules/vigneto/services/potatura-vigneto-service.js');
                     const { findTrattamentoByLavoroId, deleteTrattamento, syncTrattamentoFromLavoro } = await import('../../../modules/vigneto/services/trattamenti-vigneto-service.js');
-                    const potaturaV = await findPotaturaByLavoroId(state.currentLavoroId);
-                    const trattamentoV = await findTrattamentoByLavoroId(state.currentLavoroId);
+                    const potaturaV = await findPotaturaByLavoroId(lavoroIdSalvataggio);
+                    const trattamentoV = await findTrattamentoByLavoroId(lavoroIdSalvataggio);
                     if (potaturaV) {
                         if (!terrenoNuovoEVite) {
                             await deletePotatura(potaturaV.vignetoId, potaturaV.potaturaId);
                         } else {
-                            await syncPotaturaFromLavoro(state.currentLavoroId);
+                            await syncPotaturaFromLavoro(lavoroIdSalvataggio);
                         }
                     }
                     if (trattamentoV) {
                         if (!terrenoNuovoEVite) {
                             await deleteTrattamento(trattamentoV.vignetoId, trattamentoV.trattamentoId);
                         } else {
-                            await syncTrattamentoFromLavoro(state.currentLavoroId);
+                            await syncTrattamentoFromLavoro(lavoroIdSalvataggio);
                         }
                     }
                 }
@@ -2241,17 +2367,14 @@ async function salvaLavoroCorpo(
                 // Non blocchiamo l'operazione principale
             }
             
-            lavoroData.aggiornatoIl = serverTimestamp();
-            
-            await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', state.currentLavoroId), lavoroData);
-            lavoroSalvato = true;
+            })().catch((err) => console.warn('[GESTIONE-LAVORI] allineamento vendemmia/potatura', err));
 
-            const idxSalvato = state.lavoriList.findIndex((l) => l.id === state.currentLavoroId);
+            const idxSalvato = state.lavoriList.findIndex((l) => l.id === lavoroIdSalvataggio);
             if (idxSalvato >= 0) {
                 state.lavoriList[idxSalvato] = {
                     ...state.lavoriList[idxSalvato],
                     ...lavoroData,
-                    id: state.currentLavoroId,
+                    id: lavoroIdSalvataggio,
                     dataInizio: lavoroData.dataInizio?.toDate
                         ? lavoroData.dataInizio.toDate()
                         : state.lavoriList[idxSalvato].dataInizio
@@ -2259,6 +2382,7 @@ async function salvaLavoroCorpo(
                 updateState({ lavoriList: [...state.lavoriList] });
             }
 
+            void (async () => {
             if (lavoroData.stato === 'completato' && !lavoroEraCompletato) {
                 try {
                     const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
@@ -2266,7 +2390,7 @@ async function salvaLavoroCorpo(
                     if (hasVmModule) {
                         const { syncLavoroCompletatoToPianoStagione } = await import('../../../modules/vendemmia-meccanica/services/lavoro-piano-sync-service.js');
                         await syncLavoroCompletatoToPianoStagione(
-                            { ...lavoroOriginale, ...lavoroData, id: state.currentLavoroId },
+                            { ...lavoroOriginale, ...lavoroData, id: lavoroIdSalvataggio },
                             { hasVmModule: true, tenantId: currentTenantId }
                         );
                     }
@@ -2278,7 +2402,7 @@ async function salvaLavoroCorpo(
                     try {
                         const { completaLavoroSospesoOrigineDaRipresa } = await import('../../services/lavori-service.js');
                         await completaLavoroSospesoOrigineDaRipresa(
-                            { ...lavoroOriginale, ...lavoroData, id: state.currentLavoroId },
+                            { ...lavoroOriginale, ...lavoroData, id: lavoroIdSalvataggio },
                             { tenantId: currentTenantId, ripresaStato: 'completato', isParziale: false }
                         );
                     } catch (errOrigine) {
@@ -2286,8 +2410,8 @@ async function salvaLavoroCorpo(
                     }
                 }
             }
+            })().catch((err) => console.warn('[GESTIONE-LAVORI] aggiornamenti dopo la modifica', err));
 
-            showAlert('Lavoro modificato con successo!', 'success');
         } else {
             // Crea nuovo lavoro
             lavoroData.creatoDa = currentUserData.id;
@@ -2296,30 +2420,29 @@ async function salvaLavoroCorpo(
             const nuovoLavoroRef = await addDoc(collection(db, 'tenants', currentTenantId, 'lavori'), lavoroData);
             nuovoLavoroId = nuovoLavoroRef.id;
             lavoroSalvato = true;
+            rilasciaSalvataggioLavoro();
             showAlert('Lavoro creato con successo!', 'success');
+            chiudiModaleLavoroSeSessione(sessioneSalvataggio, closeLavoroModalCallback);
+            ricaricaLavoriSenzaAttendere(loadLavoriCallback, sessioneSalvataggio);
             
             // Se è un lavoro di tipo "Impianto Nuovo Vigneto" con pianificazione, crea anche il vigneto
             if (tipoLavoro.includes('Impianto Nuovo Vigneto') && pianificazioneId) {
-                try {
-                    await creaVignetoDaLavoro(nuovoLavoroId, pianificazioneId, terrenoId, currentTenantId, db);
-                } catch (error) {
-                    console.error('Errore creazione vigneto da lavoro:', error);
+                void creaVignetoDaLavoro(nuovoLavoroId, pianificazioneId, terrenoId, currentTenantId, db).catch((error) => {
+                    console.warn('[GESTIONE-LAVORI] creazione vigneto da lavoro', error);
                     showAlert('Lavoro creato ma errore nella creazione del vigneto: ' + error.message, 'warning');
-                }
+                });
             }
-            // Se è un lavoro di tipo "Impianto Nuovo Frutteto" con pianificazione, crea anche il frutteto
             if (tipoLavoro.includes('Impianto Nuovo Frutteto') && pianificazioneId) {
-                try {
-                    await creaFruttetoDaLavoro(nuovoLavoroId, pianificazioneId, terrenoId, currentTenantId, db);
-                } catch (error) {
-                    console.error('Errore creazione frutteto da lavoro:', error);
+                void creaFruttetoDaLavoro(nuovoLavoroId, pianificazioneId, terrenoId, currentTenantId, db).catch((error) => {
+                    console.warn('[GESTIONE-LAVORI] creazione frutteto da lavoro', error);
                     showAlert('Lavoro creato ma errore nella creazione del frutteto: ' + error.message, 'warning');
-                }
+                });
             }
         }
         
-        // Genera voce diario automatica se lavoro conto terzi completato
         const lavoroCompletatoOra = nuovoStato === 'completato';
+        void (async () => {
+        // Genera voce diario automatica se lavoro conto terzi completato
         if (lavoroCompletatoOra && !lavoroEraCompletato && lavoroData.clienteId && generaVoceDiarioContoTerziCallback) {
             // Carica dati completi del lavoro appena salvato
             const lavoroCompletatoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', nuovoLavoroId));
@@ -2336,7 +2459,7 @@ async function salvaLavoroCorpo(
                 console.log('[GESTIONE-LAVORI] Verifica rilevamento vendemmia:', {
                     tipoLavoro,
                     terrenoId: lavoroData.terrenoId,
-                    nuovoLavoroId: nuovoLavoroId || state.currentLavoroId
+                    nuovoLavoroId: nuovoLavoroId || lavoroIdSalvataggio
                 });
                 
                 if (tipoLavoro.toLowerCase().includes('vendemmia')) {
@@ -2355,7 +2478,7 @@ async function salvaLavoroCorpo(
                         if (terreno && terreno.coltura && terreno.coltura.toLowerCase().includes('vite')) {
                             console.log('[GESTIONE-LAVORI] ✓ Terreno VITE confermato (coltura:', terreno.coltura, '), creo vendemmia automatica...');
                             
-                            const lavoroIdPerVendemmia = nuovoLavoroId || state.currentLavoroId;
+                            const lavoroIdPerVendemmia = nuovoLavoroId || lavoroIdSalvataggio;
                             console.log('[GESTIONE-LAVORI] ID lavoro per vendemmia:', lavoroIdPerVendemmia);
                             
                             const { createVendemmiaFromLavoro } = await import('../../../modules/vigneto/services/vendemmia-service.js');
@@ -2386,7 +2509,7 @@ async function salvaLavoroCorpo(
                             const { getTerreno } = await import('../../../core/services/terreni-service.js');
                             const terrenoR = await getTerreno(lavoroData.terrenoId);
                             if (terrenoR && mapColturaToCategoria(terrenoR.coltura || '') === 'Frutteto') {
-                                const lavoroIdPerRaccolta = nuovoLavoroId || state.currentLavoroId;
+                                const lavoroIdPerRaccolta = nuovoLavoroId || lavoroIdSalvataggio;
                                 const { createRaccoltaFromLavoro } = await import('../../../modules/frutteto/services/raccolta-frutta-service.js');
                                 const result = await createRaccoltaFromLavoro(lavoroIdPerRaccolta);
                                 if (result && result.raccoltaId && result.fruttetoId) {
@@ -2403,7 +2526,7 @@ async function salvaLavoroCorpo(
                 }
                 // Rilevamento automatico potatura/trattamenti vigneto e frutteto (categoria Potatura o Trattamenti)
                 try {
-                    const lavoroIdPerDet = nuovoLavoroId || state.currentLavoroId;
+                    const lavoroIdPerDet = nuovoLavoroId || lavoroIdSalvataggio;
                     if (lavoroIdPerDet && lavoroData.terrenoId) {
                         const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
                         if (await hasModuleAccess('vigneto')) {
@@ -2451,43 +2574,22 @@ async function salvaLavoroCorpo(
                 }
             } catch (error) {
                 console.warn('[GESTIONE-LAVORI] Errore aggiornamento vigneti:', error);
-                // Non blocchiamo l'operazione principale
             }
         }
-        
-        if (closeLavoroModalCallback) closeLavoroModalCallback();
-        
-        // Resetta filtro stato se Manodopera non è attivo, per mostrare subito i nuovi lavori
-        if (!state.hasManodoperaModule) {
+        })().catch((err) => console.warn('[GESTIONE-LAVORI] aggiornamenti dopo il salvataggio', err));
+
+        if (!state.hasManodoperaModule && sessioneSalvataggio === lavoroModalSessione) {
             const filterStatoEl = document.getElementById('filter-stato');
-            if (filterStatoEl) {
-                filterStatoEl.value = '';
-            }
+            if (filterStatoEl) filterStatoEl.value = '';
         }
-        
-        // Ricarica macchine se modulo Parco Macchine attivo (per aggiornare stati)
-        if (state.hasParcoMacchineModule) {
-            if (loadTrattoriCallback) await loadTrattoriCallback();
-            if (loadAttrezziCallback) await loadAttrezziCallback();
-        }
-        
-        if (loadLavoriCallback) await loadLavoriCallback();
-        if (loadStatisticsCallback) await loadStatisticsCallback();
     } catch (error) {
         console.error('Errore salvataggio lavoro:', error);
         const motivo = (error && error.message) ? error.message : 'Non sono riuscito a salvare il lavoro.';
         console.warn('[GESTIONE-LAVORI] salvataggio interrotto:', motivo);
         showAlert(`Errore: ${motivo}`, 'error');
+        rilasciaSalvataggioLavoro();
     } finally {
-        const modal = document.getElementById('lavoro-modal');
-        const ancoraAperto = modal && modal.classList.contains('active');
-        if (lavoroSalvato && ancoraAperto && typeof closeLavoroModalCallback === 'function') {
-            try {
-                closeLavoroModalCallback();
-            } catch (closeErr) {
-                console.error('[GESTIONE-LAVORI] chiusura modal dopo salvataggio:', closeErr);
-                modal.classList.remove('active');
-            }
-        }
+        rilasciaSalvataggioLavoro();
+        if (lavoroSalvato) chiudiModaleLavoroSeSessione(sessioneSalvataggio, closeLavoroModalCallback);
     }
 }

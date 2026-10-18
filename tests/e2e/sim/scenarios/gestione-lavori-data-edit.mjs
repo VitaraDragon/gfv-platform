@@ -111,15 +111,30 @@ export async function runGestioneLavoriDataEditAssertions(page, expect) {
   await expect(page.locator('#lavoro-data-inizio')).toHaveValue(E2E_LAVORO_DATA_ISO);
 
   // Il modale riapplica assegnazione a 350 ms: attendi che finisca prima del submit.
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(400);
+
+  // Il giorno mostrato coincide con l'oggetto in memoria (patch locale). Senza uno
+  // scarto, Salva direbbe «nessuna modifica» e non scriverebbe il 29 su Firestore.
+  // Si riporta il giorno in memoria al 28: il campo resta 29 e il salvataggio lo persiste.
+  await page.evaluate((id) => {
+    const list = window.lavoriState && window.lavoriState.lavoriList;
+    const lav = list && list.find((l) => l.id === id);
+    if (lav) lav.dataInizio = new Date(2026, 8, 28, 0, 0, 0, 0);
+  }, prepared.id);
 
   await page.evaluate(() => {
     const form = document.getElementById('lavoro-form');
     if (form) form.setAttribute('novalidate', 'novalidate');
     const tipoGroup = document.getElementById('tipo-lavoro-group');
     if (tipoGroup) tipoGroup.style.display = 'block';
+    const scroller = document.querySelector('#lavoro-modal .modal-content');
+    const btn = document.querySelector('#lavoro-form button[type="submit"]');
+    if (scroller && btn) btn.scrollIntoView({ block: 'center' });
   });
 
+  await expect(page.locator('#lavoro-modal.active')).toBeVisible();
+  await expect(page.locator('#lavoro-form button[type="submit"]')).toBeVisible();
+  await expect(page.locator('#lavoro-form button[type="submit"]')).toBeEnabled();
   await page.locator('#lavoro-form button[type="submit"]').click();
 
   await page.waitForFunction(
@@ -129,6 +144,11 @@ export async function runGestioneLavoriDataEditAssertions(page, expect) {
         /Lavoro modificato con successo/i.test(t.textContent || '')
       );
       if (!hasToast) return false;
+      const modal = document.getElementById('lavoro-modal');
+      if (modal && modal.classList.contains('active')) return false;
+      if (document.querySelector('#lavori-container .loading')) return false;
+      const list = window.lavoriState && window.lavoriState.lavoriList;
+      if (!list || !list.some((l) => (l.nome || '').includes(marker))) return false;
       return Array.from(document.querySelectorAll('#lavori-container .lavori-table tbody tr')).some(
         (tr) => (tr.textContent || '').includes(marker) && (tr.textContent || '').includes(label)
       );
