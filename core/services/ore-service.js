@@ -204,7 +204,7 @@ export async function getOreOperaio(operaioId, options = {}) {
 
     // Import dinamico
     const { getDb, collection, getDocs, query, where, doc, getDoc } = await import('./firebase-service.js');
-    const { fetchLavoriDocumentsForFieldUser } = await import('./manodopera-lavori-scope.js?v=2026-10-17a');
+    const { fetchLavoriDocumentsForFieldUser } = await import('./manodopera-lavori-scope.js?v=2026-10-17b');
     const db = getDb();
     if (!db) throw new Error('Firebase non inizializzato');
 
@@ -553,7 +553,7 @@ export async function caricaOreUtente(db, tenantId, userId, userData) {
     fetchLavoriDocumentsForFieldUser,
     resolveSegnaturaOreRoleFlags,
     resolveFieldWorkspaceLavoriRoleFlags
-  } = await import('./manodopera-lavori-scope.js?v=2026-10-17a');
+  } = await import('./manodopera-lavori-scope.js?v=2026-10-17b');
   const flags = ruoliUtente(userData);
   const roleFlags = flags.isCaposquadra
     ? resolveFieldWorkspaceLavoriRoleFlags(userData || { ruoli: ['caposquadra'] })
