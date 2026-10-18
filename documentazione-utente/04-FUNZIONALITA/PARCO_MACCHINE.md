@@ -103,7 +103,7 @@ Per aggiornare le ore:
 **Cosa succede dopo l’invio**
 - La segnalazione resta **in attesa** e la trovi in **I Miei Guasti Segnalati**.
 - **Guasto a macchina/attrezzo:** il mezzo indicato dal **componente** passa in stato di guasto (con **Non grave** il lavoro può continuare, con **Grave** il mezzo risulta **Guasto**). Finché resta così non si può scegliere per un nuovo lavoro né per una nuova segnalazione: in elenco compare «(già in guasto)».
-- **Grave con un lavoro collegato:** il lavoro viene **sospeso** solo se segnala il **caposquadra** di quel lavoro (o il manager). Se segnala un operaio, il lavoro non cambia: dopo l’invio compare «Non ho potuto aggiornare lo stato della macchina o del lavoro: avvisa il tuo responsabile.» e la sospensione la decide il caposquadra o il manager.
+- **Grave con un lavoro collegato:** il lavoro viene **sospeso** solo se segnala il **caposquadra** di quel lavoro (o il manager). Se segnala un operaio, il mezzo va in guasto ma il lavoro non cambia; la sospensione la decide il caposquadra o il manager. Dopo l’invio può comparire anche «Non ho potuto aggiornare lo stato della macchina o del lavoro: avvisa il tuo responsabile.»: la segnalazione è comunque registrata e il responsabile vede il guasto nell’elenco **Officina & Guasti**.
 
 Finché il guasto è in attesa, chi l’ha segnalato può chiuderlo con **Risolto da me** (il guasto si chiude subito; le sue note si vedono nello **storico guasti** della scheda del mezzo, non in **Officina & Guasti**) o ritirarlo con **Annulla segnalazione** (badge **Annullato**). Un guasto annullato non si riapre: se è stato un errore, si fa una nuova segnalazione.
 
