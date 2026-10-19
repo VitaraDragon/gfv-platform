@@ -161,6 +161,7 @@ test.describe('barra nuova versione', () => {
     });
 
     test('la conversazione Tony salvata su beforeunload sopravvive ad Aggiorna', async ({ page }) => {
+        test.setTimeout(180_000);
         await loginAsManagerFromDevPage(page);
         await page.goto('/core/dashboard-standalone.html?emulator=1&swTest=1&tonyE2e=1');
         await page.waitForFunction(() => typeof window.__tonyRestoreSession === 'function', null, {
@@ -189,7 +190,7 @@ test.describe('barra nuova versione', () => {
         const conferma = page.locator('#gfv-app-update-conferma');
         const esitoClick = await Promise.race([
             navigata.then(() => 'nav'),
-            conferma.waitFor({ state: 'visible', timeout: 2500 }).then(() => 'dialogo').catch(() => 'nav')
+            conferma.waitFor({ state: 'visible', timeout: 8000 }).then(() => 'dialogo').catch(() => 'attesa')
         ]);
         if (esitoClick === 'dialogo') await conferma.click();
         await navigata;

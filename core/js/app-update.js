@@ -181,7 +181,12 @@ function installaControllerChange() {
         ricaricando = true;
         segnaRicaricato(build);
         if (timerSkip) window.clearInterval(timerSkip);
-        window.location.reload();
+        // Fuori dal turno di controllerchange: nello stesso turno il browser può ignorare il reload.
+        const ricarica = () => {
+            window.location.reload();
+        };
+        window.setTimeout(ricarica, 0);
+        window.setTimeout(ricarica, 1500);
     });
 }
 

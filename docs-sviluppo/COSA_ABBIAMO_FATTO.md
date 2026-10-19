@@ -4,7 +4,7 @@
 
 ## 2026-10-19 — Barra «C'è una nuova versione»
 
-Chi tiene l'app aperta vede in basso «C'è una nuova versione» e il pulsante Aggiorna solo quando online c'è davvero un service worker nuovo. Il primo avvio, l'installazione e un ricaricamento senza deploy non la mostrano. Aggiorna è l'unico modo per ricaricare: dopo il clic la barra sparisce e non torna per la stessa versione. Se il form ha dati non salvati, o un salvataggio è in corso, chiede conferma. La prima volta, chi ha ancora le pagine vecchie ricarica a mano; dalla volta dopo compare la barra. `firestore.rules` non cambia. Nessun deploy di Cloud Functions.
+Chi tiene l'app aperta vede in basso «C'è una nuova versione» e il pulsante Aggiorna solo quando online c'è davvero un service worker nuovo. Il primo avvio, l'installazione e un ricaricamento senza deploy non la mostrano. Aggiorna è l'unico modo per ricaricare: il ricaricamento parte subito dopo che la versione nuova ha preso il controllo, così una pagina già aperta non lo perde. Dopo il clic la barra sparisce e non torna per la stessa versione. Se il form ha dati non salvati, o un salvataggio è in corso, chiede conferma. La prima volta, chi ha ancora le pagine vecchie ricarica a mano; dalla volta dopo compare la barra. `firestore.rules` non cambia. Nessun deploy di Cloud Functions.
 
 ---
 
