@@ -86,10 +86,9 @@ Tutto ruota attorno al **lavoro selezionato**: comunicazioni, ore da validare e 
    - contatta l’ufficio o il manager.  
 4. Sotto il menu compare una **nota di suggerimento**, per esempio «Suggerimento: Potatura (proposta rapida, conferma manualmente).»: è solo un aiuto, resta tu a confermare il lavoro giusto.
 
-### Proposta rapida e posizione
+### Proposta rapida
 
-- La proposta indica il lavoro che hai scelto, se è **assegnato** o **in corso**; altrimenti il primo lavoro **in corso**, poi il primo **assegnato**. Non indica mai un lavoro completato, in attesa di approvazione, sospeso o annullato. Se non c’è niente da proporre leggi «Nessun suggerimento GPS disponibile.».  
-- La proposta non usa la posizione del telefono: per scegliere il lavoro il permesso **posizione** non serve. La posizione serve nella scheda **⚠️ Segnala un problema** (vedi [GPS e mappa](#posizione-gps-e-mappa-passo-passo)).
+- La proposta indica il lavoro che hai scelto, se è **assegnato** o **in corso**; altrimenti il primo lavoro **in corso**, poi il primo **assegnato**. Non indica mai un lavoro completato, in attesa di approvazione, sospeso o annullato. È solo un aiuto: **conferma sempre** dal menu il lavoro giusto.
 
 ### Buona pratica
 
@@ -261,7 +260,7 @@ La segnalazione si fa dalla scheda **⚠️ Segnala un problema** del workspace,
 - **Non grave — posso finire il lavoro**: il problema c’è ma puoi terminare la giornata in sicurezza con cautela.  
 - **Grave — sospendere subito**: pericolo immediato o blocco del mezzo; fermati, metti in sicurezza persone e mezzi, poi segnala.
 
-Se colleghi la segnalazione a un **lavoro di cui sei caposquadra** e scegli **grave**, l’app **sospende** quel lavoro (motivo «Guasto macchina grave» o «Segnalazione grave»). Se il lavoro non è della tua squadra, il lavoro non cambia e dopo l’invio leggi «Segnalazione inviata. Il lavoro lo sospende il caposquadra o il manager.»: non è un errore, la segnalazione è registrata e il manager vede il guasto nell’elenco **Officina & Guasti**. Con un guasto a macchina o attrezzo il mezzo passa in stato di guasto e non si può scegliere per un nuovo lavoro («(già in guasto)»). Se a segnalare grave è un tuo **operaio** su un lavoro di squadra, il lavoro **non** si sospende da solo (lui legge che il lavoro lo sospende il caposquadra o il manager): se serve, sospendilo tu con **⏸️ Sospendi lavoro**. Se invece un operaio segnala grave sul proprio lavoro autonomo, quel lavoro si sospende.
+Se colleghi la segnalazione a un **lavoro di squadra di cui sei caposquadra** (nel menu **Lavoro corrente** è segnato «(Squadra)») e scegli **grave**, l’app **sospende** quel lavoro (motivo «Guasto macchina grave» o «Segnalazione grave»). Se il lavoro è **tutto tuo** (segnato «(Autonomo)») o non è della tua squadra, il lavoro non cambia e dopo l’invio leggi «Segnalazione inviata. Il lavoro lo sospende il caposquadra o il manager.»: non è un errore, la segnalazione è registrata e il manager vede il guasto nell’elenco **Officina & Guasti**. Con un guasto a macchina o attrezzo il mezzo passa in stato di guasto e non si può scegliere per un nuovo lavoro («(già in guasto)»). Se a segnalare grave è un tuo **operaio** su un lavoro di squadra, il lavoro **non** si sospende da solo: se serve, sospendilo tu con **⏸️ Sospendi lavoro**.
 
 ### Segnalazione guasto a macchina o attrezzo
 

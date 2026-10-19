@@ -157,7 +157,7 @@ La dashboard mostra in tempo reale:
    - **Statistiche Lavori**: Totali, attivi, completati, pianificati
    - **Statistiche Ore**: Validate, da validare, media/giorno
    - **Statistiche Squadre**: Totali, attive, operai
-   - **Statistiche Superficie**: Lavorata, totale, percentuale
+   - **Statistiche Superficie** (tre riquadri, sempre il totale: non seguono il periodo): **Superficie lavorata (somma passaggi)**, **Superficie Totale Terreni**, **Terreni coperti** (terreni con almeno un lavoro, contati con l’intera superficie anche se il lavoro ne ha fatta solo una parte)
 
 ### Report Ore Operai
 

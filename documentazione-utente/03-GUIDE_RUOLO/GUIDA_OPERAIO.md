@@ -188,7 +188,7 @@ Cliccando su un'ora vedi:
 **Cosa succede dopo l’invio**
 - La segnalazione resta **in attesa** e la trovi in **I Miei Guasti Segnalati**.
 - **Guasto a macchina/attrezzo:** il mezzo indicato dal **componente** passa in stato di guasto (con **Non grave** il lavoro può continuare, con **Grave** il mezzo risulta **Guasto**). Finché resta così non si può scegliere per un nuovo lavoro né per una nuova segnalazione: in elenco compare «(già in guasto)».
-- **Grave con un lavoro collegato:** il lavoro viene **sospeso** solo se segnala il **caposquadra** di quel lavoro (o il manager). Se segnala un operaio, il mezzo va in guasto ma il lavoro non cambia; la sospensione la decide il caposquadra o il manager. Dopo l’invio può comparire anche «Non ho potuto aggiornare lo stato della macchina o del lavoro: avvisa il tuo responsabile.»: la segnalazione è comunque registrata e il responsabile vede il guasto nell’elenco **Officina & Guasti**.
+- **Grave con un lavoro collegato:** il lavoro viene **sospeso** se segnala il manager, il **caposquadra** di quel lavoro di squadra o l’**operaio** sul proprio lavoro autonomo. Se segnala un operaio su un lavoro di squadra, o un caposquadra su un lavoro tutto suo, il mezzo va in guasto ma il lavoro non cambia e dopo l’invio si legge «Segnalazione inviata. Il lavoro lo sospende il caposquadra o il manager.»: la segnalazione è registrata e il responsabile vede il guasto nell’elenco **Officina & Guasti**.
 
 ### Visualizzare Guasti Segnalati
 

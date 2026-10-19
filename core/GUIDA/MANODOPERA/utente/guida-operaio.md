@@ -93,12 +93,7 @@ Se hai **molti incarichi** aperti (più di una dozzina), l’app può accorciare
 
 ### Proposta rapida sotto il menu
 
-Sotto il menu compare un **suggerimento**, per esempio «Suggerimento: Potatura (proposta rapida, conferma manualmente).». Propone il lavoro che hai scelto, se è **assegnato** o **in corso**; altrimenti il primo lavoro **in corso**, poi il primo **assegnato**. Non propone mai un lavoro completato, in attesa di approvazione, sospeso o annullato. Se non c’è niente da proporre leggi «Nessun suggerimento GPS disponibile.». È solo un aiuto: **conferma sempre** dal menu il lavoro giusto per la giornata.
-
-### GPS e permessi
-
-- Il suggerimento non usa la posizione del telefono: per scegliere il lavoro e segnare le ore il permesso **posizione** non serve.  
-- La posizione serve nella scheda **⚠️ Segnala un problema**, se vuoi allegare il punto con **Segnala qui (GPS)**.
+Sotto il menu compare un **suggerimento**, per esempio «Suggerimento: Potatura (proposta rapida, conferma manualmente).». Propone il lavoro che hai scelto, se è **assegnato** o **in corso**; altrimenti il primo lavoro **in corso**, poi il primo **assegnato**. Non propone mai un lavoro completato, in attesa di approvazione, sospeso o annullato. È solo un aiuto: **conferma sempre** dal menu il lavoro giusto per la giornata.
 
 ---
 

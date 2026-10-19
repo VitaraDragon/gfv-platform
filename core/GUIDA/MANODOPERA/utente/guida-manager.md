@@ -397,11 +397,11 @@ Il flusso **quotidiano** degli operatori resta la **versione mobile**: questa pa
 2. Imposta **periodo** e altri filtri disponibili.  
 3. Leggi totali, ripartizioni per tipo di lavoro o per persona secondo quanto mostra la pagina.
 
-**Statistiche superficie** (tre riquadri): contano tutti i lavori salvati tranne gli annullati, senza seguire il periodo scelto nei filtri.
+**Statistiche superficie** (tre riquadri): mostrano sempre il totale di tutti i lavori salvati tranne gli annullati; non seguono il periodo scelto nei filtri.
 
 - **Superficie lavorata (somma passaggi) (ha)** — somma degli ettari lavorati in tutti i lavori. Se sullo stesso terreno fate più passaggi (per esempio due trattamenti), ogni passaggio conta: il numero può superare la superficie dei terreni.  
 - **Superficie Totale Terreni (ha)** — somma della superficie di tutti i terreni.  
-- **Terreni coperti (ha)** — superficie dei terreni su cui c’è almeno un lavoro con superficie lavorata, contata una volta sola; sotto leggi quanti sono e che parte della superficie totale rappresentano, per esempio «3 terreni · 42.5% della superficie». Questa percentuale non supera mai il 100%.
+- **Terreni coperti (ha)** — i terreni su cui c’è almeno un lavoro con superficie lavorata, ciascuno contato una volta sola. Di ogni terreno conta l’**intera superficie**, anche se il lavoro ne ha fatta solo una parte; sotto leggi quanti sono e che parte della superficie totale rappresentano, per esempio «3 terreni · 42.5% della superficie». Questa percentuale non supera mai il 100%.
 
 Serve per controllo di gestione e verifiche con amministrazione o HR.
 
