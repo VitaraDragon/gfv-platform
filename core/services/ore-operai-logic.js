@@ -939,7 +939,9 @@ export function formatTracciaOra(ora, nomeDi) {
 }
 
 /**
- * Versione corta per la tabella, con il testo intero se serve «mostra tutto».
+ * Versione corta per la tabella. Se non entra, tiene gli ultimi eventi:
+ * una riga rifiutata e poi validata non deve restare «Rifiutata da…».
+ * Il testo intero resta in ordine cronologico, per «mostra tutto».
  * @param {string[]} voci
  * @param {number} [max]
  * @returns {{ full: string, breve: string, tronca: boolean }}
@@ -948,7 +950,8 @@ export function riassuntoTraccia(voci, max = 90) {
   const full = (Array.isArray(voci) ? voci : []).join(' · ');
   const limite = Number(max) > 20 ? Number(max) : 90;
   if (full.length <= limite) return { full, breve: full, tronca: false };
-  return { full, breve: `${full.slice(0, limite - 1).trim()}…`, tronca: true };
+  const coda = full.slice(-(limite - 1)).replace(/^\s+/, '');
+  return { full, breve: `…${coda}`, tronca: true };
 }
 
 /**
