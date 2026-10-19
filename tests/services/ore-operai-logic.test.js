@@ -23,6 +23,7 @@ import {
   etichettaStatoAttualeOra,
   deveRichiedereRefreshSkill,
   vociTracciaOra,
+  riassuntoTraccia,
   assicuraVoceValidazione,
   formatTracciaOra,
   formattaDataOraTraccia,
@@ -264,6 +265,9 @@ describe('ore nette e storico', () => {
     expect(formattaOreMinuti(12.5)).toBe('12h 30min');
     expect(formattaOreMinuti(8)).toBe('8h');
     expect(formattaOreMinuti(0)).toBe('0h');
+    expect(formattaOreMinuti(0.333)).toBe('0h 20min');
+    expect(formattaOreMinuti(1 / 3)).toBe('0h 20min');
+    expect(formattaOreMinuti(0.5)).toBe('0h 30min');
   });
 
   it('aggiungiVoceStorico tiene al massimo 20 voci', () => {
@@ -578,6 +582,44 @@ describe('traccia della riga', () => {
     }, nomeDi);
     expect(voci[0]).toMatch(/^Rifiutata da Anna/);
     expect(voci[1]).toMatch(/^Modificata da Luca/);
+  });
+
+  it('lo stato attuale è Validata anche se la storia ha un rifiuto', () => {
+    const storia = [
+      { azione: 'rifiuto', da: 'mgr', il: new Date(2026, 9, 8, 9, 0), motivo: 'orario sbagliato' },
+      { azione: 'modifica', da: 'op', il: new Date(2026, 9, 8, 10, 0), motivo: '' }
+    ];
+    expect(etichettaStatoAttualeOra({ stato: 'validate', storicoModifiche: storia })).toBe('Validata');
+    expect(etichettaStatoAttualeOra({ stato: 'da_validare', storicoModifiche: storia }, 'caposquadra'))
+      .toBe('Da validare — la valida il caposquadra');
+    expect(etichettaStatoAttualeOra({ stato: 'da_validare', storicoModifiche: storia }, 'manager'))
+      .toBe('Da validare — la valida il manager');
+    expect(etichettaStatoAttualeOra({ stato: 'rifiutate', storicoModifiche: storia })).toBe('Rifiutata');
+  });
+
+  it('il riassunto corto tiene la validazione finale, il testo intero resta cronologico', () => {
+    const motivo = 'orario di inizio non coincide con il cartellino del giorno e va rifatto prima di validare';
+    const ora = {
+      stato: 'validate',
+      validatoDa: 'mgr',
+      validatoIl: new Date(2026, 9, 8, 12, 0),
+      storicoModifiche: [
+        { azione: 'rifiuto', da: 'mgr', il: new Date(2026, 9, 8, 9, 0), motivo },
+        { azione: 'modifica', da: 'op', il: new Date(2026, 9, 8, 10, 30), motivo: '' },
+        { azione: 'validazione', da: 'mgr', il: new Date(2026, 9, 8, 12, 0), motivo: '' }
+      ]
+    };
+    const voci = vociTracciaOra(ora, nomeDi);
+    const r = riassuntoTraccia(voci, 90);
+    expect(r.full.length).toBeGreaterThan(90);
+    expect(r.tronca).toBe(true);
+    expect(r.breve.startsWith('…')).toBe(true);
+    expect(r.breve).toContain('Validata da');
+    expect(r.breve.startsWith('Rifiutata')).toBe(false);
+    expect(r.full.startsWith('Rifiutata da Anna')).toBe(true);
+    expect(r.full.indexOf('Modificata da Luca')).toBeGreaterThan(r.full.indexOf('Rifiutata da Anna'));
+    expect(r.full.indexOf('Validata da Anna')).toBeGreaterThan(r.full.indexOf('Modificata da Luca'));
+    expect(r.full.endsWith('Validata da Anna il 08/10/2026 12:00')).toBe(true);
   });
 });
 

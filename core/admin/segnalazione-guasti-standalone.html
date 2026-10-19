@@ -683,7 +683,7 @@
             testoConfermaSegnalazione,
             ritornoWorkspaceCampoDaGuasti,
             vistaSegnalazionePerModuli
-        } from '../js/field-guasti-access.js';
+        } from '../js/field-guasti-access.js?v=2026-10-18a';
         import { buildSospendiLavoroPatch } from '../services/lavoro-sospensione.js';
         import {
             esitoRipresaDopoGuasto,
@@ -691,8 +691,8 @@
             patchRipresaPerFirestore,
             testoToastRipresa
         } from '../services/lavoro-ripresa-guasto.js';
-        import { macchinaSelezionabile, suffissoMacchinaNonSelezionabile } from '../js/macchina-selezionabile.js';
-        import { t, leggiLinguaCampo } from '../services/field-ui-i18n.js';
+        import { macchinaSelezionabile, suffissoMacchinaNonSelezionabile, aggiornaOpzioniDaGuasti } from '../js/macchina-selezionabile.js?v=2026-10-18a';
+        import { t, leggiLinguaCampo } from '../services/field-ui-i18n.js?v=2026-10-18a';
         import { applicaLingua } from '../mobile/js/field-ui-i18n-dom.js';
 
         let mostraMacchinaSegnalazione = true;
@@ -980,6 +980,56 @@
                 console.info('[segnalazione-guasti] macchine lette:', macchineList.length, 'trattori in elenco:', n);
             }
 
+            function aggiornaTestoSelectAttrezzo(select) {
+                const el = select || document.getElementById('guasto-attrezzo');
+                if (!el) return;
+                const vuota = el.querySelector('option[value=""]');
+                if (vuota) vuota.textContent = t('guasto.noTool', linguaGuasto());
+            }
+
+            function applicaMenuMezziDaGuasti() {
+                const macchinePerId = new Map();
+                (Array.isArray(macchineList) ? macchineList : []).forEach((macchina) => {
+                    if (macchina && macchina.id) macchinePerId.set(macchina.id, macchina);
+                });
+                const aperti = (Array.isArray(guastiTenant) ? guastiTenant : []).filter((g) => g && isGuastoAttivo(g.stato));
+                ['guasto-macchina', 'guasto-attrezzo'].forEach((idSel) => {
+                    const select = document.getElementById(idSel);
+                    if (!select) return;
+                    const letti = Array.from(select.options).map((opt) => ({
+                        value: opt.value,
+                        disabled: opt.disabled,
+                        textContent: opt.textContent,
+                        dataset: {
+                            giaGuasto: opt.dataset.giaGuasto || '',
+                            etichettaBase: opt.dataset.etichettaBase || '',
+                            suffisso: opt.dataset.suffisso || ''
+                        }
+                    }));
+                    const aggiornate = aggiornaOpzioniDaGuasti(letti, aperti, macchinePerId);
+                    aggiornate.forEach((voce, indice) => {
+                        if (!voce.cambiata) return;
+                        const opt = select.options[indice];
+                        if (!opt) return;
+                        opt.disabled = voce.disabled;
+                        opt.dataset.suffisso = voce.suffisso;
+                        if (voce.giaGuasto) opt.dataset.giaGuasto = voce.giaGuasto;
+                        else delete opt.dataset.giaGuasto;
+                        const base = opt.dataset.etichettaBase || voce.etichettaBase;
+                        opt.textContent = base + suffissoVisibile(voce.suffisso);
+                    });
+                    Array.from(select.options).forEach((opt) => {
+                        if (!opt.value || !guastoApertoSuMacchina(opt.value)) return;
+                        opt.disabled = true;
+                        if (opt.dataset.giaGuasto === '1') return;
+                        opt.dataset.giaGuasto = '1';
+                        if (!opt.dataset.etichettaBase) opt.dataset.etichettaBase = opt.textContent;
+                        opt.dataset.suffisso = ' (già in guasto)';
+                        opt.textContent = opt.dataset.etichettaBase + t('guasto.already', linguaGuasto());
+                    });
+                });
+            }
+
             function guastoApertoSuMacchina(macchinaId) {
                 if (!macchinaId || !Array.isArray(guastiMiei)) return false;
                 return guastiMiei.some((g) => {
@@ -1099,8 +1149,11 @@
                         }
                     }
                     aggiornaTestoSelectTrattore(macchinaSelect);
+                    aggiornaTestoSelectAttrezzo(attrezzoSelect);
+                    applicaMenuMezziDaGuasti();
                 } catch (error) {
                     console.error('Errore caricamento macchine:', error);
+                    aggiornaTestoSelectAttrezzo();
                     showAlert(t('guasto.loadMachinesError', linguaGuasto()), 'error');
                 }
             }
@@ -1857,19 +1910,7 @@
                                     return dateB - dateA; // Più recente prima
                                 });
                             guastiMiei = filtered.map((d) => ({ id: d.id, ...d.data() }));
-                            ['guasto-macchina', 'guasto-attrezzo'].forEach((idSel) => {
-                                const select = document.getElementById(idSel);
-                                if (!select) return;
-                                Array.from(select.options).forEach((opt) => {
-                                    if (!opt.value || !guastoApertoSuMacchina(opt.value)) return;
-                                    opt.disabled = true;
-                                    if (opt.dataset.giaGuasto === '1') return;
-                                    opt.dataset.giaGuasto = '1';
-                                    if (!opt.dataset.etichettaBase) opt.dataset.etichettaBase = opt.textContent;
-                                    opt.dataset.suffisso = ' (già in guasto)';
-                                    opt.textContent = opt.dataset.etichettaBase + t('guasto.already', linguaGuasto());
-                                });
-                            });
+                            applicaMenuMezziDaGuasti();
                             
                             renderGuasti({ docs: filtered });
                             chiudiModaliSeGiaDeciso();
@@ -2276,6 +2317,8 @@
                                 lavoro
                             });
                             if (!puoSospendere) {
+                                const ruolo = normalizzaRuoliGuasti(ruoliUtenteGuasti, ruoloSingoloGuasti).join(',') || 'sconosciuto';
+                                console.info('[segnalazione-guasti] sospensione lavoro non tentata: ruolo', ruolo);
                                 secondarie.push({ nome: 'lavoro', ok: false, errore: 'non-tentata' });
                             } else {
                                 const built = buildSospendiLavoroPatch(causaSospensione);
@@ -2299,18 +2342,24 @@
                     if (esito.successo) {
                         const dalCampo = provenienzaGuastiPagina() === 'field'
                             && ritornoWorkspaceCampoDaGuasti(ruoliUtenteGuasti, ruoloSingoloGuasti);
+                        const capoDecide = esito.avvisi.length === 0
+                            && Array.isArray(esito.info)
+                            && esito.info.indexOf('sospensione-non-tentata') >= 0;
                         const base = testoConfermaSegnalazione({
                             dalCampo,
                             haAvvisi: esito.avvisi.length > 0,
-                            incorporata: segnalazioneIncorporata()
+                            incorporata: segnalazioneIncorporata(),
+                            info: esito.info
                         });
                         const lang = linguaGuasto();
+                        let dettaglio = t('guasto.sentDetail', lang);
+                        if (esito.avvisi.length) dettaglio = t('guasto.sentWarn', lang);
+                        else if (capoDecide) dettaglio = t('guasto.sentCapoDecide', lang);
+                        else if (base.tornaAutomatico) dettaglio = t('guasto.sentLeaving', lang);
                         mostraBannerSegnalazione({
                             ...base,
                             titolo: t('guasto.sentTitle', lang),
-                            dettaglio: esito.avvisi.length
-                                ? t('guasto.sentWarn', lang)
-                                : (base.tornaAutomatico ? t('guasto.sentLeaving', lang) : t('guasto.sentDetail', lang))
+                            dettaglio
                         });
                     }
                     esito.avvisi.forEach((avviso) => {
@@ -2505,6 +2554,7 @@
                         return;
                     }
                     await ripristinaDopoChiusura(guastoId, risultato.letto, 'risolto');
+                    await loadMacchine();
                     const messaggio = (risultato.letto.tipoGuasto || 'macchina') === 'macchina'
                         ? t('guasto.resolvedMachine', linguaGuasto())
                         : t('guasto.resolvedGeneric', linguaGuasto());
@@ -2543,6 +2593,7 @@
                         return;
                     }
                     await ripristinaDopoChiusura(guastoId, risultato.letto, 'annullato');
+                    await loadMacchine();
                     showAlert(t('guasto.cancelledOk', linguaGuasto()), 'success');
                     closeAnnullaModal();
                 } catch (error) {
@@ -2565,8 +2616,7 @@
                 applicaLingua(linguaGuasto());
                 applicaRitornoGuasti(ruoliUtenteGuasti, ruoloSingoloGuasti);
                 aggiornaTestoSelectTrattore(document.getElementById('guasto-macchina'));
-                const attrezzoVuoto = document.querySelector('#guasto-attrezzo option[value=""]');
-                if (attrezzoVuoto) attrezzoVuoto.textContent = t('guasto.noTool', linguaGuasto());
+                aggiornaTestoSelectAttrezzo();
                 ['guasto-macchina', 'guasto-attrezzo'].forEach((idSel) => {
                     const select = document.getElementById(idSel);
                     if (!select) return;

@@ -134,6 +134,8 @@
             padding: 20px;
             border-radius: 8px;
             text-align: center;
+            display: flex;
+            flex-direction: column;
         }
 
         .stat-card h3 {
@@ -145,6 +147,7 @@
         .stat-card p {
             color: #666;
             font-size: 14px;
+            margin-top: auto;
         }
 
         .ore-table {
@@ -602,6 +605,8 @@
             contaRigheConSovrapposizione,
             vociTracciaOra,
             riassuntoTraccia,
+            etichettaStatoAttualeOra,
+            chiValidaOra,
             calcolaContatoriOreValidazione
         } from '../services/ore-operai-logic.js';
 
@@ -693,13 +698,16 @@
 
         let tracciaSeqValidazione = 0;
         function htmlTracciaValidazione(ora) {
+            const stato = etichettaStatoAttualeOra(ora, chiValidaOra({ ora, lavoro: ora.lavoro || null }));
+            const statoHtml = stato ? `<strong>${escapeHtml(stato)}</strong>` : '';
             const voci = vociTracciaOra(ora, nomeUtenteOra);
-            if (!voci.length) return ora.stato === 'da_validare' ? 'In attesa' : '';
+            if (!voci.length) return statoHtml;
             const r = riassuntoTraccia(voci, 90);
-            if (!r.tronca) return escapeHtml(r.full);
+            const prefisso = statoHtml ? `${statoHtml} · ` : '';
+            if (!r.tronca) return `${prefisso}${escapeHtml(r.full)}`;
             tracciaSeqValidazione += 1;
             const id = `traccia-val-${tracciaSeqValidazione}`;
-            return `${escapeHtml(r.breve)} <button type="button" class="btn-link-traccia" data-traccia-toggle="${id}">mostra tutto</button><span id="${id}" hidden>${escapeHtml(r.full)}</span>`;
+            return `${prefisso}${escapeHtml(r.breve)} <button type="button" class="btn-link-traccia" data-traccia-toggle="${id}">mostra tutto</button><span id="${id}" hidden>${escapeHtml(r.full)}</span>`;
         }
 
         function aggiornaContatoriValidazione() {

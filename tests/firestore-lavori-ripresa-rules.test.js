@@ -10,6 +10,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { buildSospendiLavoroPatch } from '../core/services/lavoro-sospensione.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PROJECT = 'demo-gfv-macchine-rules';
@@ -174,6 +175,9 @@ beforeAll(async () => {
     ['lav-regress-sospeso', { nome: 'Da sospendere', caposquadraId: CAPO, stato: 'in_corso' }],
     ['lav-regress-completa', { nome: 'Da completare', caposquadraId: CAPO, stato: 'in_corso' }],
     ['lav-manager', { nome: 'Manager', caposquadraId: CAPO, stato: 'in_corso' }],
+    ['lav-op-assegnato', { nome: 'Autonomo assegnato', operaioId: OPERAIO, stato: 'assegnato' }],
+    ['lav-op-corso', { nome: 'Autonomo in corso', operaioId: OPERAIO, stato: 'in_corso' }],
+    ['lav-squadra-operaio', { nome: 'Squadra', caposquadraId: CAPO, stato: 'assegnato' }],
   ];
   for (const [id, data] of lavori) {
     const res = await richiesta('PATCH', `tenants/${TENANT}/lavori/${id}`, { data });
@@ -267,5 +271,43 @@ describe('lavori: ripresa dopo un guasto', () => {
   it('il manager può aggiornare il lavoro', async () => {
     const res = await aggiorna('lav-manager', MANAGER, { stato: 'assegnato' });
     expect(res.status).toBeLessThan(400);
+  });
+});
+
+describe('lavori: operaio e sospensione per guasto grave', () => {
+  function datiSospensione() {
+    const built = buildSospendiLavoroPatch('Guasto macchina grave', new Date('2026-10-18T08:00:00.000Z'));
+    if (!built.ok) throw new Error(built.error);
+    const data = {};
+    Object.entries(built.patch).forEach(([key, value]) => {
+      data[key] = value instanceof Date ? '2026-10-18' : value;
+    });
+    return data;
+  }
+
+  function aggiorna(id, uid, data) {
+    return richiesta('PATCH', `tenants/${TENANT}/lavori/${id}`, {
+      auth: uid,
+      data,
+      mask: Object.keys(data),
+      exists: true,
+    });
+  }
+
+  it('l’operaio autonomo sospende un lavoro assegnato con le sole chiavi della patch', async () => {
+    const data = datiSospensione();
+    expect(Object.keys(data).sort()).toEqual(['aggiornatoIl', 'sospensioneCausa', 'sospensioneIl', 'stato']);
+    const res = await aggiorna('lav-op-assegnato', OPERAIO, data);
+    if (res.status >= 400) expect.fail(`${res.status} ${res.body}`);
+  });
+
+  it('l’operaio autonomo sospende un lavoro in corso', async () => {
+    const res = await aggiorna('lav-op-corso', OPERAIO, datiSospensione());
+    if (res.status >= 400) expect.fail(`${res.status} ${res.body}`);
+  });
+
+  it('l’operaio di un lavoro di squadra non può sospenderlo', async () => {
+    const res = await aggiorna('lav-squadra-operaio', OPERAIO, datiSospensione());
+    expect(res.status).toBe(403);
   });
 });

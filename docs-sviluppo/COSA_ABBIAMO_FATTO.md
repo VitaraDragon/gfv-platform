@@ -1,6 +1,38 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-17 — Guasti: annulla segnalazione e risolto da me.**
+**Ultimo aggiornamento documentazione: 2026-10-19 — Ore: stato attuale e minuti.**
+
+## 2026-10-19 — Validazione ore e tab Ore: stato attuale, minuti
+
+In Validazione ore la colonna Stato/traccia mostra prima lo stato attuale della riga (Validata, Da validare, Rifiutata). La versione corta della storia tiene gli ultimi eventi: un rifiuto vecchio non copre più la validazione. Nel dettaglio del lavoro e nel tab Ore, 20 minuti restano 20 minuti e mezz’ora resta 30 minuti. Totali e calcoli non cambiano. `firestore.rules` non cambia. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-18 — Statistiche manodopera, terreni coperti.**
+
+## 2026-10-18 — Statistiche manodopera: somma passaggi e terreni coperti
+
+«Superficie lavorata» è la somma degli ettari di ogni passaggio, senza percentuale. «Terreni coperti» somma la superficie dei terreni che hanno almeno un lavoro non annullato con ettari registrati, e sotto indica quanti terreni sono e che quota sono del totale. Un lavoro annullato, o senza ettari registrati, non copre il terreno. Il periodo della pagina resta tutto lo storico. La card omonima della dashboard non cambia. `firestore.rules` non cambia. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-18 — Gestione lavori, modifica e crea.**
+
+## 2026-10-18 — Gestione lavori: trattore in modifica, Salva, Crea
+
+In modifica, cambiare trattore e salvare scrive il trattore nuovo. Se il campo è stato svuotato, il lavoro resta senza trattore. Se non è cambiato nulla, l’avviso dice che non c’è nulla da salvare. Salva si riabilita appena la scrittura è finita, anche se gli elenchi stanno ancora ricaricando, e un modale riaperto non viene chiuso dal salvataggio precedente. Se un salvataggio è ancora in corso, il secondo clic lo dice. Crea e Modifica aprono il modale prima di decidere quali campi sono obbligatori, così i campi visibili non restano grigi. Gli elenchi del modale partono insieme, con un limite di dieci secondi: se uno non arriva, si può comunque compilare. `firestore.rules` non cambia. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-18 — Uso reale 17/10, ore e proposta rapida.**
+
+## 2026-10-18 — Campo: ore di ieri, totali allineati, proposta rapida
+
+Dopo aver salvato le ore di ieri, il riquadro resta su ieri e la data non torna a oggi. Cambiando giorno, durante il caricamento non restano le righe del giorno prima. In Validazione ore le tre etichette dei totali stanno sulla stessa riga, anche se «Ore da validare» non ha la riga del periodo. La proposta rapida non indica più un lavoro completato, in attesa, sospeso o annullato: prima il lavoro selezionato se è in corso o assegnato, poi un lavoro in corso, poi uno assegnato. `firestore.rules` non cambia. Nessun deploy di Cloud Functions.
+
+## 2026-10-18 — Guasti #222, follow-up
+
+Dopo Annulla o «Risolto da me» il mezzo torna selezionabile, senza ricaricare la pagina. L’operaio di un lavoro di squadra, con un guasto grave, non vede più l’avviso di errore: il banner dice che il lavoro lo sospende il caposquadra o il manager. L’operaio di un lavoro autonomo può ancora sospenderlo. Il segnaposto dell’attrezzo torna «-- Nessun attrezzo --» a fine caricamento. Il repair delle riprese non avvisa più quando l’origine è già chiusa. `firestore.rules` non cambia e non c’è niente da pubblicare.
 
 ## 2026-10-17 — Guasti: annulla segnalazione e risolto da me
 

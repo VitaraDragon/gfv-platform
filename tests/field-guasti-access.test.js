@@ -70,7 +70,7 @@ describe('segnalazione guasti — profilo campo', () => {
         expect(testoOpzioneTrattore(2)).toBe('-- Seleziona trattore --');
     });
 
-    it('sospende il lavoro solo se è del caposquadra o se l’utente è manager', () => {
+    it('sospende il lavoro se è del caposquadra, se l’utente è manager, o se l’operaio è sul lavoro autonomo', () => {
         const suo = { caposquadraId: 'capo-1' };
         expect(deveTentareSospensioneLavoroGuasto({
             ruoli: ['caposquadra'], uid: 'capo-1', lavoro: suo,
@@ -80,10 +80,23 @@ describe('segnalazione guasti — profilo campo', () => {
         })).toBe(false);
         expect(deveTentareSospensioneLavoroGuasto({
             ruoli: ['operaio'], uid: 'op-1', lavoro: { operaioId: 'op-1' },
-        })).toBe(false);
+        })).toBe(true);
         expect(deveTentareSospensioneLavoroGuasto({
             ruoli: ['manager'], uid: 'mgr-1', lavoro: suo,
         })).toBe(true);
+    });
+
+    it('operaio di squadra non sospende; caposquadra di un altro lavoro nemmeno', () => {
+        expect(deveTentareSospensioneLavoroGuasto({
+            ruoli: ['operaio'],
+            uid: 'ion',
+            lavoro: { caposquadraId: 'marco', operaioId: null },
+        })).toBe(false);
+        expect(deveTentareSospensioneLavoroGuasto({
+            ruoli: ['caposquadra'],
+            uid: 'capo-2',
+            lavoro: { caposquadraId: 'capo-1' },
+        })).toBe(false);
     });
 });
 
@@ -117,7 +130,23 @@ describe('esitoSegnalazioneGuasto', () => {
             scritturaPrincipaleOk: true,
             secondarie: [{ nome: 'lavoro', ok: true }],
         });
-        expect(esito).toEqual({ chiudi: true, successo: true, avvisi: [], errore: null });
+        expect(esito).toEqual({ chiudi: true, successo: true, avvisi: [], info: [], errore: null });
+    });
+
+    it('sospensione non tentata: info, senza avviso di errore', () => {
+        const esito = esitoSegnalazioneGuasto({
+            scritturaPrincipaleOk: true,
+            secondarie: [{ nome: 'lavoro', ok: false, errore: 'non-tentata' }],
+        });
+        expect(esito.chiudi).toBe(true);
+        expect(esito.successo).toBe(true);
+        expect(esito.avvisi).toEqual([]);
+        expect(esito.info).toEqual(['sospensione-non-tentata']);
+        const banner = testoConfermaSegnalazione({ dalCampo: true, haAvvisi: false, info: esito.info });
+        expect(banner.dettaglio).toBe('Segnalazione inviata. Il lavoro lo sospende il caposquadra o il manager.');
+        expect(banner.dettaglio).not.toMatch(/Non ho potuto aggiornare/);
+        expect(banner.tornaAutomatico).toBe(false);
+        expect(banner.mostraTornaWorkspace).toBe(false);
     });
 });
 
