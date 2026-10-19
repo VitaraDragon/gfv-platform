@@ -185,15 +185,37 @@ test.describe('barra nuova versione', () => {
             }];
         });
 
-        const navigata = page.waitForEvent('framenavigated', (frame) => frame === page.mainFrame());
-        await page.locator('#gfv-app-update-btn').click();
+        const statoSw = () => page.evaluate(async () => {
+            const reg = await navigator.serviceWorker.getRegistration();
+            const worker = (reg && (reg.waiting || reg.installing)) || null;
+            return {
+                waiting: !!(reg && reg.waiting),
+                installing: !!(reg && reg.installing),
+                workerState: worker ? worker.state : '',
+                controller: !!(navigator.serviceWorker && navigator.serviceWorker.controller),
+                sporco: !!window.__gfvFormSporco,
+                ingresso: document.documentElement.getAttribute('data-ingresso') || '',
+                conferma: !!document.getElementById('gfv-app-update-conferma'),
+                barra: !!document.getElementById('gfv-app-update-bar')
+            };
+        });
+        const prima = await statoSw();
+        const navigata = page.waitForEvent('framenavigated', {
+            timeout: 20_000,
+            predicate: (frame) => frame === page.mainFrame()
+        }).catch(() => null);
+        await page.evaluate(() => {
+            const bottone = document.getElementById('gfv-app-update-btn');
+            if (bottone) bottone.click();
+        });
         const conferma = page.locator('#gfv-app-update-conferma');
-        const esitoClick = await Promise.race([
-            navigata.then(() => 'nav'),
-            conferma.waitFor({ state: 'visible', timeout: 8000 }).then(() => 'dialogo').catch(() => 'attesa')
-        ]);
-        if (esitoClick === 'dialogo') await conferma.click();
-        await navigata;
+        const dialogo = await conferma.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false);
+        if (dialogo) await conferma.click({ force: true });
+        const frame = await navigata;
+        if (!frame) {
+            const dopo = await statoSw();
+            throw new Error('NO_NAV ' + JSON.stringify({ prima, dopo }));
+        }
         await page.waitForFunction(() => {
             const raw = sessionStorage.getItem('tony_session_state') || '';
             return raw.indexOf('GFV_UPDATE_CHAT_PROVA') !== -1;
