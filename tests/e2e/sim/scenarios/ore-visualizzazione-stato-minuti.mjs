@@ -100,7 +100,8 @@ export async function runOreVisualizzazioneStatoMinutiAssertions(page, expect) {
   await page.locator('#ore-giorno-riepilogo[data-state="ready"]').waitFor({ timeout: 45_000 });
   const rigaRifiutata = page.locator('#ore-giorno-riepilogo div').filter({ hasText: `${ORA_START}–${ORA_END}` }).first();
   await expect(rigaRifiutata).toBeVisible();
-  await rigaRifiutata.locator('[data-modifica-ora]').click();
+  // Con tante righe nel giorno la matita finisce sotto la barra in basso: il clic del puntatore non arriva.
+  await rigaRifiutata.locator('[data-modifica-ora]').evaluate((btn) => btn.click());
   await expect(page.locator('#quick-hours-form button[type="submit"]')).toHaveText(/Salva modifiche/);
   await page.evaluate(() => {
     const status = document.getElementById('hours-save-status');
