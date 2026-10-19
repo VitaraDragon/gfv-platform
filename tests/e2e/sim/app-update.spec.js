@@ -214,7 +214,33 @@ test.describe('barra nuova versione', () => {
         const frame = await navigata;
         if (!frame) {
             const dopo = await statoSw();
-            throw new Error('NO_NAV ' + JSON.stringify({ prima, dopo }));
+            const ack = await page.evaluate(() => new Promise((resolve) => {
+                navigator.serviceWorker.getRegistration().then((reg) => {
+                    const worker = reg && reg.waiting;
+                    const urls = {
+                        controller: navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : '',
+                        waiting: worker ? worker.scriptURL : '',
+                        scope: reg ? reg.scope : ''
+                    };
+                    if (!worker) {
+                        resolve({ urls, ack: 'no-waiting' });
+                        return;
+                    }
+                    const channel = new MessageChannel();
+                    const timer = setTimeout(() => resolve({ urls, ack: 'timeout' }), 3000);
+                    channel.port1.onmessage = (event) => {
+                        clearTimeout(timer);
+                        resolve({ urls, ack: (event.data && event.data.type) || 'vuoto' });
+                    };
+                    try {
+                        worker.postMessage({ type: 'GFV_SKIP_WAITING' }, [channel.port2]);
+                    } catch (error) {
+                        clearTimeout(timer);
+                        resolve({ urls, ack: 'errore' });
+                    }
+                }).catch(() => resolve({ ack: 'reg-errore' }));
+            }));
+            throw new Error('NO_NAV ' + JSON.stringify({ prima, dopo, ack }));
         }
         await page.waitForFunction(() => {
             const raw = sessionStorage.getItem('tony_session_state') || '';
