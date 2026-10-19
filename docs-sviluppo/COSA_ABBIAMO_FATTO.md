@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-18 — Statistiche manodopera, terreni coperti.**
+**Ultimo aggiornamento documentazione: 2026-10-19 — Ore: stato attuale e minuti.**
+
+## 2026-10-19 — Validazione ore e tab Ore: stato attuale, minuti
+
+In Validazione ore la colonna Stato/traccia mostra prima lo stato attuale della riga (Validata, Da validare, Rifiutata). La versione corta della storia tiene gli ultimi eventi: un rifiuto vecchio non copre più la validazione. Nel dettaglio del lavoro e nel tab Ore, 20 minuti restano 20 minuti e mezz’ora resta 30 minuti. Totali e calcoli non cambiano. `firestore.rules` non cambia. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-18 — Statistiche manodopera, terreni coperti.**
 
 ## 2026-10-18 — Statistiche manodopera: somma passaggi e terreni coperti
 

@@ -43,6 +43,7 @@ import {
     renderSemaforoHtml
 } from '../../services/manodopera-problema-severita-logic.js';
 import { syncRequiredConVisibilita } from './gestione-lavori-utils.js';
+import { formattaOreMinuti } from '../../services/ore-operai-logic.js';
 
 // ============================================
 // FUNZIONI HELPER
@@ -802,10 +803,7 @@ export async function loadStatistics(currentTenantId, db, lavoriList) {
         if (statTotaleLavori) statTotaleLavori.textContent = totaleLavori;
         if (statLavoriCorso) statLavoriCorso.textContent = lavoriInCorso;
         
-        // Formatta ore
-        const oreFormatted = totaleOreValidate >= 1 
-            ? `${Math.round(totaleOreValidate)}h`
-            : `${Math.round(totaleOreValidate * 60)}min`;
+        const oreFormatted = formattaOreMinuti(totaleOreValidate);
         if (statOreValidate) statOreValidate.textContent = oreFormatted;
         
         if (statSuperficieLavorata) statSuperficieLavorata.textContent = `${totaleSuperficieLavorata.toFixed(2)} ha`;
@@ -2783,11 +2781,11 @@ export async function loadDettaglioOverview(
                     <div class="ore-stat-label">Percentuale Completamento</div>
                 </div>
                 <div class="ore-stat-card">
-                    <div class="ore-stat-value">${Math.round(totaleOreValidate)}h</div>
+                    <div class="ore-stat-value">${formattaOreMinuti(totaleOreValidate)}</div>
                     <div class="ore-stat-label">Ore Validate</div>
                 </div>
                 <div class="ore-stat-card">
-                    <div class="ore-stat-value">${Math.round(totaleOreDaValidare)}h</div>
+                    <div class="ore-stat-value">${formattaOreMinuti(totaleOreDaValidare)}</div>
                     <div class="ore-stat-label">Ore da Validare</div>
                 </div>
             </div>
@@ -2831,9 +2829,9 @@ export async function loadDettaglioOverview(
                                 <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
                                     <strong>${escapeHtml(nomeOperaio)}</strong>
                                     <div style="margin-top: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                                        <div><span style="color: #2E8B57;">✅ ${Math.round(ore.validate)}h</span> validate</div>
-                                        <div><span style="color: #ffc107;">⏳ ${Math.round(ore.daValidare)}h</span> da validare</div>
-                                        <div><span style="color: #dc3545;">❌ ${Math.round(ore.rifiutate)}h</span> rifiutate</div>
+                                        <div><span style="color: #2E8B57;">✅ ${formattaOreMinuti(ore.validate)}</span> validate</div>
+                                        <div><span style="color: #ffc107;">⏳ ${formattaOreMinuti(ore.daValidare)}</span> da validare</div>
+                                        <div><span style="color: #dc3545;">❌ ${formattaOreMinuti(ore.rifiutate)}</span> rifiutate</div>
                                     </div>
                                 </div>
                             `;
@@ -2954,15 +2952,15 @@ export async function loadDettaglioOre(
         container.innerHTML = `
             <div class="ore-stats-grid">
                 <div class="ore-stat-card">
-                    <div class="ore-stat-value">${Math.round(totaleValidate)}h</div>
+                    <div class="ore-stat-value">${formattaOreMinuti(totaleValidate)}</div>
                     <div class="ore-stat-label">Ore Validate</div>
                 </div>
                 <div class="ore-stat-card">
-                    <div class="ore-stat-value">${Math.round(totaleDaValidare)}h</div>
+                    <div class="ore-stat-value">${formattaOreMinuti(totaleDaValidare)}</div>
                     <div class="ore-stat-label">Ore da Validare</div>
                 </div>
                 <div class="ore-stat-card">
-                    <div class="ore-stat-value">${Math.round(totaleRifiutate)}h</div>
+                    <div class="ore-stat-value">${formattaOreMinuti(totaleRifiutate)}</div>
                     <div class="ore-stat-label">Ore Rifiutate</div>
                 </div>
             </div>
@@ -2976,9 +2974,9 @@ export async function loadDettaglioOre(
                         <div style="padding: 15px; background: #f8f9fa; border-radius: 8px;">
                             <strong>${escapeHtml(nomeOperaio)}</strong>
                             <div style="margin-top: 10px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
-                                <div><span style="color: #2E8B57;">✅ ${Math.round(ore.validate)}h</span> validate</div>
-                                <div><span style="color: #ffc107;">⏳ ${Math.round(ore.daValidare)}h</span> da validare</div>
-                                <div><span style="color: #dc3545;">❌ ${Math.round(ore.rifiutate)}h</span> rifiutate</div>
+                                <div><span style="color: #2E8B57;">✅ ${formattaOreMinuti(ore.validate)}</span> validate</div>
+                                <div><span style="color: #ffc107;">⏳ ${formattaOreMinuti(ore.daValidare)}</span> da validare</div>
+                                <div><span style="color: #dc3545;">❌ ${formattaOreMinuti(ore.rifiutate)}</span> rifiutate</div>
                             </div>
                         </div>
                     `;
