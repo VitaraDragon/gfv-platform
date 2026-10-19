@@ -1705,23 +1705,13 @@
 
     </script>
     
-    <!-- Service Worker Registration for PWA (solo produzione / GitHub Pages, non localhost) -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                const host = window.location.hostname || '';
-                if (host === 'localhost' || host === '127.0.0.1') {
-                    return;
-                }
-                const swPath = window.location.pathname.includes('/gfv-platform/')
-                    ? '/gfv-platform/service-worker.js'
-                    : '../service-worker.js';
-                navigator.serviceWorker.register(swPath)
-                    .catch((error) => {
-                        console.error('Registrazione Service Worker fallita:', error);
-                    });
-            });
-        }
+    <!-- Service Worker: la barra di aggiornamento sta in app-update.js -->
+    <script type="module">
+        import { registraServiceWorker } from './js/app-update.js?v=2026-10-19a';
+        const swPath = window.location.pathname.includes('/gfv-platform/')
+            ? '/gfv-platform/service-worker.js'
+            : '../service-worker.js';
+        registraServiceWorker(swPath);
     </script>
 </body>
 </html>

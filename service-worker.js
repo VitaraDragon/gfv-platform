@@ -4,11 +4,19 @@
 // in .githooks) oppure da `npm run bump:pwa-cache`. Ogni commit ottiene un ID nuovo
 // così CACHE_NAME cambia e in activate() le cache obsolete vengono eliminate.
 // Setup hook (una tantum): git config core.hooksPath .githooks
-const SW_CACHE_BUILD_ID = 't1792392514749';
+const SW_CACHE_BUILD_ID = 't1792404832890';
 const CACHE_NAME = 'gfv-platform-' + SW_CACHE_BUILD_ID;
 
 function isLocalDevHost(hostname) {
   return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
+}
+
+function swTestLocaleAttivo() {
+  try {
+    return new URL(self.location.href).searchParams.get('swTest') === '1';
+  } catch (error) {
+    return false;
+  }
 }
 
 // Installazione Service Worker
@@ -26,8 +34,22 @@ self.addEventListener('install', (event) => {
         console.error('Service Worker: Errore durante l\'apertura cache', error);
       })
   );
-  // Forza l'attivazione immediata del nuovo service worker
-  self.skipWaiting();
+});
+
+self.addEventListener('message', (event) => {
+  const data = event.data || {};
+  if (data.type === 'GFV_SKIP_WAITING') {
+    self.skipWaiting();
+    return;
+  }
+  if (data.type === 'GFV_GET_BUILD') {
+    const risposta = { type: 'GFV_BUILD', buildId: SW_CACHE_BUILD_ID };
+    if (event.ports && event.ports[0]) {
+      event.ports[0].postMessage(risposta);
+    } else if (event.source && event.source.postMessage) {
+      event.source.postMessage(risposta);
+    }
+  }
 });
 
 // Attivazione Service Worker
@@ -55,8 +77,9 @@ self.addEventListener('fetch', (event) => {
 
   const url = new URL(event.request.url);
 
-  // Sviluppo locale: non intercettare (evita Failed to fetch su config/maps e favicon)
-  if (isLocalDevHost(url.hostname)) {
+  // Sviluppo locale: non intercettare (evita Failed to fetch su config/maps e favicon).
+  // ?swTest=1 sulla URL del service worker riattiva il fetch solo su localhost, per i test.
+  if (isLocalDevHost(url.hostname) && !swTestLocaleAttivo()) {
     return;
   }
   
