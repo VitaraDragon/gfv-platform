@@ -192,22 +192,25 @@ test.describe('barra nuova versione', () => {
         const conferma = page.locator('#gfv-app-update-conferma');
         const chiedeConferma = await conferma.waitFor({ state: 'visible', timeout: 3000 }).then(() => true).catch(() => false);
         if (chiedeConferma) await conferma.click();
-        await page.waitForTimeout(4000);
+        await page.waitForTimeout(6000);
         if (!andato) {
-            const esito = await page.evaluate(async () => {
-                const reg = await navigator.serviceWorker.getRegistration();
-                const controller = navigator.serviceWorker.controller;
-                return {
-                    esito: window.__gfvAppUpdateEsito || '',
-                    sporco: Boolean(window.__gfvFormSporco),
-                    salva: Boolean(window.__gfvOreSalvataggioInCorso || window.__gfvSalvataggioInCorso),
-                    waiting: Boolean(reg && reg.waiting),
-                    waitingUrl: reg && reg.waiting ? reg.waiting.scriptURL : '',
-                    controllerUrl: controller ? controller.scriptURL : '',
-                    conferma: Boolean(document.getElementById('gfv-app-update-confirm')),
-                    barra: Boolean(document.getElementById('gfv-app-update-bar'))
-                };
-            });
+            const esito = await page.evaluate(() => new Promise((resolve) => {
+                navigator.serviceWorker.getRegistration().then((reg) => {
+                    const worker = reg && reg.waiting;
+                    const base = { esito: window.__gfvAppUpdateEsito || '', url: worker ? worker.scriptURL : '' };
+                    if (!worker) {
+                        resolve(Object.assign(base, { build: 'no-waiting' }));
+                        return;
+                    }
+                    const channel = new MessageChannel();
+                    const timer = window.setTimeout(() => resolve(Object.assign(base, { build: 'timeout' })), 2000);
+                    channel.port1.onmessage = (event) => {
+                        window.clearTimeout(timer);
+                        resolve(Object.assign(base, { build: (event.data && event.data.buildId) || '' }));
+                    };
+                    worker.postMessage({ type: 'GFV_GET_BUILD' }, [channel.port2]);
+                });
+            }));
             throw new Error('niente reload ' + JSON.stringify(esito));
         }
         await navigata;
