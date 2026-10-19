@@ -175,12 +175,10 @@ function installaControllerChange() {
             if (aggiornaRichiesto && !ricaricando && gia) {
                 console.warn('[app-update] Ricaricamento già fatto per questa versione', build);
             }
-            window.__gfvAppUpdateEsito = gia ? 'gia-ricaricato' : 'controller-senza-aggiorna';
             return;
         }
         ricaricando = true;
         segnaRicaricato(build);
-        window.__gfvAppUpdateEsito = 'reload';
         window.location.reload();
     });
 }
@@ -398,29 +396,22 @@ function leggiBuild(worker) {
 
 async function preparaAggiornamento(registration) {
     const waiting = (registration && registration.waiting) || workerMostrato;
-    if (!waiting) {
-        window.__gfvAppUpdateEsito = 'niente-worker';
-        return;
-    }
+    if (!waiting) return;
     const formSporco = formSporcoAdesso();
     const salvataggioInCorso = salvataggioInCorsoAdesso();
     const build = await leggiBuild(waiting);
     const gia = giaRicaricatoPerBuild(build);
     let confermato = true;
     if ((formSporco || salvataggioInCorso) && !gia) confermato = await chiediConferma();
-    if (!puoRicaricare({ formSporco, salvataggioInCorso, confermato, giaRicaricatoPerBuild: gia })) {
-        window.__gfvAppUpdateEsito = 'bloccato';
-        return;
-    }
+    if (!puoRicaricare({ formSporco, salvataggioInCorso, confermato, giaRicaricatoPerBuild: gia })) return;
     ignoraAttesaCorrente = true;
     nascondiBarra();
     aggiornaRichiesto = true;
     buildInAttesa = build;
     const attuale = (registration && registration.waiting) || waiting;
-    window.__gfvAppUpdateEsito = 'inviato';
     try {
         attuale.postMessage({ type: 'GFV_SKIP_WAITING' });
     } catch (error) {
-        window.__gfvAppUpdateEsito = 'post-fallito';
+        /* worker già chiuso */
     }
 }

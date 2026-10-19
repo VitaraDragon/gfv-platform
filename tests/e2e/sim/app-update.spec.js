@@ -184,35 +184,11 @@ test.describe('barra nuova versione', () => {
             }];
         });
 
-        let andato = false;
-        const navigata = page.waitForEvent('framenavigated', (frame) => frame === page.mainFrame()).then(() => {
-            andato = true;
-        });
+        const navigata = page.waitForEvent('framenavigated', (frame) => frame === page.mainFrame());
         await page.locator('#gfv-app-update-btn').click();
         const conferma = page.locator('#gfv-app-update-conferma');
-        const chiedeConferma = await conferma.waitFor({ state: 'visible', timeout: 3000 }).then(() => true).catch(() => false);
+        const chiedeConferma = await conferma.waitFor({ state: 'visible', timeout: 2000 }).then(() => true).catch(() => false);
         if (chiedeConferma) await conferma.click();
-        await page.waitForTimeout(6000);
-        if (!andato) {
-            const esito = await page.evaluate(() => new Promise((resolve) => {
-                navigator.serviceWorker.getRegistration().then((reg) => {
-                    const worker = reg && reg.waiting;
-                    const base = { esito: window.__gfvAppUpdateEsito || '', url: worker ? worker.scriptURL : '' };
-                    if (!worker) {
-                        resolve(Object.assign(base, { build: 'no-waiting' }));
-                        return;
-                    }
-                    const channel = new MessageChannel();
-                    const timer = window.setTimeout(() => resolve(Object.assign(base, { build: 'timeout' })), 2000);
-                    channel.port1.onmessage = (event) => {
-                        window.clearTimeout(timer);
-                        resolve(Object.assign(base, { build: (event.data && event.data.buildId) || '' }));
-                    };
-                    worker.postMessage({ type: 'GFV_GET_BUILD' }, [channel.port2]);
-                });
-            }));
-            throw new Error('niente reload ' + JSON.stringify(esito));
-        }
         await navigata;
         await page.waitForFunction(() => {
             const raw = sessionStorage.getItem('tony_session_state') || '';
