@@ -565,10 +565,22 @@ function onMessaggioStatistiche(event) {
     }
 }
 
+function urlSchedaGuastoCampo(lavoroId) {
+    const base = '../admin/segnalazione-guasti-standalone.html?from=field&embed=1';
+    const id = String(lavoroId || '').trim();
+    if (!id) return base;
+    return base + '&lavoroId=' + encodeURIComponent(id);
+}
+
 function ensureGuastoEmbedLoaded() {
-    if (!guastoEmbedFrameEl || guastoEmbedFrameEl.dataset.loaded === '1') return;
+    if (!guastoEmbedFrameEl) return;
+    const lavoroId = String(idLavoroSelezionatoOSalvato() || '').trim();
+    const giaQuesto = guastoEmbedFrameEl.dataset.loaded === '1'
+        && (guastoEmbedFrameEl.dataset.lavoroId || '') === lavoroId;
+    if (giaQuesto) return;
     guastoEmbedFrameEl.dataset.loaded = '1';
-    guastoEmbedFrameEl.src = '../admin/segnalazione-guasti-standalone.html?from=field&embed=1';
+    guastoEmbedFrameEl.dataset.lavoroId = lavoroId;
+    guastoEmbedFrameEl.src = urlSchedaGuastoCampo(lavoroId);
 }
 
 function maybeLoadEmbedsForSlide(slideTitle) {

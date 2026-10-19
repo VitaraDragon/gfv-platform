@@ -179,3 +179,168 @@ export function primoTenantIdUtente(userData) {
     if (entries.length === 1) return entries[0][0];
     return null;
 }
+
+const STATI_LAVORO_CHIUSO_GUASTO = new Set(['completato', 'annullato', 'completato_da_approvare']);
+
+function statoLavoroGuasto(lavoro) {
+    let stato = String((lavoro && lavoro.stato) || 'assegnato').trim();
+    if (stato === 'attivo') stato = 'in_corso';
+    return stato;
+}
+
+function istanteLavoroGuasto(value) {
+    if (value == null || value === '') return null;
+    if (value instanceof Date) return Number.isNaN(value.getTime()) ? null : value;
+    if (typeof value === 'object' && typeof value.toDate === 'function') {
+        try {
+            const data = value.toDate();
+            if (data instanceof Date && !Number.isNaN(data.getTime())) return data;
+        } catch (ignora) { /* istante non leggibile */ }
+        return null;
+    }
+    if (typeof value === 'object' && typeof value.seconds === 'number') {
+        const data = new Date(value.seconds * 1000);
+        return Number.isNaN(data.getTime()) ? null : data;
+    }
+    if (typeof value === 'string') {
+        const soloGiorno = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim());
+        if (soloGiorno) {
+            const data = new Date(Number(soloGiorno[1]), Number(soloGiorno[2]) - 1, Number(soloGiorno[3]));
+            return Number.isNaN(data.getTime()) ? null : data;
+        }
+        const data = new Date(value);
+        return Number.isNaN(data.getTime()) ? null : data;
+    }
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        const data = new Date(value);
+        return Number.isNaN(data.getTime()) ? null : data;
+    }
+    return null;
+}
+
+function tempoInizioLavoroGuasto(lavoro) {
+    const data = istanteLavoroGuasto(lavoro && lavoro.dataInizio);
+    return data ? data.getTime() : null;
+}
+
+function lavoroAutonomoGuasto(lavoro) {
+    return !!(lavoro && lavoro.operaioId && !lavoro.caposquadraId);
+}
+
+function idMezzoGuasto(value) {
+    if (value == null) return null;
+    const testo = String(value).trim();
+    return testo || null;
+}
+
+/**
+ * Trattore e attrezzo assegnati al lavoro.
+ * Se il lavoro non ne ha, i due id sono null.
+ * @param {object|null|undefined} lavoro
+ * @returns {{ trattoreId: string|null, attrezzoId: string|null }}
+ */
+export function mezziDaLavoroGuasto(lavoro) {
+    if (!lavoro || typeof lavoro !== 'object') {
+        return { trattoreId: null, attrezzoId: null };
+    }
+    return {
+        trattoreId: idMezzoGuasto(lavoro.macchinaId),
+        attrezzoId: idMezzoGuasto(lavoro.attrezzoId)
+    };
+}
+
+/**
+ * A parità di inizio il lavoro autonomo precede quello di squadra:
+ * in campagna più lavori condividono lo stesso istante (mezzogiorno del giorno).
+ * @returns {number} negativo se il candidato è migliore
+ */
+function pareggioInizioGuasto(candidato, corrente) {
+    const candidatoAutonomo = lavoroAutonomoGuasto(candidato) ? 0 : 1;
+    const correnteAutonomo = lavoroAutonomoGuasto(corrente) ? 0 : 1;
+    if (candidatoAutonomo !== correnteAutonomo) return candidatoAutonomo - correnteAutonomo;
+    return String(candidato.id).localeCompare(String(corrente.id));
+}
+
+function confrontoInizioGuasto(candidato, corrente, piuVicino) {
+    const tempoCandidato = tempoInizioLavoroGuasto(candidato);
+    const tempoCorrente = tempoInizioLavoroGuasto(corrente);
+    if (tempoCandidato == null && tempoCorrente == null) return pareggioInizioGuasto(candidato, corrente);
+    if (tempoCandidato == null) return 1;
+    if (tempoCorrente == null) return -1;
+    if (tempoCandidato !== tempoCorrente) {
+        return piuVicino ? tempoCandidato - tempoCorrente : tempoCorrente - tempoCandidato;
+    }
+    return pareggioInizioGuasto(candidato, corrente);
+}
+
+function miglioreLavoroGuasto(gruppo, piuVicino) {
+    if (!gruppo.length) return null;
+    return gruppo.reduce((corrente, candidato) => (
+        confrontoInizioGuasto(candidato, corrente, piuVicino) < 0 ? candidato : corrente
+    ));
+}
+
+function scegliPerInizioGuasto(gruppo, oggiMs) {
+    const partiti = [];
+    const futuri = [];
+    gruppo.forEach((lavoro) => {
+        const tempo = tempoInizioLavoroGuasto(lavoro);
+        if (tempo != null && tempo > oggiMs) futuri.push(lavoro);
+        else partiti.push(lavoro);
+    });
+    return miglioreLavoroGuasto(partiti, false) || miglioreLavoroGuasto(futuri, true);
+}
+
+/**
+ * Lavoro da preselezionare in «Segnala guasto».
+ * 1. lavoroId dell'URL, se è tra i lavori passati
+ * 2. un lavoro in corso
+ * 3. il lavoro già iniziato più recente
+ * 4. il lavoro futuro più vicino
+ * 5. un lavoro sospeso
+ * @param {Array<object>} lavori
+ * @param {{ lavoroId?: string, oggi?: Date }} [opzioni]
+ * @returns {object|null}
+ */
+export function scegliLavoroPredefinitoGuasto(lavori, opzioni = {}) {
+    const lista = (Array.isArray(lavori) ? lavori : []).filter((lavoro) => lavoro && lavoro.id != null && String(lavoro.id) !== '');
+    const oggi = opzioni.oggi instanceof Date && !Number.isNaN(opzioni.oggi.getTime())
+        ? opzioni.oggi
+        : new Date();
+    const oggiMs = oggi.getTime();
+    const lavoroId = opzioni.lavoroId != null ? String(opzioni.lavoroId).trim() : '';
+    if (lavoroId) {
+        const daUrl = lista.find((lavoro) => String(lavoro.id) === lavoroId);
+        if (daUrl) return daUrl;
+    }
+
+    const aperti = lista.filter((lavoro) => !STATI_LAVORO_CHIUSO_GUASTO.has(statoLavoroGuasto(lavoro)));
+    const inCorso = aperti.filter((lavoro) => statoLavoroGuasto(lavoro) === 'in_corso');
+    const sceltoCorso = scegliPerInizioGuasto(inCorso, oggiMs);
+    if (sceltoCorso) return sceltoCorso;
+
+    const iniziati = aperti.filter((lavoro) => {
+        const stato = statoLavoroGuasto(lavoro);
+        if (stato === 'sospeso' || stato === 'in_standby') return false;
+        const tempo = tempoInizioLavoroGuasto(lavoro);
+        return tempo == null || tempo <= oggiMs;
+    });
+    const sceltoIniziato = miglioreLavoroGuasto(iniziati, false);
+    if (sceltoIniziato) return sceltoIniziato;
+
+    const futuri = aperti.filter((lavoro) => {
+        const stato = statoLavoroGuasto(lavoro);
+        if (stato === 'sospeso' || stato === 'in_standby') return false;
+        const tempo = tempoInizioLavoroGuasto(lavoro);
+        return tempo != null && tempo > oggiMs;
+    });
+    const sceltoFuturo = miglioreLavoroGuasto(futuri, true);
+    if (sceltoFuturo) return sceltoFuturo;
+
+    const sospesi = aperti.filter((lavoro) => statoLavoroGuasto(lavoro) === 'sospeso');
+    const sceltoSospeso = scegliPerInizioGuasto(sospesi, oggiMs);
+    if (sceltoSospeso) return sceltoSospeso;
+
+    const standby = aperti.filter((lavoro) => statoLavoroGuasto(lavoro) === 'in_standby');
+    return scegliPerInizioGuasto(standby, oggiMs);
+}
