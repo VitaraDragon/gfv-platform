@@ -196,11 +196,14 @@ test.describe('barra nuova versione', () => {
         if (!andato) {
             const esito = await page.evaluate(async () => {
                 const reg = await navigator.serviceWorker.getRegistration();
+                const controller = navigator.serviceWorker.controller;
                 return {
                     esito: window.__gfvAppUpdateEsito || '',
                     sporco: Boolean(window.__gfvFormSporco),
                     salva: Boolean(window.__gfvOreSalvataggioInCorso || window.__gfvSalvataggioInCorso),
                     waiting: Boolean(reg && reg.waiting),
+                    waitingUrl: reg && reg.waiting ? reg.waiting.scriptURL : '',
+                    controllerUrl: controller ? controller.scriptURL : '',
                     conferma: Boolean(document.getElementById('gfv-app-update-confirm')),
                     barra: Boolean(document.getElementById('gfv-app-update-bar'))
                 };

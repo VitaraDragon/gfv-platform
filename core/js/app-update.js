@@ -416,5 +416,11 @@ async function preparaAggiornamento(registration) {
     nascondiBarra();
     aggiornaRichiesto = true;
     buildInAttesa = build;
-    waiting.postMessage({ type: 'GFV_SKIP_WAITING' });
+    const attuale = (registration && registration.waiting) || waiting;
+    window.__gfvAppUpdateEsito = 'inviato';
+    try {
+        attuale.postMessage({ type: 'GFV_SKIP_WAITING' });
+    } catch (error) {
+        window.__gfvAppUpdateEsito = 'post-fallito';
+    }
 }
