@@ -91,14 +91,14 @@ Se hai **molti incarichi** aperti (più di una dozzina), l’app può accorciare
 
 - Se **non vedi** un incarico che ti aspetti, prova a cambiare selezione o ad aggiornare; se ancora manca, **chiedi in ufficio**.
 
-### Suggerimento legato alla posizione
+### Proposta rapida sotto il menu
 
-Sotto il menu può comparire un **suggerimento** automatico tra i lavori attivi: è solo un aiuto. **Conferma sempre** dal menu il lavoro giusto per la giornata.
+Sotto il menu compare un **suggerimento**, per esempio «Suggerimento: Potatura (proposta rapida, conferma manualmente).». Propone il lavoro che hai scelto, se è **assegnato** o **in corso**; altrimenti il primo lavoro **in corso**, poi il primo **assegnato**. Non propone mai un lavoro completato, in attesa di approvazione, sospeso o annullato. Se non c’è niente da proporre leggi «Nessun suggerimento GPS disponibile.». È solo un aiuto: **conferma sempre** dal menu il lavoro giusto per la giornata.
 
 ### GPS e permessi
 
-- Se il telefono chiede il permesso **posizione**, puoi concederlo per migliorare i suggerimenti; non è obbligatorio per registrare le ore.  
-- Senza permesso o con segnale debole (magazzino, copertura scarsa), scegli il lavoro **a mano** dal menu.
+- Il suggerimento non usa la posizione del telefono: per scegliere il lavoro e segnare le ore il permesso **posizione** non serve.  
+- La posizione serve nella scheda **⚠️ Segnala un problema**, se vuoi allegare il punto con **Segnala qui (GPS)**.
 
 ---
 
@@ -119,7 +119,7 @@ Sotto il modulo c’è **Le tue ore del giorno**: i turni di quel giorno, con la
 ### Dopo il salvataggio
 
 - Il messaggio inizia con **Ora segnata con successo!** e dice se la valida il caposquadra o il manager.  
-- Se dopo il salvataggio il modulo si **svuota**, è normale: puoi inserire un altro giorno o turno.  
+- Dopo il salvataggio orari, pausa e note si **svuotano**, mentre la **Data lavoro** resta sul giorno appena salvato: **Le tue ore del giorno** mostra quel giorno (se hai segnato le ore di ieri, vedi le ore di ieri). Per un altro giorno cambia la data.  
 - Finché la riga è **in attesa** o **rifiutata** puoi **modificarla** o **eliminarla** dal riquadro del giorno. Il lavoro non si cambia: per un altro lavoro elimina e segna di nuovo. Una riga **rifiutata**, dopo la modifica, torna in attesa.  
 - Su una riga **in attesa** leggi «Da validare — la valida il caposquadra» (o il manager). Se era stata rifiutata e poi l’hai modificata, lo stato è di nuovo quello: sotto resta la storia, con il rifiuto e la modifica. Su una riga ancora **rifiutata** leggi chi l’ha rifiutata, quando e il motivo. Sulle righe validate, corrette o annullate c’è la stessa storia, con data e ora, anche se la validazione è stata annullata e rifatta.
 - Su una riga **validata** non puoi fare nulla: chiedi al caposquadra, oppure al manager se il lavoro è autonomo.
@@ -199,7 +199,7 @@ Si fa dalla scheda **⚠️ Segnala un problema** del workspace, dopo **Ore** e 
 - Per la generica: **ubicazione** scritta, **tipo di problema**, e spesso una **mappa** dove tocchi il punto esatto del problema.  
 - **Gravità**:  
   - **Non grave** — posso finire il lavoro (con cautela);  
-  - **Grave** — fermarsi e segnalare subito. Con un guasto a macchina o attrezzo il mezzo va in guasto; il lavoro collegato invece non cambia: se va fermato, lo decidono il caposquadra o il responsabile. Dopo l’invio può comparire anche la scritta «Non ho potuto aggiornare lo stato della macchina o del lavoro: avvisa il tuo responsabile.»: la segnalazione è comunque registrata e il responsabile vede il guasto nell’elenco **Officina & Guasti**.  
+  - **Grave** — fermarsi e segnalare subito. Con un guasto a macchina o attrezzo il mezzo va in guasto. Se colleghi un incarico **solo tuo**, l’app lo **sospende** (motivo «Guasto macchina grave» o «Segnalazione grave»). Su un incarico **di gruppo** il lavoro invece non cambia e dopo l’invio leggi «Segnalazione inviata. Il lavoro lo sospende il caposquadra o il manager.»: non è un errore, la segnalazione è registrata e il responsabile vede il guasto nell’elenco **Officina & Guasti**.  
 - **Dettagli** — descrizione chiara del sintomo.  
 - Opzionale: **lavoro corrente** se stai operando su un incarico preciso. L’app propone già il tuo lavoro aperto più recente e, se ce li ha, il suo trattore e attrezzo: controlla e cambia se non è giusto.  
 - Con un guasto a macchina o attrezzo, il mezzo passa in stato di guasto e finché resta così non si può scegliere per un nuovo lavoro («(già in guasto)»).
@@ -219,7 +219,7 @@ Si fa dalla scheda **⚠️ Segnala un problema** del workspace, dopo **Ore** e 
   - **✅ Risolto da me**: il problema l’hai sistemato tu. Scrivi le **note di risoluzione** (obbligatorie) e, se vuoi, il **costo** della riparazione, poi tocca **✅ Conferma Risoluzione**. Il guasto si chiude subito e la segnalazione diventa **Risolto**.
   - **🚫 Annulla segnalazione**: la ritiri, per esempio se l’hai mandata per sbaglio o il problema non c’era. Puoi scrivere un **motivo** (facoltativo), poi tocca **Sì, annulla la segnalazione**. Leggi «Segnalazione annullata.»: la segnalazione resta in elenco con il badge **🚫 Annullato** e la data **Annullata il**, e il responsabile la vede con il badge **Annullato**. Una segnalazione annullata non si riapre: se l’hai annullata per errore, fai una nuova segnalazione.
   - In tutte e due le finestre **Indietro** chiude senza cambiare nulla.
-- Dopo **Risolto da me** o **Annulla segnalazione**, macchina e attrezzo tornano come erano prima della segnalazione (per esempio **disponibile** o **in uso**). Restano fermi solo se sullo stesso mezzo c’è un altro guasto aperto, o se qualcuno ha già cambiato il loro stato. Se la segnalazione **grave** aveva fermato il lavoro, il lavoro riparte, a meno che sullo stesso lavoro ci sia un altro guasto aperto. Se qualcosa non si aggiorna, leggi l’avviso e avvisa il tuo responsabile.
+- Dopo **Risolto da me** o **Annulla segnalazione**, macchina e attrezzo tornano come erano prima della segnalazione (per esempio **disponibile** o **in uso**). Restano fermi solo se sullo stesso mezzo c’è un altro guasto aperto, o se qualcuno ha già cambiato il loro stato. Nei menu della scheda il mezzo perde subito la scritta «(già in guasto)» e si può scegliere di nuovo, senza ricaricare. Se la segnalazione **grave** aveva fermato il lavoro, il lavoro riparte, a meno che sullo stesso lavoro ci sia un altro guasto aperto. Se qualcosa non si aggiorna, leggi l’avviso e avvisa il tuo responsabile.
 - Sotto la segnalazione può comparire **Storico**: toccalo per vedere quando la segnalazione è stata segnalata, annullata, risolta da te o chiusa dal responsabile, con le note.
 - Quando il manager ha già deciso (continuazione approvata o lavoro sospeso), i due pulsanti non ci sono più e la segnalazione la chiude lui. Se decide mentre hai una delle due finestre aperta, la finestra si chiude e leggi «Il responsabile ha già preso una decisione su questo guasto: non puoi più annullarlo o chiuderlo da qui.» Una segnalazione non si cancella dal campo: solo il manager può eliminarla.
 
@@ -246,7 +246,7 @@ Se lavori **da solo** su un incarico e devi fermarti per meteo, guasto o altro m
 3. Il lavoro passa in **Sospeso**: nel dettaglio compare «Lavoro sospeso» con il tuo motivo e su quel lavoro non segni più zone né ore nuove.  
 4. Per ripartire non devi fare nulla: il manager crea il **lavoro di ripresa**, che ti compare tra i **Lavori assegnati** con lo stesso nome e «(ripresa)». Lo scegli e continui come sempre; sulla mappa vedi in arancione le zone già fatte prima della sospensione e in verde quelle nuove.
 
-La sospensione funziona solo sugli incarichi **solo tuoi**: su quelli di gruppo avvisa il **caposquadra**, che può sospendere il lavoro. Se invece sei **tu** a non poter lavorare (malattia, ferie, permesso), non sospendere: avvisa il caposquadra o il manager, che registrano l’**assenza**.
+La sospensione funziona solo sugli incarichi **solo tuoi**: su quelli di gruppo avvisa il **caposquadra**, che può sospendere il lavoro. Anche una segnalazione **Grave** collegata a un incarico solo tuo lo sospende (vedi [guasti](#mini-guida-guasti-segnalazione-gps-e-risoluzione)). Se invece sei **tu** a non poter lavorare (malattia, ferie, permesso), non sospendere: avvisa il caposquadra o il manager, che registrano l’**assenza**.
 
 ---
 

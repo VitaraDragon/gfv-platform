@@ -270,7 +270,7 @@ Per vedere **chi è libero, impegnato, assente o spostato** in un giorno (senza 
 1. In **Gestione Lavori** trova la riga con filtri per periodo, terreno o stato.  
 2. Apri **Modifica**.  
 3. Correggi i campi necessari (assegnazione, date, stato, note). Se porti lo stato su **Sospeso**, indica anche il motivo (vedi sotto).  
-4. Salva e verifica che il caposquadra/operaio veda subito il cambiamento nel proprio flusso.
+4. Salva e verifica che il caposquadra/operaio veda subito il cambiamento nel proprio flusso. Il trattore, l’attrezzo e l’operatore che scegli in **Modifica** sono quelli che si salvano; per togliere il trattore scegli «-- Nessun trattore --». Se premi **Salva** senza aver cambiato nulla leggi «Nessuna modifica da salvare» e la finestra si chiude. Se un elenco (terreni, persone, macchine) tarda ad arrivare, la finestra si apre lo stesso con «Alcuni elenchi non sono arrivati in tempo. Puoi comunque compilare il lavoro.».
 
 ### Sospendere o rinviare un lavoro (maltempo, guasto, altro)
 
@@ -293,7 +293,7 @@ Dalla stessa lista puoi **eliminare** un lavoro (conferma in schermata). L’eli
 
 ### Chiusura lavoro e controlli finali
 
-1. Quando il caposquadra invia il lavoro in **completato da approvare**, apri il dettaglio e verifica ore, note e tracciamento.  
+1. Quando il caposquadra invia il lavoro in **completato da approvare**, apri il dettaglio e verifica ore, note e tracciamento. Nel dettaglio e nei numeri in alto di **Gestione lavori** le ore sono in ore e minuti (per esempio «7h 30min»), senza arrotondare all’ora.  
 2. Decidi tu: **approva** (chiusura definitiva) o **rifiuta** (il lavoro torna operativo per completare/correggere).  
 3. Dopo la decisione, controlla dashboard e mappa: indicatori e zone lavorate devono riflettere lo stato reale.
 
@@ -364,7 +364,7 @@ Le ore che gli operatori registrano (versione mobile o altri canali previsti) po
 2. Imposta i **filtri** se la pagina li offre (periodo, persona, lavoro, stato).  
 3. Per ogni riga in attesa leggi **data**, **orari**, **pausa**, **ore nette**, **lavoro**, **operaio**. I numeri in alto sono in ore, con il numero di righe sotto. **Da validare** è la tua coda. **Validate** e **Rifiutate** contano le stesse righe degli ultimi 30 giorni e lo scrivono sotto. Un avviso segnala i turni che si sovrappongono.  
 4. **Valida** approva subito. **Valida selezionate** e **Valida tutte** chiedono una conferma sola. **Rifiuta** chiede il motivo. Se il motivo è vuoto, compare «Scrivi il motivo: è obbligatorio.» e il campo resta in evidenza. Dopo il rifiuto leggi «Ora rifiutata».  
-5. Negli ultimi 30 giorni (filtri per operaio, lavoro e stato) vedi le ore validate e quelle rifiutate, con chi ha fatto l’azione, data, ora e motivo. Se la storia è lunga, **mostra tutto**. Puoi **Correggere**, **Annullare la validazione** o **Rifiutare / togliere**. Ogni azione chiede un motivo breve. La riga non si cancella. Vale anche per le ore degli operai di squadra.
+5. Negli ultimi 30 giorni (filtri per operaio, lavoro e stato) vedi le ore validate e quelle rifiutate, con chi ha fatto l’azione, data, ora e motivo. Nella colonna **Stato/traccia** la riga parte dallo **stato attuale** in grassetto («Da validare — la valida il caposquadra» o «… il manager», «Validata», «Rifiutata»), poi la storia. Se la storia è lunga vedi gli ultimi passaggi, preceduti da «…»; **mostra tutto** apre la storia intera in ordine di data. Puoi **Correggere**, **Annullare la validazione** o **Rifiutare / togliere**. Ogni azione chiede un motivo breve. La riga non si cancella. Vale anche per le ore degli operai di squadra.
 
 **Chi trovi nella tua coda:** le ore dei lavori **autonomi** e quelle segnate dai **capisquadra** sui lavori di squadra. Le ore degli operai di squadra le valida prima il **caposquadra** del lavoro.
 
@@ -396,6 +396,12 @@ Il flusso **quotidiano** degli operatori resta la **versione mobile**: questa pa
 1. **Home Manodopera** → **Statistiche manodopera** (sezione **Controllo e analisi**), oppure **Moduli** → **Statistiche** (con Manodopera attivo apre le statistiche manodopera).  
 2. Imposta **periodo** e altri filtri disponibili.  
 3. Leggi totali, ripartizioni per tipo di lavoro o per persona secondo quanto mostra la pagina.
+
+**Statistiche superficie** (tre riquadri): contano tutti i lavori salvati tranne gli annullati, senza seguire il periodo scelto nei filtri.
+
+- **Superficie lavorata (somma passaggi) (ha)** — somma degli ettari lavorati in tutti i lavori. Se sullo stesso terreno fate più passaggi (per esempio due trattamenti), ogni passaggio conta: il numero può superare la superficie dei terreni.  
+- **Superficie Totale Terreni (ha)** — somma della superficie di tutti i terreni.  
+- **Terreni coperti (ha)** — superficie dei terreni su cui c’è almeno un lavoro con superficie lavorata, contata una volta sola; sotto leggi quanti sono e che parte della superficie totale rappresentano, per esempio «3 terreni · 42.5% della superficie». Questa percentuale non supera mai il 100%.
 
 Serve per controllo di gestione e verifiche con amministrazione o HR.
 

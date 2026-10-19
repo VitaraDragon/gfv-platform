@@ -317,6 +317,43 @@
       "label": "Gestione lavori manager"
     },
     {
+      "prefix": "core/admin/js/gestione-lavori-",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Gestione lavori manager (controller, eventi, utils: modale Crea/Modifica, macchine, ore in ore e minuti)"
+    },
+    {
+      "prefix": "core/services/lavori-service.js",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Servizio lavori (sospensione, ripresa, repair origine dopo ripresa)"
+    },
+    {
+      "prefix": "core/services/statistiche-superficie.js",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Statistiche manodopera: somma passaggi e terreni coperti"
+    },
+    {
+      "prefix": "core/js/field-suggerimento-lavoro.js",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Versione mobile: proposta rapida del lavoro sotto il menu"
+    },
+    {
+      "prefix": "core/mobile/js/field-ore-riquadro.js",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Versione mobile: riquadro «Le tue ore del giorno» (giorno salvato, caricamento)"
+    },
+    {
       "prefix": "core/admin/gestione-squadre",
       "modules": [
         "MANODOPERA"

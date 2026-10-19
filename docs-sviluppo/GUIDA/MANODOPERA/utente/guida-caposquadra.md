@@ -84,13 +84,12 @@ Tutto ruota attorno al **lavoro selezionato**: comunicazioni, ore da validare e 
 3. Se l’elenco è vuoto o non trovi il lavoro giusto:
    - il **manager** potrebbe non averti ancora assegnato il lavoro, oppure il lavoro è in uno stato che non lo rende disponibile qui;  
    - contatta l’ufficio o il manager.  
-4. Sotto il menu può comparire una **nota di suggerimento** (ad esempio una proposta rapida tra i lavori attivi): è solo un aiuto, resta tu a confermare il lavoro giusto.
+4. Sotto il menu compare una **nota di suggerimento**, per esempio «Suggerimento: Potatura (proposta rapida, conferma manualmente).»: è solo un aiuto, resta tu a confermare il lavoro giusto.
 
-### GPS e suggerimento lavoro
+### Proposta rapida e posizione
 
-- Il telefono può usare la **posizione** solo se **consenti** l’accesso quando il browser o l’app lo chiedono.  
-- Senza permesso posizione il suggerimento potrebbe non esserci o essere generico: non è un errore, scegli comunque il lavoro dal menu.  
-- All’aperto il segnale è migliore che in magazzino o sotto tetto: se il messaggio è instabile, riprova dopo pochi secondi o avanza manualmente.
+- La proposta indica il lavoro che hai scelto, se è **assegnato** o **in corso**; altrimenti il primo lavoro **in corso**, poi il primo **assegnato**. Non indica mai un lavoro completato, in attesa di approvazione, sospeso o annullato. Se non c’è niente da proporre leggi «Nessun suggerimento GPS disponibile.».  
+- La proposta non usa la posizione del telefono: per scegliere il lavoro il permesso **posizione** non serve. La posizione serve nella scheda **⚠️ Segnala un problema** (vedi [GPS e mappa](#posizione-gps-e-mappa-passo-passo)).
 
 ### Buona pratica
 
@@ -157,7 +156,7 @@ Sotto il modulo vedi **Le tue ore del giorno**. Due turni dello stesso giorno no
 ### Cosa succede dopo
 
 - Le tue ore le valida il **manager**, non tu.  
-- Dopo un salvataggio riuscito il modulo può **ripulire** orari e note per facilitare l’inserimento del giorno successivo.
+- Dopo un salvataggio riuscito orari, pausa e note si **svuotano**, mentre la **Data lavoro** resta sul giorno appena salvato: **Le tue ore del giorno** mostra quel giorno (se hai segnato ieri, vedi le ore di ieri). Per un altro giorno cambia la data.
 
 ---
 
@@ -262,7 +261,7 @@ La segnalazione si fa dalla scheda **⚠️ Segnala un problema** del workspace,
 - **Non grave — posso finire il lavoro**: il problema c’è ma puoi terminare la giornata in sicurezza con cautela.  
 - **Grave — sospendere subito**: pericolo immediato o blocco del mezzo; fermati, metti in sicurezza persone e mezzi, poi segnala.
 
-Se colleghi la segnalazione a un **lavoro di cui sei caposquadra** e scegli **grave**, l’app **sospende** quel lavoro (motivo «Guasto macchina grave» o «Segnalazione grave»). Se il lavoro non è della tua squadra, il lavoro non cambia; può comparire anche la scritta «Non ho potuto aggiornare lo stato della macchina o del lavoro: avvisa il tuo responsabile.»: la segnalazione è comunque registrata e il manager vede il guasto nell’elenco **Officina & Guasti**. Con un guasto a macchina o attrezzo il mezzo passa in stato di guasto e non si può scegliere per un nuovo lavoro («(già in guasto)»). Se a segnalare grave è un tuo **operaio**, il lavoro **non** si sospende da solo: se serve, sospendilo tu con **⏸️ Sospendi lavoro**.
+Se colleghi la segnalazione a un **lavoro di cui sei caposquadra** e scegli **grave**, l’app **sospende** quel lavoro (motivo «Guasto macchina grave» o «Segnalazione grave»). Se il lavoro non è della tua squadra, il lavoro non cambia e dopo l’invio leggi «Segnalazione inviata. Il lavoro lo sospende il caposquadra o il manager.»: non è un errore, la segnalazione è registrata e il manager vede il guasto nell’elenco **Officina & Guasti**. Con un guasto a macchina o attrezzo il mezzo passa in stato di guasto e non si può scegliere per un nuovo lavoro («(già in guasto)»). Se a segnalare grave è un tuo **operaio** su un lavoro di squadra, il lavoro **non** si sospende da solo (lui legge che il lavoro lo sospende il caposquadra o il manager): se serve, sospendilo tu con **⏸️ Sospendi lavoro**. Se invece un operaio segnala grave sul proprio lavoro autonomo, quel lavoro si sospende.
 
 ### Segnalazione guasto a macchina o attrezzo
 
@@ -300,7 +299,7 @@ Se colleghi la segnalazione a un **lavoro di cui sei caposquadra** e scegli **gr
   - **✅ Risolto da me**: note di riparazione obbligatorie, costo facoltativo, poi **✅ Conferma Risoluzione**. Il guasto si chiude subito e la segnalazione diventa **Risolto**.
   - **🚫 Annulla segnalazione**: la ritiri (mandata per sbaglio, problema che non c’era). Motivo facoltativo, poi **Sì, annulla la segnalazione**. Resta in elenco con il badge **🚫 Annullato** e la data **Annullata il**; il manager la vede con il badge **Annullato**. Una segnalazione annullata non si riapre: se l’hai annullata per errore, fai una nuova segnalazione.
   - **Indietro** chiude la finestra senza cambiare nulla.
-  In tutti e due i casi macchina e attrezzo tornano come erano prima della segnalazione (disponibile o in uso), salvo un altro guasto aperto sullo stesso mezzo; il lavoro fermato da una segnalazione grave riparte, salvo un altro guasto aperto sullo stesso lavoro. **Storico**, quando compare sotto la segnalazione, mostra segnalazione, annullo o chiusura con le note. Quando il manager ha già deciso (continuazione approvata o lavoro sospeso), i pulsanti spariscono e la segnalazione la chiude lui; se decide mentre hai la finestra aperta, si chiude con l’avviso «Il responsabile ha già preso una decisione su questo guasto: non puoi più annullarlo o chiuderlo da qui.» Una segnalazione non si cancella dal campo: solo il manager può eliminarla.  
+  In tutti e due i casi macchina e attrezzo tornano come erano prima della segnalazione (disponibile o in uso), salvo un altro guasto aperto sullo stesso mezzo, e nei menu della scheda perdono subito la scritta «(già in guasto)»; il lavoro fermato da una segnalazione grave riparte, salvo un altro guasto aperto sullo stesso lavoro. **Storico**, quando compare sotto la segnalazione, mostra segnalazione, annullo o chiusura con le note. Quando il manager ha già deciso (continuazione approvata o lavoro sospeso), i pulsanti spariscono e la segnalazione la chiude lui; se decide mentre hai la finestra aperta, si chiude con l’avviso «Il responsabile ha già preso una decisione su questo guasto: non puoi più annullarlo o chiuderlo da qui.» Una segnalazione non si cancella dal campo: solo il manager può eliminarla.  
 - **Manager** (pagina **Officina & Guasti** del Parco Macchine): vede le segnalazioni e chiude il guasto con **Segna risolto**, con note facoltative; se serve fermare il lavoro, lo sospende da **Gestione lavori**. Le segnalazioni che hai annullato le vede con il badge **Annullato**, senza pulsanti. Se il problema torna dopo la chiusura, fai una nuova segnalazione.  
 - Finché il guasto è aperto, tieni allineata la squadra con **comunicazioni** e telefonate: la guida manager descrive il lato decisionale completo.
 
