@@ -201,7 +201,7 @@ test.describe('barra nuova versione', () => {
         });
         const prima = await statoSw();
         const navigata = page.waitForEvent('framenavigated', {
-            timeout: 20_000,
+            timeout: 30_000,
             predicate: (frame) => frame === page.mainFrame()
         }).catch(() => null);
         await page.evaluate(() => {

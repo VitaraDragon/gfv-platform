@@ -4,7 +4,7 @@
 // in .githooks) oppure da `npm run bump:pwa-cache`. Ogni commit ottiene un ID nuovo
 // così CACHE_NAME cambia e in activate() le cache obsolete vengono eliminate.
 // Setup hook (una tantum): git config core.hooksPath .githooks
-const SW_CACHE_BUILD_ID = 't1792426481397';
+const SW_CACHE_BUILD_ID = 't1792428383344';
 const CACHE_NAME = 'gfv-platform-' + SW_CACHE_BUILD_ID;
 
 function isLocalDevHost(hostname) {
@@ -115,8 +115,13 @@ self.addEventListener('fetch', (event) => {
   // Stesso origin: Network First. cache:'no-cache' rivalida (304 se invariato)
   // e non riusa la copia HTTP max-age=600 di GitHub Pages sui file senza ?v=.
   try {
+    const controllo = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timerRete = controllo ? setTimeout(() => controllo.abort(), 8000) : 0;
+    const opzioni = { cache: 'no-cache' };
+    if (controllo) opzioni.signal = controllo.signal;
     event.respondWith(
-      fetch(event.request, { cache: 'no-cache' })
+      fetch(event.request, opzioni)
+        .finally(() => { if (timerRete) clearTimeout(timerRete); })
         .then((response) => {
           // Solo cache risposte valide e con Content-Type supportato
           if (response.status === 200 && response.type === 'basic') {
