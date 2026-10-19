@@ -682,8 +682,10 @@
             esitoSegnalazioneGuasto,
             testoConfermaSegnalazione,
             ritornoWorkspaceCampoDaGuasti,
-            vistaSegnalazionePerModuli
-        } from '../js/field-guasti-access.js?v=2026-10-18a';
+            vistaSegnalazionePerModuli,
+            scegliLavoroPredefinitoGuasto,
+            mezziDaLavoroGuasto
+        } from '../js/field-guasti-access.js?v=2026-10-19a';
         import { buildSospendiLavoroPatch } from '../services/lavoro-sospensione.js';
         import {
             esitoRipresaDopoGuasto,
@@ -1175,6 +1177,34 @@
                 }
             }
 
+            function impostaMezzoGuasto(select, id) {
+                if (!select) return;
+                const valore = id ? String(id) : '';
+                if (!valore) {
+                    select.value = '';
+                    return;
+                }
+                const presente = Array.from(select.options).some((opt) => opt.value === valore);
+                select.value = presente ? valore : '';
+            }
+
+            function applicaLavoroAlModulo(lavoro) {
+                const mezzi = mezziDaLavoroGuasto(lavoro);
+                impostaMezzoGuasto(document.getElementById('guasto-macchina'), mezzi.trattoreId);
+                impostaMezzoGuasto(document.getElementById('guasto-attrezzo'), mezzi.attrezzoId);
+                const componente = document.getElementById('guasto-componente');
+                if (componente) componente.value = '';
+                updateComponenteDropdown();
+            }
+
+            function lavoroIdGuastoDaUrl() {
+                try {
+                    return new URLSearchParams(window.location.search || '').get('lavoroId') || '';
+                } catch (ignora) {
+                    return '';
+                }
+            }
+
             // Carica lavori attivi dell'operaio e pre-seleziona macchina/attrezzo
             async function loadLavori() {
                 try {
@@ -1188,9 +1218,6 @@
                     if (!lavoroSelect) return;
                     
                     lavoroSelect.innerHTML = '<option value="">' + t('guasto.noJob', linguaGuasto()) + '</option>';
-
-                    let lavoroAttivoPiuRecente = null;
-                    let dataLavoroPiuRecente = null;
 
                     // Carica anche i dati dell'utente per verificare se è caposquadra
                     let userDoc = null;
@@ -1250,71 +1277,21 @@
                             }
                             option.textContent = (lavoro.nome || `Lavoro ${doc.id}`) + tipoAssegnazione;
                             lavoroSelect.appendChild(option);
-
-                            // Trova il lavoro più recente (per pre-selezione)
-                            // Usa createdAt se disponibile, altrimenti updatedAt, altrimenti dataInizio
-                            let dataLavoro = new Date(0);
-                            if (lavoro.createdAt) {
-                                dataLavoro = lavoro.createdAt.toDate ? lavoro.createdAt.toDate() : new Date(lavoro.createdAt);
-                            } else if (lavoro.updatedAt) {
-                                dataLavoro = lavoro.updatedAt.toDate ? lavoro.updatedAt.toDate() : new Date(lavoro.updatedAt);
-                            } else if (lavoro.dataInizio) {
-                                dataLavoro = lavoro.dataInizio.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio);
-                            }
-                            
-                            if (!dataLavoroPiuRecente || dataLavoro > dataLavoroPiuRecente) {
-                                dataLavoroPiuRecente = dataLavoro;
-                                lavoroAttivoPiuRecente = lavoroData;
-                            }
                         }
                     });
 
-                    // Pre-seleziona macchina e attrezzo dal lavoro più recente
-                    if (lavoroAttivoPiuRecente) {
+                    const lavoroScelto = scegliLavoroPredefinitoGuasto(lavoriList, {
+                        lavoroId: lavoroIdGuastoDaUrl(),
+                        oggi: new Date()
+                    });
 
-                        // Pre-seleziona il lavoro nel dropdown
-                        lavoroSelect.value = lavoroAttivoPiuRecente.id;
-                        
-                        // Pre-seleziona trattore se presente
-                        if (lavoroAttivoPiuRecente.macchinaId) {
-                            const macchinaSelect = document.getElementById('guasto-macchina');
-                            if (macchinaSelect) {
-                                // Verifica che l'opzione esista nel dropdown
-                                const optionExists = Array.from(macchinaSelect.options).some(
-                                    opt => opt.value === lavoroAttivoPiuRecente.macchinaId
-                                );
-                                if (optionExists) {
-                                    macchinaSelect.value = lavoroAttivoPiuRecente.macchinaId;
+                    if (lavoroScelto) {
+                        lavoroSelect.value = lavoroScelto.id;
+                        applicaLavoroAlModulo(lavoroScelto);
 
-                                } else {
-                                    console.warn('Trattore non trovato nel dropdown:', lavoroAttivoPiuRecente.macchinaId);
-                                }
-                            }
-                        }
-                        
-                        // Pre-seleziona attrezzo se presente
-                        if (lavoroAttivoPiuRecente.attrezzoId) {
-                            const attrezzoSelect = document.getElementById('guasto-attrezzo');
-                            if (attrezzoSelect) {
-                                // Verifica che l'opzione esista nel dropdown
-                                const optionExists = Array.from(attrezzoSelect.options).some(
-                                    opt => opt.value === lavoroAttivoPiuRecente.attrezzoId
-                                );
-                                if (optionExists) {
-                                    attrezzoSelect.value = lavoroAttivoPiuRecente.attrezzoId;
-
-                                } else {
-                                    console.warn('Attrezzo non trovato nel dropdown:', lavoroAttivoPiuRecente.attrezzoId);
-                                }
-                            }
-                        }
-                        
-                        // Pre-seleziona componente in base a trattore/attrezzo
-                        updateComponenteDropdown();
-                        
                         // Pre-compila ubicazione se c'è un terreno associato al lavoro
-                        if (lavoroAttivoPiuRecente.terrenoId) {
-                            const terreno = terreniMap.get(lavoroAttivoPiuRecente.terrenoId);
+                        if (lavoroScelto.terrenoId) {
+                            const terreno = terreniMap.get(lavoroScelto.terrenoId);
                             if (terreno) {
                                 const ubicazioneInput = document.getElementById('guasto-ubicazione');
                                 if (ubicazioneInput) {
@@ -1552,13 +1529,15 @@
                 if (!lavoroSelect) return;
 
                 lavoroSelect.addEventListener('change', () => {
+                    const lavoro = lavoriList.find((l) => l.id === lavoroSelect.value) || null;
+                    applicaLavoroAlModulo(lavoro);
+
                     const tipoGuasto = document.querySelector('input[name="tipoGuasto"]:checked')?.value;
                     const ubicazioneInput = document.getElementById('guasto-ubicazione');
                     
                     // Aggiorna ubicazione solo se tipo generico e c'è un lavoro selezionato
-                    if (tipoGuasto === 'generico' && ubicazioneInput && lavoroSelect.value) {
-                        const lavoro = lavoriList.find(l => l.id === lavoroSelect.value);
-                        if (lavoro && lavoro.terrenoId) {
+                    if (tipoGuasto === 'generico' && ubicazioneInput && lavoro) {
+                        if (lavoro.terrenoId) {
                             const terreno = terreniMap.get(lavoro.terrenoId);
                             if (terreno) {
                                 // Formatta: "Podere - Nome Terreno" o solo "Nome Terreno" se non c'è podere
