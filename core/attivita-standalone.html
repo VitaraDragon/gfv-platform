@@ -3162,26 +3162,13 @@
         }
     </script>
     
-    <!-- Service Worker Registration for PWA -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                // Usa percorso relativo per compatibilità con localhost e GitHub Pages
-                const swPath = window.location.pathname.includes('/gfv-platform/') 
-                    ? '/gfv-platform/service-worker.js' 
-                    : '../service-worker.js';
-                navigator.serviceWorker.register(swPath)
-                    .then((registration) => {
-                        console.log('Service Worker registrato:', registration.scope);
-                    })
-                    .catch((error) => {
-                        // Non loggare errori se siamo in ambiente file:// (normale)
-                        if (window.location.protocol !== 'file:') {
-                            console.warn('Registrazione Service Worker fallita (non critico):', error.message);
-                        }
-                    });
-            });
-        }
+    <!-- Service Worker: la barra di aggiornamento sta in app-update.js -->
+    <script type="module">
+        import { registraServiceWorker } from './js/app-update.js?v=2026-10-19a';
+        const swPath = window.location.pathname.includes('/gfv-platform/')
+            ? '/gfv-platform/service-worker.js'
+            : '../service-worker.js';
+        registraServiceWorker(swPath);
     </script>
 </body>
 </html>
