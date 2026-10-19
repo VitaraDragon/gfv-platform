@@ -184,11 +184,29 @@ test.describe('barra nuova versione', () => {
             }];
         });
 
-        const navigata = page.waitForEvent('framenavigated', (frame) => frame === page.mainFrame());
+        let andato = false;
+        const navigata = page.waitForEvent('framenavigated', (frame) => frame === page.mainFrame()).then(() => {
+            andato = true;
+        });
         await page.locator('#gfv-app-update-btn').click();
         const conferma = page.locator('#gfv-app-update-conferma');
         const chiedeConferma = await conferma.waitFor({ state: 'visible', timeout: 3000 }).then(() => true).catch(() => false);
         if (chiedeConferma) await conferma.click();
+        await page.waitForTimeout(4000);
+        if (!andato) {
+            const esito = await page.evaluate(async () => {
+                const reg = await navigator.serviceWorker.getRegistration();
+                return {
+                    esito: window.__gfvAppUpdateEsito || '',
+                    sporco: Boolean(window.__gfvFormSporco),
+                    salva: Boolean(window.__gfvOreSalvataggioInCorso || window.__gfvSalvataggioInCorso),
+                    waiting: Boolean(reg && reg.waiting),
+                    conferma: Boolean(document.getElementById('gfv-app-update-confirm')),
+                    barra: Boolean(document.getElementById('gfv-app-update-bar'))
+                };
+            });
+            throw new Error('niente reload ' + JSON.stringify(esito));
+        }
         await navigata;
         await page.waitForFunction(() => {
             const raw = sessionStorage.getItem('tony_session_state') || '';
