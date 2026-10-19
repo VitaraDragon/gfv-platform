@@ -248,13 +248,13 @@ function assicuraStile() {
     const style = document.createElement('style');
     style.id = 'gfv-app-update-style';
     style.textContent = [
-        '#gfv-app-update-bar{position:fixed;left:0;right:0;bottom:0;z-index:10100;display:flex;align-items:center;justify-content:space-between;gap:12px;box-sizing:border-box;padding:12px 16px calc(12px + env(safe-area-inset-bottom, 0px));background:#1f2937;color:#fff;font:16px/1.4 system-ui,sans-serif}',
+        '#gfv-app-update-bar{position:fixed;left:0;right:0;bottom:0;z-index:2147483646;display:flex;align-items:center;justify-content:space-between;gap:12px;box-sizing:border-box;padding:12px 16px calc(12px + env(safe-area-inset-bottom, 0px));background:#1f2937;color:#fff;font:16px/1.4 system-ui,sans-serif}',
         '#gfv-app-update-bar p{margin:0;flex:1 1 auto}',
         '#gfv-app-update-bar button,#gfv-app-update-confirm button{min-height:48px;min-width:48px;padding:10px 16px;font:700 16px/1.2 system-ui,sans-serif;border-radius:8px;cursor:pointer}',
         '#gfv-app-update-btn,#gfv-app-update-conferma{background:#2E8B57;color:#fff;border:0}',
         '#gfv-app-update-annulla{background:#fff;color:#1f2937;border:1px solid #d1d5db}',
         '#gfv-app-update-btn:focus-visible,#gfv-app-update-conferma:focus-visible,#gfv-app-update-annulla:focus-visible{outline:3px solid #fde68a;outline-offset:2px}',
-        '#gfv-app-update-confirm{position:fixed;inset:0;z-index:10200;display:flex;align-items:flex-end;justify-content:center;padding:16px;background:rgba(15,23,42,.45)}',
+        '#gfv-app-update-confirm{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:flex-end;justify-content:center;padding:16px;background:rgba(15,23,42,.45)}',
         '#gfv-app-update-confirm [role="document"],#gfv-app-update-confirm .gfv-app-update-dialog{background:#fff;color:#1a1a1a;border-radius:12px;padding:16px;width:min(420px,100%);box-shadow:0 8px 28px rgba(0,0,0,.25)}',
         '#gfv-app-update-confirm p{margin:0 0 16px;font:16px/1.4 system-ui,sans-serif}',
         '#gfv-app-update-confirm .gfv-app-update-azioni{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}',
@@ -427,9 +427,14 @@ async function preparaAggiornamento(registration) {
     inviaSkip();
     if (timerSkip) window.clearInterval(timerSkip);
     let tentativi = 0;
+    const ancoraInAttesa = () => {
+        if (registration && registration.waiting) return true;
+        if (!waiting) return false;
+        return waiting.state === 'installing' || waiting.state === 'installed';
+    };
     timerSkip = window.setInterval(() => {
         tentativi += 1;
-        if (!registration.waiting || tentativi > 8) {
+        if (!ancoraInAttesa() || tentativi > 25) {
             window.clearInterval(timerSkip);
             timerSkip = 0;
             return;
