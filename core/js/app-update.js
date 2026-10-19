@@ -34,6 +34,7 @@ let ricaricando = false;
 let buildInAttesa = '';
 let ignoraAttesaCorrente = false;
 let workerMostrato = null;
+let timerSkip = 0;
 
 /**
  * @param {string} hostname
@@ -179,6 +180,7 @@ function installaControllerChange() {
         }
         ricaricando = true;
         segnaRicaricato(build);
+        if (timerSkip) window.clearInterval(timerSkip);
         window.location.reload();
     });
 }
@@ -408,10 +410,25 @@ async function preparaAggiornamento(registration) {
     nascondiBarra();
     aggiornaRichiesto = true;
     buildInAttesa = build;
-    const attuale = (registration && registration.waiting) || waiting;
-    try {
-        attuale.postMessage({ type: 'GFV_SKIP_WAITING' });
-    } catch (error) {
-        /* worker già chiuso */
-    }
+    const inviaSkip = () => {
+        const target = (registration && registration.waiting) || waiting;
+        if (!target) return;
+        try {
+            target.postMessage({ type: 'GFV_SKIP_WAITING' });
+        } catch (error) {
+            /* worker già chiuso */
+        }
+    };
+    inviaSkip();
+    if (timerSkip) window.clearInterval(timerSkip);
+    let tentativi = 0;
+    timerSkip = window.setInterval(() => {
+        tentativi += 1;
+        if (!registration.waiting || tentativi > 8) {
+            window.clearInterval(timerSkip);
+            timerSkip = 0;
+            return;
+        }
+        inviaSkip();
+    }, 400);
 }
