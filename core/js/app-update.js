@@ -115,6 +115,7 @@ export function attivaAscoltoForm() {
     if (ascoltoPronto || typeof document === 'undefined') return;
     ascoltoPronto = true;
     document.addEventListener('input', (event) => {
+        if (!event.isTrusted) return;
         const target = event.target;
         if (!target || typeof target.closest !== 'function' || !target.closest('form')) return;
         window.__gfvFormSporco = true;

@@ -186,6 +186,9 @@ test.describe('barra nuova versione', () => {
 
         const navigata = page.waitForEvent('framenavigated', (frame) => frame === page.mainFrame());
         await page.locator('#gfv-app-update-btn').click();
+        const conferma = page.locator('#gfv-app-update-conferma');
+        const chiedeConferma = await conferma.waitFor({ state: 'visible', timeout: 3000 }).then(() => true).catch(() => false);
+        if (chiedeConferma) await conferma.click();
         await navigata;
         await page.waitForFunction(() => {
             const raw = sessionStorage.getItem('tony_session_state') || '';
