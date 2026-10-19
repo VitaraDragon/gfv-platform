@@ -10,6 +10,8 @@ import {
     esitoSegnalazioneGuasto,
     testoConfermaSegnalazione,
     vistaSegnalazionePerModuli,
+    scegliLavoroPredefinitoGuasto,
+    mezziDaLavoroGuasto,
 } from '../core/js/field-guasti-access.js';
 import {
     voceCambiaAziendaVisibile,
@@ -187,6 +189,119 @@ describe('testoConfermaSegnalazione', () => {
         const nellaScheda = testoConfermaSegnalazione({ dalCampo: true, haAvvisi: false, incorporata: true });
         expect(nellaScheda.tornaAutomatico).toBe(false);
         expect(nellaScheda.mostraTornaWorkspace).toBe(false);
+    });
+});
+
+describe('scegliLavoroPredefinitoGuasto', () => {
+    const oggi = new Date(2026, 9, 19, 8, 14);
+    const futuro = {
+        id: 'concimazione',
+        stato: 'assegnato',
+        nome: 'Concimazione di fondo',
+        dataInizio: new Date(2026, 9, 19, 12, 0),
+        macchinaId: 'tr-nuovo',
+        attrezzoId: 'at-nuovo',
+    };
+    const inCorso = {
+        id: 'prova-222',
+        stato: 'in_corso',
+        nome: 'PROVA #222',
+        dataInizio: new Date(2026, 9, 17, 8, 0),
+        macchinaId: 'tr-vecchio',
+    };
+
+    it('un lavoro futuro non vince su uno in corso', () => {
+        expect(scegliLavoroPredefinitoGuasto([futuro, inCorso], { oggi }).id).toBe('prova-222');
+        const iniziato = {
+            id: 'sant-albino',
+            stato: 'assegnato',
+            dataInizio: new Date(2026, 9, 17, 12, 0),
+        };
+        expect(scegliLavoroPredefinitoGuasto([futuro, iniziato], { oggi }).id).toBe('sant-albino');
+        expect(scegliLavoroPredefinitoGuasto([
+            { id: 'corso-vecchio', stato: 'in_corso', dataInizio: new Date(2026, 9, 17, 8, 0) },
+            { id: 'assegnato-recente', stato: 'assegnato', dataInizio: new Date(2026, 9, 18, 12, 0) },
+        ], { oggi }).id).toBe('corso-vecchio');
+    });
+
+    it('vince il lavoroId dell’URL, se è tra i lavori dell’operaio', () => {
+        expect(scegliLavoroPredefinitoGuasto([futuro, inCorso], {
+            oggi,
+            lavoroId: 'concimazione',
+        }).id).toBe('concimazione');
+        expect(scegliLavoroPredefinitoGuasto([futuro, inCorso], {
+            oggi,
+            lavoroId: 'non-suo',
+        }).id).toBe('prova-222');
+    });
+
+    it('a parità di inizio sceglie il lavoro autonomo già partito', () => {
+        const inizio = new Date(2026, 9, 19, 8, 0);
+        const adesso = new Date(2026, 9, 19, 10, 0);
+        const squadra = {
+            id: 'sq',
+            stato: 'assegnato',
+            caposquadraId: 'capo',
+            dataInizio: inizio,
+            macchinaId: 'tr-1',
+            attrezzoId: 'at-1',
+        };
+        const autonomo = {
+            id: 'au',
+            stato: 'assegnato',
+            operaioId: 'op',
+            dataInizio: inizio,
+        };
+        expect(scegliLavoroPredefinitoGuasto([squadra, autonomo], { oggi: adesso }).id).toBe('au');
+        const squadraPiuRecente = {
+            id: 'sq-recente',
+            stato: 'assegnato',
+            caposquadraId: 'capo',
+            dataInizio: new Date(2026, 9, 18, 12, 0),
+            macchinaId: 'tr-2',
+        };
+        const autonomoVecchio = {
+            id: 'au-vecchio',
+            stato: 'assegnato',
+            operaioId: 'op',
+            dataInizio: new Date(2026, 9, 17, 12, 0),
+        };
+        expect(scegliLavoroPredefinitoGuasto([autonomoVecchio, squadraPiuRecente], {
+            oggi: new Date(2026, 9, 19, 15, 0),
+        }).id).toBe('sq-recente');
+    });
+
+    it('il futuro più vicino precede un lavoro sospeso', () => {
+        const lontano = { id: 'lontano', stato: 'assegnato', dataInizio: new Date(2026, 9, 25, 12, 0) };
+        const vicino = { id: 'vicino', stato: 'assegnato', dataInizio: new Date(2026, 9, 20, 12, 0) };
+        const sospeso = { id: 'sosp', stato: 'sospeso', dataInizio: new Date(2026, 9, 17, 12, 0) };
+        expect(scegliLavoroPredefinitoGuasto([lontano, sospeso, vicino], { oggi }).id).toBe('vicino');
+        expect(scegliLavoroPredefinitoGuasto([sospeso], { oggi }).id).toBe('sosp');
+    });
+});
+
+describe('mezziDaLavoroGuasto', () => {
+    it('un lavoro senza mezzi svuota trattore e attrezzo', () => {
+        expect(mezziDaLavoroGuasto({ id: 'au', operaioId: 'op' })).toEqual({
+            trattoreId: null,
+            attrezzoId: null,
+        });
+        expect(mezziDaLavoroGuasto(null)).toEqual({
+            trattoreId: null,
+            attrezzoId: null,
+        });
+        expect(mezziDaLavoroGuasto({
+            id: 'sq',
+            macchinaId: 'tr-1',
+            attrezzoId: 'at-1',
+        })).toEqual({
+            trattoreId: 'tr-1',
+            attrezzoId: 'at-1',
+        });
+        expect(mezziDaLavoroGuasto({ macchinaId: 'tr-1', attrezzoId: '  ' })).toEqual({
+            trattoreId: 'tr-1',
+            attrezzoId: null,
+        });
     });
 });
 

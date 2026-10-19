@@ -8,10 +8,12 @@
 import { isGuastoAttivo } from '../../../../core/services/guasto-stati.js';
 import { idMezziCoinvolti } from '../../../../core/services/guasto-ripristino.js';
 import {
+  SEGNALAZIONE_GUASTI_PATH,
   gotoGuastiList,
   gotoSegnalazioneGuasti,
   loginAsManagerManodopera,
   loginAsOperaioFromDevPage,
+  waitForSegnalazioneGuastiLoaded,
 } from '../helpers/sim-login.js';
 
 export const E2E_GUASTO_ANNULLA_MARKER = 'GFV_SIM_E2E_ANNULLA_GUASTO';
@@ -180,6 +182,42 @@ export async function runGuastiAnnullaWriteAssertions(page, expect) {
 
   const tenantOperaio = await tenantId(page);
   expect(tenantOperaio).toBeTruthy();
+  await page.waitForFunction(() => {
+    const sel = document.getElementById('guasto-lavoro');
+    if (!sel || !sel.value) return false;
+    const testi = Array.from(sel.options).map((opt) => opt.textContent || '');
+    return testi.some((t) => /\(Autonomo\)/.test(t)) && testi.some((t) => /\(Squadra\)/.test(t));
+  }, { timeout: 60_000 });
+  await expect(page.locator('#guasto-lavoro option:checked')).toHaveText(/\(Autonomo\)/);
+  await expect(page.locator('#guasto-macchina')).toHaveValue('');
+  await expect(page.locator('#guasto-attrezzo')).toHaveValue('');
+  const lavoroAutonomoId = await page.locator('#guasto-lavoro').inputValue();
+  const lavoriSquadraIds = await page.locator('#guasto-lavoro option').evaluateAll((opts) => (
+    opts.filter((opt) => opt.value && /\(Squadra\)/.test(opt.textContent || '')).map((opt) => opt.value)
+  ));
+  expect(lavoriSquadraIds.length).toBeGreaterThan(0);
+  let squadraConMezzi = '';
+  for (let i = 0; i < lavoriSquadraIds.length; i += 1) {
+    await page.locator('#guasto-lavoro').selectOption(lavoriSquadraIds[i]);
+    const trattore = await page.locator('#guasto-macchina').inputValue();
+    const attrezzo = await page.locator('#guasto-attrezzo').inputValue();
+    if (trattore || attrezzo) {
+      squadraConMezzi = lavoriSquadraIds[i];
+      break;
+    }
+  }
+  expect(squadraConMezzi).toBeTruthy();
+  await page.locator('#guasto-lavoro').selectOption(lavoroAutonomoId);
+  await expect(page.locator('#guasto-macchina')).toHaveValue('');
+  await expect(page.locator('#guasto-attrezzo')).toHaveValue('');
+
+  await page.goto(`${SEGNALAZIONE_GUASTI_PATH}&lavoroId=${encodeURIComponent(squadraConMezzi)}`);
+  await waitForSegnalazioneGuastiLoaded(page);
+  await expect.poll(
+    async () => page.locator('#guasto-lavoro').inputValue(),
+    { timeout: 60_000 }
+  ).toBe(squadraConMezzi);
+
   await page.waitForFunction(() => {
     const sel = document.getElementById('guasto-lavoro');
     if (!sel) return false;
