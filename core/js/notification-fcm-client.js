@@ -5,6 +5,7 @@
  * @module core/js/notification-fcm-client
  */
 
+import { registraServiceWorker } from './app-update.js?v=2026-10-19a';
 import { getAppInstance, getAuthInstance, getDb, doc, getDoc, updateDoc } from '../services/firebase-service.js';
 import { loadNotificationPrefsFromUser, upsertFcmTokenInPrefs } from '../services/notification-prefs-service.js';
 import { buildNotificationIconUrl, resolveNotificationWebOrigin } from '../config/notification-catalog.js';
@@ -23,9 +24,9 @@ function resolveServiceWorkerUrl() {
 async function ensureServiceWorker() {
     if (!('serviceWorker' in navigator)) return null;
     try {
-        const registration = await navigator.serviceWorker.register(resolveServiceWorkerUrl());
-        if (registration.update) await registration.update().catch(() => {});
-        return registration;
+        const registration = await registraServiceWorker(resolveServiceWorkerUrl());
+        if (registration) return registration;
+        return navigator.serviceWorker.getRegistration();
     } catch (err) {
         console.warn('[push] service worker:', err);
         return navigator.serviceWorker.getRegistration();

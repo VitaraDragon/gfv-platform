@@ -382,5 +382,9 @@ export const FIELD_UI_STRINGS = {
     "miscela.waterHa": { it: "Acqua hl/ha", ro: "Apă hl/ha", en: "Water hl/ha", sq: "Ujë hl/ha", fr: "Eau hl/ha" },
     "miscela.waterTot": { it: "Acqua hl totali", ro: "Apă hl total", en: "Total water hl", sq: "Ujë hl gjithsej", fr: "Eau hl au total" },
     "miscela.tank": { it: "{nome}: {quintali} quintali, botti piene {botti}", ro: "{nome}: {quintali} chintale, cisterne pline {botti}", en: "{nome}: {quintali} quintals, full tanks {botti}", sq: "{nome}: {quintali} kuintalë, bote të plota {botti}", fr: "{nome} : {quintali} quintaux, cuves pleines {botti}" },
-    "miscela.lastTank": { it: "Ultima botte parziale, {hl} hl:", ro: "Ultima cisternă parțială, {hl} hl:", en: "Last partial tank, {hl} hl:", sq: "Bota e fundit e pjesshme, {hl} hl:", fr: "Dernière cuve partielle, {hl} hl :" }
+    "miscela.lastTank": { it: "Ultima botte parziale, {hl} hl:", ro: "Ultima cisternă parțială, {hl} hl:", en: "Last partial tank, {hl} hl:", sq: "Bota e fundit e pjesshme, {hl} hl:", fr: "Dernière cuve partielle, {hl} hl :" },
+    "update.available": { it: "C'è una nuova versione", ro: "Există o versiune nouă", en: "There's a new version", sq: "Ka një version të ri", fr: "Il y a une nouvelle version" },
+    "update.action": { it: "Aggiorna", ro: "Actualizează", en: "Update", sq: "Përditëso", fr: "Mettre à jour" },
+    "update.unsaved": { it: "Hai dati non salvati: aggiorni lo stesso?", ro: "Ai date nesalvate: actualizezi oricum?", en: "You have unsaved data: update anyway?", sq: "Ke të dhëna të paruajtura: i përditëson prapë?", fr: "Vous avez des données non enregistrées : mettre à jour quand même ?" },
+    "update.cancel": { it: "Annulla", ro: "Anulează", en: "Cancel", sq: "Anulo", fr: "Annuler" }
 };

@@ -693,8 +693,9 @@
             patchRipresaPerFirestore,
             testoToastRipresa
         } from '../services/lavoro-ripresa-guasto.js';
-        import { macchinaSelezionabile, suffissoMacchinaNonSelezionabile, aggiornaOpzioniDaGuasti } from '../js/macchina-selezionabile.js?v=2026-10-18a';
-        import { t, leggiLinguaCampo } from '../services/field-ui-i18n.js?v=2026-10-18a';
+        import { macchinaSelezionabile, suffissoMacchinaNonSelezionabile, aggiornaOpzioniDaGuasti } from '../js/macchina-selezionabile.js';
+        import { t, leggiLinguaCampo } from '../services/field-ui-i18n.js';
+        import '../js/app-update.js?v=2026-10-19a';
         import { applicaLingua } from '../mobile/js/field-ui-i18n-dom.js';
 
         let mostraMacchinaSegnalazione = true;
@@ -2166,6 +2167,7 @@
 
                 const submitBtn = e.submitter || document.querySelector('#segnala-guasto-form button[type="submit"]');
                 if (submitBtn) submitBtn.disabled = true;
+                window.__gfvSalvataggioInCorso = true;
                 try {
                     const guastoData = {
                         tipoGuasto, // 'macchina' | 'generico'
@@ -2319,6 +2321,10 @@
                         showAlert(t('guasto.errorPrefix', linguaGuasto(), { message: esito.errore }), 'error');
                     }
                     if (esito.successo) {
+                        window.__gfvFormSporco = false;
+                        try {
+                            if (window.parent && window.parent !== window) window.parent.__gfvFormSporco = false;
+                        } catch (ignora) { /* pagina aperta da sola */ }
                         const dalCampo = provenienzaGuastiPagina() === 'field'
                             && ritornoWorkspaceCampoDaGuasti(ruoliUtenteGuasti, ruoloSingoloGuasti);
                         const capoDecide = esito.avvisi.length === 0
@@ -2376,6 +2382,7 @@
                         message: error && error.message ? error.message : error
                     }), 'error');
                 } finally {
+                    window.__gfvSalvataggioInCorso = false;
                     if (submitBtn) submitBtn.disabled = false;
                 }
             });

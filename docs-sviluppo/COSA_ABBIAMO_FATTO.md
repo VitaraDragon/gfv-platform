@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-19 — Ore: stato attuale e minuti.**
+**Ultimo aggiornamento documentazione: 2026-10-19 — Barra nuova versione.**
+
+## 2026-10-19 — Barra «C'è una nuova versione»
+
+Chi tiene l'app aperta vede in basso «C'è una nuova versione» e il pulsante Aggiorna solo quando online c'è davvero un service worker nuovo. Il primo avvio, l'installazione e un ricaricamento senza deploy non la mostrano. Aggiorna è l'unico modo per ricaricare: dopo il clic la barra sparisce e non torna per la stessa versione. Se il form ha dati non salvati, o un salvataggio è in corso, chiede conferma. La prima volta, chi ha ancora le pagine vecchie ricarica a mano; dalla volta dopo compare la barra. `firestore.rules` non cambia. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-19 — Ore: stato attuale e minuti.**
 
 ## 2026-10-19 — Validazione ore e tab Ore: stato attuale, minuti
 

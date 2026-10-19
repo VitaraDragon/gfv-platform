@@ -1846,23 +1846,13 @@
         // Funzione loadExistingPolygon RIMOSSA - ora gestita nel modulo terreni-maps.js
     </script>
     
-    <!-- Service Worker Registration for PWA -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                // Usa percorso relativo per compatibilità con localhost e GitHub Pages
-                const swPath = window.location.pathname.includes('/gfv-platform/') 
-                    ? '/gfv-platform/service-worker.js' 
-                    : '../../service-worker.js';
-                navigator.serviceWorker.register(swPath)
-                    .then((registration) => {
-                        console.log('Service Worker registrato con successo:', registration.scope);
-                    })
-                    .catch((error) => {
-                        console.warn('Registrazione Service Worker fallita (non critico):', error);
-                    });
-            });
-        }
+    <!-- Service Worker: la barra di aggiornamento sta in app-update.js -->
+    <script type="module">
+        import { registraServiceWorker } from './js/app-update.js?v=2026-10-19a';
+        const swPath = window.location.pathname.includes('/gfv-platform/')
+            ? '/gfv-platform/service-worker.js'
+            : '../../service-worker.js';
+        registraServiceWorker(swPath);
     </script>
 </body>
 </html>
