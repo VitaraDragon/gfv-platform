@@ -420,8 +420,9 @@ async function preparaAggiornamento(registration) {
         if (!target) return;
         try {
             target.postMessage({ type: 'GFV_SKIP_WAITING' });
+            window.__gfvSkipInviati = (window.__gfvSkipInviati || 0) + 1;
         } catch (error) {
-            /* worker già chiuso */
+            window.__gfvSkipErrore = String(error && error.message || error);
         }
     };
     inviaSkip();

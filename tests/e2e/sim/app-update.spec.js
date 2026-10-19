@@ -196,7 +196,9 @@ test.describe('barra nuova versione', () => {
                 sporco: !!window.__gfvFormSporco,
                 ingresso: document.documentElement.getAttribute('data-ingresso') || '',
                 conferma: !!document.getElementById('gfv-app-update-conferma'),
-                barra: !!document.getElementById('gfv-app-update-bar')
+                barra: !!document.getElementById('gfv-app-update-bar'),
+                skipInviati: window.__gfvSkipInviati || 0,
+                skipErrore: window.__gfvSkipErrore || ''
             };
         });
         const prima = await statoSw();
@@ -230,7 +232,14 @@ test.describe('barra nuova versione', () => {
                     const timer = setTimeout(() => resolve({ urls, ack: 'timeout' }), 3000);
                     channel.port1.onmessage = (event) => {
                         clearTimeout(timer);
-                        resolve({ urls, ack: (event.data && event.data.type) || 'vuoto' });
+                        const data = event.data || {};
+                        resolve({
+                            urls,
+                            ack: data.type || 'vuoto',
+                            ok: data.ok,
+                            waiting: data.waiting,
+                            errore: data.errore || ''
+                        });
                     };
                     try {
                         worker.postMessage({ type: 'GFV_SKIP_WAITING' }, [channel.port2]);
@@ -240,7 +249,8 @@ test.describe('barra nuova versione', () => {
                     }
                 }).catch(() => resolve({ ack: 'reg-errore' }));
             }));
-            throw new Error('NO_NAV ' + JSON.stringify({ prima, dopo, ack }));
+            const dopoAck = await statoSw();
+            throw new Error('NO_NAV ' + JSON.stringify({ prima, dopo, ack, dopoAck }));
         }
         await page.waitForFunction(() => {
             const raw = sessionStorage.getItem('tony_session_state') || '';
