@@ -75,7 +75,40 @@ jobs:
         run: npm ci
 
       - name: Import relativi (core/, modules/, shared/) + handler functions/index.js
-        run: npx vitest run tests/relative-imports-resolve.test.js tests/functions-index-handlers-defined.test.js tests/auth-form-query-guard.test.js tests/sede-map-init-order.test.js
+        run: npx vitest run tests/relative-imports-resolve.test.js tests/functions-index-handlers-defined.test.js tests/auth-form-query-guard.test.js tests/sede-map-init-order.test.js tests/versioned-imports-consistency.test.js tests/app-update.test.js
+
+  pwa-cache-id-guard:
+    name: SW_CACHE_BUILD_ID se la PR cambia il sito
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build id nuovo se cambiano core, modules, shared o index.html
+        run: |
+          set -euo pipefail
+          BASE="${{ github.event.pull_request.base.sha }}"
+          git diff --name-only "$BASE" HEAD > /tmp/gfv-changed.txt
+          if grep -Eq '^(core/|modules/|shared/|index\.html$)' /tmp/gfv-changed.txt; then
+            OLD=$(git show "$BASE:service-worker.js" | sed -n "s/^const SW_CACHE_BUILD_ID = '\\([^']*\\)';/\\1/p")
+            NEW=$(sed -n "s/^const SW_CACHE_BUILD_ID = '\\([^']*\\)';/\\1/p" service-worker.js)
+            echo "base=$OLD head=$NEW"
+            if [ -z "$OLD" ] || [ -z "$NEW" ]; then
+              echo "SW_CACHE_BUILD_ID illeggibile"
+              exit 1
+            fi
+            if [ "$OLD" = "$NEW" ]; then
+              echo "La PR cambia il sito ma SW_CACHE_BUILD_ID è rimasto $NEW"
+              exit 1
+            fi
+          else
+            echo "Nessun file del sito: il build id può restare uguale"
+          fi
 
   simulator-emulator:
     name: sim:test (Auth + Firestore emulator)

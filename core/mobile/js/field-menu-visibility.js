@@ -3,7 +3,7 @@
  * Le pagine impostano solo hidden / href: la scelta sta qui.
  */
 
-import { normalizzaRuoliGuasti, ritornoWorkspaceCampoDaGuasti } from '../../js/field-guasti-access.js';
+import { normalizzaRuoliGuasti, ritornoWorkspaceCampoDaGuasti } from '../../js/field-guasti-access.js?v=2026-10-19a';
 
 const HREF_CAMPO = '../mobile/field-workspace-standalone.html';
 const HREF_VALIDAZIONE_DASHBOARD = '../dashboard-standalone.html';

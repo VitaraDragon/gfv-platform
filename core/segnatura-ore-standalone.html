@@ -546,7 +546,7 @@
         </div>
     </div>
 
-    <script type="module" src="js/standalone-bootstrap.js?v=2026-10-16a" data-config-base=""></script>
+    <script type="module" src="js/standalone-bootstrap.js" data-config-base=""></script>
     <script type="module">
         import { formatDateLikeToItalianLongLocal } from './js/date-format-it.js';
         import {
@@ -601,7 +601,7 @@
             isLavoroSegnabileOperaio,
             resolveSegnaturaOreRoleFlags
         } from './services/manodopera-lavori-scope.js?v=2026-10-17b';
-        import { eLavoroSospeso } from './js/tony/tony-ora-lavoro-match.js';
+        import { eLavoroSospeso } from './js/tony/tony-ora-lavoro-match.js?v=2026-10-09g';
 
         const app = getAppInstance();
         const auth = getAuthInstance();
@@ -2099,6 +2099,7 @@
                 closeOraModal();
                 await loadOre();
                 await riallineaRiquadroOreGiorno(precedenteOre, data);
+                window.__gfvFormSporco = false;
             } catch (error) {
                 console.error('Errore salvataggio ora:', error);
                 if (error && error.code === 'ORE_SOVRAPPOSTE') {
@@ -2128,6 +2129,13 @@
 
         bindSegnaturaOreFormOnce();
 
+    </script>
+    <script type="module">
+        import { registraServiceWorker } from './js/app-update.js?v=2026-10-19a';
+        const swPath = window.location.pathname.includes('/gfv-platform/')
+            ? '/gfv-platform/service-worker.js'
+            : '../service-worker.js';
+        registraServiceWorker(swPath);
     </script>
 </body>
 </html>

@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-19 — Ore: stato attuale e minuti.**
+**Ultimo aggiornamento documentazione: 2026-10-19 — Barra nuova versione.**
+
+## 2026-10-19 — Barra «C'è una nuova versione»
+
+Chi tiene l'app aperta vede in basso «C'è una nuova versione» e il pulsante Aggiorna solo quando online c'è davvero un service worker nuovo. Il primo avvio, l'installazione e un ricaricamento senza deploy non la mostrano. Aggiorna è l'unico modo per ricaricare: il ricaricamento parte subito dopo che la versione nuova ha preso il controllo, così una pagina già aperta non lo perde. Dopo il clic la barra sparisce e non torna per la stessa versione. Se il form ha dati non salvati, o un salvataggio è in corso, chiede conferma. La prima volta, chi ha ancora le pagine vecchie ricarica a mano; dalla volta dopo compare la barra. `firestore.rules` non cambia. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-19 — Ore: stato attuale e minuti.**
 
 ## 2026-10-19 — Validazione ore e tab Ore: stato attuale, minuti
 
@@ -370,6 +378,16 @@ Non cambia `firestore.rules`. Non c’è nessun deploy di Cloud Functions.
 
 ---
 
+**Ultimo aggiornamento precedente: 2026-10-08 — Regole zone lavorate allineate a main.**
+
+## 2026-10-08 — Regole: le zone lavorate le cancella solo chi le ha tracciate
+
+Su `develop` il blocco `zoneLavorate` di `firestore.rules` permetteva a qualsiasi membro dell’azienda di cancellare una zona. Ora è uguale a `main` (regola della PR #80): tutti i membri possono creare e modificare, ma cancella solo chi l’ha tracciata (`operaioId` o `caposquadraId`) oppure il manager o l’amministratore. Così un deploy delle regole fatto da `develop` non riapre più questa cancellazione.
+
+Nessun altro blocco cambia, `oreOperai` compreso. Questa PR non fa nessun deploy: online le regole sono già quelle di `main`.
+
+---
+
 **Ultimo aggiornamento precedente: 2026-10-08 — Ore: ritest Uso Reale, Tony e traccia.**
 
 ## 2026-10-08 — Ore: Tony avvisa se l’orario è occupato, e la storia della riga si legge tutta
@@ -402,14 +420,6 @@ Dal telefono il pulsante «Rifiuta» del caposquadra chiede il motivo prima di s
 
 ---
 
-**Ultimo aggiornamento precedente: 2026-10-07 — Gestione lavori, Sospendi / Rinvia del manager.**
-
-## 2026-10-07 — Gestione lavori: il manager sospende con causa (non è lo standby)
-
-In Gestione lavori il manager ha l’azione di riga «Sospendi / Rinvia»: motivo obbligatorio (maltempo, guasto, altro con nota) e data di ripresa facoltativa. Il lavoro passa a `sospeso` con `sospensioneCausa` e `sospensioneIl`, le macchine si liberano, e se c’è la data nasce subito la ripresa. È la stessa sospensione operativa del Caposquadra, distinta da «Standby assenza» (`in_standby`). Anche Modifica, quando lo stato diventa Sospeso, scrive la causa. Nessuna modifica a `firestore.rules` e nessun deploy di Cloud Functions.
-
----
-
 **Ultimo aggiornamento precedente: 2026-10-07 — Plurali nelle scritte (squadre, terreni, giorni, zone).**
 
 ## 2026-10-07 — Scritte: plurali senza la lettera in più
@@ -423,6 +433,14 @@ Alcuni contatori attaccavano la desinenza alla parola intera («squadrae», «te
 ## 2026-10-07 — Voce Tony: il numero 1 non è sempre «uno»
 
 In voce, la cifra 1 veniva letta sempre «uno» («uno trattore», «uno ettaro»). Prima della sintesi, Tony sceglie la forma dalla parola che segue: «un trattore», «uno studente», «una macchina», «un'ora». Da solo o prima di una preposizione resta «uno» («ne ho uno», «da uno a cinque»). L’una per l’orario («dalle uno» → «dall'una») e «primo» davanti al mese. «1 kg» / «1 ha» si sentono al singolare («un chilogrammo», «un ettaro»). In chat il numero resta in cifra. Nessuna modifica a `firestore.rules` e nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-07 — Gestione lavori, Sospendi / Rinvia del manager.**
+
+## 2026-10-07 — Gestione lavori: il manager sospende con causa (non è lo standby)
+
+In Gestione lavori il manager ha l’azione di riga «Sospendi / Rinvia»: motivo obbligatorio (maltempo, guasto, altro con nota) e data di ripresa facoltativa. Il lavoro passa a `sospeso` con `sospensioneCausa` e `sospensioneIl`, le macchine si liberano, e se c’è la data nasce subito la ripresa. È la stessa sospensione operativa del Caposquadra, distinta da «Standby assenza» (`in_standby`). Anche Modifica, quando lo stato diventa Sospeso, scrive la causa. Nessuna modifica a `firestore.rules` e nessun deploy di Cloud Functions.
 
 ---
 
@@ -489,6 +507,22 @@ Node.js 20 va in pensione il 30 ottobre 2026. Le funzioni usano Node.js 24, supp
 ## 2026-10-05 — Pieno in campo dopo un carico cisterna
 
 Se il form del carico è già aperto e l’utente dice un pieno (o il contrario, o passa a un’attività), Tony non riusa quantità, tipo, prodotto e mezzo del gesto precedente. Il pieno in campo riparte con i litri detti in quel messaggio, il mezzo e l’appezzamento se citati. Il prompt ha la stessa regola. `tonyAsk` e `tonyAskStream` sono state pubblicate il 2026-10-05. Scenario gate `T-FUEL-SWITCH-001`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-05 — Cambio lavoro: campo e ore non passano al turno dopo.**
+
+## 2026-10-05 — Cambio lavoro: niente campo e ore del turno precedente
+
+Se in chat si passa da un lavoro a un altro (oliveto, poi «mietuto» / grano), Tony non conferma più l’appezzamento né le ore del turno prima. Le ore restano solo se l’utente le ha dette per quel lavoro; se manca il campo, chiede l’appezzamento. Il filtro è nel motore condiviso del client. Nel prompt c’è la stessa regola, senza deploy delle Cloud Functions. Scenario gate `T-TURN-SLOT-001`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-05 — Chat Tony: solo la frase, i comandi restano interni.**
+
+## 2026-10-05 — Chat Tony: niente JSON grezzo né comandi troncati
+
+Dopo la promozione delle regole di raccolta, in chat compariva il payload del modello (`{"text":…,"command":{"type":"OPEN_MODAL"…` e `INJECT_FORM_DATA attivita-form…`). La frase si estrae anche se il JSON è troncato; OPEN_MODAL e INJECT_FORM_DATA restano comandi del client e non vengono stampati. Scenari gate `T-CHAT-JSON-001` («quello grande») e `T-CHAT-JSON-002` («con la mietitrebbia del vicino»). Nessun deploy delle Cloud Functions in questo cambio.
 
 ---
 
@@ -612,13 +646,54 @@ La meccanica delle due pagine (lista, filtri, righe prodotto, salvataggio, mappa
 
 ---
 
-**Ultimo aggiornamento precedente: 2026-10-03 — Trattamenti vigneto e frutteto: script di pagina nel file del modulo.**
+**Ultimo aggiornamento precedente: 2026-10-02 — Trattamenti vigneto e frutteto: script di pagina nel file del modulo.**
 
-## 2026-10-03 — Trattamenti vigneto e frutteto: comportamento fuori dall’HTML
+## 2026-10-02 — Trattamenti vigneto e frutteto: comportamento fuori dall’HTML
 
 Le pagine trattamenti di vigneto e frutteto seguono lo stesso schema del seminativo: l’HTML in `views/` resta la struttura, il comportamento sta in `modules/vigneto/js/trattamenti-page.js` e `modules/frutteto/js/trattamenti-page.js`. I due moduli restano separati. Gli import dinamici via `resolvePath` restano relativi all’URL della pagina. Il caricamento di Google Maps è rimasto nell’HTML.
 
 Prova sul simulatore (emulatore, Sangiovese 2026) della pagina vigneto: lista, filtri, modifica e salvataggio nota, riga prodotto, mappa in consultazione, elimina e completa. Il salvataggio ricalcola il costo con manodopera e macchina già presenti nel form.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-02 — Scenario simulatore trimestre (carburante incluso).**
+
+## 2026-10-02 — Scenario simulatore di tre mesi, con il carburante di main
+
+`develop` non aveva le pagine carburante già presenti su `main` (hub, carico cisterna, pieno mezzo). Quelle pagine sono state portate nel working tree così il simulatore locale le mostra come la PWA. Il seed non usa più un prodotto «altro»: i movimenti sono categoria `carburante`, origine `carico_cisterna` o `pieno`, con `macchinaId` sul pieno.
+
+**Come rifarlo**
+
+- Emulatori: `npm run sim:emulators`. Sito: `npm start`.
+- Seed: `npm run sim:run:trimestre` (template `lab-trimestre-full`, fase `simulator/phases/10-simulate-trimestre.js`).
+- Entrata: `core/dev/simulator-dev-standalone.html?emulator=1`, prima card, password `SimGFV2026!`.
+- Hub carburante: `modules/magazzino/views/carburante-home-standalone.html?emulator=1`.
+
+**Cosa copre (~66 giorni lavorativi, 3 luglio–2 ottobre 2026)**
+
+- Vigneto e frutteto (diario, vendemmie e raccolte da completare), seminativo (campagne 2025/2026 raccolte e 2026/2027 in corso), vendemmia meccanica sui terreni clienti.
+- Manodopera: ore, comunicazioni, assenza malattia con standby, più ferie, permesso, infortunio, non presenza, ingiustificata e altro.
+- Parco: guasti aperti e risolti, scadenze.
+- Carburante: gasolio, benzina e AdBlue separati; carichi cisterna e pieni mezzo. Benzina e AdBlue restano sotto scorta.
+
+L’ultima azienda seedata in questo ambiente è **Tenuta Marini** (`sim_tenuta_marini_727414`). Un nuovo `sim:run:trimestre` ne crea un’altra in cima al manifest. I dati vivono sull’emulatore locale, non sulla PWA pubblica.
+
+Le Cloud Function del pieno in campo (`functions/registra-pieno-campo.js`) restano su `main`: questo branch ha l’interfaccia magazzino e il seed, non quel callable.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-02 — Fix T-DIRTY-007 + T-FLOW-013 (PR #84).**
+
+## 2026-10-02 — Fix T-DIRTY-007 + T-FLOW-013: resume ripresa + gate seed timing
+
+**T-DIRTY-007 (prompt regression):** Risolto test E2E fallito post-PR #81. Quando l'utente dice «continua da dove avevo lasciato sulla fila 4 verso il fosso», Tony ora conferma esplicitamente i dettagli di location nel text della risposta invece di rispondere solo «Ti porto al diario.» Modifiche in `SYSTEM_INSTRUCTION_ADVANCED` (`functions/index.js`):
+- Regola RIPRESA CONTESTO (1314) rafforzata: obbliga a ripetere dettagli location/zona (fila, fosso, riga, parcella) quando presenti nel messaggio.
+- Regola APERTURA MODAL ATTIVITÀ (1359): aggiunta eccezione per rispettare regola ripresa con location.
+- Esempio aggiunto: «continua dalla fila 4 verso il fosso» → text «Ok, continuo dalla fila 4 verso il fosso. Cosa devo riprendere esattamente?»
+
+**T-FLOW-013 (gate seed inadequacy):** Risolto gate mock 16/17 FAIL con taxonomy T1_SEED_INADEQUATE «Discovery: nessun tipo lavoro nel tenant». Root cause: race condition tra caricamento pagina gestione lavori e discovery test — il seed crea correttamente tipi lavoro via `seedAppCatalog`, ma `waitForLavoriStateReady()` non attendeva che `tipiLavoroList` fosse popolato. Fix in `tests/e2e/tony/helpers/tony-lavoro-flow-discover.js`: ora attende `tipiLavoro.length >= 1` prima di lanciare discovery. Gate passa consistentemente.
+
+Non modifica assert dei test; non tocca altri T-DIRTY.
 
 ---
 
@@ -2386,8 +2461,6 @@ Queste prove sono state eseguite **solo in locale** (emulator + http-server + Pl
 | **Ancora fuori** | Roster completo; Tony/Context Builder su shortlist; pool riserve; drag&drop. *(Vista impegni: vedi voce 2026-07-24.)* |
 | **Canary E2E** | `npm run manodopera:sostituzione-canary` — capo (field-workspace segnala) + manager (standby → shortlist → assegna). Fix collaterale: campi `equipaggioGiorno` / `manodoperaPrestata` / priorità su modello `Lavoro` (altrimenti `updateLavoro` li scartava). |
 | **Fix elenco lavori capo** | 2026-07-22: lavori di squadra creati dal manager non comparivano al capo (dual-role trattato come solo operaio; filtro «Segna ore» 14gg; slice finestra applicato per errore al capo). Fix: `resolveFieldWorkspaceLavoriRoleFlags` + merge fetch capo/operaio + elenco capo senza slice/taglio 14gg. |
-
-
 
 ## Tony Occhi / Magazzino — chiusura blocco 2026-07-21 (riepilogo)
 
@@ -4648,7 +4721,6 @@ npm run sim:run -- --template=viticola-conto-terzi-manodopera --verbose   # stac
 
 **Cleanup:** `npm run sim:cleanup` (opz. `--keep N`, `--dry-run`).
 
-
 **Test automatico:** `npm run sim:test` (run completo + inspect seed v2, cleanup tenant di test); `npm run sim:test:vitest` (vitest, skip se emulator assente).
 
 **Cleanup:** `npm run sim:cleanup` elimina tenant `sim_*` del manifest da Firestore/Auth emulator; `--keep N` mantiene le ultime N aziende.
@@ -5227,7 +5299,6 @@ Sessione di hardening **modalità continua**, **TTS stream**, **congedo vocale**
 - Test: `tests/tony-stream-tts-chunk.test.js` (6), canary voice aggiornato
 
 **File:** `stream-tts-chunk.js`, `main.js`, `voice.js` (prefetch esposto). Piano: `PIANO_AUDIO_PIPELINE_BARGEIN.md` §7.
-
 
 ## Documentazione — SETUP_ALTRO_PC_CURSOR (2026-06-07)
 
@@ -11105,7 +11176,6 @@ Risolvere i problemi del sistema multi-tenant dopo l'implementazione iniziale:
 ✅ **COMPLETATO** (2026-01-12)
 
 Il sistema multi-tenant è ora completamente funzionante. Gli utenti possono appartenere a più tenant con ruoli diversi, e lo switch tra tenant funziona correttamente con isolamento completo dei dati e delle viste dashboard.
-
 
 ## 2026-03-26 - Tony preventivo da qualsiasi pagina: fix coercion cross-page
 
