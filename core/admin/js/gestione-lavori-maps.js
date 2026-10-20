@@ -4,8 +4,27 @@
  * @module core/admin/js/gestione-lavori-maps
  */
 
-import { formatDateLikeToItalianLongWeekday } from '../../js/date-format-it.js';
+import { formatDateLikeToItalianLongWeekday, dateLikeToLocalCalendarIso } from '../../js/date-format-it.js';
 import { withDemoPrivacyMapOptions } from '../../js/demo-map-privacy.js';
+import { computeWorkedAreaHa } from '../../services/zone-lavorate-area.js?v=2026-10-20a';
+
+let terrenoCoordsUnione = null;
+
+function superficieUnioneHa(zone, terrenoCoords) {
+    const pc = typeof window !== 'undefined' ? window.polygonClipping : null;
+    if (!pc) return null;
+    try {
+        return computeWorkedAreaHa(zone || [], terrenoCoords, pc);
+    } catch (error) {
+        console.error('Errore unione zone:', error);
+        return null;
+    }
+}
+
+function formatEttari(value) {
+    if (value == null || Number.isNaN(Number(value))) return '—';
+    return Number(value).toFixed(2);
+}
 
 // ============================================
 // CONSTANTS
@@ -211,7 +230,7 @@ export async function loadDettaglioMap(
             
             // Normalizza data a mezzanotte per raggruppamento
             const dataKey = new Date(dataZona.getFullYear(), dataZona.getMonth(), dataZona.getDate());
-            const dataKeyString = dataKey.toISOString().split('T')[0]; // YYYY-MM-DD
+            const dataKeyString = dateLikeToLocalCalendarIso(dataKey);
             
             zona.dataNormalizzata = dataKey;
             zona.dataKeyString = dataKeyString;
@@ -235,11 +254,11 @@ export async function loadDettaglioMap(
             dateDisponibili.forEach((dataKey) => {
                 const dataFormatted = formatDateLikeToItalianLongWeekday(dataKey);
                 const numZone = zonePerData[dataKey].length;
-                const superficieTotale = zonePerData[dataKey].reduce((sum, z) => sum + (z.superficieHa || 0), 0);
+                const superficieTotale = superficieUnioneHa(zonePerData[dataKey], terrenoCoords);
                 
                 filtroDataSelect.innerHTML += `
                     <option value="${dataKey}">
-                        ${dataFormatted} (${numZone} ${numZone === 1 ? 'zona' : 'zone'}, ${superficieTotale.toFixed(2)} ha)
+                        ${dataFormatted} (${numZone} ${numZone === 1 ? 'zona' : 'zone'}, ${formatEttari(superficieTotale)} ha)
                     </option>
                 `;
             });
@@ -254,7 +273,8 @@ export async function loadDettaglioMap(
         }
 
         // Aggiorna state con zone caricate
-        updateState({ allZoneLavorate, zonePerData, dateDisponibili });
+        updateState({ allZoneLavorate, zonePerData, dateDisponibili, terrenoPolygonCoords: terrenoCoords });
+        terrenoCoordsUnione = terrenoCoords;
 
         // Mostra tutte le zone inizialmente
         mostraZoneSullaMappa(allZoneLavorate, null, state, updateState);
@@ -375,7 +395,7 @@ export function aggiornaListaZone(zone, state) {
     zoneListContainer.innerHTML = dateOrdinate.map(dataKey => {
         const zoneGiorno = zonePerDataLista[dataKey];
         const dataFormatted = formatDateLikeToItalianLongWeekday(dataKey);
-        const superficieTotale = zoneGiorno.reduce((sum, z) => sum + (z.superficieHa || 0), 0);
+        const superficieTotale = superficieUnioneHa(zoneGiorno, state.terrenoPolygonCoords || terrenoCoordsUnione);
         const colorIndex = state.dateDisponibili ? state.dateDisponibili.indexOf(dataKey) : 0;
         const colore = COLORI_GIORNI[colorIndex % COLORI_GIORNI.length];
         
@@ -384,7 +404,7 @@ export function aggiornaListaZone(zone, state) {
                 <div style="font-weight: 600; margin-bottom: 10px; color: #333;">
                     📅 ${dataFormatted}
                     <span style="font-size: 12px; font-weight: normal; color: #666; margin-left: 10px;">
-                        (${zoneGiorno.length} ${zoneGiorno.length === 1 ? 'zona' : 'zone'}, ${superficieTotale.toFixed(2)} ha)
+                        (${zoneGiorno.length} ${zoneGiorno.length === 1 ? 'zona' : 'zone'}, ${formatEttari(superficieTotale)} ha)
                     </span>
                 </div>
                 ${zoneGiorno.map(zona => {
@@ -413,19 +433,19 @@ export function aggiornaInfoZone(dataSelezionata, zoneFiltrate, state) {
     
     if (dataSelezionata === 'tutte') {
         const totaleZone = state.allZoneLavorate ? state.allZoneLavorate.length : 0;
-        const totaleSuperficie = state.allZoneLavorate ? state.allZoneLavorate.reduce((sum, z) => sum + (z.superficieHa || 0), 0) : 0;
+        const totaleSuperficie = superficieUnioneHa(state.allZoneLavorate, state.terrenoPolygonCoords || terrenoCoordsUnione);
         const numGiorni = state.dateDisponibili ? state.dateDisponibili.length : 0;
         infoZoneFiltrate.innerHTML = `
             <span style="color: #2E7D32;">✅ Visualizzate <strong>${totaleZone}</strong> zone lavorate in <strong>${numGiorni}</strong> ${numGiorni === 1 ? 'giorno' : 'giorni'} 
-            (totale: <strong>${totaleSuperficie.toFixed(2)} ha</strong>)</span>
+            (totale: <strong>${formatEttari(totaleSuperficie)} ha</strong>)</span>
         `;
     } else {
         const zone = zoneFiltrate || (state.zonePerData && state.zonePerData[dataSelezionata]) || [];
-        const superficie = zone.reduce((sum, z) => sum + (z.superficieHa || 0), 0);
+        const superficie = superficieUnioneHa(zone, state.terrenoPolygonCoords || terrenoCoordsUnione);
         const dataFormatted = formatDateLikeToItalianLongWeekday(dataSelezionata);
         infoZoneFiltrate.innerHTML = `
             <span style="color: #1976D2;">🔍 Visualizzate <strong>${zone.length}</strong> ${zone.length === 1 ? 'zona' : 'zone'} del <strong>${dataFormatted}</strong> 
-            (totale: <strong>${superficie.toFixed(2)} ha</strong>)</span>
+            (totale: <strong>${formatEttari(superficie)} ha</strong>)</span>
         `;
     }
 }

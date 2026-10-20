@@ -189,7 +189,7 @@
     </div>
 </div>
 
-<script src="../../../node_modules/polygon-clipping/dist/polygon-clipping.umd.js"></script>
+<script src="../../../vendor/polygon-clipping-0.15.7.umd.min.js"></script>
 <script>window.currentTableData = { pageType: 'piano-stagione-vm', summary: 'Caricamento...', items: [] };</script>
 <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
 <script type="module">
@@ -199,7 +199,7 @@ import { getPianoStagioneRows, summarizePianoStagione, buildPianoStagioneTonyCon
 import { syncPreventiviAccettatiToPiano } from '../services/preventivo-piano-sync-service.js';
 import { syncLavoriCompletatiToPiano, cleanupOrphanedPianoStagioneLavori } from '../services/lavoro-piano-sync-service.js';
 import { getAllClienti } from '../../conto-terzi/services/clienti-service.js';
-import { computeEttariVendemmiati } from '../services/zone-escluse-service.js';
+import { computeEttariVendemmiati } from '../services/zone-escluse-service.js?v=2026-10-20a';
 import { createVmZoneMappa } from '../js/vm-zone-mappa.js';
 import { getAnnoStagioneCorrente } from '../config/vm-constants.js';
 import { buildGestioneLavoriUrl, buildPreventiviCtUrl, buildCalcolatoreVmUrl, rowHasVendemmiaDati } from '../services/piano-stagione-utils.js';

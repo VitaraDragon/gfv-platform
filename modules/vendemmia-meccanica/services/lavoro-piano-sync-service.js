@@ -17,7 +17,7 @@ import {
   normalizeLatLngCoord,
   shouldAutoGenerateZoneEscluse,
   computeZoneEscluseAutomatiche
-} from './zone-escluse-service.js';
+} from './zone-escluse-service.js?v=2026-10-20a';
 
 /**
  * @param {Object|null|undefined} lavoro

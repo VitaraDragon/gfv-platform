@@ -30,6 +30,10 @@ import {
     formatDateLikeToItalianLongLocal,
     formatDateLikeToItalianLongWeekday
 } from './date-format-it.js';
+import {
+    ETICHETTA_COMPLETATO_SENZA_ZONE,
+    lavoroCompletatoSenzaZone
+} from './lavoro-progresso-display.js?v=2026-10-20a';
 import { contaOreManagerDaValidareSuLavoro, isOraDelCaposquadraSuLavoroSquadra } from '../services/manodopera-ore-validazione-scope.js';
 import {
     formatTracciaOra,
@@ -877,8 +881,9 @@ export async function loadRecentLavoriManagerManodopera(dependencies) {
             
             let percentuale = lavoro.percentualeCompletamento || 0;
             const terreno = terreniMap.get(lavoro.terrenoId);
+            const senzaZone = lavoroCompletatoSenzaZone(lavoro);
             
-            if (stato === 'completato' && (!percentuale || percentuale === 0)) {
+            if (!senzaZone && stato === 'completato' && (!percentuale || percentuale === 0)) {
                 percentuale = 100;
             } else if (!percentuale && terreno) {
                 const superficieTotale = terreno.superficie || 0;
@@ -891,7 +896,9 @@ export async function loadRecentLavoriManagerManodopera(dependencies) {
             const isContoTerzi = !!lavoro.clienteId;
             const contoTerziBadge = isContoTerzi ? '<span style="background: #1976D2; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 5px; font-weight: 500;">💼 Conto Terzi</span>' : '';
             
-            const progressBar = percentuale > 0 ? `
+            const progressBar = senzaZone ? `
+                <div style="margin-top: 8px;">${ETICHETTA_COMPLETATO_SENZA_ZONE}</div>
+            ` : percentuale > 0 ? `
                 <div style="margin-top: 8px;">
                     <div style="background: #e0e0e0; border-radius: 4px; height: 20px; overflow: hidden; position: relative;">
                         <div style="background: ${stato === 'completato' ? '#4CAF50' : '#2E8B57'}; height: 100%; width: ${Math.min(percentuale, 100)}%; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 600; transition: width 0.3s;">
@@ -1086,8 +1093,9 @@ export async function loadRecentLavori(dependencies) {
             
             let percentuale = lavoro.percentualeCompletamento || 0;
             const terreno = terreniMap.get(lavoro.terrenoId);
+            const senzaZone = lavoroCompletatoSenzaZone(lavoro);
             
-            if (stato === 'completato' && (!percentuale || percentuale === 0)) {
+            if (!senzaZone && stato === 'completato' && (!percentuale || percentuale === 0)) {
                 percentuale = 100;
             } else if (!percentuale && terreno) {
                 const superficieTotale = terreno.superficie || 0;
@@ -1100,7 +1108,9 @@ export async function loadRecentLavori(dependencies) {
             const isContoTerzi = !!lavoro.clienteId;
             const contoTerziBadge = isContoTerzi ? '<span style="background: #1976D2; color: white; padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 5px; font-weight: 500;">💼 Conto Terzi</span>' : '';
             
-            const progressBar = percentuale > 0 ? `
+            const progressBar = senzaZone ? `
+                <div style="margin-top: 8px;">${ETICHETTA_COMPLETATO_SENZA_ZONE}</div>
+            ` : percentuale > 0 ? `
                 <div style="margin-top: 8px;">
                     <div style="background: #e0e0e0; border-radius: 4px; height: 20px; overflow: hidden; position: relative;">
                         <div style="background: ${stato === 'completato' ? '#4CAF50' : '#2E8B57'}; height: 100%; width: ${Math.min(percentuale, 100)}%; display: flex; align-items: center; justify-content: center; color: white; font-size: 11px; font-weight: 600; transition: width 0.3s;">

@@ -7,7 +7,7 @@ import { parseLavoroDataInizio } from '../services/manodopera-lavori-scope.js?v=
 import {
     loadAffittiUrgentiCount,
     countOreDaValidareFromLavoriDocs,
-} from './dashboard-data.js';
+} from './dashboard-data.js?v=2026-10-20a';
 import {
     buildSottoScortaBriefingFromProdotti,
     buildGuastiApertiBriefingFromGuasti,
