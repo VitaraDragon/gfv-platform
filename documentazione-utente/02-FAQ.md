@@ -175,7 +175,7 @@ Alcuni report hanno pulsante **Esporta Excel** (es. Compensi Operai).
 
 ### Cosa succede dopo la segnalazione?
 Il mezzo passa in stato di guasto. Con **Grave** e un lavoro collegato, il lavoro viene sospeso se segnala il manager, il caposquadra di quel lavoro di squadra o l’operaio sul proprio lavoro autonomo. Se segnala un operaio su un lavoro di squadra, o un caposquadra su un lavoro tutto suo, il mezzo va in guasto e il lavoro non cambia: si legge «Segnalazione inviata. Il lavoro lo sospende il caposquadra o il manager.» e il responsabile vede il guasto nell’elenco **Officina & Guasti**.
-Il manager vede il guasto in **Parco Macchine** → **Officina & Guasti** e lo chiude con **Segna risolto** quando il problema è sistemato. Finché il guasto è in attesa, chi l’ha segnalato può chiuderlo con **Risolto da me** (il guasto si chiude subito; le note si vedono nello storico guasti della scheda del mezzo) o ritirarlo con **Annulla segnalazione**.
+Non parte nessun avviso o notifica, nemmeno per un guasto **Grave**. Il manager vede il guasto nel contatore dei guasti aperti (**Richiede attenzione** in dashboard) e in **Parco Macchine** → **Officina & Guasti** e lo chiude con **Segna risolto** quando il problema è sistemato. Finché il guasto è in attesa, chi l’ha segnalato può chiuderlo con **Risolto da me** (il guasto si chiude subito; le note si vedono nello storico guasti della scheda del mezzo) o ritirarlo con **Annulla segnalazione**.
 
 ### Ho annullato una segnalazione per errore
 Un guasto annullato non si riapre: fai una nuova segnalazione.

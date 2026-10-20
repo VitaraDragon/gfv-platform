@@ -423,7 +423,7 @@ La **manodopera** non è il modulo officina: i **guasti** su trattori e attrezzi
 
 ### Cosa trovi di solito sulla dashboard
 
-- Nella sezione **Richiede attenzione** può comparire un avviso sui **guasti aperti**: toccandolo apri la pagina **Officina & Guasti**.  
+- Nella sezione **Richiede attenzione** può comparire la riga «N guasto/i aperti sul parco macchine.»: toccandola apri la pagina **Officina & Guasti**. È il contatore di tutti i guasti aperti, gravi e non gravi: una nuova segnalazione, anche **Grave**, non manda avvisi o notifiche, la vedi lì e in **Officina & Guasti**.  
 - Da **Moduli** → **Parco Macchine** (se attivo) raggiungi mezzi e guasti: tra le **Azioni rapide** c’è **Officina & Guasti**.
 
 ### Passi generali (da adattare alle etichette in schermata)

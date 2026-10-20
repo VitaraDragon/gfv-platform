@@ -83,6 +83,7 @@ Con **Italiano** la schermata è quella di sempre. La scelta resta su quel telef
 
 1. Apri la scheda **Lavoro**.  
 2. Nel menu **Lavori assegnati** scegli l’incarico su cui stai lavorando **adesso**. Un lavoro **completato** o **in attesa di approvazione** resta in elenco per **7 giorni** (scritta «completato» o «in attesa approvazione»): puoi segnare le ore dei giorni in cui era ancora aperto, non i giorni dopo la chiusura.  
+   La scelta resta su quel telefono (o computer). Se non hai mai scelto un lavoro, la scheda parte dal **primo dell’elenco in ordine alfabetico**: controlla che sia quello giusto.  
 3. Se la lista è vuota: **contatta l’ufficio** per un incarico assegnabile.
 
 ### Elenco “corto” quando hai molti lavori
@@ -197,8 +198,8 @@ Si fa dalla scheda **⚠️ Segnala un problema** del workspace, dopo **Ore** e 
   - **Grave** — fermarsi e segnalare subito. Con un guasto a macchina o attrezzo il mezzo va in guasto. Se colleghi un incarico **solo tuo**, l’app lo **sospende** (motivo «Guasto macchina grave» o «Segnalazione grave»). Su un incarico **di gruppo** il lavoro invece non cambia e dopo l’invio leggi «Segnalazione inviata. Il lavoro lo sospende il caposquadra o il manager.»: non è un errore, la segnalazione è registrata e il responsabile vede il guasto nell’elenco **Officina & Guasti**.  
 - **Dettagli** — descrizione chiara del sintomo.  
 - Opzionale: **lavoro corrente** se stai operando su un incarico preciso. L’app lo propone già, insieme al **trattore** e all’**attrezzo** di quel lavoro:  
-  - è il lavoro che hai scelto nella scheda **Lavoro** (menu **Lavori assegnati**), se è tra i tuoi lavori aperti;  
-  - se lì non c’è un lavoro valido, l’app propone il lavoro **già in corso**, non quello creato per ultimo; se non ce n’è uno in corso, quello già iniziato più di recente, poi il prossimo che deve iniziare, e solo alla fine un lavoro **sospeso**.  
+  - è il lavoro della scheda **Lavoro** (menu **Lavori assegnati**): quello che hai scelto o, se non hai mai scelto, il primo in ordine alfabetico; vale se è tra i tuoi lavori aperti;  
+  - solo se quel lavoro non è tra i tuoi lavori aperti (o la scheda Lavoro non ne ha), l’app propone il lavoro **già in corso**, non quello creato per ultimo; se non ce n’è uno in corso, quello già iniziato più di recente, poi il prossimo che deve iniziare, e solo alla fine un lavoro **sospeso**.  
   - Se nel menu **Lavoro corrente** scegli un altro lavoro, trattore e attrezzo diventano quelli del nuovo lavoro (se il lavoro non ha mezzi, oppure scegli «Nessun lavoro», i due campi restano vuoti) e il **componente** va scelto di nuovo. Trattore e attrezzo puoi sempre cambiarli a mano: controlla prima di inviare.  
   - Se cambi lavoro nella scheda **Lavoro** e poi torni su **⚠️ Segnala un problema**, la scheda riparte con il nuovo lavoro e i suoi mezzi: invia prima quello che stavi scrivendo.  
 - Con un guasto a macchina o attrezzo, il mezzo passa in stato di guasto e finché resta così non si può scegliere per un nuovo lavoro («(già in guasto)»).
@@ -213,7 +214,7 @@ Si fa dalla scheda **⚠️ Segnala un problema** del workspace, dopo **Ore** e 
 ### Dopo l’invio
 
 - La segnalazione segue lo stato mostrato in elenco (**in attesa**, ecc.).
-- Subito dopo l’invio leggi **Segnalazione inviata. Grazie.** Resti nella scheda del workspace e trovi la segnalazione nell’elenco **I Miei Guasti Segnalati**, sotto il modulo. Se qualcosa sulla macchina o sul lavoro non si aggiorna, leggi l’avviso e avvisa il tuo responsabile.  
+- Subito dopo l’invio leggi **Segnalazione inviata. Grazie.** Resti nella scheda del workspace e trovi la segnalazione nell’elenco **I Miei Guasti Segnalati**, sotto il modulo. La segnalazione, anche **Grave**, non manda avvisi o notifiche a nessuno: il manager la vede tra i guasti aperti (contatore in **Richiede attenzione** sulla dashboard e pagina **Officina & Guasti**). Se qualcosa sulla macchina o sul lavoro non si aggiorna, leggi l’avviso e avvisa il tuo responsabile.  
 - Finché una **tua** segnalazione è **in attesa** (il manager non ha ancora deciso), sotto la segnalazione trovi due pulsanti:
   - **✅ Risolto da me**: il problema l’hai sistemato tu. Scrivi le **note di risoluzione** (obbligatorie) e, se vuoi, il **costo** della riparazione, poi tocca **✅ Conferma Risoluzione**. Il guasto si chiude subito e la segnalazione diventa **Risolto**.
   - **🚫 Annulla segnalazione**: la ritiri, per esempio se l’hai mandata per sbaglio o il problema non c’era. Puoi scrivere un **motivo** (facoltativo), poi tocca **Sì, annulla la segnalazione**. Leggi «Segnalazione annullata.»: la segnalazione resta in elenco con il badge **🚫 Annullato** e la data **Annullata il**, e il responsabile la vede con il badge **Annullato**. Una segnalazione annullata non si riapre: se l’hai annullata per errore, fai una nuova segnalazione.

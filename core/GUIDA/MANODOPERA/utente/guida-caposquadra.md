@@ -80,7 +80,7 @@ Tutto ruota attorno al **lavoro selezionato**: comunicazioni, ore da validare e 
 ### Passi
 
 1. Apri la prima scheda **Lavoro**.  
-2. Nel menu **Lavori assegnati** scegli il lavoro su cui state operando **ora**.  
+2. Nel menu **Lavori assegnati** scegli il lavoro su cui state operando **ora**. La scelta resta su quel telefono (o computer). Se non hai mai scelto un lavoro, la scheda parte dal **primo dell’elenco in ordine alfabetico**: controlla che sia quello giusto.  
 3. Se l’elenco è vuoto o non trovi il lavoro giusto:
    - il **manager** potrebbe non averti ancora assegnato il lavoro, oppure il lavoro è in uno stato che non lo rende disponibile qui;  
    - contatta l’ufficio o il manager.  
@@ -269,7 +269,7 @@ Se colleghi la segnalazione a un **lavoro di squadra di cui sei caposquadra** (n
 3. Controlla **trattore** e, se serve, **attrezzo**: l’app mette già quelli del **Lavoro corrente** proposto (vedi il punto 6). Se il mezzo guasto è un altro, sceglilo dalla lista.  
 4. Indica il **componente** interessato (trattore, attrezzo o entrambi).  
 5. Imposta la **gravità** e compila **Dettagli** in modo concreto (rumore, perdite, cosa si può o non si può fare).  
-6. Opzionale ma utile: **Lavoro corrente** se stai operando su un incarico specifico. L’app lo propone già: è il lavoro scelto nella scheda **Lavoro** (menu **Lavori assegnati**), se è tra i tuoi lavori aperti; altrimenti il lavoro **già in corso** (non quello creato per ultimo), poi quello già iniziato più di recente, poi il prossimo che deve iniziare e solo alla fine un lavoro **sospeso**. Se scegli un altro lavoro nel menu, trattore e attrezzo diventano quelli del nuovo lavoro (vuoti se il lavoro non ha mezzi o se scegli «Nessun lavoro») e il componente va scelto di nuovo; puoi sempre cambiarli a mano. Se cambi lavoro nella scheda **Lavoro** e torni su **⚠️ Segnala un problema**, la scheda riparte con il nuovo lavoro: invia prima quello che stavi scrivendo.
+6. Opzionale ma utile: **Lavoro corrente** se stai operando su un incarico specifico. L’app lo propone già: è il lavoro della scheda **Lavoro** (menu **Lavori assegnati**), cioè quello che hai scelto o, se non hai mai scelto, il primo in ordine alfabetico, se è tra i tuoi lavori aperti; solo altrimenti il lavoro **già in corso** (non quello creato per ultimo), poi quello già iniziato più di recente, poi il prossimo che deve iniziare e solo alla fine un lavoro **sospeso**. Se scegli un altro lavoro nel menu, trattore e attrezzo diventano quelli del nuovo lavoro (vuoti se il lavoro non ha mezzi o se scegli «Nessun lavoro») e il componente va scelto di nuovo; puoi sempre cambiarli a mano. Se cambi lavoro nella scheda **Lavoro** e torni su **⚠️ Segnala un problema**, la scheda riparte con il nuovo lavoro: invia prima quello che stavi scrivendo.
 
 ### Segnalazione generica (pericoli sul terreno)
 
