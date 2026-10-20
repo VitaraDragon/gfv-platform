@@ -647,8 +647,32 @@ service cloud.firestore {
 
     // Subcollection: zoneLavorate (sotto lavori)
     match /tenants/{tenantId}/lavori/{lavoroId}/zoneLavorate/{zonaId} {
+      function puoCreareZonaCampo() {
+        let lavoro = get(/databases/$(database)/documents/tenants/$(tenantId)/lavori/$(lavoroId)).data;
+        let capoId = lavoro.get('caposquadraId', null);
+        let operaioId = lavoro.get('operaioId', null);
+        let sostitutoId = lavoro.get('assenzaSostitutoOperaioId', null);
+        return (capoId != null && capoId != '' && capoId == request.auth.uid && isCaposquadra(tenantId))
+          || ((capoId == null || capoId == '') && hasRole('operaio', tenantId)
+              && ((operaioId != null && operaioId == request.auth.uid)
+                  || (sostitutoId != null && sostitutoId == request.auth.uid)));
+      }
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
-      allow create, update: if isAuthenticated() && belongsToTenant(tenantId);
+      allow create: if isAuthenticated() && belongsToTenant(tenantId)
+        && (isManagerOrAdmin(tenantId) || puoCreareZonaCampo());
+      // Update: proprietario della zona, caposquadra del lavoro padre, manager/admin.
+      // Il sostituto modifica solo le zone sue (è il proprietario: handleSalvaZona scrive operaioId = uid).
+      // operaioId e caposquadraId della zona non si possono cambiare, aggiungere o togliere.
+      function puoAggiornareZona() {
+        let capoLavoro = get(/databases/$(database)/documents/tenants/$(tenantId)/lavori/$(lavoroId)).data.get('caposquadraId', null);
+        return resource.data.get('operaioId', null) == request.auth.uid
+          || resource.data.get('caposquadraId', null) == request.auth.uid
+          || isManagerOrAdmin(tenantId)
+          || (capoLavoro != null && capoLavoro == request.auth.uid && isCaposquadra(tenantId));
+      }
+      allow update: if isAuthenticated() && belongsToTenant(tenantId)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['operaioId', 'caposquadraId'])
+        && puoAggiornareZona();
       // Delete: solo il proprietario (operaioId o caposquadraId) o manager/admin possono eliminare
       allow delete: if isAuthenticated() && belongsToTenant(tenantId) && (
         resource.data.operaioId == request.auth.uid ||

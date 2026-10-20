@@ -3,6 +3,8 @@
  * @module modules/vendemmia-meccanica/services/zone-escluse-service
  */
 
+import { loadPolygonClipping } from '../../../core/services/zone-lavorate-area.js?v=2026-10-20a';
+
 /**
  * Normalizza coordinate { lat, lng } da oggetto plain o google LatLng.
  * @param {*} c
@@ -150,20 +152,12 @@ export function clipMultiPolygonToZoneEscluse(multiPoly) {
   return zones;
 }
 
-let polygonClippingPromise = null;
-
 /**
- * Browser: script UMD `polygon-clipping.umd.js` → window.polygonClipping
- * Node/vitest: import dinamico npm
+ * Browser: script vendorizzato → window.polygonClipping
+ * Node/vitest: import dinamico npm, tramite loadPolygonClipping
  */
 export async function getPolygonClippingLib() {
-  if (typeof window !== 'undefined' && window.polygonClipping) {
-    return window.polygonClipping;
-  }
-  if (!polygonClippingPromise) {
-    polygonClippingPromise = import('polygon-clipping').then((mod) => mod.default || mod);
-  }
-  return polygonClippingPromise;
+  return loadPolygonClipping();
 }
 
 /**

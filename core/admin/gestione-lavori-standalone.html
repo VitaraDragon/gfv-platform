@@ -1689,7 +1689,7 @@
         };
     </script>
     
-    <script src="../../node_modules/polygon-clipping/dist/polygon-clipping.umd.js"></script>
+    <script src="../../vendor/polygon-clipping-0.15.7.umd.min.js"></script>
     <!-- Placeholder per Tony: currentTableData (aggiornato da renderLavori) -->
     <script>window.currentTableData = window.currentTableData || { pageType: 'lavori', summary: 'Caricamento dati in corso...', items: [] };</script>
     <script type="module" src="../js/standalone-bootstrap.js" data-config-base="../"></script>
@@ -1734,7 +1734,7 @@
             applyAssegnazioneToLavoroForm as applyAssegnazioneToLavoroFormModule,
             loadDettaglioOverview as loadDettaglioOverviewModule,
             loadDettaglioOre as loadDettaglioOreModule
-        } from './js/gestione-lavori-controller.js?v=2026-10-19a';
+        } from './js/gestione-lavori-controller.js?v=2026-10-20a';
 
         import { resolveLavoroCascadeParents } from '../js/lavoro-cascade-filters.js';
 
@@ -1756,7 +1756,7 @@
             aggiornaListaZone as aggiornaListaZoneModule,
             aggiornaInfoZone as aggiornaInfoZoneModule,
             mostraTutteLeZone as mostraTutteLeZoneModule
-        } from './js/gestione-lavori-maps.js';
+        } from './js/gestione-lavori-maps.js?v=2026-10-20a';
 
         import {
             setupTipoAssegnazioneHandlers as setupTipoAssegnazioneHandlersModule,
