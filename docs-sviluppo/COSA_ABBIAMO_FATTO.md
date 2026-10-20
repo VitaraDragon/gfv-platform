@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-20 — Zone lavorate: chi le segna e superficie unita.**
+**Ultimo aggiornamento documentazione: 2026-10-20 — Card Gestione lavori subito leggibili.**
+
+## 2026-10-20 — Gestione lavori: le card non restano a zero
+
+In Gestione lavori, Lavori Totali e In Corso si compilano appena arriva la lista. Ore validate, superficie e scostamento partono da «-» e si aggiornano quando il calcolo finisce, senza aspettare macchine e categorie. Le letture Firestore delle statistiche vanno a blocchi di 8 lavori; un lavoro non letto non azzera le card e compare un asterisco di dato parziale. La superficie resta l’unione delle zone. Nessun deploy. Tony, `firestore.rules` e le Cloud Functions non sono stati modificati.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-20 — Zone lavorate: chi le segna e superficie unita.**
 
 ## 2026-10-20 — Zone lavorate: permessi, unione e completato senza tracciato
 
