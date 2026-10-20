@@ -794,9 +794,10 @@
         </div>
     </div>
 
+    <script src="../../vendor/polygon-clipping-0.15.7.umd.min.js"></script>
     <script type="module" src="../js/standalone-bootstrap.js" data-config-base="../"></script>
     <script type="module">
-        import { formatDateLikeToItalianLongLocal } from '../js/date-format-it.js';
+        import { formatDateLikeToItalianLongLocal, dateLikeToLocalCalendarIso } from '../js/date-format-it.js';
         import { escapeHtml, showAlert } from '../js/gfv-page-utils.js';
         import { getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
         import { collection, getDocs, doc, getDoc, addDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, Timestamp, deleteField } from '../services/firebase-service.js';
@@ -804,6 +805,8 @@
         import { resolveAuthUser, loginPageUrl } from '../js/simulator-standalone-page.js';
         import { shouldUseFirebaseEmulator } from '../js/firebase-emulator-dev.js';
         import { fetchLavoriDocumentsForFieldUser, sliceOperaioLavoriWindow } from '../services/manodopera-lavori-scope.js?v=2026-10-17b';
+        import { puoSegnareZona, MSG_ZONA_NON_PERMESSA } from '../services/zone-lavorate-permessi.js?v=2026-10-20a';
+        import { computeWorkedAreaHaAsync } from '../services/zone-lavorate-area.js?v=2026-10-20a';
         import { hrefElencoLavoriCampo } from '../mobile/js/field-lavori-embed.js';
         import {
             isLavoroVendemmiaMeccanica,
@@ -1607,8 +1610,11 @@
                     
                     // Calcola progressi usando unione geometrica invece di somma semplice
                     const superficieTotale = terreno?.superficie || 0;
-                    const superficieLavorata = await calculateUnifiedWorkedArea(zone);
-                    const percentuale = superficieTotale > 0 ? (superficieLavorata / superficieTotale * 100).toFixed(1) : 0;
+                    const unione = await calcolaSuperficieLavorata(zone, terreno);
+                    const superficieLavorata = unione != null ? unione : (Number(lavoro.superficieTotaleLavorata) || 0);
+                    const percentuale = superficieTotale > 0
+                        ? Math.min(100, (superficieLavorata / superficieTotale) * 100).toFixed(1)
+                        : 0;
                     
                     // Calcola stato progresso se non presente o se necessario ricalcolarlo
                     let statoProgresso = lavoro.statoProgresso;
@@ -1773,7 +1779,7 @@
                                     <small>${lavoro.standbyNota ? escapeHtml(String(lavoro.standbyNota)) : 'In attesa di sostituto o ripristino dal Manager.'}</small>
                                 </div>
                             ` : ''}
-                            ${lavoro.stato !== 'completato_da_approvare' && lavoro.stato !== 'completato' && lavoro.stato !== 'sospeso' && lavoro.stato !== 'in_standby' ? `
+                            ${lavoro.stato !== 'completato_da_approvare' && lavoro.stato !== 'completato' && lavoro.stato !== 'sospeso' && lavoro.stato !== 'in_standby' && puoSegnareZona(lavoro, currentUserData) ? `
                                 <button class="btn btn-primary" onclick="${isEmbedMobile ? `openTracciaZonaMobileFullscreen('${lavoro.id}')` : `openTracciaZonaModal('${lavoro.id}')`}">
                                     📍 Segna zona lavorata
                                 </button>
@@ -1807,7 +1813,8 @@
             container.innerHTML = html;
             syncTonyTableDataLavoriCaposquadra(lavoriConZone);
             if (isEmbedMobile && mapOnlyMode && pendingTraceLavoroId && !skipAutoTrace && !autoTraceHandled) {
-                const canTrace = lavoriConZone.some((l) => l.id === pendingTraceLavoroId);
+                const lavoroTrace = lavoriConZone.find((l) => l.id === pendingTraceLavoroId);
+                const canTrace = !!(lavoroTrace && puoSegnareZona(lavoroTrace, currentUserData));
                 if (canTrace) {
                     gfvMapTraceLog('auto-open trace modal', { pendingTraceLavoroId, mapOnlyMode, skipAutoTrace });
                     autoTraceHandled = true;
@@ -1824,7 +1831,12 @@
                         window.openTracciaZonaModal(lavoroToTrace);
                     }, 80);
                 } else if (isEmbedMobile && mapOnlyMode && pendingTraceLavoroId && !canTrace) {
-                    gfvMapTraceLog('auto-open skipped: lavoro senza zone o non in elenco', { pendingTraceLavoroId });
+                    gfvMapTraceLog('auto-open skipped: permesso assente o lavoro non in elenco', { pendingTraceLavoroId, lavoroTrovato: !!lavoroTrace });
+                    autoTraceHandled = true;
+                    const lavoroEsiste = !!lavoroTrace;
+                    pendingTraceLavoroId = null;
+                    document.body.classList.remove('map-only');
+                    if (lavoroEsiste) showAlert(MSG_ZONA_NON_PERMESSA, 'error');
                 }
             }
         }
@@ -1888,13 +1900,18 @@
 
         // Apri modal traccia zona
         window.openTracciaZonaModal = async function(lavoroId) {
-            currentLavoroId = lavoroId;
             const lavoro = lavoriList.find(l => l.id === lavoroId);
             
             if (!lavoro) {
                 showAlert('Lavoro non trovato', 'error');
                 return;
             }
+            if (!puoSegnareZona(lavoro, currentUserData)) {
+                currentLavoroId = null;
+                showAlert(MSG_ZONA_NON_PERMESSA, 'error');
+                return;
+            }
+            currentLavoroId = lavoroId;
 
             // Carica terreno per mostrare confini sulla mappa
             currentTerreno = terreniMap.get(lavoro.terrenoId);
@@ -1904,7 +1921,7 @@
             document.getElementById('zona-form').reset();
             
             // Imposta data di oggi come default
-            const today = new Date().toISOString().split('T')[0];
+            const today = dateLikeToLocalCalendarIso(new Date());
             document.getElementById('zona-data').value = today;
             document.getElementById('zona-data').setAttribute('max', today);
             
@@ -1981,6 +1998,11 @@
         };
 
         window.openTracciaZonaMobileFullscreen = function(lavoroId) {
+            const lavoroMobile = lavoriList.find(l => l.id === lavoroId);
+            if (!lavoroMobile || !puoSegnareZona(lavoroMobile, currentUserData)) {
+                showAlert(MSG_ZONA_NON_PERMESSA, 'error');
+                return;
+            }
             try {
                 try {
                     if (window.parent && window.parent !== window) {
@@ -2659,8 +2681,9 @@
 
         // Carica e visualizza segmenti già salvati sulla mappa (più storico pre-sospensione se lavoro di ripresa)
         async function loadAndDisplaySavedSegments(lavoroId, ripresaDaLavoroId) {
+            let segmentiCorrente = [];
             try {
-                const segmentiCorrente = await loadZoneLavorate(lavoroId);
+                segmentiCorrente = await loadZoneLavorate(lavoroId);
                 let segmentiPreRipresa = [];
                 if (ripresaDaLavoroId) {
                     segmentiPreRipresa = await loadZoneLavorate(ripresaDaLavoroId);
@@ -2701,6 +2724,16 @@
                 });
             } catch (error) {
                 console.error('Errore caricamento segmenti salvati:', error);
+            } finally {
+                const modalZone = document.getElementById('zona-modal');
+                if (modalZone) {
+                    const disegnate = segmentiCorrente.filter(function (seg) {
+                        return seg && Array.isArray(seg.coordinate) && seg.coordinate.length >= 2;
+                    });
+                    modalZone.dataset.zoneLavoroId = lavoroId || '';
+                    modalZone.dataset.zoneDisegnate = String(disegnate.length);
+                    modalZone.dataset.zoneIds = disegnate.map(function (seg) { return seg.id; }).filter(Boolean).join(',');
+                }
             }
         }
 
@@ -2860,6 +2893,11 @@
         // Gestisci salvataggio segmento
         window.handleSalvaZona = async function(event) {
             event.preventDefault();
+            const l = getCurrentLavoroRecord();
+            if (!l || !puoSegnareZona(l, currentUserData)) {
+                showAlert(MSG_ZONA_NON_PERMESSA, 'error');
+                return;
+            }
             gfvMapTraceLog('handleSalvaZona start', {
                 currentLavoroId,
                 punti: currentSegmentCoords ? currentSegmentCoords.length : 0,
@@ -3091,199 +3129,16 @@
 
         // showAlert / escapeHtml: import da gfv-page-utils.js
 
-        // Calcola superficie lavorata unificata (unione geometrica invece di somma semplice)
-        async function calculateUnifiedWorkedArea(zone) {
-            if (!zone || zone.length === 0) return 0;
-            
-            // Verifica che Google Maps sia caricato
-            if (typeof google === 'undefined' || typeof google.maps === 'undefined' || !google.maps.geometry) {
-                console.warn('Google Maps non ancora caricato, uso somma semplice');
-                // Fallback: somma semplice
-                return zone.reduce((sum, z) => sum + (z.superficieHa || 0), 0);
-            }
-            
+        async function calcolaSuperficieLavorata(zone, terreno) {
             try {
-                // Converti tutte le zone in poligoni Google Maps
-                const polygons = [];
-                zone.forEach(zona => {
-                    if (zona.coordinate && zona.coordinate.length >= 2) {
-                        const coords = zona.coordinate.map(c => new google.maps.LatLng(c.lat, c.lng));
-                        
-                        // Se è chiusa, usa direttamente come poligono
-                        if (zona.isChiuso || coords.length >= 3) {
-                            const primoPunto = coords[0];
-                            const ultimoPunto = coords[coords.length - 1];
-                            const distanza = google.maps.geometry.spherical.computeDistanceBetween(primoPunto, ultimoPunto);
-                            
-                            if (distanza < 10 || zona.isChiuso) {
-                                // Poligono chiuso: calcola area diretta
-                                polygons.push({
-                                    coords: coords,
-                                    area: google.maps.geometry.spherical.computeArea(coords) / 10000, // In ettari
-                                    isClosed: true
-                                });
-                            } else {
-                                // Segmento aperto: crea poligono approssimato
-                                polygons.push({
-                                    coords: coords,
-                                    area: zona.superficieHa || 0,
-                                    isClosed: false,
-                                    lunghezza: zona.lunghezzaMetri || 0,
-                                    larghezza: zona.larghezzaMetri || null
-                                });
-                            }
-                        }
-                    }
-                });
-                
-                if (polygons.length === 0) return 0;
-                
-                // Se c'è solo un poligono, ritorna la sua area
-                if (polygons.length === 1) {
-                    return polygons[0].area;
-                }
-                
-                // Calcola unione approssimata dei poligoni
-                // Strategia: per poligoni chiusi, calcola l'unione geometrica
-                // Per segmenti aperti vicini, considera l'area unificata
-                const closedPolygons = polygons.filter(p => p.isClosed);
-                const openSegments = polygons.filter(p => !p.isClosed);
-                
-                let totalArea = 0;
-                
-                // Calcola area dei poligoni chiusi con unione geometrica approssimata
-                if (closedPolygons.length > 0) {
-                    // Per semplicità, calcoliamo l'unione approssimata
-                    // Un algoritmo preciso richiederebbe Turf.js o JSTS
-                    // Per ora, usiamo un approccio che considera le sovrapposizioni
-                    totalArea = calculateUnionAreaApproximate(closedPolygons);
-                }
-                
-                // Aggiungi area dei segmenti aperti (considerando sovrapposizioni)
-                if (openSegments.length > 0) {
-                    const openArea = calculateOpenSegmentsArea(openSegments);
-                    // Se ci sono sia poligoni chiusi che segmenti aperti, aggiungi l'area dei segmenti
-                    // considerando che potrebbero sovrapporsi ai poligoni chiusi
-                    totalArea += openArea;
-                }
-                
-                return totalArea;
+                const coords = terrenoPolygonCoords(terreno);
+                return await computeWorkedAreaHaAsync(zone, coords);
             } catch (error) {
                 console.error('Errore calcolo area unificata:', error);
-                // Fallback: somma semplice
-                return zone.reduce((sum, z) => sum + (z.superficieHa || 0), 0);
+                return null;
             }
         }
-        
-        // Calcola area unione approssimata di poligoni chiusi
-        function calculateUnionAreaApproximate(polygons) {
-            if (polygons.length === 0) return 0;
-            if (polygons.length === 1) return polygons[0].area;
-            
-            // Strategia approssimata: calcola area totale e sottrai sovrapposizioni stimate
-            let totalArea = 0;
-            const processedAreas = [];
-            
-            polygons.forEach((polygon, index) => {
-                let areaToAdd = polygon.area;
-                
-                // Verifica sovrapposizioni con poligoni già processati
-                for (let i = 0; i < processedAreas.length; i++) {
-                    const processed = processedAreas[i];
-                    const overlap = estimateOverlap(polygon.coords, processed.coords);
-                    if (overlap > 0) {
-                        // Sottrai sovrapposizione stimata
-                        areaToAdd -= overlap;
-                    }
-                }
-                
-                if (areaToAdd > 0) {
-                    totalArea += areaToAdd;
-                    processedAreas.push(polygon);
-                }
-            });
-            
-            return Math.max(0, totalArea);
-        }
-        
-        // Stima sovrapposizione tra due poligoni (approssimata)
-        function estimateOverlap(coords1, coords2) {
-            try {
-                // Crea poligoni temporanei per verificare sovrapposizione
-                const poly1 = new google.maps.Polygon({ paths: coords1 });
-                const poly2 = new google.maps.Polygon({ paths: coords2 });
-                
-                // Verifica se i poligoni si sovrappongono
-                // Controlla se alcuni punti di poly1 sono dentro poly2 o viceversa
-                let pointsInside = 0;
-                const samplePoints = coords1.slice(0, Math.min(5, coords1.length)); // Campiona alcuni punti
-                
-                samplePoints.forEach(point => {
-                    if (google.maps.geometry.poly.containsLocation(point, poly2)) {
-                        pointsInside++;
-                    }
-                });
-                
-                // Se molti punti sono dentro, c'è sovrapposizione significativa
-                if (pointsInside > samplePoints.length * 0.5) {
-                    // Stima sovrapposizione come percentuale dell'area minore
-                    const area1 = google.maps.geometry.spherical.computeArea(coords1) / 10000;
-                    const area2 = google.maps.geometry.spherical.computeArea(coords2) / 10000;
-                    return Math.min(area1, area2) * 0.7; // Stima conservativa
-                }
-                
-                return 0;
-            } catch (error) {
-                return 0;
-            }
-        }
-        
-        // Calcola area totale dei segmenti aperti considerando sovrapposizioni
-        function calculateOpenSegmentsArea(segments) {
-            if (segments.length === 0) return 0;
-            
-            let totalArea = 0;
-            const processedSegments = [];
-            
-            segments.forEach(segment => {
-                let areaToAdd = segment.area;
-                
-                // Verifica se questo segmento è vicino a segmenti già processati
-                for (let i = 0; i < processedSegments.length; i++) {
-                    const processed = processedSegments[i];
-                    const distance = getMinDistanceBetweenSegments(segment.coords, processed.coords);
-                    
-                    // Se i segmenti sono molto vicini (entro 5 metri), considera sovrapposizione
-                    if (distance < 5) {
-                        // Sottrai parte della sovrapposizione stimata
-                        const overlapEstimate = Math.min(segment.area, processed.area) * 0.3;
-                        areaToAdd -= overlapEstimate;
-                    }
-                }
-                
-                if (areaToAdd > 0) {
-                    totalArea += areaToAdd;
-                    processedSegments.push(segment);
-                }
-            });
-            
-            return Math.max(0, totalArea);
-        }
-        
-        // Calcola distanza minima tra due segmenti
-        function getMinDistanceBetweenSegments(coords1, coords2) {
-            let minDistance = Infinity;
-            
-            coords1.forEach(point1 => {
-                coords2.forEach(point2 => {
-                    const distance = google.maps.geometry.spherical.computeDistanceBetween(point1, point2);
-                    minDistance = Math.min(minDistance, distance);
-                });
-            });
-            
-            return minDistance;
-        }
-        
+
         /**
          * Stessa patch del pulsante «Segna come Completato» e della chiusura automatica al 100%.
          * @param {number|string} percentuale
@@ -3325,9 +3180,6 @@
                     });
                 });
                 
-                // Calcola superficie totale usando unione geometrica invece di somma semplice
-                const superficieTotaleLavorata = await calculateUnifiedWorkedArea(zone);
-                
                 // Carica lavoro per ottenere terreno
                 const lavoroDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId));
                 if (!lavoroDoc.exists()) return;
@@ -3341,6 +3193,8 @@
                 
                 const terreno = terrenoDoc.data();
                 const superficieTotaleTerreno = terreno.superficie || 0;
+                const superficieTotaleLavorata = await calcolaSuperficieLavorata(zone, terreno);
+                if (superficieTotaleLavorata == null) return;
                 
                 // Calcola progressi
                 const superficieRimanente = Math.max(0, superficieTotaleTerreno - superficieTotaleLavorata);
@@ -3499,17 +3353,35 @@
             if (!lavoroSnap.exists()) return false;
             const lavoro = lavoroSnap.data();
             let superficie = 0;
+            let terrenoSnap = null;
             if (lavoro.terrenoId) {
-                const terrenoSnap = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', lavoro.terrenoId));
+                terrenoSnap = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', lavoro.terrenoId));
                 if (terrenoSnap.exists()) superficie = Number(terrenoSnap.data().superficie) || 0;
             }
-            const coordinate = [
+            const coordinateFallback = [
                 { lat: 45.0, lng: 9.0 },
                 { lat: 45.05, lng: 9.0 },
                 { lat: 45.05, lng: 9.05 },
                 { lat: 45.0, lng: 9.05 },
                 { lat: 45.0, lng: 9.0 }
             ];
+            let coordinate = coordinateFallback;
+            const anello = terrenoSnap && terrenoSnap.exists()
+                ? terrenoPolygonCoords(terrenoSnap.data())
+                : null;
+            if (Array.isArray(anello) && anello.length >= 3) {
+                const punti = anello.map(function (c) {
+                    const lat = Number(c && (c.lat != null ? c.lat : c[0]));
+                    const lng = Number(c && (c.lng != null ? c.lng : c[1]));
+                    return Number.isFinite(lat) && Number.isFinite(lng) ? { lat: lat, lng: lng } : null;
+                }).filter(Boolean);
+                if (punti.length >= 3) {
+                    const primo = punti[0];
+                    const ultimo = punti[punti.length - 1];
+                    const giaChiuso = Math.abs(primo.lat - ultimo.lat) < 1e-8 && Math.abs(primo.lng - ultimo.lng) < 1e-8;
+                    coordinate = giaChiuso ? punti : punti.concat([primo]);
+                }
+            }
             const segmentoData = {
                 tipo: 'poligono',
                 data: Timestamp.fromDate(new Date()),

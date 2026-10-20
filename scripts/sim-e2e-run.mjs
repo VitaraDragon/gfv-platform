@@ -852,6 +852,20 @@ const SCENARIOS = [
       await runFlussoOperativoAziendaAssertions(page, expect);
     },
   },
+  {
+    name: 'zone-sostituto-mappa',
+    run: async (page) => {
+      const { runZoneSostitutoMappa } = await import('../tests/e2e/sim/scenarios/zone-sostituto-mappa.mjs');
+      await runZoneSostitutoMappa(page, expect);
+    },
+  },
+  {
+    name: 'zone-permessi-write',
+    run: async (page) => {
+      const { runZonePermessiWrite } = await import('../tests/e2e/sim/scenarios/zone-permessi-write.mjs');
+      await runZonePermessiWrite(page, expect);
+    },
+  },
 ];
 
 /** @param {typeof SCENARIOS} scenarios */

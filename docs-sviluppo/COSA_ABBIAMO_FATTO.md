@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-19 — Barra nuova versione.**
+**Ultimo aggiornamento documentazione: 2026-10-20 — Zone lavorate: chi le segna e superficie unita.**
+
+## 2026-10-20 — Zone lavorate: permessi, unione e completato senza tracciato
+
+Sui lavori di squadra la zona la segna il caposquadra di quel lavoro, oppure un manager o un amministratore. L’operaio la segna sui propri lavori autonomi e, se è indicato come sostituto (`assenzaSostitutoOperaioId`), anche sull’autonomo di un altro: vede le zone già disegnate e modifica solo le sue. Il campo del sostituto non ha una scadenza. La superficie mostrata in lista, in Gestione lavori e sulla mappa del lavoro è l’unione delle zone chiuse, ritagliata sul terreno, più i tratti aperti, mai oltre il 100%. Un lavoro completato senza zone non mostra più un 100% forzato: la barra dice «Completato (nessuna zona tracciata)». `firestore.rules` nel repo limita creazione e aggiornamento delle zone; la pubblicazione delle regole resta da fare dopo il merge su main. Nessun deploy di Cloud Functions. Tony non è stato modificato.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-19 — Barra nuova versione.**
 
 ## 2026-10-19 — Barra «C'è una nuova versione»
 
