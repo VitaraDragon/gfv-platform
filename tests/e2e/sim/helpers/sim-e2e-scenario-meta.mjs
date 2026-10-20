@@ -31,6 +31,22 @@ const OVERRIDES = {
       avoidAsserts: ['id lavoro hardcoded'],
     },
   },
+  'zone-sostituto-mappa': {
+    requiresSeedProfile: 'viticola-conto-terzi-manodopera',
+    contract: {
+      invariant: 'Il sostituto di un autonomo vede le zone già segnate e il pulsante per tracciarne',
+      primaryAsserts: ['pulsante Segna zona', 'data-zone-ids della zona del titolare', 'poligono sulla mappa finta'],
+      avoidAsserts: ['chiave Google Maps'],
+    },
+  },
+  'zone-permessi-write': {
+    requiresSeedProfile: 'viticola-conto-terzi-manodopera',
+    contract: {
+      invariant: 'L’operaio segna zone solo sui propri autonomi; sulla squadra il pulsante manca e la create è negata',
+      primaryAsserts: ['niente pulsante sulle card squadra', 'pulsante sugli autonomi', 'mapOnly non resta bianco', 'permission-denied'],
+      avoidAsserts: ['id lavoro hardcoded'],
+    },
+  },
   'movimenti-uscita-write': {
     contract: {
       invariant: 'Prodotto con giacenza sufficiente → uscita magazzino → riga movimento',

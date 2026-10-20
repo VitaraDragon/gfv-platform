@@ -24,6 +24,11 @@ import {
 
 import { filterAttrezziDropdownCompatibili } from '../../js/macchine-cv-compat.js';
 import { macchinaSelezionabile, suffissoMacchinaNonSelezionabile } from '../../js/macchina-selezionabile.js';
+import { computeWorkedAreaHaAsync } from '../../services/zone-lavorate-area.js?v=2026-10-20a';
+import {
+    ETICHETTA_COMPLETATO_SENZA_ZONE,
+    lavoroCompletatoSenzaZone
+} from '../../js/lavoro-progresso-display.js?v=2026-10-20a';
 import {
     allCategorieFlat,
     buildLavoroCategorieIndex,
@@ -385,17 +390,32 @@ export async function loadProgressiLavoro(lavoroId, currentTenantId, db) {
             }
         }
         
-        // Fallback: calcola dalle zone lavorate (più accurato ma più lento)
+        // Fallback: unione delle zone, ritagliata sul terreno. In errore non si somma.
         const zoneRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'zoneLavorate');
         const zoneSnapshot = await getDocs(zoneRef);
-        
-        let superficieLavorata = 0;
+        const zone = [];
         zoneSnapshot.forEach(zonaDoc => {
-            const zonaData = zonaDoc.data();
-            superficieLavorata += zonaData.superficieHa || 0;
+            zone.push({ id: zonaDoc.id, ...zonaDoc.data() });
         });
 
-        return { superficieLavorata };
+        let superficieLavorata = null;
+        try {
+            let terrenoCoords = null;
+            const terrenoId = lavoroDoc.exists() ? lavoroDoc.data().terrenoId : null;
+            if (terrenoId) {
+                const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', terrenoId));
+                if (terrenoDoc.exists()) {
+                    const terreno = terrenoDoc.data();
+                    terrenoCoords = terreno.polygonCoords || terreno.poligonoCoords || terreno.coordinates || null;
+                }
+            }
+            superficieLavorata = await computeWorkedAreaHaAsync(zone, terrenoCoords);
+        } catch (areaError) {
+            console.error('Errore unione zone:', areaError);
+            superficieLavorata = null;
+        }
+
+        return { superficieLavorata: superficieLavorata == null ? 0 : superficieLavorata };
     } catch (error) {
         console.error('Errore caricamento progressi:', error);
         return { superficieLavorata: 0 };
@@ -751,12 +771,27 @@ export async function loadStatistics(currentTenantId, db, lavoriList) {
             // Carica superficie lavorata
             const zoneRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoro.id, 'zoneLavorate');
             const zoneSnapshot = await getDocs(zoneRef);
-            
-            let superficieLavorataLavoro = 0;
+            const zoneLavoro = [];
             zoneSnapshot.forEach(zonaDoc => {
-                const zonaData = zonaDoc.data();
-                superficieLavorataLavoro += zonaData.superficieHa || 0;
+                zoneLavoro.push({ id: zonaDoc.id, ...zonaDoc.data() });
             });
+
+            let terreno = null;
+            if (lavoro.terrenoId) {
+                const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', lavoro.terrenoId));
+                terreno = terrenoDoc.exists() ? terrenoDoc.data() : null;
+            }
+            const superficieTotale = terreno?.superficie || 0;
+            let superficieLavorataLavoro = 0;
+            try {
+                const unione = await computeWorkedAreaHaAsync(
+                    zoneLavoro,
+                    terreno?.polygonCoords || terreno?.poligonoCoords || terreno?.coordinates || null
+                );
+                if (unione != null) superficieLavorataLavoro = unione;
+            } catch (areaError) {
+                console.error('Errore unione zone:', areaError);
+            }
             totaleSuperficieLavorata += superficieLavorataLavoro;
 
             // Calcola stato progresso se il lavoro ha durata prevista e data inizio
@@ -771,11 +806,6 @@ export async function loadStatistics(currentTenantId, db, lavoriList) {
                 const giorniEffettivi = Math.max(0, Math.floor((oggi - dataInizio) / (1000 * 60 * 60 * 24)) + 1);
                 
                 if (giorniEffettivi > 0) {
-                    // Carica terreno per ottenere superficie totale
-                    const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', lavoro.terrenoId));
-                    const terreno = terrenoDoc.exists() ? terrenoDoc.data() : null;
-                    const superficieTotale = terreno?.superficie || 0;
-                    
                     const percentualeCompletamento = superficieTotale > 0 ? (superficieLavorataLavoro / superficieTotale * 100) : 0;
                     const percentualeTempo = (giorniEffettivi / lavoro.durataPrevista) * 100;
                     const tolleranza = 10; // Tolleranza del 10%
@@ -2294,12 +2324,11 @@ export async function renderLavori(
         
         // Calcola progressi
         const superficieTotale = lavoro.terreno?.superficie || 0;
-        // Usa superficieTotaleLavorata dal documento lavoro
         const superficieLavorata = lavoro.superficieTotaleLavorata || lavoro.superficieLavorata || 0;
+        const senzaZone = lavoroCompletatoSenzaZone(lavoro);
         let percentuale = lavoro.percentualeCompletamento || 0;
         
-        // Se lavoro è completato e percentuale è 0 o mancante, imposta a 100%
-        if ((lavoro.stato === 'completato' || lavoro.stato === 'completato_da_approvare') && (!percentuale || percentuale === 0)) {
+        if (!senzaZone && (lavoro.stato === 'completato' || lavoro.stato === 'completato_da_approvare') && (!percentuale || percentuale === 0)) {
             percentuale = 100;
         } else if (!percentuale && superficieTotale > 0) {
             // Calcola percentuale da superficie lavorata / superficie totale
@@ -2310,7 +2339,9 @@ export async function renderLavori(
         }
         
         // Mostra barra di progresso se abbiamo dati, altrimenti mostra messaggio
-        const progressBar = superficieTotale > 0 ? `
+        const progressBar = senzaZone ? `
+            <div class="progress-text">${ETICHETTA_COMPLETATO_SENZA_ZONE}</div>
+        ` : superficieTotale > 0 ? `
             <div class="progress-bar-inline">
                 <div class="progress-fill-inline" style="width: ${Math.min(percentuale, 100)}%">${percentuale}%</div>
             </div>

@@ -9,7 +9,7 @@ import { getCurrentTenantId } from '../../../core/services/tenant-service.js';
 import { getAllClienti } from '../../conto-terzi/services/clienti-service.js';
 import { getAnnoStagioneCorrente } from '../config/vm-constants.js';
 import { getEttariEffettivi } from './calcolo-compenso-vm-service.js';
-import { buildStagioneWithNetArea, sanitizeZoneEscluse } from './zone-escluse-service.js';
+import { buildStagioneWithNetArea, sanitizeZoneEscluse } from './zone-escluse-service.js?v=2026-10-20a';
 
 const TERRENI_COLLECTION = 'terreni';
 import { summarizePianoStagione, buildPianoStagioneTonyContext } from './piano-stagione-kpi.js';

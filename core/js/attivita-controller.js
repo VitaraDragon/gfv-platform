@@ -19,6 +19,10 @@ import {
 } from './date-format-it.js';
 import { formatPosizioneRilevamentoCompactHtml } from './geo-capture.js';
 import {
+    ETICHETTA_COMPLETATO_SENZA_ZONE,
+    lavoroCompletatoSenzaZone
+} from './lavoro-progresso-display.js?v=2026-10-20a';
+import {
     coltureDisponibiliPerCategoria,
     extractColtureUnicheFromTerreni,
     filterTipiLavoroByCategoria,
@@ -1934,7 +1938,7 @@ export async function caricaDettagliLavoriCompletati(params) {
                 }
                 
                 const dataKey = new Date(dataZona.getFullYear(), dataZona.getMonth(), dataZona.getDate());
-                const dataKeyString = dataKey.toISOString().split('T')[0];
+                const dataKeyString = dateLikeToLocalCalendarIso(dataKey);
                 
                 const zona = {
                     id: zonaDoc.id,
@@ -2002,11 +2006,10 @@ export async function caricaDettagliLavoriCompletati(params) {
             const superficieLavorata = lavoro.superficieTotaleLavorata || superficieTotaleLavorata;
             const superficieTotale = terreno?.superficie || 0;
             
-            // Calcola percentuale: se lavoro è completato e non ci sono zone tracciate, considera 100%
+            const senzaZone = lavoroCompletatoSenzaZone(lavoro, { zoneCount: zoneLavorate.length });
             let percentuale;
-            if (lavoro.stato === 'completato' && zoneLavorate.length === 0 && superficieLavorata === 0) {
-                // Lavoro completato senza zone tracciate (solo Core+Conto Terzi) → 100%
-                percentuale = 100;
+            if (senzaZone) {
+                percentuale = 0;
             } else {
                 percentuale = superficieTotale > 0 ? Math.round((superficieLavorata / superficieTotale) * 100) : 0;
             }
@@ -2048,7 +2051,7 @@ export async function caricaDettagliLavoriCompletati(params) {
                                     </div>
                                     ` : ''}
                                     <div style="font-size: 13px; color: #1976D2;">
-                                        <strong>✅ Completamento:</strong> ${percentuale}%
+                                        <strong>✅ Completamento:</strong> ${senzaZone ? ETICHETTA_COMPLETATO_SENZA_ZONE : `${percentuale}%`}
                                     </div>
                                     <div style="font-size: 13px; color: #1976D2;">
                                         <strong>⏱️ Ore ${hasManodoperaModule && totaleOreValidate > 0 ? 'Validate' : 'Lavorate'}:</strong> ${formatOreNette(oreDaMostrare)}
@@ -2059,7 +2062,7 @@ export async function caricaDettagliLavoriCompletati(params) {
                                     </div>
                                     ` : ''}
                                 </div>
-                                ${superficieTotale > 0 ? `
+                                ${!senzaZone && superficieTotale > 0 ? `
                                 <div style="margin-top: 10px;">
                                     <div style="background: #E0E0E0; height: 8px; border-radius: 4px; overflow: hidden;">
                                         <div style="background: linear-gradient(90deg, #4CAF50 0%, #8BC34A 100%); height: 100%; width: ${Math.min(percentuale, 100)}%; transition: width 0.3s;"></div>
