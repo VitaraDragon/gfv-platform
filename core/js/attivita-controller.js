@@ -17,6 +17,7 @@ import {
     formatDateLikeToItalianLongLocal,
     formatDateLikeToItalianLongWeekday
 } from './date-format-it.js';
+import { formatPosizioneRilevamentoCompactHtml } from './geo-capture.js';
 import {
     ETICHETTA_COMPLETATO_SENZA_ZONE,
     lavoroCompletatoSenzaZone
