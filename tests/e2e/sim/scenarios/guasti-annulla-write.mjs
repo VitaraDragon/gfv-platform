@@ -8,10 +8,16 @@
 import { isGuastoAttivo } from '../../../../core/services/guasto-stati.js';
 import { idMezziCoinvolti } from '../../../../core/services/guasto-ripristino.js';
 import {
+  mezziDaLavoroGuasto,
+  scegliLavoroPredefinitoGuasto,
+} from '../../../../core/js/field-guasti-access.js';
+import {
+  SEGNALAZIONE_GUASTI_PATH,
   gotoGuastiList,
   gotoSegnalazioneGuasti,
   loginAsManagerManodopera,
   loginAsOperaioFromDevPage,
+  waitForSegnalazioneGuastiLoaded,
 } from '../helpers/sim-login.js';
 
 export const E2E_GUASTO_ANNULLA_MARKER = 'GFV_SIM_E2E_ANNULLA_GUASTO';
@@ -134,6 +140,67 @@ async function mezziLiberi(page) {
   });
 }
 
+function leggiValoreFirestore(field) {
+  if (!field) return null;
+  if (Object.prototype.hasOwnProperty.call(field, 'stringValue')) return field.stringValue;
+  if (Object.prototype.hasOwnProperty.call(field, 'timestampValue')) return new Date(field.timestampValue);
+  if (Object.prototype.hasOwnProperty.call(field, 'nullValue')) return null;
+  if (Object.prototype.hasOwnProperty.call(field, 'booleanValue')) return field.booleanValue;
+  if (field.arrayValue) {
+    const values = field.arrayValue.values || [];
+    return values.map((voce) => leggiValoreFirestore(voce)).filter((voce) => voce != null);
+  }
+  return null;
+}
+
+async function documentiTenant(tenant, collezione) {
+  const out = [];
+  let pageToken = '';
+  do {
+    const url = `${FIRESTORE}/v1/projects/${PROJECT}/databases/(default)/documents/tenants/${tenant}/${collezione}?pageSize=200${pageToken ? `&pageToken=${encodeURIComponent(pageToken)}` : ''}`;
+    const res = await fetch(url, { headers: { Authorization: 'Bearer owner' } });
+    if (!res.ok) return null;
+    const body = await res.json();
+    const docs = Array.isArray(body.documents) ? body.documents : [];
+    docs.forEach((docItem) => {
+      const fields = docItem.fields || {};
+      const nome = String(docItem.name || '');
+      const id = nome.slice(nome.lastIndexOf('/') + 1);
+      const data = { id };
+      Object.keys(fields).forEach((chiave) => {
+        data[chiave] = leggiValoreFirestore(fields[chiave]);
+      });
+      out.push(data);
+    });
+    pageToken = body.nextPageToken || '';
+  } while (pageToken);
+  return out;
+}
+
+async function lavoriVisibiliGuasto(tenant, uid) {
+  const lavori = await documentiTenant(tenant, 'lavori');
+  const squadre = await documentiTenant(tenant, 'squadre');
+  if (!Array.isArray(lavori) || !Array.isArray(squadre) || !uid) return null;
+  let caposquadraId = null;
+  squadre.forEach((squadra) => {
+    const operai = Array.isArray(squadra.operai) ? squadra.operai : [];
+    if (operai.map((id) => String(id)).includes(String(uid))) caposquadraId = squadra.caposquadraId;
+  });
+  return lavori.filter((lavoro) => {
+    const stato = lavoro.stato || 'assegnato';
+    if (stato === 'completato' || stato === 'annullato' || stato === 'completato_da_approvare') return false;
+    const diretto = String(lavoro.operaioId || '') === String(uid) && !lavoro.caposquadraId;
+    const squadra = caposquadraId && String(lavoro.caposquadraId || '') === String(caposquadraId) && !lavoro.operaioId;
+    return diretto || squadra;
+  });
+}
+
+async function mezzoSelezionato(page, selectId, id) {
+  if (!id) return '';
+  const presente = await page.locator(`${selectId} option[value="${id}"]`).count();
+  return presente ? String(id) : '';
+}
+
 async function statoLavoro(tenant, id) {
   const url = `${FIRESTORE}/v1/projects/${PROJECT}/databases/(default)/documents/tenants/${tenant}/lavori/${id}`;
   const res = await fetch(url, { headers: { Authorization: 'Bearer owner' } });
@@ -180,6 +247,53 @@ export async function runGuastiAnnullaWriteAssertions(page, expect) {
 
   const tenantOperaio = await tenantId(page);
   expect(tenantOperaio).toBeTruthy();
+  await page.waitForFunction(() => {
+    const sel = document.getElementById('guasto-lavoro');
+    if (!sel || !sel.value) return false;
+    const testi = Array.from(sel.options).map((opt) => opt.textContent || '');
+    return testi.some((t) => /\(Autonomo\)/.test(t)) && testi.some((t) => /\(Squadra\)/.test(t));
+  }, { timeout: 60_000 });
+  const uidOperaio = await page.evaluate(() => sessionStorage.getItem('gfv_expected_user_id'));
+  const visibili = await lavoriVisibiliGuasto(tenantOperaio, uidOperaio);
+  expect(Array.isArray(visibili) && visibili.length > 0).toBe(true);
+  const lavoroPredefinito = scegliLavoroPredefinitoGuasto(visibili, { oggi: new Date() });
+  expect(lavoroPredefinito && lavoroPredefinito.id).toBeTruthy();
+  await expect(page.locator('#guasto-lavoro')).toHaveValue(String(lavoroPredefinito.id));
+  const mezziIniziali = mezziDaLavoroGuasto(lavoroPredefinito);
+  await expect(page.locator('#guasto-macchina')).toHaveValue(
+    await mezzoSelezionato(page, '#guasto-macchina', mezziIniziali.trattoreId)
+  );
+  await expect(page.locator('#guasto-attrezzo')).toHaveValue(
+    await mezzoSelezionato(page, '#guasto-attrezzo', mezziIniziali.attrezzoId)
+  );
+  const lavoroAutonomoId = await page.locator('#guasto-lavoro option').filter({ hasText: '(Autonomo)' }).first().getAttribute('value');
+  expect(lavoroAutonomoId).toBeTruthy();
+  const lavoriSquadraIds = await page.locator('#guasto-lavoro option').evaluateAll((opts) => (
+    opts.filter((opt) => opt.value && /\(Squadra\)/.test(opt.textContent || '')).map((opt) => opt.value)
+  ));
+  expect(lavoriSquadraIds.length).toBeGreaterThan(0);
+  let squadraConMezzi = '';
+  for (let i = 0; i < lavoriSquadraIds.length; i += 1) {
+    await page.locator('#guasto-lavoro').selectOption(lavoriSquadraIds[i]);
+    const trattore = await page.locator('#guasto-macchina').inputValue();
+    const attrezzo = await page.locator('#guasto-attrezzo').inputValue();
+    if (trattore || attrezzo) {
+      squadraConMezzi = lavoriSquadraIds[i];
+      break;
+    }
+  }
+  expect(squadraConMezzi).toBeTruthy();
+  await page.locator('#guasto-lavoro').selectOption(lavoroAutonomoId);
+  await expect(page.locator('#guasto-macchina')).toHaveValue('');
+  await expect(page.locator('#guasto-attrezzo')).toHaveValue('');
+
+  await page.goto(`${SEGNALAZIONE_GUASTI_PATH}&lavoroId=${encodeURIComponent(squadraConMezzi)}`);
+  await waitForSegnalazioneGuastiLoaded(page);
+  await expect.poll(
+    async () => page.locator('#guasto-lavoro').inputValue(),
+    { timeout: 60_000 }
+  ).toBe(squadraConMezzi);
+
   await page.waitForFunction(() => {
     const sel = document.getElementById('guasto-lavoro');
     if (!sel) return false;

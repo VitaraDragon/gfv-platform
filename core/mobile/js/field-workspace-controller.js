@@ -30,7 +30,7 @@ import {
     vistaOreGiornoInAttesa
 } from './field-ore-riquadro.js?v=2026-10-18a';
 import { scegliSuggerimentoRapido } from '../../js/field-suggerimento-lavoro.js?v=2026-10-18a';
-import { eLavoroSospeso } from '../../js/tony/tony-ora-lavoro-match.js';
+import { eLavoroSospeso } from '../../js/tony/tony-ora-lavoro-match.js?v=2026-10-09g';
 import { CHIAVE_RIMBALZI_INGRESSO, scriviIndizioIngresso, pulisciIndizioIngresso } from '../../js/tony/tony-ingresso-login.js?v=2026-10-09g';
 import { conTimeout, prossimaAttesaRiprova } from '../../js/tony/tony-attesa-riprova.js?v=2026-10-09g';
 import {
@@ -62,6 +62,7 @@ import {
     calcolaOreNette
 } from '../../services/ore-operai-logic.js';
 
+import { registraServiceWorker } from '../../js/app-update.js?v=2026-10-19a';
 import {
     fetchLavoriDocumentsForFieldUser,
     resolveCaposquadraIdsForOperaio,
@@ -112,6 +113,8 @@ import {
     normalizzaLingua,
     FIELD_UI_LANG_OPTIONS
 } from '../../services/field-ui-i18n.js';
+
+registraServiceWorker('../../service-worker.js');
 
 const {
     normalizeRoles,
@@ -565,10 +568,22 @@ function onMessaggioStatistiche(event) {
     }
 }
 
+function urlSchedaGuastoCampo(lavoroId) {
+    const base = '../admin/segnalazione-guasti-standalone.html?from=field&embed=1';
+    const id = String(lavoroId || '').trim();
+    if (!id) return base;
+    return base + '&lavoroId=' + encodeURIComponent(id);
+}
+
 function ensureGuastoEmbedLoaded() {
-    if (!guastoEmbedFrameEl || guastoEmbedFrameEl.dataset.loaded === '1') return;
+    if (!guastoEmbedFrameEl) return;
+    const lavoroId = String(idLavoroSelezionatoOSalvato() || '').trim();
+    const giaQuesto = guastoEmbedFrameEl.dataset.loaded === '1'
+        && (guastoEmbedFrameEl.dataset.lavoroId || '') === lavoroId;
+    if (giaQuesto) return;
     guastoEmbedFrameEl.dataset.loaded = '1';
-    guastoEmbedFrameEl.src = '../admin/segnalazione-guasti-standalone.html?from=field&embed=1';
+    guastoEmbedFrameEl.dataset.lavoroId = lavoroId;
+    guastoEmbedFrameEl.src = urlSchedaGuastoCampo(lavoroId);
 }
 
 function maybeLoadEmbedsForSlide(slideTitle) {
@@ -2397,6 +2412,7 @@ async function saveQuickHours(event) {
         resetModificaOra();
         resetQuickHoursFormFieldsForNextEntry({ mantieniData: true });
         await riallineaRiquadroOreGiorno(precedenteOre, dateIso);
+        window.__gfvFormSporco = false;
     } catch (error) {
         console.error('[FIELD-WORKSPACE] Errore salvataggio ore:', error);
         if (error && error.code === 'ORE_SOVRAPPOSTE') {
