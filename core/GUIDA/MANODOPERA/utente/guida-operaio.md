@@ -196,7 +196,11 @@ Si fa dalla scheda **⚠️ Segnala un problema** del workspace, dopo **Ore** e 
   - **Non grave** — posso finire il lavoro (con cautela);  
   - **Grave** — fermarsi e segnalare subito. Con un guasto a macchina o attrezzo il mezzo va in guasto. Se colleghi un incarico **solo tuo**, l’app lo **sospende** (motivo «Guasto macchina grave» o «Segnalazione grave»). Su un incarico **di gruppo** il lavoro invece non cambia e dopo l’invio leggi «Segnalazione inviata. Il lavoro lo sospende il caposquadra o il manager.»: non è un errore, la segnalazione è registrata e il responsabile vede il guasto nell’elenco **Officina & Guasti**.  
 - **Dettagli** — descrizione chiara del sintomo.  
-- Opzionale: **lavoro corrente** se stai operando su un incarico preciso. L’app propone già il tuo lavoro aperto più recente e, se ce li ha, il suo trattore e attrezzo: controlla e cambia se non è giusto.  
+- Opzionale: **lavoro corrente** se stai operando su un incarico preciso. L’app lo propone già, insieme al **trattore** e all’**attrezzo** di quel lavoro:  
+  - è il lavoro che hai scelto nella scheda **Lavoro** (menu **Lavori assegnati**), se è tra i tuoi lavori aperti;  
+  - se lì non c’è un lavoro valido, l’app propone il lavoro **già in corso**, non quello creato per ultimo; se non ce n’è uno in corso, quello già iniziato più di recente, poi il prossimo che deve iniziare, e solo alla fine un lavoro **sospeso**.  
+  - Se nel menu **Lavoro corrente** scegli un altro lavoro, trattore e attrezzo diventano quelli del nuovo lavoro (se il lavoro non ha mezzi, oppure scegli «Nessun lavoro», i due campi restano vuoti) e il **componente** va scelto di nuovo. Trattore e attrezzo puoi sempre cambiarli a mano: controlla prima di inviare.  
+  - Se cambi lavoro nella scheda **Lavoro** e poi torni su **⚠️ Segnala un problema**, la scheda riparte con il nuovo lavoro e i suoi mezzi: invia prima quello che stavi scrivendo.  
 - Con un guasto a macchina o attrezzo, il mezzo passa in stato di guasto e finché resta così non si può scegliere per un nuovo lavoro («(già in guasto)»).
 
 ### GPS e posizione
@@ -267,6 +271,7 @@ Se apri a mano un indirizzo dell’ufficio (terreni, magazzino, elenchi), l’ap
 | Dopo il login: «Non riesco ad aprire la tua area. Riprova» | Tocca **Riprova**; se resta, chiedi in ufficio di controllare il tuo ruolo e il modulo Manodopera. |
 | Non capisco la **mappa delle zone** | Chiedi una dimostrazione in campo a chi coordina il gruppo. |
 | **GPS** non funziona | Attiva permesso posizione; riprova all’aperto; completa ubicazione e dettagli a mano. |
+| In basso compare **C’è una nuova versione** con **Aggiorna** | C’è una versione nuova dell’app. Salva prima le ore o la segnalazione che stai scrivendo, poi tocca **Aggiorna**: la pagina si ricarica. Se chiede «Hai dati non salvati: aggiorni lo stesso?», **Annulla** tiene quello che hai scritto (salva e riprova), **Aggiorna** ricarica e perde quello che non hai salvato. Finché non tocchi **Aggiorna** non si ricarica nulla. |
 | Non trovi dove segnalare un guasto | Non è nel menu ingranaggio: scorri le schede fino a **⚠️ Segnala un problema**. Se manca la scelta della macchina, l’azienda non ha Parco Macchine: usa la segnalazione generica o chiama il responsabile. |
 
 Per le funzioni generali dell’app (account, terreni), consulta anche la **guida Core** nella documentazione utente.

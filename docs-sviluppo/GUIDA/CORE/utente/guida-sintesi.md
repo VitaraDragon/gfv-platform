@@ -31,6 +31,8 @@ Spiega dove sono le funzioni e i termini in schermata; con **Base** può suggeri
 
 **PWA:** su login/invito può comparire “Installa”; su iOS spesso Aggiungi a Home. Opzionale; utile con le push.
 
+**Nuova versione:** se online c’è davvero una versione più nuova compare in basso la barra **C’è una nuova versione** con **Aggiorna** (non al primo avvio; controllo all’apertura, al ritorno sull’app e ogni ~15 minuti). Nulla si ricarica da solo: solo toccando **Aggiorna**. Con dati non salvati o un salvataggio in corso chiede «Hai dati non salvati: aggiorni lo stesso?» (**Annulla** tiene i dati e la barra; **Aggiorna** ricarica e perde il non salvato). Aggiorna resta toccabile sopra finestre e Tony; la chat di Tony resta dopo il ricaricamento.
+
 **Seminativo:** modulo colture a pieno campo (guide in `GUIDA/SEMINATIVO/`; codice completo su main).
 
 **Accesso:** email/password; **Password dimenticata?** dal login; invito via link email (non registrazione generica); **cambia azienda** se siete su più tenant.

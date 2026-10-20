@@ -151,7 +151,7 @@
         "MANODOPERA",
         "PARCO_MACCHINE"
       ],
-      "label": "Workspace campo: voce Segnala guasto per caposquadra e operaio"
+      "label": "Workspace campo: voce Segnala guasto per caposquadra e operaio; lavoro e mezzi predefiniti nella scheda guasti"
     },
     {
       "prefix": "core/js/macchina-selezionabile",
@@ -1210,9 +1210,50 @@
     {
       "prefix": "service-worker.js",
       "modules": [
+        "CORE",
+        "TONY"
+      ],
+      "label": "Service worker PWA: cache per build, resta in attesa fino ad «Aggiorna» della barra nuova versione (GFV_SKIP_WAITING / GFV_GET_BUILD)"
+    },
+    {
+      "prefix": "core/js/app-update",
+      "modules": [
+        "CORE",
+        "MANODOPERA",
+        "TONY"
+      ],
+      "label": "Barra «C’è una nuova versione» con Aggiorna, dialogo dati non salvati, chat Tony conservata dopo il ricaricamento"
+    },
+    {
+      "prefix": "tests/app-update",
+      "modules": [
         "CORE"
       ],
-      "label": "Service worker PWA: versione cache dopo un rilascio (di solito nessun testo guida)"
+      "label": "Test barra nuova versione (quando compare, ricarica solo da Aggiorna)"
+    },
+    {
+      "prefix": "tests/e2e/sim/app-update",
+      "modules": [
+        "CORE",
+        "MANODOPERA",
+        "TONY"
+      ],
+      "label": "E2E barra nuova versione (Segna ore con dati non salvati, chat Tony dopo Aggiorna)"
+    },
+    {
+      "prefix": "tests/field-guasti-access",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Test scheda guasti campo: accesso, lavoro e mezzi predefiniti"
+    },
+    {
+      "prefix": "tests/versioned-imports-consistency",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test coerenza ?v= degli import (di solito nessun testo guida)"
     }
   ]
 }

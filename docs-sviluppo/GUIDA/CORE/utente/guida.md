@@ -41,6 +41,7 @@ Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più sc
 | Tony (assistente in chat) | [Impara qui](#tony-lassistente-in-chat) |
 | Notifiche push (telefono) | [Impara qui](#mini-guida-notifiche-push) |
 | Installare l’app (PWA) | [Impara qui](#mini-guida-installare-lapp-pwa) |
+| «C’è una nuova versione»: aggiornare l’app | [Impara qui](#mini-guida-ce-una-nuova-versione) |
 
 ---
 
@@ -322,6 +323,27 @@ Fuori dalla fascia oraria le urgenze restano in coda e partono quando la finestr
 ## Mini-guida: installare l’app (PWA)
 
 Su alcuni browser (Chrome/Edge) in **login** o **registrazione da invito** può comparire un invito a **installare** GFV come app. Su iPhone spesso si usa **Aggiungi a Home** dal menu di Safari. Non è obbligatorio: l’app funziona anche solo nel browser. L’installazione aiuta le **notifiche push** e l’apertura rapida, ma dipende dal dispositivo e dai permessi.
+
+---
+
+## Mini-guida: «C’è una nuova versione»
+
+Quando pubblichiamo una versione nuova dell’app, in fondo allo schermo compare una barra scura con la scritta **C’è una nuova versione** e il pulsante verde **Aggiorna**.
+
+- **Quando compare:** solo se online c’è davvero una versione più nuova di quella che state usando. L’app controlla quando la aprite, quando ci tornate da un’altra app o scheda e ogni 15 minuti circa. La prima volta che aprite l’app su un dispositivo la barra non compare.  
+- **Dove:** nelle pagine principali, per esempio accesso, registrazione da invito, dashboard, versione mobile di campo, **Segna ore**, **Diario attività**, **Statistiche**, **Terreni**, **Impostazioni**.  
+- **Niente si ricarica da solo:** potete finire quello che state facendo. La pagina si ricarica solo quando toccate **Aggiorna**.  
+- **Aggiorna** resta sempre toccabile: la barra sta sopra le finestre aperte e sopra Tony (il pulsante di Tony si sposta un po’ più in alto).
+
+### Passi
+
+1. Salvate quello che state scrivendo (ore, segnalazione, scheda…).  
+2. Toccate **Aggiorna**: la pagina si ricarica con la versione nuova e la barra sparisce. Per la stessa versione non ricompare.  
+3. Se avete scritto qualcosa in un modulo della pagina, o un salvataggio è ancora in corso, prima compare la domanda **Hai dati non salvati: aggiorni lo stesso?** Dopo aver salvato le ore (**Segna ore** o scheda **Ore** del campo) o inviato una segnalazione guasto la domanda non compare più; nelle altre pagine può comparire anche dopo che avete salvato: se avete già salvato tutto, potete toccare **Aggiorna** senza perdere nulla.  
+   - **Annulla**: non si ricarica nulla, i dati scritti restano e la barra resta in basso. Salvate e poi toccate di nuovo **Aggiorna**.  
+   - **Aggiorna**: la pagina si ricarica subito e quello che non avevate salvato si perde.
+
+La conversazione con **Tony** non si perde: dopo il ricaricamento la chat riparte con i messaggi di prima, anche se avete confermato **Aggiorna** nella domanda. La barra usa la lingua scelta nella versione mobile di campo (italiano, romeno, inglese, albanese, francese).
 
 ---
 
