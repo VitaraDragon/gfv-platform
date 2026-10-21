@@ -817,7 +817,7 @@ function classificaProgresso(lavoro, superficieLavorataLavoro, superficieTotale)
     const giorniEffettivi = Math.max(0, Math.floor((oggi - dataInizio) / (1000 * 60 * 60 * 24)) + 1);
     if (giorniEffettivi <= 0) return null;
     const percentualeCompletamento = superficieTotale > 0 ? (superficieLavorataLavoro / superficieTotale * 100) : 0;
-    const percentualeTempo = (giorniEffettivi / lavoro.durataPrevista) * 100;
+    const percentualeTempo = ((giorniEffettivi - 1) / lavoro.durataPrevista) * 100;
     const tolleranza = 10;
     if (percentualeCompletamento > percentualeTempo + tolleranza) return 'anticipo';
     if (percentualeCompletamento < percentualeTempo - tolleranza) return 'ritardo';
@@ -2261,7 +2261,7 @@ export async function renderLavori(
                     const superficieTotale = lavoroConProgressi.terreno?.superficie || 0;
                     const superficieLavorata = lavoroConProgressi.superficieTotaleLavorata || lavoroConProgressi.superficieLavorata || 0;
                     const percentualeCompletamento = superficieTotale > 0 ? (superficieLavorata / superficieTotale * 100) : 0;
-                    const percentualeTempo = (giorniEffettivi / lavoroConProgressi.durataPrevista) * 100;
+                    const percentualeTempo = ((giorniEffettivi - 1) / lavoroConProgressi.durataPrevista) * 100;
                     const tolleranza = 10; // Tolleranza del 10%
                     
                     if (percentualeCompletamento > percentualeTempo + tolleranza) {
