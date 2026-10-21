@@ -3835,7 +3835,7 @@
                         const assenzaIdFromUrl = urlParams.get('assenzaId');
                         if (assenzaIdFromUrl) {
                             setTimeout(() => {
-                                openAssenzaFromDeepLink(assenzaIdFromUrl).catch((err) => {
+                                openAssenzaFromDeepLink(assenzaIdFromUrl, urlParams.get('sostitutoLavoroId')).catch((err) => {
                                     console.warn('[Gestione Lavori] deep link assenza:', err);
                                 });
                             }, 600);
