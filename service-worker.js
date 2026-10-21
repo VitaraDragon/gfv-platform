@@ -2,14 +2,14 @@
 //
 // SW_CACHE_BUILD_ID: aggiornato da scripts/bump-pwa-cache-version.mjs (hook pre-commit
 // in .githooks) oppure da `npm run bump:pwa-cache`. Ogni commit ottiene un ID nuovo
-// così CACHE_NAME cambia e in activate() le cache obsolete vengono eliminate.
+// così CACHE_NAME cambia; in activate() si tiene anche la cache della build precedente.
 // Setup hook (una tantum): git config core.hooksPath .githooks
-const SW_CACHE_BUILD_ID = 't1792568954427';
+const SW_CACHE_BUILD_ID = 't1792580986701';
 const CACHE_NAME = 'gfv-platform-' + SW_CACHE_BUILD_ID;
 
-function isLocalDevHost(hostname) {
-  return hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]';
-}
+// Scelta della strategia e pulizia cache: funzioni pure in sw-strategy.js (test vitest).
+importScripts('sw-strategy.js?v=' + encodeURIComponent(SW_CACHE_BUILD_ID));
+const STRATEGIA = self.GFVSwStrategy;
 
 function swTestLocaleAttivo() {
   try {
@@ -19,22 +19,10 @@ function swTestLocaleAttivo() {
   }
 }
 
-// Installazione Service Worker
-// Non cachiamo file all'installazione - verranno cachati on-demand durante il fetch
-// Questo rende il service worker più flessibile e funziona in qualsiasi ambiente
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        console.log('Service Worker: Cache aperto e pronto');
-        // Non blocchiamo l'installazione - i file verranno cachati on-demand
-        return Promise.resolve();
-      })
-      .catch((error) => {
-        console.error('Service Worker: Errore durante l\'apertura cache', error);
-      })
-  );
-});
+// Installazione: nessun precache e nessuna cache creata qui. La cache della build nasce
+// al primo fetch dopo l'attivazione, così un worker rimasto in attesa e poi superato
+// non lascia una cache vuota che activate() prenderebbe per «la precedente».
+self.addEventListener('install', () => {});
 
 self.addEventListener('message', (event) => {
   const data = event.data || {};
@@ -65,128 +53,123 @@ self.addEventListener('message', (event) => {
   }
 });
 
-// Attivazione Service Worker
+// Attivazione: tiene la cache corrente e la più recente delle precedenti (worker uscente),
+// cancella le altre cache gfv-platform-*. Le cache di altre app sullo stesso origin restano.
 self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('Service Worker: Rimozione cache vecchia', cacheName);
-            return caches.delete(cacheName);
-          }
+        STRATEGIA.cacheDaEliminare(cacheNames, CACHE_NAME).map((cacheName) => {
+          console.log('Service Worker: Rimozione cache vecchia', cacheName);
+          return caches.delete(cacheName);
         })
       );
     }).then(() => self.clients.claim())
   );
 });
 
-// Fetch - Strategia Network First con fallback Cache
-self.addEventListener('fetch', (event) => {
-  // Ignora richieste non GET
-  if (event.request.method !== 'GET') {
-    return;
-  }
-
-  const url = new URL(event.request.url);
-
-  // Sviluppo locale: non intercettare (evita Failed to fetch su config/maps e favicon).
-  // ?swTest=1 sulla URL del service worker riattiva il fetch solo su localhost, per i test.
-  if (isLocalDevHost(url.hostname) && !swTestLocaleAttivo()) {
-    return;
-  }
-  
-  // Ignora richieste con schemi non supportati (chrome-extension, chrome, etc.)
-  if (url.protocol === 'chrome-extension:' || 
-      url.protocol === 'chrome:' ||
-      url.protocol === 'moz-extension:' ||
-      url.protocol === 'edge:' ||
-      url.protocol === 'safari-extension:' ||
-      !url.protocol.startsWith('http')) {
-    return;
-  }
-
-  // Ignora richieste Firebase/Google APIs (devono sempre andare in rete)
-  if (url.hostname.includes('firebase') || 
-      url.hostname.includes('googleapis.com') || 
-      url.hostname.includes('google.com') ||
-      url.hostname.includes('gstatic.com')) {
-    return;
-  }
-
-  // Non intercettare risorse cross-origin (CDN: jsdelivr, unpkg, ecc.): il browser gestisce
-  // direttamente fetch e cache; intercettarle qui può causare "Failed to fetch" / promise
-  // rejected nel FetchEvent se la rete fallisce o la risposta non è cachabile come "basic".
+function salvaInCache(request, response) {
+  if (!response || response.status !== 200 || response.type !== 'basic') return;
+  let copia;
   try {
-    if (url.origin !== self.location.origin) {
-      return;
-    }
+    copia = response.clone();
   } catch (e) {
     return;
   }
+  caches.open(CACHE_NAME)
+    .then((cache) => cache.put(request, copia))
+    .catch(() => { /* richiesta non cachabile: si ignora */ });
+}
 
-  // Stesso origin: Network First. cache:'no-cache' rivalida (304 se invariato)
-  // e non riusa la copia HTTP max-age=600 di GitHub Pages sui file senza ?v=.
+function cercaInCorrente(request) {
+  return caches.open(CACHE_NAME).then((cache) => cache.match(request)).catch(() => null);
+}
+
+function cercaInPrecedenti(request) {
+  return caches.keys().then((nomi) => {
+    let catena = Promise.resolve(null);
+    STRATEGIA.cachePrecedenti(nomi, CACHE_NAME).forEach((nome) => {
+      catena = catena.then((trovata) => trovata || caches.open(nome).then((c) => c.match(request)));
+    });
+    return catena;
+  }).catch(() => null);
+}
+
+function cercaOvunque(request) {
+  return cercaInCorrente(request).then((r) => r || cercaInPrecedenti(request));
+}
+
+function paginaDiRiserva(request) {
+  const accept = request.headers.get('accept') || '';
+  if (request.mode !== 'navigate' && !accept.includes('text/html')) return Promise.resolve(null);
+  return cercaOvunque('/gfv-platform/index.html')
+    .then((r) => r || cercaOvunque('/index.html'))
+    .then((r) => r || cercaOvunque('index.html'));
+}
+
+// Rete. Annullata dopo ABORT_RETE_MS se le intestazioni non arrivano: un evento fetch
+// aperto nel worker attivo rimanda l'attivazione del worker nuovo.
+function daRete(request, modoCache) {
+  const controllo = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  const timer = controllo ? setTimeout(() => controllo.abort(), STRATEGIA.ABORT_RETE_MS) : 0;
+  const opzioni = {};
+  if (modoCache) opzioni.cache = modoCache;
+  if (controllo) opzioni.signal = controllo.signal;
+  return fetch(request, opzioni)
+    .finally(() => { if (timer) clearTimeout(timer); })
+    .then((response) => {
+      salvaInCache(request, response);
+      return response;
+    });
+}
+
+// cache:'no-cache' rivalida (304 se invariato) e non riusa la copia HTTP max-age=600
+// di GitHub Pages sui file senza ?v=.
+function rispostaReteConTimeout(request) {
+  return STRATEGIA.reteConTimeout({
+    rete: () => daRete(request, 'no-cache'),
+    daCache: () => cercaOvunque(request),
+    fallback: () => paginaDiRiserva(request),
+    timeoutMs: STRATEGIA.TIMEOUT_RETE_MS
+  });
+}
+
+// Il file si riscarica una volta per build con cache:'no-cache' (304 se invariato):
+// la copia HTTP max-age=600 di GitHub Pages non entra nella cache della build nuova.
+function rispostaCachePrima(request) {
+  return STRATEGIA.cachePrima({
+    daCorrente: () => cercaInCorrente(request),
+    rete: () => daRete(request, 'no-cache'),
+    daRiserva: () => cercaInPrecedenti(request)
+  });
+}
+
+// Fetch:
+// - versionato (?v= o hash nel nome) e statico (immagini, font, icone): cache prima,
+//   nella cache della build corrente; la build precedente fa da riserva offline;
+// - HTML/navigazioni e file senza versione: rete prima, dopo 3 s copia in cache se c'è;
+// - .md, cross-origin, Firebase/Google, non GET, localhost senza ?swTest=1: non intercettati.
+self.addEventListener('fetch', (event) => {
+  const request = event.request;
+  let tipo = 'ignora';
   try {
-    const controllo = typeof AbortController !== 'undefined' ? new AbortController() : null;
-    const timerRete = controllo ? setTimeout(() => controllo.abort(), 8000) : 0;
-    const opzioni = { cache: 'no-cache' };
-    if (controllo) opzioni.signal = controllo.signal;
-    event.respondWith(
-      fetch(event.request, opzioni)
-        .finally(() => { if (timerRete) clearTimeout(timerRete); })
-        .then((response) => {
-          // Solo cache risposte valide e con Content-Type supportato
-          if (response.status === 200 && response.type === 'basic') {
-            // Clona la risposta per poterla usare e salvare nella cache
-            const responseToCache = response.clone();
-            
-            caches.open(CACHE_NAME)
-              .then((cache) => {
-                // Verifica che la richiesta sia cachabile
-                try {
-                  cache.put(event.request, responseToCache).catch((error) => {
-                    // Ignora errori di cache per richieste non supportate
-                    // Non loggare errori per estensioni o richieste non standard
-                    if (!url.protocol.includes('extension') && !url.protocol.includes('chrome')) {
-                      console.warn('Service Worker: Impossibile cachare richiesta:', event.request.url);
-                    }
-                  });
-                } catch (error) {
-                  // Ignora errori di cache silenziosamente
-                }
-              })
-              .catch((error) => {
-                // Ignora errori di apertura cache silenziosamente
-              });
-          }
-          
-          return response;
-        })
-        .catch((error) => {
-          // Se la rete fallisce, prova a recuperare dalla cache
-          return caches.match(event.request).then((cachedResponse) => {
-            if (cachedResponse) {
-              return cachedResponse;
-            }
-            // Se non c'è in cache, restituisci una risposta di fallback per HTML
-            const acceptHeader = event.request.headers.get('accept');
-            if (acceptHeader && acceptHeader.includes('text/html')) {
-              // Prova prima con path assoluto, poi con path relativo
-              return caches.match('/gfv-platform/index.html')
-                .then(cached => cached || caches.match('/index.html'))
-                .then(cached => cached || caches.match('index.html'));
-            }
-            // Per altre richieste, lancia l'errore originale
-            throw error;
-          });
-        })
-    );
-  } catch (error) {
-    // Se c'è un errore nella gestione della richiesta, ignora silenziosamente
-    // Questo può accadere con estensioni del browser o richieste non standard
+    tipo = STRATEGIA.classificaRichiesta({
+      method: request.method,
+      url: request.url,
+      mode: request.mode,
+      accept: request.headers.get('accept') || '',
+      origineSw: self.location.origin,
+      swTest: swTestLocaleAttivo()
+    });
+  } catch (e) {
     return;
   }
+  if (tipo === 'ignora') return;
+  if (tipo === 'versionato' || tipo === 'statico') {
+    event.respondWith(rispostaCachePrima(request));
+    return;
+  }
+  event.respondWith(rispostaReteConTimeout(request));
 });
 
 self.addEventListener('push', (event) => {
