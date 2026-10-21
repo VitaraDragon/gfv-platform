@@ -125,6 +125,8 @@ Pagine core tipiche: `terreni`, `attivita`. Con moduli attivi molte altre liste 
 ## Note implementazione
 
 - Hub attenzione e scadenze condividono snapshot `dashboard-counts-snapshot.js` (incl. `prezziInAttesa`).
+- **Completato senza zone (#239):** `core/js/lavoro-progresso-display.js` (`lavoroCompletatoSenzaZone`, `ETICHETTA_COMPLETATO_SENZA_ZONE` «✅ Completato (nessuna zona tracciata)») sostituisce il 100% forzato nei lavori recenti della dashboard (`dashboard-data.js`, import `?v=2026-10-20a` in dashboard, counts snapshot, scadenze, meteo, quick bar) e nei dettagli dei lavori completati del Diario (`caricaDettagliLavoriCompletati` in `attivita-controller.js`: «✅ Completamento: ✅ Completato (nessuna zona tracciata)», senza barra). Nel Diario la superficie del giorno resta somma semplice delle zone (non unione); chiavi data delle zone in data locale (`dateLikeToLocalCalendarIso`, anche `attivita-maps.js`). Dettaglio permessi e unione zone: `GUIDA/MANODOPERA/tony/guida-tecnica.md` § Zone lavorate.
+- **Librerie vendorizzate:** `vendor/polygon-clipping-0.15.7.umd.min.js` (caricata da Gestione lavori, I miei lavori, Piano stagione VM; `loadPolygonClipping` in `core/services/zone-lavorate-area.js`): le pagine pubblicate non caricano più da `node_modules` (test `tests/published-no-node-modules.test.js`). Nessuna precache nel service worker.
 - Nuove tile o voci menu Moduli: documentare sotto `GUIDA/<MODULO>/utente` e `tony`; aggiornare `MODULE_CATALOG` in `dashboard-hub.js` se serve pin/accessi rapidi.
 - Ogni nuova card dashboard modulare: documentare sotto `GUIDA/<MODULO>/utente` e `tony`, non sotto Core (salvo panoramica trasversale qui).
 

@@ -1080,7 +1080,7 @@
         "MANODOPERA",
         "PARCO_MACCHINE"
       ],
-      "label": "Regole Firestore (permessi per ruolo su ore, lavori, guasti): rileggere la sezione toccata"
+      "label": "Regole Firestore (permessi per ruolo su ore, lavori, guasti, zone lavorate): rileggere la sezione toccata"
     },
     {
       "prefix": "tests/gestione-lavori-required-nascosti",
@@ -1254,6 +1254,124 @@
         "CORE"
       ],
       "label": "Test coerenza ?v= degli import (di solito nessun testo guida)"
+    },
+    {
+      "prefix": "core/services/zone-lavorate-permessi",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Chi può segnare le zone lavorate (caposquadra del lavoro di squadra, operaio sul suo autonomo, sostituto, manager/admin) e messaggio «Su questo lavoro le zone le segna il caposquadra (o il manager).»"
+    },
+    {
+      "prefix": "core/services/zone-lavorate-area",
+      "modules": [
+        "MANODOPERA",
+        "CORE",
+        "VENDEMMIA_MECCANICA"
+      ],
+      "label": "Superficie lavorata = unione delle zone ritagliata sul terreno, mai oltre il 100% (polygon-clipping vendorizzato)"
+    },
+    {
+      "prefix": "core/js/lavoro-progresso-display",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Etichetta «✅ Completato (nessuna zona tracciata)» al posto del 100% forzato"
+    },
+    {
+      "prefix": "vendor/polygon-clipping",
+      "modules": [
+        "MANODOPERA",
+        "VENDEMMIA_MECCANICA"
+      ],
+      "label": "Libreria unione/ritaglio poligoni (zone lavorate, zone escluse VM): di solito nessun testo guida"
+    },
+    {
+      "prefix": "tests/services/zone-lavorate-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test permessi zone e unione superficie"
+    },
+    {
+      "prefix": "tests/firestore-zone-lavorate-rules",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test regole Firestore zoneLavorate (create/update per ruolo, sostituto)"
+    },
+    {
+      "prefix": "tests/e2e/sim/zone-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "E2E zone: operaio senza pulsante su lavoro di squadra, sostituto che vede le zone del titolare"
+    },
+    {
+      "prefix": "tests/e2e/sim/scenarios/zone-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Scenari E2E zone lavorate (permessi, sostituto)"
+    },
+    {
+      "prefix": "tests/fixtures/zone-lavorate/",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Fixture terreno/zone per test superficie unione"
+    },
+    {
+      "prefix": "tests/lavoro-progresso-display",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Test etichetta completato senza zone"
+    },
+    {
+      "prefix": "tests/gestione-lavori-statistiche-card",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test card Gestione lavori («-» in caricamento, * con «Dato parziale: N lavori non letti»)"
+    },
+    {
+      "prefix": "tests/vendor-polygon-clipping",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test libreria vendorizzata (di solito nessun testo guida)"
+    },
+    {
+      "prefix": "tests/moduli-identificatori-definiti",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test identificatori definiti nei moduli JS (di solito nessun testo guida)"
+    },
+    {
+      "prefix": "tests/published-no-node-modules",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test: le pagine pubblicate non caricano da node_modules (di solito nessun testo guida)"
+    },
+    {
+      "prefix": "tests/e2e/sim/helpers/",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Helper E2E simulatore (fake Google Maps, metadati scenari): di solito nessun testo guida"
+    },
+    {
+      "prefix": "scripts/sim-e2e-run",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Runner E2E simulatore: di solito nessun testo guida"
     }
   ]
 }

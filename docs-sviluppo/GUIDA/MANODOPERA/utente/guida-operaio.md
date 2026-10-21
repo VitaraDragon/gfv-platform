@@ -137,6 +137,8 @@ Nella scheda **Comunicazioni** leggi i **messaggi dal caposquadra** per il tuo t
 
 Se il manager ti ha messo al posto di un collega assente, nella **versione mobile** vedi il **lavoro** come gli altri incarichi del giorno: sceglilo, **segna le ore**, segui il dettaglio. Non serve un menu speciale «sostituzioni»: è lo stesso flusso lavoro/ore. In dubbio chiedi al caposquadra chi deve validare le tue ore.
 
+Se sostituisci un collega su un suo **lavoro autonomo** (senza caposquadra), nel dettaglio lavoro puoi **segnare le zone lavorate** come se fosse tuo: sulla mappa vedi anche tutte le zone che il collega aveva già segnato, così non ripassi dove è già stato fatto. Le zone del collega restano sue: tu aggiungi le tue. Se invece sostituisci qualcuno in una **squadra**, le zone le segna il caposquadra (vedi sotto).
+
 ---
 
 ## Mini-guida dettaglio lavoro zone e completamento
@@ -148,18 +150,28 @@ Sotto il modulo ore trovi il riquadro **Dettaglio lavoro operativo**, già **cen
 1. Seleziona prima il lavoro nella scheda **Lavoro**, poi apri la scheda **Ore** e attendi il caricamento del riquadro sotto.  
 2. Nel dettaglio puoi in genere:
    - leggere **stato**, percentuali e **testi operativi** sull’incarico;  
-   - **tracciare le zone lavorate** sulla mappa quando il tipo di incarico lo richiede;  
+   - **tracciare le zone lavorate** sulla mappa sui tuoi lavori autonomi (sui lavori di squadra le segna il caposquadra);  
    - vedere se il lavoro risulta **sospeso** o da **riprendere**, se l’app lo mostra;  
    - **⏸️ Sospendi lavoro** se l’incarico è **solo tuo** e devi fermarti (vedi [Sospendere un incarico solo tuo](#sospendere-un-incarico-solo-tuo)).  
 3. Se sul telefono è scomodo, tocca **Ingrandisci** per la stessa schermata a quasi tutto schermo. **Riduci** torna alla scheda.
 
 ### Zone sulla mappa
 
+**Chi segna le zone:**
+
+- Sui tuoi **lavori autonomi** (assegnati solo a te, senza caposquadra) le zone le segni tu, con **📍 Segna zona lavorata** nel dettaglio.  
+- Sui **lavori di squadra** le zone le segna **solo il caposquadra** di quel lavoro (o il manager): nel dettaglio non vedi il pulsante **📍 Segna zona lavorata** e non è un errore. Se provi ad aprire il tracciamento compare «Su questo lavoro le zone le segna il caposquadra (o il manager).». Puoi comunque vedere la mappa e l’avanzamento, segnare le tue ore e usare le altre schede come sempre.  
+- Se sei **sostituto** su un lavoro autonomo di un collega, vedi [Se lavori come sostituto](#se-lavori-come-sostituto).
+
+**Come si segna:**
+
 - Segui i pulsanti e le istruzioni in schermata (aggiungi zona, salva, ecc.).  
 - **Modo predefinito (a due punti):** con il **perimetro del terreno** già in **Terreni**, tocchi **inizio** e **fine** sul campo; la zona segue i **bordi** tra i due punti (non la diagonale). Puoi spostare i punti dopo.  
 - **Disegno a mano:** se manca il perimetro o ti viene chiesto di tracciare il percorso a più tocchi.  
 - Se compare un campo **larghezza** (macchina/attrezzo), serve al calcolo della superficie: **chiedi conferma in campo** a chi coordina se non sei sicuro del valore.  
-- I dati influiscono su superfici e report: meglio un dubbio in più che un tratto sbagliato.
+- I dati influiscono su superfici e report: meglio un dubbio in più che un tratto sbagliato.  
+- **Superficie lavorata:** se due zone chiuse (aree) si sovrappongono, la parte in comune conta **una volta sola**, e l’avanzamento non supera mai il **100%** del terreno: ripassare su un pezzo già segnato non fa salire la percentuale. I tratti segnati come percorso aperto (con la larghezza) si sommano.  
+- Un lavoro chiuso senza nessuna zona segnata mostra **✅ Completato (nessuna zona tracciata)** al posto della percentuale.
 
 ### Completamento incarico
 
@@ -271,6 +283,7 @@ Se apri a mano un indirizzo dell’ufficio (terreni, magazzino, elenchi), l’ap
 | La schermata è in un’altra lingua | Ingranaggio in alto → **Lingua** → **Italiano**. |
 | Dopo il login: «Non riesco ad aprire la tua area. Riprova» | Tocca **Riprova**; se resta, chiedi in ufficio di controllare il tuo ruolo e il modulo Manodopera. |
 | Non capisco la **mappa delle zone** | Chiedi una dimostrazione in campo a chi coordina il gruppo. |
+| Non vedo **📍 Segna zona lavorata** oppure compare «Su questo lavoro le zone le segna il caposquadra (o il manager).» | È un lavoro di squadra: le zone le segna il caposquadra. Tu segna le ore come sempre. |
 | **GPS** non funziona | Attiva permesso posizione; riprova all’aperto; completa ubicazione e dettagli a mano. |
 | In basso compare **C’è una nuova versione** con **Aggiorna** | C’è una versione nuova dell’app. Salva prima le ore o la segnalazione che stai scrivendo, poi tocca **Aggiorna**: la pagina si ricarica. Se chiede «Hai dati non salvati: aggiorni lo stesso?», **Annulla** tiene quello che hai scritto (salva e riprova), **Aggiorna** ricarica e perde quello che non hai salvato. Finché non tocchi **Aggiorna** non si ricarica nulla. |
 | Non trovi dove segnalare un guasto | Non è nel menu ingranaggio: scorri le schede fino a **⚠️ Segnala un problema**. Se manca la scelta della macchina, l’azienda non ha Parco Macchine: usa la segnalazione generica o chiama il responsabile. |

@@ -218,11 +218,14 @@ Nella scheda **Ore**, sotto il modulo ore, trovi il riquadro **Dettaglio lavoro 
 
 ### Zone lavorate e mappa
 
-- Il tracciamento avviene con i pulsanti che trovi nel dettaglio (aggiungi zona, salva, ecc., come da etichette in schermata).  
+- Sui **lavori di squadra** le zone le segni **tu**, caposquadra di quel lavoro (oltre al manager): gli **operai della squadra** non hanno il pulsante **📍 Segna zona lavorata** e, se provano, leggono «Su questo lavoro le zone le segna il caposquadra (o il manager).». Se in squadra qualcuno era abituato a segnarle, ora tocca a te: fatti dire dove ha lavorato e segna tu la zona. Vale anche per chi arriva come **sostituto** nella tua squadra.  
+- Il tracciamento avviene con i pulsanti che trovi nel dettaglio (**📍 Segna zona lavorata**, poi aggiungi zona, salva, ecc., come da etichette in schermata).  
 - **Modo predefinito (a due punti):** se il **terreno ha già i confini** disegnati in **Terreni**, tocchi **inizio** e **fine** sul campo: la zona segue i **bordi del terreno** tra le due stazioni (non la diagonale). Puoi trascinare i due punti per ritoccare; vicino al confine i punti si agganciano da soli.  
 - **Disegno a mano:** alternativa se manca il perimetro del terreno o se preferisci tracciare il percorso punto per punto (poi **Chiudi segmento** se serve un poligono).  
 - Per operazioni con macchina/attrezzo può comparire la **larghezza** (serve al calcolo superficie): non confonderla con il modo di disegno.  
-- Salva le zone man mano che completate i pezzi di campo: servono al progresso reale e spesso sono **obbligatorie** prima di poter chiudere il lavoro.
+- Salva le zone man mano che completate i pezzi di campo: servono al progresso reale e spesso sono **obbligatorie** prima di poter chiudere il lavoro.  
+- **Superficie lavorata:** è la superficie coperta dall’**unione** delle zone sul terreno. Se due zone chiuse (aree) si sovrappongono la parte in comune conta **una volta sola**, e l’avanzamento non supera mai il **100%**: ripassare su un pezzo già segnato non fa salire la percentuale. I tratti segnati come percorso aperto (con la larghezza) si sommano. Per questo, nei lavori con zone sovrapposte, la percentuale può risultare più bassa di prima.  
+- Un lavoro chiuso senza nessuna zona segnata mostra **✅ Completato (nessuna zona tracciata)** al posto della percentuale.
 
 ### Completamento e approvazione manager
 
@@ -318,6 +321,8 @@ Se colleghi la segnalazione a un **lavoro di squadra di cui sei caposquadra** (n
 | La schermata è in un’altra lingua | Ingranaggio in alto → **Lingua** → **Italiano**. |
 | Dopo il login: «Non riesco ad aprire la tua area. Riprova» | Tocca **Riprova**; se resta, chiedi al manager di controllare il tuo ruolo e il modulo Manodopera. |
 | Non posso **completare** il lavoro | Spesso mancano **zone lavorate** o **ore** richieste; leggi il messaggio in schermata. |
+| Un operaio della squadra non riesce a segnare le zone | È voluto: sui lavori di squadra le zone le segni tu (o il manager). |
+| La percentuale non sale anche se ho segnato una zona nuova | La zona nuova si sovrappone a un’area già segnata: la parte in comune conta una volta sola. |
 | **GPS** non prende la posizione | Permesso negato al browser; GPS spento sul telefono; riprova all’aperto; usa ubicazione scritta + mappa se disponibile. |
 | In basso compare **C’è una nuova versione** con **Aggiorna** | C’è una versione nuova dell’app. Salva prima le ore o la segnalazione che stai scrivendo, poi tocca **Aggiorna**: la pagina si ricarica. Se chiede «Hai dati non salvati: aggiorni lo stesso?», **Annulla** tiene quello che hai scritto (salva e riprova), **Aggiorna** ricarica e perde quello che non hai salvato. Finché non tocchi **Aggiorna** non si ricarica nulla. |
 | Non trovo **Segnala guasto** nel menu ingranaggio | Non è più nel menu: scorri fino alla scheda **⚠️ Segnala un problema**. Se lì manca la scelta della macchina, il modulo Parco Macchine non è attivo: per un mezzo rotto avvisa il manager per telefono o per messaggio. |

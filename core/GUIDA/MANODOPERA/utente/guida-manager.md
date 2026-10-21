@@ -249,6 +249,24 @@ Nel flusso standard molti passaggi sono già guidati dal sistema:
 
 Quindi non devi cambiare manualmente lo stato a ogni passaggio: controlli e decidi nei punti di validazione.
 
+### Numeri in alto e avanzamento dei lavori
+
+In cima a **Gestione lavori** ci sono i riquadri con i numeri: **Lavori Totali**, **In Corso**, **Ore Validate**, **Superficie Lavorata**, **🔴 In Ritardo**, **🟢 In Tempo**, **🚀 In Anticipo**.
+
+- **Lavori Totali** e **In Corso** compaiono insieme all’elenco dei lavori.  
+- Gli altri riquadri partono da **«-»** (il numero lampeggia leggermente) e poi mostrano il valore: con molti lavori il calcolo richiede qualche secondo. Un **«-»** non vuol dire zero.  
+- Se il valore ha un **asterisco** (es. «12.40 ha*»), qualche lavoro non è stato letto: passando sopra al numero leggi «Dato parziale: N lavori non letti». Il numero conta solo gli altri lavori; ricarica la pagina per riprovare.  
+- **Superficie Lavorata** e la percentuale di ogni lavoro contano la superficie coperta dall’**unione** delle zone sul terreno: se due zone chiuse (aree) si sovrappongono, la parte in comune conta **una volta sola**, e un lavoro non supera mai il **100%**; i tratti segnati come percorso aperto (con la larghezza) si sommano. Per questo alcuni lavori con zone sovrapposte possono mostrare una percentuale più bassa di prima.  
+- Un lavoro completato senza nessuna zona segnata non risulta più al 100%: in elenco (e nei lavori recenti della dashboard) compare **✅ Completato (nessuna zona tracciata)**.  
+- Nella mappa del dettaglio lavoro, il filtro per data indica per ogni giorno quante zone e quanti ettari, con la stessa regola dell’unione.
+
+### Chi segna le zone lavorate
+
+- **Lavoro di squadra:** le zone le segna **il caposquadra** di quel lavoro. Gli operai della squadra non hanno il pulsante e leggono «Su questo lavoro le zone le segna il caposquadra (o il manager).».  
+- **Lavoro autonomo:** le segna l’**operaio** a cui è assegnato.  
+- **Sostituto su un lavoro autonomo:** quando assegni un sostituto, lui può segnare zone, vede anche quelle già segnate dal collega e aggiunge le sue (quelle del collega restano del collega).  
+- Una zona già salvata la può cambiare solo chi l’ha segnata, il caposquadra del lavoro, oppure un manager o amministratore.
+
 ### Effetto in campo
 
 Il lavoro salvato e assegnato correttamente è quello che **operaio** e **caposquadra** vedono nella **versione mobile** quando scelgono il lavoro corrente. Se non compare: controlla stato del lavoro, assegnazione e modulo attivo.
@@ -307,7 +325,7 @@ Quando un operaio **non c’è** sul lavoro di oggi, l’app vi aiuta a tenere i
 
 - **Caposquadra** (versione mobile): può **Segnala assenza** sul lavoro corrente — avvisa voi manager; il lavoro passa in **standby** dopo la **vostra conferma** (non subito da solo).  
 - **Manager / amministratore** (Gestione lavori): confermate l’assenza, mettete o confermate lo **standby**, poi **scegliete il sostituto**.  
-- **Operaio sostituto**: compare sul lavoro (e in **Impegni giornalieri** come sostituto); segna le ore come di consueto; il caposquadra le valida.
+- **Operaio sostituto**: compare sul lavoro (e in **Impegni giornalieri** come sostituto); segna le ore come di consueto; il caposquadra le valida. Su un **lavoro autonomo** il sostituto segna anche le **zone lavorate** e vede quelle già segnate dal collega; su un lavoro di squadra le zone restano al caposquadra.
 
 ### Passi tipici da Gestione lavori
 
