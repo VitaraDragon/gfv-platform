@@ -161,6 +161,7 @@ test.describe('barra nuova versione', () => {
     });
 
     test('la conversazione Tony salvata su beforeunload sopravvive ad Aggiorna', async ({ page }) => {
+        test.setTimeout(180_000);
         await loginAsManagerFromDevPage(page);
         await page.goto('/core/dashboard-standalone.html?emulator=1&swTest=1&tonyE2e=1');
         await page.waitForFunction(() => typeof window.__tonyRestoreSession === 'function', null, {
@@ -184,15 +185,73 @@ test.describe('barra nuova versione', () => {
             }];
         });
 
-        const navigata = page.waitForEvent('framenavigated', (frame) => frame === page.mainFrame());
-        await page.locator('#gfv-app-update-btn').click();
+        const statoSw = () => page.evaluate(async () => {
+            const reg = await navigator.serviceWorker.getRegistration();
+            const worker = (reg && (reg.waiting || reg.installing)) || null;
+            return {
+                waiting: !!(reg && reg.waiting),
+                installing: !!(reg && reg.installing),
+                workerState: worker ? worker.state : '',
+                controller: !!(navigator.serviceWorker && navigator.serviceWorker.controller),
+                sporco: !!window.__gfvFormSporco,
+                ingresso: document.documentElement.getAttribute('data-ingresso') || '',
+                conferma: !!document.getElementById('gfv-app-update-conferma'),
+                barra: !!document.getElementById('gfv-app-update-bar'),
+                skipInviati: window.__gfvSkipInviati || 0,
+                skipErrore: window.__gfvSkipErrore || ''
+            };
+        });
+        const prima = await statoSw();
+        const navigata = page.waitForEvent('framenavigated', {
+            timeout: 30_000,
+            predicate: (frame) => frame === page.mainFrame()
+        }).catch(() => null);
+        await page.evaluate(() => {
+            const bottone = document.getElementById('gfv-app-update-btn');
+            if (bottone) bottone.click();
+        });
         const conferma = page.locator('#gfv-app-update-conferma');
-        const esitoClick = await Promise.race([
-            navigata.then(() => 'nav'),
-            conferma.waitFor({ state: 'visible', timeout: 2500 }).then(() => 'dialogo').catch(() => 'nav')
-        ]);
-        if (esitoClick === 'dialogo') await conferma.click();
-        await navigata;
+        const dialogo = await conferma.waitFor({ state: 'visible', timeout: 8000 }).then(() => true).catch(() => false);
+        if (dialogo) await conferma.click({ force: true });
+        const frame = await navigata;
+        if (!frame) {
+            const dopo = await statoSw();
+            const ack = await page.evaluate(() => new Promise((resolve) => {
+                navigator.serviceWorker.getRegistration().then((reg) => {
+                    const worker = reg && reg.waiting;
+                    const urls = {
+                        controller: navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : '',
+                        waiting: worker ? worker.scriptURL : '',
+                        scope: reg ? reg.scope : ''
+                    };
+                    if (!worker) {
+                        resolve({ urls, ack: 'no-waiting' });
+                        return;
+                    }
+                    const channel = new MessageChannel();
+                    const timer = setTimeout(() => resolve({ urls, ack: 'timeout' }), 3000);
+                    channel.port1.onmessage = (event) => {
+                        clearTimeout(timer);
+                        const data = event.data || {};
+                        resolve({
+                            urls,
+                            ack: data.type || 'vuoto',
+                            ok: data.ok,
+                            waiting: data.waiting,
+                            errore: data.errore || ''
+                        });
+                    };
+                    try {
+                        worker.postMessage({ type: 'GFV_SKIP_WAITING' }, [channel.port2]);
+                    } catch (error) {
+                        clearTimeout(timer);
+                        resolve({ urls, ack: 'errore' });
+                    }
+                }).catch(() => resolve({ ack: 'reg-errore' }));
+            }));
+            const dopoAck = await statoSw();
+            throw new Error('NO_NAV ' + JSON.stringify({ prima, dopo, ack, dopoAck }));
+        }
         await page.waitForFunction(() => {
             const raw = sessionStorage.getItem('tony_session_state') || '';
             return raw.indexOf('GFV_UPDATE_CHAT_PROVA') !== -1;

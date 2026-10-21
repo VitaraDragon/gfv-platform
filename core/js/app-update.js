@@ -7,7 +7,11 @@
 import { t, leggiLinguaCampo } from '../services/field-ui-i18n.js';
 
 export const INTERVALLO_AGGIORNAMENTO_MS = 15 * 60 * 1000;
-export const VERSIONE_MODULO = '2026-10-19a';
+export const VERSIONE_MODULO = '2026-10-20a';
+export const EVENTO_FORM_SALVATO = 'gfv:form-salvato';
+export const ATTRIBUTO_SENZA_AVVISO = 'data-gfv-senza-avviso';
+
+const formSporchi = new Set();
 
 const TESTO = {
     disponibile: 'update.available',
@@ -112,20 +116,73 @@ export function chiaveReloadBuild(buildId) {
     return 'gfv-sw-reload-' + String(buildId || '');
 }
 
+/**
+ * Un form con data-gfv-senza-avviso (il login) non conta come dati non salvati.
+ * @param {Element|null|undefined} form
+ * @returns {boolean}
+ */
+export function formContaComeSporco(form) {
+    if (!form || String(form.nodeName || '').toUpperCase() !== 'FORM') return false;
+    if (typeof form.hasAttribute === 'function' && form.hasAttribute(ATTRIBUTO_SENZA_AVVISO)) return false;
+    return true;
+}
+
+function dimenticaFormSeSegnoSpentoAMano() {
+    if (typeof window === 'undefined') return;
+    if (formSporchi.size > 0 && !window.__gfvFormSporco) formSporchi.clear();
+}
+
+function applicaSegnoFormSporco() {
+    if (typeof window === 'undefined') return;
+    const sporco = formSporchi.size > 0;
+    window.__gfvFormSporco = sporco;
+    try {
+        if (window.parent && window.parent !== window) window.parent.__gfvFormSporco = sporco;
+    } catch (error) {
+        /* iframe di un'altra origine */
+    }
+}
+
+/**
+ * Segna un form come modificato dall'utente.
+ * @param {HTMLFormElement|null|undefined} form
+ */
+export function segnaFormSporco(form) {
+    dimenticaFormSeSegnoSpentoAMano();
+    if (!formContaComeSporco(form)) return;
+    formSporchi.add(form);
+    applicaSegnoFormSporco();
+}
+
+/**
+ * Spegne il segno di un form salvato. Senza form spegne tutti.
+ * @param {HTMLFormElement|null|undefined} [form]
+ */
+export function segnaFormSalvato(form) {
+    dimenticaFormSeSegnoSpentoAMano();
+    if (form) formSporchi.delete(form);
+    else formSporchi.clear();
+    applicaSegnoFormSporco();
+}
+
 export function attivaAscoltoForm() {
     if (ascoltoPronto || typeof document === 'undefined') return;
     ascoltoPronto = true;
     document.addEventListener('input', (event) => {
         if (!event.isTrusted) return;
         const target = event.target;
-        if (!target || typeof target.closest !== 'function' || !target.closest('form')) return;
-        window.__gfvFormSporco = true;
-        try {
-            if (window.parent && window.parent !== window) window.parent.__gfvFormSporco = true;
-        } catch (error) {
-            /* iframe di un'altra origine */
-        }
+        if (!target || typeof target.closest !== 'function') return;
+        segnaFormSporco(target.closest('form'));
     }, true);
+    document.addEventListener('reset', (event) => {
+        const form = event.target;
+        if (!form || String(form.nodeName || '').toUpperCase() !== 'FORM') return;
+        segnaFormSalvato(form);
+    }, true);
+    document.addEventListener(EVENTO_FORM_SALVATO, (event) => {
+        const detail = event && event.detail;
+        segnaFormSalvato(detail && detail.form ? detail.form : null);
+    });
 }
 
 if (typeof document !== 'undefined') attivaAscoltoForm();
@@ -181,7 +238,12 @@ function installaControllerChange() {
         ricaricando = true;
         segnaRicaricato(build);
         if (timerSkip) window.clearInterval(timerSkip);
-        window.location.reload();
+        // Fuori dal turno di controllerchange: nello stesso turno il browser può ignorare il reload.
+        const ricarica = () => {
+            window.location.reload();
+        };
+        window.setTimeout(ricarica, 0);
+        window.setTimeout(ricarica, 1500);
     });
 }
 
@@ -243,13 +305,13 @@ function assicuraStile() {
     const style = document.createElement('style');
     style.id = 'gfv-app-update-style';
     style.textContent = [
-        '#gfv-app-update-bar{position:fixed;left:0;right:0;bottom:0;z-index:10100;display:flex;align-items:center;justify-content:space-between;gap:12px;box-sizing:border-box;padding:12px 16px calc(12px + env(safe-area-inset-bottom, 0px));background:#1f2937;color:#fff;font:16px/1.4 system-ui,sans-serif}',
+        '#gfv-app-update-bar{position:fixed;left:0;right:0;bottom:0;z-index:2147483646;display:flex;align-items:center;justify-content:space-between;gap:12px;box-sizing:border-box;padding:12px 16px calc(12px + env(safe-area-inset-bottom, 0px));background:#1f2937;color:#fff;font:16px/1.4 system-ui,sans-serif}',
         '#gfv-app-update-bar p{margin:0;flex:1 1 auto}',
         '#gfv-app-update-bar button,#gfv-app-update-confirm button{min-height:48px;min-width:48px;padding:10px 16px;font:700 16px/1.2 system-ui,sans-serif;border-radius:8px;cursor:pointer}',
         '#gfv-app-update-btn,#gfv-app-update-conferma{background:#2E8B57;color:#fff;border:0}',
         '#gfv-app-update-annulla{background:#fff;color:#1f2937;border:1px solid #d1d5db}',
         '#gfv-app-update-btn:focus-visible,#gfv-app-update-conferma:focus-visible,#gfv-app-update-annulla:focus-visible{outline:3px solid #fde68a;outline-offset:2px}',
-        '#gfv-app-update-confirm{position:fixed;inset:0;z-index:10200;display:flex;align-items:flex-end;justify-content:center;padding:16px;background:rgba(15,23,42,.45)}',
+        '#gfv-app-update-confirm{position:fixed;inset:0;z-index:2147483647;display:flex;align-items:flex-end;justify-content:center;padding:16px;background:rgba(15,23,42,.45)}',
         '#gfv-app-update-confirm [role="document"],#gfv-app-update-confirm .gfv-app-update-dialog{background:#fff;color:#1a1a1a;border-radius:12px;padding:16px;width:min(420px,100%);box-shadow:0 8px 28px rgba(0,0,0,.25)}',
         '#gfv-app-update-confirm p{margin:0 0 16px;font:16px/1.4 system-ui,sans-serif}',
         '#gfv-app-update-confirm .gfv-app-update-azioni{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}',
@@ -321,6 +383,7 @@ function nascondiBarra() {
 }
 
 function formSporcoAdesso() {
+    dimenticaFormSeSegnoSpentoAMano();
     return Boolean(window.__gfvFormSporco);
 }
 
@@ -415,16 +478,22 @@ async function preparaAggiornamento(registration) {
         if (!target) return;
         try {
             target.postMessage({ type: 'GFV_SKIP_WAITING' });
+            window.__gfvSkipInviati = (window.__gfvSkipInviati || 0) + 1;
         } catch (error) {
-            /* worker già chiuso */
+            window.__gfvSkipErrore = String(error && error.message || error);
         }
     };
     inviaSkip();
     if (timerSkip) window.clearInterval(timerSkip);
     let tentativi = 0;
+    const ancoraInAttesa = () => {
+        if (registration && registration.waiting) return true;
+        if (!waiting) return false;
+        return waiting.state === 'installing' || waiting.state === 'installed';
+    };
     timerSkip = window.setInterval(() => {
         tentativi += 1;
-        if (!registration.waiting || tentativi > 8) {
+        if (!ancoraInAttesa() || tentativi > 25) {
             window.clearInterval(timerSkip);
             timerSkip = 0;
             return;

@@ -19,6 +19,13 @@ import {
 } from './geo-capture.js';
 import { listedSelectValue } from './lavoro-cascade-filters.js';
 
+function segnaAttivitaSalvata() {
+    if (typeof document === 'undefined') return;
+    document.dispatchEvent(new CustomEvent('gfv:form-salvato', {
+        detail: { form: document.getElementById('attivita-form') }
+    }));
+}
+
 // ============================================
 // FUNZIONI FILTRI
 // ============================================
@@ -1178,6 +1185,7 @@ export async function handleSaveAttivita(params) {
             const attivitaRef = doc(attivitaCollection, currentAttivitaId);
             await updateDoc(attivitaRef, attivitaData);
             showAlert('Attività aggiornata con successo!', 'success');
+            segnaAttivitaSalvata();
         } else {
             const { assertCanCreateAttivita } = await import('../services/plan-limits-service.js');
             const limitCheck = await assertCanCreateAttivita(data, currentTenantId);
@@ -1191,6 +1199,7 @@ export async function handleSaveAttivita(params) {
             const attivitaId = attivitaDocRef.id;
 
             showAlert('Attività creata con successo!', 'success');
+            segnaAttivitaSalvata();
             closeAttivitaModal();
             
             // Rilevamento automatico vendemmia: crea vendemmia se attività è di tipo vendemmia su terreno VITE
