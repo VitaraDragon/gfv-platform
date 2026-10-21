@@ -52,7 +52,8 @@ export async function mettiLavoroInStandbyPerAssenza(options) {
     managerId,
     assenzaId: existingAssenzaId,
     giornoKey = toGiornoKey(new Date()),
-    tenantId = null
+    tenantId = null,
+    assenzaGiaConfermata = false
   } = options;
 
   if (!lavoroId || !operaioId || !managerId) {
@@ -73,7 +74,9 @@ export async function mettiLavoroInStandbyPerAssenza(options) {
 
   let assenzaId = existingAssenzaId;
   if (assenzaId) {
-    await confermaAssenza(assenzaId, managerId, tenantId);
+    if (!assenzaGiaConfermata) {
+      await confermaAssenza(assenzaId, managerId, tenantId);
+    }
   } else {
     assenzaId = await creaAssenzaConfermata(
       {
@@ -157,8 +160,40 @@ export async function riportaLavoroDaStandbyAssenza(lavoroId, managerId, tenantI
 }
 
 /**
- * Manager: conferma segnalazione + standby in un passaggio.
+ * Conferma l'assenza una volta e mette in standby solo i lavori scelti, anche nessuno.
+ * @param {{ assenzaId: string, lavoroIds?: string[], managerId: string, tenantId?: string|null }} options
+ * @returns {Promise<{ assenzaId: string, lavoroIds: string[] }>}
  */
+export async function confermaAssenzaConStandbyLavori(options) {
+  const { assenzaId, lavoroIds, managerId, tenantId = null } = options || {};
+  if (!assenzaId || !managerId) {
+    throw new Error('assenzaId e managerId obbligatori');
+  }
+  const assenza = await getAssenza(assenzaId, tenantId);
+  if (!assenza) throw new Error('Segnalazione assenza non trovata');
+  await confermaAssenza(assenzaId, managerId, tenantId);
+  const ids = [];
+  (Array.isArray(lavoroIds) ? lavoroIds : []).forEach((id) => {
+    if (id == null || String(id) === '') return;
+    const testo = String(id);
+    if (!ids.includes(testo)) ids.push(testo);
+  });
+  for (const lavoroId of ids) {
+    await mettiLavoroInStandbyPerAssenza({
+      lavoroId,
+      operaioId: assenza.operaioId,
+      tipoAssenza: assenza.tipo,
+      nota: assenza.nota,
+      managerId,
+      assenzaId,
+      giornoKey: assenza.dataInizioGiorno,
+      tenantId,
+      assenzaGiaConfermata: true
+    });
+  }
+  return { assenzaId, lavoroIds: ids };
+}
+
 export async function confermaSegnalazioneEStandby(options) {
   const { assenzaId, lavoroId, managerId, tenantId } = options;
   const assenza = await getAssenza(assenzaId, tenantId);

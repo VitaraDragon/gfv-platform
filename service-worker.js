@@ -4,7 +4,7 @@
 // in .githooks) oppure da `npm run bump:pwa-cache`. Ogni commit ottiene un ID nuovo
 // così CACHE_NAME cambia e in activate() le cache obsolete vengono eliminate.
 // Setup hook (una tantum): git config core.hooksPath .githooks
-const SW_CACHE_BUILD_ID = 't1792511357083';
+const SW_CACHE_BUILD_ID = 't1792563243918';
 const CACHE_NAME = 'gfv-platform-' + SW_CACHE_BUILD_ID;
 
 function isLocalDevHost(hostname) {
@@ -39,7 +39,20 @@ self.addEventListener('install', (event) => {
 self.addEventListener('message', (event) => {
   const data = event.data || {};
   if (data.type === 'GFV_SKIP_WAITING') {
-    event.waitUntil(self.skipWaiting());
+    // Senza waitUntil: waitUntil(skipWaiting()) può restare in attesa di se stesso e non attivare mai.
+    const porta = event.ports && event.ports[0];
+    self.skipWaiting().then(() => {
+      if (!porta) return;
+      porta.postMessage({ type: 'GFV_SKIP_ACK', ok: true, waiting: !!self.registration.waiting });
+    }).catch((error) => {
+      if (!porta) return;
+      porta.postMessage({
+        type: 'GFV_SKIP_ACK',
+        ok: false,
+        waiting: !!self.registration.waiting,
+        errore: String((error && error.message) || error)
+      });
+    });
     return;
   }
   if (data.type === 'GFV_GET_BUILD') {
@@ -115,8 +128,13 @@ self.addEventListener('fetch', (event) => {
   // Stesso origin: Network First. cache:'no-cache' rivalida (304 se invariato)
   // e non riusa la copia HTTP max-age=600 di GitHub Pages sui file senza ?v=.
   try {
+    const controllo = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timerRete = controllo ? setTimeout(() => controllo.abort(), 8000) : 0;
+    const opzioni = { cache: 'no-cache' };
+    if (controllo) opzioni.signal = controllo.signal;
     event.respondWith(
-      fetch(event.request, { cache: 'no-cache' })
+      fetch(event.request, opzioni)
+        .finally(() => { if (timerRete) clearTimeout(timerRete); })
         .then((response) => {
           // Solo cache risposte valide e con Content-Type supportato
           if (response.status === 200 && response.type === 'basic') {
