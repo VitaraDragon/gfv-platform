@@ -1180,6 +1180,12 @@
         };
 
         // Salva impostazioni azienda
+        function segnaFormSalvato(form) {
+            document.dispatchEvent(new CustomEvent('gfv:form-salvato', {
+                detail: { form: form || null }
+            }));
+        }
+
         async function handleSaveAzienda(e) {
             e.preventDefault();
             
@@ -1343,6 +1349,7 @@
                 updateSedeCoordsHint(sedeCoord);
 
                 showAlert('Impostazioni azienda salvate con successo', 'success');
+                segnaFormSalvato(document.getElementById('azienda-form'));
             } catch (error) {
                 console.error('Errore salvataggio azienda:', error);
                 showAlert('Errore durante il salvataggio: ' + error.message, 'error');
@@ -1669,6 +1676,7 @@
 
                 await updateDoc(doc(db, 'users', user.uid), accountData);
                 showAlert('Impostazioni account salvate con successo', 'success');
+                segnaFormSalvato(document.getElementById('account-form'));
             } catch (error) {
                 console.error('Errore salvataggio account:', error);
                 showAlert('Errore durante il salvataggio: ' + error.message, 'error');
@@ -1701,6 +1709,7 @@
                     }
                 }
                 showAlert('Preferenze notifiche salvate', 'success');
+                segnaFormSalvato(document.getElementById('notifiche-form'));
                 if (result.prefs.pushEnabled || result.prefs.assenzaPushEnabled) {
                     try {
                         const { startNotificationFcmBackground } = await import('../js/notification-fcm-client.js');
@@ -3929,6 +3938,7 @@
                 
                 console.log('Coefficienti salvati con successo');
                 showAlert('Coefficienti salvati con successo!', 'success');
+                segnaFormSalvato(document.getElementById('coefficienti-morfologia-form'));
                 
                 // Ricarica i coefficienti per verificare che siano stati salvati
                 await loadCoefficientiMorfologia();
@@ -4512,6 +4522,7 @@
                 descrizioneInput.value = '';
                 closeAddCategoriaColturaModal();
                 showAlert('Categoria aggiunta con successo', 'success');
+                segnaFormSalvato(nomeInput && nomeInput.form);
                 
                 // Ricarica categorie e colture
                 await loadCategorieColture();
@@ -4539,7 +4550,7 @@
         
     </script>
     <script type="module">
-        import { registraServiceWorker } from '../js/app-update.js?v=2026-10-19a';
+        import { registraServiceWorker } from '../js/app-update.js?v=2026-10-20a';
         const swPath = window.location.pathname.includes('/gfv-platform/')
             ? '/gfv-platform/service-worker.js'
             : '../../service-worker.js';
