@@ -24,6 +24,11 @@ import {
 
 import { filterAttrezziDropdownCompatibili } from '../../js/macchine-cv-compat.js';
 import { macchinaSelezionabile, suffissoMacchinaNonSelezionabile } from '../../js/macchina-selezionabile.js';
+import { computeWorkedAreaHaAsync } from '../../services/zone-lavorate-area.js?v=2026-10-20a';
+import {
+    ETICHETTA_COMPLETATO_SENZA_ZONE,
+    lavoroCompletatoSenzaZone
+} from '../../js/lavoro-progresso-display.js?v=2026-10-20a';
 import {
     allCategorieFlat,
     buildLavoroCategorieIndex,
@@ -385,17 +390,32 @@ export async function loadProgressiLavoro(lavoroId, currentTenantId, db) {
             }
         }
         
-        // Fallback: calcola dalle zone lavorate (più accurato ma più lento)
+        // Fallback: unione delle zone, ritagliata sul terreno. In errore non si somma.
         const zoneRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoroId, 'zoneLavorate');
         const zoneSnapshot = await getDocs(zoneRef);
-        
-        let superficieLavorata = 0;
+        const zone = [];
         zoneSnapshot.forEach(zonaDoc => {
-            const zonaData = zonaDoc.data();
-            superficieLavorata += zonaData.superficieHa || 0;
+            zone.push({ id: zonaDoc.id, ...zonaDoc.data() });
         });
 
-        return { superficieLavorata };
+        let superficieLavorata = null;
+        try {
+            let terrenoCoords = null;
+            const terrenoId = lavoroDoc.exists() ? lavoroDoc.data().terrenoId : null;
+            if (terrenoId) {
+                const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', terrenoId));
+                if (terrenoDoc.exists()) {
+                    const terreno = terrenoDoc.data();
+                    terrenoCoords = terreno.polygonCoords || terreno.poligonoCoords || terreno.coordinates || null;
+                }
+            }
+            superficieLavorata = await computeWorkedAreaHaAsync(zone, terrenoCoords);
+        } catch (areaError) {
+            console.error('Errore unione zone:', areaError);
+            superficieLavorata = null;
+        }
+
+        return { superficieLavorata: superficieLavorata == null ? 0 : superficieLavorata };
     } catch (error) {
         console.error('Errore caricamento progressi:', error);
         return { superficieLavorata: 0 };
@@ -477,6 +497,9 @@ export async function loadLavori(currentTenantId, db, lavoriList, hasParcoMacchi
                 }));
             } catch (e) { /* ignore */ }
         }
+
+        // Conteggio visibile appena c'è la lista: le altre card arrivano da loadStatistics.
+        aggiornaCardDaLista(lavoriList);
 
         // Primo paint subito: repair/macchine non devono tenere #lavori-container su «Caricamento».
         if (applyFilters) applyFilters();
@@ -713,107 +736,212 @@ export async function loadTipiLavoro(
     }
 }
 
+const BLOCCO_LAVORI_STATISTICHE = 8;
+
+/** Una chiamata più recente vince: la precedente non riscrive le card. */
+let statisticsGeneration = 0;
+
+const ID_CARD_CALCOLATE = [
+    'stat-ore-validate',
+    'stat-superficie-lavorata',
+    'stat-lavori-ritardo',
+    'stat-lavori-tempo',
+    'stat-lavori-anticipo'
+];
+
+function elementoStat(id) {
+    if (typeof document === 'undefined') return null;
+    return document.getElementById(id);
+}
+
 /**
- * Carica statistiche generali
+ * Lavori Totali e In Corso, appena la lista è in memoria.
+ * Ore, superficie e scostamento restano sul segnaposto finché loadStatistics non finisce.
+ * @param {Array} lavoriList
+ */
+export function aggiornaCardDaLista(lavoriList) {
+    const lista = Array.isArray(lavoriList) ? lavoriList : [];
+    const totale = elementoStat('stat-totale-lavori');
+    const inCorso = elementoStat('stat-lavori-corso');
+    if (totale) totale.textContent = String(lista.length);
+    if (inCorso) inCorso.textContent = String(lista.filter((lavoro) => lavoro.stato === 'in_corso').length);
+}
+
+function segnaCardCalcolateInAttesa() {
+    ID_CARD_CALCOLATE.forEach((id) => {
+        const el = elementoStat(id);
+        if (el) el.setAttribute('aria-busy', 'true');
+    });
+}
+
+function togliAttesaCardCalcolate() {
+    ID_CARD_CALCOLATE.forEach((id) => {
+        const el = elementoStat(id);
+        if (el) el.removeAttribute('aria-busy');
+    });
+}
+
+function scriviValoreStat(id, testo, mancanti) {
+    const el = elementoStat(id);
+    if (!el) return;
+    const parziale = mancanti > 0;
+    el.textContent = parziale ? `${testo}*` : String(testo);
+    if (parziale) el.title = `Dato parziale: ${mancanti} lavori non letti`;
+    else el.removeAttribute('title');
+    el.removeAttribute('aria-busy');
+}
+
+/**
+ * Copia del giorno, a mezzanotte locale. Non modifica l'oggetto in lista.
+ * @param {*} value
+ * @returns {Date|null}
+ */
+function giornoLocale(value) {
+    const data = value instanceof Date
+        ? new Date(value.getTime())
+        : (value && typeof value.toDate === 'function' ? value.toDate() : new Date(value));
+    if (Number.isNaN(data.getTime())) return null;
+    data.setHours(0, 0, 0, 0);
+    return data;
+}
+
+function classificaProgresso(lavoro, superficieLavorataLavoro, superficieTotale) {
+    if (!lavoro.dataInizio || !lavoro.durataPrevista || lavoro.stato === 'completato' || lavoro.stato === 'annullato') {
+        return null;
+    }
+    const dataInizio = giornoLocale(lavoro.dataInizio);
+    if (!dataInizio) return null;
+    const oggi = new Date();
+    oggi.setHours(0, 0, 0, 0);
+    const giorniEffettivi = Math.max(0, Math.floor((oggi - dataInizio) / (1000 * 60 * 60 * 24)) + 1);
+    if (giorniEffettivi <= 0) return null;
+    const percentualeCompletamento = superficieTotale > 0 ? (superficieLavorataLavoro / superficieTotale * 100) : 0;
+    const percentualeTempo = (giorniEffettivi / lavoro.durataPrevista) * 100;
+    const tolleranza = 10;
+    if (percentualeCompletamento > percentualeTempo + tolleranza) return 'anticipo';
+    if (percentualeCompletamento < percentualeTempo - tolleranza) return 'ritardo';
+    return 'tempo';
+}
+
+async function leggiTerrenoConCache(db, getDoc, doc, currentTenantId, terrenoId, cache) {
+    if (!terrenoId) return null;
+    const chiave = String(terrenoId);
+    if (!cache.has(chiave)) {
+        cache.set(chiave, (async () => {
+            const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', terrenoId));
+            return typeof terrenoDoc.exists === 'function'
+                ? (terrenoDoc.exists() ? terrenoDoc.data() : null)
+                : (terrenoDoc.exists ? terrenoDoc.data() : null);
+        })());
+    }
+    return cache.get(chiave);
+}
+
+async function leggiStatisticheLavoro(lavoro, db, currentTenantId, api, cacheTerreni) {
+    const { collection, getDocs, doc, getDoc } = api;
+    const [oreSnapshot, zoneSnapshot, terreno] = await Promise.all([
+        getDocs(collection(db, 'tenants', currentTenantId, 'lavori', lavoro.id, 'oreOperai')),
+        getDocs(collection(db, 'tenants', currentTenantId, 'lavori', lavoro.id, 'zoneLavorate')),
+        leggiTerrenoConCache(db, getDoc, doc, currentTenantId, lavoro.terrenoId, cacheTerreni)
+    ]);
+
+    let ore = 0;
+    oreSnapshot.forEach((oraDoc) => {
+        const oraData = oraDoc.data();
+        if (oraData.stato === 'validate') ore += oraData.oreNette || 0;
+    });
+
+    const zoneLavoro = [];
+    zoneSnapshot.forEach((zonaDoc) => {
+        zoneLavoro.push({ id: zonaDoc.id, ...zonaDoc.data() });
+    });
+
+    const superficieTotale = terreno?.superficie || 0;
+    let superficieLavorataLavoro = 0;
+    try {
+        const unione = await computeWorkedAreaHaAsync(
+            zoneLavoro,
+            terreno?.polygonCoords || terreno?.poligonoCoords || terreno?.coordinates || null
+        );
+        if (unione != null) superficieLavorataLavoro = unione;
+    } catch (areaError) {
+        console.error('Errore unione zone:', areaError);
+    }
+
+    return {
+        ok: true,
+        ore,
+        superficie: superficieLavorataLavoro,
+        progresso: classificaProgresso(lavoro, superficieLavorataLavoro, superficieTotale)
+    };
+}
+
+/**
+ * Ore, superficie (unione zone) e scostamento.
+ * Le letture vanno a blocchi di 8 lavori; ore e zone di uno stesso lavoro partono insieme.
+ * Il terreno si legge una volta per id. Un lavoro illeggibile non azzera le card.
  * @param {string} currentTenantId - ID tenant corrente
  * @param {Object} db - Istanza Firestore
  * @param {Array} lavoriList - Array lavori
  */
 export async function loadStatistics(currentTenantId, db, lavoriList) {
+    if (!currentTenantId) {
+        console.warn('loadStatistics: currentTenantId non disponibile');
+        return;
+    }
+
+    const generation = ++statisticsGeneration;
+    const lista = Array.isArray(lavoriList) ? lavoriList : [];
+    segnaCardCalcolateInAttesa();
+
     try {
-        if (!currentTenantId) {
-            console.warn('loadStatistics: currentTenantId non disponibile');
-            return;
-        }
-        
-        const { collection, getDocs, doc, getDoc } = await import('../../services/firebase-service.js');
-        
-        let totaleLavori = lavoriList.length;
-        let lavoriInCorso = lavoriList.filter(l => l.stato === 'in_corso').length;
+        const api = await import('../../services/firebase-service.js');
+        if (generation !== statisticsGeneration) return;
+
         let totaleOreValidate = 0;
         let totaleSuperficieLavorata = 0;
         let lavoriInRitardo = 0;
         let lavoriInTempo = 0;
         let lavoriInAnticipo = 0;
+        let mancanti = 0;
+        const cacheTerreni = new Map();
 
-        // Carica ore validate e calcola stato progresso per tutti i lavori
-        for (const lavoro of lavoriList) {
-            const oreRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoro.id, 'oreOperai');
-            const oreSnapshot = await getDocs(oreRef);
-            
-            oreSnapshot.forEach(oraDoc => {
-                const oraData = oraDoc.data();
-                if (oraData.stato === 'validate') {
-                    totaleOreValidate += oraData.oreNette || 0;
+        for (let i = 0; i < lista.length; i += BLOCCO_LAVORI_STATISTICHE) {
+            if (generation !== statisticsGeneration) return;
+            const blocco = lista.slice(i, i + BLOCCO_LAVORI_STATISTICHE);
+            const esiti = await Promise.all(blocco.map(async (lavoro) => {
+                try {
+                    return await leggiStatisticheLavoro(lavoro, db, currentTenantId, api, cacheTerreni);
+                } catch (error) {
+                    console.error('Errore statistiche lavoro:', lavoro && lavoro.id, error);
+                    return { ok: false };
                 }
-            });
-
-            // Carica superficie lavorata
-            const zoneRef = collection(db, 'tenants', currentTenantId, 'lavori', lavoro.id, 'zoneLavorate');
-            const zoneSnapshot = await getDocs(zoneRef);
-            
-            let superficieLavorataLavoro = 0;
-            zoneSnapshot.forEach(zonaDoc => {
-                const zonaData = zonaDoc.data();
-                superficieLavorataLavoro += zonaData.superficieHa || 0;
-            });
-            totaleSuperficieLavorata += superficieLavorataLavoro;
-
-            // Calcola stato progresso se il lavoro ha durata prevista e data inizio
-            if (lavoro.dataInizio && lavoro.durataPrevista && lavoro.stato !== 'completato' && lavoro.stato !== 'annullato') {
-                const dataInizio = lavoro.dataInizio instanceof Date 
-                    ? lavoro.dataInizio 
-                    : (lavoro.dataInizio?.toDate ? lavoro.dataInizio.toDate() : new Date(lavoro.dataInizio));
-                const oggi = new Date();
-                oggi.setHours(0, 0, 0, 0);
-                dataInizio.setHours(0, 0, 0, 0);
-                
-                const giorniEffettivi = Math.max(0, Math.floor((oggi - dataInizio) / (1000 * 60 * 60 * 24)) + 1);
-                
-                if (giorniEffettivi > 0) {
-                    // Carica terreno per ottenere superficie totale
-                    const terrenoDoc = await getDoc(doc(db, 'tenants', currentTenantId, 'terreni', lavoro.terrenoId));
-                    const terreno = terrenoDoc.exists() ? terrenoDoc.data() : null;
-                    const superficieTotale = terreno?.superficie || 0;
-                    
-                    const percentualeCompletamento = superficieTotale > 0 ? (superficieLavorataLavoro / superficieTotale * 100) : 0;
-                    const percentualeTempo = (giorniEffettivi / lavoro.durataPrevista) * 100;
-                    const tolleranza = 10; // Tolleranza del 10%
-                    
-                    if (percentualeCompletamento > percentualeTempo + tolleranza) {
-                        lavoriInAnticipo++;
-                    } else if (percentualeCompletamento < percentualeTempo - tolleranza) {
-                        lavoriInRitardo++;
-                    } else {
-                        lavoriInTempo++;
-                    }
+            }));
+            esiti.forEach((esito) => {
+                if (!esito.ok) {
+                    mancanti += 1;
+                    return;
                 }
-            }
+                totaleOreValidate += esito.ore;
+                totaleSuperficieLavorata += esito.superficie;
+                if (esito.progresso === 'ritardo') lavoriInRitardo += 1;
+                else if (esito.progresso === 'tempo') lavoriInTempo += 1;
+                else if (esito.progresso === 'anticipo') lavoriInAnticipo += 1;
+            });
         }
 
-        // Aggiorna UI
-        const statTotaleLavori = document.getElementById('stat-totale-lavori');
-        const statLavoriCorso = document.getElementById('stat-lavori-corso');
-        const statOreValidate = document.getElementById('stat-ore-validate');
-        const statSuperficieLavorata = document.getElementById('stat-superficie-lavorata');
-        const statLavoriRitardo = document.getElementById('stat-lavori-ritardo');
-        const statLavoriTempo = document.getElementById('stat-lavori-tempo');
-        const statLavoriAnticipo = document.getElementById('stat-lavori-anticipo');
-        
-        if (statTotaleLavori) statTotaleLavori.textContent = totaleLavori;
-        if (statLavoriCorso) statLavoriCorso.textContent = lavoriInCorso;
-        
-        const oreFormatted = formattaOreMinuti(totaleOreValidate);
-        if (statOreValidate) statOreValidate.textContent = oreFormatted;
-        
-        if (statSuperficieLavorata) statSuperficieLavorata.textContent = `${totaleSuperficieLavorata.toFixed(2)} ha`;
-        
-        // Aggiorna statistiche stato progresso
-        if (statLavoriRitardo) statLavoriRitardo.textContent = lavoriInRitardo;
-        if (statLavoriTempo) statLavoriTempo.textContent = lavoriInTempo;
-        if (statLavoriAnticipo) statLavoriAnticipo.textContent = lavoriInAnticipo;
+        if (generation !== statisticsGeneration) return;
+
+        aggiornaCardDaLista(lista);
+        scriviValoreStat('stat-ore-validate', formattaOreMinuti(totaleOreValidate), mancanti);
+        scriviValoreStat('stat-superficie-lavorata', `${totaleSuperficieLavorata.toFixed(2)} ha`, mancanti);
+        scriviValoreStat('stat-lavori-ritardo', lavoriInRitardo, mancanti);
+        scriviValoreStat('stat-lavori-tempo', lavoriInTempo, mancanti);
+        scriviValoreStat('stat-lavori-anticipo', lavoriInAnticipo, mancanti);
     } catch (error) {
+        if (generation !== statisticsGeneration) return;
         console.error('Errore caricamento statistiche:', error);
+        togliAttesaCardCalcolate();
     }
 }
 
@@ -2294,12 +2422,11 @@ export async function renderLavori(
         
         // Calcola progressi
         const superficieTotale = lavoro.terreno?.superficie || 0;
-        // Usa superficieTotaleLavorata dal documento lavoro
         const superficieLavorata = lavoro.superficieTotaleLavorata || lavoro.superficieLavorata || 0;
+        const senzaZone = lavoroCompletatoSenzaZone(lavoro);
         let percentuale = lavoro.percentualeCompletamento || 0;
         
-        // Se lavoro è completato e percentuale è 0 o mancante, imposta a 100%
-        if ((lavoro.stato === 'completato' || lavoro.stato === 'completato_da_approvare') && (!percentuale || percentuale === 0)) {
+        if (!senzaZone && (lavoro.stato === 'completato' || lavoro.stato === 'completato_da_approvare') && (!percentuale || percentuale === 0)) {
             percentuale = 100;
         } else if (!percentuale && superficieTotale > 0) {
             // Calcola percentuale da superficie lavorata / superficie totale
@@ -2310,7 +2437,9 @@ export async function renderLavori(
         }
         
         // Mostra barra di progresso se abbiamo dati, altrimenti mostra messaggio
-        const progressBar = superficieTotale > 0 ? `
+        const progressBar = senzaZone ? `
+            <div class="progress-text">${ETICHETTA_COMPLETATO_SENZA_ZONE}</div>
+        ` : superficieTotale > 0 ? `
             <div class="progress-bar-inline">
                 <div class="progress-fill-inline" style="width: ${Math.min(percentuale, 100)}%">${percentuale}%</div>
             </div>

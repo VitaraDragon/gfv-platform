@@ -9,7 +9,7 @@ import {
   normalizeLatLngCoord,
   serializePolygonPath,
   sumExcludedAreaHectares
-} from '../services/zone-escluse-service.js';
+} from '../services/zone-escluse-service.js?v=2026-10-20a';
 
 const DEFAULT_CENTER = { lat: 44.4949, lng: 11.3426 };
 const SNAP_DISTANCE_METERS = 5;

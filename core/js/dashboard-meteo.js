@@ -4,7 +4,7 @@
  */
 
 import { fetchMeteoSedeWithLocalCache, getMeteoSedeCachedPayload } from '../services/meteo-service.js';
-import { loadDashboardOperativitaOggiCounts } from './dashboard-data.js';
+import { loadDashboardOperativitaOggiCounts } from './dashboard-data.js?v=2026-10-20a';
 import { getDashboardCountsSnapshot, ORE_READY_EVENT } from './dashboard-counts-snapshot.js';
 import {
   buildTodayForecastCopy,

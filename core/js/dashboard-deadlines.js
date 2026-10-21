@@ -8,7 +8,7 @@ import {
     formattaDataScadenza,
     loadLavoriDaPianificareCount,
     countOreDaValidareManager
-} from './dashboard-data.js';
+} from './dashboard-data.js?v=2026-10-20a';
 import { getDashboardCountsSnapshot, ORE_READY_EVENT } from './dashboard-counts-snapshot.js';
 import { dashboardPerfAsync } from './dashboard-perf.js';
 import { isTipoFlotta } from '../../modules/parco-macchine/lib/macchine-tipo-utils.js';

@@ -4,9 +4,7 @@
  * @module core/js/attivita-maps
  */
 
-// ============================================
-// FUNZIONI PRINCIPALI
-// ============================================
+import { dateLikeToLocalCalendarIso } from './date-format-it.js';
 
 /**
  * Mostra mappa con zone lavorate per un lavoro conto terzi in una data specifica
@@ -193,7 +191,7 @@ export async function mostraMappaZonaLavorata(params) {
         
         // Normalizza data attività per confronto (YYYY-MM-DD)
         const dataAttivitaObj = new Date(dataAttivita + 'T00:00:00');
-        const dataAttivitaKey = dataAttivitaObj.toISOString().split('T')[0];
+        const dataAttivitaKey = dateLikeToLocalCalendarIso(dataAttivitaObj);
         
         let zoneTrovate = [];
         let superficieTotale = 0;
@@ -211,7 +209,7 @@ export async function mostraMappaZonaLavorata(params) {
                 return; // Salta se non ha data
             }
             
-            const dataZonaKey = new Date(dataZona.getFullYear(), dataZona.getMonth(), dataZona.getDate()).toISOString().split('T')[0];
+            const dataZonaKey = dateLikeToLocalCalendarIso(new Date(dataZona.getFullYear(), dataZona.getMonth(), dataZona.getDate()));
             
             // Filtra per data specifica
             if (dataZonaKey === dataAttivitaKey) {

@@ -9,7 +9,7 @@ import {
     loadGuastiApertiCount,
     loadMagazzinoSottoScortaCount,
     loadLavoriDaPianificareCount
-} from './dashboard-data.js';
+} from './dashboard-data.js?v=2026-10-20a';
 import { getDashboardCountsSnapshot, ORE_READY_EVENT } from './dashboard-counts-snapshot.js';
 
 const STORAGE_PREFIX = 'gfv_dash_quickbar_v1_';

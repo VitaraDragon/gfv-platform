@@ -561,6 +561,21 @@
             margin-bottom: 5px;
         }
 
+        .stat-value[aria-busy="true"] {
+            animation: stat-card-pulse 1.6s ease-in-out infinite;
+        }
+
+        @keyframes stat-card-pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.55; }
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+            .stat-value[aria-busy="true"] {
+                animation: none;
+            }
+        }
+
         .stat-label {
             font-size: 14px;
             opacity: 0.9;
@@ -787,23 +802,23 @@
                     <div class="stat-label">In Corso</div>
                 </div>
                 <div class="stat-card warning">
-                    <div class="stat-value" id="stat-ore-validate">0h</div>
+                    <div class="stat-value" id="stat-ore-validate" aria-busy="true">-</div>
                     <div class="stat-label">Ore Validate</div>
                 </div>
                 <div class="stat-card danger">
-                    <div class="stat-value" id="stat-superficie-lavorata">0 ha</div>
+                    <div class="stat-value" id="stat-superficie-lavorata" aria-busy="true">-</div>
                     <div class="stat-label">Superficie Lavorata</div>
                 </div>
                 <div class="stat-card stat-card-ritardo">
-                    <div class="stat-value" id="stat-lavori-ritardo">0</div>
+                    <div class="stat-value" id="stat-lavori-ritardo" aria-busy="true">-</div>
                     <div class="stat-label">🔴 In Ritardo</div>
                 </div>
                 <div class="stat-card stat-card-tempo">
-                    <div class="stat-value" id="stat-lavori-tempo">0</div>
+                    <div class="stat-value" id="stat-lavori-tempo" aria-busy="true">-</div>
                     <div class="stat-label">🟢 In Tempo</div>
                 </div>
                 <div class="stat-card stat-card-anticipo">
-                    <div class="stat-value" id="stat-lavori-anticipo">0</div>
+                    <div class="stat-value" id="stat-lavori-anticipo" aria-busy="true">-</div>
                     <div class="stat-label">🚀 In Anticipo</div>
                 </div>
             </div>
@@ -1689,7 +1704,7 @@
         };
     </script>
     
-    <script src="../../node_modules/polygon-clipping/dist/polygon-clipping.umd.js"></script>
+    <script src="../../vendor/polygon-clipping-0.15.7.umd.min.js"></script>
     <!-- Placeholder per Tony: currentTableData (aggiornato da renderLavori) -->
     <script>window.currentTableData = window.currentTableData || { pageType: 'lavori', summary: 'Caricamento dati in corso...', items: [] };</script>
     <script type="module" src="../js/standalone-bootstrap.js" data-config-base="../"></script>
@@ -1734,7 +1749,7 @@
             applyAssegnazioneToLavoroForm as applyAssegnazioneToLavoroFormModule,
             loadDettaglioOverview as loadDettaglioOverviewModule,
             loadDettaglioOre as loadDettaglioOreModule
-        } from './js/gestione-lavori-controller.js?v=2026-10-19a';
+        } from './js/gestione-lavori-controller.js?v=2026-10-21a';
 
         import { resolveLavoroCascadeParents } from '../js/lavoro-cascade-filters.js';
 
@@ -1756,7 +1771,7 @@
             aggiornaListaZone as aggiornaListaZoneModule,
             aggiornaInfoZone as aggiornaInfoZoneModule,
             mostraTutteLeZone as mostraTutteLeZoneModule
-        } from './js/gestione-lavori-maps.js';
+        } from './js/gestione-lavori-maps.js?v=2026-10-20a';
 
         import {
             setupTipoAssegnazioneHandlers as setupTipoAssegnazioneHandlersModule,
@@ -3722,7 +3737,8 @@
                     setupCategoriaLavoroHandlerWrapper();
                     registraOsservatoreModaleLavoro();
 
-                    // Lista + roster subito. Catalogo/macchine/stats dopo il paint (su CI fresco le write saturano l'emulator).
+                    // Lista, roster e terreni subito. Le statistiche partono appena quei tre ci sono,
+                    // in parallelo con categorie e macchine.
                     const urlParams = new URLSearchParams(window.location.search);
                     const statoFromUrl = urlParams.get('stato');
                     const contoTerziFromUrl = urlParams.get('contoTerzi');
@@ -3736,8 +3752,8 @@
                             loadSquadreWrapper()
                         ])
                         : Promise.resolve();
-                    const refsPromise = Promise.all([
-                        loadTerreniWrapper(),
+                    const terreniPromise = loadTerreniWrapper();
+                    const categoriePromise = Promise.all([
                         loadCategorieLavoriWrapper(),
                         loadTipiLavoroWrapper()
                     ]);
@@ -3782,8 +3798,9 @@
                         }
                     }
 
-                    await Promise.all([lavoriLoadPromise, rosterPromise, refsPromise]);
+                    await Promise.all([lavoriLoadPromise, rosterPromise, terreniPromise]);
                     applyFiltersWrapper();
+                    const statsPromise = loadStatisticsWrapper();
 
                     // Seed catalogo dopo che lista e dropdown sono già usabili (write e2e).
                     void (async () => {
@@ -3824,15 +3841,15 @@
                         }
                     }
 
-                    // Carica macchine solo se modulo Parco Macchine attivo
-                    if (hasParcoMacchineModule) {
-                        await Promise.all([
+                    // Macchine e categorie insieme alle statistiche, non prima.
+                    const macchinePromise = hasParcoMacchineModule
+                        ? Promise.all([
                             loadTrattoriWrapper(),
                             loadAttrezziWrapper(),
                             loadCategorieAttrezziWrapper()
-                        ]);
-                    }
-                    await loadStatisticsWrapper();
+                        ])
+                        : Promise.resolve();
+                    await Promise.all([statsPromise, macchinePromise, categoriePromise]);
 
                     applyFiltersWrapper();
                     
@@ -3868,9 +3885,6 @@
                     syncRequiredConVisibilitaUtil(document.getElementById('lavoro-form'));
                     setVignetoFormRequired(false);
                     setFruttetoFormRequired(false);
-                    
-                    // Carica statistiche
-                    await loadStatisticsWrapper();
                 } else {
                     window.location.href = await loginPageUrl('../auth/login-standalone.html');
                 }
