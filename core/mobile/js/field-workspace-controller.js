@@ -62,7 +62,7 @@ import {
     calcolaOreNette
 } from '../../services/ore-operai-logic.js';
 
-import { registraServiceWorker } from '../../js/app-update.js?v=2026-10-20a';
+import { registraServiceWorker } from '../../js/app-update.js?v=2026-10-21a';
 import { scegliLavoroPredefinitoGuasto } from '../../js/field-guasti-access.js?v=2026-10-19a';
 import {
     fetchLavoriDocumentsForFieldUser,

@@ -31,7 +31,7 @@ describe('classificaRichiesta', () => {
     });
 
     it('?v= e hash nel nome: cache prima', () => {
-        expect(classifica(BASE + '/core/js/app-update.js?v=2026-10-20a')).toBe('versionato');
+        expect(classifica(BASE + '/core/js/app-update.js?v=2026-10-21a')).toBe('versionato');
         expect(classifica(BASE + '/core/styles/base.css?v=3')).toBe('versionato');
         expect(classifica(BASE + '/dist/app.3f2a9c1b.js')).toBe('versionato');
         expect(classifica(BASE + '/dist/chunk-5d41402abc4b.css')).toBe('versionato');

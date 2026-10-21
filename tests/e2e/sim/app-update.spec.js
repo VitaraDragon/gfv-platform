@@ -2,6 +2,8 @@
  * Barra «C'è una nuova versione» sul service worker locale (?swTest=1).
  * Il primo avvio e un update senza file nuovo non mostrano la barra.
  * Aggiorna ricarica una volta sola.
+ * Worker nuovo bloccato in attesa: «Aggiornamento in corso…», reload dopo ~10 s,
+ * nessun reload con dati non salvati o con un salvataggio in corso.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
@@ -256,5 +258,142 @@ test.describe('barra nuova versione', () => {
             const raw = sessionStorage.getItem('tony_session_state') || '';
             return raw.indexOf('GFV_UPDATE_CHAT_PROVA') !== -1;
         }, null, { timeout: 20_000 });
+    });
+});
+
+/**
+ * Il browser rimanda l'attivazione del worker nuovo finché il vecchio ha una risposta
+ * ancora in download (modulo grosso su rete lenta). Qui lo si simula scartando
+ * GFV_SKIP_WAITING: il worker resta in attesa e controllerchange non arriva.
+ */
+async function bloccaSkipWaiting(page) {
+    await page.addInitScript(() => {
+        const originale = ServiceWorker.prototype.postMessage;
+        ServiceWorker.prototype.postMessage = function (messaggio, ...resto) {
+            if (messaggio && messaggio.type === 'GFV_SKIP_WAITING') {
+                window.__e2eSkipScartati = (window.__e2eSkipScartati || 0) + 1;
+                return undefined;
+            }
+            return originale.call(this, messaggio, ...resto);
+        };
+    });
+}
+
+function contaNavigazioni(page) {
+    const stato = { n: 0, ultima: 0 };
+    page.on('framenavigated', (frame) => {
+        if (frame !== page.mainFrame()) return;
+        stato.n += 1;
+        stato.ultima = Date.now();
+    });
+    return stato;
+}
+
+async function barraConWorkerBloccato(page, build) {
+    await bloccaSkipWaiting(page);
+    await apriEControlla(page);
+    serviBuild(build);
+    await chiediUpdate(page);
+    await expect(page.locator(BARRA)).toBeVisible();
+    await expect(page.locator('#gfv-app-update-btn')).toHaveText('Aggiorna');
+}
+
+async function aggiungiFormDiProva(page) {
+    await page.evaluate(() => {
+        const form = document.createElement('form');
+        form.id = 'e2e-form-sporco';
+        const input = document.createElement('input');
+        input.id = 'e2e-campo';
+        input.type = 'text';
+        form.appendChild(input);
+        document.body.prepend(form);
+    });
+}
+
+const ATTESA_MS = 10_000;
+
+test.describe('Aggiorna con worker nuovo bloccato in attesa', () => {
+    test('la barra resta con «Aggiornamento in corso…» e la pagina si ricarica dopo ~10 s', async ({ page }) => {
+        test.setTimeout(90_000);
+        await barraConWorkerBloccato(page, 'e2e-build-bloccata');
+        const nav = contaNavigazioni(page);
+
+        const click = Date.now();
+        await page.locator('#gfv-app-update-btn').click();
+        await expect(page.locator('#gfv-app-update-messaggio')).toHaveText('Aggiornamento in corso…');
+        await expect(page.locator(BARRA)).toBeVisible();
+        await expect(page.locator('#gfv-app-update-btn')).toBeHidden();
+
+        await page.waitForTimeout(ATTESA_MS - 2500);
+        expect(nav.n).toBe(0);
+        await expect(page.locator('#gfv-app-update-messaggio')).toHaveText('Aggiornamento in corso…');
+        expect(await page.evaluate(() => window.__e2eSkipScartati || 0)).toBeGreaterThan(1);
+
+        // Reload senza controllerchange: la navigazione deve completarsi, non restare appesa.
+        await expect.poll(() => nav.n, { timeout: 15_000 }).toBe(1);
+        const dopo = nav.ultima - click;
+        expect(dopo).toBeGreaterThanOrEqual(ATTESA_MS - 500);
+        expect(dopo).toBeLessThan(ATTESA_MS + 5000);
+        await page.locator('#login-form').waitFor({ timeout: 15_000 });
+        await page.waitForFunction(() => document.readyState === 'complete', null, { timeout: 15_000 });
+        await attendiController(page);
+
+        // Il worker è ancora in attesa (lo skip è scartato anche qui): la barra torna
+        // con Aggiorna e non parte un secondo reload.
+        await expect(page.locator(BARRA)).toBeVisible();
+        await expect(page.locator('#gfv-app-update-btn')).toHaveText('Aggiorna');
+        await page.waitForTimeout(1500);
+        expect(nav.n).toBe(1);
+    });
+
+    test('con un form sporco non ricarica e lascia Aggiorna per riprovare', async ({ page }) => {
+        test.setTimeout(90_000);
+        await barraConWorkerBloccato(page, 'e2e-build-sporco');
+        await aggiungiFormDiProva(page);
+        const nav = contaNavigazioni(page);
+
+        await page.locator('#gfv-app-update-btn').click();
+        await expect(page.locator('#gfv-app-update-messaggio')).toHaveText('Aggiornamento in corso…');
+        // L'utente scrive mentre aspetta.
+        await page.locator('#e2e-campo').fill('dato non salvato');
+        expect(await page.evaluate(() => window.__gfvFormSporco)).toBe(true);
+
+        await page.waitForTimeout(ATTESA_MS + 2500);
+        expect(nav.n).toBe(0);
+        await expect(page.locator('#e2e-campo')).toHaveValue('dato non salvato');
+        await expect(page.locator('#gfv-app-update-messaggio')).toHaveText("C'è una nuova versione");
+        await expect(page.locator('#gfv-app-update-btn')).toBeVisible();
+        await expect(page.locator('#gfv-app-update-btn')).toHaveText('Aggiorna');
+
+        // Riprova: chiede conferma; con Annulla non succede niente.
+        await page.locator('#gfv-app-update-btn').click();
+        await expect(page.locator('#gfv-app-update-confirm')).toBeVisible();
+        await page.locator('#gfv-app-update-annulla').click();
+        await page.waitForTimeout(800);
+        expect(nav.n).toBe(0);
+        await expect(page.locator('#e2e-campo')).toHaveValue('dato non salvato');
+
+        // Riprova confermando: ricarica subito, senza altri 10 s.
+        const click = Date.now();
+        await page.locator('#gfv-app-update-btn').click();
+        await page.locator('#gfv-app-update-conferma').click();
+        await expect.poll(() => nav.n, { timeout: 8000 }).toBe(1);
+        expect(nav.ultima - click).toBeLessThan(5000);
+        await page.locator('#login-form').waitFor({ timeout: 15_000 });
+    });
+
+    test('con un salvataggio in corso non ricarica', async ({ page }) => {
+        test.setTimeout(90_000);
+        await barraConWorkerBloccato(page, 'e2e-build-salva');
+        const nav = contaNavigazioni(page);
+
+        await page.locator('#gfv-app-update-btn').click();
+        await expect(page.locator('#gfv-app-update-messaggio')).toHaveText('Aggiornamento in corso…');
+        await page.evaluate(() => { window.__gfvSalvataggioInCorso = true; });
+
+        await page.waitForTimeout(ATTESA_MS + 2500);
+        expect(nav.n).toBe(0);
+        await expect(page.locator('#gfv-app-update-btn')).toBeVisible();
+        await expect(page.locator('#gfv-app-update-messaggio')).toHaveText("C'è una nuova versione");
     });
 });
