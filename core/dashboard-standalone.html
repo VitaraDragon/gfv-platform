@@ -1202,7 +1202,9 @@
 
         function scheduleTonyDashboardDeferred(availableModules, userDataNormalized, currentTenantId) {
             function runTonyDashboardDeferred() {
-                if (window.__tonyGlobalStatusRan) return;
+                // Già partito (es. dall'evento tony-widget-ready): true ferma anche il polling,
+                // altrimenti continuava fino a 60 tentativi e scriveva un timeout falso.
+                if (window.__tonyGlobalStatusRan) return true;
                 if (!window.Tony || !Tony.isReady()) return false;
                 window.__tonyGlobalStatusRan = true;
                 Promise.all([
