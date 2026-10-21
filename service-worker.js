@@ -4,7 +4,7 @@
 // in .githooks) oppure da `npm run bump:pwa-cache`. Ogni commit ottiene un ID nuovo
 // così CACHE_NAME cambia; in activate() si tiene anche la cache della build precedente.
 // Setup hook (una tantum): git config core.hooksPath .githooks
-const SW_CACHE_BUILD_ID = 't1792600271198';
+const SW_CACHE_BUILD_ID = 't1792603839629';
 const CACHE_NAME = 'gfv-platform-' + SW_CACHE_BUILD_ID;
 
 // Scelta della strategia e pulizia cache: funzioni pure in sw-strategy.js (test vitest).
@@ -109,8 +109,10 @@ function paginaDiRiserva(request) {
 
 // Rete. Annullata dopo ABORT_RETE_MS se le intestazioni non arrivano: un evento fetch
 // aperto nel worker attivo rimanda l'attivazione del worker nuovo.
-function daRete(request, modoCache) {
-  const controllo = typeof AbortController !== 'undefined' ? new AbortController() : null;
+// Le navigazioni non si annullano: senza copia in cache l'annullo dava solo la pagina
+// di errore del browser (FetchEvent con risposta di errore di rete), mai una pagina.
+function daRete(request, modoCache, senzaAnnullo) {
+  const controllo = !senzaAnnullo && typeof AbortController !== 'undefined' ? new AbortController() : null;
   const timer = controllo ? setTimeout(() => controllo.abort(), STRATEGIA.ABORT_RETE_MS) : 0;
   const opzioni = {};
   if (modoCache) opzioni.cache = modoCache;
@@ -127,7 +129,7 @@ function daRete(request, modoCache) {
 // di GitHub Pages sui file senza ?v=.
 function rispostaReteConTimeout(request) {
   return STRATEGIA.reteConTimeout({
-    rete: () => daRete(request, 'no-cache'),
+    rete: () => daRete(request, 'no-cache', request.mode === 'navigate'),
     daCache: () => cercaOvunque(request),
     fallback: () => paginaDiRiserva(request),
     timeoutMs: STRATEGIA.TIMEOUT_RETE_MS
