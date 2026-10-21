@@ -6,8 +6,6 @@
 import { showAlert, escapeHtml } from './gestione-lavori-utils.js';
 import { ASSENZA_TIPI, toGiornoKey } from '../../config/manodopera-assenze-config.js';
 import {
-  listAssenzeSegnalate,
-  listAssenzeApertePerGiorno,
   getAssenza,
   findAssenzaSegnalataPerLavoro,
   findAssenzaSegnalataPerOperaio
@@ -20,6 +18,15 @@ import {
   confermaAssenzaConStandbyLavori
 } from '../../services/lavoro-standby-assenza-service.js';
 import { getLavoro, getAllLavori } from '../../services/lavori-service.js';
+import {
+  assenzaDaGestireNelBanner,
+  lavoriStandbyPerAssenza,
+  lavoroDaAprireDaDeepLink,
+  MSG_STANDBY_NON_VERIFICATO
+} from '../../services/assenze-banner-logic.js';
+import { caricaAssenzeDaGestire, leggiLavoriStandbyPerAssenza } from '../../services/assenze-banner-service.js';
+
+export { assenzaDaGestireNelBanner, lavoriStandbyPerAssenza };
 import {
   lavoriCandidatiAssenza,
   lavoroIdsPreselezionatiStandby
@@ -86,36 +93,17 @@ function nomeOperaioFromList(operaioId) {
   return [o.nome, o.cognome].filter(Boolean).join(' ') || o.email || operaioId;
 }
 
-/**
- * Il banner «da gestire oggi» tiene le segnalate e le confermate che hanno
- * ancora un lavoro in standby senza sostituto. Una confermata senza standby
- * è già chiusa: la squadra prosegue e non va più chiesta al manager.
- * standbyLavoroId è un solo id (l'ultimo lavoro messo in standby), non una lista.
- * @param {Object} a
- * @returns {boolean}
- */
-export function assenzaDaGestireNelBanner(a) {
-  if (!a) return false;
-  if (a.stato === 'segnalata') return true;
-  if (a.stato !== 'confermata') return false;
-  if (a.sostitutoOperaioId) return false;
-  return Boolean(a.standbyLavoroId);
-}
-
 export async function refreshAssenzeSegnalateBanner() {
   const el = document.getElementById('assenze-segnalate-banner');
   if (!el) return;
   try {
     const today = toGiornoKey(new Date());
-    const [segnalate, aperteOggi] = await Promise.all([
-      listAssenzeSegnalate(),
-      listAssenzeApertePerGiorno(today)
-    ]);
-    const byId = new Map();
-    segnalate.forEach((a) => { if (a && a.id) byId.set(a.id, a); });
-    aperteOggi.forEach((a) => { if (a && a.id) byId.set(a.id, a); });
-    const rows = Array.from(byId.values()).filter(assenzaDaGestireNelBanner);
-    if (!rows.length) {
+    // Segnalate, confermate di oggi e assenze (anche passate) con lavori ancora in standby
+    const { rows, standbyVerificato } = await caricaAssenzeDaGestire(today);
+    const avviso = standbyVerificato
+      ? ''
+      : `<p style="margin:6px 0 0;color:#c62828;font-weight:600;">${escapeHtml(MSG_STANDBY_NON_VERIFICATO)}</p>`;
+    if (!rows.length && !avviso) {
       el.hidden = true;
       el.innerHTML = '';
       return;
@@ -126,12 +114,17 @@ export async function refreshAssenzeSegnalateBanner() {
         const nome = escapeHtml(nomeOperaioFromList(a.operaioId));
         const tipo = escapeHtml(a.tipoLabel || a.tipo || '');
         const giorno = escapeHtml(a.dataInizioGiorno || '');
-        const lavoroStandby = a.standbyLavoroId || '';
+        const inStandby = a.lavoriInStandby || [];
         let azione = '';
         if (a.stato === 'segnalata') {
           azione = `<button type="button" class="btn btn-warning btn-sm" style="margin-top:8px;" onclick="confermaSegnalazioneStandby('${escapeHtml(a.id)}')">Conferma e standby</button>`;
-        } else if (lavoroStandby && typeof window.openSostitutoAssenzaModal === 'function') {
-          azione = `<button type="button" class="btn btn-warning btn-sm" style="margin-top:8px;" onclick="openSostitutoAssenzaModal('${escapeHtml(lavoroStandby)}')">Scegli sostituto</button>`;
+        } else if (inStandby.length && typeof window.openSostitutoAssenzaModal === 'function') {
+          azione = inStandby
+            .map((l) => {
+              const etichetta = inStandby.length > 1 && l.nome ? `Scegli sostituto — ${escapeHtml(l.nome)}` : 'Scegli sostituto';
+              return `<button type="button" class="btn btn-warning btn-sm" style="margin-top:8px;margin-right:6px;" onclick="openSostitutoAssenzaModal('${escapeHtml(l.id)}')">${etichetta}</button>`;
+            })
+            .join('');
         } else {
           azione = '<span style="display:block;margin-top:6px;font-size:12px;">Apri il lavoro e usa «Standby assenza» o «Scegli sostituto».</span>';
         }
@@ -139,8 +132,8 @@ export async function refreshAssenzeSegnalateBanner() {
       })
       .join('');
     el.innerHTML = `
-      <strong>📩 ${rows.length} assenz${rows.length === 1 ? 'a' : 'e'} da gestire oggi</strong>
-      <ul style="margin:8px 0 0;padding-left:18px;">${items}</ul>
+      <strong>📩 ${rows.length} assenz${rows.length === 1 ? 'a' : 'e'} da gestire oggi</strong>${avviso}
+      ${rows.length ? `<ul style="margin:8px 0 0;padding-left:18px;">${items}</ul>` : ''}
     `;
   } catch (e) {
     console.warn('[Gestione Lavori] assenze segnalate:', e);
@@ -151,8 +144,9 @@ export async function refreshAssenzeSegnalateBanner() {
 /**
  * Deep link push assenza: marca seen e apre standby/sostituto se c'è un lavoro.
  * @param {string} assenzaId
+ * @param {string} [lavoroId] lavoro scelto dal banner di Impegni (se ancora in standby)
  */
-export async function openAssenzaFromDeepLink(assenzaId) {
+export async function openAssenzaFromDeepLink(assenzaId, lavoroId = null) {
   if (!assenzaId) return;
   try {
     await markAssenzaNotificationsSeen(assenzaId);
@@ -170,8 +164,16 @@ export async function openAssenzaFromDeepLink(assenzaId) {
     await confermaSegnalazioneStandby(assenza.id || assenzaId);
     return;
   }
-  if (assenza.stato === 'confermata' && assenza.standbyLavoroId && typeof window.openSostitutoAssenzaModal === 'function') {
-    await window.openSostitutoAssenzaModal(assenza.standbyLavoroId);
+  if (assenza.stato === 'confermata' && typeof window.openSostitutoAssenzaModal === 'function') {
+    let inStandby = null;
+    try {
+      inStandby = (await leggiLavoriStandbyPerAssenza()).get(assenza.id || assenzaId) || [];
+    } catch (e) {
+      console.warn('[Gestione Lavori] lavori in standby:', e);
+      showAlert(MSG_STANDBY_NON_VERIFICATO, 'error');
+    }
+    const daAprire = lavoroDaAprireDaDeepLink(inStandby, lavoroId);
+    if (daAprire) await window.openSostitutoAssenzaModal(daAprire);
   }
 }
 

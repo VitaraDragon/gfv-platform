@@ -55,6 +55,7 @@ export function normalizeAssenza(raw = {}) {
     confermatoDa: raw.confermatoDa || null,
     confermatoIl: raw.confermatoIl || null,
     standbyLavoroId: raw.standbyLavoroId || null,
+    sostitutoOperaioId: raw.sostitutoOperaioId || null,
     tipoLabel: getAssenzaTipoLabel(raw.tipo)
   };
 }

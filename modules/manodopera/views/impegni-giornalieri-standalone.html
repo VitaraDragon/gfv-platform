@@ -311,7 +311,8 @@
         import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import { toGiornoKey } from '../../../core/config/manodopera-assenze-config.js';
-        import { listAssenzeApertePerGiorno } from '../../../core/services/manodopera-assenze-service.js';
+        import { caricaAssenzeDaGestire } from '../../../core/services/assenze-banner-service.js';
+        import { htmlBannerAssenzeImpegni } from '../../../core/js/impegni-assenze-banner.js';
         import { markAssenzaNotificationsSeen } from '../../../core/services/notification-events-client.js';
         import {
             buildImpegniGiorno,
@@ -536,20 +537,20 @@
             const el = document.getElementById('assenze-oggi-banner');
             if (!el) return;
             try {
-                const rows = await listAssenzeApertePerGiorno(giornoKey);
-                if (!rows.length) {
+                // Stessa logica del banner di Gestione lavori: esce solo quando nessun suo lavoro è più in standby
+                const result = await caricaAssenzeDaGestire(giornoKey);
+                const html = htmlBannerAssenzeImpegni(result, {
+                    giornoKey,
+                    nomeOperaio: (id) => nomeOperaioImpegni(id, operaiList),
+                    escapeHtml
+                });
+                if (!html) {
                     el.hidden = true;
                     el.innerHTML = '';
                     return;
                 }
                 el.hidden = false;
-                const items = rows.map((a) => {
-                    const nome = escapeHtml(nomeOperaioImpegni(a.operaioId, operaiList));
-                    const tipo = escapeHtml(a.tipoLabel || a.tipo || '');
-                    const href = `../../../core/admin/gestione-lavori-standalone.html?assenzaId=${encodeURIComponent(a.id)}&data=${encodeURIComponent(giornoKey)}`;
-                    return `<li style="margin-top:8px;"><strong>${nome}</strong> — ${tipo} · <a href="${href}">Scegli sostituto</a></li>`;
-                }).join('');
-                el.innerHTML = `<strong>Assenze da gestire (${rows.length})</strong><ul style="margin:8px 0 0;padding-left:18px;">${items}</ul>`;
+                el.innerHTML = html;
             } catch (e) {
                 console.warn('[Impegni] banner assenze:', e);
                 el.hidden = true;
