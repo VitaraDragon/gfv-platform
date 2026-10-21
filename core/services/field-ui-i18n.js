@@ -4,7 +4,7 @@
  * @module core/services/field-ui-i18n
  */
 
-import { FIELD_UI_LANGS, FIELD_UI_LANG_OPTIONS, FIELD_UI_STRINGS } from '../config/field-ui-i18n.js?v=2026-10-18a';
+import { FIELD_UI_LANGS, FIELD_UI_LANG_OPTIONS, FIELD_UI_STRINGS } from '../config/field-ui-i18n.js?v=2026-10-21a';
 
 export { FIELD_UI_LANG_OPTIONS };
 
