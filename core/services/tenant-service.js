@@ -196,7 +196,7 @@ export function initializeTenantService() {
  * @param {Object} userData - Dati utente
  * @returns {Array<Object>} Array di { tenantId, ruoli, stato, ... }
  */
-function getUserTenantsFromData(userData) {
+export function getUserTenantsFromData(userData) {
   // Usa tenantMemberships se disponibile
   if (userData.tenantMemberships && Object.keys(userData.tenantMemberships).length > 0) {
     return Object.entries(userData.tenantMemberships).map(([tenantId, membership]) => ({
@@ -607,23 +607,7 @@ export async function getUserTenants(userId = null) {
       return [];
     }
     
-    const tenants = getUserTenantsFromData(userData);
-    
-    // Carica nomi tenant da Firestore
-    const tenantsWithNames = await Promise.all(
-      tenants.map(async (tenant) => {
-        try {
-          const tenantData = await getDocumentData('tenants', tenant.tenantId);
-          return {
-            ...tenant,
-            nome: tenantData?.nome || tenantData?.name || null
-          };
-        } catch (error) {
-          console.warn(`Errore caricamento nome tenant ${tenant.tenantId}:`, error);
-          return tenant; // Restituisci tenant senza nome se errore
-        }
-      })
-    );
+    const tenantsWithNames = await getUserTenantsWithNamesFromData(userData);
     
     // Aggiorna cache se è l'utente corrente
     if (!userId) {
@@ -635,6 +619,60 @@ export async function getUserTenants(userId = null) {
     console.error('Errore caricamento tenant utente:', error);
     return [];
   }
+}
+
+/**
+ * Come getUserTenants, ma da un documento utente già letto (nessuna rilettura di users/{uid}).
+ * Legge i tenant in parallelo per il nome.
+ * @param {Object} userData - Dati utente
+ * @returns {Promise<Array<Object>>} Array di { tenantId, ruoli, stato, nome, ... }
+ */
+export async function getUserTenantsWithNamesFromData(userData) {
+  if (!userData) {
+    return [];
+  }
+  const tenants = getUserTenantsFromData(userData);
+
+  // Carica nomi tenant da Firestore
+  return Promise.all(
+    tenants.map(async (tenant) => {
+      try {
+        const tenantData = await getDocumentData('tenants', tenant.tenantId);
+        return {
+          ...tenant,
+          nome: tenantData?.nome || tenantData?.name || null
+        };
+      } catch (error) {
+        console.warn(`Errore caricamento nome tenant ${tenant.tenantId}:`, error);
+        return tenant; // Restituisci tenant senza nome se errore
+      }
+    })
+  );
+}
+
+/**
+ * Ruoli per un tenant da un documento utente già letto (stessa regola di getUserRolesForTenant).
+ * @param {Object|null|undefined} userData - Dati utente
+ * @param {string|null|undefined} tenantId - ID tenant
+ * @returns {Array<string>} Array di ruoli
+ */
+export function getUserRolesFromData(userData, tenantId) {
+  if (!userData || !tenantId) {
+    return [];
+  }
+
+  // Usa tenantMemberships se disponibile
+  if (userData.tenantMemberships && userData.tenantMemberships[tenantId]) {
+    const membership = userData.tenantMemberships[tenantId];
+    return membership.ruoli && Array.isArray(membership.ruoli) ? membership.ruoli : [];
+  }
+
+  // Retrocompatibilità: se tenantId corrisponde al tenantId deprecato
+  if (userData.tenantId === tenantId && userData.ruoli && Array.isArray(userData.ruoli)) {
+    return userData.ruoli;
+  }
+
+  return [];
 }
 
 /**
@@ -659,18 +697,7 @@ export async function getUserRolesForTenant(tenantId, userId = null) {
       return [];
     }
   
-    // Usa tenantMemberships se disponibile
-    if (userData.tenantMemberships && userData.tenantMemberships[tenantId]) {
-      const membership = userData.tenantMemberships[tenantId];
-      return membership.ruoli && Array.isArray(membership.ruoli) ? membership.ruoli : [];
-    }
-    
-    // Retrocompatibilità: se tenantId corrisponde al tenantId deprecato
-    if (userData.tenantId === tenantId && userData.ruoli && Array.isArray(userData.ruoli)) {
-      return userData.ruoli;
-    }
-    
-    return [];
+    return getUserRolesFromData(userData, tenantId);
   } catch (error) {
     console.error('Errore caricamento ruoli utente:', error);
     return [];
@@ -802,7 +829,10 @@ export default {
   removeModuleFromTenant,
   hasValidTenant,
   getUserTenants,
+  getUserTenantsFromData,
+  getUserTenantsWithNamesFromData,
   getUserRolesForTenant,
+  getUserRolesFromData,
   switchTenant,
   userBelongsToTenant,
   getDefaultTenant,
