@@ -224,7 +224,7 @@ Nella scheda **Ore**, sotto il modulo ore, trovi il riquadro **Dettaglio lavoro 
 - **Disegno a mano:** alternativa se manca il perimetro del terreno o se preferisci tracciare il percorso punto per punto (poi **Chiudi segmento** se serve un poligono).  
 - Per operazioni con macchina/attrezzo può comparire la **larghezza** (serve al calcolo superficie): non confonderla con il modo di disegno.  
 - Salva le zone man mano che completate i pezzi di campo: servono al progresso reale e spesso sono **obbligatorie** prima di poter chiudere il lavoro.  
-- **Superficie lavorata:** è la superficie coperta dall’**unione** delle zone sul terreno. Se due zone chiuse (aree) si sovrappongono la parte in comune conta **una volta sola**, e l’avanzamento non supera mai il **100%**: ripassare su un pezzo già segnato non fa salire la percentuale. I tratti segnati come percorso aperto (con la larghezza) si sommano.  
+- **Superficie lavorata:** è la superficie coperta dall’**unione** delle zone sul terreno. Se due zone chiuse (aree) si sovrappongono la parte in comune conta **una volta sola**, e l’avanzamento non supera mai il **100%**: ripassare su un pezzo già segnato non fa salire la percentuale. I tratti segnati come percorso aperto (con la larghezza) si sommano. Le zone segnate in passato dagli operai contano ancora: il calcolo le legge tutte. Ora l’area lavorata è l’unione delle zone ritagliata sul terreno, quindi il numero può cambiare un poco rispetto a prima.  
 - Un lavoro chiuso senza nessuna zona segnata mostra **✅ Completato (nessuna zona tracciata)** al posto della percentuale.
 
 ### Completamento e approvazione manager

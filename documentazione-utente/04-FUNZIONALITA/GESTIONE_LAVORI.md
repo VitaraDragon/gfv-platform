@@ -88,6 +88,7 @@ Gestisci l’intero ciclo di vita dei lavori: pianificazione, assegnazione, avan
 - Ogni poligono indica una zona completata
 - I dati vengono mostrati sulla **Mappa Aziendale** per distinguere superfici lavorate/restanti
 - La percentuale di avanzamento è la superficie coperta dall’unione delle zone sul terreno: le aree chiuse che si sovrappongono contano una volta sola, i tratti aperti (con la larghezza) si sommano, mai oltre il 100%
+- Le zone segnate in passato dagli operai contano ancora (si leggono tutte); dato che ora l’area lavorata è l’unione delle zone ritagliata sul terreno, il numero può cambiare un poco rispetto a prima
 - Un lavoro completato senza nessuna zona mostra **✅ Completato (nessuna zona tracciata)** al posto della percentuale
 
 ---

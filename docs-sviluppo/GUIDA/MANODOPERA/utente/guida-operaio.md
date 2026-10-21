@@ -170,7 +170,7 @@ Sotto il modulo ore trovi il riquadro **Dettaglio lavoro operativo**, già **cen
 - **Disegno a mano:** se manca il perimetro o ti viene chiesto di tracciare il percorso a più tocchi.  
 - Se compare un campo **larghezza** (macchina/attrezzo), serve al calcolo della superficie: **chiedi conferma in campo** a chi coordina se non sei sicuro del valore.  
 - I dati influiscono su superfici e report: meglio un dubbio in più che un tratto sbagliato.  
-- **Superficie lavorata:** se due zone chiuse (aree) si sovrappongono, la parte in comune conta **una volta sola**, e l’avanzamento non supera mai il **100%** del terreno: ripassare su un pezzo già segnato non fa salire la percentuale. I tratti segnati come percorso aperto (con la larghezza) si sommano.  
+- **Superficie lavorata:** se due zone chiuse (aree) si sovrappongono, la parte in comune conta **una volta sola**, e l’avanzamento non supera mai il **100%** del terreno: ripassare su un pezzo già segnato non fa salire la percentuale. I tratti segnati come percorso aperto (con la larghezza) si sommano. Le zone segnate in passato dagli operai contano ancora: il calcolo le legge tutte. Ora l’area lavorata è l’unione delle zone ritagliata sul terreno, quindi il numero può cambiare un poco rispetto a prima.  
 - Un lavoro chiuso senza nessuna zona segnata mostra **✅ Completato (nessuna zona tracciata)** al posto della percentuale.
 
 ### Completamento incarico

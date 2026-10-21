@@ -256,7 +256,7 @@ In cima a **Gestione lavori** ci sono i riquadri con i numeri: **Lavori Totali**
 - **Lavori Totali** e **In Corso** compaiono insieme all’elenco dei lavori.  
 - Gli altri riquadri partono da **«-»** (il numero lampeggia leggermente) e poi mostrano il valore: con molti lavori il calcolo richiede qualche secondo. Un **«-»** non vuol dire zero.  
 - Se il valore ha un **asterisco** (es. «12.40 ha*»), qualche lavoro non è stato letto: passando sopra al numero leggi «Dato parziale: N lavori non letti». Il numero conta solo gli altri lavori; ricarica la pagina per riprovare.  
-- **Superficie Lavorata** e la percentuale di ogni lavoro contano la superficie coperta dall’**unione** delle zone sul terreno: se due zone chiuse (aree) si sovrappongono, la parte in comune conta **una volta sola**, e un lavoro non supera mai il **100%**; i tratti segnati come percorso aperto (con la larghezza) si sommano.  
+- **Superficie Lavorata** e la percentuale di ogni lavoro contano la superficie coperta dall’**unione** delle zone sul terreno: se due zone chiuse (aree) si sovrappongono, la parte in comune conta **una volta sola**, e un lavoro non supera mai il **100%**; i tratti segnati come percorso aperto (con la larghezza) si sommano. Le zone segnate in passato dagli operai contano ancora: il calcolo le legge tutte. Ora l’area lavorata è l’unione delle zone ritagliata sul terreno, quindi il numero può cambiare un poco rispetto a prima.  
 - Un lavoro completato senza nessuna zona segnata non mostra una percentuale: in elenco (e nei lavori recenti della dashboard) compare **✅ Completato (nessuna zona tracciata)**.  
 - Nella mappa del dettaglio lavoro, il filtro per data indica per ogni giorno quante zone e quanti ettari, con la stessa regola dell’unione.
 
