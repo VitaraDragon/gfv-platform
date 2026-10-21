@@ -279,7 +279,7 @@ async function confermaSostituto(candidato) {
     const squadra = result.isLavoroSquadra
       ? ' Sostituzione registrata sull\'equipaggio del giorno (squadra anagrafica invariata).'
       : '';
-    showAlert(`${candidato.nome} assegnato come sostituto. Lavoro riattivato.${extra}${squadra}`, 'success');
+    showAlert(`Sostituto assegnato: ${candidato.nome}. Lavoro riattivato.${extra}${squadra}`, 'success');
     closeSostitutoAssenzaModal();
     await refreshAssenzeSegnalateBanner();
     if (typeof sostitutiUiDeps?.reloadLavori === 'function') {

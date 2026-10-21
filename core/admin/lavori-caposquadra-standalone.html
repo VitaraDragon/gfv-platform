@@ -1634,7 +1634,7 @@
                         
                         // Calcola stato progresso se non presente o se giorni sono cambiati
                         if (!statoProgresso || giorniEffettivi !== (lavoro.giorniEffettivi || 0)) {
-                            const percentualeTempo = (giorniEffettivi / lavoro.durataPrevista) * 100;
+                            const percentualeTempo = ((giorniEffettivi - 1) / lavoro.durataPrevista) * 100;
                             const percentualeCompletamentoNum = parseFloat(percentuale);
                             const tolleranza = 10; // Tolleranza del 10%
                             
