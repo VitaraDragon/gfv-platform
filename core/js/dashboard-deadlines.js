@@ -10,6 +10,7 @@ import {
     countOreDaValidareManager
 } from './dashboard-data.js?v=2026-10-20a';
 import { getDashboardCountsSnapshot, ORE_READY_EVENT } from './dashboard-counts-snapshot.js';
+import { leggiCollezioneTenantCondivisa } from './dashboard-letture-condivise.js';
 import { dashboardPerfAsync } from './dashboard-perf.js';
 import { isTipoFlotta } from '../../modules/parco-macchine/lib/macchine-tipo-utils.js';
 
@@ -103,15 +104,21 @@ function filterItemsScadenzeAmmin(items) {
  * @returns {Promise<Array>}
  */
 export async function fetchScadenzeAmministrazioneItems(tenantId, availableModules, dependencies) {
-    const { db, collection, getDocs } = dependencies;
     const items = [];
     if (!tenantId) return items;
 
     const mods = Array.isArray(availableModules) ? availableModules : [];
     const hasParcoMacchine = mods.includes('parcoMacchine');
 
+    // Terreni e macchine partono insieme (prima in serie) e sono condivisi con i conteggi.
+    const terreniPromise = leggiCollezioneTenantCondivisa(dependencies, tenantId, 'terreni');
+    const macchinePromise = hasParcoMacchine
+        ? leggiCollezioneTenantCondivisa(dependencies, tenantId, 'macchine')
+        : null;
+    if (macchinePromise) macchinePromise.catch(() => {});
+
     try {
-        const terreniSnap = await getDocs(collection(db, `tenants/${tenantId}/terreni`));
+        const terreniSnap = await terreniPromise;
         terreniSnap.forEach((docSnap) => {
             const t = docSnap.data();
             if (t.clienteId && t.clienteId !== '') return;
@@ -135,7 +142,7 @@ export async function fetchScadenzeAmministrazioneItems(tenantId, availableModul
 
     if (hasParcoMacchine) {
         try {
-            const macchineSnap = await getDocs(collection(db, `tenants/${tenantId}/macchine`));
+            const macchineSnap = await macchinePromise;
             macchineSnap.forEach((docSnap) => {
                 const m = docSnap.data();
                 const id = docSnap.id;
@@ -181,7 +188,6 @@ export async function fetchScadenzeAmministrazioneItems(tenantId, availableModul
  * @param {Object} [countsSnapshot]
  */
 export async function fetchInArrivoItems(tenantId, opts, dependencies, countsSnapshot) {
-    const { db, collection, getDocs } = dependencies;
     const items = [];
     if (!tenantId) return items;
 
@@ -191,7 +197,7 @@ export async function fetchInArrivoItems(tenantId, opts, dependencies, countsSna
 
     if (hasParcoMacchine) {
         try {
-            const macchineSnap = await getDocs(collection(db, `tenants/${tenantId}/macchine`));
+            const macchineSnap = await leggiCollezioneTenantCondivisa(dependencies, tenantId, 'macchine');
             macchineSnap.forEach((docSnap) => {
                 const m = docSnap.data();
                 const label = nomeMacchina(m);

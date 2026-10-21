@@ -5,9 +5,11 @@
 
 import { parseLavoroDataInizio } from '../services/manodopera-lavori-scope.js?v=2026-10-17b';
 import {
-    loadAffittiUrgentiCount,
+    calcolaAlertAffitto,
     countOreDaValidareFromLavoriDocs,
 } from './dashboard-data.js?v=2026-10-20a';
+import { isLavoroAutonomo, isLavoroSquadra } from '../services/manodopera-ore-validazione-scope.js';
+import { leggiCollezioneTenantCondivisa, azzeraLettureCondivise } from './dashboard-letture-condivise.js';
 import {
     buildSottoScortaBriefingFromProdotti,
     buildGuastiApertiBriefingFromGuasti,
@@ -73,6 +75,7 @@ export function invalidateDashboardCountsSnapshot() {
     _cache = null;
     _loadPromise = null;
     _loadTenantId = null;
+    azzeraLettureCondivise();
 }
 
 export function clearDashboardCountsPrefetch() {
@@ -188,6 +191,57 @@ function computeLavoriCountsFromDocs(docs) {
 }
 
 /**
+ * Lavori le cui ore da_validare possono contare per il manager: autonomi (operaioId senza capo)
+ * o di squadra (caposquadraId senza operaio). Per gli altri contaOreManagerDaValidareSuLavoro
+ * restituisce sempre 0, quindi la query ore è inutile. Gli stati (anche completato/annullato)
+ * NON filtrano: le ore restano da validare anche dopo la chiusura del lavoro.
+ * @param {import('firebase/firestore').QueryDocumentSnapshot[]} lavoriDocs
+ */
+export function lavoriConOreManagerPossibili(lavoriDocs) {
+    return (Array.isArray(lavoriDocs) ? lavoriDocs : []).filter((d) => {
+        const lavoro = d && typeof d.data === 'function' ? d.data() : null;
+        return isLavoroAutonomo(lavoro) || isLavoroSquadra(lavoro);
+    });
+}
+
+/**
+ * Affitti urgenti e totali: stessa regola di loadAffittiUrgentiCount (dashboard-data.js),
+ * ma sui terreni letti una sola volta e condivisi con il widget scadenze.
+ * @param {Object} dependencies
+ * @param {string} tenantId
+ * @returns {Promise<{ urgentCount: number, totalAffitti: number }>}
+ */
+export async function loadAffittiUrgentiCountCondiviso(dependencies, tenantId) {
+    try {
+        const user = dependencies.auth.currentUser;
+        if (!user) return { urgentCount: 0, totalAffitti: 0 };
+        if (!tenantId) return { urgentCount: 0, totalAffitti: 0 };
+
+        const terreniSnapshot = await leggiCollezioneTenantCondivisa(dependencies, tenantId, 'terreni');
+
+        let totalAffitti = 0;
+        let urgentCount = 0;
+
+        terreniSnapshot.forEach((docSnap) => {
+            const terreno = docSnap.data();
+            if (terreno.clienteId && terreno.clienteId !== '') return;
+            if (terreno.tipoPossesso === 'affitto' && terreno.dataScadenzaAffitto) {
+                totalAffitti++;
+                const alert = calcolaAlertAffitto(terreno.dataScadenzaAffitto);
+                if (alert.colore === 'red' || alert.colore === 'yellow') {
+                    urgentCount++;
+                }
+            }
+        });
+
+        return { urgentCount, totalAffitti };
+    } catch (err) {
+        console.warn('loadAffittiUrgentiCount:', err);
+        return { urgentCount: 0, totalAffitti: 0 };
+    }
+}
+
+/**
  * @param {string} tenantId
  * @param {import('firebase/firestore').QueryDocumentSnapshot[]} lavoriDocs
  * @param {Object} dependencies
@@ -196,7 +250,7 @@ function computeLavoriCountsFromDocs(docs) {
  */
 async function refreshOreDaValidareInSnapshot(tenantId, lavoriDocs, dependencies, result) {
     const v = await dashboardPerfAsync('counts.oreDaValidare', () =>
-        countOreDaValidareFromLavoriDocs(tenantId, lavoriDocs, dependencies)
+        countOreDaValidareFromLavoriDocs(tenantId, lavoriConOreManagerPossibili(lavoriDocs), dependencies)
     );
     result.oreDaValidare = v || 0;
     result.operativitaOggi.oreDaValidare = v || 0;
@@ -324,7 +378,7 @@ async function buildSnapshot(tenantId, ctx, dependencies) {
     const tasks = [];
 
     tasks.push(
-        loadAffittiUrgentiCount(dependencies, tenantId).then(({ urgentCount, totalAffitti }) => {
+        loadAffittiUrgentiCountCondiviso(dependencies, tenantId).then(({ urgentCount, totalAffitti }) => {
             result.affittiUrgenti = urgentCount || 0;
             result.affittiTotal = totalAffitti || 0;
         })
@@ -383,7 +437,7 @@ async function buildSnapshot(tenantId, ctx, dependencies) {
     if (hasMacchine && db && collection && getDocs) {
         tasks.push(
             Promise.all([
-                getDocs(collection(db, 'tenants', tenantId, 'macchine')),
+                leggiCollezioneTenantCondivisa(dependencies, tenantId, 'macchine'),
                 getDocs(collection(db, 'tenants', tenantId, 'guasti')),
             ]).then(function (pair) {
                 const macchineSnap = pair[0];
