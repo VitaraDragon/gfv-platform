@@ -72,6 +72,7 @@ export async function getLavoriByTerreno(terrenoId) {
  * @param {string} options.operaioId - Filtra per operaio diretto (opzionale)
  * @param {string} options.stato - Filtra per stato (opzionale)
  * @param {string} options.terrenoId - Filtra per terreno (opzionale)
+ * @param {boolean} options.throwOnError - Rilancia anche gli errori di lettura invece di restituire [] (default false)
  * @returns {Promise<Array<Lavoro>>} Array di lavori
  */
 export async function getAllLavori(options = {}) {
@@ -119,8 +120,9 @@ export async function getAllLavori(options = {}) {
       console.error('Errore recupero lavori:', error);
       throw new Error(`Errore recupero lavori: ${error.message}`);
     }
-    // Errori non critici (database, rete) -> ritorna array vuoto
+    // Errori non critici (database, rete) -> ritorna array vuoto, salvo chi chiede di distinguerli
     console.error('Errore recupero lavori:', error);
+    if (options && options.throwOnError) throw error;
     return [];
   }
 }
