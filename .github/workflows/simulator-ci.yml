@@ -11,6 +11,7 @@ on:
       - 'shared/**'
       - 'index.html'
       - 'service-worker.js'
+      - 'sw-strategy.js'
       - 'manifest.json'
       - 'functions/**'
       - 'simulator/**'
@@ -32,6 +33,7 @@ on:
       - 'shared/**'
       - 'index.html'
       - 'service-worker.js'
+      - 'sw-strategy.js'
       - 'manifest.json'
       - 'functions/**'
       - 'simulator/**'
@@ -89,12 +91,12 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Build id nuovo se cambiano core, modules, shared o index.html
+      - name: Build id nuovo se cambiano core, modules, shared, index.html o sw-strategy.js
         run: |
           set -euo pipefail
           BASE="${{ github.event.pull_request.base.sha }}"
           git diff --name-only "$BASE" HEAD > /tmp/gfv-changed.txt
-          if grep -Eq '^(core/|modules/|shared/|index\.html$)' /tmp/gfv-changed.txt; then
+          if grep -Eq '^(core/|modules/|shared/|index\.html$|sw-strategy\.js$)' /tmp/gfv-changed.txt; then
             OLD=$(git show "$BASE:service-worker.js" | sed -n "s/^const SW_CACHE_BUILD_ID = '\\([^']*\\)';/\\1/p")
             NEW=$(sed -n "s/^const SW_CACHE_BUILD_ID = '\\([^']*\\)';/\\1/p" service-worker.js)
             echo "base=$OLD head=$NEW"
