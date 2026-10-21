@@ -84,10 +84,11 @@ Gestisci l’intero ciclo di vita dei lavori: pianificazione, assegnazione, avan
 
 ## 🗺️ Tracciamento zone lavorate
 
-- Caposquadra può disegnare poligoni direttamente nella pagina lavoro
+- Sui lavori di **squadra** le zone le segna il **caposquadra** (si fa dire dagli operai dove hanno lavorato); sui lavori **autonomi** l’operaio assegnato
 - Ogni poligono indica una zona completata
 - I dati vengono mostrati sulla **Mappa Aziendale** per distinguere superfici lavorate/restanti
-- Lo stato di avanzamento (% completamento) si aggiorna in base alla superficie coperta e alle ore segnate
+- La percentuale di avanzamento è la superficie coperta dall’unione delle zone sul terreno: le aree chiuse che si sovrappongono contano una volta sola, i tratti aperti (con la larghezza) si sommano, mai oltre il 100%
+- Un lavoro completato senza nessuna zona mostra **✅ Completato (nessuna zona tracciata)** al posto della percentuale
 
 ---
 

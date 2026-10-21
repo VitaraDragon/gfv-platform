@@ -256,16 +256,15 @@ In cima a **Gestione lavori** ci sono i riquadri con i numeri: **Lavori Totali**
 - **Lavori Totali** e **In Corso** compaiono insieme all’elenco dei lavori.  
 - Gli altri riquadri partono da **«-»** (il numero lampeggia leggermente) e poi mostrano il valore: con molti lavori il calcolo richiede qualche secondo. Un **«-»** non vuol dire zero.  
 - Se il valore ha un **asterisco** (es. «12.40 ha*»), qualche lavoro non è stato letto: passando sopra al numero leggi «Dato parziale: N lavori non letti». Il numero conta solo gli altri lavori; ricarica la pagina per riprovare.  
-- **Superficie Lavorata** e la percentuale di ogni lavoro contano la superficie coperta dall’**unione** delle zone sul terreno: se due zone chiuse (aree) si sovrappongono, la parte in comune conta **una volta sola**, e un lavoro non supera mai il **100%**; i tratti segnati come percorso aperto (con la larghezza) si sommano. Per questo alcuni lavori con zone sovrapposte possono mostrare una percentuale più bassa di prima.  
-- Un lavoro completato senza nessuna zona segnata non risulta più al 100%: in elenco (e nei lavori recenti della dashboard) compare **✅ Completato (nessuna zona tracciata)**.  
+- **Superficie Lavorata** e la percentuale di ogni lavoro contano la superficie coperta dall’**unione** delle zone sul terreno: se due zone chiuse (aree) si sovrappongono, la parte in comune conta **una volta sola**, e un lavoro non supera mai il **100%**; i tratti segnati come percorso aperto (con la larghezza) si sommano.  
+- Un lavoro completato senza nessuna zona segnata non mostra una percentuale: in elenco (e nei lavori recenti della dashboard) compare **✅ Completato (nessuna zona tracciata)**.  
 - Nella mappa del dettaglio lavoro, il filtro per data indica per ogni giorno quante zone e quanti ettari, con la stessa regola dell’unione.
 
 ### Chi segna le zone lavorate
 
-- **Lavoro di squadra:** le zone le segna **il caposquadra** di quel lavoro. Gli operai della squadra non hanno il pulsante e leggono «Su questo lavoro le zone le segna il caposquadra (o il manager).».  
+- **Lavoro di squadra:** le zone le segna **il caposquadra** di quel lavoro. Gli operai della squadra non hanno il pulsante: il caposquadra si fa dire dove hanno lavorato e segna lui la zona.  
 - **Lavoro autonomo:** le segna l’**operaio** a cui è assegnato.  
-- **Sostituto su un lavoro autonomo:** quando assegni un sostituto, lui può segnare zone, vede anche quelle già segnate dal collega e aggiunge le sue (quelle del collega restano del collega).  
-- Una zona già salvata la può cambiare solo chi l’ha segnata, il caposquadra del lavoro, oppure un manager o amministratore.
+- **Sostituto su un lavoro autonomo:** il sostituto va indicato nel lavoro (**👤 Assegna sostituto**); a quel punto può segnare zone, vede anche quelle già segnate dal collega e aggiunge le sue (quelle del collega restano del collega).  
 
 ### Effetto in campo
 

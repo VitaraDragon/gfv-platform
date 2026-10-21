@@ -160,7 +160,7 @@ Sotto il modulo ore trovi il riquadro **Dettaglio lavoro operativo**, già **cen
 **Chi segna le zone:**
 
 - Sui tuoi **lavori autonomi** (assegnati solo a te, senza caposquadra) le zone le segni tu, con **📍 Segna zona lavorata** nel dettaglio.  
-- Sui **lavori di squadra** le zone le segna **solo il caposquadra** di quel lavoro (o il manager): nel dettaglio non vedi il pulsante **📍 Segna zona lavorata** e non è un errore. Se provi ad aprire il tracciamento compare «Su questo lavoro le zone le segna il caposquadra (o il manager).». Puoi comunque vedere la mappa e l’avanzamento, segnare le tue ore e usare le altre schede come sempre.  
+- Sui **lavori di squadra** le zone le segna **solo il caposquadra** di quel lavoro: nel dettaglio non vedi il pulsante **📍 Segna zona lavorata** e non è un errore. Se provi ad aprire il tracciamento compare un messaggio che rimanda al caposquadra: digli dove hai lavorato. Puoi comunque vedere la mappa e l’avanzamento, segnare le tue ore e usare le altre schede come sempre.  
 - Se sei **sostituto** su un lavoro autonomo di un collega, vedi [Se lavori come sostituto](#se-lavori-come-sostituto).
 
 **Come si segna:**
@@ -283,7 +283,7 @@ Se apri a mano un indirizzo dell’ufficio (terreni, magazzino, elenchi), l’ap
 | La schermata è in un’altra lingua | Ingranaggio in alto → **Lingua** → **Italiano**. |
 | Dopo il login: «Non riesco ad aprire la tua area. Riprova» | Tocca **Riprova**; se resta, chiedi in ufficio di controllare il tuo ruolo e il modulo Manodopera. |
 | Non capisco la **mappa delle zone** | Chiedi una dimostrazione in campo a chi coordina il gruppo. |
-| Non vedo **📍 Segna zona lavorata** oppure compare «Su questo lavoro le zone le segna il caposquadra (o il manager).» | È un lavoro di squadra: le zone le segna il caposquadra. Tu segna le ore come sempre. |
+| Non vedo **📍 Segna zona lavorata** oppure un messaggio dice che le zone le segna il caposquadra | È un lavoro di squadra: le zone le segna il caposquadra, digli dove hai lavorato. Tu segna le ore come sempre. |
 | **GPS** non funziona | Attiva permesso posizione; riprova all’aperto; completa ubicazione e dettagli a mano. |
 | In basso compare **C’è una nuova versione** con **Aggiorna** | C’è una versione nuova dell’app. Salva prima le ore o la segnalazione che stai scrivendo, poi tocca **Aggiorna**: la pagina si ricarica. Se chiede «Hai dati non salvati: aggiorni lo stesso?», **Annulla** tiene quello che hai scritto (salva e riprova), **Aggiorna** ricarica e perde quello che non hai salvato. Finché non tocchi **Aggiorna** non si ricarica nulla. |
 | Non trovi dove segnalare un guasto | Non è nel menu ingranaggio: scorri le schede fino a **⚠️ Segnala un problema**. Se manca la scelta della macchina, l’azienda non ha Parco Macchine: usa la segnalazione generica o chiama il responsabile. |
