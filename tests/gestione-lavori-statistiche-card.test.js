@@ -91,8 +91,8 @@ const controllerSrc = readFileSync(
 
 function montaCard() {
     document.body.innerHTML = [
-        '<div class="stat-value" id="stat-totale-lavori">0</div>',
-        '<div class="stat-value" id="stat-lavori-corso">0</div>',
+        '<div class="stat-value" id="stat-totale-lavori">-</div>',
+        '<div class="stat-value" id="stat-lavori-corso">-</div>',
         '<div class="stat-value" id="stat-ore-validate" aria-busy="true">-</div>',
         '<div class="stat-value" id="stat-superficie-lavorata" aria-busy="true">-</div>',
         '<div class="stat-value" id="stat-lavori-ritardo" aria-busy="true">-</div>',
@@ -141,9 +141,9 @@ describe('card statistiche gestione lavori', () => {
     });
 
     it('all\'avvio ore, superficie e scostamento sono «-», occupati, con una pulsazione leggera', () => {
-        expect(htmlPagina).toContain('gestione-lavori-controller.js?v=2026-10-21b');
-        expect(htmlPagina).toContain('id="stat-totale-lavori">0</div>');
-        expect(htmlPagina).toContain('id="stat-lavori-corso">0</div>');
+        expect(htmlPagina).toContain('gestione-lavori-controller.js?v=2026-10-21c');
+        expect(htmlPagina).toContain('id="stat-totale-lavori">-</div>');
+        expect(htmlPagina).toContain('id="stat-lavori-corso">-</div>');
         for (const id of [
             'stat-ore-validate',
             'stat-superficie-lavorata',
@@ -182,6 +182,14 @@ describe('card statistiche gestione lavori', () => {
         expect(testo('stat-superficie-lavorata')).toBe('-');
         expect(testo('stat-lavori-ritardo')).toBe('-');
         expect(document.getElementById('stat-ore-validate').getAttribute('aria-busy')).toBe('true');
+    });
+
+    it('con lista vuota Totale e In Corso passano da «-» a «0»', () => {
+        expect(testo('stat-totale-lavori')).toBe('-');
+        expect(testo('stat-lavori-corso')).toBe('-');
+        aggiornaCardDaLista([]);
+        expect(testo('stat-totale-lavori')).toBe('0');
+        expect(testo('stat-lavori-corso')).toBe('0');
     });
 
     it('calcola ore e scostamento anche se polygon-clipping non c\'è', async () => {
