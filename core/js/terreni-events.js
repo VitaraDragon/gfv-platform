@@ -392,7 +392,10 @@ export async function handleSaveTerreno(
             await addDoc(terreniCollection, cleanedData);
             showAlert('Terreno creato con successo!', 'success');
         }
-        
+
+        document.dispatchEvent(new CustomEvent('gfv:form-salvato', {
+            detail: { form: document.getElementById('terreno-form') }
+        }));
         closeTerrenoModal(state, updateState);
         if (loadTerreniCallback) {
             await loadTerreniCallback();

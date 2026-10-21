@@ -46,6 +46,9 @@ export function normalizeAssenza(raw = {}) {
     dataFineGiorno,
     nota: raw.nota != null ? String(raw.nota).trim() : '',
     lavoroId: raw.lavoroId || null,
+    lavoroIds: Array.isArray(raw.lavoroIds)
+      ? raw.lavoroIds.map((id) => String(id)).filter((id) => id !== '')
+      : [],
     canale: raw.canale || ASSENZA_CANALE_MANAGER,
     segnalatoDa: raw.segnalatoDa || null,
     segnalatoIl: raw.segnalatoIl || null,
@@ -194,6 +197,9 @@ export async function segnalaAssenza(payload, tenantId = null) {
     dataFineGiorno: giorno,
     nota: payload.nota != null ? String(payload.nota).trim() : '',
     lavoroId: payload.lavoroId || null,
+    lavoroIds: Array.isArray(payload.lavoroIds)
+      ? payload.lavoroIds.map((id) => String(id)).filter((id) => id !== '')
+      : [],
     canale: payload.canale || ASSENZA_CANALE_CAPOSQUADRA,
     segnalatoDa: payload.segnalatoDa,
     segnalatoIl: serverTimestamp()

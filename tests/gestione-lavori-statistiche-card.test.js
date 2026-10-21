@@ -141,7 +141,7 @@ describe('card statistiche gestione lavori', () => {
     });
 
     it('all\'avvio ore, superficie e scostamento sono «-», occupati, con una pulsazione leggera', () => {
-        expect(htmlPagina).toContain('gestione-lavori-controller.js?v=2026-10-21a');
+        expect(htmlPagina).toContain('gestione-lavori-controller.js?v=2026-10-21b');
         expect(htmlPagina).toContain('id="stat-totale-lavori">0</div>');
         expect(htmlPagina).toContain('id="stat-lavori-corso">0</div>');
         for (const id of [

@@ -5,7 +5,7 @@
  * @module core/js/notification-fcm-client
  */
 
-import { registraServiceWorker } from './app-update.js?v=2026-10-19a';
+import { registraServiceWorker } from './app-update.js?v=2026-10-20a';
 import { getAppInstance, getAuthInstance, getDb, doc, getDoc, updateDoc } from '../services/firebase-service.js';
 import { loadNotificationPrefsFromUser, upsertFcmTokenInPrefs } from '../services/notification-prefs-service.js';
 import { buildNotificationIconUrl, resolveNotificationWebOrigin } from '../config/notification-catalog.js';

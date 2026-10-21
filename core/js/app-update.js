@@ -7,7 +7,11 @@
 import { t, leggiLinguaCampo } from '../services/field-ui-i18n.js';
 
 export const INTERVALLO_AGGIORNAMENTO_MS = 15 * 60 * 1000;
-export const VERSIONE_MODULO = '2026-10-19a';
+export const VERSIONE_MODULO = '2026-10-20a';
+export const EVENTO_FORM_SALVATO = 'gfv:form-salvato';
+export const ATTRIBUTO_SENZA_AVVISO = 'data-gfv-senza-avviso';
+
+const formSporchi = new Set();
 
 const TESTO = {
     disponibile: 'update.available',
@@ -112,20 +116,73 @@ export function chiaveReloadBuild(buildId) {
     return 'gfv-sw-reload-' + String(buildId || '');
 }
 
+/**
+ * Un form con data-gfv-senza-avviso (il login) non conta come dati non salvati.
+ * @param {Element|null|undefined} form
+ * @returns {boolean}
+ */
+export function formContaComeSporco(form) {
+    if (!form || String(form.nodeName || '').toUpperCase() !== 'FORM') return false;
+    if (typeof form.hasAttribute === 'function' && form.hasAttribute(ATTRIBUTO_SENZA_AVVISO)) return false;
+    return true;
+}
+
+function dimenticaFormSeSegnoSpentoAMano() {
+    if (typeof window === 'undefined') return;
+    if (formSporchi.size > 0 && !window.__gfvFormSporco) formSporchi.clear();
+}
+
+function applicaSegnoFormSporco() {
+    if (typeof window === 'undefined') return;
+    const sporco = formSporchi.size > 0;
+    window.__gfvFormSporco = sporco;
+    try {
+        if (window.parent && window.parent !== window) window.parent.__gfvFormSporco = sporco;
+    } catch (error) {
+        /* iframe di un'altra origine */
+    }
+}
+
+/**
+ * Segna un form come modificato dall'utente.
+ * @param {HTMLFormElement|null|undefined} form
+ */
+export function segnaFormSporco(form) {
+    dimenticaFormSeSegnoSpentoAMano();
+    if (!formContaComeSporco(form)) return;
+    formSporchi.add(form);
+    applicaSegnoFormSporco();
+}
+
+/**
+ * Spegne il segno di un form salvato. Senza form spegne tutti.
+ * @param {HTMLFormElement|null|undefined} [form]
+ */
+export function segnaFormSalvato(form) {
+    dimenticaFormSeSegnoSpentoAMano();
+    if (form) formSporchi.delete(form);
+    else formSporchi.clear();
+    applicaSegnoFormSporco();
+}
+
 export function attivaAscoltoForm() {
     if (ascoltoPronto || typeof document === 'undefined') return;
     ascoltoPronto = true;
     document.addEventListener('input', (event) => {
         if (!event.isTrusted) return;
         const target = event.target;
-        if (!target || typeof target.closest !== 'function' || !target.closest('form')) return;
-        window.__gfvFormSporco = true;
-        try {
-            if (window.parent && window.parent !== window) window.parent.__gfvFormSporco = true;
-        } catch (error) {
-            /* iframe di un'altra origine */
-        }
+        if (!target || typeof target.closest !== 'function') return;
+        segnaFormSporco(target.closest('form'));
     }, true);
+    document.addEventListener('reset', (event) => {
+        const form = event.target;
+        if (!form || String(form.nodeName || '').toUpperCase() !== 'FORM') return;
+        segnaFormSalvato(form);
+    }, true);
+    document.addEventListener(EVENTO_FORM_SALVATO, (event) => {
+        const detail = event && event.detail;
+        segnaFormSalvato(detail && detail.form ? detail.form : null);
+    });
 }
 
 if (typeof document !== 'undefined') attivaAscoltoForm();
@@ -326,6 +383,7 @@ function nascondiBarra() {
 }
 
 function formSporcoAdesso() {
+    dimenticaFormSeSegnoSpentoAMano();
     return Boolean(window.__gfvFormSporco);
 }
 
