@@ -386,5 +386,6 @@ export const FIELD_UI_STRINGS = {
     "update.available": { it: "C'è una nuova versione", ro: "Există o versiune nouă", en: "There's a new version", sq: "Ka një version të ri", fr: "Il y a une nouvelle version" },
     "update.action": { it: "Aggiorna", ro: "Actualizează", en: "Update", sq: "Përditëso", fr: "Mettre à jour" },
     "update.unsaved": { it: "Hai dati non salvati: aggiorni lo stesso?", ro: "Ai date nesalvate: actualizezi oricum?", en: "You have unsaved data: update anyway?", sq: "Ke të dhëna të paruajtura: i përditëson prapë?", fr: "Vous avez des données non enregistrées : mettre à jour quand même ?" },
-    "update.cancel": { it: "Annulla", ro: "Anulează", en: "Cancel", sq: "Anulo", fr: "Annuler" }
+    "update.cancel": { it: "Annulla", ro: "Anulează", en: "Cancel", sq: "Anulo", fr: "Annuler" },
+    "update.inProgress": { it: "Aggiornamento in corso…", ro: "Actualizare în curs…", en: "Updating…", sq: "Përditësimi në vazhdim…", fr: "Mise à jour en cours…" }
 };

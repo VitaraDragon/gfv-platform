@@ -1,15 +1,23 @@
 /**
  * Barra «C'è una nuova versione».
  * Il service worker resta in attesa: la pagina si ricarica solo dal pulsante Aggiorna.
+ * Dopo Aggiorna la barra resta con «Aggiornamento in corso…». Se il worker nuovo non si
+ * attiva entro ATTESA_ATTIVAZIONE_MS (il browser la rimanda finché il worker vecchio ha una
+ * risposta ancora in download), la pagina si ricarica da sola, ma solo senza dati non
+ * salvati e senza un salvataggio in corso.
  * @module core/js/app-update
  */
 
 import { t, leggiLinguaCampo } from '../services/field-ui-i18n.js';
 
 export const INTERVALLO_AGGIORNAMENTO_MS = 15 * 60 * 1000;
-export const VERSIONE_MODULO = '2026-10-20a';
+export const VERSIONE_MODULO = '2026-10-21a';
 export const EVENTO_FORM_SALVATO = 'gfv:form-salvato';
 export const ATTRIBUTO_SENZA_AVVISO = 'data-gfv-senza-avviso';
+/** Attesa massima di controllerchange dopo Aggiorna, poi si ricarica a mano. */
+export const ATTESA_ATTIVAZIONE_MS = 10 * 1000;
+const INTERVALLO_SKIP_MS = 400;
+const RIPROVA_NAVIGAZIONE_MS = 1500;
 
 const formSporchi = new Set();
 
@@ -17,7 +25,13 @@ const TESTO = {
     disponibile: 'update.available',
     azione: 'update.action',
     nonSalvati: 'update.unsaved',
-    annulla: 'update.cancel'
+    annulla: 'update.cancel',
+    inCorso: 'update.inProgress'
+};
+
+/** Se il catalogo in cache è di una build vecchia e non ha ancora la chiave. */
+const TESTO_RISERVA = {
+    'update.inProgress': 'Aggiornamento in corso…'
 };
 
 const controllerAlCaricamentoPagina = (() => {
@@ -39,6 +53,10 @@ let buildInAttesa = '';
 let ignoraAttesaCorrente = false;
 let workerMostrato = null;
 let timerSkip = 0;
+/** 'disponibile': messaggio e pulsante Aggiorna. 'inCorso': solo «Aggiornamento in corso…». */
+let statoBarra = 'disponibile';
+/** Un tentativo è scaduto senza reload (dati non salvati): il prossimo Aggiorna ricarica subito. */
+let tentativoScaduto = false;
 
 /**
  * @param {string} hostname
@@ -106,6 +124,21 @@ export function deveRicaricareSuControllerChange({
     giaRicaricatoPerBuild = false
 } = {}) {
     return Boolean(richiesto) && !inCorso && !giaRicaricatoPerBuild;
+}
+
+/**
+ * Scaduta l'attesa di controllerchange dopo Aggiorna: si ricarica a mano?
+ * No se un reload è già partito (flag condiviso con controllerchange), se ci sono
+ * dati non salvati o se un salvataggio è in corso.
+ * @param {{ ricaricando?: boolean, formSporco?: boolean, salvataggioInCorso?: boolean }} stato
+ * @returns {boolean}
+ */
+export function deveRicaricareDopoAttesa({
+    ricaricando: inCorso = false,
+    formSporco = false,
+    salvataggioInCorso = false
+} = {}) {
+    return !inCorso && !formSporco && !salvataggioInCorso;
 }
 
 /**
@@ -238,6 +271,7 @@ function installaControllerChange() {
         ricaricando = true;
         segnaRicaricato(build);
         if (timerSkip) window.clearInterval(timerSkip);
+        timerSkip = 0;
         // Fuori dal turno di controllerchange: nello stesso turno il browser può ignorare il reload.
         const ricarica = () => {
             window.location.reload();
@@ -297,7 +331,9 @@ function linguaBarra() {
 }
 
 function testo(chiave) {
-    return t(chiave, linguaBarra());
+    const valore = t(chiave, linguaBarra());
+    if (valore === chiave && TESTO_RISERVA[chiave]) return TESTO_RISERVA[chiave];
+    return valore;
 }
 
 function assicuraStile() {
@@ -339,9 +375,18 @@ function aggiornaTestiBarra() {
     const annulla = document.getElementById('gfv-app-update-annulla');
     const conferma = document.getElementById('gfv-app-update-conferma');
     const bar = document.getElementById('gfv-app-update-bar');
-    if (messaggio) messaggio.textContent = testo(TESTO.disponibile);
-    if (bottone) bottone.textContent = testo(TESTO.azione);
-    if (bar) bar.setAttribute('aria-label', testo(TESTO.disponibile));
+    const inCorso = statoBarra === 'inCorso';
+    const scritta = testo(inCorso ? TESTO.inCorso : TESTO.disponibile);
+    if (messaggio) messaggio.textContent = scritta;
+    if (bottone) {
+        bottone.textContent = testo(TESTO.azione);
+        bottone.hidden = inCorso;
+        bottone.disabled = inCorso;
+    }
+    if (bar) {
+        bar.setAttribute('aria-label', scritta);
+        bar.setAttribute('aria-busy', inCorso ? 'true' : 'false');
+    }
     if (domanda) domanda.textContent = testo(TESTO.nonSalvati);
     if (annulla) annulla.textContent = testo(TESTO.annulla);
     if (conferma) conferma.textContent = testo(TESTO.azione);
@@ -357,6 +402,7 @@ function mostraBarra(registration, worker) {
         bar.setAttribute('role', 'region');
         const messaggio = document.createElement('p');
         messaggio.id = 'gfv-app-update-messaggio';
+        messaggio.setAttribute('aria-live', 'polite');
         const bottone = document.createElement('button');
         bottone.id = 'gfv-app-update-btn';
         bottone.type = 'button';
@@ -375,7 +421,13 @@ function mostraBarra(registration, worker) {
     aggiornaOffset();
 }
 
+function mostraAggiornamentoInCorso(registration, worker) {
+    statoBarra = 'inCorso';
+    mostraBarra(registration, worker);
+}
+
 function nascondiBarra() {
+    if (statoBarra === 'inCorso') return;
     workerMostrato = null;
     const bar = document.getElementById('gfv-app-update-bar');
     if (bar) bar.remove();
@@ -469,10 +521,12 @@ async function preparaAggiornamento(registration) {
     let confermato = true;
     if ((formSporco || salvataggioInCorso) && !gia) confermato = await chiediConferma();
     if (!puoRicaricare({ formSporco, salvataggioInCorso, confermato, giaRicaricatoPerBuild: gia })) return;
+    if (ricaricando) return;
     ignoraAttesaCorrente = true;
-    nascondiBarra();
     aggiornaRichiesto = true;
     buildInAttesa = build;
+    // La barra resta: «Aggiornamento in corso…» fino al reload.
+    mostraAggiornamentoInCorso(registration, waiting);
     const inviaSkip = () => {
         const target = (registration && registration.waiting) || waiting;
         if (!target) return;
@@ -485,19 +539,82 @@ async function preparaAggiornamento(registration) {
     };
     inviaSkip();
     if (timerSkip) window.clearInterval(timerSkip);
-    let tentativi = 0;
+    timerSkip = 0;
+    if (tentativoScaduto) {
+        // Il worker è già rimasto bloccato una volta e l'utente ha ripremuto Aggiorna
+        // (con conferma, se aveva dati non salvati): si ricarica subito.
+        ricaricaSenzaControllerChange();
+        return;
+    }
     const ancoraInAttesa = () => {
         if (registration && registration.waiting) return true;
         if (!waiting) return false;
         return waiting.state === 'installing' || waiting.state === 'installed';
     };
+    const inizio = Date.now();
     timerSkip = window.setInterval(() => {
-        tentativi += 1;
-        if (!ancoraInAttesa() || tentativi > 25) {
+        if (ricaricando) {
             window.clearInterval(timerSkip);
             timerSkip = 0;
             return;
         }
-        inviaSkip();
-    }, 400);
+        if (Date.now() - inizio < ATTESA_ATTIVAZIONE_MS) {
+            if (ancoraInAttesa()) inviaSkip();
+            return;
+        }
+        window.clearInterval(timerSkip);
+        timerSkip = 0;
+        attesaScaduta(registration, waiting);
+    }, INTERVALLO_SKIP_MS);
+}
+
+/**
+ * Nessun controllerchange entro ATTESA_ATTIVAZIONE_MS: di solito il worker nuovo è
+ * ancora in attesa perché il vecchio sta servendo un file lento. Il reload chiude
+ * quelle richieste e il browser attiva il worker nuovo.
+ */
+function attesaScaduta(registration, waiting) {
+    const formSporco = formSporcoAdesso();
+    const salvataggioInCorso = salvataggioInCorsoAdesso();
+    if (deveRicaricareDopoAttesa({ ricaricando, formSporco, salvataggioInCorso })) {
+        ricaricaSenzaControllerChange();
+        return;
+    }
+    if (ricaricando) return;
+    // Dati non salvati o salvataggio in corso: niente reload. Torna la barra con Aggiorna,
+    // e un controllerchange tardivo non ricarica da solo.
+    console.warn('[app-update] Worker nuovo ancora in attesa: reload rimandato per dati non salvati');
+    aggiornaRichiesto = false;
+    tentativoScaduto = true;
+    ignoraAttesaCorrente = false;
+    statoBarra = 'disponibile';
+    mostraBarra(registration, (registration && registration.waiting) || waiting);
+}
+
+function ricaricaSenzaControllerChange() {
+    if (ricaricando) return;
+    ricaricando = true;
+    // Niente chiave in sessionStorage: se dopo il reload il worker è ancora in attesa,
+    // la barra torna e Aggiorna funziona di nuovo.
+    window.location.reload();
+    // Se la pagina è ancora qui dopo RIPROVA_NAVIGAZIONE_MS la navigazione è rimasta appesa:
+    // succede quando il worker vecchio viene sostituito mentre la gestisce (reload senza
+    // gesto dell'utente). Un secondo reload() viene ignorato; replace() la sostituisce.
+    window.setTimeout(navigaDiNuovo, RIPROVA_NAVIGAZIONE_MS);
+}
+
+/**
+ * Stesso indirizzo senza frammento: con #... replace() farebbe solo uno scroll.
+ * @param {{ href?: string, hash?: string }} locationLike
+ * @returns {string}
+ */
+export function urlPerRiprovaNavigazione(locationLike) {
+    const loc = locationLike || {};
+    const href = String(loc.href || '');
+    const i = href.indexOf('#');
+    return i === -1 ? href : href.slice(0, i);
+}
+
+function navigaDiNuovo() {
+    window.location.replace(urlPerRiprovaNavigazione(window.location));
 }
