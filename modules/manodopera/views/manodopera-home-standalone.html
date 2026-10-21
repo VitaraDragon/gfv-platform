@@ -294,7 +294,7 @@
         const auth = getAuthInstance();
         const db = getDb();
 
-        const dependencies = { db, collection, getDocs, query, where, orderBy, limit, getDoc, doc };
+        const dependencies = { auth, db, collection, getDocs, query, where, orderBy, limit, getDoc, doc };
 
         let currentTenantId = null;
         let hasContoTerzi = false;
@@ -406,6 +406,14 @@
       }
       setTimeout(run, 400);
     })();
+    </script>
+    <!-- Service Worker: la barra di aggiornamento sta in app-update.js -->
+    <script type="module">
+        import { registraServiceWorker } from '../../../core/js/app-update.js?v=2026-10-21a';
+        const swPath = window.location.pathname.includes('/gfv-platform/')
+            ? '/gfv-platform/service-worker.js'
+            : '../../../service-worker.js';
+        registraServiceWorker(swPath);
     </script>
 </body>
 </html>

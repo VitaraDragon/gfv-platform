@@ -3047,6 +3047,8 @@ async function initFieldWorkspace() {
                 azzeraRimbalziIngresso();
                 try {
                     const deciso = Number(sessionStorage.getItem('gfv_ingresso_deciso_at') || '0');
+                    // Si legge una volta sola: F5 o Ctrl+Shift+R non sono un ingresso dalla dashboard.
+                    sessionStorage.removeItem('gfv_ingresso_deciso_at');
                     if (deciso) {
                         console.log('[ingresso] dalla decisione all\'apertura del workspace: ' + (Date.now() - deciso) + ' ms');
                     }

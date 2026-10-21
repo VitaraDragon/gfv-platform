@@ -349,5 +349,13 @@
     <script>window.currentTableData = window.currentTableData || { pageType: 'concimazioni_vigneto', summary: 'Caricamento dati in corso...', items: [] };</script>
     <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
     <script type="module" src="../js/concimazioni-page.js"></script>
+    <!-- Service Worker: la barra di aggiornamento sta in app-update.js -->
+    <script type="module">
+        import { registraServiceWorker } from '../../../core/js/app-update.js?v=2026-10-21a';
+        const swPath = window.location.pathname.includes('/gfv-platform/')
+            ? '/gfv-platform/service-worker.js'
+            : '../../../service-worker.js';
+        registraServiceWorker(swPath);
+    </script>
 </body>
 </html>
