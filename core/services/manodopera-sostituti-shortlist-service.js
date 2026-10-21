@@ -23,6 +23,7 @@ import { toGiornoKey } from '../config/manodopera-assenze-config.js';
 import { getOperaioIdsAssentiConfermatiPerGiorno } from './manodopera-assenze-service.js';
 import { isLavoroPrestabile } from '../config/manodopera-sostituzione-policy-config.js';
 import { computeProximityMeta } from './geo-terreno-utils.js';
+import { lavoroCopreGiornoKey } from './manodopera-impegni-giorno-logic.js';
 import {
   SHORTLIST_MAX_CANDIDATI,
   LAVORO_STATI_IMPEGNO,
@@ -132,6 +133,9 @@ export async function buildShortlistSostitutiPerLavoroStandby(options) {
   }
 
   const squadreMap = buildOperaioSquadreMap(squadreList);
+  // Impegno solo sui lavori che coprono il giorno dell'assenza (stessa regola della vista
+  // Impegni giornalieri: manodopera-impegni-giorno-logic.js buildImpegniGiornoSnapshot).
+  const lavoriGiorno = (lavori || []).filter((l) => lavoroCopreGiornoKey(giornoKey, l));
   const previstiIds = resolvePrevistiOperaioIds(lavoro, squadreList, giornoKey);
   const assentiIds = [
     ...new Set(
@@ -155,12 +159,18 @@ export async function buildShortlistSostitutiPerLavoroStandby(options) {
     sostitutiIds: [...new Set(sostitutiGia)]
   });
 
+  // Chi è già previsto su questo lavoro quel giorno (roster o anagrafica squadra)
+  // non è un sostituto: lavora già qui.
+  const previstiSet = new Set(previstiIds);
+
   const candidati = [];
   for (const op of operaiList) {
     const operaioId = op.id || op.uid;
     if (!operaioId || operaioId === assenteOperaioId) continue;
     // Esclusione dura: assenza confermata sul giorno del lavoro
     if (assentiSet.has(operaioId)) continue;
+    // Esclusione dura: già previsto sul lavoro di destinazione
+    if (previstiSet.has(operaioId)) continue;
 
     const profilo =
       profiliByUser.get(operaioId) ||
@@ -173,7 +183,7 @@ export async function buildShortlistSostitutiPerLavoroStandby(options) {
     if (!operaioQualificatoPerSkill(profilo, requiredSkillIds)) continue;
 
     const stelleMinime = getMinStelleSuSkillRichieste(profilo, requiredSkillIds);
-    const impegno = findImpegnoLavoroOperaio(operaioId, lavori, squadreMap, lavoroId);
+    const impegno = findImpegnoLavoroOperaio(operaioId, lavoriGiorno, squadreMap, lavoroId);
     const { disponibilita, richiedeConfermaSpostamento } = classifyDisponibilitaCandidato({
       impegno,
       lavoroDestinazione: lavoro,
