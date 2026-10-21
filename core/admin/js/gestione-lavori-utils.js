@@ -224,7 +224,8 @@ export function calcolaStatoProgresso(lavoro, terreno) {
     const superficieTotale = terreno?.superficie || 0;
     const superficieLavorata = lavoro.superficieTotaleLavorata || lavoro.superficieLavorata || 0;
     const percentualeCompletamento = superficieTotale > 0 ? (superficieLavorata / superficieTotale * 100) : 0;
-    const percentualeTempo = (giorniEffettivi / lavoro.durataPrevista) * 100;
+    // Giorni già conclusi: oggi conta nel «giorno X di N» ma non è ancora consumato.
+    const percentualeTempo = ((giorniEffettivi - 1) / lavoro.durataPrevista) * 100;
     const tolleranza = 10; // Tolleranza del 10%
     
     if (percentualeCompletamento > percentualeTempo + tolleranza) {
