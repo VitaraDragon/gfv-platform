@@ -86,6 +86,22 @@ function nomeOperaioFromList(operaioId) {
   return [o.nome, o.cognome].filter(Boolean).join(' ') || o.email || operaioId;
 }
 
+/**
+ * Il banner «da gestire oggi» tiene le segnalate e le confermate che hanno
+ * ancora un lavoro in standby senza sostituto. Una confermata senza standby
+ * è già chiusa: la squadra prosegue e non va più chiesta al manager.
+ * standbyLavoroId è un solo id (l'ultimo lavoro messo in standby), non una lista.
+ * @param {Object} a
+ * @returns {boolean}
+ */
+export function assenzaDaGestireNelBanner(a) {
+  if (!a) return false;
+  if (a.stato === 'segnalata') return true;
+  if (a.stato !== 'confermata') return false;
+  if (a.sostitutoOperaioId) return false;
+  return Boolean(a.standbyLavoroId);
+}
+
 export async function refreshAssenzeSegnalateBanner() {
   const el = document.getElementById('assenze-segnalate-banner');
   if (!el) return;
@@ -98,7 +114,7 @@ export async function refreshAssenzeSegnalateBanner() {
     const byId = new Map();
     segnalate.forEach((a) => { if (a && a.id) byId.set(a.id, a); });
     aperteOggi.forEach((a) => { if (a && a.id) byId.set(a.id, a); });
-    const rows = Array.from(byId.values());
+    const rows = Array.from(byId.values()).filter(assenzaDaGestireNelBanner);
     if (!rows.length) {
       el.hidden = true;
       el.innerHTML = '';

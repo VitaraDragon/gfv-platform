@@ -47,6 +47,7 @@ vi.mock('../core/js/standalone-alert.js', () => ({
 }));
 
 import {
+    assenzaDaGestireNelBanner,
     confermaSegnalazioneStandby,
     initGestioneLavoriAssenzeUi,
     refreshAssenzeSegnalateBanner,
@@ -153,5 +154,87 @@ describe('scelta lavori in standby per un\'assenza segnalata', () => {
         expect(html).toContain('Conferma e standby');
         expect(html).toContain("confermaSegnalazioneStandby('A1')");
         expect(html).not.toContain("confermaSegnalazioneStandby('A1',");
+    });
+});
+
+describe('banner: confermata senza standby non è più da gestire', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+        montaModale();
+        window.openSostitutoAssenzaModal = vi.fn();
+        mocks.listAssenzeSegnalate.mockResolvedValue([]);
+        mocks.listAssenzeApertePerGiorno.mockResolvedValue([]);
+        initGestioneLavoriAssenzeUi({
+            getCurrentUserData: () => ({ id: 'mgr' }),
+            getOperaiList: () => [{ id: 'ion', nome: 'Ion', cognome: 'Rossi' }],
+            getSquadreList: () => [],
+            reloadLavori: vi.fn()
+        });
+    });
+
+    it('toglie la confermata senza standby e tiene quella con standby', async () => {
+        mocks.listAssenzeApertePerGiorno.mockResolvedValue([
+            {
+                id: 'A-senza',
+                operaioId: 'ion',
+                stato: 'confermata',
+                tipo: 'malattia',
+                tipoLabel: 'Malattia',
+                dataInizioGiorno: GIORNO,
+                standbyLavoroId: null
+            },
+            {
+                id: 'A-con',
+                operaioId: 'ion',
+                stato: 'confermata',
+                tipo: 'malattia',
+                tipoLabel: 'Malattia',
+                dataInizioGiorno: GIORNO,
+                standbyLavoroId: 'L239'
+            }
+        ]);
+        await refreshAssenzeSegnalateBanner();
+        const banner = document.getElementById('assenze-segnalate-banner');
+        expect(banner.hidden).toBe(false);
+        expect(banner.innerHTML).toContain('Scegli sostituto');
+        expect(banner.innerHTML).toContain("openSostitutoAssenzaModal('L239')");
+        expect(banner.innerHTML).not.toContain('A-senza');
+        expect(banner.innerHTML).not.toContain('Apri il lavoro');
+        expect(banner.innerHTML).toContain('1 assenza da gestire oggi');
+    });
+
+    it('nasconde il banner se restano solo confermate senza standby', async () => {
+        mocks.listAssenzeApertePerGiorno.mockResolvedValue([
+            {
+                id: 'A-senza',
+                operaioId: 'ion',
+                stato: 'confermata',
+                tipo: 'malattia',
+                dataInizioGiorno: GIORNO,
+                standbyLavoroId: null
+            }
+        ]);
+        await refreshAssenzeSegnalateBanner();
+        const banner = document.getElementById('assenze-segnalate-banner');
+        expect(banner.hidden).toBe(true);
+        expect(banner.innerHTML).toBe('');
+    });
+
+    it('assenzaDaGestireNelBanner distingue segnalata, standby e sostituto', () => {
+        expect(assenzaDaGestireNelBanner({ stato: 'segnalata' })).toBe(true);
+        expect(assenzaDaGestireNelBanner({
+            stato: 'confermata',
+            standbyLavoroId: 'L239'
+        })).toBe(true);
+        expect(assenzaDaGestireNelBanner({
+            stato: 'confermata',
+            standbyLavoroId: null
+        })).toBe(false);
+        expect(assenzaDaGestireNelBanner({
+            stato: 'confermata',
+            standbyLavoroId: 'L239',
+            sostitutoOperaioId: 'marco'
+        })).toBe(false);
+        expect(assenzaDaGestireNelBanner(null)).toBe(false);
     });
 });
