@@ -3712,6 +3712,15 @@
         };
         
     </script>
+    <!-- Service Worker: la barra di aggiornamento sta in app-update.js -->
+    <script type="module">
+        import { registraServiceWorker } from '../js/app-update.js?v=2026-10-21a';
+        const swPath = window.location.pathname.includes('/gfv-platform/')
+            ? '/gfv-platform/service-worker.js'
+            : '../../service-worker.js';
+        // Dentro l'iframe del workspace di campo la barra la mostra già la pagina madre.
+        if (window.self === window.top) registraServiceWorker(swPath);
+    </script>
 </body>
 </html>
 
