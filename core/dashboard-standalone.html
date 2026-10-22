@@ -355,7 +355,7 @@
                 const dalCaricamento = t0 ? (Date.now() - t0) : 0;
                 const dalPerf = p0 ? Math.round(performance.now() - p0) : dalCaricamento;
                 console.log('[ingresso] ' + fase + ': ' + dalPerf + ' ms (performance.now) dal caricamento della dashboard');
-                if (fase === 'decisione') sessionStorage.setItem('gfv_ingresso_deciso_at', String(Date.now()));
+                if (fase === 'decisione' && window.__gfvIngressoScelta === 'workspace') sessionStorage.setItem('gfv_ingresso_deciso_at', String(Date.now()));
             } catch (error) { /* ignore */ }
         }
 
