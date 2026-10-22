@@ -332,13 +332,13 @@ Quando pubblichiamo una versione nuova dell’app, in fondo allo schermo compare
 
 - **Quando compare:** solo se online c’è davvero una versione più nuova di quella che state usando. L’app controlla quando la aprite, quando ci tornate da un’altra app o scheda e ogni 15 minuti circa. La prima volta che aprite l’app su un dispositivo la barra non compare.  
 - **Dove:** nelle pagine principali, per esempio accesso, registrazione da invito, dashboard, versione mobile di campo, **Segna ore**, **Diario attività**, **Statistiche**, **Terreni**, **Impostazioni**.  
-- **Niente si ricarica da solo:** potete finire quello che state facendo. La pagina si ricarica solo quando toccate **Aggiorna**.  
+- **Niente si ricarica prima di Aggiorna:** potete finire quello che state facendo. Il ricaricamento parte solo dopo che avete toccato **Aggiorna**.  
 - **Aggiorna** resta sempre toccabile: la barra sta sopra le finestre aperte e sopra Tony (il pulsante di Tony si sposta un po’ più in alto).
 
 ### Passi
 
 1. Salvate quello che state scrivendo (ore, segnalazione, scheda…).  
-2. Toccate **Aggiorna**: la pagina si ricarica con la versione nuova e la barra sparisce. Per la stessa versione non ricompare.  
+2. Toccate **Aggiorna**: il pulsante sparisce e la barra mostra **Aggiornamento in corso…** finché la pagina si ricarica con la versione nuova; poi la barra sparisce. Per la stessa versione non ricompare. Se dopo una decina di secondi la versione nuova non è ancora partita, la pagina si ricarica da sola, ma solo se non avete dati non salvati e nessun salvataggio è in corso. In quel caso la barra torna con **Aggiorna**: salvate e toccatelo di nuovo, la pagina si ricarica subito.  
 3. Se avete scritto qualcosa in un modulo della pagina, o un salvataggio è ancora in corso, prima compare la domanda **Hai dati non salvati: aggiorni lo stesso?** Dopo aver salvato le ore (**Segna ore** o scheda **Ore** del campo) o inviato una segnalazione guasto la domanda non compare più; nelle altre pagine può comparire anche dopo che avete salvato: se avete già salvato tutto, potete toccare **Aggiorna** senza perdere nulla.  
    - **Annulla**: non si ricarica nulla, i dati scritti restano e la barra resta in basso. Salvate e poi toccate di nuovo **Aggiorna**.  
    - **Aggiorna**: la pagina si ricarica subito e quello che non avevate salvato si perde.

@@ -92,7 +92,7 @@ Per aggiornare le ore:
 
 1. Nella versione mobile apri la scheda **⚠️ Segnala un problema** (dopo **Ore**; non è nel menu ingranaggio)
 2. Scegli **🔧 Guasto Macchina/Attrezzo** oppure **🌍 Segnalazione Generica**
-3. Proposti in automatico (da controllare): in **Lavoro corrente** il lavoro della scheda **Lavoro** del campo (scelto o, se mai scelto, il primo in ordine alfabetico; altrimenti quello già in corso) e, se quel lavoro li ha, il suo trattore e attrezzo con il **Componente**
+3. Proposti in automatico (da controllare): in **Lavoro corrente** il lavoro della scheda **Lavoro** del campo (scelto o, se mai scelto, quello che la scheda propone da sola, prima il lavoro in corso; altrimenti quello già in corso) e, se quel lavoro li ha, il suo trattore e attrezzo con il **Componente**
 4. Compila:
    - Trattore e **Componente con guasto** (Trattore, Attrezzo o Entrambi)
    - **Gravità**: Non grave - Posso finire il lavoro / Grave - Sospendere subito

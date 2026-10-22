@@ -51,7 +51,7 @@ Sono due cose diverse, anche se in entrambi i casi il lavoro si ferma.
   2. se indica una **data di ripresa**, l’app crea subito il **lavoro di ripresa**;  
   3. senza data il lavoro resta **Sospeso** e la ripresa si crea dopo con **🔁 Crea ripresa** sulla riga.  
   Anche il **caposquadra** può sospendere, dalla versione mobile o da **I miei lavori**, con **⏸️ Sospendi lavoro**: scrive il motivo a parole sue (testo libero). La ripresa la crea sempre il manager.
-- **Standby per assenza (manca qualcuno della squadra).** Il caposquadra usa **Segnala assenza**; il manager conferma da **Gestione lavori** con **⏸️ Standby assenza** (operaio assente, tipo di assenza, giorno). Il lavoro passa in **Standby (assenza)** finché il manager non **assegna un sostituto** o non **ripristina** il lavoro: non si crea un lavoro di ripresa.
+- **Standby per assenza (manca qualcuno della squadra).** Il caposquadra usa **Segnala assenza**; il manager conferma da **Gestione lavori** con **Conferma e standby** e sceglie quali lavori di quel giorno fermare (il lavoro autonomo dell’assente è già spuntato, quelli di squadra no e proseguono senza chi manca), oppure ferma un singolo lavoro con **⏸️ Standby assenza** (operaio assente, tipo di assenza, giorno). Il lavoro passa in **Standby (assenza)** finché il manager non **assegna un sostituto** o non **ripristina** il lavoro: non si crea un lavoro di ripresa.
 
 I passi completi sono nelle guide **Manager** e **Caposquadra**.
 

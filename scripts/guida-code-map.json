@@ -1372,6 +1372,165 @@
         "MANODOPERA"
       ],
       "label": "Runner E2E simulatore: di solito nessun testo guida"
+    },
+    {
+      "prefix": "sw-strategy.js",
+      "modules": [
+        "CORE",
+        "TONY"
+      ],
+      "label": "Strategie del service worker (cache prima per file versionati, HTML rete prima 3 s, .md fuori dal SW, cache della build precedente): di solito solo guida tecnica"
+    },
+    {
+      "prefix": "tests/sw-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test service worker (strategie, navigazioni senza annullo): di solito nessun testo guida"
+    },
+    {
+      "prefix": "core/services/assenze-banner-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Banner «assenze da gestire» (Gestione lavori e Impegni giornalieri) dai lavori in standby"
+    },
+    {
+      "prefix": "core/js/impegni-assenze-banner",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Banner «Assenze da gestire» in Impegni giornalieri (un Scegli sostituto per lavoro in standby)"
+    },
+    {
+      "prefix": "core/services/assenza-lavori-giorno",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Lavori del giorno collegati a un'assenza (candidati standby, autonomo preselezionato)"
+    },
+    {
+      "prefix": "core/js/manodopera-roster-edit-ui",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Modale «Scegli manualmente» (roster del giorno) da Impegni giornalieri e Gestione lavori"
+    },
+    {
+      "prefix": "core/js/dashboard-avvio-letture",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Dashboard: letture di avvio utente/tenant in parallelo (di solito nessun testo guida)"
+    },
+    {
+      "prefix": "core/js/dashboard-letture-condivise",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Dashboard: terreni e macchine letti una volta (di solito nessun testo guida)"
+    },
+    {
+      "prefix": "tests/dashboard-manager-letture",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test letture dashboard manager: di solito nessun testo guida"
+    },
+    {
+      "prefix": "tests/dashboard-meteo",
+      "modules": [
+        "CORE",
+        "METEO"
+      ],
+      "label": "Test card meteo della dashboard"
+    },
+    {
+      "prefix": "tests/dashboard-tony-briefing",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Test briefing Tony in dashboard (attesa senza timeout falso)"
+    },
+    {
+      "prefix": "tests/gestione-lavori-assenza-scelta-lavori",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test scelta dei lavori da mettere in standby alla conferma assenza"
+    },
+    {
+      "prefix": "tests/gestione-lavori-scegli-manualmente",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test modale «Scegli manualmente»"
+    },
+    {
+      "prefix": "tests/gestione-lavori-stato-progresso-ritardo",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test ritardo/tempo/anticipo (oggi non conta come consumato)"
+    },
+    {
+      "prefix": "tests/gestione-lavori-terreno-cliente-lookup",
+      "modules": [
+        "MANODOPERA",
+        "CONTO_TERZI"
+      ],
+      "label": "Test lookup terreni aziendali/clienti in Gestione lavori"
+    },
+    {
+      "prefix": "tests/impegni-assenze-banner",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test banner assenze di Impegni giornalieri"
+    },
+    {
+      "prefix": "tests/services/assenza-lavori-giorno",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test lavori del giorno per un'assenza"
+    },
+    {
+      "prefix": "tests/services/assenze-banner",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test banner assenze da gestire"
+    },
+    {
+      "prefix": "tests/services/field-ui-i18n",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test catalogo lingue della versione mobile"
+    },
+    {
+      "prefix": "tests/services/lavori-service-",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Test lavori-service (es. throwOnError)"
+    },
+    {
+      "prefix": "tests/services/sostituti-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test shortlist sostituti (impegno per giorno, esclusi i previsti)"
+    },
+    {
+      "prefix": ".github/workflows/simulator-ci",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Workflow CI del simulatore: di solito nessun testo guida"
     }
   ]
 }

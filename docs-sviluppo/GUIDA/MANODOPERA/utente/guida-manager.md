@@ -253,11 +253,12 @@ Quindi non devi cambiare manualmente lo stato a ogni passaggio: controlli e deci
 
 In cima a **Gestione lavori** ci sono i riquadri con i numeri: **Lavori Totali**, **In Corso**, **Ore Validate**, **Superficie Lavorata**, **🔴 In Ritardo**, **🟢 In Tempo**, **🚀 In Anticipo**.
 
-- **Lavori Totali** e **In Corso** compaiono insieme all’elenco dei lavori.  
-- Gli altri riquadri partono da **«-»** (il numero lampeggia leggermente) e poi mostrano il valore: con molti lavori il calcolo richiede qualche secondo. Un **«-»** non vuol dire zero.  
+- Tutti i riquadri partono da **«-»**. **Lavori Totali** e **In Corso** mostrano il numero appena arriva l’elenco dei lavori.  
+- Gli altri riquadri restano su **«-»** (il numero lampeggia leggermente) e poi mostrano il valore: con molti lavori il calcolo richiede qualche secondo. Un **«-»** non vuol dire zero.  
 - Se il valore ha un **asterisco** (es. «12.40 ha*»), qualche lavoro non è stato letto: passando sopra al numero leggi «Dato parziale: N lavori non letti». Il numero conta solo gli altri lavori; ricarica la pagina per riprovare.  
 - **Superficie Lavorata** e la percentuale di ogni lavoro contano la superficie coperta dall’**unione** delle zone sul terreno: se due zone chiuse (aree) si sovrappongono, la parte in comune conta **una volta sola**, e un lavoro non supera mai il **100%**; i tratti segnati come percorso aperto (con la larghezza) si sommano. Le zone segnate in passato dagli operai contano ancora: il calcolo le legge tutte. Ora l’area lavorata è l’unione delle zone ritagliata sul terreno, quindi il numero può cambiare un poco rispetto a prima.  
 - Un lavoro completato senza nessuna zona segnata non mostra una percentuale: in elenco (e nei lavori recenti della dashboard) compare **✅ Completato (nessuna zona tracciata)**.  
+- **🔴 In Ritardo / 🟢 In Tempo / 🚀 In Anticipo** confrontano la percentuale di superficie lavorata con i giorni del lavoro **già finiti**: il giorno di oggi non conta ancora come passato. Esempio: il primo giorno di un lavoro di 5 giorni il tempo trascorso è 0%, il terzo giorno è 40%. C’è una tolleranza di 10 punti: il lavoro è in ritardo se la superficie fatta resta più di 10 punti sotto il tempo trascorso, in anticipo se lo supera di più di 10 punti.  
 - Nella mappa del dettaglio lavoro, il filtro per data indica per ogni giorno quante zone e quanti ettari, con la stessa regola dell’unione.
 
 ### Chi segna le zone lavorate
@@ -322,18 +323,23 @@ Quando un operaio **non c’è** sul lavoro di oggi, l’app vi aiuta a tenere i
 
 ### Chi fa cosa
 
-- **Caposquadra** (versione mobile): può **Segnala assenza** sul lavoro corrente — avvisa voi manager; il lavoro passa in **standby** dopo la **vostra conferma** (non subito da solo).  
-- **Manager / amministratore** (Gestione lavori): confermate l’assenza, mettete o confermate lo **standby**, poi **scegliete il sostituto**.  
+- **Caposquadra** (versione mobile): può **Segnala assenza** — avvisa voi manager. La segnalazione vale per tutti i lavori aperti di quel giorno in cui l’operaio era previsto; nessun lavoro si ferma da solo: vanno in **standby** solo i lavori che scegliete voi quando confermate.  
+- **Manager / amministratore** (Gestione lavori): confermate l’assenza, scegliete quali lavori mettere in **standby**, poi **scegliete il sostituto** per ognuno.  
 - **Operaio sostituto**: compare sul lavoro (e in **Impegni giornalieri** come sostituto); segna le ore come di consueto; il caposquadra le valida. Su un **lavoro autonomo** il sostituto segna anche le **zone lavorate** e vede quelle già segnate dal collega; su un lavoro di squadra le zone restano al caposquadra.
 
 ### Passi tipici da Gestione lavori
 
-1. Aprite **Home Manodopera** → **Gestione lavori** (o partite dalla **notifica push** «Assenza oggi» / alert in dashboard).  
-2. Individuate il lavoro e l’assenza: potete aprire **Standby assenza** / **Conferma e standby** se il caposquadra ha già segnalato.  
-3. Se l’equipaggio scende sotto il minimo previsto, il lavoro resta in **standby** finché non c’è un sostituto (o non ripristinate la situazione).  
-4. Usate **👤 Assegna sostituto** sulla riga del lavoro: l’app vi propone una **shortlist** (di solito pochi candidati) tenendo conto di disponibilità, competenze dove previste e **vicinanza al terreno/podere** del lavoro — non del GPS del telefono.  
-5. Potete anche prendere qualcuno già su un altro lavoro (**prestito**): quel lavoro di origine può avere un «buco» / standby di prestito per la giornata; non modifica la composizione fissa della squadra in anagrafica.  
-6. Eccezione: da **Impegni giornalieri** potete solo **vedere** la foto del giorno; l’assegnazione vera resta in Gestione lavori (eventuale scelta manuale dal roster del giorno se la schermata lo offre).
+1. Aprite **Home Manodopera** → **Gestione lavori** (o partite dalla **notifica push** «Assenza oggi» / alert in dashboard). In cima alla pagina il riquadro **📩 N assenze da gestire oggi** elenca le assenze ancora aperte: quelle segnalate dal caposquadra, quelle di oggi e anche quelle dei **giorni passati** che hanno ancora un lavoro in standby.  
+2. Su un’assenza **segnalata** dal caposquadra toccate **Conferma e standby**. Si apre la finestra **Lavori da mettere in standby** con un elenco di caselle: ci sono i lavori assegnati o in corso di quel giorno in cui l’operaio era previsto.  
+   - Il lavoro **autonomo** di quell’operaio è già spuntato.  
+   - I lavori **di squadra** non sono spuntati («prosegue senza di lui se non lo selezioni»): la squadra continua a lavorare senza l’assente. Spuntateli solo se volete fermare anche quel lavoro.  
+   - Toccate **Conferma assenza e standby**. Leggete «Assenza confermata. In standby solo i lavori selezionati.», oppure, se non avete spuntato nulla, «Assenza confermata. Nessun lavoro in standby.».  
+   Potete mettere in standby un singolo lavoro anche dalla sua riga, con **⏸️ Standby assenza** (operaio assente, tipo di assenza, giorno).  
+3. Un lavoro in **standby** resta fermo finché non c’è un sostituto (o non lo ripristinate).  
+4. Per un’assenza già confermata il riquadro mostra un pulsante **Scegli sostituto** per ogni lavoro ancora in standby (se sono più di uno, con il nome del lavoro: «Scegli sostituto — Potatura»). Lo stesso si fa con **👤 Assegna sostituto** sulla riga del lavoro. L’app vi propone una **shortlist** (di solito pochi candidati) tenendo conto di disponibilità, competenze dove previste e **vicinanza al terreno/podere** del lavoro, non del GPS del telefono. Chi è già previsto su quel lavoro non compare tra i candidati. Un operaio risulta impegnato solo se un altro suo lavoro copre proprio il giorno dell’assenza: un lavoro che finisce prima o inizia dopo non lo blocca. Dopo la scelta leggete «Sostituto assegnato: … Lavoro riattivato.».  
+5. L’assenza esce dal riquadro quando nessuno dei suoi lavori è più in standby. Se compare in rosso «Non riesco a controllare i lavori in standby, riprova.», l’app non è riuscita a leggere i lavori: l’elenco può essere incompleto, ricaricate la pagina.  
+6. Potete anche prendere qualcuno già su un altro lavoro (**prestito**): quel lavoro di origine può avere un «buco» / standby di prestito per la giornata; non modifica la composizione fissa della squadra in anagrafica.  
+7. Eccezione: da **Impegni giornalieri** potete solo **vedere** la foto del giorno; l’assegnazione vera resta in Gestione lavori. Il pulsante **Scegli manualmente…** apre una finestra per ritoccare a mano chi c’è quel giorno su un lavoro: è un’opzione avanzata, non sostituisce la shortlist. La finestra si chiude con la **×** in alto.
 
 ### Dopo la sostituzione
 
@@ -367,7 +373,8 @@ Quando un operaio **non c’è** sul lavoro di oggi, l’app vi aiuta a tenere i
 2. Leggi i **numeri in alto** (liberi, impegnati, assenti, …).  
 3. Nella tabella **Per operaio** controlla i badge e le note.  
 4. Nella tabella **Per lavoro** vedi previsti / assenti / sostituti e se l’equipaggio è sotto il minimo (dove applicabile).  
-5. Se serve agire: torna a **Gestione lavori** (link in pagina).
+5. In alto il riquadro **Assenze da gestire (N)** mostra le stesse assenze di Gestione lavori, anche dei giorni passati (con la data tra parentesi) se hanno ancora un lavoro in standby. Accanto a ogni assenza c’è un link **Scegli sostituto** per ogni lavoro in standby: porta in **Gestione lavori** e apre la scelta del sostituto per quel lavoro (per un’assenza ancora da confermare apre prima **Lavori da mettere in standby**). Se compare «Non riesco a controllare i lavori in standby, riprova.», ricaricate la pagina.  
+6. Se serve agire: torna a **Gestione lavori** (link in pagina).
 
 ---
 
@@ -490,6 +497,8 @@ Oltre ai poligoni dei campi, la stessa area offre strumenti extra:
    - **In tempo**  
    - **In anticipo**  
    - **In corso**  
+
+   Ritardo, tempo e anticipo seguono la stessa regola dei riquadri di **Gestione lavori**: la superficie fatta si confronta con i giorni del lavoro già finiti (il giorno di oggi non conta ancora), con 10 punti di tolleranza.
 
 4. Sotto la mappa compare una **Legenda**: **colori delle colture** dei terreni, voce **Zone lavorate attive** se ci sono zone tracciate, e **Indicatori Lavori** con le icone sopra.
 

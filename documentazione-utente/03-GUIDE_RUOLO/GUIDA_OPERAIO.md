@@ -176,7 +176,7 @@ Cliccando su un'ora vedi:
 
 1. Nella versione mobile apri la scheda **⚠️ Segnala un problema** (dopo **Ore**; non è nel menu ingranaggio)
 2. Scegli il **Tipo di segnalazione**: **🔧 Guasto Macchina/Attrezzo** (solo con Parco Macchine) oppure **🌍 Segnalazione Generica** (frana, albero caduto, palo rotto, ecc.)
-3. L’app propone già in **Lavoro corrente** il lavoro della scheda **Lavoro** (quello che hai scelto o, se non hai mai scelto, il primo in ordine alfabetico); se non è tra i tuoi lavori aperti, il lavoro già in corso. Se quel lavoro li ha, mette anche il suo **Trattore** e **Attrezzo** (con il **Componente** di conseguenza; per la generica l’**Ubicazione** dal terreno del lavoro). Controlla e cambia se non è giusto
+3. L’app propone già in **Lavoro corrente** il lavoro della scheda **Lavoro** (quello che hai scelto o, se non hai mai scelto, quello che la scheda propone da sola, prima il lavoro in corso); se non è tra i tuoi lavori aperti, il lavoro già in corso. Se quel lavoro li ha, mette anche il suo **Trattore** e **Attrezzo** (con il **Componente** di conseguenza; per la generica l’**Ubicazione** dal terreno del lavoro). Controlla e cambia se non è giusto
 4. Compila:
    - Guasto macchina: **Trattore** e **Componente con guasto** (Trattore, Attrezzo o Entrambi; **Attrezzo** se serve)
    - Segnalazione generica: **Ubicazione**, punto sulla **mappa** e **Tipo di problema**

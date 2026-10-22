@@ -80,7 +80,7 @@ Tutto ruota attorno al **lavoro selezionato**: comunicazioni, ore da validare e 
 ### Passi
 
 1. Apri la prima scheda **Lavoro**.  
-2. Nel menu **Lavori assegnati** scegli il lavoro su cui state operando **ora**. La scelta resta su quel telefono (o computer). Se non hai mai scelto un lavoro, la scheda parte dal **primo dell’elenco in ordine alfabetico**: controlla che sia quello giusto.  
+2. Nel menu **Lavori assegnati** scegli il lavoro su cui state operando **ora**. La scelta resta su quel telefono (o computer). Se non hai mai scelto un lavoro, la scheda parte dal lavoro **in corso** iniziato più di recente; se non ce n’è uno in corso, da quello già iniziato più di recente, poi da quello che deve iniziare per primo, e solo alla fine da un lavoro sospeso o in standby: controlla che sia quello giusto.  
 3. Se l’elenco è vuoto o non trovi il lavoro giusto:
    - il **manager** potrebbe non averti ancora assegnato il lavoro, oppure il lavoro è in uno stato che non lo rende disponibile qui;  
    - contatta l’ufficio o il manager.  
@@ -185,9 +185,10 @@ Sempre nella scheda **Lavoro**, nel blocco **Valida ore**, vedi le registrazioni
 
 ### Segnala assenza
 
-1. Nella **versione mobile**, sul lavoro del giorno, può comparire **Segnala assenza**.  
-2. Indica **chi** manca e il **giorno** (e nota se richiesta).  
-3. Invia: il **manager** riceve l’avviso (anche in push se attive). Il lavoro passa in **standby** dopo la **conferma del manager**, non automaticamente al tuo invio.
+1. Nella **versione mobile**, sul lavoro del giorno, può comparire **🚫 Segnala assenza**.  
+2. Indica **chi** manca (**Operaio**), il **Tipo** (malattia, ferie, permesso, altro), il **Giorno** e, se vuoi, una **Nota**.  
+3. Tocca **Invia segnalazione**: il **manager** riceve l’avviso (anche in push se attive). La segnalazione vale per tutti i lavori aperti di quel giorno in cui l’operaio era previsto, non solo per quello aperto nella scheda.  
+4. Al tuo invio non si ferma nessun lavoro. Quando conferma l’assenza, il manager sceglie quali lavori mettere in **standby**: di solito il lavoro autonomo di quell’operaio sì, mentre un lavoro di squadra prosegue senza chi manca, a meno che il manager non lo metta in standby.
 
 Lo standby per assenza non è una sospensione: se il lavoro si ferma per **meteo, guasto** o un altro motivo che non riguarda le persone, usa **⏸️ Sospendi lavoro** dal dettaglio lavoro (vedi [Dettaglio lavoro, zone lavorate e completamento](#mini-guida-dettaglio-lavoro-zone-lavorate-e-completamento)).
 
@@ -272,7 +273,7 @@ Se colleghi la segnalazione a un **lavoro di squadra di cui sei caposquadra** (n
 3. Controlla **trattore** e, se serve, **attrezzo**: l’app mette già quelli del **Lavoro corrente** proposto (vedi il punto 6). Se il mezzo guasto è un altro, sceglilo dalla lista.  
 4. Indica il **componente** interessato (trattore, attrezzo o entrambi).  
 5. Imposta la **gravità** e compila **Dettagli** in modo concreto (rumore, perdite, cosa si può o non si può fare).  
-6. Opzionale ma utile: **Lavoro corrente** se stai operando su un incarico specifico. L’app lo propone già: è il lavoro della scheda **Lavoro** (menu **Lavori assegnati**), cioè quello che hai scelto o, se non hai mai scelto, il primo in ordine alfabetico, se è tra i tuoi lavori aperti; solo altrimenti il lavoro **già in corso** (non quello creato per ultimo), poi quello già iniziato più di recente, poi il prossimo che deve iniziare e solo alla fine un lavoro **sospeso**. Se scegli un altro lavoro nel menu, trattore e attrezzo diventano quelli del nuovo lavoro (vuoti se il lavoro non ha mezzi o se scegli «Nessun lavoro») e il componente va scelto di nuovo; puoi sempre cambiarli a mano. Se cambi lavoro nella scheda **Lavoro** e torni su **⚠️ Segnala un problema**, la scheda riparte con il nuovo lavoro: invia prima quello che stavi scrivendo.
+6. Opzionale ma utile: **Lavoro corrente** se stai operando su un incarico specifico. L’app lo propone già: è il lavoro della scheda **Lavoro** (menu **Lavori assegnati**), cioè quello che hai scelto o, se non hai mai scelto, quello che la scheda propone da sola (prima il lavoro in corso), se è tra i tuoi lavori aperti; solo altrimenti il lavoro **già in corso** (non quello creato per ultimo), poi quello già iniziato più di recente, poi il prossimo che deve iniziare e solo alla fine un lavoro **sospeso**. Se scegli un altro lavoro nel menu, trattore e attrezzo diventano quelli del nuovo lavoro (vuoti se il lavoro non ha mezzi o se scegli «Nessun lavoro») e il componente va scelto di nuovo; puoi sempre cambiarli a mano. Se cambi lavoro nella scheda **Lavoro** e torni su **⚠️ Segnala un problema**: se non avevi ancora scritto nulla, la scheda riparte con il nuovo lavoro; se avevi già cominciato a scrivere, trovi la segnalazione come l’avevi lasciata, con il lavoro di prima. Controlla **Lavoro corrente** e i mezzi prima di inviare.
 
 ### Segnalazione generica (pericoli sul terreno)
 
@@ -324,7 +325,7 @@ Se colleghi la segnalazione a un **lavoro di squadra di cui sei caposquadra** (n
 | Un operaio della squadra non riesce a segnare le zone | È voluto: sui lavori di squadra le zone le segni tu. Fatti dire dove ha lavorato e segna tu la zona. |
 | La percentuale non sale anche se ho segnato una zona nuova | La zona nuova si sovrappone a un’area già segnata: la parte in comune conta una volta sola. |
 | **GPS** non prende la posizione | Permesso negato al browser; GPS spento sul telefono; riprova all’aperto; usa ubicazione scritta + mappa se disponibile. |
-| In basso compare **C’è una nuova versione** con **Aggiorna** | C’è una versione nuova dell’app. Salva prima le ore o la segnalazione che stai scrivendo, poi tocca **Aggiorna**: la pagina si ricarica. Se chiede «Hai dati non salvati: aggiorni lo stesso?», **Annulla** tiene quello che hai scritto (salva e riprova), **Aggiorna** ricarica e perde quello che non hai salvato. Finché non tocchi **Aggiorna** non si ricarica nulla. |
+| In basso compare **C’è una nuova versione** con **Aggiorna** | C’è una versione nuova dell’app. Salva prima le ore o la segnalazione che stai scrivendo, poi tocca **Aggiorna**: la pagina si ricarica. Se chiede «Hai dati non salvati: aggiorni lo stesso?», **Annulla** tiene quello che hai scritto (salva e riprova), **Aggiorna** ricarica e perde quello che non hai salvato. Finché non tocchi **Aggiorna** non si ricarica nulla; dopo il tocco la barra dice «Aggiornamento in corso…» fino al ricaricamento. |
 | Non trovo **Segnala guasto** nel menu ingranaggio | Non è più nel menu: scorri fino alla scheda **⚠️ Segnala un problema**. Se lì manca la scelta della macchina, il modulo Parco Macchine non è attivo: per un mezzo rotto avvisa il manager per telefono o per messaggio. |
 | Non trovo **Validazione ore** nel menu ingranaggio | È nella scheda **✅ Valida ore**; per la pagina intera tocca **Apri validazione completa**. |
 

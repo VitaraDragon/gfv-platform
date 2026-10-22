@@ -83,7 +83,7 @@ Con **Italiano** la schermata è quella di sempre. La scelta resta su quel telef
 
 1. Apri la scheda **Lavoro**.  
 2. Nel menu **Lavori assegnati** scegli l’incarico su cui stai lavorando **adesso**. Un lavoro **completato** o **in attesa di approvazione** resta in elenco per **7 giorni** (scritta «completato» o «in attesa approvazione»): puoi segnare le ore dei giorni in cui era ancora aperto, non i giorni dopo la chiusura.  
-   La scelta resta su quel telefono (o computer). Se non hai mai scelto un lavoro, la scheda parte dal **primo dell’elenco in ordine alfabetico**: controlla che sia quello giusto.  
+   La scelta resta su quel telefono (o computer). Se non hai mai scelto un lavoro, la scheda parte dal lavoro **in corso** iniziato più di recente; se non ce n’è uno in corso, da quello già iniziato più di recente, poi da quello che deve iniziare per primo, e solo alla fine da un lavoro sospeso o in standby: controlla che sia quello giusto.  
 3. Se la lista è vuota: **contatta l’ufficio** per un incarico assegnabile.
 
 ### Elenco “corto” quando hai molti lavori
@@ -210,10 +210,10 @@ Si fa dalla scheda **⚠️ Segnala un problema** del workspace, dopo **Ore** e 
   - **Grave** — fermarsi e segnalare subito. Con un guasto a macchina o attrezzo il mezzo va in guasto. Se colleghi un incarico **solo tuo**, l’app lo **sospende** (motivo «Guasto macchina grave» o «Segnalazione grave»). Su un incarico **di gruppo** il lavoro invece non cambia e dopo l’invio leggi «Segnalazione inviata. Il lavoro lo sospende il caposquadra o il manager.»: non è un errore, la segnalazione è registrata e il responsabile vede il guasto nell’elenco **Officina & Guasti**.  
 - **Dettagli** — descrizione chiara del sintomo.  
 - Opzionale: **lavoro corrente** se stai operando su un incarico preciso. L’app lo propone già, insieme al **trattore** e all’**attrezzo** di quel lavoro:  
-  - è il lavoro della scheda **Lavoro** (menu **Lavori assegnati**): quello che hai scelto o, se non hai mai scelto, il primo in ordine alfabetico; vale se è tra i tuoi lavori aperti;  
+  - è il lavoro della scheda **Lavoro** (menu **Lavori assegnati**): quello che hai scelto o, se non hai mai scelto, quello che la scheda propone da sola (prima il lavoro in corso); vale se è tra i tuoi lavori aperti;  
   - solo se quel lavoro non è tra i tuoi lavori aperti (o la scheda Lavoro non ne ha), l’app propone il lavoro **già in corso**, non quello creato per ultimo; se non ce n’è uno in corso, quello già iniziato più di recente, poi il prossimo che deve iniziare, e solo alla fine un lavoro **sospeso**.  
   - Se nel menu **Lavoro corrente** scegli un altro lavoro, trattore e attrezzo diventano quelli del nuovo lavoro (se il lavoro non ha mezzi, oppure scegli «Nessun lavoro», i due campi restano vuoti) e il **componente** va scelto di nuovo. Trattore e attrezzo puoi sempre cambiarli a mano: controlla prima di inviare.  
-  - Se cambi lavoro nella scheda **Lavoro** e poi torni su **⚠️ Segnala un problema**, la scheda riparte con il nuovo lavoro e i suoi mezzi: invia prima quello che stavi scrivendo.  
+  - Se cambi lavoro nella scheda **Lavoro** e poi torni su **⚠️ Segnala un problema**: se non avevi ancora scritto nulla, la scheda riparte con il nuovo lavoro e i suoi mezzi; se avevi già cominciato a scrivere, trovi la segnalazione come l’avevi lasciata, con il lavoro di prima. Controlla **Lavoro corrente**, trattore e attrezzo prima di inviare.  
 - Con un guasto a macchina o attrezzo, il mezzo passa in stato di guasto e finché resta così non si può scegliere per un nuovo lavoro («(già in guasto)»).
 
 ### GPS e posizione
@@ -285,7 +285,7 @@ Se apri a mano un indirizzo dell’ufficio (terreni, magazzino, elenchi), l’ap
 | Non capisco la **mappa delle zone** | Chiedi una dimostrazione in campo a chi coordina il gruppo. |
 | Non vedo **📍 Segna zona lavorata** oppure un messaggio dice che le zone le segna il caposquadra | È un lavoro di squadra: le zone le segna il caposquadra, digli dove hai lavorato. Tu segna le ore come sempre. |
 | **GPS** non funziona | Attiva permesso posizione; riprova all’aperto; completa ubicazione e dettagli a mano. |
-| In basso compare **C’è una nuova versione** con **Aggiorna** | C’è una versione nuova dell’app. Salva prima le ore o la segnalazione che stai scrivendo, poi tocca **Aggiorna**: la pagina si ricarica. Se chiede «Hai dati non salvati: aggiorni lo stesso?», **Annulla** tiene quello che hai scritto (salva e riprova), **Aggiorna** ricarica e perde quello che non hai salvato. Finché non tocchi **Aggiorna** non si ricarica nulla. |
+| In basso compare **C’è una nuova versione** con **Aggiorna** | C’è una versione nuova dell’app. Salva prima le ore o la segnalazione che stai scrivendo, poi tocca **Aggiorna**: la pagina si ricarica. Se chiede «Hai dati non salvati: aggiorni lo stesso?», **Annulla** tiene quello che hai scritto (salva e riprova), **Aggiorna** ricarica e perde quello che non hai salvato. Finché non tocchi **Aggiorna** non si ricarica nulla; dopo il tocco la barra dice «Aggiornamento in corso…» fino al ricaricamento. |
 | Non trovi dove segnalare un guasto | Non è nel menu ingranaggio: scorri le schede fino a **⚠️ Segnala un problema**. Se manca la scelta della macchina, l’azienda non ha Parco Macchine: usa la segnalazione generica o chiama il responsabile. |
 
 Per le funzioni generali dell’app (account, terreni), consulta anche la **guida Core** nella documentazione utente.
