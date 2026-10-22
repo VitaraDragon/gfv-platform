@@ -189,6 +189,17 @@ describe('testi landing — regole del brief', () => {
     expect(testiLanding.cosaGestisci.gratis).not.toContain('Utenti');
     expect(testiLanding.cosaGestisci.gratis).not.toContain('Lavori e attività');
   });
+
+  it('Come ti aiuta Tony: secondo punto spiega dove andare (senza portare)', () => {
+    const secondo = testiLanding.comeAiuta.punti[1];
+    expect(secondo.titolo).toBe('Chiedi e ti spiega dove andare.');
+    expect(secondo.testo).toContain('ti dice in quale pagina andare e cosa fare');
+    expect(secondo.testo).not.toMatch(/ti porta|ti mostra dove andare/i);
+  });
+
+  it('Cosa gestisci: Tony Avanzato è la prima voce dei moduli', () => {
+    expect(testiLanding.cosaGestisci.moduli[0]).toBe('Tony Avanzato');
+  });
 });
 
 describe('niente da fuori', () => {

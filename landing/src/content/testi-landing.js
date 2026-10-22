@@ -36,8 +36,9 @@ export const testiLanding = {
         testo: "Ti aiuta a impostare l'azienda: sede, poderi e primi terreni.",
       },
       {
-        titolo: 'Chiedi e ti porta lì.',
-        testo: 'Chiedi "dove segno un lavoro?" e Tony ti mostra dove andare.',
+        titolo: 'Chiedi e ti spiega dove andare.',
+        testo:
+          'Chiedi "dove segno un lavoro?" e Tony ti dice in quale pagina andare e cosa fare.',
       },
       {
         titolo: 'Con il modulo Tony fa lui le operazioni.',
@@ -62,6 +63,7 @@ export const testiLanding = {
     gratis: ['Terreni', 'Poderi', 'Diario attività', 'Statistiche'],
     moduliTitolo: 'Con i moduli specializzati (dal piano Base)',
     moduli: [
+      'Tony Avanzato',
       'Squadre e ore',
       'Parco macchine',
       'Magazzino',

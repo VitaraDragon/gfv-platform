@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted } from 'vue';
 import logoMark from '../../../icons/gfv-mark.svg';
+import tonyIcon from '../assets/tony-icon.png';
 import VideoTony from '../components/VideoTony.vue';
 import { testiLanding } from '../content/testi-landing.js';
 import {
@@ -57,6 +58,11 @@ const iconeModuli: Record<string, string> = {
   Seminativo: '🌱',
   Meteo: '⛅',
   Report: '📊',
+};
+
+/** Icone immagine (stessa dimensione delle emoji, forma tonda). */
+const iconeModuliImg: Record<string, string> = {
+  'Tony Avanzato': tonyIcon,
 };
 </script>
 
@@ -163,7 +169,17 @@ const iconeModuli: Record<string, string> = {
         <h3>{{ t.cosaGestisci.moduliTitolo }}</h3>
         <ul class="chips">
           <li v-for="chip in t.cosaGestisci.moduli" :key="chip" class="chip">
-            <span aria-hidden="true">{{ iconeModuli[chip] || '•' }}</span>
+            <img
+              v-if="iconeModuliImg[chip]"
+              class="chip-icon-img"
+              :src="iconeModuliImg[chip]"
+              alt=""
+              width="18"
+              height="18"
+              decoding="async"
+              aria-hidden="true"
+            />
+            <span v-else aria-hidden="true">{{ iconeModuli[chip] || '•' }}</span>
             {{ chip }}
           </li>
           <li class="chip chip--muted">{{ t.cosaGestisci.inArrivo }}</li>
@@ -489,6 +505,15 @@ h2 {
   font-size: 0.92rem;
   font-weight: 600;
   color: var(--ink-soft);
+}
+
+.chip-icon-img {
+  width: 1.15em;
+  height: 1.15em;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  display: block;
 }
 
 .chip--muted {
