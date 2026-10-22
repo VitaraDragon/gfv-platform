@@ -78,3 +78,7 @@ scripts/guida-suggest-output/
 
 # Higgsfield — spot adv aperti: lastre/clip generate in locale, non in git
 workspace/output/
+
+# Landing — video pesanti (solo poster/.vtt in repo; MP4/WebM in locale prima del deploy)
+landing/public/video/*.mp4
+landing/public/video/*.webm
