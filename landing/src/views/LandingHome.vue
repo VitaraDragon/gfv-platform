@@ -10,6 +10,7 @@ import {
   GIORNI_GUIDA_TONY,
   IVA_CONFERMATA,
   LIMITI_LANDING,
+  PAGINE_LEGALI,
   TESTO_CHI_SIAMO,
   URL_LOGIN,
   URL_REGISTRAZIONE,
@@ -282,9 +283,9 @@ const iconeModuliImg: Record<string, string> = {
         </template>
       </p>
       <nav class="footer-links" aria-label="Informazioni legali">
-        <a href="/termini">{{ t.footer.linkTermini }}</a>
-        <a href="/privacy">{{ t.footer.linkPrivacy }}</a>
-        <a href="/cookie">{{ t.footer.linkCookie }}</a>
+        <a :href="PAGINE_LEGALI.termini.percorso">{{ t.footer.linkTermini }}</a>
+        <a :href="PAGINE_LEGALI.privacy.percorso">{{ t.footer.linkPrivacy }}</a>
+        <a :href="PAGINE_LEGALI.cookie.percorso">{{ t.footer.linkCookie }}</a>
       </nav>
     </footer>
   </div>

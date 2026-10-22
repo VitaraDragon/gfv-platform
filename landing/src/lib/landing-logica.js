@@ -19,6 +19,13 @@ export function scegliVistaHome({ landingAttiva, dev }) {
  *   testoChiSiamo?: string,
  *   ivaConfermata?: boolean,
  *   testiLegaliPronti?: boolean,
+ *   dominioConfermato?: boolean,
+ *   ogImmaginePronta?: boolean,
+ *   pagineLegali?: Record<string, {
+ *     urlTestoCompleto?: string,
+ *     testoDefinitivo?: boolean,
+ *     titolo?: string,
+ *   }>,
  * }} config
  * @returns {string[]}
  */
@@ -35,6 +42,23 @@ export function cosaMancaPerAccendere(config = {}) {
   }
   if (config.testiLegaliPronti !== true) {
     manca.push('testi legali');
+  }
+  if (config.dominioConfermato !== true) {
+    manca.push('dominio non confermato');
+  }
+  if (config.ogImmaginePronta !== true) {
+    manca.push('immagine OG');
+  }
+  const pagine = config.pagineLegali;
+  if (pagine && typeof pagine === 'object') {
+    for (const [chiave, pagina] of Object.entries(pagine)) {
+      const url = String(pagina?.urlTestoCompleto || '').trim();
+      const definitivo = pagina?.testoDefinitivo === true;
+      if (!url && !definitivo) {
+        const nome = pagina?.titolo || chiave;
+        manca.push(`testo completo mancante: ${nome}`);
+      }
+    }
   }
   return manca;
 }
