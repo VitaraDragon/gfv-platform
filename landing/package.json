@@ -7,7 +7,9 @@
     "sync-icon": "node scripts/sync-icon.mjs",
     "dev": "node scripts/sync-icon.mjs && vite",
     "build": "node scripts/sync-icon.mjs && vite build",
-    "preview": "vite preview"
+    "build:anteprima": "node scripts/sync-icon.mjs && vite build --mode anteprima --outDir dist-anteprima",
+    "preview": "vite preview",
+    "preview:anteprima": "vite preview --outDir dist-anteprima"
   },
   "dependencies": {
     "@fontsource/plus-jakarta-sans": "^5.3.0",

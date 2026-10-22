@@ -6,8 +6,9 @@ import { scegliVistaHome } from '../lib/landing-logica.js';
 
 const vistaHome = scegliVistaHome({
   landingAttiva: LANDING_ATTIVA,
-  // Vite: true solo con `npm run dev`
-  dev: import.meta.env.DEV === true,
+  // Vite: true con `npm run dev` oppure build/preview in modo anteprima
+  dev:
+    import.meta.env.DEV === true || import.meta.env.MODE === 'anteprima',
 });
 
 const HomeComponent = vistaHome === 'landing' ? LandingHome : ComingSoon;

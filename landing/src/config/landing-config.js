@@ -19,6 +19,58 @@ export const IVA_CONFERMATA = false;
 /** Termini, Privacy e Cookie non sono ancora rivisti dall'avvocato. */
 export const TESTI_LEGALI_PRONTI = false;
 
+/** Dominio pubblico previsto. Non è ancora confermato/collegato: serve per canonical, og:url e sitemap. */
+export const URL_SITO = 'https://gfvagri.com';
+export const DOMINIO_CONFERMATO = false;
+
+/** PEC: il brief la prevede nel footer «se c'è». Vuota finché non la decido. */
+export const PEC_CONTATTO = '';
+
+/**
+ * P.IVA: per il brief NON si mostra né nel footer né nelle pagine (niente P.IVA e niente codice fiscale).
+ * Resta vuota e non è usata da nessuna pagina; serve solo a ricordare che è un dato da decidere.
+ */
+export const PARTITA_IVA = '';
+
+/** Immagine per le anteprime social (1200×630, logo nuovo + Tony). Non esiste ancora. */
+export const OG_IMMAGINE = '/og/gfv-og-1200x630.jpg';
+export const OG_IMMAGINE_PRONTA = false;
+
+/**
+ * Pagine legali della landing. I testi veri arriveranno da Iubenda.
+ * - percorso: indirizzo della pagina sulla landing (non cambia).
+ * - urlTestoCompleto: link al testo definitivo (per esempio la pagina Iubenda). Vuoto = segnaposto.
+ * - versione: stesso formato di core/config/accettazione-legale-config.js.
+ * - chiaveApp: chiave corrispondente in DOCUMENTI_LEGALI dell'app (null per la cookie policy, che nell'app è COOKIE_URL).
+ * - testoDefinitivo: true solo quando il testo è copiato nella nostra pagina (non solo link).
+ */
+export const PAGINE_LEGALI = Object.freeze({
+  termini: Object.freeze({
+    percorso: '/termini',
+    titolo: 'Termini di servizio',
+    urlTestoCompleto: '',
+    versione: 'termini-b2b-0000-00-00',
+    chiaveApp: 'termini-b2b',
+    testoDefinitivo: false,
+  }),
+  privacy: Object.freeze({
+    percorso: '/privacy',
+    titolo: 'Informativa privacy',
+    urlTestoCompleto: '',
+    versione: 'privacy-0000-00-00',
+    chiaveApp: 'privacy',
+    testoDefinitivo: false,
+  }),
+  cookie: Object.freeze({
+    percorso: '/cookie',
+    titolo: 'Cookie policy',
+    urlTestoCompleto: '',
+    versione: 'cookie-0000-00-00',
+    chiaveApp: null,
+    testoDefinitivo: false,
+  }),
+});
+
 /**
  * Limiti e prezzi mostrati in «Cosa gestisci» / prezzi.
  * Specchio di core/config/subscription-plans.js (free) e tony-guida-onboarding.js.
