@@ -43,7 +43,8 @@ onMounted(() => {
 const iconeGratis: Record<string, string> = {
   Terreni: '🌾',
   Poderi: '🏡',
-  'Lavori e attività': '📋',
+  'Diario attività': '📋',
+  Statistiche: '📈',
 };
 
 const iconeModuli: Record<string, string> = {

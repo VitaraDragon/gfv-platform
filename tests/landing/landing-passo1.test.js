@@ -179,13 +179,15 @@ describe('testi landing — regole del brief', () => {
     }
   });
 
-  it('Cosa gestisci: Utenti non è nell’account gratuito (serve Manodopera)', () => {
-    expect(testiLanding.cosaGestisci.gratis).not.toContain('Utenti');
+  it('Cosa gestisci: lista account gratuito allineata all’app', () => {
     expect(testiLanding.cosaGestisci.gratis).toEqual([
       'Terreni',
       'Poderi',
-      'Lavori e attività',
+      'Diario attività',
+      'Statistiche',
     ]);
+    expect(testiLanding.cosaGestisci.gratis).not.toContain('Utenti');
+    expect(testiLanding.cosaGestisci.gratis).not.toContain('Lavori e attività');
   });
 });
 
