@@ -324,22 +324,22 @@ Quando un operaio **non c’è** sul lavoro di oggi, l’app vi aiuta a tenere i
 ### Chi fa cosa
 
 - **Caposquadra** (versione mobile): può **Segnala assenza** — avvisa voi manager. La segnalazione vale per tutti i lavori aperti di quel giorno in cui l’operaio era previsto; nessun lavoro si ferma da solo: vanno in **standby** solo i lavori che scegliete voi quando confermate.  
-- **Manager / amministratore** (Gestione lavori): confermate l’assenza, scegliete quali lavori mettere in **standby**, poi **scegliete il sostituto** per ognuno.  
+- **Manager / amministratore** (Gestione lavori): mettete in **standby** i lavori in due modi, confermando la segnalazione con **Conferma e standby** (scegliete voi quali lavori fermare) oppure direttamente sul singolo lavoro con **⏸️ Standby assenza**; poi **scegliete il sostituto** per ognuno.  
 - **Operaio sostituto**: compare sul lavoro (e in **Impegni giornalieri** come sostituto); segna le ore come di consueto; il caposquadra le valida. Su un **lavoro autonomo** il sostituto segna anche le **zone lavorate** e vede quelle già segnate dal collega; su un lavoro di squadra le zone restano al caposquadra.
 
 ### Passi tipici da Gestione lavori
 
-1. Aprite **Home Manodopera** → **Gestione lavori** (o partite dalla **notifica push** «Assenza oggi» / alert in dashboard). In cima alla pagina il riquadro **📩 N assenze da gestire oggi** elenca le assenze ancora aperte: quelle segnalate dal caposquadra, quelle di oggi e anche quelle dei **giorni passati** che hanno ancora un lavoro in standby.  
-2. Su un’assenza **segnalata** dal caposquadra toccate **Conferma e standby**. Si apre la finestra **Lavori da mettere in standby** con un elenco di caselle: ci sono i lavori assegnati o in corso di quel giorno in cui l’operaio era previsto.  
+1. Aprite **Home Manodopera** → **Gestione lavori** (o partite dalla **notifica push** «Assenza oggi» / alert in dashboard). In cima alla pagina il riquadro **📩 N assenze da gestire oggi** elenca le assenze ancora aperte: quelle segnalate dal caposquadra e quelle di oggi. Il numero conta anche le assenze dei **giorni precedenti** non ancora risolte: un lavoro in standby resta nel riquadro finché non è risolto (sostituto scelto o lavoro ripristinato). È normale, non è un errore.  
+2. **Primo modo, dalla segnalazione.** Su un’assenza **segnalata** dal caposquadra toccate **Conferma e standby**. Si apre la finestra **Lavori da mettere in standby** con un elenco di caselle: ci sono i lavori assegnati o in corso di quel giorno in cui l’operaio era previsto.  
    - Il lavoro **autonomo** di quell’operaio è già spuntato.  
-   - I lavori **di squadra** non sono spuntati («prosegue senza di lui se non lo selezioni»): la squadra continua a lavorare senza l’assente. Spuntateli solo se volete fermare anche quel lavoro.  
+   - I lavori **di squadra** non sono spuntati: se non li selezionate, la squadra continua a lavorare senza l’assente. Spuntateli solo se volete fermare anche quel lavoro.  
    - Toccate **Conferma assenza e standby**. Leggete «Assenza confermata. In standby solo i lavori selezionati.», oppure, se non avete spuntato nulla, «Assenza confermata. Nessun lavoro in standby.».  
-   Potete mettere in standby un singolo lavoro anche dalla sua riga, con **⏸️ Standby assenza** (operaio assente, tipo di assenza, giorno).  
+   **Secondo modo, dal singolo lavoro.** Anche senza una segnalazione del caposquadra potete mettere in standby un lavoro dalla sua riga in Gestione lavori, con **⏸️ Standby assenza**: indicate l’operaio assente, il tipo di assenza e il giorno.  
 3. Un lavoro in **standby** resta fermo finché non c’è un sostituto (o non lo ripristinate).  
 4. Per un’assenza già confermata il riquadro mostra un pulsante **Scegli sostituto** per ogni lavoro ancora in standby (se sono più di uno, con il nome del lavoro: «Scegli sostituto — Potatura»). Lo stesso si fa con **👤 Assegna sostituto** sulla riga del lavoro. L’app vi propone una **shortlist** (di solito pochi candidati) tenendo conto di disponibilità, competenze dove previste e **vicinanza al terreno/podere** del lavoro, non del GPS del telefono. Chi è già previsto su quel lavoro non compare tra i candidati. Un operaio risulta impegnato solo se un altro suo lavoro copre proprio il giorno dell’assenza: un lavoro che finisce prima o inizia dopo non lo blocca. Dopo la scelta leggete «Sostituto assegnato: … Lavoro riattivato.».  
 5. L’assenza esce dal riquadro quando nessuno dei suoi lavori è più in standby. Se compare in rosso «Non riesco a controllare i lavori in standby, riprova.», l’app non è riuscita a leggere i lavori: l’elenco può essere incompleto, ricaricate la pagina.  
 6. Potete anche prendere qualcuno già su un altro lavoro (**prestito**): quel lavoro di origine può avere un «buco» / standby di prestito per la giornata; non modifica la composizione fissa della squadra in anagrafica.  
-7. Eccezione: da **Impegni giornalieri** potete solo **vedere** la foto del giorno; l’assegnazione vera resta in Gestione lavori. Il pulsante **Scegli manualmente…** apre una finestra per ritoccare a mano chi c’è quel giorno su un lavoro: è un’opzione avanzata, non sostituisce la shortlist. La finestra si chiude con la **×** in alto.
+7. **Impegni giornalieri** mostra gli impegni del giorno e permette anche di scegliere il sostituto a mano: il pulsante **Scegli manualmente…** su un lavoro apre una finestra per aggiungere o togliere chi lavora quel giorno (la squadra in anagrafica non cambia). È un’opzione avanzata, non sostituisce la shortlist di **Scegli sostituto**. La finestra si chiude con la **×** in alto.
 
 ### Dopo la sostituzione
 
@@ -350,7 +350,7 @@ Quando un operaio **non c’è** sul lavoro di oggi, l’app vi aiuta a tenere i
 
 ### Cosa non fare
 
-- Non usare Impegni giornalieri come posto dove «assegnare» il sostituto: è in **sola lettura**.  
+- Non usare **Scegli manualmente…** come strada normale per un’assenza: è un’opzione avanzata; di solito il sostituto si sceglie con **Scegli sostituto** / **👤 Assegna sostituto** in Gestione lavori, che usa la shortlist e riattiva il lavoro.  
 - Non confondere **standby per assenza** con la **sospensione** del lavoro (**Sospendi / Rinvia** per maltempo, guasto o altro: vedi [Sospendere o rinviare un lavoro](#sospendere-o-rinviare-un-lavoro-maltempo-guasto-altro)) o con l’eliminazione del lavoro.
 
 ---
@@ -359,7 +359,7 @@ Quando un operaio **non c’è** sul lavoro di oggi, l’app vi aiuta a tenere i
 
 È la **foto della giornata** della manodopera: per ogni operaio attivo vedi se è **libero**, **impegnato** (su quale lavoro), **assente**, **prestato** ad altro lavoro o **sostituto**. C’è anche la vista **per lavoro** (chi era previsto in squadra, chi manca, chi sostituisce).
 
-**Solo consultazione:** da qui non assegni sostituti né modifichi i lavori. Per le sostituzioni vai in **Gestione lavori** — passo passo in [Assenze, standby e sostituzioni](#mini-guida-assenze-standby-e-sostituzioni). Con **notifiche push** attive, un’**assenza oggi** può avvisarti sul telefono (e il caposquadra in parallelo); opzionale escalation **WhatsApp** se configurata in Impostazioni.
+**Impegni e scelta manuale:** la pagina mostra gli impegni e permette di scegliere il sostituto a mano con **Scegli manualmente…** (opzione avanzata). Per le sostituzioni normali, con la shortlist, vai in **Gestione lavori** — passo passo in [Assenze, standby e sostituzioni](#mini-guida-assenze-standby-e-sostituzioni). Con **notifiche push** attive, un’**assenza oggi** può avvisarti sul telefono (e il caposquadra in parallelo); opzionale escalation **WhatsApp** se configurata in Impostazioni.
 
 ### Come entrarci
 
@@ -373,8 +373,9 @@ Quando un operaio **non c’è** sul lavoro di oggi, l’app vi aiuta a tenere i
 2. Leggi i **numeri in alto** (liberi, impegnati, assenti, …).  
 3. Nella tabella **Per operaio** controlla i badge e le note.  
 4. Nella tabella **Per lavoro** vedi previsti / assenti / sostituti e se l’equipaggio è sotto il minimo (dove applicabile).  
-5. In alto il riquadro **Assenze da gestire (N)** mostra le stesse assenze di Gestione lavori, anche dei giorni passati (con la data tra parentesi) se hanno ancora un lavoro in standby. Accanto a ogni assenza c’è un link **Scegli sostituto** per ogni lavoro in standby: porta in **Gestione lavori** e apre la scelta del sostituto per quel lavoro (per un’assenza ancora da confermare apre prima **Lavori da mettere in standby**). Se compare «Non riesco a controllare i lavori in standby, riprova.», ricaricate la pagina.  
-6. Se serve agire: torna a **Gestione lavori** (link in pagina).
+5. In alto il riquadro **Assenze da gestire (N)** mostra le stesse assenze di Gestione lavori e conta anche quelle dei giorni precedenti non ancora risolte (con la data tra parentesi): un lavoro in standby resta nel riquadro finché non è risolto. Accanto a ogni assenza c’è un link **Scegli sostituto** per ogni lavoro in standby: porta in **Gestione lavori** e apre la scelta del sostituto per quel lavoro (per un’assenza ancora da confermare apre prima **Lavori da mettere in standby**). Se compare «Non riesco a controllare i lavori in standby, riprova.», ricaricate la pagina.  
+6. Nella tabella **Per lavoro** il pulsante **Scegli manualmente…** apre una finestra per aggiungere o togliere a mano chi lavora quel giorno su quel lavoro (opzione avanzata; la squadra in anagrafica non cambia). La finestra si chiude con la **×** in alto.  
+7. Per la sostituzione normale con la shortlist torna a **Gestione lavori** (link in pagina).
 
 ---
 

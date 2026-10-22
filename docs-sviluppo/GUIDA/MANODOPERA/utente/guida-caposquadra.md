@@ -188,7 +188,7 @@ Sempre nella scheda **Lavoro**, nel blocco **Valida ore**, vedi le registrazioni
 1. Nella **versione mobile**, sul lavoro del giorno, può comparire **🚫 Segnala assenza**.  
 2. Indica **chi** manca (**Operaio**), il **Tipo** (malattia, ferie, permesso, altro), il **Giorno** e, se vuoi, una **Nota**.  
 3. Tocca **Invia segnalazione**: il **manager** riceve l’avviso (anche in push se attive). La segnalazione vale per tutti i lavori aperti di quel giorno in cui l’operaio era previsto, non solo per quello aperto nella scheda.  
-4. Al tuo invio non si ferma nessun lavoro. Quando conferma l’assenza, il manager sceglie quali lavori mettere in **standby**: di solito il lavoro autonomo di quell’operaio sì, mentre un lavoro di squadra prosegue senza chi manca, a meno che il manager non lo metta in standby.
+4. Al tuo invio non si ferma nessun lavoro. Il lavoro va in **standby** solo per scelta del manager, in due modi: quando conferma la tua segnalazione sceglie quali lavori fermare (di solito il lavoro autonomo di quell’operaio sì, mentre un lavoro di squadra prosegue senza chi manca, a meno che non lo fermi), oppure mette in standby direttamente un singolo lavoro da Gestione lavori, anche senza la tua segnalazione.
 
 Lo standby per assenza non è una sospensione: se il lavoro si ferma per **meteo, guasto** o un altro motivo che non riguarda le persone, usa **⏸️ Sospendi lavoro** dal dettaglio lavoro (vedi [Dettaglio lavoro, zone lavorate e completamento](#mini-guida-dettaglio-lavoro-zone-lavorate-e-completamento)).
 

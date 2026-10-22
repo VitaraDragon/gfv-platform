@@ -339,7 +339,7 @@ Quando pubblichiamo una versione nuova dell’app, in fondo allo schermo compare
 
 1. Salvate quello che state scrivendo (ore, segnalazione, scheda…).  
 2. Toccate **Aggiorna**: il pulsante sparisce e la barra mostra **Aggiornamento in corso…** finché la pagina si ricarica con la versione nuova; poi la barra sparisce. Per la stessa versione non ricompare. Se dopo una decina di secondi la versione nuova non è ancora partita, la pagina si ricarica da sola, ma solo se non avete dati non salvati e nessun salvataggio è in corso. In quel caso la barra torna con **Aggiorna**: salvate e toccatelo di nuovo, la pagina si ricarica subito.  
-3. Se avete scritto qualcosa in un modulo della pagina, o un salvataggio è ancora in corso, prima compare la domanda **Hai dati non salvati: aggiorni lo stesso?** Dopo aver salvato le ore (**Segna ore** o scheda **Ore** del campo) o inviato una segnalazione guasto la domanda non compare più; nelle altre pagine può comparire anche dopo che avete salvato: se avete già salvato tutto, potete toccare **Aggiorna** senza perdere nulla.  
+3. Se avete scritto qualcosa in un modulo della pagina, o un salvataggio è ancora in corso, prima compare la domanda **Hai dati non salvati: aggiorni lo stesso?** Dopo che avete salvato (per esempio le ore con **Segna ore** o nella scheda **Ore** del campo, o una segnalazione guasto inviata) la domanda non compare più.  
    - **Annulla**: non si ricarica nulla, i dati scritti restano e la barra resta in basso. Salvate e poi toccate di nuovo **Aggiorna**.  
    - **Aggiorna**: la pagina si ricarica subito e quello che non avevate salvato si perde.
 
