@@ -1,0 +1,123 @@
+/**
+ * Funzioni pure della landing (testabili senza browser né rete).
+ */
+
+/**
+ * Decide quale vista mostrare sulla root.
+ * @param {{ landingAttiva: boolean, dev: boolean }} opts
+ * @returns {'landing' | 'coming-soon'}
+ */
+export function scegliVistaHome({ landingAttiva, dev }) {
+  if (landingAttiva === true || dev === true) return 'landing';
+  return 'coming-soon';
+}
+
+/**
+ * Elenco di ciò che manca prima di poter accendere la landing pubblicata.
+ * @param {{
+ *   emailContatto?: string,
+ *   testoChiSiamo?: string,
+ *   ivaConfermata?: boolean,
+ *   testiLegaliPronti?: boolean,
+ * }} config
+ * @returns {string[]}
+ */
+export function cosaMancaPerAccendere(config = {}) {
+  const manca = [];
+  if (!String(config.emailContatto || '').trim()) {
+    manca.push('email di contatto');
+  }
+  if (!String(config.testoChiSiamo || '').trim()) {
+    manca.push('testo chi siamo');
+  }
+  if (config.ivaConfermata !== true) {
+    manca.push('conferma IVA');
+  }
+  if (config.testiLegaliPronti !== true) {
+    manca.push('testi legali');
+  }
+  return manca;
+}
+
+/**
+ * Costruisce i due paragrafi della riga prezzi dai piani (senza usare labelFull).
+ * @param {{ free?: { maxTerreni?: number }, base?: { price?: number }, monthlyToAnnual?: (n: number) => number }} piani
+ * @param {number} giorniGuida
+ * @param {{ ivaConfermata?: boolean }} [opzioni]
+ * @returns {{ gratis: string, moduli: string }}
+ */
+export function rigaPrezzi(piani, giorniGuida, opzioni = {}) {
+  const maxTerreni = Number(piani?.free?.maxTerreni) || 0;
+  const prezzoMese = Number(piani?.base?.price) || 0;
+  const toAnnual =
+    typeof piani?.monthlyToAnnual === 'function'
+      ? piani.monthlyToAnnual
+      : (n) => Math.round(Number(n) * 12 * 100) / 100;
+  const prezzoAnno = toAnnual(prezzoMese);
+  const giorni = Number(giorniGuida) || 0;
+
+  let gratis =
+    `Provalo gratis: con l'account gratuito puoi gestire fino a ${maxTerreni} terreni` +
+    ` e Tony ti guida per ${giorni} giorni dal primo accesso.` +
+    ` Se non vuoi limiti passi al Base: ${prezzoMese} € al mese, ${prezzoAnno} € l'anno,` +
+    ` pagati in anticipo, con rinnovo automatico annuale; disdici quando vuoi dall'app.`;
+
+  if (opzioni.ivaConfermata === true) {
+    // BOZZA: da far rivedere
+    gratis += ' Prezzo finale, il venditore non applica IVA.';
+  }
+
+  const moduli =
+    'Moduli specializzati: con il Base puoi aggiungere i moduli per le tue colture' +
+    ' e per la tua azienda, compreso il modulo Tony che fa le operazioni al posto tuo.' +
+    ' Ogni modulo ha 30 giorni di prova. I prezzi li vedi in app prima di pagare.';
+
+  return { gratis, moduli };
+}
+
+/**
+ * Formato video in base alla larghezza viewport.
+ * @param {number} larghezzaPx
+ * @returns {'16x9' | '4x5'}
+ */
+export function formatoVideo(larghezzaPx) {
+  const w = Number(larghezzaPx);
+  if (!Number.isFinite(w) || w < 768) return '4x5';
+  return '16x9';
+}
+
+/**
+ * Sorgenti e poster per un formato (WebM prima di MP4). Un solo formato per volta.
+ * @param {'16x9' | '4x5'} formato
+ * @param {string} [basePath='/video']
+ * @returns {{ poster: string, sources: Array<{ src: string, type: string }>, track: string }}
+ */
+export function sorgentiVideo(formato, basePath = '/video') {
+  const base = String(basePath || '/video').replace(/\/$/, '');
+  const key = formato === '4x5' ? '4x5' : '16x9';
+  return {
+    poster: `${base}/tony-landing-v2-${key}-poster.jpg`,
+    sources: [
+      { src: `${base}/tony-landing-v2-${key}.webm`, type: 'video/webm' },
+      { src: `${base}/tony-landing-v2-${key}.mp4`, type: 'video/mp4' },
+    ],
+    track: `${base}/tony-landing-v2-vo-v3.vtt`,
+  };
+}
+
+/**
+ * Alza i sottotitoli (line:-3) perché la didascalia IA occupa la fascia bassa.
+ * Idempotente: applicata due volte non raddoppia line:-3.
+ * @param {string} testoVtt
+ * @returns {string}
+ */
+export function alzaSottotitoli(testoVtt) {
+  const testo = String(testoVtt ?? '');
+  return testo.replace(
+    /^(\d{2}:\d{2}:\d{2}\.\d{3}\s-->\s\d{2}:\d{2}:\d{2}\.\d{3})(.*)$/gm,
+    (match, timing, rest) => {
+      if (/\bline:-3\b/.test(rest)) return match;
+      return `${timing} line:-3`;
+    }
+  );
+}
