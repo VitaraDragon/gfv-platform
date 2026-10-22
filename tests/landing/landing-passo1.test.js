@@ -178,6 +178,15 @@ describe('testi landing — regole del brief', () => {
       expect(pezzi[i].toLowerCase()).toContain('smartphone o un computer con internet');
     }
   });
+
+  it('Cosa gestisci: Utenti non è nell’account gratuito (serve Manodopera)', () => {
+    expect(testiLanding.cosaGestisci.gratis).not.toContain('Utenti');
+    expect(testiLanding.cosaGestisci.gratis).toEqual([
+      'Terreni',
+      'Poderi',
+      'Lavori e attività',
+    ]);
+  });
 });
 
 describe('niente da fuori', () => {

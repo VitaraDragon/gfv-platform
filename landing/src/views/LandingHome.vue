@@ -44,7 +44,6 @@ const iconeGratis: Record<string, string> = {
   Terreni: '🌾',
   Poderi: '🏡',
   'Lavori e attività': '📋',
-  Utenti: '👥',
 };
 
 const iconeModuli: Record<string, string> = {
@@ -67,9 +66,9 @@ const iconeModuli: Record<string, string> = {
         <img
           class="brand-mark"
           :src="logoMark"
-          width="40"
-          height="40"
-          alt=""
+          width="48"
+          height="48"
+          :alt="t.brand"
           decoding="async"
         />
         <span class="brand-name">{{ t.brand }}</span>
@@ -80,17 +79,6 @@ const iconeModuli: Record<string, string> = {
     <main id="inizio">
       <section class="hero" aria-labelledby="hero-title">
         <div class="hero-copy">
-          <div class="hero-brand">
-            <img
-              class="hero-mark"
-              :src="logoMark"
-              width="56"
-              height="56"
-              :alt="t.brand"
-              decoding="async"
-            />
-            <span>{{ t.brand }}</span>
-          </div>
           <h1 id="hero-title">{{ t.hero.titolo }}</h1>
           <p class="hero-sub">{{ t.hero.sottotitolo }}</p>
 
@@ -260,38 +248,48 @@ const iconeModuli: Record<string, string> = {
 
 .topbar {
   display: flex;
+  flex-wrap: nowrap;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
+  gap: 0.75rem;
   max-width: 1120px;
   margin: 0 auto;
-  padding: 1rem 1.25rem;
+  padding: 0.85rem 1.25rem;
 }
 
 .brand-link {
   display: inline-flex;
   align-items: center;
-  gap: 0.6rem;
+  gap: 0.55rem;
+  min-width: 0;
   text-decoration: none;
   color: var(--green-mid);
   font-weight: 800;
 }
 
-.brand-mark,
-.hero-mark {
+.brand-mark {
   display: block;
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
   border-radius: 10px;
 }
 
 .brand-name {
-  font-size: 1rem;
+  font-size: clamp(0.95rem, 3.2vw, 1.15rem);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .login-link {
+  flex-shrink: 0;
   font-size: 0.85rem;
   color: #4a6358;
   text-decoration: underline;
   text-underline-offset: 3px;
+  white-space: nowrap;
 }
 
 main {
@@ -304,16 +302,6 @@ main {
   display: grid;
   gap: 1.5rem;
   padding: 1rem 0 0.5rem;
-}
-
-.hero-brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
-  margin-bottom: 1rem;
-  font-weight: 800;
-  color: var(--green-mid);
-  font-size: 1.05rem;
 }
 
 .hero h1 {

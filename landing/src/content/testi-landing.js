@@ -59,7 +59,7 @@ export const testiLanding = {
   cosaGestisci: {
     titolo: 'Cosa gestisci',
     gratisTitolo: "Con l'account gratuito",
-    gratis: ['Terreni', 'Poderi', 'Lavori e attività', 'Utenti'],
+    gratis: ['Terreni', 'Poderi', 'Lavori e attività'],
     moduliTitolo: 'Con i moduli specializzati (dal piano Base)',
     moduli: [
       'Squadre e ore',
