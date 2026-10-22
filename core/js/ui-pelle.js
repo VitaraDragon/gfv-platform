@@ -672,7 +672,11 @@ function pelleTurnOn() {
 
 function skipPageTurn(e) {
   if (!e || !e.viewTransition || pelleTurnOn()) return;
-  e.viewTransition.skipTransition();
+  const vt = e.viewTransition;
+  vt.skipTransition();
+  // Saltare la transizione rifiuta ready con AbortError: è voluto, non è un errore.
+  // Senza catch, la pagina tornata dalla cache Indietro/Avanti lo stampa come Uncaught (in promise).
+  if (vt.ready && typeof vt.ready.catch === 'function') vt.ready.catch(() => {});
 }
 
 if (typeof window !== 'undefined') {
