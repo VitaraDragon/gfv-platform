@@ -11,6 +11,7 @@ import {
   GIORNI_GUIDA_TONY,
   IVA_CONFERMATA,
   LANDING_ATTIVA,
+  LIMITI_LANDING,
   TESTI_LEGALI_PRONTI,
   TESTO_CHI_SIAMO,
 } from '../../landing/src/config/landing-config.js';
@@ -22,12 +23,16 @@ import {
   rigaPrezzi,
   scegliVistaHome,
   sorgentiVideo,
+  vociPianiCosaGestisci,
 } from '../../landing/src/lib/landing-logica.js';
 import {
   monthlyToAnnual,
   SUBSCRIPTION_PLANS,
 } from '../../core/config/subscription-plans.js';
-import { TONY_GUIDA_ONBOARDING_DAYS } from '../../core/config/tony-guida-onboarding.js';
+import {
+  TONY_GUIDA_ONBOARDING_DAILY_LIMIT,
+  TONY_GUIDA_ONBOARDING_DAYS,
+} from '../../core/config/tony-guida-onboarding.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
@@ -179,17 +184,6 @@ describe('testi landing — regole del brief', () => {
     }
   });
 
-  it('Cosa gestisci: lista account gratuito allineata all’app', () => {
-    expect(testiLanding.cosaGestisci.gratis).toEqual([
-      'Terreni',
-      'Poderi',
-      'Diario attività',
-      'Statistiche',
-    ]);
-    expect(testiLanding.cosaGestisci.gratis).not.toContain('Utenti');
-    expect(testiLanding.cosaGestisci.gratis).not.toContain('Lavori e attività');
-  });
-
   it('Come ti aiuta Tony: secondo punto spiega dove andare (senza portare)', () => {
     const secondo = testiLanding.comeAiuta.punti[1];
     expect(secondo.titolo).toBe('Chiedi e ti spiega dove andare.');
@@ -199,6 +193,59 @@ describe('testi landing — regole del brief', () => {
 
   it('Cosa gestisci: Tony Avanzato è la prima voce dei moduli', () => {
     expect(testiLanding.cosaGestisci.moduli[0]).toBe('Tony Avanzato');
+    expect(testiLanding.cosaGestisci.moduliTitolo).toBe(
+      'Moduli da aggiungere al piano Base'
+    );
+  });
+});
+
+describe('Cosa gestisci — piani e limiti', () => {
+  it('LIMITI_LANDING rispecchia subscription-plans e tony-guida-onboarding', () => {
+    expect(LIMITI_LANDING.maxTerreniFree).toBe(SUBSCRIPTION_PLANS.free.maxTerreni);
+    expect(LIMITI_LANDING.maxAttivitaMeseFree).toBe(
+      SUBSCRIPTION_PLANS.free.maxAttivitaMese
+    );
+    expect(LIMITI_LANDING.prezzoBaseMese).toBe(SUBSCRIPTION_PLANS.base.price);
+    expect(LIMITI_LANDING.giorniGuidaTony).toBe(TONY_GUIDA_ONBOARDING_DAYS);
+    expect(LIMITI_LANDING.domandeGuidaGiorno).toBe(TONY_GUIDA_ONBOARDING_DAILY_LIMIT);
+    expect(GIORNI_GUIDA_TONY).toBe(LIMITI_LANDING.giorniGuidaTony);
+  });
+
+  it('voci piano gratuito: nomi e limiti dai numeri in config', () => {
+    const piani = vociPianiCosaGestisci(LIMITI_LANDING);
+    expect(piani.gratisTitolo).toBe("Con l'account gratuito");
+    expect(piani.gratis.map((v) => v.nome)).toEqual([
+      'Terreni',
+      'Poderi',
+      'Diario attività',
+      'Statistiche',
+      'Tony Guida',
+    ]);
+    expect(piani.gratis.find((v) => v.id === 'terreni')?.dettaglio).toBe(
+      `fino a ${LIMITI_LANDING.maxTerreniFree}`
+    );
+    expect(piani.gratis.find((v) => v.id === 'diario')?.dettaglio).toBe(
+      `fino a ${LIMITI_LANDING.maxAttivitaMeseFree} al mese`
+    );
+    expect(piani.gratis.find((v) => v.id === 'tony-guida')?.dettaglio).toBe(
+      `i primi ${LIMITI_LANDING.giorniGuidaTony} giorni, fino a ${LIMITI_LANDING.domandeGuidaGiorno} domande al giorno`
+    );
+    expect(piani.gratis.map((v) => v.nome).join(' ')).not.toMatch(/Utenti|Lavori e attività/);
+  });
+
+  it('voci piano Base: illimitati / sempre con te e titolo con prezzo', () => {
+    const piani = vociPianiCosaGestisci(LIMITI_LANDING);
+    expect(piani.baseTitolo).toBe(
+      `Con il piano Base — ${LIMITI_LANDING.prezzoBaseMese} € al mese`
+    );
+    expect(piani.base.map((v) => v.nome)).toEqual([
+      'Terreni illimitati',
+      'Poderi',
+      'Diario attività illimitato',
+      'Statistiche',
+      'Tony Guida, sempre con te',
+    ]);
+    expect(piani.base.every((v) => v.dettaglio == null)).toBe(true);
   });
 });
 

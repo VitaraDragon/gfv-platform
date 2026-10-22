@@ -9,11 +9,12 @@ import {
   FOTO_PIER_URL,
   GIORNI_GUIDA_TONY,
   IVA_CONFERMATA,
+  LIMITI_LANDING,
   TESTO_CHI_SIAMO,
   URL_LOGIN,
   URL_REGISTRAZIONE,
 } from '../config/landing-config.js';
-import { rigaPrezzi } from '../lib/landing-logica.js';
+import { rigaPrezzi, vociPianiCosaGestisci } from '../lib/landing-logica.js';
 import {
   monthlyToAnnual,
   SUBSCRIPTION_PLANS,
@@ -33,6 +34,8 @@ const prezzi = computed(() =>
   )
 );
 
+const pianiCosaGestisci = vociPianiCosaGestisci(LIMITI_LANDING);
+
 const mostraChiSiamo = computed(
   () => Boolean(FOTO_PIER_URL) && Boolean(String(TESTO_CHI_SIAMO || '').trim())
 );
@@ -41,11 +44,12 @@ onMounted(() => {
   document.title = t.documentTitle;
 });
 
-const iconeGratis: Record<string, string> = {
-  Terreni: '🌾',
-  Poderi: '🏡',
-  'Diario attività': '📋',
-  Statistiche: '📈',
+/** Icone emoji per id voce piano (stesse nei blocchi gratuito e Base). */
+const iconePianoEmoji: Record<string, string> = {
+  terreni: '🌾',
+  poderi: '🏡',
+  diario: '📋',
+  statistiche: '📈',
 };
 
 const iconeModuli: Record<string, string> = {
@@ -60,7 +64,11 @@ const iconeModuli: Record<string, string> = {
   Report: '📊',
 };
 
-/** Icone immagine (stessa dimensione delle emoji, forma tonda). */
+/** Icone immagine tonde (Tony Guida / Tony Avanzato). */
+const iconeImgPerId: Record<string, string> = {
+  'tony-guida': tonyIcon,
+};
+
 const iconeModuliImg: Record<string, string> = {
   'Tony Avanzato': tonyIcon,
 };
@@ -159,14 +167,67 @@ const iconeModuliImg: Record<string, string> = {
 
       <section class="cosa-gestisci" aria-labelledby="gestisci-title">
         <h2 id="gestisci-title">{{ t.cosaGestisci.titolo }}</h2>
-        <h3>{{ t.cosaGestisci.gratisTitolo }}</h3>
-        <ul class="chips">
-          <li v-for="chip in t.cosaGestisci.gratis" :key="chip" class="chip">
-            <span aria-hidden="true">{{ iconeGratis[chip] || '•' }}</span>
-            {{ chip }}
-          </li>
-        </ul>
-        <h3>{{ t.cosaGestisci.moduliTitolo }}</h3>
+
+        <div class="piani-confronto">
+          <div class="piano-blocco">
+            <h3>{{ pianiCosaGestisci.gratisTitolo }}</h3>
+            <ul class="chips">
+              <li
+                v-for="voce in pianiCosaGestisci.gratis"
+                :key="'gratis-' + voce.id"
+                class="chip"
+              >
+                <img
+                  v-if="iconeImgPerId[voce.id]"
+                  class="chip-icon-img"
+                  :src="iconeImgPerId[voce.id]"
+                  alt=""
+                  width="18"
+                  height="18"
+                  decoding="async"
+                  aria-hidden="true"
+                />
+                <span v-else aria-hidden="true">{{
+                  iconePianoEmoji[voce.id] || '•'
+                }}</span>
+                <span class="chip-label">
+                  {{ voce.nome
+                  }}<span v-if="voce.dettaglio" class="chip-limite">
+                    — {{ voce.dettaglio }}</span
+                  >
+                </span>
+              </li>
+            </ul>
+          </div>
+
+          <div class="piano-blocco">
+            <h3>{{ pianiCosaGestisci.baseTitolo }}</h3>
+            <ul class="chips">
+              <li
+                v-for="voce in pianiCosaGestisci.base"
+                :key="'base-' + voce.id"
+                class="chip"
+              >
+                <img
+                  v-if="iconeImgPerId[voce.id]"
+                  class="chip-icon-img"
+                  :src="iconeImgPerId[voce.id]"
+                  alt=""
+                  width="18"
+                  height="18"
+                  decoding="async"
+                  aria-hidden="true"
+                />
+                <span v-else aria-hidden="true">{{
+                  iconePianoEmoji[voce.id] || '•'
+                }}</span>
+                <span class="chip-label">{{ voce.nome }}</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+
+        <h3 class="moduli-titolo">{{ t.cosaGestisci.moduliTitolo }}</h3>
         <ul class="chips">
           <li v-for="chip in t.cosaGestisci.moduli" :key="chip" class="chip">
             <img
@@ -480,9 +541,31 @@ h2 {
 }
 
 .cosa-gestisci h3 {
-  margin: 1.25rem 0 0.65rem;
+  margin: 0 0 0.65rem;
   font-size: 1rem;
   color: var(--ink);
+}
+
+.piani-confronto {
+  display: grid;
+  gap: 1.5rem;
+  margin-top: 1rem;
+}
+
+.piano-blocco {
+  margin: 0;
+}
+
+.moduli-titolo {
+  margin-top: 1.75rem;
+}
+
+@media (min-width: 1024px) {
+  .piani-confronto {
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem 2rem;
+    align-items: start;
+  }
 }
 
 .chips {
@@ -505,6 +588,17 @@ h2 {
   font-size: 0.92rem;
   font-weight: 600;
   color: var(--ink-soft);
+}
+
+.chip-label {
+  display: inline;
+  line-height: 1.35;
+}
+
+.chip-limite {
+  font-size: 0.82em;
+  font-weight: 500;
+  color: #5a7266;
 }
 
 .chip-icon-img {

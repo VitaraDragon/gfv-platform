@@ -106,6 +106,57 @@ export function sorgentiVideo(formato, basePath = '/video') {
 }
 
 /**
+ * Voci «Cosa gestisci» per piano gratuito e Base (limiti da LIMITI_LANDING).
+ * @param {{
+ *   maxTerreniFree: number,
+ *   maxAttivitaMeseFree: number,
+ *   giorniGuidaTony: number,
+ *   domandeGuidaGiorno: number,
+ *   prezzoBaseMese: number,
+ * }} limiti
+ * @returns {{
+ *   gratisTitolo: string,
+ *   baseTitolo: string,
+ *   gratis: Array<{ id: string, nome: string, dettaglio: string | null }>,
+ *   base: Array<{ id: string, nome: string, dettaglio: string | null }>,
+ * }}
+ */
+export function vociPianiCosaGestisci(limiti) {
+  const maxTerreni = Number(limiti.maxTerreniFree);
+  const maxAttivita = Number(limiti.maxAttivitaMeseFree);
+  const giorni = Number(limiti.giorniGuidaTony);
+  const domande = Number(limiti.domandeGuidaGiorno);
+  const prezzo = Number(limiti.prezzoBaseMese);
+
+  return {
+    gratisTitolo: "Con l'account gratuito",
+    baseTitolo: `Con il piano Base — ${prezzo} € al mese`,
+    gratis: [
+      { id: 'terreni', nome: 'Terreni', dettaglio: `fino a ${maxTerreni}` },
+      { id: 'poderi', nome: 'Poderi', dettaglio: null },
+      {
+        id: 'diario',
+        nome: 'Diario attività',
+        dettaglio: `fino a ${maxAttivita} al mese`,
+      },
+      { id: 'statistiche', nome: 'Statistiche', dettaglio: null },
+      {
+        id: 'tony-guida',
+        nome: 'Tony Guida',
+        dettaglio: `i primi ${giorni} giorni, fino a ${domande} domande al giorno`,
+      },
+    ],
+    base: [
+      { id: 'terreni', nome: 'Terreni illimitati', dettaglio: null },
+      { id: 'poderi', nome: 'Poderi', dettaglio: null },
+      { id: 'diario', nome: 'Diario attività illimitato', dettaglio: null },
+      { id: 'statistiche', nome: 'Statistiche', dettaglio: null },
+      { id: 'tony-guida', nome: 'Tony Guida, sempre con te', dettaglio: null },
+    ],
+  };
+}
+
+/**
  * Alza i sottotitoli (line:-3) perché la didascalia IA occupa la fascia bassa.
  * Idempotente: applicata due volte non raddoppia line:-3.
  * @param {string} testoVtt

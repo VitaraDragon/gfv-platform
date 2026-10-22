@@ -59,9 +59,8 @@ export const testiLanding = {
 
   cosaGestisci: {
     titolo: 'Cosa gestisci',
-    gratisTitolo: "Con l'account gratuito",
-    gratis: ['Terreni', 'Poderi', 'Diario attività', 'Statistiche'],
-    moduliTitolo: 'Con i moduli specializzati (dal piano Base)',
+    /** Titoli piani e voci con limiti: vedi vociPianiCosaGestisci(LIMITI_LANDING). */
+    moduliTitolo: 'Moduli da aggiungere al piano Base',
     moduli: [
       'Tony Avanzato',
       'Squadre e ore',

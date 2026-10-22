@@ -19,8 +19,26 @@ export const IVA_CONFERMATA = false;
 /** Termini, Privacy e Cookie non sono ancora rivisti dall'avvocato. */
 export const TESTI_LEGALI_PRONTI = false;
 
-/** Giorni di guida Tony dal primo accesso (piano gratuito). Non importare file di Tony nella pagina. */
-export const GIORNI_GUIDA_TONY = 7;
+/**
+ * Limiti e prezzi mostrati in «Cosa gestisci» / prezzi.
+ * Specchio di core/config/subscription-plans.js (free) e tony-guida-onboarding.js.
+ * Un solo punto: non spargere i numeri nel template.
+ */
+export const LIMITI_LANDING = {
+  /** SUBSCRIPTION_PLANS.free.maxTerreni */
+  maxTerreniFree: 5,
+  /** SUBSCRIPTION_PLANS.free.maxAttivitaMese */
+  maxAttivitaMeseFree: 30,
+  /** TONY_GUIDA_ONBOARDING_DAYS */
+  giorniGuidaTony: 7,
+  /** TONY_GUIDA_ONBOARDING_DAILY_LIMIT */
+  domandeGuidaGiorno: 30,
+  /** SUBSCRIPTION_PLANS.base.price */
+  prezzoBaseMese: 5,
+};
+
+/** Alias usato anche da rigaPrezzi / test allineamento Tony. */
+export const GIORNI_GUIDA_TONY = LIMITI_LANDING.giorniGuidaTony;
 
 export const URL_APP = 'https://vitaradragon.github.io/gfv-platform/';
 
