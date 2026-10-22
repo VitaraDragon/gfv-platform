@@ -82,3 +82,6 @@ workspace/output/
 # Landing — video pesanti (solo poster/.vtt in repo; MP4/WebM in locale prima del deploy)
 landing/public/video/*.mp4
 landing/public/video/*.webm
+
+# Landing — build di anteprima (mai pubblicata su Firebase Hosting)
+landing/dist-anteprima/
