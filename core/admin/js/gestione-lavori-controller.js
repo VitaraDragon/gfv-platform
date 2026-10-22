@@ -180,6 +180,50 @@ export function setupManodoperaVisibility(hasManodoperaModule) {
 // FUNZIONI CARICAMENTO DATI
 // ============================================
 
+let terreniPerIdLookup = new Map();
+
+/**
+ * Lista visibile (filtro e dropdown) e insieme completo per il lookup per id.
+ * In vista normale la lista resta solo aziendale; in conto terzi solo i clienti.
+ * @param {Array} tutti
+ * @param {boolean} isContoTerzi
+ * @returns {{ perLista: Array, perId: Array }}
+ */
+export function dividiTerreniPerVista(tutti, isContoTerzi) {
+    const lista = Array.isArray(tutti) ? tutti : [];
+    const perLista = lista.filter((terreno) => {
+        const haCliente = terreno && terreno.clienteId != null && String(terreno.clienteId) !== '';
+        return isContoTerzi ? haCliente : !haCliente;
+    });
+    return { perLista, perId: lista };
+}
+
+function ricordaTerreniPerId(tutti) {
+    const mappa = new Map();
+    (Array.isArray(tutti) ? tutti : []).forEach((terreno) => {
+        if (terreno && terreno.id != null && String(terreno.id) !== '') {
+            mappa.set(String(terreno.id), terreno);
+        }
+    });
+    terreniPerIdLookup = mappa;
+}
+
+/**
+ * Prima la lista della vista, poi la mappa con anche i terreni dell'altra vista.
+ * @param {Array} lista
+ * @param {string} id
+ * @param {Map} [perId]
+ * @returns {Object|undefined}
+ */
+export function trovaTerrenoPerId(lista, id, perId = terreniPerIdLookup) {
+    if (id == null || String(id) === '') return undefined;
+    const sid = String(id);
+    const dallaLista = (Array.isArray(lista) ? lista : []).find((terreno) => terreno && String(terreno.id) === sid);
+    if (dallaLista) return dallaLista;
+    if (perId && typeof perId.get === 'function') return perId.get(sid);
+    return undefined;
+}
+
 /**
  * Carica lista terreni da Firestore
  * @param {string} currentTenantId - ID tenant corrente
@@ -205,73 +249,30 @@ export async function loadTerreni(currentTenantId, db, app, auth, terreniList, p
             return;
         }
         
-        // Usa servizio centralizzato tramite helper
+        // Tutti i terreni (anche clienti): la lista della vista si divide dopo.
         const { loadTerreniViaService } = await import('../../services/service-helper.js');
-        
-        let terreni = [];
-        if (isContoTerziMode) {
-            // In modalità conto terzi, carica direttamente da Firestore tutti i terreni
-            // perché il servizio ha un default clienteId=null che filtra solo aziendali
-            try {
-                const { collection, getDocs } = await import('../../services/firebase-service.js');
-                const terreniCollection = collection(db, 'tenants', currentTenantId, 'terreni');
-                const querySnapshot = await getDocs(terreniCollection);
-                
-                const allTerreni = [];
-                querySnapshot.forEach((doc) => {
-                    const data = doc.data();
-                    allTerreni.push({
-                        id: doc.id,
-                        nome: data.nome || '',
-                        superficie: data.superficie || 0,
-                        coordinate: data.coordinate || null,
-                        polygonCoords: data.polygonCoords || null,
-                        coltura: data.coltura || null,
-                        colturaCategoria: data.colturaCategoria || null,
-                        colturaSottocategoria: data.colturaSottocategoria || null,
-                        tipoCampo: data.tipoCampo || null,
-                        clienteId: data.clienteId || null, // IMPORTANTE: preserva clienteId
-                        ...data // Include tutti gli altri campi
-                    });
-                });
-                
-                // Filtra solo terreni clienti (con clienteId non nullo)
-                terreni = allTerreni.filter(t => t.clienteId != null && t.clienteId !== '');
-                
-                // Ordina per nome
-                terreni.sort((a, b) => {
-                    const nomeA = (a.nome || '').toLowerCase();
-                    const nomeB = (b.nome || '').toLowerCase();
-                    return nomeA.localeCompare(nomeB);
-                });
-                
-                console.log(`[GESTIONE LAVORI] Modalità conto terzi: ${terreni.length} terreni clienti caricati`);
-            } catch (error) {
-                console.error('[GESTIONE LAVORI] Errore caricamento terreni clienti:', error);
-                throw error;
+        const tutti = await loadTerreniViaService({
+            tenantId: currentTenantId,
+            firebaseInstances: { app, db, auth },
+            options: {
+                orderBy: 'nome',
+                orderDirection: 'asc',
+                clienteId: null,
+                includeTerreniClienti: true
             }
-        } else {
-            // In modalità normale, carica solo terreni aziendali
-            terreni = await loadTerreniViaService({
-                tenantId: currentTenantId,
-                firebaseInstances: { app, db, auth },
-                options: {
-                    orderBy: 'nome',
-                    orderDirection: 'asc',
-                    clienteId: null // Solo terreni aziendali
-                }
-            });
-        }
-        
-        terreniList.length = 0; // Pulisci array
-        terreniList.push(...terreni);
+        });
+        const { perLista, perId } = dividiTerreniPerVista(tutti, isContoTerziMode);
+        ricordaTerreniPerId(perId);
 
-        // Popola dropdown filtri
+        terreniList.length = 0;
+        terreniList.push(...perLista);
+
         if (populateTerrenoFilter) populateTerrenoFilter();
         if (populateTerrenoDropdown) populateTerrenoDropdown();
     } catch (error) {
         console.error('Errore caricamento terreni:', error);
         terreniList.length = 0;
+        terreniPerIdLookup = new Map();
     }
 }
 
@@ -816,7 +817,7 @@ function classificaProgresso(lavoro, superficieLavorataLavoro, superficieTotale)
     const giorniEffettivi = Math.max(0, Math.floor((oggi - dataInizio) / (1000 * 60 * 60 * 24)) + 1);
     if (giorniEffettivi <= 0) return null;
     const percentualeCompletamento = superficieTotale > 0 ? (superficieLavorataLavoro / superficieTotale * 100) : 0;
-    const percentualeTempo = (giorniEffettivi / lavoro.durataPrevista) * 100;
+    const percentualeTempo = ((giorniEffettivi - 1) / lavoro.durataPrevista) * 100;
     const tolleranza = 10;
     if (percentualeCompletamento > percentualeTempo + tolleranza) return 'anticipo';
     if (percentualeCompletamento < percentualeTempo - tolleranza) return 'ritardo';
@@ -1850,7 +1851,7 @@ export function populateTipoLavoroDropdown(
             // Prova a recuperare terreno da terreniList se disponibile globalmente
             let terreno = null;
             if (typeof window.lavoriState !== 'undefined' && window.lavoriState.terreniList) {
-                terreno = window.lavoriState.terreniList.find(t => t.id === terrenoId);
+                terreno = trovaTerrenoPerId(window.lavoriState.terreniList, terrenoId);
                 console.log('[GESTIONE-LAVORI] Terreno trovato in lavoriState:', terreno ? terreno.nome : 'non trovato');
             }
             
@@ -2147,7 +2148,7 @@ export async function renderLavori(
     const caposquadraListToUse = caposquadraList || [];
     const operaiListToUse = operaiList || [];
     const itemsForTony = filteredLavoriList.map((lav) => {
-        const terreno = terreniListToUse.find(t => t.id === lav.terrenoId);
+        const terreno = trovaTerrenoPerId(terreniListToUse, lav.terrenoId);
         const caposquadra = caposquadraListToUse.find(c => c.id === lav.caposquadraId);
         const operaio = operaiListToUse.find(o => o.id === lav.operaioId);
         const tipoLavoroNome = lav.tipoLavoro || lav.tipoLavoroNome || lav.categoriaLavoroNome || '-';
@@ -2223,7 +2224,7 @@ export async function renderLavori(
     }
     
     const lavoriConDettagli = filteredLavoriList.map((lavoro) => {
-            const terreno = terreniListToUse.find(t => t.id === lavoro.terrenoId);
+            const terreno = trovaTerrenoPerId(terreniListToUse, lavoro.terrenoId);
             const caposquadra = caposquadraListToUse.find(c => c.id === lavoro.caposquadraId);
             const squadra = squadreListToUse.find(s => s.caposquadraId === lavoro.caposquadraId);
             const operaio = operaiListToUse.find(o => o.id === lavoro.operaioId);
@@ -2260,7 +2261,7 @@ export async function renderLavori(
                     const superficieTotale = lavoroConProgressi.terreno?.superficie || 0;
                     const superficieLavorata = lavoroConProgressi.superficieTotaleLavorata || lavoroConProgressi.superficieLavorata || 0;
                     const percentualeCompletamento = superficieTotale > 0 ? (superficieLavorata / superficieTotale * 100) : 0;
-                    const percentualeTempo = (giorniEffettivi / lavoroConProgressi.durataPrevista) * 100;
+                    const percentualeTempo = ((giorniEffettivi - 1) / lavoroConProgressi.durataPrevista) * 100;
                     const tolleranza = 10; // Tolleranza del 10%
                     
                     if (percentualeCompletamento > percentualeTempo + tolleranza) {
@@ -2821,7 +2822,7 @@ export async function loadDettaglioOverview(
             return;
         }
 
-        const terreno = terreniList.find(t => t.id === lavoro.terrenoId);
+        const terreno = trovaTerrenoPerId(terreniList, lavoro.terrenoId);
         const caposquadra = caposquadraList.find(c => c.id === lavoro.caposquadraId);
         const progressi = loadProgressiLavoro ? await loadProgressiLavoro(lavoroId, currentTenantId, db) : { superficieLavorata: 0 };
         

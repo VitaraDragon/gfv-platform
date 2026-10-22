@@ -215,6 +215,7 @@
             createProactiveOpenOffer,
         } from './config/tony-proactive-signals.js';
         import { loadDashboardDeadlinesWidgets } from './js/dashboard-deadlines.js';
+        import { leggiUtenteETenantAvvio, leggiTenantDocAvvio, aziendePerSwitch } from './js/dashboard-avvio-letture.js';
         import { initDashboardQuickBar } from './js/dashboard-quick-bar.js';
         import {
             dashboardPerfBegin,
@@ -1201,7 +1202,9 @@
 
         function scheduleTonyDashboardDeferred(availableModules, userDataNormalized, currentTenantId) {
             function runTonyDashboardDeferred() {
-                if (window.__tonyGlobalStatusRan) return;
+                // Già partito (es. dall'evento tony-widget-ready): true ferma anche il polling,
+                // altrimenti continuava fino a 60 tentativi e scriveva un timeout falso.
+                if (window.__tonyGlobalStatusRan) return true;
                 if (!window.Tony || !Tony.isReady()) return false;
                 window.__tonyGlobalStatusRan = true;
                 Promise.all([
@@ -1360,7 +1363,15 @@
             
             try {
                 const userDocRef = doc(db, 'users', user.uid);
-                const userDoc = await dashboardPerfAsync('auth.userDoc', () => getDoc(userDocRef));
+                const { getCurrentTenantId: tenantIdDalBootstrap } = await import('./services/tenant-service.js');
+                // Utente e tenant nello stesso giro: il tenant è già noto dal bootstrap (tenant-service).
+                const avvioLetture = await leggiUtenteETenantAvvio({
+                    db, doc, getDoc,
+                    uid: user.uid,
+                    tenantIdPrevisto: tenantIdDalBootstrap(),
+                    misura: dashboardPerfAsync
+                });
+                const userDoc = avvioLetture.userDoc;
 
                 if (!userDoc.exists()) {
                     // Il documento utente non esiste, verifica prima se esiste già un documento con la stessa email
@@ -1493,15 +1504,15 @@
                     const userData = userDoc.data();
                     liberaAttesaSeRuoliDashboard(userData);
                     
-                    const { getUserRolesForTenant } = await import('./services/tenant-service.js');
+                    const { getUserRolesFromData } = await import('./services/tenant-service.js');
                     const currentTenantId = await dashboardPerfAsync('auth.resolveTenant', () => resolveCurrentTenantId(userData));
-                    const rolesPromise = currentTenantId
-                        ? dashboardPerfAsync('auth.tenantRoles', () => getUserRolesForTenant(currentTenantId, user.uid))
-                        : Promise.resolve([]);
-                    const tenantDocPromise = currentTenantId
-                        ? dashboardPerfAsync('auth.tenantDoc', () => getDoc(doc(db, 'tenants', currentTenantId)))
-                        : Promise.resolve(null);
-                    const [rolesRaw, tenantDoc] = await Promise.all([rolesPromise, tenantDocPromise]);
+                    // Ruoli dal documento utente appena letto (prima: seconda lettura di users/{uid}).
+                    const rolesRaw = currentTenantId ? getUserRolesFromData(userData, currentTenantId) : [];
+                    const tenantDoc = await leggiTenantDocAvvio(
+                        { db, doc, getDoc, misura: dashboardPerfAsync },
+                        avvioLetture.tenantAnticipato,
+                        currentTenantId
+                    );
                     let rolesForCurrentTenant = Array.isArray(rolesRaw) ? rolesRaw : [];
                     if (rolesForCurrentTenant.length === 0) {
                         rolesForCurrentTenant = userData.ruoli || [];
@@ -1546,15 +1557,14 @@
                     ).join(' ');
                     document.getElementById('user-roles').innerHTML = rolesHTML || '<span class="role-badge">Nessun ruolo</span>';
                     
-                    try {
-                        await updateDoc(userDocRef, {
-                            ultimoAccesso: serverTimestamp(),
-                            isOnline: true,
-                            lastSeen: serverTimestamp()
-                        });
-                    } catch (error) {
+                    // Scrittura in background: non serve attenderla per disegnare la dashboard.
+                    updateDoc(userDocRef, {
+                        ultimoAccesso: serverTimestamp(),
+                        isOnline: true,
+                        lastSeen: serverTimestamp()
+                    }).catch((error) => {
                         console.warn('Errore aggiornamento ultimo accesso:', error);
-                    }
+                    });
                     
                     if (window.gfvOnlineInterval) {
                         clearInterval(window.gfvOnlineInterval);
@@ -1577,11 +1587,12 @@
                     // La visibilità del link "Invita Collaboratore" viene gestita in renderDashboard
                     // in base a se Manodopera è attivo o no
                     
-                    // Gestione switch tenant (multi-tenant)
-                    await dashboardPerfAsync('auth.tenantSwitch', () => setupTenantSwitch(user.uid, userDataNormalized));
+                    // Gestione switch tenant (multi-tenant): in parallelo al render, dal documento utente già letto
+                    const tenantSwitchPromise = dashboardPerfAsync('auth.tenantSwitch', () => setupTenantSwitch(userData));
 
                     // Renderizza dashboard con moduli
                     await renderDashboard(userDataNormalized, availableModules);
+                    await tenantSwitchPromise;
                     await finishDashboardLoad(availableModules, userDataNormalized, currentTenantId, user);
                 }
             } catch (error) {
@@ -1601,11 +1612,11 @@
         /**
          * Setup switch tenant button (mostra solo se utente ha più tenant)
          */
-        async function setupTenantSwitch(userId, userData) {
+        async function setupTenantSwitch(userData) {
             try {
-                const { getUserTenants } = await import('./services/tenant-service.js');
-                const { getCurrentTenantId } = await import('./services/tenant-service.js');
-                const tenants = await getUserTenants(userId);
+                const tenantService = await import('./services/tenant-service.js');
+                const { getCurrentTenantId } = tenantService;
+                const tenants = await aziendePerSwitch(userData, tenantService);
                 
                 const switchButton = document.getElementById('switch-tenant-button');
                 const switchText = document.getElementById('switch-tenant-text');
@@ -1707,7 +1718,7 @@
     
     <!-- Service Worker: la barra di aggiornamento sta in app-update.js -->
     <script type="module">
-        import { registraServiceWorker } from './js/app-update.js?v=2026-10-19a';
+        import { registraServiceWorker } from './js/app-update.js?v=2026-10-21a';
         const swPath = window.location.pathname.includes('/gfv-platform/')
             ? '/gfv-platform/service-worker.js'
             : '../service-worker.js';

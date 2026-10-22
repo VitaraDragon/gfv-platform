@@ -1016,7 +1016,7 @@ export async function loadMappaAziendale(userData, hasManodopera = false, depend
                             if (!percentualeCompletamento && superficieTotale > 0) {
                                 percentualeCompletamento = (superficieLavorata / superficieTotale) * 100;
                             }
-                            const percentualeTempo = (lavoro.giorniEffettivi / lavoro.durataPrevista) * 100;
+                            const percentualeTempo = ((lavoro.giorniEffettivi - 1) / lavoro.durataPrevista) * 100;
                             const tolleranza = 10;
                             if (percentualeCompletamento > percentualeTempo + tolleranza) {
                                 lavoro.statoProgresso = 'in_anticipo';

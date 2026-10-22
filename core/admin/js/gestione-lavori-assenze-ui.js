@@ -6,8 +6,6 @@
 import { showAlert, escapeHtml } from './gestione-lavori-utils.js';
 import { ASSENZA_TIPI, toGiornoKey } from '../../config/manodopera-assenze-config.js';
 import {
-  listAssenzeSegnalate,
-  listAssenzeApertePerGiorno,
   getAssenza,
   findAssenzaSegnalataPerLavoro,
   findAssenzaSegnalataPerOperaio
@@ -16,11 +14,26 @@ import { markAssenzaNotificationsSeen } from '../../services/notification-events
 import {
   mettiLavoroInStandbyPerAssenza,
   riportaLavoroDaStandbyAssenza,
-  confermaSegnalazioneEStandby
+  confermaSegnalazioneEStandby,
+  confermaAssenzaConStandbyLavori
 } from '../../services/lavoro-standby-assenza-service.js';
-import { getLavoro } from '../../services/lavori-service.js';
+import { getLavoro, getAllLavori } from '../../services/lavori-service.js';
+import {
+  assenzaDaGestireNelBanner,
+  lavoriStandbyPerAssenza,
+  lavoroDaAprireDaDeepLink,
+  MSG_STANDBY_NON_VERIFICATO
+} from '../../services/assenze-banner-logic.js';
+import { caricaAssenzeDaGestire, leggiLavoriStandbyPerAssenza } from '../../services/assenze-banner-service.js';
+
+export { assenzaDaGestireNelBanner, lavoriStandbyPerAssenza };
+import {
+  lavoriCandidatiAssenza,
+  lavoroIdsPreselezionatiStandby
+} from '../../services/assenza-lavori-giorno-logic.js';
 
 let assenzeUiDeps = null;
+let sceltaStandbyAttiva = false;
 
 /**
  * @param {Object} deps
@@ -85,15 +98,12 @@ export async function refreshAssenzeSegnalateBanner() {
   if (!el) return;
   try {
     const today = toGiornoKey(new Date());
-    const [segnalate, aperteOggi] = await Promise.all([
-      listAssenzeSegnalate(),
-      listAssenzeApertePerGiorno(today)
-    ]);
-    const byId = new Map();
-    segnalate.forEach((a) => { if (a && a.id) byId.set(a.id, a); });
-    aperteOggi.forEach((a) => { if (a && a.id) byId.set(a.id, a); });
-    const rows = Array.from(byId.values());
-    if (!rows.length) {
+    // Segnalate, confermate di oggi e assenze (anche passate) con lavori ancora in standby
+    const { rows, standbyVerificato } = await caricaAssenzeDaGestire(today);
+    const avviso = standbyVerificato
+      ? ''
+      : `<p style="margin:6px 0 0;color:#c62828;font-weight:600;">${escapeHtml(MSG_STANDBY_NON_VERIFICATO)}</p>`;
+    if (!rows.length && !avviso) {
       el.hidden = true;
       el.innerHTML = '';
       return;
@@ -104,12 +114,17 @@ export async function refreshAssenzeSegnalateBanner() {
         const nome = escapeHtml(nomeOperaioFromList(a.operaioId));
         const tipo = escapeHtml(a.tipoLabel || a.tipo || '');
         const giorno = escapeHtml(a.dataInizioGiorno || '');
-        const lavoroId = a.lavoroId || a.standbyLavoroId || '';
+        const inStandby = a.lavoriInStandby || [];
         let azione = '';
-        if (a.stato === 'segnalata' && lavoroId) {
-          azione = `<button type="button" class="btn btn-warning btn-sm" style="margin-top:8px;" onclick="confermaSegnalazioneStandby('${escapeHtml(a.id)}','${escapeHtml(lavoroId)}')">Conferma e standby</button>`;
-        } else if (lavoroId && typeof window.openSostitutoAssenzaModal === 'function') {
-          azione = `<button type="button" class="btn btn-warning btn-sm" style="margin-top:8px;" onclick="openSostitutoAssenzaModal('${escapeHtml(lavoroId)}')">Scegli sostituto</button>`;
+        if (a.stato === 'segnalata') {
+          azione = `<button type="button" class="btn btn-warning btn-sm" style="margin-top:8px;" onclick="confermaSegnalazioneStandby('${escapeHtml(a.id)}')">Conferma e standby</button>`;
+        } else if (inStandby.length && typeof window.openSostitutoAssenzaModal === 'function') {
+          azione = inStandby
+            .map((l) => {
+              const etichetta = inStandby.length > 1 && l.nome ? `Scegli sostituto — ${escapeHtml(l.nome)}` : 'Scegli sostituto';
+              return `<button type="button" class="btn btn-warning btn-sm" style="margin-top:8px;margin-right:6px;" onclick="openSostitutoAssenzaModal('${escapeHtml(l.id)}')">${etichetta}</button>`;
+            })
+            .join('');
         } else {
           azione = '<span style="display:block;margin-top:6px;font-size:12px;">Apri il lavoro e usa «Standby assenza» o «Scegli sostituto».</span>';
         }
@@ -117,8 +132,8 @@ export async function refreshAssenzeSegnalateBanner() {
       })
       .join('');
     el.innerHTML = `
-      <strong>📩 ${rows.length} assenz${rows.length === 1 ? 'a' : 'e'} da gestire oggi</strong>
-      <ul style="margin:8px 0 0;padding-left:18px;">${items}</ul>
+      <strong>📩 ${rows.length} assenz${rows.length === 1 ? 'a' : 'e'} da gestire oggi</strong>${avviso}
+      ${rows.length ? `<ul style="margin:8px 0 0;padding-left:18px;">${items}</ul>` : ''}
     `;
   } catch (e) {
     console.warn('[Gestione Lavori] assenze segnalate:', e);
@@ -129,8 +144,9 @@ export async function refreshAssenzeSegnalateBanner() {
 /**
  * Deep link push assenza: marca seen e apre standby/sostituto se c'è un lavoro.
  * @param {string} assenzaId
+ * @param {string} [lavoroId] lavoro scelto dal banner di Impegni (se ancora in standby)
  */
-export async function openAssenzaFromDeepLink(assenzaId) {
+export async function openAssenzaFromDeepLink(assenzaId, lavoroId = null) {
   if (!assenzaId) return;
   try {
     await markAssenzaNotificationsSeen(assenzaId);
@@ -144,13 +160,21 @@ export async function openAssenzaFromDeepLink(assenzaId) {
     banner.hidden = false;
     banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
-  const lavoroId = assenza.lavoroId || assenza.standbyLavoroId;
-  if (!lavoroId) return;
-  if (assenza.stato === 'confermata' && typeof window.openSostitutoAssenzaModal === 'function') {
-    await window.openSostitutoAssenzaModal(lavoroId);
+  if (assenza.stato === 'segnalata') {
+    await confermaSegnalazioneStandby(assenza.id || assenzaId);
     return;
   }
-  await openStandbyAssenzaModal(lavoroId, { assenzaId });
+  if (assenza.stato === 'confermata' && typeof window.openSostitutoAssenzaModal === 'function') {
+    let inStandby = null;
+    try {
+      inStandby = (await leggiLavoriStandbyPerAssenza()).get(assenza.id || assenzaId) || [];
+    } catch (e) {
+      console.warn('[Gestione Lavori] lavori in standby:', e);
+      showAlert(MSG_STANDBY_NON_VERIFICATO, 'error');
+    }
+    const daAprire = lavoroDaAprireDaDeepLink(inStandby, lavoroId);
+    if (daAprire) await window.openSostitutoAssenzaModal(daAprire);
+  }
 }
 
 /**
@@ -160,6 +184,12 @@ export async function openAssenzaFromDeepLink(assenzaId) {
 export async function openStandbyAssenzaModal(lavoroId, options = {}) {
   const modal = document.getElementById('standby-assenza-modal');
   if (!modal) return;
+  sceltaStandbyAttiva = false;
+  const sceltaBox = document.getElementById('standby-assenza-lavori');
+  if (sceltaBox) {
+    sceltaBox.hidden = true;
+    sceltaBox.innerHTML = '';
+  }
 
   const lavoro = await getLavoro(lavoroId);
   if (!lavoro) {
@@ -255,16 +285,43 @@ export async function submitStandbyAssenzaModal() {
   const giorno = document.getElementById('assenza-giorno')?.value || toGiornoKey(new Date());
   const nota = document.getElementById('assenza-nota')?.value || '';
 
-  if (!lavoroId) {
+  if (sceltaStandbyAttiva) {
+    if (!assenzaId) {
+      showAlert('Segnalazione assenza non valida', 'warning');
+      return;
+    }
+  } else if (!lavoroId) {
     showAlert('Lavoro non valido', 'warning');
     return;
-  }
-  if (!assenzaId && !operaioId) {
+  } else if (!assenzaId && !operaioId) {
     showAlert('Seleziona l\'operaio assente', 'warning');
     return;
   }
 
   try {
+    if (sceltaStandbyAttiva && assenzaId) {
+      const lavoroIds = leggiLavoriStandbySelezionati();
+      await confermaAssenzaConStandbyLavori({
+        assenzaId,
+        lavoroIds,
+        managerId
+      });
+      sceltaStandbyAttiva = false;
+      showAlert(
+        lavoroIds.length
+          ? 'Assenza confermata. In standby solo i lavori selezionati.'
+          : 'Assenza confermata. Nessun lavoro in standby.',
+        'success'
+      );
+      closeStandbyAssenzaModal();
+      await refreshAssenzeSegnalateBanner();
+      if (typeof assenzeUiDeps?.reloadLavori === 'function') {
+        await assenzeUiDeps.reloadLavori();
+      } else {
+        assenzeUiDeps?.renderLavori?.();
+      }
+      return;
+    }
     if (assenzaId) {
       await confermaSegnalazioneEStandby({
         assenzaId,
@@ -317,10 +374,89 @@ export async function ripristinaDaStandbyModal() {
   }
 }
 
+function leggiLavoriStandbySelezionati() {
+  const box = document.getElementById('standby-assenza-lavori');
+  if (!box) return [];
+  return Array.from(box.querySelectorAll('input[type="checkbox"]:checked'))
+    .map((input) => input.value)
+    .filter(Boolean);
+}
+
+function nomeLavoroAssenza(lavoro) {
+  return (lavoro && (lavoro.nome || lavoro.label)) || (lavoro && lavoro.id) || 'Lavoro';
+}
+
+function eLavoroSquadraAssenza(lavoro) {
+  return !(lavoro && lavoro.operaioId && !lavoro.caposquadraId);
+}
+
 /**
- * Conferma segnalazione esistente + standby (da banner).
+ * Modale con le caselle dei lavori del giorno. L'autonomo è già spuntato, la squadra no.
+ * @param {string} assenzaId
  */
-export async function confermaSegnalazioneStandby(assenzaId, lavoroId) {
-  if (!assenzaId || !lavoroId) return;
-  await openStandbyAssenzaModal(lavoroId, { assenzaId });
+export async function apriSceltaStandbyAssenza(assenzaId) {
+  const modal = document.getElementById('standby-assenza-modal');
+  if (!modal || !assenzaId) return;
+  const assenza = await getAssenza(assenzaId);
+  if (!assenza) {
+    showAlert('Segnalazione assenza non trovata', 'error');
+    return;
+  }
+  const lavori = await getAllLavori();
+  const squadre = assenzeUiDeps?.getSquadreList?.() || [];
+  const giorno = assenza.dataInizioGiorno || toGiornoKey(new Date());
+  const candidati = lavoriCandidatiAssenza({
+    operaioId: assenza.operaioId,
+    giornoKey: giorno,
+    lavori: lavori || [],
+    squadre
+  });
+  const preselezionati = new Set(lavoroIdsPreselezionatiStandby(candidati));
+  sceltaStandbyAttiva = true;
+
+  document.getElementById('standby-assenza-lavoro-id').value = '';
+  document.getElementById('standby-assenza-assenza-id').value = assenzaId;
+
+  const titolo = document.getElementById('standby-assenza-modal-title');
+  if (titolo) titolo.textContent = 'Lavori da mettere in standby';
+  const formWrap = document.getElementById('standby-assenza-form-wrap');
+  const ripristinaBtn = document.getElementById('standby-assenza-ripristina-btn');
+  const submitBtn = document.getElementById('standby-assenza-submit-btn');
+  if (formWrap) formWrap.style.display = 'none';
+  if (ripristinaBtn) ripristinaBtn.style.display = 'none';
+  if (submitBtn) {
+    submitBtn.style.display = 'inline-flex';
+    submitBtn.textContent = 'Conferma assenza e standby';
+  }
+
+  const info = document.getElementById('standby-assenza-info');
+  if (info) {
+    info.hidden = false;
+    const nome = nomeOperaioFromList(assenza.operaioId);
+    info.textContent = `Assenza di ${nome}. La squadra prosegue senza di lui se non la selezioni.`;
+  }
+
+  const box = document.getElementById('standby-assenza-lavori');
+  if (box) {
+    box.hidden = false;
+    const righe = candidati.map((lavoro) => {
+      const checked = preselezionati.has(String(lavoro.id)) ? ' checked' : '';
+      const nota = eLavoroSquadraAssenza(lavoro)
+        ? ' <span class="assenza-standby-nota">prosegue senza di lui se non lo selezioni</span>'
+        : '';
+      return `<label style="display:block;margin:6px 0;"><input type="checkbox" name="standby-lavoro" value="${escapeHtml(lavoro.id)}"${checked}> ${escapeHtml(nomeLavoroAssenza(lavoro))}${nota}</label>`;
+    }).join('');
+    box.innerHTML = `<p style="margin:0 0 8px;"><strong>Lavori da mettere in standby</strong></p>${righe || '<p>Nessun lavoro del giorno da mettere in standby.</p>'}`;
+  }
+
+  modal.classList.add('active');
+}
+
+/**
+ * Dal banner: apre la scelta dei lavori, anche se la segnalazione non ha un lavoroId.
+ * @param {string} assenzaId
+ */
+export async function confermaSegnalazioneStandby(assenzaId) {
+  if (!assenzaId) return;
+  await apriSceltaStandbyAssenza(assenzaId);
 }

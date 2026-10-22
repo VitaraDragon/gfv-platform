@@ -62,7 +62,8 @@ import {
     calcolaOreNette
 } from '../../services/ore-operai-logic.js';
 
-import { registraServiceWorker } from '../../js/app-update.js?v=2026-10-19a';
+import { registraServiceWorker } from '../../js/app-update.js?v=2026-10-21a';
+import { scegliLavoroPredefinitoGuasto } from '../../js/field-guasti-access.js?v=2026-10-19a';
 import {
     fetchLavoriDocumentsForFieldUser,
     resolveCaposquadraIdsForOperaio,
@@ -78,6 +79,7 @@ import {
 } from '../../services/ore-lavoro-selezionabile.js?v=2026-10-16a';
 import { fetchOperaioIdsForCaposquadraSquadre } from '../../services/comunicazioni-squadra-service.js';
 import { segnalaAssenza } from '../../services/manodopera-assenze-service.js';
+import { lavoriCandidatiAssenza } from '../../services/assenza-lavori-giorno-logic.js';
 import { toGiornoKey } from '../../config/manodopera-assenze-config.js';
 import {
     lavoroHaSostitutoAttivo,
@@ -196,6 +198,7 @@ let lastSquadMembers = [];
 let lastSquadLabel = 'Squadra';
 let lastSquadMeta = null;
 let lastSquadDisegnati = [];
+let lastSquadDocs = [];
 
 function etichettaSquadraBase() {
     if (!lastSquadMeta) return t('squad.fallbackName', linguaCorrente());
@@ -575,15 +578,33 @@ function urlSchedaGuastoCampo(lavoroId) {
     return base + '&lavoroId=' + encodeURIComponent(id);
 }
 
+function bozzaGuastoAperta(frame) {
+    try {
+        return Boolean(frame && frame.contentWindow && frame.contentWindow.__gfvFormSporco);
+    } catch (error) {
+        return false;
+    }
+}
+
 function ensureGuastoEmbedLoaded() {
     if (!guastoEmbedFrameEl) return;
     const lavoroId = String(idLavoroSelezionatoOSalvato() || '').trim();
-    const giaQuesto = guastoEmbedFrameEl.dataset.loaded === '1'
+    const giaCaricato = guastoEmbedFrameEl.dataset.loaded === '1';
+    if (giaCaricato && bozzaGuastoAperta(guastoEmbedFrameEl)) return;
+    const giaQuesto = giaCaricato
         && (guastoEmbedFrameEl.dataset.lavoroId || '') === lavoroId;
     if (giaQuesto) return;
     guastoEmbedFrameEl.dataset.loaded = '1';
     guastoEmbedFrameEl.dataset.lavoroId = lavoroId;
     guastoEmbedFrameEl.src = urlSchedaGuastoCampo(lavoroId);
+}
+
+function lavoroPredefinitoCampo(works) {
+    const lista = Array.isArray(works) ? works : [];
+    if (!lista.length) return null;
+    const scelto = scegliLavoroPredefinitoGuasto(lista.map((w) => (w && w.raw) || w));
+    if (!scelto || scelto.id == null) return lista[0];
+    return lista.find((w) => w && String(w.id) === String(scelto.id)) || lista[0];
 }
 
 function maybeLoadEmbedsForSlide(slideTitle) {
@@ -1011,9 +1032,9 @@ async function loadWorksForSelection(tentativo) {
             if (match) selectedWork = match;
         }
         if (works.length > 0 && !selectedWork) {
-            selectedWork = works[0];
-            if (selectedWorkEl) selectedWorkEl.value = selectedWork.id;
-            if (quickWorkSelectEl) quickWorkSelectEl.value = selectedWork.id;
+            selectedWork = lavoroPredefinitoCampo(works);
+            if (selectedWork && selectedWorkEl) selectedWorkEl.value = selectedWork.id;
+            if (selectedWork && quickWorkSelectEl) quickWorkSelectEl.value = selectedWork.id;
         }
         pickGpsSuggestion(works);
         syncLavoroOperativoEmbeds();
@@ -1231,6 +1252,37 @@ function populateAssenzaSegnalaOperaiSelect(members) {
             .join('');
 }
 
+function documentoLavoroCampo(work) {
+    if (!work) return null;
+    const raw = work.raw && typeof work.raw === 'object' ? work.raw : work;
+    const id = raw.id || work.id;
+    if (id == null || String(id) === '') return null;
+    return raw.id != null ? raw : Object.assign({}, raw, { id });
+}
+
+async function lavoriDelGiornoPerAssenza(operaioId, giornoKey) {
+    const dalCapo = (Array.isArray(cachedWorks) ? cachedWorks : [])
+        .map(documentoLavoroCampo)
+        .filter(Boolean);
+    const perId = new Map();
+    dalCapo.forEach((lavoro) => perId.set(String(lavoro.id), lavoro));
+    try {
+        const lavoriRef = collection(getDb(), `tenants/${currentTenantId}/lavori`);
+        const snapshot = await getDocs(query(lavoriRef, where('operaioId', '==', operaioId)));
+        snapshot.forEach((docSnap) => {
+            perId.set(String(docSnap.id), { id: docSnap.id, ...docSnap.data() });
+        });
+    } catch (error) {
+        console.warn('[FIELD-WORKSPACE] lavori autonomi assente:', error);
+    }
+    return lavoriCandidatiAssenza({
+        operaioId,
+        giornoKey,
+        lavori: Array.from(perId.values()),
+        squadre: lastSquadDocs
+    });
+}
+
 async function submitSegnalaAssenza(event) {
     event.preventDefault();
     if (!currentUser || !currentTenantId) return;
@@ -1245,12 +1297,19 @@ async function submitSegnalaAssenza(event) {
     }
     try {
         if (assenzaSegnalaStatusEl) assenzaSegnalaStatusEl.textContent = t('squad.sending', linguaCorrente());
+        const lavoriAssente = await lavoriDelGiornoPerAssenza(operaioId, giorno);
+        const lavoroIds = lavoriAssente.map((lavoro) => lavoro.id);
+        const ammessi = new Set(lavoroIds.map((id) => String(id)));
+        const lavoroContesto = selectedWork && ammessi.has(String(selectedWork.id))
+            ? selectedWork.id
+            : null;
         await segnalaAssenza({
             operaioId,
             tipo,
             dataGiorno: giorno,
             nota,
-            lavoroId: selectedWork?.id || null,
+            lavoroId: lavoroContesto,
+            lavoroIds,
             segnalatoDa
         }, currentTenantId);
         if (assenzaSegnalaStatusEl) {
@@ -1278,6 +1337,7 @@ async function loadSquadMembersForCapo() {
         }
         if (snapshot.empty) {
             lastSquadMeta = null;
+            lastSquadDocs = [];
             lastSquadDisegnati = [];
             lastSquadMembers = [];
             squadListEl.innerHTML = vuoto(t('squad.none', linguaCorrente()));
@@ -1288,6 +1348,7 @@ async function loadSquadMembersForCapo() {
             squadDocs.push({ id: d.id, ...d.data() });
         });
         squadDocs.sort((a, b) => (a.nome || '').localeCompare(b.nome || '', 'it'));
+        lastSquadDocs = squadDocs;
         const operaioIdSet = new Set();
         squadDocs.forEach((s) => {
             (s.operai || []).forEach((oid) => {

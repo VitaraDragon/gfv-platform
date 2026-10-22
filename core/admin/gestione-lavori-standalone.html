@@ -794,11 +794,11 @@
             <!-- Card Statistiche -->
             <div class="stats-grid" id="stats-container" data-tour-section="lavori-stats">
                 <div class="stat-card">
-                    <div class="stat-value" id="stat-totale-lavori">0</div>
+                    <div class="stat-value" id="stat-totale-lavori">-</div>
                     <div class="stat-label">Lavori Totali</div>
                 </div>
                 <div class="stat-card secondary">
-                    <div class="stat-value" id="stat-lavori-corso">0</div>
+                    <div class="stat-value" id="stat-lavori-corso">-</div>
                     <div class="stat-label">In Corso</div>
                 </div>
                 <div class="stat-card warning">
@@ -967,6 +967,7 @@
             <input type="hidden" id="standby-assenza-lavoro-id">
             <input type="hidden" id="standby-assenza-assenza-id">
             <p id="standby-assenza-info" style="font-size:14px;color:#555;margin-bottom:16px;"></p>
+            <div id="standby-assenza-lavori" hidden></div>
             <div id="standby-assenza-form-wrap">
                 <div class="form-group">
                     <label for="assenza-operaio">Operaio assente *</label>
@@ -1749,7 +1750,7 @@
             applyAssegnazioneToLavoroForm as applyAssegnazioneToLavoroFormModule,
             loadDettaglioOverview as loadDettaglioOverviewModule,
             loadDettaglioOre as loadDettaglioOreModule
-        } from './js/gestione-lavori-controller.js?v=2026-10-21a';
+        } from './js/gestione-lavori-controller.js?v=2026-10-21c';
 
         import { resolveLavoroCascadeParents } from '../js/lavoro-cascade-filters.js';
 
@@ -3834,7 +3835,7 @@
                         const assenzaIdFromUrl = urlParams.get('assenzaId');
                         if (assenzaIdFromUrl) {
                             setTimeout(() => {
-                                openAssenzaFromDeepLink(assenzaIdFromUrl).catch((err) => {
+                                openAssenzaFromDeepLink(assenzaIdFromUrl, urlParams.get('sostitutoLavoroId')).catch((err) => {
                                     console.warn('[Gestione Lavori] deep link assenza:', err);
                                 });
                             }, 600);

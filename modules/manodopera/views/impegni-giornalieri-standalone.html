@@ -154,94 +154,7 @@
             white-space: nowrap;
         }
         .btn-roster-edit:hover { color: #1B5E3A; }
-        .roster-edit-modal {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,0.45);
-            z-index: 10000;
-            align-items: center;
-            justify-content: center;
-            padding: 16px;
-        }
-        .roster-edit-modal.active { display: flex; }
-        .roster-edit-dialog {
-            background: #fff;
-            border-radius: 12px;
-            max-width: 480px;
-            width: 100%;
-            max-height: 90vh;
-            overflow: auto;
-            padding: 20px;
-            box-shadow: 0 8px 24px rgba(0,0,0,0.18);
-        }
-        .roster-edit-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            gap: 12px;
-            margin-bottom: 8px;
-        }
-        .roster-edit-header h3 { color: #1B5E3A; font-size: 18px; }
-        .roster-edit-close {
-            border: none;
-            background: transparent;
-            font-size: 28px;
-            line-height: 1;
-            cursor: pointer;
-            color: #666;
-        }
-        .roster-edit-hint { font-size: 13px; color: #666; margin-bottom: 14px; }
-        .roster-edit-ul { list-style: none; margin: 0 0 16px; padding: 0; }
-        .roster-edit-ul li {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 10px;
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
-            font-size: 14px;
-        }
-        .roster-edit-stato {
-            display: block;
-            font-size: 12px;
-            color: #666;
-            margin-top: 2px;
-        }
-        .btn-roster-remove {
-            border: 1px solid #c62828;
-            background: #ffebee;
-            color: #c62828;
-            border-radius: 6px;
-            padding: 5px 10px;
-            font-size: 12px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-        .roster-edit-locked { color: #999; font-size: 12px; }
-        .roster-edit-add label { display: block; font-size: 13px; color: #555; margin-bottom: 6px; }
-        .roster-edit-add-row { display: flex; gap: 8px; flex-wrap: wrap; }
-        .roster-edit-add-row select {
-            flex: 1;
-            min-width: 160px;
-            padding: 8px 10px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-        .btn-roster-add {
-            padding: 8px 14px;
-            border: none;
-            border-radius: 8px;
-            background: #2E8B57;
-            color: #fff;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .roster-edit-msg { margin-top: 10px; font-size: 13px; }
-        .roster-edit-msg.err { color: #c62828; }
-        .roster-edit-empty, .roster-edit-loading { color: #666; padding: 8px 0; font-size: 14px; }
+        /* Stili del modale «Scegli manualmente»: in core/js/manodopera-roster-edit-ui.js (servono anche a Gestione lavori). */
         @media (max-width: 768px) {
             .header { padding: 20px; }
             .header h1 { font-size: 22px; }
@@ -311,7 +224,8 @@
         import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import { toGiornoKey } from '../../../core/config/manodopera-assenze-config.js';
-        import { listAssenzeApertePerGiorno } from '../../../core/services/manodopera-assenze-service.js';
+        import { caricaAssenzeDaGestire } from '../../../core/services/assenze-banner-service.js';
+        import { htmlBannerAssenzeImpegni } from '../../../core/js/impegni-assenze-banner.js';
         import { markAssenzaNotificationsSeen } from '../../../core/services/notification-events-client.js';
         import {
             buildImpegniGiorno,
@@ -536,20 +450,20 @@
             const el = document.getElementById('assenze-oggi-banner');
             if (!el) return;
             try {
-                const rows = await listAssenzeApertePerGiorno(giornoKey);
-                if (!rows.length) {
+                // Stessa logica del banner di Gestione lavori: esce solo quando nessun suo lavoro è più in standby
+                const result = await caricaAssenzeDaGestire(giornoKey);
+                const html = htmlBannerAssenzeImpegni(result, {
+                    giornoKey,
+                    nomeOperaio: (id) => nomeOperaioImpegni(id, operaiList),
+                    escapeHtml
+                });
+                if (!html) {
                     el.hidden = true;
                     el.innerHTML = '';
                     return;
                 }
                 el.hidden = false;
-                const items = rows.map((a) => {
-                    const nome = escapeHtml(nomeOperaioImpegni(a.operaioId, operaiList));
-                    const tipo = escapeHtml(a.tipoLabel || a.tipo || '');
-                    const href = `../../../core/admin/gestione-lavori-standalone.html?assenzaId=${encodeURIComponent(a.id)}&data=${encodeURIComponent(giornoKey)}`;
-                    return `<li style="margin-top:8px;"><strong>${nome}</strong> — ${tipo} · <a href="${href}">Scegli sostituto</a></li>`;
-                }).join('');
-                el.innerHTML = `<strong>Assenze da gestire (${rows.length})</strong><ul style="margin:8px 0 0;padding-left:18px;">${items}</ul>`;
+                el.innerHTML = html;
             } catch (e) {
                 console.warn('[Impegni] banner assenze:', e);
                 el.hidden = true;

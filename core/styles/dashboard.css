@@ -1694,6 +1694,9 @@ body.dashboard-quick-bar-modal-open {
 .dashboard-meteo-side__inner {
     display: grid;
     grid-template-rows: auto auto;
+    /* Righe alte quanto il contenuto: se il meteo a sinistra è più alto (molti avvisi),
+       lo spazio in più resta sotto le card invece di allungarle con bianco dentro. */
+    align-content: start;
     gap: 16px;
     height: 100%;
 }
