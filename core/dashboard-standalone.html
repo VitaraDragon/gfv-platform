@@ -208,6 +208,11 @@
             saveProactiveBriefingState,
         } from './js/tony-proactive-briefing-policy.js';
         import {
+            BRIEFING_METEO_ATTESA_MS,
+            attendiConLimite,
+            salutoBriefingPerOra,
+        } from './js/dashboard-briefing-helpers.js';
+        import {
             buildRawProactiveCounts,
             collectProactiveSignals,
             formatProactiveOpsAttentionSnippet,
@@ -863,7 +868,9 @@
                 const scadenzeUrgenti = hasParcoMacchine && snapReady ? snapReady.scadenzeUrgenti || 0 : 0;
                 const guastiAperti = hasParcoMacchine && snapReady ? snapReady.guastiAperti || 0 : 0;
                 const oreDaValidare = hasManodopera && snapReady ? snapReady.oreDaValidare || 0 : 0;
-                const meteoBriefing = await meteoBriefingPromise;
+                // Il meteo (Cloud Function senza timeout) non deve trattenere il briefing:
+                // oltre 4 s si parte senza la frase sul meteo; se arriva dopo va solo nel contesto.
+                const meteoBriefing = await attendiConLimite(meteoBriefingPromise, BRIEFING_METEO_ATTESA_MS);
 
                 window.tonyMeteoBriefing = meteoBriefing || null;
                 window.tonyGlobalBriefing = {
@@ -897,6 +904,19 @@
                     if (meteoBriefing) {
                         window.Tony.setContext('meteoBriefing', meteoBriefing);
                     }
+                }
+                if (!meteoBriefing) {
+                    const briefingDiQuestaChiamata = window.tonyGlobalBriefing;
+                    meteoBriefingPromise.then(function(meteoTardivo) {
+                        if (!meteoTardivo || window.tonyGlobalBriefing !== briefingDiQuestaChiamata) return;
+                        window.tonyMeteoBriefing = meteoTardivo;
+                        briefingDiQuestaChiamata.meteo = meteoTardivo;
+                        briefingDiQuestaChiamata.meteoConsigliCount = meteoTardivo.consigliCount ? meteoTardivo.consigliCount : 0;
+                        if (window.Tony && typeof window.Tony.setContext === 'function') {
+                            window.Tony.setContext('globalStatus', briefingDiQuestaChiamata);
+                            window.Tony.setContext('meteoBriefing', meteoTardivo);
+                        }
+                    });
                 }
 
                 const collected = collectProactiveSignals(
@@ -937,7 +957,7 @@
                     return;
                 }
 
-                var greeting = (typeof window.getFriendlyGreeting === 'function') ? window.getFriendlyGreeting() : 'Buongiorno!';
+                var greeting = salutoBriefingPerOra(nowBriefing);
                 var followUp =
                     decision.action === 'delta'
                         ? pickProactiveOpenFollowUpFromDelta(decision.worsened)
