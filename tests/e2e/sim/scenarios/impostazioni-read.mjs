@@ -25,8 +25,11 @@ export async function runImpostazioniReadAssertions(page, expect) {
   const cognome = page.locator('#account-cognome');
   const email = page.locator('#account-email');
 
-  await expect(nome).not.toHaveValue('');
-  await expect(cognome).not.toHaveValue('');
+  // Nome/cognome non sono più obbligatori (titolare può restare senza nome).
+  await expect(nome).toBeVisible();
+  await expect(cognome).toBeVisible();
+  expect(await nome.getAttribute('required')).toBeNull();
+  expect(await cognome.getAttribute('required')).toBeNull();
   await expect(email).not.toHaveValue('');
   expect((await email.inputValue()).includes('@')).toBe(true);
 
