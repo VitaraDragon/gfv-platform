@@ -8,7 +8,7 @@ Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più sc
 
 ## Percorso consigliato quando inizi
 
-1. **Per primo Impostazioni** (in alto a destra, icona ingranaggio): dati azienda, account e, se vi serve, il podere. **[Impara qui: Impostazioni](#prima-cosa-dati-aziendali-e-poderi)**  
+1. **Per primo Impostazioni** (in alto a destra, icona ingranaggio): dati azienda e account; il **podere solo se vi serve** (non è obbligatorio). **[Impara qui: Impostazioni](#prima-cosa-dati-aziendali-e-poderi)**  
 2. Se sei **manager** o **amministratore**, orientati sulla **dashboard** (panoramica, menu Moduli, scorciatoie). **[Impara qui: Dashboard manager](#mini-guida-dashboard-per-manager-e-amministratore)**  
 3. Poi **Terreni**: premi **+ Aggiungi Terreno** e compila anche **Categoria Coltura** e **Coltura**. Se il terreno c’è già ma senza coltura, prima **✏️ Modifica**. **[Impara qui: Terreni](#mini-guida-aggiungere-o-modificare-un-terreno)**  
 4. Solo dopo il **Diario attività**. Senza coltura sul terreno, lì **Coltura** resta vuota. **[Impara qui: Diario](#mini-guida-compilare-il-diario-attivita)**  
@@ -137,14 +137,14 @@ Se il tuo unico ruolo è **operaio** o **caposquadra**, la dashboard mostra in g
 
 ## Prima cosa: dati aziendali e poderi
 
-**Perché farlo subito:** così nome azienda, contatti e **poderi** sono già pronti quando apri Terreni o il Diario; nei moduli compariranno i poderi giusti nei menu.
+**Perché farlo subito:** così nome azienda e contatti sono già pronti quando apri Terreni o il Diario. I **poderi** servono solo se raggruppate i campi; altrimenti potete passare direttamente ai Terreni.
 
 **Passi:**
 
 1. Dalla Dashboard, in alto a destra, premi **Impostazioni** (icona ingranaggio). In pagina leggi «Configura azienda e account».
-2. Nel riquadro **Informazioni Azienda** compila un campo alla volta: **Nome Azienda** * (obbligatorio), **Partita IVA**, **Codice Fiscale**, **Indirizzo**, **Città**, **CAP**, **Provincia**. Poi **Sede aziendale sulla mappa**: scrivi l’indirizzo e premi **🔍 Cerca**, oppure **Da anagrafica**, oppure **Rimuovi pin**. Poi **Telefono**, **Email Aziendale**, **Note**. Un solo click finale: **Salva Impostazioni Azienda**.
+2. Nel riquadro **Informazioni Azienda** compila un campo alla volta: **Nome Azienda** (obbligatorio), **Partita IVA**, **Codice Fiscale**, **Indirizzo**, **Città**, **CAP**, **Provincia**. Poi **Sede aziendale sulla mappa**: scrivi l’indirizzo e premi **🔍 Cerca**, oppure **Da anagrafica**, oppure **Rimuovi pin**. Poi **Telefono**, **Email Aziendale**, **Note**. Un solo click finale: **Salva Impostazioni Azienda**.
 3. **Logo (facoltativo):** nello stesso riquadro, campo **Logo**. In pagina trovi formati ammessi e dimensione massima. Il logo viene usato **nei preventivi** del modulo **Conto terzi**. Puoi anche **rimuovere** il logo se cambiate idea. Il logo si registra insieme a **Salva Impostazioni Azienda**.
-4. Se lavorate per **poderi** (fattorie, cascine, blocchi di campagna), nello stesso **Impostazioni** aprite **Gestione Poderi** e premete **➕ Aggiungi Podere**. Nel riquadro: **Nome Podere** \* , **Indirizzo** e **🔍 Cerca** (potete anche cliccare sulla mappa per il punto), **Note** se servono, poi **Salva**. In elenco, su un podere già creato: **✏️ Modifica** oppure **🗑️ Elimina**.
+4. **Podere (facoltativo).** Solo se lavorate per **poderi** (fattorie, cascine, blocchi di campagna): nello stesso **Impostazioni** aprite **Gestione Poderi** e premete **➕ Aggiungi Podere**. Nel riquadro: **Nome Podere** (obbligatorio), **Indirizzo** e **🔍 Cerca** (potete anche cliccare sulla mappa per il punto), **Note** se servono, poi **Salva**. In elenco, su un podere già creato: **✏️ Modifica** oppure **🗑️ Elimina**. Se non vi serve un podere, **saltate** questo passo e andate ai Terreni.
 5. **Liste personalizzate** (di solito **manager** o **amministratore**): potete aggiungere **tipi di lavoro** e **colture** specifiche della vostra azienda, così compaiono nei menu (Diario, Terreni, ecc.). Le voci **già previste dal sistema** di solito **non si eliminano**; potete invece arricchire con le vostre.
 6. **Tariffa del proprietario:** nella sezione **Tariffe** c’è una **tariffa oraria** per il calcolo dei **costi** quando il lavoro è tracciato dal **Diario attività** — utile soprattutto se **non** avete il modulo **Manodopera** attivo. Salvate con **Salva Tariffa Proprietario**.
 
@@ -187,15 +187,15 @@ Se un **podere** non compare sul terreno, va creato in **Impostazioni** con **�
 
 **Compilare i campi, uno alla volta**
 
-In schermata l’asterisco \* segna ciò che il form non lascia salvare vuoto. **Nome Terreno** e **Tipo Possesso** ce l’hanno. **Categoria Coltura** e **Coltura** non ce l’hanno, ma vanno compilate lo stesso: senza, il **Diario attività** non vi fa scegliere la coltura e non salva la giornata.
+Campi **obbligatori** (il form non lascia salvare vuoto): **Nome Terreno** e **Tipo Possesso**. **Categoria Coltura** e **Coltura** vanno scelte sempre lo stesso (prima la categoria, poi la coltura): senza, il **Diario attività** non vi fa scegliere la coltura e non salva la giornata.
 
-- **Nome Terreno** \* — obbligatorio. Un nome che tutti in azienda capiscono (podere + pezzo, oppure il nome locale del campo).
+- **Nome Terreno** — obbligatorio. Un nome che tutti in azienda capiscono (podere + pezzo, oppure il nome locale del campo).
 - **Superficie (ettari)** — facoltativa. A mano, oppure la calcola la mappa quando chiudete il contorno (vedi sotto).
 - **Categoria Coltura** — prima questa. Aprite l’elenco (parte da «-- Seleziona categoria --»). **[Come funzionano gli elenchi? Impara qui](#elenchi-cliccabili-menu-con-la-freccetta)**
-- **Coltura** — solo dopo la categoria. Prima l’elenco dice «-- Seleziona prima la categoria --». Scegliete la coltura principale del campo.
+- **Coltura** — solo dopo la categoria. Prima l’elenco dice «-- Seleziona prima la categoria --». Scegliete la coltura principale del campo. Senza categoria e coltura il Diario resta bloccato.
 - **Podere** — facoltativo. Se non serve, lasciate «-- Nessun podere --». Se il podere non c’è, in fondo al campo c’è **Gestisci poderi nelle impostazioni**: tornate a **Impostazioni** e premete **➕ Aggiungi Podere**.
 - **Morfologia del terreno** — facoltativa: **Pianura**, **Collina** o **Montagna**.
-- **Tipo Possesso** \* — obbligatorio: **Proprietà** oppure **Affitto**. Se scegliete **Affitto**, compaiono **Data Scadenza Affitto** \* (obbligatoria) e **Canone Mensile** (facoltativo).
+- **Tipo Possesso** — obbligatorio: **Proprietà** oppure **Affitto**. Se scegliete **Affitto**, compaiono **Data Scadenza Affitto** (obbligatoria) e **Canone Mensile** (facoltativo).
 - **Note** — facoltative.
 
 In fondo al riquadro: **Annulla** chiude senza salvare. Per registrare premete **Salva Terreno**.
@@ -225,7 +225,7 @@ Capita se il terreno è stato salvato senza **Categoria Coltura** e **Coltura** 
 2. Sulla riga del terreno premi **✏️** (fumetto **Modifica**).
 3. Scegli prima **Categoria Coltura**, poi **Coltura**.
 4. Premi **Salva Terreno**.
-5. Solo dopo aprite il **Diario attività**.
+5. Solo dopo aprite il **Diario attività**. Dopo il salvataggio sul terreno, la **Coltura** nel Diario si riempie da sola; se è ancora vuota, ricontrollate di aver salvato categoria e coltura sul terreno.
 
 ---
 
@@ -239,7 +239,7 @@ Capita se il terreno è stato salvato senza **Categoria Coltura** e **Coltura** 
 2. Premi **➕ Aggiungi Attività**: si apre il riquadro.
 3. **Data:** giorno in cui è stato fatto l’intervento.
 4. **Terreno:** sceglilo dall’elenco (solo terreni già creati in Terreni).
-5. **Tipo di lavoro**, poi **Categoria Coltura** \* e **Coltura** \*. **Coltura** è obbligatoria e di solito si compila da sola con la coltura del terreno. Se non vedi colture, il terreno non ne ha una: apri **Terreni**, **✏️ Modifica** su quel terreno, scegli **Categoria Coltura** e **Coltura**, **Salva Terreno**, poi torna qui. Non si toglie l’obbligo **Coltura** dal Diario.
+5. **Tipo di lavoro**, poi **Categoria Coltura** e **Coltura**. **Coltura** è obbligatoria: dopo che avete salvato categoria e coltura sul terreno, nel Diario la Coltura si riempie da sola; se resta vuota, manca la coltura sul terreno — apri **Terreni**, premi **✏️ Modifica** su quel terreno, scegli **Categoria Coltura** e **Coltura**, **Salva Terreno**, poi torna qui. Non si toglie l’obbligo **Coltura** dal Diario.
 6. **Orari:** ora di inizio obbligatoria; ora di fine se hai finito il turno (aiuta anche il calcolo delle ore).
 7. **Pause (minuti):** indica le pause effettive; le **ore nette** si aggiornano in base a orari e pause.
 8. **Note:** cosa avete fatto, condizioni, nome del turno, ecc.

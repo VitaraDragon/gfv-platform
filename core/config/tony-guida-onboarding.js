@@ -111,7 +111,7 @@ export function tonyGuidaOnboardingWelcomeMessage(onboarding) {
     TONY_GUIDA_ONBOARDING_DAYS +
     ' giorni (' +
     resto +
-    '): chiedimi «come imposto azienda, podere e terreni» (primi passi: Impostazioni, poi Poderi, poi Terreni con la coltura), come registrare le attività, invitare i collaboratori o cosa fanno i moduli. ' +
+    '): chiedimi «come imposto azienda e terreni» (primi passi: Impostazioni, podere se ti serve, poi terreni con la coltura), come registrare le attività, invitare i collaboratori o cosa fanno i moduli. ' +
     'Fino a ' +
     TONY_GUIDA_ONBOARDING_DAILY_LIMIT +
     ' domande al giorno; con il piano Base resto sempre con te.'
