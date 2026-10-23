@@ -39,7 +39,25 @@ export async function initializeCategoriePredefinite() {
       throw new Error('Nessun tenant corrente disponibile');
     }
     
-    const categorieEsistenti = await getAllCategorie();
+    let categorieEsistenti = await getAllCategorie();
+    // Evita re-seed silenzioso se getAllCategorie torna [] per filtri/indici:
+    // secondo tentativo grezzo senza where/orderBy.
+    if (!Array.isArray(categorieEsistenti) || categorieEsistenti.length === 0) {
+      try {
+        const tenantIdRaw = getCurrentTenantId();
+        const grezzi = await getCollectionData(COLLECTION_NAME, { tenantId: tenantIdRaw });
+        if (Array.isArray(grezzi) && grezzi.length > 0) {
+          categorieEsistenti = grezzi.map(doc => Categoria.fromData(doc));
+          console.warn(
+            'initializeCategoriePredefinite: getAllCategorie vuoto, uso lettura grezza (' +
+              categorieEsistenti.length +
+              ' doc)'
+          );
+        }
+      } catch (rawErr) {
+        console.warn('initializeCategoriePredefinite: lettura grezza fallita:', rawErr && rawErr.message);
+      }
+    }
     const codiciEsistenti = new Set(categorieEsistenti.map(c => c.codice));
     const categorieMap = new Map(); // codice -> id
     
