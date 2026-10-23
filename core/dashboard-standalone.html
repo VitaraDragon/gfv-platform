@@ -146,6 +146,7 @@
     <script type="module">
         import { formatDateTimeItalianReadable } from './js/date-format-it.js';
         import { resolveAuthUser, loginPageUrl } from './js/simulator-standalone-page.js';
+        import { getNomeVisualizzato } from './js/nome-visualizzato.js';
         import { spiegaIngressoDopoLogin, scriviIndizioIngresso, pulisciIndizioIngresso, CHIAVE_RIMBALZI_INGRESSO } from './js/tony/tony-ingresso-login.js?v=2026-10-09g';
         const { 
             roleNames, 
@@ -1184,7 +1185,12 @@
             if (window.Tony && Tony.isReady()) {
                 Tony.setContext('dashboard', {
                     info_azienda: { moduli_attivi: availableModules },
-                    utente_corrente: { nome: `${userDataNormalized.nome || ''} ${userDataNormalized.cognome || ''}`.trim() || (user && user.email) || '', ruoli: userDataNormalized.ruoli || [] },
+                    utente_corrente: { nome: getNomeVisualizzato({
+                        nome: userDataNormalized.nome,
+                        cognome: userDataNormalized.cognome,
+                        nomeAzienda: (window.__gfvTenantData && window.__gfvTenantData.nome) || '',
+                        email: (user && user.email) || ''
+                    }), ruoli: userDataNormalized.ruoli || [] },
                     moduli_attivi: availableModules,
                     plan: window.__gfvSubscriptionPlanId || 'base',
                     piano: window.__gfvSubscriptionPlanId || 'base',
@@ -1549,8 +1555,12 @@
                     const ingresso = applicaIngressoDopoLogin(userDataNormalized, availableModules);
                     if (ingresso !== 'dashboard') return;
 
-                    document.getElementById('user-info').textContent = 
-                        `${userData.nome || ''} ${userData.cognome || ''}`.trim() || user.email;
+                    document.getElementById('user-info').textContent = getNomeVisualizzato({
+                        nome: userData.nome,
+                        cognome: userData.cognome,
+                        nomeAzienda: tenantDataSnapshot && tenantDataSnapshot.nome,
+                        email: user.email
+                    });
                     
                     const rolesHTML = normalizedRoles.map(role => 
                         `<span class="role-badge">${roleNames[role] || role}</span>`
