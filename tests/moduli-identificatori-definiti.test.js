@@ -14,6 +14,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const MODULI = [
   'core/js/attivita-controller.js',
   'core/js/attivita-maps.js',
+  'core/js/dashboard-briefing-helpers.js',
   'core/js/dashboard-counts-snapshot.js',
   'core/js/dashboard-data.js',
   'core/js/dashboard-deadlines.js',
