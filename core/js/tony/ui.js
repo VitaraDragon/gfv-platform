@@ -6,6 +6,38 @@
 import { bindTonyVisualViewport } from './visual-viewport.js';
 
 /**
+ * Escape HTML + **grassetto** → <strong>. Solo enfasi markdown bipartite; nessun altro markup.
+ * @param {unknown} text
+ * @returns {string}
+ */
+export function formatTonyChatHtml(text) {
+    var raw = text == null ? '' : String(text);
+    var escaped = raw
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+    return escaped.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+}
+
+/**
+ * Imposta il contenuto di una bolla chat: grassetto per Tony/error, testo puro per user/typing.
+ * @param {HTMLElement} el
+ * @param {unknown} text
+ * @param {string} [type]
+ */
+export function setTonyMsgContent(el, text, type) {
+    if (!el) return;
+    type = type || 'tony';
+    if (type === 'tony' || type === 'error') {
+        el.innerHTML = formatTonyChatHtml(text);
+    } else {
+        el.textContent = text == null ? '' : String(text);
+    }
+}
+
+
+/**
  * Crea e inietta il widget (FAB, pannello, overlay). Restituisce l'API per appendMessage, removeTyping, showMessageInChat e setSendHandler.
  * @param {string} scriptBase - URL base (import.meta.url del loader)
  * @returns {{ appendMessage: function, removeTyping: function, showMessageInChat: function, setSendHandler: function, setCloseHandler: function, getMessagesEl: function, getInputEl: function }}
@@ -18,7 +50,7 @@ export function injectWidget(scriptBase) {
             type = type || 'tony';
             var div = document.createElement('div');
             div.className = 'tony-msg ' + type;
-            div.textContent = text;
+            setTonyMsgContent(div, text, type);
             if (m) { m.appendChild(div); m.scrollTop = m.scrollHeight; }
         }
         function removeTyping() {
@@ -31,7 +63,7 @@ export function injectWidget(scriptBase) {
             if (el) {
                 var d = document.createElement('div');
                 d.className = 'tony-msg ' + type;
-                d.textContent = text;
+                setTonyMsgContent(d, text, type);
                 el.appendChild(d);
                 el.scrollTop = el.scrollHeight;
             }
@@ -142,7 +174,7 @@ export function injectWidget(scriptBase) {
         type = type || 'tony';
         var div = document.createElement('div');
         div.className = 'tony-msg ' + type;
-        div.textContent = text;
+        setTonyMsgContent(div, text, type);
         messagesEl.appendChild(div);
         messagesEl.scrollTop = messagesEl.scrollHeight;
     }
@@ -158,7 +190,7 @@ export function injectWidget(scriptBase) {
         if (el) {
             var d = document.createElement('div');
             d.className = 'tony-msg ' + type;
-            d.textContent = text;
+            setTonyMsgContent(d, text, type);
             el.appendChild(d);
             el.scrollTop = el.scrollHeight;
         }
