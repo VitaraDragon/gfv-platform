@@ -327,6 +327,12 @@
         import { onAuthStateChanged } from '../services/firebase-service.js';
         import { createUserWithEmailAndPassword, deleteUser } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
         import { computeTonyGuidaOnboardingEndsAt } from '../config/tony-guida-onboarding.js';
+        import { NOME_TITOLARE_FACOLTATIVO_ATTIVO } from '../config/nome-titolare-config.js';
+        import {
+            isDaLanding,
+            isNomeCognomeFacoltativi,
+            buildCampiNomeCognomeSeCompilati
+        } from '../js/nome-titolare-helpers.js';
 
         const app = getAppInstance();
         const auth = getAuthInstance();
@@ -344,6 +350,12 @@
         const registerButton = document.getElementById('register-button');
         const loadingOverlay = document.getElementById('loading-overlay');
         const successMessage = document.getElementById('success-message');
+
+        const daLanding = isDaLanding(window.location.search);
+        const nomeCognomeFacoltativi = isNomeCognomeFacoltativi({
+            flagAttivo: NOME_TITOLARE_FACOLTATIVO_ATTIVO,
+            daLanding: daLanding
+        });
         
         // Verifica che tutti gli elementi esistano
         if (!registerForm) {
@@ -356,6 +368,15 @@
         }
         if (!registerButton || !loadingOverlay) {
             console.error('❌ ERRORE CRITICO: Pulsante o overlay non trovati!');
+        }
+
+        if (nomeCognomeFacoltativi) {
+            nomeInput.removeAttribute('required');
+            cognomeInput.removeAttribute('required');
+            const labelNome = document.querySelector('label[for="nome"]');
+            const labelCognome = document.querySelector('label[for="cognome"]');
+            if (labelNome) labelNome.textContent = 'Nome (facoltativo)';
+            if (labelCognome) labelCognome.textContent = 'Cognome (facoltativo)';
         }
 
         let accettazioneLegaleAttiva = false;
@@ -514,16 +535,15 @@
             hideErrors();
             let isValid = true;
 
-            // Valida nome
-            if (!nomeInput.value.trim()) {
-                showError('nome', 'Nome obbligatorio');
-                isValid = false;
-            }
-
-            // Valida cognome
-            if (!cognomeInput.value.trim()) {
-                showError('cognome', 'Cognome obbligatorio');
-                isValid = false;
+            if (!nomeCognomeFacoltativi) {
+                if (!nomeInput.value.trim()) {
+                    showError('nome', 'Nome obbligatorio');
+                    isValid = false;
+                }
+                if (!cognomeInput.value.trim()) {
+                    showError('cognome', 'Cognome obbligatorio');
+                    isValid = false;
+                }
             }
 
             // Valida email
@@ -618,6 +638,9 @@
                 const email = emailInput.value.trim().toLowerCase();
                 const password = passwordInput.value;
                 const aziendaNome = aziendaNomeInput.value.trim();
+                const campiNome = nomeCognomeFacoltativi
+                    ? buildCampiNomeCognomeSeCompilati(nome, cognome)
+                    : { nome: nome, cognome: cognome };
 
                 // Crea utente Firebase Auth
                 const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -680,8 +703,7 @@
 const userData = {
                     id: firebaseUser.uid,
                     email: email.toLowerCase().trim(),
-                    nome: nome,
-                    cognome: cognome,
+                    ...campiNome,
                     ruoli: ruoliArray, // Primo utente è sempre amministratore
                     tenantId: tenantId, // IMPORTANTE: associa il tenant
                     stato: 'attivo',
