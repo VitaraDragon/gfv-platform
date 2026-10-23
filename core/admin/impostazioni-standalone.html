@@ -448,13 +448,16 @@
                 <form id="account-form" onsubmit="handleSaveAccount(event)">
                     <div class="form-row">
                         <div class="form-group">
-                            <label for="account-nome">Nome *</label>
-                            <input type="text" id="account-nome" required>
+                            <label for="account-nome">Nome</label>
+                            <input type="text" id="account-nome">
                         </div>
                         <div class="form-group">
-                            <label for="account-cognome">Cognome *</label>
-                            <input type="text" id="account-cognome" required>
+                            <label for="account-cognome">Cognome</label>
+                            <input type="text" id="account-cognome">
                         </div>
+                    </div>
+                    <div class="info-text" id="account-nome-suggerimento" style="margin-top:-8px;margin-bottom:16px;">
+                        Aggiungi nome e cognome: compariranno nei registri e negli elenchi.
                     </div>
 
                     <div class="form-group">
@@ -874,8 +877,9 @@
             loadNotificationPrefsFromUser,
             saveUserNotificationPrefs,
         } = await import('../services/notification-prefs-service.js');
-        const { updatePassword, reauthenticateWithCredential, EmailAuthProvider } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js');
+        const { updatePassword, reauthenticateWithCredential, EmailAuthProvider, updateProfile } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js');
         const { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-storage.js');
+        const { displayNameDaNomeCognome } = await import('../js/nome-titolare-helpers.js');
         const storage = getStorage(app);
 
         let currentUserData = null;
@@ -913,6 +917,7 @@
                     document.getElementById('account-cognome').value = currentUserData.cognome || '';
                     document.getElementById('account-email').value = currentUserData.email || user.email;
                     document.getElementById('account-telefono').value = currentUserData.telefono || '';
+                    aggiornaSuggerimentoNomeAccount();
                     fillNotificheForm(loadNotificationPrefsFromUser(currentUserData));
 
                     // Salva tenant ID
@@ -1660,6 +1665,17 @@
             syncNotificheWhatsappDisabled();
         });
 
+        function aggiornaSuggerimentoNomeAccount() {
+            const hint = document.getElementById('account-nome-suggerimento');
+            if (!hint) return;
+            const nome = (document.getElementById('account-nome')?.value || '').trim();
+            const cognome = (document.getElementById('account-cognome')?.value || '').trim();
+            hint.style.display = (nome || cognome) ? 'none' : '';
+        }
+
+        document.getElementById('account-nome')?.addEventListener('input', aggiornaSuggerimentoNomeAccount);
+        document.getElementById('account-cognome')?.addEventListener('input', aggiornaSuggerimentoNomeAccount);
+
         // Salva impostazioni account
         async function handleSaveAccount(e) {
             e.preventDefault();
@@ -1668,13 +1684,23 @@
             if (!user) return;
 
             try {
+                const nome = (document.getElementById('account-nome').value || '').trim();
+                const cognome = (document.getElementById('account-cognome').value || '').trim();
                 const accountData = {
-                    nome: document.getElementById('account-nome').value,
-                    cognome: document.getElementById('account-cognome').value,
+                    nome: nome,
+                    cognome: cognome,
                     telefono: document.getElementById('account-telefono').value
                 };
 
                 await updateDoc(doc(db, 'users', user.uid), accountData);
+                // Allinea displayName Auth (anche stringa vuota se entrambi vuoti)
+                await updateProfile(user, { displayName: displayNameDaNomeCognome(nome, cognome) });
+                if (currentUserData) {
+                    currentUserData.nome = nome;
+                    currentUserData.cognome = cognome;
+                    currentUserData.telefono = accountData.telefono;
+                }
+                aggiornaSuggerimentoNomeAccount();
                 showAlert('Impostazioni account salvate con successo', 'success');
                 segnaFormSalvato(document.getElementById('account-form'));
             } catch (error) {
