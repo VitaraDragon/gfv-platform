@@ -601,6 +601,13 @@
       "label": "Landing / marketing"
     },
     {
+      "prefix": "firebase.json",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Hosting Firebase (landing, rewrite)"
+    },
+    {
       "prefix": "documentazione-utente/",
       "modules": [
         "CORE"
