@@ -98,6 +98,10 @@ export function getTonyGuidaOnboardingFromWindow(now) {
 /**
  * Messaggio di benvenuto in chat durante il periodo di prova.
  * @param {{ daysLeft: number }} onboarding
+ *
+ * TODO: se Pier chiede il mirror Cloud Functions, allineare anche la nota
+ * «primi passi» in functions/tony-guida-onboarding.js (buildTonyGuidaOnboardingPromptNote).
+ * Fino ad allora non modificare functions/.
  */
 export function tonyGuidaOnboardingWelcomeMessage(onboarding) {
   var days = onboarding && onboarding.daysLeft ? onboarding.daysLeft : 0;
@@ -107,7 +111,7 @@ export function tonyGuidaOnboardingWelcomeMessage(onboarding) {
     TONY_GUIDA_ONBOARDING_DAYS +
     ' giorni (' +
     resto +
-    '): chiedimi come creare i terreni, registrare le attività, invitare i collaboratori o cosa fanno i moduli. ' +
+    '): chiedimi «come imposto azienda, podere e terreni» (primi passi: Impostazioni, poi Poderi, poi Terreni con la coltura), come registrare le attività, invitare i collaboratori o cosa fanno i moduli. ' +
     'Fino a ' +
     TONY_GUIDA_ONBOARDING_DAILY_LIMIT +
     ' domande al giorno; con il piano Base resto sempre con te.'
