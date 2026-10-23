@@ -9,6 +9,7 @@ Piani e handoff per funzionalità **parzialmente implementate** o **lavoro attiv
 | Cartella / file | Stato nel codice |
 |-----------------|------------------|
 | `tony/` | Performance Tony Fase 4 parziale; handoff nav quick reply |
+| `landing/` | Landing gfvagri.com: report nome e cognome del titolare (passo 3) |
 | `abbonamento/` | Stripe Fase 1 ✅; Fasi 2–4 billing v2 |
 | `meteo/` | Modulo base ✅; integrazione Tony avanzata in corso |
 | `simulator/` | Tony E2E live CI (M-T5) |
