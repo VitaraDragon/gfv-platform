@@ -21,6 +21,7 @@ const MODULI = [
   'core/js/dashboard-meteo.js',
   'core/js/dashboard-quick-bar.js',
   'core/js/lavoro-progresso-display.js',
+  'core/js/terreni-categorie-colture.js',
   'core/admin/js/gestione-lavori-controller.js',
   'core/admin/js/gestione-lavori-maps.js',
   'core/services/zone-lavorate-area.js',
