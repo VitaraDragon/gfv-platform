@@ -79,18 +79,17 @@ describe('pagine di registrazione usano l\'helper', () => {
     expect(html).toContain('messaggioFineRegistrazione(esitoLegale');
   });
 
-  it('invito: tutti i percorsi (nuovo, esistente, due fallback) passano da completaPresaVisione', () => {
+  it('invito: un solo percorso (callable) passa da completaPresaVisione', () => {
     const html = leggi('core/auth/registrazione-invito-standalone.html');
     expect(html).not.toMatch(/await registraPresaVisioneSeAttiva\(\)/);
-    expect(html.split('await completaPresaVisione()').length - 1).toBe(3);
+    // I fallback client che scrivevano membership sono stati tolti: un solo await.
+    expect(html.split('await completaPresaVisione()').length - 1).toBe(1);
     expect(html).toMatch(/registraAccettazioneDopoAccount\(\{\s*attiva: accettazioneLegaleAttiva,\s*registra: registraPresaVisioneSeAttiva/);
     expect(html).not.toContain('deleteUser');
-    const parti = html.split('await completaPresaVisione()').slice(1);
-    parti.forEach((parte) => {
-      const redirect = parte.indexOf("window.location.href = '../dashboard-standalone.html'");
-      expect(redirect).toBeGreaterThan(-1);
-      expect(parte.slice(0, redirect)).toContain('messaggioFineRegistrazione(esitoLegale');
-    });
+    const parte = html.split('await completaPresaVisione()').slice(1)[0];
+    const redirect = parte.indexOf("window.location.href = '../dashboard-standalone.html'");
+    expect(redirect).toBeGreaterThan(-1);
+    expect(parte.slice(0, redirect)).toContain('messaggioFineRegistrazione(esitoLegale');
   });
 
   it('invito: niente cellulare né token dalla risposta della callable', () => {

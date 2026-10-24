@@ -1429,53 +1429,15 @@
                 const userDoc = avvioLetture.userDoc;
 
                 if (!userDoc.exists()) {
-                    // Il documento utente non esiste, verifica prima se esiste già un documento con la stessa email
-                    console.warn('⚠️ Documento utente non trovato per UID, verifico se esiste già un documento con la stessa email...');
+                    // Niente copia di tenantId/ruoli/membership da un altro UID (buco di sicurezza chiuso).
+                    console.warn('⚠️ Documento utente non trovato per UID.');
                     try {
-                        // PRIMA VERIFICA: Cerca se esiste già un documento con la stessa email (per evitare duplicati)
-                        const existingUsersQuery = query(
-                            collection(db, 'users'),
-                            where('email', '==', user.email)
-                        );
-                        const existingUsersSnapshot = await getDocs(existingUsersQuery);
-                        
-                        if (!existingUsersSnapshot.empty) {
-                            // Trovato un documento esistente con la stessa email ma UID diverso
-                            // Questo è un documento orfano o duplicato - aggiornalo con il nuovo UID
-                            const existingDoc = existingUsersSnapshot.docs[0];
-                            const existingData = existingDoc.data();
-                            console.warn('⚠️ Trovato documento esistente con stessa email ma UID diverso:', existingDoc.id);
-                            console.warn('⚠️ Aggiorno il documento esistente con il nuovo UID:', user.uid);
-                            
-                            // Aggiorna il documento esistente con il nuovo UID
-                            await setDoc(userDocRef, {
-                                ...existingData,
-                                id: user.uid,
-                                email: user.email,
-                                ultimoAccesso: serverTimestamp(),
-                                isOnline: true,
-                                lastSeen: serverTimestamp()
-                            });
-                            
-                            // Elimina il vecchio documento orfano
-                            await deleteDoc(doc(db, 'users', existingDoc.id));
-                            
-                            // Ricarica il documento appena creato per continuare con il flusso normale
-                            const updatedUserDoc = await getDoc(userDocRef);
-                            if (!updatedUserDoc.exists()) {
-                                throw new Error('Errore: documento non creato correttamente dopo merge');
-                            }
-                        } else {
-                            // Nessun documento esistente con questa email, procedi con la creazione normale
-                            // IMPORTANTE: Se l'utente non viene dalla registrazione, NON creare documento vuoto
-                            // L'utente deve completare la registrazione prima
                             const justRegistered = sessionStorage.getItem('gfv_user_just_registered') === 'true';
                             
                             if (!justRegistered) {
                                 console.warn('⚠️ ATTENZIONE: Utente autenticato ma documento non trovato e non viene dalla registrazione!');
-                                console.warn('⚠️ Questo potrebbe indicare un problema. Redirect alla registrazione...');
                                 await auth.signOut();
-                                alert('Errore: documento utente non trovato. Completa la registrazione.');
+                                alert('Errore: profilo utente non trovato. Completa la registrazione o contatta l\'amministratore. Non è più possibile recuperare un documento «orfano» copiando ruoli da un altro account.');
                                 window.location.href = '../auth/registrazione-standalone.html';
                                 return;
                             }
@@ -1549,10 +1511,8 @@
                             await renderDashboard(userDataNormalized, availableModules);
                             await finishDashboardLoad(availableModules, userDataNormalized, currentTenantId, user);
                             return; // Esci qui per non eseguire il codice sotto
-                        }
                     } catch (error) {
-                        console.error('❌ Errore creazione documento utente:', error);
-                        // Continua con il flusso di errore
+                        console.error('❌ Errore recupero documento utente:', error);
                     }
                 } else {
                     // Se arriviamo qui, significa che il documento esiste

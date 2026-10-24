@@ -60,43 +60,99 @@ service cloud.firestore {
       return isAuthenticated() && hasRole('caposquadra', tenantId);
     }
     
+    // Campi profilo che l'utente può aggiornare sul proprio doc (niente autorizzazione / soldi).
+    function userSelfProfileKeysOnly() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'nome',
+        'cognome',
+        'telefono',
+        'cellulare',
+        'ultimoAccesso',
+        'isOnline',
+        'lastSeen',
+        'notificationPrefs',
+        'aggiornatoIl'
+      ]);
+    }
+
+    // Campi di autorizzazione / contratto: non scrivibili in create «profilo vuoto».
+    function userHasAuthOrContractFields(data) {
+      return data.keys().hasAny([
+        'tenantMemberships',
+        'ruoli',
+        'ruolo',
+        'tenantId',
+        'stato',
+        'email',
+        'creatoDa',
+        'invitoId',
+        'tipoOperaio',
+        'tipoContratto',
+        'dataInizioContratto',
+        'dataScadenzaContratto',
+        'noteContratto',
+        'tariffaPersonalizzata'
+      ]);
+    }
+
+    // Registrazione nuova azienda: tenant creato da questo uid, una sola membership admin.
+    function isOwnCompanyRegistrationCreate() {
+      return request.resource.data.tenantId is string
+        && request.resource.data.tenantId != ''
+        && request.resource.data.ruoli is list
+        && request.resource.data.ruoli.size() == 1
+        && request.resource.data.ruoli[0] == 'amministratore'
+        && request.resource.data.stato == 'attivo'
+        && request.resource.data.email is string
+        && request.auth.token.email != null
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.creatoDa == request.auth.uid
+        && !request.resource.data.keys().hasAny([
+          'invitoId',
+          'tipoOperaio',
+          'tipoContratto',
+          'dataInizioContratto',
+          'dataScadenzaContratto',
+          'noteContratto',
+          'tariffaPersonalizzata'
+        ])
+        && request.resource.data.keys().hasAny(['tenantMemberships'])
+        && request.resource.data.tenantMemberships.keys().size() == 1
+        && request.resource.data.tenantMemberships.keys().hasAny([request.resource.data.tenantId])
+        && request.resource.data.tenantMemberships[request.resource.data.tenantId].ruoli is list
+        && request.resource.data.tenantMemberships[request.resource.data.tenantId].ruoli.size() == 1
+        && request.resource.data.tenantMemberships[request.resource.data.tenantId].ruoli[0] == 'amministratore'
+        && request.resource.data.tenantMemberships[request.resource.data.tenantId].stato == 'attivo'
+        && exists(/databases/$(database)/documents/tenants/$(request.resource.data.tenantId))
+        && get(/databases/$(database)/documents/tenants/$(request.resource.data.tenantId)).data.creatoDa == request.auth.uid;
+    }
+
     // Collection: users (globale)
-    // IMPORTANTE: Permetti lettura del proprio documento per evitare dipendenza circolare
-    // Permetti anche lettura di utenti dello stesso tenant (per statistiche, report, ecc.)
-    // Permetti anche lettura a manager/admin per verificare se un'email esiste già (necessario per inviti)
+    // Lettura: proprio doc, oppure utenti del tenant a cui si appartiene (membership o tenantId deprecato).
+    // Niente lettura globale per manager/admin (fuga PII tra aziende). Membership solo via callable.
     match /users/{userId} {
       allow read: if isAuthenticated() && (
-        request.auth.uid == userId || 
-        // Permetti lettura se l'utente richiedente appartiene allo stesso tenant del documento richiesto
-        // Gestisce anche il caso in cui resource.data.tenantId potrebbe essere null o non esistere
-        (resource.data.keys().hasAny(['tenantId']) &&
-         resource.data.tenantId != null && 
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId != null &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == resource.data.tenantId) ||
-        // Permetti lettura a manager/admin per verificare se un'email esiste già (necessario per inviti)
-        // Verifica se l'utente richiedente è manager o admin (usa ruoli deprecati per semplicità)
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ruoli != null &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ruoli.hasAny(['manager', 'amministratore']))
-      );
-      
-      // Creazione: solo durante registrazione (utente crea il proprio documento)
-      allow create: if isAuthenticated() && request.auth.uid == userId;
-      
-      // Aggiornamento: 
-      // - Utente può aggiornare il proprio documento
-      // - Manager/Admin possono aggiornare documenti di utenti dello stesso tenant, ma solo campi contratto
-      allow update: if isAuthenticated() && (
-        // Caso 1: Utente aggiorna il proprio documento
         request.auth.uid == userId ||
-        // Caso 2: Manager/Admin aggiorna documento di utente dello stesso tenant (solo campi contratto)
-        // NOTA: Per users collection, non abbiamo tenantId nel path, quindi usiamo retrocompatibilità
-        (resource.data.keys().hasAny(['tenantId']) &&
+        (resource.data.tenantId is string && belongsToTenant(resource.data.tenantId))
+      );
+
+      // Create: (a) profilo senza campi autorizzativi, oppure (b) registrazione della propria azienda.
+      allow create: if isAuthenticated()
+        && request.auth.uid == userId
+        && (
+          !userHasAuthOrContractFields(request.resource.data) ||
+          isOwnCompanyRegistrationCreate()
+        );
+
+      // Update: profilo proprio (lista bianca) oppure manager/admin su campi contratto di un ALTRO utente stesso tenant.
+      allow update: if isAuthenticated() && (
+        (request.auth.uid == userId && userSelfProfileKeysOnly()) ||
+        (request.auth.uid != userId &&
+         resource.data.keys().hasAny(['tenantId']) &&
          resource.data.tenantId != null &&
          isManagerOrAdmin(resource.data.tenantId) &&
-         // Verifica che l'utente da aggiornare appartenga allo stesso tenant
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId != null &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == resource.data.tenantId &&
-         // Permetti aggiornamento solo di questi campi specifici (campi contratto)
          request.resource.data.diff(resource.data).affectedKeys().hasOnly([
            'tipoOperaio',
            'tipoContratto',
@@ -106,9 +162,9 @@ service cloud.firestore {
            'tariffaPersonalizzata'
          ]))
       );
-      
-      // Eliminazione: solo utente può eliminare il proprio documento (o disattivarlo)
-      allow delete: if isAuthenticated() && request.auth.uid == userId;
+
+      // Delete client vietato (anti ricreazione come admin dopo delete).
+      allow delete: if false;
     }
     
     // Collection: tenants (globale)
@@ -132,8 +188,14 @@ service cloud.firestore {
          request.resource.data.creatoDa == request.auth.uid)
       );
       
-      // Aggiornamento/Eliminazione: solo manager/admin del tenant
-      allow update, delete: if isAuthenticated() && isManagerOrAdmin(tenantId) && belongsToTenant(tenantId);
+      // Aggiornamento: manager/admin; creatoDa immutabile (altrimenti la create users di registrazione non è sicura).
+      // Minimo indispensabile se la PR piano-moduli non è ancora in develop.
+      allow update: if isAuthenticated()
+        && isManagerOrAdmin(tenantId)
+        && belongsToTenant(tenantId)
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['creatoDa']);
+
+      allow delete: if isAuthenticated() && isManagerOrAdmin(tenantId) && belongsToTenant(tenantId);
     }
     
     // Collection: inviti (globale)
@@ -159,30 +221,19 @@ service cloud.firestore {
         belongsToTenant(request.resource.data.tenantId) &&
         isManagerOrAdmin(request.resource.data.tenantId);
       
-      // Aggiornamento: 
-      // - Manager/admin del tenant dell'invito possono aggiornare tutto
-      // - Utente appena registrato può aggiornare solo il proprio invito (stato -> "accettato")
-      allow update: if isAuthenticated() && (
-        // Manager/admin del tenant dell'invito: possono aggiornare tutto
-        (resource.data.tenantId != null &&
-         belongsToTenant(resource.data.tenantId) &&
-         isManagerOrAdmin(resource.data.tenantId)) ||
-        // Utente appena registrato: può aggiornare solo il proprio invito
-        // Verifica che l'email dell'invito corrisponda all'email dell'utente autenticato
-        (resource.data.email != null &&
-         // Prova prima con email dal token (più veloce), altrimenti leggi documento users
-         // NOTA: Le email in Firebase Auth sono già normalizzate in lowercase, quindi il confronto diretto è sicuro
-         ((request.auth.token.email != null &&
-           resource.data.email == request.auth.token.email) ||
-          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-           get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email != null &&
-           resource.data.email == get(/databases/$(database)/documents/users/$(request.auth.uid)).data.email)) &&
-         // Permette aggiornamento solo di questi campi specifici
-         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stato', 'accettatoIl']) &&
-         // Verifica che lo stato sia valido (solo transizione a "accettato")
-         request.resource.data.stato == 'accettato' &&
-         resource.data.stato == 'invitato')
-      );
+      // Aggiornamento: solo manager/admin; campi identità invito immutabili; unica transizione client: invitato → annullato.
+      // Accettazione invito: solo callable accettaInvito (Admin SDK).
+      allow update: if isAuthenticated()
+        && resource.data.tenantId != null
+        && belongsToTenant(resource.data.tenantId)
+        && isManagerOrAdmin(resource.data.tenantId)
+        && request.resource.data.tenantId == resource.data.tenantId
+        && request.resource.data.inviatoDa == resource.data.inviatoDa
+        && request.resource.data.token == resource.data.token
+        && request.resource.data.email == resource.data.email
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stato'])
+        && resource.data.stato == 'invitato'
+        && request.resource.data.stato == 'annullato';
       
       // Eliminazione: solo manager/admin del tenant dell'invito
       allow delete: if isAuthenticated() && 

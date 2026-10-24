@@ -191,48 +191,9 @@
 
         async function handleFix(e) {
             e.preventDefault();
-            
             const container = document.getElementById('alert-container');
-            container.innerHTML = '';
-
-            const uid = document.getElementById('uid').value.trim();
-            const email = document.getElementById('email').value.trim().toLowerCase();
-            const nome = document.getElementById('nome').value.trim();
-            const cognome = document.getElementById('cognome').value.trim();
-            const tenantId = document.getElementById('tenantId').value.trim() || null;
-
-            try {
-                // Verifica se il documento esiste già
-                const existingDoc = await getDoc(doc(db, 'users', uid));
-                if (existingDoc.exists()) {
-                    container.innerHTML = '<div class="alert alert-error">⚠️ Documento già esistente per questo UID!</div>';
-                    return;
-                }
-
-                // Crea documento utente
-                const userData = {
-                    id: uid,
-                    email: email,
-                    nome: nome,
-                    cognome: cognome,
-                    ruoli: ['amministratore'], // Assegna amministratore di default
-                    tenantId: tenantId,
-                    stato: 'attivo',
-                    creatoIl: serverTimestamp(),
-                    ultimoAccesso: null
-                };
-
-                await setDoc(doc(db, 'users', uid), userData);
-                
-                container.innerHTML = '<div class="alert alert-success">✅ Documento utente creato con successo! Ora puoi fare login con questo account.</div>';
-                
-                // Reset form
-                document.getElementById('fix-form').reset();
-                
-            } catch (error) {
-                console.error('Errore:', error);
-                container.innerHTML = `<div class="alert alert-error">❌ Errore: ${error.message}</div>`;
-            }
+            container.innerHTML =
+                '<div class="alert alert-error">Questo strumento è disabilitato per sicurezza: non è più possibile creare profili con ruoli o aziende dal client. Usa la registrazione nuova azienda o un invito.</div>';
         }
 
         window.handleFix = handleFix;

@@ -34,9 +34,11 @@ describe('inviti — niente query pubblica per token', () => {
     expect(html).not.toMatch(/invitesQuery = query\(\s*collection\(db,\s*'inviti'\),\s*where\('stato'/);
   });
 
-  it('index.js esporta getInvitoPubblico', () => {
+  it('index.js esporta getInvitoPubblico e accettaInvito', () => {
     const src = read('functions/index.js');
     expect(src).toMatch(/exports\.getInvitoPubblico\s*=\s*onCall/);
     expect(src).toMatch(/require\("\.\/invito-pubblico"\)/);
+    expect(src).toMatch(/exports\.accettaInvito\s*=\s*onCall/);
+    expect(src).toMatch(/require\("\.\/accetta-invito"\)/);
   });
 });

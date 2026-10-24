@@ -1038,67 +1038,11 @@
                 
                 showAlert('Creazione invito in corso...', 'success');
                 
-                console.error('🔍 [PRE-QUERY] Prima di verificare se email esiste...');
-                console.error('🔍 [PRE-QUERY] db:', db ? 'OK' : 'NULL');
-                console.error('🔍 [PRE-QUERY] collection:', collection ? 'OK' : 'NULL');
-                console.error('🔍 [PRE-QUERY] query:', query ? 'OK' : 'NULL');
-                console.error('🔍 [PRE-QUERY] where:', where ? 'OK' : 'NULL');
-                console.error('🔍 [PRE-QUERY] getDocs:', getDocs ? 'OK' : 'NULL');
-                
-                // Verifica se email esiste già in Firestore
+                // Niente query users per email (rules: fuga PII / cross-tenant). isExistingUser
+                // è storico; getInvitoPubblico lo ricalcola da Auth. Appartenenza già attiva: accettaInvito.
                 const emailNormalized = email.toLowerCase().trim();
-                console.error('🔍 [PRE-QUERY] emailNormalized:', emailNormalized);
-                
-                let usersSnapshot;
-                let isExistingUser;
-                try {
-                    console.error('🔍 [QUERY] Creazione query...');
-                    const usersQuery = query(
-                        collection(db, 'users'),
-                        where('email', '==', emailNormalized)
-                    );
-                    console.error('🔍 [QUERY] Query creata:', usersQuery ? 'OK' : 'NULL');
-                    
-                    console.error('🔍 [QUERY] Esecuzione getDocs...');
-                    usersSnapshot = await getDocs(usersQuery);
-                    console.error('🔍 [QUERY] getDocs completato:', usersSnapshot ? 'OK' : 'NULL');
-                    isExistingUser = !usersSnapshot.empty;
-                    console.error('🔍 [QUERY] isExistingUser:', isExistingUser);
-                } catch (queryError) {
-                    console.error('❌ [QUERY] ERRORE durante query users:', {
-                        code: queryError.code,
-                        message: queryError.message,
-                        stack: queryError.stack
-                    });
-                    throw queryError; // Rilancia l'errore per essere catturato dal catch principale
-                }
-                
-                // Se utente esiste, verifica che non appartenga già a questo tenant
-                if (isExistingUser) {
-                    const existingUserDoc = usersSnapshot.docs[0];
-                    const existingUserData = existingUserDoc.data();
-                    
-                    // Verifica se appartiene già a questo tenant
-                    let alreadyBelongs = false;
-                    if (existingUserData.tenantMemberships && existingUserData.tenantMemberships[currentTenantId]) {
-                        const membership = existingUserData.tenantMemberships[currentTenantId];
-                        if (membership.stato === 'attivo') {
-                            alreadyBelongs = true;
-                        }
-                    } else if (existingUserData.tenantId === currentTenantId) {
-                        // Retrocompatibilità: verifica tenantId deprecato
-                        alreadyBelongs = true;
-                    }
-                    
-                    if (alreadyBelongs) {
-                        showAlert('⚠️ Questo utente appartiene già a questa azienda.', 'error');
-                        return;
-                    }
-                    
-                    // Mostra messaggio informativo
-                    showAlert('ℹ️ Utente esistente: verrà aggiunto a questa azienda invece di creare un nuovo account.', 'success');
-                }
-                
+                const isExistingUser = false;
+
                 // Genera token unico
                 const generateToken = () => {
                     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
@@ -1631,7 +1575,13 @@
                 await loadUsers();
             } catch (error) {
                 console.error('Errore aggiornamento ruoli:', error);
-                showAlert('Errore durante l\'aggiornamento: ' + error.message, 'error');
+                const denied = error.code === 'permission-denied' || /permission/i.test(String(error.message || ''));
+                showAlert(
+                    denied
+                        ? 'Non puoi modificare i ruoli da questa pagina (blocco di sicurezza). La gestione ruoli sarà ripristinata a breve lato server.'
+                        : ('Errore durante l\'aggiornamento: ' + error.message),
+                    'error'
+                );
             }
         }
 
@@ -1651,7 +1601,13 @@
                 await loadUsers();
             } catch (error) {
                 console.error('Errore cambio stato:', error);
-                showAlert('Errore durante l\'operazione: ' + error.message, 'error');
+                const denied = error.code === 'permission-denied' || /permission/i.test(String(error.message || ''));
+                showAlert(
+                    denied
+                        ? 'Non puoi cambiare lo stato utente da questa pagina (blocco di sicurezza). Sarà ripristinato a breve lato server.'
+                        : ('Errore durante l\'operazione: ' + error.message),
+                    'error'
+                );
             }
         }
 
@@ -1710,14 +1666,18 @@
             }
 
             try {
-                // Cancella documento utente da Firestore
                 await deleteDoc(doc(db, 'users', userId));
-                
                 showAlert('Utente rimosso con successo da Firestore', 'success');
                 await loadUsers();
             } catch (error) {
                 console.error('Errore rimozione utente:', error);
-                showAlert('Errore durante la rimozione: ' + error.message, 'error');
+                const denied = error.code === 'permission-denied' || /permission/i.test(String(error.message || ''));
+                showAlert(
+                    denied
+                        ? 'Non puoi rimuovere documenti utente dal client (blocco di sicurezza). Sarà gestito a breve lato server.'
+                        : ('Errore durante la rimozione: ' + error.message),
+                    'error'
+                );
             }
         }
 
