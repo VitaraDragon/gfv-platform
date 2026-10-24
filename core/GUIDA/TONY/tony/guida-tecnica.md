@@ -16,7 +16,7 @@
 | Istruzioni cloud + Context Builder / TTS | `functions/index.js` (`tonyAsk`, `SYSTEM_INSTRUCTION_BASE` / `ADVANCED`, `buildContextAzienda`, `getTonyAudio`); helper TTS `functions/tony-tts-provider.js` |
 | Consigliere moduli | `functions/tony-module-recommendations.js`, `functions/config/tony-module-recommendations.json` (+ mirror `core/config/`) — `azienda.consigliModuli`, `tryTonyModuleAdvisorQuickReply`, `TONY_MODULE_RECOMMENDATION_RULES` |
 | Mapping form | `core/config/tony-form-mapping.js`, `core/js/tony-form-injector.js` |
-| Briefing dashboard | `core/dashboard-standalone.html` (`checkGlobalStatus`, `tonyDashboardBriefingVoiceAllowed`, `tonyDashboardDeliverBriefing`); `core/js/dashboard-tony-briefing-text.js`; `core/js/tony/meteo-dashboard-quick-reply-utils.js` |
+| Briefing dashboard | `core/dashboard-standalone.html` (`checkGlobalStatus`, `tonyDashboardBriefingVoiceAllowed`, `tonyDashboardDeliverBriefing`); `core/js/dashboard-briefing-helpers.js` (5c5defc: `salutoBriefingPerOra` con fasce di `proactiveFasciaForDate`, `attendiConLimite(meteoBriefingPromise, BRIEFING_METEO_ATTESA_MS = 4000)`: oltre 4 s il briefing parte senza meteo, il meteo tardivo aggiorna solo `window.tonyMeteoBriefing` e i contesti `globalStatus` / `meteoBriefing` se il briefing è ancora lo stesso); `core/js/dashboard-tony-briefing-text.js`; `core/js/tony/meteo-dashboard-quick-reply-utils.js` |
 | Piani / moduli abbonamento | `core/config/subscription-plans.js` |
 
 ## Modulo tenant
@@ -57,6 +57,8 @@ Consigliere: `skipModuleIds` include `tony`; segnali gated se modulo disattivato
 ## Testo visibile in chat
 
 `engine.js`: `sanitizeTonyVisibleChatText`, `resolveTonyUserVisibleText`, `stripLeakedTonyCommandJsonFromText`, `cleanTextFromJsonResidue` — la bolla mostra solo la frase; il JSON comandi (`OPEN_MODAL`, `INJECT_FORM_DATA`, …) resta interno anche se la risposta arriva troncata.
+
+**Grassetto (#275):** `core/js/tony/ui.js` `formatTonyChatHtml` (escape HTML, poi solo `**testo**` → `<strong>`; nessun altro markup) e `setTonyMsgContent` (innerHTML formattato per bolle `tony` / `error`, `textContent` per `user` / typing). Usati da `appendMessage` / `showMessageInChat` e dallo streaming in `core/js/tony/main.js`. Stile `.tony-msg strong` in `core/styles/tony-widget.css`. Le guide in prosa (`GUIDA_APP_PER_TONY`, onboarding titolare) restano senza asterischi nelle frasi utente; il `**` del modello ora si vede come grassetto e non come asterischi grezzi. Test `tests/tony-chat-format.test.js`.
 
 ## Acquisizione documenti (foto / PDF)
 

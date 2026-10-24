@@ -19,7 +19,7 @@ Usare **solo** `currentTableData` / riassunto elenco **visibile** in pagina; man
 
 ## Briefing dashboard (manager/admin)
 
-Snapshot da `dashboard-counts-snapshot` + testi `dashboard-tony-briefing-text.js`; meteo se modulo attivo. **Voce** solo con Tony Avanzato + desktop; **mobile/touch** → apre **chat** (`__tonyDisplayProactive`, `openPanel`). «Sì» dopo offerta riassunto → `buildDashboardRiassuntoText` (ops + meteo).
+Snapshot da `dashboard-counts-snapshot` + testi `dashboard-tony-briefing-text.js`; meteo se modulo attivo. **Voce** solo con Tony Avanzato + desktop; **mobile/touch** → apre **chat** (`__tonyDisplayProactive`, `openPanel`). «Sì» dopo offerta riassunto → `buildDashboardRiassuntoText` (ops + meteo). Saluto per fascia oraria (Buongiorno 5-12 / Buon pomeriggio 12-18 / Buonasera 18-5); meteo atteso al massimo 4 s, poi il briefing parte senza frase meteo. In chat il **grassetto** di Tony si vede come grassetto vero.
 
 ## Intervista vocale (Avanzato)
 

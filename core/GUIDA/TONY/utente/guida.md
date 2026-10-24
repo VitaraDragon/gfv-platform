@@ -74,7 +74,7 @@ Di solito trovi un **pulsante flottante** (icona / bolla) sul bordo dello scherm
 
 1. Apri il widget.  
 2. Scrivi una **frase chiara** (meglio una richiesta alla volta).  
-3. Leggi la risposta: spesso Tony conclude con una **domanda** («Vuoi che apra…?») o un **passo successivo**.
+3. Leggi la risposta: spesso Tony conclude con una **domanda** («Vuoi che apra…?») o un **passo successivo**. Le parole che Tony vuole evidenziare (nomi di pulsanti, campi) compaiono in **grassetto**, senza asterischi.
 
 Se scrivi appena aperta la pagina, quando Tony non è ancora pronto, il messaggio non si perde: resta in chat con la scritta «In attesa che Tony sia pronto…» e parte da solo appena Tony è pronto. Se ne scrivi più di uno, partono uno alla volta, nell’ordine. Se Tony non si prepara in tempo leggi «Tony non è pronto. Riprova tra poco.»: riscrivi il messaggio dopo qualche secondo.
 
@@ -237,6 +237,8 @@ Le **notifiche push** sul telefono (ciclo lavoro, assenze) si configurano in **I
 | **Computer** + **Tony Avanzato** attivo | Dopo qualche secondo Tony può **parlarti** (saluto + invito al riassunto). Il browser può chiedere un **click** prima dell’audio. |
 | **Telefono / tablet** (touch) | Di solito **niente voce automatica**: si **apre il pannello chat** con lo stesso messaggio scritto. |
 | **Base** con Tony Guida, **senza** Tony Avanzato | I dati restano in dashboard (**Richiede attenzione**, KPI…), ma **non** parte il messaggio proattivo di Tony. |
+
+Il saluto del messaggio segue l’ora: **«Buongiorno!»** al mattino (dalle 5 alle 12), **«Buon pomeriggio!»** dalle 12 alle 18, **«Buonasera!»** dalla sera fino alle 5. Se le previsioni meteo tardano più di qualche secondo, Tony parte lo stesso senza la frase sul meteo; quando il meteo arriva, potete chiederlo a Tony o rispondere «Sì» al riassunto.
 
 ### Riassunto dettagliato
 

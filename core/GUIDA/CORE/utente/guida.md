@@ -153,7 +153,7 @@ Con **Manodopera** attivo, dopo il login l’operaio e il caposquadra vanno **di
 
 **Solo con i moduli giusti (accenno):** le **tariffe orarie per tipo operaio** compaiono in Impostazioni **solo se il modulo Manodopera è attivo**. I **coefficienti di morfologia** (maggiorazioni per tipo di terreno rispetto alla pianura, usati nelle tariffe Conto terzi) compaiono **solo se il modulo Conto terzi è attivo**. Non entrano nel dettaglio in questa guida Core: quando attivate quei moduli, usate la documentazione dedicata a **Manodopera** e **Conto terzi**.
 
-**Per tutti gli utenti**, nello stesso **Impostazioni**, c’è il riquadro **Impostazioni Account Personale**: **Nome**, **Cognome**, **Email** (non si modifica), **Telefono**, poi **Salva Impostazioni Account**. Più sotto: **Cambio Password** e la scheda **Notifiche** (push sul telefono: ciclo lavoro, assenze, eventuale WhatsApp di escalation — vedi [mini-guida notifiche push](#mini-guida-notifiche-push)). Il **Telefono** nel box Account serve anche se attivate WhatsApp per le assenze.
+**Per tutti gli utenti**, nello stesso **Impostazioni**, c’è il riquadro **Impostazioni Account Personale**: **Nome**, **Cognome**, **Email** (non si modifica), **Telefono**, poi **Salva Impostazioni Account**. **Nome** e **Cognome** non sono obbligatori: potete salvare anche lasciandoli vuoti. Finché sono vuoti, sotto compare il suggerimento «Aggiungi nome e cognome: compariranno nei registri e negli elenchi.», che sparisce appena ne scrivete uno. Senza nome e cognome, in alto nella dashboard al posto del vostro nome compare il nome dell’azienda (o, se manca anche quello, la prima parte della vostra email). Più sotto: **Cambio Password** e la scheda **Notifiche** (push sul telefono: ciclo lavoro, assenze, eventuale WhatsApp di escalation — vedi [mini-guida notifiche push](#mini-guida-notifiche-push)). Il **Telefono** nel box Account serve anche se attivate WhatsApp per le assenze.
 
 Quando torni in **Terreni**, nel modulo del singolo terreno potrai collegare il campo al podere giusto dal menu dedicato (se non compare nulla, torna in Impostazioni e verifica di aver salvato il podere).
 
@@ -194,7 +194,7 @@ Campi **obbligatori** (il form non lascia salvare vuoto): **Nome Terreno** e **T
 
 - **Nome Terreno** — obbligatorio. Un nome che tutti in azienda capiscono (podere + pezzo, oppure il nome locale del campo).
 - **Superficie (ettari)** — facoltativa. A mano, oppure la calcola la mappa quando chiudete il contorno (vedi sotto).
-- **Categoria Coltura** — prima questa. Aprite l’elenco (parte da «-- Seleziona categoria --»). **[Come funzionano gli elenchi? Impara qui](#elenchi-cliccabili-menu-con-la-freccetta)**
+- **Categoria Coltura** — prima questa. Aprite l’elenco (parte da «-- Seleziona categoria --»); ogni categoria compare una sola volta. Se l’elenco mostra «-- Errore caricamento colture: riprova o ricarica la pagina --», ricaricate la pagina e riaprite il terreno. **[Come funzionano gli elenchi? Impara qui](#elenchi-cliccabili-menu-con-la-freccetta)**
 - **Coltura** — solo dopo la categoria. Prima l’elenco dice «-- Seleziona prima la categoria --». Scegliete la coltura principale del campo. Senza categoria e coltura il Diario resta bloccato.
 - **Podere** — facoltativo. Se non serve, lasciate «-- Nessun podere --». Se il podere non c’è, in fondo al campo c’è **Gestisci poderi nelle impostazioni**: tornate a **Impostazioni** e premete **➕ Aggiungi Podere**.
 - **Morfologia del terreno** — facoltativa: **Pianura**, **Collina** o **Montagna**.

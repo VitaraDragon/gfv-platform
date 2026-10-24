@@ -1538,6 +1538,57 @@
         "MANODOPERA"
       ],
       "label": "Workflow CI del simulatore: di solito nessun testo guida"
+    },
+    {
+      "prefix": "core/js/dashboard-briefing-helpers.js",
+      "modules": [
+        "CORE",
+        "TONY",
+        "METEO"
+      ],
+      "label": "Briefing Tony in dashboard: saluto per fascia oraria e meteo atteso max 4 s (5c5defc)"
+    },
+    {
+      "prefix": "core/js/nome-visualizzato.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Nome in intestazione dashboard e contesto Tony: nome+cognome → azienda → email (8899ca5)"
+    },
+    {
+      "prefix": "core/js/nome-titolare-helpers.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Nome/cognome titolare facoltativi (flag spento), displayName, nome da invito se vuoto (8899ca5)"
+    },
+    {
+      "prefix": "core/config/nome-titolare-config.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Flag NOME_TITOLARE_FACOLTATIVO_ATTIVO (spento: solo guida tecnica)"
+    },
+    {
+      "prefix": "core/js/terreni-categorie-colture.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Form terreno: categorie coltura senza doppioni e messaggio errore caricamento (#277)"
+    },
+    {
+      "prefix": "core/styles/tony-widget.css",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Stile widget Tony (grassetto in chat #275)"
+    },
+    {
+      "prefix": "simulator/",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Simulatore dati (orchestrator, fasi, template): di solito nessun testo guida"
     }
   ]
 }

@@ -55,6 +55,7 @@ Legacy (deprecato in UX utente): `createManagerSection`, card affitti standalone
 
 - Lookup token **solo** via Cloud Function callable **`getInvitoPubblico`** (`functions/invito-pubblico.js`); client: `core/services/invito-service-standalone.js` (`fetchInvitoByToken`).
 - Nessuna query Firestore pubblica sugli inviti (rules chiuse); risposta allowlist sanitizzata. Accettazione resta sul flusso `registrazione-invito-standalone.html`.
+- `acceptInvito` (utente già esistente che accetta un invito in un’altra azienda): oltre a `tenantMemberships` scrive `nome`/`cognome` dall’invito **solo se vuoti** su `users` (`campiNomeDaInvitoSeVuoti` in `core/js/nome-titolare-helpers.js`, 8899ca5). Attivo anche a flag spento.
 
 ## Gate Manodopera ↔ Diario
 
@@ -122,6 +123,12 @@ Decisione prodotto 23/10/2026: un terreno si può salvare senza coltura. Il Diar
 - Diario `attivita-standalone.html`: «Coltura \*» (`#attivita-coltura-gerarchica`, `required`) si precompila da `terreno.coltura` (change su `#attivita-terreno`; elenco anche da `populateColtureFromTerreni` in `attivita-controller.js`). Se `terreno.coltura` manca, l’elenco resta senza voci utili e il salvataggio si ferma con l’alert già in `attivita-events.js` («La coltura è obbligatoria»). Non rendere la coltura opzionale e non cambiare quel messaggio. Hint sotto il campo: rimanda a Terreni → ✏️ Modifica → Categoria Coltura e Coltura → Salva Terreno.
 - Intent Tony Guida: spiegare il recupero con Modifica, non bypassare il gate; nelle frasi utente zero `*` / «asterisco»; Podere solo se serve. Testi utente in `CORE/utente/guida.md` e `guida-sintesi.md` (niente path `.html`). Script click-per-click nel fallback `GUIDA_APP_PER_TONY` (`core/services/tony-guida-app.js`), blocco `ONBOARDING TITOLARE NUOVO`. Benvenuto prova Free: `tonyGuidaOnboardingWelcomeMessage` in `core/config/tony-guida-onboarding.js`. Il mirror `functions/tony-guida-onboarding.js` non va aggiornato insieme (vincolo Cloud Functions); eventuale allineamento del prompt nota «primi passi» solo su richiesta esplicita.
 
+## Terreni — categorie coltura senza doppioni (#277)
+
+- `core/js/terreni-categorie-colture.js`: `dedupeCategorieColture` (chiave `codice` normalizzato, altrimenti `nome`; tra doppioni vince quella con colture, poi `predefinita`, poi `ordine`, poi id) e `popolaSelectCategorieColture` su `#terreno-coltura-categoria`. Usati in `loadCategorieColtureTerreni`, `loadColturePerCategoriaTerreni` (nuovo parametro `categorieColtureTerreni`) e a fine `loadColture` in `core/js/terreni-controller.js`.
+- Se il caricamento colture fallisce (fallback liste personalizzate), il select categorie mostra «-- Errore caricamento colture: riprova o ricarica la pagina --» e lo stato categorie del form viene svuotato (niente categorie orfane senza colture).
+- `core/services/categorie-service.js` `initializeCategoriePredefinite`: se `getAllCategorie` torna vuoto, seconda lettura grezza `getCollectionData` senza where/orderBy prima di fare il seed, per non ricreare doppioni. Test `tests/terreni-categorie-colture.test.js`.
+
 ## Terreni — disegno confini (Fase 1b)
 
 - UI: `terreni-standalone.html` → **Traccia Confini**. Motore: `core/js/terreni-maps.js` + helper puri `core/js/terreni-draw-helpers.js` (test `tests/terreni-draw-helpers.test.js`).
@@ -182,6 +189,15 @@ Implementazione UI ufficio su **main**: flag `uiPelleProposta` (`feature-flags.j
 | Registrazione da invito | `core/auth/registrazione-invito-standalone.html` + CF `getInvitoPubblico` |
 
 Multi-azienda: selezione tenant in sessione (cambia azienda). Non spiegare all’utente Firebase Auth oltre «email/password / link invito / reset».
+
+## Nome e cognome del titolare (8899ca5)
+
+**Effetti visibili già a flag spento:**
+- Impostazioni → Account (`admin/impostazioni-standalone.html`): `#account-nome` / `#account-cognome` **non** più `required` (etichette «Nome» / «Cognome» senza asterisco). Hint `#account-nome-suggerimento` «Aggiungi nome e cognome: compariranno nei registri e negli elenchi.» visibile solo se entrambi vuoti (`aggiornaSuggerimentoNomeAccount`, aggiornato su `input`). `handleSaveAccount` salva i valori con trim (anche vuoti) e allinea `displayName` di Firebase Auth con `updateProfile(user, { displayName: displayNameDaNomeCognome(nome, cognome) })` (stringa vuota se entrambi vuoti).
+- Dashboard: `#user-info` e `Tony.setContext('dashboard').utente_corrente.nome` usano `getNomeVisualizzato` (`core/js/nome-visualizzato.js`): nome+cognome → nome azienda (`tenants.nome`) → parte email prima di `@` → `''`. Mai «undefined».
+- Inviti: vedi sezione Inviti (`campiNomeDaInvitoSeVuoti`).
+
+**Dietro flag spento (non in guida utente):** `NOME_TITOLARE_FACOLTATIVO_ATTIVO = false` in `core/config/nome-titolare-config.js`. Solo con flag `true` **e** `?da=landing` (`isDaLanding`, `isNomeCognomeFacoltativi` in `core/js/nome-titolare-helpers.js`) `auth/registrazione-standalone.html` toglie `required`, etichette «Nome (facoltativo)» / «Cognome (facoltativo)», salta la validazione e scrive su `users` solo i campi compilati (`buildCampiNomeCognomeSeCompilati`). La landing (`landing/src/config/landing-config.js`) punta già a `URL_REGISTRAZIONE` con `?da=landing`; a flag spento la registrazione chiede nome e cognome come prima. Helper URL: `urlRegistrazioneConDaLanding`, `preservaDaLandingSuUrl`. Test: `tests/nome-titolare-passo4.test.js`, `tests/nome-visualizzato.test.js`.
 
 ## Accettazione documenti legali (preparata, flag spento — non in guida utente)
 
