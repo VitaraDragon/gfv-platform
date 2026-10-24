@@ -453,4 +453,97 @@ describe('tenants billing rules', () => {
       expect(res.status, JSON.stringify(data)).toBe(403);
     }
   });
+
+  it('manager/admin: DELETE tenants/T → 403', async () => {
+    if (skipIfNoEmu()) return;
+
+    const asAdmin = await richiesta('DELETE', `tenants/${TENANT_A}`, { auth: ADMIN_A });
+    expect(asAdmin.status).toBe(403);
+
+    const asManager = await richiesta('DELETE', `tenants/${TENANT_A}`, { auth: MANAGER_A });
+    expect(asManager.status).toBe(403);
+
+    // Doc ancora leggibile (non cancellato)
+    const stillThere = await richiesta('GET', `tenants/${TENANT_A}`, { auth: ADMIN_A });
+    expect(stillThere.status).toBe(200);
+  });
+
+  it('ramo 1 create: creatoDa altrui → 403; senza creatoDa / proprio uid → 200', async () => {
+    if (skipIfNoEmu()) return;
+
+    const TENANT_RECREATE = 'tenant-recreate-a';
+    const COMPLICE = 'complice-senza-users';
+
+    // Membership manager su tenant senza doc (simula delete + ricreazione)
+    const seedUser = await richiesta('PATCH', `users/${MANAGER_A}`, {
+      data: {
+        email: 'mgr-a@test.local',
+        tenantId: TENANT_RECREATE,
+        ruoli: ['manager'],
+        stato: 'attivo',
+        tenantMemberships: {
+          [TENANT_A]: { stato: 'attivo', ruoli: ['manager'] },
+          [TENANT_RECREATE]: { stato: 'attivo', ruoli: ['manager'] },
+        },
+      },
+    });
+    if (seedUser.status >= 400) {
+      throw new Error(`Seed membership recreate: ${seedUser.status} ${seedUser.body}`);
+    }
+
+    const hijack = await richiesta('PATCH', `tenants/${TENANT_RECREATE}`, {
+      auth: MANAGER_A,
+      exists: false,
+      data: {
+        nome: 'Ricreato hack',
+        creatoDa: COMPLICE,
+        piano: 'free',
+        moduli: [],
+      },
+    });
+    expect(hijack.status).toBe(403);
+
+    const likeImpostazioni = await richiesta('PATCH', `tenants/${TENANT_RECREATE}`, {
+      auth: MANAGER_A,
+      exists: false,
+      data: {
+        nome: 'Ricreato Impostazioni',
+        piva: 'IT999',
+        creatoIl: new Date(),
+        aggiornatoIl: new Date(),
+      },
+    });
+    expect(likeImpostazioni.status).toBe(200);
+
+    // Doc già presente: delete vietato → usa altro id per creatoDa = self
+    const TENANT_SELF = 'tenant-recreate-self-a';
+    const seedSelfMembership = await richiesta('PATCH', `users/${MANAGER_A}`, {
+      data: {
+        email: 'mgr-a@test.local',
+        tenantId: TENANT_RECREATE,
+        ruoli: ['manager'],
+        stato: 'attivo',
+        tenantMemberships: {
+          [TENANT_A]: { stato: 'attivo', ruoli: ['manager'] },
+          [TENANT_RECREATE]: { stato: 'attivo', ruoli: ['manager'] },
+          [TENANT_SELF]: { stato: 'attivo', ruoli: ['manager'] },
+        },
+      },
+    });
+    if (seedSelfMembership.status >= 400) {
+      throw new Error(`Seed self membership: ${seedSelfMembership.status} ${seedSelfMembership.body}`);
+    }
+
+    const withOwnUid = await richiesta('PATCH', `tenants/${TENANT_SELF}`, {
+      auth: MANAGER_A,
+      exists: false,
+      data: {
+        nome: 'Ricreato con creatoDa proprio',
+        creatoDa: MANAGER_A,
+        piano: 'free',
+        moduli: [],
+      },
+    });
+    expect(withOwnUid.status).toBe(200);
+  });
 });

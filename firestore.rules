@@ -228,15 +228,18 @@ service cloud.firestore {
         (resource.data.keys().hasAny(['creatoDa']) && resource.data.creatoDa == request.auth.uid)
       );
       
-      // Scrittura: 
-      // - Manager/admin del tenant possono creare (es. Impostazioni se manca il doc) solo Free senza billing
+      // Scrittura:
+      // - Manager/admin del tenant possono creare (es. Impostazioni se manca il doc) solo Free senza billing;
+      //   creatoDa assente oppure = uid (niente creatore altrui → scalata admin via PARTE 1 users).
       // - Utente in registrazione (niente doc users) se creatoDa == uid, stesso vincolo Free
       allow create: if isAuthenticated()
         && tenantCreateIsFreeWithoutBilling()
         && (
           (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
            isManagerOrAdmin(tenantId) &&
-           belongsToTenant(tenantId)) ||
+           belongsToTenant(tenantId) &&
+           (!request.resource.data.keys().hasAny(['creatoDa']) ||
+            request.resource.data.creatoDa == request.auth.uid)) ||
           (!exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
            request.resource.data.creatoDa == request.auth.uid)
         );
@@ -247,8 +250,9 @@ service cloud.firestore {
         && belongsToTenant(tenantId)
         && !toccaCampiFatturazione();
 
-      // Delete: invariato (fuori perimetro hardening fatturazione).
-      allow delete: if isAuthenticated() && isManagerOrAdmin(tenantId) && belongsToTenant(tenantId);
+      // Delete client vietato: evita reset moduleTrials / tonyGuidaOnboardingEndsAt e ricreazione
+      // con creatoDa di un complice. Solo Admin SDK (fuori dalle rules).
+      allow delete: if false;
     }
     
     // Collection: inviti (globale)
