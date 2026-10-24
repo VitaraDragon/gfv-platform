@@ -40,6 +40,17 @@ function membershipAttiva(userData, tenantId) {
   return false;
 }
 
+/**
+ * Membro legacy: tenantId deprecato uguale al tenant dell'invito, senza chiave membership, non disattivato.
+ * Non va migrato/sovrascritto con i ruoli dell'invito (evita declassamento del titolare).
+ */
+function membroLegacyAttivoSenzaMembership(userData, tenantId) {
+  if (!userData || !tenantId) return false;
+  if (userData.tenantId !== tenantId) return false;
+  if (userData.tenantMemberships && userData.tenantMemberships[tenantId]) return false;
+  return (userData.stato || "attivo") !== "disattivato";
+}
+
 function ruoliAttiviPerTenant(userData, tenantId) {
   if (!userData || !tenantId) return [];
   const m = userData.tenantMemberships && userData.tenantMemberships[tenantId];
@@ -147,24 +158,9 @@ async function handleAccettaInvito(db, request, data, now = new Date()) {
     throw new AccettaInvitoError("failed-precondition", "Invito senza mittente.");
   }
 
-  const mittenteSnap = await db.collection("users").doc(inviatoDa).get();
-  const mittenteData = mittenteSnap && mittenteSnap.exists ? mittenteSnap.data() : null;
-  if (!isManagerOrAdminAttivo(mittenteData, tenantId)) {
-    throw new AccettaInvitoError(
-      "permission-denied",
-      "Invito non più valido: il mittente non è manager o amministratore dell'azienda."
-    );
-  }
-  // Solo un amministratore può invitare un altro amministratore.
-  if (ruoli.includes("amministratore") && !isAmministratoreAttivo(mittenteData, tenantId)) {
-    throw new AccettaInvitoError(
-      "permission-denied",
-      "Solo un amministratore può invitare un altro amministratore."
-    );
-  }
-
   const userRef = db.collection("users").doc(uid);
   const invitoRef = db.collection("inviti").doc(found.id);
+  const mittenteRef = db.collection("users").doc(inviatoDa);
 
   const result = await db.runTransaction(async (tx) => {
     const invitoFresh = await tx.get(invitoRef);
@@ -183,6 +179,22 @@ async function handleAccettaInvito(db, request, data, now = new Date()) {
     }
     if (String(invitoData.tenantId || "") !== tenantId) {
       throw new AccettaInvitoError("permission-denied", "Invito non valido.");
+    }
+
+    const mittenteSnap = await tx.get(mittenteRef);
+    const mittenteData = mittenteSnap && mittenteSnap.exists ? mittenteSnap.data() : null;
+    if (!isManagerOrAdminAttivo(mittenteData, tenantId)) {
+      throw new AccettaInvitoError(
+        "permission-denied",
+        "Invito non più valido: il mittente non è manager o amministratore dell'azienda."
+      );
+    }
+    // Solo un amministratore può invitare un altro amministratore.
+    if (ruoli.includes("amministratore") && !isAmministratoreAttivo(mittenteData, tenantId)) {
+      throw new AccettaInvitoError(
+        "permission-denied",
+        "Solo un amministratore può invitare un altro amministratore."
+      );
     }
 
     const userSnap = await tx.get(userRef);
@@ -219,6 +231,13 @@ async function handleAccettaInvito(db, request, data, now = new Date()) {
           "Appartieni già a questa azienda"
         );
       }
+      // Titolare/legacy con solo tenantId: non declassare con i ruoli dell'invito.
+      if (membroLegacyAttivoSenzaMembership(userData, tenantId)) {
+        throw new AccettaInvitoError(
+          "already-exists",
+          "Appartieni già a questa azienda"
+        );
+      }
       let memberships = migraTenantIdDeprecato(userData.tenantMemberships, userData);
       memberships[tenantId] = {
         ruoli: ruoli.slice(),
@@ -250,6 +269,7 @@ module.exports = {
   emailNorm,
   ruoliInvitoValidi,
   membershipAttiva,
+  membroLegacyAttivoSenzaMembership,
   isManagerOrAdminAttivo,
   isAmministratoreAttivo,
   campiNomeDaInvitoSeVuoti,

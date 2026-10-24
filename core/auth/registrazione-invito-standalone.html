@@ -737,7 +737,13 @@
 
                 if (cellulare && auth.currentUser) {
                     try {
-                        await updateDoc(doc(db, 'users', auth.currentUser.uid), { cellulare: cellulare });
+                        const userCellSnap = await getDoc(doc(db, 'users', auth.currentUser.uid));
+                        const cellEsistente = userCellSnap.exists()
+                            ? String((userCellSnap.data() || {}).cellulare || '').trim()
+                            : '';
+                        if (!cellEsistente) {
+                            await updateDoc(doc(db, 'users', auth.currentUser.uid), { cellulare: cellulare });
+                        }
                     } catch (cellErr) {
                         console.warn('Aggiornamento cellulare non riuscito:', cellErr);
                     }

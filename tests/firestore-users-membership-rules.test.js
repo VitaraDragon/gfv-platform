@@ -382,6 +382,49 @@ describe('users membership rules', () => {
     expect(res.status).toBe(403);
   });
 
+  it('invito: solo transizione invitato → annullato; non si riapre accettato/annullato', async () => {
+    if (skipIfNoEmu()) return;
+    const baseInvito = {
+      email: 'guest2@test.local',
+      tenantId: TENANT_A,
+      token: 'token-invito-bbbbbb',
+      inviatoDa: MANAGER_A,
+      ruoli: ['operaio'],
+    };
+    const seedAcc = await richiesta('PATCH', 'inviti/inv-acc', {
+      data: { ...baseInvito, token: 'token-invito-accccc', stato: 'accettato' },
+    });
+    expect(seedAcc.status).toBeLessThan(400);
+    const seedAnn = await richiesta('PATCH', 'inviti/inv-ann', {
+      data: { ...baseInvito, token: 'token-invito-annnnn', stato: 'annullato' },
+    });
+    expect(seedAnn.status).toBeLessThan(400);
+
+    const reopenAcc = await richiesta('PATCH', 'inviti/inv-acc', {
+      auth: MANAGER_A,
+      mask: ['stato'],
+      data: { stato: 'invitato' },
+      exists: true,
+    });
+    expect(reopenAcc.status).toBe(403);
+
+    const reopenAnn = await richiesta('PATCH', 'inviti/inv-ann', {
+      auth: MANAGER_A,
+      mask: ['stato'],
+      data: { stato: 'invitato' },
+      exists: true,
+    });
+    expect(reopenAnn.status).toBe(403);
+
+    const annulla = await richiesta('PATCH', 'inviti/inv-a1', {
+      auth: MANAGER_A,
+      mask: ['stato'],
+      data: { stato: 'annullato' },
+      exists: true,
+    });
+    expect(annulla.status).toBe(200);
+  });
+
   it('lettura users: cross-tenant 403; query email senza tenant 403; stesso tenant 200 anche solo membership', async () => {
     if (skipIfNoEmu()) return;
     const cross = await richiesta('GET', `users/${ADMIN_B}`, { auth: ADMIN_A });

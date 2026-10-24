@@ -80,6 +80,7 @@ service cloud.firestore {
       return data.keys().hasAny([
         'tenantMemberships',
         'ruoli',
+        'ruolo',
         'tenantId',
         'stato',
         'email',
@@ -220,7 +221,7 @@ service cloud.firestore {
         belongsToTenant(request.resource.data.tenantId) &&
         isManagerOrAdmin(request.resource.data.tenantId);
       
-      // Aggiornamento: solo manager/admin del tenant; non possono dirottare tenantId/email/token/inviatoDa.
+      // Aggiornamento: solo manager/admin; campi identità invito immutabili; unica transizione client: invitato → annullato.
       // Accettazione invito: solo callable accettaInvito (Admin SDK).
       allow update: if isAuthenticated()
         && resource.data.tenantId != null
@@ -230,7 +231,9 @@ service cloud.firestore {
         && request.resource.data.inviatoDa == resource.data.inviatoDa
         && request.resource.data.token == resource.data.token
         && request.resource.data.email == resource.data.email
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stato']);
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['stato'])
+        && resource.data.stato == 'invitato'
+        && request.resource.data.stato == 'annullato';
       
       // Eliminazione: solo manager/admin del tenant dell'invito
       allow delete: if isAuthenticated() && 

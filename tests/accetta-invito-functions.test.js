@@ -265,6 +265,58 @@ describe('handleAccettaInvito', () => {
     expect(db.docs.get('inviti/inv1').stato).toBe('invitato');
   });
 
+  it('membro legacy (tenantId senza membership) → already-exists, nessuna scrittura', async () => {
+    const db = fakeDb(
+      baseSeed({
+        'users/uid-legacy': {
+          email: 'nuovo@test.local',
+          tenantId: 'az1',
+          ruoli: ['amministratore'],
+          stato: 'attivo',
+        },
+      })
+    );
+    const beforeUser = structuredClone(db.docs.get('users/uid-legacy'));
+    const beforeInvito = structuredClone(db.docs.get('inviti/inv1'));
+    await expect(
+      handleAccettaInvito(
+        db,
+        { auth: { uid: 'uid-legacy', token: { email: 'nuovo@test.local' } } },
+        { token: TOKEN },
+        NOW
+      )
+    ).rejects.toMatchObject({ code: 'already-exists' });
+    expect(db.docs.get('users/uid-legacy')).toEqual(beforeUser);
+    expect(db.docs.get('inviti/inv1')).toEqual(beforeInvito);
+  });
+
+  it('legacy disattivato sullo stesso tenantId → accettazione crea membership', async () => {
+    const db = fakeDb(
+      baseSeed({
+        'users/uid-legacy': {
+          email: 'nuovo@test.local',
+          tenantId: 'az1',
+          ruoli: ['amministratore'],
+          stato: 'disattivato',
+        },
+      })
+    );
+    const res = await handleAccettaInvito(
+      db,
+      { auth: { uid: 'uid-legacy', token: { email: 'nuovo@test.local' } } },
+      { token: TOKEN },
+      NOW
+    );
+    expect(res.ok).toBe(true);
+    expect(res.isNewUser).toBe(false);
+    const user = db.docs.get('users/uid-legacy');
+    expect(user.stato).toBe('disattivato');
+    expect(user.ruoli).toEqual(['amministratore']);
+    expect(user.tenantMemberships.az1.ruoli).toEqual(['operaio']);
+    expect(user.tenantMemberships.az1.stato).toBe('attivo');
+    expect(db.docs.get('inviti/inv1').stato).toBe('accettato');
+  });
+
   it('inviatoDa non più manager del tenant dell\'invito → permission-denied', async () => {
     const db = fakeDb(
       baseSeed({
