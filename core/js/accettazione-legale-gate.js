@@ -1,6 +1,8 @@
 /**
  * Ri-accettazione al primo ingresso. Con il flag spento non chiama la rete e non disegna nulla.
  * Le pagine importano questo file solo se il flag è acceso.
+ * Flag acceso: se lo stato non si legge, l'ingresso resta bloccato (Riprova / Esci), mai fail-open.
+ * Lo stato e la registrazione sono per l'azienda corrente.
  */
 import {
   documentiRichiestiPerRuolo,
@@ -45,14 +47,25 @@ export function pianoGate(input) {
 }
 
 /**
- * @param {{ attiva?: boolean, configOk?: boolean, ruoli?: string[], config?: object, leggiStato?: () => Promise<Array<{tipo?: string, versione?: string}>>, mostra?: (piano: object) => Promise<void> }} opts
+ * Se `leggiStato` lancia: con `mostraErrore` aspetta il "Riprova" e rilegge, senza mai lasciar entrare;
+ * senza `mostraErrore` rilancia (chi chiama deve bloccare).
+ * @param {{ attiva?: boolean, configOk?: boolean, ruoli?: string[], config?: object, leggiStato?: () => Promise<Array<{tipo?: string, versione?: string}>>, mostra?: (piano: object) => Promise<void>, mostraErrore?: (err: unknown) => Promise<void> }} opts
  */
 export async function eseguiGate(opts) {
   const prima = pianoGate(Object.assign({}, opts, { accettazioni: [] }));
   if (!prima.chiamare || typeof opts.leggiStato !== 'function') {
     return { mostrato: false };
   }
-  const accettazioni = await opts.leggiStato();
+  let accettazioni;
+  for (;;) {
+    try {
+      accettazioni = await opts.leggiStato();
+      break;
+    } catch (err) {
+      if (typeof opts.mostraErrore !== 'function') throw err;
+      await opts.mostraErrore(err);
+    }
+  }
   const dopo = pianoGate(Object.assign({}, opts, { accettazioni: accettazioni || [] }));
   if (!dopo.mostra || typeof opts.mostra !== 'function') {
     return { mostrato: false };
@@ -190,9 +203,98 @@ function mostraOverlay(opts) {
   });
 }
 
+/**
+ * Overlay bloccante quando non riesco a verificare le condizioni.
+ * Si risolve solo con "Riprova"; "Esci" fa logout e porta al login.
+ * @param {{ messaggio?: string, esci?: () => Promise<void> }} opts
+ * @returns {Promise<void>}
+ */
+export function mostraErroreBloccante(opts) {
+  const o = opts || {};
+  return new Promise((resolve) => {
+    const vecchio = document.getElementById('accettazione-legale-gate-errore');
+    if (vecchio) vecchio.remove();
+    const fondo = document.createElement('div');
+    fondo.id = 'accettazione-legale-gate-errore';
+    fondo.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px;';
+    const pannello = document.createElement('div');
+    pannello.style.cssText = 'background:#fff;border-radius:12px;max-width:520px;width:100%;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a;';
+    const testo = document.createElement('p');
+    testo.textContent = o.messaggio || 'Non riesco a verificare le condizioni di uso. Controlla la connessione e riprova.';
+    pannello.appendChild(testo);
+    const riprova = document.createElement('button');
+    riprova.type = 'button';
+    riprova.textContent = 'Riprova';
+    riprova.style.cssText = 'margin:8px 8px 0 0;padding:12px 16px;background:#2E8B57;color:#fff;border:0;border-radius:8px;';
+    riprova.addEventListener('click', () => {
+      fondo.remove();
+      resolve();
+    });
+    pannello.appendChild(riprova);
+    if (typeof o.esci === 'function') {
+      const esci = document.createElement('button');
+      esci.type = 'button';
+      esci.textContent = 'Esci';
+      esci.style.cssText = 'margin-top:8px;padding:12px 16px;background:#fff;color:#1a1a1a;border:1px solid #ccc;border-radius:8px;';
+      esci.addEventListener('click', () => {
+        Promise.resolve(o.esci()).catch(() => {});
+      });
+      pannello.appendChild(esci);
+    }
+    fondo.appendChild(pannello);
+    document.body.appendChild(fondo);
+  });
+}
+
+async function esciVersoLogin(firebase) {
+  try {
+    await firebase.signOut(firebase.getAuthInstance());
+  } catch (err) { /* ignore: si va comunque al login */ }
+  let url = new URL('../auth/login-standalone.html', import.meta.url).href;
+  try {
+    const emu = await import('./firebase-emulator-dev.js');
+    url = emu.withEmulatorQuery(url);
+  } catch (err) { /* ignore */ }
+  window.location.href = url;
+}
+
+/**
+ * Tenant e ruoli per il gate: contesto della pagina, poi tenant corrente, poi campi legacy del doc utente.
+ * @param {{ ruoli?: string[], tenantId?: string }|null|undefined} contesto
+ * @param {object|null} userData
+ * @param {string} tenantCorrente
+ * @param {(data: object, tenantId: string) => string[]} [ruoliDaMembership]
+ * @returns {{ tenantId: string, ruoli: string[] }}
+ */
+export function risolviTenantERuoli(contesto, userData, tenantCorrente, ruoliDaMembership) {
+  const data = userData && typeof userData === 'object' ? userData : {};
+  let tenantId = contesto && typeof contesto.tenantId === 'string' ? contesto.tenantId : '';
+  if (!tenantId && typeof tenantCorrente === 'string') tenantId = tenantCorrente;
+  if (!tenantId && typeof data.tenantId === 'string') tenantId = data.tenantId;
+  let ruoli = contesto && Array.isArray(contesto.ruoli) && contesto.ruoli.length ? contesto.ruoli : [];
+  if (!ruoli.length && tenantId && typeof ruoliDaMembership === 'function') {
+    ruoli = ruoliDaMembership(data, tenantId) || [];
+  }
+  if (!ruoli.length && Array.isArray(data.ruoli) && (!tenantId || data.tenantId === tenantId)) ruoli = data.ruoli;
+  return { tenantId, ruoli };
+}
+
 export async function avviaDaFirebase(contesto) {
-  const config = contesto && contesto.config;
   const firebase = await import('../services/firebase-service.js');
+  const esci = () => esciVersoLogin(firebase);
+  const mostraErrore = () => mostraErroreBloccante({ esci });
+  for (;;) {
+    try {
+      return await avviaUnaVolta(contesto, firebase, mostraErrore);
+    } catch (err) {
+      console.warn('[accettazione-legale] verifica non riuscita, ingresso bloccato');
+      await mostraErrore(err);
+    }
+  }
+}
+
+async function avviaUnaVolta(contesto, firebase, mostraErrore) {
+  const config = contesto && contesto.config;
   const auth = firebase.getAuthInstance();
   let user = auth.currentUser;
   if (!user) {
@@ -210,8 +312,23 @@ export async function avviaDaFirebase(contesto) {
     const snap = await firebase.getDoc(firebase.doc(firebase.getDb(), 'users', user.uid));
     if (!snap.exists()) return { mostrato: false };
     const data = snap.data() || {};
-    if (!Array.isArray(ruoli) || !ruoli.length) ruoli = data.ruoli || [];
-    if (!tenantId) tenantId = data.tenantId || '';
+    let tenantCorrente = '';
+    let ruoliDaMembership = null;
+    try {
+      const tenantService = await import('../services/tenant-service.js');
+      tenantCorrente = tenantService.getCurrentTenantId() || '';
+      ruoliDaMembership = tenantService.getUserRolesFromData;
+    } catch (err) { /* fallback legacy sotto */ }
+    if (tenantCorrente && !(data.tenantId === tenantCorrente
+      || (data.tenantMemberships && Object.prototype.hasOwnProperty.call(data.tenantMemberships, tenantCorrente)))) {
+      tenantCorrente = '';
+    }
+    const risolti = risolviTenantERuoli(contesto, data, tenantCorrente, ruoliDaMembership);
+    ruoli = risolti.ruoli;
+    tenantId = risolti.tenantId;
+  }
+  if (canalePerRuoli(ruoli) && !tenantId) {
+    throw new Error('azienda corrente non trovata');
   }
   let aziendaNome = contesto && typeof contesto.aziendaNome === 'string' ? contesto.aziendaNome : '';
   if (!aziendaNome.trim() && tenantId) {
@@ -228,8 +345,9 @@ export async function avviaDaFirebase(contesto) {
     configOk: true,
     ruoli,
     config,
+    mostraErrore,
     leggiStato: async () => {
-      const res = await callable({ azione: 'stato' });
+      const res = await callable({ azione: 'stato', tenantId });
       const data = res && res.data;
       return (data && data.documenti) || [];
     },

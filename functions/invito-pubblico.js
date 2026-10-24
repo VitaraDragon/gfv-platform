@@ -1,6 +1,8 @@
 /**
  * Invito pubblico (link email di registrazione): lookup Admin per token.
  * I campi restituiti sono un allowlist — niente dump del documento.
+ * Non escono cellulare, token e stato: il client ha già il token dall'URL,
+ * lo stato è sempre "invitato" e il cellulare lo digita l'invitato.
  */
 
 const INVITO_TOKEN_MIN_LEN = 10;
@@ -66,13 +68,10 @@ function sanitizeInvitoForPublic(id, data) {
     nome: typeof src.nome === "string" ? src.nome : "",
     cognome: typeof src.cognome === "string" ? src.cognome : "",
     ruoli: normalizeRuoli(src.ruoli),
-    stato: typeof src.stato === "string" ? src.stato : "",
     scadeIl: firestoreTimestampToIso(src.scadeIl),
     isExistingUser: src.isExistingUser === true || src.isExistingUser === "true",
     tenantId: typeof src.tenantId === "string" ? src.tenantId : "",
-    token: typeof src.token === "string" ? src.token : "",
     inviatoDa: typeof src.inviatoDa === "string" ? src.inviatoDa : "",
-    cellulare: typeof src.cellulare === "string" ? src.cellulare : "",
     aziendaNome: typeof src.aziendaNome === "string" ? src.aziendaNome : "",
   };
 }

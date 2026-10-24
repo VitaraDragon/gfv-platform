@@ -38,13 +38,18 @@ function validaPayloadAccettazione(data) {
   if (azione !== "registra" && azione !== "stato") {
     return fallisce("invalid-argument", "Azione non valida.");
   }
-  if (azione === "stato") return { ok: true, azione: "stato" };
+  if (azione === "stato") {
+    if (typeof src.tenantId !== "string" || !src.tenantId.trim() || src.tenantId.indexOf("/") >= 0) {
+      return fallisce("invalid-argument", "Azienda mancante.");
+    }
+    return { ok: true, azione: "stato", tenantId: src.tenantId.trim() };
+  }
 
   const canale = src.canale;
   if (canale !== "registrazione" && canale !== "invito") {
     return fallisce("invalid-argument", "Canale non valido.");
   }
-  if (typeof src.tenantId !== "string" || !src.tenantId.trim()) {
+  if (typeof src.tenantId !== "string" || !src.tenantId.trim() || src.tenantId.indexOf("/") >= 0) {
     return fallisce("invalid-argument", "Azienda mancante.");
   }
   if (typeof src.ruolo !== "string" || !src.ruolo.trim()) {
@@ -104,8 +109,16 @@ function validaPayloadAccettazione(data) {
   };
 }
 
-function idAccettazione(uid, tipo, versione) {
-  return uid + "_" + tipo + "_" + versione;
+/**
+ * Una riga per utente, azienda, documento e versione: chi entra in una seconda
+ * azienda deve accettare di nuovo (l'informativa e il DPA sono per azienda).
+ * Vale per entrambi i canali: in registrazione il tenantId è quello appena creato.
+ */
+function idAccettazione(uid, tenantId, tipo, versione) {
+  if (typeof tenantId !== "string" || !tenantId) {
+    throw new Error("tenantId obbligatorio per l'id accettazione");
+  }
+  return uid + "_" + tenantId + "_" + tipo + "_" + versione;
 }
 
 module.exports = {
