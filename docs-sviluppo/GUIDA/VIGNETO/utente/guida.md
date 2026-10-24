@@ -173,9 +173,26 @@ Le pagine **Trattamenti**, **Concimazioni** e **Potatura** servono a **completar
 3. **Aprire il modulo** da **Azioni**: in testa compaiono i **dati base del lavoro** (data, terreno, riferimento, eventuali **macchine**) in **sola lettura**.
 4. **Superficie trattata (ha)** — obbligatoria: valore manuale, opzione **tutto il terreno** da anagrafe **Terreni** se disponibile, oppure **Traccia** per disegnare il poligono sulla mappa (se il poligono è solo nel lavoro, la mappa può essere in sola lettura: modificate da **Gestione lavori**).
 5. **Prodotti:** **Aggiungi prodotto**; **dosaggio per ettaro**, **unità**, **quantità**, **costo**; **totale costo prodotti**. Se i dosaggi risultano **anomali** rispetto ai controlli dell’app, al **Salva** può comparire una **conferma** esplicita.
-6. **Operatore** (obbligatorio), costi mano/macchina facoltativi, **giorni di carenza** (spesso suggeriti dai prodotti), **note**, **copertura del terreno**, eventuale **prosecuzione** su trattamento precedente nello stesso vigneto.
+6. **Operatore** (obbligatorio), costi mano/macchina facoltativi, **giorni di carenza** (dalla riga confermata della scheda, altrimenti dall’anagrafica), **acqua usata**, **note**, **copertura del terreno**, eventuale **prosecuzione** su trattamento precedente nello stesso vigneto.
 7. **Magazzino:** se il modulo è attivo (abbonamento **o** prova), può comparire **Registra scarico in magazzino**; deselezionatela se non volete movimentare le giacenze.
 8. **Salva** / **Annulla**.
+
+### Registro privato dei trattamenti
+
+In cima alla pagina **Trattamenti** leggete che è un **registro privato di compilazione**: i trattamenti arrivano da lavori o attività di categoria **Trattamenti**, e qui confermate prodotto, dose, avversità e carenza della scheda pubblica del Ministero della Salute. GFV non invia nulla al SIAN né al fascicolo.
+
+1. **Scheda del prodotto.** Sotto ogni riga prodotto leggete **Scheda non confermata** oppure **Confermato:** con l’avversità scelta.  
+   - Se scegliete un fitofarmaco dell’anagrafica **Magazzino** con la scheda già letta, compare l’elenco degli impieghi per la coltura del campo (avversità, epoca, dose, carenza): toccate **Conferma** sulla riga giusta. Se l’etichetta ha più finestre, scegliete quella della data di questo lavoro.  
+   - Altrimenti toccate **Leggi scheda**: l’app legge la scheda pubblica («Leggo la scheda pubblica…») e propone le righe da confermare con **Conferma**. Se il prodotto ha già una conferma per quella coltura, la vedete in cima («Conferma già data per…»).  
+   - Dopo la conferma leggete «Conferma registrata per … Si può salvare il trattamento.» La conferma resta anche sul prodotto in anagrafica, per la volta dopo.  
+   - L’app non inventa nulla: se la scheda non si legge, se il prodotto non è negli open data o se la coltura del campo non è sulla scheda, ve lo scrive e non propone avversità, dose né carenza. Una scheda letta più di sei mesi fa viene aggiornata prima di proporre la dose.  
+   - Per il vigneto la coltura della scheda viene dalla **Destinazione uva** in anagrafica: **vino** = vite da vino, **vendita uva** = vite da tavola (sono righe diverse della scheda). Con destinazione **misto** l’app non propone nulla.
+2. **Giorni di carenza:** si compilano dalla riga confermata; se manca, dall’anagrafica del prodotto. Controllate sempre l’etichetta.  
+3. **Acqua usata:** scrivete **Acqua usata (hl/ha)** oppure **Acqua usata (hl totali)**; l’altro valore si calcola dalla superficie trattata.  
+4. **Avvisi al Salva:** dosaggio sopra o sotto il consigliato, prodotto già al numero massimo di impieghi nell’anno su quel vigneto, ultimo passaggio troppo vicino, oppure scheda non confermata (il controllo non si può fare). Sono avvisi, non blocchi: **OK** salva comunque, **Annulla** vi lascia correggere. Un trattamento di ieri non ancora registrato non entra nel controllo.  
+5. **Esporta CSV** / **Esporta XML** in cima alla pagina scaricano il registro dei trattamenti in elenco, con i dati dell’azienda. Il file resta a voi: GFV non lo invia al SIAN.  
+6. **Eliminare** un trattamento: il lavoro o l’attività resta e la riga torna «da completare». Se il trattamento è confermato e non ha ancora tre anni, l’app vi chiede di esportare prima il registro e di confermare di averlo già fatto. I movimenti di magazzino collegati restano.  
+7. **Miscela prevista:** se l’ufficio l’ha indicata sul lavoro in **Gestione lavori**, la squadra la vede in campo prima di uscire; qui registrate quello che è stato usato davvero.
 
 ### Concimazioni: passo per passo
 

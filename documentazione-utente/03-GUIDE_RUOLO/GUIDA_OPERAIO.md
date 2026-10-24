@@ -81,7 +81,7 @@ Quando finisci un lavoro:
 
 Sopra il salvataggio vedi **Le tue ore del giorno**: tutti i turni di quel giorno, su tutti i lavori, con orario, pausa, ore nette e stato. Il turno del lavoro scelto è evidenziato, in fondo c’è il totale.
 
-Due turni dello stesso giorno non possono coprirsi. Se finisci alle 12:00 puoi iniziare un altro turno alle 12:00. Se gli orari si incrociano, il salvataggio si ferma e indica il turno già presente. Se chiedi a Tony di segnare le ore, nel riepilogo c’è il nome del lavoro. Se due lavori hanno lo stesso nome, prende quello di oggi; se non è chiaro, chiede quale e non apre il modulo sul primo della lista. Se l’orario è occupato te lo dice prima di chiedere la pausa, e ti propone il primo buco libero. Dopo il «sì» conferma su quale lavoro ha segnato l’ora. Accanto alla data c’è il giorno in italiano, per esempio «giovedì 08/10/2026». Su un lavoro sospeso non si segnano ore nuove: Tony lo dice e, se c’è, indica la ripresa. In elenco il lavoro sospeso ha il badge Sospeso. «Tutto pronto» dice anche il giorno, per esempio «oggi 09/10». Se non dici la data, Tony usa oggi e non tiene quella del messaggio prima. Dopo Annulla, un «sì» non salva. Tony dice «Fatto» quando l'ora è salvata, anche se è in attesa del caposquadra. Se il salvataggio fallisce, dice il motivo. Una domanda vecchia «Vuoi salvare?» non resta aperta. Il riepilogo del giorno si aggiorna subito dopo il salvataggio o l'eliminazione. Dopo un ricarico, quella domanda e la frase «Questa richiesta è scaduta» non tornano in chat.
+Due turni dello stesso giorno non possono coprirsi. Se finisci alle 12:00 puoi iniziare un altro turno alle 12:00. Se gli orari si incrociano, il salvataggio si ferma e indica il turno già presente. Se chiedi a Tony di segnare le ore, nel riepilogo c’è il nome del lavoro. Se due lavori hanno lo stesso nome, prende quello di oggi; se non è chiaro, chiede quale e non apre il modulo sul primo della lista. Se l’orario è occupato te lo dice prima di chiedere la pausa, e ti propone il primo buco libero. Dopo il «sì» conferma su quale lavoro ha segnato l’ora. Accanto alla data c’è il giorno in italiano, per esempio «giovedì 08/10/2026». Su un lavoro sospeso non si segnano ore nuove: Tony lo dice e, se c’è, indica la ripresa. In elenco il lavoro sospeso ha il badge Sospeso. «Tutto pronto» dice anche il giorno, per esempio «oggi 09/10». Se non dici la data, Tony usa oggi e non tiene quella del messaggio prima. Dopo Annulla, un «sì» non salva. Tony dice «Fatto» quando l'ora è salvata, anche se è in attesa del caposquadra. Se il salvataggio fallisce, dice il motivo. Una domanda vecchia «Vuoi salvare?» non resta aperta. Il riepilogo del giorno si aggiorna subito dopo il salvataggio o l'eliminazione. Dopo un ricarico, quella domanda e la frase «Questa richiesta è scaduta» non tornano in chat. Se nomini un lavoro che non c’è o è già finito, Tony dice «Non trovo un lavoro attivo con questo nome» ed elenca quelli su cui puoi segnare; non ti propone un lavoro sospeso che non c’entra con quello che hai detto.
 
 **Suggerimento**: Segna le ore alla fine della giornata per avere dati precisi.
 
@@ -174,29 +174,32 @@ Cliccando su un'ora vedi:
 
 ### Segnalare Guasto Macchina
 
-1. Vai su **Segnalazione Guasti**
-2. I campi sono pre-compilati automaticamente:
-   - **Trattore**: Trattore assegnato al lavoro corrente
-   - **Attrezzo**: Attrezzo assegnato al lavoro corrente
-   - **Lavoro**: Lavoro attivo più recente
-3. Compila:
-   - **Gravità**: 
-     - **Non Grave**: Macchina usabile, lavoro può continuare
-     - **Grave**: Macchina non usabile, lavoro sospeso
-   - **Dettagli Guasto**: Descrizione dettagliata del problema
-4. Clicca **Segnala Guasto**
+1. Nella versione mobile apri la scheda **⚠️ Segnala un problema** (dopo **Ore**; non è nel menu ingranaggio)
+2. Scegli il **Tipo di segnalazione**: **🔧 Guasto Macchina/Attrezzo** (solo con Parco Macchine) oppure **🌍 Segnalazione Generica** (frana, albero caduto, palo rotto, ecc.)
+3. L’app propone già in **Lavoro corrente** il lavoro della scheda **Lavoro** (quello che hai scelto o, se non hai mai scelto, quello che la scheda propone da sola, prima il lavoro in corso); se non è tra i tuoi lavori aperti, il lavoro già in corso. Se quel lavoro li ha, mette anche il suo **Trattore** e **Attrezzo** (con il **Componente** di conseguenza; per la generica l’**Ubicazione** dal terreno del lavoro). Controlla e cambia se non è giusto
+4. Compila:
+   - Guasto macchina: **Trattore** e **Componente con guasto** (Trattore, Attrezzo o Entrambi; **Attrezzo** se serve)
+   - Segnalazione generica: **Ubicazione**, punto sulla **mappa** e **Tipo di problema**
+   - **Gravità**: **Non grave - Posso finire il lavoro** oppure **Grave - Sospendere subito**
+   - **Dettagli** del problema (obbligatori)
+   - Facoltativi: **Lavoro corrente**, **posizione GPS** (📍 Segnala qui (GPS))
+5. Tocca **🚨 Segnala**: leggi «Segnalazione inviata. Grazie.» e resti nella scheda
 
-**Nota**: Per guasti gravi, il lavoro viene automaticamente sospeso.
+**Cosa succede dopo l’invio**
+- La segnalazione resta **in attesa** e la trovi in **I Miei Guasti Segnalati**. Non manda avvisi o notifiche a nessuno, nemmeno se **Grave**: il manager la vede tra i guasti aperti (contatore in **Richiede attenzione** e **Officina & Guasti**).
+- **Guasto a macchina/attrezzo:** il mezzo indicato dal **componente** passa in stato di guasto (con **Non grave** il lavoro può continuare, con **Grave** il mezzo risulta **Guasto**). Finché resta così non si può scegliere per un nuovo lavoro né per una nuova segnalazione: in elenco compare «(già in guasto)».
+- **Grave con un lavoro collegato:** il lavoro viene **sospeso** se segnala il manager, il **caposquadra** di quel lavoro di squadra o l’**operaio** sul proprio lavoro autonomo. Se segnala un operaio su un lavoro di squadra, o un caposquadra su un lavoro tutto suo, il mezzo va in guasto ma il lavoro non cambia e dopo l’invio si legge «Segnalazione inviata. Il lavoro lo sospende il caposquadra o il manager.»: la segnalazione è registrata e il responsabile vede il guasto nell’elenco **Officina & Guasti**.
 
 ### Visualizzare Guasti Segnalati
 
-1. Vai su **Segnalazione Guasti**
-2. Visualizza lista guasti segnalati
+1. Nella scheda **⚠️ Segnala un problema**, sotto il modulo
+2. Trovi l’elenco **I Miei Guasti Segnalati**
 3. Per ogni guasto vedi:
    - **Macchina**: Trattore/attrezzo
    - **Gravità**: Grave / Non grave
-   - **Stato**: Aperto / Risolto
+   - **Stato**: In attesa / Risolto / Annullato (e altri stati se il guasto è già stato preso in carico)
    - **Data**: Data segnalazione
+4. Finché il guasto è in attesa puoi usare **Risolto da me** (il guasto si chiude subito) o **Annulla segnalazione** (badge **Annullato**). Un guasto annullato non si riapre: se l’hai annullato per errore, fai una nuova segnalazione.
 
 ## 📊 Statistiche Personali
 

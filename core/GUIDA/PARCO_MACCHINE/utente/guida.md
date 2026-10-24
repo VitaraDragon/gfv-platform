@@ -101,9 +101,12 @@ Il campo **Cavalli minimi richiesti (CV)** indica **quanta potenza deve avere al
 2. **Nome** (almeno 3 caratteri).
 3. **Categoria:** aprite l’**elenco cliccabile** e scegliete una categoria (sono le categorie macchina **della vostra azienda** registrate in anagrafica). Se manca una voce, in **Gestione macchine** potete crearne una nuova dal flusso attrezzo (pulsante **Nuova** accanto alla categoria).
 4. **Cavalli minimi richiesti (CV):** numero **obbligatorio** e realistico per il vostro uso.
-5. **Salva**. **Annulla** chiude senza salvare.
+5. **Capacità botte (quintali):** solo se l’attrezzo ha un serbatoio (nebulizzatore, atomizzatore, barra, botte). 1 quintale = 100 litri. Lasciatelo vuoto su un aratro. Se lo scrivete deve essere maggiore di zero.
+6. **Salva**. **Annulla** chiude senza salvare.
 
-**Modifica, eliminazione, stato, altri campi:** da **Gestione macchine**.
+**Modifica, eliminazione, stato, altri campi:** da **Gestione macchine**, dove sugli attrezzi trovate anche **Capacità botte (quintali)** e nella scheda dell’attrezzo la voce **Botte (q)**.
+
+La capacità della botte serve ai lavori di **trattamento**: con la **miscela prevista** del lavoro l’app calcola quante botti piene servono, la dose a botte piena e l’ultima botte parziale, e la squadra le vede in campo.
 
 ---
 
@@ -165,7 +168,7 @@ Ogni riga è un mezzo. Troverete pulsanti del tipo **Modifica** e **Elimina** (i
 
 ### Storico guasti (sulla scheda)
 
-Per una macchina già salvata, in modifica può comparire uno **storico guasti** in basso: riepilogo delle segnalazioni legate a quel mezzo. Serve a tenere traccia di cosa è successo nel tempo.
+Per una macchina già salvata, in modifica può comparire uno **storico guasti** in basso: riepilogo delle segnalazioni legate a quel mezzo, ciascuna con il suo stato (**In attesa**, **Continuazione approvata**, **Sospeso**, **Risolto** o **🚫 Annullato** se chi l’aveva segnalata l’ha ritirata). Serve a tenere traccia di cosa è successo nel tempo.
 
 ---
 
@@ -198,13 +201,15 @@ Pagina **Officina & Guasti** (dal hub). Vedete le **segnalazioni** con gravità,
 
 **Filtro** in alto: **Solo aperti** (solo ciò che non è chiuso) oppure **Tutti**.
 
-**Stato della riga guasto:** tipicamente **Aperto** (o in attesa), **Sospeso**, **Risolto** — così capite cosa è ancora da lavorare.
+**Stato della riga guasto:** **Aperto** (in attesa), **Continuazione approvata**, **Sospeso**, **Risolto** oppure **Annullato** (grigio: chi l’aveva segnalato l’ha ritirato finché era in attesa). Una nuova segnalazione, anche grave, non manda avvisi o notifiche: la vedete in questo elenco e nel contatore dei guasti aperti (**Richiede attenzione** sulla dashboard, panoramica del modulo). Risolti e annullati sono chiusi: con **Solo aperti** non compaiono e non contano tra i guasti aperti della panoramica e di **Richiede attenzione**.
 
-**Segna risolto:** sui guasti ancora aperti compare un pulsante per **chiudere** la segnalazione. Vi chiederà eventuali **note di risoluzione**, poi salvate. In alcuni casi, quando il guasto è legato a una **macchina**, l’app può **ripristinare lo stato del mezzo** (es. torna disponibile) se era impostato come guasto.
+**Segna risolto:** è qui che chiudete un guasto. Su ogni guasto non ancora chiuso (aperto, con continuazione approvata o sospeso) compare il pulsante **Segna risolto**: si apre la finestra **Segna come risolto**, scrivete se volete le **note di risoluzione** (facoltative) e confermate con **Segna risolto**. Un guasto chiuso non si riapre da qui: se il problema torna, serve una nuova segnalazione. Se il guasto riguarda una **macchina** o un **attrezzo**, il mezzo torna allo stato che aveva prima della segnalazione (**disponibile** o **in uso**), ma solo se è ancora segnato come guasto e non ha altri guasti aperti. Se lo stato del mezzo non si aggiorna leggete «Guasto risolto, ma non ho potuto aggiornare lo stato del mezzo: controllalo in Parco macchine.»; se nel frattempo qualcun altro l’ha già chiuso, «Questo guasto è già stato chiuso.». Se il guasto era **grave** e aveva fermato un lavoro, quel lavoro riparte da solo (in corso se era già iniziato, altrimenti assegnato); se sullo stesso lavoro c’è ancora un altro guasto aperto, resta sospeso. Se la ripresa non riesce, accanto al guasto risolto (o annullato) compare **Riprendi lavoro**.
+
+**Guasti chiusi da chi li ha segnalati:** finché un guasto è **in attesa**, chi l’ha segnalato può chiuderlo da solo con **Risolto da me** (il guasto si chiude subito e lo vedete **Risolto**; le sue note le trovate nello **storico guasti** della scheda del mezzo) o ritirarlo con **Annulla segnalazione** (lo vedete con il badge **Annullato**). In tutti e due i casi il mezzo torna come prima, con le stesse regole di **Segna risolto**. Un guasto annullato non si riapre: se l’annullamento è stato un errore, chi aveva segnalato fa una nuova segnalazione. Se il guasto non è più in attesa (per esempio **Continuazione approvata** o **Sospeso**), chi ha segnalato non può più chiuderlo né annullarlo: lo chiudete voi con **Segna risolto**.
 
 ### Nuova segnalazione (da campo o ufficio)
 
-Dal pulsante **Segnala guasto** (in elenco guasti) si apre la pagina di **segnalazione**. Compilate i campi che vi chiede la schermata: **mezzo** (se applicabile), **gravità**, **descrizione** del problema, ecc., poi **inviate / salvate** secondo il pulsante mostrato. Il modulo può includere anche **GPS opzionale** per ricordare il punto (precisione non certificata).
+Dal pulsante **Segnala guasto** (in elenco guasti) si apre la pagina di **segnalazione**. Operaio e caposquadra la trovano invece come scheda **⚠️ Segnala un problema** nel workspace di campo (non più nel menu ingranaggio). Compilate i campi che vi chiede la schermata: **mezzo** (se applicabile), **gravità**, **descrizione** del problema, ecc., poi **inviate / salvate** secondo il pulsante mostrato. Il modulo può includere anche **GPS opzionale** per ricordare il punto (precisione non certificata). Caposquadra e operai possono segnare come guasta una macchina o un attrezzo dalla scheda **⚠️ Segnala un problema**; dopo l’invio leggono **Segnalazione inviata. Grazie.** Con gravità **grave** e un lavoro collegato, il lavoro si sospende se segnalate voi, il caposquadra di quel lavoro di squadra o l’operaio sul proprio lavoro autonomo; se segnala un operaio di squadra, o un caposquadra su un lavoro tutto suo, il lavoro non cambia e lui legge «Segnalazione inviata. Il lavoro lo sospende il caposquadra o il manager.»: se va fermato, lo sospendete voi o il caposquadra. Il **lavoro** collegato è già proposto: dal campo è quello della scheda **Lavoro** (scelto da chi segnala o, se non ha mai scelto, quello che la scheda propone da sola: prima il lavoro in corso), altrimenti il lavoro **già in corso** di chi segnala (non quello creato per ultimo); **trattore** e **attrezzo** sono quelli di quel lavoro e cambiano se si sceglie un altro lavoro, ma si possono sempre cambiare a mano. Il menu dei lavori elenca solo i lavori aperti assegnati a chi segnala (suoi o della sua squadra). Nei menu della segnalazione un mezzo con un guasto aperto ha la scritta «(già in guasto)» e non si sceglie; quando il guasto si chiude con **Risolto da me** o **Annulla segnalazione**, torna subito selezionabile.
 
 ---
 

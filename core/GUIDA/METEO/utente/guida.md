@@ -132,7 +132,7 @@ Dati forniti da **OpenWeather** (citati in pagina).
 - **Tony Avanzato**: può **aprire Meteo** o rispondere sul **briefing** in dashboard (desktop: a volte **voce**; mobile spesso apre la **chat**).
 - Sulla **pagina Meteo**, con modulo attivo, Tony può usare l’**elenco campi** visibile (stesso riepilogo della pagina) per domande tipo «quali campi hanno pioggia domani?».
 
-Il **briefing** mattutino in dashboard può includere meteo e operatività se avete **Tony Avanzato** e moduli pertinenti.
+Il **briefing** mattutino in dashboard può includere meteo e operatività se avete **Tony Avanzato** e moduli pertinenti. Se le previsioni tardano più di qualche secondo, il messaggio parte senza la frase sul meteo; quando arrivano, potete chiederle a Tony o rispondere «Sì» al riassunto.
 
 ---
 

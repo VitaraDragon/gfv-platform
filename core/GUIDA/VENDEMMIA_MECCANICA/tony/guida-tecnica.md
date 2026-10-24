@@ -28,3 +28,7 @@ Guide: `VENDEMMIA_MECCANICA/utente/guida.md`, `guida-sintesi.md`. Caricate da `t
 
 Gate: `vendemmiaMeccanica`. Quick-reply: «portami alla vendemmia meccanica». Sintesi: `guida_sintesi_vendemmia_meccanica`.
 
+## Zone escluse e superficie (#239)
+
+- `services/zone-escluse-service.js` `getPolygonClippingLib()` ora delega a `loadPolygonClipping()` di `core/services/zone-lavorate-area.js` (browser: `vendor/polygon-clipping-0.15.7.umd.min.js`, caricato da `piano-stagione-standalone.html` al posto di `node_modules`; Node: import npm). Nessun cambio di comportamento per l’utente. Import `zone-escluse-service.js?v=2026-10-20a` in `vm-zone-mappa.js`, `piano-stagione-service.js`, `lavoro-piano-sync-service.js`, Piano stagione.
+- `sumSuperficieHaZoneLavorate` in `lavoro-piano-sync-service.js` resta **somma semplice** delle zone lavorate (non l’unione usata da Gestione lavori e I miei lavori): con zone sovrapposte gli ettari sincronizzati sul piano possono differire dalla superficie lavorata di Gestione lavori.

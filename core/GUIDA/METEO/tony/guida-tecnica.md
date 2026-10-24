@@ -35,7 +35,7 @@ Query opzionale: `?terrenoId=` preseleziona campo sulla mappa.
 - Client: `core/services/meteo-service.js` (`fetchMeteoSedeWithLocalCache`, `fetchMeteoTerreni`).
 - Cloud: `functions/meteo-service.js`.
 - UI helper: `core/js/meteo-ui-helpers.js` (alert banner, POP, minutely strip).
-- Consigli operativi Tony: `core/config/tony-meteo-rules.js` (mirror `functions/tony-meteo-rules.js`); briefing proattivo `PROACTIVE_METEO_*` in `dashboard-meteo-briefing.js`, quick reply `core/js/tony/meteo-dashboard-quick-reply*.js`.
+- Consigli operativi Tony: `core/config/tony-meteo-rules.js` (mirror `functions/tony-meteo-rules.js`); briefing proattivo `PROACTIVE_METEO_*` in `dashboard-meteo-briefing.js` (attesa massima 4 s via `attendiConLimite` in `core/js/dashboard-briefing-helpers.js`, 5c5defc; meteo tardivo solo nel contesto Tony), quick reply `core/js/tony/meteo-dashboard-quick-reply*.js`.
 
 ## Navigazione intent
 

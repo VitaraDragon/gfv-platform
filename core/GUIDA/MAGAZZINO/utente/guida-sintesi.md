@@ -12,6 +12,7 @@ Modulo **Magazzino** attivo sull'azienda. Linguaggio allineato alla guida utente
 - **Tracciabilità consumi**: consultazione con filtri (categoria, terreno, vista raggruppata o dettaglio); dipende da movimenti e scarichi registrati; aggiornare i filtri prima di leggere i totali.
 - **Sotto scorta**: giacenza sotto la soglia impostata; verificare movimenti e anagrafica.
 - **Vigneto / Frutteto**: scarico magazzino da trattamenti o concimazioni quando Magazzino è accessibile (pagato o **prova**) e prodotto in anagrafica.
+- **Scheda pubblica fitofarmaci:** dopo il Salva l’app legge da sola la scheda del Ministero, un prodotto alla volta. Pallino accanto al nome: **giallo** «In attesa di lettura» / «Lettura in corso», **verde** «Scheda letta» (ogni coltura ha l’avversità), **rosso** «Da riprovare» (nome non univoco o non trovato negli open data → controllare il nome in etichetta e risalvare). Nel modulo in sola lettura **Numero di registrazione**, **Principio attivo**, **Fonte**, **Data di lettura**. Le conferme per coltura si danno nella pagina **Trattamenti** dei moduli coltura e restano sul prodotto. Scheda oltre sei mesi → riletta prima di proporre la dose.
 - **Tony**: su **Prodotti** e **Movimenti** può spesso leggere l'**elenco tabellare** come lo vedi tu; **foto bolla/fattura** dalla chat (fotocamera) → revisione → magazzino. Su **Tracciabilità consumi** vale lo stesso per la tabella dedicata; altrove preferire **passi procedurali** dalla guida lunga.
 
 Senza modulo **non** dare istruzioni come se il magazzino esistesse nell'azienda.
