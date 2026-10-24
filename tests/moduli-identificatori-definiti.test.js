@@ -12,6 +12,8 @@ import { describe, expect, it } from 'vitest';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const MODULI = [
+  'core/js/accettazione-legale-gate.js',
+  'core/js/accettazione-legale-registrazione.js',
   'core/js/attivita-controller.js',
   'core/js/attivita-maps.js',
   'core/js/dashboard-briefing-helpers.js',
@@ -45,7 +47,10 @@ const PAGINE = [
   'core/admin/gestione-lavori-standalone.html',
   'core/admin/lavori-caposquadra-standalone.html',
   'core/attivita-standalone.html',
+  'core/auth/registrazione-invito-standalone.html',
+  'core/auth/registrazione-standalone.html',
   'core/dashboard-standalone.html',
+  'core/mobile/field-workspace-standalone.html',
   'modules/vendemmia-meccanica/views/piano-stagione-standalone.html',
 ];
 

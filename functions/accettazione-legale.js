@@ -1,6 +1,7 @@
 /**
  * Callable registraAccettazioniLegali: registra oppure legge lo stato.
  * Scrive solo con Admin SDK. Il client non ha accesso alla collezione.
+ * Righe e stato sono per azienda: lo stato chiede il tenantId e verifica la membership.
  */
 const admin = require("firebase-admin");
 const { FieldValue } = require("firebase-admin/firestore");
@@ -42,23 +43,27 @@ async function handleRegistraAccettazioniLegali(request, db) {
     throw new HttpsError(check.code, check.error);
   }
 
-  if (check.azione === "stato") {
-    const snap = await database.collection("accettazioniLegali").where("uid", "==", uid).get();
-    const documenti = [];
-    snap.forEach(function (docSnap) {
-      const row = docSnap.data() || {};
-      if (typeof row.tipo === "string" && typeof row.versione === "string") {
-        documenti.push({ tipo: row.tipo, versione: row.versione });
-      }
-    });
-    return { documenti: documenti };
-  }
-
   const userSnap = await database.collection("users").doc(uid).get();
   if (!userSnap.exists) {
     throw new HttpsError("permission-denied", "Utente non trovato.");
   }
   const userData = userSnap.data() || {};
+
+  if (check.azione === "stato") {
+    if (!appartieneAlTenant(userData, check.tenantId)) {
+      throw new HttpsError("permission-denied", "Non appartieni a questa azienda.");
+    }
+    // Filtro per azienda in memoria: niente indice composito nuovo.
+    const snap = await database.collection("accettazioniLegali").where("uid", "==", uid).get();
+    const documenti = [];
+    snap.forEach(function (docSnap) {
+      const row = docSnap.data() || {};
+      if (row.tenantId === check.tenantId && typeof row.tipo === "string" && typeof row.versione === "string") {
+        documenti.push({ tipo: row.tipo, versione: row.versione });
+      }
+    });
+    return { documenti: documenti };
+  }
   const ruoli = ruoliDi(userData, check.tenantId);
 
   if (check.canale === "registrazione") {
@@ -76,7 +81,7 @@ async function handleRegistraAccettazioniLegali(request, db) {
 
   for (let i = 0; i < check.righe.length; i++) {
     const riga = check.righe[i];
-    const ref = database.collection("accettazioniLegali").doc(idAccettazione(uid, riga.tipo, riga.versione));
+    const ref = database.collection("accettazioniLegali").doc(idAccettazione(uid, check.tenantId, riga.tipo, riga.versione));
     const row = {
       uid: uid,
       tenantId: check.tenantId,
@@ -90,6 +95,7 @@ async function handleRegistraAccettazioniLegali(request, db) {
     try {
       await ref.create(row);
     } catch (err) {
+      // Stessa azienda, stesso documento e versione: già accettato, non si sovrascrive la prova.
       if (giaEsiste(err)) continue;
       console.error("[registraAccettazioniLegali]", check.canale, riga.tipo);
       throw new HttpsError("internal", "Registrazione accettazione non riuscita.");

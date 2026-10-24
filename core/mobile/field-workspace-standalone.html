@@ -292,21 +292,49 @@
     <script src="../js/dashboard-utils.js"></script>
     <script type="module" src="../js/standalone-bootstrap.js" data-config-base="../"></script>
     <script type="module">
+        // Il controller parte solo dopo il gate. Flag spento: nessun gate, il controller parte subito.
+        let flagAcceso = false;
+        let bloccato = false;
         try {
             const config = await import('../config/accettazione-legale-config.js');
             if (config.ACCETTAZIONE_LEGALE_ATTIVA === true) {
+                flagAcceso = true;
                 const legale = await import('../services/accettazione-legale.js');
                 if (legale.validaConfigLegale(config, true).ok) {
                     const gate = await import('../js/accettazione-legale-gate.js');
+                    // Non lascia entrare se lo stato non si legge (Riprova / Esci).
                     await gate.avviaDaFirebase({ config: config });
                 } else {
                     console.warn('[accettazione-legale] config non valida, ingresso invariato');
                 }
             }
         } catch (error) {
-            console.warn('[accettazione-legale] ingresso invariato');
+            if (flagAcceso) {
+                bloccato = true;
+                console.warn('[accettazione-legale] gate non caricato, ingresso bloccato');
+                const fondo = document.createElement('div');
+                fondo.id = 'accettazione-legale-gate-errore';
+                fondo.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px;';
+                const pannello = document.createElement('div');
+                pannello.style.cssText = 'background:#fff;border-radius:12px;max-width:520px;width:100%;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a;';
+                const testo = document.createElement('p');
+                testo.textContent = 'Non riesco a verificare le condizioni di uso. Controlla la connessione e riprova.';
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.textContent = 'Riprova';
+                btn.style.cssText = 'margin-top:8px;padding:12px 16px;background:#2E8B57;color:#fff;border:0;border-radius:8px;';
+                btn.addEventListener('click', () => window.location.reload());
+                pannello.appendChild(testo);
+                pannello.appendChild(btn);
+                fondo.appendChild(pannello);
+                document.body.appendChild(fondo);
+            } else {
+                console.warn('[accettazione-legale] ingresso invariato');
+            }
+        }
+        if (!bloccato) {
+            await import('./js/field-workspace-controller.js?v=2026-10-21b');
         }
     </script>
-    <script type="module" src="./js/field-workspace-controller.js?v=2026-10-21b"></script>
 </body>
 </html>
