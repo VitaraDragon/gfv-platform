@@ -385,6 +385,10 @@ export function getTenantCollection(collectionName) {
  * @param {Array<string>} tenantData.modules - Array di moduli attivi
  * @param {string} createdBy - ID utente che crea il tenant
  * @returns {Promise<string>} ID del tenant creato
+ *
+ * Nota (sicurezza): la registrazione reale usa setDoc in registrazione-standalone.html.
+ * Nessun chiamante vivo fuori da questo file. Le rules ammettono create solo Free
+ * senza moduli/Stripe; default di questa helper restano compatibili (plan free, modules []).
  */
 export async function createTenant(tenantData, createdBy) {
   try {
@@ -469,6 +473,10 @@ export async function getAvailableModules() {
  * @param {string} tenantId - ID del tenant
  * @param {string} moduleName - Nome del modulo da aggiungere
  * @returns {Promise<void>}
+ *
+ * Nota (sicurezza): nessun chiamante fuori da questo file. Scrivere `modules` dal
+ * client è negato dalle rules (solo functions/stripe-billing e module-trial).
+ * Lasciata per eventuale riuso server-side / test; non usare dal browser.
  */
 export async function addModuleToTenant(tenantId, moduleName) {
   try {
@@ -501,6 +509,9 @@ export async function addModuleToTenant(tenantId, moduleName) {
  * @param {string} tenantId - ID del tenant
  * @param {string} moduleName - Nome del modulo da rimuovere
  * @returns {Promise<void>}
+ *
+ * Nota (sicurezza): nessun chiamante fuori da questo file. Stesso vincolo rules di
+ * addModuleToTenant — non usare dal browser.
  */
 export async function removeModuleFromTenant(tenantId, moduleName, options = {}) {
   try {
