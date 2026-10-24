@@ -10,50 +10,51 @@ import {
   getDocumentData, 
   updateDocument,
   deleteDocument,
-  getCollectionData 
+  getCollectionData,
+  setDocument
 } from './firebase-service.js';
 import { getCurrentTenantId } from './tenant-service.js';
 import { TipoLavoro } from '../models/TipoLavoro.js';
 import { TIPI_LAVORO_PREDEFINITI, TIPI_LAVORO_CANONICAL_FIXES } from '../config/app-catalog-seed-data.js';
+import { conLockSeed, idSeed, datiSeed } from './catalogo-seed.js';
+import { mappeCodiceCanonico } from '../js/catalogo-dedupe.js';
 
 export { TIPI_LAVORO_PREDEFINITI };
 
 const COLLECTION_NAME = 'tipiLavoro';
 
 /**
- * Inizializza tipi lavoro predefiniti per il tenant corrente
+ * Inizializza tipi lavoro predefiniti per il tenant corrente.
+ * Idempotente: id deterministici (`seed_<nome>`) con setDocument (merge), una sola esecuzione
+ * alla volta per tenant, nessuna scrittura se una lettura fallisce, categorie = copia canonica.
  * @returns {Promise<void>}
  */
 export async function initializeTipiLavoroPredefiniti() {
+  const tenantId = getCurrentTenantId();
+  if (!tenantId) {
+    throw new Error('Errore inizializzazione tipi lavoro: Nessun tenant corrente disponibile');
+  }
+  return conLockSeed('tipiLavoro', tenantId, () => seedTipiLavoroPredefiniti(tenantId));
+}
+
+async function seedTipiLavoroPredefiniti(tenantId) {
   try {
-    const tenantId = getCurrentTenantId();
-    if (!tenantId) {
-      throw new Error('Nessun tenant corrente disponibile');
-    }
-    
     // Importa servizio categorie per ottenere ID categorie e sottocategorie
-    const { getCategoriaByCodice, getAllCategorie } = await import('./categorie-service.js');
+    const { leggiCategorieGrezze } = await import('./categorie-service.js');
     
-    // Carica tutte le categorie e sottocategorie per creare mappa codice -> id
-    const tutteCategorie = await getAllCategorie();
-    const categorieMap = new Map(); // codice -> id
-    const sottocategorieMap = new Map(); // codice -> id
+    // Lettura grezza (lancia se fallisce). Mappe codice -> id canonico: copie omonime
+    // di una categoria convergono sempre sulla stessa.
+    const {
+      principali: categorieMap,
+      sottocategorie: sottocategorieMap,
+      canoniche: tutteCategorie
+    } = mappeCodiceCanonico(await leggiCategorieGrezze(tenantId));
     
-    tutteCategorie.forEach(cat => {
-      if (cat.codice) {
-        if (cat.parentId) {
-          // È una sottocategoria
-          sottocategorieMap.set(cat.codice.toLowerCase(), cat.id);
-        } else {
-          // È una categoria principale
-          categorieMap.set(cat.codice.toLowerCase(), cat.id);
-        }
-      }
-    });
-    
-    // Carica tutti i tipi lavoro esistenti
-    const tipiEsistenti = await getAllTipiLavoro();
-    const nomiEsistenti = new Set(tipiEsistenti.map(t => t.nome.toLowerCase()));
+    // Carica tutti i tipi lavoro esistenti (lancia se fallisce)
+    const tipiDocs = await getCollectionData(COLLECTION_NAME, { tenantId });
+    const nomiEsistenti = new Set(
+      (tipiDocs || []).map(t => String(t.nome || '').toLowerCase()).filter(Boolean)
+    );
     
     // Per ogni tipo lavoro predefinito, crea se non esiste
     for (const tipoData of TIPI_LAVORO_PREDEFINITI) {
@@ -97,7 +98,7 @@ export async function initializeTipiLavoroPredefiniti() {
       
       const validation = tipo.validate();
       if (validation.valid) {
-        await createDocument(COLLECTION_NAME, tipo.toFirestore(), tenantId);
+        await setDocument(COLLECTION_NAME, idSeed(tipoData.nome), datiSeed(tipo.toFirestore()), tenantId);
         nomiEsistenti.add(tipoData.nome.toLowerCase());
       }
     }

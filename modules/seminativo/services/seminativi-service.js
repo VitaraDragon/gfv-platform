@@ -16,6 +16,7 @@ import { getCurrentTenantId } from '../../../core/services/tenant-service.js';
 import { getAllTerreni } from '../../../core/services/terreni-service.js';
 import { getAllColture } from '../../../core/services/colture-service.js';
 import { getAllCategorie } from '../../../core/services/categorie-service.js';
+import { raggruppaCategorie, dedupePerNome } from '../../../core/js/catalogo-dedupe.js';
 import { SEMINATIVO_COLLECTION } from '../config/seminativo-hub.js';
 import {
   SeminativoCampagna,
@@ -169,12 +170,15 @@ export async function listTerreniSeminativo() {
       applicabileA: 'colture',
       orderBy: 'ordine'
     });
-    const categoria = (categorie || []).find((c) => {
+    // Tutte le copie omonime della categoria (seed doppio) contano come Seminativo
+    const categoria = raggruppaCategorie(categorie || []).canoniche.find((c) => {
       const codice = String(c.codice || '').toLowerCase();
       const nome = String(c.nome || '').toLowerCase();
       return codice === CATEGORIA_CODICE || nome.includes('seminativ');
     });
-    if (categoria && categoria.id) ctx.categoriaIds.add(String(categoria.id));
+    if (categoria && categoria.id) {
+      (categoria.aliasIds || [String(categoria.id)]).forEach((id) => ctx.categoriaIds.add(String(id)));
+    }
     const colture = await listColtureSeminativo();
     (colture || []).forEach((c) => {
       const nome = String(c.nome || '').trim().toLowerCase();
@@ -195,7 +199,8 @@ export async function listColtureSeminativo() {
     applicabileA: 'colture',
     orderBy: 'ordine'
   });
-  const categoria = categorie.find((c) => {
+  // Copie omonime della categoria: si prendono le colture di tutte, senza doppioni per nome
+  const categoria = raggruppaCategorie(categorie).canoniche.find((c) => {
     const codice = String(c.codice || '').toLowerCase();
     const nome = String(c.nome || '').toLowerCase();
     return codice === CATEGORIA_CODICE || nome.includes('seminativ');
@@ -204,5 +209,6 @@ export async function listColtureSeminativo() {
   if (!categoria) {
     return tutte.filter((c) => String(c.categoriaCodice || '').toLowerCase() === CATEGORIA_CODICE);
   }
-  return tutte.filter((c) => c.categoriaId === categoria.id);
+  const ids = new Set(categoria.aliasIds || [String(categoria.id)]);
+  return dedupePerNome(tutte.filter((c) => ids.has(String(c.categoriaId))));
 }

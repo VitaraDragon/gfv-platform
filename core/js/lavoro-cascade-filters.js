@@ -3,6 +3,8 @@
  * @module core/js/lavoro-cascade-filters
  */
 
+import { raggruppaCategorie, aliasMapDaCanoniche, canonicoDi, dedupeTipiLavoro } from './catalogo-dedupe.js';
+
 function sottocategorieMapEntries(sottocategorieLavoriMap) {
   if (!sottocategorieLavoriMap) return [];
   if (sottocategorieLavoriMap instanceof Map) return Array.from(sottocategorieLavoriMap.entries());
@@ -56,7 +58,11 @@ function isCategoriaLavori(categoria) {
  * @returns {{ principali: Array, map: Map }}
  */
 export function buildLavoroCategorieIndex(categorie) {
-  const list = (Array.isArray(categorie) ? categorie : []).filter((c) => c && c.id);
+  // Copie omonime (stesso codice; sottocategorie: stesso codice padre + codice) → una sola voce
+  // canonica con `aliasIds`; `parentId` delle sottocategorie riscritto sul padre canonico.
+  const list = raggruppaCategorie(
+    (Array.isArray(categorie) ? categorie : []).filter((c) => c && c.id)
+  ).canoniche;
   const byId = new Map(list.map((c) => [String(c.id), c]));
   const byCodice = new Map();
   list.forEach((c) => {
@@ -122,11 +128,14 @@ export function relinkTipiLavoroToCategorie(tipiLavoroList, categorieLavoriPrinc
   flat.forEach((c) => {
     if (c && c.codice) byCodice.set(String(c.codice).toLowerCase(), c);
   });
+  // Tipi appesi a una copia non canonica della categoria → id canonico
+  const alias = aliasMapDaCanoniche(flat);
+  const versoCanonico = (ref) => (ref == null || ref === '' ? ref : canonicoDi(ref, alias));
 
   return tipiLavoroList.map((tipo) => {
     if (!tipo) return tipo;
-    let categoriaId = resolveCategoriaRef(tipo.categoriaId, byId, byCodice);
-    let sottocategoriaId = resolveCategoriaRef(tipo.sottocategoriaId, byId, byCodice);
+    let categoriaId = resolveCategoriaRef(versoCanonico(tipo.categoriaId), byId, byCodice);
+    let sottocategoriaId = resolveCategoriaRef(versoCanonico(tipo.sottocategoriaId), byId, byCodice);
     const asSub = (id) => {
       const row = id ? byId.get(String(id)) : null;
       return row && row.parentId ? row : null;
@@ -160,6 +169,10 @@ export function resolveLavoroCascadeParents(
 ) {
   const principali = Array.isArray(categorieLavoriPrincipali) ? categorieLavoriPrincipali : [];
   const principaleIds = new Set(principali.filter((c) => c && c.id).map((c) => String(c.id)));
+  // Id salvato su una copia omonima (seed doppio) → id canonico presente nei select
+  const alias = aliasMapDaCanoniche(allCategorieFlat(principali, sottocategorieLavoriMap));
+  if (categoriaOrSubId) categoriaOrSubId = canonicoDi(categoriaOrSubId, alias);
+  if (sottocategoriaId) sottocategoriaId = canonicoDi(sottocategoriaId, alias);
   const childHint = sottocategoriaId || null;
 
   if (!categoriaOrSubId && !childHint) {
@@ -215,24 +228,25 @@ export function filterTipiLavoroByCategoria(
 
   if (categoriaTrovata && categoriaTrovata.parentId) {
     const parentId = categoriaTrovata.parentId;
-    return tipi.filter(
+    return dedupeTipiLavoro(tipi.filter(
       (tipo) =>
         sameId(tipo.sottocategoriaId, categoriaKey) ||
         sameId(tipo.categoriaId, categoriaKey) ||
         (sameId(tipo.categoriaId, parentId) && !tipo.sottocategoriaId)
-    );
+    ));
   }
 
   const allCategorieIds = [categoriaKey];
   const sottocat = getSottocategorieForParent(categoriaKey, sottocategorieLavoriMap);
   sottocat.forEach((subcat) => allCategorieIds.push(String(subcat.id)));
 
-  return tipi.filter(
+  // Doppioni (stesso nome, stessa categoria/sottocategoria canonica) → uno solo
+  return dedupeTipiLavoro(tipi.filter(
     (tipo) =>
       sameId(tipo.categoriaId, categoriaKey) ||
       (tipo.sottocategoriaId && allCategorieIds.includes(String(tipo.sottocategoriaId))) ||
       (tipo.categoriaId && allCategorieIds.includes(String(tipo.categoriaId)) && !tipo.sottocategoriaId)
-  );
+  ));
 }
 
 /** Colture uniche dai terreni (populateColtureFromTerreni). */

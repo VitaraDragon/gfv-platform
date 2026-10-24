@@ -55,7 +55,9 @@ export function confrontaCategorieDuplicate(a, b, colturePerCategoria) {
 
   const idA = a && a.id != null ? String(a.id) : '';
   const idB = b && b.id != null ? String(b.id) : '';
-  return idA.localeCompare(idB);
+  // Confronto byte (non localeCompare): stesso ordine di Firestore e del canonico in catalogo-dedupe.js
+  if (idA === idB) return 0;
+  return idA < idB ? -1 : 1;
 }
 
 /**
