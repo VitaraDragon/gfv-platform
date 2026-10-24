@@ -4,8 +4,7 @@
 // in .githooks) oppure da `npm run bump:pwa-cache`. Ogni commit ottiene un ID nuovo
 // così CACHE_NAME cambia; in activate() si tiene anche la cache della build precedente.
 // Setup hook (una tantum): git config core.hooksPath .githooks
-const SW_CACHE_BUILD_ID = 't1792823650617';
-const CACHE_NAME = 'gfv-platform-' + SW_CACHE_BUILD_ID;
+const SW_CACHE_BUILD_ID = 't1792828196012';const CACHE_NAME = 'gfv-platform-' + SW_CACHE_BUILD_ID;
 
 // Scelta della strategia e pulizia cache: funzioni pure in sw-strategy.js (test vitest).
 importScripts('sw-strategy.js?v=' + encodeURIComponent(SW_CACHE_BUILD_ID));

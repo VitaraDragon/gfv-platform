@@ -395,6 +395,7 @@
         import { onAuthStateChanged, signOut } from '../services/firebase-service.js';
         import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
         import { fetchInvitoByToken } from '../services/invito-service-standalone.js';
+        import { registraAccettazioneDopoAccount, messaggioFineRegistrazione } from '../js/accettazione-legale-registrazione.js';
 
         const app = getAppInstance();
         const auth = getAuthInstance();
@@ -475,6 +476,15 @@
             });
             const registra = getHttpsCallable('registraAccettazioniLegali');
             await registra(Object.assign({ azione: 'registra' }, payload));
+        }
+
+        // Account e membership esistono già: se fallisce solo la presa visione non si annulla nulla,
+        // si prosegue e il gate di ingresso la richiede al primo accesso. Flag spento: nessuna chiamata.
+        function completaPresaVisione() {
+            return registraAccettazioneDopoAccount({
+                attiva: accettazioneLegaleAttiva,
+                registra: registraPresaVisioneSeAttiva
+            });
         }
 
         try {
@@ -577,11 +587,8 @@
                 emailInput.value = inviteData.email;
                 nomeInput.value = inviteData.nome;
                 cognomeInput.value = inviteData.cognome;
-                // Pre-compila cellulare se presente nell'invito, altrimenti lascia vuoto (sarà obbligatorio)
-                if (inviteData.cellulare) {
-                    cellulareInput.value = inviteData.cellulare;
-                } else {
-                    // Assicurati che il campo sia vuoto se non presente nell'invito
+                // Il cellulare non arriva dall'invito (dato non esposto dalla callable): lo digita l'invitato, campo obbligatorio.
+                if (cellulareInput) {
                     cellulareInput.value = '';
                 }
                 
@@ -732,7 +739,7 @@
                         where,
                         getDocs,
                         serverTimestamp,
-                        inviteData.token || (new URLSearchParams(window.location.search).get('token')),
+                        token,
                         password
                     );
                 } catch (acceptError) {
@@ -826,9 +833,9 @@
                         });
                     }
                     
-                    await registraPresaVisioneSeAttiva();
+                    const esitoLegale = await completaPresaVisione();
                     hideLoading();
-                    successMessage.textContent = `✅ Aggiunto a ${userData._newTenantId || 'nuova azienda'} con successo! Reindirizzamento alla dashboard...`;
+                    successMessage.textContent = messaggioFineRegistrazione(esitoLegale, `✅ Aggiunto a ${userData._newTenantId || 'nuova azienda'} con successo! Reindirizzamento alla dashboard...`);
                     successMessage.classList.add('show');
                     
                     // Redirect a dashboard
@@ -848,9 +855,9 @@
                     sessionStorage.setItem('gfv_user_just_registered', 'true');
                     sessionStorage.setItem('gfv_registered_user_id', auth.currentUser.uid);
                     
-                    await registraPresaVisioneSeAttiva();
+                    const esitoLegale = await completaPresaVisione();
                     hideLoading();
-                    successMessage.textContent = '✅ Registrazione completata con successo! Reindirizzamento alla dashboard...';
+                    successMessage.textContent = messaggioFineRegistrazione(esitoLegale, '✅ Registrazione completata con successo! Reindirizzamento alla dashboard...');
                     successMessage.classList.add('show');
                     
                     // Redirect a dashboard (l'utente è già loggato)
@@ -866,6 +873,8 @@
                     (String(error).includes('email-already-in-use'));
                 
                 if (isEmailAlreadyInUse) {
+                    // `password` del try non è visibile nel catch: va riletta qui (prima era una ReferenceError).
+                    const password = passwordInput.value;
                     if (!password) {
                         hideLoading();
                         showError('Password richiesta. Questa email è già registrata. Inserisci la password del tuo account esistente.');
@@ -930,9 +939,9 @@
                             });
                         }
                         
-                        await registraPresaVisioneSeAttiva();
+                        const esitoLegale = await completaPresaVisione();
                         hideLoading();
-                        successMessage.textContent = `✅ Aggiunto a ${invito.tenantId || 'nuova azienda'} con successo! Reindirizzamento alla dashboard...`;
+                        successMessage.textContent = messaggioFineRegistrazione(esitoLegale, `✅ Aggiunto a ${invito.tenantId || 'nuova azienda'} con successo! Reindirizzamento alla dashboard...`);
                         successMessage.classList.add('show');
                         
                         // Redirect a dashboard

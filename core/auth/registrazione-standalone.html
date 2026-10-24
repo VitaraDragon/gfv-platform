@@ -327,6 +327,7 @@
         import { onAuthStateChanged } from '../services/firebase-service.js';
         import { createUserWithEmailAndPassword, deleteUser } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
         import { computeTonyGuidaOnboardingEndsAt } from '../config/tony-guida-onboarding.js';
+        import { registraAccettazioneDopoAccount, messaggioFineRegistrazione } from '../js/accettazione-legale-registrazione.js';
         import { NOME_TITOLARE_FACOLTATIVO_ATTIVO } from '../config/nome-titolare-config.js';
         import {
             isDaLanding,
@@ -778,21 +779,26 @@ ruoliSalvati = savedData2.ruoli;
                     throw new Error('Impossibile salvare il tenantId. Controlla la console per dettagli.');
                 }
 
-                if (accettazioneLegaleAttiva) {
-                    const moduloLegale = await import('../services/accettazione-legale.js');
-                    const payloadLegale = moduloLegale.costruisciPayloadAccettazione({
-                        canale: 'registrazione',
-                        tenantId: tenantId,
-                        ruolo: 'amministratore',
-                        documenti: ['termini-b2b', 'privacy', 'dpa'],
-                        config: accettazioneConfig
-                    });
-                    const registraAccettazioni = getHttpsCallable('registraAccettazioniLegali');
-                    await registraAccettazioni(Object.assign({ azione: 'registra' }, payloadLegale));
-                }
+                // Tenant e utente esistono già: se fallisce solo l'accettazione non si annulla nulla
+                // (niente deleteUser), si prosegue e il gate di ingresso la richiede al primo accesso.
+                const esitoLegale = await registraAccettazioneDopoAccount({
+                    attiva: accettazioneLegaleAttiva,
+                    registra: async () => {
+                        const moduloLegale = await import('../services/accettazione-legale.js');
+                        const payloadLegale = moduloLegale.costruisciPayloadAccettazione({
+                            canale: 'registrazione',
+                            tenantId: tenantId,
+                            ruolo: 'amministratore',
+                            documenti: ['termini-b2b', 'privacy', 'dpa'],
+                            config: accettazioneConfig
+                        });
+                        const registraAccettazioni = getHttpsCallable('registraAccettazioniLegali');
+                        await registraAccettazioni(Object.assign({ azione: 'registra' }, payloadLegale));
+                    }
+                });
 
 // Successo!
-                showSuccess('✅ Account creato con successo! Reindirizzamento alla dashboard...');
+                showSuccess(messaggioFineRegistrazione(esitoLegale, '✅ Account creato con successo! Reindirizzamento alla dashboard...'));
                 
                 // Salva flag che l'utente si è appena registrato
                 sessionStorage.setItem('gfv_user_just_registered', 'true');

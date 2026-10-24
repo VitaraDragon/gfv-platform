@@ -71,10 +71,12 @@ describe('invito-pubblico — token e sanitize', () => {
     expect(out.secretInterno).toBeUndefined();
     expect(out.noteAdmin).toBeUndefined();
     expect(out.aziendaNome).toBe('');
-    expect(out.cellulare).toBe('333');
+    // Allowlist esatta: niente cellulare, token, stato.
+    expect(out.cellulare).toBeUndefined();
+    expect(out.token).toBeUndefined();
+    expect(out.stato).toBeUndefined();
     expect(Object.keys(out).sort()).toEqual([
       'aziendaNome',
-      'cellulare',
       'cognome',
       'email',
       'id',
@@ -83,9 +85,7 @@ describe('invito-pubblico — token e sanitize', () => {
       'nome',
       'ruoli',
       'scadeIl',
-      'stato',
       'tenantId',
-      'token',
     ]);
   });
 
@@ -154,10 +154,12 @@ describe('handleGetInvitoPubblico', () => {
     expect(res.invito.email).toBe('ada@gfv.test');
     expect(res.invito.leak).toBeUndefined();
     expect(res.invito.aziendaNome).toBe('');
-    expect(res.invito.cellulare).toBe('');
+    expect(res.invito.cellulare).toBeUndefined();
+    expect(res.invito.token).toBeUndefined();
+    expect(res.invito.stato).toBeUndefined();
   });
 
-  it('aggiunge aziendaNome letto dal tenant e lascia il cellulare', async () => {
+  it('aggiunge aziendaNome letto dal tenant e non espone il cellulare', async () => {
     const future = new Date('2027-01-01T00:00:00.000Z');
     const invito = fakeDoc('ok1', {
       stato: 'invitato',
@@ -194,7 +196,9 @@ describe('handleGetInvitoPubblico', () => {
     };
     const res = await handleGetInvitoPubblico(db, LONG_TOKEN, new Date('2026-09-18'));
     expect(res.invito.aziendaNome).toBe('Vigna Rossi');
-    expect(res.invito.cellulare).toBe('333');
+    expect(res.invito.cellulare).toBeUndefined();
+    expect(JSON.stringify(res)).not.toContain('333');
+    expect(JSON.stringify(res)).not.toContain(LONG_TOKEN);
   });
 });
 
