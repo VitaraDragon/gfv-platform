@@ -356,13 +356,11 @@ export async function loadCategorieColtureTerreni(currentTenantId, db, app, auth
             categorieColtureTerreni.push(...categorie);
         }
 
-        // Popola dropdown categoria con dedupe (le colture possono non essere ancora caricate)
-        const deduped = dedupeCategorieColture(categorieColtureTerreni, null);
-        categorieColtureTerreni.length = 0;
-        categorieColtureTerreni.push(...deduped);
+        // Popola dropdown con una sola voce per codice (copia canonica). L'array di stato
+        // resta con TUTTE le copie: serve dopo per unire le colture di ogni copia sotto il canonico.
         popolaSelectCategorieColture(
             document.getElementById('terreno-coltura-categoria'),
-            categorieColtureTerreni,
+            raggruppaCategorie(categorieColtureTerreni).canoniche,
             null
         );
     } catch (error) {
@@ -480,6 +478,14 @@ export async function loadColturePerCategoriaTerreni(currentTenantId, db, app, a
             Object.assign(colturePerCategoriaTerreni, colturePerCategoria);
         }
 
+        // Unisci le colture di tutte le copie omonime sotto la categoria canonica
+        if (Array.isArray(categorieColtureTerreni) && categorieColtureTerreni.length > 0) {
+            const { aliasToCanon } = raggruppaCategorie(categorieColtureTerreni);
+            const unite = unisciColturePerCategoria(colturePerCategoriaTerreni, aliasToCanon);
+            Object.keys(colturePerCategoriaTerreni).forEach(key => delete colturePerCategoriaTerreni[key]);
+            Object.assign(colturePerCategoriaTerreni, unite);
+        }
+
         // Estrai tutte le colture per retrocompatibilità
         colture.length = 0; // Svuota array
         Object.values(colturePerCategoriaTerreni).forEach(coltureList => {
@@ -488,12 +494,9 @@ export async function loadColturePerCategoriaTerreni(currentTenantId, db, app, a
 
         // Dopo seed/caricamento: ripopola il select categorie con dedupe usando le colture note
         if (Array.isArray(categorieColtureTerreni)) {
-            const deduped = dedupeCategorieColture(categorieColtureTerreni, colturePerCategoriaTerreni);
-            categorieColtureTerreni.length = 0;
-            categorieColtureTerreni.push(...deduped);
             popolaSelectCategorieColture(
                 document.getElementById('terreno-coltura-categoria'),
-                categorieColtureTerreni,
+                raggruppaCategorie(categorieColtureTerreni).canoniche,
                 colturePerCategoriaTerreni
             );
         }
@@ -554,12 +557,9 @@ export async function loadColture(currentTenantId, db, app, auth, categorieColtu
     // Ripopola a fine carico se le categorie ci sono ancora (dopo catch di fallback
     // categorieColtureTerreni è vuoto e il select mostra già il messaggio di errore).
     if (Array.isArray(categorieColtureTerreni) && categorieColtureTerreni.length > 0) {
-        const deduped = dedupeCategorieColture(categorieColtureTerreni, colturePerCategoriaTerreni);
-        categorieColtureTerreni.length = 0;
-        categorieColtureTerreni.push(...deduped);
         popolaSelectCategorieColture(
             document.getElementById('terreno-coltura-categoria'),
-            categorieColtureTerreni,
+            raggruppaCategorie(categorieColtureTerreni).canoniche,
             colturePerCategoriaTerreni
         );
         const categoriaSelect = document.getElementById('terreno-coltura-categoria');
@@ -573,10 +573,8 @@ export async function loadColture(currentTenantId, db, app, auth, categorieColtu
 // IMPORTS UTILITY
 // ============================================
 import { escapeHtml, calcolaAlertAffitto, formattaDataScadenza, showAlert } from './terreni-utils.js';
-import {
-    dedupeCategorieColture,
-    popolaSelectCategorieColture,
-} from './terreni-categorie-colture.js';
+import { popolaSelectCategorieColture } from './terreni-categorie-colture.js';
+import { raggruppaCategorie, unisciColturePerCategoria } from './catalogo-dedupe.js';
 
 // ============================================
 // FUNZIONI PRINCIPALI

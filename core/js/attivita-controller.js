@@ -34,6 +34,7 @@ import {
     resolvePreserveCascadeSelection,
     terrenoHaColturaVite,
 } from './lavoro-cascade-filters.js';
+import { raggruppaCategorie, unisciColturePerCategoria } from './catalogo-dedupe.js';
 
 // ============================================
 // FUNZIONI HELPER
@@ -2413,6 +2414,11 @@ export async function loadListe(params) {
                 });
             }
             
+            // Una voce per codice: copie omonime unite sotto la canonica, colture senza doppioni
+            const gruppiColture = raggruppaCategorie(categorieColture);
+            categorieColture = gruppiColture.canoniche;
+            colturePerCategoria = unisciColturePerCategoria(colturePerCategoria, gruppiColture.aliasToCanon);
+
             // Popola dropdown categoria (sia quando si carica la pagina che quando si apre il modal)
             const categoriaSelect = document.getElementById('attivita-coltura-categoria');
             if (categoriaSelect) {
