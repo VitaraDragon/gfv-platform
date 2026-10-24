@@ -116,7 +116,37 @@ async function findInvitoByTokenForPublic(db, token) {
   return pickInvitoFromDocs(snap.docs);
 }
 
-async function handleGetInvitoPubblico(db, token, now = new Date()) {
+/**
+ * isExistingUser da Auth Admin (non dalla query client su users per email).
+ * @param {{ getUserByEmail?: Function }|null} authAdmin
+ * @param {string} email
+ * @returns {Promise<boolean>}
+ */
+async function resolveIsExistingUserFromAuth(authAdmin, email) {
+  if (!authAdmin || typeof authAdmin.getUserByEmail !== "function") {
+    return false;
+  }
+  const normalized = typeof email === "string" ? email.toLowerCase().trim() : "";
+  if (!normalized) return false;
+  try {
+    await authAdmin.getUserByEmail(normalized);
+    return true;
+  } catch (err) {
+    if (err && (err.code === "auth/user-not-found" || err.code === "auth/invalid-email")) {
+      return false;
+    }
+    console.error("[getInvitoPubblico] getUserByEmail");
+    return false;
+  }
+}
+
+/**
+ * @param {*} db
+ * @param {string} token
+ * @param {Date} [now]
+ * @param {{ getUserByEmail?: Function }|null} [authAdmin]
+ */
+async function handleGetInvitoPubblico(db, token, now = new Date(), authAdmin = null) {
   if (!isInvitoTokenValid(token)) {
     throw new InvitoPubblicoError("invalid-argument", "Token non valido.");
   }
@@ -134,9 +164,13 @@ async function handleGetInvitoPubblico(db, token, now = new Date()) {
     );
   }
   const aziendaNome = await leggiNomeAzienda(db, found.data && found.data.tenantId);
+  const isExistingUser = await resolveIsExistingUserFromAuth(authAdmin, found.data.email);
   return {
     ok: true,
-    invito: sanitizeInvitoForPublic(found.id, Object.assign({}, found.data, { aziendaNome: aziendaNome })),
+    invito: sanitizeInvitoForPublic(
+      found.id,
+      Object.assign({}, found.data, { aziendaNome: aziendaNome, isExistingUser: isExistingUser })
+    ),
   };
 }
 
@@ -152,5 +186,6 @@ module.exports = {
   isInvitoScaduto,
   pickInvitoFromDocs,
   findInvitoByTokenForPublic,
+  resolveIsExistingUserFromAuth,
   handleGetInvitoPubblico,
 };
