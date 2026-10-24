@@ -167,6 +167,59 @@ service cloud.firestore {
       allow delete: if false;
     }
     
+    // Campi piano / moduli / prove / Stripe / identità creatore: solo Admin SDK (functions).
+    // Lista nera: anagrafica e flag operativi futuri restano scrivibili dal client.
+    function toccaCampiFatturazione() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        'plan',
+        'piano',
+        'modules',
+        'moduli',
+        'moduleTrials',
+        'activeBundles',
+        'stripeCustomerId',
+        'stripeSubscriptionId',
+        'stripeAddons',
+        'subscriptionStatus',
+        'status',
+        'stato',
+        'expiryDate',
+        'startDate',
+        'billingPaymentFailedAt',
+        'tonyGuidaOnboardingEndsAt',
+        // Identità registrazione (PARTE 1 users): non di fatturazione, ma immutabili dopo create
+        'creatoDa',
+        'creatoIl'
+      ]);
+    }
+
+    // Create tenant: solo Free, senza moduli/prove/bundle/Stripe; Tony Guida max ~7 giorni (buffer 8d).
+    function tenantCreateIsFreeWithoutBilling() {
+      let data = request.resource.data;
+      let planOk = (!data.keys().hasAny(['plan']) || data.plan == 'free')
+        && (!data.keys().hasAny(['piano']) || data.piano == 'free');
+      let modulesOk = (!data.keys().hasAny(['modules'])
+          || (data.modules is list && data.modules.size() == 0))
+        && (!data.keys().hasAny(['moduli'])
+          || (data.moduli is list && data.moduli.size() == 0));
+      let noPaidExtras = !data.keys().hasAny([
+        'moduleTrials',
+        'activeBundles',
+        'stripeCustomerId',
+        'stripeSubscriptionId',
+        'stripeAddons',
+        'subscriptionStatus',
+        'expiryDate',
+        'startDate',
+        'billingPaymentFailedAt'
+      ]);
+      let tonyOk = !data.keys().hasAny(['tonyGuidaOnboardingEndsAt'])
+        || (data.tonyGuidaOnboardingEndsAt is timestamp
+          && data.tonyGuidaOnboardingEndsAt > request.time
+          && data.tonyGuidaOnboardingEndsAt <= request.time + duration.value(8, 'd'));
+      return planOk && modulesOk && noPaidExtras && tonyOk;
+    }
+
     // Collection: tenants (globale)
     match /tenants/{tenantId} {
       // Lettura: membri del tenant, oppure creatore durante/completamento registrazione (prima del doc users)
@@ -175,27 +228,31 @@ service cloud.firestore {
         (resource.data.keys().hasAny(['creatoDa']) && resource.data.creatoDa == request.auth.uid)
       );
       
-      // Scrittura: 
-      // - Manager/admin del tenant possono scrivere (operazioni normali)
-      // - Utente autenticato può CREARE un nuovo tenant durante la registrazione (quando non ha ancora un documento users)
-      allow create: if isAuthenticated() && (
-        // Caso 1: Utente già registrato (ha documento users) - deve essere manager/admin del tenant
-        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         isManagerOrAdmin(tenantId) && 
-         belongsToTenant(tenantId)) ||
-        // Caso 2: Utente in registrazione (non ha ancora documento users) - può creare tenant se è il creatore
-        (!exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
-         request.resource.data.creatoDa == request.auth.uid)
-      );
+      // Scrittura:
+      // - Manager/admin del tenant possono creare (es. Impostazioni se manca il doc) solo Free senza billing;
+      //   creatoDa assente oppure = uid (niente creatore altrui → scalata admin via PARTE 1 users).
+      // - Utente in registrazione (niente doc users) se creatoDa == uid, stesso vincolo Free
+      allow create: if isAuthenticated()
+        && tenantCreateIsFreeWithoutBilling()
+        && (
+          (exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+           isManagerOrAdmin(tenantId) &&
+           belongsToTenant(tenantId) &&
+           (!request.resource.data.keys().hasAny(['creatoDa']) ||
+            request.resource.data.creatoDa == request.auth.uid)) ||
+          (!exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+           request.resource.data.creatoDa == request.auth.uid)
+        );
       
-      // Aggiornamento: manager/admin; creatoDa immutabile (altrimenti la create users di registrazione non è sicura).
-      // Minimo indispensabile se la PR piano-moduli non è ancora in develop.
+      // Aggiornamento: manager/admin; campi fatturazione/piano/moduli/creato* solo dalle functions.
       allow update: if isAuthenticated()
         && isManagerOrAdmin(tenantId)
         && belongsToTenant(tenantId)
-        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['creatoDa']);
+        && !toccaCampiFatturazione();
 
-      allow delete: if isAuthenticated() && isManagerOrAdmin(tenantId) && belongsToTenant(tenantId);
+      // Delete client vietato: evita reset moduleTrials / tonyGuidaOnboardingEndsAt e ricreazione
+      // con creatoDa di un complice. Solo Admin SDK (fuori dalle rules).
+      allow delete: if false;
     }
     
     // Collection: inviti (globale)

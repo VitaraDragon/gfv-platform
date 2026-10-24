@@ -792,10 +792,11 @@ const userData = {
                     try {
                         if (tenantCreated && tenantId) {
                             try {
+                                // Rules: delete tenants/{id} dal client è vietato → resta orfano Free
                                 await deleteDoc(doc(db, 'tenants', tenantId));
                                 console.log('✅ Tenant eliminato');
                             } catch (deleteTenantError) {
-                                console.warn('⚠️ Errore eliminazione tenant:', deleteTenantError);
+                                console.warn('⚠️ Eliminazione tenant non riuscita (atteso: rules delete:false; doc orfano):', deleteTenantError);
                             }
                         }
                         await deleteUser(firebaseUser);
