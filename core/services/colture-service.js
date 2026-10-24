@@ -10,13 +10,12 @@ import {
   getDocumentData, 
   updateDocument,
   deleteDocument,
-  getCollectionData,
-  setDocument
+  getCollectionData
 } from './firebase-service.js';
 import { getCurrentTenantId } from './tenant-service.js';
 import { Coltura } from '../models/Coltura.js';
 import { COLTURE_PREDEFINITE } from '../config/app-catalog-seed-data.js';
-import { conLockSeed, idSeed, datiSeed } from './catalogo-seed.js';
+import { conLockSeed, idSeed, datiSeed, scriviSeedBatch } from './catalogo-seed.js';
 import { mappeCodiceCanonico } from '../js/catalogo-dedupe.js';
 
 export { COLTURE_PREDEFINITE };
@@ -25,8 +24,8 @@ const COLLECTION_NAME = 'colture';
 
 /**
  * Inizializza colture predefinite per il tenant corrente.
- * Inizializza automaticamente le categorie se non esistono.
- * Idempotente: id deterministici (`seed_<nome>`) con setDocument (merge), una sola esecuzione
+ * Completa le voci mancanti (ripresa dopo seed interrotto); a catalogo completo zero scritture.
+ * Idempotente: id deterministici (`seed_<nome>`) in writeBatch, una sola esecuzione
  * alla volta per tenant, nessuna scrittura se una lettura fallisce, categoria = copia canonica.
  * @returns {Promise<void>}
  */
@@ -67,35 +66,36 @@ async function seedColturePredefinite(tenantId) {
       (coltureDocs || []).map(c => String(c.nome || '').toLowerCase()).filter(Boolean)
     );
     
-    // Crea colture predefinite mancanti
+    // Raccogli colture predefinite mancanti, poi una sola (o poche) writeBatch
+    const daCreare = [];
     for (const colturaData of COLTURE_PREDEFINITE) {
-      if (!nomiEsistenti.has(colturaData.nome.toLowerCase())) {
-        const categoriaId = categorieMap.get(String(colturaData.categoriaCodice).toLowerCase());
-        if (!categoriaId) {
-          console.warn(`Categoria ${colturaData.categoriaCodice} non trovata per coltura ${colturaData.nome}`);
-          continue;
-        }
-        
-        const coltura = new Coltura({
-          nome: colturaData.nome,
-          categoriaId: categoriaId,
-          descrizione: colturaData.descrizione || null,
-          predefinito: true,
-          creatoDa: 'system'
-        });
-        
-        const validation = coltura.validate();
-        if (validation.valid) {
-          await setDocument(
-            COLLECTION_NAME,
-            idSeed(colturaData.nome),
-            datiSeed(coltura.toFirestore()),
-            tenantId
-          );
-          nomiEsistenti.add(colturaData.nome.toLowerCase());
-        }
+      if (nomiEsistenti.has(colturaData.nome.toLowerCase())) continue;
+
+      const categoriaId = categorieMap.get(String(colturaData.categoriaCodice).toLowerCase());
+      if (!categoriaId) {
+        console.warn(`Categoria ${colturaData.categoriaCodice} non trovata per coltura ${colturaData.nome}`);
+        continue;
       }
+
+      const coltura = new Coltura({
+        nome: colturaData.nome,
+        categoriaId: categoriaId,
+        descrizione: colturaData.descrizione || null,
+        predefinito: true,
+        creatoDa: 'system'
+      });
+
+      const validation = coltura.validate();
+      if (!validation.valid) continue;
+
+      daCreare.push({
+        id: idSeed(colturaData.nome),
+        data: datiSeed(coltura.toFirestore())
+      });
+      nomiEsistenti.add(colturaData.nome.toLowerCase());
     }
+
+    await scriviSeedBatch(COLLECTION_NAME, daCreare, tenantId);
   } catch (error) {
     console.error('Errore inizializzazione colture predefinite:', error);
     throw new Error(`Errore inizializzazione colture: ${error.message}`);
