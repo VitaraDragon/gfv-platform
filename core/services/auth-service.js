@@ -100,49 +100,14 @@ export function onAuthStateChange(callback) {
  * @param {Array<string>} userData.ruoli - Array ruoli (opzionale)
  * @returns {Promise<Object>} Dati utente creato
  */
-export async function signUp(email, password, userData = {}) {
-  try {
-    const auth = getAuthInstance();
-    
-    // Valida input
-    if (!email || !email.includes('@')) {
-      throw new Error('Email non valida');
-    }
-    if (!password || password.length < 6) {
-      throw new Error('Password deve essere almeno 6 caratteri');
-    }
-    
-    // Crea utente Firebase Auth
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const firebaseUser = userCredential.user;
-    
-    // Crea record utente in Firestore
-    const userRecord = {
-      id: firebaseUser.uid,
-      email: email.toLowerCase().trim(),
-      nome: userData.nome || '',
-      cognome: userData.cognome || '',
-      ruoli: userData.ruoli || [],
-      tenantId: userData.tenantId || null,
-      stato: 'attivo',
-      creatoIl: new Date(),
-      ultimoAccesso: new Date()
-    };
-    
-    await createDocument('users', userRecord);
-    
-    // Aggiorna profilo Firebase
-    if (userData.nome || userData.cognome) {
-      await updateProfile(firebaseUser, {
-        displayName: `${userData.nome || ''} ${userData.cognome || ''}`.trim()
-      });
-    }
-    
-    return userRecord;
-  } catch (error) {
-    console.error('Errore registrazione:', error);
-    throw new Error(`Errore registrazione: ${error.message}`);
-  }
+/**
+ * DISABILITATO (sicurezza): scriveva ruoli/tenantId sul doc users dal client.
+ * Usare registrazione-standalone.html o accettazione invito (callable).
+ */
+export async function signUp() {
+  throw new Error(
+    'signUp non è più supportato: crea l\'azienda da registrazione-standalone o accetta un invito.'
+  );
 }
 
 /**
@@ -318,30 +283,14 @@ export async function updateUserPassword(newPassword) {
  * @param {Object} updates - Dati da aggiornare
  * @returns {Promise<void>}
  */
-export async function updateUserProfile(updates) {
-  try {
-    const user = getCurrentFirebaseUser();
-    if (!user) {
-      throw new Error('Utente non autenticato');
-    }
-    
-    // Aggiorna Firestore
-    await updateDocument('users', user.uid, updates);
-    
-    // Aggiorna cache locale
-    if (currentUserData) {
-      currentUserData = { ...currentUserData, ...updates };
-    }
-    
-    // Aggiorna Firebase Auth profile se necessario
-    if (updates.nome || updates.cognome) {
-      const displayName = `${updates.nome || currentUserData?.nome || ''} ${updates.cognome || currentUserData?.cognome || ''}`.trim();
-      await updateProfile(user, { displayName });
-    }
-  } catch (error) {
-    console.error('Errore aggiornamento profilo:', error);
-    throw new Error(`Errore aggiornamento profilo: ${error.message}`);
-  }
+/**
+ * DISABILITATO (sicurezza): accettava campi arbitrari (anche ruoli/tenantId).
+ * Profilo: impostazioni-standalone (nome/cognome/telefono). Autorizzazione: solo server/PARTE 2.
+ */
+export async function updateUserProfile() {
+  throw new Error(
+    'updateUserProfile non è più supportato: aggiorna nome/cognome/telefono da Impostazioni.'
+  );
 }
 
 /**

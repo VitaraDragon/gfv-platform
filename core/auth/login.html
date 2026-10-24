@@ -431,20 +431,7 @@
             try {
                 showLoading();
                 
-                // Verifica che l'utente esista in Firestore
-                const db = getDb();
-                const usersQuery = query(
-                    collection(db, 'users'),
-                    where('email', '==', email.toLowerCase().trim())
-                );
-                const usersSnapshot = await getDocs(usersQuery);
-                
-                if (usersSnapshot.empty) {
-                    hideLoading();
-                    showError('Nessun account trovato con questa email');
-                    return;
-                }
-                
+                // Esistenza account: solo Firebase Auth (niente query users per email: rules cross-tenant).
                 // Determina URL di reset (per GitHub Pages o locale)
                 const baseUrl = getBaseUrl();
                 const resetPath = '/core/auth/reset-password-standalone.html';
