@@ -8,6 +8,7 @@
 // IMPORTS
 // ============================================
 import { showAlert } from './terreni-utils.js';
+import { raggruppaCategorie, trovaCategoriaPerColtura, dedupePerNome } from './catalogo-dedupe.js';
 
 // ============================================
 // FUNZIONI EVENT HANDLERS
@@ -65,15 +66,14 @@ export async function openTerrenoModal(
             // Trova la categoria della coltura selezionata
             const colturaNome = terreno.coltura || '';
             if (colturaNome) {
-                // Cerca la coltura nelle categorie caricate
-                let categoriaIdTrovata = null;
-                for (const [catId, coltureList] of Object.entries(state.colturePerCategoriaTerreni || {})) {
-                    const colturaTrovata = coltureList.find(c => c.nome === colturaNome);
-                    if (colturaTrovata) {
-                        categoriaIdTrovata = catId;
-                        break;
-                    }
-                }
+                // Cerca la coltura nelle categorie caricate; se è sotto una copia omonima
+                // della categoria, risali alla copia canonica (l'unica presente nel select)
+                const { aliasToCanon } = raggruppaCategorie(state.categorieColtureTerreni || []);
+                const categoriaIdTrovata = trovaCategoriaPerColtura(
+                    colturaNome,
+                    state.colturePerCategoriaTerreni,
+                    aliasToCanon
+                );
                 
                 // Imposta la categoria se trovata
                 const categoriaSelect = document.getElementById('terreno-coltura-categoria');
@@ -569,7 +569,7 @@ export function updateColtureDropdownTerreni(state, updateState, getColturaColor
     }
     
     // Popola con le colture della categoria selezionata
-    const coltureCategoria = state.colturePerCategoriaTerreni?.[categoriaId] || [];
+    const coltureCategoria = dedupePerNome(state.colturePerCategoriaTerreni?.[categoriaId] || []);
     
     if (coltureCategoria.length === 0) {
         colturaSelect.innerHTML = '<option value="">-- Nessuna coltura disponibile per questa categoria --</option>';

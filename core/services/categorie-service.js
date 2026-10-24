@@ -10,10 +10,13 @@ import {
   getDocumentData, 
   updateDocument,
   deleteDocument,
-  getCollectionData 
+  getCollectionData,
+  setDocument
 } from './firebase-service.js';
 import { getCurrentTenantId } from './tenant-service.js';
 import { Categoria } from '../models/Categoria.js';
+import { conLockSeed, idSeed, datiSeed } from './catalogo-seed.js';
+import { mappeCodiceCanonico } from '../js/catalogo-dedupe.js';
 import {
   CATEGORIE_PRINCIPALI_PREDEFINITE,
   CATEGORIE_COLTURE_PREDEFINITE,
@@ -29,37 +32,46 @@ export {
 const COLLECTION_NAME = 'categorie';
 
 /**
- * Inizializza categorie predefinite per il tenant corrente
+ * Legge tutte le categorie del tenant senza filtri né ordinamento.
+ * A differenza di getAllCategorie, se la lettura fallisce LANCIA: i seed non devono
+ * scambiare un errore di rete/permessi per «catalogo vuoto» e ricreare tutto.
+ * @param {string} tenantId
+ * @returns {Promise<Array<Categoria>>}
+ */
+export async function leggiCategorieGrezze(tenantId) {
+  const documents = await getCollectionData(COLLECTION_NAME, { tenantId });
+  return (documents || []).map(doc => Categoria.fromData(doc));
+}
+
+/**
+ * Inizializza categorie predefinite per il tenant corrente.
+ * Idempotente: id documento deterministici (`seed_<codice>`) scritti con setDocument (merge),
+ * una sola esecuzione alla volta per tenant, nessuna scrittura se la lettura fallisce.
  * @returns {Promise<void>}
  */
 export async function initializeCategoriePredefinite() {
+  const tenantId = getCurrentTenantId();
+  if (!tenantId) {
+    throw new Error('Errore inizializzazione categorie: Nessun tenant corrente disponibile');
+  }
+  return conLockSeed('categorie', tenantId, () => seedCategoriePredefinite(tenantId));
+}
+
+async function seedCategoriePredefinite(tenantId) {
   try {
-    const tenantId = getCurrentTenantId();
-    if (!tenantId) {
-      throw new Error('Nessun tenant corrente disponibile');
-    }
-    
-    let categorieEsistenti = await getAllCategorie();
-    // Evita re-seed silenzioso se getAllCategorie torna [] per filtri/indici:
-    // secondo tentativo grezzo senza where/orderBy.
-    if (!Array.isArray(categorieEsistenti) || categorieEsistenti.length === 0) {
-      try {
-        const tenantIdRaw = getCurrentTenantId();
-        const grezzi = await getCollectionData(COLLECTION_NAME, { tenantId: tenantIdRaw });
-        if (Array.isArray(grezzi) && grezzi.length > 0) {
-          categorieEsistenti = grezzi.map(doc => Categoria.fromData(doc));
-          console.warn(
-            'initializeCategoriePredefinite: getAllCategorie vuoto, uso lettura grezza (' +
-              categorieEsistenti.length +
-              ' doc)'
-          );
-        }
-      } catch (rawErr) {
-        console.warn('initializeCategoriePredefinite: lettura grezza fallita:', rawErr && rawErr.message);
-      }
-    }
-    const codiciEsistenti = new Set(categorieEsistenti.map(c => c.codice));
-    const categorieMap = new Map(); // codice -> id
+    // Lettura grezza: se fallisce si esce senza scrivere nulla.
+    const categorieEsistenti = await leggiCategorieGrezze(tenantId);
+    const codiciEsistenti = new Set(
+      categorieEsistenti.map(c => (c.codice ? String(c.codice).toLowerCase() : '')).filter(Boolean)
+    );
+    // codice -> id canonico (copie omonime già presenti: si usa sempre la stessa)
+    const { principali: categorieMap } = mappeCodiceCanonico(categorieEsistenti);
+
+    const scriviSeed = async (dati) => {
+      const id = idSeed(dati.codice);
+      await setDocument(COLLECTION_NAME, id, datiSeed(dati), tenantId);
+      return id;
+    };
     
     // Crea categorie principali
     for (const categoriaPredefinita of CATEGORIE_PRINCIPALI_PREDEFINITE) {
@@ -71,14 +83,9 @@ export async function initializeCategoriePredefinite() {
         
         const validation = categoria.validate();
         if (validation.valid) {
-          const categoriaId = await createDocument(COLLECTION_NAME, categoria.toFirestore(), tenantId);
+          const categoriaId = await scriviSeed(categoria.toFirestore());
           categorieMap.set(categoriaPredefinita.codice, categoriaId);
-        }
-      } else {
-        // Trova ID esistente
-        const categoriaEsistente = categorieEsistenti.find(c => c.codice === categoriaPredefinita.codice);
-        if (categoriaEsistente) {
-          categorieMap.set(categoriaPredefinita.codice, categoriaEsistente.id);
+          codiciEsistenti.add(categoriaPredefinita.codice);
         }
       }
     }
@@ -86,10 +93,10 @@ export async function initializeCategoriePredefinite() {
     // Rimuovi vecchie sottocategorie obsolete (es. "Meccanica" invece di "Meccanico")
     const codiciObsoleti = ['potatura_meccanica']; // Vecchi codici da rimuovere
     for (const codiceObsoleto of codiciObsoleti) {
-      const sottocategoriaObsoleta = categorieEsistenti.find(c => 
+      const sottocategorieObsolete = categorieEsistenti.filter(c => 
         c.codice && c.codice.toLowerCase() === codiceObsoleto.toLowerCase()
       );
-      if (sottocategoriaObsoleta) {
+      for (const sottocategoriaObsoleta of sottocategorieObsolete) {
         try {
           await deleteDocument(COLLECTION_NAME, sottocategoriaObsoleta.id, tenantId);
 
@@ -121,7 +128,8 @@ export async function initializeCategoriePredefinite() {
         
         const validation = sottocategoria.validate();
         if (validation.valid) {
-          await createDocument(COLLECTION_NAME, sottocategoria.toFirestore(), tenantId);
+          await scriviSeed(sottocategoria.toFirestore());
+          codiciEsistenti.add(sottocategoriaPredefinita.codice);
         }
       }
     }
@@ -136,14 +144,9 @@ export async function initializeCategoriePredefinite() {
         
         const validation = categoria.validate();
         if (validation.valid) {
-          const categoriaId = await createDocument(COLLECTION_NAME, categoria.toFirestore(), tenantId);
+          const categoriaId = await scriviSeed(categoria.toFirestore());
           categorieMap.set(categoriaColturaPredefinita.codice, categoriaId);
-        }
-      } else {
-        // Trova ID esistente
-        const categoriaEsistente = categorieEsistenti.find(c => c.codice === categoriaColturaPredefinita.codice);
-        if (categoriaEsistente) {
-          categorieMap.set(categoriaColturaPredefinita.codice, categoriaEsistente.id);
+          codiciEsistenti.add(categoriaColturaPredefinita.codice);
         }
       }
     }
