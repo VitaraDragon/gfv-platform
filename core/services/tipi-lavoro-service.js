@@ -10,13 +10,12 @@ import {
   getDocumentData, 
   updateDocument,
   deleteDocument,
-  getCollectionData,
-  setDocument
+  getCollectionData
 } from './firebase-service.js';
 import { getCurrentTenantId } from './tenant-service.js';
 import { TipoLavoro } from '../models/TipoLavoro.js';
 import { TIPI_LAVORO_PREDEFINITI, TIPI_LAVORO_CANONICAL_FIXES } from '../config/app-catalog-seed-data.js';
-import { conLockSeed, idSeed, datiSeed } from './catalogo-seed.js';
+import { conLockSeed, idSeed, datiSeed, scriviSeedBatch } from './catalogo-seed.js';
 import { mappeCodiceCanonico } from '../js/catalogo-dedupe.js';
 
 export { TIPI_LAVORO_PREDEFINITI };
@@ -25,7 +24,8 @@ const COLLECTION_NAME = 'tipiLavoro';
 
 /**
  * Inizializza tipi lavoro predefiniti per il tenant corrente.
- * Idempotente: id deterministici (`seed_<nome>`) con setDocument (merge), una sola esecuzione
+ * Completa le voci mancanti (ripresa dopo seed interrotto); a catalogo completo zero scritture.
+ * Idempotente: id deterministici (`seed_<nome>`) in writeBatch, una sola esecuzione
  * alla volta per tenant, nessuna scrittura se una lettura fallisce, categorie = copia canonica.
  * @returns {Promise<void>}
  */
@@ -56,29 +56,23 @@ async function seedTipiLavoroPredefiniti(tenantId) {
       (tipiDocs || []).map(t => String(t.nome || '').toLowerCase()).filter(Boolean)
     );
     
-    // Per ogni tipo lavoro predefinito, crea se non esiste
+    // Raccogli tipi mancanti, poi writeBatch
+    const daCreare = [];
     for (const tipoData of TIPI_LAVORO_PREDEFINITI) {
-      // Crea solo se non esiste già (controllo per nome, case-insensitive)
-      if (nomiEsistenti.has(tipoData.nome.toLowerCase())) {
-        continue;
-      }
+      if (nomiEsistenti.has(tipoData.nome.toLowerCase())) continue;
       
       let categoriaId = null;
       let sottocategoriaId = null;
       
-      // Determina categoria e sottocategoria
       if (tipoData.sottocategoriaCodice) {
-        // Ha una sottocategoria
         sottocategoriaId = sottocategorieMap.get(tipoData.sottocategoriaCodice.toLowerCase());
         if (sottocategoriaId) {
-          // Trova la categoria padre dalla sottocategoria
           const sottocategoria = tutteCategorie.find(c => c.id === sottocategoriaId);
           if (sottocategoria && sottocategoria.parentId) {
             categoriaId = sottocategoria.parentId;
           }
         }
       } else if (tipoData.categoriaCodice) {
-        // Ha solo una categoria (senza sottocategoria)
         categoriaId = categorieMap.get(tipoData.categoriaCodice.toLowerCase());
       }
       
@@ -97,11 +91,16 @@ async function seedTipiLavoroPredefiniti(tenantId) {
       });
       
       const validation = tipo.validate();
-      if (validation.valid) {
-        await setDocument(COLLECTION_NAME, idSeed(tipoData.nome), datiSeed(tipo.toFirestore()), tenantId);
-        nomiEsistenti.add(tipoData.nome.toLowerCase());
-      }
+      if (!validation.valid) continue;
+
+      daCreare.push({
+        id: idSeed(tipoData.nome),
+        data: datiSeed(tipo.toFirestore())
+      });
+      nomiEsistenti.add(tipoData.nome.toLowerCase());
     }
+
+    await scriviSeedBatch(COLLECTION_NAME, daCreare, tenantId);
 
     const tipiAggiornati = await getAllTipiLavoro();
     for (const fix of TIPI_LAVORO_CANONICAL_FIXES) {

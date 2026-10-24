@@ -1,19 +1,65 @@
 /**
  * Seed catalogo idempotente (categorie, colture, tipi lavoro) con Firestore finto in memoria.
- * - id deterministici `seed_<codice|nome>` via setDocument (merge), mai addDoc;
+ * - id deterministici `seed_<codice|nome>` via writeBatch (merge), mai addDoc;
  * - due chiamate concorrenti → una sola scrittura per voce;
  * - lettura fallita → nessuna scrittura;
+ * - catalogo parziale → ripresa fino al completo, senza doppioni;
+ * - catalogo completo → zero scritture;
  * - copie omonime già presenti → colture/tipi agganciati alla copia canonica.
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const db = vi.hoisted(() => ({ store: {}, failRead: false, writes: [] }));
+const db = vi.hoisted(() => ({
+  store: {},
+  failRead: false,
+  writes: [],
+  batchCommits: 0,
+  /** Simula interruzione: dopo N set in batch lancia (0 = mai). */
+  failAfterSets: 0,
+  setsInFlight: 0,
+}));
 
 vi.mock('../core/services/firebase-service.js', () => {
   const tick = () => new Promise((r) => setTimeout(r, 0));
+  const serverTimestamp = () => ({ __serverTimestamp: true });
+
+  function applySet(col, id, data) {
+    db.writes.push(`${col}/${id}`);
+    db.store[col] = db.store[col] || {};
+    const esiste = !!db.store[col][id];
+    // come setDocument reale: createdAt solo alla prima scrittura (Date fissa per i test)
+    db.store[col][id] = {
+      ...(db.store[col][id] || {}),
+      ...data,
+      ...(esiste ? {} : { createdAt: new Date('2026-01-01T00:00:00Z') }),
+    };
+  }
+
   return {
     timestampToDate: (v) => (v instanceof Date ? v : new Date(v)),
     dateToTimestamp: (v) => v,
+    serverTimestamp,
+    getDb: vi.fn(() => ({ __fakeDb: true })),
+    getDocument: vi.fn((col, id) => ({ __ref: true, col, id })),
+    writeBatch: vi.fn(() => {
+      const ops = [];
+      return {
+        set(ref, data) {
+          ops.push({ ref, data });
+        },
+        async commit() {
+          await tick();
+          for (const { ref, data } of ops) {
+            db.setsInFlight += 1;
+            if (db.failAfterSets > 0 && db.setsInFlight > db.failAfterSets) {
+              throw new Error('Simulated batch interrupt');
+            }
+            applySet(ref.col, ref.id, data);
+          }
+          db.batchCommits += 1;
+        },
+      };
+    }),
     getCollectionData: vi.fn(async (col) => {
       await tick();
       if (db.failRead) throw new Error('Errore lettura collection: unavailable');
@@ -21,11 +67,7 @@ vi.mock('../core/services/firebase-service.js', () => {
     }),
     setDocument: vi.fn(async (col, id, data) => {
       await tick();
-      db.writes.push(`${col}/${id}`);
-      db.store[col] = db.store[col] || {};
-      const esiste = !!db.store[col][id];
-      // come firebase-service.setDocument: createdAt solo alla prima scrittura
-      db.store[col][id] = { ...(db.store[col][id] || {}), ...data, ...(esiste ? {} : { createdAt: new Date('2026-01-01T00:00:00Z') }) };
+      applySet(col, id, data);
     }),
     createDocument: vi.fn(async () => { throw new Error('addDoc non deve essere usato dai seed'); }),
     updateDocument: vi.fn(async () => {}),
@@ -37,16 +79,17 @@ vi.mock('../core/services/tenant-service.js', () => ({
   getCurrentTenantId: vi.fn(() => 'cascina-conti'),
 }));
 
-import { setDocument, createDocument } from '../core/services/firebase-service.js';
+import { setDocument, createDocument, writeBatch } from '../core/services/firebase-service.js';
 import { initializeCategoriePredefinite } from '../core/services/categorie-service.js';
 import { initializeColturePredefinite } from '../core/services/colture-service.js';
 import { initializeTipiLavoroPredefiniti } from '../core/services/tipi-lavoro-service.js';
-import { idSeed, slugCatalogo, conLockSeed, _resetLockSeed } from '../core/services/catalogo-seed.js';
+import { idSeed, slugCatalogo, conLockSeed, _resetLockSeed, SEED_BATCH_MAX_OPS } from '../core/services/catalogo-seed.js';
 import {
   CATEGORIE_PRINCIPALI_PREDEFINITE,
   CATEGORIE_COLTURE_PREDEFINITE,
   SOTTOCATEGORIE_PREDEFINITE,
   COLTURE_PREDEFINITE,
+  TIPI_LAVORO_PREDEFINITI,
 } from '../core/config/app-catalog-seed-data.js';
 
 const NUM_CATEGORIE =
@@ -58,6 +101,9 @@ beforeEach(() => {
   db.store = {};
   db.failRead = false;
   db.writes = [];
+  db.batchCommits = 0;
+  db.failAfterSets = 0;
+  db.setsInFlight = 0;
   vi.spyOn(console, 'warn').mockImplementation(() => {});
   vi.spyOn(console, 'error').mockImplementation(() => {});
 });
@@ -83,36 +129,62 @@ describe('catalogo-seed utilità', () => {
     await conLockSeed('x', 't', fn);
     expect(fn).toHaveBeenCalledTimes(2);
   });
+  it('SEED_BATCH_MAX_OPS rispetta il limite Firestore', () => {
+    expect(SEED_BATCH_MAX_OPS).toBe(500);
+  });
 });
 
 describe('initializeCategoriePredefinite', () => {
   it('due chiamate concorrenti → una sola scrittura per codice, id seed_<codice>', async () => {
     await Promise.all([initializeCategoriePredefinite(), initializeCategoriePredefinite()]);
     expect(createDocument).not.toHaveBeenCalled();
+    expect(writeBatch).toHaveBeenCalled();
     expect(db.writes).toHaveLength(NUM_CATEGORIE);
     expect(new Set(db.writes).size).toBe(NUM_CATEGORIE);
     expect(db.store.categorie.seed_vite).toMatchObject({ codice: 'vite', applicabileA: 'colture' });
     const sub = Object.values(db.store.categorie).find((c) => c.parentId);
     expect(String(sub.parentId).startsWith('seed_')).toBe(true);
-    // i dati passati a setDocument non portano createdAt/id del modello (li gestisce setDocument)
-    expect(setDocument.mock.calls.every(([, , data]) => !('createdAt' in data) && !('id' in data))).toBe(true);
+    expect(db.writes.every((w) => w.startsWith('categorie/seed_'))).toBe(true);
   });
 
   it('seconda esecuzione non scrive nulla', async () => {
     await initializeCategoriePredefinite();
     const prima = db.writes.length;
+    const commits = db.batchCommits;
     await initializeCategoriePredefinite();
     expect(db.writes.length).toBe(prima);
+    expect(db.batchCommits).toBe(commits);
   });
 
   it('lettura fallita → nessuna scrittura e errore propagato', async () => {
     db.failRead = true;
     await expect(initializeCategoriePredefinite()).rejects.toThrow(/inizializzazione categorie/);
-    expect(setDocument).not.toHaveBeenCalled();
+    expect(db.writes).toHaveLength(0);
+  });
+
+  it('ripresa da catalogo parziale → completa senza doppioni', async () => {
+    await initializeCategoriePredefinite();
+    const ids = Object.keys(db.store.categorie);
+    // Simula interruzione: lascia solo metà delle categorie
+    const keep = ids.slice(0, Math.floor(ids.length / 2));
+    db.store.categorie = Object.fromEntries(keep.map((id) => [id, db.store.categorie[id]]));
+    db.writes = [];
+    db.batchCommits = 0;
+    await initializeCategoriePredefinite();
+    expect(Object.keys(db.store.categorie)).toHaveLength(NUM_CATEGORIE);
+    expect(new Set(Object.keys(db.store.categorie)).size).toBe(NUM_CATEGORIE);
+    expect(db.writes.length).toBe(NUM_CATEGORIE - keep.length);
   });
 });
 
 describe('initializeColturePredefinite', () => {
+  async function seedCategorieColtureMinimali() {
+    // Tutte le categorie coltura del catalogo (serve per arrivare a 99)
+    await initializeCategoriePredefinite();
+    db.writes = [];
+    db.batchCommits = 0;
+  }
+
   it('concorrenti → una scrittura per coltura; categoria = copia canonica fra le omonime', async () => {
     db.store.categorie = {
       'vite-nuova': { codice: 'vite', nome: 'Vite', applicabileA: 'colture', predefinita: true, createdAt: new Date('2026-10-23T10:00:05Z') },
@@ -138,7 +210,62 @@ describe('initializeColturePredefinite', () => {
   it('lettura fallita → nessuna scrittura', async () => {
     db.failRead = true;
     await expect(initializeColturePredefinite()).rejects.toThrow();
-    expect(setDocument).not.toHaveBeenCalled();
+    expect(db.writes).toHaveLength(0);
+  });
+
+  it('ripresa da catalogo parziale (34/99) → arriva a 99 senza doppioni', async () => {
+    await seedCategorieColtureMinimali();
+    await initializeColturePredefinite();
+    expect(Object.keys(db.store.colture || {})).toHaveLength(COLTURE_PREDEFINITE.length);
+
+    // Simula Podere Bassi: lascia solo le prime 34 colture
+    const ids = Object.keys(db.store.colture);
+    const keep = ids.slice(0, 34);
+    db.store.colture = Object.fromEntries(keep.map((id) => [id, db.store.colture[id]]));
+    db.writes = [];
+    db.batchCommits = 0;
+
+    await initializeColturePredefinite();
+    const finalIds = Object.keys(db.store.colture);
+    expect(finalIds).toHaveLength(COLTURE_PREDEFINITE.length);
+    expect(new Set(finalIds).size).toBe(COLTURE_PREDEFINITE.length);
+    expect(db.writes.filter((w) => w.startsWith('colture/'))).toHaveLength(COLTURE_PREDEFINITE.length - 34);
+  });
+
+  it('catalogo completo → zero scritture', async () => {
+    await seedCategorieColtureMinimali();
+    await initializeColturePredefinite();
+    db.writes = [];
+    db.batchCommits = 0;
+    await initializeColturePredefinite();
+    expect(db.writes).toHaveLength(0);
+    expect(db.batchCommits).toBe(0);
+  });
+
+  it('interruzione a metà + seconda chiamata → completo', async () => {
+    await seedCategorieColtureMinimali();
+    db.setsInFlight = 0;
+    db.failAfterSets = 40;
+    await expect(initializeColturePredefinite()).rejects.toThrow(/inizializzazione colture/);
+    const parziali = Object.keys(db.store.colture || {}).length;
+    expect(parziali).toBeGreaterThan(0);
+    expect(parziali).toBeLessThan(COLTURE_PREDEFINITE.length);
+
+    db.failAfterSets = 0;
+    db.setsInFlight = 0;
+    db.writes = [];
+    _resetLockSeed();
+    await initializeColturePredefinite();
+    expect(Object.keys(db.store.colture)).toHaveLength(COLTURE_PREDEFINITE.length);
+  });
+
+  it('due chiamate in parallelo → nessun doppione', async () => {
+    await seedCategorieColtureMinimali();
+    await Promise.all([initializeColturePredefinite(), initializeColturePredefinite()]);
+    const ids = Object.keys(db.store.colture);
+    expect(ids).toHaveLength(COLTURE_PREDEFINITE.length);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(ids.every((id) => id.startsWith('seed_'))).toBe(true);
   });
 });
 
@@ -160,6 +287,62 @@ describe('initializeTipiLavoroPredefiniti', () => {
   it('lettura fallita → nessuna scrittura', async () => {
     db.failRead = true;
     await expect(initializeTipiLavoroPredefiniti()).rejects.toThrow();
-    expect(setDocument).not.toHaveBeenCalled();
+    expect(db.writes).toHaveLength(0);
+  });
+
+  it('ripresa da catalogo parziale (46/75) → arriva a 75 senza doppioni', async () => {
+    await initializeCategoriePredefinite();
+    db.writes = [];
+    await initializeTipiLavoroPredefiniti();
+    expect(Object.keys(db.store.tipiLavoro || {}).length).toBe(TIPI_LAVORO_PREDEFINITI.length);
+
+    const ids = Object.keys(db.store.tipiLavoro);
+    const keep = ids.slice(0, 46);
+    db.store.tipiLavoro = Object.fromEntries(keep.map((id) => [id, db.store.tipiLavoro[id]]));
+    db.writes = [];
+    db.batchCommits = 0;
+
+    await initializeTipiLavoroPredefiniti();
+    const finalIds = Object.keys(db.store.tipiLavoro);
+    expect(finalIds).toHaveLength(TIPI_LAVORO_PREDEFINITI.length);
+    expect(new Set(finalIds).size).toBe(TIPI_LAVORO_PREDEFINITI.length);
+    expect(db.writes.filter((w) => w.startsWith('tipiLavoro/'))).toHaveLength(TIPI_LAVORO_PREDEFINITI.length - 46);
+  });
+
+  it('catalogo completo → zero scritture tipi', async () => {
+    await initializeCategoriePredefinite();
+    db.writes = [];
+    await initializeTipiLavoroPredefiniti();
+    db.writes = [];
+    db.batchCommits = 0;
+    await initializeTipiLavoroPredefiniti();
+    expect(db.writes.filter((w) => w.startsWith('tipiLavoro/'))).toHaveLength(0);
+  });
+
+  it('interruzione a metà + seconda chiamata → completo', async () => {
+    await initializeCategoriePredefinite();
+    db.writes = [];
+    db.setsInFlight = 0;
+    db.failAfterSets = 30;
+    await expect(initializeTipiLavoroPredefiniti()).rejects.toThrow(/inizializzazione tipi lavoro/);
+    const parziali = Object.keys(db.store.tipiLavoro || {}).length;
+    expect(parziali).toBeGreaterThan(0);
+    expect(parziali).toBeLessThan(TIPI_LAVORO_PREDEFINITI.length);
+
+    db.failAfterSets = 0;
+    db.setsInFlight = 0;
+    db.writes = [];
+    _resetLockSeed();
+    await initializeTipiLavoroPredefiniti();
+    expect(Object.keys(db.store.tipiLavoro)).toHaveLength(TIPI_LAVORO_PREDEFINITI.length);
+  });
+
+  it('due chiamate in parallelo → nessun doppione', async () => {
+    await initializeCategoriePredefinite();
+    db.writes = [];
+    await Promise.all([initializeTipiLavoroPredefiniti(), initializeTipiLavoroPredefiniti()]);
+    const ids = Object.keys(db.store.tipiLavoro);
+    expect(ids).toHaveLength(TIPI_LAVORO_PREDEFINITI.length);
+    expect(new Set(ids).size).toBe(ids.length);
   });
 });

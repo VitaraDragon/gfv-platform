@@ -1,7 +1,18 @@
 /**
- * Supporto seed catalogo: id documento deterministici e lock in memoria per tenant.
+ * Supporto seed catalogo: id documento deterministici, lock in memoria per tenant,
+ * scritture batch delle sole voci nuove.
  * @module core/services/catalogo-seed
  */
+
+import {
+  getDb,
+  getDocument,
+  writeBatch,
+  serverTimestamp
+} from './firebase-service.js';
+
+/** Limite Firestore per operazioni in un writeBatch. */
+export const SEED_BATCH_MAX_OPS = 500;
 
 /**
  * Slug per id documento: minuscolo, senza accenti, solo [a-z0-9_].
@@ -29,8 +40,8 @@ export function idSeed(codiceONome) {
 }
 
 /**
- * Dati da scrivere con setDocument(merge): senza id e senza timestamp del modello
- * (createdAt lo aggiunge setDocument solo se il documento non esiste ancora).
+ * Dati da scrivere in seed: senza id e senza timestamp del modello
+ * (createdAt/updatedAt li aggiunge scriviSeedBatch sulle sole voci nuove).
  * @param {object} dati
  * @returns {object}
  */
@@ -40,6 +51,46 @@ export function datiSeed(dati) {
   delete out.createdAt;
   delete out.updatedAt;
   return out;
+}
+
+/**
+ * Scrive voci seed mancanti in uno o più writeBatch (max 500 ops ciascuno).
+ * Solo documenti nuovi: createdAt e updatedAt con serverTimestamp.
+ * A lista vuota non scrive nulla. Id deterministici + merge evitano doppioni.
+ *
+ * @param {string} collectionName
+ * @param {Array<{ id: string, data: object }>} voci
+ * @param {string} tenantId
+ * @returns {Promise<number>} numero di documenti scritti
+ */
+export async function scriviSeedBatch(collectionName, voci, tenantId) {
+  if (!Array.isArray(voci) || voci.length === 0) return 0;
+  if (!tenantId) throw new Error('tenantId obbligatorio per seed batch');
+
+  const db = getDb();
+  let scritte = 0;
+
+  for (let i = 0; i < voci.length; i += SEED_BATCH_MAX_OPS) {
+    const slice = voci.slice(i, i + SEED_BATCH_MAX_OPS);
+    const batch = writeBatch(db);
+    for (const voce of slice) {
+      if (!voce || !voce.id) throw new Error('Voce seed senza id');
+      const ref = getDocument(collectionName, voce.id, tenantId);
+      batch.set(
+        ref,
+        {
+          ...datiSeed(voce.data),
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        },
+        { merge: true }
+      );
+      scritte += 1;
+    }
+    await batch.commit();
+  }
+
+  return scritte;
 }
 
 const inCorso = new Map();

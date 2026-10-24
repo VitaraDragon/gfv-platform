@@ -2707,24 +2707,16 @@ export async function loadTipiLavoro(params) {
             }
             
             const { getAllTipiLavoro, initializeTipiLavoroPredefiniti } = await import('../services/tipi-lavoro-service.js');
+            // Completa tipi predefiniti mancanti (ripresa seed interrotto; no-op se già complete)
+            try {
+                await initializeTipiLavoroPredefiniti();
+            } catch (initError) {
+                console.error('Errore durante inizializzazione tipi predefiniti:', initError);
+            }
             let tipiLavoro = await getAllTipiLavoro({
                 orderBy: 'nome',
                 orderDirection: 'asc'
             });
-            
-            // Se non ci sono tipi di lavoro, inizializza quelli predefiniti
-            if (tipiLavoro.length === 0) {
-                try {
-                    await initializeTipiLavoroPredefiniti();
-                    // Ricarica i tipi dopo l'inizializzazione
-                    tipiLavoro = await getAllTipiLavoro({
-                        orderBy: 'nome',
-                        orderDirection: 'asc'
-                    });
-                } catch (initError) {
-                    console.error('Errore durante inizializzazione tipi predefiniti:', initError);
-                }
-            }
             
             // Converti in formato compatibile con il codice esistente
             tipiLavoroList = tipiLavoro.map(tipo => ({
