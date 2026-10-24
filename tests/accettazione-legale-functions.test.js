@@ -109,7 +109,7 @@ describe('registraAccettazioniLegali', () => {
   });
 
   it('ignora il documento già presente e non lo sovrascrive', async () => {
-    const id = idAccettazione('admin1', 'dpa', 'dpa-2026-03-01');
+    const id = idAccettazione('admin1', 'az1', 'dpa', 'dpa-2026-03-01');
     const db = fakeDb(Object.assign(baseSeed(), {
       ['accettazioniLegali/' + id]: {
         uid: 'admin1',
@@ -130,7 +130,7 @@ describe('registraAccettazioniLegali', () => {
     }, db);
     expect(res).toEqual({ ok: true });
     expect(db.docs.get('accettazioniLegali/' + id).marker).toBe('vecchio');
-    expect(db.docs.has('accettazioniLegali/' + idAccettazione('admin1', 'privacy', 'privacy-2026-03-01'))).toBe(true);
+    expect(db.docs.has('accettazioniLegali/' + idAccettazione('admin1', 'az1', 'privacy', 'privacy-2026-03-01'))).toBe(true);
   });
 
   it('non copia uid, email o ip dal payload: l\'uid della riga è quello di auth', async () => {
@@ -148,7 +148,7 @@ describe('registraAccettazioniLegali', () => {
         ip: '203.0.113.5'
       }
     }, db);
-    const path = 'accettazioniLegali/' + idAccettazione('admin1', 'termini-b2b', 'termini-b2b-2026-03-01');
+    const path = 'accettazioniLegali/' + idAccettazione('admin1', 'az1', 'termini-b2b', 'termini-b2b-2026-03-01');
     const row = db.docs.get(path);
     expect(row.uid).toBe('admin1');
     expect(row.email).toBeUndefined();
@@ -178,5 +178,93 @@ describe('registraAccettazioniLegali', () => {
         }]
       }
     }, db)).rejects.toMatchObject({ code: 'failed-precondition' });
+  });
+
+});
+
+function informativa() {
+  return [{
+    tipo: 'informativa-lavoratori',
+    versione: 'informativa-lavoratori-2026-03-01',
+    versioneTestoCasella: 'casella-invito-v1'
+  }];
+}
+
+function seedDueAziende() {
+  return {
+    'users/op1': {
+      ruoli: ['operaio'],
+      tenantId: 'az1',
+      tenantMemberships: {
+        az1: { ruoli: ['operaio'], stato: 'attivo' },
+        az2: { ruoli: ['operaio'], stato: 'attivo' }
+      }
+    },
+    'tenants/az1': { creatoDa: 'admin1', nome: 'Azienda 1' },
+    'tenants/az2': { creatoDa: 'admin2', nome: 'Azienda 2' }
+  };
+}
+
+function registraInvito(db, tenantId) {
+  return handleRegistraAccettazioniLegali({
+    auth: { uid: 'op1' },
+    data: { azione: 'registra', canale: 'invito', tenantId, ruolo: 'operaio', documenti: informativa() }
+  }, db);
+}
+
+function stato(db, tenantId, uid = 'op1') {
+  return handleRegistraAccettazioniLegali({ auth: { uid }, data: { azione: 'stato', tenantId } }, db);
+}
+
+describe('accettazioni per azienda', () => {
+  it('id diverso per azienda, stesso utente, documento e versione', () => {
+    const a = idAccettazione('op1', 'az1', 'informativa-lavoratori', 'informativa-lavoratori-2026-03-01');
+    const b = idAccettazione('op1', 'az2', 'informativa-lavoratori', 'informativa-lavoratori-2026-03-01');
+    expect(a).not.toBe(b);
+    expect(a).toBe('op1_az1_informativa-lavoratori_informativa-lavoratori-2026-03-01');
+    expect(() => idAccettazione('op1', '', 'dpa', 'dpa-2026-03-01')).toThrow();
+  });
+
+  it('la seconda azienda crea una riga sua (niente already-exists silenzioso)', async () => {
+    const db = fakeDb(seedDueAziende());
+    await registraInvito(db, 'az1');
+    await registraInvito(db, 'az2');
+    const righe = [...db.docs.keys()].filter((k) => k.startsWith('accettazioniLegali/'));
+    expect(righe.sort()).toEqual([
+      'accettazioniLegali/op1_az1_informativa-lavoratori_informativa-lavoratori-2026-03-01',
+      'accettazioniLegali/op1_az2_informativa-lavoratori_informativa-lavoratori-2026-03-01'
+    ]);
+    expect(db.docs.get(righe.sort()[1]).tenantId).toBe('az2');
+  });
+
+  it('ripetere nella stessa azienda è idempotente e non sovrascrive', async () => {
+    const db = fakeDb(seedDueAziende());
+    await registraInvito(db, 'az1');
+    const id = 'accettazioniLegali/op1_az1_informativa-lavoratori_informativa-lavoratori-2026-03-01';
+    db.docs.get(id).marker = 'primo';
+    await expect(registraInvito(db, 'az1')).resolves.toEqual({ ok: true });
+    expect(db.docs.get(id).marker).toBe('primo');
+  });
+
+  it('stato filtrato per azienda: accettata in az1, mancante in az2', async () => {
+    const db = fakeDb(seedDueAziende());
+    await registraInvito(db, 'az1');
+    expect(await stato(db, 'az1')).toEqual({
+      documenti: [{ tipo: 'informativa-lavoratori', versione: 'informativa-lavoratori-2026-03-01' }]
+    });
+    expect(await stato(db, 'az2')).toEqual({ documenti: [] });
+  });
+
+  it('stato senza tenantId: invalid-argument', async () => {
+    await expect(handleRegistraAccettazioniLegali({ auth: { uid: 'op1' }, data: { azione: 'stato' } }, fakeDb(seedDueAziende())))
+      .rejects.toMatchObject({ code: 'invalid-argument' });
+  });
+
+  it('stato di un\'azienda a cui non appartieni: permission-denied', async () => {
+    await expect(stato(fakeDb(seedDueAziende()), 'az3')).rejects.toMatchObject({ code: 'permission-denied' });
+  });
+
+  it('tenantId con "/" rifiutato', async () => {
+    await expect(registraInvito(fakeDb(seedDueAziende()), 'az1/x')).rejects.toMatchObject({ code: 'invalid-argument' });
   });
 });
