@@ -1,5 +1,8 @@
 "use strict";
 
+// Ogni nuovo campo di billing/accesso scritto sul doc tenant va aggiunto a
+// toccaCampiFatturazione() (e, se serve, a tenantCreateIsFreeWithoutBilling()) in firestore.rules.
+
 const { HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const { assertManagerOrAdminForTenant } = require("./email-resend");
