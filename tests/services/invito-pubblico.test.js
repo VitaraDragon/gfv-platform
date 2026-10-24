@@ -129,8 +129,16 @@ describe('handleGetInvitoPubblico', () => {
     ).rejects.toMatchObject({ code: 'failed-precondition' });
   });
 
-  it('restituisce invito sanitizzato se valido', async () => {
+  it('restituisce invito sanitizzato se valido e isExistingUser da Auth', async () => {
     const future = new Date('2027-01-01T00:00:00.000Z');
+    const authAdmin = {
+      getUserByEmail: async (email) => {
+        if (email === 'ada@gfv.test') return { uid: 'u1' };
+        const err = new Error('not found');
+        err.code = 'auth/user-not-found';
+        throw err;
+      },
+    };
     const res = await handleGetInvitoPubblico(
       fakeDb([
         fakeDoc('ok1', {
@@ -143,15 +151,18 @@ describe('handleGetInvitoPubblico', () => {
           tenantId: 't1',
           inviatoDa: 'm1',
           scadeIl: future,
+          isExistingUser: false,
           leak: 'no',
         }),
       ]),
       LONG_TOKEN,
-      new Date('2026-09-18')
+      new Date('2026-09-18'),
+      authAdmin
     );
     expect(res.ok).toBe(true);
     expect(res.invito.id).toBe('ok1');
     expect(res.invito.email).toBe('ada@gfv.test');
+    expect(res.invito.isExistingUser).toBe(true);
     expect(res.invito.leak).toBeUndefined();
     expect(res.invito.aziendaNome).toBe('');
     expect(res.invito.cellulare).toBeUndefined();
