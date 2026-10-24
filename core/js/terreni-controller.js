@@ -356,17 +356,15 @@ export async function loadCategorieColtureTerreni(currentTenantId, db, app, auth
             categorieColtureTerreni.push(...categorie);
         }
 
-        // Popola dropdown categoria (se esiste)
-        const categoriaSelect = document.getElementById('terreno-coltura-categoria');
-        if (categoriaSelect) {
-            categoriaSelect.innerHTML = '<option value="">-- Seleziona categoria --</option>';
-            categorieColtureTerreni.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat.id;
-                option.textContent = cat.nome;
-                categoriaSelect.appendChild(option);
-            });
-        }
+        // Popola dropdown categoria con dedupe (le colture possono non essere ancora caricate)
+        const deduped = dedupeCategorieColture(categorieColtureTerreni, null);
+        categorieColtureTerreni.length = 0;
+        categorieColtureTerreni.push(...deduped);
+        popolaSelectCategorieColture(
+            document.getElementById('terreno-coltura-categoria'),
+            categorieColtureTerreni,
+            null
+        );
     } catch (error) {
         console.error('Errore caricamento categorie colture:', error);
     }
@@ -380,8 +378,9 @@ export async function loadCategorieColtureTerreni(currentTenantId, db, app, auth
  * @param {Object} auth - Istanza Firebase Auth
  * @param {Object} colturePerCategoriaTerreni - Oggetto {categoriaId: [colture]} (modificato in place)
  * @param {Array} colture - Array colture (modificato in place, per retrocompatibilità)
+ * @param {Array|null} [categorieColtureTerreni=null] - Categorie già caricate (per ripopolare il select dopo seed)
  */
-export async function loadColturePerCategoriaTerreni(currentTenantId, db, app, auth, colturePerCategoriaTerreni, colture) {
+export async function loadColturePerCategoriaTerreni(currentTenantId, db, app, auth, colturePerCategoriaTerreni, colture, categorieColtureTerreni = null) {
     try {
         if (!currentTenantId) return;
 
@@ -487,16 +486,28 @@ export async function loadColturePerCategoriaTerreni(currentTenantId, db, app, a
             coltureList.forEach(c => colture.push(c.nome));
         });
 
-        // Non popolare direttamente il dropdown, sarà popolato quando si seleziona una categoria
-        // Aggiorna il dropdown se c'è già una categoria selezionata
+        // Dopo seed/caricamento: ripopola il select categorie con dedupe usando le colture note
+        if (Array.isArray(categorieColtureTerreni)) {
+            const deduped = dedupeCategorieColture(categorieColtureTerreni, colturePerCategoriaTerreni);
+            categorieColtureTerreni.length = 0;
+            categorieColtureTerreni.push(...deduped);
+            popolaSelectCategorieColture(
+                document.getElementById('terreno-coltura-categoria'),
+                categorieColtureTerreni,
+                colturePerCategoriaTerreni
+            );
+        }
+
+        // Aggiorna il dropdown colture se c'è già una categoria selezionata
         const categoriaSelect = document.getElementById('terreno-coltura-categoria');
         if (categoriaSelect && categoriaSelect.value && window.updateColtureDropdownTerreni) {
             window.updateColtureDropdownTerreni();
         }
     } catch (error) {
         console.error('Errore caricamento colture:', error);
-        // Fallback: usa ListePersonalizzate se colture non disponibile
+        // Fallback: liste piatte — NON lasciare select categorie piene con mappa colture vuota
         console.warn('Impossibile caricare da colture, uso ListePersonalizzate:', error.message);
+        Object.keys(colturePerCategoriaTerreni).forEach(key => delete colturePerCategoriaTerreni[key]);
         const { doc, getDoc } = await import('../services/firebase-service.js');
         const listeRef = doc(db, `tenants/${currentTenantId}/liste`, 'personalizzate');
         const listeSnap = await getDoc(listeRef);
@@ -506,15 +517,21 @@ export async function loadColturePerCategoriaTerreni(currentTenantId, db, app, a
             colture.length = 0;
             colture.push(...(data.colture || []));
         } else {
-            // Se non esistono, usa predefinite
             colture.length = 0;
             colture.push('Vite', 'Frutteto', 'Seminativo', 'Orto', 'Prato', 'Olivo', 'Agrumeto', 'Bosco');
         }
-        
-        // Non popolare direttamente il dropdown, sarà popolato quando si seleziona una categoria
-        const categoriaSelect = document.getElementById('terreno-coltura-categoria');
-        if (categoriaSelect && categoriaSelect.value && window.updateColtureDropdownTerreni) {
-            window.updateColtureDropdownTerreni();
+
+        popolaSelectCategorieColture(
+            document.getElementById('terreno-coltura-categoria'),
+            Array.isArray(categorieColtureTerreni) ? categorieColtureTerreni : [],
+            colturePerCategoriaTerreni,
+            {
+                messaggioErrore: '-- Errore caricamento colture: riprova o ricarica la pagina --',
+            }
+        );
+        if (Array.isArray(categorieColtureTerreni)) {
+            // Non fingere che le categorie orfane funzionino: svuota lo stato categorie del form
+            categorieColtureTerreni.length = 0;
         }
     }
 }
@@ -531,13 +548,35 @@ export async function loadColturePerCategoriaTerreni(currentTenantId, db, app, a
  */
 export async function loadColture(currentTenantId, db, app, auth, categorieColtureTerreni, colturePerCategoriaTerreni, colture) {
     await loadCategorieColtureTerreni(currentTenantId, db, app, auth, categorieColtureTerreni);
-    await loadColturePerCategoriaTerreni(currentTenantId, db, app, auth, colturePerCategoriaTerreni, colture);
+    await loadColturePerCategoriaTerreni(
+        currentTenantId, db, app, auth, colturePerCategoriaTerreni, colture, categorieColtureTerreni
+    );
+    // Ripopola a fine carico se le categorie ci sono ancora (dopo catch di fallback
+    // categorieColtureTerreni è vuoto e il select mostra già il messaggio di errore).
+    if (Array.isArray(categorieColtureTerreni) && categorieColtureTerreni.length > 0) {
+        const deduped = dedupeCategorieColture(categorieColtureTerreni, colturePerCategoriaTerreni);
+        categorieColtureTerreni.length = 0;
+        categorieColtureTerreni.push(...deduped);
+        popolaSelectCategorieColture(
+            document.getElementById('terreno-coltura-categoria'),
+            categorieColtureTerreni,
+            colturePerCategoriaTerreni
+        );
+        const categoriaSelect = document.getElementById('terreno-coltura-categoria');
+        if (categoriaSelect && categoriaSelect.value && window.updateColtureDropdownTerreni) {
+            window.updateColtureDropdownTerreni();
+        }
+    }
 }
 
 // ============================================
 // IMPORTS UTILITY
 // ============================================
 import { escapeHtml, calcolaAlertAffitto, formattaDataScadenza, showAlert } from './terreni-utils.js';
+import {
+    dedupeCategorieColture,
+    popolaSelectCategorieColture,
+} from './terreni-categorie-colture.js';
 
 // ============================================
 // FUNZIONI PRINCIPALI

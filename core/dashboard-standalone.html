@@ -146,6 +146,7 @@
     <script type="module">
         import { formatDateTimeItalianReadable } from './js/date-format-it.js';
         import { resolveAuthUser, loginPageUrl } from './js/simulator-standalone-page.js';
+        import { getNomeVisualizzato } from './js/nome-visualizzato.js';
         import { spiegaIngressoDopoLogin, scriviIndizioIngresso, pulisciIndizioIngresso, CHIAVE_RIMBALZI_INGRESSO } from './js/tony/tony-ingresso-login.js?v=2026-10-09g';
         const { 
             roleNames, 
@@ -206,6 +207,11 @@
             loadProactiveBriefingState,
             saveProactiveBriefingState,
         } from './js/tony-proactive-briefing-policy.js';
+        import {
+            BRIEFING_METEO_ATTESA_MS,
+            attendiConLimite,
+            salutoBriefingPerOra,
+        } from './js/dashboard-briefing-helpers.js';
         import {
             buildRawProactiveCounts,
             collectProactiveSignals,
@@ -862,7 +868,9 @@
                 const scadenzeUrgenti = hasParcoMacchine && snapReady ? snapReady.scadenzeUrgenti || 0 : 0;
                 const guastiAperti = hasParcoMacchine && snapReady ? snapReady.guastiAperti || 0 : 0;
                 const oreDaValidare = hasManodopera && snapReady ? snapReady.oreDaValidare || 0 : 0;
-                const meteoBriefing = await meteoBriefingPromise;
+                // Il meteo (Cloud Function senza timeout) non deve trattenere il briefing:
+                // oltre 4 s si parte senza la frase sul meteo; se arriva dopo va solo nel contesto.
+                const meteoBriefing = await attendiConLimite(meteoBriefingPromise, BRIEFING_METEO_ATTESA_MS);
 
                 window.tonyMeteoBriefing = meteoBriefing || null;
                 window.tonyGlobalBriefing = {
@@ -896,6 +904,19 @@
                     if (meteoBriefing) {
                         window.Tony.setContext('meteoBriefing', meteoBriefing);
                     }
+                }
+                if (!meteoBriefing) {
+                    const briefingDiQuestaChiamata = window.tonyGlobalBriefing;
+                    meteoBriefingPromise.then(function(meteoTardivo) {
+                        if (!meteoTardivo || window.tonyGlobalBriefing !== briefingDiQuestaChiamata) return;
+                        window.tonyMeteoBriefing = meteoTardivo;
+                        briefingDiQuestaChiamata.meteo = meteoTardivo;
+                        briefingDiQuestaChiamata.meteoConsigliCount = meteoTardivo.consigliCount ? meteoTardivo.consigliCount : 0;
+                        if (window.Tony && typeof window.Tony.setContext === 'function') {
+                            window.Tony.setContext('globalStatus', briefingDiQuestaChiamata);
+                            window.Tony.setContext('meteoBriefing', meteoTardivo);
+                        }
+                    });
                 }
 
                 const collected = collectProactiveSignals(
@@ -936,7 +957,7 @@
                     return;
                 }
 
-                var greeting = (typeof window.getFriendlyGreeting === 'function') ? window.getFriendlyGreeting() : 'Buongiorno!';
+                var greeting = salutoBriefingPerOra(nowBriefing);
                 var followUp =
                     decision.action === 'delta'
                         ? pickProactiveOpenFollowUpFromDelta(decision.worsened)
@@ -1184,7 +1205,12 @@
             if (window.Tony && Tony.isReady()) {
                 Tony.setContext('dashboard', {
                     info_azienda: { moduli_attivi: availableModules },
-                    utente_corrente: { nome: `${userDataNormalized.nome || ''} ${userDataNormalized.cognome || ''}`.trim() || (user && user.email) || '', ruoli: userDataNormalized.ruoli || [] },
+                    utente_corrente: { nome: getNomeVisualizzato({
+                        nome: userDataNormalized.nome,
+                        cognome: userDataNormalized.cognome,
+                        nomeAzienda: (window.__gfvTenantData && window.__gfvTenantData.nome) || '',
+                        email: (user && user.email) || ''
+                    }), ruoli: userDataNormalized.ruoli || [] },
                     moduli_attivi: availableModules,
                     plan: window.__gfvSubscriptionPlanId || 'base',
                     piano: window.__gfvSubscriptionPlanId || 'base',
@@ -1549,8 +1575,12 @@
                     const ingresso = applicaIngressoDopoLogin(userDataNormalized, availableModules);
                     if (ingresso !== 'dashboard') return;
 
-                    document.getElementById('user-info').textContent = 
-                        `${userData.nome || ''} ${userData.cognome || ''}`.trim() || user.email;
+                    document.getElementById('user-info').textContent = getNomeVisualizzato({
+                        nome: userData.nome,
+                        cognome: userData.cognome,
+                        nomeAzienda: tenantDataSnapshot && tenantDataSnapshot.nome,
+                        email: user.email
+                    });
                     
                     const rolesHTML = normalizedRoles.map(role => 
                         `<span class="role-badge">${roleNames[role] || role}</span>`

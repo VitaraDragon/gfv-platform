@@ -94,6 +94,6 @@ export const GIORNI_GUIDA_TONY = LIMITI_LANDING.giorniGuidaTony;
 
 export const URL_APP = 'https://vitaradragon.github.io/gfv-platform/';
 
-export const URL_REGISTRAZIONE = `${URL_APP}core/auth/registrazione-standalone.html`;
+export const URL_REGISTRAZIONE = `${URL_APP}core/auth/registrazione-standalone.html?da=landing`;
 
 export const URL_LOGIN = `${URL_APP}core/auth/login-standalone.html`;

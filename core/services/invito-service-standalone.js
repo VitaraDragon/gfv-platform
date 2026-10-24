@@ -238,10 +238,14 @@ export async function acceptInvito(auth, db, createUserWithEmailAndPassword, sig
                     creatoDa: invito.inviatoDa,
                     tenantIdPredefinito: false // Non è il tenant predefinito se è un invito
                 };
+
+                const { campiNomeDaInvitoSeVuoti } = await import('../js/nome-titolare-helpers.js');
+                const patchNome = campiNomeDaInvitoSeVuoti(userData, invito);
                 
-                // Aggiorna documento utente
+                // Aggiorna documento utente (membership + nome/cognome solo se vuoti)
                 await updateDoc(userDocRef, {
-                    tenantMemberships: tenantMemberships
+                    tenantMemberships: tenantMemberships,
+                    ...patchNome
                 });
                 
                 // Aggiorna invito
@@ -260,6 +264,7 @@ export async function acceptInvito(auth, db, createUserWithEmailAndPassword, sig
                 
                 return {
                     ...userData,
+                    ...patchNome,
                     tenantMemberships: tenantMemberships,
                     _isNewMembership: true,
                     _newTenantId: invito.tenantId
@@ -320,9 +325,13 @@ export async function acceptInvito(auth, db, createUserWithEmailAndPassword, sig
                             creatoDa: invito.inviatoDa,
                             tenantIdPredefinito: false
                         };
+
+                        const { campiNomeDaInvitoSeVuoti } = await import('../js/nome-titolare-helpers.js');
+                        const patchNome = campiNomeDaInvitoSeVuoti(userData, invito);
                         
                     await updateDoc(userDocRef, {
-                        tenantMemberships: tenantMemberships
+                        tenantMemberships: tenantMemberships,
+                        ...patchNome
                     });
                     
                     await updateDoc(doc(db, 'inviti', invito.id), {
@@ -340,6 +349,7 @@ export async function acceptInvito(auth, db, createUserWithEmailAndPassword, sig
                     
                     return {
                         ...userData,
+                        ...patchNome,
                         tenantMemberships: tenantMemberships,
                         _isNewMembership: true,
                         _newTenantId: invito.tenantId

@@ -4,7 +4,7 @@
  */
 
 import { tonyDebugLog } from './debug.js';
-import { injectWidget } from './ui.js';
+import { injectWidget, formatTonyChatHtml } from './ui.js';
 import { initTonyVoice } from './voice.js';
 import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, isTonyMainDashboardPath, isTonyMainDashboardNavRequest, isTonyMeteoModulePath, cleanTextFromJsonResidue, normalizeTonyTextWhitespace, applyItalianVoiceQuestionPunctuation, normalizeItalianSttTranscript, collapseDuplicateVoiceTranscript, scoreItalianSttLexicon, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, dropStaleJobCarryover, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts, matchSegnaOraIncompleteDallePausaFromBlob, normalizeSegnaOraSttBlob, isSegnaOraUntrustedPartialStart, repairSegnaOraVoiceTranscript } from './engine.js';
 import { resolveLavoroFattoNav, mapDiarioFieldsToLavoro, alignLavoroFattoSpeech } from './tony-lavoro-fatto-nav.js';
@@ -9457,7 +9457,7 @@ if (typeof window !== 'undefined') {
                     tonyReplyShownThisTurn = true;
                     window.__tonyLastCfAssistantText = out;
                     if (streamingMsgEl && streamingMsgEl.parentNode) {
-                        streamingMsgEl.textContent = out;
+                        streamingMsgEl.innerHTML = formatTonyChatHtml(out);
                         streamingMsgEl.classList.remove('streaming');
                         streamingMsgEl = null;
                         messagesEl.scrollTop = messagesEl.scrollHeight;
@@ -9668,7 +9668,7 @@ if (typeof window !== 'undefined') {
                                     messagesEl.appendChild(streamingMsgEl);
                                     messagesEl.scrollTop = messagesEl.scrollHeight;
                                 }
-                                streamingMsgEl.textContent = daMostrare;
+                                streamingMsgEl.innerHTML = formatTonyChatHtml(daMostrare);
                                 messagesEl.scrollTop = messagesEl.scrollHeight;
                                 if (opts.fromVoice) {
                                     if (!streamTtsState.earlyVoiceSpoken) {
