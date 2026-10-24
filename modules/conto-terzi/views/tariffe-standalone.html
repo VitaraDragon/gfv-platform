@@ -965,14 +965,12 @@
                         colturePerCategoria[categoriaId].push(coltura);
                     });
                     
-                    // Se la collection è vuota, prova a inizializzare le colture predefinite
-                    if (coltureSnapshot.size === 0) {
-                        try {
-                            const { initializeColturePredefinite } = await import('../../../core/services/colture-service.js');
-                            await initializeColturePredefinite();
-                        } catch (initError) {
-                            console.warn('⚠️ Impossibile inizializzare colture predefinite:', initError.message);
-                        }
+                    // Completa colture predefinite mancanti (ripresa seed interrotto)
+                    try {
+                        const { initializeColturePredefinite } = await import('../../../core/services/colture-service.js');
+                        await initializeColturePredefinite();
+                    } catch (initError) {
+                        console.warn('⚠️ Impossibile inizializzare colture predefinite:', initError.message);
                     }
                 } else {
                     // Usa servizi centralizzati
@@ -986,14 +984,9 @@
                         setCurrentTenantId(currentTenantId);
                     }
                     
-                    // Assicura che le colture predefinite siano inizializzate
-                    const { initializeColturePredefinite, getColturePerCategoria, getAllColture } = await import('../../../core/services/colture-service.js');
-                    
-                    // Verifica se ci sono poche colture e inizializza se necessario
-                    const coltureEsistenti = await getAllColture();
-                    if (coltureEsistenti.length < 20) {
-                        await initializeColturePredefinite();
-                    }
+                    // Completa colture predefinite mancanti (ripresa seed interrotto; no-op se già complete)
+                    const { initializeColturePredefinite, getColturePerCategoria } = await import('../../../core/services/colture-service.js');
+                    await initializeColturePredefinite();
                     
                     // Usa colture-service.js per ottenere colture organizzate per categoria
                     colturePerCategoria = await getColturePerCategoria();

@@ -10,12 +10,11 @@ import {
   getDocumentData, 
   updateDocument,
   deleteDocument,
-  getCollectionData,
-  setDocument
+  getCollectionData
 } from './firebase-service.js';
 import { getCurrentTenantId } from './tenant-service.js';
 import { Categoria } from '../models/Categoria.js';
-import { conLockSeed, idSeed, datiSeed } from './catalogo-seed.js';
+import { conLockSeed, idSeed, datiSeed, scriviSeedBatch } from './catalogo-seed.js';
 import { mappeCodiceCanonico } from '../js/catalogo-dedupe.js';
 import {
   CATEGORIE_PRINCIPALI_PREDEFINITE,
@@ -45,7 +44,8 @@ export async function leggiCategorieGrezze(tenantId) {
 
 /**
  * Inizializza categorie predefinite per il tenant corrente.
- * Idempotente: id documento deterministici (`seed_<codice>`) scritti con setDocument (merge),
+ * Completa le voci mancanti; a catalogo completo zero scritture.
+ * Idempotente: id documento deterministici (`seed_<codice>`) in writeBatch,
  * una sola esecuzione alla volta per tenant, nessuna scrittura se la lettura fallisce.
  * @returns {Promise<void>}
  */
@@ -67,27 +67,28 @@ async function seedCategoriePredefinite(tenantId) {
     // codice -> id canonico (copie omonime già presenti: si usa sempre la stessa)
     const { principali: categorieMap } = mappeCodiceCanonico(categorieEsistenti);
 
-    const scriviSeed = async (dati) => {
+    const daCreare = [];
+    const accoda = (dati) => {
       const id = idSeed(dati.codice);
-      await setDocument(COLLECTION_NAME, id, datiSeed(dati), tenantId);
+      daCreare.push({ id, data: datiSeed(dati) });
       return id;
     };
     
-    // Crea categorie principali
+    // Categorie principali (id deterministici: mappa subito, batch dopo)
     for (const categoriaPredefinita of CATEGORIE_PRINCIPALI_PREDEFINITE) {
-      if (!codiciEsistenti.has(categoriaPredefinita.codice)) {
-        const categoria = new Categoria({
-          ...categoriaPredefinita,
-          creatoDa: 'system'
-        });
-        
-        const validation = categoria.validate();
-        if (validation.valid) {
-          const categoriaId = await scriviSeed(categoria.toFirestore());
-          categorieMap.set(categoriaPredefinita.codice, categoriaId);
-          codiciEsistenti.add(categoriaPredefinita.codice);
-        }
-      }
+      if (codiciEsistenti.has(categoriaPredefinita.codice)) continue;
+
+      const categoria = new Categoria({
+        ...categoriaPredefinita,
+        creatoDa: 'system'
+      });
+      
+      const validation = categoria.validate();
+      if (!validation.valid) continue;
+
+      const categoriaId = accoda(categoria.toFirestore());
+      categorieMap.set(categoriaPredefinita.codice, categoriaId);
+      codiciEsistenti.add(categoriaPredefinita.codice);
     }
     
     // Rimuovi vecchie sottocategorie obsolete (es. "Meccanica" invece di "Meccanico")
@@ -108,48 +109,49 @@ async function seedCategoriePredefinite(tenantId) {
       }
     }
     
-    // Crea sottocategorie
+    // Sottocategorie (parentId già noto: idSeed o canonico esistente)
     for (const sottocategoriaPredefinita of SOTTOCATEGORIE_PREDEFINITE) {
-      if (!codiciEsistenti.has(sottocategoriaPredefinita.codice)) {
-        const parentId = categorieMap.get(sottocategoriaPredefinita.parentCodice);
-        if (!parentId) {
-          console.warn(`Categoria padre ${sottocategoriaPredefinita.parentCodice} non trovata per sottocategoria ${sottocategoriaPredefinita.codice}`);
-          continue;
-        }
-        
-        const sottocategoria = new Categoria({
-          ...sottocategoriaPredefinita,
-          parentId: parentId,
-          creatoDa: 'system'
-        });
-        
-        // Rimuovi parentCodice prima di salvare
-        delete sottocategoria.parentCodice;
-        
-        const validation = sottocategoria.validate();
-        if (validation.valid) {
-          await scriviSeed(sottocategoria.toFirestore());
-          codiciEsistenti.add(sottocategoriaPredefinita.codice);
-        }
+      if (codiciEsistenti.has(sottocategoriaPredefinita.codice)) continue;
+
+      const parentId = categorieMap.get(sottocategoriaPredefinita.parentCodice);
+      if (!parentId) {
+        console.warn(`Categoria padre ${sottocategoriaPredefinita.parentCodice} non trovata per sottocategoria ${sottocategoriaPredefinita.codice}`);
+        continue;
       }
+      
+      const sottocategoria = new Categoria({
+        ...sottocategoriaPredefinita,
+        parentId: parentId,
+        creatoDa: 'system'
+      });
+      
+      delete sottocategoria.parentCodice;
+      
+      const validation = sottocategoria.validate();
+      if (!validation.valid) continue;
+
+      accoda(sottocategoria.toFirestore());
+      codiciEsistenti.add(sottocategoriaPredefinita.codice);
     }
     
-    // Crea categorie per colture
+    // Categorie per colture
     for (const categoriaColturaPredefinita of CATEGORIE_COLTURE_PREDEFINITE) {
-      if (!codiciEsistenti.has(categoriaColturaPredefinita.codice)) {
-        const categoria = new Categoria({
-          ...categoriaColturaPredefinita,
-          creatoDa: 'system'
-        });
-        
-        const validation = categoria.validate();
-        if (validation.valid) {
-          const categoriaId = await scriviSeed(categoria.toFirestore());
-          categorieMap.set(categoriaColturaPredefinita.codice, categoriaId);
-          codiciEsistenti.add(categoriaColturaPredefinita.codice);
-        }
-      }
+      if (codiciEsistenti.has(categoriaColturaPredefinita.codice)) continue;
+
+      const categoria = new Categoria({
+        ...categoriaColturaPredefinita,
+        creatoDa: 'system'
+      });
+      
+      const validation = categoria.validate();
+      if (!validation.valid) continue;
+
+      const categoriaId = accoda(categoria.toFirestore());
+      categorieMap.set(categoriaColturaPredefinita.codice, categoriaId);
+      codiciEsistenti.add(categoriaColturaPredefinita.codice);
     }
+
+    await scriviSeedBatch(COLLECTION_NAME, daCreare, tenantId);
   } catch (error) {
     console.error('Errore inizializzazione categorie predefinite:', error);
     throw new Error(`Errore inizializzazione categorie: ${error.message}`);

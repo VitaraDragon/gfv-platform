@@ -1814,14 +1814,9 @@
                     // Filtra solo categorie principali (senza parentId)
                     categorieColture = categorie.filter(cat => !cat.parentId);
                     
-                    // Assicura che le colture predefinite siano inizializzate
-                    const { initializeColturePredefinite, getColturePerCategoria, getAllColture } = await import('../../../core/services/colture-service.js');
-                    
-                    // Verifica se ci sono poche colture e inizializza se necessario
-                    const coltureEsistenti = await getAllColture();
-                    if (coltureEsistenti.length < 20) {
-                        await initializeColturePredefinite();
-                    }
+                    // Completa colture predefinite mancanti (ripresa seed interrotto; no-op se già complete)
+                    const { initializeColturePredefinite, getColturePerCategoria } = await import('../../../core/services/colture-service.js');
+                    await initializeColturePredefinite();
                     
                     // Usa colture-service.js per ottenere colture organizzate per categoria
                     coltureGerarchiche = await getColturePerCategoria();
