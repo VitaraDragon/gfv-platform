@@ -4654,7 +4654,7 @@ exports.reactivateStripeAddon = onCall(
 );
 
 /**
- * Callable: avvia prova gratuita modulo (30 giorni, anche piano Free).
+ * Callable: avvia prova gratuita modulo (30 giorni, solo piano Base).
  * Body: { tenantId, moduleId }
  */
 exports.startModuleTrial = onCall(

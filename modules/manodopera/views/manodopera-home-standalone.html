@@ -334,8 +334,9 @@
                 }
 
                 const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
+                const { getEffectiveModulesFromTenant } = await import('../../../core/utils/module-access-resolver.js');
                 const modules = tenantDoc.exists()
-                    ? (Array.isArray(tenantDoc.data().modules) ? tenantDoc.data().modules : [])
+                    ? getEffectiveModulesFromTenant(tenantDoc.data())
                     : [];
 
                 if (!modules.includes('manodopera')) {

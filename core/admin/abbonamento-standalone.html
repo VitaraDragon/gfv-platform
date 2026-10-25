@@ -634,7 +634,7 @@
             <!-- Moduli Disponibili -->
             <div class="card modules-section">
                 <h2>🔧 Moduli Disponibili</h2>
-                <p style="color: #666; margin-bottom: 20px;">Attiva i moduli che vuoi utilizzare oppure avvia una <strong>prova gratuita di 30 giorni</strong> (anche con piano Free, un modulo alla volta).</p>
+                <p style="color: #666; margin-bottom: 20px;">Attiva i moduli che vuoi utilizzare oppure avvia una <strong>prova gratuita di 30 giorni</strong> (piano Base, un modulo alla volta).</p>
                 
                 <div id="alert-container" style="margin-bottom: 20px;"></div>
                 
@@ -709,7 +709,7 @@
             monthlyToAnnual,
             formatBillingDisplay,
             planRequiresStripePayment,
-            normalizeSubscriptionPlanId
+            resolveTenantPlanId
         } from '../config/subscription-plans.js';
         import {
             MODULE_TRIAL_DAYS,
@@ -718,7 +718,8 @@
             getActiveTrialModuleIds,
             canStartModuleTrial,
             isModuleOnTrial,
-            formatTrialEndDate
+            formatTrialEndDate,
+            resolveModuleToggleIntent
         } from '../utils/module-access-resolver.js';
         import {
             allineaDatiManodopera,
@@ -1069,7 +1070,8 @@
         });
 
         function resolvePlanIdFromTenant(tenantData) {
-            return normalizeSubscriptionPlanId(tenantData?.plan || tenantData?.piano);
+            // Stessa regola di functions/tenant-plan.js (plan > piano, Stripe Base attivo ⇒ base).
+            return resolveTenantPlanId(tenantData);
         }
 
         function refreshSubscriptionUi() {
@@ -1861,18 +1863,22 @@
             const isEffectiveActive = effectiveModules.includes(moduleId);
             const isPaid = paidModules.includes(moduleId);
             const onTrial = isModuleOnTrial(currentTenantData, moduleId);
-            let planId = (currentTenantData?.plan || currentTenantData?.piano || 'base');
-            if (['starter', 'professional', 'enterprise'].includes(planId)) {
-                planId = 'base';
-            }
+            const planId = resolvePlanIdFromTenant(currentTenantData);
 
             if (!isEffectiveActive) {
-                const trialCheck = canStartModuleTrial(currentTenantData, moduleId, {
+                const toggleIntent = resolveModuleToggleIntent(currentTenantData, moduleId, {
                     availableModuleIds: getPurchasableModuleIds(),
-                    bundleCatalog: BUNDLES
+                    bundleCatalog: BUNDLES,
+                    effectiveModules
                 });
 
-                if (trialCheck.canStart) {
+                // Free prima della prova: messaggio verso Base, nessuna callable.
+                if (toggleIntent.action === 'require_base') {
+                    showAlert(toggleIntent.reason || 'Attiva il piano Base per avviare la prova o acquistare moduli.', 'error');
+                    return;
+                }
+
+                if (toggleIntent.action === 'start_trial') {
                     const confirmed = await showConfirmDialog({
                         title: 'Avviare la prova gratuita?',
                         icon: '🎁',
@@ -1897,11 +1903,6 @@
                         console.error('Errore startModuleTrial:', error);
                         showAlert('Errore: ' + (error.message || error), 'error');
                     }
-                    return;
-                }
-
-                if (planId === 'free') {
-                    showAlert(trialCheck.reason || 'Attiva il piano Base per acquistare moduli.', 'error');
                     return;
                 }
 
