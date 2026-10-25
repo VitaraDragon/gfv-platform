@@ -292,8 +292,11 @@
                 var p = tid
                     ? ts.getCurrentTenant()
                     : fb.getDocumentData('users', auth.currentUser.uid).then(function (userData) {
-                        if (!userData || !userData.tenantId) return null;
-                        ts.setCurrentTenantId(userData.tenantId);
+                        if (!userData) return null;
+                        var resolved = ts.resolveTenantIdForUser
+                            ? ts.resolveTenantIdForUser(userData)
+                            : (userData.tenantId || null);
+                        if (!resolved) return null;
                         return ts.getCurrentTenant();
                     });
                 Promise.resolve(p).catch(function () { /* retry */ });

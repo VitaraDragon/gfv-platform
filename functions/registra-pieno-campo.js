@@ -12,19 +12,17 @@ function normId(value) {
   return String(value).trim();
 }
 
+const {
+  belongsToTenant,
+  rolesForTenant,
+} = require("./lib/tenant-membership-access");
+
 function collectRuoli(userData, tenantId) {
-  const out = [];
-  if (userData && Array.isArray(userData.ruoli)) out.push(...userData.ruoli);
-  const membership = userData && userData.tenantMemberships && userData.tenantMemberships[tenantId];
-  if (membership && Array.isArray(membership.ruoli)) out.push(...membership.ruoli);
-  return out;
+  return rolesForTenant(userData, tenantId);
 }
 
 function userBelongsToTenant(userData, tenantId) {
-  if (!userData || !tenantId) return false;
-  if (normId(userData.tenantId) === tenantId) return true;
-  const memberships = userData.tenantMemberships;
-  return !!(memberships && Object.prototype.hasOwnProperty.call(memberships, tenantId));
+  return belongsToTenant(userData, tenantId);
 }
 
 function haModuloMagazzino(tenant) {

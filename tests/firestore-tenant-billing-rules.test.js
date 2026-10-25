@@ -172,8 +172,7 @@ beforeAll(async () => {
   } catch (err) {
     emulatorLog += `\n[beforeAll] ${err && err.message}\n`;
     emulatorOk = false;
-    console.warn('[firestore-tenant-billing-rules] Emulatore non avviato:', err && err.message);
-    return;
+    throw new Error(`emulatore non raggiungibile: ${err && err.message}\n${emulatorLog.slice(-2000)}`);
   }
 
   const seed = [
@@ -255,9 +254,9 @@ afterAll(async () => {
 
 function skipIfNoEmu() {
   if (!emulatorOk) {
-    console.warn('SKIP: emulatore Firestore non disponibile (es. Java 21 mancante)');
+    throw new Error('emulatore non raggiungibile');
   }
-  return !emulatorOk;
+  return false;
 }
 
 describe('abbonamento-standalone statico', () => {
