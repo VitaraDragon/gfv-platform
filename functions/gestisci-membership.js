@@ -202,33 +202,6 @@ function bumpActiveAdmin(seen, countRef, uid, data, tenantId, excludeUid) {
 }
 
 /**
- * Conteggio admin attivi (fuori transazione). Se la query membership fallisce → blocca.
- */
-async function countActiveAdmins(db, tenantId, excludeUid) {
-  const seen = new Set();
-  const countRef = { n: 0 };
-
-  const byDep = await db.collection("users").where("tenantId", "==", tenantId).get();
-  byDep.forEach((s) => bumpActiveAdmin(seen, countRef, s.id, s.data() || {}, tenantId, excludeUid));
-
-  try {
-    const byMem = await db
-      .collection("users")
-      .where(`tenantMemberships.${tenantId}.stato`, "==", "attivo")
-      .get();
-    byMem.forEach((s) => bumpActiveAdmin(seen, countRef, s.id, s.data() || {}, tenantId, excludeUid));
-  } catch (err) {
-    console.warn("[countActiveAdmins] membership query:", err && err.message);
-    throw new HttpsError(
-      "failed-precondition",
-      "Impossibile verificare gli amministratori attivi (indice membership mancante)."
-    );
-  }
-
-  return countRef.n;
-}
-
-/**
  * Conteggio admin attivi dentro transazione (tx.get su query).
  * Se la query membership fallisce → blocca (niente fail-soft).
  */
@@ -426,6 +399,5 @@ module.exports = {
   serializeUserForTenant,
   targetBelongs,
   targetHadAdminRole,
-  countActiveAdmins,
   countActiveAdminsInTx,
 };

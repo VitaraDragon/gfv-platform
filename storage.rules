@@ -67,8 +67,7 @@ service firebase.storage {
                       isManagerOrAdmin(tenantId) &&
                       isLogoFile() &&
                       request.resource.size < 2 * 1024 * 1024 && // Max 2MB
-                      (request.resource.contentType.matches('image/.*')
-                        || request.resource.contentType == 'application/octet-stream');
+                      request.resource.contentType.matches('image/.*'); // Solo immagini
       
       // Eliminazione: manager/amministratore del tenant
       allow delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
