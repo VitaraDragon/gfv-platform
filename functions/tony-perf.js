@@ -32,6 +32,10 @@ function logTonyPerf(perf, message) {
     lavoroEntityParseHit: perf.lavoroEntityParseHit != null ? !!perf.lavoroEntityParseHit : null,
     lavoroInjectFieldsCount: perf.lavoroInjectFieldsCount != null ? perf.lavoroInjectFieldsCount : null,
     lavoroFollowUpTurns: perf.lavoroFollowUpTurns != null ? perf.lavoroFollowUpTurns : null,
+    finishReason: perf.finishReason != null ? perf.finishReason : null,
+    thoughtsTokenCount: perf.thoughtsTokenCount != null ? perf.thoughtsTokenCount : null,
+    promptTokenCount: perf.promptTokenCount != null ? perf.promptTokenCount : null,
+    candidatesTokenCount: perf.candidatesTokenCount != null ? perf.candidatesTokenCount : null,
   };
   console.log("[Tony Perf]", JSON.stringify(payload));
 }
