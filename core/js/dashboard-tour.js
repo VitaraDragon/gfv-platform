@@ -758,7 +758,7 @@ function buildDashboardTourSteps(userData) {
         steps.push({
             element: panoramica,
             title: 'Panoramica aziendale',
-            intro: 'Panoramica operativa con meteo, alert e scadenze a tutta larghezza. Apri il menu «Moduli» in alto per accedere a tutte le aree attive; la mappa satellitare è nella pagina dedicata (pulsante «Mappa» in intestazione).'
+            intro: 'Panoramica operativa con meteo, alert e scadenze a tutta larghezza. Apri i moduli con il pulsante in alto (graffetta, «Apri o chiudi i moduli»); la mappa satellitare è nella pagina dedicata (pulsante «Mappa» in intestazione).'
         });
     }
 
@@ -777,7 +777,7 @@ function buildDashboardTourSteps(userData) {
             element: mieiAccessi,
             title: 'I miei accessi',
             intro:
-                'Scegli fino a cinque collegamenti rapidi (lavori, validazione ore, moduli attivi e altro) con «Configura». Il menu «Moduli» e l’hub sotto contengono tutti gli accessi all’app.'
+                'Sezione della dashboard (non voce di menu): fino a cinque collegamenti rapidi con «Configura». Il pulsante moduli in alto apre tutte le aree dell’app.'
         });
     }
 

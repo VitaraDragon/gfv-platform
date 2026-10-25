@@ -18,12 +18,12 @@ Accesso effettivo = moduli pagati **+** trial attivi (`module-access-resolver.js
 
 Layout **panoramica** (manager/admin, non solo operaio/caposquadra):
 
-- `createDashboardModuleSidebar` — pulsante **Moduli** + pannello; variant `core` (Terreni, Diario, Statistiche, Abbonamento + tile moduli attivi) vs `manodopera` (+ Amministrazione, Statistiche manodopera, Manodopera, …).
+- `createDashboardModuleSidebar` — catalogo moduli (DOM `.dashboard-module-menu`); in Home pelle **Proposta** nascosto dal CSS. Ingresso utente: pulsante pelle in alto (`ui-pelle.js`, aria-label **«Apri o chiudi i moduli»**, icona graffetta). Variant `core` vs `manodopera` (+ Amministrazione, …).
 - `createDashboardPanoramaHubSection` — **Richiede attenzione** (`refreshAttention` in `dashboard-hub.js`: sotto scorta, **prezziInAttesa**, guasti, scadenze mezzi, affitti, da pianificare CT+manodopera, ore da validare), **Per te oggi**, **Accessi rapidi** (pin ★ + recenti per `userId` in localStorage).
-- `createDashboardQuickBarSection` — **I miei accessi** (5 slot, modale **Configura**, catalogo in `dashboard-quick-bar.js`).
+- `createDashboardQuickBarSection` — sezione dashboard **I miei accessi** (5 slot, modale **Configura**); non è voce di menu; in Home Proposta nascosta (`.dashboard-quick-bar-wrap`).
 - `createDashboardDeadlinesRow` — **Scadenze amministrazione** + **In arrivo**.
 - `createDashboardMeteoSection` — widget riga `.dashboard-meteo-row`; visibile se `planId !== 'free'`; titolo **Meteo sede** vs **Meteo** se modulo `meteo`; sede da Impostazioni (`dashboard-meteo.js`).
-- Pin tile: `wrapTilesWithPinShells` + stella su `.dashboard-module-tile` (anche voci nel menu Moduli).
+- Pin tile: `wrapTilesWithPinShells` + stella su `.dashboard-module-tile` (anche voci nel pannello moduli).
 
 **Rami layout (`renderDashboard`):**
 
@@ -123,7 +123,7 @@ Decisione prodotto 23/10/2026: un terreno si può salvare senza coltura. Il Diar
 ## Note implementazione
 
 - Hub attenzione e scadenze condividono snapshot `dashboard-counts-snapshot.js` (incl. `prezziInAttesa`).
-- Nuove tile o voci menu Moduli: documentare sotto `GUIDA/<MODULO>/utente` e `tony`; aggiornare `MODULE_CATALOG` in `dashboard-hub.js` se serve pin/accessi rapidi.
+- Nuove tile o voci pannello moduli: documentare sotto `GUIDA/<MODULO>/utente` e `tony`; aggiornare `MODULE_CATALOG` in `dashboard-hub.js` se serve pin/accessi rapidi.
 - Ogni nuova card dashboard modulare: documentare sotto `GUIDA/<MODULO>/utente` e `tony`, non sotto Core (salvo panoramica trasversale qui).
 
 ## Notifiche push (FCM)
