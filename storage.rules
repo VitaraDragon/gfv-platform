@@ -6,11 +6,49 @@ service firebase.storage {
     function isAuthenticated() {
       return request.auth != null;
     }
-    
-    // Helper: verifica che l'utente appartenga al tenant
+
+    // Doc utente corrente (Firestore) — stessa logica di firestore.rules
+    function userData() {
+      return firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data;
+    }
+
+    function hasMembershipKey(tenantId) {
+      return userData().keys().hasAny(['tenantMemberships']) &&
+             userData().tenantMemberships.keys().hasAny([tenantId]);
+    }
+
+    // Membership autorevole: se esiste tenantMemberships[t] conta solo stato == attivo.
+    // Altrimenti tenantId deprecato + non disattivato (allineato a firestore.rules).
+    function legacyStatoOk() {
+      return !userData().keys().hasAny(['stato']) || userData().stato != 'disattivato';
+    }
+
     function belongsToTenant(tenantId) {
-      return isAuthenticated() && 
-             firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.tenantId == tenantId;
+      return isAuthenticated() && (
+        (hasMembershipKey(tenantId) &&
+         userData().tenantMemberships[tenantId].stato == 'attivo') ||
+        (!hasMembershipKey(tenantId) &&
+         userData().tenantId == tenantId &&
+         legacyStatoOk())
+      );
+    }
+
+    function hasRole(role, tenantId) {
+      return isAuthenticated() && (
+        (hasMembershipKey(tenantId) &&
+         userData().tenantMemberships[tenantId].stato == 'attivo' &&
+         userData().tenantMemberships[tenantId].ruoli != null &&
+         userData().tenantMemberships[tenantId].ruoli.hasAny([role])) ||
+        (!hasMembershipKey(tenantId) &&
+         userData().tenantId == tenantId &&
+         legacyStatoOk() &&
+         userData().ruoli != null &&
+         userData().ruoli.hasAny([role]))
+      );
+    }
+
+    function isManagerOrAdmin(tenantId) {
+      return hasRole('manager', tenantId) || hasRole('amministratore', tenantId);
     }
     
     // Regola per loghi aziendali: tenants/{tenantId}/logo_*.{ext}
@@ -20,18 +58,19 @@ service firebase.storage {
         return logoFileName.matches('logo_.*');
       }
       
-      // Lettura: utenti autenticati del tenant
+      // Lettura: utenti autenticati attivi del tenant
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
       
-      // Scrittura: solo utenti autenticati del tenant (Manager/Amministratore verificato lato client)
-      allow write: if isAuthenticated() && 
+      // Scrittura: solo manager/amministratore del tenant
+      allow create, update: if isAuthenticated() &&
                       belongsToTenant(tenantId) &&
+                      isManagerOrAdmin(tenantId) &&
                       isLogoFile() &&
                       request.resource.size < 2 * 1024 * 1024 && // Max 2MB
                       request.resource.contentType.matches('image/.*'); // Solo immagini
       
-      // Eliminazione: utenti autenticati del tenant
-      allow delete: if isAuthenticated() && belongsToTenant(tenantId);
+      // Eliminazione: manager/amministratore del tenant
+      allow delete: if isAuthenticated() && belongsToTenant(tenantId) && isManagerOrAdmin(tenantId);
     }
 
     // Tony Occhi — originali documenti acquisiti (foto/PDF)
@@ -62,10 +101,3 @@ service firebase.storage {
     }
   }
 }
-
-
-
-
-
-
-
