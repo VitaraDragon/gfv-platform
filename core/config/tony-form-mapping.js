@@ -235,7 +235,7 @@ IMPIANTI: solo campi base; vigneto/frutteto dati tecnici manuali.
       categoria: { fieldId: 'lavoro-categoria-principale', description: 'Categoria principale lavorazione (es. Lavorazione del Terreno, Raccolta)' },
       sottocategoria: { fieldId: 'lavoro-sottocategoria', description: 'Sottocategoria lavoro se presente' },
       tipoLavoro: { fieldId: 'tipo-lavoro', description: 'Tipo lavoro (nome esatto dal catalogo)' },
-      colturaCategoria: { fieldId: 'coltura-categoria', description: 'Categoria coltura (Frutteto, Vigneto, Seminativo…)' },
+      colturaCategoria: { fieldId: 'coltura-categoria', description: 'Categoria coltura (Frutteto, Vite, Seminativo…)' },
       coltura: { fieldId: 'coltura', description: 'Coltura specifica (es. Albicocche, Sangiovese)' }
     },
     fields: {
@@ -447,13 +447,13 @@ Se il form è già aperto sulla pagina: INJECT_FORM_DATA con formId corrisponden
       'terreno-note'
     ],
     hierarchy: {
-      colturaCategoria: { fieldId: 'terreno-coltura-categoria', description: 'Categoria coltura (Frutteto, Vigneto, Seminativo, Ortive, ecc.)' },
+      colturaCategoria: { fieldId: 'terreno-coltura-categoria', description: 'Categoria coltura (Frutteto, Vite, Seminativo, Ortive, ecc.)' },
       coltura: { fieldId: 'terreno-coltura', description: 'Coltura specifica (Vite da Vino, Albicocche, Kaki, Grano, ecc.). Selezionare prima la categoria.' }
     },
     fields: {
       'terreno-nome': { type: 'text', resolve: 'as_is', required: true, description: 'Nome identificativo del terreno (OBBLIGATORIO)' },
       'terreno-superficie': { type: 'number', resolve: 'as_is', description: 'Superficie in ettari (es. 2.5). Può essere calcolata dalla mappa.' },
-      'terreno-coltura-categoria': { type: 'select', resolve: 'by_name', lookup: 'categorie_coltura', description: 'Categoria coltura (Frutteto, Vigneto, Seminativo, Ortive)' },
+      'terreno-coltura-categoria': { type: 'select', resolve: 'by_name', lookup: 'categorie_coltura', description: 'Categoria coltura (Frutteto, Vite, Seminativo, Ortive)' },
       'terreno-coltura': { type: 'select', resolve: 'by_name', lookup: 'colture', description: 'Coltura specifica (Vite da Vino, Albicocche, Kaki, Grano)' },
       'terreno-podere': { type: 'select', resolve: 'by_name', lookup: 'poderi', description: 'Podere (es. Casetti, Barbavara Vecchia)' },
       'terreno-tipo-campo': {

@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-24 — Prova moduli solo con piano Base.**
+**Ultimo aggiornamento documentazione: 2026-10-25 — Tony: risposte non tagliate + nomi reali.**
+
+## 2026-10-25 — Tony: niente risposte a metà (MAX_TOKENS) e nomi comandi corretti
+
+Gemini 2.5 Flash contava i token di ragionamento in `maxOutputTokens` (1536): le risposte finivano a metà con `finishReason: MAX_TOKENS` non letto. Ora `buildTonyGenerationConfig` imposta `thinkingBudget: 0` su 2.5 Flash e `maxOutputTokens` 4096; stream/non-stream/retry leggono finishReason e usage; su MAX_TOKENS un ripiego senza ragionamento e con più token, altrimenti avviso chiaro; JSON form troncato non esegue comandi. Tony chiama **Vite** la categoria coltura (Vigneto resta modulo e filtro Terreni); nelle guide di navigazione principali indica il pulsante moduli della pelle («Apri o chiudi i moduli») e tratta **I miei accessi** come sezione dashboard. Dopo il merge: deploy manuale `tonyAsk` e `tonyAskStream`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-24 — Prova moduli solo con piano Base.**
 
 ## 2026-10-24 — Prova moduli solo con piano Base (annulla 22/06)
 
