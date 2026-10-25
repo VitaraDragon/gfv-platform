@@ -121,3 +121,61 @@ describe('getUserTenantsFromData / resolver membership', () => {
     expect(getUserRolesFromData(user, 'A')).toEqual([]);
   });
 });
+
+describe('getUserRolesFromData (ruoli sul tenant corrente)', () => {
+  it('membership attiva → ruoli membership', () => {
+    const user = {
+      tenantId: 'A',
+      ruoli: ['amministratore'],
+      tenantMemberships: { A: { ruoli: ['manager'], stato: 'attivo' } },
+    };
+    expect(getUserRolesFromData(user, 'A')).toEqual(['manager']);
+  });
+
+  it('membership disattivata → [] (ignora ruoli deprecati)', () => {
+    const user = {
+      tenantId: 'A',
+      ruoli: ['amministratore'],
+      tenantMemberships: { A: { ruoli: ['manager'], stato: 'disattivato' } },
+    };
+    expect(getUserRolesFromData(user, 'A')).toEqual([]);
+  });
+
+  it('membership rimossa → []', () => {
+    const user = {
+      tenantId: 'A',
+      ruoli: ['amministratore'],
+      tenantMemberships: { A: { ruoli: ['manager'], stato: 'rimosso' } },
+    };
+    expect(getUserRolesFromData(user, 'A')).toEqual([]);
+  });
+
+  it('legacy stesso tenant attivo → ruoli deprecati', () => {
+    const user = { tenantId: 'A', ruoli: ['manager', 'operaio'], stato: 'attivo' };
+    expect(getUserRolesFromData(user, 'A')).toEqual(['manager', 'operaio']);
+  });
+
+  it('legacy stesso tenant disattivato → []', () => {
+    const user = { tenantId: 'A', ruoli: ['amministratore'], stato: 'disattivato' };
+    expect(getUserRolesFromData(user, 'A')).toEqual([]);
+  });
+
+  it('legacy altro tenant → []', () => {
+    const user = { tenantId: 'A', ruoli: ['amministratore'] };
+    expect(getUserRolesFromData(user, 'B')).toEqual([]);
+  });
+
+  it('admin altrove ma operaio qui → solo operaio sul tenant corrente', () => {
+    const user = {
+      tenantId: 'A',
+      ruoli: ['amministratore'],
+      tenantMemberships: {
+        A: { ruoli: ['amministratore'], stato: 'attivo' },
+        B: { ruoli: ['operaio'], stato: 'attivo' },
+      },
+    };
+    expect(getUserRolesFromData(user, 'A')).toEqual(['amministratore']);
+    expect(getUserRolesFromData(user, 'B')).toEqual(['operaio']);
+    expect(getUserRolesFromData(user, 'B').includes('amministratore')).toBe(false);
+  });
+});
