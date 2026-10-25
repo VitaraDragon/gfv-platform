@@ -4,10 +4,10 @@ Questa sezione ti aiuta a vedere l'app come un sistema unico, non come blocchi s
 
 Se ti chiedi "da dove nasce questo dato?" oppure "cosa succede dopo questo passaggio?", qui trovi la risposta.
 
-Quando indichi **dove andare** in chat o in guida, usa sempre il linguaggio dell'app: **pulsante moduli in alto** («Apri o chiudi i moduli», graffetta), **home** del modulo (Vigneto, Manodopera, Conto Terzi, …), **Per te oggi**, sezione dashboard **I miei accessi** (solo se visibile), **Richiede attenzione** — non "card in dashboard" (obsoleto) e non un pulsante «Moduli» separato in Home.
+Quando indichi **dove andare** in chat o in guida, usa sempre il linguaggio dell'app: **pulsante moduli in alto a sinistra** (graffetta, «Apri o chiudi i moduli»), **home** del modulo (Vigneto, Manodopera, Conto Terzi, …), **Per te oggi**, sezione dashboard **I miei accessi** (solo se visibile), **Richiede attenzione** — non "card in dashboard" (obsoleto) e non un pulsante «Moduli» separato in Home.
 
 **Regola unica nomi comandi (Tony e guide):**
-1. **Aprire i moduli** = pulsante in alto della pelle Proposta (aria-label «Apri o chiudi i moduli», icona graffetta). Non citare un pulsante «Moduli» in Home: con la pelle Proposta è nascosto.
+1. **Aprire i moduli** = pulsante moduli in alto a sinistra della pelle Proposta (aria-label «Apri o chiudi i moduli», icona graffetta). Non citare un pulsante «Moduli» in Home: con la pelle Proposta è nascosto.
 2. **I miei accessi** = **sezione della dashboard** (barra scorciatoie), **non** voce di menu. In Home Proposta può non essere visibile: non presentarla come percorso principale.
 3. **Categoria coltura** nei form Terreno/Preventivo = **Vite** (non «Vigneto»). **Vigneto** resta nome di **modulo/pagina** e valore del **filtro elenco Terreni**.
 
@@ -17,7 +17,7 @@ Quando indichi **dove andare** in chat o in guida, usa sempre il linguaggio dell
 
 ### Ingresso moduli
 
-- Il **pulsante moduli in alto** (graffetta / «Apri o chiudi i moduli») è il percorso **principale** verso Terreni, Diario, Statistiche, Abbonamento e ogni modulo attivo (Vigneto, Manodopera, Magazzino, Conto Terzi, Parco Macchine, Meteo, Report, …).
+- Il **pulsante moduli in alto a sinistra** (graffetta / «Apri o chiudi i moduli») è il percorso **principale** verso Terreni, Diario, Statistiche, Abbonamento e ogni modulo attivo (Vigneto, Manodopera, Magazzino, Conto Terzi, Parco Macchine, Meteo, Report, …).
 - Con **Manodopera** attivo **non** cercare grandi tile sparse sotto la panoramica: Vigneto, Magazzino e gli altri verticali sono nel **pannello moduli**, nella **home Manodopera**, in **Per te oggi** o **Accessi rapidi**.
 - **Senza Manodopera**, scorrendo **in fondo** alla dashboard possono comparire **riquadri** modulo (Vigneto, Magazzino, …): stessa voce del pannello, scorciatoia opzionale.
 - **Richiede attenzione** può aprire direttamente un modulo (es. prodotti sotto scorta → Magazzino; lavori da pianificare → Conto Terzi; scadenze/guasti → Parco Macchine).

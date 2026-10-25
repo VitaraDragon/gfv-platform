@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-25 — Tony: risposte non tagliate + nomi reali.**
+**Ultimo aggiornamento documentazione: 2026-10-25 — Tony: mai JSON grezzo in chat.**
+
+## 2026-10-25 — Tony: mai JSON grezzo in chat (virgolette non escapate)
+
+Con `thinkingBudget: 0` Gemini a volte scrive `{"text":"... è "Vite"."}` senza escape: il parse in `functions/index.js` falliva e in chat restava `text": "…`. Ora `functions/tony-json-text.js` estrae il testo in modo tollerante (server + difesa in `engine.js`); il prompt Avanzato vieta le virgolette doppie dentro `text` (usa «»); guide: pulsante moduli **in alto a sinistra**. Test vitest dedicati. Dopo il merge: deploy manuale `tonyAsk` e `tonyAskStream`. Il client arriva con la promozione develop → main.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-25 — Tony: risposte non tagliate + nomi reali.**
 
 ## 2026-10-25 — Tony: niente risposte a metà (MAX_TOKENS) e nomi comandi corretti
 
