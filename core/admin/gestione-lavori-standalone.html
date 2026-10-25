@@ -3662,7 +3662,8 @@
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                             if (tenantDoc.exists()) {
                                 const tenantData = tenantDoc.data();
-                                const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                                const { getEffectiveModulesFromTenant } = await import('../utils/module-access-resolver.js');
+                                const modules = getEffectiveModulesFromTenant(tenantData);
                                 gestioneLavoriModuloNoto = true;
                                 hasManodoperaModule = modules.includes('manodopera');
                                 hasParcoMacchineModule = modules.includes('parcoMacchine');

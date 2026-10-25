@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-20 — Card Gestione lavori subito leggibili.**
+**Ultimo aggiornamento documentazione: 2026-10-24 — Prova moduli solo con piano Base.**
+
+## 2026-10-24 — Prova moduli solo con piano Base (annulla 22/06)
+
+**24/10/2026: prova moduli solo con piano Base (annulla 22/06).** La prova gratuita di 30 giorni di un modulo si avvia solo con piano Base attivo (`startModuleTrial` + resolver client + pagina Abbonamento). Le prove già avviate su Free non si migrano: scadono da sole. Gestione lavori e home Manodopera leggono i moduli effettivi (`modules` + `moduleTrials` attivi) tramite `getEffectiveModulesFromTenant`. Dopo il merge: deploy manuale `functions:startModuleTrial`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-20 — Card Gestione lavori subito leggibili.**
 
 ## 2026-10-20 — Gestione lavori: le card non restano a zero
 
