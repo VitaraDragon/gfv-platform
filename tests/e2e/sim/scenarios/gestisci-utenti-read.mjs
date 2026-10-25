@@ -1,5 +1,8 @@
 /**
- * E2E read — gestisci utenti admin (§11.3 scen. 45).
+ * E2E read — gestisci utenti (§11.3 scen. 45).
+ * Login seed «manager» (persona con ruolo amministratore) → entra e legge lista.
+ * UI solo-manager (niente casella Amministratore / azioni su admin): covered by
+ * tests/gestisci-utenti-manager-static.test.js — il seed non ha un manager puro.
  * @module tests/e2e/sim/scenarios/gestisci-utenti-read
  */
 
@@ -16,6 +19,9 @@ export async function runGestisciUtentiReadAssertions(page, expect) {
   await gotoGestisciUtenti(page);
 
   await expect(page.locator('h1').filter({ hasText: 'Gestisci Utenti' })).toBeVisible();
+
+  // Accesso via ruoli tenant: seed manager = amministratore → Impostazioni visibile
+  await expect(page.locator('#impostazioni-link')).toBeVisible();
 
   const table = page.locator('#users-container .users-table');
   await expect(table).toBeVisible();
@@ -34,4 +40,11 @@ export async function runGestisciUtentiReadAssertions(page, expect) {
   expect(ruoliCells.some((r) => /operaio/i.test(r))).toBe(true);
 
   await expect(page.getByRole('button', { name: /Invita Utente/i })).toBeVisible();
+
+  // Modal Invita: casella Amministratore disponibile per admin seed
+  await page.getByRole('button', { name: /Invita Utente/i }).click();
+  await expect(page.locator('#invita-modal')).toHaveClass(/active/);
+  await expect(page.locator('#role-admin-item')).toBeVisible();
+  await expect(page.locator('#role-admin')).toBeEnabled();
+  await page.locator('#invita-modal .close-btn').click();
 }
