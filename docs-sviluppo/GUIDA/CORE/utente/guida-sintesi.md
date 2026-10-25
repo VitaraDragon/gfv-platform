@@ -15,10 +15,14 @@ Testo breve: stesso linguaggio della guida utente. Usalo per rispondere a «come
 
 Apri il riquadro, scegli la voce; se ci sono due livelli (es. categoria coltura poi coltura), **nell’ordine** indicato dalle etichette.
 
+**Niente doppioni:** categorie, colture e tipi lavoro con lo stesso nome compaiono una volta sola in tutti gli elenchi (Terreni, Diario, Gestione lavori, Conto terzi, Frutteto, Seminativo); le voci predefinite mancanti ricompaiono da sole aprendo le pagine, senza copie nuove.
+
 ## Piani e Tony (Core)
 
 - **Free**: limiti terreni/attività; **no** acquisto moduli; **no** prova moduli (serve Base); **no** Tony.
 - **Base**: terreni/attività illimitati, **Tony Guida** (orientamento + suggerimenti moduli non invasivi), moduli verticali **pay-per-use** o **prova 30gg** (un modulo alla volta).
+- **Free** che tocca un modulo in Abbonamento: «La prova gratuita dei moduli è disponibile con il piano Base.» → prima **✨ Passa al Piano Base** (solo con pagamento online). Ritorno Base → Free non dall’app: «Il passaggio a un piano inferiore non è ancora disponibile dall'app. Per annullare l'abbonamento contatta l'assistenza.» Piano e moduli si cambiano solo da **Abbonamento**.
+- **Modulo in prova** = come pagato: con Manodopera in prova **home Manodopera** e **Gestione lavori** funzionano per intero.
 - **Modulo Tony Avanzato**: automazioni (navigazione, form, filtri, **foto bolla/fattura** → magazzino) — **oltre** Tony Guida del Base; non confonderli.
 
 ## Ruoli e moduli
@@ -35,4 +39,4 @@ Spiega dove sono le funzioni e i termini in schermata; con **Base** può suggeri
 
 **Seminativo:** modulo colture a pieno campo (guide in `GUIDA/SEMINATIVO/`; codice completo su main).
 
-**Accesso:** email/password; **Password dimenticata?** dal login; invito via link email (non registrazione generica); **cambia azienda** se siete su più tenant.
+**Accesso:** email/password; **Password dimenticata?** dal login; invito via link email (non registrazione generica; il **cellulare** lo scrive l’invitato); **cambia azienda** se siete su più tenant. Errori invito: «Token invalido o già utilizzato.», «Token scaduto. Contatta l'amministratore per un nuovo invito.», «L'email dell'account non corrisponde all'invito.», «Appartieni già a questa azienda» (basta il login); altrimenti nuovo invito.

@@ -1084,10 +1084,11 @@
     {
       "prefix": "firestore.rules",
       "modules": [
+        "CORE",
         "MANODOPERA",
         "PARCO_MACCHINE"
       ],
-      "label": "Regole Firestore (permessi per ruolo su ore, lavori, guasti, zone lavorate): rileggere la sezione toccata"
+      "label": "Regole Firestore (permessi per ruolo su ore, lavori, guasti, zone lavorate; users/inviti/tenant billing #283/#285): rileggere la sezione toccata"
     },
     {
       "prefix": "tests/gestione-lavori-required-nascosti",
@@ -1589,6 +1590,212 @@
         "MANODOPERA"
       ],
       "label": "Simulatore dati (orchestrator, fasi, template): di solito nessun testo guida"
+    },
+    {
+      "prefix": "functions/accetta-invito.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "CF accettaInvito: membership e stato invito solo lato server (#283)"
+    },
+    {
+      "prefix": "core/services/invito-service-standalone.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Inviti client: getInvitoPubblico + accettaInvito, errori «Appartieni già a questa azienda» (#283)"
+    },
+    {
+      "prefix": "core/services/role-service.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Ruoli: scritture client disabilitate (#283)"
+    },
+    {
+      "prefix": "core/services/auth-service.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Auth client (registrazione/membership, #283)"
+    },
+    {
+      "prefix": "core/admin/fix-utente-mancante.html",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Strumento fix utente disabilitato (#283)"
+    },
+    {
+      "prefix": "core/js/accettazione-legale-registrazione",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Accettazione legale dopo account: niente rollback, «Conferma le condizioni al primo accesso» (#281, flag spento)"
+    },
+    {
+      "prefix": "core/js/catalogo-dedupe.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA",
+        "FRUTTETO",
+        "SEMINATIVO",
+        "CONTO_TERZI"
+      ],
+      "label": "Unione voci catalogo omonime: categorie, colture, tipi lavoro (#279)"
+    },
+    {
+      "prefix": "core/services/catalogo-seed.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Seed catalogo idempotente (id seed_*, lock, writeBatch voci mancanti) (#279/#287)"
+    },
+    {
+      "prefix": "core/services/categorie-service.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Categorie lavori/colture: seed e lettura (#279/#287)"
+    },
+    {
+      "prefix": "core/services/colture-service.js",
+      "modules": [
+        "CORE",
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO"
+      ],
+      "label": "Colture: seed predefinite e lettura (#279/#287)"
+    },
+    {
+      "prefix": "core/services/tipi-lavoro-service.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Tipi lavoro: seed predefiniti e lettura (#279/#287)"
+    },
+    {
+      "prefix": "core/services/liste-service.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Liste personalizzate (tipi lavoro/colture)"
+    },
+    {
+      "prefix": "core/js/terreni-controller.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Terreni: caricamento categorie/colture unite (#279/#287)"
+    },
+    {
+      "prefix": "core/js/terreni-events.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Terreni: eventi form (coltura→categoria canonica, #279)"
+    },
+    {
+      "prefix": "core/utils/module-access-resolver.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA",
+        "TONY"
+      ],
+      "label": "Moduli effettivi (pagati + prove), prova solo con Base (#289)"
+    },
+    {
+      "prefix": "core/config/subscription-plans.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Piani Free/Base, resolveTenantPlanId (#289)"
+    },
+    {
+      "prefix": "tests/accetta-invito",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Test CF accettaInvito: di solito nessun testo guida"
+    },
+    {
+      "prefix": "tests/accettazione-legale-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test accettazione legale: di solito nessun testo guida"
+    },
+    {
+      "prefix": "tests/catalogo-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test catalogo dedupe/seed: di solito nessun testo guida"
+    },
+    {
+      "prefix": "tests/firestore-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test regole Firestore: di solito nessun testo guida"
+    },
+    {
+      "prefix": "tests/module-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test moduli/prove: di solito nessun testo guida"
+    },
+    {
+      "prefix": "tests/fixtures/module-trial",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Fixture prove moduli: nessun testo guida"
+    },
+    {
+      "prefix": "tests/users-membership-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test membership client: nessun testo guida"
+    },
+    {
+      "prefix": "tests/invito-",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Test inviti client: nessun testo guida"
+    },
+    {
+      "prefix": "tests/services/invito-pubblico",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Test CF getInvitoPubblico: nessun testo guida"
+    },
+    {
+      "prefix": "tests/nome-titolare-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test nome titolare: nessun testo guida"
+    },
+    {
+      "prefix": "tests/e2e/sim/manodopera-migrazione",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "E2E migrazione Manodopera: di solito nessun testo guida"
     }
   ]
 }

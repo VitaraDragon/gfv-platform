@@ -19,6 +19,11 @@ Modulo in **`dashboard.moduli_attivi`** (chiave tipica `manodopera`). In contest
 | Compensi operai | `admin/compensi-operai-standalone.html` |
 | Statistiche lavoratore (embed mobile) | `mobile/statistiche-lavoratore-standalone.html` |
 
+## Moduli effettivi e inviti (#283, #289)
+
+- **#289:** `manodopera-home-standalone.html` e `admin/gestione-lavori-standalone.html` leggono i moduli con `getEffectiveModulesFromTenant` (`core/utils/module-access-resolver.js`: pagati + prove attive) invece di `tenant.modules` grezzo: con Manodopera in prova niente più «Il modulo Manodopera non è attivo per la tua azienda.» né flag `hasManodoperaModule` falso; lo stesso elenco va al contesto Tony (`initContextWithModules`). Prova moduli solo con piano Base (CORE § Piani).
+- **#283:** inviti accettati solo via callable `accettaInvito`; in **Gestisci utenti** (`admin/gestisci-utenti-standalone.html`) `handleModificaRuoli`, `toggleUserStatus`, `rimuoviUtente` falliscono per rules (`permission-denied`) e mostrano l’avviso «…(blocco di sicurezza)…»; `annullaInvito` (solo `invitato → annullato`) e `rimuoviInvito` funzionano. Niente controllo client «utente già in azienda» (rules `users` senza lettura globale): lo fa `accettaInvito` (`already-exists`). Manager/admin possono ancora aggiornare sui `users` dello stesso `tenantId` solo i campi contratto (Gestione operai: `tipoOperaio`, `tipoContratto`, date e note contratto, `tariffaPersonalizzata`). Dettaglio rules e codici errore in CORE § Inviti.
+
 ## On/off e migrazione dati (#133)
 
 Dettaglio tecnico in **CORE** § Gate Manodopera ↔ Diario / Migrazione. Trigger **solo** da pagina Abbonamento (`allineaManodoperaUi` al load / post-Stripe / cambio moduli); se Manodopera scade o viene revocato senza aprire Abbonamento, nessuna copia finché non si apre. Spegnimento: lavori → attività Diario **editabili**. Motivi «Attività precedenti»: in guida utente etichette leggibili («Tipo Altro», «Conto terzi incompleto», «Campi obbligatori mancanti»); in UI possono ancora comparire i codici `tipo-altro` / `ct-incompleto` / `campi-vuoti` (coda prodotto). Auto-migrazione altrove = backlog prodotto.

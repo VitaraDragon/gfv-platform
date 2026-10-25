@@ -170,6 +170,8 @@ In molte schermate devi scegliere un valore da un **elenco che si apre quando cl
 3. **Scorri** l’elenco se è lungo; su cellulare puoi anche digitare se il sistema lo permette nel tuo browser.
 4. Se leggi «Seleziona prima la categoria» o messaggi simili, significa che manca un passaggio prima — torna al punto precedente e completa la scelta nell’ordine indicato dalle etichette.
 
+**Niente doppioni negli elenchi.** Categorie, colture e tipi di lavoro con lo **stesso nome** compaiono **una volta sola** in tutti gli elenchi (Terreni, Diario, Gestione lavori, Conto terzi, Frutteto, Seminativo), anche se in passato l’azienda si era ritrovata delle copie. Le voci **predefinite** dell’app che mancavano ricompaiono da sole aprendo le pagine: non serve ricrearle a mano, e aprire più pagine insieme non crea copie nuove.
+
 Se un **podere** non compare sul terreno, va creato in **Impostazioni** con **➕ Aggiungi Podere**. Se nel **Diario** non compare la **coltura**, il terreno non ce l’ha: **Terreni** → **✏️ Modifica** → **Categoria Coltura** e **Coltura** → **Salva Terreno**. Le colture in più dell’azienda, se servono, si aggiungono nelle liste di **Impostazioni**.
 
 ---
@@ -372,7 +374,8 @@ La conversazione con **Tony** non si perde: dopo il ricaricamento la chat ripart
 
 ### Nuova azienda vs invito
 - **Registrazione** (nuovo account + nuova azienda): usatela solo se state creando l’azienda da zero.  
-- Se vi hanno **invitato** per email: aprite il **link nell’invito** (non la registrazione generica) e completate i dati richiesti. Dettaglio inviti/ruoli nella guida **Manodopera** (manager).
+- Se vi hanno **invitato** per email: aprite il **link nell’invito** (non la registrazione generica) e completate i dati richiesti. Il **cellulare** lo scrivete voi (non arriva già compilato dall’invito). Dettaglio inviti/ruoli nella guida **Manodopera** (manager).
+- Se l’invito non va a buon fine compare un messaggio: «Token invalido o già utilizzato.» (link già usato o annullato), «Token scaduto. Contatta l'amministratore per un nuovo invito.», «L'email dell'account non corrisponde all'invito.» (usate l’email a cui è arrivato l’invito) oppure «Appartieni già a questa azienda» (siete già dentro: fate semplicemente il login). Negli altri casi chiedete a chi vi ha invitato un **nuovo invito**.
 
 ### Più aziende
 Se il vostro utente appartiene a più aziende, scegliete quella giusta con **cambia azienda** (o voce equivalente) **prima** di cercare dati. Lavorate sempre su **un’azienda alla volta**.
@@ -404,6 +407,9 @@ Nella pagina **Abbonamento** (menu **Moduli** o tile dedicata) vedi il **piano c
 
 - Avvicinati ai limiti del Free → valuta il passaggio a **Base**.
 - Con il piano **Base**, in Abbonamento → **prova 30 giorni** o attiva a pagamento **solo i moduli** che vi servono.
+- Con il piano **Free**, se toccate un modulo in **Moduli Disponibili** leggete «La prova gratuita dei moduli è disponibile con il piano Base.»: prima serve **✨ Passa al Piano Base**.
+- Un modulo **in prova** funziona come uno pagato: per esempio con **Manodopera** in prova si aprono la **home Manodopera** e **Gestione lavori** con tutte le funzioni.
+- Piano e moduli si cambiano **solo** da questa pagina (pagamento online, prova, **Disattiva** / **Riattiva**), e solo da chi gestisce l’abbonamento. Il passaggio a **Base** avviene sempre con il pagamento online. Il ritorno da **Base** a **Free** non si fa dall’app: compare «Il passaggio a un piano inferiore non è ancora disponibile dall'app. Per annullare l'abbonamento contatta l'assistenza.»
 - Alla **disattivazione** un modulo smette subito di funzionare; se era già pagato potete spesso **riattivarlo** fino alla data già coperta (dettaglio in pagina).
 - Se attivate o spegnete **Manodopera**, aprendo **Abbonamento** i dati passano da Diario a Gestione lavori (o, allo spegnimento, tornano nel Diario come **attività modificabili**) senza perdere nulla; con lavori ancora aperti vi viene chiesta una conferma. **[Impara qui: Diario](#mini-guida-compilare-il-diario-attivita)**
 - Per capire Tony (chat, voce, differenza Guida/Avanzato, documenti foto/PDF) apri la **guida modulo Tony** dalla raccolta Guide.

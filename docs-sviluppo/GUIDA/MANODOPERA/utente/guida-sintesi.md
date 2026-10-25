@@ -17,6 +17,8 @@ Modulo **Manodopera** attivo nell’**abbonamento**. Linguaggio utente: **versio
 - **Competenze operai:** scheda skill in Gestione operai (dichiarate + stelline da ore validate) → alimenta la shortlist sostituti.  
 - Operaio: **Conferma ricezione** sui messaggi del capo sul lavoro.  
 - **Amministrazione** (👑): da **Moduli**, non come card in pagina quando Manodopera è attivo.
+- **Manodopera in prova** (30 giorni, solo piano Base): **home Manodopera** e **Gestione lavori** funzionano come con il modulo pagato.
+- **Gestisci utenti — inviti:** il cellulare messo nell’invito non arriva precompilato all’invitato (lo scrive lui). Ruolo da scegliere **già nell’invito**: per ora **Modifica ruoli**, attiva/disattiva e rimozione utente mostrano un avviso di blocco («Non puoi modificare i ruoli da questa pagina (blocco di sicurezza)…»); restano **Annulla invito** e rimozione invito. Ruolo sbagliato → annulla e reinvia. Persona già in azienda → all’apertura «Appartieni già a questa azienda» (basta il login). Link usato/annullato/scaduto → «Token invalido o già utilizzato.» / «Token scaduto…» → nuovo invito.
 
 ## Ruoli (non mischiare)
 

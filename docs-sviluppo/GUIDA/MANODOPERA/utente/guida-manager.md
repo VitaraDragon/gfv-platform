@@ -95,9 +95,10 @@ Senza persone registrate con il **ruolo giusto**, squadre e lavori non possono f
 
 1. Trovi l’elenco degli account collegati all’azienda e il loro **ruolo** (manager, caposquadra, operaio, ecc.).  
 2. Usa il pulsante **Invita Utente** (o formulazione simile) per un **nuovo ingresso**.  
-3. Compila i campi richiesti in schermata: di solito **email**, **nome**, **cognome**; spesso anche **cellulare** (serve al caposquadra per le chiamate rapide dalla versione mobile).  
+3. Compila i campi richiesti in schermata: di solito **email**, **nome**, **cognome**; spesso anche **cellulare** (serve al caposquadra per le chiamate rapide dalla versione mobile). Quando la persona apre l’invito il cellulare **non** le compare già scritto: lo inserisce lei nella registrazione.  
 4. Invia l’invito. La persona riceve le istruzioni per **accettare** e completare l’accesso.  
-5. Se serve, dopo l’accettazione **assegni o correggi il ruolo** dall’elenco utenti (solo chi ha permesso di gestione).
+5. Scegli **subito il ruolo giusto** nell’invito: per ora dall’elenco utenti **non** si possono cambiare i ruoli, attivare/disattivare un utente o rimuoverlo. Se ci provi compare un avviso, per esempio «Non puoi modificare i ruoli da questa pagina (blocco di sicurezza). La gestione ruoli sarà ripristinata a breve lato server.». Restano disponibili **Annulla invito** e la rimozione di un invito non ancora accettato.  
+6. Se inviti una persona che è **già** nella tua azienda, l’invito parte lo stesso, ma quando lei lo apre legge «Appartieni già a questa azienda»: le basta fare il login.
 
 ### Procedura consigliata per invitare un operaio (passo passo)
 
@@ -117,6 +118,8 @@ Senza persone registrate con il **ruolo giusto**, squadre e lavori non possono f
 ### Errori frequenti negli inviti (e come evitarli)
 
 - **Invito inviato ma utente non operativo**: spesso manca il ruolo corretto o manca l’inserimento in squadra.  
+- **Ruolo sbagliato nell’invito**: se l’invito non è ancora accettato, **annullalo** e mandane uno nuovo con il ruolo giusto (dall’elenco utenti, per ora, il ruolo non si cambia).  
+- **Il collaboratore legge «Token invalido o già utilizzato.» o «Token scaduto…»**: l’invito è già stato usato, annullato o è scaduto: mandagliene uno nuovo. Con «L'email dell'account non corrisponde all'invito.» deve usare l’email a cui è arrivato l’invito.  
 - **Caposquadra che non vede i membri**: in genere la squadra non è stata salvata con i componenti aggiornati.  
 - **Operaio che non vede lavori in mobile**: di solito il lavoro non è assegnato a lui o alla sua squadra, oppure è in stato non coerente.
 
