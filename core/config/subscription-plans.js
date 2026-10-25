@@ -500,9 +500,9 @@ export function canActivateModule(planId, moduleId, currentModules = []) {
     return { canActivate: false, reason: 'Modulo non ancora disponibile' };
   }
   
-  // Piano Free: acquisto moduli richiede Base; prova gratuita gestita separatamente (module-trial).
+  // Piano Free: acquisto e prova moduli richiedono Base (decisione prodotto 24/10/2026).
   if (planId === 'free') {
-    return { canActivate: false, reason: 'Piano Free: usa la prova gratuita di 30 giorni oppure passa al piano Base per acquistare moduli.' };
+    return { canActivate: false, reason: 'Piano Free: passa al piano Base per acquistare moduli o avviare la prova gratuita di 30 giorni.' };
   }
   
   // Piano Base: tutti i moduli disponibili (pay-per-use)
@@ -636,6 +636,7 @@ export function planRequiresStripePayment(planId, env = 'test') {
 
 /**
  * Normalizza piano tenant (Firestore / legacy) → id canonico `free` | `base`.
+ * Allineato a `functions/tenant-plan.js`.
  * @param {string|null|undefined} raw
  * @returns {'free'|'base'}
  */
@@ -646,6 +647,50 @@ export function normalizeSubscriptionPlanId(raw) {
   if (p === 'base') return 'base';
   if (['starter', 'professional', 'enterprise'].includes(p)) return 'base';
   return 'base';
+}
+
+const ACTIVE_SUBSCRIPTION_STATUSES = new Set(['active', 'trialing', 'expiring']);
+
+/**
+ * Valore grezzo del piano dal doc tenant (`plan` prima di `piano`).
+ * Allineato a `functions/tenant-plan.js`.
+ * @param {object|null|undefined} tenantData
+ * @returns {unknown}
+ */
+export function rawPlanFromTenant(tenantData) {
+  const td = tenantData || {};
+  return td.plan != null && td.plan !== '' ? td.plan : td.piano;
+}
+
+/**
+ * Abbonamento Stripe del piano Base ancora valido (status assente = attivo).
+ * Allineato a `functions/tenant-plan.js`.
+ * @param {object|null|undefined} tenantData
+ * @returns {boolean}
+ */
+export function hasActiveStripeBaseSubscription(tenantData) {
+  const td = tenantData || {};
+  if (!td.stripeSubscriptionId) return false;
+  const status = td.status ? String(td.status).trim().toLowerCase() : 'active';
+  return ACTIVE_SUBSCRIPTION_STATUSES.has(status);
+}
+
+/**
+ * Piano effettivo del tenant — stessa regola di `functions/tenant-plan.js`
+ * (`plan` vince su `piano`; Free con Stripe Base attivo ⇒ base).
+ * @param {object|null|undefined} tenantData
+ * @param {{ fallbackRaw?: unknown }} [opts]
+ * @returns {'free'|'base'}
+ */
+export function resolveTenantPlanId(tenantData, opts) {
+  const td = tenantData || {};
+  let raw = rawPlanFromTenant(td);
+  if ((raw == null || raw === '') && opts && opts.fallbackRaw != null) {
+    raw = opts.fallbackRaw;
+  }
+  const planId = normalizeSubscriptionPlanId(raw);
+  if (planId === 'free' && hasActiveStripeBaseSubscription(td)) return 'base';
+  return planId;
 }
 
 /**
@@ -685,5 +730,8 @@ export default {
   getStripePriceId,
   planRequiresStripePayment,
   normalizeSubscriptionPlanId,
+  rawPlanFromTenant,
+  hasActiveStripeBaseSubscription,
+  resolveTenantPlanId,
   getPlanOperationalLimits
 };

@@ -152,9 +152,14 @@ describe('invito accettato da utente esistente: completa solo campi vuoti', () =
     )).toEqual({ cognome: 'Bianchi' });
   });
 
-  it('invito-service-standalone.js usa campiNomeDaInvitoSeVuoti', () => {
-    const src = leggi('core/services/invito-service-standalone.js');
-    expect(src).toContain('campiNomeDaInvitoSeVuoti');
+  it('accetta-invito.js usa campiNomeDaInvitoSeVuoti; il client non scrive nome/cognome su users', () => {
+    const server = leggi('functions/accetta-invito.js');
+    expect(server).toContain('function campiNomeDaInvitoSeVuoti');
+    expect(server).toMatch(/campiNomeDaInvitoSeVuoti\s*\(/);
+    const client = leggi('core/services/invito-service-standalone.js');
+    expect(client).not.toContain('campiNomeDaInvitoSeVuoti');
+    expect(client).not.toMatch(/updateDoc\([\s\S]{0,200}nome\s*:/s);
+    expect(client).not.toMatch(/setDoc\([\s\S]{0,200}nome\s*:/s);
   });
 });
 

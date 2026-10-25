@@ -395,6 +395,7 @@
         import { onAuthStateChanged, signOut } from '../services/firebase-service.js';
         import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
         import { fetchInvitoByToken } from '../services/invito-service-standalone.js';
+        import { registraAccettazioneDopoAccount, messaggioFineRegistrazione } from '../js/accettazione-legale-registrazione.js';
 
         const app = getAppInstance();
         const auth = getAuthInstance();
@@ -477,6 +478,15 @@
             await registra(Object.assign({ azione: 'registra' }, payload));
         }
 
+        // Account e membership esistono già: se fallisce solo la presa visione non si annulla nulla,
+        // si prosegue e il gate di ingresso la richiede al primo accesso. Flag spento: nessuna chiamata.
+        function completaPresaVisione() {
+            return registraAccettazioneDopoAccount({
+                attiva: accettazioneLegaleAttiva,
+                registra: registraPresaVisioneSeAttiva
+            });
+        }
+
         try {
             const configLegale = await import('../config/accettazione-legale-config.js');
             if (configLegale.ACCETTAZIONE_LEGALE_ATTIVA === true) {
@@ -496,43 +506,34 @@
         // Leggi token da URL PRIMA di tutto
         const urlParams = new URLSearchParams(window.location.search);
         const token = urlParams.get('token');
+        // Durante acceptInvito il signIn riparte onAuthStateChanged: non fare signOut/reload né doppio loadInvite.
+        let accettazioneInCorso = false;
 
-// Verifica se già autenticato
-        // Se c'è un token nell'URL, facciamo logout SOLO se l'utente sta aprendo questa pagina
-        // Non fare logout se l'utente è già sulla pagina di registrazione
         onAuthStateChanged(auth, async (user) => {
+            if (accettazioneInCorso) return;
             if (!user) user = await resolveAuthUser(auth);
-            // Se loggato ma non c'è token, redirect a dashboard
             if (user && !token) {
                 window.location.href = '../dashboard-standalone.html';
                 return;
             }
-            
-            // Se c'è un token e l'utente è loggato, facciamo logout SOLO se necessario
-            // (per permettere la registrazione con il nuovo account)
+
             if (user && token) {
-                // Verifica se l'utente loggato è lo stesso dell'invito
-                // Se sì, non serve logout (sta già registrando il suo account)
-                // Se no, facciamo logout per permettere la registrazione
                 try {
                     const invitoData = await fetchInvitoByToken(token);
                     if (invitoData.email && user.email &&
                         invitoData.email.toLowerCase() !== user.email.toLowerCase()) {
-
                             await signOut(auth);
                             window.location.reload();
                             return;
                     }
                 } catch (error) {
                     console.error('Errore verifica invito:', error);
-                    // In caso di errore, fai logout per sicurezza
                     await signOut(auth);
                     window.location.reload();
                     return;
                 }
             }
-            
-            // Se non loggato o logout completato, procedi con il caricamento invito
+
             if (token) {
                 loadInvite(token);
             } else if (!user) {
@@ -577,11 +578,8 @@
                 emailInput.value = inviteData.email;
                 nomeInput.value = inviteData.nome;
                 cognomeInput.value = inviteData.cognome;
-                // Pre-compila cellulare se presente nell'invito, altrimenti lascia vuoto (sarà obbligatorio)
-                if (inviteData.cellulare) {
-                    cellulareInput.value = inviteData.cellulare;
-                } else {
-                    // Assicurati che il campo sia vuoto se non presente nell'invito
+                // Il cellulare non arriva dall'invito (dato non esposto dalla callable): lo digita l'invitato, campo obbligatorio.
+                if (cellulareInput) {
                     cellulareInput.value = '';
                 }
                 
@@ -709,283 +707,92 @@
                 showLoading('Creazione account in corso...');
             }
 
+            accettazioneInCorso = true;
+            let invitoCallableErrorCode = (err) => String((err && err.code) || '').replace(/^functions\//, '');
             try {
                 const password = passwordInput.value;
                 const cellulare = cellulareInput.value.trim();
+                const invitoMod = await import('../services/invito-service-standalone.js');
+                if (typeof invitoMod.invitoCallableErrorCode === 'function') {
+                    invitoCallableErrorCode = invitoMod.invitoCallableErrorCode;
+                }
 
-                // Usa funzione acceptInvito del service che gestisce sia utenti nuovi che esistenti
-                const { acceptInvito } = await import('../services/invito-service-standalone.js');
-                
-                let userData;
-                try {
-                    userData = await acceptInvito(
-                        auth,
-                        db,
-                        createUserWithEmailAndPassword,
-                        signInWithEmailAndPassword,
-                        doc,
-                        getDoc,
-                        setDoc,
-                        updateDoc,
-                        collection,
-                        query,
-                        where,
-                        getDocs,
-                        serverTimestamp,
-                        inviteData.token || (new URLSearchParams(window.location.search).get('token')),
-                        password
-                    );
-                } catch (acceptError) {
-                    // Se l'errore è auth/email-already-in-use e non è stato gestito dal service,
-                    // gestiscilo direttamente qui come fallback
-                    if (acceptError.code === 'auth/email-already-in-use' || 
-                        (acceptError.message && acceptError.message.includes('email-already-in-use'))) {
-                        
-                        if (!password) {
-                            throw new Error('Password richiesta. Questa email è già registrata. Inserisci la password del tuo account esistente.');
+                const userData = await invitoMod.acceptInvito(
+                    auth,
+                    db,
+                    createUserWithEmailAndPassword,
+                    signInWithEmailAndPassword,
+                    doc,
+                    getDoc,
+                    setDoc,
+                    updateDoc,
+                    collection,
+                    query,
+                    where,
+                    getDocs,
+                    serverTimestamp,
+                    token,
+                    password
+                );
+
+                if (cellulare && auth.currentUser) {
+                    try {
+                        const userCellSnap = await getDoc(doc(db, 'users', auth.currentUser.uid));
+                        const cellEsistente = userCellSnap.exists()
+                            ? String((userCellSnap.data() || {}).cellulare || '').trim()
+                            : '';
+                        if (!cellEsistente) {
+                            await updateDoc(doc(db, 'users', auth.currentUser.uid), { cellulare: cellulare });
                         }
-                        
-                        try {
-                            // Prova a fare login
-                            const userCredential = await signInWithEmailAndPassword(auth, inviteData.email, password);
-                            const firebaseUser = userCredential.user;
-                            
-                            const invito = inviteData;
-                            if (!invito || !invito.id || !invito.tenantId) {
-                                throw new Error('Invito non trovato');
-                            }
-                            
-                            // Aggiungi membership
-                            const userDocRef = doc(db, 'users', firebaseUser.uid);
-                            const userDoc = await getDoc(userDocRef);
-                            
-                            if (!userDoc.exists()) {
-                                throw new Error('Utente non trovato in Firestore');
-                            }
-                            
-                            const existingUserData = userDoc.data();
-                            const tenantMemberships = existingUserData.tenantMemberships || {};
-                            
-                            if (tenantMemberships[invito.tenantId] && tenantMemberships[invito.tenantId].stato === 'attivo') {
-                                throw new Error('Appartieni già a questo tenant');
-                            }
-                            
-                            tenantMemberships[invito.tenantId] = {
-                                ruoli: invito.ruoli || [],
-                                stato: 'attivo',
-                                dataInizio: serverTimestamp(),
-                                creatoDa: invito.inviatoDa,
-                                tenantIdPredefinito: false
-                            };
-                            
-                        await updateDoc(userDocRef, {
-                            tenantMemberships: tenantMemberships
-                        });
-                        
-                        await updateDoc(doc(db, 'inviti', invito.id), {
-                            stato: 'accettato',
-                            accettatoIl: serverTimestamp()
-                        });
-                        
-                        // Pulisci cache tenant utente per forzare ricaricamento
-                        try {
-                            const { clearUserTenantsCache } = await import('../services/tenant-service.js');
-                            clearUserTenantsCache();
-                        } catch (cacheError) {
-                            console.warn('Errore pulizia cache tenant:', cacheError);
-                        }
-                        
-                        userData = {
-                            ...existingUserData,
-                            tenantMemberships: tenantMemberships,
-                            _isNewMembership: true,
-                            _newTenantId: invito.tenantId
-                        };
-                        } catch (loginError) {
-                            console.error('❌ [REGISTRAZIONE] Errore login fallback:', {
-                                code: loginError.code,
-                                message: loginError.message
-                            });
-                            if (loginError.code === 'auth/user-not-found' || loginError.code === 'auth/wrong-password') {
-                                throw new Error('Password errata. Inserisci la password del tuo account esistente.');
-                            }
-                            throw loginError;
-                        }
-                    } else {
-                        // Rilancia altri errori
-                        throw acceptError;
+                    } catch (cellErr) {
+                        console.warn('Aggiornamento cellulare non riuscito:', cellErr);
                     }
                 }
 
-                // Se è una nuova membership (utente esistente aggiunto a nuovo tenant)
-                if (userData._isNewMembership === true) {
-                    // Aggiorna cellulare se fornito e non presente
-                    if (cellulare && !userData.cellulare) {
-                        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-                            cellulare: cellulare
-                        });
-                    }
-                    
-                    await registraPresaVisioneSeAttiva();
-                    hideLoading();
-                    successMessage.textContent = `✅ Aggiunto a ${userData._newTenantId || 'nuova azienda'} con successo! Reindirizzamento alla dashboard...`;
-                    successMessage.classList.add('show');
-                    
-                    // Redirect a dashboard
-                    setTimeout(() => {
-                        window.location.href = '../dashboard-standalone.html';
-                    }, 2000);
-                } else {
-                    // Nuovo utente creato
-                    // Aggiorna cellulare se fornito
-                    if (cellulare) {
-                        await updateDoc(doc(db, 'users', auth.currentUser.uid), {
-                            cellulare: cellulare
-                        });
-                    }
-                    
-                    // Successo! L'utente è già loggato (createUserWithEmailAndPassword fa login automatico)
+                if (userData._isNewUser === true || userData._isNewMembership !== true) {
                     sessionStorage.setItem('gfv_user_just_registered', 'true');
-                    sessionStorage.setItem('gfv_registered_user_id', auth.currentUser.uid);
-                    
-                    await registraPresaVisioneSeAttiva();
-                    hideLoading();
-                    successMessage.textContent = '✅ Registrazione completata con successo! Reindirizzamento alla dashboard...';
-                    successMessage.classList.add('show');
-                    
-                    // Redirect a dashboard (l'utente è già loggato)
-                    setTimeout(() => {
-                        window.location.href = '../dashboard-standalone.html';
-                    }, 2000);
+                    if (auth.currentUser) {
+                        sessionStorage.setItem('gfv_registered_user_id', auth.currentUser.uid);
+                    }
                 }
+
+                const esitoLegale = await completaPresaVisione();
+                hideLoading();
+                const msgOk = userData._isNewMembership === true
+                    ? `✅ Aggiunto a ${userData._newTenantId || 'nuova azienda'} con successo! Reindirizzamento alla dashboard...`
+                    : '✅ Registrazione completata con successo! Reindirizzamento alla dashboard...';
+                successMessage.textContent = messaggioFineRegistrazione(esitoLegale, msgOk);
+                successMessage.classList.add('show');
+
+                setTimeout(() => {
+                    window.location.href = '../dashboard-standalone.html';
+                }, 2000);
 
             } catch (error) {
-                // Se l'errore è auth/email-already-in-use, gestiscilo direttamente qui come ultimo fallback
-                const isEmailAlreadyInUse = error.code === 'auth/email-already-in-use' || 
-                    (error.message && error.message.includes('email-already-in-use')) ||
-                    (String(error).includes('email-already-in-use'));
-                
-                if (isEmailAlreadyInUse) {
-                    if (!password) {
-                        hideLoading();
-                        showError('Password richiesta. Questa email è già registrata. Inserisci la password del tuo account esistente.');
-                        return;
-                    }
-                    
-                    try {
-                        // Prova a fare login
-                        const userCredential = await signInWithEmailAndPassword(auth, inviteData.email, password);
-                        const firebaseUser = userCredential.user;
-                        
-                        const invito = inviteData;
-                        if (!invito || !invito.id || !invito.tenantId) {
-                            throw new Error('Invito non trovato');
-                        }
-                        
-                        // Aggiungi membership
-                        const userDocRef = doc(db, 'users', firebaseUser.uid);
-                        const userDoc = await getDoc(userDocRef);
-                        
-                        if (!userDoc.exists()) {
-                            throw new Error('Utente non trovato in Firestore');
-                        }
-                        
-                        const existingUserData = userDoc.data();
-                        const tenantMemberships = existingUserData.tenantMemberships || {};
-                        
-                        if (tenantMemberships[invito.tenantId] && tenantMemberships[invito.tenantId].stato === 'attivo') {
-                            throw new Error('Appartieni già a questo tenant');
-                        }
-                        
-                        tenantMemberships[invito.tenantId] = {
-                            ruoli: invito.ruoli || [],
-                            stato: 'attivo',
-                            dataInizio: serverTimestamp(),
-                            creatoDa: invito.inviatoDa,
-                            tenantIdPredefinito: false
-                        };
-                        
-                        await updateDoc(userDocRef, {
-                            tenantMemberships: tenantMemberships
-                        });
-                        
-                        await updateDoc(doc(db, 'inviti', invito.id), {
-                            stato: 'accettato',
-                            accettatoIl: serverTimestamp()
-                        });
-                        
-                        // Pulisci cache tenant utente per forzare ricaricamento
-                        try {
-                            const { clearUserTenantsCache } = await import('../services/tenant-service.js');
-                            clearUserTenantsCache();
-                        } catch (cacheError) {
-                            console.warn('Errore pulizia cache tenant:', cacheError);
-                        }
-                        
-                        // Aggiorna cellulare se fornito
-                        const cellulare = cellulareInput.value.trim();
-                        if (cellulare && !existingUserData.cellulare) {
-                            await updateDoc(doc(db, 'users', firebaseUser.uid), {
-                                cellulare: cellulare
-                            });
-                        }
-                        
-                        await registraPresaVisioneSeAttiva();
-                        hideLoading();
-                        successMessage.textContent = `✅ Aggiunto a ${invito.tenantId || 'nuova azienda'} con successo! Reindirizzamento alla dashboard...`;
-                        successMessage.classList.add('show');
-                        
-                        // Redirect a dashboard
-                        setTimeout(() => {
-                            window.location.href = '../dashboard-standalone.html';
-                        }, 2000);
-                        return;
-                    } catch (loginError) {
-                        hideLoading();
-                        if (loginError.code === 'auth/user-not-found' || loginError.code === 'auth/wrong-password') {
-                            showError('Password errata. Inserisci la password del tuo account esistente.');
-                        } else if (loginError.message && loginError.message.includes('appartiene già')) {
-                            showError(loginError.message);
-                        } else {
-                            showError('Errore durante l\'aggiunta dell\'azienda. ' + (loginError.message || 'Riprova o contatta l\'amministratore.'));
-                        }
-                        return;
-                    }
-                }
-                
+                accettazioneInCorso = false;
                 hideLoading();
-                
+
+                const code = invitoCallableErrorCode(error);
                 let errorMessage = 'Errore durante la registrazione';
-                
-                // Se è un utente esistente, mostra messaggio più chiaro
-                if (inviteData && inviteData.isExistingUser === true) {
-                    if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password' || 
-                        (error.message && error.message.includes('Password errata'))) {
-                        errorMessage = 'Password errata. Inserisci la password del tuo account esistente per aggiungere questa azienda.';
-                    } else if (error.message && error.message.includes('Password richiesta')) {
-                        errorMessage = 'Password obbligatoria. Inserisci la password del tuo account esistente.';
-                    } else if (error.message && error.message.includes('appartiene già')) {
-                        errorMessage = error.message;
-                    } else {
-                        errorMessage = 'Errore durante l\'aggiunta dell\'azienda. ' + (error.message || 'Riprova o contatta l\'amministratore.');
-                    }
-                } else {
-                    // Nuovo utente
-                    if (error.code === 'auth/email-already-in-use') {
-                        errorMessage = 'Questa email è già registrata. Se hai già un account, usa la password del tuo account esistente.';
-                    } else if (error.code === 'auth/user-not-found' || error.code === 'auth/wrong-password') {
-                        errorMessage = 'Password errata. Se hai già un account, usa la password del tuo account esistente.';
-                    } else if (error.code === 'auth/invalid-email') {
-                        errorMessage = 'Email non valida';
-                    } else if (error.code === 'auth/weak-password') {
-                        errorMessage = 'Password troppo debole. Usa almeno 6 caratteri.';
-                    } else if (error.message && error.message.includes('appartiene già')) {
-                        errorMessage = error.message;
-                    } else {
-                        errorMessage = error.message || 'Errore sconosciuto';
-                    }
+
+                if (code === 'already-exists' || error.code === 'already-exists') {
+                    errorMessage = 'Appartieni già a questa azienda';
+                } else if (error.message && error.message.includes('Password errata')) {
+                    errorMessage = inviteData && inviteData.isExistingUser === true
+                        ? 'Password errata. Inserisci la password del tuo account esistente per aggiungere questa azienda.'
+                        : 'Password errata. Se hai già un account, usa la password del tuo account esistente.';
+                } else if (error.message && error.message.includes('Password richiesta')) {
+                    errorMessage = 'Password obbligatoria. Inserisci la password del tuo account esistente.';
+                } else if (error.code === 'auth/email-already-in-use') {
+                    errorMessage = 'Questa email è già registrata. Se hai già un account, usa la password del tuo account esistente.';
+                } else if (error.code === 'auth/invalid-email') {
+                    errorMessage = 'Email non valida';
+                } else if (error.code === 'auth/weak-password') {
+                    errorMessage = 'Password troppo debole. Usa almeno 6 caratteri.';
+                } else if (error.message) {
+                    errorMessage = error.message;
                 }
-                
+
                 showError(errorMessage);
             }
         });

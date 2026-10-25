@@ -538,7 +538,8 @@ export async function getTipiLavoroNomi() {
     const tipiLavoro = await getAllTipiLavoro({ orderBy: 'nome', orderDirection: 'asc' });
     
     if (tipiLavoro && tipiLavoro.length > 0) {
-      return tipiLavoro.map(t => t.nome);
+      // Nomi unici: copie omonime dei tipi predefiniti non devono comparire due volte
+      return [...new Set(tipiLavoro.map(t => t.nome).filter(Boolean))];
     }
   } catch (error) {
     console.warn('Impossibile leggere da tipiLavoro, uso ListePersonalizzate:', error.message);

@@ -25,6 +25,7 @@ const tenantServiceModule = await import(resolvePath('../../../core/services/ten
 const authServiceModule = await import(resolvePath('../../../core/services/auth-service.js'));
 const coltureServiceModule = await import(resolvePath('../../../core/services/colture-service.js'));
 const categorieServiceModule = await import(resolvePath('../../../core/services/categorie-service.js'));
+const catalogoDedupeModule = await import(resolvePath('../../../core/js/catalogo-dedupe.js'));
 const varietaFruttetoServiceModule = await import(resolvePath('../../../core/services/varieta-frutteto-service.js'));
 
 // Import configurazione forme di allevamento frutteto
@@ -38,6 +39,7 @@ const { getCurrentTenantId, getCurrentTenant, initializeTenantService } = tenant
 const { initializeAuthService } = authServiceModule;
 const { getAllColture } = coltureServiceModule;
 const { getAllCategorie } = categorieServiceModule;
+const { raggruppaCategorie, dedupePerNome } = catalogoDedupeModule;
 
 let terreni = [];
 let allFrutteti = [];
@@ -247,7 +249,8 @@ async function populateSpecieSelects() {
             applicabileA: 'colture',
             orderBy: 'ordine'
         });
-        const categoriaFrutteto = categorie.find(c => c.codice === 'frutteto');
+        // Copie omonime della categoria (seed doppio): una canonica con tutti gli id in aliasIds
+        const categoriaFrutteto = raggruppaCategorie(categorie).canoniche.find(c => c.codice === 'frutteto');
         
         if (!categoriaFrutteto) {
             console.warn('[FRUTTETI] Categoria frutteto non trovata');
@@ -259,10 +262,11 @@ async function populateSpecieSelects() {
             orderBy: 'nome',
             orderDirection: 'asc'
         });
-        const coltureFrutteto = tutteColture.filter(c => c.categoriaId === categoriaFrutteto.id);
+        const idsFrutteto = new Set(categoriaFrutteto.aliasIds || [String(categoriaFrutteto.id)]);
+        const coltureFrutteto = tutteColture.filter(c => idsFrutteto.has(String(c.categoriaId)));
 
-        // Estrai i nomi delle specie e salva in variabile globale
-        specieFruttetoDisponibili = coltureFrutteto.map(c => c.nome).filter(Boolean).sort();
+        // Estrai i nomi delle specie (senza doppioni) e salva in variabile globale
+        specieFruttetoDisponibili = dedupePerNome(coltureFrutteto.map(c => c.nome).filter(Boolean)).sort();
 
         specieSelect.innerHTML = '<option value="">Seleziona specie</option>' +
             specieFruttetoDisponibili.map(s => `<option value="${s}">${s}</option>`).join('');

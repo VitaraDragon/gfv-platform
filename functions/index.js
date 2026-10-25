@@ -22,6 +22,7 @@ const {
 const { defineSecret } = require("firebase-functions/params");
 const { handleSendTransactionalEmail } = require("./email-resend");
 const { handleGetInvitoPubblico } = require("./invito-pubblico");
+const { handleAccettaInvito, AccettaInvitoError } = require("./accetta-invito");
 const {
   handleCreateStripeCheckoutSession,
   handleFulfillStripeCheckout,
@@ -4461,7 +4462,12 @@ exports.getInvitoPubblico = onCall(
   { region: "europe-west1", cors: true, invoker: "public" },
   async (request) => {
     try {
-      return await handleGetInvitoPubblico(db, request.data && request.data.token);
+      return await handleGetInvitoPubblico(
+        db,
+        request.data && request.data.token,
+        new Date(),
+        admin.auth()
+      );
     } catch (e) {
       if (e && typeof e.code === "string") {
         const allowed = ["invalid-argument", "not-found", "failed-precondition"];
@@ -4472,6 +4478,35 @@ exports.getInvitoPubblico = onCall(
       if (e instanceof HttpsError) throw e;
       console.error("[getInvitoPubblico]", e && e.message);
       throw new HttpsError("internal", "Errore lettura invito.");
+    }
+  }
+);
+
+/**
+ * Accettazione invito (utente autenticato): scrive membership + stato invito in transazione.
+ */
+exports.accettaInvito = onCall(
+  { region: "europe-west1", cors: true },
+  async (request) => {
+    try {
+      return await handleAccettaInvito(db, request, request.data || {});
+    } catch (e) {
+      if (e instanceof AccettaInvitoError || (e && typeof e.code === "string")) {
+        const allowed = [
+          "unauthenticated",
+          "invalid-argument",
+          "not-found",
+          "failed-precondition",
+          "permission-denied",
+          "already-exists",
+        ];
+        if (allowed.includes(e.code)) {
+          throw new HttpsError(e.code, e.message || "Errore accettazione invito.");
+        }
+      }
+      if (e instanceof HttpsError) throw e;
+      console.error("[accettaInvito]", e && e.message);
+      throw new HttpsError("internal", "Errore accettazione invito.");
     }
   }
 );
@@ -4619,7 +4654,7 @@ exports.reactivateStripeAddon = onCall(
 );
 
 /**
- * Callable: avvia prova gratuita modulo (30 giorni, anche piano Free).
+ * Callable: avvia prova gratuita modulo (30 giorni, solo piano Base).
  * Body: { tenantId, moduleId }
  */
 exports.startModuleTrial = onCall(

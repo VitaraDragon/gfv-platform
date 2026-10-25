@@ -604,39 +604,6 @@
                 </div>
             </div>
 
-            <!-- Sezione: Costruisci il tuo Piano -->
-            <div class="card" style="grid-column: 1 / -1;">
-                <h2>🔧 Costruisci il tuo Piano</h2>
-                <p style="color: #666; margin-bottom: 20px; font-size: 14px;">Non trovi quello che cerchi? Personalizza completamente il tuo piano</p>
-                
-                <div id="build-plan-section" style="display: none;">
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 8px; font-weight: 600;">Moduli da Attivare</label>
-                        <div id="custom-modules-selection" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 10px; max-height: 300px; overflow-y: auto; padding: 15px; border: 1px solid #ddd; border-radius: 6px; background: #f8f9fa;">
-                            <!-- Moduli selezionabili -->
-                        </div>
-                    </div>
-                    
-                    <div style="background: #e7f3ff; padding: 15px; border-radius: 6px; border-left: 4px solid #2E8B57; margin-bottom: 20px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
-                            <div>
-                                <strong>Prezzo Totale Stimato:</strong>
-                                <div style="font-size: 24px; font-weight: bold; color: #2E8B57;" id="custom-total-price">€0<span style="font-size: 14px; color: #666;">/mese</span></div>
-                            </div>
-                            <div id="custom-plan-suggestion" style="font-size: 13px; color: #666;">
-                                <!-- Suggerimento piano -->
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <button class="btn btn-primary" onclick="applyCustomPlan()" style="width: 100%;">Applica Piano Personalizzato</button>
-                </div>
-                
-                <button class="btn btn-secondary" onclick="toggleBuildPlan()" id="toggle-build-plan-btn" style="width: 100%;">
-                    <span id="toggle-build-plan-text">Mostra Costruttore Piano</span>
-                </button>
-            </div>
-
             <!-- Sezione: Bundle Disponibili -->
             <div class="card" style="grid-column: 1 / -1;">
                 <h2>🎁 Bundle Disponibili</h2>
@@ -667,7 +634,7 @@
             <!-- Moduli Disponibili -->
             <div class="card modules-section">
                 <h2>🔧 Moduli Disponibili</h2>
-                <p style="color: #666; margin-bottom: 20px;">Attiva i moduli che vuoi utilizzare oppure avvia una <strong>prova gratuita di 30 giorni</strong> (anche con piano Free, un modulo alla volta).</p>
+                <p style="color: #666; margin-bottom: 20px;">Attiva i moduli che vuoi utilizzare oppure avvia una <strong>prova gratuita di 30 giorni</strong> (piano Base, un modulo alla volta).</p>
                 
                 <div id="alert-container" style="margin-bottom: 20px;"></div>
                 
@@ -742,7 +709,7 @@
             monthlyToAnnual,
             formatBillingDisplay,
             planRequiresStripePayment,
-            normalizeSubscriptionPlanId
+            resolveTenantPlanId
         } from '../config/subscription-plans.js';
         import {
             MODULE_TRIAL_DAYS,
@@ -751,7 +718,8 @@
             getActiveTrialModuleIds,
             canStartModuleTrial,
             isModuleOnTrial,
-            formatTrialEndDate
+            formatTrialEndDate,
+            resolveModuleToggleIntent
         } from '../utils/module-access-resolver.js';
         import {
             allineaDatiManodopera,
@@ -1102,7 +1070,8 @@
         });
 
         function resolvePlanIdFromTenant(tenantData) {
-            return normalizeSubscriptionPlanId(tenantData?.plan || tenantData?.piano);
+            // Stessa regola di functions/tenant-plan.js (plan > piano, Stripe Base attivo ⇒ base).
+            return resolveTenantPlanId(tenantData);
         }
 
         function refreshSubscriptionUi() {
@@ -1192,25 +1161,7 @@
                 let planId = resolvePlanIdFromTenant(currentTenantData);
                 const planConfig = getPlanConfig(planId);
                 
-                // Scadenza manuale solo se non c'è abbonamento Stripe
-                if (!currentTenantData.expiryDate && !currentTenantData.stripeSubscriptionId) {
-                    const defaultExpiry = new Date();
-                    defaultExpiry.setFullYear(defaultExpiry.getFullYear() + 1);
-                    
-                    try {
-                        await updateDoc(doc(db, 'tenants', currentTenantId), {
-                            expiryDate: Timestamp.fromDate(defaultExpiry),
-                            startDate: currentTenantData.startDate || Timestamp.fromDate(new Date()),
-                            updatedAt: serverTimestamp()
-                        });
-                        currentTenantData.expiryDate = Timestamp.fromDate(defaultExpiry);
-                        if (!currentTenantData.startDate) {
-                            currentTenantData.startDate = Timestamp.fromDate(new Date());
-                        }
-                    } catch (error) {
-                        console.warn('Errore inizializzazione expiryDate:', error);
-                    }
-                }
+                // expiryDate/startDate: solo Stripe/functions — non inventare scadenze Free dal client
                 
                 // Aggiorna UI piano corrente con dati reali
                 updateCurrentPlanUI(planConfig, currentTenantData);
@@ -1728,162 +1679,6 @@
             container.innerHTML = html;
         }
         
-        // Toggle costruttore piano
-        window.toggleBuildPlan = function() {
-            const section = document.getElementById('build-plan-section');
-            const btn = document.getElementById('toggle-build-plan-btn');
-            const text = document.getElementById('toggle-build-plan-text');
-            
-            if (section.style.display === 'none') {
-                section.style.display = 'block';
-                text.textContent = 'Nascondi Costruttore Piano';
-                initializeCustomPlanBuilder();
-            } else {
-                section.style.display = 'none';
-                text.textContent = 'Mostra Costruttore Piano';
-            }
-        };
-        
-        // Inizializza costruttore piano personalizzato
-        function initializeCustomPlanBuilder() {
-            const modulesContainer = document.getElementById('custom-modules-selection');
-            const modules = getAllModules(false); // Solo moduli disponibili
-            
-            const html = modules.map(module => {
-                const isSelected = effectiveModules.includes(module.id);
-                return `
-                    <label class="custom-module-checkbox">
-                        <input type="checkbox" value="${module.id}" ${isSelected ? 'checked' : ''} onchange="updateCustomPlanPrice()">
-                        <span>${module.icon} ${module.name} (€${module.price}/mese)</span>
-                    </label>
-                `;
-            }).join('');
-            
-            modulesContainer.innerHTML = html;
-            
-            updateCustomPlanPrice();
-        }
-        
-        // Aggiorna prezzo piano personalizzato
-        window.updateCustomPlanPrice = function() {
-            const checkboxes = document.querySelectorAll('#custom-modules-selection input[type="checkbox"]:checked');
-            const selectedModules = Array.from(checkboxes).map(cb => cb.value);
-            
-            // Determina piano: Free se nessun modulo, Base se almeno un modulo
-            let basePrice = 0;
-            let suggestedPlan = 'free';
-            
-            if (selectedModules.length > 0) {
-                basePrice = 5; // Base
-                suggestedPlan = 'base';
-            }
-            
-            // Calcola prezzo moduli
-            const modulesPrice = selectedModules.reduce((sum, modId) => {
-                const mod = getModuleConfig(modId);
-                return sum + (mod && mod.available ? mod.price : 0);
-            }, 0);
-            
-            const totalPrice = basePrice + modulesPrice;
-            
-            // Aggiorna UI
-            document.getElementById('custom-total-price').innerHTML = billingPriceHtml(totalPrice, { large: true });
-            
-            // Suggerimento piano
-            const planConfig = getPlanConfig(suggestedPlan);
-            let suggestion = '';
-            if (planConfig) {
-                suggestion = `💡 Ti consigliamo il piano <strong>${planConfig.name}</strong> (€${planConfig.price}/mese base)`;
-                if (selectedModules.length > 0) {
-                    suggestion += `<br><small style="color: #666;">+ €${modulesPrice}/mese per ${selectedModules.length} moduli</small>`;
-                }
-            }
-            document.getElementById('custom-plan-suggestion').innerHTML = suggestion;
-        };
-        
-        // Applica piano personalizzato
-        window.applyCustomPlan = async function() {
-            const checkboxes = document.querySelectorAll('#custom-modules-selection input[type="checkbox"]:checked');
-            const selectedModules = Array.from(checkboxes).map(cb => cb.value);
-            
-            // Determina piano: Free se nessun modulo, Base se almeno un modulo
-            let planId = 'free';
-            if (selectedModules.length > 0) {
-                planId = 'base';
-            }
-            
-            const planConfig = getPlanConfig(planId);
-            if (!planConfig) {
-                showAlert('Errore: piano non trovato', 'error');
-                return;
-            }
-            
-            // Verifica che i moduli selezionati siano disponibili
-            const unavailableModules = selectedModules.filter(modId => {
-                const mod = getModuleConfig(modId);
-                return !mod || !mod.available;
-            });
-            
-            if (unavailableModules.length > 0) {
-                showAlert('Alcuni moduli selezionati non sono ancora disponibili', 'error');
-                return;
-            }
-            
-            try {
-                // Applica piano e moduli (nessuna limitazione)
-                const modulesToApply = selectedModules;
-                const nextHasManodopera = resolveEffectiveModules(Object.assign({}, currentTenantData, {
-                    modules: modulesToApply
-                })).includes('manodopera');
-                if (!(await preparaDisattivazioneManodopera(nextHasManodopera))) return;
-
-                const newExpiryDate = new Date();
-                newExpiryDate.setMonth(newExpiryDate.getMonth() + 1);
-                
-                await updateDoc(doc(db, 'tenants', currentTenantId), {
-                    plan: planId,
-                    modules: modulesToApply,
-                    expiryDate: Timestamp.fromDate(newExpiryDate),
-                    updatedAt: serverTimestamp()
-                });
-                
-                // Mantieni bundle attivi solo se tutti i loro moduli sono ancora presenti
-                let bundlesToKeep = activeBundles.filter(bundleId => {
-                    const bundle = BUNDLES.find(b => b.id === bundleId);
-                    if (!bundle) return false;
-                    return bundle.modules.every(modId => modulesToApply.includes(modId));
-                });
-                
-                await updateDoc(doc(db, 'tenants', currentTenantId), {
-                    activeBundles: bundlesToKeep,
-                    updatedAt: serverTimestamp()
-                });
-                
-                // Aggiorna stato locale
-                currentTenantData.plan = planId;
-                currentTenantData.modules = modulesToApply;
-                currentTenantData.activeBundles = bundlesToKeep;
-                refreshModuleAccessFromTenant();
-                await allineaManodoperaUi();
-                
-                // Ricalcola e aggiorna UI
-                updateCurrentPlanUI(planConfig, currentTenantData);
-                renderActiveModules();
-                renderModules();
-                renderUpgradeSection();
-                renderBundles();
-                showAlert('Piano personalizzato applicato con successo!', 'success');
-                
-                // Chiudi costruttore
-                document.getElementById('build-plan-section').style.display = 'none';
-                document.getElementById('toggle-build-plan-text').textContent = 'Mostra Costruttore Piano';
-                
-            } catch (error) {
-                console.error('Errore applicazione piano personalizzato:', error);
-                showAlert(`Errore: ${error.message}`, 'error');
-            }
-        };
-        
         // Disattiva bundle (a fine periodo via Stripe)
         window.deactivateBundle = async function(bundleId) {
             const bundle = BUNDLES.find(b => b.id === bundleId);
@@ -2068,18 +1863,22 @@
             const isEffectiveActive = effectiveModules.includes(moduleId);
             const isPaid = paidModules.includes(moduleId);
             const onTrial = isModuleOnTrial(currentTenantData, moduleId);
-            let planId = (currentTenantData?.plan || currentTenantData?.piano || 'base');
-            if (['starter', 'professional', 'enterprise'].includes(planId)) {
-                planId = 'base';
-            }
+            const planId = resolvePlanIdFromTenant(currentTenantData);
 
             if (!isEffectiveActive) {
-                const trialCheck = canStartModuleTrial(currentTenantData, moduleId, {
+                const toggleIntent = resolveModuleToggleIntent(currentTenantData, moduleId, {
                     availableModuleIds: getPurchasableModuleIds(),
-                    bundleCatalog: BUNDLES
+                    bundleCatalog: BUNDLES,
+                    effectiveModules
                 });
 
-                if (trialCheck.canStart) {
+                // Free prima della prova: messaggio verso Base, nessuna callable.
+                if (toggleIntent.action === 'require_base') {
+                    showAlert(toggleIntent.reason || 'Attiva il piano Base per avviare la prova o acquistare moduli.', 'error');
+                    return;
+                }
+
+                if (toggleIntent.action === 'start_trial') {
                     const confirmed = await showConfirmDialog({
                         title: 'Avviare la prova gratuita?',
                         icon: '🎁',
@@ -2104,11 +1903,6 @@
                         console.error('Errore startModuleTrial:', error);
                         showAlert('Errore: ' + (error.message || error), 'error');
                     }
-                    return;
-                }
-
-                if (planId === 'free') {
-                    showAlert(trialCheck.reason || 'Attiva il piano Base per acquistare moduli.', 'error');
                     return;
                 }
 
@@ -2489,7 +2283,7 @@
             });
             if (!confirmed) return;
 
-            // Upgrade a piano a pagamento: Stripe Checkout (Free → Base)
+            // Upgrade a piano a pagamento: solo Stripe Checkout (Free → Base)
             if (planRequiresStripePayment(planId) && currentPlanId === 'free') {
                 try {
                     await startStripeCheckout('plan', planId);
@@ -2499,69 +2293,21 @@
                 }
                 return;
             }
-            
-            try {
-                // Mantieni tutti i moduli (nessuna limitazione)
-                let modulesToKeep = [...paidModules];
-                
-                // Calcola nuova data scadenza (1 mese da oggi)
-                const newExpiryDate = new Date();
-                newExpiryDate.setMonth(newExpiryDate.getMonth() + 1);
-                
-                // Mantieni bundle attivi solo se tutti i loro moduli sono ancora presenti
-                let bundlesToKeep = activeBundles.filter(bundleId => {
-                    const bundle = BUNDLES.find(b => b.id === bundleId);
-                    if (!bundle) return false;
-                    return bundle.modules.every(modId => modulesToKeep.includes(modId));
-                });
-                
-                const nextHasManodopera = resolveEffectiveModules(Object.assign({}, currentTenantData, {
-                    modules: modulesToKeep,
-                    activeBundles: bundlesToKeep
-                })).includes('manodopera');
-                if (!(await preparaDisattivazioneManodopera(nextHasManodopera))) return;
 
-                // Aggiorna Firestore
-                const updates = {
-                    plan: planId,
-                    modules: modulesToKeep,
-                    activeBundles: bundlesToKeep,
-                    expiryDate: Timestamp.fromDate(newExpiryDate),
-                    updatedAt: serverTimestamp()
-                };
-                
-                // Se è il primo cambio piano, aggiungi anche startDate
-                if (!currentTenantData.startDate) {
-                    updates.startDate = Timestamp.fromDate(new Date());
-                }
-                
-                await updateDoc(doc(db, 'tenants', currentTenantId), updates);
-                
-                // Aggiorna stato locale
-                currentTenantData.plan = planId;
-                currentTenantData.modules = modulesToKeep;
-                currentTenantData.activeBundles = bundlesToKeep;
-                currentTenantData.expiryDate = Timestamp.fromDate(newExpiryDate);
-                refreshModuleAccessFromTenant();
-                await allineaManodoperaUi();
-                
-                // Ricalcola e aggiorna UI
-                updateCurrentPlanUI(newPlanConfig, currentTenantData);
-                renderActiveModules();
-                renderModules();
-                renderUpgradeSection();
-                renderBundles();
-                updateSubscriptionSummary(newPlanConfig);
-                
+            // Piano/moduli/scadenze non sono più scrivibili dal client (firestore.rules).
+            // Downgrade e altri cambi: niente self-service finché non c'è una callable Admin SDK.
+            if (planId === 'free' || isDowngrade) {
                 showAlert(
-                    `Piano cambiato con successo da ${currentPlanConfig.name} a ${newPlanConfig.name}!`,
-                    'success'
+                    'Il passaggio a un piano inferiore non è ancora disponibile dall\'app. Per annullare l\'abbonamento contatta l\'assistenza.',
+                    'info'
                 );
-                
-            } catch (error) {
-                console.error('Errore cambio piano:', error);
-                showAlert(`Errore cambio piano: ${error.message}`, 'error');
+                return;
             }
+
+            showAlert(
+                'L\'upgrade del piano avviene solo tramite pagamento Stripe. Usa «Passa al Piano Base» oppure contatta l\'assistenza.',
+                'info'
+            );
         };
     </script>
     <!-- Service Worker: la barra di aggiornamento sta in app-update.js -->

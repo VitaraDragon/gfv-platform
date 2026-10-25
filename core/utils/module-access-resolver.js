@@ -3,9 +3,13 @@
  * @module core/utils/module-access-resolver
  */
 
-import { getModuleConfig } from '../config/subscription-plans.js';
+import { getModuleConfig, resolveTenantPlanId } from '../config/subscription-plans.js';
 
 export const MODULE_TRIAL_DAYS = 30;
+
+/** Allineato a functions/module-trial.js (decisione prodotto 24/10/2026). */
+export const MODULE_TRIAL_REQUIRES_BASE_REASON =
+  'La prova gratuita dei moduli è disponibile con il piano Base.';
 
 const TRIAL_STATUS_ACTIVE = 'active';
 const TRIAL_STATUS_EXPIRED = 'expired';
@@ -78,6 +82,17 @@ export function resolveEffectiveModules(tenant, now = new Date()) {
 }
 
 /**
+ * Punto unico: moduli effettivi dal doc tenant (pagati + prove attive).
+ * Usare al posto di `tenant.modules` grezzo per gate e contesto Tony.
+ * @param {object|null|undefined} tenantDocData
+ * @param {Date} [now]
+ * @returns {string[]}
+ */
+export function getEffectiveModulesFromTenant(tenantDocData, now = new Date()) {
+  return resolveEffectiveModules(tenantDocData, now);
+}
+
+/**
  * @param {object|null|undefined} tenant
  * @param {string} moduleId
  * @param {Date} [now]
@@ -115,6 +130,11 @@ export function canStartModuleTrial(tenant, moduleId, options = {}, now = new Da
   }
   if (availableModuleIds.length > 0 && !availableModuleIds.includes(moduleId)) {
     return { canStart: false, reason: 'Modulo non disponibile per la prova.' };
+  }
+
+  // Decisione prodotto 24/10/2026: prova moduli solo con piano Base (annulla 22/06).
+  if (resolveTenantPlanId(tenant) !== 'base') {
+    return { canStart: false, reason: MODULE_TRIAL_REQUIRES_BASE_REASON };
   }
 
   const paid = getPaidModuleIds(tenant);
@@ -157,6 +177,40 @@ export function canStartModuleTrial(tenant, moduleId, options = {}, now = new Da
   }
 
   return { canStart: true, reason: '' };
+}
+
+/**
+ * Decide il percorso di attivazione modulo in Abbonamento (prima Free, poi prova, poi acquisto).
+ * Pure: nessuna callable. Usata da `toggleModule` e dai test.
+ * @param {object|null|undefined} tenant
+ * @param {string} moduleId
+ * @param {{ availableModuleIds?: string[], bundleCatalog?: Array<{ id: string, modules: string[] }>, effectiveModules?: string[] }} [options]
+ * @param {Date} [now]
+ * @returns {{ action: 'already_active'|'start_trial'|'require_base'|'purchase', reason: string, planId: 'free'|'base' }}
+ */
+export function resolveModuleToggleIntent(tenant, moduleId, options = {}, now = new Date()) {
+  const planId = resolveTenantPlanId(tenant);
+  const effective = options.effectiveModules || resolveEffectiveModules(tenant, now);
+
+  if (effective.includes(moduleId)) {
+    return { action: 'already_active', reason: '', planId };
+  }
+
+  // Free prima della prova: nessun dialog e nessuna callable startModuleTrial.
+  if (planId === 'free') {
+    return {
+      action: 'require_base',
+      reason: MODULE_TRIAL_REQUIRES_BASE_REASON,
+      planId
+    };
+  }
+
+  const trialCheck = canStartModuleTrial(tenant, moduleId, options, now);
+  if (trialCheck.canStart) {
+    return { action: 'start_trial', reason: '', planId };
+  }
+
+  return { action: 'purchase', reason: trialCheck.reason || '', planId };
 }
 
 /**

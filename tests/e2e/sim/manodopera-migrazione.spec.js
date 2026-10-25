@@ -2,6 +2,9 @@
  * Ciclo off → on → off della migrazione dati Manodopera sull'emulatore.
  * Parte dal tenant frutteto (senza Manodopera), copia il Diario, poi torna indietro
  * senza cancellare attività, lavori, operai o squadre e senza duplicare.
+ *
+ * `modules` sul doc tenant è protetto dalle rules (solo Admin SDK): le scritture
+ * di piano/moduli in questo e2e passano da firebase-admin sull'emulatore.
  */
 import { test, expect } from '@playwright/test';
 import {
@@ -9,10 +12,32 @@ import {
   GESTIONE_LAVORI_PATH,
   loginAsManagerFrutteto,
 } from './helpers/sim-login.js';
+import { getEmulatorDb } from '../../../simulator/lib/emulator-context.js';
 
 const ABBONAMENTO_PATH = '/core/admin/abbonamento-standalone.html?emulator=1';
 const NOTA_ALTRO = 'GFV_SIM_E2E_MIGRAZIONE_ALTRO';
 const NOTA_APERTO = 'GFV_SIM_E2E_MIGRAZIONE_APERTO';
+
+/**
+ * Scrive modules (+ flag osservato) bypassando le rules client.
+ * @param {string} tenantId
+ * @param {{ manodopera: boolean, manodoperaModuloOsservato?: boolean|null }} opts
+ */
+async function patchTenantManodoperaAdmin(tenantId, opts) {
+  const db = getEmulatorDb();
+  const ref = db.collection('tenants').doc(tenantId);
+  const snap = await ref.get();
+  if (!snap.exists) throw new Error(`tenant ${tenantId} assente sull'emulatore`);
+  const modules = (Array.isArray(snap.data().modules) ? snap.data().modules : []).filter(
+    (id) => id !== 'manodopera'
+  );
+  if (opts.manodopera) modules.push('manodopera');
+  const patch = { modules };
+  if (Object.prototype.hasOwnProperty.call(opts, 'manodoperaModuloOsservato')) {
+    patch.manodoperaModuloOsservato = opts.manodoperaModuloOsservato;
+  }
+  await ref.update(patch);
+}
 
 async function nelTenant(page, action, payload) {
   return page.evaluate(async ({ action, payload }) => {
@@ -80,23 +105,11 @@ async function nelTenant(page, action, payload) {
           }, tenantId);
         }
       }
-      const tenant = await leggiTenant();
-      const modules = (Array.isArray(tenant && tenant.modules) ? tenant.modules : []).filter((id) => id !== 'manodopera');
-      await fb.updateDocument('tenants', tenantId, {
-        modules,
-        manodoperaModuloOsservato: null
-      });
-      return { ok: true };
+      // modules / manodoperaModuloOsservato: Admin SDK lato Node (rules client)
+      return { ok: true, tenantId };
     }
 
     if (action === 'seedOn') {
-      const tenant = await leggiTenant();
-      const modules = (Array.isArray(tenant.modules) ? tenant.modules : []).filter((id) => id !== 'manodopera');
-      modules.push('manodopera');
-      await fb.updateDocument('tenants', tenantId, {
-        modules,
-        manodoperaModuloOsservato: false
-      });
       const altroId = await fb.createDocument('attivita', {
         data: '2020-05-01',
         terrenoId: payload.terrenoId,
@@ -109,14 +122,11 @@ async function nelTenant(page, action, payload) {
         oreNette: 2,
         note: NOTA_ALTRO
       }, tenantId);
-      return { altroId };
+      return { altroId, tenantId };
     }
 
     if (action === 'seedOff') {
-      const tenant = await leggiTenant();
-      const modules = (Array.isArray(tenant.modules) ? tenant.modules : []).filter((id) => id !== 'manodopera');
-      await fb.updateDocument('tenants', tenantId, { modules });
-      return { ok: true };
+      return { ok: true, tenantId };
     }
 
     if (action === 'lavoroAperto') {
@@ -164,13 +174,21 @@ test.describe('Migrazione dati Manodopera', () => {
   test('off → on → off non perde lo storico e non duplica', async ({ page }) => {
     test.setTimeout(240_000);
     await loginAsManagerFrutteto(page);
-    await nelTenant(page, 'sweep');
+    const sweep1 = await nelTenant(page, 'sweep');
+    await patchTenantManodoperaAdmin(sweep1.tenantId, {
+      manodopera: false,
+      manodoperaModuloOsservato: null,
+    });
     const prima = await nelTenant(page, 'snapshot');
     expect(prima.terrenoId).toBeTruthy();
     expect(prima.nAtt).toBeGreaterThan(0);
 
     let lavoroApertoId = null;
     try {
+      await patchTenantManodoperaAdmin(prima.tenantId, {
+        manodopera: true,
+        manodoperaModuloOsservato: false,
+      });
       await nelTenant(page, 'seedOn', {
         terrenoId: prima.terrenoId,
         terrenoNome: prima.terrenoNome
@@ -197,6 +215,7 @@ test.describe('Migrazione dati Manodopera', () => {
 
       const aperto = await nelTenant(page, 'lavoroAperto', { terrenoId: prima.terrenoId });
       lavoroApertoId = aperto.lavoroId;
+      await patchTenantManodoperaAdmin(prima.tenantId, { manodopera: false });
       await nelTenant(page, 'seedOff');
 
       await page.goto(ABBONAMENTO_PATH);
@@ -242,7 +261,11 @@ test.describe('Migrazione dati Manodopera', () => {
       expect(ripetuta.nLav).toBe(dopoOff.nLav);
       expect(ripetuta.collegati).toBe(1);
     } finally {
-      await nelTenant(page, 'sweep');
+      const sweep2 = await nelTenant(page, 'sweep');
+      await patchTenantManodoperaAdmin(sweep2.tenantId || prima.tenantId, {
+        manodopera: false,
+        manodoperaModuloOsservato: null,
+      });
     }
   });
 });

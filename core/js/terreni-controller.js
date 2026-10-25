@@ -181,119 +181,11 @@ export function populatePoderiDropdown(poderi) {
 export async function initializeColturePredefiniteTerreni(currentTenantId, db) {
     try {
         if (!currentTenantId) return;
-
-        const { collection, getDocs, addDoc, serverTimestamp } = await import('../services/firebase-service.js');
-        
-        // Carica categorie per ottenere gli ID
-        const categorieRef = collection(db, `tenants/${currentTenantId}/categorie`);
-        const categorieSnapshot = await getDocs(categorieRef);
-        const categorieMap = new Map(); // codice -> id
-        categorieSnapshot.forEach(doc => {
-            const data = doc.data();
-            if (data.applicabileA === 'colture' && data.codice) {
-                categorieMap.set(data.codice.toLowerCase(), doc.id);
-            }
-        });
-
-        // Carica colture esistenti
-        const coltureRef = collection(db, `tenants/${currentTenantId}/colture`);
-        const coltureSnapshot = await getDocs(coltureRef);
-        const nomiEsistenti = new Set();
-        coltureSnapshot.forEach(doc => {
-            const nome = doc.data().nome;
-            if (nome) nomiEsistenti.add(nome.toLowerCase());
-        });
-
-        // Colture predefinite
-        const COLTURE_PREDEFINITE = [
-            // Frutteto
-            { nome: 'Pesco', categoriaCodice: 'frutteto' }, { nome: 'Melo', categoriaCodice: 'frutteto' },
-            { nome: 'Pero', categoriaCodice: 'frutteto' }, { nome: 'Albicocche', categoriaCodice: 'frutteto' },
-            { nome: 'Prugne', categoriaCodice: 'frutteto' }, { nome: 'Ciliegio', categoriaCodice: 'frutteto' },
-            { nome: 'Susino', categoriaCodice: 'frutteto' }, { nome: 'Fico', categoriaCodice: 'frutteto' },
-            { nome: 'Nocciolo', categoriaCodice: 'frutteto' }, { nome: 'Mandorlo', categoriaCodice: 'frutteto' },
-            { nome: 'Castagno', categoriaCodice: 'frutteto' }, { nome: 'Cotogno', categoriaCodice: 'frutteto' },
-            { nome: 'Sorbo', categoriaCodice: 'frutteto' }, { nome: 'Nespolo', categoriaCodice: 'frutteto' },
-            { nome: 'Giuggiolo', categoriaCodice: 'frutteto' }, { nome: 'Corbezzolo', categoriaCodice: 'frutteto' },
-            { nome: 'Gelso', categoriaCodice: 'frutteto' }, { nome: 'Mora', categoriaCodice: 'frutteto' },
-            { nome: 'Lampone', categoriaCodice: 'frutteto' }, { nome: 'Mirtillo', categoriaCodice: 'frutteto' },
-            { nome: 'Ribes', categoriaCodice: 'frutteto' }, { nome: 'Uva Spina', categoriaCodice: 'frutteto' },
-            { nome: 'Kiwi', categoriaCodice: 'frutteto' }, { nome: 'Melograno', categoriaCodice: 'frutteto' },
-            { nome: 'Fico d\'India', categoriaCodice: 'frutteto' }, { nome: 'Kaki', categoriaCodice: 'frutteto' },
-            { nome: 'Noce', categoriaCodice: 'frutteto' }, { nome: 'Pistacchio', categoriaCodice: 'frutteto' },
-            // Seminativo
-            { nome: 'Grano', categoriaCodice: 'seminativo' }, { nome: 'Mais', categoriaCodice: 'seminativo' },
-            { nome: 'Orzo', categoriaCodice: 'seminativo' }, { nome: 'Favino', categoriaCodice: 'seminativo' },
-            { nome: 'Girasole', categoriaCodice: 'seminativo' }, { nome: 'Soia', categoriaCodice: 'seminativo' },
-            { nome: 'Colza', categoriaCodice: 'seminativo' }, { nome: 'Avena', categoriaCodice: 'seminativo' },
-            { nome: 'Segale', categoriaCodice: 'seminativo' }, { nome: 'Fava', categoriaCodice: 'seminativo' },
-            { nome: 'Lenticchia', categoriaCodice: 'seminativo' }, { nome: 'Cece', categoriaCodice: 'seminativo' },
-            { nome: 'Lupino', categoriaCodice: 'seminativo' }, { nome: 'Cicerchia', categoriaCodice: 'seminativo' },
-            { nome: 'Riso', categoriaCodice: 'seminativo' }, { nome: 'Grano Saraceno', categoriaCodice: 'seminativo' },
-            { nome: 'Amaranto', categoriaCodice: 'seminativo' }, { nome: 'Quinoa', categoriaCodice: 'seminativo' },
-            { nome: 'Canapa', categoriaCodice: 'seminativo' }, { nome: 'Lino', categoriaCodice: 'seminativo' },
-            { nome: 'Carthamo', categoriaCodice: 'seminativo' }, { nome: 'Erba Medica', categoriaCodice: 'seminativo' },
-            { nome: 'Trifoglio', categoriaCodice: 'seminativo' }, { nome: 'Veccia', categoriaCodice: 'seminativo' },
-            { nome: 'Lupinella', categoriaCodice: 'seminativo' }, { nome: 'Sulla', categoriaCodice: 'seminativo' },
-            { nome: 'Sorgo', categoriaCodice: 'seminativo' }, { nome: 'Miglio', categoriaCodice: 'seminativo' },
-            { nome: 'Panico', categoriaCodice: 'seminativo' },
-            // Vite
-            { nome: 'Vite', categoriaCodice: 'vite' },
-            { nome: 'Vite da Tavola', categoriaCodice: 'vite' },
-            { nome: 'Vite da Vino', categoriaCodice: 'vite' },
-            // Ortive
-            { nome: 'Pomodoro', categoriaCodice: 'ortive' }, { nome: 'Zucchine', categoriaCodice: 'ortive' },
-            { nome: 'Melanzane', categoriaCodice: 'ortive' }, { nome: 'Peperoni', categoriaCodice: 'ortive' },
-            { nome: 'Insalata', categoriaCodice: 'ortive' }, { nome: 'Carote', categoriaCodice: 'ortive' },
-            { nome: 'Patate', categoriaCodice: 'ortive' }, { nome: 'Bietole', categoriaCodice: 'ortive' },
-            { nome: 'Fragole', categoriaCodice: 'ortive' }, { nome: 'Cipolle', categoriaCodice: 'ortive' },
-            { nome: 'Aglio', categoriaCodice: 'ortive' }, { nome: 'Fagioli', categoriaCodice: 'ortive' },
-            { nome: 'Fagiolini', categoriaCodice: 'ortive' }, { nome: 'Piselli', categoriaCodice: 'ortive' },
-            { nome: 'Cavolo', categoriaCodice: 'ortive' }, { nome: 'Broccoli', categoriaCodice: 'ortive' },
-            { nome: 'Cavolfiore', categoriaCodice: 'ortive' }, { nome: 'Spinaci', categoriaCodice: 'ortive' },
-            { nome: 'Lattuga', categoriaCodice: 'ortive' }, { nome: 'Radicchio', categoriaCodice: 'ortive' },
-            { nome: 'Finocchi', categoriaCodice: 'ortive' }, { nome: 'Sedano', categoriaCodice: 'ortive' },
-            { nome: 'Cetrioli', categoriaCodice: 'ortive' }, { nome: 'Angurie', categoriaCodice: 'ortive' },
-            { nome: 'Meloni', categoriaCodice: 'ortive' },
-            // Prato
-            { nome: 'Prato', categoriaCodice: 'prato' }, { nome: 'Prato Stabile', categoriaCodice: 'prato' },
-            { nome: 'Pascolo', categoriaCodice: 'prato' },
-            // Olivo
-            { nome: 'Olivo', categoriaCodice: 'olivo' },
-            // Agrumeto
-            { nome: 'Arancio', categoriaCodice: 'agrumeto' }, { nome: 'Limone', categoriaCodice: 'agrumeto' },
-            { nome: 'Mandarino', categoriaCodice: 'agrumeto' }, { nome: 'Clementine', categoriaCodice: 'agrumeto' },
-            { nome: 'Pompelmo', categoriaCodice: 'agrumeto' }, { nome: 'Bergamotto', categoriaCodice: 'agrumeto' },
-            { nome: 'Cedro', categoriaCodice: 'agrumeto' }, { nome: 'Lime', categoriaCodice: 'agrumeto' },
-            { nome: 'Kumquat', categoriaCodice: 'agrumeto' },
-            // Bosco
-            { nome: 'Bosco', categoriaCodice: 'bosco' }
-        ];
-
-        // Crea colture predefinite mancanti
-        let createCount = 0;
-        for (const colturaData of COLTURE_PREDEFINITE) {
-            if (!nomiEsistenti.has(colturaData.nome.toLowerCase())) {
-                const categoriaId = categorieMap.get(colturaData.categoriaCodice);
-                if (categoriaId) {
-                    await addDoc(coltureRef, {
-                        nome: colturaData.nome,
-                        categoriaId: categoriaId,
-                        descrizione: null,
-                        predefinito: true,
-                        creatoDa: 'system',
-                        createdAt: serverTimestamp(),
-                        updatedAt: serverTimestamp()
-                    });
-                    nomiEsistenti.add(colturaData.nome.toLowerCase());
-                    createCount++;
-                }
-            }
-        }
-
-        if (createCount > 0) {
-            // Log opzionale
-        }
+        // Delega al servizio centralizzato (id deterministici + writeBatch + ripresa)
+        const { setCurrentTenantId } = await import('../services/tenant-service.js');
+        setCurrentTenantId(currentTenantId);
+        const { initializeColturePredefinite } = await import('../services/colture-service.js');
+        await initializeColturePredefinite();
     } catch (error) {
         console.error('Errore inizializzazione colture predefinite:', error);
     }
@@ -356,13 +248,11 @@ export async function loadCategorieColtureTerreni(currentTenantId, db, app, auth
             categorieColtureTerreni.push(...categorie);
         }
 
-        // Popola dropdown categoria con dedupe (le colture possono non essere ancora caricate)
-        const deduped = dedupeCategorieColture(categorieColtureTerreni, null);
-        categorieColtureTerreni.length = 0;
-        categorieColtureTerreni.push(...deduped);
+        // Popola dropdown con una sola voce per codice (copia canonica). L'array di stato
+        // resta con TUTTE le copie: serve dopo per unire le colture di ogni copia sotto il canonico.
         popolaSelectCategorieColture(
             document.getElementById('terreno-coltura-categoria'),
-            categorieColtureTerreni,
+            raggruppaCategorie(categorieColtureTerreni).canoniche,
             null
         );
     } catch (error) {
@@ -393,11 +283,9 @@ export async function loadColturePerCategoriaTerreni(currentTenantId, db, app, a
             const coltureRef = collection(db, `tenants/${currentTenantId}/colture`);
             let coltureSnapshot = await getDocs(coltureRef);
             
-            // Se ci sono poche colture (meno di 20), inizializza quelle predefinite
-            if (coltureSnapshot.size < 20) {
-                await initializeColturePredefiniteTerreni(currentTenantId, db);
-                coltureSnapshot = await getDocs(coltureRef);
-            }
+            // Completa colture predefinite mancanti (ripresa seed interrotto)
+            await initializeColturePredefiniteTerreni(currentTenantId, db);
+            coltureSnapshot = await getDocs(coltureRef);
             
             // Svuota oggetto
             Object.keys(colturePerCategoriaTerreni).forEach(key => delete colturePerCategoriaTerreni[key]);
@@ -455,7 +343,7 @@ export async function loadColturePerCategoriaTerreni(currentTenantId, db, app, a
             
             // Assicura che le categorie siano inizializzate prima delle colture
             const { initializeCategoriePredefinite } = await import('../services/categorie-service.js');
-            const { initializeColturePredefinite, getColturePerCategoria, getAllColture } = await import('../services/colture-service.js');
+            const { initializeColturePredefinite, getColturePerCategoria } = await import('../services/colture-service.js');
             
             // Inizializza prima le categorie (necessarie per le colture)
             try {
@@ -464,11 +352,8 @@ export async function loadColturePerCategoriaTerreni(currentTenantId, db, app, a
                 console.warn('⚠️ Errore inizializzazione categorie (potrebbero già esistere):', catError.message);
             }
             
-            // Verifica se ci sono poche colture e inizializza se necessario
-            const coltureEsistenti = await getAllColture();
-            if (coltureEsistenti.length < 20) {
-                await initializeColturePredefinite();
-            }
+            // Completa colture predefinite mancanti (ripresa seed interrotto; no-op se già complete)
+            await initializeColturePredefinite();
 
             // Usa colture-service.js invece di caricamento diretto
             const colturePerCategoria = await getColturePerCategoria();
@@ -480,6 +365,14 @@ export async function loadColturePerCategoriaTerreni(currentTenantId, db, app, a
             Object.assign(colturePerCategoriaTerreni, colturePerCategoria);
         }
 
+        // Unisci le colture di tutte le copie omonime sotto la categoria canonica
+        if (Array.isArray(categorieColtureTerreni) && categorieColtureTerreni.length > 0) {
+            const { aliasToCanon } = raggruppaCategorie(categorieColtureTerreni);
+            const unite = unisciColturePerCategoria(colturePerCategoriaTerreni, aliasToCanon);
+            Object.keys(colturePerCategoriaTerreni).forEach(key => delete colturePerCategoriaTerreni[key]);
+            Object.assign(colturePerCategoriaTerreni, unite);
+        }
+
         // Estrai tutte le colture per retrocompatibilità
         colture.length = 0; // Svuota array
         Object.values(colturePerCategoriaTerreni).forEach(coltureList => {
@@ -488,12 +381,9 @@ export async function loadColturePerCategoriaTerreni(currentTenantId, db, app, a
 
         // Dopo seed/caricamento: ripopola il select categorie con dedupe usando le colture note
         if (Array.isArray(categorieColtureTerreni)) {
-            const deduped = dedupeCategorieColture(categorieColtureTerreni, colturePerCategoriaTerreni);
-            categorieColtureTerreni.length = 0;
-            categorieColtureTerreni.push(...deduped);
             popolaSelectCategorieColture(
                 document.getElementById('terreno-coltura-categoria'),
-                categorieColtureTerreni,
+                raggruppaCategorie(categorieColtureTerreni).canoniche,
                 colturePerCategoriaTerreni
             );
         }
@@ -554,12 +444,9 @@ export async function loadColture(currentTenantId, db, app, auth, categorieColtu
     // Ripopola a fine carico se le categorie ci sono ancora (dopo catch di fallback
     // categorieColtureTerreni è vuoto e il select mostra già il messaggio di errore).
     if (Array.isArray(categorieColtureTerreni) && categorieColtureTerreni.length > 0) {
-        const deduped = dedupeCategorieColture(categorieColtureTerreni, colturePerCategoriaTerreni);
-        categorieColtureTerreni.length = 0;
-        categorieColtureTerreni.push(...deduped);
         popolaSelectCategorieColture(
             document.getElementById('terreno-coltura-categoria'),
-            categorieColtureTerreni,
+            raggruppaCategorie(categorieColtureTerreni).canoniche,
             colturePerCategoriaTerreni
         );
         const categoriaSelect = document.getElementById('terreno-coltura-categoria');
@@ -573,10 +460,8 @@ export async function loadColture(currentTenantId, db, app, auth, categorieColtu
 // IMPORTS UTILITY
 // ============================================
 import { escapeHtml, calcolaAlertAffitto, formattaDataScadenza, showAlert } from './terreni-utils.js';
-import {
-    dedupeCategorieColture,
-    popolaSelectCategorieColture,
-} from './terreni-categorie-colture.js';
+import { popolaSelectCategorieColture } from './terreni-categorie-colture.js';
+import { raggruppaCategorie, unisciColturePerCategoria } from './catalogo-dedupe.js';
 
 // ============================================
 // FUNZIONI PRINCIPALI

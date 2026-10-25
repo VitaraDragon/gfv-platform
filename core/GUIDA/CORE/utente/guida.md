@@ -390,7 +390,7 @@ Nella pagina **Abbonamento** (menu **Moduli** o tile dedicata) vedi il **piano c
 
 - Di solito **limiti** su terreni (es. massimo 5) e attività al mese (es. 30).
 - **Nessun modulo** opzionale **acquistabile** finché non passate al piano Base.
-- Potete però avviare una **prova gratuita di 30 giorni** di **un modulo alla volta** (senza carta), dalla stessa pagina **Abbonamento**: i dati restano salvati dopo la scadenza; per continuare serve Base + modulo a pagamento.
+- La **prova gratuita di 30 giorni** di **un modulo alla volta** (senza carta) è disponibile **solo con il piano Base**, dalla pagina **Abbonamento**: i dati restano salvati dopo la scadenza; per continuare serve il modulo a pagamento.
 - **Nessun assistente Tony** in chat (il pulsante non compare o il servizio non è disponibile).
 
 ### Piano Base (a pagamento)
@@ -402,8 +402,8 @@ Nella pagina **Abbonamento** (menu **Moduli** o tile dedicata) vedi il **piano c
 
 ### Cosa fare in pratica
 
-- Avvicinati ai limiti del Free → valuta il passaggio a **Base** (oppure prova un modulo per 30 giorni).
-- In Abbonamento → **prova 30 giorni** o attiva a pagamento **solo i moduli** che vi servono.
+- Avvicinati ai limiti del Free → valuta il passaggio a **Base**.
+- Con il piano **Base**, in Abbonamento → **prova 30 giorni** o attiva a pagamento **solo i moduli** che vi servono.
 - Alla **disattivazione** un modulo smette subito di funzionare; se era già pagato potete spesso **riattivarlo** fino alla data già coperta (dettaglio in pagina).
 - Se attivate o spegnete **Manodopera**, aprendo **Abbonamento** i dati passano da Diario a Gestione lavori (o, allo spegnimento, tornano nel Diario come **attività modificabili**) senza perdere nulla; con lavori ancora aperti vi viene chiesta una conferma. **[Impara qui: Diario](#mini-guida-compilare-il-diario-attivita)**
 - Per capire Tony (chat, voce, differenza Guida/Avanzato, documenti foto/PDF) apri la **guida modulo Tony** dalla raccolta Guide.

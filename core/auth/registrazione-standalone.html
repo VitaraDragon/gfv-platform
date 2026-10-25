@@ -327,6 +327,7 @@
         import { onAuthStateChanged } from '../services/firebase-service.js';
         import { createUserWithEmailAndPassword, deleteUser } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
         import { computeTonyGuidaOnboardingEndsAt } from '../config/tony-guida-onboarding.js';
+        import { registraAccettazioneDopoAccount, messaggioFineRegistrazione } from '../js/accettazione-legale-registrazione.js';
         import { NOME_TITOLARE_FACOLTATIVO_ATTIVO } from '../config/nome-titolare-config.js';
         import {
             isDaLanding,
@@ -704,95 +705,66 @@ const userData = {
                     id: firebaseUser.uid,
                     email: email.toLowerCase().trim(),
                     ...campiNome,
-                    ruoli: ruoliArray, // Primo utente è sempre amministratore
-                    tenantId: tenantId, // IMPORTANTE: associa il tenant
+                    ruoli: ruoliArray,
+                    tenantId: tenantId,
+                    tenantMemberships: {
+                        [tenantId]: {
+                            ruoli: ['amministratore'],
+                            stato: 'attivo',
+                            tenantIdPredefinito: true
+                        }
+                    },
                     stato: 'attivo',
                     creatoDa: firebaseUser.uid,
                     creatoIl: serverTimestamp(),
                     ultimoAccesso: null
                 };
 
-// Verifica se il documento esiste già
                 const existingUserDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
                 if (existingUserDoc.exists()) {
-                    console.warn('⚠️ Documento utente esiste già, uso updateDoc invece di setDoc');
-                    // Se esiste, usa updateDoc per aggiornare tutti i campi
-                    await updateDoc(doc(db, 'users', firebaseUser.uid), userData);
-                    userDocCreated = true; // Anche updateDoc conta come creazione/modifica riuscita
-                } else {
-                    // Se non esiste, crea nuovo documento SENZA merge
-                    await setDoc(doc(db, 'users', firebaseUser.uid), userData);
-                    userDocCreated = true;
+                    throw new Error(
+                        'Esiste già un profilo per questo account. Accedi invece di registrare una nuova azienda, oppure usa un\'altra email.'
+                    );
                 }
-
-                // Attendi un momento per assicurarsi che Firestore abbia processato
+                await setDoc(doc(db, 'users', firebaseUser.uid), userData);
+                userDocCreated = true;
 
                 await new Promise(resolve => setTimeout(resolve, 1000));
 
-                // Verifica che il documento sia stato salvato correttamente
                 const userDocRef = doc(db, 'users', firebaseUser.uid);
                 const userDocCheck = await getDoc(userDocRef);
-                
                 if (!userDocCheck.exists()) {
                     throw new Error('Errore: documento utente non creato correttamente');
                 }
-
-                // Verifica che i dati siano stati salvati correttamente
                 const savedData = userDocCheck.data();
-
-// Verifica tenantId
                 if (!savedData.tenantId || savedData.tenantId !== tenantId) {
-                    console.error('❌ ERRORE: tenantId non salvato correttamente!');
-                    console.error('❌ Atteso:', tenantId, 'Trovato:', savedData.tenantId);
-                    // Riprova a salvare tenantId
-                    await updateDoc(userDocRef, {
-                        tenantId: tenantId
-                    });
-
+                    throw new Error('Errore: tenantId non salvato correttamente. Riprova la registrazione.');
                 }
-                
-                // Controlla se i ruoli sono stati salvati correttamente
-                let ruoliSalvati = savedData.ruoli;
+                const ruoliSalvati = savedData.ruoli;
                 if (!ruoliSalvati || !Array.isArray(ruoliSalvati) || ruoliSalvati.length === 0) {
-                    console.warn('⚠️ Ruoli non trovati o non validi, riprovo con updateDoc...');
-                    // Riprova a salvare i ruoli usando updateDoc
-                    await updateDoc(userDocRef, {
-                        ruoli: ['amministratore']
-                    });
-                    
-                    // Attendi e verifica di nuovo
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    const userDocCheck2 = await getDoc(userDocRef);
-                    const savedData2 = userDocCheck2.data();
-
-ruoliSalvati = savedData2.ruoli;
-                }
-                
-                if (!ruoliSalvati || !Array.isArray(ruoliSalvati) || ruoliSalvati.length === 0) {
-                    console.error('❌ ERRORE: Ruoli ancora non salvati dopo retry!');
-                    throw new Error('Impossibile salvare i ruoli. Controlla la console per dettagli.');
-                }
-                
-                if (!savedData.tenantId) {
-                    console.error('❌ ERRORE: TenantId ancora non salvato dopo retry!');
-                    throw new Error('Impossibile salvare il tenantId. Controlla la console per dettagli.');
+                    throw new Error('Errore: ruoli non salvati correttamente. Riprova la registrazione.');
                 }
 
-                if (accettazioneLegaleAttiva) {
-                    const moduloLegale = await import('../services/accettazione-legale.js');
-                    const payloadLegale = moduloLegale.costruisciPayloadAccettazione({
-                        canale: 'registrazione',
-                        tenantId: tenantId,
-                        ruolo: 'amministratore',
-                        documenti: ['termini-b2b', 'privacy', 'dpa'],
-                        config: accettazioneConfig
-                    });
-                    const registraAccettazioni = getHttpsCallable('registraAccettazioniLegali');
-                    await registraAccettazioni(Object.assign({ azione: 'registra' }, payloadLegale));
-                }
+                // Tenant e utente esistono già: se fallisce solo l'accettazione non si annulla nulla
+                // (niente deleteUser), si prosegue e il gate di ingresso la richiede al primo accesso.
+                const esitoLegale = await registraAccettazioneDopoAccount({
+                    attiva: accettazioneLegaleAttiva,
+                    registra: async () => {
+                        const moduloLegale = await import('../services/accettazione-legale.js');
+                        const payloadLegale = moduloLegale.costruisciPayloadAccettazione({
+                            canale: 'registrazione',
+                            tenantId: tenantId,
+                            ruolo: 'amministratore',
+                            documenti: ['termini-b2b', 'privacy', 'dpa'],
+                            config: accettazioneConfig
+                        });
+                        const registraAccettazioni = getHttpsCallable('registraAccettazioniLegali');
+                        await registraAccettazioni(Object.assign({ azione: 'registra' }, payloadLegale));
+                    }
+                });
 
 // Successo!
-                showSuccess('✅ Account creato con successo! Reindirizzamento alla dashboard...');
+                showSuccess(messaggioFineRegistrazione(esitoLegale, '✅ Account creato con successo! Reindirizzamento alla dashboard...'));
                 
                 // Salva flag che l'utente si è appena registrato
                 sessionStorage.setItem('gfv_user_just_registered', 'true');
@@ -818,27 +790,15 @@ ruoliSalvati = savedData2.ruoli;
                 if (firebaseUser && !userDocCreated) {
                     console.warn('⚠️ Utente Firebase Auth creato ma documento Firestore non creato. Eseguo cleanup...');
                     try {
-                        // Elimina il documento utente se è stato creato parzialmente
-                        if (userDocCreated) {
-                            try {
-                                await deleteDoc(doc(db, 'users', firebaseUser.uid));
-                                console.log('✅ Documento utente eliminato');
-                            } catch (deleteUserDocError) {
-                                console.warn('⚠️ Errore eliminazione documento utente (potrebbe non esistere):', deleteUserDocError);
-                            }
-                        }
-                        
-                        // Elimina il tenant se è stato creato ma l'utente no
                         if (tenantCreated && tenantId) {
                             try {
+                                // Rules: delete tenants/{id} dal client è vietato → resta orfano Free
                                 await deleteDoc(doc(db, 'tenants', tenantId));
                                 console.log('✅ Tenant eliminato');
                             } catch (deleteTenantError) {
-                                console.warn('⚠️ Errore eliminazione tenant:', deleteTenantError);
+                                console.warn('⚠️ Eliminazione tenant non riuscita (atteso: rules delete:false; doc orfano):', deleteTenantError);
                             }
                         }
-                        
-                        // Elimina l'utente Firebase Auth
                         await deleteUser(firebaseUser);
                         console.log('✅ Utente Firebase Auth eliminato - ora puoi riprovare la registrazione');
                     } catch (cleanupError) {

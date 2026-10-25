@@ -686,30 +686,28 @@ export async function loadTipiLavoro(
                 });
             });
             
-            // Se non ci sono tipi lavoro nel tenant, inizializza i predefiniti e ricarica
-            if (tipiLavoroList.length === 0) {
-                try {
-                    const { initializeTipiLavoroPredefiniti: initTipiLavoro } = await import('../../services/tipi-lavoro-service.js');
-                    await initTipiLavoro();
-                    const tipiLavoroReload = await getAllTipiLavoro({
-                        orderBy: 'nome',
-                        orderDirection: 'asc'
+            // Completa tipi predefiniti mancanti (ripresa seed interrotto; no-op se già complete)
+            try {
+                const { initializeTipiLavoroPredefiniti: initTipiLavoro } = await import('../../services/tipi-lavoro-service.js');
+                await initTipiLavoro();
+                const tipiLavoroReload = await getAllTipiLavoro({
+                    orderBy: 'nome',
+                    orderDirection: 'asc'
+                });
+                tipiLavoroList.length = 0;
+                tipiLavoroReload.forEach(tipo => {
+                    tipiLavoroList.push({
+                        id: tipo.id,
+                        nome: tipo.nome,
+                        categoriaId: tipo.categoriaId,
+                        sottocategoriaId: tipo.sottocategoriaId,
+                        descrizione: tipo.descrizione,
+                        predefinito: tipo.predefinito || false,
+                        ...tipo
                     });
-                    tipiLavoroList.length = 0; // Pulisci array
-                    tipiLavoroReload.forEach(tipo => {
-                        tipiLavoroList.push({
-                            id: tipo.id,
-                            nome: tipo.nome,
-                            categoriaId: tipo.categoriaId,
-                            sottocategoriaId: tipo.sottocategoriaId,
-                            descrizione: tipo.descrizione,
-                            predefinito: tipo.predefinito || false,
-                            ...tipo
-                        });
-                    });
-                } catch (initError) {
-                    console.warn('Impossibile inizializzare tipi lavoro predefiniti:', initError);
-                }
+                });
+            } catch (initError) {
+                console.warn('Impossibile inizializzare tipi lavoro predefiniti:', initError);
             }
         }
         

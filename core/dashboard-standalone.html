@@ -409,15 +409,18 @@
         }
 
         async function attendiAccettazioneLegaleSeServe(userData, aziendaNome) {
+            let flagAcceso = false;
             try {
                 const config = await import('./config/accettazione-legale-config.js');
                 if (config.ACCETTAZIONE_LEGALE_ATTIVA !== true) return;
+                flagAcceso = true;
                 const legale = await import('./services/accettazione-legale.js');
                 if (!legale.validaConfigLegale(config, true).ok) {
                     console.warn('[accettazione-legale] config non valida, ingresso invariato');
                     return;
                 }
                 const gate = await import('./js/accettazione-legale-gate.js');
+                // Con il flag acceso il gate non lascia entrare se non riesce a leggere lo stato (Riprova / Esci).
                 await gate.avviaDaFirebase({
                     ruoli: (userData && userData.ruoli) || [],
                     tenantId: userData && userData.tenantId,
@@ -425,8 +428,34 @@
                     config: config
                 });
             } catch (error) {
-                console.warn('[accettazione-legale] ingresso invariato');
+                if (!flagAcceso) {
+                    console.warn('[accettazione-legale] ingresso invariato');
+                    return;
+                }
+                // Flag acceso ma moduli del gate non caricati: ingresso bloccato, si ricarica la pagina.
+                console.warn('[accettazione-legale] gate non caricato, ingresso bloccato');
+                bloccaIngressoLegale();
+                await new Promise(() => {});
             }
+        }
+
+        function bloccaIngressoLegale() {
+            const fondo = document.createElement('div');
+            fondo.id = 'accettazione-legale-gate-errore';
+            fondo.style.cssText = 'position:fixed;inset:0;z-index:10001;background:rgba(0,0,0,.45);display:flex;align-items:center;justify-content:center;padding:16px;';
+            const pannello = document.createElement('div');
+            pannello.style.cssText = 'background:#fff;border-radius:12px;max-width:520px;width:100%;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a;';
+            const testo = document.createElement('p');
+            testo.textContent = 'Non riesco a verificare le condizioni di uso. Controlla la connessione e riprova.';
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = 'Riprova';
+            btn.style.cssText = 'margin-top:8px;padding:12px 16px;background:#2E8B57;color:#fff;border:0;border-radius:8px;';
+            btn.addEventListener('click', () => window.location.reload());
+            pannello.appendChild(testo);
+            pannello.appendChild(btn);
+            fondo.appendChild(pannello);
+            document.body.appendChild(fondo);
         }
 
         function applicaIngressoDopoLogin(userData, availableModules) {
@@ -1400,53 +1429,15 @@
                 const userDoc = avvioLetture.userDoc;
 
                 if (!userDoc.exists()) {
-                    // Il documento utente non esiste, verifica prima se esiste già un documento con la stessa email
-                    console.warn('⚠️ Documento utente non trovato per UID, verifico se esiste già un documento con la stessa email...');
+                    // Niente copia di tenantId/ruoli/membership da un altro UID (buco di sicurezza chiuso).
+                    console.warn('⚠️ Documento utente non trovato per UID.');
                     try {
-                        // PRIMA VERIFICA: Cerca se esiste già un documento con la stessa email (per evitare duplicati)
-                        const existingUsersQuery = query(
-                            collection(db, 'users'),
-                            where('email', '==', user.email)
-                        );
-                        const existingUsersSnapshot = await getDocs(existingUsersQuery);
-                        
-                        if (!existingUsersSnapshot.empty) {
-                            // Trovato un documento esistente con la stessa email ma UID diverso
-                            // Questo è un documento orfano o duplicato - aggiornalo con il nuovo UID
-                            const existingDoc = existingUsersSnapshot.docs[0];
-                            const existingData = existingDoc.data();
-                            console.warn('⚠️ Trovato documento esistente con stessa email ma UID diverso:', existingDoc.id);
-                            console.warn('⚠️ Aggiorno il documento esistente con il nuovo UID:', user.uid);
-                            
-                            // Aggiorna il documento esistente con il nuovo UID
-                            await setDoc(userDocRef, {
-                                ...existingData,
-                                id: user.uid,
-                                email: user.email,
-                                ultimoAccesso: serverTimestamp(),
-                                isOnline: true,
-                                lastSeen: serverTimestamp()
-                            });
-                            
-                            // Elimina il vecchio documento orfano
-                            await deleteDoc(doc(db, 'users', existingDoc.id));
-                            
-                            // Ricarica il documento appena creato per continuare con il flusso normale
-                            const updatedUserDoc = await getDoc(userDocRef);
-                            if (!updatedUserDoc.exists()) {
-                                throw new Error('Errore: documento non creato correttamente dopo merge');
-                            }
-                        } else {
-                            // Nessun documento esistente con questa email, procedi con la creazione normale
-                            // IMPORTANTE: Se l'utente non viene dalla registrazione, NON creare documento vuoto
-                            // L'utente deve completare la registrazione prima
                             const justRegistered = sessionStorage.getItem('gfv_user_just_registered') === 'true';
                             
                             if (!justRegistered) {
                                 console.warn('⚠️ ATTENZIONE: Utente autenticato ma documento non trovato e non viene dalla registrazione!');
-                                console.warn('⚠️ Questo potrebbe indicare un problema. Redirect alla registrazione...');
                                 await auth.signOut();
-                                alert('Errore: documento utente non trovato. Completa la registrazione.');
+                                alert('Errore: profilo utente non trovato. Completa la registrazione o contatta l\'amministratore. Non è più possibile recuperare un documento «orfano» copiando ruoli da un altro account.');
                                 window.location.href = '../auth/registrazione-standalone.html';
                                 return;
                             }
@@ -1520,10 +1511,8 @@
                             await renderDashboard(userDataNormalized, availableModules);
                             await finishDashboardLoad(availableModules, userDataNormalized, currentTenantId, user);
                             return; // Esci qui per non eseguire il codice sotto
-                        }
                     } catch (error) {
-                        console.error('❌ Errore creazione documento utente:', error);
-                        // Continua con il flusso di errore
+                        console.error('❌ Errore recupero documento utente:', error);
                     }
                 } else {
                     // Se arriviamo qui, significa che il documento esiste

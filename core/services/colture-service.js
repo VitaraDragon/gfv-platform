@@ -10,88 +10,92 @@ import {
   getDocumentData, 
   updateDocument,
   deleteDocument,
-  getCollectionData 
+  getCollectionData
 } from './firebase-service.js';
 import { getCurrentTenantId } from './tenant-service.js';
 import { Coltura } from '../models/Coltura.js';
 import { COLTURE_PREDEFINITE } from '../config/app-catalog-seed-data.js';
+import { conLockSeed, idSeed, datiSeed, scriviSeedBatch } from './catalogo-seed.js';
+import { mappeCodiceCanonico } from '../js/catalogo-dedupe.js';
 
 export { COLTURE_PREDEFINITE };
 
 const COLLECTION_NAME = 'colture';
 
 /**
- * Inizializza colture predefinite per il tenant corrente
- * Inizializza automaticamente le categorie se non esistono
+ * Inizializza colture predefinite per il tenant corrente.
+ * Completa le voci mancanti (ripresa dopo seed interrotto); a catalogo completo zero scritture.
+ * Idempotente: id deterministici (`seed_<nome>`) in writeBatch, una sola esecuzione
+ * alla volta per tenant, nessuna scrittura se una lettura fallisce, categoria = copia canonica.
  * @returns {Promise<void>}
  */
 export async function initializeColturePredefinite() {
+  const tenantId = getCurrentTenantId();
+  if (!tenantId) {
+    throw new Error('Errore inizializzazione colture: Nessun tenant corrente disponibile');
+  }
+  return conLockSeed('colture', tenantId, () => seedColturePredefinite(tenantId));
+}
+
+async function seedColturePredefinite(tenantId) {
   try {
-    const tenantId = getCurrentTenantId();
-    if (!tenantId) {
-      throw new Error('Nessun tenant corrente disponibile');
-    }
-    
     // Assicura che le categorie siano inizializzate prima
-    const { getAllCategorie, initializeCategoriePredefinite } = await import('./categorie-service.js');
+    const { leggiCategorieGrezze, initializeCategoriePredefinite } = await import('./categorie-service.js');
     
-    // Verifica se ci sono categorie per colture
-    let categorieColture = await getAllCategorie({
-      applicabileA: 'colture',
-      orderBy: 'ordine',
-      orderDirection: 'asc'
-    });
+    // Lettura grezza (lancia se fallisce: niente seed su errore di lettura)
+    const soloColture = (lista) => lista.filter(c => c.applicabileA === 'colture');
+    let categorieColture = soloColture(await leggiCategorieGrezze(tenantId));
     
     // Se non ci sono categorie, inizializzale
     if (categorieColture.length === 0) {
       try {
         await initializeCategoriePredefinite();
-        // Ricarica le categorie dopo l'inizializzazione
-        categorieColture = await getAllCategorie({
-          applicabileA: 'colture',
-          orderBy: 'ordine',
-          orderDirection: 'asc'
-        });
       } catch (catError) {
         console.warn('⚠️ Errore inizializzazione categorie:', catError.message);
-        // Continua comunque, potrebbe essere che esistano già
       }
+      // Ricarica le categorie dopo l'inizializzazione
+      categorieColture = soloColture(await leggiCategorieGrezze(tenantId));
     }
     
-    // Crea mappa codice categoria -> id categoria
-    const categorieMap = new Map();
-    categorieColture.forEach(cat => {
-      categorieMap.set(cat.codice, cat.id);
-    });
+    // codice categoria -> id canonico (stessa copia per ogni esecuzione)
+    const { principali: categorieMap } = mappeCodiceCanonico(categorieColture);
     
-    // Carica tutte le colture esistenti
-    const coltureEsistenti = await getAllColture();
-    const nomiEsistenti = new Set(coltureEsistenti.map(c => c.nome.toLowerCase()));
+    // Carica tutte le colture esistenti (lancia se fallisce)
+    const coltureDocs = await getCollectionData(COLLECTION_NAME, { tenantId });
+    const nomiEsistenti = new Set(
+      (coltureDocs || []).map(c => String(c.nome || '').toLowerCase()).filter(Boolean)
+    );
     
-    // Crea colture predefinite mancanti
+    // Raccogli colture predefinite mancanti, poi una sola (o poche) writeBatch
+    const daCreare = [];
     for (const colturaData of COLTURE_PREDEFINITE) {
-      if (!nomiEsistenti.has(colturaData.nome.toLowerCase())) {
-        const categoriaId = categorieMap.get(colturaData.categoriaCodice);
-        if (!categoriaId) {
-          console.warn(`Categoria ${colturaData.categoriaCodice} non trovata per coltura ${colturaData.nome}`);
-          continue;
-        }
-        
-        const coltura = new Coltura({
-          nome: colturaData.nome,
-          categoriaId: categoriaId,
-          descrizione: colturaData.descrizione || null,
-          predefinito: true,
-          creatoDa: 'system'
-        });
-        
-        const validation = coltura.validate();
-        if (validation.valid) {
-          await createDocument(COLLECTION_NAME, coltura.toFirestore(), tenantId);
-          nomiEsistenti.add(colturaData.nome.toLowerCase());
-        }
+      if (nomiEsistenti.has(colturaData.nome.toLowerCase())) continue;
+
+      const categoriaId = categorieMap.get(String(colturaData.categoriaCodice).toLowerCase());
+      if (!categoriaId) {
+        console.warn(`Categoria ${colturaData.categoriaCodice} non trovata per coltura ${colturaData.nome}`);
+        continue;
       }
+
+      const coltura = new Coltura({
+        nome: colturaData.nome,
+        categoriaId: categoriaId,
+        descrizione: colturaData.descrizione || null,
+        predefinito: true,
+        creatoDa: 'system'
+      });
+
+      const validation = coltura.validate();
+      if (!validation.valid) continue;
+
+      daCreare.push({
+        id: idSeed(colturaData.nome),
+        data: datiSeed(coltura.toFirestore())
+      });
+      nomiEsistenti.add(colturaData.nome.toLowerCase());
     }
+
+    await scriviSeedBatch(COLLECTION_NAME, daCreare, tenantId);
   } catch (error) {
     console.error('Errore inizializzazione colture predefinite:', error);
     throw new Error(`Errore inizializzazione colture: ${error.message}`);

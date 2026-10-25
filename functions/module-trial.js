@@ -1,9 +1,17 @@
 "use strict";
 
+// Ogni nuovo campo di billing/accesso scritto sul doc tenant va aggiunto a
+// toccaCampiFatturazione() (e, se serve, a tenantCreateIsFreeWithoutBilling()) in firestore.rules.
+
 const { HttpsError } = require("firebase-functions/v2/https");
 const admin = require("firebase-admin");
 const { assertManagerOrAdminForTenant } = require("./email-resend");
+const { resolveTenantPlanId } = require("./tenant-plan");
 const BUNDLES_CATALOG = require("./config/bundles-catalog.json");
+
+/** Motivo shared con client (module-access-resolver) quando il piano non è Base. */
+const MODULE_TRIAL_REQUIRES_BASE_REASON =
+  "La prova gratuita dei moduli è disponibile con il piano Base.";
 
 const MODULE_TRIAL_DAYS = 30;
 const TRIAL_STATUS_ACTIVE = "active";
@@ -100,6 +108,11 @@ function canStartModuleTrial(tenant, moduleId, now = new Date()) {
     return { canStart: false, reason: "Modulo non disponibile per la prova." };
   }
 
+  // Decisione prodotto 24/10/2026: prova moduli solo con piano Base (annulla 22/06).
+  if (resolveTenantPlanId(tenant) !== "base") {
+    return { canStart: false, reason: MODULE_TRIAL_REQUIRES_BASE_REASON };
+  }
+
   const missingRequired = getMissingRequiredModules(tenant, moduleId, now);
   if (missingRequired.length) {
     return {
@@ -185,7 +198,7 @@ function markBundleTrialsConverted(moduleTrials, moduleIds) {
 }
 
 /**
- * Callable: avvia prova gratuita modulo (30 giorni, anche piano Free).
+ * Callable: avvia prova gratuita modulo (30 giorni, solo piano Base).
  * Body: { tenantId, moduleId }
  */
 async function handleStartModuleTrial(db, request) {
@@ -300,6 +313,7 @@ async function handleSyncModuleTrials(db, request) {
 module.exports = {
   MODULE_TRIAL_DAYS,
   AVAILABLE_MODULE_IDS,
+  MODULE_TRIAL_REQUIRES_BASE_REASON,
   isTrialRecordActive,
   getPaidModuleIds,
   getActiveTrialModuleIds,

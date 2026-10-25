@@ -12,6 +12,8 @@ import { describe, expect, it } from 'vitest';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 const MODULI = [
+  'core/js/accettazione-legale-gate.js',
+  'core/js/accettazione-legale-registrazione.js',
   'core/js/attivita-controller.js',
   'core/js/attivita-maps.js',
   'core/js/dashboard-briefing-helpers.js',
@@ -20,12 +22,21 @@ const MODULI = [
   'core/js/dashboard-deadlines.js',
   'core/js/dashboard-meteo.js',
   'core/js/dashboard-quick-bar.js',
+  'core/js/catalogo-dedupe.js',
+  'core/js/lavoro-cascade-filters.js',
   'core/js/lavoro-progresso-display.js',
   'core/js/terreni-categorie-colture.js',
+  'core/js/terreni-controller.js',
+  'core/js/terreni-events.js',
   'core/admin/js/gestione-lavori-controller.js',
   'core/admin/js/gestione-lavori-maps.js',
+  'core/services/catalogo-seed.js',
+  'core/services/categorie-service.js',
+  'core/services/colture-service.js',
+  'core/services/tipi-lavoro-service.js',
   'core/services/zone-lavorate-area.js',
   'core/services/zone-lavorate-permessi.js',
+  'modules/seminativo/services/seminativi-service.js',
   'modules/vendemmia-meccanica/js/vm-zone-mappa.js',
   'modules/vendemmia-meccanica/services/lavoro-piano-sync-service.js',
   'modules/vendemmia-meccanica/services/piano-stagione-service.js',
@@ -36,7 +47,10 @@ const PAGINE = [
   'core/admin/gestione-lavori-standalone.html',
   'core/admin/lavori-caposquadra-standalone.html',
   'core/attivita-standalone.html',
+  'core/auth/registrazione-invito-standalone.html',
+  'core/auth/registrazione-standalone.html',
   'core/dashboard-standalone.html',
+  'core/mobile/field-workspace-standalone.html',
   'modules/vendemmia-meccanica/views/piano-stagione-standalone.html',
 ];
 
@@ -44,10 +58,13 @@ const PAGINE = [
  * Nomi già liberi su origin/develop, fuori da questa PR.
  * dashboard-data: loadLavoriOggiOperaio legge caposquadraId senza dichiararlo.
  * dashboard: deleteDoc è chiamato senza essere nell'import di firebase-service.
+ * tipi-lavoro-service: createTipoLavoro usa `sottocategoria` non dichiarata (già su develop).
  */
 const PREESISTENTI = {
   'core/js/dashboard-data.js': new Set(['caposquadraId']),
   'core/dashboard-standalone.html': new Set(['deleteDoc']),
+  // tipi-lavoro-service: createTipoLavoro legge `sottocategoria` mai dichiarata nel messaggio duplicato (follow-up).
+  'core/services/tipi-lavoro-service.js': new Set(['sottocategoria']),
 };
 
 const GLOBALI = new Set([

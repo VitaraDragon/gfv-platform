@@ -1,7 +1,7 @@
 /**
  * Invito Service - Gestione inviti utenti (versione standalone)
- * Gestisce creazione inviti, verifica token e accettazione inviti
- * 
+ * Creazione inviti lato client; accettazione membership solo via callable accettaInvito.
+ *
  * @module core/services/invito-service-standalone
  */
 
@@ -10,72 +10,29 @@
  * @returns {string} Token unico
  */
 export function generateInviteToken() {
-    // Usa crypto.randomUUID se disponibile, altrimenti fallback
     if (typeof crypto !== 'undefined' && crypto.randomUUID) {
         return crypto.randomUUID() + '-' + Date.now();
     }
-    // Fallback per browser più vecchi
     return 'inv-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9) + '-' + Math.random().toString(36).substr(2, 9);
 }
 
 /**
- * Crea un invito per un nuovo utente o per aggiungere tenant a utente esistente
- * @param {Object} db - Istanza Firestore
- * @param {Object} collection - Funzione collection di Firestore
- * @param {Object} query - Funzione query di Firestore
- * @param {Object} where - Funzione where di Firestore
- * @param {Object} getDocs - Funzione getDocs di Firestore
- * @param {Object} addDoc - Funzione addDoc di Firestore
- * @param {Object} serverTimestamp - Funzione serverTimestamp di Firestore
- * @param {string} email - Email utente
- * @param {string} nome - Nome utente
- * @param {string} cognome - Cognome utente
- * @param {Array<string>} ruoli - Array di ruoli
- * @param {string} tenantId - ID tenant
- * @param {string} inviatoDa - ID utente che invia
- * @returns {Promise<Object>} Dati invito creato con flag isExistingUser
+ * Crea un invito. Non interroga più users per email (rules: niente query cross-tenant).
+ * isExistingUser resta storico/false; la callable getInvitoPubblico lo ricalcola da Auth.
+ * L'appartenenza già attiva è rifiutata da accettaInvito (already-exists).
  */
 export async function createInvito(db, collection, query, where, getDocs, addDoc, serverTimestamp, email, nome, cognome, ruoli, tenantId, inviatoDa) {
     try {
-        // Verifica se email esiste già in Firestore
         const emailNormalized = email.toLowerCase().trim();
-        const usersQuery = query(
-            collection(db, 'users'),
-            where('email', '==', emailNormalized)
-        );
-        const usersSnapshot = await getDocs(usersQuery);
-        const isExistingUser = !usersSnapshot.empty;
-        
-        // Se utente esiste, verifica che non appartenga già a questo tenant
-        if (isExistingUser) {
-            const existingUserDoc = usersSnapshot.docs[0];
-            const existingUserData = existingUserDoc.data();
-            
-            // Verifica se appartiene già a questo tenant
-            if (existingUserData.tenantMemberships && existingUserData.tenantMemberships[tenantId]) {
-                const membership = existingUserData.tenantMemberships[tenantId];
-                if (membership.stato === 'attivo') {
-                    throw new Error('Utente appartiene già a questo tenant');
-                }
-            } else if (existingUserData.tenantId === tenantId) {
-                // Retrocompatibilità: verifica tenantId deprecato
-                throw new Error('Utente appartiene già a questo tenant');
-            }
-        }
-        
-        // Genera token unico
         const token = generateInviteToken();
-        
-        // Calcola data scadenza (7 giorni)
         const scadeIl = new Date();
         scadeIl.setDate(scadeIl.getDate() + 7);
-        
-        // Crea invito
+
         const invitoData = {
             email: emailNormalized,
             nome: nome.trim(),
             cognome: cognome.trim(),
-            ruoli: ruoli, // Array di ruoli
+            ruoli: ruoli,
             tenantId: tenantId,
             token: token,
             stato: 'invitato',
@@ -83,16 +40,15 @@ export async function createInvito(db, collection, query, where, getDocs, addDoc
             inviatoIl: serverTimestamp(),
             scadeIl: scadeIl,
             accettatoIl: null,
-            isExistingUser: isExistingUser // Flag: true se utente esiste già
+            isExistingUser: false
         };
-        
-        // Salva in Firestore
+
         const docRef = await addDoc(collection(db, 'inviti'), invitoData);
-        
+
         return {
             id: docRef.id,
             ...invitoData,
-            token: token // Includi token nel risultato per generare link
+            token: token
         };
     } catch (error) {
         console.error('Errore creazione invito:', error);
@@ -121,6 +77,60 @@ export function mapInvitoPubblicoError(error) {
 }
 
 /**
+ * Codice errore callable (es. functions/already-exists → already-exists).
+ * @param {*} error
+ * @returns {string}
+ */
+export function invitoCallableErrorCode(error) {
+    const raw = String((error && error.code) || '');
+    const m = raw.match(/^(?:functions\/)?([a-z0-9-]+)$/i);
+    return m ? m[1].toLowerCase() : '';
+}
+
+/**
+ * Mappa errori di accettaInvito.
+ * @param {*} error
+ * @returns {Error}
+ */
+export function mapAccettaInvitoError(error) {
+    const code = invitoCallableErrorCode(error);
+    const msg = String((error && error.message) || '');
+    if (code === 'already-exists') {
+        const err = new Error('Appartieni già a questa azienda');
+        err.code = 'already-exists';
+        return err;
+    }
+    if (code === 'permission-denied') {
+        const err = new Error(msg || 'Non puoi accettare questo invito.');
+        err.code = 'permission-denied';
+        return err;
+    }
+    if (code === 'failed-precondition' || /scaduto/i.test(msg)) {
+        const err = new Error(msg || 'Token scaduto. Contatta l\'amministratore per un nuovo invito.');
+        err.code = 'failed-precondition';
+        return err;
+    }
+    if (code === 'not-found' || /già utilizzato/i.test(msg)) {
+        const err = new Error(msg || 'Token invalido o già utilizzato');
+        err.code = 'not-found';
+        return err;
+    }
+    if (code === 'invalid-argument') {
+        const err = new Error(msg || 'Dati invito non validi.');
+        err.code = 'invalid-argument';
+        return err;
+    }
+    if (code === 'unauthenticated') {
+        const err = new Error('Devi essere autenticato per accettare l\'invito.');
+        err.code = 'unauthenticated';
+        return err;
+    }
+    const err = new Error(msg || 'Errore accettazione invito');
+    if (code) err.code = code;
+    return err;
+}
+
+/**
  * Legge un invito dal token via Cloud Function (niente query pubblica su /inviti).
  * @param {string} token
  * @returns {Promise<Object>}
@@ -142,13 +152,6 @@ export async function fetchInvitoByToken(token) {
 
 /**
  * Verifica un token invito
- * @param {Object} db - Istanza Firestore (compat, non usato: lookup via CF)
- * @param {Object} collection - Funzione collection di Firestore (compat)
- * @param {Object} query - Funzione query di Firestore (compat)
- * @param {Object} where - Funzione where di Firestore (compat)
- * @param {Object} getDocs - Funzione getDocs di Firestore (compat)
- * @param {string} token - Token da verificare
- * @returns {Promise<Object>} Dati invito
  */
 export async function verifyInviteToken(db, collection, query, where, getDocs, token) {
     try {
@@ -172,251 +175,98 @@ export async function verifyInviteToken(db, collection, query, where, getDocs, t
 }
 
 /**
- * Accetta un invito e crea l'utente o aggiunge membership a utente esistente
- * @param {Object} auth - Istanza Firebase Auth
- * @param {Object} db - Istanza Firestore
- * @param {Object} createUserWithEmailAndPassword - Funzione createUserWithEmailAndPassword
- * @param {Object} signInWithEmailAndPassword - Funzione signInWithEmailAndPassword
- * @param {Object} doc - Funzione doc di Firestore
- * @param {Object} getDoc - Funzione getDoc di Firestore
- * @param {Object} setDoc - Funzione setDoc di Firestore
- * @param {Object} updateDoc - Funzione updateDoc di Firestore
- * @param {Object} collection - Funzione collection di Firestore
- * @param {Object} query - Funzione query di Firestore
- * @param {Object} where - Funzione where di Firestore
- * @param {Object} getDocs - Funzione getDocs di Firestore
- * @param {Object} serverTimestamp - Funzione serverTimestamp di Firestore
- * @param {string} token - Token invito
- * @param {string} password - Password scelta dall'utente (opzionale se utente esiste già)
- * @returns {Promise<Object>} Dati utente creato o aggiornato
+ * Accetta un invito: Auth sul client, membership + stato invito solo via callable accettaInvito.
+ * Firma lunga mantenuta per compatibilità con la pagina (parametri Firestore non più usati per membership).
  */
 export async function acceptInvito(auth, db, createUserWithEmailAndPassword, signInWithEmailAndPassword, doc, getDoc, setDoc, updateDoc, collection, query, where, getDocs, serverTimestamp, token, password) {
     try {
-        // Verifica token
         const invito = await verifyInviteToken(db, collection, query, where, getDocs, token);
-        
-        let firebaseUser = null;
-        let isNewUser = false;
-        
-        // Se invito indica utente esistente, prova a fare login invece di creare account
-        // Controlla anche valori truthy per retrocompatibilità
+
+        if (!password) {
+            throw new Error(
+                invito.isExistingUser
+                    ? 'Password richiesta per utente esistente'
+                    : 'Password obbligatoria per nuovo utente'
+            );
+        }
+
+        let isNewAuthUser = false;
         const isExistingUserFlag = invito.isExistingUser === true || invito.isExistingUser === 'true' || invito.isExistingUser === 1;
-        
+
         if (isExistingUserFlag) {
             try {
-                // Prova a fare login con email e password fornita
-                if (!password) {
-                    throw new Error('Password richiesta per utente esistente');
-                }
-                
-                const userCredential = await signInWithEmailAndPassword(auth, invito.email, password);
-                firebaseUser = userCredential.user;
-                
-                // Utente esiste già, aggiungiamo solo membership
-                const userDocRef = doc(db, 'users', firebaseUser.uid);
-                const userDoc = await getDoc(userDocRef);
-                
-                if (!userDoc.exists()) {
-                    throw new Error('Utente non trovato in Firestore');
-                }
-                
-                const userData = userDoc.data();
-                
-                // Aggiungi tenantMembership
-                const tenantMemberships = userData.tenantMemberships || {};
-                
-                // Verifica che non appartenga già a questo tenant
-                if (tenantMemberships[invito.tenantId] && tenantMemberships[invito.tenantId].stato === 'attivo') {
-                    throw new Error('Appartieni già a questo tenant');
-                }
-                
-                // Aggiungi nuova membership
-                tenantMemberships[invito.tenantId] = {
-                    ruoli: invito.ruoli || [],
-                    stato: 'attivo',
-                    dataInizio: serverTimestamp(),
-                    creatoDa: invito.inviatoDa,
-                    tenantIdPredefinito: false // Non è il tenant predefinito se è un invito
-                };
-
-                const { campiNomeDaInvitoSeVuoti } = await import('../js/nome-titolare-helpers.js');
-                const patchNome = campiNomeDaInvitoSeVuoti(userData, invito);
-                
-                // Aggiorna documento utente (membership + nome/cognome solo se vuoti)
-                await updateDoc(userDocRef, {
-                    tenantMemberships: tenantMemberships,
-                    ...patchNome
-                });
-                
-                // Aggiorna invito
-                await updateDoc(doc(db, 'inviti', invito.id), {
-                    stato: 'accettato',
-                    accettatoIl: serverTimestamp()
-                });
-                
-                // Pulisci cache tenant utente per forzare ricaricamento
-                try {
-                    const { clearUserTenantsCache } = await import('./tenant-service.js');
-                    clearUserTenantsCache();
-                } catch (cacheError) {
-                    console.warn('Errore pulizia cache tenant:', cacheError);
-                }
-                
-                return {
-                    ...userData,
-                    ...patchNome,
-                    tenantMemberships: tenantMemberships,
-                    _isNewMembership: true,
-                    _newTenantId: invito.tenantId
-                };
-                
+                await signInWithEmailAndPassword(auth, invito.email, password);
             } catch (loginError) {
-                // Se login fallisce, potrebbe essere password sbagliata o altro
-                if (loginError.code === 'auth/user-not-found' || loginError.code === 'auth/wrong-password') {
+                if (loginError.code === 'auth/user-not-found' || loginError.code === 'auth/wrong-password' || loginError.code === 'auth/invalid-credential') {
                     throw new Error('Password errata. Usa la password del tuo account esistente.');
                 }
                 throw loginError;
             }
         } else {
-            // Utente nuovo: crea account Firebase Auth
-            if (!password) {
-                throw new Error('Password obbligatoria per nuovo utente');
-            }
-            
             try {
-                const userCredential = await createUserWithEmailAndPassword(
-                    auth,
-                    invito.email,
-                    password
-                );
-                firebaseUser = userCredential.user;
-                isNewUser = true;
+                await createUserWithEmailAndPassword(auth, invito.email, password);
+                isNewAuthUser = true;
             } catch (createError) {
-                // Se email esiste già in Firebase Auth, gestisci come utente esistente
                 if (createError.code === 'auth/email-already-in-use') {
-                    // Prova a fare login
-                    if (!password) {
-                        throw new Error('Password richiesta. Questa email è già registrata. Inserisci la password del tuo account esistente.');
-                    }
-                    
                     try {
-                        const userCredential = await signInWithEmailAndPassword(auth, invito.email, password);
-                        firebaseUser = userCredential.user;
-                        
-                        // Aggiungi membership come sopra
-                        const userDocRef = doc(db, 'users', firebaseUser.uid);
-                        const userDoc = await getDoc(userDocRef);
-                        
-                        if (!userDoc.exists()) {
-                            throw new Error('Utente non trovato in Firestore');
-                        }
-                        
-                        const userData = userDoc.data();
-                        const tenantMemberships = userData.tenantMemberships || {};
-                        
-                        if (tenantMemberships[invito.tenantId] && tenantMemberships[invito.tenantId].stato === 'attivo') {
-                            throw new Error('Appartieni già a questo tenant');
-                        }
-                        
-                        tenantMemberships[invito.tenantId] = {
-                            ruoli: invito.ruoli || [],
-                            stato: 'attivo',
-                            dataInizio: serverTimestamp(),
-                            creatoDa: invito.inviatoDa,
-                            tenantIdPredefinito: false
-                        };
-
-                        const { campiNomeDaInvitoSeVuoti } = await import('../js/nome-titolare-helpers.js');
-                        const patchNome = campiNomeDaInvitoSeVuoti(userData, invito);
-                        
-                    await updateDoc(userDocRef, {
-                        tenantMemberships: tenantMemberships,
-                        ...patchNome
-                    });
-                    
-                    await updateDoc(doc(db, 'inviti', invito.id), {
-                        stato: 'accettato',
-                        accettatoIl: serverTimestamp()
-                    });
-                    
-                    // Pulisci cache tenant utente per forzare ricaricamento
-                    try {
-                        const { clearUserTenantsCache } = await import('./tenant-service.js');
-                        clearUserTenantsCache();
-                    } catch (cacheError) {
-                        console.warn('Errore pulizia cache tenant:', cacheError);
-                    }
-                    
-                    return {
-                        ...userData,
-                        ...patchNome,
-                        tenantMemberships: tenantMemberships,
-                        _isNewMembership: true,
-                        _newTenantId: invito.tenantId
-                    };
+                        await signInWithEmailAndPassword(auth, invito.email, password);
                     } catch (loginError) {
-                        if (loginError.code === 'auth/user-not-found' || loginError.code === 'auth/wrong-password') {
+                        if (loginError.code === 'auth/user-not-found' || loginError.code === 'auth/wrong-password' || loginError.code === 'auth/invalid-credential') {
                             throw new Error('Password errata. Inserisci la password del tuo account esistente.');
                         }
                         throw loginError;
                     }
+                } else {
+                    throw createError;
                 }
-                throw createError;
             }
-            
-            // Crea record utente in Firestore (nuovo utente)
-            const userData = {
-                id: firebaseUser.uid,
-                email: invito.email,
-                nome: invito.nome,
-                cognome: invito.cognome,
-                ruoli: invito.ruoli || [],
-                tenantId: invito.tenantId, // Mantenuto per retrocompatibilità
-                tenantMemberships: {
-                    [invito.tenantId]: {
-                        ruoli: invito.ruoli || [],
-                        stato: 'attivo',
-                        dataInizio: serverTimestamp(),
-                        creatoDa: invito.inviatoDa,
-                        tenantIdPredefinito: true // Primo tenant è predefinito
-                    }
-                },
-                stato: 'attivo',
-                creatoDa: invito.inviatoDa,
-                creatoIl: serverTimestamp(),
-                ultimoAccesso: null,
-                invitoId: invito.id
-            };
-            
-            // Salva utente
-            await setDoc(doc(db, 'users', firebaseUser.uid), userData);
-            
-            // Aggiorna invito
-            await updateDoc(doc(db, 'inviti', invito.id), {
-                stato: 'accettato',
-                accettatoIl: serverTimestamp()
-            });
-            
-            return userData;
         }
+
+        const { getHttpsCallable } = await import('./firebase-service.js');
+        const callable = getHttpsCallable('accettaInvito');
+        let result;
+        try {
+            result = await callable({ token: String(token || '') });
+        } catch (callableError) {
+            throw mapAccettaInvitoError(callableError);
+        }
+
+        const data = (result && result.data) || {};
+        const tenantId = data.tenantId || invito.tenantId;
+        const isNewUser = data.isNewUser === true || isNewAuthUser;
+
+        try {
+            const { setCurrentTenantId, clearUserTenantsCache } = await import('./tenant-service.js');
+            if (tenantId) setCurrentTenantId(tenantId);
+            clearUserTenantsCache();
+        } catch (cacheError) {
+            console.warn('Errore impostazione tenant dopo invito:', cacheError);
+        }
+
+        return {
+            email: invito.email,
+            nome: invito.nome,
+            cognome: invito.cognome,
+            tenantId: tenantId,
+            _isNewMembership: !isNewUser,
+            _newTenantId: tenantId,
+            _isNewUser: isNewUser,
+            ok: data.ok === true
+        };
     } catch (error) {
         console.error('❌ [ACCEPT_INVITO] Errore accettazione invito:', {
             code: error.code,
-            message: error.message,
-            stack: error.stack
+            message: error.message
         });
-        // Se l'errore ha un codice (es. auth/email-already-in-use), preservalo
         if (error.code) {
             const preservedError = new Error(error.message);
             preservedError.code = error.code;
             preservedError.name = error.name;
             throw preservedError;
         }
-        // Se l'errore è già un Error con messaggio chiaro, rilanciarlo così com'è
-        if (error.message && (error.message.includes('Password errata') || error.message.includes('appartiene già'))) {
+        if (error.message && (error.message.includes('Password errata') || error.code === 'already-exists')) {
             throw error;
         }
-        // Altrimenti wrappare in un nuovo errore
         throw new Error(`Errore accettazione invito: ${error.message}`);
     }
 }
@@ -426,7 +276,8 @@ export default {
     createInvito,
     fetchInvitoByToken,
     mapInvitoPubblicoError,
+    mapAccettaInvitoError,
+    invitoCallableErrorCode,
     verifyInviteToken,
     acceptInvito
 };
-
