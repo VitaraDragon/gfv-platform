@@ -399,7 +399,7 @@
                 <div class="form-group">
                     <label>Ruoli *</label>
                     <div class="checkbox-group" id="ruoli-checkbox-group">
-                        <div class="checkbox-item">
+                        <div class="checkbox-item" id="role-admin-item">
                             <input type="checkbox" id="role-admin" value="amministratore">
                             <label for="role-admin">👑 Amministratore</label>
                         </div>
@@ -474,7 +474,7 @@
                 <div class="form-group">
                     <label>Ruoli</label>
                     <div class="checkbox-group" id="edit-ruoli-checkbox-group">
-                        <div class="checkbox-item">
+                        <div class="checkbox-item" id="edit-role-admin-item">
                             <input type="checkbox" id="edit-role-admin" value="amministratore">
                             <label for="edit-role-admin">👑 Amministratore</label>
                         </div>
@@ -526,8 +526,26 @@
 
         let currentUserData = null;
         let currentTenantId = null;
+        let currentUserRoles = [];
+        let isCurrentUserAdmin = false;
         let hasManodoperaModule = false;
         let user = null; // Utente autenticato corrente
+
+        /** Messaggio callable Firebase in chiaro (permission-denied incluso). */
+        function callableErrorMessage(error, fallback) {
+            const code = String(error && error.code || '');
+            let msg = String((error && error.message) || '').trim();
+            msg = msg.replace(/^FirebaseError:\s*/i, '');
+            const denied = /permission-denied/i.test(code) || /permission-denied/i.test(msg);
+            if (denied) {
+                const cleaned = msg
+                    .replace(/^.*functions\/permission-denied[:\s]*/i, '')
+                    .replace(/^.*permission-denied[:\s]*/i, '')
+                    .trim();
+                return cleaned || fallback || 'Permessi insufficienti.';
+            }
+            return msg || fallback || 'Errore';
+        }
 
         // Link nelle email di invito (registrazione). Devono puntare dove l’app è DAVVERO ospitata.
         // Finché l’ERP è solo su GitHub Pages per i test, usa quell’URL. Quando pubblicherete tutta l’app su globalfarmview.net, sostituire con 'https://globalfarmview.net' (senza slash finale).
@@ -565,56 +583,44 @@
                 // Carica dati utente
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 if (userDoc.exists()) {
-                    currentUserData = userDoc.data();
-                    
-                    // Carica tenantId corrente usando tenant-service (supporta multi-tenant)
-                    const { getCurrentTenantId } = await import('../services/tenant-service.js');
-                    
-                    // Aspetta un attimo per permettere al tenant-service di inizializzarsi
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    
-                    currentTenantId = getCurrentTenantId();
-                    
-                    // Se getCurrentTenantId() restituisce null, usa tenantMemberships o tenantId deprecato
-                    if (!currentTenantId) {
-                        // Prova a usare il primo tenant da tenantMemberships
-                        if (currentUserData.tenantMemberships && Object.keys(currentUserData.tenantMemberships).length > 0) {
-                            currentTenantId = Object.keys(currentUserData.tenantMemberships)[0];
-                        } else if (currentUserData.tenantId) {
-                            // Fallback a tenantId deprecato
-                            currentTenantId = currentUserData.tenantId;
-                        }
-                    }
+                    currentUserData = { id: user.uid, ...userDoc.data() };
 
-                    // Verifica permessi (solo amministratore)
-                    if (!currentUserData.ruoli || !currentUserData.ruoli.includes('amministratore')) {
+                    const { resolveTenantIdForUser, getUserRolesFromData } = await import('../services/tenant-service.js');
+                    const { getEffectiveModulesFromTenant } = await import('../utils/module-access-resolver.js');
+
+                    currentTenantId = resolveTenantIdForUser(currentUserData);
+                    currentUserRoles = getUserRolesFromData(currentUserData, currentTenantId);
+                    isCurrentUserAdmin = currentUserRoles.includes('amministratore');
+                    const canAccessPage = isCurrentUserAdmin || currentUserRoles.includes('manager');
+
+                    if (!canAccessPage) {
                         showAlert('Non hai i permessi per accedere a questa pagina', 'error');
                         setTimeout(() => {
                             window.location.href = '../dashboard-standalone.html';
                         }, 2000);
                         return;
                     }
-                    
-                    // Mostra link impostazioni (solo Amministratore, già verificato sopra)
+
+                    // Link Impostazioni solo per amministratore del tenant corrente
                     const impostazioniLink = document.getElementById('impostazioni-link');
                     if (impostazioniLink) {
-                        impostazioniLink.style.display = 'inline-flex';
+                        impostazioniLink.style.display = isCurrentUserAdmin ? 'inline-flex' : 'none';
                     }
+                    updateAdminRoleCheckboxVisibility();
 
-                    // Verifica se modulo Manodopera è attivo
+                    // Verifica se modulo Manodopera è attivo (pagati + prove)
                     if (currentTenantId) {
                         try {
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                             if (tenantDoc.exists()) {
                                 const tenantData = tenantDoc.data();
-                                const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                                const modules = getEffectiveModulesFromTenant(tenantData);
                                 hasManodoperaModule = modules.includes('manodopera');
-                                
-                                // Inizializza context Tony con i moduli attivi usando helper
+
+                                // Inizializza context Tony con i moduli effettivi
                                 if (window.Tony && window.Tony.initContextWithModules) {
                                     window.Tony.initContextWithModules(modules);
                                 } else {
-                                    // Fallback se helper non disponibile (retry manuale)
                                     var initTonyContext = function(retries) {
                                         retries = retries || 0;
                                         if (window.Tony && typeof window.Tony.setContext === 'function') {
@@ -660,6 +666,25 @@
             }
         });
 
+        // Casella Amministratore: solo chi è admin sul tenant corrente
+        function updateAdminRoleCheckboxVisibility() {
+            const inviteAdminItem = document.getElementById('role-admin-item');
+            const editAdminItem = document.getElementById('edit-role-admin-item');
+            const roleAdmin = document.getElementById('role-admin');
+            const editRoleAdmin = document.getElementById('edit-role-admin');
+            const show = !!isCurrentUserAdmin;
+            if (inviteAdminItem) inviteAdminItem.style.display = show ? 'flex' : 'none';
+            if (editAdminItem) editAdminItem.style.display = show ? 'flex' : 'none';
+            if (roleAdmin) {
+                roleAdmin.disabled = !show;
+                if (!show) roleAdmin.checked = false;
+            }
+            if (editRoleAdmin) {
+                editRoleAdmin.disabled = !show;
+                if (!show) editRoleAdmin.checked = false;
+            }
+        }
+
         // Aggiorna visibilità ruoli operai/caposquadra
         function updateRuoliVisibility() {
             const caposquadraItem = document.getElementById('role-caposquadra-item');
@@ -681,6 +706,7 @@
                 if (editOperaioItem) editOperaioItem.style.display = 'none';
                 if (ruoliInfo) ruoliInfo.style.display = 'block';
             }
+            updateAdminRoleCheckboxVisibility();
         }
 
         // Carica lista utenti e inviti (callable; fallback query client se CF non disponibile)
@@ -910,11 +936,14 @@
                                                'badge-danger';
                             
                             const isInvite = user.id.startsWith('invite-');
+                            const targetIsAdmin = ruoli.includes('amministratore');
+                            // Manager: niente Disattiva / Riattiva / Rimuovi / Modifica ruoli sulle righe admin
+                            const canManageTarget = isCurrentUserAdmin || !targetIsAdmin;
                             const scadeIl = user.scadeIl ? (user.scadeIl.toDate ? user.scadeIl.toDate() : new Date(user.scadeIl)) : null;
                             const scadeIlText = scadeIl ? (formatDateLikeToItalianLongLocal(user.scadeIl) || '') : '';
                             
                             return `
-                                <tr>
+                                <tr data-user-id="${user.id}" data-is-admin="${targetIsAdmin ? '1' : '0'}">
                                     <td><strong>${nomeCompleto}</strong> ${isInvite ? '<span style="font-size: 10px; color: #999;">(Invito pendente)</span>' : ''}</td>
                                     <td>${user.email || 'N/A'}</td>
                                     <td>
@@ -928,7 +957,7 @@
                                     <td>${isInvite ? '-' : displayAccesso}</td>
                                     <td>
                                         <div class="action-buttons">
-                                            ${!isInvite ? `
+                                            ${!isInvite && canManageTarget ? `
                                                 <button class="btn btn-info btn-sm" onclick="openRuoliModal('${user.id}', ${JSON.stringify(ruoli).replace(/"/g, '&quot;')})">
                                                     ✏️ Ruoli
                                                 </button>
@@ -938,15 +967,16 @@
                                                         ${stato === 'attivo' ? '🚫 Disattiva' : '✅ Attiva'}
                                                     </button>
                                                 ` : ''}
-                                            ` : `
+                                            ` : ''}
+                                            ${isInvite ? `
                                                 <button class="btn btn-warning btn-sm" onclick="annullaInvito('${user.invitoId}')" style="margin-bottom: 5px;">
                                                     ❌ Annulla Invito
                                                 </button>
                                                 <button class="btn btn-danger btn-sm" onclick="rimuoviInvito('${user.invitoId}', '${user.email || 'N/A'}')">
                                                     🗑️ Rimuovi Invito
                                                 </button>
-                                            `}
-                                            ${!isInvite && user.id !== currentUserData.id ? `
+                                            ` : ''}
+                                            ${!isInvite && canManageTarget && user.id !== currentUserData.id ? `
                                                 <button class="btn btn-danger btn-sm" onclick="rimuoviUtente('${user.id}', '${user.email || 'N/A'}')" style="margin-top: 5px;">
                                                     🗑️ Rimuovi
                                                 </button>
@@ -1522,13 +1552,14 @@
                 
                 console.groupEnd();
                 
-                let errorMessage = 'Errore durante la creazione: ' + error.message;
+                let errorMessage = 'Errore durante la creazione: ' + callableErrorMessage(error, error.message);
+                const errCode = String(error.code || '');
                 
-                if (error.code === 'permission-denied' || error.code === 'PERMISSION_DENIED') {
-                    errorMessage = '❌ Permessi insufficienti. Verifica di essere manager o amministratore del tenant corrente.';
-                    console.error('🔒 ERRORE PERMESSI - Verifica security rules:', {
+                if (/permission-denied/i.test(errCode) || /permission-denied/i.test(String(error.message || ''))) {
+                    errorMessage = '❌ ' + callableErrorMessage(error, 'Permessi insufficienti. Verifica di essere manager o amministratore del tenant corrente.');
+                    console.error('🔒 ERRORE PERMESSI:', {
                         tenantId: currentTenantId,
-                        userRoles: currentUserData?.ruoli,
+                        userRoles: currentUserRoles,
                         tenantMemberships: currentUserData?.tenantMemberships,
                         isAuthenticated: !!user
                     });
@@ -1605,7 +1636,7 @@
                 await loadUsers();
             } catch (error) {
                 console.error('Errore aggiornamento ruoli:', error);
-                showAlert('Errore durante l\'aggiornamento: ' + (error.message || error), 'error');
+                showAlert(callableErrorMessage(error, 'Errore durante l\'aggiornamento'), 'error');
             }
         }
 
@@ -1631,7 +1662,7 @@
                 await loadUsers();
             } catch (error) {
                 console.error('Errore cambio stato:', error);
-                showAlert('Errore durante l\'operazione: ' + (error.message || error), 'error');
+                showAlert(callableErrorMessage(error, 'Errore durante l\'operazione'), 'error');
             }
         }
 
@@ -1702,7 +1733,7 @@
                 await loadUsers();
             } catch (error) {
                 console.error('Errore rimozione utente:', error);
-                showAlert('Errore durante la rimozione: ' + (error.message || error), 'error');
+                showAlert(callableErrorMessage(error, 'Errore durante la rimozione'), 'error');
             }
         }
 
