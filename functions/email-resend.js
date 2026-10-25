@@ -4,6 +4,8 @@
  */
 
 const { HttpsError } = require("firebase-functions/v2/https");
+const { isManagerOrAdmin } = require("./lib/tenant-membership-access");
+const { resolveIsExistingUserFromAuth } = require("./invito-pubblico");
 
 const RESEND_API_URL = "https://api.resend.com/emails";
 const RESEND_FROM = "Global Farm View <no-reply@globalfarmview.net>";
@@ -40,20 +42,9 @@ async function assertManagerOrAdminForTenant(db, uid, tenantId) {
   if (!snap.exists) {
     throw new HttpsError("permission-denied", "Utente non trovato.");
   }
-  const data = snap.data();
-  const memberships = data.tenantMemberships || {};
-  const m = memberships[tenantId];
-  if (m && m.stato === "attivo" && Array.isArray(m.ruoli)) {
-    if (m.ruoli.includes("manager") || m.ruoli.includes("amministratore")) {
-      return;
-    }
+  if (!isManagerOrAdmin(snap.data(), tenantId)) {
+    throw new HttpsError("permission-denied", "Permessi insufficienti per inviare email per questo tenant.");
   }
-  if (data.tenantId === tenantId && Array.isArray(data.ruoli)) {
-    if (data.ruoli.includes("manager") || data.ruoli.includes("amministratore")) {
-      return;
-    }
-  }
-  throw new HttpsError("permission-denied", "Permessi insufficienti per inviare email per questo tenant.");
 }
 
 async function sendWithResend(apiKey, { to, subject, html }) {
@@ -155,10 +146,22 @@ function buildInviteHtml(p) {
   const nomeHeaderBlock = nomeHeader
     ? `<p style="color:white;font-size:22px;font-weight:bold;margin:0;">${nomeHeader}</p>`
     : "";
+  const isExistingUser = p.isExistingUser === true || p.isExistingUser === "true";
+  const aziendaLabel = nomeHeader || "l'azienda";
+  const ctaLabel = isExistingUser
+    ? `Entra e unisciti a ${nomeHeader || "GFV Platform"}`
+    : "Completa registrazione";
+  const introLine = isExistingUser
+    ? `Hai già un account: aprendo il link entri con la tua password attuale e l'azienda viene aggiunta. Non creare un altro account.`
+    : `Sei stato invitato a unirti alla piattaforma con i seguenti ruoli:`;
+  const deadlineLine = isExistingUser
+    ? `Apri il link entro il <strong>${escapeHtml(p.scadeIl || "")}</strong> per unirti a <strong>${escapeHtml(aziendaLabel)}</strong>.`
+    : `Completa la registrazione entro il <strong>${escapeHtml(p.scadeIl || "")}</strong> cliccando il pulsante qui sotto.`;
 
   const linkLoginSafe = safeHttpsUrl(p.linkLogin);
-  const loginSection = linkLoginSafe
-    ? `<div style="border-top:1px solid #dee2e6;margin:28px 0 0 0;padding-top:22px;">
+  const loginSection =
+    !isExistingUser && linkLoginSafe
+      ? `<div style="border-top:1px solid #dee2e6;margin:28px 0 0 0;padding-top:22px;">
     <p style="font-size:13px;color:#666;line-height:1.6;margin:0 0 12px 0;">
       <strong>Hai già completato la registrazione?</strong> Accedi con email e password. Per accettare l’invito e unirti al team usa il pulsante verde <strong>Completa registrazione</strong> sopra — questo link è solo per il login.
     </p>
@@ -167,7 +170,7 @@ function buildInviteHtml(p) {
     </div>
     <p style="font-size:12px;color:#888;line-height:1.5;margin:0;">Dopo l’accesso puoi aggiungere l’app alla schermata home dal browser (menu ⋮ → Installa app). Su iPhone/iPad: Condividi → Aggiungi alla schermata Home.</p>
   </div>`
-    : "";
+      : "";
 
   return `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="margin:0;padding:0;">
 <div style="font-family:'Segoe UI',Tahoma,sans-serif;max-width:600px;margin:0 auto;background:#ffffff;">
@@ -178,11 +181,11 @@ function buildInviteHtml(p) {
   </div>
   <div style="padding:30px;background:#f8f9fa;">
     <p style="font-size:16px;color:#333;">Ciao <strong>${escapeHtml(p.nome || "")} ${escapeHtml(p.cognome || "")}</strong>,</p>
-    <p style="font-size:14px;color:#666;line-height:1.6;">Sei stato invitato a unirti alla piattaforma con i seguenti ruoli:</p>
+    <p style="font-size:14px;color:#666;line-height:1.6;">${introLine}</p>
     <p style="font-size:15px;font-weight:600;color:#1976D2;">${escapeHtml(p.ruoli || "")}</p>
-    <p style="font-size:14px;color:#666;">Completa la registrazione entro il <strong>${escapeHtml(p.scadeIl || "")}</strong> cliccando il pulsante qui sotto.</p>
+    <p style="font-size:14px;color:#666;">${deadlineLine}</p>
     <div style="text-align:center;margin:24px 0;">
-      <a href="${escapeHtml(p.linkRegistrazione || "#")}" style="display:inline-block;background:#28a745;color:white;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:bold;">Completa registrazione</a>
+      <a href="${escapeHtml(p.linkRegistrazione || "#")}" style="display:inline-block;background:#28a745;color:white;padding:14px 32px;text-decoration:none;border-radius:8px;font-weight:bold;">${escapeHtml(ctaLabel)}</a>
     </div>
     <p style="font-size:12px;color:#999;word-break:break-all;">${escapeHtml(p.linkRegistrazione || "")}</p>
     ${loginSection}
@@ -200,8 +203,12 @@ function buildInviteHtml(p) {
 
 /**
  * Handler per callable Firebase: invia preventivo o invito.
+ * @param {*} db
+ * @param {string} apiKey
+ * @param {{ auth?: { uid: string }, data?: Object }} request
+ * @param {{ getUserByEmail?: Function }|null} [authAdmin]
  */
-async function handleSendTransactionalEmail(db, apiKey, request) {
+async function handleSendTransactionalEmail(db, apiKey, request, authAdmin = null) {
   if (!request.auth || !request.auth.uid) {
     throw new HttpsError("unauthenticated", "Autenticazione richiesta.");
   }
@@ -232,9 +239,19 @@ async function handleSendTransactionalEmail(db, apiKey, request) {
     if (!isValidEmail(to)) {
       throw new HttpsError("invalid-argument", "Email destinatario non valida.");
     }
-    const subject = data.subject || `Invito a registrarti — ${data.nome_azienda || "GFV Platform"}`.trim();
-    const html = buildInviteHtml(data);
-    return sendWithResend(apiKey, { to, subject, html });
+    let isExistingUser =
+      data.isExistingUser === true || data.isExistingUser === "true";
+    if (authAdmin) {
+      isExistingUser = await resolveIsExistingUserFromAuth(authAdmin, to);
+    }
+    const payload = Object.assign({}, data, { isExistingUser });
+    const nomeAzienda = data.nome_azienda || "GFV Platform";
+    const subject = isExistingUser
+      ? data.subject || `Entra e unisciti a ${nomeAzienda}`.trim()
+      : data.subject || `Invito a registrarti — ${nomeAzienda}`.trim();
+    const html = buildInviteHtml(payload);
+    const sent = await sendWithResend(apiKey, { to, subject, html });
+    return Object.assign({}, sent || {}, { isExistingUser });
   }
 
   throw new HttpsError("invalid-argument", "type deve essere 'preventivo' o 'invite'.");
@@ -244,4 +261,5 @@ module.exports = {
   RESEND_FROM,
   handleSendTransactionalEmail,
   assertManagerOrAdminForTenant,
+  buildInviteHtml,
 };

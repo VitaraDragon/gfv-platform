@@ -22,6 +22,8 @@ const TONY_GEMINI_MODEL = process.env.GEMINI_MODEL || "gemini-2.5-flash";
 const TONY_DOCUMENT_GEMINI_MODEL =
   process.env.GEMINI_DOCUMENT_MODEL || process.env.GEMINI_MODEL || "gemini-2.5-flash";
 
+const { isManagerOrAdmin } = require("./lib/tenant-membership-access");
+
 async function assertManagerOrAdminForTenant(db, uid, tenantId) {
   if (!tenantId || typeof tenantId !== "string") {
     throw new HttpsError("invalid-argument", "tenantId obbligatorio.");
@@ -30,23 +32,12 @@ async function assertManagerOrAdminForTenant(db, uid, tenantId) {
   if (!snap.exists) {
     throw new HttpsError("permission-denied", "Utente non trovato.");
   }
-  const data = snap.data();
-  const memberships = data.tenantMemberships || {};
-  const m = memberships[tenantId];
-  if (m && m.stato === "attivo" && Array.isArray(m.ruoli)) {
-    if (m.ruoli.includes("manager") || m.ruoli.includes("amministratore")) {
-      return;
-    }
+  if (!isManagerOrAdmin(snap.data(), tenantId)) {
+    throw new HttpsError(
+      "permission-denied",
+      "Permessi insufficienti: serve ruolo manager o amministratore per acquisire documenti."
+    );
   }
-  if (data.tenantId === tenantId && Array.isArray(data.ruoli)) {
-    if (data.ruoli.includes("manager") || data.ruoli.includes("amministratore")) {
-      return;
-    }
-  }
-  throw new HttpsError(
-    "permission-denied",
-    "Permessi insufficienti: serve ruolo manager o amministratore per acquisire documenti."
-  );
 }
 
 const { normalizeSubscriptionPlanId, resolveTenantPlanId } = require("./tenant-plan");
