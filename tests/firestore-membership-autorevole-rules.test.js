@@ -18,6 +18,7 @@ const TENANT_A = 'tenant-a';
 const ADMIN_LEGACY = 'admin-legacy';
 const ADMIN_DISABLED = 'admin-disabled-mem';
 const OPERAIO_MEM = 'operaio-mem';
+const LEGACY_DISATTIVATO = 'legacy-disattivato';
 
 let emulator;
 let tmpDir;
@@ -155,7 +156,7 @@ beforeAll(async () => {
   } catch (err) {
     emulatorLog += String(err && err.message);
     emulatorOk = false;
-    return;
+    throw new Error(`emulatore non raggiungibile: ${err && err.message}\n${emulatorLog.slice(-2000)}`);
   }
 
   const utenti = [
@@ -178,6 +179,14 @@ beforeAll(async () => {
         },
       },
     ],
+    [
+      LEGACY_DISATTIVATO,
+      {
+        tenantId: TENANT_A,
+        ruoli: ['operaio'],
+        stato: 'disattivato',
+      },
+    ],
   ];
   for (const [uid, data] of utenti) {
     const res = await richiesta('PATCH', `users/${uid}`, { data });
@@ -189,6 +198,13 @@ beforeAll(async () => {
   }
   if (!checkDisabled.body.includes('disattivato')) {
     throw new Error(`Seed membership disattivata assente: ${checkDisabled.body.slice(0, 500)}`);
+  }
+  const checkLegacyOff = await richiesta('GET', `users/${LEGACY_DISATTIVATO}`, { auth: 'owner' });
+  if (checkLegacyOff.status >= 400) {
+    throw new Error(`Seed verify ${LEGACY_DISATTIVATO}: ${checkLegacyOff.status} ${checkLegacyOff.body}`);
+  }
+  if (!checkLegacyOff.body.includes('disattivato')) {
+    throw new Error(`Seed legacy disattivato assente: ${checkLegacyOff.body.slice(0, 500)}`);
   }
   const terreno = await richiesta('PATCH', `tenants/${TENANT_A}/terreni/t1`, {
     data: { nome: 'Campo 1', creatoDa: ADMIN_LEGACY },
@@ -212,13 +228,12 @@ afterAll(async () => {
 describe('belongsToTenant membership autorevole', () => {
   it('emulatore disponibile', () => {
     if (!emulatorOk) {
-      console.warn('Emulatore Firestore non avviato — skip rules membership\n', emulatorLog.slice(-2000));
+      throw new Error('emulatore non raggiungibile');
     }
-    expect(emulatorOk || emulatorLog.length >= 0).toBe(true);
+    expect(emulatorOk).toBe(true);
   });
 
   it('membership disattivata + tenantId deprecato: non legge terreni', async () => {
-    if (!emulatorOk) return;
     const res = await richiesta('GET', `tenants/${TENANT_A}/terreni/t1`, {
       auth: ADMIN_DISABLED,
     });
@@ -226,7 +241,6 @@ describe('belongsToTenant membership autorevole', () => {
   });
 
   it('solo deprecato: continua a leggere', async () => {
-    if (!emulatorOk) return;
     const res = await richiesta('GET', `tenants/${TENANT_A}/terreni/t1`, {
       auth: ADMIN_LEGACY,
     });
@@ -234,10 +248,16 @@ describe('belongsToTenant membership autorevole', () => {
   });
 
   it('membership attiva: legge', async () => {
-    if (!emulatorOk) return;
     const res = await richiesta('GET', `tenants/${TENANT_A}/terreni/t1`, {
       auth: OPERAIO_MEM,
     });
     expect(res.status).toBeLessThan(400);
+  });
+
+  it('legacy stato disattivato senza membership: terreni negato', async () => {
+    const res = await richiesta('GET', `tenants/${TENANT_A}/terreni/t1`, {
+      auth: LEGACY_DISATTIVATO,
+    });
+    expect(res.status).toBe(403);
   });
 });

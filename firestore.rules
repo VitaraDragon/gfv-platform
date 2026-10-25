@@ -21,7 +21,9 @@ service cloud.firestore {
         (hasMembershipKey(tenantId) &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantMemberships[tenantId].stato == 'attivo') ||
         (!hasMembershipKey(tenantId) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == tenantId)
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == tenantId &&
+         (!get(/databases/$(database)/documents/users/$(request.auth.uid)).data.keys().hasAny(['stato']) ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.stato != 'disattivato'))
       );
     }
     
@@ -38,6 +40,8 @@ service cloud.firestore {
         (tenantId != null &&
          !hasMembershipKey(tenantId) &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == tenantId &&
+         (!get(/databases/$(database)/documents/users/$(request.auth.uid)).data.keys().hasAny(['stato']) ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.stato != 'disattivato') &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ruoli != null &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ruoli.hasAny([role])) ||
         (tenantId == null &&

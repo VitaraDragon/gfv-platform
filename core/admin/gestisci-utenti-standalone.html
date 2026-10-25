@@ -683,30 +683,93 @@
             }
         }
 
-        // Carica lista utenti e inviti (utenti via callable: tenantId + membership)
+        // Carica lista utenti e inviti (callable; fallback query client se CF non disponibile)
+        async function loadUsersFromClientQuery(tenantId) {
+            const users = [];
+            const emailMap = new Map();
+            const usersQuery = query(
+                collection(db, 'users'),
+                where('tenantId', '==', tenantId)
+            );
+            const snapshot = await getDocs(usersQuery);
+            snapshot.forEach((docSnap) => {
+                const raw = docSnap.data() || {};
+                let ruoli = Array.isArray(raw.ruoli) ? raw.ruoli.slice() : [];
+                let stato = raw.stato || 'attivo';
+                const mem = raw.tenantMemberships && raw.tenantMemberships[tenantId];
+                if (mem && typeof mem === 'object') {
+                    if (Array.isArray(mem.ruoli)) ruoli = mem.ruoli.slice();
+                    if (mem.stato) stato = mem.stato;
+                }
+                if (stato === 'rimosso') return;
+                const userData = {
+                    id: docSnap.id,
+                    email: raw.email || '',
+                    nome: raw.nome || '',
+                    cognome: raw.cognome || '',
+                    ruoli,
+                    stato,
+                    ultimoAccesso: raw.ultimoAccesso,
+                    isOnline: raw.isOnline === true,
+                    lastSeen: raw.lastSeen,
+                    viaMembership: !!(mem && typeof mem === 'object')
+                };
+                if (!userData.email) {
+                    userData.stato = 'disconnesso';
+                    users.push(userData);
+                    return;
+                }
+                const emailLower = String(userData.email).toLowerCase().trim();
+                if (emailMap.has(emailLower)) {
+                    const existingUser = emailMap.get(emailLower);
+                    const existingDataComplete = !!(existingUser.nome && existingUser.cognome && existingUser.ruoli?.length);
+                    const newDataComplete = !!(userData.nome && userData.cognome && userData.ruoli?.length);
+                    if (newDataComplete && !existingDataComplete) {
+                        const index = users.findIndex((u) => u.id === existingUser.id);
+                        if (index !== -1) {
+                            users[index] = userData;
+                            emailMap.set(emailLower, userData);
+                        }
+                    }
+                } else {
+                    emailMap.set(emailLower, userData);
+                    users.push(userData);
+                }
+            });
+            return users;
+        }
+
         async function loadUsers() {
             const container = document.getElementById('users-container');
             container.innerHTML = '<div class="loading">Caricamento utenti...</div>';
 
             try {
                 const users = [];
+                let listaParziale = false;
                 if (currentTenantId) {
-                    const listed = await elencaUtentiTenant({ tenantId: currentTenantId });
-                    const rows = (listed && listed.data && listed.data.utenti) || [];
-                    for (const row of rows) {
-                        if (row.stato === 'rimosso') continue;
-                        users.push({
-                            id: row.id,
-                            email: row.email,
-                            nome: row.nome,
-                            cognome: row.cognome,
-                            ruoli: row.ruoli || [],
-                            stato: row.stato || 'attivo',
-                            ultimoAccesso: row.ultimoAccesso,
-                            isOnline: row.isOnline,
-                            lastSeen: row.lastSeen,
-                            viaMembership: row.viaMembership === true
-                        });
+                    try {
+                        const listed = await elencaUtentiTenant({ tenantId: currentTenantId });
+                        const rows = (listed && listed.data && listed.data.utenti) || [];
+                        for (const row of rows) {
+                            if (row.stato === 'rimosso') continue;
+                            users.push({
+                                id: row.id,
+                                email: row.email,
+                                nome: row.nome,
+                                cognome: row.cognome,
+                                ruoli: row.ruoli || [],
+                                stato: row.stato || 'attivo',
+                                ultimoAccesso: row.ultimoAccesso,
+                                isOnline: row.isOnline,
+                                lastSeen: row.lastSeen,
+                                viaMembership: row.viaMembership === true
+                            });
+                        }
+                    } catch (listErr) {
+                        console.warn('elencaUtentiTenant non disponibile, fallback query client:', listErr);
+                        listaParziale = true;
+                        const fallback = await loadUsersFromClientQuery(currentTenantId);
+                        users.push(...fallback);
                     }
                 }
 
@@ -743,7 +806,7 @@
                     return cognomeA.localeCompare(cognomeB);
                 });
 
-                renderUsers(allUsers);
+                renderUsers(allUsers, listaParziale);
             } catch (error) {
                 console.error('Errore caricamento utenti:', error);
                 container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Errore caricamento utenti</p></div>';
@@ -751,12 +814,17 @@
         }
 
         // Renderizza lista utenti
-        function renderUsers(users) {
+        function renderUsers(users, listaParziale) {
             const container = document.getElementById('users-container');
             document.getElementById('users-count').textContent = `${users.length} utenti`;
 
+            const partialBanner = listaParziale
+                ? `<div class="alert alert-warning" style="margin-bottom:12px;padding:10px 14px;font-size:13px;background:#fff8e1;border:1px solid #ffe082;border-radius:6px;color:#6d4c00;">Elenco parziale: gli utenti entrati da un invito su più aziende potrebbero non comparire.</div>`
+                : '';
+
             if (users.length === 0) {
                 container.innerHTML = `
+                    ${partialBanner}
                     <div class="empty-state">
                         <div class="empty-state-icon">👥</div>
                         <h3>Nessun utente trovato</h3>
@@ -767,6 +835,7 @@
             }
 
             const html = `
+                ${partialBanner}
                 <table class="users-table">
                     <thead>
                         <tr>
@@ -1396,6 +1465,7 @@
                     const emailRes = await sendTransactionalEmail({
                         type: 'invite',
                         tenantId: currentTenantId,
+                        invitoId: invitoRef && invitoRef.id ? invitoRef.id : undefined,
                         to: email.trim(),
                         nome: nome,
                         cognome: cognome,
@@ -1411,14 +1481,8 @@
                         email_azienda: datiAzienda.email || '',
                         piva_azienda: datiAzienda.piva || ''
                     });
+                    // Flag calcolato e salvato solo lato server (invitoId); niente updateDoc client su inviti.
                     isExistingUser = !!(emailRes && emailRes.data && emailRes.data.isExistingUser);
-                    if (invitoRef && isExistingUser) {
-                        try {
-                            await updateDoc(invitoRef, { isExistingUser: true });
-                        } catch (updErr) {
-                            console.warn('Aggiornamento isExistingUser su invito:', updErr);
-                        }
-                    }
                     showAlert('✅ Invito creato e email inviata con successo!', 'success');
                 } catch (emailError) {
                     console.error('Errore invio email:', emailError);

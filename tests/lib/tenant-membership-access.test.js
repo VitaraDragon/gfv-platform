@@ -33,6 +33,13 @@ describe('tenant-membership-access (membership autorevole)', () => {
     expect(isManagerOrAdmin(user, 'A')).toBe(true);
   });
 
+  it('legacy stato disattivato senza membership: niente accesso', () => {
+    const user = { tenantId: 'A', ruoli: ['operaio'], stato: 'disattivato' };
+    expect(belongsToTenant(user, 'A')).toBe(false);
+    expect(hasRole(user, 'operaio', 'A')).toBe(false);
+    expect(rolesForTenant(user, 'A')).toEqual([]);
+  });
+
   it('membership attiva: accesso; chiave assente su altro tenant: no', () => {
     const user = {
       tenantId: 'A',

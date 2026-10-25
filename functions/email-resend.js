@@ -239,11 +239,37 @@ async function handleSendTransactionalEmail(db, apiKey, request, authAdmin = nul
     if (!isValidEmail(to)) {
       throw new HttpsError("invalid-argument", "Email destinatario non valida.");
     }
-    let isExistingUser =
-      data.isExistingUser === true || data.isExistingUser === "true";
-    if (authAdmin) {
-      isExistingUser = await resolveIsExistingUserFromAuth(authAdmin, to);
+
+    // Niente oracolo di esistenza account: isExistingUser solo se invitoId
+    // valido (stesso tenant, stato invitato). Allora Auth Admin + salvataggio
+    // sull'invito via Admin SDK; altrimenti testo neutro e nessun flag in risposta.
+    const invitoId =
+      typeof data.invitoId === "string" ? data.invitoId.trim() : "";
+    let isExistingUser = false;
+    let mayReturnExistingFlag = false;
+
+    if (invitoId) {
+      const invitoSnap = await db.collection("inviti").doc(invitoId).get();
+      if (
+        invitoSnap.exists &&
+        (invitoSnap.data() || {}).tenantId === tenantId &&
+        (invitoSnap.data() || {}).stato === "invitato"
+      ) {
+        if (authAdmin) {
+          isExistingUser = await resolveIsExistingUserFromAuth(authAdmin, to);
+        }
+        mayReturnExistingFlag = true;
+        try {
+          await invitoSnap.ref.update({ isExistingUser: !!isExistingUser });
+        } catch (updErr) {
+          console.warn(
+            "[sendTransactionalEmail] update isExistingUser invito:",
+            updErr && updErr.message
+          );
+        }
+      }
     }
+
     const payload = Object.assign({}, data, { isExistingUser });
     const nomeAzienda = data.nome_azienda || "GFV Platform";
     const subject = isExistingUser
@@ -251,7 +277,10 @@ async function handleSendTransactionalEmail(db, apiKey, request, authAdmin = nul
       : data.subject || `Invito a registrarti — ${nomeAzienda}`.trim();
     const html = buildInviteHtml(payload);
     const sent = await sendWithResend(apiKey, { to, subject, html });
-    return Object.assign({}, sent || {}, { isExistingUser });
+    if (mayReturnExistingFlag) {
+      return Object.assign({}, sent || {}, { isExistingUser: !!isExistingUser });
+    }
+    return Object.assign({}, sent || {});
   }
 
   throw new HttpsError("invalid-argument", "type deve essere 'preventivo' o 'invite'.");

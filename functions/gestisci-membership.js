@@ -3,7 +3,7 @@
  * elencaUtentiTenant / gestisciMembershipUtente — mai delete del doc users.
  */
 
-const { FieldValue } = require("firebase-admin/firestore");
+const { FieldValue, FieldPath } = require("firebase-admin/firestore");
 const { HttpsError } = require("firebase-functions/v2/https");
 const {
   belongsToTenant,
@@ -58,6 +58,47 @@ function targetBelongs(userData, tenantId) {
   return userData.tenantId === tenantId;
 }
 
+/**
+ * Target ha (o aveva) ruolo amministratore nel tenant, qualunque sia lo stato membership.
+ * Se la chiave membership manca, usa i ruoli deprecati.
+ */
+function targetHadAdminRole(userData, tenantId) {
+  if (!userData || !tenantId) return false;
+  if (hasMembershipKey(userData, tenantId)) {
+    const m = userData.tenantMemberships[tenantId] || {};
+    const roles = Array.isArray(m.ruoli) ? m.ruoli.map(String) : [];
+    return roles.includes("amministratore");
+  }
+  if (userData.tenantId === tenantId) {
+    const roles = Array.isArray(userData.ruoli) ? userData.ruoli.map(String) : [];
+    return roles.includes("amministratore");
+  }
+  return false;
+}
+
+function membershipStatoForTenant(userData, tenantId) {
+  if (hasMembershipKey(userData, tenantId)) {
+    const m = userData.tenantMemberships[tenantId] || {};
+    return m.stato || "attivo";
+  }
+  if (userData.tenantId === tenantId) {
+    return userData.stato || "attivo";
+  }
+  return "attivo";
+}
+
+function ensureTenantMembershipMap(targetData, tenantId) {
+  let memberships = ensureMembershipFromDeprecated(targetData);
+  if (!memberships[tenantId] && targetData.tenantId === tenantId) {
+    memberships[tenantId] = {
+      ruoli: Array.isArray(targetData.ruoli) ? targetData.ruoli.slice() : [],
+      stato: targetData.stato || "attivo",
+      tenantIdPredefinito: true,
+    };
+  }
+  return memberships;
+}
+
 function serializeUserForTenant(id, data, tenantId) {
   let ruoli = [];
   let stato = "attivo";
@@ -100,15 +141,6 @@ async function handleElencaUtentiTenant(db, request) {
     byId.set(docSnap.id, serializeUserForTenant(docSnap.id, docSnap.data() || {}, tenantId));
   });
 
-  // Membership: collection group non disponibile su mappa; scan limitato non è ok.
-  // Admin SDK: query su campo mappa non supportata → leggiamo candidati via collection
-  // e filtriamo in memoria solo se già in byId? No: utenti solo-membership non hanno tenantId.
-  // Soluzione: collection group non esiste. Usiamo get di tutti users? Troppo costoso.
-  // Per tenant tipici: query field path tenantMemberships.<tenantId> non è indicizzabile
-  // facilmente. Con Admin SDK possiamo usare collection group su sotto-collezione — ma
-  // tenantMemberships è una mappa, non sotto-collezione.
-  // Approccio: leggiamo users dove tenantMemberships.<tenantId>.stato esiste via
-  // FieldPath — in Firestore Admin: where(`tenantMemberships.${tenantId}.stato`, 'in', ...)
   const stati = ["attivo", "disattivato", "rimosso"];
   try {
     const byMem = await db
@@ -119,11 +151,10 @@ async function handleElencaUtentiTenant(db, request) {
       byId.set(docSnap.id, serializeUserForTenant(docSnap.id, docSnap.data() || {}, tenantId));
     });
   } catch (err) {
-    // Indice mancante o path: fallback scan non ammesso in prod; log e continua con tenantId.
+    // Indice mancante: log e continua con tenantId (fail-safe elenco).
     console.warn("[elencaUtentiTenant] query membership:", err && err.message);
   }
 
-  // Inviti accettati di recente (ultimi 30 giorni) → uid accettatoDa se non già in lista
   const since = new Date();
   since.setDate(since.getDate() - 30);
   try {
@@ -147,7 +178,6 @@ async function handleElencaUtentiTenant(db, request) {
         if (!snap.exists) return;
         const data = snap.data() || {};
         if (!targetBelongs(data, tenantId) && !belongsToTenant(data, tenantId)) {
-          // ancora membership o deprecato?
           if (!hasMembershipKey(data, tenantId) && data.tenantId !== tenantId) return;
         }
         byId.set(uid, serializeUserForTenant(uid, data, tenantId));
@@ -163,32 +193,67 @@ async function handleElencaUtentiTenant(db, request) {
   return { ok: true, utenti };
 }
 
-async function countActiveAdmins(db, tenantId, excludeUid) {
-  let count = 0;
-  const seen = new Set();
+function bumpActiveAdmin(seen, countRef, uid, data, tenantId, excludeUid) {
+  if (!uid || uid === excludeUid || seen.has(uid)) return;
+  const roles = rolesForTenant(data, tenantId);
+  if (!roles.includes("amministratore")) return;
+  seen.add(uid);
+  countRef.n += 1;
+}
 
-  const bump = (uid, data) => {
-    if (!uid || uid === excludeUid || seen.has(uid)) return;
-    const roles = rolesForTenant(data, tenantId);
-    if (!roles.includes("amministratore")) return;
-    seen.add(uid);
-    count += 1;
-  };
+/**
+ * Conteggio admin attivi (fuori transazione). Se la query membership fallisce → blocca.
+ */
+async function countActiveAdmins(db, tenantId, excludeUid) {
+  const seen = new Set();
+  const countRef = { n: 0 };
 
   const byDep = await db.collection("users").where("tenantId", "==", tenantId).get();
-  byDep.forEach((s) => bump(s.id, s.data() || {}));
+  byDep.forEach((s) => bumpActiveAdmin(seen, countRef, s.id, s.data() || {}, tenantId, excludeUid));
 
   try {
     const byMem = await db
       .collection("users")
       .where(`tenantMemberships.${tenantId}.stato`, "==", "attivo")
       .get();
-    byMem.forEach((s) => bump(s.id, s.data() || {}));
+    byMem.forEach((s) => bumpActiveAdmin(seen, countRef, s.id, s.data() || {}, tenantId, excludeUid));
   } catch (err) {
     console.warn("[countActiveAdmins] membership query:", err && err.message);
+    throw new HttpsError(
+      "failed-precondition",
+      "Impossibile verificare gli amministratori attivi (indice membership mancante)."
+    );
   }
 
-  return count;
+  return countRef.n;
+}
+
+/**
+ * Conteggio admin attivi dentro transazione (tx.get su query).
+ * Se la query membership fallisce → blocca (niente fail-soft).
+ */
+async function countActiveAdminsInTx(db, tx, tenantId, excludeUid) {
+  const seen = new Set();
+  const countRef = { n: 0 };
+
+  const byDep = await tx.get(db.collection("users").where("tenantId", "==", tenantId));
+  byDep.forEach((s) => bumpActiveAdmin(seen, countRef, s.id, s.data() || {}, tenantId, excludeUid));
+
+  let byMem;
+  try {
+    byMem = await tx.get(
+      db.collection("users").where(`tenantMemberships.${tenantId}.stato`, "==", "attivo")
+    );
+  } catch (err) {
+    console.warn("[countActiveAdminsInTx] membership query:", err && err.message);
+    throw new HttpsError(
+      "failed-precondition",
+      "Impossibile verificare gli amministratori attivi (indice membership mancante)."
+    );
+  }
+  byMem.forEach((s) => bumpActiveAdmin(seen, countRef, s.id, s.data() || {}, tenantId, excludeUid));
+
+  return countRef.n;
 }
 
 /**
@@ -212,8 +277,6 @@ async function handleGestisciMembershipUtente(db, request) {
     );
   }
 
-  const caller = await assertCallerManagerOrAdmin(db, callerUid, tenantId);
-
   if ((azione === "disattiva" || azione === "rimuovi") && targetUid === callerUid) {
     throw new HttpsError(
       "failed-precondition",
@@ -221,62 +284,30 @@ async function handleGestisciMembershipUtente(db, request) {
     );
   }
 
-  const targetPreview = await loadUser(db, targetUid);
-  if (!targetBelongs(targetPreview.data, tenantId)) {
-    throw new HttpsError("permission-denied", "L'utente non appartiene a questo tenant.");
-  }
-
-  const previewMemberships = ensureMembershipFromDeprecated(targetPreview.data);
-  if (!previewMemberships[tenantId] && targetPreview.data.tenantId === tenantId) {
-    previewMemberships[tenantId] = {
-      ruoli: Array.isArray(targetPreview.data.ruoli) ? targetPreview.data.ruoli.slice() : [],
-      stato: targetPreview.data.stato || "attivo",
-      tenantIdPredefinito: true,
-    };
-  }
-  const previewMem = previewMemberships[tenantId] || {};
-  const previewRoles = Array.isArray(previewMem.ruoli)
-    ? previewMem.ruoli.map(String)
-    : rolesForTenant(targetPreview.data, tenantId);
-  const previewStato = previewMem.stato || "attivo";
-  const wasAdmin = previewRoles.includes("amministratore");
-
   let nextRolesForRuoli = null;
   if (azione === "ruoli") {
     nextRolesForRuoli = normalizeRuoliValidi(data.ruoli);
     if (!nextRolesForRuoli) {
       throw new HttpsError("invalid-argument", "Ruoli non validi.");
     }
-    if (
-      nextRolesForRuoli.includes("amministratore") &&
-      !isAmministratore(caller.data, tenantId)
-    ) {
-      throw new HttpsError(
-        "permission-denied",
-        "Solo un amministratore può assegnare il ruolo amministratore."
-      );
-    }
   }
 
-  const losesAdmin =
-    wasAdmin &&
-    previewStato === "attivo" &&
-    (azione === "disattiva" ||
-      azione === "rimuovi" ||
-      (azione === "ruoli" && nextRolesForRuoli && !nextRolesForRuoli.includes("amministratore")));
-  if (losesAdmin) {
-    const otherAdmins = await countActiveAdmins(db, tenantId, targetUid);
-    if (otherAdmins < 1) {
-      throw new HttpsError(
-        "failed-precondition",
-        "Non puoi togliere l'ultimo amministratore attivo del tenant."
-      );
-    }
-  }
-
+  const callerRef = db.collection("users").doc(callerUid);
   const targetRef = db.collection("users").doc(targetUid);
 
   await db.runTransaction(async (tx) => {
+    const callerSnap = await tx.get(callerRef);
+    if (!callerSnap.exists) {
+      throw new HttpsError("permission-denied", "Utente non trovato.");
+    }
+    const callerData = callerSnap.data() || {};
+    if (!isManagerOrAdmin(callerData, tenantId)) {
+      throw new HttpsError(
+        "permission-denied",
+        "Serve ruolo manager o amministratore attivo del tenant."
+      );
+    }
+
     const targetSnap = await tx.get(targetRef);
     if (!targetSnap.exists) {
       throw new HttpsError("not-found", "Utente target non trovato.");
@@ -287,15 +318,59 @@ async function handleGestisciMembershipUtente(db, request) {
       throw new HttpsError("permission-denied", "L'utente non appartiene a questo tenant.");
     }
 
-    // Se solo campi deprecati: crea membership prima (punto 1 fa valere la nuova chiave).
-    let memberships = ensureMembershipFromDeprecated(targetData);
-    if (!memberships[tenantId] && targetData.tenantId === tenantId) {
-      memberships[tenantId] = {
-        ruoli: Array.isArray(targetData.ruoli) ? targetData.ruoli.slice() : [],
-        stato: targetData.stato || "attivo",
-        tenantIdPredefinito: true,
-      };
+    const wasAdmin = targetHadAdminRole(targetData, tenantId);
+    if (wasAdmin && !isAmministratore(callerData, tenantId)) {
+      throw new HttpsError(
+        "permission-denied",
+        "Solo un amministratore può modificare un altro amministratore."
+      );
     }
+
+    if (
+      nextRolesForRuoli &&
+      nextRolesForRuoli.includes("amministratore") &&
+      !isAmministratore(callerData, tenantId)
+    ) {
+      throw new HttpsError(
+        "permission-denied",
+        "Solo un amministratore può assegnare il ruolo amministratore."
+      );
+    }
+
+    const previewStato = membershipStatoForTenant(targetData, tenantId);
+
+    if (azione === "riattiva") {
+      if (previewStato === "rimosso") {
+        throw new HttpsError(
+          "failed-precondition",
+          "Utente rimosso: serve un nuovo invito."
+        );
+      }
+      if (previewStato !== "disattivato") {
+        throw new HttpsError(
+          "failed-precondition",
+          "Si può riattivare solo un utente disattivato."
+        );
+      }
+    }
+
+    const losesAdmin =
+      wasAdmin &&
+      previewStato === "attivo" &&
+      (azione === "disattiva" ||
+        azione === "rimuovi" ||
+        (azione === "ruoli" && nextRolesForRuoli && !nextRolesForRuoli.includes("amministratore")));
+    if (losesAdmin) {
+      const otherAdmins = await countActiveAdminsInTx(db, tx, tenantId, targetUid);
+      if (otherAdmins < 1) {
+        throw new HttpsError(
+          "failed-precondition",
+          "Non puoi togliere l'ultimo amministratore attivo del tenant."
+        );
+      }
+    }
+
+    let memberships = ensureTenantMembershipMap(targetData, tenantId);
     if (!memberships[tenantId]) {
       throw new HttpsError("failed-precondition", "Membership tenant assente.");
     }
@@ -325,9 +400,11 @@ async function handleGestisciMembershipUtente(db, request) {
         });
         tx.update(targetRef, { tenantMemberships: memberships });
       } else {
-        tx.update(targetRef, {
-          [`tenantMemberships.${tenantId}`]: FieldValue.delete(),
-        });
+        tx.update(
+          targetRef,
+          new FieldPath("tenantMemberships", tenantId),
+          FieldValue.delete()
+        );
       }
       return;
     }
@@ -348,5 +425,7 @@ module.exports = {
   handleGestisciMembershipUtente,
   serializeUserForTenant,
   targetBelongs,
+  targetHadAdminRole,
   countActiveAdmins,
+  countActiveAdminsInTx,
 };
