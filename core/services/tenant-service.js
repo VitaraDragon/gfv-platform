@@ -632,7 +632,10 @@ export async function getUserTenantsWithNamesFromData(userData) {
 }
 
 /**
- * Ruoli per un tenant da un documento utente già letto (stessa regola di getUserRolesForTenant).
+ * Ruoli per un tenant da un documento utente già letto (stessa regola di getUserRolesForTenant
+ * e di functions/lib/tenant-membership-access.rolesForTenant).
+ * Membership: se la chiave esiste, solo i suoi ruoli e solo se attiva.
+ * Legacy tenantId/ruoli: solo se la chiave membership manca, tenantId coincide e stato ≠ disattivato.
  * @param {Object|null|undefined} userData - Dati utente
  * @param {string|null|undefined} tenantId - ID tenant
  * @returns {Array<string>} Array di ruoli
@@ -642,18 +645,24 @@ export function getUserRolesFromData(userData, tenantId) {
     return [];
   }
 
-  // Membership autorevole: se la chiave c'è, solo i suoi ruoli (e solo se attiva)
-  if (userData.tenantMemberships && userData.tenantMemberships[tenantId]) {
-    const membership = userData.tenantMemberships[tenantId];
+  const memberships = userData.tenantMemberships;
+  if (memberships && typeof memberships === 'object' && Object.prototype.hasOwnProperty.call(memberships, tenantId)) {
+    const membership = memberships[tenantId];
+    if (!membership || typeof membership !== 'object') {
+      return [];
+    }
     if (membership.stato != null && membership.stato !== 'attivo') {
       return [];
     }
-    return membership.ruoli && Array.isArray(membership.ruoli) ? membership.ruoli : [];
+    return Array.isArray(membership.ruoli) ? membership.ruoli.slice() : [];
   }
 
   // Retrocompatibilità: deprecato solo se la chiave membership manca
-  if (userData.tenantId === tenantId && userData.ruoli && Array.isArray(userData.ruoli)) {
-    return userData.ruoli;
+  if (userData.tenantId === tenantId && Array.isArray(userData.ruoli)) {
+    if ((userData.stato || 'attivo') === 'disattivato') {
+      return [];
+    }
+    return userData.ruoli.slice();
   }
 
   return [];
