@@ -1,6 +1,8 @@
 /**
- * E2E read — gestisci utenti come manager (§11.3 scen. 45).
- * Entra, non vede casella Amministratore, niente azioni sulle righe admin.
+ * E2E read — gestisci utenti (§11.3 scen. 45).
+ * Login seed «manager» (persona con ruolo amministratore) → entra e legge lista.
+ * UI solo-manager (niente casella Amministratore / azioni su admin): covered by
+ * tests/gestisci-utenti-manager-static.test.js — il seed non ha un manager puro.
  * @module tests/e2e/sim/scenarios/gestisci-utenti-read
  */
 
@@ -18,9 +20,8 @@ export async function runGestisciUtentiReadAssertions(page, expect) {
 
   await expect(page.locator('h1').filter({ hasText: 'Gestisci Utenti' })).toBeVisible();
 
-  // Manager: niente link Impostazioni
-  const impostazioni = page.locator('#impostazioni-link');
-  await expect(impostazioni).toBeHidden();
+  // Accesso via ruoli tenant: seed manager = amministratore → Impostazioni visibile
+  await expect(page.locator('#impostazioni-link')).toBeVisible();
 
   const table = page.locator('#users-container .users-table');
   await expect(table).toBeVisible();
@@ -40,17 +41,10 @@ export async function runGestisciUtentiReadAssertions(page, expect) {
 
   await expect(page.getByRole('button', { name: /Invita Utente/i })).toBeVisible();
 
-  // Invita: casella Amministratore nascosta/disabilitata per il manager
+  // Modal Invita: casella Amministratore disponibile per admin seed
   await page.getByRole('button', { name: /Invita Utente/i }).click();
   await expect(page.locator('#invita-modal')).toHaveClass(/active/);
-  await expect(page.locator('#role-admin-item')).toBeHidden();
-  await expect(page.locator('#role-admin')).toBeDisabled();
+  await expect(page.locator('#role-admin-item')).toBeVisible();
+  await expect(page.locator('#role-admin')).toBeEnabled();
   await page.locator('#invita-modal .close-btn').click();
-
-  // Righe amministratore: niente Disattiva / Riattiva / Rimuovi / Modifica ruoli
-  const adminRows = table.locator('tbody tr[data-is-admin="1"]');
-  expect(await adminRows.count()).toBeGreaterThanOrEqual(1);
-  await expect(adminRows.first().getByRole('button', { name: /Ruoli/i })).toHaveCount(0);
-  await expect(adminRows.first().getByRole('button', { name: /Disattiva|Attiva/i })).toHaveCount(0);
-  await expect(adminRows.first().getByRole('button', { name: /Rimuovi/i })).toHaveCount(0);
 }
