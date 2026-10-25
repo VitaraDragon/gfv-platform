@@ -1,29 +1,119 @@
 import { createRequire } from 'module';
 import { describe, it, expect } from 'vitest';
+import { MODULE_TRIAL_PLAN_CASES } from './fixtures/module-trial-plan-cases.js';
 
 const require = createRequire(import.meta.url);
 const {
   MODULE_TRIAL_DAYS,
+  MODULE_TRIAL_REQUIRES_BASE_REASON,
   canStartModuleTrial,
   resolveEffectiveModules,
   expireStaleModuleTrials,
   markModuleTrialConverted,
+  handleStartModuleTrial,
 } = require('../functions/module-trial.js');
+
+function makeFakeDb({ userData, tenantData }) {
+  let writeCount = 0;
+  const lastUpdates = [];
+  const tenantState = { ...(tenantData || {}) };
+
+  const db = {
+    collection(name) {
+      return {
+        doc(id) {
+          if (name === 'users') {
+            return {
+              get: async () => ({
+                exists: true,
+                data: () => userData,
+              }),
+            };
+          }
+          if (name === 'tenants') {
+            return {
+              get: async () => ({
+                exists: true,
+                id,
+                data: () => ({ ...tenantState }),
+              }),
+              update: async (payload) => {
+                writeCount += 1;
+                lastUpdates.push(payload);
+                Object.assign(tenantState, payload);
+              },
+            };
+          }
+          return {
+            get: async () => ({ exists: false, data: () => null }),
+          };
+        },
+      };
+    },
+  };
+
+  return {
+    db,
+    getWriteCount: () => writeCount,
+    getLastUpdates: () => lastUpdates,
+  };
+}
 
 describe('module-trial', () => {
   it('MODULE_TRIAL_DAYS is 30', () => {
     expect(MODULE_TRIAL_DAYS).toBe(30);
   });
 
-  it('canStartModuleTrial allows first trial on free tenant', () => {
+  it.each(MODULE_TRIAL_PLAN_CASES)(
+    'canStartModuleTrial — $label → canStart=$canStart',
+    ({ tenant, canStart }) => {
+      const result = canStartModuleTrial(tenant, 'vigneto');
+      expect(result.canStart).toBe(canStart);
+      if (!canStart && (tenant.plan === 'free' || tenant.piano === 'free') && !tenant.stripeSubscriptionId) {
+        expect(result.reason).toBe(MODULE_TRIAL_REQUIRES_BASE_REASON);
+      }
+    }
+  );
+
+  it('canStartModuleTrial blocks first trial on free tenant', () => {
     const tenant = { plan: 'free', modules: [], moduleTrials: {} };
     const result = canStartModuleTrial(tenant, 'vigneto');
+    expect(result.canStart).toBe(false);
+    expect(result.reason).toMatch(/piano Base/i);
+  });
+
+  it('canStartModuleTrial allows first trial on base tenant', () => {
+    const tenant = { plan: 'base', modules: [], moduleTrials: {} };
+    const result = canStartModuleTrial(tenant, 'vigneto');
     expect(result.canStart).toBe(true);
+  });
+
+  it('handleStartModuleTrial rejects free plan without writing', async () => {
+    const { db, getWriteCount } = makeFakeDb({
+      userData: {
+        tenantId: 't1',
+        ruoli: ['manager'],
+        tenantMemberships: { t1: { stato: 'attivo', ruoli: ['manager'] } },
+      },
+      tenantData: { plan: 'free', modules: [], moduleTrials: {} },
+    });
+
+    await expect(
+      handleStartModuleTrial(db, {
+        auth: { uid: 'u1' },
+        data: { tenantId: 't1', moduleId: 'vigneto' },
+      })
+    ).rejects.toMatchObject({
+      code: 'failed-precondition',
+      message: MODULE_TRIAL_REQUIRES_BASE_REASON,
+    });
+    expect(getWriteCount()).toBe(0);
   });
 
   it('canStartModuleTrial blocks second trial on different module while one active', () => {
     const now = new Date('2026-06-01T12:00:00Z');
     const tenant = {
+      plan: 'base',
       modules: [],
       moduleTrials: {
         vigneto: {
@@ -51,6 +141,7 @@ describe('module-trial', () => {
 
   it('canStartModuleTrial blocks repeat trial for same module', () => {
     const tenant = {
+      plan: 'base',
       modules: [],
       moduleTrials: {
         vigneto: { status: 'expired', endsAt: new Date('2026-01-01') },
