@@ -250,10 +250,18 @@ async function handleSendTransactionalEmail(db, apiKey, request, authAdmin = nul
 
     if (invitoId) {
       const invitoSnap = await db.collection("inviti").doc(invitoId).get();
+      const invitoData = invitoSnap.exists ? invitoSnap.data() || {} : null;
+      const invitoEmail =
+        invitoData && typeof invitoData.email === "string"
+          ? invitoData.email.trim().toLowerCase()
+          : "";
+      const toNorm = to.toLowerCase();
       if (
-        invitoSnap.exists &&
-        (invitoSnap.data() || {}).tenantId === tenantId &&
-        (invitoSnap.data() || {}).stato === "invitato"
+        invitoData &&
+        invitoData.tenantId === tenantId &&
+        invitoData.stato === "invitato" &&
+        invitoEmail &&
+        invitoEmail === toNorm
       ) {
         if (authAdmin) {
           isExistingUser = await resolveIsExistingUserFromAuth(authAdmin, to);

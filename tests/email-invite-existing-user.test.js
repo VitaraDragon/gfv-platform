@@ -187,6 +187,41 @@ describe('sendTransactionalEmail invite — niente oracolo', () => {
     );
     expect(res.isExistingUser).toBe(false);
   });
+
+  it('invitoId valido ma email diversa: nessun flag e nessuna scrittura sull\'invito', async () => {
+    const db = fakeDb({
+      'users/mgr': {
+        tenantMemberships: { T1: { ruoli: ['manager'], stato: 'attivo' } },
+      },
+      'inviti/inv-mismatch': {
+        tenantId: 'T1',
+        stato: 'invitato',
+        email: 'altro@x.it',
+      },
+    });
+    const before = JSON.stringify(
+      (await db.collection('inviti').doc('inv-mismatch').get()).data()
+    );
+    const res = await handleSendTransactionalEmail(
+      db,
+      're_test_key',
+      {
+        auth: { uid: 'mgr' },
+        data: {
+          type: 'invite',
+          tenantId: 'T1',
+          invitoId: 'inv-mismatch',
+          to: 'exist@x.it',
+          linkRegistrazione: 'https://example.com/i',
+        },
+      },
+      authAdminExisting
+    );
+    expect(res.isExistingUser).toBeUndefined();
+    const after = (await db.collection('inviti').doc('inv-mismatch').get()).data();
+    expect(JSON.stringify(after)).toBe(before);
+    expect(after.isExistingUser).toBeUndefined();
+  });
 });
 
 describe('Gestisci Utenti statico', () => {
