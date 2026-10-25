@@ -9,7 +9,7 @@ Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più sc
 ## Percorso consigliato quando inizi
 
 1. **Per primo Impostazioni** (in alto a destra, icona ingranaggio): dati azienda e account; il **podere solo se vi serve** (non è obbligatorio). **[Impara qui: Impostazioni](#prima-cosa-dati-aziendali-e-poderi)**  
-2. Se sei **manager** o **amministratore**, orientati sulla **dashboard** (panoramica, menu Moduli, scorciatoie). **[Impara qui: Dashboard manager](#mini-guida-dashboard-per-manager-e-amministratore)**  
+2. Se sei **manager** o **amministratore**, orientati sulla **dashboard** (panoramica, pulsante moduli in alto, scorciatoie). **[Impara qui: Dashboard manager](#mini-guida-dashboard-per-manager-e-amministratore)**  
 3. Poi **Terreni**: premi **+ Aggiungi Terreno** e compila anche **Categoria Coltura** e **Coltura**. Se il terreno c’è già ma senza coltura, prima **✏️ Modifica**. **[Impara qui: Terreni](#mini-guida-aggiungere-o-modificare-un-terreno)**  
 4. Solo dopo il **Diario attività**. Senza coltura sul terreno, lì **Coltura** resta vuota. **[Impara qui: Diario](#mini-guida-compilare-il-diario-attivita)**  
 5. Usa la **mappa** e **Statistiche** per il quadro d’insieme e i grafici filtrati. **[Impara qui: Mappa](#mini-guida-la-mappa-in-dashboard)** · **[Impara qui: Statistiche](#mini-guida-statistiche-e-filtri)**  
@@ -80,15 +80,16 @@ Oltre al titolo dell’azienda, di solito trovi:
 
 ### Panoramica (tre sezioni)
 
-Subito sotto il pulsante **Moduli** (e il meteo, se attivo), la **panoramica** è divisa in **tre sezioni** affiancate:
+Sotto l’intestazione (e il meteo, se attivo), la **panoramica** è divisa in **tre sezioni** affiancate:
 
 1. **Richiede attenzione** — elenco automatico di situazioni da controllare (es. prodotti sotto scorta, guasti o scadenze mezzi, affitti in scadenza, ore da validare, lavori da pianificare). Ogni voce è **cliccabile** e ti porta alla schermata giusta. Se tutto è a posto, compare un messaggio di conferma.
 2. **Per te oggi** — collegamenti fissi verso mappa, diario, statistiche e, se avete Manodopera, l’area lavori/squadre/ore.
-3. **Accessi rapidi** — moduli che hai **fissato con la stella** (☆/★) o usato di recente **su questo dispositivo**. Per fissare un modulo: apri il menu **Moduli** (vedi sotto) e usa la stella accanto alla voce che ti serve spesso.
+3. **Accessi rapidi** — moduli che hai **fissato con la stella** (☆/★) o usato di recente **su questo dispositivo**. Per fissare un modulo: apri l’elenco moduli (vedi sotto) e usa la stella accanto alla voce che ti serve spesso.
 
-### **I miei accessi**
+### Sezione **I miei accessi** (non è una voce di menu)
 
-Sotto la panoramica c’è la barra **I miei accessi**: fino a **cinque scorciatoie** verso pagine che usi spesso. Tocca **Configura** per scegliere le voci e **Salva**. Le preferenze restano **solo su questo browser**.
+**I miei accessi** è una **sezione della dashboard** (barra con fino a **cinque scorciatoie** e **Configura**), non una voce dell’elenco moduli. Le preferenze restano **solo su questo browser**.  
+Nella Home con la pelle attuale (Proposta) questa sezione **può non essere visibile**: per entrare nei moduli usa il pulsante in alto descritto sotto; le scorciatoie restano in **Per te oggi** e negli **Accessi rapidi**.
 
 ### Meteo sede
 
@@ -102,32 +103,32 @@ Due sezioni affiancate:
 - **Scadenze amministrazione** — affitti, revisioni, assicurazioni con data imminente o superata.
 - **In arrivo** — manutenzioni mezzi, lavori da pianificare, ore da validare (secondo i moduli attivi).
 
-### Menu **Moduli** — come entri in Vigneto, Magazzino, ecc.
+### Aprire i moduli — pulsante in alto (pelle Proposta)
 
-Il pulsante **Moduli** (con un **numero** accanto, es. «Moduli 8») è il modo **principale** per aprire qualsiasi sezione.
+Il modo **principale** per aprire Terreni, Diario, Vigneto, Magazzino, ecc. è il **pulsante moduli in alto** nella barra della pelle: icona a **graffetta**, etichetta accessibile **«Apri o chiudi i moduli»** (su desktop spesso «Proposta · …», su telefono di solito solo l’icona). **Non** cercare un pulsante separato «📂 Moduli» nella Home: con la pelle Proposta quel controllo storico **non compare**.
 
-1. Tocca **Moduli**.
-2. Si apre un **elenco a tendina** con voci cliccabili: ogni riga ha un’**icona** (es. 🍇), un **titolo** (es. **Vigneto**) e una **breve descrizione**.
-3. Tocca la voce che ti serve: si apre quella pagina e il menu si chiude.
+1. Tocca il pulsante moduli in alto (graffetta / «Apri o chiudi i moduli»).
+2. Si apre il **pannello moduli** con voci cliccabili: ogni riga ha un’**icona** (es. 🍇), un **titolo** (es. **Vigneto**) e una **breve descrizione**.
+3. Tocca la voce che ti serve: si apre quella pagina e il pannello si chiude.
 
 Nell’elenco trovi sempre almeno **Terreni**, **Diario attività**, **Statistiche**, **Abbonamento**; poi ogni **modulo attivo** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Report, …).  
 Con **Manodopera** attivo compaiono anche **Amministrazione** e **Statistiche manodopera**.
 
-**Non serve cercare altro** se hai Manodopera: Vigneto, Magazzino e gli altri moduli sono **solo** in questo elenco (o in **Per te oggi** / **I miei accessi** / **Accessi rapidi**). Scorrendo la dashboard **non** troverai altre righe «Vigneto» o «Magazzino» fuori dal menu — ed è normale.
+**Non serve cercare altro** se hai Manodopera: Vigneto, Magazzino e gli altri moduli sono **solo** in questo elenco (o in **Per te oggi** / **Accessi rapidi**). Scorrendo la dashboard **non** troverai altre righe «Vigneto» o «Magazzino» fuori dal pannello — ed è normale.
 
 ### Riquadri modulo in fondo alla pagina (solo in alcuni casi)
 
-**Cosa sono:** **riquadri** bianchi, larghi quasi tutta la pagina, con icona a sinistra (es. 🍇) e titolo **Vigneto** (o **Prodotti e Magazzino**, **Conto Terzi**, …) — **stesso aspetto** delle voci dentro **Moduli**, ma **scritti direttamente nella pagina**, **sotto** Scadenze e In arrivo, se **scorri fino in fondo**. Non vanno confusi con le **tre sezioni** della panoramica (Richiede attenzione, Per te oggi, Accessi rapidi).
+**Cosa sono:** **riquadri** bianchi, larghi quasi tutta la pagina, con icona a sinistra (es. 🍇) e titolo **Vigneto** (o **Prodotti e Magazzino**, **Conto Terzi**, …) — **stesso aspetto** delle voci nel pannello moduli, ma **scritti direttamente nella pagina**, **sotto** Scadenze e In arrivo, se **scorri fino in fondo**. Non vanno confusi con le **tre sezioni** della panoramica (Richiede attenzione, Per te oggi, Accessi rapidi).
 
-**Quando li vedi:** solo se avete **moduli opzionali attivi** (Vigneto, Magazzino, …) e **non** avete il **modulo Manodopera**. Servono da scorciatoia: un clic e entri nel modulo senza riaprire **Moduli**.
+**Quando li vedi:** solo se avete **moduli opzionali attivi** (Vigneto, Magazzino, …) e **non** avete il **modulo Manodopera**. Servono da scorciatoia: un clic e entri nel modulo senza riaprire il pannello.
 
-**Quando non li vedi:** se avete **Manodopera** attivo (caso più comune in aziende con squadre e ore). I moduli restano nel menu **Moduli**; non manca nulla.
+**Quando non li vedi:** se avete **Manodopera** attivo (caso più comune in aziende con squadre e ore). I moduli restano nel pannello aperto dal pulsante in alto; non manca nulla.
 
-**In sintesi:** per aprire un modulo → **Moduli** → tocca la voce. I riquadri in fondo pagina sono un’**extra** opzionale, non obbligatoria, e molti utenti **non li vedono mai**.
+**In sintesi:** per aprire un modulo → pulsante moduli in alto → tocca la voce. I riquadri in fondo pagina sono un’**extra** opzionale, non obbligatoria, e molti utenti **non li vedono mai**.
 
 ### Solo app base (nessun modulo opzionale)
 
-Se l’abbonamento non include moduli extra (vigneto, manodopera, magazzino, …), **non** è un errore se non vedete quelle voci: restano disponibili **Terreni**, **Diario attività**, **Statistiche** e **Abbonamento** dal menu Moduli e da **Per te oggi**. Squadre, lavori strutturati e macchine richiedono i rispettivi moduli.
+Se l’abbonamento non include moduli extra (vigneto, manodopera, magazzino, …), **non** è un errore se non vedete quelle voci: restano disponibili **Terreni**, **Diario attività**, **Statistiche** e **Abbonamento** dal pannello moduli e da **Per te oggi**. Squadre, lavori strutturati e macchine richiedono i rispettivi moduli.
 
 ### Caposquadra e operaio
 
@@ -182,7 +183,7 @@ Se un **podere** non compare sul terreno, va creato in **Impostazioni** con **�
 **Icone Vigneto e Frutteto (solo se i moduli sono attivi sull’azienda)**
 
 - Nella **lista** dei terreni possono comparire, sulla riga, due pulsanti piccoli: **grappolo** e **mela**.
-- **Grappolo:** non è un «gioco»: serve ad aprire l’**anagrafica vigneti** del modulo Vigneto già **legata a quel terreno** (il link apre direttamente la scheda vigneti collegata al campo che stavi guardando). Da lì gestisci i vigneti di quel campo; per il **riepilogo viola** del modulo (numeri, vendemmie, azioni rapide) usa il pulsante **Dashboard** che trovi in quella pagina oppure la voce **Vigneto** dal menu **Moduli** (tocca **Moduli** → **Vigneto** nella lista).
+- **Grappolo:** non è un «gioco»: serve ad aprire l’**anagrafica vigneti** del modulo Vigneto già **legata a quel terreno** (il link apre direttamente la scheda vigneti collegata al campo che stavi guardando). Da lì gestisci i vigneti di quel campo; per il **riepilogo viola** del modulo (numeri, vendemmie, azioni rapide) usa il pulsante **Dashboard** che trovi in quella pagina oppure la voce **Vigneto** dal **pannello moduli** (pulsante in alto → **Vigneto**).
 - **Mela:** stesso schema per il modulo **Frutteto**, aprendo l’**anagrafica frutteti** per quel terreno.
 
 **Compilare i campi, uno alla volta**
@@ -258,7 +259,7 @@ La **mappa aziendale** mostra i terreni che hanno **già i confini tracciati** i
 
 - il link **Mappa** in intestazione (manager/amministratore);
 - **Per te oggi** → «Mappa satellitare terreni e lavori»;
-- la pagina dedicata se la trovi nel menu **Moduli** o in **I miei accessi**.
+- la pagina dedicata se la trovi nel **pannello moduli** (pulsante in alto) o nelle scorciatoie della dashboard.
 
 Se non hai ancora disegnato nessun contorno, compare un invito ad andare in Terreni: **[come tracciare](#mini-guida-aggiungere-o-modificare-un-terreno)**.
 
@@ -349,7 +350,7 @@ Da loggati, in **Impostazioni**: nome/cognome/telefono, **Cambio password**, **N
 
 ## Abbonamento e piani
 
-Nella pagina **Abbonamento** (menu **Moduli** o tile dedicata) vedi il **piano corrente** e i **moduli** che potete attivare.
+Nella pagina **Abbonamento** (dal **pannello moduli** in alto, o da una tile dedicata se presente) vedi il **piano corrente** e i **moduli** che potete attivare.
 
 ### Piano gratuito (Free)
 
@@ -362,7 +363,7 @@ Nella pagina **Abbonamento** (menu **Moduli** o tile dedicata) vedi il **piano c
 
 - Terreni e attività **senza i limiti** del gratuito (secondo quanto indicato in pagina Abbonamento).
 - **Tony Guida**: assistente in chat per **orientarvi** (dove andare, cosa significa un’etichetta, passi da fare). Su questo piano Tony può anche suggerire **moduli utili** per la vostra azienda, in modo non invadente.
-- I **moduli verticali** (Vigneto, Frutteto, **Seminativo**, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Vendemmia meccanica, Report, …) si **attivano a parte**, ciascuno con il suo prezzo (o in prova 30 giorni, un modulo alla volta): ogni modulo aggiunge voci al menu **Moduli** e nuove pagine.
+- I **moduli verticali** (Vigneto, Frutteto, **Seminativo**, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Vendemmia meccanica, Report, …) si **attivano a parte**, ciascuno con il suo prezzo (o in prova 30 giorni, un modulo alla volta): ogni modulo aggiunge voci al **pannello moduli** e nuove pagine.
 - Il **modulo Tony Avanzato** (se lo attivate) aggiunge **automazioni**: aprire pagine, compilare schede, filtrare elenchi, **fotografare bolle e fatture** (Tony legge le cifre; voi confermate e i dati scendono in magazzino). È **distinto** da Tony Guida incluso nel Base: potete usare la guida senza acquistare le automazioni.
 
 ### Cosa fare in pratica
