@@ -612,6 +612,171 @@ export function cleanTextFromJsonResidue(s) {
     return normalizeTonyTextWhitespace(t);
 }
 
+var TONY_MAX_TOKENS_NOTICE_CLIENT =
+    'La risposta si è interrotta: chiedimi di continuare.';
+
+function tonyStripJsonFencesClient(s) {
+    return String(s || '')
+        .replace(/```(?:json)?\s*([\s\S]*?)```/gi, '$1')
+        .trim();
+}
+
+function tonyUnescapeJsonStringClient(s) {
+    return String(s || '')
+        .replace(/\\n/g, '\n')
+        .replace(/\\r/g, '\r')
+        .replace(/\\t/g, '\t')
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '\\');
+}
+
+function tonySplitMaxTokensNoticeClient(raw) {
+    var full = String(raw || '');
+    var notice = TONY_MAX_TOKENS_NOTICE_CLIENT;
+    var idx = full.indexOf(notice);
+    if (idx < 0) return { body: full.trim(), noticeSuffix: '' };
+    return {
+        body: full.slice(0, idx).trim(),
+        noticeSuffix: '\n\n' + notice
+    };
+}
+
+function tonyLooksLikeJsonEnvelopeClient(s) {
+    var t = String(s || '').trim();
+    if (!t) return false;
+    if (/^\s*\{\s*"text"\s*:/i.test(t)) return true;
+    if (/^\s*text"\s*:\s*"/i.test(t)) return true;
+    if (/^\s*"text"\s*:\s*"/i.test(t)) return true;
+    return false;
+}
+
+function tonyExtractBalancedObjectClient(str, startIdx) {
+    if (!str || startIdx < 0 || str[startIdx] !== '{') return null;
+    var depth = 0;
+    var inString = false;
+    var esc = false;
+    for (var i = startIdx; i < str.length; i++) {
+        var ch = str[i];
+        if (inString) {
+            if (esc) { esc = false; continue; }
+            if (ch === '\\') { esc = true; continue; }
+            if (ch === '"') inString = false;
+            continue;
+        }
+        if (ch === '"') { inString = true; continue; }
+        if (ch === '{') depth++;
+        else if (ch === '}') {
+            depth--;
+            if (depth === 0) return str.slice(startIdx, i + 1);
+        }
+    }
+    return null;
+}
+
+function tonyExtractTextValueLooseClient(s) {
+    var m = String(s || '').match(/"text"\s*:\s*"/);
+    if (!m || m.index == null) return null;
+    var start = m.index + m[0].length;
+    var after = s.slice(start);
+    var lastGood = -1;
+    for (var i = 0; i < after.length; i++) {
+        var ch = after[i];
+        if (ch === '\\') { i++; continue; }
+        if (ch !== '"') continue;
+        var rest = after.slice(i + 1);
+        if (/^\s*,\s*"(?:command|action|params)"/.test(rest) || /^\s*\}/.test(rest)) {
+            lastGood = i;
+        }
+    }
+    if (lastGood >= 0) return tonyUnescapeJsonStringClient(after.slice(0, lastGood));
+    var t = after.replace(/\s*[}\]]+\s*$/g, '').trim();
+    t = t.replace(/\s*,\s*"(?:command|action|params)"[\s\S]*$/i, '').trim();
+    return tonyUnescapeJsonStringClient(t) || null;
+}
+
+function tonyExtractCommandLooseClient(s) {
+    var src = String(s || '');
+    var m = src.match(/"command"\s*:\s*/);
+    if (!m || m.index == null) return null;
+    var i = m.index + m[0].length;
+    while (i < src.length && /\s/.test(src[i])) i++;
+    if (src.slice(i, i + 4) === 'null') return null;
+    if (src[i] !== '{') return null;
+    var objStr = tonyExtractBalancedObjectClient(src, i);
+    if (!objStr) return null;
+    try {
+        var cmd = JSON.parse(objStr);
+        if (cmd && typeof cmd === 'object' && !Array.isArray(cmd)) {
+            if (cmd.type && String(cmd.type).trim()) return cmd;
+            if (cmd.action && String(cmd.action).trim()) return cmd;
+        }
+    } catch (_) { /* mai comando parziale */ }
+    return null;
+}
+
+function tonyStripJsonResidueFallbackClient(s) {
+    var t = String(s || '').trim();
+    t = t.replace(/^\s*\{\s*"text"\s*:\s*"/i, '');
+    t = t.replace(/^\s*"text"\s*:\s*"/i, '');
+    t = t.replace(/^\s*text"\s*:\s*"/i, '');
+    t = t.replace(/"\s*,\s*"(?:command|action|params)"\s*:[\s\S]*$/i, '');
+    t = t.replace(/"\s*\}\s*$/g, '');
+    t = t.replace(/^\s*\{\s*/g, '').replace(/\s*\}\s*$/g, '');
+    return tonyUnescapeJsonStringClient(t).trim();
+}
+
+/**
+ * Estrazione tollerante (virgolette interne non escapate): mai JSON grezzo in chat.
+ * @param {string} raw
+ * @returns {{ text: string, command: object|null }}
+ */
+export function extractTonyTextLoose(raw) {
+    var split = tonySplitMaxTokensNoticeClient(raw);
+    var s = tonyStripJsonFencesClient(split.body);
+    if (!s) {
+        return { text: (split.noticeSuffix || '').trim() || '', command: null };
+    }
+
+    function tryStrict(candidate) {
+        try {
+            var p = JSON.parse(candidate);
+            if (p && typeof p === 'object' && typeof p.text === 'string') {
+                var cmd = null;
+                if (p.command && typeof p.command === 'object' && !Array.isArray(p.command)) {
+                    if (p.command.type || p.command.action) cmd = p.command;
+                }
+                var text = (String(p.text).trim() + split.noticeSuffix).trim();
+                return { text: text || String(p.text), command: cmd };
+            }
+        } catch (_) {}
+        return null;
+    }
+
+    var strict = tryStrict(s);
+    if (strict) return strict;
+    var jsonStart = s.search(/\{\s*"text"\s*:/);
+    if (jsonStart >= 0) {
+        strict = tryStrict(s.slice(jsonStart));
+        if (strict) return strict;
+    }
+
+    var textVal = tonyExtractTextValueLooseClient(s);
+    var command = tonyExtractCommandLooseClient(s);
+    if (textVal != null && String(textVal).trim()) {
+        return {
+            text: (String(textVal).trim() + split.noticeSuffix).trim(),
+            command: command
+        };
+    }
+
+    var cleaned = tonyStripJsonResidueFallbackClient(s);
+    if (!cleaned || tonyLooksLikeJsonEnvelopeClient(cleaned) || /^\s*\{/.test(cleaned)) {
+        cleaned = '';
+    }
+    var outText = (cleaned + split.noticeSuffix).trim();
+    return { text: outText || 'Ok.', command: null };
+}
+
 /**
  * Estrae text e command da una stringa che contiene JSON (fallback se Cloud Function non parsa).
  */
@@ -632,6 +797,13 @@ export function extractTonyResponseFromString(str) {
             }
         } catch (_) {}
         jsonStr = jsonStr.slice(0, -1).trim();
+    }
+    // Loose solo se c'è la chiave text (non su payload action/replyText)
+    if (/"text"\s*:/i.test(s) || tonyLooksLikeJsonEnvelopeClient(s)) {
+        var loose = extractTonyTextLoose(s);
+        if (loose && loose.text && !tonyLooksLikeJsonEnvelopeClient(loose.text)) {
+            return { text: loose.text, command: loose.command || null };
+        }
     }
     return null;
 }
@@ -755,15 +927,33 @@ export function stripTonyMarkdownJsonBlocks(text) {
  */
 export function resolveTonyUserVisibleText(text, command) {
     var cmd = normalizeTonyCommand(command);
-    var t = stripTonyMarkdownJsonBlocks(text || '');
-    if (t && /\{[\s\S]*"(?:action|command|type)"\s*:/i.test(t)) {
+    // Unwrap ```json (keep content). stripTonyMarkdownJsonBlocks cancella il blocco intero.
+    var t = tonyStripJsonFencesClient(text || '');
+    if (t.indexOf('```') >= 0) t = stripTonyMarkdownJsonBlocks(t);
+    var hasTextKey =
+        /\{[\s\S]*"text"\s*:/i.test(t) ||
+        tonyLooksLikeJsonEnvelopeClient(t) ||
+        /^\s*text"\s*:/i.test(t);
+    var hasCmdShape = /\{[\s\S]*"(?:action|command|type)"\s*:/i.test(t);
+    if (t && (hasTextKey || hasCmdShape)) {
         var ex = extractTonyResponseFromString(t);
         if (ex) {
             if (!cmd && ex.command) cmd = normalizeTonyCommand(ex.command);
             if (ex.text && String(ex.text).trim()) t = ex.text;
+        } else if (hasTextKey) {
+            var loose = extractTonyTextLoose(t);
+            if (loose && loose.text && String(loose.text).trim()) {
+                if (!cmd && loose.command) cmd = normalizeTonyCommand(loose.command);
+                t = loose.text;
+            }
         }
     }
     t = cleanTextFromJsonResidue(t);
+    if (tonyLooksLikeJsonEnvelopeClient(t) || /^\s*text"\s*:/i.test(t) || /^\s*\{\s*"text"/i.test(t)) {
+        var finalLoose = extractTonyTextLoose(text || '');
+        if (finalLoose && finalLoose.text) t = finalLoose.text;
+        t = tonyStripJsonResidueFallbackClient(t);
+    }
     if (!t && cmd) t = 'Ok.';
     if (!t) t = 'Ok.';
     return { text: t, command: cmd };
