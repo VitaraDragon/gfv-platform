@@ -20,6 +20,11 @@ const {
   looksLikeTruncatedStructuredJson,
   appendMaxTokensNotice,
 } = require("./tony-gemini-api");
+const {
+  extractTonyTextLoose,
+  postProcessTonyUnstructuredResponse,
+  looksLikeTonyJsonEnvelope,
+} = require("./tony-json-text");
 const { tryTonyActivityPatterns } = require("./tony-activity-patterns");
 const { tryTonyTerrenoEntityParse } = require("./tony-terreno-entity-parser");
 const {
@@ -1380,6 +1385,7 @@ PULIZIA RISPOSTA:
 
 FORMATO RISPOSTA OBBLIGATORIO:
 - Rispondi SEMPRE con un oggetto JSON valido contenente almeno "text". VIETATO rispondere con solo testo senza JSON.
+- Dentro "text" non usare virgolette doppie: usa «» o l'apostrofo (es. categoria «Vite»). Se proprio servono, scrivile \".
 - Risposta informativa (es. "quali terreni ho?", "elenca i terreni"): {"text": "Hai il Sangiovese, il Kaki, il Seminativo Nord... (9 in totale).", "command": null}. DEVI enumerare i nomi, non solo il conteggio.
 - Risposta con azione: {"text": "frase breve", "command": {"type": "...", "params": {...}}}.
 - Quando l'utente chiede di vedere, filtrare o isolare dati in tabella (es. "mostrami gli affitti", "filtra per vigneto", "solo i scaduti", "terreni in affitto"), DEVI includere "command" con type "FILTER_TABLE". Non rispondere mai solo a parole: il JSON con command è OBBLIGATORIO.
@@ -1554,7 +1560,7 @@ FILTRO TABELLA CLIENTI (FILTER_TABLE) – quando page.currentTableData?.pageType
 - SEI GIÀ sulla pagina Clienti (Conto terzi): l'utente vede la lista clienti. "Mostrami solo gli attivi", "filtra per sospesi", "cerca clienti Rossi", "pulisci filtri" = FILTER_TABLE, NON navigazione.
 - OBBLIGATORIO: se l'utente chiede di filtrare o vedere solo clienti per stato o per testo (ragione sociale, P.IVA, email), rispondi SEMPRE con JSON che contiene "command" con type "FILTER_TABLE".
 - FORMATO params: "stato" (attivo | sospeso | archiviato), "ricerca" (testo per ragione sociale / P.IVA / email / telefono; il client filtra in tempo reale). RESET: params: { "filterType": "reset" } oppure { "reset": true }.
-- Esempi: "solo gli attivi" / "mostrami i clienti attivi" → {"text": "Ecco i clienti attivi.", "command": {"type": "FILTER_TABLE", "params": {"stato": "attivo"}}}. "sospesi" → {"text": "Ecco i clienti sospesi.", "command": {"type": "FILTER_TABLE", "params": {"stato": "sospeso"}}}. "archiviati" → {"text": "Ecco i clienti archiviati.", "command": {"type": "FILTER_TABLE", "params": {"stato": "archiviato"}}}. "cerca clienti Rossi" / "trova Rossi" / "clienti con ragione sociale Rossi" → {"text": "Ecco i clienti che contengono \"Rossi\".", "command": {"type": "FILTER_TABLE", "params": {"ricerca": "Rossi"}}}. "pulisci filtri" → {"text": "Filtri azzerati.", "command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
+- Esempi: "solo gli attivi" / "mostrami i clienti attivi" → {"text": "Ecco i clienti attivi.", "command": {"type": "FILTER_TABLE", "params": {"stato": "attivo"}}}. "sospesi" → {"text": "Ecco i clienti sospesi.", "command": {"type": "FILTER_TABLE", "params": {"stato": "sospeso"}}}. "archiviati" → {"text": "Ecco i clienti archiviati.", "command": {"type": "FILTER_TABLE", "params": {"stato": "archiviato"}}}. "cerca clienti Rossi" / "trova Rossi" / "clienti con ragione sociale Rossi" → {"text": "Ecco i clienti che contengono «Rossi».", "command": {"type": "FILTER_TABLE", "params": {"ricerca": "Rossi"}}}. "pulisci filtri" → {"text": "Filtri azzerati.", "command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
 
 FILTRO TABELLA PREVENTIVI (FILTER_TABLE) – quando page.currentTableData?.pageType === 'preventivi' o session.current_page.path include "preventivi":
 - SEI GIÀ sulla pagina Preventivi (Conto terzi): l'utente vede la lista preventivi. "Mostrami solo le bozze", "filtra per inviati", "solo i preventivi di Luca", "pulisci filtri" = FILTER_TABLE, NON navigazione.
@@ -1565,7 +1571,7 @@ FILTRO TABELLA PREVENTIVI (FILTER_TABLE) – quando page.currentTableData?.pageT
 - TIPO LAVORO: "preventivi di erpicatura", "solo le potature" → params.tipoLavoro con nome esatto (da items o azienda.tipiLavoro).
 - CATEGORIA LAVORO: "preventivi vendemmie", "solo potature", "lavorazioni del terreno", "raccolte", "trattamenti" → params.categoriaLavoro con nome categoria lavorazione (Potatura, Lavorazione del terreno, Raccolta, Trattamenti, ecc.). Il client imposta il select per testo. OBBLIGATORIO: "vendemmia"/"vendemmie" → usa sempre categoriaLavoro: "Raccolta" (Vendemmia è sottocategoria di Raccolta e nel filtro compare solo la categoria principale; così si vedono comunque i preventivi di vendemmia).
 - CATEGORIA COLTURA: "preventivi vigneto", "solo frutteto", "preventivi per i vigneti" → params.categoriaColtura con nome categoria in tendina (Vite, Frutteto, Seminativo, ecc.).
-- Esempi: "solo le bozze" → {"text": "Ecco i preventivi in bozza.", "command": {"type": "FILTER_TABLE", "params": {"stato": "bozza"}}}. "preventivi di Luca Fabbri" → {"text": "Ecco i preventivi di Luca Fabbri.", "command": {"type": "FILTER_TABLE", "params": {"cliente": "Luca Fabbri"}}}. "preventivi vendemmie" / "fammi vedere le vendemmie" → {"text": "Ecco i preventivi di raccolta (inclusa vendemmia).", "command": {"type": "FILTER_TABLE", "params": {"categoriaLavoro": "Raccolta"}}}. "preventivi erpicatura" → {"text": "Ecco i preventivi di erpicatura.", "command": {"type": "FILTER_TABLE", "params": {"tipoLavoro": "Erpicatura Tra le File"}}}. "preventivi vigneto" → {"text": "Ecco i preventivi per la vite.", "command": {"type": "FILTER_TABLE", "params": {"categoriaColtura": "Vite"}}}. "pulisci filtri" → {"text": "Filtri azzerati.", "command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
+- Esempi: "solo le bozze" → {"text": "Ecco i preventivi in bozza.", "command": {"type": "FILTER_TABLE", "params": {"stato": "bozza"}}}. "preventivi di Luca Fabbri" → {"text": "Ecco i preventivi di Luca Fabbri.", "command": {"type": "FILTER_TABLE", "params": {"cliente": "Luca Fabbri"}}}. "preventivi vendemmie" / "fammi vedere le vendemmie" → {"text": "Ecco i preventivi di raccolta (inclusa vendemmia).", "command": {"type": "FILTER_TABLE", "params": {"categoriaLavoro": "Raccolta"}}}. "preventivi erpicatura" → {"text": "Ecco i preventivi di erpicatura.", "command": {"type": "FILTER_TABLE", "params": {"tipoLavoro": "Erpicatura Tra le File"}}}. "preventivi vigneto" → {"text": "Ecco i preventivi per la categoria «Vite».", "command": {"type": "FILTER_TABLE", "params": {"categoriaColtura": "Vite"}}}. "pulisci filtri" → {"text": "Filtri azzerati.", "command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
 
 INVIO EMAIL / ACCETTAZIONE MANAGER (PREVENTIVO_LIST_ACTION) – pagina Gestione preventivi (Conto terzi):
 - Se l'utente chiede di **inviare il preventivo per email** al cliente (es. "invia il preventivo a Rossi", "manda per mail il preventivo di Luca", "spedisci il preventivo via email") oppure di **accettare come manager** (es. "accetta il preventivo di Fabbri", "registra accettazione manager"): rispondi con JSON che include "command": {"type": "PREVENTIVO_LIST_ACTION", "params": {"action": "invia" | "accetta_manager", "preventivoId": "<id da azienda.preventivi o da page.currentTableData.items>"}}.
@@ -1578,7 +1584,7 @@ FILTRO TABELLA TARIFFE (FILTER_TABLE) – quando page.currentTableData?.pageType
 - SEI GIÀ sulla pagina Tariffe (Conto terzi): l'utente vede la lista tariffe. "Mostrami le tariffe per erpicatura", "solo vigneto", "tariffe in pianura", "solo le attive", "pulisci filtri" = FILTER_TABLE, NON navigazione.
 - OBBLIGATORIO: se l'utente chiede di filtrare per tipo lavoro, coltura, tipo campo (pianura/collina/montagna) o stato (attive/disattivate), rispondi con JSON che contiene "command" con type "FILTER_TABLE".
 - FORMATO params: "tipoLavoro" (testo, es. "Erpicatura", "Vendemmia"), "coltura" (testo libero su nome coltura o categoria mostrata: es. "Vite", "Vite da Vino", "Grano"), "tipoCampo" (pianura | collina | montagna), "attiva" (true | false). RESET: params: { "filterType": "reset" } oppure { "reset": true }.
-- Esempi: "tariffe per erpicatura" → {"text": "Ecco le tariffe di erpicatura.", "command": {"type": "FILTER_TABLE", "params": {"tipoLavoro": "Erpicatura"}}}. "tariffe vigneto" / "solo vigneto" / "tariffe vite" → {"text": "Ecco le tariffe per la vite.", "command": {"type": "FILTER_TABLE", "params": {"coltura": "Vite"}}}. "tariffe in pianura" → {"text": "Ecco le tariffe per pianura.", "command": {"type": "FILTER_TABLE", "params": {"tipoCampo": "pianura"}}}. "solo le attive" → {"text": "Ecco le tariffe attive.", "command": {"type": "FILTER_TABLE", "params": {"attiva": true}}}. "pulisci filtri" → {"text": "Filtri azzerati.", "command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
+- Esempi: "tariffe per erpicatura" → {"text": "Ecco le tariffe di erpicatura.", "command": {"type": "FILTER_TABLE", "params": {"tipoLavoro": "Erpicatura"}}}. "tariffe vigneto" / "solo vigneto" / "tariffe vite" → {"text": "Ecco le tariffe per la categoria «Vite».", "command": {"type": "FILTER_TABLE", "params": {"coltura": "Vite"}}}. "tariffe in pianura" → {"text": "Ecco le tariffe per pianura.", "command": {"type": "FILTER_TABLE", "params": {"tipoCampo": "pianura"}}}. "solo le attive" → {"text": "Ecco le tariffe attive.", "command": {"type": "FILTER_TABLE", "params": {"attiva": true}}}. "pulisci filtri" → {"text": "Filtri azzerati.", "command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
 
 FILTRO TABELLA PRODOTTI (FILTER_TABLE) – quando page.currentTableData?.pageType === 'prodotti' o session.current_page.path include "prodotti":
 - SEI GIÀ sulla pagina Anagrafica prodotti: filtri su stato, categoria, testo. "Solo attivi", "disattivati", "fitofarmaci", "cerca per nome" = FILTER_TABLE, NON navigazione.
@@ -4279,6 +4285,23 @@ async function handleTonyAskRequest(request, streamOpts) {
           ...(result.action.params || {})
         };
       }
+
+      // Fallback tollerante: virgolette non escapate in "text" → JSON.parse fallisce e resterebbe grezzo
+      result = postProcessTonyUnstructuredResponse(String(rawText), {
+        isTonyAdvancedActive: true,
+        parsed: result,
+      });
+      if (result.action && !result.command) {
+        result.command = {
+          type: result.action.action,
+          ...(result.action.params || {})
+        };
+      }
+    } else {
+      // Tony Base / Guida: anche JSON valido con sola chiave text non deve uscire grezzo
+      result = postProcessTonyUnstructuredResponse(String(rawText), {
+        isTonyAdvancedActive: false,
+      });
     }
     
     // Fallback "crea lavoro": se l'utente ha chiaramente chiesto di creare un lavoro e non abbiamo comando (es. path legacy senza structured output), apri il modal
@@ -4307,14 +4330,12 @@ async function handleTonyAskRequest(request, streamOpts) {
       if (result.command) {
         delete result.command;
       }
-      // Se result contiene solo testo con JSON, estrai solo il testo
-      if (result.text && result.text.includes('{')) {
-        const textOnly = result.text.replace(/\{[\s\S]*?\}/g, '').trim();
-        result.text = textOnly || result.text;
+      if (result.action) {
+        delete result.action;
       }
-      // Assicurati che result.text esista
-      if (!result.text) {
-        result.text = trimmed.replace(/\{[\s\S]*?\}/g, '').trim() || 'Ok.';
+      if (!result.text || looksLikeTonyJsonEnvelope(result.text)) {
+        const looseBase = extractTonyTextLoose(String(rawText));
+        result.text = looseBase.text || "Ok.";
       }
     }
     
