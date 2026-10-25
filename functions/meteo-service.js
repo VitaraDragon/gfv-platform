@@ -59,6 +59,8 @@ function resolveMeteoModuleActive(tenantData, moduliAttiviFromRequest) {
   return false;
 }
 
+const { belongsToTenant } = require("./lib/tenant-membership-access");
+
 /**
  * Verifica membership tenant attiva (tutti i ruoli — meteo visibile in dashboard).
  */
@@ -70,16 +72,9 @@ async function assertBelongsToTenant(db, uid, tenantId) {
   if (!snap.exists) {
     throw new HttpsError("permission-denied", "Utente non trovato.");
   }
-  const data = snap.data();
-  const memberships = data.tenantMemberships || {};
-  const m = memberships[tenantId];
-  if (m && m.stato === "attivo") {
-    return;
+  if (!belongsToTenant(snap.data(), tenantId)) {
+    throw new HttpsError("permission-denied", "Accesso non autorizzato a questo tenant.");
   }
-  if (data.tenantId === tenantId) {
-    return;
-  }
-  throw new HttpsError("permission-denied", "Accesso non autorizzato a questo tenant.");
 }
 
 async function loadTenantContext(db, tenantId) {

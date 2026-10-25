@@ -12,19 +12,13 @@ const {
   RUOLI_INVITO
 } = require("./lib/accettazione-legale-core");
 
-function ruoliDi(userData, tenantId) {
-  const out = [];
-  if (userData && Array.isArray(userData.ruoli)) out.push.apply(out, userData.ruoli);
-  const membership = userData && userData.tenantMemberships && userData.tenantMemberships[tenantId];
-  if (membership && Array.isArray(membership.ruoli)) out.push.apply(out, membership.ruoli);
-  return out.map(function (ruolo) { return String(ruolo); });
-}
+const {
+  belongsToTenant: appartieneAlTenant,
+  rolesForTenant,
+} = require("./lib/tenant-membership-access");
 
-function appartieneAlTenant(userData, tenantId) {
-  if (!userData || !tenantId) return false;
-  if (userData.tenantId === tenantId) return true;
-  const memberships = userData.tenantMemberships;
-  return !!(memberships && Object.prototype.hasOwnProperty.call(memberships, tenantId));
+function ruoliDi(userData, tenantId) {
+  return rolesForTenant(userData, tenantId);
 }
 
 function giaEsiste(err) {

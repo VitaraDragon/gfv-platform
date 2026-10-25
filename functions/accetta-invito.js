@@ -10,7 +10,16 @@ const {
   normalizeRuoli,
 } = require("./invito-pubblico");
 
-const RUOLI_AMMESSI = ["amministratore", "manager", "caposquadra", "operaio"];
+const {
+  belongsToTenant,
+  rolesForTenant,
+  isManagerOrAdmin,
+  isAmministratore,
+  hasMembershipKey,
+  RUOLI_VALIDI,
+} = require("./lib/tenant-membership-access");
+
+const RUOLI_AMMESSI = RUOLI_VALIDI.slice();
 
 class AccettaInvitoError extends Error {
   constructor(code, message) {
@@ -34,10 +43,7 @@ function ruoliInvitoValidi(ruoli) {
 }
 
 function membershipAttiva(userData, tenantId) {
-  if (!userData || !tenantId) return false;
-  const m = userData.tenantMemberships && userData.tenantMemberships[tenantId];
-  if (m && m.stato === "attivo") return true;
-  return false;
+  return belongsToTenant(userData, tenantId) && hasMembershipKey(userData, tenantId);
 }
 
 /**
@@ -46,30 +52,16 @@ function membershipAttiva(userData, tenantId) {
  */
 function membroLegacyAttivoSenzaMembership(userData, tenantId) {
   if (!userData || !tenantId) return false;
-  if (userData.tenantId !== tenantId) return false;
-  if (userData.tenantMemberships && userData.tenantMemberships[tenantId]) return false;
-  return (userData.stato || "attivo") !== "disattivato";
-}
-
-function ruoliAttiviPerTenant(userData, tenantId) {
-  if (!userData || !tenantId) return [];
-  const m = userData.tenantMemberships && userData.tenantMemberships[tenantId];
-  if (m && m.stato === "attivo" && Array.isArray(m.ruoli)) {
-    return m.ruoli.map(String);
-  }
-  if (userData.tenantId === tenantId && Array.isArray(userData.ruoli)) {
-    return userData.ruoli.map(String);
-  }
-  return [];
+  if (hasMembershipKey(userData, tenantId)) return false;
+  return belongsToTenant(userData, tenantId) && userData.tenantId === tenantId;
 }
 
 function isManagerOrAdminAttivo(userData, tenantId) {
-  const ruoli = ruoliAttiviPerTenant(userData, tenantId);
-  return ruoli.includes("manager") || ruoli.includes("amministratore");
+  return isManagerOrAdmin(userData, tenantId);
 }
 
 function isAmministratoreAttivo(userData, tenantId) {
-  return ruoliAttiviPerTenant(userData, tenantId).includes("amministratore");
+  return isAmministratore(userData, tenantId);
 }
 
 /**

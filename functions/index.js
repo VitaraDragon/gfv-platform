@@ -4589,8 +4589,30 @@ exports.sendTransactionalEmail = onCall(
   { region: "europe-west1", secrets: [resendApiKey] },
   async (request) => {
     const apiKey = process.env.RESEND_API_KEY;
-    return handleSendTransactionalEmail(db, apiKey, request);
+    return handleSendTransactionalEmail(db, apiKey, request, admin.auth());
   }
+);
+
+/**
+ * Elenco utenti del tenant (tenantId deprecato + membership). Solo manager/admin.
+ * Body: { tenantId }
+ */
+const {
+  handleElencaUtentiTenant,
+  handleGestisciMembershipUtente,
+} = require("./gestisci-membership");
+exports.elencaUtentiTenant = onCall(
+  { region: "europe-west1" },
+  async (request) => handleElencaUtentiTenant(db, request)
+);
+
+/**
+ * Disattiva / riattiva / rimuovi membership / modifica ruoli (Admin SDK).
+ * Body: { tenantId, uid, azione: 'disattiva'|'riattiva'|'rimuovi'|'ruoli', ruoli? }
+ */
+exports.gestisciMembershipUtente = onCall(
+  { region: "europe-west1" },
+  async (request) => handleGestisciMembershipUtente(db, request)
 );
 
 /**

@@ -6,10 +6,9 @@
 
 import { onAuthStateChanged, getDocumentData, getAuthInstance } from '../services/firebase-service.js';
 import {
-  getCurrentTenantId,
-  setCurrentTenantId,
   prefetchTenantForTony,
-  getUserRolesForTenant
+  getUserRolesForTenant,
+  resolveTenantIdForUser as resolveTenantIdFromUserData
 } from '../services/tenant-service.js';
 
 function publishTonyUserRolesForCapture(tenantId, userId) {
@@ -72,18 +71,9 @@ function ensureTonyLoaderShell() {
 }
 
 async function resolveTenantIdForUser(user) {
-  let tid = getCurrentTenantId();
-  if (tid) return tid;
-
   const userData = await getDocumentData('users', user.uid);
   if (!userData) return null;
-
-  tid = userData.tenantId || null;
-  if (!tid && userData.tenantMemberships && typeof userData.tenantMemberships === 'object') {
-    const keys = Object.keys(userData.tenantMemberships);
-    if (keys.length === 1) tid = keys[0];
-  }
-  return tid || null;
+  return resolveTenantIdFromUserData(userData);
 }
 
 /**
@@ -115,7 +105,6 @@ export function bootstrapTonyTenantFromAuth() {
       try {
         const tid = await resolveTenantIdForUser(user);
         if (!tid) return;
-        setCurrentTenantId(tid);
         await prefetchTenantForTony(tid);
         await publishTonyUserRolesForCapture(tid, user.uid);
       } catch (err) {

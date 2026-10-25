@@ -8,39 +8,42 @@ service cloud.firestore {
       return request.auth != null;
     }
     
-    // Helper: verifica che l'utente appartenga al tenant
-    // Supporta sia tenantMemberships (nuovo) che tenantId (deprecato, retrocompatibilità)
-    // Legge il documento users dell'utente corrente (ha sempre permesso di lettura)
+    // Membership autorevole: se esiste tenantMemberships[t] decidono solo stato/ruoli
+    // di quella chiave; tenantId/ruoli deprecati valgono solo se la chiave t manca.
+    // Niente ternario (precedenza && / ?: ambigua nelle rules).
+    function hasMembershipKey(tenantId) {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.keys().hasAny(['tenantMemberships']) &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantMemberships.keys().hasAny([tenantId]);
+    }
+
     function belongsToTenant(tenantId) {
       return isAuthenticated() && (
-        // Verifica retrocompatibilità: tenantId deprecato
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == tenantId ||
-        // Verifica nuova struttura: tenantMemberships - usa keys().hasAny() invece di 'in'
-        (get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantMemberships != null &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantMemberships.keys().hasAny([tenantId]) &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantMemberships[tenantId].stato == 'attivo')
+        (hasMembershipKey(tenantId) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantMemberships[tenantId].stato == 'attivo') ||
+        (!hasMembershipKey(tenantId) &&
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == tenantId &&
+         (!get(/databases/$(database)/documents/users/$(request.auth.uid)).data.keys().hasAny(['stato']) ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.stato != 'disattivato'))
       );
     }
     
     // Helper: verifica ruolo utente per un tenant specifico
-    // Supporta sia tenantMemberships (nuovo) che ruoli deprecati (retrocompatibilità)
     // @param role - Nome ruolo da verificare
     // @param tenantId - ID tenant (opzionale, se non specificato usa tenantId deprecato)
     function hasRole(role, tenantId) {
       return isAuthenticated() && (
-        // Se tenantId è specificato, verifica prima in tenantMemberships - usa keys().hasAny() invece di 'in'
         (tenantId != null &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantMemberships != null &&
-         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantMemberships.keys().hasAny([tenantId]) &&
+         hasMembershipKey(tenantId) &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantMemberships[tenantId].stato == 'attivo' &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantMemberships[tenantId].ruoli != null &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantMemberships[tenantId].ruoli.hasAny([role])) ||
-        // Retrocompatibilità: se tenantId è specificato ma non in tenantMemberships, verifica tenantId deprecato
         (tenantId != null &&
+         !hasMembershipKey(tenantId) &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.tenantId == tenantId &&
+         (!get(/databases/$(database)/documents/users/$(request.auth.uid)).data.keys().hasAny(['stato']) ||
+          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.stato != 'disattivato') &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ruoli != null &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ruoli.hasAny([role])) ||
-        // Retrocompatibilità: verifica ruoli deprecati (se tenantId è null)
         (tenantId == null &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ruoli != null &&
          get(/databases/$(database)/documents/users/$(request.auth.uid)).data.ruoli.hasAny([role]))
