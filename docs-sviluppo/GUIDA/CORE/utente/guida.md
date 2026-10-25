@@ -9,7 +9,7 @@ Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più sc
 ## Percorso consigliato quando inizi
 
 1. **Per primo Impostazioni** (in alto a destra, icona ingranaggio): dati azienda e account; il **podere solo se vi serve** (non è obbligatorio). **[Impara qui: Impostazioni](#prima-cosa-dati-aziendali-e-poderi)**  
-2. Se sei **manager** o **amministratore**, orientati sulla **dashboard** (panoramica, pulsante moduli in alto, scorciatoie). **[Impara qui: Dashboard manager](#mini-guida-dashboard-per-manager-e-amministratore)**  
+2. Se sei **manager** o **amministratore**, orientati sulla **dashboard** (panoramica, pulsante moduli in alto a sinistra, scorciatoie). **[Impara qui: Dashboard manager](#mini-guida-dashboard-per-manager-e-amministratore)**  
 3. Poi **Terreni**: premi **+ Aggiungi Terreno** e compila anche **Categoria Coltura** e **Coltura**. Se il terreno c’è già ma senza coltura, prima **✏️ Modifica**. **[Impara qui: Terreni](#mini-guida-aggiungere-o-modificare-un-terreno)**  
 4. Solo dopo il **Diario attività**. Senza coltura sul terreno, lì **Coltura** resta vuota. **[Impara qui: Diario](#mini-guida-compilare-il-diario-attivita)**  
 5. Usa la **mappa** e **Statistiche** per il quadro d’insieme e i grafici filtrati. **[Impara qui: Mappa](#mini-guida-la-mappa-in-dashboard)** · **[Impara qui: Statistiche](#mini-guida-statistiche-e-filtri)**  
@@ -105,9 +105,9 @@ Due sezioni affiancate:
 
 ### Aprire i moduli — pulsante in alto (pelle Proposta)
 
-Il modo **principale** per aprire Terreni, Diario, Vigneto, Magazzino, ecc. è il **pulsante moduli in alto** nella barra della pelle: icona a **graffetta**, etichetta accessibile **«Apri o chiudi i moduli»** (su desktop spesso «Proposta · …», su telefono di solito solo l’icona). **Non** cercare un pulsante separato «📂 Moduli» nella Home: con la pelle Proposta quel controllo storico **non compare**.
+Il modo **principale** per aprire Terreni, Diario, Vigneto, Magazzino, ecc. è il **pulsante moduli in alto a sinistra** nella barra della pelle: icona a **graffetta**, etichetta accessibile **«Apri o chiudi i moduli»** (su desktop spesso «Proposta · …», su telefono di solito solo l’icona). **Non** cercare un pulsante separato «📂 Moduli» nella Home: con la pelle Proposta quel controllo storico **non compare**.
 
-1. Tocca il pulsante moduli in alto (graffetta / «Apri o chiudi i moduli»).
+1. Tocca il pulsante moduli in alto a sinistra (graffetta / «Apri o chiudi i moduli»).
 2. Si apre il **pannello moduli** con voci cliccabili: ogni riga ha un’**icona** (es. 🍇), un **titolo** (es. **Vigneto**) e una **breve descrizione**.
 3. Tocca la voce che ti serve: si apre quella pagina e il pannello si chiude.
 
@@ -124,7 +124,7 @@ Con **Manodopera** attivo compaiono anche **Amministrazione** e **Statistiche ma
 
 **Quando non li vedi:** se avete **Manodopera** attivo (caso più comune in aziende con squadre e ore). I moduli restano nel pannello aperto dal pulsante in alto; non manca nulla.
 
-**In sintesi:** per aprire un modulo → pulsante moduli in alto → tocca la voce. I riquadri in fondo pagina sono un’**extra** opzionale, non obbligatoria, e molti utenti **non li vedono mai**.
+**In sintesi:** per aprire un modulo → pulsante moduli in alto a sinistra → tocca la voce. I riquadri in fondo pagina sono un’**extra** opzionale, non obbligatoria, e molti utenti **non li vedono mai**.
 
 ### Solo app base (nessun modulo opzionale)
 
