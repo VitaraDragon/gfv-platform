@@ -38,16 +38,16 @@ Quando indichi **dove andare** in chat o in guida, usa sempre il linguaggio dell
 ### Scorciatoie Terreni (Core)
 
 - Icona **grappolo** (Vigneto) o **mela** (Frutteto) sulla riga terreno → **anagrafica** coltura per quel campo, **non** la dashboard del modulo.
-- Per il riepilogo viola/arancio del modulo → pulsante moduli in alto → **Vigneto** / **Frutteto**.
+- Per il riepilogo viola/arancio del modulo → pulsante moduli in alto a sinistra → **Vigneto** / **Frutteto**.
 - **Traccia confini** (Terreni aziendali e **Terreni clienti** Conto terzi): stesso gesto — chiusura sul primo punto o doppio tap, Togli ultimo, aggancio ai campi già salvati (in CT solo quelli del cliente). Tony non disegna il poligono.
 
 ### Tony tra moduli
 
-- **Tony Guida** (piano Base): spiega i passaggi e indica il **pulsante moduli in alto** + nome modulo; non apre pagine da solo.
+- **Tony Guida** (piano Base): spiega i passaggi e indica il **pulsante moduli in alto a sinistra** + nome modulo; non apre pagine da solo.
 - **Tony Avanzato**: può **aprire** moduli e schede (es. «apri Conto Terzi», «vai a validazione ore», «apri impegni giornalieri») se il modulo e i permessi lo consentono.
 - **Documenti magazzino** (Avanzato + Magazzino): foto/PDF dalla chat → Tony legge le cifre → revisione → movimenti + Archivio; reminder **prezzi in attesa**.
 - **Briefing** anche su hub (es. Magazzino): reminder corti + follow-up «apri»; riassunto lungo tipicamente in dashboard.
-- Se l'utente è su una pagina e chiede un'azione di **altro modulo**, il percorso tipico è: descrivere pulsante moduli in alto → modulo → sezione, oppure (Avanzato) navigazione automatica.
+- Se l'utente è su una pagina e chiede un'azione di **altro modulo**, il percorso tipico è: descrivere pulsante moduli in alto a sinistra → modulo → sezione, oppure (Avanzato) navigazione automatica.
 
 ---
 
