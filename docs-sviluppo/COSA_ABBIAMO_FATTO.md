@@ -1,6 +1,22 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-24 — Prova moduli solo con piano Base.**
+**Ultimo aggiornamento documentazione: 2026-10-25 — Tony: mai JSON grezzo in chat.**
+
+## 2026-10-25 — Tony: mai JSON grezzo in chat (virgolette non escapate)
+
+Con `thinkingBudget: 0` Gemini a volte scrive `{"text":"... è "Vite"."}` senza escape: il parse in `functions/index.js` falliva e in chat restava `text": "…`. Ora `functions/tony-json-text.js` estrae il testo in modo tollerante (server + difesa in `engine.js`); il prompt Avanzato vieta le virgolette doppie dentro `text` (usa «»); guide: pulsante moduli **in alto a sinistra**. Test vitest dedicati. Dopo il merge: deploy manuale `tonyAsk` e `tonyAskStream`. Il client arriva con la promozione develop → main.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-25 — Tony: risposte non tagliate + nomi reali.**
+
+## 2026-10-25 — Tony: niente risposte a metà (MAX_TOKENS) e nomi comandi corretti
+
+Gemini 2.5 Flash contava i token di ragionamento in `maxOutputTokens` (1536): le risposte finivano a metà con `finishReason: MAX_TOKENS` non letto. Ora `buildTonyGenerationConfig` imposta `thinkingBudget: 0` su 2.5 Flash e `maxOutputTokens` 4096; stream/non-stream/retry leggono finishReason e usage; su MAX_TOKENS un ripiego senza ragionamento e con più token, altrimenti avviso chiaro; JSON form troncato non esegue comandi. Tony chiama **Vite** la categoria coltura (Vigneto resta modulo e filtro Terreni); nelle guide di navigazione principali indica il pulsante moduli della pelle («Apri o chiudi i moduli») e tratta **I miei accessi** come sezione dashboard. Dopo il merge: deploy manuale `tonyAsk` e `tonyAskStream`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-24 — Prova moduli solo con piano Base.**
 
 ## 2026-10-24 — Prova moduli solo con piano Base (annulla 22/06)
 

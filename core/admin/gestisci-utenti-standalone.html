@@ -399,7 +399,7 @@
                 <div class="form-group">
                     <label>Ruoli *</label>
                     <div class="checkbox-group" id="ruoli-checkbox-group">
-                        <div class="checkbox-item">
+                        <div class="checkbox-item" id="role-admin-item">
                             <input type="checkbox" id="role-admin" value="amministratore">
                             <label for="role-admin">👑 Amministratore</label>
                         </div>
@@ -441,7 +441,7 @@
                 <p><strong>Ruoli:</strong> <span id="link-roles"></span></p>
             </div>
             <div class="form-group">
-                <label for="invite-link-input">Link di registrazione:</label>
+                <label for="invite-link-input" id="invite-link-label">Link di registrazione:</label>
                 <input 
                     type="text" 
                     id="invite-link-input" 
@@ -456,7 +456,7 @@
                 <button class="btn btn-primary" onclick="copyInviteLink()" style="flex: 1;">📋 Copia Link</button>
                 <button class="btn btn-secondary" onclick="closeInviteLinkModal()">Chiudi</button>
             </div>
-            <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 6px; font-size: 12px; color: #856404;">
+            <div id="invite-link-warning" style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 6px; font-size: 12px; color: #856404;">
                 ⚠️ <strong>Importante:</strong> Invia questo link all'utente. Il link scade tra 7 giorni. L'utente potrà impostare la propria password al primo accesso.
             </div>
         </div>
@@ -474,7 +474,7 @@
                 <div class="form-group">
                     <label>Ruoli</label>
                     <div class="checkbox-group" id="edit-ruoli-checkbox-group">
-                        <div class="checkbox-item">
+                        <div class="checkbox-item" id="edit-role-admin-item">
                             <input type="checkbox" id="edit-role-admin" value="amministratore">
                             <label for="edit-role-admin">👑 Amministratore</label>
                         </div>
@@ -515,17 +515,37 @@
 
         import { getDb, getAuthInstance, getHttpsCallable } from '../services/firebase-service.js';
         import { onAuthStateChanged, signOut } from '../services/firebase-service.js';
-        import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp, addDoc } from '../services/firebase-service.js';
+        import { collection, getDocs, doc, getDoc, updateDoc, deleteDoc, query, where, serverTimestamp, addDoc } from '../services/firebase-service.js';
         import { signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
 
         const auth = getAuthInstance();
         const db = getDb();
         const sendTransactionalEmail = getHttpsCallable('sendTransactionalEmail');
+        const elencaUtentiTenant = getHttpsCallable('elencaUtentiTenant');
+        const gestisciMembershipUtente = getHttpsCallable('gestisciMembershipUtente');
 
         let currentUserData = null;
         let currentTenantId = null;
+        let currentUserRoles = [];
+        let isCurrentUserAdmin = false;
         let hasManodoperaModule = false;
         let user = null; // Utente autenticato corrente
+
+        /** Messaggio callable Firebase in chiaro (permission-denied incluso). */
+        function callableErrorMessage(error, fallback) {
+            const code = String(error && error.code || '');
+            let msg = String((error && error.message) || '').trim();
+            msg = msg.replace(/^FirebaseError:\s*/i, '');
+            const denied = /permission-denied/i.test(code) || /permission-denied/i.test(msg);
+            if (denied) {
+                const cleaned = msg
+                    .replace(/^.*functions\/permission-denied[:\s]*/i, '')
+                    .replace(/^.*permission-denied[:\s]*/i, '')
+                    .trim();
+                return cleaned || fallback || 'Permessi insufficienti.';
+            }
+            return msg || fallback || 'Errore';
+        }
 
         // Link nelle email di invito (registrazione). Devono puntare dove l’app è DAVVERO ospitata.
         // Finché l’ERP è solo su GitHub Pages per i test, usa quell’URL. Quando pubblicherete tutta l’app su globalfarmview.net, sostituire con 'https://globalfarmview.net' (senza slash finale).
@@ -563,56 +583,44 @@
                 // Carica dati utente
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 if (userDoc.exists()) {
-                    currentUserData = userDoc.data();
-                    
-                    // Carica tenantId corrente usando tenant-service (supporta multi-tenant)
-                    const { getCurrentTenantId } = await import('../services/tenant-service.js');
-                    
-                    // Aspetta un attimo per permettere al tenant-service di inizializzarsi
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                    
-                    currentTenantId = getCurrentTenantId();
-                    
-                    // Se getCurrentTenantId() restituisce null, usa tenantMemberships o tenantId deprecato
-                    if (!currentTenantId) {
-                        // Prova a usare il primo tenant da tenantMemberships
-                        if (currentUserData.tenantMemberships && Object.keys(currentUserData.tenantMemberships).length > 0) {
-                            currentTenantId = Object.keys(currentUserData.tenantMemberships)[0];
-                        } else if (currentUserData.tenantId) {
-                            // Fallback a tenantId deprecato
-                            currentTenantId = currentUserData.tenantId;
-                        }
-                    }
+                    currentUserData = { id: user.uid, ...userDoc.data() };
 
-                    // Verifica permessi (solo amministratore)
-                    if (!currentUserData.ruoli || !currentUserData.ruoli.includes('amministratore')) {
+                    const { resolveTenantIdForUser, getUserRolesFromData } = await import('../services/tenant-service.js');
+                    const { getEffectiveModulesFromTenant } = await import('../utils/module-access-resolver.js');
+
+                    currentTenantId = resolveTenantIdForUser(currentUserData);
+                    currentUserRoles = getUserRolesFromData(currentUserData, currentTenantId);
+                    isCurrentUserAdmin = currentUserRoles.includes('amministratore');
+                    const canAccessPage = isCurrentUserAdmin || currentUserRoles.includes('manager');
+
+                    if (!canAccessPage) {
                         showAlert('Non hai i permessi per accedere a questa pagina', 'error');
                         setTimeout(() => {
                             window.location.href = '../dashboard-standalone.html';
                         }, 2000);
                         return;
                     }
-                    
-                    // Mostra link impostazioni (solo Amministratore, già verificato sopra)
+
+                    // Link Impostazioni solo per amministratore del tenant corrente
                     const impostazioniLink = document.getElementById('impostazioni-link');
                     if (impostazioniLink) {
-                        impostazioniLink.style.display = 'inline-flex';
+                        impostazioniLink.style.display = isCurrentUserAdmin ? 'inline-flex' : 'none';
                     }
+                    updateAdminRoleCheckboxVisibility();
 
-                    // Verifica se modulo Manodopera è attivo
+                    // Verifica se modulo Manodopera è attivo (pagati + prove)
                     if (currentTenantId) {
                         try {
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                             if (tenantDoc.exists()) {
                                 const tenantData = tenantDoc.data();
-                                const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                                const modules = getEffectiveModulesFromTenant(tenantData);
                                 hasManodoperaModule = modules.includes('manodopera');
-                                
-                                // Inizializza context Tony con i moduli attivi usando helper
+
+                                // Inizializza context Tony con i moduli effettivi
                                 if (window.Tony && window.Tony.initContextWithModules) {
                                     window.Tony.initContextWithModules(modules);
                                 } else {
-                                    // Fallback se helper non disponibile (retry manuale)
                                     var initTonyContext = function(retries) {
                                         retries = retries || 0;
                                         if (window.Tony && typeof window.Tony.setContext === 'function') {
@@ -658,6 +666,25 @@
             }
         });
 
+        // Casella Amministratore: solo chi è admin sul tenant corrente
+        function updateAdminRoleCheckboxVisibility() {
+            const inviteAdminItem = document.getElementById('role-admin-item');
+            const editAdminItem = document.getElementById('edit-role-admin-item');
+            const roleAdmin = document.getElementById('role-admin');
+            const editRoleAdmin = document.getElementById('edit-role-admin');
+            const show = !!isCurrentUserAdmin;
+            if (inviteAdminItem) inviteAdminItem.style.display = show ? 'flex' : 'none';
+            if (editAdminItem) editAdminItem.style.display = show ? 'flex' : 'none';
+            if (roleAdmin) {
+                roleAdmin.disabled = !show;
+                if (!show) roleAdmin.checked = false;
+            }
+            if (editRoleAdmin) {
+                editRoleAdmin.disabled = !show;
+                if (!show) editRoleAdmin.checked = false;
+            }
+        }
+
         // Aggiorna visibilità ruoli operai/caposquadra
         function updateRuoliVisibility() {
             const caposquadraItem = document.getElementById('role-caposquadra-item');
@@ -679,68 +706,98 @@
                 if (editOperaioItem) editOperaioItem.style.display = 'none';
                 if (ruoliInfo) ruoliInfo.style.display = 'block';
             }
+            updateAdminRoleCheckboxVisibility();
         }
 
-        // Carica lista utenti e inviti
+        // Carica lista utenti e inviti (callable; fallback query client se CF non disponibile)
+        async function loadUsersFromClientQuery(tenantId) {
+            const users = [];
+            const emailMap = new Map();
+            const usersQuery = query(
+                collection(db, 'users'),
+                where('tenantId', '==', tenantId)
+            );
+            const snapshot = await getDocs(usersQuery);
+            snapshot.forEach((docSnap) => {
+                const raw = docSnap.data() || {};
+                let ruoli = Array.isArray(raw.ruoli) ? raw.ruoli.slice() : [];
+                let stato = raw.stato || 'attivo';
+                const mem = raw.tenantMemberships && raw.tenantMemberships[tenantId];
+                if (mem && typeof mem === 'object') {
+                    if (Array.isArray(mem.ruoli)) ruoli = mem.ruoli.slice();
+                    if (mem.stato) stato = mem.stato;
+                }
+                if (stato === 'rimosso') return;
+                const userData = {
+                    id: docSnap.id,
+                    email: raw.email || '',
+                    nome: raw.nome || '',
+                    cognome: raw.cognome || '',
+                    ruoli,
+                    stato,
+                    ultimoAccesso: raw.ultimoAccesso,
+                    isOnline: raw.isOnline === true,
+                    lastSeen: raw.lastSeen,
+                    viaMembership: !!(mem && typeof mem === 'object')
+                };
+                if (!userData.email) {
+                    userData.stato = 'disconnesso';
+                    users.push(userData);
+                    return;
+                }
+                const emailLower = String(userData.email).toLowerCase().trim();
+                if (emailMap.has(emailLower)) {
+                    const existingUser = emailMap.get(emailLower);
+                    const existingDataComplete = !!(existingUser.nome && existingUser.cognome && existingUser.ruoli?.length);
+                    const newDataComplete = !!(userData.nome && userData.cognome && userData.ruoli?.length);
+                    if (newDataComplete && !existingDataComplete) {
+                        const index = users.findIndex((u) => u.id === existingUser.id);
+                        if (index !== -1) {
+                            users[index] = userData;
+                            emailMap.set(emailLower, userData);
+                        }
+                    }
+                } else {
+                    emailMap.set(emailLower, userData);
+                    users.push(userData);
+                }
+            });
+            return users;
+        }
+
         async function loadUsers() {
             const container = document.getElementById('users-container');
             container.innerHTML = '<div class="loading">Caricamento utenti...</div>';
 
             try {
-                let usersQuery;
-                
-                if (currentTenantId) {
-                    // Filtra per tenant (senza ordinamento per evitare indice)
-                    usersQuery = query(
-                        collection(db, 'users'),
-                        where('tenantId', '==', currentTenantId)
-                    );
-                } else {
-                    // Se non ha tenant, mostra tutti (per ora, senza ordinamento)
-                    usersQuery = collection(db, 'users');
-                }
-
-                const snapshot = await getDocs(usersQuery);
                 const users = [];
-                const emailMap = new Map(); // Mappa per tracciare email già viste
-                
-                snapshot.forEach(doc => {
-                    const userData = { id: doc.id, ...doc.data() };
-                    // Marca come "disconnesso" se non ha email o se l'email non corrisponde a un utente valido
-                    // Nota: Non possiamo verificare direttamente se l'utente esiste in Authentication dal client
-                    // Quindi aggiungiamo un flag per indicare utenti potenzialmente orfani
-                    if (!userData.email) {
-                        userData.stato = 'disconnesso';
-                        users.push(userData);
-                        return;
-                    }
-                    
-                    // Controlla se esiste già un utente con questa email
-                    const emailLower = userData.email.toLowerCase().trim();
-                    if (emailMap.has(emailLower)) {
-                        // Duplicato trovato - mantieni solo quello con UID che corrisponde all'email (più recente o con più dati)
-                        const existingUser = emailMap.get(emailLower);
-                        console.warn('⚠️ Duplicato trovato per email:', emailLower, 'UID esistenti:', existingUser.id, 'e', userData.id);
-                        
-                        // Preferisci quello con più dati completi o quello più recente
-                        const existingDataComplete = (existingUser.nome && existingUser.cognome && existingUser.ruoli?.length > 0);
-                        const newDataComplete = (userData.nome && userData.cognome && userData.ruoli?.length > 0);
-                        
-                        if (newDataComplete && !existingDataComplete) {
-                            // Il nuovo ha più dati, sostituisci quello esistente
-                            const index = users.findIndex(u => u.id === existingUser.id);
-                            if (index !== -1) {
-                                users[index] = userData;
-                                emailMap.set(emailLower, userData);
-                            }
+                let listaParziale = false;
+                if (currentTenantId) {
+                    try {
+                        const listed = await elencaUtentiTenant({ tenantId: currentTenantId });
+                        const rows = (listed && listed.data && listed.data.utenti) || [];
+                        for (const row of rows) {
+                            if (row.stato === 'rimosso') continue;
+                            users.push({
+                                id: row.id,
+                                email: row.email,
+                                nome: row.nome,
+                                cognome: row.cognome,
+                                ruoli: row.ruoli || [],
+                                stato: row.stato || 'attivo',
+                                ultimoAccesso: row.ultimoAccesso,
+                                isOnline: row.isOnline,
+                                lastSeen: row.lastSeen,
+                                viaMembership: row.viaMembership === true
+                            });
                         }
-                        // Altrimenti ignora il duplicato (mantieni quello esistente)
-                    } else {
-                        // Prima occorrenza di questa email, aggiungila
-                        emailMap.set(emailLower, userData);
-                        users.push(userData);
+                    } catch (listErr) {
+                        console.warn('elencaUtentiTenant non disponibile, fallback query client:', listErr);
+                        listaParziale = true;
+                        const fallback = await loadUsersFromClientQuery(currentTenantId);
+                        users.push(...fallback);
                     }
-                });
+                }
 
                 // Inviti pendenti: solo del tenant corrente (le rules non permettono list globale).
                 const invites = [];
@@ -768,17 +825,14 @@
                     });
                 }
 
-                // Combina utenti e inviti
                 const allUsers = [...users, ...invites];
-
-                // Ordina in memoria (non richiede indice Firestore)
                 allUsers.sort((a, b) => {
                     const cognomeA = (a.cognome || '').toLowerCase();
                     const cognomeB = (b.cognome || '').toLowerCase();
                     return cognomeA.localeCompare(cognomeB);
                 });
 
-                renderUsers(allUsers);
+                renderUsers(allUsers, listaParziale);
             } catch (error) {
                 console.error('Errore caricamento utenti:', error);
                 container.innerHTML = '<div class="empty-state"><div class="empty-state-icon">⚠️</div><p>Errore caricamento utenti</p></div>';
@@ -786,12 +840,17 @@
         }
 
         // Renderizza lista utenti
-        function renderUsers(users) {
+        function renderUsers(users, listaParziale) {
             const container = document.getElementById('users-container');
             document.getElementById('users-count').textContent = `${users.length} utenti`;
 
+            const partialBanner = listaParziale
+                ? `<div class="alert alert-warning" style="margin-bottom:12px;padding:10px 14px;font-size:13px;background:#fff8e1;border:1px solid #ffe082;border-radius:6px;color:#6d4c00;">Elenco parziale: gli utenti entrati da un invito su più aziende potrebbero non comparire.</div>`
+                : '';
+
             if (users.length === 0) {
                 container.innerHTML = `
+                    ${partialBanner}
                     <div class="empty-state">
                         <div class="empty-state-icon">👥</div>
                         <h3>Nessun utente trovato</h3>
@@ -802,6 +861,7 @@
             }
 
             const html = `
+                ${partialBanner}
                 <table class="users-table">
                     <thead>
                         <tr>
@@ -876,11 +936,14 @@
                                                'badge-danger';
                             
                             const isInvite = user.id.startsWith('invite-');
+                            const targetIsAdmin = ruoli.includes('amministratore');
+                            // Manager: niente Disattiva / Riattiva / Rimuovi / Modifica ruoli sulle righe admin
+                            const canManageTarget = isCurrentUserAdmin || !targetIsAdmin;
                             const scadeIl = user.scadeIl ? (user.scadeIl.toDate ? user.scadeIl.toDate() : new Date(user.scadeIl)) : null;
                             const scadeIlText = scadeIl ? (formatDateLikeToItalianLongLocal(user.scadeIl) || '') : '';
                             
                             return `
-                                <tr>
+                                <tr data-user-id="${user.id}" data-is-admin="${targetIsAdmin ? '1' : '0'}">
                                     <td><strong>${nomeCompleto}</strong> ${isInvite ? '<span style="font-size: 10px; color: #999;">(Invito pendente)</span>' : ''}</td>
                                     <td>${user.email || 'N/A'}</td>
                                     <td>
@@ -894,7 +957,7 @@
                                     <td>${isInvite ? '-' : displayAccesso}</td>
                                     <td>
                                         <div class="action-buttons">
-                                            ${!isInvite ? `
+                                            ${!isInvite && canManageTarget ? `
                                                 <button class="btn btn-info btn-sm" onclick="openRuoliModal('${user.id}', ${JSON.stringify(ruoli).replace(/"/g, '&quot;')})">
                                                     ✏️ Ruoli
                                                 </button>
@@ -904,15 +967,16 @@
                                                         ${stato === 'attivo' ? '🚫 Disattiva' : '✅ Attiva'}
                                                     </button>
                                                 ` : ''}
-                                            ` : `
+                                            ` : ''}
+                                            ${isInvite ? `
                                                 <button class="btn btn-warning btn-sm" onclick="annullaInvito('${user.invitoId}')" style="margin-bottom: 5px;">
                                                     ❌ Annulla Invito
                                                 </button>
                                                 <button class="btn btn-danger btn-sm" onclick="rimuoviInvito('${user.invitoId}', '${user.email || 'N/A'}')">
                                                     🗑️ Rimuovi Invito
                                                 </button>
-                                            `}
-                                            ${!isInvite && user.id !== currentUserData.id ? `
+                                            ` : ''}
+                                            ${!isInvite && canManageTarget && user.id !== currentUserData.id ? `
                                                 <button class="btn btn-danger btn-sm" onclick="rimuoviUtente('${user.id}', '${user.email || 'N/A'}')" style="margin-top: 5px;">
                                                     🗑️ Rimuovi
                                                 </button>
@@ -942,17 +1006,29 @@
             document.getElementById('invita-form').reset();
         }
 
-        // Modal Link Invito
-        function showInviteLinkModal(link, email, nome, cognome, ruoli) {
+        // Modal Link Invito (testi diversi se utente già registrato)
+        function showInviteLinkModal(link, email, nome, cognome, ruoli, isExistingUser) {
             const modal = document.getElementById('link-invito-modal');
             document.getElementById('link-email').textContent = email;
             document.getElementById('link-name').textContent = `${nome} ${cognome}`;
             document.getElementById('link-roles').textContent = ruoli.map(r => roleNames[r] || r).join(', ');
             const linkInput = document.getElementById('invite-link-input');
             linkInput.value = link;
+            const label = document.getElementById('invite-link-label');
+            const warning = document.getElementById('invite-link-warning');
+            if (isExistingUser) {
+                if (label) label.textContent = 'Link per aggiungere l\'azienda:';
+                if (warning) {
+                    warning.innerHTML = '⚠️ <strong>Importante:</strong> Ha già un account: aprendo il link entra con la sua password attuale e l\'azienda viene aggiunta. Non deve crearne un altro. Il link scade tra 7 giorni.';
+                }
+            } else {
+                if (label) label.textContent = 'Link di registrazione:';
+                if (warning) {
+                    warning.innerHTML = '⚠️ <strong>Importante:</strong> Invia questo link all\'utente. Il link scade tra 7 giorni. L\'utente potrà impostare la propria password al primo accesso.';
+                }
+            }
             modal.classList.add('active');
             
-            // Seleziona automaticamente il link quando il modal si apre
             setTimeout(() => {
                 linkInput.focus();
                 linkInput.select();
@@ -1038,10 +1114,10 @@
                 
                 showAlert('Creazione invito in corso...', 'success');
                 
-                // Niente query users per email (rules: fuga PII / cross-tenant). isExistingUser
-                // è storico; getInvitoPubblico lo ricalcola da Auth. Appartenenza già attiva: accettaInvito.
+                // Niente query users per email (rules). isExistingUser: Auth Admin via
+                // sendTransactionalEmail (ritorno); getInvitoPubblico lo ricalcola comunque.
                 const emailNormalized = email.toLowerCase().trim();
-                const isExistingUser = false;
+                let isExistingUser = false;
 
                 // Genera token unico
                 const generateToken = () => {
@@ -1308,11 +1384,12 @@
                     type: invitiCollection?.type
                 });
                 
+                let invitoRef = null;
                 try {
                     console.error('📤 TENTATIVO CREAZIONE INVITO...');
                     console.error('📤 PAYLOAD FINALE:', JSON.parse(JSON.stringify(invitoData)));
                     console.error('📤 COLLECTION PATH:', invitiCollection.path);
-                    const invitoRef = await addDoc(invitiCollection, invitoData);
+                    invitoRef = await addDoc(invitiCollection, invitoData);
                     console.error('✅ INVITO_OK', invitoRef.id);
                 } catch (addDocError) {
                     console.error('❌ INVITO_ERROR', {
@@ -1414,11 +1491,11 @@
                 }
                 
                 // Invio email tramite Resend (Cloud Function sendTransactionalEmail)
-                let emailInviata = false;
                 try {
-                    await sendTransactionalEmail({
+                    const emailRes = await sendTransactionalEmail({
                         type: 'invite',
                         tenantId: currentTenantId,
+                        invitoId: invitoRef && invitoRef.id ? invitoRef.id : undefined,
                         to: email.trim(),
                         nome: nome,
                         cognome: cognome,
@@ -1434,8 +1511,8 @@
                         email_azienda: datiAzienda.email || '',
                         piva_azienda: datiAzienda.piva || ''
                     });
-
-                    emailInviata = true;
+                    // Flag calcolato e salvato solo lato server (invitoId); niente updateDoc client su inviti.
+                    isExistingUser = !!(emailRes && emailRes.data && emailRes.data.isExistingUser);
                     showAlert('✅ Invito creato e email inviata con successo!', 'success');
                 } catch (emailError) {
                     console.error('Errore invio email:', emailError);
@@ -1443,7 +1520,7 @@
                 }
                 
                 // Mostra sempre il modal con il link (come backup o per copia manuale)
-                showInviteLinkModal(registrationUrl, email, nome, cognome, ruoli);
+                showInviteLinkModal(registrationUrl, email, nome, cognome, ruoli, isExistingUser);
                 
                 closeInvitaModal();
                 await loadUsers();
@@ -1475,13 +1552,14 @@
                 
                 console.groupEnd();
                 
-                let errorMessage = 'Errore durante la creazione: ' + error.message;
+                let errorMessage = 'Errore durante la creazione: ' + callableErrorMessage(error, error.message);
+                const errCode = String(error.code || '');
                 
-                if (error.code === 'permission-denied' || error.code === 'PERMISSION_DENIED') {
-                    errorMessage = '❌ Permessi insufficienti. Verifica di essere manager o amministratore del tenant corrente.';
-                    console.error('🔒 ERRORE PERMESSI - Verifica security rules:', {
+                if (/permission-denied/i.test(errCode) || /permission-denied/i.test(String(error.message || ''))) {
+                    errorMessage = '❌ ' + callableErrorMessage(error, 'Permessi insufficienti. Verifica di essere manager o amministratore del tenant corrente.');
+                    console.error('🔒 ERRORE PERMESSI:', {
                         tenantId: currentTenantId,
-                        userRoles: currentUserData?.ruoli,
+                        userRoles: currentUserRoles,
                         tenantMemberships: currentUserData?.tenantMemberships,
                         isAuthenticated: !!user
                     });
@@ -1542,72 +1620,49 @@
             }
 
             try {
-                // Carica dati utente esistenti (se il documento esiste)
-                let existingData = {};
-                try {
-                    const userDoc = await getDoc(doc(db, 'users', userId));
-                    if (userDoc.exists()) {
-                        existingData = userDoc.data();
-                    }
-                } catch (error) {
-                    console.warn('Documento utente non trovato, verrà creato:', error);
+                if (!currentTenantId) {
+                    showAlert('Tenant non disponibile', 'error');
+                    return;
                 }
-                
-                // Prepara dati da salvare
-                const userDataToSave = {
-                    ...existingData,
-                    ruoli: ruoli,
-                    tenantId: existingData.tenantId || currentTenantId,
-                    stato: existingData.stato || 'attivo',
-                    aggiornatoIl: serverTimestamp()
-                };
-                
-                // Se il documento non esiste, aggiungi anche createdAt
-                if (!existingData.createdAt) {
-                    userDataToSave.createdAt = serverTimestamp();
-                }
-                
-                // Usa setDoc con merge: true per creare o aggiornare il documento
-                await setDoc(doc(db, 'users', userId), userDataToSave, { merge: true });
+                await gestisciMembershipUtente({
+                    tenantId: currentTenantId,
+                    uid: userId,
+                    azione: 'ruoli',
+                    ruoli
+                });
                 
                 showAlert('Ruoli aggiornati con successo', 'success');
                 closeRuoliModal();
                 await loadUsers();
             } catch (error) {
                 console.error('Errore aggiornamento ruoli:', error);
-                const denied = error.code === 'permission-denied' || /permission/i.test(String(error.message || ''));
-                showAlert(
-                    denied
-                        ? 'Non puoi modificare i ruoli da questa pagina (blocco di sicurezza). La gestione ruoli sarà ripristinata a breve lato server.'
-                        : ('Errore durante l\'aggiornamento: ' + error.message),
-                    'error'
-                );
+                showAlert(callableErrorMessage(error, 'Errore durante l\'aggiornamento'), 'error');
             }
         }
 
-        // Toggle stato utente
+        // Toggle stato utente (membership del tenant corrente)
         async function toggleUserStatus(userId, currentStatus) {
-            if (!confirm(`Sei sicuro di voler ${currentStatus === 'attivo' ? 'disattivare' : 'attivare'} questo utente?`)) {
+            const azione = currentStatus === 'attivo' ? 'disattiva' : 'riattiva';
+            if (!confirm(`Sei sicuro di voler ${azione === 'disattiva' ? 'disattivare' : 'riattivare'} questo utente per questa azienda?`)) {
                 return;
             }
 
             try {
-                const newStatus = currentStatus === 'attivo' ? 'disattivato' : 'attivo';
-                await updateDoc(doc(db, 'users', userId), {
-                    stato: newStatus
+                if (!currentTenantId) {
+                    showAlert('Tenant non disponibile', 'error');
+                    return;
+                }
+                await gestisciMembershipUtente({
+                    tenantId: currentTenantId,
+                    uid: userId,
+                    azione
                 });
                 
-                showAlert(`Utente ${newStatus === 'attivo' ? 'attivato' : 'disattivato'} con successo`, 'success');
+                showAlert(`Utente ${azione === 'riattiva' ? 'riattivato' : 'disattivato'} con successo`, 'success');
                 await loadUsers();
             } catch (error) {
                 console.error('Errore cambio stato:', error);
-                const denied = error.code === 'permission-denied' || /permission/i.test(String(error.message || ''));
-                showAlert(
-                    denied
-                        ? 'Non puoi cambiare lo stato utente da questa pagina (blocco di sicurezza). Sarà ripristinato a breve lato server.'
-                        : ('Errore durante l\'operazione: ' + error.message),
-                    'error'
-                );
+                showAlert(callableErrorMessage(error, 'Errore durante l\'operazione'), 'error');
             }
         }
 
@@ -1652,13 +1707,12 @@
             }
         }
 
-        // Rimuovi utente (cancella documento Firestore)
+        // Rimuovi utente da questa azienda (solo membership; non cancella account)
         async function rimuoviUtente(userId, userEmail) {
-            const message = `Sei sicuro di voler rimuovere l'utente "${userEmail}"?\n\n` +
-                          `⚠️ ATTENZIONE: Questa operazione:\n` +
-                          `- Cancella il documento utente da Firestore\n` +
-                          `- NON cancella l'utente da Firebase Authentication\n` +
-                          `- Se l'utente esiste ancora in Authentication, dovrà essere cancellato manualmente dalla console Firebase\n\n` +
+            const message = `Sei sicuro di voler rimuovere "${userEmail}" da questa azienda?\n\n` +
+                          `L'utente perde l'accesso a questa azienda.\n` +
+                          `L'account e le altre aziende restano intatti.\n` +
+                          `Non viene cancellato nulla da Firebase Authentication.\n\n` +
                           `Vuoi continuare?`;
             
             if (!confirm(message)) {
@@ -1666,18 +1720,20 @@
             }
 
             try {
-                await deleteDoc(doc(db, 'users', userId));
-                showAlert('Utente rimosso con successo da Firestore', 'success');
+                if (!currentTenantId) {
+                    showAlert('Tenant non disponibile', 'error');
+                    return;
+                }
+                await gestisciMembershipUtente({
+                    tenantId: currentTenantId,
+                    uid: userId,
+                    azione: 'rimuovi'
+                });
+                showAlert('Utente rimosso da questa azienda', 'success');
                 await loadUsers();
             } catch (error) {
                 console.error('Errore rimozione utente:', error);
-                const denied = error.code === 'permission-denied' || /permission/i.test(String(error.message || ''));
-                showAlert(
-                    denied
-                        ? 'Non puoi rimuovere documenti utente dal client (blocco di sicurezza). Sarà gestito a breve lato server.'
-                        : ('Errore durante la rimozione: ' + error.message),
-                    'error'
-                );
+                showAlert(callableErrorMessage(error, 'Errore durante la rimozione'), 'error');
             }
         }
 

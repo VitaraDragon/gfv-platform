@@ -276,6 +276,7 @@ describe('firebase.json hosting', () => {
       auth: { port: 9099 },
       firestore: { port: 8080 },
       functions: { port: 5001 },
+      storage: { port: 9199 },
       ui: { enabled: true },
     });
   });

@@ -449,27 +449,8 @@ function pulisciPreferenzaClassicCampo() {
 
 async function resolveCurrentTenantId(userData) {
     if (!userData) return null;
-    const { getCurrentTenantId, setCurrentTenantId } = await import('../../services/tenant-service.js');
-    let tenantId = getCurrentTenantId();
-    if (tenantId) return tenantId;
-
-    if (userData.tenantId) {
-        setCurrentTenantId(userData.tenantId);
-        return userData.tenantId;
-    }
-
-    const memberships = userData.tenantMemberships && typeof userData.tenantMemberships === 'object'
-        ? Object.entries(userData.tenantMemberships)
-        : [];
-    if (memberships.length === 0) return null;
-
-    const active = memberships.find(([, item]) => item && item.stato === 'attivo');
-    const fallback = active || memberships[0];
-    if (fallback && fallback[0]) {
-        setCurrentTenantId(fallback[0]);
-        return fallback[0];
-    }
-    return null;
+    const { resolveTenantIdForUser } = await import('../../services/tenant-service.js');
+    return resolveTenantIdForUser(userData);
 }
 
 function setupSlidesForRole(isCaposquadra) {

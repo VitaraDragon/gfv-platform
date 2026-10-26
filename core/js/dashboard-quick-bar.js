@@ -156,6 +156,7 @@ export const QUICK_BAR_CATALOG = {
         href: 'admin/gestisci-utenti-standalone.html',
         modules: [],
         requireManodopera: true,
+        visibleForRoles: ['manager', 'amministratore'],
         section: 'manodopera'
     },
     gestioneOperai: {

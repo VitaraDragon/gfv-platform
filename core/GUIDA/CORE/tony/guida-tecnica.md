@@ -18,12 +18,12 @@ Accesso effettivo = moduli pagati **+** trial attivi (`module-access-resolver.js
 
 Layout **panoramica** (manager/admin, non solo operaio/caposquadra):
 
-- `createDashboardModuleSidebar` — pulsante **Moduli** + pannello; variant `core` (Terreni, Diario, Statistiche, Abbonamento + tile moduli attivi) vs `manodopera` (+ Amministrazione, Statistiche manodopera, Manodopera, …).
-- `createDashboardPanoramaHubSection` — **Richiede attenzione** (`refreshAttention` in `dashboard-hub.js`: sotto scorta, **prezziInAttesa**, guasti (aperti = `isGuastoAttivo` da `core/services/guasto-stati.js`: risolti, annullati, riparati e chiusi esclusi), scadenze mezzi, affitti, da pianificare CT+manodopera, ore da validare), **Per te oggi**, **Accessi rapidi** (pin ★ + recenti per `userId` in localStorage).
-- `createDashboardQuickBarSection` — **I miei accessi** (5 slot, modale **Configura**, catalogo in `dashboard-quick-bar.js`).
+- `createDashboardModuleSidebar` — catalogo moduli (DOM `.dashboard-module-menu`); in Home pelle **Proposta** nascosto dal CSS. Ingresso utente: pulsante pelle in alto a sinistra (`ui-pelle.js`, aria-label **«Apri o chiudi i moduli»**, icona graffetta). Variant `core` vs `manodopera` (+ Amministrazione, …).
+- `createDashboardPanoramaHubSection` — **Richiede attenzione** (`refreshAttention` in `dashboard-hub.js`: sotto scorta, **prezziInAttesa**, guasti, scadenze mezzi, affitti, da pianificare CT+manodopera, ore da validare), **Per te oggi**, **Accessi rapidi** (pin ★ + recenti per `userId` in localStorage).
+- `createDashboardQuickBarSection` — sezione dashboard **I miei accessi** (5 slot, modale **Configura**); non è voce di menu; in Home Proposta nascosta (`.dashboard-quick-bar-wrap`).
 - `createDashboardDeadlinesRow` — **Scadenze amministrazione** + **In arrivo**.
 - `createDashboardMeteoSection` — widget riga `.dashboard-meteo-row`; visibile se `planId !== 'free'`; titolo **Meteo sede** vs **Meteo** se modulo `meteo`; sede da Impostazioni (`dashboard-meteo.js`).
-- Pin tile: `wrapTilesWithPinShells` + stella su `.dashboard-module-tile` (anche voci nel menu Moduli).
+- Pin tile: `wrapTilesWithPinShells` + stella su `.dashboard-module-tile` (anche voci nel pannello moduli).
 
 **Rami layout (`renderDashboard`):**
 
@@ -154,7 +154,7 @@ Decisione prodotto 23/10/2026: un terreno si può salvare senza coltura. Il Diar
 - Hub attenzione e scadenze condividono snapshot `dashboard-counts-snapshot.js` (incl. `prezziInAttesa`).
 - **Completato senza zone (#239):** `core/js/lavoro-progresso-display.js` (`lavoroCompletatoSenzaZone`, `ETICHETTA_COMPLETATO_SENZA_ZONE` «✅ Completato (nessuna zona tracciata)») sostituisce il 100% forzato nei lavori recenti della dashboard (`dashboard-data.js`, import `?v=2026-10-20a` in dashboard, counts snapshot, scadenze, meteo, quick bar) e nei dettagli dei lavori completati del Diario (`caricaDettagliLavoriCompletati` in `attivita-controller.js`: «✅ Completamento: ✅ Completato (nessuna zona tracciata)», senza barra). Nel Diario la superficie del giorno resta somma semplice delle zone (non unione); chiavi data delle zone in data locale (`dateLikeToLocalCalendarIso`, anche `attivita-maps.js`). Dettaglio permessi e unione zone: `GUIDA/MANODOPERA/tony/guida-tecnica.md` § Zone lavorate.
 - **Librerie vendorizzate:** `vendor/polygon-clipping-0.15.7.umd.min.js` (caricata da Gestione lavori, I miei lavori, Piano stagione VM; `loadPolygonClipping` in `core/services/zone-lavorate-area.js`): le pagine pubblicate non caricano più da `node_modules` (test `tests/published-no-node-modules.test.js`). Nessuna precache nel service worker.
-- Nuove tile o voci menu Moduli: documentare sotto `GUIDA/<MODULO>/utente` e `tony`; aggiornare `MODULE_CATALOG` in `dashboard-hub.js` se serve pin/accessi rapidi.
+- Nuove tile o voci pannello moduli: documentare sotto `GUIDA/<MODULO>/utente` e `tony`; aggiornare `MODULE_CATALOG` in `dashboard-hub.js` se serve pin/accessi rapidi.
 - Ogni nuova card dashboard modulare: documentare sotto `GUIDA/<MODULO>/utente` e `tony`, non sotto Core (salvo panoramica trasversale qui).
 
 ## Notifiche push (FCM)

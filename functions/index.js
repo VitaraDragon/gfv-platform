@@ -10,7 +10,21 @@ require("./instrument");
 const { onCall, onRequest, HttpsError } = require("firebase-functions/v2/https");
 const { onDocumentWritten } = require("firebase-functions/v2/firestore");
 const { logTonyPerf, finishTonyAskEarly } = require("./tony-perf");
-const { callGeminiWithRetry, streamGeminiGenerateContent, geminiStreamUrl } = require("./tony-gemini-api");
+const {
+  callGeminiWithRetry,
+  streamGeminiGenerateContent,
+  geminiStreamUrl,
+  buildTonyGenerationConfig,
+  extractGeminiFinishMeta,
+  recordTonyGeminiFinish,
+  looksLikeTruncatedStructuredJson,
+  appendMaxTokensNotice,
+} = require("./tony-gemini-api");
+const {
+  extractTonyTextLoose,
+  postProcessTonyUnstructuredResponse,
+  looksLikeTonyJsonEnvelope,
+} = require("./tony-json-text");
 const { tryTonyActivityPatterns } = require("./tony-activity-patterns");
 const { tryTonyTerrenoEntityParse } = require("./tony-terreno-entity-parser");
 const {
@@ -1373,6 +1387,7 @@ PULIZIA RISPOSTA:
 
 FORMATO RISPOSTA OBBLIGATORIO:
 - Rispondi SEMPRE con un oggetto JSON valido contenente almeno "text". VIETATO rispondere con solo testo senza JSON.
+- Dentro "text" non usare virgolette doppie: usa «» o l'apostrofo (es. categoria «Vite»). Se proprio servono, scrivile \".
 - Risposta informativa (es. "quali terreni ho?", "elenca i terreni"): {"text": "Hai il Sangiovese, il Kaki, il Seminativo Nord... (9 in totale).", "command": null}. DEVI enumerare i nomi, non solo il conteggio.
 - Risposta con azione: {"text": "frase breve", "command": {"type": "...", "params": {...}}}.
 - Quando l'utente chiede di vedere, filtrare o isolare dati in tabella (es. "mostrami gli affitti", "filtra per vigneto", "solo i scaduti", "terreni in affitto"), DEVI includere "command" con type "FILTER_TABLE". Non rispondere mai solo a parole: il JSON con command è OBBLIGATORIO.
@@ -1422,7 +1437,7 @@ AGGIUNTA TERENO (terreno-modal / terreno-form) – quando page.currentTableData?
 - RACCOLTA SEMINATIVO: la riga nasce da un lavoro o da un'attività di categoria Raccolta a pieno campo (non vendemmia, non sulla fila). OPEN_MODAL id "modal-raccolta" e INJECT_FORM_DATA formId "form-raccolta" solo per completare una riga già in lista. Chiavi: raccolta-quantita (quintali), raccolta-superficie (ha), raccolta-destinazione (vendita, stoccaggio, uso_aziendale). Non sovrascrivere costo manodopera e costo macchina se già precompilati. La varietà arriva dalla campagna.
 - STATISTICHE SEMINATIVO: pagina in sola lettura. I numeri arrivano da campagna, mietiture e costi già salvati. La resa prevista dell'anagrafica non è la resa effettiva (quintali raccolti / ettari di campagna). Non inventare grafici di gradazione o acidità. FILTER_TABLE con terreno e campagna.
 - PIANO COLTURALE SEMINATIVO: propone la coltura della campagna successiva in base a quella in campo (genere diverso, ruolo complementare). Non certifica la PAC. FILTER_TABLE con terreno e ricerca. La conferma la fa l'agricoltore sui pulsanti della riga e salva la campagna successiva come pianificato.
-- Per podere e coltura: usa i nomi ESATTI. Se [CONTESTO].page.terreni è presente, contiene poderi e colture (array di nomi usati nell'azienda). Altrimenti estraili da page.currentTableData.items. Es. "a Casetti" → terreno-podere "Casetti"; "vigneto" → terreno-coltura "Vite da Vino" (o terreno-coltura-categoria "Vigneto").
+- Per podere e coltura: usa i nomi ESATTI. Se [CONTESTO].page.terreni è presente, contiene poderi e colture (array di nomi usati nell'azienda). Altrimenti estraili da page.currentTableData.items. Es. "a Casetti" → terreno-podere "Casetti"; "vigneto" → terreno-coltura "Vite da Vino" (o terreno-coltura-categoria "Vite" — la categoria coltura in tendina si chiama «Vite», non «Vigneto»).
 - CAMPI OBBLIGATORI: terreno-nome. terreno-tipo-possesso (default "proprieta"). Se tipo-possesso="affitto" servono anche terreno-data-scadenza-affitto e opzionalmente terreno-canone-affitto.
 
 DISAMBIGUAZIONE TIPO LAVORO (importante):
@@ -1548,18 +1563,18 @@ FILTRO TABELLA CLIENTI (FILTER_TABLE) – quando page.currentTableData?.pageType
 - SEI GIÀ sulla pagina Clienti (Conto terzi): l'utente vede la lista clienti. "Mostrami solo gli attivi", "filtra per sospesi", "cerca clienti Rossi", "pulisci filtri" = FILTER_TABLE, NON navigazione.
 - OBBLIGATORIO: se l'utente chiede di filtrare o vedere solo clienti per stato o per testo (ragione sociale, P.IVA, email), rispondi SEMPRE con JSON che contiene "command" con type "FILTER_TABLE".
 - FORMATO params: "stato" (attivo | sospeso | archiviato), "ricerca" (testo per ragione sociale / P.IVA / email / telefono; il client filtra in tempo reale). RESET: params: { "filterType": "reset" } oppure { "reset": true }.
-- Esempi: "solo gli attivi" / "mostrami i clienti attivi" → {"text": "Ecco i clienti attivi.", "command": {"type": "FILTER_TABLE", "params": {"stato": "attivo"}}}. "sospesi" → {"text": "Ecco i clienti sospesi.", "command": {"type": "FILTER_TABLE", "params": {"stato": "sospeso"}}}. "archiviati" → {"text": "Ecco i clienti archiviati.", "command": {"type": "FILTER_TABLE", "params": {"stato": "archiviato"}}}. "cerca clienti Rossi" / "trova Rossi" / "clienti con ragione sociale Rossi" → {"text": "Ecco i clienti che contengono \"Rossi\".", "command": {"type": "FILTER_TABLE", "params": {"ricerca": "Rossi"}}}. "pulisci filtri" → {"text": "Filtri azzerati.", "command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
+- Esempi: "solo gli attivi" / "mostrami i clienti attivi" → {"text": "Ecco i clienti attivi.", "command": {"type": "FILTER_TABLE", "params": {"stato": "attivo"}}}. "sospesi" → {"text": "Ecco i clienti sospesi.", "command": {"type": "FILTER_TABLE", "params": {"stato": "sospeso"}}}. "archiviati" → {"text": "Ecco i clienti archiviati.", "command": {"type": "FILTER_TABLE", "params": {"stato": "archiviato"}}}. "cerca clienti Rossi" / "trova Rossi" / "clienti con ragione sociale Rossi" → {"text": "Ecco i clienti che contengono «Rossi».", "command": {"type": "FILTER_TABLE", "params": {"ricerca": "Rossi"}}}. "pulisci filtri" → {"text": "Filtri azzerati.", "command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
 
 FILTRO TABELLA PREVENTIVI (FILTER_TABLE) – quando page.currentTableData?.pageType === 'preventivi' o session.current_page.path include "preventivi":
 - SEI GIÀ sulla pagina Preventivi (Conto terzi): l'utente vede la lista preventivi. "Mostrami solo le bozze", "filtra per inviati", "solo i preventivi di Luca", "pulisci filtri" = FILTER_TABLE, NON navigazione.
 - OBBLIGATORIO: se l'utente chiede di filtrare o vedere solo preventivi per stato o per cliente, rispondi SEMPRE con JSON che contiene "command" con type "FILTER_TABLE".
-- FORMATO params: "stato" (bozza|inviato|accettato_email|...), "cliente" (ragione sociale esatta), "categoriaLavoro" (nome categoria lavorazione: Raccolta, Vendemmia, Lavorazione del terreno, Potatura, Trattamenti, ecc. – da azienda.categorie applicabileA lavori; filtra i preventivi il cui tipo lavoro appartiene a quella categoria), "tipoLavoro" (nome tipo lavoro esatto, es. "Erpicatura Tra le File", "Potatura"), "categoriaColtura" (nome categoria coltura: Vigneto, Frutteto, Seminativo, ecc. – da azienda.categorie applicabileA colture), "ricerca" (testo opzionale). RESET: params: { "filterType": "reset" } oppure { "reset": true }.
+- FORMATO params: "stato" (bozza|inviato|accettato_email|...), "cliente" (ragione sociale esatta), "categoriaLavoro" (nome categoria lavorazione: Raccolta, Vendemmia, Lavorazione del terreno, Potatura, Trattamenti, ecc. – da azienda.categorie applicabileA lavori; filtra i preventivi il cui tipo lavoro appartiene a quella categoria), "tipoLavoro" (nome tipo lavoro esatto, es. "Erpicatura Tra le File", "Potatura"), "categoriaColtura" (nome categoria coltura esatto in tendina: Vite, Frutteto, Seminativo, ecc. – da azienda.categorie applicabileA colture; NON «Vigneto»), "ricerca" (testo opzionale). RESET: params: { "filterType": "reset" } oppure { "reset": true }.
 - STATO: "bozze" → stato: "bozza". "inviati" → stato: "inviato". "accettati" → stato: "accettato_email". "rifiutati" → stato: "rifiutato". "scaduti" → stato: "scaduto". "pianificati" → stato: "pianificato". "annullati" → stato: "annullato".
 - CLIENTE: "preventivi di Luca" → params.cliente con ragione sociale esatta (azienda.clienti o items).
 - TIPO LAVORO: "preventivi di erpicatura", "solo le potature" → params.tipoLavoro con nome esatto (da items o azienda.tipiLavoro).
 - CATEGORIA LAVORO: "preventivi vendemmie", "solo potature", "lavorazioni del terreno", "raccolte", "trattamenti" → params.categoriaLavoro con nome categoria lavorazione (Potatura, Lavorazione del terreno, Raccolta, Trattamenti, ecc.). Il client imposta il select per testo. OBBLIGATORIO: "vendemmia"/"vendemmie" → usa sempre categoriaLavoro: "Raccolta" (Vendemmia è sottocategoria di Raccolta e nel filtro compare solo la categoria principale; così si vedono comunque i preventivi di vendemmia).
-- CATEGORIA COLTURA: "preventivi vigneto", "solo frutteto", "preventivi per i vigneti" → params.categoriaColtura con nome categoria (Vigneto, Frutteto, Seminativo, ecc.).
-- Esempi: "solo le bozze" → {"text": "Ecco i preventivi in bozza.", "command": {"type": "FILTER_TABLE", "params": {"stato": "bozza"}}}. "preventivi di Luca Fabbri" → {"text": "Ecco i preventivi di Luca Fabbri.", "command": {"type": "FILTER_TABLE", "params": {"cliente": "Luca Fabbri"}}}. "preventivi vendemmie" / "fammi vedere le vendemmie" → {"text": "Ecco i preventivi di raccolta (inclusa vendemmia).", "command": {"type": "FILTER_TABLE", "params": {"categoriaLavoro": "Raccolta"}}}. "preventivi erpicatura" → {"text": "Ecco i preventivi di erpicatura.", "command": {"type": "FILTER_TABLE", "params": {"tipoLavoro": "Erpicatura Tra le File"}}}. "preventivi vigneto" → {"text": "Ecco i preventivi per i vigneti.", "command": {"type": "FILTER_TABLE", "params": {"categoriaColtura": "Vigneto"}}}. "pulisci filtri" → {"text": "Filtri azzerati.", "command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
+- CATEGORIA COLTURA: "preventivi vigneto", "solo frutteto", "preventivi per i vigneti" → params.categoriaColtura con nome categoria in tendina (Vite, Frutteto, Seminativo, ecc.).
+- Esempi: "solo le bozze" → {"text": "Ecco i preventivi in bozza.", "command": {"type": "FILTER_TABLE", "params": {"stato": "bozza"}}}. "preventivi di Luca Fabbri" → {"text": "Ecco i preventivi di Luca Fabbri.", "command": {"type": "FILTER_TABLE", "params": {"cliente": "Luca Fabbri"}}}. "preventivi vendemmie" / "fammi vedere le vendemmie" → {"text": "Ecco i preventivi di raccolta (inclusa vendemmia).", "command": {"type": "FILTER_TABLE", "params": {"categoriaLavoro": "Raccolta"}}}. "preventivi erpicatura" → {"text": "Ecco i preventivi di erpicatura.", "command": {"type": "FILTER_TABLE", "params": {"tipoLavoro": "Erpicatura Tra le File"}}}. "preventivi vigneto" → {"text": "Ecco i preventivi per la categoria «Vite».", "command": {"type": "FILTER_TABLE", "params": {"categoriaColtura": "Vite"}}}. "pulisci filtri" → {"text": "Filtri azzerati.", "command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
 
 INVIO EMAIL / ACCETTAZIONE MANAGER (PREVENTIVO_LIST_ACTION) – pagina Gestione preventivi (Conto terzi):
 - Se l'utente chiede di **inviare il preventivo per email** al cliente (es. "invia il preventivo a Rossi", "manda per mail il preventivo di Luca", "spedisci il preventivo via email") oppure di **accettare come manager** (es. "accetta il preventivo di Fabbri", "registra accettazione manager"): rispondi con JSON che include "command": {"type": "PREVENTIVO_LIST_ACTION", "params": {"action": "invia" | "accetta_manager", "preventivoId": "<id da azienda.preventivi o da page.currentTableData.items>"}}.
@@ -1571,8 +1586,8 @@ INVIO EMAIL / ACCETTAZIONE MANAGER (PREVENTIVO_LIST_ACTION) – pagina Gestione 
 FILTRO TABELLA TARIFFE (FILTER_TABLE) – quando page.currentTableData?.pageType === 'tariffe' o session.current_page.path include "tariffe":
 - SEI GIÀ sulla pagina Tariffe (Conto terzi): l'utente vede la lista tariffe. "Mostrami le tariffe per erpicatura", "solo vigneto", "tariffe in pianura", "solo le attive", "pulisci filtri" = FILTER_TABLE, NON navigazione.
 - OBBLIGATORIO: se l'utente chiede di filtrare per tipo lavoro, coltura, tipo campo (pianura/collina/montagna) o stato (attive/disattivate), rispondi con JSON che contiene "command" con type "FILTER_TABLE".
-- FORMATO params: "tipoLavoro" (testo, es. "Erpicatura", "Vendemmia"), "coltura" (testo, es. "Vigneto", "Grano"), "tipoCampo" (pianura | collina | montagna), "attiva" (true | false). RESET: params: { "filterType": "reset" } oppure { "reset": true }.
-- Esempi: "tariffe per erpicatura" → {"text": "Ecco le tariffe di erpicatura.", "command": {"type": "FILTER_TABLE", "params": {"tipoLavoro": "Erpicatura"}}}. "tariffe vigneto" / "solo vigneto" → {"text": "Ecco le tariffe per vigneto.", "command": {"type": "FILTER_TABLE", "params": {"coltura": "Vigneto"}}}. "tariffe in pianura" → {"text": "Ecco le tariffe per pianura.", "command": {"type": "FILTER_TABLE", "params": {"tipoCampo": "pianura"}}}. "solo le attive" → {"text": "Ecco le tariffe attive.", "command": {"type": "FILTER_TABLE", "params": {"attiva": true}}}. "pulisci filtri" → {"text": "Filtri azzerati.", "command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
+- FORMATO params: "tipoLavoro" (testo, es. "Erpicatura", "Vendemmia"), "coltura" (testo libero su nome coltura o categoria mostrata: es. "Vite", "Vite da Vino", "Grano"), "tipoCampo" (pianura | collina | montagna), "attiva" (true | false). RESET: params: { "filterType": "reset" } oppure { "reset": true }.
+- Esempi: "tariffe per erpicatura" → {"text": "Ecco le tariffe di erpicatura.", "command": {"type": "FILTER_TABLE", "params": {"tipoLavoro": "Erpicatura"}}}. "tariffe vigneto" / "solo vigneto" / "tariffe vite" → {"text": "Ecco le tariffe per la categoria «Vite».", "command": {"type": "FILTER_TABLE", "params": {"coltura": "Vite"}}}. "tariffe in pianura" → {"text": "Ecco le tariffe per pianura.", "command": {"type": "FILTER_TABLE", "params": {"tipoCampo": "pianura"}}}. "solo le attive" → {"text": "Ecco le tariffe attive.", "command": {"type": "FILTER_TABLE", "params": {"attiva": true}}}. "pulisci filtri" → {"text": "Filtri azzerati.", "command": {"type": "FILTER_TABLE", "params": {"reset": true}}}.
 
 FILTRO TABELLA PRODOTTI (FILTER_TABLE) – quando page.currentTableData?.pageType === 'prodotti' o session.current_page.path include "prodotti":
 - SEI GIÀ sulla pagina Anagrafica prodotti: filtri su stato, categoria, testo. "Solo attivi", "disattivati", "fitofarmaci", "cerca per nome" = FILTER_TABLE, NON navigazione.
@@ -3406,10 +3421,9 @@ async function handleTonyAskRequest(request, streamOpts) {
           (isAttivitaForm || isLavoroForm || isPreventivoForm || isTrattamentoCampoStructuredTrigger)));
 
     let systemInstructionToUse = systemInstruction;
-    const generationConfig = {
-      temperature: useStructuredFormOutput ? 0.3 : 0.7,
-      maxOutputTokens: 1536,
-    };
+    const generationConfig = buildTonyGenerationConfig(TONY_GEMINI_MODEL, {
+      structured: useStructuredFormOutput,
+    });
 
     if (useStructuredFormOutput) {
       // Se crea lavoro da pagina lavori con modal chiuso, aggiungi form sintetico per istruzione Lavori
@@ -3476,31 +3490,126 @@ async function handleTonyAskRequest(request, streamOpts) {
     const geminiStats = { retryCount: 0 };
     const geminiStart = Date.now();
     let rawText;
+    let geminiFinishMeta = { finishReason: null, usageMetadata: null };
     const useStream = !!(streamOpts && streamOpts.stream && streamOpts.onChunk);
-    if (useStream) {
-      tonyPerf.streamUsed = true;
-      let firstChunkAt = null;
-      const streamUrl = geminiStreamUrl(url);
-      rawText = await streamGeminiGenerateContent(streamUrl, body, (delta) => {
-        if (firstChunkAt == null) {
-          firstChunkAt = Date.now();
-          tonyPerf.timeToFirstChunkMs = firstChunkAt - geminiStart;
-        }
-        streamOpts.onChunk(delta);
-      }, geminiStats);
-      tonyPerf.geminiStreamMs = Date.now() - geminiStart;
-      tonyPerf.geminiMs = tonyPerf.geminiStreamMs;
-    } else {
-      const res = await callGeminiWithRetry(url, body, "initial", geminiStats);
-      tonyPerf.geminiMs = Date.now() - geminiStart;
+
+    async function callGeminiOnce(requestBody, label, streamChunks) {
+      if (streamChunks) {
+        tonyPerf.streamUsed = true;
+        let firstChunkAt = null;
+        const streamUrl = geminiStreamUrl(url);
+        const streamed = await streamGeminiGenerateContent(
+          streamUrl,
+          requestBody,
+          (delta) => {
+            if (firstChunkAt == null) {
+              firstChunkAt = Date.now();
+              tonyPerf.timeToFirstChunkMs = firstChunkAt - geminiStart;
+            }
+            if (streamOpts && streamOpts.onChunk) streamOpts.onChunk(delta);
+          },
+          geminiStats
+        );
+        return {
+          text: streamed && streamed.text != null ? streamed.text : "",
+          finishReason: streamed && streamed.finishReason ? streamed.finishReason : null,
+          usageMetadata: streamed && streamed.usageMetadata ? streamed.usageMetadata : null,
+        };
+      }
+      const res = await callGeminiWithRetry(url, requestBody, label, geminiStats);
       const data = await res.json();
-      rawText = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const meta = extractGeminiFinishMeta(data);
+      const parts = data?.candidates?.[0]?.content?.parts;
+      let text = "";
+      if (Array.isArray(parts)) {
+        for (const part of parts) {
+          if (typeof part?.text === "string") text += part.text;
+        }
+      } else if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        text = data.candidates[0].content.parts[0].text;
+      }
+      return {
+        text,
+        finishReason: meta.finishReason,
+        usageMetadata: meta.usageMetadata,
+      };
     }
+
+    {
+      const first = await callGeminiOnce(body, "initial", useStream);
+      if (useStream) {
+        tonyPerf.geminiStreamMs = Date.now() - geminiStart;
+        tonyPerf.geminiMs = tonyPerf.geminiStreamMs;
+      } else {
+        tonyPerf.geminiMs = Date.now() - geminiStart;
+      }
+      rawText = first.text;
+      geminiFinishMeta = {
+        finishReason: first.finishReason,
+        usageMetadata: first.usageMetadata,
+      };
+    }
+
+    let hitMaxTokens = recordTonyGeminiFinish(
+      tonyPerf,
+      geminiFinishMeta,
+      TONY_GEMINI_MODEL,
+      rawText
+    );
+
+    if (hitMaxTokens) {
+      console.warn(
+        "[Tony Cloud Function] Ripiego MAX_TOKENS: nuovo tentativo senza ragionamento e con più token"
+      );
+      const retryGen = buildTonyGenerationConfig(TONY_GEMINI_MODEL, {
+        structured: useStructuredFormOutput,
+        maxTokensRetry: true,
+      });
+      const retryBody = { ...body, generationConfig: retryGen };
+      const retryStart = Date.now();
+      // Ripiego non stream: il client ha già ricevuto chunk parziali; done.text porta testo+avviso.
+      const second = await callGeminiOnce(retryBody, "max-tokens-retry", false);
+      tonyPerf.geminiMs = (tonyPerf.geminiMs || 0) + (Date.now() - retryStart);
+      rawText = second.text;
+      geminiFinishMeta = {
+        finishReason: second.finishReason,
+        usageMetadata: second.usageMetadata,
+      };
+      hitMaxTokens = recordTonyGeminiFinish(
+        tonyPerf,
+        geminiFinishMeta,
+        TONY_GEMINI_MODEL,
+        rawText
+      );
+      tonyPerf.maxTokensRetry = true;
+    }
+
     tonyPerf.geminiRetryCount = geminiStats.retryCount || 0;
     tonyPerf.usedGemini = true;
 
     if (rawText == null) {
       throw new HttpsError("internal", "Risposta Gemini vuota o non valida.");
+    }
+
+    // Structured troncato: non eseguire comandi parziali; avviso chiaro.
+    if (
+      useStructuredFormOutput &&
+      hitMaxTokens &&
+      looksLikeTruncatedStructuredJson(rawText)
+    ) {
+      console.warn(
+        "[Tony Cloud Function] JSON strutturato troncato (MAX_TOKENS): nessun comando eseguito"
+      );
+      return finishTonyAskEarly(tonyPerf, message, {
+        text: appendMaxTokensNotice(
+          "Non sono riuscito a completare la compilazione del form in una sola risposta."
+        ),
+        command: null,
+      });
+    }
+
+    if (hitMaxTokens && typeof rawText === "string") {
+      rawText = appendMaxTokensNotice(rawText);
     }
 
     // Treasure Map: estrai blocco ```json dalla risposta e converti nel formato atteso
@@ -3716,7 +3825,28 @@ async function handleTonyAskRequest(request, streamOpts) {
         tonyPerf.geminiRetryCount = geminiStats.retryCount || 0;
         if (retryRes && retryRes.ok) {
           const retryData = await retryRes.json();
-          const retryText = retryData?.candidates?.[0]?.content?.parts?.[0]?.text;
+          const retryMeta = extractGeminiFinishMeta(retryData);
+          const retryHitMax = recordTonyGeminiFinish(
+            tonyPerf,
+            retryMeta,
+            TONY_GEMINI_MODEL,
+            retryData?.candidates?.[0]?.content?.parts?.[0]?.text
+          );
+          let retryText = retryData?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (retryHitMax && looksLikeTruncatedStructuredJson(retryText)) {
+            console.warn(
+              "[Tony Cloud Function] Retry strutturato MAX_TOKENS con JSON troncato: nessun comando"
+            );
+            return finishTonyAskEarly(tonyPerf, message, {
+              text: appendMaxTokensNotice(
+                "Non sono riuscito a completare la compilazione del form in una sola risposta."
+              ),
+              command: null,
+            });
+          }
+          if (retryHitMax && typeof retryText === "string") {
+            retryText = appendMaxTokensNotice(retryText);
+          }
           const retryMatch = retryText && typeof retryText === "string" ? retryText.match(/```(?:json)?\s*([\s\S]*?)```/) : null;
           if (retryMatch) {
             try {
@@ -4158,6 +4288,23 @@ async function handleTonyAskRequest(request, streamOpts) {
           ...(result.action.params || {})
         };
       }
+
+      // Fallback tollerante: virgolette non escapate in "text" → JSON.parse fallisce e resterebbe grezzo
+      result = postProcessTonyUnstructuredResponse(String(rawText), {
+        isTonyAdvancedActive: true,
+        parsed: result,
+      });
+      if (result.action && !result.command) {
+        result.command = {
+          type: result.action.action,
+          ...(result.action.params || {})
+        };
+      }
+    } else {
+      // Tony Base / Guida: anche JSON valido con sola chiave text non deve uscire grezzo
+      result = postProcessTonyUnstructuredResponse(String(rawText), {
+        isTonyAdvancedActive: false,
+      });
     }
     
     // Fallback "crea lavoro": se l'utente ha chiaramente chiesto di creare un lavoro e non abbiamo comando (es. path legacy senza structured output), apri il modal
@@ -4186,14 +4333,12 @@ async function handleTonyAskRequest(request, streamOpts) {
       if (result.command) {
         delete result.command;
       }
-      // Se result contiene solo testo con JSON, estrai solo il testo
-      if (result.text && result.text.includes('{')) {
-        const textOnly = result.text.replace(/\{[\s\S]*?\}/g, '').trim();
-        result.text = textOnly || result.text;
+      if (result.action) {
+        delete result.action;
       }
-      // Assicurati che result.text esista
-      if (!result.text) {
-        result.text = trimmed.replace(/\{[\s\S]*?\}/g, '').trim() || 'Ok.';
+      if (!result.text || looksLikeTonyJsonEnvelope(result.text)) {
+        const looseBase = extractTonyTextLoose(String(rawText));
+        result.text = looseBase.text || "Ok.";
       }
     }
     
@@ -4589,8 +4734,30 @@ exports.sendTransactionalEmail = onCall(
   { region: "europe-west1", secrets: [resendApiKey] },
   async (request) => {
     const apiKey = process.env.RESEND_API_KEY;
-    return handleSendTransactionalEmail(db, apiKey, request);
+    return handleSendTransactionalEmail(db, apiKey, request, admin.auth());
   }
+);
+
+/**
+ * Elenco utenti del tenant (tenantId deprecato + membership). Solo manager/admin.
+ * Body: { tenantId }
+ */
+const {
+  handleElencaUtentiTenant,
+  handleGestisciMembershipUtente,
+} = require("./gestisci-membership");
+exports.elencaUtentiTenant = onCall(
+  { region: "europe-west1" },
+  async (request) => handleElencaUtentiTenant(db, request)
+);
+
+/**
+ * Disattiva / riattiva / rimuovi membership / modifica ruoli (Admin SDK).
+ * Body: { tenantId, uid, azione: 'disattiva'|'riattiva'|'rimuovi'|'ruoli', ruoli? }
+ */
+exports.gestisciMembershipUtente = onCall(
+  { region: "europe-west1" },
+  async (request) => handleGestisciMembershipUtente(db, request)
 );
 
 /**

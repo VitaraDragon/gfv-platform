@@ -123,41 +123,10 @@ export function initializeTenantService() {
           // Carica tenant disponibili
           const tenants = getUserTenantsFromData(userData);
           userTenantsCache = tenants;
-          
-          // Se un solo tenant, imposta automaticamente
-          if (tenants.length === 1) {
-            currentTenantId = tenants[0].tenantId;
-            // Salva in sessionStorage
-            if (typeof sessionStorage !== 'undefined') {
-              sessionStorage.setItem(STORAGE_KEY_TENANT, currentTenantId);
-            }
-          } else if (tenants.length > 1) {
-            // Più tenant: usa sessionStorage se disponibile, altrimenti usa tenant predefinito
-            if (typeof sessionStorage !== 'undefined') {
-              const storedTenantId = sessionStorage.getItem(STORAGE_KEY_TENANT);
-              if (storedTenantId && tenants.some(t => t.tenantId === storedTenantId)) {
-                currentTenantId = storedTenantId;
-              } else {
-                // Usa tenant predefinito
-                const defaultTenant = tenants.find(t => t.tenantIdPredefinito) || tenants[0];
-                currentTenantId = defaultTenant?.tenantId || null;
-                if (currentTenantId) {
-                  sessionStorage.setItem(STORAGE_KEY_TENANT, currentTenantId);
-                }
-              }
-            } else {
-              // Fallback: usa tenant predefinito
-              const defaultTenant = tenants.find(t => t.tenantIdPredefinito) || tenants[0];
-              currentTenantId = defaultTenant?.tenantId || null;
-            }
-          } else {
-            // Nessun tenant: retrocompatibilità con tenantId deprecato
-            if (userData.tenantId) {
-              currentTenantId = userData.tenantId;
-            } else {
-              currentTenantId = null;
-            }
-          }
+
+          // Resolver unico: sessionStorage valido → predefinito/membership → deprecato.
+          // Non sovrascrive un gfv_current_tenant_id ancora valido per l'utente.
+          currentTenantId = resolveTenantIdForUser(userData);
           
           // Pulisci cache quando cambia utente
           tenantCache = null;
@@ -192,101 +161,102 @@ export function initializeTenantService() {
 }
 
 /**
- * Estrae lista tenant da userData (supporta sia tenantMemberships che tenantId deprecato)
+ * Estrae lista tenant da userData: unisce membership e tenantId deprecato
+ * (il deprecato solo se la chiave membership non c'è già).
  * @param {Object} userData - Dati utente
  * @returns {Array<Object>} Array di { tenantId, ruoli, stato, ... }
  */
 export function getUserTenantsFromData(userData) {
-  // Usa tenantMemberships se disponibile
-  if (userData.tenantMemberships && Object.keys(userData.tenantMemberships).length > 0) {
-    return Object.entries(userData.tenantMemberships).map(([tenantId, membership]) => ({
-      tenantId,
-      ...membership
-    }));
+  if (!userData) return [];
+
+  const byId = new Map();
+
+  if (userData.tenantMemberships && typeof userData.tenantMemberships === 'object') {
+    for (const [tenantId, membership] of Object.entries(userData.tenantMemberships)) {
+      byId.set(tenantId, {
+        tenantId,
+        ...(membership && typeof membership === 'object' ? membership : {})
+      });
+    }
   }
-  
-  // Retrocompatibilità: usa tenantId deprecato
-  if (userData.tenantId) {
-    return [{
+
+  if (userData.tenantId && !byId.has(userData.tenantId)) {
+    byId.set(userData.tenantId, {
       tenantId: userData.tenantId,
       ruoli: userData.ruoli || [],
       stato: userData.stato || 'attivo',
       tenantIdPredefinito: true
-    }];
+    });
   }
-  
-  return [];
+
+  return Array.from(byId.values());
 }
 
 /**
- * Verifica se userData consente l'accesso a un tenant.
+ * Membership autorevole: se esiste la chiave t, decidono solo stato/ruoli membership;
+ * tenantId deprecato vale solo se la chiave manca.
  * @param {Object|null|undefined} userData
  * @param {string|null|undefined} tenantId
  * @returns {boolean}
  */
 export function userHasAccessToTenant(userData, tenantId) {
   if (!userData || !tenantId) return false;
-  if (userData.tenantId === tenantId) return true;
   const membership = userData.tenantMemberships && userData.tenantMemberships[tenantId];
-  if (!membership) return false;
-  return membership.stato == null || membership.stato === 'attivo';
+  if (membership) {
+    return membership.stato == null || membership.stato === 'attivo';
+  }
+  if (userData.tenantId === tenantId) {
+    return (userData.stato || 'attivo') !== 'disattivato';
+  }
+  return false;
 }
 
 /**
- * Allinea tenant corrente al documento utente (ignora sessionStorage stale).
+ * Resolver unico del tenant corrente:
+ * sessionStorage se valido per l'utente → membership/predefinito → deprecato.
  * @param {Object|null|undefined} userData
- * @param {{ useExpectedTenant?: boolean }} [options]
+ * @param {{ useExpectedTenant?: boolean, persist?: boolean }} [options]
  * @returns {string|null}
  */
 export function resolveTenantIdForUser(userData, options = {}) {
   if (!userData) return null;
+  const persist = options.persist !== false;
 
-  const candidates = [];
+  const trySet = (tenantId) => {
+    if (!tenantId || !userHasAccessToTenant(userData, tenantId)) return null;
+    if (persist) setCurrentTenantId(tenantId);
+    else currentTenantId = tenantId;
+    return tenantId;
+  };
+
   if (typeof sessionStorage !== 'undefined') {
     const stored = sessionStorage.getItem(STORAGE_KEY_TENANT);
-    if (stored) candidates.push(stored);
+    const fromStored = trySet(stored);
+    if (fromStored) return fromStored;
     if (options.useExpectedTenant) {
       const expected = sessionStorage.getItem('gfv_expected_tenant_id');
-      if (expected) candidates.push(expected);
-    }
-  }
-  if (userData.tenantId) candidates.push(userData.tenantId);
-
-  for (const tenantId of candidates) {
-    if (userHasAccessToTenant(userData, tenantId)) {
-      setCurrentTenantId(tenantId);
-      return tenantId;
+      const fromExpected = trySet(expected);
+      if (fromExpected) return fromExpected;
     }
   }
 
-  if (userData.tenantMemberships && typeof userData.tenantMemberships === 'object') {
-    const entries = Object.entries(userData.tenantMemberships);
-    const active = entries.find(([, m]) => m && (m.stato == null || m.stato === 'attivo'));
-    if (active) {
-      setCurrentTenantId(active[0]);
-      return active[0];
-    }
-    const preferred = entries.find(([, m]) => m && m.tenantIdPredefinito);
-    if (preferred) {
-      setCurrentTenantId(preferred[0]);
-      return preferred[0];
-    }
-    if (entries.length === 1) {
-      setCurrentTenantId(entries[0][0]);
-      return entries[0][0];
-    }
-    if (entries.length > 1) {
-      setCurrentTenantId(entries[0][0]);
-      return entries[0][0];
-    }
+  const tenants = getUserTenantsFromData(userData).filter((t) =>
+    userHasAccessToTenant(userData, t.tenantId)
+  );
+  if (tenants.length === 0) return null;
+
+  const preferred = tenants.find((t) => t.tenantIdPredefinito);
+  if (preferred) return trySet(preferred.tenantId);
+
+  const fromDeprecated =
+    userData.tenantId && userHasAccessToTenant(userData, userData.tenantId)
+      ? userData.tenantId
+      : null;
+  if (fromDeprecated && !userData.tenantMemberships?.[fromDeprecated]) {
+    return trySet(fromDeprecated);
   }
 
-  if (userData.tenantId) {
-    setCurrentTenantId(userData.tenantId);
-    return userData.tenantId;
-  }
-
-  return null;
+  return trySet(tenants[0].tenantId);
 }
 
 /**
@@ -662,7 +632,10 @@ export async function getUserTenantsWithNamesFromData(userData) {
 }
 
 /**
- * Ruoli per un tenant da un documento utente già letto (stessa regola di getUserRolesForTenant).
+ * Ruoli per un tenant da un documento utente già letto (stessa regola di getUserRolesForTenant
+ * e di functions/lib/tenant-membership-access.rolesForTenant).
+ * Membership: se la chiave esiste, solo i suoi ruoli e solo se attiva.
+ * Legacy tenantId/ruoli: solo se la chiave membership manca, tenantId coincide e stato ≠ disattivato.
  * @param {Object|null|undefined} userData - Dati utente
  * @param {string|null|undefined} tenantId - ID tenant
  * @returns {Array<string>} Array di ruoli
@@ -672,15 +645,24 @@ export function getUserRolesFromData(userData, tenantId) {
     return [];
   }
 
-  // Usa tenantMemberships se disponibile
-  if (userData.tenantMemberships && userData.tenantMemberships[tenantId]) {
-    const membership = userData.tenantMemberships[tenantId];
-    return membership.ruoli && Array.isArray(membership.ruoli) ? membership.ruoli : [];
+  const memberships = userData.tenantMemberships;
+  if (memberships && typeof memberships === 'object' && Object.prototype.hasOwnProperty.call(memberships, tenantId)) {
+    const membership = memberships[tenantId];
+    if (!membership || typeof membership !== 'object') {
+      return [];
+    }
+    if (membership.stato != null && membership.stato !== 'attivo') {
+      return [];
+    }
+    return Array.isArray(membership.ruoli) ? membership.ruoli.slice() : [];
   }
 
-  // Retrocompatibilità: se tenantId corrisponde al tenantId deprecato
-  if (userData.tenantId === tenantId && userData.ruoli && Array.isArray(userData.ruoli)) {
-    return userData.ruoli;
+  // Retrocompatibilità: deprecato solo se la chiave membership manca
+  if (userData.tenantId === tenantId && Array.isArray(userData.ruoli)) {
+    if ((userData.stato || 'attivo') === 'disattivato') {
+      return [];
+    }
+    return userData.ruoli.slice();
   }
 
   return [];

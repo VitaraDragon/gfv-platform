@@ -669,38 +669,8 @@
          */
         async function resolveCurrentTenantId(userData) {
             if (!userData) return null;
-            const { getCurrentTenantId, setCurrentTenantId } = await import('./services/tenant-service.js');
-            let tid = getCurrentTenantId();
-            if (tid) return tid;
-            if (userData.tenantId) {
-                setCurrentTenantId(userData.tenantId);
-                return userData.tenantId;
-            }
-            if (userData.tenantMemberships && typeof userData.tenantMemberships === 'object') {
-                const entries = Object.entries(userData.tenantMemberships);
-                for (const [id, m] of entries) {
-                    if (m && m.stato === 'attivo') {
-                        setCurrentTenantId(id);
-                        return id;
-                    }
-                }
-                const def = entries.find(([, m]) => m && m.tenantIdPredefinito);
-                if (def) {
-                    setCurrentTenantId(def[0]);
-                    return def[0];
-                }
-                if (entries.length === 1) {
-                    const id = entries[0][0];
-                    setCurrentTenantId(id);
-                    return id;
-                }
-                if (entries.length > 1) {
-                    const id = entries[0][0];
-                    setCurrentTenantId(id);
-                    return id;
-                }
-            }
-            return null;
+            const { resolveTenantIdForUser } = await import('./services/tenant-service.js');
+            return resolveTenantIdForUser(userData);
         }
 
         /** Ruoli che vedono il briefing Tony su scorte/scadenze/guasti (solo manager dashboard). */
