@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-26 — Tony: slot di turno, ripresa con un luogo, segna ore non è meteo.**
+**Ultimo aggiornamento documentazione: 2026-10-26 — Tony: segna ore del manager con Manodopera, niente lavoro nuovo.**
+
+## 2026-10-26 — Tony: segna ore del manager con Manodopera, niente lavoro nuovo
+
+Con Manodopera attivo, «segna le ore» detto da un manager non apre più un lavoro nuovo. Tony spiega che le ore le segnano operai e caposquadra e che il manager valida in Validazione ore o pianifica in Gestione lavori, senza comando. «Ho fatto 4 ore di potatura…» resta il messaggio che c’era già. Operaio, caposquadra e chi non ha Manodopera non cambiano. Se invece si apre davvero Gestione lavori, la chat dice «Ti porto a gestione lavori.» e non più «Ti porto al diario.» Serve il deploy di `tonyAsk` e `tonyAskStream`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-26 — Tony: slot di turno, ripresa con un luogo, segna ore non è meteo.**
 
 ## 2026-10-26 — Tony: slot di turno (#124), ripresa con un luogo (#84), segna ore non è meteo
 
