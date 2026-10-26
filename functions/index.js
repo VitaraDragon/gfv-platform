@@ -25,7 +25,7 @@ const {
   postProcessTonyUnstructuredResponse,
   looksLikeTonyJsonEnvelope,
 } = require("./tony-json-text");
-const { tryTonyActivityPatterns } = require("./tony-activity-patterns");
+const { tryTonyActivityPatterns, tryTonySegnaOreManagerManodopera } = require("./tony-activity-patterns");
 const { tryTonyTerrenoEntityParse } = require("./tony-terreno-entity-parser");
 const {
   tryTonyLavoroEntityParse,
@@ -2844,6 +2844,33 @@ async function handleTonyAskRequest(request, streamOpts) {
         }
       } catch (manoErr) {
         console.warn("[Tony Context Builder] manodoperaGiorno:", manoErr.message);
+      }
+    }
+
+    // «Segna le ore» del manager con Manodopera: prima del meteo e di Gemini.
+    // Il ramo meteo è subito sotto, ma isTonyMeteoQuestion è già false se isTonySegnaOreIntent.
+    // Se tryTonyActivityPatterns ha già la risposta («ho fatto 4 ore di potatura»), qui non si entra.
+    if (isTonyAdvancedEarly && !tonyFieldProfile) {
+      const segnaOreManager = tryTonySegnaOreManagerManodopera({
+        message,
+        history,
+        fieldProfile: tonyFieldProfile,
+        ctx: {
+          ...(ctx && typeof ctx === "object" ? ctx : {}),
+          azienda,
+          moduli_attivi: moduliAttiviEarly,
+          dashboard: {
+            ...(ctx && ctx.dashboard && typeof ctx.dashboard === "object" ? ctx.dashboard : {}),
+            moduli_attivi: moduliAttiviEarly,
+          },
+        },
+      });
+      if (segnaOreManager) {
+        tonyPerf.quickReplyHit = segnaOreManager.id;
+        return finishTonyAskEarly(tonyPerf, message, {
+          text: segnaOreManager.text,
+          command: segnaOreManager.command || null,
+        });
       }
     }
 
