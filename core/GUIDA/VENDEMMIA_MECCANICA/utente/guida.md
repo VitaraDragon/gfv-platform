@@ -6,7 +6,7 @@ Modulo per organizzare la **vendemmia meccanizzata** (spesso in **conto terzi**)
 
 ## Percorso consigliato
 
-1. Aprite **Moduli** → **Vendemmia meccanica** (hub). **[Impara qui](#mini-guida-hub)**  
+1. Aprite il **pulsante moduli** → **Vendemmia meccanica** (hub). **[Impara qui](#mini-guida-hub)**  
 2. Compilate **Tariffe VM** se non l’avete già fatto. **[Impara qui](#mini-guida-tariffe-e-calcoli)**  
 3. Costruite il **Piano stagione** e usate il **Calcolatore**. **[Impara qui](#mini-guida-piano-e-calcolatore)**  
 4. Controllate il **Bilancio servizio**. **[Impara qui](#mini-guida-bilancio)**  
@@ -27,7 +27,7 @@ Modulo per organizzare la **vendemmia meccanizzata** (spesso in **conto terzi**)
 
 ## Mini-guida hub
 
-1. **Moduli** → **Vendemmia meccanica**.  
+1. **Pulsante moduli** (graffetta in alto a sinistra) → **Vendemmia meccanica**.  
 2. In alto: indicatori (clienti in piano, terreni, ettari vendemmiati, link al bilancio).  
 3. Azioni rapide: Piano stagione, Calcolatore, Calcoli salvati, Tariffe VM, Bilancio.  
 4. Se Conto terzi è attivo, trovate anche scorciatoie verso clienti, terreni clienti, preventivi e lavori.

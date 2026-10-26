@@ -31,12 +31,12 @@ Se stai leggendo una **stampa** o un **PDF** generato da questa documentazione, 
 
 Oltre alla **guida Manager** (pulsante omonimo nella documentazione online), questi passaggi valgono per quasi tutte le aziende:
 
-1. **Entrare in Manodopera** — Dalla **dashboard** apri **Moduli** e tocca **Manodopera** (👷), oppure usa **Per te oggi** → «Manodopera: lavori, squadre e ore». Si apre la **home del modulo**: numeri in alto (programmati oggi, in corso, ore da validare) e tre **sezioni** con le funzioni principali.  
+1. **Entrare in Manodopera** — Dalla **dashboard** apri il **pulsante moduli** (graffetta in alto a sinistra) e tocca **Manodopera** (👷), oppure usa **Per te oggi** → «Manodopera: lavori, squadre e ore». Si apre la **home del modulo**: numeri in alto (programmati oggi, in corso, ore da validare) e tre **sezioni** con le funzioni principali.  
 2. **Invita collaboratore** — In alto sulla dashboard può comparire **Invita collaboratore** (con modulo attivo e permessi giusti). Porta al percorso **Gestisci utenti** per inviti e ruoli.  
-3. **Amministrazione** — Da **Moduli** → **Amministrazione** (👑) raggiungi utenti, abbonamento e altre voci amministrative; dalla **home Manodopera**, sezione **Persone**, hai scorciatoie dirette a squadre, operai e utenti.  
+3. **Persone e abbonamento** — Dalla **home Manodopera**, sezione **Persone**, raggiungi **Gestisci utenti**, squadre, operai e compensi; **Abbonamento** è nell’**ingranaggio** in alto a destra. **Gestisci utenti** lo aprono sia l’amministratore sia il manager.  
 4. **Poi** crei **lavori** e controlli **validazione ore** e **statistiche**, come nella guida Manager. Dalle pagine interne il link **← Dashboard** riporta alla home del modulo.
 
-Con **Manodopera** attivo la dashboard **non** mostra più grandi card sparse (Gestione lavori, Validazione ore, …): tutto passa da **Moduli**, dalla **home Manodopera** o da **I miei accessi** se l’hai configurata.
+Con **Manodopera** attivo la dashboard **non** mostra più grandi card sparse (Gestione lavori, Validazione ore, …): tutto passa dal **pulsante moduli** (graffetta in alto a sinistra), dalla **home Manodopera**, da **Per te oggi** o dagli avvisi in **Richiede attenzione**.
 
 Il **caposquadra** non crea le squadre da zero: le configuri **tu** in **Gestione squadre**.
 
@@ -61,7 +61,7 @@ I passi completi sono nelle guide **Manager** e **Caposquadra**.
 
 - **Azienda**: il profilo aziendale che state usando nell’app dopo il login.  
 - **Versione mobile**: schermata semplificata sul **telefono** per operaio e caposquadra (lavoro scelto, ore, messaggi, mappa dove serve).  
-- **Versione desktop**: uso da **computer** con menu **Moduli** e **home Manodopera** per il manager. Operaio e caposquadra restano sulla schermata del lavoro, anche dal computer: non c’è un passaggio alla dashboard.
+- **Versione desktop**: uso da **computer** con il **pulsante moduli** e la **home Manodopera** per il manager. Operaio e caposquadra restano sulla schermata del lavoro, anche dal computer: non c’è un passaggio alla dashboard.
 
 ---
 

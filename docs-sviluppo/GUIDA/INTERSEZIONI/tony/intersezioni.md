@@ -18,7 +18,7 @@ Quando indichi **dove andare** in chat o in guida, usa sempre il linguaggio dell
 ### Ingresso moduli
 
 - Il **pulsante moduli in alto a sinistra** (graffetta / «Apri o chiudi i moduli») è il percorso **principale** verso Terreni, Diario, Statistiche, Abbonamento e ogni modulo attivo (Vigneto, Manodopera, Magazzino, Conto Terzi, Parco Macchine, Meteo, Report, …).
-- Con **Manodopera** attivo **non** cercare grandi tile sparse sotto la panoramica: Vigneto, Magazzino e gli altri verticali sono nel **pannello moduli**, nella **home Manodopera**, in **Per te oggi** o **Accessi rapidi**.
+- Con **Manodopera** attivo **non** cercare grandi tile sparse sotto la panoramica: Vigneto, Magazzino e gli altri verticali sono nel **pannello moduli**, nella **home Manodopera**, in **Per te oggi** o in **Azioni rapide** (Home).
 - **Senza Manodopera**, scorrendo **in fondo** alla dashboard possono comparire **riquadri** modulo (Vigneto, Magazzino, …): stessa voce del pannello, scorciatoia opzionale.
 - **Richiede attenzione** può aprire direttamente un modulo (es. prodotti sotto scorta → Magazzino; lavori da pianificare → Conto Terzi; scadenze/guasti → Parco Macchine).
 
@@ -61,7 +61,7 @@ Quando indichi **dove andare** in chat o in guida, usa sempre il linguaggio dell
 - **Conto terzi ↔ Lavori:** preventivo accettato → lavoro da pianificare → **Gestione lavori** (Manodopera) → ore; elenco in corso/completati in **Gestione lavori** filtrata conto terzi (con Manodopera) o nel **Diario** filtrato (senza).
 - **Manodopera ↔ Diario:** con Manodopera il **Diario** è solo storico (nessuna attività nuova, niente modifica/elimina) e le giornate nuove vanno in **Gestione lavori**; senza Manodopera Gestione lavori è bloccata («Modulo Manodopera non attivo») e si usa il Diario.
 - **Parco Macchine ↔ Diario/Lavori:** trattore, attrezzo, ore macchina opzionali nel **Diario** (e flussi Manodopera se attivo).
-- **Core/Abbonamento ↔ Moduli:** i flussi esistono solo se i moduli necessari sono attivi (Pulsante moduli → **Abbonamento**).
+- **Core/Abbonamento ↔ Moduli:** i flussi esistono solo se i moduli necessari sono attivi (ingranaggio in alto a destra → **Abbonamento**).
 - **Report ↔ tutti i moduli:** aggrega dati operativi (ingresso dal pannello moduli se modulo Report attivo). Path tipici: `modules/report/views/report-dashboard-standalone.html`, `report-standalone.html`, `report-terreni-standalone.html`. Guide dedicate: `GUIDA/REPORT/`. Molte card hub sono ancora «in sviluppo»; Terreni e Vigneto MVP sono le aree operative.
 
 ---
@@ -168,7 +168,7 @@ Path tipici (standalone): hub `modules/vendemmia-meccanica/views/vm-home-standal
 
 ## 3. Ruoli nelle intersezioni
 
-- **Manager/Amministratore:** dashboard desktop, pannello moduli (pulsante in alto), hub moduli, **Amministrazione** (👑) dal pannello con Manodopera attivo.
+- **Manager/Amministratore:** dashboard desktop, pannello moduli (pulsante graffetta in alto a sinistra) e hub moduli. Impostazioni, **Abbonamento** e **Azienda** (se più aziende) stanno nell’ingranaggio in alto a destra. Con Manodopera, utenti/squadre/operai dalla **home Manodopera** (**Gestisci utenti** aperto a manager e amministratore).
 - **Caposquadra:** versione **mobile** per ore e squadra; passaggio eventuale a vista desktop per consultazioni.
 - **Operaio:** versione **mobile** semplificata; non vede l'intera panoramica manager.
 

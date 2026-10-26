@@ -143,7 +143,7 @@ Tony risponde con **al massimo uno o due moduli** per volta, spiegando **perché
 
 ### Cosa fare dopo
 
-Apri **Abbonamento** (dal **pannello moduli** in alto → **Amministrazione**, o dal percorso indicato da Tony) e attiva il modulo che ti serve. I prezzi mensili sono quelli mostrati in pagina.
+Apri **Abbonamento** (dall’**ingranaggio** in alto a destra → **Abbonamento**, o dal percorso indicato da Tony) e attiva il modulo che ti serve. I prezzi mensili sono quelli mostrati in pagina.
 
 ---
 
@@ -313,6 +313,7 @@ In cortile ricevi una bolla. Apri Tony → fotocamera → scatto → **Acquisizi
 | **Voce** assente o microfono muto | Permessi browser; altoparlante; su mobile spesso solo **testo**; aspetta fine messaggio; prova a **scrivere**. |
 | Intervista lavoro **si ferma** | Ripeti l’ultima risposta; specifica terreno/lavoro con nome **completo**; conferma con «sì» esplicito. |
 | **Fotocamera** assente o acquisizione fallita | Servono **Tony Avanzato** + **Magazzino** e ruolo manager/admin. Rifai la foto: un foglio, luce uniforme, testo leggibile. Se selezioni foto dalla galleria e ottieni errore su formato (HEIC), **scatta in-app** o converti a JPEG. |
+| Il messaggio finisce con «La risposta si è interrotta: chiedimi di continuare.» | La risposta era troppo lunga: chiedi a Tony di continuare (per esempio scrivi «continua»). Se stavi facendo compilare una scheda e leggi «Non sono riuscito a completare la compilazione del form in una sola risposta.», Tony non ha toccato la scheda: rifai la richiesta con meno dati alla volta. In chat non devono mai comparire pezzi di codice o parentesi graffe: se succede, segnalalo. |
 | Risposta **generica** | Riformula con **contesto** («sono nella lista preventivi, …») o una richiesta alla volta. |
 
 ---

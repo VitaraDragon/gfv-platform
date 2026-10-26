@@ -1,6 +1,6 @@
 # Guida modulo Magazzino
 
-Questa guida è per chi ha **attivato il modulo Magazzino** sull'azienda. Senza quel modulo non troverete **Magazzino** nel menu **Moduli** né queste pagine.
+Questa guida è per chi ha **attivato il modulo Magazzino** sull'azienda. Senza quel modulo non troverete **Magazzino** nel pulsante moduli (graffetta in alto a sinistra) né queste pagine.
 
 Verificate **Abbonamento** o chiedete all'amministratore se il modulo non compare. Di solito le funzioni magazzino sono pensate per **Manager** e **Amministratore**; altri ruoli possono avere accessi più limitati.
 
@@ -8,7 +8,7 @@ Verificate **Abbonamento** o chiedete all'amministratore se il modulo non compar
 
 ## Percorso consigliato
 
-1. **Moduli** → **Magazzino** → **home magazzino** (numeri, azioni rapide). **[Impara qui](#da-dove-si-entra)**
+1. **Pulsante moduli** (graffetta in alto a sinistra) → **Magazzino** → **home magazzino** (numeri, azioni rapide). **[Impara qui](#da-dove-si-entra)**
 2. **Anagrafica prodotti** per censire prodotti, categorie, unità di misura e soglie. **[Impara qui](#mini-guida-anagrafica-prodotti)**
 3. **Movimenti** per entrate e uscite che aggiornano le **giacenze**. **[Impara qui](#mini-guida-movimenti)**
 4. **Tracciabilità consumi** per capire dove sono stati usati i prodotti (lettura e filtri). **[Impara qui](#tracciabilita-consumi)**
@@ -35,8 +35,8 @@ Verificate **Abbonamento** o chiedete all'amministratore se il modulo non compar
 
 ## Da dove si entra
 
-1. Dalla **dashboard principale** aprite **Moduli** e toccate **Magazzino** (📦). Se avete configurato **I miei accessi**, può esserci anche una scorciatoia lì.
-2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard potete trovare un **riquadro** **Magazzino** (eventualmente con avviso ⚠ se ci sono prodotti **sotto scorta**): è un’extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** in **Moduli** o nelle scorciatoie. In **Richiede attenzione** possono comparire alert su prodotti sotto scorta che aprono direttamente il magazzino.
+1. Dalla **dashboard principale** aprite il pulsante moduli (graffetta in alto a sinistra) e toccate **Magazzino** (📦). Se avete configurato **I miei accessi**, può esserci anche una scorciatoia lì.
+2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard potete trovare un **riquadro** **Magazzino** (eventualmente con avviso ⚠ se ci sono prodotti **sotto scorta**): è un’extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** nel **pulsante moduli** o nelle scorciatoie. In **Richiede attenzione** possono comparire alert su prodotti sotto scorta che aprono direttamente il magazzino.
 3. Arrivate alla **home del magazzino**: riepilogo con numeri (prodotti attivi, valore giacenza, eventuali **sotto scorta**), **azioni rapide** verso **Anagrafica prodotti**, **Movimenti**, **Tracciabilità consumi** e **Archivio documenti** (originali delle bolle/fatture acquisite con Tony).
 4. Da lì usate i pulsanti o le schede per aprire la sezione che vi serve. Il pulsante **← Dashboard Principale** riporta alla home generale. Dalle pagine interne (prodotti, movimenti, …) **← Dashboard** riporta all’hub Magazzino.
 
@@ -206,7 +206,7 @@ Dettaglio del gesto in chat: guida **Tony** (sezione foto bolla o fattura).
 
 ## Se qualcosa non compare
 
-- **Modulo non attivo** sull'abbonamento → niente voce **Magazzino** in **Moduli** (né riquadro in fondo pagina).
+- **Modulo non attivo** sull'abbonamento → niente voce **Magazzino** nel **pulsante moduli** (né riquadro in fondo pagina).
 - **Giacenze strane** → controllate **movimenti** e unità di misura; spesso manca un carico iniziale.
 - **Tracciabilità vuota o incompleta** → servono movimenti o scarichi registrati; la pagina è di lettura.
 - **Non vedo il pulsante Nuovo** → ruolo o permesso insufficiente; chiedete al manager.

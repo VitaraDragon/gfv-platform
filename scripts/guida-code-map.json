@@ -1796,6 +1796,150 @@
         "MANODOPERA"
       ],
       "label": "E2E migrazione Manodopera: di solito nessun testo guida"
+    },
+    {
+      "prefix": "functions/gestisci-membership.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "CF elencaUtentiTenant / gestisciMembershipUtente: elenco utenti, ruoli, Disattiva/Riattiva/Rimuovi in Gestisci utenti (#291)"
+    },
+    {
+      "prefix": "functions/lib/tenant-membership-access.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Membership autorevole lato server (belongsToTenant, rolesForTenant, isManagerOrAdmin) (#291)"
+    },
+    {
+      "prefix": "functions/meteo-service.js",
+      "modules": [
+        "METEO"
+      ],
+      "label": "CF meteo: verifica appartenenza azienda"
+    },
+    {
+      "prefix": "functions/tony-gemini-api.js",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Tony: chiamata modello, generationConfig, risposta interrotta (MAX_TOKENS) (#295)"
+    },
+    {
+      "prefix": "functions/tony-json-text.js",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Tony: estrazione tollerante del testo, mai JSON grezzo in chat (#297)"
+    },
+    {
+      "prefix": "functions/tony-perf.js",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Tony: metriche risposta (finishReason, token): nessun testo guida"
+    },
+    {
+      "prefix": "storage.rules",
+      "modules": [
+        "CORE",
+        "TONY"
+      ],
+      "label": "Storage: logo azienda solo manager/admin, documenti Tony; membership autorevole (#291)"
+    },
+    {
+      "prefix": "scripts/audit-membership-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Script audit membership/ruoli: nessun testo guida"
+    },
+    {
+      "prefix": "tests/gestisci-membership-functions",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Test CF membership: nessun testo guida"
+    },
+    {
+      "prefix": "tests/gestisci-utenti-manager-static",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test Gestisci utenti per manager: nessun testo guida"
+    },
+    {
+      "prefix": "tests/lib/tenant-membership-access",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test membership server: nessun testo guida"
+    },
+    {
+      "prefix": "tests/tenant-membership-client",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test resolver tenant client: nessun testo guida"
+    },
+    {
+      "prefix": "tests/storage-membership-rules",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test storage rules: nessun testo guida"
+    },
+    {
+      "prefix": "tests/firestore-membership-autorevole-rules",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test rules membership autorevole: nessun testo guida"
+    },
+    {
+      "prefix": "tests/email-invite-existing-user",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test invito a utente già registrato: nessun testo guida"
+    },
+    {
+      "prefix": "tests/tony-generation-config",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Test generationConfig Tony: nessun testo guida"
+    },
+    {
+      "prefix": "tests/tony-json-text",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Test estrazione testo Tony: nessun testo guida"
+    },
+    {
+      "prefix": "tests/tony-resolve-visible-text",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Test testo visibile chat Tony: nessun testo guida"
+    },
+    {
+      "prefix": "tests/e2e/sim/scenarios/gestisci-utenti",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "E2E Gestisci utenti: nessun testo guida"
+    },
+    {
+      "prefix": "tests/landing/",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test landing (dietro flag): nessun testo guida"
     }
   ]
 }

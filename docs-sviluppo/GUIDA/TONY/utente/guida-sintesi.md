@@ -29,6 +29,10 @@ Client-side su Gestione lavori / ore: `__tonyLavoroCreationFlow`, segna ore senz
 
 Ingresso **fotocamera in chat** (non un menu magazzino). Stesso gesto di sempre: scatto → revisione → **Registra dati** → movimenti. Tony legge i numeri in **due passate** (trascrizione cifra-per-cifra, poi campi). Conferma umana obbligatoria. **Foto galleria HEIC** su iPhone: se Tony non legge, scatta in-app o converti a JPEG. Dettaglio in guida lunga TONY; Magazzino: **Archivio documenti**, prezzi in attesa.
 
+## Risposte lunghe e nomi in app
+
+Se una risposta si tronca, Tony chiude con «La risposta si è interrotta: chiedimi di continuare.» (l’utente chiede di continuare). In chat mai JSON o comandi grezzi. Nomi reali: categoria coltura **Vite** (non «Vigneto», che è il modulo); moduli dal **pulsante in alto a sinistra** (graffetta, «Apri o chiudi i moduli»). **Impostazioni** / **Abbonamento** / **Azienda** dall’ingranaggio in alto a destra; **I miei accessi** è una sezione della dashboard, non una voce di menu.
+
 ## Conferme
 
 Risposte esplicite dell’utente dopo domande di Tony; non rubare «sì» al briefing se intervista meteo/lavoro in corso.

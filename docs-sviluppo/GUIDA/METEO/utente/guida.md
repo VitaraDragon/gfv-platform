@@ -8,7 +8,7 @@ Questa guida spiega **meteo sede** (incluso nel piano Base) e **modulo Meteo** (
 
 | | **Piano Base** (senza modulo Meteo) | **Modulo Meteo** attivo |
 |---|-------------------------------------|-------------------------|
-| **Dove** | Riga **Meteo sede** in dashboard, sotto **Moduli** | Stessa riga arricchita + pagina **Meteo** dedicata |
+| **Dove** | Riga **Meteo sede** in dashboard, sotto l’intestazione | Stessa riga arricchita + pagina **Meteo** dedicata |
 | **Cosa mostra** | Tempo attuale e sintesi per l’**indirizzo sede** in **Impostazioni** | Previsioni **per ogni terreno** sulla mappa, alert, ore e giorni estesi |
 | **Piano Free** | Meteo **non** disponibile | Meteo **non** disponibile |
 
@@ -20,7 +20,7 @@ Il modulo Meteo si **attiva a parte** in **Abbonamento** (costo mensile simbolic
 
 1. Verificare **sede aziendale** in **Impostazioni** (indirizzo completo). **[Impara qui](#imposta-la-sede-aziendale)**
 2. Leggere **Meteo sede** in dashboard (piano Base). **[Impara qui](#meteo-sede-in-dashboard)**
-3. Se avete il **modulo Meteo**: **Moduli** → **Meteo** → mappa + dettaglio campo. **[Impara qui](#da-dove-si-entra-modulo-meteo)**
+3. Se avete il **modulo Meteo**: **pulsante moduli** → **Meteo** → mappa + dettaglio campo. **[Impara qui](#da-dove-si-entra-modulo-meteo)**
 4. Usare alert e probabilità pioggia per **pianificare lavori** (con **Manodopera** o **Diario**). **[Impara qui](#alert-e-consigli-operativi)**
 
 ---
@@ -41,7 +41,7 @@ Il modulo Meteo si **attiva a parte** in **Abbonamento** (costo mensile simbolic
 
 ## Imposta la sede aziendale
 
-1. **Moduli** → **Impostazioni** (o percorso **Amministrazione** se usate **Manodopera**).
+1. **Ingranaggio** in alto a destra → **Impostazioni**.
 2. Compilate l’**indirizzo sede** dell’azienda (via, CAP, comune — come richiesto in schermata).
 3. **Salva**.
 
@@ -53,7 +53,7 @@ I **terreni** in anagrafe hanno coordinate o perimetro sulla **Mappa aziendale**
 
 ## Meteo sede in dashboard
 
-Disponibile con **piano Base** (a pagamento), subito sotto il pulsante **Moduli**.
+Disponibile con **piano Base** (a pagamento), subito sotto l’intestazione della dashboard.
 
 ### Cosa vedete
 
@@ -74,7 +74,7 @@ La riga meteo **non compare**: passate al piano Base per il meteo sede.
 
 Serve **piano Base** + **modulo Meteo** attivo in **Abbonamento**.
 
-1. **Moduli** → **Meteo** (🌦️). Opzionale: **I miei accessi** se l’avete configurato.
+1. **Pulsante moduli** (graffetta in alto a sinistra) → **Meteo** (🌦️).
 2. **Senza Manodopera**, in fondo alla dashboard può esserci un **riquadro** **Meteo** (stessa voce del menu): scorciatoia opzionale.
 3. Dalla dashboard, con modulo attivo, il link **Modulo Meteo →** nel widget meteo apre la stessa pagina.
 4. **← Dashboard Principale** in alto riporta alla home generale.
@@ -128,7 +128,7 @@ Dati forniti da **OpenWeather** (citati in pagina).
 
 ## Tony e briefing
 
-- **Tony Guida** (piano Base): spiega dove trovare meteo (**dashboard** vs **Moduli** → **Meteo**) e come leggere probabilità pioggia; non apre pagine da solo.
+- **Tony Guida** (piano Base): spiega dove trovare meteo (**dashboard** vs **pulsante moduli** → **Meteo**) e come leggere probabilità pioggia; non apre pagine da solo.
 - **Tony Avanzato**: può **aprire Meteo** o rispondere sul **briefing** in dashboard (desktop: a volte **voce**; mobile spesso apre la **chat**).
 - Sulla **pagina Meteo**, con modulo attivo, Tony può usare l’**elenco campi** visibile (stesso riepilogo della pagina) per domande tipo «quali campi hanno pioggia domani?».
 

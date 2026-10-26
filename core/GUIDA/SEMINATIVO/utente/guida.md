@@ -1,6 +1,6 @@
 # Guida modulo Seminativo
 
-Questa guida è per chi ha **attivato il modulo Seminativo** sull'azienda. Senza quel modulo non troverete **Seminativo** nel menu **Moduli** né queste pagine.
+Questa guida è per chi ha **attivato il modulo Seminativo** sull'azienda. Senza quel modulo non troverete **Seminativo** nel pulsante moduli (graffetta in alto a sinistra) né queste pagine.
 
 Verificate **Abbonamento** o chiedete all'amministratore se il modulo non compare.
 
@@ -8,7 +8,7 @@ Verificate **Abbonamento** o chiedete all'amministratore se il modulo non compar
 
 ## Percorso consigliato
 
-1. **Moduli** → **Seminativo** → **Dashboard Seminativo** (numeri campagna, filtri, azioni rapide). **[Impara qui](#da-dove-si-entra)**
+1. **Pulsante moduli** (graffetta in alto a sinistra) → **Seminativo** → **Dashboard Seminativo** (numeri campagna, filtri, azioni rapide). **[Impara qui](#da-dove-si-entra)**
 2. **Anagrafica appezzamenti** come base: terreno, campagna, coltura e varietà per anno. **[Impara qui](#mini-guida-anagrafica-appezzamenti)**
 3. Registri di campo: **semina**, **lavorazioni**, **trattamenti**, **concimazioni**, **raccolta** — le righe in elenco per **lavorazioni**, **trattamenti** e **concimazioni** compaiono **dopo** un **lavoro** (Gestione lavori) o un'**attività Diario** sul terreno con la **categoria** corretta; poi si completano i dettagli nel modulo. **[Impara qui](#mini-guida-registri-di-campo)**
 4. **Piano colturale** per proporre la coltura successiva; **Statistiche** per resa e costi. **[Impara qui](#piano-colturale-e-statistiche)**
@@ -38,8 +38,8 @@ Verificate **Abbonamento** o chiedete all'amministratore se il modulo non compar
 
 ## Da dove si entra
 
-1. Dalla **dashboard principale** aprite **Moduli** e toccate **Seminativo** (🌾). Se avete configurato **I miei accessi**, può esserci anche una scorciatoia lì.
-2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard potete trovare un **riquadro** **Seminativo**: è un'extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** in **Moduli** o nelle scorciatoie: è normale non vedere il riquadro.
+1. Dalla **dashboard principale** aprite il pulsante moduli (graffetta in alto a sinistra) e toccate **Seminativo** (🌾). Se avete configurato **I miei accessi**, può esserci anche una scorciatoia lì.
+2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard potete trovare un **riquadro** **Seminativo**: è un'extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** nel **pulsante moduli** o nelle scorciatoie: è normale non vedere il riquadro.
 3. Arrivate alla **Dashboard Seminativo**: titolo e colori gialli, **filtri** in alto (campagna e anno), **Panoramica** con numeri (quintali, resa, spese, numero campagne, semine anno), **Azioni rapide** verso tutte le pagine del modulo.
 4. In basso due blocchi dove previsti: **Raccolte recenti** (tabella) e **Lavori seminativo** (tabella) — significato distinto, come in altri moduli colturali. Il pulsante **← Dashboard Principale** riporta alla home generale. Dalle pagine del modulo **← Dashboard** riporta all'hub Seminativo.
 
@@ -47,7 +47,7 @@ Verificate **Abbonamento** o chiedete all'amministratore se il modulo non compar
 
 ## Da Terreni: icona grano
 
-Se avete la pagina **Terreni** e il modulo **Seminativo** è attivo, sulla riga del terreno compare spesso il pulsante **grano** (🌾): apre l'**Anagrafica appezzamenti** con quel **terreno già prescelto**, per vedere o creare le campagne legate al campo. Per la **Dashboard Seminativo** (riepilogo giallo con le statistiche) usate **Moduli** → **Seminativo** oppure il link **Dashboard** / **← Dashboard** dalla sezione modulo.
+Se avete la pagina **Terreni** e il modulo **Seminativo** è attivo, sulla riga del terreno compare spesso il pulsante **grano** (🌾): apre l'**Anagrafica appezzamenti** con quel **terreno già prescelto**, per vedere o creare le campagne legate al campo. Per la **Dashboard Seminativo** (riepilogo giallo con le statistiche) usate il **pulsante moduli** → **Seminativo** oppure il link **Dashboard** / **← Dashboard** dalla sezione modulo.
 
 Le icone **grappolo** e **mela** restano legate ai moduli **Vigneto** e **Frutteto** (vedi guide specifiche).
 
@@ -219,7 +219,7 @@ Aprite **Statistiche e Grafici** dalla dashboard: impostate i **filtri** in pagi
 
 ## Se qualcosa non compare
 
-- **Modulo non attivo** sull'abbonamento → niente voce **Seminativo** in **Moduli** (né riquadro in fondo pagina).
+- **Modulo non attivo** sull'abbonamento → niente voce **Seminativo** nel **pulsante moduli** (né riquadro in fondo pagina).
 - **Lista vuota** → create **terreni** e **campagne** in anagrafica.
 - **Lavorazioni / Trattamenti / Concimazioni: elenco vuoto** → è normale se non avete ancora creato un **lavoro** (Gestione lavori) o un'**attività Diario** sul terreno della campagna con categoria **Lavorazioni terreno**, **Trattamenti** o **Concimazione**; verificate anche **anno** e **campagna/terreno** nei filtri della pagina.
 - **Semine / Raccolte: elenco vuoto** → create manualmente da **Nuova Semina** / **Nuova Raccolta** oppure verificate che esistano attività Diario di tipo **Semina** / **Raccolta** sul terreno a seminativo.

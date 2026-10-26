@@ -85,12 +85,13 @@ Sotto l’intestazione (e il meteo, se attivo), la **panoramica** è divisa in *
 
 1. **Richiede attenzione** — elenco automatico di situazioni da controllare (es. prodotti sotto scorta, guasti o scadenze mezzi, affitti in scadenza, ore da validare, lavori da pianificare). Ogni voce è **cliccabile** e ti porta alla schermata giusta. Se tutto è a posto, compare un messaggio di conferma.
 2. **Per te oggi** — collegamenti fissi verso mappa e statistiche. **Senza Manodopera** trovi anche **Diario attività** e **Terreni**; **con Manodopera** trovi l’area lavori/squadre/ore e il Diario **non** compare qui (le giornate nuove passano da Gestione lavori).
-3. **Accessi rapidi** — moduli che hai **fissato con la stella** (☆/★) o usato di recente **su questo dispositivo** (con Manodopera attivo il **Diario attività** non compare qui nemmeno se l’avevi fissato). Per fissare un modulo: apri l’elenco moduli (vedi sotto) e usa la stella accanto alla voce che ti serve spesso.
+3. **Accessi rapidi** — moduli che hai **fissato con la stella** (☆/★) o usato di recente **su questo dispositivo** (con Manodopera attivo il **Diario attività** non compare qui nemmeno se l’avevi fissato). Per fissare un modulo: apri l’elenco moduli (vedi sotto) e usa la stella accanto alla voce che ti serve spesso.  
+Nella **Home attuale** questa terza sezione **non** si vede: al suo posto, sotto la panoramica, trovi il riquadro **Azioni rapide** con fino a **sei** collegamenti ai primi moduli dell’elenco (per esempio Terreni, Gestione lavori, Vigneto).
 
 ### Sezione **I miei accessi** (non è una voce di menu)
 
 **I miei accessi** è una **sezione della dashboard** (barra con fino a **cinque scorciatoie** e **Configura**), non una voce dell’elenco moduli. Le preferenze restano **solo su questo browser**.  
-Nella Home con la pelle attuale (Proposta) questa sezione **può non essere visibile**: per entrare nei moduli usa il pulsante in alto descritto sotto; le scorciatoie restano in **Per te oggi** e negli **Accessi rapidi**.
+Nella Home con la pelle attuale (Proposta) questa sezione **non** si vede: per entrare nei moduli usa il pulsante in alto descritto sotto, oppure **Per te oggi** e **Azioni rapide**.
 
 ### Meteo sede
 
@@ -112,10 +113,11 @@ Il modo **principale** per aprire Terreni, Diario, Vigneto, Magazzino, ecc. è i
 2. Si apre il **pannello moduli** con voci cliccabili: ogni riga ha un’**icona** (es. 🍇), un **titolo** (es. **Vigneto**) e una **breve descrizione**.
 3. Tocca la voce che ti serve: si apre quella pagina e il pannello si chiude.
 
-Nell’elenco trovi sempre almeno **Terreni**, **Statistiche**, **Abbonamento**; **senza Manodopera** anche **Diario attività**; poi ogni **modulo attivo** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Report, …).  
-Con **Manodopera** attivo compaiono anche **Amministrazione** e **Statistiche manodopera**; il **Diario attività** **non** compare nel menu (né in **Per te oggi** / **Accessi rapidi**): le giornate nuove vanno in **Gestione lavori**. Un link diretto al Diario, se raggiunto, mostra solo lo **storico** (vedi [mini-guida Diario](#mini-guida-compilare-il-diario-attivita)).
+Nell’elenco trovi sempre almeno **Home**, **Terreni** e **Statistiche**; **senza Manodopera** anche **Diario attività**; poi ogni **modulo attivo** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Report, …).  
+Con **Manodopera** attivo compare anche **Gestione lavori** e **Statistiche** apre le statistiche manodopera; il **Diario attività** **non** compare nel menu (né in **Per te oggi**): le giornate nuove vanno in **Gestione lavori**. Un link diretto al Diario, se raggiunto, mostra solo lo **storico** (vedi [mini-guida Diario](#mini-guida-compilare-il-diario-attivita)).  
+**Impostazioni**, **Abbonamento**, **Guide** e **Logout** non sono in questo elenco: stanno nel menu dell’**ingranaggio** in alto a destra («Apri o chiudi le opzioni»). Se lavorate in più aziende, lì trovate anche **Azienda** (vedi [Impara qui: più aziende](#mini-guida-accedere-password-e-aziende)). Accanto c’è l’icona della **mappa**.
 
-**Non serve cercare altro** se hai Manodopera: Vigneto, Magazzino e gli altri moduli sono **solo** in questo elenco (o in **Per te oggi** / **Accessi rapidi**). Scorrendo la dashboard **non** troverai altre righe «Vigneto» o «Magazzino» fuori dal pannello — ed è normale.
+**Non serve cercare altro** se hai Manodopera: Vigneto, Magazzino e gli altri moduli sono **solo** in questo elenco (o in **Per te oggi** / **Azioni rapide**). Scorrendo la dashboard **non** troverai altre righe «Vigneto» o «Magazzino» fuori dal pannello — ed è normale.
 
 ### Riquadri modulo in fondo alla pagina (solo in alcuni casi)
 
@@ -129,7 +131,7 @@ Con **Manodopera** attivo compaiono anche **Amministrazione** e **Statistiche ma
 
 ### Solo app base (nessun modulo opzionale)
 
-Se l’abbonamento non include moduli extra (vigneto, manodopera, magazzino, …), **non** è un errore se non vedete quelle voci: restano disponibili **Terreni**, **Diario attività**, **Statistiche** e **Abbonamento** dal pannello moduli e da **Per te oggi**. Squadre, lavori strutturati e macchine richiedono i rispettivi moduli.
+Se l’abbonamento non include moduli extra (vigneto, manodopera, magazzino, …), **non** è un errore se non vedete quelle voci: restano disponibili **Terreni**, **Diario attività** e **Statistiche** dal pannello moduli e da **Per te oggi**, e **Abbonamento** dall’ingranaggio in alto a destra. Squadre, lavori strutturati e macchine richiedono i rispettivi moduli.
 
 ### Caposquadra e operaio
 
@@ -379,7 +381,12 @@ La conversazione con **Tony** non si perde: dopo il ricaricamento la chat ripart
 - Se l’invito non va a buon fine compare un messaggio: «Token invalido o già utilizzato.» (link già usato o annullato), «Token scaduto. Contatta l'amministratore per un nuovo invito.», «L'email dell'account non corrisponde all'invito.» (usate l’email a cui è arrivato l’invito) oppure «Appartieni già a questa azienda» (siete già dentro: fate semplicemente il login). Negli altri casi chiedete a chi vi ha invitato un **nuovo invito**.
 
 ### Più aziende
-Se il vostro utente appartiene a più aziende, scegliete quella giusta con **cambia azienda** (o voce equivalente) **prima** di cercare dati. Lavorate sempre su **un’azienda alla volta**.
+Se il vostro utente appartiene a più aziende, lavorate sempre su **un’azienda alla volta** e sceglietela **prima** di cercare dati o inserire informazioni.
+
+- **Al login** compare la finestra **Seleziona Azienda** («Hai accesso a più aziende. Scegli quale vuoi utilizzare:»): per ogni azienda vedete nome, eventuale etichetta **Predefinito**, **ruoli** e **stato**. Toccate quella giusta per entrare nella dashboard; **Annulla** chiude la finestra.
+- **Durante il lavoro**: ingranaggio in alto a destra → **Azienda** (sotto c’è il nome di quella attuale) → si riapre **Seleziona Azienda**; dopo la scelta la pagina si ricarica con i dati dell’altra azienda. In dashboard può comparire anche il pulsante **🏢** con il nome dell’azienda: fa la stessa cosa.
+- Ruoli e accesso valgono **per azienda**: potete essere manager in una e operaio in un’altra. Se in un’azienda siete stati **disattivati** o **rimossi**, lì non potete più entrare (le altre aziende restano). Scegliendola compare un errore (per esempio «Errore durante la selezione dell'azienda. Riprova.»): chiedete all’amministratore di quell’azienda.
+- Se siete stati invitati in una seconda azienda con lo **stesso account**, dopo aver aperto il link d’invito le aziende compaiono **tutte** in **Seleziona Azienda**.
 
 ### Account in Impostazioni
 Da loggati, in **Impostazioni**: nome/cognome/telefono, **Cambio password**, **Notifiche**.
@@ -388,7 +395,7 @@ Da loggati, in **Impostazioni**: nome/cognome/telefono, **Cambio password**, **N
 
 ## Abbonamento e piani
 
-Nella pagina **Abbonamento** (dal **pannello moduli** in alto, o da una tile dedicata se presente) vedi il **piano corrente** e i **moduli** che potete attivare.
+Nella pagina **Abbonamento** (ingranaggio in alto a destra → **Abbonamento**) vedi il **piano corrente** e i **moduli** che potete attivare.
 
 ### Piano gratuito (Free)
 

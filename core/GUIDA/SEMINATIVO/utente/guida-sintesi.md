@@ -4,8 +4,8 @@ Modulo **Seminativo** attivo sull'azienda. Linguaggio allineato alla guida utent
 
 ## In sintesi
 
-- **Moduli** → **Seminativo** → **Dashboard Seminativo**: filtri campagna/anno, panoramica (quintali, resa, spese, conteggi semine), azioni rapide; **Raccolte recenti** = raccolte registrate; **Lavori seminativo** = lavori sul terreno + Diario (badge «Da diario») dove presente. Ingresso anche da **I miei accessi**; riquadro in fondo dashboard solo **senza** Manodopera.
-- **Terreni**: icona **grano** (🌾) → Anagrafica appezzamenti per quel terreno; dashboard gialla da **Moduli** → **Seminativo** o link in pagina.
+- **Pulsante moduli** (graffetta in alto a sinistra) → **Seminativo** → **Dashboard Seminativo**: filtri campagna/anno, panoramica (quintali, resa, spese, conteggi semine), azioni rapide; **Raccolte recenti** = raccolte registrate; **Lavori seminativo** = lavori sul terreno + Diario (badge «Da diario») dove presente. Ingresso anche da **I miei accessi**; riquadro in fondo dashboard solo **senza** Manodopera.
+- **Terreni**: icona **grano** (🌾) → Anagrafica appezzamenti per quel terreno; dashboard gialla dal **pulsante moduli** → **Seminativo** o link in pagina.
 - **Anagrafica Appezzamenti**: Nuova / Modifica / Elimina **campagna** (terreno + coltura + varietà + anno); **resa prevista** qli/ha in anagrafica (resa effettiva nelle statistiche dopo raccolte); filtri terreno/coltura/anno.
 - **Differenza da vigneto/frutteto:** colture **a ciclo annuale o poliennale** su terreno **non a impianto permanente**; ogni **campagna** = coltura + varietà per un **anno** su un **terreno**, senza anagrafica pluriennale di ceppi/piante. Ogni anno si crea o aggiorna la campagna con la coltura e varietà per quella stagione.
 - **Semina**: Nuova semina (campagna, data, varietà seme, dose kg/ha, superficie ha, traccia mappa, costi, operai, GPS opzionale) o righe da Diario; **non** richiede lavoro preesistente.

@@ -19,10 +19,11 @@ Modulo in **`dashboard.moduli_attivi`** (chiave tipica `manodopera`). In contest
 | Compensi operai | `admin/compensi-operai-standalone.html` |
 | Statistiche lavoratore (embed mobile) | `mobile/statistiche-lavoratore-standalone.html` |
 
-## Moduli effettivi e inviti (#283, #289)
+## Moduli effettivi, inviti e Gestisci utenti (#283, #289, #291, #293)
 
 - **#289:** `manodopera-home-standalone.html` e `admin/gestione-lavori-standalone.html` leggono i moduli con `getEffectiveModulesFromTenant` (`core/utils/module-access-resolver.js`: pagati + prove attive) invece di `tenant.modules` grezzo: con Manodopera in prova niente più «Il modulo Manodopera non è attivo per la tua azienda.» né flag `hasManodoperaModule` falso; lo stesso elenco va al contesto Tony (`initContextWithModules`). Prova moduli solo con piano Base (CORE § Piani).
-- **#283:** inviti accettati solo via callable `accettaInvito`; in **Gestisci utenti** (`admin/gestisci-utenti-standalone.html`) `handleModificaRuoli`, `toggleUserStatus`, `rimuoviUtente` falliscono per rules (`permission-denied`) e mostrano l’avviso «…(blocco di sicurezza)…»; `annullaInvito` (solo `invitato → annullato`) e `rimuoviInvito` funzionano. Niente controllo client «utente già in azienda» (rules `users` senza lettura globale): lo fa `accettaInvito` (`already-exists`). Manager/admin possono ancora aggiornare sui `users` dello stesso `tenantId` solo i campi contratto (Gestione operai: `tipoOperaio`, `tipoContratto`, date e note contratto, `tariffaPersonalizzata`). Dettaglio rules e codici errore in CORE § Inviti.
+- **#291/#293:** in **Gestisci utenti** (`admin/gestisci-utenti-standalone.html`) accesso a manager **o** amministratore del tenant corrente; `handleModificaRuoli` / `toggleUserStatus` / `rimuoviUtente` chiamano la callable `gestisciMembershipUtente` (`azione` `ruoli` / `disattiva` / `riattiva` / `rimuovi`), elenco da `elencaUtentiTenant`; moduli con `getEffectiveModulesFromTenant` (prova Manodopera → `hasManodoperaModule` vero, ruoli Caposquadra/Operaio visibili). Regole, messaggi e invito a utente già registrato: CORE § Membership autorevole e selettore aziende.
+- **#283:** inviti accettati solo via callable `accettaInvito`; fino al #291 in **Gestisci utenti** `handleModificaRuoli`, `toggleUserStatus`, `rimuoviUtente` fallivano per rules (`permission-denied`) con l’avviso «…(blocco di sicurezza)…» (ora superato); `annullaInvito` (solo `invitato → annullato`) e `rimuoviInvito` funzionano. Niente controllo client «utente già in azienda» (rules `users` senza lettura globale): lo fa `accettaInvito` (`already-exists`). Manager/admin possono ancora aggiornare sui `users` dello stesso `tenantId` solo i campi contratto (Gestione operai: `tipoOperaio`, `tipoContratto`, date e note contratto, `tariffaPersonalizzata`). Dettaglio rules e codici errore in CORE § Inviti.
 
 ## On/off e migrazione dati (#133)
 
@@ -30,7 +31,7 @@ Dettaglio tecnico in **CORE** § Gate Manodopera ↔ Diario / Migrazione. Trigge
 
 Navigazione admin → hub: `core/config/manodopera-hub-nav.js` (`wireManagerHomeLink`, label **← Dashboard**; hub modulo → home app: **← Dashboard Principale**).
 
-Dashboard ingresso hub: `MODULE_CATALOG.manodopera` in `dashboard-hub.js`; tile `createManodoperaCard()` in `dashboard-sections.js` (menu **Moduli**, variant `manodopera`); **Per te oggi** → href hub; quick bar `manodoperaHome` in `dashboard-quick-bar.js`.
+Dashboard ingresso hub: `MODULE_CATALOG.manodopera` in `dashboard-hub.js`; tile `createManodoperaCard()` in `dashboard-sections.js` (catalogo moduli, variant `manodopera`; ingresso utente dal pulsante graffetta della barra, CORE § Pelle Proposta); **Per te oggi** → href hub; quick bar `manodoperaHome` in `dashboard-quick-bar.js`.
 
 Con **Manodopera** attivo il controller **non** monta `createManagerSection` sotto la panoramica (card sparse legacy).
 

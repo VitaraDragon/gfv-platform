@@ -5,9 +5,9 @@ Linguaggio allineato alla guida utente. Distinguere sempre **Meteo sede** (piano
 ## In sintesi
 
 - **Piano Free:** nessun meteo in dashboard né pagina modulo.
-- **Piano Base, senza modulo Meteo:** riga dashboard **Meteo sede** (sotto **Moduli**); previsioni per **indirizzo sede** in **Impostazioni**; titolo icona sole; niente pagina mappa per terreni.
-- **Modulo Meteo attivo (+ Base):** widget dashboard **Meteo** espanso (alert, ore, link **Modulo Meteo →**); **Moduli** → **Meteo** → mappa satellitare campi (stessi confini **Mappa aziendale** / **Terreni**); click perimetro/punto → pannello dettaglio (alert, 48h, 8 giorni); blocco **Sede aziendale** in pagina; **← Dashboard Principale**; max ~30 campi possibile.
-- **Ingresso:** **Moduli** → **Meteo**; link da widget; **I miei accessi**; riquadro fondo dashboard solo **senza** Manodopera.
+- **Piano Base, senza modulo Meteo:** riga dashboard **Meteo sede** (sotto l’intestazione); previsioni per **indirizzo sede** in **Impostazioni**; titolo icona sole; niente pagina mappa per terreni.
+- **Modulo Meteo attivo (+ Base):** widget dashboard **Meteo** espanso (alert, ore, link **Modulo Meteo →**); **pulsante moduli** → **Meteo** → mappa satellitare campi (stessi confini **Mappa aziendale** / **Terreni**); click perimetro/punto → pannello dettaglio (alert, 48h, 8 giorni); blocco **Sede aziendale** in pagina; **← Dashboard Principale**; max ~30 campi possibile.
+- **Ingresso:** **pulsante moduli** → **Meteo**; link da widget; riquadro fondo dashboard solo **senza** Manodopera.
 - **Terreni:** per meteo per campo servono coordinate/perimetro; senza → messaggio e link **Terreni**.
 - **Manodopera:** pannello laterale widget dashboard può mostrare **Operatività oggi** (programmati, in corso, ore da validare).
 - **Tony pagina meteo:** `pageType` **meteo_dashboard**; `currentTableData` con items per terreno (pop oggi/domani, alert, pioggia imminente); sede in contesto; leggere summary/items per domande sui campi visibili.
