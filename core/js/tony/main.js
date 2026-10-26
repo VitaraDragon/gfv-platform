@@ -6,7 +6,7 @@
 import { tonyDebugLog } from './debug.js';
 import { injectWidget, formatTonyChatHtml } from './ui.js';
 import { initTonyVoice } from './voice.js';
-import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, isTonyMainDashboardPath, isTonyMainDashboardNavRequest, isTonyMeteoModulePath, cleanTextFromJsonResidue, normalizeTonyTextWhitespace, applyItalianVoiceQuestionPunctuation, normalizeItalianSttTranscript, collapseDuplicateVoiceTranscript, scoreItalianSttLexicon, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, dropStaleJobCarryover, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts, matchSegnaOraIncompleteDallePausaFromBlob, normalizeSegnaOraSttBlob, isSegnaOraUntrustedPartialStart, repairSegnaOraVoiceTranscript } from './engine.js';
+import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, isTonyMainDashboardPath, isTonyMainDashboardNavRequest, isTonyMeteoModulePath, cleanTextFromJsonResidue, normalizeTonyTextWhitespace, applyItalianVoiceQuestionPunctuation, normalizeItalianSttTranscript, collapseDuplicateVoiceTranscript, scoreItalianSttLexicon, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, dropStaleJobCarryover, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts, matchSegnaOraIncompleteDallePausaFromBlob, normalizeSegnaOraSttBlob, isSegnaOraUntrustedPartialStart, repairSegnaOraVoiceTranscript, isTonySegnaOreIntent, TONY_MANODOPERA_SEGNA_ORE_MANAGER_TEXT, rewriteDiarioNavSpeechForGestioneLavori } from './engine.js';
 import { resolveLavoroFattoNav, mapDiarioFieldsToLavoro, alignLavoroFattoSpeech } from './tony-lavoro-fatto-nav.js';
 import { hasActiveModule, getModuliAttiviFromTonyContext, isApriPaginaTargetAllowed, tonyNotifyModuleInactive } from '../../config/tony-module-gate.js';
 import { getTonyGuidaOnboardingFromWindow, tonyGuidaOnboardingWelcomeMessage } from '../../config/tony-guida-onboarding.js';
@@ -4007,6 +4007,30 @@ if (typeof window !== 'undefined') {
         }
     }
 
+    function tonyPaintExistingTonyBubble(nextText) {
+        var t = String(nextText || '').trim();
+        if (!t) return;
+        try {
+            var root = document.getElementById('tony-messages');
+            if (!root) return;
+            var el = root.querySelector('.tony-msg.tony.streaming');
+            if (!el) return;
+            el.innerHTML = formatTonyChatHtml(t);
+        } catch (ePaint) { /* ignore */ }
+    }
+
+    function tonySyncLastModelSpeech(nextText) {
+        var t = String(nextText || '').trim();
+        if (!t || !window.Tony || !Array.isArray(window.Tony.chatHistory)) return;
+        var hist = window.Tony.chatHistory;
+        for (var i = hist.length - 1; i >= 0; i--) {
+            var entry = hist[i];
+            if (!entry || entry.role !== 'model' || !entry.parts || !entry.parts.length) continue;
+            entry.parts[0].text = t;
+            return;
+        }
+    }
+
     /**
      * Elabora i comandi operativi inviati da Tony.
      * Gestisce OPEN_MODAL, SET_FIELD (input/textarea e select), CLICK_BUTTON.
@@ -4977,8 +5001,22 @@ if (typeof window !== 'undefined') {
                                     _pendingFields = tonyResolveOraLavoroForQuickHours(_pendingFields, tonyBuildSegnaOraUserBlobLastNUserTurns(6));
                                 }
                                 if (_man && !_fpAtt) {
+                                    var _segnaOreUtente = tonyGetLastUserMessage() || tonyGetUserPromptForPendingNav();
+                                    if (isTonySegnaOreIntent(_segnaOreUtente)) {
+                                        tonyDebugLog('[Tony] OPEN_MODAL attivita-modal: segna ore generico, niente lavoro nuovo');
+                                        window.__tonySegnaOreManagerManodoperaReply = TONY_MANODOPERA_SEGNA_ORE_MANAGER_TEXT;
+                                        tonyPaintExistingTonyBubble(TONY_MANODOPERA_SEGNA_ORE_MANAGER_TEXT);
+                                        break;
+                                    }
                                     var _lavFields = mapDiarioFieldsToLavoro(_pendingFields);
                                     tonyDebugLog('[Tony] OPEN_MODAL attivita-modal: manodopera attivo, apro Gestione lavori');
+                                    window.__tonyRewriteDiarioSpeechToGestioneLavori = true;
+                                    try {
+                                        var _bubbleDiario = document.querySelector('#tony-messages .tony-msg.tony.streaming');
+                                        if (_bubbleDiario && /ti porto al diario/i.test(_bubbleDiario.textContent || '')) {
+                                            tonyPaintExistingTonyBubble(rewriteDiarioNavSpeechForGestioneLavori(_bubbleDiario.textContent || ''));
+                                        }
+                                    } catch (eDiarioBubble) { /* ignore */ }
                                     window.Tony.triggerAction('APRI_PAGINA', {
                                         target: 'gestione lavori',
                                         _tonyPendingModal: 'lavoro-modal',
@@ -9448,12 +9486,23 @@ if (typeof window !== 'undefined') {
                 function doDisplay(txt) {
                     var out = (txt != null && String(txt).trim()) ? String(txt).trim() : finalSpeech;
                     out = (out != null && String(out).trim()) ? String(out).trim() : '';
+                    var tonySpeechOverride = false;
+                    if (window.__tonySegnaOreManagerManodoperaReply) {
+                        out = String(window.__tonySegnaOreManagerManodoperaReply).trim();
+                        window.__tonySegnaOreManagerManodoperaReply = '';
+                        tonySpeechOverride = true;
+                    } else if (window.__tonyRewriteDiarioSpeechToGestioneLavori) {
+                        out = rewriteDiarioNavSpeechForGestioneLavori(out);
+                        window.__tonyRewriteDiarioSpeechToGestioneLavori = false;
+                        tonySpeechOverride = true;
+                    }
                     out = cleanTextFromJsonResidue(out);
                     out = tonyCorreggiTestoTuttoPronto(out);
                     out = tonyDateIsoInItaliano(out);
                     out = tonyEnsureSegnaOraAssistantVisible(out) || out;
                     out = cleanTextFromJsonResidue(out);
                     if (!out) return;
+                    if (tonySpeechOverride) tonySyncLastModelSpeech(out);
                     tonyReplyShownThisTurn = true;
                     window.__tonyLastCfAssistantText = out;
                     if (streamingMsgEl && streamingMsgEl.parentNode) {

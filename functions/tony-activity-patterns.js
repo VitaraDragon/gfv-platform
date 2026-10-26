@@ -1,6 +1,21 @@
 "use strict";
 
 const { getModuliAttiviFromCtx, hasActiveModule } = require("./tony-module-gate");
+const { isTonySegnaOreIntent } = require("./tony-quick-replies");
+
+/**
+ * Unica fonte del testo manager + Manodopera.
+ * Il pattern «ho fatto N ore di X» ci mette davanti il riepilogo; la richiesta generica «segna le ore» usa solo questo corpo.
+ */
+const MANODOPERA_ORE_MANAGER_INFO_BODY =
+  "Con il modulo manodopera le ore le segnano operai e caposquadra dal workspace in campo; tu da manager le validi in Validazione ore e pianifichi in Gestione lavori. " +
+  "Segnare ore proprie da qui non è ancora previsto: dimmi se vuoi aprire Gestione lavori o Validazione ore.";
+
+function manodoperaOreManagerInfoText(understoodPrefix) {
+  const prefix = understoodPrefix ? String(understoodPrefix).trim() : "";
+  if (!prefix) return MANODOPERA_ORE_MANAGER_INFO_BODY;
+  return `${prefix} ${MANODOPERA_ORE_MANAGER_INFO_BODY}`;
+}
 
 /**
  * Parser deterministico pattern attività/ore (Fase 3).
@@ -132,10 +147,9 @@ function tryTonyActivityPatterns(input) {
   const dataLabel = dataIso ? ` del ${dataIso}` : "";
 
   if (manodoperaAttiva) {
-    const text =
-      `Ho capito: ${tipoLavoro.toLowerCase()}${terrenoLabel}, ${ore} ore${dataLabel}. ` +
-      "Con il modulo manodopera le ore le segnano operai e caposquadra dal workspace in campo; tu da manager le validi in Validazione ore e pianifichi in Gestione lavori. " +
-      "Segnare ore proprie da qui non è ancora previsto: dimmi se vuoi aprire Gestione lavori o Validazione ore.";
+    const text = manodoperaOreManagerInfoText(
+      `Ho capito: ${tipoLavoro.toLowerCase()}${terrenoLabel}, ${ore} ore${dataLabel}.`
+    );
 
     return {
       id: "activity_pattern_manodopera_info",
@@ -164,8 +178,41 @@ function tryTonyActivityPatterns(input) {
   };
 }
 
+/**
+ * Manager / amministratore (profilo di campo nullo) con Manodopera: «segna le ore» senza tipo e ore già riconosciuti dal pattern attività.
+ * Non risponde se tryTonyActivityPatterns ha già un esito (es. «ho fatto 4 ore di potatura»).
+ * Operaio, caposquadra e tenant senza Manodopera: null (il flusso di oggi resta).
+ * @param {{ message?: string, history?: object[], ctx?: object, fieldProfile?: string|null }} input
+ * @returns {{ id: string, text: string, command: null } | null}
+ */
+function tryTonySegnaOreManagerManodopera(input) {
+  const message = input && input.message ? String(input.message) : "";
+  const fieldProfile = input && input.fieldProfile ? input.fieldProfile : null;
+  if (fieldProfile) return null;
+  if (!isTonySegnaOreIntent(message)) return null;
+
+  const ctx = (input && input.ctx) || {};
+  const activity = tryTonyActivityPatterns({
+    message,
+    history: input && input.history,
+    ctx,
+  });
+  if (activity) return null;
+
+  const moduliAttivi = getModuliAttiviFromCtx(ctx);
+  if (!hasActiveModule(moduliAttivi, "manodopera")) return null;
+
+  return {
+    id: "segna_ore_manager_manodopera_info",
+    text: MANODOPERA_ORE_MANAGER_INFO_BODY,
+    command: null,
+  };
+}
+
 module.exports = {
   tryTonyActivityPatterns,
+  tryTonySegnaOreManagerManodopera,
+  MANODOPERA_ORE_MANAGER_INFO_BODY,
   isActivityPatternMessage,
   extractHours,
   resolveActivityType,

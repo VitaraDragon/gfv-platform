@@ -1717,3 +1717,45 @@ export function matchSegnaOraTimeRangeFromUserTexts(userTexts) {
     }
     return null;
 }
+
+function normalizeItTonySegnaOre(s) {
+    return String(s || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+/**
+ * Gemella di functions/tony-quick-replies.js isTonySegnaOreIntent.
+ * Richiesta di registrare ore, non una domanda sul tempo. «ore» da sola non basta.
+ * @param {string} message
+ * @returns {boolean}
+ */
+export function isTonySegnaOreIntent(message) {
+    if (!message || typeof message !== 'string') return false;
+    var msg = normalizeItTonySegnaOre(message);
+    if (!msg) return false;
+    if (/\bore\s+lavorate\b/.test(msg)) return true;
+    if (/\ble\s+mie\s+ore\b/.test(msg)) return true;
+    if (/\bsegna(?:re)?\s+(?:l['’]?[ae]?\s+)?(?:ora|ore)\b/.test(msg)) return true;
+    if (!/\bore\b/.test(msg)) return false;
+    return /\b(segnare|segna|registrare|registra|inserire|inserisci|mettere|metti|caricare|carica)\b/.test(msg);
+}
+
+/** Stesso corpo di MANODOPERA_ORE_MANAGER_INFO_BODY in functions/tony-activity-patterns.js */
+export var TONY_MANODOPERA_SEGNA_ORE_MANAGER_TEXT =
+    'Con il modulo manodopera le ore le segnano operai e caposquadra dal workspace in campo; tu da manager le validi in Validazione ore e pianifichi in Gestione lavori. ' +
+    'Segnare ore proprie da qui non è ancora previsto: dimmi se vuoi aprire Gestione lavori o Validazione ore.';
+
+/**
+ * Quando il ramo attività apre Gestione lavori, il testo non deve dire Diario.
+ * @param {string} speech
+ * @returns {string}
+ */
+export function rewriteDiarioNavSpeechForGestioneLavori(speech) {
+    var s = speech == null ? '' : String(speech);
+    if (!/ti porto al diario/i.test(s)) return s;
+    return s.replace(/ti porto al diario\.?/gi, 'Ti porto a gestione lavori.');
+}
