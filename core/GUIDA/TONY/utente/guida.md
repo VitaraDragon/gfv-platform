@@ -167,7 +167,7 @@ Per azioni che **cambiano dati** o **navigano**, Tony spesso chiede una **confer
 | Tu dici | Tony fa |
 |--------|---------|
 | «Come si aggiunge un terreno?» | Ti descrive i passi (Impostazioni poderi, poi Terreni, …) in linguaggio semplice. |
-| «Dove trovo le tariffe conto terzi?» | Ti indica il percorso dalla **home Conto terzi** o dal **pulsante moduli in alto**, secondo i moduli attivi. |
+| «Dove trovo le tariffe conto terzi?» | Ti indica il percorso dalla **home Conto terzi** o dal **pulsante moduli in alto a sinistra**, secondo i moduli attivi. |
 | «Quali moduli mi servono?» | Tony elenca **1–2 moduli** consigliati e rimanda ad **Abbonamento** (solo piano Base). |
 
 ### Cosa evitare

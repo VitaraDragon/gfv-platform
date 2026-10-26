@@ -182,13 +182,42 @@ describe('nomi reali app (Vite / navigazione)', () => {
     expect(coreGuida).not.toMatch(/Il pulsante \*\*Moduli\*\*/);
     expect(coreGuida).toMatch(/Apri o chiudi i moduli/);
     expect(coreGuida).toMatch(/non è una voce di menu/);
+    expect(coreGuida).toMatch(/pulsante moduli in alto a sinistra/);
 
     const sintesi = readRepo('core/GUIDA/CORE/utente/guida-sintesi.md');
     expect(sintesi).not.toMatch(/pulsante \*\*Moduli\*\*/);
     expect(sintesi).toMatch(/sezione della dashboard/);
+    expect(sintesi).toMatch(/pulsante moduli in alto a sinistra/);
 
     const inter = readRepo('core/GUIDA/INTERSEZIONI/tony/intersezioni.md');
     expect(inter).toMatch(/Regola unica nomi comandi/);
     expect(inter).toMatch(/Apri o chiudi i moduli/);
+
+    const guidaApp = readRepo('core/services/tony-guida-app.js');
+    expect(guidaApp).toMatch(/In alto a SINISTRA: pulsante moduli/);
+    expect(guidaApp).toMatch(/icona graffetta/);
+    expect(guidaApp).not.toMatch(/card cliccabili per le varie sezioni/);
+  });
+
+  it('GUIDA/contesto Tony: graffetta/moduli mai «in alto a destra»', () => {
+    const files = [
+      'core/services/tony-guida-app.js',
+      'core/GUIDA/CORE/utente/guida.md',
+      'core/GUIDA/CORE/utente/guida-sintesi.md',
+      'core/GUIDA/CORE/tony/guida-tecnica.md',
+      'core/GUIDA/INTERSEZIONI/tony/intersezioni.md',
+      'core/GUIDA/TONY/utente/guida.md',
+      'core/js/dashboard-tour.js',
+      'docs-sviluppo/GUIDA/CORE/utente/guida.md',
+      'docs-sviluppo/GUIDA/CORE/utente/guida-sintesi.md',
+      'docs-sviluppo/GUIDA/CORE/tony/guida-tecnica.md',
+      'docs-sviluppo/GUIDA/INTERSEZIONI/tony/intersezioni.md',
+      'docs-sviluppo/GUIDA/TONY/utente/guida.md',
+    ];
+    // Graffetta/moduli associati a «in alto a destra» (falso: è a sinistra)
+    const bad = /(?:graffett|pulsante moduli|Apri o chiudi i moduli)[^\n.]{0,80}in alto a destra|in alto a destra[^\n.]{0,80}(?:graffett|pulsante moduli|Apri o chiudi i moduli)/i;
+    for (const rel of files) {
+      expect(readRepo(rel), rel).not.toMatch(bad);
+    }
   });
 });
