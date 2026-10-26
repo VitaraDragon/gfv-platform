@@ -407,6 +407,16 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Esito del setup dalla landing (tonyLandingSetup, idempotenza). Solo Cloud Functions — admin SDK
+    match /tenants/{tenantId}/tonyLandingSetup/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Contatore chiamate di tonyLandingSetup (TTL su expireAt). Solo Cloud Functions — admin SDK
+    match /tonyLandingSetupQuota/{document=**} {
+      allow read, write: if false;
+    }
+
     // Collection: liste (dati personalizzati, es. colture)
     match /tenants/{tenantId}/liste/{listaId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
