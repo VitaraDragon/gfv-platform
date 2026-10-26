@@ -92,6 +92,12 @@ export const LIMITI_LANDING = {
 /** Alias usato anche da rigaPrezzi / test allineamento Tony. */
 export const GIORNI_GUIDA_TONY = LIMITI_LANDING.giorniGuidaTony;
 
+/** Tony bussa ed entra sulla landing. Spento: i pulsanti portano alla registrazione classica. */
+export const TONY_BUSSA_ATTIVO = false;
+
+/** Versione della prima casella, salvata con la presa visione. */
+export const VERSIONE_AVVISO_TONY = 'avviso-tony-2026-10-26';
+
 export const URL_APP = 'https://vitaradragon.github.io/gfv-platform/';
 
 export const URL_REGISTRAZIONE = `${URL_APP}core/auth/registrazione-standalone.html?da=landing`;
