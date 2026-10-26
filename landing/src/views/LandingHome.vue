@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onMounted, onUnmounted, ref } from 'vue';
+import { computed, defineAsyncComponent, onMounted, onUnmounted, ref, watch } from 'vue';
 import logoMark from '../../../icons/gfv-mark.svg';
 import tonyIcon from '../assets/tony-icon.png';
 import TonyAvviso from '../components/TonyAvviso.vue';
@@ -20,15 +20,21 @@ import {
 } from '../config/landing-config.js';
 import { rigaPrezzi, vociPianiCosaGestisci } from '../lib/landing-logica.js';
 import {
+  deveParlare,
   dovrebbeVibrare,
   formatoClip,
   leggiPresaVisione,
+  livelloVoce,
   percorsoClip,
   percorsiAudio,
+  percorsiVoce,
   prossimoStato,
+  prossimaBocca,
   salvaPresaVisione,
   SCHEMA_VIBRAZIONE,
+  SOGLIA_VOCE_ACCESA,
   tempiScena,
+  tempiVoce,
   tonyBussaVisibile,
   varianteScena,
 } from '../lib/tony-bussa-logica.js';
@@ -79,6 +85,7 @@ const improntaAccesa = ref(false);
 const varianteScelta = ref('desktop');
 const formatoScelto = ref('webm');
 const pulsanteOrigine = ref<HTMLElement | null>(null);
+const boccaAperta = ref(false);
 
 const stileScossone = computed(() => {
   if (!shakePx.value) return undefined;
@@ -89,6 +96,19 @@ const stileScossone = computed(() => {
 let audioBussata: HTMLAudioElement | null = null;
 let audioTerzo: HTMLAudioElement | null = null;
 let audioWhoosh: HTMLAudioElement | null = null;
+let audioSaluto: HTMLAudioElement | null = null;
+let audioCiao: HTMLAudioElement | null = null;
+let audioCtx: AudioContext | null = null;
+let analyser: AnalyserNode | null = null;
+let nodoSaluto: MediaElementAudioSourceNode | null = null;
+let modoBocca: 'ferma' | 'continua' | 'volume' = 'ferma';
+let generazioneVoce = 0;
+let salutoProgrammato = false;
+let voceSalutoAttiva = false;
+let uscitaClipFinita = false;
+let uscitaVoceFinita = false;
+let rafBocca = 0;
+let ultimoSopraMs = 0;
 let videoEntryPreload: HTMLVideoElement | null = null;
 let videoIdlePreload: HTMLVideoElement | null = null;
 const videoPreload: HTMLVideoElement[] = [];
@@ -170,15 +190,20 @@ function preparaMedia() {
   audioBussata = creaAudio(audio.bussata[estensione]);
   audioTerzo = creaAudio(audio.terzo[estensione]);
   audioWhoosh = creaAudio(audio.whoosh[estensione]);
+  const voci = percorsiVoce(variante === 'mobile' ? 'mobile' : 'desktop');
+  audioSaluto = creaAudio(voci.saluto.mp3);
+  audioCiao = creaAudio(voci.ciao.mp3);
   const formato = formatoScelto.value === 'stacked' ? 'stacked' : 'webm';
   videoEntryPreload = creaVideoNascosto(percorsoClip('entry', variante, formato));
   videoIdlePreload = creaVideoNascosto(percorsoClip('idle', variante, formato));
   creaVideoNascosto(percorsoClip('exit', variante, formato));
+  creaVideoNascosto(percorsoClip('talking', variante, formato));
   mediaPronte = true;
 }
 
 function rilasciaPreload() {
   fermaAudio();
+  rilasciaVoce();
   for (const video of videoPreload) {
     try {
       video.pause();
@@ -199,6 +224,8 @@ function rilasciaPreload() {
   audioBussata = null;
   audioTerzo = null;
   audioWhoosh = null;
+  audioSaluto = null;
+  audioCiao = null;
   mediaPronte = false;
 }
 
@@ -242,6 +269,271 @@ function sblocca(audio: HTMLAudioElement | null) {
   }
 }
 
+type AudioSblocco = HTMLAudioElement & { sbloccoInCorso?: boolean };
+
+function sbloccaVoce(audio: HTMLAudioElement | null) {
+  if (!audio || !audioAttivo.value) return;
+  const voce = audio as AudioSblocco;
+  voce.sbloccoInCorso = true;
+  try {
+    const promessa = audio.play();
+    if (promessa && typeof promessa.then === 'function') {
+      promessa
+        .then(() => {
+          if (!voce.sbloccoInCorso) return;
+          voce.sbloccoInCorso = false;
+          audio.pause();
+          try {
+            audio.currentTime = 0;
+          } catch {
+            /* il browser non consente il reset */
+          }
+        })
+        .catch(() => {
+          voce.sbloccoInCorso = false;
+        });
+    }
+  } catch {
+    voce.sbloccoInCorso = false;
+  }
+}
+
+function fineSblocco(audio: HTMLAudioElement | null) {
+  if (!audio) return;
+  (audio as AudioSblocco).sbloccoInCorso = false;
+}
+
+function creaContestoAudio() {
+  try {
+    const w = window as Window & { webkitAudioContext?: typeof AudioContext };
+    const Ctor = window.AudioContext || w.webkitAudioContext;
+    if (!Ctor) return null;
+    return new Ctor();
+  } catch {
+    return null;
+  }
+}
+
+function sbloccaContestoAudio() {
+  if (!audioAttivo.value) return;
+  try {
+    if (!audioCtx) audioCtx = creaContestoAudio();
+    if (!audioCtx) return;
+    const promessa = audioCtx.resume();
+    if (promessa && typeof promessa.catch === 'function') promessa.catch(() => {});
+  } catch {
+    /* senza analizzatore la bocca resta sul ripiego */
+  }
+}
+
+function collegaAnalizzatore(audio: HTMLAudioElement) {
+  if (!audioCtx || audioCtx.state !== 'running') return false;
+  try {
+    if (!analyser) {
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 1024;
+    }
+    if (!nodoSaluto) {
+      nodoSaluto = audioCtx.createMediaElementSource(audio);
+      nodoSaluto.connect(analyser);
+      analyser.connect(audioCtx.destination);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function fermaLoopBocca() {
+  if (rafBocca) cancelAnimationFrame(rafBocca);
+  rafBocca = 0;
+  ultimoSopraMs = 0;
+}
+
+function avviaLoopBocca() {
+  if (rafBocca || !analyser) return;
+  const nodo = analyser;
+  const dati = new Uint8Array(nodo.fftSize);
+  const tick = (ora: number) => {
+    if (modoBocca !== 'volume' || !analyser) {
+      rafBocca = 0;
+      return;
+    }
+    nodo.getByteTimeDomainData(dati);
+    const livello = livelloVoce(dati);
+    if (livello >= SOGLIA_VOCE_ACCESA) ultimoSopraMs = ora;
+    const msDaUltimo = ultimoSopraMs > 0 ? ora - ultimoSopraMs : 0;
+    boccaAperta.value = prossimaBocca({
+      aperta: boccaAperta.value,
+      livello,
+      msDaUltimoSopra: msDaUltimo,
+    });
+    rafBocca = requestAnimationFrame(tick);
+  };
+  rafBocca = requestAnimationFrame(tick);
+}
+
+function fermaSaluto() {
+  generazioneVoce += 1;
+  voceSalutoAttiva = false;
+  fermaLoopBocca();
+  boccaAperta.value = false;
+  modoBocca = 'ferma';
+  if (!audioSaluto) return;
+  audioSaluto.onplaying = null;
+  audioSaluto.onended = null;
+  audioSaluto.onerror = null;
+  try {
+    audioSaluto.pause();
+  } catch {
+    /* già fermo */
+  }
+}
+
+function rilasciaVoce() {
+  generazioneVoce += 1;
+  voceSalutoAttiva = false;
+  fermaLoopBocca();
+  boccaAperta.value = false;
+  modoBocca = 'ferma';
+  for (const audio of [audioSaluto, audioCiao]) {
+    if (!audio) continue;
+    audio.onplaying = null;
+    audio.onended = null;
+    audio.onerror = null;
+    try {
+      audio.pause();
+    } catch {
+      /* già fermo */
+    }
+  }
+  try {
+    nodoSaluto?.disconnect();
+  } catch {
+    /* già staccato */
+  }
+  try {
+    analyser?.disconnect();
+  } catch {
+    /* già staccato */
+  }
+  nodoSaluto = null;
+  analyser = null;
+  const ctx = audioCtx;
+  audioCtx = null;
+  if (ctx) {
+    try {
+      const chiuso = ctx.close();
+      if (chiuso && typeof chiuso.catch === 'function') chiuso.catch(() => {});
+    } catch {
+      /* già chiuso */
+    }
+  }
+}
+
+function onSalutoPlaying(gen: number) {
+  if (gen !== generazioneVoce || voceSalutoAttiva) return;
+  if (fase.value !== 'idle' && fase.value !== 'statico') return;
+  voceSalutoAttiva = true;
+  if (fase.value === 'idle') {
+    if (modoBocca === 'continua') boccaAperta.value = true;
+    if (modoBocca === 'volume') avviaLoopBocca();
+  }
+  fase.value = prossimoStato(fase.value, 'voceIniziata');
+}
+
+function onSalutoFinita(gen: number) {
+  if (gen !== generazioneVoce) return;
+  voceSalutoAttiva = false;
+  fermaLoopBocca();
+  boccaAperta.value = false;
+  if (fase.value === 'parla') fase.value = prossimoStato('parla', 'voceFinita');
+}
+
+function avviaSaluto() {
+  if (fase.value !== 'idle' && fase.value !== 'statico') return;
+  if (!audioSaluto) return;
+  const ctxPronto = !!(audioCtx && audioCtx.state === 'running');
+  const decisione = deveParlare({
+    audioAttivo: audioAttivo.value,
+    riduciMovimento: riduciMovimento.value,
+    analizzatoreDisponibile: ctxPronto,
+  });
+  if (!decisione.voce) return;
+  let bocca = decisione.bocca;
+  if (bocca === 'volume' && !collegaAnalizzatore(audioSaluto)) bocca = 'continua';
+  modoBocca = bocca;
+  const gen = generazioneVoce;
+  audioSaluto.onplaying = () => onSalutoPlaying(gen);
+  audioSaluto.onended = () => onSalutoFinita(gen);
+  audioSaluto.onerror = () => onSalutoFinita(gen);
+  fra(tempiVoce().attesaMaxVoceMs, () => {
+    if (gen !== generazioneVoce || voceSalutoAttiva) return;
+    generazioneVoce += 1;
+    if (!audioSaluto) return;
+    audioSaluto.onplaying = null;
+    audioSaluto.onended = null;
+    audioSaluto.onerror = null;
+    try {
+      audioSaluto.pause();
+    } catch {
+      /* resta il testo nel fumetto */
+    }
+  });
+  fineSblocco(audioSaluto);
+  try {
+    audioSaluto.currentTime = 0;
+    const promessa = audioSaluto.play();
+    if (promessa && typeof promessa.catch === 'function') {
+      promessa.catch(() => {
+        /* autoplay bloccato: niente errore, il testo è già nel fumetto */
+      });
+    }
+  } catch {
+    /* silenzio */
+  }
+}
+
+function programmaSaluto() {
+  if (salutoProgrammato) return;
+  if (fase.value !== 'idle' && fase.value !== 'statico') return;
+  salutoProgrammato = true;
+  fra(tempiVoce().ritardoSalutoMs, () => {
+    if (fase.value !== 'idle' && fase.value !== 'statico') return;
+    avviaSaluto();
+  });
+}
+
+function provaChiudiUscita() {
+  if (fase.value !== 'esce') return;
+  if (uscitaClipFinita && uscitaVoceFinita) chiudiTutto();
+}
+
+function avviaCiao() {
+  if (!audioCiao) {
+    uscitaVoceFinita = true;
+    provaChiudiUscita();
+    return;
+  }
+  const fine = () => {
+    if (uscitaVoceFinita) return;
+    uscitaVoceFinita = true;
+    provaChiudiUscita();
+  };
+  audioCiao.onended = fine;
+  audioCiao.onerror = fine;
+  fineSblocco(audioCiao);
+  try {
+    audioCiao.currentTime = 0;
+    const promessa = audioCiao.play();
+    if (promessa && typeof promessa.then === 'function') {
+      promessa.catch(() => fine());
+    }
+  } catch {
+    fine();
+  }
+}
+
 function fra(ms: number, fn: () => void) {
   const id = window.setTimeout(fn, ms);
   timerIds.push(id);
@@ -278,6 +570,9 @@ function ripristinaFocus() {
 
 function chiudiTutto() {
   pulisciTempo();
+  salutoProgrammato = false;
+  uscitaClipFinita = false;
+  uscitaVoceFinita = false;
   if (fase.value === 'esce') fase.value = prossimoStato('esce', 'uscitaFinita');
   else fase.value = 'nascosto';
   stageAperto.value = false;
@@ -290,9 +585,11 @@ function chiudiTutto() {
 }
 
 function saluta() {
+  if (fase.value === 'esce') return;
   const prima = fase.value;
   const dopo = prossimoStato(prima, 'saluta');
   pulisciTempo();
+  fermaSaluto();
   fermaAudio();
   try {
     navigator.vibrate(0);
@@ -305,10 +602,15 @@ function saluta() {
     chiudiTutto();
     return;
   }
-  uscitaConClip.value = (prima === 'idle' || prima === 'entra') && !riduciMovimento.value;
+  const conVoce =
+    (prima === 'idle' || prima === 'parla' || prima === 'statico') && audioAttivo.value;
+  uscitaClipFinita = false;
+  uscitaVoceFinita = !conVoce;
+  uscitaConClip.value =
+    (prima === 'idle' || prima === 'entra' || prima === 'parla') && !riduciMovimento.value;
   fase.value = 'esce';
-  const attesa = uscitaConClip.value ? 5000 : 700;
-  fra(attesa, () => {
+  if (conVoce) avviaCiao();
+  fra(tempiVoce().attesaMaxUscitaMs, () => {
     if (fase.value === 'esce') chiudiTutto();
   });
 }
@@ -324,7 +626,8 @@ function onClipNonPronta() {
 }
 
 function onUscitaFinita() {
-  chiudiTutto();
+  uscitaClipFinita = true;
+  provaChiudiUscita();
 }
 
 function vaiEntrata() {
@@ -396,6 +699,9 @@ function partiCronometro() {
     riproduci(audioBussata);
     sblocca(audioTerzo);
     sblocca(audioWhoosh);
+    sbloccaContestoAudio();
+    sbloccaVoce(audioSaluto);
+    sbloccaVoce(audioCiao);
   }
   if (riduciMovimento.value) {
     attendiIdle(inizio, tempi.staticoMs);
@@ -454,7 +760,7 @@ function onVuoiProvare(ev: MouseEvent) {
   preparaMedia();
   const presa = leggiPresaVisione(storagePagina(), VERSIONE_AVVISO_TONY);
   if (presa.vista) {
-    audioAttivo.value = true;
+    audioAttivo.value = presa.audio !== false;
     avviaScena();
     return;
   }
@@ -464,7 +770,12 @@ function onVuoiProvare(ev: MouseEvent) {
 
 function onConferma(payload: { audio?: boolean }) {
   audioAttivo.value = payload?.audio !== false;
-  salvaPresaVisione(storagePagina(), VERSIONE_AVVISO_TONY, new Date().toISOString());
+  salvaPresaVisione(
+    storagePagina(),
+    VERSIONE_AVVISO_TONY,
+    new Date().toISOString(),
+    audioAttivo.value
+  );
   avvisoInChiusura.value = true;
   const tempi = tempiScena({
     variante: varianteScelta.value === 'mobile' ? 'mobile' : 'desktop',
@@ -494,6 +805,11 @@ function onEscGlobale(e: KeyboardEvent) {
   e.preventDefault();
   saluta();
 }
+
+watch(fase, (nuova, precedente) => {
+  if (nuova === precedente) return;
+  if (nuova === 'idle' || nuova === 'statico') programmaSaluto();
+});
 
 onMounted(() => {
   document.title = t.documentTitle;
@@ -795,6 +1111,7 @@ const iconeModuliImg: Record<string, string> = {
       :formato="formatoScelto"
       :riduci-movimento="riduciMovimento"
       :uscita-con-clip="uscitaConClip"
+      :bocca-aperta="boccaAperta"
       @entrata-finita="onEntrataFinita"
       @uscita-finita="onUscitaFinita"
       @saluta="saluta"

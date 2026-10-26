@@ -173,8 +173,11 @@ export const testiLanding = {
     titolare: 'Titolare: Pierpaolo Rossi',
     linkPrivacy: 'Informativa privacy',
     etichetta: 'Tony · assistente virtuale con IA',
-    salutoDesktop: `Ehi, ciao! Sono Tony. Ho bussato perché mi hai chiamato. Presto potrai farmi domande qui. Intanto crea il tuo account gratuito: dentro Global Farm View ti guido io per ${GIORNI_GUIDA_TONY} giorni.`,
-    salutoMobile: `Ciao! Sono Tony. Presto potrai farmi domande qui. Intanto crea il tuo account gratuito: dentro GFV ti guido io per ${GIORNI_GUIDA_TONY} giorni.`,
+    salutoDesktop:
+      'Ehi, ciao! Sono Tony. Mi hai chiamato? Ti spiego Global Farm View in un minuto, o mi fai una domanda?',
+    salutoMobile: 'Ciao! Sono Tony. Chiedimi pure di GFV.',
+    ciao: 'Ci vediamo dentro GFV!',
+    notaSaluto: `Intanto crea il tuo account gratuito: dentro Global Farm View ti guido per ${GIORNI_GUIDA_TONY} giorni.`,
     ctaAccount: 'Crea il tuo account gratuito',
     saluta: '✕ Saluta Tony',
   },

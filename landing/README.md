@@ -34,6 +34,14 @@ Poi apri `http://INDIRIZZO-DEL-PC:5173/?tonybussa=1`. L'indirizzo IPv4 del PC si
 
 Clip e suoni stanno in `public/tony-live/` (sono nel repo, circa 3,9 MB). Sul PC di Pier arrivano da `Downloads\gfv-landing-tony\live\` (clip) e da `live\audio\` (suoni). Non partono all'apertura della pagina: il browser li chiede solo dopo il clic su «Vuoi provare GFV?».
 
+## Tony parla (passo 6)
+
+Le voci sono file già pronti (pacchetto del 26/10/2026), non una chiamata a un servizio. Stanno in `public/tony-live/voci/`. Il loop in cui Tony muove la bocca sta accanto alle altre clip (`tony-talking-loop-*`). L'immagine di riserva, se le clip non arrivano, è `public/tony-live/static/tony-static.png`.
+
+Per provarlo vale lo stesso indirizzo del passo 5: http://localhost:5173/?tonybussa=1 (solo in sviluppo o in anteprima). Dopo l'entrata Tony dice il saluto e, sul computer, la bocca segue il volume della voce. «✕ Saluta Tony» fa dire «Ci vediamo dentro GFV!» mentre esce.
+
+Se togli «Audio attivo», Tony non parla: resta fermo e il testo nel fumetto c'è lo stesso. La scelta resta anche se chiudi e riapri la pagina. Con «riduci movimento» del sistema la voce c'è, ma Tony non cambia clip: resta nel fermo.
+
 ## Due modi della build
 
 | Comando | Cartella | Cosa produce (con `LANDING_ATTIVA = false`) |
