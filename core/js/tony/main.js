@@ -6,7 +6,7 @@
 import { tonyDebugLog } from './debug.js';
 import { injectWidget, formatTonyChatHtml } from './ui.js';
 import { initTonyVoice } from './voice.js';
-import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, isTonyMainDashboardPath, isTonyMainDashboardNavRequest, isTonyMeteoModulePath, cleanTextFromJsonResidue, normalizeTonyTextWhitespace, applyItalianVoiceQuestionPunctuation, normalizeItalianSttTranscript, collapseDuplicateVoiceTranscript, scoreItalianSttLexicon, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts, matchSegnaOraIncompleteDallePausaFromBlob, normalizeSegnaOraSttBlob, isSegnaOraUntrustedPartialStart, repairSegnaOraVoiceTranscript } from './engine.js';
+import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, isTonyMainDashboardPath, isTonyMainDashboardNavRequest, isTonyMeteoModulePath, cleanTextFromJsonResidue, normalizeTonyTextWhitespace, applyItalianVoiceQuestionPunctuation, normalizeItalianSttTranscript, collapseDuplicateVoiceTranscript, scoreItalianSttLexicon, extractTonyResponseFromString, normalizeTonyCommand, resolveTonyUserVisibleText, dropStaleJobCarryover, matchSegnaOraTimeRangeFromBlob, matchSegnaOraSingleTimeFromBlob, matchSegnaOraBareHourFromBlob, matchSegnaOraTimeRangeFromUserTexts, collectSegnaOraAlleTimesFromUserTexts, matchSegnaOraIncompleteDallePausaFromBlob, normalizeSegnaOraSttBlob, isSegnaOraUntrustedPartialStart, repairSegnaOraVoiceTranscript } from './engine.js';
 import { resolveLavoroFattoNav, mapDiarioFieldsToLavoro, alignLavoroFattoSpeech } from './tony-lavoro-fatto-nav.js';
 import { hasActiveModule, getModuliAttiviFromTonyContext, isApriPaginaTargetAllowed, tonyNotifyModuleInactive } from '../../config/tony-module-gate.js';
 import { getTonyGuidaOnboardingFromWindow, tonyGuidaOnboardingWelcomeMessage } from '../../config/tony-guida-onboarding.js';
@@ -9163,6 +9163,16 @@ if (typeof window !== 'undefined') {
                 var resolvedUi = resolveTonyUserVisibleText(parsedData.text, parsedData.command);
                 parsedData.text = resolvedUi.text;
                 parsedData.command = normalizeTonyCommand(resolvedUi.command || parsedData.command);
+                if (!opts.proactive) {
+                    var slotUi = dropStaleJobCarryover(
+                        parsedData.text,
+                        parsedData.command,
+                        (window.Tony && window.Tony.chatHistory) ? window.Tony.chatHistory : [],
+                        text
+                    );
+                    parsedData.text = slotUi.text;
+                    if (slotUi.command) parsedData.command = normalizeTonyCommand(slotUi.command);
+                }
 
                 // Verifica e esegui comando (solo se modulo attivo)
                 // Gestisci sia command che action (formato alternativo)

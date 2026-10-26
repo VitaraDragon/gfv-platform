@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-26 — Tony: la chat mostra solo la frase.**
+**Ultimo aggiornamento documentazione: 2026-10-26 — Tony: slot di turno, ripresa con un luogo, segna ore non è meteo.**
+
+## 2026-10-26 — Tony: slot di turno (#124), ripresa con un luogo (#84), segna ore non è meteo
+
+Porting a mano su main di #124 (`ec0bd83d`) e del resto di #84 (`cbc9c44e`). Dopo un oliveto, mietitura o trebbiatura non confermano campo e ore del turno prima: Tony chiede l’appezzamento. «Continua dalla fila 4 verso il fosso» ripete fila e fosso; la regola 4 c’era già. «Aiutami a segnare le ore di oggi per un lavoro» non apre più la valutazione meteo. «Ore» da sola resta una domanda sul tempo. Serve il deploy di `tonyAsk` e `tonyAskStream`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-26 — Tony: la chat mostra solo la frase.**
 
 ## 2026-10-26 — Tony: la chat mostra solo la frase (porting #123)
 
