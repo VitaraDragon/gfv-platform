@@ -1,5 +1,6 @@
 import { createRequire } from 'module';
 import { describe, expect, it } from 'vitest';
+import { isTonySegnaOreIntent as isTonySegnaOreIntentClient } from '../../core/js/tony/engine.js';
 
 const require = createRequire(import.meta.url);
 const { isTonyMeteoQuestion } = require('../../functions/meteo-service.js');
@@ -44,6 +45,13 @@ describe('segna ore non è meteo', () => {
     expect(isTonyMeteoOperationalQuestionLocal(phrase)).toBe(false);
     expect(classifyTonyIntentShadow({ message: phrase, ctx: {} }).binario).not.toBe('A');
   });
+
+  it.each(SEGNA_ORE.concat(RESTANO_METEO, ['fra quante ore pioverà?']))(
+    'gemella client = server: %s',
+    (phrase) => {
+      expect(isTonySegnaOreIntentClient(phrase)).toBe(isTonySegnaOreIntent(phrase));
+    }
+  );
 
   it('erpicare sabato e ore di pioggia restano consultazione meteo', () => {
     expect(isTonyMeteoOperationalQuestionLocal('posso erpicare sabato?')).toBe(true);
