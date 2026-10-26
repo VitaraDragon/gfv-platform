@@ -6439,18 +6439,23 @@ if (typeof window !== 'undefined') {
     var _initialPlanGate = resolvePlanForWidgetGate();
     var uiApi = injectWidget(scriptBase);
     var appendMessage = uiApi.appendMessage, removeTyping = uiApi.removeTyping, showMessageInChat = uiApi.showMessageInChat;
-    /** Promote #159: ogni bolla di Tony passa dall'uscita unica «Tutto pronto» (sempre col nome del lavoro). */
+    /** Promote #160: ogni bolla di Tony passa dall'uscita unica «Tutto pronto» (sempre col nome del lavoro). */
     function tonyChatTextForBubble(text, type) {
-        if ((type || 'tony') !== 'tony' || text == null) return text;
-        return tonyTestoUscitaSegnaOre(String(text));
+        if ((type || 'tony') !== 'tony') return text;
+        var out = cleanTextFromJsonResidue(text == null ? '' : String(text));
+        return tonyTestoUscitaSegnaOre(out);
     }
     var appendMessageRaw = appendMessage;
     appendMessage = function(text, type) {
-        appendMessageRaw(tonyChatTextForBubble(text, type), type);
+        var out = tonyChatTextForBubble(text, type);
+        if ((type || 'tony') === 'tony' && !String(out || '').trim()) return;
+        appendMessageRaw(out, type);
     };
     var showMessageInChatRaw = showMessageInChat;
     showMessageInChat = function(text, type) {
-        showMessageInChatRaw(tonyChatTextForBubble(text, type), type);
+        var out = tonyChatTextForBubble(text, type);
+        if ((type || 'tony') === 'tony' && !String(out || '').trim()) return;
+        showMessageInChatRaw(out, type);
     };
     if (_tonyE2eMode) {
         var appendMessageBase = appendMessage;
@@ -6536,8 +6541,7 @@ if (typeof window !== 'undefined') {
 
     if (sendBtn) {
         function nascondiJsonDaStreaming(testo) {
-            var t = testo.replace(/\{[\s\S]*?\}/g, '');
-            return t.replace(/\{[^}]*$/, '');
+            return cleanTextFromJsonResidue(testo || '');
         }
 
         /**
@@ -9439,6 +9443,7 @@ if (typeof window !== 'undefined') {
                     out = tonyCorreggiTestoTuttoPronto(out);
                     out = tonyDateIsoInItaliano(out);
                     out = tonyEnsureSegnaOraAssistantVisible(out) || out;
+                    out = cleanTextFromJsonResidue(out);
                     if (!out) return;
                     tonyReplyShownThisTurn = true;
                     window.__tonyLastCfAssistantText = out;
