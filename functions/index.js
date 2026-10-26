@@ -4971,9 +4971,11 @@ exports.onProdottoSchedaScritto = onProdottoSchedaScritto;
 exports.leggiSchedeRegistroInCoda = leggiSchedeRegistroInCoda;
 
 const { handleRegistraAccettazioniLegali } = require("./accettazione-legale");
+// Gestore avvolto: onCall v2 chiama handler(request, response); il secondo argomento
+// NON è il database (handleRegistraAccettazioniLegali(request, db) lo userebbe al posto di admin.firestore()).
 exports.registraAccettazioniLegali = onCall(
   { region: "europe-west1" },
-  handleRegistraAccettazioniLegali
+  (request) => handleRegistraAccettazioniLegali(request)
 );
 
 // Landing «Tony bussa»: salvataggio di sede, poderi e terreni dopo «Sì, salva» (brief v4.2, sezione 8).
