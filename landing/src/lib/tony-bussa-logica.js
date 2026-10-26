@@ -27,6 +27,16 @@ const CLIP = {
       stacked: '/tony-live/tony-idle-loop-mobile-432x1080-stacked-alpha.mp4',
     },
   },
+  talking: {
+    desktop: {
+      webm: '/tony-live/tony-talking-loop-desktop-576x720-alpha.webm',
+      stacked: '/tony-live/tony-talking-loop-desktop-576x1440-stacked-alpha.mp4',
+    },
+    mobile: {
+      webm: '/tony-live/tony-talking-loop-mobile-432x540-alpha.webm',
+      stacked: '/tony-live/tony-talking-loop-mobile-432x1080-stacked-alpha.mp4',
+    },
+  },
   exit: {
     desktop: {
       webm: '/tony-live/tony-exit-desktop-576x720-alpha.webm',
@@ -61,7 +71,8 @@ const TRANSIZIONI = {
   avviso: { conferma: 'bussa', rinuncia: 'nascosto' },
   bussa: { bussataFinita: 'entra', clipNonPronta: 'statico', saluta: 'esce' },
   entra: { entrataFinita: 'idle', clipNonPronta: 'statico', saluta: 'esce' },
-  idle: { saluta: 'esce' },
+  idle: { saluta: 'esce', voceIniziata: 'parla' },
+  parla: { voceFinita: 'idle', saluta: 'esce' },
   statico: { saluta: 'esce' },
   esce: { uscitaFinita: 'nascosto' },
 };
@@ -118,7 +129,7 @@ export function formatoClip({ userAgent, webmAlfaSupportato }) {
 }
 
 /**
- * @param {'entry' | 'idle' | 'exit'} nome
+ * @param {'entry' | 'idle' | 'exit' | 'talking'} nome
  * @param {'desktop' | 'mobile'} variante
  * @param {'webm' | 'stacked'} formato
  * @returns {string}
@@ -143,6 +154,104 @@ export function percorsiAudio(variante) {
     terzo: coppiaAudio(base, scelta.terzo),
     whoosh: coppiaAudio(base, AUDIO.whoosh),
   };
+}
+
+/**
+ * Saluto della variante e commiato. Solo MP3: le voci non hanno OGG.
+ * @param {'desktop' | 'mobile'} variante
+ */
+export function percorsiVoce(variante) {
+  const nomeSaluto = variante === 'mobile' ? 'tony-saluto-mobile' : 'tony-saluto-desktop';
+  return {
+    saluto: coppiaVoce(nomeSaluto),
+    ciao: coppiaVoce('tony-ciao'),
+  };
+}
+
+/** Immagine di riserva quando le clip non arrivano. */
+export function percorsoTonyStatico() {
+  return '/tony-live/static/tony-static.png';
+}
+
+/**
+ * Volume RMS da getByteTimeDomainData. Silenzio (128) = 0, onda piena circa 1.
+ * @param {ArrayLike<number> | null | undefined} campioni
+ * @returns {number}
+ */
+export function livelloVoce(campioni) {
+  const n = campioni && campioni.length ? campioni.length : 0;
+  if (!n) return 0;
+  let somma = 0;
+  for (let i = 0; i < n; i += 1) {
+    const scarto = (Number(campioni[i]) - 128) / 128;
+    somma += scarto * scarto;
+  }
+  return Math.sqrt(somma / n);
+}
+
+/** Sopra questa soglia la bocca si apre. */
+export const SOGLIA_VOCE_ACCESA = 0.05;
+/** Sotto questa soglia, dopo la tenuta, la bocca si chiude. */
+export const SOGLIA_VOCE_SPENTA = 0.025;
+/** Millisecondi di tenuta per non chiudere la bocca tra una sillaba e l'altra. */
+export const TENUTA_BOCCA_MS = 250;
+
+/**
+ * Isteresi: aperta sopra la soglia accesa; se già aperta resta aperta
+ * finché il volume non scende sotto la soglia spenta da almeno TENUTA_BOCCA_MS.
+ * @param {{ aperta?: boolean, livello?: number, msDaUltimoSopra?: number }} opts
+ * @returns {boolean}
+ */
+export function prossimaBocca({ aperta, livello, msDaUltimoSopra }) {
+  const valore = Number(livello);
+  if (Number.isFinite(valore) && valore >= SOGLIA_VOCE_ACCESA) return true;
+  if (aperta === true) {
+    const sotto = !Number.isFinite(valore) || valore < SOGLIA_VOCE_SPENTA;
+    const tenuta = Number(msDaUltimoSopra) >= TENUTA_BOCCA_MS;
+    if (sotto && tenuta) return false;
+    return true;
+  }
+  return false;
+}
+
+/** Ritardi della voce: saluto, attesa massima, dissolvenza bocca, tetto dell'uscita. */
+export function tempiVoce() {
+  return {
+    ritardoSalutoMs: 200,
+    attesaMaxVoceMs: 4000,
+    dissolvenzaBoccaMs: 150,
+    attesaMaxUscitaMs: 5000,
+  };
+}
+
+/**
+ * @param {{ audioAttivo?: boolean, riduciMovimento?: boolean, analizzatoreDisponibile?: boolean }} opts
+ * @returns {{ voce: boolean, bocca: 'ferma' | 'continua' | 'volume' }}
+ */
+export function deveParlare({ audioAttivo, riduciMovimento, analizzatoreDisponibile }) {
+  if (audioAttivo === false) return { voce: false, bocca: 'ferma' };
+  if (riduciMovimento === true) return { voce: true, bocca: 'ferma' };
+  if (analizzatoreDisponibile === false) return { voce: true, bocca: 'continua' };
+  return { voce: true, bocca: 'volume' };
+}
+
+/**
+ * Unisce il testo dei cue. Salta WEBVTT, righe vuote, numeri e tempi.
+ * @param {string} contenuto
+ * @returns {string}
+ */
+export function testoDaVtt(contenuto) {
+  const testo = String(contenuto ?? '').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+  const frasi = [];
+  for (const riga of testo.split('\n')) {
+    const pulita = riga.trim();
+    if (!pulita) continue;
+    if (pulita.startsWith('WEBVTT')) continue;
+    if (/^\d+$/.test(pulita)) continue;
+    if (pulita.includes('-->')) continue;
+    frasi.push(pulita);
+  }
+  return frasi.join(' ');
 }
 
 /**
@@ -179,7 +288,7 @@ export function dovrebbeVibrare({ variante, haVibrate, riduciMovimento }) {
 /**
  * @param {{ getItem?: (chiave: string) => string | null } | null | undefined} storage
  * @param {string} versione
- * @returns {{ vista: boolean, data?: string, versione?: string }}
+ * @returns {{ vista: boolean, data?: string, versione?: string, audio?: boolean }}
  */
 export function leggiPresaVisione(storage, versione) {
   try {
@@ -189,7 +298,12 @@ export function leggiPresaVisione(storage, versione) {
     const dati = JSON.parse(raw);
     if (!dati || typeof dati !== 'object') return { vista: false };
     if (dati.versione === versione) {
-      return { vista: true, data: dati.data, versione: dati.versione };
+      return {
+        vista: true,
+        data: dati.data,
+        versione: dati.versione,
+        audio: dati.audio === false ? false : true,
+      };
     }
     return { vista: false };
   } catch {
@@ -201,14 +315,19 @@ export function leggiPresaVisione(storage, versione) {
  * @param {{ setItem?: (chiave: string, valore: string) => void } | null | undefined} storage
  * @param {string} versione
  * @param {string} adesso
+ * @param {boolean} [audio] omesso (chiamate del passo 5) vale come acceso
  * @returns {boolean}
  */
-export function salvaPresaVisione(storage, versione, adesso) {
+export function salvaPresaVisione(storage, versione, adesso, audio) {
   try {
     if (!storage || typeof storage.setItem !== 'function') return false;
     storage.setItem(
       CHIAVE_PRESA_VISIONE,
-      JSON.stringify({ versione, data: adesso })
+      JSON.stringify({
+        versione,
+        data: adesso,
+        audio: audio === false ? false : true,
+      })
     );
     return true;
   } catch {
@@ -232,6 +351,13 @@ function coppiaAudio(base, nome) {
   return {
     mp3: `${base}/${nome}.mp3`,
     ogg: `${base}/${nome}.ogg`,
+  };
+}
+
+function coppiaVoce(nome) {
+  return {
+    mp3: `/tony-live/voci/${nome}.mp3`,
+    vtt: `/tony-live/voci/${nome}.vtt`,
   };
 }
 

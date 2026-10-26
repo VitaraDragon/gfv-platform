@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue';
-import tonyIcon from '../assets/tony-icon.png';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { URL_REGISTRAZIONE } from '../config/landing-config.js';
 import { testiLanding } from '../content/testi-landing.js';
-import { percorsoClip } from '../lib/tony-bussa-logica.js';
+import { percorsoClip, percorsoTonyStatico, tempiVoce } from '../lib/tony-bussa-logica.js';
 import { avvia, ferma } from '../lib/stacked-alpha-player.js';
 
 const props = defineProps<{
@@ -12,22 +11,31 @@ const props = defineProps<{
   formato: string;
   riduciMovimento: boolean;
   uscitaConClip: boolean;
+  boccaAperta: boolean;
 }>();
 
 const emit = defineEmits(['entrataFinita', 'uscitaFinita', 'saluta', 'clipNonPronta']);
 
 const t = testiLanding.tonyBussa;
+const tonyStatico = percorsoTonyStatico();
+const msBocca = tempiVoce().dissolvenzaBoccaMs;
 const videoEntry = ref<HTMLVideoElement | null>(null);
 const videoIdle = ref<HTMLVideoElement | null>(null);
+const videoTalking = ref<HTMLVideoElement | null>(null);
 const videoExit = ref<HTMLVideoElement | null>(null);
 const canvasEntry = ref<HTMLCanvasElement | null>(null);
 const canvasIdle = ref<HTMLCanvasElement | null>(null);
+const canvasTalking = ref<HTMLCanvasElement | null>(null);
 const canvasExit = ref<HTMLCanvasElement | null>(null);
+const boccaVisibile = computed(
+  () => props.fase === 'parla' && props.boccaAperta === true && !props.riduciMovimento
+);
 const nascondiEntrata = ref(false);
 const inFadeOut = ref(false);
 
 let playerEntry: { ferma: () => void } | null = null;
 let playerIdle: { ferma: () => void } | null = null;
+let playerTalking: { ferma: () => void } | null = null;
 let playerExit: { ferma: () => void } | null = null;
 let entrataAvviata = false;
 let idleAvviata = false;
@@ -41,7 +49,7 @@ let timerUscita = 0;
 const saluto = () =>
   props.variante === 'mobile' ? t.salutoMobile : t.salutoDesktop;
 
-function src(nome: 'entry' | 'idle' | 'exit') {
+function src(nome: 'entry' | 'idle' | 'exit' | 'talking') {
   const formato = props.formato === 'stacked' ? 'stacked' : 'webm';
   const variante = props.variante === 'mobile' ? 'mobile' : 'desktop';
   return percorsoClip(nome, variante, formato);
@@ -143,9 +151,44 @@ function onEntryEnded() {
   emettiEntrata();
 }
 
+function suonaTalking() {
+  if (smontato || props.riduciMovimento) return;
+  if (props.formato === 'stacked') {
+    if (!canvasTalking.value) return;
+    playerTalking?.ferma();
+    playerTalking = avvia(canvasTalking.value, src('talking'), { loop: true });
+    return;
+  }
+  const video = videoTalking.value;
+  if (!video) return;
+  try {
+    video.currentTime = 0;
+  } catch {
+    /* ancora vuoto */
+  }
+  video.loop = true;
+  playSicuro(video);
+}
+
+function fermaTalking() {
+  const video = videoTalking.value;
+  if (video) {
+    try {
+      video.pause();
+    } catch {
+      /* già fermo */
+    }
+  }
+  if (playerTalking) {
+    playerTalking.ferma();
+    playerTalking = null;
+  }
+}
+
 function suonaUscita() {
   if (uscitaAvviata || smontato) return;
   uscitaAvviata = true;
+  fermaTalking();
   videoEntry.value?.pause();
   videoIdle.value?.pause();
   playerEntry?.ferma();
@@ -184,19 +227,21 @@ function onExitEnded() {
 }
 
 function onMediaError() {
-  if (smontato || props.fase === 'idle' || props.fase === 'esce') return;
+  if (smontato || props.fase === 'idle' || props.fase === 'esce' || props.fase === 'parla') return;
   emit('clipNonPronta');
 }
 
-function applicaFase(fase: string) {
+function applicaFase(fase: string, precedente?: string) {
+  if (precedente === 'parla' && fase !== 'parla') fermaTalking();
   if (fase === 'entra') suonaEntrata();
   if (fase === 'idle') suonaIdle();
+  if (fase === 'parla') suonaTalking();
   if (fase === 'esce') suonaUscita();
 }
 
 watch(
   () => props.fase,
-  (fase) => applicaFase(fase)
+  (fase, precedente) => applicaFase(fase, precedente)
 );
 
 onMounted(() => applicaFase(props.fase));
@@ -207,9 +252,10 @@ onUnmounted(() => {
   if (timerUscita) window.clearTimeout(timerUscita);
   playerEntry?.ferma();
   playerIdle?.ferma();
+  playerTalking?.ferma();
   playerExit?.ferma();
   ferma();
-  for (const el of [videoEntry.value, videoIdle.value, videoExit.value]) {
+  for (const el of [videoEntry.value, videoIdle.value, videoTalking.value, videoExit.value]) {
     if (!el) continue;
     try {
       el.pause();
@@ -230,22 +276,30 @@ onUnmounted(() => {
   <div
     class="tony-stage"
     :class="variante === 'mobile' ? 'tony-stage--mobile' : 'tony-stage--desktop'"
+    :style="{ '--ms-bocca': msBocca + 'ms' }"
   >
     <div class="tony-riga">
       <div
-        v-show="fase === 'idle' || fase === 'statico'"
+        v-show="fase === 'idle' || fase === 'statico' || fase === 'parla' || fase === 'esce'"
         class="fumetto"
         role="region"
-        aria-labelledby="tony-etichetta"
+        :aria-labelledby="fase === 'esce' ? undefined : 'tony-etichetta'"
+        :aria-label="fase === 'esce' ? t.ciao : undefined"
       >
-        <p id="tony-etichetta" class="etichetta">{{ t.etichetta }}</p>
-        <p class="saluto" aria-live="polite">{{ saluto() }}</p>
-        <div class="fumetto-azioni">
-          <a class="btn-account" :href="URL_REGISTRAZIONE">{{ t.ctaAccount }}</a>
-          <button type="button" class="btn-saluta" @click="emit('saluta')">
-            {{ t.saluta }}
-          </button>
-        </div>
+        <template v-if="fase === 'esce'">
+          <p class="saluto" aria-live="polite">{{ t.ciao }}</p>
+        </template>
+        <template v-else>
+          <p id="tony-etichetta" class="etichetta">{{ t.etichetta }}</p>
+          <p class="saluto" aria-live="polite">{{ saluto() }}</p>
+          <p class="nota-saluto">{{ t.notaSaluto }}</p>
+          <div class="fumetto-azioni">
+            <a class="btn-account" :href="URL_REGISTRAZIONE">{{ t.ctaAccount }}</a>
+            <button type="button" class="btn-saluta" @click="emit('saluta')">
+              {{ t.saluta }}
+            </button>
+          </div>
+        </template>
       </div>
 
       <div
@@ -260,10 +314,10 @@ onUnmounted(() => {
         <img
           v-if="fase === 'statico'"
           class="tony-statico"
-          :src="tonyIcon"
+          :src="tonyStatico"
           alt=""
-          width="240"
-          height="240"
+          width="744"
+          height="1024"
         />
         <template v-else-if="formato === 'webm'">
           <video
@@ -280,13 +334,23 @@ onUnmounted(() => {
           <video
             ref="videoIdle"
             class="clip clip-idle"
-            :class="{ 'clip--nascosta': fase === 'esce' || fase === 'statico' }"
+            :class="{ 'clip--nascosta': fase === 'esce' || fase === 'statico' || boccaVisibile }"
             :src="src('idle')"
             muted
             playsinline
             loop
             preload="auto"
             @error="onMediaError"
+          />
+          <video
+            ref="videoTalking"
+            class="clip clip-talking"
+            :class="{ 'clip--nascosta': !boccaVisibile }"
+            :src="src('talking')"
+            muted
+            playsinline
+            loop
+            preload="auto"
           />
           <video
             ref="videoExit"
@@ -308,7 +372,12 @@ onUnmounted(() => {
           <canvas
             ref="canvasIdle"
             class="clip clip-idle"
-            :class="{ 'clip--nascosta': fase === 'esce' || fase === 'statico' }"
+            :class="{ 'clip--nascosta': fase === 'esce' || fase === 'statico' || boccaVisibile }"
+          />
+          <canvas
+            ref="canvasTalking"
+            class="clip clip-talking"
+            :class="{ 'clip--nascosta': !boccaVisibile }"
           />
           <canvas
             ref="canvasExit"
@@ -351,6 +420,13 @@ onUnmounted(() => {
   font-size: 0.98rem;
   line-height: 1.45;
   color: #06140e;
+}
+
+.nota-saluto {
+  margin: 0.45rem 0 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: #4a6358;
 }
 
 .fumetto {
@@ -424,8 +500,17 @@ onUnmounted(() => {
   z-index: 2;
 }
 
+.clip-idle,
+.clip-talking {
+  transition: opacity var(--ms-bocca, 150ms) ease;
+}
+
 .clip-idle {
   z-index: 1;
+}
+
+.clip-talking {
+  z-index: 2;
 }
 
 .clip-exit {
@@ -437,13 +522,14 @@ onUnmounted(() => {
 }
 
 .tony-statico {
-  width: 72%;
-  height: 72%;
-  margin: 14% auto 0;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center bottom;
+  background: transparent;
   display: block;
-  object-fit: cover;
-  border-radius: 50%;
-  background: #e7f6ee;
 }
 
 .tony-stage--desktop .tony-riga {
