@@ -4976,6 +4976,14 @@ exports.registraAccettazioniLegali = onCall(
   handleRegistraAccettazioniLegali
 );
 
+// Landing «Tony bussa»: salvataggio di sede, poderi e terreni dopo «Sì, salva» (brief v4.2, sezione 8).
+// App Check obbligatorio: NON pubblicare prima del passo 9 (configurazione App Check), altrimenti ogni chiamata è respinta.
+const { handleTonyLandingSetup } = require("./tony-landing-setup");
+exports.tonyLandingSetup = onCall(
+  { region: "europe-west1", enforceAppCheck: true },
+  (request) => handleTonyLandingSetup(request)
+);
+
 exports.onComunicazioneCreated = onComunicazioneCreated;
 exports.onLavoroWritten = onLavoroWritten;
 exports.onOreOperaiCreated = onOreOperaiCreated;

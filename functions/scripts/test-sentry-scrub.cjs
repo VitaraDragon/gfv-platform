@@ -112,4 +112,57 @@ assert.strictEqual(malformed.message, "ancora integro");
 
 assert.strictEqual(scrubEvent(null), null);
 
+// Landing tonyLandingSetup: sede / poderi / terreni e indirizzo esatti, non «contiene»
+const landing = scrubEvent({
+  extra: {
+    richiesta: {
+      sede: {
+        indirizzo: "Via Emilia Ponente 10",
+        citta: "Faenza",
+        cap: "48018",
+        provincia: "RA",
+      },
+      poderi: [{ nome: "Casetti" }],
+      terreni: [{ nome: "Campo grande", superficie: 2.34 }],
+    },
+  },
+  contexts: {
+    azienda: {
+      Indirizzo: "Via Roma 12",
+      citta: "Faenza",
+      cap: "48018",
+      provincia: "RA",
+      caposquadra: "Mario",
+      capienza: 12,
+      modulo: "terreni",
+    },
+  },
+  tags: {
+    sede: "non-deve-uscire",
+    modulo: "conto-terzi",
+  },
+});
+assert.strictEqual(landing.extra.richiesta.sede, "[Filtered]");
+assert.strictEqual(landing.extra.richiesta.poderi, "[Filtered]");
+assert.strictEqual(landing.extra.richiesta.terreni, "[Filtered]");
+assert.strictEqual(landing.contexts.azienda.Indirizzo, "[Filtered]");
+assert.strictEqual(landing.contexts.azienda.citta, "[Filtered]");
+assert.strictEqual(landing.contexts.azienda.cap, "[Filtered]");
+assert.strictEqual(landing.contexts.azienda.provincia, "[Filtered]");
+assert.strictEqual(landing.contexts.azienda.caposquadra, "Mario");
+assert.strictEqual(landing.contexts.azienda.capienza, 12);
+assert.strictEqual(landing.contexts.azienda.modulo, "terreni");
+assert.strictEqual(landing.tags.sede, "[Filtered]");
+assert.strictEqual(landing.tags.modulo, "conto-terzi");
+const landingJson = JSON.stringify(landing);
+assert.strictEqual(landingJson.includes("Via Emilia Ponente 10"), false);
+assert.strictEqual(landingJson.includes("Via Roma 12"), false);
+assert.strictEqual(landingJson.includes("Faenza"), false);
+assert.strictEqual(landingJson.includes("48018"), false);
+assert.strictEqual(landingJson.includes("Casetti"), false);
+assert.strictEqual(landingJson.includes("Campo grande"), false);
+assert.strictEqual(landingJson.includes("non-deve-uscire"), false);
+assert.strictEqual(landingJson.includes("Mario"), true);
+assert.strictEqual(landingJson.includes('"capienza":12'), true);
+
 console.log("OK");
