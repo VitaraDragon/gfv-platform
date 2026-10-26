@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-25 — Tony: mai JSON grezzo in chat.**
+**Ultimo aggiornamento documentazione: 2026-10-26 — Tony: la chat mostra solo la frase.**
+
+## 2026-10-26 — Tony: la chat mostra solo la frase (porting #123)
+
+Porting a mano di #123 (`0db04887`) su main. Se la risposta arriva troncata o con un comando attaccato (`OPEN_MODAL`, `INJECT_FORM_DATA`, …), in chat e in voce resta la frase; il comando parte solo se id, formId o target sono chiusi. Una bolla vuota non viene mostrata. L’estrazione di `text` con virgolette non escapate resta quella di #298; «Tutto pronto» resta l’uscita di ogni bolla. Nessun deploy di Cloud Functions.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-25 — Tony: mai JSON grezzo in chat.**
 
 ## 2026-10-25 — Tony: mai JSON grezzo in chat (virgolette non escapate)
 
