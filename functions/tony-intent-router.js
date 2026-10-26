@@ -3,7 +3,7 @@
  */
 
 const crypto = require("crypto");
-const { normalizeItTony, shouldSkipQuickReply, QUICK_REPLY_MAP, isTonyOperationalCreationIntent } = require("./tony-quick-replies");
+const { normalizeItTony, shouldSkipQuickReply, QUICK_REPLY_MAP, isTonyOperationalCreationIntent, isTonySegnaOreIntent } = require("./tony-quick-replies");
 const { getModuliAttiviFromCtx, isQuickReplyAllowed } = require("./tony-module-gate");
 const { maxTier, getQuickReplyTierRequired } = require("./tony-context-tier");
 
@@ -94,6 +94,7 @@ function detectDomains(message) {
 
 function isTonyMeteoOperationalQuestionLocal(message) {
   if (isTonyOperationalCreationIntent(message)) return false;
+  if (isTonySegnaOreIntent(message)) return false;
   const msg = normalizeItTony(message);
   if (!msg) return false;
   return METEO_OPERATIVO_PATTERNS.some((re) => re.test(msg));
