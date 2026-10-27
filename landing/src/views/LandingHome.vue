@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, defineAsyncComponent, onMounted, onUnmounted, ref, watch } from 'vue';
 import logoMark from '../../../icons/gfv-mark.svg';
 import tonyIcon from '../assets/tony-icon.png';
+import TonyAvviso from '../components/TonyAvviso.vue';
 import VideoTony from '../components/VideoTony.vue';
 import { testiLanding } from '../content/testi-landing.js';
 import {
@@ -12,10 +13,31 @@ import {
   LIMITI_LANDING,
   PAGINE_LEGALI,
   TESTO_CHI_SIAMO,
+  TONY_BUSSA_ATTIVO,
   URL_LOGIN,
   URL_REGISTRAZIONE,
+  VERSIONE_AVVISO_TONY,
 } from '../config/landing-config.js';
 import { rigaPrezzi, vociPianiCosaGestisci } from '../lib/landing-logica.js';
+import {
+  deveParlare,
+  dovrebbeVibrare,
+  formatoClip,
+  leggiPresaVisione,
+  livelloVoce,
+  percorsoClip,
+  percorsiAudio,
+  percorsiVoce,
+  prossimoStato,
+  prossimaBocca,
+  salvaPresaVisione,
+  SCHEMA_VIBRAZIONE,
+  SOGLIA_VOCE_ACCESA,
+  tempiScena,
+  tempiVoce,
+  tonyBussaVisibile,
+  varianteScena,
+} from '../lib/tony-bussa-logica.js';
 import {
   monthlyToAnnual,
   SUBSCRIPTION_PLANS,
@@ -41,8 +63,764 @@ const mostraChiSiamo = computed(
   () => Boolean(FOTO_PIER_URL) && Boolean(String(TESTO_CHI_SIAMO || '').trim())
 );
 
+// Nella build di deploy DEV è false e il modo non è «anteprima»: con il flag spento
+// ?tonybussa=1 non accende la scena.
+const tonyOn = tonyBussaVisibile({
+  flag: TONY_BUSSA_ATTIVO,
+  dev: import.meta.env.DEV === true || import.meta.env.MODE === 'anteprima',
+  query: typeof window !== 'undefined' ? window.location.search : '',
+});
+
+const TonyStage = defineAsyncComponent(() => import('../components/TonyStage.vue'));
+
+const fase = ref('nascosto');
+const stageAperto = ref(false);
+const avvisoAperto = ref(false);
+const avvisoInChiusura = ref(false);
+const audioAttivo = ref(true);
+const riduciMovimento = ref(false);
+const uscitaConClip = ref(true);
+const shakePx = ref(0);
+const improntaAccesa = ref(false);
+const varianteScelta = ref('desktop');
+const formatoScelto = ref('webm');
+const pulsanteOrigine = ref<HTMLElement | null>(null);
+const boccaAperta = ref(false);
+
+const stileScossone = computed(() => {
+  if (!shakePx.value) return undefined;
+  const px = shakePx.value;
+  return { transform: `translate(${px}px, ${-Math.abs(px)}px)` };
+});
+
+let audioBussata: HTMLAudioElement | null = null;
+let audioTerzo: HTMLAudioElement | null = null;
+let audioWhoosh: HTMLAudioElement | null = null;
+let audioSaluto: HTMLAudioElement | null = null;
+let audioCiao: HTMLAudioElement | null = null;
+let audioCtx: AudioContext | null = null;
+let analyser: AnalyserNode | null = null;
+let nodoSaluto: MediaElementAudioSourceNode | null = null;
+let modoBocca: 'ferma' | 'continua' | 'volume' = 'ferma';
+let generazioneVoce = 0;
+let salutoProgrammato = false;
+let voceSalutoAttiva = false;
+let uscitaClipFinita = false;
+let uscitaVoceFinita = false;
+let rafBocca = 0;
+let ultimoSopraMs = 0;
+let videoEntryPreload: HTMLVideoElement | null = null;
+let videoIdlePreload: HTMLVideoElement | null = null;
+const videoPreload: HTMLVideoElement[] = [];
+let mediaPronte = false;
+let formatoAudioScelto: 'mp3' | 'ogg' = 'mp3';
+const timerIds: number[] = [];
+const intervalli: number[] = [];
+
+function storagePagina() {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function aggiornaRiduci() {
+  try {
+    riduciMovimento.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch {
+    riduciMovimento.value = false;
+  }
+}
+
+function rilevaFormato() {
+  let webm = false;
+  try {
+    const video = document.createElement('video');
+    webm = video.canPlayType('video/webm; codecs="vp09.00.10.08"') !== '';
+  } catch {
+    webm = false;
+  }
+  return formatoClip({
+    userAgent: navigator.userAgent,
+    webmAlfaSupportato: webm,
+  });
+}
+
+function rilevaOgg() {
+  try {
+    const audio = document.createElement('audio');
+    return audio.canPlayType('audio/ogg; codecs="vorbis"') !== '';
+  } catch {
+    return false;
+  }
+}
+
+function creaVideoNascosto(src: string) {
+  const video = document.createElement('video');
+  video.preload = 'auto';
+  video.muted = true;
+  video.playsInline = true;
+  video.setAttribute('playsinline', '');
+  video.setAttribute('aria-hidden', 'true');
+  video.style.cssText =
+    'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none;';
+  video.src = src;
+  document.body.appendChild(video);
+  video.load();
+  videoPreload.push(video);
+  return video;
+}
+
+function creaAudio(src: string) {
+  const audio = new Audio(src);
+  audio.preload = 'auto';
+  audio.volume = 1;
+  return audio;
+}
+
+function preparaMedia() {
+  if (mediaPronte) return;
+  const variante = varianteScena(window.innerWidth);
+  varianteScelta.value = variante;
+  formatoScelto.value = rilevaFormato();
+  formatoAudioScelto = rilevaOgg() ? 'ogg' : 'mp3';
+  const audio = percorsiAudio(variante === 'mobile' ? 'mobile' : 'desktop');
+  const estensione = formatoAudioScelto;
+  audioBussata = creaAudio(audio.bussata[estensione]);
+  audioTerzo = creaAudio(audio.terzo[estensione]);
+  audioWhoosh = creaAudio(audio.whoosh[estensione]);
+  const voci = percorsiVoce(variante === 'mobile' ? 'mobile' : 'desktop');
+  audioSaluto = creaAudio(voci.saluto.mp3);
+  audioCiao = creaAudio(voci.ciao.mp3);
+  const formato = formatoScelto.value === 'stacked' ? 'stacked' : 'webm';
+  videoEntryPreload = creaVideoNascosto(percorsoClip('entry', variante, formato));
+  videoIdlePreload = creaVideoNascosto(percorsoClip('idle', variante, formato));
+  creaVideoNascosto(percorsoClip('exit', variante, formato));
+  creaVideoNascosto(percorsoClip('talking', variante, formato));
+  mediaPronte = true;
+}
+
+function rilasciaPreload() {
+  fermaAudio();
+  rilasciaVoce();
+  for (const video of videoPreload) {
+    try {
+      video.pause();
+    } catch {
+      /* già fermo */
+    }
+    video.removeAttribute('src');
+    try {
+      video.load();
+    } catch {
+      /* elemento già staccato */
+    }
+    if (video.parentNode) video.parentNode.removeChild(video);
+  }
+  videoPreload.length = 0;
+  videoEntryPreload = null;
+  videoIdlePreload = null;
+  audioBussata = null;
+  audioTerzo = null;
+  audioWhoosh = null;
+  audioSaluto = null;
+  audioCiao = null;
+  mediaPronte = false;
+}
+
+function fermaAudio() {
+  for (const audio of [audioBussata, audioTerzo, audioWhoosh]) {
+    if (!audio) continue;
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+    } catch {
+      /* il browser non consente il reset */
+    }
+  }
+}
+
+function riproduci(audio: HTMLAudioElement | null) {
+  if (!audio || !audioAttivo.value) return;
+  try {
+    audio.currentTime = 0;
+    const promessa = audio.play();
+    if (promessa && typeof promessa.catch === 'function') promessa.catch(() => {});
+  } catch {
+    /* audio bloccato: la scena continua in silenzio */
+  }
+}
+
+function sblocca(audio: HTMLAudioElement | null) {
+  if (!audio || !audioAttivo.value) return;
+  try {
+    const promessa = audio.play();
+    if (promessa && typeof promessa.then === 'function') {
+      promessa
+        .then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+        })
+        .catch(() => {});
+    }
+  } catch {
+    /* silenzio */
+  }
+}
+
+type AudioSblocco = HTMLAudioElement & { sbloccoInCorso?: boolean };
+
+function sbloccaVoce(audio: HTMLAudioElement | null) {
+  if (!audio || !audioAttivo.value) return;
+  const voce = audio as AudioSblocco;
+  voce.sbloccoInCorso = true;
+  try {
+    const promessa = audio.play();
+    if (promessa && typeof promessa.then === 'function') {
+      promessa
+        .then(() => {
+          if (!voce.sbloccoInCorso) return;
+          voce.sbloccoInCorso = false;
+          audio.pause();
+          try {
+            audio.currentTime = 0;
+          } catch {
+            /* il browser non consente il reset */
+          }
+        })
+        .catch(() => {
+          voce.sbloccoInCorso = false;
+        });
+    }
+  } catch {
+    voce.sbloccoInCorso = false;
+  }
+}
+
+function fineSblocco(audio: HTMLAudioElement | null) {
+  if (!audio) return;
+  (audio as AudioSblocco).sbloccoInCorso = false;
+}
+
+function creaContestoAudio() {
+  try {
+    const w = window as Window & { webkitAudioContext?: typeof AudioContext };
+    const Ctor = window.AudioContext || w.webkitAudioContext;
+    if (!Ctor) return null;
+    return new Ctor();
+  } catch {
+    return null;
+  }
+}
+
+function sbloccaContestoAudio() {
+  if (!audioAttivo.value) return;
+  try {
+    if (!audioCtx) audioCtx = creaContestoAudio();
+    if (!audioCtx) return;
+    const promessa = audioCtx.resume();
+    if (promessa && typeof promessa.catch === 'function') promessa.catch(() => {});
+  } catch {
+    /* senza analizzatore la bocca resta sul ripiego */
+  }
+}
+
+function collegaAnalizzatore(audio: HTMLAudioElement) {
+  if (!audioCtx || audioCtx.state !== 'running') return false;
+  try {
+    if (!analyser) {
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 1024;
+    }
+    if (!nodoSaluto) {
+      nodoSaluto = audioCtx.createMediaElementSource(audio);
+      nodoSaluto.connect(analyser);
+      analyser.connect(audioCtx.destination);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function fermaLoopBocca() {
+  if (rafBocca) cancelAnimationFrame(rafBocca);
+  rafBocca = 0;
+  ultimoSopraMs = 0;
+}
+
+function avviaLoopBocca() {
+  if (rafBocca || !analyser) return;
+  const nodo = analyser;
+  const dati = new Uint8Array(nodo.fftSize);
+  const tick = (ora: number) => {
+    if (modoBocca !== 'volume' || !analyser) {
+      rafBocca = 0;
+      return;
+    }
+    nodo.getByteTimeDomainData(dati);
+    const livello = livelloVoce(dati);
+    if (livello >= SOGLIA_VOCE_ACCESA) ultimoSopraMs = ora;
+    const msDaUltimo = ultimoSopraMs > 0 ? ora - ultimoSopraMs : 0;
+    boccaAperta.value = prossimaBocca({
+      aperta: boccaAperta.value,
+      livello,
+      msDaUltimoSopra: msDaUltimo,
+    });
+    rafBocca = requestAnimationFrame(tick);
+  };
+  rafBocca = requestAnimationFrame(tick);
+}
+
+function fermaSaluto() {
+  generazioneVoce += 1;
+  voceSalutoAttiva = false;
+  fermaLoopBocca();
+  boccaAperta.value = false;
+  modoBocca = 'ferma';
+  if (!audioSaluto) return;
+  audioSaluto.onplaying = null;
+  audioSaluto.onended = null;
+  audioSaluto.onerror = null;
+  try {
+    audioSaluto.pause();
+  } catch {
+    /* già fermo */
+  }
+}
+
+function rilasciaVoce() {
+  generazioneVoce += 1;
+  voceSalutoAttiva = false;
+  fermaLoopBocca();
+  boccaAperta.value = false;
+  modoBocca = 'ferma';
+  for (const audio of [audioSaluto, audioCiao]) {
+    if (!audio) continue;
+    audio.onplaying = null;
+    audio.onended = null;
+    audio.onerror = null;
+    try {
+      audio.pause();
+    } catch {
+      /* già fermo */
+    }
+  }
+  try {
+    nodoSaluto?.disconnect();
+  } catch {
+    /* già staccato */
+  }
+  try {
+    analyser?.disconnect();
+  } catch {
+    /* già staccato */
+  }
+  nodoSaluto = null;
+  analyser = null;
+  const ctx = audioCtx;
+  audioCtx = null;
+  if (ctx) {
+    try {
+      const chiuso = ctx.close();
+      if (chiuso && typeof chiuso.catch === 'function') chiuso.catch(() => {});
+    } catch {
+      /* già chiuso */
+    }
+  }
+}
+
+function onSalutoPlaying(gen: number) {
+  if (gen !== generazioneVoce || voceSalutoAttiva) return;
+  if (fase.value !== 'idle' && fase.value !== 'statico') return;
+  voceSalutoAttiva = true;
+  if (fase.value === 'idle') {
+    if (modoBocca === 'continua') boccaAperta.value = true;
+    if (modoBocca === 'volume') avviaLoopBocca();
+  }
+  fase.value = prossimoStato(fase.value, 'voceIniziata');
+}
+
+function onSalutoFinita(gen: number) {
+  if (gen !== generazioneVoce) return;
+  voceSalutoAttiva = false;
+  fermaLoopBocca();
+  boccaAperta.value = false;
+  if (fase.value === 'parla') fase.value = prossimoStato('parla', 'voceFinita');
+}
+
+function avviaSaluto() {
+  if (fase.value !== 'idle' && fase.value !== 'statico') return;
+  if (!audioSaluto) return;
+  const ctxPronto = !!(audioCtx && audioCtx.state === 'running');
+  const decisione = deveParlare({
+    audioAttivo: audioAttivo.value,
+    riduciMovimento: riduciMovimento.value,
+    analizzatoreDisponibile: ctxPronto,
+  });
+  if (!decisione.voce) return;
+  let bocca = decisione.bocca;
+  if (bocca === 'volume' && !collegaAnalizzatore(audioSaluto)) bocca = 'continua';
+  modoBocca = bocca;
+  const gen = generazioneVoce;
+  audioSaluto.onplaying = () => onSalutoPlaying(gen);
+  audioSaluto.onended = () => onSalutoFinita(gen);
+  audioSaluto.onerror = () => onSalutoFinita(gen);
+  fra(tempiVoce().attesaMaxVoceMs, () => {
+    if (gen !== generazioneVoce || voceSalutoAttiva) return;
+    generazioneVoce += 1;
+    if (!audioSaluto) return;
+    audioSaluto.onplaying = null;
+    audioSaluto.onended = null;
+    audioSaluto.onerror = null;
+    try {
+      audioSaluto.pause();
+    } catch {
+      /* resta il testo nel fumetto */
+    }
+  });
+  fineSblocco(audioSaluto);
+  try {
+    audioSaluto.currentTime = 0;
+    const promessa = audioSaluto.play();
+    if (promessa && typeof promessa.catch === 'function') {
+      promessa.catch(() => {
+        /* autoplay bloccato: niente errore, il testo è già nel fumetto */
+      });
+    }
+  } catch {
+    /* silenzio */
+  }
+}
+
+function programmaSaluto() {
+  if (salutoProgrammato) return;
+  if (fase.value !== 'idle' && fase.value !== 'statico') return;
+  salutoProgrammato = true;
+  fra(tempiVoce().ritardoSalutoMs, () => {
+    if (fase.value !== 'idle' && fase.value !== 'statico') return;
+    avviaSaluto();
+  });
+}
+
+function provaChiudiUscita() {
+  if (fase.value !== 'esce') return;
+  if (uscitaClipFinita && uscitaVoceFinita) chiudiTutto();
+}
+
+function avviaCiao() {
+  if (!audioCiao) {
+    uscitaVoceFinita = true;
+    provaChiudiUscita();
+    return;
+  }
+  const fine = () => {
+    if (uscitaVoceFinita) return;
+    uscitaVoceFinita = true;
+    provaChiudiUscita();
+  };
+  audioCiao.onended = fine;
+  audioCiao.onerror = fine;
+  fineSblocco(audioCiao);
+  try {
+    audioCiao.currentTime = 0;
+    const promessa = audioCiao.play();
+    if (promessa && typeof promessa.then === 'function') {
+      promessa.catch(() => fine());
+    }
+  } catch {
+    fine();
+  }
+}
+
+function fra(ms: number, fn: () => void) {
+  const id = window.setTimeout(fn, ms);
+  timerIds.push(id);
+}
+
+function pulisciTempo() {
+  for (const id of timerIds) window.clearTimeout(id);
+  timerIds.length = 0;
+  for (const id of intervalli) window.clearInterval(id);
+  intervalli.length = 0;
+}
+
+function alTempo(inizio: number, ms: number, fn: () => void) {
+  const attesa = ms - (Date.now() - inizio);
+  if (attesa <= 0) fn();
+  else fra(attesa, fn);
+}
+
+function scuoti(px: number, durataMs: number) {
+  shakePx.value = px;
+  fra(durataMs, () => {
+    if (shakePx.value === px) shakePx.value = 0;
+  });
+}
+
+function clipPronta(video: HTMLVideoElement | null) {
+  return !!video && video.readyState >= 3;
+}
+
+function ripristinaFocus() {
+  const el = pulsanteOrigine.value;
+  if (el && typeof el.focus === 'function') el.focus();
+}
+
+function chiudiTutto() {
+  pulisciTempo();
+  salutoProgrammato = false;
+  uscitaClipFinita = false;
+  uscitaVoceFinita = false;
+  if (fase.value === 'esce') fase.value = prossimoStato('esce', 'uscitaFinita');
+  else fase.value = 'nascosto';
+  stageAperto.value = false;
+  avvisoAperto.value = false;
+  avvisoInChiusura.value = false;
+  improntaAccesa.value = false;
+  shakePx.value = 0;
+  rilasciaPreload();
+  ripristinaFocus();
+}
+
+function saluta() {
+  if (fase.value === 'esce') return;
+  const prima = fase.value;
+  const dopo = prossimoStato(prima, 'saluta');
+  pulisciTempo();
+  fermaSaluto();
+  fermaAudio();
+  try {
+    navigator.vibrate(0);
+  } catch {
+    /* niente vibrazione da fermare */
+  }
+  shakePx.value = 0;
+  improntaAccesa.value = false;
+  if (dopo !== 'esce') {
+    chiudiTutto();
+    return;
+  }
+  const conVoce =
+    (prima === 'idle' || prima === 'parla' || prima === 'statico') && audioAttivo.value;
+  uscitaClipFinita = false;
+  uscitaVoceFinita = !conVoce;
+  uscitaConClip.value =
+    (prima === 'idle' || prima === 'entra' || prima === 'parla') && !riduciMovimento.value;
+  fase.value = 'esce';
+  if (conVoce) avviaCiao();
+  fra(tempiVoce().attesaMaxUscitaMs, () => {
+    if (fase.value === 'esce') chiudiTutto();
+  });
+}
+
+function onEntrataFinita() {
+  if (fase.value !== 'entra') return;
+  fase.value = prossimoStato('entra', 'entrataFinita');
+}
+
+function onClipNonPronta() {
+  if (fase.value !== 'bussa' && fase.value !== 'entra') return;
+  fase.value = prossimoStato(fase.value, 'clipNonPronta');
+}
+
+function onUscitaFinita() {
+  uscitaClipFinita = true;
+  provaChiudiUscita();
+}
+
+function vaiEntrata() {
+  if (fase.value !== 'bussa') return;
+  fase.value = prossimoStato('bussa', 'bussataFinita');
+  riproduci(audioWhoosh);
+}
+
+function vaiStatico() {
+  if (fase.value !== 'bussa' && fase.value !== 'entra') return;
+  fase.value = prossimoStato(fase.value, 'clipNonPronta');
+  riproduci(audioWhoosh);
+}
+
+function provaEntrata(inizio: number, staticoMs: number) {
+  if (fase.value !== 'bussa') return;
+  if (clipPronta(videoEntryPreload)) {
+    vaiEntrata();
+    return;
+  }
+  riproduci(audioTerzo);
+  const id = window.setInterval(() => {
+    if (fase.value !== 'bussa') {
+      window.clearInterval(id);
+      return;
+    }
+    if (clipPronta(videoEntryPreload)) {
+      window.clearInterval(id);
+      vaiEntrata();
+      return;
+    }
+    if (Date.now() - inizio >= staticoMs) {
+      window.clearInterval(id);
+      vaiStatico();
+    }
+  }, 100);
+  intervalli.push(id);
+}
+
+function attendiIdle(inizio: number, staticoMs: number) {
+  const prova = () => {
+    if (fase.value !== 'bussa') return true;
+    if (clipPronta(videoIdlePreload)) {
+      fase.value = prossimoStato('bussa', 'bussataFinita');
+      fase.value = prossimoStato('entra', 'entrataFinita');
+      return true;
+    }
+    if (Date.now() - inizio >= staticoMs) {
+      vaiStatico();
+      return true;
+    }
+    return false;
+  };
+  if (prova()) return;
+  const id = window.setInterval(() => {
+    if (prova()) window.clearInterval(id);
+  }, 80);
+  intervalli.push(id);
+}
+
+function partiCronometro() {
+  const inizio = Date.now();
+  const variante = varianteScelta.value === 'mobile' ? 'mobile' : 'desktop';
+  const tempi = tempiScena({
+    variante,
+    riduciMovimento: riduciMovimento.value,
+  });
+  if (audioAttivo.value) {
+    riproduci(audioBussata);
+    sblocca(audioTerzo);
+    sblocca(audioWhoosh);
+    sbloccaContestoAudio();
+    sbloccaVoce(audioSaluto);
+    sbloccaVoce(audioCiao);
+  }
+  if (riduciMovimento.value) {
+    attendiIdle(inizio, tempi.staticoMs);
+    return;
+  }
+  tempi.colpiMs.forEach((ms, i) => {
+    const base = tempi.scossonePx[i] || 0;
+    const px = i % 2 === 0 ? base : -base;
+    alTempo(inizio, ms, () => scuoti(px, tempi.durataScossoneMs));
+  });
+  if (tempi.impronta) {
+    const impronta = tempi.impronta;
+    alTempo(inizio, impronta.aMs, () => {
+      improntaAccesa.value = true;
+      fra(impronta.durataMs, () => {
+        improntaAccesa.value = false;
+      });
+    });
+  }
+  if (
+    dovrebbeVibrare({
+      variante,
+      haVibrate: typeof navigator.vibrate === 'function',
+      riduciMovimento: false,
+    })
+  ) {
+    alTempo(inizio, tempi.vibrazioneMs, () => {
+      try {
+        navigator.vibrate(SCHEMA_VIBRAZIONE);
+      } catch {
+        /* iPhone, o il browser ha rifiutato */
+      }
+    });
+  }
+  alTempo(inizio, tempi.entrataMs, () => provaEntrata(inizio, tempi.staticoMs));
+}
+
+function avviaScena() {
+  if (stageAperto.value) return;
+  aggiornaRiduci();
+  const ora = varianteScena(window.innerWidth);
+  if (mediaPronte && ora !== varianteScelta.value) rilasciaPreload();
+  preparaMedia();
+  let stato = fase.value;
+  if (stato === 'nascosto') stato = prossimoStato(stato, 'apri');
+  if (stato === 'avviso') stato = prossimoStato(stato, 'conferma');
+  fase.value = stato;
+  stageAperto.value = true;
+  partiCronometro();
+}
+
+function onVuoiProvare(ev: MouseEvent) {
+  const target = ev.currentTarget;
+  pulsanteOrigine.value = target instanceof HTMLElement ? target : null;
+  aggiornaRiduci();
+  preparaMedia();
+  const presa = leggiPresaVisione(storagePagina(), VERSIONE_AVVISO_TONY);
+  if (presa.vista) {
+    audioAttivo.value = presa.audio !== false;
+    avviaScena();
+    return;
+  }
+  fase.value = prossimoStato('nascosto', 'apri');
+  avvisoAperto.value = true;
+}
+
+function onConferma(payload: { audio?: boolean }) {
+  audioAttivo.value = payload?.audio !== false;
+  salvaPresaVisione(
+    storagePagina(),
+    VERSIONE_AVVISO_TONY,
+    new Date().toISOString(),
+    audioAttivo.value
+  );
+  avvisoInChiusura.value = true;
+  const tempi = tempiScena({
+    variante: varianteScelta.value === 'mobile' ? 'mobile' : 'desktop',
+    riduciMovimento: riduciMovimento.value,
+  });
+  avviaScena();
+  window.setTimeout(() => {
+    avvisoAperto.value = false;
+    avvisoInChiusura.value = false;
+  }, tempi.dissolvenzaAvvisoMs);
+}
+
+function onRinuncia() {
+  if (stageAperto.value) return;
+  fase.value = prossimoStato(fase.value === 'avviso' ? 'avviso' : fase.value, 'rinuncia');
+  if (fase.value !== 'nascosto') fase.value = 'nascosto';
+  avvisoAperto.value = false;
+  avvisoInChiusura.value = false;
+  rilasciaPreload();
+  ripristinaFocus();
+}
+
+function onEscGlobale(e: KeyboardEvent) {
+  if (e.key !== 'Escape') return;
+  if (avvisoAperto.value && !avvisoInChiusura.value) return;
+  if (!stageAperto.value) return;
+  e.preventDefault();
+  saluta();
+}
+
+watch(fase, (nuova, precedente) => {
+  if (nuova === precedente) return;
+  if (nuova === 'idle' || nuova === 'statico') programmaSaluto();
+});
+
 onMounted(() => {
   document.title = t.documentTitle;
+  if (!tonyOn) return;
+  window.addEventListener('keydown', onEscGlobale);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', onEscGlobale);
+  pulisciTempo();
+  rilasciaPreload();
 });
 
 /** Icone emoji per id voce piano (stesse nei blocchi gratuito e Base). */
@@ -77,6 +855,11 @@ const iconeModuliImg: Record<string, string> = {
 
 <template>
   <div class="landing">
+    <div
+      class="landing-pagina"
+      :class="{ 'landing-pagina--tony': stageAperto && varianteScelta === 'mobile' }"
+      :style="stileScossone"
+    >
     <header class="topbar">
       <a class="brand-link" href="#inizio">
         <img
@@ -99,7 +882,7 @@ const iconeModuliImg: Record<string, string> = {
           <p class="hero-sub">{{ t.hero.sottotitolo }}</p>
 
           <div class="hero-cta hero-cta--desktop">
-            <a class="btn-primary" :href="URL_REGISTRAZIONE">
+            <a v-if="!tonyOn" class="btn-primary" :href="URL_REGISTRAZIONE">
               <span class="btn-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path
@@ -118,8 +901,26 @@ const iconeModuliImg: Record<string, string> = {
               </span>
               {{ t.hero.ctaPrincipale }}
             </a>
+            <button v-else type="button" class="btn-primary" @click="onVuoiProvare">
+              <span class="btn-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M8 11v2M12 10v4M16 11v2"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                  <path
+                    d="M5 8c0-1.5 1.2-3 3.2-3h7.6C17.8 5 19 6.5 19 8v4c0 3.5-2.5 6.5-7 8.5C7.5 18.5 5 15.5 5 12V8z"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </span>
+              {{ t.hero.ctaPrincipale }}
+            </button>
             <p class="cta-note">{{ t.hero.gratisNota }}</p>
-            <p class="cta-whisper">{{ t.hero.tonyDicembre }}</p>
             <a class="link-secondary" :href="URL_REGISTRAZIONE">{{
               t.hero.linkRegistrazione
             }}</a>
@@ -137,12 +938,15 @@ const iconeModuliImg: Record<string, string> = {
         </div>
 
         <div class="hero-cta hero-cta--mobile">
-          <a class="btn-primary" :href="URL_REGISTRAZIONE">
+          <a v-if="!tonyOn" class="btn-primary" :href="URL_REGISTRAZIONE">
             <span class="btn-icon" aria-hidden="true">👋</span>
             {{ t.hero.ctaPrincipale }}
           </a>
+          <button v-else type="button" class="btn-primary" @click="onVuoiProvare">
+            <span class="btn-icon" aria-hidden="true">👋</span>
+            {{ t.hero.ctaPrincipale }}
+          </button>
           <p class="cta-note">{{ t.hero.gratisNota }}</p>
-          <p class="cta-whisper">{{ t.hero.tonyDicembre }}</p>
           <a class="link-secondary" :href="URL_REGISTRAZIONE">{{
             t.hero.linkRegistrazione
           }}</a>
@@ -266,10 +1070,14 @@ const iconeModuliImg: Record<string, string> = {
 
       <section class="chiusura" aria-labelledby="chiusura-title">
         <h2 id="chiusura-title">{{ t.chiusura.titolo }}</h2>
-        <a class="btn-primary" :href="URL_REGISTRAZIONE">
+        <a v-if="!tonyOn" class="btn-primary" :href="URL_REGISTRAZIONE">
           <span class="btn-icon" aria-hidden="true">👋</span>
           {{ t.chiusura.cta }}
         </a>
+        <button v-else type="button" class="btn-primary" @click="onVuoiProvare">
+          <span class="btn-icon" aria-hidden="true">👋</span>
+          {{ t.chiusura.cta }}
+        </button>
       </section>
     </main>
 
@@ -288,10 +1096,49 @@ const iconeModuliImg: Record<string, string> = {
         <a :href="PAGINE_LEGALI.cookie.percorso">{{ t.footer.linkCookie }}</a>
       </nav>
     </footer>
+    </div>
+    <div v-if="improntaAccesa" class="impronta" aria-hidden="true"></div>
+    <TonyAvviso
+      v-if="tonyOn && avvisoAperto"
+      :in-chiusura="avvisoInChiusura"
+      @conferma="onConferma"
+      @rinuncia="onRinuncia"
+    />
+    <TonyStage
+      v-if="tonyOn && stageAperto"
+      :fase="fase"
+      :variante="varianteScelta"
+      :formato="formatoScelto"
+      :riduci-movimento="riduciMovimento"
+      :uscita-con-clip="uscitaConClip"
+      :bocca-aperta="boccaAperta"
+      @entrata-finita="onEntrataFinita"
+      @uscita-finita="onUscitaFinita"
+      @saluta="saluta"
+      @clip-non-pronta="onClipNonPronta"
+    />
   </div>
 </template>
 
 <style scoped>
+.landing-pagina--tony {
+  padding-bottom: 46vh;
+}
+
+.impronta {
+  position: fixed;
+  right: 1.4rem;
+  bottom: 1.4rem;
+  z-index: 35;
+  width: 76px;
+  height: 46px;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 14px 20px at 18% 62%, rgba(6, 20, 14, 0.38), transparent 72%),
+    radial-gradient(ellipse 14px 20px at 50% 38%, rgba(6, 20, 14, 0.32), transparent 72%),
+    radial-gradient(ellipse 14px 20px at 82% 64%, rgba(6, 20, 14, 0.38), transparent 72%);
+}
+
 .landing {
   --green-deep: #071910;
   --green-mid: #0f4d32;
@@ -430,6 +1277,18 @@ main {
   background: var(--green-bright);
 }
 
+button.btn-primary {
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+button.btn-primary:focus-visible,
+.btn-primary:focus-visible {
+  outline: 3px solid var(--green-bright);
+  outline-offset: 3px;
+}
+
 .btn-icon {
   display: inline-flex;
   line-height: 1;
@@ -440,12 +1299,6 @@ main {
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--ink-soft);
-}
-
-.cta-whisper {
-  margin: 0;
-  font-size: 0.8rem;
-  color: #5a7266;
 }
 
 .link-secondary {

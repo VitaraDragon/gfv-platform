@@ -262,6 +262,21 @@ function isTonyOperationalCreationIntent(message) {
 }
 
 /**
+ * Richiesta di registrare ore (diario), non una domanda sul tempo.
+ * «ore» da sola non basta. Stessa funzione di main (tony-quick-replies.js).
+ */
+function isTonySegnaOreIntent(message) {
+  if (!message || typeof message !== "string") return false;
+  const msg = normalizeItTony(message);
+  if (!msg) return false;
+  if (/\bore\s+lavorate\b/.test(msg)) return true;
+  if (/\ble\s+mie\s+ore\b/.test(msg)) return true;
+  if (/\bsegna(?:re)?\s+(?:l['’]?[ae]?\s+)?(?:ora|ore)\b/.test(msg)) return true;
+  if (!/\bore\b/.test(msg)) return false;
+  return /\b(segnare|segna|registrare|registra|inserire|inserisci|mettere|metti|caricare|carica)\b/.test(msg);
+}
+
+/**
  * Messaggio utente che corregge tipo/sottocategoria lavoro nel form (es. preventivo aperto),
  * non una domanda meteo operativa.
  */
@@ -541,5 +556,6 @@ module.exports = {
   normalizeItTony,
   shouldSkipQuickReply,
   isTonyOperationalCreationIntent,
+  isTonySegnaOreIntent,
   isTonyPreventivoFormFieldCorrection,
 };

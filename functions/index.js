@@ -25,7 +25,7 @@ const {
   postProcessTonyUnstructuredResponse,
   looksLikeTonyJsonEnvelope,
 } = require("./tony-json-text");
-const { tryTonyActivityPatterns } = require("./tony-activity-patterns");
+const { tryTonyActivityPatterns, tryTonySegnaOreManagerManodopera } = require("./tony-activity-patterns");
 const { tryTonyTerrenoEntityParse } = require("./tony-terreno-entity-parser");
 const {
   tryTonyLavoroEntityParse,
@@ -2847,6 +2847,33 @@ async function handleTonyAskRequest(request, streamOpts) {
       }
     }
 
+    // «Segna le ore» del manager con Manodopera: prima del meteo e di Gemini.
+    // Il ramo meteo è subito sotto, ma isTonyMeteoQuestion è già false se isTonySegnaOreIntent.
+    // Se tryTonyActivityPatterns ha già la risposta («ho fatto 4 ore di potatura»), qui non si entra.
+    if (isTonyAdvancedEarly && !tonyFieldProfile) {
+      const segnaOreManager = tryTonySegnaOreManagerManodopera({
+        message,
+        history,
+        fieldProfile: tonyFieldProfile,
+        ctx: {
+          ...(ctx && typeof ctx === "object" ? ctx : {}),
+          azienda,
+          moduli_attivi: moduliAttiviEarly,
+          dashboard: {
+            ...(ctx && ctx.dashboard && typeof ctx.dashboard === "object" ? ctx.dashboard : {}),
+            moduli_attivi: moduliAttiviEarly,
+          },
+        },
+      });
+      if (segnaOreManager) {
+        tonyPerf.quickReplyHit = segnaOreManager.id;
+        return finishTonyAskEarly(tonyPerf, message, {
+          text: segnaOreManager.text,
+          command: segnaOreManager.command || null,
+        });
+      }
+    }
+
     // Consigli moduli/bundle prima del meteo: «meteo» in lista moduli ≠ domanda previsioni
     if (!tonyFieldProfile && subscriptionPlanId !== "free" && isModuleAdvisorQuestion(message)) {
       const modAdvQuickEarly = tryTonyModuleAdvisorQuickReply(message, azienda, modulesForAdvisor, {
@@ -4944,9 +4971,19 @@ exports.onProdottoSchedaScritto = onProdottoSchedaScritto;
 exports.leggiSchedeRegistroInCoda = leggiSchedeRegistroInCoda;
 
 const { handleRegistraAccettazioniLegali } = require("./accettazione-legale");
+// Gestore avvolto: onCall v2 chiama handler(request, response); il secondo argomento
+// NON è il database (handleRegistraAccettazioniLegali(request, db) lo userebbe al posto di admin.firestore()).
 exports.registraAccettazioniLegali = onCall(
   { region: "europe-west1" },
-  handleRegistraAccettazioniLegali
+  (request) => handleRegistraAccettazioniLegali(request)
+);
+
+// Landing «Tony bussa»: salvataggio di sede, poderi e terreni dopo «Sì, salva» (brief v4.2, sezione 8).
+// App Check obbligatorio: NON pubblicare prima del passo 9 (configurazione App Check), altrimenti ogni chiamata è respinta.
+const { handleTonyLandingSetup } = require("./tony-landing-setup");
+exports.tonyLandingSetup = onCall(
+  { region: "europe-west1", enforceAppCheck: true },
+  (request) => handleTonyLandingSetup(request)
 );
 
 exports.onComunicazioneCreated = onComunicazioneCreated;

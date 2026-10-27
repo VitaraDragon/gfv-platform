@@ -8,6 +8,40 @@ In `src/config/landing-config.js`, `LANDING_ATTIVA` è **false**: in build/previ
 
 Con `npm run dev` la pagina nuova è visibile in locale (anche a flag spento), insieme a termini, privacy, cookie e 404.
 
+## Tony bussa ed entra (passo 5)
+
+Flag `TONY_BUSSA_ATTIVO` in `src/config/landing-config.js`: oggi è **false**. Spento, i pulsanti «Vuoi provare GFV?» restano il link alla registrazione classica. La riga «A dicembre Tony bussa anche qui.» non c'è più.
+
+Per provarlo in locale, senza accendere il flag:
+
+```bash
+cd landing
+npm install
+npm run dev
+```
+
+Apri http://localhost:5173/?tonybussa=1
+
+Vale solo in sviluppo (`npm run dev`) o nella build di anteprima. La build normale (`npm run build`, quella che si pubblica) con il flag spento ignora `?tonybussa=1`.
+
+Dal telefono, sulla stessa rete Wi-Fi del computer:
+
+```bash
+npm run dev -- --host
+```
+
+Poi apri `http://INDIRIZZO-DEL-PC:5173/?tonybussa=1`. L'indirizzo IPv4 del PC si legge con `ipconfig`. Se Windows chiede il permesso al firewall, consenti Node sulla rete privata. Android usa le clip WebM (e, se il telefono lo permette, vibra ai tre colpi). iPhone usa le clip MP4 stacked, perché Safari non mostra bene la trasparenza WebM: niente vibrazione, è normale.
+
+Clip e suoni stanno in `public/tony-live/` (sono nel repo, circa 3,9 MB). Sul PC di Pier arrivano da `Downloads\gfv-landing-tony\live\` (clip) e da `live\audio\` (suoni). Non partono all'apertura della pagina: il browser li chiede solo dopo il clic su «Vuoi provare GFV?».
+
+## Tony parla (passo 6)
+
+Le voci sono file già pronti (pacchetto del 26/10/2026), non una chiamata a un servizio. Stanno in `public/tony-live/voci/`. Il loop in cui Tony muove la bocca sta accanto alle altre clip (`tony-talking-loop-*`). L'immagine di riserva, se le clip non arrivano, è `public/tony-live/static/tony-static.png`.
+
+Per provarlo vale lo stesso indirizzo del passo 5: http://localhost:5173/?tonybussa=1 (solo in sviluppo o in anteprima). Dopo l'entrata Tony dice il saluto e, sul computer, la bocca segue il volume della voce. «✕ Saluta Tony» fa dire «Ci vediamo dentro GFV!» mentre esce.
+
+Se togli «Audio attivo», Tony non parla: resta fermo e il testo nel fumetto c'è lo stesso. La scelta resta anche se chiudi e riapri la pagina. Con «riduci movimento» del sistema la voce c'è, ma Tony non cambia clip: resta nel fermo.
+
 ## Due modi della build
 
 | Comando | Cartella | Cosa produce (con `LANDING_ATTIVA = false`) |
