@@ -376,3 +376,30 @@ describe('maschera alfa dello stacked', () => {
     expect(colore[0]).toBe(10);
   });
 });
+
+describe('clip idle nascosta durante l’entrata', () => {
+  it('video e canvas idle hanno clip--nascosta finché !nascondiEntrata (prima dello swap)', () => {
+    const stage = leggi('landing/src/components/TonyStage.vue');
+    const idleVideo = stage.match(
+      /ref="videoIdle"[\s\S]*?:class="\{[^}]+\}"/
+    );
+    const idleCanvas = stage.match(
+      /ref="canvasIdle"[\s\S]*?:class="\{[^}]+\}"/
+    );
+    expect(idleVideo, 'videoIdle').toBeTruthy();
+    expect(idleCanvas, 'canvasIdle').toBeTruthy();
+    expect(idleVideo[0]).toContain("!nascondiEntrata");
+    expect(idleCanvas[0]).toContain("!nascondiEntrata");
+    expect(idleVideo[0]).toContain('clip--nascosta');
+    expect(idleCanvas[0]).toContain('clip--nascosta');
+    // talking ed exit restano già nascosti in fase entra (boccaVisibile / fase !== esce)
+    const talkingVideo = stage.match(
+      /ref="videoTalking"[\s\S]*?:class="\{[^}]+\}"/
+    );
+    const exitVideo = stage.match(
+      /ref="videoExit"[\s\S]*?:class="\{[^}]+\}"/
+    );
+    expect(talkingVideo[0]).toContain('!boccaVisibile');
+    expect(exitVideo[0]).toContain("fase !== 'esce'");
+  });
+});

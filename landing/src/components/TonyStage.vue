@@ -347,7 +347,7 @@ onUnmounted(() => {
           <video
             ref="videoIdle"
             class="clip clip-idle"
-            :class="{ 'clip--nascosta': fase === 'esce' || fase === 'statico' || boccaVisibile }"
+            :class="{ 'clip--nascosta': !nascondiEntrata || fase === 'esce' || fase === 'statico' || boccaVisibile }"
             :src="src('idle')"
             muted
             playsinline
@@ -385,7 +385,7 @@ onUnmounted(() => {
           <canvas
             ref="canvasIdle"
             class="clip clip-idle"
-            :class="{ 'clip--nascosta': fase === 'esce' || fase === 'statico' || boccaVisibile }"
+            :class="{ 'clip--nascosta': !nascondiEntrata || fase === 'esce' || fase === 'statico' || boccaVisibile }"
           />
           <canvas
             ref="canvasTalking"
