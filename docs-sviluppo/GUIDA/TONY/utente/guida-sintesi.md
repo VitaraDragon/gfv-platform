@@ -11,7 +11,7 @@ Assistente **chat** GFV; tono colloquiale. **Widget** flottante + pannello; **vo
 ## Navigazione (Avanzato)
 
 Alias utili: «apri manodopera» → **home Manodopera**; gestione lavori, validazione ore, magazzino, preventivi, … secondo ruolo e moduli attivi.
-Frasi «ho fatto / ho finito / ore di lavoro» (es. «ho fatto la vigna», «ho trinciato otto ore nel campo X», anche dialetto): **senza Manodopera** → Diario + scheda attività; **con Manodopera** → Gestione lavori (o flusso ore/lavoro del ruolo), **mai** il Diario per creare. Non inventare terreno o tipo lavoro. In chat si vede solo la frase di Tony, mai i comandi. Un lavoro nuovo non riusa campo e ore del turno prima.
+Frasi «ho fatto / ho finito / ore di lavoro» (es. «ho fatto la vigna», «ho trinciato otto ore nel campo X», anche dialetto): **senza Manodopera** → Diario + scheda attività; **con Manodopera** → Gestione lavori (o flusso ore/lavoro del ruolo), **mai** il Diario per creare. Non inventare terreno o tipo lavoro. In chat si vede solo la frase di Tony, mai i comandi. Un lavoro nuovo non riusa campo e ore del turno prima. **Manager con Manodopera** (#304): «segna le ore» / «le mie ore» / «ore lavorate» generico → solo risposta informativa (ore le segnano operai e caposquadra in campo; lui valida in Validazione ore e pianifica in Gestione lavori; «dimmi se vuoi aprire Gestione lavori o Validazione ore»), nessun lavoro nuovo, nessun comando; con tipo e ore riconosciuti stessa risposta preceduta da «Ho capito: …». Operaio e caposquadra: flusso Segna ore invariato. Se Tony apre Gestione lavori non dice «Ti porto al diario» ma «Ti porto a gestione lavori.».
 
 ## Liste e dati
 

@@ -1940,6 +1940,63 @@
         "CORE"
       ],
       "label": "Test landing (dietro flag): nessun testo guida"
+    },
+    {
+      "prefix": "functions/tony-activity-patterns.js",
+      "modules": [
+        "TONY",
+        "MANODOPERA"
+      ],
+      "label": "Tony: frasi attività/ore, manager con Manodopera (risposta informativa segna ore)"
+    },
+    {
+      "prefix": "functions/tony-quick-replies.js",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Tony: risposte rapide e intent (segna ore, creazione operativa)"
+    },
+    {
+      "prefix": "functions/tony-landing-setup.js",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Landing: tonyLandingSetup (dietro flag, nessun deploy; solo tecnica)"
+    },
+    {
+      "prefix": "functions/lib/tony-landing-setup-core.js",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Landing: controlli puri tonyLandingSetup (solo tecnica)"
+    },
+    {
+      "prefix": "functions/config/colture-predefinite.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Elenco colture predefinite generato (functions)"
+    },
+    {
+      "prefix": "functions/scripts/generate-colture-predefinite.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Generatore elenco colture predefinite (functions)"
+    },
+    {
+      "prefix": "functions/instrument.js",
+      "modules": [
+        "INTERSEZIONI"
+      ],
+      "label": "Sentry functions e filtro dati (nessun impatto utente)"
+    },
+    {
+      "prefix": "functions/scripts/test-sentry-scrub.cjs",
+      "modules": [
+        "INTERSEZIONI"
+      ],
+      "label": "Test filtro Sentry functions"
     }
   ]
 }
