@@ -42,6 +42,23 @@ Per provarlo vale lo stesso indirizzo del passo 5: http://localhost:5173/?tonybu
 
 Se togli «Audio attivo», Tony non parla: resta fermo e il testo nel fumetto c'è lo stesso. La scelta resta anche se chiudi e riapri la pagina. Con «riduci movimento» del sistema la voce c'è, ma Tony non cambia clip: resta nel fermo.
 
+## App Check (passo 9)
+
+Protezione per le **funzioni nuove della landing** (prima `tonyLandingSetup`, poi le altre): controlla che la chiamata arrivi dalla nostra pagina. L'app su github.io **non** cambia.
+
+Sta in `src/lib/firebase-landing.js` (unico file che importa Firebase) e in `src/config/firebase-landing-config.js` (config pubblica uguale all'app). Si scarica **solo dopo** la prima casella, quando Tony è entrato: mai all'apertura della pagina, niente se premi «No, grazie».
+
+Prova in locale:
+
+```bash
+cd landing
+npm run dev
+```
+
+Apri http://localhost:5173/?tonybussa=1 → «Fai entrare Tony». Nella console del browser compare **una volta** `AppCheck debug token: …`: va registrato nella console Firebase (token di debug). Dopo averlo salvato, ricaricando compare `[landing] App Check pronto`.
+
+Il token di debug è **privato**: mai nel repo, nei messaggi o negli screenshot. Dal telefono con l'indirizzo del PC App Check **non** si attiva (è normale: si usa solo su `localhost`). Se `CHIAVE_SITO_APP_CHECK` in `firebase-landing-config.js` è vuota, la protezione è spenta e non si carica niente.
+
 ## Due modi della build
 
 | Comando | Cartella | Cosa produce (con `LANDING_ATTIVA = false`) |

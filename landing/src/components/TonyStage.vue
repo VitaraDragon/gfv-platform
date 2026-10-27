@@ -45,6 +45,7 @@ let uscitaEmessa = false;
 let smontato = false;
 let timerEntrata = 0;
 let timerUscita = 0;
+let protezioneAvviata = false;
 
 const saluto = () =>
   props.variante === 'mobile' ? t.salutoMobile : t.salutoDesktop;
@@ -231,12 +232,24 @@ function onMediaError() {
   emit('clipNonPronta');
 }
 
+function avviaProtezionePigro() {
+  if (protezioneAvviata || smontato) return;
+  protezioneAvviata = true;
+  // Firebase e App Check solo dopo che Tony è entrato (non all'apertura, non durante l'entrata).
+  import('../lib/firebase-landing.js')
+    .then((m) => m.avviaProtezione())
+    .catch(() => {});
+}
+
 function applicaFase(fase: string, precedente?: string) {
   if (precedente === 'parla' && fase !== 'parla') fermaTalking();
   if (fase === 'entra') suonaEntrata();
   if (fase === 'idle') suonaIdle();
   if (fase === 'parla') suonaTalking();
   if (fase === 'esce') suonaUscita();
+  if (fase === 'idle' || fase === 'parla' || fase === 'statico') {
+    avviaProtezionePigro();
+  }
 }
 
 watch(

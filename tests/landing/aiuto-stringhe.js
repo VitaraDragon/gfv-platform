@@ -2,6 +2,9 @@
  * Aiuto condiviso per i test della landing (senza Firebase/rete/browser).
  */
 
+/** Unico file della landing autorizzato a nominare Firebase / reCAPTCHA (passo 9). */
+export const FILE_FIREBASE_LANDING = 'landing/src/lib/firebase-landing.js';
+
 /**
  * Raccoglie tutte le stringhe annidate in un valore (oggetto/array).
  * @param {unknown} valore

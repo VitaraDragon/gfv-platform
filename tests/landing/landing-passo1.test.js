@@ -33,6 +33,7 @@ import {
   TONY_GUIDA_ONBOARDING_DAILY_LIMIT,
   TONY_GUIDA_ONBOARDING_DAYS,
 } from '../../core/config/tony-guida-onboarding.js';
+import { FILE_FIREBASE_LANDING } from './aiuto-stringhe.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
@@ -251,21 +252,22 @@ describe('Cosa gestisci — piani e limiti', () => {
 
 describe('niente da fuori', () => {
   it('nessun riferimento a font Google, YouTube, reCAPTCHA, Firebase JS o GTM', () => {
-    const vietati = [
+    const vietatiSempre = [
       'fonts.googleapis',
       'fonts.gstatic',
       'youtube',
-      'recaptcha',
       'gstatic.com/firebasejs',
       'googletagmanager',
     ];
     const files = elencaFileSorgenteLanding();
     for (const file of files) {
+      const rel = path.relative(repoRoot, file).replaceAll('\\', '/');
       const testo = fs.readFileSync(file, 'utf8').toLowerCase();
-      for (const v of vietati) {
-        expect(testo, `${path.relative(repoRoot, file)} non deve contenere ${v}`).not.toContain(
-          v
-        );
+      for (const v of vietatiSempre) {
+        expect(testo, `${rel} non deve contenere ${v}`).not.toContain(v);
+      }
+      if (rel !== FILE_FIREBASE_LANDING) {
+        expect(testo, `${rel} non deve contenere recaptcha`).not.toContain('recaptcha');
       }
     }
   });
