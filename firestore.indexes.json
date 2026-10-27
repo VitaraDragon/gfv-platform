@@ -56,17 +56,19 @@
         { "fieldPath": "categoria", "order": "ASCENDING" },
         { "fieldPath": "letturaSchedaStato", "order": "ASCENDING" }
       ]
-    },
-    {
-      "collectionGroup": "prodotti",
-      "queryScope": "COLLECTION_GROUP",
-      "fields": [
-        { "fieldPath": "categoria", "order": "ASCENDING" },
-        { "fieldPath": "__name__", "order": "ASCENDING" }
-      ]
     }
   ],
   "fieldOverrides": [
+    {
+      "collectionGroup": "prodotti",
+      "fieldPath": "categoria",
+      "indexes": [
+        { "order": "ASCENDING", "queryScope": "COLLECTION" },
+        { "order": "DESCENDING", "queryScope": "COLLECTION" },
+        { "arrayConfig": "CONTAINS", "queryScope": "COLLECTION" },
+        { "order": "ASCENDING", "queryScope": "COLLECTION_GROUP" }
+      ]
+    },
     {
       "collectionGroup": "oreOperai",
       "fieldPath": "operaioId",
