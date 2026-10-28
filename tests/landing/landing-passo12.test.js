@@ -262,7 +262,7 @@ describe('stati e scalettaClip', () => {
     expect(prossimoStato('pensa', 'testoArrivato')).toBe('scrive');
     expect(prossimoStato('scrive', 'rispostaFinita')).toBe('idle');
     expect(prossimoStato('pensa', 'rispostaFinita')).toBe('idle');
-    expect(prossimoStato('idle', 'servizioSpento')).toBe('statico');
+    expect(prossimoStato('idle', 'servizioSpento')).toBe('idle');
     expect(prossimoStato('idle', 'voceIniziata')).toBe('parla');
     expect(prossimoStato('parla', 'voceFinita')).toBe('idle');
     expect(prossimoStato('statico', 'domandaInviata')).toBe('statico');
@@ -271,7 +271,7 @@ describe('stati e scalettaClip', () => {
   });
 
   it('scalettaClip', () => {
-    expect(scalettaClip('entra', 'idle')).toEqual(['entry', 'idle']);
+    expect(scalettaClip('entra', 'idle')).toEqual([]);
     expect(scalettaClip('idle', 'ascolta')).toEqual(['listenRaise', 'listenLoop']);
     expect(scalettaClip('ascolta', 'idle')).toEqual(['listenLower', 'idle']);
     expect(scalettaClip('ascolta', 'pensa')).toEqual(['listenLower', 'thinking']);

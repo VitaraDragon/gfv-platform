@@ -36,7 +36,7 @@ Clip e suoni stanno in `public/tony-live/` (sono nel repo, circa 3,9 MB). Sul PC
 
 ## Tony parla (passo 6)
 
-Le voci sono file già pronti (pacchetto del 26/10/2026), non una chiamata a un servizio. Stanno in `public/tony-live/voci/`. Il loop in cui Tony muove la bocca sta accanto alle altre clip (`tony-talking-loop-*`). L'immagine di riserva, se le clip non arrivano, è `public/tony-live/static/tony-static.png`.
+Le voci sono file già pronti (pacchetto del 26/10/2026), non una chiamata a un servizio. Stanno in `public/tony-live/voci/`. Il loop in cui Tony muove la bocca sta accanto alle altre clip (`tony-talking-loop-*`). Se le clip non arrivano, Tony resta fermo con `tony-static-idle-desktop.png` / `tony-static-idle-mobile.png` (stessa inquadratura di idle). `tony-static.png` resta nel repo per le anteprime nelle condivisioni.
 
 Per provarlo vale lo stesso indirizzo del passo 5: http://localhost:5173/?tonybussa=1 (solo in sviluppo o in anteprima). Dopo l'entrata Tony dice il saluto e, sul computer, la bocca segue il volume della voce. «✕ Saluta Tony» fa dire «Ci vediamo dentro GFV!» mentre esce.
 
@@ -73,6 +73,10 @@ npm run dev
 Apri http://localhost:5173/?tonybussa=1&tonyfinto=1
 
 Scenari voce: `tonyvoce=lenta`, `errore`, `tetto`, `no` (niente voce). Nella build di produzione la voce finta **non** c’è.
+
+## Correzioni scena di Tony (passo 12c)
+
+Il contenitore delle clip (`.tony-player-host`) ha al massimo due livelli durante un passaggio e se ne svuota a ogni arresto: niente secondo Tony dietro. Con un errore del servizio Tony finisce la clip in corso e resta **animato** su `idle` (campo e pulsanti spariscono come prima); lo statico serve **solo** se le clip non arrivano. Immagini ferme: `tony-static-idle-desktop.png` e `tony-static-idle-mobile.png` (primo fotogramma di idle, stessa inquadratura), con dissolvenza incrociata di 180 ms se si veniva da una clip. Fine giro vera per WebM/stacked/WebP; dissolvenza di 150 ms da e verso `talking` e da `idle`; elementi precaricati riusati; WebP scaricate una volta sola (Blob). Sul telefono il pannello della chat è alto il 55% fisso e Tony resta fermo sul bordo alto. Prova clip assenti solo con `npm run dev`: `?tonyfinto=noclip`.
 
 ## App Check (passo 9)
 

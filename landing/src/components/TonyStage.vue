@@ -3,10 +3,13 @@ import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { testiLanding } from '../content/testi-landing.js';
 import {
   clipInLoop,
+  DIMENSIONI_TONY_STATICO,
+  DISSOLVENZA_STATICO_MS,
   durataClipMs,
   percorsoClip,
   percorsoTonyStatico,
   scalettaClip,
+  sicurezzaEntrataMs,
   tempiVoce,
 } from '../lib/tony-bussa-logica.js';
 import { creaPlayerClip } from '../lib/tony-clip-player.js';
@@ -39,13 +42,18 @@ const emit = defineEmits([
 ]);
 
 const t = testiLanding.tonyBussa;
-const tonyStatico = percorsoTonyStatico();
 const msBocca = tempiVoce().dissolvenzaBoccaMs;
 const figuraHost = ref<HTMLElement | null>(null);
 const chatRef = ref<{ interrompi?: () => void } | null>(null);
 const inFadeOut = ref(false);
 const clipPronte = ref<Record<string, boolean>>({ entry: true, idle: true });
 const protezionePronta = ref<boolean | null>(null);
+const mostraStatico = ref(false);
+const staticoSrc = ref('');
+const staticoW = ref(576);
+const staticoH = ref(720);
+const staticoOpacity = ref(0);
+const figuraFade = ref(false);
 
 let player: ReturnType<typeof creaPlayerClip> | null = null;
 let entrataAvviata = false;
@@ -57,11 +65,17 @@ let smontato = false;
 let timerEntrata = 0;
 let timerUscita = 0;
 let timerGiro = 0;
+let timerAttesaPrimo = 0;
+let timerStatico = 0;
 let protezioneAvviata = false;
 let codaClip: string[] = [];
 let clipCorrente = '';
 let faseClipPrecedente = '';
 let generazioneClip = 0;
+/** Scaletta da avviare quando finisce la clip «una volta» in corso. */
+let codaDopoCorrente: { lista: string[]; dissolvenzaMs: number } | null = null;
+let dissolvenzaProssima = 0;
+let staticoDaClip = false;
 
 const saluto = () =>
   props.variante === 'mobile' ? t.salutoMobile : t.salutoDesktop;
@@ -143,6 +157,7 @@ function emettiEntrata() {
   if (smontato || entrataEmessa) return;
   entrataEmessa = true;
   if (timerEntrata) window.clearTimeout(timerEntrata);
+  if (timerAttesaPrimo) window.clearTimeout(timerAttesaPrimo);
   emit('entrataFinita');
 }
 
@@ -158,11 +173,22 @@ function clipChatPronta(nome: string) {
   return clipPronte.value[nome] === true;
 }
 
+function clipUnaVolta(nome: string) {
+  return (
+    nome === 'listenRaise' ||
+    nome === 'listenLower' ||
+    nome === 'thinking' ||
+    nome === 'entry'
+  );
+}
+
 function suonaProssima() {
   if (smontato || !player) return;
   if (!codaClip.length) return;
   const nome = codaClip.shift() as string;
   clipCorrente = nome;
+  const fadeMs = dissolvenzaProssima;
+  dissolvenzaProssima = 0;
 
   if (props.riduciMovimento && nome !== 'exit' && props.fase !== 'entra') {
     if (nome === 'idle' || codaClip.length === 0) {
@@ -176,8 +202,13 @@ function suonaProssima() {
     return;
   }
 
-  if (!clipChatPronta(nome) && nome !== 'entry' && nome !== 'idle' && nome !== 'exit' && nome !== 'talking') {
-    // clip chat non pronta: resta su idle
+  if (
+    !clipChatPronta(nome) &&
+    nome !== 'entry' &&
+    nome !== 'idle' &&
+    nome !== 'exit' &&
+    nome !== 'talking'
+  ) {
     player.suona(urlClip('idle'), { loop: true, durataMs: durataClipMs('idle') });
     clipCorrente = 'idle';
     codaClip = [];
@@ -191,8 +222,37 @@ function suonaProssima() {
   player.suona(urlClip(nome), {
     loop,
     durataMs,
+    dissolvenzaMs: fadeMs,
+    onInizio:
+      nome === 'entry'
+        ? () => {
+            if (timerAttesaPrimo) {
+              window.clearTimeout(timerAttesaPrimo);
+              timerAttesaPrimo = 0;
+            }
+            if (timerEntrata) window.clearTimeout(timerEntrata);
+            timerEntrata = window.setTimeout(() => {
+              if (entrataEmessa || smontato) return;
+              generazioneClip += 1;
+              fermaInArrivoPlayer();
+              codaClip = ['idle'];
+              suonaProssima();
+              emettiEntrata();
+            }, sicurezzaEntrataMs(varScena()));
+          }
+        : undefined,
     onFine: () => {
-      if (smontato || gen !== generazioneClip) return;
+      if (smontato) return;
+      if (codaDopoCorrente && clipUnaVolta(nome) && nome !== 'entry') {
+        const pending = codaDopoCorrente;
+        codaDopoCorrente = null;
+        generazioneClip += 1;
+        codaClip = pending.lista.slice();
+        dissolvenzaProssima = pending.dissolvenzaMs;
+        suonaProssima();
+        return;
+      }
+      if (gen !== generazioneClip) return;
       if (nome === 'entry') {
         suonaProssima();
         emettiEntrata();
@@ -203,7 +263,6 @@ function suonaProssima() {
         return;
       }
       if (nome === 'thinking' && props.fase === 'pensa') {
-        // ripeti thinking finché resta in pensa
         codaClip = ['thinking'];
         suonaProssima();
         return;
@@ -215,8 +274,25 @@ function suonaProssima() {
   if (nome === 'idle') idleAvviata = true;
 }
 
-function avviaScaletta(da: string, a: string) {
+function fermaInArrivoPlayer() {
+  // ferma solo tramite nuova generazione; il player scarta l'in-arrivo al prossimo suona
+}
+
+function dissolvenzaPerPassaggio(da: string, a: string) {
+  if (da === 'idle') return msBocca;
+  if (a === 'parla' || da === 'parla') return msBocca;
+  return 0;
+}
+
+function partiScaletta(lista: string[], dissolvenzaMs: number) {
+  codaDopoCorrente = null;
   generazioneClip += 1;
+  codaClip = lista.slice();
+  dissolvenzaProssima = dissolvenzaMs;
+  suonaProssima();
+}
+
+function avviaScaletta(da: string, a: string) {
   if (timerGiro) {
     window.clearTimeout(timerGiro);
     timerGiro = 0;
@@ -225,52 +301,68 @@ function avviaScaletta(da: string, a: string) {
   if (!player) return;
 
   if (a === 'statico') {
-    player.ferma();
-    player = null;
     return;
   }
 
   if (props.riduciMovimento && a !== 'esce' && a !== 'entra') {
     if (a === 'idle' || a === 'ascolta' || a === 'pensa' || a === 'scrive' || a === 'parla') {
-      codaClip = ['idle'];
-      suonaProssima();
+      if (clipCorrente === 'idle' && clipInLoop('idle')) return;
+      partiScaletta(['idle'], 0);
       return;
     }
   }
 
-  // uscita da loop: aspetta fine giro per ascolta→idle/pensa e scrive→idle
-  const daLoop =
-    (da === 'ascolta' && (a === 'idle' || a === 'pensa') && clipCorrente === 'listenLoop') ||
-    (da === 'scrive' && a === 'idle' && clipCorrente === 'scrive') ||
-    (da === 'pensa' && (a === 'scrive' || a === 'idle') && clipCorrente === 'thinking');
-
   const lista = scalettaClip(da, a);
-  if (!lista.length && a !== 'statico') return;
+  if (!lista.length) return;
 
-  const parti = () => {
-    codaClip = lista.slice();
-    if (a === 'idle' && da === 'entra') {
-      // entry poi idle già in lista
-    }
-    suonaProssima();
-  };
+  // già sulla stessa clip in loop (es. idle → idle): non ripartire
+  if (
+    lista.length === 1 &&
+    lista[0] === clipCorrente &&
+    clipInLoop(clipCorrente)
+  ) {
+    return;
+  }
 
-  if (daLoop && player && typeof player.allaFineDelGiro === 'function') {
-    const durata =
-      clipCorrente === 'listenLoop'
-        ? durataClipMs('listenLoop')
-        : clipCorrente === 'scrive'
-          ? durataClipMs('scrive')
-          : durataClipMs('thinking');
+  const fade = dissolvenzaPerPassaggio(da, a);
+  const subito =
+    da === 'idle' ||
+    a === 'parla' ||
+    da === 'parla' ||
+    a === 'esce';
+
+  const unaVoltaInCorso =
+    clipUnaVolta(clipCorrente) &&
+    clipCorrente !== 'entry' &&
+    !clipInLoop(clipCorrente);
+
+  if (unaVoltaInCorso && !subito) {
+    codaDopoCorrente = { lista: lista.slice(), dissolvenzaMs: fade };
+    return;
+  }
+
+  const loopInCorso =
+    clipInLoop(clipCorrente) &&
+    (clipCorrente === 'listenLoop' ||
+      clipCorrente === 'scrive' ||
+      clipCorrente === 'talking' ||
+      clipCorrente === 'idle');
+
+  // da idle si parte subito (già in subito); da altri loop aspetta fine giro
+  if (loopInCorso && !subito && clipCorrente !== 'idle') {
+    const durata = durataClipMs(clipCorrente, varScena());
+    const genAttesa = generazioneClip;
     timerGiro = player.allaFineDelGiro(durata, () => {
       if (smontato) return;
-      // se thinking e andiamo a scrive/idle: non ripetere, vai alla scaletta
-      parti();
+      if (genAttesa !== generazioneClip && !codaDopoCorrente) {
+        /* interrotto */
+      }
+      partiScaletta(lista, fade);
     });
     return;
   }
 
-  parti();
+  partiScaletta(lista, fade);
 }
 
 function suonaEntrata() {
@@ -283,13 +375,13 @@ function suonaEntrata() {
     emettiEntrata();
     return;
   }
-  timerEntrata = window.setTimeout(() => {
-    if (!entrataEmessa) {
-      codaClip = ['idle'];
-      suonaProssima();
-      emettiEntrata();
-    }
+  // se entro 4 s non arriva il primo fotogramma → clip non pronta
+  timerAttesaPrimo = window.setTimeout(() => {
+    if (entrataEmessa || smontato) return;
+    generazioneClip += 1;
+    emit('clipNonPronta');
   }, 4000);
+  generazioneClip += 1;
   codaClip = ['entry', 'idle'];
   suonaProssima();
 }
@@ -299,10 +391,12 @@ function suonaUscita() {
   uscitaAvviata = true;
   chatRef.value?.interrompi?.();
   generazioneClip += 1;
+  codaDopoCorrente = null;
   const conClip = props.uscitaConClip && !props.riduciMovimento;
   if (!conClip) {
     inFadeOut.value = true;
     player?.ferma();
+    player = null;
     timerUscita = window.setTimeout(emettiUscita, 280);
     return;
   }
@@ -312,13 +406,67 @@ function suonaUscita() {
   timerUscita = window.setTimeout(emettiUscita, 4500);
 }
 
-function applicaFase(fase: string, precedente?: string) {
-  const prec = precedente || faseClipPrecedente || '';
-  if (fase === 'entra') suonaEntrata();
-  else if (fase === 'esce') suonaUscita();
-  else if (fase === 'statico') {
+function aggiornaSrcStatico() {
+  const v = varScena();
+  staticoSrc.value = percorsoTonyStatico(v);
+  const dim = DIMENSIONI_TONY_STATICO[v];
+  staticoW.value = dim.larghezza;
+  staticoH.value = dim.altezza;
+}
+
+function passaAStatico(da: string) {
+  aggiornaSrcStatico();
+  staticoDaClip = da === 'entra';
+  mostraStatico.value = true;
+  if (!staticoDaClip) {
+    // da bussa: figura compare con fade 280 ms, contenitore già vuoto
+    figuraFade.value = true;
+    staticoOpacity.value = 1;
     player?.ferma();
     player = null;
+    return;
+  }
+  // da entra: dissolvenza incrociata; video resta finché l'img è visibile
+  figuraFade.value = false;
+  staticoOpacity.value = 0;
+  const img = new Image();
+  img.src = staticoSrc.value;
+  const dec = img.decode ? img.decode() : Promise.resolve();
+  dec
+    .then(() => {
+      if (smontato || props.fase !== 'statico') return;
+      staticoOpacity.value = 1;
+      if (timerStatico) window.clearTimeout(timerStatico);
+      timerStatico = window.setTimeout(() => {
+        player?.ferma();
+        player = null;
+      }, DISSOLVENZA_STATICO_MS + 70);
+    })
+    .catch(() => {
+      staticoOpacity.value = 1;
+      player?.ferma();
+      player = null;
+    });
+  // sicurezza
+  if (timerStatico) window.clearTimeout(timerStatico);
+  timerStatico = window.setTimeout(() => {
+    if (player) {
+      player.ferma();
+      player = null;
+    }
+    staticoOpacity.value = 1;
+  }, 250);
+}
+
+function applicaFase(fase: string, precedente?: string) {
+  const prec = precedente || faseClipPrecedente || '';
+  if (fase === 'entra') {
+    mostraStatico.value = false;
+    suonaEntrata();
+  } else if (fase === 'esce') {
+    suonaUscita();
+  } else if (fase === 'statico') {
+    passaAStatico(prec);
   } else if (
     fase === 'idle' ||
     fase === 'ascolta' ||
@@ -326,6 +474,7 @@ function applicaFase(fase: string, precedente?: string) {
     fase === 'scrive' ||
     fase === 'parla'
   ) {
+    mostraStatico.value = false;
     if (prec && prec !== fase) avviaScaletta(prec, fase);
     else if (fase === 'idle' && !idleAvviata) {
       assicuratiPlayer();
@@ -346,6 +495,13 @@ watch(
   (fase, precedente) => applicaFase(fase, precedente)
 );
 
+watch(
+  () => props.riduciMovimento,
+  (v) => {
+    if (v) figuraFade.value = true;
+  }
+);
+
 onMounted(() => {
   assicuratiPlayer();
   applicaFase(props.fase);
@@ -356,6 +512,8 @@ onUnmounted(() => {
   if (timerEntrata) window.clearTimeout(timerEntrata);
   if (timerUscita) window.clearTimeout(timerUscita);
   if (timerGiro) window.clearTimeout(timerGiro);
+  if (timerAttesaPrimo) window.clearTimeout(timerAttesaPrimo);
+  if (timerStatico) window.clearTimeout(timerStatico);
   player?.ferma();
   player = null;
 });
@@ -369,12 +527,15 @@ function marcaClipPronta(nome: string) {
   clipPronte.value = { ...clipPronte.value, [nome]: true };
 }
 
-defineExpose({ marcaClipPronta, precaricaClip: async (nome: string) => {
-  assicuratiPlayer();
-  if (!player) return;
-  await player.precarica(urlClip(nome));
-  marcaClipPronta(nome);
-}});
+defineExpose({
+  marcaClipPronta,
+  precaricaClip: async (nome: string) => {
+    assicuratiPlayer();
+    if (!player) return;
+    await player.precarica(urlClip(nome));
+    marcaClipPronta(nome);
+  },
+});
 
 const mostraFumetto = () =>
   props.fase === 'idle' ||
@@ -390,7 +551,7 @@ const mostraFumetto = () =>
   <div
     class="tony-stage"
     :class="variante === 'mobile' ? 'tony-stage--mobile' : 'tony-stage--desktop'"
-    :style="{ '--ms-bocca': msBocca + 'ms' }"
+    :style="{ '--ms-statico': DISSOLVENZA_STATICO_MS + 'ms' }"
   >
     <div class="tony-riga">
       <div
@@ -434,20 +595,21 @@ const mostraFumetto = () =>
         class="tony-figura"
         aria-hidden="true"
         :class="{
-          'tony-figura--fade': riduciMovimento || fase === 'statico',
+          'tony-figura--fade': figuraFade || riduciMovimento,
           'tony-figura--esce': inFadeOut,
         }"
       >
         <img
-          v-if="fase === 'statico'"
+          v-if="mostraStatico"
           class="tony-statico"
-          :src="tonyStatico"
+          :src="staticoSrc"
           alt=""
-          width="744"
-          height="1024"
+          :width="staticoW"
+          :height="staticoH"
+          :style="{ opacity: staticoOpacity }"
         />
         <div
-          v-show="fase !== 'statico'"
+          v-show="!mostraStatico || staticoDaClip"
           ref="figuraHost"
           class="tony-player-host"
         />
@@ -480,6 +642,7 @@ const mostraFumetto = () =>
   font-size: 0.78rem;
   font-weight: 800;
   color: #0f4d32;
+  flex: 0 0 auto;
 }
 
 .saluto {
@@ -487,6 +650,7 @@ const mostraFumetto = () =>
   font-size: 0.98rem;
   line-height: 1.45;
   color: #06140e;
+  flex: 0 0 auto;
 }
 
 .nota-saluto {
@@ -494,6 +658,7 @@ const mostraFumetto = () =>
   font-size: 0.82rem;
   line-height: 1.4;
   color: #4a6358;
+  flex: 0 0 auto;
 }
 
 .tony-figura {
@@ -520,12 +685,14 @@ const mostraFumetto = () =>
 .tony-statico {
   position: absolute;
   inset: 0;
+  z-index: 3;
   width: 100%;
   height: 100%;
   object-fit: contain;
   object-position: center bottom;
   background: transparent;
   display: block;
+  transition: opacity var(--ms-statico, 180ms) ease;
 }
 
 .tony-stage--desktop .tony-riga {
@@ -554,27 +721,39 @@ const mostraFumetto = () =>
 
 .tony-stage--mobile .tony-riga {
   position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  flex-direction: column-reverse;
-  align-items: flex-start;
+  inset: 0;
 }
 
 .tony-stage--mobile .tony-figura {
+  position: absolute;
+  left: 0;
+  bottom: 55vh;
+  bottom: 55dvh;
   height: 30vh;
-  align-self: flex-start;
-  margin-left: 0;
+  width: auto;
+  max-width: 45vw;
 }
 
 .tony-stage--mobile .fumetto {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
   width: 100%;
-  max-height: 55vh;
-  overflow: auto;
+  height: 55vh;
+  height: 55dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   padding: 0.85rem 1rem calc(0.9rem + env(safe-area-inset-bottom));
   border-radius: 18px 18px 0 0;
   border-bottom: 0;
+}
+
+.tony-stage--mobile .fumetto :deep(.tony-chat) {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {

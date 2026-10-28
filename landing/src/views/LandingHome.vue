@@ -96,6 +96,9 @@ const stileScossone = computed(() => {
   return { transform: `translate(${px}px, ${-Math.abs(px)}px)` };
 });
 
+/** Solo sviluppo: clip di entrata/idle non precaricate (prova statico). */
+let clipAssentiInProva = false;
+
 let audioBussata: HTMLAudioElement | null = null;
 let audioTerzo: HTMLAudioElement | null = null;
 let audioWhoosh: HTMLAudioElement | null = null;
@@ -202,16 +205,29 @@ function preparaMedia() {
   const formato = formatoScelto.value;
   const urlEntry = percorsoClip('entry', variante, formato);
   const urlIdle = percorsoClip('idle', variante, formato);
-  if (formato === 'webp') {
-    // WebP: Image decode, niente <video>
+  if (clipAssentiInProva) {
+    videoEntryPreload = { readyState: 0 } as HTMLVideoElement;
+    videoIdlePreload = { readyState: 0 } as HTMLVideoElement;
+  } else if (formato === 'webp') {
+    // WebP: pronto solo dopo decode riuscito (altrimenti statico dopo staticoMs)
     const imgE = new Image();
     imgE.src = urlEntry;
     const imgI = new Image();
     imgI.src = urlIdle;
-    videoEntryPreload = { readyState: 4 } as HTMLVideoElement;
-    videoIdlePreload = { readyState: 4 } as HTMLVideoElement;
-    imgE.decode?.().catch(() => {});
-    imgI.decode?.().catch(() => {});
+    videoEntryPreload = { readyState: 0 } as HTMLVideoElement;
+    videoIdlePreload = { readyState: 0 } as HTMLVideoElement;
+    const decE = imgE.decode ? imgE.decode() : Promise.resolve();
+    decE
+      .then(() => {
+        videoEntryPreload = { readyState: 4 } as HTMLVideoElement;
+      })
+      .catch(() => {});
+    const decI = imgI.decode ? imgI.decode() : Promise.resolve();
+    decI
+      .then(() => {
+        videoIdlePreload = { readyState: 4 } as HTMLVideoElement;
+      })
+      .catch(() => {});
   } else {
     videoEntryPreload = creaVideoNascosto(urlEntry);
     videoIdlePreload = creaVideoNascosto(urlIdle);
@@ -736,7 +752,6 @@ function onVoceFinita() {
 function onServizioSpento() {
   if (fase.value === 'esce' || fase.value === 'nascosto') return;
   fase.value = prossimoStato(fase.value, 'servizioSpento');
-  if (fase.value !== 'statico') fase.value = 'statico';
   salutoFinito.value = true;
 }
 
@@ -941,6 +956,17 @@ onMounted(() => {
   document.title = t.documentTitle;
   if (!tonyOn) return;
   window.addEventListener('keydown', onEscGlobale);
+  if (import.meta.env.DEV) {
+    import('../lib/tony-chat-finto.js')
+      .then((m) => {
+        if (typeof m.clipFinteAssenti === 'function') {
+          clipAssentiInProva = m.clipFinteAssenti(
+            typeof window !== 'undefined' ? window.location.search : ''
+          );
+        }
+      })
+      .catch(() => {});
+  }
 });
 
 onUnmounted(() => {
