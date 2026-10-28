@@ -15,7 +15,6 @@ const { FieldValue, Timestamp } = require("firebase-admin/firestore");
 const { getAppCheck } = require("firebase-admin/app-check");
 const {
   COSTANTI,
-  PROMPT_SISTEMA_PROVVISORIO,
   origineAmmessa,
   normalizzaConfig,
   chiaviTempo,
@@ -33,6 +32,8 @@ const {
   testoDaPayloadGemini,
   rigaSse
 } = require("./lib/tony-landing-limiti");
+// Prompt definitivo con base di conoscenza (passo 11).
+const { PROMPT_SISTEMA_LANDING } = require("./lib/tony-landing-prompt");
 
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
@@ -682,7 +683,7 @@ async function handleTonyLandingAsk(req, res, opzioni) {
       COSTANTI.MAX_DOMANDE_SESSIONE - quota.domandeSessione
     );
     const corpoGemini = corpoRichiestaGemini({
-      promptSistema: PROMPT_SISTEMA_PROVVISORIO,
+      promptSistema: PROMPT_SISTEMA_LANDING,
       storia: storia,
       domanda: domanda
     });

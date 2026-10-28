@@ -109,6 +109,21 @@ Funzione HTTP pubblica (`europe-west1`, risposta SSE) con cui Tony risponde ai v
 
 Logica pura: `functions/lib/tony-landing-limiti.js`. Gestore: `functions/tony-landing-ask.js`.
 
+## Base di conoscenza di Tony landing (passo 11)
+
+Tony sulla landing usa un **prompt definitivo** (`functions/lib/tony-landing-prompt.js`) e una **base di conoscenza** generata (`functions/config/tony-landing-kb.js`).
+
+- La KB contiene i numeri dei piani (terreni, attività, prezzo Base, range prezzi moduli, giorni di guida e di prova) e il testo approvato da Pier, più l’elenco dei soli moduli **disponibili** (senza prezzi singoli né pacchetti).
+- **Non si modifica a mano.** Si genera così, dalla radice del repo:
+  ```bash
+  node functions/scripts/generate-tony-landing-kb.js
+  ```
+  Fonti: `core/config/subscription-plans.js`, `TONY_GUIDA_ONBOARDING_DAYS` in `functions/tony-guida-onboarding.js`, testo in `functions/config/tony-landing-kb-testo.md`.
+- Il testo scritto a mano sta solo in `tony-landing-kb-testo.md` e si cambia **solo con l’ok di Pier**, poi si rilancia lo script. Un test (`tests/tony-landing-kb.test.js`) fallisce se la KB non è allineata a quello che lo script genererebbe.
+- Le regole (solo GFV, niente istruzioni rivelate, frase fissa sui trattamenti, max 60 parole, ecc.) stanno in `tony-landing-prompt.js`.
+- Le 40 domande di prova (`tests/tony-landing-domande.test.js`) girano con il modello **simulato**: nessuna chiamata vera a Gemini.
+- Dopo ogni cambio di prezzo o di modulo in `subscription-plans.js`: rilanciare lo script, fare PR e ripubblicare `tonyLandingAsk`.
+
 ## Cleanup policy (opzionale)
 
 Al primo deploy la CLI può chiedere quanti giorni conservare le immagini container. Es. 7 giorni. Se la policy non si applica: `firebase functions:artifacts:setpolicy` o `firebase deploy --only functions --force`.
