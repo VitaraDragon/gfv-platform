@@ -15,6 +15,7 @@ import {
 } from '../lib/tony-chat-logica.js';
 import { chiediVoce } from '../lib/tony-voce-client.js';
 import { creaPlayerVoce } from '../lib/tony-voce-player.js';
+import TonyRegistrazione from './TonyRegistrazione.vue';
 
 const props = defineProps<{
   ottieniToken: () => Promise<string | null>;
@@ -24,6 +25,7 @@ const props = defineProps<{
   protezionePronta: boolean | null;
   staticoForzato: boolean;
   audioIniziale: boolean;
+  moduloDisponibile: boolean;
 }>();
 
 const emit = defineEmits([
@@ -36,6 +38,9 @@ const emit = defineEmits([
   'saluta',
   'voceIniziata',
   'voceFinita',
+  'apri-modulo',
+  'chiudi-modulo',
+  'registrazione-completata',
 ]);
 
 const t = testiLanding.tonyBussa;
@@ -49,6 +54,8 @@ type Battuta = {
 const campo = ref('');
 const inAttesa = ref(false);
 const campoAttivo = ref(true);
+const moduloAperto = ref(false);
+const registrazioneCompletata = ref(false);
 const chipVisibili = ref(true);
 const messaggi = ref<Battuta[]>([]);
 const storia = ref<Array<{ ruolo: 'utente' | 'tony'; testo: string }>>([]);
@@ -218,7 +225,34 @@ function onInputCampo() {
   aggiornaAscoltoDaCampo();
 }
 
+function apriModulo() {
+  if (!props.moduloDisponibile || moduloAperto.value) return;
+  fermaMicrofono();
+  fermaVoceCorrente();
+  moduloAperto.value = true;
+  campoAttivo.value = false;
+  messaggi.value.push({
+    ruolo: 'tony',
+    testo: t.registrazione.apertura,
+  });
+  scorriInBasso();
+  emit('apri-modulo');
+}
+
+function onChiudiModulo() {
+  if (registrazioneCompletata.value) return;
+  moduloAperto.value = false;
+  campoAttivo.value = true;
+  emit('chiudi-modulo');
+}
+
+function onRegistrazioneCompletata() {
+  registrazioneCompletata.value = true;
+  emit('registrazione-completata');
+}
+
 async function inviaTesto(grezzo: string, daChip = false) {
+  if (moduloAperto.value) return;
   if (inAttesa.value || !campoAttivo.value || modalitàStatica.value) return;
   const validazione = validaDomanda(grezzo);
   if (!validazione.ok) {
@@ -512,6 +546,7 @@ function fermaMicrofono() {
 }
 
 function avviaMicrofono() {
+  if (moduloAperto.value) return;
   if (microfonoNascosto.value || !microfonoDisponibile.value || inAttesa.value) return;
   const SR =
     window.SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -660,7 +695,13 @@ defineExpose({ interrompi });
       {{ t.voceLettoreSchermo }}
     </p>
 
-    <template v-if="chatVisibile && campoAttivo">
+    <TonyRegistrazione
+      v-if="chatVisibile && moduloAperto"
+      @chiudi-modulo="onChiudiModulo"
+      @registrazione-completata="onRegistrazioneCompletata"
+    />
+
+    <template v-else-if="chatVisibile && campoAttivo">
       <div v-if="chipVisibili" class="chip-riga" role="group" aria-label="Domande rapide">
         <button
           v-for="c in t.chip"
@@ -719,7 +760,17 @@ defineExpose({ interrompi });
     </template>
 
     <div class="fumetto-azioni">
+      <button
+        v-if="moduloDisponibile && !moduloAperto"
+        type="button"
+        class="btn-account"
+        :class="{ 'btn-account--evidenza': mostraAccountEvidenza || modalitàStatica || staticoForzato }"
+        @click="apriModulo"
+      >
+        {{ t.ctaAccount }}
+      </button>
       <a
+        v-else-if="!moduloAperto"
         class="btn-account"
         :class="{ 'btn-account--evidenza': mostraAccountEvidenza || modalitàStatica || staticoForzato }"
         :href="URL_REGISTRAZIONE"

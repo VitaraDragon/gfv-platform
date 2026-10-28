@@ -20,6 +20,7 @@ const NOMI_FILE_CLIP = Object.freeze({
   thinking: 'tony-thinking',
   scrive: 'tony-scrive-hs1-taccuino',
   talking: 'tony-talking-loop',
+  topicRegistrazione: 'tony-topic-registrazione-2s5',
   exit: 'tony-exit-2s-veloce',
 });
 
@@ -33,6 +34,7 @@ export const DURATE_CLIP_MS = Object.freeze({
   thinking: 2375,
   scrive: 3583,
   talking: 3792,
+  topicRegistrazione: 2500,
   exit: 2000,
 });
 
@@ -70,12 +72,14 @@ const TRANSIZIONI = {
     ascoltoIniziato: 'ascolta',
     domandaInviata: 'pensa',
     servizioSpento: 'idle',
+    apriModulo: 'modulo',
   },
   ascolta: {
     ascoltoFinito: 'idle',
     domandaInviata: 'pensa',
     saluta: 'esce',
     servizioSpento: 'idle',
+    apriModulo: 'modulo',
   },
   pensa: {
     testoArrivato: 'scrive',
@@ -83,15 +87,19 @@ const TRANSIZIONI = {
     voceIniziata: 'parla',
     servizioSpento: 'idle',
     saluta: 'esce',
+    apriModulo: 'modulo',
   },
   scrive: {
     rispostaFinita: 'idle',
     voceIniziata: 'parla',
     servizioSpento: 'idle',
     saluta: 'esce',
+    apriModulo: 'modulo',
   },
-  parla: { voceFinita: 'idle', saluta: 'esce' },
-  statico: { saluta: 'esce' },
+  parla: { voceFinita: 'idle', saluta: 'esce', apriModulo: 'modulo' },
+  statico: { saluta: 'esce', apriModulo: 'modulo' },
+  /** Fase «chat» del brief: idle dopo il saluto. Modulo = registrazione in chat. */
+  modulo: { chiudiModulo: 'idle', saluta: 'esce' },
   esce: { uscitaFinita: 'nascosto' },
 };
 
@@ -217,6 +225,18 @@ export function percorsiClipDaPrecaricare(variante, formato) {
 }
 
 /**
+ * Solo topic-registrazione (webm/webp/stacked) per il dispositivo.
+ * @param {'desktop' | 'mobile'} dispositivo
+ * @returns {string[]}
+ */
+export function percorsiClipRegistrazione(dispositivo) {
+  const variante = dispositivo === 'mobile' ? 'mobile' : 'desktop';
+  return ['webm', 'webp', 'stacked']
+    .map((formato) => percorsoClip('topicRegistrazione', variante, formato))
+    .filter(Boolean);
+}
+
+/**
  * Elenco ordinato delle clip da suonare passando da uno stato all'altro.
  * @param {string} da
  * @param {string} a
@@ -226,6 +246,8 @@ export function scalettaClip(da, a) {
   if (a === 'esce') return ['exit'];
   if (a === 'statico') return [];
   if (da === 'entra' && a === 'idle') return [];
+  if (a === 'modulo') return ['topicRegistrazione', 'idle'];
+  if (da === 'modulo' && a === 'idle') return ['idle'];
   if (da === 'idle' && a === 'ascolta') return ['listenRaise', 'listenLoop'];
   if (da === 'ascolta' && a === 'idle') return ['listenLower', 'idle'];
   if (da === 'ascolta' && a === 'pensa') return ['listenLower', 'thinking'];

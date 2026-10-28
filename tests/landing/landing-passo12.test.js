@@ -135,11 +135,22 @@ function fileDaWeb(web) {
   return path.join(ROOT, 'landing/public', web.replace(/^\//, ''));
 }
 
+/** Clip topic-registrazione del passo 13: ammesse fuori dai 54 del passo 12. */
+const CLIP_TOPIC_REGISTRAZIONE_PASSO13 = new Set([
+  'tony-topic-registrazione-2s5-desktop-576x720-alpha-v4.webm',
+  'tony-topic-registrazione-2s5-mobile-432x540-alpha-v4.webm',
+  'tony-topic-registrazione-2s5-desktop-576x720-12fps-v4.webp',
+  'tony-topic-registrazione-2s5-mobile-432x540-12fps-v4.webp',
+  'tony-topic-registrazione-2s5-desktop-576x1440-stacked-alpha-v4.mp4',
+  'tony-topic-registrazione-2s5-mobile-432x1080-stacked-alpha-v4.mp4',
+]);
+
 describe('clip v4 nel repo', () => {
   it('esattamente i 54 file di MD5_CLIP_V4', () => {
     const files = fs
       .readdirSync(TONY_LIVE)
       .filter((f) => fs.statSync(path.join(TONY_LIVE, f)).isFile())
+      .filter((f) => !CLIP_TOPIC_REGISTRAZIONE_PASSO13.has(f))
       .sort();
     const attesi = Object.keys(MD5_CLIP_V4).sort();
     expect(files).toEqual(attesi);

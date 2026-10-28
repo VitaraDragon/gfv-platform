@@ -78,6 +78,28 @@ Scenari voce: `tonyvoce=lenta`, `errore`, `tetto`, `no` (niente voce). Nella bui
 
 Il contenitore delle clip (`.tony-player-host`) ha al massimo due livelli durante un passaggio e se ne svuota a ogni arresto: niente secondo Tony dietro. Con un errore del servizio Tony finisce la clip in corso e resta **animato** su `idle` (campo e pulsanti spariscono come prima); lo statico serve **solo** se le clip non arrivano. Immagini ferme: `tony-static-idle-desktop.png` e `tony-static-idle-mobile.png` (primo fotogramma di idle, stessa inquadratura), con dissolvenza incrociata di 180 ms se si veniva da una clip. Fine giro vera per WebM/stacked/WebP; dissolvenza di 150 ms da e verso `talking` e da `idle`; elementi precaricati riusati; WebP scaricate una volta sola (Blob). Sul telefono il pannello della chat è alto il 55% fisso e Tony resta fermo sul bordo alto. Prova clip assenti solo con `npm run dev`: `?tonyfinto=noclip`.
 
+## Registrazione nella chat (passo 13)
+
+Dopo il saluto, se App Check (o il modo finto) è pronto, «Crea il tuo account gratuito» apre un **modulo nella chat** (email, password, conferma, nome azienda; niente nome e cognome). Email e password **non** passano dalla chat né da Tony: niente `tonyLandingAsk`, niente voce, niente log. Clip `topic-registrazione` (2,5 s) poi idle. A fine registrazione «Vai alla tua dashboard» apre il login dell’app con l’email già scritta nel frammento `#email=` (mai la password).
+
+Prove in locale **senza account veri** (solo `npm run dev`):
+
+```bash
+cd landing
+npm run dev
+```
+
+Apri http://localhost:5173/?tonybussa=1&tonyfinto=ok&tonyreg=ok
+
+Altri scenari: `tonyreg=lento`, `email-usata`, `password-debole`, `rete`, `azienda`, `azienda-pulizia-fallita`, `profilo`, `legale`. Con solo `tonyfinto=` (senza `tonyreg`) vale come `ok`. Nella build di produzione il modo finto **non** c’è.
+
+### Dopo l’unione (console, prima del passo 16)
+
+- Google Cloud → chiave API web: se ha limitazioni per sito, aggiungere i domini della landing; se per API, Identity Toolkit / Firestore / Cloud Functions.
+- Firebase → Authentication → Domini autorizzati: aggiungere `gfvagri.com`.
+- **Non** obbligare App Check su Firestore/Auth (l’app su github.io non ce l’ha).
+- Quando i testi legali sono pronti: accendere insieme `ACCETTAZIONE_LEGALE_ATTIVA` e `NOME_TITOLARE_FACOLTATIVO_ATTIVO`.
+
 ## App Check (passo 9)
 
 Protezione per le **funzioni nuove della landing** (prima `tonyLandingSetup`, poi le altre): controlla che la chiamata arrivi dalla nostra pagina. L'app su github.io **non** cambia.

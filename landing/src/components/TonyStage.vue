@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { testiLanding } from '../content/testi-landing.js';
 import {
   clipInLoop,
@@ -8,11 +8,13 @@ import {
   durataClipMs,
   percorsoClip,
   percorsoTonyStatico,
+  percorsiClipRegistrazione,
   scalettaClip,
   sicurezzaEntrataMs,
   tempiVoce,
 } from '../lib/tony-bussa-logica.js';
 import { creaPlayerClip } from '../lib/tony-clip-player.js';
+import { moduloRegistrazioneDisponibile } from '../lib/tony-registrazione.js';
 import TonyChat from './TonyChat.vue';
 
 const props = defineProps<{
@@ -39,6 +41,9 @@ const emit = defineEmits([
   'servizioSpento',
   'voceIniziata',
   'voceFinita',
+  'apri-modulo',
+  'chiudi-modulo',
+  'registrazione-completata',
 ]);
 
 const t = testiLanding.tonyBussa;
@@ -48,6 +53,12 @@ const chatRef = ref<{ interrompi?: () => void } | null>(null);
 const inFadeOut = ref(false);
 const clipPronte = ref<Record<string, boolean>>({ entry: true, idle: true });
 const protezionePronta = ref<boolean | null>(null);
+const moduloDisponibile = computed(() =>
+  moduloRegistrazioneDisponibile({
+    salutoFinito: props.salutoFinito,
+    protezionePronta: protezionePronta.value,
+  })
+);
 const mostraStatico = ref(false);
 const staticoSrc = ref('');
 const staticoW = ref(576);
@@ -178,6 +189,7 @@ function clipUnaVolta(nome: string) {
     nome === 'listenRaise' ||
     nome === 'listenLower' ||
     nome === 'thinking' ||
+    nome === 'topicRegistrazione' ||
     nome === 'entry'
   );
 }
@@ -472,10 +484,31 @@ function applicaFase(fase: string, precedente?: string) {
     fase === 'ascolta' ||
     fase === 'pensa' ||
     fase === 'scrive' ||
-    fase === 'parla'
+    fase === 'parla' ||
+    fase === 'modulo'
   ) {
     mostraStatico.value = false;
-    if (prec && prec !== fase) avviaScaletta(prec, fase);
+    if (fase === 'modulo') {
+      assicuratiPlayer();
+      if (props.riduciMovimento) {
+        codaClip = ['idle'];
+        suonaProssima();
+      } else if (clipChatPronta('topicRegistrazione')) {
+        avviaScaletta(prec || 'idle', 'modulo');
+      } else {
+        // Se non pronta entro 1500 ms → idle (come le altre clip non pronte)
+        window.setTimeout(() => {
+          if (smontato || props.fase !== 'modulo') return;
+          if (clipChatPronta('topicRegistrazione')) {
+            avviaScaletta(prec || 'idle', 'modulo');
+          } else {
+            generazioneClip += 1;
+            codaClip = ['idle'];
+            suonaProssima();
+          }
+        }, 1500);
+      }
+    } else if (prec && prec !== fase) avviaScaletta(prec, fase);
     else if (fase === 'idle' && !idleAvviata) {
       assicuratiPlayer();
       codaClip = ['idle'];
@@ -484,11 +517,27 @@ function applicaFase(fase: string, precedente?: string) {
       avviaScaletta('idle', 'parla');
     }
   }
-  if (fase === 'idle' || fase === 'parla' || fase === 'statico' || fase === 'ascolta') {
+  if (fase === 'idle' || fase === 'parla' || fase === 'statico' || fase === 'ascolta' || fase === 'modulo') {
     avviaProtezionePigro();
   }
   faseClipPrecedente = fase;
 }
+
+watch(moduloDisponibile, (ok) => {
+  if (!ok || smontato) return;
+  void (async () => {
+    assicuratiPlayer();
+    if (!player) return;
+    try {
+      // Precarica le varianti del formato corrente (+ le altre restano su disco)
+      percorsiClipRegistrazione(varScena());
+      await player.precarica(urlClip('topicRegistrazione'));
+      if (!smontato) marcaClipPronta('topicRegistrazione');
+    } catch {
+      /* clip non pronta: ripiego idle all'apertura */
+    }
+  })();
+});
 
 watch(
   () => props.fase,
@@ -537,6 +586,18 @@ defineExpose({
   },
 });
 
+function onApriModulo() {
+  emit('apri-modulo');
+}
+
+function onChiudiModulo() {
+  emit('chiudi-modulo');
+}
+
+function onRegistrazioneCompletata() {
+  emit('registrazione-completata');
+}
+
 const mostraFumetto = () =>
   props.fase === 'idle' ||
   props.fase === 'statico' ||
@@ -544,6 +605,7 @@ const mostraFumetto = () =>
   props.fase === 'ascolta' ||
   props.fase === 'pensa' ||
   props.fase === 'scrive' ||
+  props.fase === 'modulo' ||
   props.fase === 'esce';
 </script>
 
@@ -577,6 +639,7 @@ const mostraFumetto = () =>
             :protezione-pronta="protezionePronta"
             :statico-forzato="false"
             :audio-iniziale="audioAttivo"
+            :modulo-disponibile="moduloDisponibile"
             @saluta="onSaluta"
             @ascolto-iniziato="emit('ascoltoIniziato')"
             @ascolto-finito="emit('ascoltoFinito')"
@@ -586,6 +649,9 @@ const mostraFumetto = () =>
             @servizio-spento="emit('servizioSpento')"
             @voce-iniziata="emit('voceIniziata')"
             @voce-finita="emit('voceFinita')"
+            @apri-modulo="onApriModulo"
+            @chiudi-modulo="onChiudiModulo"
+            @registrazione-completata="onRegistrazioneCompletata"
           />
         </template>
       </div>
