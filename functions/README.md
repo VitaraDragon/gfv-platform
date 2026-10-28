@@ -95,6 +95,20 @@ Le **Firestore rules** non espongono più letture pubbliche su `tenants`, `clien
 
 **Note operative**: se il client ottiene **404** sulla URL della callable, la function non è deployata. **CORS** senza `Access-Control-Allow-Origin` su preflight spesso maschera 404/403: verificare deploy e IAM (`invoker: "public"`).
 
+## tonyLandingAsk (landing, passo 10)
+
+Funzione HTTP pubblica (`europe-west1`, risposta SSE) con cui Tony risponde ai visitatori della landing **senza login**.
+
+- **App Check obbligatorio** nell’header `X-Firebase-AppCheck`: senza token valido → **401**. Vale solo per questa funzione (nessun obbligo su Firestore, Storage, Auth o sull’app).
+- **CORS** solo dai domini della landing (confronto esatto di `Origin`).
+- **Limiti**: 15 domande per sessione, 30 al giorno per visitatore (hash SHA-256 di IP + user agent + sale del giorno), 1000 al giorno in tutto (massimo 3000 da config); domanda max 300 caratteri; risposta corta (200 token, thinking spento, nessuno strumento).
+- **Interruttore** `config/tonyLanding` (campi: `enabled`, `voiceEnabled`, `dailyQuestionCap`, `dailyVoiceCharCap`, `monthlyBudgetEur`), letto con cache di 60 secondi. **Se il documento manca, Tony è spento.** Un cambio vale entro un minuto, senza deploy.
+- **Tetto di spesa stimata 30 €/mese**: all’80% solo testo, al 100% stop con messaggio gentile; il mese dopo il contatore riparte. La config può solo abbassare il tetto, non alzarlo.
+- Contatori in `tonyLandingQuota` con `expireAt` e cancellazione automatica (TTL). **Non tocca mai** `tenants`.
+- Nei log solo esiti, conteggi e tempi: niente testo domanda/risposta, IP, user agent, ID, token o chiave.
+
+Logica pura: `functions/lib/tony-landing-limiti.js`. Gestore: `functions/tony-landing-ask.js`.
+
 ## Cleanup policy (opzionale)
 
 Al primo deploy la CLI può chiedere quanti giorni conservare le immagini container. Es. 7 giorni. Se la policy non si applica: `firebase functions:artifacts:setpolicy` o `firebase deploy --only functions --force`.

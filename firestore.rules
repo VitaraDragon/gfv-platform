@@ -417,6 +417,16 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // Contatori, sale del giorno e spesa stimata di tonyLandingAsk (TTL su expireAt). Solo Cloud Functions — admin SDK
+    match /tonyLandingQuota/{document=**} {
+      allow read, write: if false;
+    }
+
+    // Interruttore e tetti di Tony sulla landing (si cambia dalla console). Nessun accesso dal browser
+    match /config/tonyLanding {
+      allow read, write: if false;
+    }
+
     // Collection: liste (dati personalizzati, es. colture)
     match /tenants/{tenantId}/liste/{listaId} {
       allow read: if isAuthenticated() && belongsToTenant(tenantId);
