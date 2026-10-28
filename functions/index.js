@@ -4986,6 +4986,10 @@ exports.tonyLandingSetup = onCall(
   (request) => handleTonyLandingSetup(request)
 );
 
+// Landing «Tony bussa»: domande dei visitatori senza login (passo 10). App Check, limiti, tetto 30 €/mese e interruttore config/tonyLanding nel file.
+const { tonyLandingAsk } = require("./tony-landing-ask");
+exports.tonyLandingAsk = tonyLandingAsk;
+
 exports.onComunicazioneCreated = onComunicazioneCreated;
 exports.onLavoroWritten = onLavoroWritten;
 exports.onOreOperaiCreated = onOreOperaiCreated;
