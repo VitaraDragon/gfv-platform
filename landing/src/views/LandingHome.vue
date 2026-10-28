@@ -27,6 +27,7 @@ import {
   livelloVoce,
   percorsoClip,
   percorsiAudio,
+  percorsiClipDaPrecaricare,
   percorsiVoce,
   prossimoStato,
   prossimaBocca,
@@ -86,6 +87,8 @@ const varianteScelta = ref('desktop');
 const formatoScelto = ref('webm');
 const pulsanteOrigine = ref<HTMLElement | null>(null);
 const boccaAperta = ref(false);
+const salutoFinito = ref(false);
+const stageRef = ref<{ precaricaClip?: (nome: string) => Promise<void> } | null>(null);
 
 const stileScossone = computed(() => {
   if (!shakePx.value) return undefined;
@@ -137,12 +140,15 @@ function rilevaFormato() {
   let webm = false;
   try {
     const video = document.createElement('video');
-    webm = video.canPlayType('video/webm; codecs="vp09.00.10.08"') !== '';
+    webm =
+      video.canPlayType('video/webm; codecs="vp09.00.10.08"') !== '' ||
+      video.canPlayType('video/webm; codecs="vp9"') !== '';
   } catch {
     webm = false;
   }
   return formatoClip({
     userAgent: navigator.userAgent,
+    maxTouchPoints: navigator.maxTouchPoints || 0,
     webmAlfaSupportato: webm,
   });
 }
@@ -193,12 +199,60 @@ function preparaMedia() {
   const voci = percorsiVoce(variante === 'mobile' ? 'mobile' : 'desktop');
   audioSaluto = creaAudio(voci.saluto.mp3);
   audioCiao = creaAudio(voci.ciao.mp3);
-  const formato = formatoScelto.value === 'stacked' ? 'stacked' : 'webm';
-  videoEntryPreload = creaVideoNascosto(percorsoClip('entry', variante, formato));
-  videoIdlePreload = creaVideoNascosto(percorsoClip('idle', variante, formato));
-  creaVideoNascosto(percorsoClip('exit', variante, formato));
-  creaVideoNascosto(percorsoClip('talking', variante, formato));
+  const formato = formatoScelto.value;
+  const urlEntry = percorsoClip('entry', variante, formato);
+  const urlIdle = percorsoClip('idle', variante, formato);
+  if (formato === 'webp') {
+    // WebP: Image decode, niente <video>
+    const imgE = new Image();
+    imgE.src = urlEntry;
+    const imgI = new Image();
+    imgI.src = urlIdle;
+    videoEntryPreload = { readyState: 4 } as HTMLVideoElement;
+    videoIdlePreload = { readyState: 4 } as HTMLVideoElement;
+    imgE.decode?.().catch(() => {});
+    imgI.decode?.().catch(() => {});
+  } else {
+    videoEntryPreload = creaVideoNascosto(urlEntry);
+    videoIdlePreload = creaVideoNascosto(urlIdle);
+  }
   mediaPronte = true;
+}
+
+/** Dopo «Fai entrare Tony»: le altre 7 clip una dopo l'altra. */
+async function precaricaClipChat() {
+  const variante = varianteScelta.value === 'mobile' ? 'mobile' : 'desktop';
+  const formato = formatoScelto.value;
+  const urls = percorsiClipDaPrecaricare(variante, formato);
+  const nomi = [
+    'entry',
+    'idle',
+    'listenRaise',
+    'listenLoop',
+    'listenLower',
+    'thinking',
+    'scrive',
+    'talking',
+    'exit',
+  ];
+  for (let i = 2; i < nomi.length; i += 1) {
+    const nome = nomi[i];
+    const url = urls[i];
+    if (!url) continue;
+    try {
+      if (stageRef.value && typeof stageRef.value.precaricaClip === 'function') {
+        await stageRef.value.precaricaClip(nome);
+      } else if (formato === 'webp') {
+        const img = new Image();
+        img.src = url;
+        await (img.decode ? img.decode() : Promise.resolve());
+      } else {
+        creaVideoNascosto(url);
+      }
+    } catch {
+      /* clip non pronta: la scena resta su idle se serve */
+    }
+  }
 }
 
 function rilasciaPreload() {
@@ -448,18 +502,25 @@ function onSalutoFinita(gen: number) {
   fermaLoopBocca();
   boccaAperta.value = false;
   if (fase.value === 'parla') fase.value = prossimoStato('parla', 'voceFinita');
+  salutoFinito.value = true;
 }
 
 function avviaSaluto() {
   if (fase.value !== 'idle' && fase.value !== 'statico') return;
-  if (!audioSaluto) return;
+  if (!audioSaluto) {
+    salutoFinito.value = true;
+    return;
+  }
   const ctxPronto = !!(audioCtx && audioCtx.state === 'running');
   const decisione = deveParlare({
     audioAttivo: audioAttivo.value,
     riduciMovimento: riduciMovimento.value,
     analizzatoreDisponibile: ctxPronto,
   });
-  if (!decisione.voce) return;
+  if (!decisione.voce) {
+    salutoFinito.value = true;
+    return;
+  }
   let bocca = decisione.bocca;
   if (bocca === 'volume' && !collegaAnalizzatore(audioSaluto)) bocca = 'continua';
   modoBocca = bocca;
@@ -479,6 +540,7 @@ function avviaSaluto() {
     } catch {
       /* resta il testo nel fumetto */
     }
+    salutoFinito.value = true;
   });
   fineSblocco(audioSaluto);
   try {
@@ -571,6 +633,7 @@ function ripristinaFocus() {
 function chiudiTutto() {
   pulisciTempo();
   salutoProgrammato = false;
+  salutoFinito.value = false;
   uscitaClipFinita = false;
   uscitaVoceFinita = false;
   if (fase.value === 'esce') fase.value = prossimoStato('esce', 'uscitaFinita');
@@ -602,12 +665,25 @@ function saluta() {
     chiudiTutto();
     return;
   }
-  const conVoce =
-    (prima === 'idle' || prima === 'parla' || prima === 'statico') && audioAttivo.value;
+  const statiConVoce = [
+    'idle',
+    'parla',
+    'statico',
+    'ascolta',
+    'pensa',
+    'scrive',
+  ];
+  const conVoce = statiConVoce.indexOf(prima) >= 0 && audioAttivo.value;
   uscitaClipFinita = false;
   uscitaVoceFinita = !conVoce;
   uscitaConClip.value =
-    (prima === 'idle' || prima === 'entra' || prima === 'parla') && !riduciMovimento.value;
+    (prima === 'idle' ||
+      prima === 'entra' ||
+      prima === 'parla' ||
+      prima === 'ascolta' ||
+      prima === 'pensa' ||
+      prima === 'scrive') &&
+    !riduciMovimento.value;
   fase.value = 'esce';
   if (conVoce) avviaCiao();
   fra(tempiVoce().attesaMaxUscitaMs, () => {
@@ -618,6 +694,38 @@ function saluta() {
 function onEntrataFinita() {
   if (fase.value !== 'entra') return;
   fase.value = prossimoStato('entra', 'entrataFinita');
+  void precaricaClipChat();
+}
+
+function onAscoltoIniziato() {
+  if (fase.value === 'idle') fase.value = prossimoStato('idle', 'ascoltoIniziato');
+}
+
+function onAscoltoFinito() {
+  if (fase.value === 'ascolta') fase.value = prossimoStato('ascolta', 'ascoltoFinito');
+}
+
+function onDomandaInviata() {
+  if (fase.value === 'idle' || fase.value === 'ascolta') {
+    fase.value = prossimoStato(fase.value, 'domandaInviata');
+  }
+}
+
+function onTestoArrivato() {
+  if (fase.value === 'pensa') fase.value = prossimoStato('pensa', 'testoArrivato');
+}
+
+function onRispostaFinita() {
+  if (fase.value === 'pensa' || fase.value === 'scrive' || fase.value === 'ascolta') {
+    fase.value = prossimoStato(fase.value, 'rispostaFinita');
+  }
+}
+
+function onServizioSpento() {
+  if (fase.value === 'esce' || fase.value === 'nascosto') return;
+  fase.value = prossimoStato(fase.value, 'servizioSpento');
+  if (fase.value !== 'statico') fase.value = 'statico';
+  salutoFinito.value = true;
 }
 
 function onClipNonPronta() {
@@ -808,7 +916,13 @@ function onEscGlobale(e: KeyboardEvent) {
 
 watch(fase, (nuova, precedente) => {
   if (nuova === precedente) return;
-  if (nuova === 'idle' || nuova === 'statico') programmaSaluto();
+  if (nuova === 'idle' || nuova === 'statico') {
+    programmaSaluto();
+    if (nuova === 'statico' && precedente !== 'idle' && precedente !== 'parla') {
+      // clip non pronte: chat disponibile subito
+      salutoFinito.value = true;
+    }
+  }
 });
 
 onMounted(() => {
@@ -1106,16 +1220,24 @@ const iconeModuliImg: Record<string, string> = {
     />
     <TonyStage
       v-if="tonyOn && stageAperto"
+      ref="stageRef"
       :fase="fase"
       :variante="varianteScelta"
       :formato="formatoScelto"
       :riduci-movimento="riduciMovimento"
       :uscita-con-clip="uscitaConClip"
       :bocca-aperta="boccaAperta"
+      :saluto-finito="salutoFinito"
       @entrata-finita="onEntrataFinita"
       @uscita-finita="onUscitaFinita"
       @saluta="saluta"
       @clip-non-pronta="onClipNonPronta"
+      @ascolto-iniziato="onAscoltoIniziato"
+      @ascolto-finito="onAscoltoFinito"
+      @domanda-inviata="onDomandaInviata"
+      @testo-arrivato="onTestoArrivato"
+      @risposta-finita="onRispostaFinita"
+      @servizio-spento="onServizioSpento"
     />
   </div>
 </template>

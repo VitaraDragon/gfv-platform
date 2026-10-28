@@ -180,5 +180,25 @@ export const testiLanding = {
     notaSaluto: `Intanto crea il tuo account gratuito: dentro Global Farm View ti guido per ${GIORNI_GUIDA_TONY} giorni.`,
     ctaAccount: 'Crea il tuo account gratuito',
     saluta: '✕ Saluta Tony',
+    // BOZZA: da far rivedere
+    chip: ['Cosa fa GFV?', 'Quanto costa?', 'Come mi aiuta Tony?'],
+    // BOZZA: da far rivedere
+    segnapostoCampo: 'Scrivi una domanda su GFV',
+    // BOZZA: da far rivedere
+    invia: 'Invia',
+    // BOZZA: da far rivedere
+    microfono: 'Parla',
+    // BOZZA: da far rivedere
+    microfonoMobile: 'Tieni premuto e parla',
+    // BOZZA: da far rivedere
+    ascolto: 'Ti ascolto…',
+    // BOZZA: da far rivedere
+    pensaLettoreSchermo: 'Tony sta pensando…',
+    // BOZZA: da far rivedere
+    domandaNascosta: '(messaggio nascosto: conteneva dati personali)',
+    // BOZZA: da far rivedere
+    troppoLunga: 'Al massimo 300 caratteri: prova a farla più corta.',
+    // BOZZA: da far rivedere
+    etichettaCampo: 'La tua domanda per Tony',
   },
 };

@@ -1,9 +1,16 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
-import { URL_REGISTRAZIONE } from '../config/landing-config.js';
+import { onMounted, onUnmounted, ref, watch } from 'vue';
 import { testiLanding } from '../content/testi-landing.js';
-import { percorsoClip, percorsoTonyStatico, tempiVoce } from '../lib/tony-bussa-logica.js';
-import { avvia, ferma } from '../lib/stacked-alpha-player.js';
+import {
+  clipInLoop,
+  durataClipMs,
+  percorsoClip,
+  percorsoTonyStatico,
+  scalettaClip,
+  tempiVoce,
+} from '../lib/tony-bussa-logica.js';
+import { creaPlayerClip } from '../lib/tony-clip-player.js';
+import TonyChat from './TonyChat.vue';
 
 const props = defineProps<{
   fase: string;
@@ -12,31 +19,32 @@ const props = defineProps<{
   riduciMovimento: boolean;
   uscitaConClip: boolean;
   boccaAperta: boolean;
+  salutoFinito: boolean;
 }>();
 
-const emit = defineEmits(['entrataFinita', 'uscitaFinita', 'saluta', 'clipNonPronta']);
+const emit = defineEmits([
+  'entrataFinita',
+  'uscitaFinita',
+  'saluta',
+  'clipNonPronta',
+  'ascoltoIniziato',
+  'ascoltoFinito',
+  'domandaInviata',
+  'testoArrivato',
+  'rispostaFinita',
+  'servizioSpento',
+]);
 
 const t = testiLanding.tonyBussa;
 const tonyStatico = percorsoTonyStatico();
 const msBocca = tempiVoce().dissolvenzaBoccaMs;
-const videoEntry = ref<HTMLVideoElement | null>(null);
-const videoIdle = ref<HTMLVideoElement | null>(null);
-const videoTalking = ref<HTMLVideoElement | null>(null);
-const videoExit = ref<HTMLVideoElement | null>(null);
-const canvasEntry = ref<HTMLCanvasElement | null>(null);
-const canvasIdle = ref<HTMLCanvasElement | null>(null);
-const canvasTalking = ref<HTMLCanvasElement | null>(null);
-const canvasExit = ref<HTMLCanvasElement | null>(null);
-const boccaVisibile = computed(
-  () => props.fase === 'parla' && props.boccaAperta === true && !props.riduciMovimento
-);
-const nascondiEntrata = ref(false);
+const figuraHost = ref<HTMLElement | null>(null);
+const chatRef = ref<{ interrompi?: () => void } | null>(null);
 const inFadeOut = ref(false);
+const clipPronte = ref<Record<string, boolean>>({ entry: true, idle: true });
+const protezionePronta = ref<boolean | null>(null);
 
-let playerEntry: { ferma: () => void } | null = null;
-let playerIdle: { ferma: () => void } | null = null;
-let playerTalking: { ferma: () => void } | null = null;
-let playerExit: { ferma: () => void } | null = null;
+let player: ReturnType<typeof creaPlayerClip> | null = null;
 let entrataAvviata = false;
 let idleAvviata = false;
 let uscitaAvviata = false;
@@ -45,23 +53,87 @@ let uscitaEmessa = false;
 let smontato = false;
 let timerEntrata = 0;
 let timerUscita = 0;
+let timerGiro = 0;
 let protezioneAvviata = false;
+let codaClip: string[] = [];
+let clipCorrente = '';
+let faseClipPrecedente = '';
+let generazioneClip = 0;
 
 const saluto = () =>
   props.variante === 'mobile' ? t.salutoMobile : t.salutoDesktop;
 
-function src(nome: 'entry' | 'idle' | 'exit' | 'talking') {
-  const formato = props.formato === 'stacked' ? 'stacked' : 'webm';
-  const variante = props.variante === 'mobile' ? 'mobile' : 'desktop';
-  return percorsoClip(nome, variante, formato);
+function fmt() {
+  if (props.formato === 'webp') return 'webp';
+  if (props.formato === 'stacked') return 'stacked';
+  return 'webm';
 }
 
-function playSicuro(el: HTMLVideoElement | null) {
-  if (!el) return;
-  const promessa = el.play();
-  if (promessa && typeof promessa.catch === 'function') {
-    promessa.catch(() => {});
+function varScena(): 'desktop' | 'mobile' {
+  return props.variante === 'mobile' ? 'mobile' : 'desktop';
+}
+
+function urlClip(nome: string) {
+  return percorsoClip(nome, varScena(), fmt());
+}
+
+function assicuratiPlayer() {
+  if (player || !figuraHost.value) return;
+  player = creaPlayerClip({
+    contenitore: figuraHost.value,
+    formato: fmt(),
+    onErrore: () => {
+      if (smontato || props.fase === 'idle' || props.fase === 'esce' || props.fase === 'parla') {
+        return;
+      }
+      if (props.fase === 'bussa' || props.fase === 'entra') emit('clipNonPronta');
+    },
+  });
+}
+
+async function ottieniToken() {
+  try {
+    const m = await import('../lib/firebase-landing.js');
+    return await m.tokenAppCheck();
+  } catch {
+    return null;
   }
+}
+
+function avviaProtezionePigro() {
+  if (protezioneAvviata || smontato) return;
+  protezioneAvviata = true;
+  if (import.meta.env.DEV) {
+    import('../lib/tony-chat-finto.js')
+      .then((m) => {
+        if (smontato) return;
+        const sc =
+          typeof window !== 'undefined' ? m.parametroFinto(window.location.search) : null;
+        if (sc) {
+          protezionePronta.value = true;
+          return;
+        }
+        return import('../lib/firebase-landing.js').then((fb) =>
+          fb.avviaProtezione().then((esito) => {
+            if (!smontato) protezionePronta.value = !!(esito && esito.pronta === true);
+          })
+        );
+      })
+      .catch(() => {
+        if (!smontato) protezionePronta.value = false;
+      });
+    return;
+  }
+  import('../lib/firebase-landing.js')
+    .then((m) =>
+      m.avviaProtezione().then((esito) => {
+        if (smontato) return;
+        protezionePronta.value = !!(esito && esito.pronta === true);
+      })
+    )
+    .catch(() => {
+      if (!smontato) protezionePronta.value = false;
+    });
 }
 
 function emettiEntrata() {
@@ -78,178 +150,192 @@ function emettiUscita() {
   emit('uscitaFinita');
 }
 
-function suonaIdle() {
-  if (idleAvviata || smontato) return;
-  idleAvviata = true;
-  if (props.formato === 'stacked') {
-    if (!canvasIdle.value) return;
-    playerIdle = avvia(canvasIdle.value, src('idle'), {
-      loop: true,
-      onPrimoFotogramma: () => {
-        nascondiEntrata.value = true;
-        playerEntry?.ferma();
-        playerEntry = null;
-      },
+function clipChatPronta(nome: string) {
+  if (nome === 'entry' || nome === 'idle') return true;
+  return clipPronte.value[nome] === true;
+}
+
+function suonaProssima() {
+  if (smontato || !player) return;
+  if (!codaClip.length) return;
+  const nome = codaClip.shift() as string;
+  clipCorrente = nome;
+
+  if (props.riduciMovimento && nome !== 'exit' && props.fase !== 'entra') {
+    if (nome === 'idle' || codaClip.length === 0) {
+      const idleUrl = urlClip('idle');
+      player.suona(idleUrl, {
+        loop: true,
+        durataMs: durataClipMs('idle'),
+      });
+      clipCorrente = 'idle';
+    }
+    return;
+  }
+
+  if (!clipChatPronta(nome) && nome !== 'entry' && nome !== 'idle' && nome !== 'exit' && nome !== 'talking') {
+    // clip chat non pronta: resta su idle
+    player.suona(urlClip('idle'), { loop: true, durataMs: durataClipMs('idle') });
+    clipCorrente = 'idle';
+    codaClip = [];
+    return;
+  }
+
+  const loop = clipInLoop(nome);
+  const durataMs = durataClipMs(nome, varScena());
+  const gen = generazioneClip;
+
+  player.suona(urlClip(nome), {
+    loop,
+    durataMs,
+    onFine: () => {
+      if (smontato || gen !== generazioneClip) return;
+      if (nome === 'entry') {
+        suonaProssima();
+        emettiEntrata();
+        return;
+      }
+      if (nome === 'exit') {
+        emettiUscita();
+        return;
+      }
+      if (nome === 'thinking' && props.fase === 'pensa') {
+        // ripeti thinking finché resta in pensa
+        codaClip = ['thinking'];
+        suonaProssima();
+        return;
+      }
+      if (!loop) suonaProssima();
+    },
+  });
+
+  if (nome === 'idle') idleAvviata = true;
+}
+
+function avviaScaletta(da: string, a: string) {
+  generazioneClip += 1;
+  if (timerGiro) {
+    window.clearTimeout(timerGiro);
+    timerGiro = 0;
+  }
+  assicuratiPlayer();
+  if (!player) return;
+
+  if (a === 'statico') {
+    player.ferma();
+    player = null;
+    return;
+  }
+
+  if (props.riduciMovimento && a !== 'esce' && a !== 'entra') {
+    if (a === 'idle' || a === 'ascolta' || a === 'pensa' || a === 'scrive' || a === 'parla') {
+      codaClip = ['idle'];
+      suonaProssima();
+      return;
+    }
+  }
+
+  // uscita da loop: aspetta fine giro per ascolta→idle/pensa e scrive→idle
+  const daLoop =
+    (da === 'ascolta' && (a === 'idle' || a === 'pensa') && clipCorrente === 'listenLoop') ||
+    (da === 'scrive' && a === 'idle' && clipCorrente === 'scrive') ||
+    (da === 'pensa' && (a === 'scrive' || a === 'idle') && clipCorrente === 'thinking');
+
+  const lista = scalettaClip(da, a);
+  if (!lista.length && a !== 'statico') return;
+
+  const parti = () => {
+    codaClip = lista.slice();
+    if (a === 'idle' && da === 'entra') {
+      // entry poi idle già in lista
+    }
+    suonaProssima();
+  };
+
+  if (daLoop && player && typeof player.allaFineDelGiro === 'function') {
+    const durata =
+      clipCorrente === 'listenLoop'
+        ? durataClipMs('listenLoop')
+        : clipCorrente === 'scrive'
+          ? durataClipMs('scrive')
+          : durataClipMs('thinking');
+    timerGiro = player.allaFineDelGiro(durata, () => {
+      if (smontato) return;
+      // se thinking e andiamo a scrive/idle: non ripetere, vai alla scaletta
+      parti();
     });
     return;
   }
-  const idle = videoIdle.value;
-  if (!idle) return;
-  idle.loop = true;
-  const rivela = () => {
-    if (smontato) return;
-    try {
-      idle.currentTime = 0;
-    } catch {
-      /* il browser non ha ancora un fotogramma */
-    }
-    nascondiEntrata.value = true;
-    videoEntry.value?.pause();
-    playSicuro(idle);
-  };
-  if (idle.readyState >= 2) rivela();
-  else idle.addEventListener('loadeddata', rivela, { once: true });
+
+  parti();
 }
 
 function suonaEntrata() {
   if (entrataAvviata || smontato) return;
   entrataAvviata = true;
+  assicuratiPlayer();
   if (props.riduciMovimento) {
-    suonaIdle();
+    codaClip = ['idle'];
+    suonaProssima();
     emettiEntrata();
     return;
   }
   timerEntrata = window.setTimeout(() => {
-    suonaIdle();
-    emettiEntrata();
+    if (!entrataEmessa) {
+      codaClip = ['idle'];
+      suonaProssima();
+      emettiEntrata();
+    }
   }, 4000);
-  if (props.formato === 'stacked') {
-    if (!canvasEntry.value) return;
-    playerEntry = avvia(canvasEntry.value, src('entry'), {
-      loop: false,
-      onFine: () => {
-        suonaIdle();
-        emettiEntrata();
-      },
-    });
-    return;
-  }
-  const idle = videoIdle.value;
-  if (idle && idle.readyState >= 1) {
-    try {
-      idle.currentTime = 0;
-    } catch {
-      /* ancora vuoto */
-    }
-  }
-  playSicuro(videoEntry.value);
-}
-
-function onEntryEnded() {
-  if (smontato || props.formato === 'stacked') return;
-  if (props.fase === 'esce' || props.fase === 'statico') return;
-  suonaIdle();
-  emettiEntrata();
-}
-
-function suonaTalking() {
-  if (smontato || props.riduciMovimento) return;
-  if (props.formato === 'stacked') {
-    if (!canvasTalking.value) return;
-    playerTalking?.ferma();
-    playerTalking = avvia(canvasTalking.value, src('talking'), { loop: true });
-    return;
-  }
-  const video = videoTalking.value;
-  if (!video) return;
-  try {
-    video.currentTime = 0;
-  } catch {
-    /* ancora vuoto */
-  }
-  video.loop = true;
-  playSicuro(video);
-}
-
-function fermaTalking() {
-  const video = videoTalking.value;
-  if (video) {
-    try {
-      video.pause();
-    } catch {
-      /* già fermo */
-    }
-  }
-  if (playerTalking) {
-    playerTalking.ferma();
-    playerTalking = null;
-  }
+  codaClip = ['entry', 'idle'];
+  suonaProssima();
 }
 
 function suonaUscita() {
   if (uscitaAvviata || smontato) return;
   uscitaAvviata = true;
-  fermaTalking();
-  videoEntry.value?.pause();
-  videoIdle.value?.pause();
-  playerEntry?.ferma();
-  playerIdle?.ferma();
-  playerEntry = null;
-  playerIdle = null;
+  chatRef.value?.interrompi?.();
+  generazioneClip += 1;
   const conClip = props.uscitaConClip && !props.riduciMovimento;
   if (!conClip) {
     inFadeOut.value = true;
+    player?.ferma();
     timerUscita = window.setTimeout(emettiUscita, 280);
     return;
   }
-  if (props.formato === 'stacked') {
-    if (!canvasExit.value) {
-      timerUscita = window.setTimeout(emettiUscita, 400);
-      return;
-    }
-    playerExit = avvia(canvasExit.value, src('exit'), {
-      loop: false,
-      onFine: emettiUscita,
-    });
-    timerUscita = window.setTimeout(emettiUscita, 4500);
-    return;
-  }
-  const exit = videoExit.value;
-  if (!exit) {
-    timerUscita = window.setTimeout(emettiUscita, 400);
-    return;
-  }
-  playSicuro(exit);
+  assicuratiPlayer();
+  codaClip = ['exit'];
+  suonaProssima();
   timerUscita = window.setTimeout(emettiUscita, 4500);
 }
 
-function onExitEnded() {
-  emettiUscita();
-}
-
-function onMediaError() {
-  if (smontato || props.fase === 'idle' || props.fase === 'esce' || props.fase === 'parla') return;
-  emit('clipNonPronta');
-}
-
-function avviaProtezionePigro() {
-  if (protezioneAvviata || smontato) return;
-  protezioneAvviata = true;
-  // Firebase e App Check solo dopo che Tony è entrato (non all'apertura, non durante l'entrata).
-  import('../lib/firebase-landing.js')
-    .then((m) => m.avviaProtezione())
-    .catch(() => {});
-}
-
 function applicaFase(fase: string, precedente?: string) {
-  if (precedente === 'parla' && fase !== 'parla') fermaTalking();
+  const prec = precedente || faseClipPrecedente || '';
   if (fase === 'entra') suonaEntrata();
-  if (fase === 'idle') suonaIdle();
-  if (fase === 'parla') suonaTalking();
-  if (fase === 'esce') suonaUscita();
-  if (fase === 'idle' || fase === 'parla' || fase === 'statico') {
+  else if (fase === 'esce') suonaUscita();
+  else if (fase === 'statico') {
+    player?.ferma();
+    player = null;
+  } else if (
+    fase === 'idle' ||
+    fase === 'ascolta' ||
+    fase === 'pensa' ||
+    fase === 'scrive' ||
+    fase === 'parla'
+  ) {
+    if (prec && prec !== fase) avviaScaletta(prec, fase);
+    else if (fase === 'idle' && !idleAvviata) {
+      assicuratiPlayer();
+      codaClip = ['idle'];
+      suonaProssima();
+    } else if (fase === 'parla' && prec === 'idle') {
+      avviaScaletta('idle', 'parla');
+    }
+  }
+  if (fase === 'idle' || fase === 'parla' || fase === 'statico' || fase === 'ascolta') {
     avviaProtezionePigro();
   }
+  faseClipPrecedente = fase;
 }
 
 watch(
@@ -257,32 +343,44 @@ watch(
   (fase, precedente) => applicaFase(fase, precedente)
 );
 
-onMounted(() => applicaFase(props.fase));
+onMounted(() => {
+  assicuratiPlayer();
+  applicaFase(props.fase);
+});
 
 onUnmounted(() => {
   smontato = true;
   if (timerEntrata) window.clearTimeout(timerEntrata);
   if (timerUscita) window.clearTimeout(timerUscita);
-  playerEntry?.ferma();
-  playerIdle?.ferma();
-  playerTalking?.ferma();
-  playerExit?.ferma();
-  ferma();
-  for (const el of [videoEntry.value, videoIdle.value, videoTalking.value, videoExit.value]) {
-    if (!el) continue;
-    try {
-      el.pause();
-    } catch {
-      /* già fermo */
-    }
-    el.removeAttribute('src');
-    try {
-      el.load();
-    } catch {
-      /* elemento già staccato */
-    }
-  }
+  if (timerGiro) window.clearTimeout(timerGiro);
+  player?.ferma();
+  player = null;
 });
+
+function onSaluta() {
+  chatRef.value?.interrompi?.();
+  emit('saluta');
+}
+
+function marcaClipPronta(nome: string) {
+  clipPronte.value = { ...clipPronte.value, [nome]: true };
+}
+
+defineExpose({ marcaClipPronta, precaricaClip: async (nome: string) => {
+  assicuratiPlayer();
+  if (!player) return;
+  await player.precarica(urlClip(nome));
+  marcaClipPronta(nome);
+}});
+
+const mostraFumetto = () =>
+  props.fase === 'idle' ||
+  props.fase === 'statico' ||
+  props.fase === 'parla' ||
+  props.fase === 'ascolta' ||
+  props.fase === 'pensa' ||
+  props.fase === 'scrive' ||
+  props.fase === 'esce';
 </script>
 
 <template>
@@ -293,7 +391,7 @@ onUnmounted(() => {
   >
     <div class="tony-riga">
       <div
-        v-show="fase === 'idle' || fase === 'statico' || fase === 'parla' || fase === 'esce'"
+        v-show="mostraFumetto()"
         class="fumetto"
         role="region"
         :aria-labelledby="fase === 'esce' ? undefined : 'tony-etichetta'"
@@ -306,12 +404,22 @@ onUnmounted(() => {
           <p id="tony-etichetta" class="etichetta">{{ t.etichetta }}</p>
           <p class="saluto" aria-live="polite">{{ saluto() }}</p>
           <p class="nota-saluto">{{ t.notaSaluto }}</p>
-          <div class="fumetto-azioni">
-            <a class="btn-account" :href="URL_REGISTRAZIONE">{{ t.ctaAccount }}</a>
-            <button type="button" class="btn-saluta" @click="emit('saluta')">
-              {{ t.saluta }}
-            </button>
-          </div>
+          <TonyChat
+            ref="chatRef"
+            :ottieni-token="ottieniToken"
+            :variante="variante"
+            :riduci-movimento="riduciMovimento"
+            :saluto-finito="salutoFinito"
+            :protezione-pronta="protezionePronta"
+            :statico-forzato="false"
+            @saluta="onSaluta"
+            @ascolto-iniziato="emit('ascoltoIniziato')"
+            @ascolto-finito="emit('ascoltoFinito')"
+            @domanda-inviata="emit('domandaInviata')"
+            @testo-arrivato="emit('testoArrivato')"
+            @risposta-finita="emit('rispostaFinita')"
+            @servizio-spento="emit('servizioSpento')"
+          />
         </template>
       </div>
 
@@ -332,72 +440,11 @@ onUnmounted(() => {
           width="744"
           height="1024"
         />
-        <template v-else-if="formato === 'webm'">
-          <video
-            ref="videoEntry"
-            class="clip clip-entry"
-            :class="{ 'clip--nascosta': nascondiEntrata || fase === 'esce' || fase === 'statico' }"
-            :src="src('entry')"
-            muted
-            playsinline
-            preload="auto"
-            @ended="onEntryEnded"
-            @error="onMediaError"
-          />
-          <video
-            ref="videoIdle"
-            class="clip clip-idle"
-            :class="{ 'clip--nascosta': !nascondiEntrata || fase === 'esce' || fase === 'statico' || boccaVisibile }"
-            :src="src('idle')"
-            muted
-            playsinline
-            loop
-            preload="auto"
-            @error="onMediaError"
-          />
-          <video
-            ref="videoTalking"
-            class="clip clip-talking"
-            :class="{ 'clip--nascosta': !boccaVisibile }"
-            :src="src('talking')"
-            muted
-            playsinline
-            loop
-            preload="auto"
-          />
-          <video
-            ref="videoExit"
-            class="clip clip-exit"
-            :class="{ 'clip--nascosta': fase !== 'esce' || !uscitaConClip }"
-            :src="src('exit')"
-            muted
-            playsinline
-            preload="auto"
-            @ended="onExitEnded"
-          />
-        </template>
-        <template v-else>
-          <canvas
-            ref="canvasEntry"
-            class="clip clip-entry"
-            :class="{ 'clip--nascosta': nascondiEntrata || fase === 'esce' || fase === 'statico' }"
-          />
-          <canvas
-            ref="canvasIdle"
-            class="clip clip-idle"
-            :class="{ 'clip--nascosta': !nascondiEntrata || fase === 'esce' || fase === 'statico' || boccaVisibile }"
-          />
-          <canvas
-            ref="canvasTalking"
-            class="clip clip-talking"
-            :class="{ 'clip--nascosta': !boccaVisibile }"
-          />
-          <canvas
-            ref="canvasExit"
-            class="clip clip-exit"
-            :class="{ 'clip--nascosta': fase !== 'esce' || !uscitaConClip }"
-          />
-        </template>
+        <div
+          v-show="fase !== 'statico'"
+          ref="figuraHost"
+          class="tony-player-host"
+        />
       </div>
     </div>
   </div>
@@ -415,10 +462,11 @@ onUnmounted(() => {
   pointer-events: none;
 }
 
-.fumetto,
-.btn-account,
-.btn-saluta {
+.fumetto {
   pointer-events: auto;
+  background: #fff;
+  border: 1px solid rgba(15, 77, 50, 0.14);
+  box-shadow: 0 12px 32px rgba(6, 20, 14, 0.16);
 }
 
 .etichetta {
@@ -436,54 +484,10 @@ onUnmounted(() => {
 }
 
 .nota-saluto {
-  margin: 0.45rem 0 0;
+  margin: 0.45rem 0 0.55rem;
   font-size: 0.82rem;
   line-height: 1.4;
   color: #4a6358;
-}
-
-.fumetto {
-  background: #fff;
-  border: 1px solid rgba(15, 77, 50, 0.14);
-  box-shadow: 0 12px 32px rgba(6, 20, 14, 0.16);
-}
-
-.fumetto-azioni {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-}
-
-.btn-account,
-.btn-saluta {
-  font-family: inherit;
-  font-weight: 700;
-  font-size: 0.92rem;
-  border-radius: 999px;
-  text-decoration: none;
-}
-
-.btn-account {
-  display: inline-flex;
-  align-items: center;
-  padding: 0.65rem 0.9rem;
-  background: #0f4d32;
-  color: #fff;
-}
-
-.btn-saluta {
-  border: 1px solid rgba(15, 77, 50, 0.35);
-  background: #fff;
-  color: #0f4d32;
-  padding: 0.65rem 0.85rem;
-  cursor: pointer;
-}
-
-.btn-account:focus-visible,
-.btn-saluta:focus-visible {
-  outline: 3px solid #158050;
-  outline-offset: 2px;
 }
 
 .tony-figura {
@@ -500,38 +504,11 @@ onUnmounted(() => {
   animation: tony-fade-out 280ms ease forwards;
 }
 
-.clip {
+.tony-player-host {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  object-fit: contain;
-  background: transparent;
-}
-
-.clip-entry {
-  z-index: 2;
-}
-
-.clip-idle,
-.clip-talking {
-  transition: opacity var(--ms-bocca, 150ms) ease;
-}
-
-.clip-idle {
-  z-index: 1;
-}
-
-.clip-talking {
-  z-index: 2;
-}
-
-.clip-exit {
-  z-index: 3;
-}
-
-.clip--nascosta {
-  opacity: 0;
 }
 
 .tony-statico {
@@ -547,18 +524,21 @@ onUnmounted(() => {
 
 .tony-stage--desktop .tony-riga {
   position: fixed;
-  right: 1.25rem;
-  bottom: 1.25rem;
+  right: 0;
+  bottom: 0;
   display: flex;
   align-items: flex-end;
   gap: 0.75rem;
-  max-width: calc(100vw - 2rem);
+  max-width: min(100vw, 720px);
 }
 
 .tony-stage--desktop .fumetto {
-  width: min(380px, 42vw);
+  width: min(400px, 42vw);
+  min-width: 360px;
+  max-width: 400px;
   padding: 0.9rem 1rem 1rem;
   border-radius: 16px;
+  margin: 0 0.75rem 1rem 0;
 }
 
 .tony-stage--desktop .tony-figura {
@@ -572,17 +552,19 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   display: flex;
-  flex-direction: column;
-  align-items: center;
+  flex-direction: column-reverse;
+  align-items: flex-start;
 }
 
 .tony-stage--mobile .tony-figura {
   height: 30vh;
+  align-self: flex-start;
+  margin-left: 0;
 }
 
 .tony-stage--mobile .fumetto {
   width: 100%;
-  max-height: 40vh;
+  max-height: 55vh;
   overflow: auto;
   padding: 0.85rem 1rem calc(0.9rem + env(safe-area-inset-bottom));
   border-radius: 18px 18px 0 0;
@@ -595,7 +577,8 @@ onUnmounted(() => {
   }
 
   .tony-stage--desktop .fumetto {
-    width: min(320px, 40vw);
+    width: min(360px, 40vw);
+    min-width: 280px;
   }
 }
 

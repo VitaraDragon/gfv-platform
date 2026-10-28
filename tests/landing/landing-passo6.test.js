@@ -91,7 +91,7 @@ describe('flag ancora spento', () => {
 
 describe('asset del passo 6', () => {
   const varianti = ['desktop', 'mobile'];
-  const formati = ['webm', 'stacked'];
+  const formati = ['webm', 'webp', 'stacked'];
 
   it('talking, voci e immagine statica esistono', () => {
     for (const variante of varianti) {

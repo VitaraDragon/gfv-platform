@@ -30,7 +30,7 @@ Dal telefono, sulla stessa rete Wi-Fi del computer:
 npm run dev -- --host
 ```
 
-Poi apri `http://INDIRIZZO-DEL-PC:5173/?tonybussa=1`. L'indirizzo IPv4 del PC si legge con `ipconfig`. Se Windows chiede il permesso al firewall, consenti Node sulla rete privata. Android usa le clip WebM (e, se il telefono lo permette, vibra ai tre colpi). iPhone usa le clip MP4 stacked, perché Safari non mostra bene la trasparenza WebM: niente vibrazione, è normale.
+Poi apri `http://INDIRIZZO-DEL-PC:5173/?tonybussa=1`. L'indirizzo IPv4 del PC si legge con `ipconfig`. Se Windows chiede il permesso al firewall, consenti Node sulla rete privata. Android usa le clip WebM (e, se il telefono lo permette, vibra ai tre colpi). iPhone e Safari usano i WebP animati (passo 12a); se manca il WebP resta lo stacked. Niente vibrazione su iPhone, è normale.
 
 Clip e suoni stanno in `public/tony-live/` (sono nel repo, circa 3,9 MB). Sul PC di Pier arrivano da `Downloads\gfv-landing-tony\live\` (clip) e da `live\audio\` (suoni). Non partono all'apertura della pagina: il browser li chiede solo dopo il clic su «Vuoi provare GFV?».
 
@@ -41,6 +41,23 @@ Le voci sono file già pronti (pacchetto del 26/10/2026), non una chiamata a un 
 Per provarlo vale lo stesso indirizzo del passo 5: http://localhost:5173/?tonybussa=1 (solo in sviluppo o in anteprima). Dopo l'entrata Tony dice il saluto e, sul computer, la bocca segue il volume della voce. «✕ Saluta Tony» fa dire «Ci vediamo dentro GFV!» mentre esce.
 
 Se togli «Audio attivo», Tony non parla: resta fermo e il testo nel fumetto c'è lo stesso. La scelta resta anche se chiudi e riapri la pagina. Con «riduci movimento» del sistema la voce c'è, ma Tony non cambia clip: resta nel fermo.
+
+## Chat di Tony (passo 12a)
+
+Dopo il saluto, nel fumetto compaiono tre domande rapide, un campo di testo e (se il browser lo sa fare) il microfono. Le domande vanno alla funzione `tonyLandingAsk` con il token di App Check; la risposta arriva **scritta**, pezzo per pezzo. La voce dal vivo (ElevenLabs) è il passo 12b: qui non c’è.
+
+Per provarla in locale senza la funzione pubblicata usa il **modello finto** (solo con `npm run dev`):
+
+```bash
+cd landing
+npm run dev
+```
+
+Apri http://localhost:5173/?tonybussa=1&tonyfinto=1
+
+Altri scenari: `tonyfinto=lento`, `spento`, `tetto`, `limite`, `dati`, `errore`, `rete`, `appcheck`. Nella build (`npm run build` / `build:anteprima`) il finto **non** c’è.
+
+Clip v4 in `public/tony-live/`: entrata H1 (desktop) / H2 (mobile), idle, ascolto (raise/loop/lower), thinking, scrive sul taccuino, talking, uscita veloce. Formato: Safari e iPhone → WebP; Chrome/Edge/Firefox/Android → WebM; ultima riserva → stacked. Email e password sono bloccate già in pagina (e di nuovo dalla funzione). I limiti (15/30/1000, tetto mensile) li decide solo la funzione.
 
 ## App Check (passo 9)
 
