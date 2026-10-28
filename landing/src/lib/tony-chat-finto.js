@@ -28,6 +28,7 @@ export function parametroFinto(query) {
   }
   if (valore === null || valore === '') return null;
   if (valore === '1') return 'ok';
+  if (valore === 'noclip') return 'ok';
   const ammessi = [
     'ok',
     'lento',
@@ -41,6 +42,24 @@ export function parametroFinto(query) {
   ];
   if (ammessi.indexOf(valore) >= 0) return /** @type {any} */ (valore);
   return 'ok';
+}
+
+/**
+ * Prova «clip assenti» solo in sviluppo (`?tonyfinto=noclip`).
+ * @param {string} [query]
+ * @returns {boolean}
+ */
+export function clipFinteAssenti(query) {
+  const testo = String(query ?? '');
+  const inizio = testo.indexOf('?');
+  let q = inizio >= 0 ? testo.slice(inizio + 1) : testo;
+  const hash = q.indexOf('#');
+  if (hash >= 0) q = q.slice(0, hash);
+  try {
+    return new URLSearchParams(q).get('tonyfinto') === 'noclip';
+  } catch {
+    return false;
+  }
 }
 
 const RISPOSTE_PROVA = Object.freeze({

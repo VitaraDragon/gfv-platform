@@ -69,25 +69,25 @@ const TRANSIZIONI = {
     voceIniziata: 'parla',
     ascoltoIniziato: 'ascolta',
     domandaInviata: 'pensa',
-    servizioSpento: 'statico',
+    servizioSpento: 'idle',
   },
   ascolta: {
     ascoltoFinito: 'idle',
     domandaInviata: 'pensa',
     saluta: 'esce',
-    servizioSpento: 'statico',
+    servizioSpento: 'idle',
   },
   pensa: {
     testoArrivato: 'scrive',
     rispostaFinita: 'idle',
     voceIniziata: 'parla',
-    servizioSpento: 'statico',
+    servizioSpento: 'idle',
     saluta: 'esce',
   },
   scrive: {
     rispostaFinita: 'idle',
     voceIniziata: 'parla',
-    servizioSpento: 'statico',
+    servizioSpento: 'idle',
     saluta: 'esce',
   },
   parla: { voceFinita: 'idle', saluta: 'esce' },
@@ -225,7 +225,7 @@ export function percorsiClipDaPrecaricare(variante, formato) {
 export function scalettaClip(da, a) {
   if (a === 'esce') return ['exit'];
   if (a === 'statico') return [];
-  if (da === 'entra' && a === 'idle') return ['entry', 'idle'];
+  if (da === 'entra' && a === 'idle') return [];
   if (da === 'idle' && a === 'ascolta') return ['listenRaise', 'listenLoop'];
   if (da === 'ascolta' && a === 'idle') return ['listenLower', 'idle'];
   if (da === 'ascolta' && a === 'pensa') return ['listenLower', 'thinking'];
@@ -266,9 +266,33 @@ export function percorsiVoce(variante) {
   };
 }
 
-/** Immagine di riserva quando le clip non arrivano. */
-export function percorsoTonyStatico() {
-  return '/tony-live/static/tony-static.png';
+/** Dimensioni PNG idle (stessa inquadratura delle clip). */
+export const DIMENSIONI_TONY_STATICO = Object.freeze({
+  desktop: Object.freeze({ larghezza: 576, altezza: 720 }),
+  mobile: Object.freeze({ larghezza: 432, altezza: 540 }),
+});
+
+/** Dissolvenza incrociata verso l'immagine ferma (ms). */
+export const DISSOLVENZA_STATICO_MS = 180;
+
+/**
+ * Immagine ferma quando le clip non arrivano (stessa inquadratura di idle).
+ * Senza argomenti o con valore diverso da mobile → desktop (test passo 6).
+ * @param {'desktop' | 'mobile' | string} [variante]
+ * @returns {string}
+ */
+export function percorsoTonyStatico(variante) {
+  if (variante === 'mobile') return '/tony-live/static/tony-static-idle-mobile.png';
+  return '/tony-live/static/tony-static-idle-desktop.png';
+}
+
+/**
+ * Timer di sicurezza dell'entrata: durata clip + margine, dal primo fotogramma.
+ * @param {'desktop' | 'mobile'} [variante]
+ * @returns {number}
+ */
+export function sicurezzaEntrataMs(variante) {
+  return durataClipMs('entry', variante) + 1500;
 }
 
 /**

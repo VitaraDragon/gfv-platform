@@ -739,6 +739,7 @@ defineExpose({ interrompi });
   flex-direction: column;
   gap: 0.55rem;
   min-height: 0;
+  flex: 1 1 auto;
 }
 
 .riga-altoparlante {
@@ -780,6 +781,8 @@ defineExpose({ interrompi });
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
+  flex: 1 1 auto;
+  min-height: 0;
   max-height: 10rem;
   overflow: auto;
   padding-right: 0.15rem;
@@ -914,6 +917,13 @@ defineExpose({ interrompi });
   flex-wrap: wrap;
   gap: 0.5rem;
   margin-top: 0.15rem;
+  flex: 0 0 auto;
+}
+
+@media (max-width: 767px) {
+  .conversazione {
+    max-height: none;
+  }
 }
 
 .btn-account,
