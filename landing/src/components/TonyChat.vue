@@ -2,15 +2,19 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
 import { URL_REGISTRAZIONE } from '../config/landing-config.js';
 import { testiLanding } from '../content/testi-landing.js';
+import { tempiVoce } from '../lib/tony-bussa-logica.js';
 import { chiediATony } from '../lib/tony-chat-client.js';
 import {
   MAX_CARATTERI_DOMANDA,
   MESSAGGI_CHAT,
   azionePerEsito,
   aggiornaStoria,
+  modoVoce,
   nuovaSessione,
   validaDomanda,
 } from '../lib/tony-chat-logica.js';
+import { chiediVoce } from '../lib/tony-voce-client.js';
+import { creaPlayerVoce } from '../lib/tony-voce-player.js';
 
 const props = defineProps<{
   ottieniToken: () => Promise<string | null>;
@@ -19,6 +23,7 @@ const props = defineProps<{
   salutoFinito: boolean;
   protezionePronta: boolean | null;
   staticoForzato: boolean;
+  audioIniziale: boolean;
 }>();
 
 const emit = defineEmits([
@@ -29,6 +34,8 @@ const emit = defineEmits([
   'rispostaFinita',
   'servizioSpento',
   'saluta',
+  'voceIniziata',
+  'voceFinita',
 ]);
 
 const t = testiLanding.tonyBussa;
@@ -60,12 +67,24 @@ const notaFinto = ref('');
 const testoParziale = ref('');
 const listaMessaggi = ref<HTMLElement | null>(null);
 const inputEl = ref<HTMLInputElement | null>(null);
+const altoparlante = ref(props.audioIniziale !== false);
+const altoparlanteVisibile = ref(false);
+const mostraAscolta = ref(false);
+const voceInCorso = ref(false);
+const voceParlandoSr = ref(false);
 
 let recognition: any = null;
 let abortCorrente: AbortController | null = null;
+let abortVoce: AbortController | null = null;
 let timerFuoco = 0;
 let ascoltoEmesso = false;
 let smontato = false;
+let risposteVocaliAutomatiche = 0;
+let blobAscolta: Blob | null = null;
+let metaVoce: { idVoce: string; testo: string } | null = null;
+let chiediVoceFn: typeof chiediVoce = chiediVoce;
+let scenarioVoceFinta: string | null = null;
+const playerVoce = creaPlayerVoce();
 
 const contatoreVisibile = computed(() => {
   const n = campo.value.length;
@@ -99,6 +118,26 @@ onMounted(() => {
         if (sc) notaFinto.value = m.NOTA_MODELLO_FINTO;
       })
       .catch(() => {});
+  }
+});
+
+watch(scenarioFinto, async (sc) => {
+  if (!import.meta.env.DEV || !sc) return;
+  try {
+    const { chiediVoceFinta, parametroVoceFinta, NOTA_VOCE_FINTA } = await import('../lib/tony-voce-finta.js');
+    if (smontato) return;
+    const query = typeof window !== 'undefined' ? window.location.search : '';
+    scenarioVoceFinta = parametroVoceFinta(query);
+    chiediVoceFn = (args) =>
+      chiediVoceFinta({
+        ...args,
+        scenario: scenarioVoceFinta || 'ok',
+      }) as Promise<any>;
+    if (notaFinto.value && !notaFinto.value.includes(NOTA_VOCE_FINTA)) {
+      notaFinto.value = notaFinto.value + ' · ' + NOTA_VOCE_FINTA;
+    }
+  } catch {
+    /* modulo sviluppo non disponibile */
   }
 });
 
@@ -197,6 +236,11 @@ async function inviaTesto(grezzo: string, daChip = false) {
     return;
   }
 
+  fermaVoceCorrente();
+  mostraAscolta.value = false;
+  blobAscolta = null;
+  metaVoce = null;
+
   const domanda = validazione.domanda;
   campo.value = '';
   chipVisibili.value = false;
@@ -205,6 +249,8 @@ async function inviaTesto(grezzo: string, daChip = false) {
     ascoltoEmesso = false;
     emit('ascoltoFinito');
   }
+
+  if (altoparlante.value) playerVoce.sblocca();
 
   messaggi.value.push({ ruolo: 'utente', testo: domanda });
   inAttesa.value = true;
@@ -227,7 +273,7 @@ async function inviaTesto(grezzo: string, daChip = false) {
     scorriInBasso();
   };
 
-  let esito;
+  let esito: any;
   try {
     if (import.meta.env.DEV && scenarioFinto.value) {
       const { chiediFinto } = await import('../lib/tony-chat-finto.js');
@@ -260,7 +306,6 @@ async function inviaTesto(grezzo: string, daChip = false) {
 
   const azione = azionePerEsito(esito);
   if (azione.tipo === 'statico') {
-    // togli testo parziale e resta solo la frase
     if (primoPezzo) {
       const ultimo = messaggi.value[messaggi.value.length - 1];
       if (ultimo && ultimo.live) messaggi.value.pop();
@@ -292,10 +337,145 @@ async function inviaTesto(grezzo: string, daChip = false) {
     chipVisibili.value = false;
   }
 
-  emit('rispostaFinita');
-  scorriInBasso();
-  if (azione.campoAttivo) nextTick(() => inputEl.value?.focus());
+  const modo = modoVoce({
+    esito: { ...esito, testo: azione.testo },
+    altoparlante: altoparlante.value,
+    risposteVocaliAutomatiche,
+    riduciMovimento: props.riduciMovimento,
+    paginaNascosta: typeof document !== 'undefined' ? document.hidden : false,
+  });
+
+  if (esito.voce === true && typeof esito.idVoce === 'string') {
+    altoparlanteVisibile.value = true;
+    metaVoce = { idVoce: esito.idVoce, testo: azione.testo };
+  }
+
+  if (modo === 'automatica') {
+    scorriInBasso();
+    if (azione.campoAttivo) nextTick(() => inputEl.value?.focus());
+    void gestisciVoceAutomatica(esito, azione.testo);
+  } else if (modo === 'pulsante') {
+    mostraAscolta.value = true;
+    emit('rispostaFinita');
+    scorriInBasso();
+    if (azione.campoAttivo) nextTick(() => inputEl.value?.focus());
+  } else {
+    emit('rispostaFinita');
+    scorriInBasso();
+    if (azione.campoAttivo) nextTick(() => inputEl.value?.focus());
+  }
   void daChip;
+}
+
+async function gestisciVoceAutomatica(esito: any, testo: string) {
+  abortVoce = new AbortController();
+  const esitoVoce = await chiediVoceFn({
+    idVoce: esito.idVoce,
+    sessione: sessione.value,
+    testo,
+    ottieniToken: props.ottieniToken,
+    segnale: abortVoce.signal,
+  });
+  if (smontato) return;
+  abortVoce = null;
+  if (!esitoVoce.ok) {
+    emit('rispostaFinita');
+    return;
+  }
+  blobAscolta = esitoVoce.blob;
+  const esitoPlay = await playerVoce.suona(esitoVoce.blob, {
+    attesaMaxMs: tempiVoce().attesaMaxVoceMs,
+    onInizio: () => {
+      voceInCorso.value = true;
+      voceParlandoSr.value = true;
+      emit('voceIniziata');
+    },
+    onFine: () => {
+      voceInCorso.value = false;
+      voceParlandoSr.value = false;
+      emit('voceFinita');
+    },
+  });
+  if (esitoPlay === 'fallita') {
+    mostraAscolta.value = true;
+    emit('rispostaFinita');
+    return;
+  }
+  risposteVocaliAutomatiche += 1;
+}
+
+function fermaVoceCorrente() {
+  if (abortVoce) {
+    abortVoce.abort();
+    abortVoce = null;
+  }
+  if (voceInCorso.value || playerVoce) {
+    playerVoce.ferma();
+    if (voceInCorso.value) {
+      voceInCorso.value = false;
+      voceParlandoSr.value = false;
+      emit('voceFinita');
+    }
+  }
+}
+
+async function onAscoltaClick() {
+  if (voceInCorso.value) {
+    fermaVoceCorrente();
+    return;
+  }
+  playerVoce.sblocca();
+  let blob = blobAscolta;
+  if (!blob && metaVoce) {
+    abortVoce = new AbortController();
+    const esitoVoce = await chiediVoceFn({
+      idVoce: metaVoce.idVoce,
+      sessione: sessione.value,
+      testo: metaVoce.testo,
+      ottieniToken: props.ottieniToken,
+      segnale: abortVoce.signal,
+    });
+    abortVoce = null;
+    if (!esitoVoce.ok) {
+      mostraAscolta.value = false;
+      blobAscolta = null;
+      metaVoce = null;
+      return;
+    }
+    blob = esitoVoce.blob;
+    blobAscolta = blob;
+  }
+  if (!blob) {
+    mostraAscolta.value = false;
+    return;
+  }
+  const esitoPlay = await playerVoce.suona(blob, {
+    attesaMaxMs: tempiVoce().attesaMaxVoceMs,
+    onInizio: () => {
+      voceInCorso.value = true;
+      voceParlandoSr.value = true;
+      emit('voceIniziata');
+    },
+    onFine: () => {
+      voceInCorso.value = false;
+      voceParlandoSr.value = false;
+      emit('voceFinita');
+    },
+  });
+  if (esitoPlay === 'fallita') {
+    mostraAscolta.value = false;
+    blobAscolta = null;
+    metaVoce = null;
+  }
+}
+
+function onToggleAltoparlante() {
+  altoparlante.value = !altoparlante.value;
+  if (!altoparlante.value) {
+    fermaVoceCorrente();
+  } else {
+    playerVoce.sblocca();
+  }
 }
 
 function onChip(testo: string) {
@@ -388,13 +568,18 @@ function onMicUp() {
 }
 
 function onVisibility() {
-  if (document.hidden) fermaMicrofono();
+  if (document.hidden) {
+    fermaMicrofono();
+    fermaVoceCorrente();
+  }
 }
 
 onUnmounted(() => {
   smontato = true;
   fermaMicrofono();
   if (abortCorrente) abortCorrente.abort();
+  if (abortVoce) abortVoce.abort();
+  playerVoce.libera();
   if (timerFuoco) window.clearTimeout(timerFuoco);
   document.removeEventListener('visibilitychange', onVisibility);
 });
@@ -402,7 +587,10 @@ onUnmounted(() => {
 /** Esposto a TonyStage quando si saluta a metà richiesta. */
 function interrompi() {
   if (abortCorrente) abortCorrente.abort();
+  if (abortVoce) abortVoce.abort();
   fermaMicrofono();
+  fermaVoceCorrente();
+  playerVoce.libera();
 }
 
 defineExpose({ interrompi });
@@ -410,6 +598,22 @@ defineExpose({ interrompi });
 
 <template>
   <div class="tony-chat">
+    <div
+      v-if="altoparlanteVisibile"
+      class="riga-altoparlante"
+    >
+      <button
+        type="button"
+        class="btn-altoparlante"
+        :aria-pressed="altoparlante ? 'true' : 'false'"
+        :aria-label="altoparlante ? t.voceAccesa : t.voceSpenta"
+        :title="altoparlante ? t.voceAccesa : t.voceSpenta"
+        @click="onToggleAltoparlante"
+      >
+        {{ altoparlante ? '🔊' : '🔇' }}
+      </button>
+    </div>
+
     <p
       v-if="notaFinto"
       class="finto-nota"
@@ -431,6 +635,14 @@ defineExpose({ interrompi });
       >
         {{ m.testo }}
       </div>
+      <button
+        v-if="mostraAscolta"
+        type="button"
+        class="btn-ascolta"
+        @click="onAscoltaClick"
+      >
+        {{ voceInCorso ? t.fermaVoce : t.ascolta }}
+      </button>
     </div>
 
     <p
@@ -439,6 +651,13 @@ defineExpose({ interrompi });
       aria-live="polite"
     >
       {{ t.pensaLettoreSchermo }}
+    </p>
+    <p
+      v-if="voceParlandoSr"
+      class="sr-only"
+      aria-live="polite"
+    >
+      {{ t.voceLettoreSchermo }}
     </p>
 
     <template v-if="chatVisibile && campoAttivo">
@@ -520,6 +739,35 @@ defineExpose({ interrompi });
   flex-direction: column;
   gap: 0.55rem;
   min-height: 0;
+}
+
+.riga-altoparlante {
+  display: flex;
+  justify-content: flex-end;
+  margin: -0.15rem 0 0.1rem;
+}
+
+.btn-altoparlante {
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.15rem 0.25rem;
+  color: #0f4d32;
+}
+
+.btn-ascolta {
+  align-self: flex-start;
+  margin-top: 0.15rem;
+  border: 1px solid rgba(15, 77, 50, 0.28);
+  background: #fff;
+  color: #0f4d32;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  padding: 0.28rem 0.7rem;
+  cursor: pointer;
 }
 
 .finto-nota {

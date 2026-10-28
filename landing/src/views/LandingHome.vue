@@ -721,6 +721,18 @@ function onRispostaFinita() {
   }
 }
 
+function onVoceIniziata() {
+  if (fase.value === 'pensa' || fase.value === 'scrive' || fase.value === 'idle') {
+    fase.value = prossimoStato(fase.value, 'voceIniziata');
+  }
+}
+
+function onVoceFinita() {
+  if (fase.value === 'parla') {
+    fase.value = prossimoStato('parla', 'voceFinita');
+  }
+}
+
 function onServizioSpento() {
   if (fase.value === 'esce' || fase.value === 'nascosto') return;
   fase.value = prossimoStato(fase.value, 'servizioSpento');
@@ -1228,6 +1240,7 @@ const iconeModuliImg: Record<string, string> = {
       :uscita-con-clip="uscitaConClip"
       :bocca-aperta="boccaAperta"
       :saluto-finito="salutoFinito"
+      :audio-attivo="audioAttivo"
       @entrata-finita="onEntrataFinita"
       @uscita-finita="onUscitaFinita"
       @saluta="saluta"
@@ -1238,6 +1251,8 @@ const iconeModuliImg: Record<string, string> = {
       @testo-arrivato="onTestoArrivato"
       @risposta-finita="onRispostaFinita"
       @servizio-spento="onServizioSpento"
+      @voce-iniziata="onVoceIniziata"
+      @voce-finita="onVoceFinita"
     />
   </div>
 </template>

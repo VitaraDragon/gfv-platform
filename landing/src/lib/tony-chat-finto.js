@@ -5,6 +5,7 @@
  */
 
 import { MESSAGGI_CHAT } from './tony-chat-logica.js';
+import { parametroVoceFinta } from './tony-voce-finta.js';
 
 /** Nota mostrata nel fumetto solo in sviluppo. */
 export const NOTA_MODELLO_FINTO = 'modello finto (solo in locale)';
@@ -169,14 +170,22 @@ export async function chiediFinto({
     }
 
     const domandeRimaste = Math.max(0, 14 - domandeFatte);
-
-    return {
+    const voceSc =
+      typeof window !== 'undefined'
+        ? parametroVoceFinta(window.location.search)
+        : 'ok';
+    const conVoce = (sc === 'ok' || sc === 'lento') && voceSc !== 'no';
+    const risultato = {
       codice: 'ok',
       testo: testoCompleto,
       mostraRegistrazione: false,
       domandeRimaste,
-      voce: false,
+      voce: conVoce,
     };
+    if (conVoce) {
+      risultato.idVoce = 'a1b2c3d4e5f6789012345678abcdef01';
+    }
+    return risultato;
   } catch (err) {
     if (err && err.name === 'AbortError') return { codice: 'errore' };
     return { codice: 'rete' };

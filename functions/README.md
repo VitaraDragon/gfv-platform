@@ -109,6 +109,19 @@ Funzione HTTP pubblica (`europe-west1`, risposta SSE) con cui Tony risponde ai v
 
 Logica pura: `functions/lib/tony-landing-limiti.js`. Gestore: `functions/tony-landing-ask.js`.
 
+## Voce di Tony landing (passo 12b)
+
+Funzione HTTP pubblica `tonyLandingAudio` (`europe-west1`, risposta MP3 in streaming) con cui Tony **parla** le risposte già date da `tonyLandingAsk`.
+
+- **Stessa chiave** `ELEVENLABS_API_KEY` e **stessa voce** dell’app (`5zD2eYSLIo8c2zkowMfP`, modello `eleven_flash_v2_5`). Niente ripiego su Google: se ElevenLabs fallisce, niente audio.
+- **Biglietto monouso** (`idVoce`, 10 minuti): lo crea `tonyLandingAsk` solo se `voiceEnabled` è acceso e c’è budget; in Firestore solo impronte SHA-256 (niente testo né sessione in chiaro). Una volta usato, scaduto o con testo diverso → niente audio.
+- **Interruttori** in `config/tonyLanding`: `voiceEnabled` (se manca o false: solo testo) e `dailyVoiceCharCap` (predefinito 60.000 caratteri/giorno in tutto). Contatore `caratteriVoce` in `tonyLandingQuota/g_{giorno}`.
+- «GFV» in sintesi diventa «Gi, effe, vu»; «€» diventa «euro».
+- **App Check** e **CORS** come `tonyLandingAsk`. Nei log solo esiti, caratteri e millisecondi.
+- Codici tipici senza audio: `voce-spenta` (503), `voce-non-valida` / `voce-gia-usata` / `voce-scaduta` (409), `tetto-voce` (429), `voce-errore` (502). La pagina li tratta tutti allo stesso modo: resta sul testo, senza messaggi d’errore.
+
+Logica pura: `functions/lib/tony-landing-voce.js`. Gestore: `functions/tony-landing-audio.js`.
+
 ## Base di conoscenza di Tony landing (passo 11)
 
 Tony sulla landing usa un **prompt definitivo** (`functions/lib/tony-landing-prompt.js`) e una **base di conoscenza** generata (`functions/config/tony-landing-kb.js`).

@@ -4989,6 +4989,9 @@ exports.tonyLandingSetup = onCall(
 // Landing «Tony bussa»: domande dei visitatori senza login (passo 10). App Check, limiti, tetto 30 €/mese e interruttore config/tonyLanding nel file.
 const { tonyLandingAsk } = require("./tony-landing-ask");
 exports.tonyLandingAsk = tonyLandingAsk;
+// Landing «Tony bussa»: voce dal vivo di Tony (passo 12b). Stessa chiave ElevenLabs dell'app, App Check, biglietto monouso, tetto caratteri in config/tonyLanding.
+const { tonyLandingAudio } = require("./tony-landing-audio");
+exports.tonyLandingAudio = tonyLandingAudio;
 
 exports.onComunicazioneCreated = onComunicazioneCreated;
 exports.onLavoroWritten = onLavoroWritten;

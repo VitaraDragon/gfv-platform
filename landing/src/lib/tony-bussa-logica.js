@@ -80,11 +80,13 @@ const TRANSIZIONI = {
   pensa: {
     testoArrivato: 'scrive',
     rispostaFinita: 'idle',
+    voceIniziata: 'parla',
     servizioSpento: 'statico',
     saluta: 'esce',
   },
   scrive: {
     rispostaFinita: 'idle',
+    voceIniziata: 'parla',
     servizioSpento: 'statico',
     saluta: 'esce',
   },
@@ -231,6 +233,8 @@ export function scalettaClip(da, a) {
   if (da === 'pensa' && a === 'scrive') return ['scrive'];
   if (da === 'scrive' && a === 'idle') return ['idle'];
   if (da === 'pensa' && a === 'idle') return ['idle'];
+  if (da === 'scrive' && a === 'parla') return ['talking'];
+  if (da === 'pensa' && a === 'parla') return ['talking'];
   if (da === 'idle' && a === 'parla') return ['talking'];
   if (da === 'parla' && a === 'idle') return ['idle'];
   return [];

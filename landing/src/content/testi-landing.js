@@ -200,5 +200,15 @@ export const testiLanding = {
     troppoLunga: 'Al massimo 300 caratteri: prova a farla più corta.',
     // BOZZA: da far rivedere
     etichettaCampo: 'La tua domanda per Tony',
+    // BOZZA: da far rivedere
+    ascolta: '▶ Ascolta',
+    // BOZZA: da far rivedere
+    fermaVoce: '■ Ferma',
+    // BOZZA: da far rivedere
+    voceAccesa: 'Voce di Tony accesa',
+    // BOZZA: da far rivedere
+    voceSpenta: 'Voce di Tony spenta',
+    // BOZZA: da far rivedere
+    voceLettoreSchermo: 'Tony sta parlando…',
   },
 };
