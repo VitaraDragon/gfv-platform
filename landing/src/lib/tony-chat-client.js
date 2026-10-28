@@ -19,7 +19,7 @@ const TIMEOUT_MS = 30000;
  *   fetchFn?: typeof fetch,
  *   url?: string,
  * }} args
- * @returns {Promise<{ codice: string, testo?: string, mostraRegistrazione?: boolean, domandeRimaste?: number, http?: number, voce?: boolean }>}
+ * @returns {Promise<{ codice: string, testo?: string, mostraRegistrazione?: boolean, domandeRimaste?: number, http?: number, voce?: boolean, idVoce?: string }>}
  */
 export async function chiediATony({
   domanda,
@@ -126,7 +126,7 @@ export async function chiediATony({
 
     const codice = typeof doneEsito.codice === 'string' ? doneEsito.codice : 'errore';
     logDev(codice);
-    return {
+    const risultato = {
       codice,
       testo: typeof doneEsito.testo === 'string' ? doneEsito.testo : '',
       mostraRegistrazione: doneEsito.mostraRegistrazione === true,
@@ -137,6 +137,13 @@ export async function chiediATony({
       voce: doneEsito.voce === true,
       http,
     };
+    if (
+      typeof doneEsito.idVoce === 'string' &&
+      /^[a-f0-9]{32}$/.test(doneEsito.idVoce)
+    ) {
+      risultato.idVoce = doneEsito.idVoce;
+    }
+    return risultato;
   } catch (err) {
     const nome = err && err.name === 'AbortError' ? 'errore' : 'rete';
     logDev(nome);

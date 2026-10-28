@@ -34,6 +34,12 @@ const {
 } = require("./lib/tony-landing-limiti");
 // Prompt definitivo con base di conoscenza (passo 11).
 const { PROMPT_SISTEMA_LANDING } = require("./lib/tony-landing-prompt");
+const {
+  COSTANTI_VOCE,
+  preparaTestoVoce,
+  nuovoIdVoce,
+  datiBiglietto
+} = require("./lib/tony-landing-voce");
 
 const geminiApiKey = defineSecret("GEMINI_API_KEY");
 
@@ -278,6 +284,9 @@ async function consumaQuota(db, args) {
     const expireMe = Timestamp.fromDate(expireMese);
     const ts = FieldValue.serverTimestamp();
 
+    const caratteriVoceGiorno =
+      typeof g.caratteriVoce === "number" ? g.caratteriVoce : 0;
+
     if (!decisione.consentita) {
       tx.set(
         refG,
@@ -291,7 +300,8 @@ async function consumaQuota(db, args) {
       return {
         codice: decisione.codice,
         voce: false,
-        domandeSessione: typeof s.domande === "number" ? s.domande : 0
+        domandeSessione: typeof s.domande === "number" ? s.domande : 0,
+        caratteriVoceGiorno: caratteriVoceGiorno
       };
     }
 
@@ -337,7 +347,8 @@ async function consumaQuota(db, args) {
     return {
       codice: "ok",
       voce: decisione.voce,
-      domandeSessione: domandeSessione
+      domandeSessione: domandeSessione,
+      caratteriVoceGiorno: caratteriVoceGiorno
     };
   });
 }
@@ -764,20 +775,60 @@ async function handleTonyLandingAsk(req, res, opzioni) {
       logRiga("warn", ["spesa=non-registrata"]);
     }
 
-    chiudiDone(res, {
+    const testoRisposta = esitoGemini.testo || "";
+    let voceOfferta = false;
+    let idVoce = null;
+    const caratteriVoceGiorno =
+      typeof quota.caratteriVoceGiorno === "number"
+        ? quota.caratteriVoceGiorno
+        : 0;
+    if (
+      quota.voce === true &&
+      caratteriVoceGiorno < config.dailyVoiceCharCap &&
+      testoRisposta &&
+      testoRisposta.length <= COSTANTI_VOCE.MAX_CARATTERI_TESTO &&
+      preparaTestoVoce(testoRisposta)
+    ) {
+      try {
+        idVoce = nuovoIdVoce(crypto.randomBytes.bind(crypto));
+        const dati = datiBiglietto({
+          testo: testoRisposta,
+          sessione: validata.sessione,
+          adesso: adesso.getTime(),
+          expireAt: Timestamp.fromDate(scad.contatori)
+        });
+        await db
+          .collection(COLLEZIONE_QUOTA)
+          .doc("voce_" + idVoce)
+          .set(
+            Object.assign({}, dati, {
+              creatoIl: FieldValue.serverTimestamp()
+            })
+          );
+        voceOfferta = true;
+      } catch (_bigliettoErr) {
+        idVoce = null;
+        voceOfferta = false;
+        logRiga("warn", ["voce=biglietto-non-scritto"]);
+      }
+    }
+
+    const doneOk = {
       codice: "ok",
-      testo: esitoGemini.testo || "",
-      voce: !!quota.voce,
+      testo: testoRisposta,
+      voce: voceOfferta,
       domandeRimaste: domandeRimaste,
       mostraRegistrazione: false
-    });
+    };
+    if (voceOfferta && idVoce) doneOk.idVoce = idVoce;
+    chiudiDone(res, doneOk);
     logRiga("info", [
       "esito=ok",
       "codice=ok",
       "ms=" + (Date.now() - inizio),
       "tokIn=" + tokenIngresso,
       "tokOut=" + tokenUscita,
-      "voce=" + (quota.voce ? "1" : "0")
+      "voce=" + (voceOfferta ? "1" : "0")
     ]);
   } catch (_e) {
     if (!sseAvviato) {

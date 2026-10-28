@@ -20,6 +20,7 @@ const props = defineProps<{
   uscitaConClip: boolean;
   boccaAperta: boolean;
   salutoFinito: boolean;
+  audioAttivo: boolean;
 }>();
 
 const emit = defineEmits([
@@ -33,6 +34,8 @@ const emit = defineEmits([
   'testoArrivato',
   'rispostaFinita',
   'servizioSpento',
+  'voceIniziata',
+  'voceFinita',
 ]);
 
 const t = testiLanding.tonyBussa;
@@ -412,6 +415,7 @@ const mostraFumetto = () =>
             :saluto-finito="salutoFinito"
             :protezione-pronta="protezionePronta"
             :statico-forzato="false"
+            :audio-iniziale="audioAttivo"
             @saluta="onSaluta"
             @ascolto-iniziato="emit('ascoltoIniziato')"
             @ascolto-finito="emit('ascoltoFinito')"
@@ -419,6 +423,8 @@ const mostraFumetto = () =>
             @testo-arrivato="emit('testoArrivato')"
             @risposta-finita="emit('rispostaFinita')"
             @servizio-spento="emit('servizioSpento')"
+            @voce-iniziata="emit('voceIniziata')"
+            @voce-finita="emit('voceFinita')"
           />
         </template>
       </div>

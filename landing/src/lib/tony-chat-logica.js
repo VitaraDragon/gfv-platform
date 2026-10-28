@@ -7,6 +7,11 @@ export const MAX_CARATTERI_DOMANDA = 300;
 export const MAX_BATTUTE_STORIA = 6;
 export const MAX_CARATTERI_BATTUTA_TONY = 600;
 
+/** Prime N risposte lette in automatico (brief 4.4). */
+export const MAX_RISPOSTE_VOCE_AUTOMATICHE = 3;
+/** Allineato a COSTANTI_VOCE.MAX_CARATTERI_TESTO della funzione. */
+export const MAX_CARATTERI_TESTO_VOCE = 800;
+
 /** Frasi fisse (copie di MESSAGGI in functions/lib/tony-landing-limiti.js). */
 export const MESSAGGI_CHAT = Object.freeze({
   // BOZZA: da far rivedere
@@ -134,6 +139,53 @@ export function aggiornaStoria(storia, battuta) {
  */
 export function corpoRichiesta({ domanda, sessione, storia }) {
   return { domanda, sessione, storia };
+}
+
+/**
+ * Corpo POST verso tonyLandingAudio (solo queste tre chiavi).
+ * @param {{ idVoce: string, sessione: string, testo: string }} args
+ */
+export function corpoRichiestaVoce({ idVoce, sessione, testo }) {
+  return { idVoce, sessione, testo };
+}
+
+/**
+ * Come trattare la voce di una risposta.
+ * @param {{
+ *   esito: { codice?: string, voce?: boolean, idVoce?: string, testo?: string },
+ *   altoparlante: boolean,
+ *   risposteVocaliAutomatiche: number,
+ *   riduciMovimento?: boolean,
+ *   paginaNascosta?: boolean
+ * }} args
+ * @returns {'automatica' | 'pulsante' | 'nessuna'}
+ */
+export function modoVoce({
+  esito,
+  altoparlante,
+  risposteVocaliAutomatiche,
+  paginaNascosta,
+}) {
+  const e = esito && typeof esito === 'object' ? esito : {};
+  const idVoce = typeof e.idVoce === 'string' ? e.idVoce : '';
+  const testo = typeof e.testo === 'string' ? e.testo : '';
+  if (
+    e.codice !== 'ok' ||
+    e.voce !== true ||
+    !/^[a-f0-9]{32}$/.test(idVoce) ||
+    testo.length > MAX_CARATTERI_TESTO_VOCE
+  ) {
+    return 'nessuna';
+  }
+  if (
+    altoparlante === true &&
+    paginaNascosta !== true &&
+    (typeof risposteVocaliAutomatiche !== 'number' ||
+      risposteVocaliAutomatiche < MAX_RISPOSTE_VOCE_AUTOMATICHE)
+  ) {
+    return 'automatica';
+  }
+  return 'pulsante';
 }
 
 /**

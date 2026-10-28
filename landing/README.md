@@ -44,7 +44,7 @@ Se togli «Audio attivo», Tony non parla: resta fermo e il testo nel fumetto c'
 
 ## Chat di Tony (passo 12a)
 
-Dopo il saluto, nel fumetto compaiono tre domande rapide, un campo di testo e (se il browser lo sa fare) il microfono. Le domande vanno alla funzione `tonyLandingAsk` con il token di App Check; la risposta arriva **scritta**, pezzo per pezzo. La voce dal vivo (ElevenLabs) è il passo 12b: qui non c’è.
+Dopo il saluto, nel fumetto compaiono tre domande rapide, un campo di testo e (se il browser lo sa fare) il microfono. Le domande vanno alla funzione `tonyLandingAsk` con il token di App Check; la risposta arriva **scritta**, pezzo per pezzo.
 
 Per provarla in locale senza la funzione pubblicata usa il **modello finto** (solo con `npm run dev`):
 
@@ -58,6 +58,21 @@ Apri http://localhost:5173/?tonybussa=1&tonyfinto=1
 Altri scenari: `tonyfinto=lento`, `spento`, `tetto`, `limite`, `dati`, `errore`, `rete`, `appcheck`. Nella build (`npm run build` / `build:anteprima`) il finto **non** c’è.
 
 Clip v4 in `public/tony-live/`: entrata H1 (desktop) / H2 (mobile), idle, ascolto (raise/loop/lower), thinking, scrive sul taccuino, talking, uscita veloce. Formato: Safari e iPhone → WebP; Chrome/Edge/Firefox/Android → WebM; ultima riserva → stacked. Email e password sono bloccate già in pagina (e di nuovo dalla funzione). I limiti (15/30/1000, tetto mensile) li decide solo la funzione.
+
+## Voce di Tony (passo 12b)
+
+Dopo la risposta scritta Tony può **parlare** (clip `talking`) con `tonyLandingAudio` (stessa voce ElevenLabs dell’app). L’altoparlante parte dalla casella «Audio attivo» dell’avviso: le **prime 3** risposte della sessione partono da sole se l’altoparlante è acceso; dalla quarta compare «▶ Ascolta». Se l’audio non arriva, si resta sul testo **senza messaggi d’errore**.
+
+Prove in locale con modello finto **e** voce finta (solo `npm run dev`):
+
+```bash
+cd landing
+npm run dev
+```
+
+Apri http://localhost:5173/?tonybussa=1&tonyfinto=1
+
+Scenari voce: `tonyvoce=lenta`, `errore`, `tetto`, `no` (niente voce). Nella build di produzione la voce finta **non** c’è.
 
 ## App Check (passo 9)
 
