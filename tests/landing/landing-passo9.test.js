@@ -16,7 +16,7 @@ import {
   protezioneConfigurata,
   usaTokenDebug,
 } from '../../landing/src/lib/firebase-landing-logica.js';
-import { FILE_FIREBASE_LANDING } from './aiuto-stringhe.js';
+import { FILE_FIREBASE_ACCOUNT_LANDING, FILE_FIREBASE_LANDING } from './aiuto-stringhe.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
@@ -73,6 +73,13 @@ describe('solo un file con Firebase', () => {
         expect(testo).toMatch(/ReCaptchaEnterpriseProvider/);
         continue;
       }
+      if (rel === FILE_FIREBASE_ACCOUNT_LANDING) {
+        expect(testo).not.toMatch(/initializeApp\b/);
+        expect(testo).not.toMatch(/recaptcha/i);
+        expect(testo).not.toMatch(/firebase-landing-config/);
+        expect(testo).toMatch(/from\s+['"]firebase\//);
+        continue;
+      }
       for (const re of MARKER_FIREBASE) {
         expect(testo, `${rel} non deve matchare ${re}`).not.toMatch(re);
       }
@@ -96,6 +103,7 @@ describe('solo il pezzo caricato dopo', () => {
       const rel = relPosix(pieno);
       if (rel === 'landing/src/components/TonyStage.vue') continue;
       if (rel === FILE_FIREBASE_LANDING) continue;
+      if (rel === FILE_FIREBASE_ACCOUNT_LANDING) continue;
       const testo = fs.readFileSync(pieno, 'utf8');
       expect(testo, rel).not.toMatch(/firebase-landing\.js/);
       expect(testo, rel).not.toMatch(/import\s+.+from\s+['"][^'"]*firebase-landing/);

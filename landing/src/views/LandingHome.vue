@@ -88,6 +88,7 @@ const formatoScelto = ref('webm');
 const pulsanteOrigine = ref<HTMLElement | null>(null);
 const boccaAperta = ref(false);
 const salutoFinito = ref(false);
+const registrazioneCompletata = ref(false);
 const stageRef = ref<{ precaricaClip?: (nome: string) => Promise<void> } | null>(null);
 
 const stileScossone = computed(() => {
@@ -665,6 +666,7 @@ function chiudiTutto() {
 
 function saluta() {
   if (fase.value === 'esce') return;
+  if (fase.value === 'modulo' || registrazioneCompletata.value) return;
   const prima = fase.value;
   const dopo = prossimoStato(prima, 'saluta');
   pulisciTempo();
@@ -705,6 +707,20 @@ function saluta() {
   fra(tempiVoce().attesaMaxUscitaMs, () => {
     if (fase.value === 'esce') chiudiTutto();
   });
+}
+
+function onApriModulo() {
+  if (fase.value === 'esce' || fase.value === 'nascosto') return;
+  fase.value = prossimoStato(fase.value, 'apriModulo');
+}
+
+function onChiudiModulo() {
+  if (fase.value !== 'modulo') return;
+  fase.value = prossimoStato('modulo', 'chiudiModulo');
+}
+
+function onRegistrazioneCompletata() {
+  registrazioneCompletata.value = true;
 }
 
 function onEntrataFinita() {
@@ -937,6 +953,14 @@ function onEscGlobale(e: KeyboardEvent) {
   if (e.key !== 'Escape') return;
   if (avvisoAperto.value && !avvisoInChiusura.value) return;
   if (!stageAperto.value) return;
+  if (fase.value === 'modulo' || registrazioneCompletata.value) {
+    const target = e.target as HTMLElement | null;
+    if (target && target.closest && target.closest('.tony-reg')) {
+      // Esc nel modulo = Annulla (gestito da TonyRegistrazione)
+      return;
+    }
+    return;
+  }
   e.preventDefault();
   saluta();
 }
@@ -1279,6 +1303,9 @@ const iconeModuliImg: Record<string, string> = {
       @servizio-spento="onServizioSpento"
       @voce-iniziata="onVoceIniziata"
       @voce-finita="onVoceFinita"
+      @apri-modulo="onApriModulo"
+      @chiudi-modulo="onChiudiModulo"
+      @registrazione-completata="onRegistrazioneCompletata"
     />
   </div>
 </template>

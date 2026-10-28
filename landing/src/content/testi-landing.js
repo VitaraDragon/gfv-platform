@@ -210,5 +210,44 @@ export const testiLanding = {
     voceSpenta: 'Voce di Tony spenta',
     // BOZZA: da far rivedere
     voceLettoreSchermo: 'Tony sta parlando…',
+    // BOZZA: da far rivedere — registrazione in chat (passo 13)
+    registrazione: {
+      apertura:
+        'Per prima cosa creiamo il tuo account gratuito. Compila il modulo qui sotto: email e password le vedi solo tu.',
+      etichettaEmail: 'Email',
+      etichettaPassword: 'Password',
+      etichettaConferma: 'Ripeti la password',
+      etichettaAzienda: 'Nome della tua azienda',
+      crea: 'Crea il mio account',
+      annulla: 'Annulla',
+      vaiDashboard: 'Vai alla tua dashboard',
+      invio: 'Sto creando il tuo account…',
+      fatto: 'Fatto! Il tuo account gratuito è pronto.',
+      legaleRimandata: 'Le condizioni le confermi al primo accesso.',
+      // Evita «ti porto» (vietato dai test passo 5/6): stesso senso, senza promessa di navigazione.
+      accesso:
+        'Al login la tua email è già scritta: metti solo la password.',
+      ctaAccountClassica: 'registrazione classica',
+      errori: {
+        'email-usata':
+          'Questa email ha già un account. Prova ad accedere dal login.',
+        'email-non-valida': "Controlla l'email: sembra scritta male.",
+        'password-debole':
+          'La password è troppo corta: usane una di almeno 6 caratteri.',
+        rete: 'Non riesco a collegarmi. Controlla la connessione e riprova.',
+        'troppi-tentativi':
+          'Troppi tentativi. Aspetta qualche minuto e riprova.',
+        'profilo-esistente':
+          'Qualcosa non è andato. Riprova tra poco oppure usa la registrazione classica.',
+        permessi:
+          'Qualcosa non è andato. Riprova tra poco oppure usa la registrazione classica.',
+        azienda:
+          'Qualcosa non è andato. Riprova tra poco oppure usa la registrazione classica.',
+        sconosciuto:
+          'Qualcosa non è andato. Riprova tra poco oppure usa la registrazione classica.',
+        'protezione-non-pronta':
+          'Qualcosa non è andato. Riprova tra poco oppure usa la registrazione classica.',
+      },
+    },
   },
 };
