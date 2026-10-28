@@ -106,13 +106,13 @@ describe('varianteScena', () => {
 });
 
 describe('formatoClip', () => {
-  it('Safari macOS, iPhone Safari e iPhone Chrome usano lo stacked', () => {
-    expect(formatoClip({ userAgent: SAFARI_MAC, webmAlfaSupportato: true })).toBe('stacked');
+  it('Safari macOS, iPhone Safari e iPhone Chrome usano webp', () => {
+    expect(formatoClip({ userAgent: SAFARI_MAC, webmAlfaSupportato: true })).toBe('webp');
     expect(formatoClip({ userAgent: IPHONE_SAFARI, webmAlfaSupportato: true })).toBe(
-      'stacked'
+      'webp'
     );
     expect(formatoClip({ userAgent: IPHONE_CHROME, webmAlfaSupportato: true })).toBe(
-      'stacked'
+      'webp'
     );
   });
 
@@ -131,7 +131,7 @@ describe('formatoClip', () => {
 
 describe('percorsi clip e audio', () => {
   const varianti = ['desktop', 'mobile'];
-  const formati = ['webm', 'stacked'];
+  const formati = ['webm', 'webp', 'stacked'];
 
   it('ogni combinazione esiste in landing/public', () => {
     for (const nome of ['entry', 'idle', 'exit']) {
@@ -378,28 +378,17 @@ describe('maschera alfa dello stacked', () => {
 });
 
 describe('clip idle nascosta durante l’entrata', () => {
-  it('video e canvas idle hanno clip--nascosta finché !nascondiEntrata (prima dello swap)', () => {
+  it('TonyStage usa tony-clip-player (due livelli: niente doppio Tony, passo 12a)', () => {
     const stage = leggi('landing/src/components/TonyStage.vue');
-    const idleVideo = stage.match(
-      /ref="videoIdle"[\s\S]*?:class="\{[^}]+\}"/
-    );
-    const idleCanvas = stage.match(
-      /ref="canvasIdle"[\s\S]*?:class="\{[^}]+\}"/
-    );
-    expect(idleVideo, 'videoIdle').toBeTruthy();
-    expect(idleCanvas, 'canvasIdle').toBeTruthy();
-    expect(idleVideo[0]).toContain("!nascondiEntrata");
-    expect(idleCanvas[0]).toContain("!nascondiEntrata");
-    expect(idleVideo[0]).toContain('clip--nascosta');
-    expect(idleCanvas[0]).toContain('clip--nascosta');
-    // talking ed exit restano già nascosti in fase entra (boccaVisibile / fase !== esce)
-    const talkingVideo = stage.match(
-      /ref="videoTalking"[\s\S]*?:class="\{[^}]+\}"/
-    );
-    const exitVideo = stage.match(
-      /ref="videoExit"[\s\S]*?:class="\{[^}]+\}"/
-    );
-    expect(talkingVideo[0]).toContain('!boccaVisibile');
-    expect(exitVideo[0]).toContain("fase !== 'esce'");
+    expect(stage).toContain("from '../lib/tony-clip-player.js'");
+    expect(stage).toContain('creaPlayerClip');
+    expect(stage).toContain('tony-player-host');
+    // Niente più un <video>/<canvas> per clip: il player sovrappone due livelli.
+    expect(stage).not.toContain('ref="videoIdle"');
+    expect(stage).not.toContain('ref="canvasIdle"');
+    const player = leggi('landing/src/lib/tony-clip-player.js');
+    expect(player).toContain('livelloA');
+    expect(player).toContain('livelloB');
+    expect(player).toContain('onPrimoFotogramma');
   });
 });
