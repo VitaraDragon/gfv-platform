@@ -68,7 +68,12 @@ async function sendWithResend(apiKey, { to, subject, html }) {
     body = {};
   }
   if (!res.ok) {
-    console.error("[sendWithResend]", res.status, body);
+    console.error(
+      "[sendWithResend] status=" +
+        res.status +
+        " codice=" +
+        String((body && body.name) || "nessuno").slice(0, 40)
+    );
     const msg = body && body.message ? String(body.message) : `HTTP ${res.status}`;
     throw new HttpsError("internal", `Invio email non riuscito: ${msg}`);
   }
