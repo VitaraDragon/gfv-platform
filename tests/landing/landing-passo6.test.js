@@ -22,7 +22,7 @@ import {
   tempiVoce,
   testoDaVtt,
 } from '../../landing/src/lib/tony-bussa-logica.js';
-import { raccogliStringhe } from './aiuto-stringhe.js';
+import { FILE_FIREBASE_LANDING, raccogliStringhe } from './aiuto-stringhe.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
@@ -91,7 +91,7 @@ describe('flag ancora spento', () => {
 
 describe('asset del passo 6', () => {
   const varianti = ['desktop', 'mobile'];
-  const formati = ['webm', 'stacked'];
+  const formati = ['webm', 'webp', 'stacked'];
 
   it('talking, voci e immagine statica esistono', () => {
     for (const variante of varianti) {
@@ -311,7 +311,8 @@ describe('testi e caricamento pigro', () => {
 
   it('nessun sorgente della landing contiene la parola della protezione scritta attaccata', () => {
     for (const pieno of fileSorgenteLanding()) {
-      const rel = path.relative(repoRoot, pieno);
+      const rel = path.relative(repoRoot, pieno).replaceAll('\\', '/');
+      if (rel === FILE_FIREBASE_LANDING) continue;
       expect(fs.readFileSync(pieno, 'utf8').toLowerCase(), rel).not.toContain('recaptcha');
     }
   });

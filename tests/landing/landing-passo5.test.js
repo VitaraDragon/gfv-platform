@@ -106,13 +106,13 @@ describe('varianteScena', () => {
 });
 
 describe('formatoClip', () => {
-  it('Safari macOS, iPhone Safari e iPhone Chrome usano lo stacked', () => {
-    expect(formatoClip({ userAgent: SAFARI_MAC, webmAlfaSupportato: true })).toBe('stacked');
+  it('Safari macOS, iPhone Safari e iPhone Chrome usano webp', () => {
+    expect(formatoClip({ userAgent: SAFARI_MAC, webmAlfaSupportato: true })).toBe('webp');
     expect(formatoClip({ userAgent: IPHONE_SAFARI, webmAlfaSupportato: true })).toBe(
-      'stacked'
+      'webp'
     );
     expect(formatoClip({ userAgent: IPHONE_CHROME, webmAlfaSupportato: true })).toBe(
-      'stacked'
+      'webp'
     );
   });
 
@@ -131,7 +131,7 @@ describe('formatoClip', () => {
 
 describe('percorsi clip e audio', () => {
   const varianti = ['desktop', 'mobile'];
-  const formati = ['webm', 'stacked'];
+  const formati = ['webm', 'webp', 'stacked'];
 
   it('ogni combinazione esiste in landing/public', () => {
     for (const nome of ['entry', 'idle', 'exit']) {
@@ -374,5 +374,21 @@ describe('maschera alfa dello stacked', () => {
     expect(colore[3]).toBe(255);
     expect(colore[7]).toBe(0);
     expect(colore[0]).toBe(10);
+  });
+});
+
+describe('clip idle nascosta durante l’entrata', () => {
+  it('TonyStage usa tony-clip-player (due livelli: niente doppio Tony, passo 12a)', () => {
+    const stage = leggi('landing/src/components/TonyStage.vue');
+    expect(stage).toContain("from '../lib/tony-clip-player.js'");
+    expect(stage).toContain('creaPlayerClip');
+    expect(stage).toContain('tony-player-host');
+    // Niente più un <video>/<canvas> per clip: il player sovrappone due livelli.
+    expect(stage).not.toContain('ref="videoIdle"');
+    expect(stage).not.toContain('ref="canvasIdle"');
+    const player = leggi('landing/src/lib/tony-clip-player.js');
+    expect(player).toContain('livelloA');
+    expect(player).toContain('livelloB');
+    expect(player).toContain('onPrimoFotogramma');
   });
 });

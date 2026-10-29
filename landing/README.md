@@ -30,17 +30,92 @@ Dal telefono, sulla stessa rete Wi-Fi del computer:
 npm run dev -- --host
 ```
 
-Poi apri `http://INDIRIZZO-DEL-PC:5173/?tonybussa=1`. L'indirizzo IPv4 del PC si legge con `ipconfig`. Se Windows chiede il permesso al firewall, consenti Node sulla rete privata. Android usa le clip WebM (e, se il telefono lo permette, vibra ai tre colpi). iPhone usa le clip MP4 stacked, perché Safari non mostra bene la trasparenza WebM: niente vibrazione, è normale.
+Poi apri `http://INDIRIZZO-DEL-PC:5173/?tonybussa=1`. L'indirizzo IPv4 del PC si legge con `ipconfig`. Se Windows chiede il permesso al firewall, consenti Node sulla rete privata. Android usa le clip WebM (e, se il telefono lo permette, vibra ai tre colpi). iPhone e Safari usano i WebP animati (passo 12a); se manca il WebP resta lo stacked. Niente vibrazione su iPhone, è normale.
 
 Clip e suoni stanno in `public/tony-live/` (sono nel repo, circa 3,9 MB). Sul PC di Pier arrivano da `Downloads\gfv-landing-tony\live\` (clip) e da `live\audio\` (suoni). Non partono all'apertura della pagina: il browser li chiede solo dopo il clic su «Vuoi provare GFV?».
 
 ## Tony parla (passo 6)
 
-Le voci sono file già pronti (pacchetto del 26/10/2026), non una chiamata a un servizio. Stanno in `public/tony-live/voci/`. Il loop in cui Tony muove la bocca sta accanto alle altre clip (`tony-talking-loop-*`). L'immagine di riserva, se le clip non arrivano, è `public/tony-live/static/tony-static.png`.
+Le voci sono file già pronti (pacchetto del 26/10/2026), non una chiamata a un servizio. Stanno in `public/tony-live/voci/`. Il loop in cui Tony muove la bocca sta accanto alle altre clip (`tony-talking-loop-*`). Se le clip non arrivano, Tony resta fermo con `tony-static-idle-desktop.png` / `tony-static-idle-mobile.png` (stessa inquadratura di idle). `tony-static.png` resta nel repo per le anteprime nelle condivisioni.
 
 Per provarlo vale lo stesso indirizzo del passo 5: http://localhost:5173/?tonybussa=1 (solo in sviluppo o in anteprima). Dopo l'entrata Tony dice il saluto e, sul computer, la bocca segue il volume della voce. «✕ Saluta Tony» fa dire «Ci vediamo dentro GFV!» mentre esce.
 
 Se togli «Audio attivo», Tony non parla: resta fermo e il testo nel fumetto c'è lo stesso. La scelta resta anche se chiudi e riapri la pagina. Con «riduci movimento» del sistema la voce c'è, ma Tony non cambia clip: resta nel fermo.
+
+## Chat di Tony (passo 12a)
+
+Dopo il saluto, nel fumetto compaiono tre domande rapide, un campo di testo e (se il browser lo sa fare) il microfono. Le domande vanno alla funzione `tonyLandingAsk` con il token di App Check; la risposta arriva **scritta**, pezzo per pezzo.
+
+Per provarla in locale senza la funzione pubblicata usa il **modello finto** (solo con `npm run dev`):
+
+```bash
+cd landing
+npm run dev
+```
+
+Apri http://localhost:5173/?tonybussa=1&tonyfinto=1
+
+Altri scenari: `tonyfinto=lento`, `spento`, `tetto`, `limite`, `dati`, `errore`, `rete`, `appcheck`. Nella build (`npm run build` / `build:anteprima`) il finto **non** c’è.
+
+Clip v4 in `public/tony-live/`: entrata H1 (desktop) / H2 (mobile), idle, ascolto (raise/loop/lower), thinking, scrive sul taccuino, talking, uscita veloce. Formato: Safari e iPhone → WebP; Chrome/Edge/Firefox/Android → WebM; ultima riserva → stacked. Email e password sono bloccate già in pagina (e di nuovo dalla funzione). I limiti (15/30/1000, tetto mensile) li decide solo la funzione.
+
+## Voce di Tony (passo 12b)
+
+Dopo la risposta scritta Tony può **parlare** (clip `talking`) con `tonyLandingAudio` (stessa voce ElevenLabs dell’app). L’altoparlante parte dalla casella «Audio attivo» dell’avviso: le **prime 3** risposte della sessione partono da sole se l’altoparlante è acceso; dalla quarta compare «▶ Ascolta». Se l’audio non arriva, si resta sul testo **senza messaggi d’errore**.
+
+Prove in locale con modello finto **e** voce finta (solo `npm run dev`):
+
+```bash
+cd landing
+npm run dev
+```
+
+Apri http://localhost:5173/?tonybussa=1&tonyfinto=1
+
+Scenari voce: `tonyvoce=lenta`, `errore`, `tetto`, `no` (niente voce). Nella build di produzione la voce finta **non** c’è.
+
+## Correzioni scena di Tony (passo 12c)
+
+Il contenitore delle clip (`.tony-player-host`) ha al massimo due livelli durante un passaggio e se ne svuota a ogni arresto: niente secondo Tony dietro. Con un errore del servizio Tony finisce la clip in corso e resta **animato** su `idle` (campo e pulsanti spariscono come prima); lo statico serve **solo** se le clip non arrivano. Immagini ferme: `tony-static-idle-desktop.png` e `tony-static-idle-mobile.png` (primo fotogramma di idle, stessa inquadratura), con dissolvenza incrociata di 180 ms se si veniva da una clip. Fine giro vera per WebM/stacked/WebP; dissolvenza di 150 ms da e verso `talking` e da `idle`; elementi precaricati riusati; WebP scaricate una volta sola (Blob). Sul telefono il pannello della chat è alto il 55% fisso e Tony resta fermo sul bordo alto. Prova clip assenti solo con `npm run dev`: `?tonyfinto=noclip`.
+
+## Registrazione nella chat (passo 13)
+
+Dopo il saluto, se App Check (o il modo finto) è pronto, «Crea il tuo account gratuito» apre un **modulo nella chat** (email, password, conferma, nome azienda; niente nome e cognome). Email e password **non** passano dalla chat né da Tony: niente `tonyLandingAsk`, niente voce, niente log. Clip `topic-registrazione` (2,5 s) poi idle. A fine registrazione «Vai alla tua dashboard» apre il login dell’app con l’email già scritta nel frammento `#email=` (mai la password).
+
+Prove in locale **senza account veri** (solo `npm run dev`):
+
+```bash
+cd landing
+npm run dev
+```
+
+Apri http://localhost:5173/?tonybussa=1&tonyfinto=ok&tonyreg=ok
+
+Altri scenari: `tonyreg=lento`, `email-usata`, `password-debole`, `rete`, `azienda`, `azienda-pulizia-fallita`, `profilo`, `legale`. Con solo `tonyfinto=` (senza `tonyreg`) vale come `ok`. Nella build di produzione il modo finto **non** c’è.
+
+### Dopo l’unione (console, prima del passo 16)
+
+- Google Cloud → chiave API web: se ha limitazioni per sito, aggiungere i domini della landing; se per API, Identity Toolkit / Firestore / Cloud Functions.
+- Firebase → Authentication → Domini autorizzati: aggiungere `gfvagri.com`.
+- **Non** obbligare App Check su Firestore/Auth (l’app su github.io non ce l’ha).
+- Quando i testi legali sono pronti: accendere insieme `ACCETTAZIONE_LEGALE_ATTIVA` e `NOME_TITOLARE_FACOLTATIVO_ATTIVO`.
+
+## App Check (passo 9)
+
+Protezione per le **funzioni nuove della landing** (prima `tonyLandingSetup`, poi le altre): controlla che la chiamata arrivi dalla nostra pagina. L'app su github.io **non** cambia.
+
+Sta in `src/lib/firebase-landing.js` (unico file che importa Firebase) e in `src/config/firebase-landing-config.js` (config pubblica uguale all'app). Si scarica **solo dopo** la prima casella, quando Tony è entrato: mai all'apertura della pagina, niente se premi «No, grazie».
+
+Prova in locale:
+
+```bash
+cd landing
+npm run dev
+```
+
+Apri http://localhost:5173/?tonybussa=1 → «Fai entrare Tony». Nella console del browser compare **una volta** `AppCheck debug token: …`: va registrato nella console Firebase (token di debug). Dopo averlo salvato, ricaricando compare `[landing] App Check pronto`.
+
+Il token di debug è **privato**: mai nel repo, nei messaggi o negli screenshot. Dal telefono con l'indirizzo del PC App Check **non** si attiva (è normale: si usa solo su `localhost`). Se `CHIAVE_SITO_APP_CHECK` in `firebase-landing-config.js` è vuota, la protezione è spenta e non si carica niente.
 
 ## Due modi della build
 

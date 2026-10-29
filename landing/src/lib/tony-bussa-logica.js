@@ -5,49 +5,44 @@
  */
 
 const SOGLIA_VARIANTE_PX = 768;
+const VERSIONE_CLIP = 'v4';
 
-const CLIP = {
-  entry: {
-    desktop: {
-      webm: '/tony-live/tony-entry-desktop-desktop-576x720-alpha.webm',
-      stacked: '/tony-live/tony-entry-desktop-desktop-576x1440-stacked-alpha.mp4',
-    },
-    mobile: {
-      webm: '/tony-live/tony-entry-mobile-mobile-432x540-alpha.webm',
-      stacked: '/tony-live/tony-entry-mobile-mobile-432x1080-stacked-alpha.mp4',
-    },
-  },
-  idle: {
-    desktop: {
-      webm: '/tony-live/tony-idle-loop-desktop-576x720-alpha.webm',
-      stacked: '/tony-live/tony-idle-loop-desktop-576x1440-stacked-alpha.mp4',
-    },
-    mobile: {
-      webm: '/tony-live/tony-idle-loop-mobile-432x540-alpha.webm',
-      stacked: '/tony-live/tony-idle-loop-mobile-432x1080-stacked-alpha.mp4',
-    },
-  },
-  talking: {
-    desktop: {
-      webm: '/tony-live/tony-talking-loop-desktop-576x720-alpha.webm',
-      stacked: '/tony-live/tony-talking-loop-desktop-576x1440-stacked-alpha.mp4',
-    },
-    mobile: {
-      webm: '/tony-live/tony-talking-loop-mobile-432x540-alpha.webm',
-      stacked: '/tony-live/tony-talking-loop-mobile-432x1080-stacked-alpha.mp4',
-    },
-  },
-  exit: {
-    desktop: {
-      webm: '/tony-live/tony-exit-desktop-576x720-alpha.webm',
-      stacked: '/tony-live/tony-exit-desktop-576x1440-stacked-alpha.mp4',
-    },
-    mobile: {
-      webm: '/tony-live/tony-exit-mobile-432x540-alpha.webm',
-      stacked: '/tony-live/tony-exit-mobile-432x1080-stacked-alpha.mp4',
-    },
-  },
-};
+/** Nomi file base delle clip (senza variante/risoluzione/formato). */
+const NOMI_FILE_CLIP = Object.freeze({
+  entry: Object.freeze({
+    desktop: 'tony-entry-h1-mano-bordo',
+    mobile: 'tony-entry-h2-saluto',
+  }),
+  idle: 'tony-idle-loop',
+  listenRaise: 'tony-listen-raise',
+  listenLoop: 'tony-listen-loop',
+  listenLower: 'tony-listen-lower',
+  thinking: 'tony-thinking',
+  scrive: 'tony-scrive-hs1-taccuino',
+  talking: 'tony-talking-loop',
+  topicRegistrazione: 'tony-topic-registrazione-2s5',
+  exit: 'tony-exit-2s-veloce',
+});
+
+/** Durate esatte in ms (uguali in WebM, WebP e stacked). */
+export const DURATE_CLIP_MS = Object.freeze({
+  entry: Object.freeze({ desktop: 3042, mobile: 2708 }),
+  idle: 4000,
+  listenRaise: 1833,
+  listenLoop: 2583,
+  listenLower: 1833,
+  thinking: 2375,
+  scrive: 3583,
+  talking: 3792,
+  topicRegistrazione: 2500,
+  exit: 2000,
+});
+
+/** Clip che si ripetono in loop. */
+export const CLIP_IN_LOOP = Object.freeze(['idle', 'listenLoop', 'scrive', 'talking']);
+
+const FORMATI = Object.freeze(['webm', 'webp', 'stacked']);
+const NOMI_CLIP = Object.freeze(Object.keys(NOMI_FILE_CLIP));
 
 const AUDIO = {
   desktop: {
@@ -71,9 +66,40 @@ const TRANSIZIONI = {
   avviso: { conferma: 'bussa', rinuncia: 'nascosto' },
   bussa: { bussataFinita: 'entra', clipNonPronta: 'statico', saluta: 'esce' },
   entra: { entrataFinita: 'idle', clipNonPronta: 'statico', saluta: 'esce' },
-  idle: { saluta: 'esce', voceIniziata: 'parla' },
-  parla: { voceFinita: 'idle', saluta: 'esce' },
-  statico: { saluta: 'esce' },
+  idle: {
+    saluta: 'esce',
+    voceIniziata: 'parla',
+    ascoltoIniziato: 'ascolta',
+    domandaInviata: 'pensa',
+    servizioSpento: 'idle',
+    apriModulo: 'modulo',
+  },
+  ascolta: {
+    ascoltoFinito: 'idle',
+    domandaInviata: 'pensa',
+    saluta: 'esce',
+    servizioSpento: 'idle',
+    apriModulo: 'modulo',
+  },
+  pensa: {
+    testoArrivato: 'scrive',
+    rispostaFinita: 'idle',
+    voceIniziata: 'parla',
+    servizioSpento: 'idle',
+    saluta: 'esce',
+    apriModulo: 'modulo',
+  },
+  scrive: {
+    rispostaFinita: 'idle',
+    voceIniziata: 'parla',
+    servizioSpento: 'idle',
+    saluta: 'esce',
+    apriModulo: 'modulo',
+  },
+  parla: { voceFinita: 'idle', saluta: 'esce', apriModulo: 'modulo' },
+  statico: { saluta: 'esce', apriModulo: 'modulo' },
+  /** Fase «chat» del brief: idle dopo il saluto. Modulo = registrazione in chat. */
+  modulo: { chiudiModulo: 'idle', saluta: 'esce' },
   esce: { uscitaFinita: 'nascosto' },
 };
 
@@ -116,30 +142,124 @@ export function varianteScena(larghezzaPx) {
 }
 
 /**
- * Safari (anche su iPhone/iPad) e ogni browser su iOS/iPadOS usano l'MP4 stacked.
- * Gli altri usano WebM con trasparenza se il browser lo sa riprodurre.
- * @param {{ userAgent?: string, webmAlfaSupportato?: boolean }} opts
- * @returns {'webm' | 'stacked'}
+ * Safari e tutto iPhone/iPad → WebP (VP9 senza alfa su Safari).
+ * Altri con WebM → webm; altrimenti stacked.
+ * @param {{ userAgent?: string, maxTouchPoints?: number, webmAlfaSupportato?: boolean }} opts
+ * @returns {'webp' | 'webm' | 'stacked'}
  */
-export function formatoClip({ userAgent, webmAlfaSupportato }) {
+export function formatoClip({ userAgent, maxTouchPoints, webmAlfaSupportato }) {
   const ua = String(userAgent || '');
-  if (browserSuIos(ua) || safariSenzaChromium(ua)) return 'stacked';
+  const touch = Number(maxTouchPoints);
+  if (browserSuIos(ua) || iPadOsComeMac(ua, touch) || safariSenzaChromium(ua)) {
+    return 'webp';
+  }
   if (webmAlfaSupportato === true) return 'webm';
   return 'stacked';
 }
 
 /**
- * @param {'entry' | 'idle' | 'exit' | 'talking'} nome
+ * @param {string} nome
+ * @param {'desktop' | 'mobile'} [variante]
+ * @returns {number}
+ */
+export function durataClipMs(nome, variante) {
+  if (nome === 'entry') {
+    const mappa = DURATE_CLIP_MS.entry;
+    return variante === 'mobile' ? mappa.mobile : mappa.desktop;
+  }
+  const ms = DURATE_CLIP_MS[nome];
+  return typeof ms === 'number' ? ms : 0;
+}
+
+/**
+ * @param {string} nome
+ * @returns {boolean}
+ */
+export function clipInLoop(nome) {
+  return CLIP_IN_LOOP.indexOf(nome) >= 0;
+}
+
+/**
+ * @param {'entry' | 'idle' | 'exit' | 'talking' | string} nome
  * @param {'desktop' | 'mobile'} variante
- * @param {'webm' | 'stacked'} formato
+ * @param {'webm' | 'webp' | 'stacked'} formato
  * @returns {string}
  */
 export function percorsoClip(nome, variante, formato) {
-  const perNome = CLIP[nome];
-  if (!perNome) return '';
+  if (NOMI_CLIP.indexOf(nome) < 0) return '';
+  if (FORMATI.indexOf(formato) < 0) return '';
   const chiaveVariante = variante === 'mobile' ? 'mobile' : 'desktop';
-  const chiaveFormato = formato === 'stacked' ? 'stacked' : 'webm';
-  return perNome[chiaveVariante][chiaveFormato];
+  const base = nomeFileClip(nome, chiaveVariante);
+  if (!base) return '';
+  if (formato === 'webm') {
+    const res = chiaveVariante === 'mobile' ? '432x540' : '576x720';
+    return `/tony-live/${base}-${chiaveVariante}-${res}-alpha-${VERSIONE_CLIP}.webm`;
+  }
+  if (formato === 'webp') {
+    const res = chiaveVariante === 'mobile' ? '432x540' : '576x720';
+    return `/tony-live/${base}-${chiaveVariante}-${res}-12fps-${VERSIONE_CLIP}.webp`;
+  }
+  const res = chiaveVariante === 'mobile' ? '432x1080' : '576x1440';
+  return `/tony-live/${base}-${chiaveVariante}-${res}-stacked-alpha-${VERSIONE_CLIP}.mp4`;
+}
+
+/**
+ * Entrata e idle per prime, poi le altre 7 (dopo «Fai entrare Tony»).
+ * @param {'desktop' | 'mobile'} variante
+ * @param {'webm' | 'webp' | 'stacked'} formato
+ * @returns {string[]}
+ */
+export function percorsiClipDaPrecaricare(variante, formato) {
+  const chiavi = [
+    'entry',
+    'idle',
+    'listenRaise',
+    'listenLoop',
+    'listenLower',
+    'thinking',
+    'scrive',
+    'talking',
+    'exit',
+  ];
+  return chiavi.map((nome) => percorsoClip(nome, variante, formato)).filter(Boolean);
+}
+
+/**
+ * Solo topic-registrazione (webm/webp/stacked) per il dispositivo.
+ * @param {'desktop' | 'mobile'} dispositivo
+ * @returns {string[]}
+ */
+export function percorsiClipRegistrazione(dispositivo) {
+  const variante = dispositivo === 'mobile' ? 'mobile' : 'desktop';
+  return ['webm', 'webp', 'stacked']
+    .map((formato) => percorsoClip('topicRegistrazione', variante, formato))
+    .filter(Boolean);
+}
+
+/**
+ * Elenco ordinato delle clip da suonare passando da uno stato all'altro.
+ * @param {string} da
+ * @param {string} a
+ * @returns {string[]}
+ */
+export function scalettaClip(da, a) {
+  if (a === 'esce') return ['exit'];
+  if (a === 'statico') return [];
+  if (da === 'entra' && a === 'idle') return [];
+  if (a === 'modulo') return ['topicRegistrazione', 'idle'];
+  if (da === 'modulo' && a === 'idle') return ['idle'];
+  if (da === 'idle' && a === 'ascolta') return ['listenRaise', 'listenLoop'];
+  if (da === 'ascolta' && a === 'idle') return ['listenLower', 'idle'];
+  if (da === 'ascolta' && a === 'pensa') return ['listenLower', 'thinking'];
+  if (da === 'idle' && a === 'pensa') return ['thinking'];
+  if (da === 'pensa' && a === 'scrive') return ['scrive'];
+  if (da === 'scrive' && a === 'idle') return ['idle'];
+  if (da === 'pensa' && a === 'idle') return ['idle'];
+  if (da === 'scrive' && a === 'parla') return ['talking'];
+  if (da === 'pensa' && a === 'parla') return ['talking'];
+  if (da === 'idle' && a === 'parla') return ['talking'];
+  if (da === 'parla' && a === 'idle') return ['idle'];
+  return [];
 }
 
 /**
@@ -168,9 +288,33 @@ export function percorsiVoce(variante) {
   };
 }
 
-/** Immagine di riserva quando le clip non arrivano. */
-export function percorsoTonyStatico() {
-  return '/tony-live/static/tony-static.png';
+/** Dimensioni PNG idle (stessa inquadratura delle clip). */
+export const DIMENSIONI_TONY_STATICO = Object.freeze({
+  desktop: Object.freeze({ larghezza: 576, altezza: 720 }),
+  mobile: Object.freeze({ larghezza: 432, altezza: 540 }),
+});
+
+/** Dissolvenza incrociata verso l'immagine ferma (ms). */
+export const DISSOLVENZA_STATICO_MS = 180;
+
+/**
+ * Immagine ferma quando le clip non arrivano (stessa inquadratura di idle).
+ * Senza argomenti o con valore diverso da mobile → desktop (test passo 6).
+ * @param {'desktop' | 'mobile' | string} [variante]
+ * @returns {string}
+ */
+export function percorsoTonyStatico(variante) {
+  if (variante === 'mobile') return '/tony-live/static/tony-static-idle-mobile.png';
+  return '/tony-live/static/tony-static-idle-desktop.png';
+}
+
+/**
+ * Timer di sicurezza dell'entrata: durata clip + margine, dal primo fotogramma.
+ * @param {'desktop' | 'mobile'} [variante]
+ * @returns {number}
+ */
+export function sicurezzaEntrataMs(variante) {
+  return durataClipMs('entry', variante) + 1500;
 }
 
 /**
@@ -347,6 +491,13 @@ export function prossimoStato(stato, evento) {
   return mappa[evento];
 }
 
+function nomeFileClip(nome, variante) {
+  const voce = NOMI_FILE_CLIP[nome];
+  if (!voce) return '';
+  if (typeof voce === 'string') return voce;
+  return voce[variante] || '';
+}
+
 function coppiaAudio(base, nome) {
   return {
     mp3: `${base}/${nome}.mp3`,
@@ -366,8 +517,12 @@ function browserSuIos(ua) {
   return /CriOS|FxiOS|EdgiOS|OPiOS/i.test(ua);
 }
 
+function iPadOsComeMac(ua, maxTouchPoints) {
+  return /Macintosh/i.test(ua) && Number.isFinite(maxTouchPoints) && maxTouchPoints > 1;
+}
+
 /** WebKit con Safari, senza Chrome, Chromium, Edge o Firefox nel user agent. */
 function safariSenzaChromium(ua) {
-  if (!/Safari/i.test(ua)) return false;
-  return !/Chrome|Chromium|CriOS|FxiOS|EdgiOS|Edg\/|OPR\/|Opera|Firefox/i.test(ua);
+  if (!/Safari\//.test(ua)) return false;
+  return !/Chrome|Chromium|CriOS|Edg|OPR|Android|FxiOS/.test(ua);
 }
