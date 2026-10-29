@@ -450,3 +450,148 @@ describe('isolamento account file', () => {
     expect(t).not.toMatch(/functionDeclarations/);
   });
 });
+
+describe('R6 account: log, expireAt, contatori', () => {
+  it('niente dati personali nei log; expireAt 48h fisso; niente s_/v_/sale_', async () => {
+    const uid = 'utente-ok';
+    const hash = idAccount(uid);
+    const db = fakeDb({
+      ['tonyLandingQuota/g_' + giorno]: { domande: 0, caratteriVoce: 0 },
+      ['tonyLandingQuota/m_' + mese]: { costoEur: 0, domande: 0 }
+    });
+    const json = JSON.stringify({
+      testo: 'Ho capito.',
+      sede: {
+        indirizzo: 'Via Roma 12',
+        citta: 'Faenza',
+        cap: '48018',
+        provincia: 'RA'
+      },
+      poderi: [{ nome: 'Casetti' }],
+      terreni: [
+        { nome: 'Campo grande', superficie: 2.34, coltura: 'Grano', podere: 'Casetti' }
+      ],
+      fatto: true
+    });
+
+    const info = vi.spyOn(console, 'info').mockImplementation(() => {});
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {});
+
+    const res = fakeRes();
+    await handleTonyLandingAsk(
+      fakeReq(
+        {
+          domanda: 'Via Roma 12, Faenza',
+          sessione: SESSIONE,
+          storia: [],
+          fase: 'account',
+          argomento: 'sede'
+        },
+        { authorization: 'Bearer tokensegretoXYZ' }
+      ),
+      res,
+      {
+        db,
+        adesso: ADESSO_FISSO,
+        verificaAppCheck: async () => ({}),
+        verificaIdToken: async () => ({ uid }),
+        leggiConfig: async () => ({
+          enabled: true,
+          voiceEnabled: false,
+          monthlyBudgetEur: 30,
+          dailyQuestionCap: 1000,
+          dailyVoiceCharCap: 0
+        }),
+        chiamaGemini: async () => ({
+          ok: true,
+          testo: json,
+          tokenIngresso: 10,
+          tokenUscita: 20
+        })
+      }
+    );
+
+    const righe = [...info.mock.calls, ...warn.mock.calls, ...error.mock.calls, ...log.mock.calls]
+      .map((c) => c.join(' '))
+      .join('\n');
+    for (const vietato of [
+      'utente-ok',
+      hash,
+      'Roma',
+      'Faenza',
+      'Casetti',
+      'Campo grande',
+      '2.34',
+      'tokensegretoXYZ'
+    ]) {
+      expect(righe).not.toContain(vietato);
+    }
+
+    const aDoc = [...db.docs.keys()].find((k) => k.indexOf('/a_') >= 0);
+    const a = db.docs.get(aDoc);
+    const atteso = ADESSO_FISSO.getTime() + 48 * 60 * 60 * 1000;
+    const expireMs = (ex) =>
+      typeof ex?.toMillis === 'function'
+        ? ex.toMillis()
+        : typeof ex?._seconds === 'number'
+          ? ex._seconds * 1000
+          : typeof ex?.seconds === 'number'
+            ? ex.seconds * 1000
+            : Number(ex);
+    expect(expireMs(a.expireAt)).toBe(atteso);
+    expect(a.count).toBe(1);
+
+    const res2 = fakeRes();
+    const dopo1h = new Date(ADESSO_FISSO.getTime() + 60 * 60 * 1000);
+    await handleTonyLandingAsk(
+      fakeReq(
+        {
+          domanda: 'Via Roma 12, Faenza',
+          sessione: SESSIONE,
+          storia: [],
+          fase: 'account',
+          argomento: 'sede'
+        },
+        { authorization: 'Bearer tokensegretoXYZ' }
+      ),
+      res2,
+      {
+        db,
+        adesso: dopo1h,
+        verificaAppCheck: async () => ({}),
+        verificaIdToken: async () => ({ uid }),
+        leggiConfig: async () => ({
+          enabled: true,
+          voiceEnabled: false,
+          monthlyBudgetEur: 30,
+          dailyQuestionCap: 1000,
+          dailyVoiceCharCap: 0
+        }),
+        chiamaGemini: async () => ({
+          ok: true,
+          testo: json,
+          tokenIngresso: 5,
+          tokenUscita: 5
+        })
+      }
+    );
+    const a2 = db.docs.get(aDoc);
+    expect(expireMs(a2.expireAt)).toBe(atteso);
+    expect(a2.count).toBe(2);
+
+    for (const k of db.docs.keys()) {
+      expect(k).not.toMatch(/\/s_/);
+      expect(k).not.toMatch(/\/v_/);
+      expect(k).not.toMatch(/\/sale_/);
+    }
+    expect(db.docs.has('tonyLandingQuota/g_' + giorno)).toBe(true);
+    expect(db.docs.has('tonyLandingQuota/m_' + mese)).toBe(true);
+
+    info.mockRestore();
+    warn.mockRestore();
+    error.mockRestore();
+    log.mockRestore();
+  });
+});

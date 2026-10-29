@@ -3,8 +3,10 @@ import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { testiLanding } from '../content/testi-landing.js';
 import {
   clipInLoop,
+  CLIP_UNA_VOLTA,
   DIMENSIONI_TONY_STATICO,
   DISSOLVENZA_STATICO_MS,
+  dopoFineClip,
   durataClipMs,
   passaggioClip,
   percorsoClip,
@@ -196,16 +198,7 @@ function clipChatPronta(nome: string) {
 }
 
 function clipUnaVolta(nome: string) {
-  return (
-    nome === 'listenRaise' ||
-    nome === 'listenLower' ||
-    nome === 'thinking' ||
-    nome === 'topicRegistrazione' ||
-    nome === 'topicSede' ||
-    nome === 'topicPoderi' ||
-    nome === 'topicTerreni' ||
-    nome === 'entry'
-  );
+  return CLIP_UNA_VOLTA.indexOf(nome) >= 0;
 }
 
 async function preparaStrumentiAccount() {
@@ -380,12 +373,18 @@ function suonaProssima() {
         : undefined,
     onFine: () => {
       if (smontato) return;
-      if (codaDopoCorrente && clipUnaVolta(nome) && nome !== 'entry') {
-        const pending = codaDopoCorrente;
+      const decisione = dopoFineClip({
+        nome,
+        fase: props.fase,
+        inLoop: loop,
+        codaDopoCorrente,
+      });
+      if (decisione.azione === 'coda') {
         codaDopoCorrente = null;
         generazioneClip += 1;
-        codaClip = pending.lista.slice();
-        dissolvenzaProssima = pending.dissolvenzaMs;
+        codaClip = (decisione.lista || []).slice();
+        dissolvenzaProssima =
+          typeof decisione.dissolvenzaMs === 'number' ? decisione.dissolvenzaMs : 0;
         suonaProssima();
         return;
       }
@@ -399,12 +398,12 @@ function suonaProssima() {
         emettiUscita();
         return;
       }
-      if (nome === 'thinking' && props.fase === 'pensa') {
-        codaClip = ['thinking'];
+      if (decisione.azione === 'ripeti') {
+        codaClip = (decisione.lista || ['thinking']).slice();
         suonaProssima();
         return;
       }
-      if (!loop) suonaProssima();
+      if (decisione.azione === 'prossima') suonaProssima();
     },
   });
 

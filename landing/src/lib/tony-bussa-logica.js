@@ -333,6 +333,11 @@ export function passaggioClip({ da, a, clipCorrente, codaInAttesa, riduciMovimen
     return { modo: 'subito', lista, dissolvenzaMs: fade };
   }
 
+  // Annulla / fine modulo: subito idle, anche se «scrive» è ancora in coda (R4).
+  if (da === 'modulo' && a === 'idle') {
+    return { modo: 'subito', lista, dissolvenzaMs: fade };
+  }
+
   // Se «scrive» è ancora in coda, la nuova scaletta va dopo (non la sovrascrive).
   const coda = Array.isArray(codaInAttesa) ? codaInAttesa : null;
   if (coda && coda.indexOf('scrive') >= 0) {
@@ -347,15 +352,53 @@ export function passaggioClip({ da, a, clipCorrente, codaInAttesa, riduciMovimen
   if (da === 'pensa' && a === 'scrive') {
     return { modo: 'subito', lista, dissolvenzaMs: fade };
   }
-  if (da === 'modulo' && a === 'idle') {
-    return { modo: 'subito', lista, dissolvenzaMs: fade };
-  }
   if (da === 'scrive' && a === 'idle') {
     return { modo: 'fineGiro', lista, dissolvenzaMs: 0 };
   }
 
   void clipCorrente;
   return null;
+}
+
+/** Clip che suonano una sola volta (non in loop). */
+export const CLIP_UNA_VOLTA = Object.freeze([
+  'listenRaise',
+  'listenLower',
+  'thinking',
+  'topicRegistrazione',
+  'topicSede',
+  'topicPoderi',
+  'topicTerreni',
+  'entry',
+]);
+
+/**
+ * Decide cosa fare quando finisce una clip (logica pura di onFine in TonyStage).
+ * @param {{ nome: string, fase: string, inLoop: boolean, codaDopoCorrente?: { lista: string[], dissolvenzaMs?: number } | null }} opts
+ * @returns {{ azione: 'coda' | 'ripeti' | 'prossima' | 'nulla', lista?: string[], dissolvenzaMs?: number }}
+ */
+export function dopoFineClip({ nome, fase, inLoop, codaDopoCorrente }) {
+  const unaVolta = CLIP_UNA_VOLTA.indexOf(nome) >= 0;
+  if (codaDopoCorrente && unaVolta && nome !== 'entry') {
+    const lista = Array.isArray(codaDopoCorrente.lista)
+      ? codaDopoCorrente.lista.slice()
+      : [];
+    return {
+      azione: 'coda',
+      lista,
+      dissolvenzaMs:
+        typeof codaDopoCorrente.dissolvenzaMs === 'number'
+          ? codaDopoCorrente.dissolvenzaMs
+          : 0,
+    };
+  }
+  if (nome === 'entry') return { azione: 'prossima' };
+  if (nome === 'exit') return { azione: 'nulla' };
+  if (nome === 'thinking' && fase === 'pensa') {
+    return { azione: 'ripeti', lista: ['thinking'] };
+  }
+  if (!inLoop) return { azione: 'prossima' };
+  return { azione: 'nulla' };
 }
 
 /**

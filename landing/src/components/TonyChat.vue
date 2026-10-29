@@ -89,6 +89,12 @@ let statoPrimaDelModulo: {
   chipVisibili: boolean;
   mostraAccountEvidenza: boolean;
 } | null = null;
+/** Stato del campo/chip/passo prima di aprire la scheda Confermi (R1 passo 15). */
+let statoPrimaDellaScheda: {
+  campoAttivo: boolean;
+  chipVisibili: boolean;
+  passoAiuto: string | null;
+} | null = null;
 const messaggi = ref<Battuta[]>([]);
 const storia = ref<Array<{ ruolo: 'utente' | 'tony'; testo: string }>>([]);
 const sessione = ref(nuovaSessione(
@@ -375,6 +381,11 @@ function onChipAiuto(etichetta: string) {
 }
 
 function apriScheda() {
+  statoPrimaDellaScheda = {
+    campoAttivo: campoAttivo.value,
+    chipVisibili: chipVisibili.value,
+    passoAiuto: passoAiuto.value,
+  };
   schedaAperta.value = true;
   campoAttivo.value = false;
   chipVisibili.value = false;
@@ -385,15 +396,26 @@ function apriScheda() {
 
 function onTornaDallaScheda() {
   schedaAperta.value = false;
-  campoAttivo.value = true;
-  chipVisibili.value = true;
-  if (!passoAiuto.value || passoAiuto.value === 'scheda') {
-    passoAiuto.value = PASSI_AIUTO[PASSI_AIUTO.length - 1];
+  if (statoPrimaDellaScheda) {
+    campoAttivo.value = statoPrimaDellaScheda.campoAttivo;
+    chipVisibili.value = statoPrimaDellaScheda.chipVisibili;
+    const prima = statoPrimaDellaScheda.passoAiuto;
+    passoAiuto.value =
+      prima && prima !== 'scheda'
+        ? prima
+        : PASSI_AIUTO[PASSI_AIUTO.length - 1];
+    statoPrimaDellaScheda = null;
+  } else {
+    campoAttivo.value = !(aiutoSospeso.value || aiutoFatto.value);
+    chipVisibili.value = campoAttivo.value;
+    if (!passoAiuto.value || passoAiuto.value === 'scheda') {
+      passoAiuto.value = PASSI_AIUTO[PASSI_AIUTO.length - 1];
+    }
   }
 }
 
 async function suVoceFatto() {
-  if (!altoparlante.value || props.riduciMovimento) return;
+  if (!altoparlante.value) return;
   try {
     const percorsi = percorsoVoceFatto();
     const risposta = await fetch(percorsi.mp3);

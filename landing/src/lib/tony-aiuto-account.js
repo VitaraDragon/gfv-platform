@@ -241,8 +241,8 @@ export function messaggioErroreSetup(errore, ctx) {
   const e = errore && typeof errore === 'object' ? errore : {};
   const motivo = String(e.motivo || e.codice || '');
   const dettagli = e.dettagli && typeof e.dettagli === 'object' ? e.dettagli : {};
-  const emailCtx = ctx && typeof ctx.email === 'string' ? ctx.email : '';
-  const email = EMAIL_CONTATTO || emailCtx || '';
+  void ctx;
+  const email = EMAIL_CONTATTO || '';
 
   if (motivo === 'unauthenticated' || motivo === 'non-collegato') {
     return t.nonCollegato;

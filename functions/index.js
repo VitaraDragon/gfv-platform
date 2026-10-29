@@ -4992,6 +4992,10 @@ exports.tonyLandingAsk = tonyLandingAsk;
 // Landing «Tony bussa»: voce dal vivo di Tony (passo 12b). Stessa chiave ElevenLabs dell'app, App Check, biglietto monouso, tetto caratteri in config/tonyLanding.
 const { tonyLandingAudio } = require("./tony-landing-audio");
 exports.tonyLandingAudio = tonyLandingAudio;
+// Landing «Tony bussa»: avvisi di spesa stimata (ogni 15 min) e spegnimento al budget Google (Pub/Sub) — passo 15.
+const { tonyLandingAvvisiSpesa, tonyLandingBudget } = require("./tony-landing-avvisi");
+exports.tonyLandingAvvisiSpesa = tonyLandingAvvisiSpesa;
+exports.tonyLandingBudget = tonyLandingBudget;
 
 exports.onComunicazioneCreated = onComunicazioneCreated;
 exports.onLavoroWritten = onLavoroWritten;
