@@ -16,10 +16,16 @@ import {
   TONY_BUSSA_ATTIVO,
   URL_LOGIN,
   URL_REGISTRAZIONE,
+  URL_TONY_LANDING_ASK,
+  URL_TONY_LANDING_AUDIO,
   VERSIONE_AVVISO_TONY,
 } from '../config/landing-config.js';
 import { rigaPrezzi, vociPianiCosaGestisci } from '../lib/landing-logica.js';
 import {
+  BUSSATA_AUTOMATICA_MS,
+  bussataAutomaticaConsentita,
+  CHIAVE_BUSSATA_SESSIONE,
+  CHIAVE_RINUNCIA_AVVISO,
   deveParlare,
   dovrebbeVibrare,
   formatoClip,
@@ -40,6 +46,7 @@ import {
   varianteScena,
 } from '../lib/tony-bussa-logica.js';
 import {
+  AVAILABLE_MODULES,
   monthlyToAnnual,
   SUBSCRIPTION_PLANS,
 } from '../../../core/config/subscription-plans.js';
@@ -52,9 +59,10 @@ const prezzi = computed(() =>
       free: SUBSCRIPTION_PLANS.free,
       base: SUBSCRIPTION_PLANS.base,
       monthlyToAnnual,
+      moduli: AVAILABLE_MODULES,
     },
     GIORNI_GUIDA_TONY,
-    { ivaConfermata: IVA_CONFERMATA }
+    { ivaConfermata: IVA_CONFERMATA, emailContatto: EMAIL_CONTATTO }
   )
 );
 
@@ -132,6 +140,44 @@ function storagePagina() {
   } catch {
     return null;
   }
+}
+
+function storageSessione() {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function warmUpEndpointTony() {
+  for (const url of [URL_TONY_LANDING_ASK, URL_TONY_LANDING_AUDIO]) {
+    try {
+      fetch(url, { method: 'OPTIONS' }).catch(() => {});
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+function leggiRinunciaAvviso() {
+  const s = storageSessione();
+  return s ? s.getItem(CHIAVE_RINUNCIA_AVVISO) === '1' : false;
+}
+
+function salvaRinunciaAvviso() {
+  const s = storageSessione();
+  if (s) s.setItem(CHIAVE_RINUNCIA_AVVISO, '1');
+}
+
+function bussataGiaInSessione() {
+  const s = storageSessione();
+  return s ? s.getItem(CHIAVE_BUSSATA_SESSIONE) === '1' : false;
+}
+
+function segnaBussataInSessione() {
+  const s = storageSessione();
+  if (s) s.setItem(CHIAVE_BUSSATA_SESSIONE, '1');
 }
 
 function aggiornaRiduci() {
@@ -919,6 +965,7 @@ function onVuoiProvare(ev: MouseEvent) {
   pulsanteOrigine.value = target instanceof HTMLElement ? target : null;
   aggiornaRiduci();
   preparaMedia();
+  warmUpEndpointTony();
   const presa = leggiPresaVisione(storagePagina(), VERSIONE_AVVISO_TONY);
   if (presa.vista) {
     audioAttivo.value = presa.audio !== false;
@@ -951,6 +998,7 @@ function onConferma(payload: { audio?: boolean }) {
 
 function onRinuncia() {
   if (stageAperto.value) return;
+  salvaRinunciaAvviso();
   fase.value = prossimoStato(fase.value === 'avviso' ? 'avviso' : fase.value, 'rinuncia');
   if (fase.value !== 'nascosto') fase.value = 'nascosto';
   avvisoAperto.value = false;
@@ -1003,6 +1051,27 @@ onMounted(() => {
       })
       .catch(() => {});
   }
+
+  const idBussataAuto = window.setTimeout(() => {
+    if (stageAperto.value || avvisoAperto.value) return;
+    if (
+      !bussataAutomaticaConsentita({
+        sessioneGiaBussato: bussataGiaInSessione(),
+        rinunciaSalvata: leggiRinunciaAvviso(),
+        avvisoAperto: avvisoAperto.value,
+        stageAperto: stageAperto.value,
+        paginaNascosta: typeof document !== 'undefined' ? document.hidden : false,
+      })
+    ) {
+      return;
+    }
+    segnaBussataInSessione();
+    warmUpEndpointTony();
+    const presa = leggiPresaVisione(storagePagina(), VERSIONE_AVVISO_TONY);
+    audioAttivo.value = presa.vista ? presa.audio !== false : true;
+    avviaScena();
+  }, BUSSATA_AUTOMATICA_MS);
+  timerIds.push(idBussataAuto);
 });
 
 onUnmounted(() => {
@@ -1045,7 +1114,10 @@ const iconeModuliImg: Record<string, string> = {
   <div class="landing">
     <div
       class="landing-pagina"
-      :class="{ 'landing-pagina--tony': stageAperto && varianteScelta === 'mobile' }"
+      :class="{
+        'landing-pagina--tony': stageAperto && varianteScelta === 'mobile',
+        'landing-pagina--tony-desktop': stageAperto && varianteScelta !== 'mobile',
+      }"
       :style="stileScossone"
     >
     <header class="topbar">
@@ -1325,7 +1397,12 @@ const iconeModuliImg: Record<string, string> = {
 
 <style scoped>
 .landing-pagina--tony {
-  padding-bottom: 46vh;
+  padding-bottom: calc(55dvh + 30vh);
+  padding-bottom: 85vh;
+}
+
+.landing-pagina--tony-desktop {
+  padding-right: min(420px, 44vw);
 }
 
 .impronta {

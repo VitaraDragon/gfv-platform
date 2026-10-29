@@ -54,6 +54,59 @@ export const CLIP_PER_ARGOMENTO = Object.freeze({
 /** Clip che si ripetono in loop. */
 export const CLIP_IN_LOOP = Object.freeze(['idle', 'listenLoop', 'scrive', 'talking']);
 
+/**
+ * Durata minima visibile della clip «scrive» (≈ metà giro del taccuino).
+ * Se la voce è pronta prima, si aspetta fino a questo minimo così il gesto si legge.
+ */
+export const MIN_SCRIVE_MS = 1800;
+
+/**
+ * Ms da attendere prima di avviare talking/audio, per tenere «scrive» visibile.
+ * @param {{ clipCorrente?: string, msDaInizioClip?: number, riduciMovimento?: boolean }} opts
+ * @returns {number}
+ */
+export function attesaPrimaDiParlareMs({ clipCorrente, msDaInizioClip, riduciMovimento }) {
+  if (riduciMovimento === true) return 0;
+  if (clipCorrente !== 'scrive') return 0;
+  const trascorsi =
+    typeof msDaInizioClip === 'number' && Number.isFinite(msDaInizioClip)
+      ? Math.max(0, msDaInizioClip)
+      : 0;
+  return Math.max(0, MIN_SCRIVE_MS - trascorsi);
+}
+
+/** Ritardo bussata automatica dopo apertura pagina (una volta per sessione). */
+export const BUSSATA_AUTOMATICA_MS = 8000;
+
+export const CHIAVE_BUSSATA_SESSIONE = 'gfv-tony-bussato-sessione';
+export const CHIAVE_RINUNCIA_AVVISO = 'gfv-tony-rinuncia-avviso';
+export const CHIAVE_INFORMATIVA_AIUTO = 'gfv-tony-informativa-aiuto';
+
+/**
+ * @param {{
+ *   sessioneGiaBussato?: boolean,
+ *   rinunciaSalvata?: boolean,
+ *   avvisoAperto?: boolean,
+ *   stageAperto?: boolean,
+ *   paginaNascosta?: boolean
+ * }} opts
+ * @returns {boolean}
+ */
+export function bussataAutomaticaConsentita({
+  sessioneGiaBussato,
+  rinunciaSalvata,
+  avvisoAperto,
+  stageAperto,
+  paginaNascosta,
+}) {
+  if (sessioneGiaBussato === true) return false;
+  if (rinunciaSalvata === true) return false;
+  if (avvisoAperto === true) return false;
+  if (stageAperto === true) return false;
+  if (paginaNascosta === true) return false;
+  return true;
+}
+
 const FORMATI = Object.freeze(['webm', 'webp', 'stacked']);
 const NOMI_CLIP = Object.freeze(Object.keys(NOMI_FILE_CLIP));
 
@@ -501,7 +554,7 @@ export function prossimaBocca({ aperta, livello, msDaUltimoSopra }) {
 export function tempiVoce() {
   return {
     ritardoSalutoMs: 200,
-    attesaMaxVoceMs: 4000,
+    attesaMaxVoceMs: 6000,
     dissolvenzaBoccaMs: 150,
     attesaMaxUscitaMs: 5000,
   };

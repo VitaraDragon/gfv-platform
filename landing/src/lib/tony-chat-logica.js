@@ -20,13 +20,13 @@ export const MESSAGGI_CHAT = Object.freeze({
   tetto: 'Tony è nei campi. Intanto prova GFV!',
   // BOZZA: da far rivedere
   limiteSessione:
-    "Per oggi ci fermiamo qui: crea il tuo account gratuito e continuiamo dentro GFV!",
+    "Per oggi abbiamo fatto tante domande: ci rivediamo domani, oppure crea l'account e continuiamo dentro GFV.",
   // BOZZA: da far rivedere
   limiteGiorno:
-    "Per oggi ci fermiamo qui: crea il tuo account gratuito e continuiamo dentro GFV!",
+    "Per oggi abbiamo fatto tante domande: ci rivediamo domani, oppure crea l'account e continuiamo dentro GFV.",
   // BOZZA: da far rivedere
   limiteGlobale:
-    "Oggi ho risposto a tante domande e sono un po' stanco. Intanto prova GFV!",
+    "Oggi qui sulla pagina ho risposto a moltissime persone e mi fermo fino a domani. Puoi creare il tuo account gratuito: dentro GFV ti guido io.",
   // BOZZA: da far rivedere
   datiPersonali:
     "Qui non scrivermi email o password: quando crei l'account te le chiede il modulo.",
@@ -142,9 +142,13 @@ export function aggiornaStoria(storia, battuta) {
 /**
  * @param {{ domanda: string, sessione: string, storia: Array, fase?: string, argomento?: string }} args
  */
-export function corpoRichiesta({ domanda, sessione, storia, fase, argomento }) {
+export function corpoRichiesta({ domanda, sessione, storia, fase, argomento, raccolti }) {
   if (fase === 'account') {
-    return { domanda, sessione, storia, fase: 'account', argomento };
+    const out = { domanda, sessione, storia, fase: 'account', argomento };
+    if (typeof raccolti === 'string' && raccolti.trim()) {
+      out.raccolti = raccolti.trim();
+    }
+    return out;
   }
   return { domanda, sessione, storia };
 }
@@ -390,5 +394,87 @@ export function azionePerEsito(esito) {
     testo: MESSAGGI_CHAT.errore,
     mostraRegistrazione: true,
     campoAttivo: false,
+  };
+}
+
+/** Messaggio visibile se la risposta in streaming tarda (passo 12). */
+export const ATTESA_LUNGA_MS = 7000;
+
+/** @param {string} [testo] */
+export const messaggioAttesaLunga = (testo) =>
+  String(testo || 'Ci sto pensando, un attimo…');
+
+/**
+ * Aggiorna il testo live a confini di frase (. ! ?).
+ * @param {{ onAggiorna: (testoVisibile: string) => void }} opts
+ */
+export function creaBufferTestoStreaming({ onAggiorna }) {
+  let buffer = '';
+  let visibile = '';
+
+  function flush(force = false) {
+    if (!force) {
+      const match = buffer.match(/^([\s\S]*?[.!?])([\s\S]*)$/);
+      if (match) {
+        visibile += match[1];
+        buffer = match[2];
+        onAggiorna(visibile);
+        return true;
+      }
+      return false;
+    }
+    if (buffer) {
+      visibile += buffer;
+      buffer = '';
+      onAggiorna(visibile);
+    }
+    return true;
+  }
+
+  return {
+    /** @param {string} delta */
+    aggiungi(delta) {
+      buffer += String(delta ?? '');
+      while (flush(false)) {
+        /* svuota più frasi complete */
+      }
+    },
+    /** @returns {string} */
+    finisci() {
+      flush(true);
+      return visibile;
+    },
+  };
+}
+
+/**
+ * Timer «Ci sto pensando…» durante lo streaming.
+ * @param {{ ms?: number, onMostra: () => void, onNascondi: () => void }} opts
+ */
+export function creaGestoreAttesaLunga({ ms = ATTESA_LUNGA_MS, onMostra, onNascondi }) {
+  let timer = null;
+
+  return {
+    inizio() {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = null;
+        onMostra();
+      }, ms);
+    },
+    pezzoArrivato() {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      onNascondi();
+    },
+    fine() {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+      onNascondi();
+    },
   };
 }

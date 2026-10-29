@@ -560,7 +560,7 @@ describe('interruttori tetto biglietto riuscita', () => {
     expect(res.headers['Cache-Control']).toBe('no-store');
     expect(Buffer.concat(res.chunks).toString()).toBe('AAABBBCCC');
     expect(registro).toEqual([preparaTestoVoce(TESTO)]);
-    expect(registro[0]).toContain('Gi, effe, vu');
+    expect(registro[0]).toContain('Gi effe vu');
     expect(registro[0]).toContain('euro');
     const g = db.docs.get('tonyLandingQuota/g_' + giorno);
     expect(g.caratteriVoce).toBe(caratteri);

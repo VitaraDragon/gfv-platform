@@ -213,7 +213,7 @@ describe('volume e bocca', () => {
   it('tempiVoce sono quelli del brief', () => {
     expect(tempiVoce()).toEqual({
       ritardoSalutoMs: 200,
-      attesaMaxVoceMs: 4000,
+      attesaMaxVoceMs: 6000,
       dissolvenzaBoccaMs: 150,
       attesaMaxUscitaMs: 5000,
     });

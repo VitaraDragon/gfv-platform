@@ -9,8 +9,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  attesaPrimaDiParlareMs,
+  bussataAutomaticaConsentita,
+  BUSSATA_AUTOMATICA_MS,
   DIMENSIONI_TONY_STATICO,
   DISSOLVENZA_STATICO_MS,
+  MIN_SCRIVE_MS,
   percorsoTonyStatico,
   prossimoStato,
   scalettaClip,
@@ -41,6 +45,44 @@ function pngHeader(rel) {
   const tipoColore = buf[25];
   return { larghezza, altezza, tipoColore };
 }
+
+describe('MIN_SCRIVE e bussata automatica', () => {
+  it('attesaPrimaDiParlareMs rispetta il minimo scrive', () => {
+    expect(MIN_SCRIVE_MS).toBe(1800);
+    expect(
+      attesaPrimaDiParlareMs({
+        clipCorrente: 'scrive',
+        msDaInizioClip: 300,
+      })
+    ).toBe(1500);
+    expect(
+      attesaPrimaDiParlareMs({
+        clipCorrente: 'scrive',
+        msDaInizioClip: 2000,
+      })
+    ).toBe(0);
+    expect(
+      attesaPrimaDiParlareMs({
+        clipCorrente: 'scrive',
+        msDaInizioClip: 300,
+        riduciMovimento: true,
+      })
+    ).toBe(0);
+    expect(
+      attesaPrimaDiParlareMs({ clipCorrente: 'idle', msDaInizioClip: 0 })
+    ).toBe(0);
+  });
+
+  it('bussataAutomaticaConsentita una volta per sessione', () => {
+    expect(BUSSATA_AUTOMATICA_MS).toBe(8000);
+    expect(bussataAutomaticaConsentita({})).toBe(true);
+    expect(bussataAutomaticaConsentita({ sessioneGiaBussato: true })).toBe(false);
+    expect(bussataAutomaticaConsentita({ rinunciaSalvata: true })).toBe(false);
+    expect(bussataAutomaticaConsentita({ paginaNascosta: true })).toBe(false);
+    expect(bussataAutomaticaConsentita({ stageAperto: true })).toBe(false);
+    expect(bussataAutomaticaConsentita({ avvisoAperto: true })).toBe(false);
+  });
+});
 
 describe('scalettaClip passo 12c', () => {
   it('entra→idle vuota; altre righe invariate', () => {
@@ -315,6 +357,30 @@ describe('tempi e sorgenti', () => {
     expect(scalettaClip('entra', 'idle').includes('entry')).toBe(false);
     const stage = leggi('landing/src/components/TonyStage.vue');
     expect(stage).toContain("codaClip = ['entry', 'idle']");
+  });
+});
+
+describe('bussata automatica in LandingHome', () => {
+  it('timer, sessione e warm-up OPTIONS', () => {
+    const home = leggi('landing/src/views/LandingHome.vue');
+    expect(home).toContain('BUSSATA_AUTOMATICA_MS');
+    expect(home).toContain('bussataAutomaticaConsentita');
+    expect(home).toContain('CHIAVE_BUSSATA_SESSIONE');
+    expect(home).toMatch(/method:\s*['"]OPTIONS['"]/);
+    expect(home).toContain('URL_TONY_LANDING_ASK');
+    expect(home).toContain('URL_TONY_LANDING_AUDIO');
+  });
+});
+
+describe('TonyChat informativa e riepilogo', () => {
+  it('informativa aiuto una volta e riepilogo sempre in fase aiuto', () => {
+    const chat = leggi('landing/src/components/TonyChat.vue');
+    expect(chat).toContain('CHIAVE_INFORMATIVA_AIUTO');
+    expect(chat).toContain('informativaAiutoVisibile');
+    expect(chat).toContain('informativaHoCapito');
+    expect(chat).toContain('@click="onChipAiuto(ta.chipRiepilogo)"');
+    expect(chat).not.toMatch(/v-if="haDatiAiuto\(\)"[\s\S]{0,200}chipRiepilogo/);
+    expect(chat).not.toMatch(/chipRiepilogo[\s\S]{0,80}v-if="haDatiAiuto\(\)"/);
   });
 });
 

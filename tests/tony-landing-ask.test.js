@@ -26,6 +26,7 @@ const {
   validaRichiesta,
   contieneDatiPersonali,
   decidiDomanda,
+  decidiDomandaAccount,
   messaggioPerCodice,
   costoStimatoEur,
   tokenDaUsage,
@@ -228,6 +229,52 @@ describe('decidiDomanda', () => {
   });
 });
 
+describe('decidiDomandaAccount', () => {
+  it('non applica il limite globale giornaliero', () => {
+    expect(
+      decidiDomandaAccount({
+        config: configAcceso,
+        domandeGiorno: 9999,
+        domandeAccount: 0
+      }).consentita
+    ).toBe(true);
+  });
+
+  it('blocca solo al limite account', () => {
+    expect(
+      decidiDomandaAccount({
+        config: configAcceso,
+        domandeAccount: COSTANTI.MAX_DOMANDE_ACCOUNT
+      }).codice
+    ).toBe('limite-account');
+  });
+});
+
+describe('validaRichiesta raccolti', () => {
+  it('accetta raccolti solo in fase account entro 1KB', () => {
+    const ok = validaRichiesta({
+      domanda: 'ciao',
+      sessione: 'abcdefghijklmnop',
+      storia: [],
+      fase: 'account',
+      argomento: 'sede',
+      raccolti: 'Sede: Faenza'
+    });
+    expect(ok.ok).toBe(true);
+    expect(ok.raccolti).toBe('Sede: Faenza');
+
+    const troppo = validaRichiesta({
+      domanda: 'ciao',
+      sessione: 'abcdefghijklmnop',
+      storia: [],
+      fase: 'account',
+      argomento: 'sede',
+      raccolti: 'x'.repeat(2000)
+    });
+    expect(troppo.ok).toBe(false);
+  });
+});
+
 describe('Messaggi e prompt', () => {
   it('testi esatti spento/tetto e limiti', () => {
     expect(messaggioPerCodice('spento')).toBe(
@@ -236,12 +283,9 @@ describe('Messaggi e prompt', () => {
     expect(messaggioPerCodice('tetto')).toBe(
       'Tony è nei campi. Intanto prova GFV!'
     );
-    expect(messaggioPerCodice('limite-sessione')).toBe(
-      'Per oggi ci fermiamo qui: crea il tuo account gratuito e continuiamo dentro GFV!'
-    );
-    expect(messaggioPerCodice('limite-giorno')).toBe(
-      'Per oggi ci fermiamo qui: crea il tuo account gratuito e continuiamo dentro GFV!'
-    );
+    expect(messaggioPerCodice('limite-sessione')).toBe(MESSAGGI.limiteSessione);
+    expect(messaggioPerCodice('limite-giorno')).toBe(MESSAGGI.limiteGiorno);
+    expect(messaggioPerCodice('limite-globale')).toBe(MESSAGGI.limiteGlobale);
     expect(messaggioPerCodice('sconosciuto-xyz')).toBe(MESSAGGI.errore);
   });
 

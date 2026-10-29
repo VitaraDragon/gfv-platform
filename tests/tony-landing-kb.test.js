@@ -88,11 +88,15 @@ describe('2 — Numeri', () => {
     expect(t).toContain(String(kb.DATI_KB.maxTerreniFree));
     expect(t).toContain(String(kb.DATI_KB.maxAttivitaMeseFree));
     expect(t).toContain(String(kb.DATI_KB.giorniGuidaFree));
-    expect(t).toContain(kb.DATI_KB.prezzoBaseMese + ' € al mese');
-    expect(t).toContain(kb.DATI_KB.prezzoBaseAnno + " € l'anno pagati in anticipo");
+    expect(t).toContain('circa ' + kb.DATI_KB.prezzoBaseMese + ' € al mese');
+    expect(t).toContain(kb.DATI_KB.prezzoBaseAnno + " € l'anno, pagati in anticipo");
+    expect(t.toLowerCase()).toContain('si rinnova ogni anno');
+    expect(t.toLowerCase()).toContain('email che trovi in fondo');
     expect(t.toLowerCase()).not.toContain('per ora parti gratis');
-    expect(t.toLowerCase()).not.toContain('rinnovo');
-    expect(t.toLowerCase()).not.toContain('disdic');
+    expect(t.toLowerCase()).not.toContain('al mese o');
+    expect(t.toLowerCase()).not.toContain('disdici quando vuoi dall\'app');
+    expect(t).toMatch(/Sono Tony|sono Tony/i);
+    expect(t).not.toMatch(/\bTony (ti|può|fa|resta|non)\b/);
   });
 });
 
@@ -101,12 +105,18 @@ describe('2-bis — Range prezzi moduli', () => {
     const prezzi = prezziModuliDisponibili();
     expect(kb.DATI_KB.prezzoModuliMin).toBe(Math.min(...prezzi));
     expect(kb.DATI_KB.prezzoModuliMax).toBe(Math.max(...prezzi));
+    expect(kb.DATI_KB.prezzoModuliAnnoMin).toBe(
+      monthlyToAnnual(kb.DATI_KB.prezzoModuliMin)
+    );
+    expect(kb.DATI_KB.prezzoModuliAnnoMax).toBe(
+      monthlyToAnnual(kb.DATI_KB.prezzoModuliMax)
+    );
     expect(kb.TESTO_KB).toContain(
       'da ' +
-        kb.DATI_KB.prezzoModuliMin +
+        kb.DATI_KB.prezzoModuliAnnoMin +
         ' € a ' +
-        kb.DATI_KB.prezzoModuliMax +
-        ' € al mese'
+        kb.DATI_KB.prezzoModuliAnnoMax +
+        " € l'anno"
     );
     expect(kb.TESTO_KB).toContain('pagina Abbonamento');
   });
@@ -117,7 +127,7 @@ describe('2-bis — Range prezzi moduli', () => {
     expect(meteo).toBeTruthy();
     meteo.price = 9;
     const conNove = generaContenuto(argsBuoni({ moduli: moduliCopia }));
-    expect(conNove).toContain('a 9 €');
+    expect(conNove).toContain('a ' + monthlyToAnnual(9) + ' €');
 
     const moduliOliveto = structuredClone(AVAILABLE_MODULES);
     const oliveto = moduliOliveto.find((m) => m.id === 'oliveto');
@@ -127,12 +137,12 @@ describe('2-bis — Range prezzi moduli', () => {
     const conOliveto = generaContenuto(argsBuoni({ moduli: moduliOliveto }));
     expect(conOliveto).toContain(
       'da ' +
-        kb.DATI_KB.prezzoModuliMin +
+        kb.DATI_KB.prezzoModuliAnnoMin +
         ' € a ' +
-        kb.DATI_KB.prezzoModuliMax +
-        ' € al mese'
+        kb.DATI_KB.prezzoModuliAnnoMax +
+        " € l'anno"
     );
-    expect(conOliveto).not.toContain('a 20 €');
+    expect(conOliveto).not.toContain('a ' + monthlyToAnnual(20) + ' €');
 
     const senzaPrezzo = structuredClone(AVAILABLE_MODULES);
     const vigneto = senzaPrezzo.find((m) => m.id === 'vigneto');
@@ -145,12 +155,14 @@ describe('2-bis — Range prezzi moduli', () => {
     expect(() => generaContenuto(argsBuoni({ moduli: senzaCampo }))).toThrow();
   });
 
-  it('nel TESTO_KB e ELENCO_MODULI_KB solo i quattro importi ammessi con €', () => {
+  it('nel TESTO_KB e ELENCO_MODULI_KB solo gli importi ammessi con €', () => {
     const ammessi = new Set([
       String(kb.DATI_KB.prezzoBaseMese),
       String(kb.DATI_KB.prezzoBaseAnno),
       String(kb.DATI_KB.prezzoModuliMin),
-      String(kb.DATI_KB.prezzoModuliMax)
+      String(kb.DATI_KB.prezzoModuliMax),
+      String(kb.DATI_KB.prezzoModuliAnnoMin),
+      String(kb.DATI_KB.prezzoModuliAnnoMax)
     ]);
     const insieme = kb.TESTO_KB + '\n' + kb.ELENCO_MODULI_KB;
     const trovati = insieme.match(/(\d+(?:[.,]\d+)?)\s*€/g) || [];
@@ -290,7 +302,7 @@ describe('6 — Regole nel prompt', () => {
     expect(low).toContain('password');
     expect(low).toContain('modulo');
     expect(p).toContain('Tony Avanzato');
-    expect(low).toContain('non apre');
+    expect(low).toMatch(/non apr[oe]/);
     expect(low).toContain('aver salvato');
     expect(low).toContain('60 parole');
     expect(low).toContain('range');
@@ -300,10 +312,11 @@ describe('6 — Regole nel prompt', () => {
     expect(p).toContain('Termini');
     expect(low).toContain('fondo della pagina');
     expect(low).toContain('solo se ti chiedono i limiti');
+    expect(low).toContain('prima persona');
     expect(p).toContain(kb.TESTO_KB);
     expect(p).toContain(kb.ELENCO_MODULI_KB);
-    expect(REGOLE_TONY_LANDING).toHaveLength(12);
-    expect(p.length).toBeLessThan(9000);
+    expect(REGOLE_TONY_LANDING).toHaveLength(13);
+    expect(p.length).toBeLessThan(9500);
   });
 });
 

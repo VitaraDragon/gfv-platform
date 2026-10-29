@@ -65,9 +65,9 @@ export function cosaMancaPerAccendere(config = {}) {
 
 /**
  * Costruisce i due paragrafi della riga prezzi dai piani (senza usare labelFull).
- * @param {{ free?: { maxTerreni?: number }, base?: { price?: number }, monthlyToAnnual?: (n: number) => number }} piani
+ * @param {{ free?: { maxTerreni?: number }, base?: { price?: number }, monthlyToAnnual?: (n: number) => number, moduli?: Array<{ available?: boolean, price?: number }> }} piani
  * @param {number} giorniGuida
- * @param {{ ivaConfermata?: boolean }} [opzioni]
+ * @param {{ ivaConfermata?: boolean, emailContatto?: string }} [opzioni]
  * @returns {{ gratis: string, moduli: string }}
  */
 export function rigaPrezzi(piani, giorniGuida, opzioni = {}) {
@@ -79,22 +79,43 @@ export function rigaPrezzi(piani, giorniGuida, opzioni = {}) {
       : (n) => Math.round(Number(n) * 12 * 100) / 100;
   const prezzoAnno = toAnnual(prezzoMese);
   const giorni = Number(giorniGuida) || 0;
+  const email = String(opzioni.emailContatto || '').trim();
 
   let gratis =
     `Provalo gratis: con l'account gratuito puoi gestire fino a ${maxTerreni} terreni` +
     ` e Tony ti guida per ${giorni} giorni dal primo accesso.` +
-    ` Se non vuoi limiti passi al Base: ${prezzoMese} € al mese, ${prezzoAnno} € l'anno,` +
-    ` pagati in anticipo, con rinnovo automatico annuale; disdici quando vuoi dall'app.`;
+    ` Se non vuoi limiti passi al Base: ${prezzoAnno} € l'anno, pagati in anticipo` +
+    ` (circa ${prezzoMese} € al mese). Si rinnova ogni anno;` +
+    (email
+      ? ` per disdire scrivi a ${email}.`
+      : ` per disdire scrivi all'email in fondo alla pagina.`);
 
   if (opzioni.ivaConfermata === true) {
     // BOZZA: da far rivedere
     gratis += ' Prezzo finale, il venditore non applica IVA.';
   }
 
-  const moduli =
+  const listaModuli = Array.isArray(piani?.moduli) ? piani.moduli : [];
+  const prezziMensili = [];
+  for (let i = 0; i < listaModuli.length; i += 1) {
+    const m = listaModuli[i];
+    if (!m || m.available !== true) continue;
+    const p = Number(m.price);
+    if (Number.isFinite(p) && p > 0) prezziMensili.push(p);
+  }
+  let moduli =
     'Moduli specializzati: con il Base puoi aggiungere i moduli per le tue colture' +
     ' e per la tua azienda, compreso il modulo Tony che fa le operazioni al posto tuo.' +
-    ' Ogni modulo ha 30 giorni di prova. I prezzi li vedi in app prima di pagare.';
+    ' Ogni modulo ha 30 giorni di prova.';
+  if (prezziMensili.length > 0) {
+    const minAnno = toAnnual(Math.min(...prezziMensili));
+    const maxAnno = toAnnual(Math.max(...prezziMensili));
+    moduli +=
+      ` Ogni modulo si paga una volta l'anno, in anticipo: da ${minAnno} € a ${maxAnno} € l'anno` +
+      ` secondo il modulo. Il prezzo preciso di ciascuno lo vedi nella pagina Abbonamento dell'app, prima di pagare.`;
+  } else {
+    moduli += ' I prezzi li vedi in app prima di pagare.';
+  }
 
   return { gratis, moduli };
 }
@@ -152,9 +173,15 @@ export function vociPianiCosaGestisci(limiti) {
   const domande = Number(limiti.domandeGuidaGiorno);
   const prezzo = Number(limiti.prezzoBaseMese);
 
+  const toAnnual =
+    typeof limiti.monthlyToAnnual === 'function'
+      ? limiti.monthlyToAnnual
+      : (n) => Math.round(Number(n) * 12 * 100) / 100;
+  const prezzoAnno = Number.isFinite(prezzo) ? toAnnual(prezzo) : prezzo;
+
   return {
     gratisTitolo: "Con l'account gratuito",
-    baseTitolo: `Con il piano Base — ${prezzo} € al mese`,
+    baseTitolo: `Con il piano Base — ${prezzoAnno} € l'anno`,
     gratis: [
       { id: 'terreni', nome: 'Terreni', dettaglio: `fino a ${maxTerreni}` },
       { id: 'poderi', nome: 'Poderi', dettaglio: null },
@@ -167,7 +194,7 @@ export function vociPianiCosaGestisci(limiti) {
       {
         id: 'tony-guida',
         nome: 'Tony Guida',
-        dettaglio: `i primi ${giorni} giorni, fino a ${domande} domande al giorno`,
+        dettaglio: `nell'app: i primi ${giorni} giorni, fino a ${domande} domande al giorno`,
       },
     ],
     base: [

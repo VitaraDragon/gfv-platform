@@ -59,8 +59,12 @@ const COSTANTI = Object.freeze({
   PREZZO_USCITA_EUR_PER_MILIONE: 2.5,
   /** Margine per App Check e Cloud Functions. */
   COSTO_FISSO_RICHIESTA_EUR: 0.0002,
-  /** Da ricontrollare sul piano ElevenLabs (serve al passo 12). */
-  PREZZO_VOCE_EUR_PER_1000_CARATTERI: 0.3
+  /**
+   * Stima costo voce: multilingual v2 consuma circa il doppio del flash.
+   * Flash era ~0,30 €/1000 car; con v2 usiamo 0,60 €/1000 (da ricontrollare
+   * sul piano ElevenLabs di Pier se il listino cambia).
+   */
+  PREZZO_VOCE_EUR_PER_1000_CARATTERI: 0.6
 });
 
 /** Domini ammessi per CORS (confronto esatto della stringa Origin). */
@@ -88,13 +92,13 @@ const MESSAGGI = Object.freeze({
   tetto: "Tony è nei campi. Intanto prova GFV!",
   // BOZZA: da far rivedere
   limiteSessione:
-    "Per oggi ci fermiamo qui: crea il tuo account gratuito e continuiamo dentro GFV!",
+    "Per oggi abbiamo fatto tante domande: ci rivediamo domani, oppure crea l'account e continuiamo dentro GFV.",
   // BOZZA: da far rivedere
   limiteGiorno:
-    "Per oggi ci fermiamo qui: crea il tuo account gratuito e continuiamo dentro GFV!",
+    "Per oggi abbiamo fatto tante domande: ci rivediamo domani, oppure crea l'account e continuiamo dentro GFV.",
   // BOZZA: da far rivedere
   limiteGlobale:
-    "Oggi ho risposto a tante domande e sono un po' stanco. Intanto prova GFV!",
+    "Oggi qui sulla pagina ho risposto a moltissime persone e mi fermo fino a domani. Puoi creare il tuo account gratuito: dentro GFV ti guido io.",
   // BOZZA: da far rivedere
   datiPersonali:
     "Qui non scrivermi email o password: quando crei l'account te le chiede il modulo.",
@@ -351,7 +355,8 @@ function validaRichiesta(corpo) {
         chiavi[i] !== "sessione" &&
         chiavi[i] !== "storia" &&
         chiavi[i] !== "fase" &&
-        chiavi[i] !== "argomento"
+        chiavi[i] !== "argomento" &&
+        chiavi[i] !== "raccolti"
       ) {
         return { ok: false, codice: "richiesta-non-valida" };
       }
@@ -384,7 +389,18 @@ function validaRichiesta(corpo) {
   }
   const storia = storiaPulita(corpo.storia);
   if (haFase) {
-    return {
+    let raccolti;
+    if (Object.prototype.hasOwnProperty.call(corpo, "raccolti")) {
+      if (typeof corpo.raccolti !== "string") {
+        return { ok: false, codice: "richiesta-non-valida" };
+      }
+      const raccoltiTrim = corpo.raccolti.trim();
+      if (new TextEncoder().encode(raccoltiTrim).length > 1024) {
+        return { ok: false, codice: "richiesta-non-valida" };
+      }
+      raccolti = raccoltiTrim;
+    }
+    const out = {
       ok: true,
       domanda: domanda,
       sessione: sessione,
@@ -392,6 +408,8 @@ function validaRichiesta(corpo) {
       fase: "account",
       argomento: corpo.argomento
     };
+    if (raccolti) out.raccolti = raccolti;
+    return out;
   }
   return { ok: true, domanda: domanda, sessione: sessione, storia: storia };
 }
@@ -419,10 +437,6 @@ function decidiDomandaAccount(args) {
     typeof a.spesaMeseEur === "number" && !Number.isNaN(a.spesaMeseEur)
       ? a.spesaMeseEur
       : 0;
-  const domandeGiorno =
-    typeof a.domandeGiorno === "number" && !Number.isNaN(a.domandeGiorno)
-      ? a.domandeGiorno
-      : 0;
   const domandeAccount =
     typeof a.domandeAccount === "number" && !Number.isNaN(a.domandeAccount)
       ? a.domandeAccount
@@ -432,19 +446,12 @@ function decidiDomandaAccount(args) {
     typeof config.monthlyBudgetEur === "number" && !Number.isNaN(config.monthlyBudgetEur)
       ? config.monthlyBudgetEur
       : COSTANTI.TETTO_MENSILE_EUR;
-  const cap =
-    typeof config.dailyQuestionCap === "number" && !Number.isNaN(config.dailyQuestionCap)
-      ? config.dailyQuestionCap
-      : COSTANTI.MAX_DOMANDE_GIORNO_PREDEFINITO;
 
   if (config.enabled !== true) {
     return { consentita: false, codice: "spento", voce: false };
   }
   if (spesa >= budget) {
     return { consentita: false, codice: "tetto", voce: false };
-  }
-  if (domandeGiorno >= cap) {
-    return { consentita: false, codice: "limite-globale", voce: false };
   }
   if (domandeAccount >= COSTANTI.MAX_DOMANDE_ACCOUNT) {
     return { consentita: false, codice: "limite-account", voce: false };

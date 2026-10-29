@@ -26,7 +26,9 @@ const SEGNAPOSTO_AMMESSI = Object.freeze([
   "prezzoBaseMese",
   "prezzoBaseAnno",
   "prezzoModuliMin",
-  "prezzoModuliMax"
+  "prezzoModuliMax",
+  "prezzoModuliAnnoMin",
+  "prezzoModuliAnnoMax"
 ]);
 
 /**
@@ -258,6 +260,14 @@ function generaContenuto(args) {
   });
   const prezzoModuliMin = Math.min.apply(null, prezzi);
   const prezzoModuliMax = Math.max.apply(null, prezzi);
+  const prezzoModuliAnnoMin = numeroPositivo(
+    prezzoAnnuoDaMensile(prezzoModuliMin),
+    "prezzoModuliAnnoMin"
+  );
+  const prezzoModuliAnnoMax = numeroPositivo(
+    prezzoAnnuoDaMensile(prezzoModuliMax),
+    "prezzoModuliAnnoMax"
+  );
 
   const valori = {
     giorniGuidaFree: giorniGuidaFree,
@@ -267,7 +277,9 @@ function generaContenuto(args) {
     prezzoBaseMese: prezzoBaseMese,
     prezzoBaseAnno: prezzoBaseAnno,
     prezzoModuliMin: prezzoModuliMin,
-    prezzoModuliMax: prezzoModuliMax
+    prezzoModuliMax: prezzoModuliMax,
+    prezzoModuliAnnoMin: prezzoModuliAnnoMin,
+    prezzoModuliAnnoMax: prezzoModuliAnnoMax
   };
 
   const trovati = testo.match(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g) || [];
@@ -322,6 +334,8 @@ function generaContenuto(args) {
     prezzoBaseAnno: prezzoBaseAnno,
     prezzoModuliMin: prezzoModuliMin,
     prezzoModuliMax: prezzoModuliMax,
+    prezzoModuliAnnoMin: prezzoModuliAnnoMin,
+    prezzoModuliAnnoMax: prezzoModuliAnnoMax,
     giorniGuidaFree: giorniGuidaFree,
     giorniProvaModuli: giorniProvaModuli
   };

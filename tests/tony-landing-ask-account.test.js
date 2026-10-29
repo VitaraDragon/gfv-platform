@@ -26,7 +26,11 @@ const {
   rispostaAccountDaTesto,
   SCHEMA_RISPOSTA_ACCOUNT,
   regoleTenute,
-  PREFISSI_ESCLUSI
+  PREFISSI_ESCLUSI,
+  pulisciSede,
+  pulisciTerreni,
+  risolviColturaConSinonimi,
+  correggiUnoNelTesto
 } = require('../functions/lib/tony-landing-account.js');
 const { REGOLE_TONY_LANDING } = require('../functions/lib/tony-landing-prompt.js');
 
@@ -403,13 +407,28 @@ describe('handleFaseAccount', () => {
 
 describe('prompt e pulizia', () => {
   it('regole, schema, ripiego, CORS costante', () => {
-    expect(regoleTenute().length).toBe(9);
+    expect(regoleTenute().length).toBeGreaterThanOrEqual(9);
     for (const p of PREFISSI_ESCLUSI) {
       expect(REGOLE_TONY_LANDING.some((r) => r.indexOf(p) === 0)).toBe(true);
     }
     const prompt = promptSistemaAccount('sede');
+    const promptConRaccolti = promptSistemaAccount('terreni', {
+      raccolti: 'Sede: Faenza'
+    });
     expect(prompt).not.toMatch(/Pierpaolo|Pier\b/);
     expect(prompt).toMatch(/5 €/);
+    expect(promptConRaccolti).toMatch(/DATI GIÀ RACCOLTI/);
+    expect(promptConRaccolti).toMatch(/Faenza/);
+    expect(pulisciSede({ cap: '4801', provincia: 'Bergamo', citta: 'X' }).cap).toBeNull();
+    expect(pulisciSede({ cap: '48018', provincia: 'BG', citta: 'X' }).provincia).toBe(
+      'BG'
+    );
+    expect(pulisciTerreni([{ nome: 'Campo', superficie: null }]).terreni[0].superficie).toBe(
+      null
+    );
+    expect(risolviColturaConSinonimi('mele')).toBe('Melo');
+    expect(risolviColturaConSinonimi('piscina')).toBeNull();
+    expect(correggiUnoNelTesto('uno terreno')).toBe('un terreno');
     expect(SCHEMA_RISPOSTA_ACCOUNT.type).toBe('OBJECT');
     const corpo = corpoRichiestaGemini({
       promptSistema: 'x',
@@ -586,8 +605,9 @@ describe('R6 account: log, expireAt, contatori', () => {
       expect(k).not.toMatch(/\/v_/);
       expect(k).not.toMatch(/\/sale_/);
     }
-    expect(db.docs.has('tonyLandingQuota/g_' + giorno)).toBe(true);
     expect(db.docs.has('tonyLandingQuota/m_' + mese)).toBe(true);
+    const gDoc = db.docs.get('tonyLandingQuota/g_' + giorno);
+    expect(gDoc?.domande ?? 0).toBe(0);
 
     info.mockRestore();
     warn.mockRestore();

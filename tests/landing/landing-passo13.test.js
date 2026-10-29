@@ -191,13 +191,15 @@ describe('tony-registrazione logica', () => {
 });
 
 describe('TonyRegistrazione.vue statico', () => {
-  it('campi, niente nome/cognome, niente chat/voce/storage', () => {
+  it('campi email/password/azienda + nome/cognome facoltativi; niente chat/voce/storage', () => {
     const vue = leggi('landing/src/components/TonyRegistrazione.vue');
     expect(vue).toMatch(/autocomplete="email"/);
     expect(vue).toMatch(/autocomplete="new-password"/);
     expect(vue).toMatch(/autocomplete="organization"/);
-    expect(vue).not.toMatch(/id="nome"|etichettaNome|v-model="nome"/);
-    expect(vue).not.toMatch(/cognome/);
+    expect(vue).toMatch(/tony-reg-nome/);
+    expect(vue).toMatch(/tony-reg-cognome/);
+    expect(vue).toMatch(/v-model="nome"/);
+    expect(vue).toMatch(/v-model="cognome"/);
     expect(vue).not.toMatch(/v-html/);
     expect(vue).not.toMatch(/console\./);
     expect(vue).not.toMatch(/tonyLandingAsk/);

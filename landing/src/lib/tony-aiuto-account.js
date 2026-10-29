@@ -58,12 +58,13 @@ export function unisciDati(attuali, nuovi, argomento) {
   };
   let troppiTerreni = false;
 
-  if (argomento === 'sede' && n.sede) {
+  if (n.sede && (!out.sede || !out.sede.citta)) {
+    const prev = out.sede && typeof out.sede === 'object' ? out.sede : {};
     out.sede = {
-      indirizzo: n.sede.indirizzo || null,
-      citta: n.sede.citta || null,
-      cap: n.sede.cap || null,
-      provincia: n.sede.provincia || null,
+      indirizzo: n.sede.indirizzo || prev.indirizzo || null,
+      citta: n.sede.citta || prev.citta || null,
+      cap: n.sede.cap || prev.cap || null,
+      provincia: n.sede.provincia || prev.provincia || null,
     };
   }
 
@@ -111,6 +112,67 @@ export function unisciDati(attuali, nuovi, argomento) {
   }
 
   return { dati: out, troppiTerreni };
+}
+
+/**
+ * Testo per il prompt account: cosa è già stato raccolto.
+ * @param {{ sede?: object|null, poderi?: object[], terreni?: object[] }} dati
+ */
+export function serializzaRaccolti(dati) {
+  const d = dati && typeof dati === 'object' ? dati : {};
+  const righe = [];
+  if (d.sede && typeof d.sede === 'object' && (d.sede.citta || d.sede.indirizzo)) {
+    const pezzi = [];
+    if (d.sede.indirizzo) pezzi.push(String(d.sede.indirizzo));
+    if (d.sede.citta) pezzi.push(String(d.sede.citta));
+    if (d.sede.cap) pezzi.push('CAP ' + d.sede.cap);
+    if (d.sede.provincia) pezzi.push(String(d.sede.provincia));
+    righe.push('Sede: ' + pezzi.join(', '));
+  }
+  if (Array.isArray(d.poderi) && d.poderi.length) {
+    righe.push(
+      'Poderi: ' +
+        d.poderi
+          .map((p) => (p && p.nome ? String(p.nome) : ''))
+          .filter(Boolean)
+          .join(', ')
+    );
+  }
+  if (Array.isArray(d.terreni) && d.terreni.length) {
+    for (const t of d.terreni) {
+      if (!t || !t.nome) continue;
+      let r = 'Terreno «' + String(t.nome) + '»';
+      if (typeof t.superficie === 'number') r += ', ' + t.superficie + ' ha';
+      if (t.coltura) r += ', coltura ' + t.coltura;
+      if (t.podere) r += ', podere ' + t.podere;
+      righe.push(r);
+    }
+  }
+  return righe.join('\n');
+}
+
+const MESSAGGIO_RIEPILOGO =
+  'Facciamo così: controlla il riepilogo e completa lì.';
+
+/**
+ * @param {{
+ *   nuoviDati?: boolean,
+ *   fuoriTema?: number,
+ *   turniSenzaNovitaNelPasso?: number,
+ *   domandeRimaste?: number
+ * }} opts
+ */
+export function decidiDopoRisposta(opts) {
+  const o = opts && typeof opts === 'object' ? opts : {};
+  const senzaNovita =
+    typeof o.turniSenzaNovitaNelPasso === 'number' ? o.turniSenzaNovitaNelPasso : 0;
+  const fuori = typeof o.fuoriTema === 'number' ? o.fuoriTema : 0;
+  const rimaste =
+    typeof o.domandeRimaste === 'number' ? o.domandeRimaste : Number.POSITIVE_INFINITY;
+  if (senzaNovita >= 2 || fuori >= 2 || rimaste <= 3) {
+    return { apriRiepilogo: true, messaggio: MESSAGGIO_RIEPILOGO };
+  }
+  return { apriRiepilogo: false };
 }
 
 /**

@@ -383,7 +383,6 @@ async function consumaQuotaAccount(db, args) {
     const decisione = decidiDomandaAccount({
       config: config,
       spesaMeseEur: typeof m.costoEur === "number" ? m.costoEur : 0,
-      domandeGiorno: typeof g.domande === "number" ? g.domande : 0,
       domandeAccount: typeof a.count === "number" ? a.count : 0
     });
 
@@ -412,15 +411,6 @@ async function consumaQuotaAccount(db, args) {
       };
     }
 
-    tx.set(
-      refG,
-      {
-        domande: FieldValue.increment(1),
-        expireAt: expireG,
-        aggiornatoIl: ts
-      },
-      { merge: true }
-    );
     tx.set(
       refM,
       {
@@ -726,8 +716,12 @@ async function handleFaseAccount(req, res, ctx) {
       return;
     }
 
+    const promptOpts =
+      typeof validata.raccolti === "string" && validata.raccolti
+        ? { raccolti: validata.raccolti }
+        : undefined;
     const corpoGemini = corpoRichiestaGemini({
-      promptSistema: promptSistemaAccount(argomento),
+      promptSistema: promptSistemaAccount(argomento, promptOpts),
       storia: storia,
       domanda: domanda,
       formatoAccount: true,
@@ -862,7 +856,8 @@ async function handleFaseAccount(req, res, ctx) {
       ),
       mostraRegistrazione: false,
       dati: pulita.dati,
-      troppiTerreni: pulita.troppiTerreni === true
+      troppiTerreni: pulita.troppiTerreni === true,
+      fuoriTema: pulita.fuoriTema === true
     };
     if (voceOfferta && idVoce) doneOk.idVoce = idVoce;
     chiudiDone(res, doneOk);

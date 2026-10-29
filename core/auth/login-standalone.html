@@ -318,6 +318,33 @@
             font-size: 12px;
             color: #2e7d32;
         }
+
+        .sessione-esistente {
+            margin-bottom: 24px;
+            padding: 16px;
+            border-radius: 8px;
+            background: #f4f8f5;
+            border: 1px solid #c8e6c9;
+        }
+
+        .sessione-esistente p {
+            color: #333;
+            font-size: 14px;
+            line-height: 1.45;
+            margin-bottom: 12px;
+        }
+
+        .sessione-esistente-azioni {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .login-button--secondario {
+            background: #fff;
+            color: #2E8B57;
+            border: 2px solid #2E8B57;
+        }
     </style>
 </head>
 <body>
@@ -325,6 +352,14 @@
         <div class="login-header">
             <h1>🌾 GFV Platform</h1>
             <p>Accedi al tuo account</p>
+        </div>
+
+        <div id="sessione-esistente" class="sessione-esistente" hidden role="region" aria-label="Sessione già attiva">
+            <p id="sessione-esistente-testo">Hai appena creato un account ma sei già collegato con un altro utente.</p>
+            <div class="sessione-esistente-azioni">
+                <button type="button" id="btn-esci-nuovo-account" class="login-button">Esci e accedi con il nuovo account</button>
+                <button type="button" id="btn-continua-account" class="login-button login-button--secondario">Continua con questo account</button>
+            </div>
         </div>
 
         <div id="pwa-install-banner" class="pwa-install-banner" role="region" aria-label="Installazione app">
@@ -426,6 +461,12 @@
         const loginButton = document.getElementById('login-button');
         const loadingOverlay = document.getElementById('loading-overlay');
         const forgotPasswordLink = document.getElementById('forgot-password-link');
+        const sessioneEsistenteEl = document.getElementById('sessione-esistente');
+        const btnEsciNuovo = document.getElementById('btn-esci-nuovo-account');
+        const btnContinuaAccount = document.getElementById('btn-continua-account');
+        const urlParams = new URLSearchParams(window.location.search);
+        const registeredFromLanding = urlParams.get('registered') === 'true';
+        let sceltaSessioneGestita = false;
 
         // Funzioni utility
         function showLoading() {
@@ -520,9 +561,8 @@
         }
 
         // Verifica se c'è un parametro nell'URL
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('registered') === 'true') {
-            showSuccess('✅ Registrazione completata! Ora puoi fare login con le tue credenziali.');
+        if (registeredFromLanding) {
+            showSuccess('Account creato: accedi con l\'email e la password che hai appena scelto.');
         }
         if (urlParams.get('passwordReset') === 'true') {
             showSuccess('✅ Password reimpostata con successo! Ora puoi fare login con la nuova password.');
@@ -542,9 +582,49 @@
             /* niente email precompilata: il login funziona come prima */
         }
 
+        function mostraSceltaSessione(user) {
+            if (!sessioneEsistenteEl || sceltaSessioneGestita) return;
+            loginForm.style.display = 'none';
+            sessioneEsistenteEl.hidden = false;
+            const email = user && user.email ? user.email : 'questo account';
+            const testoEl = document.getElementById('sessione-esistente-testo');
+            if (testoEl) {
+                testoEl.textContent =
+                    'Sei già collegato come ' +
+                    email +
+                    '. Il tuo nuovo account è un altro?';
+            }
+        }
+
+        if (btnEsciNuovo) {
+            btnEsciNuovo.addEventListener('click', async () => {
+                try {
+                    const { signOut } = await import('https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js');
+                    await signOut(auth);
+                } catch (err) {
+                    console.error('Errore logout:', err);
+                }
+                sceltaSessioneGestita = true;
+                if (sessioneEsistenteEl) sessioneEsistenteEl.hidden = true;
+                loginForm.style.display = '';
+                passwordInput.focus();
+            });
+        }
+
+        if (btnContinuaAccount) {
+            btnContinuaAccount.addEventListener('click', () => {
+                sceltaSessioneGestita = true;
+                window.location.href = '../dashboard-standalone.html';
+            });
+        }
+
         // Verifica se già autenticato
         onAuthStateChanged(auth, async (user) => {
             if (!user) user = await resolveAuthUser(auth);
+            if (user && registeredFromLanding && !sceltaSessioneGestita) {
+                mostraSceltaSessione(user);
+                return;
+            }
             if (user) {
                 window.location.href = '../dashboard-standalone.html';
             }

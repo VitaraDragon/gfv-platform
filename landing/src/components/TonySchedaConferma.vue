@@ -187,7 +187,13 @@ async function onSalva() {
     }
     if (Array.isArray(esito?.campi)) {
       const mappa: Record<string, string> = {};
-      for (const c of esito.campi) mappa[String(c)] = 'da correggere';
+      for (const c of esito.campi) {
+        if (c && typeof c === 'object' && c.campo != null) {
+          mappa[String(c.campo)] = String(c.errore || 'da correggere');
+        } else {
+          mappa[String(c)] = 'da correggere';
+        }
+      }
       erroriCampi.value = mappa;
     }
     erroreGenerale.value = messaggioErroreSetup(

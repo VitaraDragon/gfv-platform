@@ -279,7 +279,9 @@ const IMPORTI_AMMESSI = [
   DATI_KB.prezzoBaseMese,
   DATI_KB.prezzoBaseAnno,
   DATI_KB.prezzoModuliMin,
-  DATI_KB.prezzoModuliMax
+  DATI_KB.prezzoModuliMax,
+  DATI_KB.prezzoModuliAnnoMin,
+  DATI_KB.prezzoModuliAnnoMax
 ].map(String);
 
 function contaParole(testo) {
@@ -459,7 +461,10 @@ function controllaRisposta(testo, opts) {
         problemi.push('importo non ammesso: ' + n);
       }
     }
-    if (/rinnovo|disdett/i.test(t)) problemi.push('parla di rinnovo/disdetta');
+    if (/al mese o\b/i.test(t)) problemi.push('presenta il Base come scelta mese/anno');
+    if (/disdici quando vuoi dall'app/i.test(t)) {
+      problemi.push('disdetta dall\'app non ammessa');
+    }
     if (/\biva\b/i.test(t)) {
       if (!/pagina dei prezzi/i.test(t) || !/termini/i.test(t)) {
         problemi.push('IVA senza rimando a prezzi e Termini');
@@ -563,16 +568,16 @@ const DOMANDE = [
     domanda: 'Quanto costa GFV?',
     rispostaSimulata:
       'Puoi partire gratis. Il Base di GFV costa ' +
-      D.prezzoBaseMese +
-      ' € al mese, cioè ' +
       D.prezzoBaseAnno +
-      " € l'anno pagati in anticipo.",
+      " € l'anno, pagati in anticipo (circa " +
+      D.prezzoBaseMese +
+      ' € al mese). Si rinnova ogni anno; per disdirlo scrivi all\'email in fondo alla pagina.',
     codiceAtteso: 'ok',
     deveContenere: [
       String(D.prezzoBaseMese),
       String(D.prezzoBaseAnno)
     ],
-    nonDeveContenere: ['rinnovo', 'disdett']
+    nonDeveContenere: ['al mese o', "disdici quando vuoi dall'app"]
   },
   {
     id: 8,
@@ -596,28 +601,28 @@ const DOMANDE = [
     categoria: 'prezzi',
     domanda: 'Posso pagare mese per mese?',
     rispostaSimulata:
-      'Il prezzo del Base di GFV è ' +
-      D.prezzoBaseMese +
-      ' € al mese, ma si paga una volta l’anno in anticipo: ' +
+      'No: con GFV il Base si addebita solo annualmente, ' +
       D.prezzoBaseAnno +
-      ' €.',
+      ' € (circa ' +
+      D.prezzoBaseMese +
+      ' € al mese).',
     codiceAtteso: 'ok',
     deveContenere: [String(D.prezzoBaseMese), String(D.prezzoBaseAnno)],
-    nonDeveContenere: ['rinnovo']
+    nonDeveContenere: ['al mese o']
   },
   {
     id: 10,
     categoria: 'prezzi',
     domanda: 'Quanto costa il modulo Frutteto?',
     rispostaSimulata:
-      'I moduli di GFV costano da ' +
-      D.prezzoModuliMin +
+      'I moduli di GFV si pagano una volta l\'anno: da ' +
+      D.prezzoModuliAnnoMin +
       ' € a ' +
-      D.prezzoModuliMax +
-      ' € al mese, secondo il modulo. Il prezzo preciso lo vedi nella pagina Abbonamento dell’app.',
+      D.prezzoModuliAnnoMax +
+      " € l'anno secondo il modulo. Il prezzo preciso lo vedi nella pagina Abbonamento dell'app.",
     codiceAtteso: 'ok',
     deveContenere: [
-      'da ' + D.prezzoModuliMin + ' € a ' + D.prezzoModuliMax + ' €',
+      'da ' + D.prezzoModuliAnnoMin + ' € a ' + D.prezzoModuliAnnoMax + ' €',
       'Abbonamento'
     ],
     nonDeveContenere: ['3 €', 'Frutteto costa']
@@ -628,17 +633,17 @@ const DOMANDE = [
     domanda:
       'Quanto costano gli altri moduli? E posso provarli con l’account gratuito?',
     rispostaSimulata:
-      'I moduli di GFV costano da ' +
-      D.prezzoModuliMin +
+      'I moduli di GFV si pagano una volta l\'anno: da ' +
+      D.prezzoModuliAnnoMin +
       ' € a ' +
-      D.prezzoModuliMax +
-      ' € al mese, secondo il modulo. Dal gratuito no: serve il Base; ogni modulo ha ' +
+      D.prezzoModuliAnnoMax +
+      " € l'anno secondo il modulo. Dal gratuito no: serve il Base; ogni modulo ha " +
       D.giorniProvaModuli +
       ' giorni di prova.',
     codiceAtteso: 'ok',
     deveContenere: [
-      String(D.prezzoModuliMin),
-      String(D.prezzoModuliMax),
+      String(D.prezzoModuliAnnoMin),
+      String(D.prezzoModuliAnnoMax),
       String(D.giorniProvaModuli)
     ],
     nonDeveContenere: []

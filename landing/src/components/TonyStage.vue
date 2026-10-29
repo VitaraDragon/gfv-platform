@@ -62,6 +62,7 @@ let clipArgomentiPreload = false;
 const t = testiLanding.tonyBussa;
 const msBocca = tempiVoce().dissolvenzaBoccaMs;
 const figuraHost = ref<HTMLElement | null>(null);
+const stileFumettoMobile = ref<Record<string, string> | undefined>(undefined);
 const chatRef = ref<{ interrompi?: () => void } | null>(null);
 const inFadeOut = ref(false);
 const clipPronte = ref<Record<string, boolean>>({ entry: true, idle: true });
@@ -743,13 +744,47 @@ watch(
   }
 );
 
+function aggiornaAltezzaFumettoMobile() {
+  if (props.variante !== 'mobile' || typeof window === 'undefined') {
+    stileFumettoMobile.value = undefined;
+    return;
+  }
+  const vv = window.visualViewport;
+  if (!vv) {
+    stileFumettoMobile.value = undefined;
+    return;
+  }
+  const tastiera = window.innerHeight - vv.height - vv.offsetTop;
+  if (tastiera > 72) {
+    const h = Math.max(140, Math.round(vv.height - 24));
+    stileFumettoMobile.value = { height: `${h}px`, maxHeight: `${h}px` };
+  } else {
+    stileFumettoMobile.value = undefined;
+  }
+}
+
+let rimuoviViewport: (() => void) | null = null;
+
 onMounted(() => {
   assicuratiPlayer();
   applicaFase(props.fase);
   void preparaStrumentiAccount();
+  if (typeof window !== 'undefined' && window.visualViewport) {
+    const vv = window.visualViewport;
+    const fn = () => aggiornaAltezzaFumettoMobile();
+    vv.addEventListener('resize', fn);
+    vv.addEventListener('scroll', fn);
+    rimuoviViewport = () => {
+      vv.removeEventListener('resize', fn);
+      vv.removeEventListener('scroll', fn);
+    };
+    aggiornaAltezzaFumettoMobile();
+  }
 });
 
 onUnmounted(() => {
+  rimuoviViewport?.();
+  rimuoviViewport = null;
   smontato = true;
   if (timerEntrata) window.clearTimeout(timerEntrata);
   if (timerUscita) window.clearTimeout(timerUscita);
@@ -822,6 +857,7 @@ const mostraFumetto = () =>
       <div
         v-show="mostraFumetto()"
         class="fumetto"
+        :style="stileFumettoMobile"
         role="region"
         :aria-labelledby="fase === 'esce' ? undefined : 'tony-etichetta'"
         :aria-label="fase === 'esce' ? t.ciao : undefined"

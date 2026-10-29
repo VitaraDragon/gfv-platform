@@ -134,8 +134,11 @@ describe('rigaPrezzi e giorni guida', () => {
     const testo = `${senzaIva.gratis} ${senzaIva.moduli}`;
     expect(testo).toContain(`${SUBSCRIPTION_PLANS.free.maxTerreni} terreni`);
     expect(testo).toContain(`${GIORNI_GUIDA_TONY} giorni`);
-    expect(testo).toContain(`${SUBSCRIPTION_PLANS.base.price} € al mese`);
-    expect(testo).toContain(`${monthlyToAnnual(SUBSCRIPTION_PLANS.base.price)} € l'anno`);
+    expect(testo).toContain(
+      `${monthlyToAnnual(SUBSCRIPTION_PLANS.base.price)} € l'anno`
+    );
+    expect(testo).toContain(`circa ${SUBSCRIPTION_PLANS.base.price} € al mese`);
+    expect(testo).not.toContain('disdici quando vuoi dall\'app');
     expect(testo.toLowerCase()).not.toContain('iva');
 
     const conIva = rigaPrezzi(
@@ -229,7 +232,7 @@ describe('Cosa gestisci — piani e limiti', () => {
       `fino a ${LIMITI_LANDING.maxAttivitaMeseFree} al mese`
     );
     expect(piani.gratis.find((v) => v.id === 'tony-guida')?.dettaglio).toBe(
-      `i primi ${LIMITI_LANDING.giorniGuidaTony} giorni, fino a ${LIMITI_LANDING.domandeGuidaGiorno} domande al giorno`
+      `nell'app: i primi ${LIMITI_LANDING.giorniGuidaTony} giorni, fino a ${LIMITI_LANDING.domandeGuidaGiorno} domande al giorno`
     );
     expect(piani.gratis.map((v) => v.nome).join(' ')).not.toMatch(/Utenti|Lavori e attività/);
   });
@@ -237,7 +240,7 @@ describe('Cosa gestisci — piani e limiti', () => {
   it('voci piano Base: illimitati / sempre con te e titolo con prezzo', () => {
     const piani = vociPianiCosaGestisci(LIMITI_LANDING);
     expect(piani.baseTitolo).toBe(
-      `Con il piano Base — ${LIMITI_LANDING.prezzoBaseMese} € al mese`
+      `Con il piano Base — ${LIMITI_LANDING.prezzoBaseMese * 12} € l'anno`
     );
     expect(piani.base.map((v) => v.nome)).toEqual([
       'Terreni illimitati',

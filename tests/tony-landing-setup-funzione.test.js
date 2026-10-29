@@ -360,15 +360,34 @@ describe('(1) Caso felice', () => {
     const grande = terreni.find((t) => t.data.nome === 'Campo grande');
     const meleto = terreni.find((t) => t.data.nome === 'Meleto');
     expect(Object.keys(grande.data).sort()).toEqual(
-      ['coltura', 'createdAt', 'nome', 'podere', 'superficie', 'tipoPossesso', 'updatedAt'].sort()
+      [
+        'coltura',
+        'colturaCategoria',
+        'createdAt',
+        'nome',
+        'podere',
+        'superficie',
+        'tipoPossesso',
+        'updatedAt'
+      ].sort()
     );
     expect(grande.data.superficie).toBe(2.34);
     expect(grande.data.coltura).toBe('Grano');
+    expect(grande.data.colturaCategoria).toBe('seminativo');
     expect(grande.data.podere).toBe('Casetti');
     expect(grande.data.tipoPossesso).toBe('proprieta');
     expect(Object.keys(meleto.data).sort()).toEqual(
-      ['coltura', 'createdAt', 'nome', 'superficie', 'tipoPossesso', 'updatedAt'].sort()
+      [
+        'coltura',
+        'colturaCategoria',
+        'createdAt',
+        'nome',
+        'superficie',
+        'tipoPossesso',
+        'updatedAt'
+      ].sort()
     );
+    expect(meleto.data.colturaCategoria).toBe('frutteto');
     expect(meleto.data.podere).toBeUndefined();
 
     const esito = db.docs.get('tenants/' + TENANT + '/tonyLandingSetup/esito');
