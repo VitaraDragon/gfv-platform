@@ -77,6 +77,9 @@ const ORIGINI_AMMESSE = Object.freeze([
   "http://127.0.0.1:4173"
 ]);
 
+/** Canali di anteprima di Firebase Hosting del sito gfv-platform (es. https://gfv-platform--prova-tony-ab12cd34.web.app). */
+const ORIGINE_ANTEPRIMA_HOSTING = /^https:\/\/gfv-platform--[a-z0-9-]+\.web\.app$/;
+
 /** Messaggi per il visitatore. // BOZZA: da far rivedere */
 const MESSAGGI = Object.freeze({
   // BOZZA: da far rivedere
@@ -128,7 +131,7 @@ const PROMPT_SISTEMA_PROVVISORIO =
  */
 function origineAmmessa(origin) {
   if (typeof origin !== "string") return false;
-  return ORIGINI_AMMESSE.indexOf(origin) !== -1;
+  return ORIGINI_AMMESSE.indexOf(origin) !== -1 || ORIGINE_ANTEPRIMA_HOSTING.test(origin);
 }
 
 /**

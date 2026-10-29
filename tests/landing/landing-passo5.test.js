@@ -94,6 +94,28 @@ describe('tonyBussaVisibile', () => {
   it('flag acceso: vero anche senza parametro e fuori dallo sviluppo', () => {
     expect(tonyBussaVisibile({ flag: true, dev: false, query: '' })).toBe(true);
   });
+
+  it('modo production senza parametro: Tony non bussa (flag spento)', () => {
+    const modo = 'production';
+    expect(
+      tonyBussaVisibile({
+        flag: TONY_BUSSA_ATTIVO || modo === 'anteprima',
+        dev: false,
+        query: '',
+      })
+    ).toBe(false);
+  });
+
+  it('modo anteprima senza parametro: Tony bussa anche con flag spento', () => {
+    const modo = 'anteprima';
+    expect(
+      tonyBussaVisibile({
+        flag: TONY_BUSSA_ATTIVO || modo === 'anteprima',
+        dev: modo === 'anteprima',
+        query: '',
+      })
+    ).toBe(true);
+  });
 });
 
 describe('varianteScena', () => {
