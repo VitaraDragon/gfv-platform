@@ -5,12 +5,11 @@ import {
   caselleLegali,
   eseguiRegistrazione,
   messaggioEsito,
-  urlDashboardDopoRegistrazione,
   validaModuloRegistrazione,
   URL_REGISTRAZIONE,
 } from '../lib/tony-registrazione.js';
 
-const emit = defineEmits(['chiudi-modulo', 'registrazione-completata']);
+const emit = defineEmits(['chiudi-modulo', 'registrazione-completata', 'invio-in-corso']);
 
 const t = testiLanding.tonyBussa.registrazione;
 const caselle = caselleLegali();
@@ -26,7 +25,6 @@ const successo = ref(false);
 const legaleRimandata = ref(false);
 const erroreGenerale = ref('');
 const errori = ref<Record<string, string>>({});
-const urlDashboard = ref('');
 
 const emailEl = ref<HTMLInputElement | null>(null);
 const passwordEl = ref<HTMLInputElement | null>(null);
@@ -68,6 +66,7 @@ async function onInvia() {
   }
 
   inInvio.value = true;
+  emit('invio-in-corso', true);
   const dati = {
     email: email.value,
     password: password.value,
@@ -91,15 +90,12 @@ async function onInvia() {
       const account = await import('../lib/firebase-landing-account.js');
       const fb = await account.strumentiRegistrazione();
       esito = await eseguiRegistrazione({ dati, fb });
-      if (esito.esito === 'ok' || esito.esito === 'ok-legale-rimandata') {
-        await account.esciDopoRegistrazione();
-      }
+      // Sessione resta aperta per la fase account (passo 14); esce TonyStage.
     }
 
     if (esito.esito === 'ok' || esito.esito === 'ok-legale-rimandata') {
       successo.value = true;
       legaleRimandata.value = esito.esito === 'ok-legale-rimandata';
-      urlDashboard.value = urlDashboardDopoRegistrazione(esito.email);
       emit('registrazione-completata');
       return;
     }
@@ -120,6 +116,7 @@ async function onInvia() {
     erroreGenerale.value = messaggioEsito(codice);
   } finally {
     inInvio.value = false;
+    emit('invio-in-corso', false);
   }
 }
 </script>
@@ -248,8 +245,6 @@ async function onInvia() {
     <template v-else>
       <p class="fatto" role="status">{{ t.fatto }}</p>
       <p v-if="legaleRimandata" class="nota">{{ t.legaleRimandata }}</p>
-      <p class="nota">{{ t.accesso }}</p>
-      <a class="btn-dashboard" :href="urlDashboard">{{ t.vaiDashboard }}</a>
     </template>
   </div>
 </template>

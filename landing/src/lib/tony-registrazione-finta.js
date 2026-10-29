@@ -115,6 +115,19 @@ export function costruisciFbFinto(scenario) {
   return fb;
 }
 
+/** Email dell'ultima registrazione finta (solo memoria). */
+let ultimaEmail = '';
+
+/**
+ * @returns {string | null}
+ */
+export function ultimaEmailFinta() {
+  return ultimaEmail || null;
+}
+
+/** Token di accesso finto per la fase account. */
+export const TOKEN_ACCESSO_FINTO = 'token-finto';
+
 /**
  * @param {{ scenario: string, dati: object, attendi?: Function }} opts
  */
@@ -128,7 +141,14 @@ export async function eseguiRegistrazioneFinta({ scenario, dati, attendi }) {
       ? (ms) => new Promise((r) => setTimeout(r, Math.max(ms, 3000)))
       : attendi || ((ms) => new Promise((r) => setTimeout(r, 0)));
 
-  return eseguiRegistrazione({ dati, fb, attendi: attendiEff });
+  const esito = await eseguiRegistrazione({ dati, fb, attendi: attendiEff });
+  if (
+    (esito.esito === 'ok' || esito.esito === 'ok-legale-rimandata') &&
+    typeof esito.email === 'string'
+  ) {
+    ultimaEmail = esito.email;
+  }
+  return esito;
 }
 
 export { creaAccountTitolare, annullaRegistrazioneParziale };

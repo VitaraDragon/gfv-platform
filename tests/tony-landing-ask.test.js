@@ -43,6 +43,10 @@ const testoAsk = fs.readFileSync(
   path.join(root, 'functions/tony-landing-ask.js'),
   'utf8'
 );
+const testoAccount = fs.readFileSync(
+  path.join(root, 'functions/lib/tony-landing-account.js'),
+  'utf8'
+);
 const testoRules = fs.readFileSync(path.join(root, 'firestore.rules'), 'utf8');
 const indexes = JSON.parse(
   fs.readFileSync(path.join(root, 'firestore.indexes.json'), 'utf8')
@@ -491,7 +495,7 @@ describe('testoDaPayloadGemini e rigaSse', () => {
 
 describe('Isolamento', () => {
   it('niente tenants/users e require ammessi', () => {
-    for (const t of [testoLimiti, testoAsk]) {
+    for (const t of [testoLimiti, testoAsk, testoAccount]) {
       expect(t).not.toMatch(/\btenants\b/);
       expect(t).not.toMatch(/\busers\b/);
       expect(t).not.toMatch(/tonyLandingSetup(?!Quota)/);

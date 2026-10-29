@@ -249,5 +249,65 @@ export const testiLanding = {
           'Qualcosa non è andato. Riprova tra poco oppure usa la registrazione classica.',
       },
     },
+    // BOZZA: da far rivedere — aiuto per l'account (passo 14)
+    aiuto: {
+      invito:
+        'Vuoi che ti aiuti a preparare l\'azienda? Ti faccio tre domande: sede legale, poderi e terreni. Puoi saltarne una con "Dopo".',
+      chipSi: 'Sì, iniziamo',
+      chipSaltaTutto: 'Salta tutto',
+      chipDopo: 'Dopo',
+      chipAvanti: 'Avanti',
+      chipRiepilogo: 'Vedi il riepilogo',
+      domandaSede:
+        "Dov'è la sede legale della tua azienda? Mi bastano via e comune.",
+      domandaPoderi: 'Hai uno o più poderi? Dimmi come li chiami.',
+      domandaTerreni:
+        'Ora i terreni: per ognuno dimmi nome, superficie e coltura, per esempio "Campo grande, 2,34 ha, grano" o "Meleto, 1,2 ha, mele". Con l\'account gratuito ne puoi inserire fino a 5.',
+      cinqueTerreni:
+        "Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.",
+      categoria: 'Che cosa ci coltivi? Grano, mais, orzo…',
+      schedaIntro:
+        'Ecco la tua azienda. Controlla e conferma: se qualcosa non va, correggilo qui.',
+      salva: 'Sì, salva',
+      salvando: 'Salvo…',
+      tornaChat: 'Torna alla chat',
+      etichettaSede: 'Sede legale',
+      etichettaVia: 'Via e numero',
+      etichettaComune: 'Comune',
+      etichettaCap: 'CAP',
+      etichettaProvincia: 'Provincia',
+      etichettaPoderi: 'Poderi',
+      etichettaTerreni: 'Terreni',
+      etichettaNome: 'Nome',
+      etichettaSuperficie: 'Superficie (ha)',
+      etichettaColtura: 'Coltura',
+      etichettaPodere: 'Podere',
+      nessuno: 'Nessuno',
+      fatto: "Fatto! Per 7 giorni ti guido anche dentro l'app.",
+      vaiDashboard: 'Vai alla tua dashboard',
+      // BOZZA: da rivedere con l'avvocato
+      informativa:
+        "Le risposte che dai a Tony passano da Google (Gemini) e, se usi la voce, da ElevenLabs: le elaborano per capirle e possono conservarle per breve tempo per motivi di sicurezza. Noi le salviamo nel tuo account solo quando confermi il riepilogo; se non confermi, non salviamo nulla. Puoi modificarle quando vuoi da Impostazioni. Non indicare dati di altre persone. Dettagli nell'Informativa privacy.",
+      informativaLink: 'Informativa privacy',
+      errori: {
+        nonCollegato: 'Prima crea il tuo account, poi salviamo i dati.',
+        appCheck:
+          'Non riesco a verificare il tuo browser. Ricarica la pagina e riprova.',
+        troppeChiamate:
+          'Hai provato troppe volte di seguito. Aspetta qualche minuto e riprova.',
+        datiNonValidi:
+          'Alcuni dati non vanno bene. Ho segnato le righe da correggere: sistemale e conferma di nuovo.',
+        nienteDaSalvare:
+          'Non c\'è niente da salvare. Puoi aggiungere i dati anche dopo, dalla dashboard.',
+        senzaAzienda:
+          'Non trovo l\'azienda collegata al tuo account. Esci, rientra e riprova.',
+        contatto: 'Se non funziona, scrivici a {email}.',
+        limiteTerreni:
+          "Con l'account gratuito arrivi a 5 terreni. Ne hai già {esistenti}: puoi aggiungerne ancora {rimasti}. Togli qualche riga dalla scheda, oppure aggiungi gli altri dopo passando al Base.",
+        giaPreparato:
+          'La tua azienda è già pronta. Trovi tutto nella dashboard, dove puoi anche modificare i dati.',
+        rete: 'Non sono riuscito a salvare e non è stato salvato niente. Riprova tra poco.',
+      },
+    },
   },
 };

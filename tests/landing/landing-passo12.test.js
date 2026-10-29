@@ -135,7 +135,7 @@ function fileDaWeb(web) {
   return path.join(ROOT, 'landing/public', web.replace(/^\//, ''));
 }
 
-/** Clip topic-registrazione del passo 13: ammesse fuori dai 54 del passo 12. */
+/** Clip topic registrazione (passo 13) e sede/poderi/terreni (passo 14): ammesse fuori dai 54. */
 const CLIP_TOPIC_REGISTRAZIONE_PASSO13 = new Set([
   'tony-topic-registrazione-2s5-desktop-576x720-alpha-v4.webm',
   'tony-topic-registrazione-2s5-mobile-432x540-alpha-v4.webm',
@@ -143,6 +143,24 @@ const CLIP_TOPIC_REGISTRAZIONE_PASSO13 = new Set([
   'tony-topic-registrazione-2s5-mobile-432x540-12fps-v4.webp',
   'tony-topic-registrazione-2s5-desktop-576x1440-stacked-alpha-v4.mp4',
   'tony-topic-registrazione-2s5-mobile-432x1080-stacked-alpha-v4.mp4',
+  'tony-topic-sede-desktop-576x720-alpha-v4.webm',
+  'tony-topic-sede-mobile-432x540-alpha-v4.webm',
+  'tony-topic-sede-desktop-576x720-12fps-v4.webp',
+  'tony-topic-sede-mobile-432x540-12fps-v4.webp',
+  'tony-topic-sede-desktop-576x1440-stacked-alpha-v4.mp4',
+  'tony-topic-sede-mobile-432x1080-stacked-alpha-v4.mp4',
+  'tony-topic-poderi-2s5-desktop-576x720-alpha-v4.webm',
+  'tony-topic-poderi-2s5-mobile-432x540-alpha-v4.webm',
+  'tony-topic-poderi-2s5-desktop-576x720-12fps-v4.webp',
+  'tony-topic-poderi-2s5-mobile-432x540-12fps-v4.webp',
+  'tony-topic-poderi-2s5-desktop-576x1440-stacked-alpha-v4.mp4',
+  'tony-topic-poderi-2s5-mobile-432x1080-stacked-alpha-v4.mp4',
+  'tony-topic-terreni-desktop-576x720-alpha-v4.webm',
+  'tony-topic-terreni-mobile-432x540-alpha-v4.webm',
+  'tony-topic-terreni-desktop-576x720-12fps-v4.webp',
+  'tony-topic-terreni-mobile-432x540-12fps-v4.webp',
+  'tony-topic-terreni-desktop-576x1440-stacked-alpha-v4.mp4',
+  'tony-topic-terreni-mobile-432x1080-stacked-alpha-v4.mp4',
 ]);
 
 describe('clip v4 nel repo', () => {

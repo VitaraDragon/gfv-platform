@@ -232,7 +232,7 @@ describe('TonyChat e clip', () => {
     expect(prossimoStato('idle', 'apriModulo')).toBe('modulo');
     expect(prossimoStato('modulo', 'chiudiModulo')).toBe('idle');
     expect(prossimoStato('modulo', 'saluta')).toBe('esce');
-    expect(scalettaClip('idle', 'modulo')).toEqual(['topicRegistrazione', 'idle']);
+    expect(scalettaClip('idle', 'modulo')).toEqual(['topicRegistrazione', 'scrive']);
     expect(scalettaClip('modulo', 'idle')).toEqual(['idle']);
     expect(DURATE_CLIP_MS.topicRegistrazione).toBe(2500);
   });

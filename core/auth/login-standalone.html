@@ -528,14 +528,18 @@
             showSuccess('✅ Password reimpostata con successo! Ora puoi fare login con la nuova password.');
         }
 
-        const { leggiEmailDaFrammento, frammentoDaPulire } = await import('../js/login-email-precompilata.js');
-        const emailDaLanding = leggiEmailDaFrammento(window.location.hash);
-        if (frammentoDaPulire(window.location.hash)) {
-            history.replaceState(null, '', window.location.pathname + window.location.search);
-        }
-        if (emailDaLanding && !emailInput.value) {
-            emailInput.value = emailDaLanding;
-            passwordInput.focus();
+        try {
+            const { leggiEmailDaFrammento, frammentoDaPulire } = await import('../js/login-email-precompilata.js');
+            const emailDaLanding = leggiEmailDaFrammento(window.location.hash);
+            if (frammentoDaPulire(window.location.hash)) {
+                history.replaceState(null, '', window.location.pathname + window.location.search);
+            }
+            if (emailDaLanding && !emailInput.value) {
+                emailInput.value = emailDaLanding;
+                passwordInput.focus();
+            }
+        } catch {
+            /* niente email precompilata: il login funziona come prima */
         }
 
         // Verifica se già autenticato

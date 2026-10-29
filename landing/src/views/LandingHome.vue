@@ -89,6 +89,7 @@ const pulsanteOrigine = ref<HTMLElement | null>(null);
 const boccaAperta = ref(false);
 const salutoFinito = ref(false);
 const registrazioneCompletata = ref(false);
+const invioInCorso = ref(false);
 const stageRef = ref<{ precaricaClip?: (nome: string) => Promise<void> } | null>(null);
 
 const stileScossone = computed(() => {
@@ -660,13 +661,15 @@ function chiudiTutto() {
   avvisoInChiusura.value = false;
   improntaAccesa.value = false;
   shakePx.value = 0;
+  registrazioneCompletata.value = false;
+  invioInCorso.value = false;
   rilasciaPreload();
   ripristinaFocus();
 }
 
 function saluta() {
   if (fase.value === 'esce') return;
-  if (fase.value === 'modulo' || registrazioneCompletata.value) return;
+  if (invioInCorso.value) return;
   const prima = fase.value;
   const dopo = prossimoStato(prima, 'saluta');
   pulisciTempo();
@@ -690,6 +693,7 @@ function saluta() {
     'ascolta',
     'pensa',
     'scrive',
+    'modulo',
   ];
   const conVoce = statiConVoce.indexOf(prima) >= 0 && audioAttivo.value;
   uscitaClipFinita = false;
@@ -700,7 +704,8 @@ function saluta() {
       prima === 'parla' ||
       prima === 'ascolta' ||
       prima === 'pensa' ||
-      prima === 'scrive') &&
+      prima === 'scrive' ||
+      prima === 'modulo') &&
     !riduciMovimento.value;
   fase.value = 'esce';
   if (conVoce) avviaCiao();
@@ -721,6 +726,10 @@ function onChiudiModulo() {
 
 function onRegistrazioneCompletata() {
   registrazioneCompletata.value = true;
+}
+
+function onInvioInCorso(valore: boolean) {
+  invioInCorso.value = !!valore;
 }
 
 function onEntrataFinita() {
@@ -953,12 +962,14 @@ function onEscGlobale(e: KeyboardEvent) {
   if (e.key !== 'Escape') return;
   if (avvisoAperto.value && !avvisoInChiusura.value) return;
   if (!stageAperto.value) return;
-  if (fase.value === 'modulo' || registrazioneCompletata.value) {
-    const target = e.target as HTMLElement | null;
-    if (target && target.closest && target.closest('.tony-reg')) {
-      // Esc nel modulo = Annulla (gestito da TonyRegistrazione)
-      return;
-    }
+  if (invioInCorso.value) return;
+  const target = e.target as HTMLElement | null;
+  if (
+    target &&
+    target.closest &&
+    (target.closest('.tony-reg') || target.closest('.tony-scheda'))
+  ) {
+    // Esc nel modulo/scheda = Annulla / Torna alla chat (gestito dai componenti)
     return;
   }
   e.preventDefault();
@@ -1306,6 +1317,7 @@ const iconeModuliImg: Record<string, string> = {
       @apri-modulo="onApriModulo"
       @chiudi-modulo="onChiudiModulo"
       @registrazione-completata="onRegistrazioneCompletata"
+      @invio-in-corso="onInvioInCorso"
     />
   </div>
 </template>
