@@ -18,7 +18,7 @@ Quando indichi **dove andare** in chat o in guida, usa sempre il linguaggio dell
 ### Ingresso moduli
 
 - Il **pulsante moduli in alto a sinistra** (graffetta / «Apri o chiudi i moduli») è il percorso **principale** verso Terreni, Diario, Statistiche, Abbonamento e ogni modulo attivo (Vigneto, Manodopera, Magazzino, Conto Terzi, Parco Macchine, Meteo, Report, …).
-- Con **Manodopera** attivo **non** cercare grandi tile sparse sotto la panoramica: Vigneto, Magazzino e gli altri verticali sono nel **pannello moduli**, nella **home Manodopera**, in **Per te oggi** o **Accessi rapidi**.
+- Con **Manodopera** attivo **non** cercare grandi tile sparse sotto la panoramica: Vigneto, Magazzino e gli altri verticali sono nel **pannello moduli**, nella **home Manodopera**, in **Per te oggi** o in **Azioni rapide** (Home).
 - **Senza Manodopera**, scorrendo **in fondo** alla dashboard possono comparire **riquadri** modulo (Vigneto, Magazzino, …): stessa voce del pannello, scorciatoia opzionale.
 - **Richiede attenzione** può aprire direttamente un modulo (es. prodotti sotto scorta → Magazzino; lavori da pianificare → Conto Terzi; scadenze/guasti → Parco Macchine).
 
@@ -58,9 +58,10 @@ Quando indichi **dove andare** in chat o in guida, usa sempre il linguaggio dell
 - **Terreni ↔ Vigneto/Frutteto:** anagrafiche coltura legate al terreno; icone grappolo/mela per anagrafica rapida.
 - **Lavori/Attività ↔ Vigneto/Frutteto:** trattamenti, concimazioni, potatura nascono da **lavoro** o **attività Diario** con categoria corretta; vendemmia/raccolta spesso dirette dal modulo coltura.
 - **Vigneto/Frutteto ↔ Magazzino:** prodotti, dosaggi, opzione scarico, movimenti uscita, **Tracciabilità consumi**.
-- **Conto terzi ↔ Lavori:** preventivo accettato → lavoro da pianificare → **Gestione lavori** (Manodopera) → ore e **Diario** filtrato conto terzi.
+- **Conto terzi ↔ Lavori:** preventivo accettato → lavoro da pianificare → **Gestione lavori** (Manodopera) → ore; elenco in corso/completati in **Gestione lavori** filtrata conto terzi (con Manodopera) o nel **Diario** filtrato (senza).
+- **Manodopera ↔ Diario:** con Manodopera il **Diario** è solo storico (nessuna attività nuova, niente modifica/elimina) e le giornate nuove vanno in **Gestione lavori**; senza Manodopera Gestione lavori è bloccata («Modulo Manodopera non attivo») e si usa il Diario.
 - **Parco Macchine ↔ Diario/Lavori:** trattore, attrezzo, ore macchina opzionali nel **Diario** (e flussi Manodopera se attivo).
-- **Core/Abbonamento ↔ Moduli:** i flussi esistono solo se i moduli necessari sono attivi (Pulsante moduli → **Abbonamento**).
+- **Core/Abbonamento ↔ Moduli:** i flussi esistono solo se i moduli necessari sono attivi (ingranaggio in alto a destra → **Abbonamento**).
 - **Report ↔ tutti i moduli:** aggrega dati operativi (ingresso dal pannello moduli se modulo Report attivo). Path tipici: `modules/report/views/report-dashboard-standalone.html`, `report-standalone.html`, `report-terreni-standalone.html`. Guide dedicate: `GUIDA/REPORT/`. Molte card hub sono ancora «in sviluppo»; Terreni e Vigneto MVP sono le aree operative.
 
 ---
@@ -74,16 +75,16 @@ Quando indichi **dove andare** in chat o in guida, usa sempre il linguaggio dell
 3. **Pianifica lavoro** dal preventivo accettato (o da **Lavori da pianificare** in home Conto Terzi / alert **Richiede attenzione**).
 4. Pulsante moduli → **Manodopera** → **Gestione lavori** (completare pianificazione, assegnazioni).
 5. Caposquadra/operaio: ore in **versione mobile** o flussi Manodopera; manager: **Validazione ore** dalla home Manodopera.
-6. **Diario attività**: filtri **Lavori in corso** / **completati** conto terzi dalla home Conto Terzi; consolidamento in statistiche.
+6. **Lavori in corso** / **completati** dalla home Conto Terzi: con Manodopera aprono **Gestione lavori** filtrata conto terzi; senza Manodopera il **Diario attività** filtrato; consolidamento in statistiche.
 
 Ruoli: manager/amministratore per preventivi e pianificazione; caposquadra/operaio per esecuzione.
 
 ### 2.2 Trattamento/concimazione → scarico magazzino → tracciabilità
 
-1. Creare prima **lavoro** (**Gestione lavori** / **Manodopera**) o **attività Diario** sul terreno con categoria **Trattamenti** / **Concimazione** / **Potatura**.
-2. Pulsante moduli → **Vigneto** o **Frutteto** → pagina registro (**Trattamenti**, **Concimazioni**, **Potatura**) → riga in elenco → **Azioni** → completare prodotti, superficie, dosaggi.
-3. Se modulo **Magazzino** attivo: spuntare **Registra scarico in magazzino** (se previsto) al salvataggio.
-4. Pulsante moduli → **Magazzino** → **Movimenti** (verifica uscita) e **Tracciabilità consumi** (filtri prodotto/terreno).
+1. Creare prima **lavoro** (**Gestione lavori** / **Manodopera**) o **attività Diario** sul terreno con categoria **Trattamenti** / **Concimazione** / **Potatura**. Su un lavoro di **trattamento** il manager può indicare la **Miscela prevista** (acqua, prodotti, dose/ha); con la **capacità botte** sull’attrezzo (**Parco Macchine**) l’app calcola botti piene e ultima botte, e operaio/caposquadra la leggono nella scheda **Lavoro** in campo.
+2. Pulsante moduli → **Vigneto**, **Frutteto** o **Seminativo** → pagina registro (**Trattamenti**, **Concimazioni**, **Potatura**) → riga in elenco → **Azioni** → completare prodotti, superficie, dosaggi. Sui trattamenti: **registro privato** — confermare avversità, dose e carenza della scheda pubblica (**Leggi scheda** / **Conferma**), acqua usata, avvisi non bloccanti al Salva, **Esporta CSV / XML**. GFV non invia nulla al SIAN.
+3. Se modulo **Magazzino** attivo: spuntare **Registra scarico in magazzino** (se previsto) al salvataggio. I fitofarmaci in **Anagrafica prodotti** hanno il pallino di lettura scheda (giallo / verde / rosso) e conservano le conferme per coltura.
+4. Pulsante moduli → **Magazzino** → **Movimenti** (verifica uscita) e **Tracciabilità consumi** (filtri prodotto/terreno). Cancellare un trattamento confermato non toglie i movimenti di magazzino.
 
 Ruoli: principalmente manager/amministratore.
 
@@ -167,7 +168,7 @@ Path tipici (standalone): hub `modules/vendemmia-meccanica/views/vm-home-standal
 
 ## 3. Ruoli nelle intersezioni
 
-- **Manager/Amministratore:** dashboard desktop, pannello moduli (pulsante in alto), hub moduli, **Amministrazione** (👑) dal pannello con Manodopera attivo.
+- **Manager/Amministratore:** dashboard desktop, pannello moduli (pulsante graffetta in alto a sinistra) e hub moduli. Impostazioni, **Abbonamento** e **Azienda** (se più aziende) stanno nell’ingranaggio in alto a destra. Con Manodopera, utenti/squadre/operai dalla **home Manodopera** (**Gestisci utenti** aperto a manager e amministratore).
 - **Caposquadra:** versione **mobile** per ore e squadra; passaggio eventuale a vista desktop per consultazioni.
 - **Operaio:** versione **mobile** semplificata; non vede l'intera panoramica manager.
 

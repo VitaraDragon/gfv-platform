@@ -16,12 +16,211 @@
   ],
   "rules": [
     {
+      "prefix": "core/config/manodopera-diario-gate.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA",
+        "CONTO_TERZI",
+        "SEMINATIVO",
+        "VENDEMMIA_MECCANICA",
+        "INTERSEZIONI"
+      ],
+      "label": "Gate Manodopera ↔ Diario (Diario storico, Gestione lavori solo con Manodopera)"
+    },
+    {
+      "prefix": "core/services/manodopera-migrazione-",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Migrazione dati Diario ↔ lavori all’on/off Manodopera"
+    },
+    {
+      "prefix": "core/js/lavoro-cascade-filters.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Cascata categoria → sottocategoria → tipo lavoro (Diario, Gestione lavori)"
+    },
+    {
+      "prefix": "core/js/attivita-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Diario attività (controller/eventi)"
+    },
+    {
+      "prefix": "core/attivita-standalone.html",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Diario attività"
+    },
+    {
+      "prefix": "core/admin/abbonamento",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Abbonamento, moduli e migrazione Manodopera"
+    },
+    {
+      "prefix": "core/services/tenant-service.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Tenant: moduli attivi"
+    },
+    {
+      "prefix": "core/auth/",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Accesso, registrazione e reset password"
+    },
+    {
+      "prefix": "core/js/tony/tony-lavoro-fatto-nav.js",
+      "modules": [
+        "TONY",
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Tony «ho fatto la vigna» → Diario o Gestione lavori"
+    },
+    {
       "prefix": "core/js/tony/tony-segna-ora",
       "modules": [
         "TONY",
         "MANODOPERA"
       ],
       "label": "Motore segna ore Tony (mobile + desktop)"
+    },
+    {
+      "prefix": "core/js/tony/tony-ora-lavoro-match",
+      "modules": [
+        "TONY",
+        "MANODOPERA"
+      ],
+      "label": "Tony: scelta del lavoro nominato quando segni le ore"
+    },
+    {
+      "prefix": "core/js/tony/tony-riepilogo-giorno",
+      "modules": [
+        "TONY",
+        "MANODOPERA"
+      ],
+      "label": "Tony: riepilogo ore del giorno aggiornato subito dopo salva/elimina"
+    },
+    {
+      "prefix": "core/js/tony/tony-ingresso-login",
+      "modules": [
+        "TONY",
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Ingresso dopo il login: workspace campo o dashboard, decisione unica"
+    },
+    {
+      "prefix": "core/js/tony/tony-attesa-riprova",
+      "modules": [
+        "TONY",
+        "MANODOPERA"
+      ],
+      "label": "Attese con limite e Riprova (caricamento lavori workspace campo)"
+    },
+    {
+      "prefix": "core/js/gfv-standalone-head-bootstrap.js",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Bootstrap head pagine standalone (build ?v= Tony)"
+    },
+    {
+      "prefix": "core/js/field-route-guard",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Profilo campo: indirizzi dell'ufficio aperti a mano tornano al workspace"
+    },
+    {
+      "prefix": "core/js/field-guasti-access",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Workspace campo: voce Segnala guasto per caposquadra e operaio; lavoro e mezzi predefiniti nella scheda guasti"
+    },
+    {
+      "prefix": "core/js/macchina-selezionabile",
+      "modules": [
+        "PARCO_MACCHINE",
+        "MANODOPERA"
+      ],
+      "label": "Segnalazione guasti: quali macchine si possono scegliere"
+    },
+    {
+      "prefix": "core/services/lavoro-ripresa-guasto",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Guasto risolto: il lavoro sospeso riparte (in corso o assegnato)"
+    },
+    {
+      "prefix": "core/services/esegui-con-limite",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Operazioni con tempo massimo (segnalazione guasto non resta bloccata)"
+    },
+    {
+      "prefix": "core/admin/segnalazione-guasti-standalone",
+      "modules": [
+        "PARCO_MACCHINE",
+        "MANODOPERA"
+      ],
+      "label": "Pagina Segnala guasto (campo e ufficio)"
+    },
+    {
+      "prefix": "core/js/tony/tony-invio-coda",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Tony: messaggi inviati prima che sia pronto restano in attesa"
+    },
+    {
+      "prefix": "core/js/gfv-standalone-shell.js",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Shell standalone (stesso build del loader Tony)"
+    },
+    {
+      "prefix": "core/js/gfv-tony-tenant-bootstrap.js",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Bootstrap tenant/piano per Tony"
+    },
+    {
+      "prefix": "core/js/standalone-bootstrap.js",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Bootstrap comune pagine standalone"
+    },
+    {
+      "prefix": "core/js/tony-widget-standalone.js",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Widget Tony standalone"
     },
     {
       "prefix": "core/js/tony/",
@@ -116,6 +315,43 @@
         "MANODOPERA"
       ],
       "label": "Gestione lavori manager"
+    },
+    {
+      "prefix": "core/admin/js/gestione-lavori-",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Gestione lavori manager (controller, eventi, utils: modale Crea/Modifica, macchine, ore in ore e minuti)"
+    },
+    {
+      "prefix": "core/services/lavori-service.js",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Servizio lavori (sospensione, ripresa, repair origine dopo ripresa)"
+    },
+    {
+      "prefix": "core/services/statistiche-superficie.js",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Statistiche manodopera: somma passaggi e terreni coperti"
+    },
+    {
+      "prefix": "core/js/field-suggerimento-lavoro.js",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Versione mobile: proposta rapida del lavoro sotto il menu"
+    },
+    {
+      "prefix": "core/mobile/js/field-ore-riquadro.js",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Versione mobile: riquadro «Le tue ore del giorno» (giorno salvato, caricamento)"
     },
     {
       "prefix": "core/admin/gestione-squadre",
@@ -365,6 +601,13 @@
       "label": "Landing / marketing"
     },
     {
+      "prefix": "firebase.json",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Hosting Firebase (landing, rewrite)"
+    },
+    {
       "prefix": "documentazione-utente/",
       "modules": [
         "CORE"
@@ -510,6 +753,13 @@
       "label": "Standby per assenza"
     },
     {
+      "prefix": "core/services/lavoro-sospensione",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Sospensione operativa (Sospendi / Rinvia) e ripresa"
+    },
+    {
       "prefix": "core/services/manodopera-sostituti-",
       "modules": [
         "MANODOPERA"
@@ -522,6 +772,27 @@
         "MANODOPERA"
       ],
       "label": "Assenze manodopera"
+    },
+    {
+      "prefix": "core/services/ore-operai-logic",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Ore operai: modifica, sovrapposizioni, correzione e storia dopo validazione"
+    },
+    {
+      "prefix": "core/services/manodopera-lavori-scope",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Lavori visibili/segnabili per ore (esclusi i sospesi; «attivo» = in corso) e finestra elenco operaio (assegnati/in corso/sospesi sempre)"
+    },
+    {
+      "prefix": "core/services/ore-service",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Servizio ore operai (salvataggio, validazione, rifiuto)"
     },
     {
       "prefix": "core/admin/js/gestione-lavori-assenze-ui.js",
@@ -675,6 +946,1106 @@
         "MAGAZZINO"
       ],
       "label": "Core pieno in campo"
+    },
+    {
+      "prefix": "core/services/ore-lavoro-selezionabile",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Ore selezionabili su lavoro chiuso (finestra 7 giorni)"
+    },
+    {
+      "prefix": "core/services/manodopera-ore-validazione-scope",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Coda validazione ore (chi valida cosa, testo coda vuota)"
+    },
+    {
+      "prefix": "core/services/field-ui-i18n",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Lingua workspace campo (it/ro/en)"
+    },
+    {
+      "prefix": "core/config/field-ui-i18n",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Stringhe i18n workspace campo"
+    },
+    {
+      "prefix": "core/mobile/js/field-ui-i18n-dom",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Applica lingua al DOM del workspace campo"
+    },
+    {
+      "prefix": "core/config/accettazione-legale-config",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Accettazione legale (flag, documenti e versioni)"
+    },
+    {
+      "prefix": "core/services/accettazione-legale",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Accettazione legale (regole pure)"
+    },
+    {
+      "prefix": "core/js/accettazione-legale-gate",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Accettazione legale (gate ri-accettazione al primo ingresso)"
+    },
+    {
+      "prefix": "functions/accettazione-legale",
+      "modules": [
+        "CORE"
+      ],
+      "label": "CF registraAccettazioniLegali"
+    },
+    {
+      "prefix": "functions/lib/accettazione-legale-core",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Core accettazione legale (validazione payload)"
+    },
+    {
+      "prefix": "shared/js/registro-trattamenti",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO",
+        "MAGAZZINO",
+        "MANODOPERA",
+        "INTERSEZIONI"
+      ],
+      "label": "Registro privato trattamenti: scheda pubblica, conferma riga, acqua, avvisi, export, miscela prevista (lavoro e campo)"
+    },
+    {
+      "prefix": "functions/registro-trattamenti",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO",
+        "MAGAZZINO"
+      ],
+      "label": "CF leggiSchedaRegistroTrattamento + lettura scheda in coda (onProdottoSchedaScritto, leggiSchedeRegistroInCoda)"
+    },
+    {
+      "prefix": "functions/lib/registro-trattamenti",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO",
+        "MAGAZZINO"
+      ],
+      "label": "Core lettura scheda fitofarmaci (open data, impieghi, avversità)"
+    },
+    {
+      "prefix": "core/config/registro-trattamenti-specie",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO"
+      ],
+      "label": "Specie GFV → coltura della scheda pubblica (vite da vino/tavola, frutteto, seminativo)"
+    },
+    {
+      "prefix": "core/mobile/js/field-menu-visibility",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Voci menu ⚙️ campo (niente Validazione ore / Segnala guasto, Cambia azienda)"
+    },
+    {
+      "prefix": "core/js/ui-pelle-state",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Barra moduli nascosta per profilo campo (nascondiShellPerProfiloCampo)"
+    },
+    {
+      "prefix": "tests/firestore-guasti-rules",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Regole guasti: chi segnala chiude (Risolto da me) o annulla solo finché in attesa; elimina solo il manager"
+    },
+    {
+      "prefix": "firestore.rules",
+      "modules": [
+        "CORE",
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Regole Firestore (permessi per ruolo su ore, lavori, guasti, zone lavorate; users/inviti/tenant billing #283/#285): rileggere la sezione toccata"
+    },
+    {
+      "prefix": "tests/gestione-lavori-required-nascosti",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Form lavoro: campi obbligatori nascosti non bloccano il salvataggio"
+    },
+    {
+      "prefix": "core/services/guasto-stati",
+      "modules": [
+        "PARCO_MACCHINE",
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Stati guasto: chiusi = risolto/annullato/riparato/chiuso; conteggi guasti aperti e badge (#221)"
+    },
+    {
+      "prefix": "core/services/guasto-ripristino",
+      "modules": [
+        "PARCO_MACCHINE",
+        "MANODOPERA"
+      ],
+      "label": "Guasto annullato o chiuso: il mezzo torna allo stato di prima (disponibile / in uso) (#221)"
+    },
+    {
+      "prefix": "core/services/guasto-storico",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Storico guasto e patch del segnalatore: Risolto da me / Annulla segnalazione (#221)"
+    },
+    {
+      "prefix": "core/admin/gestione-guasti-standalone",
+      "modules": [
+        "PARCO_MACCHINE",
+        "MANODOPERA"
+      ],
+      "label": "Gestione guasti legacy (solo target Tony gestione guasti admin, logica vecchia): non descritta nelle guide utente; il manager chiude con Segna risolto in Officina & Guasti"
+    },
+    {
+      "prefix": "core/admin/js/gestione-macchine-events",
+      "modules": [
+        "PARCO_MACCHINE"
+      ],
+      "label": "Gestione macchine: salvataggio scheda e storico guasti del mezzo"
+    },
+    {
+      "prefix": "core/js/dashboard-tony-briefing-text",
+      "modules": [
+        "CORE",
+        "TONY",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Briefing Tony dashboard: guasti aperti e scadenze mezzi"
+    },
+    {
+      "prefix": "tests/services/guasto-",
+      "modules": [
+        "PARCO_MACCHINE",
+        "MANODOPERA"
+      ],
+      "label": "Test stati, storico e ripristino mezzi dei guasti"
+    },
+    {
+      "prefix": "tests/firestore-macchine-guasti-rules",
+      "modules": [
+        "PARCO_MACCHINE",
+        "MANODOPERA"
+      ],
+      "label": "Regole macchine: chi segnala rimette in uso solo un mezzo fermo per guasto"
+    },
+    {
+      "prefix": "tests/firestore-lavori-ripresa-rules",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Regole lavori: ripresa dopo guasto (sospeso → assegnato) per caposquadra/operaio"
+    },
+    {
+      "prefix": "tests/e2e/sim/guasti-annulla",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "E2E simulatore: Annulla segnalazione / Risolto da me"
+    },
+    {
+      "prefix": "tests/e2e/sim/scenarios/guasti-annulla",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Scenario E2E: Annulla segnalazione / Risolto da me"
+    },
+    {
+      "prefix": "tests/field-documentation-guide-link",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Link Guida dal menu campo: guida del proprio ruolo (caposquadra / operaio)"
+    },
+    {
+      "prefix": "tests/services/manodopera-lavori-scope",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test lavori visibili/segnabili e finestra elenco operaio"
+    },
+    {
+      "prefix": "tests/services/lavoro-ripresa-guasto",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Test ripresa lavoro dopo guasto chiuso o annullato"
+    },
+    {
+      "prefix": "tests/config/field-ui-i18n",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test testi tradotti del campo (lingue versione mobile, scheda guasti)"
+    },
+    {
+      "prefix": "service-worker.js",
+      "modules": [
+        "CORE",
+        "TONY"
+      ],
+      "label": "Service worker PWA: cache per build, resta in attesa fino ad «Aggiorna» della barra nuova versione (GFV_SKIP_WAITING / GFV_GET_BUILD)"
+    },
+    {
+      "prefix": "core/js/app-update",
+      "modules": [
+        "CORE",
+        "MANODOPERA",
+        "TONY"
+      ],
+      "label": "Barra «C’è una nuova versione» con Aggiorna, dialogo dati non salvati, chat Tony conservata dopo il ricaricamento"
+    },
+    {
+      "prefix": "tests/app-update",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test barra nuova versione (quando compare, ricarica solo da Aggiorna)"
+    },
+    {
+      "prefix": "tests/e2e/sim/app-update",
+      "modules": [
+        "CORE",
+        "MANODOPERA",
+        "TONY"
+      ],
+      "label": "E2E barra nuova versione (Segna ore con dati non salvati, chat Tony dopo Aggiorna)"
+    },
+    {
+      "prefix": "tests/field-guasti-access",
+      "modules": [
+        "MANODOPERA",
+        "PARCO_MACCHINE"
+      ],
+      "label": "Test scheda guasti campo: accesso, lavoro e mezzi predefiniti"
+    },
+    {
+      "prefix": "tests/versioned-imports-consistency",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test coerenza ?v= degli import (di solito nessun testo guida)"
+    },
+    {
+      "prefix": "core/services/zone-lavorate-permessi",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Chi può segnare le zone lavorate (caposquadra del lavoro di squadra, operaio sul suo autonomo, sostituto, manager/admin) e messaggio «Su questo lavoro le zone le segna il caposquadra (o il manager).»"
+    },
+    {
+      "prefix": "core/services/zone-lavorate-area",
+      "modules": [
+        "MANODOPERA",
+        "CORE",
+        "VENDEMMIA_MECCANICA"
+      ],
+      "label": "Superficie lavorata = unione delle zone ritagliata sul terreno, mai oltre il 100% (polygon-clipping vendorizzato)"
+    },
+    {
+      "prefix": "core/js/lavoro-progresso-display",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Etichetta «✅ Completato (nessuna zona tracciata)» al posto del 100% forzato"
+    },
+    {
+      "prefix": "vendor/polygon-clipping",
+      "modules": [
+        "MANODOPERA",
+        "VENDEMMIA_MECCANICA"
+      ],
+      "label": "Libreria unione/ritaglio poligoni (zone lavorate, zone escluse VM): di solito nessun testo guida"
+    },
+    {
+      "prefix": "tests/services/zone-lavorate-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test permessi zone e unione superficie"
+    },
+    {
+      "prefix": "tests/firestore-zone-lavorate-rules",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test regole Firestore zoneLavorate (create/update per ruolo, sostituto)"
+    },
+    {
+      "prefix": "tests/e2e/sim/zone-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "E2E zone: operaio senza pulsante su lavoro di squadra, sostituto che vede le zone del titolare"
+    },
+    {
+      "prefix": "tests/e2e/sim/scenarios/zone-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Scenari E2E zone lavorate (permessi, sostituto)"
+    },
+    {
+      "prefix": "tests/fixtures/zone-lavorate/",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Fixture terreno/zone per test superficie unione"
+    },
+    {
+      "prefix": "tests/lavoro-progresso-display",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Test etichetta completato senza zone"
+    },
+    {
+      "prefix": "tests/gestione-lavori-statistiche-card",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test card Gestione lavori («-» in caricamento, * con «Dato parziale: N lavori non letti»)"
+    },
+    {
+      "prefix": "tests/vendor-polygon-clipping",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test libreria vendorizzata (di solito nessun testo guida)"
+    },
+    {
+      "prefix": "tests/moduli-identificatori-definiti",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test identificatori definiti nei moduli JS (di solito nessun testo guida)"
+    },
+    {
+      "prefix": "tests/published-no-node-modules",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test: le pagine pubblicate non caricano da node_modules (di solito nessun testo guida)"
+    },
+    {
+      "prefix": "tests/e2e/sim/helpers/",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Helper E2E simulatore (fake Google Maps, metadati scenari): di solito nessun testo guida"
+    },
+    {
+      "prefix": "scripts/sim-e2e-run",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Runner E2E simulatore: di solito nessun testo guida"
+    },
+    {
+      "prefix": "sw-strategy.js",
+      "modules": [
+        "CORE",
+        "TONY"
+      ],
+      "label": "Strategie del service worker (cache prima per file versionati, HTML rete prima 3 s, .md fuori dal SW, cache della build precedente): di solito solo guida tecnica"
+    },
+    {
+      "prefix": "tests/sw-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test service worker (strategie, navigazioni senza annullo): di solito nessun testo guida"
+    },
+    {
+      "prefix": "core/services/assenze-banner-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Banner «assenze da gestire» (Gestione lavori e Impegni giornalieri) dai lavori in standby"
+    },
+    {
+      "prefix": "core/js/impegni-assenze-banner",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Banner «Assenze da gestire» in Impegni giornalieri (un Scegli sostituto per lavoro in standby)"
+    },
+    {
+      "prefix": "core/services/assenza-lavori-giorno",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Lavori del giorno collegati a un'assenza (candidati standby, autonomo preselezionato)"
+    },
+    {
+      "prefix": "core/js/manodopera-roster-edit-ui",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Modale «Scegli manualmente» (roster del giorno) da Impegni giornalieri e Gestione lavori"
+    },
+    {
+      "prefix": "core/js/dashboard-avvio-letture",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Dashboard: letture di avvio utente/tenant in parallelo (di solito nessun testo guida)"
+    },
+    {
+      "prefix": "core/js/dashboard-letture-condivise",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Dashboard: terreni e macchine letti una volta (di solito nessun testo guida)"
+    },
+    {
+      "prefix": "tests/dashboard-manager-letture",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test letture dashboard manager: di solito nessun testo guida"
+    },
+    {
+      "prefix": "tests/dashboard-meteo",
+      "modules": [
+        "CORE",
+        "METEO"
+      ],
+      "label": "Test card meteo della dashboard"
+    },
+    {
+      "prefix": "tests/dashboard-tony-briefing",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Test briefing Tony in dashboard (attesa senza timeout falso)"
+    },
+    {
+      "prefix": "tests/gestione-lavori-assenza-scelta-lavori",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test scelta dei lavori da mettere in standby alla conferma assenza"
+    },
+    {
+      "prefix": "tests/gestione-lavori-scegli-manualmente",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test modale «Scegli manualmente»"
+    },
+    {
+      "prefix": "tests/gestione-lavori-stato-progresso-ritardo",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test ritardo/tempo/anticipo (oggi non conta come consumato)"
+    },
+    {
+      "prefix": "tests/gestione-lavori-terreno-cliente-lookup",
+      "modules": [
+        "MANODOPERA",
+        "CONTO_TERZI"
+      ],
+      "label": "Test lookup terreni aziendali/clienti in Gestione lavori"
+    },
+    {
+      "prefix": "tests/impegni-assenze-banner",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test banner assenze di Impegni giornalieri"
+    },
+    {
+      "prefix": "tests/services/assenza-lavori-giorno",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test lavori del giorno per un'assenza"
+    },
+    {
+      "prefix": "tests/services/assenze-banner",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test banner assenze da gestire"
+    },
+    {
+      "prefix": "tests/services/field-ui-i18n",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test catalogo lingue della versione mobile"
+    },
+    {
+      "prefix": "tests/services/lavori-service-",
+      "modules": [
+        "MANODOPERA",
+        "CORE"
+      ],
+      "label": "Test lavori-service (es. throwOnError)"
+    },
+    {
+      "prefix": "tests/services/sostituti-",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test shortlist sostituti (impegno per giorno, esclusi i previsti)"
+    },
+    {
+      "prefix": ".github/workflows/simulator-ci",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Workflow CI del simulatore: di solito nessun testo guida"
+    },
+    {
+      "prefix": "core/js/dashboard-briefing-helpers.js",
+      "modules": [
+        "CORE",
+        "TONY",
+        "METEO"
+      ],
+      "label": "Briefing Tony in dashboard: saluto per fascia oraria e meteo atteso max 4 s (5c5defc)"
+    },
+    {
+      "prefix": "core/js/nome-visualizzato.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Nome in intestazione dashboard e contesto Tony: nome+cognome → azienda → email (8899ca5)"
+    },
+    {
+      "prefix": "core/js/nome-titolare-helpers.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Nome/cognome titolare facoltativi (flag spento), displayName, nome da invito se vuoto (8899ca5)"
+    },
+    {
+      "prefix": "core/config/nome-titolare-config.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Flag NOME_TITOLARE_FACOLTATIVO_ATTIVO (spento: solo guida tecnica)"
+    },
+    {
+      "prefix": "core/js/terreni-categorie-colture.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Form terreno: categorie coltura senza doppioni e messaggio errore caricamento (#277)"
+    },
+    {
+      "prefix": "core/styles/tony-widget.css",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Stile widget Tony (grassetto in chat #275)"
+    },
+    {
+      "prefix": "simulator/",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Simulatore dati (orchestrator, fasi, template): di solito nessun testo guida"
+    },
+    {
+      "prefix": "functions/accetta-invito.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "CF accettaInvito: membership e stato invito solo lato server (#283)"
+    },
+    {
+      "prefix": "core/services/invito-service-standalone.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Inviti client: getInvitoPubblico + accettaInvito, errori «Appartieni già a questa azienda» (#283)"
+    },
+    {
+      "prefix": "core/services/role-service.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Ruoli: scritture client disabilitate (#283)"
+    },
+    {
+      "prefix": "core/services/auth-service.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Auth client (registrazione/membership, #283)"
+    },
+    {
+      "prefix": "core/admin/fix-utente-mancante.html",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Strumento fix utente disabilitato (#283)"
+    },
+    {
+      "prefix": "core/js/accettazione-legale-registrazione",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Accettazione legale dopo account: niente rollback, «Conferma le condizioni al primo accesso» (#281, flag spento)"
+    },
+    {
+      "prefix": "core/js/catalogo-dedupe.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA",
+        "FRUTTETO",
+        "SEMINATIVO",
+        "CONTO_TERZI"
+      ],
+      "label": "Unione voci catalogo omonime: categorie, colture, tipi lavoro (#279)"
+    },
+    {
+      "prefix": "core/services/catalogo-seed.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Seed catalogo idempotente (id seed_*, lock, writeBatch voci mancanti) (#279/#287)"
+    },
+    {
+      "prefix": "core/services/categorie-service.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Categorie lavori/colture: seed e lettura (#279/#287)"
+    },
+    {
+      "prefix": "core/services/colture-service.js",
+      "modules": [
+        "CORE",
+        "VIGNETO",
+        "FRUTTETO",
+        "SEMINATIVO"
+      ],
+      "label": "Colture: seed predefinite e lettura (#279/#287)"
+    },
+    {
+      "prefix": "core/services/tipi-lavoro-service.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Tipi lavoro: seed predefiniti e lettura (#279/#287)"
+    },
+    {
+      "prefix": "core/services/liste-service.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Liste personalizzate (tipi lavoro/colture)"
+    },
+    {
+      "prefix": "core/js/terreni-controller.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Terreni: caricamento categorie/colture unite (#279/#287)"
+    },
+    {
+      "prefix": "core/js/terreni-events.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Terreni: eventi form (coltura→categoria canonica, #279)"
+    },
+    {
+      "prefix": "core/utils/module-access-resolver.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA",
+        "TONY"
+      ],
+      "label": "Moduli effettivi (pagati + prove), prova solo con Base (#289)"
+    },
+    {
+      "prefix": "core/config/subscription-plans.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Piani Free/Base, resolveTenantPlanId (#289)"
+    },
+    {
+      "prefix": "tests/accetta-invito",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Test CF accettaInvito: di solito nessun testo guida"
+    },
+    {
+      "prefix": "tests/accettazione-legale-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test accettazione legale: di solito nessun testo guida"
+    },
+    {
+      "prefix": "tests/catalogo-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test catalogo dedupe/seed: di solito nessun testo guida"
+    },
+    {
+      "prefix": "tests/firestore-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test regole Firestore: di solito nessun testo guida"
+    },
+    {
+      "prefix": "tests/module-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test moduli/prove: di solito nessun testo guida"
+    },
+    {
+      "prefix": "tests/fixtures/module-trial",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Fixture prove moduli: nessun testo guida"
+    },
+    {
+      "prefix": "tests/users-membership-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test membership client: nessun testo guida"
+    },
+    {
+      "prefix": "tests/invito-",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Test inviti client: nessun testo guida"
+    },
+    {
+      "prefix": "tests/services/invito-pubblico",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Test CF getInvitoPubblico: nessun testo guida"
+    },
+    {
+      "prefix": "tests/nome-titolare-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test nome titolare: nessun testo guida"
+    },
+    {
+      "prefix": "tests/e2e/sim/manodopera-migrazione",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "E2E migrazione Manodopera: di solito nessun testo guida"
+    },
+    {
+      "prefix": "functions/gestisci-membership.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "CF elencaUtentiTenant / gestisciMembershipUtente: elenco utenti, ruoli, Disattiva/Riattiva/Rimuovi in Gestisci utenti (#291)"
+    },
+    {
+      "prefix": "functions/lib/tenant-membership-access.js",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Membership autorevole lato server (belongsToTenant, rolesForTenant, isManagerOrAdmin) (#291)"
+    },
+    {
+      "prefix": "functions/meteo-service.js",
+      "modules": [
+        "METEO"
+      ],
+      "label": "CF meteo: verifica appartenenza azienda"
+    },
+    {
+      "prefix": "functions/tony-gemini-api.js",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Tony: chiamata modello, generationConfig, risposta interrotta (MAX_TOKENS) (#295)"
+    },
+    {
+      "prefix": "functions/tony-json-text.js",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Tony: estrazione tollerante del testo, mai JSON grezzo in chat (#297)"
+    },
+    {
+      "prefix": "functions/tony-perf.js",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Tony: metriche risposta (finishReason, token): nessun testo guida"
+    },
+    {
+      "prefix": "storage.rules",
+      "modules": [
+        "CORE",
+        "TONY"
+      ],
+      "label": "Storage: logo azienda solo manager/admin, documenti Tony; membership autorevole (#291)"
+    },
+    {
+      "prefix": "scripts/audit-membership-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Script audit membership/ruoli: nessun testo guida"
+    },
+    {
+      "prefix": "tests/gestisci-membership-functions",
+      "modules": [
+        "CORE",
+        "MANODOPERA"
+      ],
+      "label": "Test CF membership: nessun testo guida"
+    },
+    {
+      "prefix": "tests/gestisci-utenti-manager-static",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test Gestisci utenti per manager: nessun testo guida"
+    },
+    {
+      "prefix": "tests/lib/tenant-membership-access",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test membership server: nessun testo guida"
+    },
+    {
+      "prefix": "tests/tenant-membership-client",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test resolver tenant client: nessun testo guida"
+    },
+    {
+      "prefix": "tests/storage-membership-rules",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test storage rules: nessun testo guida"
+    },
+    {
+      "prefix": "tests/firestore-membership-autorevole-rules",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test rules membership autorevole: nessun testo guida"
+    },
+    {
+      "prefix": "tests/email-invite-existing-user",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "Test invito a utente già registrato: nessun testo guida"
+    },
+    {
+      "prefix": "tests/tony-generation-config",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Test generationConfig Tony: nessun testo guida"
+    },
+    {
+      "prefix": "tests/tony-json-text",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Test estrazione testo Tony: nessun testo guida"
+    },
+    {
+      "prefix": "tests/tony-resolve-visible-text",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Test testo visibile chat Tony: nessun testo guida"
+    },
+    {
+      "prefix": "tests/e2e/sim/scenarios/gestisci-utenti",
+      "modules": [
+        "MANODOPERA"
+      ],
+      "label": "E2E Gestisci utenti: nessun testo guida"
+    },
+    {
+      "prefix": "tests/landing/",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test landing (dietro flag): nessun testo guida"
+    },
+    {
+      "prefix": "functions/tony-activity-patterns.js",
+      "modules": [
+        "TONY",
+        "MANODOPERA"
+      ],
+      "label": "Tony: frasi attività/ore, manager con Manodopera (risposta informativa segna ore)"
+    },
+    {
+      "prefix": "functions/tony-quick-replies.js",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Tony: risposte rapide e intent (segna ore, creazione operativa)"
+    },
+    {
+      "prefix": "functions/tony-landing-setup.js",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Landing: tonyLandingSetup (dietro flag, nessun deploy; solo tecnica)"
+    },
+    {
+      "prefix": "functions/lib/tony-landing-setup-core.js",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Landing: controlli puri tonyLandingSetup (solo tecnica)"
+    },
+    {
+      "prefix": "functions/config/colture-predefinite.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Elenco colture predefinite generato (functions)"
+    },
+    {
+      "prefix": "functions/scripts/generate-colture-predefinite.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Generatore elenco colture predefinite (functions)"
+    },
+    {
+      "prefix": "functions/instrument.js",
+      "modules": [
+        "INTERSEZIONI"
+      ],
+      "label": "Sentry functions e filtro dati (nessun impatto utente)"
+    },
+    {
+      "prefix": "functions/scripts/test-sentry-scrub.cjs",
+      "modules": [
+        "INTERSEZIONI"
+      ],
+      "label": "Test filtro Sentry functions"
+    },
+    {
+      "prefix": "core/services/registrazione-titolare-core.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Creazione account titolare condivisa (registrazione e landing)"
+    },
+    {
+      "prefix": "core/js/login-email-precompilata.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Login con email precompilata dal frammento #email"
+    },
+    {
+      "prefix": "firestore.indexes.json",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Indici Firestore (tecnico, nessun impatto utente diretto)"
+    },
+    {
+      "prefix": "functions/tony-landing-",
+      "modules": [
+        "INTERSEZIONI"
+      ],
+      "label": "Tony della landing: CF pubbliche chat e voce (non app)"
+    },
+    {
+      "prefix": "functions/lib/tony-landing-",
+      "modules": [
+        "INTERSEZIONI"
+      ],
+      "label": "Tony della landing: limiti, prompt, voce (non app)"
+    },
+    {
+      "prefix": "functions/config/tony-landing-kb",
+      "modules": [
+        "INTERSEZIONI"
+      ],
+      "label": "Tony della landing: base di conoscenza generata (non app)"
+    },
+    {
+      "prefix": "functions/scripts/generate-tony-landing-kb.js",
+      "modules": [
+        "INTERSEZIONI"
+      ],
+      "label": "Generatore base di conoscenza Tony landing"
     }
   ]
 }

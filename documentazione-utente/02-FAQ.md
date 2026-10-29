@@ -167,17 +167,18 @@ Alcuni report hanno pulsante **Esporta Excel** (es. Compensi Operai).
 4. Salva
 
 ### Come segnalo un guasto?
-1. Vai su **Segnalazione Guasti** (Operaio)
-2. Seleziona trattore/attrezzo
-3. Indica gravità (grave/non grave)
+1. Nella versione mobile apri la scheda **⚠️ Segnala un problema** (Operaio e Caposquadra; non è nel menu ingranaggio)
+2. Controlla trattore/attrezzo (proposti dal tuo lavoro più recente) e scegli il **componente** con il guasto
+3. Indica gravità (**Non grave** / **Grave**)
 4. Aggiungi dettagli
-5. Invia
+5. Tocca **🚨 Segnala**
 
 ### Cosa succede dopo la segnalazione?
-Il manager riceve la notifica e può:
-- Approvare continuazione lavoro (se non grave)
-- Sospendere lavoro
-- Risolvere guasto
+Il mezzo passa in stato di guasto. Con **Grave** e un lavoro collegato, il lavoro viene sospeso se segnala il manager, il caposquadra di quel lavoro di squadra o l’operaio sul proprio lavoro autonomo. Se segnala un operaio su un lavoro di squadra, o un caposquadra su un lavoro tutto suo, il mezzo va in guasto e il lavoro non cambia: si legge «Segnalazione inviata. Il lavoro lo sospende il caposquadra o il manager.» e il responsabile vede il guasto nell’elenco **Officina & Guasti**.
+Non parte nessun avviso o notifica, nemmeno per un guasto **Grave**. Il manager vede il guasto nel contatore dei guasti aperti (**Richiede attenzione** in dashboard) e in **Parco Macchine** → **Officina & Guasti** e lo chiude con **Segna risolto** quando il problema è sistemato. Finché il guasto è in attesa, chi l’ha segnalato può chiuderlo con **Risolto da me** (il guasto si chiude subito; le note si vedono nello storico guasti della scheda del mezzo) o ritirarlo con **Annulla segnalazione**.
+
+### Ho annullato una segnalazione per errore
+Un guasto annullato non si riapre: fai una nuova segnalazione.
 
 ## 💰 Compensi
 

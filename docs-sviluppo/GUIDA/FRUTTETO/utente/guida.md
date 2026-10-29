@@ -1,6 +1,6 @@
 # Guida modulo Frutteto
 
-Questa guida è per chi ha **attivato il modulo Frutteto** sull’azienda. Senza quel modulo non troverete **Frutteto** nel menu **Moduli** né queste pagine.
+Questa guida è per chi ha **attivato il modulo Frutteto** sull’azienda. Senza quel modulo non troverete **Frutteto** nel pulsante moduli (graffetta in alto a sinistra) né queste pagine.
 
 Verificate **Abbonamento** o chiedete all’amministratore se il modulo non compare.
 
@@ -8,7 +8,7 @@ Verificate **Abbonamento** o chiedete all’amministratore se il modulo non comp
 
 ## Percorso consigliato
 
-1. **Moduli** → **Frutteto** → **Dashboard Frutteto** (numeri, filtri, azioni rapide, raccolte e lavori). **[Impara qui](#da-dove-si-entra)**
+1. **Pulsante moduli** (graffetta in alto a sinistra) → **Frutteto** → **Dashboard Frutteto** (numeri, filtri, azioni rapide, raccolte e lavori). **[Impara qui](#da-dove-si-entra)**
 2. **Anagrafica frutteti** come base: terreno, specie, impianto, **stato impianto**. **[Impara qui](#mini-guida-anagrafica-frutteti)**
 3. Registri di campo: **trattamenti**, **concimazioni**, **potatura**, **raccolta frutta** — per i primi tre, le righe in elenco **ci sono solo dopo** un **lavoro** (Gestione lavori) o un’**attività Diario** sul terreno con la **categoria** corretta; poi si completano i dettagli nel modulo. **[Impara qui](#mini-guida-registri-di-campo)**
 4. **Statistiche**; **Pianifica nuovo impianto** e **Calcolo materiali** (strumenti condivisi con il modulo Vigneto, già impostati per il frutteto). **[Impara qui](#statistiche-pianificazione-e-calcolo-materiali)**
@@ -38,8 +38,8 @@ Verificate **Abbonamento** o chiedete all’amministratore se il modulo non comp
 
 ## Da dove si entra
 
-1. Dalla **dashboard principale** aprite **Moduli** e toccate **Frutteto**. Se avete configurato **I miei accessi**, può esserci anche una scorciatoia lì.
-2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard potete trovare un **riquadro** **Frutteto**: è un’extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** in **Moduli** o nelle scorciatoie: è normale non vedere il riquadro.
+1. Dalla **dashboard principale** aprite il pulsante moduli (graffetta in alto a sinistra) e toccate **Frutteto**. Se avete configurato **I miei accessi**, può esserci anche una scorciatoia lì.
+2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard potete trovare un **riquadro** **Frutteto**: è un’extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** nel **pulsante moduli** o nelle scorciatoie: è normale non vedere il riquadro.
 3. Arrivate alla **Dashboard Frutteto**: titolo e colori arancio, **filtri** in alto (frutteto e anno), **Panoramica** con numeri (produzione kg, resa, spese, numero frutteti, raccolte anno), **Azioni rapide** verso tutte le pagine del modulo.
 4. In basso due blocchi: **Raccolte recenti** (tabella) e **Lavori frutteto** (tabella) — significato distinto, vedi **[sotto](#raccolte-recenti-e-lavori-frutteto-in-dashboard)**. Il pulsante **← Dashboard Principale** riporta alla home generale. Dalle pagine del modulo **← Dashboard** riporta all’hub Frutteto.
 
@@ -47,7 +47,7 @@ Verificate **Abbonamento** o chiedete all’amministratore se il modulo non comp
 
 ## Da Terreni: icona mela
 
-Se avete la pagina **Terreni** e il modulo **Frutteto** è attivo, sulla riga del terreno compare spesso il pulsante **mela**: apre l’**Anagrafica frutteti** con quel **terreno già prescelto**, per vedere o creare gli impianti legati al campo. Per la **Dashboard Frutteto** (riepilogo arancio con le statistiche) usate **Moduli** → **Frutteto** oppure il link **Dashboard** / **← Dashboard** dalla sezione modulo.
+Se avete la pagina **Terreni** e il modulo **Frutteto** è attivo, sulla riga del terreno compare spesso il pulsante **mela**: apre l’**Anagrafica frutteti** con quel **terreno già prescelto**, per vedere o creare gli impianti legati al campo. Per la **Dashboard Frutteto** (riepilogo arancio con le statistiche) usate il **pulsante moduli** → **Frutteto** oppure il link **Dashboard** / **← Dashboard** dalla sezione modulo.
 
 L’icona **grappolo** resta legata al modulo **Vigneto** (vedi guida Vigneto).
 
@@ -118,10 +118,27 @@ Le pagine **Trattamenti**, **Concimazioni** e **Potatura** servono a **completar
 5. **Prodotti:** **Aggiungi prodotto** per ogni riga; compilate **dosaggio per ettaro**, **unità**, **quantità** e **costo**. In basso il **totale costo prodotti**. Se i dosaggi risultano **anomali** rispetto ai controlli dell’app, al **Salva** può comparire un avviso con **conferma** esplicita prima di registrare.
 6. **Operatore:** campo obbligatorio (nome).
 7. **Costo manodopera** e **Costo macchina:** facoltativi se non già coperti dal lavoro.
-8. **Giorni di carenza:** spesso precompilati col massimo ricavabile dai prodotti; controllate sempre con le **etichette** e la normativa.
+8. **Giorni di carenza** e **Acqua usata:** vedi **Registro privato dei trattamenti** qui sotto; controllate sempre con le **etichette** e la normativa.
 9. **Note**, **Copertura del terreno** (tutto / parziale / non specificato) e, se serve, **Questo intervento prosegue un trattamento non completato** con scelta del **trattamento precedente** nello stesso frutteto (tracciabilità e magazzino).
 10. **Magazzino:** se il modulo è attivo (abbonamento **o** prova) e i prodotti sono collegati all’anagrafica, può comparire la spunta **Registra scarico in magazzino**: deselezionatela se non volete movimentare le giacenze.
 11. **Salva** per registrare; **Annulla** chiude senza salvare.
+
+### Registro privato dei trattamenti
+
+In cima alla pagina **Trattamenti** leggete che è un **registro privato di compilazione**: i trattamenti arrivano da lavori o attività di categoria **Trattamenti**, e qui confermate prodotto, dose, avversità e carenza della scheda pubblica del Ministero della Salute. GFV non invia nulla al SIAN né al fascicolo.
+
+1. **Scheda del prodotto.** Sotto ogni riga prodotto leggete **Scheda non confermata** oppure **Confermato:** con l’avversità scelta.  
+   - Se scegliete un fitofarmaco dell’anagrafica **Magazzino** con la scheda già letta, compare l’elenco degli impieghi per la coltura del campo (avversità, epoca, dose, carenza): toccate **Conferma** sulla riga giusta. Se l’etichetta ha più finestre, scegliete quella della data di questo lavoro.  
+   - Altrimenti toccate **Leggi scheda**: l’app legge la scheda pubblica («Leggo la scheda pubblica…») e propone le righe da confermare con **Conferma**. Se il prodotto ha già una conferma per quella coltura, la vedete in cima («Conferma già data per…»).  
+   - Dopo la conferma leggete «Conferma registrata per … Si può salvare il trattamento.» La conferma resta anche sul prodotto in anagrafica, per la volta dopo.  
+   - L’app non inventa nulla: se la scheda non si legge, se il prodotto non è negli open data o se la coltura del campo non è sulla scheda, ve lo scrive e non propone avversità, dose né carenza. Una scheda letta più di sei mesi fa viene aggiornata prima di proporre la dose.  
+   - Per il frutteto la coltura della scheda è la **specie** del frutteto (il kiwi sulla scheda è l’actinidia). Con specie **Altro** l’app non propone nulla.
+2. **Giorni di carenza:** si compilano dalla riga confermata; se manca, dall’anagrafica del prodotto. Controllate sempre l’etichetta.  
+3. **Acqua usata:** scrivete **Acqua usata (hl/ha)** oppure **Acqua usata (hl totali)**; l’altro valore si calcola dalla superficie trattata.  
+4. **Avvisi al Salva:** dosaggio sopra o sotto il consigliato, prodotto già al numero massimo di impieghi nell’anno su quel frutteto, ultimo passaggio troppo vicino, oppure scheda non confermata (il controllo non si può fare). Sono avvisi, non blocchi: **OK** salva comunque, **Annulla** vi lascia correggere. Un trattamento di ieri non ancora registrato non entra nel controllo.  
+5. **Esporta CSV** / **Esporta XML** in cima alla pagina scaricano il registro dei trattamenti in elenco, con i dati dell’azienda. Il file resta a voi: GFV non lo invia al SIAN.  
+6. **Eliminare** un trattamento: il lavoro o l’attività resta e la riga torna «da completare». Se il trattamento è confermato e non ha ancora tre anni, l’app vi chiede di esportare prima il registro e di confermare di averlo già fatto. I movimenti di magazzino collegati restano.  
+7. **Miscela prevista:** se l’ufficio l’ha indicata sul lavoro in **Gestione lavori**, la squadra la vede in campo prima di uscire; qui registrate quello che è stato usato davvero.
 
 ### Concimazioni: passo per passo
 
@@ -201,7 +218,7 @@ Aprite **Statistiche e Grafici** dalla dashboard: impostate i **filtri** in pagi
 
 ## Se qualcosa non compare
 
-- **Modulo non attivo** sull’abbonamento → niente voce **Frutteto** in **Moduli** (né riquadro in fondo pagina).
+- **Modulo non attivo** sull’abbonamento → niente voce **Frutteto** nel **pulsante moduli** (né riquadro in fondo pagina).
 - **Lista vuota** → create **terreni** e **frutteti** in anagrafica.
 - **Trattamenti / Concimazioni / Potatura: elenco vuoto** → è normale se non avete ancora creato un **lavoro** (Gestione lavori) o un’**attività Diario** sul terreno del frutteto con categoria **Trattamenti**, **Concimazione** o **Potatura**; verificate anche **anno** e **frutteto** nei filtri della pagina.
 - **Strumenti pianificazione** non si aprono → verificate che il percorso dal modulo sia quello previsto (a volte passa dalla cartella del modulo Vigneto perché lo strumento è condiviso).

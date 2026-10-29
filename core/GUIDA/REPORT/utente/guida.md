@@ -6,7 +6,7 @@ Il modulo **Report** raccoglie viste e export per area (terreni, colture, …). 
 
 ## Percorso consigliato
 
-1. **Moduli** → **Report** → hub. **[Impara qui](#mini-guida-hub-report)**  
+1. **Pulsante moduli** (graffetta in alto a sinistra) → **Report** → hub. **[Impara qui](#mini-guida-hub-report)**  
 2. Aprite **Terreni** (report campi). **[Impara qui](#mini-guida-report-terreni)**  
 3. Se avete **Vigneto**, usate la card **Vigneto** per gli export MVP. **[Impara qui](#mini-guida-report-vigneto)**  
 
@@ -25,7 +25,7 @@ Il modulo **Report** raccoglie viste e export per area (terreni, colture, …). 
 
 ## Mini-guida hub Report
 
-1. Aprite **Moduli** → **Report**.  
+1. Aprite il **pulsante moduli** → **Report**.  
 2. Vedete una griglia di card; quelle operative hanno link, quelle **In sviluppo** non aprono ancora una pagina.  
 3. **← Dashboard Principale** torna alla home.
 

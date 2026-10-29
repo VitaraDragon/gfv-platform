@@ -1,6 +1,6 @@
 # Report — sintesi per Tony
 
-Modulo **`report`** (Report/Bilancio). Ingresso **Moduli** → **Report**.
+Modulo **`report`** (Report/Bilancio). Ingresso dal **pulsante moduli** → **Report**.
 
 ## Cosa c’è oggi
 - Hub `report-dashboard`: card per area.

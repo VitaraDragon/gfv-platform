@@ -1,6 +1,6 @@
 # Guida modulo Vigneto
 
-Questa guida è per chi ha **attivato il modulo Vigneto** sull’azienda. Senza quel modulo non troverete **Vigneto** nel menu **Moduli** né queste pagine.
+Questa guida è per chi ha **attivato il modulo Vigneto** sull’azienda. Senza quel modulo non troverete **Vigneto** nel pulsante moduli (graffetta in alto a sinistra) né queste pagine.
 
 Verificate **Abbonamento** o chiedete all’amministratore se il modulo non compare.
 
@@ -8,7 +8,7 @@ Verificate **Abbonamento** o chiedete all’amministratore se il modulo non comp
 
 ## Percorso consigliato
 
-1. **Moduli** → **Vigneto** → **Dashboard Vigneto** (numeri, azioni rapide, ultime vendemmie e lavori). **[Impara qui](#da-dove-si-entra)**
+1. **Pulsante moduli** (graffetta in alto a sinistra) → **Vigneto** → **Dashboard Vigneto** (numeri, azioni rapide, ultime vendemmie e lavori). **[Impara qui](#da-dove-si-entra)**
 2. **Anagrafica vigneti** come base: terreno, varietà, impianto. **[Impara qui](#mini-guida-anagrafica-vigneti)**
 3. Registri di campo: **trattamenti**, **concimazioni**, **potatura**, **vendemmia** — per **trattamenti**, **concimazioni** e **potatura**, le righe in elenco **ci sono solo dopo** un **lavoro** (Gestione lavori) o un’**attività Diario** sul terreno con la **categoria** corretta; poi si completano i dettagli nel modulo. La **vendemmia** si registra in genere **direttamente** da **Gestione vendemmia**, con collegamento opzionale al lavoro. **[Impara qui](#mini-guida-registri-di-campo)**
 4. **Statistiche**; **Pianifica nuovo impianto** e **Calcolo materiali** (stesso strumento condiviso con altri moduli colturali; dalla dashboard vigneto è già orientato al **vigneto**). **[Impara qui](#statistiche-pianificazione-e-calcolo-materiali)**
@@ -40,8 +40,8 @@ Verificate **Abbonamento** o chiedete all’amministratore se il modulo non comp
 
 ## Da dove si entra
 
-1. Dalla **dashboard principale** aprite **Moduli** e toccate **Vigneto** (🍇). Se avete configurato **I miei accessi**, può esserci anche una scorciatoia lì.
-2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard potete trovare un **riquadro** **Vigneto** (stessa voce del menu): è un’extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** in **Moduli** o nelle scorciatoie (**Per te oggi**, **Accessi rapidi**, **I miei accessi**): è normale non vedere il riquadro.
+1. Dalla **dashboard principale** aprite il pulsante moduli (graffetta in alto a sinistra) e toccate **Vigneto** (🍇). Se avete configurato **I miei accessi**, può esserci anche una scorciatoia lì.
+2. **Senza Manodopera**, scorrendo **in fondo** alla dashboard potete trovare un **riquadro** **Vigneto** (stessa voce del menu): è un’extra opzionale. Con **Manodopera** attivo i moduli verticali sono **solo** nel **pulsante moduli** o nelle scorciatoie (**Per te oggi**, **Accessi rapidi**, **I miei accessi**): è normale non vedere il riquadro.
 3. Arrivate alla **Dashboard Vigneto**: riepilogo economico/produzione (anno selezionabile), numero vigneti, vendemmie, **azioni rapide** verso tutte le pagine del modulo.
 4. **Permesso importante:** la **Dashboard Vigneto** è pensata per **Manager** e **Amministratore**. Se il vostro ruolo non è tra questi, l’app può riportarvi alla dashboard principale o bloccare l’accesso — è una scelta di sicurezza del progetto.
 5. Altre pagine del modulo (anagrafica vigneti, trattamenti, ecc.) si raggiungono dalle azioni rapide della dashboard vigneto o dal menu del modulo. Il pulsante **← Dashboard Principale** riporta alla home generale. Dalle pagine del modulo **← Dashboard** riporta all’hub Vigneto.
@@ -69,7 +69,7 @@ Verificate **Abbonamento** o chiedete all’amministratore se il modulo non comp
 
 Se avete già la pagina **Terreni** (Core) e sulla vostra azienda sono attivi il modulo **Vigneto** e/o il modulo **Frutteto**, in elenco compare spesso un pulsante **grappolo** sulla riga del terreno e, dove previsto, un pulsante **mela**.
 
-- **Grappolo:** apre l’**Anagrafica Vigneti** con quel **terreno già prescelto**, così vedete subito i vigneti legati al campo. **Non** è il pulsante che porta alla **Dashboard Vigneto** (la pagina riassuntiva con i numeri grandi): da qui gestite i singoli impianti; per il riepilogo viola usate il link **Dashboard** in quella sezione oppure **Moduli** → **Vigneto**.
+- **Grappolo:** apre l’**Anagrafica Vigneti** con quel **terreno già prescelto**, così vedete subito i vigneti legati al campo. **Non** è il pulsante che porta alla **Dashboard Vigneto** (la pagina riassuntiva con i numeri grandi): da qui gestite i singoli impianti; per il riepilogo viola usate il link **Dashboard** in quella sezione oppure **pulsante moduli** → **Vigneto**.
 - **Mela:** apre l’**Anagrafica Frutteti** per lo stesso terreno, con lo stesso tipo di collegamento diretto al campo.
 
 Se il modulo non è attivo o non avete permessi, l’app può mostrare un avviso e proporre **Abbonamento**.
@@ -173,9 +173,26 @@ Le pagine **Trattamenti**, **Concimazioni** e **Potatura** servono a **completar
 3. **Aprire il modulo** da **Azioni**: in testa compaiono i **dati base del lavoro** (data, terreno, riferimento, eventuali **macchine**) in **sola lettura**.
 4. **Superficie trattata (ha)** — obbligatoria: valore manuale, opzione **tutto il terreno** da anagrafe **Terreni** se disponibile, oppure **Traccia** per disegnare il poligono sulla mappa (se il poligono è solo nel lavoro, la mappa può essere in sola lettura: modificate da **Gestione lavori**).
 5. **Prodotti:** **Aggiungi prodotto**; **dosaggio per ettaro**, **unità**, **quantità**, **costo**; **totale costo prodotti**. Se i dosaggi risultano **anomali** rispetto ai controlli dell’app, al **Salva** può comparire una **conferma** esplicita.
-6. **Operatore** (obbligatorio), costi mano/macchina facoltativi, **giorni di carenza** (spesso suggeriti dai prodotti), **note**, **copertura del terreno**, eventuale **prosecuzione** su trattamento precedente nello stesso vigneto.
+6. **Operatore** (obbligatorio), costi mano/macchina facoltativi, **giorni di carenza** (dalla riga confermata della scheda, altrimenti dall’anagrafica), **acqua usata**, **note**, **copertura del terreno**, eventuale **prosecuzione** su trattamento precedente nello stesso vigneto.
 7. **Magazzino:** se il modulo è attivo (abbonamento **o** prova), può comparire **Registra scarico in magazzino**; deselezionatela se non volete movimentare le giacenze.
 8. **Salva** / **Annulla**.
+
+### Registro privato dei trattamenti
+
+In cima alla pagina **Trattamenti** leggete che è un **registro privato di compilazione**: i trattamenti arrivano da lavori o attività di categoria **Trattamenti**, e qui confermate prodotto, dose, avversità e carenza della scheda pubblica del Ministero della Salute. GFV non invia nulla al SIAN né al fascicolo.
+
+1. **Scheda del prodotto.** Sotto ogni riga prodotto leggete **Scheda non confermata** oppure **Confermato:** con l’avversità scelta.  
+   - Se scegliete un fitofarmaco dell’anagrafica **Magazzino** con la scheda già letta, compare l’elenco degli impieghi per la coltura del campo (avversità, epoca, dose, carenza): toccate **Conferma** sulla riga giusta. Se l’etichetta ha più finestre, scegliete quella della data di questo lavoro.  
+   - Altrimenti toccate **Leggi scheda**: l’app legge la scheda pubblica («Leggo la scheda pubblica…») e propone le righe da confermare con **Conferma**. Se il prodotto ha già una conferma per quella coltura, la vedete in cima («Conferma già data per…»).  
+   - Dopo la conferma leggete «Conferma registrata per … Si può salvare il trattamento.» La conferma resta anche sul prodotto in anagrafica, per la volta dopo.  
+   - L’app non inventa nulla: se la scheda non si legge, se il prodotto non è negli open data o se la coltura del campo non è sulla scheda, ve lo scrive e non propone avversità, dose né carenza. Una scheda letta più di sei mesi fa viene aggiornata prima di proporre la dose.  
+   - Per il vigneto la coltura della scheda viene dalla **Destinazione uva** in anagrafica: **vino** = vite da vino, **vendita uva** = vite da tavola (sono righe diverse della scheda). Con destinazione **misto** l’app non propone nulla.
+2. **Giorni di carenza:** si compilano dalla riga confermata; se manca, dall’anagrafica del prodotto. Controllate sempre l’etichetta.  
+3. **Acqua usata:** scrivete **Acqua usata (hl/ha)** oppure **Acqua usata (hl totali)**; l’altro valore si calcola dalla superficie trattata.  
+4. **Avvisi al Salva:** dosaggio sopra o sotto il consigliato, prodotto già al numero massimo di impieghi nell’anno su quel vigneto, ultimo passaggio troppo vicino, oppure scheda non confermata (il controllo non si può fare). Sono avvisi, non blocchi: **OK** salva comunque, **Annulla** vi lascia correggere. Un trattamento di ieri non ancora registrato non entra nel controllo.  
+5. **Esporta CSV** / **Esporta XML** in cima alla pagina scaricano il registro dei trattamenti in elenco, con i dati dell’azienda. Il file resta a voi: GFV non lo invia al SIAN.  
+6. **Eliminare** un trattamento: il lavoro o l’attività resta e la riga torna «da completare». Se il trattamento è confermato e non ha ancora tre anni, l’app vi chiede di esportare prima il registro e di confermare di averlo già fatto. I movimenti di magazzino collegati restano.  
+7. **Miscela prevista:** se l’ufficio l’ha indicata sul lavoro in **Gestione lavori**, la squadra la vede in campo prima di uscire; qui registrate quello che è stato usato davvero.
 
 ### Concimazioni: passo per passo
 
@@ -245,7 +262,7 @@ Aprite **Statistiche e Grafici** dalla dashboard: impostate i **filtri** e usate
 
 ## Se qualcosa non compare
 
-- **Modulo non attivo** sull’abbonamento → niente voce **Vigneto** in **Moduli** (né riquadro in fondo pagina).
+- **Modulo non attivo** sull’abbonamento → niente voce **Vigneto** nel **pulsante moduli** (né riquadro in fondo pagina).
 - **Ruolo** → la **Dashboard Vigneto** richiede di solito **Manager** o **Amministratore**; il resto del modulo può variare.
 - **Lista vuota** in anagrafica → create prima **terreni** e **vigneti**.
 - **Trattamenti / Concimazioni / Potatura: elenco vuoto** → create prima un **lavoro** (Gestione lavori) o un’**attività Diario** sul terreno del vigneto con categoria **Trattamenti**, **Concimazione** o **Potatura**; controllate **anno** e **vigneto** nei filtri della pagina.
