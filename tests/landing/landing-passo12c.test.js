@@ -46,6 +46,19 @@ function pngHeader(rel) {
   return { larghezza, altezza, tipoColore };
 }
 
+describe('Riduci desktop (punto 15)', () => {
+  it('LandingHome ha Riduci / Parla con Tony senza smontare lo stage', () => {
+    const home = leggi('landing/src/views/LandingHome.vue');
+    const testi = leggi('landing/src/content/testi-landing.js');
+    expect(testi).toMatch(/riduci:\s*'Riduci'/);
+    expect(testi).toMatch(/ripristina:\s*'Parla con Tony'/);
+    expect(home).toMatch(/tonyRidotto/);
+    expect(home).toMatch(/v-show="!tonyRidotto"/);
+    expect(home).toMatch(/tony-btn-riduci/);
+    expect(home).toMatch(/tony-btn-riapri/);
+  });
+});
+
 describe('MIN_SCRIVE e bussata automatica', () => {
   it('attesaPrimaDiParlareMs rispetta il minimo scrive', () => {
     expect(MIN_SCRIVE_MS).toBe(1800);

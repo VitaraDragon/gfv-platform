@@ -180,6 +180,10 @@ export const testiLanding = {
     notaSaluto: `Intanto crea il tuo account gratuito: dentro Global Farm View ti guido per ${GIORNI_GUIDA_TONY} giorni.`,
     ctaAccount: 'Crea il tuo account gratuito',
     saluta: '✕ Saluta Tony',
+    // BOZZA: da far rivedere — desktop: rimpicciolisce Tony senza perdere la chat
+    riduci: 'Riduci',
+    // BOZZA: da far rivedere
+    ripristina: 'Parla con Tony',
     // BOZZA: da far rivedere
     chip: ['Cosa fa GFV?', 'Quanto costa?', 'Come mi aiuta Tony?'],
     // BOZZA: da far rivedere

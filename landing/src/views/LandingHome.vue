@@ -85,6 +85,8 @@ const TonyStage = defineAsyncComponent(() => import('../components/TonyStage.vue
 
 const fase = ref('nascosto');
 const stageAperto = ref(false);
+/** Desktop: Tony ridotto a bottone; la chat resta montata. */
+const tonyRidotto = ref(false);
 const avvisoAperto = ref(false);
 const avvisoInChiusura = ref(false);
 const audioAttivo = ref(true);
@@ -704,6 +706,7 @@ function chiudiTutto() {
   if (fase.value === 'esce') fase.value = prossimoStato('esce', 'uscitaFinita');
   else fase.value = 'nascosto';
   stageAperto.value = false;
+  tonyRidotto.value = false;
   avvisoAperto.value = false;
   avvisoInChiusura.value = false;
   improntaAccesa.value = false;
@@ -1115,8 +1118,10 @@ const iconeModuliImg: Record<string, string> = {
     <div
       class="landing-pagina"
       :class="{
-        'landing-pagina--tony': stageAperto && varianteScelta === 'mobile',
-        'landing-pagina--tony-desktop': stageAperto && varianteScelta !== 'mobile',
+        'landing-pagina--tony':
+          stageAperto && !tonyRidotto && varianteScelta === 'mobile',
+        'landing-pagina--tony-desktop':
+          stageAperto && !tonyRidotto && varianteScelta !== 'mobile',
       }"
       :style="stileScossone"
     >
@@ -1364,8 +1369,25 @@ const iconeModuliImg: Record<string, string> = {
       @conferma="onConferma"
       @rinuncia="onRinuncia"
     />
+    <button
+      v-if="tonyOn && stageAperto && !tonyRidotto && varianteScelta !== 'mobile'"
+      type="button"
+      class="tony-btn-riduci"
+      @click="tonyRidotto = true"
+    >
+      {{ t.tonyBussa.riduci }}
+    </button>
+    <button
+      v-if="tonyOn && stageAperto && tonyRidotto"
+      type="button"
+      class="tony-btn-riapri"
+      @click="tonyRidotto = false"
+    >
+      {{ t.tonyBussa.ripristina }}
+    </button>
     <TonyStage
       v-if="tonyOn && stageAperto"
+      v-show="!tonyRidotto"
       ref="stageRef"
       :fase="fase"
       :variante="varianteScelta"
@@ -1402,7 +1424,38 @@ const iconeModuliImg: Record<string, string> = {
 }
 
 .landing-pagina--tony-desktop {
-  padding-right: min(420px, 44vw);
+  padding-right: min(480px, 46vw);
+}
+
+.tony-btn-riduci,
+.tony-btn-riapri {
+  position: fixed;
+  z-index: 45;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.tony-btn-riduci {
+  right: min(480px, 46vw);
+  bottom: 1.1rem;
+  margin-right: 0.6rem;
+  background: #fff;
+  color: #0f4d32;
+  box-shadow: 0 2px 10px rgba(7, 25, 16, 0.18);
+  border: 1px solid rgba(15, 77, 50, 0.28);
+}
+
+.tony-btn-riapri {
+  right: 1.2rem;
+  bottom: 1.2rem;
+  background: #0f4d32;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(7, 25, 16, 0.28);
 }
 
 .impronta {
