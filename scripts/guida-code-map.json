@@ -1997,6 +1997,55 @@
         "INTERSEZIONI"
       ],
       "label": "Test filtro Sentry functions"
+    },
+    {
+      "prefix": "core/services/registrazione-titolare-core.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Creazione account titolare condivisa (registrazione e landing)"
+    },
+    {
+      "prefix": "core/js/login-email-precompilata.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Login con email precompilata dal frammento #email"
+    },
+    {
+      "prefix": "firestore.indexes.json",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Indici Firestore (tecnico, nessun impatto utente diretto)"
+    },
+    {
+      "prefix": "functions/tony-landing-",
+      "modules": [
+        "INTERSEZIONI"
+      ],
+      "label": "Tony della landing: CF pubbliche chat e voce (non app)"
+    },
+    {
+      "prefix": "functions/lib/tony-landing-",
+      "modules": [
+        "INTERSEZIONI"
+      ],
+      "label": "Tony della landing: limiti, prompt, voce (non app)"
+    },
+    {
+      "prefix": "functions/config/tony-landing-kb",
+      "modules": [
+        "INTERSEZIONI"
+      ],
+      "label": "Tony della landing: base di conoscenza generata (non app)"
+    },
+    {
+      "prefix": "functions/scripts/generate-tony-landing-kb.js",
+      "modules": [
+        "INTERSEZIONI"
+      ],
+      "label": "Generatore base di conoscenza Tony landing"
     }
   ]
 }
