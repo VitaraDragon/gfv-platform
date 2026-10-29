@@ -15,9 +15,13 @@ const SPENTO_DA = Object.freeze({
   budget: "budget-google"
 });
 const FREQUENZA_CONTROLLO = "every 15 minutes";
+/** Prenotazione `in-invio` più vecchia di così torna riprovabile. */
+const PRENOTAZIONE_MAX_MS = 30 * 60 * 1000;
 
 const LINK_CONSOLE_TONY_LANDING =
   "https://console.firebase.google.com/project/gfv-platform/firestore/databases/-default-/data/~2Fconfig~2FtonyLanding";
+
+const CHIAVI_AVVISO = Object.freeze(["p50", "p80", "p100", "budgetGoogle"]);
 
 function escapeHtml(s) {
   if (s == null) return "";
@@ -38,6 +42,107 @@ function percentualeSpesa({ spesaMeseEur, budgetEur }) {
   if (!Number.isFinite(budget) || budget <= 0) return null;
   if (!Number.isFinite(spesa) || spesa < 0) return 0;
   return (spesa / budget) * 100;
+}
+
+/**
+ * Millisecondi da un campo `il` (Timestamp Firestore, Date, numero o stringa).
+ * @param {unknown} il
+ * @returns {number|null}
+ */
+function msDaIl(il) {
+  if (il == null) return null;
+  if (typeof il.toDate === "function") {
+    try {
+      return il.toDate().getTime();
+    } catch {
+      return null;
+    }
+  }
+  if (il instanceof Date) {
+    const t = il.getTime();
+    return Number.isNaN(t) ? null : t;
+  }
+  if (typeof il === "number" && Number.isFinite(il)) return il;
+  if (typeof il === "string" && il) {
+    const t = Date.parse(il);
+    return Number.isNaN(t) ? null : t;
+  }
+  return null;
+}
+
+/**
+ * Una soglia/prenotazione conta come «già avvisata» se è inviata (o vecchio stile)
+ * oppure in-invio da meno di 30 minuti.
+ * @param {unknown} valore
+ * @param {Date} adesso
+ * @returns {boolean}
+ */
+function avvisoAncoraValido(valore, adesso) {
+  if (!valore) return false;
+  const now = adesso instanceof Date ? adesso.getTime() : Date.now();
+  if (valore && typeof valore === "object" && typeof valore.stato === "string") {
+    if (valore.stato === "inviata") return true;
+    if (valore.stato === "in-invio") {
+      const t = msDaIl(valore.il);
+      // Senza ora leggibile non blocchiamo il mese: si riprova.
+      if (t == null) return false;
+      return now - t < PRENOTAZIONE_MAX_MS;
+    }
+    return false;
+  }
+  // Compatibilità passo 15: Timestamp, true, o altro valore truthy senza `stato`.
+  return true;
+}
+
+/**
+ * Filtra gli avvisi del mese: lascia solo le soglie ancora «occupate».
+ * @param {object|null|undefined} avvisi
+ * @param {Date} adesso
+ * @returns {Record<string, true>}
+ */
+function avvisiValidi(avvisi, adesso) {
+  const raw = avvisi && typeof avvisi === "object" ? avvisi : {};
+  const out = {};
+  const quando = adesso instanceof Date ? adesso : new Date();
+  for (let i = 0; i < CHIAVI_AVVISO.length; i += 1) {
+    const k = CHIAVI_AVVISO[i];
+    if (avvisoAncoraValido(raw[k], quando)) out[k] = true;
+  }
+  return out;
+}
+
+/**
+ * Mese (AAAA-MM, Europe/Rome) del budget Google: da costIntervalStart se valido, altrimenti adesso.
+ * @param {unknown} dati
+ * @param {Date} adesso
+ * @returns {string}
+ */
+function meseBudget(dati, adesso) {
+  const a = adesso instanceof Date ? adesso : new Date();
+  const raw =
+    dati && typeof dati === "object" ? dati.costIntervalStart : null;
+  if (raw != null && raw !== "") {
+    const d = new Date(/** @type {string|number|Date} */ (raw));
+    if (!Number.isNaN(d.getTime())) return chiaviTempo(d).mese;
+  }
+  return chiaviTempo(a).mese;
+}
+
+/**
+ * Data di riferimento per il mese del budget (stessa regola di meseBudget).
+ * @param {unknown} dati
+ * @param {Date} adesso
+ * @returns {Date}
+ */
+function dataMeseBudget(dati, adesso) {
+  const a = adesso instanceof Date ? adesso : new Date();
+  const raw =
+    dati && typeof dati === "object" ? dati.costIntervalStart : null;
+  if (raw != null && raw !== "") {
+    const d = new Date(/** @type {string|number|Date} */ (raw));
+    if (!Number.isNaN(d.getTime())) return d;
+  }
+  return a;
 }
 
 /**
@@ -267,27 +372,41 @@ function testoEmailSpesa({
 }
 
 /**
+ * Importo per l'email del budget: EUR → «52,00 €»; altra valuta → «52,00 USD» (niente parentesi).
+ * @param {number} n
+ * @param {string} valuta
+ */
+function formatImportoBudget(n, valuta) {
+  const grezza = String(valuta || "EUR");
+  if (grezza.toUpperCase() === "EUR") return formatEuroIt(n);
+  return formatImportoValuta(n, grezza);
+}
+
+/**
  * BOZZA: da far rivedere
  * @param {{ costo: number, budget: number, valuta: string, mese: string|Date, eraGiaSpento?: boolean }} args
  */
 function testoEmailBudget({ costo, budget, valuta, mese, eraGiaSpento }) {
-  void eraGiaSpento;
-  const costoF = formatImportoValuta(costo, valuta);
-  const budgetF = formatImportoValuta(budget, valuta);
+  const costoF = formatImportoBudget(costo, valuta);
+  const budgetF = formatImportoBudget(budget, valuta);
   const meseLabel =
     typeof mese === "string" && /[a-zA-Zàèéìòù]/.test(mese)
       ? mese
       : meseInParole(mese || new Date());
+  void meseLabel;
   const oggetto =
     "[GFV] Budget Google Cloud superato: Tony della landing è spento";
+  const spegnimento = eraGiaSpento
+    ? "Tony sulla landing era già spento: resta spento."
+    : "Per sicurezza Tony sulla landing è stato spento.";
   const frase =
     "Il budget Google Cloud del progetto ha raggiunto " +
     escapeHtml(costoF) +
     " su " +
     escapeHtml(budgetF) +
-    " (" +
-    escapeHtml(valuta || "EUR") +
-    "). Per sicurezza Tony sulla landing è stato spento. Il Tony dell'app non è stato toccato. Controlla la spesa in Google Cloud → Fatturazione prima di riaccenderlo (Firestore → config → tonyLanding → enabled = true). " +
+    ". " +
+    escapeHtml(spegnimento) +
+    " Il Tony dell'app non è stato toccato. Controlla la spesa in Google Cloud → Fatturazione prima di riaccenderlo (Firestore → config → tonyLanding → enabled = true). " +
     "<a href=\"" +
     escapeHtml(LINK_CONSOLE_TONY_LANDING) +
     "\">Apri la console</a>.";
@@ -296,11 +415,10 @@ function testoEmailBudget({ costo, budget, valuta, mese, eraGiaSpento }) {
     costoF +
     " su " +
     budgetF +
-    " (" +
-    (valuta || "EUR") +
-    "). Per sicurezza Tony sulla landing è stato spento. Il Tony dell'app non è stato toccato. Controlla la spesa in Google Cloud → Fatturazione prima di riaccenderlo (Firestore → config → tonyLanding → enabled = true). " +
+    ". " +
+    spegnimento +
+    " Il Tony dell'app non è stato toccato. Controlla la spesa in Google Cloud → Fatturazione prima di riaccenderlo (Firestore → config → tonyLanding → enabled = true). " +
     LINK_CONSOLE_TONY_LANDING;
-  void meseLabel;
   return {
     oggetto,
     html: involucroHtml("<p>" + frase + "</p>"),
@@ -314,10 +432,14 @@ module.exports = {
   ARGOMENTO_BUDGET,
   SPENTO_DA,
   FREQUENZA_CONTROLLO,
+  PRENOTAZIONE_MAX_MS,
   LINK_CONSOLE_TONY_LANDING,
   escapeHtml,
   percentualeSpesa,
   sogliaDaAvvisare,
+  avvisiValidi,
+  meseBudget,
+  dataMeseBudget,
   decisioneBudgetGoogle,
   testoEmailSpesa,
   testoEmailBudget,

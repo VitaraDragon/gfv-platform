@@ -21,6 +21,9 @@ const {
   FREQUENZA_CONTROLLO,
   percentualeSpesa,
   sogliaDaAvvisare,
+  avvisiValidi,
+  meseBudget,
+  dataMeseBudget,
   decisioneBudgetGoogle,
   testoEmailSpesa,
   testoEmailBudget,
@@ -37,6 +40,20 @@ const resendApiKey = defineSecret("RESEND_API_KEY");
 
 const COLLEZIONE_QUOTA = "tonyLandingQuota";
 const DOC_CONFIG = "tonyLanding";
+
+function marcaPrenotazione(adesso) {
+  return { stato: "in-invio", il: Timestamp.fromDate(adesso) };
+}
+
+function marcaInviata(adesso) {
+  return { stato: "inviata", il: Timestamp.fromDate(adesso) };
+}
+
+function codiceErroreBreve(err) {
+  return String(
+    (err && (err.code || err.codice || err.message)) || "sconosciuto"
+  ).slice(0, 40);
+}
 
 /**
  * @param {{ db: FirebaseFirestore.Firestore, adesso?: Date, inviaEmail?: Function }} deps
@@ -71,7 +88,10 @@ async function handleAvvisiSpesa(deps) {
       typeof datiMese.costoEur === "number" ? datiMese.costoEur : 0;
     const domandeMese =
       typeof datiMese.domande === "number" ? datiMese.domande : 0;
-    const gia = snapAvvisi.exists ? snapAvvisi.data() || {} : {};
+    const gia = avvisiValidi(
+      snapAvvisi.exists ? snapAvvisi.data() || {} : {},
+      adesso
+    );
 
     const percentuale = percentualeSpesa({
       spesaMeseEur,
@@ -87,7 +107,10 @@ async function handleAvvisiSpesa(deps) {
 
     const expireMe = Timestamp.fromDate(scad.mese);
     let spentoAdesso = false;
+    let spentoDalTettoQuestoMese = false;
     let prenotato = false;
+    /** @type {number[]} */
+    let prenotate = [];
 
     await db.runTransaction(async (tx) => {
       const [sAvvisi, sConfig] = await Promise.all([
@@ -97,25 +120,33 @@ async function handleAvvisiSpesa(deps) {
       const avvisiOra = sAvvisi.exists ? sAvvisi.data() || {} : {};
       const ancora = sogliaDaAvvisare({
         percentuale,
-        giaInviate: avvisiOra
+        giaInviate: avvisiValidi(avvisiOra, adesso)
       });
       if (!ancora || ancora.soglia !== scelta.soglia) {
         prenotato = false;
+        prenotate = [];
         return;
       }
 
+      prenotate = ancora.daSegnare.slice();
       const patch = {
         expireAt: expireMe,
         aggiornatoIl: FieldValue.serverTimestamp()
       };
-      for (let i = 0; i < ancora.daSegnare.length; i += 1) {
-        patch["p" + ancora.daSegnare[i]] = FieldValue.serverTimestamp();
+      for (let i = 0; i < prenotate.length; i += 1) {
+        patch["p" + prenotate[i]] = marcaPrenotazione(adesso);
       }
       tx.set(refAvvisi, patch, { merge: true });
       prenotato = true;
 
       if (ancora.soglia === 100) {
         const raw = sConfig.exists ? sConfig.data() || {} : {};
+        if (
+          raw.spentoDa === SPENTO_DA.tetto &&
+          raw.spentoMese === mese
+        ) {
+          spentoDalTettoQuestoMese = true;
+        }
         if (raw.enabled === true) {
           tx.set(
             refConfig,
@@ -128,6 +159,7 @@ async function handleAvvisiSpesa(deps) {
             { merge: true }
           );
           spentoAdesso = true;
+          spentoDalTettoQuestoMese = true;
         }
       }
     });
@@ -143,13 +175,18 @@ async function handleAvvisiSpesa(deps) {
       return { ok: true, soglia: scelta.soglia, email: "gia" };
     }
 
+    const emailSpentoAdesso =
+      scelta.soglia === 100
+        ? spentoAdesso || spentoDalTettoQuestoMese
+        : undefined;
+
     const mail = testoEmailSpesa({
       soglia: scelta.soglia,
       spesaMeseEur,
       budgetEur: config.monthlyBudgetEur,
       domandeMese,
       mese: meseInParole(adesso),
-      spentoAdesso: scelta.soglia === 100 ? spentoAdesso : undefined
+      spentoAdesso: emailSpentoAdesso
     });
 
     try {
@@ -159,11 +196,25 @@ async function handleAvvisiSpesa(deps) {
         html: mail.html
       });
     } catch {
-      const togli = {};
-      for (let i = 0; i < scelta.daSegnare.length; i += 1) {
-        togli["p" + scelta.daSegnare[i]] = FieldValue.delete();
+      try {
+        const togli = {};
+        for (let i = 0; i < prenotate.length; i += 1) {
+          togli["p" + prenotate[i]] = FieldValue.delete();
+        }
+        await refAvvisi.set(togli, { merge: true });
+      } catch (errPulizia) {
+        console.info(
+          "[tonyLandingAvvisi] mese=" +
+            mese +
+            " soglia=" +
+            scelta.soglia +
+            " email=errore spento=" +
+            (spentoAdesso ? "si" : "no") +
+            " pulizia=errore codice=" +
+            codiceErroreBreve(errPulizia)
+        );
+        return { ok: false, soglia: scelta.soglia, email: "errore", pulizia: "errore" };
       }
-      await refAvvisi.set(togli, { merge: true });
       console.info(
         "[tonyLandingAvvisi] mese=" +
           mese +
@@ -173,6 +224,25 @@ async function handleAvvisiSpesa(deps) {
           (spentoAdesso ? "si" : "no")
       );
       return { ok: false, soglia: scelta.soglia, email: "errore" };
+    }
+
+    try {
+      const fatti = {};
+      for (let i = 0; i < prenotate.length; i += 1) {
+        fatti["p" + prenotate[i]] = marcaInviata(adesso);
+      }
+      await refAvvisi.set(fatti, { merge: true });
+    } catch (errMark) {
+      console.info(
+        "[tonyLandingAvvisi] mese=" +
+          mese +
+          " soglia=" +
+          scelta.soglia +
+          " email=inviata spento=" +
+          (spentoAdesso ? "si" : "no") +
+          " marca=errore codice=" +
+          codiceErroreBreve(errMark)
+      );
     }
 
     console.info(
@@ -227,7 +297,8 @@ async function handleBudgetGoogle(dati, deps) {
       return { ok: true, superato: false };
     }
 
-    const { mese } = chiaviTempo(adesso);
+    const mese = meseBudget(dati, adesso);
+    const dataRif = dataMeseBudget(dati, adesso);
     const scad = scadenze(adesso);
     const refConfig = db.collection("config").doc(DOC_CONFIG);
     const refAvvisi = db.collection(COLLEZIONE_QUOTA).doc("avvisi_" + mese);
@@ -235,6 +306,7 @@ async function handleBudgetGoogle(dati, deps) {
 
     let mandaEmail = false;
     let spento = false;
+    let prenotatoBudget = false;
 
     await db.runTransaction(async (tx) => {
       const [sAvvisi, sConfig] = await Promise.all([
@@ -242,20 +314,21 @@ async function handleBudgetGoogle(dati, deps) {
         tx.get(refConfig)
       ]);
       const avvisiOra = sAvvisi.exists ? sAvvisi.data() || {} : {};
-      const giaBudget = !!avvisiOra.budgetGoogle;
+      const giaBudget = !!avvisiValidi(avvisiOra, adesso).budgetGoogle;
       const raw = sConfig.exists ? sConfig.data() || {} : {};
 
       if (!giaBudget) {
         tx.set(
           refAvvisi,
           {
-            budgetGoogle: FieldValue.serverTimestamp(),
+            budgetGoogle: marcaPrenotazione(adesso),
             expireAt: expireMe,
             aggiornatoIl: FieldValue.serverTimestamp()
           },
           { merge: true }
         );
         mandaEmail = true;
+        prenotatoBudget = true;
       }
 
       if (raw.enabled === true) {
@@ -278,7 +351,7 @@ async function handleBudgetGoogle(dati, deps) {
         costo: Number(dati && dati.costAmount),
         budget: Number(dati && dati.budgetAmount),
         valuta: decisione.valuta || "EUR",
-        mese: meseInParole(adesso),
+        mese: meseInParole(dataRif),
         eraGiaSpento: !spento
       });
       try {
@@ -288,16 +361,41 @@ async function handleBudgetGoogle(dati, deps) {
           html: mail.html
         });
       } catch {
-        await refAvvisi.set(
-          { budgetGoogle: FieldValue.delete() },
-          { merge: true }
-        );
+        try {
+          if (prenotatoBudget) {
+            await refAvvisi.set(
+              { budgetGoogle: FieldValue.delete() },
+              { merge: true }
+            );
+          }
+        } catch (errPulizia) {
+          console.info(
+            "[tonyLandingBudget] budget=superato spento=" +
+              (spento ? "si" : "no") +
+              " email=errore pulizia=errore codice=" +
+              codiceErroreBreve(errPulizia)
+          );
+          return { ok: false, email: "errore", spento, pulizia: "errore" };
+        }
         console.info(
           "[tonyLandingBudget] budget=superato spento=" +
             (spento ? "si" : "no") +
             " email=errore"
         );
         return { ok: false, email: "errore", spento };
+      }
+      try {
+        await refAvvisi.set(
+          { budgetGoogle: marcaInviata(adesso) },
+          { merge: true }
+        );
+      } catch (errMark) {
+        console.info(
+          "[tonyLandingBudget] budget=superato spento=" +
+            (spento ? "si" : "no") +
+            " email=inviata marca=errore codice=" +
+            codiceErroreBreve(errMark)
+        );
       }
       console.info(
         "[tonyLandingBudget] budget=superato spento=" +

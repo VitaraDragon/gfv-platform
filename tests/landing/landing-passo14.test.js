@@ -141,15 +141,135 @@ describe('R5 R6 passaggioClip', () => {
     vi.useFakeTimers();
     vi.setSystemTime(0);
 
+    /** Regia di prova guidata dai timer finti (solo funzioni vere). */
+    function creaRegia(faseIniziale) {
+      let fase = faseIniziale;
+      let clipCorrente = null;
+      let clipInizio = 0;
+      let coda = [];
+      let codaDopoCorrente = null;
+      let gen = 0;
+      let timerFine = null;
+      let timerGiro = null;
+      const registro = [];
+
+      function clearTimer(id) {
+        if (id != null) clearTimeout(id);
+        return null;
+      }
+
+      function avviaClip(nome) {
+        const miaGen = ++gen;
+        clipCorrente = nome;
+        clipInizio = Date.now();
+        registro.push({ t: clipInizio, clip: nome });
+        timerFine = clearTimer(timerFine);
+        const durata = DURATE_CLIP_MS[nome];
+        timerFine = setTimeout(() => suFine(nome, miaGen), durata);
+      }
+
+      function partiLista(lista) {
+        timerGiro = clearTimer(timerGiro);
+        codaDopoCorrente = null;
+        coda = (lista || []).slice();
+        const next = coda.shift();
+        if (next) avviaClip(next);
+      }
+
+      function suFine(nome, miaGen) {
+        if (miaGen !== gen) return;
+        const inLoop = CLIP_IN_LOOP.indexOf(nome) >= 0;
+        const dec = dopoFineClip({
+          nome,
+          fase,
+          inLoop,
+          codaDopoCorrente,
+        });
+        if (dec.azione === 'coda') {
+          codaDopoCorrente = null;
+          partiLista(dec.lista || []);
+          return;
+        }
+        if (dec.azione === 'ripeti') {
+          partiLista(dec.lista || [nome]);
+          return;
+        }
+        if (dec.azione === 'prossima') {
+          const n = coda.shift();
+          if (n) avviaClip(n);
+          return;
+        }
+        // Loop (idle/scrive/…): il player vero ripete da solo; non riarmiamo i timer.
+        void inLoop;
+      }
+
+      function cambiaFase(a) {
+        const codaInAttesa = codaDopoCorrente
+          ? codaDopoCorrente.lista
+          : coda.length
+            ? coda.slice()
+            : null;
+        const dec = passaggioClip({
+          da: fase,
+          a,
+          clipCorrente,
+          codaInAttesa,
+        });
+        const da = fase;
+        fase = a;
+        if (!dec) {
+          const lista = scalettaClip(da, a);
+          if (lista.length) partiLista(lista);
+          return;
+        }
+        if (dec.modo === 'subito') {
+          partiLista(dec.lista);
+          return;
+        }
+        if (dec.modo === 'dopoCorrente') {
+          codaDopoCorrente = {
+            lista: dec.lista.slice(),
+            dissolvenzaMs: dec.dissolvenzaMs,
+          };
+          return;
+        }
+        if (dec.modo === 'fineGiro') {
+          if (
+            CLIP_IN_LOOP.indexOf(clipCorrente) >= 0 &&
+            clipCorrente !== 'idle'
+          ) {
+            const durata = DURATE_CLIP_MS[clipCorrente];
+            const elapsed = Date.now() - clipInizio;
+            const resto = Math.max(0, durata - (elapsed % durata));
+            const miaGen = gen;
+            timerGiro = clearTimer(timerGiro);
+            timerGiro = setTimeout(() => {
+              if (miaGen !== gen) return;
+              partiLista(dec.lista);
+            }, resto);
+            return;
+          }
+          partiLista(dec.lista);
+        }
+      }
+
+      return {
+        registro,
+        cambiaFase,
+        partiLista,
+        get fase() {
+          return fase;
+        },
+      };
+    }
+
     // tonyfinto=ok: thinking → scrive al primo pezzo (~700) → idle non prima di scrive+3583
     {
-      const registro = [];
-      let fase = 'pensa';
-      let inizioScrive = null;
+      const regia = creaRegia('pensa');
+      regia.partiLista(scalettaClip('idle', 'pensa'));
+      expect(regia.registro[0]).toEqual({ t: 0, clip: 'thinking' });
+
       let testoIniziatoA = null;
-
-      registro.push({ t: 0, clip: 'thinking' });
-
       const p = chiediFinto({
         domanda: 'cosa fa gfv?',
         storia: [],
@@ -157,52 +277,29 @@ describe('R5 R6 passaggioClip', () => {
         onPezzo: () => {
           if (testoIniziatoA != null) return;
           testoIniziatoA = Date.now();
-          const dec = passaggioClip({
-            da: 'pensa',
-            a: 'scrive',
-            clipCorrente: 'thinking',
-          });
-          expect(dec.modo).toBe('subito');
-          expect(dec.lista).toEqual(['scrive']);
-          fase = 'scrive';
-          inizioScrive = Date.now();
-          registro.push({ t: inizioScrive, clip: 'scrive' });
+          regia.cambiaFase('scrive');
         },
       });
 
       await vi.advanceTimersByTimeAsync(700);
       expect(testoIniziatoA).toBe(700);
-      expect(registro.find((e) => e.clip === 'scrive').t).toBe(700);
+      expect(regia.registro.find((e) => e.clip === 'scrive').t).toBe(700);
 
-      await vi.advanceTimersByTimeAsync(8000);
+      await vi.advanceTimersByTimeAsync(15000);
       await p;
-      expect(fase).toBe('scrive');
-      const decIdle = passaggioClip({ da: 'scrive', a: 'idle' });
-      expect(decIdle.modo).toBe('fineGiro');
-      const tIdle = inizioScrive + DURATE_CLIP_MS.scrive;
-      registro.push({ t: tIdle, clip: 'idle' });
-      expect(tIdle).toBeGreaterThanOrEqual(700 + DURATE_CLIP_MS.scrive);
-      expect(testoIniziatoA).toBeLessThan(inizioScrive + DURATE_CLIP_MS.scrive);
+      regia.cambiaFase('idle');
+      await vi.advanceTimersByTimeAsync(DURATE_CLIP_MS.scrive + 100);
+      const idle = regia.registro.find((e) => e.clip === 'idle');
+      expect(idle).toBeTruthy();
+      expect(idle.t).toBeGreaterThanOrEqual(700 + DURATE_CLIP_MS.scrive);
+      expect(testoIniziatoA).toBeLessThan(700 + DURATE_CLIP_MS.scrive);
     }
 
-    // tonyfinto=lento: thinking a 0, 2375, 4750; scrive ~6000
+    // tonyfinto=lento: thinking a 0, 2375, 4750; scrive ~6000; idle non prima di 9583
     {
       vi.setSystemTime(0);
-      const registro = [];
-      let fase = 'pensa';
-      let t = 0;
-      while (t < 6000) {
-        registro.push({ t, clip: 'thinking' });
-        const dec = dopoFineClip({
-          nome: 'thinking',
-          fase,
-          inLoop: false,
-          codaDopoCorrente: null,
-        });
-        expect(dec.azione).toBe('ripeti');
-        t += DURATE_CLIP_MS.thinking;
-      }
-      expect(registro.map((e) => e.t)).toEqual([0, 2375, 4750]);
+      const regia = creaRegia('pensa');
+      regia.partiLista(scalettaClip('idle', 'pensa'));
 
       let testoIniziatoA = null;
       const p = chiediFinto({
@@ -212,45 +309,55 @@ describe('R5 R6 passaggioClip', () => {
         onPezzo: () => {
           if (testoIniziatoA != null) return;
           testoIniziatoA = Date.now();
-          fase = 'scrive';
-          registro.push({ t: Date.now(), clip: 'scrive' });
+          regia.cambiaFase('scrive');
         },
       });
+
       await vi.advanceTimersByTimeAsync(6000);
       expect(testoIniziatoA).toBe(6000);
-      expect(registro.find((e) => e.clip === 'scrive').t).toBe(6000);
-      await vi.advanceTimersByTimeAsync(4000);
+      const thinkingT = regia.registro
+        .filter((e) => e.clip === 'thinking')
+        .map((e) => e.t);
+      expect(thinkingT).toEqual([0, 2375, 4750]);
+      expect(regia.registro.find((e) => e.clip === 'scrive').t).toBe(6000);
+
+      await vi.advanceTimersByTimeAsync(15000);
       await p;
-      expect(fase).toBe('scrive');
-      expect(6000 + DURATE_CLIP_MS.scrive).toBe(6000 + 3583);
+      regia.cambiaFase('idle');
+      await vi.advanceTimersByTimeAsync(DURATE_CLIP_MS.scrive + 100);
+      const idle = regia.registro.find((e) => e.clip === 'idle');
+      expect(idle).toBeTruthy();
+      expect(idle.t).toBeGreaterThanOrEqual(9583);
     }
 
     // voce: scrive → parla passa subito a talking
     {
-      const dec = passaggioClip({ da: 'scrive', a: 'parla' });
-      expect(dec.modo).toBe('subito');
-      expect(dec.lista).toEqual(['talking']);
+      vi.setSystemTime(0);
+      const regia = creaRegia('scrive');
+      regia.partiLista(['scrive']);
+      regia.cambiaFase('parla');
+      expect(regia.registro.some((e) => e.clip === 'talking' && e.t === 0)).toBe(
+        true
+      );
     }
 
-    // R4: modulo aperto, Annulla → idle subito, niente scrive
+    // R4: modulo aperto, Annulla a 1000 → idle a 1000, nessun scrive dopo
     {
-      const dec = passaggioClip({
-        da: 'modulo',
-        a: 'idle',
-        clipCorrente: 'topicRegistrazione',
-        codaInAttesa: ['scrive'],
-      });
-      expect(dec.modo).toBe('subito');
-      expect(dec.lista).toEqual(['idle']);
-      expect(dec.lista).not.toContain('scrive');
-      // chat: scrive in coda resta protetta
+      vi.setSystemTime(0);
+      const regia = creaRegia('modulo');
+      regia.partiLista(scalettaClip('idle', 'modulo'));
+      expect(regia.registro[0].clip).toBe('topicRegistrazione');
+
+      await vi.advanceTimersByTimeAsync(1000);
+      regia.cambiaFase('idle');
+      expect(regia.registro.some((e) => e.clip === 'idle' && e.t === 1000)).toBe(
+        true
+      );
+
+      await vi.advanceTimersByTimeAsync(5000);
       expect(
-        passaggioClip({
-          da: 'scrive',
-          a: 'idle',
-          codaInAttesa: ['scrive'],
-        }).lista
-      ).toEqual(['scrive', 'idle']);
+        regia.registro.filter((e) => e.clip === 'scrive' && e.t > 1000)
+      ).toHaveLength(0);
     }
 
     expect(CLIP_UNA_VOLTA).toContain('thinking');
