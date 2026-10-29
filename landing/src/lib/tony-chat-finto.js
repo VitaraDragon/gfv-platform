@@ -104,7 +104,7 @@ export function parametroTonyAiuto(query) {
   }
   if (valore === null || valore === '') return null;
   if (valore === '1') return 'ok';
-  const ammessi = ['ok', 'troppi', 'categoria', 'vuoto', 'limite', 'accesso'];
+  const ammessi = ['ok', 'troppi', 'categoria', 'vuoto', 'limite', 'accesso', 'tetto'];
   if (ammessi.indexOf(valore) >= 0) return valore;
   return 'ok';
 }
@@ -278,6 +278,16 @@ async function chiediFintoAccount({ argomento, onPezzo, segnale, scenario, sleep
     return {
       codice: 'limite-account',
       testo: MESSAGGI_CHAT.limiteAccount,
+      fase: 'account',
+      mostraRegistrazione: false,
+      domandeRimaste: 0,
+    };
+  }
+  if (sc === 'tetto') {
+    await sleep(lento ? 6000 : 700);
+    return {
+      codice: 'tetto',
+      testo: MESSAGGI_CHAT.tetto,
       fase: 'account',
       mostraRegistrazione: false,
       domandeRimaste: 0,

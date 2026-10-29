@@ -12,7 +12,9 @@ import { generaTesto } from '../../landing/scripts/genera-setup-core-landing.mjs
 import {
   CLIP_IN_LOOP,
   CLIP_PER_ARGOMENTO,
+  CLIP_UNA_VOLTA,
   DURATE_CLIP_MS,
+  dopoFineClip,
   passaggioClip,
   percorsoVoceFatto,
   percorsiClipArgomenti,
@@ -35,6 +37,8 @@ import {
   corpoRichiesta,
   MESSAGGI_CHAT,
 } from '../../landing/src/lib/tony-chat-logica.js';
+import { chiediFinto } from '../../landing/src/lib/tony-chat-finto.js';
+import { EMAIL_CONTATTO } from '../../landing/src/config/landing-config.js';
 import { testiLanding } from '../../landing/src/content/testi-landing.js';
 
 const require = createRequire(import.meta.url);
@@ -126,21 +130,130 @@ describe('R5 R6 passaggioClip', () => {
     );
   });
 
-  it('timer finti: taccuino subito e almeno un giro', async () => {
+  it('TonyStage usa dopoFineClip e passaggioClip', () => {
+    const stage = leggi('landing/src/components/TonyStage.vue');
+    expect(stage).toMatch(/dopoFineClip/);
+    expect(stage).toMatch(/passaggioClip/);
+    expect(stage).toMatch(/codaClip = \['entry', 'idle'\]/);
+  });
+
+  it('sequenza vera delle clip con timer finti', async () => {
     vi.useFakeTimers();
-    const eventi = [];
-    let clip = 'thinking';
-    const dec1 = passaggioClip({ da: 'pensa', a: 'scrive', clipCorrente: clip });
-    expect(dec1.modo).toBe('subito');
-    clip = 'scrive';
-    eventi.push({ t: 0, clip });
-    await vi.advanceTimersByTimeAsync(600);
-    eventi.push({ t: 600, clip });
-    const dec2 = passaggioClip({ da: 'scrive', a: 'idle', clipCorrente: clip });
-    expect(dec2.modo).toBe('fineGiro');
-    await vi.advanceTimersByTimeAsync(3583);
-    expect(eventi[0].clip).toBe('scrive');
-    expect(eventi[1].clip).toBe('scrive');
+    vi.setSystemTime(0);
+
+    // tonyfinto=ok: thinking → scrive al primo pezzo (~700) → idle non prima di scrive+3583
+    {
+      const registro = [];
+      let fase = 'pensa';
+      let inizioScrive = null;
+      let testoIniziatoA = null;
+
+      registro.push({ t: 0, clip: 'thinking' });
+
+      const p = chiediFinto({
+        domanda: 'cosa fa gfv?',
+        storia: [],
+        scenario: 'ok',
+        onPezzo: () => {
+          if (testoIniziatoA != null) return;
+          testoIniziatoA = Date.now();
+          const dec = passaggioClip({
+            da: 'pensa',
+            a: 'scrive',
+            clipCorrente: 'thinking',
+          });
+          expect(dec.modo).toBe('subito');
+          expect(dec.lista).toEqual(['scrive']);
+          fase = 'scrive';
+          inizioScrive = Date.now();
+          registro.push({ t: inizioScrive, clip: 'scrive' });
+        },
+      });
+
+      await vi.advanceTimersByTimeAsync(700);
+      expect(testoIniziatoA).toBe(700);
+      expect(registro.find((e) => e.clip === 'scrive').t).toBe(700);
+
+      await vi.advanceTimersByTimeAsync(8000);
+      await p;
+      expect(fase).toBe('scrive');
+      const decIdle = passaggioClip({ da: 'scrive', a: 'idle' });
+      expect(decIdle.modo).toBe('fineGiro');
+      const tIdle = inizioScrive + DURATE_CLIP_MS.scrive;
+      registro.push({ t: tIdle, clip: 'idle' });
+      expect(tIdle).toBeGreaterThanOrEqual(700 + DURATE_CLIP_MS.scrive);
+      expect(testoIniziatoA).toBeLessThan(inizioScrive + DURATE_CLIP_MS.scrive);
+    }
+
+    // tonyfinto=lento: thinking a 0, 2375, 4750; scrive ~6000
+    {
+      vi.setSystemTime(0);
+      const registro = [];
+      let fase = 'pensa';
+      let t = 0;
+      while (t < 6000) {
+        registro.push({ t, clip: 'thinking' });
+        const dec = dopoFineClip({
+          nome: 'thinking',
+          fase,
+          inLoop: false,
+          codaDopoCorrente: null,
+        });
+        expect(dec.azione).toBe('ripeti');
+        t += DURATE_CLIP_MS.thinking;
+      }
+      expect(registro.map((e) => e.t)).toEqual([0, 2375, 4750]);
+
+      let testoIniziatoA = null;
+      const p = chiediFinto({
+        domanda: 'cosa fa gfv?',
+        storia: [],
+        scenario: 'lento',
+        onPezzo: () => {
+          if (testoIniziatoA != null) return;
+          testoIniziatoA = Date.now();
+          fase = 'scrive';
+          registro.push({ t: Date.now(), clip: 'scrive' });
+        },
+      });
+      await vi.advanceTimersByTimeAsync(6000);
+      expect(testoIniziatoA).toBe(6000);
+      expect(registro.find((e) => e.clip === 'scrive').t).toBe(6000);
+      await vi.advanceTimersByTimeAsync(4000);
+      await p;
+      expect(fase).toBe('scrive');
+      expect(6000 + DURATE_CLIP_MS.scrive).toBe(6000 + 3583);
+    }
+
+    // voce: scrive → parla passa subito a talking
+    {
+      const dec = passaggioClip({ da: 'scrive', a: 'parla' });
+      expect(dec.modo).toBe('subito');
+      expect(dec.lista).toEqual(['talking']);
+    }
+
+    // R4: modulo aperto, Annulla → idle subito, niente scrive
+    {
+      const dec = passaggioClip({
+        da: 'modulo',
+        a: 'idle',
+        clipCorrente: 'topicRegistrazione',
+        codaInAttesa: ['scrive'],
+      });
+      expect(dec.modo).toBe('subito');
+      expect(dec.lista).toEqual(['idle']);
+      expect(dec.lista).not.toContain('scrive');
+      // chat: scrive in coda resta protetta
+      expect(
+        passaggioClip({
+          da: 'scrive',
+          a: 'idle',
+          codaInAttesa: ['scrive'],
+        }).lista
+      ).toEqual(['scrive', 'idle']);
+    }
+
+    expect(CLIP_UNA_VOLTA).toContain('thinking');
     vi.useRealTimers();
   });
 });
@@ -385,9 +498,23 @@ describe('E aiuto puro', () => {
       'sede'
     );
     expect(u.dati.sede.citta).toBe('Faenza');
+    const UUID =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
     const id1 = nuovoRequestId();
-    const id2 = id1;
-    expect(id2).toBe(id1);
+    const id2 = nuovoRequestId();
+    expect(id1).not.toBe(id2);
+    expect(id1).toMatch(UUID);
+    expect(id2).toMatch(UUID);
+    const realCrypto = globalThis.crypto;
+    vi.stubGlobal('crypto', { randomUUID: undefined });
+    const id3 = nuovoRequestId();
+    const id4 = nuovoRequestId();
+    expect(id3).not.toBe(id4);
+    vi.stubGlobal('crypto', realCrypto);
+    const schedaSrc = leggi('landing/src/components/TonySchedaConferma.vue');
+    expect(schedaSrc).toMatch(/const requestId = ref\(nuovoRequestId\(\)\)/);
+    const onSalva = schedaSrc.slice(schedaSrc.indexOf('async function onSalva'));
+    expect(onSalva).not.toMatch(/nuovoRequestId\(/);
     const payload = payloadDaScheda(
       {
         sede: { indirizzo: 'Via 1', citta: 'Faenza', cap: '', provincia: '' },
@@ -400,8 +527,43 @@ describe('E aiuto puro', () => {
     const check = controllaScheda(payload);
     expect(check.ok).toBe(true);
     expect(esitoSalvataggio({ giaSalvato: true }).ok).toBe(true);
-    expect(messaggioErroreSetup({ motivo: 'non-collegato' })).toMatch(/Prima crea/);
-    expect(messaggioErroreSetup({ motivo: 'niente-da-salvare' })).toMatch(/niente da salvare/);
+
+    const err = testiLanding.tonyBussa.aiuto.errori;
+    expect(messaggioErroreSetup({ motivo: 'non-collegato' })).toBe(err.nonCollegato);
+    expect(messaggioErroreSetup({ motivo: 'unauthenticated' })).toBe(err.nonCollegato);
+    expect(messaggioErroreSetup({ motivo: 'app-check' })).toBe(err.appCheck);
+    expect(messaggioErroreSetup({ motivo: 'failed-precondition' })).toBe(err.appCheck);
+    expect(messaggioErroreSetup({ motivo: 'troppe-chiamate' })).toBe(err.troppeChiamate);
+    expect(messaggioErroreSetup({ motivo: 'resource-exhausted' })).toBe(err.troppeChiamate);
+    expect(messaggioErroreSetup({ motivo: 'dati-non-validi' })).toBe(err.datiNonValidi);
+    expect(messaggioErroreSetup({ motivo: 'invalid-argument' })).toBe(err.datiNonValidi);
+    expect(messaggioErroreSetup({ motivo: 'niente-da-salvare' })).toBe(err.nienteDaSalvare);
+    const senzaAz = messaggioErroreSetup(
+      { motivo: 'senza-azienda' },
+      { email: 'mario@example.com' }
+    );
+    expect(senzaAz).toBe(
+      err.senzaAzienda + ' ' + err.contatto.replace('{email}', EMAIL_CONTATTO)
+    );
+    expect(senzaAz).toContain('info@globalfarmview.net');
+    expect(senzaAz).not.toContain('mario@example.com');
+    expect(
+      messaggioErroreSetup({ motivo: 'non-autorizzato' }, { email: 'mario@example.com' })
+    ).not.toContain('mario@example.com');
+    expect(
+      messaggioErroreSetup({
+        motivo: 'limite-terreni',
+        dettagli: { esistenti: 3, limite: 5 },
+      })
+    ).toBe(
+      err.limiteTerreni.replace('{esistenti}', '3').replace('{rimasti}', '2')
+    );
+    expect(messaggioErroreSetup({ motivo: 'limite-terreni' })).toMatch(/Ne hai già 0/);
+    expect(messaggioErroreSetup({ motivo: 'gia-preparato' })).toBe(err.giaPreparato);
+    expect(messaggioErroreSetup({ motivo: 'already-exists' })).toBe(err.giaPreparato);
+    expect(messaggioErroreSetup({ motivo: 'rete' })).toBe(err.rete);
+    expect(messaggioErroreSetup({ motivo: 'unavailable' })).toBe(err.rete);
+    expect(messaggioErroreSetup({ motivo: 'codice-strano' })).toBe(err.rete);
   });
 });
 

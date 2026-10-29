@@ -296,6 +296,8 @@ async function handleSendTransactionalEmail(db, apiKey, request, authAdmin = nul
 
 module.exports = {
   RESEND_FROM,
+  sendWithResend,
+  escapeHtml,
   handleSendTransactionalEmail,
   assertManagerOrAdminForTenant,
   buildInviteHtml,

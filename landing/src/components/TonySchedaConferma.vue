@@ -223,9 +223,14 @@ async function onSalva() {
           autocomplete="off"
           :disabled="inInvio"
           :aria-invalid="!!erroriCampi['sede.indirizzo']"
+          :aria-describedby="erroriCampi['sede.indirizzo'] ? 'tony-scheda-err-sede-indirizzo' : undefined"
           @input="controllaLive"
         />
-        <p v-if="erroriCampi['sede.indirizzo']" class="err">{{ erroriCampi['sede.indirizzo'] }}</p>
+        <p
+          v-if="erroriCampi['sede.indirizzo']"
+          id="tony-scheda-err-sede-indirizzo"
+          class="err"
+        >{{ erroriCampi['sede.indirizzo'] }}</p>
       </div>
       <div class="campo">
         <label for="tony-scheda-citta">{{ t.etichettaComune }}</label>
@@ -237,9 +242,14 @@ async function onSalva() {
           autocomplete="off"
           :disabled="inInvio"
           :aria-invalid="!!erroriCampi['sede.citta']"
+          :aria-describedby="erroriCampi['sede.citta'] ? 'tony-scheda-err-sede-citta' : undefined"
           @input="controllaLive"
         />
-        <p v-if="erroriCampi['sede.citta']" class="err">{{ erroriCampi['sede.citta'] }}</p>
+        <p
+          v-if="erroriCampi['sede.citta']"
+          id="tony-scheda-err-sede-citta"
+          class="err"
+        >{{ erroriCampi['sede.citta'] }}</p>
       </div>
       <div class="riga2">
         <div class="campo">
@@ -252,9 +262,14 @@ async function onSalva() {
             autocomplete="off"
             :disabled="inInvio"
             :aria-invalid="!!erroriCampi['sede.cap']"
+            :aria-describedby="erroriCampi['sede.cap'] ? 'tony-scheda-err-sede-cap' : undefined"
             @input="controllaLive"
           />
-          <p v-if="erroriCampi['sede.cap']" class="err">{{ erroriCampi['sede.cap'] }}</p>
+          <p
+            v-if="erroriCampi['sede.cap']"
+            id="tony-scheda-err-sede-cap"
+            class="err"
+          >{{ erroriCampi['sede.cap'] }}</p>
         </div>
         <div class="campo">
           <label for="tony-scheda-prov">{{ t.etichettaProvincia }}</label>
@@ -267,9 +282,14 @@ async function onSalva() {
             autocomplete="off"
             :disabled="inInvio"
             :aria-invalid="!!erroriCampi['sede.provincia']"
+            :aria-describedby="erroriCampi['sede.provincia'] ? 'tony-scheda-err-sede-provincia' : undefined"
             @input="controllaLive"
           />
-          <p v-if="erroriCampi['sede.provincia']" class="err">{{ erroriCampi['sede.provincia'] }}</p>
+          <p
+            v-if="erroriCampi['sede.provincia']"
+            id="tony-scheda-err-sede-provincia"
+            class="err"
+          >{{ erroriCampi['sede.provincia'] }}</p>
         </div>
       </div>
     </section>
@@ -287,8 +307,14 @@ async function onSalva() {
             autocomplete="off"
             :disabled="inInvio"
             :aria-invalid="!!erroriCampi['poderi[' + i + '].nome']"
+            :aria-describedby="erroriCampi['poderi[' + i + '].nome'] ? 'tony-scheda-err-poderi-' + i + '-nome' : undefined"
             @input="controllaLive"
           />
+          <p
+            v-if="erroriCampi['poderi[' + i + '].nome']"
+            :id="'tony-scheda-err-poderi-' + i + '-nome'"
+            class="err"
+          >{{ erroriCampi['poderi[' + i + '].nome'] }}</p>
         </div>
         <button type="button" class="btn-mini" :disabled="inInvio" @click="togliPodere(i)">
           −
@@ -316,8 +342,15 @@ async function onSalva() {
             type="text"
             autocomplete="off"
             :disabled="inInvio"
+            :aria-invalid="!!erroriCampi['terreni[' + i + '].nome']"
+            :aria-describedby="erroriCampi['terreni[' + i + '].nome'] ? 'tony-scheda-err-terreni-' + i + '-nome' : undefined"
             @input="controllaLive"
           />
+          <p
+            v-if="erroriCampi['terreni[' + i + '].nome']"
+            :id="'tony-scheda-err-terreni-' + i + '-nome'"
+            class="err"
+          >{{ erroriCampi['terreni[' + i + '].nome'] }}</p>
         </div>
         <div class="campo">
           <label :for="'tony-scheda-terreno-sup-' + i">{{ t.etichettaSuperficie }}</label>
@@ -330,11 +363,14 @@ async function onSalva() {
             autocomplete="off"
             :disabled="inInvio"
             :aria-invalid="!!erroriCampi['terreni[' + i + '].superficie']"
+            :aria-describedby="erroriCampi['terreni[' + i + '].superficie'] ? 'tony-scheda-err-terreni-' + i + '-superficie' : undefined"
             @input="controllaLive"
           />
-          <p v-if="erroriCampi['terreni[' + i + '].superficie']" class="err">
-            {{ erroriCampi['terreni[' + i + '].superficie'] }}
-          </p>
+          <p
+            v-if="erroriCampi['terreni[' + i + '].superficie']"
+            :id="'tony-scheda-err-terreni-' + i + '-superficie'"
+            class="err"
+          >{{ erroriCampi['terreni[' + i + '].superficie'] }}</p>
         </div>
         <div class="campo">
           <label :for="'tony-scheda-terreno-col-' + i">{{ t.etichettaColtura }}</label>
@@ -346,15 +382,25 @@ async function onSalva() {
             type="text"
             autocomplete="off"
             :disabled="inInvio"
+            :aria-invalid="!!erroriCampi['terreni[' + i + '].coltura']"
+            :aria-describedby="erroriCampi['terreni[' + i + '].coltura'] ? 'tony-scheda-err-terreni-' + i + '-coltura' : undefined"
             @input="controllaLive"
           />
+          <p
+            v-if="erroriCampi['terreni[' + i + '].coltura']"
+            :id="'tony-scheda-err-terreni-' + i + '-coltura'"
+            class="err"
+          >{{ erroriCampi['terreni[' + i + '].coltura'] }}</p>
         </div>
         <div class="campo">
           <label :for="'tony-scheda-terreno-pod-' + i">{{ t.etichettaPodere }}</label>
           <select
             :id="'tony-scheda-terreno-pod-' + i"
             v-model="tr.podere"
+            :data-campo="'terreni[' + i + '].podere'"
             :disabled="inInvio"
+            :aria-invalid="!!erroriCampi['terreni[' + i + '].podere']"
+            :aria-describedby="erroriCampi['terreni[' + i + '].podere'] ? 'tony-scheda-err-terreni-' + i + '-podere' : undefined"
             @change="controllaLive"
           >
             <option value="">{{ t.nessuno }}</option>
@@ -366,6 +412,11 @@ async function onSalva() {
               {{ p.nome }}
             </option>
           </select>
+          <p
+            v-if="erroriCampi['terreni[' + i + '].podere']"
+            :id="'tony-scheda-err-terreni-' + i + '-podere'"
+            class="err"
+          >{{ erroriCampi['terreni[' + i + '].podere'] }}</p>
         </div>
         <button type="button" class="btn-mini" :disabled="inInvio" @click="togliTerreno(i)">
           −

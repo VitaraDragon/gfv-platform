@@ -108,7 +108,30 @@ npm run dev
 
 Apri http://localhost:5173/?tonybussa=1&tonyfinto=ok&tonyreg=ok&tonyaiuto=ok&tonysetup=ok
 
-Altri: `tonyaiuto=troppi|categoria|vuoto|limite|accesso`, `tonysetup=lento|doppio|dati-non-validi|niente-da-salvare|limite-terreni|gia-preparato|…`. Nella build i modi finti **non** ci sono.
+Altri: `tonyaiuto=troppi|categoria|vuoto|limite|accesso|tetto`, `tonysetup=lento|doppio|dati-non-validi|niente-da-salvare|limite-terreni|gia-preparato|…`. Nella build i modi finti **non** ci sono.
+
+## Tetto di spesa e avvisi (passo 15)
+
+La spesa stimata di Tony sulla landing (Gemini + voce + margine) è già sommata a ogni risposta. Cosa aggiunge questo passo:
+
+| Quando | Cosa succede |
+|---|---|
+| Spesa stimata ≥ 50% del tetto (15 € se il tetto è 30 €) | Email di avviso a `info@globalfarmview.net` |
+| ≥ 80% (24 €) | La voce si spegne da sola (già nel codice); email «80%» |
+| ≥ 100% (30 €) | Tony risponde «Tony è nei campi…»; `enabled = false` in Firestore + email |
+| Spesa **vera** Google ≥ budget (console) | `enabled = false` + email «budget Google» |
+
+Le email partono da `no-reply@globalfarmview.net` (Resend, come il resto dell’app) e arrivano solo a `info@globalfarmview.net`. Una sola email per soglia e per mese.
+
+**Riaccendere Tony:** Firebase → Firestore → `config` → `tonyLanding` → `enabled = true`. Il campo `spentoDa` dice chi l’ha spento (`tetto-mensile` o `budget-google`). Il Tony dell’app non viene mai spento.
+
+Anteprima locale delle email (nessun invio):
+
+```bash
+node functions/scripts/anteprima-avvisi-tony-landing.cjs
+```
+
+Le funzioni `tonyLandingAvvisiSpesa` e `tonyLandingBudget` si pubblicano al **promote** su `main` (insieme al budget Google e all’argomento Pub/Sub `tony-landing-budget`). Vedi la sezione «Dopo l’unione» del prompt passo 15.
 
 Per rigenerare le stesse regole di salvataggio usate dalla scheda:
 
