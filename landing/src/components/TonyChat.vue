@@ -15,10 +15,19 @@ import {
 } from '../lib/tony-chat-logica.js';
 import { chiediVoce } from '../lib/tony-voce-client.js';
 import { creaPlayerVoce } from '../lib/tony-voce-player.js';
+import {
+  PASSI_AIUTO,
+  prossimoPasso,
+  unisciDati,
+} from '../lib/tony-aiuto-account.js';
+import { percorsoVoceFatto } from '../lib/tony-bussa-logica.js';
 import TonyRegistrazione from './TonyRegistrazione.vue';
+import TonySchedaConferma from './TonySchedaConferma.vue';
 
 const props = defineProps<{
   ottieniToken: () => Promise<string | null>;
+  ottieniTokenAccesso?: () => Promise<string | null>;
+  salvaAzienda?: (dati: object) => Promise<any>;
   variante: string;
   riduciMovimento: boolean;
   salutoFinito: boolean;
@@ -41,9 +50,13 @@ const emit = defineEmits([
   'apri-modulo',
   'chiudi-modulo',
   'registrazione-completata',
+  'invio-in-corso',
+  'argomento',
+  'vai-dashboard',
 ]);
 
 const t = testiLanding.tonyBussa;
+const ta = t.aiuto;
 
 type Battuta = {
   ruolo: 'utente' | 'tony' | 'nascosta';
@@ -57,6 +70,25 @@ const campoAttivo = ref(true);
 const moduloAperto = ref(false);
 const registrazioneCompletata = ref(false);
 const chipVisibili = ref(true);
+const invioInCorso = ref(false);
+/** Fase aiuto account (passo 14). */
+const faseAiuto = ref(false);
+const passoAiuto = ref<string | null>(null);
+const datiAiuto = ref<{
+  sede: any;
+  poderi: any[];
+  terreni: any[];
+}>({ sede: null, poderi: [], terreni: [] });
+const schedaAperta = ref(false);
+const aiutoFatto = ref(false);
+const aiutoSospeso = ref(false);
+const argomentiSuonati = new Set<string>();
+/** Stato del campo/chip/evidenza prima di aprire il modulo (R1). */
+let statoPrimaDelModulo: {
+  campoAttivo: boolean;
+  chipVisibili: boolean;
+  mostraAccountEvidenza: boolean;
+} | null = null;
 const messaggi = ref<Battuta[]>([]);
 const storia = ref<Array<{ ruolo: 'utente' | 'tony'; testo: string }>>([]);
 const sessione = ref(nuovaSessione(
@@ -229,6 +261,11 @@ function apriModulo() {
   if (!props.moduloDisponibile || moduloAperto.value) return;
   fermaMicrofono();
   fermaVoceCorrente();
+  statoPrimaDelModulo = {
+    campoAttivo: campoAttivo.value,
+    chipVisibili: chipVisibili.value,
+    mostraAccountEvidenza: mostraAccountEvidenza.value,
+  };
   moduloAperto.value = true;
   campoAttivo.value = false;
   messaggi.value.push({
@@ -242,18 +279,155 @@ function apriModulo() {
 function onChiudiModulo() {
   if (registrazioneCompletata.value) return;
   moduloAperto.value = false;
-  campoAttivo.value = true;
+  if (statoPrimaDelModulo) {
+    campoAttivo.value = statoPrimaDelModulo.campoAttivo;
+    chipVisibili.value = statoPrimaDelModulo.chipVisibili;
+    mostraAccountEvidenza.value = statoPrimaDelModulo.mostraAccountEvidenza;
+    statoPrimaDelModulo = null;
+  } else {
+    campoAttivo.value = true;
+  }
   emit('chiudi-modulo');
+}
+
+function onInvioInCorso(valore: boolean) {
+  invioInCorso.value = !!valore;
+  emit('invio-in-corso', invioInCorso.value);
 }
 
 function onRegistrazioneCompletata() {
   registrazioneCompletata.value = true;
+  moduloAperto.value = false;
+  campoAttivo.value = false;
+  chipVisibili.value = false;
+  messaggi.value.push({ ruolo: 'tony', testo: t.registrazione.fatto });
+  messaggi.value.push({ ruolo: 'tony', testo: ta.invito });
+  faseAiuto.value = true;
+  passoAiuto.value = 'invito';
+  storia.value = [];
+  sessione.value = nuovaSessione(
+    typeof crypto !== 'undefined' && crypto.randomUUID
+      ? () => crypto.randomUUID()
+      : undefined
+  );
+  scorriInBasso();
   emit('registrazione-completata');
+  emit('chiudi-modulo');
+}
+
+function haDatiAiuto() {
+  const d = datiAiuto.value;
+  return !!(
+    d.sede ||
+    (d.poderi && d.poderi.length) ||
+    (d.terreni && d.terreni.length)
+  );
+}
+
+function domandaFissa(passo: string) {
+  if (passo === 'sede') return ta.domandaSede;
+  if (passo === 'poderi') return ta.domandaPoderi;
+  if (passo === 'terreni') return ta.domandaTerreni;
+  return '';
+}
+
+function avviaPasso(passo: string) {
+  passoAiuto.value = passo;
+  schedaAperta.value = false;
+  campoAttivo.value = true;
+  chipVisibili.value = true;
+  const testo = domandaFissa(passo);
+  messaggi.value.push({ ruolo: 'tony', testo });
+  if (!argomentiSuonati.has(passo)) {
+    argomentiSuonati.add(passo);
+    emit('argomento', passo);
+  }
+  scorriInBasso();
+}
+
+function onChipAiuto(etichetta: string) {
+  if (inAttesa.value || invioInCorso.value) return;
+  if (etichetta === ta.chipSi) {
+    avviaPasso('sede');
+    return;
+  }
+  if (etichetta === ta.chipSaltaTutto) {
+    emit('vai-dashboard');
+    return;
+  }
+  if (etichetta === ta.chipDopo) {
+    const corrente = passoAiuto.value;
+    const prox = corrente ? prossimoPasso(corrente) : null;
+    if (prox) avviaPasso(prox);
+    else apriScheda();
+    return;
+  }
+  if (etichetta === ta.chipAvanti) {
+    const corrente = passoAiuto.value;
+    const prox = corrente ? prossimoPasso(corrente) : null;
+    if (prox) avviaPasso(prox);
+    else apriScheda();
+    return;
+  }
+  if (etichetta === ta.chipRiepilogo) {
+    apriScheda();
+  }
+}
+
+function apriScheda() {
+  schedaAperta.value = true;
+  campoAttivo.value = false;
+  chipVisibili.value = false;
+  passoAiuto.value = 'scheda';
+  messaggi.value.push({ ruolo: 'tony', testo: ta.schedaIntro });
+  scorriInBasso();
+}
+
+function onTornaDallaScheda() {
+  schedaAperta.value = false;
+  campoAttivo.value = true;
+  chipVisibili.value = true;
+  if (!passoAiuto.value || passoAiuto.value === 'scheda') {
+    passoAiuto.value = PASSI_AIUTO[PASSI_AIUTO.length - 1];
+  }
+}
+
+async function suVoceFatto() {
+  if (!altoparlante.value || props.riduciMovimento) return;
+  try {
+    const percorsi = percorsoVoceFatto();
+    const risposta = await fetch(percorsi.mp3);
+    if (!risposta.ok) return;
+    const blob = await risposta.blob();
+    playerVoce.sblocca();
+    await playerVoce.suona(blob, {
+      onInizio: () => emit('voceIniziata'),
+      onFine: () => emit('voceFinita'),
+    });
+  } catch {
+    emit('voceFinita');
+  }
+}
+
+async function onSchedaSalvata() {
+  schedaAperta.value = false;
+  aiutoFatto.value = true;
+  campoAttivo.value = false;
+  chipVisibili.value = false;
+  messaggi.value.push({ ruolo: 'tony', testo: ta.fatto });
+  scorriInBasso();
+  await suVoceFatto();
+}
+
+function onVaiDashboard() {
+  emit('vai-dashboard');
 }
 
 async function inviaTesto(grezzo: string, daChip = false) {
-  if (moduloAperto.value) return;
+  if (moduloAperto.value || schedaAperta.value) return;
+  if (faseAiuto.value && passoAiuto.value === 'invito') return;
   if (inAttesa.value || !campoAttivo.value || modalitàStatica.value) return;
+  if (aiutoFatto.value || aiutoSospeso.value) return;
   const validazione = validaDomanda(grezzo);
   if (!validazione.ok) {
     if (validazione.motivo === 'vuota') return;
@@ -307,6 +481,11 @@ async function inviaTesto(grezzo: string, daChip = false) {
     scorriInBasso();
   };
 
+  const inAccount =
+    faseAiuto.value &&
+    passoAiuto.value &&
+    PASSI_AIUTO.indexOf(passoAiuto.value) >= 0;
+
   let esito: any;
   try {
     if (import.meta.env.DEV && scenarioFinto.value) {
@@ -319,6 +498,8 @@ async function inviaTesto(grezzo: string, daChip = false) {
         onPezzo,
         segnale: abortCorrente.signal,
         scenario: scenarioFinto.value,
+        fase: inAccount ? 'account' : undefined,
+        argomento: inAccount ? passoAiuto.value || undefined : undefined,
       });
     } else {
       esito = await chiediATony({
@@ -326,18 +507,22 @@ async function inviaTesto(grezzo: string, daChip = false) {
         sessione: sessione.value,
         storia: storia.value,
         ottieniToken: props.ottieniToken,
+        ottieniTokenAccesso: props.ottieniTokenAccesso,
         onPezzo,
         segnale: abortCorrente.signal,
+        fase: inAccount ? 'account' : undefined,
+        argomento: inAccount ? passoAiuto.value || undefined : undefined,
       });
     }
   } catch {
-    esito = { codice: 'errore' };
+    esito = { codice: 'errore', fase: inAccount ? 'account' : undefined };
   }
 
   if (smontato) return;
   abortCorrente = null;
   inAttesa.value = false;
 
+  if (inAccount && esito && !esito.fase) esito.fase = 'account';
   const azione = azionePerEsito(esito);
   if (azione.tipo === 'statico') {
     if (primoPezzo) {
@@ -346,6 +531,24 @@ async function inviaTesto(grezzo: string, daChip = false) {
     }
     testoParziale.value = '';
     passaAStatico(azione.testo);
+    return;
+  }
+
+  if (azione.tipo === 'aiuto-sospeso') {
+    if (primoPezzo) {
+      const ultimo = messaggi.value[messaggi.value.length - 1];
+      if (ultimo && ultimo.live) {
+        ultimo.testo = azione.testo;
+        ultimo.live = false;
+      }
+    } else {
+      messaggi.value.push({ ruolo: 'tony', testo: azione.testo });
+    }
+    testoParziale.value = '';
+    aiutoSospeso.value = true;
+    campoAttivo.value = false;
+    chipVisibili.value = false;
+    emit('rispostaFinita');
     return;
   }
 
@@ -365,7 +568,26 @@ async function inviaTesto(grezzo: string, daChip = false) {
     storia.value = aggiornaStoria(storia.value, { ruolo: 'tony', testo: azione.testo });
   }
 
-  campoAttivo.value = azione.campoAttivo;
+  if (inAccount && esito.codice === 'ok') {
+    if (esito.troppiTerreni) {
+      messaggi.value.push({ ruolo: 'tony', testo: ta.cinqueTerreni });
+    }
+    const uniti = unisciDati(datiAiuto.value, esito.dati, passoAiuto.value || '');
+    datiAiuto.value = uniti.dati;
+    if (uniti.troppiTerreni && !esito.troppiTerreni) {
+      messaggi.value.push({ ruolo: 'tony', testo: ta.cinqueTerreni });
+    }
+    if (esito.dati && esito.dati.fatto === true) {
+      const prox = prossimoPasso(passoAiuto.value || '');
+      if (prox) avviaPasso(prox);
+      else apriScheda();
+    } else {
+      campoAttivo.value = true;
+      chipVisibili.value = true;
+    }
+  } else {
+    campoAttivo.value = azione.campoAttivo;
+  }
   if (azione.tipo === 'limite') {
     mostraAccountEvidenza.value = true;
     chipVisibili.value = false;
@@ -699,20 +921,76 @@ defineExpose({ interrompi });
       v-if="chatVisibile && moduloAperto"
       @chiudi-modulo="onChiudiModulo"
       @registrazione-completata="onRegistrazioneCompletata"
+      @invio-in-corso="onInvioInCorso"
     />
 
-    <template v-else-if="chatVisibile && campoAttivo">
-      <div v-if="chipVisibili" class="chip-riga" role="group" aria-label="Domande rapide">
-        <button
-          v-for="c in t.chip"
-          :key="c"
-          type="button"
-          class="chip"
-          :disabled="inAttesa"
-          @click="onChip(c)"
-        >
-          {{ c }}
+    <TonySchedaConferma
+      v-else-if="chatVisibile && schedaAperta && salvaAzienda"
+      :dati="datiAiuto"
+      :salva-azienda="salvaAzienda"
+      @torna-chat="onTornaDallaScheda"
+      @salvata="onSchedaSalvata"
+      @invio-in-corso="onInvioInCorso"
+      @vai-dashboard="onVaiDashboard"
+    />
+
+    <template v-else-if="chatVisibile && faseAiuto && passoAiuto === 'invito'">
+      <div class="chip-riga" role="group" aria-label="Aiuto account">
+        <button type="button" class="chip" @click="onChipAiuto(ta.chipSi)">
+          {{ ta.chipSi }}
         </button>
+        <button type="button" class="chip" @click="onChipAiuto(ta.chipSaltaTutto)">
+          {{ ta.chipSaltaTutto }}
+        </button>
+      </div>
+    </template>
+
+    <template v-else-if="chatVisibile && campoAttivo && !aiutoFatto">
+      <p v-if="faseAiuto" class="informativa-aiuto">
+        {{ ta.informativa }}
+        <a href="/privacy#tony">{{ ta.informativaLink }}</a>
+      </p>
+      <div v-if="chipVisibili" class="chip-riga" role="group" aria-label="Domande rapide">
+        <template v-if="faseAiuto">
+          <button
+            type="button"
+            class="chip"
+            :disabled="inAttesa"
+            @click="onChipAiuto(ta.chipDopo)"
+          >
+            {{ ta.chipDopo }}
+          </button>
+          <button
+            v-if="haDatiAiuto()"
+            type="button"
+            class="chip"
+            :disabled="inAttesa"
+            @click="onChipAiuto(ta.chipAvanti)"
+          >
+            {{ ta.chipAvanti }}
+          </button>
+          <button
+            v-if="haDatiAiuto()"
+            type="button"
+            class="chip"
+            :disabled="inAttesa"
+            @click="onChipAiuto(ta.chipRiepilogo)"
+          >
+            {{ ta.chipRiepilogo }}
+          </button>
+        </template>
+        <template v-else>
+          <button
+            v-for="c in t.chip"
+            :key="c"
+            type="button"
+            class="chip"
+            :disabled="inAttesa"
+            @click="onChip(c)"
+          >
+            {{ c }}
+          </button>
+        </template>
       </div>
 
       <div class="campo-riga">
@@ -759,9 +1037,31 @@ defineExpose({ interrompi });
       </div>
     </template>
 
-    <div class="fumetto-azioni">
+    <div v-if="chatVisibile && (aiutoFatto || aiutoSospeso)" class="fumetto-azioni">
       <button
-        v-if="moduloDisponibile && !moduloAperto"
+        v-if="aiutoSospeso && haDatiAiuto()"
+        type="button"
+        class="btn-account"
+        @click="apriScheda"
+      >
+        {{ ta.chipRiepilogo }}
+      </button>
+      <button type="button" class="btn-account btn-account--evidenza" @click="onVaiDashboard">
+        {{ ta.vaiDashboard }}
+      </button>
+      <button
+        type="button"
+        class="btn-saluta"
+        :disabled="invioInCorso"
+        @click="emit('saluta')"
+      >
+        {{ t.saluta }}
+      </button>
+    </div>
+
+    <div v-else class="fumetto-azioni">
+      <button
+        v-if="moduloDisponibile && !moduloAperto && !faseAiuto"
         type="button"
         class="btn-account"
         :class="{ 'btn-account--evidenza': mostraAccountEvidenza || modalitàStatica || staticoForzato }"
@@ -770,14 +1070,27 @@ defineExpose({ interrompi });
         {{ t.ctaAccount }}
       </button>
       <a
-        v-else-if="!moduloAperto"
+        v-else-if="!moduloAperto && !faseAiuto"
         class="btn-account"
         :class="{ 'btn-account--evidenza': mostraAccountEvidenza || modalitàStatica || staticoForzato }"
         :href="URL_REGISTRAZIONE"
       >
         {{ t.ctaAccount }}
       </a>
-      <button type="button" class="btn-saluta" @click="emit('saluta')">
+      <button
+        v-if="faseAiuto && haDatiAiuto() && !schedaAperta && !aiutoFatto"
+        type="button"
+        class="btn-account"
+        @click="apriScheda"
+      >
+        {{ ta.chipRiepilogo }}
+      </button>
+      <button
+        type="button"
+        class="btn-saluta"
+        :disabled="invioInCorso"
+        @click="emit('saluta')"
+      >
         {{ t.saluta }}
       </button>
     </div>
@@ -791,6 +1104,17 @@ defineExpose({ interrompi });
   gap: 0.55rem;
   min-height: 0;
   flex: 1 1 auto;
+}
+
+.informativa-aiuto {
+  margin: 0;
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: #3d4a3a;
+}
+.informativa-aiuto a {
+  color: inherit;
+  text-decoration: underline;
 }
 
 .riga-altoparlante {

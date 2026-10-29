@@ -80,7 +80,7 @@ Il contenitore delle clip (`.tony-player-host`) ha al massimo due livelli durant
 
 ## Registrazione nella chat (passo 13)
 
-Dopo il saluto, se App Check (o il modo finto) è pronto, «Crea il tuo account gratuito» apre un **modulo nella chat** (email, password, conferma, nome azienda; niente nome e cognome). Email e password **non** passano dalla chat né da Tony: niente `tonyLandingAsk`, niente voce, niente log. Clip `topic-registrazione` (2,5 s) poi idle. A fine registrazione «Vai alla tua dashboard» apre il login dell’app con l’email già scritta nel frammento `#email=` (mai la password).
+Dopo il saluto, se App Check (o il modo finto) è pronto, «Crea il tuo account gratuito» apre un **modulo nella chat** (email, password, conferma, nome azienda; niente nome e cognome). Email e password **non** passano dalla chat né da Tony: niente `tonyLandingAsk`, niente voce, niente log. Clip `topic-registrazione` (2,5 s) poi taccuino in loop. A fine registrazione resta aperta la sessione sulla landing e parte l’aiuto per l’account (passo 14).
 
 Prove in locale **senza account veri** (solo `npm run dev`):
 
@@ -92,6 +92,31 @@ npm run dev
 Apri http://localhost:5173/?tonybussa=1&tonyfinto=ok&tonyreg=ok
 
 Altri scenari: `tonyreg=lento`, `email-usata`, `password-debole`, `rete`, `azienda`, `azienda-pulizia-fallita`, `profilo`, `legale`. Con solo `tonyfinto=` (senza `tonyreg`) vale come `ok`. Nella build di produzione il modo finto **non** c’è.
+
+## Aiuto per l'account (passo 14)
+
+Dopo la registrazione Tony propone tre domande (sede, poderi, terreni), saltabili con «Dopo». Le risposte vanno a `tonyLandingAsk` in fase `account` (serve l’accesso); i dati restano **solo in memoria**. Alla fine compare la scheda «Confermi?»: **solo** «Sì, salva» chiama `tonyLandingSetup`. Poi la frase fissa «Fatto! Per 7 giorni…» con voce `tony-fatto.mp3` e «Vai alla tua dashboard» (login con email già scritta).
+
+Regola d’oro: tra Tony e il salvataggio c’è sempre il visitatore. Il modello non salva e non dice «ho salvato».
+
+Prove in locale (solo `npm run dev`):
+
+```bash
+cd landing
+npm run dev
+```
+
+Apri http://localhost:5173/?tonybussa=1&tonyfinto=ok&tonyreg=ok&tonyaiuto=ok&tonysetup=ok
+
+Altri: `tonyaiuto=troppi|categoria|vuoto|limite|accesso`, `tonysetup=lento|doppio|dati-non-validi|niente-da-salvare|limite-terreni|gia-preparato|…`. Nella build i modi finti **non** ci sono.
+
+Per rigenerare le stesse regole di salvataggio usate dalla scheda:
+
+```bash
+node landing/scripts/genera-setup-core-landing.mjs
+```
+
+`tonyLandingAsk` (fase account) va ripubblicata al promote su `main` (vedi «Dopo l’unione» del passo).
 
 ### Dopo l’unione (console, prima del passo 16)
 

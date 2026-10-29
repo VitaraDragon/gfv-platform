@@ -6,14 +6,18 @@ import {
   DIMENSIONI_TONY_STATICO,
   DISSOLVENZA_STATICO_MS,
   durataClipMs,
+  passaggioClip,
   percorsoClip,
   percorsoTonyStatico,
+  percorsiClipArgomenti,
   percorsiClipRegistrazione,
+  scalettaArgomento,
   scalettaClip,
   sicurezzaEntrataMs,
   tempiVoce,
 } from '../lib/tony-bussa-logica.js';
 import { creaPlayerClip } from '../lib/tony-clip-player.js';
+import { urlDashboardDopoRegistrazione } from '../lib/tony-registrazione.js';
 import { moduloRegistrazioneDisponibile } from '../lib/tony-registrazione.js';
 import TonyChat from './TonyChat.vue';
 
@@ -44,7 +48,14 @@ const emit = defineEmits([
   'apri-modulo',
   'chiudi-modulo',
   'registrazione-completata',
+  'invio-in-corso',
 ]);
+
+const ottieniTokenAccesso = ref<(() => Promise<string | null>) | null>(null);
+const salvaAziendaFn = ref<((dati: object) => Promise<any>) | null>(null);
+const argomentiSuonati = new Set<string>();
+let argomentoInCoda: string | null = null;
+let clipArgomentiPreload = false;
 
 const t = testiLanding.tonyBussa;
 const msBocca = tempiVoce().dissolvenzaBoccaMs;
@@ -190,8 +201,122 @@ function clipUnaVolta(nome: string) {
     nome === 'listenLower' ||
     nome === 'thinking' ||
     nome === 'topicRegistrazione' ||
+    nome === 'topicSede' ||
+    nome === 'topicPoderi' ||
+    nome === 'topicTerreni' ||
     nome === 'entry'
   );
+}
+
+async function preparaStrumentiAccount() {
+  if (import.meta.env.DEV && typeof window !== 'undefined') {
+    const q = window.location.search;
+    try {
+      const reg = await import('../lib/tony-registrazione-finta.js');
+      const setup = await import('../lib/tony-setup-finto.js');
+      const scSetup = setup.parametroTonySetup(q);
+      const scReg = reg.parametroTonyReg(q);
+      if (scReg || scSetup) {
+        ottieniTokenAccesso.value = async () => reg.TOKEN_ACCESSO_FINTO;
+        if (scSetup) {
+          salvaAziendaFn.value = async (dati) =>
+            setup.salvaAziendaFinta({ scenario: scSetup, dati });
+        } else {
+          const acc = await import('../lib/firebase-landing-account.js');
+          salvaAziendaFn.value = (dati) => acc.salvaAziendaDaLanding(dati);
+        }
+        return;
+      }
+    } catch {
+      /* cade sul vero */
+    }
+  }
+  try {
+    const acc = await import('../lib/firebase-landing-account.js');
+    ottieniTokenAccesso.value = () => acc.tokenAccesso();
+    salvaAziendaFn.value = (dati) => acc.salvaAziendaDaLanding(dati);
+  } catch {
+    ottieniTokenAccesso.value = async () => null;
+    salvaAziendaFn.value = async () => ({
+      ok: false,
+      codice: 'rete',
+      motivo: 'rete',
+    });
+  }
+}
+
+async function precaricaClipArgomenti() {
+  if (clipArgomentiPreload || smontato) return;
+  clipArgomentiPreload = true;
+  assicuratiPlayer();
+  if (!player) return;
+  try {
+    const percorsi = percorsiClipArgomenti(fmt(), varScena());
+    void percorsi;
+    for (const nome of ['topicSede', 'topicPoderi', 'topicTerreni']) {
+      try {
+        await player.precarica(urlClip(nome));
+        if (!smontato) marcaClipPronta(nome);
+      } catch {
+        /* clip non pronta */
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function provaSuonaArgomento(argomento: string) {
+  if (props.riduciMovimento) return;
+  if (argomentiSuonati.has(argomento)) return;
+  const lista = scalettaArgomento(argomento);
+  if (!lista || !lista.length) return;
+  const clip = lista[0];
+  if (!clipChatPronta(clip)) {
+    window.setTimeout(() => {
+      if (smontato || props.fase !== 'idle') return;
+      if (clipChatPronta(clip)) {
+        argomentiSuonati.add(argomento);
+        argomentoInCoda = null;
+        partiScaletta(lista, tempiVoce().dissolvenzaBoccaMs);
+      }
+    }, 1500);
+    return;
+  }
+  if (props.fase !== 'idle' || (clipCorrente && clipCorrente !== 'idle')) {
+    argomentoInCoda = argomento;
+    return;
+  }
+  argomentiSuonati.add(argomento);
+  partiScaletta(lista, tempiVoce().dissolvenzaBoccaMs);
+}
+
+function onArgomento(argomento: string) {
+  void precaricaClipArgomenti();
+  provaSuonaArgomento(String(argomento || ''));
+}
+
+async function onVaiDashboard() {
+  let email: string | null = null;
+  try {
+    if (import.meta.env.DEV && typeof window !== 'undefined') {
+      const reg = await import('../lib/tony-registrazione-finta.js');
+      if (reg.parametroTonyReg(window.location.search)) {
+        email = reg.ultimaEmailFinta();
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  try {
+    const acc = await import('../lib/firebase-landing-account.js');
+    if (!email) email = acc.emailCollegata();
+    await acc.esciDopoRegistrazione();
+  } catch {
+    /* ignore */
+  }
+  const url = urlDashboardDopoRegistrazione(email || '');
+  if (typeof location !== 'undefined') location.assign(url);
 }
 
 function suonaProssima() {
@@ -317,11 +442,68 @@ function avviaScaletta(da: string, a: string) {
   }
 
   if (props.riduciMovimento && a !== 'esce' && a !== 'entra') {
-    if (a === 'idle' || a === 'ascolta' || a === 'pensa' || a === 'scrive' || a === 'parla') {
+    if (
+      a === 'idle' ||
+      a === 'ascolta' ||
+      a === 'pensa' ||
+      a === 'scrive' ||
+      a === 'parla' ||
+      a === 'modulo'
+    ) {
       if (clipCorrente === 'idle' && clipInLoop('idle')) return;
       partiScaletta(['idle'], 0);
       return;
     }
+  }
+
+  const codaInAttesa = codaDopoCorrente
+    ? codaDopoCorrente.lista
+    : codaClip.length
+      ? codaClip.slice()
+      : null;
+  const decisione = passaggioClip({
+    da,
+    a,
+    clipCorrente,
+    codaInAttesa,
+    riduciMovimento: props.riduciMovimento,
+  });
+
+  if (decisione) {
+    if (!decisione.lista.length) return;
+    if (
+      decisione.lista.length === 1 &&
+      decisione.lista[0] === clipCorrente &&
+      clipInLoop(clipCorrente)
+    ) {
+      return;
+    }
+    if (decisione.modo === 'dopoCorrente') {
+      codaDopoCorrente = {
+        lista: decisione.lista.slice(),
+        dissolvenzaMs: decisione.dissolvenzaMs,
+      };
+      return;
+    }
+    if (decisione.modo === 'fineGiro') {
+      if (clipInLoop(clipCorrente) && clipCorrente !== 'idle') {
+        const durata = durataClipMs(clipCorrente, varScena());
+        const genAttesa = generazioneClip;
+        timerGiro = player.allaFineDelGiro(durata, () => {
+          if (smontato) return;
+          if (genAttesa !== generazioneClip && !codaDopoCorrente) {
+            /* interrotto */
+          }
+          partiScaletta(decisione.lista, decisione.dissolvenzaMs);
+        });
+        return;
+      }
+      partiScaletta(decisione.lista, decisione.dissolvenzaMs);
+      return;
+    }
+    // subito
+    partiScaletta(decisione.lista, decisione.dissolvenzaMs);
+    return;
   }
 
   const lista = scalettaClip(da, a);
@@ -491,16 +673,22 @@ function applicaFase(fase: string, precedente?: string) {
     if (fase === 'modulo') {
       assicuratiPlayer();
       if (props.riduciMovimento) {
-        codaClip = ['idle'];
-        suonaProssima();
+        // riduci animazioni → fermo (nessuna clip)
+        generazioneClip += 1;
+        codaClip = [];
+        player?.ferma();
       } else if (clipChatPronta('topicRegistrazione')) {
         avviaScaletta(prec || 'idle', 'modulo');
       } else {
-        // Se non pronta entro 1500 ms → idle (come le altre clip non pronte)
+        // Se non pronta entro 1500 ms → scrive se pronta, altrimenti idle
         window.setTimeout(() => {
           if (smontato || props.fase !== 'modulo') return;
           if (clipChatPronta('topicRegistrazione')) {
             avviaScaletta(prec || 'idle', 'modulo');
+          } else if (clipChatPronta('scrive')) {
+            generazioneClip += 1;
+            codaClip = ['scrive'];
+            suonaProssima();
           } else {
             generazioneClip += 1;
             codaClip = ['idle'];
@@ -519,6 +707,11 @@ function applicaFase(fase: string, precedente?: string) {
   }
   if (fase === 'idle' || fase === 'parla' || fase === 'statico' || fase === 'ascolta' || fase === 'modulo') {
     avviaProtezionePigro();
+  }
+  if (fase === 'idle' && argomentoInCoda) {
+    const a = argomentoInCoda;
+    argomentoInCoda = null;
+    provaSuonaArgomento(a);
   }
   faseClipPrecedente = fase;
 }
@@ -554,6 +747,7 @@ watch(
 onMounted(() => {
   assicuratiPlayer();
   applicaFase(props.fase);
+  void preparaStrumentiAccount();
 });
 
 onUnmounted(() => {
@@ -565,6 +759,11 @@ onUnmounted(() => {
   if (timerStatico) window.clearTimeout(timerStatico);
   player?.ferma();
   player = null;
+  void import('../lib/firebase-landing-account.js')
+    .then((m) => m.esciDopoRegistrazione())
+    .catch(() => {
+      /* ignore */
+    });
 });
 
 function onSaluta() {
@@ -595,7 +794,12 @@ function onChiudiModulo() {
 }
 
 function onRegistrazioneCompletata() {
+  void precaricaClipArgomenti();
   emit('registrazione-completata');
+}
+
+function onInvioInCorso(valore: boolean) {
+  emit('invio-in-corso', valore);
 }
 
 const mostraFumetto = () =>
@@ -633,6 +837,8 @@ const mostraFumetto = () =>
           <TonyChat
             ref="chatRef"
             :ottieni-token="ottieniToken"
+            :ottieni-token-accesso="ottieniTokenAccesso || undefined"
+            :salva-azienda="salvaAziendaFn || undefined"
             :variante="variante"
             :riduci-movimento="riduciMovimento"
             :saluto-finito="salutoFinito"
@@ -652,6 +858,9 @@ const mostraFumetto = () =>
             @apri-modulo="onApriModulo"
             @chiudi-modulo="onChiudiModulo"
             @registrazione-completata="onRegistrazioneCompletata"
+            @invio-in-corso="onInvioInCorso"
+            @argomento="onArgomento"
+            @vai-dashboard="onVaiDashboard"
           />
         </template>
       </div>

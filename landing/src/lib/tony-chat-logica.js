@@ -32,6 +32,11 @@ export const MESSAGGI_CHAT = Object.freeze({
     "Qui non scrivermi email o password: quando crei l'account te le chiede il modulo.",
   // BOZZA: da far rivedere
   errore: 'In questo momento non riesco a risponderti. Intanto prova GFV!',
+  // BOZZA: da far rivedere
+  limiteAccount:
+    'Per ora basta così: puoi aggiungere sede, poderi e terreni anche dopo, dalla dashboard.',
+  // BOZZA: da far rivedere
+  accessoMancante: 'Prima crea il tuo account, poi ti aiuto con i dati.',
 });
 
 const ALFABETO_SESSIONE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-';
@@ -135,9 +140,12 @@ export function aggiornaStoria(storia, battuta) {
 }
 
 /**
- * @param {{ domanda: string, sessione: string, storia: Array }} args
+ * @param {{ domanda: string, sessione: string, storia: Array, fase?: string, argomento?: string }} args
  */
-export function corpoRichiesta({ domanda, sessione, storia }) {
+export function corpoRichiesta({ domanda, sessione, storia, fase, argomento }) {
+  if (fase === 'account') {
+    return { domanda, sessione, storia, fase: 'account', argomento };
+  }
   return { domanda, sessione, storia };
 }
 
@@ -238,13 +246,64 @@ function parseBloccoSse(blocco) {
 }
 
 /**
- * @param {{ codice?: string, testo?: string, mostraRegistrazione?: boolean, domandeRimaste?: number, http?: number }} esito
+ * @param {{ codice?: string, testo?: string, mostraRegistrazione?: boolean, domandeRimaste?: number, http?: number, fase?: string }} esito
  */
 export function azionePerEsito(esito) {
   const e = esito && typeof esito === 'object' ? esito : {};
   const codice = String(e.codice || '');
   const http = typeof e.http === 'number' ? e.http : 0;
   const testoDone = typeof e.testo === 'string' ? e.testo : '';
+  const faseAccount = e.fase === 'account';
+
+  if (faseAccount) {
+    if (
+      codice === 'limite-account' ||
+      codice === 'spento' ||
+      codice === 'tetto' ||
+      codice === 'limite-globale' ||
+      codice === 'accesso-mancante' ||
+      codice === 'accesso-non-valido' ||
+      http === 401
+    ) {
+      return {
+        tipo: 'aiuto-sospeso',
+        testo:
+          testoDone ||
+          (codice === 'limite-account'
+            ? MESSAGGI_CHAT.limiteAccount
+            : codice === 'accesso-mancante' ||
+                codice === 'accesso-non-valido' ||
+                http === 401
+              ? MESSAGGI_CHAT.accessoMancante
+              : MESSAGGI_CHAT[codice === 'limite-globale' ? 'limiteGlobale' : codice] ||
+                MESSAGGI_CHAT.errore),
+        mostraRegistrazione: false,
+        campoAttivo: false,
+      };
+    }
+    if (codice === 'ok') {
+      return {
+        tipo: 'risposta',
+        testo: testoDone || MESSAGGI_CHAT.errore,
+        mostraRegistrazione: false,
+        campoAttivo: true,
+      };
+    }
+    if (codice === 'dati-personali') {
+      return {
+        tipo: 'filtro',
+        testo: testoDone || MESSAGGI_CHAT.datiPersonali,
+        mostraRegistrazione: false,
+        campoAttivo: true,
+      };
+    }
+    return {
+      tipo: 'aiuto-sospeso',
+      testo: testoDone || MESSAGGI_CHAT.errore,
+      mostraRegistrazione: false,
+      campoAttivo: false,
+    };
+  }
 
   if (
     codice === 'app-check-mancante' ||

@@ -97,3 +97,72 @@ export async function esciDopoRegistrazione() {
     /* sessione già chiusa */
   }
 }
+
+/**
+ * Token di accesso Firebase Auth (fase account / salvataggio).
+ * @returns {Promise<string | null>}
+ */
+export async function tokenAccesso() {
+  try {
+    if (!auth || !auth.currentUser) {
+      const apps = getApps();
+      if (!apps || !apps[0]) return null;
+      if (!auth) {
+        auth = initializeAuth(apps[0], { persistence: browserSessionPersistence });
+      }
+    }
+    if (!auth.currentUser) return null;
+    return await auth.currentUser.getIdToken();
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Email dell'utente collegato (solo per il link dashboard).
+ * @returns {string | null}
+ */
+export function emailCollegata() {
+  try {
+    if (!auth || !auth.currentUser) return null;
+    const email = auth.currentUser.email;
+    return typeof email === 'string' && email ? email : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Chiama tonyLandingSetup con i dati della scheda Confermi.
+ * @param {object} dati
+ */
+export async function salvaAziendaDaLanding(dati) {
+  try {
+    await strumentiRegistrazione();
+    if (!functions) {
+      return { ok: false, codice: 'non-collegato', motivo: 'non-collegato' };
+    }
+    if (!auth || !auth.currentUser) {
+      return { ok: false, codice: 'non-collegato', motivo: 'non-collegato' };
+    }
+    const callable = httpsCallable(functions, 'tonyLandingSetup');
+    const risultato = await callable(dati);
+    return { ok: true, risposta: risultato && risultato.data ? risultato.data : risultato };
+  } catch (err) {
+    const raw = err && typeof err === 'object' ? err : {};
+    let codice = typeof raw.code === 'string' ? raw.code : 'rete';
+    if (codice.indexOf('functions/') === 0) codice = codice.slice('functions/'.length);
+    const details = raw.details && typeof raw.details === 'object' ? raw.details : {};
+    return {
+      ok: false,
+      codice,
+      motivo: typeof details.motivo === 'string' ? details.motivo : codice,
+      campi: Array.isArray(details.campi) ? details.campi : undefined,
+      dettagli: {
+        limite: details.limite,
+        esistenti: details.esistenti,
+        richiesti: details.richiesti,
+      },
+    };
+  }
+}

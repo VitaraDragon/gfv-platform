@@ -14,18 +14,24 @@ const TIMEOUT_MS = 30000;
  *   sessione: string,
  *   storia: Array,
  *   ottieniToken: () => Promise<string | null>,
+ *   ottieniTokenAccesso?: () => Promise<string | null>,
+ *   fase?: string,
+ *   argomento?: string,
  *   onPezzo?: (delta: string) => void,
  *   segnale?: AbortSignal,
  *   fetchFn?: typeof fetch,
  *   url?: string,
  * }} args
- * @returns {Promise<{ codice: string, testo?: string, mostraRegistrazione?: boolean, domandeRimaste?: number, http?: number, voce?: boolean, idVoce?: string }>}
+ * @returns {Promise<{ codice: string, testo?: string, mostraRegistrazione?: boolean, domandeRimaste?: number, http?: number, voce?: boolean, idVoce?: string, dati?: object, troppiTerreni?: boolean, fase?: string }>}
  */
 export async function chiediATony({
   domanda,
   sessione,
   storia,
   ottieniToken,
+  ottieniTokenAccesso,
+  fase,
+  argomento,
   onPezzo,
   segnale,
   fetchFn = fetch,
@@ -42,6 +48,28 @@ export async function chiediATony({
     return { codice: 'app-check-mancante' };
   }
 
+  const headers = {
+    'Content-Type': 'application/json',
+    'X-Firebase-AppCheck': token,
+  };
+
+  if (fase === 'account') {
+    let idToken = null;
+    try {
+      idToken =
+        typeof ottieniTokenAccesso === 'function'
+          ? await ottieniTokenAccesso()
+          : null;
+    } catch {
+      idToken = null;
+    }
+    if (!idToken) {
+      logDev('accesso-mancante');
+      return { codice: 'accesso-mancante', http: 401, fase: 'account' };
+    }
+    headers.Authorization = 'Bearer ' + idToken;
+  }
+
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   const onAbortEsterno = () => controller.abort();
@@ -53,11 +81,10 @@ export async function chiediATony({
   try {
     const risposta = await fetchFn(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Firebase-AppCheck': token,
-      },
-      body: JSON.stringify(corpoRichiesta({ domanda, sessione, storia })),
+      headers,
+      body: JSON.stringify(
+        corpoRichiesta({ domanda, sessione, storia, fase, argomento })
+      ),
       credentials: 'omit',
       cache: 'no-store',
       signal: controller.signal,
@@ -76,11 +103,15 @@ export async function chiediATony({
       } catch {
         /* niente corpo JSON */
       }
-      if (http === 401 && !codice.startsWith('app-check')) {
-        codice = 'app-check-non-valido';
+      if (http === 401) {
+        if (codice === 'accesso-mancante' || codice === 'accesso-non-valido') {
+          /* già corretto */
+        } else if (!codice.startsWith('app-check')) {
+          codice = fase === 'account' ? 'accesso-non-valido' : 'app-check-non-valido';
+        }
       }
       logDev(codice);
-      return { codice, http };
+      return { codice, http, fase: fase === 'account' ? 'account' : undefined };
     }
 
     const lettore = creaLettoreSse();
@@ -137,6 +168,11 @@ export async function chiediATony({
       voce: doneEsito.voce === true,
       http,
     };
+    if (fase === 'account') risultato.fase = 'account';
+    if (doneEsito.dati && typeof doneEsito.dati === 'object') {
+      risultato.dati = doneEsito.dati;
+    }
+    if (doneEsito.troppiTerreni === true) risultato.troppiTerreni = true;
     if (
       typeof doneEsito.idVoce === 'string' &&
       /^[a-f0-9]{32}$/.test(doneEsito.idVoce)

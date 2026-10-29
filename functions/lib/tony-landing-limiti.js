@@ -41,6 +41,14 @@ const COSTANTI = Object.freeze({
   MODELLO_GEMINI: "gemini-2.5-flash",
   /** Token di uscita massimi per risposta. */
   MAX_TOKEN_RISPOSTA: 200,
+  /** Messaggi massimi della fase account per utente (passo 14). */
+  MAX_DOMANDE_ACCOUNT: 15,
+  /** TTL contatore account (ore). */
+  ORE_VALIDITA_ACCOUNT: 48,
+  /** Token di uscita massimi nella fase account. */
+  MAX_TOKEN_RISPOSTA_ACCOUNT: 600,
+  /** Argomenti ammessi nella fase account. */
+  ARGOMENTI_ACCOUNT: Object.freeze(["sede", "poderi", "terreni"]),
   /** Timeout unica chiamata a Gemini. */
   TIMEOUT_GEMINI_MS: 20000,
   /**
@@ -88,7 +96,12 @@ const MESSAGGI = Object.freeze({
   datiPersonali:
     "Qui non scrivermi email o password: quando crei l'account te le chiede il modulo.",
   // BOZZA: da far rivedere
-  errore: "In questo momento non riesco a risponderti. Intanto prova GFV!"
+  errore: "In questo momento non riesco a risponderti. Intanto prova GFV!",
+  // BOZZA: da far rivedere
+  limiteAccount:
+    "Per ora basta così: puoi aggiungere sede, poderi e terreni anche dopo, dalla dashboard.",
+  // BOZZA: da far rivedere
+  accessoMancante: "Prima crea il tuo account, poi ti aiuto con i dati."
 });
 
 /**
@@ -307,18 +320,42 @@ function storiaPulita(storia) {
 
 /**
  * @param {unknown} corpo
- * @returns {{ ok: true, domanda: string, sessione: string, storia: Array } | { ok: false, codice: string }}
+ * @returns {{ ok: true, domanda: string, sessione: string, storia: Array, fase?: string, argomento?: string } | { ok: false, codice: string }}
  */
 function validaRichiesta(corpo) {
   if (!corpo || typeof corpo !== "object" || Array.isArray(corpo)) {
     return { ok: false, codice: "richiesta-non-valida" };
   }
   const chiavi = Object.keys(corpo);
-  for (let i = 0; i < chiavi.length; i++) {
+  const haFase = Object.prototype.hasOwnProperty.call(corpo, "fase");
+  if (!haFase) {
+    for (let i = 0; i < chiavi.length; i++) {
+      if (
+        chiavi[i] !== "domanda" &&
+        chiavi[i] !== "sessione" &&
+        chiavi[i] !== "storia"
+      ) {
+        return { ok: false, codice: "richiesta-non-valida" };
+      }
+    }
+  } else {
+    if (corpo.fase !== "account") {
+      return { ok: false, codice: "richiesta-non-valida" };
+    }
+    for (let i = 0; i < chiavi.length; i++) {
+      if (
+        chiavi[i] !== "domanda" &&
+        chiavi[i] !== "sessione" &&
+        chiavi[i] !== "storia" &&
+        chiavi[i] !== "fase" &&
+        chiavi[i] !== "argomento"
+      ) {
+        return { ok: false, codice: "richiesta-non-valida" };
+      }
+    }
     if (
-      chiavi[i] !== "domanda" &&
-      chiavi[i] !== "sessione" &&
-      chiavi[i] !== "storia"
+      typeof corpo.argomento !== "string" ||
+      COSTANTI.ARGOMENTI_ACCOUNT.indexOf(corpo.argomento) < 0
     ) {
       return { ok: false, codice: "richiesta-non-valida" };
     }
@@ -343,7 +380,78 @@ function validaRichiesta(corpo) {
     return { ok: false, codice: "sessione-non-valida" };
   }
   const storia = storiaPulita(corpo.storia);
+  if (haFase) {
+    return {
+      ok: true,
+      domanda: domanda,
+      sessione: sessione,
+      storia: storia,
+      fase: "account",
+      argomento: corpo.argomento
+    };
+  }
   return { ok: true, domanda: domanda, sessione: sessione, storia: storia };
+}
+
+/**
+ * Id contatore fase account: SHA-256 di «account:» + uid (uid non in chiaro).
+ * @param {string} uid
+ * @returns {string}
+ */
+function idAccount(uid) {
+  return crypto
+    .createHash("sha256")
+    .update("account:" + String(uid || ""), "utf8")
+    .digest("hex");
+}
+
+/**
+ * Controlli fase account: spento → tetto → globale → limite account.
+ * @param {{ config: object, spesaMeseEur?: number, domandeGiorno?: number, domandeAccount?: number }} args
+ */
+function decidiDomandaAccount(args) {
+  const a = args && typeof args === "object" ? args : {};
+  const config = a.config && typeof a.config === "object" ? a.config : {};
+  const spesa =
+    typeof a.spesaMeseEur === "number" && !Number.isNaN(a.spesaMeseEur)
+      ? a.spesaMeseEur
+      : 0;
+  const domandeGiorno =
+    typeof a.domandeGiorno === "number" && !Number.isNaN(a.domandeGiorno)
+      ? a.domandeGiorno
+      : 0;
+  const domandeAccount =
+    typeof a.domandeAccount === "number" && !Number.isNaN(a.domandeAccount)
+      ? a.domandeAccount
+      : 0;
+
+  const budget =
+    typeof config.monthlyBudgetEur === "number" && !Number.isNaN(config.monthlyBudgetEur)
+      ? config.monthlyBudgetEur
+      : COSTANTI.TETTO_MENSILE_EUR;
+  const cap =
+    typeof config.dailyQuestionCap === "number" && !Number.isNaN(config.dailyQuestionCap)
+      ? config.dailyQuestionCap
+      : COSTANTI.MAX_DOMANDE_GIORNO_PREDEFINITO;
+
+  if (config.enabled !== true) {
+    return { consentita: false, codice: "spento", voce: false };
+  }
+  if (spesa >= budget) {
+    return { consentita: false, codice: "tetto", voce: false };
+  }
+  if (domandeGiorno >= cap) {
+    return { consentita: false, codice: "limite-globale", voce: false };
+  }
+  if (domandeAccount >= COSTANTI.MAX_DOMANDE_ACCOUNT) {
+    return { consentita: false, codice: "limite-account", voce: false };
+  }
+
+  const voce =
+    config.voiceEnabled === true &&
+    spesa < COSTANTI.SOGLIA_SOLO_TESTO * budget;
+
+  return { consentita: true, codice: "ok", voce: !!voce };
 }
 
 /**
@@ -432,6 +540,11 @@ function messaggioPerCodice(codice) {
       return MESSAGGI.limiteGlobale;
     case "dati-personali":
       return MESSAGGI.datiPersonali;
+    case "limite-account":
+      return MESSAGGI.limiteAccount;
+    case "accesso-mancante":
+    case "accesso-non-valido":
+      return MESSAGGI.accessoMancante;
     case "errore":
       return MESSAGGI.errore;
     default:
@@ -489,7 +602,7 @@ function tokenDaUsage(usageMetadata, testoDomanda, testoRisposta) {
 /**
  * Corpo per Gemini: solo systemInstruction, contents, generationConfig.
  * Mai tools / toolConfig / functionDeclarations / cachedContent.
- * @param {{ promptSistema: string, storia: Array, domanda: string }} args
+ * @param {{ promptSistema: string, storia: Array, domanda: string, formatoAccount?: boolean, schemaRisposta?: object }} args
  */
 function corpoRichiestaGemini(args) {
   const a = args && typeof args === "object" ? args : {};
@@ -508,16 +621,25 @@ function corpoRichiestaGemini(args) {
     role: "user",
     parts: [{ text: String(a.domanda || "") }]
   });
+  const generationConfig = a.formatoAccount
+    ? {
+        temperature: 0.2,
+        maxOutputTokens: COSTANTI.MAX_TOKEN_RISPOSTA_ACCOUNT,
+        responseMimeType: "application/json",
+        responseSchema: a.schemaRisposta || undefined,
+        thinkingConfig: { thinkingBudget: 0 }
+      }
+    : {
+        temperature: 0.4,
+        maxOutputTokens: COSTANTI.MAX_TOKEN_RISPOSTA,
+        thinkingConfig: { thinkingBudget: 0 }
+      };
   return {
     systemInstruction: {
       parts: [{ text: String(a.promptSistema || "") }]
     },
     contents: contents,
-    generationConfig: {
-      temperature: 0.4,
-      maxOutputTokens: COSTANTI.MAX_TOKEN_RISPOSTA,
-      thinkingConfig: { thinkingBudget: 0 }
-    }
+    generationConfig: generationConfig
   };
 }
 
@@ -566,10 +688,12 @@ module.exports = {
   ipDaRichiesta,
   idVisitatore,
   idSessione,
+  idAccount,
   storiaPulita,
   validaRichiesta,
   contieneDatiPersonali,
   decidiDomanda,
+  decidiDomandaAccount,
   messaggioPerCodice,
   costoStimatoEur,
   tokenDaUsage,

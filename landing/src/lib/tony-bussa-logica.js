@@ -21,6 +21,9 @@ const NOMI_FILE_CLIP = Object.freeze({
   scrive: 'tony-scrive-hs1-taccuino',
   talking: 'tony-talking-loop',
   topicRegistrazione: 'tony-topic-registrazione-2s5',
+  topicSede: 'tony-topic-sede',
+  topicPoderi: 'tony-topic-poderi-2s5',
+  topicTerreni: 'tony-topic-terreni',
   exit: 'tony-exit-2s-veloce',
 });
 
@@ -35,7 +38,17 @@ export const DURATE_CLIP_MS = Object.freeze({
   scrive: 3583,
   talking: 3792,
   topicRegistrazione: 2500,
+  topicSede: 2792,
+  topicPoderi: 2500,
+  topicTerreni: 3042,
   exit: 2000,
+});
+
+/** Clip topic per l'aiuto all'account (passo 14). */
+export const CLIP_PER_ARGOMENTO = Object.freeze({
+  sede: 'topicSede',
+  poderi: 'topicPoderi',
+  terreni: 'topicTerreni',
 });
 
 /** Clip che si ripetono in loop. */
@@ -237,6 +250,45 @@ export function percorsiClipRegistrazione(dispositivo) {
 }
 
 /**
+ * Clip topic sede/poderi/terreni per il formato corrente.
+ * @param {'webm' | 'webp' | 'stacked'} formato
+ * @param {'desktop' | 'mobile'} [variante]
+ * @returns {string[]}
+ */
+export function percorsiClipArgomenti(formato, variante) {
+  const v = variante === 'mobile' ? 'mobile' : 'desktop';
+  const f =
+    formato === 'webp' || formato === 'stacked' || formato === 'webm'
+      ? formato
+      : 'webm';
+  return ['topicSede', 'topicPoderi', 'topicTerreni']
+    .map((nome) => percorsoClip(nome, v, f))
+    .filter(Boolean);
+}
+
+/**
+ * Scaletta una volta per argomento: gesto poi idle.
+ * @param {string} argomento
+ * @returns {string[] | null}
+ */
+export function scalettaArgomento(argomento) {
+  const clip = CLIP_PER_ARGOMENTO[argomento];
+  if (!clip) return null;
+  return [clip, 'idle'];
+}
+
+/**
+ * Voce fissa dopo il salvataggio (passo 14).
+ * @returns {{ mp3: string, vtt: string }}
+ */
+export function percorsoVoceFatto() {
+  return {
+    mp3: '/tony-live/voci/tony-fatto.mp3',
+    vtt: '/tony-live/voci/tony-fatto.vtt',
+  };
+}
+
+/**
  * Elenco ordinato delle clip da suonare passando da uno stato all'altro.
  * @param {string} da
  * @param {string} a
@@ -246,7 +298,7 @@ export function scalettaClip(da, a) {
   if (a === 'esce') return ['exit'];
   if (a === 'statico') return [];
   if (da === 'entra' && a === 'idle') return [];
-  if (a === 'modulo') return ['topicRegistrazione', 'idle'];
+  if (a === 'modulo') return ['topicRegistrazione', 'scrive'];
   if (da === 'modulo' && a === 'idle') return ['idle'];
   if (da === 'idle' && a === 'ascolta') return ['listenRaise', 'listenLoop'];
   if (da === 'ascolta' && a === 'idle') return ['listenLower', 'idle'];
@@ -260,6 +312,50 @@ export function scalettaClip(da, a) {
   if (da === 'idle' && a === 'parla') return ['talking'];
   if (da === 'parla' && a === 'idle') return ['idle'];
   return [];
+}
+
+/**
+ * Decide come avviare una nuova scaletta di clip (R6: taccuino visibile).
+ * Ritorna null per lasciare la logica storica di avviaScaletta.
+ * @param {{ da: string, a: string, clipCorrente?: string, codaInAttesa?: string[] | null, riduciMovimento?: boolean }} opts
+ * @returns {{ modo: 'subito' | 'fineGiro' | 'dopoCorrente', lista: string[], dissolvenzaMs: number } | null}
+ */
+export function passaggioClip({ da, a, clipCorrente, codaInAttesa, riduciMovimento }) {
+  if (riduciMovimento === true) {
+    return { modo: 'subito', lista: [], dissolvenzaMs: 0 };
+  }
+
+  const fade = tempiVoce().dissolvenzaBoccaMs;
+  const lista = scalettaClip(da, a);
+
+  // Eccezioni che passano sempre davanti: uscita e voce.
+  if (a === 'esce' || a === 'parla') {
+    return { modo: 'subito', lista, dissolvenzaMs: fade };
+  }
+
+  // Se «scrive» è ancora in coda, la nuova scaletta va dopo (non la sovrascrive).
+  const coda = Array.isArray(codaInAttesa) ? codaInAttesa : null;
+  if (coda && coda.indexOf('scrive') >= 0) {
+    const idx = coda.indexOf('scrive');
+    const nuova = coda.slice(0, idx + 1);
+    for (let i = 0; i < lista.length; i += 1) {
+      if (nuova.indexOf(lista[i]) < 0) nuova.push(lista[i]);
+    }
+    return { modo: 'dopoCorrente', lista: nuova, dissolvenzaMs: 0 };
+  }
+
+  if (da === 'pensa' && a === 'scrive') {
+    return { modo: 'subito', lista, dissolvenzaMs: fade };
+  }
+  if (da === 'modulo' && a === 'idle') {
+    return { modo: 'subito', lista, dissolvenzaMs: fade };
+  }
+  if (da === 'scrive' && a === 'idle') {
+    return { modo: 'fineGiro', lista, dissolvenzaMs: 0 };
+  }
+
+  void clipCorrente;
+  return null;
 }
 
 /**

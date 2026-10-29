@@ -86,12 +86,37 @@ const RISPOSTA_DEFAULT =
  *   sleepFn?: (ms: number) => Promise<void>,
  * }} args
  */
+/**
+ * @param {string} [query]
+ * @returns {string | null}
+ */
+export function parametroTonyAiuto(query) {
+  const testo = String(query ?? '');
+  const inizio = testo.indexOf('?');
+  let q = inizio >= 0 ? testo.slice(inizio + 1) : testo;
+  const hash = q.indexOf('#');
+  if (hash >= 0) q = q.slice(0, hash);
+  let valore = null;
+  try {
+    valore = new URLSearchParams(q).get('tonyaiuto');
+  } catch {
+    return null;
+  }
+  if (valore === null || valore === '') return null;
+  if (valore === '1') return 'ok';
+  const ammessi = ['ok', 'troppi', 'categoria', 'vuoto', 'limite', 'accesso'];
+  if (ammessi.indexOf(valore) >= 0) return valore;
+  return 'ok';
+}
+
 export async function chiediFinto({
   domanda,
   storia,
   onPezzo,
   segnale,
   scenario = 'ok',
+  fase,
+  argomento,
   sleepFn,
 }) {
   const sleep =
@@ -118,6 +143,16 @@ export async function chiediFinto({
           });
 
   const sc = String(scenario || 'ok');
+
+  if (fase === 'account') {
+    return chiediFintoAccount({
+      argomento,
+      onPezzo,
+      segnale,
+      scenario: sc,
+      sleep,
+    });
+  }
 
   try {
     if (sc === 'rete') return { codice: 'rete' };
@@ -226,4 +261,111 @@ function spezzaInPezzi(testo) {
 function contaDomandeOk(storia) {
   if (!Array.isArray(storia)) return 0;
   return storia.filter((b) => b && b.ruolo === 'utente').length;
+}
+
+async function chiediFintoAccount({ argomento, onPezzo, segnale, scenario, sleep }) {
+  const scChat =
+    typeof window !== 'undefined'
+      ? parametroTonyAiuto(window.location.search) || 'ok'
+      : 'ok';
+  const sc = scChat === 'ok' && scenario === 'lento' ? 'ok' : scChat;
+  const lento = scenario === 'lento';
+
+  if (sc === 'accesso') {
+    return { codice: 'accesso-non-valido', http: 401, fase: 'account' };
+  }
+  if (sc === 'limite') {
+    return {
+      codice: 'limite-account',
+      testo: MESSAGGI_CHAT.limiteAccount,
+      fase: 'account',
+      mostraRegistrazione: false,
+      domandeRimaste: 0,
+    };
+  }
+
+  await sleep(lento ? 6000 : 700);
+
+  let testo = 'Ok, ho capito.';
+  let dati = { sede: null, poderi: [], terreni: [], fatto: true };
+  let troppiTerreni = false;
+
+  if (sc === 'vuoto') {
+    testo = 'Non ho capito bene: riprova.';
+    dati = { sede: null, poderi: [], terreni: [], fatto: false };
+  } else if (sc === 'categoria' && argomento === 'terreni') {
+    testo = 'Che cosa ci coltivi? Grano, mais, orzo…';
+    dati = {
+      sede: null,
+      poderi: [],
+      terreni: [{ nome: 'Campo', superficie: 1, coltura: null, podere: null }],
+      fatto: false,
+    };
+  } else if (sc === 'troppi' && argomento === 'terreni') {
+    testo =
+      "Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.";
+    troppiTerreni = true;
+    dati = {
+      sede: null,
+      poderi: [],
+      terreni: [
+        { nome: 'T1', superficie: 1, coltura: 'Grano', podere: null },
+        { nome: 'T2', superficie: 1, coltura: 'Grano', podere: null },
+        { nome: 'T3', superficie: 1, coltura: 'Grano', podere: null },
+        { nome: 'T4', superficie: 1, coltura: 'Grano', podere: null },
+        { nome: 'T5', superficie: 1, coltura: 'Grano', podere: null },
+      ],
+      fatto: true,
+    };
+  } else if (argomento === 'sede') {
+    testo = 'Ho segnato la sede: controlla dopo nel riepilogo.';
+    dati = {
+      sede: {
+        indirizzo: 'Via Roma 12',
+        citta: 'Faenza',
+        cap: '48018',
+        provincia: 'RA',
+      },
+      poderi: [],
+      terreni: [],
+      fatto: true,
+    };
+  } else if (argomento === 'poderi') {
+    testo = 'Ho segnato il podere Casetti.';
+    dati = {
+      sede: null,
+      poderi: [{ nome: 'Casetti' }],
+      terreni: [],
+      fatto: true,
+    };
+  } else if (argomento === 'terreni') {
+    testo = 'Ho segnato i terreni: controlla il riepilogo.';
+    dati = {
+      sede: null,
+      poderi: [],
+      terreni: [
+        { nome: 'Campo grande', superficie: 2.34, coltura: 'Grano', podere: 'Casetti' },
+        { nome: 'Meleto', superficie: 1.2, coltura: 'Melo', podere: null },
+      ],
+      fatto: true,
+    };
+  }
+
+  const pezzi = spezzaInPezzi(testo);
+  for (const pezzo of pezzi) {
+    if (segnale && segnale.aborted) return { codice: 'errore', fase: 'account' };
+    if (typeof onPezzo === 'function') onPezzo(pezzo);
+    await sleep(80);
+  }
+
+  return {
+    codice: 'ok',
+    testo,
+    fase: 'account',
+    dati,
+    troppiTerreni,
+    mostraRegistrazione: false,
+    domandeRimaste: 10,
+    voce: false,
+  };
 }

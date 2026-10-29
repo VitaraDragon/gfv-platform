@@ -22,9 +22,11 @@ const {
   ipDaRichiesta,
   idVisitatore,
   idSessione,
+  idAccount,
   validaRichiesta,
   contieneDatiPersonali,
   decidiDomanda,
+  decidiDomandaAccount,
   messaggioPerCodice,
   costoStimatoEur,
   tokenDaUsage,
@@ -34,6 +36,11 @@ const {
 } = require("./lib/tony-landing-limiti");
 // Prompt definitivo con base di conoscenza (passo 11).
 const { PROMPT_SISTEMA_LANDING } = require("./lib/tony-landing-prompt");
+const {
+  SCHEMA_RISPOSTA_ACCOUNT,
+  promptSistemaAccount,
+  rispostaAccountDaTesto
+} = require("./lib/tony-landing-account");
 const {
   COSTANTI_VOCE,
   preparaTestoVoce,
@@ -149,7 +156,7 @@ function impostaCors(res, origin) {
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type, X-Firebase-AppCheck"
+    "Content-Type, X-Firebase-AppCheck, Authorization"
   );
   res.setHeader("Access-Control-Max-Age", "3600");
 }
@@ -353,6 +360,94 @@ async function consumaQuota(db, args) {
   });
 }
 
+/**
+ * Contatori fase account: giorno, mese e a_<hash> (niente sessione/visitatore).
+ */
+async function consumaQuotaAccount(db, args) {
+  const { giorno, mese, idAcc, config, expireContatori, expireMese, expireAccount } =
+    args;
+  const refG = db.collection(COLLEZIONE_QUOTA).doc("g_" + giorno);
+  const refM = db.collection(COLLEZIONE_QUOTA).doc("m_" + mese);
+  const refA = db.collection(COLLEZIONE_QUOTA).doc("a_" + idAcc);
+
+  return db.runTransaction(async function (tx) {
+    const [snapG, snapM, snapA] = await Promise.all([
+      tx.get(refG),
+      tx.get(refM),
+      tx.get(refA)
+    ]);
+    const g = snapG.exists ? snapG.data() || {} : {};
+    const m = snapM.exists ? snapM.data() || {} : {};
+    const a = snapA.exists ? snapA.data() || {} : {};
+
+    const decisione = decidiDomandaAccount({
+      config: config,
+      spesaMeseEur: typeof m.costoEur === "number" ? m.costoEur : 0,
+      domandeGiorno: typeof g.domande === "number" ? g.domande : 0,
+      domandeAccount: typeof a.count === "number" ? a.count : 0
+    });
+
+    const expireG = Timestamp.fromDate(expireContatori);
+    const expireMe = Timestamp.fromDate(expireMese);
+    const expireA = Timestamp.fromDate(expireAccount);
+    const ts = FieldValue.serverTimestamp();
+    const caratteriVoceGiorno =
+      typeof g.caratteriVoce === "number" ? g.caratteriVoce : 0;
+
+    if (!decisione.consentita) {
+      tx.set(
+        refG,
+        {
+          bloccate: FieldValue.increment(1),
+          expireAt: expireG,
+          aggiornatoIl: ts
+        },
+        { merge: true }
+      );
+      return {
+        codice: decisione.codice,
+        voce: false,
+        domandeAccount: typeof a.count === "number" ? a.count : 0,
+        caratteriVoceGiorno: caratteriVoceGiorno
+      };
+    }
+
+    tx.set(
+      refG,
+      {
+        domande: FieldValue.increment(1),
+        expireAt: expireG,
+        aggiornatoIl: ts
+      },
+      { merge: true }
+    );
+    tx.set(
+      refM,
+      {
+        domande: FieldValue.increment(1),
+        expireAt: expireMe,
+        aggiornatoIl: ts
+      },
+      { merge: true }
+    );
+    const patchA = {
+      count: FieldValue.increment(1),
+      aggiornatoIl: ts
+    };
+    if (!snapA.exists) {
+      patchA.expireAt = expireA;
+    }
+    tx.set(refA, patchA, { merge: true });
+
+    return {
+      codice: "ok",
+      voce: decisione.voce,
+      domandeAccount: (typeof a.count === "number" ? a.count : 0) + 1,
+      caratteriVoceGiorno: caratteriVoceGiorno
+    };
+  });
+}
+
 async function registraSpesa(db, giorno, mese, costo, ok, expireContatori, expireMese) {
   const refG = db.collection(COLLEZIONE_QUOTA).doc("g_" + giorno);
   const refM = db.collection(COLLEZIONE_QUOTA).doc("m_" + mese);
@@ -504,10 +599,330 @@ async function chiamaGeminiDefault(apiKey, corpo, segnali) {
 }
 
 /**
+ * Ramo fase account (passo 14): accesso obbligatorio, JSON, niente stream grezzo.
+ */
+async function handleFaseAccount(req, res, ctx) {
+  const { validata, inizio, adessoFn, db, verificaIdToken, chiamaGemini, leggiConfig } =
+    ctx;
+
+  const authHeader =
+    (req.headers && (req.headers.authorization || req.headers.Authorization)) ||
+    "";
+  const match =
+    typeof authHeader === "string"
+      ? /^Bearer\s+(.+)$/i.exec(authHeader.trim())
+      : null;
+  if (!match || !match[1]) {
+    res.status(401).json({ codice: "accesso-mancante" });
+    return;
+  }
+
+  let decoded;
+  try {
+    decoded = await verificaIdToken(match[1]);
+  } catch (_e) {
+    res.status(401).json({ codice: "accesso-non-valido" });
+    return;
+  }
+  const uid = decoded && typeof decoded.uid === "string" ? decoded.uid : "";
+  if (!uid) {
+    res.status(401).json({ codice: "accesso-non-valido" });
+    return;
+  }
+
+  let sseAvviato = false;
+  try {
+    avviaSse(res);
+    sseAvviato = true;
+
+    const domanda = validata.domanda;
+    const storia = validata.storia;
+    const argomento = validata.argomento;
+
+    let haDatiPersonali = contieneDatiPersonali(domanda);
+    if (!haDatiPersonali) {
+      for (let i = 0; i < storia.length; i++) {
+        if (storia[i].ruolo === "utente" && contieneDatiPersonali(storia[i].testo)) {
+          haDatiPersonali = true;
+          break;
+        }
+      }
+    }
+    if (haDatiPersonali) {
+      chiudiDone(res, {
+        codice: "dati-personali",
+        testo: messaggioPerCodice("dati-personali"),
+        voce: false,
+        domandeRimaste: 0,
+        mostraRegistrazione: false
+      });
+      logRiga("info", [
+        "fase=account",
+        "esito=bloccato",
+        "codice=dati-personali",
+        "ms=" + (Date.now() - inizio)
+      ]);
+      return;
+    }
+
+    const adesso = adessoFn();
+    let config;
+    try {
+      config = await leggiConfig(db, adesso);
+    } catch (_cfgErr) {
+      config = normalizzaConfig(null);
+    }
+    if (config.enabled !== true) {
+      chiudiDone(res, {
+        codice: "spento",
+        testo: messaggioPerCodice("spento"),
+        voce: false,
+        domandeRimaste: 0,
+        mostraRegistrazione: false
+      });
+      logRiga("info", [
+        "fase=account",
+        "esito=bloccato",
+        "codice=spento",
+        "ms=" + (Date.now() - inizio)
+      ]);
+      return;
+    }
+
+    const { giorno, mese } = chiaviTempo(adesso);
+    const scad = scadenze(adesso);
+    const expireAccount = new Date(
+      adesso.getTime() + COSTANTI.ORE_VALIDITA_ACCOUNT * 60 * 60 * 1000
+    );
+    const idAcc = idAccount(uid);
+
+    const quota = await consumaQuotaAccount(db, {
+      giorno: giorno,
+      mese: mese,
+      idAcc: idAcc,
+      config: config,
+      expireContatori: scad.contatori,
+      expireMese: scad.mese,
+      expireAccount: expireAccount
+    });
+
+    if (quota.codice !== "ok") {
+      chiudiDone(res, {
+        codice: quota.codice,
+        testo: messaggioPerCodice(quota.codice),
+        voce: false,
+        domandeRimaste: Math.max(
+          0,
+          COSTANTI.MAX_DOMANDE_ACCOUNT - (quota.domandeAccount || 0)
+        ),
+        mostraRegistrazione: false
+      });
+      logRiga("info", [
+        "fase=account",
+        "esito=bloccato",
+        "codice=" + quota.codice,
+        "ms=" + (Date.now() - inizio)
+      ]);
+      return;
+    }
+
+    const corpoGemini = corpoRichiestaGemini({
+      promptSistema: promptSistemaAccount(argomento),
+      storia: storia,
+      domanda: domanda,
+      formatoAccount: true,
+      schemaRisposta: SCHEMA_RISPOSTA_ACCOUNT
+    });
+
+    let testoGrezzo = "";
+    const esitoGemini = await chiamaGemini(corpoGemini, {
+      req: req,
+      onChunk: function (delta) {
+        if (delta) testoGrezzo += String(delta);
+      }
+    });
+
+    if (!esitoGemini || !esitoGemini.ok) {
+      try {
+        await registraSpesa(
+          db,
+          giorno,
+          mese,
+          COSTANTI.COSTO_FISSO_RICHIESTA_EUR,
+          false,
+          scad.contatori,
+          scad.mese
+        );
+      } catch (_e) {
+        logRiga("warn", ["fase=account", "spesa=non-registrata"]);
+      }
+      chiudiDone(res, {
+        codice: "errore",
+        testo: messaggioPerCodice("errore"),
+        voce: false,
+        domandeRimaste: Math.max(
+          0,
+          COSTANTI.MAX_DOMANDE_ACCOUNT - quota.domandeAccount
+        ),
+        mostraRegistrazione: false
+      });
+      logRiga("warn", [
+        "fase=account",
+        "esito=errore",
+        "ms=" + (Date.now() - inizio)
+      ]);
+      return;
+    }
+
+    if (esitoGemini.testo) testoGrezzo = esitoGemini.testo;
+    const pulita = rispostaAccountDaTesto(testoGrezzo);
+    const testoRisposta = pulita.testo || "";
+
+    const tok = tokenDaUsage(
+      {
+        promptTokenCount: esitoGemini.tokenIngresso,
+        candidatesTokenCount: esitoGemini.tokenUscita,
+        thoughtsTokenCount: 0
+      },
+      domanda,
+      testoRisposta
+    );
+    const tokenIngresso =
+      typeof esitoGemini.tokenIngresso === "number"
+        ? esitoGemini.tokenIngresso
+        : tok.tokenIngresso;
+    const tokenUscita =
+      typeof esitoGemini.tokenUscita === "number"
+        ? esitoGemini.tokenUscita
+        : tok.tokenUscita;
+    const costo = costoStimatoEur({
+      tokenIngresso: tokenIngresso,
+      tokenUscita: tokenUscita,
+      caratteriVoce: 0
+    });
+    try {
+      await registraSpesa(
+        db,
+        giorno,
+        mese,
+        costo,
+        true,
+        scad.contatori,
+        scad.mese
+      );
+    } catch (_e) {
+      logRiga("warn", ["fase=account", "spesa=non-registrata"]);
+    }
+
+    let voceOfferta = false;
+    let idVoce = null;
+    const caratteriVoceGiorno =
+      typeof quota.caratteriVoceGiorno === "number"
+        ? quota.caratteriVoceGiorno
+        : 0;
+    if (
+      quota.voce === true &&
+      caratteriVoceGiorno < config.dailyVoiceCharCap &&
+      testoRisposta &&
+      testoRisposta.length <= COSTANTI_VOCE.MAX_CARATTERI_TESTO &&
+      preparaTestoVoce(testoRisposta)
+    ) {
+      try {
+        idVoce = nuovoIdVoce(crypto.randomBytes.bind(crypto));
+        const dati = datiBiglietto({
+          testo: testoRisposta,
+          sessione: validata.sessione,
+          adesso: adesso.getTime(),
+          expireAt: Timestamp.fromDate(scad.contatori)
+        });
+        await db
+          .collection(COLLEZIONE_QUOTA)
+          .doc("voce_" + idVoce)
+          .set(
+            Object.assign({}, dati, {
+              creatoIl: FieldValue.serverTimestamp()
+            })
+          );
+        voceOfferta = true;
+      } catch (_bigliettoErr) {
+        idVoce = null;
+        voceOfferta = false;
+        logRiga("warn", ["fase=account", "voce=biglietto-non-scritto"]);
+      }
+    }
+
+    scriviSse(res, "chunk", { delta: testoRisposta });
+    const doneOk = {
+      codice: "ok",
+      testo: testoRisposta,
+      voce: voceOfferta,
+      domandeRimaste: Math.max(
+        0,
+        COSTANTI.MAX_DOMANDE_ACCOUNT - quota.domandeAccount
+      ),
+      mostraRegistrazione: false,
+      dati: pulita.dati,
+      troppiTerreni: pulita.troppiTerreni === true
+    };
+    if (voceOfferta && idVoce) doneOk.idVoce = idVoce;
+    chiudiDone(res, doneOk);
+
+    const nPoderi =
+      pulita.dati && Array.isArray(pulita.dati.poderi)
+        ? pulita.dati.poderi.length
+        : 0;
+    const nTerreni =
+      pulita.dati && Array.isArray(pulita.dati.terreni)
+        ? pulita.dati.terreni.length
+        : 0;
+    logRiga("info", [
+      "fase=account",
+      "esito=ok",
+      "ms=" + (Date.now() - inizio),
+      "poderi=" + nPoderi,
+      "terreni=" + nTerreni,
+      "voce=" + (voceOfferta ? "1" : "0")
+    ]);
+  } catch (_e) {
+    if (!sseAvviato) {
+      res.status(503).json({ codice: "errore" });
+      logRiga("error", [
+        "fase=account",
+        "esito=errore",
+        "motivo=imprevisto",
+        "ms=" + (Date.now() - inizio)
+      ]);
+      return;
+    }
+    try {
+      chiudiDone(res, {
+        codice: "errore",
+        testo: messaggioPerCodice("errore"),
+        voce: false,
+        domandeRimaste: 0,
+        mostraRegistrazione: false
+      });
+    } catch (_e2) {
+      try {
+        res.end();
+      } catch (_e3) {
+        /* ignore */
+      }
+    }
+    logRiga("error", [
+      "fase=account",
+      "esito=errore",
+      "motivo=imprevisto",
+      "ms=" + (Date.now() - inizio)
+    ]);
+  }
+}
+
+/**
  * Gestore HTTP (testabile con dipendenze iniettate).
  * @param {object} req
  * @param {object} res
- * @param {{ db?: object, verificaAppCheck?: Function, chiamaGemini?: Function, adesso?: Function|Date, leggiConfig?: Function }=} opzioni
+ * @param {{ db?: object, verificaAppCheck?: Function, verificaIdToken?: Function, chiamaGemini?: Function, adesso?: Function|Date, leggiConfig?: Function }=} opzioni
  */
 async function handleTonyLandingAsk(req, res, opzioni) {
   const inizio = Date.now();
@@ -528,6 +943,12 @@ async function handleTonyLandingAsk(req, res, opzioni) {
       ? opt.verificaAppCheck
       : async function (token) {
           return getAppCheck().verifyToken(token);
+        };
+  const verificaIdToken =
+    typeof opt.verificaIdToken === "function"
+      ? opt.verificaIdToken
+      : async function (token) {
+          return admin.auth().verifyIdToken(token);
         };
   const chiamaGemini =
     typeof opt.chiamaGemini === "function"
@@ -588,6 +1009,19 @@ async function handleTonyLandingAsk(req, res, opzioni) {
   const validata = validaRichiesta(corpo);
   if (!validata.ok) {
     res.status(400).json({ codice: validata.codice });
+    return;
+  }
+
+  if (validata.fase === "account") {
+    await handleFaseAccount(req, res, {
+      validata: validata,
+      inizio: inizio,
+      adessoFn: adessoFn,
+      db: db,
+      verificaIdToken: verificaIdToken,
+      chiamaGemini: chiamaGemini,
+      leggiConfig: leggiConfig
+    });
     return;
   }
 
