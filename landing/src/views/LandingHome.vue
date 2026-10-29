@@ -65,9 +65,10 @@ const mostraChiSiamo = computed(
 );
 
 // Nella build di deploy DEV è false e il modo non è «anteprima»: con il flag spento
-// ?tonybussa=1 non accende la scena.
+// ?tonybussa=1 non accende la scena. In modo «anteprima» Tony bussa senza parametro
+// (come LANDING_ATTIVA); i parametri di prova restano legati a DEV, non al modo anteprima.
 const tonyOn = tonyBussaVisibile({
-  flag: TONY_BUSSA_ATTIVO,
+  flag: TONY_BUSSA_ATTIVO || import.meta.env.MODE === 'anteprima',
   dev: import.meta.env.DEV === true || import.meta.env.MODE === 'anteprima',
   query: typeof window !== 'undefined' ? window.location.search : '',
 });

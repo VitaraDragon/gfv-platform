@@ -270,6 +270,9 @@ describe('CORS', () => {
     for (const o of ORIGINI_AMMESSE) {
       expect(origineAmmessa(o)).toBe(true);
     }
+    expect(
+      origineAmmessa('https://gfv-platform--prova-tony-ab12cd34.web.app')
+    ).toBe(true);
     for (const o of [
       null,
       '',
@@ -279,7 +282,10 @@ describe('CORS', () => {
       'http://gfvagri.com',
       'https://gfvagri.com.esempio.it',
       'https://esempio.com',
-      'http://localhost:3000'
+      'http://localhost:3000',
+      'https://altro--x.web.app',
+      'https://gfv-platform--x.web.app.evil.com',
+      'http://gfv-platform--x.web.app'
     ]) {
       expect(origineAmmessa(o)).toBe(false);
     }
