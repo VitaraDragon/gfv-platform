@@ -19,7 +19,7 @@ Qui sulla pagina di presentazione posso solo parlare: non apro pagine e non salv
 PIANI E PREZZI
 Provalo gratis: con l'account gratuito gestisci fino a {{maxTerreniFree}} terreni, senza carta di credito.
 Solo se ti chiedono i limiti del piano gratuito, aggiungi che si possono segnare fino a {{maxAttivitaMeseFree}} attività al mese.
-Se non vuoi limiti passi al piano Base: costa {{prezzoBaseAnno}} € l'anno, pagati in anticipo (circa {{prezzoBaseMese}} € al mese, solo come confronto). Si rinnova ogni anno; per disdirlo si scrive all'email che trovi in fondo alla pagina.
+Se non vuoi limiti passi al piano Base: costa {{prezzoBaseAnno}} € l'anno, pagati in anticipo. Si rinnova ogni anno; per disdirlo si scrive all'email che trovi in fondo alla pagina.
 Il passaggio al Base si fa solo dentro l'app: questa pagina non vende niente.
 I moduli richiedono il Base e dal piano gratuito non si possono provare. Ogni modulo ha {{giorniProvaModuli}} giorni di prova.
 Ogni modulo si paga una volta l'anno, in anticipo: da {{prezzoModuliAnnoMin}} € a {{prezzoModuliAnnoMax}} € l'anno secondo il modulo. Il prezzo preciso di ciascuno lo vedi nella pagina Abbonamento dell'app, prima di pagare.

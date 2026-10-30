@@ -46,6 +46,8 @@ const props = defineProps<{
   staticoForzato: boolean;
   audioIniziale: boolean;
   moduloDisponibile: boolean;
+  /** Ms dall'inizio reale della clip scrive (0 se non partita). */
+  msDaInizioScrive?: () => number;
 }>();
 
 const emit = defineEmits([
@@ -161,9 +163,18 @@ function aspetta(ms: number) {
 }
 
 async function aspettaMinimoScrivePrimaDiParlare() {
-  const msDaInizio = inizioScriveMs > 0 ? Date.now() - inizioScriveMs : 0;
+  let msDaInizio = 0;
+  if (typeof props.msDaInizioScrive === 'function') {
+    msDaInizio = props.msDaInizioScrive();
+  } else if (inizioScriveMs > 0) {
+    msDaInizio = Date.now() - inizioScriveMs;
+  }
+  const clipCorrente =
+    typeof props.msDaInizioScrive === 'function' && msDaInizio === 0
+      ? 'idle'
+      : 'scrive';
   const attesa = attesaPrimaDiParlareMs({
-    clipCorrente: 'scrive',
+    clipCorrente,
     msDaInizioClip: msDaInizio,
     riduciMovimento: props.riduciMovimento,
   });
@@ -735,12 +746,20 @@ async function inviaTesto(grezzo: string, daChip = false) {
       turniSenzaNovitaNelPasso: turniSenzaNovitaNelPasso.value,
       domandeRimaste:
         typeof esito.domandeRimaste === 'number' ? esito.domandeRimaste : undefined,
+      passo: passoAiuto.value || '',
     });
-    if (dopoRisposta.apriRiepilogo) {
+    if (dopoRisposta.azione === 'riepilogo' || dopoRisposta.apriRiepilogo) {
       if (dopoRisposta.messaggio) {
         messaggi.value.push({ ruolo: 'tony', testo: dopoRisposta.messaggio });
       }
       apriScheda();
+    } else if (dopoRisposta.azione === 'prossimoPasso') {
+      if (dopoRisposta.messaggio) {
+        messaggi.value.push({ ruolo: 'tony', testo: dopoRisposta.messaggio });
+      }
+      const prox = prossimoPasso(passoAiuto.value || '');
+      if (prox) avviaPasso(prox);
+      else apriScheda();
     } else if (esito.dati && esito.dati.fatto === true) {
       const prox = prossimoPasso(passoAiuto.value || '');
       if (prox) avviaPasso(prox);

@@ -28,9 +28,13 @@ const {
   regoleTenute,
   PREFISSI_ESCLUSI,
   pulisciSede,
+  pulisciPoderi,
   pulisciTerreni,
   risolviColturaConSinonimi,
-  correggiUnoNelTesto
+  correggiUnoNelTesto,
+  superficieDaDomanda,
+  applicaSuperficieDaDomanda,
+  normalizzaDecimaliPerGemini
 } = require('../functions/lib/tony-landing-account.js');
 const { REGOLE_TONY_LANDING } = require('../functions/lib/tony-landing-prompt.js');
 
@@ -416,9 +420,11 @@ describe('prompt e pulizia', () => {
       raccolti: 'Sede: Faenza'
     });
     expect(prompt).not.toMatch(/Pierpaolo|Pier\b/);
-    expect(prompt).toMatch(/5 €/);
+    expect(prompt).toMatch(/esattamente come lo dice l'utente/);
+    expect(prompt).toMatch(/Ogni terreno ha il campo podere/);
     expect(promptConRaccolti).toMatch(/DATI GIÀ RACCOLTI/);
     expect(promptConRaccolti).toMatch(/Faenza/);
+    expect(promptConRaccolti).toMatch(/argomento è «terreni»/);
     expect(pulisciSede({ cap: '4801', provincia: 'Bergamo', citta: 'X' }).cap).toBeNull();
     expect(pulisciSede({ cap: '48018', provincia: 'BG', citta: 'X' }).provincia).toBe(
       'BG'
@@ -426,6 +432,7 @@ describe('prompt e pulizia', () => {
     expect(pulisciTerreni([{ nome: 'Campo', superficie: null }]).terreni[0].superficie).toBe(
       null
     );
+    expect(pulisciPoderi([{ nome: 'Podere Colle' }])[0].nome).toBe('Podere Colle');
     expect(risolviColturaConSinonimi('mele')).toBe('Melo');
     expect(risolviColturaConSinonimi('piscina')).toBeNull();
     expect(correggiUnoNelTesto('uno terreno')).toBe('un terreno');
@@ -450,9 +457,37 @@ describe('prompt e pulizia', () => {
       })
     );
     expect(pulita.testo).toBe('Ecco il riepilogo: controlla e conferma');
+    const conPodere = rispostaAccountDaTesto(
+      JSON.stringify({
+        testo: 'Ok',
+        sede: null,
+        poderi: [{ nome: 'Podere Colle' }],
+        terreni: [
+          { nome: 'Vigna', superficie: 1.5, coltura: 'Vite da Vino', podere: 'Colle' }
+        ],
+        fatto: false
+      })
+    );
+    expect(conPodere.dati.terreni[0].podere).toBe('Podere Colle');
     const rotto = rispostaAccountDaTesto('non-json');
     expect(rotto.dati).toBeNull();
     expect(COSTANTI.MAX_DOMANDE_ACCOUNT).toBe(15);
+  });
+
+  it('superficieDaDomanda e normalizzaDecimaliPerGemini', () => {
+    expect(superficieDaDomanda('Vigna Alta, 1,5 ettari, vite')).toEqual([1.5]);
+    expect(superficieDaDomanda('Vigna Alta 1.5 ha')).toEqual([1.5]);
+    expect(superficieDaDomanda('2 ettari')).toEqual([2]);
+    expect(normalizzaDecimaliPerGemini('Vigna Alta, 1,5 ettari')).toBe(
+      'Vigna Alta, 1.5 ettari'
+    );
+    const dati = {
+      sede: null,
+      poderi: [],
+      terreni: [{ nome: 'Vigna Alta', superficie: 5, coltura: 'Vite da Vino', podere: null }]
+    };
+    const corretto = applicaSuperficieDaDomanda('Vigna Alta, 1,5 ettari, vite', dati);
+    expect(corretto.terreni[0].superficie).toBe(1.5);
   });
 });
 

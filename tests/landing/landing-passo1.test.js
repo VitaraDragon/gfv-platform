@@ -135,9 +135,10 @@ describe('rigaPrezzi e giorni guida', () => {
     expect(testo).toContain(`${SUBSCRIPTION_PLANS.free.maxTerreni} terreni`);
     expect(testo).toContain(`${GIORNI_GUIDA_TONY} giorni`);
     expect(testo).toContain(
-      `${monthlyToAnnual(SUBSCRIPTION_PLANS.base.price)} € l'anno`
+      `${monthlyToAnnual(SUBSCRIPTION_PLANS.base.price)} € l'anno, pagati in anticipo`
     );
-    expect(testo).toContain(`circa ${SUBSCRIPTION_PLANS.base.price} € al mese`);
+    expect(testo).not.toContain(`circa ${SUBSCRIPTION_PLANS.base.price} € al mese`);
+    expect(testo).not.toContain('al mese)');
     expect(testo).not.toContain('disdici quando vuoi dall\'app');
     expect(testo.toLowerCase()).not.toContain('iva');
 

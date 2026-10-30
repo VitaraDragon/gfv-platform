@@ -569,15 +569,10 @@ const DOMANDE = [
     rispostaSimulata:
       'Puoi partire gratis. Il Base di GFV costa ' +
       D.prezzoBaseAnno +
-      " € l'anno, pagati in anticipo (circa " +
-      D.prezzoBaseMese +
-      ' € al mese). Si rinnova ogni anno; per disdirlo scrivi all\'email in fondo alla pagina.',
+      " € l'anno, pagati in anticipo. Si rinnova ogni anno; per disdirlo scrivi all'email in fondo alla pagina.",
     codiceAtteso: 'ok',
-    deveContenere: [
-      String(D.prezzoBaseMese),
-      String(D.prezzoBaseAnno)
-    ],
-    nonDeveContenere: ['al mese o', "disdici quando vuoi dall'app"]
+    deveContenere: [String(D.prezzoBaseAnno)],
+    nonDeveContenere: ['al mese o', "disdici quando vuoi dall'app", '5 €', 'circa 5']
   },
   {
     id: 8,
@@ -601,14 +596,12 @@ const DOMANDE = [
     categoria: 'prezzi',
     domanda: 'Posso pagare mese per mese?',
     rispostaSimulata:
-      'No: con GFV il Base si addebita solo annualmente, ' +
+      'No: con GFV si paga solo all\'anno, ' +
       D.prezzoBaseAnno +
-      ' € (circa ' +
-      D.prezzoBaseMese +
-      ' € al mese).',
+      " € l'anno in anticipo; non ci sono quote mensili.",
     codiceAtteso: 'ok',
-    deveContenere: [String(D.prezzoBaseMese), String(D.prezzoBaseAnno)],
-    nonDeveContenere: ['al mese o']
+    deveContenere: [String(D.prezzoBaseAnno)],
+    nonDeveContenere: ['al mese o', '5 €', 'circa 5']
   },
   {
     id: 10,
@@ -942,6 +935,18 @@ const DOMANDE = [
     codiceAtteso: 'ok',
     deveContenere: ['riepilogo'],
     nonDeveContenere: ['scrivimi', 'dammi']
+  },
+  {
+    id: 41,
+    categoria: 'prezzi',
+    domanda: 'quanto costa al mese il Base?',
+    rispostaSimulata:
+      'Il piano Base di GFV si paga una volta all\'anno: ' +
+      D.prezzoBaseAnno +
+      " € in anticipo. Non indico un importo mensile.",
+    codiceAtteso: 'ok',
+    deveContenere: [String(D.prezzoBaseAnno), 'GFV'],
+    nonDeveContenere: ['5 €', 'cinque euro', 'al mese']
   }
 ];
 
@@ -954,7 +959,7 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-describe('40 domande di prova (modello simulato)', () => {
+describe('41 domande di prova (modello simulato)', () => {
   for (const riga of DOMANDE) {
     it('#' + riga.id + ' ' + riga.categoria + ': ' + riga.domanda.slice(0, 40), async () => {
       const db = fakeDb(configDoc());

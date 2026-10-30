@@ -88,7 +88,9 @@ describe('2 — Numeri', () => {
     expect(t).toContain(String(kb.DATI_KB.maxTerreniFree));
     expect(t).toContain(String(kb.DATI_KB.maxAttivitaMeseFree));
     expect(t).toContain(String(kb.DATI_KB.giorniGuidaFree));
-    expect(t).toContain('circa ' + kb.DATI_KB.prezzoBaseMese + ' € al mese');
+    expect(t).not.toContain('circa ' + kb.DATI_KB.prezzoBaseMese + ' € al mese');
+    expect(t).not.toMatch(/circa\s+5\s*€/);
+    expect(t).not.toContain('al mese)');
     expect(t).toContain(kb.DATI_KB.prezzoBaseAnno + " € l'anno, pagati in anticipo");
     expect(t.toLowerCase()).toContain('si rinnova ogni anno');
     expect(t.toLowerCase()).toContain('email che trovi in fondo');
@@ -313,6 +315,9 @@ describe('6 — Regole nel prompt', () => {
     expect(low).toContain('fondo della pagina');
     expect(low).toContain('solo se ti chiedono i limiti');
     expect(low).toContain('prima persona');
+    expect(low).toContain('non dire cifre mensili');
+    expect(p).not.toContain('circa 5 € al mese');
+    expect(p).not.toContain('al mese)');
     expect(p).toContain(kb.TESTO_KB);
     expect(p).toContain(kb.ELENCO_MODULI_KB);
     expect(REGOLE_TONY_LANDING).toHaveLength(13);

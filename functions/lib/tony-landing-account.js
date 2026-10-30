@@ -119,8 +119,10 @@ function promptSistemaAccount(argomento, opzioni) {
     "Provincia: solo sigla di due lettere (es. Bergamo → BG), mai il nome intero della provincia.",
     "Fuori tema: se il messaggio non c'entra col passo (es. «piscina»), rispondi con UNA frase che lo riporta al passo e metti fuoriTema: true; non trattarlo come nome di podere o terreno.",
     "Non fare due volte di seguito la stessa domanda.",
-    "Quando hai almeno un terreno in elenco, chiedi «Ne hai altri o vediamo il riepilogo?»; se dice no, basta, fatto o riepilogo, metti fatto: true.",
-    "Con 5 terreni metti fatto: true.",
+    "Il nome di un podere o di un terreno va scritto esattamente come lo dice l'utente, comprese parole come Podere, Cascina, Tenuta, Campo: non accorciarlo.",
+    "Ogni terreno ha il campo podere: se l'utente lo dice, metti il nome del podere uguale a quello in elenco; se c'è un solo podere, metti quello; se ce ne sono più di uno e non l'ha detto, chiedi in quale podere è, citando i nomi.",
+    "Quando l'argomento è «terreni» e hai almeno un terreno in elenco, chiedi «Ne hai altri o vediamo il riepilogo?»; se dice no, basta, fatto o riepilogo, metti fatto: true.",
+    "Con 5 terreni (argomento «terreni») metti fatto: true.",
     "Se un terreno ha solo il nome, chiedi ettari e coltura di QUEL terreno citandolo per nome.",
     "Superficie: numero in ettari con il punto decimale («2,34 ha» → 2.34); se dicono metri quadri o altre unità, chiedi in ettari.",
     "Coltura: solo un nome dell'elenco colture di GFV (lo trovi sotto); «mele» → «Melo», «uva da vino» → «Vite da Vino», «olive» → «Olivo», «grano duro» → «Grano»; «seminativo», «frutteto», «orto» sono categorie: chiedi «Che cosa ci coltivi? Grano, mais, orzo…» oppure lascia null.",
@@ -227,6 +229,79 @@ function risolviColturaConSinonimi(grezzo) {
   return null;
 }
 
+const PREFISSI_PODERE = Object.freeze([
+  "podere",
+  "cascina",
+  "tenuta",
+  "fattoria",
+  "azienda"
+]);
+
+function nomeSenzaPrefissoPodere(nome) {
+  let s = String(nome || "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ");
+  for (let i = 0; i < PREFISSI_PODERE.length; i++) {
+    const p = PREFISSI_PODERE[i];
+    if (s.indexOf(p + " ") === 0) {
+      s = s.slice(p.length + 1).trim();
+      break;
+    }
+  }
+  return s;
+}
+
+function corrispondeNomePodere(a, b) {
+  const ka = chiaveNome(a);
+  const kb = chiaveNome(b);
+  if (!ka || !kb) return false;
+  if (ka === kb) return true;
+  return nomeSenzaPrefissoPodere(ka) === nomeSenzaPrefissoPodere(kb);
+}
+
+function risolviNomePodereInElenco(grezzo, poderi) {
+  const lista = Array.isArray(poderi) ? poderi : [];
+  const cercato = String(grezzo || "").trim();
+  if (!cercato) return null;
+  for (let i = 0; i < lista.length; i++) {
+    const nome =
+      lista[i] && lista[i].nome != null ? String(lista[i].nome).trim() : "";
+    if (nome && corrispondeNomePodere(cercato, nome)) return nome;
+  }
+  return null;
+}
+
+/**
+ * Collega i poderi ai terreni della stessa risposta (rete di sicurezza server).
+ * @param {Array<{ nome: string }>} poderi
+ * @param {Array<object>} terreni
+ * @returns {Array<object>}
+ */
+function collegaTerreniAiPoderiServer(poderi, terreni) {
+  const listaP = Array.isArray(poderi) ? poderi : [];
+  const listaT = Array.isArray(terreni) ? terreni : [];
+  const nomeUnico =
+    listaP.length === 1 && listaP[0] && listaP[0].nome
+      ? String(listaP[0].nome).trim()
+      : null;
+  return listaT.map(function (t) {
+    if (!t || typeof t !== "object") return t;
+    const voce = Object.assign({}, t);
+    const grezzo =
+      voce.podere == null || voce.podere === ""
+        ? ""
+        : String(voce.podere).trim();
+    if (grezzo) {
+      const risolto = risolviNomePodereInElenco(grezzo, listaP);
+      if (risolto) voce.podere = risolto;
+      return voce;
+    }
+    if (nomeUnico) voce.podere = nomeUnico;
+    return voce;
+  });
+}
+
 function pulisciTerreni(lista) {
   if (!Array.isArray(lista)) return { terreni: [], troppiTerreni: false };
   const troppiTerreni = lista.length > LIMITI.MAX_TERRENI_PER_RICHIESTA;
@@ -261,6 +336,59 @@ function pulisciTerreni(lista) {
   return { terreni: out, troppiTerreni: troppiTerreni };
 }
 
+/**
+ * Estrae dalla domanda i numeri seguiti da ha / ettar…
+ * @param {string} domanda
+ * @returns {number[]}
+ */
+function superficieDaDomanda(domanda) {
+  const s = String(domanda || "");
+  const re = /(\d+(?:[.,]\d+)?)\s*(?:ha\b|ettar)/gi;
+  const out = [];
+  let m;
+  while ((m = re.exec(s)) !== null) {
+    const n = Number(String(m[1]).replace(",", "."));
+    if (Number.isFinite(n) && n > 0) out.push(n);
+  }
+  return out;
+}
+
+/**
+ * Se c'è un solo numero con unità nella domanda e un solo terreno con
+ * superficie diversa, corregge la superficie.
+ * @param {string} domanda
+ * @param {{ sede?: object|null, poderi?: object[], terreni?: object[] }|null} dati
+ */
+function applicaSuperficieDaDomanda(domanda, dati) {
+  if (!dati || typeof dati !== "object") return dati;
+  const numeri = superficieDaDomanda(domanda);
+  if (numeri.length !== 1) return dati;
+  const terreni = Array.isArray(dati.terreni) ? dati.terreni : [];
+  if (terreni.length !== 1) return dati;
+  const t = terreni[0];
+  if (!t || typeof t !== "object") return dati;
+  if (typeof t.superficie === "number" && t.superficie === numeri[0]) {
+    return dati;
+  }
+  const copia = Object.assign({}, dati, {
+    terreni: [
+      Object.assign({}, t, {
+        superficie: numeri[0]
+      })
+    ]
+  });
+  return copia;
+}
+
+/**
+ * Normalizza i decimali italiani solo per Gemini (1,5 → 1.5).
+ * @param {string} domanda
+ * @returns {string}
+ */
+function normalizzaDecimaliPerGemini(domanda) {
+  return String(domanda || "").replace(/(\d),(\d)/g, "$1.$2");
+}
+
 function correggiUnoNelTesto(testo) {
   return String(testo || "").replace(
     /\buno\b(?=\s+(?:terren|poder|modul|ettar))/gi,
@@ -292,7 +420,8 @@ function rispostaAccountDaTesto(testoJson) {
 
   const sede = pulisciSede(parsed.sede);
   const poderi = pulisciPoderi(parsed.poderi);
-  const { terreni, troppiTerreni } = pulisciTerreni(parsed.terreni);
+  const puliti = pulisciTerreni(parsed.terreni);
+  const terreni = collegaTerreniAiPoderiServer(poderi, puliti.terreni);
   const fatto = parsed.fatto === true;
   const fuoriTema = parsed.fuoriTema === true;
 
@@ -305,7 +434,7 @@ function rispostaAccountDaTesto(testoJson) {
       fatto: fatto,
       fuoriTema: fuoriTema
     },
-    troppiTerreni: troppiTerreni,
+    troppiTerreni: puliti.troppiTerreni,
     fuoriTema: fuoriTema
   };
 }
@@ -318,8 +447,14 @@ module.exports = {
   PREFISSI_ESCLUSI,
   TESTO_RIPIEGO,
   pulisciSede,
+  pulisciPoderi,
   pulisciTerreni,
   risolviColturaConSinonimi,
   correggiUnoNelTesto,
-  SINONIMI_COLTURA
+  SINONIMI_COLTURA,
+  superficieDaDomanda,
+  applicaSuperficieDaDomanda,
+  normalizzaDecimaliPerGemini,
+  collegaTerreniAiPoderiServer,
+  corrispondeNomePodere
 };

@@ -163,12 +163,22 @@ const CLIP_TOPIC_REGISTRAZIONE_PASSO13 = new Set([
   'tony-topic-terreni-mobile-432x1080-stacked-alpha-v4.mp4',
 ]);
 
+const CLIP_TALKING_V5 = new Set([
+  'tony-talking-loop-desktop-576x1440-stacked-alpha-v5.mp4',
+  'tony-talking-loop-desktop-576x720-12fps-v5.webp',
+  'tony-talking-loop-desktop-576x720-alpha-v5.webm',
+  'tony-talking-loop-mobile-432x1080-stacked-alpha-v5.mp4',
+  'tony-talking-loop-mobile-432x540-12fps-v5.webp',
+  'tony-talking-loop-mobile-432x540-alpha-v5.webm',
+]);
+
 describe('clip v4 nel repo', () => {
-  it('esattamente i 54 file di MD5_CLIP_V4', () => {
+  it('esattamente i 54 file di MD5_CLIP_V4 (talking v5 esclusa)', () => {
     const files = fs
       .readdirSync(TONY_LIVE)
       .filter((f) => fs.statSync(path.join(TONY_LIVE, f)).isFile())
       .filter((f) => !CLIP_TOPIC_REGISTRAZIONE_PASSO13.has(f))
+      .filter((f) => !CLIP_TALKING_V5.has(f))
       .sort();
     const attesi = Object.keys(MD5_CLIP_V4).sort();
     expect(files).toEqual(attesi);
@@ -184,6 +194,21 @@ describe('clip v4 nel repo', () => {
       expect(nome.endsWith('.md')).toBe(false);
       expect(nome).not.toBe('tony-stacked-alpha-player.js');
     }
+  });
+
+  it('clip talking v5 presenti e usate da percorsoClip', () => {
+    for (const nome of CLIP_TALKING_V5) {
+      expect(fs.existsSync(path.join(TONY_LIVE, nome)), nome).toBe(true);
+    }
+    for (const variante of ['desktop', 'mobile']) {
+      for (const formato of ['webm', 'webp', 'stacked']) {
+        const web = percorsoClip('talking', variante, formato);
+        expect(web).toContain('talking-loop');
+        expect(web).toContain('-v5.');
+        expect(fs.existsSync(fileDaWeb(web)), web).toBe(true);
+      }
+    }
+    expect(percorsoClip('idle', 'desktop', 'webm')).toContain('-v4.');
   });
 });
 
@@ -214,16 +239,18 @@ describe('percorsi e durate', () => {
     expect(durataClipMs('listenLower')).toBe(1833);
     expect(durataClipMs('thinking')).toBe(2375);
     expect(durataClipMs('scrive')).toBe(3583);
-    expect(durataClipMs('talking')).toBe(3792);
+    expect(durataClipMs('talking')).toBe(7500);
     expect(durataClipMs('exit')).toBe(2000);
     expect(DURATE_CLIP_MS.idle).toBe(4000);
     expect([...CLIP_IN_LOOP]).toEqual(['idle', 'listenLoop', 'scrive', 'talking']);
   });
 
   it('pesi sotto i limiti', () => {
-    const limiteTotale = { desktop: 5000000, mobile: 3000000 };
+    const limiteTotale = { desktop: 6000000, mobile: 4000000 };
     const limiteEntry = { desktop: 1.8 * 1024 * 1024, mobile: 1.2 * 1024 * 1024 };
     const limiteLoop = { desktop: 800 * 1024, mobile: 500 * 1024 };
+    // talking v5 ~7,5 s: WebP desktop ~1,5 MB
+    const limiteTalking = { desktop: 1.6 * 1024 * 1024, mobile: 1.1 * 1024 * 1024 };
     for (const variante of ['desktop', 'mobile']) {
       for (const formato of ['webm', 'webp', 'stacked']) {
         let somma = 0;
@@ -232,7 +259,9 @@ describe('percorsi e durate', () => {
           const size = fs.statSync(fileDaWeb(web)).size;
           somma += size;
           if (nome === 'entry') expect(size).toBeLessThanOrEqual(limiteEntry[variante]);
-          if (CLIP_IN_LOOP.includes(nome)) {
+          if (nome === 'talking') {
+            expect(size).toBeLessThanOrEqual(limiteTalking[variante]);
+          } else if (CLIP_IN_LOOP.includes(nome)) {
             expect(size).toBeLessThanOrEqual(limiteLoop[variante]);
           }
         }

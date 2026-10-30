@@ -13,6 +13,20 @@ import {
 
 export const PASSI_AIUTO = Object.freeze(['sede', 'poderi', 'terreni']);
 
+const PREFISSI_PODERE = Object.freeze([
+  'podere',
+  'cascina',
+  'tenuta',
+  'fattoria',
+  'azienda',
+]);
+
+const MESSAGGI_PASSAGGIO = Object.freeze({
+  sede: 'Andiamo avanti: hai dei poderi?',
+  poderi: 'Ok, passiamo ai terreni: nome, ettari e coltura.',
+  terreni: 'Facciamo così: controlla il riepilogo e completa lì.',
+});
+
 /**
  * @param {string} passo
  * @returns {string | null}
@@ -36,11 +50,122 @@ export function numeroDaTesto(grezzo) {
   return n;
 }
 
-function chiaveNome(nome) {
+/**
+ * @param {string} nome
+ * @returns {string}
+ */
+export function chiaveNome(nome) {
   return String(nome || '')
     .trim()
     .toLowerCase()
     .replace(/\s+/g, ' ');
+}
+
+/**
+ * @param {string} nome
+ * @returns {string}
+ */
+export function nomeSenzaPrefissoPodere(nome) {
+  let s = chiaveNome(nome);
+  for (let i = 0; i < PREFISSI_PODERE.length; i++) {
+    const p = PREFISSI_PODERE[i];
+    if (s.indexOf(p + ' ') === 0) {
+      s = s.slice(p.length + 1).trim();
+      break;
+    }
+  }
+  return s;
+}
+
+/**
+ * @param {string} a
+ * @param {string} b
+ * @returns {boolean}
+ */
+export function corrispondeNomePodere(a, b) {
+  const ka = chiaveNome(a);
+  const kb = chiaveNome(b);
+  if (!ka || !kb) return false;
+  if (ka === kb) return true;
+  return nomeSenzaPrefissoPodere(ka) === nomeSenzaPrefissoPodere(kb);
+}
+
+/**
+ * @param {string} grezzo
+ * @param {Array<{ nome?: string }>} poderi
+ * @returns {string | null}
+ */
+export function risolviNomePodere(grezzo, poderi) {
+  const lista = Array.isArray(poderi) ? poderi : [];
+  const cercato = String(grezzo || '').trim();
+  if (!cercato) return null;
+  for (let i = 0; i < lista.length; i++) {
+    const nome = lista[i] && lista[i].nome != null ? String(lista[i].nome).trim() : '';
+    if (nome && corrispondeNomePodere(cercato, nome)) return nome;
+  }
+  return null;
+}
+
+/**
+ * Collega i terreni ai poderi in elenco (prefissi, unico podere, ultimoPodere).
+ * @param {{
+ *   sede?: object|null,
+ *   poderi?: Array<{ nome?: string }>,
+ *   terreni?: Array<object>,
+ *   ultimoPodere?: string|null
+ * }} dati
+ */
+export function collegaTerreniAiPoderi(dati) {
+  const base = dati && typeof dati === 'object' ? dati : {};
+  const poderi = Array.isArray(base.poderi) ? base.poderi.slice() : [];
+  const terreni = Array.isArray(base.terreni) ? base.terreni.slice() : [];
+  let ultimoPodere =
+    base.ultimoPodere == null || base.ultimoPodere === ''
+      ? null
+      : String(base.ultimoPodere);
+
+  const nomeUnico =
+    poderi.length === 1 && poderi[0] && poderi[0].nome
+      ? String(poderi[0].nome).trim()
+      : null;
+
+  if (ultimoPodere) {
+    const risoltoUltimo = risolviNomePodere(ultimoPodere, poderi);
+    if (risoltoUltimo) ultimoPodere = risoltoUltimo;
+  }
+
+  const outTerreni = terreni.map((t) => {
+    if (!t || typeof t !== 'object') return t;
+    const voce = Object.assign({}, t);
+    const grezzo =
+      voce.podere == null || voce.podere === '' ? '' : String(voce.podere).trim();
+    if (grezzo) {
+      const risolto = risolviNomePodere(grezzo, poderi);
+      if (risolto) {
+        voce.podere = risolto;
+        ultimoPodere = risolto;
+        return voce;
+      }
+      return voce;
+    }
+    if (nomeUnico) {
+      voce.podere = nomeUnico;
+      return voce;
+    }
+    if (ultimoPodere && risolviNomePodere(ultimoPodere, poderi)) {
+      voce.podere = risolviNomePodere(ultimoPodere, poderi);
+      return voce;
+    }
+    voce.podere = null;
+    return voce;
+  });
+
+  return {
+    sede: base.sede || null,
+    poderi: poderi,
+    terreni: outTerreni,
+    ultimoPodere: ultimoPodere,
+  };
 }
 
 /**
@@ -55,16 +180,30 @@ export function unisciDati(attuali, nuovi, argomento) {
     sede: base.sede || null,
     poderi: Array.isArray(base.poderi) ? base.poderi.slice() : [],
     terreni: Array.isArray(base.terreni) ? base.terreni.slice() : [],
+    ultimoPodere:
+      base.ultimoPodere == null || base.ultimoPodere === ''
+        ? null
+        : String(base.ultimoPodere),
   };
   let troppiTerreni = false;
 
-  if (n.sede && (!out.sede || !out.sede.citta)) {
+  if (n.sede && typeof n.sede === 'object') {
     const prev = out.sede && typeof out.sede === 'object' ? out.sede : {};
     out.sede = {
-      indirizzo: n.sede.indirizzo || prev.indirizzo || null,
-      citta: n.sede.citta || prev.citta || null,
-      cap: n.sede.cap || prev.cap || null,
-      provincia: n.sede.provincia || prev.provincia || null,
+      indirizzo:
+        n.sede.indirizzo != null && n.sede.indirizzo !== ''
+          ? n.sede.indirizzo
+          : prev.indirizzo || null,
+      citta:
+        n.sede.citta != null && n.sede.citta !== ''
+          ? n.sede.citta
+          : prev.citta || null,
+      cap:
+        n.sede.cap != null && n.sede.cap !== '' ? n.sede.cap : prev.cap || null,
+      provincia:
+        n.sede.provincia != null && n.sede.provincia !== ''
+          ? n.sede.provincia
+          : prev.provincia || null,
     };
   }
 
@@ -80,14 +219,16 @@ export function unisciDati(attuali, nuovi, argomento) {
       if (!k || visti[k]) continue;
       if (out.poderi.length >= LIMITI.MAX_PODERI) break;
       visti[k] = true;
-      out.poderi.push({ nome: String(p.nome).trim() });
+      const nome = String(p.nome).trim();
+      out.poderi.push({ nome: nome });
+      out.ultimoPodere = nome;
     }
   }
 
   if (argomento === 'terreni' || (Array.isArray(n.terreni) && n.terreni.length)) {
-    const visti = Object.create(null);
-    for (const t of out.terreni) {
-      visti[chiaveNome(t.nome)] = true;
+    const indicePerChiave = Object.create(null);
+    for (let i = 0; i < out.terreni.length; i++) {
+      indicePerChiave[chiaveNome(out.terreni[i].nome)] = i;
     }
     const aggiunti = Array.isArray(n.terreni) ? n.terreni : [];
     if (out.terreni.length + aggiunti.length > LIMITI.MAX_TERRENI_PER_RICHIESTA) {
@@ -96,22 +237,46 @@ export function unisciDati(attuali, nuovi, argomento) {
     for (const t of aggiunti) {
       if (!t || !t.nome) continue;
       const k = chiaveNome(t.nome);
-      if (!k || visti[k]) continue;
+      if (!k) continue;
+      if (Object.prototype.hasOwnProperty.call(indicePerChiave, k)) {
+        const i = indicePerChiave[k];
+        const prev = out.terreni[i];
+        out.terreni[i] = {
+          nome: prev.nome,
+          superficie:
+            typeof t.superficie === 'number' ? t.superficie : prev.superficie,
+          coltura:
+            t.coltura == null || t.coltura === ''
+              ? prev.coltura
+              : String(t.coltura),
+          podere:
+            t.podere == null || t.podere === ''
+              ? prev.podere
+              : String(t.podere),
+        };
+        if (out.terreni[i].podere) {
+          out.ultimoPodere = String(out.terreni[i].podere);
+        }
+        continue;
+      }
       if (out.terreni.length >= LIMITI.MAX_TERRENI_PER_RICHIESTA) {
         troppiTerreni = true;
         break;
       }
-      visti[k] = true;
-      out.terreni.push({
+      indicePerChiave[k] = out.terreni.length;
+      const voce = {
         nome: String(t.nome).trim(),
         superficie: typeof t.superficie === 'number' ? t.superficie : null,
         coltura: t.coltura == null || t.coltura === '' ? null : String(t.coltura),
         podere: t.podere == null || t.podere === '' ? null : String(t.podere),
-      });
+      };
+      if (voce.podere) out.ultimoPodere = voce.podere;
+      out.terreni.push(voce);
     }
   }
 
-  return { dati: out, troppiTerreni };
+  const collegati = collegaTerreniAiPoderi(out);
+  return { dati: collegati, troppiTerreni };
 }
 
 /**
@@ -159,8 +324,14 @@ const MESSAGGIO_RIEPILOGO =
  *   nuoviDati?: boolean,
  *   fuoriTema?: number,
  *   turniSenzaNovitaNelPasso?: number,
- *   domandeRimaste?: number
+ *   domandeRimaste?: number,
+ *   passo?: string
  * }} opts
+ * @returns {{
+ *   azione: 'prossimoPasso' | 'riepilogo' | 'resta',
+ *   apriRiepilogo: boolean,
+ *   messaggio?: string
+ * }}
  */
 export function decidiDopoRisposta(opts) {
   const o = opts && typeof opts === 'object' ? opts : {};
@@ -169,10 +340,33 @@ export function decidiDopoRisposta(opts) {
   const fuori = typeof o.fuoriTema === 'number' ? o.fuoriTema : 0;
   const rimaste =
     typeof o.domandeRimaste === 'number' ? o.domandeRimaste : Number.POSITIVE_INFINITY;
-  if (senzaNovita >= 2 || fuori >= 2 || rimaste <= 3) {
-    return { apriRiepilogo: true, messaggio: MESSAGGIO_RIEPILOGO };
+  const passo = typeof o.passo === 'string' ? o.passo : '';
+
+  if (rimaste <= 3) {
+    return {
+      azione: 'riepilogo',
+      apriRiepilogo: true,
+      messaggio: MESSAGGIO_RIEPILOGO,
+    };
   }
-  return { apriRiepilogo: false };
+
+  if (senzaNovita >= 2 || fuori >= 2) {
+    const prox = prossimoPasso(passo);
+    if (!prox || passo === 'terreni') {
+      return {
+        azione: 'riepilogo',
+        apriRiepilogo: true,
+        messaggio: MESSAGGIO_RIEPILOGO,
+      };
+    }
+    return {
+      azione: 'prossimoPasso',
+      apriRiepilogo: false,
+      messaggio: MESSAGGI_PASSAGGIO[passo] || MESSAGGIO_RIEPILOGO,
+    };
+  }
+
+  return { azione: 'resta', apriRiepilogo: false };
 }
 
 /**

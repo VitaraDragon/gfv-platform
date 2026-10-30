@@ -14,7 +14,9 @@ import {
   BUSSATA_AUTOMATICA_MS,
   DIMENSIONI_TONY_STATICO,
   DISSOLVENZA_STATICO_MS,
+  layoutTonyDesktop,
   MIN_SCRIVE_MS,
+  ORDINE_PRECARICA_CHAT,
   percorsoTonyStatico,
   prossimoStato,
   scalettaClip,
@@ -46,32 +48,60 @@ function pngHeader(rel) {
   return { larghezza, altezza, tipoColore };
 }
 
-describe('Riduci desktop (punto 15)', () => {
-  it('LandingHome ha Riduci / Parla con Tony senza smontare lo stage', () => {
+describe('Riduci nell’intestazione del pannello', () => {
+  it('Riduci è in TonyStage; LandingHome ha solo Parla con Tony', () => {
     const home = leggi('landing/src/views/LandingHome.vue');
+    const stage = leggi('landing/src/components/TonyStage.vue');
     const testi = leggi('landing/src/content/testi-landing.js');
     expect(testi).toMatch(/riduci:\s*'Riduci'/);
     expect(testi).toMatch(/ripristina:\s*'Parla con Tony'/);
     expect(home).toMatch(/tonyRidotto/);
     expect(home).toMatch(/v-show="!tonyRidotto"/);
-    expect(home).toMatch(/tony-btn-riduci/);
+    expect(home).not.toMatch(/class="tony-btn-riduci"/);
     expect(home).toMatch(/tony-btn-riapri/);
+    expect(stage).toMatch(/tony-btn-riduci/);
+    expect(stage).toMatch(/emit\('riduci'\)/);
+    expect(stage).toContain('etichetta-riga');
+  });
+
+  it('layoutTonyDesktop sceglie laterale o basso', () => {
+    expect(layoutTonyDesktop({ larghezzaFinestra: 1400, ingombro: 600 })).toBe(
+      'laterale'
+    );
+    expect(layoutTonyDesktop({ larghezzaFinestra: 1024, ingombro: 600 })).toBe(
+      'basso'
+    );
+    expect(layoutTonyDesktop({ larghezzaFinestra: 900, ingombro: 580 })).toBe(
+      'basso'
+    );
   });
 });
 
 describe('MIN_SCRIVE e bussata automatica', () => {
   it('attesaPrimaDiParlareMs rispetta il minimo scrive', () => {
-    expect(MIN_SCRIVE_MS).toBe(1800);
+    expect(MIN_SCRIVE_MS).toBe(2800);
     expect(
       attesaPrimaDiParlareMs({
         clipCorrente: 'scrive',
-        msDaInizioClip: 300,
+        msDaInizioClip: 0,
       })
-    ).toBe(1500);
+    ).toBe(2800);
     expect(
       attesaPrimaDiParlareMs({
         clipCorrente: 'scrive',
-        msDaInizioClip: 2000,
+        msDaInizioClip: 1000,
+      })
+    ).toBe(1800);
+    expect(
+      attesaPrimaDiParlareMs({
+        clipCorrente: 'scrive',
+        msDaInizioClip: 2800,
+      })
+    ).toBe(0);
+    expect(
+      attesaPrimaDiParlareMs({
+        clipCorrente: 'scrive',
+        msDaInizioClip: 4000,
       })
     ).toBe(0);
     expect(
@@ -86,14 +116,27 @@ describe('MIN_SCRIVE e bussata automatica', () => {
     ).toBe(0);
   });
 
-  it('bussataAutomaticaConsentita una volta per sessione', () => {
+  it('bussataAutomaticaConsentita con contatore e interazione', () => {
     expect(BUSSATA_AUTOMATICA_MS).toBe(8000);
     expect(bussataAutomaticaConsentita({})).toBe(true);
+    expect(bussataAutomaticaConsentita({ bussateAutomatiche: 0 })).toBe(true);
+    expect(bussataAutomaticaConsentita({ bussateAutomatiche: 1 })).toBe(true);
+    expect(bussataAutomaticaConsentita({ bussateAutomatiche: 2 })).toBe(false);
+    expect(bussataAutomaticaConsentita({ utenteHaInteragito: true })).toBe(false);
     expect(bussataAutomaticaConsentita({ sessioneGiaBussato: true })).toBe(false);
     expect(bussataAutomaticaConsentita({ rinunciaSalvata: true })).toBe(false);
     expect(bussataAutomaticaConsentita({ paginaNascosta: true })).toBe(false);
     expect(bussataAutomaticaConsentita({ stageAperto: true })).toBe(false);
     expect(bussataAutomaticaConsentita({ avvisoAperto: true })).toBe(false);
+  });
+
+  it('precarica thinking e scrive prima dell’ascolto', () => {
+    expect(ORDINE_PRECARICA_CHAT.slice(0, 4)).toEqual([
+      'entry',
+      'idle',
+      'thinking',
+      'scrive',
+    ]);
   });
 });
 

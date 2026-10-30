@@ -9,6 +9,8 @@ import { getDashboardCountsSnapshot, ORE_READY_EVENT } from './dashboard-counts-
 import {
   buildTodayForecastCopy,
   formatRainMmShort,
+  messaggioMeteoDashboard,
+  METEO_FETCH_TIMEOUT_MS,
   renderAlertsBanner,
   renderHourlyPopBadge,
   renderMinutelyPrecipStrip,
@@ -268,16 +270,21 @@ export async function initDashboardMeteo(options = {}) {
 
   function applyMeteoResult(result, opsSnapshot) {
     if (!result.ok && result.code === 'SEDE_NOT_SET') {
-      body.innerHTML = renderMeteoMessage(result.message || 'Sede non impostata.', {
-        linkHref: './admin/impostazioni-standalone.html',
-        linkLabel: 'Imposta in Impostazioni →',
-      });
+      body.innerHTML = renderMeteoMessage(
+        messaggioMeteoDashboard({ code: 'SEDE_NOT_SET', fallback: result.message }),
+        {
+          linkHref: './admin/impostazioni-standalone.html',
+          linkLabel: 'Imposta in Impostazioni →',
+        }
+      );
       if (side) side.innerHTML = '';
       return;
     }
 
     if (!result.ok || !result.meteo) {
-      body.innerHTML = renderMeteoMessage(result.message || 'Meteo non disponibile al momento.');
+      body.innerHTML = renderMeteoMessage(
+        messaggioMeteoDashboard({ fallback: result.message || 'Meteo non disponibile al momento.' })
+      );
       if (side) side.innerHTML = '';
       return;
     }
@@ -307,12 +314,25 @@ export async function initDashboardMeteo(options = {}) {
             }))
           : Promise.resolve(opsFromSnapshot);
 
-      const [result, opsSnapshot] = await Promise.all([
-        fetchMeteoSedeWithLocalCache(tenantId, { advanced: hasMeteoModule }),
+      const fetchPromise = fetchMeteoSedeWithLocalCache(tenantId, { advanced: hasMeteoModule });
+      const timeoutPromise = new Promise((resolve) => {
+        setTimeout(() => {
+          resolve({ ok: false, timedOut: true, code: 'TIMEOUT' });
+        }, METEO_FETCH_TIMEOUT_MS);
+      });
+
+      const [resultOrTimeout, opsSnapshot] = await Promise.all([
+        Promise.race([fetchPromise, timeoutPromise]),
         opsPromise,
       ]);
 
-      applyMeteoResult(result, opsSnapshot);
+      if (resultOrTimeout && resultOrTimeout.timedOut) {
+        body.innerHTML = renderMeteoMessage(messaggioMeteoDashboard({ timedOut: true }));
+        if (side) side.innerHTML = '';
+        return;
+      }
+
+      applyMeteoResult(resultOrTimeout, opsSnapshot);
 
       if (hasManodopera) {
         window.addEventListener(ORE_READY_EVENT, () => {

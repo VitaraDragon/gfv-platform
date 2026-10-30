@@ -84,8 +84,8 @@ export function rigaPrezzi(piani, giorniGuida, opzioni = {}) {
   let gratis =
     `Provalo gratis: con l'account gratuito puoi gestire fino a ${maxTerreni} terreni` +
     ` e Tony ti guida per ${giorni} giorni dal primo accesso.` +
-    ` Se non vuoi limiti passi al Base: ${prezzoAnno} € l'anno, pagati in anticipo` +
-    ` (circa ${prezzoMese} € al mese). Si rinnova ogni anno;` +
+    ` Se non vuoi limiti passi al Base: ${prezzoAnno} € l'anno, pagati in anticipo.` +
+    ` Si rinnova ogni anno;` +
     (email
       ? ` per disdire scrivi a ${email}.`
       : ` per disdire scrivi all'email in fondo alla pagina.`);

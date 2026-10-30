@@ -464,9 +464,18 @@
         const sessioneEsistenteEl = document.getElementById('sessione-esistente');
         const btnEsciNuovo = document.getElementById('btn-esci-nuovo-account');
         const btnContinuaAccount = document.getElementById('btn-continua-account');
+        const {
+            messaggioMotivoLogin,
+            deveMostrareSceltaSessione,
+            browserPuoConservareSessione,
+            MSG_BROWSER_SENZA_PERSISTENZA
+        } = await import('../js/login-motivo-helpers.js');
+
         const urlParams = new URLSearchParams(window.location.search);
         const registeredFromLanding = urlParams.get('registered') === 'true';
         let sceltaSessioneGestita = false;
+        let accessoManualeInCorso = false;
+        let primoEventoAuth = true;
 
         // Funzioni utility
         function showLoading() {
@@ -567,6 +576,10 @@
         if (urlParams.get('passwordReset') === 'true') {
             showSuccess('✅ Password reimpostata con successo! Ora puoi fare login con la nuova password.');
         }
+        const motivoLogin = messaggioMotivoLogin(urlParams.get('motivo'));
+        if (motivoLogin) {
+            showError(motivoLogin);
+        }
 
         try {
             const { leggiEmailDaFrammento, frammentoDaPulire } = await import('../js/login-email-precompilata.js');
@@ -618,17 +631,45 @@
             });
         }
 
-        // Verifica se già autenticato
+        // Verifica se già autenticato (solo sessione preesistente al caricamento)
         onAuthStateChanged(auth, async (user) => {
+            const ePrimo = primoEventoAuth;
+            primoEventoAuth = false;
+            if (accessoManualeInCorso) {
+                return;
+            }
             if (!user) user = await resolveAuthUser(auth);
-            if (user && registeredFromLanding && !sceltaSessioneGestita) {
+            if (
+                user &&
+                !sceltaSessioneGestita &&
+                deveMostrareSceltaSessione({
+                    registered: registeredFromLanding,
+                    primoEvento: ePrimo,
+                    accessoManualeInCorso
+                })
+            ) {
                 mostraSceltaSessione(user);
                 return;
             }
-            if (user) {
+            if (user && !accessoManualeInCorso && ePrimo && !registeredFromLanding) {
                 window.location.href = '../dashboard-standalone.html';
             }
         });
+
+        async function verificaSessionePrimaDiRedirect(user) {
+            if (auth.authStateReady) {
+                await auth.authStateReady();
+            }
+            if (!auth.currentUser || auth.currentUser.uid !== user.uid) {
+                throw new Error(
+                    'La sessione non è stata conservata: riprova; se sei in incognito usa una finestra normale.'
+                );
+            }
+            const puoConservare = await browserPuoConservareSessione();
+            if (!puoConservare) {
+                throw new Error(MSG_BROWSER_SENZA_PERSISTENZA);
+            }
+        }
 
         // Gestione submit form
         loginForm.addEventListener('submit', async (e) => {
@@ -641,6 +682,7 @@
             const email = emailInput.value.trim();
             const password = passwordInput.value;
 
+            accessoManualeInCorso = true;
             try {
                 showLoading();
 
@@ -672,6 +714,8 @@
                 } catch (error) {
                     console.warn('Errore aggiornamento ultimo accesso:', error);
                 }
+
+                await verificaSessionePrimaDiRedirect(user);
 
                 // Carica tenant disponibili per l'utente
                 const {
@@ -708,6 +752,7 @@
                     
                     // Se annullato, non fare nulla (l'utente può riprovare)
                     if (!selectedTenantId) {
+                        accessoManualeInCorso = false;
                         return;
                     }
                 } else {
@@ -729,6 +774,7 @@
                 }
 
             } catch (error) {
+                accessoManualeInCorso = false;
                 hideLoading();
                 console.error('Errore login:', error);
                 console.error('Codice errore:', error.code);

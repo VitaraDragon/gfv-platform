@@ -39,7 +39,9 @@ const { PROMPT_SISTEMA_LANDING } = require("./lib/tony-landing-prompt");
 const {
   SCHEMA_RISPOSTA_ACCOUNT,
   promptSistemaAccount,
-  rispostaAccountDaTesto
+  rispostaAccountDaTesto,
+  applicaSuperficieDaDomanda,
+  normalizzaDecimaliPerGemini
 } = require("./lib/tony-landing-account");
 const {
   COSTANTI_VOCE,
@@ -720,10 +722,11 @@ async function handleFaseAccount(req, res, ctx) {
       typeof validata.raccolti === "string" && validata.raccolti
         ? { raccolti: validata.raccolti }
         : undefined;
+    const domandaPerGemini = normalizzaDecimaliPerGemini(domanda);
     const corpoGemini = corpoRichiestaGemini({
       promptSistema: promptSistemaAccount(argomento, promptOpts),
       storia: storia,
-      domanda: domanda,
+      domanda: domandaPerGemini,
       formatoAccount: true,
       schemaRisposta: SCHEMA_RISPOSTA_ACCOUNT
     });
@@ -770,6 +773,9 @@ async function handleFaseAccount(req, res, ctx) {
 
     if (esitoGemini.testo) testoGrezzo = esitoGemini.testo;
     const pulita = rispostaAccountDaTesto(testoGrezzo);
+    if (pulita.dati) {
+      pulita.dati = applicaSuperficieDaDomanda(domanda, pulita.dati);
+    }
     const testoRisposta = pulita.testo || "";
 
     const tok = tokenDaUsage(
