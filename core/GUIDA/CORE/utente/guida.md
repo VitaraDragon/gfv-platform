@@ -11,7 +11,7 @@ Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più sc
 1. **Per primo Impostazioni** (in alto a destra, icona ingranaggio): dati azienda e account; il **podere solo se vi serve** (non è obbligatorio). **[Impara qui: Impostazioni](#prima-cosa-dati-aziendali-e-poderi)**  
 2. Se sei **manager** o **amministratore**, orientati sulla **dashboard** (panoramica, pulsante moduli in alto a sinistra, scorciatoie). **[Impara qui: Dashboard manager](#mini-guida-dashboard-per-manager-e-amministratore)**  
 3. Poi **Terreni**: premi **+ Aggiungi Terreno** e compila anche **Categoria Coltura** e **Coltura**. Se il terreno c’è già ma senza coltura, prima **✏️ Modifica**. **[Impara qui: Terreni](#mini-guida-aggiungere-o-modificare-un-terreno)**  
-4. Solo dopo il **Diario attività**, se **non** avete il modulo **Manodopera** (senza coltura sul terreno, lì **Coltura** resta vuota). Con Manodopera le giornate nuove si registrano in **Gestione lavori** e il Diario resta come **storico** da consultare. **[Impara qui: Diario](#mini-guida-compilare-il-diario-attivita)**  
+4. Solo dopo registrate le giornate in campo. **Senza** il modulo **Manodopera**: nel **Diario attività** (senza coltura sul terreno, lì **Coltura** resta vuota). **Con** Manodopera: in **Gestione lavori** e **Segnatura ore**, non nel Diario (con Manodopera il Diario non serve per le giornate nuove e resta solo come **storico** da consultare). **[Impara qui: Diario](#mini-guida-compilare-il-diario-attivita)**  
 5. Usa la **mappa** e **Statistiche** per il quadro d’insieme e i grafici filtrati. **[Impara qui: Mappa](#mini-guida-la-mappa-in-dashboard)** · **[Impara qui: Statistiche](#mini-guida-statistiche-e-filtri)**  
 6. In **Impostazioni**, attiva o regola le **notifiche push** sul telefono (ciclo lavoro e assenze) se usate Manodopera in campo. **[Impara qui: Notifiche](#mini-guida-notifiche-push)**
 
@@ -233,7 +233,9 @@ Capita se il terreno è stato salvato senza **Categoria Coltura** e **Coltura** 
 2. Sulla riga del terreno premi **✏️** (fumetto **Modifica**).
 3. Scegli prima **Categoria Coltura**, poi **Coltura**.
 4. Premi **Salva Terreno**.
-5. Solo dopo aprite il **Diario attività**. Dopo il salvataggio sul terreno, la **Coltura** nel Diario si riempie da sola; se è ancora vuota, ricontrollate di aver salvato categoria e coltura sul terreno.
+5. Solo dopo registrate le giornate in campo:
+   - **senza Manodopera** aprite il **Diario attività**: dopo il salvataggio sul terreno la **Coltura** si riempie da sola; se è ancora vuota, ricontrollate di aver salvato categoria e coltura sul terreno;
+   - **con Manodopera** andate in **Gestione lavori** e **Segnatura ore**, non nel Diario (vedi la guida **Manodopera**).
 
 ---
 
@@ -258,7 +260,7 @@ Capita se il terreno è stato salvato senza **Categoria Coltura** e **Coltura** 
 2. Premi **➕ Aggiungi Attività**: si apre il riquadro.
 3. **Data:** giorno in cui è stato fatto l’intervento.
 4. **Terreno:** sceglilo dall’elenco (solo terreni già creati in Terreni).
-5. **Tipo di lavoro** e **coltura**, nell’ordine delle etichette: prima la **Categoria principale lavoro** (es. potatura, trattamenti); se la categoria ne ha, compare la **Sottocategoria** (facoltativa, es. manuale o meccanica); poi il **Tipo lavoro specifico**, che elenca solo i tipi di quella categoria. Se il tipo che cercate non c’è, potete aggiungerlo con **➕ Nuovo** accanto all’elenco. Infine **Categoria Coltura** e **Coltura**. **Coltura** è obbligatoria: dopo che avete salvato categoria e coltura sul terreno, nel Diario la Coltura si riempie da sola; se resta vuota, manca la coltura sul terreno — apri **Terreni**, premi **✏️ Modifica** su quel terreno, scegli **Categoria Coltura** e **Coltura**, **Salva Terreno**, poi torna qui. Non si toglie l’obbligo **Coltura** dal Diario.
+5. **Tipo di lavoro** e **coltura**, nell’ordine delle etichette: prima la **Categoria principale lavoro** (es. potatura, trattamenti); se la categoria ne ha, compare la **Sottocategoria** (facoltativa, es. manuale o meccanica); poi il **Tipo lavoro specifico**, che elenca solo i tipi di quella categoria. Se il tipo che cercate non c’è, potete aggiungerlo con **➕ Nuovo** accanto all’elenco. Infine **Categoria Coltura** e **Coltura**. **Coltura** è obbligatoria: dopo che avete salvato categoria e coltura sul terreno, nel Diario la Coltura si riempie da sola; se resta vuota, manca la coltura sul terreno — apri **Terreni**, premi **✏️ Modifica** su quel terreno, scegli **Categoria Coltura** e **Coltura**, **Salva Terreno**, poi torna qui. Senza **Coltura** l’attività non si salva: compare «La coltura è obbligatoria».
 6. **Orari:** ora di inizio obbligatoria; ora di fine se hai finito il turno (aiuta anche il calcolo delle ore).
 7. **Pause (minuti):** indica le pause effettive; le **ore nette** si aggiornano in base a orari e pause.
 8. **Note:** cosa avete fatto, condizioni, nome del turno, ecc.
@@ -385,7 +387,7 @@ Se il vostro utente appartiene a più aziende, lavorate sempre su **un’azienda
 
 - **Al login** compare la finestra **Seleziona Azienda** («Hai accesso a più aziende. Scegli quale vuoi utilizzare:»): per ogni azienda vedete nome, eventuale etichetta **Predefinito**, **ruoli** e **stato**. Toccate quella giusta per entrare nella dashboard; **Annulla** chiude la finestra.
 - **Durante il lavoro**: ingranaggio in alto a destra → **Azienda** (sotto c’è il nome di quella attuale) → si riapre **Seleziona Azienda**; dopo la scelta la pagina si ricarica con i dati dell’altra azienda. In dashboard può comparire anche il pulsante **🏢** con il nome dell’azienda: fa la stessa cosa.
-- Ruoli e accesso valgono **per azienda**: potete essere manager in una e operaio in un’altra. Se in un’azienda siete stati **disattivati** o **rimossi**, lì non potete più entrare (le altre aziende restano). Scegliendola compare un errore (per esempio «Errore durante la selezione dell'azienda. Riprova.»): chiedete all’amministratore di quell’azienda.
+- Ruoli e accesso valgono **per azienda**: potete essere manager in una e operaio in un’altra. Se in un’azienda siete stati **disattivati**, lì non potete entrare finché non vi riattivano: chiedete al **manager** di quell’azienda di riattivarvi. Se siete stati **rimossi**, serve un nuovo invito. Le altre aziende restano.
 - Se siete stati invitati in una seconda azienda con lo **stesso account**, dopo aver aperto il link d’invito le aziende compaiono **tutte** in **Seleziona Azienda**.
 
 ### Account in Impostazioni
