@@ -9,7 +9,6 @@
  */
 
 const crypto = require("node:crypto");
-const { COSTANTI } = require("./tony-landing-limiti");
 
 /** Costanti voce landing: stessa voce dell'app; modello multilingual (non flash). */
 const COSTANTI_VOCE = Object.freeze({
@@ -328,7 +327,9 @@ function validaRichiestaVoce(corpo) {
 }
 
 /**
- * Controlli in ordine: spenta → biglietto → usato → scaduto → tetto mese → tetto giorno.
+ * Controlli in ordine: spenta → biglietto → usato → scaduto →
+ * margine ElevenLabs → tetto giorno landing.
+ * La spesa Gemini in euro NON spegne più la voce.
  * @param {{
  *   config: object,
  *   biglietto: object|null|undefined,
@@ -336,7 +337,8 @@ function validaRichiestaVoce(corpo) {
  *   hashSessione: string,
  *   adessoMs: number,
  *   caratteriGiorno: number,
- *   spesaMeseEur: number
+ *   spesaMeseEur?: number,
+ *   margineVoce?: { consentita: boolean, codice?: string }
  * }} args
  */
 function decidiVoce(args) {
@@ -351,10 +353,7 @@ function decidiVoce(args) {
     typeof a.caratteriGiorno === "number" && !Number.isNaN(a.caratteriGiorno)
       ? a.caratteriGiorno
       : 0;
-  const spesaMeseEur =
-    typeof a.spesaMeseEur === "number" && !Number.isNaN(a.spesaMeseEur)
-      ? a.spesaMeseEur
-      : 0;
+  void a.spesaMeseEur;
 
   if (config.enabled !== true || config.voiceEnabled !== true) {
     return { consentita: false, codice: "voce-spenta", caratteri: 0 };
@@ -376,13 +375,14 @@ function decidiVoce(args) {
     return { consentita: false, codice: "voce-scaduta", caratteri: 0 };
   }
 
-  const budget =
-    typeof config.monthlyBudgetEur === "number" &&
-    !Number.isNaN(config.monthlyBudgetEur)
-      ? config.monthlyBudgetEur
-      : COSTANTI.TETTO_MENSILE_EUR;
-  if (spesaMeseEur >= COSTANTI.SOGLIA_SOLO_TESTO * budget) {
-    return { consentita: false, codice: "tetto-voce", caratteri: 0 };
+  const margine =
+    a.margineVoce && typeof a.margineVoce === "object" ? a.margineVoce : null;
+  if (margine && margine.consentita === false) {
+    return {
+      consentita: false,
+      codice: margine.codice || "tetto-voce",
+      caratteri: 0
+    };
   }
 
   const cap =

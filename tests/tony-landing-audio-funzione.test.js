@@ -22,8 +22,7 @@ const {
 const {
   ORIGINI_AMMESSE,
   chiaviTempo,
-  scadenze,
-  costoStimatoEur
+  scadenze
 } = require('../functions/lib/tony-landing-limiti.js');
 
 const ORIGINE = 'https://gfvagri.com';
@@ -502,7 +501,7 @@ describe('interruttori tetto biglietto riuscita', () => {
     expect(registro).toHaveLength(0);
   });
 
-  it('tetto caratteri e spesa mese', async () => {
+  it('tetto caratteri giorno; spesa Gemini non spegne la voce', async () => {
     const registro = [];
     const b = bigliettoSeed({ caratteri: 200 });
     const db = fakeDb({
@@ -523,9 +522,11 @@ describe('interruttori tetto biglietto riuscita', () => {
     expect(db.docs.get('tonyLandingQuota/voce_' + ID_VOCE).usato).toBe(false);
     expect(registro).toHaveLength(0);
 
+    const caratteri = preparaTestoVoce(TESTO).length;
     const db2 = fakeDb({
-      ['tonyLandingQuota/voce_' + ID_VOCE]: b,
-      ['tonyLandingQuota/m_' + mese]: { costoEur: 24 }
+      ['tonyLandingQuota/voce_' + ID_VOCE]: bigliettoSeed({ caratteri }),
+      ['tonyLandingQuota/g_' + giorno]: { caratteriVoce: 0 },
+      ['tonyLandingQuota/m_' + mese]: { costoEur: 24, spesaGeminiRipartita: true }
     });
     const res2 = fakeRes();
     await handleTonyLandingAudio(fakeReq(), res2, {
@@ -535,7 +536,7 @@ describe('interruttori tetto biglietto riuscita', () => {
       sintetizza: sintetizzaOk(registro),
       adesso: ADESSO_FISSO
     });
-    expect(res2.jsonBody.codice).toBe('tetto-voce');
+    expect(res2.statusCode).toBe(200);
   });
 
   it('riuscita 200 audio e seconda chiamata usata', async () => {
@@ -565,7 +566,8 @@ describe('interruttori tetto biglietto riuscita', () => {
     const g = db.docs.get('tonyLandingQuota/g_' + giorno);
     expect(g.caratteriVoce).toBe(caratteri);
     expect(g.voci).toBe(1);
-    expect(g.costoEur).toBe(costoStimatoEur({ caratteriVoce: caratteri }));
+    expect(g.costoEur == null || g.costoEur === 0).toBe(true);
+    expect(db.docs.get('tonyLandingQuota/m_' + mese).costoEur).toBe(0);
     expect(db.docs.get('tonyLandingQuota/voce_' + ID_VOCE).usato).toBe(true);
 
     const res2 = fakeRes();

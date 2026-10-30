@@ -193,7 +193,7 @@ describe('validaRichiestaVoce e decidiVoce', () => {
         caratteriGiorno: 0,
         spesaMeseEur: 24
       }).codice
-    ).toBe('tetto-voce');
+    ).toBe('ok');
     expect(
       decidiVoce({
         config: { enabled: true, voiceEnabled: true, dailyVoiceCharCap: 100 },

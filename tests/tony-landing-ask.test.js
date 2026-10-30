@@ -88,7 +88,8 @@ describe('Costanti', () => {
     expect(COSTANTI.MAX_CARATTERI_DOMANDA).toBe(300);
     expect(COSTANTI.MAX_BATTUTE_STORIA).toBe(6);
     expect(COSTANTI.TETTO_MENSILE_EUR).toBe(30);
-    expect(COSTANTI.SOGLIA_SOLO_TESTO).toBe(0.8);
+    expect(COSTANTI.SOGLIA_AVVISO_GEMINI_50).toBe(0.5);
+    expect(COSTANTI.SOGLIA_AVVISO_GEMINI_80).toBe(0.8);
     expect(COSTANTI.ORE_SCADENZA_CONTATORI).toBe(48);
     expect(COSTANTI.CACHE_CONFIG_MS).toBe(60000);
     expect(COSTANTI.MODELLO_GEMINI).toBe('gemini-2.5-flash');
@@ -195,7 +196,7 @@ describe('decidiDomanda', () => {
     ).toBe('tetto');
   });
 
-  it('voce: soglia 80% e voiceEnabled', () => {
+  it('voce: solo voiceEnabled (spesa Gemini non spegne la voce)', () => {
     expect(
       decidiDomanda({
         config: configAcceso,
@@ -207,7 +208,7 @@ describe('decidiDomanda', () => {
         config: configAcceso,
         spesaMeseEur: 24
       }).voce
-    ).toBe(false);
+    ).toBe(true);
     expect(
       decidiDomanda({
         config: { ...configAcceso, voiceEnabled: false },
@@ -456,15 +457,15 @@ describe('Tempo e scadenze', () => {
 });
 
 describe('Spesa', () => {
-  it('prezzi token e fisso', () => {
+  it('prezzi listino senza fisso né voce', () => {
     expect(
       costoStimatoEur({ tokenIngresso: 1000000, tokenUscita: 0 })
-    ).toBeCloseTo(0.3 + 0.0002, 6);
+    ).toBeCloseTo(0.3, 6);
     expect(
       costoStimatoEur({ tokenIngresso: 0, tokenUscita: 1000000 })
-    ).toBeCloseTo(2.5 + 0.0002, 6);
-    expect(costoStimatoEur({})).toBe(0.0002);
-    expect(costoStimatoEur({ tokenIngresso: -10, tokenUscita: -5 })).toBe(0.0002);
+    ).toBeCloseTo(2.5, 6);
+    expect(costoStimatoEur({})).toBe(0);
+    expect(costoStimatoEur({ tokenIngresso: -10, tokenUscita: -5 })).toBe(0);
   });
 
   it('tokenDaUsage con e senza metadata', () => {
@@ -479,16 +480,15 @@ describe('Spesa', () => {
     expect(stima.tokenIngresso).toBeGreaterThanOrEqual(1500);
   });
 
-  it('esempio: 3000+200 ≈ 0,0016 €; 600/giorno×31 sotto 30 €; tetto ferma anche sotto il cap giornaliero', () => {
-    // 3000 * 0.30/1e6 + 200 * 2.50/1e6 + 0.0002 = 0.0009 + 0.0005 + 0.0002 = 0.0016
+  it('esempio: 3000+200 ≈ 0,0014 €; tetto mensile ferma anche sotto il cap giornaliero', () => {
+    // 3000 * 0.30/1e6 + 200 * 2.50/1e6 = 0.0009 + 0.0005 = 0.0014
     const una = costoStimatoEur({ tokenIngresso: 3000, tokenUscita: 200 });
-    expect(una).toBeCloseTo(0.0016, 6);
-    // 1000/giorno × 31 ≈ 49,60 € > 30
+    expect(una).toBeCloseTo(0.0014, 6);
+    // 1000/giorno × 31 ≈ 43,40 € > 30 → il tetto mensile è il freno vero
     expect(una * 1000 * 31).toBeGreaterThan(30);
-    // Il vero freno ai costi è il tetto mensile di 30 €, non il limite giornaliero di domande.
     const sotto = una * 600 * 31;
     expect(sotto).toBeLessThan(30);
-    expect(sotto).toBeCloseTo(29.76, 2);
+    expect(sotto).toBeCloseTo(26.04, 2);
     const blocco = decidiDomanda({
       config: configAcceso,
       spesaMeseEur: 30,
