@@ -5,11 +5,9 @@
  */
 
 const SOGLIA_VARIANTE_PX = 768;
-const VERSIONE_CLIP = 'v4';
-/** Override di versione per singola clip (es. talking v5 senza salto). */
-const VERSIONE_PER_CLIP = Object.freeze({
-  talking: 'v5',
-});
+const VERSIONE_CLIP = 'v6';
+/** Override di versione per singola clip (vuoto: tutte usano VERSIONE_CLIP). */
+const VERSIONE_PER_CLIP = Object.freeze({});
 
 /** Nomi file base delle clip (senza variante/risoluzione/formato). */
 const NOMI_FILE_CLIP = Object.freeze({
