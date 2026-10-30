@@ -2046,6 +2046,20 @@
         "INTERSEZIONI"
       ],
       "label": "Generatore base di conoscenza Tony landing"
+    },
+    {
+      "prefix": "functions/scripts/anteprima-avvisi-tony-landing.cjs",
+      "modules": [
+        "INTERSEZIONI"
+      ],
+      "label": "Anteprima locale email avvisi spesa Tony landing (solo tecnica)"
+    },
+    {
+      "prefix": "tests/tony-landing-",
+      "modules": [
+        "INTERSEZIONI"
+      ],
+      "label": "Test Tony della landing (dietro flag): nessun testo guida"
     }
   ]
 }
