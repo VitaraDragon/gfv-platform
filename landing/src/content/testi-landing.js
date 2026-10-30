@@ -180,6 +180,10 @@ export const testiLanding = {
     notaSaluto: `Intanto crea il tuo account gratuito: dentro Global Farm View ti guido per ${GIORNI_GUIDA_TONY} giorni.`,
     ctaAccount: 'Crea il tuo account gratuito',
     saluta: '✕ Saluta Tony',
+    // BOZZA: da far rivedere — desktop: rimpicciolisce Tony senza perdere la chat
+    riduci: 'Riduci',
+    // BOZZA: da far rivedere
+    ripristina: 'Parla con Tony',
     // BOZZA: da far rivedere
     chip: ['Cosa fa GFV?', 'Quanto costa?', 'Come mi aiuta Tony?'],
     // BOZZA: da far rivedere
@@ -194,6 +198,10 @@ export const testiLanding = {
     ascolto: 'Ti ascolto…',
     // BOZZA: da far rivedere
     pensaLettoreSchermo: 'Tony sta pensando…',
+    pensaLungo: 'Ci sto pensando, un attimo…',
+    consensoInvioBreve:
+      'Prima di chiedere: le domande passano da Google (Gemini) e, se usi la voce, da ElevenLabs. Continuando accetti l\'informativa privacy.',
+    consensoInvioCta: 'Ho capito, chiedi',
     // BOZZA: da far rivedere
     domandaNascosta: '(messaggio nascosto: conteneva dati personali)',
     // BOZZA: da far rivedere
@@ -214,6 +222,8 @@ export const testiLanding = {
     registrazione: {
       apertura:
         'Per prima cosa creiamo il tuo account gratuito. Compila il modulo qui sotto: email e password le vedi solo tu.',
+      etichettaNome: 'Nome (facoltativo)',
+      etichettaCognome: 'Cognome (facoltativo)',
       etichettaEmail: 'Email',
       etichettaPassword: 'Password',
       etichettaConferma: 'Ripeti la password',
@@ -262,7 +272,7 @@ export const testiLanding = {
         "Dov'è la sede legale della tua azienda? Mi bastano via e comune.",
       domandaPoderi: 'Hai uno o più poderi? Dimmi come li chiami.',
       domandaTerreni:
-        'Ora i terreni: per ognuno dimmi nome, superficie e coltura, per esempio "Campo grande, 2,34 ha, grano" o "Meleto, 1,2 ha, mele". Con l\'account gratuito ne puoi inserire fino a 5.',
+        'Ora i terreni: per ognuno dimmi nome, superficie e coltura, per esempio "Campo grande: 2,34 ettari, grano" o "Meleto: 1,2 ettari, mele". Con l\'account gratuito ne puoi inserire fino a 5.',
       cinqueTerreni:
         "Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.",
       categoria: 'Che cosa ci coltivi? Grano, mais, orzo…',
@@ -289,6 +299,7 @@ export const testiLanding = {
       informativa:
         "Le risposte che dai a Tony passano da Google (Gemini) e, se usi la voce, da ElevenLabs: le elaborano per capirle e possono conservarle per breve tempo per motivi di sicurezza. Noi le salviamo nel tuo account solo quando confermi il riepilogo; se non confermi, non salviamo nulla. Puoi modificarle quando vuoi da Impostazioni. Non indicare dati di altre persone. Dettagli nell'Informativa privacy.",
       informativaLink: 'Informativa privacy',
+      informativaHoCapito: 'Ho capito',
       errori: {
         nonCollegato: 'Prima crea il tuo account, poi salviamo i dati.',
         appCheck:

@@ -1,6 +1,6 @@
 /**
  * @vitest-environment node
- * Logica pura voce landing + isolamento + export + regole (passo 12b).
+ * Logica pura voce landing + isolamento + export + regole (passo 12b + correzioni anteprima).
  */
 import { createRequire } from 'node:module';
 import fs from 'node:fs';
@@ -23,23 +23,54 @@ const {
   statoPerCodice
 } = require('../functions/lib/tony-landing-voce.js');
 const {
-  TONY_TTS_ELEVEN_VOICE_DEFAULT,
-  TONY_TTS_ELEVEN_MODEL_DEFAULT
+  TONY_TTS_ELEVEN_VOICE_DEFAULT
 } = require('../functions/tony-tts-provider.js');
 
 describe('preparaTestoVoce', () => {
   it('esempi del prompt e casi markdown/link/emoji', () => {
     expect(preparaTestoVoce('Con GFV gestisci i terreni.')).toBe(
-      'Con Gi, effe, vu gestisci i terreni.'
+      'Con Gi effe vu gestisci i terreni.'
     );
     expect(preparaTestoVoce('Il Base costa 5 € al mese.')).toBe(
-      'Il Base costa 5 euro al mese.'
+      'Il base costa cinque euro al mese.'
     );
-    expect(preparaTestoVoce('**GFV**')).toBe('Gi, effe, vu');
+    expect(preparaTestoVoce('**GFV**')).toBe('Gi effe vu');
     expect(preparaTestoVoce('GFVX')).toBe('GFVX');
     expect(preparaTestoVoce('Vedi https://esempio.it ok')).toBe('Vedi ok');
     expect(preparaTestoVoce('Ciao 🌾 mondo')).toBe('Ciao mondo');
     expect(preparaTestoVoce('  spazi   multipli  ')).toBe('spazi multipli');
+  });
+
+  it('ricetta accettazione: GFV, base, euro, un terreno, break', () => {
+    const out = preparaTestoVoce(
+      "Con GFV il piano Base costa 60 € l'anno.\nHai 1 terreno."
+    );
+    expect(out).toContain('Gi effe vu');
+    expect(out).toContain('base');
+    expect(out).toContain('sessanta euro');
+    expect(out).toContain('un terreno');
+    expect(out).toContain('<break time="0.6s" />');
+    expect(out).not.toContain('GFV');
+    expect(out).not.toMatch(/\bBase\b/);
+    expect(out).not.toContain('€');
+    // Cifre solo nel tag break (0.6s), non nel testo parlato.
+    expect(out.replace(/<break time="0\.6s" \/>/g, '')).not.toMatch(/\d/);
+  });
+
+  it('piano Base sempre minuscolo', () => {
+    expect(preparaTestoVoce('il Base')).toContain('il base');
+    expect(preparaTestoVoce('al Base')).toContain('al base');
+    expect(preparaTestoVoce('piano Base')).toContain('piano base');
+    expect(preparaTestoVoce('Base costa')).toMatch(/^base /);
+  });
+
+  it('numeri con accordo articolo', () => {
+    expect(preparaTestoVoce('1 terreno')).toBe('un terreno');
+    expect(preparaTestoVoce('1 podere')).toBe('un podere');
+    expect(preparaTestoVoce('1 attività')).toBe("un'attività");
+    expect(preparaTestoVoce('2 terreni')).toBe('due terreni');
+    expect(preparaTestoVoce('7 giorni')).toBe('sette giorni');
+    expect(preparaTestoVoce('2,34 ha')).toBe('due virgola trentaquattro ettari');
   });
 });
 
@@ -162,7 +193,7 @@ describe('validaRichiestaVoce e decidiVoce', () => {
         caratteriGiorno: 0,
         spesaMeseEur: 24
       }).codice
-    ).toBe('tetto-voce');
+    ).toBe('ok');
     expect(
       decidiVoce({
         config: { enabled: true, voiceEnabled: true, dailyVoiceCharCap: 100 },
@@ -190,9 +221,12 @@ describe('validaRichiestaVoce e decidiVoce', () => {
   it('corpo e url ElevenLabs e stati HTTP', () => {
     expect(corpoElevenLabs('ciao')).toEqual({
       text: 'ciao',
-      model_id: 'eleven_flash_v2_5',
-      language_code: 'it'
+      model_id: 'eleven_multilingual_v2'
     });
+    expect(Object.keys(corpoElevenLabs('ciao')).sort()).toEqual([
+      'model_id',
+      'text'
+    ]);
     expect(urlElevenLabs()).toBe(
       'https://api.elevenlabs.io/v1/text-to-speech/5zD2eYSLIo8c2zkowMfP/stream?output_format=mp3_44100_128'
     );
@@ -203,10 +237,11 @@ describe('validaRichiestaVoce e decidiVoce', () => {
 });
 
 describe('stessa voce dell’app e isolamento', () => {
-  it('costanti uguali a tony-tts-provider', () => {
+  it('voce id uguale all’app; modello landing = multilingual v2 (ricetta Pier)', () => {
     expect(COSTANTI_VOCE.VOCE_ID).toBe(TONY_TTS_ELEVEN_VOICE_DEFAULT);
     expect(COSTANTI_VOCE.VOCE_ID).toBe('5zD2eYSLIo8c2zkowMfP');
-    expect(COSTANTI_VOCE.MODELLO).toBe(TONY_TTS_ELEVEN_MODEL_DEFAULT);
+    expect(COSTANTI_VOCE.MODELLO).toBe('eleven_multilingual_v2');
+    expect(COSTANTI_VOCE).not.toHaveProperty('LINGUA');
   });
 
   it('file voce/audio isolati e export index', () => {

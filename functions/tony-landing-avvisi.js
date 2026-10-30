@@ -26,17 +26,24 @@ const {
   dataMeseBudget,
   decisioneBudgetGoogle,
   testoEmailSpesa,
+  testoEmailVoceEleven,
   testoEmailBudget,
   meseInParole,
   chiaviTempo,
   normalizzaConfig
 } = require("./lib/tony-landing-avvisi");
-const { scadenze } = require("./lib/tony-landing-limiti");
+const { scadenze, spesaGeminiDaDocumento } = require("./lib/tony-landing-limiti");
+const {
+  leggiSubscriptionElevenLabs,
+  normalizzaSubscription,
+  sogliaVoceDaAvvisare
+} = require("./lib/tony-landing-elevenlabs-quota");
 
 void RESEND_FROM;
 void SOGLIE_AVVISO;
 
 const resendApiKey = defineSecret("RESEND_API_KEY");
+const elevenLabsApiKey = defineSecret("ELEVENLABS_API_KEY");
 
 const COLLEZIONE_QUOTA = "tonyLandingQuota";
 const DOC_CONFIG = "tonyLanding";
@@ -84,14 +91,120 @@ async function handleAvvisiSpesa(deps) {
 
     const config = normalizzaConfig(snapConfig.exists ? snapConfig.data() : null);
     const datiMese = snapMese.exists ? snapMese.data() || {} : {};
-    const spesaMeseEur =
-      typeof datiMese.costoEur === "number" ? datiMese.costoEur : 0;
+    const geminiDoc = spesaGeminiDaDocumento(datiMese);
+    if (geminiDoc.daRipartire) {
+      // Mese con voce gonfiata e senza token: riparte da 0 (niente falso 100%).
+      try {
+        await refMese.set(
+          {
+            costoEur: 0,
+            spesaGeminiRipartita: true,
+            aggiornatoIl: FieldValue.serverTimestamp()
+          },
+          { merge: true }
+        );
+      } catch (_e) {
+        /* ignore */
+      }
+    }
+    const spesaMeseEur = geminiDoc.spesaGeminiEur;
     const domandeMese =
       typeof datiMese.domande === "number" ? datiMese.domande : 0;
+    const caratteriVoceLanding =
+      typeof datiMese.caratteriVoce === "number" ? datiMese.caratteriVoce : 0;
     const gia = avvisiValidi(
       snapAvvisi.exists ? snapAvvisi.data() || {} : {},
       adesso
     );
+
+    /** @type {object|null} */
+    let voceEleven = null;
+    let subNorm = null;
+    try {
+      let chiave = "";
+      try {
+        chiave =
+          typeof (deps && deps.chiaveEleven) === "string"
+            ? deps.chiaveEleven
+            : elevenLabsApiKey.value();
+      } catch (_k) {
+        chiave = "";
+      }
+      const subEsito =
+        typeof (deps && deps.leggiSubscription) === "function"
+          ? await deps.leggiSubscription()
+          : await leggiSubscriptionElevenLabs({ chiave: chiave });
+      if (subEsito && subEsito.ok && subEsito.sub) {
+        subNorm = normalizzaSubscription(subEsito.sub);
+        const resetLabel =
+          subNorm.resetUnix != null
+            ? new Date(subNorm.resetUnix * 1000).toLocaleDateString("it-IT", {
+                day: "numeric",
+                month: "long",
+                timeZone: "Europe/Rome"
+              })
+            : "";
+        voceEleven = {
+          usati: subNorm.characterCount,
+          limite: subNorm.characterLimit,
+          landing: caratteriVoceLanding,
+          rimanenti: subNorm.rimanenti,
+          resetLabel: resetLabel
+        };
+      } else {
+        voceEleven = { nonLeggibile: true };
+      }
+    } catch (_sub) {
+      voceEleven = { nonLeggibile: true };
+    }
+
+    if (subNorm && subNorm.leggibile) {
+      const sceltaVoce = sogliaVoceDaAvvisare({
+        percentUsati: subNorm.percentUsati,
+        giaInviate: gia
+      });
+      if (sceltaVoce) {
+        const prenotateV = sceltaVoce.daSegnare.slice();
+        try {
+          const patchV = {
+            expireAt: Timestamp.fromDate(scad.mese),
+            aggiornatoIl: FieldValue.serverTimestamp()
+          };
+          for (let i = 0; i < prenotateV.length; i += 1) {
+            patchV["e" + prenotateV[i]] = marcaPrenotazione(adesso);
+          }
+          await refAvvisi.set(patchV, { merge: true });
+          const mailV = testoEmailVoceEleven({
+            soglia: sceltaVoce.soglia,
+            usati: subNorm.characterCount,
+            limite: subNorm.characterLimit,
+            landing: caratteriVoceLanding,
+            rimanenti: subNorm.rimanenti,
+            resetLabel: voceEleven && voceEleven.resetLabel
+          });
+          await inviaEmail({
+            to: DESTINATARIO_AVVISI,
+            subject: mailV.oggetto,
+            html: mailV.html
+          });
+          const fattiV = {};
+          for (let i = 0; i < prenotateV.length; i += 1) {
+            fattiV["e" + prenotateV[i]] = marcaInviata(adesso);
+          }
+          await refAvvisi.set(fattiV, { merge: true });
+          console.info(
+            "[tonyLandingAvvisi] voce=e" +
+              sceltaVoce.soglia +
+              " email=inviata"
+          );
+        } catch (errVoce) {
+          console.info(
+            "[tonyLandingAvvisi] voce=errore codice=" +
+              codiceErroreBreve(errVoce)
+          );
+        }
+      }
+    }
 
     const percentuale = percentualeSpesa({
       spesaMeseEur,
@@ -186,7 +299,8 @@ async function handleAvvisiSpesa(deps) {
       budgetEur: config.monthlyBudgetEur,
       domandeMese,
       mese: meseInParole(adesso),
-      spentoAdesso: emailSpentoAdesso
+      spentoAdesso: emailSpentoAdesso,
+      voceEleven: voceEleven
     });
 
     try {
@@ -426,7 +540,7 @@ const tonyLandingAvvisiSpesa = onSchedule(
     schedule: FREQUENZA_CONTROLLO,
     region: "europe-west1",
     timeZone: "Europe/Rome",
-    secrets: [resendApiKey],
+    secrets: [resendApiKey, elevenLabsApiKey],
     retryCount: 0
   },
   async () => {

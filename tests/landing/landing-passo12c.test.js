@@ -9,8 +9,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import {
+  attesaPrimaDiParlareMs,
+  bussataAutomaticaConsentita,
+  BUSSATA_AUTOMATICA_MS,
   DIMENSIONI_TONY_STATICO,
   DISSOLVENZA_STATICO_MS,
+  layoutTonyDesktop,
+  MIN_SCRIVE_MS,
+  ORDINE_PRECARICA_CHAT,
   percorsoTonyStatico,
   prossimoStato,
   scalettaClip,
@@ -41,6 +47,98 @@ function pngHeader(rel) {
   const tipoColore = buf[25];
   return { larghezza, altezza, tipoColore };
 }
+
+describe('Riduci nell’intestazione del pannello', () => {
+  it('Riduci è in TonyStage; LandingHome ha solo Parla con Tony', () => {
+    const home = leggi('landing/src/views/LandingHome.vue');
+    const stage = leggi('landing/src/components/TonyStage.vue');
+    const testi = leggi('landing/src/content/testi-landing.js');
+    expect(testi).toMatch(/riduci:\s*'Riduci'/);
+    expect(testi).toMatch(/ripristina:\s*'Parla con Tony'/);
+    expect(home).toMatch(/tonyRidotto/);
+    expect(home).toMatch(/v-show="!tonyRidotto"/);
+    expect(home).not.toMatch(/class="tony-btn-riduci"/);
+    expect(home).toMatch(/tony-btn-riapri/);
+    expect(stage).toMatch(/tony-btn-riduci/);
+    expect(stage).toMatch(/emit\('riduci'\)/);
+    expect(stage).toContain('etichetta-riga');
+  });
+
+  it('layoutTonyDesktop sceglie laterale o basso', () => {
+    expect(layoutTonyDesktop({ larghezzaFinestra: 1400, ingombro: 600 })).toBe(
+      'laterale'
+    );
+    expect(layoutTonyDesktop({ larghezzaFinestra: 1024, ingombro: 600 })).toBe(
+      'basso'
+    );
+    expect(layoutTonyDesktop({ larghezzaFinestra: 900, ingombro: 580 })).toBe(
+      'basso'
+    );
+  });
+});
+
+describe('MIN_SCRIVE e bussata automatica', () => {
+  it('attesaPrimaDiParlareMs rispetta il minimo scrive', () => {
+    expect(MIN_SCRIVE_MS).toBe(2800);
+    expect(
+      attesaPrimaDiParlareMs({
+        clipCorrente: 'scrive',
+        msDaInizioClip: 0,
+      })
+    ).toBe(2800);
+    expect(
+      attesaPrimaDiParlareMs({
+        clipCorrente: 'scrive',
+        msDaInizioClip: 1000,
+      })
+    ).toBe(1800);
+    expect(
+      attesaPrimaDiParlareMs({
+        clipCorrente: 'scrive',
+        msDaInizioClip: 2800,
+      })
+    ).toBe(0);
+    expect(
+      attesaPrimaDiParlareMs({
+        clipCorrente: 'scrive',
+        msDaInizioClip: 4000,
+      })
+    ).toBe(0);
+    expect(
+      attesaPrimaDiParlareMs({
+        clipCorrente: 'scrive',
+        msDaInizioClip: 300,
+        riduciMovimento: true,
+      })
+    ).toBe(0);
+    expect(
+      attesaPrimaDiParlareMs({ clipCorrente: 'idle', msDaInizioClip: 0 })
+    ).toBe(0);
+  });
+
+  it('bussataAutomaticaConsentita con contatore e interazione', () => {
+    expect(BUSSATA_AUTOMATICA_MS).toBe(8000);
+    expect(bussataAutomaticaConsentita({})).toBe(true);
+    expect(bussataAutomaticaConsentita({ bussateAutomatiche: 0 })).toBe(true);
+    expect(bussataAutomaticaConsentita({ bussateAutomatiche: 1 })).toBe(true);
+    expect(bussataAutomaticaConsentita({ bussateAutomatiche: 2 })).toBe(false);
+    expect(bussataAutomaticaConsentita({ utenteHaInteragito: true })).toBe(false);
+    expect(bussataAutomaticaConsentita({ sessioneGiaBussato: true })).toBe(false);
+    expect(bussataAutomaticaConsentita({ rinunciaSalvata: true })).toBe(false);
+    expect(bussataAutomaticaConsentita({ paginaNascosta: true })).toBe(false);
+    expect(bussataAutomaticaConsentita({ stageAperto: true })).toBe(false);
+    expect(bussataAutomaticaConsentita({ avvisoAperto: true })).toBe(false);
+  });
+
+  it('precarica thinking e scrive prima dell’ascolto', () => {
+    expect(ORDINE_PRECARICA_CHAT.slice(0, 4)).toEqual([
+      'entry',
+      'idle',
+      'thinking',
+      'scrive',
+    ]);
+  });
+});
 
 describe('scalettaClip passo 12c', () => {
   it('entra→idle vuota; altre righe invariate', () => {
@@ -315,6 +413,30 @@ describe('tempi e sorgenti', () => {
     expect(scalettaClip('entra', 'idle').includes('entry')).toBe(false);
     const stage = leggi('landing/src/components/TonyStage.vue');
     expect(stage).toContain("codaClip = ['entry', 'idle']");
+  });
+});
+
+describe('bussata automatica in LandingHome', () => {
+  it('timer, sessione e warm-up OPTIONS', () => {
+    const home = leggi('landing/src/views/LandingHome.vue');
+    expect(home).toContain('BUSSATA_AUTOMATICA_MS');
+    expect(home).toContain('bussataAutomaticaConsentita');
+    expect(home).toContain('CHIAVE_BUSSATA_SESSIONE');
+    expect(home).toMatch(/method:\s*['"]OPTIONS['"]/);
+    expect(home).toContain('URL_TONY_LANDING_ASK');
+    expect(home).toContain('URL_TONY_LANDING_AUDIO');
+  });
+});
+
+describe('TonyChat informativa e riepilogo', () => {
+  it('informativa aiuto una volta e riepilogo sempre in fase aiuto', () => {
+    const chat = leggi('landing/src/components/TonyChat.vue');
+    expect(chat).toContain('CHIAVE_INFORMATIVA_AIUTO');
+    expect(chat).toContain('informativaAiutoVisibile');
+    expect(chat).toContain('informativaHoCapito');
+    expect(chat).toContain('@click="onChipAiuto(ta.chipRiepilogo)"');
+    expect(chat).not.toMatch(/v-if="haDatiAiuto\(\)"[\s\S]{0,200}chipRiepilogo/);
+    expect(chat).not.toMatch(/chipRiepilogo[\s\S]{0,80}v-if="haDatiAiuto\(\)"/);
   });
 });
 

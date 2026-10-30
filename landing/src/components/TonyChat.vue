@@ -1,14 +1,23 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
-import { URL_REGISTRAZIONE } from '../config/landing-config.js';
+import { URL_REGISTRAZIONE, VERSIONE_AVVISO_TONY } from '../config/landing-config.js';
 import { testiLanding } from '../content/testi-landing.js';
-import { tempiVoce } from '../lib/tony-bussa-logica.js';
+import {
+  attesaPrimaDiParlareMs,
+  CHIAVE_INFORMATIVA_AIUTO,
+  leggiPresaVisione,
+  salvaPresaVisione,
+  tempiVoce,
+} from '../lib/tony-bussa-logica.js';
 import { chiediATony } from '../lib/tony-chat-client.js';
 import {
   MAX_CARATTERI_DOMANDA,
   MESSAGGI_CHAT,
   azionePerEsito,
   aggiornaStoria,
+  creaBufferTestoStreaming,
+  creaGestoreAttesaLunga,
+  messaggioAttesaLunga,
   modoVoce,
   nuovaSessione,
   validaDomanda,
@@ -17,7 +26,9 @@ import { chiediVoce } from '../lib/tony-voce-client.js';
 import { creaPlayerVoce } from '../lib/tony-voce-player.js';
 import {
   PASSI_AIUTO,
+  decidiDopoRisposta,
   prossimoPasso,
+  serializzaRaccolti,
   unisciDati,
 } from '../lib/tony-aiuto-account.js';
 import { percorsoVoceFatto } from '../lib/tony-bussa-logica.js';
@@ -35,6 +46,8 @@ const props = defineProps<{
   staticoForzato: boolean;
   audioIniziale: boolean;
   moduloDisponibile: boolean;
+  /** Ms dall'inizio reale della clip scrive (0 se non partita). */
+  msDaInizioScrive?: () => number;
 }>();
 
 const emit = defineEmits([
@@ -83,6 +96,8 @@ const schedaAperta = ref(false);
 const aiutoFatto = ref(false);
 const aiutoSospeso = ref(false);
 const argomentiSuonati = new Set<string>();
+const turniSenzaNovitaNelPasso = ref(0);
+const consecutiviFuoriTema = ref(0);
 /** Stato del campo/chip/evidenza prima di aprire il modulo (R1). */
 let statoPrimaDelModulo: {
   campoAttivo: boolean;
@@ -117,6 +132,10 @@ const altoparlanteVisibile = ref(false);
 const mostraAscolta = ref(false);
 const voceInCorso = ref(false);
 const voceParlandoSr = ref(false);
+const informativaAiutoVisibile = ref(false);
+const attesaLungaVisibile = ref(false);
+const mostraConsensoInvio = ref(false);
+const testoInvioInAttesa = ref<{ testo: string; daChip: boolean } | null>(null);
 
 let recognition: any = null;
 let abortCorrente: AbortController | null = null;
@@ -129,7 +148,38 @@ let blobAscolta: Blob | null = null;
 let metaVoce: { idVoce: string; testo: string } | null = null;
 let chiediVoceFn: typeof chiediVoce = chiediVoce;
 let scenarioVoceFinta: string | null = null;
+/** Timestamp di inizio clip «scrive» (primo pezzo di testo). */
+let inizioScriveMs = 0;
 const playerVoce = creaPlayerVoce();
+
+function aspetta(ms: number) {
+  return new Promise<void>((resolve) => {
+    if (ms <= 0) {
+      resolve();
+      return;
+    }
+    setTimeout(resolve, ms);
+  });
+}
+
+async function aspettaMinimoScrivePrimaDiParlare() {
+  let msDaInizio = 0;
+  if (typeof props.msDaInizioScrive === 'function') {
+    msDaInizio = props.msDaInizioScrive();
+  } else if (inizioScriveMs > 0) {
+    msDaInizio = Date.now() - inizioScriveMs;
+  }
+  const clipCorrente =
+    typeof props.msDaInizioScrive === 'function' && msDaInizio === 0
+      ? 'idle'
+      : 'scrive';
+  const attesa = attesaPrimaDiParlareMs({
+    clipCorrente,
+    msDaInizioClip: msDaInizio,
+    riduciMovimento: props.riduciMovimento,
+  });
+  await aspetta(attesa);
+}
 
 const contatoreVisibile = computed(() => {
   const n = campo.value.length;
@@ -146,7 +196,56 @@ const chatVisibile = computed(
 
 const mobile = computed(() => props.variante === 'mobile');
 
+function storagePagina() {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function storageSessione() {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function presaVisioneOk() {
+  return leggiPresaVisione(storagePagina(), VERSIONE_AVVISO_TONY).vista;
+}
+
+function informativaAiutoGiaVista() {
+  const s = storageSessione();
+  return s ? s.getItem(CHIAVE_INFORMATIVA_AIUTO) === '1' : false;
+}
+
+function segnaInformativaAiutoVista() {
+  const s = storageSessione();
+  if (s) s.setItem(CHIAVE_INFORMATIVA_AIUTO, '1');
+}
+
+function onHoCapitoInformativaAiuto() {
+  informativaAiutoVisibile.value = false;
+  segnaInformativaAiutoVista();
+}
+
+function onHoCapitoConsensoInvio() {
+  mostraConsensoInvio.value = false;
+  salvaPresaVisione(
+    storagePagina(),
+    VERSIONE_AVVISO_TONY,
+    new Date().toISOString(),
+    props.audioIniziale !== false
+  );
+  const pendente = testoInvioInAttesa.value;
+  testoInvioInAttesa.value = null;
+  if (pendente) void inviaTesto(pendente.testo, pendente.daChip);
+}
+
 onMounted(() => {
+  informativaAiutoVisibile.value = !informativaAiutoGiaVista();
   const SR =
     typeof window !== 'undefined'
       ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
@@ -306,6 +405,7 @@ function onRegistrazioneCompletata() {
   moduloAperto.value = false;
   campoAttivo.value = false;
   chipVisibili.value = false;
+  informativaAiutoVisibile.value = !informativaAiutoGiaVista();
   messaggi.value.push({ ruolo: 'tony', testo: t.registrazione.fatto });
   messaggi.value.push({ ruolo: 'tony', testo: ta.invito });
   faseAiuto.value = true;
@@ -338,6 +438,8 @@ function domandaFissa(passo: string) {
 }
 
 function avviaPasso(passo: string) {
+  turniSenzaNovitaNelPasso.value = 0;
+  consecutiviFuoriTema.value = 0;
   passoAiuto.value = passo;
   schedaAperta.value = false;
   campoAttivo.value = true;
@@ -450,6 +552,12 @@ async function inviaTesto(grezzo: string, daChip = false) {
   if (faseAiuto.value && passoAiuto.value === 'invito') return;
   if (inAttesa.value || !campoAttivo.value || modalitàStatica.value) return;
   if (aiutoFatto.value || aiutoSospeso.value) return;
+  if (!presaVisioneOk()) {
+    testoInvioInAttesa.value = { testo: grezzo, daChip };
+    mostraConsensoInvio.value = true;
+    scorriInBasso();
+    return;
+  }
   const validazione = validaDomanda(grezzo);
   if (!validazione.ok) {
     if (validazione.motivo === 'vuota') return;
@@ -490,17 +598,35 @@ async function inviaTesto(grezzo: string, daChip = false) {
 
   abortCorrente = new AbortController();
   let primoPezzo = false;
+  attesaLungaVisibile.value = false;
+  const gestoreAttesa = creaGestoreAttesaLunga({
+    onMostra: () => {
+      attesaLungaVisibile.value = true;
+    },
+    onNascondi: () => {
+      attesaLungaVisibile.value = false;
+    },
+  });
+  gestoreAttesa.inizio();
+
+  const bufferStream = creaBufferTestoStreaming({
+    onAggiorna: (visibile) => {
+      testoParziale.value = visibile;
+      const ultimo = messaggi.value[messaggi.value.length - 1];
+      if (ultimo && ultimo.live) ultimo.testo = visibile;
+      scorriInBasso();
+    },
+  });
 
   const onPezzo = (delta: string) => {
+    gestoreAttesa.pezzoArrivato();
     if (!primoPezzo) {
       primoPezzo = true;
+      inizioScriveMs = Date.now();
       emit('testoArrivato');
       messaggi.value.push({ ruolo: 'tony', testo: '', live: true });
     }
-    testoParziale.value += delta;
-    const ultimo = messaggi.value[messaggi.value.length - 1];
-    if (ultimo && ultimo.live) ultimo.testo = testoParziale.value;
-    scorriInBasso();
+    bufferStream.aggiungi(delta);
   };
 
   const inAccount =
@@ -534,6 +660,7 @@ async function inviaTesto(grezzo: string, daChip = false) {
         segnale: abortCorrente.signal,
         fase: inAccount ? 'account' : undefined,
         argomento: inAccount ? passoAiuto.value || undefined : undefined,
+        raccolti: inAccount ? serializzaRaccolti(datiAiuto.value) || undefined : undefined,
       });
     }
   } catch {
@@ -541,6 +668,7 @@ async function inviaTesto(grezzo: string, daChip = false) {
   }
 
   if (smontato) return;
+  gestoreAttesa.fine();
   abortCorrente = null;
   inAttesa.value = false;
 
@@ -580,6 +708,7 @@ async function inviaTesto(grezzo: string, daChip = false) {
       ultimo.testo = azione.testo;
       ultimo.live = false;
     }
+    bufferStream.finisci();
   } else {
     messaggi.value.push({ ruolo: 'tony', testo: azione.testo });
   }
@@ -594,12 +723,44 @@ async function inviaTesto(grezzo: string, daChip = false) {
     if (esito.troppiTerreni) {
       messaggi.value.push({ ruolo: 'tony', testo: ta.cinqueTerreni });
     }
+    const prima = JSON.stringify(datiAiuto.value);
     const uniti = unisciDati(datiAiuto.value, esito.dati, passoAiuto.value || '');
+    const novita = JSON.stringify(uniti.dati) !== prima;
     datiAiuto.value = uniti.dati;
     if (uniti.troppiTerreni && !esito.troppiTerreni) {
       messaggi.value.push({ ruolo: 'tony', testo: ta.cinqueTerreni });
     }
-    if (esito.dati && esito.dati.fatto === true) {
+    if (esito.fuoriTema === true) {
+      consecutiviFuoriTema.value += 1;
+    } else {
+      consecutiviFuoriTema.value = 0;
+    }
+    if (novita) {
+      turniSenzaNovitaNelPasso.value = 0;
+    } else {
+      turniSenzaNovitaNelPasso.value += 1;
+    }
+    const dopoRisposta = decidiDopoRisposta({
+      nuoviDati: novita,
+      fuoriTema: consecutiviFuoriTema.value,
+      turniSenzaNovitaNelPasso: turniSenzaNovitaNelPasso.value,
+      domandeRimaste:
+        typeof esito.domandeRimaste === 'number' ? esito.domandeRimaste : undefined,
+      passo: passoAiuto.value || '',
+    });
+    if (dopoRisposta.azione === 'riepilogo' || dopoRisposta.apriRiepilogo) {
+      if (dopoRisposta.messaggio) {
+        messaggi.value.push({ ruolo: 'tony', testo: dopoRisposta.messaggio });
+      }
+      apriScheda();
+    } else if (dopoRisposta.azione === 'prossimoPasso') {
+      if (dopoRisposta.messaggio) {
+        messaggi.value.push({ ruolo: 'tony', testo: dopoRisposta.messaggio });
+      }
+      const prox = prossimoPasso(passoAiuto.value || '');
+      if (prox) avviaPasso(prox);
+      else apriScheda();
+    } else if (esito.dati && esito.dati.fatto === true) {
       const prox = prossimoPasso(passoAiuto.value || '');
       if (prox) avviaPasso(prox);
       else apriScheda();
@@ -661,6 +822,8 @@ async function gestisciVoceAutomatica(esito: any, testo: string) {
     return;
   }
   blobAscolta = esitoVoce.blob;
+  await aspettaMinimoScrivePrimaDiParlare();
+  if (smontato) return;
   const esitoPlay = await playerVoce.suona(esitoVoce.blob, {
     attesaMaxMs: tempiVoce().attesaMaxVoceMs,
     onInizio: () => {
@@ -931,6 +1094,9 @@ defineExpose({ interrompi });
     >
       {{ t.pensaLettoreSchermo }}
     </p>
+    <p v-if="attesaLungaVisibile && inAttesa" class="attesa-lunga" aria-live="polite">
+      {{ messaggioAttesaLunga(t.pensaLungo) }}
+    </p>
     <p
       v-if="voceParlandoSr"
       class="sr-only"
@@ -967,9 +1133,35 @@ defineExpose({ interrompi });
       </div>
     </template>
 
+    <div
+      v-if="chatVisibile && mostraConsensoInvio"
+      class="consenso-invio"
+      role="region"
+      aria-label="Consenso privacy"
+    >
+      <p>{{ t.consensoInvioBreve }}</p>
+      <button type="button" class="chip" @click="onHoCapitoConsensoInvio">
+        {{ t.consensoInvioCta }}
+      </button>
+      <a class="consenso-link" href="/privacy#tony">{{ ta.informativaLink }}</a>
+    </div>
+
     <template v-else-if="chatVisibile && campoAttivo && !aiutoFatto">
-      <p v-if="faseAiuto" class="informativa-aiuto">
-        {{ ta.informativa }}
+      <div
+        v-if="faseAiuto && informativaAiutoVisibile"
+        class="informativa-aiuto"
+        role="region"
+        aria-label="Informativa aiuto account"
+      >
+        <p>
+          {{ ta.informativa }}
+          <a href="/privacy#tony">{{ ta.informativaLink }}</a>
+        </p>
+        <button type="button" class="chip chip--capito" @click="onHoCapitoInformativaAiuto">
+          {{ ta.informativaHoCapito }}
+        </button>
+      </div>
+      <p v-else-if="faseAiuto" class="privacy-chip-link">
         <a href="/privacy#tony">{{ ta.informativaLink }}</a>
       </p>
       <div v-if="chipVisibili" class="chip-riga" role="group" aria-label="Domande rapide">
@@ -992,7 +1184,6 @@ defineExpose({ interrompi });
             {{ ta.chipAvanti }}
           </button>
           <button
-            v-if="haDatiAiuto()"
             type="button"
             class="chip"
             :disabled="inAttesa"
@@ -1100,7 +1291,7 @@ defineExpose({ interrompi });
         {{ t.ctaAccount }}
       </a>
       <button
-        v-if="faseAiuto && haDatiAiuto() && !schedaAperta && !aiutoFatto"
+        v-if="faseAiuto && !schedaAperta && !aiutoFatto"
         type="button"
         class="btn-account"
         @click="apriScheda"
@@ -1183,6 +1374,45 @@ defineExpose({ interrompi });
   max-height: 10rem;
   overflow: auto;
   padding-right: 0.15rem;
+}
+
+@media (min-width: 1024px) {
+  .conversazione {
+    max-height: 45vh;
+  }
+}
+
+.attesa-lunga {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #4a6358;
+  font-style: italic;
+}
+
+.consenso-invio {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(15, 77, 50, 0.2);
+  border-radius: 10px;
+  background: #f7faf8;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+.consenso-link,
+.privacy-chip-link a {
+  font-size: 0.78rem;
+  color: #0f4d32;
+}
+
+.chip--capito {
+  align-self: flex-start;
+}
+
+.privacy-chip-link {
+  margin: 0 0 0.15rem;
 }
 
 .battuta {

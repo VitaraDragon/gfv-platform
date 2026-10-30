@@ -1349,7 +1349,7 @@
             if (!user) user = await resolveAuthUser(auth);
             if (!user) {
                 sessionStorage.removeItem('gfv_expected_user_id');
-                window.location.href = await loginPageUrl('./auth/login-standalone.html');
+                window.location.href = await loginPageUrl('./auth/login-standalone.html?motivo=sessione-persa');
                 return;
             }
             
@@ -1362,7 +1362,7 @@
                     const { signOut } = await import('./services/firebase-service.js');
                     await signOut(auth);
                     sessionStorage.removeItem('gfv_expected_user_id');
-                    window.location.href = await loginPageUrl('./auth/login-standalone.html');
+                    window.location.href = await loginPageUrl('./auth/login-standalone.html?motivo=utente-cambiato');
                     return;
                 } else {
                     // Questa scheda è appena stata usata per registrazione, aggiorna l'utente previsto
@@ -1407,8 +1407,7 @@
                             if (!justRegistered) {
                                 console.warn('⚠️ ATTENZIONE: Utente autenticato ma documento non trovato e non viene dalla registrazione!');
                                 await auth.signOut();
-                                alert('Errore: profilo utente non trovato. Completa la registrazione o contatta l\'amministratore. Non è più possibile recuperare un documento «orfano» copiando ruoli da un altro account.');
-                                window.location.href = '../auth/registrazione-standalone.html';
+                                window.location.href = await loginPageUrl('./auth/login-standalone.html?motivo=profilo-mancante');
                                 return;
                             }
                             

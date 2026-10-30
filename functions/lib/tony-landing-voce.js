@@ -1,28 +1,218 @@
 "use strict";
 
 /**
- * Logica pura della voce di Tony sulla landing (passo 12b).
+ * Logica pura della voce di Tony sulla landing (passo 12b + correzioni anteprima).
  * Niente Firebase, niente rete: solo crypto e costanti.
+ *
+ * Ricetta voce (fissa): multilingual v2, solo text + model_id, senza voice_settings,
+ * language_code, seed o pronunciation dictionary.
  */
 
 const crypto = require("node:crypto");
-const { COSTANTI } = require("./tony-landing-limiti");
 
-/** Costanti voce landing: stessa voce/modello dell'app, senza override d'ambiente. */
+/** Costanti voce landing: stessa voce dell'app; modello multilingual (non flash). */
 const COSTANTI_VOCE = Object.freeze({
   VOCE_ID: "5zD2eYSLIo8c2zkowMfP",
-  MODELLO: "eleven_flash_v2_5",
+  MODELLO: "eleven_multilingual_v2",
   URL_TTS: "https://api.elevenlabs.io/v1/text-to-speech",
   FORMATO_USCITA: "mp3_44100_128",
-  LINGUA: "it",
   MAX_CARATTERI_TESTO: 800,
   MAX_BYTE_RICHIESTA: 4096,
   VALIDITA_BIGLIETTO_MS: 10 * 60 * 1000,
   TIMEOUT_ELEVENLABS_MS: 15000
 });
 
+const UNITA_0_19 = Object.freeze([
+  "zero",
+  "uno",
+  "due",
+  "tre",
+  "quattro",
+  "cinque",
+  "sei",
+  "sette",
+  "otto",
+  "nove",
+  "dieci",
+  "undici",
+  "dodici",
+  "tredici",
+  "quattordici",
+  "quindici",
+  "sedici",
+  "diciassette",
+  "diciotto",
+  "diciannove"
+]);
+
+const DECINE = Object.freeze([
+  "",
+  "",
+  "venti",
+  "trenta",
+  "quaranta",
+  "cinquanta",
+  "sessanta",
+  "settanta",
+  "ottanta",
+  "novanta"
+]);
+
+/**
+ * @param {number} n intero 0..999
+ * @returns {string}
+ */
+function interoInLettere(n) {
+  const v = Math.trunc(n);
+  if (v < 0 || v > 999) return String(v);
+  if (v < 20) return UNITA_0_19[v];
+  if (v < 100) {
+    const d = Math.floor(v / 10);
+    const u = v % 10;
+    let base = DECINE[d];
+    if (u === 0) return base;
+    if (u === 1 || u === 8) base = base.slice(0, -1);
+    return base + UNITA_0_19[u];
+  }
+  const c = Math.floor(v / 100);
+  const resto = v % 100;
+  const cento = c === 1 ? "cento" : UNITA_0_19[c] + "cento";
+  if (resto === 0) return cento;
+  return cento + interoInLettere(resto);
+}
+
+/**
+ * Parte intera + eventuale decimale (virgola italiana → «virgola …»).
+ * @param {string} interoStr
+ * @param {string} [decimaleStr]
+ * @returns {string}
+ */
+function numeroParlato(interoStr, decimaleStr) {
+  const intero = Number(interoStr);
+  if (!Number.isFinite(intero)) return interoStr;
+  let out = interoInLettere(intero);
+  if (decimaleStr != null && decimaleStr !== "") {
+    const cifre = String(decimaleStr).replace(/\D/g, "");
+    if (cifre) {
+      const dec = Number(cifre);
+      out +=
+        " virgola " +
+        (Number.isFinite(dec) && dec <= 999
+          ? interoInLettere(dec)
+          : cifre.split("").map(function (c) {
+              return UNITA_0_19[Number(c)] || c;
+            }).join(" "));
+    }
+  }
+  return out;
+}
+
+/** Nomi maschili che vogliono «un» (non «uno») dopo il numero 1. */
+const NOMI_UN = Object.freeze([
+  "terreno",
+  "podere",
+  "modulo",
+  "euro",
+  "ettaro",
+  "giorno",
+  "mese",
+  "anno",
+  "account",
+  "piano",
+  "campo"
+]);
+
+/** Nomi femminili / con apostrofo dopo 1. */
+const NOMI_UNA = Object.freeze({
+  coltura: "una",
+  attivita: "un'",
+  "attività": "un'",
+  domanda: "una",
+  risposta: "una",
+  azienda: "una",
+  sede: "una"
+});
+
+/**
+ * Converte cifre (+ unità tipiche) in lettere, con accordo «un/una/un'».
+ * @param {string} s
+ * @returns {string}
+ */
+function numeriInLettere(s) {
+  let out = String(s || "");
+
+  // «2,34 ha» / «2.34 ha» → «due virgola trentaquattro ettari»
+  out = out.replace(
+    /(\d+)([.,](\d+))?\s*ha\b/gi,
+    function (_m, intero, _sep, dec) {
+      return numeroParlato(intero, dec) + " ettari";
+    }
+  );
+
+  // «1 attività» prima (à non è \w: \b dopo la à fallisce)
+  out = out.replace(/(\d+)\s+attivit(?:à|a)(?!\w)/gi, function (_m, intero) {
+    return Number(intero) === 1
+      ? "un'attività"
+      : numeroParlato(intero) + " attività";
+  });
+
+  // «5 €» già trasformato in «5 euro» prima; gestiamo «N euro/giorni/…»
+  out = out.replace(
+    /(\d+)([.,](\d+))?\s*(euro|giorni|giorno|mesi|mese|anni|anno|terreni|terreno|poderi|podere|moduli|modulo|colture|coltura|ettari|ettaro)\b/gi,
+    function (_m, intero, _sep, dec, unitaRaw) {
+      const unita = String(unitaRaw);
+      const unitaLow = unita.toLowerCase();
+      const n = Number(intero);
+      let num = numeroParlato(intero, dec);
+      if (!dec && n === 1) {
+        if (NOMI_UN.indexOf(unitaLow) >= 0) {
+          num = "un";
+        } else if (Object.prototype.hasOwnProperty.call(NOMI_UNA, unitaLow)) {
+          num = NOMI_UNA[unitaLow];
+        }
+      }
+      return num + " " + unita;
+    }
+  );
+
+  // Cifre isolate residue
+  out = out.replace(/(\d+)([.,](\d+))?/g, function (_m, intero, _sep, dec) {
+    return numeroParlato(intero, dec);
+  });
+
+  return out;
+}
+
+/**
+ * «Base» (piano) → «base» minuscolo, così la TTS non legge «beis».
+ * @param {string} s
+ * @returns {string}
+ */
+function pianoBaseMinuscolo(s) {
+  return String(s || "").replace(/\bBase\b/g, "base");
+}
+
+/**
+ * Sigla GFV → «Gi effe vu» (una sola volta se già spiegata).
+ * @param {string} s
+ * @returns {string}
+ */
+function siglaGfv(s) {
+  let out = String(s || "");
+  out = out.replace(/\bGFV\b/g, "Gi effe vu");
+  // Evita doppie: «Global Farm View, in breve Gi effe vu» / «(Gi effe vu)» / ripetizione
+  out = out.replace(
+    /Global Farm View\s*[,:]?\s*(in breve\s+)?Gi effe vu/gi,
+    "Global Farm View"
+  );
+  out = out.replace(/Global Farm View\s*\(\s*Gi effe vu\s*\)/gi, "Global Farm View");
+  out = out.replace(/\bGi effe vu(\s+Gi effe vu)+\b/g, "Gi effe vu");
+  return out;
+}
+
 /**
  * Testo da mandare alla sintesi (e su cui si contano i caratteri).
+ * A schermo e nei sottotitoli resta l'originale (GFV, Base, 5 €).
  * @param {unknown} testo
  * @returns {string}
  */
@@ -30,15 +220,22 @@ function preparaTestoVoce(testo) {
   let s = typeof testo === "string" ? testo : "";
   s = s.replace(/[*#_]/g, "");
   s = s.replace(/https?:\/\/\S+/gi, "");
-  s = s.replace(/[\u0000-\u001F\u007F-\u009F]/g, "");
+  s = s.replace(/[\u0000-\u0009\u000B\u000C\u000E-\u001F\u007F-\u009F]/g, "");
   // Emoji e simboli pittografici (senza \p{} per ambienti più vecchi).
   s = s.replace(
     /[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu,
     ""
   );
-  s = s.replace(/\bGFV\b/g, "Gi, effe, vu");
+  // A capo → pausa SSML (prima di comprimere gli spazi / numeri).
+  const BREAK = '<break time="0.6s" />';
+  const BREAK_PH = "\uE000BREAK\uE001";
+  s = s.replace(/\r\n|\r|\n/g, BREAK_PH);
   s = s.replace(/€/g, " euro");
+  s = siglaGfv(s);
+  s = pianoBaseMinuscolo(s);
+  s = numeriInLettere(s);
   s = s.replace(/\s+/g, " ").trim();
+  s = s.split(BREAK_PH).join(BREAK);
   return s;
 }
 
@@ -130,7 +327,9 @@ function validaRichiestaVoce(corpo) {
 }
 
 /**
- * Controlli in ordine: spenta → biglietto → usato → scaduto → tetto mese → tetto giorno.
+ * Controlli in ordine: spenta → biglietto → usato → scaduto →
+ * margine ElevenLabs → tetto giorno landing.
+ * La spesa Gemini in euro NON spegne più la voce.
  * @param {{
  *   config: object,
  *   biglietto: object|null|undefined,
@@ -138,7 +337,8 @@ function validaRichiestaVoce(corpo) {
  *   hashSessione: string,
  *   adessoMs: number,
  *   caratteriGiorno: number,
- *   spesaMeseEur: number
+ *   spesaMeseEur?: number,
+ *   margineVoce?: { consentita: boolean, codice?: string }
  * }} args
  */
 function decidiVoce(args) {
@@ -153,10 +353,7 @@ function decidiVoce(args) {
     typeof a.caratteriGiorno === "number" && !Number.isNaN(a.caratteriGiorno)
       ? a.caratteriGiorno
       : 0;
-  const spesaMeseEur =
-    typeof a.spesaMeseEur === "number" && !Number.isNaN(a.spesaMeseEur)
-      ? a.spesaMeseEur
-      : 0;
+  void a.spesaMeseEur;
 
   if (config.enabled !== true || config.voiceEnabled !== true) {
     return { consentita: false, codice: "voce-spenta", caratteri: 0 };
@@ -178,13 +375,14 @@ function decidiVoce(args) {
     return { consentita: false, codice: "voce-scaduta", caratteri: 0 };
   }
 
-  const budget =
-    typeof config.monthlyBudgetEur === "number" &&
-    !Number.isNaN(config.monthlyBudgetEur)
-      ? config.monthlyBudgetEur
-      : COSTANTI.TETTO_MENSILE_EUR;
-  if (spesaMeseEur >= COSTANTI.SOGLIA_SOLO_TESTO * budget) {
-    return { consentita: false, codice: "tetto-voce", caratteri: 0 };
+  const margine =
+    a.margineVoce && typeof a.margineVoce === "object" ? a.margineVoce : null;
+  if (margine && margine.consentita === false) {
+    return {
+      consentita: false,
+      codice: margine.codice || "tetto-voce",
+      caratteri: 0
+    };
   }
 
   const cap =
@@ -202,13 +400,13 @@ function decidiVoce(args) {
 }
 
 /**
+ * Corpo richiesta ElevenLabs: solo text + model_id (ricetta Pier).
  * @param {string} testoVoce
  */
 function corpoElevenLabs(testoVoce) {
   return {
     text: String(testoVoce || ""),
-    model_id: COSTANTI_VOCE.MODELLO,
-    language_code: COSTANTI_VOCE.LINGUA
+    model_id: COSTANTI_VOCE.MODELLO
   };
 }
 
@@ -266,6 +464,9 @@ function statoPerCodice(codice) {
 module.exports = {
   COSTANTI_VOCE,
   preparaTestoVoce,
+  numeriInLettere,
+  pianoBaseMinuscolo,
+  siglaGfv,
   impronta,
   nuovoIdVoce,
   datiBiglietto,

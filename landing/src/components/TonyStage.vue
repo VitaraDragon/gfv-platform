@@ -38,6 +38,8 @@ const emit = defineEmits([
   'entrataFinita',
   'uscitaFinita',
   'saluta',
+  'riduci',
+  'ingombro',
   'clipNonPronta',
   'ascoltoIniziato',
   'ascoltoFinito',
@@ -62,6 +64,10 @@ let clipArgomentiPreload = false;
 const t = testiLanding.tonyBussa;
 const msBocca = tempiVoce().dissolvenzaBoccaMs;
 const figuraHost = ref<HTMLElement | null>(null);
+const rigaEl = ref<HTMLElement | null>(null);
+const fumettoEl = ref<HTMLElement | null>(null);
+const stileFumettoMobile = ref<Record<string, string> | undefined>(undefined);
+const altezzaPannelloMobilePx = ref(0);
 const chatRef = ref<{ interrompi?: () => void } | null>(null);
 const inFadeOut = ref(false);
 const clipPronte = ref<Record<string, boolean>>({ entry: true, idle: true });
@@ -100,9 +106,40 @@ let generazioneClip = 0;
 let codaDopoCorrente: { lista: string[]; dissolvenzaMs: number } | null = null;
 let dissolvenzaProssima = 0;
 let staticoDaClip = false;
+/** Istante in cui la clip «scrive» è partita davvero (0 se non in corso). */
+let inizioScriveClipMs = 0;
+let observerRiga: ResizeObserver | null = null;
+let observerFumetto: ResizeObserver | null = null;
 
 const saluto = () =>
   props.variante === 'mobile' ? t.salutoMobile : t.salutoDesktop;
+
+function msDaInizioScrive() {
+  if (props.riduciMovimento) return 0;
+  if (!inizioScriveClipMs) return 0;
+  if (clipCorrente !== 'scrive') return 0;
+  return Math.max(0, Date.now() - inizioScriveClipMs);
+}
+
+function emettiIngombro() {
+  const el = rigaEl.value;
+  if (!el || typeof el.getBoundingClientRect !== 'function') return;
+  const r = el.getBoundingClientRect();
+  emit('ingombro', {
+    width: Math.round(r.width),
+    height: Math.round(r.height),
+  });
+}
+
+function aggiornaAltezzaPannelloDaDom() {
+  const el = fumettoEl.value;
+  if (!el || props.variante !== 'mobile') {
+    altezzaPannelloMobilePx.value = 0;
+    return;
+  }
+  const h = Math.round(el.getBoundingClientRect().height);
+  if (h > 0) altezzaPannelloMobilePx.value = h;
+}
 
 function fmt() {
   if (props.formato === 'webp') return 'webp';
@@ -353,24 +390,28 @@ function suonaProssima() {
     loop,
     durataMs,
     dissolvenzaMs: fadeMs,
-    onInizio:
-      nome === 'entry'
-        ? () => {
-            if (timerAttesaPrimo) {
-              window.clearTimeout(timerAttesaPrimo);
-              timerAttesaPrimo = 0;
-            }
-            if (timerEntrata) window.clearTimeout(timerEntrata);
-            timerEntrata = window.setTimeout(() => {
-              if (entrataEmessa || smontato) return;
-              generazioneClip += 1;
-              fermaInArrivoPlayer();
-              codaClip = ['idle'];
-              suonaProssima();
-              emettiEntrata();
-            }, sicurezzaEntrataMs(varScena()));
-          }
-        : undefined,
+    onInizio: () => {
+      if (nome === 'scrive') {
+        inizioScriveClipMs = Date.now();
+      } else if (nome !== 'scrive') {
+        /* lascia il timestamp finché non parte un'altra clip */
+      }
+      if (nome === 'entry') {
+        if (timerAttesaPrimo) {
+          window.clearTimeout(timerAttesaPrimo);
+          timerAttesaPrimo = 0;
+        }
+        if (timerEntrata) window.clearTimeout(timerEntrata);
+        timerEntrata = window.setTimeout(() => {
+          if (entrataEmessa || smontato) return;
+          generazioneClip += 1;
+          fermaInArrivoPlayer();
+          codaClip = ['idle'];
+          suonaProssima();
+          emettiEntrata();
+        }, sicurezzaEntrataMs(varScena()));
+      }
+    },
     onFine: () => {
       if (smontato) return;
       const decisione = dopoFineClip({
@@ -743,13 +784,63 @@ watch(
   }
 );
 
+function aggiornaAltezzaFumettoMobile() {
+  if (props.variante !== 'mobile' || typeof window === 'undefined') {
+    stileFumettoMobile.value = undefined;
+    return;
+  }
+  const vv = window.visualViewport;
+  if (!vv) {
+    stileFumettoMobile.value = undefined;
+    return;
+  }
+  const tastiera = window.innerHeight - vv.height - vv.offsetTop;
+  if (tastiera > 72) {
+    const h = Math.max(140, Math.round(vv.height - 24));
+    stileFumettoMobile.value = { height: `${h}px`, maxHeight: `${h}px` };
+  } else {
+    stileFumettoMobile.value = undefined;
+  }
+}
+
+let rimuoviViewport: (() => void) | null = null;
+
 onMounted(() => {
   assicuratiPlayer();
   applicaFase(props.fase);
   void preparaStrumentiAccount();
+  if (typeof window !== 'undefined' && window.visualViewport) {
+    const vv = window.visualViewport;
+    const fn = () => aggiornaAltezzaFumettoMobile();
+    vv.addEventListener('resize', fn);
+    vv.addEventListener('scroll', fn);
+    rimuoviViewport = () => {
+      vv.removeEventListener('resize', fn);
+      vv.removeEventListener('scroll', fn);
+    };
+    aggiornaAltezzaFumettoMobile();
+  }
+  if (typeof ResizeObserver !== 'undefined') {
+    if (rigaEl.value) {
+      observerRiga = new ResizeObserver(() => emettiIngombro());
+      observerRiga.observe(rigaEl.value);
+      emettiIngombro();
+    }
+    if (fumettoEl.value) {
+      observerFumetto = new ResizeObserver(() => aggiornaAltezzaPannelloDaDom());
+      observerFumetto.observe(fumettoEl.value);
+      aggiornaAltezzaPannelloDaDom();
+    }
+  }
 });
 
 onUnmounted(() => {
+  rimuoviViewport?.();
+  rimuoviViewport = null;
+  observerRiga?.disconnect();
+  observerRiga = null;
+  observerFumetto?.disconnect();
+  observerFumetto = null;
   smontato = true;
   if (timerEntrata) window.clearTimeout(timerEntrata);
   if (timerUscita) window.clearTimeout(timerUscita);
@@ -776,6 +867,7 @@ function marcaClipPronta(nome: string) {
 
 defineExpose({
   marcaClipPronta,
+  msDaInizioScrive,
   precaricaClip: async (nome: string) => {
     assicuratiPlayer();
     if (!player) return;
@@ -816,12 +908,18 @@ const mostraFumetto = () =>
   <div
     class="tony-stage"
     :class="variante === 'mobile' ? 'tony-stage--mobile' : 'tony-stage--desktop'"
-    :style="{ '--ms-statico': DISSOLVENZA_STATICO_MS + 'ms' }"
+    :style="{
+      '--ms-statico': DISSOLVENZA_STATICO_MS + 'ms',
+      '--tony-pannello-h':
+        altezzaPannelloMobilePx > 0 ? altezzaPannelloMobilePx + 'px' : '55dvh',
+    }"
   >
-    <div class="tony-riga">
+    <div ref="rigaEl" class="tony-riga">
       <div
         v-show="mostraFumetto()"
+        ref="fumettoEl"
         class="fumetto"
+        :style="stileFumettoMobile"
         role="region"
         :aria-labelledby="fase === 'esce' ? undefined : 'tony-etichetta'"
         :aria-label="fase === 'esce' ? t.ciao : undefined"
@@ -830,7 +928,16 @@ const mostraFumetto = () =>
           <p class="saluto" aria-live="polite">{{ t.ciao }}</p>
         </template>
         <template v-else>
-          <p id="tony-etichetta" class="etichetta">{{ t.etichetta }}</p>
+          <div class="etichetta-riga">
+            <p id="tony-etichetta" class="etichetta">{{ t.etichetta }}</p>
+            <button
+              type="button"
+              class="tony-btn-riduci"
+              @click="emit('riduci')"
+            >
+              {{ t.riduci }}
+            </button>
+          </div>
           <p class="saluto" aria-live="polite">{{ saluto() }}</p>
           <p class="nota-saluto">{{ t.notaSaluto }}</p>
           <TonyChat
@@ -845,6 +952,7 @@ const mostraFumetto = () =>
             :statico-forzato="false"
             :audio-iniziale="audioAttivo"
             :modulo-disponibile="moduloDisponibile"
+            :ms-da-inizio-scrive="msDaInizioScrive"
             @saluta="onSaluta"
             @ascolto-iniziato="emit('ascoltoIniziato')"
             @ascolto-finito="emit('ascoltoFinito')"
@@ -911,10 +1019,31 @@ const mostraFumetto = () =>
   box-shadow: 0 12px 32px rgba(6, 20, 14, 0.16);
 }
 
-.etichetta {
+.etichetta-riga {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
   margin: 0 0 0.35rem;
+  flex: 0 0 auto;
+}
+
+.etichetta {
+  margin: 0;
   font-size: 0.78rem;
   font-weight: 800;
+  color: #0f4d32;
+}
+
+.tony-btn-riduci {
+  border: 1px solid rgba(15, 77, 50, 0.28);
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  background: #fff;
   color: #0f4d32;
   flex: 0 0 auto;
 }
@@ -1001,8 +1130,7 @@ const mostraFumetto = () =>
 .tony-stage--mobile .tony-figura {
   position: absolute;
   left: 0;
-  bottom: 55vh;
-  bottom: 55dvh;
+  bottom: var(--tony-pannello-h, 55dvh);
   height: 30vh;
   width: auto;
   max-width: 45vw;
@@ -1014,8 +1142,10 @@ const mostraFumetto = () =>
   right: 0;
   bottom: 0;
   width: 100%;
-  height: 55vh;
-  height: 55dvh;
+  height: auto;
+  min-height: 12rem;
+  max-height: 55vh;
+  max-height: 55dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;

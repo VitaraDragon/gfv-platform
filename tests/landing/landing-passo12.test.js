@@ -1,5 +1,5 @@
 /**
- * Passo 12a: clip Tony v4, chat a testo, filtro, stati, modello finto.
+ * Passo 12a: clip Tony v6, chat a testo, filtro, stati, modello finto.
  */
 import { createRequire } from 'node:module';
 import { createHash } from 'node:crypto';
@@ -49,61 +49,61 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../..');
 const TONY_LIVE = path.join(ROOT, 'landing/public/tony-live');
 
-const MD5_CLIP_V4 = {
-  'tony-entry-h1-mano-bordo-desktop-576x1440-stacked-alpha-v4.mp4': 'd56145655e8373b5578a0dd5d9610a6e',
-  'tony-entry-h1-mano-bordo-desktop-576x720-12fps-v4.webp': '5d2be8ecbde35ef42cecee37453e570e',
-  'tony-entry-h1-mano-bordo-desktop-576x720-alpha-v4.webm': 'efe331379028544ba78604e004de4fc9',
-  'tony-entry-h2-saluto-mobile-432x1080-stacked-alpha-v4.mp4': '9af9c5fcf8d254b022ec1dffdf020d6e',
-  'tony-entry-h2-saluto-mobile-432x540-12fps-v4.webp': '3c8a63ba37537598b062333eda0a9d30',
-  'tony-entry-h2-saluto-mobile-432x540-alpha-v4.webm': '2d5b6090acabeec97a056f6eae23cf85',
-  'tony-exit-2s-veloce-desktop-576x1440-stacked-alpha-v4.mp4': 'eb06615729a399db74a451a87496a3c3',
-  'tony-exit-2s-veloce-desktop-576x720-12fps-v4.webp': '48c1e929682ba893a3b8e7799fd38d42',
-  'tony-exit-2s-veloce-desktop-576x720-alpha-v4.webm': '4bea84f390f7281010ed5031582a5634',
-  'tony-exit-2s-veloce-mobile-432x1080-stacked-alpha-v4.mp4': 'a308205084e51f5afa80e527d30f8a1a',
-  'tony-exit-2s-veloce-mobile-432x540-12fps-v4.webp': 'b9eb6db5ccc22c103870aff67875b041',
-  'tony-exit-2s-veloce-mobile-432x540-alpha-v4.webm': 'aebc9ca0739d7c29bc01721175eecfaf',
-  'tony-idle-loop-desktop-576x1440-stacked-alpha-v4.mp4': '3ec4e3161deabab75ad8346ed483d331',
-  'tony-idle-loop-desktop-576x720-12fps-v4.webp': 'a7912e776d0e136e3250fd4b24a38e9d',
-  'tony-idle-loop-desktop-576x720-alpha-v4.webm': 'f7d97adbe05451b99bc26cce15c61f72',
-  'tony-idle-loop-mobile-432x1080-stacked-alpha-v4.mp4': 'f5e7a7fcbadd9e92e1ca09e338ac676e',
-  'tony-idle-loop-mobile-432x540-12fps-v4.webp': 'd393429f4e4a13a7c8381087849a7ca5',
-  'tony-idle-loop-mobile-432x540-alpha-v4.webm': 'd568f9399c088ff5ddb842fc8f1443ab',
-  'tony-listen-loop-desktop-576x1440-stacked-alpha-v4.mp4': 'd37b7fe09faa8458ee41ce678271880c',
-  'tony-listen-loop-desktop-576x720-12fps-v4.webp': '4b7e652caa2d758e567ae14c6539e639',
-  'tony-listen-loop-desktop-576x720-alpha-v4.webm': '234abd9d738225634cc1ce622da33dcd',
-  'tony-listen-loop-mobile-432x1080-stacked-alpha-v4.mp4': '2a5c716faf6a92d478204c30f09de036',
-  'tony-listen-loop-mobile-432x540-12fps-v4.webp': '2eddaa4985e9f3f89e5764ac9f8d811f',
-  'tony-listen-loop-mobile-432x540-alpha-v4.webm': '7b5c2b9ef1cf69b55c323bea027ccda2',
-  'tony-listen-lower-desktop-576x1440-stacked-alpha-v4.mp4': '24694a41610cc29d9df13b92f6f7ba17',
-  'tony-listen-lower-desktop-576x720-12fps-v4.webp': '2af3bb3e137d3692fabc8e1fbdeb6c34',
-  'tony-listen-lower-desktop-576x720-alpha-v4.webm': '3e8a3ba29727110314befa6e62041ec3',
-  'tony-listen-lower-mobile-432x1080-stacked-alpha-v4.mp4': '3a53433b12db302b0668e4126d0ef7b5',
-  'tony-listen-lower-mobile-432x540-12fps-v4.webp': 'e15717fdd9f3318d5f4d2bb347f0e00a',
-  'tony-listen-lower-mobile-432x540-alpha-v4.webm': 'b4f983181e8e76ce4f8995313c01476c',
-  'tony-listen-raise-desktop-576x1440-stacked-alpha-v4.mp4': '59604dcfca61860c3b7e1d42ce564312',
-  'tony-listen-raise-desktop-576x720-12fps-v4.webp': 'fbd7169dba1b12c7feebb8c079328c9c',
-  'tony-listen-raise-desktop-576x720-alpha-v4.webm': 'ecd3727151bcfe2053cecb1255539e9b',
-  'tony-listen-raise-mobile-432x1080-stacked-alpha-v4.mp4': 'cccf8e1a45e4b2f43b7ed8a112be633d',
-  'tony-listen-raise-mobile-432x540-12fps-v4.webp': 'c47b15d502425f34e4cbc50513444e1f',
-  'tony-listen-raise-mobile-432x540-alpha-v4.webm': 'cfa3910a9d072fdd4479f2868c7a7ad1',
-  'tony-scrive-hs1-taccuino-desktop-576x1440-stacked-alpha-v4.mp4': '80eafb8b4709d422827d35964c6d4c99',
-  'tony-scrive-hs1-taccuino-desktop-576x720-12fps-v4.webp': 'a4419d1891be94e455431a51ef0c1374',
-  'tony-scrive-hs1-taccuino-desktop-576x720-alpha-v4.webm': 'a09868735f2aa35dd910f555fce79db8',
-  'tony-scrive-hs1-taccuino-mobile-432x1080-stacked-alpha-v4.mp4': 'c033cb1eefdd125f495d92d1bcbb12b3',
-  'tony-scrive-hs1-taccuino-mobile-432x540-12fps-v4.webp': 'afed906ae0d71312e82ee05c69c591e3',
-  'tony-scrive-hs1-taccuino-mobile-432x540-alpha-v4.webm': '4ecd2635a7b28d8e1d976302c1803dfa',
-  'tony-talking-loop-desktop-576x1440-stacked-alpha-v4.mp4': 'a50677306973eaa238abff916c8b823e',
-  'tony-talking-loop-desktop-576x720-12fps-v4.webp': 'b0d4ee75e94a98c24e2a04201be6d4a5',
-  'tony-talking-loop-desktop-576x720-alpha-v4.webm': '1a8dff2e47acd898ae2ee700400d5a22',
-  'tony-talking-loop-mobile-432x1080-stacked-alpha-v4.mp4': '8b712f99d6f4061e62560f3d2491a713',
-  'tony-talking-loop-mobile-432x540-12fps-v4.webp': 'bd8e6efd97121ba3f78ddc87235eeca3',
-  'tony-talking-loop-mobile-432x540-alpha-v4.webm': '2a51eec56aa831725bb6b3f2e0db1c34',
-  'tony-thinking-desktop-576x1440-stacked-alpha-v4.mp4': '887d30efe60f78c49cc64b4eaa161b79',
-  'tony-thinking-desktop-576x720-12fps-v4.webp': 'eee5541808e692bac1baa9bc562c8300',
-  'tony-thinking-desktop-576x720-alpha-v4.webm': 'e0d10e7dc4e262b726e2995bb01432cc',
-  'tony-thinking-mobile-432x1080-stacked-alpha-v4.mp4': '8d3058d9671db5e4641152039ee4aa3d',
-  'tony-thinking-mobile-432x540-12fps-v4.webp': 'a98b55558157035410f71ecc5517a3cc',
-  'tony-thinking-mobile-432x540-alpha-v4.webm': 'b837e6576e5c5d91b83deefd8a93a694',
+const MD5_CLIP_V6 = {
+  'tony-entry-h1-mano-bordo-desktop-576x1440-stacked-alpha-v6.mp4': '0d4ab6a3b68bd9b63ff0812d0abe46e0',
+  'tony-entry-h1-mano-bordo-desktop-576x720-12fps-v6.webp': '921964897cca6c90808ea72f0ce12f00',
+  'tony-entry-h1-mano-bordo-desktop-576x720-alpha-v6.webm': 'b4e13c14afd554c9f582fba0308632f0',
+  'tony-entry-h2-saluto-mobile-432x1080-stacked-alpha-v6.mp4': 'd6e028ce48a540e5b5455876b27e0df9',
+  'tony-entry-h2-saluto-mobile-432x540-12fps-v6.webp': '4560a26d02e375a08adcda90aca185d6',
+  'tony-entry-h2-saluto-mobile-432x540-alpha-v6.webm': '8930dcad873f1d5fecc0dcffde280fa8',
+  'tony-exit-2s-veloce-desktop-576x1440-stacked-alpha-v6.mp4': '3b08f7c5dc849c634119a3dd275a4046',
+  'tony-exit-2s-veloce-desktop-576x720-12fps-v6.webp': 'c13722427d3f1dddf20b10c1f45db375',
+  'tony-exit-2s-veloce-desktop-576x720-alpha-v6.webm': 'ca2f53dbdd53202420d7ab29855dc07a',
+  'tony-exit-2s-veloce-mobile-432x1080-stacked-alpha-v6.mp4': 'd9eb845addf5316db37761a9b5896648',
+  'tony-exit-2s-veloce-mobile-432x540-12fps-v6.webp': '3221ceae8c9bf59891482ee100f0b6b7',
+  'tony-exit-2s-veloce-mobile-432x540-alpha-v6.webm': '6889eb5ea67f1397b03796901da6a5ff',
+  'tony-idle-loop-desktop-576x1440-stacked-alpha-v6.mp4': '6aec7bd369a2df42f128c015bbbe106c',
+  'tony-idle-loop-desktop-576x720-12fps-v6.webp': 'c39ae1212355cd78f1852c6e8d4f8f4c',
+  'tony-idle-loop-desktop-576x720-alpha-v6.webm': '72d99874d148bda78165fc3af86ba0a6',
+  'tony-idle-loop-mobile-432x1080-stacked-alpha-v6.mp4': 'dfbcc227914cf1563c04ce97be3cfc59',
+  'tony-idle-loop-mobile-432x540-12fps-v6.webp': 'adca086758a769b37efcf022f2712e77',
+  'tony-idle-loop-mobile-432x540-alpha-v6.webm': '20767a766641bdc9a8c64845277bb1ae',
+  'tony-listen-loop-desktop-576x1440-stacked-alpha-v6.mp4': 'd6f28efad5c50a713c1b9b8ed8140f7a',
+  'tony-listen-loop-desktop-576x720-12fps-v6.webp': '1033508cb3ac270f4213229d63e3e42c',
+  'tony-listen-loop-desktop-576x720-alpha-v6.webm': 'f6993e9f15edbc50411f3439ca760ca5',
+  'tony-listen-loop-mobile-432x1080-stacked-alpha-v6.mp4': '71f3d44b3fed05d84489ea2f285292fa',
+  'tony-listen-loop-mobile-432x540-12fps-v6.webp': '524285cb63dd47e18565d24ff3d001d1',
+  'tony-listen-loop-mobile-432x540-alpha-v6.webm': 'da474c820c2b909b8bdd137a2a91d8e5',
+  'tony-listen-lower-desktop-576x1440-stacked-alpha-v6.mp4': 'f683acb3ed8808fad15b5f87c209fab7',
+  'tony-listen-lower-desktop-576x720-12fps-v6.webp': 'b518f0a5a4c5702e9b520a01ac0cac97',
+  'tony-listen-lower-desktop-576x720-alpha-v6.webm': 'c92b5e283b62074cd5e2d19d321648f0',
+  'tony-listen-lower-mobile-432x1080-stacked-alpha-v6.mp4': '5dda79c6f94c669c367af608249278a0',
+  'tony-listen-lower-mobile-432x540-12fps-v6.webp': 'debec1ac14559f98735d88a30dc588c8',
+  'tony-listen-lower-mobile-432x540-alpha-v6.webm': '6c05b24fab46cf67a1379b5d0e5f96f4',
+  'tony-listen-raise-desktop-576x1440-stacked-alpha-v6.mp4': '8874ad4ee2348914c9320f7965bf93c2',
+  'tony-listen-raise-desktop-576x720-12fps-v6.webp': '5be5ac3d77a43b4ef752b2ceeb49ab92',
+  'tony-listen-raise-desktop-576x720-alpha-v6.webm': '986332c6026b5615d6ea89ab4ab97293',
+  'tony-listen-raise-mobile-432x1080-stacked-alpha-v6.mp4': '4a408576b035398f9f9a433259e3e11a',
+  'tony-listen-raise-mobile-432x540-12fps-v6.webp': 'd45d948d3f1bdffecac3df8798d8e091',
+  'tony-listen-raise-mobile-432x540-alpha-v6.webm': '28881cbff2ee327d6f3b79a6828ef324',
+  'tony-scrive-hs1-taccuino-desktop-576x1440-stacked-alpha-v6.mp4': 'c9b789fcd14a124507fbd00b6fcda6ca',
+  'tony-scrive-hs1-taccuino-desktop-576x720-12fps-v6.webp': '2654968855a1f4191ca89a36dc0e89af',
+  'tony-scrive-hs1-taccuino-desktop-576x720-alpha-v6.webm': '6b527dcdb83265abb26625f8caf55955',
+  'tony-scrive-hs1-taccuino-mobile-432x1080-stacked-alpha-v6.mp4': 'c4bf9ba094c806b42914e35a1074c48c',
+  'tony-scrive-hs1-taccuino-mobile-432x540-12fps-v6.webp': '36f22c2a22788525d0daf30b23054a08',
+  'tony-scrive-hs1-taccuino-mobile-432x540-alpha-v6.webm': 'f6836b4022cbf40327bad8a1ed75715c',
+  'tony-talking-loop-desktop-576x1440-stacked-alpha-v6.mp4': '30748519611267b17e9164cbbd629fd2',
+  'tony-talking-loop-desktop-576x720-12fps-v6.webp': '3fdc4c0d95bc3bea9705ad4f8930e05b',
+  'tony-talking-loop-desktop-576x720-alpha-v6.webm': '9595e6cc14e0061c77b0a34c39f5fb2a',
+  'tony-talking-loop-mobile-432x1080-stacked-alpha-v6.mp4': '362ef6501f6abedf0c75b56085771233',
+  'tony-talking-loop-mobile-432x540-12fps-v6.webp': 'edd278ad75a97591e61c47cff331f5da',
+  'tony-talking-loop-mobile-432x540-alpha-v6.webm': '6c1fe0025d428f24a320de8aa20aa8f8',
+  'tony-thinking-desktop-576x1440-stacked-alpha-v6.mp4': '0bbc775e146899653155512ddd461014',
+  'tony-thinking-desktop-576x720-12fps-v6.webp': '04c1d4ab1572b6876e6c7245087f53fd',
+  'tony-thinking-desktop-576x720-alpha-v6.webm': '068e3baa618da1a8bca33754569046b1',
+  'tony-thinking-mobile-432x1080-stacked-alpha-v6.mp4': 'b64c565c20a2209633c59e9986d7a1bb',
+  'tony-thinking-mobile-432x540-12fps-v6.webp': '16163eb04f882a16f1f14156d15cc86f',
+  'tony-thinking-mobile-432x540-alpha-v6.webm': 'fd2faa87725604b7b9a0c8acf0786788',
 };
 
 const NOMI_CLIP = [
@@ -135,54 +135,66 @@ function fileDaWeb(web) {
   return path.join(ROOT, 'landing/public', web.replace(/^\//, ''));
 }
 
-/** Clip topic registrazione (passo 13) e sede/poderi/terreni (passo 14): ammesse fuori dai 54. */
-const CLIP_TOPIC_REGISTRAZIONE_PASSO13 = new Set([
-  'tony-topic-registrazione-2s5-desktop-576x720-alpha-v4.webm',
-  'tony-topic-registrazione-2s5-mobile-432x540-alpha-v4.webm',
-  'tony-topic-registrazione-2s5-desktop-576x720-12fps-v4.webp',
-  'tony-topic-registrazione-2s5-mobile-432x540-12fps-v4.webp',
-  'tony-topic-registrazione-2s5-desktop-576x1440-stacked-alpha-v4.mp4',
-  'tony-topic-registrazione-2s5-mobile-432x1080-stacked-alpha-v4.mp4',
-  'tony-topic-sede-desktop-576x720-alpha-v4.webm',
-  'tony-topic-sede-mobile-432x540-alpha-v4.webm',
-  'tony-topic-sede-desktop-576x720-12fps-v4.webp',
-  'tony-topic-sede-mobile-432x540-12fps-v4.webp',
-  'tony-topic-sede-desktop-576x1440-stacked-alpha-v4.mp4',
-  'tony-topic-sede-mobile-432x1080-stacked-alpha-v4.mp4',
-  'tony-topic-poderi-2s5-desktop-576x720-alpha-v4.webm',
-  'tony-topic-poderi-2s5-mobile-432x540-alpha-v4.webm',
-  'tony-topic-poderi-2s5-desktop-576x720-12fps-v4.webp',
-  'tony-topic-poderi-2s5-mobile-432x540-12fps-v4.webp',
-  'tony-topic-poderi-2s5-desktop-576x1440-stacked-alpha-v4.mp4',
-  'tony-topic-poderi-2s5-mobile-432x1080-stacked-alpha-v4.mp4',
-  'tony-topic-terreni-desktop-576x720-alpha-v4.webm',
-  'tony-topic-terreni-mobile-432x540-alpha-v4.webm',
-  'tony-topic-terreni-desktop-576x720-12fps-v4.webp',
-  'tony-topic-terreni-mobile-432x540-12fps-v4.webp',
-  'tony-topic-terreni-desktop-576x1440-stacked-alpha-v4.mp4',
-  'tony-topic-terreni-mobile-432x1080-stacked-alpha-v4.mp4',
+/** Clip topic (passo 13–14): ammesse fuori dai 54. */
+const CLIP_TOPIC_PASSO13_14 = new Set([
+  'tony-topic-poderi-2s5-desktop-576x1440-stacked-alpha-v6.mp4',
+  'tony-topic-poderi-2s5-desktop-576x720-12fps-v6.webp',
+  'tony-topic-poderi-2s5-desktop-576x720-alpha-v6.webm',
+  'tony-topic-poderi-2s5-mobile-432x1080-stacked-alpha-v6.mp4',
+  'tony-topic-poderi-2s5-mobile-432x540-12fps-v6.webp',
+  'tony-topic-poderi-2s5-mobile-432x540-alpha-v6.webm',
+  'tony-topic-registrazione-2s5-desktop-576x1440-stacked-alpha-v6.mp4',
+  'tony-topic-registrazione-2s5-desktop-576x720-12fps-v6.webp',
+  'tony-topic-registrazione-2s5-desktop-576x720-alpha-v6.webm',
+  'tony-topic-registrazione-2s5-mobile-432x1080-stacked-alpha-v6.mp4',
+  'tony-topic-registrazione-2s5-mobile-432x540-12fps-v6.webp',
+  'tony-topic-registrazione-2s5-mobile-432x540-alpha-v6.webm',
+  'tony-topic-sede-desktop-576x1440-stacked-alpha-v6.mp4',
+  'tony-topic-sede-desktop-576x720-12fps-v6.webp',
+  'tony-topic-sede-desktop-576x720-alpha-v6.webm',
+  'tony-topic-sede-mobile-432x1080-stacked-alpha-v6.mp4',
+  'tony-topic-sede-mobile-432x540-12fps-v6.webp',
+  'tony-topic-sede-mobile-432x540-alpha-v6.webm',
+  'tony-topic-terreni-desktop-576x1440-stacked-alpha-v6.mp4',
+  'tony-topic-terreni-desktop-576x720-12fps-v6.webp',
+  'tony-topic-terreni-desktop-576x720-alpha-v6.webm',
+  'tony-topic-terreni-mobile-432x1080-stacked-alpha-v6.mp4',
+  'tony-topic-terreni-mobile-432x540-12fps-v6.webp',
+  'tony-topic-terreni-mobile-432x540-alpha-v6.webm',
 ]);
 
-describe('clip v4 nel repo', () => {
-  it('esattamente i 54 file di MD5_CLIP_V4', () => {
+describe('clip v6 nel repo', () => {
+  it('esattamente i 54 file di MD5_CLIP_V6 (topic esclusi)', () => {
     const files = fs
       .readdirSync(TONY_LIVE)
       .filter((f) => fs.statSync(path.join(TONY_LIVE, f)).isFile())
-      .filter((f) => !CLIP_TOPIC_REGISTRAZIONE_PASSO13.has(f))
+      .filter((f) => !CLIP_TOPIC_PASSO13_14.has(f))
       .sort();
-    const attesi = Object.keys(MD5_CLIP_V4).sort();
+    const attesi = Object.keys(MD5_CLIP_V6).sort();
     expect(files).toEqual(attesi);
     for (const nome of attesi) {
-      expect(md5File(path.join(TONY_LIVE, nome))).toBe(MD5_CLIP_V4[nome]);
+      expect(md5File(path.join(TONY_LIVE, nome))).toBe(MD5_CLIP_V6[nome]);
     }
     for (const nome of files) {
-      expect(nome.includes('-v4')).toBe(true);
+      expect(nome.includes('-v6')).toBe(true);
       expect(nome.startsWith('tony-topic-')).toBe(false);
       expect(nome.startsWith('tony-thinking-2s5')).toBe(false);
       expect(nome.endsWith('.wav')).toBe(false);
       expect(nome.endsWith('.zip')).toBe(false);
       expect(nome.endsWith('.md')).toBe(false);
       expect(nome).not.toBe('tony-stacked-alpha-player.js');
+    }
+  });
+
+  it('tutte le clip usano v6 (niente override talking)', () => {
+    for (const nome of NOMI_CLIP) {
+      for (const variante of ['desktop', 'mobile']) {
+        for (const formato of ['webm', 'webp', 'stacked']) {
+          const web = percorsoClip(nome, variante, formato);
+          expect(web).toContain('-v6.');
+          expect(fs.existsSync(fileDaWeb(web)), web).toBe(true);
+        }
+      }
     }
   });
 });
@@ -214,16 +226,18 @@ describe('percorsi e durate', () => {
     expect(durataClipMs('listenLower')).toBe(1833);
     expect(durataClipMs('thinking')).toBe(2375);
     expect(durataClipMs('scrive')).toBe(3583);
-    expect(durataClipMs('talking')).toBe(3792);
+    expect(durataClipMs('talking')).toBe(7500);
     expect(durataClipMs('exit')).toBe(2000);
     expect(DURATE_CLIP_MS.idle).toBe(4000);
     expect([...CLIP_IN_LOOP]).toEqual(['idle', 'listenLoop', 'scrive', 'talking']);
   });
 
   it('pesi sotto i limiti', () => {
-    const limiteTotale = { desktop: 5000000, mobile: 3000000 };
+    const limiteTotale = { desktop: 6200000, mobile: 4400000 };
     const limiteEntry = { desktop: 1.8 * 1024 * 1024, mobile: 1.2 * 1024 * 1024 };
-    const limiteLoop = { desktop: 800 * 1024, mobile: 500 * 1024 };
+    const limiteLoop = { desktop: 850 * 1024, mobile: 600 * 1024 };
+    // talking v6 ~7,5 s: WebP desktop ~1,72 MB
+    const limiteTalking = { desktop: 1.8 * 1024 * 1024, mobile: 1.25 * 1024 * 1024 };
     for (const variante of ['desktop', 'mobile']) {
       for (const formato of ['webm', 'webp', 'stacked']) {
         let somma = 0;
@@ -232,7 +246,9 @@ describe('percorsi e durate', () => {
           const size = fs.statSync(fileDaWeb(web)).size;
           somma += size;
           if (nome === 'entry') expect(size).toBeLessThanOrEqual(limiteEntry[variante]);
-          if (CLIP_IN_LOOP.includes(nome)) {
+          if (nome === 'talking') {
+            expect(size).toBeLessThanOrEqual(limiteTalking[variante]);
+          } else if (CLIP_IN_LOOP.includes(nome)) {
             expect(size).toBeLessThanOrEqual(limiteLoop[variante]);
           }
         }

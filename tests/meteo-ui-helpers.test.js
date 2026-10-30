@@ -8,6 +8,11 @@ import {
   compactTerrenoMeteoRowFromFetch,
   renderMinutelyPrecipStrip,
   hasMinutelyRainExpected,
+  messaggioMeteoDashboard,
+  deveProporrePinSedeDaIndirizzo,
+  METEO_FETCH_TIMEOUT_MS,
+  MSG_METEO_TIMEOUT,
+  MSG_SEDE_PIN_MANCANTE,
 } from '../core/js/meteo-ui-helpers.js';
 import { createRequire } from 'module';
 
@@ -157,6 +162,39 @@ describe('renderHourlyPopBadge', () => {
 
   it('renderizza percentuale sopra soglia', () => {
     expect(renderHourlyPopBadge(15, 'dashboard-meteo')).toContain('15%');
+  });
+});
+
+describe('messaggioMeteoDashboard e pin sede', () => {
+  it('timeout 15s e messaggio SEDE_NOT_SET', () => {
+    expect(METEO_FETCH_TIMEOUT_MS).toBe(15000);
+    expect(messaggioMeteoDashboard({ timedOut: true })).toBe(MSG_METEO_TIMEOUT);
+    expect(messaggioMeteoDashboard({ code: 'SEDE_NOT_SET' })).toBe(MSG_SEDE_PIN_MANCANTE);
+    expect(messaggioMeteoDashboard({})).toContain('Meteo non disponibile');
+  });
+
+  it('deveProporrePinSedeDaIndirizzo solo con via/comune e senza coordinate', () => {
+    expect(
+      deveProporrePinSedeDaIndirizzo({
+        indirizzo: 'Via Roma 1',
+        citta: 'Bologna',
+        sedeCoordinate: null,
+      })
+    ).toBe(true);
+    expect(
+      deveProporrePinSedeDaIndirizzo({
+        indirizzo: '',
+        citta: '',
+        sedeCoordinate: null,
+      })
+    ).toBe(false);
+    expect(
+      deveProporrePinSedeDaIndirizzo({
+        indirizzo: 'Via Roma 1',
+        citta: 'Bologna',
+        sedeCoordinate: { lat: 44.5, lng: 11.3 },
+      })
+    ).toBe(false);
   });
 });
 

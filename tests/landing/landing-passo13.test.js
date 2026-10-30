@@ -31,34 +31,34 @@ const TONY_LIVE = path.join(ROOT, 'landing/public/tony-live');
 
 const CLIP_D1 = [
   {
-    nome: 'tony-topic-registrazione-2s5-desktop-576x720-alpha-v4.webm',
-    bytes: 265928,
-    md5: 'ec59c84858794d89b1b6b651a19d82bc',
+    nome: 'tony-topic-registrazione-2s5-desktop-576x1440-stacked-alpha-v6.mp4',
+    bytes: 333037,
+    md5: 'e8106999a88ba6b7e6e190e5b123a5ee',
   },
   {
-    nome: 'tony-topic-registrazione-2s5-mobile-432x540-alpha-v4.webm',
-    bytes: 188916,
-    md5: 'f9bd97f7c42f616e47d0e25a0e7b1ef9',
+    nome: 'tony-topic-registrazione-2s5-desktop-576x720-12fps-v6.webp',
+    bytes: 545016,
+    md5: 'd3bfe1b978bb5180e7c622333e944aee',
   },
   {
-    nome: 'tony-topic-registrazione-2s5-desktop-576x720-12fps-v4.webp',
-    bytes: 462690,
-    md5: '01040e65acf40b845dbeb7545d632b67',
+    nome: 'tony-topic-registrazione-2s5-desktop-576x720-alpha-v6.webm',
+    bytes: 271843,
+    md5: '149602b82c375f25464d24aaa2f0224f',
   },
   {
-    nome: 'tony-topic-registrazione-2s5-mobile-432x540-12fps-v4.webp',
-    bytes: 330106,
-    md5: 'f2d878aca76a3ad1332f91c9da573479',
+    nome: 'tony-topic-registrazione-2s5-mobile-432x1080-stacked-alpha-v6.mp4',
+    bytes: 229908,
+    md5: 'bc06d25aa5b0962c82455142202e3ae8',
   },
   {
-    nome: 'tony-topic-registrazione-2s5-desktop-576x1440-stacked-alpha-v4.mp4',
-    bytes: 376459,
-    md5: '2ccc9a600386d32804d7cc6740061526',
+    nome: 'tony-topic-registrazione-2s5-mobile-432x540-12fps-v6.webp',
+    bytes: 382900,
+    md5: '97b8731c116a1e71a67f4d27d1641c79',
   },
   {
-    nome: 'tony-topic-registrazione-2s5-mobile-432x1080-stacked-alpha-v4.mp4',
-    bytes: 253763,
-    md5: '77e085da8f44f7d7d5edb85e4e439249',
+    nome: 'tony-topic-registrazione-2s5-mobile-432x540-alpha-v6.webm',
+    bytes: 197693,
+    md5: 'b296fd94782ac703275492a6848ccb76',
   },
 ];
 
@@ -191,13 +191,15 @@ describe('tony-registrazione logica', () => {
 });
 
 describe('TonyRegistrazione.vue statico', () => {
-  it('campi, niente nome/cognome, niente chat/voce/storage', () => {
+  it('campi email/password/azienda + nome/cognome facoltativi; niente chat/voce/storage', () => {
     const vue = leggi('landing/src/components/TonyRegistrazione.vue');
     expect(vue).toMatch(/autocomplete="email"/);
     expect(vue).toMatch(/autocomplete="new-password"/);
     expect(vue).toMatch(/autocomplete="organization"/);
-    expect(vue).not.toMatch(/id="nome"|etichettaNome|v-model="nome"/);
-    expect(vue).not.toMatch(/cognome/);
+    expect(vue).toMatch(/tony-reg-nome/);
+    expect(vue).toMatch(/tony-reg-cognome/);
+    expect(vue).toMatch(/v-model="nome"/);
+    expect(vue).toMatch(/v-model="cognome"/);
     expect(vue).not.toMatch(/v-html/);
     expect(vue).not.toMatch(/console\./);
     expect(vue).not.toMatch(/tonyLandingAsk/);

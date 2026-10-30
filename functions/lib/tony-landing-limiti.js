@@ -25,10 +25,14 @@ const COSTANTI = Object.freeze({
   MAX_CARATTERI_BATTUTA_TONY: 600,
   /** Dimensione massima del body JSON in byte. */
   MAX_BYTE_RICHIESTA: 8192,
-  /** Tetto mensile assoluto in euro (config può solo abbassarlo). */
+  /** Tetto mensile assoluto in euro — SOLO spesa Gemini (config può solo abbassarlo). */
   TETTO_MENSILE_EUR: 30,
-  /** Sotto questa frazione del budget la voce resta accesa (80%). */
-  SOGLIA_SOLO_TESTO: 0.8,
+  /**
+   * Soglie avviso email sulla spesa Gemini (frazione del tetto).
+   * La voce ElevenLabs NON usa queste soglie: ha un margine a parte.
+   */
+  SOGLIA_AVVISO_GEMINI_50: 0.5,
+  SOGLIA_AVVISO_GEMINI_80: 0.8,
   /** TTL contatori giornalieri / sessione / visitatore. */
   ORE_SCADENZA_CONTATORI: 48,
   /** TTL documento spesa del mese. */
@@ -52,15 +56,20 @@ const COSTANTI = Object.freeze({
   /** Timeout unica chiamata a Gemini. */
   TIMEOUT_GEMINI_MS: 20000,
   /**
-   * Prezzi stimati in euro (stesso numero del listino USD, un po' più alti del vero).
+   * Prezzi di listino Gemini 2.5 Flash (Paid Tier, text), convertiti 1 USD = 1 EUR
+   * senza maggiorazioni. Fonte: https://ai.google.dev/gemini-api/docs/pricing
+   * (consultata 2026-10-30). Output include i token di ragionamento (thinking).
    * Se Google cambia i prezzi, si aggiornano qui.
    */
   PREZZO_INGRESSO_EUR_PER_MILIONE: 0.3,
   PREZZO_USCITA_EUR_PER_MILIONE: 2.5,
-  /** Margine per App Check e Cloud Functions. */
-  COSTO_FISSO_RICHIESTA_EUR: 0.0002,
-  /** Da ricontrollare sul piano ElevenLabs (serve al passo 12). */
-  PREZZO_VOCE_EUR_PER_1000_CARATTERI: 0.3
+  /**
+   * Riserva caratteri ElevenLabs: sotto questa soglia (o sotto il 3% del piano)
+   * la landing non genera più voce. Sovrascrivibile con config.voiceReserveChars.
+   */
+  VOICE_RESERVE_CHARS_PREDEFINITO: 20000,
+  /** Cache abbonamento ElevenLabs (ms). */
+  CACHE_ELEVENLABS_SUB_MS: 15 * 60 * 1000
 });
 
 /** Domini ammessi per CORS (confronto esatto della stringa Origin). */
@@ -88,13 +97,13 @@ const MESSAGGI = Object.freeze({
   tetto: "Tony è nei campi. Intanto prova GFV!",
   // BOZZA: da far rivedere
   limiteSessione:
-    "Per oggi ci fermiamo qui: crea il tuo account gratuito e continuiamo dentro GFV!",
+    "Per oggi abbiamo fatto tante domande: ci rivediamo domani, oppure crea l'account e continuiamo dentro GFV.",
   // BOZZA: da far rivedere
   limiteGiorno:
-    "Per oggi ci fermiamo qui: crea il tuo account gratuito e continuiamo dentro GFV!",
+    "Per oggi abbiamo fatto tante domande: ci rivediamo domani, oppure crea l'account e continuiamo dentro GFV.",
   // BOZZA: da far rivedere
   limiteGlobale:
-    "Oggi ho risposto a tante domande e sono un po' stanco. Intanto prova GFV!",
+    "Oggi qui sulla pagina ho risposto a moltissime persone e mi fermo fino a domani. Puoi creare il tuo account gratuito: dentro GFV ti guido io.",
   // BOZZA: da far rivedere
   datiPersonali:
     "Qui non scrivermi email o password: quando crei l'account te le chiede il modulo.",
@@ -145,7 +154,8 @@ function normalizzaConfig(dati) {
     voiceEnabled: false,
     dailyQuestionCap: COSTANTI.MAX_DOMANDE_GIORNO_PREDEFINITO,
     dailyVoiceCharCap: 60000,
-    monthlyBudgetEur: COSTANTI.TETTO_MENSILE_EUR
+    monthlyBudgetEur: COSTANTI.TETTO_MENSILE_EUR,
+    voiceReserveChars: COSTANTI.VOICE_RESERVE_CHARS_PREDEFINITO
   };
   if (!dati || typeof dati !== "object") return base;
 
@@ -181,12 +191,23 @@ function normalizzaConfig(dati) {
     }
   }
 
+  let voiceReserveChars = COSTANTI.VOICE_RESERVE_CHARS_PREDEFINITO;
+  if (
+    typeof dati.voiceReserveChars === "number" &&
+    Number.isInteger(dati.voiceReserveChars) &&
+    dati.voiceReserveChars >= 0 &&
+    dati.voiceReserveChars <= 500000
+  ) {
+    voiceReserveChars = dati.voiceReserveChars;
+  }
+
   return {
     enabled: enabled,
     voiceEnabled: voiceEnabled,
     dailyQuestionCap: dailyQuestionCap,
     dailyVoiceCharCap: dailyVoiceCharCap,
-    monthlyBudgetEur: monthlyBudgetEur
+    monthlyBudgetEur: monthlyBudgetEur,
+    voiceReserveChars: voiceReserveChars
   };
 }
 
@@ -351,7 +372,8 @@ function validaRichiesta(corpo) {
         chiavi[i] !== "sessione" &&
         chiavi[i] !== "storia" &&
         chiavi[i] !== "fase" &&
-        chiavi[i] !== "argomento"
+        chiavi[i] !== "argomento" &&
+        chiavi[i] !== "raccolti"
       ) {
         return { ok: false, codice: "richiesta-non-valida" };
       }
@@ -384,7 +406,18 @@ function validaRichiesta(corpo) {
   }
   const storia = storiaPulita(corpo.storia);
   if (haFase) {
-    return {
+    let raccolti;
+    if (Object.prototype.hasOwnProperty.call(corpo, "raccolti")) {
+      if (typeof corpo.raccolti !== "string") {
+        return { ok: false, codice: "richiesta-non-valida" };
+      }
+      const raccoltiTrim = corpo.raccolti.trim();
+      if (new TextEncoder().encode(raccoltiTrim).length > 1024) {
+        return { ok: false, codice: "richiesta-non-valida" };
+      }
+      raccolti = raccoltiTrim;
+    }
+    const out = {
       ok: true,
       domanda: domanda,
       sessione: sessione,
@@ -392,6 +425,8 @@ function validaRichiesta(corpo) {
       fase: "account",
       argomento: corpo.argomento
     };
+    if (raccolti) out.raccolti = raccolti;
+    return out;
   }
   return { ok: true, domanda: domanda, sessione: sessione, storia: storia };
 }
@@ -419,10 +454,6 @@ function decidiDomandaAccount(args) {
     typeof a.spesaMeseEur === "number" && !Number.isNaN(a.spesaMeseEur)
       ? a.spesaMeseEur
       : 0;
-  const domandeGiorno =
-    typeof a.domandeGiorno === "number" && !Number.isNaN(a.domandeGiorno)
-      ? a.domandeGiorno
-      : 0;
   const domandeAccount =
     typeof a.domandeAccount === "number" && !Number.isNaN(a.domandeAccount)
       ? a.domandeAccount
@@ -432,10 +463,6 @@ function decidiDomandaAccount(args) {
     typeof config.monthlyBudgetEur === "number" && !Number.isNaN(config.monthlyBudgetEur)
       ? config.monthlyBudgetEur
       : COSTANTI.TETTO_MENSILE_EUR;
-  const cap =
-    typeof config.dailyQuestionCap === "number" && !Number.isNaN(config.dailyQuestionCap)
-      ? config.dailyQuestionCap
-      : COSTANTI.MAX_DOMANDE_GIORNO_PREDEFINITO;
 
   if (config.enabled !== true) {
     return { consentita: false, codice: "spento", voce: false };
@@ -443,16 +470,13 @@ function decidiDomandaAccount(args) {
   if (spesa >= budget) {
     return { consentita: false, codice: "tetto", voce: false };
   }
-  if (domandeGiorno >= cap) {
-    return { consentita: false, codice: "limite-globale", voce: false };
-  }
   if (domandeAccount >= COSTANTI.MAX_DOMANDE_ACCOUNT) {
     return { consentita: false, codice: "limite-account", voce: false };
   }
 
-  const voce =
-    config.voiceEnabled === true &&
-    spesa < COSTANTI.SOGLIA_SOLO_TESTO * budget;
+  // La voce non dipende più dal tetto Gemini in euro: il margine ElevenLabs
+  // lo controlla tonyLandingAudio. Qui basta voiceEnabled.
+  const voce = config.voiceEnabled === true;
 
   return { consentita: true, codice: "ok", voce: !!voce };
 }
@@ -518,9 +542,7 @@ function decidiDomanda(args) {
     return { consentita: false, codice: "limite-giorno", voce: false };
   }
 
-  const voce =
-    config.voiceEnabled === true &&
-    spesa < COSTANTI.SOGLIA_SOLO_TESTO * budget;
+  const voce = config.voiceEnabled === true;
 
   return { consentita: true, codice: "ok", voce: !!voce };
 }
@@ -556,6 +578,8 @@ function messaggioPerCodice(codice) {
 }
 
 /**
+ * Spesa Gemini in euro (listino, senza maggiorazioni e senza voce).
+ * `caratteriVoce` è ignorato: resta solo per compatibilità con chiamate vecchie.
  * @param {{ tokenIngresso?: number, tokenUscita?: number, caratteriVoce?: number }} args
  * @returns {number}
  */
@@ -565,14 +589,43 @@ function costoStimatoEur(args) {
     typeof a.tokenIngresso === "number" && a.tokenIngresso > 0 ? a.tokenIngresso : 0;
   const tout =
     typeof a.tokenUscita === "number" && a.tokenUscita > 0 ? a.tokenUscita : 0;
-  const cv =
-    typeof a.caratteriVoce === "number" && a.caratteriVoce > 0 ? a.caratteriVoce : 0;
+  void a.caratteriVoce;
   const totale =
-    COSTANTI.COSTO_FISSO_RICHIESTA_EUR +
     (tin / 1000000) * COSTANTI.PREZZO_INGRESSO_EUR_PER_MILIONE +
-    (tout / 1000000) * COSTANTI.PREZZO_USCITA_EUR_PER_MILIONE +
-    (cv / 1000) * COSTANTI.PREZZO_VOCE_EUR_PER_1000_CARATTERI;
+    (tout / 1000000) * COSTANTI.PREZZO_USCITA_EUR_PER_MILIONE;
   return Math.round(totale * 1000000) / 1000000;
+}
+
+/** Alias esplicito: stesso calcolo di costoStimatoEur (solo Gemini). */
+const costoGeminiEur = costoStimatoEur;
+
+/**
+ * Spesa Gemini da usare per tetto/avvisi, dal documento mese.
+ * Se ci sono tokenIngresso/tokenUscita → ricalcola da listino.
+ * Se c'è già `spesaGeminiRipartita === true` → usa costoEur così com'è.
+ * Altrimenti (mese con voce gonfiata, senza token) → 0, così non scatta
+ * un falso avviso al 100% dopo il deploy.
+ * @param {object|null|undefined} datiMese
+ * @returns {{ spesaGeminiEur: number, daRipartire: boolean, daToken: boolean }}
+ */
+function spesaGeminiDaDocumento(datiMese) {
+  const d = datiMese && typeof datiMese === "object" ? datiMese : {};
+  const tin =
+    typeof d.tokenIngresso === "number" && d.tokenIngresso > 0 ? d.tokenIngresso : 0;
+  const tout =
+    typeof d.tokenUscita === "number" && d.tokenUscita > 0 ? d.tokenUscita : 0;
+  if (tin > 0 || tout > 0) {
+    return {
+      spesaGeminiEur: costoGeminiEur({ tokenIngresso: tin, tokenUscita: tout }),
+      daRipartire: false,
+      daToken: true
+    };
+  }
+  if (d.spesaGeminiRipartita === true) {
+    const c = typeof d.costoEur === "number" && d.costoEur > 0 ? d.costoEur : 0;
+    return { spesaGeminiEur: c, daRipartire: false, daToken: false };
+  }
+  return { spesaGeminiEur: 0, daRipartire: true, daToken: false };
 }
 
 /**
@@ -699,6 +752,8 @@ module.exports = {
   decidiDomandaAccount,
   messaggioPerCodice,
   costoStimatoEur,
+  costoGeminiEur,
+  spesaGeminiDaDocumento,
   tokenDaUsage,
   corpoRichiestaGemini,
   testoDaPayloadGemini,

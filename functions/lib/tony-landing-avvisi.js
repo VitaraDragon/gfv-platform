@@ -21,7 +21,14 @@ const PRENOTAZIONE_MAX_MS = 30 * 60 * 1000;
 const LINK_CONSOLE_TONY_LANDING =
   "https://console.firebase.google.com/project/gfv-platform/firestore/databases/-default-/data/~2Fconfig~2FtonyLanding";
 
-const CHIAVI_AVVISO = Object.freeze(["p50", "p80", "p100", "budgetGoogle"]);
+const CHIAVI_AVVISO = Object.freeze([
+  "p50",
+  "p80",
+  "p100",
+  "e80",
+  "e95",
+  "budgetGoogle"
+]);
 
 function escapeHtml(s) {
   if (s == null) return "";
@@ -253,8 +260,22 @@ function involucroHtml(corpoHtml) {
 }
 
 /**
- * BOZZA: da far rivedere
- * @param {{ soglia: number, spesaMeseEur: number, budgetEur: number, domandeMese: number, mese: string|Date, spentoAdesso?: boolean }} args
+ * @param {{
+ *   soglia: number,
+ *   spesaMeseEur: number,
+ *   budgetEur: number,
+ *   domandeMese: number,
+ *   mese: string|Date,
+ *   spentoAdesso?: boolean,
+ *   voceEleven?: {
+ *     usati?: number,
+ *     limite?: number,
+ *     landing?: number,
+ *     rimanenti?: number,
+ *     resetLabel?: string,
+ *     nonLeggibile?: boolean
+ *   }|null
+ * }} args
  */
 function testoEmailSpesa({
   soglia,
@@ -262,7 +283,8 @@ function testoEmailSpesa({
   budgetEur,
   domandeMese,
   mese,
-  spentoAdesso
+  spentoAdesso,
+  voceEleven
 }) {
   const spesa = formatEuroIt(spesaMeseEur);
   const tetto = formatEuroIt(budgetEur);
@@ -279,95 +301,166 @@ function testoEmailSpesa({
   const meseE = escapeHtml(meseLabel);
   const link = escapeHtml(LINK_CONSOLE_TONY_LANDING);
 
+  const rigaGemini =
+    "Gemini (landing): " +
+    spesa +
+    " a " +
+    meseLabel +
+    " su un tetto di " +
+    tetto +
+    " (" +
+    domande +
+    " domande), prezzi di listino.";
+  const rigaGeminiE =
+    "Gemini (landing): " +
+    spesaE +
+    " a " +
+    meseE +
+    " su un tetto di " +
+    tettoE +
+    " (" +
+    domandeE +
+    " domande), prezzi di listino.";
+
+  let rigaVoce = "";
+  let rigaVoceE = "";
+  const v = voceEleven && typeof voceEleven === "object" ? voceEleven : null;
+  if (v && v.nonLeggibile === true) {
+    rigaVoce = "Voce ElevenLabs: margine ElevenLabs non leggibile.";
+    rigaVoceE = escapeHtml(rigaVoce);
+  } else if (v && typeof v.limite === "number" && v.limite > 0) {
+    const usati = Number(v.usati) || 0;
+    const landing = Number(v.landing) || 0;
+    const rimanenti =
+      typeof v.rimanenti === "number"
+        ? v.rimanenti
+        : Math.max(0, v.limite - usati);
+    const reset =
+      typeof v.resetLabel === "string" && v.resetLabel
+        ? v.resetLabel
+        : "alla prossima ricarica";
+    rigaVoce =
+      "Voce ElevenLabs: usati " +
+      usati.toLocaleString("it-IT") +
+      " caratteri su " +
+      v.limite.toLocaleString("it-IT") +
+      " dell'abbonamento (tutto il piano, anche app e spot), la landing ne ha usati " +
+      landing.toLocaleString("it-IT") +
+      ". Restano " +
+      rimanenti.toLocaleString("it-IT") +
+      ", rinnovo " +
+      reset +
+      ".";
+    rigaVoceE = escapeHtml(rigaVoce);
+  }
+
   let oggetto = "";
   let frase = "";
   let testo = "";
+  let nonDeviFareNiente = false;
 
   if (soglia === 50) {
-    oggetto =
-      "[GFV] Tony della landing: spesa stimata al 50% del tetto del mese";
+    oggetto = "[GFV] Tony landing: Gemini al 50% del tetto del mese";
+    nonDeviFareNiente = true;
     frase =
-      "La spesa stimata di Tony sulla landing a " +
-      meseE +
-      " è " +
-      spesaE +
-      " su un tetto di " +
-      tettoE +
-      " (" +
-      domandeE +
-      " domande). Non devi fare niente: è solo un avviso.";
+      rigaGeminiE +
+      (rigaVoceE ? " " + rigaVoceE : "") +
+      " Non devi fare niente: è solo un avviso.";
     testo =
-      "La spesa stimata di Tony sulla landing a " +
-      meseLabel +
-      " è " +
-      spesa +
-      " su un tetto di " +
-      tetto +
-      " (" +
-      domande +
-      " domande). Non devi fare niente: è solo un avviso.";
+      rigaGemini +
+      (rigaVoce ? " " + rigaVoce : "") +
+      " Non devi fare niente: è solo un avviso.";
   } else if (soglia === 80) {
-    oggetto = "[GFV] Tony della landing all'80%: la voce si è spenta";
+    oggetto = "[GFV] Tony landing: Gemini all'80% del tetto del mese";
     frase =
-      "La spesa stimata di Tony sulla landing a " +
-      meseE +
-      " è " +
-      spesaE +
-      " su " +
-      tettoE +
-      ". La voce di Tony si è spenta da sola: ora risponde solo per iscritto. Al 100% Tony si ferma.";
+      rigaGeminiE +
+      (rigaVoceE ? " " + rigaVoceE : "") +
+      " Al 100% Tony sulla landing si ferma (solo testo Gemini). La voce dipende dai crediti ElevenLabs, non da questo tetto.";
     testo =
-      "La spesa stimata di Tony sulla landing a " +
-      meseLabel +
-      " è " +
-      spesa +
-      " su " +
-      tetto +
-      ". La voce di Tony si è spenta da sola: ora risponde solo per iscritto. Al 100% Tony si ferma.";
+      rigaGemini +
+      (rigaVoce ? " " + rigaVoce : "") +
+      " Al 100% Tony sulla landing si ferma (solo testo Gemini). La voce dipende dai crediti ElevenLabs, non da questo tetto.";
   } else {
     oggetto =
-      "[GFV] Tony della landing è spento: tetto del mese raggiunto";
+      "[GFV] Tony della landing è spento: tetto Gemini del mese raggiunto";
     if (spentoAdesso === false) {
       frase =
-        "La spesa stimata di Tony sulla landing a " +
-        meseE +
-        " ha raggiunto il tetto di " +
-        tettoE +
-        ". Tony sulla landing era già spento. Il Tony dell'app funziona normalmente. Per riaccenderlo: console di Firebase → Firestore → config → tonyLanding → enabled = true. " +
+        rigaGeminiE +
+        " Tony sulla landing era già spento. Il Tony dell'app funziona normalmente. Per riaccenderlo: console di Firebase → Firestore → config → tonyLanding → enabled = true. " +
         "<a href=\"" +
         link +
         "\">Apri la console</a>.";
       testo =
-        "La spesa stimata di Tony sulla landing a " +
-        meseLabel +
-        " ha raggiunto il tetto di " +
-        tetto +
-        ". Tony sulla landing era già spento. Il Tony dell'app funziona normalmente. Per riaccenderlo: console di Firebase → Firestore → config → tonyLanding → enabled = true. " +
+        rigaGemini +
+        " Tony sulla landing era già spento. Il Tony dell'app funziona normalmente. Per riaccenderlo: console di Firebase → Firestore → config → tonyLanding → enabled = true. " +
         LINK_CONSOLE_TONY_LANDING;
     } else {
       frase =
-        "La spesa stimata di Tony sulla landing a " +
-        meseE +
-        " ha raggiunto il tetto di " +
-        tettoE +
-        ". Tony sulla landing è fermo: i visitatori vedono \"Tony è nei campi. Intanto prova GFV!\" e il pulsante per registrarsi. Il Tony dell'app funziona normalmente. Per riaccenderlo il mese prossimo: console di Firebase → Firestore → config → tonyLanding → enabled = true. " +
+        rigaGeminiE +
+        " Tony sulla landing è fermo: i visitatori vedono \"Tony è nei campi. Intanto prova GFV!\". Il Tony dell'app funziona normalmente. Per riaccenderlo: console di Firebase → Firestore → config → tonyLanding → enabled = true. " +
         "<a href=\"" +
         link +
         "\">Apri la console</a>.";
       testo =
-        "La spesa stimata di Tony sulla landing a " +
-        meseLabel +
-        " ha raggiunto il tetto di " +
-        tetto +
-        ". Tony sulla landing è fermo: i visitatori vedono \"Tony è nei campi. Intanto prova GFV!\" e il pulsante per registrarsi. Il Tony dell'app funziona normalmente. Per riaccenderlo il mese prossimo: console di Firebase → Firestore → config → tonyLanding → enabled = true. " +
+        rigaGemini +
+        " Tony sulla landing è fermo: i visitatori vedono \"Tony è nei campi. Intanto prova GFV!\". Il Tony dell'app funziona normalmente. Per riaccenderlo: console di Firebase → Firestore → config → tonyLanding → enabled = true. " +
         LINK_CONSOLE_TONY_LANDING;
     }
   }
+
+  void nonDeviFareNiente;
 
   return {
     oggetto,
     html: involucroHtml("<p>" + frase + "</p>"),
     testo: "Ciao,\n\n" + testo + "\n\nGFV Platform — avviso automatico"
+  };
+}
+
+/**
+ * Email soglia crediti ElevenLabs (80% / 95% dell'abbonamento intero).
+ * @param {{
+ *   soglia: number,
+ *   usati: number,
+ *   limite: number,
+ *   landing: number,
+ *   rimanenti: number,
+ *   resetLabel?: string
+ * }} args
+ */
+function testoEmailVoceEleven({
+  soglia,
+  usati,
+  limite,
+  landing,
+  rimanenti,
+  resetLabel
+}) {
+  const reset =
+    typeof resetLabel === "string" && resetLabel
+      ? resetLabel
+      : "alla prossima ricarica";
+  const oggetto =
+    "[GFV] Crediti voce ElevenLabs al " + soglia + "% dell'abbonamento";
+  const corpo =
+    "Voce ElevenLabs: usati " +
+    Number(usati || 0).toLocaleString("it-IT") +
+    " caratteri su " +
+    Number(limite || 0).toLocaleString("it-IT") +
+    " dell'abbonamento (tutto il piano, anche app e spot), la landing ne ha usati " +
+    Number(landing || 0).toLocaleString("it-IT") +
+    ". Restano " +
+    Number(rimanenti || 0).toLocaleString("it-IT") +
+    ", rinnovo " +
+    reset +
+    "." +
+    (soglia >= 95
+      ? " Vicino alla riserva: la landing può spegnere la voce da sola e lasciare solo il testo."
+      : " Non devi fare niente: è solo un avviso.");
+  return {
+    oggetto,
+    html: involucroHtml("<p>" + escapeHtml(corpo) + "</p>"),
+    testo: "Ciao,\n\n" + corpo + "\n\nGFV Platform — avviso automatico"
   };
 }
 
@@ -442,6 +535,7 @@ module.exports = {
   dataMeseBudget,
   decisioneBudgetGoogle,
   testoEmailSpesa,
+  testoEmailVoceEleven,
   testoEmailBudget,
   meseInParole,
   formatEuroIt,

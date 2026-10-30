@@ -110,8 +110,19 @@ describe('A — Caso giusto completo (8.7, prepara l\'1)', () => {
         poderiDaCreare: [{ nome: 'Casetti' }],
         poderiGiaPresenti: 0,
         terreni: [
-          { nome: 'Campo grande', superficie: 2.34, coltura: 'Grano', podere: 'Casetti' },
-          { nome: 'Meleto', superficie: 1.2, coltura: 'Melo' }
+          {
+            nome: 'Campo grande',
+            superficie: 2.34,
+            coltura: 'Grano',
+            colturaCategoria: 'seminativo',
+            podere: 'Casetti'
+          },
+          {
+            nome: 'Meleto',
+            superficie: 1.2,
+            coltura: 'Melo',
+            colturaCategoria: 'frutteto'
+          }
         ]
       }
     });
@@ -591,6 +602,19 @@ describe('G — Stessa regola del catalogo (8.7)', () => {
     for (const esempio of esempi) {
       expect(chiaveNome(esempio)).toBe(normalizzaTesto(esempio));
     }
+  });
+});
+
+describe('sede — comune obbligatorio, via facoltativa', () => {
+  it('accetta solo comune', () => {
+    const pulita = validaRichiestaSetup({
+      requestId: 'abc12345',
+      sede: { citta: 'Faenza' },
+      terreni: [{ nome: 'Campo', superficie: 1, coltura: 'Grano' }]
+    });
+    expect(pulita.ok).toBe(true);
+    expect(pulita.richiesta.sede.citta).toBe('Faenza');
+    expect(pulita.richiesta.sede.indirizzo).toBeUndefined();
   });
 });
 

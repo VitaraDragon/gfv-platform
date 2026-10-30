@@ -57,7 +57,7 @@ Apri http://localhost:5173/?tonybussa=1&tonyfinto=1
 
 Altri scenari: `tonyfinto=lento`, `spento`, `tetto`, `limite`, `dati`, `errore`, `rete`, `appcheck`. Nella build (`npm run build` / `build:anteprima`) il finto **non** c’è.
 
-Clip v4 in `public/tony-live/`: entrata H1 (desktop) / H2 (mobile), idle, ascolto (raise/loop/lower), thinking, scrive sul taccuino, talking, uscita veloce. Formato: Safari e iPhone → WebP; Chrome/Edge/Firefox/Android → WebM; ultima riserva → stacked. Email e password sono bloccate già in pagina (e di nuovo dalla funzione). I limiti (15/30/1000, tetto mensile) li decide solo la funzione.
+Clip v6 in `public/tony-live/`: entrata H1 (desktop) / H2 (mobile), idle, ascolto (raise/loop/lower), thinking, scrive sul taccuino, talking, uscita veloce. Formato: Safari e iPhone → WebP; Chrome/Edge/Firefox/Android → WebM; ultima riserva → stacked. Email e password sono bloccate già in pagina (e di nuovo dalla funzione). I limiti (15/30/1000, tetto mensile) li decide solo la funzione.
 
 ## Voce di Tony (passo 12b)
 

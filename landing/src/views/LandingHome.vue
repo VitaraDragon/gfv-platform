@@ -16,15 +16,23 @@ import {
   TONY_BUSSA_ATTIVO,
   URL_LOGIN,
   URL_REGISTRAZIONE,
+  URL_TONY_LANDING_ASK,
+  URL_TONY_LANDING_AUDIO,
   VERSIONE_AVVISO_TONY,
 } from '../config/landing-config.js';
 import { rigaPrezzi, vociPianiCosaGestisci } from '../lib/landing-logica.js';
 import {
+  BUSSATA_AUTOMATICA_MS,
+  bussataAutomaticaConsentita,
+  CHIAVE_BUSSATA_SESSIONE,
+  CHIAVE_RINUNCIA_AVVISO,
   deveParlare,
   dovrebbeVibrare,
   formatoClip,
+  layoutTonyDesktop,
   leggiPresaVisione,
   livelloVoce,
+  ORDINE_PRECARICA_CHAT,
   percorsoClip,
   percorsiAudio,
   percorsiClipDaPrecaricare,
@@ -39,7 +47,11 @@ import {
   tonyBussaVisibile,
   varianteScena,
 } from '../lib/tony-bussa-logica.js';
+
+const CHIAVE_INTERAZIONE_SESSIONE = 'gfv-tony-interazione-sessione';
+const CHIAVE_BUSSATE_AUTO = 'gfv-tony-bussate-auto';
 import {
+  AVAILABLE_MODULES,
   monthlyToAnnual,
   SUBSCRIPTION_PLANS,
 } from '../../../core/config/subscription-plans.js';
@@ -52,9 +64,10 @@ const prezzi = computed(() =>
       free: SUBSCRIPTION_PLANS.free,
       base: SUBSCRIPTION_PLANS.base,
       monthlyToAnnual,
+      moduli: AVAILABLE_MODULES,
     },
     GIORNI_GUIDA_TONY,
-    { ivaConfermata: IVA_CONFERMATA }
+    { ivaConfermata: IVA_CONFERMATA, emailContatto: EMAIL_CONTATTO }
   )
 );
 
@@ -77,6 +90,8 @@ const TonyStage = defineAsyncComponent(() => import('../components/TonyStage.vue
 
 const fase = ref('nascosto');
 const stageAperto = ref(false);
+/** Desktop: Tony ridotto a bottone; la chat resta montata. */
+const tonyRidotto = ref(false);
 const avvisoAperto = ref(false);
 const avvisoInChiusura = ref(false);
 const audioAttivo = ref(true);
@@ -91,6 +106,9 @@ const boccaAperta = ref(false);
 const salutoFinito = ref(false);
 const registrazioneCompletata = ref(false);
 const invioInCorso = ref(false);
+const tonyIngombroPx = ref(0);
+const tonyAltezzaPx = ref(0);
+const layoutDesktop = ref<'laterale' | 'basso'>('laterale');
 const stageRef = ref<{ precaricaClip?: (nome: string) => Promise<void> } | null>(null);
 
 const stileScossone = computed(() => {
@@ -132,6 +150,105 @@ function storagePagina() {
   } catch {
     return null;
   }
+}
+
+function storageSessione() {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function warmUpEndpointTony() {
+  for (const url of [URL_TONY_LANDING_ASK, URL_TONY_LANDING_AUDIO]) {
+    try {
+      fetch(url, { method: 'OPTIONS' }).catch(() => {});
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+function leggiRinunciaAvviso() {
+  const s = storageSessione();
+  return s ? s.getItem(CHIAVE_RINUNCIA_AVVISO) === '1' : false;
+}
+
+function salvaRinunciaAvviso() {
+  const s = storageSessione();
+  if (s) s.setItem(CHIAVE_RINUNCIA_AVVISO, '1');
+}
+
+function utenteHaInteragito() {
+  const s = storageSessione();
+  if (!s) return false;
+  return (
+    s.getItem(CHIAVE_INTERAZIONE_SESSIONE) === '1' ||
+    s.getItem(CHIAVE_BUSSATA_SESSIONE) === '1'
+  );
+}
+
+function segnaInterazioneUtente() {
+  const s = storageSessione();
+  if (s) {
+    s.setItem(CHIAVE_INTERAZIONE_SESSIONE, '1');
+    s.setItem(CHIAVE_BUSSATA_SESSIONE, '1');
+  }
+}
+
+function leggiBussateAutomatiche() {
+  const s = storageSessione();
+  if (!s) return 0;
+  const n = Number(s.getItem(CHIAVE_BUSSATE_AUTO) || '0');
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function incrementaBussateAutomatiche() {
+  const s = storageSessione();
+  if (!s) return;
+  s.setItem(CHIAVE_BUSSATE_AUTO, String(leggiBussateAutomatiche() + 1));
+}
+
+function aggiornaLayoutDesktop(ingombroW?: number) {
+  if (typeof window === 'undefined') return;
+  const w =
+    typeof ingombroW === 'number' && Number.isFinite(ingombroW)
+      ? ingombroW
+      : tonyIngombroPx.value;
+  if (w > 0) tonyIngombroPx.value = w;
+  layoutDesktop.value = layoutTonyDesktop({
+    larghezzaFinestra: window.innerWidth,
+    ingombro: tonyIngombroPx.value || 600,
+  });
+}
+
+let timerResizeVariante = 0;
+function onResizeFinestra() {
+  if (typeof window === 'undefined') return;
+  if (timerResizeVariante) window.clearTimeout(timerResizeVariante);
+  timerResizeVariante = window.setTimeout(() => {
+    timerResizeVariante = 0;
+    if (fase.value === 'parla' || fase.value === 'scrive' || fase.value === 'pensa') {
+      aggiornaLayoutDesktop();
+      return;
+    }
+    const ora = varianteScena(window.innerWidth);
+    if (ora !== varianteScelta.value && mediaPronte) {
+      varianteScelta.value = ora;
+    }
+    aggiornaLayoutDesktop();
+  }, 200);
+}
+
+function onIngombroTony(payload: { width?: number; height?: number }) {
+  if (payload && typeof payload.width === 'number') {
+    tonyIngombroPx.value = payload.width;
+  }
+  if (payload && typeof payload.height === 'number') {
+    tonyAltezzaPx.value = payload.height;
+  }
+  aggiornaLayoutDesktop(tonyIngombroPx.value);
 }
 
 function aggiornaRiduci() {
@@ -238,22 +355,12 @@ function preparaMedia() {
   mediaPronte = true;
 }
 
-/** Dopo «Fai entrare Tony»: le altre 7 clip una dopo l'altra. */
+/** Dopo «Fai entrare Tony»: thinking/scrive per prime, poi ascolto e talking. */
 async function precaricaClipChat() {
   const variante = varianteScelta.value === 'mobile' ? 'mobile' : 'desktop';
   const formato = formatoScelto.value;
   const urls = percorsiClipDaPrecaricare(variante, formato);
-  const nomi = [
-    'entry',
-    'idle',
-    'listenRaise',
-    'listenLoop',
-    'listenLower',
-    'thinking',
-    'scrive',
-    'talking',
-    'exit',
-  ];
+  const nomi = ORDINE_PRECARICA_CHAT;
   for (let i = 2; i < nomi.length; i += 1) {
     const nome = nomi[i];
     const url = urls[i];
@@ -658,6 +765,7 @@ function chiudiTutto() {
   if (fase.value === 'esce') fase.value = prossimoStato('esce', 'uscitaFinita');
   else fase.value = 'nascosto';
   stageAperto.value = false;
+  tonyRidotto.value = false;
   avvisoAperto.value = false;
   avvisoInChiusura.value = false;
   improntaAccesa.value = false;
@@ -671,6 +779,7 @@ function chiudiTutto() {
 function saluta() {
   if (fase.value === 'esce') return;
   if (invioInCorso.value) return;
+  segnaInterazioneUtente();
   const prima = fase.value;
   const dopo = prossimoStato(prima, 'saluta');
   pulisciTempo();
@@ -748,6 +857,7 @@ function onAscoltoFinito() {
 }
 
 function onDomandaInviata() {
+  segnaInterazioneUtente();
   if (fase.value === 'idle' || fase.value === 'ascolta') {
     fase.value = prossimoStato(fase.value, 'domandaInviata');
   }
@@ -917,8 +1027,10 @@ function avviaScena() {
 function onVuoiProvare(ev: MouseEvent) {
   const target = ev.currentTarget;
   pulsanteOrigine.value = target instanceof HTMLElement ? target : null;
+  segnaInterazioneUtente();
   aggiornaRiduci();
   preparaMedia();
+  warmUpEndpointTony();
   const presa = leggiPresaVisione(storagePagina(), VERSIONE_AVVISO_TONY);
   if (presa.vista) {
     audioAttivo.value = presa.audio !== false;
@@ -930,6 +1042,7 @@ function onVuoiProvare(ev: MouseEvent) {
 }
 
 function onConferma(payload: { audio?: boolean }) {
+  segnaInterazioneUtente();
   audioAttivo.value = payload?.audio !== false;
   salvaPresaVisione(
     storagePagina(),
@@ -951,6 +1064,8 @@ function onConferma(payload: { audio?: boolean }) {
 
 function onRinuncia() {
   if (stageAperto.value) return;
+  segnaInterazioneUtente();
+  salvaRinunciaAvviso();
   fase.value = prossimoStato(fase.value === 'avviso' ? 'avviso' : fase.value, 'rinuncia');
   if (fase.value !== 'nascosto') fase.value = 'nascosto';
   avvisoAperto.value = false;
@@ -1003,10 +1118,35 @@ onMounted(() => {
       })
       .catch(() => {});
   }
+
+  const idBussataAuto = window.setTimeout(() => {
+    if (stageAperto.value || avvisoAperto.value) return;
+    if (
+      !bussataAutomaticaConsentita({
+        bussateAutomatiche: leggiBussateAutomatiche(),
+        utenteHaInteragito: utenteHaInteragito(),
+        rinunciaSalvata: leggiRinunciaAvviso(),
+        avvisoAperto: avvisoAperto.value,
+        stageAperto: stageAperto.value,
+        paginaNascosta: typeof document !== 'undefined' ? document.hidden : false,
+      })
+    ) {
+      return;
+    }
+    incrementaBussateAutomatiche();
+    warmUpEndpointTony();
+    const presa = leggiPresaVisione(storagePagina(), VERSIONE_AVVISO_TONY);
+    audioAttivo.value = presa.vista ? presa.audio !== false : true;
+    avviaScena();
+  }, BUSSATA_AUTOMATICA_MS);
+  timerIds.push(idBussataAuto);
+  window.addEventListener('resize', onResizeFinestra);
 });
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onEscGlobale);
+  window.removeEventListener('resize', onResizeFinestra);
+  if (timerResizeVariante) window.clearTimeout(timerResizeVariante);
   pulisciTempo();
   rilasciaPreload();
 });
@@ -1045,8 +1185,29 @@ const iconeModuliImg: Record<string, string> = {
   <div class="landing">
     <div
       class="landing-pagina"
-      :class="{ 'landing-pagina--tony': stageAperto && varianteScelta === 'mobile' }"
-      :style="stileScossone"
+      :class="{
+        'landing-pagina--tony':
+          stageAperto && !tonyRidotto && varianteScelta === 'mobile',
+        'landing-pagina--tony-desktop':
+          stageAperto &&
+          !tonyRidotto &&
+          varianteScelta !== 'mobile' &&
+          layoutDesktop === 'laterale',
+        'landing-pagina--tony-basso':
+          stageAperto &&
+          !tonyRidotto &&
+          varianteScelta !== 'mobile' &&
+          layoutDesktop === 'basso',
+      }"
+      :style="[
+        stileScossone,
+        stageAperto && !tonyRidotto
+          ? {
+              '--tony-ingombro': (tonyIngombroPx || 600) + 'px',
+              '--tony-altezza': (tonyAltezzaPx || 320) + 'px',
+            }
+          : undefined,
+      ]"
     >
     <header class="topbar">
       <a class="brand-link" href="#inizio">
@@ -1292,8 +1453,17 @@ const iconeModuliImg: Record<string, string> = {
       @conferma="onConferma"
       @rinuncia="onRinuncia"
     />
+    <button
+      v-if="tonyOn && stageAperto && tonyRidotto"
+      type="button"
+      class="tony-btn-riapri"
+      @click="tonyRidotto = false"
+    >
+      {{ t.tonyBussa.ripristina }}
+    </button>
     <TonyStage
       v-if="tonyOn && stageAperto"
+      v-show="!tonyRidotto"
       ref="stageRef"
       :fase="fase"
       :variante="varianteScelta"
@@ -1306,6 +1476,8 @@ const iconeModuliImg: Record<string, string> = {
       @entrata-finita="onEntrataFinita"
       @uscita-finita="onUscitaFinita"
       @saluta="saluta"
+      @riduci="tonyRidotto = true"
+      @ingombro="onIngombroTony"
       @clip-non-pronta="onClipNonPronta"
       @ascolto-iniziato="onAscoltoIniziato"
       @ascolto-finito="onAscoltoFinito"
@@ -1325,7 +1497,32 @@ const iconeModuliImg: Record<string, string> = {
 
 <style scoped>
 .landing-pagina--tony {
-  padding-bottom: 46vh;
+  padding-bottom: calc(var(--tony-altezza, 85vh) + 1rem);
+}
+
+.landing-pagina--tony-desktop {
+  padding-right: calc(var(--tony-ingombro, 600px) + 16px);
+}
+
+.landing-pagina--tony-basso {
+  padding-bottom: calc(var(--tony-altezza, 320px) + 1rem);
+}
+
+.tony-btn-riapri {
+  position: fixed;
+  z-index: 45;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  right: 1.2rem;
+  bottom: 1.2rem;
+  background: #0f4d32;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(7, 25, 16, 0.28);
 }
 
 .impronta {

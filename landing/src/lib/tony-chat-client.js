@@ -17,6 +17,7 @@ const TIMEOUT_MS = 30000;
  *   ottieniTokenAccesso?: () => Promise<string | null>,
  *   fase?: string,
  *   argomento?: string,
+ *   raccolti?: string,
  *   onPezzo?: (delta: string) => void,
  *   segnale?: AbortSignal,
  *   fetchFn?: typeof fetch,
@@ -32,6 +33,7 @@ export async function chiediATony({
   ottieniTokenAccesso,
   fase,
   argomento,
+  raccolti,
   onPezzo,
   segnale,
   fetchFn = fetch,
@@ -83,7 +85,7 @@ export async function chiediATony({
       method: 'POST',
       headers,
       body: JSON.stringify(
-        corpoRichiesta({ domanda, sessione, storia, fase, argomento })
+        corpoRichiesta({ domanda, sessione, storia, fase, argomento, raccolti })
       ),
       credentials: 'omit',
       cache: 'no-store',
