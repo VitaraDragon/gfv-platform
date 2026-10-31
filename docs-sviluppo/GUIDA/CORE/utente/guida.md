@@ -96,7 +96,7 @@ Nella Home con la pelle attuale (Proposta) questa sezione **non** si vede: per e
 ### Meteo sede
 
 Con il **piano Base** (a pagamento), compare **Meteo sede** con previsioni per l’indirizzo dell’azienda in **Impostazioni**. Sul **piano gratuito** non compare.  
-Con il **modulo Meteo** attivo la sezione si arricchisce (previsioni estese e pagina dedicata). Senza indirizzo sede, l’app vi invita a compilarlo in Impostazioni.
+Con il **modulo Meteo** attivo la sezione si arricchisce (previsioni estese e pagina dedicata). Il meteo usa il **pin della sede** sulla mappa: se manca compare «Imposta il pin della sede in Impostazioni per vedere il meteo.» Andate in **Impostazioni** → **Sede aziendale sulla mappa**: se avete già scritto indirizzo e città, l’app cerca da sola il punto e vi chiede «Controlla il pin e salva»; controllate che sia giusto e premete **Salva Impostazioni Azienda**. Se il servizio non risponde entro qualche secondo compare «Meteo non disponibile al momento. Riprova più tardi.»: ricaricate più tardi la dashboard.
 
 ### Scadenze e «In arrivo»
 
@@ -148,7 +148,7 @@ Con **Manodopera** attivo, dopo il login l’operaio e il caposquadra vanno **di
 **Passi:**
 
 1. Dalla Dashboard, in alto a destra, premi **Impostazioni** (icona ingranaggio). In pagina leggi «Configura azienda e account».
-2. Nel riquadro **Informazioni Azienda** compila un campo alla volta: **Nome Azienda** (obbligatorio), **Partita IVA**, **Codice Fiscale**, **Indirizzo**, **Città**, **CAP**, **Provincia**. Poi **Sede aziendale sulla mappa**: scrivi l’indirizzo e premi **🔍 Cerca**, oppure **Da anagrafica**, oppure **Rimuovi pin**. Poi **Telefono**, **Email Aziendale**, **Note**. Un solo click finale: **Salva Impostazioni Azienda**.
+2. Nel riquadro **Informazioni Azienda** compila un campo alla volta: **Nome Azienda** (obbligatorio), **Partita IVA**, **Codice Fiscale**, **Indirizzo**, **Città**, **CAP**, **Provincia**. Poi **Sede aziendale sulla mappa**: scrivi l’indirizzo e premi **🔍 Cerca**, oppure **Da anagrafica**, oppure **Rimuovi pin**. Se indirizzo e città sono già scritti ma il pin manca, all’apertura della mappa l’app cerca il punto da sola («Controlla il pin e salva»): verificate e salvate. Il pin serve anche per il **Meteo sede** in dashboard. Poi **Telefono**, **Email Aziendale**, **Note**. Un solo click finale: **Salva Impostazioni Azienda**.
 3. **Logo (facoltativo):** nello stesso riquadro, campo **Logo**. In pagina trovi formati ammessi e dimensione massima. Il logo viene usato **nei preventivi** del modulo **Conto terzi**. Puoi anche **rimuovere** il logo se cambiate idea. Il logo si registra insieme a **Salva Impostazioni Azienda**.
 4. **Podere (facoltativo).** Solo se lavorate per **poderi** (fattorie, cascine, blocchi di campagna): nello stesso **Impostazioni** aprite **Gestione Poderi** e premete **➕ Aggiungi Podere**. Nel riquadro: **Nome Podere** (obbligatorio), **Indirizzo** e **🔍 Cerca** (potete anche cliccare sulla mappa per il punto), **Note** se servono, poi **Salva**. In elenco, su un podere già creato: **✏️ Modifica** oppure **🗑️ Elimina**. Se non vi serve un podere, **saltate** questo passo e andate ai Terreni.
 5. **Liste personalizzate** (di solito **manager** o **amministratore**): potete aggiungere **tipi di lavoro** e **colture** specifiche della vostra azienda, così compaiono nei menu (Diario, Terreni, ecc.). Le voci **già previste dal sistema** di solito **non si eliminano**; potete invece arricchire con le vostre.
@@ -376,6 +376,12 @@ La conversazione con **Tony** non si perde: dopo il ricaricamento la chat ripart
 1. Aprite la pagina di **accesso** dell’app.  
 2. Inserite **email** e **password** dell’account.  
 3. Se non ricordate la password: link **Password dimenticata?** → inserite l’email → ricevete le istruzioni per reimpostarla (controllate anche lo spam).
+
+**Se l’app vi riporta al login con un messaggio:**
+- «La sessione non è stata conservata: riprova; se sei in incognito usa una finestra normale.» → rifate l’accesso; se usate una finestra in incognito, aprite GFV in una finestra normale.
+- «Questo browser non mi lascia ricordare l’accesso…» → il browser blocca i dati dei siti (incognito o cookie bloccati): aprite GFV in una finestra normale oppure consentite i dati dei siti per GFV nelle impostazioni del browser.
+- «L’accesso è cambiato in un’altra scheda. Accedi di nuovo con l’account che vuoi usare.» → in un’altra scheda è entrato un altro account: accedete di nuovo con quello giusto.
+- «Profilo utente non trovato. Completa la registrazione o contatta l’amministratore.» → l’account esiste ma non è collegato a un’azienda: completate la registrazione o chiedete all’amministratore un nuovo invito.
 
 ### Nuova azienda vs invito
 - **Registrazione** (nuovo account + nuova azienda): usatela solo se state creando l’azienda da zero.  

@@ -143,7 +143,8 @@ Il **briefing** mattutino in dashboard può includere meteo e operatività se av
 | Problema | Cosa controllare |
 |----------|------------------|
 | Nessuna riga meteo in dashboard | **Piano Free** → serve **Base**; oppure non siete loggati con tenant aziendale. |
-| «Sede non impostata» | **Impostazioni** → indirizzo sede → **Salva**. |
+| «Imposta il pin della sede in Impostazioni per vedere il meteo.» | **Impostazioni** → **Sede aziendale sulla mappa**: se indirizzo e città sono già scritti l’app propone il punto («Controlla il pin e salva»), altrimenti **🔍 Cerca**; poi **Salva Impostazioni Azienda**. |
+| «Meteo non disponibile al momento. Riprova più tardi.» | Il servizio non ha risposto in tempo: ricaricate la dashboard più tardi. |
 | Pagina Meteo bloccata | Modulo **non** attivo → **Abbonamento**; oppure piano **Free**. |
 | Campo assente sulla mappa | Terreno senza perimetro/coordinate → **Terreni**. |
 | Dettaglio campo vuoto | Cliccare un perimetro/punto; attendere caricamento. |

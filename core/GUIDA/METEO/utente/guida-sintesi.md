@@ -5,7 +5,7 @@ Linguaggio allineato alla guida utente. Distinguere sempre **Meteo sede** (piano
 ## In sintesi
 
 - **Piano Free:** nessun meteo in dashboard né pagina modulo.
-- **Piano Base, senza modulo Meteo:** riga dashboard **Meteo sede** (sotto l’intestazione); previsioni per **indirizzo sede** in **Impostazioni**; titolo icona sole; niente pagina mappa per terreni.
+- **Piano Base, senza modulo Meteo:** riga dashboard **Meteo sede** (sotto l’intestazione); previsioni per il **pin della sede** in **Impostazioni** (senza pin: «Imposta il pin della sede in Impostazioni per vedere il meteo.»; con indirizzo e città già scritti l’app propone il punto «Controlla il pin e salva»; servizio lento: «Meteo non disponibile al momento. Riprova più tardi.»); titolo icona sole; niente pagina mappa per terreni.
 - **Modulo Meteo attivo (+ Base):** widget dashboard **Meteo** espanso (alert, ore, link **Modulo Meteo →**); **pulsante moduli** → **Meteo** → mappa satellitare campi (stessi confini **Mappa aziendale** / **Terreni**); click perimetro/punto → pannello dettaglio (alert, 48h, 8 giorni); blocco **Sede aziendale** in pagina; **← Dashboard Principale**; max ~30 campi possibile.
 - **Ingresso:** **pulsante moduli** → **Meteo**; link da widget; riquadro fondo dashboard solo **senza** Manodopera.
 - **Terreni:** per meteo per campo servono coordinate/perimetro; senza → messaggio e link **Terreni**.
