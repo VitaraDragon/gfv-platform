@@ -178,6 +178,7 @@
             formatDataAcquisizioneDisplay,
             getDataAcquisizioneYmd,
         } from '../../../core/js/tony/document-archive.js';
+        import { getEffectiveModulesFromTenant } from '../../../core/utils/module-access-resolver.js';
 
         function showAlert(message, type) {
             const el = document.getElementById('alert-container');
@@ -456,7 +457,7 @@
                 try {
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                     const modules = tenantDoc.exists()
-                        ? (Array.isArray(tenantDoc.data().modules) ? tenantDoc.data().modules : [])
+                        ? getEffectiveModulesFromTenant(tenantDoc.data())
                         : ['magazzino'];
                     if (window.Tony && typeof window.Tony.initContextWithModules === 'function') {
                         window.Tony.initContextWithModules(modules, {

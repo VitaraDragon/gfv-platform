@@ -17,6 +17,7 @@ try {
 
 // Import servizi modulo frutteto
 import { getAllFrutteti, createFrutteto, updateFrutteto, deleteFrutteto } from '../services/frutteti-service.js';
+import { getEffectiveModulesFromTenant } from '../../../core/utils/module-access-resolver.js';
 
 // Import dinamici servizi core
 const terreniServiceModule = await import(resolvePath('../../../core/services/terreni-service.js'));
@@ -113,7 +114,7 @@ async function init() {
                 const tenantId = getCurrentTenantId();
                 if (tenantId) {
                     const tenant = await getCurrentTenant();
-                    const modules = Array.isArray(tenant?.modules) ? tenant.modules : [];
+                    const modules = getEffectiveModulesFromTenant(tenant);
                     
                     // Inizializza context Tony con i moduli attivi usando helper
                     if (window.Tony && window.Tony.initContextWithModules) {

@@ -34,6 +34,7 @@ import {
   scriviEsitoScheda
 } from '../../../shared/js/registro-trattamenti-form.js';
 import { chiediRiletturaScheda, leggiRigheSchedaProdotto, leggiSchedaRegistroTrattamento } from '../../../shared/js/registro-trattamenti-scheda-client.js';
+import { getEffectiveModulesFromTenant } from '../../../core/utils/module-access-resolver.js';
 
 const DIARIO_HREF = '../../../core/attivita-standalone.html';
 const LAVORI_HREF = '../../../core/admin/gestione-lavori-standalone.html';
@@ -759,7 +760,7 @@ async function bootRegistro() {
     const tenantId = getCurrentTenantId();
     if (!tenantId) return;
     const tenant = await getCurrentTenant().catch(() => null);
-    const modules = Array.isArray(tenant?.modules) ? tenant.modules.slice() : [];
+    const modules = getEffectiveModulesFromTenant(tenant).slice();
     hasManodopera = modules.some((item) => String(item || '').toLowerCase() === 'manodopera');
     hasMagazzino = await hasModuleAccess('magazzino');
     if (!modules.some((item) => String(item || '').toLowerCase() === 'seminativo')) modules.push('seminativo');

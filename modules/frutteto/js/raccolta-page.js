@@ -20,6 +20,7 @@ try {
 // Import servizi modulo frutteto
 import { getRaccolte, createRaccolta, updateRaccolta, deleteRaccolta } from '../services/raccolta-frutta-service.js';
 import { getFrutteto, getAllFrutteti } from '../services/frutteti-service.js';
+import { getEffectiveModulesFromTenant } from '../../../core/utils/module-access-resolver.js';
 
 // Import dinamici servizi core
 const firebaseServiceModule = await import(resolvePath('../../../core/services/firebase-service.js'));
@@ -310,7 +311,7 @@ async function init() {
                 const tenantId = getCurrentTenantId();
                 if (tenantId) {
                     const tenant = await getCurrentTenant();
-                    const modules = Array.isArray(tenant?.modules) ? tenant.modules : [];
+                    const modules = getEffectiveModulesFromTenant(tenant);
                     
                     // Inizializza context Tony con i moduli attivi usando helper
                     if (window.Tony && window.Tony.initContextWithModules) {

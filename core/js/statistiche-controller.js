@@ -4,6 +4,8 @@
  * @module core/js/statistiche-controller
  */
 
+import { hasModuleAccessFromTenant } from '../utils/module-access-resolver.js';
+
 // ============================================
 // FUNZIONI HELPER
 // ============================================
@@ -439,7 +441,7 @@ export async function getOreMacchineTotali(periodo, hasParcoMacchineModule, curr
             const tenantDoc = await getDoc(doc(dependencies.db, 'tenants', currentTenantId));
             if (tenantDoc.exists()) {
                 const tenantData = tenantDoc.data();
-                const hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                const hasManodoperaModule = hasModuleAccessFromTenant(tenantData, 'manodopera');
                 
                 if (hasManodoperaModule) {
                     const lavoriRef = collection(dependencies.db, `tenants/${currentTenantId}/lavori`);
@@ -524,7 +526,7 @@ export async function getMacchinePiuUtilizzate(periodo, limit, hasParcoMacchineM
             const tenantDoc = await getDoc(doc(dependencies.db, 'tenants', currentTenantId));
             if (tenantDoc.exists()) {
                 const tenantData = tenantDoc.data();
-                const hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                const hasManodoperaModule = hasModuleAccessFromTenant(tenantData, 'manodopera');
                 
                 if (hasManodoperaModule) {
                     const lavoriRef = collection(dependencies.db, `tenants/${currentTenantId}/lavori`);
@@ -684,7 +686,7 @@ export async function getOreMacchinaPerTerreno(periodo, hasParcoMacchineModule, 
             const tenantDoc = await getDoc(doc(dependencies.db, 'tenants', currentTenantId));
             if (tenantDoc.exists()) {
                 const tenantData = tenantDoc.data();
-                const hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                const hasManodoperaModule = hasModuleAccessFromTenant(tenantData, 'manodopera');
                 
                 if (hasManodoperaModule) {
                     const lavoriRef = collection(dependencies.db, `tenants/${currentTenantId}/lavori`);
@@ -804,7 +806,7 @@ export async function getOreMacchinePerMese(periodo, hasParcoMacchineModule, cur
             const tenantDoc = await getDoc(doc(dependencies.db, 'tenants', currentTenantId));
             if (tenantDoc.exists()) {
                 const tenantData = tenantDoc.data();
-                const hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                const hasManodoperaModule = hasModuleAccessFromTenant(tenantData, 'manodopera');
                 
                 if (hasManodoperaModule) {
                     const lavoriRef = collection(dependencies.db, `tenants/${currentTenantId}/lavori`);

@@ -378,6 +378,7 @@
             fetchLavoriWithOreOperai,
             forEachOraInBundle
         } from '../services/manodopera-lavori-ore-loader.js';
+        import { getEffectiveModulesFromTenant, hasModuleAccessFromTenant } from '../utils/module-access-resolver.js';
 
         const app = getAppInstance();
         const auth = getAuthInstance();
@@ -432,7 +433,7 @@
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                     if (tenantDoc.exists()) {
                         const tenantData = tenantDoc.data();
-                        const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                        const modules = getEffectiveModulesFromTenant(tenantData);
                         const hasManodopera = modules.includes('manodopera');
                         
                         // Inizializza context Tony con i moduli attivi usando helper
@@ -587,7 +588,7 @@
                     const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
                     if (tenantDoc.exists()) {
                         const tenantData = tenantDoc.data();
-                        hasParcoMacchineModule = tenantData.modules && tenantData.modules.includes('parcoMacchine');
+                        hasParcoMacchineModule = hasModuleAccessFromTenant(tenantData, 'parcoMacchine');
                     }
                 } catch (error) {
                     console.warn('Errore verifica modulo Parco Macchine:', error);

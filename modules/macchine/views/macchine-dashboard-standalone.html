@@ -320,6 +320,7 @@
     <script type="module">
         import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+        import { getEffectiveModulesFromTenant } from '../../../core/utils/module-access-resolver.js';
 
         (async function() {
             try {
@@ -469,8 +470,8 @@
                         const userData = userDoc.exists() ? userDoc.data() : {};
                         const ruoli = Array.isArray(userData.ruoli) ? userData.ruoli : ['manager'];
                         const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
-                        const modules = tenantDoc.exists() && Array.isArray(tenantDoc.data().modules)
-                            ? tenantDoc.data().modules.slice()
+                        const modules = tenantDoc.exists()
+                            ? getEffectiveModulesFromTenant(tenantDoc.data()).slice()
                             : [];
                         if (!modules.includes('parcoMacchine')) modules.push('parcoMacchine');
                         if (window.Tony && typeof window.Tony.initContextWithModules === 'function') {

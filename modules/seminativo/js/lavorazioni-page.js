@@ -8,6 +8,7 @@ import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standa
 import { publishSeminativoTableData } from './seminativo-page-context.js';
 import { listLavorazioniCollegate } from '../services/lavorazioni-service.js';
 import { applyDiarioVsLavoroCta } from '../../../core/config/manodopera-diario-gate.js';
+import { getEffectiveModulesFromTenant } from '../../../core/utils/module-access-resolver.js';
 
 const PAGE_TYPE = 'lavorazioni_seminativo';
 const DIARIO_HREF = '../../../core/attivita-standalone.html';
@@ -249,7 +250,7 @@ export async function initLavorazioniPage() {
       return;
     }
     const tenant = await getCurrentTenant().catch(() => null);
-    const modules = Array.isArray(tenant?.modules) ? tenant.modules.slice() : [];
+    const modules = getEffectiveModulesFromTenant(tenant).slice();
     hasManodopera = modules.some((m) => String(m || '').toLowerCase() === 'manodopera');
     if (!modules.some((m) => String(m || '').toLowerCase() === 'seminativo')) modules.push('seminativo');
     if (!modules.some((m) => String(m || '').toLowerCase() === 'tony')) modules.push('tony');

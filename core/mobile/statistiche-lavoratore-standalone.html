@@ -108,6 +108,7 @@
         import { getAuthInstance, getDb, onAuthStateChanged, getDoc, doc } from '../services/firebase-service.js';
         import { setCurrentTenantId, getCurrentTenantId, getUserRolesForTenant } from '../services/tenant-service.js';
         import { getOreOperaio } from '../services/ore-service.js';
+        import { getEffectiveModulesFromTenant } from '../utils/module-access-resolver.js';
 
         const { normalizeRoles, hasAnyRole } = window.GFVDashboardUtils || {};
 
@@ -540,7 +541,7 @@
                         const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
                         if (tenantDoc.exists()) {
                             const td = tenantDoc.data();
-                            availableModules = Array.isArray(td.modules) ? td.modules : [];
+                            availableModules = getEffectiveModulesFromTenant(td);
                         }
                     }
 

@@ -183,6 +183,7 @@
         import { getAuthInstance, getDb, onAuthStateChanged, collection, getDocs, query, where, orderBy, limit, Timestamp, getDoc, doc } from '../../../core/services/firebase-service.js';
         import { showAlert } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+        import { getEffectiveModulesFromTenant } from '../../../core/utils/module-access-resolver.js';
 
         try {
             await window.GFVStandaloneReady;
@@ -224,7 +225,7 @@
                     const userRoles = Array.isArray(userData.ruoli) ? userData.ruoli : [];
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                     const modules = tenantDoc.exists()
-                        ? (Array.isArray(tenantDoc.data().modules) ? tenantDoc.data().modules : [])
+                        ? getEffectiveModulesFromTenant(tenantDoc.data())
                         : ['magazzino'];
                     if (window.Tony && typeof window.Tony.initContextWithModules === 'function') {
                         window.Tony.initContextWithModules(modules, {

@@ -15,6 +15,7 @@ try {
     throw err;
 }
 import { getFormeAllevamentoList } from '../config/forme-allevamento.js';
+import { getEffectiveModulesFromTenant } from '../../../core/utils/module-access-resolver.js';
 
 // Import servizio ricalcolo spese
 let ricalcolaSpeseVignetoAnno = null;
@@ -228,7 +229,7 @@ async function init() {
                 
                 if (tenantId) {
                     const tenant = await getCurrentTenant();
-                    const modules = Array.isArray(tenant?.modules) ? tenant.modules : [];
+                    const modules = getEffectiveModulesFromTenant(tenant);
                     
                     // Inizializza context Tony con i moduli attivi usando helper
                     if (window.Tony && window.Tony.initContextWithModules) {

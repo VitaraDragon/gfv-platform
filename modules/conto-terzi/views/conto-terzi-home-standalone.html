@@ -293,6 +293,7 @@
         import { showAlert } from '../../../core/js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
         import { applyRegistroLavoriLinks, tenantHasManodopera } from '../../../core/config/manodopera-diario-gate.js';
+        import { getEffectiveModulesFromTenant } from '../../../core/utils/module-access-resolver.js';
 
         try {
             await window.GFVStandaloneReady;
@@ -338,7 +339,7 @@
 
                         try {
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
-                            const modules = tenantDoc.exists() ? (tenantDoc.data().modules || []) : [];
+                            const modules = tenantDoc.exists() ? getEffectiveModulesFromTenant(tenantDoc.data()) : [];
                             const hasManodopera = tenantHasManodopera(modules);
                             applyRegistroLavoriLinks(document, hasManodopera);
                             document.body.dataset.gfvRegistro = hasManodopera ? 'lavori' : 'diario';

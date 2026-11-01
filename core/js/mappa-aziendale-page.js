@@ -4,6 +4,7 @@
  */
 import { createMappaAziendaleSection, loadMappaAziendale } from './dashboard-maps.js';
 import { resolveAuthUser, loginPageUrl } from './simulator-standalone-page.js';
+import { getEffectiveModulesFromTenant } from '../utils/module-access-resolver.js';
 
 async function resolveCurrentTenantId(userData) {
     if (!userData) return null;
@@ -157,7 +158,7 @@ export async function bootstrapMappaAziendalePage() {
                 try {
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                     if (tenantDoc.exists()) {
-                        availableModules = tenantDoc.data().modules || [];
+                        availableModules = getEffectiveModulesFromTenant(tenantDoc.data());
                     }
                 } catch (e) {
                     console.warn('Moduli tenant:', e);

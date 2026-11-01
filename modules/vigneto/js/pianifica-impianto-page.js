@@ -17,6 +17,7 @@ try {
 }
 import { getFormeAllevamentoList, getChiaveTecnica, getNomeVisualizzato } from '../config/forme-allevamento.js';
 import { getConfigColtura, getColturePerSelect, isColturaValida } from '../../../shared/config/pianificazione-impianto-colture.js';
+import { hasModuleAccessFromTenant } from '../../../core/utils/module-access-resolver.js';
 
 // Import dinamici dei servizi core con risoluzione percorsi per GitHub Pages
 // Usa top-level await per caricare i moduli prima che vengano usati
@@ -124,7 +125,7 @@ async function init() {
                 if (tenantId) {
                     const tenant = await getCurrentTenant();
                     const moduloRichiesto = config.moduloRequired;
-                    if (!tenant || !tenant.modules || !tenant.modules.includes(moduloRichiesto)) {
+                    if (!tenant || !hasModuleAccessFromTenant(tenant, moduloRichiesto)) {
                         alert('Il modulo ' + (moduloRichiesto === 'vigneto' ? 'Vigneto' : moduloRichiesto === 'frutteto' ? 'Frutteto' : 'Oliveto') + ' non è attivo. Attivalo dalla pagina Abbonamento.');
                         window.location.href = '../../../../core/admin/abbonamento-standalone.html';
                         return;

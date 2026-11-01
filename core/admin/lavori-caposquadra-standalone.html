@@ -826,6 +826,7 @@
             isFeatureEnabled,
             publishFeatureFlags
         } from '../config/feature-flags.js';
+        import { getEffectiveModulesFromTenant, hasModuleAccessFromTenant } from '../utils/module-access-resolver.js';
 
         try {
             await window.GFVStandaloneReady;
@@ -1440,7 +1441,7 @@
                                 const tenantData = tenantDoc.data();
                                 window.__gfvTenantData = Object.assign({ id: currentTenantId }, tenantData);
                                 publishFeatureFlags(window.__gfvTenantData, currentTenantId);
-                                const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                                const modules = getEffectiveModulesFromTenant(tenantData);
                                 hasManodoperaModule = modules.includes('manodopera');
                                 hasVendemmiaMeccanicaModule = modules.includes('vendemmiaMeccanica');
                                 
@@ -3255,7 +3256,7 @@
                         const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                         if (tenantDoc.exists()) {
                             const tenantData = tenantDoc.data();
-                            const hasParcoMacchineModule = tenantData.modules && tenantData.modules.includes('parcoMacchine');
+                            const hasParcoMacchineModule = hasModuleAccessFromTenant(tenantData, 'parcoMacchine');
                             
                             if (hasParcoMacchineModule) {
                                 // Libera trattore
@@ -3286,7 +3287,7 @@
                         const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                         if (tenantDoc.exists()) {
                             const tenantData = tenantDoc.data();
-                            const hasVignetoModule = tenantData.modules && tenantData.modules.includes('vigneto');
+                            const hasVignetoModule = hasModuleAccessFromTenant(tenantData, 'vigneto');
                             
                             if (hasVignetoModule) {
                                 const { aggiornaVignetiDaTerreno } = await import('../../modules/vigneto/services/lavori-vigneto-service.js');

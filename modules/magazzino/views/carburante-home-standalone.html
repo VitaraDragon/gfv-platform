@@ -185,7 +185,7 @@
         import { showAlert, escapeHtml } from '../../../core/js/gfv-page-utils.js';
         import { formatGiacenzaCarburante, righeScortaCarburante } from '../lib/carburante-movimento.js';
         import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
-        import { hasModuleAccessFromTenant } from '../../../core/utils/module-access-resolver.js';
+        import { getEffectiveModulesFromTenant, hasModuleAccessFromTenant } from '../../../core/utils/module-access-resolver.js';
 
         window.currentTableData = {
             pageType: 'carburante_hub',
@@ -246,7 +246,8 @@
                     const userRoles = Array.isArray(userData.ruoli) ? userData.ruoli : [];
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                     const tenantData = tenantDoc.exists() ? tenantDoc.data() : { modules: ['magazzino'] };
-                    const modules = Array.isArray(tenantData.modules) ? tenantData.modules : ['magazzino'];
+                    const paidModulesField = tenantData.modules;
+                    const modules = Array.isArray(paidModulesField) ? getEffectiveModulesFromTenant(tenantData) : ['magazzino'];
                     const cardPieno = document.getElementById('card-pieno');
                     if (cardPieno && !hasModuleAccessFromTenant(tenantData, 'parcoMacchine')) {
                         cardPieno.removeAttribute('href');

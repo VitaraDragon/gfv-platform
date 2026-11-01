@@ -43,7 +43,8 @@ async function syncPreventivoAccettatoToPianoAdmin(db, tenantId, preventivo) {
   }
 
   const tenantSnap = await db.doc(`tenants/${tenantId}`).get();
-  const modules = tenantSnap.exists ? tenantSnap.data()?.modules || [] : [];
+  const { resolveEffectiveModules } = require("./module-trial");
+  const modules = tenantSnap.exists ? resolveEffectiveModules(tenantSnap.data()) : [];
   if (!modules.includes("vendemmiaMeccanica")) {
     return { synced: false };
   }

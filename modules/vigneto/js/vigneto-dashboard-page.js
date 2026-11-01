@@ -8,6 +8,7 @@
 import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
 import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+import { getEffectiveModulesFromTenant } from '../../../core/utils/module-access-resolver.js';
 
 try {
     await window.GFVStandaloneReady;
@@ -91,7 +92,7 @@ onAuthStateChanged(auth, async (user) => {
                     }
                     
                     // Verifica modulo vigneto (case-insensitive)
-                    const modules = Array.isArray(tenant?.modules) ? tenant.modules : [];
+                    const modules = getEffectiveModulesFromTenant(tenant);
                     
                     // Sincronizza moduli attivi con Tony (helper unico per tutte le pagine standalone; retry se widget non ancora pronto)
                     const tonyCtxPayload = {

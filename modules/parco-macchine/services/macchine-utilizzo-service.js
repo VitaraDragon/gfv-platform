@@ -8,6 +8,7 @@
 
 import { getDb, getDoc, doc, updateDoc } from '../../../core/services/firebase-service.js';
 import { getCurrentTenantId } from '../../../core/services/tenant-service.js';
+import { hasModuleAccessFromTenant } from '../../../core/utils/module-access-resolver.js';
 
 /**
  * Aggiorna ore macchina/attrezzo da qualsiasi utilizzo
@@ -52,7 +53,7 @@ export async function aggiornaOreMacchinaDaUtilizzo({
     }
     
     const tenantData = tenantDoc.data();
-    const hasParcoMacchineModule = tenantData.modules && tenantData.modules.includes('parcoMacchine');
+    const hasParcoMacchineModule = hasModuleAccessFromTenant(tenantData, 'parcoMacchine');
     if (!hasParcoMacchineModule) {
       return { macchinaAggiornata: false, attrezzoAggiornato: false };
     }

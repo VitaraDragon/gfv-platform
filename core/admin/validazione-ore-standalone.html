@@ -609,6 +609,7 @@
             chiValidaOra,
             calcolaContatoriOreValidazione
         } from '../services/ore-operai-logic.js';
+        import { getEffectiveModulesFromTenant } from '../utils/module-access-resolver.js';
 
         // Import service unificato macchine (solo se modulo attivo)
         let macchineUtilizzoService = null;
@@ -827,7 +828,7 @@
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                             if (tenantDoc.exists()) {
                                 const tenantData = tenantDoc.data();
-                                const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                                const modules = getEffectiveModulesFromTenant(tenantData);
                                 hasManodoperaModule = modules.includes('manodopera');
                                 
                                 // Inizializza context Tony: moduli + ruoli (profilo campo / guard APRI_PAGINA)

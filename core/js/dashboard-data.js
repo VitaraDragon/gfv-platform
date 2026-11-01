@@ -40,6 +40,7 @@ import {
     chiValidaOra,
     etichettaStatoAttualeOra
 } from '../services/ore-operai-logic.js';
+import { getEffectiveModulesFromTenant, hasModuleAccessFromTenant } from '../utils/module-access-resolver.js';
 
 // ============================================
 // UTILITY FUNCTIONS
@@ -133,7 +134,7 @@ export async function loadAmministrazioneStats(availableModules, dependencies) {
         const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
         if (tenantDoc.exists()) {
             const tenantData = tenantDoc.data();
-            const moduli = tenantData.modules || [];
+            const moduli = getEffectiveModulesFromTenant(tenantData);
             const piano = tenantData.piano || 'starter';
             
             const statModuliEl = document.getElementById('stat-moduli-amministrazione');
@@ -193,7 +194,7 @@ export async function loadAdminStats(availableModules, dependencies) {
         const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
         if (tenantDoc.exists()) {
             const tenantData = tenantDoc.data();
-            const moduli = tenantData.modules || [];
+            const moduli = getEffectiveModulesFromTenant(tenantData);
             const piano = tenantData.piano || 'starter';
             
             const statModuliEl = document.getElementById('stat-moduli-admin');
@@ -698,8 +699,8 @@ export async function loadManagerManodoperaStats(dependencies) {
         let hasContoTerzi = false;
         if (tenantDoc.exists()) {
             const tenantData = tenantDoc.data();
-            hasContoTerzi = tenantData.modules && tenantData.modules.includes('contoTerzi');
-            const hasParcoMacchine = tenantData.modules && tenantData.modules.includes('parcoMacchine');
+            hasContoTerzi = hasModuleAccessFromTenant(tenantData, 'contoTerzi');
+            const hasParcoMacchine = hasModuleAccessFromTenant(tenantData, 'parcoMacchine');
             if (hasParcoMacchine && setupManutenzioniRealtime) {
                 setTimeout(() => {
                     setupManutenzioniRealtime(tenantId);
@@ -993,7 +994,7 @@ export async function loadManagerLavoriStats(dependencies) {
             const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
             if (tenantDoc.exists()) {
                 const tenantData = tenantDoc.data();
-                hasContoTerzi = tenantData.modules && tenantData.modules.includes('contoTerzi');
+                hasContoTerzi = hasModuleAccessFromTenant(tenantData, 'contoTerzi');
             }
         } catch (e) {
             // Ignora errori

@@ -16,6 +16,34 @@ const { canStartModuleTrial: canStartModuleTrialServer } = require('../functions
 
 const now = new Date('2026-09-18T12:00:00Z');
 
+describe('hasModuleAccessFromTenant — parcoMacchine trial', () => {
+  it('concede parcoMacchine con sola prova attiva (modules vuoto)', () => {
+    const tenant = {
+      modules: [],
+      moduleTrials: {
+        parcoMacchine: {
+          status: 'active',
+          endsAt: new Date(now.getTime() + 10 * 24 * 60 * 60 * 1000),
+        },
+      },
+    };
+    expect(hasModuleAccessFromTenant(tenant, 'parcoMacchine', now)).toBe(true);
+  });
+
+  it('nega parcoMacchine se la prova è scaduta', () => {
+    const tenant = {
+      modules: [],
+      moduleTrials: {
+        parcoMacchine: {
+          status: 'active',
+          endsAt: new Date(now.getTime() - 24 * 60 * 60 * 1000),
+        },
+      },
+    };
+    expect(hasModuleAccessFromTenant(tenant, 'parcoMacchine', now)).toBe(false);
+  });
+});
+
 describe('hasModuleAccessFromTenant — magazzino trial', () => {
   it('nega magazzino se né pagato né in prova', () => {
     const tenant = { modules: ['vigneto'], moduleTrials: {} };

@@ -7,6 +7,7 @@
 
 import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+import { getEffectiveModulesFromTenant } from '../../../core/utils/module-access-resolver.js';
 
 try {
     await window.GFVStandaloneReady;
@@ -105,7 +106,7 @@ onAuthStateChanged(auth, async (user) => {
             setTimeout(() => { window.location.href = '../../../core/dashboard-standalone.html'; }, 2000);
             return;
         }
-        const modules = (tenant.modules || []).map(m => (m || '').toLowerCase());
+        const modules = getEffectiveModulesFromTenant(tenant).map(m => (m || '').toLowerCase());
         if (!modules.includes('frutteto')) {
             showAlert('Modulo Frutteto non attivo', 'error');
             setTimeout(() => { window.location.href = '../../../core/admin/abbonamento-standalone.html'; }, 3000);

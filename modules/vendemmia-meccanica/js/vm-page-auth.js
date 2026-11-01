@@ -7,6 +7,7 @@ import { initializeFirebase, getAuthInstance, getDb } from '../../../core/servic
 import { onAuthStateChanged, getDoc, doc } from '../../../core/services/firebase-service.js';
 import { setCurrentTenantId } from '../../../core/services/tenant-service.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+import { getEffectiveModulesFromTenant } from '../../../core/utils/module-access-resolver.js';
 import { MODULE_ID, REQUIRES_MODULES } from '../config/vm-constants.js';
 
 function ensureGfvStandaloneShell() {
@@ -94,7 +95,7 @@ export async function initVmPageAuth(options = {}) {
 
         const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
         const tenantData = tenantDoc.exists() ? tenantDoc.data() : {};
-        const modules = tenantData.modules || [];
+        const modules = getEffectiveModulesFromTenant(tenantData);
         const missing = [MODULE_ID, ...REQUIRES_MODULES].filter((m) => !modules.includes(m));
         if (missing.length) {
           reject(new Error('Moduli non attivi: ' + missing.join(', ')));

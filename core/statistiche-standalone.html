@@ -602,6 +602,7 @@
             initApp as initAppModule
         } from './js/statistiche-events.js';
         import { resolveAuthUser, loginPageUrl } from './js/simulator-standalone-page.js';
+        import { getEffectiveModulesFromTenant, hasModuleAccessFromTenant } from './utils/module-access-resolver.js';
 
         try {
             await window.GFVStandaloneReady;
@@ -998,7 +999,7 @@
                         const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                         if (tenantDoc.exists()) {
                             const tenantData = tenantDoc.data();
-                            const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                            const modules = getEffectiveModulesFromTenant(tenantData);
                             hasParcoMacchineModule = modules.includes('parcoMacchine');
                             
                             // Inizializza context Tony con i moduli attivi usando helper
@@ -1290,7 +1291,7 @@
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                     if (tenantDoc.exists()) {
                         const tenantData = tenantDoc.data();
-                        const hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                        const hasManodoperaModule = hasModuleAccessFromTenant(tenantData, 'manodopera');
                         
                         if (hasManodoperaModule) {
                             const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
@@ -1362,7 +1363,7 @@
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                     if (tenantDoc.exists()) {
                         const tenantData = tenantDoc.data();
-                        const hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                        const hasManodoperaModule = hasModuleAccessFromTenant(tenantData, 'manodopera');
                         
                         if (hasManodoperaModule) {
                             const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
@@ -1513,7 +1514,7 @@
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                     if (tenantDoc.exists()) {
                         const tenantData = tenantDoc.data();
-                        const hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                        const hasManodoperaModule = hasModuleAccessFromTenant(tenantData, 'manodopera');
                         
                         if (hasManodoperaModule) {
                             const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
@@ -1616,7 +1617,7 @@
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                     if (tenantDoc.exists()) {
                         const tenantData = tenantDoc.data();
-                        const hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                        const hasManodoperaModule = hasModuleAccessFromTenant(tenantData, 'manodopera');
                         
                         if (hasManodoperaModule) {
                             const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');

@@ -602,6 +602,7 @@
             resolveSegnaturaOreRoleFlags
         } from './services/manodopera-lavori-scope.js?v=2026-10-17b';
         import { eLavoroSospeso } from './js/tony/tony-ora-lavoro-match.js?v=2026-10-09g';
+        import { getEffectiveModulesFromTenant } from './utils/module-access-resolver.js';
 
         const app = getAppInstance();
         const auth = getAuthInstance();
@@ -806,7 +807,7 @@
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                             if (tenantDoc.exists()) {
                                 const tenantData = tenantDoc.data();
-                                const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                                const modules = getEffectiveModulesFromTenant(tenantData);
                                 hasManodoperaModule = modules.includes('manodopera');
                                 hasParcoMacchineModule = modules.includes('parcoMacchine');
                                 

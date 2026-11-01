@@ -313,11 +313,12 @@
         // Carica statistiche
         async function loadStats(tenantId) {
             try {
+                const { getEffectiveModulesFromTenant } = await import('../utils/module-access-resolver.js');
                 // 1. Carica dati tenant per piano e moduli
                 const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
                 if (tenantDoc.exists()) {
                     const tenantData = tenantDoc.data();
-                    const moduli = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                    const moduli = getEffectiveModulesFromTenant(tenantData);
                     const piano = tenantData.piano || 'starter';
                     
                     // Inizializza context Tony con i moduli attivi usando helper

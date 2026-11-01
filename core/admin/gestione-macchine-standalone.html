@@ -746,6 +746,7 @@
             handleSalvaCategoria as handleSalvaCategoriaModule,
             loadStoricoGuasti as loadStoricoGuastiModule
         } from './js/gestione-macchine-events.js';
+        import { getEffectiveModulesFromTenant } from '../utils/module-access-resolver.js';
         function setupMacchineTourButtonModule() { /* tour disattivato: modulo resta in repo */ }
         function maybeAutoStartMacchineTourModule() {}
         function startMacchineTourModule() {}
@@ -1012,7 +1013,7 @@
                                 const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                                 if (tenantDoc.exists()) {
                                     const tenantData = tenantDoc.data();
-                                    const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                                    const modules = getEffectiveModulesFromTenant(tenantData);
                                     const hasParcoMacchine = modules.includes('parcoMacchine');
                                     
                                     // Inizializza context Tony con i moduli attivi usando helper

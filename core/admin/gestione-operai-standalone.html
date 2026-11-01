@@ -704,6 +704,7 @@
         import { getAppInstance, getAuthInstance, getDb } from '../services/firebase-service.js';
         import { getDoc, doc, collection, getDocs, query, where, setDoc, Timestamp } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
+        import { getEffectiveModulesFromTenant } from '../utils/module-access-resolver.js';
 
         const app = getAppInstance();
         const auth = getAuthInstance();
@@ -759,7 +760,7 @@
                                 const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                                 if (tenantDoc.exists()) {
                                     const tenantData = tenantDoc.data();
-                                    const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                                    const modules = getEffectiveModulesFromTenant(tenantData);
                                     const hasManodopera = modules.includes('manodopera');
                                     
                                     // Inizializza context Tony con i moduli attivi usando helper

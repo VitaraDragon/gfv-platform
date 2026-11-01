@@ -8,6 +8,7 @@ import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standa
 import { publishSeminativoTableData } from './seminativo-page-context.js';
 import { caricaStatisticheSeminativo } from '../services/statistiche-service.js';
 import { totaliStatistiche } from '../models/SeminativoStatistiche.js';
+import { getEffectiveModulesFromTenant } from '../../../core/utils/module-access-resolver.js';
 
 let terreni = [];
 let righe = [];
@@ -266,7 +267,7 @@ export async function initStatistichePage() {
     }
     if (!getCurrentTenantId()) return;
     const tenant = await getCurrentTenant().catch(() => null);
-    const modules = Array.isArray(tenant?.modules) ? tenant.modules.slice() : [];
+    const modules = getEffectiveModulesFromTenant(tenant).slice();
     if (!modules.some((item) => String(item || '').toLowerCase() === 'seminativo')) modules.push('seminativo');
     if (!modules.some((item) => String(item || '').toLowerCase() === 'tony')) modules.push('tony');
     syncTonyModules(modules);

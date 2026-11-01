@@ -807,6 +807,7 @@
             undoLastVertex as undoLastVertexModule,
             resetDrawSession as resetDrawSessionModule
         } from '../../../core/js/terreni-maps.js';
+        import { getEffectiveModulesFromTenant } from '../../../core/utils/module-access-resolver.js';
 
         // Classe Terreno inline (per evitare import ES6)
         class Terreno {
@@ -975,7 +976,7 @@
 
                         try {
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
-                            const modules = tenantDoc.exists() ? (tenantDoc.data().modules || []) : [];
+                            const modules = tenantDoc.exists() ? getEffectiveModulesFromTenant(tenantDoc.data()) : [];
                             hasVendemmiaMeccanicaModule = modules.includes('vendemmiaMeccanica');
                             if (hasVendemmiaMeccanicaModule) {
                                 await ensureVignetoDetectionCtx();

@@ -115,6 +115,7 @@ import {
     normalizzaLingua,
     FIELD_UI_LANG_OPTIONS
 } from '../../services/field-ui-i18n.js';
+import { getEffectiveModulesFromTenant } from '../../utils/module-access-resolver.js';
 
 registraServiceWorker('../../service-worker.js');
 
@@ -2972,7 +2973,7 @@ async function initFieldWorkspace() {
                     const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
                     if (tenantDoc.exists()) {
                         const tenantData = tenantDoc.data();
-                        availableModules = Array.isArray(tenantData.modules) ? tenantData.modules : [];
+                        availableModules = getEffectiveModulesFromTenant(tenantData);
                     }
                 }
 

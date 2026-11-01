@@ -570,6 +570,7 @@
         import { collection, getDocs, doc, getDoc, updateDoc, query, where, orderBy, serverTimestamp, onSnapshot } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
         import { isGuastoAttivo, isGuastoNonDeciso, chiaveBadgeStatoGuasto } from '../services/guasto-stati.js';
+        import { getEffectiveModulesFromTenant } from '../utils/module-access-resolver.js';
 
         async function initApp() {
             const app = getAppInstance();
@@ -640,7 +641,7 @@
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                             if (tenantDoc.exists()) {
                                 const tenantData = tenantDoc.data();
-                                const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                                const modules = getEffectiveModulesFromTenant(tenantData);
                                 const hasParcoMacchine = modules.includes('parcoMacchine');
                                 
                                 // Inizializza context Tony con i moduli attivi usando helper

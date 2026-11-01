@@ -18,6 +18,7 @@ import {
   listTerreniSeminativo,
   updateSeminativo
 } from '../services/seminativi-service.js';
+import { getEffectiveModulesFromTenant } from '../../../core/utils/module-access-resolver.js';
 
 const PAGE_TYPE = 'piano_colturale_seminativo';
 
@@ -253,7 +254,7 @@ export async function initPianoColturalePage() {
     }
     if (!getCurrentTenantId()) return;
     const tenant = await getCurrentTenant().catch(() => null);
-    const modules = Array.isArray(tenant?.modules) ? tenant.modules.slice() : [];
+    const modules = getEffectiveModulesFromTenant(tenant).slice();
     if (!modules.some((item) => String(item || '').toLowerCase() === 'seminativo')) modules.push('seminativo');
     if (!modules.some((item) => String(item || '').toLowerCase() === 'tony')) modules.push('tony');
     syncTonyModules(modules);

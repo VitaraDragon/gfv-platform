@@ -238,6 +238,7 @@
         import { wireManagerHomeLink } from '../../../core/config/manodopera-hub-nav.js';
         import { openRosterEditModal } from '../../../core/js/manodopera-roster-edit-ui.js';
         import { renderSemaforoHtml } from '../../../core/services/manodopera-problema-severita-logic.js';
+        import { getEffectiveModulesFromTenant } from '../../../core/utils/module-access-resolver.js';
 
         let lastOperaiList = [];
         let currentManagerId = null;
@@ -537,7 +538,7 @@
                 let hasManodopera = false;
                 if (tenantId) {
                     const tDoc = await getDoc(doc(db, 'tenants', tenantId));
-                    const modules = tDoc.exists() ? (tDoc.data().modules || []) : [];
+                    const modules = tDoc.exists() ? getEffectiveModulesFromTenant(tDoc.data()) : [];
                     hasManodopera = modules.includes('manodopera');
                     if (window.Tony && window.Tony.initContextWithModules) {
                         window.Tony.initContextWithModules(modules, {

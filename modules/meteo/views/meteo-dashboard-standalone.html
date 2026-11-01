@@ -50,6 +50,7 @@
   <script type="module">
     import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
     import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+    import { getEffectiveModulesFromTenant } from '../../../core/utils/module-access-resolver.js';
 
     try {
       await window.GFVStandaloneReady;
@@ -148,7 +149,7 @@
       gateBlocked.classList.add('hidden');
       meteoMain.classList.remove('hidden');
 
-      const modules = Array.isArray(tenant && tenant.modules) ? tenant.modules : [];
+      const modules = getEffectiveModulesFromTenant(tenant);
       if (typeof window.syncTonyModules === 'function') {
         window.syncTonyModules(modules);
       }

@@ -20,6 +20,7 @@ try {
 import { calcolaMateriali, formattaMaterialiPerTabella, TIPI_IMPIANTO, getTipiImpiantoPerColtura, getDefaultTipoImpiantoPerColtura, normalizeFormaAllevamentoToKey } from '../services/calcolo-materiali-service.js';
 import { getFormeAllevamentoList, getChiaveTecnica, getNomeVisualizzato, getConfigurazioneImpianto } from '../config/forme-allevamento.js';
 import { getConfigColtura, isColturaValida } from '../../../shared/config/pianificazione-impianto-colture.js';
+import { getEffectiveModulesFromTenant } from '../../../core/utils/module-access-resolver.js';
 
 // Import dinamici dei servizi core con risoluzione percorsi per GitHub Pages
 const firebaseServiceModule = await import(resolvePath('../../../core/services/firebase-service.js'));
@@ -91,7 +92,7 @@ async function init() {
                         return;
                     }
                     const moduloRichiesto = currentConfig.moduloRequired;
-                    const modules = tenant.modules || [];
+                    const modules = getEffectiveModulesFromTenant(tenant);
                     const hasModule = modules.some(m => m && m.toLowerCase() === moduloRichiesto.toLowerCase());
                     if (!hasModule) {
                         const nomeModulo = moduloRichiesto === 'vigneto' ? 'Vigneto' : moduloRichiesto === 'frutteto' ? 'Frutteto' : 'Oliveto';

@@ -24,6 +24,7 @@ import {
   addVarietaPersonalizzata
 } from '../services/varieta-seminativo-service.js';
 import { spesePerCampagne } from '../services/seminativo-spese-service.js';
+import { getEffectiveModulesFromTenant } from '../../../core/utils/module-access-resolver.js';
 
 const PAGE_TYPE = 'seminativi';
 
@@ -685,7 +686,7 @@ export async function initSeminativiAnagraficaPage() {
     }
 
     const tenant = await getCurrentTenant().catch(() => null);
-    const modules = Array.isArray(tenant?.modules) ? tenant.modules.slice() : [];
+    const modules = getEffectiveModulesFromTenant(tenant).slice();
     if (!modules.some((m) => String(m || '').toLowerCase() === 'seminativo')) modules.push('seminativo');
     if (!modules.some((m) => String(m || '').toLowerCase() === 'tony')) modules.push('tony');
     syncTonyModules(modules);
