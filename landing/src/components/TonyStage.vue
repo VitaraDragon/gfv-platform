@@ -1182,6 +1182,9 @@ const mostraFumetto = () =>
   max-height: 16vh;
   width: auto;
   max-width: min(32vw, 140px);
+  z-index: 2;
+  /* Sopra il contenuto della pagina (stage fixed); non tagliare la figura. */
+  overflow: visible;
 }
 
 .tony-stage--mobile .fumetto {

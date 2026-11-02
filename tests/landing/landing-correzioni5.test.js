@@ -186,10 +186,16 @@ describe('correzioni 5 – informativa e spazio Tony', () => {
     expect(chat).toMatch(/\.informativa-aiuto[\s\S]*?max-height:\s*none/);
   });
 
-  it('padding-right sulla pagina con Tony mobile', () => {
+  it('telefono: niente padding-right; spazio in fondo per la pillola', () => {
     const home = leggi('landing/src/views/LandingHome.vue');
+    const bloccoTony = home.match(
+      /\.landing-pagina--tony\s*\{[^}]+\}/
+    )?.[0] || '';
+    expect(bloccoTony).toContain('padding-bottom');
+    expect(bloccoTony).not.toMatch(/padding-right/);
+    expect(home).toContain('landing-pagina--tony-pillola');
     expect(home).toMatch(
-      /\.landing-pagina--tony[\s\S]*?padding-right:\s*calc\(min\(32vw,\s*140px\)/
+      /\.landing-pagina--tony-pillola\s*\{[\s\S]*?padding-bottom:\s*calc\(var\(--tony-pillola-h/
     );
   });
 });

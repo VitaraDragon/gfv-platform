@@ -1282,6 +1282,11 @@ const iconeModuliImg: Record<string, string> = {
           !tonyRidotto &&
           varianteScelta !== 'mobile' &&
           layoutDesktop === 'basso',
+        'landing-pagina--tony-pillola':
+          tonyOn &&
+          tonyGiaApparso &&
+          !avvisoAperto &&
+          (!stageAperto || tonyRidotto),
       }"
       :style="[
         stileScossone,
@@ -1580,10 +1585,9 @@ const iconeModuliImg: Record<string, string> = {
 </template>
 
 <style scoped>
-/* Pannello in basso + figura a destra: lascia spazio così non coprono testo/video. */
+/* Telefono: solo spazio in basso per il pannello; larghezza piena (niente padding-right). */
 .landing-pagina--tony {
   padding-bottom: calc(var(--tony-altezza, 45dvh) + 1rem);
-  padding-right: calc(min(32vw, 140px) + 1.25rem);
 }
 
 .landing-pagina--tony-desktop {
@@ -1592,6 +1596,11 @@ const iconeModuliImg: Record<string, string> = {
 
 .landing-pagina--tony-basso {
   padding-bottom: calc(var(--tony-altezza, 320px) + 1rem);
+}
+
+/* Pillola «Parla con Tony»: non coprire video/testo in fondo. */
+.landing-pagina--tony-pillola {
+  padding-bottom: calc(var(--tony-pillola-h, 3.25rem) + 1.2rem + env(safe-area-inset-bottom, 0px));
 }
 
 .tony-btn-riapri {
