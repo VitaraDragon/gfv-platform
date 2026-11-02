@@ -127,7 +127,6 @@ let clipAssentiInProva = false;
 
 let audioBussata: HTMLAudioElement | null = null;
 let audioTerzo: HTMLAudioElement | null = null;
-let audioWhoosh: HTMLAudioElement | null = null;
 let audioSaluto: HTMLAudioElement | null = null;
 let audioCiao: HTMLAudioElement | null = null;
 let audioCtx: AudioContext | null = null;
@@ -324,7 +323,6 @@ function preparaMedia() {
   const estensione = formatoAudioScelto;
   audioBussata = creaAudio(audio.bussata[estensione]);
   audioTerzo = creaAudio(audio.terzo[estensione]);
-  audioWhoosh = creaAudio(audio.whoosh[estensione]);
   const voci = percorsiVoce(variante === 'mobile' ? 'mobile' : 'desktop');
   audioSaluto = creaAudio(voci.saluto.mp3);
   audioCiao = creaAudio(voci.ciao.mp3);
@@ -409,14 +407,13 @@ function rilasciaPreload() {
   videoIdlePreload = null;
   audioBussata = null;
   audioTerzo = null;
-  audioWhoosh = null;
   audioSaluto = null;
   audioCiao = null;
   mediaPronte = false;
 }
 
 function fermaAudio() {
-  for (const audio of [audioBussata, audioTerzo, audioWhoosh]) {
+  for (const audio of [audioBussata, audioTerzo]) {
     if (!audio) continue;
     try {
       audio.pause();
@@ -974,7 +971,6 @@ function partiCronometro() {
   if (audioAttivo.value) {
     riproduci(audioBussata);
     sblocca(audioTerzo);
-    sblocca(audioWhoosh);
     sbloccaContestoAudio();
     sbloccaVoce(audioSaluto);
     sbloccaVoce(audioCiao);
