@@ -1667,6 +1667,11 @@ body.dashboard-quick-bar-modal-open {
     box-sizing: border-box;
 }
 
+/* display:grid batte l'attributo HTML [hidden] senza questa regola */
+.dashboard-meteo-row[hidden] {
+    display: none;
+}
+
 @media (min-width: 901px) {
     .dashboard-meteo-row {
         grid-template-columns: repeat(2, minmax(0, 1fr));

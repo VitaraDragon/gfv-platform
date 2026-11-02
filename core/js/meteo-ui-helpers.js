@@ -14,6 +14,27 @@ export const MSG_METEO_TIMEOUT =
 export const MSG_SEDE_PIN_MANCANTE =
   'Imposta il pin della sede in Impostazioni per vedere il meteo.';
 
+export const MSG_METEO_PIANO_BASE =
+  'Meteo sede disponibile con il piano Base';
+
+export const ABBONAMENTO_HREF_DASHBOARD = './admin/abbonamento-standalone.html';
+
+/**
+ * Scelta messaggio/link del widget meteo sul piano Free (logica pura).
+ * @param {{ planId?: string|null }} [args]
+ * @returns {{ showUpsell: boolean, message: string, linkHref: string, linkLabel: string }|null}
+ */
+export function meteoFreeUpsell(args) {
+  const planId = String((args && args.planId) || '').trim().toLowerCase();
+  if (planId !== 'free') return null;
+  return {
+    showUpsell: true,
+    message: MSG_METEO_PIANO_BASE,
+    linkHref: ABBONAMENTO_HREF_DASHBOARD,
+    linkLabel: 'Vai ad Abbonamento →',
+  };
+}
+
 /**
  * Messaggio UI per errori/timeout del widget meteo dashboard.
  * @param {{ code?: string|null, timedOut?: boolean, fallback?: string }} [args]
