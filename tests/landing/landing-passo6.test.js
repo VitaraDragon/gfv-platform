@@ -130,13 +130,13 @@ describe('asset del passo 6', () => {
   });
 
   it('rispetta i pesi di loop, voci e immagine', () => {
-    // talking v6 (~7,5 s): WebP desktop ~1,72 MB
+    // talking v7 (~5,1 s)
     const limiteLoop = { desktop: 1.8 * 1024 * 1024, mobile: 1.25 * 1024 * 1024 };
     const limiteVoci = { desktop: 160 * 1024, mobile: 100 * 1024 };
     for (const variante of varianti) {
       for (const formato of formati) {
         const web = percorsoClip('talking', variante, formato);
-        expect(web).toContain('-v6.');
+        expect(web).toContain('-v7.');
         const peso = fs.statSync(fileDaPercorsoWeb(web)).size;
         expect(peso, `${variante} ${formato}`).toBeLessThanOrEqual(limiteLoop[variante]);
       }

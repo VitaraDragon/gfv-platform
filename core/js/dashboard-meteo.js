@@ -11,6 +11,7 @@ import {
   formatRainMmShort,
   messaggioMeteoDashboard,
   METEO_FETCH_TIMEOUT_MS,
+  conTimeoutOFallback,
   renderAlertsBanner,
   renderHourlyPopBadge,
   renderMinutelyPrecipStrip,
@@ -305,26 +306,24 @@ export async function initDashboardMeteo(options = {}) {
 
   try {
     await dashboardPerfAsync('meteo.fetchAndRender', async () => {
-      const opsPromise =
+      const opsVuoti = { programmatiOggi: 0, inCorso: 0, oreDaValidare: 0 };
+      const opsPromiseRaw =
         hasManodopera && dependencies && !opsFromSnapshot
-          ? loadDashboardOperativitaOggiCounts(tenantId, dependencies).catch(() => ({
-              programmatiOggi: 0,
-              inCorso: 0,
-              oreDaValidare: 0,
-            }))
-          : Promise.resolve(opsFromSnapshot);
-
-      const fetchPromise = fetchMeteoSedeWithLocalCache(tenantId, { advanced: hasMeteoModule });
-      const timeoutPromise = new Promise((resolve) => {
-        setTimeout(() => {
-          resolve({ ok: false, timedOut: true, code: 'TIMEOUT' });
-        }, METEO_FETCH_TIMEOUT_MS);
+          ? loadDashboardOperativitaOggiCounts(tenantId, dependencies).catch(() => opsVuoti)
+          : Promise.resolve(opsFromSnapshot || opsVuoti);
+      const opsPromise = conTimeoutOFallback(opsPromiseRaw, METEO_FETCH_TIMEOUT_MS, {
+        ...opsVuoti,
+        timedOut: true,
       });
 
-      const [resultOrTimeout, opsSnapshot] = await Promise.all([
-        Promise.race([fetchPromise, timeoutPromise]),
-        opsPromise,
-      ]);
+      const fetchPromise = fetchMeteoSedeWithLocalCache(tenantId, { advanced: hasMeteoModule });
+      const meteoConTimeout = conTimeoutOFallback(fetchPromise, METEO_FETCH_TIMEOUT_MS, {
+        ok: false,
+        timedOut: true,
+        code: 'TIMEOUT',
+      });
+
+      const [resultOrTimeout, opsSnapshot] = await Promise.all([meteoConTimeout, opsPromise]);
 
       if (resultOrTimeout && resultOrTimeout.timedOut) {
         body.innerHTML = renderMeteoMessage(messaggioMeteoDashboard({ timedOut: true }));
@@ -332,7 +331,7 @@ export async function initDashboardMeteo(options = {}) {
         return;
       }
 
-      applyMeteoResult(resultOrTimeout, opsSnapshot);
+      applyMeteoResult(resultOrTimeout, opsSnapshot && opsSnapshot.timedOut ? opsVuoti : opsSnapshot);
 
       if (hasManodopera) {
         window.addEventListener(ORE_READY_EVENT, () => {

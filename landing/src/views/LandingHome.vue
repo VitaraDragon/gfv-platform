@@ -27,6 +27,7 @@ import {
   CHIAVE_BUSSATA_SESSIONE,
   CHIAVE_RINUNCIA_AVVISO,
   deveParlare,
+  deveRiprovareBussataQuandoVisibile,
   dovrebbeVibrare,
   formatoClip,
   layoutTonyDesktop,
@@ -37,6 +38,8 @@ import {
   percorsiAudio,
   percorsiClipDaPrecaricare,
   percorsiVoce,
+  PRECARICA_SCENA_MS,
+  precaricoScenaConsentito,
   prossimoStato,
   prossimaBocca,
   salvaPresaVisione,
@@ -1094,6 +1097,9 @@ function onEscGlobale(e: KeyboardEvent) {
 
 watch(fase, (nuova, precedente) => {
   if (nuova === precedente) return;
+  if (nuova === 'entra' || nuova === 'idle' || nuova === 'statico') {
+    marcaPerf('tony-figura-visibile');
+  }
   if (nuova === 'idle' || nuova === 'statico') {
     programmaSaluto();
     if (nuova === 'statico' && precedente !== 'idle' && precedente !== 'parla') {
@@ -1103,10 +1109,69 @@ watch(fase, (nuova, precedente) => {
   }
 });
 
+function optsBussataAutomatica(paginaNascosta?: boolean) {
+  return {
+    bussateAutomatiche: leggiBussateAutomatiche(),
+    utenteHaInteragito: utenteHaInteragito(),
+    rinunciaSalvata: leggiRinunciaAvviso(),
+    avvisoAperto: avvisoAperto.value,
+    stageAperto: stageAperto.value,
+    paginaNascosta:
+      typeof paginaNascosta === 'boolean'
+        ? paginaNascosta
+        : typeof document !== 'undefined'
+          ? document.hidden
+          : false,
+  };
+}
+
+function marcaPerf(nome: string) {
+  try {
+    if (typeof performance !== 'undefined' && performance.mark) performance.mark(nome);
+  } catch {
+    /* ignore */
+  }
+}
+
+function precaricaScenaInAnticipo() {
+  if (!precaricoScenaConsentito(optsBussataAutomatica(false))) return;
+  marcaPerf('tony-precarica-inizio');
+  preparaMedia();
+  void import('../components/TonyStage.vue');
+}
+
+/** @returns {'ok' | 'riprova-visibile' | 'skip'} */
+function tentaBussataAutomatica() {
+  marcaPerf('tony-bussata-tentativo');
+  if (stageAperto.value || avvisoAperto.value) return 'skip';
+  const opts = optsBussataAutomatica();
+  if (!bussataAutomaticaConsentita(opts)) {
+    return deveRiprovareBussataQuandoVisibile(opts) ? 'riprova-visibile' : 'skip';
+  }
+  incrementaBussateAutomatiche();
+  warmUpEndpointTony();
+  const presa = leggiPresaVisione(storagePagina(), VERSIONE_AVVISO_TONY);
+  audioAttivo.value = presa.vista ? presa.audio !== false : true;
+  marcaPerf('tony-avvia-scena');
+  avviaScena();
+  return 'ok';
+}
+
+let aspettaVisibilePerBussata = false;
+
+function onVisibilityBussata() {
+  if (!aspettaVisibilePerBussata) return;
+  if (typeof document !== 'undefined' && document.hidden) return;
+  aspettaVisibilePerBussata = false;
+  tentaBussataAutomatica();
+}
+
 onMounted(() => {
   document.title = t.documentTitle;
+  marcaPerf('tony-mount');
   if (!tonyOn) return;
   window.addEventListener('keydown', onEscGlobale);
+  document.addEventListener('visibilitychange', onVisibilityBussata);
   if (import.meta.env.DEV) {
     import('../lib/tony-chat-finto.js')
       .then((m) => {
@@ -1119,25 +1184,20 @@ onMounted(() => {
       .catch(() => {});
   }
 
-  const idBussataAuto = window.setTimeout(() => {
-    if (stageAperto.value || avvisoAperto.value) return;
-    if (
-      !bussataAutomaticaConsentita({
-        bussateAutomatiche: leggiBussateAutomatiche(),
-        utenteHaInteragito: utenteHaInteragito(),
-        rinunciaSalvata: leggiRinunciaAvviso(),
-        avvisoAperto: avvisoAperto.value,
-        stageAperto: stageAperto.value,
-        paginaNascosta: typeof document !== 'undefined' ? document.hidden : false,
-      })
-    ) {
-      return;
+  const idPrecarica = window.setTimeout(() => {
+    const esegui = () => precaricaScenaInAnticipo();
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(esegui, { timeout: 1200 });
+    } else {
+      esegui();
     }
-    incrementaBussateAutomatiche();
-    warmUpEndpointTony();
-    const presa = leggiPresaVisione(storagePagina(), VERSIONE_AVVISO_TONY);
-    audioAttivo.value = presa.vista ? presa.audio !== false : true;
-    avviaScena();
+  }, PRECARICA_SCENA_MS);
+  timerIds.push(idPrecarica);
+
+  const idBussataAuto = window.setTimeout(() => {
+    marcaPerf('tony-bussata-timer');
+    const esito = tentaBussataAutomatica();
+    if (esito === 'riprova-visibile') aspettaVisibilePerBussata = true;
   }, BUSSATA_AUTOMATICA_MS);
   timerIds.push(idBussataAuto);
   window.addEventListener('resize', onResizeFinestra);
@@ -1146,6 +1206,8 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('keydown', onEscGlobale);
   window.removeEventListener('resize', onResizeFinestra);
+  document.removeEventListener('visibilitychange', onVisibilityBussata);
+  aspettaVisibilePerBussata = false;
   if (timerResizeVariante) window.clearTimeout(timerResizeVariante);
   pulisciTempo();
   rilasciaPreload();

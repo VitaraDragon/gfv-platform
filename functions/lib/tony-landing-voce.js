@@ -231,6 +231,8 @@ function preparaTestoVoce(testo) {
   const BREAK_PH = "\uE000BREAK\uE001";
   s = s.replace(/\r\n|\r|\n/g, BREAK_PH);
   s = s.replace(/€/g, " euro");
+  s = s.replace(/Global Farm View Platform/gi, "Global Farm View");
+  s = s.replace(/GFV Platform/gi, "GFV");
   s = siglaGfv(s);
   s = pianoBaseMinuscolo(s);
   s = numeriInLettere(s);

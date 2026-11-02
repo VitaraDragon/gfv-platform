@@ -202,6 +202,7 @@ export const testiLanding = {
     consensoInvioBreve:
       'Prima di chiedere: le domande passano da Google (Gemini) e, se usi la voce, da ElevenLabs. Continuando accetti l\'informativa privacy.',
     consensoInvioCta: 'Ho capito, chiedi',
+    consensoInvioChiudi: 'Chiudi',
     // BOZZA: da far rivedere
     domandaNascosta: '(messaggio nascosto: conteneva dati personali)',
     // BOZZA: da far rivedere

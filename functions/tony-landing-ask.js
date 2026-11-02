@@ -36,7 +36,11 @@ const {
   rigaSse
 } = require("./lib/tony-landing-limiti");
 // Prompt definitivo con base di conoscenza (passo 11).
-const { PROMPT_SISTEMA_LANDING } = require("./lib/tony-landing-prompt");
+const {
+  PROMPT_SISTEMA_LANDING,
+  istruzioneNomeServizioDaStoria,
+  pulisciNomeServizioRisposta
+} = require("./lib/tony-landing-prompt");
 const {
   SCHEMA_RISPOSTA_ACCOUNT,
   promptSistemaAccount,
@@ -1184,8 +1188,10 @@ async function handleTonyLandingAsk(req, res, opzioni) {
       0,
       COSTANTI.MAX_DOMANDE_SESSIONE - quota.domandeSessione
     );
+    const promptConNome =
+      PROMPT_SISTEMA_LANDING + "\n" + istruzioneNomeServizioDaStoria(storia);
     const corpoGemini = corpoRichiestaGemini({
-      promptSistema: PROMPT_SISTEMA_LANDING,
+      promptSistema: promptConNome,
       storia: storia,
       domanda: domanda
     });
@@ -1275,7 +1281,7 @@ async function handleTonyLandingAsk(req, res, opzioni) {
       logRiga("warn", ["spesa=non-registrata"]);
     }
 
-    const testoRisposta = esitoGemini.testo || "";
+    const testoRisposta = pulisciNomeServizioRisposta(esitoGemini.testo || "");
     let voceOfferta = false;
     let idVoce = null;
     const caratteriVoceGiorno =

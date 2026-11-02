@@ -92,12 +92,12 @@ const MD5_CLIP_V6 = {
   'tony-scrive-hs1-taccuino-mobile-432x1080-stacked-alpha-v6.mp4': 'c4bf9ba094c806b42914e35a1074c48c',
   'tony-scrive-hs1-taccuino-mobile-432x540-12fps-v6.webp': '36f22c2a22788525d0daf30b23054a08',
   'tony-scrive-hs1-taccuino-mobile-432x540-alpha-v6.webm': 'f6836b4022cbf40327bad8a1ed75715c',
-  'tony-talking-loop-desktop-576x1440-stacked-alpha-v6.mp4': '30748519611267b17e9164cbbd629fd2',
-  'tony-talking-loop-desktop-576x720-12fps-v6.webp': '3fdc4c0d95bc3bea9705ad4f8930e05b',
-  'tony-talking-loop-desktop-576x720-alpha-v6.webm': '9595e6cc14e0061c77b0a34c39f5fb2a',
-  'tony-talking-loop-mobile-432x1080-stacked-alpha-v6.mp4': '362ef6501f6abedf0c75b56085771233',
-  'tony-talking-loop-mobile-432x540-12fps-v6.webp': 'edd278ad75a97591e61c47cff331f5da',
-  'tony-talking-loop-mobile-432x540-alpha-v6.webm': '6c1fe0025d428f24a320de8aa20aa8f8',
+  'tony-talking-loop-desktop-576x1440-stacked-alpha-v7.mp4': 'ced98d827509e1255390e18bd1de2d26',
+  'tony-talking-loop-desktop-576x720-12fps-v7.webp': 'e4fb9e938fecc93a818319f145d8e398',
+  'tony-talking-loop-desktop-576x720-alpha-v7.webm': 'e792889623d873e4534df7b1170bd698',
+  'tony-talking-loop-mobile-432x1080-stacked-alpha-v7.mp4': '9f8a0df6dd3d84a193ce50e396cf65f3',
+  'tony-talking-loop-mobile-432x540-12fps-v7.webp': '3733a87e82c802dc447e9dbea4c08b14',
+  'tony-talking-loop-mobile-432x540-alpha-v7.webm': 'e5876d87317b4e56ea6ffd760c5243fe',
   'tony-thinking-desktop-576x1440-stacked-alpha-v6.mp4': '0bbc775e146899653155512ddd461014',
   'tony-thinking-desktop-576x720-12fps-v6.webp': '04c1d4ab1572b6876e6c7245087f53fd',
   'tony-thinking-desktop-576x720-alpha-v6.webm': '068e3baa618da1a8bca33754569046b1',
@@ -176,7 +176,7 @@ describe('clip v6 nel repo', () => {
       expect(md5File(path.join(TONY_LIVE, nome))).toBe(MD5_CLIP_V6[nome]);
     }
     for (const nome of files) {
-      expect(nome.includes('-v6')).toBe(true);
+      expect(nome.includes('-v6') || nome.includes('-v7')).toBe(true);
       expect(nome.startsWith('tony-topic-')).toBe(false);
       expect(nome.startsWith('tony-thinking-2s5')).toBe(false);
       expect(nome.endsWith('.wav')).toBe(false);
@@ -186,12 +186,13 @@ describe('clip v6 nel repo', () => {
     }
   });
 
-  it('tutte le clip usano v6 (niente override talking)', () => {
+  it('tutte le clip usano v6 (talking usa v7)', () => {
     for (const nome of NOMI_CLIP) {
       for (const variante of ['desktop', 'mobile']) {
         for (const formato of ['webm', 'webp', 'stacked']) {
           const web = percorsoClip(nome, variante, formato);
-          expect(web).toContain('-v6.');
+          if (nome === 'talking') expect(web).toContain('-v7.');
+          else expect(web).toContain('-v6.');
           expect(fs.existsSync(fileDaWeb(web)), web).toBe(true);
         }
       }
@@ -226,7 +227,7 @@ describe('percorsi e durate', () => {
     expect(durataClipMs('listenLower')).toBe(1833);
     expect(durataClipMs('thinking')).toBe(2375);
     expect(durataClipMs('scrive')).toBe(3583);
-    expect(durataClipMs('talking')).toBe(7500);
+    expect(durataClipMs('talking')).toBe(5083);
     expect(durataClipMs('exit')).toBe(2000);
     expect(DURATE_CLIP_MS.idle).toBe(4000);
     expect([...CLIP_IN_LOOP]).toEqual(['idle', 'listenLoop', 'scrive', 'talking']);
@@ -236,7 +237,7 @@ describe('percorsi e durate', () => {
     const limiteTotale = { desktop: 6200000, mobile: 4400000 };
     const limiteEntry = { desktop: 1.8 * 1024 * 1024, mobile: 1.2 * 1024 * 1024 };
     const limiteLoop = { desktop: 850 * 1024, mobile: 600 * 1024 };
-    // talking v6 ~7,5 s: WebP desktop ~1,72 MB
+    // talking v7 ~5,1 s
     const limiteTalking = { desktop: 1.8 * 1024 * 1024, mobile: 1.25 * 1024 * 1024 };
     for (const variante of ['desktop', 'mobile']) {
       for (const formato of ['webm', 'webp', 'stacked']) {
@@ -353,13 +354,13 @@ describe('logica chat', () => {
     expect(base.length).toBe(1);
     expect(nuova[1].testo.length).toBe(600);
     let storia = [];
-    for (let i = 0; i < 8; i += 1) {
+    for (let i = 0; i < 14; i += 1) {
       storia = aggiornaStoria(storia, {
         ruolo: i % 2 === 0 ? 'utente' : 'tony',
         testo: 'x' + i,
       });
     }
-    expect(storia.length).toBe(6);
+    expect(storia.length).toBe(10);
     const corpo = corpoRichiesta({ domanda: 'Ciao', sessione: s1, storia });
     expect(Object.keys(corpo).sort()).toEqual(['domanda', 'sessione', 'storia']);
   });

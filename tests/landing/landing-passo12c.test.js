@@ -11,6 +11,9 @@ import { fileURLToPath } from 'node:url';
 import {
   attesaPrimaDiParlareMs,
   bussataAutomaticaConsentita,
+  PRECARICA_SCENA_MS,
+  precaricoScenaConsentito,
+  deveRiprovareBussataQuandoVisibile,
   BUSSATA_AUTOMATICA_MS,
   DIMENSIONI_TONY_STATICO,
   DISSOLVENZA_STATICO_MS,
@@ -118,6 +121,7 @@ describe('MIN_SCRIVE e bussata automatica', () => {
 
   it('bussataAutomaticaConsentita con contatore e interazione', () => {
     expect(BUSSATA_AUTOMATICA_MS).toBe(8000);
+    expect(PRECARICA_SCENA_MS).toBe(1800);
     expect(bussataAutomaticaConsentita({})).toBe(true);
     expect(bussataAutomaticaConsentita({ bussateAutomatiche: 0 })).toBe(true);
     expect(bussataAutomaticaConsentita({ bussateAutomatiche: 1 })).toBe(true);
@@ -128,6 +132,23 @@ describe('MIN_SCRIVE e bussata automatica', () => {
     expect(bussataAutomaticaConsentita({ paginaNascosta: true })).toBe(false);
     expect(bussataAutomaticaConsentita({ stageAperto: true })).toBe(false);
     expect(bussataAutomaticaConsentita({ avvisoAperto: true })).toBe(false);
+  });
+
+  it('precarico e riprova bussata quando la pagina torna visibile', () => {
+    expect(precaricoScenaConsentito({ paginaNascosta: true })).toBe(true);
+    expect(precaricoScenaConsentito({ utenteHaInteragito: true })).toBe(false);
+    expect(
+      deveRiprovareBussataQuandoVisibile({ paginaNascosta: true, bussateAutomatiche: 0 })
+    ).toBe(true);
+    expect(
+      deveRiprovareBussataQuandoVisibile({ paginaNascosta: false, bussateAutomatiche: 0 })
+    ).toBe(false);
+    expect(
+      deveRiprovareBussataQuandoVisibile({
+        paginaNascosta: true,
+        utenteHaInteragito: true,
+      })
+    ).toBe(false);
   });
 
   it('precarica thinking e scrive prima dell’ascolto', () => {
@@ -392,7 +413,7 @@ describe('tempi e sorgenti', () => {
     const stage = leggi('landing/src/components/TonyStage.vue');
     expect(stage).not.toContain("tony-figura--fade': riduciMovimento || fase === 'statico'");
     expect(stage).not.toContain('tony-figura--fade\': riduciMovimento || fase === \'statico\'');
-    expect(stage).toMatch(/height:\s*55/);
+    expect(stage).toMatch(/height:\s*45/);
     if (stage.includes('--ms-bocca')) {
       expect(stage).toContain('var(--ms-bocca)');
     }
@@ -421,6 +442,9 @@ describe('bussata automatica in LandingHome', () => {
     const home = leggi('landing/src/views/LandingHome.vue');
     expect(home).toContain('BUSSATA_AUTOMATICA_MS');
     expect(home).toContain('bussataAutomaticaConsentita');
+    expect(home).toContain('PRECARICA_SCENA_MS');
+    expect(home).toContain('precaricaScenaInAnticipo');
+    expect(home).toContain('deveRiprovareBussataQuandoVisibile');
     expect(home).toContain('CHIAVE_BUSSATA_SESSIONE');
     expect(home).toMatch(/method:\s*['"]OPTIONS['"]/);
     expect(home).toContain('URL_TONY_LANDING_ASK');

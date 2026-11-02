@@ -44,6 +44,25 @@ export function deveProporrePinSedeDaIndirizzo(args) {
   return !(Number.isFinite(lat) && Number.isFinite(lng));
 }
 
+/**
+ * Race con timeout: se `promise` non risolve entro `ms`, torna `fallback`.
+ * Usata per meteo e conteggi operatività in dashboard.
+ * @template T
+ * @param {Promise<T>} promise
+ * @param {number} ms
+ * @param {T} fallback
+ * @returns {Promise<T>}
+ */
+export function conTimeoutOFallback(promise, ms, fallback) {
+  const attesa = Math.max(0, Number(ms) || 0);
+  return Promise.race([
+    Promise.resolve(promise),
+    new Promise((resolve) => {
+      setTimeout(() => resolve(fallback), attesa);
+    }),
+  ]);
+}
+
 export function escapeMeteoHtml(text) {
   if (text == null) return '';
   return String(text)

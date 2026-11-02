@@ -20,7 +20,7 @@ const COSTANTI = Object.freeze({
   /** Lunghezza massima della domanda del visitatore. */
   MAX_CARATTERI_DOMANDA: 300,
   /** Battute di storia tenute (ultime N). */
-  MAX_BATTUTE_STORIA: 6,
+  MAX_BATTUTE_STORIA: 10,
   /** Taglio testo di una battuta di Tony nella storia. */
   MAX_CARATTERI_BATTUTA_TONY: 600,
   /** Dimensione massima del body JSON in byte. */

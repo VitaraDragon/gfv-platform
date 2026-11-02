@@ -15,6 +15,7 @@ import {
   MESSAGGI_CHAT,
   azionePerEsito,
   aggiornaStoria,
+  chiudiConsensoInvioSenzaAccettare,
   creaBufferTestoStreaming,
   creaGestoreAttesaLunga,
   messaggioAttesaLunga,
@@ -196,6 +197,20 @@ const chatVisibile = computed(
 
 const mobile = computed(() => props.variante === 'mobile');
 
+/** Sul telefono niente focus automatico: apre la tastiera e sposta Tony. */
+function deveFocalizzareCampo() {
+  if (props.variante === 'mobile') return false;
+  if (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches) {
+    return false;
+  }
+  return true;
+}
+
+function focalizzaCampoSeConsentito() {
+  if (!deveFocalizzareCampo()) return;
+  nextTick(() => inputEl.value?.focus());
+}
+
 function storagePagina() {
   try {
     return window.localStorage;
@@ -244,6 +259,24 @@ function onHoCapitoConsensoInvio() {
   if (pendente) void inviaTesto(pendente.testo, pendente.daChip);
 }
 
+function onChiudiConsensoInvio() {
+  const esito = chiudiConsensoInvioSenzaAccettare({
+    testoInvioInAttesa: testoInvioInAttesa.value,
+    campoCorrente: campo.value,
+  });
+  mostraConsensoInvio.value = esito.mostraConsensoInvio;
+  testoInvioInAttesa.value = esito.testoInvioInAttesa;
+  campo.value = esito.campo;
+}
+
+function onEscConsenso(e: KeyboardEvent) {
+  if (e.key !== 'Escape') return;
+  if (!mostraConsensoInvio.value) return;
+  e.preventDefault();
+  e.stopPropagation();
+  onChiudiConsensoInvio();
+}
+
 onMounted(() => {
   informativaAiutoVisibile.value = !informativaAiutoGiaVista();
   const SR =
@@ -252,6 +285,7 @@ onMounted(() => {
       : null;
   microfonoDisponibile.value = typeof SR === 'function';
   document.addEventListener('visibilitychange', onVisibility);
+  document.addEventListener('keydown', onEscConsenso);
   if (import.meta.env.DEV) {
     const query = typeof window !== 'undefined' ? window.location.search : '';
     import('../lib/tony-chat-finto.js')
@@ -293,7 +327,7 @@ watch(
       passaAStatico(MESSAGGI_CHAT.spento);
       return;
     }
-    nextTick(() => inputEl.value?.focus());
+    focalizzaCampoSeConsentito();
   }
 );
 
@@ -791,17 +825,17 @@ async function inviaTesto(grezzo: string, daChip = false) {
 
   if (modo === 'automatica') {
     scorriInBasso();
-    if (azione.campoAttivo) nextTick(() => inputEl.value?.focus());
+    if (azione.campoAttivo) focalizzaCampoSeConsentito();
     void gestisciVoceAutomatica(esito, azione.testo);
   } else if (modo === 'pulsante') {
     mostraAscolta.value = true;
     emit('rispostaFinita');
     scorriInBasso();
-    if (azione.campoAttivo) nextTick(() => inputEl.value?.focus());
+    if (azione.campoAttivo) focalizzaCampoSeConsentito();
   } else {
     emit('rispostaFinita');
     scorriInBasso();
-    if (azione.campoAttivo) nextTick(() => inputEl.value?.focus());
+    if (azione.campoAttivo) focalizzaCampoSeConsentito();
   }
   void daChip;
 }
@@ -1024,6 +1058,7 @@ onUnmounted(() => {
   playerVoce.libera();
   if (timerFuoco) window.clearTimeout(timerFuoco);
   document.removeEventListener('visibilitychange', onVisibility);
+  document.removeEventListener('keydown', onEscConsenso);
 });
 
 /** Esposto a TonyStage quando si saluta a metà richiesta. */
@@ -1064,7 +1099,7 @@ defineExpose({ interrompi });
     </p>
 
     <div
-      v-if="messaggi.length"
+      v-if="messaggi.length || mostraConsensoInvio"
       ref="listaMessaggi"
       class="conversazione"
     >
@@ -1085,6 +1120,31 @@ defineExpose({ interrompi });
       >
         {{ voceInCorso ? t.fermaVoce : t.ascolta }}
       </button>
+      <div
+        v-if="mostraConsensoInvio"
+        class="consenso-invio"
+        role="region"
+        aria-label="Consenso privacy"
+      >
+        <button
+          type="button"
+          class="consenso-x"
+          aria-label="Chiudi"
+          @click="onChiudiConsensoInvio"
+        >
+          ×
+        </button>
+        <p>{{ t.consensoInvioBreve }}</p>
+        <div class="consenso-azioni">
+          <button type="button" class="chip" @click="onHoCapitoConsensoInvio">
+            {{ t.consensoInvioCta }}
+          </button>
+          <button type="button" class="chip chip--secondario" @click="onChiudiConsensoInvio">
+            {{ t.consensoInvioChiudi }}
+          </button>
+        </div>
+        <a class="consenso-link" href="/privacy#tony">{{ ta.informativaLink }}</a>
+      </div>
     </div>
 
     <p
@@ -1133,20 +1193,7 @@ defineExpose({ interrompi });
       </div>
     </template>
 
-    <div
-      v-if="chatVisibile && mostraConsensoInvio"
-      class="consenso-invio"
-      role="region"
-      aria-label="Consenso privacy"
-    >
-      <p>{{ t.consensoInvioBreve }}</p>
-      <button type="button" class="chip" @click="onHoCapitoConsensoInvio">
-        {{ t.consensoInvioCta }}
-      </button>
-      <a class="consenso-link" href="/privacy#tony">{{ ta.informativaLink }}</a>
-    </div>
-
-    <template v-else-if="chatVisibile && campoAttivo && !aiutoFatto">
+    <template v-else-if="chatVisibile && campoAttivo && !aiutoFatto && !mostraConsensoInvio">
       <div
         v-if="faseAiuto && informativaAiutoVisibile"
         class="informativa-aiuto"
@@ -1390,6 +1437,7 @@ defineExpose({ interrompi });
 }
 
 .consenso-invio {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
@@ -1399,6 +1447,37 @@ defineExpose({ interrompi });
   background: #f7faf8;
   font-size: 0.82rem;
   line-height: 1.35;
+  max-height: 40%;
+  overflow: auto;
+  flex: 0 0 auto;
+}
+
+.consenso-x {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: #0f4d32;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.consenso-azioni {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip--secondario {
+  background: #fff;
+  border-color: rgba(15, 77, 50, 0.35);
 }
 
 .consenso-link,

@@ -66,6 +66,8 @@ const msBocca = tempiVoce().dissolvenzaBoccaMs;
 const figuraHost = ref<HTMLElement | null>(null);
 const rigaEl = ref<HTMLElement | null>(null);
 const fumettoEl = ref<HTMLElement | null>(null);
+const figuraEl = ref<HTMLElement | null>(null);
+/** Sul telefono il pannello resta a altezza fissa: niente stile dinamico da tastiera. */
 const stileFumettoMobile = ref<Record<string, string> | undefined>(undefined);
 const altezzaPannelloMobilePx = ref(0);
 const chatRef = ref<{ interrompi?: () => void } | null>(null);
@@ -84,6 +86,8 @@ const staticoW = ref(576);
 const staticoH = ref(720);
 const staticoOpacity = ref(0);
 const figuraFade = ref(false);
+/** Tastiera aperta: figura sfuma sul posto, senza spostarsi. */
+const figuraNascostaTastiera = ref(false);
 
 let player: ReturnType<typeof creaPlayerClip> | null = null;
 let entrataAvviata = false;
@@ -122,6 +126,23 @@ function msDaInizioScrive() {
 }
 
 function emettiIngombro() {
+  if (props.variante === 'mobile') {
+    const fumetto = fumettoEl.value;
+    if (!fumetto || typeof fumetto.getBoundingClientRect !== 'function') return;
+    const rf = fumetto.getBoundingClientRect();
+    let top = rf.top;
+    const figura = figuraEl.value;
+    if (figura && !figuraNascostaTastiera.value && props.fase !== 'bussa') {
+      const rg = figura.getBoundingClientRect();
+      if (rg.height > 0) top = Math.min(top, rg.top);
+    }
+    const height = Math.max(0, Math.round(window.innerHeight - top));
+    emit('ingombro', {
+      width: Math.round(rf.width),
+      height,
+    });
+    return;
+  }
   const el = rigaEl.value;
   if (!el || typeof el.getBoundingClientRect !== 'function') return;
   const r = el.getBoundingClientRect();
@@ -137,8 +158,12 @@ function aggiornaAltezzaPannelloDaDom() {
     altezzaPannelloMobilePx.value = 0;
     return;
   }
+  // Altezza stabile del pannello (max CSS): usata solo come riferimento, non segue i chip.
   const h = Math.round(el.getBoundingClientRect().height);
-  if (h > 0) altezzaPannelloMobilePx.value = h;
+  if (h > 0 && altezzaPannelloMobilePx.value === 0) {
+    altezzaPannelloMobilePx.value = h;
+  }
+  emettiIngombro();
 }
 
 function fmt() {
@@ -787,20 +812,20 @@ watch(
 function aggiornaAltezzaFumettoMobile() {
   if (props.variante !== 'mobile' || typeof window === 'undefined') {
     stileFumettoMobile.value = undefined;
+    figuraNascostaTastiera.value = false;
     return;
   }
   const vv = window.visualViewport;
   if (!vv) {
     stileFumettoMobile.value = undefined;
+    figuraNascostaTastiera.value = false;
     return;
   }
+  // Pannello a altezza fissa: con la tastiera non cresce/cala. La figura sfuma sul posto.
   const tastiera = window.innerHeight - vv.height - vv.offsetTop;
-  if (tastiera > 72) {
-    const h = Math.max(140, Math.round(vv.height - 24));
-    stileFumettoMobile.value = { height: `${h}px`, maxHeight: `${h}px` };
-  } else {
-    stileFumettoMobile.value = undefined;
-  }
+  figuraNascostaTastiera.value = tastiera > 72;
+  stileFumettoMobile.value = undefined;
+  emettiIngombro();
 }
 
 let rimuoviViewport: (() => void) | null = null;
@@ -910,8 +935,7 @@ const mostraFumetto = () =>
     :class="variante === 'mobile' ? 'tony-stage--mobile' : 'tony-stage--desktop'"
     :style="{
       '--ms-statico': DISSOLVENZA_STATICO_MS + 'ms',
-      '--tony-pannello-h':
-        altezzaPannelloMobilePx > 0 ? altezzaPannelloMobilePx + 'px' : '55dvh',
+      '--tony-pannello-h': '45dvh',
     }"
   >
     <div ref="rigaEl" class="tony-riga">
@@ -973,12 +997,15 @@ const mostraFumetto = () =>
       </div>
 
       <div
-        v-show="fase !== 'bussa'"
+        ref="figuraEl"
         class="tony-figura"
         aria-hidden="true"
         :class="{
+          'tony-figura--visibile': fase !== 'bussa' && !figuraNascostaTastiera,
+          'tony-figura--solo-opacita': riduciMovimento,
           'tony-figura--fade': figuraFade || riduciMovimento,
           'tony-figura--esce': inFadeOut,
+          'tony-figura--nascosta-tastiera': figuraNascostaTastiera,
         }"
       >
         <img
@@ -1068,10 +1095,29 @@ const mostraFumetto = () =>
   position: relative;
   aspect-ratio: 4 / 5;
   pointer-events: none;
+  opacity: 0;
+  transform: translateY(12px);
+  transition:
+    opacity 280ms ease,
+    transform 280ms ease;
+  visibility: hidden;
 }
 
-.tony-figura--fade {
-  animation: tony-fade-in 280ms ease;
+.tony-figura--visibile {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
+}
+
+.tony-figura--solo-opacita {
+  transform: none;
+}
+
+.tony-figura--nascosta-tastiera {
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 200ms ease;
+  transform: none;
 }
 
 .tony-figura--esce {
@@ -1129,11 +1175,13 @@ const mostraFumetto = () =>
 
 .tony-stage--mobile .tony-figura {
   position: absolute;
-  left: 0;
-  bottom: var(--tony-pannello-h, 55dvh);
-  height: 30vh;
+  left: auto;
+  right: 0.25rem;
+  bottom: var(--tony-pannello-h, 45dvh);
+  height: 20vh;
+  max-height: 20vh;
   width: auto;
-  max-width: 45vw;
+  max-width: 38vw;
 }
 
 .tony-stage--mobile .fumetto {
@@ -1142,10 +1190,10 @@ const mostraFumetto = () =>
   right: 0;
   bottom: 0;
   width: 100%;
-  height: auto;
+  height: 45dvh;
   min-height: 12rem;
-  max-height: 55vh;
-  max-height: 55dvh;
+  max-height: 45vh;
+  max-height: 45dvh;
   display: flex;
   flex-direction: column;
   overflow: hidden;

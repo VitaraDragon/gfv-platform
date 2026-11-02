@@ -86,7 +86,7 @@ describe('Costanti', () => {
     expect(COSTANTI.MAX_DOMANDE_GIORNO_PREDEFINITO).toBe(1000);
     expect(COSTANTI.MAX_DOMANDE_GIORNO_ASSOLUTO).toBe(3000);
     expect(COSTANTI.MAX_CARATTERI_DOMANDA).toBe(300);
-    expect(COSTANTI.MAX_BATTUTE_STORIA).toBe(6);
+    expect(COSTANTI.MAX_BATTUTE_STORIA).toBe(10);
     expect(COSTANTI.TETTO_MENSILE_EUR).toBe(30);
     expect(COSTANTI.SOGLIA_AVVISO_GEMINI_50).toBe(0.5);
     expect(COSTANTI.SOGLIA_AVVISO_GEMINI_80).toBe(0.8);
@@ -410,13 +410,13 @@ describe('validaRichiesta e storiaPulita', () => {
     ).toBe(true);
   });
 
-  it('storiaPulita: ultime 6, ruoli, tagli', () => {
-    const dieci = [];
-    for (let i = 0; i < 10; i++) {
-      dieci.push({ ruolo: i % 2 === 0 ? 'utente' : 'tony', testo: 't' + i });
+  it('storiaPulita: ultime 10, ruoli, tagli', () => {
+    const molte = [];
+    for (let i = 0; i < 14; i++) {
+      molte.push({ ruolo: i % 2 === 0 ? 'utente' : 'tony', testo: 't' + i });
     }
-    const s = storiaPulita(dieci);
-    expect(s).toHaveLength(6);
+    const s = storiaPulita(molte);
+    expect(s).toHaveLength(10);
     expect(s[0].testo).toBe('t4');
     expect(storiaPulita([{ ruolo: 'admin', testo: 'x' }])).toEqual([]);
     expect(

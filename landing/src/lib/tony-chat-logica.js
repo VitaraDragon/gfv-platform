@@ -4,7 +4,7 @@
  */
 
 export const MAX_CARATTERI_DOMANDA = 300;
-export const MAX_BATTUTE_STORIA = 6;
+export const MAX_BATTUTE_STORIA = 10;
 export const MAX_CARATTERI_BATTUTA_TONY = 600;
 
 /** Prime N risposte lette in automatico (brief 4.4). */
@@ -476,5 +476,27 @@ export function creaGestoreAttesaLunga({ ms = ATTESA_LUNGA_MS, onMostra, onNasco
       }
       onNascondi();
     },
+  };
+}
+
+/**
+ * Chiude il blocco «Prima di chiedere…» senza accettare né inviare.
+ * Rimette il testo nel campo; non tocca la presa visione.
+ * @param {{ testoInvioInAttesa: { testo: string, daChip?: boolean } | null, campoCorrente?: string }} stato
+ * @returns {{ mostraConsensoInvio: false, testoInvioInAttesa: null, campo: string }}
+ */
+export function chiudiConsensoInvioSenzaAccettare(stato) {
+  const s = stato && typeof stato === 'object' ? stato : {};
+  const pendente = s.testoInvioInAttesa;
+  const testo =
+    pendente && typeof pendente.testo === 'string'
+      ? pendente.testo
+      : typeof s.campoCorrente === 'string'
+        ? s.campoCorrente
+        : '';
+  return {
+    mostraConsensoInvio: false,
+    testoInvioInAttesa: null,
+    campo: testo,
   };
 }

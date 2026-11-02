@@ -7,7 +7,7 @@
 const SOGLIA_VARIANTE_PX = 768;
 const VERSIONE_CLIP = 'v6';
 /** Override di versione per singola clip (vuoto: tutte usano VERSIONE_CLIP). */
-const VERSIONE_PER_CLIP = Object.freeze({});
+const VERSIONE_PER_CLIP = Object.freeze({ talking: 'v7' });
 
 /** Nomi file base delle clip (senza variante/risoluzione/formato). */
 const NOMI_FILE_CLIP = Object.freeze({
@@ -38,7 +38,7 @@ export const DURATE_CLIP_MS = Object.freeze({
   listenLower: 1833,
   thinking: 2375,
   scrive: 3583,
-  talking: 7500,
+  talking: 5083,
   topicRegistrazione: 2500,
   topicSede: 2792,
   topicPoderi: 2500,
@@ -83,6 +83,9 @@ export function attesaPrimaDiParlareMs({ clipCorrente, msDaInizioClip, riduciMov
 /** Ritardo bussata automatica dopo apertura pagina (una volta per sessione). */
 export const BUSSATA_AUTOMATICA_MS = 8000;
 
+/** Precarica clip/chunk ~1,5–2 s dopo il mount, prima della bussata. */
+export const PRECARICA_SCENA_MS = 1800;
+
 export const CHIAVE_BUSSATA_SESSIONE = 'gfv-tony-bussato-sessione';
 export const CHIAVE_RINUNCIA_AVVISO = 'gfv-tony-rinuncia-avviso';
 export const CHIAVE_INFORMATIVA_AIUTO = 'gfv-tony-informativa-aiuto';
@@ -120,6 +123,27 @@ export function bussataAutomaticaConsentita({
   if (stageAperto === true) return false;
   if (paginaNascosta === true) return false;
   return true;
+}
+
+/**
+ * Precarico clip/chunk: stessi divieti della bussata, ma la pagina nascosta non blocca.
+ * @param {Parameters<typeof bussataAutomaticaConsentita>[0]} opts
+ * @returns {boolean}
+ */
+export function precaricoScenaConsentito(opts) {
+  const o = opts && typeof opts === 'object' ? opts : {};
+  return bussataAutomaticaConsentita({ ...o, paginaNascosta: false });
+}
+
+/**
+ * Se a 8 s la sola causa di blocco è document.hidden, riprovare al visibilitychange.
+ * @param {Parameters<typeof bussataAutomaticaConsentita>[0]} opts
+ * @returns {boolean}
+ */
+export function deveRiprovareBussataQuandoVisibile(opts) {
+  const o = opts && typeof opts === 'object' ? opts : {};
+  if (o.paginaNascosta !== true) return false;
+  return bussataAutomaticaConsentita({ ...o, paginaNascosta: false });
 }
 
 const FORMATI = Object.freeze(['webm', 'webp', 'stacked']);
