@@ -78,6 +78,15 @@ export function nomeSenzaPrefissoPodere(nome) {
 }
 
 /**
+ * Chiave di dedupe dei terreni: stesso nome anche con prefisso podere/tenuta/…
+ * @param {string} nome
+ * @returns {string}
+ */
+export function chiaveTerreno(nome) {
+  return nomeSenzaPrefissoPodere(nome);
+}
+
+/**
  * @param {string} a
  * @param {string} b
  * @returns {boolean}
@@ -228,14 +237,14 @@ export function unisciDati(attuali, nuovi, argomento) {
   if (argomento === 'terreni' || (Array.isArray(n.terreni) && n.terreni.length)) {
     const indicePerChiave = Object.create(null);
     for (let i = 0; i < out.terreni.length; i++) {
-      indicePerChiave[chiaveNome(out.terreni[i].nome)] = i;
+      indicePerChiave[chiaveTerreno(out.terreni[i].nome)] = i;
     }
     const aggiunti = Array.isArray(n.terreni) ? n.terreni : [];
     // Non sommare grezzo length+aggiunti: Gemini spesso rimanda tutta la lista
     // (aggiornamenti + nuovi). Il limite si applica solo ai nomi nuovi.
     for (const t of aggiunti) {
       if (!t || !t.nome) continue;
-      const k = chiaveNome(t.nome);
+      const k = chiaveTerreno(t.nome);
       if (!k) continue;
       if (Object.prototype.hasOwnProperty.call(indicePerChiave, k)) {
         const i = indicePerChiave[k];
@@ -253,14 +262,18 @@ export function unisciDati(attuali, nuovi, argomento) {
               ? prev.podere
               : String(t.podere),
         };
+        const cat = t.categoria || prev.categoria;
+        if (cat) out.terreni[i].categoria = String(cat);
         if (out.terreni[i].podere) {
           out.ultimoPodere = String(out.terreni[i].podere);
         }
         continue;
       }
       if (out.terreni.length >= LIMITI.MAX_TERRENI_PER_RICHIESTA) {
+        // Solo i nomi davvero nuovi superano il limite; gli aggiornamenti
+        // successivi della stessa lista vanno comunque applicati.
         troppiTerreni = true;
-        break;
+        continue;
       }
       indicePerChiave[k] = out.terreni.length;
       const voce = {
@@ -269,6 +282,7 @@ export function unisciDati(attuali, nuovi, argomento) {
         coltura: t.coltura == null || t.coltura === '' ? null : String(t.coltura),
         podere: t.podere == null || t.podere === '' ? null : String(t.podere),
       };
+      if (t.categoria) voce.categoria = String(t.categoria);
       if (voce.podere) out.ultimoPodere = voce.podere;
       out.terreni.push(voce);
     }
@@ -303,16 +317,81 @@ export function serializzaRaccolti(dati) {
     );
   }
   if (Array.isArray(d.terreni) && d.terreni.length) {
+    // Fonte di verità del conteggio: il modello non deve ricontarli a memoria.
+    const nTerreni = d.terreni.filter((t) => t && t.nome).length;
+    if (nTerreni > 0) {
+      righe.push(
+        'Terreni già raccolti: ' + nTerreni + ' di ' + LIMITI.MAX_TERRENI_PER_RICHIESTA
+      );
+    }
     for (const t of d.terreni) {
       if (!t || !t.nome) continue;
       let r = 'Terreno «' + String(t.nome) + '»';
       if (typeof t.superficie === 'number') r += ', ' + t.superficie + ' ha';
       if (t.coltura) r += ', coltura ' + t.coltura;
+      else if (t.categoria) r += ', categoria ' + t.categoria;
       if (t.podere) r += ', podere ' + t.podere;
       righe.push(r);
     }
   }
   return righe.join('\n');
+}
+
+const MARCA_SUPERATO = '[Elenco superato dal riepilogo] ';
+const MAX_BATTUTE_STORIA_CLIENT = 10;
+const MAX_CARATTERI_BATTUTA_CLIENT = 600;
+
+/** Battute di Tony che elencano/contano i terreni (e quindi vanno in conflitto col riepilogo). */
+function battutaConElencoTerreni(testo) {
+  const s = String(testo || '');
+  return (
+    /\bne hai\s+\d+\s+su\s+\d+/i.test(s) ||
+    /\bTerren[io]\b.*\b(?:\d+|un|due|tre|quattro|cinque)\s+(?:su|di)\s+(?:5|cinque)\b/i.test(s) ||
+    /\bTerreno\s+«/.test(s) ||
+    /\bStato aggiornato dopo il riepilogo\b/i.test(s)
+  );
+}
+
+/**
+ * Dopo «Torna alla chat»: marca come superate le vecchie battute di Tony che
+ * elencano i terreni e aggiunge una battuta-riassunto con lo stato aggiornato
+ * (così il modello non riparte da conteggi vecchi).
+ * @param {Array<{ ruolo?: string, testo?: string }>} storia
+ * @param {{ sede?: object|null, poderi?: object[], terreni?: object[] }} dati
+ * @returns {Array<{ ruolo: 'utente'|'tony', testo: string }>}
+ */
+export function storiaDopoRiepilogo(storia, dati) {
+  const lista = (Array.isArray(storia) ? storia : [])
+    .filter((b) => b && (b.ruolo === 'utente' || b.ruolo === 'tony'))
+    .map((b) => {
+      const testo = String(b.testo ?? '');
+      if (
+        b.ruolo === 'tony' &&
+        testo.indexOf(MARCA_SUPERATO) !== 0 &&
+        battutaConElencoTerreni(testo)
+      ) {
+        return { ruolo: 'tony', testo: MARCA_SUPERATO + testo };
+      }
+      return { ruolo: b.ruolo, testo };
+    });
+  const d = dati && typeof dati === 'object' ? dati : {};
+  const terreni = (Array.isArray(d.terreni) ? d.terreni : []).filter((t) => t && t.nome);
+  const nomi = terreni.map((t) => String(t.nome)).join(', ');
+  let riassunto =
+    'Stato aggiornato dopo il riepilogo: ne hai ' +
+    terreni.length +
+    ' su ' +
+    LIMITI.MAX_TERRENI_PER_RICHIESTA +
+    ' terreni' +
+    (nomi ? ' (' + nomi + ')' : '') +
+    '. Vale questo elenco, non le battute precedenti.';
+  if (riassunto.length > MAX_CARATTERI_BATTUTA_CLIENT) {
+    riassunto = riassunto.slice(0, MAX_CARATTERI_BATTUTA_CLIENT);
+  }
+  lista.push({ ruolo: 'tony', testo: riassunto });
+  return lista.length > MAX_BATTUTE_STORIA_CLIENT
+    ? lista.slice(lista.length - MAX_BATTUTE_STORIA_CLIENT)
+    : lista;
 }
 
 const MESSAGGIO_RIEPILOGO =

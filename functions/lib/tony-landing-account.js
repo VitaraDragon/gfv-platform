@@ -232,9 +232,16 @@ function promptSistemaAccount(argomento, opzioni) {
     "Ogni terreno ha il campo podere: se l'utente lo dice, metti il nome del podere uguale a quello in elenco; se c'è un solo podere, metti quello; se ce ne sono più di uno e non l'ha detto, chiedi in quale podere è, citando i nomi.",
     "Quando l'argomento è «terreni» e hai almeno un terreno in elenco, chiedi «Ne hai altri o vediamo il riepilogo?»; se dice no, basta, fatto o riepilogo, metti fatto: true.",
     "Accetta fino a 5 terreni (il quinto va bene). Solo dal sesto in poi rifiuta con: «Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.» Con 5 terreni metti fatto: true.",
+    "Terreni già raccolti: " +
+      terreniDaRaccolti(raccolti).conteggio +
+      " di 5. Questo numero è esatto e vale più di ciò che ricordi dalla conversazione. Nel campo terreni restituisci SOLO i terreni nuovi o modificati in questo turno, mai l'elenco già raccolto. Se ne restano da aggiungere (meno di 5), puoi accettarne ancora; quando dici quanti ne ha, usa la forma «ne hai N su 5» con N esatto.",
     "Se un terreno ha solo il nome, chiedi ettari e coltura di QUEL terreno citandolo per nome.",
     "Superficie: numero in ettari con il punto decimale («2,34 ha» → 2.34); se dicono metri quadri o altre unità, chiedi in ettari.",
-    "Coltura: solo un nome dell'elenco colture di GFV (lo trovi sotto); «mele» → «Melo», «uva da vino» → «Vite da Vino», «olive» → «Olivo», «grano duro» → «Grano»; «seminativo», «frutteto», «orto» sono categorie: chiedi «Che cosa ci coltivi? Grano, mais, orzo…» oppure lascia null.",
+    "Coltura: solo un nome dell'elenco colture di GFV (lo trovi sotto); «mele» → «Melo», «uva da vino» → «Vite da Vino», «olive» → «Olivo», «grano duro» → «Grano»; «seminativo» e «frutteto» sono categorie: chiedi «Che cosa ci coltivi? Grano, mais, orzo…» oppure lascia null.",
+    "Ortaggi: «ortaggi», «orto», «ortive», «verdure» sono la categoria Ortive. " +
+      (/categoria Ortive/i.test(raccolti)
+        ? "Hai GIÀ chiesto quali ortaggi: NON richiederlo. Se l'utente risponde «vari», «misti» o simili, tieni coltura null (la categoria Ortive resta) e vai avanti; se nomina un ortaggio dell'elenco colture, usa quello."
+        : "Chiedi UNA sola volta, citando il terreno: «Quali ortaggi soprattutto?». Se risponde «vari», «misti» o simili, lascia coltura null (categoria Ortive) e vai avanti senza richiedere; se nomina un ortaggio dell'elenco colture, usa quello."),
     "Non dire mai di aver salvato o registrato; alla fine dire «Ecco il riepilogo: controlla e conferma».",
     "Rispondi solo con il JSON dello schema; frasi brevi in testo."
   ];
@@ -418,19 +425,88 @@ function collegaTerreniAiPoderiServer(poderi, terreni) {
   });
 }
 
-function pulisciTerreni(lista) {
+const CATEGORIA_ORTIVE = "Ortive";
+
+/**
+ * «ortaggi», «orto», «ortive», «verdure»… → categoria Ortive.
+ * «vari / misti» da soli NON sono una categoria: restano alla categoria già nota.
+ * @param {unknown} grezzo
+ * @returns {boolean}
+ */
+function categoriaOrtiveDaTesto(grezzo) {
+  const s = String(grezzo == null ? "" : grezzo).toLowerCase();
+  if (!s) return false;
+  return /\b(ortagg\w*|orto|orti|ortiv\w*|verdur\w*)(?![a-zà-öø-ÿ])/i.test(s);
+}
+
+/**
+ * Terreni già raccolti dalla riga «Terreno «nome», …» di serializzaRaccolti.
+ * La fonte di verità è il client: conteggio esplicito «Terreni già raccolti: N di 5».
+ * @param {string} raccolti
+ * @returns {{ nomi: string[], conteggio: number }}
+ */
+function terreniDaRaccolti(raccolti) {
+  const s = String(raccolti || "");
+  const nomi = [];
+  const re = /(?:^|\n)Terreno\s+«([^»]+)»/g;
+  let m;
+  while ((m = re.exec(s)) !== null) {
+    const nome = String(m[1] || "").trim();
+    if (nome) nomi.push(nome);
+  }
+  let conteggio = nomi.length;
+  const esplicito = s.match(/Terreni già raccolti:\s*(\d+)\s+di\s+\d+/i);
+  if (esplicito) {
+    const n = Number(esplicito[1]);
+    if (Number.isFinite(n) && n > conteggio) conteggio = n;
+  }
+  return { nomi: nomi, conteggio: conteggio };
+}
+
+/**
+ * Pulisce i terreni della risposta. Il limite è «già raccolti + nuovi»:
+ * i terreni già noti (stesso nome, anche con prefisso podere/tenuta…)
+ * sono aggiornamenti e non contano; il modello può rimandare l'intera lista.
+ * @param {unknown} lista
+ * @param {{ nomi?: string[], conteggio?: number }|string[]} [giaRaccolti]
+ */
+function pulisciTerreni(lista, giaRaccolti) {
   if (!Array.isArray(lista)) return { terreni: [], troppiTerreni: false };
-  const troppiTerreni = lista.length > LIMITI.MAX_TERRENI_PER_RICHIESTA;
+  const info = Array.isArray(giaRaccolti)
+    ? { nomi: giaRaccolti, conteggio: giaRaccolti.length }
+    : giaRaccolti && typeof giaRaccolti === "object"
+      ? giaRaccolti
+      : { nomi: [], conteggio: 0 };
+  const nomiNoti = Array.isArray(info.nomi) ? info.nomi : [];
+  const noti = Object.create(null);
+  for (let i = 0; i < nomiNoti.length; i++) {
+    const k = nomeSenzaPrefissoPodere(nomiNoti[i]);
+    if (k) noti[k] = true;
+  }
+  const conteggio = Math.max(
+    typeof info.conteggio === "number" ? info.conteggio : 0,
+    Object.keys(noti).length
+  );
+  const limite = LIMITI.MAX_TERRENI_PER_RICHIESTA;
+  let troppiTerreni = false;
+  let nuovi = 0;
+  const visti = Object.create(null);
   const out = [];
-  for (
-    let i = 0;
-    i < lista.length && out.length < LIMITI.MAX_TERRENI_PER_RICHIESTA;
-    i++
-  ) {
+  for (let i = 0; i < lista.length; i++) {
     const t = lista[i];
     if (!t || typeof t !== "object") continue;
     const nome = taglia(t.nome, LIMITI.NOME_TERRENO_MAX);
     if (!nome) continue;
+    const chiave = nomeSenzaPrefissoPodere(nome);
+    if (chiave && visti[chiave]) continue;
+    if (chiave) visti[chiave] = true;
+    if (!(chiave && noti[chiave])) {
+      if (conteggio + nuovi >= limite) {
+        troppiTerreni = true;
+        continue;
+      }
+      nuovi += 1;
+    }
     let superficie = null;
     if (t.superficie != null && t.superficie !== "") {
       const n = Number(t.superficie);
@@ -441,6 +517,11 @@ function pulisciTerreni(lista) {
       voce.coltura = null;
     } else {
       voce.coltura = risolviColturaConSinonimi(t.coltura);
+      // «ortaggi / orto / verdure» è la categoria Ortive, non una coltura:
+      // coltura resta vuota (lo schema di salvataggio rifiuta le categorie).
+      if (!voce.coltura && categoriaOrtiveDaTesto(t.coltura)) {
+        voce.categoria = CATEGORIA_ORTIVE;
+      }
     }
     if (t.podere == null || t.podere === "") {
       voce.podere = null;
@@ -539,7 +620,7 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
   const poderiRisposta = pulisciPoderi(parsed.poderi);
   const raccolti = raccoltiDaOpzioni(opzioni);
   const poderi = unisciPoderi(poderiRisposta, poderiDaRaccolti(raccolti));
-  const puliti = pulisciTerreni(parsed.terreni);
+  const puliti = pulisciTerreni(parsed.terreni, terreniDaRaccolti(raccolti));
   const terreni = collegaTerreniAiPoderiServer(poderi, puliti.terreni);
   const argomento =
     opzioni && typeof opzioni === "object" && typeof opzioni.argomento === "string"
@@ -583,6 +664,10 @@ module.exports = {
   pulisciSede,
   pulisciPoderi,
   pulisciTerreni,
+  terreniDaRaccolti,
+  categoriaOrtiveDaTesto,
+  CATEGORIA_ORTIVE,
+  nomeSenzaPrefissoPodere,
   risolviColturaConSinonimi,
   correggiUnoNelTesto,
   SINONIMI_COLTURA,
