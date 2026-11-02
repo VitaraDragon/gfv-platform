@@ -21,6 +21,7 @@ const {
 const {
   isTonyOperationalCreationIntent,
   isTonyPreventivoFormFieldCorrection,
+  isTonySegnaOreIntent,
 } = require("./tony-quick-replies");
 const { localizeMeteoAlerts, translateMeteoAlertEvent } = require("./meteo-alert-i18n");
 const { resolveEffectiveModules } = require("./module-trial");
@@ -899,6 +900,7 @@ function mentionsTerrenoInMessage(message, terreniNames) {
 
 function isTonyMeteoOperationalQuestion(message, ctx) {
   if (isTonyOperationalCreationIntent(message)) return false;
+  if (isTonySegnaOreIntent(message)) return false;
   try {
     const { isTonyPreventivoFormFieldCorrection } = require("./tony-quick-replies");
     if (isTonyPreventivoFormFieldCorrection(message, ctx)) return false;
@@ -2478,6 +2480,7 @@ function actOperativoAl(activityKind) {
 
 function isTonyMeteoQuestion(message) {
   if (isTonyOperationalCreationIntent(message)) return false;
+  if (isTonySegnaOreIntent(message)) return false;
   if (isTonyMeteoOperationalQuestion(message)) return true;
   if (isTonyMeteoConsigliaDataQuestion(message)) return true;
   if (isTonyMeteoDayFollowUpQuestion(message)) return true;
