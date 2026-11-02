@@ -31,8 +31,13 @@ import {
   decidiDopoRisposta,
   prossimoPasso,
   serializzaRaccolti,
+  storiaDopoRiepilogo,
   unisciDati,
 } from '../lib/tony-aiuto-account.js';
+import {
+  leggiSessioneIntervista,
+  salvaSessioneIntervista,
+} from '../lib/tony-sessione-intervista.js';
 import { percorsoVoceAiuto, percorsoVoceFatto } from '../lib/tony-bussa-logica.js';
 import { motivoRipiegoRegistrazionePages } from '../lib/tony-registrazione.js';
 import TonyRegistrazione from './TonyRegistrazione.vue';
@@ -283,7 +288,77 @@ function onEscConsenso(e: KeyboardEvent) {
   onChiudiConsensoInvio();
 }
 
+/** Riprende l'intervista dopo un ricaricamento (sessionStorage, 2 ore). */
+function ripristinaSessioneIntervista() {
+  const rec = leggiSessioneIntervista(storageSessione());
+  if (!rec) return false;
+  messaggi.value = rec.messaggi.map((m: { ruolo: 'utente' | 'tony'; testo: string }) => ({
+    ruolo: m.ruolo,
+    testo: m.testo,
+  }));
+  storia.value = rec.storia;
+  datiAiuto.value = collegaTerreniAiPoderi(rec.datiAiuto);
+  faseAiuto.value = true;
+  registrazioneCompletata.value = true;
+  tornatoDalRiepilogo = rec.tornatoDalRiepilogo;
+  giaRiaperturaLimiteDomande = rec.giaRiaperturaLimiteDomande;
+  turniSenzaNovitaNelPasso.value = rec.turniSenzaNovitaNelPasso;
+  consecutiviFuoriTema.value = rec.consecutiviFuoriTema;
+  if (rec.sessione) sessione.value = rec.sessione;
+  const schedaDisponibile = rec.schedaAperta && !!props.salvaAzienda;
+  if (schedaDisponibile) {
+    statoPrimaDellaScheda = { campoAttivo: true, chipVisibili: true, passoAiuto: 'terreni' };
+    schedaAperta.value = true;
+    passoAiuto.value = 'scheda';
+    campoAttivo.value = false;
+    chipVisibili.value = false;
+  } else {
+    passoAiuto.value = rec.passoAiuto === 'scheda' ? 'terreni' : rec.passoAiuto;
+    schedaAperta.value = false;
+    campoAttivo.value = true;
+    chipVisibili.value = true;
+  }
+  emit('registrazione-completata');
+  scorriInBasso();
+  return true;
+}
+
+/** Salva lo stato dell'intervista (mai email o password). */
+function salvaSessioneCorrente() {
+  if (smontato || inAttesa.value) return;
+  salvaSessioneIntervista(storageSessione(), {
+    faseAiuto: faseAiuto.value,
+    aiutoFatto: aiutoFatto.value,
+    messaggi: messaggi.value,
+    storia: storia.value,
+    datiAiuto: datiAiuto.value,
+    passoAiuto: passoAiuto.value,
+    schedaAperta: schedaAperta.value,
+    tornatoDalRiepilogo,
+    giaRiaperturaLimiteDomande,
+    turniSenzaNovitaNelPasso: turniSenzaNovitaNelPasso.value,
+    consecutiviFuoriTema: consecutiviFuoriTema.value,
+    sessione: sessione.value,
+  });
+}
+
+watch(
+  () => [
+    messaggi.value.length,
+    storia.value.length,
+    JSON.stringify(datiAiuto.value),
+    passoAiuto.value,
+    schedaAperta.value,
+    faseAiuto.value,
+    aiutoFatto.value,
+    inAttesa.value,
+  ],
+  salvaSessioneCorrente,
+  { flush: 'post' }
+);
+
 onMounted(() => {
+  ripristinaSessioneIntervista();
   informativaAiutoVisibile.value = !informativaAiutoGiaVista();
   const SR =
     typeof window !== 'undefined'
@@ -592,6 +667,9 @@ function onTornaDallaScheda(dati?: {
   const nTerreni = Array.isArray(datiAiuto.value.terreni)
     ? datiAiuto.value.terreni.length
     : 0;
+  // Il riepilogo è la fonte di verità: le vecchie battute con elenchi/conteggi
+  // diventano «superate» e il modello riparte dallo stato aggiornato.
+  storia.value = storiaDopoRiepilogo(storia.value, datiAiuto.value);
   if (nTerreni >= 5) {
     passoAiuto.value = 'terreni';
     campoAttivo.value = true;

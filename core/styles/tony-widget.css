@@ -971,3 +971,35 @@ body.tony-doc-review-modal-open {
         max-height: none;
     }
 }
+
+/* Percorso 7 giorni dopo setup landing: pulsanti passo */
+.tony-landing-passi {
+    align-self: flex-start;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-width: 85%;
+}
+.tony-landing-passo {
+    text-align: left;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid #2E8B57;
+    background: #fff;
+    color: #1f5d3b;
+    font-size: 14px;
+    cursor: pointer;
+}
+.tony-landing-passo:hover {
+    background: #eef7f1;
+}
+.tony-landing-chiudi {
+    align-self: flex-start;
+    padding: 2px 4px;
+    border: 0;
+    background: none;
+    color: #666;
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+}

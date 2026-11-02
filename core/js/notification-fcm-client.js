@@ -78,7 +78,7 @@ export async function startNotificationFcm(opts = {}) {
     onMessage(messaging, (payload) => {
         const notification = (payload && payload.notification) || {};
         const data = (payload && payload.data) || {};
-        const title = notification.title || data.title || 'GFV Platform';
+        const title = notification.title || data.title || 'GFV';
         const body = notification.body || data.body || '';
         if (Notification.permission !== 'granted') return;
         registration.showNotification(title, {

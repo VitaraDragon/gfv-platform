@@ -17,13 +17,14 @@
     })();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Login - GFV Platform</title>
+    <title>Login - GFV</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="../images/icon-32x32.png">
     <link rel="manifest" href="../../manifest.json">
     <meta name="theme-color" content="#2E8B57">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
-    <meta name="apple-mobile-web-app-title" content="GFV Platform">
+    <meta name="apple-mobile-web-app-title" content="GFV">
     <link rel="apple-touch-icon" sizes="180x180" href="../../icons/icon-180x180.png">
     <link rel="stylesheet" href="../styles/responsive-standalone.css">
     <style>
@@ -350,7 +351,7 @@
 <body>
     <div class="login-container">
         <div class="login-header">
-            <h1>🌾 GFV Platform</h1>
+            <h1>🌾 GFV</h1>
             <p>Accedi al tuo account</p>
         </div>
 
@@ -367,7 +368,7 @@
             <span>Apri GFV come app sulla schermata home: più comodo dal campo o in ufficio.</span>
             <p id="pwa-ios-hint" style="display:none;">Su iPhone/iPad: tocca <strong>Condividi</strong> → <strong>Aggiungi alla schermata Home</strong>.</p>
             <div class="pwa-install-actions">
-                <button type="button" id="pwa-install-btn" class="pwa-install-btn">Installa GFV Platform</button>
+                <button type="button" id="pwa-install-btn" class="pwa-install-btn">Installa GFV</button>
                 <button type="button" id="pwa-install-dismiss" class="pwa-install-dismiss">Non ora</button>
             </div>
         </div>
@@ -627,6 +628,7 @@
         if (btnContinuaAccount) {
             btnContinuaAccount.addEventListener('click', () => {
                 sceltaSessioneGestita = true;
+                try { sessionStorage.setItem('gfv_skip_view_transition','1'); } catch (eSkip) {}
                 window.location.href = '../dashboard-standalone.html';
             });
         }
@@ -652,6 +654,7 @@
                 return;
             }
             if (user && !accessoManualeInCorso && ePrimo && !registeredFromLanding) {
+                try { sessionStorage.setItem('gfv_skip_view_transition','1'); } catch (eSkip) {}
                 window.location.href = '../dashboard-standalone.html';
             }
         });
@@ -743,7 +746,8 @@
                             startDashboardPrefetchFromLogin(db, tenantId);
                             
                             // Redirect a dashboard
-                            window.location.href = '../dashboard-standalone.html';
+                            try { sessionStorage.setItem('gfv_skip_view_transition','1'); } catch (eSkip) {}
+                window.location.href = '../dashboard-standalone.html';
                         } catch (error) {
                             console.error('Errore selezione tenant:', error);
                             showError('Errore durante la selezione dell\'azienda. Riprova.');
@@ -769,7 +773,8 @@
                     
                     // Redirect a dashboard dopo breve delay
                     setTimeout(() => {
-                        window.location.href = '../dashboard-standalone.html';
+                        try { sessionStorage.setItem('gfv_skip_view_transition','1'); } catch (eSkip) {}
+                window.location.href = '../dashboard-standalone.html';
                     }, 500);
                 }
 

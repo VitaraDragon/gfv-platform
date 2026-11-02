@@ -139,7 +139,7 @@ const GUIDA_SINTESI_PARCO_MACCHINE_ENTRY = {
 };
 
 const GUIDA_SINTESI_PARCO_MACCHINE_FALLBACK = `
-Parco Macchine (sintesi): solo se modulo parcoMacchine attivo. Dashboard → Parco Macchine → hub con azioni rapide. Trattori e attrezzi: ore e manutenzione per ore/data. Flotta (furgone/automezzo/veicolo): km e tagliando km; revisione e assicurazione per data. Gestione macchine, scadenze (incluso Tagliando km), officina e guasti. Diario: trattore/attrezzo/ore macchina opzionali; la flotta stradale non usa ore nel Diario.
+Parco Macchine (sintesi): solo se modulo parcoMacchine attivo. graffetta in alto a sinistra → Parco Macchine → hub con azioni rapide. Trattori e attrezzi: ore e manutenzione per ore/data. Flotta (furgone/automezzo/veicolo): km e tagliando km; revisione e assicurazione per data. Gestione macchine, scadenze (incluso Tagliando km), officina e guasti. Diario: trattore/attrezzo/ore macchina opzionali; la flotta stradale non usa ore nel Diario.
 `.trim();
 
 async function loadGuidaSintesiParcoMacchine() {

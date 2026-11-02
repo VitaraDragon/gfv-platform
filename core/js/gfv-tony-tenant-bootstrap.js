@@ -46,7 +46,7 @@ function resolveCoreBaseForShell() {
 function ensureTonyLoaderShell() {
   const base = resolveCoreBaseForShell();
   const sep = base && !base.endsWith('/') ? '/' : '';
-  const loaderSrc = `${base ? base + sep : ''}js/gfv-tony-loader.js?v=2026-10-09g`;
+  const loaderSrc = `${base ? base + sep : ''}js/gfv-tony-loader.js?v=2026-11-02a`;
 
   if (!window.__gfvTonyLoaderRequested && !document.querySelector('script[src*="gfv-tony-loader"]')) {
     window.__gfvTonyLoaderRequested = true;
@@ -66,7 +66,7 @@ function ensureTonyLoaderShell() {
   }
   window.__gfvStandaloneShellRequested = true;
   const s = document.createElement('script');
-  s.src = `${base ? base + sep : ''}js/gfv-standalone-shell.js?v=2026-10-09g`;
+  s.src = `${base ? base + sep : ''}js/gfv-standalone-shell.js?v=2026-11-02a`;
   document.body.appendChild(s);
 }
 

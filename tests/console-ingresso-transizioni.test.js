@@ -71,6 +71,41 @@ describe('ui-pelle: transizione di pagina saltata', () => {
         window.dispatchEvent(ev);
         expect(vt.skipTransition).not.toHaveBeenCalled();
     });
+
+    it('con la Proposta accesa ma gfv_skip_view_transition=1, pageswap salta la transizione', async () => {
+        await import('../core/js/ui-pelle.js');
+        document.documentElement.setAttribute('data-pelle', 'proposta');
+        sessionStorage.setItem('gfv_skip_view_transition', '1');
+        try {
+            const vt = transizioneFinta();
+            const ev = new Event('pageswap');
+            ev.viewTransition = vt;
+            window.dispatchEvent(ev);
+            expect(vt.skipTransition).toHaveBeenCalledTimes(1);
+            // pageswap + pagereveal sono la stessa navigazione: il flag si pulisce solo a pagereveal.
+            expect(sessionStorage.getItem('gfv_skip_view_transition')).toBe('1');
+            await new Promise((r) => setTimeout(r, 10));
+        } finally {
+            sessionStorage.removeItem('gfv_skip_view_transition');
+        }
+    });
+
+    it('con la Proposta accesa e flag=1, pagereveal salta e consuma il flag', async () => {
+        await import('../core/js/ui-pelle.js');
+        document.documentElement.setAttribute('data-pelle', 'proposta');
+        sessionStorage.setItem('gfv_skip_view_transition', '1');
+        try {
+            const vt = transizioneFinta();
+            const ev = new Event('pagereveal');
+            ev.viewTransition = vt;
+            window.dispatchEvent(ev);
+            expect(vt.skipTransition).toHaveBeenCalledTimes(1);
+            expect(sessionStorage.getItem('gfv_skip_view_transition')).toBeNull();
+            await new Promise((r) => setTimeout(r, 10));
+        } finally {
+            sessionStorage.removeItem('gfv_skip_view_transition');
+        }
+    });
 });
 
 describe('home Manodopera: dipendenze dei conteggi', () => {

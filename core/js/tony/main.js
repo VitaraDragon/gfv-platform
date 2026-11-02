@@ -10,6 +10,7 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, isTonyMa
 import { resolveLavoroFattoNav, mapDiarioFieldsToLavoro, alignLavoroFattoSpeech } from './tony-lavoro-fatto-nav.js';
 import { hasActiveModule, getModuliAttiviFromTonyContext, isApriPaginaTargetAllowed, tonyNotifyModuleInactive } from '../../config/tony-module-gate.js';
 import { getTonyGuidaOnboardingFromWindow, tonyGuidaOnboardingWelcomeMessage } from '../../config/tony-guida-onboarding.js';
+import { decidiSalutoLanding, costruisciMessaggioSaluto, leggiStatoPercorsoLocale, salvaStatoPercorsoLocale, messaggioRiprendi, haPinSede } from './tony-landing-saluto.js?v=2026-11-02a';
 import {
     getTonyFieldProfileFromContext,
     isRawTonyApriPaginaAllowed,
@@ -32,7 +33,7 @@ import {
     interpretaEsitoSalvataggioOra,
     messaggioConfermaSalvataggioOra,
     togliConfermeSalvataggioVecchie,
-} from './tony-segna-ora-local-engine.js?v=2026-10-09g';
+} from './tony-segna-ora-local-engine.js?v=2026-11-02a';
 import { formattaDataItaliana } from '../../services/ore-operai-logic.js';
 import {
     risolviLavoroDaTesto,
@@ -49,14 +50,14 @@ import {
     etichettaDataRiepilogoOre,
     inserisciDataNelRiepilogo,
     eRichiestaOreNuova,
-} from './tony-ora-lavoro-match.js?v=2026-10-09g';
+} from './tony-ora-lavoro-match.js?v=2026-11-02a';
 import {
     accodaInvio,
     prossimoDaInviare,
     testoDaRimettereNelCampo,
     unisciChatRipristinata,
     LIMITE_ATTESA_MS,
-} from './tony-invio-coda.js?v=2026-10-09g';
+} from './tony-invio-coda.js?v=2026-11-02a';
 import {
     formReadyForTonySave,
     magazzinoFormReadyForTonySave,
@@ -104,7 +105,7 @@ import { initTonyDocumentCapture } from './document-capture.js';
 import { chooseSttEngine, createRecorderSpeechRecognition, isIosLikeDevice, isStandaloneDisplayMode } from './voice-recorder-stt.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-    export const TONY_CLIENT_BUILD = '2026-10-09g';
+    export const TONY_CLIENT_BUILD = '2026-11-02a';
     /** Kill switch: false = come prima, il messaggio prima del pronto viene scartato. */
     var TONY_QUEUE_ENABLED = true;
 if (typeof window !== 'undefined') {
@@ -9936,6 +9937,85 @@ if (typeof window !== 'undefined') {
             }
             sendMessage(String(text || '').trim(), proactiveOpts);
         };
+        /**
+         * Saluto / «riprendi» del percorso 7 giorni dopo setup da landing.
+         * Solo locale: nessuna CF, nessun conteggio domanda giornaliera (come proactive `_displayOnly`).
+         * Apre il pannello senza focus sull'input su schermi stretti / touch (niente tastiera addosso).
+         * @param {{ tipo: 'saluto'|'riprendi', tenantId: string, stato: object, nome?: string, pinSede?: boolean }} args
+         */
+        window.__tonyLandingSalutoShow = function(args) {
+            args = args || {};
+            var tenantId = String(args.tenantId || '').trim();
+            if (!tenantId || !messagesEl) return false;
+            if (args.tipo !== 'saluto' && args.tipo !== 'riprendi') return false;
+            var stato = Object.assign({ salutoFatto: false, percorsoChiuso: false, passiVisti: {}, ultimoRiprendiGiorno: '' }, args.stato || {});
+            stato.passiVisti = Object.assign({}, stato.passiVisti || {});
+            var d = new Date();
+            var oggi = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            // Persistenza PRIMA della UI: nessuna ripetizione anche se il rendering fallisce.
+            stato.salutoFatto = true;
+            stato.ultimoRiprendiGiorno = oggi;
+            salvaStatoPercorsoLocale(tenantId, stato);
+
+            var built = costruisciMessaggioSaluto({ nome: args.nome || '', haPinSede: args.pinSede === true });
+            var testo = args.tipo === 'saluto'
+                ? built.testo
+                : messaggioRiprendi(stato) + ' Usa i pulsanti qui sotto o la graffetta in alto a sinistra.';
+            var passi = args.tipo === 'saluto'
+                ? built.passi
+                : built.passi.filter(function(p) { return !stato.passiVisti[p.id]; });
+
+            appendMessage(testo, 'tony');
+            if (window.Tony && Array.isArray(window.Tony.chatHistory)) {
+                window.Tony.chatHistory.push({ role: 'model', parts: [{ text: testo }] });
+            }
+
+            var box = document.createElement('div');
+            box.className = 'tony-landing-passi';
+            passi.forEach(function(p) {
+                var b = document.createElement('button');
+                b.type = 'button';
+                b.className = 'tony-landing-passo';
+                b.textContent = p.label;
+                b.addEventListener('click', function() {
+                    try {
+                        var st = leggiStatoPercorsoLocale(tenantId);
+                        st.passiVisti = Object.assign({}, st.passiVisti || {});
+                        st.passiVisti[p.id] = true;
+                        salvaStatoPercorsoLocale(tenantId, st);
+                    } catch (eSt) { /* ignore */ }
+                    processTonyCommand({ type: 'APRI_PAGINA', target: p.target, _tonySkipConfirm: true });
+                });
+                box.appendChild(b);
+            });
+            var chiudi = document.createElement('button');
+            chiudi.type = 'button';
+            chiudi.className = 'tony-landing-chiudi';
+            chiudi.textContent = 'Chiudi percorso';
+            chiudi.addEventListener('click', function() {
+                try {
+                    var st2 = leggiStatoPercorsoLocale(tenantId);
+                    st2.percorsoChiuso = true;
+                    salvaStatoPercorsoLocale(tenantId, st2);
+                } catch (eCl) { /* ignore */ }
+                if (box.parentNode) box.parentNode.removeChild(box);
+                appendMessage('Ok, chiudo il percorso guidato. Se ti serve, chiedimi pure.', 'tony');
+            });
+            box.appendChild(chiudi);
+            messagesEl.appendChild(box);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            var stretto = tonyIsCoarsePointerOrMobile() || (window.innerWidth && window.innerWidth <= 768);
+            if (stretto) {
+                // Apertura compatta: nessun focus sull'input (non far salire la tastiera).
+                if (panel) panel.classList.add('is-open');
+            } else {
+                openTonyChatPanel();
+            }
+            try { if (typeof window.__tonyDocCaptureRefresh === 'function') window.__tonyDocCaptureRefresh(); } catch (eCapLs) { /* ignore */ }
+            saveTonyState();
+            return true;
+        };
         window.__tonyPromptLavoroSaveLocal = function() {
             promptTonyFormSaveLocal('lavoro-form', tonyFormSaveLocalDeps());
         };
@@ -10884,7 +10964,7 @@ window.addEventListener('tony-module-updated', function(e) {
                         // SICUREZZA: per le altre azioni blocca se modulo non attivo
                         if (!isTonyAdvancedActive) {
                             console.warn('[Tony] Azione bloccata: modulo Tony Avanzato non attivo');
-                            appendMessage('Questa funzionalità richiede il modulo Tony Avanzato. Attivalo dalla Dashboard per automatizzare operazioni.', 'tony');
+                            appendMessage('Questa funzionalità richiede il modulo Tony Avanzato. Attivalo dalla pagina Abbonamento per automatizzare operazioni.', 'tony');
                             return;
                         }
                         var command = { type: actionName };
@@ -10919,6 +10999,56 @@ window.addEventListener('tony-module-updated', function(e) {
                     logProntoIfNeeded();
                     setTimeout(function() { logProntoIfNeeded(); }, 2500);
                     if (typeof window.__tonyRestoreSession === 'function') window.__tonyRestoreSession();
+                    // Saluto landing (percorso 7 giorni): messaggio locale, zero CF, una volta (riprendi max 1/giorno).
+                    (function scheduleTonyLandingSaluto() {
+                        if (window.__tonyLandingSalutoScheduled) return;
+                        window.__tonyLandingSalutoScheduled = true;
+                        var tentativi = 0;
+                        async function tentaSaluto() {
+                            tentativi++;
+                            try {
+                                if (window.__tonyFreemiumBlocked) return;
+                                var td = window.__gfvTenantData;
+                                if (!td || typeof td !== 'object') {
+                                    if (tentativi < 30) setTimeout(tentaSaluto, 500);
+                                    return;
+                                }
+                                if (!td.tonyLandingSetupCompletatoIl) return;
+                                if (getTonyFieldProfileFromContext()) return;
+                                if (typeof window.__tonyLandingSalutoShow !== 'function') {
+                                    if (tentativi < 30) setTimeout(tentaSaluto, 500);
+                                    return;
+                                }
+                                var tenantId = td.id || td.tenantId || '';
+                                if (!tenantId) {
+                                    try {
+                                        var tsMod = await import('../../services/tenant-service.js');
+                                        tenantId = tsMod.getCurrentTenantId ? tsMod.getCurrentTenantId() : '';
+                                    } catch (eTs) { tenantId = ''; }
+                                }
+                                if (!tenantId) return;
+                                var stato = leggiStatoPercorsoLocale(tenantId);
+                                var dec = decidiSalutoLanding({
+                                    tonyLandingSetupCompletatoIl: td.tonyLandingSetupCompletatoIl,
+                                    tonyGuidaOnboardingEndsAt: td.tonyGuidaOnboardingEndsAt,
+                                    sedeCoordinate: td.sedeCoordinate || null,
+                                    statoLocale: stato
+                                });
+                                if (dec.tipo !== 'saluto' && dec.tipo !== 'riprendi') return;
+                                var nomeSaluto = String(td.titolareNome || td.nomeTitolare || td.ownerName || '').trim().split(/\s+/)[0] || '';
+                                window.__tonyLandingSalutoShow({
+                                    tipo: dec.tipo,
+                                    tenantId: tenantId,
+                                    stato: stato,
+                                    nome: nomeSaluto,
+                                    pinSede: haPinSede(td.sedeCoordinate)
+                                });
+                            } catch (eLs) {
+                                console.warn('[Tony] saluto landing non mostrato:', eLs);
+                            }
+                        }
+                        setTimeout(tentaSaluto, 1200);
+                    })();
                     (function checkTnyNotifyGreeting() {
                         var params = new URLSearchParams(window.location.search);
                         var tny = params.get('tnyNotify');

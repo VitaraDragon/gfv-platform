@@ -30,13 +30,13 @@ import {
     vistaOreGiornoInAttesa
 } from './field-ore-riquadro.js?v=2026-10-18a';
 import { scegliSuggerimentoRapido } from '../../js/field-suggerimento-lavoro.js?v=2026-10-18a';
-import { eLavoroSospeso } from '../../js/tony/tony-ora-lavoro-match.js?v=2026-10-09g';
-import { CHIAVE_RIMBALZI_INGRESSO, scriviIndizioIngresso, pulisciIndizioIngresso } from '../../js/tony/tony-ingresso-login.js?v=2026-10-09g';
-import { conTimeout, prossimaAttesaRiprova } from '../../js/tony/tony-attesa-riprova.js?v=2026-10-09g';
+import { eLavoroSospeso } from '../../js/tony/tony-ora-lavoro-match.js?v=2026-11-02a';
+import { CHIAVE_RIMBALZI_INGRESSO, scriviIndizioIngresso, pulisciIndizioIngresso } from '../../js/tony/tony-ingresso-login.js?v=2026-11-02a';
+import { conTimeout, prossimaAttesaRiprova } from '../../js/tony/tony-attesa-riprova.js?v=2026-11-02a';
 import {
     righeGiornoDopoEliminazione,
     righeGiornoDopoSalvataggio
-} from '../../js/tony/tony-riepilogo-giorno.js?v=2026-10-09g';
+} from '../../js/tony/tony-riepilogo-giorno.js?v=2026-11-02a';
 import {
     salvaNuovaOra,
     modificaOraPropria,
