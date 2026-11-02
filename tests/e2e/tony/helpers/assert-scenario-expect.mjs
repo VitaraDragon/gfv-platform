@@ -124,6 +124,18 @@ export async function assertScenarioExpect(page, expect, scenario, ctx = {}) {
     }
   }
 
+  if (Array.isArray(exp.chatMustNotMatch) && exp.chatMustNotMatch.length) {
+    const allChat = await page.evaluate(() =>
+      Array.from(document.querySelectorAll('#tony-messages .tony-msg.tony, #tony-messages .tony-msg.error'))
+        .map((node) => node.textContent || '')
+        .join('\n')
+        .toLowerCase()
+    );
+    for (const fragment of exp.chatMustNotMatch) {
+      expect(allChat, `chat non deve contenere «${fragment}»`).not.toContain(String(fragment).toLowerCase());
+    }
+  }
+
   if (Array.isArray(exp.responseMustMatchGroups) && exp.responseMustMatchGroups.length) {
     const low = reply.toLowerCase();
     let matched = 0;
@@ -229,6 +241,12 @@ export async function assertScenarioExpect(page, expect, scenario, ctx = {}) {
   }
 }
 
+/**
+ * Assert sul singolo turno (catene multi-messaggio). Non sostituisce `expect` finale.
+ * @param {import('@playwright/test').Expect} expect
+ * @param {string} reply
+ * @param {object} [turnExpect]
+ */
 /**
  * Attende che il form movimento (o l'ultimo inject) abbia i valori del turno.
  * `formFieldEquals` è uguaglianza sul value DOM. `formFieldIncludes` è sottostringa.

@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted } from 'vue';
+import { computed, defineAsyncComponent, onMounted, onUnmounted, ref, watch } from 'vue';
 import logoMark from '../../../icons/gfv-mark.svg';
 import tonyIcon from '../assets/tony-icon.png';
+import TonyAvviso from '../components/TonyAvviso.vue';
 import VideoTony from '../components/VideoTony.vue';
 import { testiLanding } from '../content/testi-landing.js';
 import {
@@ -12,11 +13,48 @@ import {
   LIMITI_LANDING,
   PAGINE_LEGALI,
   TESTO_CHI_SIAMO,
+  TONY_BUSSA_ATTIVO,
   URL_LOGIN,
   URL_REGISTRAZIONE,
+  URL_TONY_LANDING_ASK,
+  URL_TONY_LANDING_AUDIO,
+  VERSIONE_AVVISO_TONY,
 } from '../config/landing-config.js';
 import { rigaPrezzi, vociPianiCosaGestisci } from '../lib/landing-logica.js';
 import {
+  bussataAutomaticaConsentita,
+  CHIAVE_BUSSATA_SESSIONE,
+  CHIAVE_RINUNCIA_AVVISO,
+  deveParlare,
+  deveRiprovareBussataQuandoVisibile,
+  dovrebbeVibrare,
+  formatoClip,
+  layoutTonyDesktop,
+  leggiPresaVisione,
+  livelloVoce,
+  ORDINE_PRECARICA_CHAT,
+  percorsoClip,
+  percorsiAudio,
+  percorsiClipDaPrecaricare,
+  percorsiVoce,
+  PRECARICA_SCENA_MS,
+  precaricoScenaConsentito,
+  prossimoStato,
+  prossimaBocca,
+  ritardoBussataAutomaticaMs,
+  salvaPresaVisione,
+  SCHEMA_VIBRAZIONE,
+  SOGLIA_VOCE_ACCESA,
+  tempiScena,
+  tempiVoce,
+  tonyBussaVisibile,
+  varianteScena,
+} from '../lib/tony-bussa-logica.js';
+
+const CHIAVE_INTERAZIONE_SESSIONE = 'gfv-tony-interazione-sessione';
+const CHIAVE_BUSSATE_AUTO = 'gfv-tony-bussate-auto';
+import {
+  AVAILABLE_MODULES,
   monthlyToAnnual,
   SUBSCRIPTION_PLANS,
 } from '../../../core/config/subscription-plans.js';
@@ -29,9 +67,10 @@ const prezzi = computed(() =>
       free: SUBSCRIPTION_PLANS.free,
       base: SUBSCRIPTION_PLANS.base,
       monthlyToAnnual,
+      moduli: AVAILABLE_MODULES,
     },
     GIORNI_GUIDA_TONY,
-    { ivaConfermata: IVA_CONFERMATA }
+    { ivaConfermata: IVA_CONFERMATA, emailContatto: EMAIL_CONTATTO }
   )
 );
 
@@ -41,8 +80,1159 @@ const mostraChiSiamo = computed(
   () => Boolean(FOTO_PIER_URL) && Boolean(String(TESTO_CHI_SIAMO || '').trim())
 );
 
+// Nella build di deploy DEV è false e il modo non è «anteprima»: con il flag spento
+// ?tonybussa=1 non accende la scena. In modo «anteprima» Tony bussa senza parametro
+// (come LANDING_ATTIVA); i parametri di prova restano legati a DEV, non al modo anteprima.
+const tonyOn = tonyBussaVisibile({
+  flag: TONY_BUSSA_ATTIVO || import.meta.env.MODE === 'anteprima',
+  dev: import.meta.env.DEV === true || import.meta.env.MODE === 'anteprima',
+  query: typeof window !== 'undefined' ? window.location.search : '',
+});
+
+const TonyStage = defineAsyncComponent(() => import('../components/TonyStage.vue'));
+
+const fase = ref('nascosto');
+const stageAperto = ref(false);
+/** Pillola «Parla con Tony» solo dopo che Tony è già apparso (niente flash pre-bussata). */
+const tonyGiaApparso = ref(false);
+/** Desktop: Tony ridotto a bottone; la chat resta montata. */
+const tonyRidotto = ref(false);
+const avvisoAperto = ref(false);
+const avvisoInChiusura = ref(false);
+const audioAttivo = ref(true);
+const riduciMovimento = ref(false);
+const uscitaConClip = ref(true);
+const shakePx = ref(0);
+const improntaAccesa = ref(false);
+const varianteScelta = ref('desktop');
+const formatoScelto = ref('webm');
+const pulsanteOrigine = ref<HTMLElement | null>(null);
+const boccaAperta = ref(false);
+const salutoFinito = ref(false);
+const registrazioneCompletata = ref(false);
+const invioInCorso = ref(false);
+const tonyIngombroPx = ref(0);
+const tonyAltezzaPx = ref(0);
+const layoutDesktop = ref<'laterale' | 'basso'>('laterale');
+const stageRef = ref<{ precaricaClip?: (nome: string) => Promise<void> } | null>(null);
+
+const stileScossone = computed(() => {
+  if (!shakePx.value) return undefined;
+  const px = shakePx.value;
+  return { transform: `translate(${px}px, ${-Math.abs(px)}px)` };
+});
+
+/** Solo sviluppo: clip di entrata/idle non precaricate (prova statico). */
+let clipAssentiInProva = false;
+
+let audioBussata: HTMLAudioElement | null = null;
+let audioTerzo: HTMLAudioElement | null = null;
+let audioWhoosh: HTMLAudioElement | null = null;
+let audioSaluto: HTMLAudioElement | null = null;
+let audioCiao: HTMLAudioElement | null = null;
+let audioCtx: AudioContext | null = null;
+let analyser: AnalyserNode | null = null;
+let nodoSaluto: MediaElementAudioSourceNode | null = null;
+let modoBocca: 'ferma' | 'continua' | 'volume' = 'ferma';
+let generazioneVoce = 0;
+let salutoProgrammato = false;
+let voceSalutoAttiva = false;
+let uscitaClipFinita = false;
+let uscitaVoceFinita = false;
+let rafBocca = 0;
+let ultimoSopraMs = 0;
+let videoEntryPreload: HTMLVideoElement | null = null;
+let videoIdlePreload: HTMLVideoElement | null = null;
+const videoPreload: HTMLVideoElement[] = [];
+let mediaPronte = false;
+let formatoAudioScelto: 'mp3' | 'ogg' = 'mp3';
+const timerIds: number[] = [];
+const intervalli: number[] = [];
+
+function storagePagina() {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function storageSessione() {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function warmUpEndpointTony() {
+  for (const url of [URL_TONY_LANDING_ASK, URL_TONY_LANDING_AUDIO]) {
+    try {
+      fetch(url, { method: 'OPTIONS' }).catch(() => {});
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
+function leggiRinunciaAvviso() {
+  const s = storageSessione();
+  return s ? s.getItem(CHIAVE_RINUNCIA_AVVISO) === '1' : false;
+}
+
+function salvaRinunciaAvviso() {
+  const s = storageSessione();
+  if (s) s.setItem(CHIAVE_RINUNCIA_AVVISO, '1');
+}
+
+function utenteHaInteragito() {
+  const s = storageSessione();
+  if (!s) return false;
+  return (
+    s.getItem(CHIAVE_INTERAZIONE_SESSIONE) === '1' ||
+    s.getItem(CHIAVE_BUSSATA_SESSIONE) === '1'
+  );
+}
+
+function segnaInterazioneUtente() {
+  const s = storageSessione();
+  if (s) {
+    s.setItem(CHIAVE_INTERAZIONE_SESSIONE, '1');
+    s.setItem(CHIAVE_BUSSATA_SESSIONE, '1');
+  }
+}
+
+function leggiBussateAutomatiche() {
+  const s = storageSessione();
+  if (!s) return 0;
+  const n = Number(s.getItem(CHIAVE_BUSSATE_AUTO) || '0');
+  return Number.isFinite(n) && n > 0 ? n : 0;
+}
+
+function incrementaBussateAutomatiche() {
+  const s = storageSessione();
+  if (!s) return;
+  s.setItem(CHIAVE_BUSSATE_AUTO, String(leggiBussateAutomatiche() + 1));
+}
+
+function aggiornaLayoutDesktop(ingombroW?: number) {
+  if (typeof window === 'undefined') return;
+  const w =
+    typeof ingombroW === 'number' && Number.isFinite(ingombroW)
+      ? ingombroW
+      : tonyIngombroPx.value;
+  if (w > 0) tonyIngombroPx.value = w;
+  layoutDesktop.value = layoutTonyDesktop({
+    larghezzaFinestra: window.innerWidth,
+    ingombro: tonyIngombroPx.value || 600,
+  });
+}
+
+let timerResizeVariante = 0;
+function onResizeFinestra() {
+  if (typeof window === 'undefined') return;
+  if (timerResizeVariante) window.clearTimeout(timerResizeVariante);
+  timerResizeVariante = window.setTimeout(() => {
+    timerResizeVariante = 0;
+    if (fase.value === 'parla' || fase.value === 'scrive' || fase.value === 'pensa') {
+      aggiornaLayoutDesktop();
+      return;
+    }
+    const ora = varianteScena(window.innerWidth);
+    if (ora !== varianteScelta.value && mediaPronte) {
+      varianteScelta.value = ora;
+    }
+    aggiornaLayoutDesktop();
+  }, 200);
+}
+
+function onIngombroTony(payload: { width?: number; height?: number }) {
+  if (payload && typeof payload.width === 'number') {
+    tonyIngombroPx.value = payload.width;
+  }
+  if (payload && typeof payload.height === 'number') {
+    tonyAltezzaPx.value = payload.height;
+  }
+  aggiornaLayoutDesktop(tonyIngombroPx.value);
+}
+
+function aggiornaRiduci() {
+  try {
+    riduciMovimento.value = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  } catch {
+    riduciMovimento.value = false;
+  }
+}
+
+function rilevaFormato(variante?: string) {
+  let webm = false;
+  try {
+    const video = document.createElement('video');
+    webm =
+      video.canPlayType('video/webm; codecs="vp09.00.10.08"') !== '' ||
+      video.canPlayType('video/webm; codecs="vp9"') !== '';
+  } catch {
+    webm = false;
+  }
+  return formatoClip({
+    userAgent: navigator.userAgent,
+    maxTouchPoints: navigator.maxTouchPoints || 0,
+    webmAlfaSupportato: webm,
+    preferisciLeggero: variante === 'mobile',
+  });
+}
+
+function rilevaOgg() {
+  try {
+    const audio = document.createElement('audio');
+    return audio.canPlayType('audio/ogg; codecs="vorbis"') !== '';
+  } catch {
+    return false;
+  }
+}
+
+function creaVideoNascosto(src: string) {
+  const video = document.createElement('video');
+  video.preload = 'auto';
+  video.muted = true;
+  video.playsInline = true;
+  video.setAttribute('playsinline', '');
+  video.setAttribute('aria-hidden', 'true');
+  video.style.cssText =
+    'position:fixed;left:0;top:0;width:1px;height:1px;opacity:0;pointer-events:none;';
+  video.src = src;
+  document.body.appendChild(video);
+  video.load();
+  videoPreload.push(video);
+  return video;
+}
+
+function creaAudio(src: string) {
+  const audio = new Audio(src);
+  audio.preload = 'auto';
+  audio.volume = 1;
+  return audio;
+}
+
+function preparaMedia() {
+  if (mediaPronte) return;
+  const variante = varianteScena(window.innerWidth);
+  varianteScelta.value = variante;
+  formatoScelto.value = rilevaFormato(variante);
+  formatoAudioScelto = rilevaOgg() ? 'ogg' : 'mp3';
+  const audio = percorsiAudio(variante === 'mobile' ? 'mobile' : 'desktop');
+  const estensione = formatoAudioScelto;
+  audioBussata = creaAudio(audio.bussata[estensione]);
+  audioTerzo = creaAudio(audio.terzo[estensione]);
+  audioWhoosh = creaAudio(audio.whoosh[estensione]);
+  const voci = percorsiVoce(variante === 'mobile' ? 'mobile' : 'desktop');
+  audioSaluto = creaAudio(voci.saluto.mp3);
+  audioCiao = creaAudio(voci.ciao.mp3);
+  const formato = formatoScelto.value;
+  const urlEntry = percorsoClip('entry', variante, formato);
+  const urlIdle = percorsoClip('idle', variante, formato);
+  if (clipAssentiInProva) {
+    videoEntryPreload = { readyState: 0 } as HTMLVideoElement;
+    videoIdlePreload = { readyState: 0 } as HTMLVideoElement;
+  } else if (formato === 'webp') {
+    // WebP: pronto solo dopo decode riuscito (altrimenti statico dopo staticoMs)
+    const imgE = new Image();
+    imgE.src = urlEntry;
+    const imgI = new Image();
+    imgI.src = urlIdle;
+    videoEntryPreload = { readyState: 0 } as HTMLVideoElement;
+    videoIdlePreload = { readyState: 0 } as HTMLVideoElement;
+    const decE = imgE.decode ? imgE.decode() : Promise.resolve();
+    decE
+      .then(() => {
+        videoEntryPreload = { readyState: 4 } as HTMLVideoElement;
+      })
+      .catch(() => {});
+    const decI = imgI.decode ? imgI.decode() : Promise.resolve();
+    decI
+      .then(() => {
+        videoIdlePreload = { readyState: 4 } as HTMLVideoElement;
+      })
+      .catch(() => {});
+  } else {
+    videoEntryPreload = creaVideoNascosto(urlEntry);
+    videoIdlePreload = creaVideoNascosto(urlIdle);
+  }
+  mediaPronte = true;
+}
+
+/** Dopo «Fai entrare Tony»: thinking/scrive per prime, poi ascolto e talking. */
+async function precaricaClipChat() {
+  const variante = varianteScelta.value === 'mobile' ? 'mobile' : 'desktop';
+  const formato = formatoScelto.value;
+  const urls = percorsiClipDaPrecaricare(variante, formato);
+  const nomi = ORDINE_PRECARICA_CHAT;
+  for (let i = 2; i < nomi.length; i += 1) {
+    const nome = nomi[i];
+    const url = urls[i];
+    if (!url) continue;
+    try {
+      if (stageRef.value && typeof stageRef.value.precaricaClip === 'function') {
+        await stageRef.value.precaricaClip(nome);
+      } else if (formato === 'webp') {
+        const img = new Image();
+        img.src = url;
+        await (img.decode ? img.decode() : Promise.resolve());
+      } else {
+        creaVideoNascosto(url);
+      }
+    } catch {
+      /* clip non pronta: la scena resta su idle se serve */
+    }
+  }
+}
+
+function rilasciaPreload() {
+  fermaAudio();
+  rilasciaVoce();
+  for (const video of videoPreload) {
+    try {
+      video.pause();
+    } catch {
+      /* già fermo */
+    }
+    video.removeAttribute('src');
+    try {
+      video.load();
+    } catch {
+      /* elemento già staccato */
+    }
+    if (video.parentNode) video.parentNode.removeChild(video);
+  }
+  videoPreload.length = 0;
+  videoEntryPreload = null;
+  videoIdlePreload = null;
+  audioBussata = null;
+  audioTerzo = null;
+  audioWhoosh = null;
+  audioSaluto = null;
+  audioCiao = null;
+  mediaPronte = false;
+}
+
+function fermaAudio() {
+  for (const audio of [audioBussata, audioTerzo, audioWhoosh]) {
+    if (!audio) continue;
+    try {
+      audio.pause();
+      audio.currentTime = 0;
+    } catch {
+      /* il browser non consente il reset */
+    }
+  }
+}
+
+function riproduci(audio: HTMLAudioElement | null) {
+  if (!audio || !audioAttivo.value) return;
+  try {
+    audio.currentTime = 0;
+    const promessa = audio.play();
+    if (promessa && typeof promessa.catch === 'function') promessa.catch(() => {});
+  } catch {
+    /* audio bloccato: la scena continua in silenzio */
+  }
+}
+
+function sblocca(audio: HTMLAudioElement | null) {
+  if (!audio || !audioAttivo.value) return;
+  try {
+    const promessa = audio.play();
+    if (promessa && typeof promessa.then === 'function') {
+      promessa
+        .then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+        })
+        .catch(() => {});
+    }
+  } catch {
+    /* silenzio */
+  }
+}
+
+type AudioSblocco = HTMLAudioElement & { sbloccoInCorso?: boolean };
+
+function sbloccaVoce(audio: HTMLAudioElement | null) {
+  if (!audio || !audioAttivo.value) return;
+  const voce = audio as AudioSblocco;
+  voce.sbloccoInCorso = true;
+  try {
+    const promessa = audio.play();
+    if (promessa && typeof promessa.then === 'function') {
+      promessa
+        .then(() => {
+          if (!voce.sbloccoInCorso) return;
+          voce.sbloccoInCorso = false;
+          audio.pause();
+          try {
+            audio.currentTime = 0;
+          } catch {
+            /* il browser non consente il reset */
+          }
+        })
+        .catch(() => {
+          voce.sbloccoInCorso = false;
+        });
+    }
+  } catch {
+    voce.sbloccoInCorso = false;
+  }
+}
+
+function fineSblocco(audio: HTMLAudioElement | null) {
+  if (!audio) return;
+  (audio as AudioSblocco).sbloccoInCorso = false;
+}
+
+function creaContestoAudio() {
+  try {
+    const w = window as Window & { webkitAudioContext?: typeof AudioContext };
+    const Ctor = window.AudioContext || w.webkitAudioContext;
+    if (!Ctor) return null;
+    return new Ctor();
+  } catch {
+    return null;
+  }
+}
+
+function sbloccaContestoAudio() {
+  if (!audioAttivo.value) return;
+  try {
+    if (!audioCtx) audioCtx = creaContestoAudio();
+    if (!audioCtx) return;
+    const promessa = audioCtx.resume();
+    if (promessa && typeof promessa.catch === 'function') promessa.catch(() => {});
+  } catch {
+    /* senza analizzatore la bocca resta sul ripiego */
+  }
+}
+
+function collegaAnalizzatore(audio: HTMLAudioElement) {
+  if (!audioCtx || audioCtx.state !== 'running') return false;
+  try {
+    if (!analyser) {
+      analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 1024;
+    }
+    if (!nodoSaluto) {
+      nodoSaluto = audioCtx.createMediaElementSource(audio);
+      nodoSaluto.connect(analyser);
+      analyser.connect(audioCtx.destination);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function fermaLoopBocca() {
+  if (rafBocca) cancelAnimationFrame(rafBocca);
+  rafBocca = 0;
+  ultimoSopraMs = 0;
+}
+
+function avviaLoopBocca() {
+  if (rafBocca || !analyser) return;
+  const nodo = analyser;
+  const dati = new Uint8Array(nodo.fftSize);
+  const tick = (ora: number) => {
+    if (modoBocca !== 'volume' || !analyser) {
+      rafBocca = 0;
+      return;
+    }
+    nodo.getByteTimeDomainData(dati);
+    const livello = livelloVoce(dati);
+    if (livello >= SOGLIA_VOCE_ACCESA) ultimoSopraMs = ora;
+    const msDaUltimo = ultimoSopraMs > 0 ? ora - ultimoSopraMs : 0;
+    boccaAperta.value = prossimaBocca({
+      aperta: boccaAperta.value,
+      livello,
+      msDaUltimoSopra: msDaUltimo,
+    });
+    rafBocca = requestAnimationFrame(tick);
+  };
+  rafBocca = requestAnimationFrame(tick);
+}
+
+function fermaSaluto() {
+  generazioneVoce += 1;
+  voceSalutoAttiva = false;
+  fermaLoopBocca();
+  boccaAperta.value = false;
+  modoBocca = 'ferma';
+  if (!audioSaluto) return;
+  audioSaluto.onplaying = null;
+  audioSaluto.onended = null;
+  audioSaluto.onerror = null;
+  try {
+    audioSaluto.pause();
+  } catch {
+    /* già fermo */
+  }
+}
+
+function rilasciaVoce() {
+  generazioneVoce += 1;
+  voceSalutoAttiva = false;
+  fermaLoopBocca();
+  boccaAperta.value = false;
+  modoBocca = 'ferma';
+  for (const audio of [audioSaluto, audioCiao]) {
+    if (!audio) continue;
+    audio.onplaying = null;
+    audio.onended = null;
+    audio.onerror = null;
+    try {
+      audio.pause();
+    } catch {
+      /* già fermo */
+    }
+  }
+  try {
+    nodoSaluto?.disconnect();
+  } catch {
+    /* già staccato */
+  }
+  try {
+    analyser?.disconnect();
+  } catch {
+    /* già staccato */
+  }
+  nodoSaluto = null;
+  analyser = null;
+  const ctx = audioCtx;
+  audioCtx = null;
+  if (ctx) {
+    try {
+      const chiuso = ctx.close();
+      if (chiuso && typeof chiuso.catch === 'function') chiuso.catch(() => {});
+    } catch {
+      /* già chiuso */
+    }
+  }
+}
+
+function onSalutoPlaying(gen: number) {
+  if (gen !== generazioneVoce || voceSalutoAttiva) return;
+  if (fase.value !== 'idle' && fase.value !== 'statico') return;
+  voceSalutoAttiva = true;
+  if (fase.value === 'idle') {
+    if (modoBocca === 'continua') boccaAperta.value = true;
+    if (modoBocca === 'volume') avviaLoopBocca();
+  }
+  fase.value = prossimoStato(fase.value, 'voceIniziata');
+}
+
+function onSalutoFinita(gen: number) {
+  if (gen !== generazioneVoce) return;
+  voceSalutoAttiva = false;
+  fermaLoopBocca();
+  boccaAperta.value = false;
+  if (fase.value === 'parla') fase.value = prossimoStato('parla', 'voceFinita');
+  salutoFinito.value = true;
+}
+
+function avviaSaluto() {
+  if (fase.value !== 'idle' && fase.value !== 'statico') return;
+  if (!audioSaluto) {
+    salutoFinito.value = true;
+    return;
+  }
+  const ctxPronto = !!(audioCtx && audioCtx.state === 'running');
+  const decisione = deveParlare({
+    audioAttivo: audioAttivo.value,
+    riduciMovimento: riduciMovimento.value,
+    analizzatoreDisponibile: ctxPronto,
+  });
+  if (!decisione.voce) {
+    salutoFinito.value = true;
+    return;
+  }
+  let bocca = decisione.bocca;
+  if (bocca === 'volume' && !collegaAnalizzatore(audioSaluto)) bocca = 'continua';
+  modoBocca = bocca;
+  const gen = generazioneVoce;
+  audioSaluto.onplaying = () => onSalutoPlaying(gen);
+  audioSaluto.onended = () => onSalutoFinita(gen);
+  audioSaluto.onerror = () => onSalutoFinita(gen);
+  fra(tempiVoce().attesaMaxVoceMs, () => {
+    if (gen !== generazioneVoce || voceSalutoAttiva) return;
+    generazioneVoce += 1;
+    if (!audioSaluto) return;
+    audioSaluto.onplaying = null;
+    audioSaluto.onended = null;
+    audioSaluto.onerror = null;
+    try {
+      audioSaluto.pause();
+    } catch {
+      /* resta il testo nel fumetto */
+    }
+    salutoFinito.value = true;
+  });
+  fineSblocco(audioSaluto);
+  try {
+    audioSaluto.currentTime = 0;
+    const promessa = audioSaluto.play();
+    if (promessa && typeof promessa.catch === 'function') {
+      promessa.catch(() => {
+        /* autoplay bloccato: niente errore, il testo è già nel fumetto */
+      });
+    }
+  } catch {
+    /* silenzio */
+  }
+}
+
+function programmaSaluto() {
+  if (salutoProgrammato) return;
+  if (fase.value !== 'idle' && fase.value !== 'statico') return;
+  salutoProgrammato = true;
+  fra(tempiVoce().ritardoSalutoMs, () => {
+    if (fase.value !== 'idle' && fase.value !== 'statico') return;
+    avviaSaluto();
+  });
+}
+
+function provaChiudiUscita() {
+  if (fase.value !== 'esce') return;
+  if (uscitaClipFinita && uscitaVoceFinita) chiudiTutto();
+}
+
+function avviaCiao() {
+  if (!audioCiao) {
+    uscitaVoceFinita = true;
+    provaChiudiUscita();
+    return;
+  }
+  const fine = () => {
+    if (uscitaVoceFinita) return;
+    uscitaVoceFinita = true;
+    provaChiudiUscita();
+  };
+  audioCiao.onended = fine;
+  audioCiao.onerror = fine;
+  fineSblocco(audioCiao);
+  try {
+    audioCiao.currentTime = 0;
+    const promessa = audioCiao.play();
+    if (promessa && typeof promessa.then === 'function') {
+      promessa.catch(() => fine());
+    }
+  } catch {
+    fine();
+  }
+}
+
+function fra(ms: number, fn: () => void) {
+  const id = window.setTimeout(fn, ms);
+  timerIds.push(id);
+}
+
+function pulisciTempo() {
+  for (const id of timerIds) window.clearTimeout(id);
+  timerIds.length = 0;
+  for (const id of intervalli) window.clearInterval(id);
+  intervalli.length = 0;
+}
+
+function alTempo(inizio: number, ms: number, fn: () => void) {
+  const attesa = ms - (Date.now() - inizio);
+  if (attesa <= 0) fn();
+  else fra(attesa, fn);
+}
+
+function scuoti(px: number, durataMs: number) {
+  shakePx.value = px;
+  fra(durataMs, () => {
+    if (shakePx.value === px) shakePx.value = 0;
+  });
+}
+
+function clipPronta(video: HTMLVideoElement | null) {
+  return !!video && video.readyState >= 3;
+}
+
+function ripristinaFocus() {
+  const el = pulsanteOrigine.value;
+  if (el && typeof el.focus === 'function') el.focus();
+}
+
+function chiudiTutto() {
+  pulisciTempo();
+  salutoProgrammato = false;
+  salutoFinito.value = false;
+  uscitaClipFinita = false;
+  uscitaVoceFinita = false;
+  if (fase.value === 'esce') fase.value = prossimoStato('esce', 'uscitaFinita');
+  else fase.value = 'nascosto';
+  stageAperto.value = false;
+  tonyRidotto.value = false;
+  avvisoAperto.value = false;
+  avvisoInChiusura.value = false;
+  improntaAccesa.value = false;
+  shakePx.value = 0;
+  registrazioneCompletata.value = false;
+  invioInCorso.value = false;
+  rilasciaPreload();
+  ripristinaFocus();
+}
+
+function saluta() {
+  if (fase.value === 'esce') return;
+  if (invioInCorso.value) return;
+  segnaInterazioneUtente();
+  // Dopo «Saluta Tony» non bussare più da solo (stessa persistenza della rinuncia).
+  salvaRinunciaAvviso();
+  const prima = fase.value;
+  const dopo = prossimoStato(prima, 'saluta');
+  pulisciTempo();
+  fermaSaluto();
+  fermaAudio();
+  try {
+    if (
+      !navigator.userActivation ||
+      navigator.userActivation.hasBeenActive === true
+    ) {
+      navigator.vibrate(0);
+    }
+  } catch {
+    /* niente vibrazione da fermare */
+  }
+  shakePx.value = 0;
+  improntaAccesa.value = false;
+  if (dopo !== 'esce') {
+    chiudiTutto();
+    return;
+  }
+  const statiConVoce = [
+    'idle',
+    'parla',
+    'statico',
+    'ascolta',
+    'pensa',
+    'scrive',
+    'modulo',
+  ];
+  const conVoce = statiConVoce.indexOf(prima) >= 0 && audioAttivo.value;
+  uscitaClipFinita = false;
+  uscitaVoceFinita = !conVoce;
+  uscitaConClip.value =
+    (prima === 'idle' ||
+      prima === 'entra' ||
+      prima === 'parla' ||
+      prima === 'ascolta' ||
+      prima === 'pensa' ||
+      prima === 'scrive' ||
+      prima === 'modulo') &&
+    !riduciMovimento.value;
+  fase.value = 'esce';
+  if (conVoce) avviaCiao();
+  fra(tempiVoce().attesaMaxUscitaMs, () => {
+    if (fase.value === 'esce') chiudiTutto();
+  });
+}
+
+function onApriModulo() {
+  if (fase.value === 'esce' || fase.value === 'nascosto') return;
+  fase.value = prossimoStato(fase.value, 'apriModulo');
+}
+
+function onChiudiModulo() {
+  if (fase.value !== 'modulo') return;
+  fase.value = prossimoStato('modulo', 'chiudiModulo');
+}
+
+function onRegistrazioneCompletata() {
+  registrazioneCompletata.value = true;
+}
+
+function onInvioInCorso(valore: boolean) {
+  invioInCorso.value = !!valore;
+}
+
+function onEntrataFinita() {
+  if (fase.value !== 'entra') return;
+  fase.value = prossimoStato('entra', 'entrataFinita');
+  void precaricaClipChat();
+}
+
+function onAscoltoIniziato() {
+  if (fase.value === 'idle') fase.value = prossimoStato('idle', 'ascoltoIniziato');
+}
+
+function onAscoltoFinito() {
+  if (fase.value === 'ascolta') fase.value = prossimoStato('ascolta', 'ascoltoFinito');
+}
+
+function onDomandaInviata() {
+  segnaInterazioneUtente();
+  if (fase.value === 'idle' || fase.value === 'ascolta') {
+    fase.value = prossimoStato(fase.value, 'domandaInviata');
+  }
+}
+
+function onTestoArrivato() {
+  if (fase.value === 'pensa') fase.value = prossimoStato('pensa', 'testoArrivato');
+}
+
+function onRispostaFinita() {
+  if (fase.value === 'pensa' || fase.value === 'scrive' || fase.value === 'ascolta') {
+    fase.value = prossimoStato(fase.value, 'rispostaFinita');
+  }
+}
+
+function onVoceIniziata() {
+  if (fase.value === 'pensa' || fase.value === 'scrive' || fase.value === 'idle') {
+    fase.value = prossimoStato(fase.value, 'voceIniziata');
+  }
+}
+
+function onVoceFinita() {
+  if (fase.value === 'parla') {
+    fase.value = prossimoStato('parla', 'voceFinita');
+  }
+}
+
+function onServizioSpento() {
+  if (fase.value === 'esce' || fase.value === 'nascosto') return;
+  fase.value = prossimoStato(fase.value, 'servizioSpento');
+  salutoFinito.value = true;
+}
+
+function onClipNonPronta() {
+  if (fase.value !== 'bussa' && fase.value !== 'entra') return;
+  fase.value = prossimoStato(fase.value, 'clipNonPronta');
+}
+
+function onUscitaFinita() {
+  uscitaClipFinita = true;
+  provaChiudiUscita();
+}
+
+function vaiEntrata() {
+  if (fase.value !== 'bussa') return;
+  fase.value = prossimoStato('bussa', 'bussataFinita');
+}
+
+function vaiStatico() {
+  if (fase.value !== 'bussa' && fase.value !== 'entra') return;
+  fase.value = prossimoStato(fase.value, 'clipNonPronta');
+}
+
+function provaEntrata(inizio: number, staticoMs: number) {
+  if (fase.value !== 'bussa') return;
+  if (clipPronta(videoEntryPreload) || clipPronta(videoIdlePreload)) {
+    if (clipPronta(videoEntryPreload)) {
+      vaiEntrata();
+      return;
+    }
+    // Idle pronta ma entry no: salta all'idle senza aspettare altri secondi.
+    fase.value = prossimoStato('bussa', 'bussataFinita');
+    fase.value = prossimoStato('entra', 'entrataFinita');
+    return;
+  }
+  // Clip non pronte: mostra subito il fotogramma statico (niente attesa fino a staticoMs).
+  riproduci(audioTerzo);
+  vaiStatico();
+  void inizio;
+  void staticoMs;
+}
+
+function attendiIdle(inizio: number, staticoMs: number) {
+  const prova = () => {
+    if (fase.value !== 'bussa') return true;
+    if (clipPronta(videoIdlePreload)) {
+      fase.value = prossimoStato('bussa', 'bussataFinita');
+      fase.value = prossimoStato('entra', 'entrataFinita');
+      return true;
+    }
+    if (Date.now() - inizio >= staticoMs) {
+      vaiStatico();
+      return true;
+    }
+    return false;
+  };
+  if (prova()) return;
+  const id = window.setInterval(() => {
+    if (prova()) window.clearInterval(id);
+  }, 80);
+  intervalli.push(id);
+}
+
+function partiCronometro() {
+  const inizio = Date.now();
+  const variante = varianteScelta.value === 'mobile' ? 'mobile' : 'desktop';
+  const tempi = tempiScena({
+    variante,
+    riduciMovimento: riduciMovimento.value,
+  });
+  if (audioAttivo.value) {
+    riproduci(audioBussata);
+    sblocca(audioTerzo);
+    sblocca(audioWhoosh);
+    sbloccaContestoAudio();
+    sbloccaVoce(audioSaluto);
+    sbloccaVoce(audioCiao);
+  }
+  if (riduciMovimento.value) {
+    attendiIdle(inizio, tempi.staticoMs);
+    return;
+  }
+  tempi.colpiMs.forEach((ms, i) => {
+    const base = tempi.scossonePx[i] || 0;
+    const px = i % 2 === 0 ? base : -base;
+    alTempo(inizio, ms, () => scuoti(px, tempi.durataScossoneMs));
+  });
+  if (tempi.impronta) {
+    const impronta = tempi.impronta;
+    alTempo(inizio, impronta.aMs, () => {
+      improntaAccesa.value = true;
+      fra(impronta.durataMs, () => {
+        improntaAccesa.value = false;
+      });
+    });
+  }
+  if (
+    dovrebbeVibrare({
+      variante,
+      haVibrate: typeof navigator.vibrate === 'function',
+      riduciMovimento: false,
+    })
+  ) {
+    alTempo(inizio, tempi.vibrazioneMs, () => {
+      try {
+        // Solo dopo un gesto utente (altrimenti Chrome blocca e logga in console).
+        if (navigator.userActivation && navigator.userActivation.hasBeenActive !== true) {
+          return;
+        }
+        navigator.vibrate(SCHEMA_VIBRAZIONE);
+      } catch {
+        /* iPhone, o il browser ha rifiutato */
+      }
+    });
+  }
+  alTempo(inizio, tempi.entrataMs, () => provaEntrata(inizio, tempi.staticoMs));
+}
+
+function avviaScena() {
+  if (stageAperto.value) return;
+  aggiornaRiduci();
+  const ora = varianteScena(window.innerWidth);
+  if (mediaPronte && ora !== varianteScelta.value) rilasciaPreload();
+  preparaMedia();
+  let stato = fase.value;
+  if (stato === 'nascosto') stato = prossimoStato(stato, 'apri');
+  if (stato === 'avviso') stato = prossimoStato(stato, 'conferma');
+  fase.value = stato;
+  stageAperto.value = true;
+  tonyGiaApparso.value = true;
+  marcaPerf('tony-scena-avviata');
+  partiCronometro();
+}
+
+function onVuoiProvare(ev: MouseEvent) {
+  const target = ev.currentTarget;
+  pulsanteOrigine.value = target instanceof HTMLElement ? target : null;
+  segnaInterazioneUtente();
+  aggiornaRiduci();
+  preparaMedia();
+  warmUpEndpointTony();
+  const presa = leggiPresaVisione(storagePagina(), VERSIONE_AVVISO_TONY);
+  if (presa.vista) {
+    audioAttivo.value = presa.audio !== false;
+    avviaScena();
+    return;
+  }
+  fase.value = prossimoStato('nascosto', 'apri');
+  avvisoAperto.value = true;
+  tonyGiaApparso.value = true;
+}
+
+/** Pillola «Parla con Tony»: ripristina se ridotto, altrimenti riapre la scena. */
+function onRiapriTony(ev: MouseEvent) {
+  if (stageAperto.value && tonyRidotto.value) {
+    tonyRidotto.value = false;
+    return;
+  }
+  onVuoiProvare(ev);
+}
+
+function onConferma(payload: { audio?: boolean }) {
+  segnaInterazioneUtente();
+  audioAttivo.value = payload?.audio !== false;
+  salvaPresaVisione(
+    storagePagina(),
+    VERSIONE_AVVISO_TONY,
+    new Date().toISOString(),
+    audioAttivo.value
+  );
+  avvisoInChiusura.value = true;
+  const tempi = tempiScena({
+    variante: varianteScelta.value === 'mobile' ? 'mobile' : 'desktop',
+    riduciMovimento: riduciMovimento.value,
+  });
+  avviaScena();
+  window.setTimeout(() => {
+    avvisoAperto.value = false;
+    avvisoInChiusura.value = false;
+  }, tempi.dissolvenzaAvvisoMs);
+}
+
+function onRinuncia() {
+  if (stageAperto.value) return;
+  segnaInterazioneUtente();
+  salvaRinunciaAvviso();
+  fase.value = prossimoStato(fase.value === 'avviso' ? 'avviso' : fase.value, 'rinuncia');
+  if (fase.value !== 'nascosto') fase.value = 'nascosto';
+  avvisoAperto.value = false;
+  avvisoInChiusura.value = false;
+  rilasciaPreload();
+  ripristinaFocus();
+}
+
+function onEscGlobale(e: KeyboardEvent) {
+  if (e.key !== 'Escape') return;
+  if (avvisoAperto.value && !avvisoInChiusura.value) return;
+  if (!stageAperto.value) return;
+  if (invioInCorso.value) return;
+  const target = e.target as HTMLElement | null;
+  if (
+    target &&
+    target.closest &&
+    (target.closest('.tony-reg') || target.closest('.tony-scheda'))
+  ) {
+    // Esc nel modulo/scheda = Annulla / Torna alla chat (gestito dai componenti)
+    return;
+  }
+  e.preventDefault();
+  saluta();
+}
+
+watch(fase, (nuova, precedente) => {
+  if (nuova === precedente) return;
+  if (nuova === 'entra' || nuova === 'idle' || nuova === 'statico') {
+    marcaPerf('tony-figura-visibile');
+  }
+  if (nuova === 'idle' || nuova === 'statico') {
+    programmaSaluto();
+    if (nuova === 'statico' && precedente !== 'idle' && precedente !== 'parla') {
+      // clip non pronte: chat disponibile subito
+      salutoFinito.value = true;
+    }
+  }
+});
+
+function optsBussataAutomatica(paginaNascosta?: boolean) {
+  return {
+    bussateAutomatiche: leggiBussateAutomatiche(),
+    utenteHaInteragito: utenteHaInteragito(),
+    rinunciaSalvata: leggiRinunciaAvviso(),
+    avvisoAperto: avvisoAperto.value,
+    stageAperto: stageAperto.value,
+    paginaNascosta:
+      typeof paginaNascosta === 'boolean'
+        ? paginaNascosta
+        : typeof document !== 'undefined'
+          ? document.hidden
+          : false,
+  };
+}
+
+function marcaPerf(nome: string) {
+  try {
+    if (typeof performance !== 'undefined' && performance.mark) performance.mark(nome);
+  } catch {
+    /* ignore */
+  }
+}
+
+function precaricaScenaInAnticipo() {
+  if (!precaricoScenaConsentito(optsBussataAutomatica(false))) return;
+  marcaPerf('tony-precarica-inizio');
+  preparaMedia();
+  void import('../components/TonyStage.vue');
+}
+
+/** @returns {'ok' | 'riprova-visibile' | 'skip'} */
+function tentaBussataAutomatica() {
+  marcaPerf('tony-bussata-tentativo');
+  if (stageAperto.value || avvisoAperto.value) return 'skip';
+  const opts = optsBussataAutomatica();
+  if (!bussataAutomaticaConsentita(opts)) {
+    return deveRiprovareBussataQuandoVisibile(opts) ? 'riprova-visibile' : 'skip';
+  }
+  incrementaBussateAutomatiche();
+  warmUpEndpointTony();
+  const presa = leggiPresaVisione(storagePagina(), VERSIONE_AVVISO_TONY);
+  audioAttivo.value = presa.vista ? presa.audio !== false : true;
+  marcaPerf('tony-avvia-scena');
+  avviaScena();
+  return 'ok';
+}
+
+let aspettaVisibilePerBussata = false;
+
+function onVisibilityBussata() {
+  if (!aspettaVisibilePerBussata) return;
+  if (typeof document !== 'undefined' && document.hidden) return;
+  aspettaVisibilePerBussata = false;
+  tentaBussataAutomatica();
+}
+
 onMounted(() => {
   document.title = t.documentTitle;
+  marcaPerf('tony-mount');
+  if (!tonyOn) return;
+  window.addEventListener('keydown', onEscGlobale);
+  document.addEventListener('visibilitychange', onVisibilityBussata);
+  if (import.meta.env.DEV) {
+    import('../lib/tony-chat-finto.js')
+      .then((m) => {
+        if (typeof m.clipFinteAssenti === 'function') {
+          clipAssentiInProva = m.clipFinteAssenti(
+            typeof window !== 'undefined' ? window.location.search : ''
+          );
+        }
+      })
+      .catch(() => {});
+  }
+
+  const idPrecarica = window.setTimeout(() => {
+    const esegui = () => precaricaScenaInAnticipo();
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(esegui, { timeout: 1200 });
+    } else {
+      esegui();
+    }
+  }, PRECARICA_SCENA_MS);
+  timerIds.push(idPrecarica);
+
+  const varianteMount = varianteScena(
+    typeof window !== 'undefined' ? window.innerWidth : 1024
+  );
+  const ritardoBussata = ritardoBussataAutomaticaMs(varianteMount);
+  const idBussataAuto = window.setTimeout(() => {
+    marcaPerf('tony-bussata-timer');
+    const esito = tentaBussataAutomatica();
+    if (esito === 'riprova-visibile') aspettaVisibilePerBussata = true;
+  }, ritardoBussata);
+  timerIds.push(idBussataAuto);
+  window.addEventListener('resize', onResizeFinestra);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('keydown', onEscGlobale);
+  window.removeEventListener('resize', onResizeFinestra);
+  document.removeEventListener('visibilitychange', onVisibilityBussata);
+  aspettaVisibilePerBussata = false;
+  if (timerResizeVariante) window.clearTimeout(timerResizeVariante);
+  pulisciTempo();
+  rilasciaPreload();
 });
 
 /** Icone emoji per id voce piano (stesse nei blocchi gratuito e Base). */
@@ -77,6 +1267,37 @@ const iconeModuliImg: Record<string, string> = {
 
 <template>
   <div class="landing">
+    <div
+      class="landing-pagina"
+      :class="{
+        'landing-pagina--tony':
+          stageAperto && !tonyRidotto && varianteScelta === 'mobile',
+        'landing-pagina--tony-desktop':
+          stageAperto &&
+          !tonyRidotto &&
+          varianteScelta !== 'mobile' &&
+          layoutDesktop === 'laterale',
+        'landing-pagina--tony-basso':
+          stageAperto &&
+          !tonyRidotto &&
+          varianteScelta !== 'mobile' &&
+          layoutDesktop === 'basso',
+        'landing-pagina--tony-pillola':
+          tonyOn &&
+          tonyGiaApparso &&
+          !avvisoAperto &&
+          (!stageAperto || tonyRidotto),
+      }"
+      :style="[
+        stileScossone,
+        stageAperto && !tonyRidotto
+          ? {
+              '--tony-ingombro': (tonyIngombroPx || 600) + 'px',
+              '--tony-altezza': (tonyAltezzaPx || 320) + 'px',
+            }
+          : undefined,
+      ]"
+    >
     <header class="topbar">
       <a class="brand-link" href="#inizio">
         <img
@@ -99,7 +1320,7 @@ const iconeModuliImg: Record<string, string> = {
           <p class="hero-sub">{{ t.hero.sottotitolo }}</p>
 
           <div class="hero-cta hero-cta--desktop">
-            <a class="btn-primary" :href="URL_REGISTRAZIONE">
+            <a v-if="!tonyOn" class="btn-primary" :href="URL_REGISTRAZIONE">
               <span class="btn-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path
@@ -118,8 +1339,26 @@ const iconeModuliImg: Record<string, string> = {
               </span>
               {{ t.hero.ctaPrincipale }}
             </a>
+            <button v-else type="button" class="btn-primary" @click="onVuoiProvare">
+              <span class="btn-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="22" height="22" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path
+                    d="M8 11v2M12 10v4M16 11v2"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                  />
+                  <path
+                    d="M5 8c0-1.5 1.2-3 3.2-3h7.6C17.8 5 19 6.5 19 8v4c0 3.5-2.5 6.5-7 8.5C7.5 18.5 5 15.5 5 12V8z"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </span>
+              {{ t.hero.ctaPrincipale }}
+            </button>
             <p class="cta-note">{{ t.hero.gratisNota }}</p>
-            <p class="cta-whisper">{{ t.hero.tonyDicembre }}</p>
             <a class="link-secondary" :href="URL_REGISTRAZIONE">{{
               t.hero.linkRegistrazione
             }}</a>
@@ -137,12 +1376,15 @@ const iconeModuliImg: Record<string, string> = {
         </div>
 
         <div class="hero-cta hero-cta--mobile">
-          <a class="btn-primary" :href="URL_REGISTRAZIONE">
+          <a v-if="!tonyOn" class="btn-primary" :href="URL_REGISTRAZIONE">
             <span class="btn-icon" aria-hidden="true">👋</span>
             {{ t.hero.ctaPrincipale }}
           </a>
+          <button v-else type="button" class="btn-primary" @click="onVuoiProvare">
+            <span class="btn-icon" aria-hidden="true">👋</span>
+            {{ t.hero.ctaPrincipale }}
+          </button>
           <p class="cta-note">{{ t.hero.gratisNota }}</p>
-          <p class="cta-whisper">{{ t.hero.tonyDicembre }}</p>
           <a class="link-secondary" :href="URL_REGISTRAZIONE">{{
             t.hero.linkRegistrazione
           }}</a>
@@ -266,10 +1508,14 @@ const iconeModuliImg: Record<string, string> = {
 
       <section class="chiusura" aria-labelledby="chiusura-title">
         <h2 id="chiusura-title">{{ t.chiusura.titolo }}</h2>
-        <a class="btn-primary" :href="URL_REGISTRAZIONE">
+        <a v-if="!tonyOn" class="btn-primary" :href="URL_REGISTRAZIONE">
           <span class="btn-icon" aria-hidden="true">👋</span>
           {{ t.chiusura.cta }}
         </a>
+        <button v-else type="button" class="btn-primary" @click="onVuoiProvare">
+          <span class="btn-icon" aria-hidden="true">👋</span>
+          {{ t.chiusura.cta }}
+        </button>
       </section>
     </main>
 
@@ -288,10 +1534,106 @@ const iconeModuliImg: Record<string, string> = {
         <a :href="PAGINE_LEGALI.cookie.percorso">{{ t.footer.linkCookie }}</a>
       </nav>
     </footer>
+    </div>
+    <div v-if="improntaAccesa" class="impronta" aria-hidden="true"></div>
+    <TonyAvviso
+      v-if="tonyOn && avvisoAperto"
+      :in-chiusura="avvisoInChiusura"
+      @conferma="onConferma"
+      @rinuncia="onRinuncia"
+    />
+    <button
+      v-if="tonyOn && tonyGiaApparso && !avvisoAperto && (!stageAperto || tonyRidotto)"
+      type="button"
+      class="tony-btn-riapri"
+      @click="onRiapriTony"
+    >
+      {{ t.tonyBussa.ripristina }}
+    </button>
+    <TonyStage
+      v-if="tonyOn && stageAperto"
+      v-show="!tonyRidotto"
+      ref="stageRef"
+      :fase="fase"
+      :variante="varianteScelta"
+      :formato="formatoScelto"
+      :riduci-movimento="riduciMovimento"
+      :uscita-con-clip="uscitaConClip"
+      :bocca-aperta="boccaAperta"
+      :saluto-finito="salutoFinito"
+      :audio-attivo="audioAttivo"
+      @entrata-finita="onEntrataFinita"
+      @uscita-finita="onUscitaFinita"
+      @saluta="saluta"
+      @riduci="tonyRidotto = true"
+      @ingombro="onIngombroTony"
+      @clip-non-pronta="onClipNonPronta"
+      @ascolto-iniziato="onAscoltoIniziato"
+      @ascolto-finito="onAscoltoFinito"
+      @domanda-inviata="onDomandaInviata"
+      @testo-arrivato="onTestoArrivato"
+      @risposta-finita="onRispostaFinita"
+      @servizio-spento="onServizioSpento"
+      @voce-iniziata="onVoceIniziata"
+      @voce-finita="onVoceFinita"
+      @apri-modulo="onApriModulo"
+      @chiudi-modulo="onChiudiModulo"
+      @registrazione-completata="onRegistrazioneCompletata"
+      @invio-in-corso="onInvioInCorso"
+    />
   </div>
 </template>
 
 <style scoped>
+/* Telefono: solo spazio in basso per il pannello; larghezza piena (niente padding-right). */
+.landing-pagina--tony {
+  padding-bottom: calc(var(--tony-altezza, 45dvh) + 1rem);
+}
+
+.landing-pagina--tony-desktop {
+  padding-right: 0;
+}
+
+.landing-pagina--tony-basso {
+  padding-bottom: calc(var(--tony-altezza, 320px) + 1rem);
+}
+
+/* Pillola «Parla con Tony»: non coprire video/testo in fondo. */
+.landing-pagina--tony-pillola {
+  padding-bottom: calc(var(--tony-pillola-h, 3.25rem) + 1.2rem + env(safe-area-inset-bottom, 0px));
+}
+
+.tony-btn-riapri {
+  position: fixed;
+  z-index: 45;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  right: 1.2rem;
+  bottom: 1.2rem;
+  background: #0f4d32;
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(7, 25, 16, 0.28);
+}
+
+.impronta {
+  position: fixed;
+  right: 1.4rem;
+  bottom: 1.4rem;
+  z-index: 35;
+  width: 76px;
+  height: 46px;
+  pointer-events: none;
+  background:
+    radial-gradient(ellipse 14px 20px at 18% 62%, rgba(6, 20, 14, 0.38), transparent 72%),
+    radial-gradient(ellipse 14px 20px at 50% 38%, rgba(6, 20, 14, 0.32), transparent 72%),
+    radial-gradient(ellipse 14px 20px at 82% 64%, rgba(6, 20, 14, 0.38), transparent 72%);
+}
+
 .landing {
   --green-deep: #071910;
   --green-mid: #0f4d32;
@@ -302,6 +1644,7 @@ const iconeModuliImg: Record<string, string> = {
   --line: rgba(15, 77, 50, 0.12);
 
   min-height: 100vh;
+  overflow-x: hidden;
   color: var(--ink);
   background:
     radial-gradient(ellipse 90% 50% at 10% -10%, rgba(21, 128, 80, 0.12), transparent 55%),
@@ -430,6 +1773,18 @@ main {
   background: var(--green-bright);
 }
 
+button.btn-primary {
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+button.btn-primary:focus-visible,
+.btn-primary:focus-visible {
+  outline: 3px solid var(--green-bright);
+  outline-offset: 3px;
+}
+
 .btn-icon {
   display: inline-flex;
   line-height: 1;
@@ -440,12 +1795,6 @@ main {
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--ink-soft);
-}
-
-.cta-whisper {
-  margin: 0;
-  font-size: 0.8rem;
-  color: #5a7266;
 }
 
 .link-secondary {

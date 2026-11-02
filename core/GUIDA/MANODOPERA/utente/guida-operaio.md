@@ -22,7 +22,7 @@ Questa guida è solo per l’**operaio**. La schermata che userai quasi sempre �
 |-----------|------------------|
 | Versione mobile e navigazione schede | [Impara qui](#mini-guida-versione-mobile-e-navigazione-schede) |
 | Selezionare il lavoro corrente | [Impara qui](#mini-guida-selezionare-il-lavoro-corrente) |
-| Segnare le proprie ore | [Impara qui](#mini-guida-segnare-le-proprie-ore) |
+| Segnare le proprie ore (+ Pieno in campo) | [Impara qui](#mini-guida-segnare-le-proprie-ore) |
 | Dettaglio lavoro, zone e completamento | [Impara qui](#mini-guida-dettaglio-lavoro-zone-e-completamento) |
 | Statistiche personali | [Impara qui](#mini-guida-statistiche-personali) |
 | Guasti: segnalazione, GPS e risoluzione | [Impara qui](#mini-guida-guasti-segnalazione-gps-e-risoluzione) |

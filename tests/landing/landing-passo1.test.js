@@ -33,6 +33,7 @@ import {
   TONY_GUIDA_ONBOARDING_DAILY_LIMIT,
   TONY_GUIDA_ONBOARDING_DAYS,
 } from '../../core/config/tony-guida-onboarding.js';
+import { FILE_FIREBASE_LANDING } from './aiuto-stringhe.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
@@ -133,8 +134,12 @@ describe('rigaPrezzi e giorni guida', () => {
     const testo = `${senzaIva.gratis} ${senzaIva.moduli}`;
     expect(testo).toContain(`${SUBSCRIPTION_PLANS.free.maxTerreni} terreni`);
     expect(testo).toContain(`${GIORNI_GUIDA_TONY} giorni`);
-    expect(testo).toContain(`${SUBSCRIPTION_PLANS.base.price} € al mese`);
-    expect(testo).toContain(`${monthlyToAnnual(SUBSCRIPTION_PLANS.base.price)} € l'anno`);
+    expect(testo).toContain(
+      `${monthlyToAnnual(SUBSCRIPTION_PLANS.base.price)} € l'anno, pagati in anticipo`
+    );
+    expect(testo).not.toContain(`circa ${SUBSCRIPTION_PLANS.base.price} € al mese`);
+    expect(testo).not.toContain('al mese)');
+    expect(testo).not.toContain('disdici quando vuoi dall\'app');
     expect(testo.toLowerCase()).not.toContain('iva');
 
     const conIva = rigaPrezzi(
@@ -228,7 +233,7 @@ describe('Cosa gestisci — piani e limiti', () => {
       `fino a ${LIMITI_LANDING.maxAttivitaMeseFree} al mese`
     );
     expect(piani.gratis.find((v) => v.id === 'tony-guida')?.dettaglio).toBe(
-      `i primi ${LIMITI_LANDING.giorniGuidaTony} giorni, fino a ${LIMITI_LANDING.domandeGuidaGiorno} domande al giorno`
+      `nell'app: i primi ${LIMITI_LANDING.giorniGuidaTony} giorni, fino a ${LIMITI_LANDING.domandeGuidaGiorno} domande al giorno`
     );
     expect(piani.gratis.map((v) => v.nome).join(' ')).not.toMatch(/Utenti|Lavori e attività/);
   });
@@ -236,7 +241,7 @@ describe('Cosa gestisci — piani e limiti', () => {
   it('voci piano Base: illimitati / sempre con te e titolo con prezzo', () => {
     const piani = vociPianiCosaGestisci(LIMITI_LANDING);
     expect(piani.baseTitolo).toBe(
-      `Con il piano Base — ${LIMITI_LANDING.prezzoBaseMese} € al mese`
+      `Con il piano Base — ${LIMITI_LANDING.prezzoBaseMese * 12} € l'anno`
     );
     expect(piani.base.map((v) => v.nome)).toEqual([
       'Terreni illimitati',
@@ -251,21 +256,22 @@ describe('Cosa gestisci — piani e limiti', () => {
 
 describe('niente da fuori', () => {
   it('nessun riferimento a font Google, YouTube, reCAPTCHA, Firebase JS o GTM', () => {
-    const vietati = [
+    const vietatiSempre = [
       'fonts.googleapis',
       'fonts.gstatic',
       'youtube',
-      'recaptcha',
       'gstatic.com/firebasejs',
       'googletagmanager',
     ];
     const files = elencaFileSorgenteLanding();
     for (const file of files) {
+      const rel = path.relative(repoRoot, file).replaceAll('\\', '/');
       const testo = fs.readFileSync(file, 'utf8').toLowerCase();
-      for (const v of vietati) {
-        expect(testo, `${path.relative(repoRoot, file)} non deve contenere ${v}`).not.toContain(
-          v
-        );
+      for (const v of vietatiSempre) {
+        expect(testo, `${rel} non deve contenere ${v}`).not.toContain(v);
+      }
+      if (rel !== FILE_FIREBASE_LANDING) {
+        expect(testo, `${rel} non deve contenere recaptcha`).not.toContain('recaptcha');
       }
     }
   });

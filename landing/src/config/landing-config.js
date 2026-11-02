@@ -4,8 +4,8 @@
 
 export const LANDING_ATTIVA = false;
 
-/** Email di contatto del footer (vuota finché non la decidiamo). */
-export const EMAIL_CONTATTO = '';
+/** Email di contatto (footer, prima casella, pagine legali, frase dei problemi di registrazione). Inoltro Cloudflare attivo. */
+export const EMAIL_CONTATTO = 'info@globalfarmview.net';
 
 /** Due righe in prima persona di Pier (da scrivere con lui). */
 export const TESTO_CHI_SIAMO = '';
@@ -92,8 +92,22 @@ export const LIMITI_LANDING = {
 /** Alias usato anche da rigaPrezzi / test allineamento Tony. */
 export const GIORNI_GUIDA_TONY = LIMITI_LANDING.giorniGuidaTony;
 
+/** Tony bussa ed entra sulla landing. Spento: i pulsanti portano alla registrazione classica. */
+export const TONY_BUSSA_ATTIVO = false;
+
+/** Versione della prima casella, salvata con la presa visione. */
+export const VERSIONE_AVVISO_TONY = 'avviso-tony-2026-10-26';
+
 export const URL_APP = 'https://vitaradragon.github.io/gfv-platform/';
 
 export const URL_REGISTRAZIONE = `${URL_APP}core/auth/registrazione-standalone.html?da=landing`;
 
 export const URL_LOGIN = `${URL_APP}core/auth/login-standalone.html`;
+
+/** Funzione della chat di Tony sulla landing (passo 10). Regione europe-west1. */
+export const URL_TONY_LANDING_ASK =
+  'https://europe-west1-gfv-platform.cloudfunctions.net/tonyLandingAsk';
+
+/** Funzione della voce di Tony sulla landing (passo 12b). Regione europe-west1. */
+export const URL_TONY_LANDING_AUDIO =
+  'https://europe-west1-gfv-platform.cloudfunctions.net/tonyLandingAudio';

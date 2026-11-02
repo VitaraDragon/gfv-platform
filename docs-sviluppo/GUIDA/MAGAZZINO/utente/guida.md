@@ -24,6 +24,7 @@ Verificate **Abbonamento** o chiedete all'amministratore se il modulo non compar
 | Entrata e home magazzino | [Impara qui](#da-dove-si-entra) |
 | Anagrafica prodotti (nuovo, filtri, categorie) | [Impara qui](#mini-guida-anagrafica-prodotti) |
 | Movimenti (entrate, uscite, salvataggio) | [Impara qui](#mini-guida-movimenti) |
+| Carburante (hub, carico cisterna, pieno mezzo) | [Impara qui](#mini-guida-carburante) |
 | Tracciabilità consumi | [Impara qui](#tracciabilita-consumi) |
 | Sotto scorta e avvisi | [Impara qui](#sotto-scorta) |
 | Collegamento Vigneto / Frutteto | [Impara qui](#collegamento-con-vigneto-e-frutteto) |
@@ -91,6 +92,64 @@ Potete filtrare per **tipo** (entrata / uscita), **prodotto** e a volte per **pe
 ### Modifiche
 
 Se è consentita la **modifica** o l'**eliminazione** di un movimento già registrato, usate le azioni sulla riga e confermate: le giacenze possono ricalcolarsi. Se non vedete il pulsante, il dato potrebbe essere bloccato da regole di sistema o permessi.
+
+---
+
+## Mini-guida: Carburante
+
+Il **Carburante** è una **categoria speciale** nel Magazzino: gasolio, benzina e AdBlue per i mezzi. Ha un **hub dedicato** (ingresso dalla home magazzino) con scorta separata per ogni prodotto, carico cisterna e pieno mezzo.
+
+### Ingresso
+
+1. Dalla **home magazzino** tocca la card **Carburante** (⛽).
+2. Si apre l'**hub Carburante** con panoramica: scorta per prodotto (gasolio, benzina, AdBlue — **non un totale unico**), movimenti recenti, avvisi se qualcosa è sotto scorta.
+3. Da lì: azioni rapide verso **Scorta** (anagrafica prodotti filtrata), **Carico** (entrata cisterna), **Pieno** (uscita sul mezzo), **Prodotti** (anagrafica famiglia carburante), **Elenco consumi**.
+
+### Carico cisterna (entrata)
+
+Quando **arrivo** il rifornimento nella **cisterna** (camion esterno o consegna):
+
+1. Dall'hub Carburante → **Carico**.
+2. Si apre **Movimenti** con filtro già impostato su categoria **carburante**, tipo **entrata**.
+3. **Nuovo movimento** (o equivalente): scegli il **prodotto** (gasolio, benzina, AdBlue già in anagrafica), data, **quantità** in litri, eventuale prezzo e numero documento.
+4. **Salva**: la giacenza del prodotto **aumenta**.
+
+Il carico cisterna è un movimento di **magazzino** normale, solo con la categoria e l'origine corrette. Non serve un form speciale.
+
+### Pieno mezzo (uscita)
+
+Quando **rifornisci** un trattore o un mezzo dalla cisterna:
+
+1. Dall'hub Carburante → **Pieno**.
+2. Si apre **Movimenti** con filtro categoria **carburante**, tipo **uscita**, e in testata compare «Pieno mezzo».
+3. **Nuovo movimento**: scegli il **prodotto** (gasolio o benzina), il **mezzo** (dal menu mezzi), data e **quantità** in litri.
+4. **Salva**: la giacenza del prodotto **diminuisce**, il movimento resta collegato al mezzo.
+
+Se non hai il **modulo Parco Macchine** attivo, la card **Pieno** può essere disabilitata con un messaggio: puoi comunque registrare il **carico cisterna** (entrata generica), ma il pieno sul mezzo serve il modulo Parco per l'anagrafica mezzi.
+
+### Scorta separata per prodotto
+
+Ogni prodotto carburante (gasolio, benzina, AdBlue) ha **giacenza** e **scorta minima** proprie. L'hub mostra le **tre card** separate (o quanti prodotti carburante hai in anagrafica), **non** una somma unica in litri: sono prodotti diversi.
+
+- **Sotto scorta**: se la giacenza di un prodotto scende sotto la soglia impostata, compare l'avviso nell'hub e nella home magazzino.
+
+### Anagrafica prodotti carburante
+
+Come per gli altri prodotti, i carburanti vanno **prima** censiti in **Anagrafica prodotti** con categoria **Carburante**, unità di misura **L** (litri), scorta minima e prezzo se serve.
+
+- Da **Prodotti** (home magazzino o hub carburante) puoi filtrare per categoria **Carburante** e vedere/modificare solo quelli.
+
+### Pieno in campo (versione mobile)
+
+Se hai **Manodopera** attivo e un **lavoro** assegnato con un **mezzo** (trattore), nella **versione mobile campo** (operaio/caposquadra) può comparire una **scheda Pieno** sotto il dettaglio lavoro.
+
+Serve per registrare «**ho fatto il pieno adesso in campo**» direttamente dal telefono, senza passare dalla pagina Movimenti desktop. La scheda compare **solo** se:
+
+- Il lavoro ha un **mezzo** (non solo attrezzo).
+- L'azienda ha il **Magazzino** attivo (anche in prova).
+- Ci sono prodotti **carburante** in anagrafica.
+
+Dettaglio del gesto in campo: guida **Manodopera** (sezione operaio/caposquadra workspace mobile).
 
 ---
 

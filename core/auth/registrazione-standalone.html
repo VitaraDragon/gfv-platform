@@ -326,7 +326,6 @@
         import { doc, setDoc, getDoc, updateDoc, collection, addDoc, serverTimestamp, deleteDoc } from '../services/firebase-service.js';
         import { onAuthStateChanged } from '../services/firebase-service.js';
         import { createUserWithEmailAndPassword, deleteUser } from 'https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js';
-        import { computeTonyGuidaOnboardingEndsAt } from '../config/tony-guida-onboarding.js';
         import { registraAccettazioneDopoAccount, messaggioFineRegistrazione } from '../js/accettazione-legale-registrazione.js';
         import { NOME_TITOLARE_FACOLTATIVO_ATTIVO } from '../config/nome-titolare-config.js';
         import {
@@ -334,10 +333,12 @@
             isNomeCognomeFacoltativi,
             buildCampiNomeCognomeSeCompilati
         } from '../js/nome-titolare-helpers.js';
+        import { creaAccountTitolare, annullaRegistrazioneParziale } from '../services/registrazione-titolare-core.js';
 
         const app = getAppInstance();
         const auth = getAuthInstance();
         const db = getDb();
+        const fbRegistrazione = { auth, db, createUserWithEmailAndPassword, deleteUser, doc, setDoc, getDoc, deleteDoc, serverTimestamp };
 
         // Elementi DOM
 
@@ -643,107 +644,11 @@
                     ? buildCampiNomeCognomeSeCompilati(nome, cognome)
                     : { nome: nome, cognome: cognome };
 
-                // Crea utente Firebase Auth
-                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                firebaseUser = userCredential.user;
-
-                // Genera ID tenant basato sul nome azienda (normalizzato)
-                // Normalizza il nome: minuscolo, rimuovi spazi e caratteri speciali, sostituisci con underscore
-                let tenantIdBase = aziendaNome
-                    .toLowerCase()
-                    .trim()
-                    .replace(/[^a-z0-9]/g, '_') // Sostituisci caratteri non alfanumerici con underscore
-                    .replace(/_+/g, '_') // Sostituisci underscore multipli con uno solo
-                    .replace(/^_|_$/g, ''); // Rimuovi underscore all'inizio e alla fine
-                
-                // Se il nome normalizzato è vuoto, usa un fallback
-                if (!tenantIdBase || tenantIdBase.length === 0) {
-                    tenantIdBase = 'azienda_' + Date.now();
-                }
-                
-                // ID tenant univoco senza lettura Firestore (durante registrazione non si può leggere tenants/ altrui)
-                tenantId = `${tenantIdBase}_${firebaseUser.uid.substring(0, 8)}`;
-
-// Crea tenant
-                const tenantData = {
-                    nome: aziendaNome,
-                    creatoDa: firebaseUser.uid,
-                    creatoIl: serverTimestamp(),
-                    piano: 'free', // Piano freemium (limiti terreni/attività; upgrade da Abbonamento)
-                    moduli: [], // Nessun modulo avanzato, solo core base
-                    stato: 'attivo',
-                    // Tony Guida in prova per i primi giorni (core/config/tony-guida-onboarding.js)
-                    tonyGuidaOnboardingEndsAt: computeTonyGuidaOnboardingEndsAt()
-                };
-
-                // Salva il tenant PRIMA dell'utente
-
-                try {
-                    const tenantDocRef = doc(db, 'tenants', tenantId);
-                    await setDoc(tenantDocRef, tenantData);
-                    tenantCreated = true;
-                } catch (tenantError) {
-                    console.error('❌ ERRORE CRITICO durante salvataggio tenant:', tenantError);
-                    console.error('❌ Tipo errore:', typeof tenantError);
-                    console.error('❌ Codice errore:', tenantError.code);
-                    console.error('❌ Messaggio errore:', tenantError.message);
-                    console.error('❌ Stack completo:', tenantError.stack);
-                    
-                    // Se è un errore di permessi Firestore
-                    if (tenantError.code === 'permission-denied' || tenantError.message?.includes('permission')) {
-                        throw new Error('Errore permessi Firestore: verifica le regole di sicurezza. Codice: ' + tenantError.code);
-                    }
-                    
-                    throw new Error(`Errore durante creazione tenant: ${tenantError.message || tenantError}`);
-                }
-                
-                // Crea documento utente in Firestore
-                // Assicurati che ruoli sia un array esplicito
-                const ruoliArray = ['amministratore'];
-
-const userData = {
-                    id: firebaseUser.uid,
-                    email: email.toLowerCase().trim(),
-                    ...campiNome,
-                    ruoli: ruoliArray,
-                    tenantId: tenantId,
-                    tenantMemberships: {
-                        [tenantId]: {
-                            ruoli: ['amministratore'],
-                            stato: 'attivo',
-                            tenantIdPredefinito: true
-                        }
-                    },
-                    stato: 'attivo',
-                    creatoDa: firebaseUser.uid,
-                    creatoIl: serverTimestamp(),
-                    ultimoAccesso: null
-                };
-
-                const existingUserDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
-                if (existingUserDoc.exists()) {
-                    throw new Error(
-                        'Esiste già un profilo per questo account. Accedi invece di registrare una nuova azienda, oppure usa un\'altra email.'
-                    );
-                }
-                await setDoc(doc(db, 'users', firebaseUser.uid), userData);
+                const esitoAccount = await creaAccountTitolare({ email, password, aziendaNome, campiNome, fb: fbRegistrazione });
+                firebaseUser = esitoAccount.utente;
+                tenantId = esitoAccount.tenantId;
+                tenantCreated = true;
                 userDocCreated = true;
-
-                await new Promise(resolve => setTimeout(resolve, 1000));
-
-                const userDocRef = doc(db, 'users', firebaseUser.uid);
-                const userDocCheck = await getDoc(userDocRef);
-                if (!userDocCheck.exists()) {
-                    throw new Error('Errore: documento utente non creato correttamente');
-                }
-                const savedData = userDocCheck.data();
-                if (!savedData.tenantId || savedData.tenantId !== tenantId) {
-                    throw new Error('Errore: tenantId non salvato correttamente. Riprova la registrazione.');
-                }
-                const ruoliSalvati = savedData.ruoli;
-                if (!ruoliSalvati || !Array.isArray(ruoliSalvati) || ruoliSalvati.length === 0) {
-                    throw new Error('Errore: ruoli non salvati correttamente. Riprova la registrazione.');
-                }
 
                 // Tenant e utente esistono già: se fallisce solo l'accettazione non si annulla nulla
                 // (niente deleteUser), si prosegue e il gate di ingresso la richiede al primo accesso.
@@ -780,6 +685,13 @@ const userData = {
                 }, 3000);
 
             } catch (error) {
+                const statoErrore = error && error.statoRegistrazione;
+                if (statoErrore) {
+                    if (statoErrore.utente) firebaseUser = statoErrore.utente;
+                    if (statoErrore.tenantId) tenantId = statoErrore.tenantId;
+                    if (statoErrore.tenantCreato === true) tenantCreated = true;
+                    if (statoErrore.userDocCreato === true) userDocCreated = true;
+                }
                 console.error('❌ ERRORE REGISTRAZIONE:', error);
                 console.error('❌ Stack trace:', error.stack);
                 console.error('❌ Codice errore:', error.code);
@@ -790,17 +702,22 @@ const userData = {
                 if (firebaseUser && !userDocCreated) {
                     console.warn('⚠️ Utente Firebase Auth creato ma documento Firestore non creato. Eseguo cleanup...');
                     try {
-                        if (tenantCreated && tenantId) {
-                            try {
-                                // Rules: delete tenants/{id} dal client è vietato → resta orfano Free
-                                await deleteDoc(doc(db, 'tenants', tenantId));
-                                console.log('✅ Tenant eliminato');
-                            } catch (deleteTenantError) {
-                                console.warn('⚠️ Eliminazione tenant non riuscita (atteso: rules delete:false; doc orfano):', deleteTenantError);
-                            }
+                        // Rules: delete tenants/{id} dal client è vietato → resta orfano Free
+                        const pulizia = await annullaRegistrazioneParziale({
+                            fb: fbRegistrazione,
+                            stato: { utente: firebaseUser, tenantId, tenantCreato: tenantCreated }
+                        });
+                        if (pulizia.tenantEliminato) {
+                            console.log('✅ Tenant eliminato');
+                        } else if (tenantCreated && tenantId) {
+                            console.warn('⚠️ Eliminazione tenant non riuscita (atteso: rules delete:false; doc orfano):');
                         }
-                        await deleteUser(firebaseUser);
-                        console.log('✅ Utente Firebase Auth eliminato - ora puoi riprovare la registrazione');
+                        if (pulizia.utenteEliminato) {
+                            console.log('✅ Utente Firebase Auth eliminato - ora puoi riprovare la registrazione');
+                        } else {
+                            console.error('❌ ERRORE durante cleanup:');
+                            console.error('⚠️ ATTENZIONE: L\'utente Firebase Auth potrebbe essere ancora presente. Potrebbe essere necessario eliminarlo manualmente dalla console Firebase.');
+                        }
                     } catch (cleanupError) {
                         console.error('❌ ERRORE durante cleanup:', cleanupError);
                         console.error('⚠️ ATTENZIONE: L\'utente Firebase Auth potrebbe essere ancora presente. Potrebbe essere necessario eliminarlo manualmente dalla console Firebase.');

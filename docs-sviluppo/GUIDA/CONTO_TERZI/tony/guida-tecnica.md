@@ -29,6 +29,14 @@ Dove esposto `window.currentTableData` / `table-data-ready`, usare solo summary 
 - Numero: `PREV-{anno}-{seq}` padded (`preventivo-lock-utils.js`); allocazione seq atomica sul tenant (`preventivoSeqByYear`) + create preventivo.
 - Accettazione cliente / manager: in **transazione** (stato ammissibile bozza/inviato, non scaduto) — evita doppie accettazioni concorrenti (`modules/conto-terzi/services/preventivi-service.js`, CF correlate in `functions/index.js` se esposte).
 
+## Preventivi — disambiguazione terreno con coltura (T-FLOW-014)
+
+Form Tony `tony-form-injector.js`: quando compila un preventivo con **cliente** + **coltura** ma senza `terreno-id` esplicito, pre-inietta il cliente, attende il caricamento terreni (`awaitPreventivoTerreniFetchDone`), poi tenta risoluzione terreno usando la coltura come hint (`resolveTerrenoIdForPreventivo`).
+
+- **Univoco**: se esiste un solo terreno del cliente con quella coltura → auto-compila `terreno-id`.
+- **Ambiguo**: più terreni con la stessa coltura → disambiguazione (`__tonyIsTerrenoAmbiguous = true`), Tony chiede all'utente quale terreno intende.
+- Comportamento analogo a disambiguazione terreno/macchina già presente per altri form (Gestione lavori, ecc.); esteso ai preventivi dopo fix T-FLOW-014.
+
 ## Terreni clienti — disegno confini (Fase 1b)
 
 Stesso motore dei Terreni aziendali: `core/js/terreni-maps.js` + `terreni-draw-helpers.js`. Vicini = terreni **già salvati del cliente** selezionato (non i campi aziendali). Tony non disegna; spiega gli stessi gesti (chiusura sul primo punto / doppio tap / Togli ultimo / aggancio). `pageType` lista: `terreniClienti`.

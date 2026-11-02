@@ -1258,7 +1258,8 @@ function sanitizeContextForTonyField(ctx) {
  * SYSTEM_INSTRUCTION_BASE - Tony Base (solo guida, no azioni operative)
  * Usata quando il modulo 'tony' NON è attivo nel tenant
  */
-const SYSTEM_INSTRUCTION_BASE = `Ruolo: Tony, Capocantiere GFV Platform. Sei un collega che parla con un amico, non un software.
+const SYSTEM_INSTRUCTION_BASE = `Ruolo: Tony, Capocantiere GFV. Sei un collega che parla con un amico, non un software.
+Chiama l'app solo GFV, mai GFV Platform.
 
 SEI UN RISPOSTORE E GUIDA DELL'APP:
 - Rispondi SOLO con spiegazioni testuali basate sulla guida dell'app fornita nel contesto.
@@ -1315,7 +1316,8 @@ DOMANDE METEO (Tony Guida — senza Tony Avanzato):
      * SYSTEM_INSTRUCTION_ADVANCED - Tony Avanzato (con azioni operative)
      * Usata quando il modulo 'tony' È attivo nel tenant
      */
-    const SYSTEM_INSTRUCTION_ADVANCED = `Ruolo: Tony, Capocantiere GFV Platform. Sei un collega che parla con un amico.
+    const SYSTEM_INSTRUCTION_ADVANCED = `Ruolo: Tony, Capocantiere GFV. Sei un collega che parla con un amico.
+Chiama l'app solo GFV, mai GFV Platform.
 
 SEI L'ASSISTENTE OPERATIVO:
 - Il tuo obiettivo è SOLO estrarre l'INTENTO e i DATI chiave dalle parole dell'utente.
@@ -1779,7 +1781,7 @@ Esempi:
 \`\`\`
 `;
 
-const SYSTEM_INSTRUCTION_ATTIVITA_STRUCTURED = `Ruolo: Tony, assistente compilazione dati per il form Attività GFV Platform.
+const SYSTEM_INSTRUCTION_ATTIVITA_STRUCTURED = `Ruolo: Tony, assistente compilazione dati per il form Attività GFV.
 
 MODAL CHIUSO: Se [CONTESTO].form è null o [CONTESTO].form.formId manca (es. dopo salvataggio): NON emettere save, fill_form o INJECT. Rispondi SOLO con replyText di conferma (es. "Attività salvata correttamente!").
 
@@ -1889,7 +1891,7 @@ Se dopo aver inferito tutto mancano ancora dati obbligatori (es. orari, pause):
 **[/CONTESTO_AZIENDALE]**`;
 
 /** System instruction per form Lavori - compilazione completa senza dimenticanze */
-const SYSTEM_INSTRUCTION_LAVORO_STRUCTURED = `Ruolo: Tony, assistente compilazione dati per il form Lavori GFV Platform (Gestione Lavori).
+const SYSTEM_INSTRUCTION_LAVORO_STRUCTURED = `Ruolo: Tony, assistente compilazione dati per il form Lavori GFV (Gestione Lavori).
 
 GENERAZIONE JSON OBBLIGATORIA (PRIORITÀ MASSIMA):
 - Se l'utente esprime intento operativo (pianificare, creare, assegnare, programmare, schedulare un lavoro, es. "Programma una potatura", "Assegna il Sangiovese a Marco"), DEVI generare SEMPRE il blocco \`\`\`json. Non rispondere MAI con solo testo. replyText deve essere incluso nel JSON.
@@ -4971,10 +4973,31 @@ exports.onProdottoSchedaScritto = onProdottoSchedaScritto;
 exports.leggiSchedeRegistroInCoda = leggiSchedeRegistroInCoda;
 
 const { handleRegistraAccettazioniLegali } = require("./accettazione-legale");
+// Gestore avvolto: onCall v2 chiama handler(request, response); il secondo argomento
+// NON è il database (handleRegistraAccettazioniLegali(request, db) lo userebbe al posto di admin.firestore()).
 exports.registraAccettazioniLegali = onCall(
   { region: "europe-west1" },
-  handleRegistraAccettazioniLegali
+  (request) => handleRegistraAccettazioniLegali(request)
 );
+
+// Landing «Tony bussa»: salvataggio di sede, poderi e terreni dopo «Sì, salva» (brief v4.2, sezione 8).
+// App Check obbligatorio: NON pubblicare prima del passo 9 (configurazione App Check), altrimenti ogni chiamata è respinta.
+const { handleTonyLandingSetup } = require("./tony-landing-setup");
+exports.tonyLandingSetup = onCall(
+  { region: "europe-west1", enforceAppCheck: true },
+  (request) => handleTonyLandingSetup(request)
+);
+
+// Landing «Tony bussa»: domande dei visitatori senza login (passo 10). App Check, limiti, tetto 30 €/mese e interruttore config/tonyLanding nel file.
+const { tonyLandingAsk } = require("./tony-landing-ask");
+exports.tonyLandingAsk = tonyLandingAsk;
+// Landing «Tony bussa»: voce dal vivo di Tony (passo 12b). Stessa chiave ElevenLabs dell'app, App Check, biglietto monouso, tetto caratteri in config/tonyLanding.
+const { tonyLandingAudio } = require("./tony-landing-audio");
+exports.tonyLandingAudio = tonyLandingAudio;
+// Landing «Tony bussa»: avvisi di spesa stimata (ogni 15 min) e spegnimento al budget Google (Pub/Sub) — passo 15.
+const { tonyLandingAvvisiSpesa, tonyLandingBudget } = require("./tony-landing-avvisi");
+exports.tonyLandingAvvisiSpesa = tonyLandingAvvisiSpesa;
+exports.tonyLandingBudget = tonyLandingBudget;
 
 exports.onComunicazioneCreated = onComunicazioneCreated;
 exports.onLavoroWritten = onLavoroWritten;

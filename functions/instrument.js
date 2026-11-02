@@ -18,6 +18,16 @@ const FILTERED = "[Filtered]";
 const ALLOWED_HEADERS = new Set(["content-type", "user-agent", "x-cloud-trace-context"]);
 const SENSITIVE_KEY_RE =
   /password|passwd|pwd|secret|token|idtoken|apikey|api_key|authorization|cookie|email|telefono|phone|iban/i;
+/** Chiavi filtrate solo se il nome coincide esattamente (senza badare alle maiuscole). */
+const SENSITIVE_EXACT_KEYS = new Set([
+  "indirizzo",
+  "citta",
+  "cap",
+  "provincia",
+  "sede",
+  "poderi",
+  "terreni",
+]);
 const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/g;
 const JWT_RE = /[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}/g;
 const STRIPE_KEY_RE = /sk_(?:live|test)_[A-Za-z0-9]+/g;
@@ -77,7 +87,10 @@ function scrubTree(value, depth, seen) {
   const keys = Object.keys(value);
   for (let i = 0; i < keys.length; i++) {
     const key = keys[i];
-    if (SENSITIVE_KEY_RE.test(String(key))) {
+    if (
+      SENSITIVE_KEY_RE.test(String(key)) ||
+      SENSITIVE_EXACT_KEYS.has(String(key).toLowerCase())
+    ) {
       out[key] = FILTERED;
     } else {
       out[key] = scrubTree(value[key], depth + 1, seen);

@@ -15,6 +15,7 @@ import { runSetupPersonas } from './phases/06-setup-personas.js';
 import { runPopulateManodopera } from './phases/07-populate-manodopera.js';
 import { runSimulateManodoperaOre } from './phases/08-simulate-manodopera-ore.js';
 import { runPopulateContoTerzi } from './phases/09-populate-conto-terzi.js';
+import { runSimulateTrimestre } from './phases/10-simulate-trimestre.js';
 import { formatErrorReport, formatSuccessReport, printReport } from './lib/report.js';
 import { isContoTerziTemplate, isManodoperaTemplate, hasFruttetoModule, hasVignetoModule, parseQuantityOverrides } from './lib/load-template.js';
 import { resetSimContext } from './lib/sim-context.js';
@@ -117,6 +118,12 @@ async function main() {
       if (verbose) console.log('[sim] Ore manodopera:', manodoperaOre.counts);
     }
 
+    phase = '10-simulate-trimestre';
+    const trimestre = await runSimulateTrimestre(assets, contoTerzi);
+    if (verbose && trimestre.counts.campagneSeminativo) {
+      console.log('[sim] Trimestre:', trimestre.counts);
+    }
+
     phase = '04-simulate-magazzino';
     const magazzino = await runSimulateMagazzino();
     if (verbose) {
@@ -164,6 +171,9 @@ async function main() {
       counts.assenzeMalattiaSegnalate = manodoperaOre.counts.assenzeMalattiaSegnalate;
       counts.assenzeMalattiaConfermate = manodoperaOre.counts.assenzeMalattiaConfermate;
       counts.lavoriStandbyAssenza = manodoperaOre.counts.lavoriStandbyAssenza;
+    }
+    if (trimestre?.counts) {
+      Object.assign(counts, trimestre.counts);
     }
     if (contoTerzi) {
       counts.clienti = contoTerzi.counts.clienti;

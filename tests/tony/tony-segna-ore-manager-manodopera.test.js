@@ -145,8 +145,14 @@ describe('rewrite testo diario → gestione lavori', () => {
     );
   });
 
-  it('la gemella client coincide con il server anche su ho fatto e crea lavoro', () => {
-    [HO_FATTO, "crea un lavoro di potatura nell'Oliveto Nord"].forEach((phrase) => {
+  it('la gemella client coincide con il server sulle frasi di segna ore', () => {
+    GENERIC.concat([
+      HO_FATTO,
+      "crea un lavoro di potatura nell'Oliveto Nord",
+      'registra 3 ore di potatura oggi',
+      'oggi posso lavorare nella vigna?',
+      'fra quante ore pioverà?',
+    ]).forEach((phrase) => {
       expect(isTonySegnaOreIntentClient(phrase)).toBe(isTonySegnaOreIntent(phrase));
     });
   });

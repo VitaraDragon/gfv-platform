@@ -1560,5 +1560,257 @@
         ]
       }
     ]
+  },
+  {
+    "runId": "c1126064-a038-43d7-b85d-6fc5405f5cff",
+    "templateId": "viticola-conto-terzi-manodopera",
+    "tenantId": "sim_podere_conti_434296",
+    "userId": "24NBMGmP7m00nmjvq00dGs1YPH9R",
+    "email": "sim+conti_1790950434296@gfv.local",
+    "aziendaNome": "Podere Conti",
+    "seedVersion": 2,
+    "createdAt": "2026-10-02T14:13:54.464Z",
+    "personas": [
+      {
+        "userId": "24NBMGmP7m00nmjvq00dGs1YPH9R",
+        "email": "sim+conti_1790950434296@gfv.local",
+        "displayName": "Andrea Conti",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "5oP2lOzgScXCLLySeHIsMPid49Lb",
+        "email": "sim+conti_1790950434296_capo1@gfv.local",
+        "displayName": "Chiara Rossi",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "6VOVUezKaLK2oildAhZ8UL6Zi6fj",
+        "email": "sim+conti_1790950434296_op1@gfv.local",
+        "displayName": "Chiara Rossi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "KzEawiXVUpCIGjYNo5DuxT7p5Pbs",
+        "email": "sim+conti_1790950434296_op2@gfv.local",
+        "displayName": "Giuseppe Ricci",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "KYVMvLlK5739sBFwMUTX2dMz3KJq",
+        "email": "sim+conti_1790950434296_op3@gfv.local",
+        "displayName": "Elena Rossi",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "246de174-00c7-476d-a848-5bcf3f028428",
+    "templateId": "lab-trimestre-full",
+    "tenantId": "sim_podere_romano_105901",
+    "userId": "S7QNLItrqrwW1W06cQSMUA8mSKWV",
+    "email": "sim+romano_1790952105901@gfv.local",
+    "aziendaNome": "Podere Romano",
+    "seedVersion": 2,
+    "createdAt": "2026-10-02T14:41:46.033Z",
+    "personas": [
+      {
+        "userId": "S7QNLItrqrwW1W06cQSMUA8mSKWV",
+        "email": "sim+romano_1790952105901@gfv.local",
+        "displayName": "Lucia Romano",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "kn1I4qvyIGGju36qUVDzjZ2m2YNa",
+        "email": "sim+romano_1790952105901_capo1@gfv.local",
+        "displayName": "Paolo Ricci",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "nuHSHLeG0dn42is9Gq4KTbLYu3T5",
+        "email": "sim+romano_1790952105901_capo2@gfv.local",
+        "displayName": "Francesca Rossi",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "2vUAU4JtsMLC56Z8cVz0BQZcxNYE",
+        "email": "sim+romano_1790952105901_op1@gfv.local",
+        "displayName": "Paolo Ricci",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "MTpwfdXyCw9U5Oq2KpoBIq8EW4Y2",
+        "email": "sim+romano_1790952105901_op2@gfv.local",
+        "displayName": "Francesca Rossi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "XekyoQVCac913Q2RfCgr5WcVVupO",
+        "email": "sim+romano_1790952105901_op3@gfv.local",
+        "displayName": "Marco Ricci",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "G3BKE4HqZ9FhYr5HL84fRMFaVPqs",
+        "email": "sim+romano_1790952105901_op4@gfv.local",
+        "displayName": "Anna Rossi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "koKxMViv2DJx5wCLw13oy0eNMEiK",
+        "email": "sim+romano_1790952105901_op5@gfv.local",
+        "displayName": "Andrea Ricci",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "uLs1J9hxHP3TzzbNdJaCaGOEWgkR",
+        "email": "sim+romano_1790952105901_op6@gfv.local",
+        "displayName": "Chiara Rossi",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "X893abr0qKlFmiyS981yCpzBjPKj",
+        "email": "sim+romano_1790952105901_op7@gfv.local",
+        "displayName": "Giuseppe Ricci",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "FTNgeWcnasPN6ZkpSpN4GdU32pJ4",
+        "email": "sim+romano_1790952105901_op8@gfv.local",
+        "displayName": "Elena Rossi",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
+  },
+  {
+    "runId": "d6677883-3ed1-46a1-ad88-fa5983964527",
+    "templateId": "lab-trimestre-full",
+    "tenantId": "sim_tenuta_marini_727414",
+    "userId": "Vk3eDmqq7dgZ9i4cQ0UJnl3V3gZP",
+    "email": "sim+marini_1790952727414@gfv.local",
+    "aziendaNome": "Tenuta Marini",
+    "seedVersion": 2,
+    "createdAt": "2026-10-02T14:52:07.549Z",
+    "personas": [
+      {
+        "userId": "Vk3eDmqq7dgZ9i4cQ0UJnl3V3gZP",
+        "email": "sim+marini_1790952727414@gfv.local",
+        "displayName": "Paolo Marini",
+        "ruoli": [
+          "amministratore"
+        ]
+      },
+      {
+        "userId": "0OgzGUFxxZcemahLN2RlLn3DLnC0",
+        "email": "sim+marini_1790952727414_capo1@gfv.local",
+        "displayName": "Francesca Conti",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "DhRkMFDwylLtDqRH3LcFL8p2y5iP",
+        "email": "sim+marini_1790952727414_capo2@gfv.local",
+        "displayName": "Marco Romano",
+        "ruoli": [
+          "caposquadra"
+        ]
+      },
+      {
+        "userId": "oH3KaIYBA7j6rxJjCbVy5jWtZKbE",
+        "email": "sim+marini_1790952727414_op1@gfv.local",
+        "displayName": "Francesca Conti",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "iV4FvHYgaxRxxECzbMOe9VwQ9Uzj",
+        "email": "sim+marini_1790952727414_op2@gfv.local",
+        "displayName": "Marco Romano",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "vUcpwPCqwSDBJbRyqqNLrGltXums",
+        "email": "sim+marini_1790952727414_op3@gfv.local",
+        "displayName": "Anna Conti",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "at51QNH3QuWRNFxbAAkfU18QR1Ym",
+        "email": "sim+marini_1790952727414_op4@gfv.local",
+        "displayName": "Andrea Romano",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "mhv4NEYau2VaPdfd9mSRTZxzG9WM",
+        "email": "sim+marini_1790952727414_op5@gfv.local",
+        "displayName": "Chiara Conti",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "CanFMNHkvCqC2n9QDAqJC9jHULnL",
+        "email": "sim+marini_1790952727414_op6@gfv.local",
+        "displayName": "Giuseppe Romano",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "fLuDEefsvajikf8H1fz2txm0gnIQ",
+        "email": "sim+marini_1790952727414_op7@gfv.local",
+        "displayName": "Elena Conti",
+        "ruoli": [
+          "operaio"
+        ]
+      },
+      {
+        "userId": "jtyBXMJFuypLDCi3iwEPJE1kJhqQ",
+        "email": "sim+marini_1790952727414_op8@gfv.local",
+        "displayName": "Stefano Romano",
+        "ruoli": [
+          "operaio"
+        ]
+      }
+    ]
   }
 ]

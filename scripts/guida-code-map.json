@@ -202,6 +202,14 @@
       "label": "Modulo frutteto"
     },
     {
+      "prefix": "shared/js/trattamenti-coltura",
+      "modules": [
+        "VIGNETO",
+        "FRUTTETO"
+      ],
+      "label": "Helper comune trattamenti vigneto/frutteto (page mechanics)"
+    },
+    {
       "prefix": "modules/conto-terzi/",
       "modules": [
         "CONTO_TERZI"
@@ -629,6 +637,44 @@
         "TONY"
       ],
       "label": "Viewport mobile chat Tony"
+    },
+    {
+      "prefix": "modules/magazzino/views/carburante-home-standalone.html",
+      "modules": [
+        "MAGAZZINO"
+      ],
+      "label": "Hub carburante (scorta, carico cisterna, pieno)"
+    },
+    {
+      "prefix": "modules/magazzino/lib/carburante-movimento.js",
+      "modules": [
+        "MAGAZZINO"
+      ],
+      "label": "Helper movimenti carburante"
+    },
+    {
+      "prefix": "core/mobile/js/pieno-campo-ui.js",
+      "modules": [
+        "MANODOPERA",
+        "MAGAZZINO"
+      ],
+      "label": "Pieno in campo versione mobile"
+    },
+    {
+      "prefix": "functions/registra-pieno-campo.js",
+      "modules": [
+        "MANODOPERA",
+        "MAGAZZINO"
+      ],
+      "label": "CF pieno in campo"
+    },
+    {
+      "prefix": "functions/lib/registra-pieno-campo-core.js",
+      "modules": [
+        "MANODOPERA",
+        "MAGAZZINO"
+      ],
+      "label": "Core pieno in campo"
     }
   ]
 }

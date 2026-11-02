@@ -84,6 +84,50 @@ export function buildMockCfBundle(scenario) {
     return bundle;
   }
 
+  if (id === 'T-CHAT-JSON-001') {
+    bundle.staticResponses['quello grande'] = {
+      text: '{"text":"Prendo quello grande.","command":{"type":"OPEN_MODAL","id":"attiv',
+      command: null,
+    };
+    return bundle;
+  }
+
+  if (id === 'T-CHAT-JSON-002') {
+    bundle.staticResponses['con la mietitrebbia del vicino'] = {
+      text: 'Uso la mietitrebbia del vicino. INJECT_FORM_DATA attivita-form {"attivita-note":"vicino"',
+      command: null,
+    };
+    return bundle;
+  }
+
+  if (id === 'T-TURN-SLOT-001') {
+    bundle.staticResponses["o' fatto la vigna stamani"] = {
+      text: 'Ok, registro sulla Vigna.',
+      command: null,
+    };
+    bundle.staticResponses["non la vigna, l'oliveto"] = {
+      text: "Ok, registro sull'Oliveto del poggio.",
+      command: null,
+    };
+    bundle.staticResponses['due ore. anzi tre'] = {
+      text: "Ok, registro tre ore sull'Oliveto del poggio.",
+      command: null,
+    };
+    bundle.staticResponses.mietuto = {
+      text: "Ok, segno la raccolta sull'Oliveto del poggio.",
+      command: null,
+    };
+    bundle.staticResponses['il grano'] = {
+      text: 'Ok, mietitura nel Campo del grano.',
+      command: null,
+    };
+    bundle.staticResponses['quello grande'] = {
+      text: 'Ok, registro la mietitura del grano nel Campo del grano per tre ore.',
+      command: null,
+    };
+    return bundle;
+  }
+
   if (id === 'T-FLOW-028') {
     bundle.staticResponses['ripristino pali'] = {
       text: 'Tutto pronto: dalle 17:00 alle 17:30, oggi 09/10, pausa 0 min. Vuoi salvare?',

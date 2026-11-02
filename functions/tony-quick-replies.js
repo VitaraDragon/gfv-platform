@@ -263,7 +263,7 @@ function isTonyOperationalCreationIntent(message) {
 
 /**
  * Richiesta di registrare ore (diario), non una domanda sul tempo.
- * «ore» da sola non basta: non esclude dal meteo.
+ * «ore» da sola non basta. Stessa funzione di main (tony-quick-replies.js).
  */
 function isTonySegnaOreIntent(message) {
   if (!message || typeof message !== "string") return false;

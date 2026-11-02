@@ -14,6 +14,7 @@ import { runSetupPersonas } from '../phases/06-setup-personas.js';
 import { runPopulateManodopera } from '../phases/07-populate-manodopera.js';
 import { runSimulateManodoperaOre } from '../phases/08-simulate-manodopera-ore.js';
 import { runPopulateContoTerzi } from '../phases/09-populate-conto-terzi.js';
+import { runSimulateTrimestre } from '../phases/10-simulate-trimestre.js';
 import { isContoTerziTemplate, isManodoperaTemplate, hasFruttetoModule, hasVignetoModule } from './load-template.js';
 
 /**
@@ -75,6 +76,7 @@ export async function runFullSimulation(options = {}) {
     manodoperaOre = await runSimulateManodoperaOre(manodopera);
   }
 
+  const trimestre = await runSimulateTrimestre(assets, contoTerzi);
   const magazzino = await runSimulateMagazzino();
 
   return {
@@ -89,6 +91,7 @@ export async function runFullSimulation(options = {}) {
     contoTerzi,
     personas,
     manodopera,
-    manodoperaOre
+    manodoperaOre,
+    trimestre
   };
 }

@@ -18,11 +18,14 @@ export async function waitForLavoriStateReady(page) {
       const terreni = st.terreniList;
       const operai = st.operaiList;
       const trattori = st.trattoriList;
+      const tipiLavoro = st.tipiLavoroList;
       return (
         Array.isArray(terreni) &&
         terreni.length >= 2 &&
         Array.isArray(operai) &&
         operai.length >= 1 &&
+        Array.isArray(tipiLavoro) &&
+        tipiLavoro.length >= 1 &&
         (!Array.isArray(trattori) || trattori.length >= 0)
       );
     },

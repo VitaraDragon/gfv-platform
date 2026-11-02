@@ -1247,6 +1247,7 @@
         // ============================================
         // IMPORT MODULI (prima di tutto)
         // ============================================
+        import { getNomeVisualizzato } from './js/nome-visualizzato.js';
         import { 
             getTenantId as getTenantIdModule,
             getAttivitaCollection as getAttivitaCollectionModule,
@@ -1522,10 +1523,16 @@
                 if (userDoc.exists()) {
                     const userData = userDoc.data();
                     currentUserData = { id: user.uid, ...userData };
-                    const nomeCompleto = `${userData.nome || ''} ${userData.cognome || ''}`.trim();
                     const email = userData.email || user.email;
-                    document.getElementById('user-info').textContent = 
-                        `Utente: ${nomeCompleto || 'N/A'} (${email})`;
+                    const nomeVis = getNomeVisualizzato({
+                        nome: userData.nome,
+                        cognome: userData.cognome,
+                        nomeAzienda: userData.nomeAzienda,
+                        email,
+                    });
+                    document.getElementById('user-info').textContent = nomeVis
+                        ? `Utente: ${nomeVis} (${email})`
+                        : `Utente: ${email}`;
                     
                     currentTenantId = userData.tenantId;
                     

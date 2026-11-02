@@ -8,6 +8,163 @@ In `src/config/landing-config.js`, `LANDING_ATTIVA` è **false**: in build/previ
 
 Con `npm run dev` la pagina nuova è visibile in locale (anche a flag spento), insieme a termini, privacy, cookie e 404.
 
+## Tony bussa ed entra (passo 5)
+
+Flag `TONY_BUSSA_ATTIVO` in `src/config/landing-config.js`: oggi è **false**. Spento, i pulsanti «Vuoi provare GFV?» restano il link alla registrazione classica. La riga «A dicembre Tony bussa anche qui.» non c'è più.
+
+Per provarlo in locale, senza accendere il flag:
+
+```bash
+cd landing
+npm install
+npm run dev
+```
+
+Apri http://localhost:5173/?tonybussa=1
+
+Vale solo in sviluppo (`npm run dev`) o nella build di anteprima. La build normale (`npm run build`, quella che si pubblica) con il flag spento ignora `?tonybussa=1`.
+
+Dal telefono, sulla stessa rete Wi-Fi del computer:
+
+```bash
+npm run dev -- --host
+```
+
+Poi apri `http://INDIRIZZO-DEL-PC:5173/?tonybussa=1`. L'indirizzo IPv4 del PC si legge con `ipconfig`. Se Windows chiede il permesso al firewall, consenti Node sulla rete privata. Android usa le clip WebM (e, se il telefono lo permette, vibra ai tre colpi). iPhone e Safari usano i WebP animati (passo 12a); se manca il WebP resta lo stacked. Niente vibrazione su iPhone, è normale.
+
+Clip e suoni stanno in `public/tony-live/` (sono nel repo, circa 3,9 MB). Sul PC di Pier arrivano da `Downloads\gfv-landing-tony\live\` (clip) e da `live\audio\` (suoni). Non partono all'apertura della pagina: il browser li chiede solo dopo il clic su «Vuoi provare GFV?».
+
+## Tony parla (passo 6)
+
+Le voci sono file già pronti (pacchetto del 26/10/2026), non una chiamata a un servizio. Stanno in `public/tony-live/voci/`. Il loop in cui Tony muove la bocca sta accanto alle altre clip (`tony-talking-loop-*`). Se le clip non arrivano, Tony resta fermo con `tony-static-idle-desktop.png` / `tony-static-idle-mobile.png` (stessa inquadratura di idle). `tony-static.png` resta nel repo per le anteprime nelle condivisioni.
+
+Per provarlo vale lo stesso indirizzo del passo 5: http://localhost:5173/?tonybussa=1 (solo in sviluppo o in anteprima). Dopo l'entrata Tony dice il saluto e, sul computer, la bocca segue il volume della voce. «✕ Saluta Tony» fa dire «Ci vediamo dentro GFV!» mentre esce.
+
+Se togli «Audio attivo», Tony non parla: resta fermo e il testo nel fumetto c'è lo stesso. La scelta resta anche se chiudi e riapri la pagina. Con «riduci movimento» del sistema la voce c'è, ma Tony non cambia clip: resta nel fermo.
+
+## Chat di Tony (passo 12a)
+
+Dopo il saluto, nel fumetto compaiono tre domande rapide, un campo di testo e (se il browser lo sa fare) il microfono. Le domande vanno alla funzione `tonyLandingAsk` con il token di App Check; la risposta arriva **scritta**, pezzo per pezzo.
+
+Per provarla in locale senza la funzione pubblicata usa il **modello finto** (solo con `npm run dev`):
+
+```bash
+cd landing
+npm run dev
+```
+
+Apri http://localhost:5173/?tonybussa=1&tonyfinto=1
+
+Altri scenari: `tonyfinto=lento`, `spento`, `tetto`, `limite`, `dati`, `errore`, `rete`, `appcheck`. Nella build (`npm run build` / `build:anteprima`) il finto **non** c’è.
+
+Clip v6 (talking v7) in `public/tony-live/`: entrata H1 (desktop) / H2 (mobile), idle, ascolto (raise/loop/lower), thinking, scrive sul taccuino, talking, uscita veloce. Formato: Safari e iPhone → WebP; Chrome/Edge/Firefox/Android → WebM; ultima riserva → stacked. Email e password sono bloccate già in pagina (e di nuovo dalla funzione). I limiti (15/30/1000, tetto mensile) li decide solo la funzione.
+
+## Voce di Tony (passo 12b)
+
+Dopo la risposta scritta Tony può **parlare** (clip `talking`) con `tonyLandingAudio` (stessa voce ElevenLabs dell’app). L’altoparlante parte dalla casella «Audio attivo» dell’avviso: le **prime 3** risposte della sessione partono da sole se l’altoparlante è acceso; dalla quarta compare «▶ Ascolta». Se l’audio non arriva, si resta sul testo **senza messaggi d’errore**.
+
+Prove in locale con modello finto **e** voce finta (solo `npm run dev`):
+
+```bash
+cd landing
+npm run dev
+```
+
+Apri http://localhost:5173/?tonybussa=1&tonyfinto=1
+
+Scenari voce: `tonyvoce=lenta`, `errore`, `tetto`, `no` (niente voce). Nella build di produzione la voce finta **non** c’è.
+
+## Correzioni scena di Tony (passo 12c)
+
+Il contenitore delle clip (`.tony-player-host`) ha al massimo due livelli durante un passaggio e se ne svuota a ogni arresto: niente secondo Tony dietro. Con un errore del servizio Tony finisce la clip in corso e resta **animato** su `idle` (campo e pulsanti spariscono come prima); lo statico serve **solo** se le clip non arrivano. Immagini ferme: `tony-static-idle-desktop.png` e `tony-static-idle-mobile.png` (primo fotogramma di idle, stessa inquadratura), con dissolvenza incrociata di 180 ms se si veniva da una clip. Fine giro vera per WebM/stacked/WebP; dissolvenza di 150 ms da e verso `talking` e da `idle`; elementi precaricati riusati; WebP scaricate una volta sola (Blob). Sul telefono il pannello della chat è alto il 55% fisso e Tony resta fermo sul bordo alto. Prova clip assenti solo con `npm run dev`: `?tonyfinto=noclip`.
+
+## Registrazione nella chat (passo 13)
+
+Dopo il saluto, se App Check (o il modo finto) è pronto, «Crea il tuo account gratuito» apre un **modulo nella chat** (email, password, conferma, nome azienda; niente nome e cognome). Email e password **non** passano dalla chat né da Tony: niente `tonyLandingAsk`, niente voce, niente log. Clip `topic-registrazione` (2,5 s) poi taccuino in loop. A fine registrazione resta aperta la sessione sulla landing e parte l’aiuto per l’account (passo 14).
+
+Prove in locale **senza account veri** (solo `npm run dev`):
+
+```bash
+cd landing
+npm run dev
+```
+
+Apri http://localhost:5173/?tonybussa=1&tonyfinto=ok&tonyreg=ok
+
+Altri scenari: `tonyreg=lento`, `email-usata`, `password-debole`, `rete`, `azienda`, `azienda-pulizia-fallita`, `profilo`, `legale`. Con solo `tonyfinto=` (senza `tonyreg`) vale come `ok`. Nella build di produzione il modo finto **non** c’è.
+
+## Aiuto per l'account (passo 14)
+
+Dopo la registrazione Tony propone tre domande (sede, poderi, terreni), saltabili con «Dopo». Le risposte vanno a `tonyLandingAsk` in fase `account` (serve l’accesso); i dati restano **solo in memoria**. Alla fine compare la scheda «Confermi?»: **solo** «Sì, salva» chiama `tonyLandingSetup`. Poi la frase fissa «Fatto! Per 7 giorni…» con voce `tony-fatto.mp3` e «Vai alla tua dashboard» (login con email già scritta).
+
+Regola d’oro: tra Tony e il salvataggio c’è sempre il visitatore. Il modello non salva e non dice «ho salvato».
+
+Prove in locale (solo `npm run dev`):
+
+```bash
+cd landing
+npm run dev
+```
+
+Apri http://localhost:5173/?tonybussa=1&tonyfinto=ok&tonyreg=ok&tonyaiuto=ok&tonysetup=ok
+
+Altri: `tonyaiuto=troppi|categoria|vuoto|limite|accesso|tetto`, `tonysetup=lento|doppio|dati-non-validi|niente-da-salvare|limite-terreni|gia-preparato|…`. Nella build i modi finti **non** ci sono.
+
+## Tetto di spesa e avvisi (passo 15)
+
+La spesa stimata di Tony sulla landing (Gemini + voce + margine) è già sommata a ogni risposta. Cosa aggiunge questo passo:
+
+| Quando | Cosa succede |
+|---|---|
+| Spesa stimata ≥ 50% del tetto (15 € se il tetto è 30 €) | Email di avviso a `info@globalfarmview.net` |
+| ≥ 80% (24 €) | La voce si spegne da sola (già nel codice); email «80%» |
+| ≥ 100% (30 €) | Tony risponde «Tony è nei campi…»; `enabled = false` in Firestore + email |
+| Spesa **vera** Google ≥ budget (console) | `enabled = false` + email «budget Google» |
+
+Le email partono da `no-reply@globalfarmview.net` (Resend, come il resto dell’app) e arrivano solo a `info@globalfarmview.net`. Una sola email per soglia e per mese.
+
+**Riaccendere Tony:** Firebase → Firestore → `config` → `tonyLanding` → `enabled = true`. Il campo `spentoDa` dice chi l’ha spento (`tetto-mensile` o `budget-google`). Il Tony dell’app non viene mai spento.
+
+Anteprima locale delle email (nessun invio):
+
+```bash
+node functions/scripts/anteprima-avvisi-tony-landing.cjs
+```
+
+Le funzioni `tonyLandingAvvisiSpesa` e `tonyLandingBudget` si pubblicano al **promote** su `main` (insieme al budget Google e all’argomento Pub/Sub `tony-landing-budget`). Vedi la sezione «Dopo l’unione» del prompt passo 15.
+
+Per rigenerare le stesse regole di salvataggio usate dalla scheda:
+
+```bash
+node landing/scripts/genera-setup-core-landing.mjs
+```
+
+`tonyLandingAsk` (fase account) va ripubblicata al promote su `main` (vedi «Dopo l’unione» del passo).
+
+### Dopo l’unione (console, prima del passo 16)
+
+- Google Cloud → chiave API web: se ha limitazioni per sito, aggiungere i domini della landing; se per API, Identity Toolkit / Firestore / Cloud Functions.
+- Firebase → Authentication → Domini autorizzati: aggiungere `gfvagri.com`.
+- **Non** obbligare App Check su Firestore/Auth (l’app su github.io non ce l’ha).
+- Quando i testi legali sono pronti: accendere insieme `ACCETTAZIONE_LEGALE_ATTIVA` e `NOME_TITOLARE_FACOLTATIVO_ATTIVO`.
+
+## App Check (passo 9)
+
+Protezione per le **funzioni nuove della landing** (prima `tonyLandingSetup`, poi le altre): controlla che la chiamata arrivi dalla nostra pagina. L'app su github.io **non** cambia.
+
+Sta in `src/lib/firebase-landing.js` (unico file che importa Firebase) e in `src/config/firebase-landing-config.js` (config pubblica uguale all'app). Si scarica **solo dopo** la prima casella, quando Tony è entrato: mai all'apertura della pagina, niente se premi «No, grazie».
+
+Prova in locale:
+
+```bash
+cd landing
+npm run dev
+```
+
+Apri http://localhost:5173/?tonybussa=1 → «Fai entrare Tony». Nella console del browser compare **una volta** `AppCheck debug token: …`: va registrato nella console Firebase (token di debug). Dopo averlo salvato, ricaricando compare `[landing] App Check pronto`.
+
+Il token di debug è **privato**: mai nel repo, nei messaggi o negli screenshot. Dal telefono con l'indirizzo del PC App Check **non** si attiva (è normale: si usa solo su `localhost`). Se `CHIAVE_SITO_APP_CHECK` in `firebase-landing-config.js` è vuota, la protezione è spenta e non si carica niente.
+
 ## Due modi della build
 
 | Comando | Cartella | Cosa produce (con `LANDING_ATTIVA = false`) |

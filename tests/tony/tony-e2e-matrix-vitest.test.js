@@ -79,6 +79,25 @@ const TYPO_VITEST = {
     delete globalThis.window;
     delete globalThis.document;
   },
+  'T-DIRTY-001'() {
+    const input = 'qunati litri rame nn nela botte 3??';
+    const normalized = normalizeTonyTextWhitespace(input);
+    expect(normalized).toBeTruthy();
+    expect(normalized.toLowerCase()).toContain('rame');
+    expect(normalized.toLowerCase()).toContain('litri');
+    const unita = normalizeProdottoUnitaFromText(input);
+    expect(unita).toBe('L');
+    const prodottoNome = extractProdottoNomeFromText('crea prodotto rame');
+    expect(prodottoNome).toBe('rame');
+  },
+  'T-DIRTY-009'() {
+    const input = 'ce nne ancora dil rame? qusi finito';
+    const normalized = normalizeTonyTextWhitespace(input);
+    expect(normalized).toBeTruthy();
+    expect(normalized.toLowerCase()).toContain('rame');
+    const prodottoCheck = extractProdottoNomeFromText('prodotto rame');
+    expect(prodottoCheck).toBe('rame');
+  },
   'T-TRIM-DIRTY-001'() {
     // "qarica 300 litri gasolio nela cisterna plis" — typo carico cisterna gasolio
     const msg = 'qarica 300 litri gasolio nela cisterna plis';

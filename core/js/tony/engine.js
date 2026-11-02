@@ -607,7 +607,6 @@ function looksLikeTonyCommandPayload(s) {
 
 /**
  * Valore di un campo stringa JSON, anche se l'oggetto è troncato dopo la chiusura della stringa.
- * Il campo `text` lo estrae `tonyExtractTextValueLooseClient` (#298): questa resta per `replyText`.
  * @param {string} raw
  * @param {string} fieldName
  * @returns {string}
@@ -646,8 +645,7 @@ export function sanitizeTonyVisibleChatText(s) {
     if (s == null || typeof s !== 'string') return '';
     var t = s.trim();
     if (looksLikeTonyCommandPayload(t)) {
-        var speech = tonyExtractTextValueLooseClient(t) || '';
-        if (!speech) speech = extractQuotedJsonField(t, 'text') || extractQuotedJsonField(t, 'replyText');
+        var speech = extractQuotedJsonField(t, 'text') || extractQuotedJsonField(t, 'replyText');
         if (speech) t = speech;
     }
     t = stripBareTonyCommandTail(t);
@@ -656,7 +654,7 @@ export function sanitizeTonyVisibleChatText(s) {
 
 /**
  * Se il testo è un JSON di comando completo (o quasi), ricava il comando eseguibile.
- * Un id/formId/target troncato (senza virgoletta di chiusura) non diventa un comando.
+ * Un id/formId troncato (senza virgoletta di chiusura) non diventa un comando.
  * @param {string} raw
  * @returns {object|null}
  */
@@ -740,10 +738,7 @@ function recoverTonyCommandFromLeakedText(raw) {
  */
 export function cleanTextFromJsonResidue(s) {
     if (s == null || typeof s !== 'string') return '';
-    var t = s.trim();
-    // Coda "commands": [...] chiusa: si toglie prima del taglio token, così l'array non resta aperto.
-    t = stripLeakedTonyCommandsArrayTail(t);
-    t = sanitizeTonyVisibleChatText(t);
+    var t = sanitizeTonyVisibleChatText(s);
     t = stripLeakedTonyCommandJsonFromText(t);
     t = stripLeakedTonyCommandsArrayTail(t);
     t = t.replace(/\s*[}\]]+\s*$/g, '').trim();
@@ -1262,7 +1257,7 @@ export function resolveTonyUserVisibleText(text, command) {
     }
     t = cleanTextFromJsonResidue(t);
     if (tonyLooksLikeJsonEnvelopeClient(t) || /^\s*text"\s*:/i.test(t) || /^\s*\{\s*"text"/i.test(t)) {
-        var finalLoose = extractTonyTextLoose(text || '');
+        var finalLoose = extractTonyTextLoose(raw);
         if (finalLoose && finalLoose.text) t = finalLoose.text;
         t = tonyStripJsonResidueFallbackClient(t);
     }

@@ -1,0 +1,738 @@
+/**
+ * @vitest-environment node
+ * Passo 14: ritocchi R1–R6, clip argomenti, setup-core generato, aiuto account.
+ */
+import { createHash } from 'node:crypto';
+import { createRequire } from 'node:module';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { describe, expect, it, vi } from 'vitest';
+import { generaTesto } from '../../landing/scripts/genera-setup-core-landing.mjs';
+import {
+  CLIP_IN_LOOP,
+  CLIP_PER_ARGOMENTO,
+  CLIP_UNA_VOLTA,
+  DURATE_CLIP_MS,
+  dopoFineClip,
+  passaggioClip,
+  percorsoVoceFatto,
+  percorsiClipArgomenti,
+  scalettaArgomento,
+  scalettaClip,
+} from '../../landing/src/lib/tony-bussa-logica.js';
+import {
+  controllaScheda,
+  esitoSalvataggio,
+  messaggioErroreSetup,
+  numeroDaTesto,
+  nuovoRequestId,
+  PASSI_AIUTO,
+  payloadDaScheda,
+  prossimoPasso,
+  unisciDati,
+} from '../../landing/src/lib/tony-aiuto-account.js';
+import {
+  azionePerEsito,
+  corpoRichiesta,
+  MESSAGGI_CHAT,
+} from '../../landing/src/lib/tony-chat-logica.js';
+import { chiediFinto } from '../../landing/src/lib/tony-chat-finto.js';
+import { EMAIL_CONTATTO } from '../../landing/src/config/landing-config.js';
+import { testiLanding } from '../../landing/src/content/testi-landing.js';
+
+const require = createRequire(import.meta.url);
+const coreCjs = require('../../functions/lib/tony-landing-setup-core.js');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const TONY_LIVE = path.join(ROOT, 'landing/public/tony-live');
+
+function md5File(p) {
+  return createHash('md5').update(fs.readFileSync(p)).digest('hex');
+}
+
+function leggi(rel) {
+  return fs.readFileSync(path.join(ROOT, rel), 'utf8');
+}
+
+const CLIP_A1 = [
+  ['tony-topic-poderi-2s5-desktop-576x1440-stacked-alpha-v6.mp4', 331551, 'e5c8e146975cfd66930c33e7c724465c'],
+  ['tony-topic-poderi-2s5-desktop-576x720-12fps-v6.webp', 537692, '112b9beaf1f8b5fe7f0e54cb7c1c6802'],
+  ['tony-topic-poderi-2s5-desktop-576x720-alpha-v6.webm', 265133, 'b1f6c5c3a43dee8936f44078ee584279'],
+  ['tony-topic-poderi-2s5-mobile-432x1080-stacked-alpha-v6.mp4', 229278, '82737510a2908fd008321104c9411336'],
+  ['tony-topic-poderi-2s5-mobile-432x540-12fps-v6.webp', 376850, '23387d6276c17e4007c1c3c053dfa211'],
+  ['tony-topic-poderi-2s5-mobile-432x540-alpha-v6.webm', 191420, 'b77d83388d7678824d78893afd6ac000'],
+  ['tony-topic-sede-desktop-576x1440-stacked-alpha-v6.mp4', 394491, 'dce0702d2196b8b0279751271679a242'],
+  ['tony-topic-sede-desktop-576x720-12fps-v6.webp', 635776, 'b2574accac9f2a86d59e3de61b382b38'],
+  ['tony-topic-sede-desktop-576x720-alpha-v6.webm', 319117, 'f5eca74b1f1476671ee28a313ce695a6'],
+  ['tony-topic-sede-mobile-432x1080-stacked-alpha-v6.mp4', 274234, 'ce16e2ab0e3ce0df425de1b12015068d'],
+  ['tony-topic-sede-mobile-432x540-12fps-v6.webp', 446060, 'c0d8a5acc651ab305a82d5eb7a06dd7c'],
+  ['tony-topic-sede-mobile-432x540-alpha-v6.webm', 234227, 'e308a9e6ddd15c79ced5aa149ef2e846'],
+  ['tony-topic-terreni-desktop-576x1440-stacked-alpha-v6.mp4', 396479, '1706de79faec726290f9b02977091469'],
+  ['tony-topic-terreni-desktop-576x720-12fps-v6.webp', 664054, 'a55b0330c548c5395adf53843a018a89'],
+  ['tony-topic-terreni-desktop-576x720-alpha-v6.webm', 308999, '0ca42de08af630d52ed5f117878cc8a7'],
+  ['tony-topic-terreni-mobile-432x1080-stacked-alpha-v6.mp4', 280420, '5e510194a84c0bdebac04b059deb6d99'],
+  ['tony-topic-terreni-mobile-432x540-12fps-v6.webp', 463210, '7f7c90d725a4533f8cb1af43f62dac8b'],
+  ['tony-topic-terreni-mobile-432x540-alpha-v6.webm', 228386, 'd732bdc51be31dd092a50f687f775da1'],
+];
+
+describe('R1–R4 ritocchi', () => {
+  it('R1 onChiudiModulo ripristina stato', () => {
+    const chat = leggi('landing/src/components/TonyChat.vue');
+    expect(chat).toMatch(/statoPrimaDelModulo/);
+    expect(chat).not.toMatch(/function onChiudiModulo\(\)[\s\S]{0,200}campoAttivo\.value = true;/);
+  });
+
+  it('R2 saluta controlla invioInCorso', () => {
+    const home = leggi('landing/src/views/LandingHome.vue');
+    expect(home).toMatch(/if \(invioInCorso\.value\) return;/);
+    expect(home).not.toMatch(
+      /if \(fase\.value === 'modulo' \|\| registrazioneCompletata\.value\) return;/
+    );
+    expect(home).toMatch(/'modulo'/);
+    expect(home).toMatch(/registrazioneCompletata\.value = false/);
+  });
+
+  it('R3 Esc solo su .tony-reg / .tony-scheda', () => {
+    const home = leggi('landing/src/views/LandingHome.vue');
+    expect(home).toMatch(/\.tony-reg/);
+    expect(home).toMatch(/\.tony-scheda/);
+  });
+
+  it('R4 login try/catch senza console', () => {
+    const login = leggi('core/auth/login-standalone.html');
+    expect(login).toMatch(/login-email-precompilata\.js/);
+    const blocco = login.slice(
+      login.indexOf('login-email-precompilata'),
+      login.indexOf('login-email-precompilata') + 800
+    );
+    expect(login).toMatch(/try\s*\{[\s\S]*login-email-precompilata/);
+    expect(blocco).not.toMatch(/console\./);
+  });
+});
+
+describe('R5 R6 passaggioClip', () => {
+  it('scaletta modulo e passaggioClip', () => {
+    expect(scalettaClip('idle', 'modulo')).toEqual(['topicRegistrazione', 'scrive']);
+    expect(passaggioClip({ da: 'pensa', a: 'scrive' }).modo).toBe('subito');
+    expect(passaggioClip({ da: 'scrive', a: 'idle' }).modo).toBe('fineGiro');
+    expect(
+      passaggioClip({
+        da: 'scrive',
+        a: 'idle',
+        codaInAttesa: ['scrive'],
+      }).lista
+    ).toEqual(['scrive', 'idle']);
+    expect(passaggioClip({ da: 'scrive', a: 'parla' }).modo).toBe('subito');
+    expect(passaggioClip({ da: 'idle', a: 'esce' }).modo).toBe('subito');
+    expect(passaggioClip({ da: 'modulo', a: 'idle' }).modo).toBe('subito');
+    expect(passaggioClip({ da: 'pensa', a: 'scrive', riduciMovimento: true }).lista).toEqual(
+      []
+    );
+  });
+
+  it('TonyStage usa dopoFineClip e passaggioClip', () => {
+    const stage = leggi('landing/src/components/TonyStage.vue');
+    expect(stage).toMatch(/dopoFineClip/);
+    expect(stage).toMatch(/passaggioClip/);
+    expect(stage).toMatch(/codaClip = \['entry', 'idle'\]/);
+  });
+
+  it('sequenza vera delle clip con timer finti', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(0);
+
+    /** Regia di prova guidata dai timer finti (solo funzioni vere). */
+    function creaRegia(faseIniziale) {
+      let fase = faseIniziale;
+      let clipCorrente = null;
+      let clipInizio = 0;
+      let coda = [];
+      let codaDopoCorrente = null;
+      let gen = 0;
+      let timerFine = null;
+      let timerGiro = null;
+      const registro = [];
+
+      function clearTimer(id) {
+        if (id != null) clearTimeout(id);
+        return null;
+      }
+
+      function avviaClip(nome) {
+        const miaGen = ++gen;
+        clipCorrente = nome;
+        clipInizio = Date.now();
+        registro.push({ t: clipInizio, clip: nome });
+        timerFine = clearTimer(timerFine);
+        const durata = DURATE_CLIP_MS[nome];
+        timerFine = setTimeout(() => suFine(nome, miaGen), durata);
+      }
+
+      function partiLista(lista) {
+        timerGiro = clearTimer(timerGiro);
+        codaDopoCorrente = null;
+        coda = (lista || []).slice();
+        const next = coda.shift();
+        if (next) avviaClip(next);
+      }
+
+      function suFine(nome, miaGen) {
+        if (miaGen !== gen) return;
+        const inLoop = CLIP_IN_LOOP.indexOf(nome) >= 0;
+        const dec = dopoFineClip({
+          nome,
+          fase,
+          inLoop,
+          codaDopoCorrente,
+        });
+        if (dec.azione === 'coda') {
+          codaDopoCorrente = null;
+          partiLista(dec.lista || []);
+          return;
+        }
+        if (dec.azione === 'ripeti') {
+          partiLista(dec.lista || [nome]);
+          return;
+        }
+        if (dec.azione === 'prossima') {
+          const n = coda.shift();
+          if (n) avviaClip(n);
+          return;
+        }
+        // Loop (idle/scrive/…): il player vero ripete da solo; non riarmiamo i timer.
+        void inLoop;
+      }
+
+      function cambiaFase(a) {
+        const codaInAttesa = codaDopoCorrente
+          ? codaDopoCorrente.lista
+          : coda.length
+            ? coda.slice()
+            : null;
+        const dec = passaggioClip({
+          da: fase,
+          a,
+          clipCorrente,
+          codaInAttesa,
+        });
+        const da = fase;
+        fase = a;
+        if (!dec) {
+          const lista = scalettaClip(da, a);
+          if (lista.length) partiLista(lista);
+          return;
+        }
+        if (dec.modo === 'subito') {
+          partiLista(dec.lista);
+          return;
+        }
+        if (dec.modo === 'dopoCorrente') {
+          codaDopoCorrente = {
+            lista: dec.lista.slice(),
+            dissolvenzaMs: dec.dissolvenzaMs,
+          };
+          return;
+        }
+        if (dec.modo === 'fineGiro') {
+          if (
+            CLIP_IN_LOOP.indexOf(clipCorrente) >= 0 &&
+            clipCorrente !== 'idle'
+          ) {
+            const durata = DURATE_CLIP_MS[clipCorrente];
+            const elapsed = Date.now() - clipInizio;
+            const resto = Math.max(0, durata - (elapsed % durata));
+            const miaGen = gen;
+            timerGiro = clearTimer(timerGiro);
+            timerGiro = setTimeout(() => {
+              if (miaGen !== gen) return;
+              partiLista(dec.lista);
+            }, resto);
+            return;
+          }
+          partiLista(dec.lista);
+        }
+      }
+
+      return {
+        registro,
+        cambiaFase,
+        partiLista,
+        get fase() {
+          return fase;
+        },
+      };
+    }
+
+    // tonyfinto=ok: thinking → scrive al primo pezzo (~700) → idle non prima di scrive+3583
+    {
+      const regia = creaRegia('pensa');
+      regia.partiLista(scalettaClip('idle', 'pensa'));
+      expect(regia.registro[0]).toEqual({ t: 0, clip: 'thinking' });
+
+      let testoIniziatoA = null;
+      const p = chiediFinto({
+        domanda: 'cosa fa gfv?',
+        storia: [],
+        scenario: 'ok',
+        onPezzo: () => {
+          if (testoIniziatoA != null) return;
+          testoIniziatoA = Date.now();
+          regia.cambiaFase('scrive');
+        },
+      });
+
+      await vi.advanceTimersByTimeAsync(700);
+      expect(testoIniziatoA).toBe(700);
+      expect(regia.registro.find((e) => e.clip === 'scrive').t).toBe(700);
+
+      await vi.advanceTimersByTimeAsync(15000);
+      await p;
+      regia.cambiaFase('idle');
+      await vi.advanceTimersByTimeAsync(DURATE_CLIP_MS.scrive + 100);
+      const idle = regia.registro.find((e) => e.clip === 'idle');
+      expect(idle).toBeTruthy();
+      expect(idle.t).toBeGreaterThanOrEqual(700 + DURATE_CLIP_MS.scrive);
+      expect(testoIniziatoA).toBeLessThan(700 + DURATE_CLIP_MS.scrive);
+    }
+
+    // tonyfinto=lento: thinking a 0, 2375, 4750; scrive ~6000; idle non prima di 9583
+    {
+      vi.setSystemTime(0);
+      const regia = creaRegia('pensa');
+      regia.partiLista(scalettaClip('idle', 'pensa'));
+
+      let testoIniziatoA = null;
+      const p = chiediFinto({
+        domanda: 'cosa fa gfv?',
+        storia: [],
+        scenario: 'lento',
+        onPezzo: () => {
+          if (testoIniziatoA != null) return;
+          testoIniziatoA = Date.now();
+          regia.cambiaFase('scrive');
+        },
+      });
+
+      await vi.advanceTimersByTimeAsync(6000);
+      expect(testoIniziatoA).toBe(6000);
+      const thinkingT = regia.registro
+        .filter((e) => e.clip === 'thinking')
+        .map((e) => e.t);
+      expect(thinkingT).toEqual([0, 2375, 4750]);
+      expect(regia.registro.find((e) => e.clip === 'scrive').t).toBe(6000);
+
+      await vi.advanceTimersByTimeAsync(15000);
+      await p;
+      regia.cambiaFase('idle');
+      await vi.advanceTimersByTimeAsync(DURATE_CLIP_MS.scrive + 100);
+      const idle = regia.registro.find((e) => e.clip === 'idle');
+      expect(idle).toBeTruthy();
+      expect(idle.t).toBeGreaterThanOrEqual(9583);
+    }
+
+    // voce: scrive → parla passa subito a talking
+    {
+      vi.setSystemTime(0);
+      const regia = creaRegia('scrive');
+      regia.partiLista(['scrive']);
+      regia.cambiaFase('parla');
+      expect(regia.registro.some((e) => e.clip === 'talking' && e.t === 0)).toBe(
+        true
+      );
+    }
+
+    // R4: modulo aperto, Annulla a 1000 → idle a 1000, nessun scrive dopo
+    {
+      vi.setSystemTime(0);
+      const regia = creaRegia('modulo');
+      regia.partiLista(scalettaClip('idle', 'modulo'));
+      expect(regia.registro[0].clip).toBe('topicRegistrazione');
+
+      await vi.advanceTimersByTimeAsync(1000);
+      regia.cambiaFase('idle');
+      expect(regia.registro.some((e) => e.clip === 'idle' && e.t === 1000)).toBe(
+        true
+      );
+
+      await vi.advanceTimersByTimeAsync(5000);
+      expect(
+        regia.registro.filter((e) => e.clip === 'scrive' && e.t > 1000)
+      ).toHaveLength(0);
+    }
+
+    expect(CLIP_UNA_VOLTA).toContain('thinking');
+    vi.useRealTimers();
+  });
+});
+
+describe('B clip argomenti', () => {
+  it('chiavi durate percorsi', () => {
+    expect(CLIP_PER_ARGOMENTO.sede).toBe('topicSede');
+    expect(DURATE_CLIP_MS.topicSede).toBe(2792);
+    expect(DURATE_CLIP_MS.topicPoderi).toBe(2500);
+    expect(DURATE_CLIP_MS.topicTerreni).toBe(3042);
+    expect(CLIP_IN_LOOP).not.toContain('topicSede');
+    expect(scalettaArgomento('sede')).toEqual(['topicSede', 'idle']);
+    expect(scalettaArgomento('x')).toBeNull();
+    expect(percorsiClipArgomenti('webm', 'desktop').length).toBe(3);
+    expect(percorsoVoceFatto().mp3).toBe('/tony-live/voci/tony-fatto.mp3');
+  });
+});
+
+describe('A asset', () => {
+  it('18 clip + 2 voce', () => {
+    for (const [nome, byte, md5] of CLIP_A1) {
+      const p = path.join(TONY_LIVE, nome);
+      expect(fs.existsSync(p), nome).toBe(true);
+      expect(fs.statSync(p).size).toBe(byte);
+      expect(md5File(p)).toBe(md5);
+    }
+    const mp3 = path.join(TONY_LIVE, 'voci/tony-fatto.mp3');
+    const vtt = path.join(TONY_LIVE, 'voci/tony-fatto.vtt');
+    expect(fs.statSync(mp3).size).toBe(63572);
+    expect(md5File(mp3)).toBe('21db3cb5d0e97dfcc26d1e1a42085a08');
+    // Su Windows il .vtt può avere CRLF (96 byte) invece di LF (90).
+    const vttTesto = fs.readFileSync(vtt, 'utf8').replace(/\r\n/g, '\n');
+    expect([90, 96]).toContain(fs.statSync(vtt).size);
+    expect(vttTesto).toMatch(
+      /Fatto! Per 7 giorni ti guido anche dentro l'app\./
+    );
+    expect(fs.existsSync(path.join(TONY_LIVE, 'voci/tony-fatto.wav'))).toBe(false);
+  });
+});
+
+describe('D file generato', () => {
+  it('uguale a generaTesto e parità controlli', async () => {
+    const core = leggi('functions/lib/tony-landing-setup-core.js');
+    const colture = leggi('functions/config/colture-predefinite.js');
+    const generato = leggi('landing/src/lib/generati/tony-landing-setup-core.js');
+    expect(generato.replace(/\r\n/g, '\n')).toBe(
+      generaTesto(core, colture).replace(/\r\n/g, '\n')
+    );
+    expect(generato).not.toMatch(/\brequire\b/);
+    expect(generato).not.toMatch(/firebase/);
+    expect(generato).not.toMatch(/admin/);
+    expect(generato).not.toMatch(/process\.env/);
+
+    const es = await import('../../landing/src/lib/generati/tony-landing-setup-core.js');
+    const casi = [
+      { requestId: 'abcdefgh', sede: null, poderi: [], terreni: [] },
+      {
+        requestId: 'abcdefgh',
+        sede: { indirizzo: 'Via Roma 1', citta: 'Faenza', cap: '48018', provincia: 'RA' },
+        poderi: [],
+        terreni: [],
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: { indirizzo: 'Via', citta: 'Faenza', cap: '48', provincia: 'RA' },
+        poderi: [],
+        terreni: [],
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: { indirizzo: 'Via Roma 1', citta: 'Faenza', cap: '48018', provincia: 'ra' },
+        poderi: [],
+        terreni: [],
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: null,
+        poderi: [],
+        terreni: [{ nome: 'Campo', superficie: '2,34', coltura: 'Grano', podere: null }],
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: null,
+        poderi: [],
+        terreni: [{ nome: 'Campo', superficie: 0, coltura: 'Grano', podere: null }],
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: null,
+        poderi: [],
+        terreni: [{ nome: 'Campo', superficie: 1001, coltura: 'Grano', podere: null }],
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: null,
+        poderi: [],
+        terreni: [{ nome: 'Campo', superficie: 2.345, coltura: 'Grano', podere: null }],
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: null,
+        poderi: [],
+        terreni: Array.from({ length: 6 }, (_, i) => ({
+          nome: 'T' + i,
+          superficie: 1,
+          coltura: 'Grano',
+          podere: null,
+        })),
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: null,
+        poderi: [{ nome: 'A' }, { nome: 'a' }],
+        terreni: [],
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: null,
+        poderi: [],
+        terreni: [{ nome: 'Campo', superficie: 1, coltura: 'mele', podere: null }],
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: null,
+        poderi: [],
+        terreni: [{ nome: 'Campo', superficie: 1, coltura: 'seminativo', podere: null }],
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: null,
+        poderi: [],
+        terreni: [{ nome: 'Campo', superficie: 1, coltura: 'Grano', podere: 'Inesistente' }],
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: null,
+        poderi: [],
+        terreni: [],
+        tenantId: 'x',
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: null,
+        poderi: [],
+        terreni: [],
+        piva: '1',
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: null,
+        poderi: [],
+        terreni: [{ nome: 'Campo', superficie: 1, coltura: 'Grano', podere: null, confini: {} }],
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: null,
+        poderi: [],
+        terreni: [{ nome: 'Campo', ettari: 1, coltura: 'Grano', podere: null }],
+      },
+      { requestId: 'abc', sede: null, poderi: [], terreni: [] },
+      {
+        requestId: 'abcdefgh',
+        sede: null,
+        poderi: [{ nome: 'Casetti' }],
+        terreni: [],
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: { indirizzo: 'Via Roma 1', citta: 'Faenza', cap: '48018', provincia: 'RA' },
+        poderi: [{ nome: 'Casetti' }],
+        terreni: [
+          { nome: 'Campo grande', superficie: 2.34, coltura: 'Grano', podere: 'Casetti' },
+        ],
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: null,
+        poderi: [],
+        terreni: [{ nome: 'Campo', superficie: 1, coltura: 'Melo', podere: null }],
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: null,
+        poderi: [],
+        terreni: [{ nome: 'Campo', superficie: 1, coltura: null, podere: null }],
+      },
+      {
+        requestId: 'abcdefgh-ijkl',
+        sede: { indirizzo: 'Via Lunga 10', citta: 'Bologna', cap: '40121', provincia: 'BO' },
+        poderi: [],
+        terreni: [],
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: null,
+        poderi: [{ nome: 'Nord' }, { nome: 'Sud' }],
+        terreni: [
+          { nome: 'A', superficie: 1, coltura: 'Mais', podere: 'Nord' },
+          { nome: 'B', superficie: 2, coltura: 'Orzo', podere: null },
+        ],
+      },
+      {
+        requestId: 'abcdefgh',
+        sede: null,
+        poderi: [],
+        terreni: [{ nome: 'X', superficie: 0.01, coltura: 'Grano', podere: null }],
+      },
+    ];
+    expect(casi.length).toBeGreaterThanOrEqual(25);
+    for (const c of casi) {
+      const a = coreCjs.validaRichiestaSetup(c);
+      const b = es.validaRichiestaSetup(c);
+      expect(b.ok).toBe(a.ok);
+      if (a.ok) {
+        const ra = coreCjs.risolviControAzienda(a.richiesta, {
+          poderi: [],
+          terreni: [],
+          coltureAzienda: [],
+        });
+        const rb = es.risolviControAzienda(b.richiesta, {
+          poderi: [],
+          terreni: [],
+          coltureAzienda: [],
+        });
+        expect(rb.ok).toBe(ra.ok);
+      } else {
+        expect(b.motivo || b.codice).toBe(a.motivo || a.codice);
+      }
+    }
+  });
+});
+
+describe('E aiuto puro', () => {
+  it('passi unisci numero payload', () => {
+    expect(PASSI_AIUTO).toEqual(['sede', 'poderi', 'terreni']);
+    expect(prossimoPasso('sede')).toBe('poderi');
+    expect(prossimoPasso('terreni')).toBeNull();
+    expect(numeroDaTesto('2,34')).toBe(2.34);
+    expect(numeroDaTesto('x')).toBeNull();
+    const u = unisciDati(
+      { sede: null, poderi: [], terreni: [] },
+      { sede: { indirizzo: 'Via', citta: 'Faenza', cap: '48018', provincia: 'RA' } },
+      'sede'
+    );
+    expect(u.dati.sede.citta).toBe('Faenza');
+    const UUID =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+    const id1 = nuovoRequestId();
+    const id2 = nuovoRequestId();
+    expect(id1).not.toBe(id2);
+    expect(id1).toMatch(UUID);
+    expect(id2).toMatch(UUID);
+    const realCrypto = globalThis.crypto;
+    vi.stubGlobal('crypto', { randomUUID: undefined });
+    const id3 = nuovoRequestId();
+    const id4 = nuovoRequestId();
+    expect(id3).not.toBe(id4);
+    vi.stubGlobal('crypto', realCrypto);
+    const schedaSrc = leggi('landing/src/components/TonySchedaConferma.vue');
+    expect(schedaSrc).toMatch(/const requestId = ref\(nuovoRequestId\(\)\)/);
+    const onSalva = schedaSrc.slice(schedaSrc.indexOf('async function onSalva'));
+    expect(onSalva).not.toMatch(/nuovoRequestId\(/);
+    const payload = payloadDaScheda(
+      {
+        sede: { indirizzo: 'Via 1', citta: 'Faenza', cap: '', provincia: '' },
+        poderi: [{ nome: 'Casetti' }],
+        terreni: [{ nome: 'Campo', superficie: '2,34', coltura: 'Grano', podere: 'Casetti' }],
+      },
+      id1
+    );
+    expect(payload.terreni[0].superficie).toBe(2.34);
+    const check = controllaScheda(payload);
+    expect(check.ok).toBe(true);
+    expect(esitoSalvataggio({ giaSalvato: true }).ok).toBe(true);
+
+    const err = testiLanding.tonyBussa.aiuto.errori;
+    expect(messaggioErroreSetup({ motivo: 'non-collegato' })).toBe(err.nonCollegato);
+    expect(messaggioErroreSetup({ motivo: 'unauthenticated' })).toBe(err.nonCollegato);
+    expect(messaggioErroreSetup({ motivo: 'app-check' })).toBe(err.appCheck);
+    expect(messaggioErroreSetup({ motivo: 'failed-precondition' })).toBe(err.appCheck);
+    expect(messaggioErroreSetup({ motivo: 'troppe-chiamate' })).toBe(err.troppeChiamate);
+    expect(messaggioErroreSetup({ motivo: 'resource-exhausted' })).toBe(err.troppeChiamate);
+    expect(messaggioErroreSetup({ motivo: 'dati-non-validi' })).toBe(err.datiNonValidi);
+    expect(messaggioErroreSetup({ motivo: 'invalid-argument' })).toBe(err.datiNonValidi);
+    expect(messaggioErroreSetup({ motivo: 'niente-da-salvare' })).toBe(err.nienteDaSalvare);
+    const senzaAz = messaggioErroreSetup(
+      { motivo: 'senza-azienda' },
+      { email: 'mario@example.com' }
+    );
+    expect(senzaAz).toBe(
+      err.senzaAzienda + ' ' + err.contatto.replace('{email}', EMAIL_CONTATTO)
+    );
+    expect(senzaAz).toContain('info@globalfarmview.net');
+    expect(senzaAz).not.toContain('mario@example.com');
+    expect(
+      messaggioErroreSetup({ motivo: 'non-autorizzato' }, { email: 'mario@example.com' })
+    ).not.toContain('mario@example.com');
+    expect(
+      messaggioErroreSetup({
+        motivo: 'limite-terreni',
+        dettagli: { esistenti: 3, limite: 5 },
+      })
+    ).toBe(
+      err.limiteTerreni.replace('{esistenti}', '3').replace('{rimasti}', '2')
+    );
+    expect(messaggioErroreSetup({ motivo: 'limite-terreni' })).toMatch(/Ne hai già 0/);
+    expect(messaggioErroreSetup({ motivo: 'gia-preparato' })).toBe(err.giaPreparato);
+    expect(messaggioErroreSetup({ motivo: 'already-exists' })).toBe(err.giaPreparato);
+    expect(messaggioErroreSetup({ motivo: 'rete' })).toBe(err.rete);
+    expect(messaggioErroreSetup({ motivo: 'unavailable' })).toBe(err.rete);
+    expect(messaggioErroreSetup({ motivo: 'codice-strano' })).toBe(err.rete);
+  });
+});
+
+describe('G client logica', () => {
+  it('corpoRichiesta e azione account', () => {
+    expect(Object.keys(corpoRichiesta({ domanda: 'a', sessione: 'b'.repeat(16), storia: [] }))).toEqual([
+      'domanda',
+      'sessione',
+      'storia',
+    ]);
+    expect(
+      Object.keys(
+        corpoRichiesta({
+          domanda: 'a',
+          sessione: 'b'.repeat(16),
+          storia: [],
+          fase: 'account',
+          argomento: 'sede',
+        })
+      ).sort()
+    ).toEqual(['argomento', 'domanda', 'fase', 'sessione', 'storia']);
+    const az = azionePerEsito({ codice: 'limite-account', fase: 'account' });
+    expect(az.tipo).toBe('aiuto-sospeso');
+    expect(MESSAGGI_CHAT.limiteAccount).toBeTruthy();
+    expect(MESSAGGI_CHAT.accessoMancante).toBeTruthy();
+  });
+});
+
+describe('Isolamento e testi', () => {
+  it('niente firebase/tonyfinto nei file nuovi', () => {
+    const files = [
+      'landing/src/components/TonyChat.vue',
+      'landing/src/lib/tony-chat-client.js',
+      'landing/src/lib/tony-chat-logica.js',
+      'landing/src/lib/tony-chat-finto.js',
+      'landing/src/lib/tony-clip-player.js',
+      'landing/src/components/TonySchedaConferma.vue',
+      'landing/src/lib/tony-aiuto-account.js',
+    ];
+    for (const f of files) {
+      const t = leggi(f);
+      if (f.endsWith('tony-chat-finto.js')) continue;
+      expect(t, f).not.toMatch(/firebase-landing/);
+      if (!f.endsWith('TonyChat.vue')) {
+        expect(t, f).not.toMatch(/tonyfinto|tonyaiuto|tonysetup/);
+      }
+    }
+    const setupFinto = leggi('landing/src/lib/tony-setup-finto.js');
+    expect(setupFinto).not.toMatch(/localStorage|sessionStorage/);
+    expect(setupFinto).not.toMatch(/console\./);
+    const aiuto = leggi('landing/src/lib/tony-aiuto-account.js');
+    expect(aiuto).not.toMatch(/localStorage|sessionStorage|console\./);
+  });
+
+  it('testi J parola per parola', () => {
+    const a = testiLanding.tonyBussa.aiuto;
+    expect(a.invito).toBe(
+      'Vuoi che ti aiuti a preparare l\'azienda? Ti faccio tre domande: sede legale, poderi e terreni. Puoi saltarne una con "Dopo".'
+    );
+    expect(a.fatto).toBe("Fatto! Per 7 giorni ti guido anche dentro l'app.");
+    expect(a.domandaSede).toMatch(/sede legale/);
+    expect(a.errori.nonCollegato).toBe('Prima crea il tuo account, poi salviamo i dati.');
+  });
+});

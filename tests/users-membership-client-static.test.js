@@ -29,6 +29,7 @@ function walk(dir, out = []) {
 const ALLOWLIST = [
   // Registrazione nuova azienda: unica create client con ruoli+tenantId+membership
   path.normalize('core/auth/registrazione-standalone.html'),
+  path.normalize('core/services/registrazione-titolare-core.js'),
   // Messaggi / errori disabilitati (non eseguono più scritture autorizzative)
   path.normalize('core/admin/fix-utente-mancante.html'),
   path.normalize('core/services/auth-service.js'),
@@ -89,9 +90,11 @@ describe('client static — no auth field writes (allowlist)', () => {
 
   it('registrazione-standalone crea membership e non ripiega su updateDoc ruoli/tenantId', () => {
     const html = read('core/auth/registrazione-standalone.html');
-    expect(html).toMatch(/tenantMemberships/);
-    expect(html).toMatch(/Esiste già un profilo/);
+    const core = read('core/services/registrazione-titolare-core.js');
+    const insieme = html + '\n' + core;
+    expect(insieme).toMatch(/tenantMemberships/);
+    expect(insieme).toMatch(/Esiste già un profilo/);
     expect(html).not.toMatch(/riprovo con updateDoc/);
-    expect(html).not.toMatch(/deleteDoc\(doc\(db,\s*'users'/);
+    expect(insieme).not.toMatch(/deleteDoc\(doc\(db,\s*'users'/);
   });
 });

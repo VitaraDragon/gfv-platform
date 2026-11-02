@@ -36,6 +36,8 @@ const MODULI = [
   'core/services/tipi-lavoro-service.js',
   'core/services/zone-lavorate-area.js',
   'core/services/zone-lavorate-permessi.js',
+  'core/services/registrazione-titolare-core.js',
+  'core/js/login-email-precompilata.js',
   'modules/seminativo/services/seminativi-service.js',
   'modules/vendemmia-meccanica/js/vm-zone-mappa.js',
   'modules/vendemmia-meccanica/services/lavoro-piano-sync-service.js',

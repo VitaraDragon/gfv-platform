@@ -1,0 +1,62 @@
+{
+  "templateId": "lab-trimestre-full",
+  "descrizione": "Tre mesi (~66 giorni lavorativi): vigneto, frutteto, seminativo, vendemmia, conto terzi, manodopera, parco, magazzino, meteo e carburante (carico cisterna e pieno mezzo).",
+  "extends": "lab-mese-04-mista-full",
+  "scenarioTrimestre": true,
+  "moduli": [
+    "vigneto",
+    "frutteto",
+    "seminativo",
+    "parcoMacchine",
+    "magazzino",
+    "manodopera",
+    "contoTerzi",
+    "vendemmiaMeccanica",
+    "meteo",
+    "report",
+    "tony"
+  ],
+  "quantities": {
+    "terreni": 6,
+    "terreniVigneto": 3,
+    "terreniFrutteto": 3,
+    "vigneti": 3,
+    "frutteti": 3,
+    "trattori": 3,
+    "attrezzi": 6,
+    "flotta": 4,
+    "prodotti": 10,
+    "attivitaGiorniLavorativi": 66,
+    "caposquadra": 2,
+    "operai": 8,
+    "squadre": 2,
+    "lavoriSquadra": 4,
+    "lavoriAutonomi": 3,
+    "giorniOreSimulate": 66,
+    "clienti": 4,
+    "poderiClienti": 4,
+    "terreniClienti": 8,
+    "tariffe": 12,
+    "preventivi": 8,
+    "guasti": 8
+  },
+  "attivita": {
+    "scenarioMese": true,
+    "scenarioTrimestre": true,
+    "tipiLavoro": ["Potatura", "Trattamento", "Erpicatura", "Concimazione", "Controllo fitosanitario"]
+  },
+  "manodopera": {
+    "regimeMax": true,
+    "scenarioMese": true,
+    "comunicazioniSquadra": true,
+    "confermeOperai": true,
+    "assenzaMalattia": true,
+    "standbyAssenzaMalattia": true,
+    "oreDaValidarePending": 3,
+    "assenzeTrimestre": true
+  },
+  "magazzino": {
+    "lasciaStubTrattamentiIncompleti": 1,
+    "seedCarichiMese": 18
+  }
+}

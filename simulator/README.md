@@ -59,6 +59,13 @@ npm run sim:run:sostituzioni-lab
 # Playbook: simulator/PLAYBOOK_MESE_AZIENDE.md
 npm run sim:run:mese-aziende
 
+# Lab trimestre — una azienda mista, ~66 giorni lavorativi (3 lug–2 ott)
+# Vigneto, frutteto, seminativo, vendemmia meccanica, manodopera, assenze, guasti,
+# conto terzi, carburante (carico cisterna + pieno mezzo, come su main).
+# Template: simulator/templates/lab-trimestre-full.json
+# Fase: simulator/phases/10-simulate-trimestre.js
+npm run sim:run:trimestre
+
 # Canary E2E flusso completo sostituzione (Playwright, 14 check) — richiede emulator + npm start
 # + seed: npm run sim:run -- --template=viticola-conto-terzi-manodopera
 npm run manodopera:sostituzione-canary
@@ -128,7 +135,7 @@ Pagina dev aziende simulate:
 - **Entra (dashboard)** — auto-login emulator (non redirect al login)
 - Link rapidi raggruppati per modulo (dopo **Entra** su ogni card):
   - **Core:** Terreni, Attività
-  - **Magazzino:** home, Prodotti, Movimenti, Tracciabilità
+  - **Magazzino:** home, Prodotti, Movimenti, Tracciabilità. Sul template `lab-trimestre-full` anche l’hub **Carburante** (`modules/magazzino/views/carburante-home-standalone.html?emulator=1`): gasolio, benzina e AdBlue, carichi cisterna e pieni mezzo
   - **Parco macchine:** dashboard, Scadenze, Trattori, Attrezzi, Flotta, Guasti
   - **Vigneto:** dashboard, Vigneti, Potatura, Trattamenti, Concimazioni
   - **Conto terzi** (solo template `*conto-terzi*`): home, Clienti, Tariffe, Preventivi, Terreni clienti, Mappa clienti
