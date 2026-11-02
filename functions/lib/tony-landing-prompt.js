@@ -13,7 +13,7 @@ const FRASE_TRATTAMENTI =
   "È una funzione su cui stiamo lavorando: per ora non te la posso presentare.";
 
 /**
- * Dodici regole di Tony sulla landing (una stringa per regola).
+ * Regole di Tony sulla landing (una stringa per regola).
  * Le parole tecniche vietate non sono scritte per intero.
  */
 const REGOLE_TONY_LANDING = Object.freeze([

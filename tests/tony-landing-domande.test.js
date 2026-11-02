@@ -23,7 +23,8 @@ const {
 const {
   FRASE_TRATTAMENTI,
   REGOLE_TONY_LANDING,
-  PROMPT_SISTEMA_LANDING
+  PROMPT_SISTEMA_LANDING,
+  istruzioneNomeServizioDaStoria
 } = require('../functions/lib/tony-landing-prompt.js');
 const { DATI_KB, TESTO_KB } = require('../functions/config/tony-landing-kb.js');
 
@@ -1014,7 +1015,9 @@ describe('41 domande di prova (modello simulato)', () => {
       } else {
         expect(chiamaGemini).toHaveBeenCalledTimes(1);
         const corpo = corpi[0];
-        expect(corpo.systemInstruction.parts[0].text).toBe(PROMPT_SISTEMA_LANDING);
+        expect(corpo.systemInstruction.parts[0].text).toBe(
+          PROMPT_SISTEMA_LANDING + '\n' + istruzioneNomeServizioDaStoria([])
+        );
         expect(corpo.tools).toBeUndefined();
         expect(corpo.toolConfig).toBeUndefined();
         expect(corpo.functionDeclarations).toBeUndefined();
@@ -1088,7 +1091,15 @@ describe('41 domande di prova (modello simulato)', () => {
     });
     expect(contents[2].role).toBe('user');
     expect(contents[2].parts[0].text).toBe(riga.domanda);
-    expect(corpi[0].systemInstruction.parts[0].text).toBe(PROMPT_SISTEMA_LANDING);
+    // Storia senza «Global Farm View»: resta l'istruzione al nome lungo.
+    expect(corpi[0].systemInstruction.parts[0].text).toBe(
+      PROMPT_SISTEMA_LANDING +
+        '\n' +
+        istruzioneNomeServizioDaStoria([
+          { ruolo: 'utente', testo: 'Ciao Tony' },
+          { ruolo: 'tony', testo: 'Ciao, sono Tony di GFV.' }
+        ])
+    );
   });
 });
 

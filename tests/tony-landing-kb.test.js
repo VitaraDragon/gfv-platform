@@ -290,7 +290,7 @@ describe('5 — Parole vietate e frasi pericolose', () => {
 });
 
 describe('6 — Regole nel prompt', () => {
-  it('contiene pezzi obbligatori, KB, 12 regole, sotto 9000 caratteri', () => {
+  it('contiene pezzi obbligatori, KB, 14 regole, sotto 10000 caratteri', () => {
     const p = PROMPT_SISTEMA_LANDING;
     const low = p.toLowerCase();
     expect(p).toContain(FRASE_TRATTAMENTI);
@@ -316,12 +316,14 @@ describe('6 — Regole nel prompt', () => {
     expect(low).toContain('solo se ti chiedono i limiti');
     expect(low).toContain('prima persona');
     expect(low).toContain('non dire cifre mensili');
+    expect(low).toContain('contesto del visitatore');
+    expect(p).toMatch(/Non dire mai «GFV Platform»/);
     expect(p).not.toContain('circa 5 € al mese');
     expect(p).not.toContain('al mese)');
     expect(p).toContain(kb.TESTO_KB);
     expect(p).toContain(kb.ELENCO_MODULI_KB);
-    expect(REGOLE_TONY_LANDING).toHaveLength(13);
-    expect(p.length).toBeLessThan(9500);
+    expect(REGOLE_TONY_LANDING).toHaveLength(14);
+    expect(p.length).toBeLessThan(10000);
   });
 });
 
@@ -355,7 +357,9 @@ describe('8 — Collegamento con la funzione', () => {
   it('tony-landing-ask usa PROMPT_SISTEMA_LANDING e non più il provvisorio', () => {
     const t = leggiTesto('functions/tony-landing-ask.js');
     expect(t).toContain('require("./lib/tony-landing-prompt")');
-    expect(t).toContain('promptSistema: PROMPT_SISTEMA_LANDING');
+    expect(t).toContain('PROMPT_SISTEMA_LANDING');
+    expect(t).toContain('istruzioneNomeServizioDaStoria');
+    expect(t).toMatch(/promptSistema:\s*promptConNome/);
     expect(t).not.toContain('PROMPT_SISTEMA_PROVVISORIO');
   });
 });
