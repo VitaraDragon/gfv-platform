@@ -783,13 +783,20 @@ function saluta() {
   if (fase.value === 'esce') return;
   if (invioInCorso.value) return;
   segnaInterazioneUtente();
+  // Dopo «Saluta Tony» non bussare più da solo (stessa persistenza della rinuncia).
+  salvaRinunciaAvviso();
   const prima = fase.value;
   const dopo = prossimoStato(prima, 'saluta');
   pulisciTempo();
   fermaSaluto();
   fermaAudio();
   try {
-    navigator.vibrate(0);
+    if (
+      !navigator.userActivation ||
+      navigator.userActivation.hasBeenActive === true
+    ) {
+      navigator.vibrate(0);
+    }
   } catch {
     /* niente vibrazione da fermare */
   }
@@ -907,38 +914,30 @@ function onUscitaFinita() {
 function vaiEntrata() {
   if (fase.value !== 'bussa') return;
   fase.value = prossimoStato('bussa', 'bussataFinita');
-  riproduci(audioWhoosh);
 }
 
 function vaiStatico() {
   if (fase.value !== 'bussa' && fase.value !== 'entra') return;
   fase.value = prossimoStato(fase.value, 'clipNonPronta');
-  riproduci(audioWhoosh);
 }
 
 function provaEntrata(inizio: number, staticoMs: number) {
   if (fase.value !== 'bussa') return;
-  if (clipPronta(videoEntryPreload)) {
-    vaiEntrata();
-    return;
-  }
-  riproduci(audioTerzo);
-  const id = window.setInterval(() => {
-    if (fase.value !== 'bussa') {
-      window.clearInterval(id);
-      return;
-    }
+  if (clipPronta(videoEntryPreload) || clipPronta(videoIdlePreload)) {
     if (clipPronta(videoEntryPreload)) {
-      window.clearInterval(id);
       vaiEntrata();
       return;
     }
-    if (Date.now() - inizio >= staticoMs) {
-      window.clearInterval(id);
-      vaiStatico();
-    }
-  }, 100);
-  intervalli.push(id);
+    // Idle pronta ma entry no: salta all'idle senza aspettare altri secondi.
+    fase.value = prossimoStato('bussa', 'bussataFinita');
+    fase.value = prossimoStato('entra', 'entrataFinita');
+    return;
+  }
+  // Clip non pronte: mostra subito il fotogramma statico (niente attesa fino a staticoMs).
+  riproduci(audioTerzo);
+  vaiStatico();
+  void inizio;
+  void staticoMs;
 }
 
 function attendiIdle(inizio: number, staticoMs: number) {
@@ -1004,6 +1003,10 @@ function partiCronometro() {
   ) {
     alTempo(inizio, tempi.vibrazioneMs, () => {
       try {
+        // Solo dopo un gesto utente (altrimenti Chrome blocca e logga in console).
+        if (navigator.userActivation && navigator.userActivation.hasBeenActive !== true) {
+          return;
+        }
         navigator.vibrate(SCHEMA_VIBRAZIONE);
       } catch {
         /* iPhone, o il browser ha rifiutato */
@@ -1042,6 +1045,15 @@ function onVuoiProvare(ev: MouseEvent) {
   }
   fase.value = prossimoStato('nascosto', 'apri');
   avvisoAperto.value = true;
+}
+
+/** Pillola «Parla con Tony»: ripristina se ridotto, altrimenti riapre la scena. */
+function onRiapriTony(ev: MouseEvent) {
+  if (stageAperto.value && tonyRidotto.value) {
+    tonyRidotto.value = false;
+    return;
+  }
+  onVuoiProvare(ev);
 }
 
 function onConferma(payload: { audio?: boolean }) {
@@ -1516,10 +1528,10 @@ const iconeModuliImg: Record<string, string> = {
       @rinuncia="onRinuncia"
     />
     <button
-      v-if="tonyOn && stageAperto && tonyRidotto"
+      v-if="tonyOn && !avvisoAperto && (!stageAperto || tonyRidotto)"
       type="button"
       class="tony-btn-riapri"
-      @click="tonyRidotto = false"
+      @click="onRiapriTony"
     >
       {{ t.tonyBussa.ripristina }}
     </button>
@@ -1558,12 +1570,13 @@ const iconeModuliImg: Record<string, string> = {
 </template>
 
 <style scoped>
+/* Il pannello Tony è position:fixed (sovrapposto): non restringere la pagina. */
 .landing-pagina--tony {
-  padding-bottom: calc(var(--tony-altezza, 85vh) + 1rem);
+  padding-bottom: calc(var(--tony-altezza, 45dvh) + 1rem);
 }
 
 .landing-pagina--tony-desktop {
-  padding-right: calc(var(--tony-ingombro, 600px) + 16px);
+  padding-right: 0;
 }
 
 .landing-pagina--tony-basso {
@@ -1611,6 +1624,7 @@ const iconeModuliImg: Record<string, string> = {
   --line: rgba(15, 77, 50, 0.12);
 
   min-height: 100vh;
+  overflow-x: hidden;
   color: var(--ink);
   background:
     radial-gradient(ellipse 90% 50% at 10% -10%, rgba(21, 128, 80, 0.12), transparent 55%),

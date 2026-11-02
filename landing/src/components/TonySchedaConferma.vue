@@ -144,7 +144,16 @@ function togliPodere(i: number) {
 
 function aggiungiTerreno() {
   if (terreni.value.length >= 5) return;
-  terreni.value.push({ nome: '', superficie: '', coltura: '', podere: '' });
+  const nomiPoderi = poderi.value
+    .map((p) => String(p.nome || '').trim())
+    .filter(Boolean);
+  const podereUnico = nomiPoderi.length === 1 ? nomiPoderi[0] : '';
+  terreni.value.push({
+    nome: '',
+    superficie: '',
+    coltura: '',
+    podere: podereUnico,
+  });
 }
 
 function togliTerreno(i: number) {
@@ -156,7 +165,12 @@ function togliTerreno(i: number) {
 
 function onTorna() {
   if (inInvio.value) return;
-  emit('torna-chat');
+  const payload = payloadCorrente();
+  emit('torna-chat', {
+    sede: payload.sede ?? null,
+    poderi: Array.isArray(payload.poderi) ? payload.poderi : [],
+    terreni: Array.isArray(payload.terreni) ? payload.terreni : [],
+  });
 }
 
 function onEsc(e: KeyboardEvent) {
@@ -456,6 +470,7 @@ async function onSalva() {
       >
         +
       </button>
+      <p v-if="terreni.length < 5" class="suggerimento-piu">{{ t.suggerimentoPiu }}</p>
     </section>
 
     <p v-if="erroreGenerale" class="err-gen" role="alert">{{ erroreGenerale }}</p>
@@ -509,6 +524,12 @@ async function onSalva() {
 .blocco h3 {
   margin: 0.2rem 0 0;
   font-size: 0.95rem;
+}
+.suggerimento-piu {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  color: #5a6b58;
 }
 .campo {
   display: flex;

@@ -832,7 +832,9 @@ async function handleFaseAccount(req, res, ctx) {
     }
 
     if (esitoGemini.testo) testoGrezzo = esitoGemini.testo;
-    const pulita = rispostaAccountDaTesto(testoGrezzo);
+    const pulita = rispostaAccountDaTesto(testoGrezzo, {
+      raccolti: validata.raccolti
+    });
     if (pulita.dati) {
       pulita.dati = applicaSuperficieDaDomanda(domanda, pulita.dati);
     }

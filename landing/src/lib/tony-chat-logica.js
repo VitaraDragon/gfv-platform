@@ -168,7 +168,8 @@ export function corpoRichiestaVoce({ idVoce, sessione, testo }) {
  *   altoparlante: boolean,
  *   risposteVocaliAutomatiche: number,
  *   riduciMovimento?: boolean,
- *   paginaNascosta?: boolean
+ *   paginaNascosta?: boolean,
+ *   faseAccount?: boolean
  * }} args
  * @returns {'automatica' | 'pulsante' | 'nessuna'}
  */
@@ -177,6 +178,7 @@ export function modoVoce({
   altoparlante,
   risposteVocaliAutomatiche,
   paginaNascosta,
+  faseAccount,
 }) {
   const e = esito && typeof esito === 'object' ? esito : {};
   const idVoce = typeof e.idVoce === 'string' ? e.idVoce : '';
@@ -192,7 +194,8 @@ export function modoVoce({
   if (
     altoparlante === true &&
     paginaNascosta !== true &&
-    (typeof risposteVocaliAutomatiche !== 'number' ||
+    (faseAccount === true ||
+      typeof risposteVocaliAutomatiche !== 'number' ||
       risposteVocaliAutomatiche < MAX_RISPOSTE_VOCE_AUTOMATICHE)
   ) {
     return 'automatica';

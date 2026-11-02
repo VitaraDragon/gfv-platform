@@ -341,12 +341,15 @@ export function decidiDopoRisposta(opts) {
   const rimaste =
     typeof o.domandeRimaste === 'number' ? o.domandeRimaste : Number.POSITIVE_INFINITY;
   const passo = typeof o.passo === 'string' ? o.passo : '';
+  const giaLimiteDomande = o.giaRiaperturaLimiteDomande === true;
 
-  if (rimaste <= 3) {
+  // Riapri per domande rimaste ≤ 3 una sola volta (non a ogni turno).
+  if (rimaste <= 3 && !giaLimiteDomande) {
     return {
       azione: 'riepilogo',
       apriRiepilogo: true,
       messaggio: MESSAGGIO_RIEPILOGO,
+      perLimiteDomande: true,
     };
   }
 

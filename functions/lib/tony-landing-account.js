@@ -103,12 +103,77 @@ function raccoltiDaOpzioni(opzioni) {
 }
 
 /**
+ * Legge i nomi podere dalla riga «Poderi: a, b» di serializzaRaccolti.
+ * @param {string} raccolti
+ * @returns {Array<{ nome: string }>}
+ */
+function poderiDaRaccolti(raccolti) {
+  const s = String(raccolti || "");
+  const m = s.match(/(?:^|\n)Poderi:\s*(.+?)(?:\n|$)/i);
+  if (!m) return [];
+  return String(m[1])
+    .split(",")
+    .map(function (p) {
+      return String(p || "").trim();
+    })
+    .filter(Boolean)
+    .map(function (nome) {
+      return { nome: nome };
+    });
+}
+
+/**
+ * Unisce poderi di risposta e da raccolti (per nome, senza doppioni).
+ * @param {Array<{ nome?: string }>} daRisposta
+ * @param {Array<{ nome?: string }>} daRaccolti
+ * @returns {Array<{ nome: string }>}
+ */
+function unisciPoderi(daRisposta, daRaccolti) {
+  const out = [];
+  const visti = Object.create(null);
+  function aggiungi(lista) {
+    const arr = Array.isArray(lista) ? lista : [];
+    for (let i = 0; i < arr.length; i++) {
+      const nome =
+        arr[i] && arr[i].nome != null ? String(arr[i].nome).trim() : "";
+      if (!nome) continue;
+      const k = chiaveNome(nome);
+      if (!k || visti[k]) continue;
+      visti[k] = true;
+      out.push({ nome: nome });
+    }
+  }
+  aggiungi(daRisposta);
+  aggiungi(daRaccolti);
+  return out;
+}
+
+/**
+ * Toglie dal testo una frase che chiede in quale podere (solo con ≤1 podere).
+ * @param {string} testo
+ * @returns {string}
+ */
+function togliDomandaPodere(testo) {
+  let s = String(testo || "").trim();
+  if (!s) return s;
+  const pezzi = s.split(/(?<=[.!?])\s+/);
+  const filtrati = pezzi.filter(function (p) {
+    return !/\b(in|a)?\s*(quale|che)\s+podere\b/i.test(p);
+  });
+  s = filtrati.join(" ").trim();
+  if (!s) s = "Ne hai altri o vediamo il riepilogo?";
+  return s;
+}
+
+/**
  * @param {string} argomento
  * @param {string|{ raccolti?: string }} [opzioni]
  * @returns {string}
  */
 function promptSistemaAccount(argomento, opzioni) {
   const arg = String(argomento || "");
+  const raccolti = raccoltiDaOpzioni(opzioni);
+  const poderiNoti = poderiDaRaccolti(raccolti);
   const regoleAiuto = [
     "Aiuto all'account. Aiuti solo a dire sede legale (via, comune, CAP, provincia), poderi (nomi) e terreni (nome, superficie in ha, coltura). L'argomento di adesso è «" +
       arg +
@@ -130,12 +195,20 @@ function promptSistemaAccount(argomento, opzioni) {
     "Non dire mai di aver salvato o registrato; alla fine dire «Ecco il riepilogo: controlla e conferma».",
     "Rispondi solo con il JSON dello schema; frasi brevi in testo."
   ];
+  if (poderiNoti.length === 1) {
+    regoleAiuto.push(
+      "C'è un solo podere, «" +
+        poderiNoti[0].nome +
+        "»: ogni terreno va lì. Non chiedere MAI in quale podere."
+    );
+  } else if (poderiNoti.length === 0) {
+    regoleAiuto.push("Nessun podere: non chiedere il podere.");
+  }
   const regole = regoleTenute().concat(regoleAiuto);
   let kb =
     String(TESTO_KB || "") +
     "\n\nELENCO COLTURE AMMESSE:\n" +
     elencoNomiColture();
-  const raccolti = raccoltiDaOpzioni(opzioni);
   if (raccolti) {
     kb += "\n\nDATI GIÀ RACCOLTI (non richiederli):\n" + raccolti;
   }
@@ -398,9 +471,10 @@ function correggiUnoNelTesto(testo) {
 
 /**
  * @param {string} testoJson
+ * @param {{ raccolti?: string }} [opzioni]
  * @returns {{ testo: string, dati: object|null, troppiTerreni?: boolean, fuoriTema?: boolean }}
  */
-function rispostaAccountDaTesto(testoJson) {
+function rispostaAccountDaTesto(testoJson, opzioni) {
   let parsed = null;
   try {
     parsed = JSON.parse(String(testoJson || ""));
@@ -419,9 +493,14 @@ function rispostaAccountDaTesto(testoJson) {
   }
 
   const sede = pulisciSede(parsed.sede);
-  const poderi = pulisciPoderi(parsed.poderi);
+  const poderiRisposta = pulisciPoderi(parsed.poderi);
+  const raccolti = raccoltiDaOpzioni(opzioni);
+  const poderi = unisciPoderi(poderiRisposta, poderiDaRaccolti(raccolti));
   const puliti = pulisciTerreni(parsed.terreni);
   const terreni = collegaTerreniAiPoderiServer(poderi, puliti.terreni);
+  if (poderi.length <= 1 && /\b(in|a)?\s*(quale|che)\s+podere\b/i.test(testo)) {
+    testo = togliDomandaPodere(testo);
+  }
   const fatto = parsed.fatto === true;
   const fuoriTema = parsed.fuoriTema === true;
 
@@ -429,7 +508,7 @@ function rispostaAccountDaTesto(testoJson) {
     testo: testo,
     dati: {
       sede: sede,
-      poderi: poderi,
+      poderi: poderiRisposta,
       terreni: terreni,
       fatto: fatto,
       fuoriTema: fuoriTema
@@ -456,5 +535,7 @@ module.exports = {
   applicaSuperficieDaDomanda,
   normalizzaDecimaliPerGemini,
   collegaTerreniAiPoderiServer,
-  corrispondeNomePodere
+  corrispondeNomePodere,
+  poderiDaRaccolti,
+  togliDomandaPodere
 };

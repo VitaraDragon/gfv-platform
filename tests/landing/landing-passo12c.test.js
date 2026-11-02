@@ -121,7 +121,7 @@ describe('MIN_SCRIVE e bussata automatica', () => {
 
   it('bussataAutomaticaConsentita con contatore e interazione', () => {
     expect(BUSSATA_AUTOMATICA_MS).toBe(8000);
-    expect(PRECARICA_SCENA_MS).toBe(1800);
+    expect(PRECARICA_SCENA_MS).toBe(400);
     expect(bussataAutomaticaConsentita({})).toBe(true);
     expect(bussataAutomaticaConsentita({ bussateAutomatiche: 0 })).toBe(true);
     expect(bussataAutomaticaConsentita({ bussateAutomatiche: 1 })).toBe(true);
@@ -264,10 +264,10 @@ describe('player contenitore pulito', () => {
     expect(host.childElementCount).toBeLessThanOrEqual(2);
     expect(host.childElementCount).toBe(1);
 
-    player.suona(urlB, { loop: true, durataMs: 4000, dissolvenzaMs: 150 });
+    player.suona(urlB, { loop: true, durataMs: 4000, dissolvenzaMs: 0 });
     await vi.advanceTimersByTimeAsync(0);
     expect(host.childElementCount).toBeLessThanOrEqual(2);
-    await vi.advanceTimersByTimeAsync(250);
+    await vi.advanceTimersByTimeAsync(50);
     expect(host.childElementCount).toBe(1);
 
     player.ferma();
@@ -325,6 +325,45 @@ describe('player contenitore pulito', () => {
     expect(cb).not.toHaveBeenCalled();
     vi.advanceTimersByTime(100);
     expect(cb).toHaveBeenCalled();
+    player.ferma();
+  });
+
+  it('clip in arrivo a opacità 0 finché non rivela; mai due figure a opacità 1', async () => {
+    vi.useFakeTimers();
+    playSpy.mockRestore();
+    /** @type {HTMLVideoElement[]} */
+    const codaPlay = [];
+    playSpy = vi.spyOn(HTMLMediaElement.prototype, 'play').mockImplementation(function playMock() {
+      codaPlay.push(this);
+      return Promise.resolve();
+    });
+
+    const contaOpacita1 = () =>
+      Array.from(host.children).filter((el) => {
+        const o = /** @type {HTMLElement} */ (el).style.opacity;
+        return o === '' || o === '1';
+      }).length;
+
+    const player = creaPlayerClip({ contenitore: host, formato: 'webm' });
+    player.suona('/tony-live/a.webm', { loop: true, durataMs: 4000 });
+    expect(codaPlay.length).toBe(1);
+    expect(Number(codaPlay[0].style.opacity)).toBe(0);
+    expect(contaOpacita1()).toBe(0);
+    codaPlay[0].dispatchEvent(new Event('playing'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(Number(codaPlay[0].style.opacity)).toBe(1);
+    expect(contaOpacita1()).toBe(1);
+
+    player.suona('/tony-live/b.webm', { loop: true, durataMs: 4000, dissolvenzaMs: 150 });
+    expect(codaPlay.length).toBe(2);
+    const nuovo = codaPlay[1];
+    expect(Number(nuovo.style.opacity)).toBe(0);
+    expect(contaOpacita1()).toBeLessThanOrEqual(1);
+    nuovo.dispatchEvent(new Event('playing'));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(Number(nuovo.style.opacity)).toBe(1);
+    expect(contaOpacita1()).toBe(1);
+    expect(host.childElementCount).toBe(1);
     player.ferma();
   });
 });
@@ -408,7 +447,7 @@ describe('tempi e sorgenti', () => {
     expect(sicurezzaEntrataMs('desktop')).toBe(3042 + 1500);
     expect(sicurezzaEntrataMs('mobile')).toBe(2708 + 1500);
     expect(DISSOLVENZA_STATICO_MS).toBe(180);
-    expect(tempiVoce().dissolvenzaBoccaMs).toBe(150);
+    expect(tempiVoce().dissolvenzaBoccaMs).toBe(0);
 
     const stage = leggi('landing/src/components/TonyStage.vue');
     expect(stage).not.toContain("tony-figura--fade': riduciMovimento || fase === 'statico'");
@@ -449,6 +488,14 @@ describe('bussata automatica in LandingHome', () => {
     expect(home).toMatch(/method:\s*['"]OPTIONS['"]/);
     expect(home).toContain('URL_TONY_LANDING_ASK');
     expect(home).toContain('URL_TONY_LANDING_AUDIO');
+  });
+
+  it('vaiEntrata e vaiStatico non riproducono il whoosh', () => {
+    const home = leggi('landing/src/views/LandingHome.vue');
+    const fnEntrata = home.match(/function vaiEntrata\(\)[\s\S]*?\n\}/);
+    const fnStatico = home.match(/function vaiStatico\(\)[\s\S]*?\n\}/);
+    expect(fnEntrata?.[0] || '').not.toContain('audioWhoosh');
+    expect(fnStatico?.[0] || '').not.toContain('audioWhoosh');
   });
 });
 

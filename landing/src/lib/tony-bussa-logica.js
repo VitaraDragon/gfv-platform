@@ -83,8 +83,8 @@ export function attesaPrimaDiParlareMs({ clipCorrente, msDaInizioClip, riduciMov
 /** Ritardo bussata automatica dopo apertura pagina (una volta per sessione). */
 export const BUSSATA_AUTOMATICA_MS = 8000;
 
-/** Precarica clip/chunk ~1,5–2 s dopo il mount, prima della bussata. */
-export const PRECARICA_SCENA_MS = 1800;
+/** Precarica clip/chunk subito dopo il mount, così a 8 s le clip hanno più margine. */
+export const PRECARICA_SCENA_MS = 400;
 
 export const CHIAVE_BUSSATA_SESSIONE = 'gfv-tony-bussato-sessione';
 export const CHIAVE_RINUNCIA_AVVISO = 'gfv-tony-rinuncia-avviso';
@@ -416,6 +416,16 @@ export function percorsoVoceFatto() {
 }
 
 /**
+ * Voce fissa dell'aiuto account (mp3 statici, costo zero a regime).
+ * @param {string} chiave
+ * @returns {{ mp3: string }}
+ */
+export function percorsoVoceAiuto(chiave) {
+  const k = String(chiave || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  return { mp3: '/tony-live/voci/tony-aiuto-' + k + '.mp3' };
+}
+
+/**
  * Elenco ordinato delle clip da suonare passando da uno stato all'altro.
  * @param {string} da
  * @param {string} a
@@ -629,7 +639,7 @@ export function tempiVoce() {
   return {
     ritardoSalutoMs: 200,
     attesaMaxVoceMs: 6000,
-    dissolvenzaBoccaMs: 150,
+    dissolvenzaBoccaMs: 0,
     attesaMaxUscitaMs: 5000,
   };
 }

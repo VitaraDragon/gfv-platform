@@ -210,6 +210,155 @@ function siglaGfv(s) {
   return out;
 }
 
+/** Sigle province italiane → nome per la sintesi vocale (107). */
+const SIGLE_PROVINCE = Object.freeze({
+  AG: "Agrigento",
+  AL: "Alessandria",
+  AN: "Ancona",
+  AO: "Aosta",
+  AP: "Ascoli Piceno",
+  AQ: "L'Aquila",
+  AR: "Arezzo",
+  AT: "Asti",
+  AV: "Avellino",
+  BA: "Bari",
+  BG: "Bergamo",
+  BI: "Biella",
+  BL: "Belluno",
+  BN: "Benevento",
+  BO: "Bologna",
+  BR: "Brindisi",
+  BS: "Brescia",
+  BT: "Barletta-Andria-Trani",
+  BZ: "Bolzano",
+  CA: "Cagliari",
+  CB: "Campobasso",
+  CE: "Caserta",
+  CH: "Chieti",
+  CL: "Caltanissetta",
+  CN: "Cuneo",
+  CO: "Como",
+  CR: "Cremona",
+  CS: "Cosenza",
+  CT: "Catania",
+  CZ: "Catanzaro",
+  EN: "Enna",
+  FC: "Forlì-Cesena",
+  FE: "Ferrara",
+  FG: "Foggia",
+  FI: "Firenze",
+  FM: "Fermo",
+  FR: "Frosinone",
+  GE: "Genova",
+  GO: "Gorizia",
+  GR: "Grosseto",
+  IM: "Imperia",
+  IS: "Isernia",
+  KR: "Crotone",
+  LC: "Lecco",
+  LE: "Lecce",
+  LI: "Livorno",
+  LO: "Lodi",
+  LT: "Latina",
+  LU: "Lucca",
+  MB: "Monza e Brianza",
+  MC: "Macerata",
+  ME: "Messina",
+  MI: "Milano",
+  MN: "Mantova",
+  MO: "Modena",
+  MS: "Massa-Carrara",
+  MT: "Matera",
+  NA: "Napoli",
+  NO: "Novara",
+  NU: "Nuoro",
+  OR: "Oristano",
+  PA: "Palermo",
+  PC: "Piacenza",
+  PD: "Padova",
+  PE: "Pescara",
+  PG: "Perugia",
+  PI: "Pisa",
+  PN: "Pordenone",
+  PO: "Prato",
+  PR: "Parma",
+  PT: "Pistoia",
+  PU: "Pesaro e Urbino",
+  PV: "Pavia",
+  PZ: "Potenza",
+  RA: "Ravenna",
+  RC: "Reggio Calabria",
+  RE: "Reggio Emilia",
+  RG: "Ragusa",
+  RI: "Rieti",
+  RM: "Roma",
+  RN: "Rimini",
+  RO: "Rovigo",
+  SA: "Salerno",
+  SI: "Siena",
+  SO: "Sondrio",
+  SP: "La Spezia",
+  SR: "Siracusa",
+  SS: "Sassari",
+  SU: "Sud Sardegna",
+  SV: "Savona",
+  TA: "Taranto",
+  TE: "Teramo",
+  TN: "Trento",
+  TO: "Torino",
+  TP: "Trapani",
+  TR: "Terni",
+  TS: "Trieste",
+  TV: "Treviso",
+  UD: "Udine",
+  VA: "Varese",
+  VB: "Verbano-Cusio-Ossola",
+  VC: "Vercelli",
+  VE: "Venezia",
+  VI: "Vicenza",
+  VR: "Verona",
+  VT: "Viterbo",
+  VV: "Vibo Valentia"
+});
+
+/**
+ * Espande le sigle provincia solo in contesto (non «NO, grazie»).
+ * @param {string} s
+ * @returns {string}
+ */
+function provinceInLettere(s) {
+  let out = String(s || "");
+  out = out.replace(/\(([A-Z]{2})\)/g, function (_m, sigla) {
+    const nome = SIGLE_PROVINCE[sigla];
+    return nome ? "(" + nome + ")" : _m;
+  });
+  out = out.replace(
+    /\b(provincia\s+di|prov\.)\s+([A-Z]{2})\b/gi,
+    function (_m, pref, sigla) {
+      const up = String(sigla).toUpperCase();
+      const nome = SIGLE_PROVINCE[up];
+      if (!nome) return _m;
+      const p = String(pref);
+      if (/^prov\./i.test(p)) return "prov. " + nome;
+      return "provincia di " + nome;
+    }
+  );
+  // CAP + comune + XX (es. «48018 Faenza RA.»)
+  out = out.replace(
+    /\b(\d{5})\s+([A-Za-zÀ-ÖØ-öø-ÿ'’\-]+(?:\s+[A-Za-zÀ-ÖØ-öø-ÿ'’\-]+)?)\s+([A-Z]{2})(?=\s*[.,;:!?]|$)/g,
+    function (_m, cap, comune, sigla) {
+      const nome = SIGLE_PROVINCE[sigla];
+      return nome ? cap + " " + comune + " " + nome : _m;
+    }
+  );
+  // «, XX» seguito da fine frase o punteggiatura
+  out = out.replace(/,\s*([A-Z]{2})(?=\s*[.,;:!?]|$)/g, function (_m, sigla) {
+    const nome = SIGLE_PROVINCE[sigla];
+    return nome ? ", " + nome : _m;
+  });
+  return out;
+}
+
 /**
  * Testo da mandare alla sintesi (e su cui si contano i caratteri).
  * A schermo e nei sottotitoli resta l'originale (GFV, Base, 5 €).
@@ -235,6 +384,7 @@ function preparaTestoVoce(testo) {
   s = s.replace(/GFV Platform/gi, "GFV");
   s = siglaGfv(s);
   s = pianoBaseMinuscolo(s);
+  s = provinceInLettere(s);
   s = numeriInLettere(s);
   s = s.replace(/\s+/g, " ").trim();
   s = s.split(BREAK_PH).join(BREAK);
@@ -467,6 +617,8 @@ module.exports = {
   COSTANTI_VOCE,
   preparaTestoVoce,
   numeriInLettere,
+  provinceInLettere,
+  SIGLE_PROVINCE,
   pianoBaseMinuscolo,
   siglaGfv,
   impronta,

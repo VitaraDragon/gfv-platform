@@ -34,7 +34,8 @@ const {
   correggiUnoNelTesto,
   superficieDaDomanda,
   applicaSuperficieDaDomanda,
-  normalizzaDecimaliPerGemini
+  normalizzaDecimaliPerGemini,
+  poderiDaRaccolti
 } = require('../functions/lib/tony-landing-account.js');
 const { REGOLE_TONY_LANDING } = require('../functions/lib/tony-landing-prompt.js');
 
@@ -307,7 +308,7 @@ describe('handleFaseAccount', () => {
     const seed = {
       ['tonyLandingQuota/g_' + giorno]: { domande: 0 },
       ['tonyLandingQuota/m_' + mese]: { costoEur: 0, domande: 0 },
-      ['tonyLandingQuota/a_' + hash]: { count: 15 }
+      ['tonyLandingQuota/a_' + hash]: { count: 25 }
     };
     const dbLim = fakeDb(seed);
     const res3 = fakeRes();
@@ -471,7 +472,40 @@ describe('prompt e pulizia', () => {
     expect(conPodere.dati.terreni[0].podere).toBe('Podere Colle');
     const rotto = rispostaAccountDaTesto('non-json');
     expect(rotto.dati).toBeNull();
-    expect(COSTANTI.MAX_DOMANDE_ACCOUNT).toBe(15);
+    expect(COSTANTI.MAX_DOMANDE_ACCOUNT).toBe(25);
+  });
+
+  it('un solo podere da raccolti: toglie domanda e collega il terreno', () => {
+    expect(poderiDaRaccolti('Poderi: Nord\nTerreno «X»')).toEqual([{ nome: 'Nord' }]);
+    const conUno = rispostaAccountDaTesto(
+      JSON.stringify({
+        testo: 'In quale podere si trova Campo Nord?',
+        sede: null,
+        poderi: [],
+        terreni: [
+          { nome: 'Campo Nord', superficie: 1, coltura: 'Grano', podere: null }
+        ],
+        fatto: false
+      }),
+      { raccolti: 'Poderi: Nord' }
+    );
+    expect(conUno.testo).not.toMatch(/podere/i);
+    expect(conUno.dati.terreni[0].podere).toBe('Nord');
+    const conDue = rispostaAccountDaTesto(
+      JSON.stringify({
+        testo: 'In quale podere si trova Campo Nord?',
+        sede: null,
+        poderi: [],
+        terreni: [
+          { nome: 'Campo Nord', superficie: 1, coltura: 'Grano', podere: null }
+        ],
+        fatto: false
+      }),
+      { raccolti: 'Poderi: Nord, Sud' }
+    );
+    expect(conDue.testo).toMatch(/podere/i);
+    const promptUno = promptSistemaAccount('terreni', { raccolti: 'Poderi: Nord' });
+    expect(promptUno).toMatch(/Non chiedere MAI in quale podere/i);
   });
 
   it('superficieDaDomanda e normalizzaDecimaliPerGemini', () => {

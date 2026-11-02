@@ -215,7 +215,7 @@ describe('volume e bocca', () => {
     expect(tempiVoce()).toEqual({
       ritardoSalutoMs: 200,
       attesaMaxVoceMs: 6000,
-      dissolvenzaBoccaMs: 150,
+      dissolvenzaBoccaMs: 0,
       attesaMaxUscitaMs: 5000,
     });
   });

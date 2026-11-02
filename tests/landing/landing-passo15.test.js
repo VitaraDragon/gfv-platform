@@ -31,16 +31,17 @@ function leggi(rel) {
 }
 
 describe('R1 Torna alla chat', () => {
-  it('ripristina stato salvato, non forza campoAttivo true', () => {
+  it('dopo il riepilogo ripristina i dati e riattiva il campo (correzioni 4)', () => {
     const t = leggi('landing/src/components/TonyChat.vue');
-    expect(t).toMatch(/statoPrimaDellaScheda/);
     expect(t).toMatch(/function onTornaDallaScheda/);
     const fn = t.slice(
       t.indexOf('function onTornaDallaScheda'),
       t.indexOf('async function suVoceFatto')
     );
-    expect(fn).not.toMatch(/campoAttivo\.value = true/);
-    expect(fn).toMatch(/statoPrimaDellaScheda\.campoAttivo/);
+    expect(fn).toMatch(/collegaTerreniAiPoderi/);
+    expect(fn).toMatch(/campoAttivo\.value = true/);
+    expect(fn).toMatch(/tornatoDalRiepilogo = true/);
+    expect(fn).toMatch(/passoAiuto\.value = 'terreni'/);
   });
 });
 

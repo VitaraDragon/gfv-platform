@@ -72,6 +72,17 @@ describe('preparaTestoVoce', () => {
     expect(preparaTestoVoce('7 giorni')).toBe('sette giorni');
     expect(preparaTestoVoce('2,34 ha')).toBe('due virgola trentaquattro ettari');
   });
+
+  it('sigle provincia in lettere solo in contesto', () => {
+    const { SIGLE_PROVINCE, provinceInLettere } = require('../functions/lib/tony-landing-voce.js');
+    expect(Object.keys(SIGLE_PROVINCE)).toHaveLength(107);
+    expect(preparaTestoVoce('Via Roma 1, Faenza (RA)')).toContain('Ravenna');
+    expect(preparaTestoVoce('provincia di RA')).toContain('provincia di Ravenna');
+    expect(preparaTestoVoce('48018 Faenza RA.')).toContain('Ravenna');
+    expect(preparaTestoVoce('NO, grazie')).toBe('NO, grazie');
+    expect(preparaTestoVoce('Ho detto NO')).toBe('Ho detto NO');
+    expect(provinceInLettere('prov. RA')).toContain('Ravenna');
+  });
 });
 
 describe('impronta biglietto id', () => {

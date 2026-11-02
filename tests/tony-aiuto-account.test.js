@@ -160,7 +160,23 @@ describe('decidiDopoRisposta', () => {
     const r = decidiDopoRisposta({ domandeRimaste: 3, passo: 'sede' });
     expect(r.azione).toBe('riepilogo');
     expect(r.apriRiepilogo).toBe(true);
+    expect(r.perLimiteDomande).toBe(true);
     expect(r.messaggio).toMatch(/riepilogo/i);
+  });
+
+  it('domandeRimaste ≤ 3 riapre una sola volta', () => {
+    const prima = decidiDopoRisposta({ domandeRimaste: 2, passo: 'terreni' });
+    expect(prima.azione).toBe('riepilogo');
+    expect(prima.perLimiteDomande).toBe(true);
+    const dopo = decidiDopoRisposta({
+      domandeRimaste: 2,
+      passo: 'terreni',
+      giaRiaperturaLimiteDomande: true,
+      turniSenzaNovitaNelPasso: 0,
+      fuoriTema: 0,
+    });
+    expect(dopo.azione).toBe('resta');
+    expect(dopo.apriRiepilogo).toBe(false);
   });
 });
 

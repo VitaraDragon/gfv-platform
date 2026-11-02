@@ -279,6 +279,12 @@ export const testiLanding = {
       categoria: 'Che cosa ci coltivi? Grano, mais, orzo…',
       schedaIntro:
         'Ecco la tua azienda. Controlla e conferma: se qualcosa non va, correggilo qui.',
+      tornaDalRiepilogo:
+        'Ok, continuiamo. Dimmi pure un altro terreno (ne hai N su 5) oppure riapri il riepilogo quando vuoi.',
+      tornaDalRiepilogoVoce:
+        'Ok, continuiamo. Dimmi pure un altro terreno oppure riapri il riepilogo quando vuoi.',
+      suggerimentoPiu:
+        'Puoi aggiungerlo qui, oppure torna alla chat e dimmelo a voce.',
       salva: 'Sì, salva',
       salvando: 'Salvo…',
       tornaChat: 'Torna alla chat',
@@ -298,9 +304,10 @@ export const testiLanding = {
       vaiDashboard: 'Vai alla tua dashboard',
       // BOZZA: da rivedere con l'avvocato
       informativa:
-        "Le risposte che dai a Tony passano da Google (Gemini) e, se usi la voce, da ElevenLabs: le elaborano per capirle e possono conservarle per breve tempo per motivi di sicurezza. Noi le salviamo nel tuo account solo quando confermi il riepilogo; se non confermi, non salviamo nulla. Puoi modificarle quando vuoi da Impostazioni. Non indicare dati di altre persone. Dettagli nell'Informativa privacy.",
+        "Le risposte a Tony passano da Google (Gemini) e, se usi la voce, da ElevenLabs. Le salviamo nel tuo account solo quando confermi il riepilogo. Dettagli nell'Informativa privacy.",
       informativaLink: 'Informativa privacy',
-      informativaHoCapito: 'Ho capito',
+      informativaHoCapito: 'Ho capito, chiedi',
+      informativaChiudi: 'Chiudi',
       errori: {
         nonCollegato: 'Prima crea il tuo account, poi salviamo i dati.',
         appCheck:

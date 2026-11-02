@@ -46,7 +46,7 @@ const COSTANTI = Object.freeze({
   /** Token di uscita massimi per risposta. */
   MAX_TOKEN_RISPOSTA: 200,
   /** Messaggi massimi della fase account per utente (passo 14). */
-  MAX_DOMANDE_ACCOUNT: 15,
+  MAX_DOMANDE_ACCOUNT: 25,
   /** TTL contatore account (ore). */
   ORE_VALIDITA_ACCOUNT: 48,
   /** Token di uscita massimi nella fase account. */

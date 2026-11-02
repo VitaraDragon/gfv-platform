@@ -584,11 +584,8 @@ function avviaScaletta(da: string, a: string) {
   }
 
   const fade = dissolvenzaPerPassaggio(da, a);
-  const subito =
-    da === 'idle' ||
-    a === 'parla' ||
-    da === 'parla' ||
-    a === 'esce';
+  // Subito solo per parla/esce: da parla→idle aspetta fine giro talking (posa di partenza).
+  const subito = a === 'parla' || a === 'esce';
 
   const unaVoltaInCorso =
     clipUnaVolta(clipCorrente) &&
@@ -1176,12 +1173,12 @@ const mostraFumetto = () =>
 .tony-stage--mobile .tony-figura {
   position: absolute;
   left: auto;
-  right: 0.25rem;
-  bottom: var(--tony-pannello-h, 45dvh);
-  height: 20vh;
-  max-height: 20vh;
+  right: max(0.5rem, 8px);
+  bottom: calc(var(--tony-pannello-h, 45dvh) + 0.35rem);
+  height: 16vh;
+  max-height: 16vh;
   width: auto;
-  max-width: 38vw;
+  max-width: min(32vw, 140px);
 }
 
 .tony-stage--mobile .fumetto {
