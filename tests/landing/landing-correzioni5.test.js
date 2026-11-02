@@ -201,5 +201,11 @@ describe('correzioni 5 – CTA account (solo verifica)', () => {
     expect(chat).toContain('@click="apriModulo"');
     expect(chat).toContain('URL_REGISTRAZIONE');
     expect(chat).toMatch(/v-else-if="!moduloAperto && !faseAiuto"/);
+    expect(chat).toContain('onRipiegoRegistrazionePages');
+    expect(chat).toMatch(/TonyRegistrazione\s*\n\s*v-if="moduloAperto"/);
+    const stage = leggi('landing/src/components/TonyStage.vue');
+    expect(stage).toMatch(/anteprima:\s*isAnteprima/);
+    const reg = leggi('landing/src/lib/tony-registrazione.js');
+    expect(reg).toMatch(/if \(anteprima === true\) return true/);
   });
 });

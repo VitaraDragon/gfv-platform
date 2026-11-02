@@ -34,6 +34,7 @@ import {
   unisciDati,
 } from '../lib/tony-aiuto-account.js';
 import { percorsoVoceAiuto, percorsoVoceFatto } from '../lib/tony-bussa-logica.js';
+import { motivoRipiegoRegistrazionePages } from '../lib/tony-registrazione.js';
 import TonyRegistrazione from './TonyRegistrazione.vue';
 import TonySchedaConferma from './TonySchedaConferma.vue';
 
@@ -418,6 +419,22 @@ function apriModulo() {
   });
   scorriInBasso();
   emit('apri-modulo');
+}
+
+/** Ripiego su Pages solo se il pannello è davvero impossibile. */
+function onRipiegoRegistrazionePages() {
+  const motivo = motivoRipiegoRegistrazionePages({
+    salutoFinito: props.salutoFinito,
+    protezionePronta: props.protezionePronta,
+    anteprima: import.meta.env.MODE === 'anteprima' || import.meta.env.DEV === true,
+  });
+  console.warn('[landing] Registrazione nel pannello impossibile; ripiego su Pages', {
+    motivo: motivo || 'modulo-non-disponibile',
+    salutoFinito: props.salutoFinito,
+    protezionePronta: props.protezionePronta,
+    moduloDisponibile: props.moduloDisponibile,
+    mode: import.meta.env.MODE,
+  });
 }
 
 function onChiudiModulo() {
@@ -1246,7 +1263,7 @@ defineExpose({ interrompi });
     </p>
 
     <TonyRegistrazione
-      v-if="chatVisibile && moduloAperto"
+      v-if="moduloAperto"
       @chiudi-modulo="onChiudiModulo"
       @registrazione-completata="onRegistrazioneCompletata"
       @invio-in-corso="onInvioInCorso"
@@ -1422,6 +1439,7 @@ defineExpose({ interrompi });
         class="btn-account"
         :class="{ 'btn-account--evidenza': mostraAccountEvidenza || modalitàStatica || staticoForzato }"
         :href="URL_REGISTRAZIONE"
+        @click="onRipiegoRegistrazionePages"
       >
         {{ t.ctaAccount }}
       </a>

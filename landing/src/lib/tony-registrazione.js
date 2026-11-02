@@ -24,11 +24,38 @@ import { URL_LOGIN, URL_REGISTRAZIONE } from '../config/landing-config.js';
 import { testiLanding } from '../content/testi-landing.js';
 
 /**
- * @param {{ salutoFinito?: boolean, protezionePronta?: boolean|null }} opts
+ * @param {{
+ *   salutoFinito?: boolean,
+ *   protezionePronta?: boolean|null,
+ *   anteprima?: boolean
+ * }} opts
  * @returns {boolean}
  */
-export function moduloRegistrazioneDisponibile({ salutoFinito, protezionePronta }) {
+export function moduloRegistrazioneDisponibile({
+  salutoFinito,
+  protezionePronta,
+  anteprima,
+}) {
+  // In anteprima/dev apri sempre il pannello: App Check non deve mandare su Pages.
+  if (anteprima === true) return true;
   return salutoFinito === true && protezionePronta === true;
+}
+
+/**
+ * Motivo del ripiego su Pages (null = pannello ok).
+ * @param {{
+ *   salutoFinito?: boolean,
+ *   protezionePronta?: boolean|null,
+ *   anteprima?: boolean
+ * }} opts
+ * @returns {string | null}
+ */
+export function motivoRipiegoRegistrazionePages(opts) {
+  const o = opts && typeof opts === 'object' ? opts : {};
+  if (moduloRegistrazioneDisponibile(o)) return null;
+  if (o.salutoFinito !== true) return 'saluto-non-finito';
+  if (o.protezionePronta !== true) return 'app-check-non-pronta';
+  return 'sconosciuto';
 }
 
 /**

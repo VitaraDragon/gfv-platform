@@ -74,10 +74,13 @@ const chatRef = ref<{ interrompi?: () => void } | null>(null);
 const inFadeOut = ref(false);
 const clipPronte = ref<Record<string, boolean>>({ entry: true, idle: true });
 const protezionePronta = ref<boolean | null>(null);
+const isAnteprima =
+  import.meta.env.MODE === 'anteprima' || import.meta.env.DEV === true;
 const moduloDisponibile = computed(() =>
   moduloRegistrazioneDisponibile({
     salutoFinito: props.salutoFinito,
     protezionePronta: protezionePronta.value,
+    anteprima: isAnteprima,
   })
 );
 const mostraStatico = ref(false);

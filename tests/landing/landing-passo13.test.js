@@ -95,6 +95,23 @@ describe('tony-registrazione logica', () => {
     );
   });
 
+  it('in anteprima moduloRegistrazioneDisponibile è sempre true', () => {
+    expect(
+      moduloRegistrazioneDisponibile({
+        salutoFinito: false,
+        protezionePronta: false,
+        anteprima: true,
+      })
+    ).toBe(true);
+    expect(
+      moduloRegistrazioneDisponibile({
+        salutoFinito: true,
+        protezionePronta: null,
+        anteprima: true,
+      })
+    ).toBe(true);
+  });
+
   it('config legale spenta → nessuna casella', () => {
     expect(configLegaleAttiva()).toBe(false);
     expect(caselleLegali()).toEqual([]);
