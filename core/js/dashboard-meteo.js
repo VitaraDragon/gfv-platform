@@ -10,6 +10,7 @@ import {
   buildTodayForecastCopy,
   formatRainMmShort,
   messaggioMeteoDashboard,
+  meteoFreeUpsell,
   METEO_FETCH_TIMEOUT_MS,
   conTimeoutOFallback,
   renderAlertsBanner,
@@ -236,8 +237,22 @@ export async function initDashboardMeteo(options = {}) {
     if (row) row.hidden = !visible;
   }
 
-  if (planId === 'free') {
-    setRowVisible(false);
+  const freeUpsell = meteoFreeUpsell({ planId });
+  if (freeUpsell) {
+    setRowVisible(true);
+    const bodyFree = section.querySelector('.dashboard-meteo__content');
+    if (bodyFree) {
+      bodyFree.innerHTML = renderMeteoMessage(freeUpsell.message, {
+        linkHref: freeUpsell.linkHref,
+        linkLabel: freeUpsell.linkLabel,
+      });
+    }
+    if (side) {
+      side.innerHTML = `<div class="dashboard-meteo-side__inner dashboard-meteo-side__inner--forecast-only">${renderMeteoMessage(
+        freeUpsell.message,
+        { linkHref: freeUpsell.linkHref, linkLabel: freeUpsell.linkLabel }
+      )}</div>`;
+    }
     return;
   }
 

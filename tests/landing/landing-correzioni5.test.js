@@ -44,6 +44,35 @@ describe('correzioni 5 – OK a inizio frase per la voce', () => {
     expect(preparaTestoVoce('Okay, fatto.')).toMatch(/^Va bene/);
     expect(preparaTestoVoce('Vedi https://esempio.it ok')).toBe('Vedi ok');
   });
+
+  it('a inizio frase: toglie OK se c’è già una conferma, altrimenti «Va bene»', () => {
+    expect(preparaTestoVoce('OK, va bene così.')).toBe('Va bene così.');
+    expect(preparaTestoVoce('Ok, bene.')).toBe('Bene.');
+    expect(preparaTestoVoce('OK, perfetto!')).toBe('Perfetto!');
+    expect(preparaTestoVoce("Ok, d'accordo.")).toBe("D'accordo.");
+    expect(preparaTestoVoce('Fatto. Ok, passiamo ai terreni.')).toBe(
+      'Fatto. Va bene, passiamo ai terreni.'
+    );
+    expect(preparaTestoVoce('OK, continuiamo.')).toBe('Va bene, continuiamo.');
+  });
+
+  it('dopo a capo vale come inizio frase; a metà frase resta ok', () => {
+    expect(preparaTestoVoce('Fatto\nOK, avanti.')).toBe(
+      'Fatto<break time="0.6s" />Va bene, avanti.'
+    );
+    expect(preparaTestoVoce('Dimmi se è ok per te.')).toBe(
+      'Dimmi se è ok per te.'
+    );
+    expect(preparaTestoVoce('Vedi https://esempio.it ok')).toBe('Vedi ok');
+  });
+
+  it('provincia «Lugo RA» senza CAP né virgola', () => {
+    expect(preparaTestoVoce('La sede è a Lugo RA.')).toBe(
+      'La sede è a Lugo Ravenna.'
+    );
+    expect(preparaTestoVoce('Ho detto NO')).toBe('Ho detto NO');
+    expect(preparaTestoVoce('NO, grazie')).toBe('NO, grazie');
+  });
 });
 
 describe('correzioni 5 – limite 5 terreni', () => {

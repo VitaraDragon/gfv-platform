@@ -670,10 +670,36 @@ function pelleTurnOn() {
   }
 }
 
+/** Flag per redirect automatici (login→dashboard, dashboard→workspace): evita InvalidStateError. */
+export const GFV_SKIP_VIEW_TRANSITION_KEY = 'gfv_skip_view_transition';
+
+export function markSkipViewTransition() {
+  try {
+    sessionStorage.setItem(GFV_SKIP_VIEW_TRANSITION_KEY, '1');
+  } catch (e) { /* ignore */ }
+}
+
+function hasSkipViewTransitionFlag() {
+  try {
+    return sessionStorage.getItem(GFV_SKIP_VIEW_TRANSITION_KEY) === '1';
+  } catch (e) { /* ignore */ }
+  return false;
+}
+
+function clearSkipViewTransitionFlag() {
+  try {
+    sessionStorage.removeItem(GFV_SKIP_VIEW_TRANSITION_KEY);
+  } catch (e) { /* ignore */ }
+}
+
 function skipPageTurn(e) {
-  if (!e || !e.viewTransition || pelleTurnOn()) return;
+  if (!e || !e.viewTransition) return;
+  const forceSkip = hasSkipViewTransitionFlag();
+  if (!forceSkip && pelleTurnOn()) return;
   const vt = e.viewTransition;
   vt.skipTransition();
+  // pageswap + pagereveal nella stessa navigazione: pulisci solo alla fine
+  if (forceSkip && e.type === 'pagereveal') clearSkipViewTransitionFlag();
   // Saltare la transizione rifiuta ready con AbortError: è voluto, non è un errore.
   // Senza catch, la pagina tornata dalla cache Indietro/Avanti lo stampa come Uncaught (in promise).
   if (vt.ready && typeof vt.ready.catch === 'function') vt.ready.catch(() => {});

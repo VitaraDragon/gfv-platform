@@ -341,7 +341,16 @@ async function eseguiTransazioneSetup(db, uid, tenantId, richiesta) {
 
     const sedeAggiornata = daScrivere.sede != null;
     if (sedeAggiornata) {
-      tx.update(tenantRef, payloadSede(daScrivere.sede));
+      tx.update(
+        tenantRef,
+        Object.assign({}, payloadSede(daScrivere.sede), {
+          tonyLandingSetupCompletatoIl: FieldValue.serverTimestamp()
+        })
+      );
+    } else {
+      tx.update(tenantRef, {
+        tonyLandingSetupCompletatoIl: FieldValue.serverTimestamp()
+      });
     }
 
     for (let i = 0; i < daScrivere.poderiDaCreare.length; i++) {

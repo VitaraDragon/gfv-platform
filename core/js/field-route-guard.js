@@ -13,7 +13,7 @@ import {
   urlWorkspaceDaPercorso,
   CHIAVE_INGRESSO_ULTIMO,
   CHIAVE_RIMBALZI_INGRESSO,
-} from './tony/tony-ingresso-login.js?v=2026-10-09g';
+} from './tony/tony-ingresso-login.js?v=2026-11-02a';
 
 export const FIELD_ROUTE_GUARD_ENABLED = true;
 
@@ -67,6 +67,7 @@ export function avviaGuardiaRottaCampo() {
     return 'consenti';
   }
   try { document.documentElement.setAttribute('data-ingresso', 'attesa'); } catch (e4) { /* ignore */ }
+  try { sessionStorage.setItem('gfv_skip_view_transition', '1'); } catch (eSkipVt) { /* ignore */ }
   const dest = urlWorkspaceDaPercorso(path);
   try {
     window.location.replace(dest);

@@ -142,7 +142,7 @@ Se il tuo unico ruolo è **operaio** o **caposquadra**, la dashboard mostra in g
 
 **Passi:**
 
-1. Dalla Dashboard, in alto a destra, premi **Impostazioni** (icona ingranaggio). In pagina leggi «Configura azienda e account».
+1. Premi **Impostazioni** (icona ingranaggio, in alto a destra). In pagina leggi «Configura azienda e account».
 2. Nel riquadro **Informazioni Azienda** compila un campo alla volta: **Nome Azienda** (obbligatorio), **Partita IVA**, **Codice Fiscale**, **Indirizzo**, **Città**, **CAP**, **Provincia**. Poi **Sede aziendale sulla mappa**: scrivi l’indirizzo e premi **🔍 Cerca**, oppure **Da anagrafica**, oppure **Rimuovi pin**. Poi **Telefono**, **Email Aziendale**, **Note**. Un solo click finale: **Salva Impostazioni Azienda**.
 3. **Logo (facoltativo):** nello stesso riquadro, campo **Logo**. In pagina trovi formati ammessi e dimensione massima. Il logo viene usato **nei preventivi** del modulo **Conto terzi**. Puoi anche **rimuovere** il logo se cambiate idea. Il logo si registra insieme a **Salva Impostazioni Azienda**.
 4. **Podere (facoltativo).** Solo se lavorate per **poderi** (fattorie, cascine, blocchi di campagna): nello stesso **Impostazioni** aprite **Gestione Poderi** e premete **➕ Aggiungi Podere**. Nel riquadro: **Nome Podere** (obbligatorio), **Indirizzo** e **🔍 Cerca** (potete anche cliccare sulla mappa per il punto), **Note** se servono, poi **Salva**. In elenco, su un podere già creato: **✏️ Modifica** oppure **🗑️ Elimina**. Se non vi serve un podere, **saltate** questo passo e andate ai Terreni.
@@ -176,7 +176,7 @@ Se un **podere** non compare sul terreno, va creato in **Impostazioni** con **�
 
 **Aprire la scheda**
 
-- Dalla Dashboard apri **Terreni**.
+- Apri la **graffetta in alto a sinistra** e scegli **Terreni**.
 - Per **un terreno nuovo** premi **+ Aggiungi Terreno**. Si apre il riquadro **Aggiungi Terreno**.
 - Per **modificarne** uno già in lista, sulla riga premi **✏️** (il fumetto dice **Modifica**). Si apre il riquadro **Modifica Terreno**, con i dati già compilati.
 
@@ -222,7 +222,7 @@ Se la mappa non si carica, compare un avviso: in quel caso serve una configurazi
 
 Capita se il terreno è stato salvato senza **Categoria Coltura** e **Coltura** (anche dal dialogo di registrazione). Il **Diario attività** in quel caso non vi fa scegliere la coltura. Non è un guasto del Diario, e la coltura lì resta obbligatoria.
 
-1. Dashboard → **Terreni**.
+1. **graffetta in alto a sinistra** → **Terreni**.
 2. Sulla riga del terreno premi **✏️** (fumetto **Modifica**).
 3. Scegli prima **Categoria Coltura**, poi **Coltura**.
 4. Premi **Salva Terreno**.
@@ -236,7 +236,7 @@ Capita se il terreno è stato salvato senza **Categoria Coltura** e **Coltura** 
 
 **Passi:**
 
-1. Apri **Diario attività** dalla dashboard.
+1. Apri la **graffetta in alto a sinistra** e scegli **Diario attività**.
 2. Premi **➕ Aggiungi Attività**: si apre il riquadro.
 3. **Data:** giorno in cui è stato fatto l’intervento.
 4. **Terreno:** sceglilo dall’elenco (solo terreni già creati in Terreni).
@@ -357,7 +357,7 @@ Nella pagina **Abbonamento** (dal **pannello moduli** in alto, o da una tile ded
 - Di solito **limiti** su terreni (es. massimo 5) e attività al mese (es. 30).
 - **Nessun modulo** opzionale **acquistabile** finché non passate al piano Base.
 - La **prova gratuita di 30 giorni** di **un modulo alla volta** (senza carta) è disponibile **solo con il piano Base**, dalla pagina **Abbonamento**: i dati restano salvati dopo la scadenza; per continuare serve il modulo a pagamento.
-- **Nessun assistente Tony** in chat (il pulsante non compare o il servizio non è disponibile).
+- **Tony Guida solo nei primi 7 giorni** dalla registrazione (con un tetto di domande al giorno); dopo, per usarlo serve il piano Base.
 
 ### Piano Base (a pagamento)
 

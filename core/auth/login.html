@@ -6,7 +6,8 @@
 <script>(function(){try{var secret={email:1,password:1,"password-confirm":1,"confirm-password":1};var params=new URLSearchParams(location.search);var keys=[];params.forEach(function(_v,key){keys.push(key);});var dirty=false;for(var i=0;i<keys.length;i++){var low=String(keys[i]).toLowerCase();if(!secret[low])continue;params.delete(keys[i]);dirty=true;if(low!=="email")window.__gfvScrubbedPassword=1;}if(!dirty)return;var qs=params.toString();history.replaceState(null,"",location.pathname+(qs?"?"+qs:"")+location.hash);}catch(e){}})();</script>
     <script src="auth-form-guard.js"></script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - GFV Platform</title>
+    <title>Login - GFV</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="../images/icon-32x32.png">
     <style>
         * {
             margin: 0;
@@ -181,7 +182,7 @@
 <body>
     <div class="login-container">
         <div class="login-header">
-            <h1>🌾 GFV Platform</h1>
+            <h1>🌾 GFV</h1>
             <p>Accedi al tuo account</p>
         </div>
 

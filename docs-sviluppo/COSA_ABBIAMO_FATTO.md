@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-10-26 — Tony: segna ore del manager con Manodopera, niente lavoro nuovo.**
+**Ultimo aggiornamento documentazione: 2026-11-02 — Correzioni app + landing (meteo Free, pin sede, saluto 7 giorni, guida graffetta, engine, GFV, landing OK/terreni/F5).**
+
+## 2026-11-02 — Correzioni app e landing (2 novembre)
+
+Meteo Free: messaggio «piano Base» invece del caricamento infinito; CSS `[hidden]` sulla riga meteo. Pin sede: geocode con verifica comune + salvataggio automatico al primo accesso dopo landing; Tony setup scrive `tonyLandingSetupCompletatoIl`. Saluto locale e percorso 7 giorni (zero CF). Guide: navigazione con graffetta; Free = Tony Guida 7 giorni. Ripristinate tre correzioni in `engine.js` perse nel merge. Titoli «GFV», favicon core, a11y filtri Terreni, skip view-transition sui redirect automatici. Landing: pronuncia OK, conteggio terreni dopo riepilogo, sessione F5, ortaggi→Ortive. Dopo merge: deploy functions `tonyLandingSetup`, `tonyLandingAsk`, `tonyLandingAudio` (voce); hosting app e landing.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-10-26 — Tony: segna ore del manager con Manodopera, niente lavoro nuovo.**
 
 ## 2026-10-26 — Tony: segna ore del manager con Manodopera, niente lavoro nuovo
 

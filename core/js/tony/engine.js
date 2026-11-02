@@ -638,6 +638,7 @@ function stripBareTonyCommandTail(t) {
 
 /**
  * Frase da mostrare in chat. I comandi restano fuori, anche se il JSON è troncato.
+ * Il campo `text` lo estrae `tonyExtractTextValueLooseClient` (#298): extractQuotedJsonField resta per `replyText`.
  * @param {string} s
  * @returns {string}
  */
@@ -645,7 +646,8 @@ export function sanitizeTonyVisibleChatText(s) {
     if (s == null || typeof s !== 'string') return '';
     var t = s.trim();
     if (looksLikeTonyCommandPayload(t)) {
-        var speech = extractQuotedJsonField(t, 'text') || extractQuotedJsonField(t, 'replyText');
+        var speech = tonyExtractTextValueLooseClient(t) || '';
+        if (!speech) speech = extractQuotedJsonField(t, 'text') || extractQuotedJsonField(t, 'replyText');
         if (speech) t = speech;
     }
     t = stripBareTonyCommandTail(t);
@@ -738,7 +740,10 @@ function recoverTonyCommandFromLeakedText(raw) {
  */
 export function cleanTextFromJsonResidue(s) {
     if (s == null || typeof s !== 'string') return '';
-    var t = sanitizeTonyVisibleChatText(s);
+    var t = s.trim();
+    // Coda "commands": [...] chiusa: si toglie prima del taglio token, così l'array non resta aperto.
+    t = stripLeakedTonyCommandsArrayTail(t);
+    t = sanitizeTonyVisibleChatText(t);
     t = stripLeakedTonyCommandJsonFromText(t);
     t = stripLeakedTonyCommandsArrayTail(t);
     t = t.replace(/\s*[}\]]+\s*$/g, '').trim();
@@ -1257,7 +1262,7 @@ export function resolveTonyUserVisibleText(text, command) {
     }
     t = cleanTextFromJsonResidue(t);
     if (tonyLooksLikeJsonEnvelopeClient(t) || /^\s*text"\s*:/i.test(t) || /^\s*\{\s*"text"/i.test(t)) {
-        var finalLoose = extractTonyTextLoose(raw);
+        var finalLoose = extractTonyTextLoose(text || '');
         if (finalLoose && finalLoose.text) t = finalLoose.text;
         t = tonyStripJsonResidueFallbackClient(t);
     }

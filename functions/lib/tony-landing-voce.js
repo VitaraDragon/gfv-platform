@@ -351,6 +351,14 @@ function provinceInLettere(s) {
       return nome ? cap + " " + comune + " " + nome : _m;
     }
   );
+  // Comune maiuscolo + XX senza CAP né virgola (es. «Lugo RA.» / «a Lugo RA»)
+  out = out.replace(
+    /\b([A-ZÀ-Ö][a-zà-öø-ÿ'’\-]{2,})\s+([A-Z]{2})(?=\s*[.,;:!?]|\s*$)/g,
+    function (_m, comune, sigla) {
+      const nome = SIGLE_PROVINCE[sigla];
+      return nome ? comune + " " + nome : _m;
+    }
+  );
   // «, XX» seguito da fine frase o punteggiatura
   out = out.replace(/,\s*([A-Z]{2})(?=\s*[.,;:!?]|$)/g, function (_m, sigla) {
     const nome = SIGLE_PROVINCE[sigla];
@@ -372,7 +380,28 @@ function provinceInLettere(s) {
  * @returns {string}
  */
 function okInizialePerVoce(s) {
-  return String(s || "").replace(/^(?:OK|Ok|Okay)\b/i, "Va bene");
+  const testo = String(s || "");
+  // Inizio testo, dopo . ! ? (+ spazio), dopo a capo o dopo il segnaposto pausa.
+  return testo
+    .replace(
+      /(^|[.!?]\s+|\n\s*|\uE001\s*)(?:okay|ok)\b(\s*,)?(\s*)/gi,
+      function (_m, prefisso, virgola, spazi, offset, intero) {
+        const dopo = intero.slice(offset + _m.length);
+        if (
+          /^(?:va\s+bene|bene|perfetto|d['’]accordo)(?![A-Za-zÀ-ÖØ-öø-ÿ])/i.test(
+            dopo
+          )
+        ) {
+          // Già una conferma: togli solo OK; la maiuscola va alla parola dopo.
+          return prefisso + "\uE002";
+        }
+        return prefisso + "Va bene" + (virgola ? "," : "") + spazi;
+      }
+    )
+    .replace(/\uE002([a-zà-öø-ÿ])/g, function (_m, c) {
+      return c.toUpperCase();
+    })
+    .replace(/\uE002/g, "");
 }
 
 function preparaTestoVoce(testo) {

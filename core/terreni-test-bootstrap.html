@@ -6,7 +6,8 @@
     <script>window.GFV_TOUR_DISABLED = true;</script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Gestione Terreni (Test Bootstrap) - GFV Platform</title>
+    <title>Gestione Terreni (Test Bootstrap) - GFV</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="images/icon-32x32.png">
     <link rel="manifest" href="../manifest.json">
     <meta name="theme-color" content="#2E8B57">
     <link rel="stylesheet" href="./styles/responsive-standalone.css">
@@ -580,7 +581,7 @@
             <!-- Filtri -->
             <div class="filters" style="display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; padding: 15px; background: #f8f9fa; border-radius: 8px;">
                 <div class="filter-group" style="display: flex; flex-direction: column; gap: 5px;">
-                    <label style="font-size: 12px; font-weight: 600; color: #495057;">Tipo Possesso</label>
+                    <label for="filter-tipo-possesso" style="font-size: 12px; font-weight: 600; color: #495057;">Tipo Possesso</label>
                     <select id="filter-tipo-possesso" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;" onchange="filterTerreni()">
                         <option value="">Tutti</option>
                         <option value="proprieta">Proprietà</option>
@@ -588,7 +589,7 @@
                     </select>
                 </div>
                 <div class="filter-group" style="display: flex; flex-direction: column; gap: 5px;">
-                    <label style="font-size: 12px; font-weight: 600; color: #495057;">Podere</label>
+                    <label for="filter-podere" style="font-size: 12px; font-weight: 600; color: #495057;">Podere</label>
                     <select id="filter-podere" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;" onchange="filterTerreni()">
                         <option value="">Tutti</option>
                         <option value="Barbavara Vecchia">Barbavara Vecchia</option>
@@ -596,7 +597,7 @@
                     </select>
                 </div>
                 <div class="filter-group" style="display: flex; flex-direction: column; gap: 5px;">
-                    <label style="font-size: 12px; font-weight: 600; color: #495057;">Categoria</label>
+                    <label for="filter-categoria" style="font-size: 12px; font-weight: 600; color: #495057;">Categoria</label>
                     <select id="filter-categoria" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;" onchange="onFilterCategoriaChange()">
                         <option value="">Tutti</option>
                         <option value="Vigneto">Vigneto</option>
@@ -605,7 +606,7 @@
                     </select>
                 </div>
                 <div class="filter-group" style="display: flex; flex-direction: column; gap: 5px;">
-                    <label style="font-size: 12px; font-weight: 600; color: #495057;">Coltura</label>
+                    <label for="filter-coltura" style="font-size: 12px; font-weight: 600; color: #495057;">Coltura</label>
                     <select id="filter-coltura" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;" onchange="filterTerreni()">
                         <option value="">Tutti</option>
                         <option value="Vite da Vino">Vite da Vino</option>
@@ -615,7 +616,7 @@
                     </select>
                 </div>
                 <div class="filter-group" style="display: flex; flex-direction: column; gap: 5px;">
-                    <label style="font-size: 12px; font-weight: 600; color: #495057;">Alert Scadenza</label>
+                    <label for="filter-alert" style="font-size: 12px; font-weight: 600; color: #495057;">Alert Scadenza</label>
                     <select id="filter-alert" style="padding: 8px 12px; border: 1px solid #ced4da; border-radius: 6px; font-size: 14px;" onchange="filterTerreni()">
                         <option value="">Tutti</option>
                         <option value="red">Rosso (≤1 mese)</option>
@@ -703,7 +704,7 @@
                     <div class="map-container" data-tour-section="mappa-terreno">
                         <div class="map-controls">
                             <div id="map-search-wrapper">
-                                <input type="text" id="map-search" placeholder="Cerca indirizzo...">
+                                <input type="text" id="map-search" placeholder="Cerca indirizzo..." aria-label="Cerca indirizzo sulla mappa">
                                 <button type="button" class="btn btn-primary" onclick="searchLocation()">🔍 Cerca</button>
                             </div>
                             <button type="button" class="btn btn-success" id="btn-draw" onclick="toggleDrawing()">✏️ Traccia Confini</button>
