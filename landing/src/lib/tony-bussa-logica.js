@@ -83,6 +83,17 @@ export function attesaPrimaDiParlareMs({ clipCorrente, msDaInizioClip, riduciMov
 /** Ritardo bussata automatica dopo apertura pagina (una volta per sessione). */
 export const BUSSATA_AUTOMATICA_MS = 8000;
 
+/** Sul telefono anticipiamo: mount + rete sono più lenti, target totale 8–10 s. */
+export const BUSSATA_AUTOMATICA_MOBILE_MS = 5000;
+
+/**
+ * @param {'desktop' | 'mobile' | string} [variante]
+ * @returns {number}
+ */
+export function ritardoBussataAutomaticaMs(variante) {
+  return variante === 'mobile' ? BUSSATA_AUTOMATICA_MOBILE_MS : BUSSATA_AUTOMATICA_MS;
+}
+
 /** Precarica clip/chunk subito dopo il mount, così a 8 s le clip hanno più margine. */
 export const PRECARICA_SCENA_MS = 400;
 
@@ -252,12 +263,19 @@ export function varianteScena(larghezzaPx) {
  * @param {{ userAgent?: string, maxTouchPoints?: number, webmAlfaSupportato?: boolean }} opts
  * @returns {'webp' | 'webm' | 'stacked'}
  */
-export function formatoClip({ userAgent, maxTouchPoints, webmAlfaSupportato }) {
+export function formatoClip({
+  userAgent,
+  maxTouchPoints,
+  webmAlfaSupportato,
+  preferisciLeggero,
+}) {
   const ua = String(userAgent || '');
   const touch = Number(maxTouchPoints);
   if (browserSuIos(ua) || iPadOsComeMac(ua, touch) || safariSenzaChromium(ua)) {
     return 'webp';
   }
+  // Telefono: WebP più leggero del WebM alfa (bussata più rapida).
+  if (preferisciLeggero === true) return 'webp';
   if (webmAlfaSupportato === true) return 'webm';
   return 'stacked';
 }
@@ -687,8 +705,9 @@ export function tempiScena({ variante, riduciMovimento }) {
     durataScossoneMs: 80,
     scossonePx: fermo ? [] : mobile ? [1, 2, 1] : [2, 2, 2],
     impronta: !fermo && !mobile ? { aMs: 1100, durataMs: 400 } : null,
-    entrataMs: 2000,
-    staticoMs: 5000,
+    // Mobile: entra prima (statico subito se clip non pronte).
+    entrataMs: mobile ? 1200 : 2000,
+    staticoMs: mobile ? 2500 : 5000,
     vibrazioneMs: 400,
   };
 }

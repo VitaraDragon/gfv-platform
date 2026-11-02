@@ -79,7 +79,7 @@ describe('correzioni 4 – Saluta Tony e pillola', () => {
     expect(home).toMatch(/function saluta\(\)[\s\S]*?salvaRinunciaAvviso\(\)/);
     expect(home).toContain('onRiapriTony');
     expect(home).toMatch(
-      /v-if="tonyOn && !avvisoAperto && \(!stageAperto \|\| tonyRidotto\)"/
+      /v-if="tonyOn && tonyGiaApparso && !avvisoAperto && \(!stageAperto \|\| tonyRidotto\)"/
     );
     expect(testiLanding.tonyBussa.ripristina).toBe('Parla con Tony');
     expect(CHIAVE_RINUNCIA_AVVISO).toBeTruthy();

@@ -481,6 +481,12 @@ function domandaFissa(passo: string) {
 }
 
 function avviaPasso(passo: string) {
+  // Flusso lineare: non tornare a un passo già superato (es. poderi dopo terreni).
+  const cur = PASSI_AIUTO.indexOf(passoAiuto.value || '');
+  const next = PASSI_AIUTO.indexOf(passo);
+  if (cur >= 0 && next >= 0 && next < cur) {
+    return;
+  }
   turniSenzaNovitaNelPasso.value = 0;
   consecutiviFuoriTema.value = 0;
   passoAiuto.value = passo;
@@ -855,13 +861,7 @@ async function inviaTesto(grezzo: string, daChip = false) {
       }
       apriScheda();
     } else if (dopoRisposta.azione === 'prossimoPasso') {
-      if (dopoRisposta.messaggio) {
-        messaggi.value.push({ ruolo: 'tony', testo: dopoRisposta.messaggio });
-        const passoCorrente = passoAiuto.value || '';
-        if (passoCorrente === 'sede') void suonaFraseFissa('passaggioSede');
-        else if (passoCorrente === 'poderi') void suonaFraseFissa('passaggioPoderi');
-        else if (passoCorrente === 'terreni') void suonaFraseFissa('passaggioTerreni');
-      }
+      // Solo la domanda del passo successivo (niente doppia domanda sui poderi).
       const prox = prossimoPasso(passoAiuto.value || '');
       if (prox) avviaPasso(prox);
       else apriScheda();
@@ -1470,8 +1470,8 @@ defineExpose({ interrompi });
   background: #f7faf8;
   border: 1px solid rgba(15, 77, 50, 0.18);
   border-radius: 10px;
-  max-height: min(28vh, 160px);
-  overflow: auto;
+  max-height: none;
+  overflow: visible;
   box-shadow: 0 4px 14px rgba(7, 25, 16, 0.12);
 }
 .informativa-aiuto a {
@@ -1558,14 +1558,15 @@ defineExpose({ interrompi });
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  padding: 0.55rem 0.65rem;
+  padding: 0.55rem 1.6rem 0.55rem 0.65rem;
   border: 1px solid rgba(15, 77, 50, 0.2);
   border-radius: 10px;
   background: #f7faf8;
   font-size: 0.82rem;
   line-height: 1.35;
-  max-height: 40%;
-  overflow: auto;
+  /* A 400×800 deve stare tutto visibile (testo + pulsanti) senza scroll interno. */
+  max-height: none;
+  overflow: visible;
   flex: 0 0 auto;
 }
 

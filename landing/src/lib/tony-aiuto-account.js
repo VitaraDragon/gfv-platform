@@ -231,9 +231,8 @@ export function unisciDati(attuali, nuovi, argomento) {
       indicePerChiave[chiaveNome(out.terreni[i].nome)] = i;
     }
     const aggiunti = Array.isArray(n.terreni) ? n.terreni : [];
-    if (out.terreni.length + aggiunti.length > LIMITI.MAX_TERRENI_PER_RICHIESTA) {
-      troppiTerreni = true;
-    }
+    // Non sommare grezzo length+aggiunti: Gemini spesso rimanda tutta la lista
+    // (aggiornamenti + nuovi). Il limite si applica solo ai nomi nuovi.
     for (const t of aggiunti) {
       if (!t || !t.nome) continue;
       const k = chiaveNome(t.nome);

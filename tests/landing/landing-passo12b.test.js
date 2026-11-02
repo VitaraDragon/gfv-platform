@@ -278,6 +278,8 @@ describe('tony-voce-player', () => {
     const audio = {
       preload: '',
       src: '',
+      readyState: 4,
+      volume: 1,
       play: vi.fn(() => Promise.resolve()),
       pause: vi.fn(),
       removeAttribute: vi.fn(),
@@ -290,6 +292,9 @@ describe('tony-voce-player', () => {
       },
       set onerror(fn) {
         listeners.error = fn;
+      },
+      set oncanplay(fn) {
+        listeners.canplay = fn;
       },
     };
     const player = creaPlayerVoce({

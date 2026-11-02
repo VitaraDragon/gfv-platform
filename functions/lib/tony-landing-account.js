@@ -166,6 +166,49 @@ function togliDomandaPodere(testo) {
 }
 
 /**
+ * In fase terreni non riaprire i poderi (né «hai dei poderi?»).
+ * @param {string} testo
+ * @returns {string}
+ */
+function togliRiaperturaPoderi(testo) {
+  let s = String(testo || "").trim();
+  if (!s) return s;
+  const pezzi = s.split(/(?<=[.!?])\s+/);
+  const filtrati = pezzi.filter(function (p) {
+    if (/\b(in|a)?\s*(quale|che)\s+podere\b/i.test(p)) return false;
+    if (/\bhai\s+(dei\s+|dei\s+tuoi\s+|uno\s+o\s+pi[uù]\s+)?poder/i.test(p)) {
+      return false;
+    }
+    if (/\b(dimmi|aggiungi|elenca|indica).{0,40}\bpoder/i.test(p)) return false;
+    if (/\bpoderi?\s*\?/i.test(p) && !/\bterren/i.test(p)) return false;
+    return true;
+  });
+  s = filtrati.join(" ").trim();
+  if (!s) s = "Ne hai altri o vediamo il riepilogo?";
+  return s;
+}
+
+/**
+ * Toglie domande su CAP/provincia (sede: bastano via e comune).
+ * @param {string} testo
+ * @returns {string}
+ */
+function togliDomandaCapProvincia(testo) {
+  let s = String(testo || "").trim();
+  if (!s) return s;
+  const pezzi = s.split(/(?<=[.!?])\s+/);
+  const filtrati = pezzi.filter(function (p) {
+    if (/\b(qual\s*[e']?\s*)?(è\s+)?(il\s+)?CAP\b/i.test(p)) return false;
+    if (/\b(quale\s+)?provincia\b/i.test(p)) return false;
+    if (/\bCAP\b.*\?/i.test(p)) return false;
+    return true;
+  });
+  s = filtrati.join(" ").trim();
+  if (!s) s = "Mi bastano via e comune.";
+  return s;
+}
+
+/**
  * @param {string} argomento
  * @param {string|{ raccolti?: string }} [opzioni]
  * @returns {string}
@@ -175,23 +218,23 @@ function promptSistemaAccount(argomento, opzioni) {
   const raccolti = raccoltiDaOpzioni(opzioni);
   const poderiNoti = poderiDaRaccolti(raccolti);
   const regoleAiuto = [
-    "Aiuto all'account. Aiuti solo a dire sede legale (via, comune, CAP, provincia), poderi (nomi) e terreni (nome, superficie in ha, coltura). L'argomento di adesso è «" +
+    "Aiuto all'account. Aiuti solo a dire sede legale (via con numero civico e comune), poderi (nomi) e terreni (nome, superficie in ha, coltura). L'argomento di adesso è «" +
       arg +
       "».",
+    "Flusso lineare e obbligatorio: sede → poderi → terreni → riepilogo. Non tornare indietro: se l'argomento è «poderi» non richiedere la sede; se è «terreni» non richiedere di nuovo sede né poderi, a meno che l'utente non lo chieda esplicitamente (es. «aggiungi un podere», «cambio indirizzo»).",
     "Mai dati fiscali (Partita IVA, codice fiscale), mai mezzi, operai o il numero di operai, mai dati di altre persone; se li danno, non usarli e ripeti la domanda.",
     "Non dire mai il nome di chi offre GFV né di altre persone.",
     "Scrivi i numeri piccoli in lettere con l'articolo giusto: «un terreno», «un podere», «due terreni»; mai «1 terreno» né «uno terreno».",
-    "Provincia: solo sigla di due lettere (es. Bergamo → BG), mai il nome intero della provincia.",
+    "Sede: bastano via (con numero civico) e comune. NON chiedere provincia né CAP. Se dal comune li conosci con ragionevole certezza, mettili nel JSON (provincia = sigla di due lettere, es. Bergamo → BG); se non li sai, lascia null. Non inventare.",
     "Fuori tema: se il messaggio non c'entra col passo (es. «piscina»), rispondi con UNA frase che lo riporta al passo e metti fuoriTema: true; non trattarlo come nome di podere o terreno.",
     "Non fare due volte di seguito la stessa domanda.",
     "Il nome di un podere o di un terreno va scritto esattamente come lo dice l'utente, comprese parole come Podere, Cascina, Tenuta, Campo: non accorciarlo.",
     "Ogni terreno ha il campo podere: se l'utente lo dice, metti il nome del podere uguale a quello in elenco; se c'è un solo podere, metti quello; se ce ne sono più di uno e non l'ha detto, chiedi in quale podere è, citando i nomi.",
     "Quando l'argomento è «terreni» e hai almeno un terreno in elenco, chiedi «Ne hai altri o vediamo il riepilogo?»; se dice no, basta, fatto o riepilogo, metti fatto: true.",
-    "Con 5 terreni (argomento «terreni») metti fatto: true.",
+    "Accetta fino a 5 terreni (il quinto va bene). Solo dal sesto in poi rifiuta con: «Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.» Con 5 terreni metti fatto: true.",
     "Se un terreno ha solo il nome, chiedi ettari e coltura di QUEL terreno citandolo per nome.",
     "Superficie: numero in ettari con il punto decimale («2,34 ha» → 2.34); se dicono metri quadri o altre unità, chiedi in ettari.",
     "Coltura: solo un nome dell'elenco colture di GFV (lo trovi sotto); «mele» → «Melo», «uva da vino» → «Vite da Vino», «olive» → «Olivo», «grano duro» → «Grano»; «seminativo», «frutteto», «orto» sono categorie: chiedi «Che cosa ci coltivi? Grano, mais, orzo…» oppure lascia null.",
-    "Al massimo 5 terreni; se ne dicono di più: «Con l'account gratuito arrivi a 5 terreni. Gli altri li aggiungi passando al Base, quando vuoi.»",
     "Non dire mai di aver salvato o registrato; alla fine dire «Ecco il riepilogo: controlla e conferma».",
     "Rispondi solo con il JSON dello schema; frasi brevi in testo."
   ];
@@ -498,7 +541,19 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
   const poderi = unisciPoderi(poderiRisposta, poderiDaRaccolti(raccolti));
   const puliti = pulisciTerreni(parsed.terreni);
   const terreni = collegaTerreniAiPoderiServer(poderi, puliti.terreni);
-  if (poderi.length <= 1 && /\b(in|a)?\s*(quale|che)\s+podere\b/i.test(testo)) {
+  const argomento =
+    opzioni && typeof opzioni === "object" && typeof opzioni.argomento === "string"
+      ? opzioni.argomento
+      : "";
+  if (argomento === "sede") {
+    testo = togliDomandaCapProvincia(testo);
+  }
+  if (argomento === "terreni") {
+    testo = togliRiaperturaPoderi(testo);
+  } else if (
+    poderi.length <= 1 &&
+    /\b(in|a)?\s*(quale|che)\s+podere\b/i.test(testo)
+  ) {
     testo = togliDomandaPodere(testo);
   }
   const fatto = parsed.fatto === true;
@@ -537,5 +592,7 @@ module.exports = {
   collegaTerreniAiPoderiServer,
   corrispondeNomePodere,
   poderiDaRaccolti,
-  togliDomandaPodere
+  togliDomandaPodere,
+  togliRiaperturaPoderi,
+  togliDomandaCapProvincia
 };

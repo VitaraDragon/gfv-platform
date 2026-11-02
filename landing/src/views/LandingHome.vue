@@ -22,7 +22,6 @@ import {
 } from '../config/landing-config.js';
 import { rigaPrezzi, vociPianiCosaGestisci } from '../lib/landing-logica.js';
 import {
-  BUSSATA_AUTOMATICA_MS,
   bussataAutomaticaConsentita,
   CHIAVE_BUSSATA_SESSIONE,
   CHIAVE_RINUNCIA_AVVISO,
@@ -42,6 +41,7 @@ import {
   precaricoScenaConsentito,
   prossimoStato,
   prossimaBocca,
+  ritardoBussataAutomaticaMs,
   salvaPresaVisione,
   SCHEMA_VIBRAZIONE,
   SOGLIA_VOCE_ACCESA,
@@ -93,6 +93,8 @@ const TonyStage = defineAsyncComponent(() => import('../components/TonyStage.vue
 
 const fase = ref('nascosto');
 const stageAperto = ref(false);
+/** Pillola «Parla con Tony» solo dopo che Tony è già apparso (niente flash pre-bussata). */
+const tonyGiaApparso = ref(false);
 /** Desktop: Tony ridotto a bottone; la chat resta montata. */
 const tonyRidotto = ref(false);
 const avvisoAperto = ref(false);
@@ -262,7 +264,7 @@ function aggiornaRiduci() {
   }
 }
 
-function rilevaFormato() {
+function rilevaFormato(variante?: string) {
   let webm = false;
   try {
     const video = document.createElement('video');
@@ -276,6 +278,7 @@ function rilevaFormato() {
     userAgent: navigator.userAgent,
     maxTouchPoints: navigator.maxTouchPoints || 0,
     webmAlfaSupportato: webm,
+    preferisciLeggero: variante === 'mobile',
   });
 }
 
@@ -315,7 +318,7 @@ function preparaMedia() {
   if (mediaPronte) return;
   const variante = varianteScena(window.innerWidth);
   varianteScelta.value = variante;
-  formatoScelto.value = rilevaFormato();
+  formatoScelto.value = rilevaFormato(variante);
   formatoAudioScelto = rilevaOgg() ? 'ogg' : 'mp3';
   const audio = percorsiAudio(variante === 'mobile' ? 'mobile' : 'desktop');
   const estensione = formatoAudioScelto;
@@ -1027,6 +1030,8 @@ function avviaScena() {
   if (stato === 'avviso') stato = prossimoStato(stato, 'conferma');
   fase.value = stato;
   stageAperto.value = true;
+  tonyGiaApparso.value = true;
+  marcaPerf('tony-scena-avviata');
   partiCronometro();
 }
 
@@ -1045,6 +1050,7 @@ function onVuoiProvare(ev: MouseEvent) {
   }
   fase.value = prossimoStato('nascosto', 'apri');
   avvisoAperto.value = true;
+  tonyGiaApparso.value = true;
 }
 
 /** Pillola «Parla con Tony»: ripristina se ridotto, altrimenti riapre la scena. */
@@ -1206,11 +1212,15 @@ onMounted(() => {
   }, PRECARICA_SCENA_MS);
   timerIds.push(idPrecarica);
 
+  const varianteMount = varianteScena(
+    typeof window !== 'undefined' ? window.innerWidth : 1024
+  );
+  const ritardoBussata = ritardoBussataAutomaticaMs(varianteMount);
   const idBussataAuto = window.setTimeout(() => {
     marcaPerf('tony-bussata-timer');
     const esito = tentaBussataAutomatica();
     if (esito === 'riprova-visibile') aspettaVisibilePerBussata = true;
-  }, BUSSATA_AUTOMATICA_MS);
+  }, ritardoBussata);
   timerIds.push(idBussataAuto);
   window.addEventListener('resize', onResizeFinestra);
 });
@@ -1528,7 +1538,7 @@ const iconeModuliImg: Record<string, string> = {
       @rinuncia="onRinuncia"
     />
     <button
-      v-if="tonyOn && !avvisoAperto && (!stageAperto || tonyRidotto)"
+      v-if="tonyOn && tonyGiaApparso && !avvisoAperto && (!stageAperto || tonyRidotto)"
       type="button"
       class="tony-btn-riapri"
       @click="onRiapriTony"
@@ -1570,9 +1580,10 @@ const iconeModuliImg: Record<string, string> = {
 </template>
 
 <style scoped>
-/* Il pannello Tony è position:fixed (sovrapposto): non restringere la pagina. */
+/* Pannello in basso + figura a destra: lascia spazio così non coprono testo/video. */
 .landing-pagina--tony {
   padding-bottom: calc(var(--tony-altezza, 45dvh) + 1rem);
+  padding-right: calc(min(32vw, 140px) + 1.25rem);
 }
 
 .landing-pagina--tony-desktop {

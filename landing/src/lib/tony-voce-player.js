@@ -32,6 +32,7 @@ export function creaPlayerVoce(deps = {}) {
   let onFineCorrente = null;
   let risolviCorrente = null;
   let timerAttesa = 0;
+  let timerRampa = 0;
   let playingArrivato = false;
 
   function revoca() {
@@ -45,11 +46,40 @@ export function creaPlayerVoce(deps = {}) {
     urlCorrente = null;
   }
 
+  function fermaRampa() {
+    if (timerRampa) {
+      clearInterval(timerRampa);
+      timerRampa = 0;
+    }
+  }
+
+  function avviaRampaVolume() {
+    if (!audio) return;
+    fermaRampa();
+    try {
+      audio.volume = 0;
+    } catch {
+      /* ignore */
+    }
+    const passi = 8;
+    let i = 0;
+    timerRampa = setInterval(() => {
+      i += 1;
+      try {
+        audio.volume = Math.min(1, i / passi);
+      } catch {
+        /* ignore */
+      }
+      if (i >= passi) fermaRampa();
+    }, 30);
+  }
+
   function pulisciListener() {
     if (!audio) return;
     audio.onplaying = null;
     audio.onended = null;
     audio.onerror = null;
+    audio.oncanplay = null;
   }
 
   function termina(esito) {
@@ -57,6 +87,7 @@ export function creaPlayerVoce(deps = {}) {
       clearTimeout(timerAttesa);
       timerAttesa = 0;
     }
+    fermaRampa();
     const fine = onFineCorrente;
     const risolvi = risolviCorrente;
     onFineCorrente = null;
@@ -130,6 +161,7 @@ export function creaPlayerVoce(deps = {}) {
             clearTimeout(timerAttesa);
             timerAttesa = 0;
           }
+          avviaRampaVolume();
           if (typeof onInizio === 'function') {
             try {
               onInizio();
@@ -160,25 +192,54 @@ export function creaPlayerVoce(deps = {}) {
           }
         }, attesaMaxMs);
 
-        let playResult;
-        try {
-          playResult = audio.play();
-        } catch {
-          revoca();
-          termina('fallita');
-          return;
-        }
-        if (playResult && typeof playResult.then === 'function') {
-          playResult.catch(() => {
+        function avviaPlay() {
+          let playResult;
+          try {
+            playResult = audio.play();
+          } catch {
             revoca();
             termina('fallita');
-          });
+            return;
+          }
+          if (playResult && typeof playResult.then === 'function') {
+            playResult.catch(() => {
+              revoca();
+              termina('fallita');
+            });
+          }
+        }
+
+        // Aspetta che il buffer sia pronto: evita di tagliare i primi ms.
+        let avviato = false;
+        const provaAvvio = () => {
+          if (avviato || !risolviCorrente) return;
+          avviato = true;
+          audio.oncanplay = null;
+          avviaPlay();
+        };
+        audio.oncanplay = provaAvvio;
+        try {
+          audio.load();
+        } catch {
+          /* ignore */
+        }
+        if (audio.readyState >= 2) {
+          provaAvvio();
+        } else {
+          // Fallback se canplay non arriva subito.
+          setTimeout(provaAvvio, 80);
         }
       });
     },
 
     ferma() {
       if (!audio) return;
+      fermaRampa();
+      try {
+        audio.volume = 1;
+      } catch {
+        /* ignore */
+      }
       try {
         audio.pause();
       } catch {

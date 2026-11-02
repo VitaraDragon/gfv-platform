@@ -365,6 +365,16 @@ function provinceInLettere(s) {
  * @param {unknown} testo
  * @returns {string}
  */
+/**
+ * «OK/Ok/Okay» a inizio frase: ElevenLabs lo taglia o lo rende strano.
+ * Solo nel testo per la voce (la chat resta com'è).
+ * @param {string} s
+ * @returns {string}
+ */
+function okInizialePerVoce(s) {
+  return String(s || "").replace(/^(?:OK|Ok|Okay)\b/i, "Va bene");
+}
+
 function preparaTestoVoce(testo) {
   let s = typeof testo === "string" ? testo : "";
   s = s.replace(/[*#_]/g, "");
@@ -387,6 +397,7 @@ function preparaTestoVoce(testo) {
   s = provinceInLettere(s);
   s = numeriInLettere(s);
   s = s.replace(/\s+/g, " ").trim();
+  s = okInizialePerVoce(s);
   s = s.split(BREAK_PH).join(BREAK);
   return s;
 }

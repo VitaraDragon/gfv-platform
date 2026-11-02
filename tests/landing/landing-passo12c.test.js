@@ -479,7 +479,7 @@ describe('tempi e sorgenti', () => {
 describe('bussata automatica in LandingHome', () => {
   it('timer, sessione e warm-up OPTIONS', () => {
     const home = leggi('landing/src/views/LandingHome.vue');
-    expect(home).toContain('BUSSATA_AUTOMATICA_MS');
+    expect(home).toContain('ritardoBussataAutomaticaMs');
     expect(home).toContain('bussataAutomaticaConsentita');
     expect(home).toContain('PRECARICA_SCENA_MS');
     expect(home).toContain('precaricaScenaInAnticipo');
