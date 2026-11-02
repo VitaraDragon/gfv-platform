@@ -8,7 +8,8 @@
 <script>(function(){try{if(!/field-workspace|login-standalone|registrazione|reset-password|simulator-dev|prodotti-test|terreni-test|\/dev\//.test(location.pathname)){var gfvUltimoPelle="";try{gfvUltimoPelle=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(gfvEp){}if(gfvUltimoPelle!=="workspace")document.documentElement.setAttribute("data-pelle","proposta")}}catch(e){}try{var p=location.pathname||"";if(/dashboard-standalone|field-workspace|login-standalone|registrazione|reset-password|impostazioni-standalone|segnatura-ore-standalone|lavori-caposquadra|validazione-ore-standalone|statistiche-lavoratore|segnalazione-guasti|guida-manodopera|simulator-dev|\/dev\//.test(p))return;var ultimo="";try{ultimo=localStorage.getItem("gfv_ingresso_ultimo")||""}catch(e1){}if(ultimo==="dashboard")return;var campo=ultimo==="workspace";if(!campo){try{var raw=sessionStorage.getItem("gfv_tony_utente_ruoli");var ruoli=raw?JSON.parse(raw):[];var low=(Array.isArray(ruoli)?ruoli:[]).map(function(r){return String(r||"").toLowerCase()});if(low.indexOf("manager")<0&&low.indexOf("amministratore")<0&&(low.indexOf("operaio")>=0||low.indexOf("caposquadra")>=0))campo=true;}catch(e2){}}if(!campo)return;var n=0;try{n=Number(sessionStorage.getItem("gfv_workspace_rimbalzi")||"0")||0}catch(e3){}if(n>=2)return;document.documentElement.setAttribute("data-ingresso","attesa");var st=document.createElement("style");st.id="gfv-ingresso-attesa-style";st.textContent="html[data-ingresso=attesa] body{visibility:hidden!important}html[data-ingresso=attesa]::before{content:\"Apro il tuo lavoro…\";visibility:visible;display:block;padding:24px;font:16px/1.4 system-ui,sans-serif;color:#1a1a1a}";document.head.appendChild(st);}catch(e4){}})();</script>
 
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Registrazione - GFV Platform</title>
+    <title>Registrazione - GFV</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="../images/icon-32x32.png">
     <link rel="manifest" href="../../manifest.json">
     <meta name="theme-color" content="#2E8B57">
     <link rel="stylesheet" href="../styles/responsive-standalone.css">
@@ -262,7 +263,7 @@
 <body>
     <div class="register-container">
         <div class="register-header">
-            <h1>🌾 GFV Platform</h1>
+            <h1>🌾 GFV</h1>
             <p>Completa la tua registrazione</p>
         </div>
 
@@ -271,7 +272,7 @@
             <span>Apri GFV come app sulla schermata home: più comodo dal campo o in ufficio.</span>
             <p id="pwa-ios-hint" style="display:none;">Su iPhone/iPad: tocca <strong>Condividi</strong> → <strong>Aggiungi alla schermata Home</strong>.</p>
             <div class="pwa-install-actions">
-                <button type="button" id="pwa-install-btn" class="pwa-install-btn">Installa GFV Platform</button>
+                <button type="button" id="pwa-install-btn" class="pwa-install-btn">Installa GFV</button>
                 <button type="button" id="pwa-install-dismiss" class="pwa-install-dismiss">Non ora</button>
             </div>
         </div>

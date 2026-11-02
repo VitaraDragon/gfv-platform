@@ -7,7 +7,7 @@
 (function () {
     'use strict';
 
-    var TONY_LOADER_QUERY = '2026-10-09g';
+    var TONY_LOADER_QUERY = '2026-11-02a';
     if (window.__gfvTonyLoaderBuild) {
         if (window.__gfvTonyLoaderBuild !== TONY_LOADER_QUERY) console.warn('[Tony] loader doppio ignorato', TONY_LOADER_QUERY, 'già attivo', window.__gfvTonyLoaderBuild);
         return;
@@ -36,7 +36,7 @@
             addMeta('apple-mobile-web-app-capable', 'yes');
             addMeta('mobile-web-app-capable', 'yes');
             addMeta('apple-mobile-web-app-status-bar-style', 'default');
-            addMeta('apple-mobile-web-app-title', 'GFV Platform');
+            addMeta('apple-mobile-web-app-title', 'GFV');
             if (!document.querySelector('link[rel="apple-touch-icon"]')) {
                 var l = document.createElement('link');
                 l.rel = 'apple-touch-icon';
