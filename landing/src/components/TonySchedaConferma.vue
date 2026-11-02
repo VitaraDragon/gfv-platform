@@ -2,11 +2,13 @@
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { testiLanding } from '../content/testi-landing.js';
 import {
+  collegaTerreniAiPoderi,
   controllaScheda,
   esitoSalvataggio,
   messaggioErroreSetup,
   nuovoRequestId,
   payloadDaScheda,
+  risolviNomePodere,
 } from '../lib/tony-aiuto-account.js';
 import { COLTURE_PREDEFINITE } from '../lib/generati/tony-landing-setup-core.js';
 
@@ -55,7 +57,13 @@ const nomiColture = computed(() =>
 );
 
 function caricaDaProps() {
-  const d = props.dati || {};
+  const grezzi = props.dati || {};
+  const d = collegaTerreniAiPoderi({
+    sede: grezzi.sede || null,
+    poderi: Array.isArray(grezzi.poderi) ? grezzi.poderi : [],
+    terreni: Array.isArray(grezzi.terreni) ? grezzi.terreni : [],
+    ultimoPodere: grezzi.ultimoPodere || null,
+  });
   sede.value = {
     indirizzo: (d.sede && d.sede.indirizzo) || '',
     citta: (d.sede && d.sede.citta) || '',
@@ -66,18 +74,27 @@ function caricaDaProps() {
     Array.isArray(d.poderi) && d.poderi.length
       ? d.poderi.map((p) => ({ nome: p.nome || '' }))
       : [{ nome: '' }];
+  const nomeUnico =
+    poderi.value.length === 1 && poderi.value[0].nome
+      ? poderi.value[0].nome
+      : '';
   terreni.value =
     Array.isArray(d.terreni) && d.terreni.length
-      ? d.terreni.map((tr) => ({
-          nome: tr.nome || '',
-          superficie:
-            tr.superficie != null && tr.superficie !== ''
-              ? String(tr.superficie).replace('.', ',')
-              : '',
-          coltura: tr.coltura || '',
-          podere: tr.podere || '',
-        }))
-      : [{ nome: '', superficie: '', coltura: '', podere: '' }];
+      ? d.terreni.map((tr) => {
+          const risolto =
+            risolviNomePodere(tr.podere || '', poderi.value) ||
+            (tr.podere ? '' : nomeUnico);
+          return {
+            nome: tr.nome || '',
+            superficie:
+              tr.superficie != null && tr.superficie !== ''
+                ? String(tr.superficie).replace('.', ',')
+                : '',
+            coltura: tr.coltura || '',
+            podere: risolto || '',
+          };
+        })
+      : [{ nome: '', superficie: '', coltura: '', podere: nomeUnico }];
 }
 
 onMounted(() => {
@@ -127,7 +144,16 @@ function togliPodere(i: number) {
 
 function aggiungiTerreno() {
   if (terreni.value.length >= 5) return;
-  terreni.value.push({ nome: '', superficie: '', coltura: '', podere: '' });
+  const nomiPoderi = poderi.value
+    .map((p) => String(p.nome || '').trim())
+    .filter(Boolean);
+  const podereUnico = nomiPoderi.length === 1 ? nomiPoderi[0] : '';
+  terreni.value.push({
+    nome: '',
+    superficie: '',
+    coltura: '',
+    podere: podereUnico,
+  });
 }
 
 function togliTerreno(i: number) {
@@ -139,7 +165,12 @@ function togliTerreno(i: number) {
 
 function onTorna() {
   if (inInvio.value) return;
-  emit('torna-chat');
+  const payload = payloadCorrente();
+  emit('torna-chat', {
+    sede: payload.sede ?? null,
+    poderi: Array.isArray(payload.poderi) ? payload.poderi : [],
+    terreni: Array.isArray(payload.terreni) ? payload.terreni : [],
+  });
 }
 
 function onEsc(e: KeyboardEvent) {
@@ -187,7 +218,13 @@ async function onSalva() {
     }
     if (Array.isArray(esito?.campi)) {
       const mappa: Record<string, string> = {};
-      for (const c of esito.campi) mappa[String(c)] = 'da correggere';
+      for (const c of esito.campi) {
+        if (c && typeof c === 'object' && c.campo != null) {
+          mappa[String(c.campo)] = String(c.errore || 'da correggere');
+        } else {
+          mappa[String(c)] = 'da correggere';
+        }
+      }
       erroriCampi.value = mappa;
     }
     erroreGenerale.value = messaggioErroreSetup(
@@ -433,6 +470,7 @@ async function onSalva() {
       >
         +
       </button>
+      <p v-if="terreni.length < 5" class="suggerimento-piu">{{ t.suggerimentoPiu }}</p>
     </section>
 
     <p v-if="erroreGenerale" class="err-gen" role="alert">{{ erroreGenerale }}</p>
@@ -486,6 +524,12 @@ async function onSalva() {
 .blocco h3 {
   margin: 0.2rem 0 0;
   font-size: 0.95rem;
+}
+.suggerimento-piu {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.3;
+  color: #5a6b58;
 }
 .campo {
   display: flex;

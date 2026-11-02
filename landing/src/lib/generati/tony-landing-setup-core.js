@@ -338,7 +338,7 @@ function validaSede(sede, errori) {
   }
   segnalaChiaviExtra(sede, ["indirizzo", "citta", "cap", "provincia"], "sede.", errori);
   const indirizzo = normalizzaCampoTesto(sede.indirizzo, {
-    obbligatorio: true,
+    obbligatorio: false,
     min: LIMITI.INDIRIZZO_MIN,
     max: LIMITI.INDIRIZZO_MAX
   });
@@ -353,8 +353,11 @@ function validaSede(sede, errori) {
   if (citta.errore) aggiungi(errori, "sede.citta", citta.errore);
   if (cap.errore) aggiungi(errori, "sede.cap", cap.errore);
   if (provincia.errore) aggiungi(errori, "sede.provincia", provincia.errore);
-  if (indirizzo.errore || citta.errore || cap.errore || provincia.errore) return null;
-  const out = { indirizzo: indirizzo.valore, citta: citta.valore };
+  if (citta.errore || cap.errore || provincia.errore) return null;
+  if (indirizzo.errore) return null;
+  if (!citta.valore) return null;
+  const out = { citta: citta.valore };
+  if (indirizzo.valore != null) out.indirizzo = indirizzo.valore;
   if (cap.valore != null) out.cap = cap.valore;
   if (provincia.valore != null) out.provincia = provincia.valore;
   return out;
@@ -518,7 +521,12 @@ function trovaColtura(nome, coltureAzienda) {
   const chiave = chiaveNome(nome);
   for (let i = 0; i < COLTURE_PREDEFINITE.length; i++) {
     if (chiaveNome(COLTURE_PREDEFINITE[i].nome) === chiave) {
-      return { ok: true, nome: COLTURE_PREDEFINITE[i].nome };
+      const cat = COLTURE_PREDEFINITE[i].categoriaCodice;
+      return {
+        ok: true,
+        nome: COLTURE_PREDEFINITE[i].nome,
+        categoriaCodice: typeof cat === "string" && cat ? cat : null
+      };
     }
   }
   const azienda = elencoStringhe(coltureAzienda);
@@ -547,9 +555,26 @@ function nomePodereDaSalvare(nome, poderiRichiesta, poderiEsistenti) {
 
 function copiaSede(sede) {
   if (sede == null) return null;
-  const out = { indirizzo: sede.indirizzo, citta: sede.citta };
+  const out = { citta: sede.citta };
+  if (sede.indirizzo != null) out.indirizzo = sede.indirizzo;
   if (sede.cap != null) out.cap = sede.cap;
   if (sede.provincia != null) out.provincia = sede.provincia;
+  return out;
+}
+
+/**
+ * Payload Firestore per un terreno (senza timestamp: li aggiunge tony-landing-setup).
+ * @param {{ nome: string, superficie: number, coltura?: string|null, colturaCategoria?: string|null, podere?: string|null }} voce
+ */
+function payloadTerreno(voce) {
+  const out = {
+    nome: voce.nome,
+    superficie: voce.superficie,
+    tipoPossesso: "proprieta"
+  };
+  if (voce.coltura != null) out.coltura = voce.coltura;
+  if (voce.colturaCategoria != null) out.colturaCategoria = voce.colturaCategoria;
+  if (voce.podere != null) out.podere = voce.podere;
   return out;
 }
 
@@ -601,6 +626,7 @@ function risolviControAzienda(richiesta, esistenti) {
     }
 
     let colturaSalvata = null;
+    let colturaCategoria = null;
     if (terreno.coltura != null) {
       const coltura = trovaColtura(terreno.coltura, coltureAzienda);
       if (!coltura.ok) {
@@ -608,12 +634,14 @@ function risolviControAzienda(richiesta, esistenti) {
         bloccato = true;
       } else {
         colturaSalvata = coltura.nome;
+        colturaCategoria = coltura.categoriaCodice || null;
       }
     }
 
     if (!bloccato) {
       const voce = { nome: terreno.nome, superficie: terreno.superficie };
       if (colturaSalvata != null) voce.coltura = colturaSalvata;
+      if (colturaCategoria != null) voce.colturaCategoria = colturaCategoria;
       if (podereSalvato != null) voce.podere = podereSalvato;
       terreniOut.push(voce);
     }
@@ -631,4 +659,4 @@ function risolviControAzienda(richiesta, esistenti) {
   };
 }
 
-export { LIMITI, ERRORI, pulisciTesto, chiaveNome, arrotondaSuperficie, trovaColtura, validaRichiestaSetup, risolviControAzienda, COLTURE_PREDEFINITE, CATEGORIE_COLTURE_PREDEFINITE };
+export { LIMITI, ERRORI, pulisciTesto, chiaveNome, arrotondaSuperficie, trovaColtura, payloadTerreno, validaRichiestaSetup, risolviControAzienda, COLTURE_PREDEFINITE, CATEGORIE_COLTURE_PREDEFINITE };

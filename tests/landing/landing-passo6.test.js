@@ -130,13 +130,14 @@ describe('asset del passo 6', () => {
   });
 
   it('rispetta i pesi di loop, voci e immagine', () => {
-    const limiteLoop = { desktop: 800 * 1024, mobile: 500 * 1024 };
+    // talking v7 (~5,1 s)
+    const limiteLoop = { desktop: 1.8 * 1024 * 1024, mobile: 1.25 * 1024 * 1024 };
     const limiteVoci = { desktop: 160 * 1024, mobile: 100 * 1024 };
     for (const variante of varianti) {
       for (const formato of formati) {
-        const peso = fs.statSync(
-          fileDaPercorsoWeb(percorsoClip('talking', variante, formato))
-        ).size;
+        const web = percorsoClip('talking', variante, formato);
+        expect(web).toContain('-v7.');
+        const peso = fs.statSync(fileDaPercorsoWeb(web)).size;
         expect(peso, `${variante} ${formato}`).toBeLessThanOrEqual(limiteLoop[variante]);
       }
       const voci = percorsiVoce(variante);
@@ -213,8 +214,8 @@ describe('volume e bocca', () => {
   it('tempiVoce sono quelli del brief', () => {
     expect(tempiVoce()).toEqual({
       ritardoSalutoMs: 200,
-      attesaMaxVoceMs: 4000,
-      dissolvenzaBoccaMs: 150,
+      attesaMaxVoceMs: 6000,
+      dissolvenzaBoccaMs: 0,
       attesaMaxUscitaMs: 5000,
     });
   });

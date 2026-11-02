@@ -609,10 +609,11 @@ describe('domanda riuscita e limiti', () => {
 });
 
 describe('tetto e voce', () => {
-  it('costoEur 30 → tetto; 24 voce false; 10 voce true; budget 100 resta 30', async () => {
+  it('costoEur Gemini 30 → tetto; 24 voce resta true; budget config > 30 resta 30', async () => {
     const dbTetto = fakeDb(configDoc());
     dbTetto.docs.set('tonyLandingQuota/m_' + mese, {
       costoEur: 30,
+      spesaGeminiRipartita: true,
       domande: 5,
       expireAt: Timestamp.fromDate(scad.mese)
     });
@@ -625,17 +626,19 @@ describe('tetto e voce', () => {
     const db24 = fakeDb(configDoc());
     db24.docs.set('tonyLandingQuota/m_' + mese, {
       costoEur: 24,
+      spesaGeminiRipartita: true,
       domande: 1,
       expireAt: Timestamp.fromDate(scad.mese)
     });
     const r2 = await chiama(db24);
     expect(r2.res.ultimoDone().codice).toBe('ok');
-    expect(r2.res.ultimoDone().voce).toBe(false);
+    expect(r2.res.ultimoDone().voce).toBe(true);
 
     svuotaCacheTonyLandingAsk();
     const db10 = fakeDb(configDoc());
     db10.docs.set('tonyLandingQuota/m_' + mese, {
       costoEur: 10,
+      spesaGeminiRipartita: true,
       domande: 1,
       expireAt: Timestamp.fromDate(scad.mese)
     });
@@ -646,6 +649,7 @@ describe('tetto e voce', () => {
     const db100 = fakeDb(configDoc({ monthlyBudgetEur: 100 }));
     db100.docs.set('tonyLandingQuota/m_' + mese, {
       costoEur: 30,
+      spesaGeminiRipartita: true,
       domande: 1,
       expireAt: Timestamp.fromDate(scad.mese)
     });
@@ -670,7 +674,7 @@ describe('dati personali e Gemini fallito', () => {
     expect([...db.docs.keys()].filter((k) => k.startsWith('tonyLandingQuota/'))).toHaveLength(0);
   });
 
-  it('Gemini fallisce → errore gentile, domanda contata, solo costo fisso', async () => {
+  it('Gemini fallisce → errore gentile, domanda contata, costo 0 senza token', async () => {
     const db = fakeDb(configDoc());
     const { res } = await chiama(db, {}, {
       chiamaGemini: async () => ({ ok: false, motivo: 'timeout', testo: '', tokenIngresso: 0, tokenUscita: 0 })
@@ -681,7 +685,7 @@ describe('dati personali e Gemini fallito', () => {
     const m = db.docs.get('tonyLandingQuota/m_' + mese);
     expect(g.domande).toBe(1);
     expect(g.errori).toBe(1);
-    expect(m.costoEur).toBeCloseTo(COSTANTI.COSTO_FISSO_RICHIESTA_EUR, 6);
+    expect(m.costoEur).toBe(0);
   });
 });
 

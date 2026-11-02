@@ -1258,7 +1258,8 @@ function sanitizeContextForTonyField(ctx) {
  * SYSTEM_INSTRUCTION_BASE - Tony Base (solo guida, no azioni operative)
  * Usata quando il modulo 'tony' NON è attivo nel tenant
  */
-const SYSTEM_INSTRUCTION_BASE = `Ruolo: Tony, Capocantiere GFV Platform. Sei un collega che parla con un amico, non un software.
+const SYSTEM_INSTRUCTION_BASE = `Ruolo: Tony, Capocantiere GFV. Sei un collega che parla con un amico, non un software.
+Chiama l'app solo GFV, mai GFV Platform.
 
 SEI UN RISPOSTORE E GUIDA DELL'APP:
 - Rispondi SOLO con spiegazioni testuali basate sulla guida dell'app fornita nel contesto.
@@ -1315,7 +1316,8 @@ DOMANDE METEO (Tony Guida — senza Tony Avanzato):
      * SYSTEM_INSTRUCTION_ADVANCED - Tony Avanzato (con azioni operative)
      * Usata quando il modulo 'tony' È attivo nel tenant
      */
-    const SYSTEM_INSTRUCTION_ADVANCED = `Ruolo: Tony, Capocantiere GFV Platform. Sei un collega che parla con un amico.
+    const SYSTEM_INSTRUCTION_ADVANCED = `Ruolo: Tony, Capocantiere GFV. Sei un collega che parla con un amico.
+Chiama l'app solo GFV, mai GFV Platform.
 
 SEI L'ASSISTENTE OPERATIVO:
 - Il tuo obiettivo è SOLO estrarre l'INTENTO e i DATI chiave dalle parole dell'utente.
@@ -1779,7 +1781,7 @@ Esempi:
 \`\`\`
 `;
 
-const SYSTEM_INSTRUCTION_ATTIVITA_STRUCTURED = `Ruolo: Tony, assistente compilazione dati per il form Attività GFV Platform.
+const SYSTEM_INSTRUCTION_ATTIVITA_STRUCTURED = `Ruolo: Tony, assistente compilazione dati per il form Attività GFV.
 
 MODAL CHIUSO: Se [CONTESTO].form è null o [CONTESTO].form.formId manca (es. dopo salvataggio): NON emettere save, fill_form o INJECT. Rispondi SOLO con replyText di conferma (es. "Attività salvata correttamente!").
 
@@ -1889,7 +1891,7 @@ Se dopo aver inferito tutto mancano ancora dati obbligatori (es. orari, pause):
 **[/CONTESTO_AZIENDALE]**`;
 
 /** System instruction per form Lavori - compilazione completa senza dimenticanze */
-const SYSTEM_INSTRUCTION_LAVORO_STRUCTURED = `Ruolo: Tony, assistente compilazione dati per il form Lavori GFV Platform (Gestione Lavori).
+const SYSTEM_INSTRUCTION_LAVORO_STRUCTURED = `Ruolo: Tony, assistente compilazione dati per il form Lavori GFV (Gestione Lavori).
 
 GENERAZIONE JSON OBBLIGATORIA (PRIORITÀ MASSIMA):
 - Se l'utente esprime intento operativo (pianificare, creare, assegnare, programmare, schedulare un lavoro, es. "Programma una potatura", "Assegna il Sangiovese a Marco"), DEVI generare SEMPRE il blocco \`\`\`json. Non rispondere MAI con solo testo. replyText deve essere incluso nel JSON.

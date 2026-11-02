@@ -1,7 +1,7 @@
 /**
  * Riproduce clip Tony in WebM, WebP o stacked con la stessa interfaccia.
- * Due livelli sovrapposti: la clip nuova appare sopra e la vecchia sparisce
- * solo al primo fotogramma della nuova (niente buco, niente doppio Tony).
+ * Due livelli: la clip nuova resta invisibile finché non ha il primo fotogramma,
+ * poi taglio netto (opacità 1 + togli vecchia nello stesso tick). Mai due figure visibili.
  * Nel contenitore: al massimo 2 figli durante un passaggio, 1 a regime.
  */
 
@@ -27,8 +27,6 @@ export function creaPlayerClip({ contenitore, formato, onErrore }) {
   const cache = new Map();
   /** @type {Set<string>} */
   const blobUrlsAttivi = new Set();
-  /** @type {number} */
-  let timerDissolvenza = 0;
 
   function livelloCorrente() {
     return attivo === 'a' ? livelloA : livelloB;
@@ -306,7 +304,7 @@ export function creaPlayerClip({ contenitore, formato, onErrore }) {
     }
   }
 
-  function rivelaNuovo(slotNuovo, livelloNuovo, vecchio, dissolvenzaMs, onInizio) {
+  function rivelaNuovo(slotNuovo, livelloNuovo, vecchio, _dissolvenzaMs, onInizio) {
     setLivello(slotNuovo, livelloNuovo);
     attivo = slotNuovo;
     livelloInArrivo = null;
@@ -319,32 +317,13 @@ export function creaPlayerClip({ contenitore, formato, onErrore }) {
       }
     }
 
-    const togliVecchio = () => {
-      if (vecchio) {
-        nascondiEFerma(vecchio, { libera: false });
-        setLivello(slotNuovo === 'a' ? 'b' : 'a', null);
-      }
-      pulisciFigliEstranei(livelloNuovo);
-    };
-
-    if (dissolvenzaMs > 0 && vecchio && livelloNuovo.el) {
-      stileClip(livelloNuovo.el, 2, 0);
-      livelloNuovo.el.style.transition = 'opacity ' + dissolvenzaMs + 'ms ease';
-      // forza reflow
-      void livelloNuovo.el.offsetWidth;
-      livelloNuovo.el.style.opacity = '1';
-      if (timerDissolvenza) clearTimeout(timerDissolvenza);
-      timerDissolvenza = window.setTimeout(() => {
-        timerDissolvenza = 0;
-        togliVecchio();
-        if (livelloNuovo.el) {
-          livelloNuovo.el.style.transition = '';
-        }
-      }, dissolvenzaMs + 80);
-    } else {
-      if (livelloNuovo.el) stileClip(livelloNuovo.el, 2, 1);
-      togliVecchio();
+    // Taglio netto nello stesso tick: mai due figure visibili (ignora dissolvenzaMs).
+    if (livelloNuovo.el) stileClip(livelloNuovo.el, 2, 1);
+    if (vecchio) {
+      nascondiEFerma(vecchio, { libera: false });
+      setLivello(slotNuovo === 'a' ? 'b' : 'a', null);
     }
+    pulisciFigliEstranei(livelloNuovo);
   }
 
   function registraInArrivo(slotNuovo, livello) {
@@ -374,7 +353,7 @@ export function creaPlayerClip({ contenitore, formato, onErrore }) {
     } catch {
       /* ignore */
     }
-    stileClip(video, 2, dissolvenzaMs > 0 ? 0 : 1);
+    stileClip(video, 2, 0);
     if (video.parentNode && video.parentNode !== host) {
       try {
         video.parentNode.removeChild(video);
@@ -463,7 +442,7 @@ export function creaPlayerClip({ contenitore, formato, onErrore }) {
   function suonaWebp(url, { loop, durataMs, onFine, onInizio, dissolvenzaMs, slotNuovo, vecchio }) {
     const img = document.createElement('img');
     img.alt = '';
-    stileClip(img, 2, dissolvenzaMs > 0 ? 0 : 1);
+    stileClip(img, 2, 0);
     host.appendChild(img);
 
     let fermato = false;
@@ -550,7 +529,7 @@ export function creaPlayerClip({ contenitore, formato, onErrore }) {
 
   function suonaStacked(url, { loop, durataMs, onFine, onInizio, dissolvenzaMs, slotNuovo, vecchio }) {
     const canvas = document.createElement('canvas');
-    stileClip(canvas, 2, dissolvenzaMs > 0 ? 0 : 1);
+    stileClip(canvas, 2, 0);
     host.appendChild(canvas);
 
     let fermato = false;
@@ -635,10 +614,6 @@ export function creaPlayerClip({ contenitore, formato, onErrore }) {
 
   function ferma() {
     smontato = true;
-    if (timerDissolvenza) {
-      clearTimeout(timerDissolvenza);
-      timerDissolvenza = 0;
-    }
     fermaInArrivo();
     nascondiEFerma(livelloA, { libera: true });
     nascondiEFerma(livelloB, { libera: true });

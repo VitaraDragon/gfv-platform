@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import { testiLanding } from '../content/testi-landing.js';
 import {
   caselleLegali,
@@ -11,9 +11,19 @@ import {
 
 const emit = defineEmits(['chiudi-modulo', 'registrazione-completata', 'invio-in-corso']);
 
-const t = testiLanding.tonyBussa.registrazione;
+const reg = testiLanding.tonyBussa.registrazione;
+const t = reg;
 const caselle = caselleLegali();
 
+const etichettaNome = computed(
+  () => reg.etichettaNome || 'Nome (facoltativo)'
+);
+const etichettaCognome = computed(
+  () => reg.etichettaCognome || 'Cognome (facoltativo)'
+);
+
+const nome = ref('');
+const cognome = ref('');
 const email = ref('');
 const password = ref('');
 const conferma = ref('');
@@ -68,6 +78,8 @@ async function onInvia() {
   inInvio.value = true;
   emit('invio-in-corso', true);
   const dati = {
+    nome: nome.value,
+    cognome: cognome.value,
     email: email.value,
     password: password.value,
     aziendaNome: aziendaNome.value,
@@ -168,6 +180,27 @@ async function onInvia() {
             :aria-describedby="errori.conferma ? 'tony-reg-conferma-err' : undefined"
           />
           <p v-if="errori.conferma" id="tony-reg-conferma-err" class="err">{{ errori.conferma }}</p>
+        </div>
+
+        <div class="campo">
+          <label for="tony-reg-nome">{{ etichettaNome }}</label>
+          <input
+            id="tony-reg-nome"
+            v-model="nome"
+            type="text"
+            autocomplete="given-name"
+            :disabled="inInvio"
+          />
+        </div>
+        <div class="campo">
+          <label for="tony-reg-cognome">{{ etichettaCognome }}</label>
+          <input
+            id="tony-reg-cognome"
+            v-model="cognome"
+            type="text"
+            autocomplete="family-name"
+            :disabled="inInvio"
+          />
         </div>
 
         <div class="campo">

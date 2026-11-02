@@ -228,7 +228,7 @@ describe('handleAvvisiSpesa', () => {
   it('15 € → email 50%; seconda esecuzione niente; 24 € → 80% senza config; 30 € → spegne', async () => {
     const db = fakeDb({
       'config/tonyLanding': configAccesa(),
-      ['tonyLandingQuota/m_' + mese]: { costoEur: 15, domande: 10 },
+      ['tonyLandingQuota/m_' + mese]: { costoEur: 15, domande: 10, spesaGeminiRipartita: true },
     });
 
     await handleAvvisiSpesa({ db, adesso: ADESSO, inviaEmail });
@@ -244,7 +244,7 @@ describe('handleAvvisiSpesa', () => {
     await handleAvvisiSpesa({ db, adesso: ADESSO, inviaEmail });
     expect(emails).toHaveLength(0);
 
-    db.docs.set('tonyLandingQuota/m_' + mese, { costoEur: 24, domande: 20 });
+    db.docs.set('tonyLandingQuota/m_' + mese, { costoEur: 24, domande: 20, spesaGeminiRipartita: true });
     const cfgPrima = structuredClone(db.docs.get('config/tonyLanding'));
     await handleAvvisiSpesa({ db, adesso: ADESSO, inviaEmail });
     expect(emails).toHaveLength(1);
@@ -252,7 +252,7 @@ describe('handleAvvisiSpesa', () => {
     expect(db.docs.get('config/tonyLanding')).toEqual(cfgPrima);
 
     emails.length = 0;
-    db.docs.set('tonyLandingQuota/m_' + mese, { costoEur: 30, domande: 30 });
+    db.docs.set('tonyLandingQuota/m_' + mese, { costoEur: 30, domande: 30, spesaGeminiRipartita: true });
     await handleAvvisiSpesa({ db, adesso: ADESSO, inviaEmail });
     expect(emails).toHaveLength(1);
     expect(emails[0].subject).toMatch(/spento|tetto/i);
@@ -272,7 +272,7 @@ describe('handleAvvisiSpesa', () => {
   it('100% già spento: email con era già spento, config intatta; invio fallito toglie prenotazione', async () => {
     const db = fakeDb({
       'config/tonyLanding': configAccesa({ enabled: false }),
-      ['tonyLandingQuota/m_' + mese]: { costoEur: 30, domande: 5 },
+      ['tonyLandingQuota/m_' + mese]: { costoEur: 30, domande: 5, spesaGeminiRipartita: true },
     });
     await handleAvvisiSpesa({ db, adesso: ADESSO, inviaEmail });
     expect(emails).toHaveLength(1);
@@ -282,7 +282,7 @@ describe('handleAvvisiSpesa', () => {
 
     const db2 = fakeDb({
       'config/tonyLanding': configAccesa(),
-      ['tonyLandingQuota/m_' + mese]: { costoEur: 30, domande: 1 },
+      ['tonyLandingQuota/m_' + mese]: { costoEur: 30, domande: 1, spesaGeminiRipartita: true },
     });
     const fallisce = vi.fn(async () => {
       throw new Error('Resend boom dettagliato');
@@ -302,9 +302,9 @@ describe('handleAvvisiSpesa', () => {
     const { mese: mese2 } = chiaviTempo(altro);
     const db = fakeDb({
       'config/tonyLanding': configAccesa(),
-      ['tonyLandingQuota/m_' + mese]: { costoEur: 30, domande: 1 },
+      ['tonyLandingQuota/m_' + mese]: { costoEur: 30, domande: 1, spesaGeminiRipartita: true },
       ['tonyLandingQuota/avvisi_' + mese]: { p50: true, p80: true, p100: true },
-      ['tonyLandingQuota/m_' + mese2]: { costoEur: 15, domande: 2 },
+      ['tonyLandingQuota/m_' + mese2]: { costoEur: 15, domande: 2, spesaGeminiRipartita: true },
     });
     await handleAvvisiSpesa({ db, adesso: altro, inviaEmail });
     expect(emails).toHaveLength(1);
@@ -316,7 +316,7 @@ describe('handleAvvisiSpesa', () => {
     // Email fallita → al giro dopo riparte
     const db = fakeDb({
       'config/tonyLanding': configAccesa(),
-      ['tonyLandingQuota/m_' + mese]: { costoEur: 15, domande: 2 },
+      ['tonyLandingQuota/m_' + mese]: { costoEur: 15, domande: 2, spesaGeminiRipartita: true },
     });
     const fallisce = vi.fn(async () => {
       throw new Error('Resend boom');
@@ -335,7 +335,7 @@ describe('handleAvvisiSpesa', () => {
     const dbPulizia = fakeDb(
       {
         'config/tonyLanding': configAccesa(),
-        ['tonyLandingQuota/m_' + mese]: { costoEur: 24, domande: 3 },
+        ['tonyLandingQuota/m_' + mese]: { costoEur: 24, domande: 3, spesaGeminiRipartita: true },
       },
       { fallisciSetDopo: 0, fallisciSetQuanti: 1 }
     );
@@ -374,7 +374,7 @@ describe('handleAvvisiSpesa', () => {
     emails.length = 0;
     const dbSolo80 = fakeDb({
       'config/tonyLanding': configAccesa(),
-      ['tonyLandingQuota/m_' + mese]: { costoEur: 24, domande: 4 },
+      ['tonyLandingQuota/m_' + mese]: { costoEur: 24, domande: 4, spesaGeminiRipartita: true },
       ['tonyLandingQuota/avvisi_' + mese]: {
         p50: { stato: 'inviata', il: Timestamp.fromDate(ADESSO) },
       },
@@ -395,7 +395,7 @@ describe('handleAvvisiSpesa', () => {
     emails.length = 0;
     const dbRace = fakeDb({
       'config/tonyLanding': configAccesa(),
-      ['tonyLandingQuota/m_' + mese]: { costoEur: 24, domande: 4 },
+      ['tonyLandingQuota/m_' + mese]: { costoEur: 24, domande: 4, spesaGeminiRipartita: true },
     });
     let getAvvisi = 0;
     const coll0 = dbRace.collection.bind(dbRace);
@@ -439,7 +439,7 @@ describe('handleAvvisiSpesa', () => {
     emails.length = 0;
     const db100 = fakeDb({
       'config/tonyLanding': configAccesa(),
-      ['tonyLandingQuota/m_' + mese]: { costoEur: 30, domande: 1 },
+      ['tonyLandingQuota/m_' + mese]: { costoEur: 30, domande: 1, spesaGeminiRipartita: true },
     });
     await handleAvvisiSpesa({ db: db100, adesso: ADESSO, inviaEmail: fallisce });
     expect(db100.docs.get('config/tonyLanding').enabled).toBe(false);
@@ -453,7 +453,7 @@ describe('handleAvvisiSpesa', () => {
     emails.length = 0;
     const dbMano = fakeDb({
       'config/tonyLanding': configAccesa({ enabled: false }),
-      ['tonyLandingQuota/m_' + mese]: { costoEur: 30, domande: 1 },
+      ['tonyLandingQuota/m_' + mese]: { costoEur: 30, domande: 1, spesaGeminiRipartita: true },
     });
     await handleAvvisiSpesa({ db: dbMano, adesso: ADESSO, inviaEmail });
     expect(emails[0].html).toMatch(/era già spento/);
@@ -560,7 +560,9 @@ describe('testi email e isolamento', () => {
       mese: 'novembre 2026',
     });
     expect(m50.oggetto).toMatch(/50%/);
+    expect(m50.oggetto).toMatch(/Gemini/i);
     expect(m50.html).toMatch(/15,10 €/);
+    expect(m50.testo).toMatch(/prezzi di listino/);
     expect(m50.html + m50.testo).not.toMatch(/Pierpaolo|Pier\b|Rossi/);
     expect(m50.html).not.toMatch(/@/);
     const mBud = testoEmailBudget({

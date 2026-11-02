@@ -17,7 +17,8 @@ const { FieldValue, Timestamp } = require("firebase-admin/firestore");
 const { HttpsError } = require("firebase-functions/v2/https");
 const {
   validaRichiestaSetup,
-  risolviControAzienda
+  risolviControAzienda,
+  payloadTerreno: payloadTerrenoCore
 } = require("./lib/tony-landing-setup-core");
 const { rolesForTenant } = require("./lib/tenant-membership-access");
 const { resolveTenantPlanId } = require("./tenant-plan");
@@ -269,16 +270,10 @@ function payloadPodere(nome) {
 }
 
 function payloadTerreno(voce) {
-  const out = {
-    nome: voce.nome,
-    superficie: voce.superficie,
-    tipoPossesso: "proprieta",
+  return Object.assign({}, payloadTerrenoCore(voce), {
     createdAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp()
-  };
-  if (voce.coltura != null) out.coltura = voce.coltura;
-  if (voce.podere != null) out.podere = voce.podere;
-  return out;
+  });
 }
 
 /**

@@ -8,7 +8,7 @@ export const GUIDA_APP_PER_TONY = `
 === GFV PLATFORM – CONOSCENZA APP (per rispondere a domande su come funziona l'app, dove trovare le cose, cosa fa ogni modulo) ===
 
 --- CORE ---
-GFV Platform è un'app multi-tenant per la gestione aziendale agricola: terreni, attività, lavori, moduli (Vigneto, Frutteto, Magazzino, Manodopera, Parco Macchine, Conto Terzi). Dati isolati per tenant. Login con email/password.
+GFV è un'app multi-tenant per la gestione aziendale agricola: terreni, attività, lavori, moduli (Vigneto, Frutteto, Magazzino, Manodopera, Parco Macchine, Conto Terzi). Dati isolati per tenant. Login con email/password.
 Ruoli: Amministratore (utenti, ruoli, abbonamento, impostazioni; può tutto il manager); Manager (terreni, attività, lavori, squadre, moduli; non abbonamento/ruoli); Caposquadra (lavori assegnati, segna/valida ore, comunicazioni operai); Operaio (lavori assegnati, segna ore, comunicazioni).
 Piano Free: max 5 terreni, max 30 attività/mese, nessun modulo; Tony Guida disponibile solo nei primi 7 giorni dalla registrazione (prova, 30 domande/giorno), poi serve il piano Base. Piano Base (€5/mese): Tony Guida sempre incluso, moduli a pagamento attivabili.
 Navigazione: dopo il login → Dashboard (pagina principale). In alto a SINISTRA: pulsante moduli (icona graffetta, «Apri o chiudi i moduli») — è il modo principale per aprire Terreni, Diario, Vigneto, Magazzino e ogni altro modulo attivo. In alto a destra (icona ingranaggio ⚙️): Impostazioni, Guide, Tour, Invita Collaboratore (solo admin), Cambia Azienda (se più tenant), Logout. Ogni pagina ha di solito "← Dashboard" per tornare all'hub del modulo (o alla home se è una pagina core). Sulla dashboard di un modulo "← Dashboard Principale" torna alla home dell'app.

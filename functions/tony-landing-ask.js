@@ -29,17 +29,24 @@ const {
   decidiDomandaAccount,
   messaggioPerCodice,
   costoStimatoEur,
+  spesaGeminiDaDocumento,
   tokenDaUsage,
   corpoRichiestaGemini,
   testoDaPayloadGemini,
   rigaSse
 } = require("./lib/tony-landing-limiti");
 // Prompt definitivo con base di conoscenza (passo 11).
-const { PROMPT_SISTEMA_LANDING } = require("./lib/tony-landing-prompt");
+const {
+  PROMPT_SISTEMA_LANDING,
+  istruzioneNomeServizioDaStoria,
+  pulisciNomeServizioRisposta
+} = require("./lib/tony-landing-prompt");
 const {
   SCHEMA_RISPOSTA_ACCOUNT,
   promptSistemaAccount,
-  rispostaAccountDaTesto
+  rispostaAccountDaTesto,
+  applicaSuperficieDaDomanda,
+  normalizzaDecimaliPerGemini
 } = require("./lib/tony-landing-account");
 const {
   COSTANTI_VOCE,
@@ -279,9 +286,10 @@ async function consumaQuota(db, args) {
     const s = snapS.exists ? snapS.data() || {} : {};
     const m = snapM.exists ? snapM.data() || {} : {};
 
+    const spesaGemini = spesaGeminiDaDocumento(m).spesaGeminiEur;
     const decisione = decidiDomanda({
       config: config,
-      spesaMeseEur: typeof m.costoEur === "number" ? m.costoEur : 0,
+      spesaMeseEur: spesaGemini,
       domandeGiorno: typeof g.domande === "number" ? g.domande : 0,
       domandeVisitatore: typeof v.domande === "number" ? v.domande : 0,
       domandeSessione: typeof s.domande === "number" ? s.domande : 0
@@ -380,10 +388,10 @@ async function consumaQuotaAccount(db, args) {
     const m = snapM.exists ? snapM.data() || {} : {};
     const a = snapA.exists ? snapA.data() || {} : {};
 
+    const spesaGemini = spesaGeminiDaDocumento(m).spesaGeminiEur;
     const decisione = decidiDomandaAccount({
       config: config,
-      spesaMeseEur: typeof m.costoEur === "number" ? m.costoEur : 0,
-      domandeGiorno: typeof g.domande === "number" ? g.domande : 0,
+      spesaMeseEur: spesaGemini,
       domandeAccount: typeof a.count === "number" ? a.count : 0
     });
 
@@ -413,15 +421,6 @@ async function consumaQuotaAccount(db, args) {
     }
 
     tx.set(
-      refG,
-      {
-        domande: FieldValue.increment(1),
-        expireAt: expireG,
-        aggiornatoIl: ts
-      },
-      { merge: true }
-    );
-    tx.set(
       refM,
       {
         domande: FieldValue.increment(1),
@@ -448,28 +447,72 @@ async function consumaQuotaAccount(db, args) {
   });
 }
 
-async function registraSpesa(db, giorno, mese, costo, ok, expireContatori, expireMese) {
+/**
+ * Registra solo spesa Gemini (euro di listino) + token. La voce non entra qui.
+ * @param {object} db
+ * @param {string} giorno
+ * @param {string} mese
+ * @param {number} costo
+ * @param {boolean} ok
+ * @param {Date} expireContatori
+ * @param {Date} expireMese
+ * @param {{ tokenIngresso?: number, tokenUscita?: number }} [token]
+ */
+async function registraSpesa(
+  db,
+  giorno,
+  mese,
+  costo,
+  ok,
+  expireContatori,
+  expireMese,
+  token
+) {
   const refG = db.collection(COLLEZIONE_QUOTA).doc("g_" + giorno);
   const refM = db.collection(COLLEZIONE_QUOTA).doc("m_" + mese);
+  const tin =
+    token && typeof token.tokenIngresso === "number" && token.tokenIngresso > 0
+      ? token.tokenIngresso
+      : 0;
+  const tout =
+    token && typeof token.tokenUscita === "number" && token.tokenUscita > 0
+      ? token.tokenUscita
+      : 0;
   const patchG = {
     costoEur: FieldValue.increment(costo),
     expireAt: Timestamp.fromDate(expireContatori),
     aggiornatoIl: FieldValue.serverTimestamp()
   };
+  if (tin > 0) {
+    patchG.tokenIngresso = FieldValue.increment(tin);
+  }
+  if (tout > 0) {
+    patchG.tokenUscita = FieldValue.increment(tout);
+  }
   if (ok) patchG.risposte = FieldValue.increment(1);
   else patchG.errori = FieldValue.increment(1);
 
-  await Promise.all([
-    refG.set(patchG, { merge: true }),
-    refM.set(
-      {
-        costoEur: FieldValue.increment(costo),
-        expireAt: Timestamp.fromDate(expireMese),
-        aggiornatoIl: FieldValue.serverTimestamp()
-      },
-      { merge: true }
-    )
-  ]);
+  // Mese: se il documento ha ancora la vecchia voce gonfiata (senza token),
+  // riparte da questo costo Gemini invece di incrementare sopra il gonfiato.
+  await db.runTransaction(async function (tx) {
+    const snapM = await tx.get(refM);
+    const m = snapM.exists ? snapM.data() || {} : {};
+    const gem = spesaGeminiDaDocumento(m);
+    const patchM = {
+      spesaGeminiRipartita: true,
+      expireAt: Timestamp.fromDate(expireMese),
+      aggiornatoIl: FieldValue.serverTimestamp()
+    };
+    if (gem.daRipartire) {
+      patchM.costoEur = costo;
+    } else {
+      patchM.costoEur = FieldValue.increment(costo);
+    }
+    if (tin > 0) patchM.tokenIngresso = FieldValue.increment(tin);
+    if (tout > 0) patchM.tokenUscita = FieldValue.increment(tout);
+    tx.set(refM, patchM, { merge: true });
+  });
+  await refG.set(patchG, { merge: true });
 }
 
 /**
@@ -726,10 +769,15 @@ async function handleFaseAccount(req, res, ctx) {
       return;
     }
 
+    const promptOpts =
+      typeof validata.raccolti === "string" && validata.raccolti
+        ? { raccolti: validata.raccolti }
+        : undefined;
+    const domandaPerGemini = normalizzaDecimaliPerGemini(domanda);
     const corpoGemini = corpoRichiestaGemini({
-      promptSistema: promptSistemaAccount(argomento),
+      promptSistema: promptSistemaAccount(argomento, promptOpts),
       storia: storia,
-      domanda: domanda,
+      domanda: domandaPerGemini,
       formatoAccount: true,
       schemaRisposta: SCHEMA_RISPOSTA_ACCOUNT
     });
@@ -744,14 +792,23 @@ async function handleFaseAccount(req, res, ctx) {
 
     if (!esitoGemini || !esitoGemini.ok) {
       try {
+        const tinErr =
+          typeof esitoGemini.tokenIngresso === "number"
+            ? esitoGemini.tokenIngresso
+            : 0;
+        const toutErr =
+          typeof esitoGemini.tokenUscita === "number"
+            ? esitoGemini.tokenUscita
+            : 0;
         await registraSpesa(
           db,
           giorno,
           mese,
-          COSTANTI.COSTO_FISSO_RICHIESTA_EUR,
+          costoStimatoEur({ tokenIngresso: tinErr, tokenUscita: toutErr }),
           false,
           scad.contatori,
-          scad.mese
+          scad.mese,
+          { tokenIngresso: tinErr, tokenUscita: toutErr }
         );
       } catch (_e) {
         logRiga("warn", ["fase=account", "spesa=non-registrata"]);
@@ -775,7 +832,13 @@ async function handleFaseAccount(req, res, ctx) {
     }
 
     if (esitoGemini.testo) testoGrezzo = esitoGemini.testo;
-    const pulita = rispostaAccountDaTesto(testoGrezzo);
+    const pulita = rispostaAccountDaTesto(testoGrezzo, {
+      raccolti: validata.raccolti,
+      argomento: argomento
+    });
+    if (pulita.dati) {
+      pulita.dati = applicaSuperficieDaDomanda(domanda, pulita.dati);
+    }
     const testoRisposta = pulita.testo || "";
 
     const tok = tokenDaUsage(
@@ -797,8 +860,7 @@ async function handleFaseAccount(req, res, ctx) {
         : tok.tokenUscita;
     const costo = costoStimatoEur({
       tokenIngresso: tokenIngresso,
-      tokenUscita: tokenUscita,
-      caratteriVoce: 0
+      tokenUscita: tokenUscita
     });
     try {
       await registraSpesa(
@@ -808,7 +870,8 @@ async function handleFaseAccount(req, res, ctx) {
         costo,
         true,
         scad.contatori,
-        scad.mese
+        scad.mese,
+        { tokenIngresso: tokenIngresso, tokenUscita: tokenUscita }
       );
     } catch (_e) {
       logRiga("warn", ["fase=account", "spesa=non-registrata"]);
@@ -862,7 +925,8 @@ async function handleFaseAccount(req, res, ctx) {
       ),
       mostraRegistrazione: false,
       dati: pulita.dati,
-      troppiTerreni: pulita.troppiTerreni === true
+      troppiTerreni: pulita.troppiTerreni === true,
+      fuoriTema: pulita.fuoriTema === true
     };
     if (voceOfferta && idVoce) doneOk.idVoce = idVoce;
     chiudiDone(res, doneOk);
@@ -1127,8 +1191,10 @@ async function handleTonyLandingAsk(req, res, opzioni) {
       0,
       COSTANTI.MAX_DOMANDE_SESSIONE - quota.domandeSessione
     );
+    const promptConNome =
+      PROMPT_SISTEMA_LANDING + "\n" + istruzioneNomeServizioDaStoria(storia);
     const corpoGemini = corpoRichiestaGemini({
-      promptSistema: PROMPT_SISTEMA_LANDING,
+      promptSistema: promptConNome,
       storia: storia,
       domanda: domanda
     });
@@ -1144,14 +1210,23 @@ async function handleTonyLandingAsk(req, res, opzioni) {
       const motivo =
         (esitoGemini && esitoGemini.motivo) || "gemini-errore";
       try {
+        const tinErr =
+          typeof esitoGemini.tokenIngresso === "number"
+            ? esitoGemini.tokenIngresso
+            : 0;
+        const toutErr =
+          typeof esitoGemini.tokenUscita === "number"
+            ? esitoGemini.tokenUscita
+            : 0;
         await registraSpesa(
           db,
           giorno,
           mese,
-          COSTANTI.COSTO_FISSO_RICHIESTA_EUR,
+          costoStimatoEur({ tokenIngresso: tinErr, tokenUscita: toutErr }),
           false,
           scad.contatori,
-          scad.mese
+          scad.mese,
+          { tokenIngresso: tinErr, tokenUscita: toutErr }
         );
       } catch (_e) {
         logRiga("warn", ["spesa=non-registrata"]);
@@ -1192,8 +1267,7 @@ async function handleTonyLandingAsk(req, res, opzioni) {
         : tok.tokenUscita;
     const costo = costoStimatoEur({
       tokenIngresso: tokenIngresso,
-      tokenUscita: tokenUscita,
-      caratteriVoce: 0
+      tokenUscita: tokenUscita
     });
     try {
       await registraSpesa(
@@ -1203,13 +1277,14 @@ async function handleTonyLandingAsk(req, res, opzioni) {
         costo,
         true,
         scad.contatori,
-        scad.mese
+        scad.mese,
+        { tokenIngresso: tokenIngresso, tokenUscita: tokenUscita }
       );
     } catch (_e) {
       logRiga("warn", ["spesa=non-registrata"]);
     }
 
-    const testoRisposta = esitoGemini.testo || "";
+    const testoRisposta = pulisciNomeServizioRisposta(esitoGemini.testo || "");
     let voceOfferta = false;
     let idVoce = null;
     const caratteriVoceGiorno =

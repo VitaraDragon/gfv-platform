@@ -1,14 +1,24 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue';
-import { URL_REGISTRAZIONE } from '../config/landing-config.js';
+import { URL_REGISTRAZIONE, VERSIONE_AVVISO_TONY } from '../config/landing-config.js';
 import { testiLanding } from '../content/testi-landing.js';
-import { tempiVoce } from '../lib/tony-bussa-logica.js';
+import {
+  attesaPrimaDiParlareMs,
+  CHIAVE_INFORMATIVA_AIUTO,
+  leggiPresaVisione,
+  salvaPresaVisione,
+  tempiVoce,
+} from '../lib/tony-bussa-logica.js';
 import { chiediATony } from '../lib/tony-chat-client.js';
 import {
   MAX_CARATTERI_DOMANDA,
   MESSAGGI_CHAT,
   azionePerEsito,
   aggiornaStoria,
+  chiudiConsensoInvioSenzaAccettare,
+  creaBufferTestoStreaming,
+  creaGestoreAttesaLunga,
+  messaggioAttesaLunga,
   modoVoce,
   nuovaSessione,
   validaDomanda,
@@ -17,10 +27,14 @@ import { chiediVoce } from '../lib/tony-voce-client.js';
 import { creaPlayerVoce } from '../lib/tony-voce-player.js';
 import {
   PASSI_AIUTO,
+  collegaTerreniAiPoderi,
+  decidiDopoRisposta,
   prossimoPasso,
+  serializzaRaccolti,
   unisciDati,
 } from '../lib/tony-aiuto-account.js';
-import { percorsoVoceFatto } from '../lib/tony-bussa-logica.js';
+import { percorsoVoceAiuto, percorsoVoceFatto } from '../lib/tony-bussa-logica.js';
+import { motivoRipiegoRegistrazionePages } from '../lib/tony-registrazione.js';
 import TonyRegistrazione from './TonyRegistrazione.vue';
 import TonySchedaConferma from './TonySchedaConferma.vue';
 
@@ -35,6 +49,8 @@ const props = defineProps<{
   staticoForzato: boolean;
   audioIniziale: boolean;
   moduloDisponibile: boolean;
+  /** Ms dall'inizio reale della clip scrive (0 se non partita). */
+  msDaInizioScrive?: () => number;
 }>();
 
 const emit = defineEmits([
@@ -83,6 +99,12 @@ const schedaAperta = ref(false);
 const aiutoFatto = ref(false);
 const aiutoSospeso = ref(false);
 const argomentiSuonati = new Set<string>();
+const turniSenzaNovitaNelPasso = ref(0);
+const consecutiviFuoriTema = ref(0);
+/** Dopo «Torna alla chat»: non riaprire la scheda su fatto:true finché l'utente non chiede il riepilogo. */
+let tornatoDalRiepilogo = false;
+/** Riapertura per domandeRimaste ≤ 3 già usata una volta. */
+let giaRiaperturaLimiteDomande = false;
 /** Stato del campo/chip/evidenza prima di aprire il modulo (R1). */
 let statoPrimaDelModulo: {
   campoAttivo: boolean;
@@ -117,6 +139,10 @@ const altoparlanteVisibile = ref(false);
 const mostraAscolta = ref(false);
 const voceInCorso = ref(false);
 const voceParlandoSr = ref(false);
+const informativaAiutoVisibile = ref(false);
+const attesaLungaVisibile = ref(false);
+const mostraConsensoInvio = ref(false);
+const testoInvioInAttesa = ref<{ testo: string; daChip: boolean } | null>(null);
 
 let recognition: any = null;
 let abortCorrente: AbortController | null = null;
@@ -129,7 +155,38 @@ let blobAscolta: Blob | null = null;
 let metaVoce: { idVoce: string; testo: string } | null = null;
 let chiediVoceFn: typeof chiediVoce = chiediVoce;
 let scenarioVoceFinta: string | null = null;
+/** Timestamp di inizio clip «scrive» (primo pezzo di testo). */
+let inizioScriveMs = 0;
 const playerVoce = creaPlayerVoce();
+
+function aspetta(ms: number) {
+  return new Promise<void>((resolve) => {
+    if (ms <= 0) {
+      resolve();
+      return;
+    }
+    setTimeout(resolve, ms);
+  });
+}
+
+async function aspettaMinimoScrivePrimaDiParlare() {
+  let msDaInizio = 0;
+  if (typeof props.msDaInizioScrive === 'function') {
+    msDaInizio = props.msDaInizioScrive();
+  } else if (inizioScriveMs > 0) {
+    msDaInizio = Date.now() - inizioScriveMs;
+  }
+  const clipCorrente =
+    typeof props.msDaInizioScrive === 'function' && msDaInizio === 0
+      ? 'idle'
+      : 'scrive';
+  const attesa = attesaPrimaDiParlareMs({
+    clipCorrente,
+    msDaInizioClip: msDaInizio,
+    riduciMovimento: props.riduciMovimento,
+  });
+  await aspetta(attesa);
+}
 
 const contatoreVisibile = computed(() => {
   const n = campo.value.length;
@@ -146,13 +203,95 @@ const chatVisibile = computed(
 
 const mobile = computed(() => props.variante === 'mobile');
 
+/** Sul telefono niente focus automatico: apre la tastiera e sposta Tony. */
+function deveFocalizzareCampo() {
+  if (props.variante === 'mobile') return false;
+  if (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches) {
+    return false;
+  }
+  return true;
+}
+
+function focalizzaCampoSeConsentito() {
+  if (!deveFocalizzareCampo()) return;
+  nextTick(() => inputEl.value?.focus());
+}
+
+function storagePagina() {
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function storageSessione() {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return null;
+  }
+}
+
+function presaVisioneOk() {
+  return leggiPresaVisione(storagePagina(), VERSIONE_AVVISO_TONY).vista;
+}
+
+function informativaAiutoGiaVista() {
+  const s = storageSessione();
+  return s ? s.getItem(CHIAVE_INFORMATIVA_AIUTO) === '1' : false;
+}
+
+function segnaInformativaAiutoVista() {
+  const s = storageSessione();
+  if (s) s.setItem(CHIAVE_INFORMATIVA_AIUTO, '1');
+}
+
+function onHoCapitoInformativaAiuto() {
+  informativaAiutoVisibile.value = false;
+  segnaInformativaAiutoVista();
+}
+
+function onHoCapitoConsensoInvio() {
+  mostraConsensoInvio.value = false;
+  salvaPresaVisione(
+    storagePagina(),
+    VERSIONE_AVVISO_TONY,
+    new Date().toISOString(),
+    props.audioIniziale !== false
+  );
+  const pendente = testoInvioInAttesa.value;
+  testoInvioInAttesa.value = null;
+  if (pendente) void inviaTesto(pendente.testo, pendente.daChip);
+}
+
+function onChiudiConsensoInvio() {
+  const esito = chiudiConsensoInvioSenzaAccettare({
+    testoInvioInAttesa: testoInvioInAttesa.value,
+    campoCorrente: campo.value,
+  });
+  mostraConsensoInvio.value = esito.mostraConsensoInvio;
+  testoInvioInAttesa.value = esito.testoInvioInAttesa;
+  campo.value = esito.campo;
+}
+
+function onEscConsenso(e: KeyboardEvent) {
+  if (e.key !== 'Escape') return;
+  if (!mostraConsensoInvio.value) return;
+  e.preventDefault();
+  e.stopPropagation();
+  onChiudiConsensoInvio();
+}
+
 onMounted(() => {
+  informativaAiutoVisibile.value = !informativaAiutoGiaVista();
   const SR =
     typeof window !== 'undefined'
       ? (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
       : null;
   microfonoDisponibile.value = typeof SR === 'function';
   document.addEventListener('visibilitychange', onVisibility);
+  document.addEventListener('keydown', onEscConsenso);
   if (import.meta.env.DEV) {
     const query = typeof window !== 'undefined' ? window.location.search : '';
     import('../lib/tony-chat-finto.js')
@@ -194,7 +333,7 @@ watch(
       passaAStatico(MESSAGGI_CHAT.spento);
       return;
     }
-    nextTick(() => inputEl.value?.focus());
+    focalizzaCampoSeConsentito();
   }
 );
 
@@ -282,6 +421,22 @@ function apriModulo() {
   emit('apri-modulo');
 }
 
+/** Ripiego su Pages solo se il pannello è davvero impossibile. */
+function onRipiegoRegistrazionePages() {
+  const motivo = motivoRipiegoRegistrazionePages({
+    salutoFinito: props.salutoFinito,
+    protezionePronta: props.protezionePronta,
+    anteprima: import.meta.env.MODE === 'anteprima' || import.meta.env.DEV === true,
+  });
+  console.warn('[landing] Registrazione nel pannello impossibile; ripiego su Pages', {
+    motivo: motivo || 'modulo-non-disponibile',
+    salutoFinito: props.salutoFinito,
+    protezionePronta: props.protezionePronta,
+    moduloDisponibile: props.moduloDisponibile,
+    mode: import.meta.env.MODE,
+  });
+}
+
 function onChiudiModulo() {
   if (registrazioneCompletata.value) return;
   moduloAperto.value = false;
@@ -306,17 +461,22 @@ function onRegistrazioneCompletata() {
   moduloAperto.value = false;
   campoAttivo.value = false;
   chipVisibili.value = false;
+  informativaAiutoVisibile.value = !informativaAiutoGiaVista();
   messaggi.value.push({ ruolo: 'tony', testo: t.registrazione.fatto });
   messaggi.value.push({ ruolo: 'tony', testo: ta.invito });
   faseAiuto.value = true;
   passoAiuto.value = 'invito';
   storia.value = [];
+  risposteVocaliAutomatiche = 0;
+  tornatoDalRiepilogo = false;
+  giaRiaperturaLimiteDomande = false;
   sessione.value = nuovaSessione(
     typeof crypto !== 'undefined' && crypto.randomUUID
       ? () => crypto.randomUUID()
       : undefined
   );
   scorriInBasso();
+  void suonaFraseFissa('invito');
   emit('registrazione-completata');
   emit('chiudi-modulo');
 }
@@ -338,12 +498,29 @@ function domandaFissa(passo: string) {
 }
 
 function avviaPasso(passo: string) {
+  // Flusso lineare: non tornare a un passo già superato (es. poderi dopo terreni).
+  const cur = PASSI_AIUTO.indexOf(passoAiuto.value || '');
+  const next = PASSI_AIUTO.indexOf(passo);
+  if (cur >= 0 && next >= 0 && next < cur) {
+    return;
+  }
+  turniSenzaNovitaNelPasso.value = 0;
+  consecutiviFuoriTema.value = 0;
   passoAiuto.value = passo;
   schedaAperta.value = false;
   campoAttivo.value = true;
   chipVisibili.value = true;
   const testo = domandaFissa(passo);
   messaggi.value.push({ ruolo: 'tony', testo });
+  const chiaveVoce =
+    passo === 'sede'
+      ? 'domandaSede'
+      : passo === 'poderi'
+        ? 'domandaPoderi'
+        : passo === 'terreni'
+          ? 'domandaTerreni'
+          : '';
+  if (chiaveVoce) void suonaFraseFissa(chiaveVoce);
   if (!argomentiSuonati.has(passo)) {
     argomentiSuonati.add(passo);
     emit('argomento', passo);
@@ -381,6 +558,7 @@ function onChipAiuto(etichetta: string) {
 }
 
 function apriScheda() {
+  tornatoDalRiepilogo = false;
   statoPrimaDellaScheda = {
     campoAttivo: campoAttivo.value,
     chipVisibili: chipVisibili.value,
@@ -391,27 +569,48 @@ function apriScheda() {
   chipVisibili.value = false;
   passoAiuto.value = 'scheda';
   messaggi.value.push({ ruolo: 'tony', testo: ta.schedaIntro });
+  void suonaFraseFissa('schedaIntro');
   scorriInBasso();
 }
 
-function onTornaDallaScheda() {
+function onTornaDallaScheda(dati?: {
+  sede?: any;
+  poderi?: any[];
+  terreni?: any[];
+}) {
   schedaAperta.value = false;
-  if (statoPrimaDellaScheda) {
-    campoAttivo.value = statoPrimaDellaScheda.campoAttivo;
-    chipVisibili.value = statoPrimaDellaScheda.chipVisibili;
-    const prima = statoPrimaDellaScheda.passoAiuto;
-    passoAiuto.value =
-      prima && prima !== 'scheda'
-        ? prima
-        : PASSI_AIUTO[PASSI_AIUTO.length - 1];
-    statoPrimaDellaScheda = null;
-  } else {
-    campoAttivo.value = !(aiutoSospeso.value || aiutoFatto.value);
-    chipVisibili.value = campoAttivo.value;
-    if (!passoAiuto.value || passoAiuto.value === 'scheda') {
-      passoAiuto.value = PASSI_AIUTO[PASSI_AIUTO.length - 1];
-    }
+  tornatoDalRiepilogo = true;
+  turniSenzaNovitaNelPasso.value = 0;
+  consecutiviFuoriTema.value = 0;
+  if (dati && typeof dati === 'object') {
+    datiAiuto.value = collegaTerreniAiPoderi({
+      sede: dati.sede ?? null,
+      poderi: Array.isArray(dati.poderi) ? dati.poderi : [],
+      terreni: Array.isArray(dati.terreni) ? dati.terreni : [],
+    });
   }
+  const nTerreni = Array.isArray(datiAiuto.value.terreni)
+    ? datiAiuto.value.terreni.length
+    : 0;
+  if (nTerreni >= 5) {
+    passoAiuto.value = 'terreni';
+    campoAttivo.value = true;
+    chipVisibili.value = true;
+    messaggi.value.push({ ruolo: 'tony', testo: ta.cinqueTerreni });
+    void suonaFraseFissa('cinqueTerreni');
+  } else {
+    passoAiuto.value = 'terreni';
+    campoAttivo.value = true;
+    chipVisibili.value = true;
+    const frase = String(ta.tornaDalRiepilogo || '').replace(
+      /\bN\b/,
+      String(nTerreni)
+    );
+    messaggi.value.push({ ruolo: 'tony', testo: frase });
+    void suonaFraseFissa('tornaDalRiepilogo');
+  }
+  statoPrimaDellaScheda = null;
+  scorriInBasso();
 }
 
 async function suVoceFatto() {
@@ -428,6 +627,25 @@ async function suVoceFatto() {
     });
   } catch {
     emit('voceFinita');
+  }
+}
+
+/** Mp3 statici dell'intervista (404 → muto senza errori). */
+async function suonaFraseFissa(chiave: string) {
+  if (!altoparlante.value) return;
+  try {
+    fermaVoceCorrente();
+    const percorsi = percorsoVoceAiuto(chiave);
+    const risposta = await fetch(percorsi.mp3);
+    if (!risposta.ok) return;
+    const blob = await risposta.blob();
+    playerVoce.sblocca();
+    await playerVoce.suona(blob, {
+      onInizio: () => emit('voceIniziata'),
+      onFine: () => emit('voceFinita'),
+    });
+  } catch {
+    /* mp3 assente o interrotto: resta muto */
   }
 }
 
@@ -450,6 +668,12 @@ async function inviaTesto(grezzo: string, daChip = false) {
   if (faseAiuto.value && passoAiuto.value === 'invito') return;
   if (inAttesa.value || !campoAttivo.value || modalitàStatica.value) return;
   if (aiutoFatto.value || aiutoSospeso.value) return;
+  if (!presaVisioneOk()) {
+    testoInvioInAttesa.value = { testo: grezzo, daChip };
+    mostraConsensoInvio.value = true;
+    scorriInBasso();
+    return;
+  }
   const validazione = validaDomanda(grezzo);
   if (!validazione.ok) {
     if (validazione.motivo === 'vuota') return;
@@ -490,17 +714,35 @@ async function inviaTesto(grezzo: string, daChip = false) {
 
   abortCorrente = new AbortController();
   let primoPezzo = false;
+  attesaLungaVisibile.value = false;
+  const gestoreAttesa = creaGestoreAttesaLunga({
+    onMostra: () => {
+      attesaLungaVisibile.value = true;
+    },
+    onNascondi: () => {
+      attesaLungaVisibile.value = false;
+    },
+  });
+  gestoreAttesa.inizio();
+
+  const bufferStream = creaBufferTestoStreaming({
+    onAggiorna: (visibile) => {
+      testoParziale.value = visibile;
+      const ultimo = messaggi.value[messaggi.value.length - 1];
+      if (ultimo && ultimo.live) ultimo.testo = visibile;
+      scorriInBasso();
+    },
+  });
 
   const onPezzo = (delta: string) => {
+    gestoreAttesa.pezzoArrivato();
     if (!primoPezzo) {
       primoPezzo = true;
+      inizioScriveMs = Date.now();
       emit('testoArrivato');
       messaggi.value.push({ ruolo: 'tony', testo: '', live: true });
     }
-    testoParziale.value += delta;
-    const ultimo = messaggi.value[messaggi.value.length - 1];
-    if (ultimo && ultimo.live) ultimo.testo = testoParziale.value;
-    scorriInBasso();
+    bufferStream.aggiungi(delta);
   };
 
   const inAccount =
@@ -534,6 +776,7 @@ async function inviaTesto(grezzo: string, daChip = false) {
         segnale: abortCorrente.signal,
         fase: inAccount ? 'account' : undefined,
         argomento: inAccount ? passoAiuto.value || undefined : undefined,
+        raccolti: inAccount ? serializzaRaccolti(datiAiuto.value) || undefined : undefined,
       });
     }
   } catch {
@@ -541,6 +784,7 @@ async function inviaTesto(grezzo: string, daChip = false) {
   }
 
   if (smontato) return;
+  gestoreAttesa.fine();
   abortCorrente = null;
   inAttesa.value = false;
 
@@ -580,6 +824,7 @@ async function inviaTesto(grezzo: string, daChip = false) {
       ultimo.testo = azione.testo;
       ultimo.live = false;
     }
+    bufferStream.finisci();
   } else {
     messaggi.value.push({ ruolo: 'tony', testo: azione.testo });
   }
@@ -593,16 +838,62 @@ async function inviaTesto(grezzo: string, daChip = false) {
   if (inAccount && esito.codice === 'ok') {
     if (esito.troppiTerreni) {
       messaggi.value.push({ ruolo: 'tony', testo: ta.cinqueTerreni });
+      void suonaFraseFissa('cinqueTerreni');
     }
+    const prima = JSON.stringify(datiAiuto.value);
     const uniti = unisciDati(datiAiuto.value, esito.dati, passoAiuto.value || '');
+    const novita = JSON.stringify(uniti.dati) !== prima;
     datiAiuto.value = uniti.dati;
     if (uniti.troppiTerreni && !esito.troppiTerreni) {
       messaggi.value.push({ ruolo: 'tony', testo: ta.cinqueTerreni });
+      void suonaFraseFissa('cinqueTerreni');
     }
-    if (esito.dati && esito.dati.fatto === true) {
+    if (esito.fuoriTema === true) {
+      consecutiviFuoriTema.value += 1;
+    } else {
+      consecutiviFuoriTema.value = 0;
+    }
+    if (novita) {
+      turniSenzaNovitaNelPasso.value = 0;
+    } else {
+      turniSenzaNovitaNelPasso.value += 1;
+    }
+    const dopoRisposta = decidiDopoRisposta({
+      nuoviDati: novita,
+      fuoriTema: consecutiviFuoriTema.value,
+      turniSenzaNovitaNelPasso: turniSenzaNovitaNelPasso.value,
+      domandeRimaste:
+        typeof esito.domandeRimaste === 'number' ? esito.domandeRimaste : undefined,
+      passo: passoAiuto.value || '',
+      giaRiaperturaLimiteDomande,
+    });
+    if (dopoRisposta.azione === 'riepilogo' || dopoRisposta.apriRiepilogo) {
+      if (dopoRisposta.perLimiteDomande) giaRiaperturaLimiteDomande = true;
+      if (dopoRisposta.messaggio) {
+        messaggi.value.push({ ruolo: 'tony', testo: dopoRisposta.messaggio });
+        const passoCorrente = passoAiuto.value || '';
+        if (passoCorrente === 'terreni') void suonaFraseFissa('passaggioTerreni');
+        else if (passoCorrente === 'poderi') void suonaFraseFissa('passaggioPoderi');
+        else if (passoCorrente === 'sede') void suonaFraseFissa('passaggioSede');
+      }
+      apriScheda();
+    } else if (dopoRisposta.azione === 'prossimoPasso') {
+      // Solo la domanda del passo successivo (niente doppia domanda sui poderi).
       const prox = prossimoPasso(passoAiuto.value || '');
       if (prox) avviaPasso(prox);
       else apriScheda();
+    } else if (esito.dati && esito.dati.fatto === true) {
+      const chiedeRiepilogo =
+        typeof domanda === 'string' &&
+        /riepilogo|basta|ho finito|fatto|^no\b/i.test(domanda.trim());
+      if (tornatoDalRiepilogo && !chiedeRiepilogo) {
+        campoAttivo.value = true;
+        chipVisibili.value = true;
+      } else {
+        const prox = prossimoPasso(passoAiuto.value || '');
+        if (prox) avviaPasso(prox);
+        else apriScheda();
+      }
     } else {
       campoAttivo.value = true;
       chipVisibili.value = true;
@@ -621,6 +912,7 @@ async function inviaTesto(grezzo: string, daChip = false) {
     risposteVocaliAutomatiche,
     riduciMovimento: props.riduciMovimento,
     paginaNascosta: typeof document !== 'undefined' ? document.hidden : false,
+    faseAccount: inAccount,
   });
 
   if (esito.voce === true && typeof esito.idVoce === 'string') {
@@ -630,17 +922,17 @@ async function inviaTesto(grezzo: string, daChip = false) {
 
   if (modo === 'automatica') {
     scorriInBasso();
-    if (azione.campoAttivo) nextTick(() => inputEl.value?.focus());
+    if (azione.campoAttivo) focalizzaCampoSeConsentito();
     void gestisciVoceAutomatica(esito, azione.testo);
   } else if (modo === 'pulsante') {
     mostraAscolta.value = true;
     emit('rispostaFinita');
     scorriInBasso();
-    if (azione.campoAttivo) nextTick(() => inputEl.value?.focus());
+    if (azione.campoAttivo) focalizzaCampoSeConsentito();
   } else {
     emit('rispostaFinita');
     scorriInBasso();
-    if (azione.campoAttivo) nextTick(() => inputEl.value?.focus());
+    if (azione.campoAttivo) focalizzaCampoSeConsentito();
   }
   void daChip;
 }
@@ -661,6 +953,8 @@ async function gestisciVoceAutomatica(esito: any, testo: string) {
     return;
   }
   blobAscolta = esitoVoce.blob;
+  await aspettaMinimoScrivePrimaDiParlare();
+  if (smontato) return;
   const esitoPlay = await playerVoce.suona(esitoVoce.blob, {
     attesaMaxMs: tempiVoce().attesaMaxVoceMs,
     onInizio: () => {
@@ -861,6 +1155,7 @@ onUnmounted(() => {
   playerVoce.libera();
   if (timerFuoco) window.clearTimeout(timerFuoco);
   document.removeEventListener('visibilitychange', onVisibility);
+  document.removeEventListener('keydown', onEscConsenso);
 });
 
 /** Esposto a TonyStage quando si saluta a metà richiesta. */
@@ -901,7 +1196,7 @@ defineExpose({ interrompi });
     </p>
 
     <div
-      v-if="messaggi.length"
+      v-if="messaggi.length || mostraConsensoInvio"
       ref="listaMessaggi"
       class="conversazione"
     >
@@ -922,6 +1217,31 @@ defineExpose({ interrompi });
       >
         {{ voceInCorso ? t.fermaVoce : t.ascolta }}
       </button>
+      <div
+        v-if="mostraConsensoInvio"
+        class="consenso-invio"
+        role="region"
+        aria-label="Consenso privacy"
+      >
+        <button
+          type="button"
+          class="consenso-x"
+          aria-label="Chiudi"
+          @click="onChiudiConsensoInvio"
+        >
+          ×
+        </button>
+        <p>{{ t.consensoInvioBreve }}</p>
+        <div class="consenso-azioni">
+          <button type="button" class="chip" @click="onHoCapitoConsensoInvio">
+            {{ t.consensoInvioCta }}
+          </button>
+          <button type="button" class="chip chip--secondario" @click="onChiudiConsensoInvio">
+            {{ t.consensoInvioChiudi }}
+          </button>
+        </div>
+        <a class="consenso-link" href="/privacy#tony">{{ ta.informativaLink }}</a>
+      </div>
     </div>
 
     <p
@@ -930,6 +1250,9 @@ defineExpose({ interrompi });
       aria-live="polite"
     >
       {{ t.pensaLettoreSchermo }}
+    </p>
+    <p v-if="attesaLungaVisibile && inAttesa" class="attesa-lunga" aria-live="polite">
+      {{ messaggioAttesaLunga(t.pensaLungo) }}
     </p>
     <p
       v-if="voceParlandoSr"
@@ -940,7 +1263,7 @@ defineExpose({ interrompi });
     </p>
 
     <TonyRegistrazione
-      v-if="chatVisibile && moduloAperto"
+      v-if="moduloAperto"
       @chiudi-modulo="onChiudiModulo"
       @registrazione-completata="onRegistrazioneCompletata"
       @invio-in-corso="onInvioInCorso"
@@ -967,11 +1290,32 @@ defineExpose({ interrompi });
       </div>
     </template>
 
-    <template v-else-if="chatVisibile && campoAttivo && !aiutoFatto">
-      <p v-if="faseAiuto" class="informativa-aiuto">
-        {{ ta.informativa }}
+    <template v-else-if="chatVisibile && campoAttivo && !aiutoFatto && !mostraConsensoInvio">
+      <p v-if="faseAiuto && !informativaAiutoVisibile" class="privacy-chip-link">
         <a href="/privacy#tony">{{ ta.informativaLink }}</a>
       </p>
+      <div
+        v-if="faseAiuto && informativaAiutoVisibile"
+        class="informativa-aiuto"
+        role="region"
+        aria-label="Informativa aiuto account"
+      >
+        <button
+          type="button"
+          class="informativa-chiudi"
+          :aria-label="ta.informativaChiudi"
+          @click="onHoCapitoInformativaAiuto"
+        >
+          ×
+        </button>
+        <p>
+          {{ ta.informativa }}
+          <a href="/privacy#tony">{{ ta.informativaLink }}</a>
+        </p>
+        <button type="button" class="chip chip--capito" @click="onHoCapitoInformativaAiuto">
+          {{ ta.informativaHoCapito }}
+        </button>
+      </div>
       <div v-if="chipVisibili" class="chip-riga" role="group" aria-label="Domande rapide">
         <template v-if="faseAiuto">
           <button
@@ -992,7 +1336,6 @@ defineExpose({ interrompi });
             {{ ta.chipAvanti }}
           </button>
           <button
-            v-if="haDatiAiuto()"
             type="button"
             class="chip"
             :disabled="inAttesa"
@@ -1096,11 +1439,12 @@ defineExpose({ interrompi });
         class="btn-account"
         :class="{ 'btn-account--evidenza': mostraAccountEvidenza || modalitàStatica || staticoForzato }"
         :href="URL_REGISTRAZIONE"
+        @click="onRipiegoRegistrazionePages"
       >
         {{ t.ctaAccount }}
       </a>
       <button
-        v-if="faseAiuto && haDatiAiuto() && !schedaAperta && !aiutoFatto"
+        v-if="faseAiuto && !schedaAperta && !aiutoFatto"
         type="button"
         class="btn-account"
         @click="apriScheda"
@@ -1121,6 +1465,7 @@ defineExpose({ interrompi });
 
 <style scoped>
 .tony-chat {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: 0.55rem;
@@ -1128,15 +1473,43 @@ defineExpose({ interrompi });
   flex: 1 1 auto;
 }
 
+/* Sovrapposta in alto: non sposta Invia / Saluta Tony. */
 .informativa-aiuto {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  z-index: 6;
   margin: 0;
-  font-size: 0.78rem;
-  line-height: 1.35;
+  padding: 0.45rem 1.6rem 0.45rem 0.55rem;
+  font-size: 0.72rem;
+  line-height: 1.3;
   color: #3d4a3a;
+  background: #f7faf8;
+  border: 1px solid rgba(15, 77, 50, 0.18);
+  border-radius: 10px;
+  max-height: none;
+  overflow: visible;
+  box-shadow: 0 4px 14px rgba(7, 25, 16, 0.12);
 }
 .informativa-aiuto a {
   color: inherit;
   text-decoration: underline;
+}
+.informativa-chiudi {
+  position: absolute;
+  top: 0.15rem;
+  right: 0.25rem;
+  border: 0;
+  background: transparent;
+  font-size: 1.15rem;
+  line-height: 1;
+  cursor: pointer;
+  color: #0f4d32;
+  padding: 0.15rem 0.35rem;
+}
+.informativa-aiuto .chip--capito {
+  margin-top: 0.35rem;
 }
 
 .riga-altoparlante {
@@ -1183,6 +1556,78 @@ defineExpose({ interrompi });
   max-height: 10rem;
   overflow: auto;
   padding-right: 0.15rem;
+}
+
+@media (min-width: 1024px) {
+  .conversazione {
+    max-height: 45vh;
+  }
+}
+
+.attesa-lunga {
+  margin: 0;
+  font-size: 0.82rem;
+  color: #4a6358;
+  font-style: italic;
+}
+
+.consenso-invio {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.55rem 1.6rem 0.55rem 0.65rem;
+  border: 1px solid rgba(15, 77, 50, 0.2);
+  border-radius: 10px;
+  background: #f7faf8;
+  font-size: 0.82rem;
+  line-height: 1.35;
+  /* A 400×800 deve stare tutto visibile (testo + pulsanti) senza scroll interno. */
+  max-height: none;
+  overflow: visible;
+  flex: 0 0 auto;
+}
+
+.consenso-x {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 1.35rem;
+  line-height: 1;
+  color: #0f4d32;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.consenso-azioni {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.chip--secondario {
+  background: #fff;
+  border-color: rgba(15, 77, 50, 0.35);
+}
+
+.consenso-link,
+.privacy-chip-link a {
+  font-size: 0.78rem;
+  color: #0f4d32;
+}
+
+.chip--capito {
+  align-self: flex-start;
+}
+
+.privacy-chip-link {
+  margin: 0 0 0.15rem;
 }
 
 .battuta {

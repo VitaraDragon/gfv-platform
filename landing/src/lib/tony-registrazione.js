@@ -19,16 +19,43 @@ import {
   creaAccountTitolare,
   normalizzaEmailRegistrazione,
 } from '../../../core/services/registrazione-titolare-core.js';
-import { urlLoginConEmail } from '../../../core/js/login-email-precompilata.js';
+import { buildCampiNomeCognomeSeCompilati } from '../../../core/js/nome-titolare-helpers.js';
 import { URL_LOGIN, URL_REGISTRAZIONE } from '../config/landing-config.js';
 import { testiLanding } from '../content/testi-landing.js';
 
 /**
- * @param {{ salutoFinito?: boolean, protezionePronta?: boolean|null }} opts
+ * @param {{
+ *   salutoFinito?: boolean,
+ *   protezionePronta?: boolean|null,
+ *   anteprima?: boolean
+ * }} opts
  * @returns {boolean}
  */
-export function moduloRegistrazioneDisponibile({ salutoFinito, protezionePronta }) {
+export function moduloRegistrazioneDisponibile({
+  salutoFinito,
+  protezionePronta,
+  anteprima,
+}) {
+  // In anteprima/dev apri sempre il pannello: App Check non deve mandare su Pages.
+  if (anteprima === true) return true;
   return salutoFinito === true && protezionePronta === true;
+}
+
+/**
+ * Motivo del ripiego su Pages (null = pannello ok).
+ * @param {{
+ *   salutoFinito?: boolean,
+ *   protezionePronta?: boolean|null,
+ *   anteprima?: boolean
+ * }} opts
+ * @returns {string | null}
+ */
+export function motivoRipiegoRegistrazionePages(opts) {
+  const o = opts && typeof opts === 'object' ? opts : {};
+  if (moduloRegistrazioneDisponibile(o)) return null;
+  if (o.salutoFinito !== true) return 'saluto-non-finito';
+  if (o.protezionePronta !== true) return 'app-check-non-pronta';
+  return 'sconosciuto';
 }
 
 /**
@@ -140,8 +167,10 @@ export function messaggioEsito(codice) {
  * @param {string} email
  * @returns {string}
  */
-export function urlDashboardDopoRegistrazione(email) {
-  return urlLoginConEmail(URL_LOGIN, email, { registrato: true });
+export function urlDashboardDopoRegistrazione(_email) {
+  const base = String(URL_LOGIN || '');
+  const sep = base.indexOf('?') >= 0 ? '&' : '?';
+  return base + sep + 'registered=true';
 }
 
 /**
@@ -154,11 +183,15 @@ export function urlDashboardDopoRegistrazione(email) {
 export async function eseguiRegistrazione({ dati, fb, attendi }) {
   const emailNorm = normalizzaEmailRegistrazione(dati && dati.email);
   try {
+    const campiNome = buildCampiNomeCognomeSeCompilati(
+      dati && dati.nome != null ? dati.nome : '',
+      dati && dati.cognome != null ? dati.cognome : ''
+    );
     const esito = await creaAccountTitolare({
       email: emailNorm,
       password: dati.password,
       aziendaNome: String((dati && dati.aziendaNome) || '').trim(),
-      campiNome: {},
+      campiNome,
       fb,
       attendi,
     });

@@ -42,4 +42,10 @@ describe('getNomeVisualizzato', () => {
     expect(getNomeVisualizzato({ nome: 'Mario ', cognome: ' Rossi' })).toBe('Mario Rossi');
     expect(getNomeVisualizzato({ nome: undefined, cognome: undefined, email: undefined })).toBe('');
   });
+
+  it('mai la stringa N/A', () => {
+    expect(getNomeVisualizzato({})).not.toBe('N/A');
+    expect(getNomeVisualizzato({ email: 'mario@esempio.it' })).not.toBe('N/A');
+    expect(getNomeVisualizzato({ email: 'mario@esempio.it' })).toBe('mario');
+  });
 });

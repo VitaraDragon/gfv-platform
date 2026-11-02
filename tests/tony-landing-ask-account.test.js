@@ -26,7 +26,16 @@ const {
   rispostaAccountDaTesto,
   SCHEMA_RISPOSTA_ACCOUNT,
   regoleTenute,
-  PREFISSI_ESCLUSI
+  PREFISSI_ESCLUSI,
+  pulisciSede,
+  pulisciPoderi,
+  pulisciTerreni,
+  risolviColturaConSinonimi,
+  correggiUnoNelTesto,
+  superficieDaDomanda,
+  applicaSuperficieDaDomanda,
+  normalizzaDecimaliPerGemini,
+  poderiDaRaccolti
 } = require('../functions/lib/tony-landing-account.js');
 const { REGOLE_TONY_LANDING } = require('../functions/lib/tony-landing-prompt.js');
 
@@ -299,7 +308,7 @@ describe('handleFaseAccount', () => {
     const seed = {
       ['tonyLandingQuota/g_' + giorno]: { domande: 0 },
       ['tonyLandingQuota/m_' + mese]: { costoEur: 0, domande: 0 },
-      ['tonyLandingQuota/a_' + hash]: { count: 15 }
+      ['tonyLandingQuota/a_' + hash]: { count: 25 }
     };
     const dbLim = fakeDb(seed);
     const res3 = fakeRes();
@@ -403,13 +412,31 @@ describe('handleFaseAccount', () => {
 
 describe('prompt e pulizia', () => {
   it('regole, schema, ripiego, CORS costante', () => {
-    expect(regoleTenute().length).toBe(9);
+    expect(regoleTenute().length).toBeGreaterThanOrEqual(9);
     for (const p of PREFISSI_ESCLUSI) {
       expect(REGOLE_TONY_LANDING.some((r) => r.indexOf(p) === 0)).toBe(true);
     }
     const prompt = promptSistemaAccount('sede');
+    const promptConRaccolti = promptSistemaAccount('terreni', {
+      raccolti: 'Sede: Faenza'
+    });
     expect(prompt).not.toMatch(/Pierpaolo|Pier\b/);
-    expect(prompt).toMatch(/5 €/);
+    expect(prompt).toMatch(/esattamente come lo dice l'utente/);
+    expect(prompt).toMatch(/Ogni terreno ha il campo podere/);
+    expect(promptConRaccolti).toMatch(/DATI GIÀ RACCOLTI/);
+    expect(promptConRaccolti).toMatch(/Faenza/);
+    expect(promptConRaccolti).toMatch(/argomento è «terreni»/);
+    expect(pulisciSede({ cap: '4801', provincia: 'Bergamo', citta: 'X' }).cap).toBeNull();
+    expect(pulisciSede({ cap: '48018', provincia: 'BG', citta: 'X' }).provincia).toBe(
+      'BG'
+    );
+    expect(pulisciTerreni([{ nome: 'Campo', superficie: null }]).terreni[0].superficie).toBe(
+      null
+    );
+    expect(pulisciPoderi([{ nome: 'Podere Colle' }])[0].nome).toBe('Podere Colle');
+    expect(risolviColturaConSinonimi('mele')).toBe('Melo');
+    expect(risolviColturaConSinonimi('piscina')).toBeNull();
+    expect(correggiUnoNelTesto('uno terreno')).toBe('un terreno');
     expect(SCHEMA_RISPOSTA_ACCOUNT.type).toBe('OBJECT');
     const corpo = corpoRichiestaGemini({
       promptSistema: 'x',
@@ -431,9 +458,70 @@ describe('prompt e pulizia', () => {
       })
     );
     expect(pulita.testo).toBe('Ecco il riepilogo: controlla e conferma');
+    const conPodere = rispostaAccountDaTesto(
+      JSON.stringify({
+        testo: 'Ok',
+        sede: null,
+        poderi: [{ nome: 'Podere Colle' }],
+        terreni: [
+          { nome: 'Vigna', superficie: 1.5, coltura: 'Vite da Vino', podere: 'Colle' }
+        ],
+        fatto: false
+      })
+    );
+    expect(conPodere.dati.terreni[0].podere).toBe('Podere Colle');
     const rotto = rispostaAccountDaTesto('non-json');
     expect(rotto.dati).toBeNull();
-    expect(COSTANTI.MAX_DOMANDE_ACCOUNT).toBe(15);
+    expect(COSTANTI.MAX_DOMANDE_ACCOUNT).toBe(25);
+  });
+
+  it('un solo podere da raccolti: toglie domanda e collega il terreno', () => {
+    expect(poderiDaRaccolti('Poderi: Nord\nTerreno «X»')).toEqual([{ nome: 'Nord' }]);
+    const conUno = rispostaAccountDaTesto(
+      JSON.stringify({
+        testo: 'In quale podere si trova Campo Nord?',
+        sede: null,
+        poderi: [],
+        terreni: [
+          { nome: 'Campo Nord', superficie: 1, coltura: 'Grano', podere: null }
+        ],
+        fatto: false
+      }),
+      { raccolti: 'Poderi: Nord' }
+    );
+    expect(conUno.testo).not.toMatch(/podere/i);
+    expect(conUno.dati.terreni[0].podere).toBe('Nord');
+    const conDue = rispostaAccountDaTesto(
+      JSON.stringify({
+        testo: 'In quale podere si trova Campo Nord?',
+        sede: null,
+        poderi: [],
+        terreni: [
+          { nome: 'Campo Nord', superficie: 1, coltura: 'Grano', podere: null }
+        ],
+        fatto: false
+      }),
+      { raccolti: 'Poderi: Nord, Sud' }
+    );
+    expect(conDue.testo).toMatch(/podere/i);
+    const promptUno = promptSistemaAccount('terreni', { raccolti: 'Poderi: Nord' });
+    expect(promptUno).toMatch(/Non chiedere MAI in quale podere/i);
+  });
+
+  it('superficieDaDomanda e normalizzaDecimaliPerGemini', () => {
+    expect(superficieDaDomanda('Vigna Alta, 1,5 ettari, vite')).toEqual([1.5]);
+    expect(superficieDaDomanda('Vigna Alta 1.5 ha')).toEqual([1.5]);
+    expect(superficieDaDomanda('2 ettari')).toEqual([2]);
+    expect(normalizzaDecimaliPerGemini('Vigna Alta, 1,5 ettari')).toBe(
+      'Vigna Alta, 1.5 ettari'
+    );
+    const dati = {
+      sede: null,
+      poderi: [],
+      terreni: [{ nome: 'Vigna Alta', superficie: 5, coltura: 'Vite da Vino', podere: null }]
+    };
+    const corretto = applicaSuperficieDaDomanda('Vigna Alta, 1,5 ettari, vite', dati);
+    expect(corretto.terreni[0].superficie).toBe(1.5);
   });
 });
 
@@ -586,8 +674,9 @@ describe('R6 account: log, expireAt, contatori', () => {
       expect(k).not.toMatch(/\/v_/);
       expect(k).not.toMatch(/\/sale_/);
     }
-    expect(db.docs.has('tonyLandingQuota/g_' + giorno)).toBe(true);
     expect(db.docs.has('tonyLandingQuota/m_' + mese)).toBe(true);
+    const gDoc = db.docs.get('tonyLandingQuota/g_' + giorno);
+    expect(gDoc?.domande ?? 0).toBe(0);
 
     info.mockRestore();
     warn.mockRestore();

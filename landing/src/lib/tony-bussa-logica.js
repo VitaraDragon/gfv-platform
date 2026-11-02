@@ -5,7 +5,9 @@
  */
 
 const SOGLIA_VARIANTE_PX = 768;
-const VERSIONE_CLIP = 'v4';
+const VERSIONE_CLIP = 'v6';
+/** Override di versione per singola clip (vuoto: tutte usano VERSIONE_CLIP). */
+const VERSIONE_PER_CLIP = Object.freeze({ talking: 'v7' });
 
 /** Nomi file base delle clip (senza variante/risoluzione/formato). */
 const NOMI_FILE_CLIP = Object.freeze({
@@ -36,7 +38,7 @@ export const DURATE_CLIP_MS = Object.freeze({
   listenLower: 1833,
   thinking: 2375,
   scrive: 3583,
-  talking: 3792,
+  talking: 5083,
   topicRegistrazione: 2500,
   topicSede: 2792,
   topicPoderi: 2500,
@@ -53,6 +55,107 @@ export const CLIP_PER_ARGOMENTO = Object.freeze({
 
 /** Clip che si ripetono in loop. */
 export const CLIP_IN_LOOP = Object.freeze(['idle', 'listenLoop', 'scrive', 'talking']);
+
+/**
+ * Durata minima visibile della clip «scrive» (taccuino in mano ~1,0–2,8 s).
+ * Se la voce è pronta prima, si aspetta fino a questo minimo così il gesto si legge.
+ */
+export const MIN_SCRIVE_MS = 2800;
+
+/** Massimo di bussate automatiche per sessione (senza interazione utente). */
+export const MAX_BUSSATE_AUTOMATICHE = 2;
+
+/**
+ * Ms da attendere prima di avviare talking/audio, per tenere «scrive» visibile.
+ * @param {{ clipCorrente?: string, msDaInizioClip?: number, riduciMovimento?: boolean }} opts
+ * @returns {number}
+ */
+export function attesaPrimaDiParlareMs({ clipCorrente, msDaInizioClip, riduciMovimento }) {
+  if (riduciMovimento === true) return 0;
+  if (clipCorrente !== 'scrive') return 0;
+  const trascorsi =
+    typeof msDaInizioClip === 'number' && Number.isFinite(msDaInizioClip)
+      ? Math.max(0, msDaInizioClip)
+      : 0;
+  return Math.max(0, MIN_SCRIVE_MS - trascorsi);
+}
+
+/** Ritardo bussata automatica dopo apertura pagina (una volta per sessione). */
+export const BUSSATA_AUTOMATICA_MS = 8000;
+
+/** Sul telefono anticipiamo: mount + rete sono più lenti, target totale 8–10 s. */
+export const BUSSATA_AUTOMATICA_MOBILE_MS = 5000;
+
+/**
+ * @param {'desktop' | 'mobile' | string} [variante]
+ * @returns {number}
+ */
+export function ritardoBussataAutomaticaMs(variante) {
+  return variante === 'mobile' ? BUSSATA_AUTOMATICA_MOBILE_MS : BUSSATA_AUTOMATICA_MS;
+}
+
+/** Precarica clip/chunk subito dopo il mount, così a 8 s le clip hanno più margine. */
+export const PRECARICA_SCENA_MS = 400;
+
+export const CHIAVE_BUSSATA_SESSIONE = 'gfv-tony-bussato-sessione';
+export const CHIAVE_RINUNCIA_AVVISO = 'gfv-tony-rinuncia-avviso';
+export const CHIAVE_INFORMATIVA_AIUTO = 'gfv-tony-informativa-aiuto';
+
+/**
+ * @param {{
+ *   sessioneGiaBussato?: boolean,
+ *   bussateAutomatiche?: number,
+ *   utenteHaInteragito?: boolean,
+ *   rinunciaSalvata?: boolean,
+ *   avvisoAperto?: boolean,
+ *   stageAperto?: boolean,
+ *   paginaNascosta?: boolean
+ * }} opts
+ * @returns {boolean}
+ */
+export function bussataAutomaticaConsentita({
+  sessioneGiaBussato,
+  bussateAutomatiche,
+  utenteHaInteragito,
+  rinunciaSalvata,
+  avvisoAperto,
+  stageAperto,
+  paginaNascosta,
+}) {
+  if (utenteHaInteragito === true) return false;
+  if (sessioneGiaBussato === true) return false;
+  const n =
+    typeof bussateAutomatiche === 'number' && Number.isFinite(bussateAutomatiche)
+      ? bussateAutomatiche
+      : 0;
+  if (n >= MAX_BUSSATE_AUTOMATICHE) return false;
+  if (rinunciaSalvata === true) return false;
+  if (avvisoAperto === true) return false;
+  if (stageAperto === true) return false;
+  if (paginaNascosta === true) return false;
+  return true;
+}
+
+/**
+ * Precarico clip/chunk: stessi divieti della bussata, ma la pagina nascosta non blocca.
+ * @param {Parameters<typeof bussataAutomaticaConsentita>[0]} opts
+ * @returns {boolean}
+ */
+export function precaricoScenaConsentito(opts) {
+  const o = opts && typeof opts === 'object' ? opts : {};
+  return bussataAutomaticaConsentita({ ...o, paginaNascosta: false });
+}
+
+/**
+ * Se a 8 s la sola causa di blocco è document.hidden, riprovare al visibilitychange.
+ * @param {Parameters<typeof bussataAutomaticaConsentita>[0]} opts
+ * @returns {boolean}
+ */
+export function deveRiprovareBussataQuandoVisibile(opts) {
+  const o = opts && typeof opts === 'object' ? opts : {};
+  if (o.paginaNascosta !== true) return false;
+  return bussataAutomaticaConsentita({ ...o, paginaNascosta: false });
+}
 
 const FORMATI = Object.freeze(['webm', 'webp', 'stacked']);
 const NOMI_CLIP = Object.freeze(Object.keys(NOMI_FILE_CLIP));
@@ -160,12 +263,19 @@ export function varianteScena(larghezzaPx) {
  * @param {{ userAgent?: string, maxTouchPoints?: number, webmAlfaSupportato?: boolean }} opts
  * @returns {'webp' | 'webm' | 'stacked'}
  */
-export function formatoClip({ userAgent, maxTouchPoints, webmAlfaSupportato }) {
+export function formatoClip({
+  userAgent,
+  maxTouchPoints,
+  webmAlfaSupportato,
+  preferisciLeggero,
+}) {
   const ua = String(userAgent || '');
   const touch = Number(maxTouchPoints);
   if (browserSuIos(ua) || iPadOsComeMac(ua, touch) || safariSenzaChromium(ua)) {
     return 'webp';
   }
+  // Telefono: WebP più leggero del WebM alfa (bussata più rapida).
+  if (preferisciLeggero === true) return 'webp';
   if (webmAlfaSupportato === true) return 'webm';
   return 'stacked';
 }
@@ -198,22 +308,30 @@ export function clipInLoop(nome) {
  * @param {'webm' | 'webp' | 'stacked'} formato
  * @returns {string}
  */
+function versioneClipPerNome(nome) {
+  if (Object.prototype.hasOwnProperty.call(VERSIONE_PER_CLIP, nome)) {
+    return VERSIONE_PER_CLIP[nome];
+  }
+  return VERSIONE_CLIP;
+}
+
 export function percorsoClip(nome, variante, formato) {
   if (NOMI_CLIP.indexOf(nome) < 0) return '';
   if (FORMATI.indexOf(formato) < 0) return '';
   const chiaveVariante = variante === 'mobile' ? 'mobile' : 'desktop';
   const base = nomeFileClip(nome, chiaveVariante);
   if (!base) return '';
+  const ver = versioneClipPerNome(nome);
   if (formato === 'webm') {
     const res = chiaveVariante === 'mobile' ? '432x540' : '576x720';
-    return `/tony-live/${base}-${chiaveVariante}-${res}-alpha-${VERSIONE_CLIP}.webm`;
+    return `/tony-live/${base}-${chiaveVariante}-${res}-alpha-${ver}.webm`;
   }
   if (formato === 'webp') {
     const res = chiaveVariante === 'mobile' ? '432x540' : '576x720';
-    return `/tony-live/${base}-${chiaveVariante}-${res}-12fps-${VERSIONE_CLIP}.webp`;
+    return `/tony-live/${base}-${chiaveVariante}-${res}-12fps-${ver}.webp`;
   }
   const res = chiaveVariante === 'mobile' ? '432x1080' : '576x1440';
-  return `/tony-live/${base}-${chiaveVariante}-${res}-stacked-alpha-${VERSIONE_CLIP}.mp4`;
+  return `/tony-live/${base}-${chiaveVariante}-${res}-stacked-alpha-${ver}.mp4`;
 }
 
 /**
@@ -222,19 +340,46 @@ export function percorsoClip(nome, variante, formato) {
  * @param {'webm' | 'webp' | 'stacked'} formato
  * @returns {string[]}
  */
+/**
+ * Ordine di precarica dopo entry/idle: thinking e scrive per prime
+ * (taccuino), poi ascolto e talking.
+ */
+export const ORDINE_PRECARICA_CHAT = Object.freeze([
+  'entry',
+  'idle',
+  'thinking',
+  'scrive',
+  'listenRaise',
+  'listenLoop',
+  'listenLower',
+  'talking',
+  'exit',
+]);
+
 export function percorsiClipDaPrecaricare(variante, formato) {
-  const chiavi = [
-    'entry',
-    'idle',
-    'listenRaise',
-    'listenLoop',
-    'listenLower',
-    'thinking',
-    'scrive',
-    'talking',
-    'exit',
-  ];
-  return chiavi.map((nome) => percorsoClip(nome, variante, formato)).filter(Boolean);
+  return ORDINE_PRECARICA_CHAT.map((nome) =>
+    percorsoClip(nome, variante, formato)
+  ).filter(Boolean);
+}
+
+/**
+ * Layout desktop: laterale se resta abbastanza spazio al contenuto, altrimenti basso.
+ * @param {{ larghezzaFinestra: number, ingombro: number, minimoContenuto?: number }} opts
+ * @returns {'laterale' | 'basso'}
+ */
+export function layoutTonyDesktop({ larghezzaFinestra, ingombro, minimoContenuto }) {
+  const w =
+    typeof larghezzaFinestra === 'number' && Number.isFinite(larghezzaFinestra)
+      ? larghezzaFinestra
+      : 0;
+  const ing =
+    typeof ingombro === 'number' && Number.isFinite(ingombro) ? Math.max(0, ingombro) : 0;
+  const min =
+    typeof minimoContenuto === 'number' && Number.isFinite(minimoContenuto)
+      ? minimoContenuto
+      : 640;
+  if (w - ing - 16 < min) return 'basso';
+  return 'laterale';
 }
 
 /**
@@ -286,6 +431,16 @@ export function percorsoVoceFatto() {
     mp3: '/tony-live/voci/tony-fatto.mp3',
     vtt: '/tony-live/voci/tony-fatto.vtt',
   };
+}
+
+/**
+ * Voce fissa dell'aiuto account (mp3 statici, costo zero a regime).
+ * @param {string} chiave
+ * @returns {{ mp3: string }}
+ */
+export function percorsoVoceAiuto(chiave) {
+  const k = String(chiave || '').replace(/[^a-zA-Z0-9_-]/g, '');
+  return { mp3: '/tony-live/voci/tony-aiuto-' + k + '.mp3' };
 }
 
 /**
@@ -501,8 +656,8 @@ export function prossimaBocca({ aperta, livello, msDaUltimoSopra }) {
 export function tempiVoce() {
   return {
     ritardoSalutoMs: 200,
-    attesaMaxVoceMs: 4000,
-    dissolvenzaBoccaMs: 150,
+    attesaMaxVoceMs: 6000,
+    dissolvenzaBoccaMs: 0,
     attesaMaxUscitaMs: 5000,
   };
 }
@@ -550,8 +705,9 @@ export function tempiScena({ variante, riduciMovimento }) {
     durataScossoneMs: 80,
     scossonePx: fermo ? [] : mobile ? [1, 2, 1] : [2, 2, 2],
     impronta: !fermo && !mobile ? { aMs: 1100, durataMs: 400 } : null,
-    entrataMs: 2000,
-    staticoMs: 5000,
+    // Mobile: entra prima (statico subito se clip non pronte).
+    entrataMs: mobile ? 1200 : 2000,
+    staticoMs: mobile ? 2500 : 5000,
     vibrazioneMs: 400,
   };
 }

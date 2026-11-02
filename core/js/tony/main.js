@@ -92,6 +92,7 @@ import {
 import { enrichMovimentoFormDataFromCatalog } from '../movimento-prezzo-catalogo.js';
 import { applyStreamingTtsChunks, consumeCompleteStreamingSentences, getStreamingTtsRemainder, resolveVoiceTtsRemainder, reconcileUnspokenVoiceSegments, batchSentencesForTts, joinSentencesForItalianTts, speakTextInSentenceChunks } from './stream-tts-chunk.js';
 import { tonyWantsDashboardRiassunto, buildDashboardRiassuntoText, formatDashboardOpsBriefingText, isTonyMeteoModuleNavRequest } from './meteo-dashboard-quick-reply-utils.js';
+import { checkFarewellIntent, getFarewellReplyText } from './tony-congedo.js';
 import {
     tonyWantsProactiveOpenPage,
     isProactiveOpenOfferFresh,
@@ -7444,21 +7445,17 @@ if (typeof window !== 'undefined') {
             } catch (e) { console.warn('[Tony] restoreTonyState:', e); }
         }
 
-        function checkFarewellIntent(text) {
-            if (!text || typeof text !== 'string') return false;
-            var t = text.toLowerCase().trim();
-            var words = t.split(/\s+/).filter(Boolean);
-            if (words.length >= 8) return false;
-            var greetingHints = ['tutto bene', 'tutto ok', 'come stai', 'come va', 'buongiorno', 'buonasera', 'buon pomeriggio', 'bentornato'];
-            if (greetingHints.some(function (g) { return t.indexOf(g) !== -1; })) return false;
-            var phraseHits = ['posto così', 'a posto', 'basta così', 'ottimo così', 'perfetto così',
-                'va bene così', 'va bene cosi', 'ci sentiamo', 'a dopo', 'buon lavoro',
-                'ciao tony a dopo', 'ciao tony grazie', 'arrivederci'];
-            if (phraseHits.some(function (p) { return t.indexOf(p) !== -1; })) return true;
-            var wordHits = ['grazie', 'apposto', 'basta', 'chiudi', 'termina', 'fine', 'saluti'];
-            return wordHits.some(function (w) {
-                return new RegExp('(?:^|[\\s,.!?;:])' + w.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '(?:$|[\\s,.!?;:])', 'i').test(t);
-            });
+        function tonyHasAlreadyRespondedInSession() {
+            try {
+                var hist = (window.Tony && window.Tony.chatHistory) ? window.Tony.chatHistory : [];
+                for (var hi = 0; hi < hist.length; hi++) {
+                    var entry = hist[hi];
+                    if (!entry) continue;
+                    var role = entry.role;
+                    if (role === 'model' || role === 'assistant' || role === 'tony') return true;
+                }
+            } catch (eHist) { /* ignore */ }
+            return false;
         }
 
         function resetAutoModeTimeout() {
@@ -7910,7 +7907,8 @@ if (typeof window !== 'undefined') {
                 try { tonyFotoLavoroSceltoUtente(); } catch (eFoto) { /* ignore */ }
             }
             if (!opts.proactive && !opts._displayOnly) tonyE2eTurnStart();
-            if (checkFarewellIntent(text)) opts.isClosingSession = true;
+            var tonyHaGiaRispostoPrimaTurno = tonyHasAlreadyRespondedInSession();
+            if (checkFarewellIntent(text, { tonyHaGiaRisposto: tonyHaGiaRispostoPrimaTurno })) opts.isClosingSession = true;
             if (window.speechSynthesis) window.speechSynthesis.cancel();
             var userBubbleWritten = false;
             if (!opts.proactive && !opts._suppressUserBubble) {
@@ -8642,7 +8640,8 @@ if (typeof window !== 'undefined') {
                 if (!reply) return;
                 appendMessage(reply, 'tony');
                 if (typeof speakWithTTS === 'function') {
-                    speakWithTTS(reply, copyVoiceTtsOpts(voiceOpts, voiceOpts.isClosingSession ? { voiceFarewellEnd: true } : null));
+                    var ttsOpts = copyVoiceTtsOpts(voiceOpts, null);
+                    speakWithTTS(reply, ttsOpts);
                 } else if (window.Tony && typeof window.Tony.speak === 'function') {
                     window.Tony.speak(reply);
                 }
@@ -8657,11 +8656,16 @@ if (typeof window !== 'undefined') {
                 inputEl.disabled = false;
                 if (voiceOpts.fromVoice) {
                     isWaitingForTonyResponse = false;
-                    if (!voiceOpts.isClosingSession) scheduleReopenMicIfIdle(120);
+                    if (voiceOpts.isClosingSession) {
+                        voiceMicReopenDeferred = false;
+                        if (isAutoMode) toggleAutoMode(false, 'voice-farewell');
+                    } else {
+                        scheduleReopenMicIfIdle(120);
+                    }
                 }
             }
-            if (!opts.proactive && checkFarewellIntent(text)) {
-                tonyDeliverDashboardRiassunto('Perfetto, a presto! Resto qui se ti serve altro.', {
+            if (!opts.proactive && checkFarewellIntent(text, { tonyHaGiaRisposto: tonyHaGiaRispostoPrimaTurno })) {
+                tonyDeliverDashboardRiassunto(getFarewellReplyText(text), {
                     fromVoice: opts.fromVoice,
                     isClosingSession: true
                 });

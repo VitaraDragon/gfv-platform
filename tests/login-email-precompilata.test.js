@@ -11,6 +11,7 @@ import {
   leggiEmailDaFrammento,
   urlLoginConEmail,
 } from '../core/js/login-email-precompilata.js';
+import { urlDashboardDopoRegistrazione } from '../landing/src/lib/tony-registrazione.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -65,6 +66,15 @@ describe('urlLoginConEmail', () => {
   });
 });
 
+describe('urlDashboardDopoRegistrazione', () => {
+  it('solo registered=true senza email in URL', () => {
+    const url = urlDashboardDopoRegistrazione('mario@esempio.it');
+    expect(url).toMatch(/registered=true/);
+    expect(url).not.toMatch(/email=/i);
+    expect(url).not.toContain('#');
+  });
+});
+
 describe('login-standalone.html', () => {
   it('usa frammento e non scrive password', () => {
     const html = readFileSync(
@@ -74,5 +84,7 @@ describe('login-standalone.html', () => {
     expect(html).toMatch(/leggiEmailDaFrammento/);
     expect(html).toMatch(/history\.replaceState/);
     expect(html).not.toMatch(/passwordInput\.value\s*=/);
+    expect(html).toMatch(/sessione-esistente/);
+    expect(html).toMatch(/Esci e accedi con il nuovo account/);
   });
 });

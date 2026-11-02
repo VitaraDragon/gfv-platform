@@ -55,24 +55,24 @@ function leggi(rel) {
 }
 
 const CLIP_A1 = [
-  ['tony-topic-sede-desktop-576x720-alpha-v4.webm', 327379, '7896f796e86ff4f612dd599679c7df63'],
-  ['tony-topic-sede-mobile-432x540-alpha-v4.webm', 233849, '9b87bd82bdecedb6290b42c4e39135fb'],
-  ['tony-topic-sede-desktop-576x720-12fps-v4.webp', 527380, 'd85f26fb7cdfa2815b3adf9b9edcb125'],
-  ['tony-topic-sede-mobile-432x540-12fps-v4.webp', 376452, '939a6f28a2b1111a42930db659032f32'],
-  ['tony-topic-sede-desktop-576x1440-stacked-alpha-v4.mp4', 459172, 'd936577831e243f293b08ac7f3630b93'],
-  ['tony-topic-sede-mobile-432x1080-stacked-alpha-v4.mp4', 310057, 'dc7cde9b5d49e87db56b49737868fcd3'],
-  ['tony-topic-poderi-2s5-desktop-576x720-alpha-v4.webm', 249903, '2aabdd28097f6a6dd6e3afc103409d92'],
-  ['tony-topic-poderi-2s5-mobile-432x540-alpha-v4.webm', 177876, 'fdc60bd68529b16455b345727c2a8d38'],
-  ['tony-topic-poderi-2s5-desktop-576x720-12fps-v4.webp', 452228, '673801c539766f7fce907b0a63279246'],
-  ['tony-topic-poderi-2s5-mobile-432x540-12fps-v4.webp', 321814, '71cfbb3809603ade502ca375a6bf64bd'],
-  ['tony-topic-poderi-2s5-desktop-576x1440-stacked-alpha-v4.mp4', 361891, '67cf433f906e897f7a31d992f17b47e3'],
-  ['tony-topic-poderi-2s5-mobile-432x1080-stacked-alpha-v4.mp4', 242242, 'c3abb611f41e92871363e464dccba077'],
-  ['tony-topic-terreni-desktop-576x720-alpha-v4.webm', 295603, '8cb9f9e2b0b2d152e9f29d1b653713b3'],
-  ['tony-topic-terreni-mobile-432x540-alpha-v4.webm', 210809, '904c4aaaaba16a6592f61dc0db220365'],
-  ['tony-topic-terreni-desktop-576x720-12fps-v4.webp', 546120, '527a10ad5079232a4f2523e0a4033db2'],
-  ['tony-topic-terreni-mobile-432x540-12fps-v4.webp', 388564, 'e1e56e7c82950531813b8493a8aa45e6'],
-  ['tony-topic-terreni-desktop-576x1440-stacked-alpha-v4.mp4', 434538, '8f2ee31a798cb157aefb56f590472fcf'],
-  ['tony-topic-terreni-mobile-432x1080-stacked-alpha-v4.mp4', 292993, 'db6c3485e10753611f1c471cdff1c48a'],
+  ['tony-topic-poderi-2s5-desktop-576x1440-stacked-alpha-v6.mp4', 331551, 'e5c8e146975cfd66930c33e7c724465c'],
+  ['tony-topic-poderi-2s5-desktop-576x720-12fps-v6.webp', 537692, '112b9beaf1f8b5fe7f0e54cb7c1c6802'],
+  ['tony-topic-poderi-2s5-desktop-576x720-alpha-v6.webm', 265133, 'b1f6c5c3a43dee8936f44078ee584279'],
+  ['tony-topic-poderi-2s5-mobile-432x1080-stacked-alpha-v6.mp4', 229278, '82737510a2908fd008321104c9411336'],
+  ['tony-topic-poderi-2s5-mobile-432x540-12fps-v6.webp', 376850, '23387d6276c17e4007c1c3c053dfa211'],
+  ['tony-topic-poderi-2s5-mobile-432x540-alpha-v6.webm', 191420, 'b77d83388d7678824d78893afd6ac000'],
+  ['tony-topic-sede-desktop-576x1440-stacked-alpha-v6.mp4', 394491, 'dce0702d2196b8b0279751271679a242'],
+  ['tony-topic-sede-desktop-576x720-12fps-v6.webp', 635776, 'b2574accac9f2a86d59e3de61b382b38'],
+  ['tony-topic-sede-desktop-576x720-alpha-v6.webm', 319117, 'f5eca74b1f1476671ee28a313ce695a6'],
+  ['tony-topic-sede-mobile-432x1080-stacked-alpha-v6.mp4', 274234, 'ce16e2ab0e3ce0df425de1b12015068d'],
+  ['tony-topic-sede-mobile-432x540-12fps-v6.webp', 446060, 'c0d8a5acc651ab305a82d5eb7a06dd7c'],
+  ['tony-topic-sede-mobile-432x540-alpha-v6.webm', 234227, 'e308a9e6ddd15c79ced5aa149ef2e846'],
+  ['tony-topic-terreni-desktop-576x1440-stacked-alpha-v6.mp4', 396479, '1706de79faec726290f9b02977091469'],
+  ['tony-topic-terreni-desktop-576x720-12fps-v6.webp', 664054, 'a55b0330c548c5395adf53843a018a89'],
+  ['tony-topic-terreni-desktop-576x720-alpha-v6.webm', 308999, '0ca42de08af630d52ed5f117878cc8a7'],
+  ['tony-topic-terreni-mobile-432x1080-stacked-alpha-v6.mp4', 280420, '5e510194a84c0bdebac04b059deb6d99'],
+  ['tony-topic-terreni-mobile-432x540-12fps-v6.webp', 463210, '7f7c90d725a4533f8cb1af43f62dac8b'],
+  ['tony-topic-terreni-mobile-432x540-alpha-v6.webm', 228386, 'd732bdc51be31dd092a50f687f775da1'],
 ];
 
 describe('R1–R4 ritocchi', () => {
@@ -391,9 +391,10 @@ describe('A asset', () => {
     const vtt = path.join(TONY_LIVE, 'voci/tony-fatto.vtt');
     expect(fs.statSync(mp3).size).toBe(63572);
     expect(md5File(mp3)).toBe('21db3cb5d0e97dfcc26d1e1a42085a08');
-    expect(fs.statSync(vtt).size).toBe(90);
-    expect(md5File(vtt)).toBe('dcd0574b4479f9173659ac9f980d8a99');
-    expect(fs.readFileSync(vtt, 'utf8')).toMatch(
+    // Su Windows il .vtt può avere CRLF (96 byte) invece di LF (90).
+    const vttTesto = fs.readFileSync(vtt, 'utf8').replace(/\r\n/g, '\n');
+    expect([90, 96]).toContain(fs.statSync(vtt).size);
+    expect(vttTesto).toMatch(
       /Fatto! Per 7 giorni ti guido anche dentro l'app\./
     );
     expect(fs.existsSync(path.join(TONY_LIVE, 'voci/tony-fatto.wav'))).toBe(false);

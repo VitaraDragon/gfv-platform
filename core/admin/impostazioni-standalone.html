@@ -1427,6 +1427,8 @@
                     sedeMap.setCenter(latLng);
                     sedeMap.setZoom(17);
                     setSedeMarker(latLng, { skipCenter: true });
+                } else if (!getSedeCoordinateForSave()) {
+                    maybeProposeSedePinFromAddress();
                 }
                 updateSedeCoordsHint(getSedeCoordinateForSave() || normalizedCenter);
                 return;
@@ -1463,6 +1465,7 @@
                     setSedeMarker(new google.maps.LatLng(normalizedCenter.lat, normalizedCenter.lng));
                 } else {
                     updateSedeCoordsHint(null);
+                    maybeProposeSedePinFromAddress();
                 }
 
                 bindSedeMapSearchEnter();
@@ -1470,6 +1473,20 @@
                 console.error('Errore inizializzazione mappa sede:', error);
                 mapDiv.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; color: #dc3545; font-size: 14px;">Errore caricamento mappa sede</div>';
             }
+        }
+
+        function maybeProposeSedePinFromAddress() {
+            if (pendingSedeCoordinate || getSedeCoordinateForSave()) return;
+            const indirizzo = document.getElementById('azienda-indirizzo')?.value.trim() || '';
+            const citta = document.getElementById('azienda-citta')?.value.trim() || '';
+            if (!indirizzo && !citta) return;
+            const query = buildSedeAddressQuery();
+            if (!query || query === 'Italia') return;
+            const searchInput = document.getElementById('sede-map-search');
+            if (searchInput && !searchInput.value.trim()) {
+                searchInput.value = query.replace(/, Italia$/, '');
+            }
+            geocodeSedeQuery(query, { messaggioOk: 'Controlla il pin e salva' });
         }
 
         function setSedeMarker(position, options) {
@@ -1574,7 +1591,8 @@
             geocodeSedeQuery(query);
         }
 
-        function geocodeSedeQuery(query) {
+        function geocodeSedeQuery(query, options) {
+            options = options || {};
             if (!window.google || !window.google.maps || !window.googleMapsReadyPodere) {
                 showAlert('Mappa non ancora caricata. Attendi qualche secondo.', 'error');
                 return;
@@ -1596,7 +1614,10 @@
                     if (searchInput && results[0].formatted_address) {
                         searchInput.value = results[0].formatted_address;
                     }
-                    showAlert('Sede trovata. Verifica il pin e salva le impostazioni azienda.', 'success');
+                    showAlert(
+                        options.messaggioOk || 'Sede trovata. Verifica il pin e salva le impostazioni azienda.',
+                        'success'
+                    );
                 } else {
                     showAlert('Indirizzo non trovato. Prova con più dettagli o posiziona il pin manualmente sulla mappa.', 'error');
                 }
