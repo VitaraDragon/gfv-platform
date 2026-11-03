@@ -238,10 +238,11 @@ function promptSistemaAccount(argomento, opzioni) {
     "Se un terreno ha solo il nome, chiedi ettari e coltura di QUEL terreno citandolo per nome.",
     "Superficie: numero in ettari con il punto decimale («2,34 ha» → 2.34); se dicono metri quadri o altre unità, chiedi in ettari.",
     "Coltura: solo un nome dell'elenco colture di GFV (lo trovi sotto); «mele» → «Melo», «uva da vino» → «Vite da Vino», «olive» → «Olivo», «grano duro» → «Grano»; «seminativo» e «frutteto» sono categorie: chiedi «Che cosa ci coltivi? Grano, mais, orzo…» oppure lascia null.",
-    "Ortaggi: «ortaggi», «orto», «ortive», «verdure» sono la categoria Ortive. " +
+    "Ortaggi: «ortaggi», «orto», «ortive», «verdure» sono la categoria Ortive, non una coltura salvabile. " +
       (/categoria Ortive/i.test(raccolti)
-        ? "Hai GIÀ chiesto quali ortaggi: NON richiederlo. Se l'utente risponde «vari», «misti» o simili, tieni coltura null (la categoria Ortive resta) e vai avanti; se nomina un ortaggio dell'elenco colture, usa quello."
-        : "Chiedi UNA sola volta, citando il terreno: «Quali ortaggi soprattutto?». Se risponde «vari», «misti» o simili, lascia coltura null (categoria Ortive) e vai avanti senza richiedere; se nomina un ortaggio dell'elenco colture, usa quello."),
+        ? "Hai GIÀ chiesto quali ortaggi: NON richiederlo di nuovo. Se l'utente dice «vari», «misti» o simili, proponi di scegliere un ortaggio concreto dall'elenco (es. Insalata, Pomodoro, Zucchine); non mettere fatto:true né mandare al riepilogo finché non c'è una coltura catalogo."
+        : "Chiedi UNA sola volta, citando il terreno: «Quali ortaggi soprattutto? Per esempio Pomodoro, Insalata, Zucchine». Se nomina un ortaggio dell'elenco colture, usa quello; se dice «vari/misti», proponi di sceglierne uno (es. Insalata); non andare al riepilogo con sola categoria Ortive."),
+    "Se il messaggio dell'utente descrive chiaramente un podere o un terreno (nome, ettari, coltura) anche se l'argomento corrente è un passo precedente, estrai comunque quei dati nel JSON.",
     "Non dire mai di aver salvato o registrato; alla fine dire «Ecco il riepilogo: controlla e conferma».",
     "Rispondi solo con il JSON dello schema; frasi brevi in testo."
   ];
@@ -598,15 +599,31 @@ function correggiUnoNelTesto(testo) {
  * @param {{ raccolti?: string }} [opzioni]
  * @returns {{ testo: string, dati: object|null, troppiTerreni?: boolean, fuoriTema?: boolean }}
  */
-function rispostaAccountDaTesto(testoJson, opzioni) {
-  let parsed = null;
+function parseJsonAccount(testoJson) {
+  const grezzo = String(testoJson || "").trim();
+  if (!grezzo) return null;
   try {
-    parsed = JSON.parse(String(testoJson || ""));
+    const parsed = JSON.parse(grezzo);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+    return parsed;
   } catch (_e) {
-    return { testo: TESTO_RIPIEGO, dati: null };
+    const i = grezzo.indexOf("{");
+    const j = grezzo.lastIndexOf("}");
+    if (i < 0 || j <= i) return null;
+    try {
+      const parsed = JSON.parse(grezzo.slice(i, j + 1));
+      if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return null;
+      return parsed;
+    } catch (_e2) {
+      return null;
+    }
   }
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    return { testo: TESTO_RIPIEGO, dati: null };
+}
+
+function rispostaAccountDaTesto(testoJson, opzioni) {
+  const parsed = parseJsonAccount(testoJson);
+  if (!parsed) {
+    return { testo: TESTO_RIPIEGO, dati: null, ripiego: true, jsonOk: false };
   }
 
   let testo = typeof parsed.testo === "string" ? parsed.testo.trim() : "";
@@ -650,7 +667,9 @@ function rispostaAccountDaTesto(testoJson, opzioni) {
       fuoriTema: fuoriTema
     },
     troppiTerreni: puliti.troppiTerreni,
-    fuoriTema: fuoriTema
+    fuoriTema: fuoriTema,
+    ripiego: false,
+    jsonOk: true
   };
 }
 
@@ -658,6 +677,7 @@ module.exports = {
   SCHEMA_RISPOSTA_ACCOUNT,
   promptSistemaAccount,
   rispostaAccountDaTesto,
+  parseJsonAccount,
   regoleTenute,
   PREFISSI_ESCLUSI,
   TESTO_RIPIEGO,
