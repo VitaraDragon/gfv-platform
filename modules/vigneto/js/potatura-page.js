@@ -384,7 +384,7 @@ async function loadVigneti() {
     [selFilter, selModal].forEach(sel => {
         if (!sel) return;
         sel.innerHTML = sel === selFilter ? '<option value="">Tutti i vigneti</option>' : '<option value="">Seleziona vigneto</option>';
-        vigneti.forEach(v => {
+        vigneti.filter((v) => v.statoImpianto !== 'chiuso').forEach(v => {
             const opt = document.createElement('option');
             opt.value = v.id;
             opt.textContent = v.varieta || v.nome || v.id;

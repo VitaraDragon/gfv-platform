@@ -1063,7 +1063,7 @@ async function loadAnagrafica() {
     [selFilter, selModal].forEach(sel => {
         if (!sel) return;
         sel.innerHTML = sel === selFilter ? '<option value="">' + cfg.filterAllLabel + '</option>' : '<option value="">' + cfg.selectPlaceholder + '</option>';
-        colture.forEach(v => {
+        colture.filter((v) => v.statoImpianto !== 'chiuso').forEach(v => {
             const opt = document.createElement('option');
             opt.value = v.id;
             opt.textContent = cfg.optionLabel(v);
