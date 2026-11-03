@@ -13,6 +13,7 @@ import { getVendemmie, getVendemmia, createVendemmia, updateVendemmia, deleteVen
 import { getAllVigneti } from '../services/vigneti-service.js';
 import { getAllMacchine } from '../../../modules/parco-macchine/services/macchine-service.js';
 import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
+import { tieniImpiantoNellaTendina } from '../../../shared/js/impianto-tendina.js';
 
 // Import dinamici dei servizi core con risoluzione percorsi per GitHub Pages
 const lavoriServiceModule = await import(resolvePath('../../../core/services/lavori-service.js'));
@@ -160,7 +161,7 @@ async function loadVigneti() {
         vignetoSelect.innerHTML = '<option value="">Seleziona vigneto</option>';
         filterVigneto.innerHTML = '<option value="">Tutti i vigneti</option>';
         
-        vigneti.forEach(vigneto => {
+        vigneti.filter((v) => v.statoImpianto !== 'chiuso').forEach(vigneto => {
             const option = `<option value="${vigneto.id}">${vigneto.varieta} - ${vigneto.superficieEttari} ha</option>`;
             vignetoSelect.innerHTML += option;
             filterVigneto.innerHTML += option;
@@ -627,8 +628,14 @@ window.editVendemmia = async function(vignetoId, vendemmiaId) {
             }
         }
         
-        // Popola form
-        document.getElementById('vignetoId').value = vignetoId;
+        // Popola form. In modifica resta il vigneto della riga, anche se è chiuso.
+        const selectVigneto = document.getElementById('vignetoId');
+        tieniImpiantoNellaTendina(
+            selectVigneto,
+            vigneti.find((v) => v.id === vignetoId),
+            (v) => `${v.varieta} - ${v.superficieEttari} ha`
+        );
+        selectVigneto.value = vignetoId;
         onVignetoChange();
         
         const dataVendemmia = vendemmia.data instanceof Date 

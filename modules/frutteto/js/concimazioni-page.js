@@ -9,6 +9,7 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
 import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolvePath, getBasePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+import { tieniImpiantoNellaTendina } from '../../../shared/js/impianto-tendina.js';
 
 try {
     await window.GFVStandaloneReady;
@@ -915,7 +916,7 @@ async function loadFrutteti() {
     [selFilter, selModal].forEach(sel => {
         if (!sel) return;
         sel.innerHTML = sel === selFilter ? '<option value="">Tutti i frutteti</option>' : '<option value="">Seleziona frutteto</option>';
-        frutteti.forEach(f => {
+        frutteti.filter((v) => v.statoImpianto !== 'chiuso').forEach(f => {
             const opt = document.createElement('option');
             opt.value = f.id;
             opt.textContent = f.specie || f.varieta || f.nome || f.id;
@@ -1103,6 +1104,11 @@ async function openModalCompleta(idx) {
         setDatiBaseReadOnly(row.data, row.terrenoLabel, row.lavoroLabel);
         document.getElementById('trattamento-id').value = found.trattamentoId;
         document.getElementById('trattamento-frutteto-id').value = row.fruttetoId;
+        tieniImpiantoNellaTendina(
+            document.getElementById('trattamento-frutteto'),
+            frutteti.find((f) => f.id === row.fruttetoId),
+            (f) => f.specie || f.varieta || f.nome || f.id
+        );
         document.getElementById('trattamento-lavoro-id').value = row.lavoroId || '';
         document.getElementById('trattamento-attivita-id').value = row.attivitaId || '';
         const t = found.trattamento;
@@ -1200,6 +1206,11 @@ async function openModalEditRow(idx) {
     setDatiBaseReadOnly(row.data, row.terrenoLabel, row.lavoroLabel);
     document.getElementById('trattamento-id').value = trattamentoId;
     document.getElementById('trattamento-frutteto-id').value = fruttetoId;
+    tieniImpiantoNellaTendina(
+        document.getElementById('trattamento-frutteto'),
+        frutteti.find((f) => f.id === fruttetoId),
+        (f) => f.specie || f.varieta || f.nome || f.id
+    );
     document.getElementById('trattamento-lavoro-id').value = row.lavoroId || '';
     document.getElementById('trattamento-attivita-id').value = row.attivitaId || '';
     const dataVal = t.data instanceof Date ? t.data : (t.data?.toDate ? t.data.toDate() : new Date(t.data));

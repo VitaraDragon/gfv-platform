@@ -9,6 +9,7 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
 import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolvePath, getBasePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+import { tieniImpiantoNellaTendina } from '../../../shared/js/impianto-tendina.js';
 
 try {
     await window.GFVStandaloneReady;
@@ -926,7 +927,7 @@ async function loadVigneti() {
     [selFilter, selModal].forEach(sel => {
         if (!sel) return;
         sel.innerHTML = sel === selFilter ? '<option value="">Tutti i vigneti</option>' : '<option value="">Seleziona vigneto</option>';
-        vigneti.forEach(v => {
+        vigneti.filter((v) => v.statoImpianto !== 'chiuso').forEach(v => {
             const opt = document.createElement('option');
             opt.value = v.id;
             opt.textContent = v.varieta || v.nome || v.id;
@@ -1119,6 +1120,11 @@ async function openModalCompleta(idx) {
         setDatiBaseReadOnly(row.data, row.terrenoLabel, row.lavoroLabel);
         document.getElementById('trattamento-id').value = found.trattamentoId;
         document.getElementById('trattamento-vigneto-id').value = row.vignetoId;
+        tieniImpiantoNellaTendina(
+            document.getElementById('trattamento-vigneto'),
+            vigneti.find((v) => v.id === row.vignetoId),
+            (v) => v.varieta || v.nome || v.id
+        );
         document.getElementById('trattamento-lavoro-id').value = row.lavoroId || '';
         document.getElementById('trattamento-attivita-id').value = row.attivitaId || '';
         const t = found.trattamento;
@@ -1216,6 +1222,11 @@ async function openModalEditRow(idx) {
     setDatiBaseReadOnly(row.data, row.terrenoLabel, row.lavoroLabel);
     document.getElementById('trattamento-id').value = trattamentoId;
     document.getElementById('trattamento-vigneto-id').value = vignetoId;
+    tieniImpiantoNellaTendina(
+        document.getElementById('trattamento-vigneto'),
+        vigneti.find((v) => v.id === vignetoId),
+        (v) => v.varieta || v.nome || v.id
+    );
     document.getElementById('trattamento-lavoro-id').value = row.lavoroId || '';
     document.getElementById('trattamento-attivita-id').value = row.attivitaId || '';
     const dataVal = t.data instanceof Date ? t.data : (t.data?.toDate ? t.data.toDate() : new Date(t.data));

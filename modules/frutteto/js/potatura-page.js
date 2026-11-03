@@ -10,6 +10,7 @@ import { resolveEffectiveModules } from '../../../core/utils/module-access-resol
 import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+import { tieniImpiantoNellaTendina } from '../../../shared/js/impianto-tendina.js';
 
 try {
     await window.GFVStandaloneReady;
@@ -385,7 +386,7 @@ async function loadFrutteti() {
     [selFilter, selModal].forEach(sel => {
         if (!sel) return;
         sel.innerHTML = sel === selFilter ? '<option value="">Tutti i frutteti</option>' : '<option value="">Seleziona frutteto</option>';
-        frutteti.forEach(f => {
+        frutteti.filter((v) => v.statoImpianto !== 'chiuso').forEach(f => {
             const opt = document.createElement('option');
             opt.value = f.id;
             opt.textContent = f.specie || f.varieta || f.nome || f.id;
@@ -544,6 +545,11 @@ async function openModalEdit(fruttetoId, potaturaId) {
     document.getElementById('modal-title').textContent = 'Modifica potatura';
     document.getElementById('potatura-id').value = potaturaId;
     document.getElementById('potatura-frutteto-id').value = fruttetoId;
+    tieniImpiantoNellaTendina(
+        document.getElementById('potatura-frutteto'),
+        frutteti.find((f) => f.id === fruttetoId),
+        (f) => f.specie || f.varieta || f.nome || f.id
+    );
     document.getElementById('potatura-frutteto').value = fruttetoId;
     const dataVal = p.data instanceof Date ? p.data : (p.data?.toDate ? p.data.toDate() : new Date(p.data));
     document.getElementById('potatura-data').value = dataVal.toISOString ? dataVal.toISOString().slice(0, 10) : '';
