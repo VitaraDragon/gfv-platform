@@ -9,6 +9,7 @@ import { MESSAGGIO_ORE_SOLA_LETTURA } from '../shared/js/storico-sola-lettura.js
 import { terreniPerTendina, isTerrenoFrutteto } from '../shared/js/coltura-terreno.js';
 import {
   preparaEffettiSalvataggioTerreno,
+  testoCategoriaColtura,
   superficieCambiata
 } from '../shared/js/effetti-salvataggio-terreno.js';
 
@@ -120,6 +121,24 @@ describe('tendina frutteto', () => {
 
 describe('effetti del salvataggio terreno', () => {
   const oggi = new Date('2026-11-03T12:00:00');
+
+  it('categoria vuota e coltura invariata non propone la chiusura', () => {
+    expect(testoCategoriaColtura({
+      value: '',
+      selectedOptions: [{ textContent: '-- Seleziona categoria --' }]
+    })).toBeNull();
+    const effetti = preparaEffettiSalvataggioTerreno({
+      esistente: { coltura: 'Vite', colturaCategoria: 'Vite', superficie: 2 },
+      nuovo: { coltura: 'Vite', colturaCategoria: null, superficie: 2 },
+      vigneti: [{ id: 'v1', nome: 'Sangiovese', statoImpianto: 'attivo' }],
+      conferma: () => {
+        throw new Error('non doveva chiedere di chiudere');
+      },
+      oggi
+    });
+    expect(effetti.procedi).toBe(true);
+    expect(effetti.chiudi).toEqual([]);
+  });
 
   it('cambio coltura con vigneto attivo chiede conferma e lo chiude', () => {
     const effetti = preparaEffettiSalvataggioTerreno({

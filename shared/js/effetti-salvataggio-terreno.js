@@ -6,6 +6,18 @@
 import { isColturaFrutteto, famigliaColtura } from './coltura-terreno.js';
 import { isLavoroChiuso } from './storico-sola-lettura.js';
 
+/**
+ * Testo della tendina categoria. Il segnaposto («-- Seleziona categoria --») non è una categoria.
+ * @param {{ value?: string, selectedOptions?: Array<{ textContent?: string }> }|null|undefined} select
+ * @returns {string|null}
+ */
+export function testoCategoriaColtura(select) {
+  if (!select || !select.value) return null;
+  const opt = select.selectedOptions && select.selectedOptions[0];
+  const testo = opt ? String(opt.textContent || '').trim() : '';
+  return testo || null;
+}
+
 export function cambioCategoriaColtura(prima, dopo) {
   const a = famigliaColtura(prima);
   const b = famigliaColtura(dopo);

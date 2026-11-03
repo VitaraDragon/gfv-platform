@@ -378,10 +378,8 @@ export async function handleSaveTerreno(
         if (state.currentTerrenoId) {
             const esistente = (state.terreni || []).find((t) => t.id === state.currentTerrenoId) || null;
             const categoriaSelect = document.getElementById('terreno-coltura-categoria');
-            const categoriaTesto = categoriaSelect && categoriaSelect.selectedOptions && categoriaSelect.selectedOptions[0]
-                ? categoriaSelect.selectedOptions[0].textContent
-                : '';
-            const { preparaEffettiSalvataggioTerreno } = await import('../../shared/js/effetti-salvataggio-terreno.js');
+            const { preparaEffettiSalvataggioTerreno, testoCategoriaColtura } = await import('../../shared/js/effetti-salvataggio-terreno.js');
+            const categoriaTesto = testoCategoriaColtura(categoriaSelect);
             const db = terreniCollection.firestore;
             const leggi = async (nome) => {
                 const snap = await getDocs(query(
