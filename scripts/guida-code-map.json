@@ -2060,6 +2060,150 @@
         "INTERSEZIONI"
       ],
       "label": "Test Tony della landing (dietro flag): nessun testo guida"
+    },
+    {
+      "prefix": "core/js/login-motivo-helpers.js",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Ritorno al login con motivo (sessione persa, utente cambiato, profilo mancante)"
+    },
+    {
+      "prefix": "core/js/meteo-ui-helpers.js",
+      "modules": [
+        "CORE",
+        "METEO"
+      ],
+      "label": "Messaggi widget meteo dashboard (pin mancante, timeout, Free → piano Base)"
+    },
+    {
+      "prefix": "core/js/sede-auto-pin.js",
+      "modules": [
+        "CORE",
+        "METEO"
+      ],
+      "label": "Pin sede salvato da solo al primo accesso in dashboard"
+    },
+    {
+      "prefix": "core/js/sede-geocode-match.js",
+      "modules": [
+        "CORE",
+        "METEO"
+      ],
+      "label": "Scelta risultato geocode nel comune della sede"
+    },
+    {
+      "prefix": "core/js/tony/tony-congedo.js",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Congedo Tony (grazie / a posto / basta così)"
+    },
+    {
+      "prefix": "core/js/tony/tony-landing-saluto.js",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Saluto e percorso 7 giorni dopo setup landing"
+    },
+    {
+      "prefix": "core/config/tony-guida-onboarding.js",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Tony Guida su Free nei primi 7 giorni (client)"
+    },
+    {
+      "prefix": "functions/tony-guida-onboarding.js",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Tony Guida su Free nei primi 7 giorni (server, tetto giornaliero)"
+    },
+    {
+      "prefix": "functions/tony-intent-router.js",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Router intent Tony (guard segna-ore ≠ meteo)"
+    },
+    {
+      "prefix": "functions/lib/tony-landing-elevenlabs-quota.js",
+      "modules": [
+        "INTERSEZIONI"
+      ],
+      "label": "Quota ElevenLabs voce Tony landing (solo tecnica)"
+    },
+    {
+      "prefix": "functions/scripts/genera-voci-fisse-landing.js",
+      "modules": [
+        "INTERSEZIONI"
+      ],
+      "label": "Script voci fisse Tony landing (solo tecnica, nessun testo guida)"
+    },
+    {
+      "prefix": "tests/tony/tony-landing-saluto",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Test saluto/percorso 7 giorni"
+    },
+    {
+      "prefix": "tests/tony/tony-congedo",
+      "modules": [
+        "TONY"
+      ],
+      "label": "Test congedo Tony"
+    },
+    {
+      "prefix": "tests/tony/tony-segna-ore-non-meteo",
+      "modules": [
+        "TONY",
+        "METEO"
+      ],
+      "label": "Test guard segna-ore ≠ meteo"
+    },
+    {
+      "prefix": "tests/sede-geocode-match",
+      "modules": [
+        "CORE",
+        "METEO"
+      ],
+      "label": "Test pin sede nel comune"
+    },
+    {
+      "prefix": "tests/meteo-ui-helpers",
+      "modules": [
+        "CORE",
+        "METEO"
+      ],
+      "label": "Test messaggi meteo dashboard"
+    },
+    {
+      "prefix": "tests/dashboard-meteo-",
+      "modules": [
+        "CORE",
+        "METEO"
+      ],
+      "label": "Test widget meteo dashboard"
+    },
+    {
+      "prefix": "tests/login-",
+      "modules": [
+        "CORE"
+      ],
+      "label": "Test login (motivo, email precompilata)"
+    },
+    {
+      "prefix": "tests/guida-graffetta",
+      "modules": [
+        "TONY",
+        "CORE"
+      ],
+      "label": "Test percorsi Tony con la graffetta"
     }
   ]
 }
