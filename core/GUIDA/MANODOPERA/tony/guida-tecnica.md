@@ -2,6 +2,8 @@
 
 Modulo in **`dashboard.moduli_attivi`** (chiave tipica `manodopera`). In contesto serializzato può comparire come elenco moduli dell’**azienda** corrente.
 
+**Accesso modulo** = pagato **o** trial attivo (`hasModuleAccessFromTenant` / `module-access-resolver.js`, `MODULE_TRIAL_DAYS = 30`). In prova: stessi gate di navigazione e pagine (hub Manodopera, `field-workspace-standalone.html`, Gestione lavori, …) del modulo a pagamento.
+
 ## Path standalone (relativi a `core/` e `core/admin/`)
 
 | Area | File |

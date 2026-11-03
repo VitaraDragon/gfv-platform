@@ -7,7 +7,7 @@
 (function () {
     'use strict';
 
-    var TONY_LOADER_QUERY = '2026-11-03a';
+    var TONY_LOADER_QUERY = '2026-11-02b';
     if (window.__gfvTonyLoaderBuild) {
         if (window.__gfvTonyLoaderBuild !== TONY_LOADER_QUERY) console.warn('[Tony] loader doppio ignorato', TONY_LOADER_QUERY, 'già attivo', window.__gfvTonyLoaderBuild);
         return;

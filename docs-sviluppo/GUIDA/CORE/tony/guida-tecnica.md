@@ -12,6 +12,8 @@ Fonti codice prioritarie: [`core/config/subscription-plans.js`](../../../../core
 
 Accesso effettivo = moduli pagati **+** trial attivi (`module-access-resolver.js`, `MODULE_TRIAL_DAYS = 30`, un trial attivo alla volta). Senza id attivo (pagato o trial), le relative card/azioni non devono essere documentate come disponibili nell’esperienza Core-only.
 
+**Dipendenze moduli** (`AVAILABLE_MODULES` in `subscription-plans.js`): `vendemmiaMeccanica` ha `requiresModules: ['contoTerzi']`. Disattivazione: `getModulesToDeactivateTogether` / testo conferma cascata (Conto terzi → anche VM attiva). Riattivazione VM: Conto terzi deve essere di nuovo accessibile prima.
+
 ---
 
 ## Dashboard (`dashboard-controller.js` / `dashboard-sections.js` / `dashboard-hub.js`)

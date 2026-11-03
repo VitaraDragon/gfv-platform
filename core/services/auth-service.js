@@ -186,7 +186,7 @@ export async function signIn(email, password) {
 export async function signOutUser() {
   try {
     try {
-      const { pulisciIndizioIngresso } = await import('../js/tony/tony-ingresso-login.js?v=2026-11-02b');
+      const { pulisciIndizioIngresso } = await import('../js/tony/tony-ingresso-login.js?v=2026-11-03b');
       pulisciIndizioIngresso();
     } catch (e) { /* indizio non disponibile */ }
     const auth = getAuthInstance();

@@ -71,7 +71,7 @@ export async function handleLogout(auth, db, cleanupCallbacks = {}) {
         sessionStorage.removeItem('tony_session_state');
         sessionStorage.removeItem('gfv_tony_utente_ruoli');
         try {
-            const { CHIAVE_RIMBALZI_INGRESSO } = await import('./tony/tony-ingresso-login.js');
+            const { CHIAVE_RIMBALZI_INGRESSO } = await import('./tony/tony-ingresso-login.js?v=2026-11-03b');
             sessionStorage.removeItem(CHIAVE_RIMBALZI_INGRESSO);
         } catch (e) {
             try { sessionStorage.removeItem('gfv_workspace_rimbalzi'); } catch (e2) { /* ignore */ }

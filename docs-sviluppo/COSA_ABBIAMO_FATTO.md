@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-03 — Secondo giro correzioni app + landing (pin sede v2, saluto subito, F5 auth, ortaggi catalogo, email login).**
+**Ultimo aggiornamento documentazione: 2026-11-03 — Guide utente/Tony: QA storico accessi, preventivi CT, VM↔CT.**
+
+## 2026-11-03 — Guide allineate a fix QA storico accessi (branch fix/qa-03nov-1-storico-accessi)
+
+Guide MANODOPERA/VIGNETO: moduli in **prova 30 giorni** = stessi accessi del pagato (workspace, pagine modulo, grappolo terreni). CONTO TERZI: flusso **Pianifica** con/senza Manodopera (da pianificare vs in corso + Diario CT); preventivo resta **Pianificato**, avanzamento sul lavoro. CORE + VENDEMMIA MECCANICA: VM dipende da Conto terzi; disattivazione CT a cascata su VM. Mirror `core/GUIDA/`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-03 — Secondo giro correzioni app + landing (pin sede v2, saluto subito, F5 auth, ortaggi catalogo, email login).**
 
 ## 2026-11-03 — Correzioni app e landing, secondo giro (2–3 novembre)
 

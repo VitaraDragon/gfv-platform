@@ -1,6 +1,6 @@
 # Guida Vendemmia meccanica
 
-Modulo per organizzare la **vendemmia meccanizzata** (spesso in **conto terzi**): piano stagione, calcoli compenso, tariffe e bilancio servizio. Serve il modulo attivo in **Abbonamento**.
+Modulo per organizzare la **vendemmia meccanizzata** (spesso in **conto terzi**): piano stagione, calcoli compenso, tariffe e bilancio servizio. Serve **Conto terzi** attivo e il modulo **Vendemmia meccanica** in **Abbonamento** (o in prova, uno alla volta come gli altri moduli verticali).
 
 ---
 
@@ -60,7 +60,9 @@ Il dettaglio dei campi dipende dalla vostra versione: restano le etichette in sc
 
 ## Collegamento Conto terzi
 
-Clienti e terreni arrivano tipicamente dall’anagrafica **Conto terzi**. Preventivi e lavori CT possono essere aperti dalle scorciatoie dell’hub. Senza Conto terzi alcune scorciatoie non ha senso usarle.
+**Vendemmia meccanica non funziona senza Conto terzi:** clienti, terreni clienti e flussi operativi CT sono la base del servizio. Preventivi e lavori CT si aprono dalle scorciatoie dell’hub quando Conto terzi è attivo.
+
+In **Abbonamento**, se **disattivate Conto terzi**, l’app disattiva anche **Vendemmia meccanica** così non restate con un modulo collegato che non potete usare e **non pagate** VM da sola. Per riusare VM: **riattivate Conto terzi**, poi **Vendemmia meccanica**.
 
 ---
 

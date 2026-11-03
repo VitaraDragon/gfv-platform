@@ -31,7 +31,7 @@ import {
 } from './field-ore-riquadro.js?v=2026-10-18a';
 import { scegliSuggerimentoRapido } from '../../js/field-suggerimento-lavoro.js?v=2026-10-18a';
 import { eLavoroSospeso } from '../../js/tony/tony-ora-lavoro-match.js?v=2026-11-02b';
-import { CHIAVE_RIMBALZI_INGRESSO, scriviIndizioIngresso, pulisciIndizioIngresso, decidiGuardiaWorkspace } from '../../js/tony/tony-ingresso-login.js?v=2026-11-03a';
+import { CHIAVE_RIMBALZI_INGRESSO, scriviIndizioIngresso, pulisciIndizioIngresso, decidiGuardiaWorkspace } from '../../js/tony/tony-ingresso-login.js?v=2026-11-03b';
 import { conTimeout, prossimaAttesaRiprova } from '../../js/tony/tony-attesa-riprova.js?v=2026-11-02b';
 import {
     righeGiornoDopoEliminazione,

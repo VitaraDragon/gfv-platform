@@ -46,7 +46,7 @@ function resolveCoreBaseForShell() {
 function ensureTonyLoaderShell() {
   const base = resolveCoreBaseForShell();
   const sep = base && !base.endsWith('/') ? '/' : '';
-  const loaderSrc = `${base ? base + sep : ''}js/gfv-tony-loader.js?v=2026-11-03a`;
+  const loaderSrc = `${base ? base + sep : ''}js/gfv-tony-loader.js?v=2026-11-02b`;
 
   if (!window.__gfvTonyLoaderRequested && !document.querySelector('script[src*="gfv-tony-loader"]')) {
     window.__gfvTonyLoaderRequested = true;

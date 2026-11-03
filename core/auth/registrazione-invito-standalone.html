@@ -766,7 +766,7 @@
                 successMessage.classList.add('show');
 
                 try {
-                    const { CHIAVE_RIMBALZI_INGRESSO } = await import('../js/tony/tony-ingresso-login.js');
+                    const { CHIAVE_RIMBALZI_INGRESSO } = await import('../js/tony/tony-ingresso-login.js?v=2026-11-03b');
                     sessionStorage.removeItem(CHIAVE_RIMBALZI_INGRESSO);
                 } catch (rimbalziErr) {
                     try { sessionStorage.removeItem('gfv_workspace_rimbalzi'); } catch (e2) { /* ignore */ }
