@@ -2,6 +2,8 @@
 
 Modulo tenant: `meteo` in `tenants.modules` (legacy `moduli_attivi` supportato).
 
+`terreniPerAvvisiMeteo` esclude `stato: archiviato` e i terreni cliente prima del taglio `MAX_TERRENI_METEO`. `fetchTerrenoMeteo` su un archiviato risponde `ARCHIVIATO` e non chiama il meteo. Le regole Tony saltano quelle righe. Dopo il merge vanno pubblicate le function meteo.
+
 ## Piani e accesso
 
 | Livello | Condizione | UI |

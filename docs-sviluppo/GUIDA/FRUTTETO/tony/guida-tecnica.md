@@ -2,6 +2,8 @@
 
 Modulo tenant: tipicamente `frutteto` (minuscolo; verificare `tenant.modules`).
 
+Tendina terreno: solo terreni attivi la cui coltura è da frutto (`isTerrenoFrutteto`). In modifica resta il terreno già collegato. Non proporre frutteti `chiuso` né terreni archiviati. Il poligono del terreno non è obbligatorio.
+
 ## Path standalone (relativi a `modules/frutteto/views/`)
 
 | Pagina | File |

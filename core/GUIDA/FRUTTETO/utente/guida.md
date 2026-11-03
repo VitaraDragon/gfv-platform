@@ -80,7 +80,9 @@ Colonne tipiche: dati dell’impianto, superficie, produzione/resa/costi dove ca
 
 1. **Nuovo Frutteto** (o titolo equivalente).
 2. Compilate il modulo: in genere **terreno**, **specie / varietà**, dati di impianto (distanze, densità, forma di allevamento, tipo palo, ecc. secondo le etichette in schermata), **stato impianto** (menu obbligatorio: di solito **Attivo** per i nuovi).
-3. **Salva** per registrare. **Annulla** chiude senza salvare.
+3. **Salva** per registrare. **Annulla** chiude senza salvare, come la **X**.
+
+Nella tendina del terreno compaiono solo i terreni **attivi** con una coltura da frutto (melo, pero, kaki e le altre). Un terreno a vite o a grano non compare. In modifica resta visibile il terreno già collegato, anche se la coltura è cambiata. Un impianto **chiuso** ha il badge **Chiuso** e sparisce dall'elenco finché non spuntate **Mostra chiusi**. Non si può riaprirlo da qui.
 
 ### Modifica ed eliminazione
 
@@ -165,7 +167,7 @@ Aprite **Statistiche e Grafici** dalla dashboard: impostate i **filtri** in pagi
 ### Pianifica nuovo impianto: passo per passo
 
 1. Dalla dashboard frutteto, **Pianifica nuovo impianto** (si apre lo strumento condiviso già orientato al frutteto).
-2. **Seleziona terreno:** obbligatorio. Il terreno deve avere il **poligono** disegnato in anagrafe **Terreni**, altrimenti non potete iniziare (messaggio in pagina).
+2. **Seleziona terreno:** obbligatorio. Il **poligono** in anagrafe **Terreni** è utile per vedere la mappa, ma non è obbligatorio: potete iniziare anche senza.
 3. Compaiono la **mappa** dell’appezzamento e il **pannello** a destra (su schermi stretti il pannello va sotto la mappa).
 4. **Tipo coltura:** di norma è già **Frutteto**; non cambiatelo se state progettando un frutteto.
 5. **Forma di allevamento:** scegliete dall’elenco (allineato alle forme usate in **anagrafica frutteti**).

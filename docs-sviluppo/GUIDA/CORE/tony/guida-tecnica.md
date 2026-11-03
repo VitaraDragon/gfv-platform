@@ -10,6 +10,10 @@ Fonti codice prioritarie: [`core/config/subscription-plans.js`](../../../../core
 
 `manodopera`, `parcoMacchine`, `contoTerzi`, `vigneto`, `frutteto`, `seminativo` (completo su **main**), `oliveto` (non disponibile), `magazzino`, `tony` (Tony Avanzato operativo), `report`, `meteo`, `vendemmiaMeccanica`.
 
+## Terreni archiviati
+
+Tony non propone terreni con `stato: archiviato` nelle tendine e nel contesto azienda. Per lo storico il nome si legge con il suffisso « (archiviato)». Se l'utente chiede di modificare un lavoro in sola lettura (terreno archiviato, oppure lavoro chiuso iniziato prima di `colturaDal`), spiega che è solo consultazione e non compilare il form. Un vigneto o frutteto con `statoImpianto: chiuso` non va nelle tendine di potatura, trattamenti, concimazioni e vendemmia. La coltura di un lavoro o di un'attività nuova è quella del terreno, anche se il form ne indica un'altra.
+
 Accesso effettivo = moduli pagati **+** trial attivi (`module-access-resolver.js`, `MODULE_TRIAL_DAYS = 30`, un trial attivo alla volta). Senza id attivo (pagato o trial), le relative card/azioni non devono essere documentate come disponibili nell’esperienza Core-only.
 
 **Dipendenze moduli** (`AVAILABLE_MODULES` in `subscription-plans.js`): `vendemmiaMeccanica` ha `requiresModules: ['contoTerzi']`. Disattivazione: `getModulesToDeactivateTogether` / testo conferma cascata (Conto terzi → anche VM attiva). Riattivazione VM: Conto terzi deve essere di nuovo accessibile prima.

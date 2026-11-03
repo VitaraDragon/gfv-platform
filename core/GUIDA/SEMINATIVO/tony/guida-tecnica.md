@@ -2,6 +2,8 @@
 
 Modulo tenant: tipicamente `seminativo` (minuscolo; verificare `tenant.modules`).
 
+La superficie del terreno, se cambia, si copia su `superficieEttari` delle campagne correnti e future (`seminativi`), non sulle passate e non sui registri già salvati (`superficieTrattata`). Niente terreni archiviati in tendina.
+
 ## Path standalone (relativi a `modules/seminativo/views/`)
 
 | Pagina | File |
