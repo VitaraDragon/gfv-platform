@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-03 — Guide utente/Tony: QA storico accessi, preventivi CT, VM↔CT.**
+**Ultimo aggiornamento documentazione: 2026-11-03 — PR #331: cascata Conto Terzi senza falso errore e senza toccare il bundle.**
+
+## 2026-11-03 — PR #331: disattivazione Conto Terzi e moduli effettivi
+
+Disattivare Conto Terzi chiama il server una sola volta. Vendemmia Meccanica segue nella risposta (`cascaded`); un modulo già in disattivazione o già tolto è un successo, così un nuovo tentativo completa la VM. La cascata usa solo l'abbonamento del modulo: se la VM è nel bundle `gfv-completo` non si annulla l'abbonamento del bundle né il piano Base; una VM in prova si spegne senza Stripe. Il contatore dei rimbalzi si azzera in ogni logout. Le pagine che decidevano l'accesso con `tenant.modules` usano i moduli effettivi (pagati + prove). Il toast del preventivo non mostra più HTML: testo e link vero verso il Diario. Dopo il merge: pubblicare la function `cancelStripeAddon`. Nessun deploy in questo giro.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-03 — Guide utente/Tony: QA storico accessi, preventivi CT, VM↔CT.**
 
 ## 2026-11-03 — Guide allineate a fix QA storico accessi (branch fix/qa-03nov-1-storico-accessi)
 

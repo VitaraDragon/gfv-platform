@@ -4,6 +4,8 @@
  * @module core/js/tony/tony-ingresso-login
  */
 
+import { resolveEffectiveModules } from '../../utils/module-access-resolver.js';
+
 export const CHIAVE_RIMBALZI_INGRESSO = 'gfv_workspace_rimbalzi';
 export const CHIAVE_INGRESSO_ULTIMO = 'gfv_ingresso_ultimo';
 
@@ -48,27 +50,8 @@ export function decidiGuardiaWorkspace(input) {
 
   let moduli = normalizzaLista(src.moduliEffettivi);
   if (!moduli.length && src.tenantData) {
-    const paid = Array.isArray(src.tenantData.modules) ? src.tenantData.modules : [];
-    const trials =
-      src.tenantData.moduleTrials && typeof src.tenantData.moduleTrials === 'object'
-        ? src.tenantData.moduleTrials
-        : {};
     const now = src.now instanceof Date ? src.now : new Date();
-    const trialIds = Object.keys(trials).filter((id) => {
-      const rec = trials[id];
-      if (!rec || rec.status !== 'active') return false;
-      const ends = rec.endsAt;
-      let endsAt = null;
-      if (ends instanceof Date) endsAt = ends;
-      else if (ends && typeof ends.toDate === 'function') endsAt = ends.toDate();
-      else if (typeof ends === 'number') endsAt = new Date(ends > 1e12 ? ends : ends * 1000);
-      else if (ends) {
-        const parsed = new Date(ends);
-        endsAt = Number.isNaN(parsed.getTime()) ? null : parsed;
-      }
-      return endsAt && endsAt > now;
-    });
-    moduli = normalizzaLista([...new Set([...paid, ...trialIds])]);
+    moduli = normalizzaLista(resolveEffectiveModules(src.tenantData, now));
   }
 
   if (moduli.indexOf('manodopera') < 0) {
@@ -228,6 +211,7 @@ export function scriviIndizioIngresso(scelta) {
 export function pulisciIndizioIngresso() {
   try { localStorage.removeItem(CHIAVE_INGRESSO_ULTIMO); } catch (e) { /* ignore */ }
   try { sessionStorage.removeItem('gfv_tony_utente_ruoli'); } catch (e2) { /* ignore */ }
+  try { sessionStorage.removeItem(CHIAVE_RIMBALZI_INGRESSO); } catch (e3) { /* ignore */ }
 }
 
 if (typeof window !== 'undefined') {

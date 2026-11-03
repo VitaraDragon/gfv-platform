@@ -157,7 +157,8 @@ export async function bootstrapMappaAziendalePage() {
                 try {
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                     if (tenantDoc.exists()) {
-                        availableModules = tenantDoc.data().modules || [];
+                        const { resolveEffectiveModules } = await import('../utils/module-access-resolver.js');
+                        availableModules = resolveEffectiveModules(tenantDoc.data() || {});
                     }
                 } catch (e) {
                     console.warn('Moduli tenant:', e);

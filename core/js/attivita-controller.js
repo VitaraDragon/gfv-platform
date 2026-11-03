@@ -10,6 +10,7 @@
 // Le importazioni Firebase verranno fatte nel file HTML principale
 // Questo modulo assume che db, auth, currentTenantId siano disponibili globalmente
 
+import { filtraLavoriPerDiarioContoTerzi } from '../../modules/conto-terzi/js/lavoro-da-preventivo.js';
 import {
     dateLikeToIsoDateString,
     dateLikeToLocalCalendarIso,
@@ -933,15 +934,7 @@ export async function loadAttivita(
  * @returns {Array}
  */
 export function lavoriDiarioContoTerziVisibili(lavoriList = [], hasManodopera = true) {
-    const list = Array.isArray(lavoriList) ? lavoriList : [];
-    if (hasManodopera) {
-        return list.filter((l) => l.stato === 'in_corso');
-    }
-    return list.filter(
-        (l) =>
-            l.stato === 'in_corso' ||
-            (l.stato === 'da_pianificare' && l.clienteId != null && l.clienteId !== '')
-    );
+    return filtraLavoriPerDiarioContoTerzi(lavoriList, { hasManodopera: !!hasManodopera });
 }
 
 /**
@@ -956,13 +949,7 @@ export function populateLavoriDropdown(lavoriList = [], opts = {}) {
     const urlParams = new URLSearchParams(window.location.search);
     const statoFiltro = urlParams.get('stato');
     const hasManodopera = opts.hasManodopera === true;
-    // Import sync evitata: filtro puro inline (stesso di filtraLavoriPerDiarioContoTerzi)
-    let lavoriFiltrati;
-    if (statoFiltro) {
-        lavoriFiltrati = lavoriList.filter((l) => l.stato === statoFiltro);
-    } else {
-        lavoriFiltrati = lavoriDiarioContoTerziVisibili(lavoriList, hasManodopera);
-    }
+    const lavoriFiltrati = filtraLavoriPerDiarioContoTerzi(lavoriList, { hasManodopera, statoFiltro });
 
     select.innerHTML = '<option value="">-- Seleziona lavoro --</option>';
     lavoriFiltrati.forEach(lavoro => {

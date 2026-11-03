@@ -469,8 +469,9 @@
                         const userData = userDoc.exists() ? userDoc.data() : {};
                         const ruoli = Array.isArray(userData.ruoli) ? userData.ruoli : ['manager'];
                         const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
-                        const modules = tenantDoc.exists() && Array.isArray(tenantDoc.data().modules)
-                            ? tenantDoc.data().modules.slice()
+                        const { resolveEffectiveModules } = await import('../../../core/utils/module-access-resolver.js');
+                        const modules = tenantDoc.exists()
+                            ? resolveEffectiveModules(tenantDoc.data() || {}).slice()
                             : [];
                         if (!modules.includes('parcoMacchine')) modules.push('parcoMacchine');
                         if (window.Tony && typeof window.Tony.initContextWithModules === 'function') {

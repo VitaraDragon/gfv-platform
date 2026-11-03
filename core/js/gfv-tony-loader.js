@@ -191,10 +191,10 @@
         importCoreModule('utils/module-access-resolver.js').then(function (mar) {
             var modules = mar && typeof mar.resolveEffectiveModules === 'function'
                 ? mar.resolveEffectiveModules(tenantData)
-                : (Array.isArray(tenantData.modules) ? tenantData.modules.slice() : []);
+                : [];
             applyPublish(modules);
         }).catch(function () {
-            applyPublish(Array.isArray(tenantData.modules) ? tenantData.modules.slice() : []);
+            applyPublish([]);
         });
     }
 

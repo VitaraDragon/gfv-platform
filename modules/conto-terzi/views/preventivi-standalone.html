@@ -1368,10 +1368,23 @@
                     updatedAt: serverTimestamp()
                 });
 
-                const msg = registroHref
-                    ? `${toastMessage} <a href="${registroHref}" style="color:inherit;text-decoration:underline">Apri</a>`
-                    : toastMessage;
-                showAlert(msg, 'success');
+                showAlert(toastMessage, 'success');
+                if (registroHref) {
+                    const layer = document.getElementById('gfv-standalone-toast-layer');
+                    const toast = layer && layer.lastElementChild;
+                    if (toast) {
+                        const link = document.createElement('a');
+                        link.href = registroHref;
+                        link.textContent = registroHref.indexOf('attivita-standalone') >= 0
+                            ? 'Apri Diario Conto Terzi'
+                            : 'Apri';
+                        link.style.marginLeft = '8px';
+                        link.style.color = 'inherit';
+                        link.style.fontWeight = '600';
+                        toast.appendChild(document.createTextNode(' '));
+                        toast.appendChild(link);
+                    }
+                }
                 await loadPreventivi();
             } catch (error) {
                 console.error('Errore creazione lavoro:', error);

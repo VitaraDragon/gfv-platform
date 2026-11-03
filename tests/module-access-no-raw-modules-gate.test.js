@@ -18,6 +18,7 @@ const RAW_PATTERNS = [
   /tenantData\s*\??\.\s*modules/,
   /tenant\s*\??\.\s*modules/,
   /\btd\s*\??\.\s*modules/,
+  /\.data\(\)\s*\.modules/,
 ];
 
 function walk(dir, out = []) {
@@ -27,6 +28,18 @@ function walk(dir, out = []) {
     const st = statSync(p);
     if (st.isDirectory()) walk(p, out);
     else if (/\.(js|html)$/.test(name)) out.push(p);
+  }
+  return out;
+}
+
+function cartelleViewsModuli() {
+  const root = join(ROOT, 'modules');
+  const out = [];
+  for (const name of readdirSync(root)) {
+    const views = join(root, name, 'views');
+    try {
+      if (statSync(views).isDirectory()) out.push(views);
+    } catch (e) { /* modulo senza views */ }
   }
   return out;
 }
@@ -53,14 +66,16 @@ function lineeGrezze(filePath) {
 describe('nessun gate grezzo su tenant.modules (#23/#31)', () => {
   const dirs = [
     join(ROOT, 'core', 'mobile'),
+    join(ROOT, 'core', 'js'),
     join(ROOT, 'modules', 'vigneto', 'js'),
+    ...cartelleViewsModuli(),
   ];
   const files = [
     join(ROOT, 'core', 'terreni-standalone.html'),
     ...dirs.flatMap((d) => walk(d)),
   ];
 
-  it('file sotto core/mobile, vigneto/js e terreni-standalone non decidono accesso con .modules grezzo', () => {
+  it('file sotto core/mobile, core/js, views dei moduli, vigneto/js e terreni-standalone non decidono accesso con .modules grezzo', () => {
     const violazioni = [];
     for (const f of files) {
       const hits = lineeGrezze(f);

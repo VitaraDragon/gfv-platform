@@ -69,14 +69,10 @@ export async function handleLogout(auth, db, cleanupCallbacks = {}) {
         sessionStorage.removeItem('gfv_expected_user_id');
         sessionStorage.removeItem('gfv_user_just_registered');
         sessionStorage.removeItem('tony_session_state');
-        sessionStorage.removeItem('gfv_tony_utente_ruoli');
         try {
-            const { CHIAVE_RIMBALZI_INGRESSO } = await import('./tony/tony-ingresso-login.js?v=2026-11-03b');
-            sessionStorage.removeItem(CHIAVE_RIMBALZI_INGRESSO);
-        } catch (e) {
-            try { sessionStorage.removeItem('gfv_workspace_rimbalzi'); } catch (e2) { /* ignore */ }
-        }
-        try { localStorage.removeItem('gfv_ingresso_ultimo'); } catch (e) { /* ignore */ }
+            const { pulisciIndizioIngresso } = await import('./tony/tony-ingresso-login.js?v=2026-11-03b');
+            pulisciIndizioIngresso();
+        } catch (e) { /* ignore */ }
         
         await signOut(auth);
         window.location.href = './auth/login-standalone.html';

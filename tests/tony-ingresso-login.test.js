@@ -9,6 +9,7 @@ import {
   indizioRuoliCampo,
   urlWorkspaceDaPercorso,
   decidiGuardiaWorkspace,
+  pulisciIndizioIngresso,
   CHIAVE_RIMBALZI_INGRESSO,
 } from '../core/js/tony/tony-ingresso-login.js';
 import { resolveEffectiveModules } from '../core/utils/module-access-resolver.js';
@@ -328,5 +329,32 @@ describe('decidiGuardiaWorkspace (#23)', () => {
 
   it('CHIAVE_RIMBALZI_INGRESSO è esportata per login/logout', () => {
     expect(CHIAVE_RIMBALZI_INGRESSO).toBe('gfv_workspace_rimbalzi');
+  });
+
+  it('senza moduliEffettivi usa resolveEffectiveModules sul tenant', () => {
+    const tenantData = {
+      modules: [],
+      moduleTrials: { manodopera: { status: 'active', endsAt: futuro } }
+    };
+    const esito = decidiGuardiaWorkspace({
+      tenantData,
+      ruoli: ['operaio']
+    });
+    expect(esito.entra).toBe(true);
+    expect(esito.motivo).toBe('ok');
+  });
+
+  it('pulisciIndizioIngresso azzera il contatore dei rimbalzi', () => {
+    const session = new Map([[CHIAVE_RIMBALZI_INGRESSO, '2']]);
+    globalThis.sessionStorage = {
+      removeItem(key) { session.delete(key); },
+      getItem(key) { return session.has(key) ? session.get(key) : null; }
+    };
+    globalThis.localStorage = {
+      removeItem() {},
+      getItem() { return null; }
+    };
+    pulisciIndizioIngresso();
+    expect(session.has(CHIAVE_RIMBALZI_INGRESSO)).toBe(false);
   });
 });
