@@ -6,6 +6,7 @@
  * @module modules/seminativo/models/SeminativoHub
  */
 
+import { etichettaTerrenoStorico, isTerrenoArchiviato } from '../../../shared/js/terreno-archivio.js';
 import { defaultCampagnaLabel, normalizeCampagnaKey } from './SeminativoCampagna.js';
 import { dataIsoLavorazione, isLavorazioneDiFilare } from './SeminativoLavorazione.js';
 import { isRaccoltaDiVigneto, resaQliHa } from './SeminativoRaccolta.js';
@@ -21,9 +22,10 @@ function ettari(value) {
   return Math.round((Number(value) || 0) * 100) / 100;
 }
 
-function contaEventi(rows, campagna, ids) {
+function contaEventi(rows, campagna, ids, esclusi) {
   return (rows || []).filter((row) => {
     if (!row) return false;
+    if (row.campagnaId && esclusi && esclusi.has(String(row.campagnaId))) return false;
     if (row.campagnaId && ids.has(String(row.campagnaId))) return true;
     return stessaCampagna(row.campagna, campagna);
   }).length;
@@ -40,24 +42,37 @@ function contaEventi(rows, campagna, ids) {
 export function panoramicaHubSeminativo(input = {}) {
   const campagna = input.campagna || defaultCampagnaLabel(input.now || new Date());
   const dellaCampagna = (input.campagne || []).filter((row) => row && stessaCampagna(row.campagna, campagna));
-  const aperte = dellaCampagna.filter((row) => row.stato !== 'chiuso');
-  const ids = new Set(dellaCampagna.map((row) => String(row.id || '')).filter(Boolean));
+  const correnti = campagneSuTerreniAttivi(dellaCampagna, input.terreni);
+  const aperte = correnti.filter((row) => row.stato !== 'chiuso');
+  const ids = new Set(correnti.map((row) => String(row.id || '')).filter(Boolean));
+  const esclusi = new Set(
+    dellaCampagna
+      .filter((row) => row && row.id && !ids.has(String(row.id)))
+      .map((row) => String(row.id))
+  );
 
   return {
     campagna,
     campagneAperte: aperte.length,
     ettari: ettari(aperte.reduce((sum, row) => sum + (Number(row.superficieEttari) || 0), 0)),
-    semine: contaEventi(input.semine, campagna, ids),
-    raccolte: contaEventi(input.raccolte, campagna, ids)
+    semine: contaEventi(input.semine, campagna, ids, esclusi),
+    raccolte: contaEventi(input.raccolte, campagna, ids, esclusi)
   };
 }
 
 function etichettaTerreno(terreno) {
-  if (!terreno) return '';
-  const nome = String(terreno.nome || '').trim();
-  const podere = String(terreno.podere || '').trim();
-  if (nome && podere) return `${nome} – ${podere}`;
-  return nome || podere || '';
+  return etichettaTerrenoStorico(terreno, '');
+}
+
+/** Campagne su terreni ancora attivi. Senza elenco terreni non si esclude nulla. */
+function campagneSuTerreniAttivi(campagne, terreni) {
+  const archiviati = new Set(
+    (terreni || [])
+      .filter((t) => t && t.id && isTerrenoArchiviato(t))
+      .map((t) => String(t.id))
+  );
+  if (!archiviati.size) return campagne || [];
+  return (campagne || []).filter((row) => !row || !archiviati.has(String(row.terrenoId || '')));
 }
 
 function euro(value) {

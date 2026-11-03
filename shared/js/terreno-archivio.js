@@ -50,6 +50,19 @@ export function nomeTerrenoPerStorico(terreno, fallback = '-') {
   return isTerrenoArchiviato(terreno) ? `${base} (archiviato)` : base;
 }
 
+/**
+ * Nome nello storico, con il podere se c'è. Gli archiviati restano «Nome (archiviato)».
+ * @param {object|null|undefined} terreno
+ * @param {string} [fallback]
+ */
+export function etichettaTerrenoStorico(terreno, fallback = '—') {
+  if (!terreno) return fallback;
+  const nome = nomeTerrenoPerStorico(terreno, '');
+  const podere = String(terreno.podere || '').trim();
+  if (nome && podere) return `${nome} – ${podere}`;
+  return nome || podere || fallback;
+}
+
 export function terreniOperativi(lista) {
   return (Array.isArray(lista) ? lista : []).filter((t) => !isTerrenoArchiviato(t));
 }

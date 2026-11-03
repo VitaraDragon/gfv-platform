@@ -9,6 +9,7 @@ import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standa
 import { publishSeminativoTableData } from './seminativo-page-context.js';
 import { SEMINA_UNITA_DOSE } from '../models/SeminativoSemina.js';
 import { listTerreniSeminativo } from '../services/seminativi-service.js';
+import { etichettaTerrenoStorico, isTerrenoArchiviato } from '../../../shared/js/terreno-archivio.js';
 import { getAllSeminativi } from '../services/seminativi-service.js';
 import {
   getAllSemine,
@@ -43,10 +44,12 @@ function getTerrenoById(id) {
 
 function getTerrenoLabel(t) {
   if (!t) return '—';
-  const nome = String(t.nome || '').trim();
-  const podere = String(t.podere || '').trim();
-  if (nome && podere) return `${nome} – ${podere}`;
-  return nome || podere || 'Terreno senza nome';
+  return etichettaTerrenoStorico(t, 'Terreno senza nome');
+}
+
+function campagnaSuTerrenoAttivo(campagna) {
+  const terreno = getTerrenoById(campagna && campagna.terrenoId);
+  return !!(terreno && !isTerrenoArchiviato(terreno));
 }
 
 function getCampagnaById(id) {
@@ -127,10 +130,12 @@ function refreshVarietaSelect(preferredValue) {
   if (match) el.value = match.value;
 }
 
-function populateCampagnaSelects() {
-  const opts = campagne.map((c) => ({ value: c.id, label: campagnaLabel(c) }));
-  fillSelect(document.getElementById('semina-campagna'), opts, 'Seleziona campagna');
-  fillSelect(document.getElementById('filter-campagna'), opts, 'Tutte le campagne');
+function populateCampagnaSelects(idCampagnaCorrente) {
+  const etichetta = (c) => ({ value: c.id, label: campagnaLabel(c) });
+  const attive = campagne.filter((c) => campagnaSuTerrenoAttivo(c));
+  const perForm = campagne.filter((c) => c.id === idCampagnaCorrente || campagnaSuTerrenoAttivo(c));
+  fillSelect(document.getElementById('semina-campagna'), perForm.map(etichetta), 'Seleziona campagna');
+  fillSelect(document.getElementById('filter-campagna'), attive.map(etichetta), 'Tutte le campagne');
 }
 
 function populateUnitaSelect() {
@@ -257,16 +262,17 @@ function openSeminativoSeminaModal(id) {
   const modal = document.getElementById('seminativo-semina-modal');
   const title = document.getElementById('seminativo-semina-modal-title');
   if (form) form.reset();
-  populateCampagnaSelects();
   populateUnitaSelect();
   if (id) {
     const row = allSemine.find((r) => r.id === id);
     if (!row) return;
     currentEditingId = id;
+    populateCampagnaSelects(row.campagnaId);
     if (title) title.textContent = 'Modifica semina';
     fillForm(row);
   } else {
     currentEditingId = null;
+    populateCampagnaSelects();
     if (title) title.textContent = 'Nuova semina';
     fillForm({ dataSemina: todayInput(), unitaDose: 'kg/ha' });
   }
@@ -460,7 +466,7 @@ export async function initSeminePage() {
     if (!modules.some((m) => String(m || '').toLowerCase() === 'tony')) modules.push('tony');
     syncTonyModules(modules);
 
-    terreni = await listTerreniSeminativo();
+    terreni = await listTerreniSeminativo({ includiArchiviati: true });
     await loadSemine();
   });
 }

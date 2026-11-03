@@ -6,6 +6,7 @@
  */
 
 import { TIPI_LAVORO_PREDEFINITI } from '../../../core/config/app-catalog-seed-data.js';
+import { etichettaTerrenoStorico } from '../../../shared/js/terreno-archivio.js';
 import { defaultCampagnaLabel } from './SeminativoCampagna.js';
 
 export const SOTTOCATEGORIA_LAVORAZIONE_CAMPO_APERTO = 'lavorazione_terreno_generale';
@@ -91,6 +92,7 @@ function campagnaPer(terrenoId, dataIso, campagne) {
  */
 export function selezionaLavorazioniCollegate(input = {}) {
   const terrenoIds = new Set((input.terreni || []).map((t) => String(t.id || '')).filter(Boolean));
+  const terreniById = new Map((input.terreni || []).filter((t) => t && t.id).map((t) => [String(t.id), t]));
   const nomi = nomiSet(input.nomiConsentiti);
   const includeLavori = input.includeLavori !== false;
   const campagne = input.campagne || [];
@@ -111,6 +113,7 @@ export function selezionaLavorazioniCollegate(input = {}) {
         id: lavoro.id,
         source: 'lavoro',
         terrenoId,
+        terrenoNome: etichettaTerrenoStorico(terreniById.get(terrenoId), ''),
         tipoLavoro: tipo,
         data,
         stato: lavoro.stato || '',
@@ -134,6 +137,7 @@ export function selezionaLavorazioniCollegate(input = {}) {
       id: att.id,
       source: 'diario',
       terrenoId,
+      terrenoNome: etichettaTerrenoStorico(terreniById.get(terrenoId), ''),
       tipoLavoro: tipo,
       data,
       stato: 'completato',

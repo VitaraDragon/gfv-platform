@@ -17,6 +17,7 @@ import {
   resaQliHa
 } from '../models/SeminativoRaccolta.js';
 import { applyDiarioVsLavoroCta } from '../../../core/config/manodopera-diario-gate.js';
+import { etichettaTerrenoStorico, terreniOperativi } from '../../../shared/js/terreno-archivio.js';
 
 const DIARIO_HREF = '../../../core/attivita-standalone.html';
 const LAVORI_HREF = '../../../core/admin/gestione-lavori-standalone.html';
@@ -38,10 +39,7 @@ function escapeHtml(value) {
 function getTerrenoLabel(id) {
   const terreno = terreni.find((item) => item.id === id);
   if (!terreno) return '—';
-  const nome = String(terreno.nome || '').trim();
-  const podere = String(terreno.podere || '').trim();
-  if (nome && podere) return `${nome} – ${podere}`;
-  return nome || podere || 'Terreno senza nome';
+  return etichettaTerrenoStorico(terreno, 'Terreno senza nome');
 }
 
 function campagnaLabel(row) {
@@ -177,7 +175,7 @@ function populateFilters() {
     seen.add(row.campagnaId);
     campagne.push({ value: row.campagnaId, label: campagnaLabel(row) });
   });
-  fillSelect(document.getElementById('filter-terreno'), terreni.map((t) => ({
+  fillSelect(document.getElementById('filter-terreno'), terreniOperativi(terreni).map((t) => ({
     value: t.id,
     label: getTerrenoLabel(t.id)
   })), 'Tutti i terreni');

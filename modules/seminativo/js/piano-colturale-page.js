@@ -19,6 +19,7 @@ import {
   listTerreniSeminativo,
   updateSeminativo
 } from '../services/seminativi-service.js';
+import { terreniOperativi } from '../../../shared/js/terreno-archivio.js';
 
 const PAGE_TYPE = 'piano_colturale_seminativo';
 
@@ -181,11 +182,12 @@ async function impostaColtura(terrenoId, nome) {
 }
 
 async function load() {
-  const [terreni, campagne, catalogo] = await Promise.all([
+  const [tuttiTerreni, campagne, catalogo] = await Promise.all([
     listTerreniSeminativo().catch(() => []),
     getAllSeminativi().catch(() => []),
     listColtureSeminativo().catch(() => [])
   ]);
+  const terreni = terreniOperativi(tuttiTerreni);
   colture = catalogo || [];
   righe = righePianoColturale({ terreni, campagne });
   populateTerreni();

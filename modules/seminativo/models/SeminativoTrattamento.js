@@ -7,6 +7,7 @@
  */
 
 import { campiConfermaRiga, numeroFinito } from '../../../shared/js/registro-trattamenti.js';
+import { etichettaTerrenoStorico } from '../../../shared/js/terreno-archivio.js';
 import { dataIsoLavorazione, isLavorazioneDiFilare } from './SeminativoLavorazione.js';
 import { intervalloCampagna } from './SeminativoSpese.js';
 import { TIPI_LAVORO_PREDEFINITI } from '../../../core/config/app-catalog-seed-data.js';
@@ -146,8 +147,13 @@ function campagnaPer(terrenoId, dataIso, campagne) {
  * Righe di lista: lavori e diario di categoria Trattamenti, sul terreno di una campagna.
  * @param {Object} input
  */
+function nomeTerrenoRiga(terreniById, terrenoId) {
+  return etichettaTerrenoStorico(terreniById.get(String(terrenoId || '')), '');
+}
+
 export function selezionaRigheTrattamento(input = {}) {
   const terrenoIds = new Set((input.terreni || []).map((t) => String(t.id || '')).filter(Boolean));
+  const terreniById = new Map((input.terreni || []).filter((t) => t && t.id).map((t) => [String(t.id), t]));
   const nomi = new Set((input.nomiTipi || []).map((nome) => String(nome || '').trim().toLowerCase()).filter(Boolean));
   const includeLavori = input.includeLavori !== false;
   const campagne = input.campagne || [];
@@ -180,6 +186,7 @@ export function selezionaRigheTrattamento(input = {}) {
         data,
         tipoLavoro: tipo,
         terrenoId,
+        terrenoNome: nomeTerrenoRiga(terreniById, terrenoId),
         campagnaId: campagna.id,
         campagna: campagna.campagna,
         colturaNome: campagna.colturaNome || '',
@@ -206,6 +213,7 @@ export function selezionaRigheTrattamento(input = {}) {
       data,
       tipoLavoro: tipo,
       terrenoId,
+      terrenoNome: nomeTerrenoRiga(terreniById, terrenoId),
       campagnaId: campagna.id,
       campagna: campagna.campagna,
       colturaNome: campagna.colturaNome || '',
