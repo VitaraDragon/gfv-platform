@@ -99,7 +99,11 @@ export async function initVmPageAuth(options = {}) {
         const modules = resolveEffectiveModules(tenantData);
         const missing = [MODULE_ID, ...REQUIRES_MODULES].filter((m) => !modules.includes(m));
         if (missing.length) {
-          reject(new Error('Moduli non attivi: ' + missing.map(moduleLabel).join(', ')));
+          const labels = missing.map(moduleLabel).join(', ');
+          reject(new Error(
+            'Per usare la Vendemmia Meccanica serve: ' + labels +
+            '. Attivalo dalla pagina Abbonamento.'
+          ));
           return;
         }
 
@@ -122,6 +126,25 @@ export function showVmAlert(containerId, message, type) {
   if (!el) return;
   const cls = type === 'error' ? 'alert-error' : type === 'success' ? 'alert-success' : 'alert-warning';
   el.innerHTML = '<div class="alert ' + cls + '">' + message + '</div>';
+}
+
+/**
+ * Messaggio accesso negato con link ad Abbonamento (niente redirect silenzioso).
+ * @param {string} containerId
+ * @param {string} message
+ */
+export function showVmModuleAccessDenied(containerId, message) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  const safe = String(message || 'Modulo non attivo')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+  el.innerHTML =
+    '<div class="alert alert-error">' +
+    '<p>' + safe + '</p>' +
+    '<p><a href="../../../core/admin/abbonamento-standalone.html">Vai ad Abbonamento</a></p>' +
+    '</div>';
 }
 
 export function publishTonyTableData(pageType, summary, items, extra = {}) {

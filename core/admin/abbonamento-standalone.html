@@ -706,6 +706,8 @@
             getModuleConfig,
             calculateTotalPrice,
             canActivateModule,
+            moduliDaDisattivareInsieme,
+            testoConfermaDisattivazioneCascata,
             getBundleBreakdown,
             monthlyToAnnual,
             formatBillingDisplay,
@@ -1989,15 +1991,20 @@
                 showAlert('Disattivazione già in corso per questo modulo.', 'info');
                 return;
             }
+            const moduliCascata = moduliDaDisattivareInsieme(moduleId, effectiveModules);
             const addonRec = getStripeAddonRecord(moduleId);
             const previewDate = addonRec && (addonRec.periodEnd || addonRec.deactivatesAt);
+            const cascataMsg = testoConfermaDisattivazioneCascata(moduleId, moduliCascata);
             const confirmed = await showConfirmDialog({
                 title: 'Disattivare il modulo?',
                 icon: '⚠️',
                 variant: 'danger',
-                confirmLabel: 'Disattiva',
+                confirmLabel: 'Conferma',
                 bodyHtml:
                     '<p class="confirm-lead"><strong>' + escapeConfirmHtml(module.name) + '</strong></p>' +
+                    (moduliCascata.length > 1
+                        ? '<p>' + escapeConfirmHtml(cascataMsg) + '</p>'
+                        : '') +
                     '<div class="confirm-policy">' + escapeConfirmHtml(deactivationPolicyMessage(previewDate)) + '</div>'
             });
             if (!confirmed) return;
@@ -2005,20 +2012,33 @@
 
             try {
                 const cancelFn = getHttpsCallable('cancelStripeAddon');
-                const result = await cancelFn({
-                    tenantId: currentTenantId,
-                    addonId: moduleId,
-                    addonType: 'module'
-                });
+                let lastResult = null;
+                for (const idCascata of moduliCascata) {
+                    if (idCascata !== moduleId) {
+                        const paidExtra = paidModules.includes(idCascata);
+                        const trialExtra = isModuleOnTrial(currentTenantData, idCascata);
+                        if (!paidExtra && !trialExtra && !effectiveModules.includes(idCascata)) continue;
+                        if (addonPendingDeactivation(idCascata)) continue;
+                    }
+                    lastResult = await cancelFn({
+                        tenantId: currentTenantId,
+                        addonId: idCascata,
+                        addonType: 'module'
+                    });
+                }
                 clearCurrentTenantCache();
                 await loadTenantData();
                 refreshSubscriptionUi();
 
-                const data = result.data || {};
+                const data = (lastResult && lastResult.data) || {};
+                const nomi = moduliCascata.map((id) => {
+                    const m = getModuleConfig(id);
+                    return m ? m.name : id;
+                }).join(', ');
                 if (data.immediate) {
-                    showAlert(`Modulo "${module.name}" disattivato (nessun abbonamento Stripe collegato).`, 'success');
+                    showAlert(`Modulo/i disattivati: ${nomi} (nessun abbonamento Stripe collegato).`, 'success');
                 } else {
-                    showAlert(`Modulo "${module.name}" disattivato.\n\n${deactivationPolicyMessage(data.deactivatesAt)}`, 'success');
+                    showAlert(`Modulo/i disattivati: ${nomi}.\n\n${deactivationPolicyMessage(data.deactivatesAt)}`, 'success');
                 }
                 notifyClientModulesChanged();
             } catch (error) {
