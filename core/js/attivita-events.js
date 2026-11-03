@@ -829,9 +829,10 @@ export async function openAttivitaModal(params) {
     // Se c'è un terreno già selezionato, trigghera l'evento change per popolare categoria e coltura
     const terrenoSelect = document.getElementById('attivita-terreno');
     if (terrenoSelect && terrenoSelect.value) {
-        // Aspetta un attimo per assicurarsi che i dropdown siano pronti
+        aggiornaBloccoColturaAttivita();
         setTimeout(() => {
             terrenoSelect.dispatchEvent(new Event('change'));
+            aggiornaBloccoColturaAttivita();
         }, 150);
     }
     
