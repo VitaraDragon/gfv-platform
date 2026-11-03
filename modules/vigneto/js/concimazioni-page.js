@@ -10,6 +10,7 @@ import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolvePath, getBasePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 import { tieniImpiantoNellaTendina } from '../../../shared/js/impianto-tendina.js';
+import { htmlAzioniRegistro, isRegistroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
 
 try {
     await window.GFVStandaloneReady;
@@ -1049,10 +1050,14 @@ async function loadTrattamenti() {
             : avviso.hasWarning
                 ? `<span class="avviso-dosaggio" title="${(avviso.tooltip || '').replace(/"/g, '&quot;')}" aria-label="Avviso dosaggio">⚠️</span>`
                 : `<span class="alert-badge green" title="Dosaggi nel range consigliato" aria-label="Tutto ok"></span>`;
-        const azioni = hasTrattamento
-            ? `<button type="button" class="btn btn-secondary btn-sm" data-edit-row="${idx}">Modifica</button>
+        const impiantoRiga = vigneti.find((v) => v.id === row.vignetoId);
+        const azioni = htmlAzioniRegistro(
+            isRegistroSolaLettura({ registro: t || row, impianto: impiantoRiga }),
+            hasTrattamento
+                ? `<button type="button" class="btn btn-secondary btn-sm" data-edit-row="${idx}">Modifica</button>
                <button type="button" class="btn btn-danger btn-sm" data-delete-row="${idx}">Elimina</button>`
-            : `<button type="button" class="btn btn-success btn-sm" data-completa-row="${idx}">Completa</button>`;
+                : `<button type="button" class="btn btn-success btn-sm" data-completa-row="${idx}">Completa</button>`
+        );
         const vignetoLabel = row.vignetoNome || (vigneti.find(v => v.id === row.vignetoId) && (vigneti.find(v => v.id === row.vignetoId).varieta || vigneti.find(v => v.id === row.vignetoId).nome)) || row.vignetoId || '-';
         return `<tr>
             <td>${formatDate(row.data)}</td>

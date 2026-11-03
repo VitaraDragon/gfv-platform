@@ -10,6 +10,7 @@ import { resolveEffectiveModules } from '../../../core/utils/module-access-resol
 import { getCurrentPositionGeo, geolocationErrorMessage } from '../../../core/js/geo-capture.js';
 import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+import { htmlAzioniRegistro, isRegistroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
 
 try {
     await window.GFVStandaloneReady;
@@ -548,8 +549,11 @@ function renderRaccolte() {
             <td style="font-size:12px;line-height:1.35;">${posLabel}</td>
             <td>${linkLavoro}</td>
             <td>
-                <button class="btn btn-secondary btn-sm" data-action="edit" data-frutteto="${r.fruttetoId}" data-id="${r.id}">Modifica</button>
-                <button class="btn btn-danger btn-sm" data-action="delete" data-frutteto="${r.fruttetoId}" data-id="${r.id}">Elimina</button>
+                ${htmlAzioniRegistro(
+                    isRegistroSolaLettura({ registro: r, impianto: frutteti.find((f) => f.id === r.fruttetoId) }),
+                    `<button class="btn btn-secondary btn-sm" data-action="edit" data-frutteto="${r.fruttetoId}" data-id="${r.id}">Modifica</button>
+                <button class="btn btn-danger btn-sm" data-action="delete" data-frutteto="${r.fruttetoId}" data-id="${r.id}">Elimina</button>`
+                )}
             </td>
         </tr>`;
     }).join('');

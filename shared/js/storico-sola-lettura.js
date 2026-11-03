@@ -70,6 +70,11 @@ export function isLavoroSolaLettura(lavoro, terreno) {
  * Potature, trattamenti, concimazioni, vendemmie, raccolte, ore.
  * Se c'è un lavoro, seguono il lavoro. Altrimenti l'impianto chiuso o la data.
  */
+export function htmlAzioniRegistro(solaLettura, azioni) {
+  if (solaLettura) return '<span title="Solo consultazione">Solo consultazione</span>';
+  return azioni;
+}
+
 export function isRegistroSolaLettura({ registro, lavoro, terreno, impianto } = {}) {
   if (lavoro) return isLavoroSolaLettura(lavoro, terreno);
   if (isTerrenoArchiviato(terreno)) return true;

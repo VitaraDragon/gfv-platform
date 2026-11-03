@@ -15,6 +15,7 @@ import {
 import { avvisoDosaggioProdotti } from '../models/SeminativoTrattamento.js';
 import { applyDiarioVsLavoroCta } from '../../../core/config/manodopera-diario-gate.js';
 import { etichettaTerrenoStorico, terreniOperativi } from '../../../shared/js/terreno-archivio.js';
+import { htmlAzioniRegistro, isRegistroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
 import { aliasColturaScheda, colturaSchedaRegistro } from '../../../core/config/registro-trattamenti-specie.js';
 import {
   aziendaDaTenant,
@@ -181,10 +182,16 @@ function renderTable() {
     const ref = row.source === 'lavoro'
       ? `<a class="btn btn-sm btn-secondary" href="${LAVORI_HREF}?lavoroId=${encodeURIComponent(row.lavoroId)}">🔗 Vedi Lavoro</a>`
       : `<a class="btn btn-sm btn-secondary" href="${DIARIO_HREF}?attivitaId=${encodeURIComponent(row.attivitaId || '')}">🔗 Vedi Attività</a>`;
-    const azioni = trattamento
-      ? `<button type="button" class="btn btn-sm btn-secondary" data-edit-row="${index}">Modifica</button>
+    const azioni = htmlAzioniRegistro(
+      isRegistroSolaLettura({
+        registro: trattamento || row,
+        terreno: terreni.find((item) => item.id === row.terrenoId)
+      }),
+      trattamento
+        ? `<button type="button" class="btn btn-sm btn-secondary" data-edit-row="${index}">Modifica</button>
          <button type="button" class="btn btn-sm btn-danger" data-delete-row="${index}">Elimina</button>`
-      : `<button type="button" class="btn btn-sm btn-success" data-completa-row="${index}">Completa</button>`;
+        : `<button type="button" class="btn btn-sm btn-success" data-completa-row="${index}">Completa</button>`
+    );
     return `<tr>
       <td>${escapeHtml(row.data || '—')}</td>
       <td>${escapeHtml(campagnaLabel(row) || '—')}</td>

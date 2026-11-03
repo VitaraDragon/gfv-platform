@@ -2,6 +2,8 @@ import { describe, it, expect } from 'vitest';
 import {
   isLavoroSolaLettura,
   isAttivitaSolaLettura,
+  isRegistroSolaLettura,
+  htmlAzioniRegistro,
   risolviColturaDaTerreno
 } from '../shared/js/storico-sola-lettura.js';
 import { lavoroSelezionabilePerOre, impostaDelegaDropdownSegnaOre } from '../core/services/ore-lavoro-selezionabile.js';
@@ -45,6 +47,20 @@ describe('isLavoroSolaLettura', () => {
 
   it('terreno attivo senza colturaDal: un lavoro di tre anni fa resta modificabile', () => {
     expect(isLavoroSolaLettura({ stato: 'completato', dataInizio: '2023-04-01' }, terrenoAttivo)).toBe(false);
+  });
+});
+
+describe('righe dei registri', () => {
+  it('un impianto chiuso mostra solo consultazione', () => {
+    const sola = isRegistroSolaLettura({
+      registro: { data: '2026-03-01' },
+      impianto: { id: 'v1', statoImpianto: 'chiuso' }
+    });
+    expect(sola).toBe(true);
+    expect(htmlAzioniRegistro(true, '<button>Modifica</button>')).toBe(
+      '<span title="Solo consultazione">Solo consultazione</span>'
+    );
+    expect(htmlAzioniRegistro(false, '<button>Modifica</button>')).toContain('Modifica');
   });
 });
 

@@ -11,6 +11,7 @@ import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 import { tieniImpiantoNellaTendina } from '../../../shared/js/impianto-tendina.js';
+import { htmlAzioniRegistro, isRegistroSolaLettura } from '../../../shared/js/storico-sola-lettura.js';
 
 try {
     await window.GFVStandaloneReady;
@@ -487,8 +488,11 @@ async function loadPotature() {
                 <td>${costo}</td>
                 <td>${lavoroCell}</td>
                 <td>
-                    <button type="button" class="btn btn-secondary btn-sm" data-edit="${p.id}" data-frutteto-id="${fruttetoId}">Modifica</button>
-                    <button type="button" class="btn btn-danger btn-sm" data-delete="${p.id}" data-frutteto-id="${fruttetoId}">Elimina</button>
+                    ${htmlAzioniRegistro(
+                        isRegistroSolaLettura({ registro: p, impianto: frutteti.find((f) => f.id === p.fruttetoId) }),
+                        `<button type="button" class="btn btn-secondary btn-sm" data-edit="${p.id}" data-frutteto-id="${fruttetoId}">Modifica</button>
+                    <button type="button" class="btn btn-danger btn-sm" data-delete="${p.id}" data-frutteto-id="${fruttetoId}">Elimina</button>`
+                    )}
                 </td>
             </tr>`;
         }).join('');
