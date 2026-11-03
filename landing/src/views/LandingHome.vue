@@ -50,6 +50,7 @@ import {
   tonyBussaVisibile,
   varianteScena,
 } from '../lib/tony-bussa-logica.js';
+import { leggiSessioneIntervista } from '../lib/tony-sessione-intervista.js';
 
 const CHIAVE_INTERAZIONE_SESSIONE = 'gfv-tony-interazione-sessione';
 const CHIAVE_BUSSATE_AUTO = 'gfv-tony-bussate-auto';
@@ -124,6 +125,8 @@ const stileScossone = computed(() => {
 
 /** Solo sviluppo: clip di entrata/idle non precaricate (prova statico). */
 let clipAssentiInProva = false;
+/** Intervista salvata: riapri scena statica senza bussata/saluto automatico. */
+let ripristinoIntervistaAttivo = false;
 
 let audioBussata: HTMLAudioElement | null = null;
 let audioTerzo: HTMLAudioElement | null = null;
@@ -634,8 +637,35 @@ function onSalutoFinita(gen: number) {
   salutoFinito.value = true;
 }
 
+function programmaTettoSalutoAudio(gen: number) {
+  if (!audioSaluto) return;
+  const chiudi = () => {
+    if (gen !== generazioneVoce || salutoFinito.value) return;
+    onSalutoFinita(gen);
+  };
+  const imposta = () => {
+    const dur = audioSaluto?.duration;
+    if (!Number.isFinite(dur) || dur <= 0) return;
+    const ms = Math.max(tempiVoce().attesaMaxVoceMs, Math.ceil(dur * 1000) + 2000);
+    fra(ms, chiudi);
+  };
+  if (audioSaluto.readyState >= 1) imposta();
+  else audioSaluto.addEventListener('loadedmetadata', imposta, { once: true });
+  audioSaluto.addEventListener(
+    'waiting',
+    () => {
+      fra(tempiVoce().attesaMaxVoceMs, chiudi);
+    },
+    { once: true }
+  );
+}
+
 function avviaSaluto() {
   if (fase.value !== 'idle' && fase.value !== 'statico') return;
+  if (ripristinoIntervistaAttivo) {
+    salutoFinito.value = true;
+    return;
+  }
   if (!audioSaluto) {
     salutoFinito.value = true;
     return;
@@ -657,6 +687,7 @@ function avviaSaluto() {
   audioSaluto.onplaying = () => onSalutoPlaying(gen);
   audioSaluto.onended = () => onSalutoFinita(gen);
   audioSaluto.onerror = () => onSalutoFinita(gen);
+  programmaTettoSalutoAudio(gen);
   fra(tempiVoce().attesaMaxVoceMs, () => {
     if (gen !== generazioneVoce || voceSalutoAttiva) return;
     generazioneVoce += 1;
@@ -686,6 +717,10 @@ function avviaSaluto() {
 }
 
 function programmaSaluto() {
+  if (ripristinoIntervistaAttivo) {
+    salutoFinito.value = true;
+    return;
+  }
   if (salutoProgrammato) return;
   if (fase.value !== 'idle' && fase.value !== 'statico') return;
   salutoProgrammato = true;
@@ -782,6 +817,9 @@ function chiudiTutto() {
 function saluta() {
   if (fase.value === 'esce') return;
   if (invioInCorso.value) return;
+  void import('../lib/firebase-landing-account.js')
+    .then((m) => m.esciDopoRegistrazione())
+    .catch(() => {});
   segnaInterazioneUtente();
   // Dopo «Saluta Tony» non bussare più da solo (stessa persistenza della rinuncia).
   salvaRinunciaAvviso();
@@ -1015,6 +1053,19 @@ function partiCronometro() {
   alTempo(inizio, tempi.entrataMs, () => provaEntrata(inizio, tempi.staticoMs));
 }
 
+function apriScenaRipristinoIntervista() {
+  if (!tonyOn || stageAperto.value) return;
+  ripristinoIntervistaAttivo = true;
+  salutoFinito.value = true;
+  segnaInterazioneUtente();
+  aggiornaRiduci();
+  preparaMedia();
+  fase.value = 'statico';
+  stageAperto.value = true;
+  tonyGiaApparso.value = true;
+  marcaPerf('tony-scena-ripristino-intervista');
+}
+
 function avviaScena() {
   if (stageAperto.value) return;
   aggiornaRiduci();
@@ -1157,6 +1208,7 @@ function precaricaScenaInAnticipo() {
 /** @returns {'ok' | 'riprova-visibile' | 'skip'} */
 function tentaBussataAutomatica() {
   marcaPerf('tony-bussata-tentativo');
+  if (ripristinoIntervistaAttivo) return 'skip';
   if (stageAperto.value || avvisoAperto.value) return 'skip';
   const opts = optsBussataAutomatica();
   if (!bussataAutomaticaConsentita(opts)) {
@@ -1184,6 +1236,9 @@ onMounted(() => {
   document.title = t.documentTitle;
   marcaPerf('tony-mount');
   if (!tonyOn) return;
+  if (leggiSessioneIntervista(storageSessione())) {
+    apriScenaRipristinoIntervista();
+  }
   window.addEventListener('keydown', onEscGlobale);
   document.addEventListener('visibilitychange', onVisibilityBussata);
   if (import.meta.env.DEV) {

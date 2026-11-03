@@ -538,6 +538,7 @@ async function chiamaGeminiDefault(apiKey, corpo, segnali) {
 
   let testo = "";
   let usage = null;
+  let finishReason = null;
   try {
     const risposta = await fetch(url, {
       method: "POST",
@@ -580,6 +581,7 @@ async function chiamaGeminiDefault(apiKey, corpo, segnali) {
             segnali.onChunk(pezzo.delta);
           }
         }
+        if (pezzo.finishReason) finishReason = pezzo.finishReason;
         if (pezzo.usageMetadata) usage = pezzo.usageMetadata;
       }
     } else {
@@ -610,6 +612,7 @@ async function chiamaGeminiDefault(apiKey, corpo, segnali) {
               segnali.onChunk(pezzo.delta);
             }
           }
+          if (pezzo.finishReason) finishReason = pezzo.finishReason;
           if (pezzo.usageMetadata) usage = pezzo.usageMetadata;
         }
       }
@@ -619,7 +622,8 @@ async function chiamaGeminiDefault(apiKey, corpo, segnali) {
       testo: testo,
       tokenIngresso: tok.tokenIngresso,
       tokenUscita: tok.tokenUscita,
-      ok: true
+      ok: true,
+      finishReason: finishReason
     };
   } catch (e) {
     const abortito =
@@ -783,11 +787,12 @@ async function handleFaseAccount(req, res, ctx) {
     });
 
     let testoGrezzo = "";
-    const esitoGemini = await chiamaGemini(corpoGemini, {
+    const onChunkAccount = function (delta) {
+      if (delta) testoGrezzo += String(delta);
+    };
+    let esitoGemini = await chiamaGemini(corpoGemini, {
       req: req,
-      onChunk: function (delta) {
-        if (delta) testoGrezzo += String(delta);
-      }
+      onChunk: onChunkAccount
     });
 
     if (!esitoGemini || !esitoGemini.ok) {
@@ -832,10 +837,33 @@ async function handleFaseAccount(req, res, ctx) {
     }
 
     if (esitoGemini.testo) testoGrezzo = esitoGemini.testo;
-    const pulita = rispostaAccountDaTesto(testoGrezzo, {
+    const opzioniRisposta = {
       raccolti: validata.raccolti,
       argomento: argomento
-    });
+    };
+    let pulita = rispostaAccountDaTesto(testoGrezzo, opzioniRisposta);
+    const jsonKo = pulita.jsonOk === false;
+    const maxTokens =
+      esitoGemini && esitoGemini.finishReason === "MAX_TOKENS";
+    if (jsonKo || maxTokens) {
+      logRiga("warn", [
+        "fase=account",
+        "retry=1",
+        "finishReason=" + (esitoGemini.finishReason || ""),
+        "len=" + String(testoGrezzo || "").length,
+        "json=" + (jsonKo ? "ko" : "ok")
+      ]);
+      testoGrezzo = "";
+      const esitoRetry = await chiamaGemini(corpoGemini, {
+        req: req,
+        onChunk: onChunkAccount
+      });
+      if (esitoRetry && esitoRetry.ok) {
+        esitoGemini = esitoRetry;
+        if (esitoRetry.testo) testoGrezzo = esitoRetry.testo;
+        pulita = rispostaAccountDaTesto(testoGrezzo, opzioniRisposta);
+      }
+    }
     if (pulita.dati) {
       pulita.dati = applicaSuperficieDaDomanda(domanda, pulita.dati);
     }
@@ -926,7 +954,8 @@ async function handleFaseAccount(req, res, ctx) {
       mostraRegistrazione: false,
       dati: pulita.dati,
       troppiTerreni: pulita.troppiTerreni === true,
-      fuoriTema: pulita.fuoriTema === true
+      fuoriTema: pulita.fuoriTema === true,
+      ripiego: pulita.ripiego === true
     };
     if (voceOfferta && idVoce) doneOk.idVoce = idVoce;
     chiudiDone(res, doneOk);

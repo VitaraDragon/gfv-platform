@@ -602,13 +602,13 @@
                     </div>
                     
                     <div class="form-group" style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Seleziona tipo lavoro predefinito o aggiungi personalizzato</label>
-                        <select id="new-tipo-lavoro-predeterminato" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;" onchange="onTipoLavoroPredeterminatoChange()">
+                        <label for="new-tipo-lavoro-predeterminato" style="display: block; margin-bottom: 5px; font-weight: 500;">Seleziona tipo lavoro predefinito o aggiungi personalizzato</label>
+                        <select id="new-tipo-lavoro-predeterminato" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;" onchange="onTipoLavoroPredeterminatoChange()" aria-label="Tipo lavoro predefinito">
                             <option value="">-- Seleziona un tipo lavoro predefinito (opzionale) --</option>
                         </select>
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <span style="color: #666; font-size: 14px;">oppure</span>
-                            <input type="text" id="new-tipo-lavoro" placeholder="Digita nome tipo lavoro personalizzato..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <input type="text" id="new-tipo-lavoro" placeholder="Digita nome tipo lavoro personalizzato..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" aria-label="Nome tipo lavoro personalizzato">
                             <button type="button" class="btn btn-primary" onclick="addTipoLavoro()">➕ Aggiungi</button>
                         </div>
                     </div>
@@ -633,13 +633,13 @@
                     </div>
                     
                     <div class="form-group" style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: 500;">Seleziona coltura predefinita o aggiungi personalizzata</label>
-                        <select id="new-coltura-predeterminata" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;" onchange="onColturaPredeterminataChange()">
+                        <label for="new-coltura-predeterminata" style="display: block; margin-bottom: 5px; font-weight: 500;">Seleziona coltura predefinita o aggiungi personalizzata</label>
+                        <select id="new-coltura-predeterminata" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px;" onchange="onColturaPredeterminataChange()" aria-label="Coltura predefinita">
                             <option value="">-- Seleziona una coltura predefinita (opzionale) --</option>
                         </select>
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <span style="color: #666; font-size: 14px;">oppure</span>
-                            <input type="text" id="new-coltura" placeholder="Digita nome coltura personalizzata..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <input type="text" id="new-coltura" placeholder="Digita nome coltura personalizzata..." style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;" aria-label="Nome coltura personalizzata">
                             <button type="button" class="btn btn-primary" onclick="addColtura()">➕ Aggiungi</button>
                         </div>
                     </div>
@@ -790,7 +790,11 @@
         import { wireManagerHomeLink } from '../config/manodopera-hub-nav.js';
         import { showAlert, escapeHtml } from '../js/gfv-page-utils.js';
         import { resolveAuthUser, loginPageUrl } from '../js/simulator-standalone-page.js';
-        import { scegliGeocodeNelComune } from '../js/sede-geocode-match.js';
+        import {
+            scegliGeocodeNelComune,
+            scegliCentroComune,
+            buildQueryCentroComune,
+        } from '../js/sede-geocode-match.js';
 
         try {
             await window.GFVStandaloneReady;
@@ -1619,34 +1623,92 @@
             }
 
             const comuneAtteso = (document.getElementById('azienda-citta')?.value || '').trim();
+            const provincia = (document.getElementById('azienda-provincia')?.value || '').trim();
             const geocoder = new google.maps.Geocoder();
+            const address = query.indexOf('Italia') === -1 ? query + ', Italia' : query;
+
+            function applicaPinDaResult(chosen, messaggio) {
+                const location = chosen.geometry.location;
+                setSedeMarker(location);
+                const searchInput = document.getElementById('sede-map-search');
+                if (searchInput && chosen.formatted_address) {
+                    searchInput.value = chosen.formatted_address;
+                }
+                showAlert(messaggio, 'success');
+            }
+
+            function provaCentroComune() {
+                if (!comuneAtteso) {
+                    showAlert(
+                        'Non trovo questo indirizzo a ' + (comuneAtteso || 'questo comune') +
+                        ': metti il pin a mano sulla mappa.',
+                        'error'
+                    );
+                    return;
+                }
+                const queryCentro = buildQueryCentroComune(comuneAtteso, provincia);
+                geocoder.geocode({
+                    address: queryCentro,
+                    componentRestrictions: { country: 'it', locality: comuneAtteso }
+                }, function(centroResults, centroStatus) {
+                    let centro = null;
+                    if (centroStatus === 'OK' && centroResults && centroResults.length) {
+                        centro = scegliCentroComune(centroResults, comuneAtteso);
+                    }
+                    if (!centro) {
+                        geocoder.geocode({
+                            address: queryCentro,
+                            componentRestrictions: { country: 'it' }
+                        }, function(fallbackResults, fallbackStatus) {
+                            if (fallbackStatus === 'OK' && fallbackResults && fallbackResults.length) {
+                                centro = scegliCentroComune(fallbackResults, comuneAtteso);
+                            }
+                            if (centro) {
+                                applicaPinDaResult(
+                                    centro,
+                                    'Ho messo il pin al centro di ' + comuneAtteso +
+                                    ': spostalo sulla sede in Impostazioni'
+                                );
+                            } else {
+                                showAlert(
+                                    'Non trovo questo indirizzo a ' + comuneAtteso +
+                                    ': metti il pin a mano sulla mappa.',
+                                    'error'
+                                );
+                            }
+                        });
+                        return;
+                    }
+                    applicaPinDaResult(
+                        centro,
+                        'Ho messo il pin al centro di ' + comuneAtteso +
+                        ': spostalo sulla sede in Impostazioni'
+                    );
+                });
+            }
+
             geocoder.geocode({
-                address: query.indexOf('Italia') === -1 ? query + ', Italia' : query,
+                address: address,
                 componentRestrictions: { country: 'it' }
             }, function(results, status) {
                 if (status === 'OK' && results && results.length) {
                     const chosen = scegliGeocodeNelComune(results, comuneAtteso);
                     if (!chosen) {
-                        clearSedeMarker();
-                        showAlert(
-                            'Non trovo questo indirizzo a ' + (comuneAtteso || 'questo comune') +
-                            ': metti il pin a mano sulla mappa.',
-                            'error'
-                        );
+                        // Non cancellare il pin esistente: ripiego al centro del comune.
+                        provaCentroComune();
                         return;
                     }
-                    const location = chosen.geometry.location;
-                    setSedeMarker(location);
-                    const searchInput = document.getElementById('sede-map-search');
-                    if (searchInput && chosen.formatted_address) {
-                        searchInput.value = chosen.formatted_address;
-                    }
-                    showAlert(
-                        options.messaggioOk || 'Sede trovata. Verifica il pin e salva le impostazioni azienda.',
-                        'success'
+                    applicaPinDaResult(
+                        chosen,
+                        options.messaggioOk || 'Sede trovata. Verifica il pin e salva le impostazioni azienda.'
                     );
                 } else {
-                    showAlert('Indirizzo non trovato. Prova con più dettagli o posiziona il pin manualmente sulla mappa.', 'error');
+                    // Indirizzo non trovato: ripiego al centro senza togliere il pin.
+                    if (comuneAtteso) {
+                        provaCentroComune();
+                    } else {
+                        showAlert('Indirizzo non trovato. Prova con più dettagli o posiziona il pin manualmente sulla mappa.', 'error');
+                    }
                 }
             });
         }

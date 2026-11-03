@@ -10,7 +10,7 @@ import { TONY_PAGE_MAP, TONY_LABEL_MAP, resolveTarget, getUrlForTarget, isTonyMa
 import { resolveLavoroFattoNav, mapDiarioFieldsToLavoro, alignLavoroFattoSpeech } from './tony-lavoro-fatto-nav.js';
 import { hasActiveModule, getModuliAttiviFromTonyContext, isApriPaginaTargetAllowed, tonyNotifyModuleInactive } from '../../config/tony-module-gate.js';
 import { getTonyGuidaOnboardingFromWindow, tonyGuidaOnboardingWelcomeMessage } from '../../config/tony-guida-onboarding.js';
-import { decidiSalutoLanding, costruisciMessaggioSaluto, leggiStatoPercorsoLocale, salvaStatoPercorsoLocale, messaggioRiprendi, haPinSede } from './tony-landing-saluto.js?v=2026-11-02a';
+import { decidiSalutoLanding, costruisciMessaggioSaluto, leggiStatoPercorsoLocale, salvaStatoPercorsoLocale, messaggioRiprendi, haPinSede } from './tony-landing-saluto.js?v=2026-11-02b';
 import {
     getTonyFieldProfileFromContext,
     isRawTonyApriPaginaAllowed,
@@ -33,7 +33,7 @@ import {
     interpretaEsitoSalvataggioOra,
     messaggioConfermaSalvataggioOra,
     togliConfermeSalvataggioVecchie,
-} from './tony-segna-ora-local-engine.js?v=2026-11-02a';
+} from './tony-segna-ora-local-engine.js?v=2026-11-02b';
 import { formattaDataItaliana } from '../../services/ore-operai-logic.js';
 import {
     risolviLavoroDaTesto,
@@ -50,14 +50,14 @@ import {
     etichettaDataRiepilogoOre,
     inserisciDataNelRiepilogo,
     eRichiestaOreNuova,
-} from './tony-ora-lavoro-match.js?v=2026-11-02a';
+} from './tony-ora-lavoro-match.js?v=2026-11-02b';
 import {
     accodaInvio,
     prossimoDaInviare,
     testoDaRimettereNelCampo,
     unisciChatRipristinata,
     LIMITE_ATTESA_MS,
-} from './tony-invio-coda.js?v=2026-11-02a';
+} from './tony-invio-coda.js?v=2026-11-02b';
 import {
     formReadyForTonySave,
     magazzinoFormReadyForTonySave,
@@ -105,7 +105,7 @@ import { initTonyDocumentCapture } from './document-capture.js';
 import { chooseSttEngine, createRecorderSpeechRecognition, isIosLikeDevice, isStandaloneDisplayMode } from './voice-recorder-stt.js';
 
     /** Bump con tony-widget-standalone.js TONY_LOADER_BUILD — verifica in console: [Tony] Client build */
-    export const TONY_CLIENT_BUILD = '2026-11-02a';
+    export const TONY_CLIENT_BUILD = '2026-11-02b';
     /** Kill switch: false = come prima, il messaggio prima del pronto viene scartato. */
     var TONY_QUEUE_ENABLED = true;
 if (typeof window !== 'undefined') {
@@ -11047,7 +11047,11 @@ window.addEventListener('tony-module-updated', function(e) {
                                 console.warn('[Tony] saluto landing non mostrato:', eLs);
                             }
                         }
-                        setTimeout(tentaSaluto, 1200);
+                        // Saluto locale: subito (niente attesa fissa 1200 ms); le guide restano in background.
+                        if (typeof performance !== 'undefined' && performance.mark) {
+                            try { performance.mark('tony-saluto-tentato'); } catch (eMark) { /* ignore */ }
+                        }
+                        tentaSaluto();
                     })();
                     (function checkTnyNotifyGreeting() {
                         var params = new URLSearchParams(window.location.search);

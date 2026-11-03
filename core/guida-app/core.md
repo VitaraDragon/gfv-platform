@@ -102,7 +102,7 @@ Quando vuoi sbloccare una nuova area (esempio Report, Magazzino, Conto terzi).
 - sapere quale squadra usera il modulo.
 
 **Percorso schermata**  
-Dashboard -> `Abbonamento`.
+graffetta in alto a sinistra → `Abbonamento` (o dalla Dashboard il collegamento Abbonamento).
 
 **Dove cliccare**
 - in alto nella dashboard: card/pulsante `Abbonamento`;
@@ -160,7 +160,7 @@ Quando una nuova persona deve entrare in piattaforma.
 - ruolo da assegnare deciso prima.
 
 **Percorso schermata**  
-Dashboard -> `Amministrazione` -> `Gestione utenti`.
+graffetta / menu → `Amministrazione` → `Gestione utenti`.
 
 **Dove cliccare**
 - pulsante `Invita Collaboratore` in alto a destra della lista utenti;

@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-02 — Correzioni app + landing (meteo Free, pin sede, saluto 7 giorni, guida graffetta, engine, GFV, landing OK/terreni/F5).**
+**Ultimo aggiornamento documentazione: 2026-11-03 — Secondo giro correzioni app + landing (pin sede v2, saluto subito, F5 auth, ortaggi catalogo, email login).**
+
+## 2026-11-03 — Correzioni app e landing, secondo giro (2–3 novembre)
+
+Pin sede: Geocoder atteso via `importLibrary`, match comune su tutti i campi, ripiego al centro del comune, toast senza doppioni, chiave auto-pin v2. Guida: tornare in dashboard con graffetta → Home. Saluto 7 giorni senza aspettare le guide (caricamento parallelo, niente `no-store`). Meteo Free: messaggio una sola volta. A11y: `tony-input` e campi Impostazioni. Landing: F5 con `authStateReady`, pannello riaperto senza bussata, passo dai dati, JSON ritentato se troncato, ortaggi solo con coltura catalogo, login con `#email=`, tetto audio saluto. Build Tony `2026-11-02b`. Dopo merge: deploy `tonyLandingAsk` (e setup se serve), hosting app + landing.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-02 — Correzioni app + landing (meteo Free, pin sede, saluto 7 giorni, guida graffetta, engine, GFV, landing OK/terreni/F5).**
 
 ## 2026-11-02 — Correzioni app e landing (2 novembre)
 

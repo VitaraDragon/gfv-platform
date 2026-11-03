@@ -27,8 +27,11 @@ import { chiediVoce } from '../lib/tony-voce-client.js';
 import { creaPlayerVoce } from '../lib/tony-voce-player.js';
 import {
   PASSI_AIUTO,
+  allineaPassoAiuto,
   collegaTerreniAiPoderi,
   decidiDopoRisposta,
+  erroriColturaTerreniForm,
+  esitoRipiegoAccount,
   prossimoPasso,
   serializzaRaccolti,
   storiaDopoRiepilogo,
@@ -289,7 +292,7 @@ function onEscConsenso(e: KeyboardEvent) {
 }
 
 /** Riprende l'intervista dopo un ricaricamento (sessionStorage, 2 ore). */
-function ripristinaSessioneIntervista() {
+async function ripristinaSessioneIntervista() {
   const rec = leggiSessioneIntervista(storageSessione());
   if (!rec) return false;
   messaggi.value = rec.messaggi.map((m: { ruolo: 'utente' | 'tony'; testo: string }) => ({
@@ -317,6 +320,25 @@ function ripristinaSessioneIntervista() {
     schedaAperta.value = false;
     campoAttivo.value = true;
     chipVisibili.value = true;
+  }
+  const inAccount =
+    rec.passoAiuto && PASSI_AIUTO.indexOf(rec.passoAiuto === 'scheda' ? 'terreni' : rec.passoAiuto) >= 0;
+  if (inAccount && props.ottieniTokenAccesso) {
+    let token: string | null = null;
+    try {
+      token = await props.ottieniTokenAccesso();
+    } catch {
+      token = null;
+    }
+    if (!token) {
+      messaggi.value.push({
+        ruolo: 'tony',
+        testo: MESSAGGI_CHAT.sessioneIntervistaScaduta,
+      });
+      aiutoSospeso.value = false;
+      campoAttivo.value = true;
+      chipVisibili.value = !schedaAperta.value;
+    }
   }
   emit('registrazione-completata');
   scorriInBasso();
@@ -358,7 +380,7 @@ watch(
 );
 
 onMounted(() => {
-  ripristinaSessioneIntervista();
+  void ripristinaSessioneIntervista();
   informativaAiutoVisibile.value = !informativaAiutoGiaVista();
   const SR =
     typeof window !== 'undefined'
@@ -878,6 +900,26 @@ async function inviaTesto(grezzo: string, daChip = false) {
     return;
   }
 
+  if (azione.tipo === 'accesso-mancante') {
+    if (primoPezzo) {
+      const ultimo = messaggi.value[messaggi.value.length - 1];
+      if (ultimo && ultimo.live) {
+        ultimo.testo = azione.testo;
+        ultimo.live = false;
+      }
+    } else {
+      messaggi.value.push({ ruolo: 'tony', testo: azione.testo });
+    }
+    testoParziale.value = '';
+    aiutoSospeso.value = false;
+    campoAttivo.value = true;
+    chipVisibili.value = true;
+    emit('rispostaFinita');
+    scorriInBasso();
+    focalizzaCampoSeConsentito();
+    return;
+  }
+
   if (azione.tipo === 'aiuto-sospeso') {
     if (primoPezzo) {
       const ultimo = messaggi.value[messaggi.value.length - 1];
@@ -931,10 +973,26 @@ async function inviaTesto(grezzo: string, daChip = false) {
     } else {
       consecutiviFuoriTema.value = 0;
     }
-    if (novita) {
+    const ripiego = esitoRipiegoAccount(esito);
+    if (ripiego) {
+      turniSenzaNovitaNelPasso.value = 0;
+    } else if (novita) {
       turniSenzaNovitaNelPasso.value = 0;
     } else {
       turniSenzaNovitaNelPasso.value += 1;
+    }
+    const passoAllineato = allineaPassoAiuto(
+      passoAiuto.value || '',
+      datiAiuto.value,
+      esito.dati,
+      domanda
+    );
+    if (
+      passoAllineato &&
+      passoAllineato !== passoAiuto.value &&
+      PASSI_AIUTO.indexOf(passoAllineato) >= 0
+    ) {
+      passoAiuto.value = passoAllineato;
     }
     const dopoRisposta = decidiDopoRisposta({
       nuoviDati: novita,

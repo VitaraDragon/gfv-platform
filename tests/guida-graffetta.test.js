@@ -37,6 +37,28 @@ describe('guida graffetta', () => {
     expect(src).toMatch(/Impostazioni[^.]{0,80}ingranaggio[^.]{0,40}alto a destra|alto a destra[^.]{0,60}Impostazioni/);
   });
 
+  it('tornare alla dashboard: graffetta + Home nella stessa frase (sintesi + tony-guida-app)', () => {
+    for (const f of [
+      'core/GUIDA/CORE/utente/guida-sintesi.md',
+      'docs-sviluppo/GUIDA/CORE/utente/guida-sintesi.md',
+      'core/services/tony-guida-app.js',
+    ]) {
+      const src = SORGENTI[f];
+      expect(src, f).toMatch(/graffetta[\s\S]{0,80}Home|Home[\s\S]{0,80}graffetta/i);
+      expect(src, f).toMatch(/tornare alla dashboard|tornare alla Dashboard|Per tornare alla dashboard/i);
+      // Vietato indicare all'utente di cliccare «Dashboard» nel menu (la voce è Home).
+      expect(src, f).not.toMatch(/clicca sulla voce\s+"Dashboard"/i);
+      expect(src, f).not.toMatch(/voce\s+"Dashboard"\s+nel menu principale/i);
+    }
+  });
+
+  it('guida-app/core.md senza «Dashboard ->»', () => {
+    const coreApp = read('core/guida-app/core.md');
+    const docsApp = read('docs-sviluppo/guida-app/core.md');
+    expect(coreApp).not.toMatch(/Dashboard\s*->/);
+    expect(docsApp).not.toMatch(/Dashboard\s*->/);
+  });
+
   it('guida-sintesi: riga Free non dice «no Tony» ma Tony Guida nei primi 7 giorni', () => {
     for (const f of ['core/GUIDA/CORE/utente/guida-sintesi.md', 'docs-sviluppo/GUIDA/CORE/utente/guida-sintesi.md']) {
       const riga = SORGENTI[f].split('\n').find((l) => /^- \*\*Free\*\*/.test(l));
