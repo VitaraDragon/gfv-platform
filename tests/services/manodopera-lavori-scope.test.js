@@ -86,6 +86,17 @@ describe('isLavoroInDropdownSegnaOre', () => {
         }, oggi)).toBe(false);
     });
 
+    it('un terreno archiviato toglie il lavoro dal menu ore', () => {
+        expect(isLavoroInDropdownSegnaOre({
+            stato: 'in_corso',
+            terreno: { stato: 'archiviato', nome: 'Vecchio' }
+        }, oggi)).toBe(false);
+        expect(isLavoroInDropdownSegnaOre({
+            stato: 'in_corso',
+            terreno: { stato: 'attivo', nome: 'Campo' }
+        }, oggi)).toBe(true);
+    });
+
     it('include in_corso e assegnato imminente', () => {
         expect(isLavoroInDropdownSegnaOre({ stato: 'in_corso' }, oggi)).toBe(true);
         expect(isLavoroInDropdownSegnaOre({

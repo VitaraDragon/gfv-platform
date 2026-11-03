@@ -566,6 +566,8 @@
             testoIntestazioneOreDelGiorno
         } from './services/ore-service.js';
         import { dataCompletamentoLavoro, FINESTRA_ORE_IN_RITARDO_GIORNI, lavoroSelezionabilePerOre } from './services/ore-lavoro-selezionabile.js?v=2026-10-16a';
+        import { getAllTerreni } from './services/terreni-service.js';
+        import { isLavoroSolaLettura, MESSAGGIO_ORE_SOLA_LETTURA } from '../shared/js/storico-sola-lettura.js';
         import {
             permessiOra,
             formattaOreMinuti,
@@ -878,6 +880,13 @@
                 const roleFlags = resolveSegnaturaOreRoleFlags(currentUserData);
 
                 const fetched = await fetchLavoriDocumentsForFieldUser(db, currentTenantId, userId, roleFlags, currentUserData || null);
+                const terreniOre = await getAllTerreni({ includiArchiviati: true }).catch(() => []);
+                const terreniPerId = new Map((terreniOre || []).filter((t) => t && t.id).map((t) => [t.id, t]));
+                fetched.forEach((lav) => {
+                    if (lav && lav.terrenoId && terreniPerId.has(lav.terrenoId)) {
+                        lav.terreno = terreniPerId.get(lav.terrenoId);
+                    }
+                });
 
                 const dataLimite = new Date();
                 dataLimite.setDate(dataLimite.getDate() - FINESTRA_ORE_IN_RITARDO_GIORNI);
@@ -1603,6 +1612,9 @@
 
         function esitoFinestraOreCompletate(lavoro, giorno) {
             if (!lavoro || !giorno) return { ok: true, motivo: '' };
+            if (lavoro.terreno && isLavoroSolaLettura(lavoro, lavoro.terreno)) {
+                return { ok: false, motivo: MESSAGGIO_ORE_SOLA_LETTURA };
+            }
             const stato = lavoro.stato;
             if (stato !== 'completato' && stato !== 'completato_da_approvare') return { ok: true, motivo: '' };
             const ruolo = ruoloSelezioneOre();
@@ -1611,7 +1623,8 @@
                 lavoro,
                 ruolo,
                 oggi: new Date(),
-                giorno
+                giorno,
+                terreno: lavoro.terreno || null
             });
         }
 

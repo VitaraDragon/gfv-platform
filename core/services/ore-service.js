@@ -11,6 +11,7 @@ import {
 import { getCurrentUserData } from './auth-service.js';
 import { isOraDelCaposquadraSuLavoroSquadra, assertUtentePuoValidareOra } from './manodopera-ore-validazione-scope.js';
 import { lavoroSelezionabilePerOre } from './ore-lavoro-selezionabile.js?v=2026-10-16a';
+import { isLavoroSolaLettura, MESSAGGIO_ORE_SOLA_LETTURA } from '../../shared/js/storico-sola-lettura.js';
 import {
   calcolaOreNette as calcolaOreNettePura,
   formattaOreMinuti,
@@ -489,7 +490,11 @@ export function testoIntestazioneOreDelGiorno(etichetta) {
  * @param {object} user
  * @param {string} giornoKey
  */
-export function assertGiornoOreAmmesso(lavoro, user, giornoKey) {
+export function assertGiornoOreAmmesso(lavoro, user, giornoKey, terreno) {
+  const collegato = terreno || (lavoro && lavoro.terreno && typeof lavoro.terreno === 'object' ? lavoro.terreno : null);
+  if (collegato && isLavoroSolaLettura(lavoro, collegato)) {
+    throw new Error(MESSAGGIO_ORE_SOLA_LETTURA);
+  }
   const stato = lavoro && lavoro.stato;
   if (stato !== 'completato' && stato !== 'completato_da_approvare') return;
   const ruolo = ruoloPerSelezioneOre(user);
@@ -510,6 +515,14 @@ async function firebaseOre() {
 async function leggiLavoro(db, docFn, getDocFn, tenantId, lavoroId) {
   const snap = await getDocFn(docFn(db, 'tenants', tenantId, 'lavori', lavoroId));
   if (!snap.exists()) throw new Error('Lavoro non trovato');
+  return { id: snap.id, ...snap.data() };
+}
+
+async function leggiTerrenoDelLavoro(db, docFn, getDocFn, tenantId, lavoro) {
+  const terrenoId = lavoro && lavoro.terrenoId;
+  if (!terrenoId) return null;
+  const snap = await getDocFn(docFn(db, 'tenants', tenantId, 'terreni', terrenoId));
+  if (!snap.exists()) return null;
   return { id: snap.id, ...snap.data() };
 }
 
@@ -627,7 +640,8 @@ export async function salvaNuovaOra(db, tenantId, user, oraData) {
   const norm = normalizzaPayloadOra(oraData);
   const { collection, addDoc, doc, getDoc, Timestamp, serverTimestamp } = await firebaseOre();
   const lavoro = await leggiLavoro(db, doc, getDoc, tenantId, oraData.lavoroId);
-  assertGiornoOreAmmesso(lavoro, user, norm.giornoKey);
+  const terreno = await leggiTerrenoDelLavoro(db, doc, getDoc, tenantId, lavoro);
+  assertGiornoOreAmmesso(lavoro, user, norm.giornoKey, terreno);
   const candidata = {
     operaioId: userId,
     data: norm.giornoKey,
@@ -677,6 +691,7 @@ export async function modificaOraPropria(db, tenantId, user, lavoroId, oraId, pa
   const { userId, isCaposquadra, isManager } = richiediContesto(db, tenantId, user);
   const { doc, getDoc, updateDoc, Timestamp, serverTimestamp } = await firebaseOre();
   const lavoro = await leggiLavoro(db, doc, getDoc, tenantId, lavoroId);
+  const terreno = await leggiTerrenoDelLavoro(db, doc, getDoc, tenantId, lavoro);
   const ora = await leggiOra(db, doc, getDoc, tenantId, lavoroId, oraId);
   const perm = permessiOra({ ora, lavoro, userId, isCaposquadra, isManager });
   if (!perm.puoModificare) {
@@ -696,7 +711,10 @@ export async function modificaOraPropria(db, tenantId, user, lavoroId, oraId, pa
   const giornoPrima = chiaveGiornoOra(ora.data);
   const norm = normalizzaPayloadOra(unito);
   if (norm.giornoKey && norm.giornoKey !== giornoPrima) {
-    assertGiornoOreAmmesso(lavoro, user, norm.giornoKey);
+    assertGiornoOreAmmesso(lavoro, user, norm.giornoKey, terreno);
+  }
+  if (terreno && isLavoroSolaLettura(lavoro, terreno)) {
+    throw new Error(MESSAGGIO_ORE_SOLA_LETTURA);
   }
   await assertNessunaSovrapposizione(db, tenantId, user, userId, {
     operaioId: userId,

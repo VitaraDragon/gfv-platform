@@ -107,6 +107,7 @@ import {
 import { isOraDelCaposquadraSuLavoroSquadra } from '../../services/manodopera-ore-validazione-scope.js';
 import { syncPienoCampoSection, testoSegnapostoPieno } from './pieno-campo-ui.js';
 import { htmlMiscelaCampo } from '../../../shared/js/registro-trattamenti-campo.js';
+import { isLavoroSolaLettura, MESSAGGIO_ORE_SOLA_LETTURA } from '../../../shared/js/storico-sola-lettura.js';
 import { applicaLingua } from './field-ui-i18n-dom.js';
 import {
     t,
@@ -968,14 +969,26 @@ async function loadWorksForSelection(tentativo) {
         ), 15000);
         if (token !== lavoriCaricamentoGenerazione) return;
 
+        try {
+            const terreniSnap = await getDocs(collection(getDb(), 'tenants', currentTenantId, 'terreni'));
+            const terreniPerId = new Map();
+            terreniSnap.forEach((d) => terreniPerId.set(d.id, { id: d.id, ...d.data() }));
+            rawList.forEach((w) => {
+                if (w && w.terrenoId && terreniPerId.has(w.terrenoId)) w.terreno = terreniPerId.get(w.terrenoId);
+            });
+        } catch (errTerreni) {
+            console.warn('[FIELD-WORKSPACE] terreni per le ore:', errTerreni);
+        }
+
         // Capo: elenco operativo completo (no taglio «max 14 giorni futuri» del dropdown Segna ore).
-        // Operaio: resta il filtro segnabile ore.
+        // Operaio: resta il filtro segnabile ore. Un lavoro in sola lettura non si segna.
         const eligible = rawList.filter((w) => {
+            if (isLavoroSolaLettura(w, w && w.terreno)) return false;
             if (!userIsCaposquadra) return isLavoroSegnabileOperaio(w);
             if (isLavoroVisibileOperaioCampo(w)) return true;
             const stato = (w && w.stato) || '';
             if (stato !== 'completato' && stato !== 'completato_da_approvare') return false;
-            return lavoroSelezionabilePerOre({ lavoro: w, ruolo: 'caposquadra' }).ok;
+            return lavoroSelezionabilePerOre({ lavoro: w, ruolo: 'caposquadra', terreno: w.terreno }).ok;
         });
         const perMenu = eligible.filter((w) => !eLavoroSospeso(w));
         const sospesiTony = rawList.filter((w) => eLavoroSospeso(w) && isLavoroVisibileOperaioCampo(w));
@@ -2186,13 +2199,17 @@ function dipingiOreGiornoInCaricamento(giorno) {
 
 function esitoFinestraOreCompletate(lavoro, giorno) {
     if (!lavoro || !giorno) return { ok: true, motivo: '' };
+    if (isLavoroSolaLettura(lavoro, lavoro.terreno)) {
+        return { ok: false, motivo: MESSAGGIO_ORE_SOLA_LETTURA };
+    }
     const stato = lavoro.stato;
     if (stato !== 'completato' && stato !== 'completato_da_approvare') return { ok: true, motivo: '' };
     return lavoroSelezionabilePerOre({
         lavoro,
         ruolo: ruoloCampoPerOre(),
         oggi: new Date(),
-        giorno
+        giorno,
+        terreno: lavoro.terreno || null
     });
 }
 
@@ -2363,7 +2380,8 @@ async function saveQuickHours(event) {
             lavoro: lavoroOre,
             ruolo: ruoloCampoPerOre(),
             oggi: new Date(),
-            giorno: dateIso
+            giorno: dateIso,
+            terreno: lavoroOre.terreno || null
         });
         if (!esitoOre.ok) {
             hoursStatusEl.textContent = esitoOre.motivo || t('ore.notSelectable', linguaCorrente());

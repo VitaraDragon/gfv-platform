@@ -19,6 +19,7 @@ vi.mock('../../core/services/firebase-service.js', () => ({
 
 import { assertGiornoOreAmmesso, testoIntestazioneOreDelGiorno } from '../../core/services/ore-service.js';
 import { messaggioOreFuoriFinestra } from '../../core/services/ore-lavoro-selezionabile.js?v=2026-10-16a';
+import { MESSAGGIO_ORE_SOLA_LETTURA } from '../../shared/js/storico-sola-lettura.js';
 // Stesso ?v= del modulo in pagina, così il test e il runtime condividono una sola copia.
 
 function giornoShift(delta) {
@@ -40,6 +41,15 @@ describe('assertGiornoOreAmmesso', () => {
             dataInizio: giornoShift(-20).date
         };
         expect(() => assertGiornoOreAmmesso(lavoro, operaio, chiuso.iso)).toThrow(messaggioOreFuoriFinestra(chiuso.date));
+    });
+
+    it('lavoro su terreno archiviato: non si segnano ore', () => {
+        expect(() => assertGiornoOreAmmesso(
+            { stato: 'in_corso', dataInizio: '2026-08-01' },
+            operaio,
+            giornoShift(0).iso,
+            { stato: 'archiviato', nome: 'Vecchio' }
+        )).toThrow(MESSAGGIO_ORE_SOLA_LETTURA);
     });
 
     it('lavoro in corso: nessun errore', () => {

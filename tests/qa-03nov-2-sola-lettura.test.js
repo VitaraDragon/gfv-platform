@@ -4,7 +4,7 @@ import {
   isAttivitaSolaLettura,
   risolviColturaDaTerreno
 } from '../shared/js/storico-sola-lettura.js';
-import { lavoroSelezionabilePerOre } from '../core/services/ore-lavoro-selezionabile.js';
+import { lavoroSelezionabilePerOre, impostaDelegaDropdownSegnaOre } from '../core/services/ore-lavoro-selezionabile.js';
 import { MESSAGGIO_ORE_SOLA_LETTURA } from '../shared/js/storico-sola-lettura.js';
 import { terreniPerTendina, isTerrenoFrutteto } from '../shared/js/coltura-terreno.js';
 import {
@@ -68,6 +68,16 @@ describe('ore', () => {
     });
     expect(esito.ok).toBe(false);
     expect(esito.motivo).toBe(MESSAGGIO_ORE_SOLA_LETTURA);
+  });
+
+  it('un lavoro normale resta selezionabile', () => {
+    impostaDelegaDropdownSegnaOre(() => true);
+    const esito = lavoroSelezionabilePerOre({
+      ruolo: 'operaio',
+      lavoro: { stato: 'in_corso', dataInizio: '2026-08-01' },
+      terreno: terrenoAttivo
+    });
+    expect(esito.ok).toBe(true);
   });
 });
 
