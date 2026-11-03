@@ -1,0 +1,18 @@
+{
+  "_nota": "ricostruita — civico in comune; locality può essere frazione Villanova con admin3 = Bagnacavallo",
+  "results": [
+    {
+      "formatted_address": "Via Giuseppe Mazzini, 5, 48012 Bagnacavallo RA, Italia",
+      "types": ["street_address"],
+      "geometry": { "location": { "lat": 44.4175, "lng": 11.9772 } },
+      "address_components": [
+        { "long_name": "5", "short_name": "5", "types": ["street_number"] },
+        { "long_name": "Via Giuseppe Mazzini", "short_name": "Via G. Mazzini", "types": ["route"] },
+        { "long_name": "Villanova", "short_name": "Villanova", "types": ["locality", "political"] },
+        { "long_name": "Bagnacavallo", "short_name": "Bagnacavallo", "types": ["administrative_area_level_3", "political"] },
+        { "long_name": "Provincia di Ravenna", "short_name": "RA", "types": ["administrative_area_level_2", "political"] },
+        { "long_name": "Italia", "short_name": "IT", "types": ["country", "political"] }
+      ]
+    }
+  ]
+}
