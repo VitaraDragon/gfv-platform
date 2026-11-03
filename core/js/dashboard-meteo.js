@@ -247,14 +247,17 @@ export async function initDashboardMeteo(options = {}) {
         linkLabel: freeUpsell.linkLabel,
       });
     }
+    // Free: messaggio una sola volta nel riquadro; colonna laterale nascosta.
     if (side) {
-      side.innerHTML = `<div class="dashboard-meteo-side__inner dashboard-meteo-side__inner--forecast-only">${renderMeteoMessage(
-        freeUpsell.message,
-        { linkHref: freeUpsell.linkHref, linkLabel: freeUpsell.linkLabel }
-      )}</div>`;
+      side.innerHTML = '';
+      side.hidden = true;
     }
+    if (row) row.classList.add('dashboard-meteo-row--free-single');
     return;
   }
+
+  if (side) side.hidden = false;
+  if (row) row.classList.remove('dashboard-meteo-row--free-single');
 
   setRowVisible(true);
   section.classList.toggle('dashboard-meteo-widget--expanded', hasMeteoModule);
