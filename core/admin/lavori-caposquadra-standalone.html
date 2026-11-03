@@ -846,6 +846,12 @@
         let lavoriListBaseForTony = [];
         let tonyLavoriCaposquadraFilter = { stato: '', terreno: '', tipoLavoro: '', progresso: '', ricerca: '' };
         let terreniMap = new Map();
+        function nomeTerrenoCaposquadra(t, fallback) {
+            if (!t) return fallback == null ? '' : fallback;
+            var base = String(t.nome || '').trim();
+            if (!base) return fallback == null ? '' : fallback;
+            return t.stato === 'archiviato' ? base + ' (archiviato)' : base;
+        }
         let currentLavoroId = null;
         let currentTerreno = null;
         let hasVendemmiaMeccanicaModule = false;
@@ -1301,7 +1307,7 @@
                 }
                 if (f.terreno != null && String(f.terreno).trim() !== '') {
                     var t = terreniMap.get(l.terrenoId);
-                    var tn = t ? (t.nome || '') : '';
+                    var tn = nomeTerrenoCaposquadra(t, '');
                     var nt = tonyNorm(tn);
                     var ft = tonyNorm(f.terreno);
                     if (ft && nt.indexOf(ft) < 0 && nt !== ft) return false;
@@ -1318,7 +1324,7 @@
                 if (f.ricerca != null && String(f.ricerca).trim() !== '') {
                     var r = tonyNorm(f.ricerca);
                     var t2 = terreniMap.get(l.terrenoId);
-                    var blob = tonyNorm([l.nome, l.tipoLavoro, t2 ? t2.nome : ''].join(' '));
+                    var blob = tonyNorm([l.nome, l.tipoLavoro, nomeTerrenoCaposquadra(t2, '')].join(' '));
                     if (blob.indexOf(r) < 0) return false;
                 }
                 return true;
@@ -1351,7 +1357,7 @@
                     stato: l.stato || '',
                     tipoLavoro: l.tipoLavoro || '',
                     terrenoId: l.terrenoId || '',
-                    terrenoNome: t ? (t.nome || '') : '',
+                    terrenoNome: nomeTerrenoCaposquadra(t, ''),
                     dataInizio: diStr,
                     statoProgresso: l.statoProgresso || '',
                     percentualeSuperficie: l.percentuale != null ? String(l.percentuale) : ''
@@ -1681,7 +1687,7 @@
                 `;
             }
             lavoriConZone.forEach(lavoro => {
-                const terrenoNome = lavoro.terreno ? lavoro.terreno.nome || 'N/A' : 'N/A';
+                const terrenoNome = nomeTerrenoCaposquadra(lavoro.terreno, 'N/A');
                 const dataInizioFormatted = lavoro.dataInizio 
                     ? (formatDateLikeToItalianLongLocal(lavoro.dataInizio) || 'N/A')
                     : 'N/A';

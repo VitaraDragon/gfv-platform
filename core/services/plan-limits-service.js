@@ -43,7 +43,11 @@ export function monthRangeFromKey(monthKey) {
  */
 export async function countAziendaTerreni(tenantId) {
   const docs = await getCollectionData('terreni', { tenantId });
-  return docs.filter((d) => !d.clienteId || d.clienteId === '').length;
+  return docs.filter((d) => {
+    if (d.clienteId && d.clienteId !== '') return false;
+    if (d.stato === 'archiviato') return false;
+    return true;
+  }).length;
 }
 
 /**

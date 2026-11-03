@@ -20,6 +20,7 @@ import {
     collectLiveLavoroIdSet,
     comunicazioneRiferisceLavoroInesistente
 } from '../services/lavoro-delete-cascade.js';
+import { nomeTerrenoPerStorico, isTerrenoArchiviato } from '../../shared/js/terreno-archivio.js';
 import {
     fetchLavoriDocumentsForFieldUser,
     isLavoroVisibileOperaioCampo,
@@ -248,6 +249,7 @@ export async function loadAffittiInScadenza(dependencies) {
             const terreno = doc.data();
             // Escludi terreni clienti (solo terreni aziendali)
             if (terreno.clienteId && terreno.clienteId !== '') return;
+            if (isTerrenoArchiviato(terreno)) return;
             
             if (terreno.tipoPossesso === 'affitto' && terreno.dataScadenzaAffitto) {
                 const alert = calcolaAlertAffitto(terreno.dataScadenzaAffitto);
@@ -377,6 +379,7 @@ export async function loadAffittiUrgentiCount(dependencies, tenantIdOverride) {
         terreniSnapshot.forEach((docSnap) => {
             const terreno = docSnap.data();
             if (terreno.clienteId && terreno.clienteId !== '') return;
+            if (isTerrenoArchiviato(terreno)) return;
             if (terreno.tipoPossesso === 'affitto' && terreno.dataScadenzaAffitto) {
                 totalAffitti++;
                 const alert = calcolaAlertAffitto(terreno.dataScadenzaAffitto);
@@ -496,7 +499,7 @@ export async function loadCoreStatsForManager(dependencies) {
         // Filtra solo terreni aziendali
         const totaleTerreni = terreniSnapshot.docs.filter(doc => {
             const terreno = doc.data();
-            return !terreno.clienteId || terreno.clienteId === '';
+            return (!terreno.clienteId || terreno.clienteId === '') && !isTerrenoArchiviato(terreno);
         }).length;
         const statTerreniEl = document.getElementById('stat-terreni-manager');
         if (statTerreniEl) statTerreniEl.textContent = totaleTerreni;
@@ -1497,7 +1500,7 @@ export async function loadLavoriOggiOperaio(userData, dependencies) {
                 ...lav,
                 dataInizio,
                 tipoAssegnazione,
-                terreno: terreno ? terreno.nome : null
+                terreno: nomeTerrenoPerStorico(terreno, null)
             });
         });
         
@@ -2053,7 +2056,7 @@ export function renderComunicazioneRapidaForm() {
     // Prendi il primo lavoro come default
     const primoLavoro = lavori[0];
     const podere = primoLavoro.terreno?.podere || 'Non specificato';
-    const terrenoNome = primoLavoro.terreno?.nome || primoLavoro.nome || 'Non specificato';
+    const terrenoNome = nomeTerrenoPerStorico(primoLavoro.terreno, '') || primoLavoro.nome || 'Non specificato';
     const lavoroNome = primoLavoro.nome || 'Senza nome';
     
     // Se c'è più di un lavoro, mostra dropdown, altrimenti solo il nome

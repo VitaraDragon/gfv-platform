@@ -4,6 +4,8 @@
  * @module core/js/terreni-controller
  */
 
+import { isTerrenoArchiviato } from '../../shared/js/terreno-archivio.js';
+
 // ============================================
 // IMPORTS
 // ============================================
@@ -594,7 +596,8 @@ export async function loadTerreni(currentTenantId, auth, db, app, terreni, terre
             options: {
                 orderBy: 'nome',
                 orderDirection: 'asc',
-                clienteId: null // Solo terreni aziendali
+                clienteId: null, // Solo terreni aziendali
+                includiArchiviati: true
             }
         });
         
@@ -614,6 +617,21 @@ export async function loadTerreni(currentTenantId, auth, db, app, terreni, terre
                 ...terreno,
                 superficie: superficie
             });
+        }
+
+        try {
+            const { getCollegamentiTerreno } = await import('../services/terreni-service.js');
+            const { haCollegamenti } = await import('../../shared/js/terreno-archivio.js');
+            await Promise.all(terreni.map(async (terreno) => {
+                if (isTerrenoArchiviato(terreno)) return;
+                try {
+                    terreno._haCollegamenti = haCollegamenti(await getCollegamentiTerreno(terreno.id));
+                } catch (e) {
+                    terreno._verificaCollegamentiErrore = true;
+                }
+            }));
+        } catch (e) {
+            console.warn('Verifica collegamenti terreni:', e);
         }
         
         // Reset filtri quando si ricaricano i terreni
@@ -649,8 +667,13 @@ export function renderTerreni(terreni, terreniFiltrati, maybeAutoStartTerreniTou
     const container = document.getElementById('terreni-container');
     if (!container) return;
     
-    // Usa terreni filtrati se disponibili, altrimenti tutti i terreni
-    const terreniDaMostrare = terreniFiltrati.length > 0 ? terreniFiltrati : terreni;
+    // Usa terreni filtrati se disponibili, altrimenti tutti i terreni.
+    // Gli archiviati restano nascosti finché non si accende «Mostra archiviati».
+    let terreniDaMostrare = terreniFiltrati.length > 0 ? terreniFiltrati : terreni;
+    const mostraArchiviati = !!document.getElementById('filter-mostra-archiviati')?.checked;
+    if (!mostraArchiviati) {
+        terreniDaMostrare = terreniDaMostrare.filter((t) => !isTerrenoArchiviato(t));
+    }
     
     if (terreniDaMostrare.length === 0) {
         container.innerHTML = `
@@ -716,7 +739,7 @@ export function renderTerreni(terreni, terreniFiltrati, maybeAutoStartTerreniTou
                 return `
                 <div class="terreno-row">
                     <div class="col-nome" data-label="Nome Campo">
-                        <span class="terreno-name">${escapedNome}</span>
+                        <span class="terreno-name">${escapedNome}${isTerrenoArchiviato(terreno) ? ' (archiviato)' : ''}</span>
                     </div>
                     <div class="col-coltura" data-label="Coltura">
                         <span class="terreno-coltura">${escapedColtura || '-'}</span>
@@ -740,8 +763,11 @@ export function renderTerreni(terreni, terreniFiltrati, maybeAutoStartTerreniTou
                         ${escapedNote || '-'}
                     </div>
                     <div class="col-azioni" data-label="Azioni">
-                        <button onclick="editTerreno('${terreno.id}')" class="btn-edit-small" title="Modifica">✏️</button>
-                        <button onclick="confirmDeleteTerreno('${terreno.id}')" class="btn-delete-small" title="Elimina">🗑️</button>
+                        ${isTerrenoArchiviato(terreno)
+                            ? `<button onclick="ripristinaTerreno('${terreno.id}')" class="btn-edit-small" title="Ripristina">Ripristina</button>`
+                            : `<button onclick="editTerreno('${terreno.id}')" class="btn-edit-small" title="Modifica">✏️</button>
+                        <button onclick="confirmDeleteTerreno('${terreno.id}')" class="btn-delete-small" title="${terreno._haCollegamenti ? 'Archivia' : 'Elimina'}">${terreno._verificaCollegamentiErrore ? 'Verifica' : (terreno._haCollegamenti ? 'Archivia' : '🗑️')}</button>`
+                        }
                         ${hasVignetoModule && escapedColtura && escapedColtura.toLowerCase().includes('vite') 
                             ? `<button onclick="gestisciVigneto('${terreno.id}')" class="btn-vigneto-small" title="Gestisci Vigneto">🍇</button>` 
                             : ''}
@@ -773,9 +799,13 @@ export function filterTerreni(terreni, terreniFiltrati, renderTerreniCallback) {
     const filterPodere = document.getElementById('filter-podere')?.value || '';
     const filterCategoria = document.getElementById('filter-categoria')?.value || '';
     const filterColtura = document.getElementById('filter-coltura')?.value || '';
+    const mostraArchiviati = !!document.getElementById('filter-mostra-archiviati')?.checked;
     
     terreniFiltrati.length = 0; // Svuota array
     terreni.forEach(terreno => {
+        if (!mostraArchiviati && isTerrenoArchiviato(terreno)) {
+            return;
+        }
         // Filtro tipo possesso
         if (filterTipoPossesso && terreno.tipoPossesso !== filterTipoPossesso) {
             return;

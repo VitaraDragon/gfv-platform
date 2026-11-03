@@ -12,9 +12,11 @@ import {
   deleteDocument,
   getCollectionData 
 } from './firebase-service.js';
-import { getCurrentTenantId } from './tenant-service.js';
+import { getCurrentTenantId, getCurrentUser } from './tenant-service.js';
 import { Terreno } from '../models/Terreno.js';
 import { assertCanCreateTerreno } from './plan-limits-service.js';
+import { contaPianoStagione, MOTIVI_ARCHIVIAZIONE } from '../../shared/js/terreno-archivio.js';
+import { isLavoroChiuso } from '../../shared/js/storico-sola-lettura.js';
 
 const COLLECTION_NAME = 'terreni';
 
@@ -24,6 +26,7 @@ const COLLECTION_NAME = 'terreni';
  * @param {string} options.orderBy - Campo per ordinamento (default: 'nome')
  * @param {string} options.orderDirection - Direzione ordinamento ('asc' | 'desc')
  * @param {string} options.clienteId - Filtra per cliente (opzionale, per conto terzi)
+ * @param {boolean} [options.includiArchiviati=false] - Lo storico dei nomi passa true. Mai where('stato').
  * @returns {Promise<Array<Terreno>>} Array di terreni
  */
 export async function getAllTerreni(options = {}) {
@@ -38,7 +41,8 @@ export async function getAllTerreni(options = {}) {
       orderDirection = 'asc',
       clienteId = null,
       /** Se true, non esclude i terreni con clienteId (CT / piano stagione VM). */
-      includeTerreniClienti = false
+      includeTerreniClienti = false,
+      includiArchiviati = false
     } = options;
     
     // Dobbiamo sempre filtrare lato client:
@@ -72,6 +76,11 @@ export async function getAllTerreni(options = {}) {
       terreni = terreni.filter(t => t.clienteId === clienteId);
     } else if (!includeTerreniClienti) {
       terreni = terreni.filter(t => !t.clienteId || t.clienteId === '');
+    }
+
+    // Lato client: un documento senza stato resta attivo e resta in elenco.
+    if (!includiArchiviati) {
+      terreni = terreni.filter(t => t.stato !== 'archiviato');
     }
     
     // Ordina lato client se necessario (sempre quando filtriamo lato client)
@@ -265,8 +274,134 @@ export async function getNumeroAttivitaTerreno(terrenoId) {
     return attivita.length;
   } catch (error) {
     console.error('Errore verifica uso terreno:', error);
-    return 0;
+    throw error;
   }
+}
+
+const COLLEZIONI_COLLEGATE = [
+  ['attivita', 'attivita'],
+  ['lavori', 'lavori'],
+  ['vigneti', 'vigneti'],
+  ['frutteti', 'frutteti'],
+  ['seminativi', 'campagne'],
+  ['preventivi', 'preventivi']
+];
+
+function riepilogoLavoroAperto(doc) {
+  return {
+    id: doc.id,
+    nome: doc.nome || doc.tipoLavoro || 'Lavoro senza nome',
+    dataInizio: doc.dataInizio || doc.createdAt || null,
+    stato: doc.stato || null
+  };
+}
+
+/**
+ * Conta i collegamenti di un terreno. Se una query fallisce, l'errore sale:
+ * non si restituisce mai 0 al posto di un guasto.
+ * @param {string} terrenoId
+ */
+export async function getCollegamentiTerreno(terrenoId) {
+  const tenantId = getCurrentTenantId();
+  if (!tenantId) {
+    throw new Error('Nessun tenant corrente disponibile');
+  }
+  if (!terrenoId) {
+    throw new Error('ID terreno obbligatorio');
+  }
+
+  const collegamenti = {
+    attivita: 0,
+    lavori: 0,
+    vigneti: 0,
+    frutteti: 0,
+    campagne: 0,
+    preventivi: 0,
+    pianoStagione: 0,
+    lavoriAperti: []
+  };
+
+  for (const [collectionName, chiave] of COLLEZIONI_COLLEGATE) {
+    const documenti = await getCollectionData(collectionName, {
+      tenantId,
+      where: [['terrenoId', '==', terrenoId]]
+    });
+    collegamenti[chiave] = documenti.length;
+    if (chiave === 'lavori') {
+      collegamenti.lavoriAperti = documenti
+        .filter((doc) => !isLavoroChiuso(doc))
+        .map(riepilogoLavoroAperto);
+    }
+  }
+
+  const terreno = await getDocumentData(COLLECTION_NAME, terrenoId, tenantId);
+  if (!terreno) {
+    throw new Error('Terreno non trovato');
+  }
+  collegamenti.pianoStagione = contaPianoStagione(terreno.vendemmiaMeccanica);
+  return collegamenti;
+}
+
+async function chiudiImpiantiAttivi(collectionName, terrenoId, tenantId, quando) {
+  const documenti = await getCollectionData(collectionName, {
+    tenantId,
+    where: [['terrenoId', '==', terrenoId]]
+  });
+  const chiusi = [];
+  for (const doc of documenti) {
+    if (doc.statoImpianto === 'chiuso') continue;
+    await updateDocument(collectionName, doc.id, {
+      statoImpianto: 'chiuso',
+      dataChiusura: quando,
+      motivoChiusura: 'terreno_archiviato'
+    }, tenantId);
+    chiusi.push({ id: doc.id, nome: doc.varieta || doc.nome || doc.specie || collectionName });
+  }
+  return chiusi;
+}
+
+/**
+ * Archivia il terreno (soft delete) e chiude vigneti e frutteti ancora aperti.
+ * @param {string} terrenoId
+ * @param {{ motivo?: string, nota?: string, archiviatoDa?: string }} [meta]
+ */
+export async function archiviaTerreno(terrenoId, meta = {}) {
+  const tenantId = getCurrentTenantId();
+  if (!tenantId) throw new Error('Nessun tenant corrente disponibile');
+  if (!terrenoId) throw new Error('ID terreno obbligatorio');
+  const motivo = meta.motivo || 'altro';
+  if (!MOTIVI_ARCHIVIAZIONE.includes(motivo)) {
+    throw new Error('Motivo archiviazione non valido');
+  }
+  const quando = new Date().toISOString();
+  const utente = getCurrentUser();
+  await updateDocument(COLLECTION_NAME, terrenoId, {
+    stato: 'archiviato',
+    archiviatoIl: quando,
+    archiviatoDa: meta.archiviatoDa || (utente && (utente.uid || utente.id)) || null,
+    motivoArchiviazione: motivo,
+    notaArchiviazione: meta.nota || null
+  }, tenantId);
+  const vignetiChiusi = await chiudiImpiantiAttivi('vigneti', terrenoId, tenantId, quando);
+  const fruttetiChiusi = await chiudiImpiantiAttivi('frutteti', terrenoId, tenantId, quando);
+  return { vignetiChiusi, fruttetiChiusi };
+}
+
+/**
+ * Riporta il terreno negli elenchi. I vigneti chiusi con l'archiviazione restano chiusi.
+ * @param {string} terrenoId
+ */
+export async function ripristinaTerreno(terrenoId) {
+  const tenantId = getCurrentTenantId();
+  if (!tenantId) throw new Error('Nessun tenant corrente disponibile');
+  if (!terrenoId) throw new Error('ID terreno obbligatorio');
+  await updateDocument(COLLECTION_NAME, terrenoId, {
+    stato: 'attivo',
+    archiviatoIl: null,
+    archiviatoDa: null,
+    motivoArchiviazione: null,
+    notaArchiviazione: null
+  }, tenantId);
 }
 
 // Export default
@@ -276,6 +411,9 @@ export default {
   createTerreno,
   updateTerreno,
   deleteTerreno,
-  getNumeroAttivitaTerreno
+  getNumeroAttivitaTerreno,
+  getCollegamentiTerreno,
+  archiviaTerreno,
+  ripristinaTerreno
 };
 
