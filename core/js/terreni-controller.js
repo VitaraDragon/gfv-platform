@@ -619,20 +619,7 @@ export async function loadTerreni(currentTenantId, auth, db, app, terreni, terre
             });
         }
 
-        try {
-            const { getCollegamentiTerreno } = await import('../services/terreni-service.js');
-            const { haCollegamenti } = await import('../../shared/js/terreno-archivio.js');
-            await Promise.all(terreni.map(async (terreno) => {
-                if (isTerrenoArchiviato(terreno)) return;
-                try {
-                    terreno._haCollegamenti = haCollegamenti(await getCollegamentiTerreno(terreno.id));
-                } catch (e) {
-                    terreno._verificaCollegamentiErrore = true;
-                }
-            }));
-        } catch (e) {
-            console.warn('Verifica collegamenti terreni:', e);
-        }
+        // I collegamenti si controllano al click su Elimina, non a ogni caricamento.
         
         // Reset filtri quando si ricaricano i terreni
         terreniFiltrati.length = 0;

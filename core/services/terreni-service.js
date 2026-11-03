@@ -324,7 +324,8 @@ export async function getCollegamentiTerreno(terrenoId) {
   for (const [collectionName, chiave] of COLLEZIONI_COLLEGATE) {
     const documenti = await getCollectionData(collectionName, {
       tenantId,
-      where: [['terrenoId', '==', terrenoId]]
+      where: [['terrenoId', '==', terrenoId]],
+      limit: chiave === 'lavori' ? undefined : 1
     });
     collegamenti[chiave] = documenti.length;
     if (chiave === 'lavori') {
