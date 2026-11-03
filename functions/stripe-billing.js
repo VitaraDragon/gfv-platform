@@ -11,7 +11,12 @@ const { assertManagerOrAdminForTenant } = require("./email-resend");
 /** Allineare a core/config/subscription-plans.js (STRIPE_PRICE_IDS). */
 const STRIPE_PRICE_IDS = require("./config/stripe-prices.json");
 const BUNDLES_CATALOG = require("./config/bundles-catalog.json");
-const { markModuleTrialConverted, markBundleTrialsConverted } = require("./module-trial");
+const {
+  markModuleTrialConverted,
+  markBundleTrialsConverted,
+  isTrialRecordActive,
+  getActiveTrialModuleIds,
+} = require("./module-trial");
 const { resolveTenantPlanId } = require("./tenant-plan");
 const STRIPE_ENV = process.env.STRIPE_ENV || "test";
 
@@ -694,11 +699,66 @@ function resolveAddonStripeRecord(tenant, addonId, addonType) {
   return { addon: null, billingKey: addonId };
 }
 
+function bundleIdCoveringModule(tenant, moduleId) {
+  const activeBundles = Array.isArray(tenant.activeBundles) ? tenant.activeBundles : [];
+  for (const bundleId of activeBundles) {
+    const bundle = BUNDLES_CATALOG[bundleId];
+    if (bundle && Array.isArray(bundle.modules) && bundle.modules.includes(moduleId)) {
+      return bundleId;
+    }
+  }
+  return null;
+}
+
+/** Piano Base o abbonamento di un bundle: non vanno mai annullati da una disattivazione modulo. */
+function isBaseOrBundleSubscriptionId(tenant, subscriptionId) {
+  if (!subscriptionId) return false;
+  const sid = String(subscriptionId);
+  if (tenant.stripeSubscriptionId && String(tenant.stripeSubscriptionId) === sid) return true;
+  const addons = tenant.stripeAddons || {};
+  for (const [id, rec] of Object.entries(addons)) {
+    if (!rec || rec.subscriptionId == null) continue;
+    if (String(rec.subscriptionId) !== sid) continue;
+    if (rec.type === "bundle" || BUNDLES_CATALOG[id]) return true;
+  }
+  return false;
+}
+
+function effectiveModuleIdsForCascade(tenant) {
+  const paid = Array.isArray(tenant.modules) ? tenant.modules : [];
+  const trials = getActiveTrialModuleIds(tenant.moduleTrials);
+  return Array.from(new Set(paid.concat(trials)));
+}
+
+async function expireModuleTrialNow(db, tenantId, moduleId) {
+  const tenantRef = db.collection("tenants").doc(tenantId);
+  const snap = await tenantRef.get();
+  if (!snap.exists) return;
+  const existing = snap.data() || {};
+  const trials = Object.assign({}, existing.moduleTrials || {});
+  if (trials[moduleId] && trials[moduleId].status === "active") {
+    trials[moduleId] = Object.assign({}, trials[moduleId], {
+      status: "expired",
+      expiredAt: Date.now(),
+    });
+  }
+  const modules = Array.isArray(existing.modules)
+    ? existing.modules.filter((id) => id !== moduleId)
+    : [];
+  await tenantRef.update({
+    moduleTrials: trials,
+    modules,
+    updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+  });
+}
+
 /**
  * Callable: disattiva modulo/bundle a fine periodo (cancel_at_period_end su Stripe).
  * Body: { tenantId, addonId, addonType?: 'module'|'bundle' }
+ * Risposta modulo: addonId + deactivatesAt del modulo cliccato, cascaded: [{id, deactivatesAt}].
+ * stripeClient opzionale: solo i test iniettano Stripe finto.
  */
-async function handleCancelStripeAddon(db, stripeApiKey, request) {
+async function handleCancelStripeAddon(db, stripeApiKey, request, stripeClient) {
   if (!request.auth) {
     throw new HttpsError("unauthenticated", "Autenticazione richiesta.");
   }
@@ -723,72 +783,42 @@ async function handleCancelStripeAddon(db, stripeApiKey, request) {
     if (!Array.isArray(tenant.activeBundles) || !tenant.activeBundles.includes(addonId)) {
       throw new HttpsError("failed-precondition", "Il bundle non è attivo.");
     }
-  } else if (!Array.isArray(tenant.modules) || !tenant.modules.includes(addonId)) {
-    throw new HttpsError("failed-precondition", "Il modulo non è attivo.");
   }
 
   const { addon, billingKey, billedViaBundleId } = resolveAddonStripeRecord(tenant, addonId, addonType);
-  if (addonType === "module" && billedViaBundleId) {
-    throw new HttpsError(
-      "failed-precondition",
-      `Il modulo è incluso nel bundle attivo. Disattiva il bundle "${billedViaBundleId}".`
-    );
-  }
-
-  if (addon && addon.pendingDeactivation) {
-    return {
-      ok: true,
-      alreadyPending: true,
-      addonId: billingKey,
-      deactivatesAt: addon.deactivatesAt || addon.periodEnd || null,
-    };
-  }
-
-  const paidModules = Array.isArray(tenant.modules) ? tenant.modules : [];
-  const cascadeIds =
-    addonType === "module"
-      ? moduliDaDisattivareInsiemeServer(billingKey, paidModules)
-      : [billingKey];
-
-  async function cancelOneAddon(oneId) {
-    const resolved = resolveAddonStripeRecord(tenant, oneId, "module");
-    const oneAddon = resolved.addon;
-    const oneKey = resolved.billingKey || oneId;
-    const oneSubId = oneAddon && oneAddon.subscriptionId ? String(oneAddon.subscriptionId) : null;
-    if (!oneSubId) {
-      await finalizeAddonDeactivation(db, tenantId, oneKey, "module");
-      return { ok: true, immediate: true, addonId: oneKey };
-    }
-    const stripe = getStripeClient(stripeApiKey);
-    let deactivatesAtUnix = oneAddon.periodEnd || null;
-    try {
-      const sub = await stripe.subscriptions.update(oneSubId, { cancel_at_period_end: true });
-      deactivatesAtUnix = sub.current_period_end || deactivatesAtUnix;
-      if (!deactivatesAtUnix && sub.items && sub.items.data && sub.items.data[0]) {
-        deactivatesAtUnix = sub.items.data[0].current_period_end || null;
-      }
-    } catch (err) {
-      console.error("[cancelStripeAddon]", oneKey, err.message || err);
-      wrapStripeError(err);
-    }
-    if (!deactivatesAtUnix) {
-      deactivatesAtUnix = expiryTimestampToUnixSeconds(tenant.expiryDate);
-    }
-    return markAddonPendingDeactivation(db, tenantId, oneKey, "module", deactivatesAtUnix);
-  }
 
   if (addonType === "bundle") {
+    if (addon && addon.pendingDeactivation) {
+      return {
+        ok: true,
+        alreadyPending: true,
+        addonId: billingKey,
+        deactivatesAt: addon.deactivatesAt || addon.periodEnd || null,
+      };
+    }
     const subscriptionId = addon && addon.subscriptionId ? String(addon.subscriptionId) : null;
+    if (
+      subscriptionId &&
+      tenant.stripeSubscriptionId &&
+      String(subscriptionId) === String(tenant.stripeSubscriptionId)
+    ) {
+      throw new HttpsError(
+        "failed-precondition",
+        "Questo abbonamento coincide con il piano Base e non viene annullato."
+      );
+    }
     if (!subscriptionId) {
       await finalizeAddonDeactivation(db, tenantId, billingKey, "bundle");
       return {
         ok: true,
         immediate: true,
         addonId: billingKey,
+        deactivatesAt: null,
+        cascaded: [],
         message: "Addon senza abbonamento Stripe collegato: disattivazione immediata.",
       };
     }
-    const stripe = getStripeClient(stripeApiKey);
+    const stripe = stripeClient || getStripeClient(stripeApiKey);
     let deactivatesAtUnix = addon.periodEnd || null;
     try {
       const sub = await stripe.subscriptions.update(subscriptionId, { cancel_at_period_end: true });
@@ -804,27 +834,151 @@ async function handleCancelStripeAddon(db, stripeApiKey, request) {
       deactivatesAtUnix = expiryTimestampToUnixSeconds(tenant.expiryDate);
     }
     const result = await markAddonPendingDeactivation(db, tenantId, billingKey, "bundle", deactivatesAtUnix);
-    return Object.assign({ ok: true, immediate: false, accessRevoked: true }, result);
+    return Object.assign({ ok: true, immediate: false, accessRevoked: true, cascaded: [] }, result);
   }
 
-  let last = null;
-  const cascaded = [];
-  for (const oneId of cascadeIds) {
-    if (oneId !== billingKey) {
-      if (!paidModules.includes(oneId)) continue;
-      const snapFresh = await db.collection("tenants").doc(tenantId).get();
-      const tFresh = snapFresh.exists ? snapFresh.data() || {} : {};
-      Object.assign(tenant, tFresh);
-      if (!Array.isArray(tenant.modules) || !tenant.modules.includes(oneId)) continue;
+  const stillListed = Array.isArray(tenant.modules) && tenant.modules.includes(addonId);
+  const ownRecord = (tenant.stripeAddons || {})[addonId] || null;
+  if (billedViaBundleId && stillListed && !ownRecord) {
+    throw new HttpsError(
+      "failed-precondition",
+      `Il modulo è incluso nel bundle attivo. Disattiva il bundle "${billedViaBundleId}".`
+    );
+  }
+
+  const cascadeIds = moduliDaDisattivareInsiemeServer(addonId, effectiveModuleIdsForCascade(tenant));
+
+  async function readTenantFresh() {
+    const snap = await db.collection("tenants").doc(tenantId).get();
+    if (!snap.exists) throw new HttpsError("not-found", "Tenant non trovato.");
+    return snap.data() || {};
+  }
+
+  /**
+   * Disattiva un modulo usando solo stripeAddons[id].
+   * In cascata: bundle o record assente → skipped; prova senza Stripe → spegnimento locale.
+   */
+  async function cancelOneModule(oneId, cascadeMember) {
+    const t = await readTenantFresh();
+    const rec = (t.stripeAddons || {})[oneId] || null;
+    const inModules = Array.isArray(t.modules) && t.modules.includes(oneId);
+    const trialOn = isTrialRecordActive((t.moduleTrials || {})[oneId]);
+    const ownSub = rec && rec.subscriptionId ? String(rec.subscriptionId) : "";
+    const bundleId = bundleIdCoveringModule(t, oneId);
+    const known = !!rec || !!(t.moduleTrials && t.moduleTrials[oneId]);
+
+    if (rec && rec.pendingDeactivation) {
+      return {
+        outcome: "done",
+        id: oneId,
+        deactivatesAt: rec.deactivatesAt || rec.periodEnd || null,
+        immediate: false,
+        alreadyPending: true,
+      };
     }
-    last = await cancelOneAddon(oneId);
-    cascaded.push(oneId);
+
+    if (!inModules && !trialOn) {
+      if (!known && !cascadeMember) return { outcome: "missing", id: oneId };
+      return {
+        outcome: "done",
+        id: oneId,
+        deactivatesAt: null,
+        immediate: true,
+        alreadyInactive: true,
+      };
+    }
+
+    if (trialOn && !ownSub) {
+      await expireModuleTrialNow(db, tenantId, oneId);
+      return { outcome: "done", id: oneId, deactivatesAt: null, immediate: true };
+    }
+
+    if (cascadeMember && (bundleId || !rec)) {
+      return {
+        outcome: "skipped",
+        id: oneId,
+        reason: bundleId ? "billedViaBundleId" : "no_own_record",
+      };
+    }
+
+    if (ownSub && isBaseOrBundleSubscriptionId(t, ownSub)) {
+      if (!cascadeMember) {
+        throw new HttpsError(
+          "failed-precondition",
+          "Questo abbonamento coincide con il piano Base o con un bundle e non viene annullato."
+        );
+      }
+      return { outcome: "skipped", id: oneId, reason: "protected_subscription" };
+    }
+
+    if (!ownSub) {
+      await finalizeAddonDeactivation(db, tenantId, oneId, "module");
+      if (trialOn) await expireModuleTrialNow(db, tenantId, oneId);
+      return { outcome: "done", id: oneId, deactivatesAt: null, immediate: true };
+    }
+
+    const stripe = stripeClient || getStripeClient(stripeApiKey);
+    let deactivatesAtUnix = rec.periodEnd || null;
+    try {
+      const sub = await stripe.subscriptions.update(ownSub, { cancel_at_period_end: true });
+      deactivatesAtUnix = sub.current_period_end || deactivatesAtUnix;
+      if (!deactivatesAtUnix && sub.items && sub.items.data && sub.items.data[0]) {
+        deactivatesAtUnix = sub.items.data[0].current_period_end || null;
+      }
+    } catch (err) {
+      console.error("[cancelStripeAddon]", oneId, err.message || err);
+      wrapStripeError(err);
+    }
+    if (!deactivatesAtUnix) {
+      deactivatesAtUnix = expiryTimestampToUnixSeconds(t.expiryDate);
+    }
+    const marked = await markAddonPendingDeactivation(db, tenantId, oneId, "module", deactivatesAtUnix);
+    return {
+      outcome: "done",
+      id: oneId,
+      deactivatesAt: marked.deactivatesAt || deactivatesAtUnix,
+      immediate: false,
+    };
   }
 
-  return Object.assign(
-    { ok: true, immediate: !!(last && last.immediate), accessRevoked: true, cascaded },
-    last || {}
-  );
+  const primary = await cancelOneModule(addonId, false);
+  if (primary.outcome === "missing") {
+    const fresh = await readTenantFresh();
+    const dependentsLeft = cascadeIds.some((id) => {
+      if (id === addonId) return false;
+      const mods = Array.isArray(fresh.modules) ? fresh.modules : [];
+      return mods.includes(id) || isTrialRecordActive((fresh.moduleTrials || {})[id]);
+    });
+    if (!dependentsLeft) {
+      throw new HttpsError("failed-precondition", "Il modulo non è attivo.");
+    }
+  }
+
+  const cascaded = [];
+  const skipped = [];
+  for (const oneId of cascadeIds) {
+    if (oneId === addonId) continue;
+    const res = await cancelOneModule(oneId, true);
+    if (res.outcome === "skipped") {
+      skipped.push({ id: res.id, reason: res.reason });
+      continue;
+    }
+    if (res.outcome === "done" && !res.alreadyInactive) {
+      cascaded.push({ id: res.id, deactivatesAt: res.deactivatesAt == null ? null : res.deactivatesAt });
+    }
+  }
+
+  const clicked = primary.outcome === "done" ? primary : { deactivatesAt: null, immediate: false, alreadyPending: false };
+  return {
+    ok: true,
+    immediate: !!clicked.immediate,
+    accessRevoked: true,
+    alreadyPending: !!clicked.alreadyPending,
+    addonId,
+    deactivatesAt: clicked.deactivatesAt == null ? null : clicked.deactivatesAt,
+    cascaded,
+    skipped,
+  };
 }
 
 /**

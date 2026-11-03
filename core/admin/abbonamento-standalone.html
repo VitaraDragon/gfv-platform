@@ -2012,33 +2012,35 @@
 
             try {
                 const cancelFn = getHttpsCallable('cancelStripeAddon');
-                let lastResult = null;
-                for (const idCascata of moduliCascata) {
-                    if (idCascata !== moduleId) {
-                        const paidExtra = paidModules.includes(idCascata);
-                        const trialExtra = isModuleOnTrial(currentTenantData, idCascata);
-                        if (!paidExtra && !trialExtra && !effectiveModules.includes(idCascata)) continue;
-                        if (addonPendingDeactivation(idCascata)) continue;
-                    }
-                    lastResult = await cancelFn({
-                        tenantId: currentTenantId,
-                        addonId: idCascata,
-                        addonType: 'module'
-                    });
-                }
+                const result = await cancelFn({
+                    tenantId: currentTenantId,
+                    addonId: moduleId,
+                    addonType: 'module'
+                });
                 clearCurrentTenantCache();
                 await loadTenantData();
                 refreshSubscriptionUi();
 
-                const data = (lastResult && lastResult.data) || {};
-                const nomi = moduliCascata.map((id) => {
+                const data = (result && result.data) || {};
+                function nomeModulo(id) {
                     const m = getModuleConfig(id);
                     return m ? m.name : id;
-                }).join(', ');
+                }
+                const idsMessaggio = [data.addonId || moduleId];
+                (Array.isArray(data.cascaded) ? data.cascaded : []).forEach(function(item) {
+                    const id = item && (item.id || item);
+                    if (id && idsMessaggio.indexOf(id) < 0) idsMessaggio.push(id);
+                });
+                const nomi = idsMessaggio.map(nomeModulo).join(', ');
+                const saltati = Array.isArray(data.skipped) ? data.skipped : [];
+                const notaSaltati = saltati.length
+                    ? '\n\nRestano attivi (inclusi in un bundle o senza abbonamento proprio): ' +
+                        saltati.map(function(item) { return nomeModulo(item && (item.id || item)); }).join(', ') + '.'
+                    : '';
                 if (data.immediate) {
-                    showAlert(`Modulo/i disattivati: ${nomi} (nessun abbonamento Stripe collegato).`, 'success');
+                    showAlert(`Modulo/i disattivati: ${nomi} (nessun abbonamento Stripe collegato).${notaSaltati}`, 'success');
                 } else {
-                    showAlert(`Modulo/i disattivati: ${nomi}.\n\n${deactivationPolicyMessage(data.deactivatesAt)}`, 'success');
+                    showAlert(`Modulo/i disattivati: ${nomi}.\n\n${deactivationPolicyMessage(data.deactivatesAt)}${notaSaltati}`, 'success');
                 }
                 notifyClientModulesChanged();
             } catch (error) {
