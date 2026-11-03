@@ -130,7 +130,7 @@ export function injectWidget(scriptBase) {
         '<div class="tony-widget-input-row">' +
         '<button type="button" class="tony-widget-camera" id="tony-camera" title="Scatta o scegli dalla galleria una bolla o fattura" aria-label="Fotocamera o galleria documenti" style="display:none">📷</button>' +
         '<button type="button" class="tony-widget-mic" id="tony-mic" title="Clicca per attivare dialogo continuo (mani libere)" aria-label="Microfono">🎤</button>' +
-        '<input type="text" class="tony-widget-input" id="tony-input" placeholder="Scrivi un messaggio..." autocomplete="off" maxlength="2000">' +
+        '<input type="text" class="tony-widget-input" id="tony-input" placeholder="Scrivi un messaggio..." autocomplete="off" maxlength="2000" aria-label="Scrivi a Tony">' +
         '<button type="button" class="tony-widget-send" id="tony-send">Invia</button>' +
         '</div>';
 
