@@ -432,7 +432,7 @@ async function onTerrenoSelected(event) {
     }
 
     try {
-        const terreni = await getAllTerreni();
+        const terreni = await getAllTerreni({ includiArchiviati: true });
         currentTerreno = terreni.find(t => t.id === terrenoId);
         
         if (!currentTerreno) {

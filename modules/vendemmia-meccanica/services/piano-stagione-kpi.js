@@ -4,7 +4,7 @@
  */
 
 export function summarizePianoStagione(rows) {
-  const list = Array.isArray(rows) ? rows : [];
+  const list = (Array.isArray(rows) ? rows : []).filter((r) => !r.archiviato);
   const inPiano = list.filter((r) => r.inPiano);
   const vendemmiati = list.filter((r) => r.vendemmiato);
   const residui = list.filter((r) => r.inPiano && !r.vendemmiato);
