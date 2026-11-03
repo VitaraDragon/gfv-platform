@@ -375,9 +375,10 @@ async function init() {
 function getTerrenoLabel(t) {
     if (!t) return '';
     const nome = (t.nome || '').trim();
+    const base = t.stato === 'archiviato' && nome ? `${nome} (archiviato)` : nome;
     const podere = (t.podere || '').trim();
-    if (nome && podere) return `${nome} – ${podere}`;
-    if (nome) return nome;
+    if (base && podere) return `${base} – ${podere}`;
+    if (base) return base;
     if (podere) return podere;
     return 'Terreno senza nome';
 }
@@ -394,14 +395,15 @@ async function loadFrutteti() {
     try {
         frutteti = await getAllFrutteti();
         const terreniModule = await import(resolvePath('../../../core/services/terreni-service.js'));
-        terreni = await terreniModule.getAllTerreni();
+        terreni = await terreniModule.getAllTerreni({ includiArchiviati: true });
         const filterFruttetoSelect = document.getElementById('filter-frutteto');
         const fruttetoSelect = document.getElementById('fruttetoId');
 
         const options = frutteti.map(f => `<option value="${f.id}">${getFruttetoOptionLabel(f)}</option>`);
+        const aperti = frutteti.filter((f) => f.statoImpianto !== 'chiuso').map(f => `<option value="${f.id}">${getFruttetoOptionLabel(f)}</option>`);
 
         filterFruttetoSelect.innerHTML = '<option value="">Tutti i frutteti</option>' + options.join('');
-        fruttetoSelect.innerHTML = '<option value="">Seleziona frutteto</option>' + options.join('');
+        fruttetoSelect.innerHTML = '<option value="">Seleziona frutteto</option>' + aperti.join('');
     } catch (error) {
         console.error('[RACCOLTA-FRUTTA] Errore caricamento frutteti:', error);
     }
