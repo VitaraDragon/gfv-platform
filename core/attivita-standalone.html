@@ -1582,7 +1582,8 @@
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                     if (tenantDoc.exists()) {
                         const tenantData = tenantDoc.data();
-                        availableModules = tenantData.modules || [];
+                        const { resolveEffectiveModules } = await import('./utils/module-access-resolver.js');
+                        availableModules = resolveEffectiveModules(tenantData);
                         hasParcoMacchineModule = availableModules.includes('parcoMacchine');
                         hasManodoperaModule = availableModules.includes('manodopera');
                         hasContoTerziModule = availableModules.includes('contoTerzi');
@@ -2040,7 +2041,7 @@
 
         // Popola dropdown lavori nel form (solo lavori conto terzi in corso) - wrapper
         function populateLavoriDropdown() {
-            populateLavoriDropdownModule(lavoriList);
+            populateLavoriDropdownModule(lavoriList, { hasManodopera: hasManodoperaModule });
         }
 
         // Popola dropdown clienti nel form - wrapper

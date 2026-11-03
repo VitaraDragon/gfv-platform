@@ -487,6 +487,63 @@ export function calculateTotalPrice(planId, activeModules = [], activeBundles = 
  * @param {Array<string>} currentModules - Moduli attualmente attivi
  * @returns {Object} { canActivate: boolean, reason: string }
  */
+/**
+ * Moduli da disattivare insieme: il modulo richiesto + quelli attivi che lo richiedono
+ * via `requiresModules` (es. Conto Terzi → Vendemmia Meccanica).
+ * @param {string} moduleId
+ * @param {string[]} [moduliAttivi]
+ * @returns {string[]}
+ */
+export function moduliDaDisattivareInsieme(moduleId, moduliAttivi = []) {
+  const attivi = Array.isArray(moduliAttivi) ? moduliAttivi : [];
+  if (!moduleId) return [];
+  const out = [moduleId];
+  let changed = true;
+  while (changed) {
+    changed = false;
+    for (const mod of AVAILABLE_MODULES) {
+      if (!mod || !mod.id || out.includes(mod.id)) continue;
+      if (!attivi.includes(mod.id)) continue;
+      const req = Array.isArray(mod.requiresModules) ? mod.requiresModules : [];
+      if (req.some((depId) => out.includes(depId))) {
+        out.push(mod.id);
+        changed = true;
+      }
+    }
+  }
+  return out;
+}
+
+/**
+ * Testo conferma disattivazione a cascata (nomi leggibili).
+ * @param {string} moduleId
+ * @param {string[]} moduliDaDisattivare
+ * @returns {string}
+ */
+export function testoConfermaDisattivazioneCascata(moduleId, moduliDaDisattivare = []) {
+  const principale = getModuleConfig(moduleId);
+  const nomePrincipale = principale ? principale.name : moduleId;
+  const altri = (Array.isArray(moduliDaDisattivare) ? moduliDaDisattivare : [])
+    .filter((id) => id !== moduleId)
+    .map((id) => {
+      const m = getModuleConfig(id);
+      return m ? m.name : id;
+    });
+  if (!altri.length) {
+    return `Disattivare ${nomePrincipale}?`;
+  }
+  if (altri.length === 1) {
+    return (
+      `La ${altri[0]} funziona solo con ${nomePrincipale}. ` +
+      `Se disattivi ${nomePrincipale}, disattivo anche la ${altri[0]}, così non la paghi più.`
+    );
+  }
+  return (
+    `${altri.join(', ')} dipendono da ${nomePrincipale}. ` +
+    `Se disattivi ${nomePrincipale}, disattivo anche questi moduli, così non li paghi più.`
+  );
+}
+
 export function canActivateModule(planId, moduleId, currentModules = []) {
   const plan = getPlanConfig(planId);
   const module = getModuleConfig(moduleId);
@@ -514,7 +571,7 @@ export function canActivateModule(planId, moduleId, currentModules = []) {
           const dep = getModuleConfig(id);
           return dep ? dep.name : id;
         }).join(', ');
-        return { canActivate: false, reason: `Richiede: ${labels}` };
+        return { canActivate: false, reason: `Prima riattiva ${labels}` };
       }
     }
     return { canActivate: true, reason: '' };
@@ -722,6 +779,8 @@ export default {
   getAllModules,
   calculateTotalPrice,
   canActivateModule,
+  moduliDaDisattivareInsieme,
+  testoConfermaDisattivazioneCascata,
   getSuggestedBundles,
   sumModulePrices,
   getBundleBreakdown,

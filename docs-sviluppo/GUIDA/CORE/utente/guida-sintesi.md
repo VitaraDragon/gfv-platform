@@ -19,6 +19,7 @@ Apri il riquadro, scegli la voce; se ci sono due livelli (es. categoria coltura 
 
 - **Free**: limiti terreni/attività; **no** acquisto moduli; **no** prova moduli (serve Base); **Tony Guida solo nei primi 7 giorni** dalla registrazione (poi serve Base).
 - **Base**: terreni/attività illimitati, **Tony Guida** (orientamento + suggerimenti moduli non invasivi), moduli verticali **pay-per-use** o **prova 30gg** (un modulo alla volta).
+- **Vendemmia meccanica** richiede **Conto terzi** attivo; disattivando Conto terzi si disattiva anche VM (niente doppio abbonamento). Per tornare a VM: riattivare Conto terzi, poi Vendemmia meccanica.
 - **Modulo Tony Avanzato**: automazioni (navigazione, form, filtri, **foto bolla/fattura** → magazzino) — **oltre** Tony Guida del Base; non confonderli.
 
 ## Ruoli e moduli

@@ -10,6 +10,7 @@
 // Le importazioni Firebase verranno fatte nel file HTML principale
 // Questo modulo assume che db, auth, currentTenantId siano disponibili globalmente
 
+import { filtraLavoriPerDiarioContoTerzi } from '../../modules/conto-terzi/js/lavoro-da-preventivo.js';
 import {
     dateLikeToIsoDateString,
     dateLikeToLocalCalendarIso,
@@ -927,19 +928,28 @@ export async function loadAttivita(
 }
 
 /**
- * Popola dropdown lavori nel form (solo lavori conto terzi in corso)
- * @param {Array} lavoriList - Array lavori disponibili
+ * Lavori CT da mostrare in Diario (schede / form rapidi).
+ * @param {Array} lavoriList
+ * @param {boolean} hasManodopera
+ * @returns {Array}
  */
-export function populateLavoriDropdown(lavoriList = []) {
+export function lavoriDiarioContoTerziVisibili(lavoriList = [], hasManodopera = true) {
+    return filtraLavoriPerDiarioContoTerzi(lavoriList, { hasManodopera: !!hasManodopera });
+}
+
+/**
+ * Popola dropdown lavori nel form (lavori CT in corso; senza Manodopera anche da_pianificare)
+ * @param {Array} lavoriList - Array lavori disponibili
+ * @param {{ hasManodopera?: boolean }} [opts]
+ */
+export function populateLavoriDropdown(lavoriList = [], opts = {}) {
     const select = document.getElementById('attivita-lavoro');
     if (!select) return;
 
-    // Filtra solo lavori in corso se statoFiltro specificato
     const urlParams = new URLSearchParams(window.location.search);
     const statoFiltro = urlParams.get('stato');
-    const lavoriFiltrati = statoFiltro 
-        ? lavoriList.filter(l => l.stato === statoFiltro)
-        : lavoriList.filter(l => l.stato === 'in_corso'); // Default: solo in corso
+    const hasManodopera = opts.hasManodopera === true;
+    const lavoriFiltrati = filtraLavoriPerDiarioContoTerzi(lavoriList, { hasManodopera, statoFiltro });
 
     select.innerHTML = '<option value="">-- Seleziona lavoro --</option>';
     lavoriFiltrati.forEach(lavoro => {
@@ -1439,8 +1449,8 @@ export async function renderAttivita(params) {
                 `;
             }
         } else {
-            // Mostra lavori in corso con form rapido
-            const lavoriInCorso = lavoriList.filter(l => l.stato === 'in_corso');
+            // Mostra lavori in corso (e senza Manodopera anche da_pianificare CT) con form rapido
+            const lavoriInCorso = lavoriDiarioContoTerziVisibili(lavoriList, hasManodoperaModule);
             
             if (lavoriInCorso.length > 0) {
             html += `
@@ -1573,7 +1583,7 @@ export async function renderAttivita(params) {
     
     // Se modalità conto terzi e non è modalità completati
     if (isContoTerziMode && !isModalitaCompletati) {
-        const lavoriInCorso = lavoriList.filter(l => l.stato === 'in_corso');
+        const lavoriInCorso = lavoriDiarioContoTerziVisibili(lavoriList, hasManodoperaModule);
         if (lavoriInCorso.length === 0) {
             // Non ci sono lavori in corso, mostra solo messaggio
             html += `
@@ -1815,23 +1825,25 @@ export async function renderAttivita(params) {
     
     // Inizializza calcolo automatico ore nette per tutti i form rapidi
     if (isContoTerziMode && lavoriList.length > 0) {
-        const lavoriInCorso = lavoriList.filter(l => l.stato === 'in_corso');
-        lavoriInCorso.forEach(lavoro => {
+        const lavoriInCorsoInit = lavoriDiarioContoTerziVisibili(lavoriList, hasManodoperaModule);
+        lavoriInCorsoInit.forEach(lavoro => {
             setTimeout(() => initCalcoloOreNetteRapido(lavoro.id), 200);
         });
     }
     
     // Popola dropdown macchine per form rapidi se Parco Macchine attivo
     if (isContoTerziMode && hasParcoMacchineModule && lavoriList.length > 0) {
-        const lavoriInCorso = lavoriList.filter(l => l.stato === 'in_corso');
-        lavoriInCorso.forEach(lavoro => {
+        const lavoriInCorsoMacchine = lavoriDiarioContoTerziVisibili(lavoriList, hasManodoperaModule);
+        lavoriInCorsoMacchine.forEach(lavoro => {
             populateTrattoriRapido(lavoro.id);
         });
     }
     
     // Oggi di calendario locale: toISOString() è UTC e, dopo mezzanotte a Roma, max bloccherebbe il giorno corrente.
     const today = dateLikeToLocalCalendarIso(new Date());
-    const lavoriInCorso = isContoTerziMode ? lavoriList.filter(l => l.stato === 'in_corso') : [];
+    const lavoriInCorso = isContoTerziMode
+        ? lavoriDiarioContoTerziVisibili(lavoriList, hasManodoperaModule)
+        : [];
     lavoriInCorso.forEach(lavoro => {
         const dataInput = document.getElementById(`rapido-data-${lavoro.id}`);
         if (dataInput) {

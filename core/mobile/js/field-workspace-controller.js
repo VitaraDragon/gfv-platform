@@ -31,7 +31,7 @@ import {
 } from './field-ore-riquadro.js?v=2026-10-18a';
 import { scegliSuggerimentoRapido } from '../../js/field-suggerimento-lavoro.js?v=2026-10-18a';
 import { eLavoroSospeso } from '../../js/tony/tony-ora-lavoro-match.js?v=2026-11-02b';
-import { CHIAVE_RIMBALZI_INGRESSO, scriviIndizioIngresso, pulisciIndizioIngresso } from '../../js/tony/tony-ingresso-login.js?v=2026-11-02b';
+import { CHIAVE_RIMBALZI_INGRESSO, scriviIndizioIngresso, pulisciIndizioIngresso, decidiGuardiaWorkspace } from '../../js/tony/tony-ingresso-login.js?v=2026-11-03b';
 import { conTimeout, prossimaAttesaRiprova } from '../../js/tony/tony-attesa-riprova.js?v=2026-11-02b';
 import {
     righeGiornoDopoEliminazione,
@@ -2927,7 +2927,8 @@ function mostraErroreAvvioWorkspace(messaggio) {
     if (statusEl && statusEl.parentNode) statusEl.parentNode.appendChild(btn);
 }
 
-function rimandaDashboardTemporanea() {
+function rimandaDashboardTemporanea(motivo) {
+    console.info('[workspace] rimando dashboard, motivo:', motivo || 'sconosciuto');
     aumentaRimbalzoIngresso();
     window.location.href = '../dashboard-standalone.html?una_volta=1';
 }
@@ -2960,19 +2961,21 @@ async function initFieldWorkspace() {
             try {
                 const userDoc = await getDoc(doc(db, 'users', user.uid));
                 if (!userDoc.exists()) {
-                    rimandaDashboardTemporanea();
+                    rimandaDashboardTemporanea('utente assente');
                     return;
                 }
 
                 const userData = userDoc.data();
                 const tenantId = await resolveCurrentTenantId(userData);
                 const { getUserRolesForTenant } = await import('../../services/tenant-service.js');
+                const { resolveEffectiveModules } = await import('../../utils/module-access-resolver.js');
                 let availableModules = [];
+                let tenantData = null;
                 if (tenantId) {
                     const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
                     if (tenantDoc.exists()) {
-                        const tenantData = tenantDoc.data();
-                        availableModules = Array.isArray(tenantData.modules) ? tenantData.modules : [];
+                        tenantData = tenantDoc.data();
+                        availableModules = resolveEffectiveModules(tenantData);
                     }
                 }
 
@@ -3007,20 +3010,13 @@ async function initFieldWorkspace() {
                     console.warn('[workspace] mark assenza seen:', seenErr);
                 }
 
-                const isManagerOrAdmin = hasAnyRoleFn
-                    ? hasAnyRoleFn({ ruoli: normalizedRoles }, ['manager', 'amministratore'])
-                    : roleListHas(normalizedRoles, ['manager', 'amministratore']);
-                const isFieldRole = hasAnyRoleFn
-                    ? hasAnyRoleFn({ ruoli: normalizedRoles }, ['operaio', 'caposquadra'])
-                    : roleListHas(normalizedRoles, ['operaio', 'caposquadra']);
-
-                if (isManagerOrAdmin || !isFieldRole) {
-                    rimandaDashboardTemporanea();
-                    return;
-                }
-
-                if (!availableModules.includes('manodopera')) {
-                    rimandaDashboardTemporanea();
+                const guardia = decidiGuardiaWorkspace({
+                    tenantData,
+                    ruoli: normalizedRoles,
+                    moduliEffettivi: availableModules
+                });
+                if (!guardia.entra) {
+                    rimandaDashboardTemporanea(guardia.motivo);
                     return;
                 }
                 pulisciPreferenzaClassicCampo();

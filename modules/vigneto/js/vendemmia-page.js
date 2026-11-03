@@ -12,6 +12,7 @@ import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standa
 import { getVendemmie, getVendemmia, createVendemmia, updateVendemmia, deleteVendemmia } from '../services/vendemmia-service.js';
 import { getAllVigneti } from '../services/vigneti-service.js';
 import { getAllMacchine } from '../../../modules/parco-macchine/services/macchine-service.js';
+import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 
 // Import dinamici dei servizi core con risoluzione percorsi per GitHub Pages
 const lavoriServiceModule = await import(resolvePath('../../../core/services/lavori-service.js'));
@@ -83,7 +84,7 @@ async function init() {
                 
                 if (tenantId) {
                     const tenant = await getCurrentTenant();
-                    const modules = Array.isArray(tenant?.modules) ? tenant.modules : [];
+                    const modules = resolveEffectiveModules(tenant);
                     
                     // Inizializza context Tony con i moduli attivi usando helper
                     if (window.Tony && window.Tony.initContextWithModules) {
@@ -126,7 +127,7 @@ async function init() {
                     const { runTonyProactiveHubBriefing } = await import('../../../core/js/tony-proactive-hub-briefing.js');
                     const { countVendemmieIncomplete } = await import('../../../core/config/tony-proactive-signals.js');
                     const tenant = await getCurrentTenant();
-                    const modules = Array.isArray(tenant?.modules) ? tenant.modules : [];
+                    const modules = resolveEffectiveModules(tenant);
                     const incomplete = countVendemmieIncomplete(allVendemmie || []);
                     runTonyProactiveHubBriefing({
                         hubId: 'vendemmia',

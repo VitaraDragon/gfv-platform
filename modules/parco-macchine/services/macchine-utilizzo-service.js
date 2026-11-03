@@ -52,7 +52,8 @@ export async function aggiornaOreMacchinaDaUtilizzo({
     }
     
     const tenantData = tenantDoc.data();
-    const hasParcoMacchineModule = tenantData.modules && tenantData.modules.includes('parcoMacchine');
+    const { hasModuleAccessFromTenant } = await import('../../../core/utils/module-access-resolver.js');
+    const hasParcoMacchineModule = hasModuleAccessFromTenant(tenantData, 'parcoMacchine');
     if (!hasParcoMacchineModule) {
       return { macchinaAggiornata: false, attrezzoAggiornato: false };
     }

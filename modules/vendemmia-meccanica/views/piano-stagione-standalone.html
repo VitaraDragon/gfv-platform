@@ -194,7 +194,7 @@
 <script type="module" src="../../../core/js/standalone-bootstrap.js" data-config-base="../../../core"></script>
 <script type="module">
 import { escapeHtml } from '../../../core/js/gfv-page-utils.js';
-import { initVmPageAuth, showVmAlert, publishTonyTableData } from '../js/vm-page-auth.js';
+import { initVmPageAuth, showVmAlert, showVmModuleAccessDenied, publishTonyTableData } from '../js/vm-page-auth.js';
 import { getPianoStagioneRows, summarizePianoStagione, buildPianoStagioneTonyContext, updateStagioneTerreno, setFlagStagioneTerreno, setBulkFlagStagioneTerreni } from '../services/piano-stagione-service.js';
 import { syncPreventiviAccettatiToPiano } from '../services/preventivo-piano-sync-service.js';
 import { syncLavoriCompletatiToPiano, cleanupOrphanedPianoStagioneLavori } from '../services/lavoro-piano-sync-service.js';
@@ -632,9 +632,11 @@ try {
 
     await loadData();
 } catch (e) {
-    showVmAlert('alert-container', e.message || 'Errore inizializzazione', 'error');
-    if ((e.message || '').includes('Moduli non attivi')) {
-        setTimeout(() => { window.location.href = '../../../core/dashboard-standalone.html'; }, 3000);
+    const msg = e.message || 'Errore inizializzazione';
+    if (/Abbonamento|Conto Terzi|Vendemmia Meccanica|serve:/i.test(msg)) {
+        showVmModuleAccessDenied('alert-container', msg);
+    } else {
+        showVmAlert('alert-container', msg, 'error');
     }
 }
 </script>

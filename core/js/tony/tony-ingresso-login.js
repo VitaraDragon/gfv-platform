@@ -4,6 +4,8 @@
  * @module core/js/tony/tony-ingresso-login
  */
 
+import { resolveEffectiveModules } from '../../utils/module-access-resolver.js';
+
 export const CHIAVE_RIMBALZI_INGRESSO = 'gfv_workspace_rimbalzi';
 export const CHIAVE_INGRESSO_ULTIMO = 'gfv_ingresso_ultimo';
 
@@ -23,6 +25,39 @@ export function eProfiloCampo(ruoli, moduli) {
   if (r.indexOf('manager') >= 0 || r.indexOf('amministratore') >= 0) return false;
   if (m.indexOf('manodopera') < 0) return false;
   return r.indexOf('operaio') >= 0 || r.indexOf('caposquadra') >= 0;
+}
+
+/**
+ * Guardia del field workspace: entra o rimanda in dashboard.
+ * Passare i moduli effettivi (pagati + prove via resolveEffectiveModules), non `tenant.modules` grezzo.
+ *
+ * @param {{ tenantData?: object|null, ruoli?: string[], moduliEffettivi?: string[], now?: Date, utenteAssente?: boolean }} [input]
+ * @returns {{ entra: boolean, motivo: 'ok'|'moduli'|'ruolo'|'utente assente' }}
+ */
+export function decidiGuardiaWorkspace(input) {
+  const src = input || {};
+  if (src.utenteAssente) {
+    return { entra: false, motivo: 'utente assente' };
+  }
+  const ruoli = normalizzaLista(src.ruoli);
+  const isManager =
+    ruoli.indexOf('manager') >= 0 || ruoli.indexOf('amministratore') >= 0;
+  const isField =
+    ruoli.indexOf('operaio') >= 0 || ruoli.indexOf('caposquadra') >= 0;
+  if (isManager || !isField) {
+    return { entra: false, motivo: 'ruolo' };
+  }
+
+  let moduli = normalizzaLista(src.moduliEffettivi);
+  if (!moduli.length && src.tenantData) {
+    const now = src.now instanceof Date ? src.now : new Date();
+    moduli = normalizzaLista(resolveEffectiveModules(src.tenantData, now));
+  }
+
+  if (moduli.indexOf('manodopera') < 0) {
+    return { entra: false, motivo: 'moduli' };
+  }
+  return { entra: true, motivo: 'ok' };
 }
 
 /**
@@ -176,6 +211,7 @@ export function scriviIndizioIngresso(scelta) {
 export function pulisciIndizioIngresso() {
   try { localStorage.removeItem(CHIAVE_INGRESSO_ULTIMO); } catch (e) { /* ignore */ }
   try { sessionStorage.removeItem('gfv_tony_utente_ruoli'); } catch (e2) { /* ignore */ }
+  try { sessionStorage.removeItem(CHIAVE_RIMBALZI_INGRESSO); } catch (e3) { /* ignore */ }
 }
 
 if (typeof window !== 'undefined') {

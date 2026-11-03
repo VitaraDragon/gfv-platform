@@ -975,7 +975,10 @@
 
                         try {
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
-                            const modules = tenantDoc.exists() ? (tenantDoc.data().modules || []) : [];
+                            const { resolveEffectiveModules } = await import('../../../core/utils/module-access-resolver.js');
+                            const modules = tenantDoc.exists()
+                                ? resolveEffectiveModules(tenantDoc.data() || {})
+                                : [];
                             hasVendemmiaMeccanicaModule = modules.includes('vendemmiaMeccanica');
                             if (hasVendemmiaMeccanicaModule) {
                                 await ensureVignetoDetectionCtx();

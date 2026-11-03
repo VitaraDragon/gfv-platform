@@ -1,6 +1,30 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-03 — Secondo giro correzioni app + landing (pin sede v2, saluto subito, F5 auth, ortaggi catalogo, email login).**
+**Ultimo aggiornamento documentazione: 2026-11-03 — PR #331: workspace di campo che non partiva, import vigneto, ritento cascata.**
+
+## 2026-11-03 — PR #331: avvio workspace e ritento disattivazione
+
+Il workspace di campo tornava a dichiarare `hasAnyRoleFn`, così operaio e caposquadra lo aprono. Le pagine vigneto che avevano perso l'import del servizio (anagrafica, potatura, vendemmia, pianificazione, calcolo materiali, dashboard, statistiche) lo hanno di nuovo. Se la disattivazione di Conto Terzi si ferma con la Vendemmia Meccanica ancora attiva, la pagina Abbonamento offre «Riprova» e richiama `cancelStripeAddon`. Se Tony non riesce a caricare il resolver dei moduli, usa i moduli grezzi del tenant. Nessun deploy e nessuna scrittura su Firestore.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-03 — PR #331: cascata Conto Terzi senza falso errore e senza toccare il bundle.**
+
+## 2026-11-03 — PR #331: disattivazione Conto Terzi e moduli effettivi
+
+Disattivare Conto Terzi chiama il server una sola volta. Vendemmia Meccanica segue nella risposta (`cascaded`); un modulo già in disattivazione o già tolto è un successo, così un nuovo tentativo completa la VM. La cascata usa solo l'abbonamento del modulo: se la VM è nel bundle `gfv-completo` non si annulla l'abbonamento del bundle né il piano Base; una VM in prova si spegne senza Stripe. Il contatore dei rimbalzi si azzera in ogni logout. Le pagine che decidevano l'accesso con `tenant.modules` usano i moduli effettivi (pagati + prove). Il toast del preventivo non mostra più HTML: testo e link vero verso il Diario. Dopo il merge: pubblicare la function `cancelStripeAddon`. Nessun deploy in questo giro.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-03 — Guide utente/Tony: QA storico accessi, preventivi CT, VM↔CT.**
+
+## 2026-11-03 — Guide allineate a fix QA storico accessi (branch fix/qa-03nov-1-storico-accessi)
+
+Guide MANODOPERA/VIGNETO: moduli in **prova 30 giorni** = stessi accessi del pagato (workspace, pagine modulo, grappolo terreni). CONTO TERZI: flusso **Pianifica** con/senza Manodopera (da pianificare vs in corso + Diario CT); preventivo resta **Pianificato**, avanzamento sul lavoro. CORE + VENDEMMIA MECCANICA: VM dipende da Conto terzi; disattivazione CT a cascata su VM. Mirror `core/GUIDA/`.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-03 — Secondo giro correzioni app + landing (pin sede v2, saluto subito, F5 auth, ortaggi catalogo, email login).**
 
 ## 2026-11-03 — Correzioni app e landing, secondo giro (2–3 novembre)
 

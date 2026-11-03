@@ -5,6 +5,7 @@
  */
 
 import { query, where, doc, getDoc } from '../services/firebase-service.js';
+import { resolveEffectiveModules } from '../utils/module-access-resolver.js';
 import { isGuastoAttivo } from '../services/guasto-stati.js';
 import { isTipoFlotta } from '../../modules/parco-macchine/lib/macchine-tipo-utils.js';
 import {
@@ -133,7 +134,7 @@ export async function loadAmministrazioneStats(availableModules, dependencies) {
         const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
         if (tenantDoc.exists()) {
             const tenantData = tenantDoc.data();
-            const moduli = tenantData.modules || [];
+            const moduli = resolveEffectiveModules(tenantData);
             const piano = tenantData.piano || 'starter';
             
             const statModuliEl = document.getElementById('stat-moduli-amministrazione');
@@ -193,7 +194,7 @@ export async function loadAdminStats(availableModules, dependencies) {
         const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
         if (tenantDoc.exists()) {
             const tenantData = tenantDoc.data();
-            const moduli = tenantData.modules || [];
+            const moduli = resolveEffectiveModules(tenantData);
             const piano = tenantData.piano || 'starter';
             
             const statModuliEl = document.getElementById('stat-moduli-admin');
@@ -698,8 +699,9 @@ export async function loadManagerManodoperaStats(dependencies) {
         let hasContoTerzi = false;
         if (tenantDoc.exists()) {
             const tenantData = tenantDoc.data();
-            hasContoTerzi = tenantData.modules && tenantData.modules.includes('contoTerzi');
-            const hasParcoMacchine = tenantData.modules && tenantData.modules.includes('parcoMacchine');
+            const effectiveMods = resolveEffectiveModules(tenantData);
+            hasContoTerzi = effectiveMods.includes('contoTerzi');
+            const hasParcoMacchine = effectiveMods.includes('parcoMacchine');
             if (hasParcoMacchine && setupManutenzioniRealtime) {
                 setTimeout(() => {
                     setupManutenzioniRealtime(tenantId);
@@ -993,7 +995,7 @@ export async function loadManagerLavoriStats(dependencies) {
             const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
             if (tenantDoc.exists()) {
                 const tenantData = tenantDoc.data();
-                hasContoTerzi = tenantData.modules && tenantData.modules.includes('contoTerzi');
+                hasContoTerzi = resolveEffectiveModules(tenantData).includes('contoTerzi');
             }
         } catch (e) {
             // Ignora errori

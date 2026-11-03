@@ -4,6 +4,7 @@
  */
 
 import { resolvePath } from '../../../core/js/gfv-path.js';
+import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 import { publishSeminativoTableData } from './seminativo-page-context.js';
 import { listLavorazioniCollegate } from '../services/lavorazioni-service.js';
@@ -249,7 +250,7 @@ export async function initLavorazioniPage() {
       return;
     }
     const tenant = await getCurrentTenant().catch(() => null);
-    const modules = Array.isArray(tenant?.modules) ? tenant.modules.slice() : [];
+    const modules = resolveEffectiveModules(tenant);
     hasManodopera = modules.some((m) => String(m || '').toLowerCase() === 'manodopera');
     if (!modules.some((m) => String(m || '').toLowerCase() === 'seminativo')) modules.push('seminativo');
     if (!modules.some((m) => String(m || '').toLowerCase() === 'tony')) modules.push('tony');

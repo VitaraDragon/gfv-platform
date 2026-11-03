@@ -1198,6 +1198,22 @@ export async function handleSaveAttivita(params) {
             const attivitaDocRef = await addDoc(attivitaCollection, attivitaData);
             const attivitaId = attivitaDocRef.id;
 
+            if (isContoTerziMode && lavoroId) {
+                try {
+                    const lavoroOriginale = lavoriList.find((l) => l.id === lavoroId);
+                    if (lavoroOriginale?.stato === 'da_pianificare') {
+                        await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroId), {
+                            stato: 'in_corso',
+                            aggiornatoIl: serverTimestamp()
+                        });
+                        lavoroOriginale.stato = 'in_corso';
+                        console.info('[ATTIVITA-EVENTS] Lavoro CT da_pianificare → in_corso al primo salvataggio attività');
+                    }
+                } catch (promoErr) {
+                    console.warn('[ATTIVITA-EVENTS] promozione lavoro da_pianificare:', promoErr);
+                }
+            }
+
             showAlert('Attività creata con successo!', 'success');
             segnaAttivitaSalvata();
             closeAttivitaModal();
@@ -1592,6 +1608,23 @@ export async function salvaAttivitaRapida({
         const attivitaCollection = getAttivitaCollection(currentTenantId, db);
         const attivitaDocRef = await addDoc(attivitaCollection, attivitaData);
         const attivitaId = attivitaDocRef.id;
+
+        // Senza Manodopera: primo salvataggio su lavoro CT ancora da_pianificare → in_corso
+        if (lavoroIdValue && !lavoroTerminato) {
+            try {
+                const lavoroOriginale = lavoriList.find((l) => l.id === lavoroIdValue);
+                if (lavoroOriginale?.stato === 'da_pianificare') {
+                    await updateDoc(doc(db, 'tenants', currentTenantId, 'lavori', lavoroIdValue), {
+                        stato: 'in_corso',
+                        aggiornatoIl: serverTimestamp()
+                    });
+                    lavoroOriginale.stato = 'in_corso';
+                    console.info('[ATTIVITA-EVENTS] Lavoro CT da_pianificare → in_corso al primo salvataggio attività');
+                }
+            } catch (promoErr) {
+                console.warn('[ATTIVITA-EVENTS] promozione lavoro da_pianificare:', promoErr);
+            }
+        }
         
         // Rilevamento automatico vendemmia: crea vendemmia se attività è di tipo vendemmia su terreno VITE
         // Funziona sia per attività con lavoroId che per attività dirette (senza lavoroId)
