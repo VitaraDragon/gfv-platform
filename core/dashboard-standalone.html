@@ -136,7 +136,7 @@
       alertScript.src = (base ? base + sep : '') + 'js/standalone-alert-global.js';
       document.head.appendChild(alertScript);
       var tonyLoader = document.createElement('script');
-      tonyLoader.src = (base ? base + sep : '') + 'js/gfv-tony-loader.js?v=2026-11-02a';
+      tonyLoader.src = (base ? base + sep : '') + 'js/gfv-tony-loader.js?v=2026-11-02b';
       document.head.appendChild(tonyLoader);
     })();
     </script>
@@ -148,7 +148,7 @@
         import { formatDateTimeItalianReadable } from './js/date-format-it.js';
         import { resolveAuthUser, loginPageUrl } from './js/simulator-standalone-page.js';
         import { getNomeVisualizzato } from './js/nome-visualizzato.js';
-        import { spiegaIngressoDopoLogin, scriviIndizioIngresso, pulisciIndizioIngresso, CHIAVE_RIMBALZI_INGRESSO } from './js/tony/tony-ingresso-login.js?v=2026-11-02a';
+        import { spiegaIngressoDopoLogin, scriviIndizioIngresso, pulisciIndizioIngresso, CHIAVE_RIMBALZI_INGRESSO } from './js/tony/tony-ingresso-login.js?v=2026-11-02b';
         const { 
             roleNames, 
             normalizeRole, 
@@ -1196,7 +1196,18 @@
             const hasTonyModule = Array.isArray(availableModules) && availableModules.some(function(m) {
                 return String(m).toLowerCase() === 'tony';
             });
-            if (planId !== 'free' || hasTonyModule) {
+            // Free: carica subito se onboarding Tony Guida (saluto 7 giorni) o modulo Tony.
+            var wantTonyNow = planId !== 'free' || hasTonyModule;
+            if (!wantTonyNow && planId === 'free') {
+                try {
+                    var tdSaluto = window.__gfvTenantData;
+                    if (tdSaluto && tdSaluto.tonyLandingSetupCompletatoIl && typeof window.gfvTryLoadTonyWidgetWhenReady === 'function') {
+                        // shouldLoadTony nel loader verifica ancora tonyGuidaOnboardingEndsAt
+                        wantTonyNow = true;
+                    }
+                } catch (eWant) { /* ignore */ }
+            }
+            if (wantTonyNow) {
                 if (typeof window.gfvTryLoadTonyWidgetWhenReady === 'function') {
                     window.gfvTryLoadTonyWidgetWhenReady();
                 } else if (typeof window.gfvLoadTonyWidget === 'function') {

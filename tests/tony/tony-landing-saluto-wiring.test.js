@@ -15,7 +15,7 @@ const sched = src.slice(schedStart, schedStart + 3500);
 describe('main.js: saluto landing', () => {
   it('importa gli helper puri con ?v= uguale al build', () => {
     const build = src.match(/TONY_CLIENT_BUILD\s*=\s*'([^']+)'/)[1];
-    expect(build).toBe('2026-11-02a');
+    expect(build).toMatch(/^\d{4}-\d{2}-\d{2}[a-z]$/);
     expect(src).toMatch(
       new RegExp("from './tony-landing-saluto\\.js\\?v=" + build + "'")
     );
