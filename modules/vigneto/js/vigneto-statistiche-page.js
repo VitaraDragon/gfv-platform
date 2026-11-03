@@ -6,6 +6,7 @@
  */
 
 import { showAlert } from '../../../core/js/gfv-page-utils.js';
+import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 
 try {

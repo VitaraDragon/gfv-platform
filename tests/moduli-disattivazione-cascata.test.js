@@ -1,6 +1,7 @@
 /**
  * @vitest-environment node
  */
+import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import {
   moduliDaDisattivareInsieme,
@@ -33,6 +34,19 @@ describe('testoConfermaDisattivazioneCascata', () => {
     expect(msg).toMatch(/Conto Terzi/);
     expect(msg).not.toMatch(/contoTerzi/);
     expect(msg).not.toMatch(/vendemmiaMeccanica/);
+  });
+});
+
+describe('pagina Abbonamento: ritento cascata incompleta', () => {
+  const html = readFileSync('core/admin/abbonamento-standalone.html', 'utf8');
+
+  it('se un dipendente è ancora attivo offre Riprova che richiama cancelStripeAddon', () => {
+    expect(html).toMatch(/function dipendentiCascataAncoraAttivi/);
+    expect(html).toMatch(/riprovaDisattivazioneModulo\('\$\{mod\.id\}'\)/);
+    expect(html).toMatch(/window\.riprovaDisattivazioneModulo/);
+    const fn = html.slice(html.indexOf('async function completaDisattivazioneModulo'));
+    expect(fn).toMatch(/getHttpsCallable\('cancelStripeAddon'\)/);
+    expect(html).toMatch(/ricaricaAbbonamentoDopoErrore/);
   });
 });
 

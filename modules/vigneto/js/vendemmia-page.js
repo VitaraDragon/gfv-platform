@@ -11,6 +11,7 @@ import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 import { getVendemmie, getVendemmia, createVendemmia, updateVendemmia, deleteVendemmia } from '../services/vendemmia-service.js';
 import { getAllVigneti } from '../services/vigneti-service.js';
+import { getAllMacchine } from '../../../modules/parco-macchine/services/macchine-service.js';
 import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 
 // Import dinamici dei servizi core con risoluzione percorsi per GitHub Pages

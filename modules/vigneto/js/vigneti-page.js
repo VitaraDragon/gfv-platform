@@ -7,6 +7,7 @@
 
 import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
+import { getAllVigneti, createVigneto, updateVigneto, deleteVigneto } from '../services/vigneti-service.js';
 
 try {
     await window.GFVStandaloneReady;

@@ -8,6 +8,7 @@
 import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
 import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
+import { createPianificazione, getPianificazione, updatePianificazione } from '../services/pianificazione-impianto-service.js';
 
 try {
     await window.GFVStandaloneReady;

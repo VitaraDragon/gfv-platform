@@ -188,13 +188,14 @@
             applyPublish(modulesOpt);
             return;
         }
+        var rawModules = Array.isArray(tenantData.modules) ? tenantData.modules.slice() : []; // ripiego se resolveEffectiveModules non parte
         importCoreModule('utils/module-access-resolver.js').then(function (mar) {
             var modules = mar && typeof mar.resolveEffectiveModules === 'function'
                 ? mar.resolveEffectiveModules(tenantData)
-                : [];
+                : rawModules;
             applyPublish(modules);
         }).catch(function () {
-            applyPublish([]);
+            applyPublish(rawModules);
         });
     }
 

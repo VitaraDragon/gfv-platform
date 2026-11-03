@@ -1,6 +1,14 @@
 # 📋 Cosa Abbiamo Fatto - Riepilogo Core
 
-**Ultimo aggiornamento documentazione: 2026-11-03 — PR #331: cascata Conto Terzi senza falso errore e senza toccare il bundle.**
+**Ultimo aggiornamento documentazione: 2026-11-03 — PR #331: workspace di campo che non partiva, import vigneto, ritento cascata.**
+
+## 2026-11-03 — PR #331: avvio workspace e ritento disattivazione
+
+Il workspace di campo tornava a dichiarare `hasAnyRoleFn`, così operaio e caposquadra lo aprono. Le pagine vigneto che avevano perso l'import del servizio (anagrafica, potatura, vendemmia, pianificazione, calcolo materiali, dashboard, statistiche) lo hanno di nuovo. Se la disattivazione di Conto Terzi si ferma con la Vendemmia Meccanica ancora attiva, la pagina Abbonamento offre «Riprova» e richiama `cancelStripeAddon`. Se Tony non riesce a caricare il resolver dei moduli, usa i moduli grezzi del tenant. Nessun deploy e nessuna scrittura su Firestore.
+
+---
+
+**Ultimo aggiornamento precedente: 2026-11-03 — PR #331: cascata Conto Terzi senza falso errore e senza toccare il bundle.**
 
 ## 2026-11-03 — PR #331: disattivazione Conto Terzi e moduli effettivi
 

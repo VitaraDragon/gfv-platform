@@ -86,3 +86,22 @@ describe('nessun gate grezzo su tenant.modules (#23/#31)', () => {
     expect(violazioni, violazioni.join('\n')).toEqual([]);
   });
 });
+
+describe('import non persi passando a resolveEffectiveModules', () => {
+  const attesi = [
+    ['modules/vigneto/js/vigneti-page.js', 'getAllVigneti'],
+    ['modules/vigneto/js/calcolo-materiali-page.js', 'getAllPianificazioni'],
+    ['modules/vigneto/js/pianifica-impianto-page.js', 'createPianificazione'],
+    ['modules/vigneto/js/potatura-page.js', 'resolveAuthUser'],
+    ['modules/vigneto/js/vendemmia-page.js', 'getAllMacchine'],
+    ['modules/vigneto/js/vigneto-dashboard-page.js', 'resolveAuthUser'],
+    ['modules/vigneto/js/vigneto-statistiche-page.js', 'resolveAuthUser'],
+  ];
+
+  it('ogni simbolo è ancora in un import', () => {
+    for (const [file, symbol] of attesi) {
+      const src = readFileSync(join(ROOT, file), 'utf8');
+      expect(src, file + ' → ' + symbol).toMatch(new RegExp('import\\s*\\{[^}]*\\b' + symbol + '\\b'));
+    }
+  });
+});

@@ -2988,6 +2988,7 @@ async function initFieldWorkspace() {
                 }
                 const utils = fieldWorkspaceUtils();
                 const normalizeRolesFn = utils.normalizeRoles || normalizeRoles;
+                const hasAnyRoleFn = utils.hasAnyRole || hasAnyRole;
                 const normalizedRoles = normalizeRolesFn ? normalizeRolesFn(roles) : roles;
                 // Conserva eventuale id documento users diverso da auth.uid (match destinatari comunicazioni).
                 currentUserData = {
