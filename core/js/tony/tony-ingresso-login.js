@@ -26,6 +26,58 @@ export function eProfiloCampo(ruoli, moduli) {
 }
 
 /**
+ * Guardia del field workspace: entra o rimanda in dashboard.
+ * Passare i moduli effettivi (pagati + prove via resolveEffectiveModules), non `tenant.modules` grezzo.
+ *
+ * @param {{ tenantData?: object|null, ruoli?: string[], moduliEffettivi?: string[], now?: Date, utenteAssente?: boolean }} [input]
+ * @returns {{ entra: boolean, motivo: 'ok'|'moduli'|'ruolo'|'utente assente' }}
+ */
+export function decidiGuardiaWorkspace(input) {
+  const src = input || {};
+  if (src.utenteAssente) {
+    return { entra: false, motivo: 'utente assente' };
+  }
+  const ruoli = normalizzaLista(src.ruoli);
+  const isManager =
+    ruoli.indexOf('manager') >= 0 || ruoli.indexOf('amministratore') >= 0;
+  const isField =
+    ruoli.indexOf('operaio') >= 0 || ruoli.indexOf('caposquadra') >= 0;
+  if (isManager || !isField) {
+    return { entra: false, motivo: 'ruolo' };
+  }
+
+  let moduli = normalizzaLista(src.moduliEffettivi);
+  if (!moduli.length && src.tenantData) {
+    const paid = Array.isArray(src.tenantData.modules) ? src.tenantData.modules : [];
+    const trials =
+      src.tenantData.moduleTrials && typeof src.tenantData.moduleTrials === 'object'
+        ? src.tenantData.moduleTrials
+        : {};
+    const now = src.now instanceof Date ? src.now : new Date();
+    const trialIds = Object.keys(trials).filter((id) => {
+      const rec = trials[id];
+      if (!rec || rec.status !== 'active') return false;
+      const ends = rec.endsAt;
+      let endsAt = null;
+      if (ends instanceof Date) endsAt = ends;
+      else if (ends && typeof ends.toDate === 'function') endsAt = ends.toDate();
+      else if (typeof ends === 'number') endsAt = new Date(ends > 1e12 ? ends : ends * 1000);
+      else if (ends) {
+        const parsed = new Date(ends);
+        endsAt = Number.isNaN(parsed.getTime()) ? null : parsed;
+      }
+      return endsAt && endsAt > now;
+    });
+    moduli = normalizzaLista([...new Set([...paid, ...trialIds])]);
+  }
+
+  if (moduli.indexOf('manodopera') < 0) {
+    return { entra: false, motivo: 'moduli' };
+  }
+  return { entra: true, motivo: 'ok' };
+}
+
+/**
  * Dove va l'utente appena entrato.
  * Manager e amministratore restano in dashboard, anche se sono pure capo o operaio.
  * Senza Manodopera si resta in dashboard.

@@ -148,7 +148,8 @@
       gateBlocked.classList.add('hidden');
       meteoMain.classList.remove('hidden');
 
-      const modules = Array.isArray(tenant && tenant.modules) ? tenant.modules : [];
+      const { resolveEffectiveModules } = await import('../../../core/utils/module-access-resolver.js');
+      const modules = resolveEffectiveModules(tenant);
       if (typeof window.syncTonyModules === 'function') {
         window.syncTonyModules(modules);
       }

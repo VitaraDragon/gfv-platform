@@ -8,7 +8,10 @@ import {
   guardiaRottaCampo,
   indizioRuoliCampo,
   urlWorkspaceDaPercorso,
+  decidiGuardiaWorkspace,
+  CHIAVE_RIMBALZI_INGRESSO,
 } from '../core/js/tony/tony-ingresso-login.js';
+import { resolveEffectiveModules } from '../core/utils/module-access-resolver.js';
 
 describe('scegliIngresso', () => {
   it('operaio con Manodopera va nell’area di lavoro', () => {
@@ -256,5 +259,74 @@ describe('guardiaRottaCampo', () => {
       .toBe('/gfv-platform/core/mobile/field-workspace-standalone.html');
     expect(urlWorkspaceDaPercorso('/gfv-platform/modules/vigneto/views/x.html'))
       .toBe('/gfv-platform/core/mobile/field-workspace-standalone.html');
+  });
+});
+
+describe('decidiGuardiaWorkspace (#23)', () => {
+  const futuro = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
+  it('prova Manodopera attiva senza modules pagati → entra', () => {
+    const tenantData = {
+      modules: [],
+      moduleTrials: { manodopera: { status: 'active', endsAt: futuro } }
+    };
+    const esito = decidiGuardiaWorkspace({
+      tenantData,
+      ruoli: ['operaio'],
+      moduliEffettivi: resolveEffectiveModules(tenantData)
+    });
+    expect(esito.entra).toBe(true);
+    expect(esito.motivo).toBe('ok');
+  });
+
+  it('prova Manodopera scaduta → rimanda (moduli)', () => {
+    const passato = new Date(Date.now() - 1000);
+    const tenantData = {
+      modules: [],
+      moduleTrials: { manodopera: { status: 'active', endsAt: passato } }
+    };
+    const esito = decidiGuardiaWorkspace({
+      tenantData,
+      ruoli: ['caposquadra'],
+      moduliEffettivi: resolveEffectiveModules(tenantData)
+    });
+    expect(esito.entra).toBe(false);
+    expect(esito.motivo).toBe('moduli');
+  });
+
+  it('Manodopera pagata → entra', () => {
+    const esito = decidiGuardiaWorkspace({
+      moduliEffettivi: ['manodopera'],
+      ruoli: ['operaio']
+    });
+    expect(esito.entra).toBe(true);
+  });
+
+  it('coerenza con scegliIngresso: stesso tenant non dà workspace da una parte e rimanda dall’altra', () => {
+    const tenantData = {
+      modules: [],
+      moduleTrials: { manodopera: { status: 'active', endsAt: futuro } }
+    };
+    const moduli = resolveEffectiveModules(tenantData);
+    const ingresso = scegliIngresso({
+      ruoli: ['operaio'],
+      moduli,
+      preferenza: 'auto',
+      rimbalzi: 0
+    });
+    const guardia = decidiGuardiaWorkspace({
+      ruoli: ['operaio'],
+      moduliEffettivi: moduli
+    });
+    if (ingresso.scelta === 'workspace') {
+      expect(guardia.entra).toBe(true);
+    }
+    if (!guardia.entra && guardia.motivo === 'moduli') {
+      expect(ingresso.scelta).not.toBe('workspace');
+    }
+  });
+
+  it('CHIAVE_RIMBALZI_INGRESSO è esportata per login/logout', () => {
+    expect(CHIAVE_RIMBALZI_INGRESSO).toBe('gfv_workspace_rimbalzi');
   });
 });

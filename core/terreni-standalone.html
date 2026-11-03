@@ -1115,7 +1115,8 @@
                 }
 
                 const tenantData = tenantDoc.data();
-                const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                const { resolveEffectiveModules } = await import('./utils/module-access-resolver.js');
+                const modules = resolveEffectiveModules(tenantData);
                 hasVignetoModule = modules.includes('vigneto');
                 hasFruttetoModule = modules.includes('frutteto');
 

@@ -7,7 +7,7 @@
 
 import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
-import { createPianificazione, getPianificazione, updatePianificazione } from '../services/pianificazione-impianto-service.js';
+import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 
 try {
     await window.GFVStandaloneReady;
@@ -124,7 +124,7 @@ async function init() {
                 if (tenantId) {
                     const tenant = await getCurrentTenant();
                     const moduloRichiesto = config.moduloRequired;
-                    if (!tenant || !tenant.modules || !tenant.modules.includes(moduloRichiesto)) {
+                    if (!tenant || !resolveEffectiveModules(tenant).includes(moduloRichiesto)) {
                         alert('Il modulo ' + (moduloRichiesto === 'vigneto' ? 'Vigneto' : moduloRichiesto === 'frutteto' ? 'Frutteto' : 'Oliveto') + ' non è attivo. Attivalo dalla pagina Abbonamento.');
                         window.location.href = '../../../../core/admin/abbonamento-standalone.html';
                         return;

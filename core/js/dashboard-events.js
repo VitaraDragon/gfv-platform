@@ -70,6 +70,12 @@ export async function handleLogout(auth, db, cleanupCallbacks = {}) {
         sessionStorage.removeItem('gfv_user_just_registered');
         sessionStorage.removeItem('tony_session_state');
         sessionStorage.removeItem('gfv_tony_utente_ruoli');
+        try {
+            const { CHIAVE_RIMBALZI_INGRESSO } = await import('./tony/tony-ingresso-login.js');
+            sessionStorage.removeItem(CHIAVE_RIMBALZI_INGRESSO);
+        } catch (e) {
+            try { sessionStorage.removeItem('gfv_workspace_rimbalzi'); } catch (e2) { /* ignore */ }
+        }
         try { localStorage.removeItem('gfv_ingresso_ultimo'); } catch (e) { /* ignore */ }
         
         await signOut(auth);

@@ -541,7 +541,8 @@
                         const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
                         if (tenantDoc.exists()) {
                             const td = tenantDoc.data();
-                            availableModules = Array.isArray(td.modules) ? td.modules : [];
+                            const { resolveEffectiveModules } = await import('../../utils/module-access-resolver.js');
+                            availableModules = resolveEffectiveModules(td);
                         }
                     }
 

@@ -970,7 +970,8 @@
                                 document.getElementById('azienda-note').value = tenantData.note || '';
                                 
                                 // Verifica moduli attivi
-                                const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                                const { resolveEffectiveModules } = await import('../utils/module-access-resolver.js');
+                                const modules = resolveEffectiveModules(tenantData);
                                 hasManodoperaModule = modules.includes('manodopera');
                                 hasContoTerziModule = modules.includes('contoTerzi');
                                 wireManagerHomeLink('dashboard-link', false);
@@ -1056,7 +1057,8 @@
                                 const tenantDocImp = await getDoc(doc(db, 'tenants', currentTenantId));
                                 if (tenantDocImp.exists()) {
                                     const td = tenantDocImp.data();
-                                    const modulesImp = Array.isArray(td?.modules) ? td.modules : [];
+                                    const { resolveEffectiveModules } = await import('../utils/module-access-resolver.js');
+                                    const modulesImp = resolveEffectiveModules(td);
                                     const nomeTonyImpNm = `${currentUserData.nome || ''} ${currentUserData.cognome || ''}`.trim() || (user && user.email) || '';
                                     const tonyOptsImpNm = { tenantId: currentTenantId, utente_corrente: { nome: nomeTonyImpNm, ruoli: ruoli } };
                                     if (window.Tony && window.Tony.initContextWithModules) {
@@ -3929,7 +3931,8 @@
                 const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                 if (tenantDoc.exists()) {
                     const tenantData = tenantDoc.data();
-                    const hasContoTerziModule = tenantData.modules && tenantData.modules.includes('contoTerzi');
+                    const { resolveEffectiveModules: resolveEffImp } = await import('../utils/module-access-resolver.js');
+                    const hasContoTerziModule = resolveEffImp(tenantData).includes('contoTerzi');
                     if (!hasContoTerziModule) {
                         showAlert('Il modulo Conto Terzi non è attivo. Attiva il modulo per gestire i coefficienti morfologia.', 'error');
                         return;
@@ -4001,7 +4004,8 @@
                 const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                 if (tenantDoc.exists()) {
                     const tenantData = tenantDoc.data();
-                    const hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                    const { resolveEffectiveModules: resolveEffImp2 } = await import('../utils/module-access-resolver.js');
+                    const hasManodoperaModule = resolveEffImp2(tenantData).includes('manodopera');
                     if (!hasManodoperaModule) {
                         showAlert('Il modulo Manodopera non è attivo. Attiva il modulo per gestire le tariffe operai.', 'error');
                         return;

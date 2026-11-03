@@ -6,7 +6,7 @@
  */
 
 import { showAlert } from '../../../core/js/gfv-page-utils.js';
-import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 
 try {
     await window.GFVStandaloneReady;
@@ -84,7 +84,7 @@ onAuthStateChanged(auth, async (user) => {
                         return;
                     }
                     
-                    const modules = tenant.modules || [];
+                    const modules = resolveEffectiveModules(tenant);
                     const hasVignetoModule = modules.some(m => m && m.toLowerCase() === 'vigneto');
                     
                     if (!hasVignetoModule) {

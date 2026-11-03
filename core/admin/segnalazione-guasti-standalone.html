@@ -918,7 +918,8 @@
                                 console.info('[segnalazione-guasti] lettura tenant ms', Math.round(((typeof performance !== 'undefined' && performance.now) ? performance.now() : Date.now()) - tTenant));
                                 if (tenantDoc.exists()) {
                                     const tenantData = tenantDoc.data();
-                                    const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                                    const { resolveEffectiveModules } = await import('../utils/module-access-resolver.js');
+                                const modules = resolveEffectiveModules(tenantData);
 
                                     // Inizializza context Tony con i moduli attivi usando helper
                                     if (window.Tony && window.Tony.initContextWithModules) {

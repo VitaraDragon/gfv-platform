@@ -6,6 +6,7 @@
  */
 
 import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-it.js';
+import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 import { getCurrentPositionGeo, geolocationErrorMessage } from '../../../core/js/geo-capture.js';
 import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
@@ -310,7 +311,7 @@ async function init() {
                 const tenantId = getCurrentTenantId();
                 if (tenantId) {
                     const tenant = await getCurrentTenant();
-                    const modules = Array.isArray(tenant?.modules) ? tenant.modules : [];
+                    const modules = resolveEffectiveModules(tenant);
                     
                     // Inizializza context Tony con i moduli attivi usando helper
                     if (window.Tony && window.Tony.initContextWithModules) {

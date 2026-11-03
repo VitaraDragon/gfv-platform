@@ -765,6 +765,13 @@
                 successMessage.textContent = messaggioFineRegistrazione(esitoLegale, msgOk);
                 successMessage.classList.add('show');
 
+                try {
+                    const { CHIAVE_RIMBALZI_INGRESSO } = await import('../js/tony/tony-ingresso-login.js');
+                    sessionStorage.removeItem(CHIAVE_RIMBALZI_INGRESSO);
+                } catch (rimbalziErr) {
+                    try { sessionStorage.removeItem('gfv_workspace_rimbalzi'); } catch (e2) { /* ignore */ }
+                }
+
                 setTimeout(() => {
                     window.location.href = '../dashboard-standalone.html';
                 }, 2000);

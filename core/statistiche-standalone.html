@@ -999,7 +999,8 @@
                         const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                         if (tenantDoc.exists()) {
                             const tenantData = tenantDoc.data();
-                            const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                            const { resolveEffectiveModules } = await import('./utils/module-access-resolver.js');
+                            const modules = resolveEffectiveModules(tenantData);
                             hasParcoMacchineModule = modules.includes('parcoMacchine');
                             
                             // Inizializza context Tony con i moduli attivi usando helper
@@ -1291,7 +1292,8 @@
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                     if (tenantDoc.exists()) {
                         const tenantData = tenantDoc.data();
-                        const hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                        const { resolveEffectiveModules: resolveEffStat } = await import('./utils/module-access-resolver.js');
+                        const hasManodoperaModule = resolveEffStat(tenantData).includes('manodopera');
                         
                         if (hasManodoperaModule) {
                             const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
@@ -1363,7 +1365,8 @@
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                     if (tenantDoc.exists()) {
                         const tenantData = tenantDoc.data();
-                        const hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                        const { resolveEffectiveModules: resolveEffStat } = await import('./utils/module-access-resolver.js');
+                        const hasManodoperaModule = resolveEffStat(tenantData).includes('manodopera');
                         
                         if (hasManodoperaModule) {
                             const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
@@ -1514,7 +1517,8 @@
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                     if (tenantDoc.exists()) {
                         const tenantData = tenantDoc.data();
-                        const hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                        const { resolveEffectiveModules: resolveEffStat } = await import('./utils/module-access-resolver.js');
+                        const hasManodoperaModule = resolveEffStat(tenantData).includes('manodopera');
                         
                         if (hasManodoperaModule) {
                             const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');
@@ -1617,7 +1621,8 @@
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                     if (tenantDoc.exists()) {
                         const tenantData = tenantDoc.data();
-                        const hasManodoperaModule = tenantData.modules && tenantData.modules.includes('manodopera');
+                        const { resolveEffectiveModules: resolveEffStat } = await import('./utils/module-access-resolver.js');
+                        const hasManodoperaModule = resolveEffStat(tenantData).includes('manodopera');
                         
                         if (hasManodoperaModule) {
                             const lavoriRef = collection(db, 'tenants', currentTenantId, 'lavori');

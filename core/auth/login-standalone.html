@@ -720,6 +720,13 @@
                     console.warn('Errore aggiornamento ultimo accesso:', error);
                 }
 
+                try {
+                    const { CHIAVE_RIMBALZI_INGRESSO } = await import('../js/tony/tony-ingresso-login.js');
+                    sessionStorage.removeItem(CHIAVE_RIMBALZI_INGRESSO);
+                } catch (rimbalziErr) {
+                    try { sessionStorage.removeItem('gfv_workspace_rimbalzi'); } catch (e2) { /* ignore */ }
+                }
+
                 await verificaSessionePrimaDiRedirect(user);
 
                 // Carica tenant disponibili per l'utente
