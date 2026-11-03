@@ -4,8 +4,10 @@ import { testiLanding } from '../content/testi-landing.js';
 import {
   collegaTerreniAiPoderi,
   controllaScheda,
+  erroriColturaTerreniForm,
   esitoSalvataggio,
   messaggioErroreSetup,
+  normalizzaColturaCatalogo,
   nuovoRequestId,
   payloadDaScheda,
   risolviNomePodere,
@@ -122,14 +124,29 @@ function payloadCorrente() {
 
 function controllaLive() {
   const esito = controllaScheda(payloadCorrente());
+  const extra = erroriColturaTerreniForm(terreni.value, props.dati);
   const mappa: Record<string, string> = {};
-  if (!esito.ok && Array.isArray(esito.errori)) {
-    for (const e of esito.errori) {
+  const errori = [
+    ...(Array.isArray(esito.errori) ? esito.errori : []),
+    ...extra,
+  ];
+  if (!esito.ok || extra.length) {
+    for (const e of errori) {
       if (e && e.campo) mappa[e.campo] = e.errore || '';
     }
+    erroriCampi.value = mappa;
+    return extra.length ? { ok: false, codice: 'dati-non-validi', errori } : esito;
   }
   erroriCampi.value = mappa;
   return esito;
+}
+
+function onColturaBlur(i: number) {
+  const row = terreni.value[i];
+  if (!row) return;
+  const norm = normalizzaColturaCatalogo(row.coltura);
+  if (norm) row.coltura = norm;
+  controllaLive();
 }
 
 function aggiungiPodere() {
@@ -422,6 +439,7 @@ async function onSalva() {
             :aria-invalid="!!erroriCampi['terreni[' + i + '].coltura']"
             :aria-describedby="erroriCampi['terreni[' + i + '].coltura'] ? 'tony-scheda-err-terreni-' + i + '-coltura' : undefined"
             @input="controllaLive"
+            @blur="onColturaBlur(i)"
           />
           <p
             v-if="erroriCampi['terreni[' + i + '].coltura']"
