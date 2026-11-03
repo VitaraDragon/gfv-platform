@@ -739,7 +739,11 @@ export async function openCreaModal(
     const lavoroStatoSelect = document.getElementById('lavoro-stato');
     
     if (modalTitle) modalTitle.textContent = 'Crea Nuovo Lavoro';
-    if (lavoroForm) lavoroForm.reset();
+    if (lavoroForm) {
+        lavoroForm.reset();
+        // form.reset() non riaccende i campi spenti da un lavoro in sola lettura.
+        applicaSolaLetturaAlForm(lavoroForm, { solaLettura: false });
+    }
     nascondiBlocchiImpiantoLavoro();
     if (lavoroIdInput) lavoroIdInput.value = '';
     if (lavoroStatoSelect) lavoroStatoSelect.value = hasManodoperaModule ? 'assegnato' : 'in_corso';
@@ -827,6 +831,7 @@ export async function openCreaModal(
 export function closeLavoroModal(state, updateState) {
     const lavoroModal = document.getElementById('lavoro-modal');
     if (lavoroModal) lavoroModal.classList.remove('active');
+    applicaSolaLetturaAlForm(document.getElementById('lavoro-form'), { solaLettura: false });
     try {
         resetLavoroFormContoTerziLock();
     } catch (err) {
