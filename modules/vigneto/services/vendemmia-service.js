@@ -259,6 +259,8 @@ export async function updateVendemmia(vignetoId, vendemmiaId, updates) {
     if (!vendemmiaEsistente) {
       throw new Error('Vendemmia non trovata');
     }
+    const { assertRegistroImpiantoModificabile } = await import('../../../core/services/storico-guard.js');
+    await assertRegistroImpiantoModificabile(vendemmiaEsistente, 'vigneti', vignetoId);
     
     console.log('[VENDEMMIA-SERVICE] Vendemmia esistente prima update:', {
       macchine: vendemmiaEsistente.macchine,
@@ -358,6 +360,8 @@ export async function deleteVendemmia(vignetoId, vendemmiaId) {
     
     // Recupera vendemmia prima di eliminarla per sapere l'anno
     const vendemmia = await getVendemmia(vignetoId, vendemmiaId);
+    const { assertRegistroImpiantoModificabile } = await import('../../../core/services/storico-guard.js');
+    await assertRegistroImpiantoModificabile(vendemmia, 'vigneti', vignetoId);
     const annoVendemmia = vendemmia && vendemmia.data 
       ? (vendemmia.data instanceof Date 
           ? vendemmia.data.getFullYear()

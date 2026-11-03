@@ -340,6 +340,8 @@ export async function updateLavoro(lavoroId, updates) {
     if (!lavoroEsistente) {
       throw new Error('Lavoro non trovato');
     }
+    const { assertLavoroModificabile } = await import('./storico-guard.js');
+    await assertLavoroModificabile(lavoroEsistente);
     
     // Verifica permessi: solo manager e amministratore possono modificare dati base
     // Caposquadra può modificare solo certi campi (gestito separatamente)
