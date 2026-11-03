@@ -6,9 +6,12 @@
 import {
   deveTentareAutoPinSede,
   scegliGeocodeNelComune,
+  scegliCentroComune,
+  buildQueryCentroComune,
 } from './sede-geocode-match.js';
 
-const STORAGE_PREFIX = 'gfv_sede_auto_pin_';
+/** v2: riprova per chi aveva esito fallito con Geocoder non pronto (bug loading=async). */
+const STORAGE_PREFIX = 'gfv_sede_auto_pin_v2_';
 
 /**
  * @param {string} tenantId
@@ -62,6 +65,94 @@ export function buildSedeQueryDaTenant(tenant) {
 }
 
 /**
+ * Ottiene un Geocoder quando le classi sono pronte (importLibrary se serve).
+ * @returns {Promise<object|null>}
+ */
+export async function ottieniGeocoder() {
+  if (typeof google === 'undefined' || !google.maps) return null;
+  try {
+    if (typeof google.maps.importLibrary === 'function' && !google.maps.Geocoder) {
+      await google.maps.importLibrary('geocoding');
+    }
+  } catch (e) {
+    console.warn('[sede-auto-pin] importLibrary geocoding', e);
+  }
+  if (!google.maps.Geocoder) return null;
+  return new google.maps.Geocoder();
+}
+
+/**
+ * @param {object} geocoder
+ * @param {string} address
+ * @param {{ country?: string, locality?: string }} [restrictions]
+ * @returns {Promise<object[]>}
+ */
+export function geocodeAddress(geocoder, address, restrictions) {
+  const req = {
+    address: String(address || '').indexOf('Italia') === -1
+      ? String(address || '') + ', Italia'
+      : String(address || ''),
+    componentRestrictions: Object.assign({ country: 'it' }, restrictions || {}),
+  };
+  return new Promise((resolve) => {
+    geocoder.geocode(req, (res, status) => {
+      if (status === 'OK' && Array.isArray(res)) resolve(res);
+      else resolve([]);
+    });
+  });
+}
+
+/**
+ * Estrae lat/lng da un risultato Geocoder.
+ * @param {object|null} chosen
+ * @returns {{ lat: number, lng: number }|null}
+ */
+export function coordsDaGeocodeResult(chosen) {
+  if (!chosen || !chosen.geometry || !chosen.geometry.location) return null;
+  const loc = chosen.geometry.location;
+  const lat = typeof loc.lat === 'function' ? loc.lat() : Number(loc.lat);
+  const lng = typeof loc.lng === 'function' ? loc.lng() : Number(loc.lng);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null;
+  return { lat, lng };
+}
+
+/**
+ * Geocoding indirizzo + ripiego al centro comune se il civico non è nel comune.
+ * @param {object} opts
+ * @param {object} opts.geocoder
+ * @param {string} opts.queryIndirizzo
+ * @param {string} opts.comune
+ * @param {string} [opts.provincia]
+ * @returns {Promise<{ coords: {lat:number,lng:number}|null, mode: 'civico'|'centro'|null, reason: string }>}
+ */
+export async function risolviPinSedeConRipiego(opts) {
+  const o = opts && typeof opts === 'object' ? opts : {};
+  const geocoder = o.geocoder;
+  const comune = String(o.comune || '').trim();
+  if (!geocoder || !comune) {
+    return { coords: null, mode: null, reason: 'no-input' };
+  }
+
+  const results = await geocodeAddress(geocoder, o.queryIndirizzo || '');
+  const chosen = scegliGeocodeNelComune(results, comune);
+  const civico = coordsDaGeocodeResult(chosen);
+  if (civico) {
+    return { coords: civico, mode: 'civico', reason: 'ok' };
+  }
+
+  const queryCentro = buildQueryCentroComune(comune, o.provincia);
+  const centroResults = await geocodeAddress(geocoder, queryCentro, { locality: comune });
+  const centro =
+    scegliCentroComune(centroResults, comune) ||
+    scegliCentroComune(await geocodeAddress(geocoder, queryCentro), comune);
+  const centroCoords = coordsDaGeocodeResult(centro);
+  if (centroCoords) {
+    return { coords: centroCoords, mode: 'centro', reason: 'ok-centro' };
+  }
+  return { coords: null, mode: null, reason: 'no-match' };
+}
+
+/**
  * @param {object} opts
  * @param {string} opts.tenantId
  * @param {object} opts.tenantData
@@ -69,7 +160,7 @@ export function buildSedeQueryDaTenant(tenant) {
  * @param {(ref: any, data: object) => Promise<void>} opts.updateTenant
  * @param {() => Promise<any>} opts.loadGoogleMapsAPI
  * @param {(msg: string) => void} [opts.onAvviso]
- * @returns {Promise<{ saved: boolean, reason: string }>}
+ * @returns {Promise<{ saved: boolean, reason: string, mode?: string }>}
  */
 export async function tryAutoSaveSedePinOnFirstAccess(opts) {
   const o = opts && typeof opts === 'object' ? opts : {};
@@ -100,7 +191,8 @@ export async function tryAutoSaveSedePinOnFirstAccess(opts) {
     if (typeof o.loadGoogleMapsAPI === 'function') {
       await o.loadGoogleMapsAPI();
     }
-    if (!window.google || !window.google.maps || !window.google.maps.Geocoder) {
+    const geocoder = await ottieniGeocoder();
+    if (!geocoder) {
       memorizzaEsitoAutoPinLocale(tenantId, { attempted: true, failed: true });
       if (typeof o.onAvviso === 'function') {
         o.onAvviso('Non riesco a mettere il pin della sede: aprilo a mano in Impostazioni.');
@@ -109,22 +201,14 @@ export async function tryAutoSaveSedePinOnFirstAccess(opts) {
     }
 
     const query = buildSedeQueryDaTenant(tenantData);
-    const results = await new Promise((resolve) => {
-      const geocoder = new google.maps.Geocoder();
-      geocoder.geocode(
-        {
-          address: query.indexOf('Italia') === -1 ? query + ', Italia' : query,
-          componentRestrictions: { country: 'it' },
-        },
-        (res, status) => {
-          if (status === 'OK' && Array.isArray(res)) resolve(res);
-          else resolve([]);
-        }
-      );
+    const resolved = await risolviPinSedeConRipiego({
+      geocoder,
+      queryIndirizzo: query,
+      comune: tenantData.citta,
+      provincia: tenantData.provincia,
     });
 
-    const chosen = scegliGeocodeNelComune(results, tenantData.citta);
-    if (!chosen || !chosen.geometry || !chosen.geometry.location) {
+    if (!resolved.coords) {
       memorizzaEsitoAutoPinLocale(tenantId, { attempted: true, failed: true });
       if (typeof o.onAvviso === 'function') {
         o.onAvviso(
@@ -136,20 +220,20 @@ export async function tryAutoSaveSedePinOnFirstAccess(opts) {
       return { saved: false, reason: 'no-match' };
     }
 
-    const loc = chosen.geometry.location;
-    const lat = typeof loc.lat === 'function' ? loc.lat() : Number(loc.lat);
-    const lng = typeof loc.lng === 'function' ? loc.lng() : Number(loc.lng);
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
-      memorizzaEsitoAutoPinLocale(tenantId, { attempted: true, failed: true });
-      return { saved: false, reason: 'coords' };
-    }
-
+    const { lat, lng } = resolved.coords;
     await o.updateTenant({
       sedeCoordinate: { lat, lng },
       aggiornatoIl: o.serverTimestamp ? o.serverTimestamp() : undefined,
     });
     memorizzaEsitoAutoPinLocale(tenantId, { attempted: true, failed: false });
-    return { saved: true, reason: 'ok' };
+    if (resolved.mode === 'centro' && typeof o.onAvviso === 'function') {
+      o.onAvviso(
+        'Ho messo il pin al centro di ' +
+          String(tenantData.citta || '') +
+          ': spostalo sulla sede in Impostazioni'
+      );
+    }
+    return { saved: true, reason: 'ok', mode: resolved.mode };
   } catch (err) {
     console.warn('[sede-auto-pin]', err);
     memorizzaEsitoAutoPinLocale(tenantId, { attempted: true, failed: true });

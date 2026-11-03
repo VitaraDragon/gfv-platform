@@ -4,6 +4,8 @@
  */
 
 const TOAST_LAYER_ID = 'gfv-standalone-toast-layer';
+const MAX_TOASTS = 3;
+const toastTimers = typeof WeakMap !== 'undefined' ? new WeakMap() : null;
 
 function ensureToastLayer() {
     let layer = document.getElementById(TOAST_LAYER_ID);
@@ -17,16 +19,35 @@ function ensureToastLayer() {
     return layer;
 }
 
+function scheduleRemove(alert, durationMs) {
+    if (toastTimers && toastTimers.has(alert)) {
+        clearTimeout(toastTimers.get(alert));
+    }
+    const tid = setTimeout(() => {
+        if (alert && alert.parentNode) alert.remove();
+        if (toastTimers) toastTimers.delete(alert);
+    }, durationMs);
+    if (toastTimers) toastTimers.set(alert, tid);
+}
+
 function renderStandaloneAlert(message, type = 'success', durationMs = 6000) {
+    const text = String(message == null ? '' : message);
     const container = ensureToastLayer();
+    const existing = container.querySelectorAll('.alert');
+    for (let i = 0; i < existing.length; i++) {
+        if (existing[i].textContent === text) {
+            scheduleRemove(existing[i], durationMs);
+            return;
+        }
+    }
+    while (container.children.length >= MAX_TOASTS) {
+        container.removeChild(container.firstChild);
+    }
     const alert = document.createElement('div');
     alert.className = `alert alert-${type}`;
-    alert.textContent = message;
+    alert.textContent = text;
     container.appendChild(alert);
-
-    setTimeout(() => {
-        alert.remove();
-    }, durationMs);
+    scheduleRemove(alert, durationMs);
 }
 
 /**
