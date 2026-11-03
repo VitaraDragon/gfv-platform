@@ -22,8 +22,9 @@ vi.mock('../core/services/plan-limits-service.js', () => ({
   countAziendaTerreni: vi.fn()
 }));
 
-import { getCollectionData, getDocumentData } from '../core/services/firebase-service.js';
-import { getAllTerreni, getCollegamentiTerreno } from '../core/services/terreni-service.js';
+import { getCollectionData, getDocumentData, updateDocument } from '../core/services/firebase-service.js';
+import { getAllTerreni, getCollegamentiTerreno, ripristinaTerreno } from '../core/services/terreni-service.js';
+import { assertCanCreateTerreno } from '../core/services/plan-limits-service.js';
 import { Terreno } from '../core/models/Terreno.js';
 import {
   nomeTerrenoPerStorico,
@@ -64,6 +65,29 @@ describe('getAllTerreni e gli archiviati', () => {
   it('includiArchiviati li riporta tutti', async () => {
     const lista = await getAllTerreni({ includiArchiviati: true });
     expect(lista.map((t) => t.id).sort()).toEqual(['a', 'b', 'c']);
+  });
+});
+
+describe('ripristinaTerreno e il limite del piano', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('se il piano è pieno non ripristina e mostra il messaggio del piano', async () => {
+    assertCanCreateTerreno.mockResolvedValue({
+      ok: false,
+      message: 'Piano Free: massimo 3 terreni aziendali (ne hai già 3). Passa al piano Base.'
+    });
+    await expect(ripristinaTerreno('vecchio')).rejects.toThrow(/Piano Free/);
+    expect(updateDocument).not.toHaveBeenCalled();
+  });
+
+  it('se c\'è posto ripristina il terreno', async () => {
+    assertCanCreateTerreno.mockResolvedValue({ ok: true });
+    await ripristinaTerreno('vecchio');
+    expect(updateDocument).toHaveBeenCalledWith('terreni', 'vecchio', expect.objectContaining({
+      stato: 'attivo'
+    }), 'tenant-1');
   });
 });
 

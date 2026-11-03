@@ -395,6 +395,12 @@ export async function ripristinaTerreno(terrenoId) {
   const tenantId = getCurrentTenantId();
   if (!tenantId) throw new Error('Nessun tenant corrente disponibile');
   if (!terrenoId) throw new Error('ID terreno obbligatorio');
+  const limitCheck = await assertCanCreateTerreno(tenantId);
+  if (!limitCheck.ok) {
+    const err = new Error(limitCheck.message);
+    err.limitePiano = true;
+    throw err;
+  }
   await updateDocument(COLLECTION_NAME, terrenoId, {
     stato: 'attivo',
     archiviatoIl: null,

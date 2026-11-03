@@ -547,7 +547,8 @@ export async function ripristinaTerrenoUi(terrenoId, loadTerreniCallback) {
         if (loadTerreniCallback) await loadTerreniCallback();
     } catch (error) {
         console.error('Errore ripristino terreno:', error);
-        showAlert('Errore nel ripristino: ' + error.message, 'error');
+        const testo = error && error.message ? error.message : '';
+        showAlert(error && error.limitePiano ? testo : ('Errore nel ripristino: ' + testo), 'error');
     }
 }
 
