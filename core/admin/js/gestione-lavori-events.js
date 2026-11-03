@@ -2291,74 +2291,90 @@ export async function salvaLavoroCorpo(
             ricaricaLavoriSenzaAttendere(loadLavoriCallback, sessioneSalvataggio);
 
             void (async () => {
-            // Gestione vendemmia collegata (se modulo vigneto attivo)
+            // Allineamento registri vigneto collegati (mai cancellare storico)
             try {
                 const { hasModuleAccess } = await import('../../../core/services/tenant-service.js');
                 const hasVignetoModule = await hasModuleAccess('vigneto');
                 
                 if (hasVignetoModule) {
+                    const {
+                        decidiAllineamentoRegistriDopoModifica,
+                        motivoNessunAllineamentoRegistri
+                    } = await import('../../../core/services/lavoro-registri-allineamento.js');
+                    const { getTerreno } = await import('../../../core/services/terreni-service.js');
                     const terrenoNuovoId = lavoroData.terrenoId;
-                    let terrenoNuovoEVite = false;
-                    if (terrenoNuovoId) {
-                        const { getTerreno } = await import('../../../core/services/terreni-service.js');
-                        const terrenoNuovo = await getTerreno(terrenoNuovoId);
-                        terrenoNuovoEVite = terrenoNuovo?.coltura?.toLowerCase().includes('vite') || false;
+                    const terrenoNuovo = terrenoNuovoId ? await getTerreno(terrenoNuovoId) : null;
+                    let terrenoOriginale = null;
+                    if (lavoroOriginale?.terrenoId) {
+                        terrenoOriginale = await getTerreno(lavoroOriginale.terrenoId);
                     }
-                    const { findVendemmiaByLavoroId, deleteVendemmia, updateVendemmia } = await import('../../../modules/vigneto/services/vendemmia-service.js');
+                    const baseDecisione = {
+                        lavoroOriginale,
+                        lavoroData,
+                        terrenoOriginale,
+                        terrenoNuovo,
+                        ambito: 'vigneto'
+                    };
+
+                    const { findVendemmiaByLavoroId, updateVendemmia, syncVendemmiaFromLavoro } = await import('../../../modules/vigneto/services/vendemmia-service.js');
                     const vendemmiaCollegata = await findVendemmiaByLavoroId(lavoroIdSalvataggio);
-                    
                     if (vendemmiaCollegata) {
-                        const tipoLavoroOriginale = lavoroOriginale?.tipoLavoro || '';
-                        const tipoLavoroNuovo = lavoroData.tipoLavoro || '';
-                        const terrenoOriginaleId = lavoroOriginale?.terrenoId;
-                        
-                        // Verifica se terreno originale era VITE
-                        let terrenoOriginaleEraVite = false;
-                        if (terrenoOriginaleId) {
-                            const { getTerreno } = await import('../../../core/services/terreni-service.js');
-                            const terrenoOriginale = await getTerreno(terrenoOriginaleId);
-                            terrenoOriginaleEraVite = terrenoOriginale?.coltura?.toLowerCase().includes('vite') || false;
-                        }
-                        
-                        // Caso 1: Tipo lavoro cambiato da vendemmia a altro → elimina vendemmia
-                        if (tipoLavoroOriginale.toLowerCase().includes('vendemmia') && 
-                            !tipoLavoroNuovo.toLowerCase().includes('vendemmia')) {
-                            console.log('[GESTIONE-LAVORI] Tipo lavoro cambiato da vendemmia a altro, elimino vendemmia collegata');
-                            await deleteVendemmia(vendemmiaCollegata.vignetoId, vendemmiaCollegata.vendemmiaId);
-                            console.log('[GESTIONE-LAVORI] ✓ Vendemmia eliminata');
-                        }
-                        // Caso 2: Terreno cambiato da VITE a altro → scollega vendemmia (mantiene dati produzione)
-                        else if (terrenoOriginaleEraVite && !terrenoNuovoEVite) {
-                            console.log('[GESTIONE-LAVORI] Terreno cambiato da VITE a altro, scollego vendemmia');
+                        const azioneV = decidiAllineamentoRegistriDopoModifica({
+                            ...baseDecisione,
+                            registro: 'vendemmia'
+                        });
+                        if (azioneV === 'scollega') {
+                            console.info('[GESTIONE-LAVORI] Scollego vendemmia collegata (lavoroId: null)');
                             await updateVendemmia(vendemmiaCollegata.vignetoId, vendemmiaCollegata.vendemmiaId, {
                                 lavoroId: null
                             });
-                            console.log('[GESTIONE-LAVORI] ✓ Vendemmia scollegata dal lavoro');
-                        }
-                        // Caso 3: Lavoro modificato ma ancora vendemmia su terreno VITE → sincronizza dati operativi vendemmia
-                        else if (tipoLavoroNuovo.toLowerCase().includes('vendemmia') && terrenoNuovoEVite) {
-                            console.log('[GESTIONE-LAVORI] Lavoro vendemmia modificato, sincronizzo vendemmia collegata (operai/macchine/data/ore)');
-                            const { syncVendemmiaFromLavoro } = await import('../../../modules/vigneto/services/vendemmia-service.js');
+                        } else if (azioneV === 'sync') {
+                            console.info('[GESTIONE-LAVORI] Sincronizzo vendemmia collegata');
                             await syncVendemmiaFromLavoro(lavoroIdSalvataggio);
-                            console.log('[GESTIONE-LAVORI] ✓ Sync vendemmia completato');
+                        } else {
+                            console.info(
+                                '[GESTIONE-LAVORI] Vendemmia:',
+                                motivoNessunAllineamentoRegistri(baseDecisione)
+                            );
                         }
                     }
-                    const { findPotaturaByLavoroId, deletePotatura, syncPotaturaFromLavoro } = await import('../../../modules/vigneto/services/potatura-vigneto-service.js');
-                    const { findTrattamentoByLavoroId, deleteTrattamento, syncTrattamentoFromLavoro } = await import('../../../modules/vigneto/services/trattamenti-vigneto-service.js');
+
+                    const { findPotaturaByLavoroId, updatePotatura, syncPotaturaFromLavoro } = await import('../../../modules/vigneto/services/potatura-vigneto-service.js');
+                    const { findTrattamentoByLavoroId, updateTrattamento, syncTrattamentoFromLavoro } = await import('../../../modules/vigneto/services/trattamenti-vigneto-service.js');
                     const potaturaV = await findPotaturaByLavoroId(lavoroIdSalvataggio);
                     const trattamentoV = await findTrattamentoByLavoroId(lavoroIdSalvataggio);
                     if (potaturaV) {
-                        if (!terrenoNuovoEVite) {
-                            await deletePotatura(potaturaV.vignetoId, potaturaV.potaturaId);
-                        } else {
+                        const azioneP = decidiAllineamentoRegistriDopoModifica({
+                            ...baseDecisione,
+                            registro: 'potatura'
+                        });
+                        if (azioneP === 'scollega') {
+                            console.info('[GESTIONE-LAVORI] Scollego potatura collegata (lavoroId: null)');
+                            await updatePotatura(potaturaV.vignetoId, potaturaV.potaturaId, { lavoroId: null });
+                        } else if (azioneP === 'sync') {
                             await syncPotaturaFromLavoro(lavoroIdSalvataggio);
+                        } else {
+                            console.info(
+                                '[GESTIONE-LAVORI] Potatura:',
+                                motivoNessunAllineamentoRegistri(baseDecisione)
+                            );
                         }
                     }
                     if (trattamentoV) {
-                        if (!terrenoNuovoEVite) {
-                            await deleteTrattamento(trattamentoV.vignetoId, trattamentoV.trattamentoId);
-                        } else {
+                        const azioneT = decidiAllineamentoRegistriDopoModifica({
+                            ...baseDecisione,
+                            registro: 'trattamento'
+                        });
+                        if (azioneT === 'scollega') {
+                            console.info('[GESTIONE-LAVORI] Scollego trattamento collegato (lavoroId: null)');
+                            await updateTrattamento(trattamentoV.vignetoId, trattamentoV.trattamentoId, { lavoroId: null });
+                        } else if (azioneT === 'sync') {
                             await syncTrattamentoFromLavoro(lavoroIdSalvataggio);
+                        } else {
+                            console.info(
+                                '[GESTIONE-LAVORI] Trattamento:',
+                                motivoNessunAllineamentoRegistri(baseDecisione)
+                            );
                         }
                     }
                 }

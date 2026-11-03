@@ -372,6 +372,7 @@ Nella pagina **Abbonamento** (dal **pannello moduli** in alto, o da una tile ded
 - Avvicinati ai limiti del Free → valuta il passaggio a **Base**.
 - Con il piano **Base**, in Abbonamento → **prova 30 giorni** o attiva a pagamento **solo i moduli** che vi servono.
 - Alla **disattivazione** un modulo smette subito di funzionare; se era già pagato potete spesso **riattivarlo** fino alla data già coperta (dettaglio in pagina).
+- **Vendemmia meccanica** dipende da **Conto terzi**: se disattivate Conto terzi, l’app disattiva anche Vendemmia meccanica così **non la pagate più**. Per riattivare Vendemmia meccanica, **riattivate prima Conto terzi**.
 - Per capire Tony (chat, voce, differenza Guida/Avanzato, documenti foto/PDF) apri la **guida modulo Tony** dalla raccolta Guide.
 
 **Non devi capire nulla di tecnologia:** pensa al piano come al “pacchetto servizi” della tua azienda e ai moduli come optionali à la carte.

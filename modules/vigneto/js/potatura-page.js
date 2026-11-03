@@ -9,6 +9,7 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
 import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 
 try {
     await window.GFVStandaloneReady;
@@ -1495,7 +1496,7 @@ async function init() {
                 const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
                 if (tenantDoc.exists()) {
                     const tenantData = tenantDoc.data();
-                    const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                    const modules = resolveEffectiveModules(tenantData);
                     hasManodoperaModule = modules.includes('manodopera');
                     
                     // Inizializza context Tony con i moduli attivi usando helper

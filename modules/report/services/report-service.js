@@ -5,6 +5,7 @@
  */
 import { getAvailableModules, getCurrentTenantId, getCurrentTenant } from '../../../core/services/tenant-service.js';
 import { getDocumentData } from '../../../core/services/firebase-service.js';
+import { hasModuleAccessFromTenant } from '../../../core/utils/module-access-resolver.js';
 
 /**
  * Verifica se il modulo report è attivo per il tenant corrente.
@@ -16,8 +17,7 @@ export async function hasReportModuleAccess() {
   if (tenantId) {
     try {
       const tenantData = await getDocumentData('tenants', tenantId);
-      const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
-      return modules.some(m => (m || '').toLowerCase() === 'report');
+      return hasModuleAccessFromTenant(tenantData, 'report');
     } catch (e) {
       // fallback sotto
     }
@@ -25,8 +25,7 @@ export async function hasReportModuleAccess() {
 
   // Fallback: usa tenant-service (può essere soggetto a race all'avvio)
   const tenant = await getCurrentTenant();
-  const modules = Array.isArray(tenant?.modules) ? tenant.modules : [];
-  return modules.some(m => (m || '').toLowerCase() === 'report');
+  return hasModuleAccessFromTenant(tenant, 'report');
 }
 
 /**
@@ -36,4 +35,3 @@ export async function hasReportModuleAccess() {
 export async function getActiveModules() {
   return await getAvailableModules();
 }
-

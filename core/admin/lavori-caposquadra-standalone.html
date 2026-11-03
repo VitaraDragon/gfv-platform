@@ -1441,7 +1441,8 @@
                                 const tenantData = tenantDoc.data();
                                 window.__gfvTenantData = Object.assign({ id: currentTenantId }, tenantData);
                                 publishFeatureFlags(window.__gfvTenantData, currentTenantId);
-                                const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                                const { resolveEffectiveModules } = await import('../utils/module-access-resolver.js');
+                                const modules = resolveEffectiveModules(tenantData);
                                 hasManodoperaModule = modules.includes('manodopera');
                                 hasVendemmiaMeccanicaModule = modules.includes('vendemmiaMeccanica');
                                 
@@ -3256,7 +3257,9 @@
                         const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                         if (tenantDoc.exists()) {
                             const tenantData = tenantDoc.data();
-                            const hasParcoMacchineModule = tenantData.modules && tenantData.modules.includes('parcoMacchine');
+                            const { resolveEffectiveModules: resolveEffLav } = await import('../utils/module-access-resolver.js');
+                            const _effLav = resolveEffLav(tenantData);
+                            const hasParcoMacchineModule = _effLav.includes('parcoMacchine');
                             
                             if (hasParcoMacchineModule) {
                                 // Libera trattore
@@ -3287,7 +3290,8 @@
                         const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                         if (tenantDoc.exists()) {
                             const tenantData = tenantDoc.data();
-                            const hasVignetoModule = tenantData.modules && tenantData.modules.includes('vigneto');
+                            const { resolveEffectiveModules: resolveEffLavVig } = await import('../utils/module-access-resolver.js');
+                            const hasVignetoModule = resolveEffLavVig(tenantData).includes('vigneto');
                             
                             if (hasVignetoModule) {
                                 const { aggiornaVignetiDaTerreno } = await import('../../modules/vigneto/services/lavori-vigneto-service.js');

@@ -2,6 +2,8 @@
 
 Modulo: **`vendemmiaMeccanica`**. Auth pagina: `modules/vendemmia-meccanica/js/vm-page-auth.js`.
 
+**Gate:** accesso VM solo se **`contoTerzi`** è accessibile (pagato o trial) **e** `vendemmiaMeccanica` attivo (`subscription-plans.js` → `requiresModules: ['contoTerzi']`; disattivazione CT → `getModulesToDeactivateTogether` include VM). Non suggerire VM senza CT; spiegare ordine riattivazione CT → VM.
+
 | Pagina | Path |
 |--------|------|
 | Hub | `modules/vendemmia-meccanica/views/vm-home-standalone.html` |

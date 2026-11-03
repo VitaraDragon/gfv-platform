@@ -1,6 +1,6 @@
 # Manodopera — sintesi per Tony
 
-Modulo **Manodopera** attivo nell’**abbonamento**. Linguaggio utente: **versione mobile** (campo); **azienda** / **abbonamento**, non gergo tecnico.
+Modulo **Manodopera** attivo (abbonamento **o prova 30 giorni**): in prova avete **gli stessi accessi** del modulo pagato (home, **Gestione lavori**, **versione mobile** / workspace campo, ecc.). Linguaggio utente: **versione mobile** (campo); **azienda** / **abbonamento**, non gergo tecnico.
 
 ## Manager — ingresso e home
 

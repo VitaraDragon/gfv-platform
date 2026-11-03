@@ -9,6 +9,7 @@ import { formatDateLikeToItalianLongLocal } from '../../../core/js/date-format-i
 import { showAlert } from '../../../core/js/gfv-page-utils.js';
 import { resolvePath } from '../../../core/js/gfv-path.js';
 import { resolveAuthUser, loginPageUrl } from '../../../core/js/simulator-standalone-page.js';
+import { resolveEffectiveModules } from '../../../core/utils/module-access-resolver.js';
 import { getAllPianificazioni, deletePianificazione, confermaPianificazione } from '../services/pianificazione-impianto-service.js';
 
 try {
@@ -91,7 +92,7 @@ async function init() {
                         return;
                     }
                     const moduloRichiesto = currentConfig.moduloRequired;
-                    const modules = tenant.modules || [];
+                    const modules = resolveEffectiveModules(tenant);
                     const hasModule = modules.some(m => m && m.toLowerCase() === moduloRichiesto.toLowerCase());
                     if (!hasModule) {
                         const nomeModulo = moduloRichiesto === 'vigneto' ? 'Vigneto' : moduloRichiesto === 'frutteto' ? 'Frutteto' : 'Oliveto';

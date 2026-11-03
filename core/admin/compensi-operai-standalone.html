@@ -433,7 +433,8 @@
                     const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
                     if (tenantDoc.exists()) {
                         const tenantData = tenantDoc.data();
-                        const modules = Array.isArray(tenantData?.modules) ? tenantData.modules : [];
+                        const { resolveEffectiveModules } = await import('../utils/module-access-resolver.js');
+                                const modules = resolveEffectiveModules(tenantData);
                         const hasManodopera = modules.includes('manodopera');
                         
                         // Inizializza context Tony con i moduli attivi usando helper
@@ -588,7 +589,8 @@
                     const tenantDoc = await getDoc(doc(db, 'tenants', tenantId));
                     if (tenantDoc.exists()) {
                         const tenantData = tenantDoc.data();
-                        hasParcoMacchineModule = tenantData.modules && tenantData.modules.includes('parcoMacchine');
+                        const { resolveEffectiveModules: resolveEffComp } = await import('../utils/module-access-resolver.js');
+                        hasParcoMacchineModule = resolveEffComp(tenantData).includes('parcoMacchine');
                     }
                 } catch (error) {
                     console.warn('Errore verifica modulo Parco Macchine:', error);

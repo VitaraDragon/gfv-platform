@@ -338,7 +338,10 @@
 
                         try {
                             const tenantDoc = await getDoc(doc(db, 'tenants', currentTenantId));
-                            const modules = tenantDoc.exists() ? (tenantDoc.data().modules || []) : [];
+                            const { resolveEffectiveModules } = await import('../../../core/utils/module-access-resolver.js');
+                            const modules = tenantDoc.exists()
+                                ? resolveEffectiveModules(tenantDoc.data())
+                                : [];
                             const hasManodopera = tenantHasManodopera(modules);
                             applyRegistroLavoriLinks(document, hasManodopera);
                             document.body.dataset.gfvRegistro = hasManodopera ? 'lavori' : 'diario';

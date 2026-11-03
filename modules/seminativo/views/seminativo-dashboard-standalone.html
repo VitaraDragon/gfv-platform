@@ -141,7 +141,8 @@
                 return;
             }
             const tenant = await getCurrentTenant().catch(() => null);
-            const modules = Array.isArray(tenant?.modules) ? tenant.modules.slice() : [];
+            const { resolveEffectiveModules } = await import('../../../core/utils/module-access-resolver.js');
+            const modules = resolveEffectiveModules(tenant);
             if (!modules.some((m) => String(m || '').toLowerCase() === 'seminativo')) modules.push('seminativo');
             if (!modules.some((m) => String(m || '').toLowerCase() === 'tony')) modules.push('tony');
             syncTonyModules(modules);

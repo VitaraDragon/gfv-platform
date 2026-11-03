@@ -1835,7 +1835,8 @@
             try {
                 const { getCurrentTenant } = await import('../services/tenant-service.js');
                 const tenant = await getCurrentTenant();
-                if (tenant && tenant.modules && tenant.modules.includes('vigneto')) {
+                const { resolveEffectiveModules } = await import('../utils/module-access-resolver.js');
+                if (tenant && resolveEffectiveModules(tenant).includes('vigneto')) {
                     const pianificazioneModule = await import('../../modules/vigneto/services/pianificazione-impianto-service.js');
                     const formeAllevamentoModule = await import('../../modules/vigneto/config/forme-allevamento.js');
                     const vignetiModule = await import('../../modules/vigneto/services/vigneti-service.js');

@@ -1,6 +1,6 @@
 # Vigneto — sintesi per Tony
 
-Modulo **Vigneto** attivo sull’azienda. Linguaggio allineato alla guida utente.
+Modulo **Vigneto** attivo sull’azienda (abbonamento **o prova 30 giorni**): in prova avete **gli stessi accessi** del modulo pagato (dashboard vigneto, pagine del modulo, icona **grappolo** sui terreni con vite, ecc.). Linguaggio allineato alla guida utente.
 
 ## In sintesi
 
