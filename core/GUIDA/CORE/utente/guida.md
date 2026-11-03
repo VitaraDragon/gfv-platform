@@ -111,7 +111,8 @@ Il modo **principale** per aprire Terreni, Diario, Vigneto, Magazzino, ecc. è i
 2. Si apre il **pannello moduli** con voci cliccabili: ogni riga ha un’**icona** (es. 🍇), un **titolo** (es. **Vigneto**) e una **breve descrizione**.
 3. Tocca la voce che ti serve: si apre quella pagina e il pannello si chiude.
 
-Nell’elenco trovi sempre almeno **Terreni**, **Diario attività**, **Statistiche**, **Abbonamento**; poi ogni **modulo attivo** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Report, …).  
+Nell’elenco trovi sempre almeno **Home** (torna alla dashboard), **Terreni**, **Diario attività**, **Statistiche**, **Abbonamento**; poi ogni **modulo attivo** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Report, …).  
+**Per tornare alla dashboard:** graffetta in alto a sinistra → **Home**. Su molte pagine c’è anche «← Dashboard» in alto se lo vedi.  
 Con **Manodopera** attivo compaiono anche **Amministrazione** e **Statistiche manodopera**.
 
 **Non serve cercare altro** se hai Manodopera: Vigneto, Magazzino e gli altri moduli sono **solo** in questo elenco (o in **Per te oggi** / **Accessi rapidi**). Scorrendo la dashboard **non** troverai altre righe «Vigneto» o «Magazzino» fuori dal pannello — ed è normale.
