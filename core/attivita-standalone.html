@@ -2041,7 +2041,7 @@
 
         // Popola dropdown lavori nel form (solo lavori conto terzi in corso) - wrapper
         function populateLavoriDropdown() {
-            populateLavoriDropdownModule(lavoriList);
+            populateLavoriDropdownModule(lavoriList, { hasManodopera: hasManodoperaModule });
         }
 
         // Popola dropdown clienti nel form - wrapper
