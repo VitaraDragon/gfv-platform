@@ -262,7 +262,7 @@ export async function handleSaveTerreno(
     const canoneInput = document.getElementById('terreno-canone-affitto');
     const canoneAffitto = canoneInput ? canoneInput.value : '';
     
-    const { serverTimestamp, Timestamp, doc, setDoc, addDoc } = await import('../services/firebase-service.js');
+    const { serverTimestamp, Timestamp, doc, setDoc, addDoc, collection, getDocs, query, where, updateDoc } = await import('../services/firebase-service.js');
     
     // Prepara dati terreno
     const terrenoData = {
@@ -376,10 +376,72 @@ export async function handleSaveTerreno(
         }
         
         if (state.currentTerrenoId) {
-            // Aggiorna usando setDoc con merge per garantire che tutti i campi vengano salvati
+            const esistente = (state.terreni || []).find((t) => t.id === state.currentTerrenoId) || null;
+            const categoriaSelect = document.getElementById('terreno-coltura-categoria');
+            const categoriaTesto = categoriaSelect && categoriaSelect.selectedOptions && categoriaSelect.selectedOptions[0]
+                ? categoriaSelect.selectedOptions[0].textContent
+                : '';
+            const { preparaEffettiSalvataggioTerreno } = await import('../../shared/js/effetti-salvataggio-terreno.js');
+            const db = terreniCollection.firestore;
+            const leggi = async (nome) => {
+                const snap = await getDocs(query(
+                    collection(db, 'tenants', state.currentTenantId, nome),
+                    where('terrenoId', '==', state.currentTerrenoId)
+                ));
+                return snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+            };
+            let vigneti = [];
+            let frutteti = [];
+            let lavori = [];
+            let campagne = [];
+            try {
+                vigneti = await leggi('vigneti');
+                frutteti = await leggi('frutteti');
+                lavori = await leggi('lavori');
+                campagne = await leggi('seminativi');
+            } catch (erroreLettura) {
+                console.warn('Lettura collegamenti terreno:', erroreLettura);
+                showAlert('Non riesco a controllare i dati collegati, riprova', 'error');
+                return;
+            }
+            const effetti = preparaEffettiSalvataggioTerreno({
+                esistente,
+                nuovo: {
+                    coltura: cleanedData.coltura || null,
+                    colturaCategoria: categoriaTesto || (esistente && esistente.colturaCategoria) || null,
+                    superficie: cleanedData.superficie
+                },
+                vigneti,
+                frutteti,
+                lavori,
+                campagne,
+                conferma: (messaggio) => confirm(messaggio)
+            });
+            if (!effetti.procedi) return;
+            if (effetti.storico) {
+                cleanedData.colturaDal = effetti.storico.colturaDal;
+                cleanedData.storicoColture = effetti.storico.storicoColture;
+                if (effetti.storico.colturaCategoria) cleanedData.colturaCategoria = effetti.storico.colturaCategoria;
+            }
             const terrenoRef = doc(terreniCollection, state.currentTerrenoId);
             await setDoc(terrenoRef, cleanedData, { merge: true });
-            showAlert('Terreno aggiornato con successo!', 'success');
+            const quando = new Date().toISOString();
+            for (const impianto of effetti.chiudi) {
+                const collezione = impianto.tipo === 'frutteto' ? 'frutteti' : 'vigneti';
+                await updateDoc(doc(collection(db, 'tenants', state.currentTenantId, collezione), impianto.id), {
+                    statoImpianto: 'chiuso',
+                    dataChiusura: quando,
+                    motivoChiusura: 'cambio_coltura'
+                });
+            }
+            for (const voce of effetti.superfici) {
+                if (typeof cleanedData.superficie !== 'number') continue;
+                await updateDoc(doc(collection(db, 'tenants', state.currentTenantId, voce.collezione), voce.id), {
+                    superficieEttari: cleanedData.superficie
+                });
+            }
+            const extra = effetti.messaggioSuperficie ? ' ' + effetti.messaggioSuperficie : '';
+            showAlert('Terreno aggiornato con successo!' + extra, 'success');
         } else {
             const { assertCanCreateTerreno } = await import('../services/plan-limits-service.js');
             const limitCheck = await assertCanCreateTerreno(state.currentTenantId);
@@ -432,75 +494,62 @@ export async function confirmDeleteTerreno(
 ) {
     const terreno = state.terreni.find(t => t.id === terrenoId);
     if (!terreno) return;
-    
+
     if (!state.currentTenantId) {
         showAlert('Errore: Tenant ID non disponibile', 'error');
         return;
     }
-    
+
     try {
-        const { collection, query, where, getDocs, doc, deleteDoc } = await import('../services/firebase-service.js');
-        
-        // Verifica se terreno è usato in attività usando il servizio
-        let numAttivita = 0;
-        try {
-            // Usa il servizio terreni-service invece di Firebase direttamente
-            const { getNumeroAttivitaTerreno } = await import('../services/terreni-service.js');
-            numAttivita = await getNumeroAttivitaTerreno(terrenoId);
-        } catch (e) {
-            console.warn('Errore verifica attività:', e);
-            // Continua comunque, ma senza verifica
+        const { doc, deleteDoc } = await import('../services/firebase-service.js');
+        const { getCollegamentiTerreno, archiviaTerreno } = await import('../services/terreni-service.js');
+        const { eseguiEliminazioneOArchiviazione } = await import('./azione-eliminazione-terreno.js');
+
+        const esito = await eseguiEliminazioneOArchiviazione(terreno, {
+            getCollegamentiTerreno,
+            archiviaTerreno,
+            eliminaTerreno: async (id) => {
+                const terreniCollection = await getTerreniCollectionCallback(state.currentTenantId);
+                if (!terreniCollection) {
+                    throw new Error('Collection terreni non disponibile. Verifica che il tenant ID sia corretto.');
+                }
+                await deleteDoc(doc(terreniCollection, id));
+            },
+            confirm: (messaggio) => confirm(messaggio),
+            chiediMotivo: (messaggio) => prompt(messaggio, '1'),
+            chiediNota: (messaggio) => prompt(messaggio, ''),
+            avvisa: (messaggio, tipo) => showAlert(messaggio, tipo || 'error')
+        });
+
+        if (esito.azione === 'eliminato') {
+            showAlert('Terreno eliminato con successo!', 'success');
+        } else if (esito.azione === 'archiviato') {
+            showAlert('Terreno archiviato. Lo storico resta consultabile e puoi ripristinarlo quando vuoi.', 'success');
+        } else if (esito.azione === 'errore' && esito.messaggio) {
+            showAlert(esito.messaggio, 'error');
         }
-        
-        let message = `Sei sicuro di voler eliminare il terreno "${terreno.nome}"?`;
-        let forceDelete = false;
-        
-        if (numAttivita > 0) {
-            message += `\n\n⚠️ ATTENZIONE: Questo terreno è utilizzato in ${numAttivita} attività.`;
-            message += `\n\nSe elimini il terreno, le attività rimarranno con un riferimento a un terreno inesistente.`;
-            message += `\n\nVuoi eliminare comunque?`;
-            
-            // Prima conferma: avviso
-            if (!confirm(message)) {
-                return; // Utente ha annullato
-            }
-            
-            // Seconda conferma: conferma forzata
-            forceDelete = confirm(
-                `⚠️ CONFERMA FINALE\n\nStai per eliminare un terreno utilizzato in ${numAttivita} attività.\n\n` +
-                `Questa operazione non può essere annullata.\n\n` +
-                `Sei sicuro di voler procedere?`
-            );
-            
-            if (!forceDelete) {
-                return; // Utente ha annullato
-            }
-        } else {
-            // Nessuna attività associata, conferma normale
-            if (!confirm(message)) {
-                return; // Utente ha annullato
-            }
+
+        if (esito.azione === 'eliminato' || esito.azione === 'archiviato') {
+            if (loadTerreniCallback) await loadTerreniCallback();
         }
-        
-        // Elimina usando Firebase direttamente
-        // IMPORTANTE: getTerreniCollectionCallback è async, quindi serve await
-        const terreniCollection = await getTerreniCollectionCallback(state.currentTenantId);
-        
-        if (!terreniCollection) {
-            throw new Error('Collection terreni non disponibile. Verifica che il tenant ID sia corretto.');
-        }
-        
-        const terrenoRef = doc(terreniCollection, terrenoId);
-        await deleteDoc(terrenoRef);
-        showAlert('Terreno eliminato con successo!', 'success');
-        
-        if (loadTerreniCallback) {
-            await loadTerreniCallback();
-        }
-        
     } catch (error) {
         console.error('Errore eliminazione terreno:', error);
         showAlert('Errore nell\'eliminazione: ' + error.message, 'error');
+    }
+}
+
+export async function ripristinaTerrenoUi(terrenoId, loadTerreniCallback) {
+    if (!confirm('Ripristinare questo terreno negli elenchi? I vigneti e i frutteti chiusi con l\'archiviazione restano nello storico.')) {
+        return;
+    }
+    try {
+        const { ripristinaTerreno } = await import('../services/terreni-service.js');
+        await ripristinaTerreno(terrenoId);
+        showAlert('Terreno ripristinato.', 'success');
+        if (loadTerreniCallback) await loadTerreniCallback();
+    } catch (error) {
+        console.error('Errore ripristino terreno:', error);
+        showAlert('Errore nel ripristino: ' + error.message, 'error');
     }
 }
 
