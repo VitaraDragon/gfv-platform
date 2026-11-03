@@ -67,10 +67,18 @@ describe('urlLoginConEmail', () => {
 });
 
 describe('urlDashboardDopoRegistrazione', () => {
-  it('solo registered=true senza email in URL', () => {
+  it('registered=true e email nel frammento #', () => {
     const url = urlDashboardDopoRegistrazione('mario@esempio.it');
+    expect(url).toBe(
+      'https://vitaradragon.github.io/gfv-platform/core/auth/login-standalone.html?registered=true#email=mario%40esempio.it'
+    );
+    expect(url).not.toMatch(/password/i);
+    expect(url).not.toMatch(/[?&]email=/i);
+  });
+
+  it('email non valida → solo registered=true', () => {
+    const url = urlDashboardDopoRegistrazione('no');
     expect(url).toMatch(/registered=true/);
-    expect(url).not.toMatch(/email=/i);
     expect(url).not.toContain('#');
   });
 });

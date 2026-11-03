@@ -1,0 +1,19 @@
+{
+  "_nota": "ricostruita — Google tipicamente propone Via Garibaldi a Fusignano, non Lugo (a Lugo c’è Corso Garibaldi)",
+  "results": [
+    {
+      "formatted_address": "Via Giuseppe Garibaldi, 10, 48024 Fusignano RA, Italia",
+      "partial_match": true,
+      "types": ["street_address"],
+      "geometry": { "location": { "lat": 44.46616, "lng": 11.96353 } },
+      "address_components": [
+        { "long_name": "10", "short_name": "10", "types": ["street_number"] },
+        { "long_name": "Via Giuseppe Garibaldi", "short_name": "Via G. Garibaldi", "types": ["route"] },
+        { "long_name": "Fusignano", "short_name": "Fusignano", "types": ["locality", "political"] },
+        { "long_name": "Fusignano", "short_name": "Fusignano", "types": ["administrative_area_level_3", "political"] },
+        { "long_name": "Provincia di Ravenna", "short_name": "RA", "types": ["administrative_area_level_2", "political"] },
+        { "long_name": "Italia", "short_name": "IT", "types": ["country", "political"] }
+      ]
+    }
+  ]
+}

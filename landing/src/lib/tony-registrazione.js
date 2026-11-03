@@ -20,6 +20,7 @@ import {
   normalizzaEmailRegistrazione,
 } from '../../../core/services/registrazione-titolare-core.js';
 import { buildCampiNomeCognomeSeCompilati } from '../../../core/js/nome-titolare-helpers.js';
+import { urlLoginConEmail } from '../../../core/js/login-email-precompilata.js';
 import { URL_LOGIN, URL_REGISTRAZIONE } from '../config/landing-config.js';
 import { testiLanding } from '../content/testi-landing.js';
 
@@ -164,13 +165,15 @@ export function messaggioEsito(codice) {
 }
 
 /**
+ * Login app dopo registrazione o «Vai alla dashboard».
+ * Il frammento `#email=` precompila l’email: landing (Pages) e login app (Hosting)
+ * sono origini diverse e non condividono la sessione Firebase Auth.
+ *
  * @param {string} email
  * @returns {string}
  */
-export function urlDashboardDopoRegistrazione(_email) {
-  const base = String(URL_LOGIN || '');
-  const sep = base.indexOf('?') >= 0 ? '&' : '?';
-  return base + sep + 'registered=true';
+export function urlDashboardDopoRegistrazione(email) {
+  return urlLoginConEmail(String(URL_LOGIN || ''), email || '', { registrato: true });
 }
 
 /**

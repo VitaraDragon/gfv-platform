@@ -168,10 +168,61 @@ window.GFVConfigLoader.waitForGoogleMapsConfig = async function waitForGoogleMap
     });
 }
 
+/**
+ * Con loading=async le classi (Geocoder, Map) arrivano dopo google.maps:
+ * aspetta importLibrary('maps'|'geocoding') o la presenza di Geocoder.
+ * @param {number} [timeoutMs]
+ * @returns {Promise<boolean>}
+ */
+window.GFVConfigLoader.waitForGoogleMapsReady = function waitForGoogleMapsReady(timeoutMs) {
+    const limit = typeof timeoutMs === 'number' && timeoutMs > 0 ? timeoutMs : 10000;
+    return new Promise((resolve) => {
+        const started = Date.now();
+        let settled = false;
+        function done(ok) {
+            if (settled) return;
+            settled = true;
+            resolve(!!ok);
+        }
+        async function tryReady() {
+            if (typeof google === 'undefined' || !google.maps) return false;
+            try {
+                if (typeof google.maps.importLibrary === 'function') {
+                    await Promise.all([
+                        google.maps.importLibrary('maps'),
+                        google.maps.importLibrary('geocoding'),
+                    ]);
+                }
+            } catch (e) {
+                console.warn('[Maps] importLibrary', e);
+            }
+            return !!(google.maps && google.maps.Geocoder);
+        }
+        (async function poll() {
+            while (Date.now() - started < limit) {
+                try {
+                    if (await tryReady()) {
+                        done(true);
+                        return;
+                    }
+                } catch (e) { /* continua */ }
+                await new Promise((r) => setTimeout(r, 50));
+            }
+            done(false);
+        })();
+    });
+};
+
 window.GFVConfigLoader.loadGoogleMapsAPI = function loadGoogleMapsAPI() {
     return new Promise((resolve) => {
+        const finish = function () {
+            window.GFVConfigLoader.waitForGoogleMapsReady(10000).then(function () {
+                resolve();
+            });
+        };
+
         if (typeof google !== 'undefined' && google.maps) {
-            resolve();
+            finish();
             return;
         }
 
@@ -184,7 +235,7 @@ window.GFVConfigLoader.loadGoogleMapsAPI = function loadGoogleMapsAPI() {
                 clearInterval(checkConfig);
 
                 // Config trovato, procedi con il caricamento
-                loadGoogleMapsAPIImplementation(GOOGLE_MAPS_API_KEY).then(resolve);
+                loadGoogleMapsAPIImplementation(GOOGLE_MAPS_API_KEY).then(finish);
             } else if (attempts >= maxAttempts) {
                 clearInterval(checkConfig);
                 console.warn('⚠️ Google Maps API key not configured after waiting', attempts, 'attempts');
@@ -203,7 +254,7 @@ function loadGoogleMapsAPIImplementation(GOOGLE_MAPS_API_KEY) {
 
         // Verifica se lo script è già stato aggiunto
         if (document.querySelector('script[src*="maps.googleapis.com"]')) {
-            // Aspetta che Google Maps sia caricato
+            // Aspetta che google.maps esista (le classi arrivano dopo via waitForGoogleMapsReady)
             const checkInterval = setInterval(() => {
                 if (typeof google !== 'undefined' && google.maps) {
                     clearInterval(checkInterval);

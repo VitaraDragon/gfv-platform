@@ -6,8 +6,10 @@
 import { EMAIL_CONTATTO } from '../config/landing-config.js';
 import { testiLanding } from '../content/testi-landing.js';
 import {
+  ERRORI,
   LIMITI,
   risolviControAzienda,
+  trovaColtura,
   validaRichiestaSetup,
 } from './generati/tony-landing-setup-core.js';
 
@@ -35,6 +37,137 @@ export function prossimoPasso(passo) {
   const i = PASSI_AIUTO.indexOf(passo);
   if (i < 0 || i >= PASSI_AIUTO.length - 1) return null;
   return PASSI_AIUTO[i + 1];
+}
+
+export const ERRORE_ORTAGGIO_SCHEDA =
+  "Scegli l'ortaggio dall'elenco (es. Pomodoro, Insalata)";
+
+/** Allineato a functions/lib/tony-landing-account.js */
+export function colturaOrtaggiGenerica(grezzo) {
+  const s = String(grezzo == null ? '' : grezzo).toLowerCase();
+  if (!s) return false;
+  return /\b(ortagg\w*|orto|orti|ortiv\w*|verdur\w*)(?![a-zà-öø-ÿ])/i.test(s);
+}
+
+/**
+ * @param {unknown} grezzo
+ * @returns {string | null} nome canonico catalogo
+ */
+export function normalizzaColturaCatalogo(grezzo) {
+  const testo = String(grezzo == null ? '' : grezzo).trim();
+  if (!testo || colturaOrtaggiGenerica(testo)) return null;
+  const trovata = trovaColtura(testo, []);
+  return trovata.ok ? trovata.nome : null;
+}
+
+export function messaggioHaTerreno(domanda) {
+  const d = String(domanda || '');
+  if (/\b(\d+(?:[.,]\d+)?)\s*(?:ha|ettar)/i.test(d)) return true;
+  return /\bterren|campo|cappezz|coltiv|semin/i.test(d);
+}
+
+export function messaggioSoloPodere(domanda) {
+  const d = String(domanda || '').toLowerCase();
+  return (
+    /\bno[\s,]*(solo|soltanto|unico)\b/.test(d) ||
+    /\bsolo quello\b/.test(d) ||
+    /\bno,\s*solo\b/.test(d)
+  );
+}
+
+/**
+ * Il passo chat segue i dati estratti (e messaggi chiari dell'utente).
+ * @param {string|null|undefined} passoCorrente
+ * @param {{ sede?: object|null, poderi?: object[], terreni?: object[] }} dati
+ * @param {{ sede?: object|null, poderi?: object[], terreni?: object[], fatto?: boolean }|null} esitoDati
+ * @param {string} domanda
+ */
+export function allineaPassoAiuto(passoCorrente, dati, esitoDati, domanda) {
+  const p =
+    typeof passoCorrente === 'string' && PASSI_AIUTO.indexOf(passoCorrente) >= 0
+      ? passoCorrente
+      : 'sede';
+  const base = dati && typeof dati === 'object' ? dati : {};
+  const ed = esitoDati && typeof esitoDati === 'object' ? esitoDati : {};
+  const idx = PASSI_AIUTO.indexOf(p);
+
+  if (messaggioHaTerreno(domanda) && idx < PASSI_AIUTO.indexOf('terreni')) {
+    return 'terreni';
+  }
+
+  const terreniNuovi = Array.isArray(ed.terreni) ? ed.terreni : [];
+  const poderiNuovi = Array.isArray(ed.poderi) ? ed.poderi : [];
+  const haSede =
+    !!(base.sede && (base.sede.indirizzo || base.sede.citta)) ||
+    !!(ed.sede && (ed.sede.indirizzo || ed.sede.citta));
+
+  if (terreniNuovi.length && idx < PASSI_AIUTO.indexOf('terreni')) {
+    if (p === 'sede' && !haSede) return p;
+    return 'terreni';
+  }
+  if (poderiNuovi.length && p === 'sede' && haSede) {
+    return 'poderi';
+  }
+  if (p === 'poderi' && messaggioSoloPodere(domanda)) {
+    const n = Array.isArray(base.poderi) ? base.poderi.length : 0;
+    if (n >= 1) return 'terreni';
+  }
+  return p;
+}
+
+export function esitoRipiegoAccount(esito) {
+  const e = esito && typeof esito === 'object' ? esito : {};
+  if (e.ripiego === true) return true;
+  const testo = String(e.testo || '');
+  return testo.indexOf('Non ho capito bene') === 0;
+}
+
+/**
+ * @param {Array<{ nome?: string, coltura?: string, categoria?: string }>} terreniForm
+ * @param {{ terreni?: Array<{ nome?: string, categoria?: string }> }} [datiAiuto]
+ */
+export function erroriColturaTerreniForm(terreniForm, datiAiuto) {
+  const righe = Array.isArray(terreniForm) ? terreniForm : [];
+  const metaPerNome = Object.create(null);
+  const grezzi =
+    datiAiuto && Array.isArray(datiAiuto.terreni) ? datiAiuto.terreni : [];
+  for (let i = 0; i < grezzi.length; i++) {
+    const t = grezzi[i];
+    if (!t || !t.nome) continue;
+    metaPerNome[chiaveTerreno(t.nome)] = t;
+  }
+  const errori = [];
+  for (let i = 0; i < righe.length; i++) {
+    const row = righe[i];
+    const nome = String(row && row.nome != null ? row.nome : '').trim();
+    if (!nome) continue;
+    const meta = metaPerNome[chiaveTerreno(nome)] || {};
+    let col = String(row && row.coltura != null ? row.coltura : '').trim();
+    const norm = col ? normalizzaColturaCatalogo(col) : null;
+    if (norm) col = norm;
+    const soloCategoria =
+      !col &&
+      (meta.categoria === 'Ortive' || row.categoria === 'Ortive');
+    if (soloCategoria || colturaOrtaggiGenerica(col)) {
+      errori.push({
+        campo: 'terreni[' + i + '].coltura',
+        errore: ERRORE_ORTAGGIO_SCHEDA,
+      });
+      continue;
+    }
+    if (!col) continue;
+    const trovata = trovaColtura(col, []);
+    if (!trovata.ok) {
+      errori.push({
+        campo: 'terreni[' + i + '].coltura',
+        errore:
+          trovata.errore === ERRORI.CATEGORIA_NON_COLTURA
+            ? ERRORE_ORTAGGIO_SCHEDA
+            : trovata.errore || 'Coltura non riconosciuta',
+      });
+    }
+  }
+  return errori;
 }
 
 /**
@@ -253,10 +386,13 @@ export function unisciDati(attuali, nuovi, argomento) {
           nome: prev.nome,
           superficie:
             typeof t.superficie === 'number' ? t.superficie : prev.superficie,
-          coltura:
-            t.coltura == null || t.coltura === ''
-              ? prev.coltura
-              : String(t.coltura),
+          coltura: (() => {
+            if (t.coltura == null || t.coltura === '') return prev.coltura;
+            const norm = normalizzaColturaCatalogo(t.coltura);
+            if (norm) return norm;
+            if (colturaOrtaggiGenerica(t.coltura)) return prev.coltura;
+            return String(t.coltura);
+          })(),
           podere:
             t.podere == null || t.podere === ''
               ? prev.podere
@@ -279,7 +415,13 @@ export function unisciDati(attuali, nuovi, argomento) {
       const voce = {
         nome: String(t.nome).trim(),
         superficie: typeof t.superficie === 'number' ? t.superficie : null,
-        coltura: t.coltura == null || t.coltura === '' ? null : String(t.coltura),
+        coltura: (() => {
+          if (t.coltura == null || t.coltura === '') return null;
+          const norm = normalizzaColturaCatalogo(t.coltura);
+          if (norm) return norm;
+          if (colturaOrtaggiGenerica(t.coltura)) return null;
+          return String(t.coltura);
+        })(),
         podere: t.podere == null || t.podere === '' ? null : String(t.podere),
       };
       if (t.categoria) voce.categoria = String(t.categoria);
@@ -491,13 +633,17 @@ export function payloadDaScheda(righe, requestId) {
       const nome = String(t && t.nome != null ? t.nome : '').trim();
       if (!nome) continue;
       const superficie = numeroDaTesto(t && t.superficie != null ? t.superficie : '');
+      let coltura = null;
+      if (t && t.coltura != null && String(t.coltura).trim()) {
+        const grezzo = String(t.coltura).trim();
+        const norm = normalizzaColturaCatalogo(grezzo);
+        if (norm) coltura = norm;
+        else if (!colturaOrtaggiGenerica(grezzo)) coltura = grezzo;
+      }
       terreni.push({
         nome,
         superficie,
-        coltura:
-          t && t.coltura != null && String(t.coltura).trim()
-            ? String(t.coltura).trim()
-            : null,
+        coltura,
         podere:
           t && t.podere != null && String(t.podere).trim()
             ? String(t.podere).trim()

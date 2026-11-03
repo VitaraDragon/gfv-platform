@@ -13,7 +13,7 @@ import {
   urlWorkspaceDaPercorso,
   CHIAVE_INGRESSO_ULTIMO,
   CHIAVE_RIMBALZI_INGRESSO,
-} from './tony/tony-ingresso-login.js?v=2026-11-02a';
+} from './tony/tony-ingresso-login.js?v=2026-11-02b';
 
 export const FIELD_ROUTE_GUARD_ENABLED = true;
 

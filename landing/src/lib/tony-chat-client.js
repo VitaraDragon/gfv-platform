@@ -175,6 +175,8 @@ export async function chiediATony({
       risultato.dati = doneEsito.dati;
     }
     if (doneEsito.troppiTerreni === true) risultato.troppiTerreni = true;
+    if (doneEsito.fuoriTema === true) risultato.fuoriTema = true;
+    if (doneEsito.ripiego === true) risultato.ripiego = true;
     if (
       typeof doneEsito.idVoce === 'string' &&
       /^[a-f0-9]{32}$/.test(doneEsito.idVoce)

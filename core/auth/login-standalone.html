@@ -572,7 +572,7 @@
 
         // Verifica se c'è un parametro nell'URL
         if (registeredFromLanding) {
-            showSuccess('Account creato: accedi con l\'email e la password che hai appena scelto.');
+            showSuccess('Account creato. Inserisci la password che hai appena scelto per entrare.');
         }
         if (urlParams.get('passwordReset') === 'true') {
             showSuccess('✅ Password reimpostata con successo! Ora puoi fare login con la nuova password.');
@@ -590,6 +590,8 @@
             }
             if (emailDaLanding && !emailInput.value) {
                 emailInput.value = emailDaLanding;
+            }
+            if (registeredFromLanding || emailDaLanding) {
                 passwordInput.focus();
             }
         } catch {

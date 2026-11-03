@@ -284,7 +284,8 @@ describe('punto 12 – ortaggi → categoria Ortive', () => {
     }
   });
 
-  it('coltura «ortaggi» → coltura vuota + categoria Ortive', () => {
+  it('coltura «ortaggi» → categoria Ortive e coltura ancora vuota (poi chiede ortaggio concreto; non si salva così)', () => {
+    // Round2: la sola categoria non va al salvataggio (scheda + prompt). Qui resta lo stato intermedio.
     const r = rispostaAccountDaTesto(
       JSON.stringify({
         testo: 'Quali ortaggi soprattutto?',
@@ -295,6 +296,7 @@ describe('punto 12 – ortaggi → categoria Ortive', () => {
     );
     expect(r.dati.terreni[0].coltura).toBeNull();
     expect(r.dati.terreni[0].categoria).toBe('Ortive');
+    expect(r.fatto).toBeFalsy();
   });
 
   it('un ortaggio reale resta una coltura (niente categoria)', () => {
@@ -322,19 +324,13 @@ describe('punto 12 – ortaggi → categoria Ortive', () => {
     expect(dopo).toContain('NON richiederlo');
   });
 
-  it('«vari/misti»: la categoria Ortive resta e coltura resta vuota', () => {
-    const prima = unisciDati(
-      { sede: null, poderi: [], terreni: [] },
-      { terreni: [{ nome: 'Orto', superficie: 1, coltura: null, categoria: 'Ortive' }] },
-      'terreni'
-    );
-    const dopo = unisciDati(
-      prima.dati,
-      { terreni: [{ nome: 'Orto', superficie: 1, coltura: null }] },
-      'terreni'
-    );
-    expect(dopo.dati.terreni[0].coltura).toBeNull();
-    expect(dopo.dati.terreni[0].categoria).toBe('Ortive');
+  it('prompt dopo categoria Ortive: chiede ortaggio concreto, non riepilogo solo categoria', () => {
+    const raccolti = serializzaRaccolti({
+      terreni: [{ nome: 'Orto', superficie: 1, coltura: null, categoria: 'Ortive' }],
+    });
+    const prompt = promptSistemaAccount('terreni', { raccolti });
+    expect(prompt).toMatch(/Insalata|Pomodoro|Zucchine/i);
+    expect(prompt).toMatch(/non mettere fatto:true|non mandare al riepilogo/i);
   });
 });
 

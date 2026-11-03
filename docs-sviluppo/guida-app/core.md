@@ -49,12 +49,12 @@ Nota pratica: dashboard e azioni cambiano in modo netto tra manager, caposquadra
 
 Percorsi principali (i piu usati):
 
-- Dashboard -> Terreni
-- Dashboard -> Diario Attivita
-- Dashboard -> Gestione Lavori / Validazione Ore (se modulo e ruolo lo consentono)
-- Dashboard -> Amministrazione
-- Dashboard -> Abbonamento
-- Dashboard -> Moduli attivi (Vigneto, Frutteto, Magazzino, Conto terzi, Report, ecc.)
+- graffetta in alto a sinistra → Terreni
+- graffetta in alto a sinistra → Diario Attivita
+- graffetta → Gestione Lavori / Validazione Ore (se modulo e ruolo lo consentono)
+- graffetta / menu → Amministrazione
+- graffetta → Abbonamento (o link dalla Dashboard)
+- graffetta → Moduli attivi (Vigneto, Frutteto, Magazzino, Conto terzi, Report, ecc.)
 
 ---
 
