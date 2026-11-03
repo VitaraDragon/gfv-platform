@@ -368,7 +368,7 @@ async function onVaiDashboard() {
   }
   try {
     const acc = await import('../lib/firebase-landing-account.js');
-    if (!email) email = acc.emailCollegata();
+    if (!email) email = await acc.emailCollegata();
     await acc.esciDopoRegistrazione();
   } catch {
     /* ignore */
@@ -874,11 +874,6 @@ onUnmounted(() => {
   if (timerStatico) window.clearTimeout(timerStatico);
   player?.ferma();
   player = null;
-  void import('../lib/firebase-landing-account.js')
-    .then((m) => m.esciDopoRegistrazione())
-    .catch(() => {
-      /* ignore */
-    });
 });
 
 function onSaluta() {

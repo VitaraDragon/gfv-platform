@@ -113,7 +113,10 @@ const MESSAGGI = Object.freeze({
   limiteAccount:
     "Per ora basta così: puoi aggiungere sede, poderi e terreni anche dopo, dalla dashboard.",
   // BOZZA: da far rivedere
-  accessoMancante: "Prima crea il tuo account, poi ti aiuto con i dati."
+  accessoMancante:
+    "Per salvare i dati serve accedere di nuovo con la stessa email. Riprova tra un attimo o apri il login dell’app.",
+  sessioneIntervistaScaduta:
+    "La sessione è scaduta: accedi di nuovo per continuare."
 });
 
 /**

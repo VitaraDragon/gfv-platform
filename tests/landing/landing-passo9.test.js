@@ -116,7 +116,10 @@ describe('solo il pezzo caricato dopo', () => {
       'landing/src/router/index.ts',
     ]) {
       const testo = leggi(rel);
-      expect(testo, rel).not.toMatch(/firebase-landing/);
+      // Solo TonyStage carica firebase-landing.js; LandingHome può importare
+      // firebase-landing-account.js in modo pigro (es. «Saluta Tony» → signOut).
+      expect(testo, rel).not.toMatch(/firebase-landing\.js/);
+      expect(testo, rel).not.toMatch(/from\s+['"][^'"]*firebase-landing['"]/);
     }
   });
 

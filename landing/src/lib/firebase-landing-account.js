@@ -28,10 +28,31 @@ let db = null;
 /** @type {import('firebase/functions').Functions | null} */
 let functions = null;
 
+const ATTESA_AUTH_MS = 3000;
+
 function erroreProtezione() {
   const err = new Error('protezione-non-pronta');
   err.code = 'protezione-non-pronta';
   return err;
+}
+
+async function assicuraAuth() {
+  const apps = getApps();
+  if (!apps || !apps[0]) return null;
+  if (!auth) {
+    auth = initializeAuth(apps[0], { persistence: browserSessionPersistence });
+  }
+  try {
+    await Promise.race([
+      auth.authStateReady(),
+      new Promise((resolve) => {
+        setTimeout(resolve, ATTESA_AUTH_MS);
+      }),
+    ]);
+  } catch {
+    /* auth non pronta */
+  }
+  return auth;
 }
 
 /**
@@ -53,9 +74,7 @@ export async function strumentiRegistrazione() {
   if (!apps || !apps[0]) throw erroreProtezione();
   const app = apps[0];
 
-  if (!auth) {
-    auth = initializeAuth(app, { persistence: browserSessionPersistence });
-  }
+  await assicuraAuth();
   if (!db) {
     db = getFirestore(app);
   }
@@ -86,11 +105,8 @@ export async function strumentiRegistrazione() {
  * @returns {Promise<void>}
  */
 export async function esciDopoRegistrazione() {
-  if (!auth) {
-    const apps = getApps();
-    if (!apps || !apps[0]) return;
-    auth = initializeAuth(apps[0], { persistence: browserSessionPersistence });
-  }
+  await assicuraAuth();
+  if (!auth) return;
   try {
     await signOut(auth);
   } catch {
@@ -104,15 +120,9 @@ export async function esciDopoRegistrazione() {
  */
 export async function tokenAccesso() {
   try {
-    if (!auth || !auth.currentUser) {
-      const apps = getApps();
-      if (!apps || !apps[0]) return null;
-      if (!auth) {
-        auth = initializeAuth(apps[0], { persistence: browserSessionPersistence });
-      }
-    }
-    if (!auth.currentUser) return null;
-    return await auth.currentUser.getIdToken();
+    const istanza = await assicuraAuth();
+    if (!istanza || !istanza.currentUser) return null;
+    return await istanza.currentUser.getIdToken();
   } catch {
     return null;
   }
@@ -120,12 +130,13 @@ export async function tokenAccesso() {
 
 /**
  * Email dell'utente collegato (solo per il link dashboard).
- * @returns {string | null}
+ * @returns {Promise<string | null>}
  */
-export function emailCollegata() {
+export async function emailCollegata() {
   try {
-    if (!auth || !auth.currentUser) return null;
-    const email = auth.currentUser.email;
+    const istanza = await assicuraAuth();
+    if (!istanza || !istanza.currentUser) return null;
+    const email = istanza.currentUser.email;
     return typeof email === 'string' && email ? email : null;
   } catch {
     return null;
