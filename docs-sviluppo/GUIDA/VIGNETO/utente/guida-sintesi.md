@@ -1,11 +1,11 @@
 # Vigneto — sintesi per Tony
 
-Modulo **Vigneto** attivo sull’azienda. Linguaggio allineato alla guida utente.
+Modulo **Vigneto** attivo sull’azienda (abbonamento **o prova 30 giorni**): in prova avete **gli stessi accessi** del modulo pagato (dashboard vigneto, pagine del modulo, icona **grappolo** sui terreni con vite, ecc.). Linguaggio allineato alla guida utente.
 
 ## In sintesi
 
 - **Pulsante moduli** (graffetta in alto a sinistra) → **Vigneto** → **Dashboard Vigneto** (Manager/Amministratore per questa pagina): statistiche anno, azioni rapide; **Vendemmie recenti** = tutte le vendemmie registrate nel modulo; **Lavori vigneto** = lavori sul terreno + attività Diario (badge «Da diario»), non elenco trattamenti. Ingresso anche da **I miei accessi**; riquadro in fondo dashboard solo **senza** Manodopera.
-- **Terreni**: con modulo attivo, sulla riga **grappolo** apre **Anagrafica vigneti** per quel terreno; **mela** apre **Anagrafica frutteti**; non sono la dashboard del modulo; per il riepilogo viola usare il **pulsante moduli** → **Vigneto** o link Dashboard in pagina.
+- **Terreni**: con modulo attivo, sulla riga **grappolo** apre **Anagrafica vigneti** per quel terreno; **mela** apre **Anagrafica frutteti**; non sono la dashboard del modulo; per il riepilogo viola usare il **pulsante moduli** → **Vigneto** o link Dashboard in pagina. Cambio coltura del terreno chiude il vigneto aperto (badge **Chiuso**, filtro **Mostra chiusi**): lo storico resta, i nuovi registri non lo propongono. Tony non offre vigneti chiusi né terreni archiviati.
 - **Trattamenti / Vendemmia**: salvabili senza Diario/Lavori obbligatori; **lavoro** collegato opzionale.
 - **Anagrafica Vigneti**: filtri terreno/varietà/stato (Attivo, In riposo, Da rimuovere); **Nuovo vigneto** / **Modifica** / **Elimina**; form terreno, varietà, annata, distanze file/ceppi → densità automatica, tipo palo, destinazione uva, tipo impianto, orientamento, cantina, note; **Ricalcola spese**; banner creazione da terreni con vite.
 - **Trattamenti** / **Concimazioni** / **Potatura** / **Vendemmia**: registri con vigneto, data, superficie/mappa (**Salva area** quando c’è disegno), prodotti (fito vs concimazione), **Salva**; trattamenti possono collegare trattamento precedente; conferme dosaggi se fuori soglia.

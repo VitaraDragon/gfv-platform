@@ -4,7 +4,8 @@ Assistente **chat** GFV; tono colloquiale. **Widget** flottante + pannello; **vo
 
 ## Piani e moduli
 
-- **Free:** widget **nascosto**, servizio non usabile.  
+- **Free:** **Tony Guida** solo nei **primi 7 giorni** dalla registrazione (max 30 domande al giorno, poi «Hai raggiunto il limite giornaliero di 30 domande…»); dopo, widget **nascosto**.  
+- **Percorso dei primi 7 giorni** (azienda preparata con Tony all’iscrizione, manager/amministratore): Tony si apre da solo con «Ciao …! Per 7 giorni ti guido dentro l’app, a passi brevi.» e pulsanti **1) Mappa / sede**, **2) Terreni (coltura e confini)**, **3) Primo lavoro / attività nel Diario**, **Chiudi percorso**; poi una volta al giorno «Riprendiamo dai …». Se un passo risponde che serve Tony Avanzato: aprire la pagina a mano. Percorsi: moduli dalla **graffetta in alto a sinistra**. Impostazioni dall’**ingranaggio** in alto a destra.  
 - **Base:** **Tony Guida** — spiegazioni, percorsi manuali, **consigliere moduli** (max 1–2 moduli per turno, da dati azienda reali; invito **Abbonamento**; **non** promuove Tony Avanzato; **non** su domande lista/tabella).  
 - **Modulo Tony Avanzato** (si attiva da **Abbonamento**): **APRI PAGINA**, schede con campi compilati, **filtri** su liste visibili, **intervista vocale** lavori/ore, **briefing** proattivo dashboard (voce su desktop).
 
@@ -32,6 +33,10 @@ Ingresso **fotocamera in chat** (non un menu magazzino). Stesso gesto di sempre:
 ## Risposte lunghe e nomi in app
 
 Se una risposta si tronca, Tony chiude con «La risposta si è interrotta: chiedimi di continuare.» (l’utente chiede di continuare). In chat mai testo tecnico o comandi grezzi. Nomi reali: categoria coltura **Vite** (non «Vigneto», che è il modulo); moduli dal **pulsante in alto a sinistra** (graffetta, «Apri o chiudi i moduli»). **Impostazioni** / **Abbonamento** / **Azienda** dall’ingranaggio in alto a destra; **I miei accessi** è una sezione della dashboard, non una voce di menu.
+
+## Saluto finale
+
+«grazie», «a posto così», «basta così», «a dopo», «buon lavoro» → Tony risponde «Va bene, a presto!» e spegne il microfono se a voce; «ciao» da solo chiude solo dopo una risposta di Tony; con una domanda nella stessa frase non chiude.
 
 ## Conferme
 

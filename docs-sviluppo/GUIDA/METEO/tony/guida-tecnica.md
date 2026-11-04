@@ -8,7 +8,7 @@ Modulo tenant: `meteo` in `tenants.modules` (legacy `moduli_attivi` supportato).
 
 | Livello | Condizione | UI |
 |---------|------------|-----|
-| Nessuno | `planId === 'free'` | `initDashboardMeteo` nasconde riga; pagina modulo gate |
+| Nessuno | `planId === 'free'` | `initDashboardMeteo` mostra la riga con `meteoFreeUpsell({ planId })` («Meteo sede disponibile con il piano Base» + **Vai ad Abbonamento →**, #327), nessun fetch; pagina modulo gate |
 | Meteo sede | Base, modulo **non** attivo | `#dashboard-meteo-widget` titolo **Meteo sede**; `fetchMeteoSedeWithLocalCache(tenantId, { advanced: false })` |
 | Modulo Meteo | Base + `meteo` in modules | Widget espanso (`dashboard-meteo-widget--expanded`); link `METEO_MODULE_HREF`; pagina standalone |
 
@@ -16,7 +16,9 @@ Gate pagina: `modules/meteo/views/meteo-dashboard-standalone.html` — `hasMeteo
 
 Sede: indirizzo tenant / Impostazioni; codice errore `SEDE_NOT_SET` in `dashboard-meteo.js`.
 
-**Secondo giro anteprima (#323, PR aperta, non ancora su develop).** `core/js/meteo-ui-helpers.js`: `messaggioMeteoDashboard({ code, timedOut, fallback })` → `SEDE_NOT_SET` = `MSG_SEDE_PIN_MANCANTE` «Imposta il pin della sede in Impostazioni per vedere il meteo.», timeout = `MSG_METEO_TIMEOUT` «Meteo non disponibile al momento. Riprova più tardi.». `dashboard-meteo.js` mette in gara `fetchMeteoSedeWithLocalCache` con un timeout di `METEO_FETCH_TIMEOUT_MS` = 15000 ms. `deveProporrePinSedeDaIndirizzo({ indirizzo, citta, sedeCoordinate })`: in `admin/impostazioni-standalone.html` `maybeProposeSedePinFromAddress()` all’apertura della mappa sede, se ci sono via/comune e niente coordinate, riempie `#sede-map-search` e chiama `geocodeSedeQuery(query, { messaggioOk: 'Controlla il pin e salva' })`; il pin si registra solo con **Salva Impostazioni Azienda**.
+**Secondo giro anteprima (#323, su develop da 8f2e3368).** `core/js/meteo-ui-helpers.js`: `messaggioMeteoDashboard({ code, timedOut, fallback })` → `SEDE_NOT_SET` = `MSG_SEDE_PIN_MANCANTE` «Imposta il pin della sede in Impostazioni per vedere il meteo.», timeout = `MSG_METEO_TIMEOUT` «Meteo non disponibile al momento. Riprova più tardi.». `dashboard-meteo.js` mette in gara `fetchMeteoSedeWithLocalCache` con un timeout di `METEO_FETCH_TIMEOUT_MS` = 15000 ms. `deveProporrePinSedeDaIndirizzo({ indirizzo, citta, sedeCoordinate })`: in `admin/impostazioni-standalone.html` `maybeProposeSedePinFromAddress()` all’apertura della mappa sede, se ci sono via/comune e niente coordinate, riempie `#sede-map-search` e chiama `geocodeSedeQuery(query, { messaggioOk: 'Controlla il pin e salva' })`; il pin si registra solo con **Salva Impostazioni Azienda**.
+
+**Correzioni 2 novembre (#327).** `meteoFreeUpsell` / `MSG_METEO_PIANO_BASE` / `ABBONAMENTO_HREF_DASHBOARD` in `core/js/meteo-ui-helpers.js`; `.dashboard-meteo-row[hidden] { display: none; }` in `core/styles/dashboard.css`. Pin automatico al primo accesso in dashboard (`core/js/sede-auto-pin.js` + `core/js/sede-geocode-match.js`, solo se il Geocoder trova un risultato nello stesso comune): dettaglio in `GUIDA/CORE/tony/guida-tecnica.md` § Correzioni app del 2 novembre. Guard #326: le frasi «segna le ore» non entrano più in `isTonyMeteoQuestion` / `isTonyMeteoOperationalQuestion`.
 
 ## Path
 

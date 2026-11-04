@@ -15,7 +15,7 @@ Il modulo va **attivato sull’abbonamento** dell’azienda. Se non trovi **Cont
 5. Configurare le **tariffe** (prezzi per tipo di lavoro, coltura, tipo campo, **coefficienti** e opzione **tre morfologie**) per i calcoli automatici sui preventivi. **[Impara qui](#mini-guida-tariffe)**  
 6. Creare un **nuovo preventivo** e salvarlo come **bozza**. **[Impara qui](#mini-guida-nuovo-preventivo)**  
 7. Dalla lista **Preventivi**: **inviare** al cliente, gestire **accettazione** o **rifiuto**, eventualmente **accettare come manager** se il flusso lo prevede. **[Impara qui](#mini-guida-gestione-preventivi)**  
-8. Dopo l’accettazione: **pianificare il lavoro** e completare i dati in **Gestione lavori**. **[Impara qui](#mini-guida-da-preventivo-a-lavoro-pianificato)**  
+8. Dopo l’accettazione: **Pianifica** il lavoro; con **Manodopera** completate la pianificazione in **Gestione lavori**; senza Manodopera il lavoro è già **in corso** e le giornate si registrano nel **Diario Conto Terzi**. **[Impara qui](#mini-guida-da-preventivo-a-lavoro-pianificato)**  
 9. Seguire **lavori in corso** e **completati** e registrare **ore** e attività dal **Diario** filtrato per conto terzi. **[Impara qui](#mini-guida-lavori-e-diario-conto-terzi)**  
 
 ---
@@ -59,7 +59,7 @@ Di solito vedi **numeri** utili a colpo d’occhio, ad esempio:
 - **Lavori completati** (stesso tipo di collegamento, stato completato)  
 - **Preventivi aperti**  
 - **Terreni clienti** registrati  
-- **Da pianificare** (collegamento verso la **Gestione lavori** con i lavori ancora da pianificare completamente; compare **solo con Manodopera** attivo)
+- **Da pianificare** (solo con **Manodopera** attivo: collegamento verso **Gestione lavori** con i lavori ancora da completare in pianificazione)
 
 ### Azioni rapide
 
@@ -70,7 +70,7 @@ Sotto la panoramica trovi le **schede** che portano alle funzioni principali:
 - **Mappa clienti**  
 - **Preventivi**  
 - **Tariffe**  
-- **Lavori da pianificare**  
+- **Lavori da pianificare** (solo con **Manodopera**)  
 - **Lavori in corso** e **Lavori completati** (stessi collegamenti utili dal riquadro numeri)
 
 Usa la scheda che ti serve e poi il pulsante **indietro** o il link alla home Conto Terzi per non perderti.
@@ -264,14 +264,14 @@ Pagina **Preventivi**: elenco di tutti i preventivi con **filtri** (cliente, sta
 - **Accettato (email)** — il cliente ha accettato tramite il **link** ricevuto.  
 - **Accettato (manager)** — accettazione registrata dall’azienda dalla lista preventivi (quando il flusso lo consente).  
 - **Rifiutato** / **Scaduto** / **Annullato** — chiusure negative o annullamenti.  
-- **Pianificato** — dal preventivo è stato creato il collegamento al **lavoro** ed è stata completata la fase di pianificazione prevista.
+- **Pianificato** — avete usato **Pianifica** dal preventivo accettato: il preventivo **resta** in questo stato; **avanzamento e chiusura** si seguono sul **lavoro** collegato, non sul preventivo.
 
 ### Cosa fare in base allo stato
 
 1. **Bozza**: puoi **modificare** il preventivo; quando è pronto usa **Invia** (icona email o pulsante equivalente) per passare a **Inviato**.  
 2. **Inviato**: attendi l’accettazione del cliente sul link; oppure, se la tua procedura interna lo prevede, usa in lista le azioni **Accetta** o **Rifiuta** come **manager**.  
 3. **Accettato** (email o manager): compare il pulsante **Pianifica** (o etichetta simile): servirà per creare il **lavoro** collegato (vedi sezione successiva).  
-4. **Pianificato**: il flusso commerciale-operativo è avanzato; il lavoro va seguito in **Gestione lavori** (con Manodopera) oppure nel **Diario attività** (senza Manodopera).
+4. **Pianificato**: il preventivo non cambia più stato; seguite il **lavoro** in **Gestione lavori** (con Manodopera) o nel **Diario Conto Terzi** (senza Manodopera).
 
 ### Accettazione da parte del cliente
 
@@ -281,18 +281,25 @@ Il cliente riceve un messaggio con un **link dedicato**: da lì può **accettare
 
 ## Mini-guida da preventivo a lavoro pianificato
 
-### Passi
+### Passi comuni
 
 1. In **Preventivi**, individua una riga in stato **Accettato** (email o manager).  
 2. Premi **Pianifica** (o equivalente).  
-3. Il sistema crea un **lavoro** collegato, in genere con stato **da pianificare** o simile: significa che mancano ancora assegnazioni operative (squadra, date, macchine, ecc.) da completare nella schermata **Gestione lavori**.  
-4. Apri **Gestione lavori** (dalla home Conto Terzi tramite **Lavori da pianificare**, dal **pulsante moduli** → **Manodopera** se attivo, o da **Per te oggi**).  
-5. Trova il lavoro collegato al cliente conto terzi, **modifica** e completa: **terreno**, **tipo lavoro**, **date**, **assegnazione** (squadra o operaio autonomo secondo modulo Manodopera), eventuali **macchine** se il modulo Parco Macchine è attivo, **note**.  
-6. **Salva** finché il lavoro non risulta **assegnato** o **in corso** come da vostra prassi.
+3. Il preventivo passa a **Pianificato** e resta così: l’**avanzamento** lo vedete sul **lavoro** collegato, non riaprendo il preventivo per lo stato operativo.  
+4. Il sistema crea un **lavoro** collegato al cliente conto terzi.
 
-### Effetto sul Diario e in campo
+### Con **Manodopera** attivo
 
-Una volta pianificato correttamente, il lavoro compare nei flussi operativi (versione mobile, ore, ecc.) come gli altri lavori con **cliente conto terzi** associato.
+5. Il lavoro nasce **da pianificare**: mancano ancora assegnazioni operative (squadra, date, macchine, ecc.).  
+6. Apri **Gestione lavori** (dalla home Conto Terzi con **Lavori da pianificare**, dal **pulsante moduli** → **Manodopera**, o da **Per te oggi**).  
+7. Trova il lavoro, **modifica** e completa: **terreno**, **tipo lavoro**, **date**, **assegnazione** (squadra o operaio autonomo), eventuali **macchine** se Parco Macchine è attivo, **note**.  
+8. **Salva** finché il lavoro non risulta **assegnato** o **in corso** come da vostra prassi. Poi seguite ore e chiusura come per gli altri lavori (versione mobile, validazioni, ecc.).
+
+### Senza **Manodopera**
+
+5. Il lavoro nasce già **in corso**: non serve completare una pianificazione in Gestione lavori (modulo non attivo).  
+6. Registrate le **giornate** e le attività nel **Diario Conto Terzi** (collegamenti **Lavori in corso** / **Lavori completati** dalla home del modulo).  
+7. Chiusura e storico seguono le regole del Diario e del lavoro conto terzi, come per i lavori interni senza squadre strutturate.
 
 ---
 

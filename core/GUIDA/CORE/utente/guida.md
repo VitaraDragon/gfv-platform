@@ -4,6 +4,18 @@ Benvenuto. Questa guida è per chi usa l’azienda **senza aver attivato i modul
 
 Se nella tua azienda sono già attivi altri moduli, la **dashboard avrà più scorciatoie e sezioni**: non ti preoccupare se qui non le nomiamo tutte; troverai le spiegazioni dettagliate nella guida del modulo che hai attivato.
 
+## Terreno archiviato
+
+Un terreno che non usate più (fine affitto o vendita) si **archivia**, non si cancella. Lo storico resta: lavori, ore e registri mostrano ancora il nome, con la scritta **(archiviato)**.
+
+In elenco gli archiviati sono nascosti finché non spuntate **Mostra archiviati**. Da lì potete **Ripristinare** il terreno: torna negli elenchi, ma un vigneto o un frutteto già chiuso resta chiuso.
+
+Se il terreno non ha nulla collegato, il pulsante resta **Elimina**. Se la verifica dei collegamenti non riesce, non si cancella nulla: compare «Non riesco a controllare i dati collegati, riprova».
+
+Gli archiviati non contano nel limite terreni del piano e non ricevono avvisi meteo. Nelle tendine (nuovo lavoro, attività, Tony) compaiono solo i terreni attivi.
+
+Se cambiate la coltura del terreno (da vite a frutteto, o il contrario) e c'è un vigneto o un frutteto ancora aperto, l'app chiede conferma e lo **chiude**. Lo storico di potature e trattamenti resta, in sola consultazione. I lavori già aperti restano modificabili finché non li completate o li annullate; poi diventano solo consultazione. La coltura di un lavoro nuovo è quella del terreno. Se cambiate la superficie, si aggiorna anche la superficie del vigneto o del frutteto ancora aperti e delle campagne in corso; i registri già salvati non si toccano.
+
 ---
 
 ## Percorso consigliato quando inizi
@@ -95,8 +107,9 @@ Nella Home con la pelle attuale (Proposta) questa sezione **non** si vede: per e
 
 ### Meteo sede
 
-Con il **piano Base** (a pagamento), compare **Meteo sede** con previsioni per l’indirizzo dell’azienda in **Impostazioni**. Sul **piano gratuito** non compare.  
-Con il **modulo Meteo** attivo la sezione si arricchisce (previsioni estese e pagina dedicata). Il meteo usa il **pin della sede** sulla mappa: se manca compare «Imposta il pin della sede in Impostazioni per vedere il meteo.» Andate in **Impostazioni** → **Sede aziendale sulla mappa**: se avete già scritto indirizzo e città, l’app cerca da sola il punto e vi chiede «Controlla il pin e salva»; controllate che sia giusto e premete **Salva Impostazioni Azienda**. Se il servizio non risponde entro qualche secondo compare «Meteo non disponibile al momento. Riprova più tardi.»: ricaricate più tardi la dashboard.
+Con il **piano Base** (a pagamento), compare **Meteo sede** con previsioni per l’indirizzo dell’azienda in **Impostazioni**. Sul **piano gratuito** al posto delle previsioni compare «Meteo sede disponibile con il piano Base» con il collegamento **Vai ad Abbonamento →**.  
+Con il **modulo Meteo** attivo la sezione si arricchisce (previsioni estese e pagina dedicata). Il meteo usa il **pin della sede** sulla mappa: se manca compare «Imposta il pin della sede in Impostazioni per vedere il meteo.» Andate in **Impostazioni** → **Sede aziendale sulla mappa**: se avete già scritto indirizzo e città, l’app cerca da sola il punto e vi chiede «Controlla il pin e salva»; controllate che sia giusto e premete **Salva Impostazioni Azienda**. Se il servizio non risponde entro qualche secondo compare «Meteo non disponibile al momento. Riprova più tardi.»: ricaricate più tardi la dashboard.  
+**Pin messo da solo al primo accesso:** se in **Impostazioni** ci sono già indirizzo e città ma manca il pin, la prima volta che il manager o l’amministratore apre la dashboard l’app prova a mettere il pin da sola e lo salva, **solo se trova l’indirizzo in quel comune**. Se non lo trova, in cima alla dashboard compare «Non trovo la sede a …: metti il pin a mano in Impostazioni (ingranaggio in alto a destra).» con il collegamento **Apri Impostazioni**: lì cliccate voi il punto giusto sulla mappa e premete **Salva Impostazioni Azienda**. Il tentativo automatico si fa una volta sola su quel browser.
 
 ### Scadenze e «In arrivo»
 
@@ -113,7 +126,8 @@ Il modo **principale** per aprire Terreni, Diario, Vigneto, Magazzino, ecc. è i
 2. Si apre il **pannello moduli** con voci cliccabili: ogni riga ha un’**icona** (es. 🍇), un **titolo** (es. **Vigneto**) e una **breve descrizione**.
 3. Tocca la voce che ti serve: si apre quella pagina e il pannello si chiude.
 
-Nell’elenco trovi sempre almeno **Home**, **Terreni** e **Statistiche**; **senza Manodopera** anche **Diario attività**; poi ogni **modulo attivo** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Report, …).  
+Nell’elenco trovi sempre almeno **Home** (torna alla dashboard), **Terreni** e **Statistiche**; **senza Manodopera** anche **Diario attività**; poi ogni **modulo attivo** (Vigneto, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Report, …).  
+**Per tornare alla dashboard:** graffetta in alto a sinistra → **Home**. Su molte pagine c’è anche «← Dashboard» in alto se lo vedi.  
 Con **Manodopera** attivo compare anche **Gestione lavori** e **Statistiche** apre le statistiche manodopera; il **Diario attività** **non** compare nel menu (né in **Per te oggi**): le giornate nuove vanno in **Gestione lavori**. Un link diretto al Diario, se raggiunto, mostra solo lo **storico** (vedi [mini-guida Diario](#mini-guida-compilare-il-diario-attivita)).  
 **Impostazioni**, **Abbonamento**, **Guide** e **Logout** non sono in questo elenco: stanno nel menu dell’**ingranaggio** in alto a destra («Apri o chiudi le opzioni»). Se lavorate in più aziende, lì trovate anche **Azienda** (vedi [Impara qui: più aziende](#mini-guida-accedere-password-e-aziende)). Accanto c’è l’icona della **mappa**.
 
@@ -147,8 +161,8 @@ Con **Manodopera** attivo, dopo il login l’operaio e il caposquadra vanno **di
 
 **Passi:**
 
-1. Dalla Dashboard, in alto a destra, premi **Impostazioni** (icona ingranaggio). In pagina leggi «Configura azienda e account».
-2. Nel riquadro **Informazioni Azienda** compila un campo alla volta: **Nome Azienda** (obbligatorio), **Partita IVA**, **Codice Fiscale**, **Indirizzo**, **Città**, **CAP**, **Provincia**. Poi **Sede aziendale sulla mappa**: scrivi l’indirizzo e premi **🔍 Cerca**, oppure **Da anagrafica**, oppure **Rimuovi pin**. Se indirizzo e città sono già scritti ma il pin manca, all’apertura della mappa l’app cerca il punto da sola («Controlla il pin e salva»): verificate e salvate. Il pin serve anche per il **Meteo sede** in dashboard. Poi **Telefono**, **Email Aziendale**, **Note**. Un solo click finale: **Salva Impostazioni Azienda**.
+1. Premi **Impostazioni** (icona ingranaggio, in alto a destra). In pagina leggi «Configura azienda e account».
+2. Nel riquadro **Informazioni Azienda** compila un campo alla volta: **Nome Azienda** (obbligatorio), **Partita IVA**, **Codice Fiscale**, **Indirizzo**, **Città**, **CAP**, **Provincia**. Poi **Sede aziendale sulla mappa**: scrivi l’indirizzo e premi **🔍 Cerca**, oppure **Da anagrafica**, oppure **Rimuovi pin**. Se indirizzo e città sono già scritti ma il pin manca, all’apertura della mappa l’app cerca il punto da sola («Controlla il pin e salva»): verificate e salvate. Se l’indirizzo cercato non è nel comune scritto in **Città**, compare «Non trovo questo indirizzo a …: metti il pin a mano sulla mappa.»: cliccate voi il punto giusto sulla mappa. Il pin serve anche per il **Meteo sede** in dashboard. Poi **Telefono**, **Email Aziendale**, **Note**. Un solo click finale: **Salva Impostazioni Azienda** (mentre salva il pulsante dice «Salvataggio…» e non si può premere di nuovo).
 3. **Logo (facoltativo):** nello stesso riquadro, campo **Logo**. In pagina trovi formati ammessi e dimensione massima. Il logo viene usato **nei preventivi** del modulo **Conto terzi**. Puoi anche **rimuovere** il logo se cambiate idea. Il logo si registra insieme a **Salva Impostazioni Azienda**.
 4. **Podere (facoltativo).** Solo se lavorate per **poderi** (fattorie, cascine, blocchi di campagna): nello stesso **Impostazioni** aprite **Gestione Poderi** e premete **➕ Aggiungi Podere**. Nel riquadro: **Nome Podere** (obbligatorio), **Indirizzo** e **🔍 Cerca** (potete anche cliccare sulla mappa per il punto), **Note** se servono, poi **Salva**. In elenco, su un podere già creato: **✏️ Modifica** oppure **🗑️ Elimina**. Se non vi serve un podere, **saltate** questo passo e andate ai Terreni.
 5. **Liste personalizzate** (di solito **manager** o **amministratore**): potete aggiungere **tipi di lavoro** e **colture** specifiche della vostra azienda, così compaiono nei menu (Diario, Terreni, ecc.). Le voci **già previste dal sistema** di solito **non si eliminano**; potete invece arricchire con le vostre.
@@ -156,7 +170,7 @@ Con **Manodopera** attivo, dopo il login l’operaio e il caposquadra vanno **di
 
 **Solo con i moduli giusti (accenno):** le **tariffe orarie per tipo operaio** compaiono in Impostazioni **solo se il modulo Manodopera è attivo**. I **coefficienti di morfologia** (maggiorazioni per tipo di terreno rispetto alla pianura, usati nelle tariffe Conto terzi) compaiono **solo se il modulo Conto terzi è attivo**. Non entrano nel dettaglio in questa guida Core: quando attivate quei moduli, usate la documentazione dedicata a **Manodopera** e **Conto terzi**.
 
-**Per tutti gli utenti**, nello stesso **Impostazioni**, c’è il riquadro **Impostazioni Account Personale**: **Nome**, **Cognome**, **Email** (non si modifica), **Telefono**, poi **Salva Impostazioni Account**. **Nome** e **Cognome** non sono obbligatori: potete salvare anche lasciandoli vuoti. Finché sono vuoti, sotto compare il suggerimento «Aggiungi nome e cognome: compariranno nei registri e negli elenchi.», che sparisce appena ne scrivete uno. Senza nome e cognome, in alto nella dashboard al posto del vostro nome compare il nome dell’azienda (o, se manca anche quello, la prima parte della vostra email). Più sotto: **Cambio Password** e la scheda **Notifiche** (push sul telefono: ciclo lavoro, assenze, eventuale WhatsApp di escalation — vedi [mini-guida notifiche push](#mini-guida-notifiche-push)). Il **Telefono** nel box Account serve anche se attivate WhatsApp per le assenze.
+**Per tutti gli utenti**, nello stesso **Impostazioni**, c’è il riquadro **Impostazioni Account Personale**: **Nome**, **Cognome**, **Email** (non si modifica), **Telefono**, poi **Salva Impostazioni Account** (mentre salva il pulsante dice «Salvataggio…»). **Nome** e **Cognome** non sono obbligatori: potete salvare anche lasciandoli vuoti. Finché sono vuoti, sotto compare il suggerimento «Aggiungi nome e cognome: compariranno nei registri e negli elenchi.», che sparisce appena ne scrivete uno. Senza nome e cognome, in alto nella dashboard al posto del vostro nome compare il nome dell’azienda (o, se manca anche quello, la prima parte della vostra email). Più sotto: **Cambio Password** e la scheda **Notifiche** (push sul telefono: ciclo lavoro, assenze, eventuale WhatsApp di escalation — vedi [mini-guida notifiche push](#mini-guida-notifiche-push)). Il **Telefono** nel box Account serve anche se attivate WhatsApp per le assenze.
 
 Quando torni in **Terreni**, nel modulo del singolo terreno potrai collegare il campo al podere giusto dal menu dedicato (se non compare nulla, torna in Impostazioni e verifica di aver salvato il podere).
 
@@ -183,7 +197,7 @@ Se un **podere** non compare sul terreno, va creato in **Impostazioni** con **�
 
 **Aprire la scheda**
 
-- Dalla Dashboard apri **Terreni**.
+- Apri la **graffetta in alto a sinistra** e scegli **Terreni**.
 - Per **un terreno nuovo** premi **+ Aggiungi Terreno**. Si apre il riquadro **Aggiungi Terreno**.
 - Per **modificarne** uno già in lista, sulla riga premi **✏️** (il fumetto dice **Modifica**). Si apre il riquadro **Modifica Terreno**, con i dati già compilati.
 
@@ -229,7 +243,7 @@ Se la mappa non si carica, compare un avviso: in quel caso serve una configurazi
 
 Capita se il terreno è stato salvato senza **Categoria Coltura** e **Coltura** (anche dal dialogo di registrazione). Il **Diario attività** in quel caso non vi fa scegliere la coltura. Non è un guasto del Diario, e la coltura lì resta obbligatoria.
 
-1. Dashboard → **Terreni**.
+1. **graffetta in alto a sinistra** → **Terreni**.
 2. Sulla riga del terreno premi **✏️** (fumetto **Modifica**).
 3. Scegli prima **Categoria Coltura**, poi **Coltura**.
 4. Premi **Salva Terreno**.
@@ -256,7 +270,7 @@ Capita se il terreno è stato salvato senza **Categoria Coltura** e **Coltura** 
 
 **Passi:**
 
-1. Apri **Diario attività** dalla dashboard.
+1. Apri la **graffetta in alto a sinistra** e scegli **Diario attività**.
 2. Premi **➕ Aggiungi Attività**: si apre il riquadro.
 3. **Data:** giorno in cui è stato fatto l’intervento.
 4. **Terreno:** sceglilo dall’elenco (solo terreni già creati in Terreni).
@@ -409,25 +423,26 @@ Nella pagina **Abbonamento** (ingranaggio in alto a destra → **Abbonamento**) 
 
 - Di solito **limiti** su terreni (es. massimo 5) e attività al mese (es. 30).
 - **Nessun modulo** opzionale **acquistabile** finché non passate al piano Base.
-- La **prova gratuita di 30 giorni** di **un modulo alla volta** (senza carta) è disponibile **solo con il piano Base**, dalla pagina **Abbonamento**: i dati restano salvati dopo la scadenza; per continuare serve il modulo a pagamento.
-- **Nessun assistente Tony** in chat (il pulsante non compare o il servizio non è disponibile).
+- La **prova gratuita di 30 giorni** è disponibile **solo con il piano Base**, dalla pagina **Abbonamento**: si prova **un modulo alla volta** e **una sola volta per ciascun modulo** (senza carta). Se un modulo è già in prova leggete «Puoi avere un solo modulo in prova alla volta. Attendi la scadenza o attiva l'abbonamento.»; se quel modulo l’avete già provato, «Hai già usato la prova gratuita per questo modulo.» e resta solo l’attivazione a pagamento; i dati restano salvati dopo la scadenza; per continuare serve il modulo a pagamento.
+- **Tony Guida solo nei primi 7 giorni** dalla registrazione (con un tetto di domande al giorno); dopo, per usarlo serve il piano Base.
 
 ### Piano Base (a pagamento)
 
 - Terreni e attività **senza i limiti** del gratuito (secondo quanto indicato in pagina Abbonamento).
 - **Tony Guida**: assistente in chat per **orientarvi** (dove andare, cosa significa un’etichetta, passi da fare). Su questo piano Tony può anche suggerire **moduli utili** per la vostra azienda, in modo non invadente.
-- I **moduli verticali** (Vigneto, Frutteto, **Seminativo**, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Vendemmia meccanica, Report, …) si **attivano a parte**, ciascuno con il suo prezzo (o in prova 30 giorni, un modulo alla volta): ogni modulo aggiunge voci al **pannello moduli** e nuove pagine.
+- I **moduli verticali** (Vigneto, Frutteto, **Seminativo**, Manodopera, Magazzino, Conto terzi, Parco macchine, Meteo, Vendemmia meccanica, Report, …) si **attivano a parte**, ciascuno con il suo prezzo (o in prova 30 giorni con il piano Base, un modulo alla volta e una sola volta per modulo): ogni modulo aggiunge voci al **pannello moduli** e nuove pagine.
 - Il **modulo Tony Avanzato** (se lo attivate) aggiunge **automazioni**: aprire pagine, compilare schede, filtrare elenchi, **fotografare bolle e fatture** (Tony legge le cifre; voi confermate e i dati scendono in magazzino). È **distinto** da Tony Guida incluso nel Base: potete usare la guida senza acquistare le automazioni.
 
 ### Cosa fare in pratica
 
 - Avvicinati ai limiti del Free → valuta il passaggio a **Base**.
-- Con il piano **Base**, in Abbonamento → **prova 30 giorni** o attiva a pagamento **solo i moduli** che vi servono.
+- Con il piano **Base**, in Abbonamento → **prova 30 giorni** (una sola volta per modulo) o attiva a pagamento **solo i moduli** che vi servono.
 - Con il piano **Free**, se toccate un modulo in **Moduli Disponibili** leggete «La prova gratuita dei moduli è disponibile con il piano Base.»: prima serve **✨ Passa al Piano Base**.
 - Un modulo **in prova** funziona come uno pagato: per esempio con **Manodopera** in prova si aprono la **home Manodopera** e **Gestione lavori** con tutte le funzioni.
 - Piano e moduli si cambiano **solo** da questa pagina (pagamento online, prova, **Disattiva** / **Riattiva**), e solo da chi gestisce l’abbonamento. Il passaggio a **Base** avviene sempre con il pagamento online. Il ritorno da **Base** a **Free** non si fa dall’app: compare «Il passaggio a un piano inferiore non è ancora disponibile dall'app. Per annullare l'abbonamento contatta l'assistenza.»
 - Alla **disattivazione** un modulo smette subito di funzionare; se era già pagato potete spesso **riattivarlo** fino alla data già coperta (dettaglio in pagina).
 - Se attivate o spegnete **Manodopera**, aprendo **Abbonamento** i dati passano da Diario a Gestione lavori (o, allo spegnimento, tornano nel Diario come **attività modificabili**) senza perdere nulla; con lavori ancora aperti vi viene chiesta una conferma. **[Impara qui: Diario](#mini-guida-compilare-il-diario-attivita)**
+- **Vendemmia meccanica** dipende da **Conto terzi**: se disattivate Conto terzi, l’app disattiva anche Vendemmia meccanica così **non la pagate più**. Per riattivare Vendemmia meccanica, **riattivate prima Conto terzi**.
 - Per capire Tony (chat, voce, differenza Guida/Avanzato, documenti foto/PDF) apri la **guida modulo Tony** dalla raccolta Guide.
 
 **Non devi capire nulla di tecnologia:** pensa al piano come al “pacchetto servizi” della tua azienda e ai moduli come optionali à la carte.
@@ -438,7 +453,7 @@ Nella pagina **Abbonamento** (ingranaggio in alto a destra → **Abbonamento**) 
 
 ### Chi lo vede
 
-- **Piano gratuito:** di solito **non** c’è il pulsante chat (Tony non è incluso).
+- **Piano gratuito:** **Tony Guida** c’è **solo nei primi 7 giorni** dalla registrazione, con un massimo di domande al giorno (oltre il limite Tony risponde «Hai raggiunto il limite giornaliero di 30 domande del periodo di prova di Tony Guida. Riprova domani, oppure passa al piano Base per usare Tony senza limiti.»). Dopo i 7 giorni il pulsante chat non compare più: serve il piano **Base**.
 - **Piano Base:** **Tony Guida** — spiega l’app, risponde su passi e termini, può suggerire **moduli** utili in base a come usate l’azienda (senza pressione commerciale).
 - **Modulo Tony Avanzato** (attivabile in Abbonamento): aggiunge **azioni** nell’interfaccia (aprire sezioni, compilare moduli, filtrare tabelle), oltre alla guida testuale.
 
@@ -449,6 +464,24 @@ Nella pagina **Abbonamento** (ingranaggio in alto a destra → **Abbonamento**) 
 - Con **Tony Avanzato**: «Portami al diario», «Mostrami solo i terreni in affitto» (se sei sulla lista giusta), e flussi guidati descritti nella guida Tony.
 
 Le azioni automatiche dipendono dal **modulo Tony**, dal **ruolo** e dalla **pagina** in cui ti trovi: a volte Tony ti guida a mano invece di premere al posto tuo.
+
+### I primi 7 giorni: Tony ti accompagna
+
+Se avete preparato l’azienda insieme a Tony al momento dell’iscrizione, nei **primi 7 giorni** Tony si apre da solo dopo l’accesso (manager e amministratore; non nella schermata in campo di operaio e caposquadra) e scrive: «Ciao …! Per 7 giorni ti guido dentro l’app, a passi brevi. Usa la graffetta in alto a sinistra per aprire i moduli.» Se manca ancora il pin della sede aggiunge «(il pin della sede manca ancora: lo mettiamo al passo 1)». Su telefono il pannello si apre senza far salire la tastiera.
+
+Sotto il messaggio trovi tre pulsanti, uno per passo, e **Chiudi percorso**:
+
+1. **1) Mappa / sede** — porta a **Impostazioni**, dove mettete il pin della sede.
+2. **2) Terreni (coltura e confini)** — porta a **Terreni**: categoria coltura, coltura e, se volete, i confini.
+3. **3) Primo lavoro / attività nel Diario** — porta al **Diario attività** per la prima giornata in campo.
+
+Se premendo un passo Tony risponde che serve il modulo **Tony Avanzato**, aprite la pagina a mano. **Impostazioni** si apre dall’ingranaggio in alto a destra. **Terreni** e **Diario attività** si aprono dalla graffetta in alto a sinistra.
+
+Nei giorni seguenti, al massimo una volta al giorno, Tony riprende dal primo passo che non avete ancora aperto (per esempio «Riprendiamo dai terreni. Usa i pulsanti qui sotto o la graffetta in alto a sinistra.») e mostra solo i passi che restano. Con **Chiudi percorso** Tony risponde «Ok, chiudo il percorso guidato. Se ti serve, chiedimi pure.» e non lo ripropone più. Il percorso si ricorda **su questo browser**: su un altro telefono o computer può ripartire dall’inizio.
+
+### Salutare Tony quando hai finito
+
+Quando hai finito puoi salutare Tony con una frase breve, per esempio «grazie», «a posto così», «basta così», «a dopo» o «buon lavoro»: Tony risponde «Va bene, a presto!» e, se stavi parlando a voce con il microfono sempre acceso, lo spegne. «Ciao» da solo chiude solo se Tony ti ha già risposto (all’inizio vale come saluto). Una frase che contiene anche una domanda o una richiesta («grazie, mi apri i terreni?») non chiude: Tony risponde alla richiesta.
 
 Per **voce**, **briefing in dashboard**, **esempi completi** e **operaio/caposquadra**, apri la documentazione del **modulo Tony** dal pulsante **Guide** (stesso stile delle guide Magazzino, Manodopera, Conto terzi).
 

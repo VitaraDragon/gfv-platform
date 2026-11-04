@@ -68,7 +68,7 @@ Non tutte le funzioni sono al **massimo livello** in ogni versione: conta il **p
 
 Di solito trovi un **pulsante flottante** (icona / bolla) sul bordo dello schermo: è il **widget Tony**. Toccandolo si apre il **pannello chat**.
 
-- Se **non vedi** il pulsante, può dipendere dal **piano** (es. piano gratuito senza accesso al widget), dal **browser** o dal fatto che la pagina non carichi ancora il widget: aggiorna la pagina o verifica **Abbonamento** con l’amministratore.
+- Se **non vedi** il pulsante, può dipendere dal **piano** (es. piano gratuito dopo i primi 7 giorni dalla registrazione), dal **browser** o dal fatto che la pagina non carichi ancora il widget: aggiorna la pagina o verifica **Abbonamento** con l’amministratore.
 
 ### Chat
 
@@ -85,6 +85,10 @@ Su molte pagine Tony può **leggere ad alta voce** le risposte (sintesi vocale):
 - Il **microfono** (quando presente) serve a **dettare** o parlare invece di scrivere: in ambienti rumorosi può essere comodo **scrivere**.  
 - In **modalità continua** (auto), dopo che Tony ha parlato il microfono può **riaprirsi** da solo per il turno successivo — aspetta che finisca il messaggio prima di parlare di nuovo.  
 - Se l’audio è occupato dalla lettura, il microfono può restare **in pausa**: è normale.
+
+### Chiudere la conversazione
+
+Quando hai finito, saluta Tony con una frase breve: «grazie», «a posto così», «basta così», «a dopo», «buon lavoro». Tony risponde «Va bene, a presto!» e, se stavi parlando con il microfono sempre acceso, lo spegne. «Ciao» da solo chiude solo dopo che Tony ti ha già risposto. Se nella stessa frase c’è anche una domanda o una richiesta («grazie, mi apri i terreni?»), Tony non chiude e risponde alla richiesta.
 
 ---
 
@@ -116,7 +120,11 @@ Se chiedi un’azione automatica e Tony risponde che serve il **modulo Tony** / 
 
 ### Piano gratuito
 
-Sul **piano gratuito** **non** è disponibile Tony: il **pulsante chat non compare** e il servizio non risponde. Per usare Tony serve il **piano Base** (Tony Guida) e, per le automazioni, il **modulo Tony Avanzato**.
+Sul **piano gratuito** Tony Guida c’è **solo nei primi 7 giorni** dalla registrazione, con un massimo di **30 domande al giorno**; oltre il limite Tony risponde «Hai raggiunto il limite giornaliero di 30 domande del periodo di prova di Tony Guida. Riprova domani, oppure passa al piano Base per usare Tony senza limiti.». Dopo i 7 giorni il **pulsante chat non compare** più. Per usare Tony sempre serve il **piano Base** (Tony Guida) e, per le automazioni, il **modulo Tony Avanzato**.
+
+### I primi 7 giorni: il percorso guidato
+
+Se avete preparato l’azienda insieme a Tony al momento dell’iscrizione, nei **primi 7 giorni** Tony si apre da solo dopo l’accesso (manager e amministratore) con «Ciao …! Per 7 giorni ti guido dentro l’app, a passi brevi. Usa la graffetta in alto a sinistra per aprire i moduli.» e tre pulsanti: **1) Mappa / sede**, **2) Terreni (coltura e confini)**, **3) Primo lavoro / attività nel Diario**, più **Chiudi percorso**. Se manca il pin della sede lo dice («lo mettiamo al passo 1»). Nei giorni dopo, una volta al giorno, riprende dal passo che non avete ancora aperto. Se premendo un passo Tony risponde che serve **Tony Avanzato**, aprite la pagina a mano (ingranaggio → **Impostazioni**; graffetta → **Terreni** o **Diario attività**). Dettaglio nella guida Core, sezione Tony.
 
 ---
 
@@ -306,7 +314,9 @@ In cortile ricevi una bolla. Apri Tony → fotocamera → scatto → **Acquisizi
 
 | Problema | Cosa controllare |
 |----------|------------------|
-| **Non vedo** il pulsante Tony | Piano **Free** — Tony non incluso; pagina in caricamento; chiedere all’**amministratore** di passare a **Base**. |
+| **Non vedo** il pulsante Tony | Piano **Free** dopo i primi 7 giorni dalla registrazione; pagina in caricamento; chiedere all’**amministratore** di passare a **Base**. |
+| «Hai raggiunto il limite giornaliero di 30 domande…» | Piano **Free** nei primi 7 giorni: riprova domani oppure passa a **Base**. |
+| Premo un passo del percorso dei primi 7 giorni e Tony dice che serve **Tony Avanzato** | Apri la pagina a mano: ingranaggio → **Impostazioni**; graffetta in alto a sinistra → **Terreni** o **Diario attività**. |
 | Tony dice che serve **Tony Avanzato** | Automazioni (apri pagina, compila, filtri, intervista vocale) richiedono il **modulo Tony** attivo in **Abbonamento**. |
 | **Nessun consiglio moduli** | Consigliere attivo solo su **piano Base**; chiedi esplicitamente («quali moduli…»); servono abbastanza dati azienda (terreni, uso app). |
 | «**Non ho i dati** della lista» | Sei sulla pagina giusta? La tabella è caricata? Prova a **rifare la domanda** dopo che i dati compaiono. |
